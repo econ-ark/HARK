@@ -153,7 +153,7 @@ class TractableConsumerType(AgentType):
         self.c_targ = (1.0-self.scriptR**(-1.0))*self.m_targ+self.scriptR**(-1.0)
         m_targU = (self.m_targ - self.c_targ)*self.scriptR
         c_targU = m_targU*self.kappa_PF
-        self.epsilon = self.m_targ*0.5
+        self.epsilon = self.m_targ*0.1
         
         # Find the MPC, MMPC, and MMMPC at the target
         mpcTargFixedPointFunc = lambda k : k*uPP(self.c_targ) - self.Beth*((1.0-self.mho)*(1.0-k)*k*self.scriptR*uPP(self.c_targ)+self.kappa_PF*self.mho*(1.0-k)*self.scriptR*uPP(c_targU))
@@ -202,7 +202,7 @@ class TractableConsumerType(AgentType):
         self.solution[0].kappa_list.insert(0,self.kappa_max)
         
         # Construct an interpolation of the consumption function from the stable arm points
-        self.solution[0].cFunc = Cubic1DInterpDecay(self.solution[0].m_list,self.solution[0].c_list,self.solution[0].kappa_list,self.kappa_PF*self.h,self.kappa_PF)
+        self.solution[0].cFunc = Cubic1DInterpDecay(self.solution[0].m_list,self.solution[0].c_list,self.solution[0].kappa_list,self.kappa_PF*(self.h-1.0),self.kappa_PF)
         self.solution[0].cFunc_U = lambda m : self.kappa_PF*m
         #self.cFunc = self.solution[0].cFunc
         

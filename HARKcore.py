@@ -1,8 +1,8 @@
 from HARKutilities import getArgNames, NullFunc
 from copy import deepcopy
-#import dill as pickle
-#import multiprocessing
-#from joblib import Parallel, delayed
+import dill as pickle
+import multiprocessing
+from joblib import Parallel, delayed
 
 
 class AgentType():
@@ -70,11 +70,11 @@ class AgentType():
         '''
         self.preSolve()
         self.solution = solveAgent(self)
-        if not ('solution' in self.time_vary):
-            self.time_vary.append('solution')
+        self.postSolve()
         if self.time_flow:
             self.solution.reverse()
-        self.postSolve()
+        if not ('solution' in self.time_vary):
+            self.time_vary.append('solution')
 
     def isSameThing(self,solutionA,solutionB):
         '''
@@ -248,32 +248,30 @@ def multiThreadCommandsFake(agent_list,command_list):
             exec('agent.' + command)
 
        
-#def multiThreadCommands(agent_list,command_list,parallel):
-#    '''
-#    Executes the list of commands in command_list for each AgentType in agent_list
-#    using a multithreaded system. Each command should be a method of that AgentType subclass.
-#    
-#    Parameters:
-#    -----------
-#    agent_list : [AgentType]
-#        A list of instances of AgentType on which the commands will be run.
-#    command_list : [string]
-#        A list of commands to run for each AgentType.
-#        
-#    Returns:
-#    ----------
-#    none
-#    '''
-#    agent_list_out = parallel(delayed(runCommands)(*args) for args in zip(agent_list, len(agent_list)*[command_list]))
-#    for j in range(len(agent_list)):
-#        agent_list[j] = agent_list_out[j]
+def multiThreadCommands(agent_list,command_list,num_jobs=None):
+    '''
+    Executes the list of commands in command_list for each AgentType in agent_list
+    using a multithreaded system. Each command should be a method of that AgentType subclass.
+    
+    Parameters:
+    -----------
+    agent_list : [AgentType]
+        A list of instances of AgentType on which the commands will be run.
+    command_list : [string]
+        A list of commands to run for each AgentType.
+        
+    Returns:
+    ----------
+    none
+    '''
+    if num_jobs is None:
+        num_jobs = min(len(agent_list),multiprocessing.cpu_count())
+    agent_list_out = Parallel(n_jobs=num_jobs)(delayed(runCommands)(*args) for args in zip(agent_list, len(agent_list)*[command_list]))
+    for j in range(len(agent_list)):
+        agent_list[j] = agent_list_out[j]
 
     
 def runCommands(agent,command_list):
     for command in command_list:
         exec('agent.' + command)
     return agent
-
-#def makeParallelPool(type_list):
-#    num_jobs = min(len(type_list),multiprocessing.cpu_count())
-#    return Parallel(n_jobs=num_jobs, backend='threading')

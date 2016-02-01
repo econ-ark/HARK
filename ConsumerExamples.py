@@ -1,16 +1,16 @@
 import SetupConsumerParameters as Params
 import ConsumptionSavingModel as Model
-from HARKutilities import plotFunc, plotFuncDer, plotFuncs
+from HARKutilities import plotFunc, plotFuncDer, plotFuncs, calculateMeanOneLognormalDiscreteApprox, createFlatStateSpaceFromIndepDiscreteProbs
 from time import clock
 from copy import deepcopy
+import numpy as np
 mystr = lambda number : "{:.4f}".format(number) 
 
 do_hybrid_type = False
+do_markov_type = True
 
 # Make and solve a finite consumer type
 LifecycleType = Model.ConsumerType(**Params.init_consumer_objects)
-#scriptR_shocks, xi_shocks = Model.generateIncomeShockHistoryLognormalUnemployment(LifecycleType)
-#LifecycleType.addIncomeShockPaths(scriptR_shocks,xi_shocks)
 
 start_time = clock()
 LifecycleType.solve()
@@ -46,12 +46,12 @@ InfiniteType.unpack_cFunc()
 
 # Plot the consumption function and MPC for the infinite horizon consumer
 print('Consumption function:')
-plotFunc(InfiniteType.cFunc[0],0,5)    # plot consumption
+plotFunc(InfiniteType.cFunc[0],0,50)    # plot consumption
 print('Marginal consumption function:')
 plotFuncDer(InfiniteType.cFunc[0],0,5) # plot MPC
 if InfiniteType.calc_vFunc:
     print('Value function:')
-    plotFunc(InfiniteType.solution[0].vFunc,0.2,5)
+    plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
 
 
 # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
@@ -98,3 +98,51 @@ if do_hybrid_type:
     # Plot the consumption function for the cyclical consumer type
     print('"Hybrid solver" consumption function:')
     plotFunc(HybridType.cFunc[0],0,5)
+    
+
+# Make and solve a type that has serially correlated unemployment   
+if do_markov_type:
+    # Define the Markov transition matrix
+    unemp_length = 5
+    urate_good = 0.05
+    urate_bad = 0.12
+    bust_prob = 0.01
+    recession_length = 20
+    p_reemploy =1.0/unemp_length
+    p_unemploy_good = p_reemploy*urate_good/(1-urate_good)
+    p_unemploy_bad = p_reemploy*urate_bad/(1-urate_bad)
+    boom_prob = 1.0/recession_length
+    transition_matrix = np.array([[(1-p_unemploy_good)*(1-bust_prob),p_unemploy_good*(1-bust_prob),(1-p_unemploy_good)*bust_prob,p_unemploy_good*bust_prob],
+                                  [p_reemploy*(1-bust_prob),(1-p_reemploy)*(1-bust_prob),p_reemploy*bust_prob,(1-p_reemploy)*bust_prob],
+                                  [(1-p_unemploy_bad)*boom_prob,p_unemploy_bad*boom_prob,(1-p_unemploy_bad)*(1-boom_prob),p_unemploy_bad*(1-boom_prob)],
+                                  [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
+    
+    MarkovType = deepcopy(InfiniteType)
+    xi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.xi_N, 0.1)
+    psi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.psi_N, 0.1)
+    employed_income_dist = createFlatStateSpaceFromIndepDiscreteProbs(psi_dist, xi_dist)
+    employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]
+    unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
+    p_zero_income = [np.array([0.0,1.0,0.0,1.0])]
+    
+    MarkovType.solution_terminal.cFunc = 4*[MarkovType.solution_terminal.cFunc]
+    MarkovType.solution_terminal.vFunc = 4*[MarkovType.solution_terminal.vFunc]
+    MarkovType.solution_terminal.vPfunc = 4*[MarkovType.solution_terminal.vPfunc]
+    MarkovType.solution_terminal.vPPfunc = 4*[MarkovType.solution_terminal.vPPfunc]
+    MarkovType.solution_terminal.m_underbar = 4*[MarkovType.solution_terminal.m_underbar]
+    
+    MarkovType.income_distrib = [[employed_income_dist,unemployed_income_dist,employed_income_dist,unemployed_income_dist]]
+    MarkovType.p_zero_income = p_zero_income
+    MarkovType.transition_matrix = transition_matrix
+    MarkovType.time_inv.append('transition_matrix')
+    MarkovType.solveAPeriod = Model.consumptionSavingSolverMarkov
+    MarkovType.cycles = 0
+    
+    MarkovType.timeFwd()
+    start_time = clock()
+    MarkovType.solve()
+    end_time = clock()
+    print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    print('Consumption functions for each discrete state:')
+    plotFuncs(MarkovType.solution[0].cFunc,0,50)
+    
