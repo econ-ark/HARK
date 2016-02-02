@@ -1,3 +1,8 @@
+# Import modules neecessary for multithreading.
+# Note these are NOT part of Anaconda and will have to be installed separately.
+from joblib import Parallel, delayed
+import dill as pickle
+
 import SetupConsumerParameters as Params
 import ConsumptionSavingModel as Model
 from HARKutilities import plotFunc, plotFuncDer, plotFuncs
