@@ -3,9 +3,10 @@ This package contains the estimations for cstwMPC.
 '''
 
 # Import the HARK library.  The assumption is that this code is in a folder
-# contained in the HARK folder. 
+# contained in the HARK folder. Also import ConsumptionSavingModel
 import sys 
 sys.path.insert(0,'../')
+sys.path.insert(0,'../ConsumptionSavingModel')
 
 import numpy as np
 from copy import copy, deepcopy
