@@ -2,6 +2,11 @@
 This module solves a simple retirement choice model.
 '''
 
+# Import the HARK library.  The assumption is that this code is in a folder
+# contained in the HARK folder. 
+import sys 
+sys.path.insert(0,'../')
+
 from ConsumptionSavingModel import consumptionSavingSolverENDG, ConsumerType
 from DiscreteChoice import discreteChoiceContinuousStateSolver, DiscreteChoiceSolution, makeCRRAtransformations
 from HARKutilities import setupGridsExpMult, plotFunc, plotFuncs, addDiscreteOutcomeConstantMean, calculateMeanOneLognormalDiscreteApprox, createFlatStateSpaceFromIndepDiscreteProbs, CRRAutility, CRRAutilityP

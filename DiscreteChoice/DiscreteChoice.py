@@ -3,6 +3,10 @@ This module implements a discrete choice problem in a continuous space, as in
 Rust, Iskhakov, Schjerning, and Jorgenson (2015).  It also includes the extension
 to "transformed" value functions.
 '''
+# Import the HARK library.  The assumption is that this code is in a folder
+# contained in the HARK folder. 
+import sys 
+sys.path.insert(0,'../')
 
 import numpy as np
 from HARKinterpolation import LinearInterp, Cubic1DInterpDecay

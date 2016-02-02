@@ -1,6 +1,11 @@
 '''
 This module runs an example version of the Tractable Buffer Stock model.
 '''
+# Import the HARK library.  The assumption is that this code is in a folder
+# contained in the HARK folder.  Also import the ConsumptionSavingModel
+import sys 
+sys.path.insert(0,'../')
+sys.path.insert(0,'../ConsumptionSavingModel')
 
 import numpy as np
 import TractableBufferStock as Model

@@ -3,6 +3,11 @@ This module demonstrates some examples of the discrete choice solver in a
 continuous 1D space.
 '''
 
+# Import the HARK library.  The assumption is that this code is in a folder
+# contained in the HARK folder. 
+import sys 
+sys.path.insert(0,'../')
+
 from ConsumptionSavingModel import consumptionSavingSolverENDG, ConsumerType
 from DiscreteChoice import discreteChoiceContinuousStateSolver, DiscreteChoiceSolution
 from HARKutilities import calculateMeanOneLognormalDiscreteApprox, addDiscreteOutcomeConstantMean, setupGridsExpMult, plotFunc, plotFuncs, CRRAutility_inv, CRRAutility_invP

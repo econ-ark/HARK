@@ -1,6 +1,12 @@
 '''
 This package contains the estimations for cstwMPC.
 '''
+
+# Import the HARK library.  The assumption is that this code is in a folder
+# contained in the HARK folder. 
+import sys 
+sys.path.insert(0,'../')
+
 import numpy as np
 from copy import copy, deepcopy
 from time import time
