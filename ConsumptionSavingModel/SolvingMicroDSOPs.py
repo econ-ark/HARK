@@ -1,3 +1,8 @@
+# Import the HARK library.  The assumption is that this code is in a folder
+# contained in the HARK folder. 
+import sys 
+sys.path.insert(0,'../')
+
 import SetupConsumerParameters as Params
 import ConsumptionSavingModel as Model
 import SetupSCFdata as Data

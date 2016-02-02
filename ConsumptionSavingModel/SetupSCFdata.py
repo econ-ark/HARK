@@ -1,6 +1,10 @@
 '''
 This module sets up the SCF data for use in the SolvingMicroDSOPs estimation.
 '''
+# Import the HARK library.  The assumption is that this code is in a folder
+# contained in the HARK folder. 
+import sys 
+sys.path.insert(0,'../')
 
 # The following libraries are part of the standard python distribution
 from __future__ import division                         # Use new division function
@@ -8,7 +12,7 @@ import numpy as np                                      # Numerical Python
 import csv
 from SetupConsumerParameters import initial_age, empirical_cohort_age_groups                           
 
-# Libraries below are part of HART's module system and must be in this directory
+# Libraries below are part of HARK's module system and must be in this directory
 from HARKutilities import warnings
 
 # Set the path to the empirical data:

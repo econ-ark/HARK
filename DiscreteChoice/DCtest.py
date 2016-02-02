@@ -2,6 +2,11 @@
 This is a temporary script for testing the discrete choice module.
 '''
 
+# Import the HARK library.  The assumption is that this code is in a folder
+# contained in the HARK folder. 
+import sys 
+sys.path.insert(0,'../')
+
 from HARKutilities import plotFunc, plotFuncs
 import DiscreteChoice as Model
 import numpy as np
