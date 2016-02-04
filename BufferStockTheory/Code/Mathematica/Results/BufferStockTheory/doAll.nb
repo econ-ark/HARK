@@ -1,0 +1,172 @@
+Notebook[{
+Cell["\<\
+(* This cell contains uninteresting generic setup stuff to prepare for \
+execution of the programs *)
+
+ClearAll[\"Global`*\"];
+
+(* If running from Notebook front end, set directory to Notebook's directory *)
+If[Length[$FrontEnd] > 0, NBDir = SetDirectory[NotebookDirectory[]]];(* If \
+running from the Notebook interface *)
+If[Length[$FrontEnd] == \
+0,SetDirectory[\"/Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/Code/\
+Mathematica/Results/BufferStockTheory\"]];
+
+HomeDir = Directory[];
+CodeDir = HomeDir<>\"/../../CoreCode\";
+CDToHomeDir := SetDirectory[HomeDir];
+CDToCodeDir := SetDirectory[HomeDir<>\"/../../CoreCode\"];
+CDToCodeDir;
+
+<<SetupModelSolutionRoutines.m;
+<<SetParamsToBaselineVals.m;
+SaveFigs=True;\
+\>", "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.5151428182750473`*^9, 3.515142818465529*^9}, 
+   3.5158838104381123`*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Example", " ", "of", " ", "parameters", " ", "where", " ", "FVAC", " ", 
+    "holds", " ", "but", " ", "GIC", " ", "fails"}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"CDToHomeDir", ";"}], "\n", 
+   RowBox[{
+    RowBox[{"<<", "SetParamsFVACnotGIC.m"}], ";"}], " ", "\n", 
+   RowBox[{"SetupGrids", ";"}], "\n", 
+   RowBox[{"SetupShocks", ";"}], "\n", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{
+     "\"\<GIC fails (1 < \[CapitalThorn]\[CapitalGamma]):\>\"", " ", ",", " ", 
+      RowBox[{"1", " ", "<", " ", "GICValue"}]}], "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<FVAC holds FVA < 1:\>\"", ",", 
+      RowBox[{"FVA", " ", "<", " ", "1"}]}], "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"ConstructLastPeriodToConsumeEverything", ";"}], "\n", 
+   RowBox[{
+    RowBox[{"<<", "FVACNotGICPlot.m"}], ";"}]}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{
+  3.454950478130888*^9, 3.454950530191256*^9, {3.45495085936756*^9, 
+   3.454950881581921*^9}, 3.454951003110471*^9, 3.455357482694325*^9, {
+   3.4554433604115*^9, 3.455443403277898*^9}, 3.45546013535954*^9, {
+   3.456733777815639*^9, 3.45673377814104*^9}, 3.456734341207876*^9, {
+   3.457272964715413*^9, 3.457272964959721*^9}, {3.457351422195839*^9, 
+   3.457351422563146*^9}, {3.457351586586855*^9, 3.457351612337237*^9}, {
+   3.49776429167487*^9, 3.497764302151173*^9}, {3.497852846724268*^9, 
+   3.497852849041798*^9}, 3.498925647382698*^9, {3.5049020340917597`*^9, 
+   3.504902039486289*^9}, {3.5050581383171053`*^9, 3.505058154107749*^9}, {
+   3.505058201734544*^9, 3.505058204650082*^9}, {3.505109526377853*^9, 
+   3.505109552556259*^9}, {3.505109655017013*^9, 3.505109672047331*^9}, {
+   3.505109799041541*^9, 3.5051098090548773`*^9}, 3.50519823985072*^9, {
+   3.515177565517104*^9, 3.515177567652555*^9}, {3.515177635519368*^9, 
+   3.515177636845182*^9}, {3.516437272068337*^9, 3.516437272839446*^9}, {
+   3.5164709427208433`*^9, 3.51647094442111*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Show", " ", "convergence", " ", "of", " ", "consumption", " ", "rules", 
+    " ", "iterating", " ", "back", " ", "from", " ", "terminal", " ", 
+    "period", " ", "T"}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{"SetParamsBaseline", ";"}], "\[IndentingNewLine]", 
+   RowBox[{"SetupGrids", ";"}], "\[IndentingNewLine]", 
+   RowBox[{"SetupShocks", ";"}], "\n", 
+   RowBox[{"ConstructLastPeriodToConsumeEverything", ";"}], " ", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Define", " ", "terminal", " ", "consumption", " ", "rule", " ", "as", 
+     " ", "the", " ", "one", " ", "for", " ", "the", " ", "finite", " ", 
+     "horizon"}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{"CDToHomeDir", ";"}], "\n", 
+   RowBox[{
+    RowBox[{"<<", "cFuncsConvergeSolve.m"}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"<<", "cFuncsConvergePlot.m"}], ";"}]}]}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.515142895614184*^9, 3.515142914138187*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Show", " ", "characteristics", " ", "of", " ", "the", " ", "converged", 
+    " ", "consumption", " ", "rule"}], " ", "*)"}], "\n", 
+  RowBox[{
+   RowBox[{"SetParamsBaseline", ";"}], "\[IndentingNewLine]", 
+   RowBox[{"ConstructLastPeriod", ";"}], "\n", 
+   RowBox[{
+    RowBox[{"aGridVecExcBotSmallLength", " ", "=", " ", "10"}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"aGridVecExcBotLargeLength", " ", "=", " ", "30"}], ";"}], "\n", 
+   RowBox[{"SetupGrids", ";"}], "\n", 
+   RowBox[{
+    RowBox[{"SolveInfHorizToToleranceAtTarget", "[", 
+     RowBox[{"mTargetDiffAtSuccessiveIterations", "=", "0.001"}], "]"}], 
+    ";"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{"CDToHomeDir", ";", 
+  RowBox[{"<<", "cFuncBoundsPlot.m"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"<<", "cGroTargetFigPlot.m"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"<<", "MPCLimitsPlot.m"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"<<", "cRatTargetFigPlot.m"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"VerboseOutput", "=", "True"}], ";"}]], "Input"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"<<", "SimCDFsConverge.m"}], ";"}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.5151882755358057`*^9, 3.515188282056437*^9}, 
+   3.51519631966243*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"<<", "SimCDFsConvergePlot.m"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"<<", "SimRevolution.m"}], ";"}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.5151952480387774`*^9, 3.515195257362608*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"<<", "SimRevolutionPlot.m"}], ";"}]], "Input",
+ InitializationCell->True]
+},
+WindowSize->{1376, 1167},
+WindowMargins->{{9, Automatic}, {Automatic, 0}},
+FrontEndVersion->"10.2 for Mac OS X x86 (32-bit, 64-bit Kernel) (July 6, \
+2015)",
+StyleDefinitions->"Default.nb"
+]
+

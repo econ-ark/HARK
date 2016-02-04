@@ -1,0 +1,54 @@
+This is BibTeX, Version 0.99d (TeX Live 2013)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: BufferStockTheory.aux
+The style file: econtex.bst
+Database file #1: economics.bib
+Repeated entry---line 3253 of file economics.bib
+ : @article{awIntOpt
+ :                  ,
+I'm skipping whatever remains of this entry
+Database file #2: BufferStockTheory.bib
+Database file #3: BufferStockTheory-Add.bib
+Done.
+You've used 32 entries,
+            2327 wiz_defined-function locations,
+            787 strings with 9488 characters,
+and the built_in function-call counts, 15055 in all, are:
+= -- 1546
+> -- 701
+< -- 2
++ -- 241
+- -- 201
+* -- 1308
+:= -- 2898
+add.period$ -- 36
+call.type$ -- 32
+change.case$ -- 178
+chr.to.int$ -- 32
+cite$ -- 32
+duplicate$ -- 560
+empty$ -- 981
+format.name$ -- 245
+if$ -- 2914
+int.to.chr$ -- 1
+int.to.str$ -- 0
+missing$ -- 35
+newline$ -- 109
+num.names$ -- 193
+pop$ -- 139
+preamble$ -- 2
+purify$ -- 178
+quote$ -- 0
+skip$ -- 517
+stack$ -- 0
+substring$ -- 928
+swap$ -- 111
+text.length$ -- 2
+text.prefix$ -- 0
+top$ -- 1
+type$ -- 343
+warning$ -- 0
+while$ -- 192
+width$ -- 0
+write$ -- 397
+(There was 1 error message)

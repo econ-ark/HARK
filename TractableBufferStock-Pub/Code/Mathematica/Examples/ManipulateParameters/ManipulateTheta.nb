@@ -1,0 +1,190 @@
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Manipulate\[CurlyTheta]", "Section",
+ CellChangeTimes->{{3.420213147835127*^9, 3.4202131504065943`*^9}, {
+  3.42644433161839*^9, 3.4264443407101917`*^9}, {3.426444517224485*^9, 
+  3.426444519227916*^9}, {3.426447103535618*^9, 3.426447109616365*^9}, {
+  3.426447230929802*^9, 3.4264472318311663`*^9}, {3.4264473149189034`*^9, 
+  3.4264473172011147`*^9}, {3.426447457284823*^9, 3.426447459931831*^9}, {
+  3.4264566303504343`*^9, 3.426456632920279*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"SetDirectory", "[", 
+   RowBox[{"NotebookDirectory", "[", "]"}], "]"}], ";", 
+  RowBox[{"<<", "ManipulatePrepare.m"}], ";", "FindStableArm", 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{"\[ScriptM]Max", ",", "\[ScriptM]MaxMax"}], "}"}], "=", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{"2", ",", "3"}], "}"}], " ", "\[ScriptM]E"}]}], ";", 
+  RowBox[{"\[ScriptC]Max", "=", 
+   RowBox[{"cE", "[", "\[ScriptM]MaxMax", "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{"Manipulate", "[", "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"Block", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"$PerformanceGoal", "=", "\"\<Quality\>\""}], ",", " ", 
+       "\[CurlyTheta]"}], "}"}], ",", 
+     RowBox[{
+      RowBox[{"\[CurlyTheta]", "=", "\[CurlyTheta]Base"}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{"\[CurlyTheta]", "=", "\[CurlyTheta]Slider"}], ";", 
+      RowBox[{"If", "[", 
+       RowBox[{
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"(", "R", ")"}], " ", "\[Beta]"}], ")"}], "^", 
+            RowBox[{"(", 
+             RowBox[{"1", "/", "\[Rho]"}], ")"}]}], "/", "\[CapitalGamma]"}], 
+          " ", "\[GreaterEqual]", "  ", "1"}], "||", 
+         RowBox[{
+          RowBox[{
+           RowBox[{
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"(", "R", ")"}], " ", "\[Beta]"}], ")"}], "^", 
+            RowBox[{"(", 
+             RowBox[{"1", "/", "\[Rho]"}], ")"}]}], "/", 
+           RowBox[{"(", "R", ")"}]}], " ", "\[GreaterEqual]", "  ", "1"}]}], 
+        ",", 
+        RowBox[{
+         RowBox[{"Style", "[", 
+          RowBox[{
+           RowBox[{
+           "Text", "[", "\"\<Impatience Condition Not Satisfied.\>\"", "]"}], 
+           ",", "24"}], "]"}], ";", 
+         RowBox[{"Abort", "[", "]"}]}]}], "]"}], ";", "\[IndentingNewLine]", 
+      RowBox[{"DrawPhaseDiagram", "[", 
+       RowBox[{
+       "\[ScriptM]Max", ",", "\[ScriptM]MaxMax", ",", "\[ScriptC]Max"}], 
+       "]"}]}]}], "\[IndentingNewLine]", "]"}], ",", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+      "\[CurlyTheta]Slider", ",", ".10", ",", "\"\<\[CurlyTheta]\>\""}], 
+      "}"}], ",", 
+     RowBox[{".10", "-", ".025"}], ",", 
+     RowBox[{".10", "+", "0.025"}], ",", "0.005"}], "}"}]}], "]"}]}], "Input",
+ 
+ InitializationCell->True,
+ CellChangeTimes->{{3.420152995260653*^9, 3.420153060256028*^9}, {
+   3.420153448771255*^9, 3.420153495730507*^9}, {3.420153875299324*^9, 
+   3.420153916369935*^9}, {3.4201539531458807`*^9, 3.420153981461334*^9}, {
+   3.420154882625534*^9, 3.420154921822242*^9}, {3.420155521331831*^9, 
+   3.420155624638013*^9}, {3.4201560183089733`*^9, 3.420156019092039*^9}, {
+   3.420159924229837*^9, 3.420159951622138*^9}, 3.420164451138542*^9, {
+   3.420210133792045*^9, 3.4202101652034073`*^9}, {3.420210251017335*^9, 
+   3.420210267827066*^9}, {3.4202103392727423`*^9, 3.420210368925075*^9}, {
+   3.420210418870116*^9, 3.420210419132986*^9}, {3.420212014090701*^9, 
+   3.4202121012554092`*^9}, {3.420212453269247*^9, 3.420212498935313*^9}, {
+   3.420212576815176*^9, 3.420212578316436*^9}, {3.420212806584901*^9, 
+   3.4202128584381247`*^9}, {3.42021292375949*^9, 3.420212923892323*^9}, 
+   3.420213242835517*^9, {3.4233025056297283`*^9, 3.4233025264258337`*^9}, {
+   3.423302570675579*^9, 3.423302570715127*^9}, {3.423302885073079*^9, 
+   3.423302893783193*^9}, {3.423302963279566*^9, 3.4233030146739798`*^9}, {
+   3.426419504647056*^9, 3.426419519053845*^9}, {3.4264196241559677`*^9, 
+   3.426419630092752*^9}, {3.4264197849222803`*^9, 3.4264197894721518`*^9}, {
+   3.426419832512763*^9, 3.426419847982398*^9}, {3.426447122243643*^9, 
+   3.4264471389185867`*^9}, {3.4264473431041813`*^9, 3.426447349197194*^9}, {
+   3.426447479195465*^9, 3.426447493384697*^9}, {3.426447529587325*^9, 
+   3.426447557278236*^9}, {3.4264475940446253`*^9, 3.426447595517712*^9}, {
+   3.426455021684596*^9, 3.426455087658908*^9}, {3.426455132168263*^9, 
+   3.426455132821782*^9}, {3.426455732223634*^9, 3.426455735286086*^9}, {
+   3.426455770139801*^9, 3.426455806258988*^9}, {3.426455889509659*^9, 
+   3.4264559439087877`*^9}, {3.426456185840166*^9, 3.4264562122531967`*^9}, {
+   3.426456340922948*^9, 3.426456356554308*^9}, {3.426456410373501*^9, 
+   3.4264564378806763`*^9}, 3.426482205262773*^9, {3.4264822635820723`*^9, 
+   3.426482266426785*^9}, {3.426482307750296*^9, 3.426482314011464*^9}, {
+   3.426482363554727*^9, 3.4264824240095663`*^9}, {3.426482478517323*^9, 
+   3.4264825151697206`*^9}, {3.4264850493530703`*^9, 3.426485050573749*^9}, {
+   3.426485518205102*^9, 3.426485519424177*^9}, {3.42648614702577*^9, 
+   3.426486147239705*^9}, {3.426486378714753*^9, 3.4264863933582993`*^9}, 
+   3.426486424353854*^9, {3.426486502981146*^9, 3.426486505293152*^9}, {
+   3.4264868364308043`*^9, 3.4264868960502167`*^9}, 3.4264871453043833`*^9, {
+   3.426487266567664*^9, 3.4264872700202627`*^9}, {3.426487309695282*^9, 
+   3.426487310140718*^9}, {3.426487345319035*^9, 3.426487350487356*^9}, 
+   3.426505325306403*^9, 3.426505956500565*^9, {3.426510082998086*^9, 
+   3.4265100892495327`*^9}, {3.426510134341832*^9, 3.4265101462245703`*^9}, {
+   3.426510199668549*^9, 3.4265102109093733`*^9}}],
+
+Cell[BoxData[
+ TagBox[
+  StyleBox[
+   DynamicModuleBox[{$CellContext`\[CurlyTheta]Slider$$ = 0.07500000000000001,
+     Typeset`show$$ = True, Typeset`bookmarkList$$ = {}, 
+    Typeset`bookmarkMode$$ = "Menu", Typeset`animator$$, Typeset`animvar$$ = 
+    1, Typeset`name$$ = "\"untitled\"", Typeset`specs$$ = {{{
+       Hold[$CellContext`\[CurlyTheta]Slider$$], 0.1, "\[CurlyTheta]"}, 
+      0.07500000000000001, 0.125, 0.005}}, Typeset`size$$ = {
+    702., {209., 225.}}, Typeset`update$$ = 0, Typeset`initDone$$, 
+    Typeset`skipInitDone$$ = True, $CellContext`\[CurlyTheta]Slider$56545$$ = 
+    0}, 
+    DynamicBox[Manipulate`ManipulateBoxes[
+     1, StandardForm, 
+      "Variables" :> {$CellContext`\[CurlyTheta]Slider$$ = 0.1}, 
+      "ControllerVariables" :> {
+        Hold[$CellContext`\[CurlyTheta]Slider$$, \
+$CellContext`\[CurlyTheta]Slider$56545$$, 0]}, 
+      "OtherVariables" :> {
+       Typeset`show$$, Typeset`bookmarkList$$, Typeset`bookmarkMode$$, 
+        Typeset`animator$$, Typeset`animvar$$, Typeset`name$$, 
+        Typeset`specs$$, Typeset`size$$, Typeset`update$$, Typeset`initDone$$,
+         Typeset`skipInitDone$$}, "Body" :> 
+      Block[{$PerformanceGoal = 
+         "Quality", $CellContext`\[CurlyTheta]}, $CellContext`\[CurlyTheta] = \
+$CellContext`\[CurlyTheta]Base; $CellContext`\[CurlyTheta] = $CellContext`\
+\[CurlyTheta]Slider$$; If[
+          
+          Or[($CellContext`R $CellContext`\[Beta])^(
+              1/$CellContext`\[Rho])/$CellContext`\[CapitalGamma] >= 
+           1, ($CellContext`R $CellContext`\[Beta])^(
+              1/$CellContext`\[Rho])/$CellContext`R >= 1], Style[
+            Text["Impatience Condition Not Satisfied."], 24]; 
+          Abort[]]; $CellContext`DrawPhaseDiagram[$CellContext`\[ScriptM]Max, \
+$CellContext`\[ScriptM]MaxMax, $CellContext`\[ScriptC]Max]], 
+      "Specifications" :> {{{$CellContext`\[CurlyTheta]Slider$$, 0.1, 
+          "\[CurlyTheta]"}, 0.07500000000000001, 0.125, 0.005}}, 
+      "Options" :> {}, "DefaultOptions" :> {}],
+     ImageSizeCache->{764., {296.03125, 303.96875}},
+     SingleEvaluation->True],
+    Deinitialization:>None,
+    DynamicModuleValues:>{},
+    SynchronousInitialization->True,
+    UnsavedVariables:>{Typeset`initDone$$},
+    UntrackedVariables:>{Typeset`size$$}], "Manipulate",
+   Deployed->True,
+   StripOnInput->False],
+  Manipulate`InterpretManipulate[1]]], "Output",
+ CellChangeTimes->{{3.426505959439188*^9, 3.4265059814466057`*^9}, 
+   3.4265072972726603`*^9, {3.426510090592383*^9, 3.426510093791733*^9}, {
+   3.4265101485348263`*^9, 3.426510155902413*^9}, {3.426510214757408*^9, 
+   3.4265102210771723`*^9}, 3.426510256631586*^9, 3.426512076035391*^9, {
+   3.426512111661792*^9, 3.426512117023156*^9}, {3.447955994859613*^9, 
+   3.447956004494884*^9}, 3.447956037988462*^9}]
+}, Open  ]]
+}, Open  ]]
+},
+AutoGeneratedPackage->Automatic,
+WindowSize->{1407, 880},
+WindowMargins->{{48, Automatic}, {Automatic, 5}},
+ShowSelection->True,
+Magnification->1.5,
+FrontEndVersion->"7.0 for Mac OS X x86 (32-bit) (November 11, 2008)",
+StyleDefinitions->"Default.nb"
+]
+

@@ -1,0 +1,67 @@
+\documentclass[titlepage,abstract]{bejournal}
+\usepackage{threeparttable}
+
+\input CDCDocStartForBE.tex
+
+\usepackage{multirow}
+
+\begin{document}
+
+Perfect Foresight Constrained problem:
+
+Requirements: PF-FGW, FHWC
+
+\begin{eqnarray}
+    \beta \PGro^{1-\CRRA} & < & 1   \label{eq:PFFVAC}
+\\  \Pat/\Rfree & < & 1 \label{eq:RIC}
+\\  \PGro/\Rfree & < & 1  \label{eq:FHWC}
+\end{eqnarray}
+
+PF-FVAC
+\begin{eqnarray}
+  \Pat/\PGro & < & (\Rfree/\PGro)^{1/\CRRA} \label{eq:RIC}
+\end{eqnarray}
+
+FHWC: $1 < (\Rfree/\PGro)^{1/\CRRA} < (\Rfree/\PGro)$
+
+PF-FVAC + FHWC $\Rightarrow$ RIC:
+
+
+FHWC
+\begin{eqnarray}
+  \PGro/\Rfree & < & 1  \label{eq:PFFVAC}
+\end{eqnarray}
+
+
+Q: Is it possible for RIC and GIC to fail?
+
+
+\begin{eqnarray}
+  \PGro & = & 1.0
+\\ \Rfree & = & 1.08
+\\ \beta  & = & 0.96
+\\ \CRRA & = & 2
+\end{eqnarray}
+
+
+
+\begin{eqnarray}
+  \label{eq:GICFails}
+  \Pat/\Rfree & < 1  < & \Pat/\PGro 
+\\ \Rfree & > & \PGro
+\end{eqnarray}
+
+\begin{eqnarray}
+  \label{eq:GICFails}
+  \Pat/\Rfree & < 1  < & \Pat/\PGro 
+\\ \Rfree & > & \PGro \text{~~consistent with FHWC}
+\end{eqnarray}
+
+\begin{eqnarray}
+  \label{eq:1}
+  (\beta \Rfree)^{1/\CRRA}/\PGro & < & (\Rfree/\PGro)^{1/\CRRA} 
+\\ 1 & < &  (\Rfree/\PGro)^{1/\CRRA} \text{from FHWC}
+\end{eqnarray}
+
+\end{document}
+

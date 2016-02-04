@@ -1,0 +1,38 @@
+\newlength\TableWidth
+\newsavebox{\Required}
+
+\begin{table}
+\centering
+\caption{Sufficient Conditions for Nondegenerate$^{\ddagger}$ Solution} \label{table:Required}
+\sbox{\Required}{
+\begin{tabular}{|l|l|l|} \hline
+%                                            & \multicolumn{1}{c|}{Required}   & \multicolumn{1}{c|}{}  \\
+\multicolumn{1}{|c|}{Model}              & \multicolumn{1}{c|}{Conditions} & \multicolumn{1}{c|}{Comments}
+\\ \hline
+   \multicolumn{1}{|l|}{PF Unconstrained}   & RIC, FHWC$^{\circ}$                       & RIC $\Rightarrow |\vFunc(\mRat)|< \infty$; FHWC $\Rightarrow 0 < |\vFunc(\mRat)|$
+\\                                          &                                 & RIC prevents $\bar{\cFunc}(\mRat)=0$
+\\                                          &                                 & FHWC prevents $\bar{\cFunc}(\mRat)=\infty$
+\\ \multicolumn{1}{|l|}{PF Constrained}     & PF-GIC$^{\ast}$             & If RIC, $\lim_{\mRat \rightarrow \infty} \mathring{\cRat}(\mRat)=\bar{\cRat}(\mRat), \lim_{\mRat \rightarrow \infty} \mathring{\MPCFunc}(\mRat)=\MinMPC$
+\\                                          &                                 & If \cancel{RIC}, $\lim_{\mRat \rightarrow \infty} \mathring{\MPCFunc}(\mRat)=0$
+\\ \multicolumn{1}{|l|}{Buffer Stock Model} & FVAC, WRIC                      & FHWC $\Rightarrow$ $\lim_{\mRat \rightarrow \infty} \mathring{\cRat}(\mRat)=\bar{\cRat}(\mRat), \lim_{\mRat \rightarrow \infty} \mathring{\MPCFunc}(\mRat)=\MinMPC$
+\\                                          &                                 & \cancel{FHWC}+RIC $\Rightarrow \lim_{\mRat \rightarrow \infty} \mathring{\MPCFunc}(\mRat)=\MinMPC$
+\\                                          &                                 & \cancel{FHWC}+\cancel{RIC} $\Rightarrow \lim_{\mRat \rightarrow \infty} \mathring{\MPCFunc}(\mRat)=0$
+\\                                          &                                 & GIC guarantees finite target wealth ratio
+\\                                          &                                 & FVAC is stronger than PF-FVAC
+\\                                          &                                 & WRIC is weaker than RIC
+\\ \hline \multicolumn{3}{c}{}
+%\\ \multicolumn{3}{l}{\footnotesize         $^{\ddagger}$A `Well-Behaved' solution is one in which nondegenerate limiting consumption}
+%\\ \multicolumn{3}{l}{\footnotesize \phantom{$^{\ddagger}$}and value functions exist: $\cFunc(m) =0$ or $\cFunc(m) = \infty$ or $\vFunc(m)=0$ or $\vFunc(m)=-\infty$}
+%\\ \multicolumn{3}{l}{\footnotesize \phantom{$^{\ddagger}$}(for all $m$) are ruled out.}
+%\\ \multicolumn{3}{l}{\footnotesize          $^{\ast}$If the PF-GIC fails, the model's solution is identical to the unconstrained}
+%\\ \multicolumn{3}{l}{\footnotesize \phantom{$^{\ast}$}model's solution. See appendix~\ref{sec:LiqConstrAppendix} for elaboration.}
+\end{tabular}
+} % End \sbox
+
+\settowidth\TableWidth{\usebox{\Required}}
+\usebox{\Required}
+
+\parbox{\TableWidth}{\footnotesize         $^{\ddagger}$For feasible $\mRat$, limiting consumption function defines unique value of $\cRat$ satisfying $0 < \cRat < \infty$.~~$^{\circ}$RIC, FHWC are necessary as well as sufficient.~~$^{\ast}$Solution also exists for \cancel{PF-GIC} and RIC, but is identical to the unconstrained model's solution for feasible $\mRat \geq 1$.}
+
+\end{table}
+

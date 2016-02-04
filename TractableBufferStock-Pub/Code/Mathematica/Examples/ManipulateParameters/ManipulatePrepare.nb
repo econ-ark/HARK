@@ -1,0 +1,40 @@
+Notebook[{
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Initialization", " ", "file", " ", "necessary", " ", "for", " ", 
+    "running", " ", "the", " ", "Manipulate", " ", "notebooks"}], " ", "*)"}],
+   "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"SetDirectory", "[", 
+     RowBox[{"NotebookDirectory", "[", "]"}], "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", "\"\<../../CoreCode/Autoload/init.m\>\"", "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Get", "[", "\"\<../../CoreCode/MakeAnalyticalResults.m\>\"", "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", "\"\<../../CoreCode/VarsAndFuncs.m\>\"", "]"}], ";"}],
+    "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", "\"\<../../CoreCode/ParametersBase.m\>\"", "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", "\"\<../../CoreCode/DrawDiagrams.m\>\"", "]"}], ";"}],
+    "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"VerboseOutput", "=", "False"}], ";"}]}]}]], "Input",
+ InitializationCell->True]
+},
+WindowSize->{1538, 913},
+WindowMargins->{{4, Automatic}, {Automatic, 4}},
+FrontEndVersion->"10.2 for Mac OS X x86 (32-bit, 64-bit Kernel) (July 6, \
+2015)",
+StyleDefinitions->"Default.nb"
+]
+

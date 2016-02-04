@@ -1,0 +1,104 @@
+;; RefTeX parse info file
+;; File: /Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex
+;; User: ccarroll (Christopher Carroll)
+
+(set reftex-docstruct-symbol '(
+
+
+(xr nil "\\\\\\\\\\\\")
+
+(index-tags)
+
+(is-multi t)
+
+(bibview-cache)
+
+(master-dir . "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/")
+
+(label-numbers)
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex")
+
+(file-error "CDCDocStartForBE.tex")
+
+(toc "toc" "    1 Perfect Foresight Liquidity Constrained Solution" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil 2 "1" "\\section{Perfect Foresight Liquidity Constrained Solution}" 431)
+
+("sec:LiqConstrAppendix" "s" "\\begin{verbatimwrite}{./ApndxLiqConstr.tex} This appendix taxonomizes the characteristics of the non" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil)
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/LiqConstrScenarios.tex")
+
+("table:LiqConstrScenarios" "t" "Taxonomy of Liquidity Constrained Model Outcomes" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/LiqConstrScenarios.tex" nil)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/LiqConstrScenarios.tex")
+
+(toc "toc" "      1.1 If PF-GIC Fails" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil 3 "1.1" "\\subsection{If PF-GIC Fails}" 910)
+
+("eq:EulerPFGICFails" "e" "1 & < & (\\Rfree \\Discount)^{1/\\CRRA}\\PGro^{-1}  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil)
+
+("eq:EulerPFGICFailsEnd" "e" "\\util^{\\prime}(1) & < & \\Rfree \\Discount \\util^{\\prime}(\\PGro) . " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil)
+
+("PDVcFin" "e" "& = & \\left(\\frac{1-\\PatR^{n+1}}{1-\\PatR}\\right)  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil)
+
+("eq:2" "e" " " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil)
+
+(toc "toc" "      1.2 If PF-GIC Holds" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil 3 "1.2" "\\subsection{If PF-GIC Holds}" 4537)
+
+("eq:cPreHist" "e" "\\cRat_{\\#}^{n} & = & \\PatPGro^{-n} \\cRat_{t} = \\PatPGro^{-n}.  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil)
+
+("PDVc" "e" "& = & \\PatPGro^{-n}\\left(\\frac{1-\\PatR^{n+1}}{1-\\PatR}\\right)  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil)
+
+("eq:bPound" "e" "\\bRat_{\\#}^{n} & =& \\mathbb{C}_{t-n}^{t} - \\overbrace{\\left(\\frac{1-\\Rnorm^{-(n+1)}}{1-\\Rnorm^{-1}}\\" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil)
+
+("eq:bToInfty" "e" "\\lim_{n \\rightarrow \\infty} \\bRat_{\\#}^{n} = \\infty.  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil)
+
+(toc "toc" "        1.2.1 If FHWC Holds" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil 4 "1.2.1" "\\subsubsection{If FHWC Holds}" 8402)
+
+(toc "toc" "        1.2.2 If FHWC Fails" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil 4 "1.2.2" "\\subsubsection{If FHWC Fails}" 9806)
+
+("eq:FHWCfails" "e" "\\lim_{n \\rightarrow \\infty} \\left(\\frac{\\PatR(\\Rnorm^{-1}-1)}{(\\Rnorm^{-1}-1)(\\PatR-1)}-\\frac{\\Rnorm" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil)
+
+("fig:PFGICHoldsFHWCFailsRICFails" "f" "Nondegenerate Consumption Function With \\cancel{FHWC} and \\cancel{RIC}" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" nil)
+
+("eq:bPoundLim" "e" "\\lim_{n \\rightarrow \\infty} \\Rnorm^{n}\\bRat_{\\#}^{n} & = & \\left(\\frac{-\\PatR}{1-\\PatR}\\right) - \\Rn" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex" t)
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex")
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/LiqConstrScenarios.tex")
+
+("table:LiqConstrScenarios" "t" "Taxonomy of Liquidity Constrained Model Outcomes" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/LiqConstrScenarios.tex" nil)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/LiqConstrScenarios.tex")
+
+(toc "toc" "      1.3 If PF-GIC Fails" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil 3 "1.3" "\\subsection{If PF-GIC Fails}" 362)
+
+("eq:EulerPFGICFails" "e" "1 & < & (\\Rfree \\Discount)^{1/\\CRRA}\\PGro^{-1}  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+("eq:EulerPFGICFailsEnd" "e" "\\util^{\\prime}(1) & < & \\Rfree \\Discount \\util^{\\prime}(\\PGro) . " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+("PDVcFin" "e" "& = & \\left(\\frac{1-\\PatR^{n+1}}{1-\\PatR}\\right)  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+(toc "toc" "      1.4 If PF-GIC Holds" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil 3 "1.4" "\\subsection{If PF-GIC Holds}" 4349)
+
+("eq:cPreHist" "e" "\\cRat_{\\#}^{n} & = & \\PatPGro^{-n} \\cRat_{t} = \\PatPGro^{-n}.  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+("PDVc" "e" "& = & \\PatPGro^{-n}\\left(\\frac{1-\\PatR^{n+1}}{1-\\PatR}\\right)  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+("eq:bPound" "e" "\\bRat_{\\#}^{n} & =& \\mathbb{C}_{t-n}^{t} - \\overbrace{\\left(\\frac{1-\\Rnorm^{-(n+1)}}{1-\\Rnorm^{-1}}\\" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+("eq:bToInfty" "e" "\\lim_{n \\rightarrow \\infty} \\bRat_{\\#}^{n} = \\infty.  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+(toc "toc" "        1.4.1 If FHWC Holds" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil 4 "1.4.1" "\\subsubsection{If FHWC Holds}" 8213)
+
+(toc "toc" "        1.4.2 If FHWC Fails" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil 4 "1.4.2" "\\subsubsection{If FHWC Fails}" 9617)
+
+("eq:FHWCfails" "e" "\\lim_{n \\rightarrow \\infty} \\left(\\frac{\\PatR(\\Rnorm^{-1}-1)}{(\\Rnorm^{-1}-1)(\\PatR-1)}-\\frac{\\Rnorm" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+("fig:PFGICHoldsFHWCFailsRICFails" "f" "Nondegenerate Consumption Function With \\cancel{FHWC} and \\cancel{RIC}" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+("eq:bPoundLim" "e" "\\lim_{n \\rightarrow \\infty} \\Rnorm^{n}\\bRat_{\\#}^{n} & = & \\left(\\frac{-\\PatR}{1-\\PatR}\\right) - \\Rn" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" t)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex")
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstrStandAlone.tex")
+))
+

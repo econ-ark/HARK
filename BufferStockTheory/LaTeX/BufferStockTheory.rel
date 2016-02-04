@@ -1,0 +1,471 @@
+;; RefTeX parse info file
+;; File: /Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex
+;; User: ccarroll (Christopher Carroll)
+
+(set reftex-docstruct-symbol '(
+
+
+(xr nil "\\\\\\\\\\\\")
+
+(index-tags)
+
+(is-multi t)
+
+(bibview-cache)
+
+(master-dir . "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/")
+
+(label-numbers ("eq:" . 5))
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex")
+
+(file-error "CDCDocStartForBE.tex")
+
+(toc "toc" "    1 Introduction" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 2 "1" "\\section{Introduction}" 3535)
+
+("sec:intro" "s" "Spurred by the success of Modigliani and Brumberg's~\\citeyearpar{modigliani&brumberg:lifecycle} Life" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "    2 The Problem" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 2 "2" "\\section{The Problem}" 9427)
+
+(toc "toc" "      2.1 Setup" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "2.1" "\\subsection{Setup}" 9450)
+
+("eq:supfn" "e" "\\max~ \\Ex_{t}\\left[\\sum_{n=0}^{T-t} \\Discount^{n} \\util(\\cLev_{t+n})\\right] " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/supfn.tex")
+
+("eq:supfn" "e" "\\max~ \\Ex_{t}\\left[\\sum_{n=0}^{T-t} \\Discount^{n} \\util(\\cLev_{t+n})\\right] " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/supfn.tex" nil)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/supfn.tex")
+
+("eq:DBCparts" "e" "\\aLev_{t} &=&\\mLev_{t}-\\cLev_{t},  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/DBCparts.tex")
+
+("eq:DBCparts" "e" "\\aLev_{t} &=&\\mLev_{t}-\\cLev_{t},  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/DBCparts.tex" nil)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/DBCparts.tex")
+
+("eq:tShkDef" "e" "\\tShkAll _{t+n}= \\begin{cases} 0\\phantom{_{t+1}/\\pNotZero} & \\text{with probability $\\pZero>0$} " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/tShkDef.tex")
+
+("eq:tShkDef" "e" "\\tShkAll _{t+n}= \\begin{cases} 0\\phantom{_{t+1}/\\pNotZero} & \\text{with probability $\\pZero>0$} " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/tShkDef.tex" nil)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/tShkDef.tex")
+
+("eq:NoDebtAtDeath" "e" "\\cLev_{T} & \\leq & \\mLev_{T} . " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      2.2 The Problem Can Be Rewritten in Ratio Form" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "2.2" "\\subsection{The Problem Can Be Rewritten in Ratio Form}" 18113)
+
+("subsec:ratio" "s" "The number of relevant state variables can be reduced from two ($\\mLev$ and $\\pLev$) to one $(\\mRat " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:vBold" "e" "& = & \\pLev_{T-1}^{1-\\CRRA} \\left\\{\\max_{\\cRat_{T-1}}~ \\util(c_{T-1}) + \\Discount \\Ex_{T-1} [ \\util(" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:veqn" "e" "\\vFunc_{t}(\\mRat_{t}) & = & \\max_{\\{\\cFunc\\}_{t}^{T}}~ \\util(\\cFunc_{t}) +\\Discount \\Ex_{t}[\\PGro_{t" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:smalls" "e" "{\\aRat}_{t} & = & \\mRat_{t}-c_{t},  \\notag " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:smallb" "e" "{\\bRat}_{t+1} & = & (\\Rfree/\\PGro_{t+1})\\aRat_{t} ~ = ~ \\Rnorm_{t+1}\\aRat_{t} \\notag  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:scaledeuler" "e" "c_{t}^{-\\CRRA} & = & \\Rfree \\Discount \\Ex_{t}[ {\\PGro}_{t+1}^{-\\CRRA} {\\cRat} _{t+1}^{-\\CRRA}].  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      2.3 The Finite Value Requirement" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "2.3" "\\subsection{The Finite Value Requirement}" 20742)
+
+("eq:1" "e" nil "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil "")
+
+("subsec:FVR" "s" "As a preliminary to the proofs, we define a fundamental requirement: The optimization problem \\eqref" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:FVR" "e" "0 < |\\vFunc(\\mRat)| < \\infty . " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      2.4 Perfect Foresight Benchmarks" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "2.4" "\\subsection{Perfect Foresight Benchmarks}" 21136)
+
+(toc "toc" "        2.4.1 Human Wealth" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 4 "2.4.1" "\\subsubsection{Human Wealth}" 21429)
+
+("eq:IBCFinite" "e" "\\text{PDV}_{t}(\\cLev) & = & \\overbrace{\\mLev_{t}-\\pLev_{t}}^{\\bLev_{t}}+\\overbrace{\\text{PDV}_{t}(\\p" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:HDef" "e" "& = & \\underbrace{\\left(\\frac{1-\\Rnorm^{-(T-t+1)}}{1-\\Rnorm^{-1}}\\right)}_{\\equiv \\hRat_{t}}\\pLev_{t" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:FHWC" "e" "\\underbrace{\\PGro/\\Rfree}_{\\Rnorm^{-1}} & < & 1 . " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "        2.4.2 Unconstrained Solution" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 4 "2.4.2" "\\subsubsection{Unconstrained Solution}" 22674)
+
+("subsec:PFUncon" "s" "In the absence of a liquidity constraint, the consumption Euler equation holds in every period; with" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:cGrowPF" "e" "\\cLev_{t+1}/\\cLev_{t} & = & (\\Rfree\\Discount)^{1/\\CRRA} \\equiv \\Pat  \\label{eq:Pat} " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:Pat" "e" "\\cLev_{t+1}/\\cLev_{t} & = & (\\Rfree\\Discount)^{1/\\CRRA} \\equiv \\Pat  \\label{eq:Pat} " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:AIC" "e" "\\Pat & < & 1, " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:PatR" "e" "\\PatR & \\equiv & {\\Pat}/\\Rfree  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:vecMuDef" "e" "\\cLev_{t} & = & \\underbrace{\\left(\\frac{1-\\PatR}{1-\\PatR^{T-t+1}}\\right)}_{\\equiv \\MinMPC_{t}} (\\bLe" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:WDef" "e" "\\cLev_{t} & = & \\underbrace{\\left(\\frac{1-\\PatR}{1-\\PatR^{T-t+1}}\\right)}_{\\equiv \\MinMPC_{t}} (\\bLe" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:5" "e" nil "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil "")
+
+("eq:PDVCFinite" "e" "\\PatR & < & 1  \\label{eq:RIC}, % " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:RIC" "e" "\\PatR & < & 1  \\label{eq:RIC}, % " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:MinMPCDef" "e" "0 < \\MinMPC & \\equiv & 1-\\PatR = \\lim_{n \\rightarrow \\infty} \\MinMPC_{T-n}  . " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:4" "e" nil "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil "")
+
+("eq:2" "e" nil "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil "")
+
+(toc "toc" "        2.4.3 Constrained Solution" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 4 "2.4.3" "\\subsubsection{Constrained Solution}" 27451)
+
+("eq:LiqConstrBinds" "e" "1^{-\\CRRA} & > & \\Rfree \\Discount (\\PGro)^{-\\CRRA}1^{-\\CRRA} . " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:PFGPF" "e" "\\PatPGro & = & {\\Pat}/\\PGro,  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:PFGIC" "e" "\\PatPGro & < & 1 " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:PFFVAC" "e" "\\Discount \\PGro^{1-\\CRRA} & < & 1  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:PFFVACv2" "e" "\\PatPGro & < & (\\Rfree/\\PGro)^{1/\\CRRA}  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:3" "e" " " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      2.5 Uncertainty-Modified Conditions" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "2.5" "\\subsection{Uncertainty-Modified Conditions}" 33473)
+
+(toc "toc" "        2.5.1 Impatience" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 4 "2.5.1" "\\subsubsection{Impatience}" 33518)
+
+("eq:EbRat" "e" "\\Ex_{t}[\\bRat_{t+1}] & = & \\aRat_{t}\\Ex_{t}[\\Rnorm_{t+1}] = \\aRat_{t}\\Rnorm\\Ex_{t}[\\pShk_{t+1}^{-1}]" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:PGroAdj" "e" "\\PGroAdj & = & \\PGro \\InvEpShkInv  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/PGroAdj.tex")
+
+("eq:PGroAdj" "e" "\\PGroAdj & = & \\PGro \\InvEpShkInv  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/PGroAdj.tex" nil)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/PGroAdj.tex")
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/PatPGroAdj.tex")
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/PatPGroAdj.tex")
+
+("eq:GIC" "e" "\\PatPGroAdj & < & 1  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/GIC.tex")
+
+("eq:GIC" "e" "\\PatPGroAdj & < & 1  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/GIC.tex" nil)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/GIC.tex")
+
+(toc "toc" "        2.5.2 Value" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 4 "2.5.2" "\\subsubsection{Value}" 36259)
+
+("eq:FVAC" "e" "\\overbrace{\\Discount \\PGrouAdj^{1-\\CRRA} }^{\\equiv \\DiscAlt} & < & 1  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/FVAC.tex")
+
+("eq:FVAC" "e" "\\overbrace{\\Discount \\PGrouAdj^{1-\\CRRA} }^{\\equiv \\DiscAlt} & < & 1  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/FVAC.tex" nil)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/eq/FVAC.tex")
+
+("eq:FVACAlt" "e" "\\PatPGro \\uInvEpShkuInv^{1/\\CRRA-1} & < & (\\Rfree/\\PGro)^{1/\\CRRA} . " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(file-error "../eq/FVACAlt")
+
+(toc "toc" "      2.6 The Baseline Numerical Solution" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "2.6" "\\subsection{The Baseline Numerical Solution}" 38922)
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/Calibration.tex")
+
+("table:Calibration" "t" "Microeconomic Model Calibration" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/Calibration.tex" nil)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/Calibration.tex")
+
+("fig:CFuncsConverge" "f" "Convergence of the Consumption Rules" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      2.7 Concave Consumption Function Characteristics" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "2.7" "\\subsection{Concave Consumption Function Characteristics}" 39843)
+
+("sec:cExists" "s" "A precondition for the main proof is that the maximization problem \\eqref{eq:veqn} define a sequence" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      2.8 Bounds for the Consumption Functions" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "2.8" "\\subsection{Bounds for the Consumption Functions}" 41526)
+
+("eq:eFuncEuler" "e" "\\eFunc_{t}(\\mRat_{t})^{-\\CRRA} & = & \\Discount \\Rfree \\Ex_{t}\\left[\\left(\\eFunc_{t+1}({\\mRat}_{t+1})" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:eRho" "e" "& & + \\pZero \\Discount \\Rfree^{1-\\CRRA} \\Ex_{t}\\left[\\left(\\eFunc_{t+1}(\\mathcal{R}_{t+1}\\aFunc_{t}(" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:MinMPSDef" "e" "\\underbrace{\\pZero^{1/\\CRRA}\\overbrace{{\\Rfree}^{-1}(\\Discount \\Rfree)^{1/\\CRRA}}^{\\PatR}}_{\\equiv \\" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:muDiff" "e" "\\MaxMPC_{t}^{-1}(1-\\MaxMPC_{t}) & = & \\MinMPS \\MaxMPC_{t+1}^{-1}  \\notag " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:MaxMPCInv" "e" "\\MaxMPC_{t}^{-1} & = & 1+\\MinMPS \\MaxMPC_{t+1}^{-1} . " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:WRIC" "e" "0 \\leq & \\pZero^{1/\\CRRA} \\PatR & < 1 , " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:MaxMPCDef" "e" "\\lim_{n\\rightarrow\\infty}\\MaxMPC_{T-n} & = & \\MaxMPC \\equiv 1-\\pZero^{1/\\CRRA}\\PatR  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:MinMPCInv" "e" "\\MinMPC_{t}^{-1} & = & 1+\\MinMPC_{t+1}^{-1}\\MaxMPS  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:cBounds" "e" "\\MinMinMPC_{t} \\mRat_{t} ~ \\leq & \\cFunc_{t}(\\mRat_{t}) & \\leq ~ \\MaxMPC_{t} \\mRat_{t}  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      2.9 Conditions Under Which the Problem Defines a Contraction Mapping" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "2.9" "\\subsection{Conditions Under Which the Problem Defines a Contraction Mapping}" 48654)
+
+("subsec:contraction" "s" "% To prove that the consumption rules converge, we need to show that the problem defines a contracti" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:phinorm" "e" "\\Vert \\bullet\\Vert _{\\phiFunc }=\\sup_{\\mRat}\\left[ \\frac{|\\bullet(\\mRat)|}{\\phiFunc (\\mRat)}\\right] " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("definitionmappingT" "e" "\\{\\TMap{\\zFunc}\\}(\\mRat_{t}) &=&\\underset{{\\cRat}_{t} \\in [\\MinMinMPC \\mRat_{t}, \\MaxMPC \\mRat_{t}] " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("thm:contmap" "s" "$\\TMap$ is a contraction mapping if the restrictions on parameter values \\eqref{eq:WRIC} and \\eqref{" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      2.10 The Liquidity Constrained Solution as a Limit" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "2.10" "\\subsection{The Liquidity Constrained Solution as a Limit}" 54524)
+
+("sec:deatonIsLimit" "s" "This section shows that a related problem commonly considered in the literature (e.g.\\ with a simple" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:liqconstr" "s" ", " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:RestrEqUnrestr" "e" "\\lim_{\\pZero \\downarrow 0} \\cFunc_{t}(\\mRat;\\pZero) & = & \\grave{\\cFunc}_{t}(\\mRat).  \\notag " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:vUnconstr" "e" "\\grave{\\aFunc}^{*}_{T-1}(\\mRat) & = & \\underset{\\aRat}{\\arg \\max} \\left\\{\\util(\\mRat-\\aRat) + \\int_{" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:uPConstr" "e" "\\uP(\\mRat-\\aRat) & = & \\grave{\\mathfrak{v}}_{T-1}^{\\prime}(a) . % " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:vFrakPrime" "e" "\\mathfrak{v}_{T-1}^{\\prime}(a;\\pZero) & \\equiv & \\left[\\pZero \\aRat^{-\\CRRA}+\\pNotZero\\int_{\\ushort{" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:uPUnconstr" "e" "(\\mRat-\\aRat)^{-\\CRRA} & = & \\mathfrak{v}_{T-1}^{\\prime}(a;\\pZero)  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      2.11 Discussion of Parametric Restrictions" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "2.11" "\\subsection{Discussion of Parametric Restrictions}" 61876)
+
+("sec:discussConvergence" "s" "\\begin{comment} \\subsubsection{Perfect Foresight Case} The unconstrained perfect foresight model is " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "        2.11.1 Perfect Foresight Case" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 4 "2.11.1" "\\subsubsection{Perfect Foresight Case}" 61974)
+
+(toc "toc" "        2.11.2 The FVAC Condition" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 4 "2.11.2" "\\subsubsection{The FVAC Condition}" 64460)
+
+(toc "toc" "        2.11.3 The RIC" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 4 "2.11.3" "\\subsubsection{The RIC}" 64460)
+
+("eq:RICimplies" "e" "(\\Rfree/\\PGro)^{1-1/\\CRRA} & < & \\uInvEpShkuInv^{1-1/\\CRRA}  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "        2.11.4 The WRIC" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 4 "2.11.4" "\\subsubsection{The WRIC}" 67027)
+
+("eq:WRICandFVAC" "e" "\\Discount \\PGro^{1-\\CRRA}\\uInvEpShkuInv^{1-\\CRRA} & < ~ 1 ~ < & (\\pZero \\Discount)^{1/\\CRRA}/\\Rfree^" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "        2.11.5 The GIC" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 4 "2.11.5" "\\subsubsection{The GIC}" 69314)
+
+("eq:FVACnotGIC" "e" "\\Discount \\PGro^{1-\\CRRA}\\Ex[\\pshk^{1-\\CRRA}] & < 1 < & (\\Rfree\\Discount)^{1/\\CRRA}(\\PGro\\Ex[\\pshk^{" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:PFFVACnotPFGIC" "e" "\\Discount \\PGro^{1-\\CRRA} & < 1 < & (\\Rfree\\Discount)^{1/\\CRRA}/\\PGro.  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("fig:FVACnotGIC" "f" "Example Solution When FVAC Holds But GIC Does Not" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/Comparison.tex")
+
+("table:Comparison" "t" "Definitions and Comparisons of Conditions" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/Comparison.tex" nil)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/Comparison.tex")
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/Required.tex")
+
+("table:Required" "t" "Conditions Required For Well-Behaved$^{\\ddagger}$ Solution" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/Required.tex" nil)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/Required.tex")
+
+(toc "toc" "    3 Analysis of the Converged Consumption Function" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 2 "3" "\\section{Analysis of the Converged Consumption Function}" 76532)
+
+("fig:cGroTargetFig" "f" "Target $\\mRat$, Expected Consumption Growth, and Permanent Income Growth" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      3.1 Limits as $\\mRat_t \\rightarrow \\infty$" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "3.1" "\\subsection{Limits as $\\mRat_t \\rightarrow \\infty$}" 79471)
+
+("subsec:LimitsAsmtToInfty" "s" "Define \\begin{eqnarray} \\ushort{\\cFunc}(\\mRat) & = & \\MinMPC \\mRat \\nonumber " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:cFuncPF" "e" "\\bar{\\cFunc}(\\mRat) & = & (\\mRat-1+\\hRat) \\MinMPC,  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:lowerltupper" "e" "\\ushort{\\cFunc}(\\mRat) < & \\cFunc(\\mRat) & < \\bar{\\cFunc}(\\mRat) \\nonumber " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:limitlowerupper" "e" "\\lim_{m \\rightarrow \\infty} \\bar{\\cFunc}(\\mRat)/\\ushort{\\cFunc}(\\mRat) & = & \\lim_{m \\rightarrow \\in" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:limxtoinftycp" "e" "\\lim_{m \\rightarrow \\infty} \\cFunc^{\\prime}(\\mRat) = \\ushort{\\cFunc}^{\\prime}(\\mRat) = \\bar{\\cFunc}^" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("fig:mpclimits" "f" "The Consumption Function" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:xttoinfty" "e" "\\lim_{\\mRat_t \\rightarrow \\infty} \\PGro_{t+1}\\ushort{\\cFunc}(\\mRat_{t+1})/\\bar{\\cFunc}(\\mRat_t) = \\l" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:xtp1toinfty" "s" "\\lim_{m_{t} \\rightarrow \\infty} \\PGro_{t+1} \\mRat_{t+1}/\\mRat_t & = & \\lim_{m_{t} \\rightarrow \\infty" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      3.2 Limits as $\\mRat_t \\rightarrow 0$" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "3.2" "\\subsection{Limits as $\\mRat_t \\rightarrow 0$}" 85063)
+
+("subsec:xtto0" "s" "Now consider the limits of behavior as $\\mRat_{t}$ gets arbitrarily small. Equation \\eqref{eq:MaxMPC" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      3.3 There exists exactly one target cash-on-hand ratio, which is stable" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "3.3" "\\subsection{There exists exactly one target cash-on-hand ratio,
+which is stable}" 87905)
+
+("subsec:onetarget" "s" "Define the target cash-on-hand-to-income ratio $\\mTarg$ as the value of $\\mRat$ such that \\begin{equ" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:mTarget" "e" "\\Ex_t [{\\mRat}_{t+1}/\\mRat_t] = 1 \\mbox{~if~} \\mRat_t = \\mTarg. " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:stable" "e" "\\left(\\frac{d}{d\\mRat_t}\\right) \\Ex_t [{\\mRat}_{t+1}/\\mRat_t ] & < & 0  \\nonumber " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:numer" "e" "\\numFunc (\\mRat_{t})=\\underbrace{\\Ex_{t}[{\\Rnorm}_{t+1}]}_{\\equiv \\bar{\\Rnorm}}(\\cFunc(\\mRat_{t})-\\c" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:cstar" "e" "\\bar{\\Rnorm}\\cFunc(\\mTarg) & = & 1+(\\bar{\\Rnorm}-1)\\mTarg . " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:numerxstar" "e" "\\numFunc(\\mTarg) & = & \\bar{\\Rnorm}\\cFunc(\\mTarg) - \\bar{\\Rnorm}\\cFunc^{\\prime}(\\mTarg)\\mTarg - 1.  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:badeqn" "e" "\\left(\\frac{d}{d\\mRat_{t}}\\right)\\Ex_{t}[{\\mRat}_{t+1}/\\mRat_{t}] & > & 0  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      3.4 Expected consumption growth at target $\\mRat$ is less than expected permanent income growth" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "3.4" "\\subsection{Expected consumption growth at target $\\mRat$ is less than
+expected permanent income growth}" 94562)
+
+("subsec:expcgrowth" "s" "In Figure~\\ref{fig:cGroTargetFig} the intersection of the target cash-on-hand ratio locus at $\\mTarg" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:covcgrow" "e" "& = & \\PGro + \\left(\\frac{\\cFunc^{\\prime}(\\mTarg)}{\\cFunc(\\mTarg)}\\right)\\left[ \\Ex_{t}[ \\PGro_{t+1}" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      3.5 Expected consumption growth is a declining function of $\\mRat_{t}$ (or is it?)" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "3.5" "\\subsection{Expected consumption growth is a declining function of $\\mRat_{t}$ (or is it?)}" 96161)
+
+("subsec:dcgdxneg" "s" "Figure~\\ref{fig:cGroTargetFig} depicts the expected consumption growth factor as a strictly declinin" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:dChi" "e" "(d/d\\mRat_{t})\\Ex_{t}[\\underbrace{\\pmb{\\Upsilon}(\\mRat_{t})}_{\\pmb{\\Upsilon}_{t+1}}] & < & 0  \\nonum" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:kappaPrimeLT0" "e" "\\Ex_{t}\\left[\\PGro_{t+1} \\left(\\frac{\\cFunc^{\\prime}(\\mRat_{t+1})\\Rnorm_{t+1}\\aFunc^{\\prime}(\\mRat_{" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:cPrimek" "e" "& = & \\cFunc^{\\prime}_{t+1}\\aFunc^{\\prime}_{t}\\Rfree-\\cFunc^{\\prime}_{t} \\pmb{\\Upsilon}_{t+1}  . " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:covgen" "e" "\\Ex_{t}[\\pmb{\\Upsilon}_{t+1}^{\\prime}] & = & -\\mbox{cov}(\\pmb{\\Upsilon}_{t+1}^{-\\CRRA-1},\\pmb{\\Upsil" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "    4 The Aggregate and Idiosyncratic Relationship Between Consumption Growth and Income Growth" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 2 "4" "\\section{The Aggregate and Idiosyncratic Relationship Between
+Consumption Growth and Income Growth}" 100506)
+
+(toc "toc" "      4.1 Convergence of the Cross-Section Distribution" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "4.1" "\\subsection{Convergence of the Cross-Section Distribution}" 101951)
+
+("fig:simcdfsconverge" "f" "Convergence of $\\mathcal{F}^{\\aRat}$ to Invariant Distribution" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      4.2 Consumption and Income Growth at the Household Level" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "4.2" "\\subsection{Consumption and Income Growth at the Household Level}" 104403)
+
+(toc "toc" "      4.3 Growth Rates of Aggregate Income and Consumption" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "4.3" "\\subsection{Growth Rates of Aggregate Income and Consumption}" 105705)
+
+("eq:AAgg" "s" " " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("fig:BalancedG" "f" "Consumption Growth in Simulated Economy with $\\PGro=1.03$" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "    5 Conclusions" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 2 "5" "\\section{Conclusions}" 109349)
+
+(appendix . t)
+
+(toc "toc" "    A $\\mRat$ Growth in the Perfect Foresight Model" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 2 "A" "\\section{$\\mRat$ Growth in the Perfect Foresight Model}" 110790)
+
+("sec:mGrowthPF" "s" "To see why the constraint is irrelevant if \\eqref{eq:PFGIC} fails, recall that for the unconstrained" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "    B Perfect Foresight Liquidity Constrained Solution" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 2 "B" "\\section{Perfect Foresight Liquidity Constrained Solution}" 111541)
+
+("sec:ApndxLiqConstr" "s" "\\input ./ApndxLiqConstr.tex \\section{Existence of a Concave Consumption Function} To show that \\eqre" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex")
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/LiqConstrScenarios.tex")
+
+("table:LiqConstrScenarios" "t" "Taxonomy of Liquidity Constrained Model Outcomes" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/LiqConstrScenarios.tex" nil)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/tables/LiqConstrScenarios.tex")
+
+(toc "toc" "      B.1 If PF-GIC Fails" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil 3 "B.1" "\\subsection{If PF-GIC Fails}" 518)
+
+("eq:EulerPFGICFails" "e" "1 & < & (\\Rfree \\Discount)^{1/\\CRRA}\\PGro^{-1}  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+("eq:EulerPFGICFailsEnd" "e" "\\util^{\\prime}(1) & < & \\Rfree \\Discount \\util^{\\prime}(\\PGro) . " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+(toc "toc" "      B.2 If PF-GIC Holds" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil 3 "B.2" "\\subsection{If PF-GIC Holds}" 3194)
+
+("eq:cPreHist" "e" "\\cRat_{\\#}^{n} & = & \\PatPGro^{-n} \\cRat_{t} = \\PatPGro^{-n}.  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+("PDVc" "e" "& = & \\PatPGro^{-n}\\left(\\frac{1-\\PatR^{n+1}}{1-\\PatR}\\right)  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+("eq:bPound" "e" "\\bRat_{\\#}^{n} & =& \\mathbb{C}_{t-n}^{t} - \\overbrace{\\left(\\frac{1-\\Rnorm^{-(n+1)}}{1-\\Rnorm^{-1}}\\" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+("eq:bToInfty" "e" "\\lim_{n \\rightarrow \\infty} \\bRat_{\\#}^{n} = \\infty.  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+(toc "toc" "        B.2.1 If FHWC Holds" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil 4 "B.2.1" "\\subsubsection{If FHWC Holds}" 7058)
+
+(toc "toc" "        B.2.2 If FHWC Fails" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil 4 "B.2.2" "\\subsubsection{If FHWC Fails}" 8462)
+
+("eq:FHWCfails" "e" "\\lim_{n \\rightarrow \\infty} \\left(\\frac{\\PatR(\\Rnorm^{-1}-1)}{(\\Rnorm^{-1}-1)(\\PatR-1)}-\\frac{\\Rnorm" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+("fig:PFGICHoldsFHWCFailsRICFails" "f" "Nondegenerate Consumption Function With \\cancel{FHWC} and \\cancel{RIC}" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" nil)
+
+("eq:bPoundLim" "e" "\\lim_{n \\rightarrow \\infty} \\Rnorm^{n}\\bRat_{\\#}^{n} & = & \\left(\\frac{-\\PatR}{1-\\PatR}\\right) - \\Rn" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex" t)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxLiqConstr.tex")
+
+(toc "toc" "    C Existence of a Concave Consumption Function" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 2 "C" "\\section{Existence of a Concave Consumption Function}" 111656)
+
+("sec:cExistsAppendix" "s" "To show that \\eqref{eq:veqn} defines a sequence of continuously differentiable strictly increasing c" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:vEnd" "e" "\\mathfrak{v}_{t}(a) =\\Discount \\Ex_{t}\\left[{\\PGro}_{t+1}^{1-\\CRRA}\\vFunc_{t+1}( {\\mathcal{R}}_{t+1}" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:consumptionf" "e" "\\util^{\\prime }(\\cFunc_{t}(\\mRat))=\\mathfrak{v}_{t}^{\\prime }(\\mRat-\\cFunc_{t}(\\mRat)) . " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "    D $\\cFunc_{t}(\\mRat)$ is Twice Continuously Differentiable" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 2 "D" "\\section{$\\cFunc_{t}(\\mRat)$ is Twice Continuously Differentiable}" 115723)
+
+("sec:CIsTwiceDifferentiable" "s" "First we show that $\\cFunc_{t}(\\mRat)$ is continuous $\\mathbf{C}^{1}.$ Define $y$ as $y\\equiv x+dx$ " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "    E Proof That $\\TMap$ Is A Contraction Mapping" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 2 "E" "\\section{Proof That $\\TMap$ Is A Contraction Mapping}" 119575)
+
+("sec:Tcomplete" "s" "We must show that our operator $\\TMap$ satisfies all of Boyd's conditions. Boyd's operator $\\BoydT$ " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:condition1" "s" " " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:phiFunc" "e" "\\phiFunc(\\mRat) & = & \\eta + \\mRat^{1-\\CRRA}, " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:reqCondWeak" "s" ". " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:KeyCondition" "e" "\\eta>\\frac{\\Discount \\Ex_{t}\\left[{\\PGro}_{t+1}^{1-\\CRRA}(\\hat{\\aRat}_{t}\\Rnorm_{t+1}+\\tShkAll_{t+1}" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:WRICBites" "e" "&=&\\pNotZero\\Discount\\Ex_{t}\\left[{\\PGro}_{t+1}^{1-\\CRRA}((1-\\MaxMPC)\\mRat_{t}\\Rnorm_{t+1}+\\tShkEmp_" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      E.1 $\\TMap$ and $\\vFunc$" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "E.1" "\\subsection{$\\TMap$ and $\\vFunc$}" 126270)
+
+(toc "toc" "      E.2 Convergence of $\\vFunc_{t}$ in Euclidian Space" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "E.2" "\\subsection{Convergence of $\\vFunc_{t}$ in Euclidian Space}" 128866)
+
+("sec:vEuclidian" "s" "Boyd's theorem shows that $\\TMap$ defines a contraction mapping in a $\\phiFunc$-bounded space. We no" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "      E.3 Convergence of $\\cFunc_{t}$" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 3 "E.3" "\\subsection{Convergence of $\\cFunc_{t}$}" 130538)
+
+("sec:cConverges" "s" "Given the proof that the value functions converge, we now show the pointwise convergence of consumpt" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("sec:cEuclidian" "s" "Given the proof that the value functions converge, we now show the pointwise convergence of consumpt" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("Inequality1" "e" "\\lim_{n\\rightarrow \\infty }\\left\\vert \\vFunc_{T-n}(\\mRat^{*} )-\\wFunc( \\mRat^{*},\\cRat^{*}_{T-n+1}) " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("Inequality2" "e" "\\lim_{i\\rightarrow \\infty }\\left\\vert \\wFunc(\\mRat^{*},\\cRat^{*}_{T-n(i)+1}) -\\wFunc(\\mRat^{*},\\cRat" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "    F Equality of Aggregate Consumption Growth and Income Growth with Transitory Shocks" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 2 "F" "\\section{Equality of Aggregate Consumption Growth and Income Growth with Transitory Shocks}" 135933)
+
+("sec:CGroEqPGro" "s" "The text asserted that in the absence of permanent shocks it is possible to prove that the growth fa" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+("eq:checkaFunc" "e" "\\acute{\\aFunc}(\\Delta) & = & \\Delta^{-1}\\int_{\\mSS}^{\\mSS+\\Delta} \\aFunc^{\\prime}(z) dz  \\nonumber " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil)
+
+(toc "toc" "    G Endogenous Gridpoints Solution Method" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 2 "G" "\\section{Endogenous Gridpoints Solution Method}" 139309)
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxSolnMethEndogGpts.tex")
+
+("eq:cEulerEndog" "e" "\\uP(\\cEndFunc_{t}(\\vec{\\aRat})) & = & \\Rfree \\beta \\Ex_{t}[ \\uP(\\PGro_{t+1} \\cFunc_{t+1}(\\Rnorm_{t+1" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxSolnMethEndogGpts.tex" nil)
+
+("eq:MPTHC" "e" "\\cEndFunc_{t}^{\\aRat} & = & \\Rfree \\beta \\Ex_{t}[\\uPP(\\PGro_{t+1} \\cFunc_{t+1}) \\Rfree \\cFunc^{\\mRat" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxSolnMethEndogGpts.tex" nil)
+
+("eq:MPCfromMPTHC" "s" ". " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxSolnMethEndogGpts.tex" nil)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxSolnMethEndogGpts.tex")
+
+(toc "toc" "    H The Terminal/Limiting Consumption Function" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex" nil 2 "H" "\\section{The Terminal/Limiting Consumption Function}" 139395)
+
+(bof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxSolnMethTermFunc.tex")
+
+("eq:ChiDef" "e" "\\chi_{t}(\\mu) & = & \\log (1-\\cFunc_{t}(e^{\\mu})/\\cFunc_{T}(e^{\\mu}))  " "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxSolnMethTermFunc.tex" nil)
+
+("eq:ChiPDef" "e" "\\chi^{\\prime}_{t}(\\mu) & = & \\left(\\frac{-\\left(\\frac{\\cFunc^{\\prime}_{t}\\cFunc_{T}-\\cFunc_{t}\\cFunc" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxSolnMethTermFunc.tex" nil)
+
+("eq:cFuncPFromChi" "e" "\\cFunc^{\\prime}_{t} & = & (\\cFunc_{t}\\cFunc_{T}^{\\prime}/\\cFunc_{T})-((\\cFunc_{T}-\\cFunc_{t})/\\mRat)" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxSolnMethTermFunc.tex" nil)
+
+("eq:cFuncFromChi" "e" "\\cFunc_{t}(\\mRat) & = & \\left(1-e^{\\chi_{t}(\\log \\mRat)}\\right)\\cFunc_{T}(\\mRat) . %" "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxSolnMethTermFunc.tex" nil)
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/ApndxSolnMethTermFunc.tex")
+
+(file-error "bibMake")
+
+(eof "/Users/ccarroll/Work/BufferStock/BufferStockTheory/Latest/LaTeX/BufferStockTheory.tex")
+))
+

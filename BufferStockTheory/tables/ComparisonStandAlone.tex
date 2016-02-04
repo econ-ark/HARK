@@ -1,0 +1,75 @@
+\documentclass[titlepage,abstract]{bejournal}
+
+\provideboolean{WW} % Weifeng Wu
+\setboolean{WW}{true}
+%\setboolean{WW}{false}
+\newcommand{\WW}{\ifthenelse{\boolean{WW}}}
+
+
+\input CDCDocStartForBE.tex
+
+\usepackage{multirow}
+
+\begin{document}
+
+\begin{verbatimwrite}{./Comparison.tex}
+\begin{table}[!th]
+\caption{Definitions and Comparisons of Conditions}\label{table:Comparison}
+\begin{center}
+\begin{tabular}{|c|c|}\hline
+Perfect Foresight Versions & Uncertainty Versions\\ \hline
+\multicolumn{2}{|c|}{Finite Human Wealth Condition (FHWC)} \\ \hline
+$\PGro/\Rfree < 1$                                                          & $\PGro/\Rfree < 1$ \\
+\multirow{3}{75mm}{The growth factor for permanent income $\PGro$ must be smaller than the discounting factor $\Rfree$, for human wealth to be finite.} &
+\multirow{3}{75mm}{The model's risks are mean-preserving spreads, so the PDV of future income is unchanged by their introduction.} \\
+&  \\
+&  \\ \hline
+\multicolumn{2}{|c|}{Absolute Impatience Condition (AIC)} \\ \hline
+$\Pat < 1$                                        &  $\Pat < 1$ \\
+\multirow{4}{75mm}{The unconstrained consumer is sufficiently impatient that the level of consumption will be declining over time:} &
+\multirow{4}{75mm}{If wealth is large enough, the expectation of consumption next period will be smaller than this period's consumption:} \\
+& \\
+& \\
+& \\
+$\cLev_{t+1} < \cLev_{t}$ & $\lim_{m_{t} \rightarrow \infty} \Ex_{t} [\cLev_{t+1}] < \cLev_{t}$ \\
+& \\ \hline
+\multicolumn{2}{|c|}{Return Impatience Conditions} \\ \hline
+\multicolumn{1}{|c|}{Return Impatience Condition (RIC)} & \multicolumn{1}{c|}{Weak RIC (WRIC)} \\ \hline
+$\Pat/\Rfree < 1$                                          & $\pZero^{1/\CRRA}\Pat/\Rfree < 1$ \\
+\multirow{3}{75mm}{The growth factor for consumption $\Pat$ must be smaller than the discounting factor $\Rfree$, so that the PDV of current and future consumption will be finite:}  &
+\multirow{3}{75mm}{If the probability of the zero-income event is $\pZero=1$ then income is always zero and the condition becomes identical to the RIC.  Otherwise, weaker.} \\
+& \\
+& \\
+& \\
+$\cFunc^{\prime}(m) = 1-\Pat/\Rfree < 1$              & $\cFunc^{\prime}(m) < 1-\pZero^{1/\CRRA}\Pat/\Rfree < 1$ 
+\\ \hline
+\multicolumn{2}{|c|}{Growth Impatience Conditions} \\ \hline
+\multicolumn{1}{|c|}{PF-GIC} & \multicolumn{1}{c|}{GIC} \\ \hline
+$\Pat/\PGro < 1$                                         & $\Pat\Ex[\pShk^{-1}]/\PGro < 1 $ \\
+\multirow{4}{75mm}{Guarantees that for an unconstrained consumer, the ratio of consumption to permanent income will fall over time.  For a constrained consumer, guarantees the constraint will eventually be binding.} &
+\multirow{4}{75mm}{By Jensen's inequality, stronger than the PF-GIC.  Ensures consumers will not expect to accumulate $\mRat$ unboundedly.} \\
+& \\
+& \\
+& \\
+& $\lim_{\mRat_{t} \rightarrow \infty} \Ex_{t}[\mRat_{t+1}/\mRat_{t}] = \PatPGroAdj $
+ \\ \hline
+\multicolumn{2}{|c|}{Finite Value of Autarky Conditions} \\ \hline
+\multicolumn{1}{|c|}{PF-FVAC} & \multicolumn{1}{c|}{FVAC} \\ \hline
+$\beta \PGro^{1-\CRRA} < 1$                                                 & $\beta \PGro^{1-\CRRA}\Ex[\pshk^{1-\CRRA}] < 1$  \\
+equivalently $\Pat/\PGro  < (\Rfree/\PGro)^{1/\CRRA}$ & \\
+\multirow{3}{75mm}{The discounted utility of constrained consumers who spend their permanent income each period should be finite.} &
+\multirow{3}{75mm}{By Jensen's inequality, stronger than the PF-FVAC because for $\CRRA>1$ and nondegenerate $\pShk$, $\Ex[\pShk^{1-\CRRA}] > 1$.}  \\
+& \\
+& \\ \hline
+\end{tabular}
+\end{center}
+\end{table}
+\clearpage 
+\end{verbatimwrite}
+
+\input ./Comparison.tex
+
+\end{document}
+
+
+ 

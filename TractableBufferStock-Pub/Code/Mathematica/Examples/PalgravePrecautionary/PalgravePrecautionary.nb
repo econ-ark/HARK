@@ -1,0 +1,342 @@
+Notebook[{
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "Generate", " ", "figure", " ", "for", " ", "article", " ", 
+     "\"\<Precautionary Saving and Precautionary Wealth\>\"", " ", "with", 
+     " ", "Miles", " ", "Kimball", " ", "for", " ", "Palgrave", " ", 
+     "Dictionary", " ", "of", " ", "Economics", " ", "and", " ", "Finance"}], 
+    ",", " ", 
+    RowBox[{"2", "nd", " ", 
+     RowBox[{"Ed", "."}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"http", ":"}], "//", 
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{"econ", ".", "jhu", ".", "edu"}], "/", "people"}], "/", 
+      "ccarroll"}], "/", 
+     RowBox[{"PalgravePrecautionary", ".", "pdf"}]}]}], " ", 
+   "*)"}]}]], "Input"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "This", " ", "cell", " ", "is", " ", "basically", " ", "housekeeping", 
+     " ", "and", " ", "setup", " ", "stuff"}], ";", " ", 
+    RowBox[{"it", " ", "can", " ", "be", " ", "ignored"}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"ClearAll", "[", "\"\<Global`*\>\"", "]"}], ";", 
+    RowBox[{"ParamsAreSet", "=", "False"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"If", "[", 
+     RowBox[{
+      RowBox[{"$VersionNumber", "<", "8"}], ",", 
+      RowBox[{"(*", "then", "*)"}], " ", 
+      RowBox[{
+       RowBox[{
+       "Print", "[", 
+        "\"\<These programs require Mathematica version 8 or greater.\>\"", 
+        "]"}], ";", 
+       RowBox[{"Abort", "[", "]"}]}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"If", "[", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"Length", "[", "$FrontEnd", "]"}], " ", ">", " ", "0"}], ",", 
+      RowBox[{"NBDir", "=", 
+       RowBox[{"SetDirectory", "[", 
+        RowBox[{"NotebookDirectory", "[", "]"}], "]"}]}]}], "]"}], ";"}], 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "If", " ", "running", " ", "from", " ", "the", " ", "Notebook", " ", 
+     "interface"}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"rootDir", " ", "=", " ", 
+     RowBox[{"SetDirectory", "[", "\"\<../../..\>\"", "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"AutoLoadDir", "=", 
+     RowBox[{
+     "SetDirectory", "[", "\"\<./Mathematica/CoreCode/Autoload\>\"", "]"}]}], 
+    ";", 
+    RowBox[{"Get", "[", "\"\<./init.m\>\"", "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"CoreCodeDir", "=", 
+     RowBox[{"SetDirectory", "[", "\"\<..\>\"", "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"rootDir", " ", "=", " ", 
+     RowBox[{"SetDirectory", "[", "\"\<..\>\"", "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CoreCodeDir", "<>", "\"\</MakeAnalyticalResults.m\>\""}], "]"}],
+     ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CoreCodeDir", "<>", "\"\</VarsAndFuncs.m\>\""}], "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Method", " ", "of", " ", "creating", " ", "figures", " ", "depends", " ",
+      "on", " ", "whether", " ", "being", " ", "run", " ", "in", " ", "batch",
+      " ", "mode", " ", "or", " ", "interactively"}], " ", "*)"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"If", "[", 
+     RowBox[{
+      RowBox[{"$FrontEnd", " ", "\[Equal]", " ", "Null"}], ",", 
+      RowBox[{"OpenFigsUsingShell", "=", "True"}], ",", 
+      RowBox[{"OpenFigsUsingShell", "=", "False"}]}], "]"}], ";"}], " ", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CoreCodeDir", "<>", "\"\</ParametersBase.m\>\""}], "]"}], 
+    ";"}]}]}]], "Input"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Get", "[", 
+   RowBox[{"CoreCodeDir", "<>", "\"\</ParametersBase.m\>\""}], "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"\[ScriptM]Max", "=", 
+   RowBox[{"2.5", " ", "\[ScriptM]E"}]}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{"\[GothicG]", "=", 
+   RowBox[{"\[GothicG]Base", "=", 
+    RowBox[{"-", "0.02`"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"\[Mho]", "=", "0.005`"}], ";", " ", 
+  RowBox[{"\[CurlyTheta]", "=", "0.25`"}], ";", " ", 
+  RowBox[{"r", " ", "=", "0.2`"}], ";", " ", 
+  "CheckFor\[CapitalGamma]Impatience", ";", " ", "CheckForRImpatience", ";", 
+  "FindStableArm", ";"}]}], "Input"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", 
+   RowBox[{
+    RowBox[{"$TextStyle", "=", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"FontFamily", "\[Rule]", "\"\<Courier\>\""}], ",", 
+       RowBox[{"FontSize", "\[Rule]", "9"}]}], "}"}]}], ";"}], "*)"}], 
+  RowBox[{
+   RowBox[{
+    RowBox[{"ArrowListBelow", "=", 
+     RowBox[{"Table", "[", 
+      RowBox[{
+       RowBox[{"Arrow", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"mPlot", "-", "0.05`"}], ",", 
+           RowBox[{"cE", "[", 
+            RowBox[{"mPlot", "-", "0.05`"}], "]"}]}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"mPlot", ",", 
+           RowBox[{"cE", "[", "mPlot", "]"}]}], "}"}], ",", 
+         RowBox[{"HeadScaling", "\[Rule]", "Automatic"}], ",", 
+         RowBox[{"HeadLength", "\[Rule]", "0.01`"}], ",", 
+         RowBox[{"HeadWidth", "\[Rule]", "1.5`"}]}], "]"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"mPlot", ",", 
+         RowBox[{"\[ScriptM]E", "-", "1.25`"}], ",", 
+         RowBox[{"\[ScriptM]E", "-", "0.25`"}], ",", "0.25`"}], "}"}]}], 
+      "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"ArrowListAbove", "=", 
+     RowBox[{"Table", "[", 
+      RowBox[{
+       RowBox[{"Arrow", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"mPlot", "+", "0.05`"}], ",", 
+           RowBox[{"cE", "[", 
+            RowBox[{"mPlot", "+", "0.05`"}], "]"}]}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"mPlot", ",", 
+           RowBox[{"cE", "[", "mPlot", "]"}]}], "}"}], ",", 
+         RowBox[{"HeadScaling", "\[Rule]", "Automatic"}], ",", 
+         RowBox[{"HeadLength", "\[Rule]", "0.01`"}], ",", 
+         RowBox[{"HeadWidth", "\[Rule]", "1.5`"}]}], "]"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"mPlot", ",", 
+         RowBox[{"\[ScriptM]E", "+", "4"}], ",", 
+         RowBox[{"\[ScriptM]E", "+", "0.5`"}], ",", 
+         RowBox[{"-", "0.5`"}]}], "}"}]}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"If", "[", 
+     RowBox[{
+      RowBox[{"$VersionNumber", ">=", "6"}], "\[IndentingNewLine]", ",", 
+      RowBox[{
+       RowBox[{"ArrowListBelow", "=", 
+        RowBox[{"Table", "[", 
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{
+            RowBox[{"Arrowheads", "[", "0.02", "]"}], ",", 
+            RowBox[{"Arrow", "[", 
+             RowBox[{"{", 
+              RowBox[{
+               RowBox[{"{", 
+                RowBox[{
+                 RowBox[{"mPlot", "-", "0.05`"}], ",", 
+                 RowBox[{"cE", "[", 
+                  RowBox[{"mPlot", "-", "0.05`"}], "]"}]}], "}"}], ",", 
+               RowBox[{"{", 
+                RowBox[{"mPlot", ",", 
+                 RowBox[{"cE", "[", "mPlot", "]"}]}], "}"}]}], "}"}], "]"}]}],
+            "}"}], ",", 
+          RowBox[{"{", 
+           RowBox[{"mPlot", ",", 
+            RowBox[{"\[ScriptM]E", "-", "1.25`"}], ",", 
+            RowBox[{"\[ScriptM]E", "-", "0.25`"}], ",", "0.25`"}], "}"}]}], 
+         "]"}]}], ";", "\[IndentingNewLine]", 
+       RowBox[{"ArrowListAbove", "=", 
+        RowBox[{"Table", "[", 
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{
+            RowBox[{"Arrowheads", "[", "0.02", "]"}], ",", 
+            RowBox[{"Arrow", "[", 
+             RowBox[{"{", 
+              RowBox[{
+               RowBox[{"{", 
+                RowBox[{
+                 RowBox[{"mPlot", "+", "0.05`"}], ",", 
+                 RowBox[{"cE", "[", 
+                  RowBox[{"mPlot", "+", "0.05`"}], "]"}]}], "}"}], ",", 
+               RowBox[{"{", 
+                RowBox[{"mPlot", ",", 
+                 RowBox[{"cE", "[", "mPlot", "]"}]}], "}"}]}], "}"}], "]"}]}],
+            "}"}], ",", 
+          RowBox[{"{", 
+           RowBox[{"mPlot", ",", 
+            RowBox[{"\[ScriptM]E", "+", "4"}], ",", 
+            RowBox[{"\[ScriptM]E", "+", "0.5`"}], ",", 
+            RowBox[{"-", "0.5`"}]}], "}"}]}], "]"}]}]}]}], "]"}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[ScriptC]PFPlot", "=", 
+     RowBox[{"Plot", "[", 
+      RowBox[{
+       RowBox[{"cEPF", "[", "m", "]"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"m", ",", "0", ",", "\[ScriptM]Max"}], "}"}], ",", 
+       RowBox[{"PlotStyle", "\[Rule]", "Black"}]}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"\[ScriptM]EDelEqZeroPlot", "=", 
+     RowBox[{"Plot", "[", 
+      RowBox[{
+       RowBox[{"\[ScriptM]EDelEqZero", "[", "m", "]"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"m", ",", "0", ",", "\[ScriptM]Max"}], "}"}], ",", 
+       RowBox[{"DisplayFunction", "\[Rule]", "Identity"}]}], "]"}]}], ";"}], 
+   "\n", 
+   RowBox[{
+    RowBox[{"\[ScriptC]LowerPlot", "=", 
+     RowBox[{"Plot", "[", 
+      RowBox[{
+       RowBox[{"cE", "[", "m", "]"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"m", ",", "0", ",", "\[ScriptM]Max"}], "}"}], ",", 
+       RowBox[{"PlotStyle", "\[Rule]", "Black"}]}], "]"}]}], ";"}], "\n", 
+   RowBox[{"PalgraveTargetPlot", "=", 
+    RowBox[{"Show", "[", 
+     RowBox[{
+     "\[ScriptC]PFPlot", ",", "\[ScriptM]EDelEqZeroPlot", ",", 
+      "\[ScriptC]LowerPlot", ",", 
+      RowBox[{"Graphics", "[", 
+       RowBox[{"Text", "[", 
+        RowBox[{"\"\< \[LongLeftArrow] Target \[ScriptM]\>\"", ",", 
+         RowBox[{"{", 
+          RowBox[{"\[ScriptM]E", ",", "\[ScriptC]E"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"-", "1"}], ",", "0"}], "}"}]}], "]"}], "]"}], ",", 
+      RowBox[{"Graphics", "[", 
+       RowBox[{"Text", "[", 
+        RowBox[{"\"\< \[LongLeftArrow] Perm Inc\>\"", ",", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"2", " ", "\[ScriptM]E"}], ",", 
+           RowBox[{"\[ScriptM]EDelEqZero", "[", 
+            RowBox[{"2", " ", "\[ScriptM]E"}], "]"}]}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"-", "1"}], ",", "0"}], "}"}]}], "]"}], "]"}], ",", 
+      RowBox[{"Graphics", "[", 
+       RowBox[{"Text", "[", 
+        RowBox[{
+        "\"\<Perf Foresight \\!\\(\\*OverscriptBox[\\(\[ScriptC]\\), \\(-\\)]\
+\\)(\[ScriptM]) \[LongRightArrow]  \>\"", ",", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"2", " ", "\[ScriptM]E"}], ",", 
+           RowBox[{"cEPF", "[", 
+            RowBox[{"2", " ", "\[ScriptM]E"}], "]"}]}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"1", ",", "0"}], "}"}]}], "]"}], "]"}], ",", 
+      RowBox[{"Graphics", "[", 
+       RowBox[{"Text", "[", 
+        RowBox[{"\"\< \[LongLeftArrow] \[ScriptC](\[ScriptM])\>\"", ",", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"0.5`", " ", "\[ScriptM]E"}], ",", 
+           RowBox[{"cE", "[", 
+            RowBox[{"0.5`", " ", "\[ScriptM]E"}], "]"}]}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"-", "1"}], ",", "0"}], "}"}]}], "]"}], "]"}], ",", 
+      RowBox[{"Graphics", "[", "ArrowListBelow", "]"}], ",", 
+      RowBox[{"Graphics", "[", "ArrowListAbove", "]"}], "\[IndentingNewLine]",
+       ",", 
+      RowBox[{"Ticks", "\[Rule]", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"{", 
+           RowBox[{"0", ",", "\"\<0\>\""}], "}"}], "}"}], ",", "None"}], 
+        "}"}]}], ",", 
+      RowBox[{"AxesLabel", "\[Rule]", 
+       RowBox[{"{", 
+        RowBox[{"\"\<\[ScriptM]\>\"", ",", "\"\<\[ScriptC]\>\""}], "}"}]}], 
+      "\[IndentingNewLine]", ",", 
+      RowBox[{"PlotRange", "\[Rule]", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"0", ",", "\[ScriptM]Max"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"0", ",", 
+           RowBox[{"cEPF", "[", "\[ScriptM]Max", "]"}]}], "}"}]}], "}"}]}], 
+      "\[IndentingNewLine]", ",", 
+      RowBox[{"AxesOrigin", "\[Rule]", 
+       RowBox[{"{", 
+        RowBox[{"0.", ",", "0."}], "}"}]}]}], "]"}]}]}]}]], "Input",
+ CellChangeTimes->{{3.409502191328278*^9, 3.409502193964018*^9}, {
+   3.414627269460907*^9, 3.414627304236516*^9}, 3.42323002825602*^9, {
+   3.4232300805126057`*^9, 3.423230108650634*^9}, {3.423230152682562*^9, 
+   3.423230156382228*^9}}]
+},
+WindowSize->{1596, 1155},
+WindowMargins->{{4, Automatic}, {0, Automatic}},
+ShowSelection->True,
+Magnification->1.5,
+FrontEndVersion->"10.2 for Mac OS X x86 (32-bit, 64-bit Kernel) (July 6, \
+2015)",
+StyleDefinitions->"Default.nb"
+]
+

@@ -1,0 +1,48 @@
+;; RefTeX parse info file
+;; File: /Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/LaTeX/SolnMethTermFuncStandAlone.tex
+;; User: ccarroll (Christopher Carroll)
+
+(set reftex-docstruct-symbol '(
+
+
+(xr nil "\\\\\\\\\\\\")
+
+(index-tags)
+
+(is-multi t)
+
+(bibview-cache)
+
+(master-dir . "/Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/LaTeX/")
+
+(label-numbers ("eq:" . 3))
+
+(bof "/Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/LaTeX/SolnMethTermFuncStandAlone.tex")
+
+(file-error "CDCDocStartForBE.tex")
+
+(toc "toc" "    1 The Terminal Consumption Function" "/Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/LaTeX/SolnMethTermFuncStandAlone.tex" nil 2 "1" "\\section{The Terminal Consumption Function}" 116)
+
+("eq:3" "e" nil "/Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/LaTeX/SolnMethTermFuncStandAlone.tex" nil "")
+
+("eq:2" "e" nil "/Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/LaTeX/SolnMethTermFuncStandAlone.tex" nil "")
+
+("eq:1" "e" nil "/Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/LaTeX/SolnMethTermFuncStandAlone.tex" nil "")
+
+(bof "/Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/LaTeX/SolnMethTermFunc.tex")
+
+("eq:ChiDef" "e" "\\chi_{t}(\\mu) & = & \\log (1-\\cFunc_{t}(e^{\\mu})/\\breve{\\cFunc}(e^{\\mu}))  " "/Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/LaTeX/SolnMethTermFunc.tex" nil)
+
+("eq:ChiPDef" "e" "\\chi^{\\prime}_{t}(\\mu) & = & \\left(\\frac{-\\left(\\frac{\\cFunc^{\\prime}_{t}\\breve{\\cFunc}-\\cFunc_{t}\\b" "/Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/LaTeX/SolnMethTermFunc.tex" nil)
+
+("eq:cFuncPFromChi" "e" "\\cFunc^{\\prime}_{t} & = & (\\cFunc_{t}\\breve{\\cFunc}^{\\prime}/\\breve{\\cFunc})-((\\breve{\\cFunc}-\\cFunc" "/Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/LaTeX/SolnMethTermFunc.tex" nil)
+
+("eq:cFuncFromChi" "e" "\\cFunc_{t}(\\mRat) & = & \\left(1-e^{\\chi_{t}(\\log \\mRat)}\\right)\\breve{\\cFunc}(\\mRat) . " "/Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/LaTeX/SolnMethTermFunc.tex" nil)
+
+(eof "/Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/LaTeX/SolnMethTermFunc.tex")
+
+(file-error "bibMake")
+
+(eof "/Volumes/Data/Work/BufferStock/BufferStockTheory/Latest/LaTeX/SolnMethTermFuncStandAlone.tex")
+))
+
