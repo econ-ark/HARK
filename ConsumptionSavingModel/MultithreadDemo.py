@@ -1,18 +1,22 @@
-# Import modules neecessary for multithreading.
-# Note these are NOT part of Anaconda and will have to be installed separately.
-from joblib import Parallel, delayed
-import dill as pickle
+'''
+This is a brief demonstration of parallel processing in HARK using HARKparallel.
+A benchmark consumption-saving model is solved for individuals whose CRRA varies
+between 1 and 8.  The infinite horizon model is solved serially and then in
+parallel.  Note that HARKparallel will not work "out of the box", as Anaconda
+does not include two packages needed for it.  See HARKparallel.py.
+'''
 
 import SetupConsumerParameters as Params
 import ConsumptionSavingModel as Model
 from HARKutilities import plotFunc, plotFuncDer, plotFuncs
 from time import clock
 from copy import deepcopy
-from HARKcore import multiThreadCommandsFake, multiThreadCommands
+from HARKparallel import multiThreadCommandsFake, multiThreadCommands
 mystr = lambda number : "{:.4f}".format(number)
 import numpy as np
 
-def main():
+
+if __name__ == '__main__':
     type_count = 32    
     
     # Make the basic type that we'll use as a template.
@@ -80,6 +84,3 @@ def main():
     
     # Plot the consumption functions for all types on one figure to see if it worked
     plotFuncs([this_type.cFunc[0] for this_type in my_agent_list],0,5)
-
-if __name__ == '__main__':
-    main()
