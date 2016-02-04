@@ -1,0 +1,82 @@
+format_ticks.m
+
+
+
+Format Tick Labels:
+
+by Alexander Hayes
+19 Aug 2007 (Updated 20 Aug 2007) 
+http://www.mathworks.com/matlabcentral/fileexchange/15986
+
+
+Description:
+
+Will replace axes tick labels with formatted text objects that can include both Tex and LaTex interpreted strings. Primary example is to add degree symbols to labels. Inputs can be a cell array of strings or a single string to be appended to the end of each of the current labels. Header documentation includes several examples. Labels can also be rotated.
+
+
+Required Inputs:
+
+  h      : handle of axis to change tick labels (can use gca).
+  tickx  : cell array of tick labels or string to append to current labels.
+           Defaults to appending degree symbols if no input.
+
+
+Optional Inputs:
+
+  ticky    : cell array of tick labels or string to append to current
+             labels (Can use [] or not specify to ignore) 
+
+  tickposx : Vector of x positions where you want the tick labels
+             (Can use [] or not specify to ignore)
+
+  tickposy : Vector of y positions where you want the tick labels
+             (Can use [] or not specify to ignore) 
+
+  rotx     : Number of degrees to rotate x tick labels 
+             (Can use [] or not specify to ignore) Default = 0.0
+
+  roty     : Number of degrees to rotate y tick labels
+             (Can use [] or not specify to ignore) Default = 0.0
+
+  offset   : Label offsets from axis in fraction of total range
+             (Can use [] or not specify to ignore) Default = 0.0
+
+  standard text formatting parameters
+             'FontSize','FontWeight',etc.
+
+
+
+
+Example 1
+
+figure;
+plot(0:1,0:1);
+[hx,hy] = format_ticks(gca,...
+          {'$m_{E}$','$\grave{m}_{E}$'},[],...
+          [1/3,2/3]);
+
+
+Example 2
+
+figure;
+plot(0:1,0:1);
+[hx,hy] = format_ticks(gca,...
+          {'$\check{m}^{e}$','$\grave{\check{m}}^{e}$'},...
+          {'$(r-\theta)/\rho$','$\gamma$','$\grave{\gamma}$'},...
+          [1/3,2/3],...
+          [1/3,1/2,2/3]);
+
+
+Example 3
+
+       figure;
+       plot(0:1,0:1);
+       [hx,hy] = format_ticks(gca,...
+       {'$\check{m}^{e}$','$\grave{\check{m}}^{e}$'},...
+       {'$(r-\theta)/\rho$','$\gamma$','$\grave{\gamma}$'},...
+       [1/3,2/3],...
+       [1/3,1/2,2/3],...
+       [135],...
+       [45],...
+       [-0.1],...
+       [+0.05]);

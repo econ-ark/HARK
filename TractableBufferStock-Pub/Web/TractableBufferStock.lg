@@ -1,0 +1,1054 @@
+htfcss: cmtt font-family: monospace;
+htfcss: ecbx  font-weight: bold;
+htfcss: ecsx  font-weight: bold;
+htfcss: ecbi  font-weight: bold;   font-style: italic;
+htfcss: ecit  font-style: italic; font-family: monospace;
+htfcss: ecss  font-family: sans-serif;
+htfcss: ecff  font-family: fantasy;
+htfcss: ecti  font-style: italic;
+htfcss: ectt  font-family: monospace;
+htfcss: wasyb font-weight: bold;
+htfcss: cmss   font-family: sans-serif;
+htfcss: cmssbx  font-family: sans-serif; font-weight: bold;
+htfcss: cmssbxo  font-family: sans-serif; font-style: oblique; font-weight: bold;
+htfcss: cmssdc  font-family: sans-serif;
+htfcss: cmssi  font-family: sans-serif; font-style: oblique;
+htfcss: cmmi font-style: italic;
+htfcss: cmmib font-style: italic; font-weight: bold;
+htfcss: ecbx  font-weight: bold;
+htfcss: ecsx  font-weight: bold;
+htfcss: ecbi  font-weight: bold;   font-style: italic;
+htfcss: ecit  font-style: italic; font-family: monospace;
+htfcss: ecss  font-family: sans-serif;
+htfcss: ecff  font-family: fantasy;
+htfcss: ecti  font-style: italic;
+htfcss: ectt  font-family: monospace;
+htfcss: ecbx  font-weight: bold;
+htfcss: ecsx  font-weight: bold;
+htfcss: ecbi  font-weight: bold;   font-style: italic;
+htfcss: ecit  font-style: italic; font-family: monospace;
+htfcss: ecss  font-family: sans-serif;
+htfcss: ecff  font-family: fantasy;
+htfcss: ecti  font-style: italic;
+htfcss: ectt  font-family: monospace;
+htfcss: ecbx  font-weight: bold;
+htfcss: ecsx  font-weight: bold;
+htfcss: ecbi  font-weight: bold;   font-style: italic;
+htfcss: ecit  font-style: italic; font-family: monospace;
+htfcss: ecss  font-family: sans-serif;
+htfcss: ecff  font-family: fantasy;
+htfcss: ecti  font-style: italic;
+htfcss: ectt  font-family: monospace;
+htfcss: ecbx  font-weight: bold;
+htfcss: ecsx  font-weight: bold;
+htfcss: ecbi  font-weight: bold;   font-style: italic;
+htfcss: ecit  font-style: italic; font-family: monospace;
+htfcss: ecss  font-family: sans-serif;
+htfcss: ecff  font-family: fantasy;
+htfcss: ecti  font-style: italic;
+htfcss: ectt  font-family: monospace;
+htfcss: cmbx  font-weight: bold;
+htfcss: cmbxsl  font-weight: bold; font-style: oblique;
+htfcss: cmss   font-family: sans-serif;
+htfcss: cmssbx  font-family: sans-serif; font-weight: bold;
+htfcss: cmssbxo  font-family: sans-serif; font-style: oblique; font-weight: bold;
+htfcss: cmssdc  font-family: sans-serif;
+htfcss: cmssi  font-family: sans-serif; font-style: oblique;
+htfcss: cmss   font-family: sans-serif;
+htfcss: cmssbx  font-family: sans-serif; font-weight: bold;
+htfcss: cmssbxo  font-family: sans-serif; font-style: oblique; font-weight: bold;
+htfcss: cmssdc  font-family: sans-serif;
+htfcss: cmssi  font-family: sans-serif; font-style: oblique;
+htfcss: cmss   font-family: sans-serif;
+htfcss: cmssbx  font-family: sans-serif; font-weight: bold;
+htfcss: cmssbxo  font-family: sans-serif; font-style: oblique; font-weight: bold;
+htfcss: cmssdc  font-family: sans-serif;
+htfcss: cmssi  font-family: sans-serif; font-style: oblique;
+htfcss: ecbx  font-weight: bold;
+htfcss: ecsx  font-weight: bold;
+htfcss: ecbi  font-weight: bold;   font-style: italic;
+htfcss: ecit  font-style: italic; font-family: monospace;
+htfcss: ecss  font-family: sans-serif;
+htfcss: ecff  font-family: fantasy;
+htfcss: ecti  font-style: italic;
+htfcss: ectt  font-family: monospace;
+htfcss: ecbx  font-weight: bold;
+htfcss: ecsx  font-weight: bold;
+htfcss: ecbi  font-weight: bold;   font-style: italic;
+htfcss: ecit  font-style: italic; font-family: monospace;
+htfcss: ecss  font-family: sans-serif;
+htfcss: ecff  font-family: fantasy;
+htfcss: ecti  font-style: italic;
+htfcss: ectt  font-family: monospace;
+htfcss: ecbx  font-weight: bold;
+htfcss: ecsx  font-weight: bold;
+htfcss: ecbi  font-weight: bold;   font-style: italic;
+htfcss: ecit  font-style: italic; font-family: monospace;
+htfcss: ecss  font-family: sans-serif;
+htfcss: ecff  font-family: fantasy;
+htfcss: ecti  font-style: italic;
+htfcss: ectt  font-family: monospace;
+htfcss: ecbx  font-weight: bold;
+htfcss: ecsx  font-weight: bold;
+htfcss: ecbi  font-weight: bold;   font-style: italic;
+htfcss: ecit  font-style: italic; font-family: monospace;
+htfcss: ecss  font-family: sans-serif;
+htfcss: ecff  font-family: fantasy;
+htfcss: ecti  font-style: italic;
+htfcss: ectt  font-family: monospace;
+htfcss: ecbx  font-weight: bold;
+htfcss: ecsx  font-weight: bold;
+htfcss: ecbi  font-weight: bold;   font-style: italic;
+htfcss: ecit  font-style: italic; font-family: monospace;
+htfcss: ecss  font-family: sans-serif;
+htfcss: ecff  font-family: fantasy;
+htfcss: ecti  font-style: italic;
+htfcss: ectt  font-family: monospace;
+htfcss: ecbx  font-weight: bold;
+htfcss: ecsx  font-weight: bold;
+htfcss: ecbi  font-weight: bold;   font-style: italic;
+htfcss: ecit  font-style: italic; font-family: monospace;
+htfcss: ecss  font-family: sans-serif;
+htfcss: ecff  font-family: fantasy;
+htfcss: ecti  font-style: italic;
+htfcss: ectt  font-family: monospace;
+File: TractableBufferStock.html
+File: TractableBufferStock.css
+File: TractableBufferStock.tmp
+File: TractableBufferStock2.html
+File: TractableBufferStock3.html
+File: TractableBufferStock4.html
+File: TractableBufferStock5.html
+File: TractableBufferStock6.html
+File: TractableBufferStock7.html
+File: TractableBufferStock8.html
+File: TractableBufferStock9.html
+File: TractableBufferStock10.html
+File: TractableBufferStock11.html
+File: TractableBufferStock12.html
+File: TractableBufferStock13.html
+File: TractableBufferStock14.html
+File: TractableBufferStock15.html
+File: TractableBufferStock16.html
+File: TractableBufferStock17.html
+File: TractableBufferStock18.html
+File: TractableBufferStock19.html
+File: TractableBufferStock20.html
+File: TractableBufferStock21.html
+File: TractableBufferStock22.html
+File: TractableBufferStock23.html
+File: TractableBufferStock24.html
+File: TractableBufferStock25.html
+File: TractableBufferStock26.html
+File: TractableBufferStock27.html
+File: TractableBufferStock28.html
+File: TractableBufferStock29.html
+File: TractableBufferStock30.html
+File: TractableBufferStock31.html
+File: TractableBufferStock32.html
+File: TractableBufferStock33.html
+File: TractableBufferStock34.html
+File: TractableBufferStock35.html
+File: TractableBufferStock36.html
+File: TractableBufferStock37.html
+File: TractableBufferStock38.html
+File: TractableBufferStock39.html
+File: TractableBufferStock40.html
+File: TractableBufferStock41.html
+File: TractableBufferStock42.html
+File: TractableBufferStock43.html
+Font_Class(4,"4"): <span  class="small-caps"></span>
+Css: p.noindent { text-indent: 0em }
+Css: td p.noindent { text-indent: 0em; margin-top:0em; }
+Css: p.nopar { text-indent: 0em; }
+Css: p.indent{ text-indent: 1.5em }
+Css: @media print {div.crosslinks {visibility:hidden;}}
+Css: a img { border-top: 0; border-left: 0; border-right: 0; }
+Font_Css("4"): .small-caps{font-variant: small-caps; }
+Font_Css("10"): .htf-cmbx {font-weight: bold; font-style:normal;}
+Font_Css("12"): .htf-calligraphy {font-family:cursive}
+Font_Css("14"): .htf-italic {font-style: italic;}
+Font_Css("16"): .htf-bold {font-weight: bold;}
+Font_Css("12"): .htf-calligraphy-bold {font-family:cursive ; font-weight: bold; }
+Css: center { margin-top:1em; margin-bottom:1em; }
+Css: td center { margin-top:0em; margin-bottom:0em; }
+Css: .Canvas { position:relative; }
+Css: img.math{vertical-align:middle;}
+Css: li p.indent { text-indent: 0em }
+Css: li p:first-child{ margin-top:0em; }
+Css: li p:last-child, li div:last-child { margin-bottom:0.5em; }
+Css: li p~ul:last-child, li p~ol:last-child{ margin-bottom:0.5em; }
+Css: .enumerate1 {list-style-type:decimal;}
+Css: .enumerate2 {list-style-type:lower-alpha;}
+Css: .enumerate3 {list-style-type:lower-roman;}
+Css: .enumerate4 {list-style-type:upper-alpha;}
+Css: div.newtheorem { margin-bottom: 2em; margin-top: 2em;}
+Css: .obeylines-h,.obeylines-v {white-space: nowrap; }
+Css: div.obeylines-v p { margin-top:0; margin-bottom:0; }
+Css: .overline{ text-decoration:overline; }
+Css: .overline img{ border-top: 1px solid black; }
+Css: td.displaylines {text-align:center; white-space:nowrap;}
+Css: .centerline {text-align:center;}
+Css: .rightline {text-align:right;}
+Css: div.pic-tabular {text-align:center;}
+Css: div.verbatim {font-family: monospace; white-space: nowrap; text-align:left; clear:both; }
+Css: .fbox {padding-left:3.0pt; padding-right:3.0pt; text-indent:0pt; border:solid black 0.4pt; }
+Css: div.fbox {display:table}
+Css: div.center div.fbox {text-align:center; clear:both; padding-left:3.0pt; padding-right:3.0pt; text-indent:0pt; border:solid black 0.4pt; }
+Css: div.minipage{width:100%;}
+Css: div.center, div.center div.center {text-align: center; margin-left:1em; margin-right:1em;}
+Css: div.center div {text-align: left;}
+Css: div.flushright, div.flushright div.flushright {text-align: right;}
+Css: div.flushright div {text-align: left;}
+Css: div.flushleft {text-align: left;}
+Css: .underline{ text-decoration:underline; }
+Css: .underline img{ border-bottom: 1px solid black; margin-bottom:1pt; }
+Css: .framebox-c, .framebox-l, .framebox-r { padding-left:3.0pt; padding-right:3.0pt; text-indent:0pt; border:solid black 0.4pt; }
+Css: .framebox-c {text-align:center;}
+Css: .framebox-l {text-align:left;}
+Css: .framebox-r {text-align:right;}
+Css: span.thank-mark{ vertical-align: super }
+Css: span.footnote-mark sup.textsuperscript, span.footnote-mark a sup.textsuperscript{ font-size:80%; }
+Css: td p:first-child{ margin-top:0em; }
+Css: td p:last-child{ margin-bottom:0em; }
+Css: div.td00{ margin-left:0pt; margin-right:0pt; }
+Css: div.td01{ margin-left:0pt; margin-right:5pt; }
+Css: div.td10{ margin-left:5pt; margin-right:0pt; }
+Css: div.td11{ margin-left:5pt; margin-right:5pt; }
+Css: table[rules] {border-left:solid black 0.4pt; border-right:solid black 0.4pt; }
+Css: td.td00{ padding-left:0pt; padding-right:0pt; }
+Css: td.td01{ padding-left:0pt; padding-right:5pt; }
+Css: td.td10{ padding-left:5pt; padding-right:0pt; }
+Css: td.td11{ padding-left:5pt; padding-right:5pt; }
+Css: table[rules] {border-left:solid black 0.4pt; border-right:solid black 0.4pt; }
+Css: .hline hr, .cline hr{ height : 1px; margin:0px; }
+Css: .tabbing-right {text-align:right;}
+Css: span.TEX {letter-spacing: -0.125em; }
+Css: span.TEX span.E{ position:relative;top:0.5ex;left:-0.0417em;}
+Css: a span.TEX span.E {text-decoration: none; }
+Css: span.LATEX span.A{ position:relative; top:-0.5ex; left:-0.4em; font-size:85%;}
+Css: span.LATEX span.TEX{ position:relative; left: -0.4em; }
+Css: div.float, div.figure {margin-left: auto; margin-right: auto;}
+Css: div.float img {text-align:center;}
+Css: div.figure img {text-align:center;}
+Css: .marginpar {width:20%; float:right; text-align:left; margin-left:auto; margin-top:0.5em; font-size:85%; text-decoration:underline;}
+Css: .marginpar p{margin-top:0.4em; margin-bottom:0.4em;}
+Css: table.equation {width:100%;}
+Css: .equation td{text-align:center; }
+Css: td.equation { margin-top:1em; margin-bottom:1em; } 
+Css: td.equation-label { width:5%; text-align:center; }
+Css: div.pic-eqnarray {text-align:center;}
+Css: div.pic-eqnarray-star {text-align:center;}
+Css: div.pmatrix {text-align:center;}
+Css: table.pmatrix {width:100%;}
+Css: div.pic-array {text-align:center;}
+Css: span.pmatrix img{vertical-align:middle;}
+Css: div.pmatrix {text-align:center;}
+Css: table.pmatrix {width:100%;}
+Css: span.bar-css {text-decoration:overline;}
+Css: img.cdots{vertical-align:middle;}
+Css: .partToc a, .partToc, .likepartToc a, .likepartToc {line-height: 200%; font-weight:bold; font-size:110%;}
+Css: .index-item, .index-subitem, .index-subsubitem {display:block}
+Css: div.caption {text-indent:-2em; margin-left:3em; margin-right:1em; text-align:left;}
+Css: div.caption span.id{font-weight: bold; white-space: nowrap; }
+Css: h1.partHead{text-align: center}
+Css: p.bibitem { text-indent: -2em; margin-left: 2em; margin-top:0.6em; margin-bottom:0.6em; }
+Css: p.bibitem-p { text-indent: 0em; margin-left: 2em; margin-top:0.6em; margin-bottom:0.6em; }
+Css: .paragraphHead, .likeparagraphHead { margin-top:2em; font-weight: bold;}
+Css: .subparagraphHead, .likesubparagraphHead { font-weight: bold;}
+Css: .quote {margin-bottom:0.25em; margin-top:0.25em; margin-left:1em; margin-right:1em; text-align:justify;}
+Css: .verse{white-space:nowrap; margin-left:2em}
+Css: div.maketitle {text-align:center;}
+Css: h2.titleHead{text-align:center;}
+Css: div.maketitle{ margin-bottom: 2em; }
+Css: div.author, div.date {text-align:center;}
+Css: div.thanks{text-align:left; margin-left:10%; font-size:85%; font-style:italic; }
+Css: div.author{white-space: nowrap;}
+Font_Size: 12
+Css: .quotation {margin-bottom:0.25em; margin-top:0.25em; margin-left:1em; }
+Css: .abstract p {margin-left:5%; margin-right:5%;}
+Css: div.abstract {width:100%;}
+Css: span.footnote-mark sup.textsuperscript, span.footnote-mark a sup.textsuperscript{ font-size:80%; }
+Css: div.verbatiminput {font-family: monospace; white-space: nowrap; }
+Css: .equation td{text-align:center; }
+Css: .equation-star td{text-align:center; }
+Css: table.equation-star { width:100%; }
+Css: table.equation { width:100%; }
+Css: table.align, table.alignat, table.xalignat, table.xxalignat, table.flalign {width:100%; margin-left:5%; white-space: nowrap;}
+Css: table.align-star, table.alignat-star, table.xalignat-star, table.flalign-star {margin-left:auto; margin-right:auto; white-space: nowrap;}
+Css: td.align-label { width:5%; text-align:center; }
+Css: td.align-odd { text-align:right; padding-right:0.3em;}
+Css: td.align-even { text-align:left; padding-right:0.6em;}
+Css: table.multline, table.multline-star {width:100%;}
+Css: td.gather {text-align:center; }
+Css: table.gather {width:100%;}
+Css: div.gather-star {text-align:center;}
+Css: td p:first-child{ margin-top:0em; }
+Css: td p:last-child{ margin-bottom:0em; }
+Css: div.td00{ margin-left:0pt; margin-right:0pt; }
+Css: div.td01{ margin-left:0pt; margin-right:5pt; }
+Css: div.td10{ margin-left:5pt; margin-right:0pt; }
+Css: div.td11{ margin-left:5pt; margin-right:5pt; }
+Css: table[rules] {border-left:solid black 0.4pt; border-right:solid black 0.4pt; }
+Css: td.td00{ padding-left:0pt; padding-right:0pt; }
+Css: td.td01{ padding-left:0pt; padding-right:5pt; }
+Css: td.td10{ padding-left:5pt; padding-right:0pt; }
+Css: td.td11{ padding-left:5pt; padding-right:5pt; }
+Css: table[rules] {border-left:solid black 0.4pt; border-right:solid black 0.4pt; }
+Css: .hline hr, .cline hr{ height : 1px; margin:0px; }
+Css: table.multicols { width:100%; margin-left:1em; margin-top:1em; margin-bottom:1em; }
+Css: table.boxedverbatim {width:100%;}
+Css:  pre.boxedverbatim{border:solid 1px; padding-right:1em;} 
+Css: table.boxedverbatim {text-align:center;}
+Css: .listinginput p{ margin-bottom:0em; margin-top:0em; }
+Css: .uline{ text-decoration:underline; }
+Css: .uuline{ text-decoration:underline; }
+Css: span.sout {text-decoration: line-through }
+Css: span.xout {text-decoration: line-through }
+Css: span.uwave {text-decoration:underline }
+Css: .underline-d{ border-bottom: 3px double black; margin-bottom:1pt; }
+Css: .figure img.graphics {margin-left:10%;}
+--- needs --- TractableBufferStock.idv[2] ==> TractableBufferStock0x.png ---
+--- needs --- TractableBufferStock.idv[4] ==> TractableBufferStock1x.png ---
+--- needs --- TractableBufferStock.idv[5] ==> TractableBufferStock2x.png ---
+--- needs --- TractableBufferStock.idv[6] ==> TractableBufferStock3x.png ---
+--- needs --- TractableBufferStock.idv[7] ==> TractableBufferStock4x.png ---
+--- needs --- TractableBufferStock.idv[8] ==> TractableBufferStock5x.png ---
+--- needs --- TractableBufferStock.idv[9] ==> TractableBufferStock6x.png ---
+--- needs --- TractableBufferStock.idv[10] ==> TractableBufferStock7x.png ---
+--- needs --- TractableBufferStock.idv[11] ==> TractableBufferStock8x.png ---
+--- needs --- TractableBufferStock.idv[13] ==> TractableBufferStock9x.png ---
+--- needs --- TractableBufferStock.idv[14] ==> TractableBufferStock10x.png ---
+--- needs --- TractableBufferStock.idv[15] ==> TractableBufferStock11x.png ---
+--- needs --- TractableBufferStock.idv[16] ==> TractableBufferStock12x.png ---
+--- needs --- TractableBufferStock.idv[17] ==> TractableBufferStock13x.png ---
+--- needs --- TractableBufferStock.idv[19] ==> TractableBufferStock14x.png ---
+--- needs --- TractableBufferStock.idv[20] ==> TractableBufferStock15x.png ---
+--- needs --- TractableBufferStock.idv[21] ==> TractableBufferStock16x.png ---
+--- needs --- TractableBufferStock.idv[22] ==> TractableBufferStock17x.png ---
+--- needs --- TractableBufferStock.idv[24] ==> TractableBufferStock18x.png ---
+--- needs --- TractableBufferStock.idv[25] ==> TractableBufferStock19x.png ---
+--- needs --- TractableBufferStock.idv[26] ==> TractableBufferStock20x.png ---
+--- needs --- TractableBufferStock.idv[28] ==> TractableBufferStock21x.png ---
+--- needs --- TractableBufferStock.idv[30] ==> TractableBufferStock22x.png ---
+--- needs --- TractableBufferStock.idv[31] ==> TractableBufferStock23x.png ---
+--- needs --- TractableBufferStock.idv[32] ==> TractableBufferStock24x.png ---
+--- needs --- TractableBufferStock.idv[33] ==> TractableBufferStock25x.png ---
+--- needs --- TractableBufferStock.idv[34] ==> TractableBufferStock26x.png ---
+--- needs --- TractableBufferStock.idv[35] ==> TractableBufferStock27x.png ---
+--- needs --- TractableBufferStock.idv[37] ==> TractableBufferStock28x.png ---
+--- needs --- TractableBufferStock.idv[38] ==> TractableBufferStock29x.png ---
+--- needs --- TractableBufferStock.idv[40] ==> TractableBufferStock30x.png ---
+--- needs --- TractableBufferStock.idv[41] ==> TractableBufferStock31x.png ---
+--- needs --- TractableBufferStock.idv[42] ==> TractableBufferStock32x.png ---
+--- needs --- TractableBufferStock.idv[43] ==> TractableBufferStock33x.png ---
+--- needs --- TractableBufferStock.idv[44] ==> TractableBufferStock34x.png ---
+--- needs --- TractableBufferStock.idv[45] ==> TractableBufferStock35x.png ---
+--- needs --- TractableBufferStock.idv[46] ==> TractableBufferStock36x.png ---
+--- needs --- TractableBufferStock.idv[47] ==> TractableBufferStock37x.png ---
+--- needs --- TractableBufferStock.idv[48] ==> TractableBufferStock38x.png ---
+--- needs --- TractableBufferStock.idv[50] ==> TractableBufferStock39x.png ---
+--- needs --- TractableBufferStock.idv[51] ==> TractableBufferStock40x.png ---
+--- needs --- TractableBufferStock.idv[52] ==> TractableBufferStock41x.png ---
+--- needs --- TractableBufferStock.idv[53] ==> TractableBufferStock42x.png ---
+--- needs --- TractableBufferStock.idv[55] ==> TractableBufferStock43x.png ---
+--- needs --- TractableBufferStock.idv[56] ==> TractableBufferStock44x.png ---
+--- needs --- TractableBufferStock.idv[57] ==> TractableBufferStock45x.png ---
+--- needs --- TractableBufferStock.idv[58] ==> TractableBufferStock46x.png ---
+--- needs --- TractableBufferStock.idv[60] ==> TractableBufferStock47x.png ---
+--- needs --- TractableBufferStock.idv[61] ==> TractableBufferStock48x.png ---
+--- needs --- TractableBufferStock.idv[62] ==> TractableBufferStock49x.png ---
+--- needs --- TractableBufferStock.idv[63] ==> TractableBufferStock50x.png ---
+--- needs --- TractableBufferStock.idv[64] ==> TractableBufferStock51x.png ---
+--- needs --- TractableBufferStock.idv[65] ==> TractableBufferStock52x.png ---
+--- needs --- TractableBufferStock.idv[67] ==> TractableBufferStock53x.png ---
+--- needs --- TractableBufferStock.idv[68] ==> TractableBufferStock54x.png ---
+--- needs --- TractableBufferStock.idv[70] ==> TractableBufferStock55x.png ---
+--- needs --- TractableBufferStock.idv[71] ==> TractableBufferStock56x.png ---
+--- needs --- TractableBufferStock.idv[72] ==> TractableBufferStock57x.png ---
+--- needs --- TractableBufferStock.idv[74] ==> TractableBufferStock58x.png ---
+--- needs --- TractableBufferStock.idv[76] ==> TractableBufferStock59x.png ---
+--- needs --- TractableBufferStock.idv[77] ==> TractableBufferStock60x.png ---
+--- needs --- TractableBufferStock.idv[78] ==> TractableBufferStock61x.png ---
+--- needs --- TractableBufferStock.idv[80] ==> TractableBufferStock62x.png ---
+--- needs --- TractableBufferStock.idv[82] ==> TractableBufferStock63x.png ---
+--- needs --- TractableBufferStock.idv[83] ==> TractableBufferStock64x.png ---
+--- needs --- TractableBufferStock.idv[84] ==> TractableBufferStock65x.png ---
+--- needs --- TractableBufferStock.idv[86] ==> TractableBufferStock66x.png ---
+--- needs --- TractableBufferStock.idv[88] ==> TractableBufferStock67x.png ---
+--- needs --- TractableBufferStock.idv[89] ==> TractableBufferStock68x.png ---
+--- needs --- TractableBufferStock.idv[90] ==> TractableBufferStock69x.png ---
+--- needs --- TractableBufferStock.idv[91] ==> TractableBufferStock70x.png ---
+--- needs --- TractableBufferStock.idv[92] ==> TractableBufferStock71x.png ---
+--- needs --- TractableBufferStock.idv[94] ==> TractableBufferStock72x.png ---
+--- needs --- TractableBufferStock.idv[95] ==> TractableBufferStock73x.png ---
+--- needs --- TractableBufferStock.idv[96] ==> TractableBufferStock74x.png ---
+--- needs --- TractableBufferStock.idv[97] ==> TractableBufferStock75x.png ---
+--- needs --- TractableBufferStock.idv[98] ==> TractableBufferStock76x.png ---
+--- needs --- TractableBufferStock.idv[99] ==> TractableBufferStock77x.png ---
+--- needs --- TractableBufferStock.idv[100] ==> TractableBufferStock78x.png ---
+--- needs --- TractableBufferStock.idv[101] ==> TractableBufferStock79x.png ---
+--- needs --- TractableBufferStock.idv[102] ==> TractableBufferStock80x.png ---
+--- needs --- TractableBufferStock.idv[103] ==> TractableBufferStock81x.png ---
+--- needs --- TractableBufferStock.idv[104] ==> TractableBufferStock82x.png ---
+--- needs --- TractableBufferStock.idv[105] ==> TractableBufferStock83x.png ---
+--- needs --- TractableBufferStock.idv[106] ==> TractableBufferStock84x.png ---
+--- needs --- TractableBufferStock.idv[107] ==> TractableBufferStock85x.png ---
+--- needs --- TractableBufferStock.idv[108] ==> TractableBufferStock86x.png ---
+--- needs --- TractableBufferStock.idv[109] ==> TractableBufferStock87x.png ---
+--- needs --- TractableBufferStock.idv[110] ==> TractableBufferStock88x.png ---
+--- needs --- TractableBufferStock.idv[112] ==> TractableBufferStock89x.png ---
+--- needs --- TractableBufferStock.idv[113] ==> TractableBufferStock90x.png ---
+--- needs --- TractableBufferStock.idv[114] ==> TractableBufferStock91x.png ---
+--- needs --- TractableBufferStock.idv[115] ==> TractableBufferStock92x.png ---
+--- needs --- TractableBufferStock.idv[116] ==> TractableBufferStock93x.png ---
+--- needs --- TractableBufferStock.idv[117] ==> TractableBufferStock94x.png ---
+--- needs --- TractableBufferStock.idv[118] ==> TractableBufferStock95x.png ---
+--- needs --- TractableBufferStock.idv[119] ==> TractableBufferStock96x.png ---
+--- needs --- TractableBufferStock.idv[120] ==> TractableBufferStock97x.png ---
+--- needs --- TractableBufferStock.idv[122] ==> TractableBufferStock98x.png ---
+--- needs --- TractableBufferStock.idv[123] ==> TractableBufferStock99x.png ---
+--- needs --- TractableBufferStock.idv[124] ==> TractableBufferStock100x.png ---
+--- needs --- TractableBufferStock.idv[125] ==> TractableBufferStock101x.png ---
+--- needs --- TractableBufferStock.idv[126] ==> TractableBufferStock102x.png ---
+--- needs --- TractableBufferStock.idv[127] ==> TractableBufferStock103x.png ---
+--- needs --- TractableBufferStock.idv[128] ==> TractableBufferStock104x.png ---
+--- needs --- TractableBufferStock.idv[130] ==> TractableBufferStock105x.png ---
+--- needs --- TractableBufferStock.idv[131] ==> TractableBufferStock106x.png ---
+--- needs --- TractableBufferStock.idv[133] ==> TractableBufferStock107x.png ---
+--- needs --- TractableBufferStock.idv[134] ==> TractableBufferStock108x.png ---
+--- needs --- TractableBufferStock.idv[135] ==> TractableBufferStock109x.png ---
+--- needs --- TractableBufferStock.idv[136] ==> TractableBufferStock110x.png ---
+--- needs --- TractableBufferStock.idv[137] ==> TractableBufferStock111x.png ---
+--- needs --- TractableBufferStock.idv[138] ==> TractableBufferStock112x.png ---
+--- needs --- TractableBufferStock.idv[139] ==> TractableBufferStock113x.png ---
+--- needs --- TractableBufferStock.idv[140] ==> TractableBufferStock114x.png ---
+--- needs --- TractableBufferStock.idv[141] ==> TractableBufferStock115x.png ---
+--- needs --- TractableBufferStock.idv[142] ==> TractableBufferStock116x.png ---
+--- needs --- TractableBufferStock.idv[143] ==> TractableBufferStock117x.png ---
+--- needs --- TractableBufferStock.idv[144] ==> TractableBufferStock118x.png ---
+--- needs --- TractableBufferStock.idv[145] ==> TractableBufferStock119x.png ---
+--- needs --- TractableBufferStock.idv[146] ==> TractableBufferStock120x.png ---
+--- needs --- TractableBufferStock.idv[147] ==> TractableBufferStock121x.png ---
+--- needs --- TractableBufferStock.idv[149] ==> TractableBufferStock122x.png ---
+--- needs --- TractableBufferStock.idv[150] ==> TractableBufferStock123x.png ---
+--- needs --- TractableBufferStock.idv[151] ==> TractableBufferStock124x.png ---
+--- needs --- TractableBufferStock.idv[152] ==> TractableBufferStock125x.png ---
+--- needs --- TractableBufferStock.idv[153] ==> TractableBufferStock126x.png ---
+--- needs --- TractableBufferStock.idv[154] ==> TractableBufferStock127x.png ---
+--- needs --- TractableBufferStock.idv[155] ==> TractableBufferStock128x.png ---
+--- needs --- TractableBufferStock.idv[156] ==> TractableBufferStock129x.png ---
+--- needs --- TractableBufferStock.idv[158] ==> TractableBufferStock130x.png ---
+--- needs --- TractableBufferStock.idv[159] ==> TractableBufferStock131x.png ---
+--- needs --- TractableBufferStock.idv[160] ==> TractableBufferStock132x.png ---
+--- needs --- TractableBufferStock.idv[161] ==> TractableBufferStock133x.png ---
+--- needs --- TractableBufferStock.idv[162] ==> TractableBufferStock134x.png ---
+--- needs --- TractableBufferStock.idv[163] ==> TractableBufferStock135x.png ---
+--- needs --- TractableBufferStock.idv[164] ==> TractableBufferStock136x.png ---
+--- needs --- TractableBufferStock.idv[165] ==> TractableBufferStock137x.png ---
+--- needs --- TractableBufferStock.idv[167] ==> TractableBufferStock138x.png ---
+--- needs --- TractableBufferStock.idv[168] ==> TractableBufferStock139x.png ---
+--- needs --- TractableBufferStock.idv[169] ==> TractableBufferStock140x.png ---
+--- needs --- TractableBufferStock.idv[170] ==> TractableBufferStock141x.png ---
+--- needs --- TractableBufferStock.idv[171] ==> TractableBufferStock142x.png ---
+--- needs --- TractableBufferStock.idv[172] ==> TractableBufferStock143x.png ---
+--- needs --- TractableBufferStock.idv[173] ==> TractableBufferStock144x.png ---
+--- needs --- TractableBufferStock.idv[174] ==> TractableBufferStock145x.png ---
+--- needs --- TractableBufferStock.idv[175] ==> TractableBufferStock146x.png ---
+--- needs --- TractableBufferStock.idv[176] ==> TractableBufferStock147x.png ---
+--- needs --- TractableBufferStock.idv[177] ==> TractableBufferStock148x.png ---
+--- needs --- TractableBufferStock.idv[178] ==> TractableBufferStock149x.png ---
+--- needs --- TractableBufferStock.idv[179] ==> TractableBufferStock150x.png ---
+--- needs --- TractableBufferStock.idv[181] ==> TractableBufferStock151x.png ---
+--- needs --- TractableBufferStock.idv[183] ==> TractableBufferStock152x.png ---
+--- needs --- TractableBufferStock.idv[184] ==> TractableBufferStock153x.png ---
+--- needs --- TractableBufferStock.idv[185] ==> TractableBufferStock154x.png ---
+--- needs --- TractableBufferStock.idv[186] ==> TractableBufferStock155x.png ---
+--- needs --- TractableBufferStock.idv[187] ==> TractableBufferStock156x.png ---
+--- needs --- TractableBufferStock.idv[188] ==> TractableBufferStock157x.png ---
+--- needs --- TractableBufferStock.idv[189] ==> TractableBufferStock158x.png ---
+--- needs --- TractableBufferStock.idv[190] ==> TractableBufferStock159x.png ---
+--- needs --- TractableBufferStock.idv[191] ==> TractableBufferStock160x.png ---
+--- needs --- TractableBufferStock.idv[192] ==> TractableBufferStock161x.png ---
+--- needs --- TractableBufferStock.idv[193] ==> TractableBufferStock162x.png ---
+--- needs --- TractableBufferStock.idv[194] ==> TractableBufferStock163x.png ---
+--- needs --- TractableBufferStock.idv[195] ==> TractableBufferStock164x.png ---
+--- needs --- TractableBufferStock.idv[197] ==> TractableBufferStock165x.png ---
+--- needs --- TractableBufferStock.idv[198] ==> TractableBufferStock166x.png ---
+--- needs --- TractableBufferStock.idv[199] ==> TractableBufferStock167x.png ---
+--- needs --- TractableBufferStock.idv[200] ==> TractableBufferStock168x.png ---
+--- needs --- TractableBufferStock.idv[202] ==> TractableBufferStock169x.png ---
+--- needs --- TractableBufferStock.idv[203] ==> TractableBufferStock170x.png ---
+--- needs --- TractableBufferStock.idv[205] ==> TractableBufferStock171x.png ---
+--- needs --- TractableBufferStock.idv[206] ==> TractableBufferStock172x.png ---
+--- needs --- TractableBufferStock.idv[207] ==> TractableBufferStock173x.png ---
+--- needs --- TractableBufferStock.idv[208] ==> TractableBufferStock174x.png ---
+--- needs --- TractableBufferStock.idv[209] ==> TractableBufferStock175x.png ---
+--- needs --- TractableBufferStock.idv[210] ==> TractableBufferStock176x.png ---
+--- needs --- TractableBufferStock.idv[211] ==> TractableBufferStock177x.png ---
+--- needs --- TractableBufferStock.idv[212] ==> TractableBufferStock178x.png ---
+--- needs --- TractableBufferStock.idv[213] ==> TractableBufferStock179x.png ---
+--- needs --- TractableBufferStock.idv[214] ==> TractableBufferStock180x.png ---
+--- needs --- TractableBufferStock.idv[215] ==> TractableBufferStock181x.png ---
+--- needs --- TractableBufferStock.idv[216] ==> TractableBufferStock182x.png ---
+--- needs --- TractableBufferStock.idv[217] ==> TractableBufferStock183x.png ---
+--- needs --- TractableBufferStock.idv[218] ==> TractableBufferStock184x.png ---
+--- needs --- TractableBufferStock.idv[219] ==> TractableBufferStock185x.png ---
+--- needs --- TractableBufferStock.idv[220] ==> TractableBufferStock186x.png ---
+--- needs --- TractableBufferStock.idv[221] ==> TractableBufferStock187x.png ---
+--- needs --- TractableBufferStock.idv[222] ==> TractableBufferStock188x.png ---
+--- needs --- TractableBufferStock.idv[223] ==> TractableBufferStock189x.png ---
+--- needs --- TractableBufferStock.idv[224] ==> TractableBufferStock190x.png ---
+--- needs --- TractableBufferStock.idv[225] ==> TractableBufferStock191x.png ---
+--- needs --- TractableBufferStock.idv[227] ==> TractableBufferStock192x.png ---
+--- needs --- TractableBufferStock.idv[228] ==> TractableBufferStock193x.png ---
+--- needs --- TractableBufferStock.idv[229] ==> TractableBufferStock194x.png ---
+--- needs --- TractableBufferStock.idv[230] ==> TractableBufferStock195x.png ---
+--- needs --- TractableBufferStock.idv[231] ==> TractableBufferStock196x.png ---
+--- needs --- TractableBufferStock.idv[232] ==> TractableBufferStock197x.png ---
+File: TractableBufferStockPhaseDiag.png
+--- needs --- TractableBufferStock.idv[234] ==> TractableBufferStock198x.png ---
+--- needs --- TractableBufferStock.idv[235] ==> TractableBufferStock199x.png ---
+--- needs --- TractableBufferStock.idv[236] ==> TractableBufferStock200x.png ---
+--- needs --- TractableBufferStock.idv[237] ==> TractableBufferStock201x.png ---
+--- needs --- TractableBufferStock.idv[238] ==> TractableBufferStock202x.png ---
+--- needs --- TractableBufferStock.idv[240] ==> TractableBufferStock203x.png ---
+--- needs --- TractableBufferStock.idv[241] ==> TractableBufferStock204x.png ---
+--- needs --- TractableBufferStock.idv[242] ==> TractableBufferStock205x.png ---
+--- needs --- TractableBufferStock.idv[243] ==> TractableBufferStock206x.png ---
+--- needs --- TractableBufferStock.idv[244] ==> TractableBufferStock207x.png ---
+--- needs --- TractableBufferStock.idv[245] ==> TractableBufferStock208x.png ---
+--- needs --- TractableBufferStock.idv[246] ==> TractableBufferStock209x.png ---
+--- needs --- TractableBufferStock.idv[247] ==> TractableBufferStock210x.png ---
+--- needs --- TractableBufferStock.idv[248] ==> TractableBufferStock211x.png ---
+--- needs --- TractableBufferStock.idv[249] ==> TractableBufferStock212x.png ---
+--- needs --- TractableBufferStock.idv[250] ==> TractableBufferStock213x.png ---
+--- needs --- TractableBufferStock.idv[251] ==> TractableBufferStock214x.png ---
+--- needs --- TractableBufferStock.idv[252] ==> TractableBufferStock215x.png ---
+--- needs --- TractableBufferStock.idv[253] ==> TractableBufferStock216x.png ---
+--- needs --- TractableBufferStock.idv[254] ==> TractableBufferStock217x.png ---
+--- needs --- TractableBufferStock.idv[255] ==> TractableBufferStock218x.png ---
+--- needs --- TractableBufferStock.idv[256] ==> TractableBufferStock219x.png ---
+--- needs --- TractableBufferStock.idv[257] ==> TractableBufferStock220x.png ---
+--- needs --- TractableBufferStock.idv[258] ==> TractableBufferStock221x.png ---
+--- needs --- TractableBufferStock.idv[259] ==> TractableBufferStock222x.png ---
+--- needs --- TractableBufferStock.idv[260] ==> TractableBufferStock223x.png ---
+File: TractableBufferStockcFunc.png
+--- needs --- TractableBufferStock.idv[262] ==> TractableBufferStock224x.png ---
+--- needs --- TractableBufferStock.idv[263] ==> TractableBufferStock225x.png ---
+--- needs --- TractableBufferStock.idv[264] ==> TractableBufferStock226x.png ---
+--- needs --- TractableBufferStock.idv[265] ==> TractableBufferStock227x.png ---
+--- needs --- TractableBufferStock.idv[266] ==> TractableBufferStock228x.png ---
+--- needs --- TractableBufferStock.idv[267] ==> TractableBufferStock229x.png ---
+--- needs --- TractableBufferStock.idv[268] ==> TractableBufferStock230x.png ---
+--- needs --- TractableBufferStock.idv[269] ==> TractableBufferStock231x.png ---
+--- needs --- TractableBufferStock.idv[270] ==> TractableBufferStock232x.png ---
+--- needs --- TractableBufferStock.idv[271] ==> TractableBufferStock233x.png ---
+--- needs --- TractableBufferStock.idv[272] ==> TractableBufferStock234x.png ---
+--- needs --- TractableBufferStock.idv[273] ==> TractableBufferStock235x.png ---
+--- needs --- TractableBufferStock.idv[274] ==> TractableBufferStock236x.png ---
+--- needs --- TractableBufferStock.idv[275] ==> TractableBufferStock237x.png ---
+--- needs --- TractableBufferStock.idv[276] ==> TractableBufferStock238x.png ---
+--- needs --- TractableBufferStock.idv[277] ==> TractableBufferStock239x.png ---
+--- needs --- TractableBufferStock.idv[278] ==> TractableBufferStock240x.png ---
+--- needs --- TractableBufferStock.idv[279] ==> TractableBufferStock241x.png ---
+--- needs --- TractableBufferStock.idv[281] ==> TractableBufferStock242x.png ---
+--- needs --- TractableBufferStock.idv[282] ==> TractableBufferStock243x.png ---
+--- needs --- TractableBufferStock.idv[283] ==> TractableBufferStock244x.png ---
+--- needs --- TractableBufferStock.idv[285] ==> TractableBufferStock245x.png ---
+--- needs --- TractableBufferStock.idv[286] ==> TractableBufferStock246x.png ---
+--- needs --- TractableBufferStock.idv[287] ==> TractableBufferStock247x.png ---
+--- needs --- TractableBufferStock.idv[289] ==> TractableBufferStock248x.png ---
+--- needs --- TractableBufferStock.idv[290] ==> TractableBufferStock249x.png ---
+--- needs --- TractableBufferStock.idv[291] ==> TractableBufferStock250x.png ---
+--- needs --- TractableBufferStock.idv[292] ==> TractableBufferStock251x.png ---
+--- needs --- TractableBufferStock.idv[293] ==> TractableBufferStock252x.png ---
+--- needs --- TractableBufferStock.idv[294] ==> TractableBufferStock253x.png ---
+--- needs --- TractableBufferStock.idv[295] ==> TractableBufferStock254x.png ---
+--- needs --- TractableBufferStock.idv[296] ==> TractableBufferStock255x.png ---
+--- needs --- TractableBufferStock.idv[297] ==> TractableBufferStock256x.png ---
+--- needs --- TractableBufferStock.idv[299] ==> TractableBufferStock257x.png ---
+--- needs --- TractableBufferStock.idv[300] ==> TractableBufferStock258x.png ---
+--- needs --- TractableBufferStock.idv[301] ==> TractableBufferStock259x.png ---
+--- needs --- TractableBufferStock.idv[302] ==> TractableBufferStock260x.png ---
+--- needs --- TractableBufferStock.idv[303] ==> TractableBufferStock261x.png ---
+--- needs --- TractableBufferStock.idv[304] ==> TractableBufferStock262x.png ---
+--- needs --- TractableBufferStock.idv[305] ==> TractableBufferStock263x.png ---
+--- needs --- TractableBufferStock.idv[307] ==> TractableBufferStock264x.png ---
+--- needs --- TractableBufferStock.idv[308] ==> TractableBufferStock265x.png ---
+--- needs --- TractableBufferStock.idv[309] ==> TractableBufferStock266x.png ---
+--- needs --- TractableBufferStock.idv[310] ==> TractableBufferStock267x.png ---
+--- needs --- TractableBufferStock.idv[311] ==> TractableBufferStock268x.png ---
+File: TractableBufferStockGrowthA.png
+--- needs --- TractableBufferStock.idv[313] ==> TractableBufferStock269x.png ---
+--- needs --- TractableBufferStock.idv[314] ==> TractableBufferStock270x.png ---
+--- needs --- TractableBufferStock.idv[316] ==> TractableBufferStock271x.png ---
+File: TractableBufferStockGrowthB.png
+--- needs --- TractableBufferStock.idv[318] ==> TractableBufferStock272x.png ---
+--- needs --- TractableBufferStock.idv[319] ==> TractableBufferStock273x.png ---
+--- needs --- TractableBufferStock.idv[320] ==> TractableBufferStock274x.png ---
+--- needs --- TractableBufferStock.idv[321] ==> TractableBufferStock275x.png ---
+--- needs --- TractableBufferStock.idv[322] ==> TractableBufferStock276x.png ---
+--- needs --- TractableBufferStock.idv[323] ==> TractableBufferStock277x.png ---
+--- needs --- TractableBufferStock.idv[324] ==> TractableBufferStock278x.png ---
+--- needs --- TractableBufferStock.idv[325] ==> TractableBufferStock279x.png ---
+--- needs --- TractableBufferStock.idv[326] ==> TractableBufferStock280x.png ---
+--- needs --- TractableBufferStock.idv[327] ==> TractableBufferStock281x.png ---
+--- needs --- TractableBufferStock.idv[328] ==> TractableBufferStock282x.png ---
+--- needs --- TractableBufferStock.idv[329] ==> TractableBufferStock283x.png ---
+--- needs --- TractableBufferStock.idv[330] ==> TractableBufferStock284x.png ---
+--- needs --- TractableBufferStock.idv[331] ==> TractableBufferStock285x.png ---
+--- needs --- TractableBufferStock.idv[332] ==> TractableBufferStock286x.png ---
+--- needs --- TractableBufferStock.idv[333] ==> TractableBufferStock287x.png ---
+--- needs --- TractableBufferStock.idv[334] ==> TractableBufferStock288x.png ---
+--- needs --- TractableBufferStock.idv[336] ==> TractableBufferStock289x.png ---
+File: cGroIncreaseMhoPlot.png
+--- needs --- TractableBufferStock.idv[338] ==> TractableBufferStock290x.png ---
+--- needs --- TractableBufferStock.idv[339] ==> TractableBufferStock291x.png ---
+--- needs --- TractableBufferStock.idv[340] ==> TractableBufferStock292x.png ---
+--- needs --- TractableBufferStock.idv[341] ==> TractableBufferStock293x.png ---
+--- needs --- TractableBufferStock.idv[342] ==> TractableBufferStock294x.png ---
+--- needs --- TractableBufferStock.idv[343] ==> TractableBufferStock295x.png ---
+--- needs --- TractableBufferStock.idv[344] ==> TractableBufferStock296x.png ---
+--- needs --- TractableBufferStock.idv[345] ==> TractableBufferStock297x.png ---
+--- needs --- TractableBufferStock.idv[347] ==> TractableBufferStock298x.png ---
+--- needs --- TractableBufferStock.idv[348] ==> TractableBufferStock299x.png ---
+--- needs --- TractableBufferStock.idv[349] ==> TractableBufferStock300x.png ---
+--- needs --- TractableBufferStock.idv[351] ==> TractableBufferStock301x.png ---
+--- needs --- TractableBufferStock.idv[352] ==> TractableBufferStock302x.png ---
+--- needs --- TractableBufferStock.idv[353] ==> TractableBufferStock303x.png ---
+--- needs --- TractableBufferStock.idv[354] ==> TractableBufferStock304x.png ---
+--- needs --- TractableBufferStock.idv[355] ==> TractableBufferStock305x.png ---
+--- needs --- TractableBufferStock.idv[356] ==> TractableBufferStock306x.png ---
+--- needs --- TractableBufferStock.idv[357] ==> TractableBufferStock307x.png ---
+--- needs --- TractableBufferStock.idv[359] ==> TractableBufferStock308x.png ---
+--- needs --- TractableBufferStock.idv[361] ==> TractableBufferStock309x.png ---
+--- needs --- TractableBufferStock.idv[362] ==> TractableBufferStock310x.png ---
+--- needs --- TractableBufferStock.idv[363] ==> TractableBufferStock311x.png ---
+--- needs --- TractableBufferStock.idv[364] ==> TractableBufferStock312x.png ---
+--- needs --- TractableBufferStock.idv[365] ==> TractableBufferStock313x.png ---
+--- needs --- TractableBufferStock.idv[366] ==> TractableBufferStock314x.png ---
+--- needs --- TractableBufferStock.idv[367] ==> TractableBufferStock315x.png ---
+--- needs --- TractableBufferStock.idv[368] ==> TractableBufferStock316x.png ---
+--- needs --- TractableBufferStock.idv[370] ==> TractableBufferStock317x.png ---
+File: PhaseDiagramDecreaseThetaPlot.png
+--- needs --- TractableBufferStock.idv[372] ==> TractableBufferStock318x.png ---
+--- needs --- TractableBufferStock.idv[373] ==> TractableBufferStock319x.png ---
+File: cPathAfterThetaDrop.png
+--- needs --- TractableBufferStock.idv[375] ==> TractableBufferStock320x.png ---
+--- needs --- TractableBufferStock.idv[376] ==> TractableBufferStock321x.png ---
+File: mPathAfterThetaDrop.png
+--- needs --- TractableBufferStock.idv[378] ==> TractableBufferStock322x.png ---
+--- needs --- TractableBufferStock.idv[379] ==> TractableBufferStock323x.png ---
+File: MPCPathAfterThetaDrop.png
+--- needs --- TractableBufferStock.idv[381] ==> TractableBufferStock324x.png ---
+--- needs --- TractableBufferStock.idv[382] ==> TractableBufferStock325x.png ---
+--- needs --- TractableBufferStock.idv[383] ==> TractableBufferStock326x.png ---
+--- needs --- TractableBufferStock.idv[384] ==> TractableBufferStock327x.png ---
+--- needs --- TractableBufferStock.idv[386] ==> TractableBufferStock328x.png ---
+--- needs --- TractableBufferStock.idv[388] ==> TractableBufferStock329x.png ---
+--- needs --- TractableBufferStock.idv[389] ==> TractableBufferStock330x.png ---
+--- needs --- TractableBufferStock.idv[390] ==> TractableBufferStock331x.png ---
+--- needs --- TractableBufferStock.idv[391] ==> TractableBufferStock332x.png ---
+--- needs --- TractableBufferStock.idv[392] ==> TractableBufferStock333x.png ---
+--- needs --- TractableBufferStock.idv[393] ==> TractableBufferStock334x.png ---
+--- needs --- TractableBufferStock.idv[394] ==> TractableBufferStock335x.png ---
+--- needs --- TractableBufferStock.idv[395] ==> TractableBufferStock336x.png ---
+--- needs --- TractableBufferStock.idv[396] ==> TractableBufferStock337x.png ---
+--- needs --- TractableBufferStock.idv[397] ==> TractableBufferStock338x.png ---
+--- needs --- TractableBufferStock.idv[398] ==> TractableBufferStock339x.png ---
+--- needs --- TractableBufferStock.idv[399] ==> TractableBufferStock340x.png ---
+--- needs --- TractableBufferStock.idv[400] ==> TractableBufferStock341x.png ---
+--- needs --- TractableBufferStock.idv[401] ==> TractableBufferStock342x.png ---
+--- needs --- TractableBufferStock.idv[402] ==> TractableBufferStock343x.png ---
+--- needs --- TractableBufferStock.idv[404] ==> TractableBufferStock344x.png ---
+--- needs --- TractableBufferStock.idv[405] ==> TractableBufferStock345x.png ---
+--- needs --- TractableBufferStock.idv[406] ==> TractableBufferStock346x.png ---
+--- needs --- TractableBufferStock.idv[408] ==> TractableBufferStock347x.png ---
+--- needs --- TractableBufferStock.idv[409] ==> TractableBufferStock348x.png ---
+--- needs --- TractableBufferStock.idv[411] ==> TractableBufferStock349x.png ---
+--- needs --- TractableBufferStock.idv[412] ==> TractableBufferStock350x.png ---
+--- needs --- TractableBufferStock.idv[413] ==> TractableBufferStock351x.png ---
+--- needs --- TractableBufferStock.idv[414] ==> TractableBufferStock352x.png ---
+--- needs --- TractableBufferStock.idv[416] ==> TractableBufferStock353x.png ---
+--- needs --- TractableBufferStock.idv[417] ==> TractableBufferStock354x.png ---
+--- needs --- TractableBufferStock.idv[418] ==> TractableBufferStock355x.png ---
+--- needs --- TractableBufferStock.idv[419] ==> TractableBufferStock356x.png ---
+--- needs --- TractableBufferStock.idv[420] ==> TractableBufferStock357x.png ---
+--- needs --- TractableBufferStock.idv[421] ==> TractableBufferStock358x.png ---
+--- needs --- TractableBufferStock.idv[422] ==> TractableBufferStock359x.png ---
+--- needs --- TractableBufferStock.idv[423] ==> TractableBufferStock360x.png ---
+--- needs --- TractableBufferStock.idv[424] ==> TractableBufferStock361x.png ---
+--- needs --- TractableBufferStock.idv[425] ==> TractableBufferStock362x.png ---
+--- needs --- TractableBufferStock.idv[426] ==> TractableBufferStock363x.png ---
+--- needs --- TractableBufferStock.idv[427] ==> TractableBufferStock364x.png ---
+--- needs --- TractableBufferStock.idv[428] ==> TractableBufferStock365x.png ---
+--- needs --- TractableBufferStock.idv[429] ==> TractableBufferStock366x.png ---
+--- needs --- TractableBufferStock.idv[430] ==> TractableBufferStock367x.png ---
+--- needs --- TractableBufferStock.idv[431] ==> TractableBufferStock368x.png ---
+--- needs --- TractableBufferStock.idv[432] ==> TractableBufferStock369x.png ---
+--- needs --- TractableBufferStock.idv[433] ==> TractableBufferStock370x.png ---
+--- needs --- TractableBufferStock.idv[434] ==> TractableBufferStock371x.png ---
+--- needs --- TractableBufferStock.idv[435] ==> TractableBufferStock372x.png ---
+--- needs --- TractableBufferStock.idv[437] ==> TractableBufferStock373x.png ---
+--- needs --- TractableBufferStock.idv[438] ==> TractableBufferStock374x.png ---
+--- needs --- TractableBufferStock.idv[439] ==> TractableBufferStock375x.png ---
+--- needs --- TractableBufferStock.idv[440] ==> TractableBufferStock376x.png ---
+--- needs --- TractableBufferStock.idv[442] ==> TractableBufferStock377x.png ---
+--- needs --- TractableBufferStock.idv[443] ==> TractableBufferStock378x.png ---
+File: SOEStakescPathAfterThetaDropPlot.png
+--- needs --- TractableBufferStock.idv[445] ==> TractableBufferStock379x.png ---
+--- needs --- TractableBufferStock.idv[446] ==> TractableBufferStock380x.png ---
+--- needs --- TractableBufferStock.idv[447] ==> TractableBufferStock381x.png ---
+--- needs --- TractableBufferStock.idv[448] ==> TractableBufferStock382x.png ---
+--- needs --- TractableBufferStock.idv[449] ==> TractableBufferStock383x.png ---
+--- needs --- TractableBufferStock.idv[450] ==> TractableBufferStock384x.png ---
+--- needs --- TractableBufferStock.idv[451] ==> TractableBufferStock385x.png ---
+--- needs --- TractableBufferStock.idv[452] ==> TractableBufferStock386x.png ---
+--- needs --- TractableBufferStock.idv[454] ==> TractableBufferStock387x.png ---
+--- needs --- TractableBufferStock.idv[455] ==> TractableBufferStock388x.png ---
+--- needs --- TractableBufferStock.idv[456] ==> TractableBufferStock389x.png ---
+--- needs --- TractableBufferStock.idv[457] ==> TractableBufferStock390x.png ---
+--- needs --- TractableBufferStock.idv[459] ==> TractableBufferStock391x.png ---
+File: SOENoStakescPath.png
+--- needs --- TractableBufferStock.idv[461] ==> TractableBufferStock392x.png ---
+--- needs --- TractableBufferStock.idv[463] ==> TractableBufferStock393x.png ---
+--- needs --- TractableBufferStock.idv[465] ==> TractableBufferStock394x.png ---
+--- needs --- TractableBufferStock.idv[467] ==> TractableBufferStock395x.png ---
+--- needs --- TractableBufferStock.idv[468] ==> TractableBufferStock396x.png ---
+--- needs --- TractableBufferStock.idv[470] ==> TractableBufferStock397x.png ---
+--- needs --- TractableBufferStock.idv[471] ==> TractableBufferStock398x.png ---
+--- needs --- TractableBufferStock.idv[472] ==> TractableBufferStock399x.png ---
+--- needs --- TractableBufferStock.idv[473] ==> TractableBufferStock400x.png ---
+--- needs --- TractableBufferStock.idv[475] ==> TractableBufferStock401x.png ---
+--- needs --- TractableBufferStock.idv[476] ==> TractableBufferStock402x.png ---
+--- needs --- TractableBufferStock.idv[477] ==> TractableBufferStock403x.png ---
+--- needs --- TractableBufferStock.idv[478] ==> TractableBufferStock404x.png ---
+--- needs --- TractableBufferStock.idv[479] ==> TractableBufferStock405x.png ---
+--- needs --- TractableBufferStock.idv[480] ==> TractableBufferStock406x.png ---
+--- needs --- TractableBufferStock.idv[481] ==> TractableBufferStock407x.png ---
+--- needs --- TractableBufferStock.idv[482] ==> TractableBufferStock408x.png ---
+--- needs --- TractableBufferStock.idv[483] ==> TractableBufferStock409x.png ---
+--- needs --- TractableBufferStock.idv[484] ==> TractableBufferStock410x.png ---
+--- needs --- TractableBufferStock.idv[485] ==> TractableBufferStock411x.png ---
+--- needs --- TractableBufferStock.idv[486] ==> TractableBufferStock412x.png ---
+--- needs --- TractableBufferStock.idv[487] ==> TractableBufferStock413x.png ---
+--- needs --- TractableBufferStock.idv[488] ==> TractableBufferStock414x.png ---
+--- needs --- TractableBufferStock.idv[489] ==> TractableBufferStock415x.png ---
+--- needs --- TractableBufferStock.idv[490] ==> TractableBufferStock416x.png ---
+--- needs --- TractableBufferStock.idv[491] ==> TractableBufferStock417x.png ---
+--- needs --- TractableBufferStock.idv[492] ==> TractableBufferStock418x.png ---
+--- needs --- TractableBufferStock.idv[493] ==> TractableBufferStock419x.png ---
+--- needs --- TractableBufferStock.idv[495] ==> TractableBufferStock420x.png ---
+--- needs --- TractableBufferStock.idv[496] ==> TractableBufferStock421x.png ---
+--- needs --- TractableBufferStock.idv[497] ==> TractableBufferStock422x.png ---
+--- needs --- TractableBufferStock.idv[498] ==> TractableBufferStock423x.png ---
+--- needs --- TractableBufferStock.idv[499] ==> TractableBufferStock424x.png ---
+--- needs --- TractableBufferStock.idv[500] ==> TractableBufferStock425x.png ---
+--- needs --- TractableBufferStock.idv[501] ==> TractableBufferStock426x.png ---
+--- needs --- TractableBufferStock.idv[503] ==> TractableBufferStock427x.png ---
+--- needs --- TractableBufferStock.idv[504] ==> TractableBufferStock428x.png ---
+--- needs --- TractableBufferStock.idv[505] ==> TractableBufferStock429x.png ---
+--- needs --- TractableBufferStock.idv[506] ==> TractableBufferStock430x.png ---
+--- needs --- TractableBufferStock.idv[507] ==> TractableBufferStock431x.png ---
+--- needs --- TractableBufferStock.idv[508] ==> TractableBufferStock432x.png ---
+--- needs --- TractableBufferStock.idv[509] ==> TractableBufferStock433x.png ---
+--- needs --- TractableBufferStock.idv[510] ==> TractableBufferStock434x.png ---
+--- needs --- TractableBufferStock.idv[512] ==> TractableBufferStock435x.png ---
+--- needs --- TractableBufferStock.idv[513] ==> TractableBufferStock436x.png ---
+--- needs --- TractableBufferStock.idv[514] ==> TractableBufferStock437x.png ---
+--- needs --- TractableBufferStock.idv[515] ==> TractableBufferStock438x.png ---
+--- needs --- TractableBufferStock.idv[516] ==> TractableBufferStock439x.png ---
+--- needs --- TractableBufferStock.idv[517] ==> TractableBufferStock440x.png ---
+--- needs --- TractableBufferStock.idv[518] ==> TractableBufferStock441x.png ---
+--- needs --- TractableBufferStock.idv[519] ==> TractableBufferStock442x.png ---
+--- needs --- TractableBufferStock.idv[520] ==> TractableBufferStock443x.png ---
+--- needs --- TractableBufferStock.idv[521] ==> TractableBufferStock444x.png ---
+--- needs --- TractableBufferStock.idv[522] ==> TractableBufferStock445x.png ---
+--- needs --- TractableBufferStock.idv[523] ==> TractableBufferStock446x.png ---
+--- needs --- TractableBufferStock.idv[524] ==> TractableBufferStock447x.png ---
+--- needs --- TractableBufferStock.idv[525] ==> TractableBufferStock448x.png ---
+--- needs --- TractableBufferStock.idv[526] ==> TractableBufferStock449x.png ---
+--- needs --- TractableBufferStock.idv[527] ==> TractableBufferStock450x.png ---
+--- needs --- TractableBufferStock.idv[528] ==> TractableBufferStock451x.png ---
+--- needs --- TractableBufferStock.idv[529] ==> TractableBufferStock452x.png ---
+--- needs --- TractableBufferStock.idv[531] ==> TractableBufferStock453x.png ---
+--- needs --- TractableBufferStock.idv[532] ==> TractableBufferStock454x.png ---
+--- needs --- TractableBufferStock.idv[534] ==> TractableBufferStock455x.png ---
+--- needs --- TractableBufferStock.idv[535] ==> TractableBufferStock456x.png ---
+--- needs --- TractableBufferStock.idv[536] ==> TractableBufferStock457x.png ---
+--- needs --- TractableBufferStock.idv[537] ==> TractableBufferStock458x.png ---
+--- needs --- TractableBufferStock.idv[538] ==> TractableBufferStock459x.png ---
+--- needs --- TractableBufferStock.idv[539] ==> TractableBufferStock460x.png ---
+--- needs --- TractableBufferStock.idv[540] ==> TractableBufferStock461x.png ---
+--- needs --- TractableBufferStock.idv[541] ==> TractableBufferStock462x.png ---
+--- needs --- TractableBufferStock.idv[542] ==> TractableBufferStock463x.png ---
+--- needs --- TractableBufferStock.idv[543] ==> TractableBufferStock464x.png ---
+--- needs --- TractableBufferStock.idv[544] ==> TractableBufferStock465x.png ---
+--- needs --- TractableBufferStock.idv[545] ==> TractableBufferStock466x.png ---
+--- needs --- TractableBufferStock.idv[546] ==> TractableBufferStock467x.png ---
+--- needs --- TractableBufferStock.idv[547] ==> TractableBufferStock468x.png ---
+--- needs --- TractableBufferStock.idv[548] ==> TractableBufferStock469x.png ---
+--- needs --- TractableBufferStock.idv[550] ==> TractableBufferStock470x.png ---
+--- needs --- TractableBufferStock.idv[551] ==> TractableBufferStock471x.png ---
+--- needs --- TractableBufferStock.idv[552] ==> TractableBufferStock472x.png ---
+--- needs --- TractableBufferStock.idv[553] ==> TractableBufferStock473x.png ---
+--- needs --- TractableBufferStock.idv[554] ==> TractableBufferStock474x.png ---
+--- needs --- TractableBufferStock.idv[555] ==> TractableBufferStock475x.png ---
+--- needs --- TractableBufferStock.idv[556] ==> TractableBufferStock476x.png ---
+--- needs --- TractableBufferStock.idv[557] ==> TractableBufferStock477x.png ---
+--- needs --- TractableBufferStock.idv[559] ==> TractableBufferStock478x.png ---
+--- needs --- TractableBufferStock.idv[560] ==> TractableBufferStock479x.png ---
+--- needs --- TractableBufferStock.idv[562] ==> TractableBufferStock480x.png ---
+--- needs --- TractableBufferStock.idv[563] ==> TractableBufferStock481x.png ---
+--- needs --- TractableBufferStock.idv[564] ==> TractableBufferStock482x.png ---
+--- needs --- TractableBufferStock.idv[565] ==> TractableBufferStock483x.png ---
+--- needs --- TractableBufferStock.idv[566] ==> TractableBufferStock484x.png ---
+--- needs --- TractableBufferStock.idv[567] ==> TractableBufferStock485x.png ---
+--- needs --- TractableBufferStock.idv[568] ==> TractableBufferStock486x.png ---
+--- needs --- TractableBufferStock.idv[569] ==> TractableBufferStock487x.png ---
+--- needs --- TractableBufferStock.idv[570] ==> TractableBufferStock488x.png ---
+--- needs --- TractableBufferStock.idv[571] ==> TractableBufferStock489x.png ---
+--- needs --- TractableBufferStock.idv[572] ==> TractableBufferStock490x.png ---
+--- needs --- TractableBufferStock.idv[573] ==> TractableBufferStock491x.png ---
+--- needs --- TractableBufferStock.idv[574] ==> TractableBufferStock492x.png ---
+--- needs --- TractableBufferStock.idv[575] ==> TractableBufferStock493x.png ---
+--- needs --- TractableBufferStock.idv[576] ==> TractableBufferStock494x.png ---
+--- needs --- TractableBufferStock.idv[577] ==> TractableBufferStock495x.png ---
+--- needs --- TractableBufferStock.idv[578] ==> TractableBufferStock496x.png ---
+--- needs --- TractableBufferStock.idv[579] ==> TractableBufferStock497x.png ---
+--- needs --- TractableBufferStock.idv[580] ==> TractableBufferStock498x.png ---
+--- needs --- TractableBufferStock.idv[581] ==> TractableBufferStock499x.png ---
+--- needs --- TractableBufferStock.idv[582] ==> TractableBufferStock500x.png ---
+--- needs --- TractableBufferStock.idv[583] ==> TractableBufferStock501x.png ---
+--- needs --- TractableBufferStock.idv[584] ==> TractableBufferStock502x.png ---
+--- needs --- TractableBufferStock.idv[586] ==> TractableBufferStock503x.png ---
+--- needs --- TractableBufferStock.idv[587] ==> TractableBufferStock504x.png ---
+--- needs --- TractableBufferStock.idv[588] ==> TractableBufferStock505x.png ---
+--- needs --- TractableBufferStock.idv[589] ==> TractableBufferStock506x.png ---
+--- needs --- TractableBufferStock.idv[590] ==> TractableBufferStock507x.png ---
+--- needs --- TractableBufferStock.idv[591] ==> TractableBufferStock508x.png ---
+--- needs --- TractableBufferStock.idv[592] ==> TractableBufferStock509x.png ---
+--- needs --- TractableBufferStock.idv[593] ==> TractableBufferStock510x.png ---
+--- needs --- TractableBufferStock.idv[594] ==> TractableBufferStock511x.png ---
+--- needs --- TractableBufferStock.idv[595] ==> TractableBufferStock512x.png ---
+--- needs --- TractableBufferStock.idv[596] ==> TractableBufferStock513x.png ---
+--- needs --- TractableBufferStock.idv[597] ==> TractableBufferStock514x.png ---
+--- needs --- TractableBufferStock.idv[598] ==> TractableBufferStock515x.png ---
+--- needs --- TractableBufferStock.idv[599] ==> TractableBufferStock516x.png ---
+--- needs --- TractableBufferStock.idv[600] ==> TractableBufferStock517x.png ---
+--- needs --- TractableBufferStock.idv[601] ==> TractableBufferStock518x.png ---
+--- needs --- TractableBufferStock.idv[602] ==> TractableBufferStock519x.png ---
+--- needs --- TractableBufferStock.idv[603] ==> TractableBufferStock520x.png ---
+--- needs --- TractableBufferStock.idv[604] ==> TractableBufferStock521x.png ---
+--- needs --- TractableBufferStock.idv[605] ==> TractableBufferStock522x.png ---
+--- needs --- TractableBufferStock.idv[606] ==> TractableBufferStock523x.png ---
+--- needs --- TractableBufferStock.idv[607] ==> TractableBufferStock524x.png ---
+--- needs --- TractableBufferStock.idv[608] ==> TractableBufferStock525x.png ---
+--- needs --- TractableBufferStock.idv[609] ==> TractableBufferStock526x.png ---
+--- needs --- TractableBufferStock.idv[611] ==> TractableBufferStock527x.png ---
+--- needs --- TractableBufferStock.idv[613] ==> TractableBufferStock528x.png ---
+--- needs --- TractableBufferStock.idv[614] ==> TractableBufferStock529x.png ---
+--- needs --- TractableBufferStock.idv[615] ==> TractableBufferStock530x.png ---
+--- needs --- TractableBufferStock.idv[616] ==> TractableBufferStock531x.png ---
+--- needs --- TractableBufferStock.idv[617] ==> TractableBufferStock532x.png ---
+--- needs --- TractableBufferStock.idv[618] ==> TractableBufferStock533x.png ---
+--- needs --- TractableBufferStock.idv[619] ==> TractableBufferStock534x.png ---
+--- needs --- TractableBufferStock.idv[620] ==> TractableBufferStock535x.png ---
+--- needs --- TractableBufferStock.idv[622] ==> TractableBufferStock536x.png ---
+--- needs --- TractableBufferStock.idv[623] ==> TractableBufferStock537x.png ---
+--- needs --- TractableBufferStock.idv[624] ==> TractableBufferStock538x.png ---
+--- needs --- TractableBufferStock.idv[625] ==> TractableBufferStock539x.png ---
+--- needs --- TractableBufferStock.idv[626] ==> TractableBufferStock540x.png ---
+--- needs --- TractableBufferStock.idv[627] ==> TractableBufferStock541x.png ---
+--- needs --- TractableBufferStock.idv[628] ==> TractableBufferStock542x.png ---
+--- needs --- TractableBufferStock.idv[629] ==> TractableBufferStock543x.png ---
+--- needs --- TractableBufferStock.idv[631] ==> TractableBufferStock544x.png ---
+--- needs --- TractableBufferStock.idv[632] ==> TractableBufferStock545x.png ---
+--- needs --- TractableBufferStock.idv[633] ==> TractableBufferStock546x.png ---
+--- needs --- TractableBufferStock.idv[634] ==> TractableBufferStock547x.png ---
+--- needs --- TractableBufferStock.idv[635] ==> TractableBufferStock548x.png ---
+--- needs --- TractableBufferStock.idv[636] ==> TractableBufferStock549x.png ---
+--- needs --- TractableBufferStock.idv[637] ==> TractableBufferStock550x.png ---
+--- needs --- TractableBufferStock.idv[638] ==> TractableBufferStock551x.png ---
+--- needs --- TractableBufferStock.idv[640] ==> TractableBufferStock552x.png ---
+--- needs --- TractableBufferStock.idv[641] ==> TractableBufferStock553x.png ---
+--- needs --- TractableBufferStock.idv[643] ==> TractableBufferStock554x.png ---
+--- needs --- TractableBufferStock.idv[644] ==> TractableBufferStock555x.png ---
+--- needs --- TractableBufferStock.idv[645] ==> TractableBufferStock556x.png ---
+--- needs --- TractableBufferStock.idv[646] ==> TractableBufferStock557x.png ---
+--- needs --- TractableBufferStock.idv[647] ==> TractableBufferStock558x.png ---
+--- needs --- TractableBufferStock.idv[648] ==> TractableBufferStock559x.png ---
+--- needs --- TractableBufferStock.idv[649] ==> TractableBufferStock560x.png ---
+--- needs --- TractableBufferStock.idv[650] ==> TractableBufferStock561x.png ---
+--- needs --- TractableBufferStock.idv[652] ==> TractableBufferStock562x.png ---
+--- needs --- TractableBufferStock.idv[654] ==> TractableBufferStock563x.png ---
+--- needs --- TractableBufferStock.idv[655] ==> TractableBufferStock564x.png ---
+--- needs --- TractableBufferStock.idv[656] ==> TractableBufferStock565x.png ---
+--- needs --- TractableBufferStock.idv[657] ==> TractableBufferStock566x.png ---
+--- needs --- TractableBufferStock.idv[658] ==> TractableBufferStock567x.png ---
+--- needs --- TractableBufferStock.idv[659] ==> TractableBufferStock568x.png ---
+--- needs --- TractableBufferStock.idv[660] ==> TractableBufferStock569x.png ---
+--- needs --- TractableBufferStock.idv[661] ==> TractableBufferStock570x.png ---
+--- needs --- TractableBufferStock.idv[662] ==> TractableBufferStock571x.png ---
+--- needs --- TractableBufferStock.idv[663] ==> TractableBufferStock572x.png ---
+--- needs --- TractableBufferStock.idv[664] ==> TractableBufferStock573x.png ---
+--- needs --- TractableBufferStock.idv[665] ==> TractableBufferStock574x.png ---
+--- needs --- TractableBufferStock.idv[667] ==> TractableBufferStock575x.png ---
+--- needs --- TractableBufferStock.idv[668] ==> TractableBufferStock576x.png ---
+--- needs --- TractableBufferStock.idv[669] ==> TractableBufferStock577x.png ---
+--- needs --- TractableBufferStock.idv[670] ==> TractableBufferStock578x.png ---
+--- needs --- TractableBufferStock.idv[671] ==> TractableBufferStock579x.png ---
+--- needs --- TractableBufferStock.idv[672] ==> TractableBufferStock580x.png ---
+--- needs --- TractableBufferStock.idv[673] ==> TractableBufferStock581x.png ---
+--- needs --- TractableBufferStock.idv[674] ==> TractableBufferStock582x.png ---
+--- needs --- TractableBufferStock.idv[675] ==> TractableBufferStock583x.png ---
+--- needs --- TractableBufferStock.idv[676] ==> TractableBufferStock584x.png ---
+--- needs --- TractableBufferStock.idv[678] ==> TractableBufferStock585x.png ---
+--- needs --- TractableBufferStock.idv[679] ==> TractableBufferStock586x.png ---
+--- needs --- TractableBufferStock.idv[680] ==> TractableBufferStock587x.png ---
+--- needs --- TractableBufferStock.idv[681] ==> TractableBufferStock588x.png ---
+--- needs --- TractableBufferStock.idv[682] ==> TractableBufferStock589x.png ---
+--- needs --- TractableBufferStock.idv[683] ==> TractableBufferStock590x.png ---
+--- needs --- TractableBufferStock.idv[684] ==> TractableBufferStock591x.png ---
+--- needs --- TractableBufferStock.idv[685] ==> TractableBufferStock592x.png ---
+--- needs --- TractableBufferStock.idv[686] ==> TractableBufferStock593x.png ---
+--- needs --- TractableBufferStock.idv[687] ==> TractableBufferStock594x.png ---
+--- needs --- TractableBufferStock.idv[689] ==> TractableBufferStock595x.png ---
+--- needs --- TractableBufferStock.idv[690] ==> TractableBufferStock596x.png ---
+--- needs --- TractableBufferStock.idv[691] ==> TractableBufferStock597x.png ---
+--- needs --- TractableBufferStock.idv[692] ==> TractableBufferStock598x.png ---
+--- needs --- TractableBufferStock.idv[693] ==> TractableBufferStock599x.png ---
+--- needs --- TractableBufferStock.idv[694] ==> TractableBufferStock600x.png ---
+--- needs --- TractableBufferStock.idv[695] ==> TractableBufferStock601x.png ---
+--- needs --- TractableBufferStock.idv[697] ==> TractableBufferStock602x.png ---
+--- needs --- TractableBufferStock.idv[698] ==> TractableBufferStock603x.png ---
+--- needs --- TractableBufferStock.idv[700] ==> TractableBufferStock604x.png ---
+--- needs --- TractableBufferStock.idv[701] ==> TractableBufferStock605x.png ---
+--- needs --- TractableBufferStock.idv[702] ==> TractableBufferStock606x.png ---
+--- needs --- TractableBufferStock.idv[703] ==> TractableBufferStock607x.png ---
+--- needs --- TractableBufferStock.idv[704] ==> TractableBufferStock608x.png ---
+--- needs --- TractableBufferStock.idv[705] ==> TractableBufferStock609x.png ---
+--- needs --- TractableBufferStock.idv[707] ==> TractableBufferStock610x.png ---
+--- needs --- TractableBufferStock.idv[708] ==> TractableBufferStock611x.png ---
+--- needs --- TractableBufferStock.idv[709] ==> TractableBufferStock612x.png ---
+--- needs --- TractableBufferStock.idv[710] ==> TractableBufferStock613x.png ---
+--- needs --- TractableBufferStock.idv[711] ==> TractableBufferStock614x.png ---
+--- needs --- TractableBufferStock.idv[712] ==> TractableBufferStock615x.png ---
+--- needs --- TractableBufferStock.idv[713] ==> TractableBufferStock616x.png ---
+--- needs --- TractableBufferStock.idv[714] ==> TractableBufferStock617x.png ---
+--- needs --- TractableBufferStock.idv[715] ==> TractableBufferStock618x.png ---
+--- needs --- TractableBufferStock.idv[716] ==> TractableBufferStock619x.png ---
+--- needs --- TractableBufferStock.idv[718] ==> TractableBufferStock620x.png ---
+--- needs --- TractableBufferStock.idv[719] ==> TractableBufferStock621x.png ---
+--- needs --- TractableBufferStock.idv[720] ==> TractableBufferStock622x.png ---
+--- needs --- TractableBufferStock.idv[721] ==> TractableBufferStock623x.png ---
+--- needs --- TractableBufferStock.idv[722] ==> TractableBufferStock624x.png ---
+--- needs --- TractableBufferStock.idv[723] ==> TractableBufferStock625x.png ---
+--- needs --- TractableBufferStock.idv[725] ==> TractableBufferStock626x.png ---
+--- needs --- TractableBufferStock.idv[726] ==> TractableBufferStock627x.png ---
+--- needs --- TractableBufferStock.idv[727] ==> TractableBufferStock628x.png ---
+--- needs --- TractableBufferStock.idv[728] ==> TractableBufferStock629x.png ---
+--- needs --- TractableBufferStock.idv[729] ==> TractableBufferStock630x.png ---
+--- needs --- TractableBufferStock.idv[730] ==> TractableBufferStock631x.png ---
+--- needs --- TractableBufferStock.idv[731] ==> TractableBufferStock632x.png ---
+--- needs --- TractableBufferStock.idv[732] ==> TractableBufferStock633x.png ---
+--- needs --- TractableBufferStock.idv[733] ==> TractableBufferStock634x.png ---
+--- needs --- TractableBufferStock.idv[734] ==> TractableBufferStock635x.png ---
+--- needs --- TractableBufferStock.idv[735] ==> TractableBufferStock636x.png ---
+--- needs --- TractableBufferStock.idv[736] ==> TractableBufferStock637x.png ---
+--- needs --- TractableBufferStock.idv[737] ==> TractableBufferStock638x.png ---
+--- needs --- TractableBufferStock.idv[738] ==> TractableBufferStock639x.png ---
+--- needs --- TractableBufferStock.idv[739] ==> TractableBufferStock640x.png ---
+--- needs --- TractableBufferStock.idv[740] ==> TractableBufferStock641x.png ---
+--- needs --- TractableBufferStock.idv[742] ==> TractableBufferStock642x.png ---
+--- needs --- TractableBufferStock.idv[744] ==> TractableBufferStock643x.png ---
+--- needs --- TractableBufferStock.idv[745] ==> TractableBufferStock644x.png ---
+--- needs --- TractableBufferStock.idv[746] ==> TractableBufferStock645x.png ---
+--- needs --- TractableBufferStock.idv[747] ==> TractableBufferStock646x.png ---
+--- needs --- TractableBufferStock.idv[749] ==> TractableBufferStock647x.png ---
+--- needs --- TractableBufferStock.idv[750] ==> TractableBufferStock648x.png ---
+--- needs --- TractableBufferStock.idv[751] ==> TractableBufferStock649x.png ---
+--- needs --- TractableBufferStock.idv[753] ==> TractableBufferStock650x.png ---
+--- needs --- TractableBufferStock.idv[754] ==> TractableBufferStock651x.png ---
+--- needs --- TractableBufferStock.idv[755] ==> TractableBufferStock652x.png ---
+--- needs --- TractableBufferStock.idv[756] ==> TractableBufferStock653x.png ---
+--- needs --- TractableBufferStock.idv[757] ==> TractableBufferStock654x.png ---
+--- needs --- TractableBufferStock.idv[759] ==> TractableBufferStock655x.png ---
+--- needs --- TractableBufferStock.idv[760] ==> TractableBufferStock656x.png ---
+--- needs --- TractableBufferStock.idv[761] ==> TractableBufferStock657x.png ---
+--- needs --- TractableBufferStock.idv[762] ==> TractableBufferStock658x.png ---
+--- needs --- TractableBufferStock.idv[763] ==> TractableBufferStock659x.png ---
+--- needs --- TractableBufferStock.idv[764] ==> TractableBufferStock660x.png ---
+--- needs --- TractableBufferStock.idv[765] ==> TractableBufferStock661x.png ---
+--- needs --- TractableBufferStock.idv[766] ==> TractableBufferStock662x.png ---
+--- needs --- TractableBufferStock.idv[767] ==> TractableBufferStock663x.png ---
+--- needs --- TractableBufferStock.idv[768] ==> TractableBufferStock664x.png ---
+--- needs --- TractableBufferStock.idv[769] ==> TractableBufferStock665x.png ---
+--- needs --- TractableBufferStock.idv[770] ==> TractableBufferStock666x.png ---
+--- needs --- TractableBufferStock.idv[771] ==> TractableBufferStock667x.png ---
+--- needs --- TractableBufferStock.idv[772] ==> TractableBufferStock668x.png ---
+--- needs --- TractableBufferStock.idv[774] ==> TractableBufferStock669x.png ---
+--- needs --- TractableBufferStock.idv[775] ==> TractableBufferStock670x.png ---
+--- needs --- TractableBufferStock.idv[776] ==> TractableBufferStock671x.png ---
+--- needs --- TractableBufferStock.idv[777] ==> TractableBufferStock672x.png ---
+--- needs --- TractableBufferStock.idv[778] ==> TractableBufferStock673x.png ---
+--- needs --- TractableBufferStock.idv[779] ==> TractableBufferStock674x.png ---
+--- needs --- TractableBufferStock.idv[780] ==> TractableBufferStock675x.png ---
+--- needs --- TractableBufferStock.idv[782] ==> TractableBufferStock676x.png ---
+--- needs --- TractableBufferStock.idv[783] ==> TractableBufferStock677x.png ---
+--- needs --- TractableBufferStock.idv[784] ==> TractableBufferStock678x.png ---
+--- needs --- TractableBufferStock.idv[785] ==> TractableBufferStock679x.png ---
+--- needs --- TractableBufferStock.idv[786] ==> TractableBufferStock680x.png ---
+--- needs --- TractableBufferStock.idv[787] ==> TractableBufferStock681x.png ---
+--- needs --- TractableBufferStock.idv[788] ==> TractableBufferStock682x.png ---
+--- needs --- TractableBufferStock.idv[790] ==> TractableBufferStock683x.png ---
+--- needs --- TractableBufferStock.idv[791] ==> TractableBufferStock684x.png ---
+--- needs --- TractableBufferStock.idv[792] ==> TractableBufferStock685x.png ---
+--- needs --- TractableBufferStock.idv[793] ==> TractableBufferStock686x.png ---
+--- needs --- TractableBufferStock.idv[794] ==> TractableBufferStock687x.png ---
+--- needs --- TractableBufferStock.idv[795] ==> TractableBufferStock688x.png ---
+--- needs --- TractableBufferStock.idv[796] ==> TractableBufferStock689x.png ---
+--- characters ---
+Font("cmex","10","10","100")
+Font("line","10","10","100")
+Font("cmr","7","7","100")
+Font("cmr","10","10","100")
+Font("cmmi","7","7","100")
+Font("cmmi","10","10","100")
+Font("cmsy","5","5","100")
+Font("cmsy","7","7","100")
+Font("cmsy","10","10","100")
+Font("ecrm","1200","12","100")
+Font("ecrm","1440","14","100")
+Font("ecrm","0600","6","100")
+Font("ecrm","2074","20","100")
+Font("ecrm","1000","10","100")
+Font("ectt","1440","14","100")
+Font("cmr","12","12","120")
+Font("cmmi","12","12","120")
+Font("cmsy","10","10","144")
+Font("cmex","10","10","144")
+Font("msam","10","10","144")
+Font("msam","10","10","100")
+Font("msbm","10","10","144")
+Font("msbm","10","10","100")
+Font("wasy","10","10","144")
+Font("wasy","10","10","100")
+Font("cmss","12","12","120")
+Font("cmss","10","10","100")
+Font("cmss","8","8","87")
+Font("cmbx","12","12","120")
+Font("ecbx","1440","14","100")
+Font("ectt","1000","10","100")
+Font("ecti","1440","14","100")
+Font("ecti","1000","10","100")
+Font("cmmi","12","12","100")
+Font("cmmi","8","8","100")
+Font("cmss","12","12","100")
+Font("wasy","10","10","120")
+Font("ecbx","2074","20","100")
+Font("cmtt","12","12","120")
+Font("eufm","10","10","144")
+Font("eufm","10","10","100")
+Font("eccc","1440","14","100")

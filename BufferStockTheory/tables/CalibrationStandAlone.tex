@@ -1,0 +1,52 @@
+\documentclass[titlepage,abstract]{bejournal}
+
+\input CDCDocStartForBE.tex
+
+\usepackage{subfigure}
+\usepackage{beamerarticle} %
+\usepackage{multirow}
+
+\begin{document}
+
+\begin{verbatimwrite}{./Calibration.tex}
+\begin{table}
+\begin{center}
+\caption{Microeconomic Model Calibration}\label{table:Calibration}
+\begin{tabular}{|c|ccl|c|}
+\hline
+\multicolumn{5}{|l|}{Calibrated Parameters}  \\ \hline
+Description                     & \multicolumn{1}{c}{Parameter} & Value & \multicolumn{2}{c|}{Source}\\ \hline
+Permanent Income Growth Factor  & \multicolumn{1}{c}{$\PGro$} & 1.03 & \multicolumn{2}{c|}{PSID: Carroll (1992)} \\
+Interest Factor                 & \multicolumn{1}{c}{$\Rfree$} & 1.04 & \multicolumn{2}{c|}{Conventional} \\
+Time Preference Factor          & \multicolumn{1}{c}{$\beta$} & 0.96 & \multicolumn{2}{c|}{Conventional} \\
+Coefficient of Relative Risk Aversion & \multicolumn{1}{c}{$\CRRA$} & 2 & \multicolumn{2}{c|}{Conventional} \\
+Probability of Zero Income      & \multicolumn{1}{c}{$\pZero$} & 0.005 & \multicolumn{2}{c|}{PSID: Carroll (1992)} \\
+Std Dev of Log Permanent Shock  & \multicolumn{1}{c}{$\sigma_{\pshk}$} & 0.1 & \multicolumn{2}{c|}{PSID: Carroll (1992)} \\
+Std Dev of Log Transitory Shock & \multicolumn{1}{c}{$\sigma_{\theta}$} & 0.1 & \multicolumn{2}{c|}{PSID: Carroll (1992)} \\ \hline
+\multicolumn{5}{l}{}  \\ \hline
+\multicolumn{5}{|l|}{Model Characteristics Calculated From Parameters}  \\ \hline
+                                            & \multicolumn{3}{c|}{}                                      & Approximate \\
+                                            & \multicolumn{3}{c|}{}                                       & Calculated \\
+Description                                 & \multicolumn{3}{c|}{Symbol and Formula}                       & Value \\ \hline
+Finite Human Wealth Measure                 & $\Rnorm^{-1}$ & $\equiv$ & $\PGro/\Rfree$                    & 0.990 \\
+PF Finite Value of Autarky Measure& $\beth$ & $\equiv$ & $\beta \PGro^{1-\CRRA}$                    & 0.932 \\
+Growth Compensated Permanent Shock            & $\InvEpShkInv $ & $\equiv$ & $ (\EpShkInv)^{-1}$               & 0.990 \\
+Uncertainty-Adjusted Growth                 & $\PGroAdj $ & $\equiv$ & $ \PGro \InvEpShkInv$        & 1.020 \\
+Utility Compensated Permanent Shock                & $\uInvEpShkuInv $ & $\equiv$ & $ (\Ex_{t}[\pShk^{1-\CRRA}])^{1/(1-\CRRA)}$ & 0.990 \\
+Utility Compensated Growth                     & $\PGrouAdj $ & $\equiv$ & $ \PGro \uInvEpShkuInv$        & 1.020 \\
+Absolute Patience Factor                    & $\Pat_{\phantom{\Rfree}} $ & $\equiv$ & $ (\Rfree \beta)^{1/\CRRA}$                & 0.999 \\
+Return Patience Factor                      & $\PatR$ & $\equiv$ & $\Rfree^{-1}(\Rfree \beta)^{1/\CRRA} $     & 0.961 \\
+PF Growth Patience Factor    & $\PatPGro$ & $\equiv$ & $\PGro^{-1}(\Rfree \beta)^{1/\CRRA} $      & 0.970 \\
+Growth Patience Factor                      & $\PatPGroAdj$ & $\equiv$ & $ \PGroAdj^{-1}(\Rfree \beta)^{1/\CRRA}$& 0.980 \\
+Finite Value of Autarky Measure         & $\DiscAltuAdj $ & $\equiv$ & $ \beta \PGro^{1-\CRRA}\uInvEpShkuInv^{1-\CRRA}$       & 0.941 \\ \hline
+\end{tabular}
+\end{center}
+\end{table}
+\end{verbatimwrite}
+
+\input ./Calibration.tex
+
+\end{document}
+
+
+ 

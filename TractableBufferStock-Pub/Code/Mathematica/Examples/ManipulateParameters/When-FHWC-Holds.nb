@@ -1,0 +1,659 @@
+Notebook[{
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "This", " ", "notebook", " ", "examines", " ", "the", " ", "case", " ", 
+     "in", " ", "which", " ", "we", " ", "assume", " ", "\[GothicCapitalG]"}],
+     "=", 
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{"1", "-", 
+       RowBox[{"\[Alpha]", " ", 
+        RowBox[{"(", "R", ")"}]}]}], ")"}], " ", "and", " ", "human", " ", 
+     "wealth", " ", "is", " ", "finite", " ", 
+     RowBox[{"(", 
+      RowBox[{"\[Alpha]", " ", ">", " ", "1"}], ")"}]}]}], 
+   "\[IndentingNewLine]", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"The", " ", "RIC", " ", "holds", " ", "because", " ", 
+     RowBox[{"\[CapitalThorn]", "/", "R"}]}], " ", "<", " ", "1"}], " ", 
+   "*)"}], " ", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"The", " ", "GICTBS", " ", "says", " ", 
+     RowBox[{"(", 
+      RowBox[{
+       SuperscriptBox[
+        RowBox[{"(", 
+         RowBox[{
+          RowBox[{"(", "R", ")"}], "\[Beta]", 
+          RowBox[{"(", 
+           RowBox[{"1", "-", "\[Mho]"}], ")"}]}], ")"}], 
+        RowBox[{"1", "/", "\[Rho]"}]], "/", "\[CapitalGamma]"}], ")"}]}], " ",
+     "<", " ", "1"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "The", " ", "FHWC\[CapitalGamma]", " ", "holds", " ", "because", " ", 
+     "\[CapitalGamma]"}], " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{"1", "-", 
+        RowBox[{"\[Alpha]", " ", "\[Mho]"}]}], ")"}], " ", 
+      RowBox[{
+       RowBox[{"(", "R", ")"}], "/", 
+       RowBox[{"(", 
+        RowBox[{"1", "-", "\[Mho]"}], ")"}]}]}], " ", "\[LessEqual]", " ", 
+     RowBox[{
+      RowBox[{"(", "R", ")"}], " ", "for", " ", "\[Alpha]"}], " ", ">", " ", 
+     "1"}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "The", " ", "FHWC\[GothicCapitalG]", " ", "holds", " ", "because", " ", 
+     "\[GothicCapitalG]"}], " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{"1", "-", 
+        RowBox[{"\[Alpha]", " ", "\[Mho]"}]}], ")"}], " ", 
+      RowBox[{"(", "R", ")"}]}], " ", "<", " ", 
+     RowBox[{
+      RowBox[{"(", "R", ")"}], " ", "for", " ", "\[Alpha]"}], " ", ">", " ", 
+     "1"}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{
+     "The", " ", "GIC\[GothicCapitalG]", " ", "may", " ", "fail", " ", 
+      "because", " ", "with", " ", "\[GothicCapitalG]"}], " ", "\[LessEqual]",
+      " ", "R"}], ",", " ", 
+    RowBox[{
+     RowBox[{"\[CapitalThorn]", "/", 
+      RowBox[{"(", "R", ")"}]}], " ", "<", " ", 
+     RowBox[{"1", " ", "does", " ", "not", " ", "imply", "  ", 
+      RowBox[{"\[CapitalThorn]", "/", "\[GothicCapitalG]"}]}], " ", "<", " ", 
+     "1"}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "The", " ", "GIC\[CapitalGamma]", " ", "may", " ", "fail", " ", "because",
+      " ", "\[CapitalGamma]"}], "=", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"\[GothicCapitalG]", "/", 
+       RowBox[{"(", 
+        RowBox[{"1", "-", "\[Mho]"}], ")"}]}], ">", 
+      RowBox[{"\[GothicCapitalG]", " ", "so", " ", 
+       RowBox[{"\[CapitalThorn]", "/", "\[CapitalGamma]"}]}]}], " ", "=", " ", 
+     RowBox[{
+      RowBox[{"\[CapitalThorn]", 
+       RowBox[{
+        RowBox[{"(", 
+         RowBox[{"1", "-", "\[Mho]"}], ")"}], "/", "\[GothicCapitalG]"}]}], 
+      " ", "<", " ", 
+      RowBox[{"\[CapitalThorn]", "/", "\[GothicCapitalG]"}]}]}]}], " ", 
+   "*)"}]}]], "Input"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", "\"\<Global`*\>\"", "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"SetDirectory", "[", 
+   RowBox[{"NotebookDirectory", "[", "]"}], "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"<<", "ManipulatePrepare.m"}], ";"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "Reset", " ", "formulas", " ", "and", " ", "variables", " ", "for", " ", 
+     "the", " ", "specialization", " ", "to", " ", "\[GothicCapitalG]"}], "=", 
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{"1", "-", 
+       RowBox[{"\[Alpha]", " ", "\[Mho]"}]}], ")"}], 
+     RowBox[{"(", "R", ")"}]}]}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Clear", "[", 
+   RowBox[{
+   "\[Mho]", ",", "\[CurlyTheta]", ",", "\[GothicCapitalG]", ",", 
+    "\[GothicG]", ",", "\[Alpha]", ",", "r"}], "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"\[GothicCapitalG]", "=", 
+   RowBox[{
+    RowBox[{"(", 
+     RowBox[{"1", "-", 
+      RowBox[{"\[Alpha]", " ", "\[Mho]"}]}], ")"}], 
+    RowBox[{"(", "R", ")"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"\[GothicG]", "=", 
+   RowBox[{"\[GothicCapitalG]", "-", "1"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"\[Mho]", "=", "\[Mho]Base"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"r", "=", "rBase"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"\[CurlyTheta]", "=", 
+   RowBox[{"\[CurlyTheta]Base", "=", 
+    RowBox[{"rBase", "+", "0.02"}]}]}], ";"}]}], "Input",
+ InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{
+     "The", " ", "interesting", " ", "solutions", " ", "for", " ", "very", 
+      " ", "low", " ", "\[Alpha]", " ", "where", " ", "the", " ", 
+      "\[Beta]MaxWhereGICTBSHoldsExactly", " ", "locus", " ", "is", " ", 
+      "above", " ", "the", " ", "\[Beta]MaxWhereRICHoldsExactly", " ", 
+      "locus", " ", "are", " ", "not", " ", "legitimate", " ", "solutions", 
+      " ", "to", " ", "the", " ", "model"}], ";", " ", 
+     RowBox[{"in", " ", "this", " ", "case"}]}], ",", " ", 
+    RowBox[{"\[Kappa]", " ", "<", " ", 
+     RowBox[{"0", " ", "and", " ", 
+      RowBox[{"model", "'"}], "s", " ", "equations", " ", "are", " ", 
+      "solved", " ", "with", " ", "a", " ", "negatively", " ", "sloping", " ",
+       "consumption", " ", "function"}]}], ",", " ", 
+    RowBox[{
+     RowBox[{
+     "which", " ", "can", " ", "be", " ", "ruled", " ", "out", " ", "on", " ",
+       "a", " ", "priori", " ", 
+      RowBox[{"grounds", ".", "  ", "This"}], " ", "is", " ", "not", " ", 
+      "exactly", " ", "an", " ", "error"}], ";", " ", 
+     RowBox[{
+     "this", " ", "configuration", " ", "just", " ", "does", " ", "not", " ", 
+      "correspond", " ", "to", " ", "a", " ", "meaningful", " ", 
+      RowBox[{"solution", ".", "  ", 
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{
+         "The", " ", "problem", " ", "could", " ", "be", " ", "solved", " ", 
+          "by", " ", "imposing", " ", "an", " ", "assumption", " ", "that", 
+          " ", "\[Kappa]"}], " ", ">", " ", "0"}], ")"}]}]}]}]}], " ", "*)"}],
+   "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"Clear", "[", 
+     RowBox[{"\[Mho]", ",", "\[CurlyTheta]"}], "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[Beta]PlotMax", "=", "1.3"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[Alpha]PlotMax", "=", "20"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[Mho]Min", "=", "0.005"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[Mho]Max", "=", "0.035"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"NumOfSteps", "=", "30"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[Mho]Step", "=", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"\[Mho]Max", "-", "\[Mho]Min"}], ")"}], "/", 
+       RowBox[{"(", "NumOfSteps", ")"}]}], " ", "//", "N"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"rMin", "=", "0.02"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"rMax", "=", "0.14"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"rStep", "=", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"rMax", "-", "rMin"}], ")"}], "/", 
+       RowBox[{"(", "NumOfSteps", ")"}]}], " ", "//", "N"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[Rho]Min", "=", "2"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[Rho]Max", "=", "5"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[Rho]Step", "=", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"\[Rho]Max", "-", "\[Rho]Min"}], ")"}], "/", 
+       RowBox[{"(", "NumOfSteps", ")"}]}], " ", "//", "N"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"Manipulate", "[", 
+    RowBox[{
+     RowBox[{"Block", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"$PerformanceGoal", "=", "\"\<Quality\>\""}], ",", 
+         "\[Alpha]", ",", "\[CurlyTheta]", ",", "\[Mho]", ",", "r", ",", 
+         "\[Rho]"}], "}"}], ",", "\[IndentingNewLine]", 
+       RowBox[{
+        RowBox[{"\[Mho]", "=", "\[Mho]Slider"}], ";", "\[IndentingNewLine]", 
+        RowBox[{"\[Rho]", "=", "\[Rho]Slider"}], ";", "\[IndentingNewLine]", 
+        RowBox[{"r", "=", "rSlider"}], ";", "\[IndentingNewLine]", 
+        RowBox[{"Plot", "[", 
+         RowBox[{
+          RowBox[{"{", "\[IndentingNewLine]", 
+           RowBox[{
+           "\[Beta]MaxWhereRICHoldsExactly", "\[IndentingNewLine]", ",", 
+            RowBox[{"(", 
+             RowBox[{"\[Beta]MaxWhereGICTBSHoldsExactly", " ", "/.", " ", 
+              RowBox[{"\[Alpha]", " ", "\[Rule]", " ", "\[Alpha]Plot"}]}], 
+             ")"}], "\[IndentingNewLine]", ",", 
+            RowBox[{"(", 
+             RowBox[{
+             "\[Beta]MaxWhereGIC\[CapitalGamma]HoldsExactly", " ", "/.", " ", 
+              
+              RowBox[{"\[Alpha]", " ", "\[Rule]", " ", "\[Alpha]Plot"}]}], 
+             ")"}], "\[IndentingNewLine]", ",", 
+            RowBox[{"(", 
+             RowBox[{
+             "\[Beta]MaxWhereGIC\[GothicCapitalG]HoldsExactly", " ", "/.", 
+              " ", 
+              RowBox[{"\[Alpha]", " ", "\[Rule]", " ", "\[Alpha]Plot"}]}], 
+             ")"}]}], "\[IndentingNewLine]", "}"}], ",", 
+          RowBox[{"{", 
+           RowBox[{"\[Alpha]Plot", ",", "1", ",", "\[Alpha]PlotMax"}], "}"}], 
+          "\[IndentingNewLine]", ",", 
+          RowBox[{"PlotStyle", "\[Rule]", 
+           RowBox[{"{", 
+            RowBox[{"Black", ",", "Red", ",", "Green", ",", "Blue"}], "}"}]}],
+           "\[IndentingNewLine]", ",", 
+          RowBox[{"PlotRange", "\[Rule]", 
+           RowBox[{"{", 
+            RowBox[{
+             RowBox[{"{", 
+              RowBox[{"1", ",", "\[Alpha]PlotMax"}], "}"}], ",", 
+             RowBox[{"{", 
+              RowBox[{"0", ",", "\[Beta]PlotMax"}], "}"}]}], "}"}]}], 
+          "\[IndentingNewLine]", ",", 
+          RowBox[{"AxesLabel", "\[Rule]", 
+           RowBox[{"{", 
+            RowBox[{"\"\<\[Alpha]\>\"", ",", "\"\<\[Beta]\>\""}], "}"}]}], 
+          "\[IndentingNewLine]", ",", 
+          RowBox[{"AxesOrigin", "\[Rule]", 
+           RowBox[{"{", 
+            RowBox[{"1", ",", "0"}], "}"}]}], "\[IndentingNewLine]", ",", 
+          RowBox[{"PlotLegends", "\[Rule]", 
+           RowBox[{"{", 
+            RowBox[{
+            "\"\<RIC\>\"", ",", "\"\<GICTBS\>\"", ",", 
+             "\"\<\!\(\*SubscriptBox[\(GIC\), \(\[CapitalGamma]\)]\)\>\"", 
+             ",", "\"\<\!\(\*SubscriptBox[\(GIC\), \(\[GothicCapitalG]\)]\)\>\
+\""}], "}"}]}]}], "\[IndentingNewLine]", "]"}]}]}], "\[IndentingNewLine]", 
+      "]"}], "\[IndentingNewLine]", ",", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"\[Mho]Slider", ",", "\[Mho]Min", ",", "\"\<\[Mho]\>\""}], 
+        "}"}], ",", "\[Mho]Min", ",", "\[Mho]Max", ",", "\[Mho]Step", ",", 
+       RowBox[{"Appearance", "\[Rule]", "\"\<Labeled\>\""}]}], "}"}], 
+     "\[IndentingNewLine]", ",", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"\[Rho]Slider", ",", "\[Rho]Min", ",", "\"\<\[Rho]\>\""}], 
+        "}"}], ",", "\[Rho]Min", ",", "\[Rho]Max", ",", "\[Rho]Step", ",", 
+       RowBox[{"Appearance", "\[Rule]", "\"\<Labeled\>\""}]}], "}"}], 
+     "\[IndentingNewLine]", ",", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"rSlider", ",", "rMin", ",", "\"\<r\>\""}], "}"}], ",", 
+       "rMin", ",", "rMax", ",", "rStep", ",", 
+       RowBox[{"Appearance", "\[Rule]", "\"\<Labeled\>\""}]}], "}"}]}], 
+    "\[IndentingNewLine]", "]"}], "\[IndentingNewLine]"}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ TagBox[
+  StyleBox[
+   DynamicModuleBox[{$CellContext`rSlider$$ = 
+    0.02, $CellContext`\[Rho]Slider$$ = 2, $CellContext`\[Mho]Slider$$ = 
+    0.005, Typeset`show$$ = True, Typeset`bookmarkList$$ = {}, 
+    Typeset`bookmarkMode$$ = "Menu", Typeset`animator$$, Typeset`animvar$$ = 
+    1, Typeset`name$$ = "\"untitled\"", Typeset`specs$$ = {{{
+       Hold[$CellContext`\[Mho]Slider$$], 0.005, "\[Mho]"}, 0.005, 0.035, 
+      0.001}, {{
+       Hold[$CellContext`\[Rho]Slider$$], 2, "\[Rho]"}, 2, 5, 0.1}, {{
+       Hold[$CellContext`rSlider$$], 0.02, "r"}, 0.02, 0.14, 0.004}}, 
+    Typeset`size$$ = {845., {209., 225.}}, Typeset`update$$ = 0, 
+    Typeset`initDone$$, Typeset`skipInitDone$$ = 
+    True, $CellContext`\[Mho]Slider$9011$$ = 
+    0, $CellContext`\[Rho]Slider$9012$$ = 0, $CellContext`rSlider$9013$$ = 0}, 
+    DynamicBox[Manipulate`ManipulateBoxes[
+     1, StandardForm, 
+      "Variables" :> {$CellContext`rSlider$$ = 
+        0.02, $CellContext`\[Rho]Slider$$ = 2, $CellContext`\[Mho]Slider$$ = 
+        0.005}, "ControllerVariables" :> {
+        Hold[$CellContext`\[Mho]Slider$$, $CellContext`\[Mho]Slider$9011$$, 
+         0], 
+        Hold[$CellContext`\[Rho]Slider$$, $CellContext`\[Rho]Slider$9012$$, 
+         0], 
+        Hold[$CellContext`rSlider$$, $CellContext`rSlider$9013$$, 0]}, 
+      "OtherVariables" :> {
+       Typeset`show$$, Typeset`bookmarkList$$, Typeset`bookmarkMode$$, 
+        Typeset`animator$$, Typeset`animvar$$, Typeset`name$$, 
+        Typeset`specs$$, Typeset`size$$, Typeset`update$$, Typeset`initDone$$,
+         Typeset`skipInitDone$$}, "Body" :> 
+      Block[{$PerformanceGoal = 
+         "Quality", $CellContext`\[Alpha], $CellContext`\[CurlyTheta], \
+$CellContext`\[Mho], $CellContext`r, $CellContext`\[Rho]}, \
+$CellContext`\[Mho] = $CellContext`\[Mho]Slider$$; $CellContext`\[Rho] = \
+$CellContext`\[Rho]Slider$$; $CellContext`r = $CellContext`rSlider$$; 
+        Plot[{$CellContext`\[Beta]MaxWhereRICHoldsExactly, 
+           
+           ReplaceAll[$CellContext`\[Beta]MaxWhereGICTBSHoldsExactly, \
+$CellContext`\[Alpha] -> $CellContext`\[Alpha]Plot], 
+           
+           ReplaceAll[$CellContext`\[Beta]MaxWhereGIC\[CapitalGamma]\
+HoldsExactly, $CellContext`\[Alpha] -> $CellContext`\[Alpha]Plot], 
+           
+           ReplaceAll[$CellContext`\[Beta]MaxWhereGIC\[GothicCapitalG]\
+HoldsExactly, $CellContext`\[Alpha] -> $CellContext`\[Alpha]Plot]}, \
+{$CellContext`\[Alpha]Plot, 1, $CellContext`\[Alpha]PlotMax}, 
+          PlotStyle -> {Black, Red, Green, Blue}, 
+          PlotRange -> {{1, $CellContext`\[Alpha]PlotMax}, {
+            0, $CellContext`\[Beta]PlotMax}}, 
+          AxesLabel -> {"\[Alpha]", "\[Beta]"}, AxesOrigin -> {1, 0}, 
+          PlotLegends -> {
+           "RIC", "GICTBS", 
+            "\!\(\*SubscriptBox[\(GIC\), \(\[CapitalGamma]\)]\)", 
+            "\!\(\*SubscriptBox[\(GIC\), \(\[GothicCapitalG]\)]\)"}]], 
+      "Specifications" :> {{{$CellContext`\[Mho]Slider$$, 0.005, "\[Mho]"}, 
+         0.005, 0.035, 0.001, Appearance -> 
+         "Labeled"}, {{$CellContext`\[Rho]Slider$$, 2, "\[Rho]"}, 2, 5, 0.1, 
+         Appearance -> "Labeled"}, {{$CellContext`rSlider$$, 0.02, "r"}, 0.02,
+          0.14, 0.004, Appearance -> "Labeled"}}, "Options" :> {}, 
+      "DefaultOptions" :> {}],
+     ImageSizeCache->{911., {303., 311.}},
+     SingleEvaluation->True],
+    Deinitialization:>None,
+    DynamicModuleValues:>{},
+    SynchronousInitialization->True,
+    UndoTrackedVariables:>{Typeset`show$$, Typeset`bookmarkMode$$},
+    UnsavedVariables:>{Typeset`initDone$$},
+    UntrackedVariables:>{Typeset`size$$}], "Manipulate",
+   Deployed->True,
+   StripOnInput->False],
+  Manipulate`InterpretManipulate[1]]], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Show", " ", "slope", " ", "of", " ", "\[CapitalDelta]c"}], "=", 
+    RowBox[{
+    "0", " ", "locus", " ", "for", " ", "alternate", " ", "values", " ", "of",
+      " ", "patience", " ", 
+     RowBox[{"(", 
+      RowBox[{
+      "r", " ", "and", " ", "\[CurlyTheta]", " ", "do", " ", "not", " ", 
+       "matter", " ", "much", " ", "separately"}], ")"}]}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"The", " ", 
+    RowBox[{"(", "constant", ")"}], " ", "slope", " ", "of", " ", "the", " ", 
+    "perfect", " ", "foresight", " ", 
+    RowBox[{"(", "PF", ")"}], " ", "locus", " ", "is", " ", "also", " ", 
+    "plotted"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"\[WeierstrassP]atienceMin", "=", 
+     RowBox[{"-", "0.04"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[WeierstrassP]atienceMax", "=", " ", "0.02"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[WeierstrassP]atienceStep", "=", 
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{
+       "\[WeierstrassP]atienceMax", "-", "\[WeierstrassP]atienceMin"}], ")"}],
+       "/", "NumOfSteps"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Clear", "[", 
+     RowBox[{"\[CurlyTheta]", ",", "\[Mho]", ",", "\[Alpha]"}], "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[Kappa]Min", "=", "0."}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[Kappa]Max", " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"IntegerPart", "[", 
+        RowBox[{
+         RowBox[{
+          RowBox[{
+           RowBox[{"100", 
+            RowBox[{"(", 
+             RowBox[{"\[Kappa]", " ", "\[ScriptCapitalR]", " ", 
+              RowBox[{"\[CapitalPi]", "/", 
+               RowBox[{"(", 
+                RowBox[{"1", "+", " ", 
+                 RowBox[{
+                 "\[Kappa]", " ", "\[ScriptCapitalR]", " ", 
+                  "\[CapitalPi]"}]}], ")"}]}]}], " ", ")"}]}], "/.", 
+           RowBox[{"\[CurlyTheta]", "\[Rule]", " ", 
+            RowBox[{"(", 
+             RowBox[{"rBase", "-", 
+              RowBox[{"\[WeierstrassP]atienceMin", " ", "\[Rho]"}]}], 
+             ")"}]}]}], " ", "/.", " ", 
+          RowBox[{"\[Alpha]", "\[Rule]", "1"}]}], " ", "/.", 
+         RowBox[{"\[Mho]", "\[Rule]", "\[Mho]Min"}]}], "]"}], "/", "100"}], 
+      "+", "0.06"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"Manipulate", "[", 
+    RowBox[{
+     RowBox[{"Block", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"$PerformanceGoal", "=", "\"\<Quality\>\""}], ",", 
+         "\[Alpha]", ",", "\[CurlyTheta]", ",", "\[Mho]", ",", "\[Rho]", ",", 
+         "\[WeierstrassP]atience"}], "}"}], ",", "\[IndentingNewLine]", 
+       RowBox[{
+        RowBox[{"\[Mho]", "=", "\[Mho]Slider"}], ";", "\[IndentingNewLine]", 
+        RowBox[{"\[Rho]", "=", "\[Rho]Slider"}], ";", "\[IndentingNewLine]", 
+        RowBox[{"\[WeierstrassP]atience", "=", "\[WeierstrassP]Slider"}], ";",
+         "\[IndentingNewLine]", 
+        RowBox[{"\[CurlyTheta]", " ", "=", " ", 
+         RowBox[{"rBase", "-", 
+          RowBox[{"\[WeierstrassP]atience", " ", "\[Rho]"}]}]}], ";", " ", 
+        RowBox[{"(*", " ", 
+         RowBox[{
+          RowBox[{"From", " ", "\[WeierstrassP]"}], "=", 
+          RowBox[{
+           SuperscriptBox["\[Rho]", 
+            RowBox[{"-", "1"}]], 
+           RowBox[{"(", 
+            RowBox[{
+             RowBox[{"(", "r", ")"}], "-", "\[CurlyTheta]"}], ")"}]}]}], " ", 
+         "*)"}], "\[IndentingNewLine]", 
+        RowBox[{"Plot", "[", 
+         RowBox[{
+          RowBox[{"{", "\[IndentingNewLine]", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"\[Kappa]", " ", "\[ScriptCapitalR]", " ", 
+              RowBox[{"\[CapitalPi]", "/", 
+               RowBox[{"(", 
+                RowBox[{"1", "+", " ", 
+                 RowBox[{
+                 "\[Kappa]", " ", "\[ScriptCapitalR]", " ", 
+                  "\[CapitalPi]"}]}], ")"}]}]}], " ", "/.", " ", 
+             RowBox[{"\[Alpha]", " ", "\[Rule]", " ", "1"}]}], 
+            "\[IndentingNewLine]", ",", 
+            RowBox[{
+             RowBox[{"\[Kappa]", " ", "\[ScriptCapitalR]", " ", 
+              RowBox[{"\[CapitalPi]", "/", 
+               RowBox[{"(", 
+                RowBox[{"1", "+", " ", 
+                 RowBox[{
+                 "\[Kappa]", " ", "\[ScriptCapitalR]", " ", 
+                  "\[CapitalPi]"}]}], ")"}]}]}], " ", "/.", " ", 
+             RowBox[{"\[Alpha]", " ", "\[Rule]", " ", "\[Alpha]Plot"}]}]}], 
+           "\[IndentingNewLine]", "}"}], ",", 
+          RowBox[{"{", 
+           RowBox[{"\[Alpha]Plot", ",", "1", ",", "\[Alpha]PlotMax"}], "}"}], 
+          "\[IndentingNewLine]", ",", 
+          RowBox[{"PlotStyle", "\[Rule]", 
+           RowBox[{"{", 
+            RowBox[{"Black", ",", "Red", ",", "Green", ",", "Blue"}], "}"}]}],
+           "\[IndentingNewLine]", ",", 
+          RowBox[{"PlotRange", "\[Rule]", 
+           RowBox[{"{", 
+            RowBox[{
+             RowBox[{"{", 
+              RowBox[{"1", ",", "\[Alpha]PlotMax"}], "}"}], ",", 
+             RowBox[{"{", 
+              RowBox[{"0", ",", "\[Kappa]Max"}], "}"}]}], "}"}]}], 
+          "\[IndentingNewLine]", ",", 
+          RowBox[{"AxesLabel", "\[Rule]", 
+           RowBox[{"{", 
+            RowBox[{"\"\<\[Alpha]\>\"", ",", "\"\<\>\""}], "}"}]}], 
+          "\[IndentingNewLine]", ",", 
+          RowBox[{"AxesOrigin", "\[Rule]", 
+           RowBox[{"{", 
+            RowBox[{"1", ",", "0"}], "}"}]}], "\[IndentingNewLine]", ",", 
+          RowBox[{"PlotLegends", "\[Rule]", 
+           RowBox[{"{", 
+            RowBox[{
+            "\"\<\[Kappa]\>\"", ",", "\"\<\[CapitalDelta]c=0 Slope\>\""}], 
+            "}"}]}]}], "\[IndentingNewLine]", "]"}]}]}], 
+      "\[IndentingNewLine]", "]"}], "\[IndentingNewLine]", ",", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"\[Mho]Slider", ",", "\[Mho]Min", ",", "\"\<\[Mho]\>\""}], 
+        "}"}], ",", "\[Mho]Min", ",", "\[Mho]Max", ",", "\[Mho]Step", ",", 
+       RowBox[{"Appearance", "\[Rule]", "\"\<Labeled\>\""}]}], "}"}], 
+     "\[IndentingNewLine]", ",", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"\[Rho]Slider", ",", "\[Rho]Min", ",", "\"\<\[Rho]\>\""}], 
+        "}"}], ",", "\[Rho]Min", ",", "\[Rho]Max", ",", "\[Rho]Step", ",", 
+       RowBox[{"Appearance", "\[Rule]", "\"\<Labeled\>\""}]}], "}"}], 
+     "\[IndentingNewLine]", ",", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+        "\[WeierstrassP]Slider", ",", "\[WeierstrassP]atienceMin", ",", 
+         "\"\<\[WeierstrassP]\>\""}], "}"}], ",", "\[WeierstrassP]atienceMin",
+        ",", "\[WeierstrassP]atienceMax", ",", "\[WeierstrassP]atienceStep", 
+       ",", 
+       RowBox[{"Appearance", "\[Rule]", "\"\<Labeled\>\""}]}], "}"}]}], 
+    "\[IndentingNewLine]", "]"}], "\[IndentingNewLine]"}]}]], "Input"],
+
+Cell[BoxData[
+ TagBox[
+  StyleBox[
+   DynamicModuleBox[{$CellContext`\[Rho]Slider$$ = 
+    2, $CellContext`\[Mho]Slider$$ = 
+    0.005, $CellContext`\[WeierstrassP]Slider$$ = -0.04, Typeset`show$$ = 
+    True, Typeset`bookmarkList$$ = {}, Typeset`bookmarkMode$$ = "Menu", 
+    Typeset`animator$$, Typeset`animvar$$ = 1, Typeset`name$$ = 
+    "\"untitled\"", Typeset`specs$$ = {{{
+       Hold[$CellContext`\[Mho]Slider$$], 0.005, "\[Mho]"}, 0.005, 0.035, 
+      0.001}, {{
+       Hold[$CellContext`\[Rho]Slider$$], 2, "\[Rho]"}, 2, 5, 0.1}, {{
+       Hold[$CellContext`\[WeierstrassP]Slider$$], -0.04, 
+       "\[WeierstrassP]"}, -0.04, 0.02, 0.002}}, Typeset`size$$ = {
+    872., {209., 225.}}, Typeset`update$$ = 0, Typeset`initDone$$, 
+    Typeset`skipInitDone$$ = True, $CellContext`\[Mho]Slider$9837$$ = 
+    0, $CellContext`\[Rho]Slider$9838$$ = 
+    0, $CellContext`\[WeierstrassP]Slider$9839$$ = 0}, 
+    DynamicBox[Manipulate`ManipulateBoxes[
+     1, StandardForm, 
+      "Variables" :> {$CellContext`\[Rho]Slider$$ = 
+        2, $CellContext`\[Mho]Slider$$ = 
+        0.005, $CellContext`\[WeierstrassP]Slider$$ = -0.04}, 
+      "ControllerVariables" :> {
+        Hold[$CellContext`\[Mho]Slider$$, $CellContext`\[Mho]Slider$9837$$, 
+         0], 
+        Hold[$CellContext`\[Rho]Slider$$, $CellContext`\[Rho]Slider$9838$$, 
+         0], 
+        Hold[$CellContext`\[WeierstrassP]Slider$$, $CellContext`\
+\[WeierstrassP]Slider$9839$$, 0]}, 
+      "OtherVariables" :> {
+       Typeset`show$$, Typeset`bookmarkList$$, Typeset`bookmarkMode$$, 
+        Typeset`animator$$, Typeset`animvar$$, Typeset`name$$, 
+        Typeset`specs$$, Typeset`size$$, Typeset`update$$, Typeset`initDone$$,
+         Typeset`skipInitDone$$}, "Body" :> 
+      Block[{$PerformanceGoal = 
+         "Quality", $CellContext`\[Alpha], $CellContext`\[CurlyTheta], \
+$CellContext`\[Mho], $CellContext`\[Rho], \
+$CellContext`\[WeierstrassP]atience}, $CellContext`\[Mho] = $CellContext`\
+\[Mho]Slider$$; $CellContext`\[Rho] = $CellContext`\[Rho]Slider$$; \
+$CellContext`\[WeierstrassP]atience = $CellContext`\[WeierstrassP]Slider$$; \
+$CellContext`\[CurlyTheta] = $CellContext`rBase - \
+$CellContext`\[WeierstrassP]atience $CellContext`\[Rho]; Plot[{
+           
+           ReplaceAll[$CellContext`\[Kappa] $CellContext`\[ScriptCapitalR] \
+($CellContext`\[CapitalPi]/(
+             1 + $CellContext`\[Kappa] $CellContext`\[ScriptCapitalR] \
+$CellContext`\[CapitalPi])), $CellContext`\[Alpha] -> 1], 
+           
+           ReplaceAll[$CellContext`\[Kappa] $CellContext`\[ScriptCapitalR] \
+($CellContext`\[CapitalPi]/(
+             1 + $CellContext`\[Kappa] $CellContext`\[ScriptCapitalR] \
+$CellContext`\[CapitalPi])), $CellContext`\[Alpha] -> \
+$CellContext`\[Alpha]Plot]}, {$CellContext`\[Alpha]Plot, 
+           1, $CellContext`\[Alpha]PlotMax}, 
+          PlotStyle -> {Black, Red, Green, Blue}, 
+          PlotRange -> {{1, $CellContext`\[Alpha]PlotMax}, {
+            0, $CellContext`\[Kappa]Max}}, AxesLabel -> {"\[Alpha]", ""}, 
+          AxesOrigin -> {1, 0}, 
+          PlotLegends -> {"\[Kappa]", "\[CapitalDelta]c=0 Slope"}]], 
+      "Specifications" :> {{{$CellContext`\[Mho]Slider$$, 0.005, "\[Mho]"}, 
+         0.005, 0.035, 0.001, Appearance -> 
+         "Labeled"}, {{$CellContext`\[Rho]Slider$$, 2, "\[Rho]"}, 2, 5, 0.1, 
+         Appearance -> 
+         "Labeled"}, {{$CellContext`\[WeierstrassP]Slider$$, -0.04, 
+          "\[WeierstrassP]"}, -0.04, 0.02, 0.002, Appearance -> "Labeled"}}, 
+      "Options" :> {}, "DefaultOptions" :> {}],
+     ImageSizeCache->{938., {303., 311.}},
+     SingleEvaluation->True],
+    Deinitialization:>None,
+    DynamicModuleValues:>{},
+    SynchronousInitialization->True,
+    UndoTrackedVariables:>{Typeset`show$$, Typeset`bookmarkMode$$},
+    UnsavedVariables:>{Typeset`initDone$$},
+    UntrackedVariables:>{Typeset`size$$}], "Manipulate",
+   Deployed->True,
+   StripOnInput->False],
+  Manipulate`InterpretManipulate[1]]], "Output"]
+}, Open  ]]
+},
+AutoGeneratedPackage->Automatic,
+WindowSize->{1413, 791},
+WindowMargins->{{44, Automatic}, {Automatic, 27}},
+ShowSelection->True,
+Magnification->1.5,
+FrontEndVersion->"10.2 for Mac OS X x86 (32-bit, 64-bit Kernel) (July 6, \
+2015)",
+StyleDefinitions->Notebook[{
+   Cell[
+    StyleData[StyleDefinitions -> "Default.nb"]]}, Visible -> False, 
+  FrontEndVersion -> 
+  "10.2 for Mac OS X x86 (32-bit, 64-bit Kernel) (July 6, 2015)", 
+  StyleDefinitions -> "PrivateStylesheetFormatting.nb"]
+]
+

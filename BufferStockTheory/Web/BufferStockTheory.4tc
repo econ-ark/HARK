@@ -1,0 +1,59 @@
+\expandafter\ifx\csname doTocEntry\endcsname\relax \expandafter\endinput\fi
+\doTocEntry\tocsection{1}{\csname a:TocLink\endcsname{1}{x1-10001}{QQ2-1-1}{Introduction}}{3}\relax 
+\doTocEntry\tocsection{2}{\csname a:TocLink\endcsname{1}{x1-20002}{QQ2-1-2}{The Problem}}{5}\relax 
+\doTocEntry\tocsubsection{2.1}{\csname a:TocLink\endcsname{1}{x1-30002.1}{QQ2-1-3}{Setup}}{5}\relax 
+\doTocEntry\tocsubsection{2.2}{\csname a:TocLink\endcsname{1}{x1-40002.2}{QQ2-1-4}{The Problem Can Be Rewritten in Ratio Form}}{9}\relax 
+\doTocEntry\tocsubsection{2.3}{\csname a:TocLink\endcsname{1}{x1-50002.3}{QQ2-1-5}{Definition of a Nondegenerate Solution}}{10}\relax 
+\doTocEntry\tocsubsection{2.4}{\csname a:TocLink\endcsname{1}{x1-60002.4}{QQ2-1-6}{Perfect Foresight Benchmarks}}{11}\relax 
+\doTocEntry\tocsubsubsection{2.4.1}{\csname a:TocLink\endcsname{1}{x1-70002.4.1}{QQ2-1-7}{Human Wealth}}{11}\relax 
+\doTocEntry\tocsubsubsection{2.4.2}{\csname a:TocLink\endcsname{1}{x1-80002.4.2}{QQ2-1-8}{Unconstrained Solution}}{12}\relax 
+\doTocEntry\tocsubsubsection{2.4.3}{\csname a:TocLink\endcsname{1}{x1-90002.4.3}{QQ2-1-9}{Constrained Solution}}{15}\relax 
+\doTocEntry\tocsubsection{2.5}{\csname a:TocLink\endcsname{1}{x1-100002.5}{QQ2-1-10}{Uncertainty-Modified Conditions}}{19}\relax 
+\doTocEntry\tocsubsubsection{2.5.1}{\csname a:TocLink\endcsname{1}{x1-110002.5.1}{QQ2-1-11}{Impatience}}{19}\relax 
+\doTocEntry\tocsubsubsection{2.5.2}{\csname a:TocLink\endcsname{1}{x1-120002.5.2}{QQ2-1-12}{Value}}{20}\relax 
+\doTocEntry\tocsubsection{2.6}{\csname a:TocLink\endcsname{1}{x1-130002.6}{QQ2-1-13}{The Baseline Numerical Solution}}{22}\relax 
+\doTocEntry\toclot{1}{\csname a:TocLink\endcsname{1}{x1-130011}{}{\ignorespaces Microeconomic Model Calibration}}{table}\relax 
+\doTocEntry\toclof{1}{\csname a:TocLink\endcsname{1}{x1-130021}{}{\ignorespaces Convergence of the Consumption Rules}}{figure}\relax 
+\doTocEntry\tocsubsection{2.7}{\csname a:TocLink\endcsname{1}{x1-140002.7}{QQ2-1-16}{Concave Consumption Function Characteristics}}{28}\relax 
+\doTocEntry\tocsubsection{2.8}{\csname a:TocLink\endcsname{1}{x1-150002.8}{QQ2-1-17}{Bounds for the Consumption Functions}}{29}\relax 
+\doTocEntry\tocsubsection{2.9}{\csname a:TocLink\endcsname{1}{x1-160002.9}{QQ2-1-18}{Conditions Under Which the Problem Defines a Contraction Mapping}}{32}\relax 
+\doTocEntry\tocsubsection{2.10}{\csname a:TocLink\endcsname{1}{x1-170002.10}{QQ2-1-19}{The Liquidity Constrained Solution as a Limit}}{35}\relax 
+\doTocEntry\tocsubsection{2.11}{\csname a:TocLink\endcsname{1}{x1-180002.11}{QQ2-1-20}{Discussion of Parametric Restrictions}}{39}\relax 
+\doTocEntry\tocsubsubsection{2.11.1}{\csname a:TocLink\endcsname{1}{x1-190002.11.1}{QQ2-1-21}{The RIC}}{39}\relax 
+\doTocEntry\tocsubsubsection{2.11.2}{\csname a:TocLink\endcsname{1}{x1-200002.11.2}{QQ2-1-22}{The WRIC}}{40}\relax 
+\doTocEntry\tocsubsubsection{2.11.3}{\csname a:TocLink\endcsname{1}{x1-210002.11.3}{QQ2-1-23}{The GIC}}{41}\relax 
+\doTocEntry\toclof{2}{\csname a:TocLink\endcsname{1}{x1-210022}{}{\ignorespaces Example Solution when FVAC Holds but GIC Does Not}}{figure}\relax 
+\doTocEntry\toclot{2}{\csname a:TocLink\endcsname{1}{x1-210032}{}{\ignorespaces Definitions and Comparisons of Conditions}}{table}\relax 
+\doTocEntry\toclot{3}{\csname a:TocLink\endcsname{1}{x1-210043}{}{\ignorespaces Sufficient Conditions for Nondegenerate$^{\ddagger }$ Solution}}{table}\relax 
+\doTocEntry\tocsection{3}{\csname a:TocLink\endcsname{1}{x1-220003}{QQ2-1-27}{Analysis of the Converged Consumption Function}}{54}\relax 
+\doTocEntry\toclof{3}{\csname a:TocLink\endcsname{1}{x1-220043}{}{\ignorespaces Target $\ensuremath  {m}$, Expected Consumption Growth, and Permanent Income Growth}}{figure}\relax 
+\doTocEntry\tocsubsection{3.1}{\csname a:TocLink\endcsname{1}{x1-230003.1}{QQ2-1-29}{Limits as $\ensuremath  {m}_t \rightarrow \infty $}}{58}\relax 
+\doTocEntry\toclof{4}{\csname a:TocLink\endcsname{1}{x1-230054}{}{\ignorespaces The Consumption Function}}{figure}\relax 
+\doTocEntry\tocsubsection{3.2}{\csname a:TocLink\endcsname{1}{x1-240003.2}{QQ2-1-31}{Limits as $\ensuremath  {m}_t \rightarrow 0$}}{63}\relax 
+\doTocEntry\tocsubsection{3.3}{\csname a:TocLink\endcsname{1}{x1-250003.3}{QQ2-1-32}{There Exists Exactly One Target Cash-on-Hand Ratio, which is Stable}}{65}\relax 
+\doTocEntry\tocsubsection{3.4}{\csname a:TocLink\endcsname{1}{x1-260003.4}{QQ2-1-33}{Expected Consumption Growth at Target $\ensuremath  {m}$ Is Less than Expected Permanent Income Growth}}{69}\relax 
+\doTocEntry\tocsubsection{3.5}{\csname a:TocLink\endcsname{1}{x1-270003.5}{QQ2-1-34}{Expected Consumption Growth Is a Declining Function of $\ensuremath  {m}_{t}$ (or Is It?)}}{69}\relax 
+\doTocEntry\tocsection{4}{\csname a:TocLink\endcsname{1}{x1-280004}{QQ2-1-35}{The Aggregate and Idiosyncratic Relationship Between Consumption Growth and Income Growth}}{72}\relax 
+\doTocEntry\tocsubsection{4.1}{\csname a:TocLink\endcsname{1}{x1-290004.1}{QQ2-1-36}{Convergence of the Cross-Section Distribution}}{73}\relax 
+\doTocEntry\toclof{5}{\csname a:TocLink\endcsname{1}{x1-290045}{}{\ignorespaces Convergence of $\mathcal  {F}^{\ensuremath  {a}}$ to Invariant Distribution}}{figure}\relax 
+\doTocEntry\tocsubsection{4.2}{\csname a:TocLink\endcsname{1}{x1-300004.2}{QQ2-1-38}{Consumption and Income Growth at the Household Level}}{76}\relax 
+\doTocEntry\tocsubsection{4.3}{\csname a:TocLink\endcsname{1}{x1-310004.3}{QQ2-1-39}{Growth Rates of Aggregate Income and Consumption}}{76}\relax 
+\doTocEntry\toclof{6}{\csname a:TocLink\endcsname{1}{x1-310026}{}{\ignorespaces Consumption Growth in Simulated Economy with $\ensuremath  {\Gamma }=1.03$}}{figure}\relax 
+\doTocEntry\tocsection{5}{\csname a:TocLink\endcsname{1}{x1-320005}{QQ2-1-41}{Conclusions}}{81}\relax 
+\doTocEntry\tocsection{A}{\csname a:TocLink\endcsname{1}{x1-33000A}{QQ2-1-42}{Perfect Foresight Liquidity Constrained Solution}}{82}\relax 
+\doTocEntry\toclot{4}{\csname a:TocLink\endcsname{1}{x1-330014}{}{\ignorespaces Taxonomy of Liquidity Constrained Model Outcomes}}{table}\relax 
+\doTocEntry\tocsubsection{A.1}{\csname a:TocLink\endcsname{1}{x1-34000A.1}{QQ2-1-44}{If PF-GIC Fails}}{85}\relax 
+\doTocEntry\tocsubsection{A.2}{\csname a:TocLink\endcsname{1}{x1-35000A.2}{QQ2-1-45}{If PF-GIC Holds}}{86}\relax 
+\doTocEntry\tocsubsubsection{A.2.1}{\csname a:TocLink\endcsname{1}{x1-36000A.2.1}{QQ2-1-46}{If FHWC Holds}}{89}\relax 
+\doTocEntry\tocsubsubsection{A.2.2}{\csname a:TocLink\endcsname{1}{x1-37000A.2.2}{QQ2-1-47}{If FHWC Fails}}{90}\relax 
+\doTocEntry\toclof{7}{\csname a:TocLink\endcsname{1}{x1-370027}{}{\ignorespaces Nondegenerate Consumption Function with \cancel  {FHWC} and \cancel  {RIC}}}{figure}\relax 
+\doTocEntry\tocsection{B}{\csname a:TocLink\endcsname{1}{x1-38000B}{QQ2-1-49}{Existence of a Concave Consumption Function}}{95}\relax 
+\doTocEntry\tocsection{C}{\csname a:TocLink\endcsname{1}{x1-39000C}{QQ2-1-50}{$\ensuremath  {\mathrm@@ {c}}_{t}(\ensuremath  {m})$ is Twice Continuously Differentiable}}{98}\relax 
+\doTocEntry\tocsection{D}{\csname a:TocLink\endcsname{1}{x1-40000D}{QQ2-1-51}{Proof that $\EuScript  {T}$ Is a Contraction Mapping}}{100}\relax 
+\doTocEntry\tocsubsection{D.1}{\csname a:TocLink\endcsname{1}{x1-41000D.1}{QQ2-1-52}{$\EuScript  {T}$ and $\ensuremath  {\mathrm@@ {v}}$}}{103}\relax 
+\doTocEntry\tocsubsection{D.2}{\csname a:TocLink\endcsname{1}{x1-42000D.2}{QQ2-1-53}{Convergence of $\ensuremath  {\mathrm@@ {v}}_{t}$ in Euclidian Space}}{104}\relax 
+\doTocEntry\tocsubsection{D.3}{\csname a:TocLink\endcsname{1}{x1-43000D.3}{QQ2-1-54}{Convergence of $\ensuremath  {\mathrm@@ {c}}_{t}$}}{106}\relax 
+\doTocEntry\tocsection{E}{\csname a:TocLink\endcsname{1}{x1-44000E}{QQ2-1-55}{Equality of Aggregate Consumption Growth and Income Growth with Transitory Shocks}}{111}\relax 
+\doTocEntry\tocsection{F}{\csname a:TocLink\endcsname{1}{x1-45000F}{QQ2-1-56}{Endogenous Gridpoints Solution Method}}{113}\relax 
+\doTocEntry\tocsection{G}{\csname a:TocLink\endcsname{1}{x1-46000G}{QQ2-1-57}{The Terminal/Limiting Consumption Function}}{115}\relax 
+\doTocEntry\toclikesection{}{\csname a:TocLink\endcsname{1}{x1-47000G}{QQ2-1-58}{\let \a:newpage \unhbox \voidb@x \global \let \par \vfil \penalty -\@M \write \m@ne {}\vbox {}\penalty -\@Mi References}}{119}\relax 

@@ -1,0 +1,102 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Log of Changes to Matlab files made by Patrick as of 25 April 2009
+
+-- The matlab figures are of publishable quality now.
+
+-- TractableBufferStock.m --
+Added the Figure defined in cGroIncreaseMhoPlot.m
+Moved plot-specific scripts inside the relevant plot file
+
+-- All Plot Files --
+Added the suffix _MO to all figures created with Matlab/Octave.
+Redesigned the figure labels. Made them LaTeX-compatible.
+This requires a user-written file named format_ticks.m
+The file format_ticks_help.txt summarizes its use.
+Made the position of the labels more robust to changes in parameters.
+(some tweaking remains necessary in places for large departures from
+baseline parameter values)
+
+-- PhaseDiagPlot.m --
+Created the function arrowflow.m to draw arrows of motion.
+This function calls the function arrow.m
+These arrows are more robust to changes in paramater values.
+The option axis square is recommended for better effect.
+
+-- cGroIncreaseMhoPlot.m --
+See below
+
+--plotFiles/Readme.txt
+Added following description for cGroIncreaseMhoPlot.m:
+Produces a plot showing how expected consumption
+growth changes with the level of assets, and how
+this changes with a change in the transition rate.
+
+--globalizeTBSvars.m
+Added the following 2 lines (seemed useful):
+global mhoBase thetaBase littleRBase littleGBase rhoBase epsilonBase;
+global mybetaBase bigRBase bigGBase biggammaBase scriptRBase lambdaBase
+kappaBase;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+THE FOLLOWING FILE IS NOT IN USE AS OF 25 APRIL 2009 AND HAS BEEN REMOVED
+Its description has been deleted.
+
+-- plot_arrow.m                
+: A function that adds an arrow to the current plot;
+found through the Matlab Central File Exchange at
+http://www.mathworks.com/matlabcentral/fileexchange/loadFile.do?objectId=3345&objectType=FILE
+(slightly modified to allow for larger heads when
+the plot range is oddly scaled)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+UNRESOLVED ISSUE
+
+The plots (most, if not all) are incorrect for values of rho different
+from 1, i.e. the plots are correct only for log utility.
+
+The  following plot illustrates the problem. 
+It is a strip-down version of BufferStockPlotA.
+
+I have checked the code for scriptmE -- it is consistent with the text.
+I have checked the code for biggamma -- it is consistent with the text.
+If so, the problem is with the computation of @LogscriptCtp1OscriptCt
+
+@LogscriptCtp1OscriptCt is computed as follows:
+log(((bigR * mybeta)^(1/rho) * (1 + mho * (cE((scriptm - cE(scriptm))*scriptR + 1)/(kappa * (scriptm - cE(scriptm))*scriptR)-1))^(1/rho)));
+
+@LogscriptCtp1OscriptCt therefore calls cE()
+
+I'm not entirely sure what cE() does. I guess that's where the problem lies.
+
+The following plot is correct for rho=1, but incorrect otherwise:
+
+xmin=0; xmax=10; ymin=-0.05; ymax=0.05;
+figure; 
+[Ctp1OCtX Ctp1OCtY] = plotMyFunc(@LogscriptCtp1OscriptCt,xmin,xmax); 
+hold on; 
+plot(Ctp1OCtX,Ctp1OCtY,'-k'); plot([xmin,xmax],[log(biggamma),log(biggamma)],'-k');
+plot([scriptmE,scriptmE],[ymin,LogscriptCtp1OscriptCt(scriptmE)],':k');
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+UNRESOLVED ISSUE
+
+The matlab Latex and Tex interpreters do not support the character \mho
+Since \mho looks like an inverted \Omega, perhaps the following could
+be used in a string as a substitute for \mho
+
+The following flips \Omega upside down and produces a \mho
+It should be feasible to grab it and use it in a string of text:
+
+ text('Interpreter','latex',...
+    'String','$$\Omega$$',...
+    'Position',[1/2,1/2],...
+    'Rotation',180,...
+    'HorizontalAlignment','center');
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

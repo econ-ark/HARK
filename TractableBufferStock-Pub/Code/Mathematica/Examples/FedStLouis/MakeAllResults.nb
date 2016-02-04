@@ -1,0 +1,974 @@
+Notebook[{
+Cell[BoxData[
+ RowBox[{"(*", " ", 
+  RowBox[{
+  "This", " ", "notebook", " ", "creates", " ", "the", " ", "figures", " ", 
+   "for", " ", "the", " ", 
+   RowBox[{"St", ".", " ", "Louis"}], " ", "Fed", " ", "keynote", " ", 
+   RowBox[{"speech", "."}]}], " ", "*)"}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.4414175120987897`*^9, 3.441417570549296*^9}, {
+   3.441417612063061*^9, 3.4414176152191696`*^9}, {3.441417722198752*^9, 
+   3.4414177244486513`*^9}, {3.441473259970646*^9, 3.441473301166966*^9}, {
+   3.4414799802658596`*^9, 3.441479996973301*^9}, {3.4415728227492695`*^9, 
+   3.44157286567087*^9}, {3.443641046805814*^9, 3.4436410474323735`*^9}, {
+   3.453136639395104*^9, 3.453136672865388*^9}, {3.453136704676607*^9, 
+   3.45313670509551*^9}, 3.453136752616767*^9, 3.453136993772727*^9, 
+   3.45313759290553*^9, {3.4531377052972116`*^9, 3.453137705849719*^9}, {
+   3.453159012999864*^9, 3.453159014407748*^9}, {3.453246291659594*^9, 
+   3.453246292178205*^9}, 3.45345665674798*^9, {3.453456815126886*^9, 
+   3.453456839122937*^9}, {3.4534574180384083`*^9, 3.453457430698812*^9}, 
+   3.45345756538535*^9, 3.453458868478734*^9, {3.453458976782949*^9, 
+   3.453458987158844*^9}, {3.4534590214547367`*^9, 3.453459093864029*^9}, 
+   3.4534593028050537`*^9, {3.4534594370168037`*^9, 3.4534595340428743`*^9}, {
+   3.4534601763546343`*^9, 3.453460221468731*^9}, {3.552473295491505*^9, 
+   3.5524732995037346`*^9}, {3.565575288747855*^9, 3.5655753036926813`*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "Set", " ", "up", " ", "the", " ", "environment", " ", "in", " ", "which",
+      " ", "the", " ", "figure"}], "-", 
+    RowBox[{
+    "generating", " ", "files", " ", "can", " ", "be", " ", "executed"}]}], 
+   " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"ClearAll", "[", "\"\<Global`*\>\"", "]"}], ";", 
+    RowBox[{"ParamsAreSet", "=", "False"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"If", "[", 
+     RowBox[{
+      RowBox[{"$VersionNumber", "<", "8"}], ",", 
+      RowBox[{"(*", "then", "*)"}], " ", 
+      RowBox[{
+       RowBox[{
+       "Print", "[", 
+        "\"\<These programs require Mathematica version 8 or greater.\>\"", 
+        "]"}], ";", 
+       RowBox[{"Abort", "[", "]"}]}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"If", "[", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"Length", "[", "$FrontEnd", "]"}], " ", ">", " ", "0"}], ",", 
+      RowBox[{"NBDir", "=", 
+       RowBox[{"SetDirectory", "[", 
+        RowBox[{"NotebookDirectory", "[", "]"}], "]"}]}]}], "]"}], ";"}], 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "If", " ", "running", " ", "from", " ", "the", " ", "Notebook", " ", 
+     "interface"}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"rootDir", " ", "=", " ", 
+     RowBox[{"SetDirectory", "[", "\"\<../../..\>\"", "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"AutoLoadDir", "=", 
+     RowBox[{
+     "SetDirectory", "[", "\"\<./Mathematica/CoreCode/Autoload\>\"", "]"}]}], 
+    ";", 
+    RowBox[{"Get", "[", "\"\<./init.m\>\"", "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"CoreCodeDir", "=", 
+     RowBox[{"SetDirectory", "[", "\"\<..\>\"", "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"rootDir", " ", "=", " ", 
+     RowBox[{"SetDirectory", "[", "\"\<..\>\"", "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CoreCodeDir", "<>", "\"\</MakeAnalyticalResults.m\>\""}], "]"}],
+     ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CoreCodeDir", "<>", "\"\</VarsAndFuncs.m\>\""}], "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Method", " ", "of", " ", "creating", " ", "figures", " ", "depends", " ",
+      "on", " ", "whether", " ", "being", " ", "run", " ", "in", " ", "batch",
+      " ", "mode", " ", "or", " ", "interactively"}], " ", "*)"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"If", "[", 
+     RowBox[{
+      RowBox[{"$FrontEnd", " ", "\[Equal]", " ", "Null"}], ",", 
+      RowBox[{"OpenFigsUsingShell", "=", "True"}], ",", 
+      RowBox[{"OpenFigsUsingShell", "=", "False"}]}], "]"}], ";"}], " ", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CoreCodeDir", "<>", "\"\</DrawDiagrams.m\>\""}], "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"FigsDir", "=", 
+     RowBox[{"SetDirectory", "[", 
+      RowBox[{"rootDir", "<>", "\"\</Examples/FedStLouis/Figures/\>\""}], 
+      "]"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"CodeDir", "=", 
+     RowBox[{"SetDirectory", "[", 
+      RowBox[{"rootDir", "<>", "\"\</Examples/FedStLouis\>\""}], "]"}]}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"VerboseOutput", "=", "False"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"PlotRangeVertical", "=", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"-", "0.5"}], ",", "0.15"}], "}"}]}], ";"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{
+     "We", " ", "use", " ", "the", " ", "set", " ", "of", " ", "parameter", 
+      " ", "values", " ", "of", " ", "ctDiscrete", " ", "except", " ", "that",
+       " ", "Severance"}], " ", "=", " ", "4"}], ";", " ", 
+    RowBox[{
+     RowBox[{
+     "we", " ", "also", " ", "incorporate", " ", "death", " ", "rate"}], " ", 
+     "=", " ", 
+     RowBox[{"0.05", "."}]}]}], "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CoreCodeDir", "<>", "\"\</ParametersBase.m\>\""}], "]"}], ";"}],
+    "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "We", " ", "calculate", " ", "the", " ", "discount", " ", "rates", " ", 
+     "for", " ", "patient", " ", "and", " ", "impatient", " ", "people", " ", 
+     "to", " ", "match", " ", "debt", " ", "and", " ", "asset", " ", "ratios",
+      " ", "in", " ", "2001."}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Severance", " ", "=", " ", "4"}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"PDies", " ", "=", " ", "0.05"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CodeDir", "<>", "\"\</CalDiscRate.m\>\""}], "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[CurlyTheta]Impatient", " ", "=", " ", 
+     RowBox[{"CalDiscRate", "[", 
+      RowBox[{"-", "2"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[CurlyTheta]Patient", "=", 
+     RowBox[{"CalDiscRate", "[", "12", "]"}]}], ";"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Plot", " ", "saving", " ", "dynamics", " ", "over", " ", "credit", " ", 
+    RowBox[{"cycle", "."}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CodeDir", "<>", "\"\</SavPathOverECreditCycleSlow.m\>\""}], 
+     "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"Show", "[", "SavPathOverECreditCycleSlow", "]"}], "]"}], 
+    ";"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"General", "::", "obspkg"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"\[NoBreak]\\!\\(\\\"PlotLegends`\\\"\\)\[NoBreak] is now \
+obsolete. The legacy version being loaded may conflict with current \
+functionality. See the Compatibility Guide for updating information.\"\>"}]], \
+"Message", "MSG"],
+
+Cell[BoxData[
+ GraphicsBox[{InsetBox[
+    GraphicsBox[{{{}, {{}, 
+        {RGBColor[1, 0, 0], PointSize[0.012833333333333334`], 
+         AbsoluteThickness[1.6], 
+         StyleBox[
+          PointBox[{{1997., -0.012505591772955701`}, {
+           1998., -0.012505591772955701`}, {1999., -0.012505591772955701`}, {
+           2000., -0.012505591772955701`}, {2001., -0.012505591772955701`}, {
+           2002., -0.06561125874004252}, {2003., -0.10828077771895346`}, {
+           2004., -0.14379724074193914`}, {2005., -0.17412192647259117`}, {
+           2006., -0.2005253982078548}, {2007., -0.22388020305911413`}, {
+           2008., 0.11991174193831597`}, {2009., 0.0962967812584712}, {2010., 
+           0.07777272745471693}, {2011., 0.06295019832582865}, {2012., 
+           0.05091486204686023}}],
+          FontSize->14]}, {}}, {}}, {{}, {{}, 
+        {GrayLevel[0], PointSize[0.012833333333333334`], AbsoluteThickness[
+         1.6], 
+         StyleBox[
+          PointBox[{{1997., 0.051514731944586514`}, {1998., 
+           0.051514731944586514`}, {1999., 0.051514731944586514`}, {2000., 
+           0.051514731944586514`}, {2001., 0.051514731944586514`}, {2002., 
+           0.049456993427746836`}, {2003., 0.04753276134488032}, {2004., 
+           0.04573351099592088}, {2005., 0.04405154588218735}, {2006., 
+           0.04247989840408821}, {2007., 0.0410122447164679}, {2008., 
+           0.05178852944721908}, {2009., 0.05178620461824044}, {2010., 
+           0.051783899743303226`}, {2011., 0.05178161464753786}, {2012., 
+           0.051779349157668186`}}],
+          FontSize->14]}, {}}, {}}},
+     AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
+     Axes->{True, True},
+     AxesLabel->{
+       FormBox["\"Time\"", TraditionalForm], 
+       FormBox["\"Saving Rate\"", TraditionalForm]},
+     AxesOrigin->{2000, 0},
+     BaseStyle->{FontSize -> 14},
+     DisplayFunction->Identity,
+     Frame->{{False, False}, {False, False}},
+     FrameLabel->{{None, None}, {None, None}},
+     FrameTicks->{{Automatic, Automatic}, {Automatic, Automatic}},
+     GridLines->{None, None},
+     GridLinesStyle->Directive[
+       GrayLevel[0.5, 0.4]],
+     ImageSize->{468., 289.23990673495075`},
+     Method->{},
+     PlotRange->{{1997., 2012.}, {-0.5, 0.15}},
+     PlotRangeClipping->True,
+     PlotRangePadding->{{
+        Scaled[0.02], 
+        Scaled[0.02]}, {0, 0}},
+     Ticks->{{{2001, 
+         FormBox["\"2001\"", TraditionalForm]}, {2007, 
+         FormBox["\"2007\"", TraditionalForm]}}, {{-0.1, 
+         FormBox[
+          RowBox[{"-", "0.1`"}], TraditionalForm]}, {0.1, 
+         FormBox["0.1`", TraditionalForm]}}}], {-1, -0.6180339887498948}, {
+    Left, Bottom}, {2, 1.2360679774997896`}], GraphicsGroupBox[{
+     {GrayLevel[0], 
+      RectangleBox[{0.55, -0.65}, {1.35, -0.39999999999999997`}]}, 
+     {GrayLevel[1], EdgeForm[{GrayLevel[0], Thickness[0.001]}], 
+      GraphicsGroupBox[{RectangleBox[{0.5, -0.6}, {1.3, -0.35}], InsetBox[
+         GraphicsBox[{{{InsetBox[
+              GraphicsBox[
+               {GrayLevel[0], PointBox[{{0, 0}, {1, 0}}]}], {0.08, 0.08}, {
+              Left, Bottom}, {1, 1}], 
+             InsetBox["\<\"More patient group\"\>", \
+{1.2100000000000002`, 0.58}, {-1, 0}, Automatic, {1, 0}]}, {InsetBox[
+              GraphicsBox[
+               {RGBColor[1, 0, 0], 
+                PointBox[{{0, 0}, {1, 0}}]}], {0.08, 1.24}, {
+              Left, Bottom}, {1, 1}], 
+             InsetBox["\<\"Less patient group\"\>", \
+{1.2100000000000002`, 1.74}, {-1, 0}, Automatic, {1, 0}]}}, {}},
+          AspectRatio->0.3125,
+          PlotRange->{{-0.1, 3.26}, {-0.1, 2.42}}], {0.5, -0.6}, {
+         Left, Bottom}, {0.8, 0.25}]}]}}]},
+  AspectRatio->Automatic,
+  Background->None,
+  ColorOutput->Automatic,
+  ImageSize->{468., 289.23990673495075`},
+  PlotRange->All]], "Print"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Plot", " ", "saving", " ", "dynamics", " ", "over", " ", "credit", " ", 
+    RowBox[{"cycle", "."}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CodeDir", "<>", "\"\</SavPathOverECreditCycle.m\>\""}], "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"Show", "[", "SavPathOverECreditCycle", "]"}], "]"}], 
+    ";"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ GraphicsBox[{InsetBox[
+    GraphicsBox[{{{}, {{}, 
+        {RGBColor[1, 0, 0], PointSize[0.012833333333333334`], 
+         AbsoluteThickness[1.6], 
+         StyleBox[
+          PointBox[{{1997., -0.012505591772955701`}, {
+           1998., -0.012505591772955701`}, {1999., -0.012505591772955701`}, {
+           2000., -0.012505591772955701`}, {2001., -0.012505591772955701`}, {
+           2002., -0.16616700773241466`}, {2003., -0.15044156193036998`}, {
+           2004., -0.13593571930703516`}, {2005., -0.12262909752903718`}, {
+           2006., -0.11048810126263046`}, {2007., -0.09946771110111077}, {
+           2008., 0.09610388337135743}, {2009., 0.07761966659754084}, {2010., 
+           0.06282669724086677}, {2011., 0.05081395337152965}, {2012., 
+           0.04095031175617072}}],
+          FontSize->14]}, {}}, {}}, {{}, {{}, 
+        {GrayLevel[0], PointSize[0.012833333333333334`], AbsoluteThickness[
+         1.6], 
+         StyleBox[
+          PointBox[{{1997., 0.051514731944586514`}, {1998., 
+           0.051514731944586514`}, {1999., 0.051514731944586514`}, {2000., 
+           0.051514731944586514`}, {2001., 0.051514731944586514`}, {2002., 
+           0.04541865948639425}, {2003., 0.0454497153693349}, {2004., 
+           0.04548062239707877}, {2005., 0.04551138042971635}, {2006., 
+           0.04554198934235416}, {2007., 0.045572449024920664`}, {2008., 
+           0.051765319229169604`}, {2009., 0.05176319345010365}, {2010., 
+           0.05176108588343918}, {2011., 0.05175899637012756}, {2012., 
+           0.051756924752560586`}}],
+          FontSize->14]}, {}}, {}}},
+     AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
+     Axes->{True, True},
+     AxesLabel->{
+       FormBox["\"Time\"", TraditionalForm], 
+       FormBox["\"Saving Rate\"", TraditionalForm]},
+     AxesOrigin->{2000, 0},
+     BaseStyle->{FontSize -> 14},
+     DisplayFunction->Identity,
+     Frame->{{False, False}, {False, False}},
+     FrameLabel->{{None, None}, {None, None}},
+     FrameTicks->{{Automatic, Automatic}, {Automatic, Automatic}},
+     GridLines->{None, None},
+     GridLinesStyle->Directive[
+       GrayLevel[0.5, 0.4]],
+     ImageSize->{468., 289.23990673495075`},
+     Method->{},
+     PlotRange->{{1997., 2012.}, {-0.5, 0.15}},
+     PlotRangeClipping->True,
+     PlotRangePadding->{{
+        Scaled[0.02], 
+        Scaled[0.02]}, {0, 0}},
+     Ticks->{{{2001, 
+         FormBox["\"2001\"", TraditionalForm]}, {2007, 
+         FormBox["\"2007\"", TraditionalForm]}}, {{-0.1, 
+         FormBox[
+          RowBox[{"-", "0.1`"}], TraditionalForm]}, {0.1, 
+         FormBox["0.1`", TraditionalForm]}}}], {-1, -0.6180339887498948}, {
+    Left, Bottom}, {2, 1.2360679774997896`}], GraphicsGroupBox[{
+     {GrayLevel[0], 
+      RectangleBox[{0.55, -0.65}, {1.35, -0.39999999999999997`}]}, 
+     {GrayLevel[1], EdgeForm[{GrayLevel[0], Thickness[0.001]}], 
+      GraphicsGroupBox[{RectangleBox[{0.5, -0.6}, {1.3, -0.35}], InsetBox[
+         GraphicsBox[{{{InsetBox[
+              GraphicsBox[
+               {GrayLevel[0], PointBox[{{0, 0}, {1, 0}}]}], {0.08, 0.08}, {
+              Left, Bottom}, {1, 1}], 
+             InsetBox["\<\"More patient group\"\>", \
+{1.2100000000000002`, 0.58}, {-1, 0}, Automatic, {1, 0}]}, {InsetBox[
+              GraphicsBox[
+               {RGBColor[1, 0, 0], 
+                PointBox[{{0, 0}, {1, 0}}]}], {0.08, 1.24}, {
+              Left, Bottom}, {1, 1}], 
+             InsetBox["\<\"Less patient group\"\>", \
+{1.2100000000000002`, 1.74}, {-1, 0}, Automatic, {1, 0}]}}, {}},
+          AspectRatio->0.3125,
+          PlotRange->{{-0.1, 3.26}, {-0.1, 2.42}}], {0.5, -0.6}, {
+         Left, Bottom}, {0.8, 0.25}]}]}}]},
+  AspectRatio->Automatic,
+  Background->None,
+  ColorOutput->Automatic,
+  ImageSize->{468., 289.23990673495075`},
+  PlotRange->All]], "Print"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Plot", " ", "Saving", " ", "dynamics", " ", "when", " ", "there", " ", 
+    "is", " ", "a", " ", "decrease", " ", "in", " ", "unemployment", " ", 
+    "rate", " ", "expectations", " ", "then", " ", "an", " ", "abrupt", " ", 
+    "reversal", " ", "of", " ", 
+    RowBox[{"expectation", "."}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CoreCodeDir", "<>", "\"\</ParametersBase.m\>\""}], "]"}], ";"}],
+    "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Severance", " ", "=", "4"}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"PDies", " ", "=", " ", "0.05"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CodeDir", "<>", "\"\</CalDiscRate.m\>\""}], "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[CurlyTheta]Impatient", " ", "=", " ", 
+     RowBox[{"CalDiscRate", "[", 
+      RowBox[{"-", "2"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[CurlyTheta]Patient", "=", 
+     RowBox[{"CalDiscRate", "[", "12", "]"}]}], ";"}], "\[IndentingNewLine]", 
+   
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CodeDir", "<>", "\"\</SavPathOverEUriskCycle.m\>\""}], "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"Show", "[", "SavPathOverEUriskCycle", "]"}], "]"}], 
+    ";"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ GraphicsBox[{InsetBox[
+    GraphicsBox[{{{}, {{}, 
+        {RGBColor[1, 0, 0], PointSize[0.012833333333333334`], 
+         AbsoluteThickness[1.6], 
+         StyleBox[
+          PointBox[{{1997., -0.012505591772955701`}, {
+           1998., -0.012505591772955701`}, {1999., -0.012505591772955701`}, {
+           2000., -0.012505591772955701`}, {2001., -0.012505591772955701`}, {
+           2002., -0.20341597242927503`}, {2003., -0.18090818792977892`}, {
+           2004., -0.16035669749178025`}, {2005., -0.1418297133399541}, {
+           2006., -0.12534163963236966`}, {2007., -0.11085339814676344`}, {
+           2008., 0.07990577187685172}, {2009., 0.06358397589940659}, {2010., 
+           0.050527530819230546`}, {2011., 0.0399501994580293}, {2012., 
+           0.03129794526146153}}],
+          FontSize->14]}, {}}, {}}, {{}, {{}, 
+        {GrayLevel[0], PointSize[0.012833333333333334`], AbsoluteThickness[
+         1.6], 
+         StyleBox[
+          PointBox[{{1997., 0.041707300295962375`}, {1998., 
+           0.041707300295962375`}, {1999., 0.041707300295962375`}, {2000., 
+           0.041707300295962375`}, {2001., 0.041707300295962375`}, {2002., 
+           0.031201465150585354`}, {2003., 0.031149248554513728`}, {2004., 
+           0.031098002014122265`}, {2005., 0.031047704212808416`}, {2006., 
+           0.030998334402341305`}, {2007., 0.03094987238463666}, {2008., 
+           0.0919512388992894}, {2009., 0.09115672935084705}, {2010., 
+           0.09038589362051536}, {2011., 0.0896377237977429}, {2012., 
+           0.0889112686652335}}],
+          FontSize->14]}, {}}, {}}},
+     AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
+     Axes->{True, True},
+     AxesLabel->{
+       FormBox["\"Time\"", TraditionalForm], 
+       FormBox["\"Saving Rate\"", TraditionalForm]},
+     AxesOrigin->{2000, 0},
+     BaseStyle->{FontSize -> 14},
+     DisplayFunction->Identity,
+     Frame->{{False, False}, {False, False}},
+     FrameLabel->{{None, None}, {None, None}},
+     FrameTicks->{{Automatic, Automatic}, {Automatic, Automatic}},
+     GridLines->{None, None},
+     GridLinesStyle->Directive[
+       GrayLevel[0.5, 0.4]],
+     ImageSize->{468., 289.23990673495075`},
+     Method->{},
+     PlotRange->{{1997., 2012.}, {-0.5, 0.15}},
+     PlotRangeClipping->True,
+     PlotRangePadding->{{
+        Scaled[0.02], 
+        Scaled[0.02]}, {0, 0}},
+     Ticks->{{{2001, 
+         FormBox["\"2001\"", TraditionalForm]}, {2007, 
+         FormBox["\"2007\"", TraditionalForm]}}, {{-0.1, 
+         FormBox[
+          RowBox[{"-", "0.1`"}], TraditionalForm]}, {0.1, 
+         FormBox["0.1`", TraditionalForm]}}}], {-1, -0.6180339887498948}, {
+    Left, Bottom}, {2, 1.2360679774997896`}], GraphicsGroupBox[{
+     {GrayLevel[0], 
+      RectangleBox[{0.55, -0.65}, {1.35, -0.39999999999999997`}]}, 
+     {GrayLevel[1], EdgeForm[{GrayLevel[0], Thickness[0.001]}], 
+      GraphicsGroupBox[{RectangleBox[{0.5, -0.6}, {1.3, -0.35}], InsetBox[
+         GraphicsBox[{{{InsetBox[
+              GraphicsBox[
+               {GrayLevel[0], PointBox[{{0, 0}, {1, 0}}]}], {0.08, 0.08}, {
+              Left, Bottom}, {1, 1}], 
+             InsetBox["\<\"More patient group\"\>", \
+{1.2100000000000002`, 0.58}, {-1, 0}, Automatic, {1, 0}]}, {InsetBox[
+              GraphicsBox[
+               {RGBColor[1, 0, 0], 
+                PointBox[{{0, 0}, {1, 0}}]}], {0.08, 1.24}, {
+              Left, Bottom}, {1, 1}], 
+             InsetBox["\<\"Less patient group\"\>", \
+{1.2100000000000002`, 1.74}, {-1, 0}, Automatic, {1, 0}]}}, {}},
+          AspectRatio->0.3125,
+          PlotRange->{{-0.1, 3.26}, {-0.1, 2.42}}], {0.5, -0.6}, {
+         Left, Bottom}, {0.8, 0.25}]}]}}]},
+  AspectRatio->Automatic,
+  Background->None,
+  ColorOutput->Automatic,
+  ImageSize->{468., 289.23990673495075`},
+  PlotRange->All]], "Print"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Plot", " ", "saving", " ", "dynamics", " ", "when", " ", "there", " ", 
+    "is", " ", "an", " ", "increase", " ", "of", " ", "growth", " ", 
+    "expectation", " ", "then", " ", "an", " ", "abrupt", " ", "reversal", 
+    " ", "of", " ", "the", " ", "expectation"}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CoreCodeDir", "<>", "\"\</ParametersBase.m\>\""}], "]"}], ";"}],
+    "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Severance", " ", "=", " ", "4"}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"PDies", " ", "=", " ", "0.05"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CodeDir", "<>", "\"\</SavPathOverEGrowthCycle.m\>\""}], "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"Show", "[", "SavPathOverEGrowthCycle", "]"}], "]"}], 
+    ";"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ GraphicsBox[{InsetBox[
+    GraphicsBox[{{{}, {{}, 
+        {GrayLevel[0], PointSize[0.012833333333333334`], AbsoluteThickness[
+         1.6], 
+         StyleBox[
+          PointBox[{{1997., 0.051514731944586514`}, {1998., 
+           0.051514731944586514`}, {1999., 0.051514731944586514`}, {2000., 
+           0.051514731944586514`}, {2001., 0.051514731944586514`}, {
+           2002., -0.425344619259971}, {2003., -0.41792996052587117`}, {
+           2004., -0.410159840726859}, {2005., -0.4020428611463471}, {
+           2006., -0.39358959216328127`}, {2007., -0.38481262993157866`}, {
+           2008., 0.06650376466954461}, {2009., 0.06630987745165273}, {2010., 
+           0.06611929832809077}, {2011., 0.06593195151093555}, {2012., 
+           0.06574776345904376}}],
+          FontSize->14]}, {}}, {}}, {{}, {{}, 
+        {RGBColor[1, 0, 0], PointSize[0.012833333333333334`], 
+         AbsoluteThickness[1.6], 
+         StyleBox[
+          PointBox[{{1997., -0.012505591772955701`}, {
+           1998., -0.012505591772955701`}, {1999., -0.012505591772955701`}, {
+           2000., -0.012505591772955701`}, {2001., -0.012505591772955701`}, {
+           2002., -0.19723375110233984`}, {2003., -0.16585966100341576`}, {
+           2004., -0.13880658670850338`}, {2005., -0.11584592041573535`}, {
+           2006., -0.09664330240836956}, {2007., -0.08079596709395948}, {
+           2008., 0.09147797750578161}, {2009., 0.07394084394753096}, {2010., 
+           0.059853401731195}, {2011., 0.04838148428195132}, {2012., 
+           0.03894152124281373}}],
+          FontSize->14]}, {}}, {}}},
+     AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
+     Axes->{True, True},
+     AxesLabel->{
+       FormBox["\"Time\"", TraditionalForm], 
+       FormBox["\"Saving Rate\"", TraditionalForm]},
+     AxesOrigin->{2000, 0},
+     BaseStyle->{FontSize -> 14},
+     DisplayFunction->Identity,
+     Frame->{{False, False}, {False, False}},
+     FrameLabel->{{None, None}, {None, None}},
+     FrameTicks->{{Automatic, Automatic}, {Automatic, Automatic}},
+     GridLines->{None, None},
+     GridLinesStyle->Directive[
+       GrayLevel[0.5, 0.4]],
+     ImageSize->{468., 289.23990673495075`},
+     Method->{},
+     PlotRange->{{1997., 2012.}, {-0.5, 0.15}},
+     PlotRangeClipping->True,
+     PlotRangePadding->{{
+        Scaled[0.02], 
+        Scaled[0.02]}, {0, 0}},
+     Ticks->{{{2001, 
+         FormBox["\"2001\"", TraditionalForm]}, {2007, 
+         FormBox["\"2007\"", TraditionalForm]}}, {{-0.1, 
+         FormBox[
+          RowBox[{"-", "0.1`"}], TraditionalForm]}, {0.1, 
+         FormBox["0.1`", TraditionalForm]}}}], {-1, -0.6180339887498948}, {
+    Left, Bottom}, {2, 1.2360679774997896`}], GraphicsGroupBox[{
+     {GrayLevel[0], 
+      RectangleBox[{0.55, -0.65}, {1.35, -0.39999999999999997`}]}, 
+     {GrayLevel[1], EdgeForm[{GrayLevel[0], Thickness[0.001]}], 
+      GraphicsGroupBox[{RectangleBox[{0.5, -0.6}, {1.3, -0.35}], InsetBox[
+         GraphicsBox[{{{InsetBox[
+              GraphicsBox[
+               {GrayLevel[0], PointBox[{{0, 0}, {1, 0}}]}], {0.08, 0.08}, {
+              Left, Bottom}, {1, 1}], 
+             InsetBox["\<\"More patient group\"\>", \
+{1.2100000000000002`, 0.58}, {-1, 0}, Automatic, {1, 0}]}, {InsetBox[
+              GraphicsBox[
+               {RGBColor[1, 0, 0], 
+                PointBox[{{0, 0}, {1, 0}}]}], {0.08, 1.24}, {
+              Left, Bottom}, {1, 1}], 
+             InsetBox["\<\"Less patient group\"\>", \
+{1.2100000000000002`, 1.74}, {-1, 0}, Automatic, {1, 0}]}}, {}},
+          AspectRatio->0.3125,
+          PlotRange->{{-0.1, 3.26}, {-0.1, 2.42}}], {0.5, -0.6}, {
+         Left, Bottom}, {0.8, 0.25}]}]}}]},
+  AspectRatio->Automatic,
+  Background->None,
+  ColorOutput->Automatic,
+  ImageSize->{468., 289.23990673495075`},
+  PlotRange->All]], "Print"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"SavPathOverECycles", " ", "=", " ", 
+   RowBox[{"ShowLegend", "[", 
+    RowBox[{
+     RowBox[{"Show", "[", 
+      RowBox[{
+      "SavPathOverEGrowthCycleAll", ",", "SavPathOverEUriskCycleAll", ",", 
+       "SavPathOverECreditCycleAll"}], "]"}], ",", 
+     RowBox[{"{", "\n", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"Graphics", "[", 
+            RowBox[{"{", 
+             RowBox[{"Red", ",", 
+              RowBox[{"Line", "[", 
+               RowBox[{"{", 
+                RowBox[{
+                 RowBox[{"{", 
+                  RowBox[{"0", ",", "0"}], "}"}], ",", 
+                 RowBox[{"{", 
+                  RowBox[{"1", ",", "0"}], "}"}]}], "}"}], "]"}]}], "}"}], 
+            "]"}], "\[IndentingNewLine]", ",", 
+           "\"\<\[DoubleStruckCapitalE][\[Stigma]] Cycle (Credit)    \>\""}], 
+          "}"}], "\n", ",", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"Graphics", "[", 
+            RowBox[{"{", 
+             RowBox[{"Black", ",", 
+              RowBox[{"Line", "[", 
+               RowBox[{"{", 
+                RowBox[{
+                 RowBox[{"{", 
+                  RowBox[{"0", ",", "0"}], "}"}], ",", 
+                 RowBox[{"{", 
+                  RowBox[{"1", ",", "0"}], "}"}]}], "}"}], "]"}]}], "}"}], 
+            "]"}], "\[IndentingNewLine]", ",", 
+           "\"\<\[DoubleStruckCapitalE][\[Mho]] Cycle (Unemp Risk)\>\""}], 
+          "}"}], "\n", ",", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"Graphics", "[", 
+            RowBox[{"{", 
+             RowBox[{"Green", ",", 
+              RowBox[{"Line", "[", 
+               RowBox[{"{", 
+                RowBox[{
+                 RowBox[{"{", 
+                  RowBox[{"0", ",", "0"}], "}"}], ",", 
+                 RowBox[{"{", 
+                  RowBox[{"1", ",", "0"}], "}"}]}], "}"}], "]"}]}], "}"}], 
+            "]"}], "\[IndentingNewLine]", ",", 
+           "\"\<\[DoubleStruckCapitalE][\[CapitalGamma]] Cycle (Growth)    \>\
+\""}], "}"}]}], "\n", "}"}], ",", "\n", 
+       RowBox[{"LegendPosition", "->", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"-", "0.1"}], ",", 
+          RowBox[{"-", "0.6"}]}], "}"}]}], ",", 
+       RowBox[{"LegendSize", "->", 
+        RowBox[{"{", 
+         RowBox[{"1.1", ",", "0.25"}], "}"}]}]}], "}"}]}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"Show", "[", "SavPathOverECycles", "]"}], "]"}], ";"}]}], "Input"],
+
+Cell[BoxData[
+ GraphicsBox[{InsetBox[
+    GraphicsBox[{{{}, {{}, {}, 
+        {RGBColor[0, 1, 0], PointSize[0.019444444444444445`], 
+         AbsoluteThickness[1.6], 
+         LineBox[{{1997., 0.025453295204616436`}, {1998., 
+          0.025453295204616436`}, {1999., 0.025453295204616436`}, {2000., 
+          0.025453295204616436`}, {2001., 0.025453295204616436`}, {
+          2002., -0.33248509255063013`}, {2003., -0.31476447298276256`}, {
+          2004., -0.29845996896732124`}, {2005., -0.28351527183259534`}, {
+          2006., -0.269834473906871}, {2007., -0.25729418081589917`}, {2008., 
+          0.07704731842576276}, {2009., 0.06953613955311763}, {2010., 
+          0.06346719720754909}, {2011., 0.05849710892403815}, {2012., 
+          0.05438443167231023}}]}}, {}}, {{}, {{}, {}, 
+        {GrayLevel[0], PointSize[0.019444444444444445`], AbsoluteThickness[
+         1.6], LineBox[{{1997., 0.017370118771958095`}, {1998., 
+          0.017370118771958095`}, {1999., 0.017370118771958095`}, {2000., 
+          0.017370118771958095`}, {2001., 0.017370118771958095`}, {
+          2002., -0.07409887161159553}, {2003., -0.06371268818460236}, {
+          2004., -0.054299869925412324`}, {2005., -0.04586901111140816}, {
+          2006., -0.03840775313216133}, {2007., -0.03188300511829116}, {2008.,
+           0.08662298443083277}, {2009., 0.07895355418202807}, {2010., 
+          0.07274071255827137}, {2011., 0.06764011926348329}, {2012., 
+          0.06340784035783098}}]}}, {}}, {{}, {{}, {}, 
+        {RGBColor[1, 0, 0], PointSize[0.019444444444444445`], 
+         AbsoluteThickness[1.6], 
+         LineBox[{{1997., 0.025453295204616436`}, {1998., 
+          0.025453295204616436`}, {1999., 0.025453295204616436`}, {2000., 
+          0.025453295204616436`}, {2001., 0.025453295204616436`}, {
+          2002., -0.040710723298421285`}, {2003., -0.03407322412824537}, {
+          2004., -0.027987087780898826`}, {2005., -0.022433345660503957`}, {
+          2006., -0.017389205670146842`}, {2007., -0.01282867230148453}, {
+          2008., 0.0695931418747784}, {2009., 0.062181186896601175`}, {2010., 
+          0.05622724956376198}, {2011., 0.05137702372423836}, {2012., 
+          0.047383799156171864`}}]}}, {}}},
+     AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
+     Axes->{True, True},
+     AxesLabel->{
+       FormBox["\"Time\"", TraditionalForm], 
+       FormBox["\"Saving Rate\"", TraditionalForm]},
+     AxesOrigin->{2000, 0},
+     DisplayFunction->Identity,
+     Frame->{{False, False}, {False, False}},
+     FrameLabel->{{None, None}, {None, None}},
+     FrameTicks->{{Automatic, Automatic}, {Automatic, Automatic}},
+     GridLines->{None, None},
+     GridLinesStyle->Directive[
+       GrayLevel[0.5, 0.4]],
+     Method->{},
+     PlotRange->{{1997., 2012.}, {-0.5, 0.15}},
+     PlotRangeClipping->True,
+     PlotRangePadding->{{
+        Scaled[0.02], 
+        Scaled[0.02]}, {0, 0}},
+     Ticks->{{{2001, 
+         FormBox["\"2001\"", TraditionalForm]}, {2007, 
+         FormBox["\"2007\"", TraditionalForm]}}, {{-0.1, 
+         FormBox[
+          RowBox[{"-", "0.1`"}], TraditionalForm]}, {0.1, 
+         FormBox["0.1`", TraditionalForm]}}}], {-1, -0.6180339887498948}, {
+    Left, Bottom}, {2, 1.2360679774997896`}], GraphicsGroupBox[{
+     {GrayLevel[0], 
+      RectangleBox[{-0.05, -0.65}, {1.05, -0.39999999999999997`}]}, 
+     {GrayLevel[1], EdgeForm[{GrayLevel[0], Thickness[0.001]}], 
+      GraphicsGroupBox[{RectangleBox[{-0.1, -0.6}, {1., -0.35}], InsetBox[
+         GraphicsBox[{{{InsetBox[
+              GraphicsBox[
+               {RGBColor[0, 1, 0], 
+                LineBox[{{0, 0}, {1, 0}}]}], {0.08, 0.08}, {
+              Left, Bottom}, {1, 1}], 
+             InsetBox["\<\"\[DoubleStruckCapitalE][\[CapitalGamma]] Cycle \
+(Growth)    \"\>", {1.2100000000000002`, 0.58}, {-1, 0}, Automatic, {1, 
+              0}]}, {InsetBox[
+              GraphicsBox[
+               {GrayLevel[0], LineBox[{{0, 0}, {1, 0}}]}], {0.08, 1.24}, {
+              Left, Bottom}, {1, 1}], 
+             InsetBox["\<\"\[DoubleStruckCapitalE][\[Mho]] Cycle (Unemp Risk)\
+\"\>", {1.2100000000000002`, 1.74}, {-1, 0}, Automatic, {1, 0}]}, {InsetBox[
+              GraphicsBox[
+               {RGBColor[1, 0, 0], LineBox[{{0, 0}, {1, 0}}]}], {0.08, 2.4}, {
+              Left, Bottom}, {1, 1}], 
+             InsetBox["\<\"\[DoubleStruckCapitalE][\[Stigma]] Cycle (Credit)  \
+  \"\>", {1.2100000000000002`, 2.9}, {-1, 0}, Automatic, {1, 0}]}}, {}},
+          AspectRatio->0.22727272727272727`,
+          
+          PlotRange->{{-0.1, 3.26}, {-0.1, 
+           3.5799999999999996`}}], {-0.1, -0.6}, {
+         Left, Bottom}, {1.1, 0.25}]}]}}]},
+  AspectRatio->Automatic,
+  Background->None,
+  ColorOutput->Automatic,
+  ImageSize->Automatic,
+  PlotRange->All]], "Print"]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"Export", "[", 
+   RowBox[{
+    RowBox[{"FigsDir", "<>", "\"\</SavPathOverECycles.pdf\>\""}], ",", 
+    "SavPathOverECycles"}], "]"}], ";"}]], "Input",
+ InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"SavPathOverECycles", " ", "=", " ", 
+   RowBox[{"ShowLegend", "[", 
+    RowBox[{
+     RowBox[{"Show", "[", 
+      RowBox[{
+      "SavPathOverEGrowthCycleAll", ",", "SavPathOverEUriskCycleAll", ",", 
+       "SavPathOverECreditCycleAll"}], "]"}], ",", 
+     RowBox[{"{", "\n", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"Graphics", "[", 
+            RowBox[{"{", 
+             RowBox[{"Red", ",", 
+              RowBox[{"Line", "[", 
+               RowBox[{"{", 
+                RowBox[{
+                 RowBox[{"{", 
+                  RowBox[{"0", ",", "0"}], "}"}], ",", 
+                 RowBox[{"{", 
+                  RowBox[{"1", ",", "0"}], "}"}]}], "}"}], "]"}]}], "}"}], 
+            "]"}], "\[IndentingNewLine]", ",", 
+           "\"\<\[DoubleStruckCapitalE][\[Stigma]] Cycle (Credit)    \>\""}], 
+          "}"}], "\n", ",", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"Graphics", "[", 
+            RowBox[{"{", 
+             RowBox[{"Black", ",", 
+              RowBox[{"Line", "[", 
+               RowBox[{"{", 
+                RowBox[{
+                 RowBox[{"{", 
+                  RowBox[{"0", ",", "0"}], "}"}], ",", 
+                 RowBox[{"{", 
+                  RowBox[{"1", ",", "0"}], "}"}]}], "}"}], "]"}]}], "}"}], 
+            "]"}], "\[IndentingNewLine]", ",", 
+           "\"\<\[DoubleStruckCapitalE][\[Mho]] Cycle (Unemp Risk)\>\""}], 
+          "}"}], "\n", ",", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"Graphics", "[", 
+            RowBox[{"{", 
+             RowBox[{"Green", ",", 
+              RowBox[{"Line", "[", 
+               RowBox[{"{", 
+                RowBox[{
+                 RowBox[{"{", 
+                  RowBox[{"0", ",", "0"}], "}"}], ",", 
+                 RowBox[{"{", 
+                  RowBox[{"1", ",", "0"}], "}"}]}], "}"}], "]"}]}], "}"}], 
+            "]"}], "\[IndentingNewLine]", ",", 
+           "\"\<\[DoubleStruckCapitalE][\[CapitalGamma]] Cycle (Growth)    \>\
+\""}], "}"}]}], "\n", "}"}], ",", "\n", 
+       RowBox[{"LegendPosition", "->", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"-", "0.1"}], ",", 
+          RowBox[{"-", "0.6"}]}], "}"}]}], ",", 
+       RowBox[{"LegendSize", "->", 
+        RowBox[{"{", 
+         RowBox[{"1.1", ",", "0.25"}], "}"}]}]}], "}"}]}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"Show", "[", "SavPathOverECycles", "]"}], "]"}], ";"}]}], "Input"],
+
+Cell[BoxData[
+ GraphicsBox[{InsetBox[
+    GraphicsBox[{{{}, {{}, {}, 
+        {RGBColor[0, 1, 0], PointSize[0.019444444444444445`], 
+         AbsoluteThickness[1.6], 
+         LineBox[{{1997., 0.025453295204616436`}, {1998., 
+          0.025453295204616436`}, {1999., 0.025453295204616436`}, {2000., 
+          0.025453295204616436`}, {2001., 0.025453295204616436`}, {
+          2002., -0.33248509255063013`}, {2003., -0.31476447298276256`}, {
+          2004., -0.29845996896732124`}, {2005., -0.28351527183259534`}, {
+          2006., -0.269834473906871}, {2007., -0.25729418081589917`}, {2008., 
+          0.07704731842576276}, {2009., 0.06953613955311763}, {2010., 
+          0.06346719720754909}, {2011., 0.05849710892403815}, {2012., 
+          0.05438443167231023}}]}}, {}}, {{}, {{}, {}, 
+        {GrayLevel[0], PointSize[0.019444444444444445`], AbsoluteThickness[
+         1.6], LineBox[{{1997., 0.017370118771958095`}, {1998., 
+          0.017370118771958095`}, {1999., 0.017370118771958095`}, {2000., 
+          0.017370118771958095`}, {2001., 0.017370118771958095`}, {
+          2002., -0.07409887161159553}, {2003., -0.06371268818460236}, {
+          2004., -0.054299869925412324`}, {2005., -0.04586901111140816}, {
+          2006., -0.03840775313216133}, {2007., -0.03188300511829116}, {2008.,
+           0.08662298443083277}, {2009., 0.07895355418202807}, {2010., 
+          0.07274071255827137}, {2011., 0.06764011926348329}, {2012., 
+          0.06340784035783098}}]}}, {}}, {{}, {{}, {}, 
+        {RGBColor[1, 0, 0], PointSize[0.019444444444444445`], 
+         AbsoluteThickness[1.6], 
+         LineBox[{{1997., 0.025453295204616436`}, {1998., 
+          0.025453295204616436`}, {1999., 0.025453295204616436`}, {2000., 
+          0.025453295204616436`}, {2001., 0.025453295204616436`}, {
+          2002., -0.040710723298421285`}, {2003., -0.03407322412824537}, {
+          2004., -0.027987087780898826`}, {2005., -0.022433345660503957`}, {
+          2006., -0.017389205670146842`}, {2007., -0.01282867230148453}, {
+          2008., 0.0695931418747784}, {2009., 0.062181186896601175`}, {2010., 
+          0.05622724956376198}, {2011., 0.05137702372423836}, {2012., 
+          0.047383799156171864`}}]}}, {}}},
+     AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
+     Axes->{True, True},
+     AxesLabel->{
+       FormBox["\"Time\"", TraditionalForm], 
+       FormBox["\"Saving Rate\"", TraditionalForm]},
+     AxesOrigin->{2000, 0},
+     DisplayFunction->Identity,
+     Frame->{{False, False}, {False, False}},
+     FrameLabel->{{None, None}, {None, None}},
+     FrameTicks->{{Automatic, Automatic}, {Automatic, Automatic}},
+     GridLines->{None, None},
+     GridLinesStyle->Directive[
+       GrayLevel[0.5, 0.4]],
+     Method->{},
+     PlotRange->{{1997., 2012.}, {-0.5, 0.15}},
+     PlotRangeClipping->True,
+     PlotRangePadding->{{
+        Scaled[0.02], 
+        Scaled[0.02]}, {0, 0}},
+     Ticks->{{{2001, 
+         FormBox["\"2001\"", TraditionalForm]}, {2007, 
+         FormBox["\"2007\"", TraditionalForm]}}, {{-0.1, 
+         FormBox[
+          RowBox[{"-", "0.1`"}], TraditionalForm]}, {0.1, 
+         FormBox["0.1`", TraditionalForm]}}}], {-1, -0.6180339887498948}, {
+    Left, Bottom}, {2, 1.2360679774997896`}], GraphicsGroupBox[{
+     {GrayLevel[0], 
+      RectangleBox[{-0.05, -0.65}, {1.05, -0.39999999999999997`}]}, 
+     {GrayLevel[1], EdgeForm[{GrayLevel[0], Thickness[0.001]}], 
+      GraphicsGroupBox[{RectangleBox[{-0.1, -0.6}, {1., -0.35}], InsetBox[
+         GraphicsBox[{{{InsetBox[
+              GraphicsBox[
+               {RGBColor[0, 1, 0], 
+                LineBox[{{0, 0}, {1, 0}}]}], {0.08, 0.08}, {
+              Left, Bottom}, {1, 1}], 
+             InsetBox["\<\"\[DoubleStruckCapitalE][\[CapitalGamma]] Cycle \
+(Growth)    \"\>", {1.2100000000000002`, 0.58}, {-1, 0}, Automatic, {1, 
+              0}]}, {InsetBox[
+              GraphicsBox[
+               {GrayLevel[0], LineBox[{{0, 0}, {1, 0}}]}], {0.08, 1.24}, {
+              Left, Bottom}, {1, 1}], 
+             InsetBox["\<\"\[DoubleStruckCapitalE][\[Mho]] Cycle (Unemp Risk)\
+\"\>", {1.2100000000000002`, 1.74}, {-1, 0}, Automatic, {1, 0}]}, {InsetBox[
+              GraphicsBox[
+               {RGBColor[1, 0, 0], LineBox[{{0, 0}, {1, 0}}]}], {0.08, 2.4}, {
+              Left, Bottom}, {1, 1}], 
+             InsetBox["\<\"\[DoubleStruckCapitalE][\[Stigma]] Cycle (Credit)  \
+  \"\>", {1.2100000000000002`, 2.9}, {-1, 0}, Automatic, {1, 0}]}}, {}},
+          AspectRatio->0.22727272727272727`,
+          
+          PlotRange->{{-0.1, 3.26}, {-0.1, 
+           3.5799999999999996`}}], {-0.1, -0.6}, {
+         Left, Bottom}, {1.1, 0.25}]}]}}]},
+  AspectRatio->Automatic,
+  Background->None,
+  ColorOutput->Automatic,
+  ImageSize->Automatic,
+  PlotRange->All]], "Print"]
+}, Open  ]]
+},
+WindowSize->{1533, 1214},
+WindowMargins->{{-5, Automatic}, {Automatic, 0}},
+ShowSelection->True,
+FrontEndVersion->"10.2 for Mac OS X x86 (32-bit, 64-bit Kernel) (July 6, \
+2015)",
+StyleDefinitions->"Default.nb"
+]
+

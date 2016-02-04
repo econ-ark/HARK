@@ -1,0 +1,800 @@
+Notebook[{
+Cell[BoxData[
+ RowBox[{"(*", " ", 
+  RowBox[{
+   RowBox[{
+   "This", " ", "notebook", " ", "simulates", " ", "the", " ", "small", " ", 
+    "open", " ", "economy", " ", "model", " ", "in", " ", "the", " ", 
+    "handout", " ", "TractableBufferStock", " ", "associated", " ", 
+    "\[IndentingNewLine]", "with", " ", "Christopher", " ", 
+    RowBox[{"Carroll", "'"}], "s", " ", "first", " ", "year", " ", "graduate",
+     " ", "macroeconomics", " ", "course"}], ";", " ", 
+   RowBox[{
+   "see", " ", "that", " ", "document", " ", "for", " ", "notation", " ", 
+    "and", " ", "explanations"}]}], " ", "*)"}]], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{
+  3.414624340257347*^9, {3.446157175430614*^9, 3.446157181704191*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "This", " ", "cell", " ", "is", " ", "basically", " ", "housekeeping", 
+     " ", "and", " ", "setup", " ", "stuff"}], ";", " ", 
+    RowBox[{"it", " ", "can", " ", "be", " ", "ignored"}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"ClearAll", "[", "\"\<Global`*\>\"", "]"}], ";", 
+    RowBox[{"ParamsAreSet", "=", "False"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"If", "[", 
+     RowBox[{
+      RowBox[{"$VersionNumber", "<", "8"}], ",", 
+      RowBox[{"(*", "then", "*)"}], " ", 
+      RowBox[{
+       RowBox[{
+       "Print", "[", 
+        "\"\<These programs require Mathematica version 8 or greater.\>\"", 
+        "]"}], ";", 
+       RowBox[{"Abort", "[", "]"}]}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"If", "[", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"Length", "[", "$FrontEnd", "]"}], " ", ">", " ", "0"}], ",", 
+      RowBox[{"NBDir", "=", 
+       RowBox[{"SetDirectory", "[", 
+        RowBox[{"NotebookDirectory", "[", "]"}], "]"}]}]}], "]"}], ";"}], 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "If", " ", "running", " ", "from", " ", "the", " ", "Notebook", " ", 
+     "interface"}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"rootDir", " ", "=", " ", 
+     RowBox[{"SetDirectory", "[", "\"\<../../..\>\"", "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"AutoLoadDir", "=", 
+     RowBox[{
+     "SetDirectory", "[", "\"\<./Mathematica/CoreCode/Autoload\>\"", "]"}]}], 
+    ";", 
+    RowBox[{"Get", "[", "\"\<./init.m\>\"", "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"CoreCodeDir", "=", 
+     RowBox[{"SetDirectory", "[", "\"\<..\>\"", "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"rootDir", " ", "=", " ", 
+     RowBox[{"SetDirectory", "[", "\"\<..\>\"", "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CoreCodeDir", "<>", "\"\</MakeAnalyticalResults.m\>\""}], "]"}],
+     ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Get", "[", 
+     RowBox[{"CoreCodeDir", "<>", "\"\</VarsAndFuncs.m\>\""}], "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Method", " ", "of", " ", "creating", " ", "figures", " ", "depends", " ",
+      "on", " ", "whether", " ", "being", " ", "run", " ", "in", " ", "batch",
+      " ", "mode", " ", "or", " ", "interactively"}], " ", "*)"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"If", "[", 
+     RowBox[{
+      RowBox[{"$FrontEnd", " ", "\[Equal]", " ", "Null"}], ",", 
+      RowBox[{"OpenFigsUsingShell", "=", "True"}], ",", 
+      RowBox[{"OpenFigsUsingShell", "=", "False"}]}], "]"}], ";"}], 
+   " "}]}]], "Input",
+ PageWidth->Infinity,
+ InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Get", "[", 
+   RowBox[{"CoreCodeDir", "<>", "\"\</ParametersBase.m\>\""}], "]"}], 
+  ";"}], "\n", 
+ RowBox[{"FindStableArm", ";"}], "\n"}], "Input",
+ InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData["\<\"Solving ...\"\>"], "Print"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"  Below \[ScriptM]MinPermitted after \"\>", 
+   "\[InvisibleSpace]", "63", 
+   "\[InvisibleSpace]", "\<\" backwards Euler iterations.\"\>"}],
+  SequenceForm[
+  "  Below \[ScriptM]MinPermitted after ", 63, " backwards Euler iterations."],
+  Editable->False]], "Print"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Last 2 Points:\"\>", "\[InvisibleSpace]", 
+   TagBox[
+    RowBox[{"(", "\[NoBreak]", GridBox[{
+       {"0.8244119144273305`", "0.3425907040327893`", "0.33021507548921947`", 
+        
+        RowBox[{"-", "21.635502687253084`"}], 
+        RowBox[{"-", "0.2030690672078349`"}]},
+       {
+        RowBox[{"-", "0.02832413932486133`"}], "0.14300638277365987`", 
+        RowBox[{"-", "2.1039108420018273`"}], 
+        RowBox[{"-", "19.43392869293097`"}], 
+        RowBox[{"-", "81.02618354278985`"}]}
+      },
+      GridBoxAlignment->{
+       "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, 
+        "Rows" -> {{Baseline}}, "RowsIndexed" -> {}},
+      GridBoxSpacings->{"Columns" -> {
+          Offset[0.27999999999999997`], {
+           Offset[0.7]}, 
+          Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+          Offset[0.2], {
+           Offset[0.4]}, 
+          Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+    Function[BoxForm`e$, 
+     MatrixForm[BoxForm`e$]]]}],
+  SequenceForm["Last 2 Points:", 
+   MatrixForm[{{0.8244119144273305, 0.3425907040327893, 
+    0.33021507548921947`, -21.635502687253084`, -0.2030690672078349}, \
+{-0.02832413932486133, 
+    0.14300638277365987`, -2.1039108420018273`, -19.43392869293097, \
+-81.02618354278985}}]],
+  Editable->False]], "Print"],
+
+Cell[BoxData["\<\"Solving ...\"\>"], "Print"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"  Above \[ScriptM]MaxPermitted after \"\>", 
+   "\[InvisibleSpace]", "119", 
+   "\[InvisibleSpace]", "\<\" backwards Euler iterations.\"\>"}],
+  SequenceForm[
+  "  Above \[ScriptM]MaxPermitted after ", 119, 
+   " backwards Euler iterations."],
+  Editable->False]], "Print"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Last 2 Points:\"\>", "\[InvisibleSpace]", 
+   TagBox[
+    RowBox[{"(", "\[NoBreak]", GridBox[{
+       {"97.6944418326442`", "7.470431556475989`", "0.06282803050945501`", 
+        RowBox[{"-", "2.179709433277835`"}], 
+        RowBox[{"-", "0.000030282786448045947`"}]},
+       {"102.09657259612545`", "7.746724488944703`", "0.06270088709623531`", 
+        RowBox[{"-", "2.103642866949646`"}], 
+        RowBox[{"-", "0.000027543153386525185`"}]}
+      },
+      GridBoxAlignment->{
+       "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, 
+        "Rows" -> {{Baseline}}, "RowsIndexed" -> {}},
+      GridBoxSpacings->{"Columns" -> {
+          Offset[0.27999999999999997`], {
+           Offset[0.7]}, 
+          Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+          Offset[0.2], {
+           Offset[0.4]}, 
+          Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+    Function[BoxForm`e$, 
+     MatrixForm[BoxForm`e$]]]}],
+  SequenceForm["Last 2 Points:", 
+   MatrixForm[{{97.6944418326442, 7.470431556475989, 
+    0.06282803050945501, -2.179709433277835, -0.000030282786448045947`}, {
+    102.09657259612545`, 7.746724488944703, 
+    0.06270088709623531, -2.103642866949646, -0.000027543153386525185`}}]],
+  Editable->False]], "Print"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"SetDirectory", "[", 
+   RowBox[{"NotebookDirectory", "[", "]"}], "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"<<", "SOESimFuncs.m"}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{"<<", "SOESimParams.m"}], ";"}]}], "Input",
+ InitializationCell->True,
+ CellChangeTimes->{{3.415927822819981*^9, 3.415927841968272*^9}, {
+   3.415927897792989*^9, 3.4159279024662457`*^9}, {3.416001724998711*^9, 
+   3.41600172569908*^9}, {3.416001757591201*^9, 3.416001766179255*^9}, {
+   3.416001802748149*^9, 3.4160018032323837`*^9}, {3.4160019765370626`*^9, 
+   3.416002001977827*^9}, {3.4160020362383432`*^9, 3.416002036866115*^9}, {
+   3.416002068168507*^9, 3.416002068460455*^9}, {3.4160021179640007`*^9, 
+   3.416002154353711*^9}, {3.4160021884982977`*^9, 3.416002204798811*^9}, 
+   3.4160022397229567`*^9, {3.416002329926962*^9, 3.416002368797576*^9}, 
+   3.416003464407941*^9, {3.416003498029109*^9, 3.4160035033670588`*^9}, 
+   3.416003547275982*^9, {3.446157313491043*^9, 3.446157314739931*^9}, {
+   3.453679678227622*^9, 3.453679740858946*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Don", "'"}], "t", " ", "worry", " ", "about", " ", "the", " ", 
+    "error", " ", "messages", " ", "this", " ", "generates"}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"VerboseOutput", "=", "False"}], ";", "CensusMakeStakes", ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Do", "[", 
+     RowBox[{
+      RowBox[{"AddNewGen", "[", 
+       RowBox[{"{", 
+        RowBox[{
+        "\[ScriptB]E", ",", "\[ScriptCapitalN]", ",", "\[GothicCapitalG]"}], 
+        "}"}], "]"}], ",", 
+      RowBox[{"{", "4", "}"}]}], "]"}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"\[CurlyTheta]", "=", "0.06"}], ";"}], "\n", 
+   RowBox[{"FindStableArm", ";"}]}]}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"Interpolation", "::", "inhr"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Requested order is too high; order has been reduced to \
+\[NoBreak]\\!\\({0}\\)\[NoBreak]. \
+\\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", ButtonStyle->\\\"Link\\\", \
+ButtonFrame->None, ButtonData:>\\\"paclet:ref/message/Interpolation/inhr\\\", \
+ButtonNote -> \\\"Interpolation::inhr\\\"]\\)\"\>"}]], "Message", "MSG"],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"Interpolation", "::", "inhr"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Requested order is too high; order has been reduced to \
+\[NoBreak]\\!\\({0}\\)\[NoBreak]. \
+\\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", ButtonStyle->\\\"Link\\\", \
+ButtonFrame->None, ButtonData:>\\\"paclet:ref/message/Interpolation/inhr\\\", \
+ButtonNote -> \\\"Interpolation::inhr\\\"]\\)\"\>"}]], "Message", "MSG"],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"InterpolatingFunction", "::", "dmval"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Input value \[NoBreak]\\!\\({4.569497062943518`}\\)\
+\[NoBreak] lies outside the range of data in the interpolating function. \
+Extrapolation will be used. \\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", \
+ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/InterpolatingFunction/dmval\\\", \
+ButtonNote -> \\\"InterpolatingFunction::dmval\\\"]\\)\"\>"}]], "Message", \
+"MSG"],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"InterpolatingFunction", "::", "dmval"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Input value \[NoBreak]\\!\\({4.569497062943518`}\\)\
+\[NoBreak] lies outside the range of data in the interpolating function. \
+Extrapolation will be used. \\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", \
+ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/InterpolatingFunction/dmval\\\", \
+ButtonNote -> \\\"InterpolatingFunction::dmval\\\"]\\)\"\>"}]], "Message", \
+"MSG"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"Do", "[", 
+    RowBox[{
+     RowBox[{"AddNewGen", "[", 
+      RowBox[{"{", 
+       RowBox[{
+       "\[ScriptB]E", ",", "\[ScriptCapitalN]", ",", "\[GothicCapitalG]"}], 
+       "}"}], "]"}], ",", 
+     RowBox[{"{", "75", "}"}]}], "]"}], ";"}], "\n", 
+  "\[IndentingNewLine]"}]], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"InterpolatingFunction", "::", "dmval"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Input value \[NoBreak]\\!\\({7.8544551871599015`}\\)\
+\[NoBreak] lies outside the range of data in the interpolating function. \
+Extrapolation will be used. \\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", \
+ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/InterpolatingFunction/dmval\\\", \
+ButtonNote -> \\\"InterpolatingFunction::dmval\\\"]\\)\"\>"}]], "Message", \
+"MSG"],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"InterpolatingFunction", "::", "dmval"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Input value \[NoBreak]\\!\\({7.8544551871599015`}\\)\
+\[NoBreak] lies outside the range of data in the interpolating function. \
+Extrapolation will be used. \\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", \
+ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/InterpolatingFunction/dmval\\\", \
+ButtonNote -> \\\"InterpolatingFunction::dmval\\\"]\\)\"\>"}]], "Message", \
+"MSG"],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"InterpolatingFunction", "::", "dmval"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Input value \[NoBreak]\\!\\({8.14930075771579`}\\)\
+\[NoBreak] lies outside the range of data in the interpolating function. \
+Extrapolation will be used. \\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", \
+ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/InterpolatingFunction/dmval\\\", \
+ButtonNote -> \\\"InterpolatingFunction::dmval\\\"]\\)\"\>"}]], "Message", \
+"MSG"],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"General", "::", "stop"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Further output of \
+\[NoBreak]\\!\\(\\*StyleBox[\\(InterpolatingFunction :: dmval\\), \
+\\\"MessageName\\\"]\\)\[NoBreak] will be suppressed during this calculation. \
+\\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", ButtonStyle->\\\"Link\\\", \
+ButtonFrame->None, ButtonData:>\\\"paclet:ref/message/General/stop\\\", \
+ButtonNote -> \\\"General::stop\\\"]\\)\"\>"}]], "Message", "MSG"]
+}, Open  ]],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"timePath", "=", 
+   RowBox[{"Table", "[", 
+    RowBox[{"i", ",", 
+     RowBox[{"{", 
+      RowBox[{"i", ",", 
+       RowBox[{"Length", "[", "CensusMeans", "]"}]}], "}"}]}], "]"}]}], 
+  ";"}], "\n", 
+ RowBox[{
+  RowBox[{"cPathAfterThetaDropPlot", "=", 
+   RowBox[{"ListPlot", "[", 
+    RowBox[{
+     RowBox[{"Transpose", "[", 
+      RowBox[{"{", 
+       RowBox[{"timePath", ",", 
+        RowBox[{"CensusMeansT", "[", 
+         RowBox[{"[", "\[ScriptC]Pos", "]"}], "]"}]}], "}"}], "]"}], ",", 
+     RowBox[{"PlotRange", "\[Rule]", "All"}], ",", 
+     RowBox[{"PlotStyle", "\[Rule]", "Black"}]}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]"}], "Input",
+ InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"SOEStakescPathAfterThetaDropPlot", "=", 
+   RowBox[{"Show", "[", 
+    RowBox[{"cPathAfterThetaDropPlot", ",", 
+     RowBox[{"Ticks", "\[Rule]", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"{", 
+          RowBox[{"4", ",", "\"\<0\>\""}], "}"}], "}"}], ",", "None"}], 
+       "}"}]}], ",", 
+     RowBox[{"AxesLabel", "\[Rule]", 
+      RowBox[{"{", 
+       RowBox[{"\"\<Time\>\"", ",", "\"\<\[ScriptC]\>\""}], "}"}]}], ",", 
+     RowBox[{"AxesOrigin", "\[Rule]", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"-", "3"}], ",", "0"}], "}"}]}], ",", 
+     RowBox[{"PlotRange", "\[Rule]", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"-", "3"}], ",", "Automatic"}], "}"}], ",", 
+        RowBox[{"{", 
+         RowBox[{"0", ",", "Automatic"}], "}"}]}], "}"}]}]}], "]"}]}], 
+  ";"}], "\n", 
+ RowBox[{
+  RowBox[{"ExportFigsToDir", "[", 
+   RowBox[{
+   "\"\<SOEStakescPathAfterThetaDropPlot\>\"", ",", 
+    "\"\</Volumes/Data/Courses/Choice/LectureNotes/Consumption/Handouts/\
+TractableBufferStock/Code/Mathematica/Examples/TractableBufferStock/Figures\>\
+\""}], "]"}], ";"}], "\n", 
+ RowBox[{"Show", "[", "SOEStakescPathAfterThetaDropPlot", 
+  "]"}], "\n"}], "Input",
+ InitializationCell->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ GraphicsBox[{{}, {{}, 
+    {GrayLevel[0], PointSize[0.011000000000000001`], AbsoluteThickness[1.6], 
+     StyleBox[PointBox[CompressedData["
+1:eJxV0XlIk3Ecx/FHBWmmZmaZa+ocoaZlzjw2U/fxmHml255MV3aoJViKFWGQ
+eWZ4FOSVmUX3YYeZSha6zBI7oeggLKJ7mkfN0g7vCp/vH/3g4cfrefP562eX
+kKbaqM8wjOLv9++eOgOyO4zz2wLNNxn3A/97GnK1lVLPJrIZhOadK5vryRYQ
+yCNq8mvJc+FsEdB7s6KHswD8Xb8+R7v1chai/Keti2ULWYTsCN+rrk59nOej
+2NVq1fVssj2iNq1tYTVkR/BiEkXybrITJisdHurx+jkvhI+xX5SFE9kF6XmS
+htFGsit+p5qnjLh/4SyGWJt6JL2B7IbDIUkbJI5fOS/B3QTpqs5Ksjvi7S6W
+j0+QPZCyLllfEq/j7IlC6xdXTVrJXtCGCApHjQY4S/BKO/L4ijtZinc3owdj
+4sjemIwJsrXOIy/FtqzJKoezZB+4WtsbVN8j+wK/zlaV9ZD90BTHpjnz6D1k
+KFlzWrPTgQyMqJXC8iDOOUC+l3Zw93rq/kjMazmmzqDuD5WyZsj6APUAZA1t
+LOqk984JQJlRLH9/B/VAOH762CN/TT0QOg1ry3ynHoQbCyxFbYbfuR6Eo1Zi
+XQGfMyNH7Pz7SepF1OXYnmNT4imjHozG7tyndgrqwcjo2SGyWU99GcIjL4kW
+p1FfBlthl0SdST0E+StrDp4oph6CjuwKX9OD1EPhN/NH35mT1ENxXsqbs6WW
+ehj2f2h/sP0a9TCMu9VWa9qoh6M3MTNDcZ96OCrFby5In1CPQIz33tLcTuoR
+YPY9Oid+S3052r35cayW+nIY/5aP6XqpR+KySfsJswHqkdCv7xO2DlGPwoQk
+dZQZph6FrqK66Pdj1BV4Vm2oS2IGpwwF3PalCA4ZcM5R4MLqnR1ZhpzbFGi9
+rUy04XFmlBi2d9bLmk57JUyafP1OmdBeiXU/NIryGbRXIju9lsfOpL0KB7aq
+X3aZ016FWLnHc5UF7VUQDBldr55NexU2J4d9uzWH9iz6MxOOP7SkPYtZUuNj
+zXNpz8K0IX1PqRXtWYw7Bdep+LRfAdnhODDzBmV/AFVleOk=
+       "]],
+      FontSize->14]}, {}}, {}},
+  AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
+  Axes->{True, True},
+  AxesLabel->{
+    FormBox["\"Time\"", TraditionalForm], 
+    FormBox["\"\[ScriptC]\"", TraditionalForm]},
+  AxesOrigin->{-3, 0},
+  BaseStyle->{FontSize -> 14},
+  DisplayFunction->Identity,
+  Frame->{{False, False}, {False, False}},
+  FrameLabel->{{None, None}, {None, None}},
+  FrameTicks->{{Automatic, Automatic}, {Automatic, Automatic}},
+  GridLines->{None, None},
+  GridLinesStyle->Directive[
+    GrayLevel[0.5, 0.4]],
+  ImageSize->{468., 289.23990673495075`},
+  Method->{},
+  PlotRange->{{-3, Automatic}, {0, Automatic}},
+  PlotRangeClipping->True,
+  PlotRangePadding->{{
+     Scaled[0.02], 
+     Scaled[0.02]}, {
+     Scaled[0.05], 
+     Scaled[0.05]}},
+  Ticks->{{{4, 
+      FormBox["\"0\"", TraditionalForm]}}, None}]], "Print"],
+
+Cell[BoxData["\<\"Exporting figure to \
+/Volumes/Data/Courses/Choice/LectureNotes/Consumption/Handouts/\
+TractableBufferStock/Code/Mathematica/Examples/TractableBufferStock/Figures/\
+SOEStakescPathAfterThetaDropPlot.xxx\"\>"], "Print"]
+}, Open  ]],
+
+Cell[BoxData[
+ GraphicsBox[{{}, {{}, 
+    {GrayLevel[0], PointSize[0.011000000000000001`], AbsoluteThickness[1.6], 
+     StyleBox[PointBox[CompressedData["
+1:eJxV0XlIk3Ecx/FHBWmmZmaZa+ocoaZlzjw2U/fxmHml255MV3aoJViKFWGQ
+eWZ4FOSVmUX3YYeZSha6zBI7oeggLKJ7mkfN0g7vCp/vH/3g4cfrefP562eX
+kKbaqM8wjOLv9++eOgOyO4zz2wLNNxn3A/97GnK1lVLPJrIZhOadK5vryRYQ
+yCNq8mvJc+FsEdB7s6KHswD8Xb8+R7v1chai/Keti2ULWYTsCN+rrk59nOej
+2NVq1fVssj2iNq1tYTVkR/BiEkXybrITJisdHurx+jkvhI+xX5SFE9kF6XmS
+htFGsit+p5qnjLh/4SyGWJt6JL2B7IbDIUkbJI5fOS/B3QTpqs5Ksjvi7S6W
+j0+QPZCyLllfEq/j7IlC6xdXTVrJXtCGCApHjQY4S/BKO/L4ijtZinc3owdj
+4sjemIwJsrXOIy/FtqzJKoezZB+4WtsbVN8j+wK/zlaV9ZD90BTHpjnz6D1k
+KFlzWrPTgQyMqJXC8iDOOUC+l3Zw93rq/kjMazmmzqDuD5WyZsj6APUAZA1t
+LOqk984JQJlRLH9/B/VAOH762CN/TT0QOg1ry3ynHoQbCyxFbYbfuR6Eo1Zi
+XQGfMyNH7Pz7SepF1OXYnmNT4imjHozG7tyndgrqwcjo2SGyWU99GcIjL4kW
+p1FfBlthl0SdST0E+StrDp4oph6CjuwKX9OD1EPhN/NH35mT1ENxXsqbs6WW
+ehj2f2h/sP0a9TCMu9VWa9qoh6M3MTNDcZ96OCrFby5In1CPQIz33tLcTuoR
+YPY9Oid+S3052r35cayW+nIY/5aP6XqpR+KySfsJswHqkdCv7xO2DlGPwoQk
+dZQZph6FrqK66Pdj1BV4Vm2oS2IGpwwF3PalCA4ZcM5R4MLqnR1ZhpzbFGi9
+rUy04XFmlBi2d9bLmk57JUyafP1OmdBeiXU/NIryGbRXIju9lsfOpL0KB7aq
+X3aZ016FWLnHc5UF7VUQDBldr55NexU2J4d9uzWH9iz6MxOOP7SkPYtZUuNj
+zXNpz8K0IX1PqRXtWYw7Bdep+LRfAdnhODDzBmV/AFVleOk=
+       "]],
+      FontSize->14]}, {}}, {}},
+  AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
+  Axes->{True, True},
+  AxesLabel->{
+    FormBox["\"Time\"", TraditionalForm], 
+    FormBox["\"\[ScriptC]\"", TraditionalForm]},
+  AxesOrigin->{-3, 0},
+  BaseStyle->{FontSize -> 14},
+  DisplayFunction->Identity,
+  Frame->{{False, False}, {False, False}},
+  FrameLabel->{{None, None}, {None, None}},
+  FrameTicks->{{Automatic, Automatic}, {Automatic, Automatic}},
+  GridLines->{None, None},
+  GridLinesStyle->Directive[
+    GrayLevel[0.5, 0.4]],
+  ImageSize->{468., 289.23990673495075`},
+  Method->{},
+  PlotRange->{{-3, Automatic}, {0, Automatic}},
+  PlotRangeClipping->True,
+  PlotRangePadding->{{
+     Scaled[0.02], 
+     Scaled[0.02]}, {
+     Scaled[0.05], 
+     Scaled[0.05]}},
+  Ticks->{{{4, 
+      FormBox["\"0\"", TraditionalForm]}}, None}]], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{"CensusMakeNoStakes", ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"VerboseOutput", "=", "False"}], ";"}], "\n", 
+ RowBox[{
+  RowBox[{"Do", "[", 
+   RowBox[{
+    RowBox[{"AddNewGen", "[", 
+     RowBox[{"{", 
+      RowBox[{"0", ",", "\[ScriptCapitalN]", ",", "\[GothicCapitalG]"}], 
+      "}"}], "]"}], ",", 
+    RowBox[{"{", "100", "}"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"timePath", "=", 
+   RowBox[{"Table", "[", 
+    RowBox[{"i", ",", 
+     RowBox[{"{", 
+      RowBox[{"i", ",", 
+       RowBox[{"Length", "[", "Census", "]"}]}], "}"}]}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"cPath", "=", 
+    RowBox[{"ListPlot", "[", 
+     RowBox[{
+      RowBox[{"Transpose", "[", 
+       RowBox[{"{", 
+        RowBox[{"timePath", ",", 
+         RowBox[{"CensusMeansT", "[", 
+          RowBox[{"[", "\[ScriptC]Pos", "]"}], "]"}]}], "}"}], "]"}], ",", 
+      RowBox[{"PlotRange", "\[Rule]", "All"}]}], "]"}]}], ";"}], "\n"}], "\n", 
+ RowBox[{
+  RowBox[{"SOENoStakescPath", "=", 
+   RowBox[{"Show", "[", 
+    RowBox[{"cPath", ",", 
+     RowBox[{"Ticks", "\[Rule]", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"{", 
+          RowBox[{"1", ",", "\"\<0\>\""}], "}"}], "}"}], ",", "None"}], 
+       "}"}]}], ",", 
+     RowBox[{"AxesLabel", "\[Rule]", 
+      RowBox[{"{", 
+       RowBox[{"\"\<Time\>\"", ",", "\"\<\[ScriptC]\>\""}], "}"}]}], ",", 
+     RowBox[{"AxesOrigin", "\[Rule]", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"-", "3"}], ",", "0"}], "}"}]}], ",", 
+     RowBox[{"PlotRange", "\[Rule]", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"-", "3"}], ",", "All"}], "}"}], ",", 
+        RowBox[{"{", 
+         RowBox[{"0", ",", "All"}], "}"}]}], "}"}]}]}], "]"}]}], 
+  ";"}], "\n", 
+ RowBox[{
+  RowBox[{"ExportFigsToDir", "[", 
+   RowBox[{
+   "\"\<SOENoStakescPath\>\"", ",", 
+    "\"\</Volumes/Data/Courses/Choice/LectureNotes/Consumption/Handouts/\
+TractableBufferStock/Code/Mathematica/Examples/TractableBufferStock/Figures\>\
+\""}], "]"}], ";"}], "\n", 
+ RowBox[{"Show", "[", "SOENoStakescPath", "]"}], "\n"}], "Input",
+ InitializationCell->True],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"Interpolation", "::", "inhr"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Requested order is too high; order has been reduced to \
+\[NoBreak]\\!\\({0}\\)\[NoBreak]. \
+\\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", ButtonStyle->\\\"Link\\\", \
+ButtonFrame->None, ButtonData:>\\\"paclet:ref/message/Interpolation/inhr\\\", \
+ButtonNote -> \\\"Interpolation::inhr\\\"]\\)\"\>"}]], "Message", "MSG"],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"InterpolatingFunction", "::", "dmval"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Input value \[NoBreak]\\!\\({7.921849679814947`}\\)\
+\[NoBreak] lies outside the range of data in the interpolating function. \
+Extrapolation will be used. \\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", \
+ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/InterpolatingFunction/dmval\\\", \
+ButtonNote -> \\\"InterpolatingFunction::dmval\\\"]\\)\"\>"}]], "Message", \
+"MSG"],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"InterpolatingFunction", "::", "dmval"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Input value \[NoBreak]\\!\\({7.921849679814947`}\\)\
+\[NoBreak] lies outside the range of data in the interpolating function. \
+Extrapolation will be used. \\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", \
+ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/InterpolatingFunction/dmval\\\", \
+ButtonNote -> \\\"InterpolatingFunction::dmval\\\"]\\)\"\>"}]], "Message", \
+"MSG"],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"InterpolatingFunction", "::", "dmval"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Input value \[NoBreak]\\!\\({7.921849679814947`}\\)\
+\[NoBreak] lies outside the range of data in the interpolating function. \
+Extrapolation will be used. \\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", \
+ButtonStyle->\\\"Link\\\", ButtonFrame->None, \
+ButtonData:>\\\"paclet:ref/message/InterpolatingFunction/dmval\\\", \
+ButtonNote -> \\\"InterpolatingFunction::dmval\\\"]\\)\"\>"}]], "Message", \
+"MSG"],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"General", "::", "stop"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"Further output of \
+\[NoBreak]\\!\\(\\*StyleBox[\\(InterpolatingFunction :: dmval\\), \
+\\\"MessageName\\\"]\\)\[NoBreak] will be suppressed during this calculation. \
+\\!\\(\\*ButtonBox[\\\"\[RightSkeleton]\\\", ButtonStyle->\\\"Link\\\", \
+ButtonFrame->None, ButtonData:>\\\"paclet:ref/message/General/stop\\\", \
+ButtonNote -> \\\"General::stop\\\"]\\)\"\>"}]], "Message", "MSG"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ GraphicsBox[{{}, {{}, 
+    {GrayLevel[0], PointSize[0.009166666666666668], AbsoluteThickness[1.6], 
+     StyleBox[PointBox[CompressedData["
+1:eJw9yw1M1HUcx/E/KpFioWLxOERAIGiEgigI3Od4kqcD7plLBhcIo44TGAgo
+JgfqBjuDIp/IHhAYafK8EZDmiPJh7ZAHiSCohAPiQBS3bHmlZPP39b/99t/r
+9/59tqZmi9JXcRyX/uz8/3/+LfOsKr+4ZmZ3h8cu8Jq1/kpS/gTzy7DIiC7+
+Pfku8wbwpBNNhuhp5s346yVeiLpfz2yNqcpzZbfXzjLbQzlfEhllOcfsiJqv
+DFFVj8hOyLaFsb7rD2YXvDqB4NCUeWZXeAlsRv3uk93RpBNKHdMNzB5wDXwc
+5HSd/CbiP5qs4jYuMHsheNuwflFA9oZdWX9fYBl5O/obTHuyWsk70ON5yHVk
+kOyDqbYfBoUGsi9GMk+5jO9bZN6JYcGJ2rs3yH7YskbSYe15j3kXVAfSfBwq
+yLvR+SDP/+gU2R9vKY+c6vZdYg7A0/mL+fxj5D3oiNOWl/WTA7EkCLg5YXmf
+OQg3dOfNGmTkYDhdcjj8xhkyDzvryzd1DJOBgfaOheL1D55bA6wUWjZ8G8rM
+8bHiYqtrLKLOx72LzhHKy9RDoNA9vLp+knoIwn/MqNxvusx6KJ48SdOO2jFr
+QhEszxxN3049DKlVummbCOphGLcJSvtbQT0cxsicc6Zq6uFwt7OqDSuhHoH4
+XTF9XR9Sj8D0Z/VXlBeo78U3j7es4rdT34ttv2D1273UI9Gjm1M036YeiZSW
+JWPgJPUo+F2fkZsbqEeB7/Z1od0j6tFIEpeY5nIPWY/Gd/F82QZzZi4Glwve
+yXi6mXoMOv7xHoQD9VjYBI9e/dWVeiw++JQbmvCiLkCbxa3XQ/yoC2CyzmTO
+Koh6HFYOuun2h1KPg8fAT/neUdTjYVOr/bgsjno8Ts9LBlLF1BMwY9bZNiZn
+RgIsf36lenEfvU+AZv5sdV0Kc28CSpf12jVptBfC1/XmWusM2gshKj0eps+k
+vRCdSqN9lor2QriXnrHtVtNeBK148D1dNu1FqB5ZmGrOpb0IGXv6/lXm0V6E
+YwcP6A35tBfjlr48K7aA9mKo2g2OJwtpL8a6jV28piLai1GgbuxrPUR7CZw4
+aWrNYdpLsMmj7hNVMe0luJRgbHE/QnsJdGPHW4bJnBTOnp5FqvdpL0VFce61
+P8kaKb5PtzfPOUp7KYzJtX2/kTkZxioUbiEltJdhdbc26TxZI0OdwvPdRXKv
+DF+O5gT4aGgvx6xsd2MeGXJEJnurm8kaOfjT44FT5F45hi4ktVuU0j4RrTU7
+5P5kJMJL3dyUTNYk4k5VorOG3JsIh9mArZ+/2CuQnW006XmxV6DrxIzV0DP/
+B2c87Dg=
+       "]],
+      FontSize->14]}, {}}, {}},
+  AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
+  Axes->{True, True},
+  AxesLabel->{
+    FormBox["\"Time\"", TraditionalForm], 
+    FormBox["\"\[ScriptC]\"", TraditionalForm]},
+  AxesOrigin->{-3, 0},
+  BaseStyle->{FontSize -> 14},
+  DisplayFunction->Identity,
+  Frame->{{False, False}, {False, False}},
+  FrameLabel->{{None, None}, {None, None}},
+  FrameTicks->{{Automatic, Automatic}, {Automatic, Automatic}},
+  GridLines->{None, None},
+  GridLinesStyle->Directive[
+    GrayLevel[0.5, 0.4]],
+  ImageSize->{468., 289.23990673495075`},
+  Method->{},
+  PlotRange->{{-3, All}, {0, All}},
+  PlotRangeClipping->True,
+  PlotRangePadding->{{
+     Scaled[0.02], 
+     Scaled[0.02]}, {
+     Scaled[0.02], 
+     Scaled[0.05]}},
+  Ticks->{{{1, 
+      FormBox["\"0\"", TraditionalForm]}}, None}]], "Print"],
+
+Cell[BoxData["\<\"Exporting figure to \
+/Volumes/Data/Courses/Choice/LectureNotes/Consumption/Handouts/\
+TractableBufferStock/Code/Mathematica/Examples/TractableBufferStock/Figures/\
+SOENoStakescPath.xxx\"\>"], "Print"]
+}, Open  ]],
+
+Cell[BoxData[
+ GraphicsBox[{{}, {{}, 
+    {GrayLevel[0], PointSize[0.009166666666666668], AbsoluteThickness[1.6], 
+     StyleBox[PointBox[CompressedData["
+1:eJw9yw1M1HUcx/E/KpFioWLxOERAIGiEgigI3Od4kqcD7plLBhcIo44TGAgo
+JgfqBjuDIp/IHhAYafK8EZDmiPJh7ZAHiSCohAPiQBS3bHmlZPP39b/99t/r
+9/59tqZmi9JXcRyX/uz8/3/+LfOsKr+4ZmZ3h8cu8Jq1/kpS/gTzy7DIiC7+
+Pfku8wbwpBNNhuhp5s346yVeiLpfz2yNqcpzZbfXzjLbQzlfEhllOcfsiJqv
+DFFVj8hOyLaFsb7rD2YXvDqB4NCUeWZXeAlsRv3uk93RpBNKHdMNzB5wDXwc
+5HSd/CbiP5qs4jYuMHsheNuwflFA9oZdWX9fYBl5O/obTHuyWsk70ON5yHVk
+kOyDqbYfBoUGsi9GMk+5jO9bZN6JYcGJ2rs3yH7YskbSYe15j3kXVAfSfBwq
+yLvR+SDP/+gU2R9vKY+c6vZdYg7A0/mL+fxj5D3oiNOWl/WTA7EkCLg5YXmf
+OQg3dOfNGmTkYDhdcjj8xhkyDzvryzd1DJOBgfaOheL1D55bA6wUWjZ8G8rM
+8bHiYqtrLKLOx72LzhHKy9RDoNA9vLp+knoIwn/MqNxvusx6KJ48SdOO2jFr
+QhEszxxN3049DKlVummbCOphGLcJSvtbQT0cxsicc6Zq6uFwt7OqDSuhHoH4
+XTF9XR9Sj8D0Z/VXlBeo78U3j7es4rdT34ttv2D1273UI9Gjm1M036YeiZSW
+JWPgJPUo+F2fkZsbqEeB7/Z1od0j6tFIEpeY5nIPWY/Gd/F82QZzZi4Glwve
+yXi6mXoMOv7xHoQD9VjYBI9e/dWVeiw++JQbmvCiLkCbxa3XQ/yoC2CyzmTO
+Koh6HFYOuun2h1KPg8fAT/neUdTjYVOr/bgsjno8Ts9LBlLF1BMwY9bZNiZn
+RgIsf36lenEfvU+AZv5sdV0Kc28CSpf12jVptBfC1/XmWusM2gshKj0eps+k
+vRCdSqN9lor2QriXnrHtVtNeBK148D1dNu1FqB5ZmGrOpb0IGXv6/lXm0V6E
+YwcP6A35tBfjlr48K7aA9mKo2g2OJwtpL8a6jV28piLai1GgbuxrPUR7CZw4
+aWrNYdpLsMmj7hNVMe0luJRgbHE/QnsJdGPHW4bJnBTOnp5FqvdpL0VFce61
+P8kaKb5PtzfPOUp7KYzJtX2/kTkZxioUbiEltJdhdbc26TxZI0OdwvPdRXKv
+DF+O5gT4aGgvx6xsd2MeGXJEJnurm8kaOfjT44FT5F45hi4ktVuU0j4RrTU7
+5P5kJMJL3dyUTNYk4k5VorOG3JsIh9mArZ+/2CuQnW006XmxV6DrxIzV0DP/
+B2c87Dg=
+       "]],
+      FontSize->14]}, {}}, {}},
+  AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
+  Axes->{True, True},
+  AxesLabel->{
+    FormBox["\"Time\"", TraditionalForm], 
+    FormBox["\"\[ScriptC]\"", TraditionalForm]},
+  AxesOrigin->{-3, 0},
+  BaseStyle->{FontSize -> 14},
+  DisplayFunction->Identity,
+  Frame->{{False, False}, {False, False}},
+  FrameLabel->{{None, None}, {None, None}},
+  FrameTicks->{{Automatic, Automatic}, {Automatic, Automatic}},
+  GridLines->{None, None},
+  GridLinesStyle->Directive[
+    GrayLevel[0.5, 0.4]],
+  ImageSize->{468., 289.23990673495075`},
+  Method->{},
+  PlotRange->{{-3, All}, {0, All}},
+  PlotRangeClipping->True,
+  PlotRangePadding->{{
+     Scaled[0.02], 
+     Scaled[0.02]}, {
+     Scaled[0.02], 
+     Scaled[0.05]}},
+  Ticks->{{{1, 
+      FormBox["\"0\"", TraditionalForm]}}, None}]], "Output"]
+}, Open  ]]
+},
+AutoGeneratedPackage->Automatic,
+WindowSize->{1723, 1040},
+WindowMargins->{{11, Automatic}, {Automatic, 0}},
+ShowSelection->True,
+Magnification->1.5,
+FrontEndVersion->"10.2 for Mac OS X x86 (32-bit, 64-bit Kernel) (July 6, \
+2015)",
+StyleDefinitions->"Default.nb"
+]
+
