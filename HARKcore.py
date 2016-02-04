@@ -31,7 +31,7 @@ class AgentType():
 
     def timeReport(self):
         '''
-        Report to the user the direction that time is currently "flowing" for this instance.
+        Report to the user the direction that time is currently "flowing" for this instance
         '''
         if self.time_flow:
             print('Time varying objects are listed in ordinary chronological order.')
