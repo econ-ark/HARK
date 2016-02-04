@@ -54,5 +54,3 @@ FHWCFails   := Not[FHWCHolds];
 \[Eta]Bar := (\[Bet]/(1-\[Bet])) (\[WeierstrassP]Cancel^\[Rho]) Min[Select[\[Theta]Vals,#>0.&]]^(1-\[Rho]);
 \[Eta]Bar::usage = "Lower bound of constant used to normalize value in contraction mapping proof.";
 
-\[GothicV] := 1/(1-\[Beta] (((R) \[Beta])^((1/\[Rho])-1)));
-\[GothicV]::usage = "u[c_t] times \[GothicV] yields the discounted value for a person consuming 1 unit forever.";
