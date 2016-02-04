@@ -1,7 +1,8 @@
 '''
-The SetupConsumersParameters specifiesthe full set of calibrated values required
+SetupConsumersParameters specifies the full set of calibrated values required
 to estimate the SolvingMicroDSOPs model.  The empirical data is stored in a
-separate csv file and is loaded in SetupSCFdata.
+separate csv file and is loaded in SetupSCFdata.  These parameters are also used
+as default settings in various examples of ConsumptionSavingModel.
 '''
 import numpy as np
 
@@ -14,7 +15,7 @@ a_min = 0.001                       # Minimum end-of-period assets value in a_gr
 a_max = 20                         # Maximum end-of-period assets value in a_grid                  
 a_huge = None                       # A very large value of assets to add to the grid, not used
 a_extra = None                      # Some other value of assets to add to the grid, not used
-a_size = 8                         # Number of points in the grid of assets
+a_size = 8                        # Number of points in the grid of assets
 
 constrained = False                  # Whether the agent is liquidity constrained
 cubic_splines = True                # Use cubic spline interpolation when True, linear interpolation when False
@@ -23,7 +24,7 @@ calc_vFunc = False                  # Whether to calculate the value function du
 R = 1.03                            # Interest factor on assets
 psi_N = 6                           # Number of points in discrete approximation to permanent income shocks
 xi_N = 6                            # Number of points in discrete approximation to transitory income shocks
-p_unemploy = 0.05                  # Probability of unemployment while working
+p_unemploy = 0.005                  # Probability of unemployment while working
 p_unemploy_retire = 0.0005          # Probability of "unemployment" while retired
 income_unemploy = 0.0              # Unemployment benefits replacement rate
 income_unemploy_retire = 0.0        # Ditto when retired
