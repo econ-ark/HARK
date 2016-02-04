@@ -99,7 +99,33 @@ class MargMargValueFunc():
         c, kappa = self.cFunc.eval_with_derivative(m)
         return kappa*utilityPP(c,gam=self.rho)
 
+def PerfectForesightSolver(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,Gamma,constrained,a_grid,calc_vFunc,cubic_splines):
+    '''
+    Solves a single period consumption - savings problem for a consumer with perfect foresight.  
+    Note that the problem is solved analytically and does not need to be solved via SolveAPerdiod, 
+    but nonetheless it is here essentialy as a test.
+    '''
+    if constrained:
+        m_underbar_t = 0.0
+    else:
+        print 'The unconstrained solution for the Perfect Forsign solution has not been implemented yet.  Change the constrained boolean'
+        
+    #infinte horizon simplification.  This should hold (I think) becausethe range for kappa and whatever the greek sybol for Return Patience Factor is specified in the ConsumerSolution class.__init__
+    cFunc = lambda m: (((R/Gamma) - ((R/Gamma)*((Gamma**(1-rho))*beta))**(1/rho))/(R/Gamma))*(m - 1 + (1/(1-(1/(R/Gamma)))))
 
+    #define utility function
+    u = lambda c : utility(c,gam=rho)
+    uP = lambda c : utilityP(c,gam=rho)
+    uPP = lambda c : utilityPP(c,gam=rho)
+    
+    #define value functions
+    vFunc = lambda m: u(cFunc(m))
+    vPFunc = lambda m: uP(cFunc(m))
+    vPPFunc = lambda m: uPP(cFunc(m)) #is this right??? Shouldn't the second derivitive of the valu function be related somehow to the first?  
+    
+    solution_t = ConsumerSolution(cFunc=cFunc, vFunc=vFunc, vPfunc=vPFunc, vPPfunc=vPPFunc, m_underbar=m_underbar_t, gothic_h=0.0, kappa_min=1.0, kappa_max=1.0)
+        
+    return solution_t
 
 
 def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,Gamma,constrained,a_grid,calc_vFunc,cubic_splines):
