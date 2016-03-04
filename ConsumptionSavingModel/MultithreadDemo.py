@@ -15,7 +15,6 @@ from HARKparallel import multiThreadCommandsFake, multiThreadCommands
 mystr = lambda number : "{:.4f}".format(number)
 import numpy as np
 
-
 if __name__ == '__main__':
     type_count = 32    
     
@@ -84,3 +83,6 @@ if __name__ == '__main__':
     
     # Plot the consumption functions for all types on one figure to see if it worked
     plotFuncs([this_type.cFunc[0] for this_type in my_agent_list],0,5)
+
+
+

@@ -31,7 +31,7 @@ class AgentType():
 
     def timeReport(self):
         '''
-        Report to the user the direction that time is currently "flowing" for this instance
+        Report to the user the direction that time is currently "flowing" for this instance.
         '''
         if self.time_flow:
             print('Time varying objects are listed in ordinary chronological order.')
@@ -67,11 +67,12 @@ class AgentType():
         '''
         self.preSolve()
         self.solution = solveAgent(self)
-        self.postSolve()
         if self.time_flow:
             self.solution.reverse()
         if not ('solution' in self.time_vary):
             self.time_vary.append('solution')
+        self.postSolve()
+        
 
     def isSameThing(self,solutionA,solutionB):
         '''
@@ -221,3 +222,4 @@ def solveACycle(agent,solution_last):
 
     # Return the list of per-period solutions
     return solution_cycle
+
