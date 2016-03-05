@@ -13,7 +13,8 @@ from copy import copy, deepcopy
 from time import time
 from HARKutilities import calculateMeanOneLognormalDiscreteApprox, createFlatStateSpaceFromIndepDiscreteProbs, makeUniformDiscreteDistribution, weightedAverageSimData, extractPercentiles, getLorenzPercentiles, avgDataSlice
 from HARKsimulation import generateDiscreteDraws, generateMeanOneLognormalDraws
-from HARKcore import AgentType, multiThreadCommandsFake, multiThreadCommands
+from HARKcore import AgentType
+from HARKparallel import multiThreadCommandsFake, multiThreadCommands
 import SetupParamsCSTW as Params
 import ConsumptionSavingModel as Model
 from scipy.optimize import golden, brentq
