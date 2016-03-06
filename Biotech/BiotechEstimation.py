@@ -8,7 +8,7 @@ from time import time
 import csv
 
 # Choose whether Phase III is an exogenous process
-simple_model = False
+simple_model = True
 
 # Load the data into memory
 infile = open('BiotechEstimationData.txt','r') 
@@ -65,6 +65,10 @@ sale_array[firm_data[sales],time_data[sales]] = True
 bankrupt_array = np.zeros((firm_size,time_size),dtype=bool)
 bankruptcies = event_data == 5
 bankrupt_array[firm_data[bankruptcies],time_data[bankruptcies]] = True
+# Integer array of (non)-terminal actions
+action_array = np.zeros((firm_size,time_size),dtype=np.int8)
+action_array[sale_array] = 1
+action_array[IPO_array] = 2
 # Float array of valuations of all types (pre-funding)
 value_array = np.zeros((firm_size,time_size),dtype=float) + np.nan
 value_array[firm_data[VCs],time_data[VCs]] = value_data[VCs]

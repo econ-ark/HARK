@@ -7,6 +7,7 @@ import sys
 sys.path.insert(0,'../')
 
 import numpy as np
+from scipy import stats
 from HARKcore import AgentType
 from copy import deepcopy
 from HARKcore import solveACycle
@@ -110,6 +111,7 @@ class BiotechType(AgentType):
         self.vFuncHigh = QuadlinearInterp(self.solution[0].v_high_research,self.money_grid,self.mu_grid,self.tau_grid,self.macro_grid)
         self.vPrivate = lambda mu,tau,macro : np.exp(self.theta_0 + self.theta_mu*mu + self.theta_tau*tau + self.theta_mu_tau*mu*tau + self.theta_z*macro)
         self.vIPO = lambda mu,tau,macro : np.exp(self.lambda_0 + self.lambda_mu*mu + self.lambda_tau*tau + self.lambda_mu_tau*mu*tau + self.lambda_z*macro)
+        self.termShockProb = lambda shocks : stats.norm.pdf(np.log(shocks)/self.sigma_terminal + 0.5*self.sigma_terminal)
         if self.simple:
             self.pFunding = lambda money,mu,tau,macro : np.exp(self.pi_0 + self.pi_m*money + self.pi_mu*mu + self.pi_tau*tau + self.pi_mu_tau*mu*tau + self.pi_z*macro)
         else:
@@ -188,16 +190,45 @@ class BiotechType(AgentType):
         
         # Simulate Phase II: termination decision
         v_continue = self.vFunc3(money_2,mu_2,tau_2,macro_all)
-        v_private_premoney = self.vPrivate(money_2,mu_2,tau_2,macro_all)
-        v_private = v_private_premoney + money_2
+        v_sale_premoney = self.vPrivate(money_2,mu_2,tau_2,macro_all)
+        v_sale = v_sale_premoney + money_2
         v_IPO_premoney = self.vIPO(money_2,mu_2,tau_2,macro_all)
         v_IPO = v_IPO_premoney + money_2
-        v_all = np.stack((v_continue,v_private,v_IPO),axis=2)
+        v_all = np.stack((v_continue,v_sale,v_IPO),axis=2)
         v_best = np.max(v_all,axis=2)
         v_all = v_all - np.tile(np.reshape(v_best,(self.active_firms.size,self.sim_N,1)),(1,1,3))
         v_sum = np.sum(np.exp(v_all),axis=2)
-        sellers = (np.which(self.sale_array[:,t])[0]).tolist()
-        sale_idx = active_firms.tolist
+        actions = self.action_array[self.active_firms,t]
+        v_action = v_all[np.tile(np.reshape(np.arange(self.active_firms.size),(self.active_firms.size,1)),(1,self.sim_N)),np.tile(np.reshape(np.arange(self.sim_N),(1,self.sim_N)),(self.active_firms.size,1)),np.tile(np.reshape(actions,(self.active_firms.size,1)),(1,self.sim_N))]
+        p_action = v_action/v_sum
+        action_weight = p_action/np.tile(np.reshape(np.sum(p_action,axis=1),(self.active_firms.size,1)),(1,self.sim_N))
+        sellers = self.sale_array[self.active_firms,t]
+        IPOers = self.IPO_array[self.active_firms,t]
+        continuers = np.logical_not(np.logical_or(sellers,IPOers))
+        sale_obs_value = self.value_array[self.active_firms[sellers],t]
+        IPO_obs_value = self.value_array[self.active_firms[IPOers],t]
+        sale_obs_value_premoney = np.tile(np.reshape(sale_obs_value,(np.sum(sellers),1)),(1,self.sim_N)) - money_2[sellers,:]
+        sale_obs_value_premoney[sale_obs_value_premoney < 0.000001] = 0.000001 # just in case
+        IPO_obs_value_premoney = np.tile(np.reshape(IPO_obs_value,(np.sum(IPOers),1)),(1,self.sim_N)) - money_2[IPOers,:]
+        IPO_obs_value_premoney[IPO_obs_value_premoney < 0.000001] = 0.000001 # just in case
+        sale_shock = sale_obs_value_premoney/v_sale_premoney[sellers,:]
+        IPO_shock = IPO_obs_value_premoney/v_sale_premoney[IPOers,:]
+        sale_shock_prob = self.termShockProb(sale_shock)
+        IPO_shock_prob = self.termShockProb(IPO_shock)
+        self.LL_action[self.active_firms,t] = np.log(np.mean(p_action,axis=1))
+        self.LL_value[self.active_firms[sellers]] = np.log(np.sum(action_weight[sellers,:]*sale_shock_prob,axis=1))
+        self.LL_value[self.active_firms[IPOers]] = np.log(np.sum(action_weight[IPOers,:]*IPO_shock_prob,axis=1))
+        
+        # Only keep firms that did not terminate        
+        action_weight = action_weight[continuers,:]
+        self.active_firms = self.active_firms[continuers]
+        money_3 = money_2[continuers,:,:,:]
+        mu_3 = mu_2[continuers,:,:,:]
+        tau_2 = tau_2[continuers,:,:,:]
+        macro_all = macro_t*np.ones_like(money_3)
+        
+        # Simulate Phase III: venture capital decision
+        
         
         
               
