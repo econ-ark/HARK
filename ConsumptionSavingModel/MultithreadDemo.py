@@ -9,7 +9,7 @@ does not include two packages needed for it.  See HARKparallel.py.
 import SetupConsumerParameters as Params
 import ConsumptionSavingModel as Model
 from HARKutilities import plotFunc, plotFuncDer, plotFuncs
-from time import clock
+from time import time
 from copy import deepcopy
 from HARKparallel import multiThreadCommandsFake, multiThreadCommands
 mystr = lambda number : "{:.4f}".format(number)
@@ -36,10 +36,10 @@ if __name__ == '__main__':
     BasicType.p_zero_income = [BasicType.p_zero_income[-1]]
     
     # Solve it and plot the results, to make sure things are working
-    start_time = clock()
+    start_time = time()
     BasicType.solve()
     BasicType.unpack_cFunc()
-    end_time = clock()
+    end_time = time()
     print('Solving the basic consumer took ' + mystr(end_time-start_time) + ' seconds.')
     BasicType.unpack_cFunc()
     print('Consumption function:')
@@ -62,9 +62,9 @@ if __name__ == '__main__':
     do_this_stuff = ['updateSolutionTerminal()','solve()','unpack_cFunc()']
     
     # Solve the model for each type by looping over the types (not multithreading)
-    start_time = clock()
+    start_time = time()
     multiThreadCommandsFake(my_agent_list, do_this_stuff)
-    end_time = clock()
+    end_time = time()
     print('Solving ' + str(type_count) +  ' types without multithreading took ' + mystr(end_time-start_time) + ' seconds.')
     
     # Plot the consumption functions for all types on one figure
@@ -76,9 +76,9 @@ if __name__ == '__main__':
         my_agent_list[i].cFunc = None
     
     # And here's my shitty, shitty attempt at multithreading:
-    start_time = clock()
+    start_time = time()
     multiThreadCommands(my_agent_list, do_this_stuff)
-    end_time = clock()
+    end_time = time()
     print('Solving ' + str(type_count) +  ' types with multithreading took ' + mystr(end_time-start_time) + ' seconds.')
     
     # Plot the consumption functions for all types on one figure to see if it worked

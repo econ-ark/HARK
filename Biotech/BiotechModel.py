@@ -12,7 +12,7 @@ from HARKcore import AgentType
 from copy import deepcopy
 from HARKcore import solveACycle
 from HARKinterpolation import QuadlinearInterp
-from HARKutilities import makeMarkovApproxToNormal, calculateLognormalDiscreteApprox, createFlatStateSpaceFromIndepDiscreteProbs, setupGridsExpMult
+from HARKutilities import makeMarkovApproxToNormal, calculateLognormalDiscreteApprox, calculateBetaDiscreteApprox, createFlatStateSpaceFromIndepDiscreteProbs, setupGridsExpMult
 from HARKestimation import bootstrapSampleFromData
 #from time import time
 
@@ -23,26 +23,26 @@ class BiotechType(AgentType):
     param_list = ['money_min','money_max','money_N','mu_min','mu_max','mu_N','tau_min','tau_max','tau_N','macro_min','macro_max','macro_N','sharesold_N','W_N',
                   'money_init_mean','mu_init_mean','tau_init_mean','money_init_var','mu_init_var','tau_init_var','money_mu_covar','money_tau_covar','mu_tau_covar','value_outside','sigma_found',
                   'low_intensity','high_intensity','low_cost','high_cost','sigma_research',
-                  'theta_0','theta_mu','theta_tau','theta_mu_tau','theta_z','lambda_0','lambda_mu','lambda_tau','lambda_mu_tau','lambda_z','sigma_terminal',
-                  'gamma_0','gamma_mu','gamma_tau','gamma_mu_tau','gamma_z','sigma_W','sharesold_mean','sharesold_std','sigma_VC','VC_cost',
+                  'theta_0','theta_mu','theta_tau','theta_mu_tau','theta_z','lambda_0','lambda_mu','lambda_tau','lambda_mu_tau','lambda_z','V_b','sigma_terminal',
+                  'gamma_0','gamma_mu','gamma_tau','gamma_mu_tau','gamma_z','sigma_W','sharesold_a','sharesold_b','sigma_VC','VC_cost',
                   'rho','discount','Qshock_big','Qshock_small','Qprob_big','Qprob_small']                  
     integer_list = [2,5,8,11,12,13]
     param_count = len(param_list)
     input_list = ['mu_weight_matrix_low','mu_weight_matrix_high','m_idx_low_top','m_idx_low_bot','m_alpha_low_top','m_alpha_low_bot','m_idx_high_top','m_idx_high_bot','m_alpha_high_top','m_alpha_high_bot','tau_idx_low_top','tau_idx_low_bot','tau_alpha_low_top','tau_alpha_low_bot','tau_idx_high_top','tau_idx_high_bot','tau_alpha_high_top','tau_alpha_high_bot','mu_idx_P1','z_idx_P1','unaffordable_low','unaffordable_high','sigma_research',
-                  'value_private','value_IPO','sigma_terminal',
+                  'value_private','value_IPO','value_bankrupt','sigma_terminal',
                   'm_idx_bot','m_idx_top','mu_idx_P3','tau_idx_P3','z_idx_P3','m_alpha_bot','m_alpha_top','sharekept','sigma_VC','VC_cost',
                   'discount','mu_weight_matrix_P4','macro_weight_matrix_P4','post_process']
     
     param_list_alt = ['money_min','money_max','money_N','mu_min','mu_max','mu_N','tau_min','tau_max','tau_N','macro_min','macro_max','macro_N','W_N',
                   'money_init_mean','mu_init_mean','tau_init_mean','money_init_var','mu_init_var','tau_init_var','money_mu_covar','money_tau_covar','mu_tau_covar','value_outside','sigma_found',
                   'low_intensity','high_intensity','low_cost','high_cost','sigma_research',
-                  'theta_0','theta_mu','theta_tau','theta_mu_tau','theta_z','lambda_0','lambda_mu','lambda_tau','lambda_mu_tau','lambda_z','sigma_terminal',
+                  'theta_0','theta_mu','theta_tau','theta_mu_tau','theta_z','lambda_0','lambda_mu','lambda_tau','lambda_mu_tau','lambda_z','V_b','sigma_terminal',
                   'gamma_0','gamma_mu','gamma_tau','gamma_mu_tau','gamma_z','sigma_W','sharesold_fixed','pi_0','pi_m','pi_mu','pi_tau','pi_mu_tau','pi_z',
                   'rho','discount','Qshock_big','Qshock_small','Qprob_big','Qprob_small']
     integer_list_alt = [2,5,8,11,12]
     param_count_alt = len(param_list_alt)
     input_list_alt = ['mu_weight_matrix_low','mu_weight_matrix_high','m_idx_low_top','m_idx_low_bot','m_alpha_low_top','m_alpha_low_bot','m_idx_high_top','m_idx_high_bot','m_alpha_high_top','m_alpha_high_bot','tau_idx_low_top','tau_idx_low_bot','tau_alpha_low_top','tau_alpha_low_bot','tau_idx_high_top','tau_idx_high_bot','tau_alpha_high_top','tau_alpha_high_bot','mu_idx_P1','z_idx_P1','unaffordable_low','unaffordable_high','sigma_research',
-                  'value_private','value_IPO','sigma_terminal',
+                  'value_private','value_IPO','value_bankrupt','sigma_terminal',
                   'm_idx_bot','m_idx_top','mu_idx_P3','tau_idx_P3','z_idx_P3','m_alpha_bot','m_alpha_top','VC_yes_prob','VC_no_prob',
                   'discount','mu_weight_matrix_P4','macro_weight_matrix_P4','post_process']
     
@@ -117,6 +117,7 @@ class BiotechType(AgentType):
         else:
             self.pReject = QuadlinearInterp(self.solution[2].reject_prob,self.money_grid,self.mu_grid,self.tau_grid,self.macro_grid)
         self.VCvalFunc = lambda mu,tau,macro : np.exp(self.gamma_0 + self.gamma_mu*mu + self.gamma_tau*tau + self.gamma_mu_tau*mu*tau + self.gamma_z*macro)
+        self.VCshockProb = lambda shocks : stats.norm.pdf(np.log(shocks)/self.sigma_VC + 0.5*self.sigma_VC)
    
     def drawInitStates(self,firm_N,macro):
         '''
@@ -216,23 +217,40 @@ class BiotechType(AgentType):
         sale_shock_prob = self.termShockProb(sale_shock)
         IPO_shock_prob = self.termShockProb(IPO_shock)
         self.LL_action[self.active_firms,t] = np.log(np.mean(p_action,axis=1))
-        self.LL_value[self.active_firms[sellers]] = np.log(np.sum(action_weight[sellers,:]*sale_shock_prob,axis=1))
-        self.LL_value[self.active_firms[IPOers]] = np.log(np.sum(action_weight[IPOers,:]*IPO_shock_prob,axis=1))
+        self.LL_value[self.active_firms[sellers],t] = np.log(np.sum(action_weight[sellers,:]*sale_shock_prob,axis=1))
+        self.LL_value[self.active_firms[IPOers],t] = np.log(np.sum(action_weight[IPOers,:]*IPO_shock_prob,axis=1))
         
         # Only keep firms that did not terminate        
         action_weight = action_weight[continuers,:]
         self.active_firms = self.active_firms[continuers]
         money_3 = money_2[continuers,:,:,:]
         mu_3 = mu_2[continuers,:,:,:]
-        tau_2 = tau_2[continuers,:,:,:]
+        tau_3 = tau_2[continuers,:,:,:]
         macro_all = macro_t*np.ones_like(money_3)
         
         # Simulate Phase III: venture capital decision
-        
-        
-        
-              
-    
+        if self.simple:
+            1 + 1
+        else:
+            accepters = self.VC_array[self.active_firms,t]
+            rejecters = np.logical_not(accepters)
+            obs_valuation = np.tile(np.reshape(self.value_array[self.active_firms[accepters],t],(np.sum(accepters),1)),(1,self.sim_N))
+            sharesold = np.tile(np.reshape(self.share_array[self.active_firms[accepters],t],(np.sum(accepters),1)),(1,self.sim_N))
+            cash_injection = np.tile(np.reshape(self.cash_array[self.active_firms[accepters],t],(np.sum(accepters),1)),(1,self.sim_N))
+            exp_valuation = self.VCvalFunc(money_3[accepters,:],mu_3[accepters,:],tau_3[accepters,:],macro_all)
+            VC_shock = obs_valuation/exp_valuation
+            VC_shock_prob = self.VCshockProb(VC_shock)
+            temp = VC_shock_prob*action_weight[accepters,:]
+            VC_weight = temp/np.tile(np.reshape(np.sum(temp,axis=1),(np.sum(accepters),1)),(1,self.sim_N))
+            v_accept = (1.0-sharesold)*self.vFunc4(money_3[accepters,:]+cash_injection,mu_3[accepters,:],tau_3[accepters,:],macro_all[accepters,:]) - self.VC_cost
+            v_reject = self.vFunc4(money_3[accepters,:],mu_3[accepters,:],tau_3[accepters,:],macro_all[accepters,:])
+            exp_v_diff = np.exp(v_reject - v_accept)
+            p_accept = 1.0/(1.0 + exp_v_diff)
+            p_reject = self.pReject(money_3[rejecters,:],mu_3[rejecters,:],tau_3[rejecters,:],macro_all[rejecters,:])
+            self.LL_value[self.active_firms[accepters],t] = np.log(np.sum(temp,axis=1))
+            self.LL_choice[self.active_firms[accepters],t] = np.log(np.sum(p_accept*VC_weight,axis=1))
+            self.LL_choice[self.active_firms[rejecters],t] = np.log(np.sum(p_reject*action_weight,axis=1))
+            
         
     def update(self):
         '''
@@ -250,11 +268,11 @@ class BiotechType(AgentType):
         
         # Precalculate objects for each period, generating a *lot* of arrays, etc
         self.mu_weight_matrix_low, self.mu_weight_matrix_high, self.m_idx_low_top, self.m_idx_low_bot, self.m_alpha_low_top, self.m_alpha_low_bot, self.m_idx_high_top, self.m_idx_high_bot, self.m_alpha_high_top, self.m_alpha_high_bot, self.tau_idx_low_top, self.tau_idx_low_bot, self.tau_alpha_low_top, self.tau_alpha_low_bot, self.tau_idx_high_top, self.tau_idx_high_bot, self.tau_alpha_high_top, self.tau_alpha_high_bot, self.mu_idx_P1, self.z_idx_P1, self.unaffordable_low, self.unaffordable_high = precalcPhase1(self.money_grid,self.mu_grid,self.tau_grid,self.macro_grid,self.low_intensity,self.high_intensity,self.low_cost,self.high_cost)
-        self.value_private, self.value_IPO = precalcPhase2(self.money_grid,self.mu_grid,self.tau_grid,self.macro_grid,self.theta_0,self.theta_mu,self.theta_tau,self.theta_mu_tau,self.theta_z,self.lambda_0,self.lambda_mu,self.lambda_tau,self.lambda_mu_tau,self.lambda_z,self.sigma_terminal)
+        self.value_private, self.value_IPO, self.value_bankrupt = precalcPhase2(self.money_grid,self.mu_grid,self.tau_grid,self.macro_grid,self.theta_0,self.theta_mu,self.theta_tau,self.theta_mu_tau,self.theta_z,self.lambda_0,self.lambda_mu,self.lambda_tau,self.lambda_mu_tau,self.lambda_z,self.V_b,self.sigma_terminal)
         if self.simple:
             self.m_idx_bot, self.m_idx_top, self.mu_idx_P3, self.tau_idx_P3, self.z_idx_P3, self.m_alpha_bot, self.m_alpha_top, self.VC_yes_prob, self.VC_no_prob = precalcPhase3alt(self.money_grid,self.mu_grid,self.tau_grid,self.macro_grid,self.gamma_0,self.gamma_mu,self.gamma_tau,self.gamma_mu_tau,self.gamma_z,self.sigma_W,self.W_N,self.sharesold_fixed,self.pi_0,self.pi_m,self.pi_mu,self.pi_tau,self.pi_mu_tau,self.pi_z)
         else:
-            self.m_idx_bot, self.m_idx_top, self.mu_idx_P3, self.tau_idx_P3, self.z_idx_P3, self.m_alpha_bot, self.m_alpha_top, self.sharekept = precalcPhase3(self.money_grid,self.mu_grid,self.tau_grid,self.macro_grid,self.gamma_0,self.gamma_mu,self.gamma_tau,self.gamma_mu_tau,self.gamma_z,self.sigma_W,self.W_N,self.sharesold_mean,self.sharesold_std,self.sharesold_N)
+            self.m_idx_bot, self.m_idx_top, self.mu_idx_P3, self.tau_idx_P3, self.z_idx_P3, self.m_alpha_bot, self.m_alpha_top, self.sharekept = precalcPhase3(self.money_grid,self.mu_grid,self.tau_grid,self.macro_grid,self.gamma_0,self.gamma_mu,self.gamma_tau,self.gamma_mu_tau,self.gamma_z,self.sigma_W,self.W_N,self.sharesold_a,self.sharesold_b,self.sharesold_N)
         self.macro_weight_matrix_P4, self.mu_weight_matrix_P4 = precalcPhase4(self.macro_grid,self.mu_grid,self.rho,self.Qshock_values,self.Qshock_probs)
         
         # Make an initial guess of the value array
@@ -277,7 +295,7 @@ class BiotechSolution():
             distance = np.max(np.abs((v_array_A - v_array_B)/v_array_A))
         else:
             distance = 100000
-        #print(distance)
+        print(distance)
         return distance
             
 
@@ -337,7 +355,7 @@ def precalcPhase4(macro_grid,mu_grid,rho,Qshock_values,Qshock_probs):
     
     
 
-def precalcPhase3(money_grid,mu_grid,tau_grid,macro_grid,gamma_0,gamma_mu,gamma_tau,gamma_mu_tau,gamma_z,sigma_W,W_N,sharesold_mean,sharesold_std,sharesold_N):
+def precalcPhase3(money_grid,mu_grid,tau_grid,macro_grid,gamma_0,gamma_mu,gamma_tau,gamma_mu_tau,gamma_z,sigma_W,W_N,sharesold_a,sharesold_b,sharesold_N):
     '''
     Generates index and weighting arrays for the phase 3 model.
     
@@ -369,12 +387,10 @@ def precalcPhase3(money_grid,mu_grid,tau_grid,macro_grid,gamma_0,gamma_mu,gamma_
     W_N : int
         Number of points in the discrete distribution of valuation-at-funding
         for each state space point.
-    sharesold_mean : float
-        Mean of the distribution of eta, the share of the firm that the VCer
-        offers to buy.
-    sharesold_std : float
-        Standard deviation of the distribution of eta, the share of the firm that
-        the VCer offers to buy.
+    sharesold_a : float
+        The a (or alpha) parameter of the beta distribution of sharesold.
+    sharesold_b : float
+        The b (or beta) parameter of the beta distribution of sharesold.
     sharesold_N : int
         Number of points in the discrete approximation to the lognormal of eta.
        
@@ -409,7 +425,7 @@ def precalcPhase3(money_grid,mu_grid,tau_grid,macro_grid,gamma_0,gamma_mu,gamma_
     
     # Make a joint distribution of lognormal valuation shocks and sharesold offers
     valuation_shock_dist = calculateLognormalDiscreteApprox(W_N,0.0,sigma_W)
-    sharesold_dist = calculateLognormalDiscreteApprox(sharesold_N,np.log(sharesold_mean),sharesold_std)
+    sharesold_dist = calculateBetaDiscreteApprox(sharesold_N,sharesold_a,sharesold_b)
     joint_dist = createFlatStateSpaceFromIndepDiscreteProbs(valuation_shock_dist,sharesold_dist)
     offer_N = W_N*sharesold_N
     val_shock_array = np.tile(np.reshape(joint_dist[1],(1,1,1,1,offer_N)),(money_N,mu_N,tau_N,macro_N,1))
@@ -565,7 +581,7 @@ def precalcPhase3alt(money_grid,mu_grid,tau_grid,macro_grid,gamma_0,gamma_mu,gam
 
 
 
-def precalcPhase2(money_grid,mu_grid,tau_grid,macro_grid,theta_0,theta_mu,theta_tau,theta_mu_tau,theta_z,lambda_0,lambda_mu,lambda_tau,lambda_mu_tau,lambda_z,sigma_terminal):
+def precalcPhase2(money_grid,mu_grid,tau_grid,macro_grid,theta_0,theta_mu,theta_tau,theta_mu_tau,theta_z,lambda_0,lambda_mu,lambda_tau,lambda_mu_tau,lambda_z,V_b,sigma_terminal):
     '''
     Generates arrays of (exponentiated) expected utility of private sale and
     going public from each state in the grid, for use in the phase 2 model.
@@ -607,6 +623,8 @@ def precalcPhase2(money_grid,mu_grid,tau_grid,macro_grid,theta_0,theta_mu,theta_
     lambda_z : float
         Coefficient on macroeconomic state in expected (log) valuation-at-IPO
         function.
+    V_b : float
+        Constant continuation / scrap value of going bankrupt.
     sigma_terminal : float
         Standard deviation of preference shocks for termination decision.
         
@@ -618,6 +636,8 @@ def precalcPhase2(money_grid,mu_grid,tau_grid,macro_grid,theta_0,theta_mu,theta_
     value_IPO : numpy.array
         An array with the precalculated expected value of
         selling the firm via an initial public offering (go public).
+    value_bankrupt : numpy.array
+        An array with the constant value of going bankrupt.
     '''
     # Make arrays of the four state variables
     money_N = money_grid.size
@@ -635,10 +655,13 @@ def precalcPhase2(money_grid,mu_grid,tau_grid,macro_grid,theta_0,theta_mu,theta_
     
     # Adjust the expected value arrays for output
     value_IPO = value_IPO/sigma_terminal
-    value_private = value_private/sigma_terminal 
+    value_private = value_private/sigma_terminal
+    
+    # Make the constant array of bankruptcy / scrap value
+    value_bankrupt = V_b/sigma_terminal*np.ones_like(value_IPO)
     
     # Return the precalculated arrays
-    return value_private, value_IPO
+    return value_private, value_IPO, value_bankrupt
 
 
 
@@ -948,7 +971,7 @@ def solvePhase3alt(solution_tp1,m_idx_bot,m_idx_top,mu_idx_P3,tau_idx_P3,z_idx_P
     
     
     
-def solvePhase2(solution_tp1,value_private,value_IPO,sigma_terminal):
+def solvePhase2(solution_tp1,value_private,value_IPO,value_bankrupt,sigma_terminal):
     '''
     A function that solves Phase II of the entrepreneur's problem, given the
     solution to Phase III of the problem.  Both of the input arrays are of size 
@@ -959,11 +982,13 @@ def solvePhase2(solution_tp1,value_private,value_IPO,sigma_terminal):
     solution_tp1 : BiotechSolution
         The current guess of the solution to Phase III of the model.
     value_private : numpy.array
-        An array with the precalculated expected value of
-        privately selling the firm.
+        An array with the precalculated expected value of privately selling the
+        firm.
     value_IPO : numpy.array
-        An array with the precalculated expected value of
-        selling the firm via an initial public offering (go public).
+        An array with the precalculated expected value of selling the firm via
+        an initial public offering (go public).
+    value_bankrupt : numpy.array
+        An array with the constant value of going bankrupt.
     sigma_terminal : float
         Standard deviation of preference shocks for termination decision.
         
@@ -982,9 +1007,9 @@ def solvePhase2(solution_tp1,value_private,value_IPO,sigma_terminal):
     value_continue = v_array_next/sigma_terminal
     
     # Find the best option among the three choices at each state
-    value_all = np.stack((value_continue,value_private,value_IPO),axis=4)
+    value_all = np.stack((value_continue,value_private,value_IPO,value_bankrupt),axis=4)
     value_best = np.max(value_all,axis=4)
-    value_best_big = np.tile(np.reshape(value_best,(money_N,mu_N,tau_N,macro_N,1)),(1,1,1,1,3))
+    value_best_big = np.tile(np.reshape(value_best,(money_N,mu_N,tau_N,macro_N,1)),(1,1,1,1,4))
     
     # Calculate expected value at the beginning of Phase II
     v_array = sigma_terminal*(np.log(np.sum(np.exp(value_all-value_best_big),axis=4)) + value_best)

@@ -8,7 +8,7 @@ from time import time
 import csv
 
 # Choose whether Phase III is an exogenous process
-simple_model = True
+simple_model = False
 
 # Load the data into memory
 infile = open('BiotechEstimationData.txt','r') 
@@ -65,10 +65,6 @@ sale_array[firm_data[sales],time_data[sales]] = True
 bankrupt_array = np.zeros((firm_size,time_size),dtype=bool)
 bankruptcies = event_data == 5
 bankrupt_array[firm_data[bankruptcies],time_data[bankruptcies]] = True
-# Integer array of (non)-terminal actions
-action_array = np.zeros((firm_size,time_size),dtype=np.int8)
-action_array[sale_array] = 1
-action_array[IPO_array] = 2
 # Float array of valuations of all types (pre-funding)
 value_array = np.zeros((firm_size,time_size),dtype=float) + np.nan
 value_array[firm_data[VCs],time_data[VCs]] = value_data[VCs]
@@ -117,16 +113,16 @@ def listParams(idx=None,values=None,alt=False):
 # Set the calibrated parameters and initial values for estimated parameters
 if simple_model:
     param_count = Model.BiotechType.param_count_alt
-    calibrated_parameter_idx = np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,14,15,17,19,20,46,53,55,56])
+    calibrated_parameter_idx = np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,14,15,17,19,20,47,54,56,57])
     calibrated_parameter_values = np.array([0.000001,150.0,14,-1.0,4.0,15,0.5,20.0,16,-2.5,2.5,17,7,0,0,1,0,0,0.33,0.8,2,0.5])
     estimated_parameter_idx = np.setdiff1d(np.arange(param_count),calibrated_parameter_idx)
-    estimated_parameter_guess = np.array([0,1,1,0.1,5,0.3,0.1,0.5,0.2,1.5,0.3,-1,1.5,0.1,-0.01,0.02,0,1.5,0.1,-0.01,0.02,0.3,0,1.5,0.1,-0.01,0.02,0.2,-2,-0.15,0.4,-0.02,-0.01,0.2,0.99,0.01,0.03])
+    estimated_parameter_guess = np.array([0,1,1,0.1,5,0.3,0.1,0.5,0.2,1.5,0.3,-1,1.5,0.1,-0.01,0.02,0,1.5,0.1,-0.01,0.02,0.5,0.3,0,1.5,0.1,-0.01,0.02,0.2,-2,-0.15,0.4,-0.02,-0.01,0.2,0.95,0.01,0.03])
 else:
-    param_count = Model.BiotechType.param_count_alt
-    calibrated_parameter_idx = np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,13,15,16,18,20,21,51,53,54])    
+    param_count = Model.BiotechType.param_count
+    calibrated_parameter_idx = np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,13,15,16,18,20,21,52,54,55])    
     calibrated_parameter_values = np.array([0.000001,150.0,14,-1.0,4.0,15,0.5,20.0,16,-2.5,2.5,17,10,7,0,0,1,0,0,0.8,2,0.5])
     estimated_parameter_idx = np.setdiff1d(np.arange(param_count),calibrated_parameter_idx)
-    estimated_parameter_guess = np.array([0,1,1,0.1,5,0.3,0.1,0.5,0.2,1.5,0.3,-1,1.5,0.1,-0.01,0.02,0,1.5,0.1,-0.01,0.02,0.3,0,1.5,0.1,-0.01,0.02,0.2,0.1,1.1,0.1,0.3,0.95,0.01,0.03])
+    estimated_parameter_guess = np.array([0,1,1,0.1,5,0.3,0.1,0.5,0.2,1.5,0.3,-1,1.5,0.1,-0.01,0.02,0,1.5,0.1,-0.01,0.02,0.5,0.3,0,1.5,0.1,-0.01,0.02,0.2,1.1,3.0,0.1,0.3,0.95,0.01,0.03])
 
 
 # Make a sample type
