@@ -255,7 +255,7 @@ def calculateMeanOneLognormalDiscreteApprox(N, sigma):
 
     Parameters
     ----------
-    N: float
+    N: int
         Size of discrete space vector to be returned.
     sigma: float
         standard deviation associated with underlying normal probability distribution.
@@ -274,6 +274,87 @@ def calculateMeanOneLognormalDiscreteApprox(N, sigma):
     '''
     mu = -0.5*(sigma**2)
     return calculateLognormalDiscreteApprox(N=N, mu=mu, sigma=sigma)
+    
+    
+    
+def calculateBetaDiscreteApprox(N,a=1.0,b=1.0):
+    '''
+    Calculate a discrete approximation to the beta distribution.
+    This needs to be made a bit more sophisticated.
+    
+    Parameters
+    ----------
+    N : int
+        Size of discrete space vector to be returned.
+    a : float
+        First shape parameter (sometimes called alpha).
+    b : float
+        Second shape parameter (sometimes called beta).
+
+    Returns
+    ----------
+    X: np.ndarray
+        Discrete points for discrete probability mass function.
+    pmf: np.ndarray
+        Probability associated with each point in X.
+    '''
+    P = 1000
+    vals = np.reshape(stats.beta.ppf(np.linspace(0.0,1.0,N*P),a,b),(N,P))
+    X = np.mean(vals,axis=1)
+    pmf = np.ones(N)/float(N)
+    return( [pmf, X] )
+
+
+def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):
+    '''
+    Creates an approximation to a normal distribution with mean mu and standard
+    deviation sigma, returning a stochastic vector called p_vec, corresponding
+    to values in x_grid.  If a RV is distributed x~N(mu,sigma), then the expectation
+    of a continuous function f() is E[f(x)] = numpy.dot(p_vec,f(x_grid)).
+    
+    Parameters:
+    -------------
+    x_grid: numpy.array
+        A sorted 1D array of floats representing discrete values that a normally
+        distributed RV could take on.    
+    mu: float
+        Mean of the normal distribution to be approximated.
+    sigma: float
+        Standard deviation of the normal distribution to be approximated.
+    K: int
+        Number of points in the normal distribution to sample.
+    bound: float
+        Truncation bound of the normal distribution, as +/- bound*sigma.
+        
+    Returns:
+    -----------
+    p_vec: numpy.array
+        A stochastic vector with probability weights for each x in x_grid.
+    '''
+    x_n = x_grid.size
+    lower_bound =  -bound
+    upper_bound = bound
+    raw_sample = np.linspace(lower_bound,upper_bound,K)
+    f_weights = stats.norm.pdf(raw_sample)
+    sample = mu + sigma*raw_sample
+    w_vec = np.zeros(x_n)
+    
+    sample_pos = np.searchsorted(x_grid,sample)
+    sample_pos[sample_pos < 1] = 1
+    sample_pos[sample_pos > x_n-1] = x_n-1
+    
+    bot = x_grid[sample_pos-1]
+    top = x_grid[sample_pos]
+    alpha = (sample-bot)/(top-bot)
+    
+    for j in range(1,x_n):
+        c = sample_pos == j
+        w_vec[j-1] = w_vec[j-1] + np.dot(f_weights[c],1.0-alpha[c])
+        w_vec[j] = w_vec[j] + np.dot(f_weights[c],alpha[c])
+    W = np.sum(w_vec)
+    p_vec = w_vec/W
+    
+    return p_vec
 
 
 # ================================================================================

@@ -37,7 +37,7 @@ plotFuncs([ExampleType.solution[0].cFunc,ExampleType.solution[0].cFunc_U],0,m_up
 init_consumer_objects = {"rho":base_primitives['rho'],
                         "R":base_primitives['R'],
                         "Gamma":[base_primitives['G']/(1.0-base_primitives['mho'])],
-                        "constrained":False,
+                        "constraint":False,
                         "psi_sigma":[0.0],
                         "psi_N":1,
                         "xi_sigma":[0.0],

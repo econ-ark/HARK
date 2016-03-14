@@ -10,40 +10,41 @@ do_lifecycle = False          # Use lifecycle model if True, perpetual youth if 
 do_beta_dist = False           # Do beta-dist version if True, beta-point if False
 run_estimation = True         # Runs the estimation if True
 find_beta_vs_KY = False       # Computes K/Y ratio for a wide range of beta; should have do_beta_dist = False
-do_sensitivity = [False, False, False, False, False, False, False] # Choose which sensitivity analyses to run: rho, xi_sigma, psi_sigma, mu, urate, mortality, g
+do_sensitivity = [False, False, False, False, False, False, False, False] # Choose which sensitivity analyses to run: rho, xi_sigma, psi_sigma, mu, urate, mortality, g, R
 do_liquid = False             # Matches liquid assets data when True, net worth data when False
 do_tractable = False          # Uses a "tractable consumer" rather than solving full model when True
 SCF_data_file = 'SCFwealthDataReduced.txt'
 percentiles_to_match = [0.2, 0.4, 0.6, 0.8]    # Which points of the Lorenz curve to match in beta-dist (must be in (0,1))
 #percentiles_to_match = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 if do_beta_dist:
-    pref_type_count = 8       # Number of discrete beta types in beta-dist
+    pref_type_count = 7       # Number of discrete beta types in beta-dist
 else:
     pref_type_count = 1       # Just one beta type in beta-point
 
 # Set basic parameters for the lifecycle micro model
 init_age = 24                 # Starting age for agents
-R = 1.04**(1.0/4)             # Quarterly interest factor
+R = 1.04**(0.25)              # Quarterly interest factor
 working_T = 41*4              # Number of working periods
 retired_T = 55*4              # Number of retired periods
 total_T = working_T+retired_T # Total number of periods
-rho = 1                       # Coefficient of relative risk aversion   
+rho = 1.0                     # Coefficient of relative risk aversion   
 beta_guess = 0.99             # Initial starting point for discount factor
 p_unemploy = 0.07             # Probability of unemployment while working
 p_unemploy_retire = 0.0005    # Probabulity of "unemployment" while retired
 income_unemploy = 0.15        # Unemployment benefit replacement rate
 income_unemploy_retire = 0.0  # Ditto when retired
 Y0_sigma = 0.4                # Standard deviation of initial permanent income
+borrowing_constraint = 0.0
 
 # Set grid sizes
-psi_N = 7                     # Number of points in permanent income shock grid
-xi_N = 7                      # Number of points in transitory income shock grid
-a_min = 0.001                 # Minimum end-of-period assets in grid
-a_max = 30                    # Maximum end-of-period assets in grid
-a_size = 8                    # Number of points in assets grid
+psi_N = 5                     # Number of points in permanent income shock grid
+xi_N = 5                      # Number of points in transitory income shock grid
+a_min = 0.00001                 # Minimum end-of-period assets in grid
+a_max = 20                    # Maximum end-of-period assets in grid
+a_size = 20                    # Number of points in assets grid
 exp_nest = 3                  # Number of times to 'exponentially nest' when constructing assets grid
 sim_pop_size = 2000           # Number of simulated agents per preference type
-cubic_splines = True          # Whether to use cubic spline interpolation
+cubic_splines = False          # Whether to use cubic spline interpolation
 calc_vFunc = False            # Whether to calculate the value function during solution
 
 # Set random seeds
@@ -153,10 +154,14 @@ age_weight_short = np.concatenate((age_weight_d[0:total_T],age_weight_h[0:total_
 total_output = np.sum(total_income_working)/total_pop_size
 
 # Set indiividual parameters for the infinite horizon model
-Gamma_i = [1.010**0.25]
+l_bar = 10.0/9.0
+Gamma_i = [1.000**0.25]
 beta_i = 0.99
 survival_prob_i = [1.0 - 1.0/160.0]
-psi_sigma_i = [(0.01*4/11)**0.5]
+if do_liquid:
+    psi_sigma_i = [(0.01*4/16)**0.5]
+else:
+    psi_sigma_i = [(0.01*4/11)**0.5]
 xi_sigma_i = [(0.01*4)**0.5]
 sim_periods = 1000
 age_weight_i = survival_prob_i**np.arange(0,sim_periods+1,dtype=float)
@@ -165,7 +170,7 @@ age_weight_i = age_weight_i/total_pop_size_i
 if not do_lifecycle:
     age_weight_all = age_weight_i
     age_weight_short = age_weight_i[0:sim_periods]
-    total_output = 1
+    total_output = l_bar
 
 # Import the SCF wealth data
 f = open(SCF_data_file,'r')
@@ -182,7 +187,7 @@ for j in range(len(SCF_raw)):
 init_dropout = {"rho":rho,
                 "R":R,
                 "Gamma":Gamma_d,
-                "constrained":True,
+                "constraint":borrowing_constraint,
                 "cubic_splines":cubic_splines,
                 "calc_vFunc":calc_vFunc,
                 "psi_sigma":psi_sigma,
@@ -222,7 +227,7 @@ adj_college = {"Gamma":Gamma_c,"survival_prob":survival_probs_c}
 init_infinite = {"rho":rho,
                 "R":1.01/survival_prob_i[0],
                 "Gamma":Gamma_i,
-                "constrained":True,
+                "constraint":borrowing_constraint,
                 "cubic_splines":cubic_splines,
                 "calc_vFunc":calc_vFunc,
                 "psi_sigma":psi_sigma_i,
@@ -236,7 +241,7 @@ init_infinite = {"rho":rho,
                 "a_min":a_min,
                 "a_max":a_max,
                 "a_size":a_size,
-                "a_extra":[],
+                "a_extra":[9000.0],
                 "exp_nest":exp_nest,
                 "survival_prob":survival_prob_i,
                 "beta":beta_i, # dummy value, will be overwritten
@@ -249,6 +254,7 @@ init_infinite = {"rho":rho,
                 'psi_seed':perm_seed,
                 'xi_seed':temp_seed,
                 'unemp_seed':unemp_seed,
+                'l_bar':l_bar,
                 }
 
 # Make dictionaries for constructing income shocks

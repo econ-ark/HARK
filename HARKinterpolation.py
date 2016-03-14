@@ -2120,8 +2120,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
     # Need to add _derX and _derY methods; math is in desk drawer at UD
         
         
-        
-if __name__ == '__main__':
+if __name__ == '__main__':       
     '''
     Tests of some of the interpolation methods.  Should be expanded and cleaned up.
     '''
@@ -2274,7 +2273,7 @@ if __name__ == '__main__':
         plt.plot(p)
         
         
-    if False:
+    if True:
         f = lambda w,x,y,z : 4.0*w*z - 2.5*w*x + w*y + 6.0*x*y - 10.0*x*z + 3.0*y*z - 7.0*z + 4.0*x + 2.0*y - 5.0*w
         dfdw = lambda w,x,y,z : 4.0*z - 2.5*x + y - 5.0
         dfdx = lambda w,x,y,z : -2.5*w + 6.0*y - 10.0*z + 4.0
@@ -2289,7 +2288,7 @@ if __name__ == '__main__':
         mySearch = lambda trash,x : np.floor(x/5*32).astype(int)
         g = QuadlinearInterp(f(w_temp,x_temp,y_temp,z_temp),w_list,x_list,y_list,z_list)
         
-        N = 1000
+        N = 1000000
         rand_w = RNG.rand(N)*5.0
         rand_x = RNG.rand(N)*5.0
         rand_y = RNG.rand(N)*5.0
@@ -2354,7 +2353,7 @@ if __name__ == '__main__':
         plt.plot(p)
         
         
-    if True:
+    if False:
         f = lambda w,x,y,z : 4.0*w*z - 2.5*w*x + w*y + 6.0*x*y - 10.0*x*z + 3.0*y*z - 7.0*z + 4.0*x + 2.0*y - 5.0*w
         dfdw = lambda w,x,y,z : 4.0*z - 2.5*x + y - 5.0
         dfdx = lambda w,x,y,z : -2.5*w + 6.0*y - 10.0*z + 4.0
@@ -2380,7 +2379,7 @@ if __name__ == '__main__':
             wxInterpolators.append(temp)
         g = BilinearInterpOnInterp2D(wxInterpolators,y_list,z_list)
         
-        N = 100000
+        N = 1000000
         rand_w = RNG.rand(N)*5.0
         rand_x = RNG.rand(N)*5.0
         rand_y = RNG.rand(N)*5.0
