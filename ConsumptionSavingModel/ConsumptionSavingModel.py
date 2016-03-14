@@ -99,7 +99,33 @@ class MargMargValueFunc():
         c, kappa = self.cFunc.eval_with_derivative(m)
         return kappa*utilityPP(c,gam=self.rho)
 
-
+def PerfectForesightSolver(solution_tp1,beta,rho,R,Gamma,constraint):
+    '''
+    Solves a single period consumption - savings problem for a consumer with perfect foresight.
+    '''
+    if constraint == 0.:
+        m_underbar_t = 0.0
+    else:
+        print 'The unconstrained solution for the Perfect Foresight solution has not been implemented yet.  Solving the constrained problem'
+        m_underbar_t = 0.0
+    #infinte horizon simplification.  This should hold (I think) becausethe range for kappa and whatever the greek sybol for Return Patience Factor is specified in the ConsumerSolution class.__init__
+    kappa = (((R/Gamma) - ((R/Gamma)*((Gamma**(1-rho))*beta))**(1/rho))/(R/Gamma))
+    cFunc = lambda m: kappa*(m - 1 + (1/(1-(1/(R/Gamma)))))
+    
+    
+    #define utility function
+    u = lambda c : utility(c,gam=rho)
+    uP = lambda c : utilityP(c,gam=rho)
+    uPP = lambda c : utilityPP(c,gam=rho)
+    
+    #define value functions
+    vFunc = lambda m: u(cFunc(m))
+    vPfunc = lambda m: uP(cFunc(m))
+    vPPfunc = lambda m: kappa*uPP(cFunc(m)) 
+    
+    solution_t = ConsumerSolution(cFunc=cFunc, vFunc=vFunc, vPfunc=vPfunc, vPPfunc=vPPfunc, m_underbar=m_underbar_t, gothic_h=0.0, kappa_min=1.0, kappa_max=1.0)
+        
+    return solution_t
 
 
 def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
@@ -1326,8 +1352,9 @@ if __name__ == '__main__':
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
 
-    do_hybrid_type = False
-    do_markov_type = True
+    do_hybrid_type          = False
+    do_markov_type          = True
+    do_perfect_foresight    = True    
     
     # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)
@@ -1465,4 +1492,32 @@ if __name__ == '__main__':
         print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
         print('Consumption functions for each discrete state:')
         plotFuncs(MarkovType.solution[0].cFunc,0,50)
+
+
+    if do_perfect_foresight:
+
+        # Make and solve a perfect foresight consumer type who's problem is actually solved analytically,
+        # but which can nonetheless be represented in this framework
+        
+        #PFC_paramteres = (beta = 0.96, Gamma = 1.10, R = 1.03 , rho = 4, constrained = True)
+        PerfectForesightType = deepcopy(LifecycleType)    
+        
+        #tell the model to use the perfect forsight solver
+        PerfectForesightType.solveAPeriod = PerfectForesightSolver
+        PerfectForesightType.time_vary = [] #let the model know that there are no longer time varying parameters
+        PerfectForesightType.time_inv =  PerfectForesightType.time_inv +['beta','Gamma'] #change beta and Gamma from time varying to non time varying
+        #give the model new beta and Gamma parameters to use for the perfect forsight model
+        PerfectForesightType.assignParameters(beta = 0.96,
+                                              Gamma = 1.01)
+        #tell the model not to use the terminal solution as a valid result anymore
+        PerfectForesightType.pseudo_terminal = True
+        
+        start_time = clock()
+        PerfectForesightType.solve()
+        end_time = clock()
+        print('Solving a Perfect Foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
+        PerfectForesightType.unpack_cFunc()
+        PerfectForesightType.timeFwd()
+        
             
+        plotFuncs(PerfectForesightType.cFunc[:],0,5)
