@@ -11,10 +11,10 @@ sys.path.insert(0,'../ConsumptionSavingModel')
 import numpy as np
 from copy import copy, deepcopy
 from time import time
-from HARKutilities import makeUniformDiscreteDistribution, weightedAverageSimData, extractPercentiles, getLorenzPercentiles, avgDataSlice
+from HARKutilities import calculateMeanOneLognormalDiscreteApprox, createFlatStateSpaceFromIndepDiscreteProbs, makeUniformDiscreteDistribution, weightedAverageSimData, extractPercentiles, getLorenzPercentiles, avgDataSlice
 from HARKsimulation import generateDiscreteDraws, generateMeanOneLognormalDraws
 from HARKcore import AgentType
-from HARKparallel import multiThreadCommandsFake
+from HARKparallel import multiThreadCommandsFake, multiThreadCommands
 import SetupParamsCSTW as Params
 import ConsumptionSavingModel as Model
 from scipy.optimize import golden, brentq
@@ -56,8 +56,11 @@ class cstwMPCagent(Model.ConsumerType):
         '''
         Update the income process and the assets grid.
         '''
-        orig_flow = self.time_flow
-        self.updateIncomeProcess()
+        orig_flow = self.time_flow        
+        if self.cycles == 0: # hacky fix for labor supply l_bar
+            self.updateIncomeProcessAlt()
+        else:
+            self.updateIncomeProcess()
         self.updateAssetsGrid()
         self.updateSolutionTerminal()
         self.timeFwd()
@@ -73,6 +76,22 @@ class cstwMPCagent(Model.ConsumerType):
             self.addIncomeShockPaths(scriptR_shocks,xi_shocks)
         if not orig_flow:
             self.timeRev()
+            
+    def updateIncomeProcessAlt(self):
+        tax_rate = (self.income_unemploy*self.p_unemploy)/(self.l_bar*(1.0-self.p_unemploy))
+        xi_dist = deepcopy(calculateMeanOneLognormalDiscreteApprox(self.xi_N,self.xi_sigma[0]))
+        xi_dist[0] = np.insert(xi_dist[0]*(1.0-self.p_unemploy),0,self.p_unemploy)
+        xi_dist[1] = np.insert(self.l_bar*xi_dist[1]*(1.0-tax_rate),0,self.income_unemploy)
+        psi_dist = calculateMeanOneLognormalDiscreteApprox(self.psi_N,self.psi_sigma[0])
+        self.income_distrib = [createFlatStateSpaceFromIndepDiscreteProbs(psi_dist,xi_dist)]
+        if self.income_unemploy > 0:
+            self.p_zero_income = [0.0]
+        else:
+            self.p_zero_income = [self.p_unemploy]
+        if not 'income_distrib' in self.time_vary:
+            self.time_vary.append('income_distrib')
+        if not 'p_zero_income' in self.time_vary:
+            self.time_vary.append('p_zero_income')
             
 
     
@@ -153,7 +172,7 @@ def calculateLorenzDifference(sim_wealth,weights,percentiles,target_levels):
 
 
 # Define the main simulation process for matching the K/Y ratio
-def simulateKYratioDifference(beta,nabla,N,type_list,weights,total_output,target,parallel=None):
+def simulateKYratioDifference(beta,nabla,N,type_list,weights,total_output,target):
     '''
     Assigns a uniform distribution over beta with width 2*nabla and N points, then
     solves and simulates all agent types in type_list and compares the simuated
@@ -163,10 +182,7 @@ def simulateKYratioDifference(beta,nabla,N,type_list,weights,total_output,target
         beta = beta[0]
     beta_list = makeUniformDiscreteDistribution(beta,nabla,N)
     assignBetaDistribution(type_list,beta_list)
-    if parallel is not None:
-        multiThreadCommands(type_list,beta_point_commands,parallel)
-    else:
-        multiThreadCommandsFake(type_list,beta_point_commands)
+    multiThreadCommandsFake(type_list,beta_point_commands)
     my_diff = calculateKYratioDifference(np.vstack((this_type.W_history for this_type in type_list)),np.tile(weights/float(N),N),total_output,target)
     #print('Tried beta=' + str(beta) + ', nabla=' + str(nabla) + ', got diff=' + str(my_diff))
     return my_diff
@@ -180,6 +196,9 @@ def makeCSTWresults(beta,nabla,save_name=None):
     beta_list = makeUniformDiscreteDistribution(beta,nabla,N=Params.pref_type_count)
     assignBetaDistribution(est_type_list,beta_list)
     multiThreadCommandsFake(est_type_list,results_commands)
+    
+    lorenz_distance = np.sqrt(betaDistObjective(nabla))
+    #lorenz_distance = 0.0
     
     if Params.do_lifecycle: # This can probably be removed
         sim_length = Params.total_T
@@ -218,7 +237,7 @@ def makeCSTWresults(beta,nabla,save_name=None):
     kappa_emp = np.sum(sim_kappa[sim_emp]*sim_weight_short[sim_emp])/np.sum(sim_weight_short[sim_emp])
     kappa_ret = np.sum(sim_kappa[sim_ret]*sim_weight_short[sim_ret])/np.sum(sim_weight_short[sim_ret])
     
-    my_cutoffs = [(0.99,1),(0.9,1),(0.8,1),(0.6,1),(0.5,1),(0.4,1),(0.0,0.5)]
+    my_cutoffs = [(0.99,1),(0.9,1),(0.8,1),(0.6,0.8),(0.4,0.6),(0.2,0.4),(0.0,0.2)]
     kappa_by_ratio_groups = avgDataSlice(sim_kappa,sim_ratio,my_cutoffs,sim_weight_short)
     kappa_by_income_groups = avgDataSlice(sim_kappa,sim_income,my_cutoffs,sim_weight_short)
     
@@ -237,21 +256,22 @@ def makeCSTWresults(beta,nabla,save_name=None):
         hand_to_mouth_pct.append(np.sum(these_weights[these_quintiles == (q+1)])/hand_to_mouth_total)
     
     results_string = 'Estimate is beta=' + str(beta) + ', nabla=' + str(nabla) + '\n'
+    results_string += 'Lorenz distance is ' + str(lorenz_distance) + '\n'
     results_string += 'Average MPC for all consumers is ' + mystr(kappa_all) + '\n'
-    results_string += 'Average MPC in the top 1% of W/Y is ' + mystr(kappa_by_ratio_groups[0]) + '\n'
-    results_string += 'Average MPC in the top 10% of W/Y is ' + mystr(kappa_by_ratio_groups[1]) + '\n'
-    results_string += 'Average MPC in the top 20% of W/Y is ' + mystr(kappa_by_ratio_groups[2]) + '\n'
-    results_string += 'Average MPC in the top 40% of W/Y is ' + mystr(kappa_by_ratio_groups[3]) + '\n'
-    results_string += 'Average MPC in the top 50% of W/Y is ' + mystr(kappa_by_ratio_groups[4]) + '\n'
-    results_string += 'Average MPC in the top 60% of W/Y is ' + mystr(kappa_by_ratio_groups[5]) + '\n'
-    results_string += 'Average MPC in the bottom 50% of W/Y is ' + mystr(kappa_by_ratio_groups[6]) + '\n'
-    results_string += 'Average MPC in the top 1% of y is ' + mystr(kappa_by_income_groups[0]) + '\n'
-    results_string += 'Average MPC in the top 10% of y is ' + mystr(kappa_by_income_groups[1]) + '\n'
-    results_string += 'Average MPC in the top 20% of y is ' + mystr(kappa_by_income_groups[2]) + '\n'
-    results_string += 'Average MPC in the top 40% of y is ' + mystr(kappa_by_income_groups[3]) + '\n'
-    results_string += 'Average MPC in the top 50% of y is ' + mystr(kappa_by_income_groups[4]) + '\n'
-    results_string += 'Average MPC in the top 60% of y is ' + mystr(kappa_by_income_groups[5]) + '\n'
-    results_string += 'Average MPC in the bottom 50% of y is ' + mystr(kappa_by_income_groups[6]) + '\n'
+    results_string += 'Average MPC in the top percentile of W/Y is ' + mystr(kappa_by_ratio_groups[0]) + '\n'
+    results_string += 'Average MPC in the top decile of W/Y is ' + mystr(kappa_by_ratio_groups[1]) + '\n'
+    results_string += 'Average MPC in the top quintile of W/Y is ' + mystr(kappa_by_ratio_groups[2]) + '\n'
+    results_string += 'Average MPC in the second quintile of W/Y is ' + mystr(kappa_by_ratio_groups[3]) + '\n'
+    results_string += 'Average MPC in the middle quintile of W/Y is ' + mystr(kappa_by_ratio_groups[4]) + '\n'
+    results_string += 'Average MPC in the fourth quintile of W/Y is ' + mystr(kappa_by_ratio_groups[5]) + '\n'
+    results_string += 'Average MPC in the bottom quintile of W/Y is ' + mystr(kappa_by_ratio_groups[6]) + '\n'
+    results_string += 'Average MPC in the top percentile of y is ' + mystr(kappa_by_income_groups[0]) + '\n'
+    results_string += 'Average MPC in the top decile of y is ' + mystr(kappa_by_income_groups[1]) + '\n'
+    results_string += 'Average MPC in the top quintile of y is ' + mystr(kappa_by_income_groups[2]) + '\n'
+    results_string += 'Average MPC in the second quintile of y is ' + mystr(kappa_by_income_groups[3]) + '\n'
+    results_string += 'Average MPC in the middle quintile of y is ' + mystr(kappa_by_income_groups[4]) + '\n'
+    results_string += 'Average MPC in the fourth quintile of y is ' + mystr(kappa_by_income_groups[5]) + '\n'
+    results_string += 'Average MPC in the bottom quintile of y is ' + mystr(kappa_by_income_groups[6]) + '\n'
     results_string += 'Average MPC for the employed is ' + mystr(kappa_emp) + '\n'
     results_string += 'Average MPC for the unemployed is ' + mystr(kappa_unemp) + '\n'
     results_string += 'Average MPC for the retired is ' + mystr(kappa_ret) + '\n'
@@ -344,6 +364,7 @@ if __name__ == "__main__":
         KY_target = 6.60
     else: # This is hacky until I can find the liquid wealth data and import it
         lorenz_target = getLorenzPercentiles(Params.SCF_wealth,weights=Params.SCF_weights,percentiles=Params.percentiles_to_match)
+        #lorenz_target = np.array([-0.002, 0.01, 0.053,0.171])
         KY_target = 10.26
     
     
@@ -389,7 +410,7 @@ if __name__ == "__main__":
     else:
         # Make the base infinite horizon type and assign income shocks
         InfiniteType = cstwMPCagent(**Params.init_infinite)
-        InfiniteType.update()
+        InfiniteType.tolerance = 0.0001
         InfiniteType.w0 = w0_vector*0.0
         
         # Make histories of permanent income levels for the infinite horizon type
@@ -505,7 +526,10 @@ if __name__ == "__main__":
         #spec_name=None
         makeCSTWresults(beta,nabla,spec_name)
     
-    
+#    t_start = time()
+#    x = betaDistObjective(0.01)    
+#    t_end = time()
+#    print('That test took ' + str(t_end - t_start) + ' seconds.')
     
     
     # =================================================================
@@ -779,4 +803,46 @@ if __name__ == "__main__":
         Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
         for this_type in est_type_list:
             this_type.Y_history = Y_history_i
-    
+            
+    if Params.do_sensitivity[7]: # interest rate sensitivity analysis
+        R_list = np.linspace(1.0,1.04,17).tolist()
+        fit_list = []
+        beta_list = []
+        nabla_list = []
+        kappa_list = []
+        for R in R_list:
+            print('Now estimating model with R = ' + str(R))
+            R_adj = R/InfiniteType.survival_prob[0]
+            Params.diff_save = 1000000.0
+            for this_type in est_type_list:
+                this_type(R = R_adj)
+                this_type.timeRev()
+                this_type.update()
+            psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
+            for t in range(Params.sim_periods):
+                psi_gamma_history_i[t,] = (Params.Gamma_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/R_adj)**(-1)
+            Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
+            for this_type in est_type_list:
+                this_type.Y_history = Y_history_i
+            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
+            nabla = output[0]
+            fit = output[1]
+            beta = Params.beta_save
+            kappa = calcKappaMean(beta,nabla)
+            beta_list.append(beta)
+            nabla_list.append(nabla)
+            fit_list.append(fit)
+            kappa_list.append(kappa)
+        with open('./Results/SensitivityInterestRate.txt','w') as f:
+            my_writer = csv.writer(f, delimiter='\t',)
+            for j in range(len(beta_list)):
+                my_writer.writerow([R_list[j], kappa_list[j], beta_list[j], nabla_list[j], fit_list[j]])
+        for this_type in est_type_list:
+            this_type(R = 1.01/Params.survival_prob_i[0])
+            this_type.update()
+        psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
+        for t in range(Params.sim_periods):
+            psi_gamma_history_i[t,] = (Params.Gamma_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.R)**(-1)
+        Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
+        for this_type in est_type_list:
+            this_type.Y_history = Y_history_i

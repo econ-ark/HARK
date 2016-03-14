@@ -102,7 +102,7 @@ class MargMargValueFunc():
 
 
 
-def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,Gamma,constrained,a_grid,calc_vFunc,cubic_splines):
+def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
     '''
     Solves a single period of a standard consumption-saving problem, representing
     the consumption function as a cubic spline interpolation if cubic_splines is
@@ -128,8 +128,10 @@ def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,surviv
         Interest factor on assets between this period and the succeeding period: w_tp1 = a_t*R
     Gamma: float
         Expected growth factor for permanent income between this period and the succeeding period.
-    constrained: bool
-        Whether this individual may hold net negative assets at the end of the period.
+    constraint: float
+        Borrowing constraint for the minimum allowable assets to end the period
+        with.  If it is less than the natural borrowing constraint, then it is
+        irrelevant; constraint=None indicates no artificial borrowing constraint.
     a_grid: [float]
         A list of beginning-of-period m_t values at which to solve for optimal consumption.
     calc_vFunc: Boolean
@@ -174,10 +176,7 @@ def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,surviv
         kappa_max_t = 1.0/(1.0 + (p_zero_income**(1/rho))*thorn_R/solution_tp1.kappa_max)
     
     # Calculate the minimum allowable value of money resources in this period
-    if constrained:
-        m_underbar_t = 0.0
-    else:
-        m_underbar_t = (solution_tp1.m_underbar - xi_underbar_tp1)*(Gamma*psi_underbar_tp1)/R
+    m_underbar_t = max((solution_tp1.m_underbar - xi_underbar_tp1)*(Gamma*psi_underbar_tp1)/R, constraint)
 
     # Define the borrowing constraint (limiting consumption function)
     constraint_t = lambda m: m - m_underbar_t
@@ -245,7 +244,7 @@ def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,surviv
 
     
 
-def consumptionSavingSolverENDG(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,Gamma,constrained,a_grid,calc_vFunc,cubic_splines):
+def consumptionSavingSolverENDG(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
     '''
     Solves a single period of a standard consumption-saving problem, representing
     the consumption function as a cubic spline interpolation if cubic_splines is
@@ -271,8 +270,10 @@ def consumptionSavingSolverENDG(solution_tp1,income_distrib,p_zero_income,surviv
         Interest factor on assets between this period and the succeeding period: w_tp1 = a_t*R
     Gamma: float
         Expected growth factor for permanent income between this period and the succeeding period.
-    constrained: bool
-        Whether this individual may hold net negative assets at the end of the period.
+    constraint: float
+        Borrowing constraint for the minimum allowable assets to end the period
+        with.  If it is less than the natural borrowing constraint, then it is
+        irrelevant; constraint=None indicates no artificial borrowing constraint.
     a_grid: [float]
         A list of end-of-period asset values (post-decision states) at which to solve for optimal consumption.
     calc_vFunc: Boolean
@@ -317,10 +318,7 @@ def consumptionSavingSolverENDG(solution_tp1,income_distrib,p_zero_income,surviv
         kappa_max_t = 1.0/(1.0 + (p_zero_income**(1/rho))*thorn_R/solution_tp1.kappa_max)
     
     # Calculate the minimum allowable value of money resources in this period
-    if constrained:
-        m_underbar_t = 0.0
-    else:
-        m_underbar_t = (solution_tp1.m_underbar - xi_underbar_tp1)*(Gamma*psi_underbar_tp1)/R
+    m_underbar_t = max((solution_tp1.m_underbar - xi_underbar_tp1)*(Gamma*psi_underbar_tp1)/R, constraint)
 
     # Define the borrowing constraint (limiting consumption function)
     constraint_t = lambda m: m - m_underbar_t
@@ -391,7 +389,7 @@ def consumptionSavingSolverENDG(solution_tp1,income_distrib,p_zero_income,surviv
     
     
     
-def consumptionSavingSolverMarkov(solution_tp1,transition_matrix,income_distrib,p_zero_income,survival_prob,beta,rho,R,Gamma,constrained,a_grid,calc_vFunc,cubic_splines):
+def consumptionSavingSolverMarkov(solution_tp1,transition_matrix,income_distrib,p_zero_income,survival_prob,beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
     '''
     Solves a single period of a standard consumption-saving problem, representing
     the consumption function as a cubic spline interpolation if cubic_splines is
@@ -427,8 +425,10 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_matrix,income_distrib,
         Interest factor on assets between this period and the succeeding period: w_tp1 = a_t*R
     Gamma: float
         Expected growth factor for permanent income between this period and the succeeding period.
-    constrained: bool
-        Whether this individual may hold net negative assets at the end of the period.
+    constraint: float
+        Borrowing constraint for the minimum allowable assets to end the period
+        with.  If it is less than the natural borrowing constraint, then it is
+        irrelevant; constraint=None indicates no artificial borrowing constraint.
     a_grid: [float]
         A list of end-of-period asset values (post-decision states) at which to solve for optimal consumption.
     calc_vFunc: Boolean
@@ -466,10 +466,7 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_matrix,income_distrib,
     for j in range(n_states):
         psi_underbar_tp1 = np.min(income_distrib[j][1])
         xi_underbar_tp1 = np.min(income_distrib[j][2])
-        if constrained:
-            m_underbar_next[j] = 0
-        else:
-            m_underbar_next[j] = (solution_tp1.m_underbar[j] - xi_underbar_tp1)*(Gamma*psi_underbar_tp1)/R
+        m_underbar_next[j] = max((solution_tp1.m_underbar[j] - xi_underbar_tp1)*(Gamma*psi_underbar_tp1)/R, constraint)
     m_underbar_t = np.zeros(n_states) + np.nan
     for i in range(n_states):
         possible_future_states = transition_matrix[i,:] > 0
@@ -618,7 +615,7 @@ class ConsumerType(AgentType):
     constraint_terminal_ = lambda x: x
     solution_terminal_ = ConsumerSolution(cFunc=ConstrainedComposite(cFunc_terminal_,constraint_terminal_), vFunc = vFunc_terminal_, m_underbar=0.0, gothic_h=0.0, kappa_min=1.0, kappa_max=1.0)
     time_vary_ = ['survival_prob','beta','Gamma']
-    time_inv_ = ['rho','R','a_grid','constrained','calc_vFunc','cubic_splines']
+    time_inv_ = ['rho','R','a_grid','constraint','calc_vFunc','cubic_splines']
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
@@ -1322,13 +1319,13 @@ def constructAssetsGrid(parameters):
 
     return a_grid
     
-
+    
 if __name__ == '__main__':
     import SetupConsumerParameters as Params
     from HARKutilities import plotFunc, plotFuncDer, plotFuncs
     from time import clock
-    mystr = lambda number : "{:.4f}".format(number) 
-    
+    mystr = lambda number : "{:.4f}".format(number)
+
     do_hybrid_type = False
     do_markov_type = True
     
@@ -1369,9 +1366,9 @@ if __name__ == '__main__':
     
     # Plot the consumption function and MPC for the infinite horizon consumer
     print('Consumption function:')
-    plotFunc(InfiniteType.cFunc[0],0,50)    # plot consumption
+    plotFunc(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5)    # plot consumption
     print('Marginal consumption function:')
-    plotFuncDer(InfiniteType.cFunc[0],0,5) # plot MPC
+    plotFuncDer(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5) # plot MPC
     if InfiniteType.calc_vFunc:
         print('Value function:')
         plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
@@ -1396,7 +1393,7 @@ if __name__ == '__main__':
     
     # Plot the consumption functions for the cyclical consumer type
     print('Quarterly consumption functions:')
-    plotFuncs(CyclicalType.cFunc,0,5)
+    plotFuncs(CyclicalType.cFunc,CyclicalType.solution[0].m_underbar,5)
     
     
     
@@ -1468,4 +1465,4 @@ if __name__ == '__main__':
         print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
         print('Consumption functions for each discrete state:')
         plotFuncs(MarkovType.solution[0].cFunc,0,50)
-        
+            

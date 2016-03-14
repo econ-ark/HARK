@@ -106,10 +106,11 @@ def minimizePowell(objectiveFunction, parameter_guess, verbose=False):
     return xopt
 
 
-def bootstrapSampleFromData(data,seed=0):
+def bootstrapSampleFromData(data,weights=None,seed=0):
     '''
     Samples rows from the input array of data, generating a new data array with
-    an equal number of rows (records).  Rows are drawn with equal probability.
+    an equal number of rows (records).  Rows are drawn with equal probability
+    by default, but probabilities can be specified with weights (must sum to 1).
     
     Parameters:
     -----------
@@ -126,11 +127,19 @@ def bootstrapSampleFromData(data,seed=0):
     
     # Set up the random number generator
     RNG = np.random.RandomState(seed)
+    N = data.shape[0]
+    
+    # Set up weights
+    if weights is not None:
+        cutoffs = np.cumsum(weights)
+    else:
+        cutoffs = np.linspace(0,1,N)
     
     # Draw random indices
-    N = data.shape[0]
-    indices_temp = np.floor(N*RNG.uniform(size=N))
-    indices = indices_temp.astype(int)
+    
+    #indices_temp = np.floor(N*RNG.uniform(size=N))
+    #indices = indices_temp.astype(int)
+    indices = np.searchsorted(cutoffs,RNG.uniform(size=N))
     
     # Create a bootstrapped sample
     new_data = deepcopy(data[indices,])
