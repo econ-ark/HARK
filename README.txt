@@ -94,7 +94,13 @@ after this, but there is one more step to get dill working.  Navigate to dill's
 directory in the command line, and then type "python setup.py build".  Then you
 should have joblib and dill working on your machine.
 
+Note: If you did not put joblib and dill in one of the paths in sys.path, you will
+need to add the joblib and dill directories to sys.path.  The easiest way to do this
+is to open up Anaconda, and type:
 
+import sys
+sys.path.append('path_to_joblib_directory')
+sys.path.append('path_to_dill_directory')
 
 -------------------------------------------------------------------
 
