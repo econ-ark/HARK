@@ -704,17 +704,17 @@ def consumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,sur
     '''
 
     # Define utility and value functions
-    uP = lambda c : utilityP(c,gam=rho)
+    uP    = lambda c : utilityP(c,gam=rho)
     uPinv = lambda u : utilityP_inv(u,gam=rho)
 
     # Set and update values for this period
-    effective_beta = beta*survival_prob
-    psi_tp1 = income_distrib[1]
-    xi_tp1 = income_distrib[2]
-    prob_tp1 = income_distrib[0]
-    vPfunc_tp1 = solution_tp1.vPfunc
+    effective_beta   = beta*survival_prob
+    prob_tp1         = income_distrib[0]
+    psi_tp1          = income_distrib[1]
+    xi_tp1           = income_distrib[2]
     psi_underbar_tp1 = np.min(psi_tp1)    
-    xi_underbar_tp1 = np.min(xi_tp1)
+    xi_underbar_tp1  = np.min(xi_tp1)
+    vPfunc_tp1       = solution_tp1.vPfunc
     
     # Calculate the minimum allowable value of money resources in this period
     m_underbar_t = max((solution_tp1.m_underbar - xi_underbar_tp1)*(Gamma*psi_underbar_tp1)/R_borrow,
