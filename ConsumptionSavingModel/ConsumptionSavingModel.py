@@ -618,6 +618,107 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_matrix,income_distrib,
     if cubic_splines:
         solution_t.vPPfunc=vPPfunc_t
     return solution_t
+    
+    
+    
+    
+def consumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R_save,R_borrow,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
+    '''
+    Solves a single period of a standard consumption-saving problem, representing
+    the consumption function as a cubic spline interpolation if cubic_splines is
+    True and as a linear interpolation if it is False.  Problem is solved using
+    the method of endogenous gridpoints.
+
+    Parameters:
+    -----------
+    solution_tp1: ConsumerSolution
+        The solution to the following period.
+    income_distrib: [[float]]
+        A list containing three lists of floats, representing a discrete approximation to the income process between
+        the period being solved and the one immediately following (in solution_tp1).  Order: probs, psi, xi
+    p_zero_income: float
+        The probability of receiving zero income in the succeeding period.
+    survival_prob: float
+        Probability of surviving to succeeding period.
+    beta: float
+        Discount factor between this period and the succeeding period.
+    rho: float
+        The coefficient of relative risk aversion
+    R_borrow: float
+        Interest factor on assets between this period and the succeeding period
+        when assets are negative.
+    R_save: float
+        Interest factor on assets between this period and the succeeding period
+        when assets are positive.
+    Gamma: float
+        Expected growth factor for permanent income between this period and the succeeding period.
+    constraint: float
+        Borrowing constraint for the minimum allowable assets to end the period
+        with.  If it is less than the natural borrowing constraint, then it is
+        irrelevant; constraint=None indicates no artificial borrowing constraint.
+    a_grid: [float]
+        A list of end-of-period asset values (post-decision states) at which to solve for optimal consumption.
+
+    Returns:
+    -----------
+    solution_t: ConsumerSolution
+        The solution to this period's problem, obtained using the method of endogenous gridpoints.
+    '''
+
+    # Define utility and value functions
+    uP = lambda c : utilityP(c,gam=rho)
+    uPinv = lambda u : utilityP_inv(u,gam=rho)
+
+    # Set and update values for this period
+    effective_beta = beta*survival_prob
+    psi_tp1 = income_distrib[1]
+    xi_tp1 = income_distrib[2]
+    prob_tp1 = income_distrib[0]
+    vPfunc_tp1 = solution_tp1.vPfunc
+    psi_underbar_tp1 = np.min(psi_tp1)    
+    xi_underbar_tp1 = np.min(xi_tp1)
+    
+    # Calculate the minimum allowable value of money resources in this period
+    m_underbar_t = max((solution_tp1.m_underbar - xi_underbar_tp1)*(Gamma*psi_underbar_tp1)/R_borrow, constraint)
+
+    # Define the borrowing constraint (limiting consumption function)
+    constraint_t = lambda m: m - m_underbar_t
+
+    # Find data for the unconstrained consumption function in this period
+    c_temp = [0.0]  # Limiting consumption is zero as m approaches m_underbar
+    m_temp = [m_underbar_t]
+    a = np.sort(np.hstack((np.asarray(a_grid) + m_underbar_t,np.array([0.0,0.0]))))
+    a_N = a.size
+    R_vec = R_save*np.ones(a_N)
+    R_vec[0:(np.sum(a<=0)-1)] = R_borrow
+    shock_N = xi_tp1.size
+    a_temp = np.tile(a,(shock_N,1))
+    R_temp = np.tile(R_vec,(shock_N,1))
+    psi_temp = (np.tile(psi_tp1,(a_N,1))).transpose()
+    xi_temp = (np.tile(xi_tp1,(a_N,1))).transpose()
+    prob_temp = (np.tile(prob_tp1,(a_N,1))).transpose()
+    m_tp1 = R_temp/(Gamma*psi_temp)*a_temp + xi_temp
+    gothicvP = effective_beta*R_vec*Gamma**(-rho)*np.sum(psi_temp**(-rho)*vPfunc_tp1(m_tp1)*prob_temp,axis=0)
+    c = uPinv(gothicvP)
+    m = c + a
+    #print(m)
+    c_temp += c.tolist()
+    m_temp += m.tolist()
+    
+    # Construct the unconstrained consumption function
+    cFunc_t_unconstrained = LinearInterp(m_temp,c_temp)
+
+    # Combine the constrained and unconstrained functions into the true consumption function
+    cFunc_t = ConstrainedComposite(cFunc_t_unconstrained,constraint_t)
+        
+    # Make the marginal value function and the marginal marginal value function
+    vPfunc_t = lambda m : uP(cFunc_t(m))
+
+    # Store the results in a solution object and return it
+    solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=m_underbar_t)
+    
+    #print('Solved a period with ENDG!')
+    return solution_t
 
 
 
@@ -1399,7 +1500,24 @@ if __name__ == '__main__':
     if InfiniteType.calc_vFunc:
         print('Value function:')
         plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
+        
+        
+    # Make and solve an agent with a kinky interest rate
+    KinkyType = deepcopy(InfiniteType)
+    KinkyType.time_inv.remove('R')
+    KinkyType.time_inv += ['R_borrow','R_save']
+    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0)
+    KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
+    KinkyType.updateAssetsGrid()
     
+    start_time = clock()
+    KinkyType.solve()
+    end_time = clock()
+    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    KinkyType.unpack_cFunc()
+    print('Kinky consumption function:')
+    KinkyType.timeFwd()
+    plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].m_underbar,5)
     
     # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
     # The consumer has income that greatly fluctuates throughout the year.
