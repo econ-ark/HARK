@@ -739,7 +739,6 @@ def consumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,sur
     m_tp1     = R_temp/(Gamma*psi_temp)*a_temp + xi_temp
     gothicvP  = effective_beta*R_vec*Gamma**(-rho)*np.sum(psi_temp**(-rho)*vPfunc_tp1(m_tp1)*
                                                          prob_temp,axis=0)
-    assert False
     c = uPinv(gothicvP)
     m = c + a
     #print(m)
@@ -914,6 +913,7 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverEndgLinear):
         self.R_borrow = R_borrow
         self.R_save   = R_save
 
+
 #    def prepareToGetGothicVP(self):
 #        a       = np.sort(np.hstack((np.asarray(self.a_grid) + self.m_underbar_t,np.array([0.0,0.0]))))
 #        a_N     = a.size
@@ -928,17 +928,17 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverEndgLinear):
 #        m_tp1     = R_temp/(self.Gamma*psi_temp)*a_temp + xi_temp
 #        
 #        self.a    = a #remember a for later        
-#        
+#
 #        return psi_temp,prob_temp,m_tp1
 
         
 
 def consumptionSavingSolverKinkedR2(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,
-                                   R_save,R_borrow,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
+                                   R_borrow,R_save,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
                                        
     solver = ConsumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,
-                                   R_save,R_borrow,Gamma,constraint,a_grid,calc_vFunc,cubic_splines)
-                                   
+                                   R_borrow,R_save,Gamma,constraint,a_grid,calc_vFunc,cubic_splines)
+                               
     psi_temp,prob_temp,m_tp1 = solver.prepareToGetGothicVP()           
     gothicvP                 = solver.getGothicVP(psi_temp,prob_temp,m_tp1)                        
     solution                 = solver.getSolution(gothicvP)
@@ -1750,8 +1750,9 @@ if __name__ == '__main__':
 
     KinkyType.time_inv.remove('R')
     KinkyType.time_inv += ['R_borrow','R_save']
-    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0)
-    
+    #KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0)
+    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = -.2, a_size = 48, cycles=0)
+
 #    KinkyType(R = 1.03, constraint = None, a_size = 48, cycles=0)
     KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
     KinkyType.updateAssetsGrid()
