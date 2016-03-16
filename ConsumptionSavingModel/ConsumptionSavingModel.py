@@ -440,7 +440,7 @@ def consumptionSavingSolverENDG(solution_tp1,income_distrib,p_zero_income,surviv
     
     
     
-def consumptionSavingSolverMarkov(solution_tp1,transition_matrix,income_distrib,p_zero_income,
+def consumptionSavingSolverMarkov(solution_tp1,transition_array,income_distrib,p_zero_income,
                                   survival_prob,beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,
                                   cubic_splines):
     '''
@@ -455,9 +455,9 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_matrix,income_distrib,
     -----------
     solution_tp1: ConsumerSolution
         The solution to the following period.
-    transition_matrix : numpy.array
+    transition_array : numpy.array
         An NxN array representing a Markov transition matrix between discrete
-        states.  The i,j-th element of transition_matrix is the probability of
+        states.  The i,j-th element of transition_array is the probability of
         moving from state i in period t to state j in period t+1.
     income_distrib: [[[numpy.array]]]
         A list of lists containing three arrays of floats, representing a discrete
@@ -515,7 +515,7 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_matrix,income_distrib,
     # Find the borrowing constraint for each current state i as well as the
     # probability of receiving zero income.
     n_states           = p_zero_income.size
-    p_zero_income_now  = np.dot(transition_matrix,p_zero_income)
+    p_zero_income_now  = np.dot(transition_array,p_zero_income)
     m_underbar_next    = np.zeros(n_states) + np.nan
     for j in range(n_states):
         psi_underbar_tp1   = np.min(income_distrib[j][1])
@@ -524,7 +524,7 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_matrix,income_distrib,
                                 (Gamma*psi_underbar_tp1)/R, constraint)
     m_underbar_t           = np.zeros(n_states) + np.nan
     for i in range(n_states):
-        possible_future_states = transition_matrix[i,:] > 0
+        possible_future_states = transition_array[i,:] > 0
         m_underbar_t[i]        = np.max(m_underbar_next[possible_future_states])
     
     # Set up arrays to hold expected marginal value (etc) for each possible state
@@ -573,17 +573,17 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_matrix,income_distrib,
     # Calculate the bounding MPCs and PDV of human wealth for each state
     if calc_vFunc or cubic_splines:
         h_tp1             = expY_tp1 + solution_tp1.gothic_h # beginning of period human wealth next period
-        gothic_h_t        = Gamma/R*np.dot(transition_matrix,h_tp1) # end-of-period human wealth this period
+        gothic_h_t        = Gamma/R*np.dot(transition_array,h_tp1) # end-of-period human wealth this period
         kappa_min_t       = 1.0/(1.0 + thorn_R/solution_tp1.kappa_min) # lower bound on MPC as m --> infty
-        exp_kappa_max_tp1 = (np.dot(transition_matrix,p_zero_income*solution_tp1.kappa_max**(-rho))/
+        exp_kappa_max_tp1 = (np.dot(transition_array,p_zero_income*solution_tp1.kappa_max**(-rho))/
                              p_zero_income_now)**(-1/rho) # expectation of upper bound on MPC in t+1 from perspective of t
         kappa_max_t       = 1.0/(1.0 + (p_zero_income_now**(1.0/rho))*thorn_R/exp_kappa_max_tp1)
     
     # Use the transition probabilities to calculate expected marginal value (etc)
     # *from* each discrete states, weighting across future discrete states
-    gothicvP      = np.dot(transition_matrix,gothicvP_next)        
+    gothicvP      = np.dot(transition_array,gothicvP_next)        
     if cubic_splines:
-        gothicvPP = np.dot(transition_matrix,gothicvPP_next)
+        gothicvPP = np.dot(transition_array,gothicvPP_next)
     
     # Compute consumption, (endogenous) money gridpoints, and the MPC for each
     # point in a_grid for each discrete state this period
@@ -598,7 +598,7 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_matrix,income_distrib,
         
     # Compute value at each endogenous gridpoint, and transform it
     if calc_vFunc:
-        gothicv  = np.dot(transition_matrix,gothicv_next)
+        gothicv  = np.dot(transition_array,gothicv_next)
         v_temp   = u(np.array(c)) + gothicv
         vQ_temp  = uinv(v_temp) # value transformed through inverse utility
         vPQ_temp = gothicvP*uinvP(v_temp) # derivative of transformed value
@@ -894,7 +894,7 @@ class ConsumerType(AgentType):
         in an infinite horizon model with only one period repeated indefinitely.
         Also calculates kappa_min and kappa_max for infinite horizon.
         '''
-        if hasattr(self,'transition_matrix'):
+        if hasattr(self,'transition_array'):
             n_states = self.p_zero_income[0].size
             expY_tp1 = np.zeros(n_states) + np.nan
             for j in range(n_states):
@@ -903,9 +903,9 @@ class ConsumerType(AgentType):
                 prob_tp1    = self.income_distrib[0][j][0]
                 expY_tp1[j] = np.dot(prob_tp1,psi_tp1*xi_tp1)                
             gothic_h        = np.dot(np.dot(np.linalg.inv((self.R/self.Gamma[0])*np.eye(n_states) -
-                              self.transition_matrix),self.transition_matrix),expY_tp1)
+                              self.transition_array),self.transition_array),expY_tp1)
             
-            p_zero_income_now = np.dot(self.transition_matrix,self.p_zero_income[0])
+            p_zero_income_now = np.dot(self.transition_array,self.p_zero_income[0])
             thornR            = (self.beta[0]*self.R)**(1.0/self.rho)/self.R
             kappa_max         = 1.0 - p_zero_income_now**(1.0/self.rho)*thornR # THIS IS WRONG
             
@@ -1635,7 +1635,7 @@ if __name__ == '__main__':
         p_unemploy_good = p_reemploy*urate_good/(1-urate_good)
         p_unemploy_bad = p_reemploy*urate_bad/(1-urate_bad)
         boom_prob = 1.0/recession_length
-        transition_matrix = np.array([[(1-p_unemploy_good)*(1-bust_prob),p_unemploy_good*(1-bust_prob),(1-p_unemploy_good)*bust_prob,p_unemploy_good*bust_prob],
+        transition_array = np.array([[(1-p_unemploy_good)*(1-bust_prob),p_unemploy_good*(1-bust_prob),(1-p_unemploy_good)*bust_prob,p_unemploy_good*bust_prob],
                                       [p_reemploy*(1-bust_prob),(1-p_reemploy)*(1-bust_prob),p_reemploy*bust_prob,(1-p_reemploy)*bust_prob],
                                       [(1-p_unemploy_bad)*boom_prob,p_unemploy_bad*boom_prob,(1-p_unemploy_bad)*(1-boom_prob),p_unemploy_bad*(1-boom_prob)],
                                       [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
@@ -1656,8 +1656,8 @@ if __name__ == '__main__':
         
         MarkovType.income_distrib = [[employed_income_dist,unemployed_income_dist,employed_income_dist,unemployed_income_dist]]
         MarkovType.p_zero_income = p_zero_income
-        MarkovType.transition_matrix = transition_matrix
-        MarkovType.time_inv.append('transition_matrix')
+        MarkovType.transition_array = transition_array
+        MarkovType.time_inv.append('transition_array')
         MarkovType.solveAPeriod = consumptionSavingSolverMarkov
         MarkovType.cycles = 0
         
