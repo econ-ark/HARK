@@ -914,22 +914,22 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverEndgLinear):
         self.R_save   = R_save
 
 
-#    def prepareToGetGothicVP(self):
-#        a       = np.sort(np.hstack((np.asarray(self.a_grid) + self.m_underbar_t,np.array([0.0,0.0]))))
-#        a_N     = a.size
-#        R_vec   = self.R_save*np.ones(a_N)
-#        R_vec[0:(np.sum(a<=0)-1)]   = self.R_borrow
-#        shock_N   = self.xi_tp1.size
-#        a_temp    = np.tile(a,(shock_N,1))
-#        R_temp    = np.tile(R_vec,(shock_N,1))
-#        psi_temp  = (np.tile(self.psi_tp1,(a_N,1))).transpose()
-#        xi_temp   = (np.tile(self.xi_tp1,(a_N,1))).transpose()
-#        prob_temp = (np.tile(self.prob_tp1,(a_N,1))).transpose()
-#        m_tp1     = R_temp/(self.Gamma*psi_temp)*a_temp + xi_temp
-#        
-#        self.a    = a #remember a for later        
-#
-#        return psi_temp,prob_temp,m_tp1
+    def prepareToGetGothicVP(self):
+        a       = np.sort(np.hstack((np.asarray(self.a_grid) + self.m_underbar_t,np.array([0.0,0.0]))))
+        a_N     = a.size
+        R_vec   = self.R_save*np.ones(a_N)
+        R_vec[0:(np.sum(a<=0)-1)]   = self.R_borrow
+        shock_N   = self.xi_tp1.size
+        a_temp    = np.tile(a,(shock_N,1))
+        R_temp    = np.tile(R_vec,(shock_N,1))
+        psi_temp  = (np.tile(self.psi_tp1,(a_N,1))).transpose()
+        xi_temp   = (np.tile(self.xi_tp1,(a_N,1))).transpose()
+        prob_temp = (np.tile(self.prob_tp1,(a_N,1))).transpose()
+        m_tp1     = R_temp/(self.Gamma*psi_temp)*a_temp + xi_temp
+        
+        self.a    = a #remember a for later        
+
+        return psi_temp,prob_temp,m_tp1
 
         
 
