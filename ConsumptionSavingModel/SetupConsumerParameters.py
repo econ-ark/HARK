@@ -26,7 +26,7 @@ psi_N = 6                           # Number of points in discrete approximation
 xi_N = 6                            # Number of points in discrete approximation to transitory income shocks
 p_unemploy = 0.05                  # Probability of unemployment while working
 p_unemploy_retire = 0.0005          # Probability of "unemployment" while retired
-income_unemploy = 0.0              # Unemployment benefits replacement rate
+income_unemploy = 0.3              # Unemployment benefits replacement rate
 income_unemploy_retire = 0.0        # Ditto when retired
 
 final_age = 90                      # Age at which the problem ends (die with certainty)

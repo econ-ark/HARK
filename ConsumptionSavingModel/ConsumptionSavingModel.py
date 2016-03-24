@@ -12,12 +12,12 @@ from HARKsimulation import generateMeanOneLognormalDraws, generateBernoulliDraws
 from scipy.optimize import newton, brentq
 from copy import deepcopy, copy
 
-utility = CRRAutility
-utilityP = CRRAutilityP
-utilityPP = CRRAutilityPP
+utility      = CRRAutility
+utilityP     = CRRAutilityP
+utilityPP    = CRRAutilityPP
 utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
-utility_inv = CRRAutility_inv
+utility_inv  = CRRAutility_inv
 
 # =====================================================================
 # === Classes and functions used to solve consumption-saving models ===
@@ -655,114 +655,210 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_array,income_distrib,p
     return solution_t
     
     
+
+
+class ConsumptionSavingSolverEndgLinear(object):
+    """
+    Class to solve the consumptions savings problem with endogenous gridpoints
     
+    This class only does linear interpolation
+    """    
     
-def consumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,
-                                   R_save,R_borrow,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
-    '''
-    Solves a single period of a standard consumption-saving problem, representing
-    the consumption function as a cubic spline interpolation if cubic_splines is
-    True and as a linear interpolation if it is False.  Problem is solved using
-    the method of endogenous gridpoints.
-
-    Parameters:
-    -----------
-    solution_tp1: ConsumerSolution
-        The solution to the following period.
-    income_distrib: [[float]]
-        A list containing three lists of floats, representing a discrete approximation to the income
-        process between the period being solved and the one immediately following (in solution_tp1).
-        Order: probs, psi, xi
-    p_zero_income: float
-        The probability of receiving zero income in the succeeding period.
-    survival_prob: float
-        Probability of surviving to succeeding period.
-    beta: float
-        Discount factor between this period and the succeeding period.
-    rho: float
-        The coefficient of relative risk aversion
-    R_borrow: float
-        Interest factor on assets between this period and the succeeding period
-        when assets are negative.
-    R_save: float
-        Interest factor on assets between this period and the succeeding period
-        when assets are positive.
-    Gamma: float
-        Expected growth factor for permanent income between this period and the succeeding period.
-    constraint: float
-        Borrowing constraint for the minimum allowable assets to end the period
-        with.  If it is less than the natural borrowing constraint, then it is
-        irrelevant; constraint=None indicates no artificial borrowing constraint.
-    a_grid: [float]
-        A list of end-of-period asset values (post-decision states) at which to solve for optimal
-        consumption.
-
-    Returns:
-    -----------
-    solution_t: ConsumerSolution
-        The solution to this period's problem, obtained using the method of endogenous gridpoints.
-    '''
-
-    # Define utility and value functions
-    uP    = lambda c : utilityP(c,gam=rho)
-    uPinv = lambda u : utilityP_inv(u,gam=rho)
-
-    # Set and update values for this period
-    effective_beta   = beta*survival_prob
-    prob_tp1         = income_distrib[0]
-    psi_tp1          = income_distrib[1]
-    xi_tp1           = income_distrib[2]
-    psi_underbar_tp1 = np.min(psi_tp1)    
-    xi_underbar_tp1  = np.min(xi_tp1)
-    vPfunc_tp1       = solution_tp1.vPfunc
-    
-    # Calculate the minimum allowable value of money resources in this period
-    m_underbar_t = max((solution_tp1.m_underbar - xi_underbar_tp1)*(Gamma*psi_underbar_tp1)/R_borrow,
-                       constraint)
-
-    # Define the borrowing constraint (limiting consumption function)
-    constraint_t = lambda m: m - m_underbar_t
-
-    # Find data for the unconstrained consumption function in this period
-    c_temp = [0.0]  # Limiting consumption is zero as m approaches m_underbar
-    m_temp = [m_underbar_t]
-    a       = np.sort(np.hstack((np.asarray(a_grid) + m_underbar_t,np.array([0.0,0.0]))))
-    a_N     = a.size
-    R_vec   = R_save*np.ones(a_N)
-    R_vec[0:(np.sum(a<=0)-1)]   = R_borrow
-    shock_N   = xi_tp1.size
-    a_temp    = np.tile(a,(shock_N,1))
-    R_temp    = np.tile(R_vec,(shock_N,1))
-    psi_temp  = (np.tile(psi_tp1,(a_N,1))).transpose()
-    xi_temp   = (np.tile(xi_tp1,(a_N,1))).transpose()
-    prob_temp = (np.tile(prob_tp1,(a_N,1))).transpose()
-    m_tp1     = R_temp/(Gamma*psi_temp)*a_temp + xi_temp
-    gothicvP  = effective_beta*R_vec*Gamma**(-rho)*np.sum(psi_temp**(-rho)*vPfunc_tp1(m_tp1)*
-                                                         prob_temp,axis=0)
-    c = uPinv(gothicvP)
-    m = c + a
-    #print(m)
-    c_temp += c.tolist()
-    m_temp += m.tolist()
-    
-    # Construct the unconstrained consumption function
-    cFunc_t_unconstrained = LinearInterp(m_temp,c_temp)
-
-    # Combine the constrained and unconstrained functions into the true consumption function
-    cFunc_t = ConstrainedComposite(cFunc_t_unconstrained,constraint_t)
+    def defineUtilityFunctions(self,rho):
+        self.uP    = lambda c : utilityP(c,gam=rho)
+        self.uPinv = lambda u : utilityP_inv(u,gam=rho)
         
-    # Make the marginal value function and the marginal marginal value function
-    vPfunc_t = lambda m : uP(cFunc_t(m))
 
-    # Store the results in a solution object and return it
-    solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=m_underbar_t)
+    def setAndUpdateValues(self,solution_tp1,income_distrib,survival_prob,beta):
+        self.effective_beta   = beta*survival_prob
+        self.prob_tp1         = income_distrib[0]
+        self.psi_tp1          = income_distrib[1]
+        self.xi_tp1           = income_distrib[2]
+        self.psi_underbar_tp1 = np.min(self.psi_tp1)    
+        self.xi_underbar_tp1  = np.min(self.xi_tp1)
+        self.vPfunc_tp1       = solution_tp1.vPfunc        
+
+    def defineBorrowingConstraint(self,solution_tp1,R,Gamma,constraint):
+        
+        # Calculate the minimum allowable value of money resources in this period
+        self.m_underbar_t = max((solution_tp1.m_underbar - self.xi_underbar_tp1)*
+                                (Gamma*self.psi_underbar_tp1)/R, constraint)
+
+        # Define the borrowing constraint (limiting consumption function)
+        self.constraint_t = lambda m: m - self.m_underbar_t
+
+
     
-    #print('Solved a period with ENDG!')
-    return solution_t
+    def __init__(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,Gamma,
+                 constraint,a_grid,calc_vFunc,cubic_splines):
+        
+        self.solution_tp1    = solution_tp1
+        self.income_distrib  = income_distrib
+        self.p_zero_income   = p_zero_income
+        self.survival_prob   = survival_prob
+        self.beta            = beta
+        self.rho             = rho
+        self.R               = R
+        self.Gamma           = Gamma
+        self.constraint      = constraint
+        self.a_grid          = a_grid
+        self.calc_vFunc      = calc_vFunc
+        self.cubic_splines   = cubic_splines
+
+        # Define the functions associated with utility
+        self.defineUtilityFunctions(rho)
+
+        self.setAndUpdateValues(solution_tp1,income_distrib,survival_prob,beta)
+
+        self.defineBorrowingConstraint(solution_tp1,R,Gamma,constraint)
 
 
 
+    def prepareToGetGothicVP(self):
+        """
+        Create some things we need to compute GothicvP
+        """        
+        
+        a         = np.sort(np.hstack((np.asarray(self.a_grid) + 
+                    self.m_underbar_t,np.array([0.0,0.0]))))
+        a_N       = a.size
+        shock_N   = self.xi_tp1.size
+        a_temp    = np.tile(a,(shock_N,1))
+        psi_temp  = (np.tile(self.psi_tp1,(a_N,1))).transpose()
+        xi_temp   = (np.tile(self.xi_tp1,(a_N,1))).transpose()
+        prob_temp = (np.tile(self.prob_tp1,(a_N,1))).transpose()
+        m_tp1     = self.R/(self.Gamma*psi_temp)*a_temp + xi_temp
+        
+        return a,psi_temp,prob_temp,m_tp1
 
+
+    def getGothicVP(self,psi_temp,prob_temp,m_tp1):
+        """
+        Find data for the unconstrained consumption function in this period
+        """
+        
+        gothicvP  = self.effective_beta*self.R*self.Gamma**(-self.rho)*np.sum(
+                    psi_temp**(-self.rho)*self.vPfunc_tp1(m_tp1)*prob_temp,axis=0)
+                    
+        return gothicvP
+                    
+    def getSolution(self,a,gothicvP):
+        """
+        Given a and gothicvP, return the solution for this period.
+        """
+
+        c_temp    = [0.0]  # Limiting consumption is zero as m approaches m_underbar
+        m_temp    = [self.m_underbar_t]
+        
+        c = self.uPinv(gothicvP)
+        m = c + a
+
+        c_temp += c.tolist()
+        m_temp += m.tolist()
+        
+        # Construct the unconstrained consumption function
+        cFunc_t_unconstrained = LinearInterp(m_temp,c_temp)
+    
+        # Combine the constrained and unconstrained functions into the true consumption function
+        cFunc_t = ConstrainedComposite(cFunc_t_unconstrained,self.constraint_t)
+            
+        # Make the marginal value function and the marginal marginal value function
+        vPfunc_t = lambda m : self.uP(cFunc_t(m))
+    
+        # Store the results in a solution object and return it
+        solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=self.m_underbar_t)
+        
+        #print('Solved a period with ENDG!')
+        return solution_t
+        
+    def solve(self):
+        a,psi_temp,prob_temp,m_tp1 = self.prepareToGetGothicVP()           
+        gothicvP                   = self.getGothicVP(psi_temp,prob_temp,m_tp1)                        
+        solution                   = self.getSolution(a,gothicvP)
+        
+        return solution        
+       
+        
+        
+def consumptionSavingSolverEndgLinear(solution_tp1,income_distrib,p_zero_income,survival_prob,
+                                      beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
+                                       
+    solver = ConsumptionSavingSolverEndgLinear(solution_tp1,income_distrib,p_zero_income,
+                                               survival_prob,beta,rho,R,Gamma,constraint,a_grid,
+                                               calc_vFunc,cubic_splines)
+                    
+    solution                   = solver.solve()
+
+    return solution             
+        
+
+
+class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverEndgLinear):
+    """
+    A class to solve a consumption-savings problem where the interest rate on debt differs
+    from the interest rate on savings.
+    
+    See documentation for ConsumptionSavingSolverEndgLinear.  Inputs and outputs here are identical,
+    except there are two interest rates as inputs (R_save and R_borrow) instead of one (R).
+    """
+
+
+    def __init__(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,
+                                   R_borrow,R_save,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):        
+
+        # Initialize the solver.  Most of the steps are exactly the same as in the Endogenous Grid
+        # linear case, so start with that.
+        ConsumptionSavingSolverEndgLinear.__init__(self,solution_tp1,income_distrib,p_zero_income,
+                                                   survival_prob,beta,rho,R_borrow,Gamma,constraint,
+                                                   a_grid,calc_vFunc,cubic_splines) 
+
+        # Assign the interest rates as class attributes, to use them later.
+        self.R_borrow = R_borrow
+        self.R_save   = R_save
+
+
+    def prepareToGetGothicVP(self):
+        """
+        Method to prepare for calculating gothicvP.
+        
+        This differs from the baseline case because different savings choices yield different
+        interest rates.
+        """
+        
+        a         = np.sort(np.hstack((np.asarray(self.a_grid) + 
+                    self.m_underbar_t,np.array([0.0,0.0]))))
+        a_N       = a.size
+        shock_N   = self.xi_tp1.size
+        a_temp    = np.tile(a,(shock_N,1))
+        psi_temp  = (np.tile(self.psi_tp1,(a_N,1))).transpose()
+        xi_temp   = (np.tile(self.xi_tp1,(a_N,1))).transpose()
+        prob_temp = (np.tile(self.prob_tp1,(a_N,1))).transpose()
+
+        R_vec     = self.R_save*np.ones(a_N)
+        R_vec[0:(np.sum(a<=0)-1)]   = self.R_borrow
+        
+        #self.R is used in getGothicVp        
+        self.R    = R_vec
+
+        R_temp    = np.tile(R_vec,(shock_N,1))
+        m_tp1     = R_temp/(self.Gamma*psi_temp)*a_temp + xi_temp
+        return a,psi_temp,prob_temp,m_tp1
+
+
+def consumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,
+                                   survival_prob,beta,rho,R_borrow,R_save,Gamma,constraint,
+                                   a_grid,calc_vFunc,cubic_splines):
+                                       
+    solver = ConsumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,survival_prob,
+                                            beta,rho,R_borrow,R_save,Gamma,constraint,a_grid,
+                                            calc_vFunc,cubic_splines)
+
+    solution = solver.solve()
+
+    return solution                                   
+
+
+   
 # ============================================================================
 # == A class for representing types of consumer agents (and things they do) ==
 # ============================================================================
@@ -1512,8 +1608,8 @@ if __name__ == '__main__':
     mystr = lambda number : "{:.4f}".format(number)
 
     do_hybrid_type          = False
-    do_markov_type          = True
-    do_perfect_foresight    = True    
+    do_markov_type          = False
+    do_perfect_foresight    = False   
     
     # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)
@@ -1525,12 +1621,12 @@ if __name__ == '__main__':
     LifecycleType.unpack_cFunc()
     LifecycleType.timeFwd()
     
-    # Plot the consumption functions during working life
-    print('Consumption functions while working:')
-    plotFuncs(LifecycleType.cFunc[:40],0,5)
-    # Plot the consumption functions during retirement
-    print('Consumption functions while retired:')
-    plotFuncs(LifecycleType.cFunc[40:],0,5)
+#    # Plot the consumption functions during working life
+#    print('Consumption functions while working:')
+#    plotFuncs(LifecycleType.cFunc[:40],0,5)
+#    # Plot the consumption functions during retirement
+#    print('Consumption functions while retired:')
+#    plotFuncs(LifecycleType.cFunc[40:],0,5)
     LifecycleType.timeRev()
     
     
@@ -1550,21 +1646,25 @@ if __name__ == '__main__':
     print('Solving an infinite horizon consumer took ' + mystr(end_time-start_time) + ' seconds.')
     InfiniteType.unpack_cFunc()
     
-    # Plot the consumption function and MPC for the infinite horizon consumer
-    print('Consumption function:')
-    plotFunc(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5)    # plot consumption
-    print('Marginal consumption function:')
-    plotFuncDer(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5) # plot MPC
-    if InfiniteType.calc_vFunc:
-        print('Value function:')
-        plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
+#    # Plot the consumption function and MPC for the infinite horizon consumer
+#    print('Consumption function:')
+#    plotFunc(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5)    # plot consumption
+#    print('Marginal consumption function:')
+#    plotFuncDer(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5) # plot MPC
+#    if InfiniteType.calc_vFunc:
+#        print('Value function:')
+#        plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
         
         
     # Make and solve an agent with a kinky interest rate
     KinkyType = deepcopy(InfiniteType)
+
     KinkyType.time_inv.remove('R')
     KinkyType.time_inv += ['R_borrow','R_save']
-    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0)
+    #KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0)
+    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0,income_unemploy = .3)
+
+#    KinkyType(R = 1.03, constraint = None, a_size = 48, cycles=0)
     KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
     KinkyType.updateAssetsGrid()
     
@@ -1577,123 +1677,123 @@ if __name__ == '__main__':
     KinkyType.timeFwd()
     plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].m_underbar,5)
     
-    # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
-    # The consumer has income that greatly fluctuates throughout the year.
-    CyclicalType = deepcopy(LifecycleType)
-    CyclicalType.assignParameters(survival_prob = [0.98]*4,
-                                      beta = [0.96]*4,
-                                      Gamma = [1.1, 0.3, 2.8, 1.1],
-                                      cycles = 0) # This is what makes the type (cyclically) infinite horizon)
-    CyclicalType.income_distrib = [LifecycleType.income_distrib[-1]]*4
-    CyclicalType.p_zero_income = [LifecycleType.p_zero_income[-1]]*4
-    
-    start_time = clock()
-    CyclicalType.solve()
-    end_time = clock()
-    print('Solving a cyclical consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    CyclicalType.unpack_cFunc()
-    CyclicalType.timeFwd()
-    
-    # Plot the consumption functions for the cyclical consumer type
-    print('Quarterly consumption functions:')
-    plotFuncs(CyclicalType.cFunc,CyclicalType.solution[0].m_underbar,5)
-    
-    
-    
-    # Make and solve a "hybrid" consumer who solves an infinite horizon problem by
-    # alternating between ENDG and EXOG each period.  Yes, this is weird.
-    if do_hybrid_type:
-        HybridType = deepcopy(InfiniteType)
-        HybridType.assignParameters(survival_prob = 2*[0.98],
-                                      beta = 2*[0.96],
-                                      Gamma = 2*[1.01])
-        HybridType.income_distrib = 2*[LifecycleType.income_distrib[-1]]
-        HybridType.p_zero_income = 2*[LifecycleType.p_zero_income[-1]]
-        HybridType.time_vary.append('solveAPeriod')
-        HybridType.solveAPeriod = [consumptionSavingSolverENDG,consumptionSavingSolverEXOG] # alternated between ENDG and EXOG
-        
-        start_time = clock()
-        HybridType.solve()
-        end_time = clock()
-        print('Solving a "hybrid" consumer took ' + mystr(end_time-start_time) + ' seconds.')
-        HybridType.unpack_cFunc()
-        
-        # Plot the consumption function for the cyclical consumer type
-        print('"Hybrid solver" consumption function:')
-        plotFunc(HybridType.cFunc[0],0,5)
-        
-    
-    # Make and solve a type that has serially correlated unemployment   
-    if do_markov_type:
-        # Define the Markov transition matrix
-        unemp_length = 5
-        urate_good = 0.05
-        urate_bad = 0.12
-        bust_prob = 0.01
-        recession_length = 20
-        p_reemploy =1.0/unemp_length
-        p_unemploy_good = p_reemploy*urate_good/(1-urate_good)
-        p_unemploy_bad = p_reemploy*urate_bad/(1-urate_bad)
-        boom_prob = 1.0/recession_length
-        transition_array = np.array([[(1-p_unemploy_good)*(1-bust_prob),p_unemploy_good*(1-bust_prob),(1-p_unemploy_good)*bust_prob,p_unemploy_good*bust_prob],
-                                      [p_reemploy*(1-bust_prob),(1-p_reemploy)*(1-bust_prob),p_reemploy*bust_prob,(1-p_reemploy)*bust_prob],
-                                      [(1-p_unemploy_bad)*boom_prob,p_unemploy_bad*boom_prob,(1-p_unemploy_bad)*(1-boom_prob),p_unemploy_bad*(1-boom_prob)],
-                                      [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
-        
-        MarkovType = deepcopy(InfiniteType)
-        xi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.xi_N, 0.1)
-        psi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.psi_N, 0.1)
-        employed_income_dist = createFlatStateSpaceFromIndepDiscreteProbs(psi_dist, xi_dist)
-        employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]
-        unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
-        p_zero_income = [np.array([0.0,1.0,0.0,1.0])]
-        
-        MarkovType.solution_terminal.cFunc = 4*[MarkovType.solution_terminal.cFunc]
-        MarkovType.solution_terminal.vFunc = 4*[MarkovType.solution_terminal.vFunc]
-        MarkovType.solution_terminal.vPfunc = 4*[MarkovType.solution_terminal.vPfunc]
-        MarkovType.solution_terminal.vPPfunc = 4*[MarkovType.solution_terminal.vPPfunc]
-        MarkovType.solution_terminal.m_underbar = 4*[MarkovType.solution_terminal.m_underbar]
-        
-        MarkovType.income_distrib = [[employed_income_dist,unemployed_income_dist,employed_income_dist,unemployed_income_dist]]
-        MarkovType.p_zero_income = p_zero_income
-        MarkovType.transition_array = transition_array
-        MarkovType.time_inv.append('transition_array')
-        MarkovType.solveAPeriod = consumptionSavingSolverMarkov
-        MarkovType.cycles = 0
-        
-        MarkovType.timeFwd()
-        start_time = clock()
-        MarkovType.solve()
-        end_time = clock()
-        print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
-        print('Consumption functions for each discrete state:')
-        plotFuncs(MarkovType.solution[0].cFunc,0,50)
-
-
-    if do_perfect_foresight:
-
-        # Make and solve a perfect foresight consumer type who's problem is actually solved analytically,
-        # but which can nonetheless be represented in this framework
-        
-        #PFC_paramteres = (beta = 0.96, Gamma = 1.10, R = 1.03 , rho = 4, constrained = True)
-        PerfectForesightType = deepcopy(LifecycleType)    
-        
-        #tell the model to use the perfect forsight solver
-        PerfectForesightType.solveAPeriod = PerfectForesightSolver
-        PerfectForesightType.time_vary = [] #let the model know that there are no longer time varying parameters
-        PerfectForesightType.time_inv =  PerfectForesightType.time_inv +['beta','Gamma'] #change beta and Gamma from time varying to non time varying
-        #give the model new beta and Gamma parameters to use for the perfect forsight model
-        PerfectForesightType.assignParameters(beta = 0.96,
-                                              Gamma = 1.01)
-        #tell the model not to use the terminal solution as a valid result anymore
-        PerfectForesightType.pseudo_terminal = True
-        
-        start_time = clock()
-        PerfectForesightType.solve()
-        end_time = clock()
-        print('Solving a Perfect Foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
-        PerfectForesightType.unpack_cFunc()
-        PerfectForesightType.timeFwd()
-        
-            
-        plotFuncs(PerfectForesightType.cFunc[:],0,5)
+#    # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
+#    # The consumer has income that greatly fluctuates throughout the year.
+#    CyclicalType = deepcopy(LifecycleType)
+#    CyclicalType.assignParameters(survival_prob = [0.98]*4,
+#                                      beta = [0.96]*4,
+#                                      Gamma = [1.1, 0.3, 2.8, 1.1],
+#                                      cycles = 0) # This is what makes the type (cyclically) infinite horizon)
+#    CyclicalType.income_distrib = [LifecycleType.income_distrib[-1]]*4
+#    CyclicalType.p_zero_income = [LifecycleType.p_zero_income[-1]]*4
+#    
+#    start_time = clock()
+#    CyclicalType.solve()
+#    end_time = clock()
+#    print('Solving a cyclical consumer took ' + mystr(end_time-start_time) + ' seconds.')
+#    CyclicalType.unpack_cFunc()
+#    CyclicalType.timeFwd()
+#    
+#    # Plot the consumption functions for the cyclical consumer type
+#    print('Quarterly consumption functions:')
+#    plotFuncs(CyclicalType.cFunc,CyclicalType.solution[0].m_underbar,5)
+#    
+#    
+#    
+#    # Make and solve a "hybrid" consumer who solves an infinite horizon problem by
+#    # alternating between ENDG and EXOG each period.  Yes, this is weird.
+#    if do_hybrid_type:
+#        HybridType = deepcopy(InfiniteType)
+#        HybridType.assignParameters(survival_prob = 2*[0.98],
+#                                      beta = 2*[0.96],
+#                                      Gamma = 2*[1.01])
+#        HybridType.income_distrib = 2*[LifecycleType.income_distrib[-1]]
+#        HybridType.p_zero_income = 2*[LifecycleType.p_zero_income[-1]]
+#        HybridType.time_vary.append('solveAPeriod')
+#        HybridType.solveAPeriod = [consumptionSavingSolverENDG,consumptionSavingSolverEXOG] # alternated between ENDG and EXOG
+#        
+#        start_time = clock()
+#        HybridType.solve()
+#        end_time = clock()
+#        print('Solving a "hybrid" consumer took ' + mystr(end_time-start_time) + ' seconds.')
+#        HybridType.unpack_cFunc()
+#        
+#        # Plot the consumption function for the cyclical consumer type
+#        print('"Hybrid solver" consumption function:')
+#        plotFunc(HybridType.cFunc[0],0,5)
+#        
+#    
+#    # Make and solve a type that has serially correlated unemployment   
+#    if do_markov_type:
+#        # Define the Markov transition matrix
+#        unemp_length = 5
+#        urate_good = 0.05
+#        urate_bad = 0.12
+#        bust_prob = 0.01
+#        recession_length = 20
+#        p_reemploy =1.0/unemp_length
+#        p_unemploy_good = p_reemploy*urate_good/(1-urate_good)
+#        p_unemploy_bad = p_reemploy*urate_bad/(1-urate_bad)
+#        boom_prob = 1.0/recession_length
+#        transition_array = np.array([[(1-p_unemploy_good)*(1-bust_prob),p_unemploy_good*(1-bust_prob),(1-p_unemploy_good)*bust_prob,p_unemploy_good*bust_prob],
+#                                      [p_reemploy*(1-bust_prob),(1-p_reemploy)*(1-bust_prob),p_reemploy*bust_prob,(1-p_reemploy)*bust_prob],
+#                                      [(1-p_unemploy_bad)*boom_prob,p_unemploy_bad*boom_prob,(1-p_unemploy_bad)*(1-boom_prob),p_unemploy_bad*(1-boom_prob)],
+#                                      [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
+#        
+#        MarkovType = deepcopy(InfiniteType)
+#        xi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.xi_N, 0.1)
+#        psi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.psi_N, 0.1)
+#        employed_income_dist = createFlatStateSpaceFromIndepDiscreteProbs(psi_dist, xi_dist)
+#        employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]
+#        unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
+#        p_zero_income = [np.array([0.0,1.0,0.0,1.0])]
+#        
+#        MarkovType.solution_terminal.cFunc = 4*[MarkovType.solution_terminal.cFunc]
+#        MarkovType.solution_terminal.vFunc = 4*[MarkovType.solution_terminal.vFunc]
+#        MarkovType.solution_terminal.vPfunc = 4*[MarkovType.solution_terminal.vPfunc]
+#        MarkovType.solution_terminal.vPPfunc = 4*[MarkovType.solution_terminal.vPPfunc]
+#        MarkovType.solution_terminal.m_underbar = 4*[MarkovType.solution_terminal.m_underbar]
+#        
+#        MarkovType.income_distrib = [[employed_income_dist,unemployed_income_dist,employed_income_dist,unemployed_income_dist]]
+#        MarkovType.p_zero_income = p_zero_income
+#        MarkovType.transition_array = transition_array
+#        MarkovType.time_inv.append('transition_array')
+#        MarkovType.solveAPeriod = consumptionSavingSolverMarkov
+#        MarkovType.cycles = 0
+#        
+#        MarkovType.timeFwd()
+#        start_time = clock()
+#        MarkovType.solve()
+#        end_time = clock()
+#        print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
+#        print('Consumption functions for each discrete state:')
+#        plotFuncs(MarkovType.solution[0].cFunc,0,50)
+#
+#
+#    if do_perfect_foresight:
+#
+#        # Make and solve a perfect foresight consumer type who's problem is actually solved analytically,
+#        # but which can nonetheless be represented in this framework
+#        
+#        #PFC_paramteres = (beta = 0.96, Gamma = 1.10, R = 1.03 , rho = 4, constrained = True)
+#        PerfectForesightType = deepcopy(LifecycleType)    
+#        
+#        #tell the model to use the perfect forsight solver
+#        PerfectForesightType.solveAPeriod = PerfectForesightSolver
+#        PerfectForesightType.time_vary = [] #let the model know that there are no longer time varying parameters
+#        PerfectForesightType.time_inv =  PerfectForesightType.time_inv +['beta','Gamma'] #change beta and Gamma from time varying to non time varying
+#        #give the model new beta and Gamma parameters to use for the perfect forsight model
+#        PerfectForesightType.assignParameters(beta = 0.96,
+#                                              Gamma = 1.01)
+#        #tell the model not to use the terminal solution as a valid result anymore
+#        PerfectForesightType.pseudo_terminal = True
+#        
+#        start_time = clock()
+#        PerfectForesightType.solve()
+#        end_time = clock()
+#        print('Solving a Perfect Foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
+#        PerfectForesightType.unpack_cFunc()
+#        PerfectForesightType.timeFwd()
+#        
+#            
+#        plotFuncs(PerfectForesightType.cFunc[:],0,5)
