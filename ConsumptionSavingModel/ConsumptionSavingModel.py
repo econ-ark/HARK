@@ -665,9 +665,16 @@ class ConsumptionSavingSolverEndgLinear(object):
     """    
     
     def defineUtilityFunctions(self,rho):
-        self.uP    = lambda c : utilityP(c,gam=rho)
-        self.uPinv = lambda u : utilityP_inv(u,gam=rho)
-        
+        #solution_tp1 = None
+        if self.calc_vFunc:
+            self.u         = lambda c : utility(c,gam=rho)
+            self.uinv      = lambda u : utility_inv(u,gam=rho)
+            self.uinvP     = lambda u : utility_invP(u,gam=rho)
+            
+        self.uP            = lambda c : utilityP(c,gam=rho)
+        self.uPP           = lambda c : utilityPP(c,gam=rho)
+        self.uPinv         = lambda u : utilityP_inv(u,gam=rho)
+       
 
     def setAndUpdateValues(self,solution_tp1,income_distrib,survival_prob,beta):
         self.effective_beta   = beta*survival_prob
@@ -677,6 +684,18 @@ class ConsumptionSavingSolverEndgLinear(object):
         self.psi_underbar_tp1 = np.min(self.psi_tp1)    
         self.xi_underbar_tp1  = np.min(self.xi_tp1)
         self.vPfunc_tp1       = solution_tp1.vPfunc        
+
+        if self.cubic_splines:
+            self.vPPfunc_tp1  = solution_tp1.vPPfunc
+    
+        # Update the bounding MPCs and PDV of human wealth:
+        if self.cubic_splines or self.calc_vFunc:
+            self.vFunc_tp1   = solution_tp1.vFunc
+            self.thorn_R     = ((self.R*self.effective_beta)**(1/self.rho))/self.R
+            self.kappa_min_t = 1.0/(1.0 + self.thorn_R/solution_tp1.kappa_min)
+            self.gothic_h_t  = self.Gamma/self.R*(1.0 + solution_tp1.gothic_h)
+            self.kappa_max_t = 1.0/(1.0 + (self.p_zero_income**(1/self.rho))* \
+                               self.thorn_R/solution_tp1.kappa_max)
 
     def defineBorrowingConstraint(self,solution_tp1,R,Gamma,constraint):
         
@@ -728,6 +747,15 @@ class ConsumptionSavingSolverEndgLinear(object):
         xi_temp   = (np.tile(self.xi_tp1,(a_N,1))).transpose()
         prob_temp = (np.tile(self.prob_tp1,(a_N,1))).transpose()
         m_tp1     = self.R/(self.Gamma*psi_temp)*a_temp + xi_temp
+
+
+        if self.cubic_splines:
+            kappa_temp = [self.kappa_max_t]
+            gothicvPP   = self.effective_beta*self.R*self.R*self.Gamma**(-self.rho-1.0)* \
+                          np.sum(psi_temp**(-self.rho-1.0)*self.vPPfunc_tp1(m_tp1)*prob_temp,axis=0)    
+            dcda        = gothicvPP/self.uPP(c)
+            kappa       = dcda/(dcda+1)
+            kappa_temp += kappa.tolist()
         
         return a,psi_temp,prob_temp,m_tp1
 
@@ -757,8 +785,13 @@ class ConsumptionSavingSolverEndgLinear(object):
         m_temp += m.tolist()
         
         # Construct the unconstrained consumption function
-        cFunc_t_unconstrained = LinearInterp(m_temp,c_temp)
-    
+        # Construct the unconstrained consumption function
+        if self.cubic_splines:
+            cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,kappa_temp,
+                                                       kappa_min_t*gothic_h_t,kappa_min_t)
+        else:
+            cFunc_t_unconstrained = LinearInterp(m_temp,c_temp)        
+
         # Combine the constrained and unconstrained functions into the true consumption function
         cFunc_t = ConstrainedComposite(cFunc_t_unconstrained,self.constraint_t)
             
@@ -1662,7 +1695,7 @@ if __name__ == '__main__':
     KinkyType.time_inv.remove('R')
     KinkyType.time_inv += ['R_borrow','R_save']
     #KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0)
-    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0,income_unemploy = .3)
+    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0,cubic_splines = False)
 
 #    KinkyType(R = 1.03, constraint = None, a_size = 48, cycles=0)
     KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
