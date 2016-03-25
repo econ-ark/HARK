@@ -11,10 +11,11 @@ sys.path.insert(0,'../')
 import numpy as np
 from HARKcore import AgentType, NullFunc
 from HARKutilities import warnings  # Because of "patch" to warnings modules
-from HARKutilities import calculateMeanOneLognormalDiscreteApprox, addDiscreteOutcomeConstantMean, createFlatStateSpaceFromIndepDiscreteProbs, setupGridsExpMult, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
+from HARKutilities import calculateMeanOneLognormalDiscreteApprox, addDiscreteOutcomeConstantMean, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
 from HARKinterpolation import ConstrainedComposite, LinearInterp, LinearInterpOnInterp1D
 from HARKsimulation import generateMeanOneLognormalDraws, generateBernoulliDraws
-from ConsumptionSavingModel import constructAssetsGrid
+from ConsumptionSavingModel import constructAssetsGrid, constructLognormalIncomeProcessUnemployment
+from scipy.stats import lognorm
 from copy import deepcopy, copy
 
 utility = CRRAutility
@@ -53,13 +54,10 @@ class ConsumerSolution():
         Returns the distance between single period solutions as the distance
         between their consumption functions.
         '''
-        if type(self.cFunc) is list:
-            dist_vec = np.zeros(len(self.cFunc)) + np.nan
-            for i in range(len(self.cFunc)):
-                dist_vec[i] = self.cFunc[i].distance(solution_other.cFunc[i])
-            return np.max(dist_vec)
-        else:
-            return self.cFunc.distance(solution_other.cFunc)
+        dist = self.cFunc.distance(solution_other.cFunc)
+        #print(dist)
+        return dist
+        
             
 
 class ValueFunc():
@@ -102,7 +100,7 @@ class MargMargValueFunc():
         return kappa*utilityPP(c,gam=self.rho)
         
         
-def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_grid,pref_cdf_grid,survival_prob,beta,rho,R_save,R_borrow,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
+def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_grid,pref_cdf_grid,survival_prob,beta,rho,R_save,R_borrow,Gamma,constraint,a_grid):
     '''
     Solves a single period of a consumption-saving model with preference shocks
     to marginal utility.  Problem is solved using the method of endogenous gridpoints.
@@ -170,10 +168,15 @@ def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_gri
     constraint_t = lambda m: m - m_underbar_t
 
     # Find data for the unconstrained consumption function in this period
-    a = np.sort(np.hstack((a_grid + m_underbar_t,np.array([0.0,0.0]))))
+    if m_underbar_t < 0.0 and R_save < R_borrow:
+        a = np.sort(np.hstack((a_grid + m_underbar_t,np.array([0.0,0.0]))))
+    else: # Don't add kink points at zero unless borrowing is possible
+        a = deepcopy(a_grid + m_underbar_t)
     a_N = a.size
     R_vec = R_save*np.ones(a_N)
-    R_vec[0:(np.sum(a<=0)-1)] = R_borrow
+    borrow_count = (np.sum(a<=0)-1)
+    if borrow_count > 0:
+        R_vec[0:borrow_count] = R_borrow
     shock_N = xi_tp1.size
     a_temp = np.tile(a,(shock_N,1))
     R_temp = np.tile(R_vec,(shock_N,1))
@@ -191,8 +194,8 @@ def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_gri
     # Make the preference-shock specific consumption functions
     cFunc_list = []
     for j in range(pref_N):
-        m_temp = m[j,:]
-        c_temp = c[j,:]
+        m_temp = np.concatenate((np.array([m_underbar_t]),m[j,:]))
+        c_temp = np.concatenate((np.array([0.0]),c[j,:]))
         cFunc_this_shock = ConstrainedComposite(LinearInterp(m_temp,c_temp),constraint_t)
         cFunc_list.append(cFunc_this_shock)
         
@@ -205,13 +208,24 @@ def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_gri
     c_bot = cFunc_list[0](m_grid)
     v_bot = (c_bot)**(1.0-rho)
     F_bot = pref_cdf_grid[0]
+    if rho == 1.0: # log utility when rho=1
+        temp_func = lambda x : np.log(x)
+    else:
+        temp_func = lambda x : x**(1.0-rho)
     for j in range(1,pref_N): # numeric integration over the preference shock
         c_top = cFunc_list[j](m_grid)
-        v_top = (c_top)**(1.0-rho)
+        v_top = temp_func(c_top)
         F_top = pref_cdf_grid[j]
         scale = (c_top-c_bot)/(F_top-F_bot)
-        vP_vec = vP_vec + (v_top - v_bot)/scale
-    vP_vec = vP_vec/(1.0-rho)
+        vP_add = (v_top - v_bot)/scale
+        fix = scale == 0
+        vP_add[fix] = uP(c_top[fix])*(F_top-F_bot)
+        vP_vec = vP_vec + vP_add
+        c_bot = c_top
+        v_bot = v_top
+        F_bot = F_top
+    if not rho == 1.0: # don't normalize when rho=1
+        vP_vec = vP_vec/(1.0-rho)
     c_pseudo = uPinv(vP_vec)
     vPfunc_t = MargValueFunc(LinearInterp(m_grid,c_pseudo),rho)
 
@@ -228,7 +242,7 @@ class PrefShockConsumer(AgentType):
     # Define some universal values for all consumer types
     cFunc_terminal_ = LinearInterp([0.0, 1.0],[0.0,1.0])
     constraint_terminal_ = lambda x: x
-    solution_terminal_ = ConsumerSolution(cFunc=ConstrainedComposite(cFunc_terminal_,constraint_terminal_), vFunc = vFunc_terminal_, m_underbar=0.0, gothic_h=0.0, kappa_min=1.0, kappa_max=1.0)
+    solution_terminal_ = ConsumerSolution(cFunc=ConstrainedComposite(cFunc_terminal_,constraint_terminal_), vFunc=None, m_underbar=0.0, gothic_h=0.0, kappa_min=1.0, kappa_max=1.0)
     time_vary_ = ['survival_prob','Gamma']
     time_inv_ = ['beta','rho','R_save','R_borrow','a_grid','constraint']
     
@@ -278,114 +292,254 @@ class PrefShockConsumer(AgentType):
         self.solution_terminal.vFunc = ValueFunc(self.solution_terminal.cFunc,self.rho)
         self.solution_terminal.vPfunc = MargValueFunc(self.solution_terminal.cFunc,self.rho)
         self.solution_terminal.vPPfunc = MargMargValueFunc(self.solution_terminal.cFunc,self.rho)
+     
+    def updatePrefGrid(self):
+        '''
+        Updates this agent's preference shock grids.
+        '''
+        pref_cdf_grid = np.linspace(0.001,0.999,self.pref_shock_N)
+        temp_dist = lognorm(self.pref_shock_sigma,scale=np.exp(-self.pref_shock_sigma**2.0/2.0))
+        pref_shock_grid = temp_dist.ppf(pref_cdf_grid)
+        self.pref_cdf_grid = pref_cdf_grid
+        self.pref_shock_grid = pref_shock_grid
+        if not 'pref_cdf_grid' in self.time_inv:
+            self.time_inv.append('pref_cdf_grid')
+        if not 'pref_shock_grid' in self.time_inv:
+            self.time_inv.append('pref_shock_grid')
+            
+    def update(self):
+        '''
+        Update income process, assets and preference shock grid, and terminal solution.
+        '''
+        self.updateIncomeProcess()
+        self.updateAssetsGrid()
+        self.updateSolutionTerminal()
+        self.updatePrefGrid()
         
+    def addShockPaths(self, perm_shocks,temp_shocks, pref_shocks):
+        '''
+        Adds paths of simulated shocks to the agent as attributes.
+        '''
+        original_time = self.time_flow
+        self.timeFwd()
+        self.perm_shocks = perm_shocks
+        self.temp_shocks = temp_shocks
+        self.pref_shocks = pref_shocks
+        if not 'perm_shocks' in self.time_vary:
+            self.time_vary.append('perm_shocks')
+        if not 'temp_shocks' in self.time_vary:
+            self.time_vary.append('temp_shocks')
+        if not 'pref_shocks' in self.time_vary:
+            self.time_vary.append('pref_shocks')
+        if not original_time:
+            self.timeRev()
+            
+    def simulate(self,w_init,t_first,t_last,which=['w']):
+        '''
+        Simulate the model forward from initial conditions w_init, beginning in
+        t_first and ending in t_last.
+        '''
+        original_time = self.time_flow
+        self.timeFwd()
+        if self.cycles > 0:
+            cFuncs = self.cFunc[t_first:t_last]
+        else:
+            cFuncs = t_last*self.cFunc # This needs to be fixed for IH models
+        simulated_history = simulateConsumerHistory(cFuncs, w_init, self.perm_shocks[t_first:t_last], self.temp_shocks[t_first:t_last], self.pref_shocks[t_first:t_last],self.R_borrow,self.R_save,which)
+        if not original_time:
+            self.timeRev()
+        return simulated_history
         
+    def unpack_cFunc(self):
+        '''
+        "Unpacks" the consumption functions into their own field for easier access.
+        After the model has been solved, the consumption functions reside in the
+        attribute cFunc of each element of ConsumerType.solution.  This method
+        creates a (time varying) attribute cFunc that contains a list of consumption
+        functions.
+        '''
+        self.cFunc = []
+        for solution_t in self.solution:
+            self.cFunc.append(solution_t.cFunc)
+        if not ('cFunc' in self.time_vary):
+            self.time_vary.append('cFunc')
         
-        
-def constructLognormalIncomeProcessUnemployment(parameters):
-    """
-    Generates a list of discrete approximations to the income process for each
-    life period, from end of life to beginning of life.  Permanent shocks are mean
-    one lognormally distributed with standard deviation psi_sigma[t] during the
-    working life, and degenerate at 1 in the retirement period.  Transitory shocks
-    are mean one lognormally distributed with a point mass at income_unemploy with
-    probability p_unemploy while working; they are mean one with a point mass at
-    income_unemploy_retire with probability p_unemploy_retire.  Retirement occurs
-    after t=final_work_index periods of retirement.
 
-    Note 1: All time in this function runs forward, from t=0 to t=T
+
+
+
+def simulateConsumerHistory(cFunc,w0,psi_adj,theta,eta,R_borrow,R_save,which):
+    """
+    Generates simulated consumer histories.  Agents begin with W/Y ratio of of
+    w0 and follow the consumption rules in cFunc each period. Permanent and trans-
+    itory shocks are provided in psi_adj and theta.  Note that psi_adj represents
+    "adjusted permanent income shock": psi_adj = psi*Gamma.
     
-    Note 2: All parameters are passed as attributes of the input parameters.
-
-    Parameters:
-    -----------
-    psi_sigma:    [float]
-        Array of standard deviations in _permanent_ income uncertainty during
-        the agent's life.
-    psi_N:      int
-        The number of approximation points to be used in the equiprobable
-        discrete approximation to the permanent income shock distribution.
-    xi_sigma      [float]
-        Array of standard deviations in _temporary_ income uncertainty during
-        the agent's life.
-    xi_N:       int
-        The number of approximation points to be used in the equiprobable
-        discrete approximation to the permanent income shock distribution.
-    p_unemploy:             float
-        The probability of becoming unemployed
-    p_unemploy_retire:      float
-        The probability of not receiving typical retirement income in any retired period
-    T_retire:       int
-        The index value i equal to the final working period in the agent's life.
-        If T_retire <= 0 then there is no retirement.
-    income_unemploy:         float
-        Income received when unemployed. Often zero.
-    income_unemploy_retire:  float
-        Income received while "unemployed" when retired. Often zero.
-    T_total:       int
-        Total number of non-terminal periods in this consumer's life.
-
-    Returns
-    =======
-    income_distrib:  [income distribution]
-        Each element contains the joint distribution of permanent and transitory
-        income shocks, as a set of vectors: psi_shock, xi_shock, and pmf. The
-        first two are the points in the joint state space, and final vector is
-        the joint pmf over those points. For example,
-               psi_shock[20], xi_shock[20], and pmf[20]
-        refers to the (psi, xi) point indexed by 20, with probability p = pmf[20].
-    p_zero_income: [float]
-        A list of probabilities of receiving exactly zero income in each period.
-
+    The histories returned by the simulator are determined by which, a list of
+    strings that can include 'w', 'm', 'c', 'a', and 'kappa'.  Other strings will
+    cause an error on return.  Outputs are returned in the order listed by the user.
     """
-    # Unpack the parameters from the input
+    # Determine the size of potential simulated histories
+    periods_to_simulate = len(theta)
+    N_agents = len(theta[0])
+    
+    # Initialize arrays to hold simulated histories as requested
+    if 'w' in which:
+        w = np.zeros([periods_to_simulate+1,N_agents]) + np.nan
+        do_w = True
+    else:
+        do_w = False
+    if 'm' in which:
+        m = np.zeros([periods_to_simulate,N_agents]) + np.nan
+        do_m = True
+    else:
+        do_m = False
+    if 'c' in which:
+        c = np.zeros([periods_to_simulate,N_agents]) + np.nan
+        do_c = True
+    else:
+        do_c = False
+    if 'a' in which:
+        a = np.zeros([periods_to_simulate,N_agents]) + np.nan
+        do_a = True
+    else:
+        do_a = False
+    if 'kappa' in which:
+        kappa = np.zeros([periods_to_simulate,N_agents]) + np.nan
+        do_k = True
+    else:
+        do_k = False
+
+    # Initialize the simulation
+    w_t = w0
+    if do_w:
+        w[0,] = w_t
+    
+    # Run the simulation for all agents:
+    for t in range(periods_to_simulate):
+        m_t = w_t + theta[t]
+        if do_k:
+            kappa_t = cFunc[t].derivativeX(m_t,eta[t])        
+        c_t = cFunc[t](m_t,eta[t])
+        a_t = m_t - c_t
+        R_t = R_save*np.ones_like(a_t)
+        R_t[a_t < 0.0] = R_borrow
+        w_t = R_t*a_t/psi_adj[t]
+        
+        # Store the requested variables in the history arrays
+        if do_w:
+            w[t+1,] = w_t
+        if do_m:
+            m[t,] = m_t
+        if do_c:
+            c[t,] = c_t
+        if do_a:
+            a[t,] = a_t
+        if do_k:
+            kappa[t,] = kappa_t
+            
+    # Return the simulated histories as requested
+    return_list = ''
+    for var in which:
+        return_list = return_list + var + ', '
+    x = len(return_list)
+    return_list = return_list[0:(x-2)]
+    return eval(return_list)
+
+
+
+def generateShockHistoryInfiniteSimple(parameters):
+    '''
+    Creates arrays of permanent and transitory income shocks for sim_N simulated
+    consumers for sim_T identical infinite horizon periods.
+    
+    Arguments: (as attributes of parameters)
+    ----------
+    psi_sigma : [float]
+        Permanent income standard deviation for the consumer.
+    xi_sigma : [float]
+        Transitory income standard deviation for the consumer.
+    pref_shock_sigma : float
+        Preference shock standard deviation for the consumer.
+    Gamma : [float]
+        Permanent income growth rate for the consumer.
+    p_unemploy : float
+        The probability of becoming unemployed
+    income_unemploy : float
+        Income received when unemployed. Often zero.
+    sim_N : int
+        The number of consumers to generate shocks for.
+    RNG : np.random.rand
+        This type's random number generator.
+    sim_T : int
+        Number of periods of shocks to generate.
+    
+    Returns:
+    ----------
+    perm_shock_history : [np.array]
+        A sim_T-length list of sim_N-length arrays of permanent income shocks.
+        The shocks are adjusted to include permanent income growth Gamma.
+    trans_shock_history : [np.array]
+        A sim_T-length list of sim_N-length arrays of transitory income shocks.
+    pref_shock_history : [np.array]
+        A sim_T-length list of sim_N-length arrays of preference shocks.
+    '''
+    # Unpack the parameters
     psi_sigma = parameters.psi_sigma
-    psi_N = parameters.psi_N
     xi_sigma = parameters.xi_sigma
-    xi_N = parameters.xi_N
-    T_total = parameters.T_total
-    T_retire = parameters.T_retire
+    pref_shock_sigma = parameters.pref_shock_sigma
+    Gamma = parameters.Gamma
     p_unemploy = parameters.p_unemploy
     income_unemploy = parameters.income_unemploy
-    p_unemploy_retire = parameters.p_unemploy_retire        
-    income_unemploy_retire = parameters.income_unemploy_retire
+    sim_N = parameters.sim_N
+    psi_seed = parameters.RNG.randint(2**31-1)
+    xi_seed = parameters.RNG.randint(2**31-1)
+    unemp_seed = parameters.RNG.randint(2**31-1)
+    pref_shock_seed = parameters.RNG.randint(2**31-1)
+    sim_T = parameters.sim_T
     
-    income_distrib = [] # Discrete approximation to income process
-    p_zero_income = [] # Probability of zero income in each period of life
-
-    # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
-    # in normal times; value 0.0 in "unemployment" times with small prob.
-    if T_retire > 0:
-        if p_unemploy_retire > 0:
-            retire_perm_income_values = np.array([1.0, 1.0])    # Permanent income is deterministic in retirement (2 states for temp income shocks)
-            retire_income_values = np.array([income_unemploy_retire, (1.0-p_unemploy_retire*income_unemploy_retire)/(1.0-p_unemploy_retire)])
-            retire_income_probs = np.array([p_unemploy_retire, 1.0-p_unemploy_retire])
-        else:
-            retire_perm_income_values = np.array([1.0])
-            retire_income_values = np.array([1.0])
-            retire_income_probs = np.array([1.0])
-        income_dist_retire = [retire_income_probs,retire_perm_income_values,retire_income_values]
-
-    # Loop to fill in the list of income_distrib random variables.
-    for t in range(T_total): # Iterate over all periods, counting forward
-
-        if T_retire > 0 and t >= T_retire:
-            # Then we are in the "retirement period" and add a retirement income object.
-            income_distrib.append(deepcopy(income_dist_retire))
-            if income_unemploy_retire == 0:
-                p_zero_income.append(p_unemploy_retire)
-            else:
-                p_zero_income.append(0)
-        else:
-            # We are in the "working life" periods.
-            temp_xi_dist = calculateMeanOneLognormalDiscreteApprox(N=xi_N, sigma=xi_sigma[t])
-            if p_unemploy > 0:
-                temp_xi_dist = addDiscreteOutcomeConstantMean(temp_xi_dist, p=p_unemploy, x=income_unemploy)
-            temp_psi_dist = calculateMeanOneLognormalDiscreteApprox(N=psi_N, sigma=psi_sigma[t])
-            income_distrib.append(createFlatStateSpaceFromIndepDiscreteProbs(temp_psi_dist, temp_xi_dist))
-            if income_unemploy == 0:
-                p_zero_income.append(p_unemploy)
-            else:
-                p_zero_income.append(0)
-
-    return income_distrib, p_zero_income        
+    trans_shock_history = generateMeanOneLognormalDraws(sim_T*xi_sigma, sim_N, xi_seed)
+    unemployment_history = generateBernoulliDraws(sim_T*[p_unemploy],sim_N,unemp_seed)
+    perm_shock_history = generateMeanOneLognormalDraws(sim_T*psi_sigma, sim_N, psi_seed)
+    pref_shock_history = generateMeanOneLognormalDraws(sim_T*[pref_shock_sigma], sim_N, pref_shock_seed)
+    for t in range(sim_T):
+        perm_shock_history[t] = (perm_shock_history[t]*Gamma[0])
+        trans_shock_history[t] = trans_shock_history[t]*(1-p_unemploy*income_unemploy)/(1-p_unemploy)
+        trans_shock_history[t][unemployment_history[t]] = income_unemploy
+        
+    return perm_shock_history, trans_shock_history, pref_shock_history
+        
+       
+if __name__ == '__main__':
+    import SetupPrefShockConsParameters as Params
+    from HARKutilities import plotFunc, plotFuncDer, plotFuncs
+    from time import time
+    import matplotlib.pyplot as plt
+    
+    # Make an example agent type
+    ExampleType = PrefShockConsumer(**Params.init_consumer_objects)
+    ExampleType(cycles = 0)
+    perm_shocks, temp_shocks, pref_shocks = generateShockHistoryInfiniteSimple(ExampleType)
+    ExampleType.addShockPaths(perm_shocks, temp_shocks, pref_shocks)
+    ExampleType(w_init = np.zeros(ExampleType.sim_N))
+    
+    # Solve the agent's problem and plot the consumption functions
+    t_start = time()
+    ExampleType.solve()
+    t_end = time()
+    print('Solving a preference shock consumer took ' + str(t_end-t_start) + ' seconds.')
+    
+    m = np.linspace(ExampleType.solution[0].m_underbar,5,200)
+    #m = np.linspace(0.0,1.0,200)
+    for j in range(ExampleType.pref_shock_N):
+        pref_shock = ExampleType.pref_shock_grid[j]
+        c = ExampleType.solution[0].cFunc(m,pref_shock*np.ones_like(m))
+        plt.plot(m,c)
+    plt.show()
+    
+    # Simulate some wealth history
+    ExampleType.unpack_cFunc()
+    history = ExampleType.simulate(ExampleType.w_init,0,ExampleType.sim_T,which=['c'])
+    plt.plot(np.mean(history,axis=1))
+    plt.show()
+    
