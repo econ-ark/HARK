@@ -100,188 +100,258 @@ class MargMargValueFunc():
         c, kappa = self.cFunc.eval_with_derivative(m)
         return kappa*utilityPP(c,gam=self.rho)
 
-def PerfectForesightSolver(solution_tp1,beta,rho,R,Gamma,constraint):
+
+####################################################################################################
+####################################################################################################
+
+class PerfectForesightSolver(object):
+
+    def __init__(self,solution_tp1,beta,rho,R,Gamma,constraint):
+
+        self.beta  = beta
+        self.rho   = rho
+        self.R     = R
+        self.Gamma = Gamma
+
+        self.defineUtilityFunctions()
+        self.defineBorrowingConstraint(constraint)
+         
+
+    def defineBorrowingConstraint(self,constraint):
+        if constraint == 0.:
+            self.m_underbar_t = 0.0
+        else:
+            print 'The unconstrained solution for the Perfect Foresight solution has not been' + \
+                  ' implemented yet.  Solving the constrained problem.'
+            self.m_underbar_t = 0.0   
+    
+    def defineUtilityFunctions(self):
+        self.u   = lambda c : utility(c,gam=self.rho)
+        self.uP  = lambda c : utilityP(c,gam=self.rho)
+        self.uPP = lambda c : utilityPP(c,gam=self.rho)
+
+    def defineValueFunctions(self):
+        self.vFunc   = lambda m: self.u(self.cFunc(m))
+        self.vPfunc  = lambda m: self.uP(self.cFunc(m))
+        self.vPPfunc = lambda m: self.kappa*self.uPP(self.cFunc(m)) 
+
+    def getcFunc(self):
+        kappa = (((self.R/self.Gamma) - 
+                ((self.R/self.Gamma)*((self.Gamma**(1-self.rho))*self.beta)) ** \
+                (1/self.rho))/(self.R/self.Gamma))
+        self.cFunc = lambda m: kappa*(m - 1 + (1/(1-(1/(self.R/self.Gamma)))))
+
+    def getSolution(self):
+        # infinte horizon simplification.  This should hold (I think) because the range for kappa
+        # and  whatever the greek sybol for Return Patience Factor is specified in the 
+        # ConsumerSolution class.__init__
+
+        
+        solution_t = ConsumerSolution(cFunc=self.cFunc, vFunc=self.vFunc, 
+                                      vPfunc=self.vPfunc, vPPfunc=self.vPPfunc, 
+                                      m_underbar=self.m_underbar_t, gothic_h=0.0, kappa_min=1.0, 
+                                      kappa_max=1.0)
+            
+        return solution_t
+
+    def solve(self):
+        
+        self.getcFunc()
+        self.defineValueFunctions()
+        solution = self.getSolution()
+        
+        return solution
+
+
+
+
+def perfectForesightSolver(solution_tp1,beta,rho,R,Gamma,constraint):
     '''
     Solves a single period consumption - savings problem for a consumer with perfect foresight.
     '''
-    if constraint == 0.:
-        m_underbar_t = 0.0
-    else:
-        print 'The unconstrained solution for the Perfect Foresight solution has not been' + \
-              'implemented yet.  Solving the constrained problem'
-        m_underbar_t = 0.0
+    solver = PerfectForesightSolver(solution_tp1,beta,rho,R,Gamma,constraint)
     
-    # infinte horizon simplification.  This should hold (I think) because the range for kappa and 
-    # whatever the greek sybol for Return Patience Factor is specified in the 
-    # ConsumerSolution class.__init__
-    kappa = (((R/Gamma) - ((R/Gamma)*((Gamma**(1-rho))*beta))**(1/rho))/(R/Gamma))
-    cFunc = lambda m: kappa*(m - 1 + (1/(1-(1/(R/Gamma)))))
+    solution = solver.solve()
     
+    return solution
     
-    #define utility function
-    u   = lambda c : utility(c,gam=rho)
-    uP  = lambda c : utilityP(c,gam=rho)
-    uPP = lambda c : utilityPP(c,gam=rho)
-    
-    #define value functions
-    vFunc   = lambda m: u(cFunc(m))
-    vPfunc  = lambda m: uP(cFunc(m))
-    vPPfunc = lambda m: kappa*uPP(cFunc(m)) 
-    
-    solution_t = ConsumerSolution(cFunc=cFunc, vFunc=vFunc, vPfunc=vPfunc, vPPfunc=vPPfunc, 
-                                  m_underbar=m_underbar_t, gothic_h=0.0, kappa_min=1.0, 
-                                  kappa_max=1.0)
-        
-    return solution_t
 
+####################################################################################################
+####################################################################################################
 
-def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
+class ConsumptionSavingSolverExog(PerfectForesightSolver):
+
+    def __init__(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
                                 Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
-    '''
-    Solves a single period of a standard consumption-saving problem, representing
-    the consumption function as a cubic spline interpolation if cubic_splines is
-    True and as a linear interpolation if it is False.  Problem is solved using
-    the method of exogenous gridpoints (the "typical way" aka the "slow way").
 
-    Parameters:
-    -----------
-    solution_tp1: ConsumerSolution
-        The solution to the following period.
-    income_distrib: [[float]]
-        A list containing three lists of floats, representing a discrete approximation to the income 
-        process between the period being solved and the one immediately following (in solution_tp1).
-        Order: probs, psi, xi
-    p_zero_income: float
-        The probability of receiving zero income in the succeeding period.
-    survival_prob: float
-        Probability of surviving to succeeding period.
-    beta: float
-        Discount factor between this period and the succeeding period.
-    rho: float
-        The coefficient of relative risk aversion
-    R: float
-        Interest factor on assets between this period and the succeeding period: w_tp1 = a_t*R
-    Gamma: float
-        Expected growth factor for permanent income between this period and the succeeding period.
-    constraint: float
-        Borrowing constraint for the minimum allowable assets to end the period
-        with.  If it is less than the natural borrowing constraint, then it is
-        irrelevant; constraint=None indicates no artificial borrowing constraint.
-    a_grid: [float]
-        A list of beginning-of-period m_t values at which to solve for optimal consumption.
-    calc_vFunc: Boolean
-        An indicator for whether the value function should be computed and included
-        in the reported solution
-    cubic_splines: Boolean
-        An indicator for whether the solver should use cubic or linear interpolation
+        self.solution_tp1    = solution_tp1
+        self.income_distrib  = income_distrib
+        self.p_zero_income   = p_zero_income
+        self.survival_prob   = survival_prob
+        self.beta            = beta
+        self.rho             = rho
+        self.R               = R
+        self.Gamma           = Gamma
+        self.constraint      = constraint
+        self.a_grid          = a_grid
+        self.calc_vFunc      = calc_vFunc
+        self.cubic_splines   = cubic_splines
+
+        # Define the functions associated with utility
+        self.defineUtilityFunctions()
+        self.setAndUpdateValues(solution_tp1,income_distrib,survival_prob,beta)
+        self.defineBorrowingConstraint(constraint)
+
+    def defineUtilityFunctions(self):
+        PerfectForesightSolver.defineUtilityFunctions(self)
+        if self.calc_vFunc:
+            self.uinv      = lambda u : utility_inv(u,gam=self.rho)
+            self.uinvP     = lambda u : utility_invP(u,gam=self.rho)
+            self.vFunc_tp1 = self.solution_tp1.vFunc
+
+
+    def setAndUpdateValues(self,solution_tp1,income_distrib,survival_prob,beta):
+        self.effective_beta   = beta*survival_prob
+        self.prob_tp1         = income_distrib[0]
+        self.psi_tp1          = income_distrib[1]
+        self.xi_tp1           = income_distrib[2]
+        self.psi_underbar_tp1 = np.min(self.psi_tp1)    
+        self.xi_underbar_tp1  = np.min(self.xi_tp1)
+        self.vPfunc_tp1       = solution_tp1.vPfunc        
+
+        if self.cubic_splines:
+            self.vPPfunc_tp1  = solution_tp1.vPPfunc
     
+        # Update the bounding MPCs and PDV of human wealth:
+        if self.cubic_splines or self.calc_vFunc:
+            self.vFunc_tp1   = solution_tp1.vFunc
+            self.thorn_R     = ((self.R*self.effective_beta)**(1/self.rho))/self.R
+            self.kappa_min_t = 1.0/(1.0 + self.thorn_R/solution_tp1.kappa_min)
+            self.gothic_h_t  = self.Gamma/self.R*(1.0 + solution_tp1.gothic_h)
+            self.kappa_max_t = 1.0/(1.0 + (self.p_zero_income**(1/self.rho))* \
+                               self.thorn_R/solution_tp1.kappa_max)
 
-    Returns:
-    -----------
-    solution_t: ConsumerSolution
-        The solution to this period's problem, obtained using the method of endogenous gridpoints.
-    '''
 
-    # Define utility and value functions
-    if calc_vFunc:
-        u         = lambda c : utility(c,gam=rho)
-        uinv      = lambda u : utility_inv(u,gam=rho)
-        uinvP     = lambda u : utility_invP(u,gam=rho)
-        vFunc_tp1 = solution_tp1.vFunc
-    uP            = lambda c : utilityP(c,gam=rho)
-    uPP           = lambda c : utilityPP(c,gam=rho)
-    #uPinv        = lambda u : utilityP_inv(u,gam=rho)
+    def defineBorrowingConstraint(self,constraint):
 
-    # Set and update values for this period
-    effective_beta   = beta*survival_prob
-    psi_tp1          = income_distrib[1]
-    xi_tp1           = income_distrib[2]
-    prob_tp1         = income_distrib[0]
-    vPfunc_tp1       = solution_tp1.vPfunc
-    psi_underbar_tp1 = np.min(psi_tp1)    
-    xi_underbar_tp1  = np.min(xi_tp1)
-    if cubic_splines:
-        vPPfunc_tp1  = solution_tp1.vPPfunc
-
-    # Update the bounding MPCs and PDV of human wealth:
-    if cubic_splines or calc_vFunc:
-        thorn_R     = ((R*effective_beta)**(1/rho))/R
-        kappa_min_t = 1.0/(1.0 + thorn_R/solution_tp1.kappa_min)
-        gothic_h_t  = Gamma/R*(1.0 + solution_tp1.gothic_h)
-        kappa_max_t = 1.0/(1.0 + (p_zero_income**(1/rho))*thorn_R/solution_tp1.kappa_max)
+        # Calculate the minimum allowable value of money resources in this period
+        m_underbar_t = max((self.solution_tp1.m_underbar - self.xi_underbar_tp1) *
+                           (self.Gamma*self.psi_underbar_tp1)/self.R,constraint)
     
-    # Calculate the minimum allowable value of money resources in this period
-    m_underbar_t = max((solution_tp1.m_underbar - xi_underbar_tp1)*(Gamma*psi_underbar_tp1)/R, 
-                       constraint)
+        # Define the borrowing constraint (limiting consumption function)
+        self.constraint_t = lambda m: m - m_underbar_t
 
-    # Define the borrowing constraint (limiting consumption function)
-    constraint_t = lambda m: m - m_underbar_t
 
-    # Find data for the unconstrained consumption function in this period
-    c_temp = [0.0]  # Limiting consumption is zero as m approaches m_underbar
-    m_temp = [m_underbar_t]
-    if cubic_splines:
-        kappa_temp = [kappa_max_t]
-    if calc_vFunc:
-        vQ_temp  = []
-        vPQ_temp = []
-    for x in a_grid:
-        m_t = x + m_underbar_t
-        firstOrderCondition = lambda c : uP(c) - effective_beta*R*Gamma**(-rho)*\
-                             np.sum(psi_tp1**(-rho)*vPfunc_tp1(R/(Gamma*psi_tp1)*(m_t-c) + xi_tp1)
-                                   *prob_tp1)
-        c_t = brentq(firstOrderCondition,0.001*x,0.999*x)
-        c_temp.append(c_t)
-        m_temp.append(m_t)
-        if calc_vFunc or cubic_splines:
-            m_tp1 = R/(Gamma*psi_tp1)*(m_t-c_t) + xi_tp1
-        if calc_vFunc:
-            V_tp1 = (psi_tp1**(1.0-rho)*Gamma**(1.0-rho))*vFunc_tp1(m_tp1)
-            v_t   = u(c_t) + effective_beta*np.sum(V_tp1*prob_tp1)
-            vQ_temp.append(uinv(v_t)) # value transformed through inverse utility
-            vPQ_temp.append(uP(c_t)*uinvP(v_t))
-        if cubic_splines:
-            gothicvPP = effective_beta*R*R*Gamma**(-rho-1.0)*np.sum(psi_tp1**(-rho-1.0)*
-                        vPPfunc_tp1(m_tp1)*prob_tp1)    
-            dcda      = gothicvPP/uPP(c_t)
-            kappa_t   = dcda/(dcda+1.0)
-            kappa_temp.append(kappa_t)
-    
-    # Construct the unconstrained consumption function
-    if cubic_splines:
-        cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,kappa_temp,kappa_min_t*gothic_h_t,
-                                                   kappa_min_t)
-    else:
-        cFunc_t_unconstrained = LinearInterp(m_temp,c_temp)
 
-    # Combine the constrained and unconstrained functions into the true consumption function
-    cFunc_t = ConstrainedComposite(cFunc_t_unconstrained,constraint_t)
-    
-    # Construct the value function if requested
-    if calc_vFunc:
-        k        = kappa_min_t**(-rho/(1-rho))
-        m_list   = (np.asarray(a_grid) + m_underbar_t).tolist()
-        vQfunc_t = Cubic1DInterpDecay(m_list,vQ_temp,vPQ_temp,k*gothic_h_t,k)
-        vFunc_t  = lambda m : u(vQfunc_t(m))
+    def getSolution(self):
+        # First, "unpack" things we'll need
+        kappa_max_t     = self.kappa_max_t
+        m_underbar_t    = self.m_underbar_t
+        a_grid          = self.a_grid 
+        R               = self.R
+        Gamma           = self.Gamma
+        rho             = self.rho
+        psi_tp1         = self.psi_tp1
+        prob_tp1        = self.prob_tp1
+        effective_beta  = self.effective_beta
+        vPfunc_tp1      = self.vPfunc_tp1
+        xi_tp1          = self.xi_tp1
+        gothic_h_t      = self.gothic_h_t
+        kappa_min_t     = self.kappa_min_t
+        constraint_t    = self.constraint_t
+        calc_vFunc      = self.calc_vFunc
+        cubic_splines   = self.cubic_splines     
         
-    # Make the marginal value function and the marginal marginal value function
-    vPfunc_t = lambda m : uP(cFunc_t(m))
-    if cubic_splines:
-        vPPfunc_t = lambda m : cFunc_t.derivative(m)*uPP(cFunc_t(m))
+        if calc_vFunc:        
+            u           = self.u
+            uP          = self.uP            
+            uPP         = self.uPP
+            uinv        = self.uinv
+            uinvP       = self.uinvP
+            vFunc_tp1   = self.vFunc_tp1
+            vPPfunc_tp1 = self.vPPfunc_tp1
 
-    # Store the results in a solution object and return it
-    if cubic_splines or calc_vFunc:
-        solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=m_underbar_t, 
-                                      gothic_h=gothic_h_t, kappa_min=kappa_min_t, 
-                                      kappa_max=kappa_max_t)
-    else:
-        solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=m_underbar_t)
-    if calc_vFunc:
-        solution_t.vFunc = vFunc_t
-    if cubic_splines:
-        solution_t.vPPfunc=vPPfunc_t
-    #print('Solved a period with EXOG!')
-    return solution_t
+        
+        
+        # Find data for the unconstrained consumption function in this period
+        c_temp = [0.0]  # Limiting consumption is zero as m approaches m_underbar
+        m_temp = [m_underbar_t]
+        if cubic_splines:
+            kappa_temp = [kappa_max_t]
+        if calc_vFunc:
+            vQ_temp  = []
+            vPQ_temp = []
+        for x in a_grid:
+            m_t = x + m_underbar_t
+            firstOrderCondition = lambda c : uP(c) - effective_beta*R*Gamma**(-rho)*\
+                                 np.sum(psi_tp1**(-rho)*vPfunc_tp1(R/(Gamma*psi_tp1)*(m_t-c) + xi_tp1)
+                                       *prob_tp1)
+            c_t = brentq(firstOrderCondition,0.001*x,0.999*x)
+            c_temp.append(c_t)
+            m_temp.append(m_t)
+            if calc_vFunc or cubic_splines:
+                m_tp1 = R/(Gamma*psi_tp1)*(m_t-c_t) + xi_tp1
+            if calc_vFunc:
+                V_tp1 = (psi_tp1**(1.0-rho)*Gamma**(1.0-rho))*vFunc_tp1(m_tp1)
+                v_t   = u(c_t) + effective_beta*np.sum(V_tp1*prob_tp1)
+                vQ_temp.append(uinv(v_t)) # value transformed through inverse utility
+                vPQ_temp.append(uP(c_t)*uinvP(v_t))
+            if cubic_splines:
+                gothicvPP = effective_beta*R*R*Gamma**(-rho-1.0)*np.sum(psi_tp1**(-rho-1.0)*
+                            vPPfunc_tp1(m_tp1)*prob_tp1)    
+                dcda      = gothicvPP/uPP(c_t)
+                kappa_t   = dcda/(dcda+1.0)
+                kappa_temp.append(kappa_t)
+        
+        # Construct the unconstrained consumption function
+        if cubic_splines:
+            cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,kappa_temp,kappa_min_t*gothic_h_t,
+                                                       kappa_min_t)
+        else:
+            cFunc_t_unconstrained = LinearInterp(m_temp,c_temp)
+    
+        # Combine the constrained and unconstrained functions into the true consumption function
+        cFunc_t = ConstrainedComposite(cFunc_t_unconstrained,constraint_t)
+        
+        # Construct the value function if requested
+        if calc_vFunc:
+            k        = kappa_min_t**(-rho/(1-rho))
+            m_list   = (np.asarray(a_grid) + m_underbar_t).tolist()
+            vQfunc_t = Cubic1DInterpDecay(m_list,vQ_temp,vPQ_temp,k*gothic_h_t,k)
+            vFunc_t  = lambda m : u(vQfunc_t(m))
+            
+        # Make the marginal value function and the marginal marginal value function
+        vPfunc_t = lambda m : uP(cFunc_t(m))
+        if cubic_splines:
+            vPPfunc_t = lambda m : cFunc_t.derivative(m)*uPP(cFunc_t(m))
+    
+        # Store the results in a solution object and return it
+        if cubic_splines or calc_vFunc:
+            solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=m_underbar_t, 
+                                          gothic_h=gothic_h_t, kappa_min=kappa_min_t, 
+                                          kappa_max=kappa_max_t)
+        else:
+            solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=m_underbar_t)
+        if calc_vFunc:
+            solution_t.vFunc = vFunc_t
+        if cubic_splines:
+            solution_t.vPPfunc=vPPfunc_t
+        #print('Solved a period with EXOG!')
+        return solution_t
+
+
+def consumptionSavingSolverExog(solution_tp1,beta,rho,R,Gamma,constraint):
+    '''
+    Solves a single period consumption - savings problem for a consumer with perfect foresight.
+    '''
+    solver = ConsumptionSavingSolverExog(solution_tp1,beta,rho,R,Gamma,constraint)
+    
+    solution = solver.solve()
+    
+    return solution
+
+####################################################################################################
+####################################################################################################
 
 
     
@@ -784,7 +854,6 @@ class ConsumptionSavingSolverEndgLinear(object):
         c_temp += c.tolist()
         m_temp += m.tolist()
         
-        # Construct the unconstrained consumption function
         # Construct the unconstrained consumption function
         if self.cubic_splines:
             cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,kappa_temp,
@@ -1642,7 +1711,7 @@ if __name__ == '__main__':
 
     do_hybrid_type          = False
     do_markov_type          = False
-    do_perfect_foresight    = False   
+    do_perfect_foresight    = False  
     
     # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)
@@ -1803,30 +1872,30 @@ if __name__ == '__main__':
 #        plotFuncs(MarkovType.solution[0].cFunc,0,50)
 #
 #
-#    if do_perfect_foresight:
-#
-#        # Make and solve a perfect foresight consumer type who's problem is actually solved analytically,
-#        # but which can nonetheless be represented in this framework
-#        
-#        #PFC_paramteres = (beta = 0.96, Gamma = 1.10, R = 1.03 , rho = 4, constrained = True)
-#        PerfectForesightType = deepcopy(LifecycleType)    
-#        
-#        #tell the model to use the perfect forsight solver
-#        PerfectForesightType.solveAPeriod = PerfectForesightSolver
-#        PerfectForesightType.time_vary = [] #let the model know that there are no longer time varying parameters
-#        PerfectForesightType.time_inv =  PerfectForesightType.time_inv +['beta','Gamma'] #change beta and Gamma from time varying to non time varying
-#        #give the model new beta and Gamma parameters to use for the perfect forsight model
-#        PerfectForesightType.assignParameters(beta = 0.96,
-#                                              Gamma = 1.01)
-#        #tell the model not to use the terminal solution as a valid result anymore
-#        PerfectForesightType.pseudo_terminal = True
-#        
-#        start_time = clock()
-#        PerfectForesightType.solve()
-#        end_time = clock()
-#        print('Solving a Perfect Foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
-#        PerfectForesightType.unpack_cFunc()
-#        PerfectForesightType.timeFwd()
-#        
-#            
-#        plotFuncs(PerfectForesightType.cFunc[:],0,5)
+    if do_perfect_foresight:
+
+        # Make and solve a perfect foresight consumer type who's problem is actually solved analytically,
+        # but which can nonetheless be represented in this framework
+        
+        #PFC_paramteres = (beta = 0.96, Gamma = 1.10, R = 1.03 , rho = 4, constrained = True)
+        PerfectForesightType = deepcopy(LifecycleType)    
+        
+        #tell the model to use the perfect forsight solver
+        PerfectForesightType.solveAPeriod = perfectForesightSolver
+        PerfectForesightType.time_vary = [] #let the model know that there are no longer time varying parameters
+        PerfectForesightType.time_inv =  PerfectForesightType.time_inv +['beta','Gamma'] #change beta and Gamma from time varying to non time varying
+        #give the model new beta and Gamma parameters to use for the perfect forsight model
+        PerfectForesightType.assignParameters(beta = 0.96,
+                                              Gamma = 1.01)
+        #tell the model not to use the terminal solution as a valid result anymore
+        PerfectForesightType.pseudo_terminal = True
+        
+        start_time = clock()
+        PerfectForesightType.solve()
+        end_time = clock()
+        print('Solving a Perfect Foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
+        PerfectForesightType.unpack_cFunc()
+        PerfectForesightType.timeFwd()
+        
+            
+        plotFuncs(PerfectForesightType.cFunc[:],0,5)

@@ -1513,7 +1513,7 @@ if __name__ == '__main__':
 
     do_hybrid_type          = False
     do_markov_type          = False
-    do_perfect_foresight    = False    
+    do_perfect_foresight    = True   
     
     # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)
@@ -1670,30 +1670,30 @@ if __name__ == '__main__':
 #        plotFuncs(MarkovType.solution[0].cFunc,0,50)
 #
 #
-#    if do_perfect_foresight:
-#
-#        # Make and solve a perfect foresight consumer type who's problem is actually solved analytically,
-#        # but which can nonetheless be represented in this framework
-#        
-#        #PFC_paramteres = (beta = 0.96, Gamma = 1.10, R = 1.03 , rho = 4, constrained = True)
-#        PerfectForesightType = deepcopy(LifecycleType)    
-#        
-#        #tell the model to use the perfect forsight solver
-#        PerfectForesightType.solveAPeriod = PerfectForesightSolver
-#        PerfectForesightType.time_vary = [] #let the model know that there are no longer time varying parameters
-#        PerfectForesightType.time_inv =  PerfectForesightType.time_inv +['beta','Gamma'] #change beta and Gamma from time varying to non time varying
-#        #give the model new beta and Gamma parameters to use for the perfect forsight model
-#        PerfectForesightType.assignParameters(beta = 0.96,
-#                                              Gamma = 1.01)
-#        #tell the model not to use the terminal solution as a valid result anymore
-#        PerfectForesightType.pseudo_terminal = True
-#        
-#        start_time = clock()
-#        PerfectForesightType.solve()
-#        end_time = clock()
-#        print('Solving a Perfect Foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
-#        PerfectForesightType.unpack_cFunc()
-#        PerfectForesightType.timeFwd()
-#        
-#            
-#        plotFuncs(PerfectForesightType.cFunc[:],0,5)
+    if do_perfect_foresight:
+
+        # Make and solve a perfect foresight consumer type who's problem is actually solved analytically,
+        # but which can nonetheless be represented in this framework
+        
+        #PFC_paramteres = (beta = 0.96, Gamma = 1.10, R = 1.03 , rho = 4, constrained = True)
+        PerfectForesightType = deepcopy(LifecycleType)    
+        
+        #tell the model to use the perfect forsight solver
+        PerfectForesightType.solveAPeriod = PerfectForesightSolver
+        PerfectForesightType.time_vary = [] #let the model know that there are no longer time varying parameters
+        PerfectForesightType.time_inv =  PerfectForesightType.time_inv +['beta','Gamma'] #change beta and Gamma from time varying to non time varying
+        #give the model new beta and Gamma parameters to use for the perfect forsight model
+        PerfectForesightType.assignParameters(beta = 0.96,
+                                              Gamma = 1.01)
+        #tell the model not to use the terminal solution as a valid result anymore
+        PerfectForesightType.pseudo_terminal = True
+        
+        start_time = clock()
+        PerfectForesightType.solve()
+        end_time = clock()
+        print('Solving a Perfect Foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
+        PerfectForesightType.unpack_cFunc()
+        PerfectForesightType.timeFwd()
+        
+            
+        plotFuncs(PerfectForesightType.cFunc[:],0,5)
