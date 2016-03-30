@@ -55,7 +55,7 @@ class ConsumerSolution():
         between their consumption functions.
         '''
         dist = self.cFunc.distance(solution_other.cFunc)
-        #print(dist)
+        print(dist)
         return dist
         
             
@@ -217,15 +217,14 @@ def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_gri
         v_top = temp_func(c_top)
         F_top = pref_cdf_grid[j]
         scale = (c_top-c_bot)/(F_top-F_bot)
-        vP_add = (v_top - v_bot)/scale
+        vP_add = (v_top - v_bot)/(scale*(1.0-rho))
         fix = scale == 0
         vP_add[fix] = uP(c_top[fix])*(F_top-F_bot)
         vP_vec = vP_vec + vP_add
         c_bot = c_top
         v_bot = v_top
         F_bot = F_top
-    if not rho == 1.0: # don't normalize when rho=1
-        vP_vec = vP_vec/(1.0-rho)
+    vP_vec = vP_vec/(pref_cdf_grid[-1]-pref_cdf_grid[0])
     c_pseudo = uPinv(vP_vec)
     vPfunc_t = MargValueFunc(LinearInterp(m_grid,c_pseudo),rho)
 
@@ -529,7 +528,7 @@ if __name__ == '__main__':
     t_end = time()
     print('Solving a preference shock consumer took ' + str(t_end-t_start) + ' seconds.')
     
-    m = np.linspace(ExampleType.solution[0].m_underbar,5,200)
+    m = np.linspace(ExampleType.solution[0].m_underbar,10,200)
     #m = np.linspace(0.0,1.0,200)
     for j in range(ExampleType.pref_shock_N):
         pref_shock = ExampleType.pref_shock_grid[j]
@@ -539,7 +538,7 @@ if __name__ == '__main__':
     
     # Simulate some wealth history
     ExampleType.unpack_cFunc()
-    history = ExampleType.simulate(ExampleType.w_init,0,ExampleType.sim_T,which=['c'])
+    history = ExampleType.simulate(ExampleType.w_init,0,ExampleType.sim_T,which=['m'])
     plt.plot(np.mean(history,axis=1))
     plt.show()
     

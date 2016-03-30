@@ -11,7 +11,7 @@ a_extra = None                      # Some other value of assets to add to the g
 a_size = 64                        # Number of points in the grid of assets
 
 constraint = None                   # Artificial borrowing constraint
-R_borrow = 1.10                     # Interest factor on assets when negative
+R_borrow = 1.08                     # Interest factor on assets when negative
 R_save = 1.03                       # Interest factor on assets when positive
 
 psi_N = 15                           # Number of points in discrete approximation to permanent income shocks
@@ -24,20 +24,20 @@ p_unemploy_retire = 0.0005          # Probability of "unemployment" while retire
 income_unemploy = 0.4               # Unemployment benefits replacement rate
 income_unemploy_retire = 0.0        # Ditto when retired
 
-pref_shock_sigma = 0.2              # Standard deviation of marginal utility shocks
+pref_shock_sigma = 0.10              # Standard deviation of marginal utility shocks
 pref_shock_N = 24                   # Number of points in discrete approximation to preference shock dist
 
 TT = 1                              # Total number of periods in the model
 T_retire = 0                        # Turn off retirement
 
-sim_T = 200                         # Number of periods to simulate
-sim_N = 1000                        # Number of agents to simulate
+sim_T = 500                         # Number of periods to simulate
+sim_N = 10000                       # Number of agents to simulate
 seed = 31382                        # Any old integer
 RNG = RandomState(seed)             # A random number generator
 
 rho = 4.0                          # Coefficient of relative risk aversion
 beta = 0.96                         # Time preference discount factor
-Gamma = [1.01]                      # Timepath of expected permanent income growth
+Gamma = [1.02]                      # Timepath of expected permanent income growth
 survival_prob = [0.98]              # Timepath of survival probabilities
 
 # Dictionary that can be passed to PrefShockConsumer to instantiate

@@ -13,6 +13,7 @@ import pylab as plt                 # Python's plotting library
 import scipy.stats as stats         # Python's statistics library
 from scipy.integrate import quad, fixed_quad    # quad integration
 from scipy.interpolate import interp1d
+from HARKinterpolation import LinearInterp
 
 def _warning(
     message,
@@ -750,6 +751,63 @@ def avgDataSlice(data,reference,cutoffs,weights=None):
         top = np.searchsorted(cum_dist,cutoffs[j][1])
         slice_avg.append(np.sum(data_sorted[bot:top]*weights_sorted[bot:top])/np.sum(weights_sorted[bot:top]))
     return slice_avg
+    
+    
+    
+def kernelRegression(x,y,bot=None,top=None,N=500,h=None):
+    '''
+    Performs a non-parametric Nadaraya-Watson 1D kernel regression on given data
+    with optionally specified range, number of points, and kernel bandwidth.
+    
+    Parameters:
+    ------------
+    x : np.array
+        The independent variable in the kernel regression.
+    y : np.array
+        The dependent variable in the kernel regression.
+    bot : float
+        Minimum value of interest in the regression; defaults to min(x).
+    top : float
+        Maximum value of interest in the regression; defaults to max(y).
+    N : int
+        Number of points to compute.
+    h : float
+        The bandwidth of the (Epanechnikov) kernel. To-do: GENERALIZE.
+        
+    Returns:
+    ----------
+    regression : LinearInterp
+        A piecewise locally linear kernel regression: y = f(x).
+    '''
+    # Fix omitted inputs
+    if bot is None:
+        bot = np.min(x)
+    if top is None:
+        top is np.max(x)
+    if h is None:
+        h = 2.0*(top - bot)/float(N) # This is an arbitrary default
+        
+    # Construct a local linear approximation
+    x_vec = np.linspace(bot,top,num=N)
+    y_vec = np.zeros_like(x_vec) + np.nan
+    for j in range(N):
+        x_here = x_vec[j]
+        weights = epanechnikovKernel(x,x_here,h)
+        y_vec[j] = np.dot(weights,y)/np.sum(weights)
+    regression = LinearInterp(x_vec,y_vec)
+    return regression
+    
+    
+    
+    
+def epanechnikovKernel(x,ref_x,h=1.0):    
+    u = (x-ref_x)/h
+    these = np.abs(u) <= 1.0
+    out = np.zeros_like(x)
+    out[these] = 0.75*(1.0-u[these]**2.0)
+    return out
+
+    
 
 
 def getArgNames(function):
