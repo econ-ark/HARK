@@ -179,7 +179,7 @@ def perfectForesightSolver(solution_tp1,beta,rho,R,Gamma,constraint):
 ####################################################################################################
 ####################################################################################################
 
-class ConsumptionSavingSolverExog(PerfectForesightSolver):
+class ConsumptionSavingSolverEXOG(PerfectForesightSolver):
 
     def __init__(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
                                 Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
@@ -235,11 +235,11 @@ class ConsumptionSavingSolverExog(PerfectForesightSolver):
     def defineBorrowingConstraint(self,constraint):
 
         # Calculate the minimum allowable value of money resources in this period
-        m_underbar_t = max((self.solution_tp1.m_underbar - self.xi_underbar_tp1) *
+        self.m_underbar_t = max((self.solution_tp1.m_underbar - self.xi_underbar_tp1) *
                            (self.Gamma*self.psi_underbar_tp1)/self.R,constraint)
     
         # Define the borrowing constraint (limiting consumption function)
-        self.constraint_t = lambda m: m - m_underbar_t
+        self.constraint_t = lambda m: m - self.m_underbar_t
 
 
 
@@ -261,15 +261,17 @@ class ConsumptionSavingSolverExog(PerfectForesightSolver):
         constraint_t    = self.constraint_t
         calc_vFunc      = self.calc_vFunc
         cubic_splines   = self.cubic_splines     
+        uP          = self.uP            
+        uPP         = self.uPP
+
+        vPPfunc_tp1 = self.vPPfunc_tp1
+
         
         if calc_vFunc:        
             u           = self.u
-            uP          = self.uP            
-            uPP         = self.uPP
             uinv        = self.uinv
             uinvP       = self.uinvP
             vFunc_tp1   = self.vFunc_tp1
-            vPPfunc_tp1 = self.vPPfunc_tp1
 
         
         
@@ -340,11 +342,13 @@ class ConsumptionSavingSolverExog(PerfectForesightSolver):
         return solution_t
 
 
-def consumptionSavingSolverExog(solution_tp1,beta,rho,R,Gamma,constraint):
+def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
+                                Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
     '''
     Solves a single period consumption - savings problem for a consumer with perfect foresight.
     '''
-    solver = ConsumptionSavingSolverExog(solution_tp1,beta,rho,R,Gamma,constraint)
+    solver = ConsumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,survival_prob,
+                                         beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines)
     
     solution = solver.solve()
     
@@ -1715,6 +1719,7 @@ if __name__ == '__main__':
     
     # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)
+    LifecycleType.solveAPeriod = consumptionSavingSolverEXOG
     
     start_time = clock()
     LifecycleType.solve()
@@ -1724,29 +1729,33 @@ if __name__ == '__main__':
     LifecycleType.timeFwd()
     
 #    # Plot the consumption functions during working life
-#    print('Consumption functions while working:')
-#    plotFuncs(LifecycleType.cFunc[:40],0,5)
-#    # Plot the consumption functions during retirement
-#    print('Consumption functions while retired:')
-#    plotFuncs(LifecycleType.cFunc[40:],0,5)
+    print('Consumption functions while working:')
+    plotFuncs(LifecycleType.cFunc[:40],0,5)
+    # Plot the consumption functions during retirement
+    print('Consumption functions while retired:')
+    plotFuncs(LifecycleType.cFunc[40:],0,5)
     LifecycleType.timeRev()
     
     
     
-    # Make and solve an infinite horizon consumer
-    InfiniteType = deepcopy(LifecycleType)
-    InfiniteType.assignParameters(    survival_prob = [0.98],
-                                      beta = [0.96],
-                                      Gamma = [1.01],
-                                      cycles = 0) # This is what makes the type infinite horizon
-    InfiniteType.income_distrib = [LifecycleType.income_distrib[-1]]
-    InfiniteType.p_zero_income = [LifecycleType.p_zero_income[-1]]
     
-    start_time = clock()
-    InfiniteType.solve()
-    end_time = clock()
-    print('Solving an infinite horizon consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    InfiniteType.unpack_cFunc()
+####################################################################################################    
+    
+    
+#    # Make and solve an infinite horizon consumer
+#    InfiniteType = deepcopy(LifecycleType)
+#    InfiniteType.assignParameters(    survival_prob = [0.98],
+#                                      beta = [0.96],
+#                                      Gamma = [1.01],
+#                                      cycles = 0) # This is what makes the type infinite horizon
+#    InfiniteType.income_distrib = [LifecycleType.income_distrib[-1]]
+#    InfiniteType.p_zero_income = [LifecycleType.p_zero_income[-1]]
+#    
+#    start_time = clock()
+#    InfiniteType.solve()
+#    end_time = clock()
+#    print('Solving an infinite horizon consumer took ' + mystr(end_time-start_time) + ' seconds.')
+#    InfiniteType.unpack_cFunc()
     
 #    # Plot the consumption function and MPC for the infinite horizon consumer
 #    print('Consumption function:')
@@ -1756,28 +1765,42 @@ if __name__ == '__main__':
 #    if InfiniteType.calc_vFunc:
 #        print('Value function:')
 #        plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
-        
-        
-    # Make and solve an agent with a kinky interest rate
-    KinkyType = deepcopy(InfiniteType)
 
-    KinkyType.time_inv.remove('R')
-    KinkyType.time_inv += ['R_borrow','R_save']
-    #KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0)
-    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0,cubic_splines = False)
 
-#    KinkyType(R = 1.03, constraint = None, a_size = 48, cycles=0)
-    KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
-    KinkyType.updateAssetsGrid()
+
+
     
-    start_time = clock()
-    KinkyType.solve()
-    end_time = clock()
-    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    KinkyType.unpack_cFunc()
-    print('Kinky consumption function:')
-    KinkyType.timeFwd()
-    plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].m_underbar,5)
+####################################################################################################    
+
+
+
+
+        
+        
+#    # Make and solve an agent with a kinky interest rate
+#    KinkyType = deepcopy(InfiniteType)
+#
+#    KinkyType.time_inv.remove('R')
+#    KinkyType.time_inv += ['R_borrow','R_save']
+#    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0,cubic_splines = False)
+#
+#    KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
+#    KinkyType.updateAssetsGrid()
+#    
+#    start_time = clock()
+#    KinkyType.solve()
+#    end_time = clock()
+#    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
+#    KinkyType.unpack_cFunc()
+#    print('Kinky consumption function:')
+#    KinkyType.timeFwd()
+#    plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].m_underbar,5)
+
+
+    
+####################################################################################################    
+
+
     
 #    # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
 #    # The consumer has income that greatly fluctuates throughout the year.
@@ -1800,6 +1823,8 @@ if __name__ == '__main__':
 #    print('Quarterly consumption functions:')
 #    plotFuncs(CyclicalType.cFunc,CyclicalType.solution[0].m_underbar,5)
 #    
+    
+####################################################################################################    
 #    
 #    
 #    # Make and solve a "hybrid" consumer who solves an infinite horizon problem by
