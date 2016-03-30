@@ -18,7 +18,7 @@ a_extra = None                      # Some other value of assets to add to the g
 a_size = 8                         # Number of points in the grid of assets
 
 constraint = None                  # Artificial borrowing constraint
-cubic_splines = True                # Use cubic spline interpolation when True, linear interpolation when False
+cubic_splines = False               # Use cubic spline interpolation when True, linear interpolation when False
 calc_vFunc = False                  # Whether to calculate the value function during solution
 
 R = 1.03                            # Interest factor on assets

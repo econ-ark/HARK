@@ -1517,7 +1517,7 @@ if __name__ == '__main__':
     
     # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)
-    LifecycleType.solveAPeriod = consumptionSavingSolverEXOG
+    #LifecycleType.solveAPeriod = consumptionSavingSolverEXOG
     
     start_time = clock()
     LifecycleType.solve()
@@ -1536,47 +1536,47 @@ if __name__ == '__main__':
     
     
     
-#    # Make and solve an infinite horizon consumer
-#    InfiniteType = deepcopy(LifecycleType)
-#    InfiniteType.assignParameters(    survival_prob = [0.98],
-#                                      beta = [0.96],
-#                                      Gamma = [1.01],
-#                                      cycles = 0) # This is what makes the type infinite horizon
-#    InfiniteType.income_distrib = [LifecycleType.income_distrib[-1]]
-#    InfiniteType.p_zero_income = [LifecycleType.p_zero_income[-1]]
-#    
-#    start_time = clock()
-#    InfiniteType.solve()
-#    end_time = clock()
-#    print('Solving an infinite horizon consumer took ' + mystr(end_time-start_time) + ' seconds.')
-#    InfiniteType.unpack_cFunc()
-#    
-#    # Plot the consumption function and MPC for the infinite horizon consumer
-#    print('Consumption function:')
-#    #plotFunc(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5)    # plot consumption
-#    print('Marginal consumption function:')
-#    #plotFuncDer(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5) # plot MPC
-#    if InfiniteType.calc_vFunc:
-#        print('Value function:')
-#        plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
-#        
-#        
-#    # Make and solve an agent with a kinky interest rate
-#    KinkyType = deepcopy(InfiniteType)
-#    KinkyType.time_inv.remove('R')
-#    KinkyType.time_inv += ['R_borrow','R_save']
-#    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0)
-#    KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
-#    KinkyType.updateAssetsGrid()
-#    
-#    start_time = clock()
-#    KinkyType.solve()
-#    end_time = clock()
-#    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
-#    KinkyType.unpack_cFunc()
-#    print('Kinky consumption function:')
-#    KinkyType.timeFwd()
-#    plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].m_underbar,5)
+    # Make and solve an infinite horizon consumer
+    InfiniteType = deepcopy(LifecycleType)
+    InfiniteType.assignParameters(    survival_prob = [0.98],
+                                      beta = [0.96],
+                                      Gamma = [1.01],
+                                      cycles = 0) # This is what makes the type infinite horizon
+    InfiniteType.income_distrib = [LifecycleType.income_distrib[-1]]
+    InfiniteType.p_zero_income = [LifecycleType.p_zero_income[-1]]
+    
+    start_time = clock()
+    InfiniteType.solve()
+    end_time = clock()
+    print('Solving an infinite horizon consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    InfiniteType.unpack_cFunc()
+    
+    # Plot the consumption function and MPC for the infinite horizon consumer
+    print('Consumption function:')
+    #plotFunc(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5)    # plot consumption
+    print('Marginal consumption function:')
+    #plotFuncDer(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5) # plot MPC
+    if InfiniteType.calc_vFunc:
+        print('Value function:')
+        plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
+        
+        
+    # Make and solve an agent with a kinky interest rate
+    KinkyType = deepcopy(InfiniteType)
+    KinkyType.time_inv.remove('R')
+    KinkyType.time_inv += ['R_borrow','R_save']
+    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0)
+    KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
+    KinkyType.updateAssetsGrid()
+    
+    start_time = clock()
+    KinkyType.solve()
+    end_time = clock()
+    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    KinkyType.unpack_cFunc()
+    print('Kinky consumption function:')
+    KinkyType.timeFwd()
+    plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].m_underbar,5)
     
 #    # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
 #    # The consumer has income that greatly fluctuates throughout the year.

@@ -204,13 +204,15 @@ class ConsumptionSavingSolverEXOG(PerfectForesightSolver):
 
     def defineUtilityFunctions(self):
         PerfectForesightSolver.defineUtilityFunctions(self)
+        self.uPinv     = lambda u : utilityP_inv(u,gam=self.rho)
+        self.uinvP     = lambda u : utility_invP(u,gam=self.rho)        
         if self.calc_vFunc:
             self.uinv      = lambda u : utility_inv(u,gam=self.rho)
-            self.uinvP     = lambda u : utility_invP(u,gam=self.rho)
             self.vFunc_tp1 = self.solution_tp1.vFunc
 
 
     def setAndUpdateValues(self,solution_tp1,income_distrib,survival_prob,beta):
+
         self.effective_beta   = beta*survival_prob
         self.prob_tp1         = income_distrib[0]
         self.psi_tp1          = income_distrib[1]
@@ -360,159 +362,209 @@ def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,surviv
 
     
 
-def consumptionSavingSolverENDG(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
-                                Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
-    '''
-    Solves a single period of a standard consumption-saving problem, representing
-    the consumption function as a cubic spline interpolation if cubic_splines is
-    True and as a linear interpolation if it is False.  Problem is solved using
-    the method of endogenous gridpoints.
 
-    Parameters:
-    -----------
-    solution_tp1: ConsumerSolution
-        The solution to the following period.
-    income_distrib: [[float]]
-        A list containing three lists of floats, representing a discrete approximation to the income
-        process between the period being solved and the one immediately following (in solution_tp1).
-        Order: probs, psi, xi
-    p_zero_income: float
-        The probability of receiving zero income in the succeeding period.
-    survival_prob: float
-        Probability of surviving to succeeding period.
-    beta: float
-        Discount factor between this period and the succeeding period.
-    rho: float
-        The coefficient of relative risk aversion
-    R: float
-        Interest factor on assets between this period and the succeeding period: w_tp1 = a_t*R
-    Gamma: float
-        Expected growth factor for permanent income between this period and the succeeding period.
-    constraint: float
-        Borrowing constraint for the minimum allowable assets to end the period
-        with.  If it is less than the natural borrowing constraint, then it is
-        irrelevant; constraint=None indicates no artificial borrowing constraint.
-    a_grid: [float]
-        A list of end-of-period asset values (post-decision states) at which to solve for optimal 
-        consumption.
-    calc_vFunc: Boolean
-        An indicator for whether the value function should be computed and included
-        in the reported solution
-    cubic_splines: Boolean
-        An indicator for whether the solver should use cubic or linear interpolation
+class ConsumptionSavingSolverENDG(ConsumptionSavingSolverEXOG):
+    """
+    Class to solve the consumptions savings problem with endogenous gridpoints
     
+    This class only does linear interpolation
+    """    
 
-    Returns:
-    -----------
-    solution_t: ConsumerSolution
-        The solution to this period's problem, obtained using the method of endogenous gridpoints.
-    '''
-
-    # Define utility and value functions
-    if calc_vFunc:
-        u         = lambda c : utility(c,gam=rho)
-        uinv      = lambda u : utility_inv(u,gam=rho)
-        uinvP     = lambda u : utility_invP(u,gam=rho)
-        vFunc_tp1 = solution_tp1.vFunc
-    uP            = lambda c : utilityP(c,gam=rho)
-    uPP           = lambda c : utilityPP(c,gam=rho)
-    uPinv         = lambda u : utilityP_inv(u,gam=rho)
-
-    # Set and update values for this period
-    effective_beta   = beta*survival_prob
-    psi_tp1          = income_distrib[1]
-    xi_tp1           = income_distrib[2]
-    prob_tp1         = income_distrib[0]
-    vPfunc_tp1       = solution_tp1.vPfunc
-    psi_underbar_tp1 = np.min(psi_tp1)    
-    xi_underbar_tp1  = np.min(xi_tp1)
-    if cubic_splines:
-        vPPfunc_tp1  = solution_tp1.vPPfunc
-
-    # Update the bounding MPCs and PDV of human wealth:
-    if cubic_splines or calc_vFunc:
-        thorn_R     = ((R*effective_beta)**(1/rho))/R
-        kappa_min_t = 1.0/(1.0 + thorn_R/solution_tp1.kappa_min)
-        gothic_h_t  = Gamma/R*(1.0 + solution_tp1.gothic_h)
-        kappa_max_t = 1.0/(1.0 + (p_zero_income**(1/rho))*thorn_R/solution_tp1.kappa_max)
-    
-    # Calculate the minimum allowable value of money resources in this period
-    m_underbar_t = max((solution_tp1.m_underbar - xi_underbar_tp1)*(Gamma*psi_underbar_tp1)/R, 
-                       constraint)
-
-    # Define the borrowing constraint (limiting consumption function)
-    constraint_t = lambda m: m - m_underbar_t
-
-    # Find data for the unconstrained consumption function in this period
-    c_temp = [0.0]  # Limiting consumption is zero as m approaches m_underbar
-    m_temp = [m_underbar_t]
-    if cubic_splines:
-        kappa_temp = [kappa_max_t]
-    a         = np.asarray(a_grid) + m_underbar_t
-    a_N       = a.size
-    shock_N   = xi_tp1.size
-    a_temp    = np.tile(a,(shock_N,1))
-    psi_temp  = (np.tile(psi_tp1,(a_N,1))).transpose()
-    xi_temp   = (np.tile(xi_tp1,(a_N,1))).transpose()
-    prob_temp = (np.tile(prob_tp1,(a_N,1))).transpose()
-    m_tp1     = R/(Gamma*psi_temp)*a_temp + xi_temp
-    if calc_vFunc:
-        V_tp1   = (psi_temp**(1.0-rho)*Gamma**(1.0-rho))*vFunc_tp1(m_tp1)
-        gothicv = effective_beta*np.sum(V_tp1*prob_temp,axis=0)
-    gothicvP    = effective_beta*R*Gamma**(-rho)*np.sum(psi_temp**(-rho)*vPfunc_tp1(m_tp1)*prob_temp,
-                                           axis=0)
-    c = uPinv(gothicvP)
-    m = c + a
-    c_temp += c.tolist()
-    m_temp += m.tolist()
-    if cubic_splines:
-        gothicvPP   = effective_beta*R*R*Gamma**(-rho-1.0)* \
-                      np.sum(psi_temp**(-rho-1.0)*vPPfunc_tp1(m_tp1)*prob_temp,axis=0)    
-        dcda        = gothicvPP/uPP(c)
-        kappa       = dcda/(dcda+1)
-        kappa_temp += kappa.tolist()
-    
-    # Construct the unconstrained consumption function
-    if cubic_splines:
-        cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,kappa_temp,
-                                                   kappa_min_t*gothic_h_t,kappa_min_t)
-    else:
-        cFunc_t_unconstrained = LinearInterp(m_temp,c_temp)
-
-    # Combine the constrained and unconstrained functions into the true consumption function
-    cFunc_t = ConstrainedComposite(cFunc_t_unconstrained,constraint_t)
-    
-    # Construct the value function if requested
-    if calc_vFunc:
-        v_temp    = u(np.array(c)) + gothicv
-        vQ_temp   = uinv(v_temp) # value transformed through inverse utility
-        vPQ_temp  = gothicvP*uinvP(v_temp)
-        k         = kappa_min_t**(-rho/(1-rho))
-        vQfunc_t  = Cubic1DInterpDecay(m,vQ_temp,vPQ_temp,k*gothic_h_t,k)
-        vFunc_t   = lambda m : u(vQfunc_t(m))
+    def prepareToGetGothicVP(self):
+        """
+        Create some things we need to compute GothicvP
+        """        
         
-    # Make the marginal value function and the marginal marginal value function
-    vPfunc_t = lambda m : uP(cFunc_t(m))
-    if cubic_splines:
-        vPPfunc_t = MargMargValueFunc(cFunc_t,rho)
+        a         = np.asarray(self.a_grid) + self.m_underbar_t
+        a_N       = a.size
+        shock_N   = self.xi_tp1.size
+        a_temp    = np.tile(a,(shock_N,1))
+        psi_temp  = (np.tile(self.psi_tp1,(a_N,1))).transpose()
+        xi_temp   = (np.tile(self.xi_tp1,(a_N,1))).transpose()
+        prob_temp = (np.tile(self.prob_tp1,(a_N,1))).transpose()
+        m_tp1     = self.R/(self.Gamma*psi_temp)*a_temp + xi_temp
 
-    # Store the results in a solution object and return it
-    if cubic_splines or calc_vFunc:
-        solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=m_underbar_t, 
-                                      gothic_h=gothic_h_t, kappa_min=kappa_min_t, 
-                                      kappa_max=kappa_max_t)
-    else:
-        solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=m_underbar_t)
-    if calc_vFunc:
-        solution_t.vFunc = vFunc_t
-    if cubic_splines:
-        solution_t.vPPfunc=vPPfunc_t
-    #print('Solved a period with ENDG!')
-    return solution_t
+
+      
+        return a,psi_temp,prob_temp,m_tp1
+
+
+
+    def getGothicVP(self,psi_temp,prob_temp,m_tp1):
+        """
+        Find data for the unconstrained consumption function in this period
+        """
+        
+        gothicvP  = self.effective_beta*self.R*self.Gamma**(-self.rho)*np.sum(
+                    psi_temp**(-self.rho)*self.vPfunc_tp1(m_tp1)*prob_temp,axis=0)
+                    
+        return gothicvP
+                    
+    def getSolution(self,a,gothicvP,psi_temp,prob_temp,m_tp1):
+        """
+        Given a and gothicvP, return the solution for this period.
+        """
+
+        c_temp    = [0.0]  # Limiting consumption is zero as m approaches m_underbar
+        m_temp    = [self.m_underbar_t]
+        
+        c = self.uPinv(gothicvP)
+        m = c + a
+
+        c_temp += c.tolist()
+        m_temp += m.tolist()
+        
+        # Construct the unconstrained consumption function
+        if self.cubic_splines:
+            kappa_temp = [self.kappa_max_t]
+            gothicvPP   = self.effective_beta*self.R*self.R*self.Gamma**(-self.rho-1.0)* \
+                          np.sum(psi_temp**(-self.rho-1.0)*self.vPPfunc_tp1(m_tp1)*prob_temp,
+                                 axis=0)    
+            dcda        = gothicvPP/self.uPP(c)
+            kappa       = dcda/(dcda+1)
+            kappa_temp += kappa.tolist()
+
+            cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,kappa_temp,
+                                                       self.kappa_min_t*self.gothic_h_t,
+                                                       self.kappa_min_t)
+        else:
+            cFunc_t_unconstrained = LinearInterp(m_temp,c_temp)        
+
+        # Combine the constrained and unconstrained functions into the true consumption function
+        cFunc_t = ConstrainedComposite(cFunc_t_unconstrained,self.constraint_t)
+        
+        # Construct the value function if requested
+        if self.calc_vFunc:
+            v_temp    = self.u(np.array(c)) + self.gothicv
+            vQ_temp   = self.uinv(v_temp) # value transformed through inverse utility
+            vPQ_temp  = self.gothicvP*self.uinvP(v_temp)
+            k         = self.kappa_min_t**(-self.rho/(1-self.rho))
+            vQfunc_t  = Cubic1DInterpDecay(m,vQ_temp,vPQ_temp,k*self.gothic_h_t,k)
+            vFunc_t   = lambda m : self.u(vQfunc_t(m))
+            
+        # Make the marginal value function and the marginal marginal value function
+        vPfunc_t = lambda m : self.uP(cFunc_t(m))
+        if self.cubic_splines:
+            vPPfunc_t = MargMargValueFunc(cFunc_t,self.rho)
     
+        # Store the results in a solution object and return it
+        if self.cubic_splines or self.calc_vFunc:
+            solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=self.m_underbar_t, 
+                                          gothic_h=self.gothic_h_t, kappa_min=self.kappa_min_t, 
+                                          kappa_max=self.kappa_max_t)
+        else:
+            solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=self.m_underbar_t)
+        if self.calc_vFunc:
+            solution_t.vFunc = vFunc_t
+        if self.cubic_splines:
+            solution_t.vPPfunc=vPPfunc_t
+        #print('Solved a period with ENDG!')
+        return solution_t
+
+
+
+        
+    def solve(self):
+        a,psi_temp,prob_temp,m_tp1 = self.prepareToGetGothicVP()           
+        gothicvP                   = self.getGothicVP(psi_temp,prob_temp,m_tp1)                        
+        solution                   = self.getSolution(a,gothicvP,psi_temp,prob_temp,m_tp1)
+        
+        return solution        
+       
+        
+        
+def consumptionSavingSolverENDG(solution_tp1,income_distrib,p_zero_income,survival_prob,
+                                      beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
+                                       
+    solver = ConsumptionSavingSolverENDG(solution_tp1,income_distrib,p_zero_income,
+                                               survival_prob,beta,rho,R,Gamma,constraint,a_grid,
+                                               calc_vFunc,cubic_splines)
+                    
+    solution                   = solver.solve()
+
+    return solution             
+        
+
+
+####################################################################################################
+####################################################################################################
+
+
+class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
+    """
+    A class to solve a consumption-savings problem where the interest rate on debt differs
+    from the interest rate on savings.
     
+    See documentation for ConsumptionSavingSolverEndgLinear.  Inputs and outputs here are identical,
+    except there are two interest rates as inputs (R_save and R_borrow) instead of one (R).
+    """
+
+
+    def __init__(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,
+                                   R_borrow,R_save,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):        
+
+        assert cubic_splines==False,'KinkedR will only work with linear interpolation'
+
+        # Initialize the solver.  Most of the steps are exactly the same as in the Endogenous Grid
+        # linear case, so start with that.
+        ConsumptionSavingSolverENDG.__init__(self,solution_tp1,income_distrib,p_zero_income,
+                                                   survival_prob,beta,rho,R_borrow,Gamma,constraint,
+                                                   a_grid,calc_vFunc,cubic_splines) 
+
+        # Assign the interest rates as class attributes, to use them later.
+        self.R_borrow = R_borrow
+        self.R_save   = R_save
+
+
+    def prepareToGetGothicVP(self):
+        """
+        Method to prepare for calculating gothicvP.
+        
+        This differs from the baseline case because different savings choices yield different
+        interest rates.
+        """
+        
+        a         = np.sort(np.hstack((np.asarray(self.a_grid) + 
+                    self.m_underbar_t,np.array([0.0,0.0]))))
+        a_N       = a.size
+        shock_N   = self.xi_tp1.size
+        a_temp    = np.tile(a,(shock_N,1))
+        psi_temp  = (np.tile(self.psi_tp1,(a_N,1))).transpose()
+        xi_temp   = (np.tile(self.xi_tp1,(a_N,1))).transpose()
+        prob_temp = (np.tile(self.prob_tp1,(a_N,1))).transpose()
+
+        R_vec     = self.R_save*np.ones(a_N)
+        R_vec[0:(np.sum(a<=0)-1)]   = self.R_borrow
+
+        #self.R is used in getGothicVp        
+        self.R    = R_vec
+
+        R_temp    = np.tile(R_vec,(shock_N,1))
+        m_tp1     = R_temp/(self.Gamma*psi_temp)*a_temp + xi_temp
+        return a,psi_temp,prob_temp,m_tp1
+
+
+
+
+
+def consumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,
+                                   survival_prob,beta,rho,R_borrow,R_save,Gamma,constraint,
+                                   a_grid,calc_vFunc,cubic_splines):
+                                       
+    solver = ConsumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,survival_prob,
+                                            beta,rho,R_borrow,R_save,Gamma,constraint,a_grid,
+                                            calc_vFunc,cubic_splines)
+
+    solution = solver.solve()
+
+    return solution                                   
+
     
-    
+
+
+####################################################################################################
+####################################################################################################
+
     
 def consumptionSavingSolverMarkov(solution_tp1,transition_array,income_distrib,p_zero_income,
                                   survival_prob,beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,
@@ -729,239 +781,6 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_array,income_distrib,p
     return solution_t
     
     
-
-
-class ConsumptionSavingSolverEndgLinear(object):
-    """
-    Class to solve the consumptions savings problem with endogenous gridpoints
-    
-    This class only does linear interpolation
-    """    
-    
-    def defineUtilityFunctions(self,rho):
-        #solution_tp1 = None
-        if self.calc_vFunc:
-            self.u         = lambda c : utility(c,gam=rho)
-            self.uinv      = lambda u : utility_inv(u,gam=rho)
-            self.uinvP     = lambda u : utility_invP(u,gam=rho)
-            
-        self.uP            = lambda c : utilityP(c,gam=rho)
-        self.uPP           = lambda c : utilityPP(c,gam=rho)
-        self.uPinv         = lambda u : utilityP_inv(u,gam=rho)
-       
-
-    def setAndUpdateValues(self,solution_tp1,income_distrib,survival_prob,beta):
-        self.effective_beta   = beta*survival_prob
-        self.prob_tp1         = income_distrib[0]
-        self.psi_tp1          = income_distrib[1]
-        self.xi_tp1           = income_distrib[2]
-        self.psi_underbar_tp1 = np.min(self.psi_tp1)    
-        self.xi_underbar_tp1  = np.min(self.xi_tp1)
-        self.vPfunc_tp1       = solution_tp1.vPfunc        
-
-        if self.cubic_splines:
-            self.vPPfunc_tp1  = solution_tp1.vPPfunc
-    
-        # Update the bounding MPCs and PDV of human wealth:
-        if self.cubic_splines or self.calc_vFunc:
-            self.vFunc_tp1   = solution_tp1.vFunc
-            self.thorn_R     = ((self.R*self.effective_beta)**(1/self.rho))/self.R
-            self.kappa_min_t = 1.0/(1.0 + self.thorn_R/solution_tp1.kappa_min)
-            self.gothic_h_t  = self.Gamma/self.R*(1.0 + solution_tp1.gothic_h)
-            self.kappa_max_t = 1.0/(1.0 + (self.p_zero_income**(1/self.rho))* \
-                               self.thorn_R/solution_tp1.kappa_max)
-
-    def defineBorrowingConstraint(self,solution_tp1,R,Gamma,constraint):
-        
-        # Calculate the minimum allowable value of money resources in this period
-        self.m_underbar_t = max((solution_tp1.m_underbar - self.xi_underbar_tp1)*
-                                (Gamma*self.psi_underbar_tp1)/R, constraint)
-
-        # Define the borrowing constraint (limiting consumption function)
-        self.constraint_t = lambda m: m - self.m_underbar_t
-
-
-    
-    def __init__(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,Gamma,
-                 constraint,a_grid,calc_vFunc,cubic_splines):
-        
-        self.solution_tp1    = solution_tp1
-        self.income_distrib  = income_distrib
-        self.p_zero_income   = p_zero_income
-        self.survival_prob   = survival_prob
-        self.beta            = beta
-        self.rho             = rho
-        self.R               = R
-        self.Gamma           = Gamma
-        self.constraint      = constraint
-        self.a_grid          = a_grid
-        self.calc_vFunc      = calc_vFunc
-        self.cubic_splines   = cubic_splines
-
-        # Define the functions associated with utility
-        self.defineUtilityFunctions(rho)
-
-        self.setAndUpdateValues(solution_tp1,income_distrib,survival_prob,beta)
-
-        self.defineBorrowingConstraint(solution_tp1,R,Gamma,constraint)
-
-
-
-    def prepareToGetGothicVP(self):
-        """
-        Create some things we need to compute GothicvP
-        """        
-        
-        a         = np.sort(np.hstack((np.asarray(self.a_grid) + 
-                    self.m_underbar_t,np.array([0.0,0.0]))))
-        a_N       = a.size
-        shock_N   = self.xi_tp1.size
-        a_temp    = np.tile(a,(shock_N,1))
-        psi_temp  = (np.tile(self.psi_tp1,(a_N,1))).transpose()
-        xi_temp   = (np.tile(self.xi_tp1,(a_N,1))).transpose()
-        prob_temp = (np.tile(self.prob_tp1,(a_N,1))).transpose()
-        m_tp1     = self.R/(self.Gamma*psi_temp)*a_temp + xi_temp
-
-
-        if self.cubic_splines:
-            kappa_temp = [self.kappa_max_t]
-            gothicvPP   = self.effective_beta*self.R*self.R*self.Gamma**(-self.rho-1.0)* \
-                          np.sum(psi_temp**(-self.rho-1.0)*self.vPPfunc_tp1(m_tp1)*prob_temp,axis=0)    
-            dcda        = gothicvPP/self.uPP(c)
-            kappa       = dcda/(dcda+1)
-            kappa_temp += kappa.tolist()
-        
-        return a,psi_temp,prob_temp,m_tp1
-
-
-    def getGothicVP(self,psi_temp,prob_temp,m_tp1):
-        """
-        Find data for the unconstrained consumption function in this period
-        """
-        
-        gothicvP  = self.effective_beta*self.R*self.Gamma**(-self.rho)*np.sum(
-                    psi_temp**(-self.rho)*self.vPfunc_tp1(m_tp1)*prob_temp,axis=0)
-                    
-        return gothicvP
-                    
-    def getSolution(self,a,gothicvP):
-        """
-        Given a and gothicvP, return the solution for this period.
-        """
-
-        c_temp    = [0.0]  # Limiting consumption is zero as m approaches m_underbar
-        m_temp    = [self.m_underbar_t]
-        
-        c = self.uPinv(gothicvP)
-        m = c + a
-
-        c_temp += c.tolist()
-        m_temp += m.tolist()
-        
-        # Construct the unconstrained consumption function
-        if self.cubic_splines:
-            cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,kappa_temp,
-                                                       kappa_min_t*gothic_h_t,kappa_min_t)
-        else:
-            cFunc_t_unconstrained = LinearInterp(m_temp,c_temp)        
-
-        # Combine the constrained and unconstrained functions into the true consumption function
-        cFunc_t = ConstrainedComposite(cFunc_t_unconstrained,self.constraint_t)
-            
-        # Make the marginal value function and the marginal marginal value function
-        vPfunc_t = lambda m : self.uP(cFunc_t(m))
-    
-        # Store the results in a solution object and return it
-        solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=self.m_underbar_t)
-        
-        #print('Solved a period with ENDG!')
-        return solution_t
-        
-    def solve(self):
-        a,psi_temp,prob_temp,m_tp1 = self.prepareToGetGothicVP()           
-        gothicvP                   = self.getGothicVP(psi_temp,prob_temp,m_tp1)                        
-        solution                   = self.getSolution(a,gothicvP)
-        
-        return solution        
-       
-        
-        
-def consumptionSavingSolverEndgLinear(solution_tp1,income_distrib,p_zero_income,survival_prob,
-                                      beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
-                                       
-    solver = ConsumptionSavingSolverEndgLinear(solution_tp1,income_distrib,p_zero_income,
-                                               survival_prob,beta,rho,R,Gamma,constraint,a_grid,
-                                               calc_vFunc,cubic_splines)
-                    
-    solution                   = solver.solve()
-
-    return solution             
-        
-
-
-class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverEndgLinear):
-    """
-    A class to solve a consumption-savings problem where the interest rate on debt differs
-    from the interest rate on savings.
-    
-    See documentation for ConsumptionSavingSolverEndgLinear.  Inputs and outputs here are identical,
-    except there are two interest rates as inputs (R_save and R_borrow) instead of one (R).
-    """
-
-
-    def __init__(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,
-                                   R_borrow,R_save,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):        
-
-        # Initialize the solver.  Most of the steps are exactly the same as in the Endogenous Grid
-        # linear case, so start with that.
-        ConsumptionSavingSolverEndgLinear.__init__(self,solution_tp1,income_distrib,p_zero_income,
-                                                   survival_prob,beta,rho,R_borrow,Gamma,constraint,
-                                                   a_grid,calc_vFunc,cubic_splines) 
-
-        # Assign the interest rates as class attributes, to use them later.
-        self.R_borrow = R_borrow
-        self.R_save   = R_save
-
-
-    def prepareToGetGothicVP(self):
-        """
-        Method to prepare for calculating gothicvP.
-        
-        This differs from the baseline case because different savings choices yield different
-        interest rates.
-        """
-        
-        a         = np.sort(np.hstack((np.asarray(self.a_grid) + 
-                    self.m_underbar_t,np.array([0.0,0.0]))))
-        a_N       = a.size
-        shock_N   = self.xi_tp1.size
-        a_temp    = np.tile(a,(shock_N,1))
-        psi_temp  = (np.tile(self.psi_tp1,(a_N,1))).transpose()
-        xi_temp   = (np.tile(self.xi_tp1,(a_N,1))).transpose()
-        prob_temp = (np.tile(self.prob_tp1,(a_N,1))).transpose()
-
-        R_vec     = self.R_save*np.ones(a_N)
-        R_vec[0:(np.sum(a<=0)-1)]   = self.R_borrow
-        
-        #self.R is used in getGothicVp        
-        self.R    = R_vec
-
-        R_temp    = np.tile(R_vec,(shock_N,1))
-        m_tp1     = R_temp/(self.Gamma*psi_temp)*a_temp + xi_temp
-        return a,psi_temp,prob_temp,m_tp1
-
-
-def consumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,
-                                   survival_prob,beta,rho,R_borrow,R_save,Gamma,constraint,
-                                   a_grid,calc_vFunc,cubic_splines):
-                                       
-    solver = ConsumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,survival_prob,
-                                            beta,rho,R_borrow,R_save,Gamma,constraint,a_grid,
-                                            calc_vFunc,cubic_splines)
-
-    solution = solver.solve()
-
-    return solution                                   
 
 
    
@@ -1716,10 +1535,17 @@ if __name__ == '__main__':
     do_hybrid_type          = False
     do_markov_type          = False
     do_perfect_foresight    = False  
+
+
+
+
+
+####################################################################################################    
     
-    # Make and solve a finite consumer type
+#    # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)
-    LifecycleType.solveAPeriod = consumptionSavingSolverEXOG
+##    LifecycleType.solveAPeriod = consumptionSavingSolverEXOG
+    LifecycleType.solveAPeriod = consumptionSavingSolverENDG
     
     start_time = clock()
     LifecycleType.solve()
@@ -1728,9 +1554,10 @@ if __name__ == '__main__':
     LifecycleType.unpack_cFunc()
     LifecycleType.timeFwd()
     
-#    # Plot the consumption functions during working life
+    # Plot the consumption functions during working life
     print('Consumption functions while working:')
     plotFuncs(LifecycleType.cFunc[:40],0,5)
+
     # Plot the consumption functions during retirement
     print('Consumption functions while retired:')
     plotFuncs(LifecycleType.cFunc[40:],0,5)
@@ -1742,29 +1569,29 @@ if __name__ == '__main__':
 ####################################################################################################    
     
     
-#    # Make and solve an infinite horizon consumer
-#    InfiniteType = deepcopy(LifecycleType)
-#    InfiniteType.assignParameters(    survival_prob = [0.98],
-#                                      beta = [0.96],
-#                                      Gamma = [1.01],
-#                                      cycles = 0) # This is what makes the type infinite horizon
-#    InfiniteType.income_distrib = [LifecycleType.income_distrib[-1]]
-#    InfiniteType.p_zero_income = [LifecycleType.p_zero_income[-1]]
-#    
-#    start_time = clock()
-#    InfiniteType.solve()
-#    end_time = clock()
-#    print('Solving an infinite horizon consumer took ' + mystr(end_time-start_time) + ' seconds.')
-#    InfiniteType.unpack_cFunc()
+    # Make and solve an infinite horizon consumer
+    InfiniteType = deepcopy(LifecycleType)
+    InfiniteType.assignParameters(    survival_prob = [0.98],
+                                      beta = [0.96],
+                                      Gamma = [1.01],
+                                      cycles = 0) # This is what makes the type infinite horizon
+    InfiniteType.income_distrib = [LifecycleType.income_distrib[-1]]
+    InfiniteType.p_zero_income = [LifecycleType.p_zero_income[-1]]
     
-#    # Plot the consumption function and MPC for the infinite horizon consumer
-#    print('Consumption function:')
-#    plotFunc(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5)    # plot consumption
-#    print('Marginal consumption function:')
-#    plotFuncDer(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5) # plot MPC
-#    if InfiniteType.calc_vFunc:
-#        print('Value function:')
-#        plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
+    start_time = clock()
+    InfiniteType.solve()
+    end_time = clock()
+    print('Solving an infinite horizon consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    InfiniteType.unpack_cFunc()
+    
+    # Plot the consumption function and MPC for the infinite horizon consumer
+    print('Consumption function:')
+    plotFunc(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5)    # plot consumption
+    print('Marginal consumption function:')
+    plotFuncDer(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5) # plot MPC
+    if InfiniteType.calc_vFunc:
+        print('Value function:')
+        plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
 
 
 
@@ -1777,24 +1604,24 @@ if __name__ == '__main__':
 
         
         
-#    # Make and solve an agent with a kinky interest rate
-#    KinkyType = deepcopy(InfiniteType)
-#
-#    KinkyType.time_inv.remove('R')
-#    KinkyType.time_inv += ['R_borrow','R_save']
-#    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0,cubic_splines = False)
-#
-#    KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
-#    KinkyType.updateAssetsGrid()
-#    
-#    start_time = clock()
-#    KinkyType.solve()
-#    end_time = clock()
-#    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
-#    KinkyType.unpack_cFunc()
-#    print('Kinky consumption function:')
-#    KinkyType.timeFwd()
-#    plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].m_underbar,5)
+    # Make and solve an agent with a kinky interest rate
+    KinkyType = deepcopy(InfiniteType)
+
+    KinkyType.time_inv.remove('R')
+    KinkyType.time_inv += ['R_borrow','R_save']
+    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0,cubic_splines = False)
+
+    KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
+    KinkyType.updateAssetsGrid()
+    
+    start_time = clock()
+    KinkyType.solve()
+    end_time = clock()
+    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    KinkyType.unpack_cFunc()
+    print('Kinky consumption function:')
+    KinkyType.timeFwd()
+    plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].m_underbar,5)
 
 
     
