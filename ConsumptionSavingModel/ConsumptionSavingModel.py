@@ -59,6 +59,34 @@ class ConsumerSolution():
         else:
             return self.cFunc.distance(solution_other.cFunc)
             
+    def appendSolution(self,instance_of_ConsumerSolution):
+        """
+        Used in consumptionSavingSolverMarkov.  Appends one solution to another to create
+        a ConsumerSolution consisting of lists.
+        """
+        if type(self.cFunc)!=list:
+            assert self.cFunc==NullFunc            
+            # Then the assumption is self is an empty initialized instance,
+            # we need to start a list
+            self.cFunc       = [instance_of_ConsumerSolution.cFunc]
+            self.vFunc       = [instance_of_ConsumerSolution.vFunc]
+            self.vPfunc      = [instance_of_ConsumerSolution.vPfunc]
+            self.vPPfunc     = [instance_of_ConsumerSolution.vPPfunc]
+            self.m_underbar  = [instance_of_ConsumerSolution.m_underbar]
+            self.gothic_h    = [instance_of_ConsumerSolution.gothic_h]
+            self.kappa_min   = [instance_of_ConsumerSolution.kappa_min]
+            self.kappa_max   = [instance_of_ConsumerSolution.kappa_max]        
+        else:
+            self.cFunc.append(instance_of_ConsumerSolution.cFunc)
+            self.vFunc.append(instance_of_ConsumerSolution.vFunc)
+            self.vPfunc.append(instance_of_ConsumerSolution.vPfunc)
+            self.vPPfunc.append(instance_of_ConsumerSolution.vPPfunc)
+            self.m_underbar.append(instance_of_ConsumerSolution.m_underbar)
+            self.gothic_h .append(instance_of_ConsumerSolution.gothic_h)
+            self.kappa_min.append(instance_of_ConsumerSolution.kappa_min)
+            self.kappa_max.append(instance_of_ConsumerSolution.kappa_max)  
+
+
 
         
 class ValueFunc():
@@ -237,8 +265,9 @@ class ConsumptionSavingSolverEXOG(PerfectForesightSolver):
     def defineBorrowingConstraint(self,constraint):
 
         # Calculate the minimum allowable value of money resources in this period
-        self.m_underbar_t = max((self.solution_tp1.m_underbar - self.xi_underbar_tp1) *
-                           (self.Gamma*self.psi_underbar_tp1)/self.R,constraint)
+        # Use np.max instead of max for future compatibility with Markov solver
+        self.m_underbar_t = np.max((self.solution_tp1.m_underbar - self.xi_underbar_tp1) *
+                                   (self.Gamma*self.psi_underbar_tp1)/self.R,constraint)
     
         # Define the borrowing constraint (limiting consumption function)
         self.constraint_t = lambda m: m - self.m_underbar_t
@@ -263,10 +292,9 @@ class ConsumptionSavingSolverEXOG(PerfectForesightSolver):
         constraint_t    = self.constraint_t
         calc_vFunc      = self.calc_vFunc
         cubic_splines   = self.cubic_splines     
-        uP          = self.uP            
-        uPP         = self.uPP
-
-        vPPfunc_tp1 = self.vPPfunc_tp1
+        uP              = self.uP            
+        uPP             = self.uPP
+        vPPfunc_tp1     = self.vPPfunc_tp1
 
         
         if calc_vFunc:        
@@ -366,8 +394,6 @@ def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,surviv
 class ConsumptionSavingSolverENDG(ConsumptionSavingSolverEXOG):
     """
     Class to solve the consumptions savings problem with endogenous gridpoints
-    
-    This class only does linear interpolation
     """    
 
     def prepareToGetGothicVP(self):
@@ -376,7 +402,7 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverEXOG):
         """        
         
         a         = np.asarray(self.a_grid) + self.m_underbar_t
-        a_N       = a.size
+        a_N       = a.shape[0]
         shock_N   = self.xi_tp1.size
         a_temp    = np.tile(a,(shock_N,1))
         psi_temp  = (np.tile(self.psi_tp1,(a_N,1))).transpose()
@@ -384,8 +410,6 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverEXOG):
         prob_temp = (np.tile(self.prob_tp1,(a_N,1))).transpose()
         m_tp1     = self.R/(self.Gamma*psi_temp)*a_temp + xi_temp
 
-
-      
         return a,psi_temp,prob_temp,m_tp1
 
 
@@ -501,7 +525,7 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
 
 
     def __init__(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,
-                                   R_borrow,R_save,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):        
+                      R_borrow,R_save,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):        
 
         assert cubic_splines==False,'KinkedR will only work with linear interpolation'
 
@@ -550,7 +574,7 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
 def consumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,
                                    survival_prob,beta,rho,R_borrow,R_save,Gamma,constraint,
                                    a_grid,calc_vFunc,cubic_splines):
-                                       
+
     solver = ConsumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,survival_prob,
                                             beta,rho,R_borrow,R_save,Gamma,constraint,a_grid,
                                             calc_vFunc,cubic_splines)
@@ -559,228 +583,114 @@ def consumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,
 
     return solution                                   
 
-    
-
 
 ####################################################################################################
 ####################################################################################################
 
-    
-def consumptionSavingSolverMarkov(solution_tp1,transition_array,income_distrib,p_zero_income,
-                                  survival_prob,beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,
-                                  cubic_splines):
-    '''
-    Solves a single period of a standard consumption-saving problem, representing
-    the consumption function as a cubic spline interpolation if cubic_splines is
-    True and as a linear interpolation if it is False.  Problem is solved using
-    the method of endogenous gridpoints.  Solver allows for exogenous transitions
-    between discrete states; future states only differ in their income distri-
-    butions, should generalize this later.
+class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
 
-    Parameters:
-    -----------
-    solution_tp1: ConsumerSolution
-        The solution to the following period.
-    transition_array : numpy.array
-        An NxN array representing a Markov transition matrix between discrete
-        states.  The i,j-th element of transition_array is the probability of
-        moving from state i in period t to state j in period t+1.
-    income_distrib: [[[numpy.array]]]
-        A list of lists containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved and
-        the one immediately following (in solution_tp1).  Order: probs, psi, xi.
-        The n-th element of income_distrib is the income distribution for the n-th
-        discrete state.
-    p_zero_income: numpy.array
-        The probabilities of receiving zero income in the succeeding period,
-        conditional on arriving in each discrete state.
-    survival_prob: float
-        Probability of surviving to succeeding period.
-    beta: float
-        Discount factor between this period and the succeeding period.
-    rho: float
-        The coefficient of relative risk aversion
-    R: float
-        Interest factor on assets between this period and the succeeding period: w_tp1 = a_t*R
-    Gamma: float
-        Expected growth factor for permanent income between this period and the succeeding period.
-    constraint: float
-        Borrowing constraint for the minimum allowable assets to end the period
-        with.  If it is less than the natural borrowing constraint, then it is
-        irrelevant; constraint=None indicates no artificial borrowing constraint.
-    a_grid: [float]
-        A list of end-of-period asset values (post-decision states) at which to solve for optimal 
-        consumption.
-    calc_vFunc: Boolean
-        An indicator for whether the value function should be computed and included
-        in the reported solution
-    cubic_splines: Boolean
-        An indicator for whether the solver should use cubic or linear interpolation
-    
 
-    Returns:
-    -----------
-    solution_t: ConsumerSolution
-        The solution to this period's problem, obtained using the method of endogenous gridpoints.
-    '''
+    def __init__(self,solution_tp1,income_distrib_list,p_zero_income_list,survival_prob,beta,
+                      rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
 
-    # Define utility and value functions
-    if calc_vFunc:
-        u         = lambda c : utility(c,gam=rho)
-        uinv      = lambda u : utility_inv(u,gam=rho)
-        uinvP     = lambda u : utility_invP(u,gam=rho)
-        vFunc_tp1 = solution_tp1.vFunc
-    uP    = lambda c : utilityP(c,gam=rho)
-    uPP   = lambda c : utilityPP(c,gam=rho)
-    uPinv = lambda u : utilityP_inv(u,gam=rho)
-    
-    # Update some values for this period
-    effective_beta = beta*survival_prob
-    thorn_R        = ((R*effective_beta)**(1.0/rho))/R
-    
-    # Find the borrowing constraint for each current state i as well as the
-    # probability of receiving zero income.
-    n_states           = p_zero_income.size
-    p_zero_income_now  = np.dot(transition_array,p_zero_income)
-    m_underbar_next    = np.zeros(n_states) + np.nan
-    for j in range(n_states):
-        psi_underbar_tp1   = np.min(income_distrib[j][1])
-        xi_underbar_tp1    = np.min(income_distrib[j][2])
-        m_underbar_next[j] = max((solution_tp1.m_underbar[j] - xi_underbar_tp1)*
-                                (Gamma*psi_underbar_tp1)/R, constraint)
-    m_underbar_t           = np.zeros(n_states) + np.nan
-    for i in range(n_states):
-        possible_future_states = transition_array[i,:] > 0
-        m_underbar_t[i]        = np.max(m_underbar_next[possible_future_states])
-    
-    # Set up arrays to hold expected marginal value (etc) for each possible state
-    a_N           = a_grid.size
-    a_matrix      = np.zeros((n_states,a_N))
-    gothicvP_next = np.zeros((n_states,a_N))
-    if calc_vFunc:
-        gothicv_next   = np.zeros((n_states,a_N))
-    if cubic_splines:
-        gothicvPP_next = np.zeros((n_states,a_N))
+        self.solution_tp1    = solution_tp1
+        self.income_distrib_list  = income_distrib_list
+        self.p_zero_income_list   = p_zero_income_list
+        self.n_states        = len(p_zero_income_list)
+        self.survival_prob   = survival_prob
+        self.beta            = beta
+        self.rho             = rho
+        self.R               = R
+        self.Gamma           = Gamma
+        self.constraint      = constraint
+        self.a_grid          = a_grid
+        self.calc_vFunc      = calc_vFunc
+        self.cubic_splines   = cubic_splines
+
+    def conditionOnState(self,j):
+     
+        self.income_distrib = self.income_distrib_list[j]
+
+        self.p_zero_income  = self.p_zero_income_list[j] 
+        self.vPfunc_tp1     = self.solution_tp1.vPfunc[j]
+        self.m_underbar_t   = self.m_underbar_list[j] 
+        self.constraint_t   = lambda m: m - self.m_underbar_t
+
+    def getConditionalGothicVP(self,psi_temp,prob_temp,m_tp1):
+        """
+        Find data for the unconstrained consumption function in this period
+        """
         
-    # Loop through each future states and calculate expected marginal value
-    # conditional on reaching that state for each gridpoint in a_grid
-    expY_tp1 = np.zeros(n_states) + np.nan
-    for j in range(n_states):
-        # Set distributions and functions for this future state    
-        psi_tp1    = income_distrib[j][1]
-        xi_tp1     = income_distrib[j][2]
-        prob_tp1   = income_distrib[j][0]
-        vPfunc_tp1 = solution_tp1.vPfunc[j]
-        if cubic_splines:
-            vPPfunc_tp1 = solution_tp1.vPPfunc[j]
-        if calc_vFunc:
-            vFunc_tp1   = solution_tp1.vFunc[j]
-        if calc_vFunc or cubic_splines:
-            expY_tp1[j] = np.dot(prob_tp1,psi_tp1*xi_tp1)
+        gothicvP  = self.effective_beta*self.R*self.Gamma**(-self.rho)*np.sum(
+                    psi_temp**(-self.rho)*self.vPfunc_tp1(m_tp1)*prob_temp,axis=0)
+                    
 
-        # Compute expected marginal value, etc
-        a             = np.asarray(a_grid) + np.max(m_underbar_next)
-        a_matrix[j,:] = a
-        shock_N       = xi_tp1.size
-        a_temp        = np.tile(a,(shock_N,1))
-        psi_temp      = (np.tile(psi_tp1,(a_N,1))).transpose()
-        xi_temp       = (np.tile(xi_tp1,(a_N,1))).transpose()
-        prob_temp     = (np.tile(prob_tp1,(a_N,1))).transpose()
-        m_tp1         = R/(Gamma*psi_temp)*a_temp + xi_temp
-        if calc_vFunc:
-            V_tp1               = (psi_temp**(1.0-rho)*Gamma**(1.0-rho))*vFunc_tp1(m_tp1)
-            gothicv_next[j,:]   = effective_beta*np.sum(V_tp1*prob_temp,axis=0)
-        gothicvP_next[j,:]      = effective_beta*R*Gamma**(-rho)*np.sum(psi_temp**(-rho)*
-                                  vPfunc_tp1(m_tp1)*prob_temp,axis=0)
-        if cubic_splines:
-            gothicvPP_next[j,:] = effective_beta*R*R*Gamma**(-rho-1.0)*np.sum(psi_temp**(-rho-1.0)*
-                                  vPPfunc_tp1(m_tp1)*prob_temp,axis=0)
+
+        return gothicvP
+
+
+    def defineBorrowingConstraint(self):
+
+        # Find the borrowing constraint for each current state i as well as the
+        # probability of receiving zero income.
+        p_zero_income_now  = np.dot(transition_array,self.p_zero_income_list)
+        m_underbar_next    = np.zeros(self.n_states) + np.nan
+        for j in range(self.n_states):
+            psi_underbar_tp1   = np.min(self.income_distrib_list[j][1])
+            xi_underbar_tp1    = np.min(self.income_distrib_list[j][2])
+            m_underbar_next[j] = max((self.solution_tp1.m_underbar[j] - xi_underbar_tp1)*
+                                    (self.Gamma*psi_underbar_tp1)/self.R, self.constraint)
+        self.m_underbar_list           = np.zeros(self.n_states) + np.nan
+        for i in range(self.n_states):
+            possible_future_states = transition_array[i,:] > 0
+            self.m_underbar_list[i]        = np.max(m_underbar_next[possible_future_states])
+
+    def solve(self):
+
+        self.defineUtilityFunctions()
+        self.defineBorrowingConstraint()
+        
+        
+        gothicvP_next = np.nan * np.zeros([self.n_states,8])        
+
+        for jj in range(self.n_states):
+            self.conditionOnState(jj)
+            self.setAndUpdateValues(self.solution_tp1,self.income_distrib,
+                                    self.survival_prob,self.beta)
+            # need to condition on state again...
+            # bc setandupdatevalues sets self.vPfunc_tp1       = solution_tp1.vPfunc             
+            self.conditionOnState(jj)
+            #self.defineBorrowingConstraint(self.constraint) 
             
-    # Calculate the bounding MPCs and PDV of human wealth for each state
-    if calc_vFunc or cubic_splines:
-        h_tp1             = expY_tp1 + solution_tp1.gothic_h # beginning of period human wealth next period
-        gothic_h_t        = Gamma/R*np.dot(transition_array,h_tp1) # end-of-period human wealth this period
-        kappa_min_t       = 1.0/(1.0 + thorn_R/solution_tp1.kappa_min) # lower bound on MPC as m --> infty
-        exp_kappa_max_tp1 = (np.dot(transition_array,p_zero_income*solution_tp1.kappa_max**(-rho))/
-                             p_zero_income_now)**(-1/rho) # expectation of upper bound on MPC in t+1 from perspective of t
-        kappa_max_t       = 1.0/(1.0 + (p_zero_income_now**(1.0/rho))*thorn_R/exp_kappa_max_tp1)
-    
-    # Use the transition probabilities to calculate expected marginal value (etc)
-    # *from* each discrete states, weighting across future discrete states
-    gothicvP      = np.dot(transition_array,gothicvP_next)        
-    if cubic_splines:
-        gothicvPP = np.dot(transition_array,gothicvPP_next)
-    
-    # Compute consumption, (endogenous) money gridpoints, and the MPC for each
-    # point in a_grid for each discrete state this period
-    c      = uPinv(gothicvP)
-    m      = c + a_matrix
-    c_temp = np.hstack((np.zeros((n_states,1)),c))
-    m_temp = np.hstack((np.reshape(m_underbar_t,(n_states,1)),m))
-    if cubic_splines:
-        dcda       = gothicvPP/uPP(c)
-        kappa      = dcda/(dcda+1.0)
-        kappa_temp = np.hstack((np.reshape(kappa_max_t,(n_states,1)),kappa))
-        
-    # Compute value at each endogenous gridpoint, and transform it
-    if calc_vFunc:
-        gothicv  = np.dot(transition_array,gothicv_next)
-        v_temp   = u(np.array(c)) + gothicv
-        vQ_temp  = uinv(v_temp) # value transformed through inverse utility
-        vPQ_temp = gothicvP*uinvP(v_temp) # derivative of transformed value
-        
-    # Construct consumption, marginal value, and value functions for each
-    # discrete state in this period
-    cFunc_t       = []
-    vPfunc_t      = []
-    if cubic_splines:
-        vPPfunc_t = []
-    if calc_vFunc:
-        vFunc_t   = []
-    for i in range(n_states):
-        # Construct the unconstrained consumption function
-        if cubic_splines:
-            cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp[i,:],c_temp[i,:],kappa_temp[i,:],
-                                                       kappa_min_t*gothic_h_t[i],kappa_min_t)
-        else:
-            cFunc_t_unconstrained = LinearInterp(m_temp[i,:],c_temp[i,:])
-            
-        # Define the borrowing constraint (limiting consumption function)
-        constraint_t = LinearInterp([0.0,1.0],[0.0-m_underbar_t[i],1.0-m_underbar_t[i]])
-    
-        # Combine the constrained and unconstrained functions into the true consumption function
-        cFunc_it = ConstrainedComposite(cFunc_t_unconstrained,constraint_t)
-        cFunc_t.append(cFunc_it)
-        
-        # Construct the value function if requested
-        if calc_vFunc:
-            k = kappa_min_t**(-rho/(1-rho))
-            vQfunc_it = Cubic1DInterpDecay(m[i,:],vQ_temp[i,:],vPQ_temp[i,:],k*gothic_h_t[i],k)
-            vFunc_it  = ValueFunc(vQfunc_it,rho)
-            vFunc_t.append(vFunc_it)
-            
-        # Make the marginal value function and the marginal marginal value function
-        vPfunc_it = MargValueFunc(cFunc_it,rho)
-        vPfunc_t.append(vPfunc_it)
-        if cubic_splines:
-            vPPfunc_it = MargMargValueFunc(cFunc_it,rho)
-            vPPfunc_t.append(vPPfunc_it)
-    
 
-    # Store the results in a solution object and return it
-    if cubic_splines or calc_vFunc:
-        solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=m_underbar_t, 
-                                      gothic_h=gothic_h_t, kappa_min=kappa_min_t,
-                                      kappa_max=kappa_max_t)
-    else:
-        solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=m_underbar_t)
-    if calc_vFunc:
-        solution_t.vFunc = vFunc_t
-    if cubic_splines:
-        solution_t.vPPfunc=vPPfunc_t
-    return solution_t
-    
-    
+            a,psi_temp,prob_temp,m_tp1 = self.prepareToGetGothicVP()           
+            gothicvP_next[jj,:] = self.getConditionalGothicVP(psi_temp,prob_temp,m_tp1)                        
+        
+        # gothicvP_next is gothicV, conditional on *next* period's state.
+        # Take expectations to get gothicvP conditional on *this* period's state.
+        gothicvP      = np.dot(transition_array,gothicvP_next)  
+
+        solution = ConsumerSolution()
+        # Now conditional on this period's state, get the solution
+        for jj in range(self.n_states):
+            self.conditionOnState(jj)
+            a,psi_temp,prob_temp,m_tp1 = self.prepareToGetGothicVP()           
+            conditional_solution = self.getSolution(a,gothicvP[jj,:],psi_temp,prob_temp,m_tp1)
+            solution.appendSolution(conditional_solution)
+
+        return solution    
+
+def consumptionSavingSolverMarkov(solution_tp1,income_distrib,p_zero_income,survival_prob,
+                                      beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
+                                       
+    solver = ConsumptionSavingSolverMarkov(solution_tp1,income_distrib,p_zero_income,
+                                               survival_prob,beta,rho,R,Gamma,constraint,a_grid,
+                                               calc_vFunc,cubic_splines)
+                    
+    solution                   = solver.solve()
+
+    return solution             
+        
 
 
    
@@ -1533,7 +1443,7 @@ if __name__ == '__main__':
     mystr = lambda number : "{:.4f}".format(number)
 
     do_hybrid_type          = False
-    do_markov_type          = False
+    do_markov_type          = True
     do_perfect_foresight    = False  
 
 
@@ -1678,50 +1588,50 @@ if __name__ == '__main__':
 #        
 #    
 #    # Make and solve a type that has serially correlated unemployment   
-#    if do_markov_type:
-#        # Define the Markov transition matrix
-#        unemp_length = 5
-#        urate_good = 0.05
-#        urate_bad = 0.12
-#        bust_prob = 0.01
-#        recession_length = 20
-#        p_reemploy =1.0/unemp_length
-#        p_unemploy_good = p_reemploy*urate_good/(1-urate_good)
-#        p_unemploy_bad = p_reemploy*urate_bad/(1-urate_bad)
-#        boom_prob = 1.0/recession_length
-#        transition_array = np.array([[(1-p_unemploy_good)*(1-bust_prob),p_unemploy_good*(1-bust_prob),(1-p_unemploy_good)*bust_prob,p_unemploy_good*bust_prob],
-#                                      [p_reemploy*(1-bust_prob),(1-p_reemploy)*(1-bust_prob),p_reemploy*bust_prob,(1-p_reemploy)*bust_prob],
-#                                      [(1-p_unemploy_bad)*boom_prob,p_unemploy_bad*boom_prob,(1-p_unemploy_bad)*(1-boom_prob),p_unemploy_bad*(1-boom_prob)],
-#                                      [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
-#        
-#        MarkovType = deepcopy(InfiniteType)
-#        xi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.xi_N, 0.1)
-#        psi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.psi_N, 0.1)
-#        employed_income_dist = createFlatStateSpaceFromIndepDiscreteProbs(psi_dist, xi_dist)
-#        employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]
-#        unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
-#        p_zero_income = [np.array([0.0,1.0,0.0,1.0])]
-#        
-#        MarkovType.solution_terminal.cFunc = 4*[MarkovType.solution_terminal.cFunc]
-#        MarkovType.solution_terminal.vFunc = 4*[MarkovType.solution_terminal.vFunc]
-#        MarkovType.solution_terminal.vPfunc = 4*[MarkovType.solution_terminal.vPfunc]
-#        MarkovType.solution_terminal.vPPfunc = 4*[MarkovType.solution_terminal.vPPfunc]
-#        MarkovType.solution_terminal.m_underbar = 4*[MarkovType.solution_terminal.m_underbar]
-#        
-#        MarkovType.income_distrib = [[employed_income_dist,unemployed_income_dist,employed_income_dist,unemployed_income_dist]]
-#        MarkovType.p_zero_income = p_zero_income
-#        MarkovType.transition_array = transition_array
-#        MarkovType.time_inv.append('transition_array')
-#        MarkovType.solveAPeriod = consumptionSavingSolverMarkov
-#        MarkovType.cycles = 0
-#        
-#        MarkovType.timeFwd()
-#        start_time = clock()
-#        MarkovType.solve()
-#        end_time = clock()
-#        print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
-#        print('Consumption functions for each discrete state:')
-#        plotFuncs(MarkovType.solution[0].cFunc,0,50)
+    if do_markov_type:
+        # Define the Markov transition matrix
+        unemp_length = 5
+        urate_good = 0.05
+        urate_bad = 0.12
+        bust_prob = 0.01
+        recession_length = 20
+        p_reemploy =1.0/unemp_length
+        p_unemploy_good = p_reemploy*urate_good/(1-urate_good)
+        p_unemploy_bad = p_reemploy*urate_bad/(1-urate_bad)
+        boom_prob = 1.0/recession_length
+        transition_array = np.array([[(1-p_unemploy_good)*(1-bust_prob),p_unemploy_good*(1-bust_prob),(1-p_unemploy_good)*bust_prob,p_unemploy_good*bust_prob],
+                                      [p_reemploy*(1-bust_prob),(1-p_reemploy)*(1-bust_prob),p_reemploy*bust_prob,(1-p_reemploy)*bust_prob],
+                                      [(1-p_unemploy_bad)*boom_prob,p_unemploy_bad*boom_prob,(1-p_unemploy_bad)*(1-boom_prob),p_unemploy_bad*(1-boom_prob)],
+                                      [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
+        
+        MarkovType = deepcopy(InfiniteType)
+        xi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.xi_N, 0.1)
+        psi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.psi_N, 0.1)
+        employed_income_dist = createFlatStateSpaceFromIndepDiscreteProbs(psi_dist, xi_dist)
+        employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]
+        unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
+        p_zero_income = [np.array([0.0,1.0,0.0,1.0])]
+        
+        MarkovType.solution_terminal.cFunc = 4*[MarkovType.solution_terminal.cFunc]
+        MarkovType.solution_terminal.vFunc = 4*[MarkovType.solution_terminal.vFunc]
+        MarkovType.solution_terminal.vPfunc = 4*[MarkovType.solution_terminal.vPfunc]
+        MarkovType.solution_terminal.vPPfunc = 4*[MarkovType.solution_terminal.vPPfunc]
+        MarkovType.solution_terminal.m_underbar = 4*[MarkovType.solution_terminal.m_underbar]
+        
+        MarkovType.income_distrib = [[employed_income_dist,unemployed_income_dist,employed_income_dist,unemployed_income_dist]]
+        MarkovType.p_zero_income = p_zero_income
+        MarkovType.transition_array = transition_array
+        MarkovType.time_inv.append('transition_array')
+        MarkovType.solveAPeriod = consumptionSavingSolverMarkov
+        MarkovType.cycles = 0
+        
+        MarkovType.timeFwd()
+        start_time = clock()
+        MarkovType.solve()
+        end_time = clock()
+        print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
+        print('Consumption functions for each discrete state:')
+        plotFuncs(MarkovType.solution[0].cFunc,0,50)
 #
 #
     if do_perfect_foresight:

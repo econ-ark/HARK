@@ -434,6 +434,7 @@ def consumptionSavingSolverENDG(solution_tp1,income_distrib,p_zero_income,surviv
     if cubic_splines:
         solution_t.vPPfunc=vPPfunc_t
     #print('Solved a period with ENDG!')
+        
     return solution_t
     
     
@@ -561,11 +562,13 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_array,income_distrib,p
         xi_temp       = (np.tile(xi_tp1,(a_N,1))).transpose()
         prob_temp     = (np.tile(prob_tp1,(a_N,1))).transpose()
         m_tp1         = R/(Gamma*psi_temp)*a_temp + xi_temp
+
         if calc_vFunc:
             V_tp1               = (psi_temp**(1.0-rho)*Gamma**(1.0-rho))*vFunc_tp1(m_tp1)
             gothicv_next[j,:]   = effective_beta*np.sum(V_tp1*prob_temp,axis=0)
         gothicvP_next[j,:]      = effective_beta*R*Gamma**(-rho)*np.sum(psi_temp**(-rho)*
                                   vPfunc_tp1(m_tp1)*prob_temp,axis=0)
+
         if cubic_splines:
             gothicvPP_next[j,:] = effective_beta*R*R*Gamma**(-rho-1.0)*np.sum(psi_temp**(-rho-1.0)*
                                   vPPfunc_tp1(m_tp1)*prob_temp,axis=0)
@@ -581,7 +584,8 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_array,income_distrib,p
     
     # Use the transition probabilities to calculate expected marginal value (etc)
     # *from* each discrete states, weighting across future discrete states
-    gothicvP      = np.dot(transition_array,gothicvP_next)        
+    gothicvP      = np.dot(transition_array,gothicvP_next)   
+
     if cubic_splines:
         gothicvPP = np.dot(transition_array,gothicvPP_next)
     
@@ -652,6 +656,8 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_array,income_distrib,p
         solution_t.vFunc = vFunc_t
     if cubic_splines:
         solution_t.vPPfunc=vPPfunc_t
+        
+
     return solution_t
     
     
@@ -1512,7 +1518,7 @@ if __name__ == '__main__':
     mystr = lambda number : "{:.4f}".format(number)
 
     do_hybrid_type          = False
-    do_markov_type          = False
+    do_markov_type          = True
     do_perfect_foresight    = False   
     
     # Make and solve a finite consumer type
@@ -1562,21 +1568,21 @@ if __name__ == '__main__':
         
         
     # Make and solve an agent with a kinky interest rate
-    KinkyType = deepcopy(InfiniteType)
-    KinkyType.time_inv.remove('R')
-    KinkyType.time_inv += ['R_borrow','R_save']
-    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0)
-    KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
-    KinkyType.updateAssetsGrid()
-    
-    start_time = clock()
-    KinkyType.solve()
-    end_time = clock()
-    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    KinkyType.unpack_cFunc()
-    print('Kinky consumption function:')
-    KinkyType.timeFwd()
-    plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].m_underbar,5)
+#    KinkyType = deepcopy(InfiniteType)
+#    KinkyType.time_inv.remove('R')
+#    KinkyType.time_inv += ['R_borrow','R_save']
+#    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0)
+#    KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
+#    KinkyType.updateAssetsGrid()
+#    
+#    start_time = clock()
+#    KinkyType.solve()
+#    end_time = clock()
+#    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
+#    KinkyType.unpack_cFunc()
+#    print('Kinky consumption function:')
+#    KinkyType.timeFwd()
+#    plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].m_underbar,5)
     
 #    # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
 #    # The consumer has income that greatly fluctuates throughout the year.
@@ -1624,51 +1630,51 @@ if __name__ == '__main__':
 #        plotFunc(HybridType.cFunc[0],0,5)
 #        
 #    
-#    # Make and solve a type that has serially correlated unemployment   
-#    if do_markov_type:
-#        # Define the Markov transition matrix
-#        unemp_length = 5
-#        urate_good = 0.05
-#        urate_bad = 0.12
-#        bust_prob = 0.01
-#        recession_length = 20
-#        p_reemploy =1.0/unemp_length
-#        p_unemploy_good = p_reemploy*urate_good/(1-urate_good)
-#        p_unemploy_bad = p_reemploy*urate_bad/(1-urate_bad)
-#        boom_prob = 1.0/recession_length
-#        transition_array = np.array([[(1-p_unemploy_good)*(1-bust_prob),p_unemploy_good*(1-bust_prob),(1-p_unemploy_good)*bust_prob,p_unemploy_good*bust_prob],
-#                                      [p_reemploy*(1-bust_prob),(1-p_reemploy)*(1-bust_prob),p_reemploy*bust_prob,(1-p_reemploy)*bust_prob],
-#                                      [(1-p_unemploy_bad)*boom_prob,p_unemploy_bad*boom_prob,(1-p_unemploy_bad)*(1-boom_prob),p_unemploy_bad*(1-boom_prob)],
-#                                      [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
-#        
-#        MarkovType = deepcopy(InfiniteType)
-#        xi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.xi_N, 0.1)
-#        psi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.psi_N, 0.1)
-#        employed_income_dist = createFlatStateSpaceFromIndepDiscreteProbs(psi_dist, xi_dist)
-#        employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]
-#        unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
-#        p_zero_income = [np.array([0.0,1.0,0.0,1.0])]
-#        
-#        MarkovType.solution_terminal.cFunc = 4*[MarkovType.solution_terminal.cFunc]
-#        MarkovType.solution_terminal.vFunc = 4*[MarkovType.solution_terminal.vFunc]
-#        MarkovType.solution_terminal.vPfunc = 4*[MarkovType.solution_terminal.vPfunc]
-#        MarkovType.solution_terminal.vPPfunc = 4*[MarkovType.solution_terminal.vPPfunc]
-#        MarkovType.solution_terminal.m_underbar = 4*[MarkovType.solution_terminal.m_underbar]
-#        
-#        MarkovType.income_distrib = [[employed_income_dist,unemployed_income_dist,employed_income_dist,unemployed_income_dist]]
-#        MarkovType.p_zero_income = p_zero_income
-#        MarkovType.transition_array = transition_array
-#        MarkovType.time_inv.append('transition_array')
-#        MarkovType.solveAPeriod = consumptionSavingSolverMarkov
-#        MarkovType.cycles = 0
-#        
-#        MarkovType.timeFwd()
-#        start_time = clock()
-#        MarkovType.solve()
-#        end_time = clock()
-#        print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
-#        print('Consumption functions for each discrete state:')
-#        plotFuncs(MarkovType.solution[0].cFunc,0,50)
+    # Make and solve a type that has serially correlated unemployment   
+    if do_markov_type:
+        # Define the Markov transition matrix
+        unemp_length = 5
+        urate_good = 0.05
+        urate_bad = 0.12
+        bust_prob = 0.01
+        recession_length = 20
+        p_reemploy =1.0/unemp_length
+        p_unemploy_good = p_reemploy*urate_good/(1-urate_good)
+        p_unemploy_bad = p_reemploy*urate_bad/(1-urate_bad)
+        boom_prob = 1.0/recession_length
+        transition_array = np.array([[(1-p_unemploy_good)*(1-bust_prob),p_unemploy_good*(1-bust_prob),(1-p_unemploy_good)*bust_prob,p_unemploy_good*bust_prob],
+                                      [p_reemploy*(1-bust_prob),(1-p_reemploy)*(1-bust_prob),p_reemploy*bust_prob,(1-p_reemploy)*bust_prob],
+                                      [(1-p_unemploy_bad)*boom_prob,p_unemploy_bad*boom_prob,(1-p_unemploy_bad)*(1-boom_prob),p_unemploy_bad*(1-boom_prob)],
+                                      [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
+        
+        MarkovType = deepcopy(InfiniteType)
+        xi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.xi_N, 0.1)
+        psi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.psi_N, 0.1)
+        employed_income_dist = createFlatStateSpaceFromIndepDiscreteProbs(psi_dist, xi_dist)
+        employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]
+        unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
+        p_zero_income = [np.array([0.0,1.0,0.0,1.0])]
+        
+        MarkovType.solution_terminal.cFunc = 4*[MarkovType.solution_terminal.cFunc]
+        MarkovType.solution_terminal.vFunc = 4*[MarkovType.solution_terminal.vFunc]
+        MarkovType.solution_terminal.vPfunc = 4*[MarkovType.solution_terminal.vPfunc]
+        MarkovType.solution_terminal.vPPfunc = 4*[MarkovType.solution_terminal.vPPfunc]
+        MarkovType.solution_terminal.m_underbar = 4*[MarkovType.solution_terminal.m_underbar]
+        
+        MarkovType.income_distrib = [[employed_income_dist,unemployed_income_dist,employed_income_dist,unemployed_income_dist]]
+        MarkovType.p_zero_income = p_zero_income
+        MarkovType.transition_array = transition_array
+        MarkovType.time_inv.append('transition_array')
+        MarkovType.solveAPeriod = consumptionSavingSolverMarkov
+        MarkovType.cycles = 0
+        
+        MarkovType.timeFwd()
+        start_time = clock()
+        MarkovType.solve()
+        end_time = clock()
+        print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
+        print('Consumption functions for each discrete state:')
+        plotFuncs(MarkovType.solution[0].cFunc,0,50)
 #
 #
     if do_perfect_foresight:
