@@ -231,6 +231,7 @@ def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,surviv
                              np.sum(psi_tp1**(-rho)*vPfunc_tp1(R/(Gamma*psi_tp1)*(m_t-c) + xi_tp1)
                                    *prob_tp1)
         c_t = brentq(firstOrderCondition,0.001*x,0.999*x)
+
         c_temp.append(c_t)
         m_temp.append(m_t)
         if calc_vFunc or cubic_splines:
@@ -1523,7 +1524,7 @@ if __name__ == '__main__':
     
     # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)
-    #LifecycleType.solveAPeriod = consumptionSavingSolverEXOG
+    LifecycleType.solveAPeriod = consumptionSavingSolverEXOG
     
     start_time = clock()
     LifecycleType.solve()

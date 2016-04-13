@@ -296,7 +296,6 @@ class ConsumptionSavingSolverEXOG(PerfectForesightSolver):
 
     def getSolution(self):
         # First, "unpack" things we'll need
-        kappa_max_t     = self.kappa_max_t
         m_underbar_t    = self.m_underbar_t
         a_grid          = self.a_grid 
         R               = self.R
@@ -307,14 +306,12 @@ class ConsumptionSavingSolverEXOG(PerfectForesightSolver):
         effective_beta  = self.effective_beta
         vPfunc_tp1      = self.vPfunc_tp1
         xi_tp1          = self.xi_tp1
-        gothic_h_t      = self.gothic_h_t
-        kappa_min_t     = self.kappa_min_t
         constraint_t    = self.constraint_t
         calc_vFunc      = self.calc_vFunc
         cubic_splines   = self.cubic_splines     
         uP              = self.uP            
         uPP             = self.uPP
-        vPPfunc_tp1     = self.vPPfunc_tp1
+
 
         
         if calc_vFunc:        
@@ -322,6 +319,17 @@ class ConsumptionSavingSolverEXOG(PerfectForesightSolver):
             uinv        = self.uinv
             uinvP       = self.uinvP
             vFunc_tp1   = self.vFunc_tp1
+
+
+        if cubic_splines:
+            vPPfunc_tp1     = self.vPPfunc_tp1
+
+    
+        # Update the bounding MPCs and PDV of human wealth:
+        if cubic_splines or calc_vFunc:
+            kappa_min_t     = self.kappa_min_t
+            kappa_max_t     = self.kappa_max_t
+            gothic_h_t      = self.gothic_h_t
 
         
         # Find data for the unconstrained consumption function in this period
@@ -1489,8 +1497,8 @@ if __name__ == '__main__':
     
 #    # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)
-##    LifecycleType.solveAPeriod = consumptionSavingSolverEXOG
-    LifecycleType.solveAPeriod = consumptionSavingSolverENDG
+    LifecycleType.solveAPeriod = consumptionSavingSolverEXOG
+#    LifecycleType.solveAPeriod = consumptionSavingSolverENDG
     
     start_time = clock()
     LifecycleType.solve()
