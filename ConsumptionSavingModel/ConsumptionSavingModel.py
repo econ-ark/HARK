@@ -136,14 +136,18 @@ class PerfectForesightSolver(object):
 
     def __init__(self,solution_tp1,beta,rho,R,Gamma,constraint):
 
-        self.beta  = beta
-        self.rho   = rho
-        self.R     = R
-        self.Gamma = Gamma
-
+        self.assignParameters(solution_tp1,beta,rho,R,Gamma,constraint)
         self.defineUtilityFunctions()
         self.defineBorrowingConstraint(constraint)
          
+    def assignParameters(self,solution_tp1,beta,rho,R,Gamma,constraint):
+        self.solution_tp1   = solution_tp1        
+        self.beta           = beta
+        self.rho            = rho
+        self.R              = R
+        self.Gamma          = Gamma
+        self.constraint     = constraint
+
 
     def defineBorrowingConstraint(self,constraint):
         if constraint == 0.:
@@ -212,23 +216,25 @@ class ConsumptionSavingSolverEXOG(PerfectForesightSolver):
     def __init__(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
                                 Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
 
-        self.solution_tp1    = solution_tp1
+
+        self.assignParameters(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
+                                Gamma,constraint,a_grid,calc_vFunc,cubic_splines)
+        self.defineUtilityFunctions()
+        self.setAndUpdateValues(solution_tp1,income_distrib,survival_prob,beta)
+        self.defineBorrowingConstraint(constraint)
+
+
+    def assignParameters(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
+                                Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
+        PerfectForesightSolver.assignParameters(self,solution_tp1,beta,rho,R,Gamma,constraint)
         self.income_distrib  = income_distrib
         self.p_zero_income   = p_zero_income
         self.survival_prob   = survival_prob
-        self.beta            = beta
-        self.rho             = rho
-        self.R               = R
-        self.Gamma           = Gamma
-        self.constraint      = constraint
         self.a_grid          = a_grid
         self.calc_vFunc      = calc_vFunc
         self.cubic_splines   = cubic_splines
 
-        # Define the functions associated with utility
-        self.defineUtilityFunctions()
-        self.setAndUpdateValues(solution_tp1,income_distrib,survival_prob,beta)
-        self.defineBorrowingConstraint(constraint)
+
 
     def defineUtilityFunctions(self):
         PerfectForesightSolver.defineUtilityFunctions(self)
@@ -386,10 +392,6 @@ def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,surviv
 
 ####################################################################################################
 ####################################################################################################
-
-
-    
-
 
 class ConsumptionSavingSolverENDG(ConsumptionSavingSolverEXOG):
     """
@@ -593,19 +595,13 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
     def __init__(self,solution_tp1,income_distrib_list,p_zero_income_list,survival_prob,beta,
                       rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
 
-        self.solution_tp1    = solution_tp1
+        ConsumptionSavingSolverENDG.assignParameters(self,solution_tp1,np.nan,np.nan,
+                                                    survival_prob,beta,rho,R,Gamma,constraint,a_grid,
+                                                    calc_vFunc,cubic_splines)
+
         self.income_distrib_list  = income_distrib_list
         self.p_zero_income_list   = p_zero_income_list
-        self.n_states        = len(p_zero_income_list)
-        self.survival_prob   = survival_prob
-        self.beta            = beta
-        self.rho             = rho
-        self.R               = R
-        self.Gamma           = Gamma
-        self.constraint      = constraint
-        self.a_grid          = a_grid
-        self.calc_vFunc      = calc_vFunc
-        self.cubic_splines   = cubic_splines
+        self.n_states             = len(p_zero_income_list)
 
     def conditionOnState(self,j):
      
@@ -1444,7 +1440,7 @@ if __name__ == '__main__':
 
     do_hybrid_type          = False
     do_markov_type          = True
-    do_perfect_foresight    = False  
+    do_perfect_foresight    = True 
 
 
 
