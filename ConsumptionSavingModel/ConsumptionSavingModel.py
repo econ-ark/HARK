@@ -32,19 +32,21 @@ class ConsumerSolution():
     function can also be included, as well as marginal value and marg marg value.
     '''
 
-    def __init__(self, cFunc=NullFunc, vFunc=NullFunc, vPfunc=NullFunc, vPPfunc=NullFunc, 
+    def __init__(self, cFunc=NullFunc, vFunc=NullFunc, 
+                       vPfunc=NullFunc, vPPfunc=NullFunc, gothicvPfunc = NullFunc,
                        m_underbar=None, gothic_h=None, kappa_min=None, kappa_max=None):
         '''
         The constructor for a new ConsumerSolution object.
         '''
-        self.cFunc       = cFunc
-        self.vFunc       = vFunc
-        self.vPfunc      = vPfunc
-        self.vPPfunc     = vPPfunc
-        self.m_underbar  = m_underbar
-        self.gothic_h    = gothic_h
-        self.kappa_min   = kappa_min
-        self.kappa_max   = kappa_max
+        self.cFunc        = cFunc
+        self.vFunc        = vFunc
+        self.vPfunc       = vPfunc
+        self.vPPfunc      = vPPfunc
+        self.gothicvPfunc = gothicvPfunc
+        self.m_underbar   = m_underbar
+        self.gothic_h     = gothic_h
+        self.kappa_min    = kappa_min
+        self.kappa_max    = kappa_max
 
     def distance(self,solution_other):
         '''
@@ -58,6 +60,18 @@ class ConsumerSolution():
             return np.max(dist_vec)
         else:
             return self.cFunc.distance(solution_other.cFunc)
+
+    def getEulerEquationErrorFunction(self,uPfunc):
+        """
+        Return the Euler Equation Error function, to check that the solution is "good enough".
+        
+        Note right now this method needs to be passed uPfunc, which I find awkward and annoying.
+        """
+
+        def eulerEquationErrorFunction(m):
+            return np.abs(uPfunc(self.cFunc(m)) - self.gothicvPfunc(m))
+            
+        return eulerEquationErrorFunction
             
     def appendSolution(self,instance_of_ConsumerSolution):
         """
@@ -310,7 +324,6 @@ class ConsumptionSavingSolverEXOG(PerfectForesightSolver):
             vFunc_tp1   = self.vFunc_tp1
 
         
-        
         # Find data for the unconstrained consumption function in this period
         c_temp = [0.0]  # Limiting consumption is zero as m approaches m_underbar
         m_temp = [m_underbar_t]
@@ -433,7 +446,7 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverEXOG):
 
         c_temp    = [0.0]  # Limiting consumption is zero as m approaches m_underbar
         m_temp    = [self.m_underbar_t]
-        
+
         c = self.uPinv(gothicvP)
         m = c + a
 
@@ -454,7 +467,13 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverEXOG):
                                                        self.kappa_min_t*self.gothic_h_t,
                                                        self.kappa_min_t)
         else:
-            cFunc_t_unconstrained = LinearInterp(m_temp,c_temp)        
+            cFunc_t_unconstrained        = LinearInterp(m_temp,c_temp)
+            
+            # Note there is no point in keeping track of gothicvP below the constraint...
+            # we only use it to check Euler equation, which *only* holds when the consumer is 
+            # not constrained
+            gothicvPfunc_t_unconstrained = LinearInterp(m_temp[1:],gothicvP.tolist())        
+
 
         # Combine the constrained and unconstrained functions into the true consumption function
         cFunc_t = ConstrainedComposite(cFunc_t_unconstrained,self.constraint_t)
@@ -479,7 +498,9 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverEXOG):
                                           gothic_h=self.gothic_h_t, kappa_min=self.kappa_min_t, 
                                           kappa_max=self.kappa_max_t)
         else:
-            solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, m_underbar=self.m_underbar_t)
+            solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, 
+                                          gothicvPfunc = gothicvPfunc_t_unconstrained,
+                                          m_underbar=self.m_underbar_t)
         if self.calc_vFunc:
             solution_t.vFunc = vFunc_t
         if self.cubic_splines:
@@ -659,7 +680,9 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             #self.defineBorrowingConstraint(self.constraint) 
             
 
-            a,psi_temp,prob_temp,m_tp1 = self.prepareToGetGothicVP()           
+            a,psi_temp,prob_temp,m_tp1 = self.prepareToGetGothicVP()  
+            
+            assert False,'Error here!  Try e.g. setting a_size=48'
             gothicvP_next[jj,:] = self.getConditionalGothicVP(psi_temp,prob_temp,m_tp1)                        
         
         # gothicvP_next is gothicV, conditional on *next* period's state.
@@ -740,6 +763,22 @@ class ConsumerType(AgentType):
             self.cFunc.append(solution_t.cFunc)
         if not ('cFunc' in self.time_vary):
             self.time_vary.append('cFunc')
+
+
+    def unpack_gothicvPfunc(self):
+        '''
+        "Unpacks" the consumption functions into their own field for easier access.
+        After the model has been solved, the consumption functions reside in the
+        attribute cFunc of each element of ConsumerType.solution.  This method
+        creates a (time varying) attribute cFunc that contains a list of consumption
+        functions.
+        '''
+        self.gothicvPfunc = []
+        for solution_t in self.solution:
+            self.gothicvPfunc.append(solution_t.gothicvPfunc)
+        if not ('gothicvPfunc' in self.time_vary):
+            self.time_vary.append('gothicvPfunc')
+
             
     def addIncomeShockPaths(self,perm_shocks,temp_shocks):
         '''
@@ -1439,8 +1478,8 @@ if __name__ == '__main__':
     mystr = lambda number : "{:.4f}".format(number)
 
     do_hybrid_type          = False
-    do_markov_type          = True
-    do_perfect_foresight    = True 
+    do_markov_type          = False
+    do_perfect_foresight    = False
 
 
 
@@ -1482,13 +1521,14 @@ if __name__ == '__main__':
                                       Gamma = [1.01],
                                       cycles = 0) # This is what makes the type infinite horizon
     InfiniteType.income_distrib = [LifecycleType.income_distrib[-1]]
-    InfiniteType.p_zero_income = [LifecycleType.p_zero_income[-1]]
+    InfiniteType.p_zero_income  = [LifecycleType.p_zero_income[-1]]
     
     start_time = clock()
     InfiniteType.solve()
     end_time = clock()
     print('Solving an infinite horizon consumer took ' + mystr(end_time-start_time) + ' seconds.')
     InfiniteType.unpack_cFunc()
+    InfiniteType.unpack_gothicvPfunc()
     
     # Plot the consumption function and MPC for the infinite horizon consumer
     print('Consumption function:')
