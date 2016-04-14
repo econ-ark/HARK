@@ -10,7 +10,7 @@ import unittest
 
 class FuncTest(unittest.TestCase):
     
-    def test1(self):
+    def setUp(self):
         base_primitives = {'mho' : .015,
                    'beta' : 0.9,
                    'R' : 1.1,
@@ -46,7 +46,11 @@ class FuncTest(unittest.TestCase):
                   1.4195156568037894,
                   1.4722358408529614,
                   1.5307746658958221]
-        self.assertEqual(test_model.solution[0].c_list, c_list)
+        return test_model.solution[0].c_list,c_list
+                  
+    def test1(self):
+        results = self.setUp()
+        self.assertEqual(results[0],results[1])
         
         
 if __name__ == '__main__':

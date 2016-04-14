@@ -60,7 +60,7 @@ def findNextPoint(beta,R,rho,Gamma,mho,scriptR,Beth,c_tp1,m_tp1,kappa_tp1,kappa_
     natural = Beth*scriptR*(1.0/uPP(c_t))*((1.0-mho)*uPP(c_tp1)*kappa_tp1 + mho*uPP(cU_tp1)*kappa_PF)
     kappa_t = natural / (natural + 1)
     return m_t, c_t, kappa_t
-        
+
 
 def addToStableArmPoints(solution_tp1,beta,R,rho,Gamma,mho,kappa_PF,scriptR,Beth,m_min,m_max):
     '''
@@ -107,7 +107,18 @@ def addToStableArmPoints(solution_tp1,beta,R,rho,Gamma,mho,kappa_PF,scriptR,Beth
     # Construct and return this period's solution
     solution_t = TractableConsumerSolution(m_list=m_list, c_list=c_list, kappa_list=kappa_list)
     return solution_t
+
+
+class ReturnImpatienceException(Exception):
     
+   def __init__(self):
+       Exception.__init__(self,"Employed consumer not return impatient, cannot solve!")
+
+class GrowthImpatienceException(Exception):
+    
+   def __init__(self):
+       Exception.__init__(self,"Employed consumer not growth impatient, cannot solve!")
+
 
 class TractableConsumerType(AgentType):
 
@@ -135,6 +146,11 @@ class TractableConsumerType(AgentType):
         uPPP = lambda x : utilityPPP(x,gam=self.rho)
         uPPPP = lambda x : utilityPPPP(x,gam=self.rho)
         
+        #perform some initial sanity checks
+        #if self.R > self.G:
+            
+            
+        
         # Define some useful constants from model primitives
         self.Gamma = self.G/(1.0-self.mho) #"uncertainty compensated" wage growth factor
         self.scriptR = self.R/self.Gamma # net interest factor (R normalized by wage growth)
@@ -145,9 +161,9 @@ class TractableConsumerType(AgentType):
         scriptPGrowth = (self.R*self.beta)**(1.0/self.rho)/self.Gamma 
         scriptPReturn = (self.R*self.beta)**(1.0/self.rho)/self.R
         if scriptPReturn >= 1.0:
-            raise Exception("Employed consumer not return impatient, cannot solve!")
+            raise ReturnImpatienceException()
         if scriptPGrowth >= 1.0:
-            raise Exception("Employed consumer not growth impatient, cannot solve!")
+            raise GrowthImpatienceException()
             
         # Find target money and consumption
         Pi = (1+(scriptPGrowth**(-self.rho)-1.0)/self.mho)**(1/self.rho)
@@ -208,10 +224,9 @@ class TractableConsumerType(AgentType):
         # Construct an interpolation of the consumption function from the stable arm points
         self.solution[0].cFunc = Cubic1DInterpDecay(self.solution[0].m_list,self.solution[0].c_list,self.solution[0].kappa_list,self.kappa_PF*(self.h-1.0),self.kappa_PF)
         self.solution[0].cFunc_U = lambda m : self.kappa_PF*m
-        #self.cFunc = self.solution[0].cFunc
+        
         
     def update():
         '''
         This method does absolutely nothing.
         '''
-        
