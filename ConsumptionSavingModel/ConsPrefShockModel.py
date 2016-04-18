@@ -55,7 +55,7 @@ class ConsumerSolution():
         between their consumption functions.
         '''
         dist = self.cFunc.distance(solution_other.cFunc)
-        print(dist)
+        #print(dist)
         return dist
         
             
@@ -100,7 +100,7 @@ class MargMargValueFunc():
         return kappa*utilityPP(c,gam=self.rho)
         
         
-def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_grid,pref_cdf_grid,survival_prob,beta,rho,R_save,R_borrow,Gamma,constraint,a_grid):
+def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_dist,survival_prob,beta,rho,R_save,R_borrow,Gamma,constraint,a_grid):
     '''
     Solves a single period of a consumption-saving model with preference shocks
     to marginal utility.  Problem is solved using the method of endogenous gridpoints.
@@ -115,10 +115,8 @@ def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_gri
         immediately following (in solution_tp1).  Order: probs, psi, xi
     p_zero_income: float
         The probability of receiving zero income in the succeeding period.
-    pref_shock_grid: np.array
-        Array with values of the multiplicative utility shifter.
-    pref_cdf_grid: np.array
-        Array with CDF values of the values in pref_shock_grid.    
+    pref_shock_dist: [np.array]
+        Discrete distribution of the multiplicative utility shifter.
     survival_prob: float
         Probability of surviving to succeeding period.
     beta: float
@@ -160,6 +158,8 @@ def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_gri
     vPfunc_tp1 = solution_tp1.vPfunc
     psi_underbar_tp1 = np.min(psi_tp1)    
     xi_underbar_tp1 = np.min(xi_tp1)
+    pref_shock_vals = pref_shock_dist[1]
+    pref_shock_prob = pref_shock_dist[0]
     
     # Calculate the minimum allowable value of money resources in this period
     m_underbar_t = max((solution_tp1.m_underbar - xi_underbar_tp1)*(Gamma*psi_underbar_tp1)/R_borrow, constraint)
@@ -186,8 +186,8 @@ def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_gri
     m_tp1 = R_temp/(Gamma*psi_temp)*a_temp + xi_temp
     gothicvP = effective_beta*R_vec*Gamma**(-rho)*np.sum(psi_temp**(-rho)*vPfunc_tp1(m_tp1)*prob_temp,axis=0)
     c_base = uPinv(gothicvP)
-    pref_N = pref_shock_grid.size
-    pref_shock_temp = np.tile(np.reshape(pref_shock_grid**(1.0/rho),(pref_N,1)),(1,a_N))
+    pref_N = pref_shock_vals.size
+    pref_shock_temp = np.tile(np.reshape(pref_shock_vals**(1.0/rho),(pref_N,1)),(1,a_N))
     c = np.tile(c_base,(pref_N,1))*pref_shock_temp
     m = c + np.tile(a,(pref_N,1))
 
@@ -200,31 +200,13 @@ def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_gri
         cFunc_list.append(cFunc_this_shock)
         
     # Combine the list of consumption functions into a single interpolation
-    cFunc_t = LinearInterpOnInterp1D(cFunc_list,pref_shock_grid)
+    cFunc_t = LinearInterpOnInterp1D(cFunc_list,pref_shock_vals)
         
     # Make the ex ante marginal value function (before the preference shock)
     m_grid = a_grid + m_underbar_t
     vP_vec = np.zeros_like(m_grid)
-    c_bot = cFunc_list[0](m_grid)
-    v_bot = (c_bot)**(1.0-rho)
-    F_bot = pref_cdf_grid[0]
-    if rho == 1.0: # log utility when rho=1
-        temp_func = lambda x : np.log(x)
-    else:
-        temp_func = lambda x : x**(1.0-rho)
     for j in range(1,pref_N): # numeric integration over the preference shock
-        c_top = cFunc_list[j](m_grid)
-        v_top = temp_func(c_top)
-        F_top = pref_cdf_grid[j]
-        scale = (c_top-c_bot)/(F_top-F_bot)
-        vP_add = (v_top - v_bot)/(scale*(1.0-rho))
-        fix = scale == 0
-        vP_add[fix] = uP(c_top[fix])*(F_top-F_bot)
-        vP_vec = vP_vec + vP_add
-        c_bot = c_top
-        v_bot = v_top
-        F_bot = F_top
-    vP_vec = vP_vec/(pref_cdf_grid[-1]-pref_cdf_grid[0])
+        vP_vec += uP(cFunc_list[j](m_grid))*pref_shock_prob[j]*pref_shock_vals[j]
     c_pseudo = uPinv(vP_vec)
     vPfunc_t = MargValueFunc(LinearInterp(m_grid,c_pseudo),rho)
 
@@ -292,19 +274,14 @@ class PrefShockConsumer(AgentType):
         self.solution_terminal.vPfunc = MargValueFunc(self.solution_terminal.cFunc,self.rho)
         self.solution_terminal.vPPfunc = MargMargValueFunc(self.solution_terminal.cFunc,self.rho)
      
-    def updatePrefGrid(self):
+    def updatePrefDist(self):
         '''
-        Updates this agent's preference shock grids.
+        Updates this agent's preference shock distribution.
         '''
-        pref_cdf_grid = np.linspace(0.001,0.999,self.pref_shock_N)
-        temp_dist = lognorm(self.pref_shock_sigma,scale=np.exp(-self.pref_shock_sigma**2.0/2.0))
-        pref_shock_grid = temp_dist.ppf(pref_cdf_grid)
-        self.pref_cdf_grid = pref_cdf_grid
-        self.pref_shock_grid = pref_shock_grid
-        if not 'pref_cdf_grid' in self.time_inv:
-            self.time_inv.append('pref_cdf_grid')
-        if not 'pref_shock_grid' in self.time_inv:
-            self.time_inv.append('pref_shock_grid')
+        pref_shock_dist = calculateMeanOneLognormalDiscreteApprox(self.pref_shock_N,self.pref_shock_sigma)
+        self.pref_shock_dist = pref_shock_dist
+        if not 'pref_shock_dist' in self.time_inv:
+            self.time_inv.append('pref_shock_dist')
             
     def update(self):
         '''
@@ -313,7 +290,7 @@ class PrefShockConsumer(AgentType):
         self.updateIncomeProcess()
         self.updateAssetsGrid()
         self.updateSolutionTerminal()
-        self.updatePrefGrid()
+        self.updatePrefDist()
         
     def addShockPaths(self, perm_shocks,temp_shocks, pref_shocks):
         '''
@@ -518,9 +495,9 @@ if __name__ == '__main__':
     # Make an example agent type
     ExampleType = PrefShockConsumer(**Params.init_consumer_objects)
     ExampleType(cycles = 0)
-    perm_shocks, temp_shocks, pref_shocks = generateShockHistoryInfiniteSimple(ExampleType)
-    ExampleType.addShockPaths(perm_shocks, temp_shocks, pref_shocks)
-    ExampleType(w_init = np.zeros(ExampleType.sim_N))
+#    perm_shocks, temp_shocks, pref_shocks = generateShockHistoryInfiniteSimple(ExampleType)
+#    ExampleType.addShockPaths(perm_shocks, temp_shocks, pref_shocks)
+#    ExampleType(w_init = np.zeros(ExampleType.sim_N))
     
     # Solve the agent's problem and plot the consumption functions
     t_start = time()
@@ -528,17 +505,22 @@ if __name__ == '__main__':
     t_end = time()
     print('Solving a preference shock consumer took ' + str(t_end-t_start) + ' seconds.')
     
-    m = np.linspace(ExampleType.solution[0].m_underbar,10,200)
+    m = np.linspace(ExampleType.solution[0].m_underbar,2,200)
     #m = np.linspace(0.0,1.0,200)
     for j in range(ExampleType.pref_shock_N):
-        pref_shock = ExampleType.pref_shock_grid[j]
+        pref_shock = ExampleType.pref_shock_dist[1][j]
         c = ExampleType.solution[0].cFunc(m,pref_shock*np.ones_like(m))
         plt.plot(m,c)
     plt.show()
+    c = ExampleType.solution[0].cFunc(m,np.ones_like(m))
+    k = ExampleType.solution[0].cFunc.derivativeX(m,np.ones_like(m))
+    plt.plot(m,c)
+    plt.plot(m,k)
+    plt.show()
     
     # Simulate some wealth history
-    ExampleType.unpack_cFunc()
-    history = ExampleType.simulate(ExampleType.w_init,0,ExampleType.sim_T,which=['m'])
-    plt.plot(np.mean(history,axis=1))
-    plt.show()
+#    ExampleType.unpack_cFunc()
+#    history = ExampleType.simulate(ExampleType.w_init,0,ExampleType.sim_T,which=['m'])
+#    plt.plot(np.mean(history,axis=1))
+#    plt.show()
     

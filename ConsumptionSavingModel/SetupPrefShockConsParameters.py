@@ -11,11 +11,11 @@ a_extra = None                      # Some other value of assets to add to the g
 a_size = 64                        # Number of points in the grid of assets
 
 constraint = None                   # Artificial borrowing constraint
-R_borrow = 1.08                     # Interest factor on assets when negative
+R_borrow = 1.20                     # Interest factor on assets when negative
 R_save = 1.03                       # Interest factor on assets when positive
 
-psi_N = 15                           # Number of points in discrete approximation to permanent income shocks
-xi_N = 15                           # Number of points in discrete approximation to transitory income shocks
+psi_N = 100                           # Number of points in discrete approximation to permanent income shocks
+xi_N = 100                           # Number of points in discrete approximation to transitory income shocks
 psi_sigma = [0.10]                   # Standard deviation of permanent income shocks
 xi_sigma = [0.10]                    # Standard deviation of transitory income shocks
 
@@ -35,7 +35,7 @@ sim_N = 10000                       # Number of agents to simulate
 seed = 31382                        # Any old integer
 RNG = RandomState(seed)             # A random number generator
 
-rho = 4.0                          # Coefficient of relative risk aversion
+rho = 1.0                          # Coefficient of relative risk aversion
 beta = 0.96                         # Time preference discount factor
 Gamma = [1.02]                      # Timepath of expected permanent income growth
 survival_prob = [0.98]              # Timepath of survival probabilities

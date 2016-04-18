@@ -17,7 +17,7 @@ a_huge = None                       # A very large value of assets to add to the
 a_extra = None                      # Some other value of assets to add to the grid, not used
 a_size = 8                         # Number of points in the grid of assets
 
-constraint = None                  # Artificial borrowing constraint
+constraint = 0.0                  # Artificial borrowing constraint
 cubic_splines = True                # Use cubic spline interpolation when True, linear interpolation when False
 calc_vFunc = False                  # Whether to calculate the value function during solution
 
@@ -26,7 +26,7 @@ psi_N = 6                           # Number of points in discrete approximation
 xi_N = 6                            # Number of points in discrete approximation to transitory income shocks
 p_unemploy = 0.05                  # Probability of unemployment while working
 p_unemploy_retire = 0.0005          # Probability of "unemployment" while retired
-income_unemploy = 0.0              # Unemployment benefits replacement rate
+income_unemploy = 0.3              # Unemployment benefits replacement rate
 income_unemploy_retire = 0.0        # Ditto when retired
 
 final_age = 90                      # Age at which the problem ends (die with certainty)

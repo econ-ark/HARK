@@ -14,7 +14,7 @@ from HARKcore import solveACycle
 from HARKinterpolation import QuadlinearInterp
 from HARKutilities import makeMarkovApproxToNormal, calculateLognormalDiscreteApprox, calculateBetaDiscreteApprox, createFlatStateSpaceFromIndepDiscreteProbs, setupGridsExpMult
 from HARKestimation import bootstrapSampleFromData
-#from time import time
+import matplotlib.pyplot as plt
 
 '''
 A class representing a biotechnology startup firm.
@@ -53,7 +53,8 @@ class BiotechType(AgentType):
         # Initialize a basic AgentType
         AgentType.__init__(self,cycles=0,time_flow=True,pseudo_terminal=True,**kwds)
         self.simple = simple
-        self.sim_N = 100000 # number of simulated states per firm per month
+        self.sim_N = 1000 # number of simulated states per firm per month
+        self.resample_freq = 12
 
         # Add biotech-type specific objects, copying to create independent versions
         self.time_vary = ['solveAPeriod']
@@ -77,7 +78,9 @@ class BiotechType(AgentType):
             else:
                 setattr(self,self.param_list[j],params_vec[j])
         self.init_state_mean = np.array([self.money_init_mean,self.mu_init_mean,self.tau_init_mean])
-        self.init_state_covar = np.array([[self.money_init_var,self.money_mu_covar,self.money_tau_covar],[self.money_mu_covar,self.mu_init_var,self.mu_tau_covar],[self.money_tau_covar,self.mu_tau_covar,self.tau_init_var]])
+        self.init_state_covar = np.array([[self.money_init_var,self.money_mu_covar,self.money_tau_covar],
+                                          [self.money_mu_covar,self.mu_init_var,self.mu_tau_covar],
+                                          [self.money_tau_covar,self.mu_tau_covar,self.tau_init_var]])
                 
     def preSolve(self):
         '''
@@ -115,9 +118,10 @@ class BiotechType(AgentType):
         if self.simple:
             self.pFunding = lambda money,mu,tau,macro : np.exp(self.pi_0 + self.pi_m*money + self.pi_mu*mu + self.pi_tau*tau + self.pi_mu_tau*mu*tau + self.pi_z*macro)
         else:
-            self.pReject = QuadlinearInterp(self.solution[2].reject_prob,self.money_grid,self.mu_grid,self.tau_grid,self.macro_grid)
+            tempFunc = QuadlinearInterp(self.solution[2].reject_prob,self.money_grid,self.mu_grid,self.tau_grid,self.macro_grid)
+            self.pReject = lambda money,mu,tau,macro : 1.0/(1.0 + np.exp(tempFunc(money,mu,tau,macro)))
         self.VCvalFunc = lambda mu,tau,macro : np.exp(self.gamma_0 + self.gamma_mu*mu + self.gamma_tau*tau + self.gamma_mu_tau*mu*tau + self.gamma_z*macro)
-        self.VCshockProb = lambda shocks : stats.norm.pdf(np.log(shocks)/self.sigma_VC + 0.5*self.sigma_VC)
+        self.VCshockProb = lambda shocks : stats.norm.pdf(np.log(shocks)/self.sigma_W + 0.5*self.sigma_W)
         self.sharesoldPDF = lambda sharesold : stats.beta.pdf(sharesold,a=self.sharesold_a,b=self.sharesold_b)
    
     def drawInitStates(self,firm_N,macro):
@@ -139,16 +143,16 @@ class BiotechType(AgentType):
         
         # Compute the probability of founding a firm in each initial state
         v_both = np.stack((v_dont,v_found),axis=1)
-        v_better = np.tile(np.max(v_both,axis=1),(1,2))
+        v_better = np.tile(np.reshape(np.max(v_both,axis=1),(N,1)),(1,2))
         exp_v_both = np.exp((v_both - v_better)/self.sigma_found)
         prob_found = exp_v_both[:,1]/np.sum(exp_v_both,axis=1)
         
         # Resample the random states based on their relative probabilities
         p_weight = prob_found/np.sum(prob_found)
         init_states = bootstrapSampleFromData(random_states,weights=p_weight,seed=self.RNG.randint(2**31-1))
-        money_init = np.exp(init_states[:,0])
-        mu_init = init_states[:,1]
-        tau_init = np.exp(init_states[:,2])
+        money_init = np.reshape(np.exp(init_states[:,0]),(firm_N,self.sim_N))
+        mu_init = np.reshape(init_states[:,1],(firm_N,self.sim_N))
+        tau_init = np.reshape(np.exp(init_states[:,2]),(firm_N,self.sim_N))
         
         # Return the distribution of initial states
         return money_init, mu_init, tau_init
@@ -165,14 +169,27 @@ class BiotechType(AgentType):
         new_firms = np.where(self.start_array[:,t])[0]
         if new_firms.size > 0:
             money_new, mu_new, tau_new = self.drawInitStates(new_firms.size,macro_t)
-            money_1 = np.vstack((self.money_t,money_new))
-            mu_1 = np.vstack((self.mu_t,mu_new))
-            tau_1 = np.vstack((self.tau_t,tau_new))
+            weight_new = np.ones_like(money_new)/self.sim_N
+            counter_new = np.zeros(new_firms.size)
+            if t > 0:
+                money_1 = np.vstack((self.money_t,money_new))
+                mu_1 = np.vstack((self.mu_t,mu_new))
+                tau_1 = np.vstack((self.tau_t,tau_new))
+                weight = np.vstack((self.weight_t,weight_new))
+                counter = np.concatenate((self.counter_t,counter_new))
+            else: # If this is the first period, there is no previous state
+                money_1 = money_new
+                mu_1 = mu_new
+                tau_1 = tau_new
+                weight = weight_new
+                counter = counter_new
             self.active_firms = np.hstack((self.active_firms,new_firms))
         else:
             money_1 = self.money_t
             mu_1 = self.mu_t
             tau_1 = self.tau_t
+            weight = self.weight_t
+            counter = self.counter_t
         macro_all = macro_t*np.ones_like(money_1)
         
         # Simulate Phase I: research choice and state updating
@@ -187,14 +204,14 @@ class BiotechType(AgentType):
         cost_vec = np.array([0,self.low_cost,self.high_cost])
         intensity_vec = np.array([0,self.low_intensity,self.high_intensity])        
         money_2 = money_1 - cost_vec[r_choice]
-        mu_2 = (money_1*tau_1 + r_shocks*np.sqrt(intensity_vec[r_choice]))/(tau_1 + intensity_vec[r_choice])
+        mu_2 = (mu_1*tau_1 + r_shocks*np.sqrt(intensity_vec[r_choice]))/(tau_1 + intensity_vec[r_choice])
         tau_2 = tau_1 + intensity_vec[r_choice]
         
         # Simulate Phase II: termination decision
         v_continue = self.vFunc3(money_2,mu_2,tau_2,macro_all)
-        v_sale_premoney = self.vPrivate(money_2,mu_2,tau_2,macro_all)
+        v_sale_premoney = self.vPrivate(mu_2,tau_2,macro_all)
         v_sale = v_sale_premoney + money_2
-        v_IPO_premoney = self.vIPO(money_2,mu_2,tau_2,macro_all)
+        v_IPO_premoney = self.vIPO(mu_2,tau_2,macro_all)
         v_IPO = v_IPO_premoney + money_2
         v_bankrupt = self.V_b*np.ones_like(v_IPO)
         v_all = np.stack((v_continue,v_sale,v_IPO,v_bankrupt),axis=2)/self.sigma_terminal
@@ -204,32 +221,36 @@ class BiotechType(AgentType):
         actions = self.action_array[self.active_firms,t]
         v_action = v_all[np.tile(np.reshape(np.arange(self.active_firms.size),(self.active_firms.size,1)),(1,self.sim_N)),np.tile(np.reshape(np.arange(self.sim_N),(1,self.sim_N)),(self.active_firms.size,1)),np.tile(np.reshape(actions,(self.active_firms.size,1)),(1,self.sim_N))]
         p_action = np.exp(v_action)/v_sum
-        action_weight = p_action/np.tile(np.reshape(np.sum(p_action,axis=1),(self.active_firms.size,1)),(1,self.sim_N))
+        temp = weight*p_action
+        self.LL_action[self.active_firms,t] = np.log(np.sum(temp,axis=1))
+        weight = normalizeWeights(temp)
         sellers = self.sale_array[self.active_firms,t]
         IPOers = self.IPO_array[self.active_firms,t]
         bankrupters = self.bankrupt_array[self.active_firms,t]
         continuers = np.logical_not(np.logical_or(np.logical_or(sellers,IPOers),bankrupters))
         sale_obs_value = self.value_array[self.active_firms[sellers],t]
         IPO_obs_value = self.value_array[self.active_firms[IPOers],t]
-        sale_obs_value_premoney = np.tile(np.reshape(sale_obs_value,(np.sum(sellers),1)),(1,self.sim_N)) - money_2[sellers,:]
-        sale_obs_value_premoney[sale_obs_value_premoney < 0.000001] = 0.000001 # just in case
-        IPO_obs_value_premoney = np.tile(np.reshape(IPO_obs_value,(np.sum(IPOers),1)),(1,self.sim_N)) - money_2[IPOers,:]
-        IPO_obs_value_premoney[IPO_obs_value_premoney < 0.000001] = 0.000001 # just in case
-        sale_shock = sale_obs_value_premoney/v_sale_premoney[sellers,:]
-        IPO_shock = IPO_obs_value_premoney/v_sale_premoney[IPOers,:]
+#        sale_obs_value_premoney = np.tile(np.reshape(sale_obs_value,(np.sum(sellers),1)),(1,self.sim_N)) - money_2[sellers,:]
+#        sale_obs_value_premoney[sale_obs_value_premoney < 0.000001] = 0.000001 # just in case
+#        IPO_obs_value_premoney = np.tile(np.reshape(IPO_obs_value,(np.sum(IPOers),1)),(1,self.sim_N)) - money_2[IPOers,:]
+#        IPO_obs_value_premoney[IPO_obs_value_premoney < 0.000001] = 0.000001 # just in case
+#        sale_shock = sale_obs_value_premoney/v_sale_premoney[sellers,:]
+#        IPO_shock = IPO_obs_value_premoney/v_IPO_premoney[IPOers,:]
+        sale_shock = np.tile(np.reshape(sale_obs_value,(np.sum(sellers),1)),(1,self.sim_N))/v_sale[sellers,:]
+        IPO_shock = np.tile(np.reshape(IPO_obs_value,(np.sum(IPOers),1)),(1,self.sim_N))/v_IPO[IPOers,:]
         sale_shock_prob = self.termShockProb(sale_shock)
         IPO_shock_prob = self.termShockProb(IPO_shock)
-        self.LL_action[self.active_firms,t] = np.log(np.mean(p_action,axis=1))
-        self.LL_value[self.active_firms[sellers],t] = np.log(np.sum(action_weight[sellers,:]*sale_shock_prob,axis=1))
-        self.LL_value[self.active_firms[IPOers],t] = np.log(np.sum(action_weight[IPOers,:]*IPO_shock_prob,axis=1))
+        self.LL_value[self.active_firms[sellers],t] = np.log(np.sum(weight[sellers,:]*sale_shock_prob,axis=1))
+        self.LL_value[self.active_firms[IPOers],t] = np.log(np.sum(weight[IPOers,:]*IPO_shock_prob,axis=1))
         
         # Only keep firms that did not terminate        
-        action_weight = action_weight[continuers,:]
         self.active_firms = self.active_firms[continuers]
-        money_3 = money_2[continuers,:,:,:]
-        mu_3 = mu_2[continuers,:,:,:]
-        tau_3 = tau_2[continuers,:,:,:]
+        money_3 = money_2[continuers,:]
+        mu_3 = mu_2[continuers,:]
+        tau_3 = tau_2[continuers,:]
         macro_all = macro_t*np.ones_like(money_3)
+        weight = weight[continuers,:]
+        counter = counter[continuers]
         
         # Simulate Phase III: venture capital decision
         if self.simple:
@@ -238,16 +259,17 @@ class BiotechType(AgentType):
             p_get = self.pFunding(money_3,mu_3,tau_3,macro_all)
             p_funded = p_get
             p_funded[notters,:] = 1.0 - p_get[notters,:]
-            temp = action_weight*p_funded
-            VC_weight = (temp)/np.tile(np.reshape(np.sum(temp,axis=1),(self.active_firms.size,1)),(1,self.sim_N))
+            temp = weight*p_funded
+            self.LL_choice[self.active_firms,t] = np.log(np.sum(temp,axis=1)) # not really a "choice", but...
+            weight = normalizeWeights(temp)
             obs_valuation = np.tile(np.reshape(self.value_array[self.active_firms[getters],t],(np.sum(getters),1)),(1,self.sim_N))
-            exp_valuation = self.VCvalFunc(money_3[getters,:],mu_3[getters,:],tau_3[getters,:],macro_all)
+            exp_valuation = self.VCvalFunc(mu_3[getters,:],tau_3[getters,:],macro_all[getters,:]) + money_3[getters,:]
             VC_shock = obs_valuation/exp_valuation
             VC_shock_prob = self.VCshockProb(VC_shock)
-            self.LL_choice[:,t] = np.log(np.sum(temp,axis=1)) # not really a "choice", but...
-            self.LL_value[getters,:] = np.log(np.sum(VC_weight*VC_shock_prob),axis=1)
-            reweights = VC_weight
-            reweights[getters,:] = (VC_weight*VC_shock_prob)/np.tile(np.reshape(np.sum(VC_weight*VC_shock_prob,axis=1),(np.sum(getters),1)),(1,self.sim_N))
+            VC_shock_prob[np.isnan(VC_shock_prob)] = 0.0            
+            temp = weight[getters,:]*VC_shock_prob
+            self.LL_value[self.active_firms[getters],t] = np.log(np.sum(temp,axis=1))
+            weight[getters,:] = normalizeWeights(temp)
             accepters = getters # to make state updating work
             cash_injection = np.tile(np.reshape(self.cash_array[self.active_firms[getters],t],(np.sum(getters),1)),(1,self.sim_N))
         else:
@@ -256,42 +278,69 @@ class BiotechType(AgentType):
             obs_valuation = np.tile(np.reshape(self.value_array[self.active_firms[accepters],t],(np.sum(accepters),1)),(1,self.sim_N))
             sharesold = np.tile(np.reshape(self.share_array[self.active_firms[accepters],t],(np.sum(accepters),1)),(1,self.sim_N))
             cash_injection = np.tile(np.reshape(self.cash_array[self.active_firms[accepters],t],(np.sum(accepters),1)),(1,self.sim_N))
-            exp_valuation = self.VCvalFunc(money_3[accepters,:],mu_3[accepters,:],tau_3[accepters,:],macro_all)
+            exp_valuation = self.VCvalFunc(mu_3[accepters,:],tau_3[accepters,:],macro_all[accepters,:]) + money_3[accepters,:]
             VC_shock = obs_valuation/exp_valuation
             VC_shock_prob = self.VCshockProb(VC_shock)
-            temp = VC_shock_prob*action_weight[accepters,:]
-            VC_weight = temp/np.tile(np.reshape(np.sum(temp,axis=1),(np.sum(accepters),1)),(1,self.sim_N))
+            temp = VC_shock_prob*weight[accepters,:]
+            self.LL_value[self.active_firms[accepters],t] = np.log(np.sum(temp,axis=1))
+            weight[accepters] = normalizeWeights(temp)
             v_accept = (1.0-sharesold)*self.vFunc4(money_3[accepters,:]+cash_injection,mu_3[accepters,:],tau_3[accepters,:],macro_all[accepters,:]) - self.VC_cost
             v_reject = self.vFunc4(money_3[accepters,:],mu_3[accepters,:],tau_3[accepters,:],macro_all[accepters,:])
             exp_v_diff = np.exp((v_reject - v_accept)/self.sigma_VC)
             p_accept = 1.0/(1.0 + exp_v_diff)
             p_reject = self.pReject(money_3[rejecters,:],mu_3[rejecters,:],tau_3[rejecters,:],macro_all[rejecters,:])
-            self.LL_value[self.active_firms[accepters],t] = np.log(np.sum(temp,axis=1))
-            self.LL_choice[self.active_firms[accepters],t] = np.log(np.sum(p_accept*VC_weight,axis=1))
-            self.LL_choice[self.active_firms[rejecters],t] = np.log(np.sum(p_reject*action_weight,axis=1))
+            temp = np.zeros_like(money_3)
+            temp[accepters,:] = p_accept*weight[accepters,:]
+            temp[rejecters,:] = p_reject*weight[rejecters,:]
+            self.LL_choice[self.active_firms[accepters],t] = np.log(np.sum(temp,axis=1))            
+            weight = normalizeWeights(temp)
             self.LL_share[self.active_firms[accepters],t] = np.log(self.sharesoldPDF(self.share_array[self.active_firms[accepters],t]))
-            reweights = np.zeros_like(action_weight)
-            reweights[rejecters,:] = (action_weight[rejecters,:]*p_reject)/np.tile(np.reshape(np.sum(action_weight[rejecters,:]*p_reject,axis=1),(np.sum(rejecters),1)),(1,self.sim_N))
-            reweights[accepters,:] = (VC_weight*p_accept)/np.tile(np.reshape(np.sum(VC_weight*p_accept,axis=1),(np.sum(accepters),1)),(1,self.sim_N))
+
+#            money_out = np.sum(np.logical_or(money_3 < self.money_min, money_3 > self.money_max))
+#            mu_out = np.sum(np.logical_or(mu_3 < self.mu_min, mu_3 > self.mu_max))
+#            tau_out = np.sum(np.logical_or(tau_3 < self.tau_min, tau_3 > self.tau_max))
+#            print((money_out,mu_out,tau_out))
             
-        # Update the state for VC cash injections, then resample observations
+        # Update the state for VC cash injections
         money_3a = money_3
         money_3a[accepters,:] = money_3[accepters,:] + cash_injection
+        
+        # Resample simulated states
         money_4 = np.zeros_like(money_3a)
         mu_4 = np.zeros_like(money_3a)
         tau_4 = np.zeros_like(money_3a)
         for n in range(self.active_firms.size):
-            state_array_in = np.reshape(np.vstack((money_3a[n,:],mu_3[n,:],tau_3[n,:])),(self.sim_N,3))
-            state_array_out = bootstrapSampleFromData(state_array_in,weights=reweights[n,:],seed=self.RNG.randint(2**31-1))
-            money_4[n,:] = state_array_out[:,0]
-            mu_4[n,:] = state_array_out[:,1]
-            tau_4[n,:] = state_array_out[:,2]
+            counter[n] += 1
+            if ((np.mod(counter[n],self.resample_freq) == 0 and self.resample_freq > 0) or accepters[n]) :
+                state_array_in = np.transpose(np.vstack((money_3a[n,:],mu_3[n,:],tau_3[n,:])))
+                state_array_out = bootstrapSampleFromData(state_array_in,weights=weight[n,:],seed=self.RNG.randint(2**31-1))
+                money_4[n,:] = state_array_out[:,0]
+                mu_4[n,:] = state_array_out[:,1]
+                tau_4[n,:] = state_array_out[:,2]
+                weight[n,:] = np.ones(self.sim_N)/self.sim_N
+                counter[n] = 0
+            else:
+                money_4[n,:] = money_3a[n,:]
+                mu_4[n,:] = mu_3[n,:]
+                tau_4[n,:] = tau_3[n,:]
             
         # Simulate Phase IV: technology shocks (store states for next period)
         Qshocks = np.tile(np.reshape(self.RNG.permutation(self.Qshock_draws),(1,self.sim_N)),(self.active_firms.size,1))
         self.money_t = money_4
         self.mu_t = mu_4 - Qshocks
         self.tau_t = tau_4
+        self.weight_t = weight
+        self.counter_t = counter
+        
+        
+    def simulate(self,periods=None):
+        if periods is None:
+            periods = self.time_size
+        for t in range(periods):
+            self.simOneMonth(t)
+        self.LL_all = self.LL_value + self.LL_choice + self.LL_action + self.LL_share
+        self.LL = np.sum(self.LL_all)
+        
         
     def update(self):
         '''
@@ -342,7 +391,7 @@ class BiotechSolution():
             distance = np.max(np.abs((v_array_A - v_array_B)/v_array_A))
         else:
             distance = 100000
-        print(distance)
+        #print(distance)
         return distance
             
 
@@ -598,7 +647,7 @@ def precalcPhase3alt(money_grid,mu_grid,tau_grid,macro_grid,gamma_0,gamma_mu,gam
     
     # Apply the lognormal valuation shocks and include money
     money_array_BIG = np.tile(np.reshape(money_array,((money_N,mu_N,tau_N,macro_N,1))),(1,1,1,1,W_N))
-    valuation_array = val_shock_array*np.tile(valuation_avg_array,(1,1,1,1,W_N)) + money_array_BIG
+    valuation_array = val_shock_array*(np.tile(valuation_avg_array,(1,1,1,1,W_N)) + money_array_BIG)
     
     # Calculate cash-on-hand after accepting each offer in the distribution
     cashonhand_array = sharesold_fixed*valuation_array/(1.0-sharesold_fixed) + money_array_BIG
@@ -961,7 +1010,8 @@ def solvePhase3(solution_tp1,m_idx_bot,m_idx_top,mu_idx_P3,tau_idx_P3,z_idx_P3,m
         reject_prob_big[reject_is_worse] = prob_worse[reject_is_worse]
         reject_prob_big[reject_is_better] = prob_better[reject_is_better]
         reject_prob = np.mean(reject_prob_big,axis=4)
-        solution_t.reject_prob = reject_prob
+        reject_prob_trans = np.log(1/reject_prob - 1)
+        solution_t.reject_prob = reject_prob_trans
     return solution_t
     
     
@@ -1178,4 +1228,12 @@ def solvePhase1(solution_tp1, mu_weight_matrix_low, mu_weight_matrix_high, m_idx
         solution_t.v_low_research = v_array_low_1
         solution_t.v_high_research = v_array_high_1
     return solution_t
+    
+    
+    
+def normalizeWeights(weights_in):
+    rows = weights_in.shape[0]
+    obs = weights_in.shape[1]
+    weights_out = weights_in/np.tile(np.reshape(np.sum(weights_in,axis=1),(rows,1)),(1,obs))
+    return weights_out
     
