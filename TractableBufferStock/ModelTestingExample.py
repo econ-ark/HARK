@@ -19,6 +19,7 @@ TBSCheck = test.parameterCheck(Model.TractableConsumerType,base_primitives)
 
 #run the testing function.  This runs the model multiple times
 TBSCheck.testParamaters()
+print("-----------------------------------------------------------------------")
 
 #get a test result and find out more info
 test100 = TBSCheck.test_results[100]

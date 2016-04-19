@@ -14,12 +14,13 @@ from ConsumptionSavingModel import ConsumerType, consumptionSavingSolverMarkov
 from time import clock
 
 # Define the model primitives
-base_primitives = {'mho' : .00625,
-                   'beta' : 0.975,
-                   'R' : 1.01,
-                   'G' : 1.0025,
-                   'rho' : 1.0}
-                   
+base_primitives = {'mho' : .015,
+                   'beta' : 0.9,
+                   'R' : 1.1,
+                   'G' : 1.05,
+                   'rho' : .95}
+
+
 # Make and solve a tractable consumer type
 ExampleType = Model.TractableConsumerType(**base_primitives)
 t_start = clock()
@@ -91,3 +92,5 @@ plotFuncs(MarkovType.cFunc[0],0,m_upper)
 diffFunc = lambda m : ExampleType.solution[0].cFunc(m) - MarkovType.cFunc[0][0](m)
 print('Difference between the (employed) consumption functions:')
 plotFunc(diffFunc,0,100)
+
+plotFuncs([ExampleType.cSSfunc, ExampleType.mSSfunc,ExampleType.solution[0].cFunc],0,10)
