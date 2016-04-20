@@ -1519,12 +1519,12 @@ if __name__ == '__main__':
     mystr = lambda number : "{:.4f}".format(number)
 
     do_hybrid_type          = False
-    do_markov_type          = True
+    do_markov_type          = False
     do_perfect_foresight    = False   
     
     # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)
-    LifecycleType.solveAPeriod = consumptionSavingSolverEXOG
+    #LifecycleType.solveAPeriod = consumptionSavingSolverEXOG
     
     start_time = clock()
     LifecycleType.solve()
