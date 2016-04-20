@@ -65,6 +65,11 @@ sale_array[firm_data[sales],time_data[sales]] = True
 bankrupt_array = np.zeros((firm_size,time_size),dtype=bool)
 bankruptcies = event_data == 5
 bankrupt_array[firm_data[bankruptcies],time_data[bankruptcies]] = True
+# Integer array of which terminal action is taken in each period
+action_array = np.zeros((firm_size,time_size),dtype=np.int8)
+action_array[sale_array] = 1
+action_array[IPO_array] = 2
+action_array[bankrupt_array] = 3
 # Float array of valuations of all types (pre-funding)
 value_array = np.zeros((firm_size,time_size),dtype=float) + np.nan
 value_array[firm_data[VCs],time_data[VCs]] = value_data[VCs]
@@ -123,7 +128,6 @@ else:
     calibrated_parameter_values = np.array([0.000001,150.0,14,-1.0,4.0,15,0.5,20.0,16,-2.5,2.5,17,10,7,0,0,1,0,0,0.8,2,0.5])
     estimated_parameter_idx = np.setdiff1d(np.arange(param_count),calibrated_parameter_idx)
     estimated_parameter_guess = np.array([0,1,1,0.1,5,0.3,0.1,0.5,0.2,1.5,0.3,-1,1.5,0.1,-0.01,0.02,0,1.5,0.1,-0.01,0.02,0.5,0.3,0,1.5,0.1,-0.01,0.02,0.2,1.1,3.0,0.1,0.3,0.95,0.01,0.03])
-
 
 # Make a sample type
 my_params = np.zeros(param_count)
