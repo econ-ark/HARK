@@ -5,9 +5,25 @@ import metacomm.combinatorics.all_pairs2
 all_pairs = metacomm.combinatorics.all_pairs2.all_pairs2
 
 class parameterCheck(object):
+    '''
+    A wrapper for an AgentType object (a model). This class automates  
+    testing over a range parameter inputs by generating and testing sets of 
+    parameters based on the original parameters.
+    '''
     
     def __init__(self, model, base_primitives, multiplier = 1, interval = 5):
+        '''        
+        model: an instance of AgentType with a working .solve() function
         
+        base_primitives: a dictionary of input parameters for the the model
+        
+        multiplier: coefficient that determines the range for each parameter 
+        within testing sets.  
+        the range for each parameter P is [P-P*multiplier,P+P*multiplier].  All 
+        testing parameters will be within this range
+        
+        interval: the number of paramaters to to test within the given range
+        '''
         self._model = model
         self._base_primitives = base_primitives
         self._multiplier = multiplier
@@ -19,14 +35,26 @@ class parameterCheck(object):
         self.failedParams = []
         
     def makeParameterIterator(self):
+        '''
+        create an object that contains all the information needed to generate 
+        sets of parameters for testing
         
+        returns a dictionary that specifies the range and intervals for each parameter
+        
+        '''
         mixMaxRangeTupples = {k:(v-self._multiplier*v,v+self._multiplier*v,v/self._interval) for k,v in self._base_primitives.iteritems()}
         totalLoops = self._interval**len(self._base_primitives)
         print("There are " + str(totalLoops)+ " parameter combinations to test.")
         return mixMaxRangeTupples
         
     def findTestParameters(self):
+        '''
+        this function creates sets (dictionarys) of parameters to test in the model
+        it also applies pairwise combination to reduce actual the number of sets
+        that are tested.  For more info see pairwise.org
         
+        returns a list of parameter sets (dictionaries) for testing
+        '''
         parameterLists = []
         keyOrder = []
         testParams = []
@@ -41,6 +69,10 @@ class parameterCheck(object):
         return testParams
     
     def testParamaters(self):
+        '''
+        runs the model on the test parameters and store error results
+        print out the error messages that were thrown
+        '''        
         
         self.runModel(self._testParams)
         self.printErrors()
@@ -64,7 +96,13 @@ class parameterCheck(object):
         '''
         pass
     def runModel(self,paramtersToTest):
-           
+        '''
+        run the model using each set of test parameters.  for each model, a new
+        object (an instance of parameterInstanceCheck) records the results of
+        the test.  
+        
+        Each result is places in the appropriate list (failedParams or validParams)
+        '''
         for i in range(len(paramtersToTest)):
             tempDict = dict(self._base_primitives)
             tempParams = paramtersToTest[i]
@@ -72,6 +110,7 @@ class parameterCheck(object):
             Test = self._model(**tempParams)
             try:
                 Test.solve()
+            #TODO: Insert allowed exceptions here so they don't count as errors!
             except Exception,e:
                 testData.errorBoolean = True
                 testData.errorCode = str(e)
@@ -85,15 +124,33 @@ class parameterCheck(object):
                 self.validParams.append(self.test_results[i])
                 
     def printErrors(self):
-    
+        '''
+        print out the test numbers and error codes for all failed tests
+        '''
         for i in range(len(self.test_results)):
             if self.test_results[i].errorBoolean:
                 print("test no " + str(i) + " failed with the following error code:")
                 print(self.test_results[i].errorCode)
     
 class parameterInstanceCheck(object):
-    
+    '''
+    this class holds information for a single test of a model
+    '''
     def __init__(self,testNumber,base_primitives,original_primitives,errorBoolean=False,errorCode=None,tracebackText=None):
+        '''
+        testNumber: the test number
+        
+        base_primitives: the set of parameters that was tested
+        
+        original_primitives: the original parameters that test parameters were constructed from
+                    
+        errorBoolean: boolean indicator of an error    
+
+        errorCode: text of the error (exception type included)
+        
+        tracebackText: full traceback, printable using the traceback.prin_excpetino function
+        
+        '''
         
         self.testNumber = testNumber
         self.original_primitives = original_primitives
@@ -104,6 +161,9 @@ class parameterInstanceCheck(object):
         
         
     def traceback(self):
+        '''
+        function that prints a traceback for an errror
+        '''
         try:
             traceback.print_exception(*self._tracebackText)
         except TypeError:
