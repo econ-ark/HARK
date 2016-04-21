@@ -249,45 +249,74 @@ def CARAutility_invP(u, alpha):
 
 
 
-def calculateLognormalDiscreteApprox(N, mu, sigma):
+def calculateLognormalDiscreteApprox(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail_order=np.e):
     '''
-    Define functions to construct equiprobable discrete approximation to lognormal
-    The key result on which the approximation rests is the solution to the integral 
-    that calculates the expectation of the value of a lognormally distributed variable z
-    in the interval from zMin to zMax.  The solution to this can be verified analytically 
-    by executing the Mathematica command
-    Integrate[z PDF[LogNormalDistribution[\[Mu],\[Sigma]],z],{z,zMin,zMax},Assumptions->{zMax-zMin>0&&zMax>0&&zMin>0}]
-    and that solution
-    -1/2 E^(\[Mu]+\[Sigma]^2/2) (Erf[(\[Mu]+\[Sigma]^2-Log[zMax])/(Sqrt[2] \[Sigma])]-Erf[(\[Mu]+\[Sigma]^2-Log[zMin])/(Sqrt[2] \[Sigma])])
-    is directly incorporated into the definition of the function below
+    Construct a discrete approximation to a lognormal distribution with underlying
+    normal distribution N(exp(mu),sigma).  Makes an equiprobable distribution by
+    default, but user can optionally request augmented tails with exponentially
+    sized point masses.  This can improve solution accuracy in some models.
     
     Parameters
     ----------
     N: int
-        Size of discrete space vector to be returned.
+        Number of discrete points in the "main part" of the approximation.
+    mu: float
+        Mean of underlying normal distribution.
     sigma: float
-        standard deviation associated with underlying normal probability distribution.
+        Standard deviation of underlying normal distribution.
+    tail_N: int
+        Number of points in each "tail part" of the approximation; 0 = no tail.
+    tail_bound: [float]
+        CDF boundaries of the tails vs main portion; tail_bound[0] is the lower
+        tail bound, tail_bound[1] is the upper tail bound.  Inoperative when
+        tail_N = 0.  Can make "one tailed" approximations with 0.0 or 1.0.
+    tail_order: float
+        Factor by which consecutive point masses in a "tail part" differ in
+        probability.  Should be >= 1 for sensible spacing.
         
     Returns
     -------
-    MeanPointsProb: np.ndarray
-        Discrete points for discrete probability mass function.
-    MeanPointsVals: np.ndarray
-        Probability associated with each point in X.
+    pmf: np.ndarray
+        Probabilities for discrete probability mass function.
+    X: np.ndarray
+        Discrete values in probability mass function.
         
     Written by Luca Gerotto
     Based on Matab function "setup_workspace.m," from Chris Carroll's
       [Solution Methods for Microeconomic Dynamic Optimization Problems](http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
-    Latest update: 27 March 2016
-    '''    
-    mu_adj         = mu - 0.5*sigma**2;  # This is the value necessary to make the mean in levels = 1
-    inner_CDF_vals = [x * N**(-1) for x in range(1, N)] 
-    inner_cutoffs  = list(stats.lognorm.ppf(inner_CDF_vals, s=sigma, loc=0, scale=np.exp(mu_adj)))
-    cutoffs        = [0] + inner_cutoffs + [np.inf]
-    CDF_vals       = np.array([0.0] + inner_CDF_vals + [1.0])
-    pmf            = CDF_vals[1:(N+1)] - CDF_vals[0:N]
-    X              = np.zeros_like(pmf)
-    for i in range(N):
+    Latest update: 21 April 2016 by Matthew N. White
+    '''
+    # Find the CDF boundaries of each segment
+    mu_adj         = mu - 0.5*sigma**2;
+    if tail_N > 0:
+        lo_cut     = tail_bound[0]
+        hi_cut     = tail_bound[1]
+    else:
+        lo_cut     = 0.0
+        hi_cut     = 1.0
+    inner_size     = hi_cut - lo_cut
+    inner_CDF_vals = [lo_cut + x*N**(-1.0)*inner_size for x in range(1, N)]
+    if inner_size < 1.0:
+        scale      = 1.0/tail_order
+        mag        = (1.0-scale**tail_N)/(1.0-scale)
+    lower_CDF_vals = [0.0]
+    if lo_cut > 0.0:
+        for x in range(tail_N-1,-1,-1):
+            lower_CDF_vals.append(lower_CDF_vals[-1] + lo_cut*scale**x/mag)
+    upper_CDF_vals  = [hi_cut]
+    if hi_cut < 1.0:
+        for x in range(tail_N):
+            upper_CDF_vals.append(upper_CDF_vals[-1] + (1.0-hi_cut)*scale**x/mag)
+    CDF_vals       = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
+    temp_cutoffs   = list(stats.lognorm.ppf(CDF_vals[1:-1], s=sigma, loc=0, scale=np.exp(mu_adj)))
+    cutoffs        = [0] + temp_cutoffs + [np.inf]
+    CDF_vals       = np.array(CDF_vals)
+
+    # Construct the discrete approximation by finding the average value within each segment
+    K              = CDF_vals.size-1 # number of points in approximation
+    pmf            = CDF_vals[1:(K+1)] - CDF_vals[0:K]
+    X              = np.zeros(K)
+    for i in range(K):
         zBot  = cutoffs[i]
         zTop = cutoffs[i+1]
         X[i] = (-0.5)*np.exp(mu_adj+(sigma**2)*0.5)*(erf((mu_adj+sigma**2-np.log(zTop))*((np.sqrt(2)*sigma)**(-1)))-erf((mu_adj+sigma**2-np.log(zBot))*((np.sqrt(2)*sigma)**(-1))))*(pmf[i]**(-1));           

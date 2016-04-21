@@ -11,7 +11,7 @@ sys.path.insert(0,'../')
 import numpy as np
 from HARKcore import AgentType, NullFunc
 from HARKutilities import warnings  # Because of "patch" to warnings modules
-from HARKutilities import calculateMeanOneLognormalDiscreteApprox, addDiscreteOutcomeConstantMean, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
+from HARKutilities import calculateLognormalDiscreteApprox, addDiscreteOutcomeConstantMean, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
 from HARKinterpolation import ConstrainedComposite, LinearInterp, LinearInterpOnInterp1D
 from HARKsimulation import generateMeanOneLognormalDraws, generateBernoulliDraws
 from ConsumptionSavingModel import constructAssetsGrid, constructLognormalIncomeProcessUnemployment
@@ -278,7 +278,7 @@ class PrefShockConsumer(AgentType):
         '''
         Updates this agent's preference shock distribution.
         '''
-        pref_shock_dist = calculateMeanOneLognormalDiscreteApprox(self.pref_shock_N,self.pref_shock_sigma)
+        pref_shock_dist = calculateLognormalDiscreteApprox(self.pref_shock_N,0.0,self.pref_shock_sigma,tail_N=self.pref_shock_tail_N)
         self.pref_shock_dist = pref_shock_dist
         if not 'pref_shock_dist' in self.time_inv:
             self.time_inv.append('pref_shock_dist')
@@ -507,7 +507,7 @@ if __name__ == '__main__':
     
     m = np.linspace(ExampleType.solution[0].m_underbar,2,200)
     #m = np.linspace(0.0,1.0,200)
-    for j in range(ExampleType.pref_shock_N):
+    for j in range(ExampleType.pref_shock_dist[1].size):
         pref_shock = ExampleType.pref_shock_dist[1][j]
         c = ExampleType.solution[0].cFunc(m,pref_shock*np.ones_like(m))
         plt.plot(m,c)

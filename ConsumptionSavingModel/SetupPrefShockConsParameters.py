@@ -14,10 +14,10 @@ constraint = None                   # Artificial borrowing constraint
 R_borrow = 1.20                     # Interest factor on assets when negative
 R_save = 1.03                       # Interest factor on assets when positive
 
-psi_N = 100                           # Number of points in discrete approximation to permanent income shocks
-xi_N = 100                           # Number of points in discrete approximation to transitory income shocks
-psi_sigma = [0.10]                   # Standard deviation of permanent income shocks
-xi_sigma = [0.10]                    # Standard deviation of transitory income shocks
+psi_N = 15                           # Number of points in discrete approximation to permanent income shocks
+xi_N = 15                           # Number of points in discrete approximation to transitory income shocks
+psi_sigma = [0.1]                   # Standard deviation of permanent income shocks
+xi_sigma = [0.1]                    # Standard deviation of transitory income shocks
 
 p_unemploy = 0.05                  # Probability of unemployment while working
 p_unemploy_retire = 0.0005          # Probability of "unemployment" while retired
@@ -25,7 +25,8 @@ income_unemploy = 0.4               # Unemployment benefits replacement rate
 income_unemploy_retire = 0.0        # Ditto when retired
 
 pref_shock_sigma = 0.10              # Standard deviation of marginal utility shocks
-pref_shock_N = 24                   # Number of points in discrete approximation to preference shock dist
+pref_shock_N = 12                    # Number of points in discrete approximation to preference shock dist
+pref_shock_tail_N = 4                # Number of points in each tail of the preference shock distribution
 
 TT = 1                              # Total number of periods in the model
 T_retire = 0                        # Turn off retirement
@@ -35,7 +36,7 @@ sim_N = 10000                       # Number of agents to simulate
 seed = 31382                        # Any old integer
 RNG = RandomState(seed)             # A random number generator
 
-rho = 1.0                          # Coefficient of relative risk aversion
+rho = 3.0                          # Coefficient of relative risk aversion
 beta = 0.96                         # Time preference discount factor
 Gamma = [1.02]                      # Timepath of expected permanent income growth
 survival_prob = [0.98]              # Timepath of survival probabilities
@@ -52,6 +53,7 @@ init_consumer_objects = {"rho":rho,
                         "xi_N":xi_N,
                         "pref_shock_sigma":pref_shock_sigma,
                         "pref_shock_N":pref_shock_N,
+                        "pref_shock_tail_N":pref_shock_tail_N,
                         "T_total":TT,
                         "p_unemploy":p_unemploy,
                         "p_unemploy_retire":p_unemploy_retire,

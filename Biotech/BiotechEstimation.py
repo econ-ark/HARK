@@ -130,8 +130,8 @@ if simple_model:
     calibrated_parameter_idx = np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,14,15,17,19,20,47,54,56,57])
     calibrated_parameter_values = np.array([0.000001,300.0,24,-1.0,4.0,16,0.5,20.0,16,-2.5,2.5,16,7,0,0,1,0,0,0.33,0.8,2,0.5])
     estimated_parameter_idx = np.setdiff1d(np.arange(param_count),calibrated_parameter_idx)
-    #estimated_parameter_guess = np.array([0,1,1,0.1,0.001,0.3,0.1,0.5,0.2,1.5,0.3,-1,1.5,0.1,-0.01,0.02,0,1.5,0.1,-0.01,0.02,0.5,0.3,0,1.5,0.1,-0.01,0.02,0.2,-2,-0.15,0.4,-0.02,-0.01,0.2,0.995,0.01,0.03])
-    estimated_parameter_guess = np.array([0,1.5,1.5,0.1,1,0.3,0.1,0.5,0.15,1.5,0.3,0.0,1.5,0.1,-0.01,0.02,0.75,2.0,0.1,-0.01,0.02,-1,3.0,0,2.0,0.1,-0.01,0.02,0.6,-3.0,-0.10,0.4,-0.02,-0.01,0.2,0.998,0.015,0.03])
+    #estimated_parameter_guess = np.array([0,1,1,0.1,0.001,0.3,0.1,0.5,0.2,1.5,0.3,-1,1.5,0.1,-0.01,0.02,0,1.5,0.1,-0.01,0.02,0.5,0.3,0,1.5,0.1,-0.01,0.02,0.2,-2,-0.15,0.4,-0.02,-0.01,0.2,0.99,0.01,0.03])
+    estimated_parameter_guess = np.array([0,1.5,1.5,0.1,1,0.3,0.1,0.5,0.15,1.5,0.3,0.0,1.5,0.1,-0.01,0.02,0.75,2.0,0.1,-0.01,0.02,-1,3.0,0,2.0,0.1,-0.01,0.02,0.6,-3.0,-0.10,0.4,-0.02,-0.01,0.2,0.99,0.015,0.03])
 else:
     param_count = Model.BiotechType.param_count
     calibrated_parameter_idx = np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,13,15,16,18,20,21,52,54,55])    
@@ -142,7 +142,7 @@ else:
 
 # Define the log likelihood function for estimation
 def logLikelihoodFunc(input_parameters):
-    try:
+    #try:
         # Make a type
         my_params = np.zeros(param_count)
         my_params[calibrated_parameter_idx] = calibrated_parameter_values
@@ -177,16 +177,16 @@ def logLikelihoodFunc(input_parameters):
         # Run the Bayesian likelihood simulation!
         my_type.simulate()
         
-        return my_type.LL
-    except:
-        return np.nan
+        return my_type.LL, my_type
+    #except:
+    #    return np.nan
 
 if __name__ == "__main__":
     # Test the log likelihood function
-#    t_start = clock()
-#    LL = logLikelihoodFunc(estimated_parameter_guess)
-#    t_end = clock()
-#    print('Test run took ' + str(t_end-t_start) + ' seconds.')
+    t_start = clock()
+    LL, test_type = logLikelihoodFunc(estimated_parameter_guess)
+    t_end = clock()
+    print('Test run took ' + str(t_end-t_start) + ' seconds.')
     
 #    t_start = clock()
 #    LL_vec = Parallel(n_jobs=8)(delayed(logLikelihoodFunc)(params) for params in 8*[estimated_parameter_guess])
@@ -208,26 +208,26 @@ if __name__ == "__main__":
     #plt.show()
     #print('Long test took ' + str(t_end-t_start) + ' seconds.')
     
-    base_params = estimated_parameter_guess
-    N_vals = 21
-    lo_vec = np.array([-2,0.1,0.1,-0.1,0,0.01,0.01,0.2,0.1,0.2,0.1,-2,0.5,0.01,-0.1,-0.1,-2,0.5,0.01,-0.1,-0.1,-10,0.1,-2,0.5,0.01,-0.1,-0.1,0.05,-4,-0.5,-1,-0.2,-0.2,-1,0.98,0.001,0.001])
-    hi_vec = np.array([2,2.0,2.0,0.1,20,5.0,0.5,2.0,0.5,5.0,5.0,1,2.5,0.5,0.1,0.1,2,2.5,0.5,0.1,0.1,10,5.0,2,2.5,0.5,0.1,0.1,0.6,-1,0.5,1,0.2,0.2,1,0.999,0.05,0.20])
-    for j in range(0,lo_vec.size):
-        t_start = clock()
-        param_vec = np.linspace(lo_vec[j],hi_vec[j],N_vals)
-        param_name = Model.BiotechType.param_list_alt[estimated_parameter_idx[j]]
-        params_list = []
-        for n in range(N_vals):
-            params_now = deepcopy(base_params)
-            params_now[j] = param_vec[n]
-            params_list.append(params_now)
-        LL_list = Parallel(n_jobs=8)(delayed(logLikelihoodFunc)(params) for params in params_list)
-        LL_vec = np.array(LL_list)
-        t_end = clock()
-        print('Finished testing ' + param_name + ' in ' + str(t_end-t_start) + ' seconds.')
-        plt.plot(param_vec,LL_vec)
-        plt.xlabel(param_name,fontsize=14)
-        plt.ylabel('LL',fontsize=14)
-        plt.savefig(param_name + '_LLtest.pdf')
-        plt.show()
+#    base_params = estimated_parameter_guess
+#    N_vals = 21
+#    lo_vec = np.array([-2,0.1,0.1,-0.1,0,0.01,0.01,0.2,0.1,0.2,0.1,-2,0.5,0.01,-0.1,-0.1,-2,0.5,0.01,-0.1,-0.1,-10,0.1,-2,0.5,0.01,-0.1,-0.1,0.05,-4,-0.5,-1,-0.2,-0.2,-1,0.98,0.001,0.001])
+#    hi_vec = np.array([2,2.0,2.0,0.1,20,5.0,0.5,2.0,0.5,5.0,5.0,1,2.5,0.5,0.1,0.1,2,2.5,0.5,0.1,0.1,10,5.0,2,2.5,0.5,0.1,0.1,0.6,-1,0.5,1,0.2,0.2,1,0.999,0.05,0.20])
+#    for j in range(0,lo_vec.size):
+#        t_start = clock()
+#        param_vec = np.linspace(lo_vec[j],hi_vec[j],N_vals)
+#        param_name = Model.BiotechType.param_list_alt[estimated_parameter_idx[j]]
+#        params_list = []
+#        for n in range(N_vals):
+#            params_now = deepcopy(base_params)
+#            params_now[j] = param_vec[n]
+#            params_list.append(params_now)
+#        LL_list = Parallel(n_jobs=8)(delayed(logLikelihoodFunc)(params) for params in params_list)
+#        LL_vec = np.array(LL_list)
+#        t_end = clock()
+#        print('Finished testing ' + param_name + ' in ' + str(t_end-t_start) + ' seconds.')
+#        plt.plot(param_vec,LL_vec)
+#        plt.xlabel(param_name,fontsize=14)
+#        plt.ylabel('LL',fontsize=14)
+#        plt.savefig(param_name + '_LLtest.pdf')
+#        plt.show()
         

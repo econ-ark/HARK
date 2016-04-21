@@ -204,7 +204,10 @@ class BiotechType(AgentType):
         cost_vec = np.array([0,self.low_cost,self.high_cost])
         intensity_vec = np.array([0,self.low_intensity,self.high_intensity])        
         money_2 = money_1 - cost_vec[r_choice]
-        mu_2 = (mu_1*tau_1 + r_shocks*np.sqrt(intensity_vec[r_choice]))/(tau_1 + intensity_vec[r_choice])
+        research = intensity_vec[r_choice]
+        mu_2 = mu_1 + r_shocks*research*np.sqrt(1/research + 1/tau_1)/(tau_1 + research)
+        no_research = r_choice==0
+        mu_2[no_research] = mu_1[no_research]
         tau_2 = tau_1 + intensity_vec[r_choice]
         
         # Simulate Phase II: termination decision
@@ -222,7 +225,8 @@ class BiotechType(AgentType):
         v_action = v_all[np.tile(np.reshape(np.arange(self.active_firms.size),(self.active_firms.size,1)),(1,self.sim_N)),np.tile(np.reshape(np.arange(self.sim_N),(1,self.sim_N)),(self.active_firms.size,1)),np.tile(np.reshape(actions,(self.active_firms.size,1)),(1,self.sim_N))]
         p_action = np.exp(v_action)/v_sum
         temp = weight*p_action
-        self.LL_action[self.active_firms,t] = np.log(np.sum(temp,axis=1))
+        LL_action = np.log(np.sum(temp,axis=1))
+        self.LL_action[self.active_firms,t] = LL_action
         weight = normalizeWeights(temp)
         sellers = self.sale_array[self.active_firms,t]
         IPOers = self.IPO_array[self.active_firms,t]
@@ -391,7 +395,7 @@ class BiotechSolution():
             distance = np.max(np.abs((v_array_A - v_array_B)/v_array_A))
         else:
             distance = 100000
-        #print(distance)
+        print(distance)
         return distance
             
 
@@ -853,8 +857,8 @@ def precalcPhase1(money_grid,mu_grid,tau_grid,macro_grid,low_intensity,high_inte
         tau = tau_grid[k]
         for j in range(mu_N):
             mu = mu_grid[j]
-            mu_weight_matrix_low[:,j,k] = makeMarkovApproxToNormal(mu_grid,mu*tau/(tau+low_intensity),np.sqrt(low_intensity)/(tau+low_intensity))
-            mu_weight_matrix_high[:,j,k] = makeMarkovApproxToNormal(mu_grid,mu*tau/(tau+high_intensity),np.sqrt(high_intensity)/(tau+high_intensity))
+            mu_weight_matrix_low[:,j,k] = makeMarkovApproxToNormal(mu_grid,mu,low_intensity*np.sqrt(1/low_intensity + 1/tau)/(tau+low_intensity))
+            mu_weight_matrix_high[:,j,k] = makeMarkovApproxToNormal(mu_grid,mu,high_intensity*np.sqrt(1/high_intensity + 1/tau)/(tau+high_intensity))
             
     # Make weighting and indexing arrays for money (after paying research costs)
     money_idx_vec_low = np.searchsorted(money_grid,money_grid - low_cost)
@@ -1207,26 +1211,28 @@ def solvePhase1(solution_tp1, mu_weight_matrix_low, mu_weight_matrix_high, m_idx
     v_array_high_0 = np.transpose(v_array_high_0,(0,3,1,2)) # order: m, mu, tau, z
     
     # Apply the changes to money and belief variance for both levels of research
-    v_array_low_1 = (tau_alpha_low_bot*(m_alpha_low_bot*v_array_low_0[m_idx_low_bot,mu_idx_P1,tau_idx_low_bot,z_idx_P1] + m_alpha_low_top*v_array_low_0[m_idx_low_top,mu_idx_P1,tau_idx_low_bot,z_idx_P1])
+    v_array_low = (tau_alpha_low_bot*(m_alpha_low_bot*v_array_low_0[m_idx_low_bot,mu_idx_P1,tau_idx_low_bot,z_idx_P1] + m_alpha_low_top*v_array_low_0[m_idx_low_top,mu_idx_P1,tau_idx_low_bot,z_idx_P1])
                 + tau_alpha_low_top*(m_alpha_low_bot*v_array_low_0[m_idx_low_bot,mu_idx_P1,tau_idx_low_top,z_idx_P1] + m_alpha_low_top*v_array_low_0[m_idx_low_top,mu_idx_P1,tau_idx_low_top,z_idx_P1]))
-    v_array_high_1 = (tau_alpha_high_bot*(m_alpha_high_bot*v_array_high_0[m_idx_high_bot,mu_idx_P1,tau_idx_high_bot,z_idx_P1] + m_alpha_high_top*v_array_high_0[m_idx_high_top,mu_idx_P1,tau_idx_high_bot,z_idx_P1])
+    v_array_high = (tau_alpha_high_bot*(m_alpha_high_bot*v_array_high_0[m_idx_high_bot,mu_idx_P1,tau_idx_high_bot,z_idx_P1] + m_alpha_high_top*v_array_high_0[m_idx_high_top,mu_idx_P1,tau_idx_high_bot,z_idx_P1])
                 + tau_alpha_high_top*(m_alpha_high_bot*v_array_high_0[m_idx_high_bot,mu_idx_P1,tau_idx_high_top,z_idx_P1] + m_alpha_high_top*v_array_high_0[m_idx_high_top,mu_idx_P1,tau_idx_high_top,z_idx_P1]))
     
     # Adjust the value arrays so they aren't ridiculous (and impose liquidity constraint)
-    v_array_low = v_array_low_1 - v_array_zero
-    v_array_high = v_array_high_1 - v_array_zero
     v_array_low[unaffordable_low] = -np.inf
     v_array_high[unaffordable_high] = -np.inf
+    v_all = np.stack((v_array_zero,v_array_low,v_array_high),axis=4)
+    v_best = np.max(v_all,axis=4)
+    v_best_big = np.tile(np.reshape(v_best,(money_N,mu_N,tau_N,macro_N,1)),(1,1,1,1,3))
             
     # Calculate expected value across the three research levels
-    v_array = sigma_research*np.log(np.ones_like(v_array_zero) + np.exp(v_array_low/sigma_research) + np.exp(v_array_high/sigma_research)) + v_array_zero
+    #v_array = sigma_research*np.log(np.ones_like(v_array_zero) + np.exp(v_array_low/sigma_research) + np.exp(v_array_high/sigma_research)) + v_array_zero
+    v_array = sigma_research*np.log(np.sum(np.exp((v_all - v_best_big)/sigma_research))) + v_best
     
     # Return the value function as the solution
     solution_t = BiotechSolution(v_array = v_array)
     if post_process:
         #print('Did post-process for Phase I')
-        solution_t.v_low_research = v_array_low_1
-        solution_t.v_high_research = v_array_high_1
+        solution_t.v_low_research = v_array_low
+        solution_t.v_high_research = v_array_high
     return solution_t
     
     
