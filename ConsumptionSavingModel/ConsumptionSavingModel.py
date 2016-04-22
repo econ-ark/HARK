@@ -887,8 +887,8 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             self.conditionOnState(jj)
             self.setAndUpdateValues(self.solution_tp1,self.income_distrib,
                                     self.survival_prob,self.beta)
-            # need to condition on state again...
-            # bc setandupdatevalues sets self.vPfunc_tp1       = solution_tp1.vPfunc             
+            # We need to condition on the state again, because self.setAndUpdateValues sets 
+            # self.vPfunc_tp1       = solution_tp1.vPfunc... may want to fix this later.             
             self.conditionOnState(jj)
             #self.defineBorrowingConstraint(self.constraint) 
 
