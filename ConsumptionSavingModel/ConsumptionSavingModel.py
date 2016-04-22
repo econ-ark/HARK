@@ -831,33 +831,34 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
                       rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
 
         ConsumptionSavingSolverENDG.assignParameters(self,solution_tp1,np.nan,np.nan,
-                                                    survival_prob,beta,rho,R,Gamma,constraint,a_grid,
-                                                    calc_vFunc,cubic_splines)
+                                                     survival_prob,beta,rho,R,Gamma,
+                                                     constraint,a_grid,calc_vFunc,cubic_splines)
 
         self.income_distrib_list  = income_distrib_list
         self.p_zero_income_list   = p_zero_income_list
         self.n_states             = len(p_zero_income_list)
 
-    def conditionOnState(self,j):
+    def conditionOnState(self,state_index):
         """
         Find the income distribution, etc., conditional on a given state next period
         """
-        self.income_distrib = self.income_distrib_list[j]
-
-        self.p_zero_income  = self.p_zero_income_list[j] 
-        self.vPfunc_tp1     = self.solution_tp1.vPfunc[j]
-        self.m_underbar_t   = self.m_underbar_list[j] 
+        self.income_distrib = self.income_distrib_list[state_index]
+        self.p_zero_income  = self.p_zero_income_list[state_index] 
+        self.vPfunc_tp1     = self.solution_tp1.vPfunc[state_index]
+        self.m_underbar_t   = self.m_underbar_list[state_index] 
+        
         self.constraint_t   = lambda m: m - self.m_underbar_t
 
-    def getConditionalGothicVP(self):
-        """
-        Find data for the unconstrained consumption function in this period
-        """
-        
-        gothicvP  = self.effective_beta*self.R*self.Gamma**(-self.rho)*np.sum(
-                    self.psi_temp**(-self.rho)*self.vPfunc_tp1(self.m_tp1)*self.prob_temp,axis=0)
-                    
-        return gothicvP
+#    def getConditionalGothicVP(self):
+#        """
+#        Find data for the unconstrained consumption function in this period
+#        """
+#        
+#        gothicvP  = self.effective_beta*self.R*self.Gamma**(-self.rho)*np.sum(
+#                    self.psi_temp**(-self.rho)*self.vPfunc_tp1(self.m_tp1)*self.prob_temp,axis=0)
+#                    
+#        return gothicvP
+
 
     def defineBorrowingConstraint(self):
 
@@ -890,29 +891,58 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             # need to condition on state again...
             # bc setandupdatevalues sets self.vPfunc_tp1       = solution_tp1.vPfunc             
             self.conditionOnState(jj)
-            #self.defineBorrowingConstraint(self.constraint) 
 
             a = self.prepareToGetGothicVP()  
             
             
-            gothicvP_next[jj,:] = self.getConditionalGothicVP()                        
+            #gothicvP_next[jj,:] = self.getConditionalGothicVP()                        
+            gothicvP_next[jj,:] = self.getGothicVP()                        
 
         # gothicvP_next is gothicV, conditional on *next* period's state.
         # Take expectations to get gothicvP conditional on *this* period's state.
         gothicvP      = np.dot(transition_array,gothicvP_next)  
 
+        self.vPPfunc_tp1_list = self.vPPfunc_tp1
         solution = ConsumerSolution()
         # Now conditional on this period's state, get the solution
         for jj in range(self.n_states):
             self.conditionOnState(jj)
-            a = self.prepareToGetGothicVP()           
-            conditional_solution = self.getSolution(gothicvP[jj,:],a)
+            a = self.prepareToGetGothicVP()
+            
+            
+            self.vPPfunc_tp1 = self.vPPfunc_tp1_list[jj]            
+            
+            conditional_solution = self.getSolution(gothicvP[jj,:],a,
+                                                    interpolator = self.getConsumptionCubic)
+
+            assert False
+            if self.cubic_splines: 
+                conditional_solution = self.prepForCubicSplines(conditional_solution)
+
             solution.appendSolution(conditional_solution)
+
+        self.vPPfunc_tp1 = self.vPPfunc_tp1_list
+        RAWR
+
 
         if self.calc_vFunc or self.cubic_splines:
             solution = self.addKappaAndGothicH(solution)
 
+
+
+
         return solution    
+
+
+#        if self.cubic_splines:
+#            solution   = self.getSolution(gothicvP,a,interpolator = self.getConsumptionCubic)
+#        else:
+#            solution   = self.getSolution(gothicvP,a)
+#        
+#        if self.calc_vFunc:
+#            solution = self.putVfuncInSolution(solution,gothicvP)
+
+
 
 def consumptionSavingSolverMarkov(solution_tp1,income_distrib,p_zero_income,survival_prob,
                                       beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
@@ -920,7 +950,7 @@ def consumptionSavingSolverMarkov(solution_tp1,income_distrib,p_zero_income,surv
     solver = ConsumptionSavingSolverMarkov(solution_tp1,income_distrib,p_zero_income,
                                                survival_prob,beta,rho,R,Gamma,constraint,a_grid,
                                                calc_vFunc,cubic_splines)
-                    
+                
     solution                   = solver.solve()
 
     return solution             
@@ -1678,9 +1708,9 @@ if __name__ == '__main__':
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
 
-    do_hybrid_type          = True
+    do_hybrid_type          = False
     do_markov_type          = True
-    do_perfect_foresight    = True
+    do_perfect_foresight    = False
 
 
 
@@ -1750,24 +1780,24 @@ if __name__ == '__main__':
 
         
         
-    # Make and solve an agent with a kinky interest rate
-    KinkyType = deepcopy(InfiniteType)
-
-    KinkyType.time_inv.remove('R')
-    KinkyType.time_inv += ['R_borrow','R_save']
-    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0,cubic_splines = False)
-
-    KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
-    KinkyType.updateAssetsGrid()
-    
-    start_time = clock()
-    KinkyType.solve()
-    end_time = clock()
-    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    KinkyType.unpack_cFunc()
-    print('Kinky consumption function:')
-    KinkyType.timeFwd()
-    plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].m_underbar,5)
+#    # Make and solve an agent with a kinky interest rate
+#    KinkyType = deepcopy(InfiniteType)
+#
+#    KinkyType.time_inv.remove('R')
+#    KinkyType.time_inv += ['R_borrow','R_save']
+#    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0,cubic_splines = False)
+#
+#    KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
+#    KinkyType.updateAssetsGrid()
+#    
+#    start_time = clock()
+#    KinkyType.solve()
+#    end_time = clock()
+#    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
+#    KinkyType.unpack_cFunc()
+#    print('Kinky consumption function:')
+#    KinkyType.timeFwd()
+#    plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].m_underbar,5)
 
 
     
@@ -1775,26 +1805,26 @@ if __name__ == '__main__':
 
 
     
-    # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
-    # The consumer has income that greatly fluctuates throughout the year.
-    CyclicalType = deepcopy(LifecycleType)
-    CyclicalType.assignParameters(survival_prob = [0.98]*4,
-                                      beta = [0.96]*4,
-                                      Gamma = [1.1, 0.3, 2.8, 1.1],
-                                      cycles = 0) # This is what makes the type (cyclically) infinite horizon)
-    CyclicalType.income_distrib = [LifecycleType.income_distrib[-1]]*4
-    CyclicalType.p_zero_income = [LifecycleType.p_zero_income[-1]]*4
-    
-    start_time = clock()
-    CyclicalType.solve()
-    end_time = clock()
-    print('Solving a cyclical consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    CyclicalType.unpack_cFunc()
-    CyclicalType.timeFwd()
-    
-    # Plot the consumption functions for the cyclical consumer type
-    print('Quarterly consumption functions:')
-    plotFuncs(CyclicalType.cFunc,CyclicalType.solution[0].m_underbar,5)
+#    # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
+#    # The consumer has income that greatly fluctuates throughout the year.
+#    CyclicalType = deepcopy(LifecycleType)
+#    CyclicalType.assignParameters(survival_prob = [0.98]*4,
+#                                      beta = [0.96]*4,
+#                                      Gamma = [1.1, 0.3, 2.8, 1.1],
+#                                      cycles = 0) # This is what makes the type (cyclically) infinite horizon)
+#    CyclicalType.income_distrib = [LifecycleType.income_distrib[-1]]*4
+#    CyclicalType.p_zero_income = [LifecycleType.p_zero_income[-1]]*4
+#    
+#    start_time = clock()
+#    CyclicalType.solve()
+#    end_time = clock()
+#    print('Solving a cyclical consumer took ' + mystr(end_time-start_time) + ' seconds.')
+#    CyclicalType.unpack_cFunc()
+#    CyclicalType.timeFwd()
+#    
+#    # Plot the consumption functions for the cyclical consumer type
+#    print('Quarterly consumption functions:')
+#    plotFuncs(CyclicalType.cFunc,CyclicalType.solution[0].m_underbar,5)
     
     
 ####################################################################################################    

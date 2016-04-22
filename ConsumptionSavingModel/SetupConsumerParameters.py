@@ -15,7 +15,7 @@ a_min = 0.001                       # Minimum end-of-period assets value in a_gr
 a_max = 20                         # Maximum end-of-period assets value in a_grid                  
 a_huge = None                       # A very large value of assets to add to the grid, not used
 a_extra = None                      # Some other value of assets to add to the grid, not used
-a_size = 48                         # Number of points in the grid of assets
+a_size = 8                         # Number of points in the grid of assets
 
 constraint = None                  # Artificial borrowing constraint
 cubic_splines = True               # Use cubic spline interpolation when True, linear interpolation when False

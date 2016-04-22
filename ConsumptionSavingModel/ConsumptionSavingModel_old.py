@@ -629,6 +629,7 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_array,income_distrib,p
     
         # Combine the constrained and unconstrained functions into the true consumption function
         cFunc_it = ConstrainedComposite(cFunc_t_unconstrained,constraint_t)
+        assert False        
         cFunc_t.append(cFunc_it)
         
         # Construct the value function if requested
