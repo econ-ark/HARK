@@ -586,7 +586,7 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_array,income_distrib,p
     # Use the transition probabilities to calculate expected marginal value (etc)
     # *from* each discrete states, weighting across future discrete states
     gothicvP      = np.dot(transition_array,gothicvP_next)   
-
+    
     if cubic_splines:
         gothicvPP = np.dot(transition_array,gothicvPP_next)
     
@@ -600,7 +600,7 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_array,income_distrib,p
         dcda       = gothicvPP/uPP(c)
         kappa      = dcda/(dcda+1.0)
         kappa_temp = np.hstack((np.reshape(kappa_max_t,(n_states,1)),kappa))
-        
+        assert False
     # Compute value at each endogenous gridpoint, and transform it
     if calc_vFunc:
         gothicv  = np.dot(transition_array,gothicv_next)
@@ -629,7 +629,7 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_array,income_distrib,p
     
         # Combine the constrained and unconstrained functions into the true consumption function
         cFunc_it = ConstrainedComposite(cFunc_t_unconstrained,constraint_t)
-        assert False        
+                
         cFunc_t.append(cFunc_it)
         
         # Construct the value function if requested
@@ -1669,6 +1669,8 @@ if __name__ == '__main__':
         MarkovType.time_inv.append('transition_array')
         MarkovType.solveAPeriod = consumptionSavingSolverMarkov
         MarkovType.cycles = 0
+
+        MarkovType.cubic_splines = True   
         
         MarkovType.timeFwd()
         start_time = clock()

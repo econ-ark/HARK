@@ -563,10 +563,12 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         gothicvPP   = self.effective_beta*self.R*self.R*self.Gamma**(-self.rho-1.0)* \
                       np.sum(self.psi_temp**(-self.rho-1.0)*self.vPPfunc_tp1(self.m_tp1)*self.prob_temp,
                              axis=0)    
+                             
+                             
         dcda        = gothicvPP/self.uPP(np.array(c_temp[1:]))
-        kappa       = dcda/(dcda+1)
+        kappa       = dcda/(dcda+1.)
         kappa_temp += kappa.tolist()
-
+        assert False
         cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,kappa_temp,
                                                    self.kappa_min_t*self.gothic_h_t,
                                                    self.kappa_min_t)
@@ -849,15 +851,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         
         self.constraint_t   = lambda m: m - self.m_underbar_t
 
-#    def getConditionalGothicVP(self):
-#        """
-#        Find data for the unconstrained consumption function in this period
-#        """
-#        
-#        gothicvP  = self.effective_beta*self.R*self.Gamma**(-self.rho)*np.sum(
-#                    self.psi_temp**(-self.rho)*self.vPfunc_tp1(self.m_tp1)*self.prob_temp,axis=0)
-#                    
-#        return gothicvP
+
 
 
     def defineBorrowingConstraint(self):
@@ -901,8 +895,11 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         # gothicvP_next is gothicV, conditional on *next* period's state.
         # Take expectations to get gothicvP conditional on *this* period's state.
         gothicvP      = np.dot(transition_array,gothicvP_next)  
+        
+        
 
         self.vPPfunc_tp1_list = self.vPPfunc_tp1
+        
         solution = ConsumerSolution()
         # Now conditional on this period's state, get the solution
         for jj in range(self.n_states):
@@ -911,19 +908,17 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             
             
             self.vPPfunc_tp1 = self.vPPfunc_tp1_list[jj]            
-            
+
             conditional_solution = self.getSolution(gothicvP[jj,:],a,
                                                     interpolator = self.getConsumptionCubic)
 
-            assert False
+            
             if self.cubic_splines: 
                 conditional_solution = self.prepForCubicSplines(conditional_solution)
 
             solution.appendSolution(conditional_solution)
 
         self.vPPfunc_tp1 = self.vPPfunc_tp1_list
-        RAWR
-
 
         if self.calc_vFunc or self.cubic_splines:
             solution = self.addKappaAndGothicH(solution)
@@ -1890,6 +1885,8 @@ if __name__ == '__main__':
         MarkovType.time_inv.append('transition_array')
         MarkovType.solveAPeriod = consumptionSavingSolverMarkov
         MarkovType.cycles = 0
+        
+        MarkovType.cubic_splines = True        
         
         MarkovType.timeFwd()
         start_time = clock()
