@@ -148,8 +148,6 @@ class PerfectForesightSolver(object):
 
 
         self.assignParameters(solution_tp1,beta,rho,R,Gamma,constraint)
-        self.defineUtilityFunctions()
-        self.defineBorrowingConstraint(constraint)
          
     def assignParameters(self,solution_tp1,beta,rho,R,Gamma,constraint):
         self.solution_tp1   = solution_tp1        
@@ -197,6 +195,10 @@ class PerfectForesightSolver(object):
             
         return solution_t
 
+    def prepareToSolve(self):
+        self.defineUtilityFunctions()
+        self.defineBorrowingConstraint(self.constraint)
+
     def solve(self):
         
         self.getcFunc()
@@ -214,6 +216,7 @@ def perfectForesightSolver(solution_tp1,beta,rho,R,Gamma,constraint):
     '''
     solver = PerfectForesightSolver(solution_tp1,beta,rho,R,Gamma,constraint)
     
+    solver.prepareToSolve()
     solution = solver.solve()
     
     return solution
@@ -221,19 +224,13 @@ def perfectForesightSolver(solution_tp1,beta,rho,R,Gamma,constraint):
 
 ####################################################################################################
 ####################################################################################################
-
-class ConsumptionSavingSolverEXOG(PerfectForesightSolver):
-
+class SetupImperfectForesightSolver(PerfectForesightSolver):
     def __init__(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
                                 Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
-
 
         self.assignParameters(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
                                 Gamma,constraint,a_grid,calc_vFunc,cubic_splines)
         self.defineUtilityFunctions()
-        self.setAndUpdateValues(solution_tp1,income_distrib,survival_prob,beta)
-        self.defineBorrowingConstraint(constraint)
-
 
     def assignParameters(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
                                 Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
@@ -290,6 +287,23 @@ class ConsumptionSavingSolverEXOG(PerfectForesightSolver):
         self.constraint_t = lambda m: m - self.m_underbar_t
 
 
+    def prepareToSolve(self):
+        self.setAndUpdateValues(self.solution_tp1,self.income_distrib,self.survival_prob,self.beta)
+        self.defineBorrowingConstraint(self.constraint)
+
+
+####################################################################################################
+####################################################################################################
+
+class ConsumptionSavingSolverEXOG(SetupImperfectForesightSolver):
+    """
+    Class to set up and solve the consumption-savings problem using the method of exogenous
+    gridpoints.  
+    
+    Everything to set up the problem is inherited from SetupImprefectForesightSolver.
+    The part that solves, using the method of exogenous gridpoints specifically, is the only new 
+    stuff this class.
+    """
 
     def getSolution(self):
         # First, "unpack" things we'll need
@@ -404,6 +418,8 @@ def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,surviv
     solver = ConsumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,survival_prob,
                                          beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines)
     
+    solver.prepareToSolve()    
+    
     solution = solver.solve()
     
     return solution
@@ -411,7 +427,7 @@ def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,surviv
 ####################################################################################################
 ####################################################################################################
 
-class ConsumptionSavingSolverENDGBasic(ConsumptionSavingSolverEXOG):
+class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
     """
     This class solves a single period of a standard consumption-saving problem, using linear 
     interpolation and without the ability to calculate the value function.  
@@ -568,7 +584,7 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         dcda        = gothicvPP/self.uPP(np.array(c_temp[1:]))
         kappa       = dcda/(dcda+1.)
         kappa_temp += kappa.tolist()
-        assert False
+
         cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,kappa_temp,
                                                    self.kappa_min_t*self.gothic_h_t,
                                                    self.kappa_min_t)
@@ -610,11 +626,13 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         solution.kappa_min = self.kappa_min_t
         solution.kappa_max = self.kappa_max_t
 
+
         return solution
 
 
         
     def solve(self):
+        
         a          = self.prepareToGetGothicVP()           
         gothicvP   = self.getGothicVP()
         
@@ -643,10 +661,12 @@ def consumptionSavingSolverENDG(solution_tp1,income_distrib,p_zero_income,surviv
                                              survival_prob,beta,rho,R,Gamma,constraint,a_grid,
                                              calc_vFunc,cubic_splines)        
     else:
+
         solver = ConsumptionSavingSolverENDG(solution_tp1,income_distrib,p_zero_income,
                                              survival_prob,beta,rho,R,Gamma,constraint,a_grid,
                                              calc_vFunc,cubic_splines)
-                    
+
+    solver.prepareToSolve()                      
     solution                   = solver.solve()
 
     return solution   
@@ -764,7 +784,7 @@ def consumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,
     solver = ConsumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,survival_prob,
                                             beta,rho,R_borrow,R_save,Gamma,constraint,a_grid,
                                             calc_vFunc,cubic_splines)
-
+    solver.prepareToSolve()                                      
     solution = solver.solve()
 
     return solution                                   
@@ -836,9 +856,13 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
                                                      survival_prob,beta,rho,R,Gamma,
                                                      constraint,a_grid,calc_vFunc,cubic_splines)
 
+        assert cubic_splines==False,'Markov solver for cubic splines does not work right now.  Kappa is computed incorrectly.'
+
         self.income_distrib_list  = income_distrib_list
         self.p_zero_income_list   = p_zero_income_list
         self.n_states             = len(p_zero_income_list)
+
+
 
     def conditionOnState(self,state_index):
         """
@@ -924,18 +948,9 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             solution = self.addKappaAndGothicH(solution)
 
 
-
-
         return solution    
 
 
-#        if self.cubic_splines:
-#            solution   = self.getSolution(gothicvP,a,interpolator = self.getConsumptionCubic)
-#        else:
-#            solution   = self.getSolution(gothicvP,a)
-#        
-#        if self.calc_vFunc:
-#            solution = self.putVfuncInSolution(solution,gothicvP)
 
 
 
@@ -945,7 +960,7 @@ def consumptionSavingSolverMarkov(solution_tp1,income_distrib,p_zero_income,surv
     solver = ConsumptionSavingSolverMarkov(solution_tp1,income_distrib,p_zero_income,
                                                survival_prob,beta,rho,R,Gamma,constraint,a_grid,
                                                calc_vFunc,cubic_splines)
-                
+    solver.prepareToSolve()              
     solution                   = solver.solve()
 
     return solution             
