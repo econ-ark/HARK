@@ -143,7 +143,7 @@ class PerfectForesightSolver(object):
 
     def __init__(self,solution_tp1,beta,rho,R,Gamma,constraint):
         self.notation = {'a': 'assets after all actions',
-                         'm': 'beginning of period cash on hand',
+                         'm': 'market resources at decision time',
                          'c': 'consumption'}
 
 
@@ -241,6 +241,7 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         self.a_grid          = a_grid
         self.calc_vFunc      = calc_vFunc
         self.cubic_splines   = cubic_splines
+        
 
 
 
@@ -504,7 +505,7 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         return a
 
 
-    def getGothicVP(self):
+    def getGothicvP(self):
         """
         Find data for the unconstrained consumption function in this period.
         """
