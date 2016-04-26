@@ -600,7 +600,6 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_array,income_distrib,p
         dcda       = gothicvPP/uPP(c)
         kappa      = dcda/(dcda+1.0)
         kappa_temp = np.hstack((np.reshape(kappa_max_t,(n_states,1)),kappa))
-        assert False
     # Compute value at each endogenous gridpoint, and transform it
     if calc_vFunc:
         gothicv  = np.dot(transition_array,gothicv_next)
@@ -1519,9 +1518,9 @@ if __name__ == '__main__':
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
 
-    do_hybrid_type          = True
+    do_hybrid_type          = False
     do_markov_type          = True
-    do_perfect_foresight    = True   
+    do_perfect_foresight    = False 
     
     # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)

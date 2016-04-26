@@ -635,7 +635,7 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
     def solve(self):
         
         a          = self.prepareToGetGothicVP()           
-        gothicvP   = self.getGothicVP()
+        gothicvP   = self.getGothicvP()
         
         if self.cubic_splines:
             solution   = self.getSolution(gothicvP,a,interpolator = self.getConsumptionCubic)
@@ -856,14 +856,10 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         ConsumptionSavingSolverENDG.assignParameters(self,solution_tp1,np.nan,np.nan,
                                                      survival_prob,beta,rho,R,Gamma,
                                                      constraint,a_grid,calc_vFunc,cubic_splines)
-
-        assert cubic_splines==False,'Markov solver for cubic splines does not work right now.  Kappa is computed incorrectly.'
-
+        self.defineUtilityFunctions()
         self.income_distrib_list  = income_distrib_list
         self.p_zero_income_list   = p_zero_income_list
         self.n_states             = len(p_zero_income_list)
-        self.thorn_R              = ((self.R*self.effective_beta)**(1.0/self.rho))/self.R
-
 
     def conditionOnState(self,state_index):
         """
@@ -880,8 +876,6 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             self.vPPfunc_tp1 = self.solution_tp1.vPPfunc[state_index]
         if self.calc_vFunc:
             self.vFunc_tp1   = self.solution_tp1.vFunc[state_index]
-        if self.calc_vFunc or self.cubic_splines:
-            self.expY_tp1[state_index] = np.dot(self.prob_tp1,self.psi_tp1*self.xi_tp1)
 
 
 
@@ -889,7 +883,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
 
         # Find the borrowing constraint for each current state i as well as the
         # probability of receiving zero income.
-        p_zero_income_now  = np.dot(transition_array,self.p_zero_income_list)
+        self.p_zero_income_now  = np.dot(transition_array,self.p_zero_income_list)
         m_underbar_next    = np.zeros(self.n_states) + np.nan
         for j in range(self.n_states):
             psi_underbar_tp1   = np.min(self.income_distrib_list[j][1])
@@ -898,12 +892,11 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
                                     (self.Gamma*psi_underbar_tp1)/self.R, self.constraint)
         self.m_underbar_list           = np.zeros(self.n_states) + np.nan
         for i in range(self.n_states):
-            possible_future_states = transition_array[i,:] > 0
+            possible_future_states         = transition_array[i,:] > 0
             self.m_underbar_list[i]        = np.max(m_underbar_next[possible_future_states])
 
     def solve(self):
 
-        self.defineUtilityFunctions()
         self.defineBorrowingConstraint()
         
         
@@ -918,15 +911,21 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             self.conditionOnState(jj)
             self.setAndUpdateValues(self.solution_tp1,self.income_distrib,
                                     self.survival_prob,self.beta)
+            self.thorn_R            = ((self.R*self.effective_beta)**(1.0/self.rho))/self.R
+
             # We need to condition on the state again, because self.setAndUpdateValues sets 
             # self.vPfunc_tp1       = solution_tp1.vPfunc... may want to fix this later.             
             self.conditionOnState(jj)
+            if self.calc_vFunc or self.cubic_splines:
+                expY_tp1[jj] = np.dot(self.prob_tp1,self.psi_tp1*self.xi_tp1)
+
+
 
             a = self.prepareToGetGothicVP()  
             
             
             #gothicvP_next[jj,:] = self.getConditionalGothicVP()                        
-            gothicvP_next[jj,:] = self.getGothicVP()                        
+            gothicvP_next[jj,:] = self.getGothicvP()                        
 
             if self.calc_vFunc:
                 V_tp1               = (self.psi_temp**(1.0-self.rho)*self.Gamma**(1.0-self.rho))*self.vFunc_tp1(self.m_tp1)
@@ -947,17 +946,19 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
 
         # Calculate the bounding MPCs and PDV of human wealth for each state
         if self.calc_vFunc or self.cubic_splines:
-            h_tp1             = self.expY_tp1 + self.solution_tp1.gothic_h # beginning of period human wealth next period
+            h_tp1             = expY_tp1 + self.solution_tp1.gothic_h # beginning of period human wealth next period
             gothic_h_t        = self.Gamma/self.R*np.dot(transition_array,h_tp1) # end-of-period human wealth this period
-            kappa_min_t       = 1.0/(1.0 + thorn_R/solution_tp1.kappa_min) # lower bound on MPC as m --> infty
-            exp_kappa_max_tp1 = (np.dot(transition_array,p_zero_income*solution_tp1.kappa_max**(-rho))/
-                                 p_zero_income_now)**(-1/rho) # expectation of upper bound on MPC in t+1 from perspective of t
-            kappa_max_t       = 1.0/(1.0 + (p_zero_income_now**(1.0/rho))*thorn_R/exp_kappa_max_tp1)
+            kappa_min_t       = 1.0/(1.0 + self.thorn_R/self.solution_tp1.kappa_min) # lower bound on MPC as m --> infty
+            exp_kappa_max_tp1 = (np.dot(transition_array,self.p_zero_income*self.solution_tp1.kappa_max**(-self.rho))/
+                                 self.p_zero_income_now)**(-1/self.rho) # expectation of upper bound on MPC in t+1 from perspective of t
+            self.kappa_max_t       = 1.0/(1.0 + (self.p_zero_income_now**(1.0/self.rho))*self.thorn_R/exp_kappa_max_tp1)
         
     
-        if cubic_splines:
-            gothicvPP = np.dot(transition_array,gothicvPP_next)
-    
+        if self.cubic_splines:
+            self.gothicvPP = np.dot(transition_array,gothicvPP_next)
+
+
+
        
 
         self.vPPfunc_tp1_list = self.vPPfunc_tp1
@@ -969,7 +970,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             a = self.prepareToGetGothicVP()
             
             
-            self.vPPfunc_tp1 = self.vPPfunc_tp1_list[jj]            
+            self.vPPfunc_tp1 = self.solution_tp1.vPPfunc[jj]            
 
             conditional_solution = self.getSolution(gothicvP[jj,:],a,
                                                     interpolator = self.getConsumptionCubic)
@@ -989,8 +990,27 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         return solution    
 
 
+    def getConsumptionCubic(self,m_temp,c_temp):
+        """
+        Interpolate the unconstrained consumption function with cubic splines
+        """
+        
+        dcda       = self.gothicvPP/self.uPP(np.array(c_temp))
+        kappa      = dcda/(dcda+1.0)
+        kappa_temp = np.hstack((np.reshape(self.kappa_max_t,(self.n_states,1)),kappa))   
+
+        cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,kappa_temp,
+                                                   self.kappa_min_t*self.gothic_h_t,
+                                                   self.kappa_min_t)
 
 
+        return cFunc_t_unconstrained
+
+#        if self.calc_vFunc:
+#            gothicv  = np.dot(transition_array,gothicv_next)
+#            v_temp   = self.u(np.array(c)) + gothicv
+#            vQ_temp  = self.uinv(v_temp) # value transformed through inverse utility
+#            vPQ_temp = gothicvP*self.uinvP(v_temp) # derivative of transformed value
 
 def consumptionSavingSolverMarkov(solution_tp1,income_distrib,p_zero_income,survival_prob,
                                       beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
@@ -998,7 +1018,7 @@ def consumptionSavingSolverMarkov(solution_tp1,income_distrib,p_zero_income,surv
     solver = ConsumptionSavingSolverMarkov(solution_tp1,income_distrib,p_zero_income,
                                                survival_prob,beta,rho,R,Gamma,constraint,a_grid,
                                                calc_vFunc,cubic_splines)
-    solver.prepareToSolve()              
+    #solver.prepareToSolve()              
     solution                   = solver.solve()
 
     return solution             
@@ -1774,17 +1794,17 @@ if __name__ == '__main__':
     start_time = clock()
     LifecycleType.solve()
     end_time = clock()
-    print('Solving a lifecycle consumer took ' + mystr(end_time-start_time) + ' seconds.')
+#    print('Solving a lifecycle consumer took ' + mystr(end_time-start_time) + ' seconds.')
     LifecycleType.unpack_cFunc()
     LifecycleType.timeFwd()
     
     # Plot the consumption functions during working life
-    print('Consumption functions while working:')
-    plotFuncs(LifecycleType.cFunc[:40],0,5)
-
-    # Plot the consumption functions during retirement
-    print('Consumption functions while retired:')
-    plotFuncs(LifecycleType.cFunc[40:],0,5)
+#    print('Consumption functions while working:')
+#    plotFuncs(LifecycleType.cFunc[:40],0,5)
+#
+#    # Plot the consumption functions during retirement
+#    print('Consumption functions while retired:')
+#    plotFuncs(LifecycleType.cFunc[40:],0,5)
     LifecycleType.timeRev()
     
     
@@ -1805,17 +1825,17 @@ if __name__ == '__main__':
     start_time = clock()
     InfiniteType.solve()
     end_time = clock()
-    print('Solving an infinite horizon consumer took ' + mystr(end_time-start_time) + ' seconds.')
+#    print('Solving an infinite horizon consumer took ' + mystr(end_time-start_time) + ' seconds.')
     InfiniteType.unpack_cFunc()
     
     # Plot the consumption function and MPC for the infinite horizon consumer
-    print('Consumption function:')
-    plotFunc(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5)    # plot consumption
-    print('Marginal consumption function:')
-    plotFuncDer(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5) # plot MPC
-    if InfiniteType.calc_vFunc:
-        print('Value function:')
-        plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
+#    print('Consumption function:')
+#    plotFunc(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5)    # plot consumption
+#    print('Marginal consumption function:')
+#    plotFuncDer(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5) # plot MPC
+#    if InfiniteType.calc_vFunc:
+#        print('Value function:')
+#        plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
 
 
 
@@ -1939,7 +1959,8 @@ if __name__ == '__main__':
         MarkovType.solveAPeriod = consumptionSavingSolverMarkov
         MarkovType.cycles = 0
         
-        MarkovType.cubic_splines = True        
+        MarkovType.cubic_splines = True 
+        MarkovType.calc_vFunc = False
         
         MarkovType.timeFwd()
         start_time = clock()
