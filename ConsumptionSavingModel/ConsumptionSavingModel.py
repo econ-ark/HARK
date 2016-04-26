@@ -862,7 +862,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         self.income_distrib_list  = income_distrib_list
         self.p_zero_income_list   = p_zero_income_list
         self.n_states             = len(p_zero_income_list)
-
+        self.thorn_R              = ((self.R*self.effective_beta)**(1.0/self.rho))/self.R
 
 
     def conditionOnState(self,state_index):
@@ -876,6 +876,12 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         
         self.constraint_t   = lambda m: m - self.m_underbar_t
 
+        if self.cubic_splines:
+            self.vPPfunc_tp1 = self.solution_tp1.vPPfunc[state_index]
+        if self.calc_vFunc:
+            self.vFunc_tp1   = self.solution_tp1.vFunc[state_index]
+        if self.calc_vFunc or self.cubic_splines:
+            self.expY_tp1[state_index] = np.dot(self.prob_tp1,self.psi_tp1*self.xi_tp1)
 
 
 
@@ -902,6 +908,11 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         
         
         gothicvP_next = np.nan * np.zeros([self.n_states,self.a_grid.size])        
+        if self.calc_vFunc:
+            gothicv_next   = np.zeros((self.n_states,self.a_grid.size))
+        if self.cubic_splines:
+            gothicvPP_next = np.zeros((self.n_states,self.a_grid.size))
+        expY_tp1 = np.zeros(self.n_states) + np.nan
 
         for jj in range(self.n_states):
             self.conditionOnState(jj)
@@ -917,11 +928,37 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             #gothicvP_next[jj,:] = self.getConditionalGothicVP()                        
             gothicvP_next[jj,:] = self.getGothicVP()                        
 
+            if self.calc_vFunc:
+                V_tp1               = (self.psi_temp**(1.0-self.rho)*self.Gamma**(1.0-self.rho))*self.vFunc_tp1(self.m_tp1)
+                gothicv_next[jj,:]   = self.effective_beta*np.sum(V_tp1*self.prob_temp,axis=0)
+    
+            if self.cubic_splines:
+                gothicvPP_next[jj,:] = self.effective_beta*self.R*self.R*self.Gamma**(-self.rho-1.0)*np.sum(self.psi_temp**(-self.rho-1.0)*
+                                       self.vPPfunc_tp1(self.m_tp1)*self.prob_temp,axis=0)
+
+
         # gothicvP_next is gothicV, conditional on *next* period's state.
         # Take expectations to get gothicvP conditional on *this* period's state.
         gothicvP      = np.dot(transition_array,gothicvP_next)  
         
+  
+
+ 
+
+        # Calculate the bounding MPCs and PDV of human wealth for each state
+        if self.calc_vFunc or self.cubic_splines:
+            h_tp1             = self.expY_tp1 + self.solution_tp1.gothic_h # beginning of period human wealth next period
+            gothic_h_t        = self.Gamma/self.R*np.dot(transition_array,h_tp1) # end-of-period human wealth this period
+            kappa_min_t       = 1.0/(1.0 + thorn_R/solution_tp1.kappa_min) # lower bound on MPC as m --> infty
+            exp_kappa_max_tp1 = (np.dot(transition_array,p_zero_income*solution_tp1.kappa_max**(-rho))/
+                                 p_zero_income_now)**(-1/rho) # expectation of upper bound on MPC in t+1 from perspective of t
+            kappa_max_t       = 1.0/(1.0 + (p_zero_income_now**(1.0/rho))*thorn_R/exp_kappa_max_tp1)
         
+    
+        if cubic_splines:
+            gothicvPP = np.dot(transition_array,gothicvPP_next)
+    
+       
 
         self.vPPfunc_tp1_list = self.vPPfunc_tp1
         
