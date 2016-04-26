@@ -19,14 +19,14 @@ a_size = 8                         # Number of points in the grid of assets
 
 constraint = None                  # Artificial borrowing constraint
 cubic_splines = True                # Use cubic spline interpolation when True, linear interpolation when False
-calc_vFunc = False                  # Whether to calculate the value function during solution
+calc_vFunc = True                 # Whether to calculate the value function during solution
 
 R = 1.03                            # Interest factor on assets
 psi_N = 6                           # Number of points in discrete approximation to permanent income shocks
 xi_N = 6                            # Number of points in discrete approximation to transitory income shocks
 p_unemploy = 0.05                  # Probability of unemployment while working
 p_unemploy_retire = 0.0005          # Probability of "unemployment" while retired
-income_unemploy = 0.0              # Unemployment benefits replacement rate
+income_unemploy = 0.3              # Unemployment benefits replacement rate
 income_unemploy_retire = 0.0        # Ditto when retired
 
 final_age = 90                      # Age at which the problem ends (die with certainty)

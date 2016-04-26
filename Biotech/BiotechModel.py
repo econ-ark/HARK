@@ -118,6 +118,7 @@ class BiotechType(AgentType):
             self.pReject = QuadlinearInterp(self.solution[2].reject_prob,self.money_grid,self.mu_grid,self.tau_grid,self.macro_grid)
         self.VCvalFunc = lambda mu,tau,macro : np.exp(self.gamma_0 + self.gamma_mu*mu + self.gamma_tau*tau + self.gamma_mu_tau*mu*tau + self.gamma_z*macro)
         self.VCshockProb = lambda shocks : stats.norm.pdf(np.log(shocks)/self.sigma_VC + 0.5*self.sigma_VC)
+        self.sharesoldPDF = lambda sharesold : stats.beta.pdf(sharesold,a=self.sharesold_a,b=self.sharesold_b)
    
     def drawInitStates(self,firm_N,macro):
         '''
@@ -195,17 +196,19 @@ class BiotechType(AgentType):
         v_sale = v_sale_premoney + money_2
         v_IPO_premoney = self.vIPO(money_2,mu_2,tau_2,macro_all)
         v_IPO = v_IPO_premoney + money_2
-        v_all = np.stack((v_continue,v_sale,v_IPO),axis=2)
+        v_bankrupt = self.V_b*np.ones_like(v_IPO)
+        v_all = np.stack((v_continue,v_sale,v_IPO,v_bankrupt),axis=2)/self.sigma_terminal
         v_best = np.max(v_all,axis=2)
-        v_all = v_all - np.tile(np.reshape(v_best,(self.active_firms.size,self.sim_N,1)),(1,1,3))
+        v_all = v_all - np.tile(np.reshape(v_best,(self.active_firms.size,self.sim_N,1)),(1,1,4))
         v_sum = np.sum(np.exp(v_all),axis=2)
         actions = self.action_array[self.active_firms,t]
         v_action = v_all[np.tile(np.reshape(np.arange(self.active_firms.size),(self.active_firms.size,1)),(1,self.sim_N)),np.tile(np.reshape(np.arange(self.sim_N),(1,self.sim_N)),(self.active_firms.size,1)),np.tile(np.reshape(actions,(self.active_firms.size,1)),(1,self.sim_N))]
-        p_action = v_action/v_sum
+        p_action = np.exp(v_action)/v_sum
         action_weight = p_action/np.tile(np.reshape(np.sum(p_action,axis=1),(self.active_firms.size,1)),(1,self.sim_N))
         sellers = self.sale_array[self.active_firms,t]
         IPOers = self.IPO_array[self.active_firms,t]
-        continuers = np.logical_not(np.logical_or(sellers,IPOers))
+        bankrupters = self.bankrupt_array[self.active_firms,t]
+        continuers = np.logical_not(np.logical_or(np.logical_or(sellers,IPOers),bankrupters))
         sale_obs_value = self.value_array[self.active_firms[sellers],t]
         IPO_obs_value = self.value_array[self.active_firms[IPOers],t]
         sale_obs_value_premoney = np.tile(np.reshape(sale_obs_value,(np.sum(sellers),1)),(1,self.sim_N)) - money_2[sellers,:]
@@ -230,7 +233,23 @@ class BiotechType(AgentType):
         
         # Simulate Phase III: venture capital decision
         if self.simple:
-            1 + 1
+            getters = self.VC_array[self.active_firms,t]
+            notters = np.logical_not(getters)
+            p_get = self.pFunding(money_3,mu_3,tau_3,macro_all)
+            p_funded = p_get
+            p_funded[notters,:] = 1.0 - p_get[notters,:]
+            temp = action_weight*p_funded
+            VC_weight = (temp)/np.tile(np.reshape(np.sum(temp,axis=1),(self.active_firms.size,1)),(1,self.sim_N))
+            obs_valuation = np.tile(np.reshape(self.value_array[self.active_firms[getters],t],(np.sum(getters),1)),(1,self.sim_N))
+            exp_valuation = self.VCvalFunc(money_3[getters,:],mu_3[getters,:],tau_3[getters,:],macro_all)
+            VC_shock = obs_valuation/exp_valuation
+            VC_shock_prob = self.VCshockProb(VC_shock)
+            self.LL_choice[:,t] = np.log(np.sum(temp,axis=1)) # not really a "choice", but...
+            self.LL_value[getters,:] = np.log(np.sum(VC_weight*VC_shock_prob),axis=1)
+            reweights = VC_weight
+            reweights[getters,:] = (VC_weight*VC_shock_prob)/np.tile(np.reshape(np.sum(VC_weight*VC_shock_prob,axis=1),(np.sum(getters),1)),(1,self.sim_N))
+            accepters = getters # to make state updating work
+            cash_injection = np.tile(np.reshape(self.cash_array[self.active_firms[getters],t],(np.sum(getters),1)),(1,self.sim_N))
         else:
             accepters = self.VC_array[self.active_firms,t]
             rejecters = np.logical_not(accepters)
@@ -244,13 +263,35 @@ class BiotechType(AgentType):
             VC_weight = temp/np.tile(np.reshape(np.sum(temp,axis=1),(np.sum(accepters),1)),(1,self.sim_N))
             v_accept = (1.0-sharesold)*self.vFunc4(money_3[accepters,:]+cash_injection,mu_3[accepters,:],tau_3[accepters,:],macro_all[accepters,:]) - self.VC_cost
             v_reject = self.vFunc4(money_3[accepters,:],mu_3[accepters,:],tau_3[accepters,:],macro_all[accepters,:])
-            exp_v_diff = np.exp(v_reject - v_accept)
+            exp_v_diff = np.exp((v_reject - v_accept)/self.sigma_VC)
             p_accept = 1.0/(1.0 + exp_v_diff)
             p_reject = self.pReject(money_3[rejecters,:],mu_3[rejecters,:],tau_3[rejecters,:],macro_all[rejecters,:])
             self.LL_value[self.active_firms[accepters],t] = np.log(np.sum(temp,axis=1))
             self.LL_choice[self.active_firms[accepters],t] = np.log(np.sum(p_accept*VC_weight,axis=1))
             self.LL_choice[self.active_firms[rejecters],t] = np.log(np.sum(p_reject*action_weight,axis=1))
+            self.LL_share[self.active_firms[accepters],t] = np.log(self.sharesoldPDF(self.share_array[self.active_firms[accepters],t]))
+            reweights = np.zeros_like(action_weight)
+            reweights[rejecters,:] = (action_weight[rejecters,:]*p_reject)/np.tile(np.reshape(np.sum(action_weight[rejecters,:]*p_reject,axis=1),(np.sum(rejecters),1)),(1,self.sim_N))
+            reweights[accepters,:] = (VC_weight*p_accept)/np.tile(np.reshape(np.sum(VC_weight*p_accept,axis=1),(np.sum(accepters),1)),(1,self.sim_N))
             
+        # Update the state for VC cash injections, then resample observations
+        money_3a = money_3
+        money_3a[accepters,:] = money_3[accepters,:] + cash_injection
+        money_4 = np.zeros_like(money_3a)
+        mu_4 = np.zeros_like(money_3a)
+        tau_4 = np.zeros_like(money_3a)
+        for n in range(self.active_firms.size):
+            state_array_in = np.reshape(np.vstack((money_3a[n,:],mu_3[n,:],tau_3[n,:])),(self.sim_N,3))
+            state_array_out = bootstrapSampleFromData(state_array_in,weights=reweights[n,:],seed=self.RNG.randint(2**31-1))
+            money_4[n,:] = state_array_out[:,0]
+            mu_4[n,:] = state_array_out[:,1]
+            tau_4[n,:] = state_array_out[:,2]
+            
+        # Simulate Phase IV: technology shocks (store states for next period)
+        Qshocks = np.tile(np.reshape(self.RNG.permutation(self.Qshock_draws),(1,self.sim_N)),(self.active_firms.size,1))
+        self.money_t = money_4
+        self.mu_t = mu_4 - Qshocks
+        self.tau_t = tau_4
         
     def update(self):
         '''
@@ -265,6 +306,12 @@ class BiotechType(AgentType):
         # Make the technology shock objects
         self.Qshock_values = np.array([0.0,self.Qshock_small,self.Qshock_big])
         self.Qshock_probs = np.array([1-self.Qprob_small-self.Qprob_big,self.Qprob_small,self.Qprob_big])
+        Qshock_draws = np.zeros(self.sim_N)
+        big_N = np.round(self.Qprob_big*self.sim_N)
+        small_N = np.round(self.Qprob_small*self.sim_N)
+        Qshock_draws[0:big_N] = self.Qshock_big
+        Qshock_draws[big_N:(big_N+small_N)] = self.Qshock_small
+        self.Qshock_draws = Qshock_draws
         
         # Precalculate objects for each period, generating a *lot* of arrays, etc
         self.mu_weight_matrix_low, self.mu_weight_matrix_high, self.m_idx_low_top, self.m_idx_low_bot, self.m_alpha_low_top, self.m_alpha_low_bot, self.m_idx_high_top, self.m_idx_high_bot, self.m_alpha_high_top, self.m_alpha_high_bot, self.tau_idx_low_top, self.tau_idx_low_bot, self.tau_alpha_low_top, self.tau_alpha_low_bot, self.tau_idx_high_top, self.tau_idx_high_bot, self.tau_alpha_high_top, self.tau_alpha_high_bot, self.mu_idx_P1, self.z_idx_P1, self.unaffordable_low, self.unaffordable_high = precalcPhase1(self.money_grid,self.mu_grid,self.tau_grid,self.macro_grid,self.low_intensity,self.high_intensity,self.low_cost,self.high_cost)

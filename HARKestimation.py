@@ -116,6 +116,8 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
     -----------
     data : np.array
         An array of data, with each row representing a record.
+    weights : np.array
+        A weighting array with length equal to data.shape[0].
     seed : int
         A seed for the random number generator.
         
@@ -136,9 +138,6 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
         cutoffs = np.linspace(0,1,N)
     
     # Draw random indices
-    
-    #indices_temp = np.floor(N*RNG.uniform(size=N))
-    #indices = indices_temp.astype(int)
     indices = np.searchsorted(cutoffs,RNG.uniform(size=N))
     
     # Create a bootstrapped sample
