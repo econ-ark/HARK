@@ -856,6 +856,9 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         ConsumptionSavingSolverENDG.assignParameters(self,solution_tp1,np.nan,np.nan,
                                                      survival_prob,beta,rho,R,Gamma,
                                                      constraint,a_grid,calc_vFunc,cubic_splines)
+                                                     
+        assert False, 'Markov solver is not working right now. It is being rewritten to work with cubic splines.'
+        
         self.defineUtilityFunctions()
         self.income_distrib_list  = income_distrib_list
         self.p_zero_income_list   = p_zero_income_list
