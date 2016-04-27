@@ -225,18 +225,18 @@ def perfectForesightSolver(solution_tp1,beta,rho,R,Gamma,constraint):
 ####################################################################################################
 ####################################################################################################
 class SetupImperfectForesightSolver(PerfectForesightSolver):
-    def __init__(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
+    def __init__(self,solution_tp1,income_distrib,p_worst,survival_prob,beta,rho,R,
                                 Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
 
-        self.assignParameters(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
+        self.assignParameters(solution_tp1,income_distrib,p_worst,survival_prob,beta,rho,R,
                                 Gamma,constraint,a_grid,calc_vFunc,cubic_splines)
         self.defineUtilityFunctions()
 
-    def assignParameters(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
+    def assignParameters(self,solution_tp1,income_distrib,p_worst,survival_prob,beta,rho,R,
                                 Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
         PerfectForesightSolver.assignParameters(self,solution_tp1,beta,rho,R,Gamma,constraint)
         self.income_distrib  = income_distrib
-        self.p_zero_income   = p_zero_income
+        self.p_worst         = p_worst
         self.survival_prob   = survival_prob
         self.a_grid          = a_grid
         self.calc_vFunc      = calc_vFunc
@@ -263,6 +263,7 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         self.psi_underbar_tp1 = np.min(self.psi_tp1)    
         self.xi_underbar_tp1  = np.min(self.xi_tp1)
         self.vPfunc_tp1       = solution_tp1.vPfunc        
+        self.p_worst          = np.sum(self.prob_tp1[(self.psi_tp1*self.xi_tp1)==(self.psi_underbar_tp1*self.xi_underbar_tp1)]) 
 
         if self.cubic_splines:
             self.vPPfunc_tp1  = solution_tp1.vPPfunc
@@ -273,7 +274,7 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
             self.thorn_R     = ((self.R*self.effective_beta)**(1/self.rho))/self.R
             self.kappa_min_t = 1.0/(1.0 + self.thorn_R/solution_tp1.kappa_min)
             self.gothic_h_t  = self.Gamma/self.R*(1.0 + solution_tp1.gothic_h)
-            self.kappa_max_t = 1.0/(1.0 + (self.p_zero_income**(1/self.rho))* \
+            self.kappa_max_t = 1.0/(1.0 + (self.p_worst**(1/self.rho))* \
                                self.thorn_R/solution_tp1.kappa_max)
 
 
@@ -281,8 +282,8 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
 
         # Calculate the minimum allowable value of money resources in this period
         # Use np.max instead of max for future compatibility with Markov solver
-        self.m_underbar_t = np.max((self.solution_tp1.m_underbar - self.xi_underbar_tp1) *
-                                   (self.Gamma*self.psi_underbar_tp1)/self.R,constraint)
+        self.m_underbar_t = np.max([(self.solution_tp1.m_underbar - self.xi_underbar_tp1) *
+                                   (self.Gamma*self.psi_underbar_tp1)/self.R,constraint])
     
         # Define the borrowing constraint (limiting consumption function)
         self.constraint_t = lambda m: m - self.m_underbar_t
@@ -411,12 +412,12 @@ class ConsumptionSavingSolverEXOG(SetupImperfectForesightSolver):
         return solution_t
 
 
-def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,R,
+def consumptionSavingSolverEXOG(solution_tp1,income_distrib,p_worst,survival_prob,beta,rho,R,
                                 Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
     '''
     Solves a single period consumption - savings problem for a consumer with perfect foresight.
     '''
-    solver = ConsumptionSavingSolverEXOG(solution_tp1,income_distrib,p_zero_income,survival_prob,
+    solver = ConsumptionSavingSolverEXOG(solution_tp1,income_distrib,p_worst,survival_prob,
                                          beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines)
     
     solver.prepareToSolve()    
@@ -447,7 +448,7 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         A list containing three lists of floats, representing a discrete approximation to the income
         process between the period being solved and the one immediately following (in solution_tp1).
         Order: probs, psi, xi
-    p_zero_income: float
+    p_worst: float
         The probability of receiving zero income in the succeeding period.
     survival_prob: float
         Probability of surviving to succeeding period.
@@ -663,16 +664,16 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
        
 
 
-def consumptionSavingSolverENDG(solution_tp1,income_distrib,p_zero_income,survival_prob,
+def consumptionSavingSolverENDG(solution_tp1,income_distrib,p_worst,survival_prob,
                                       beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
                                        
     if (not cubic_splines) and (not calc_vFunc):
-        solver = ConsumptionSavingSolverENDGBasic(solution_tp1,income_distrib,p_zero_income,
+        solver = ConsumptionSavingSolverENDGBasic(solution_tp1,income_distrib,p_worst,
                                              survival_prob,beta,rho,R,Gamma,constraint,a_grid,
                                              calc_vFunc,cubic_splines)        
     else:
 
-        solver = ConsumptionSavingSolverENDG(solution_tp1,income_distrib,p_zero_income,
+        solver = ConsumptionSavingSolverENDG(solution_tp1,income_distrib,p_worst,
                                              survival_prob,beta,rho,R,Gamma,constraint,a_grid,
                                              calc_vFunc,cubic_splines)
 
@@ -702,7 +703,7 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
         A list containing three lists of floats, representing a discrete approximation to the income
         process between the period being solved and the one immediately following (in solution_tp1).
         Order: probs, psi, xi
-    p_zero_income: float
+    p_worst: float
         The probability of receiving zero income in the succeeding period.
     survival_prob: float
         Probability of surviving to succeeding period.
@@ -735,14 +736,14 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
     """
 
 
-    def __init__(self,solution_tp1,income_distrib,p_zero_income,survival_prob,beta,rho,
+    def __init__(self,solution_tp1,income_distrib,p_worst,survival_prob,beta,rho,
                       R_borrow,R_save,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):        
 
         assert cubic_splines==False,'KinkedR will only work with linear interpolation'
 
         # Initialize the solver.  Most of the steps are exactly the same as in the Endogenous Grid
         # linear case, so start with that.
-        ConsumptionSavingSolverENDG.__init__(self,solution_tp1,income_distrib,p_zero_income,
+        ConsumptionSavingSolverENDG.__init__(self,solution_tp1,income_distrib,p_worst,
                                                    survival_prob,beta,rho,R_borrow,Gamma,constraint,
                                                    a_grid,calc_vFunc,cubic_splines) 
 
@@ -787,11 +788,11 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
 
 
 
-def consumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,
+def consumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_worst,
                                    survival_prob,beta,rho,R_borrow,R_save,Gamma,constraint,
                                    a_grid,calc_vFunc,cubic_splines):
 
-    solver = ConsumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_zero_income,survival_prob,
+    solver = ConsumptionSavingSolverKinkedR(solution_tp1,income_distrib,p_worst,survival_prob,
                                             beta,rho,R_borrow,R_save,Gamma,constraint,a_grid,
                                             calc_vFunc,cubic_splines)
     solver.prepareToSolve()                                      
@@ -826,7 +827,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         the one immediately following (in solution_tp1).  Order: probs, psi, xi.
         The n-th element of income_distrib is the income distribution for the n-th
         discrete state.
-    p_zero_income: numpy.array
+    p_worst: numpy.array
         The probabilities of receiving zero income in the succeeding period,
         conditional on arriving in each discrete state.
     survival_prob: float
@@ -859,7 +860,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         The solution to this period's problem, obtained using the method of endogenous gridpoints.
     '''
 
-    def __init__(self,solution_tp1,income_distrib_list,p_zero_income_array,survival_prob,beta,
+    def __init__(self,solution_tp1,income_distrib_list,p_worst_array,survival_prob,beta,
                       rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
 
         ConsumptionSavingSolverENDG.assignParameters(self,solution_tp1,np.nan,np.nan,
@@ -869,15 +870,15 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         
         self.defineUtilityFunctions()
         self.income_distrib_list  = income_distrib_list
-        self.p_zero_income_array  = p_zero_income_array
-        self.n_states             = p_zero_income_array.size
+        self.p_worst_array  = p_worst_array
+        self.n_states             = p_worst_array.size
 
     def conditionOnState(self,state_index):
         """
         Find the income distribution, etc., conditional on a given state next period
         """
         self.income_distrib = self.income_distrib_list[state_index]
-        self.p_zero_income  = self.p_zero_income_array[state_index] 
+        self.p_worst  = self.p_worst_array[state_index] 
         self.vPfunc_tp1     = self.solution_tp1.vPfunc[state_index]
         self.m_underbar_t   = self.m_underbar_list[state_index] 
         
@@ -894,7 +895,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
 
         # Find the borrowing constraint for each current state i as well as the
         # probability of receiving zero income.
-        self.p_zero_income_now  = np.dot(transition_array,self.p_zero_income_array)
+        self.p_worst_now  = np.dot(transition_array,self.p_worst_array)
         m_underbar_next    = np.zeros(self.n_states) + np.nan
         for j in range(self.n_states):
             psi_underbar_tp1   = np.min(self.income_distrib_list[j][1])
@@ -953,9 +954,9 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
  
         # Calculate the bounding MPCs and PDV of human wealth for each state
         if self.calc_vFunc or self.cubic_splines:
-            exp_kappa_max_tp1 = (np.dot(transition_array,self.p_zero_income_array*self.solution_tp1.kappa_max**(-self.rho))/
-                                 self.p_zero_income_now)**(-1/self.rho) # expectation of upper bound on MPC in t+1 from perspective of t
-            self.kappa_max_t       = 1.0/(1.0 + (self.p_zero_income_now**(1.0/self.rho))*self.thorn_R/exp_kappa_max_tp1)
+            exp_kappa_max_tp1 = (np.dot(transition_array,self.p_worst_array*self.solution_tp1.kappa_max**(-self.rho))/
+                                 self.p_worst_now)**(-1/self.rho) # expectation of upper bound on MPC in t+1 from perspective of t
+            self.kappa_max_t       = 1.0/(1.0 + (self.p_worst_now**(1.0/self.rho))*self.thorn_R/exp_kappa_max_tp1)
 
     
         if self.cubic_splines:
@@ -1020,10 +1021,10 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
 
 
 
-def consumptionSavingSolverMarkov(solution_tp1,income_distrib,p_zero_income,survival_prob,
+def consumptionSavingSolverMarkov(solution_tp1,income_distrib,p_worst,survival_prob,
                                       beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
                                        
-    solver = ConsumptionSavingSolverMarkov(solution_tp1,income_distrib,p_zero_income,
+    solver = ConsumptionSavingSolverMarkov(solution_tp1,income_distrib,p_worst,
                                                survival_prob,beta,rho,R,Gamma,constraint,a_grid,
                                                calc_vFunc,cubic_splines)
     #solver.prepareToSolve()              
@@ -1110,13 +1111,13 @@ class ConsumerType(AgentType):
         '''
         original_time = self.time_flow
         self.timeFwd()
-        income_distrib, p_zero_income   = constructLognormalIncomeProcessUnemployment(self)
+        income_distrib, p_worst   = constructLognormalIncomeProcessUnemployment(self)
         self.income_distrib             = income_distrib
-        self.p_zero_income              = p_zero_income
+        self.p_worst              = p_worst
         if not 'income_distrib' in self.time_vary:
             self.time_vary.append('income_distrib')
-        if not 'p_zero_income' in self.time_vary:
-            self.time_vary.append('p_zero_income')
+        if not 'p_worst' in self.time_vary:
+            self.time_vary.append('p_worst')
         if not original_time:
             self.timeRev()
             
@@ -1168,7 +1169,7 @@ class ConsumerType(AgentType):
         Also calculates kappa_min and kappa_max for infinite horizon.
         '''
         if hasattr(self,'transition_array'):
-            n_states = self.p_zero_income[0].size
+            n_states = self.p_worst[0].size
             expY_tp1 = np.zeros(n_states) + np.nan
             for j in range(n_states):
                 psi_tp1     = self.income_distrib[0][j][1]
@@ -1178,9 +1179,9 @@ class ConsumerType(AgentType):
             gothic_h        = np.dot(np.dot(np.linalg.inv((self.R/self.Gamma[0])*np.eye(n_states) -
                               self.transition_array),self.transition_array),expY_tp1)
             
-            p_zero_income_now = np.dot(self.transition_array,self.p_zero_income[0])
+            p_worst_now = np.dot(self.transition_array,self.p_worst[0])
             thornR            = (self.beta[0]*self.R)**(1.0/self.rho)/self.R
-            kappa_max         = 1.0 - p_zero_income_now**(1.0/self.rho)*thornR # THIS IS WRONG
+            kappa_max         = 1.0 - p_worst_now**(1.0/self.rho)*thornR # THIS IS WRONG
             
         else:
             psi_tp1  = self.income_distrib[0][1]
@@ -1190,7 +1191,7 @@ class ConsumerType(AgentType):
             gothic_h = (expY_tp1*self.Gamma[0]/self.R)/(1.0-self.Gamma[0]/self.R)
             
             thornR    = (self.beta[0]*self.R)**(1.0/self.rho)/self.R
-            kappa_max = 1.0 - self.p_zero_income[0]**(1.0/self.rho)*thornR
+            kappa_max = 1.0 - self.p_worst[0]**(1.0/self.rho)*thornR
         
         kappa_min = 1.0 - thornR
         return gothic_h, kappa_max, kappa_min
@@ -1334,7 +1335,7 @@ def constructLognormalIncomeProcessUnemployment(parameters):
         the joint pmf over those points. For example,
                psi_shock[20], xi_shock[20], and pmf[20]
         refers to the (psi, xi) point indexed by 20, with probability p = pmf[20].
-    p_zero_income: [float]
+    p_worst: [float]
         A list of probabilities of receiving exactly zero income in each period.
 
     """
@@ -1351,7 +1352,7 @@ def constructLognormalIncomeProcessUnemployment(parameters):
     income_unemploy_retire = parameters.income_unemploy_retire
     
     income_distrib = [] # Discrete approximation to income process
-    p_zero_income = [] # Probability of zero income in each period of life
+    p_worst = [] # Probability of zero income in each period of life
 
     # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
     # in normal times; value 0.0 in "unemployment" times with small prob.
@@ -1374,9 +1375,9 @@ def constructLognormalIncomeProcessUnemployment(parameters):
             # Then we are in the "retirement period" and add a retirement income object.
             income_distrib.append(deepcopy(income_dist_retire))
             if income_unemploy_retire == 0:
-                p_zero_income.append(p_unemploy_retire)
+                p_worst.append(p_unemploy_retire)
             else:
-                p_zero_income.append(0)
+                p_worst.append(0)
         else:
             # We are in the "working life" periods.
             temp_xi_dist     = calculateMeanOneLognormalDiscreteApprox(N=xi_N, sigma=xi_sigma[t])
@@ -1387,11 +1388,11 @@ def constructLognormalIncomeProcessUnemployment(parameters):
             income_distrib.append(createFlatStateSpaceFromIndepDiscreteProbs(temp_psi_dist, 
                                                                              temp_xi_dist))
             if income_unemploy == 0:
-                p_zero_income.append(p_unemploy)
+                p_worst.append(p_unemploy)
             else:
-                p_zero_income.append(0)
+                p_worst.append(0)
 
-    return income_distrib, p_zero_income
+    return income_distrib, p_worst
     
     
     
@@ -1439,7 +1440,7 @@ def constructLognormalIncomeProcessUnemploymentFailure(parameters):
         the joint pmf over those points. For example,
                psi_shock[20], xi_shock[20], and pmf[20]
         refers to the (psi, xi) point indexed by 20, with probability p = pmf[20].
-    p_zero_income: [float]
+    p_worst: [float]
         A list of probabilities of receiving exactly zero income in each period.
 
     """
@@ -1459,7 +1460,7 @@ def constructLognormalIncomeProcessUnemploymentFailure(parameters):
     p_fail = 0.01
     
     income_distrib = [] # Discrete approximation to income process
-    p_zero_income = [] # Probability of zero income in each period of life
+    p_worst = [] # Probability of zero income in each period of life
 
     # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
     # in normal times; value 0.0 in "unemployment" times with small prob.
@@ -1490,9 +1491,9 @@ def constructLognormalIncomeProcessUnemploymentFailure(parameters):
             # Then we are in the "retirement period" and add a retirement income object.
             income_distrib.append(deepcopy(income_dist_retire))
             if income_unemploy_retire == 0:
-                p_zero_income.append(p_unemploy_retire)
+                p_worst.append(p_unemploy_retire)
             else:
-                p_zero_income.append(p_fail*p_unemploy_retire)
+                p_worst.append(p_fail*p_unemploy_retire)
         else:
             # We are in the "working life" periods.
             temp_xi_dist     = calculateMeanOneLognormalDiscreteApprox(N=xi_N, sigma=xi_sigma[t])
@@ -1508,13 +1509,13 @@ def constructLognormalIncomeProcessUnemploymentFailure(parameters):
                                                                              temp_xi_dist))
             if p_unemploy > 0:
                 if income_unemploy == 0:
-                    p_zero_income.append(p_unemploy)
+                    p_worst.append(p_unemploy)
                 else:
-                    p_zero_income.append(p_unemploy*p_fail)
+                    p_worst.append(p_unemploy*p_fail)
             else:
-                p_zero_income.append(0)
+                p_worst.append(0)
 
-    return income_distrib, p_zero_income
+    return income_distrib, p_worst
 
 
 def applyFlatIncomeTax(income_distrib,tax_rate,T_retire,unemployed_indices=[],transitory_index=2):
@@ -1828,22 +1829,22 @@ if __name__ == '__main__':
                                       Gamma = [1.01],
                                       cycles = 0) # This is what makes the type infinite horizon
     InfiniteType.income_distrib = [LifecycleType.income_distrib[-1]]
-    InfiniteType.p_zero_income  = [LifecycleType.p_zero_income[-1]]
+    InfiniteType.p_worst  = [LifecycleType.p_worst[-1]]
     
     start_time = clock()
     InfiniteType.solve()
     end_time = clock()
-#    print('Solving an infinite horizon consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    print('Solving an infinite horizon consumer took ' + mystr(end_time-start_time) + ' seconds.')
     InfiniteType.unpack_cFunc()
     
     # Plot the consumption function and MPC for the infinite horizon consumer
-#    print('Consumption function:')
-#    plotFunc(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5)    # plot consumption
-#    print('Marginal consumption function:')
-#    plotFuncDer(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5) # plot MPC
-#    if InfiniteType.calc_vFunc:
-#        print('Value function:')
-#        plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
+    print('Consumption function:')
+    plotFunc(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5)    # plot consumption
+    print('Marginal consumption function:')
+    plotFuncDer(InfiniteType.cFunc[0],InfiniteType.solution[0].m_underbar,5) # plot MPC
+    if InfiniteType.calc_vFunc:
+        print('Value function:')
+        plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
 
 
 
@@ -1856,24 +1857,24 @@ if __name__ == '__main__':
 
         
         
-#    # Make and solve an agent with a kinky interest rate
-#    KinkyType = deepcopy(InfiniteType)
-#
-#    KinkyType.time_inv.remove('R')
-#    KinkyType.time_inv += ['R_borrow','R_save']
-#    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0,cubic_splines = False)
-#
-#    KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
-#    KinkyType.updateAssetsGrid()
-#    
-#    start_time = clock()
-#    KinkyType.solve()
-#    end_time = clock()
-#    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
-#    KinkyType.unpack_cFunc()
-#    print('Kinky consumption function:')
-#    KinkyType.timeFwd()
-#    plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].m_underbar,5)
+    # Make and solve an agent with a kinky interest rate
+    KinkyType = deepcopy(InfiniteType)
+
+    KinkyType.time_inv.remove('R')
+    KinkyType.time_inv += ['R_borrow','R_save']
+    KinkyType(R_borrow = 1.1, R_save = 1.03, constraint = None, a_size = 48, cycles=0,cubic_splines = False)
+
+    KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
+    KinkyType.updateAssetsGrid()
+    
+    start_time = clock()
+    KinkyType.solve()
+    end_time = clock()
+    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    KinkyType.unpack_cFunc()
+    print('Kinky consumption function:')
+    KinkyType.timeFwd()
+    plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].m_underbar,5)
 
 
     
@@ -1881,26 +1882,26 @@ if __name__ == '__main__':
 
 
     
-#    # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
-#    # The consumer has income that greatly fluctuates throughout the year.
-#    CyclicalType = deepcopy(LifecycleType)
-#    CyclicalType.assignParameters(survival_prob = [0.98]*4,
-#                                      beta = [0.96]*4,
-#                                      Gamma = [1.1, 0.3, 2.8, 1.1],
-#                                      cycles = 0) # This is what makes the type (cyclically) infinite horizon)
-#    CyclicalType.income_distrib = [LifecycleType.income_distrib[-1]]*4
-#    CyclicalType.p_zero_income = [LifecycleType.p_zero_income[-1]]*4
-#    
-#    start_time = clock()
-#    CyclicalType.solve()
-#    end_time = clock()
-#    print('Solving a cyclical consumer took ' + mystr(end_time-start_time) + ' seconds.')
-#    CyclicalType.unpack_cFunc()
-#    CyclicalType.timeFwd()
-#    
-#    # Plot the consumption functions for the cyclical consumer type
-#    print('Quarterly consumption functions:')
-#    plotFuncs(CyclicalType.cFunc,CyclicalType.solution[0].m_underbar,5)
+    # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
+    # The consumer has income that greatly fluctuates throughout the year.
+    CyclicalType = deepcopy(LifecycleType)
+    CyclicalType.assignParameters(survival_prob = [0.98]*4,
+                                      beta = [0.96]*4,
+                                      Gamma = [1.1, 0.3, 2.8, 1.1],
+                                      cycles = 0) # This is what makes the type (cyclically) infinite horizon)
+    CyclicalType.income_distrib = [LifecycleType.income_distrib[-1]]*4
+    CyclicalType.p_worst = [LifecycleType.p_worst[-1]]*4
+    
+    start_time = clock()
+    CyclicalType.solve()
+    end_time = clock()
+    print('Solving a cyclical consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    CyclicalType.unpack_cFunc()
+    CyclicalType.timeFwd()
+    
+    # Plot the consumption functions for the cyclical consumer type
+    print('Quarterly consumption functions:')
+    plotFuncs(CyclicalType.cFunc,CyclicalType.solution[0].m_underbar,5)
     
     
 ####################################################################################################    
@@ -1914,7 +1915,7 @@ if __name__ == '__main__':
                                       beta = 2*[0.96],
                                       Gamma = 2*[1.01])
         HybridType.income_distrib = 2*[LifecycleType.income_distrib[-1]]
-        HybridType.p_zero_income = 2*[LifecycleType.p_zero_income[-1]]
+        HybridType.p_worst = 2*[LifecycleType.p_worst[-1]]
         HybridType.time_vary.append('solveAPeriod')
         HybridType.solveAPeriod = [consumptionSavingSolverENDG,consumptionSavingSolverEXOG] # alternated between ENDG and EXOG
         
@@ -1952,7 +1953,7 @@ if __name__ == '__main__':
         employed_income_dist = createFlatStateSpaceFromIndepDiscreteProbs(psi_dist, xi_dist)
         employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]
         unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
-        p_zero_income = [np.array([0.0,1.0,0.0,1.0])]
+        p_worst = [np.array([0.0,1.0,0.0,1.0])]
         
         MarkovType.solution_terminal.cFunc = 4*[MarkovType.solution_terminal.cFunc]
         MarkovType.solution_terminal.vFunc = 4*[MarkovType.solution_terminal.vFunc]
@@ -1961,7 +1962,7 @@ if __name__ == '__main__':
         MarkovType.solution_terminal.m_underbar = 4*[MarkovType.solution_terminal.m_underbar]
         
         MarkovType.income_distrib = [[employed_income_dist,unemployed_income_dist,employed_income_dist,unemployed_income_dist]]
-        MarkovType.p_zero_income = p_zero_income
+        MarkovType.p_worst = p_worst
         MarkovType.transition_array = transition_array
         MarkovType.time_inv.append('transition_array')
         MarkovType.solveAPeriod = consumptionSavingSolverMarkov
