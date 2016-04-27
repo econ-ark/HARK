@@ -516,29 +516,25 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         return gothicvP
                     
 
-
-    def getSolution(self,gothicvP,a,interpolator = LinearInterp):
-        """
-        Given a and gothicvP, return the solution for this period.
-        """
-
-        # Create lists of and cash-on-hand m and the corresponding consumption c at that value
-        # of m.  Later these lists will be used to interpolate the consumption function.
-        c_temp    = [0.0]  # Limiting consumption is zero as m approaches m_underbar
-        m_temp    = [self.m_underbar_t]
+    def getPointsForInterpolation(self,gothicvP,a):
 
         c = self.uPinv(gothicvP)
         m = c + a
+
+        # Limiting consumption is zero as m approaches m_underbar
+        c_for_interpolation = np.insert(c,0,0.,axis=-1)
+        m_for_interpolation = np.insert(m,0,self.m_underbar_t,axis=-1)
         
         # Store these for calcvFunc
         self.c = c
         self.m = m
-
-        c_temp += c.tolist()
-        m_temp += m.tolist()
         
+        return c_for_interpolation,m_for_interpolation
+
+    def usePointsForInterpolation(self,c,m,interpolator):
+
         # Construct the unconstrained consumption function
-        cFunc_t_unconstrained = interpolator(m_temp,c_temp)
+        cFunc_t_unconstrained = interpolator(m,c)
 
         # Combine the constrained and unconstrained functions into the true consumption function
         cFunc_t = ConstrainedComposite(cFunc_t_unconstrained,self.constraint_t)
@@ -549,6 +545,19 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         # Pack up the solution and return it
         solution_t = ConsumerSolution(cFunc=cFunc_t, vPfunc=vPfunc_t, 
                                       m_underbar=self.m_underbar_t)
+
+        return solution_t        
+
+
+
+    def getSolution(self,gothicvP,a,interpolator = LinearInterp):
+        """
+        Given a and gothicvP, return the solution for this period.
+        """
+
+        c,m        = self.getPointsForInterpolation(gothicvP,a)
+        
+        solution_t = self.usePointsForInterpolation(c,m,interpolator)
 
         return solution_t
         
@@ -850,26 +859,25 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         The solution to this period's problem, obtained using the method of endogenous gridpoints.
     '''
 
-    def __init__(self,solution_tp1,income_distrib_list,p_zero_income_list,survival_prob,beta,
+    def __init__(self,solution_tp1,income_distrib_list,p_zero_income_array,survival_prob,beta,
                       rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
 
         ConsumptionSavingSolverENDG.assignParameters(self,solution_tp1,np.nan,np.nan,
                                                      survival_prob,beta,rho,R,Gamma,
                                                      constraint,a_grid,calc_vFunc,cubic_splines)
                                                      
-        assert False, 'Markov solver is not working right now. It is being rewritten to work with cubic splines.'
         
         self.defineUtilityFunctions()
         self.income_distrib_list  = income_distrib_list
-        self.p_zero_income_list   = p_zero_income_list
-        self.n_states             = len(p_zero_income_list)
+        self.p_zero_income_array  = p_zero_income_array
+        self.n_states             = p_zero_income_array.size
 
     def conditionOnState(self,state_index):
         """
         Find the income distribution, etc., conditional on a given state next period
         """
         self.income_distrib = self.income_distrib_list[state_index]
-        self.p_zero_income  = self.p_zero_income_list[state_index] 
+        self.p_zero_income  = self.p_zero_income_array[state_index] 
         self.vPfunc_tp1     = self.solution_tp1.vPfunc[state_index]
         self.m_underbar_t   = self.m_underbar_list[state_index] 
         
@@ -886,7 +894,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
 
         # Find the borrowing constraint for each current state i as well as the
         # probability of receiving zero income.
-        self.p_zero_income_now  = np.dot(transition_array,self.p_zero_income_list)
+        self.p_zero_income_now  = np.dot(transition_array,self.p_zero_income_array)
         m_underbar_next    = np.zeros(self.n_states) + np.nan
         for j in range(self.n_states):
             psi_underbar_tp1   = np.min(self.income_distrib_list[j][1])
@@ -924,7 +932,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
 
 
 
-            a = self.prepareToGetGothicVP()  
+            self.prepareToGetGothicVP()  
             
             
             #gothicvP_next[jj,:] = self.getConditionalGothicVP()                        
@@ -952,10 +960,10 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             h_tp1             = expY_tp1 + self.solution_tp1.gothic_h # beginning of period human wealth next period
             gothic_h_t        = self.Gamma/self.R*np.dot(transition_array,h_tp1) # end-of-period human wealth this period
             kappa_min_t       = 1.0/(1.0 + self.thorn_R/self.solution_tp1.kappa_min) # lower bound on MPC as m --> infty
-            exp_kappa_max_tp1 = (np.dot(transition_array,self.p_zero_income*self.solution_tp1.kappa_max**(-self.rho))/
+            exp_kappa_max_tp1 = (np.dot(transition_array,self.p_zero_income_array*self.solution_tp1.kappa_max**(-self.rho))/
                                  self.p_zero_income_now)**(-1/self.rho) # expectation of upper bound on MPC in t+1 from perspective of t
             self.kappa_max_t       = 1.0/(1.0 + (self.p_zero_income_now**(1.0/self.rho))*self.thorn_R/exp_kappa_max_tp1)
-        
+
     
         if self.cubic_splines:
             self.gothicvPP = np.dot(transition_array,gothicvPP_next)
@@ -966,25 +974,11 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
 
         self.vPPfunc_tp1_list = self.vPPfunc_tp1
         
-        solution = ConsumerSolution()
-        # Now conditional on this period's state, get the solution
-        for jj in range(self.n_states):
-            self.conditionOnState(jj)
-            a = self.prepareToGetGothicVP()
-            
-            
-            self.vPPfunc_tp1 = self.solution_tp1.vPPfunc[jj]            
-
-            conditional_solution = self.getSolution(gothicvP[jj,:],a,
-                                                    interpolator = self.getConsumptionCubic)
-
-            
-            if self.cubic_splines: 
-                conditional_solution = self.prepForCubicSplines(conditional_solution)
-
-            solution.appendSolution(conditional_solution)
-
-        self.vPPfunc_tp1 = self.vPPfunc_tp1_list
+        # note I'm not sure m_underbar_list is what it should be... CHECK
+        a = np.asarray(self.a_grid)[np.newaxis,:] + np.array(self.m_underbar_list)[:,np.newaxis]
+        c,m        = self.getPointsForInterpolation(gothicvP,a)
+       
+        solution = self.usePointsForInterpolation(c,m,interpolator = LinearInterp)
 
         if self.calc_vFunc or self.cubic_splines:
             solution = self.addKappaAndGothicH(solution)
@@ -992,28 +986,50 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
 
         return solution    
 
+    def usePointsForInterpolation(self,c,m,interpolator):
+
+        solution = ConsumerSolution()
+
+        if self.cubic_splines:
+            dcda       = self.gothicvPP/self.uPP(np.array(self.c))
+            kappa      = dcda/(dcda+1.0)
+            self.kappa_temp = np.hstack((np.reshape(self.kappa_max_t,(self.n_states,1)),kappa))  
+
+            interpfunc = self.getConsumptionCubic
+
+        else:
+            interpfunc = LinearInterp
+        
+        for jj in range(self.n_states):
+            
+            #self.vPPfunc_tp1 = self.solution_tp1.vPPfunc[jj]            
+            if self.cubic_splines:
+                self.kappa_temp_jj = self.kappa_temp[jj,:]
+
+            conditional_solution = ConsumptionSavingSolverENDGBasic.usePointsForInterpolation(
+                                   self,c[jj,:],m[jj,:],interpolator = interpfunc)
+
+            
+            if self.cubic_splines: 
+                conditional_solution = self.prepForCubicSplines(conditional_solution)
+
+            solution.appendSolution(conditional_solution)
+            
+        return solution
 
     def getConsumptionCubic(self,m_temp,c_temp):
         """
         Interpolate the unconstrained consumption function with cubic splines
         """
         
-        dcda       = self.gothicvPP/self.uPP(np.array(c_temp))
-        kappa      = dcda/(dcda+1.0)
-        kappa_temp = np.hstack((np.reshape(self.kappa_max_t,(self.n_states,1)),kappa))   
-
-        cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,kappa_temp,
+        cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,self.kappa_temp_jj,
                                                    self.kappa_min_t*self.gothic_h_t,
                                                    self.kappa_min_t)
 
 
         return cFunc_t_unconstrained
 
-#        if self.calc_vFunc:
-#            gothicv  = np.dot(transition_array,gothicv_next)
-#            v_temp   = self.u(np.array(c)) + gothicv
-#            vQ_temp  = self.uinv(v_temp) # value transformed through inverse utility
-#            vPQ_temp = gothicvP*self.uinvP(v_temp) # derivative of transformed value
+
 
 def consumptionSavingSolverMarkov(solution_tp1,income_distrib,p_zero_income,survival_prob,
                                       beta,rho,R,Gamma,constraint,a_grid,calc_vFunc,cubic_splines):
@@ -1797,17 +1813,17 @@ if __name__ == '__main__':
     start_time = clock()
     LifecycleType.solve()
     end_time = clock()
-#    print('Solving a lifecycle consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    print('Solving a lifecycle consumer took ' + mystr(end_time-start_time) + ' seconds.')
     LifecycleType.unpack_cFunc()
     LifecycleType.timeFwd()
     
     # Plot the consumption functions during working life
-#    print('Consumption functions while working:')
-#    plotFuncs(LifecycleType.cFunc[:40],0,5)
-#
-#    # Plot the consumption functions during retirement
-#    print('Consumption functions while retired:')
-#    plotFuncs(LifecycleType.cFunc[40:],0,5)
+    print('Consumption functions while working:')
+    plotFuncs(LifecycleType.cFunc[:40],0,5)
+
+    # Plot the consumption functions during retirement
+    print('Consumption functions while retired:')
+    plotFuncs(LifecycleType.cFunc[40:],0,5)
     LifecycleType.timeRev()
     
     

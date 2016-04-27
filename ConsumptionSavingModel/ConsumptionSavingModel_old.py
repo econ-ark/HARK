@@ -582,7 +582,7 @@ def consumptionSavingSolverMarkov(solution_tp1,transition_array,income_distrib,p
         exp_kappa_max_tp1 = (np.dot(transition_array,p_zero_income*solution_tp1.kappa_max**(-rho))/
                              p_zero_income_now)**(-1/rho) # expectation of upper bound on MPC in t+1 from perspective of t
         kappa_max_t       = 1.0/(1.0 + (p_zero_income_now**(1.0/rho))*thorn_R/exp_kappa_max_tp1)
-    
+
     # Use the transition probabilities to calculate expected marginal value (etc)
     # *from* each discrete states, weighting across future discrete states
     gothicvP      = np.dot(transition_array,gothicvP_next)   
@@ -1669,7 +1669,7 @@ if __name__ == '__main__':
         MarkovType.solveAPeriod = consumptionSavingSolverMarkov
         MarkovType.cycles = 0
 
-        MarkovType.cubic_splines = True   
+        #MarkovType.cubic_splines = True   
         
         MarkovType.timeFwd()
         start_time = clock()
