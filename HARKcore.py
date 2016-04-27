@@ -10,7 +10,7 @@ class AgentType():
     the fields time_vary and time_inv as lists of strings.  Each element of time_vary is the
     name of a field in AgentSubType that varies over time in the model.  Each element of
     time_inv is the name of a field in AgentSubType that is constant over time in the model.
-    The string 'solveAPeriod' should appear in exactly one of these lists, depending on
+    The string 'solveOnePeriod' should appear in exactly one of these lists, depending on
     whether the same solution method is used in all periods of the model.
     '''
     
@@ -22,7 +22,7 @@ class AgentType():
         self.cycles = cycles
         self.time_flow = time_flow
         self.pseudo_terminal = pseudo_terminal
-        self.solveAPeriod = NullFunc
+        self.solveOnePeriod = NullFunc
         self.tolerance = tolerance
         self.assignParameters(**kwds)
         
@@ -137,7 +137,7 @@ def solveAgent(agent):
     while go:
 
         # Solve a cycle of the model, recording it if horizon is finite
-        solution_cycle = solveACycle(agent,solution_last)
+        solution_cycle = solveOneCycle(agent,solution_last)
         if not infinite_horizon:
             solution += solution_cycle
 
@@ -167,7 +167,7 @@ def solveAgent(agent):
     return solution
 
 
-def solveACycle(agent,solution_last):
+def solveOneCycle(agent,solution_last):
     '''
     Solve one "cycle" of the dynamic model for one agent type.  This function
     iterates over the periods within an agent's cycle, updating the time-varying
@@ -182,10 +182,10 @@ def solveACycle(agent,solution_last):
         T = 1
 
     # Check whether the same solution method is used in all periods
-    always_same_solver = 'solveAPeriod' not in agent.time_vary
+    always_same_solver = 'solveOnePeriod' not in agent.time_vary
     if always_same_solver:
-        solveAPeriod = agent.solveAPeriod
-        these_args = getArgNames(solveAPeriod)
+        solveOnePeriod = agent.solveOnePeriod
+        these_args = getArgNames(solveOnePeriod)
 
     # Construct a dictionary to be passed to the solver
     time_inv_string = ''
@@ -203,8 +203,8 @@ def solveACycle(agent,solution_last):
 
         # Update which single period solver to use
         if not always_same_solver:
-            solveAPeriod = agent.solveAPeriod[t]
-            these_args = getArgNames(solveAPeriod)
+            solveOnePeriod = agent.solveOnePeriod[t]
+            these_args = getArgNames(solveOnePeriod)
 
         # Update time-varying single period inputs
         for name in agent.time_vary:
@@ -216,7 +216,7 @@ def solveACycle(agent,solution_last):
         temp_dict = {name: solve_dict[name] for name in these_args}
 
         # Solve one period, add it to the solution, and move to the next period
-        solution_t = solveAPeriod(**temp_dict)
+        solution_t = solveOnePeriod(**temp_dict)
         solution_cycle.append(solution_t)
         solution_tp1 = solution_t
 

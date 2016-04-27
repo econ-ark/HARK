@@ -183,7 +183,7 @@ class HARKinterpolator4D():
         raise NotImplementedError()
 
 
-class Cubic1DInterpDecay(HARKinterpolator1D):
+class CubicInterp(HARKinterpolator1D):
     """
     An interpolating function using piecewise cubic splines and "decay extrapolation"
     above the highest gridpoint.  Matches level and slope of 1D function at gridpoints,
@@ -989,7 +989,7 @@ class QuadlinearInterp(HARKinterpolator4D):
         
 
 
-class ConstrainedComposite(HARKinterpolator1D):
+class LowerEnvelope(HARKinterpolator1D):
     """
     An arbitrary 1D function that has a linear constraint with slope of 1.  The
     unconstrained function can be of any class that has the methods __call__,
