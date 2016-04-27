@@ -916,13 +916,13 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             gothicv_next   = np.zeros((self.n_states,self.a_grid.size))
         if self.cubic_splines:
             gothicvPP_next = np.zeros((self.n_states,self.a_grid.size))
-        expY_tp1 = np.zeros(self.n_states) + np.nan
+        if self.calc_vFunc or self.cubic_splines:
+            expY_tp1 = np.zeros(self.n_states) + np.nan
 
         for jj in range(self.n_states):
             self.conditionOnState(jj)
             self.setAndUpdateValues(self.solution_tp1,self.income_distrib,
                                     self.survival_prob,self.beta)
-            self.thorn_R            = ((self.R*self.effective_beta)**(1.0/self.rho))/self.R
 
             # We need to condition on the state again, because self.setAndUpdateValues sets 
             # self.vPfunc_tp1       = solution_tp1.vPfunc... may want to fix this later.             
@@ -950,16 +950,9 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         # gothicvP_next is gothicV, conditional on *next* period's state.
         # Take expectations to get gothicvP conditional on *this* period's state.
         gothicvP      = np.dot(transition_array,gothicvP_next)  
-        
-  
-
  
-
         # Calculate the bounding MPCs and PDV of human wealth for each state
         if self.calc_vFunc or self.cubic_splines:
-            h_tp1             = expY_tp1 + self.solution_tp1.gothic_h # beginning of period human wealth next period
-            gothic_h_t        = self.Gamma/self.R*np.dot(transition_array,h_tp1) # end-of-period human wealth this period
-            kappa_min_t       = 1.0/(1.0 + self.thorn_R/self.solution_tp1.kappa_min) # lower bound on MPC as m --> infty
             exp_kappa_max_tp1 = (np.dot(transition_array,self.p_zero_income_array*self.solution_tp1.kappa_max**(-self.rho))/
                                  self.p_zero_income_now)**(-1/self.rho) # expectation of upper bound on MPC in t+1 from perspective of t
             self.kappa_max_t       = 1.0/(1.0 + (self.p_zero_income_now**(1.0/self.rho))*self.thorn_R/exp_kappa_max_tp1)
@@ -967,10 +960,6 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
     
         if self.cubic_splines:
             self.gothicvPP = np.dot(transition_array,gothicvPP_next)
-
-
-
-       
 
         self.vPPfunc_tp1_list = self.vPPfunc_tp1
         
