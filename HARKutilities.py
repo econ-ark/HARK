@@ -13,6 +13,8 @@ import pylab as plt                 # Python's plotting library
 import scipy.stats as stats         # Python's statistics library
 from scipy.integrate import quad, fixed_quad    # quad integration
 from scipy.interpolate import interp1d
+from scipy.special import erf
+from HARKinterpolation import LinearInterp
 
 def _warning(
     message,
@@ -141,109 +143,184 @@ def CARAutility_invP(u, alpha):
 # ================================================================================
 # = Functions for generating discrete approximations to continuous distributions =
 # ================================================================================
-def calculateLognormalDiscreteApprox(N, mu, sigma):
+#def calculateLognormalDiscreteApprox(N, mu, sigma):
+#    '''
+#    Calculate a discrete approximation to the lognormal distribution, as
+#    described in Carroll (2012 a,b). N is the number of non-overlapping,
+#    equiprobably partitions of the support to create. Mu and sigma are the
+#    mean and standard deviation of the underlying normal distribution.
+#
+#    See the full documentation for indications as to practical limitations
+#    on the numerical approximation accuracy.
+#
+#    Parameters
+#    ----------
+#    N: float
+#        Size of discrete space vector to be returned.
+#    mu: float
+#        mu associated with underlying normal probability distribution.
+#    sigma: float
+#        standard deviation associated with underlying normal probability distribution.
+#
+#    Returns
+#    -------
+#    X: np.ndarray
+#        Discrete points for discrete probability mass function.
+#    pmf: np.ndarray
+#        Probability associated with each point in X.
+#
+#    References
+#    ----------
+#    Carroll, C. D. (2012a). Theoretical Foundations of Buffer Stock Saving.
+#    Manuscript, Department of Economics, Johns Hopkins University, 2012.
+#    http://www.econ2.jhu.edu/people/ccarroll/papers/BufferStockTheory/
+#
+#    Carroll, C. D. (2012b). Solution methods for microeconomic dynamic stochastic
+#    optimization problems. Manuscript, Department of Economics, Johns Hopkins
+#    University, 2012. http://www.econ.jhu.edu/people/ccarroll/solvingmicrodsops
+#
+#    Written by Nathan M. Palmer
+#    Based on Matab function "setup_shocks.m," from Chris Carroll (2012),
+#      [Solution Methods for Microeconomic Dynamic Optimization Problems](http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
+#    Latest update: 31 Jan 2016
+#    --
+#    '''
+#    if sigma > 0.0:
+#        # Note: "return" convention will be: probs always come first, then values.
+#        distrib = stats.lognorm(sigma, 0, np.exp(mu))  # rv = generic_distrib(<shape(s)>, loc=0, scale=1)
+#    
+#        # ------ Set up discrete approx cutoffs ------
+#        probs_cutoffs = np.arange(N+1.0)/float(N)   # Includes 0 and 1
+#        state_cutoffs = distrib.ppf(probs_cutoffs)  # Inverse cdf applied to get the
+#            # "cuttoff" values in the support. Note that final value will be inf.
+#    
+#        # Set pmf:
+#        pmf = np.repeat(1.0/N, N)
+#        pmf_alt = []
+#    
+#        # Find the E[X|bin] values:
+#        F = lambda x: x*distrib.pdf(x)
+#        Ebins = []
+#    
+#        epsabs = 1e-10  # These are used to set the absolute and relative error
+#        epsrel = 1e-10
+#    
+#        # Integrate: get conditional means over partitions.
+#        for i, (x0, x1) in enumerate(zip(state_cutoffs[:-1], state_cutoffs[1:])):
+#    
+#            OUTPUT = quad(F, x0, x1, epsabs=epsabs, epsrel=epsrel, limit=100, full_output=1)
+#    
+#            # Check for errors and unpack the appropriate values:
+#            if len(OUTPUT) == 3:
+#                cond_mean = OUTPUT[0]
+#                abserr = OUTPUT[1]
+#                infodict = OUTPUT[2]
+#    
+#                # Check to see if there appears to be an error:
+#                if abserr > cond_mean:
+#                    warnings.warn("WARNING: abserr > cond_mean. You may likely need to set abserr=0, although this only solves the problem which arises when the true integral is very close to zero.")
+#            else:
+#                # Assume all other values indicate error. Raise exception.
+#                cond_mean = OUTPUT[0]
+#                abserr = OUTPUT[1]
+#                infodict = OUTPUT[2]
+#                errormessage = OUTPUT[3]
+#    
+#                # Do string cleaning to address issues which emerged during doctest.
+#                errormessage = re.sub('\s+', ' ', errormessage)
+#    
+#                # Now use the error message in raising a user exception:
+#                raise Exception(errormessage)
+#    
+#            # Following two lines purely for error-testing:
+#            pmf_alt.append(distrib.cdf(x1) - distrib.cdf(x0))
+#            assert np.isclose(pmf[i], pmf_alt[i]), "In discrete approximation: np.isclose(pmf[i], pmf_alt[i]) is not close!"
+#    
+#            # Save the conditional distribution:
+#            Ebins.append(cond_mean)
+#    
+#        X = np.array(Ebins) / pmf
+#        
+#    else: # No work to be done if there is no variance
+#        pmf = np.array([1.0])
+#        X = np.array([np.exp(mu)])
+#
+#    return( [pmf, X] )
+
+
+
+def calculateLognormalDiscreteApprox(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail_order=np.e):
     '''
-    Calculate a discrete approximation to the lognormal distribution, as
-    described in Carroll (2012 a,b). N is the number of non-overlapping,
-    equiprobably partitions of the support to create. Mu and sigma are the
-    mean and standard deviation of the underlying normal distribution.
-
-    See the full documentation for indications as to practical limitations
-    on the numerical approximation accuracy.
-
+    Construct a discrete approximation to a lognormal distribution with underlying
+    normal distribution N(exp(mu),sigma).  Makes an equiprobable distribution by
+    default, but user can optionally request augmented tails with exponentially
+    sized point masses.  This can improve solution accuracy in some models.
+    
     Parameters
     ----------
-    N: float
-        Size of discrete space vector to be returned.
+    N: int
+        Number of discrete points in the "main part" of the approximation.
     mu: float
-        mu associated with underlying normal probability distribution.
+        Mean of underlying normal distribution.
     sigma: float
-        standard deviation associated with underlying normal probability distribution.
-
+        Standard deviation of underlying normal distribution.
+    tail_N: int
+        Number of points in each "tail part" of the approximation; 0 = no tail.
+    tail_bound: [float]
+        CDF boundaries of the tails vs main portion; tail_bound[0] is the lower
+        tail bound, tail_bound[1] is the upper tail bound.  Inoperative when
+        tail_N = 0.  Can make "one tailed" approximations with 0.0 or 1.0.
+    tail_order: float
+        Factor by which consecutive point masses in a "tail part" differ in
+        probability.  Should be >= 1 for sensible spacing.
+        
     Returns
     -------
-    X: np.ndarray
-        Discrete points for discrete probability mass function.
     pmf: np.ndarray
-        Probability associated with each point in X.
-
-    References
-    ----------
-    Carroll, C. D. (2012a). Theoretical Foundations of Buffer Stock Saving.
-    Manuscript, Department of Economics, Johns Hopkins University, 2012.
-    http://www.econ2.jhu.edu/people/ccarroll/papers/BufferStockTheory/
-
-    Carroll, C. D. (2012b). Solution methods for microeconomic dynamic stochastic
-    optimization problems. Manuscript, Department of Economics, Johns Hopkins
-    University, 2012. http://www.econ.jhu.edu/people/ccarroll/solvingmicrodsops
-
-    Written by Nathan M. Palmer
-    Based on Matab function "setup_shocks.m," from Chris Carroll (2012),
-      [Solution Methods for Microeconomic Dynamic Optimization Problems](http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
-    Latest update: 31 Jan 2016
-    --
-    '''
-    if sigma > 0.0:
-        # Note: "return" convention will be: probs always come first, then values.
-        distrib = stats.lognorm(sigma, 0, np.exp(mu))  # rv = generic_distrib(<shape(s)>, loc=0, scale=1)
-    
-        # ------ Set up discrete approx cutoffs ------
-        probs_cutoffs = np.arange(N+1.0)/float(N)   # Includes 0 and 1
-        state_cutoffs = distrib.ppf(probs_cutoffs)  # Inverse cdf applied to get the
-            # "cuttoff" values in the support. Note that final value will be inf.
-    
-        # Set pmf:
-        pmf = np.repeat(1.0/N, N)
-        pmf_alt = []
-    
-        # Find the E[X|bin] values:
-        F = lambda x: x*distrib.pdf(x)
-        Ebins = []
-    
-        epsabs = 1e-10  # These are used to set the absolute and relative error
-        epsrel = 1e-10
-    
-        # Integrate: get conditional means over partitions.
-        for i, (x0, x1) in enumerate(zip(state_cutoffs[:-1], state_cutoffs[1:])):
-    
-            OUTPUT = quad(F, x0, x1, epsabs=epsabs, epsrel=epsrel, limit=100, full_output=1)
-    
-            # Check for errors and unpack the appropriate values:
-            if len(OUTPUT) == 3:
-                cond_mean = OUTPUT[0]
-                abserr = OUTPUT[1]
-                infodict = OUTPUT[2]
-    
-                # Check to see if there appears to be an error:
-                if abserr > cond_mean:
-                    warnings.warn("WARNING: abserr > cond_mean. You may likely need to set abserr=0, although this only solves the problem which arises when the true integral is very close to zero.")
-            else:
-                # Assume all other values indicate error. Raise exception.
-                cond_mean = OUTPUT[0]
-                abserr = OUTPUT[1]
-                infodict = OUTPUT[2]
-                errormessage = OUTPUT[3]
-    
-                # Do string cleaning to address issues which emerged during doctest.
-                errormessage = re.sub('\s+', ' ', errormessage)
-    
-                # Now use the error message in raising a user exception:
-                raise Exception(errormessage)
-    
-            # Following two lines purely for error-testing:
-            pmf_alt.append(distrib.cdf(x1) - distrib.cdf(x0))
-            assert np.isclose(pmf[i], pmf_alt[i]), "In discrete approximation: np.isclose(pmf[i], pmf_alt[i]) is not close!"
-    
-            # Save the conditional distribution:
-            Ebins.append(cond_mean)
-    
-        X = np.array(Ebins) / pmf
+        Probabilities for discrete probability mass function.
+    X: np.ndarray
+        Discrete values in probability mass function.
         
-    else: # No work to be done if there is no variance
-        pmf = np.array([1.0])
-        X = np.array([np.exp(mu)])
+    Written by Luca Gerotto
+    Based on Matab function "setup_workspace.m," from Chris Carroll's
+      [Solution Methods for Microeconomic Dynamic Optimization Problems](http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
+    Latest update: 21 April 2016 by Matthew N. White
+    '''
+    # Find the CDF boundaries of each segment
+    mu_adj         = mu - 0.5*sigma**2;
+    if tail_N > 0:
+        lo_cut     = tail_bound[0]
+        hi_cut     = tail_bound[1]
+    else:
+        lo_cut     = 0.0
+        hi_cut     = 1.0
+    inner_size     = hi_cut - lo_cut
+    inner_CDF_vals = [lo_cut + x*N**(-1.0)*inner_size for x in range(1, N)]
+    if inner_size < 1.0:
+        scale      = 1.0/tail_order
+        mag        = (1.0-scale**tail_N)/(1.0-scale)
+    lower_CDF_vals = [0.0]
+    if lo_cut > 0.0:
+        for x in range(tail_N-1,-1,-1):
+            lower_CDF_vals.append(lower_CDF_vals[-1] + lo_cut*scale**x/mag)
+    upper_CDF_vals  = [hi_cut]
+    if hi_cut < 1.0:
+        for x in range(tail_N):
+            upper_CDF_vals.append(upper_CDF_vals[-1] + (1.0-hi_cut)*scale**x/mag)
+    CDF_vals       = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
+    temp_cutoffs   = list(stats.lognorm.ppf(CDF_vals[1:-1], s=sigma, loc=0, scale=np.exp(mu_adj)))
+    cutoffs        = [0] + temp_cutoffs + [np.inf]
+    CDF_vals       = np.array(CDF_vals)
 
-    return( [pmf, X] )
+    # Construct the discrete approximation by finding the average value within each segment
+    K              = CDF_vals.size-1 # number of points in approximation
+    pmf            = CDF_vals[1:(K+1)] - CDF_vals[0:K]
+    X              = np.zeros(K)
+    for i in range(K):
+        zBot  = cutoffs[i]
+        zTop = cutoffs[i+1]
+        X[i] = (-0.5)*np.exp(mu_adj+(sigma**2)*0.5)*(erf((mu_adj+sigma**2-np.log(zTop))*((np.sqrt(2)*sigma)**(-1)))-erf((mu_adj+sigma**2-np.log(zBot))*((np.sqrt(2)*sigma)**(-1))))*(pmf[i]**(-1));           
+    return [pmf, X]
 
 
 @memoize
@@ -750,6 +827,65 @@ def avgDataSlice(data,reference,cutoffs,weights=None):
         top = np.searchsorted(cum_dist,cutoffs[j][1])
         slice_avg.append(np.sum(data_sorted[bot:top]*weights_sorted[bot:top])/np.sum(weights_sorted[bot:top]))
     return slice_avg
+    
+    
+    
+def kernelRegression(x,y,bot=None,top=None,N=500,h=None):
+    '''
+    Performs a non-parametric Nadaraya-Watson 1D kernel regression on given data
+    with optionally specified range, number of points, and kernel bandwidth.
+    
+    Parameters:
+    ------------
+    x : np.array
+        The independent variable in the kernel regression.
+    y : np.array
+        The dependent variable in the kernel regression.
+    bot : float
+        Minimum value of interest in the regression; defaults to min(x).
+    top : float
+        Maximum value of interest in the regression; defaults to max(y).
+    N : int
+        Number of points to compute.
+    h : float
+        The bandwidth of the (Epanechnikov) kernel. To-do: GENERALIZE.
+        
+    Returns:
+    ----------
+    regression : LinearInterp
+        A piecewise locally linear kernel regression: y = f(x).
+    '''
+    # Fix omitted inputs
+    if bot is None:
+        bot = np.min(x)
+    if top is None:
+        top = np.max(x)
+    if h is None:
+        h = 2.0*(top - bot)/float(N) # This is an arbitrary default
+        
+    # Construct a local linear approximation
+    x_vec = np.linspace(bot,top,num=N)
+    y_vec = np.zeros_like(x_vec) + np.nan
+    for j in range(N):
+        x_here = x_vec[j]
+        weights = epanechnikovKernel(x,x_here,h)
+        y_vec[j] = np.dot(weights,y)/np.sum(weights)
+    #print(x_vec)
+    #print(y_vec)
+    regression = LinearInterp(x_vec,y_vec)
+    return regression
+    
+    
+    
+    
+def epanechnikovKernel(x,ref_x,h=1.0):    
+    u = (x-ref_x)/h
+    these = np.abs(u) <= 1.0
+    out = np.zeros_like(x)
+    out[these] = 0.75*(1.0-u[these]**2.0)
+    return out
+
+    
 
 
 def getArgNames(function):
