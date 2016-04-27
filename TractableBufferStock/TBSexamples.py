@@ -64,7 +64,7 @@ init_consumer_objects = {"rho":base_primitives['rho'],
                         'cubic_splines':True
                         }
 MarkovType = ConsumerType(**init_consumer_objects)
-transition_matrix = np.array([[1.0-base_primitives['mho'],base_primitives['mho']],[0.0,1.0]])
+transition_array = np.array([[1.0-base_primitives['mho'],base_primitives['mho']],[0.0,1.0]])
 employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]
 unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
 p_zero_income = [np.array([0.0,1.0])]
@@ -75,8 +75,8 @@ MarkovType.solution_terminal.vPPfunc = 2*[MarkovType.solution_terminal.vPPfunc]
 MarkovType.solution_terminal.m_underbar = 2*[MarkovType.solution_terminal.m_underbar]
 MarkovType.income_distrib = [[employed_income_dist,unemployed_income_dist]]
 MarkovType.p_zero_income = p_zero_income
-MarkovType.transition_matrix = transition_matrix
-MarkovType.time_inv.append('transition_matrix')
+MarkovType.transition_array = transition_array
+MarkovType.time_inv.append('transition_array')
 MarkovType.solveAPeriod = consumptionSavingSolverMarkov
 MarkovType.cycles = 0
 
@@ -90,4 +90,4 @@ print('Solving the same model "the long way" took ' + str(t_end-t_start) + ' sec
 plotFuncs(MarkovType.cFunc[0],0,m_upper)
 diffFunc = lambda m : ExampleType.solution[0].cFunc(m) - MarkovType.cFunc[0][0](m)
 print('Difference between the (employed) consumption functions:')
-plotFunc(diffFunc,0,100)
+plotFunc(diffFunc,0,m_upper)

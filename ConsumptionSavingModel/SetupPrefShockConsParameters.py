@@ -24,7 +24,7 @@ p_unemploy_retire = 0.0005          # Probability of "unemployment" while retire
 income_unemploy = 0.4               # Unemployment benefits replacement rate
 income_unemploy_retire = 0.0        # Ditto when retired
 
-pref_shock_sigma = 0.10              # Standard deviation of marginal utility shocks
+pref_shock_sigma = 0.30              # Standard deviation of marginal utility shocks
 pref_shock_N = 12                    # Number of points in discrete approximation to preference shock dist
 pref_shock_tail_N = 4                # Number of points in each tail of the preference shock distribution
 
