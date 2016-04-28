@@ -358,7 +358,7 @@ class CubicInterp(HARKinterpolator1D):
         then the difference in the number of gridpoints is returned instead.
         '''
         other_class = other_function.__class__.__name__
-        if other_class is not 'Cubic1DInterpDecay':
+        if other_class is not 'CubicInterp':
             return 1000000
         xA = self.x_list
         xB = other_function.x_list

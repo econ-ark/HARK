@@ -6,9 +6,9 @@ sys.path.insert(0,'../')
 import numpy as np
 from HARKcore import AgentType, NullFunc
 from HARKutilities import warnings  # Because of "patch" to warnings modules
-from HARKutilities import calculateMeanOneLognormalDiscreteApprox, addDiscreteOutcomeConstantMean, createFlatStateSpaceFromIndepDiscreteProbs, setupGridsExpMult, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
-from HARKinterpolation import Cubic1DInterpDecay, ConstrainedComposite, LinearInterp
-from HARKsimulation import generateMeanOneLognormalDraws, generateBernoulliDraws
+from HARKutilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean, combineIndepDists, makeGridExpMult, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
+from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
+from HARKsimulation import drawMeanOneLognormal, drawBernoulli
 from scipy.optimize import newton, brentq
 from copy import deepcopy, copy
 
@@ -379,19 +379,19 @@ class ConsumptionSavingSolverEXOG(SetupImperfectForesightSolver):
         
         # Construct the unconstrained consumption function
         if cubic_splines:
-            cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,kappa_temp,kappa_min_t*gothic_h_t,
+            cFunc_t_unconstrained = CubicInterp(m_temp,c_temp,kappa_temp,kappa_min_t*gothic_h_t,
                                                        kappa_min_t)
         else:
             cFunc_t_unconstrained = LinearInterp(m_temp,c_temp)
     
         # Combine the constrained and unconstrained functions into the true consumption function
-        cFunc_t = ConstrainedComposite(cFunc_t_unconstrained,constraint_t)
+        cFunc_t = LowerEnvelope(cFunc_t_unconstrained,constraint_t)
         
         # Construct the value function if requested
         if calc_vFunc:
             k        = kappa_min_t**(-rho/(1-rho))
             m_list   = (np.asarray(a_grid) + m_underbar_t).tolist()
-            vQfunc_t = Cubic1DInterpDecay(m_list,vQ_temp,vPQ_temp,k*gothic_h_t,k)
+            vQfunc_t = CubicInterp(m_list,vQ_temp,vPQ_temp,k*gothic_h_t,k)
             vFunc_t  = lambda m : u(vQfunc_t(m))
             
         # Make the marginal value function and the marginal marginal value function
@@ -540,7 +540,7 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         cFunc_t_unconstrained = interpolator(m,c)
 
         # Combine the constrained and unconstrained functions into the true consumption function
-        cFunc_t = ConstrainedComposite(cFunc_t_unconstrained,self.constraint_t)
+        cFunc_t = LowerEnvelope(cFunc_t_unconstrained,self.constraint_t)
 
         # Make the marginal value function and the marginal marginal value function
         vPfunc_t = lambda m : self.uP(cFunc_t(m))
@@ -598,7 +598,7 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         kappa       = dcda/(dcda+1.)
         kappa_temp += kappa.tolist()
 
-        cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,kappa_temp,
+        cFunc_t_unconstrained = CubicInterp(m_temp,c_temp,kappa_temp,
                                                    self.kappa_min_t*self.gothic_h_t,
                                                    self.kappa_min_t)
 
@@ -614,7 +614,7 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         vQ_temp   = self.uinv(v_temp) # value transformed through inverse utility
         vPQ_temp  = gothicvP*self.uinvP(v_temp)
         k         = self.kappa_min_t**(-self.rho/(1-self.rho))
-        vQfunc_t  = Cubic1DInterpDecay(self.m,vQ_temp,vPQ_temp,k*self.gothic_h_t,k)
+        vQfunc_t  = CubicInterp(self.m,vQ_temp,vPQ_temp,k*self.gothic_h_t,k)
         vFunc_t   = lambda m : self.u(vQfunc_t(m))        
 
         solution.vFunc = vFunc_t
@@ -881,6 +881,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         Find the income distribution, etc., conditional on a given state next period
         """
         self.income_distrib = self.income_distrib_list[state_index]
+        print(self.income_distrib)
         self.p_zero_income  = self.p_zero_income_array[state_index] 
         self.vPfunc_tp1     = self.solution_tp1.vPfunc[state_index]
         self.m_underbar_t   = self.m_underbar_list[state_index] 
@@ -1015,7 +1016,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         Interpolate the unconstrained consumption function with cubic splines
         """
         
-        cFunc_t_unconstrained = Cubic1DInterpDecay(m_temp,c_temp,self.kappa_temp_jj,
+        cFunc_t_unconstrained = CubicInterp(m_temp,c_temp,self.kappa_temp_jj,
                                                    self.kappa_min_t*self.gothic_h_t,
                                                    self.kappa_min_t)
 
@@ -1055,7 +1056,7 @@ class ConsumerType(AgentType):
     cFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,1.0])
     vFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,0.0])
     constraint_terminal_ = lambda x: x
-    solution_terminal_   = ConsumerSolution(cFunc=ConstrainedComposite(cFunc_terminal_,constraint_terminal_),
+    solution_terminal_   = ConsumerSolution(cFunc=LowerEnvelope(cFunc_terminal_,constraint_terminal_),
                                             vFunc = vFunc_terminal_, m_underbar=0.0, gothic_h=0.0, 
                                             kappa_min=1.0, kappa_max=1.0)
     time_vary_ = ['survival_prob','beta','Gamma']
@@ -1072,7 +1073,7 @@ class ConsumerType(AgentType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary    = deepcopy(ConsumerType.time_vary_)
         self.time_inv     = deepcopy(ConsumerType.time_inv_)
-        self.solveAPeriod = consumptionSavingSolverENDG # this can be swapped for consumptionSavingSolverEXOG or another solver
+        self.solveOnePeriod = consumptionSavingSolverENDG # this can be swapped for consumptionSavingSolverEXOG or another solver
         self.update()
 
     def unpack_cFunc(self):
@@ -1383,12 +1384,12 @@ def constructLognormalIncomeProcessUnemployment(parameters):
                 p_zero_income.append(0)
         else:
             # We are in the "working life" periods.
-            temp_xi_dist     = calculateMeanOneLognormalDiscreteApprox(N=xi_N, sigma=xi_sigma[t])
+            temp_xi_dist     = approxMeanOneLognormal(N=xi_N, sigma=xi_sigma[t])
             if p_unemploy > 0:
                 temp_xi_dist = addDiscreteOutcomeConstantMean(temp_xi_dist, p=p_unemploy, 
                                                               x=income_unemploy)
-            temp_psi_dist    = calculateMeanOneLognormalDiscreteApprox(N=psi_N, sigma=psi_sigma[t])
-            income_distrib.append(createFlatStateSpaceFromIndepDiscreteProbs(temp_psi_dist, 
+            temp_psi_dist    = approxMeanOneLognormal(N=psi_N, sigma=psi_sigma[t])
+            income_distrib.append(combineIndepDists(temp_psi_dist, 
                                                                              temp_xi_dist))
             if income_unemploy == 0:
                 p_zero_income.append(p_unemploy)
@@ -1397,128 +1398,7 @@ def constructLognormalIncomeProcessUnemployment(parameters):
 
     return income_distrib, p_zero_income
     
-    
-    
-def constructLognormalIncomeProcessUnemploymentFailure(parameters):
-    """
-    Generates a list of discrete approximations to the income process for each
-    life period, from end of life to beginning of life.  The process is identical
-    to constructLognormalIncomeProcessUnemployment but for a very tiny possibility
-    that unemployment benefits are not provided.
 
-    Parameters:
-    -----------
-    psi_sigma:    [float]
-        Array of standard deviations in _permanent_ income uncertainty during
-        the agent's life.
-    psi_N:      int
-        The number of approximation points to be used in the equiprobable
-        discrete approximation to the permanent income shock distribution.
-    xi_sigma      [float]
-        Array of standard deviations in _temporary_ income uncertainty during
-        the agent's life.
-    xi_N:       int
-        The number of approximation points to be used in the equiprobable
-        discrete approximation to the permanent income shock distribution.
-    p_unemploy:             float
-        The probability of becoming unemployed
-    p_unemploy_retire:      float
-        The probability of not receiving typical retirement income in any retired period
-    T_retire:       int
-        The index value i equal to the final working period in the agent's life.
-        If T_retire <= 0 then there is no retirement.
-    income_unemploy:         float
-        Income received when unemployed. Often zero.
-    income_unemploy_retire:  float
-        Income received while "unemployed" when retired. Often zero.
-    T_total:       int
-        Total number of non-terminal periods in this consumer's life.
-
-    Returns
-    =======
-    income_distrib:  [income distribution]
-        Each element contains the joint distribution of permanent and transitory
-        income shocks, as a set of vectors: psi_shock, xi_shock, and pmf. The
-        first two are the points in the joint state space, and final vector is
-        the joint pmf over those points. For example,
-               psi_shock[20], xi_shock[20], and pmf[20]
-        refers to the (psi, xi) point indexed by 20, with probability p = pmf[20].
-    p_zero_income: [float]
-        A list of probabilities of receiving exactly zero income in each period.
-
-    """
-    # Unpack the parameters from the input
-    psi_sigma               = parameters.psi_sigma
-    psi_N                   = parameters.psi_N
-    xi_sigma                = parameters.xi_sigma
-    xi_N                    = parameters.xi_N
-    T_total                 = parameters.T_total
-    p_unemploy              = parameters.p_unemploy
-    p_unemploy_retire       = parameters.p_unemploy_retire
-    T_retire                = parameters.T_retire
-    income_unemploy         = parameters.income_unemploy
-    income_unemploy_retire  = parameters.income_unemploy_retire
-
-    # Set a small possibility of unemployment benefit failure
-    p_fail = 0.01
-    
-    income_distrib = [] # Discrete approximation to income process
-    p_zero_income = [] # Probability of zero income in each period of life
-
-    # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
-    # in normal times; value 0.0 in "unemployment" times with small prob.
-    if T_retire > 0:
-        if p_unemploy_retire > 0:
-            retire_perm_income_values = np.array([1.0, 1.0])    # Permanent income is deterministic in retirement (2 states for temp income shocks)
-            retire_income_values = np.array([income_unemploy_retire, (1.0-p_unemploy_retire*
-                                             income_unemploy_retire)/(1.0-p_unemploy_retire)])
-            retire_income_probs  = np.array([p_unemploy_retire, 1.0-p_unemploy_retire])
-            if income_unemploy_retire > 0:
-                temp_dist = addDiscreteOutcomeConstantMean([retire_income_values, 
-                                                            retire_income_probs], 
-                                                            p=(p_fail*p_unemploy_retire), x=0)
-                retire_income_values      = temp_dist[0]
-                retire_income_probs       = temp_dist[1]
-                retire_perm_income_values = np.array([1.0, 1.0, 1.0])
-        else:
-            retire_perm_income_values   = np.array([1.0])
-            retire_income_values        = np.array([1.0])
-            retire_income_probs         = np.array([1.0])
-        income_dist_retire = [retire_income_probs,retire_perm_income_values,retire_income_values]
-
-
-    # Loop to fill in the list of income_distrib random variables.
-    for t in range(T_total): # Iterate over all periods, counting forward
-
-        if T_retire > 0 and t >= T_retire:
-            # Then we are in the "retirement period" and add a retirement income object.
-            income_distrib.append(deepcopy(income_dist_retire))
-            if income_unemploy_retire == 0:
-                p_zero_income.append(p_unemploy_retire)
-            else:
-                p_zero_income.append(p_fail*p_unemploy_retire)
-        else:
-            # We are in the "working life" periods.
-            temp_xi_dist     = calculateMeanOneLognormalDiscreteApprox(N=xi_N, sigma=xi_sigma[t])
-            if p_unemploy > 0:
-                temp_xi_dist = addDiscreteOutcomeConstantMean(temp_xi_dist, p=p_unemploy, 
-                                                              x=income_unemploy)
-                if income_unemploy > 0:
-                    temp_xi_dist = addDiscreteOutcomeConstantMean(temp_xi_dist, 
-                                                                  p=(p_unemploy*p_fail), x=0)
-            temp_psi_dist        = calculateMeanOneLognormalDiscreteApprox(N=psi_N, 
-                                                                           sigma=psi_sigma[t])
-            income_distrib.append(createFlatStateSpaceFromIndepDiscreteProbs(temp_psi_dist,
-                                                                             temp_xi_dist))
-            if p_unemploy > 0:
-                if income_unemploy == 0:
-                    p_zero_income.append(p_unemploy)
-                else:
-                    p_zero_income.append(p_unemploy*p_fail)
-            else:
-                p_zero_income.append(0)
-
-    return income_distrib, p_zero_income
 
 
 def applyFlatIncomeTax(income_distrib,tax_rate,T_retire,unemployed_indices=[],transitory_index=2):
@@ -1627,12 +1507,12 @@ def generateIncomeShockHistoryLognormalUnemployment(parameters):
     retired_periods     = len(Gamma_retire)
     
     # Generate transitory shocks in the working period (needs one extra period)
-    xi_history_working = generateMeanOneLognormalDraws(xi_sigma_working, Nagents, xi_seed)
+    xi_history_working = drawMeanOneLognormal(xi_sigma_working, Nagents, xi_seed)
     np.random.seed(0)
     xi_history_working.insert(0,np.random.permutation(xi_history_working[0]))
     
     # Generate permanent shocks in the working period
-    scriptR_history_working = generateMeanOneLognormalDraws(psi_sigma_working, Nagents, psi_seed)
+    scriptR_history_working = drawMeanOneLognormal(psi_sigma_working, Nagents, psi_seed)
     for t in range(working_periods-1):
         scriptR_history_working[t] = R/(scriptR_history_working[t]*Gamma_working[t])
 
@@ -1650,7 +1530,7 @@ def generateIncomeShockHistoryLognormalUnemployment(parameters):
     unemp_rescale_life = [(1-tax_rate)*(1-p_unemploy*income_unemploy)/(1-p_unemploy)]*\
                           working_periods + [(1-p_unemploy_retire*income_unemploy_retire)/
                           (1-p_unemploy_retire)]*retired_periods
-    unemployment_history = generateBernoulliDraws(p_unemploy_life,Nagents,unemp_seed)   
+    unemployment_history = drawBernoulli(p_unemploy_life,Nagents,unemp_seed)   
     
     # Combine working and retired histories and apply unemployment
     xi_history          = xi_history_working + xi_history_retired
@@ -1713,9 +1593,9 @@ def generateIncomeShockHistoryInfiniteSimple(parameters):
     unemp_seed      = parameters.unemp_seed
     sim_periods     = parameters.sim_periods
     
-    xi_history           = generateMeanOneLognormalDraws(sim_periods*xi_sigma, Nagents, xi_seed)
-    unemployment_history = generateBernoulliDraws(sim_periods*[p_unemploy],Nagents,unemp_seed)
-    scriptR_history      = generateMeanOneLognormalDraws(sim_periods*psi_sigma, Nagents, psi_seed)
+    xi_history           = drawMeanOneLognormal(sim_periods*xi_sigma, Nagents, xi_seed)
+    unemployment_history = drawBernoulli(sim_periods*[p_unemploy],Nagents,unemp_seed)
+    scriptR_history      = drawMeanOneLognormal(sim_periods*psi_sigma, Nagents, psi_seed)
     for t in range(sim_periods):
         scriptR_history[t] = R/(scriptR_history[t]*Gamma)
         xi_history[t]      = xi_history[t]*(1-p_unemploy*income_unemploy)/(1-p_unemploy)
@@ -1767,7 +1647,7 @@ def constructAssetsGrid(parameters):
     if grid_type == "linear":
         a_grid = np.linspace(a_min, a_max, a_size)
     elif grid_type == "exp_mult":
-        a_grid = setupGridsExpMult(ming=a_min, maxg=a_max, ng=a_size, timestonest=exp_nest)
+        a_grid = makeGridExpMult(ming=a_min, maxg=a_max, ng=a_size, timestonest=exp_nest)
     else:
         raise Exception, "grid_type not recognized in __init__." + \
                          "Please ensure grid_type is 'linear' or 'exp_mult'"
@@ -1800,8 +1680,8 @@ if __name__ == '__main__':
     
 #    # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)
-#    LifecycleType.solveAPeriod = consumptionSavingSolverEXOG
-    LifecycleType.solveAPeriod = consumptionSavingSolverENDG
+#    LifecycleType.solveOnePeriod = consumptionSavingSolverEXOG
+    LifecycleType.solveOnePeriod = consumptionSavingSolverENDG
     
     start_time = clock()
     LifecycleType.solve()
@@ -1867,7 +1747,7 @@ if __name__ == '__main__':
     KinkyType.time_inv += ['R_borrow','R_save']
     KinkyType(R_borrow = 1.2, R_save = 1.03, constraint = None, a_size = 48, cycles=0, cubic_splines = False)
 
-    KinkyType.solveAPeriod = consumptionSavingSolverKinkedR
+    KinkyType.solveOnePeriod = consumptionSavingSolverKinkedR
     KinkyType.updateAssetsGrid()
     
     start_time = clock()
@@ -1919,8 +1799,8 @@ if __name__ == '__main__':
                                       Gamma = 2*[1.01])
         HybridType.income_distrib = 2*[LifecycleType.income_distrib[-1]]
         HybridType.p_zero_income = 2*[LifecycleType.p_zero_income[-1]]
-        HybridType.time_vary.append('solveAPeriod')
-        HybridType.solveAPeriod = [consumptionSavingSolverENDG,consumptionSavingSolverEXOG] # alternated between ENDG and EXOG
+        HybridType.time_vary.append('solveOnePeriod')
+        HybridType.solveOnePeriod = [consumptionSavingSolverENDG,consumptionSavingSolverEXOG] # alternated between ENDG and EXOG
         
         start_time = clock()
         HybridType.solve()
@@ -1951,9 +1831,9 @@ if __name__ == '__main__':
                                       [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
         
         MarkovType = deepcopy(InfiniteType)
-        xi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.xi_N, 0.1)
-        psi_dist = calculateMeanOneLognormalDiscreteApprox(MarkovType.psi_N, 0.1)
-        employed_income_dist = createFlatStateSpaceFromIndepDiscreteProbs(psi_dist, xi_dist)
+        xi_dist = approxMeanOneLognormal(MarkovType.xi_N, 0.1)
+        psi_dist = approxMeanOneLognormal(MarkovType.psi_N, 0.1)
+        employed_income_dist = combineIndepDists(psi_dist, xi_dist)
         employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]
         unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
         p_zero_income = [np.array([0.0,1.0,0.0,1.0])]
@@ -1968,7 +1848,7 @@ if __name__ == '__main__':
         MarkovType.p_zero_income = p_zero_income
         MarkovType.transition_array = transition_array
         MarkovType.time_inv.append('transition_array')
-        MarkovType.solveAPeriod = consumptionSavingSolverMarkov
+        MarkovType.solveOnePeriod = consumptionSavingSolverMarkov
         MarkovType.cycles = 0
         
         MarkovType.cubic_splines = True 
@@ -1992,7 +1872,7 @@ if __name__ == '__main__':
         PerfectForesightType = deepcopy(LifecycleType)    
         
         #tell the model to use the perfect forsight solver
-        PerfectForesightType.solveAPeriod = perfectForesightSolver
+        PerfectForesightType.solveOnePeriod = perfectForesightSolver
         PerfectForesightType.time_vary = [] #let the model know that there are no longer time varying parameters
         PerfectForesightType.time_inv =  PerfectForesightType.time_inv +['beta','Gamma'] #change beta and Gamma from time varying to non time varying
         #give the model new beta and Gamma parameters to use for the perfect forsight model

@@ -11,12 +11,11 @@ sys.path.insert(0,'../')
 import numpy as np
 from HARKcore import AgentType, NullFunc
 from HARKutilities import warnings  # Because of "patch" to warnings modules
-from HARKutilities import calculateLognormalDiscreteApprox, addDiscreteOutcomeConstantMean, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
-from HARKinterpolation import ConstrainedComposite, LinearInterp, LinearInterpOnInterp1D
-from HARKsimulation import generateMeanOneLognormalDraws, generateBernoulliDraws
+from HARKutilities import approxLognormal, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
+from HARKinterpolation import LowerEnvelope, LinearInterp, LinearInterpOnInterp1D
+from HARKsimulation import drawMeanOneLognormal, drawBernoulli
 from ConsumptionSavingModel import constructAssetsGrid, constructLognormalIncomeProcessUnemployment
-from scipy.stats import lognorm
-from copy import deepcopy, copy
+from copy import deepcopy
 
 utility = CRRAutility
 utilityP = CRRAutilityP
@@ -196,7 +195,7 @@ def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_dis
     for j in range(pref_N):
         m_temp = np.concatenate((np.array([m_underbar_t]),m[j,:]))
         c_temp = np.concatenate((np.array([0.0]),c[j,:]))
-        cFunc_this_shock = ConstrainedComposite(LinearInterp(m_temp,c_temp),constraint_t)
+        cFunc_this_shock = LowerEnvelope(LinearInterp(m_temp,c_temp),constraint_t)
         cFunc_list.append(cFunc_this_shock)
         
     # Combine the list of consumption functions into a single interpolation
@@ -223,7 +222,7 @@ class PrefShockConsumer(AgentType):
     # Define some universal values for all consumer types
     cFunc_terminal_ = LinearInterp([0.0, 1.0],[0.0,1.0])
     constraint_terminal_ = lambda x: x
-    solution_terminal_ = ConsumerSolution(cFunc=ConstrainedComposite(cFunc_terminal_,constraint_terminal_), vFunc=None, m_underbar=0.0, gothic_h=0.0, kappa_min=1.0, kappa_max=1.0)
+    solution_terminal_ = ConsumerSolution(cFunc=LowerEnvelope(cFunc_terminal_,constraint_terminal_), vFunc=None, m_underbar=0.0, gothic_h=0.0, kappa_min=1.0, kappa_max=1.0)
     time_vary_ = ['survival_prob','Gamma']
     time_inv_ = ['beta','rho','R_save','R_borrow','a_grid','constraint']
     
@@ -237,7 +236,7 @@ class PrefShockConsumer(AgentType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(PrefShockConsumer.time_vary_)
         self.time_inv = deepcopy(PrefShockConsumer.time_inv_)
-        self.solveAPeriod = consPrefShockSolver
+        self.solveOnePeriod = consPrefShockSolver
         self.update()
         
                 
@@ -278,7 +277,7 @@ class PrefShockConsumer(AgentType):
         '''
         Updates this agent's preference shock distribution.
         '''
-        pref_shock_dist = calculateLognormalDiscreteApprox(self.pref_shock_N,0.0,self.pref_shock_sigma,tail_N=self.pref_shock_tail_N)
+        pref_shock_dist = approxLognormal(self.pref_shock_N,0.0,self.pref_shock_sigma,tail_N=self.pref_shock_tail_N)
         self.pref_shock_dist = pref_shock_dist
         if not 'pref_shock_dist' in self.time_inv:
             self.time_inv.append('pref_shock_dist')
@@ -474,10 +473,10 @@ def generateShockHistoryInfiniteSimple(parameters):
     pref_shock_seed = parameters.RNG.randint(2**31-1)
     sim_T = parameters.sim_T
     
-    trans_shock_history = generateMeanOneLognormalDraws(sim_T*xi_sigma, sim_N, xi_seed)
-    unemployment_history = generateBernoulliDraws(sim_T*[p_unemploy],sim_N,unemp_seed)
-    perm_shock_history = generateMeanOneLognormalDraws(sim_T*psi_sigma, sim_N, psi_seed)
-    pref_shock_history = generateMeanOneLognormalDraws(sim_T*[pref_shock_sigma], sim_N, pref_shock_seed)
+    trans_shock_history = drawMeanOneLognormal(sim_T*xi_sigma, sim_N, xi_seed)
+    unemployment_history = drawBernoulli(sim_T*[p_unemploy],sim_N,unemp_seed)
+    perm_shock_history = drawMeanOneLognormal(sim_T*psi_sigma, sim_N, psi_seed)
+    pref_shock_history = drawMeanOneLognormal(sim_T*[pref_shock_sigma], sim_N, pref_shock_seed)
     for t in range(sim_T):
         perm_shock_history[t] = (perm_shock_history[t]*Gamma[0])
         trans_shock_history[t] = trans_shock_history[t]*(1-p_unemploy*income_unemploy)/(1-p_unemploy)

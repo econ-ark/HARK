@@ -6,7 +6,7 @@ sys.path.insert(0,'../')
 import SetupConsumerParameters as Params
 import ConsumptionSavingModel as Model
 import SetupSCFdata as Data
-from HARKsimulation import generateDiscreteDraws
+from HARKsimulation import drawDiscrete
 from HARKestimation import minimizeNelderMead, bootstrapSampleFromData
 import numpy as np
 import pylab
@@ -26,7 +26,7 @@ EstimationAgent = Model.ConsumerType(**Params.init_consumer_objects)
 
 # Make histories of permanent and transitory shocks, plus an initial distribution of wealth
 scriptR_shocks, xi_shocks = Model.generateIncomeShockHistoryLognormalUnemployment(EstimationAgent)
-w0_vector = generateDiscreteDraws(P=Params.initial_wealth_income_ratio_probs,
+w0_vector = drawDiscrete(P=Params.initial_wealth_income_ratio_probs,
                                          X=Params.initial_wealth_income_ratio_vals,
                                          N=Params.num_agents,
                                          seed=Params.seed)

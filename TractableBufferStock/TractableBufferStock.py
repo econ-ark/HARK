@@ -9,7 +9,7 @@ sys.path.insert(0,'../')
 from HARKcore import AgentType, NullFunc
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityPPP, CRRAutilityPPPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
-from HARKinterpolation import Cubic1DInterpDecay
+from HARKinterpolation import CubicInterp
 from copy import copy
 from scipy.optimize import newton, brentq
 #from cstwMPC import cstwMPCagent
@@ -121,7 +121,7 @@ class TractableConsumerType(AgentType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = []
         self.time_inv = ['beta','R','rho','Gamma','mho','kappa_PF','scriptR','Beth','m_min','m_max']
-        self.solveAPeriod = addToStableArmPoints
+        self.solveOnePeriod = addToStableArmPoints
         
     def preSolve(self):
         '''
@@ -206,7 +206,7 @@ class TractableConsumerType(AgentType):
         self.solution[0].kappa_list.insert(0,self.kappa_max)
         
         # Construct an interpolation of the consumption function from the stable arm points
-        self.solution[0].cFunc = Cubic1DInterpDecay(self.solution[0].m_list,self.solution[0].c_list,self.solution[0].kappa_list,self.kappa_PF*(self.h-1.0),self.kappa_PF)
+        self.solution[0].cFunc = CubicInterp(self.solution[0].m_list,self.solution[0].c_list,self.solution[0].kappa_list,self.kappa_PF*(self.h-1.0),self.kappa_PF)
         self.solution[0].cFunc_U = lambda m : self.kappa_PF*m
         #self.cFunc = self.solution[0].cFunc
         

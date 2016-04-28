@@ -11,8 +11,8 @@ sys.path.insert(0,'../ConsumptionSavingModel')
 import numpy as np
 from copy import copy, deepcopy
 from time import time
-from HARKutilities import calculateMeanOneLognormalDiscreteApprox, createFlatStateSpaceFromIndepDiscreteProbs, makeUniformDiscreteDistribution, weightedAverageSimData, extractPercentiles, getLorenzPercentiles, avgDataSlice
-from HARKsimulation import generateDiscreteDraws, generateMeanOneLognormalDraws
+from HARKutilities import approxMeanOneLognormal, combineIndepDists, approxUniform, calcWeightedAvg, getPercentiles, getLorenzShares, calcSubpopAvg
+from HARKsimulation import drawDiscrete, drawMeanOneLognormal
 from HARKcore import AgentType
 from HARKparallel import multiThreadCommandsFake, multiThreadCommands
 import SetupParamsCSTW as Params
@@ -39,7 +39,7 @@ class cstwMPCagent(Model.ConsumerType):
         self.time_inv = deepcopy(Model.ConsumerType.time_inv_)
         self.time_vary.remove('beta')
         self.time_inv.append('beta')
-        self.solveAPeriod = Model.consumptionSavingSolverENDG # this can be swapped for consumptionSavingSolverEXOG or another solver
+        self.solveOnePeriod = Model.consumptionSavingSolverENDG # this can be swapped for consumptionSavingSolverEXOG or another solver
         self.update()
         
     def simulateCSTWa(self):
@@ -79,11 +79,11 @@ class cstwMPCagent(Model.ConsumerType):
             
     def updateIncomeProcessAlt(self):
         tax_rate = (self.income_unemploy*self.p_unemploy)/(self.l_bar*(1.0-self.p_unemploy))
-        xi_dist = deepcopy(calculateMeanOneLognormalDiscreteApprox(self.xi_N,self.xi_sigma[0]))
+        xi_dist = deepcopy(approxMeanOneLognormal(self.xi_N,self.xi_sigma[0]))
         xi_dist[0] = np.insert(xi_dist[0]*(1.0-self.p_unemploy),0,self.p_unemploy)
         xi_dist[1] = np.insert(self.l_bar*xi_dist[1]*(1.0-tax_rate),0,self.income_unemploy)
-        psi_dist = calculateMeanOneLognormalDiscreteApprox(self.psi_N,self.psi_sigma[0])
-        self.income_distrib = [createFlatStateSpaceFromIndepDiscreteProbs(psi_dist,xi_dist)]
+        psi_dist = approxMeanOneLognormal(self.psi_N,self.psi_sigma[0])
+        self.income_distrib = [combineIndepDists(psi_dist,xi_dist)]
         if self.income_unemploy > 0:
             self.p_zero_income = [0.0]
         else:
@@ -139,7 +139,7 @@ def calculateKYratioDifference(sim_wealth,weights,total_output,target_KY):
     distance : float
         Absolute distance between simulated and actual K/Y ratios.
     '''
-    sim_K = weightedAverageSimData(sim_wealth,weights)
+    sim_K = calcWeightedAvg(sim_wealth,weights)
     sim_KY = sim_K/total_output
     distance = (sim_KY - target_KY)**1.0
     return distance
@@ -166,7 +166,7 @@ def calculateLorenzDifference(sim_wealth,weights,percentiles,target_levels):
     distance : float
         Sum of squared distances between simulated and target Lorenz curves.
     '''
-    sim_lorenz = getLorenzPercentiles(sim_wealth,weights=weights,percentiles=percentiles)
+    sim_lorenz = getLorenzShares(sim_wealth,weights=weights,percentiles=percentiles)
     distance = sum((100*sim_lorenz-100*target_levels)**2)
     return distance
 
@@ -180,7 +180,7 @@ def simulateKYratioDifference(beta,nabla,N,type_list,weights,total_output,target
     '''
     if type(beta) in (list,np.ndarray,np.array):
         beta = beta[0]
-    beta_list = makeUniformDiscreteDistribution(beta,nabla,N)
+    beta_list = approxUniform(beta,nabla,N)
     assignBetaDistribution(type_list,beta_list)
     multiThreadCommandsFake(type_list,beta_point_commands)
     my_diff = calculateKYratioDifference(np.vstack((this_type.W_history for this_type in type_list)),np.tile(weights/float(N),N),total_output,target)
@@ -193,7 +193,7 @@ def makeCSTWresults(beta,nabla,save_name=None):
     '''
     Produces a variety of results for the cstwMPC paper (usually after estimating).
     '''
-    beta_list = makeUniformDiscreteDistribution(beta,nabla,N=Params.pref_type_count)
+    beta_list = approxUniform(beta,nabla,N=Params.pref_type_count)
     assignBetaDistribution(est_type_list,beta_list)
     multiThreadCommandsFake(est_type_list,results_commands)
     
@@ -232,22 +232,22 @@ def makeCSTWresults(beta,nabla,save_name=None):
     lorenz_fig_data = makeLorenzFig(Params.SCF_wealth,Params.SCF_weights,sim_wealth,sim_weight_all)
     mpc_fig_data = makeMPCfig(sim_kappa,sim_weight_short)
     
-    kappa_all = weightedAverageSimData(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_short/float(Params.pref_type_count),Params.pref_type_count))
+    kappa_all = calcWeightedAvg(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_short/float(Params.pref_type_count),Params.pref_type_count))
     kappa_unemp = np.sum(sim_kappa[sim_unemp]*sim_weight_short[sim_unemp])/np.sum(sim_weight_short[sim_unemp])
     kappa_emp = np.sum(sim_kappa[sim_emp]*sim_weight_short[sim_emp])/np.sum(sim_weight_short[sim_emp])
     kappa_ret = np.sum(sim_kappa[sim_ret]*sim_weight_short[sim_ret])/np.sum(sim_weight_short[sim_ret])
     
     my_cutoffs = [(0.99,1),(0.9,1),(0.8,1),(0.6,0.8),(0.4,0.6),(0.2,0.4),(0.0,0.2)]
-    kappa_by_ratio_groups = avgDataSlice(sim_kappa,sim_ratio,my_cutoffs,sim_weight_short)
-    kappa_by_income_groups = avgDataSlice(sim_kappa,sim_income,my_cutoffs,sim_weight_short)
+    kappa_by_ratio_groups = calcSubpopAvg(sim_kappa,sim_ratio,my_cutoffs,sim_weight_short)
+    kappa_by_income_groups = calcSubpopAvg(sim_kappa,sim_income,my_cutoffs,sim_weight_short)
     
-    quintile_points = extractPercentiles(sim_wealth_short,weights=sim_weight_short,percentiles=[0.2, 0.4, 0.6, 0.8])
+    quintile_points = getPercentiles(sim_wealth_short,weights=sim_weight_short,percentiles=[0.2, 0.4, 0.6, 0.8])
     wealth_quintiles = np.ones(sim_wealth_short.size,dtype=int)
     wealth_quintiles[sim_wealth_short > quintile_points[0]] = 2
     wealth_quintiles[sim_wealth_short > quintile_points[1]] = 3
     wealth_quintiles[sim_wealth_short > quintile_points[2]] = 4
     wealth_quintiles[sim_wealth_short > quintile_points[3]] = 5
-    MPC_cutoff = extractPercentiles(sim_kappa,weights=sim_weight_short,percentiles=[2.0/3.0])
+    MPC_cutoff = getPercentiles(sim_kappa,weights=sim_weight_short,percentiles=[2.0/3.0])
     these_quintiles = wealth_quintiles[sim_kappa > MPC_cutoff]
     these_weights = sim_weight_short[sim_kappa > MPC_cutoff]
     hand_to_mouth_total = np.sum(these_weights)
@@ -311,8 +311,8 @@ def makeLorenzFig(real_wealth,real_weights,sim_wealth,sim_weights):
     to actual data.  A sub-function of makeCSTWresults().
     '''
     these_percents = np.linspace(0.0001,0.9999,201)
-    real_lorenz = getLorenzPercentiles(real_wealth,weights=real_weights,percentiles=these_percents)
-    sim_lorenz = getLorenzPercentiles(sim_wealth,weights=sim_weights,percentiles=these_percents)
+    real_lorenz = getLorenzShares(real_wealth,weights=real_weights,percentiles=these_percents)
+    sim_lorenz = getLorenzShares(sim_wealth,weights=sim_weights,percentiles=these_percents)
     plt.plot(100*these_percents,real_lorenz,'-k',linewidth=1.5)
     plt.plot(100*these_percents,sim_lorenz,'--k',linewidth=1.5)
     plt.xlabel('Wealth percentile',fontsize=14)
@@ -329,7 +329,7 @@ def makeMPCfig(kappa,weights):
     Plot the CDF of the marginal propensity to consume. A sub-function of makeCSTWresults().
     '''
     these_percents = np.linspace(0.0001,0.9999,201)
-    kappa_percentiles = extractPercentiles(kappa,weights,percentiles=these_percents)
+    kappa_percentiles = getPercentiles(kappa,weights,percentiles=these_percents)
     plt.plot(kappa_percentiles,these_percents,'-k',linewidth=1.5)
     plt.xlabel('Marginal propensity to consume',fontsize=14)
     plt.ylabel('Cumulative probability',fontsize=14)
@@ -343,11 +343,11 @@ def calcKappaMean(beta,nabla):
     Calculates the average MPC for the given parameters.  This is a very small
     sub-function of makeCSTWresults().
     '''
-    beta_list = makeUniformDiscreteDistribution(beta,nabla,N=Params.pref_type_count)
+    beta_list = approxUniform(beta,nabla,N=Params.pref_type_count)
     assignBetaDistribution(est_type_list,beta_list)
     multiThreadCommandsFake(est_type_list,results_commands)
     
-    kappa_all = weightedAverageSimData(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_short/float(Params.pref_type_count),Params.pref_type_count))
+    kappa_all = approxUniform(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_short/float(Params.pref_type_count),Params.pref_type_count))
     return kappa_all
    
    
@@ -363,13 +363,13 @@ if __name__ == "__main__":
         lorenz_target = np.array([0.0, 0.004, 0.025,0.117])
         KY_target = 6.60
     else: # This is hacky until I can find the liquid wealth data and import it
-        lorenz_target = getLorenzPercentiles(Params.SCF_wealth,weights=Params.SCF_weights,percentiles=Params.percentiles_to_match)
+        lorenz_target = getLorenzShares(Params.SCF_wealth,weights=Params.SCF_weights,percentiles=Params.percentiles_to_match)
         #lorenz_target = np.array([-0.002, 0.01, 0.053,0.171])
         KY_target = 10.26
     
     
     # Make a vector of initial wealth-to-permanent income ratios
-    w0_vector = generateDiscreteDraws(P=Params.w0_probs,
+    w0_vector = drawDiscrete(P=Params.w0_probs,
                                              X=Params.w0_values,
                                              N=Params.sim_pop_size,
                                              seed=Params.w0_seed)
@@ -388,7 +388,7 @@ if __name__ == "__main__":
         CollegeType.update()
         
         # Make histories of permanent income levels for each education type
-        Y0_vector_base = generateMeanOneLognormalDraws(Params.Y0_sigma, Params.sim_pop_size, Params.Y0_seed)
+        Y0_vector_base = drawMeanOneLognormal(Params.Y0_sigma, Params.sim_pop_size, Params.Y0_seed)
         psi_gamma_history_d = np.zeros((Params.total_T,Params.sim_pop_size)) + np.nan
         psi_gamma_history_h = deepcopy(psi_gamma_history_d)
         psi_gamma_history_c = deepcopy(psi_gamma_history_d)
