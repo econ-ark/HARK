@@ -23,29 +23,29 @@ else:
 
 # Set basic parameters for the lifecycle micro model
 init_age = 24                 # Starting age for agents
-R = 1.04**(0.25)              # Quarterly interest factor
+Rfree = 1.04**(0.25)              # Quarterly interest factor
 working_T = 41*4              # Number of working periods
 retired_T = 55*4              # Number of retired periods
 total_T = working_T+retired_T # Total number of periods
-rho = 1.0                     # Coefficient of relative risk aversion   
-beta_guess = 0.99             # Initial starting point for discount factor
-p_unemploy = 0.07             # Probability of unemployment while working
-p_unemploy_retire = 0.0005    # Probabulity of "unemployment" while retired
-income_unemploy = 0.15        # Unemployment benefit replacement rate
-income_unemploy_retire = 0.0  # Ditto when retired
+CRRA = 1.0                     # Coefficient of relative risk aversion   
+DiscFac_guess = 0.99             # Initial starting point for discount factor
+UnempPrb = 0.07             # Probability of unemployment while working
+UnempPrbRet = 0.0005    # Probabulity of "unemployment" while retired
+IncUnemp = 0.15        # Unemployment benefit replacement rate
+IncUnempRet = 0.0  # Ditto when retired
 Y0_sigma = 0.4                # Standard deviation of initial permanent income
-borrowing_constraint = 0.0
+BoroCnst = 0.0
 
 # Set grid sizes
-psi_N = 5                     # Number of points in permanent income shock grid
-xi_N = 5                      # Number of points in transitory income shock grid
-a_min = 0.00001                 # Minimum end-of-period assets in grid
-a_max = 20                    # Maximum end-of-period assets in grid
-a_size = 20                    # Number of points in assets grid
+PermShkCount = 5                     # Number of points in permanent income shock grid
+TranShkCount = 5                      # Number of points in transitory income shock grid
+aDispMin = 0.00001                 # Minimum end-of-period assets in grid
+aDispMax = 20                    # Maximum end-of-period assets in grid
+aDispCount = 20                    # Number of points in assets grid
 exp_nest = 3                  # Number of times to 'exponentially nest' when constructing assets grid
 sim_pop_size = 2000           # Number of simulated agents per preference type
-cubic_splines = False          # Whether to use cubic spline interpolation
-calc_vFunc = False            # Whether to calculate the value function during solution
+CubicBool = False          # Whether to use cubic spline interpolation
+vFuncBool = False            # Whether to calculate the value function during solution
 
 # Set random seeds
 perm_seed = 31382             # Seed for permanent income shocks
@@ -55,10 +55,10 @@ w0_seed = 138                 # Seed for initial wealth draws
 Y0_seed = 666                 # Seed for initial permanent income draws
 
 # Define the paths of permanent and transitory shocks (from Sabelhaus and Song)
-xi_sigma = (np.concatenate((np.linspace(0.1,0.12,17), 0.12*np.ones(17), np.linspace(0.12,0.075,61), np.linspace(0.074,0.007,68), np.zeros(retired_T+1)))*4)**0.5
-xi_sigma = np.ndarray.tolist(xi_sigma)
-psi_sigma = np.concatenate((((0.00011342*(np.linspace(24,64.75,working_T-1)-47)**2 + 0.01)/(11.0/4.0))**0.5,np.zeros(retired_T+1)))
-psi_sigma = np.ndarray.tolist(psi_sigma)
+TranShkStd = (np.concatenate((np.linspace(0.1,0.12,17), 0.12*np.ones(17), np.linspace(0.12,0.075,61), np.linspace(0.074,0.007,68), np.zeros(retired_T+1)))*4)**0.5
+TranShkStd = np.ndarray.tolist(TranShkStd)
+PermShkStd = np.concatenate((((0.00011342*(np.linspace(24,64.75,working_T-1)-47)**2 + 0.01)/(11.0/4.0))**0.5,np.zeros(retired_T+1)))
+PermShkStd = np.ndarray.tolist(PermShkStd)
 
 # Import survival probabilities from SSA data
 f = open('USactuarial.txt','r')
@@ -82,37 +82,37 @@ for j in range(76,96):
     d_death_probs += [base_death_probs[j + init_age]*float(raw_adjustments[75][1])]
     h_death_probs += [base_death_probs[j + init_age]*float(raw_adjustments[75][2])]
     c_death_probs += [base_death_probs[j + init_age]*float(raw_adjustments[75][3])]
-survival_probs_d = []
-survival_probs_h = []
-survival_probs_c = []
+LivFac_d = []
+LivFac_h = []
+LivFac_c = []
 for j in range(len(d_death_probs)):
-    survival_probs_d += 4*[(1 - d_death_probs[j])**0.25]
-    survival_probs_h += 4*[(1 - h_death_probs[j])**0.25]
-    survival_probs_c += 4*[(1 - c_death_probs[j])**0.25]
+    LivFac_d += 4*[(1 - d_death_probs[j])**0.25]
+    LivFac_h += 4*[(1 - h_death_probs[j])**0.25]
+    LivFac_c += 4*[(1 - c_death_probs[j])**0.25]
 
 # Define permanent income growth rates for each education level
-gamma_d_base = [5.2522391e-002,  5.0039782e-002,  4.7586132e-002,  4.5162424e-002,  4.2769638e-002,  4.0408757e-002,  3.8080763e-002,  3.5786635e-002,  3.3527358e-002,  3.1303911e-002,  2.9117277e-002,  2.6968437e-002,  2.4858374e-002, 2.2788068e-002,  2.0758501e-002,  1.8770655e-002,  1.6825511e-002,  1.4924052e-002,  1.3067258e-002,  1.1256112e-002, 9.4915947e-003,  7.7746883e-003,  6.1063742e-003,  4.4876340e-003,  2.9194495e-003,  1.4028022e-003, -6.1326258e-005, -1.4719542e-003, -2.8280999e-003, -4.1287819e-003, -5.3730185e-003, -6.5598280e-003, -7.6882288e-003, -8.7572392e-003, -9.7658777e-003, -1.0713163e-002, -1.1598112e-002, -1.2419745e-002, -1.3177079e-002, -1.3869133e-002, -4.3985368e-001, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003]
-gamma_h_base = [4.1102173e-002,  4.1194381e-002,  4.1117402e-002,  4.0878307e-002,  4.0484168e-002,  3.9942056e-002,  3.9259042e-002,  3.8442198e-002,  3.7498596e-002,  3.6435308e-002,  3.5259403e-002,  3.3977955e-002,  3.2598035e-002,  3.1126713e-002,  2.9571062e-002,  2.7938153e-002,  2.6235058e-002,  2.4468848e-002,  2.2646594e-002,  2.0775369e-002,  1.8862243e-002,  1.6914288e-002,  1.4938576e-002,  1.2942178e-002,  1.0932165e-002,  8.9156095e-003,  6.8995825e-003,  4.8911556e-003,  2.8974003e-003,  9.2538802e-004, -1.0178097e-003, -2.9251214e-003, -4.7894755e-003, -6.6038005e-003, -8.3610250e-003, -1.0054077e-002, -1.1675886e-002, -1.3219380e-002, -1.4677487e-002, -1.6043137e-002, -5.5864350e-001, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002]
-gamma_c_base = [3.9375106e-002,  3.9030288e-002,  3.8601230e-002,  3.8091011e-002,  3.7502710e-002,  3.6839406e-002,  3.6104179e-002,  3.5300107e-002,  3.4430270e-002,  3.3497746e-002,  3.2505614e-002,  3.1456953e-002,  3.0354843e-002,  2.9202363e-002,  2.8002591e-002,  2.6758606e-002,  2.5473489e-002,  2.4150316e-002,  2.2792168e-002,  2.1402124e-002,  1.9983263e-002,  1.8538663e-002,  1.7071404e-002,  1.5584565e-002,  1.4081224e-002,  1.2564462e-002,  1.1037356e-002,  9.5029859e-003,  7.9644308e-003,  6.4247695e-003,  4.8870812e-003,  3.3544449e-003,  1.8299396e-003,  3.1664424e-004, -1.1823620e-003, -2.6640003e-003, -4.1251914e-003, -5.5628564e-003, -6.9739162e-003, -8.3552918e-003, -6.8938447e-001, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004]
-gamma_d_base += 31*[gamma_d_base[-1]]
-gamma_h_base += 31*[gamma_h_base[-1]]
-gamma_c_base += 31*[gamma_c_base[-1]]
-gamma_d_retire = gamma_d_base[40]
-gamma_h_retire = gamma_h_base[40]
-gamma_c_retire = gamma_c_base[40]
-gamma_d_base[40] = gamma_d_base[39]
-gamma_h_base[40] = gamma_h_base[39]
-gamma_c_base[40] = gamma_c_base[39]
-Gamma_d = []
-Gamma_h = []
-Gamma_c = []
-for j in range(len(gamma_d_base)):
-    Gamma_d += 4*[(1 + gamma_d_base[j])**0.25]
-    Gamma_h += 4*[(1 + gamma_h_base[j])**0.25]
-    Gamma_c += 4*[(1 + gamma_c_base[j])**0.25]
-Gamma_d[working_T-1] = 1 + gamma_d_retire
-Gamma_h[working_T-1] = 1 + gamma_h_retire
-Gamma_c[working_T-1] = 1 + gamma_c_retire
+PermGroFac_d_base = [5.2522391e-002,  5.0039782e-002,  4.7586132e-002,  4.5162424e-002,  4.2769638e-002,  4.0408757e-002,  3.8080763e-002,  3.5786635e-002,  3.3527358e-002,  3.1303911e-002,  2.9117277e-002,  2.6968437e-002,  2.4858374e-002, 2.2788068e-002,  2.0758501e-002,  1.8770655e-002,  1.6825511e-002,  1.4924052e-002,  1.3067258e-002,  1.1256112e-002, 9.4915947e-003,  7.7746883e-003,  6.1063742e-003,  4.4876340e-003,  2.9194495e-003,  1.4028022e-003, -6.1326258e-005, -1.4719542e-003, -2.8280999e-003, -4.1287819e-003, -5.3730185e-003, -6.5598280e-003, -7.6882288e-003, -8.7572392e-003, -9.7658777e-003, -1.0713163e-002, -1.1598112e-002, -1.2419745e-002, -1.3177079e-002, -1.3869133e-002, -4.3985368e-001, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003]
+PermGroFac_h_base = [4.1102173e-002,  4.1194381e-002,  4.1117402e-002,  4.0878307e-002,  4.0484168e-002,  3.9942056e-002,  3.9259042e-002,  3.8442198e-002,  3.7498596e-002,  3.6435308e-002,  3.5259403e-002,  3.3977955e-002,  3.2598035e-002,  3.1126713e-002,  2.9571062e-002,  2.7938153e-002,  2.6235058e-002,  2.4468848e-002,  2.2646594e-002,  2.0775369e-002,  1.8862243e-002,  1.6914288e-002,  1.4938576e-002,  1.2942178e-002,  1.0932165e-002,  8.9156095e-003,  6.8995825e-003,  4.8911556e-003,  2.8974003e-003,  9.2538802e-004, -1.0178097e-003, -2.9251214e-003, -4.7894755e-003, -6.6038005e-003, -8.3610250e-003, -1.0054077e-002, -1.1675886e-002, -1.3219380e-002, -1.4677487e-002, -1.6043137e-002, -5.5864350e-001, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002, -1.0820465e-002]
+PermGroFac_c_base = [3.9375106e-002,  3.9030288e-002,  3.8601230e-002,  3.8091011e-002,  3.7502710e-002,  3.6839406e-002,  3.6104179e-002,  3.5300107e-002,  3.4430270e-002,  3.3497746e-002,  3.2505614e-002,  3.1456953e-002,  3.0354843e-002,  2.9202363e-002,  2.8002591e-002,  2.6758606e-002,  2.5473489e-002,  2.4150316e-002,  2.2792168e-002,  2.1402124e-002,  1.9983263e-002,  1.8538663e-002,  1.7071404e-002,  1.5584565e-002,  1.4081224e-002,  1.2564462e-002,  1.1037356e-002,  9.5029859e-003,  7.9644308e-003,  6.4247695e-003,  4.8870812e-003,  3.3544449e-003,  1.8299396e-003,  3.1664424e-004, -1.1823620e-003, -2.6640003e-003, -4.1251914e-003, -5.5628564e-003, -6.9739162e-003, -8.3552918e-003, -6.8938447e-001, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004, -6.1023256e-004]
+PermGroFac_d_base += 31*[PermGroFac_d_base[-1]]
+PermGroFac_h_base += 31*[PermGroFac_h_base[-1]]
+PermGroFac_c_base += 31*[PermGroFac_c_base[-1]]
+PermGroFac_d_retire = PermGroFac_d_base[40]
+PermGroFac_h_retire = PermGroFac_h_base[40]
+PermGroFac_c_retire = PermGroFac_c_base[40]
+PermGroFac_d_base[40] = PermGroFac_d_base[39]
+PermGroFac_h_base[40] = PermGroFac_h_base[39]
+PermGroFac_c_base[40] = PermGroFac_c_base[39]
+PermGroFac_d = []
+PermGroFac_h = []
+PermGroFac_c = []
+for j in range(len(PermGroFac_d_base)):
+    PermGroFac_d += 4*[(1 + PermGroFac_d_base[j])**0.25]
+    PermGroFac_h += 4*[(1 + PermGroFac_h_base[j])**0.25]
+    PermGroFac_c += 4*[(1 + PermGroFac_c_base[j])**0.25]
+PermGroFac_d[working_T-1] = 1 + PermGroFac_d_retire
+PermGroFac_h[working_T-1] = 1 + PermGroFac_h_retire
+PermGroFac_c[working_T-1] = 1 + PermGroFac_c_retire
 
 # Set population macro parameters
 pop_growth = 1.01**(0.25)      # population growth rate
@@ -127,18 +127,18 @@ w0_values = [0.17, 0.5, 0.83]  # initial wealth/income ratio values
 w0_probs = [1.0/3.0, 1.0/3.0, 1.0/3.0] # ...and probabilities 
 
 # Calculate the social security tax rate for the economy
-d_income = np.concatenate((np.array([1]),np.cumprod(Gamma_d)))*Y0_d
-h_income = np.concatenate((np.array([1]),np.cumprod(Gamma_h)))*Y0_h
-c_income = np.concatenate((np.array([1]),np.cumprod(Gamma_c)))*Y0_c
+d_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_d)))*Y0_d
+h_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_h)))*Y0_h
+c_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_c)))*Y0_c
 cohort_weight = pop_growth**np.array(np.arange(0,-(total_T+1),-1))
 econ_weight = econ_growth**np.array(np.arange(0,-(total_T+1),-1))
-d_survival_cum = np.concatenate((np.array([1]),np.cumprod(survival_probs_d)))
-h_survival_cum = np.concatenate((np.array([1]),np.cumprod(survival_probs_h)))
-c_survival_cum = np.concatenate((np.array([1]),np.cumprod(survival_probs_c)))
+d_survival_cum = np.concatenate((np.array([1]),np.cumprod(LivFac_d)))
+h_survival_cum = np.concatenate((np.array([1]),np.cumprod(LivFac_h)))
+c_survival_cum = np.concatenate((np.array([1]),np.cumprod(LivFac_c)))
 total_income_working = (d_pct*d_income[0:working_T]*d_survival_cum[0:working_T] + h_pct*h_income[0:working_T]*h_survival_cum[0:working_T] + c_pct*c_income[0:working_T]*c_survival_cum[0:working_T])*cohort_weight[0:working_T]*econ_weight[0:working_T]
 total_income_retired = (d_pct*d_income[working_T:total_T]*d_survival_cum[working_T:total_T] + h_pct*h_income[working_T:total_T]*h_survival_cum[working_T:total_T] + c_pct*c_income[working_T:total_T]*c_survival_cum[working_T:total_T])*cohort_weight[working_T:total_T]*econ_weight[working_T:total_T]
 tax_rate_SS = np.sum(total_income_retired)/np.sum(total_income_working)
-tax_rate_U = p_unemploy*income_unemploy
+tax_rate_U = UnempPrb*IncUnemp
 tax_rate = tax_rate_SS + tax_rate_U
 
 # Generate normalized weighting vectors for each age and education level
@@ -155,16 +155,16 @@ total_output = np.sum(total_income_working)/total_pop_size
 
 # Set indiividual parameters for the infinite horizon model
 l_bar = 10.0/9.0
-Gamma_i = [1.000**0.25]
+PermGroFac_i = [1.000**0.25]
 beta_i = 0.99
-survival_prob_i = [1.0 - 1.0/160.0]
+LivFac_i = [1.0 - 1.0/160.0]
 if do_liquid:
-    psi_sigma_i = [(0.01*4/16)**0.5]
+    PermShkStd_i = [(0.01*4/11)**0.5]
 else:
-    psi_sigma_i = [(0.01*4/11)**0.5]
-xi_sigma_i = [(0.01*4)**0.5]
+    PermShkStd_i = [(0.01*4/11)**0.5]
+TranShkStd_i = [(0.01*4)**0.5]
 sim_periods = 1000
-age_weight_i = survival_prob_i**np.arange(0,sim_periods+1,dtype=float)
+age_weight_i = LivFac_i**np.arange(0,sim_periods+1,dtype=float)
 total_pop_size_i = np.sum(age_weight_i)
 age_weight_i = age_weight_i/total_pop_size_i
 if not do_lifecycle:
@@ -184,29 +184,29 @@ for j in range(len(SCF_raw)):
 
 
 # Make dictionaries for lifecycle consumer types
-init_dropout = {"rho":rho,
-                "R":R,
-                "Gamma":Gamma_d,
-                "constraint":borrowing_constraint,
-                "cubic_splines":cubic_splines,
-                "calc_vFunc":calc_vFunc,
-                "psi_sigma":psi_sigma,
-                "psi_N":psi_N,
-                "xi_sigma":xi_sigma,
-                "xi_N":xi_N,
+init_dropout = {"CRRA":CRRA,
+                "Rfree":Rfree,
+                "PermGroFac":PermGroFac_d,
+                "BoroCnst":BoroCnst,
+                "CubicBool":CubicBool,
+                "vFuncBool":vFuncBool,
+                "PermShkStd":PermShkStd,
+                "PermShkCount":PermShkCount,
+                "TranShkStd":TranShkStd,
+                "TranShkCount":TranShkCount,
                 "T_total":total_T,
-                "p_unemploy":p_unemploy,
-                "p_unemploy_retire":p_unemploy_retire,
+                "UnempPrb":UnempPrb,
+                "UnempPrbRet":UnempPrbRet,
                 "T_retire":working_T-1,
-                "income_unemploy":income_unemploy,
-                "income_unemploy_retire":income_unemploy_retire,
-                "a_min":a_min,
-                "a_max":a_max,
-                "a_size":a_size,
-                "a_extra":[],
+                "IncUnemp":IncUnemp,
+                "IncUnempRet":IncUnempRet,
+                "aDispMin":aDispMin,
+                "aDispMax":aDispMax,
+                "aDispCount":aDispCount,
+                "aDispExtra":[],
                 "exp_nest":exp_nest,
-                "survival_prob":survival_probs_d,
-                "beta":beta_guess, # dummy value, will be overwritten
+                "LivFac":LivFac_d,
+                "DiscFac":DiscFac_guess, # dummy value, will be overwritten
                 "tax_rate":tax_rate_SS, # for math reasons, only SS tax goes here
                 'Nagents':sim_pop_size,
                 'psi_seed':perm_seed,
@@ -215,35 +215,35 @@ init_dropout = {"rho":rho,
                 'sim_periods':total_T,
                 }
 init_highschool = copy(init_dropout)
-init_highschool["Gamma"] = Gamma_h
-init_highschool["survival_prob"] = survival_probs_h
-adj_highschool = {"Gamma":Gamma_h,"survival_prob":survival_probs_h}
+init_highschool["PermGroFac"] = PermGroFac_h
+init_highschool["LivFac"] = LivFac_h
+adj_highschool = {"PermGroFac":PermGroFac_h,"LivFac":LivFac_h}
 init_college = copy(init_dropout)
-init_college["Gamma"] = Gamma_c
-init_college["survival_prob"] = survival_probs_c
-adj_college = {"Gamma":Gamma_c,"survival_prob":survival_probs_c}
+init_college["PermGroFac"] = PermGroFac_c
+init_college["LivFac"] = LivFac_c
+adj_college = {"PermGroFac":PermGroFac_c,"LivFac":LivFac_c}
 
 # Make a dictionary for the infinite horizon type
-init_infinite = {"rho":rho,
-                "R":1.01/survival_prob_i[0],
-                "Gamma":Gamma_i,
-                "constraint":borrowing_constraint,
-                "cubic_splines":cubic_splines,
-                "calc_vFunc":calc_vFunc,
-                "psi_sigma":psi_sigma_i,
-                "psi_N":psi_N,
-                "xi_sigma":xi_sigma_i,
-                "xi_N":xi_N,
-                "p_unemploy":p_unemploy,
-                "income_unemploy":income_unemploy,
-                "p_unemploy_retire":None,
-                "income_unemploy_retire":None,
-                "a_min":a_min,
-                "a_max":a_max,
-                "a_size":a_size,
-                "a_extra":[9000.0],
+init_infinite = {"CRRA":CRRA,
+                "Rfree":1.01/LivFac_i[0],
+                "PermGroFac":PermGroFac_i,
+                "BoroCnst":BoroCnst,
+                "CubicBool":CubicBool,
+                "vFuncBool":vFuncBool,
+                "PermShkStd":PermShkStd_i,
+                "PermShkCount":PermShkCount,
+                "TranShkStd":TranShkStd_i,
+                "TranShkCount":TranShkCount,
+                "UnempPrb":UnempPrb,
+                "IncUnemp":IncUnemp,
+                "UnempPrbRet":None,
+                "IncUnempRet":None,
+                "aDispMin":aDispMin,
+                "aDispMax":aDispMax,
+                "aDispCount":aDispCount,
+                "aDispExtra":[9000.0],
                 "exp_nest":exp_nest,
-                "survival_prob":survival_prob_i,
+                "LivFac":LivFac_i,
                 "beta":beta_i, # dummy value, will be overwritten
                 "cycles":0,
                 "T_total":1,
@@ -258,14 +258,14 @@ init_infinite = {"rho":rho,
                 }
 
 # Make dictionaries for constructing income shocks
-make_shocks_dropout = {'psi_sigma':psi_sigma,
-                      'xi_sigma':xi_sigma,
-                      'Gamma':Gamma_d,
-                      'R':R,
-                      'p_unemploy':p_unemploy,
-                      'p_unemploy_retire':p_unemploy_retire,
-                      'income_unemploy':income_unemploy,
-                      'income_unemploy_retire':income_unemploy_retire,
+make_shocks_dropout = {'PermShkStd':PermShkStd,
+                      'TranShkStd':TranShkStd,
+                      'PermGroFac':PermGroFac_d,
+                      'Rfree':Rfree,
+                      'UnempPrb':UnempPrb,
+                      'UnempPrbRet':UnempPrbRet,
+                      'IncUnemp':IncUnemp,
+                      'IncUnempRet':IncUnempRet,
                       'T_retire':retired_T+1,
                       'Nagents':sim_pop_size,
                       'psi_seed':perm_seed,
@@ -274,15 +274,15 @@ make_shocks_dropout = {'psi_sigma':psi_sigma,
                       'tax_rate':tax_rate_SS
                       }
 make_shocks_highschool = copy(make_shocks_dropout)
-make_shocks_highschool['Gamma'] = Gamma_h
+make_shocks_highschool['PermGroFac'] = PermGroFac_h
 make_shocks_college = copy(make_shocks_dropout)
-make_shocks_college['Gamma'] = Gamma_c
-make_shocks_infinite = {'psi_sigma':psi_sigma_i[0],
-                        'xi_sigma':xi_sigma_i[0],
-                        'Gamma':Gamma_i[0],
-                        'R':1.01/survival_prob_i[0],
-                        'p_unemploy':p_unemploy,
-                        'income_unemploy':income_unemploy,
+make_shocks_college['PermGroFac'] = PermGroFac_c
+make_shocks_infinite = {'PermShkStd':PermShkStd_i[0],
+                        'TranShkStd':TranShkStd_i[0],
+                        'PermGroFac':PermGroFac_i[0],
+                        'R':1.01/LivFac_i[0],
+                        'UnempPrb':UnempPrb,
+                        'IncUnemp':IncUnemp,
                         'Nagents':sim_pop_size,
                         'psi_seed':perm_seed,
                         'xi_seed':temp_seed,
@@ -290,5 +290,5 @@ make_shocks_infinite = {'psi_sigma':psi_sigma_i[0],
                         'sim_periods':sim_periods
                         }
 
-beta_save = beta_guess
+beta_save = DiscFac_guess
 diff_save = 1000000.0

@@ -4,25 +4,25 @@ Provides default values for ConsPrefShockModel.
 from numpy.random import RandomState
 
 exp_nest = 3                        # Number of times to "exponentially nest" when constructing a_grid
-a_min = 0.001                       # Minimum end-of-period assets value in a_grid
-a_max = 100                         # Maximum end-of-period assets value in a_grid                  
-a_huge = None                       # A very large value of assets to add to the grid, not used
-a_extra = None                      # Some other value of assets to add to the grid, not used
-a_size = 64                        # Number of points in the grid of assets
+aDispMin = 0.001                       # Minimum end-of-period assets value in a_grid
+aDispMax = 100                         # Maximum end-of-period assets value in a_grid                  
+aDispHuge = None                       # A very large value of assets to add to the grid, not used
+aDispExtra = None                      # Some other value of assets to add to the grid, not used
+aDispCount = 64                        # Number of points in the grid of assets
 
 constraint = None                   # Artificial borrowing constraint
 R_borrow = 1.20                     # Interest factor on assets when negative
 R_save = 1.03                       # Interest factor on assets when positive
 
-psi_N = 15                           # Number of points in discrete approximation to permanent income shocks
-xi_N = 15                           # Number of points in discrete approximation to transitory income shocks
-psi_sigma = [0.1]                   # Standard deviation of permanent income shocks
-xi_sigma = [0.1]                    # Standard deviation of transitory income shocks
+PermShkCount = 15                           # Number of points in discrete approximation to permanent income shocks
+TranShkCount = 15                           # Number of points in discrete approximation to transitory income shocks
+PermShkStd = [0.1]                   # Standard deviation of permanent income shocks
+TranShkStd = [0.1]                    # Standard deviation of transitory income shocks
 
-p_unemploy = 0.05                  # Probability of unemployment while working
-p_unemploy_retire = 0.0005          # Probability of "unemployment" while retired
-income_unemploy = 0.4               # Unemployment benefits replacement rate
-income_unemploy_retire = 0.0        # Ditto when retired
+UnempPrb = 0.05                  # Probability of unemployment while working
+UnempPrbRet = 0.0005          # Probability of "unemployment" while retired
+IncUnemp = 0.4               # Unemployment benefits replacement rate
+IncUnempRet = 0.0        # Ditto when retired
 
 pref_shock_sigma = 0.30              # Standard deviation of marginal utility shocks
 pref_shock_N = 12                    # Number of points in discrete approximation to preference shock dist
@@ -47,23 +47,23 @@ init_consumer_objects = {"rho":rho,
                         "R_save":R_save,
                         "Gamma":Gamma,
                         "constraint":constraint,
-                        "psi_sigma":psi_sigma,
-                        "psi_N":psi_N,
-                        "xi_sigma":xi_sigma,
-                        "xi_N":xi_N,
+                        "PermShkStd":PermShkStd,
+                        "PermShkCount":PermShkCount,
+                        "TranShkStd":TranShkStd,
+                        "TranShkCount":TranShkCount,
                         "pref_shock_sigma":pref_shock_sigma,
                         "pref_shock_N":pref_shock_N,
                         "pref_shock_tail_N":pref_shock_tail_N,
                         "T_total":TT,
-                        "p_unemploy":p_unemploy,
-                        "p_unemploy_retire":p_unemploy_retire,
+                        "UnempPrb":UnempPrb,
+                        "UnempPrbRet":UnempPrb,
                         "T_retire":T_retire,
-                        "income_unemploy":income_unemploy,
-                        "income_unemploy_retire":income_unemploy_retire,
-                        "a_min":a_min,
-                        "a_max":a_max,
-                        "a_size":a_size,
-                        "a_extra":[a_extra,a_huge],
+                        "IncUnemp":IncUnemp,
+                        "IncUnempRet":IncUnempRet,
+                        "aDispMin":aDispMin,
+                        "aDispMax":aDispMax,
+                        "aDispCount":aDispCount,
+                        "aDispExtra":[aDispExtra,aDispHuge],
                         "exp_nest":exp_nest,
                         "survival_prob":survival_prob,
                         "beta":beta,

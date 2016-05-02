@@ -99,21 +99,19 @@ class MargMargValueFunc():
         return kappa*utilityPP(c,gam=self.rho)
         
         
-def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_dist,survival_prob,beta,rho,R_save,R_borrow,Gamma,constraint,a_grid):
+def consPrefShockSolver(solution_next,income_distrib,pref_shock_dist,survival_prob,beta,rho,R_save,R_borrow,Gamma,constraint,a_grid):
     '''
     Solves a single period of a consumption-saving model with preference shocks
     to marginal utility.  Problem is solved using the method of endogenous gridpoints.
 
     Parameters:
     -----------
-    solution_tp1: ConsumerSolution
+    solution_next: ConsumerSolution
         The solution to the following period.
     income_dist: [np.array]
         A list containing three arrays of floats, representing a discrete approx-
         imation to the income process between the period being solved and the one
-        immediately following (in solution_tp1).  Order: probs, psi, xi
-    p_zero_income: float
-        The probability of receiving zero income in the succeeding period.
+        immediately following (in solution_next).  Order: probs, psi, xi
     pref_shock_dist: [np.array]
         Discrete distribution of the multiplicative utility shifter.
     survival_prob: float
@@ -154,14 +152,14 @@ def consPrefShockSolver(solution_tp1,income_distrib,p_zero_income,pref_shock_dis
     psi_tp1 = income_distrib[1]
     xi_tp1 = income_distrib[2]
     prob_tp1 = income_distrib[0]
-    vPfunc_tp1 = solution_tp1.vPfunc
+    vPfunc_tp1 = solution_next.vPfunc
     psi_underbar_tp1 = np.min(psi_tp1)    
     xi_underbar_tp1 = np.min(xi_tp1)
     pref_shock_vals = pref_shock_dist[1]
     pref_shock_prob = pref_shock_dist[0]
     
     # Calculate the minimum allowable value of money resources in this period
-    m_underbar_t = max((solution_tp1.m_underbar - xi_underbar_tp1)*(Gamma*psi_underbar_tp1)/R_borrow, constraint)
+    m_underbar_t = max((solution_next.m_underbar - xi_underbar_tp1)*(Gamma*psi_underbar_tp1)/R_borrow, constraint)
 
     # Define the borrowing constraint (limiting consumption function)
     constraint_t = lambda m: m - m_underbar_t
@@ -248,13 +246,10 @@ class PrefShockConsumer(AgentType):
         '''
         original_time = self.time_flow
         self.timeFwd()
-        income_distrib, p_zero_income = constructLognormalIncomeProcessUnemployment(self)
+        income_distrib = constructLognormalIncomeProcessUnemployment(self)
         self.income_distrib = income_distrib
-        self.p_zero_income = p_zero_income
         if not 'income_distrib' in self.time_vary:
             self.time_vary.append('income_distrib')
-        if not 'p_zero_income' in self.time_vary:
-            self.time_vary.append('p_zero_income')
         if not original_time:
             self.timeRev()
             

@@ -34,34 +34,34 @@ conFunc_PF = lambda m: ExampleType.h*ExampleType.kappa_PF + ExampleType.kappa_PF
 plotFuncs([ExampleType.solution[0].cFunc,ExampleType.solution[0].cFunc_U],0,m_upper)
 
 # Now solve the same model using backward induction
-init_consumer_objects = {"rho":base_primitives['rho'],
-                        "R":base_primitives['R'],
-                        "Gamma":[base_primitives['G']/(1.0-base_primitives['mho'])],
-                        "constraint":False,
-                        "psi_sigma":[0.0],
-                        "psi_N":1,
-                        "xi_sigma":[0.0],
-                        "xi_N":1,
+init_consumer_objects = {"CRRA":base_primitives['rho'],
+                        "Rfree":base_primitives['R'],
+                        "PermGroFac":[base_primitives['G']/(1.0-base_primitives['mho'])],
+                        "BoroCnst":None,
+                        "PermShkStd":[0.0],
+                        "PermShkCount":1,
+                        "TranShkStd":[0.0],
+                        "TranShkCount":1,
                         "T_total":1,
-                        "p_unemploy":0.0,
-                        "p_unemploy_retire":0.0,
+                        "UnempPrb":0.0,
+                        "UnempPrbRet":0.0,
                         "T_retire":0,
-                        "income_unemploy":0.0,
-                        "income_unemploy_retire":0.0,
-                        "a_min":0.001,
-                        "a_max":ExampleType.m_max,
-                        "a_size":16,
-                        "a_extra":[None],
+                        "IncUnemp":0.0,
+                        "IncUnempRet":0.0,
+                        "aDispMin":0.001,
+                        "aDispMax":ExampleType.m_max,
+                        "aDispCount":16,
+                        "aDispExtra":[None],
                         "exp_nest":3,
-                        "survival_prob":[1.0],
-                        "beta":[base_primitives['beta']],
+                        "LivFac":[1.0],
+                        "DiscFac":[base_primitives['beta']],
                         'Nagents':1,
                         'psi_seed':0,
                         'xi_seed':0,
                         'unemp_seed':0,
                         'tax_rate':0.0,
-                        'calc_vFunc':False,
-                        'cubic_splines':True
+                        'vFuncBool':False,
+                        'CubicBool':True
                         }
 MarkovType = ConsumerType(**init_consumer_objects)
 transition_array = np.array([[1.0-base_primitives['mho'],base_primitives['mho']],[0.0,1.0]])
@@ -72,12 +72,13 @@ MarkovType.solution_terminal.cFunc = 2*[MarkovType.solution_terminal.cFunc]
 MarkovType.solution_terminal.vFunc = 2*[MarkovType.solution_terminal.vFunc]
 MarkovType.solution_terminal.vPfunc = 2*[MarkovType.solution_terminal.vPfunc]
 MarkovType.solution_terminal.vPPfunc = 2*[MarkovType.solution_terminal.vPPfunc]
-MarkovType.solution_terminal.m_underbar = 2*[MarkovType.solution_terminal.m_underbar]
-MarkovType.income_distrib = [[employed_income_dist,unemployed_income_dist]]
+MarkovType.solution_terminal.mRtoMin = 2*[MarkovType.solution_terminal.mRtoMin]
+MarkovType.IncomeDist = [[employed_income_dist,unemployed_income_dist]]
 MarkovType.p_zero_income = p_zero_income
 MarkovType.transition_array = transition_array
 MarkovType.time_inv.append('transition_array')
-MarkovType.solveAPeriod = consumptionSavingSolverMarkov
+MarkovType.time_vary.append('p_zero_income')
+MarkovType.solveOnePeriod = consumptionSavingSolverMarkov
 MarkovType.cycles = 0
 
 t_start = clock()

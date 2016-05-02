@@ -198,7 +198,7 @@ def solveOneCycle(agent,solution_last):
 
     # Initialize the solution for this cycle, then iterate on periods
     solution_cycle = []
-    solution_tp1 = solution_last
+    solution_next = solution_last
     for t in range(T):
 
         # Update which single period solver to use
@@ -210,7 +210,7 @@ def solveOneCycle(agent,solution_last):
         for name in agent.time_vary:
             if name in these_args:
                 solve_dict[name] = eval('agent.' + name + '[t]')
-        solve_dict['solution_tp1'] = solution_tp1
+        solve_dict['solution_next'] = solution_next
         
         # Make a temporary dictionary for this period
         temp_dict = {name: solve_dict[name] for name in these_args}
@@ -218,7 +218,7 @@ def solveOneCycle(agent,solution_last):
         # Solve one period, add it to the solution, and move to the next period
         solution_t = solveOnePeriod(**temp_dict)
         solution_cycle.append(solution_t)
-        solution_tp1 = solution_t
+        solution_next = solution_t
 
     # Return the list of per-period solutions
     return solution_cycle

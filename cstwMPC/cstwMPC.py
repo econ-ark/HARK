@@ -37,8 +37,8 @@ class cstwMPCagent(Model.ConsumerType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(Model.ConsumerType.time_vary_)
         self.time_inv = deepcopy(Model.ConsumerType.time_inv_)
-        self.time_vary.remove('beta')
-        self.time_inv.append('beta')
+        self.time_vary.remove('DiscFac')
+        self.time_inv.append('DiscFac')
         self.solveOnePeriod = Model.consumptionSavingSolverENDG # this can be swapped for consumptionSavingSolverEXOG or another solver
         self.update()
         
@@ -65,7 +65,7 @@ class cstwMPCagent(Model.ConsumerType):
         self.updateSolutionTerminal()
         self.timeFwd()
         if self.cycles > 0:
-            self.income_distrib = Model.applyFlatIncomeTax(self.income_distrib,
+            self.IncomeDist = Model.applyFlatIncomeTax(self.IncomeDist,
                                                  tax_rate=self.tax_rate,
                                                  T_retire=self.T_retire,
                                                  unemployed_indices=range(0,(self.xi_N+1)*self.psi_N,self.xi_N+1))
@@ -78,37 +78,31 @@ class cstwMPCagent(Model.ConsumerType):
             self.timeRev()
             
     def updateIncomeProcessAlt(self):
-        tax_rate = (self.income_unemploy*self.p_unemploy)/(self.l_bar*(1.0-self.p_unemploy))
-        xi_dist = deepcopy(approxMeanOneLognormal(self.xi_N,self.xi_sigma[0]))
-        xi_dist[0] = np.insert(xi_dist[0]*(1.0-self.p_unemploy),0,self.p_unemploy)
-        xi_dist[1] = np.insert(self.l_bar*xi_dist[1]*(1.0-tax_rate),0,self.income_unemploy)
-        psi_dist = approxMeanOneLognormal(self.psi_N,self.psi_sigma[0])
-        self.income_distrib = [combineIndepDists(psi_dist,xi_dist)]
-        if self.income_unemploy > 0:
-            self.p_zero_income = [0.0]
-        else:
-            self.p_zero_income = [self.p_unemploy]
-        if not 'income_distrib' in self.time_vary:
-            self.time_vary.append('income_distrib')
-        if not 'p_zero_income' in self.time_vary:
-            self.time_vary.append('p_zero_income')
+        tax_rate = (self.IncUnemp*self.UnempPrb)/(self.l_bar*(1.0-self.UnempPrb))
+        xi_dist = deepcopy(approxMeanOneLognormal(self.TranShkCount,self.TranShkStd[0]))
+        xi_dist[0] = np.insert(xi_dist[0]*(1.0-self.UnempPrb),0,self.UnempPrb)
+        xi_dist[1] = np.insert(self.l_bar*xi_dist[1]*(1.0-tax_rate),0,self.IncUnemp)
+        psi_dist = approxMeanOneLognormal(self.PermShkCount,self.PermShkStd[0])
+        self.IncomeDist = [combineIndepDists(psi_dist,xi_dist)]
+        if not 'IncomeDist' in self.time_vary:
+            self.time_vary.append('IncomeDist')
             
 
     
-def assignBetaDistribution(type_list,beta_list):
+def assignBetaDistribution(type_list,DiscFac_list):
     '''
-    Assigns the discount factors in beta_list to the types in type_list.  If
-    there is heterogeneity beyond the discount factor, then the same beta is
+    Assigns the discount factors in DiscFac_list to the types in type_list.  If
+    there is heterogeneity beyond the discount factor, then the same DiscFac is
     assigned to consecutive types.
     '''
-    beta_N = len(beta_list)
-    type_N = len(type_list)/beta_N
+    DiscFac_N = len(DiscFac_list)
+    type_N = len(type_list)/DiscFac_N
     j = 0
     b = 0
     while j < len(type_list):
         t = 0
         while t < type_N:
-            type_list[j](beta = beta_list[b])
+            type_list[j](DiscFac = DiscFac_list[b])
             t += 1
             j += 1
         b += 1           
@@ -172,29 +166,29 @@ def calculateLorenzDifference(sim_wealth,weights,percentiles,target_levels):
 
 
 # Define the main simulation process for matching the K/Y ratio
-def simulateKYratioDifference(beta,nabla,N,type_list,weights,total_output,target):
+def simulateKYratioDifference(DiscFac,nabla,N,type_list,weights,total_output,target):
     '''
-    Assigns a uniform distribution over beta with width 2*nabla and N points, then
+    Assigns a uniform distribution over DiscFac with width 2*nabla and N points, then
     solves and simulates all agent types in type_list and compares the simuated
     K/Y ratio to the target K/Y ratio.
     '''
-    if type(beta) in (list,np.ndarray,np.array):
-        beta = beta[0]
-    beta_list = approxUniform(beta,nabla,N)
-    assignBetaDistribution(type_list,beta_list)
+    if type(DiscFac) in (list,np.ndarray,np.array):
+        DiscFac = DiscFac[0]
+    DiscFac_list = approxUniform(DiscFac,nabla,N)
+    assignBetaDistribution(type_list,DiscFac_list)
     multiThreadCommandsFake(type_list,beta_point_commands)
     my_diff = calculateKYratioDifference(np.vstack((this_type.W_history for this_type in type_list)),np.tile(weights/float(N),N),total_output,target)
-    #print('Tried beta=' + str(beta) + ', nabla=' + str(nabla) + ', got diff=' + str(my_diff))
+    #print('Tried DiscFac=' + str(DiscFac) + ', nabla=' + str(nabla) + ', got diff=' + str(my_diff))
     return my_diff
 
 
 mystr = lambda number : "{:.3f}".format(number) 
-def makeCSTWresults(beta,nabla,save_name=None):
+def makeCSTWresults(DiscFac,nabla,save_name=None):
     '''
     Produces a variety of results for the cstwMPC paper (usually after estimating).
     '''
-    beta_list = approxUniform(beta,nabla,N=Params.pref_type_count)
-    assignBetaDistribution(est_type_list,beta_list)
+    DiscFac_list = approxUniform(DiscFac,nabla,N=Params.pref_type_count)
+    assignBetaDistribution(est_type_list,DiscFac_list)
     multiThreadCommandsFake(est_type_list,results_commands)
     
     lorenz_distance = np.sqrt(betaDistObjective(nabla))
@@ -210,12 +204,12 @@ def makeCSTWresults(beta,nabla,save_name=None):
     sim_income = (np.vstack((this_type.Y_history[0:sim_length]*np.asarray(this_type.temp_shocks[0:sim_length]) for this_type in est_type_list))).flatten()
     sim_ratio = (np.vstack((this_type.W_history[0:sim_length]/this_type.Y_history[0:sim_length] for this_type in est_type_list))).flatten()
     if Params.do_lifecycle:
-        sim_unemp = (np.vstack((np.vstack((this_type.income_unemploy == np.asarray(this_type.temp_shocks[0:Params.working_T]),np.zeros((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
-        sim_emp = (np.vstack((np.vstack((this_type.income_unemploy != np.asarray(this_type.temp_shocks[0:Params.working_T]),np.zeros((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
+        sim_unemp = (np.vstack((np.vstack((this_type.IncUnemp == np.asarray(this_type.temp_shocks[0:Params.working_T]),np.zeros((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
+        sim_emp = (np.vstack((np.vstack((this_type.IncUnemp != np.asarray(this_type.temp_shocks[0:Params.working_T]),np.zeros((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
         sim_ret = (np.vstack((np.vstack((np.zeros((Params.working_T,Params.sim_pop_size),dtype=bool),np.ones((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
     else:
-        sim_unemp = np.vstack((this_type.income_unemploy == np.asarray(this_type.temp_shocks[0:sim_length]) for this_type in est_type_list)).flatten()
-        sim_emp = np.vstack((this_type.income_unemploy != np.asarray(this_type.temp_shocks[0:sim_length]) for this_type in est_type_list)).flatten()
+        sim_unemp = np.vstack((this_type.IncUnemp == np.asarray(this_type.temp_shocks[0:sim_length]) for this_type in est_type_list)).flatten()
+        sim_emp = np.vstack((this_type.IncUnemp != np.asarray(this_type.temp_shocks[0:sim_length]) for this_type in est_type_list)).flatten()
         sim_ret = np.zeros(sim_emp.size,dtype=bool)
     sim_weight_all = np.tile(np.repeat(Params.age_weight_all,Params.sim_pop_size),Params.pref_type_count)
     sim_weight_short = np.tile(np.repeat(Params.age_weight_short,Params.sim_pop_size),Params.pref_type_count)
@@ -255,7 +249,7 @@ def makeCSTWresults(beta,nabla,save_name=None):
     for q in range(5):
         hand_to_mouth_pct.append(np.sum(these_weights[these_quintiles == (q+1)])/hand_to_mouth_total)
     
-    results_string = 'Estimate is beta=' + str(beta) + ', nabla=' + str(nabla) + '\n'
+    results_string = 'Estimate is DiscFac=' + str(DiscFac) + ', nabla=' + str(nabla) + '\n'
     results_string += 'Lorenz distance is ' + str(lorenz_distance) + '\n'
     results_string += 'Average MPC for all consumers is ' + mystr(kappa_all) + '\n'
     results_string += 'Average MPC in the top percentile of W/Y is ' + mystr(kappa_by_ratio_groups[0]) + '\n'
@@ -338,13 +332,13 @@ def makeMPCfig(kappa,weights):
     return (these_percents,kappa_percentiles)
 
 
-def calcKappaMean(beta,nabla):
+def calcKappaMean(DiscFac,nabla):
     '''
     Calculates the average MPC for the given parameters.  This is a very small
     sub-function of makeCSTWresults().
     '''
-    beta_list = approxUniform(beta,nabla,N=Params.pref_type_count)
-    assignBetaDistribution(est_type_list,beta_list)
+    DiscFac_list = approxUniform(DiscFac,nabla,N=Params.pref_type_count)
+    assignBetaDistribution(est_type_list,DiscFac_list)
     multiThreadCommandsFake(est_type_list,results_commands)
     
     kappa_all = approxUniform(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_short/float(Params.pref_type_count),Params.pref_type_count))
@@ -393,9 +387,9 @@ if __name__ == "__main__":
         psi_gamma_history_h = deepcopy(psi_gamma_history_d)
         psi_gamma_history_c = deepcopy(psi_gamma_history_d)
         for t in range(Params.total_T):
-            psi_gamma_history_d[t,] = (Params.econ_growth*DropoutType.perm_shocks[t]/Params.R)**(-1)
-            psi_gamma_history_h[t,] = (Params.econ_growth*HighschoolType.perm_shocks[t]/Params.R)**(-1)
-            psi_gamma_history_c[t,] = (Params.econ_growth*CollegeType.perm_shocks[t]/Params.R)**(-1)
+            psi_gamma_history_d[t,] = (Params.econ_growth*DropoutType.perm_shocks[t]/Params.Rfree)**(-1)
+            psi_gamma_history_h[t,] = (Params.econ_growth*HighschoolType.perm_shocks[t]/Params.Rfree)**(-1)
+            psi_gamma_history_c[t,] = (Params.econ_growth*CollegeType.perm_shocks[t]/Params.Rfree)**(-1)
         Y_history_d = np.cumprod(np.vstack((Params.Y0_d*Y0_vector_base,psi_gamma_history_d)),axis=0)
         Y_history_h = np.cumprod(np.vstack((Params.Y0_h*Y0_vector_base,psi_gamma_history_h)),axis=0)
         Y_history_c = np.cumprod(np.vstack((Params.Y0_c*Y0_vector_base,psi_gamma_history_c)),axis=0)
@@ -417,20 +411,20 @@ if __name__ == "__main__":
         Y0_vector_base = np.ones(Params.sim_pop_size,dtype=float)
         psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
         for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.Gamma_i[0]*InfiniteType.perm_shocks[t]/InfiniteType.R)**(-1)
+            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*InfiniteType.perm_shocks[t]/InfiniteType.Rfree)**(-1)
         Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
         InfiniteType.Y_history = Y_history_i
         
         # Use a "tractable consumer" instead if desired
         if Params.do_tractable:
             from TractableBufferStock import TractableConsumerType
-            TractableInfType = TractableConsumerType(beta=InfiniteType.beta,
+            TractableInfType = TractableConsumerType(DiscFac=InfiniteType.DiscFac,
                                                      mho=1-InfiniteType.survival_prob[0],
-                                                     R=InfiniteType.R,
-                                                     G=InfiniteType.Gamma[0],
+                                                     R=InfiniteType.Rfree,
+                                                     G=InfiniteType.PermGroFac[0],
                                                      rho=InfiniteType.rho,
                                                      sim_periods=InfiniteType.sim_periods,
-                                                     income_unemploy=InfiniteType.income_unemploy)
+                                                     IncUnemp=InfiniteType.IncUnemp)
             TractableInfType.timeFwd()
             TractableInfType.Y_history = Y_history_i
             TractableInfType.temp_shocks = InfiniteType.temp_shocks
@@ -481,22 +475,22 @@ if __name__ == "__main__":
     def betaDistObjective(nabla):
         # Make the "intermediate objective function" for the beta-dist estimation
         #print('Trying nabla=' + str(nabla))
-        intermediateObjective = lambda beta : simulateKYratioDifference(beta,
+        intermediateObjective = lambda DiscFac : simulateKYratioDifference(DiscFac,
                                                                  nabla=nabla,
                                                                  N=Params.pref_type_count,
                                                                  type_list=est_type_list,
                                                                  weights=Params.age_weight_all,
                                                                  total_output=Params.total_output,
                                                                  target=KY_target)
-        #beta_new = newton(intermediateObjective,Params.beta_guess,maxiter=100)
-        beta_new = brentq(intermediateObjective,0.90,0.998,xtol=10**(-8))
+        #DiscFac_new = newton(intermediateObjective,Params.DiscFac_guess,maxiter=100)
+        DiscFac_new = brentq(intermediateObjective,0.90,0.998,xtol=10**(-8))
         N=Params.pref_type_count
         wealth_sim = (np.vstack((this_type.W_history for this_type in est_type_list))).flatten()
         sim_weights = np.tile(np.repeat(Params.age_weight_all,Params.sim_pop_size),N)
         my_diff = calculateLorenzDifference(wealth_sim,sim_weights,Params.percentiles_to_match,lorenz_target)
-        print('beta=' + str(beta_new) + ', nabla=' + str(nabla) + ', diff=' + str(my_diff))
+        print('DiscFac=' + str(DiscFac_new) + ', nabla=' + str(nabla) + ', diff=' + str(my_diff))
         if my_diff < Params.diff_save:
-            Params.beta_save = beta_new
+            Params.DiscFac_save = DiscFac_new
         return my_diff
     
     
@@ -511,7 +505,7 @@ if __name__ == "__main__":
         if Params.do_beta_dist:
             bracket = (0,0.015) # large nablas break IH version
             nabla = golden(betaDistObjective,brack=bracket,tol=10**(-4))        
-            beta = Params.beta_save
+            DiscFac = Params.DiscFac_save
             spec_name = spec_add + 'betaDist' + wealth_measure
         else:
             nabla = 0
@@ -519,40 +513,40 @@ if __name__ == "__main__":
                 top = 0.991
             else:
                 top = 1.0
-            beta = brentq(betaPointObjective,0.90,top,xtol=10**(-8))
+            DiscFac = brentq(betaPointObjective,0.90,top,xtol=10**(-8))
             spec_name = spec_add + 'betaPoint' + wealth_measure
         t_end = time()
-        print('Estimate is beta=' + str(beta) + ', nabla=' + str(nabla) + ', took ' + str(t_end-t_start) + ' seconds.')
+        print('Estimate is DiscFac=' + str(DiscFac) + ', nabla=' + str(nabla) + ', took ' + str(t_end-t_start) + ' seconds.')
         #spec_name=None
-        makeCSTWresults(beta,nabla,spec_name)
+        makeCSTWresults(DiscFac,nabla,spec_name)
     
 #    t_start = time()
-#    x = betaDistObjective(0.01)    
+#    x = DiscFacDistObjective(0.01)    
 #    t_end = time()
 #    print('That test took ' + str(t_end - t_start) + ' seconds.')
     
     
     # =================================================================
-    # ========= Relationship between beta and K/Y ratio ===============
+    # ========= Relationship between DiscFac and K/Y ratio ===============
     #==================================================================
     
     if Params.find_beta_vs_KY:
         t_start = time()
-        beta_list = np.linspace(0.95,1.01,201)
+        DiscFac_list = np.linspace(0.95,1.01,201)
         KY_ratio_list = []
-        for beta in beta_list:
-            KY_ratio_list.append(betaPointObjective(beta) + KY_target)
+        for DiscFac in DiscFac_list:
+            KY_ratio_list.append(betaPointObjective(DiscFac) + KY_target)
         KY_ratio_list = np.array(KY_ratio_list)
         t_end = time()
-        plt.plot(beta_list,KY_ratio_list,'-k',linewidth=1.5)
+        plt.plot(DiscFac_list,KY_ratio_list,'-k',linewidth=1.5)
         plt.xlabel(r'Discount factor $\beta$',fontsize=14)
         plt.ylabel('Capital to output ratio',fontsize=14)
         print('That took ' + str(t_end-t_start) + ' seconds.')
         plt.show()
         with open('./Results/' + spec_add + '_KYbyBeta' +  '.txt','w') as f:
                 my_writer = csv.writer(f, delimiter='\t',)
-                for j in range(len(beta_list)):
-                    my_writer.writerow([beta_list[j], KY_ratio_list[j]])
+                for j in range(len(DiscFac_list)):
+                    my_writer.writerow([DiscFac_list[j], KY_ratio_list[j]])
                 f.close()
     
     
@@ -571,7 +565,7 @@ if __name__ == "__main__":
     if Params.do_sensitivity[0]: # coefficient of relative risk aversion sensitivity analysis
         rho_list = np.linspace(0.5,4.0,15).tolist() #15
         fit_list = []
-        beta_list = []
+        DiscFac_list = []
         nabla_list = []
         kappa_list = []
         for rho in rho_list:
@@ -583,16 +577,16 @@ if __name__ == "__main__":
             output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
             nabla = output[0]
             fit = output[1]
-            beta = Params.beta_save
-            kappa = calcKappaMean(beta,nabla)
-            beta_list.append(beta)
+            DiscFac = Params.DiscFac_save
+            kappa = calcKappaMean(DiscFac,nabla)
+            DiscFac_list.append(DiscFac)
             nabla_list.append(nabla)
             fit_list.append(fit)
             kappa_list.append(kappa)
         with open('./Results/SensitivityRho.txt','w') as f:
             my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(beta_list)):
-                my_writer.writerow([rho_list[j], kappa_list[j], beta_list[j], nabla_list[j], fit_list[j]])
+            for j in range(len(DiscFac_list)):
+                my_writer.writerow([rho_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
             f.close()
         for this_type in est_type_list:
             this_type(rho = Params.rho)
@@ -600,7 +594,7 @@ if __name__ == "__main__":
     if Params.do_sensitivity[1]: # transitory income stdev sensitivity analysis
         xi_sigma_list = [0.01] + np.linspace(0.05,0.8,16).tolist() #16
         fit_list = []
-        beta_list = []
+        DiscFac_list = []
         nabla_list = []
         kappa_list = []
         for xi_sigma in xi_sigma_list:
@@ -612,16 +606,16 @@ if __name__ == "__main__":
             output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
             nabla = output[0]
             fit = output[1]
-            beta = Params.beta_save
-            kappa = calcKappaMean(beta,nabla)
-            beta_list.append(beta)
+            DiscFac = Params.DiscFac_save
+            kappa = calcKappaMean(DiscFac,nabla)
+            DiscFac_list.append(DiscFac)
             nabla_list.append(nabla)
             fit_list.append(fit)
             kappa_list.append(kappa)
         with open('./Results/SensitivityXiSigma.txt','w') as f:
             my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(beta_list)):
-                my_writer.writerow([xi_sigma_list[j], kappa_list[j], beta_list[j], nabla_list[j], fit_list[j]])
+            for j in range(len(DiscFac_list)):
+                my_writer.writerow([xi_sigma_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
             f.close()
         for this_type in est_type_list:
             this_type(xi_sigma = Params.xi_sigma_i)
@@ -630,7 +624,7 @@ if __name__ == "__main__":
     if Params.do_sensitivity[2]: # permanent income stdev sensitivity analysis
         psi_sigma_list = np.linspace(0.02,0.18,17).tolist() #17
         fit_list = []
-        beta_list = []
+        DiscFac_list = []
         nabla_list = []
         kappa_list = []
         for psi_sigma in psi_sigma_list:
@@ -642,30 +636,30 @@ if __name__ == "__main__":
                 this_type.update()
             psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
             for t in range(Params.sim_periods):
-                psi_gamma_history_i[t,] = (Params.Gamma_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.R)**(-1)
+                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
             Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
             for this_type in est_type_list:
                 this_type.Y_history = Y_history_i
             output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
             nabla = output[0]
             fit = output[1]
-            beta = Params.beta_save
-            kappa = calcKappaMean(beta,nabla)
-            beta_list.append(beta)
+            DiscFac = Params.DiscFac_save
+            kappa = calcKappaMean(DiscFac,nabla)
+            DiscFac_list.append(DiscFac)
             nabla_list.append(nabla)
             fit_list.append(fit)
             kappa_list.append(kappa)
         with open('./Results/SensitivityPsiSigma.txt','w') as f:
             my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(beta_list)):
-                my_writer.writerow([psi_sigma_list[j], kappa_list[j], beta_list[j], nabla_list[j], fit_list[j]])
+            for j in range(len(DiscFac_list)):
+                my_writer.writerow([psi_sigma_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
             f.close()
         for this_type in est_type_list:
             this_type(psi_sigma = Params.psi_sigma_i)
             this_type.update()
         psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
         for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.Gamma_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.R)**(-1)
+            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
         Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
         for this_type in est_type_list:
             this_type.Y_history = Y_history_i
@@ -673,38 +667,38 @@ if __name__ == "__main__":
     if Params.do_sensitivity[3]: # unemployment benefits sensitivity analysis
         mu_list = np.linspace(0.0,0.8,17).tolist() #17
         fit_list = []
-        beta_list = []
+        DiscFac_list = []
         nabla_list = []
         kappa_list = []
         for mu in mu_list:
             print('Now estimating model with mu = ' + str(mu))
             Params.diff_save = 1000000.0
             for this_type in est_type_list:
-                this_type(income_unemploy = mu)
+                this_type(IncUnemp = mu)
                 this_type.timeRev()
                 this_type.update()
             output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
             nabla = output[0]
             fit = output[1]
-            beta = Params.beta_save
-            kappa = calcKappaMean(beta,nabla)
-            beta_list.append(beta)
+            DiscFac = Params.DiscFac_save
+            kappa = calcKappaMean(DiscFac,nabla)
+            DiscFac_list.append(DiscFac)
             nabla_list.append(nabla)
             fit_list.append(fit)
             kappa_list.append(kappa)
         with open('./Results/SensitivityMu.txt','w') as f:
             my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(beta_list)):
-                my_writer.writerow([mu_list[j], kappa_list[j], beta_list[j], nabla_list[j], fit_list[j]])
+            for j in range(len(DiscFac_list)):
+                my_writer.writerow([mu_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
             f.close()
         for this_type in est_type_list:
-            this_type(income_unemploy = Params.income_unemploy)
+            this_type(IncUnemp = Params.IncUnemp)
             this_type.update()
     
     if Params.do_sensitivity[4]: # unemployment rate sensitivity analysis
         urate_list = np.linspace(0.02,0.12,16).tolist() #16
         fit_list = []
-        beta_list = []
+        DiscFac_list = []
         nabla_list = []
         kappa_list = []
         for urate in urate_list:
@@ -716,16 +710,16 @@ if __name__ == "__main__":
             output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
             nabla = output[0]
             fit = output[1]
-            beta = Params.beta_save
-            kappa = calcKappaMean(beta,nabla)
-            beta_list.append(beta)
+            DiscFac = Params.DiscFac_save
+            kappa = calcKappaMean(DiscFac,nabla)
+            DiscFac_list.append(DiscFac)
             nabla_list.append(nabla)
             fit_list.append(fit)
             kappa_list.append(kappa)
         with open('./Results/SensitivityUrate.txt','w') as f:
             my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(beta_list)):
-                my_writer.writerow([urate_list[j], kappa_list[j], beta_list[j], nabla_list[j], fit_list[j]])
+            for j in range(len(DiscFac_list)):
+                my_writer.writerow([urate_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
             f.close()
         for this_type in est_type_list:
             this_type(p_unemploy = Params.p_unemploy)
@@ -734,7 +728,7 @@ if __name__ == "__main__":
     if Params.do_sensitivity[5]: # mortality rate sensitivity analysis
         death_prob_list = np.linspace(0.003,0.0125,16).tolist() #16
         fit_list = []
-        beta_list = []
+        DiscFac_list = []
         nabla_list = []
         kappa_list = []
         for death_prob in death_prob_list:
@@ -745,16 +739,16 @@ if __name__ == "__main__":
             output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
             nabla = output[0]
             fit = output[1]
-            beta = Params.beta_save
-            kappa = calcKappaMean(beta,nabla)
-            beta_list.append(beta)
+            DiscFac = Params.DiscFac_save
+            kappa = calcKappaMean(DiscFac,nabla)
+            DiscFac_list.append(DiscFac)
             nabla_list.append(nabla)
             fit_list.append(fit)
             kappa_list.append(kappa)
         with open('./Results/SensitivityMortality.txt','w') as f:
             my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(beta_list)):
-                my_writer.writerow([death_prob_list[j], kappa_list[j], beta_list[j], nabla_list[j], fit_list[j]])
+            for j in range(len(DiscFac_list)):
+                my_writer.writerow([death_prob_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
         for this_type in est_type_list:
             this_type(survival_prob = Params.survival_prob_i)
     
@@ -762,44 +756,44 @@ if __name__ == "__main__":
     if Params.do_sensitivity[6]: # permanent income growth rate sensitivity analysis
         g_list = np.linspace(0.00,0.04,17).tolist() #17
         fit_list = []
-        beta_list = []
+        DiscFac_list = []
         nabla_list = []
         kappa_list = []
         for g in g_list:
             print('Now estimating model with g = ' + str(g))
             Params.diff_save = 1000000.0
-            Params.Gamma_i = [(1 + g)**0.25]
+            Params.PermGroFac_i = [(1 + g)**0.25]
             for this_type in est_type_list:
-                this_type(Gamma = Params.Gamma_i)
+                this_type(PermGroFac = Params.PermGroFac_i)
                 this_type.timeRev()
                 this_type.update()
             psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
             for t in range(Params.sim_periods):
-                psi_gamma_history_i[t,] = (Params.Gamma_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.R)**(-1)
+                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
             Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
             for this_type in est_type_list:
                 this_type.Y_history = Y_history_i
             output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
             nabla = output[0]
             fit = output[1]
-            beta = Params.beta_save
-            kappa = calcKappaMean(beta,nabla)
-            beta_list.append(beta)
+            DiscFac = Params.DiscFac_save
+            kappa = calcKappaMean(DiscFac,nabla)
+            DiscFac_list.append(DiscFac)
             nabla_list.append(nabla)
             fit_list.append(fit)
             kappa_list.append(kappa)
         with open('./Results/SensitivityG.txt','w') as f:
             my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(beta_list)):
-                my_writer.writerow([g_list[j], kappa_list[j], beta_list[j], nabla_list[j], fit_list[j]])
+            for j in range(len(DiscFac_list)):
+                my_writer.writerow([g_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
             f.close()
-        Params.Gamma_i = [1.01**0.25]
+        Params.PermGroFac_i = [1.01**0.25]
         for this_type in est_type_list:
-            this_type(Gamma = Params.Gamma_i)
+            this_type(PermGroFac = Params.PermGroFac_i)
             this_type.update()
         psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
         for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.Gamma_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.R)**(-1)
+            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
         Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
         for this_type in est_type_list:
             this_type.Y_history = Y_history_i
@@ -807,7 +801,7 @@ if __name__ == "__main__":
     if Params.do_sensitivity[7]: # interest rate sensitivity analysis
         R_list = np.linspace(1.0,1.04,17).tolist()
         fit_list = []
-        beta_list = []
+        DiscFac_list = []
         nabla_list = []
         kappa_list = []
         for R in R_list:
@@ -820,29 +814,29 @@ if __name__ == "__main__":
                 this_type.update()
             psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
             for t in range(Params.sim_periods):
-                psi_gamma_history_i[t,] = (Params.Gamma_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/R_adj)**(-1)
+                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/R_adj)**(-1)
             Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
             for this_type in est_type_list:
                 this_type.Y_history = Y_history_i
             output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
             nabla = output[0]
             fit = output[1]
-            beta = Params.beta_save
-            kappa = calcKappaMean(beta,nabla)
-            beta_list.append(beta)
+            DiscFac = Params.DiscFac_save
+            kappa = calcKappaMean(DiscFac,nabla)
+            DiscFac_list.append(DiscFac)
             nabla_list.append(nabla)
             fit_list.append(fit)
             kappa_list.append(kappa)
         with open('./Results/SensitivityInterestRate.txt','w') as f:
             my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(beta_list)):
-                my_writer.writerow([R_list[j], kappa_list[j], beta_list[j], nabla_list[j], fit_list[j]])
+            for j in range(len(DiscFac_list)):
+                my_writer.writerow([R_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
         for this_type in est_type_list:
             this_type(R = 1.01/Params.survival_prob_i[0])
             this_type.update()
         psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
         for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.Gamma_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.R)**(-1)
+            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
         Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
         for this_type in est_type_list:
             this_type.Y_history = Y_history_i

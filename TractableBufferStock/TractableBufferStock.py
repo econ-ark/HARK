@@ -62,7 +62,7 @@ def findNextPoint(beta,R,rho,Gamma,mho,scriptR,Beth,c_tp1,m_tp1,kappa_tp1,kappa_
     return m_t, c_t, kappa_t
         
 
-def addToStableArmPoints(solution_tp1,beta,R,rho,Gamma,mho,kappa_PF,scriptR,Beth,m_min,m_max):
+def addToStableArmPoints(solution_next,beta,R,rho,Gamma,mho,kappa_PF,scriptR,Beth,m_min,m_max):
     '''
     This is the solveAPeriod function for the Tractable Buffer Stock model.  If
     the bounding levels of m_min (lower) and m_max (upper) have not yet been met
@@ -70,16 +70,16 @@ def addToStableArmPoints(solution_tp1,beta,R,rho,Gamma,mho,kappa_PF,scriptR,Beth
     is the contents of the "backshooting" loop.
     '''     
     # Unpack the lists of Euler points
-    m_list = copy(solution_tp1.m_list)
-    c_list = copy(solution_tp1.c_list)
-    kappa_list = copy(solution_tp1.kappa_list)
+    m_list = copy(solution_next.m_list)
+    c_list = copy(solution_next.c_list)
+    kappa_list = copy(solution_next.kappa_list)
     
     # Check whether to add a stable arm point to the top
     m_tp1 = m_list[-1]
     if m_tp1 < m_max:
         # Get the rest of the data for the previous top point
-        c_tp1 = solution_tp1.c_list[-1]
-        kappa_tp1 = solution_tp1.kappa_list[-1]
+        c_tp1 = solution_next.c_list[-1]
+        kappa_tp1 = solution_next.kappa_list[-1]
         
         # Calculate employed levels of c, m, and kappa from next period's values
         m_t, c_t, kappa_t = findNextPoint(beta,R,rho,Gamma,mho,scriptR,Beth,c_tp1,m_tp1,kappa_tp1,kappa_PF)
@@ -93,8 +93,8 @@ def addToStableArmPoints(solution_tp1,beta,R,rho,Gamma,mho,kappa_PF,scriptR,Beth
     m_tp1 = m_list[0]
     if m_tp1 > m_min:
         # Get the rest of the data for the previous bottom point
-        c_tp1 = solution_tp1.c_list[0]
-        kappa_tp1 = solution_tp1.kappa_list[0]
+        c_tp1 = solution_next.c_list[0]
+        kappa_tp1 = solution_next.kappa_list[0]
         
         # Calculate employed levels of c, m, and kappa from next period's values
         m_t, c_t, kappa_t = findNextPoint(beta,R,rho,Gamma,mho,scriptR,Beth,c_tp1,m_tp1,kappa_tp1,kappa_PF)
