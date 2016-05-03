@@ -19,7 +19,7 @@ aDispCount = 12                         # Number of points in the grid of assets
 
 BoroCnst = 0.0                  # Artificial borrowing constraint
 CubicBool = True                # Use cubic spline interpolation when True, linear interpolation when False
-vFuncBool = False                 # Whether to calculate the value function during solution
+vFuncBool = True                 # Whether to calculate the value function during solution
 
 Rfree = 1.03                            # Interest factor on assets
 PermShkCount = 6                           # Number of points in discrete approximation to permanent income shocks
