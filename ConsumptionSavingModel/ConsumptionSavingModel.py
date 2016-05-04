@@ -971,8 +971,8 @@ class ConsumerType(AgentType):
     #cFunc_terminal_ = Cubic1DInterpDecay([0.0, 1.0],[0.0, 1.0],[1.0, 1.0],0,1)
     cFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,1.0])
     vFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,0.0])
-    BoroCnst_terminal_ = lambda x: x
-    solution_terminal_   = ConsumerSolution(cFunc=LowerEnvelope(cFunc_terminal_,BoroCnst_terminal_),
+    cFuncCnst_terminal_  = lambda x: x
+    solution_terminal_   = ConsumerSolution(cFunc=LowerEnvelope(cFunc_terminal_,cFuncCnst_terminal_),
                                             vFunc = vFunc_terminal_, mRtoMin=0.0, hRto=0.0, 
                                             MPCmin=1.0, MPCmax=1.0)
     time_vary_ = ['LivFac','DiscFac','PermGroFac']
@@ -1005,21 +1005,19 @@ class ConsumerType(AgentType):
             self.cFunc.append(solution_t.cFunc)
         if not ('cFunc' in self.time_vary):
             self.time_vary.append('cFunc')
-
-
-            
-    def addIncomeShockPaths(self,perm_shocks,temp_shocks):
+          
+    def addIncomeShockPaths(self,PermShks,TranShks):
         '''
         Adds paths of simulated shocks to the agent as attributes.
         '''
         original_time = self.time_flow
         self.timeFwd()
-        self.perm_shocks = perm_shocks
-        self.temp_shocks = temp_shocks
-        if not 'perm_shocks' in self.time_vary:
-            self.time_vary.append('perm_shocks')
-        if not 'temp_shocks' in self.time_vary:
-            self.time_vary.append('temp_shocks')
+        self.PermShks = PermShks
+        self.TranShks = TranShks
+        if not 'PermShks' in self.time_vary:
+            self.time_vary.append('PermShks')
+        if not 'TranShks' in self.time_vary:
+            self.time_vary.append('TranShks')
         if not original_time:
             self.timeRev()
             
@@ -1073,8 +1071,8 @@ class ConsumerType(AgentType):
             cFuncs = self.cFunc[t_first:t_last]
         else:
             cFuncs = t_last*self.cFunc # This needs to be fixed for IH models
-        simulated_history = simulateConsumerHistory(cFuncs, w_init, self.perm_shocks[t_first:t_last],
-                                                    self.temp_shocks[t_first:t_last],which)
+        simulated_history = simulateConsumerHistory(cFuncs, w_init, self.PermShks[t_first:t_last],
+                                                    self.TranShks[t_first:t_last],which)
         if not original_time:
             self.timeRev()
         return simulated_history
@@ -1087,40 +1085,40 @@ class ConsumerType(AgentType):
         '''
         if hasattr(self,'transition_array'):
             StateCount = self.p_zero_income[0].size
-            expY_tp1 = np.zeros(StateCount) + np.nan
+            ExIncNext = np.zeros(StateCount) + np.nan
             for j in range(StateCount):
-                psi_tp1     = self.IncomeDist[0][j][1]
-                xi_tp1      = self.IncomeDist[0][j][2]
-                prob_tp1    = self.IncomeDist[0][j][0]
-                expY_tp1[j] = np.dot(prob_tp1,psi_tp1*xi_tp1)                
+                PermShkValsNext = self.IncomeDist[0][j][1]
+                TranShkValsNext = self.IncomeDist[0][j][2]
+                ShkPrbsNext     = self.IncomeDist[0][j][0]
+                ExIncNext[j] = np.dot(ShkPrbsNext,PermShkValsNext*TranShkValsNext)                
             hRto        = np.dot(np.dot(np.linalg.inv((self.Rfree/self.PermGroFac[0])*np.eye(StateCount) -
-                              self.transition_array),self.transition_array),expY_tp1)
+                              self.transition_array),self.transition_array),ExIncNext)
             
             p_zero_income_now = np.dot(self.transition_array,self.p_zero_income[0])
-            thornR            = (self.DiscFac[0]*self.Rfree)**(1.0/self.CRRA)/self.Rfree
-            MPCmax         = 1.0 - p_zero_income_now**(1.0/self.CRRA)*thornR # THIS IS WRONG
+            PatFac            = (self.DiscFac[0]*self.Rfree)**(1.0/self.CRRA)/self.Rfree
+            MPCmax            = 1.0 - p_zero_income_now**(1.0/self.CRRA)*PatFac # THIS IS WRONG
             
         else:
-            psi_tp1  = self.IncomeDist[0][1]
-            xi_tp1   = self.IncomeDist[0][2]
-            prob_tp1 = self.IncomeDist[0][0]
-            expY_tp1 = np.dot(prob_tp1,psi_tp1*xi_tp1)
-            hRto = (expY_tp1*self.PermGroFac[0]/self.Rfree)/(1.0-self.PermGroFac[0]/self.Rfree)
+            PermShkValsNext   = self.IncomeDist[0][1]
+            TranShkValsNext   = self.IncomeDist[0][2]
+            ShkPrbsNext       = self.IncomeDist[0][0]
+            ExIncNext         = np.dot(ShkPrbsNext,PermShkValsNext*TranShkValsNext)
+            hRto              = (ExIncNext*self.PermGroFac[0]/self.Rfree)/(1.0-self.PermGroFac[0]/self.Rfree)
             
-            thornR    = (self.DiscFac[0]*self.Rfree)**(1.0/self.CRRA)/self.Rfree
-            MPCmax = 1.0 - self.p_zero_income[0]**(1.0/self.CRRA)*thornR
+            PatFac    = (self.DiscFac[0]*self.Rfree)**(1.0/self.CRRA)/self.Rfree
+            MPCmax    = 1.0 - self.p_zero_income[0]**(1.0/self.CRRA)*PatFac
         
-        MPCmin = 1.0 - thornR
+        MPCmin = 1.0 - PatFac
         return hRto, MPCmax, MPCmin
 
 
 
-def simulateConsumerHistory(cFunc,w0,scriptR,theta,which):
+def simulateConsumerHistory(cFunc,w0,PermShk,TranShk,which):
     """
     Generates simulated consumer histories.  Agents begin with W/Y ratio of of
     w0 and follow the consumption rules in cFunc each period. Permanent and trans-
     itory shocks are provided in scriptR and theta.  Note that
-    scriptR represents R*psi_{it}/PermGroFac_t, the "effective interest factor" for
+    PermShk represents R*psi_{it}/PermGroFac_t, the "effective interest factor" for
     agent i in period t.  Further, the object of interest w is the wealth-to
     permanent-income ratio at the beginning of the period, before income is received.
     
@@ -1129,8 +1127,8 @@ def simulateConsumerHistory(cFunc,w0,scriptR,theta,which):
     cause an error on return.  Outputs are returned in the order listed by the user.
     """
     # Determine the size of potential simulated histories
-    periods_to_simulate = len(theta)
-    N_agents = len(theta[0])
+    periods_to_simulate = len(TranShk)
+    N_agents = len(TranShk[0])
     
     # Initialize arrays to hold simulated histories as requested
     if 'w' in which:
@@ -1166,13 +1164,13 @@ def simulateConsumerHistory(cFunc,w0,scriptR,theta,which):
     
     # Run the simulation for all agents:
     for t in range(periods_to_simulate):
-        m_t = w_t + theta[t]
+        m_t = w_t + TranShk[t]
         if do_k:
             c_t, kappa_t = cFunc[t].eval_with_derivative(m_t)
         else:
             c_t = cFunc[t](m_t)
         a_t = m_t - c_t
-        w_t = scriptR[t]*a_t
+        w_t = PermShk[t]*a_t
         
         # Store the requested variables in the history arrays
         if do_w:
@@ -1254,16 +1252,16 @@ def constructLognormalIncomeProcessUnemployment(parameters):
         refers to the (psi, xi) point indexed by 20, with probability p = pmf[20].
     """
     # Unpack the parameters from the input
-    PermShkStd = parameters.PermShkStd
-    PermShkCount = parameters.PermShkCount
-    TranShkStd = parameters.TranShkStd
-    TranShkCount = parameters.TranShkCount
-    T_total = parameters.T_total
-    T_retire = parameters.T_retire
-    UnempPrb = parameters.UnempPrb
-    IncUnemp = parameters.IncUnemp
-    UnempPrbRet = parameters.UnempPrbRet        
-    IncUnempRet = parameters.IncUnempRet
+    PermShkStd    = parameters.PermShkStd
+    PermShkCount  = parameters.PermShkCount
+    TranShkStd    = parameters.TranShkStd
+    TranShkCount  = parameters.TranShkCount
+    T_total       = parameters.T_total
+    T_retire      = parameters.T_retire
+    UnempPrb      = parameters.UnempPrb
+    IncUnemp      = parameters.IncUnemp
+    UnempPrbRet   = parameters.UnempPrbRet        
+    IncUnempRet   = parameters.IncUnempRet
     
     IncomeDist = [] # Discrete approximation to income process
 
@@ -1271,31 +1269,28 @@ def constructLognormalIncomeProcessUnemployment(parameters):
     # in normal times; value 0.0 in "unemployment" times with small prob.
     if T_retire > 0:
         if UnempPrbRet > 0:
-            retire_perm_income_values = np.array([1.0, 1.0])    # Permanent income is deterministic in retirement (2 states for temp income shocks)
-            retire_income_values      = np.array([IncUnempRet, (1.0-UnempPrbRet*
-                                                  IncUnempRet)/(1.0-UnempPrbRet)])
-            retire_income_probs       = np.array([UnempPrbRet, 1.0-UnempPrbRet])
+            PermShkValsRet  = np.array([1.0, 1.0])    # Permanent income is deterministic in retirement (2 states for temp income shocks)
+            TranShkValsRet  = np.array([IncUnempRet, (1.0-UnempPrbRet*IncUnempRet)/(1.0-UnempPrbRet)])
+            ShkPrbsRet      = np.array([UnempPrbRet, 1.0-UnempPrbRet])
         else:
-            retire_perm_income_values   = np.array([1.0])
-            retire_income_values        = np.array([1.0])
-            retire_income_probs         = np.array([1.0])
-        income_distRet = [retire_income_probs,retire_perm_income_values,retire_income_values]
+            PermShkValsRet  = np.array([1.0])
+            TranShkValsRet  = np.array([1.0])
+            ShkPrbsRet      = np.array([1.0])
+        IncomeDistRet = [ShkPrbsRet,PermShkValsRet,TranShkValsRet]
 
     # Loop to fill in the list of IncomeDist random variables.
     for t in range(T_total): # Iterate over all periods, counting forward
 
         if T_retire > 0 and t >= T_retire:
             # Then we are in the "retirement period" and add a retirement income object.
-            IncomeDist.append(deepcopy(income_distRet))
+            IncomeDist.append(deepcopy(IncomeDistRet))
         else:
             # We are in the "working life" periods.
-            temp_xi_dist     = approxMeanOneLognormal(N=TranShkCount, sigma=TranShkStd[t])
+            TranShkDist     = approxMeanOneLognormal(N=TranShkCount, sigma=TranShkStd[t])
             if UnempPrb > 0:
-                temp_xi_dist = addDiscreteOutcomeConstantMean(temp_xi_dist, p=UnempPrb, 
-                                                              x=IncUnemp)
-            temp_psi_dist    = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t])
-            IncomeDist.append(combineIndepDists(temp_psi_dist, 
-                                                                             temp_xi_dist))
+                TranShkDist = addDiscreteOutcomeConstantMean(TranShkDist, p=UnempPrb, x=IncUnemp)
+            PermShkDist     = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t])
+            IncomeDist.append(combineIndepDists(PermShkDist,TranShkDist))
 
     return IncomeDist
     
@@ -1377,10 +1372,10 @@ def generateIncomeShockHistoryLognormalUnemployment(parameters):
 
     Returns:
     ----------
-    scriptR_history : np.array
+    PermShkHist : np.array
         A total_periods x Nagents array of permanent income shocks.  Each element
         is a value representing Rfree/(psi_{it}*PermGroFac_t), so that w_{t+1} = scriptR_{it}*a_t
-    xi_history : np.array
+    TranShkHist : np.array
         A total_periods x Nagents array of transitory income shocks.
     '''
     # Unpack the parameters
@@ -1400,47 +1395,47 @@ def generateIncomeShockHistoryLognormalUnemployment(parameters):
     tax_rate                = parameters.tax_rate
 
     # Truncate the lifecycle vectors to the working life
-    PermShkStd_working   = PermShkStd[0:T_retire]
-    TranShkStd_working    = TranShkStd[0:T_retire]
-    PermGroFac_working       = PermGroFac[0:T_retire]
-    PermGroFac_retire        = PermGroFac[T_retire:]
-    working_periods     = len(PermGroFac_working) + 1
-    retired_periods     = len(PermGroFac_retire)
+    PermShkStdWork   = PermShkStd[0:T_retire]
+    TranShkStdWork   = TranShkStd[0:T_retire]
+    PermGroFacWork    = PermGroFac[0:T_retire]
+    PermGroFacRet    = PermGroFac[T_retire:]
+    working_periods  = len(PermGroFacWork) + 1
+    retired_periods  = len(PermGroFacRet)
     
     # Generate transitory shocks in the working period (needs one extra period)
-    xi_history_working = drawMeanOneLognormal(TranShkStd_working, Nagents, xi_seed)
+    TranShkHistWork = drawMeanOneLognormal(TranShkStdWork, Nagents, xi_seed)
     np.random.seed(0)
-    xi_history_working.insert(0,np.random.permutation(xi_history_working[0]))
+    TranShkHistWork.insert(0,np.random.permutation(TranShkHistWork[0]))
     
     # Generate permanent shocks in the working period
-    scriptR_history_working = drawMeanOneLognormal(PermShkStd_working, Nagents, psi_seed)
+    PermShkHistWork = drawMeanOneLognormal(PermShkStdWork, Nagents, psi_seed)
     for t in range(working_periods-1):
-        scriptR_history_working[t] = Rfree/(scriptR_history_working[t]*PermGroFac_working[t])
+        PermShkHistWork[t] = Rfree/(PermShkHistWork[t]*PermGroFacWork[t])
 
     # Generate permanent and transitory shocks for the retired period
-    xi_history_retired = []
-    scriptR_history_retired = []
+    TranShkHistRet = []
+    PermShkHistRet = []
     for t in range(retired_periods):
-        xi_history_retired.append(np.ones([Nagents]))
-        scriptR_history_retired.append(Rfree*np.ones([Nagents])/PermGroFac_retire[t])
-    scriptR_history_retired.append(Rfree*np.ones([Nagents]))
+        TranShkHistRet.append(np.ones([Nagents]))
+        PermShkHistRet.append(Rfree*np.ones([Nagents])/PermGroFacRet[t])
+    PermShkHistRet.append(Rfree*np.ones([Nagents]))
     
     # Generate draws of unemployment
-    UnempPrb_life = [UnempPrb]*working_periods + [UnempPrbRet]*retired_periods
-    IncUnemp_life = [IncUnemp]*working_periods + [IncUnempRet]*retired_periods
-    unemp_rescale_life = [(1-tax_rate)*(1-UnempPrb*IncUnemp)/(1-UnempPrb)]*\
+    UnempPrbLife = [UnempPrb]*working_periods + [UnempPrbRet]*retired_periods
+    IncUnempLife = [IncUnemp]*working_periods + [IncUnempRet]*retired_periods
+    IncUnempScaleLife = [(1-tax_rate)*(1-UnempPrb*IncUnemp)/(1-UnempPrb)]*\
                           working_periods + [(1-UnempPrbRet*IncUnempRet)/
                           (1-UnempPrbRet)]*retired_periods
-    unemployment_history = drawBernoulli(UnempPrb_life,Nagents,unemp_seed)   
+    UnempHist = drawBernoulli(UnempPrbLife,Nagents,unemp_seed)   
     
     # Combine working and retired histories and apply unemployment
-    xi_history          = xi_history_working + xi_history_retired
-    scriptR_history     = scriptR_history_working + scriptR_history_retired
-    for t in range(len(xi_history)):
-        xi_history[t]                          = xi_history[t]*unemp_rescale_life[t]
-        xi_history[t][unemployment_history[t]] = IncUnemp_life[t]
+    TranShkHist         = TranShkHistWork + TranShkHistRet
+    PermShkHist         = PermShkHistWork + PermShkHistRet
+    for t in range(len(TranShkHist)):
+        TranShkHist[t]               = TranShkHist[t]*IncUnempScaleLife[t]
+        TranShkHist[t][UnempHist[t]] = IncUnempLife[t]
     
-    return scriptR_history, xi_history
+    return PermShkHist, TranShkHist
     
     
 def generateIncomeShockHistoryInfiniteSimple(parameters):
@@ -1475,34 +1470,34 @@ def generateIncomeShockHistoryInfiniteSimple(parameters):
     
     Returns:
     ----------
-    scriptR_history : np.array
+    PermShkHist : np.array
         A sim_periods x Nagents array of permanent income shocks.  Each element
         is a value representing Rfree*psi_{it}/PermGroFac_t, so that w_{t+1} = scriptR_{it}*a_t
-    xi_history : np.array
+    TranShkHist : np.array
         A sim_periods x Nagents array of transitory income shocks.
     '''
     # Unpack the parameters
-    PermShkStd       = parameters.PermShkStd
-    TranShkStd        = parameters.TranShkStd
-    PermGroFac           = parameters.PermGroFac
-    Rfree               = parameters.Rfree
-    UnempPrb      = parameters.UnempPrb
-    IncUnemp = parameters.IncUnemp
-    Nagents         = parameters.Nagents
-    psi_seed        = parameters.psi_seed
-    xi_seed         = parameters.xi_seed
-    unemp_seed      = parameters.unemp_seed
-    sim_periods     = parameters.sim_periods
+    PermShkStd     = parameters.PermShkStd
+    TranShkStd     = parameters.TranShkStd
+    PermGroFac     = parameters.PermGroFac
+    Rfree          = parameters.Rfree
+    UnempPrb       = parameters.UnempPrb
+    IncUnemp       = parameters.IncUnemp
+    Nagents        = parameters.Nagents
+    psi_seed       = parameters.psi_seed
+    xi_seed        = parameters.xi_seed
+    unemp_seed     = parameters.unemp_seed
+    sim_periods    = parameters.sim_periods
     
-    xi_history           = drawMeanOneLognormal(sim_periods*TranShkStd, Nagents, xi_seed)
-    unemployment_history = drawBernoulli(sim_periods*[UnempPrb],Nagents,unemp_seed)
-    scriptR_history      = drawMeanOneLognormal(sim_periods*PermShkStd, Nagents, psi_seed)
+    TranShkHist    = drawMeanOneLognormal(sim_periods*TranShkStd, Nagents, xi_seed)
+    UnempHist      = drawBernoulli(sim_periods*[UnempPrb],Nagents,unemp_seed)
+    PermShkHist    = drawMeanOneLognormal(sim_periods*PermShkStd, Nagents, psi_seed)
     for t in range(sim_periods):
-        scriptR_history[t] = Rfree/(scriptR_history[t]*PermGroFac)
-        xi_history[t]      = xi_history[t]*(1-UnempPrb*IncUnemp)/(1-UnempPrb)
-        xi_history[t][unemployment_history[t]] = IncUnemp
+        PermShkHist[t] = Rfree/(PermShkHist[t]*PermGroFac)
+        TranShkHist[t] = TranShkHist[t]*(1-UnempPrb*IncUnemp)/(1-UnempPrb)
+        TranShkHist[t][UnempHist[t]] = IncUnemp
         
-    return scriptR_history, xi_history
+    return PermShkHist, TranShkHist
 
 # =======================================================
 # ================ Other useful functions ===============

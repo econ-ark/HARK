@@ -201,15 +201,15 @@ def makeCSTWresults(DiscFac,nabla,save_name=None):
     sim_wealth = (np.vstack((this_type.W_history for this_type in est_type_list))).flatten()
     sim_wealth_short = (np.vstack((this_type.W_history[0:sim_length] for this_type in est_type_list))).flatten()
     sim_kappa = (np.vstack((this_type.kappa_history for this_type in est_type_list))).flatten()
-    sim_income = (np.vstack((this_type.Y_history[0:sim_length]*np.asarray(this_type.temp_shocks[0:sim_length]) for this_type in est_type_list))).flatten()
+    sim_income = (np.vstack((this_type.Y_history[0:sim_length]*np.asarray(this_type.TranShks[0:sim_length]) for this_type in est_type_list))).flatten()
     sim_ratio = (np.vstack((this_type.W_history[0:sim_length]/this_type.Y_history[0:sim_length] for this_type in est_type_list))).flatten()
     if Params.do_lifecycle:
-        sim_unemp = (np.vstack((np.vstack((this_type.IncUnemp == np.asarray(this_type.temp_shocks[0:Params.working_T]),np.zeros((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
-        sim_emp = (np.vstack((np.vstack((this_type.IncUnemp != np.asarray(this_type.temp_shocks[0:Params.working_T]),np.zeros((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
+        sim_unemp = (np.vstack((np.vstack((this_type.IncUnemp == np.asarray(this_type.TranShks[0:Params.working_T]),np.zeros((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
+        sim_emp = (np.vstack((np.vstack((this_type.IncUnemp != np.asarray(this_type.TranShks[0:Params.working_T]),np.zeros((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
         sim_ret = (np.vstack((np.vstack((np.zeros((Params.working_T,Params.sim_pop_size),dtype=bool),np.ones((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
     else:
-        sim_unemp = np.vstack((this_type.IncUnemp == np.asarray(this_type.temp_shocks[0:sim_length]) for this_type in est_type_list)).flatten()
-        sim_emp = np.vstack((this_type.IncUnemp != np.asarray(this_type.temp_shocks[0:sim_length]) for this_type in est_type_list)).flatten()
+        sim_unemp = np.vstack((this_type.IncUnemp == np.asarray(this_type.TranShks[0:sim_length]) for this_type in est_type_list)).flatten()
+        sim_emp = np.vstack((this_type.IncUnemp != np.asarray(this_type.TranShks[0:sim_length]) for this_type in est_type_list)).flatten()
         sim_ret = np.zeros(sim_emp.size,dtype=bool)
     sim_weight_all = np.tile(np.repeat(Params.age_weight_all,Params.sim_pop_size),Params.pref_type_count)
     sim_weight_short = np.tile(np.repeat(Params.age_weight_short,Params.sim_pop_size),Params.pref_type_count)
@@ -387,9 +387,9 @@ if __name__ == "__main__":
         psi_gamma_history_h = deepcopy(psi_gamma_history_d)
         psi_gamma_history_c = deepcopy(psi_gamma_history_d)
         for t in range(Params.total_T):
-            psi_gamma_history_d[t,] = (Params.econ_growth*DropoutType.perm_shocks[t]/Params.Rfree)**(-1)
-            psi_gamma_history_h[t,] = (Params.econ_growth*HighschoolType.perm_shocks[t]/Params.Rfree)**(-1)
-            psi_gamma_history_c[t,] = (Params.econ_growth*CollegeType.perm_shocks[t]/Params.Rfree)**(-1)
+            psi_gamma_history_d[t,] = (Params.econ_growth*DropoutType.PermShks[t]/Params.Rfree)**(-1)
+            psi_gamma_history_h[t,] = (Params.econ_growth*HighschoolType.PermShks[t]/Params.Rfree)**(-1)
+            psi_gamma_history_c[t,] = (Params.econ_growth*CollegeType.PermShks[t]/Params.Rfree)**(-1)
         Y_history_d = np.cumprod(np.vstack((Params.Y0_d*Y0_vector_base,psi_gamma_history_d)),axis=0)
         Y_history_h = np.cumprod(np.vstack((Params.Y0_h*Y0_vector_base,psi_gamma_history_h)),axis=0)
         Y_history_c = np.cumprod(np.vstack((Params.Y0_c*Y0_vector_base,psi_gamma_history_c)),axis=0)
@@ -411,7 +411,7 @@ if __name__ == "__main__":
         Y0_vector_base = np.ones(Params.sim_pop_size,dtype=float)
         psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
         for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*InfiniteType.perm_shocks[t]/InfiniteType.Rfree)**(-1)
+            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*InfiniteType.PermShks[t]/InfiniteType.Rfree)**(-1)
         Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
         InfiniteType.Y_history = Y_history_i
         
@@ -427,8 +427,8 @@ if __name__ == "__main__":
                                                      IncUnemp=InfiniteType.IncUnemp)
             TractableInfType.timeFwd()
             TractableInfType.Y_history = Y_history_i
-            TractableInfType.temp_shocks = InfiniteType.temp_shocks
-            TractableInfType.perm_shocks = InfiniteType.perm_shocks
+            TractableInfType.TranShks = InfiniteType.TranShks
+            TractableInfType.PermShks = InfiniteType.PermShks
             TractableInfType.w0 = InfiniteType.w0
                
         # Set the type list for the infinite horizon estimation
@@ -636,7 +636,7 @@ if __name__ == "__main__":
                 this_type.update()
             psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
             for t in range(Params.sim_periods):
-                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
+                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
             Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
             for this_type in est_type_list:
                 this_type.Y_history = Y_history_i
@@ -659,7 +659,7 @@ if __name__ == "__main__":
             this_type.update()
         psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
         for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
+            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
         Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
         for this_type in est_type_list:
             this_type.Y_history = Y_history_i
@@ -769,7 +769,7 @@ if __name__ == "__main__":
                 this_type.update()
             psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
             for t in range(Params.sim_periods):
-                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
+                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
             Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
             for this_type in est_type_list:
                 this_type.Y_history = Y_history_i
@@ -793,7 +793,7 @@ if __name__ == "__main__":
             this_type.update()
         psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
         for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
+            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
         Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
         for this_type in est_type_list:
             this_type.Y_history = Y_history_i
@@ -814,7 +814,7 @@ if __name__ == "__main__":
                 this_type.update()
             psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
             for t in range(Params.sim_periods):
-                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/R_adj)**(-1)
+                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/R_adj)**(-1)
             Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
             for this_type in est_type_list:
                 this_type.Y_history = Y_history_i
@@ -836,7 +836,7 @@ if __name__ == "__main__":
             this_type.update()
         psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
         for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].perm_shocks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
+            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
         Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
         for this_type in est_type_list:
             this_type.Y_history = Y_history_i
