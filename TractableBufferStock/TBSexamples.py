@@ -67,19 +67,18 @@ MarkovType = ConsumerType(**init_consumer_objects)
 transition_array = np.array([[1.0-base_primitives['mho'],base_primitives['mho']],[0.0,1.0]])
 employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]
 unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
-p_zero_income = [np.array([0.0,1.0])]
 MarkovType.solution_terminal.cFunc = 2*[MarkovType.solution_terminal.cFunc]
 MarkovType.solution_terminal.vFunc = 2*[MarkovType.solution_terminal.vFunc]
 MarkovType.solution_terminal.vPfunc = 2*[MarkovType.solution_terminal.vPfunc]
 MarkovType.solution_terminal.vPPfunc = 2*[MarkovType.solution_terminal.vPPfunc]
 MarkovType.solution_terminal.mRtoMin = 2*[MarkovType.solution_terminal.mRtoMin]
+MarkovType.solution_terminal.MPCmax = np.array(2*[MarkovType.solution_terminal.MPCmax])
 MarkovType.IncomeDist = [[employed_income_dist,unemployed_income_dist]]
-MarkovType.p_zero_income = p_zero_income
 MarkovType.transition_array = transition_array
 MarkovType.time_inv.append('transition_array')
-MarkovType.time_vary.append('p_zero_income')
 MarkovType.solveOnePeriod = consumptionSavingSolverMarkov
 MarkovType.cycles = 0
+#MarkovType.tolerance = 0.00000000001
 
 t_start = clock()
 MarkovType.solve()

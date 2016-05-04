@@ -9,8 +9,8 @@ from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKutilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean, combineIndepDists, makeGridExpMult, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARKsimulation import drawMeanOneLognormal, drawBernoulli
-from scipy.optimize import newton, brentq
-from copy import deepcopy, copy
+from scipy.optimize import brentq
+from copy import deepcopy
 
 utility      = CRRAutility
 utilityP     = CRRAutilityP
@@ -79,8 +79,7 @@ class ConsumerSolution():
         """
         if type(self.cFunc)!=list:
             assert self.cFunc==NullFunc            
-            # Then the assumption is self is an empty initialized instance,
-            # we need to start a list
+            # Then the assumption is self is an empty initialized instance, we need to start a list
             self.cFunc       = [instance_of_ConsumerSolution.cFunc]
             self.vFunc       = [instance_of_ConsumerSolution.vFunc]
             self.vPfunc      = [instance_of_ConsumerSolution.vPfunc]
@@ -200,8 +199,6 @@ class PerfectForesightSolver(object):
         return solution
 
 
-
-
 def perfectForesightSolver(solution_next,DiscFac,CRRA,Rfree,PermGroFac,BoroCnst):
     '''
     Solves a single period consumption - savings problem for a consumer with perfect foresight.
@@ -239,11 +236,10 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         self.uPinv     = lambda u : utilityP_inv(u,gam=self.CRRA)
         self.uinvP     = lambda u : utility_invP(u,gam=self.CRRA)        
         if self.vFuncBool:
-            self.uinv      = lambda u : utility_inv(u,gam=self.CRRA)
+            self.uinv  = lambda u : utility_inv(u,gam=self.CRRA)
 
 
     def setAndUpdateValues(self,solution_next,IncomeDist,LivFac,DiscFac):
-
         self.DiscFacEff       = DiscFac*LivFac # "effective" discount factor
         self.ShkPrbsNext      = IncomeDist[0]
         self.PermShkValsNext  = IncomeDist[1]
@@ -259,20 +255,22 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         # Update the bounding MPCs and PDV of human wealth:
         if self.CubicBool or self.vFuncBool:
             self.vFuncNext    = solution_next.vFunc
-            self.PatFac       = ((self.Rfree*self.DiscFacEff)**(1/self.CRRA))/self.Rfree
+            self.PatFac       = ((self.Rfree*self.DiscFacEff)**(1.0/self.CRRA))/self.Rfree
             self.MPCminNow    = 1.0/(1.0 + self.PatFac/solution_next.MPCmin)
-            self.hRtoNow      = self.PermGroFac/self.Rfree*(1.0 + solution_next.hRto)
+            self.hRtoNow      = self.PermGroFac/self.Rfree*(np.dot(self.ShkPrbsNext,self.TranShkValsNext*self.PermShkValsNext) + solution_next.hRto)
             self.MPCmaxNow    = 1.0/(1.0 + (self.WorstIncPrb**(1.0/self.CRRA))* \
                                self.PatFac/solution_next.MPCmax)
 
 
     def defineBorrowingConstraint(self,BoroCnst):
         # Calculate the minimum allowable value of money resources in this period
-        # Use np.max instead of max for future compatibility with Markov solver
-        BoroCnstNat = (self.solution_next.mRtoMin - self.TranShkMinNext)*(self.PermGroFac*self.PermShkMinNext)/self.Rfree
-        self.mRtoMinNow = np.max([BoroCnstNat,BoroCnst])
-        if BoroCnstNat < self.mRtoMinNow: 
-            self.MPCmaxNow = 1.0 # If actually constrained, MPC near limit is 1
+        self.BoroCnstNat = (self.solution_next.mRtoMin - self.TranShkMinNext)*(self.PermGroFac*self.PermShkMinNext)/self.Rfree
+        self.mRtoMinNow = np.max([self.BoroCnstNat,BoroCnst])
+        if self.CubicBool or self.vFuncBool:
+            if self.BoroCnstNat < self.mRtoMinNow: 
+                self.MPCmaxEff = 1.0 # If actually constrained, MPC near limit is 1
+            else:
+                self.MPCmaxEff = self.MPCmaxNow
     
         # Define the borrowing constraint (limiting consumption function)
         self.cFuncNowCnst = lambda m: m - self.mRtoMinNow
@@ -326,7 +324,7 @@ class ConsumptionSavingSolverEXOG(SetupImperfectForesightSolver):
         # Update the bounding MPCs and PDV of human wealth:
         if CubicBool or vFuncBool:
             MPCminNow   = self.MPCminNow
-            MPCmaxNow    = self.MPCmaxNow
+            MPCmaxNow   = self.MPCmaxNow
             hRtoNow     = self.hRtoNow
         
         # Find data for the unconstrained consumption function in this period
@@ -461,7 +459,7 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         """
         Create and return arrays of assets and income shocks we will need to compute GothicvP.
         """               
-        aRtoNow     = np.asarray(self.aDispGrid) + self.mRtoMinNow
+        aRtoNow     = np.asarray(self.aDispGrid) + self.BoroCnstNat
         ShkCount    = self.TranShkValsNext.size
         aRto_temp   = np.tile(aRtoNow,(ShkCount,1))
 
@@ -498,7 +496,7 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
 
         # Limiting consumption is zero as m approaches mRtoMin
         c_for_interpolation = np.insert(cRtoNow,0,0.,axis=-1)
-        m_for_interpolation = np.insert(mRtoNow,0,self.mRtoMinNow,axis=-1)
+        m_for_interpolation = np.insert(mRtoNow,0,self.BoroCnstNat,axis=-1)
         
         # Store these for calcvFunc
         self.cRtoNow = cRtoNow
@@ -593,7 +591,7 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         """
         solution.hRto = self.hRtoNow
         solution.MPCmin = self.MPCminNow
-        solution.MPCmax = self.MPCmaxNow
+        solution.MPCmax = self.MPCmaxEff
         return solution
 
        
@@ -765,7 +763,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         An NxN array representing a Markov transition matrix between discrete
         states.  The i,j-th element of transition_array is the probability of
         moving from state i in period t to state j in period t+1.
-    IncomeDist: [[[numpy.array]]]
+    IncomeDist: [[numpy.array]]
         A list of lists containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved and
         the one immediately following (in solution_next).  Order: probs, psi, xi.
@@ -801,7 +799,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         The solution to this period's problem, obtained using the method of endogenous gridpoints.
     '''
 
-    def __init__(self,solution_next,IncomeDist_list,p_zero_income_array,LivFac,DiscFac,
+    def __init__(self,solution_next,IncomeDist_list,LivFac,DiscFac,
                       CRRA,Rfree,PermGroFac,transition_array,BoroCnst,aDispGrid,vFuncBool,CubicBool):
 
         ConsumptionSavingSolverENDG.assignParameters(self,solution_next,np.nan,
@@ -811,8 +809,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         
         self.defineUtilityFunctions()
         self.IncomeDist_list      = IncomeDist_list
-        self.p_zero_income_array  = p_zero_income_array
-        self.StateCount           = p_zero_income_array.size
+        self.StateCount           = len(IncomeDist_list)
         self.transition_array     = transition_array
 
     def conditionOnState(self,state_index):
@@ -820,11 +817,9 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         Find the income distribution, etc., conditional on a given state next period
         """
         self.IncomeDist     = self.IncomeDist_list[state_index]
-        self.p_zero_income  = self.p_zero_income_array[state_index] 
         self.vPfuncNext     = self.solution_next.vPfunc[state_index]
-        self.mRtoMinNow     = self.mRtoMin_list[state_index] 
-        
-        self.cFuncNowCnst   = lambda m: m - self.mRtoMinNow
+        self.mRtoMinNow     = self.mRtoMin_list[state_index]
+        self.BoroCnstNat    = self.BoroCnstNat_list[state_index]
 
         if self.CubicBool:
             self.vPPfuncNext= self.solution_next.vPPfunc[state_index]
@@ -832,24 +827,27 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             self.vFuncNext  = self.solution_next.vFunc[state_index]
 
 
-    def defineBorrowingConstraint(self):
-
-        # Find the borrowing constraint for each current state i as well as the
-        # probability of receiving zero income.
-        self.p_zero_income_now  = np.dot(self.transition_array,self.p_zero_income_array)
-        mRtoMinAll              = np.zeros(self.StateCount) + np.nan
+    def defBoundary(self):
+        # Find the borrowing constraint for each current state
+        BoroCnstNatAll          = np.zeros(self.StateCount) + np.nan
         for j in range(self.StateCount):
             PermShkMinNext      = np.min(self.IncomeDist_list[j][1])
             TranShkMinNext      = np.min(self.IncomeDist_list[j][2])
-            mRtoMinAll[j]       = max((self.solution_next.mRtoMin[j] - TranShkMinNext)*
-                                  (self.PermGroFac*PermShkMinNext)/self.Rfree, self.BoroCnst)
+            BoroCnstNatAll[j]   = (self.solution_next.mRtoMin[j] - TranShkMinNext)*(self.PermGroFac*PermShkMinNext)/self.Rfree
+
+        self.BoroCnstNat_list   = np.zeros(self.StateCount) + np.nan
         self.mRtoMin_list       = np.zeros(self.StateCount) + np.nan
+        self.BoroCnstDependency = np.zeros((self.StateCount,self.StateCount)) + np.nan
         for i in range(self.StateCount):
-            possible_next_states = self.transition_array[i,:] > 0
-            self.mRtoMin_list[i]   = np.max(mRtoMinAll[possible_next_states])
+            possible_next_states     = self.transition_array[i,:] > 0
+            self.BoroCnstNat_list[i] = np.max(BoroCnstNatAll[possible_next_states])
+            self.mRtoMin_list[i]     = np.max([self.BoroCnstNat_list[i],self.BoroCnst])
+            self.BoroCnstDependency[i,:] = self.BoroCnstNat_list[i] == BoroCnstNatAll
+            
+        self.cFuncNowCnst = lambda m: m - self.mRtoMinNow
 
     def solve(self):
-        self.defineBorrowingConstraint()
+        self.defBoundary()
                 
         gothicvP_cond      = np.zeros([self.StateCount,self.aDispGrid.size]) + np.nan     
         if self.vFuncBool:
@@ -858,18 +856,18 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             gothicvPP_cond = np.zeros((self.StateCount,self.aDispGrid.size))
         if self.vFuncBool or self.CubicBool:
             ExIncNext      = np.zeros(self.StateCount) + np.nan
+            WorstIncPrbAll = np.zeros(self.StateCount) + np.nan
 
         for j in range(self.StateCount):
             self.conditionOnState(j)
-            self.setAndUpdateValues(self.solution_next,self.IncomeDist,
-                                    self.LivFac,self.DiscFac)
-
+            self.setAndUpdateValues(self.solution_next,self.IncomeDist,self.LivFac,self.DiscFac)
+            self.conditionOnState(j)
             # We need to condition on the state again, because self.setAndUpdateValues sets 
             # self.vPfunc_tp1       = solution_next.vPfunc... may want to fix this later.             
-            self.conditionOnState(j)
+
             if self.vFuncBool or self.CubicBool:
-                ExIncNext[j] = np.dot(self.ShkPrbsNext,self.PermShkValsNext*self.TranShkValsNext)
-                # Line above might need a PermGroFac in it
+                ExIncNext[j]      = np.dot(self.ShkPrbsNext,self.PermShkValsNext*self.TranShkValsNext)
+                WorstIncPrbAll[j] = self.WorstIncPrb
 
             self.prepareToGetGothicvP()  
             gothicvP_cond[j,:] = self.getGothicvP()                        
@@ -888,15 +886,22 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
  
         # Calculate the bounding MPCs and PDV of human wealth for each state
         if self.vFuncBool or self.CubicBool:
-            ExMPCmaxNext = (np.dot(self.transition_array,self.p_zero_income_array*self.solution_next.MPCmax**(-self.CRRA))/
-                                 self.p_zero_income_now)**(-1/self.CRRA) # expectation of upper bound on MPC in t+1 from perspective of t
-            self.MPCmaxNow       = 1.0/(1.0 + (self.p_zero_income_now**(1.0/self.CRRA))*self.PatFac/ExMPCmaxNext)
+            # Upper bound on MPC at lower m-bound
+            WorstIncPrb_array = self.BoroCnstDependency*np.tile(np.reshape(WorstIncPrbAll,(1,self.StateCount)),(self.StateCount,1))
+            temp_array = self.transition_array*WorstIncPrb_array
+            WorstIncPrbNow    = np.sum(temp_array,axis=1)
+            ExMPCmaxNext      = (np.dot(temp_array,self.solution_next.MPCmax**(-self.CRRA))/WorstIncPrbNow)**(-1.0/self.CRRA)
+            self.MPCmaxNow    = 1.0/(1.0 + (WorstIncPrbNow**(1.0/self.CRRA))*self.PatFac/ExMPCmaxNext)
+            self.MPCmaxEff    = self.MPCmaxNow
+            self.MPCmaxEff[self.BoroCnstNat_list < self.mRtoMin_list] = 1.0
+            # State-conditional PDV of human wealth
+            hRtoPlusIncNext   = ExIncNext + self.solution_next.hRto
+            self.hRtoNow      = self.PermGroFac/self.Rfree*np.dot(self.transition_array,hRtoPlusIncNext)
    
         if self.CubicBool:
             self.gothicvPP = np.dot(self.transition_array,gothicvPP_cond)
             self.vPPfuncNext_list = self.vPPfuncNext
         
-        # note I'm not sure mRtoMin_list is what it should be... CHECK
         aRto = np.asarray(self.aDispGrid)[np.newaxis,:] + np.array(self.mRtoMin_list)[:,np.newaxis]
         cRto,mRto        = self.getPointsForInterpolation(gothicvP,aRto)
        
@@ -905,8 +910,8 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         if self.vFuncBool or self.CubicBool:
             solution = self.addMPCandHumanWealth(solution)
 
-
         return solution    
+
 
     def usePointsForInterpolation(self,cRto,mRto,interpolator):
         solution = ConsumerSolution()
@@ -921,6 +926,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         for j in range(self.StateCount):
             if self.CubicBool:
                 self.MPC_temp_j = self.MPC_temp[j,:]
+                self.hRtoNow_j  = self.hRtoNow[j]
 
             solution_cond = ConsumptionSavingSolverENDGBasic.usePointsForInterpolation(
                                    self,cRto[j,:],mRto[j,:],interpolator=interpfunc)            
@@ -931,25 +937,20 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             
         return solution
 
+
     def getConsumptionCubic(self,mRto,cRto):
         """
         Interpolate the unconstrained consumption function with cubic splines
-        """
-        
-        cFuncNowUnc = CubicInterp(mRto,cRto,self.MPC_temp_j,
-                                                   self.MPCminNow*self.hRtoNow,
-                                                   self.MPCminNow)
+        """        
+        cFuncNowUnc = CubicInterp(mRto,cRto,self.MPC_temp_j,self.MPCminNow*self.hRtoNow_j,self.MPCminNow)
         return cFuncNowUnc
 
 
-
-def consumptionSavingSolverMarkov(solution_next,IncomeDist,p_zero_income,LivFac,
-                                      DiscFac,CRRA,Rfree,PermGroFac,transition_array,BoroCnst,aDispGrid,vFuncBool,CubicBool):
+def consumptionSavingSolverMarkov(solution_next,IncomeDist,LivFac,DiscFac,CRRA,Rfree,PermGroFac,transition_array,BoroCnst,aDispGrid,vFuncBool,CubicBool):
                                        
-    solver = ConsumptionSavingSolverMarkov(solution_next,IncomeDist,p_zero_income,
-                                               LivFac,DiscFac,CRRA,Rfree,PermGroFac,transition_array,BoroCnst,aDispGrid,
+    solver = ConsumptionSavingSolverMarkov(solution_next,IncomeDist,LivFac,DiscFac,CRRA,Rfree,PermGroFac,transition_array,BoroCnst,aDispGrid,
                                                vFuncBool,CubicBool)              
-    solution                   = solver.solve()
+    solution = solver.solve()
     return solution             
         
 
@@ -1736,6 +1737,7 @@ if __name__ == '__main__':
         MarkovType.solution_terminal.vPfunc = 4*[MarkovType.solution_terminal.vPfunc]
         MarkovType.solution_terminal.vPPfunc = 4*[MarkovType.solution_terminal.vPPfunc]
         MarkovType.solution_terminal.mRtoMin = 4*[MarkovType.solution_terminal.mRtoMin]
+        MarkovType.solution_terminal.MPCmax = np.array(4*[1.0])
         
         MarkovType.IncomeDist = [[employed_income_dist,unemployed_income_dist,employed_income_dist,unemployed_income_dist]]
         MarkovType.p_zero_income = p_zero_income
