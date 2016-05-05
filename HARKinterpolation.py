@@ -372,7 +372,10 @@ class CubicInterp(HARKinterpolator1D):
             
             x_dist = np.max(np.abs(np.subtract(xA,xB)))
             y_dist = np.max(np.abs(np.subtract(yA,yB)))
-            dist = max(x_dist,y_dist)
+            
+            extrap_dist = np.max(np.abs(np.array(self.coeffs[-1]) - np.array(other_function.coeffs[-1])))
+            
+            dist = max([x_dist,y_dist,extrap_dist])
         else:
             dist = np.abs(len(xA) - len(xB))
         return dist
@@ -2140,7 +2143,7 @@ if __name__ == '__main__':
         for y in y_list:
             this_x_list = np.sort((RNG.rand(100)*5.0))
             this_interpolation = LinearInterp(this_x_list,f(this_x_list,y*np.ones(this_x_list.size)))
-            that_interpolation = Cubic1DInterpDecay(this_x_list,f(this_x_list,y*np.ones(this_x_list.size)),dfdx(this_x_list,y*np.ones(this_x_list.size)))
+            that_interpolation = CubicInterp(this_x_list,f(this_x_list,y*np.ones(this_x_list.size)),dfdx(this_x_list,y*np.ones(this_x_list.size)))
             xInterpolators.append(this_interpolation)
             xInterpolators_alt.append(that_interpolation)
         g = LinearInterpOnInterp1D(xInterpolators,y_list)

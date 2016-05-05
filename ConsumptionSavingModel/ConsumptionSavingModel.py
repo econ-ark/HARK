@@ -56,9 +56,15 @@ class ConsumerSolution():
             dist_vec = np.zeros(len(self.cFunc)) + np.nan
             for i in range(len(self.cFunc)):
                 dist_vec[i] = self.cFunc[i].distance(solution_other.cFunc[i])
-            return np.max(dist_vec)
+            cFuncDist = np.max(dist_vec)
         else:
-            return self.cFunc.distance(solution_other.cFunc)
+            cFuncDist = self.cFunc.distance(solution_other.cFunc)
+        #if self.hRto is not None:
+        #    hRtoDist = np.max(np.abs(self.hRto - solution_other.hRto))
+        #else:
+        #    hRtoDist = 0.0
+        #return max([cFuncDist,hRtoDist])
+        return cFuncDist
 
     def getEulerEquationErrorFunction(self,uPfunc):
         """
@@ -139,75 +145,56 @@ class MargMargValueFunc():
 
 class PerfectForesightSolver(object):
 
-    def __init__(self,solution_next,DiscFac,CRRA,Rfree,PermGroFac,BoroCnst):
+    def __init__(self,solution_next,DiscFac,CRRA,Rfree,PermGroFac):
         self.notation = {'a': 'assets after all actions',
                          'm': 'market resources at decision time',
                          'c': 'consumption'}
-
-
-        self.assignParameters(solution_next,DiscFac,CRRA,Rfree,PermGroFac,BoroCnst)
+        self.assignParameters(solution_next,DiscFac,CRRA,Rfree,PermGroFac)
          
-    def assignParameters(self,solution_next,DiscFac,CRRA,Rfree,PermGroFac,BoroCnst):
+    def assignParameters(self,solution_next,DiscFac,CRRA,Rfree,PermGroFac):
         self.solution_next  = solution_next        
         self.DiscFac        = DiscFac
         self.CRRA           = CRRA
         self.Rfree          = Rfree
         self.PermGroFac     = PermGroFac
-        self.BoroCnst       = BoroCnst
-
-    def defineBorrowingConstraint(self,BoroCnst):
-        if BoroCnst is not None:
-            print 'The constrained solution for the Perfect Foresight solution has not been' + \
-                  ' implemented yet.  Solving the unconstrained problem.'
-        self.BoroCnst = None   
     
-    def defineUtilityFunctions(self):
+    def defUtilityFuncs(self):
         self.u   = lambda c : utility(c,gam=self.CRRA)
         self.uP  = lambda c : utilityP(c,gam=self.CRRA)
         self.uPP = lambda c : utilityPP(c,gam=self.CRRA)
 
-    def defineValueFunctions(self):
-        self.vFunc   = lambda m: self.u(self.cFunc(m))
+    def defValueFuncs(self):
+        self.vFunc   = lambda m: self.u(self.cFunc(m)) # This is incorrect!
         self.vPfunc  = lambda m: self.uP(self.cFunc(m))
-        self.vPPfunc = lambda m: self.MPC*self.uPP(self.cFunc(m)) 
-
-    def getcFunc(self):
-        self.MPC = (((self.Rfree/self.PermGroFac) - 
-                ((self.Rfree/self.PermGroFac)*((self.PermGroFac**(1-self.CRRA))*self.DiscFac)) ** \
-                (1/self.CRRA))/(self.Rfree/self.PermGroFac))
-        self.cFunc = lambda m: self.MPC*(m - 1 + (1/(1-(1/(self.Rfree/self.PermGroFac)))))
-
-    def getSolution(self):
-        # infinte horizon simplification.  This should hold (I think) because the range for kappa
-        # and  whatever the greek sybol for Return Patience Factor is specified in the 
-        # ConsumerSolution class.__init__
+        self.vPPfunc = lambda m: self.MPC*self.uPP(self.cFunc(m))
         
-        solution_now = ConsumerSolution(cFunc=self.cFunc, vFunc=self.vFunc, 
-                                      vPfunc=self.vPfunc, vPPfunc=self.vPPfunc, 
-                                      mRtoMin=self.mRtoMinNow, hRto=0.0, MPCmin=1.0, 
-                                      MPCmax=1.0)            
-        return solution_now
-
-    def prepareToSolve(self):
-        self.defineUtilityFunctions()
-        self.defineBorrowingConstraint(self.BoroCnst)
-
+    def makecFunc(self):
+        # Calculate human wealth this period (and lower bound of m)
+        self.hRtoNow = (self.PermGroFac/self.Rfree)*(self.solution_next.hRto + 1.0)
+        self.mRtoMin = -self.hRtoNow
+        # Calculate the (constant) marginal propensity to consume
+        PatFac       = ((self.Rfree*self.DiscFac)**(1.0/self.CRRA))/self.Rfree
+        self.MPC     = 1.0/(1.0 + PatFac/self.solution_next.MPCmin)
+        # Construct the consumption function
+        self.cFunc   = LinearInterp([self.mRtoMin, self.mRtoMin+1.0],[0.0, self.MPC])
+        
     def solve(self):        
-        self.getcFunc()
-        self.defineValueFunctions()
-        solution = self.getSolution()        
+        self.defUtilityFuncs()
+        self.makecFunc()
+        self.defValueFuncs()
+        solution = ConsumerSolution(cFunc=self.cFunc, vFunc=self.vFunc, 
+                       vPfunc=self.vPfunc, vPPfunc=self.vPPfunc,
+                       mRtoMin=self.mRtoMin, hRto=self.hRtoNow,
+                       MPCmin=self.MPC, MPCmax=self.MPC)
         return solution
 
 
-def perfectForesightSolver(solution_next,DiscFac,CRRA,Rfree,PermGroFac,BoroCnst):
+def solvePerfForesight(solution_next,DiscFac,CRRA,Rfree,PermGroFac):
     '''
     Solves a single period consumption - savings problem for a consumer with perfect foresight.
     '''
-    solver = PerfectForesightSolver(solution_next,DiscFac,CRRA,Rfree,PermGroFac,BoroCnst)
-    
-    solver.prepareToSolve()
-    solution = solver.solve()
-    
+    solver = PerfectForesightSolver(solution_next,DiscFac,CRRA,Rfree,PermGroFac)
+    solution = solver.solve()    
     return solution
     
 
@@ -223,7 +210,8 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
 
     def assignParameters(self,solution_next,IncomeDist,LivFac,DiscFac,CRRA,Rfree,
                                 PermGroFac,BoroCnst,aDispGrid,vFuncBool,CubicBool):
-        PerfectForesightSolver.assignParameters(self,solution_next,DiscFac,CRRA,Rfree,PermGroFac,BoroCnst)
+        PerfectForesightSolver.assignParameters(self,solution_next,DiscFac,CRRA,Rfree,PermGroFac)
+        self.BoroCnst       = BoroCnst
         self.IncomeDist     = IncomeDist
         self.LivFac         = LivFac
         self.aDispGrid      = aDispGrid
@@ -232,7 +220,7 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         
 
     def defineUtilityFunctions(self):
-        PerfectForesightSolver.defineUtilityFunctions(self)
+        PerfectForesightSolver.defUtilityFuncs(self)
         self.uPinv     = lambda u : utilityP_inv(u,gam=self.CRRA)
         self.uinvP     = lambda u : utility_invP(u,gam=self.CRRA)        
         if self.vFuncBool:
@@ -1557,7 +1545,11 @@ def constructAssetsGrid(parameters):
                 aDispGrid = np.insert(aDispGrid, j, a)
 
     return aDispGrid
-    
+
+
+
+
+####################################################################################################     
     
 if __name__ == '__main__':
     import SetupConsumerParameters as Params
@@ -1567,10 +1559,7 @@ if __name__ == '__main__':
 
     do_hybrid_type          = False
     do_markov_type          = True
-    do_perfect_foresight    = False
-
-
-
+    do_perfect_foresight    = True
 
 
 ####################################################################################################    
@@ -1756,25 +1745,17 @@ if __name__ == '__main__':
         print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
         print('Consumption functions for each discrete state:')
         plotFuncs(MarkovType.solution[0].cFunc,0,50)
-#
-#
-    if do_perfect_foresight:
 
-        # Make and solve a perfect foresight consumer type who's problem is actually solved analytically,
-        # but which can nonetheless be represented in this framework
-        
-        #PFC_paramteres = (DiscFac = 0.96, PermGroFac = 1.10, Rfree = 1.03 , CRRA = 4, constrained = True)
-        PerfectForesightType = deepcopy(LifecycleType)    
-        
-        #tell the model to use the perfect forsight solver
-        PerfectForesightType.solveOnePeriod = perfectForesightSolver
-        PerfectForesightType.time_vary = [] #let the model know that there are no longer time varying parameters
-        PerfectForesightType.time_inv =  PerfectForesightType.time_inv +['DiscFac','PermGroFac'] #change DiscFac and PermGroFac from time varying to non time varying
-        #give the model new DiscFac and PermGroFac parameters to use for the perfect forsight model
-        PerfectForesightType.assignParameters(DiscFac = 0.96,
-                                              PermGroFac = 1.01)
-        #tell the model not to use the terminal solution as a valid result anymore
-        PerfectForesightType.pseudo_terminal = True
+
+
+#################################################################################################### 
+
+    if do_perfect_foresight:
+        # Make and solve a perfect foresight consumer type
+        PerfectForesightType = deepcopy(InfiniteType)    
+        PerfectForesightType.solveOnePeriod = solvePerfForesight
+        DiscFacEff = [PerfectForesightType.DiscFac[t]*PerfectForesightType.LivFac[t] for t in range(len(PerfectForesightType.DiscFac))]
+        PerfectForesightType(DiscFac=DiscFacEff)
         
         start_time = clock()
         PerfectForesightType.solve()
@@ -1782,6 +1763,5 @@ if __name__ == '__main__':
         print('Solving a Perfect Foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
         PerfectForesightType.unpack_cFunc()
         PerfectForesightType.timeFwd()
-        
-            
-        plotFuncs(PerfectForesightType.cFunc[:],0,5)
+                    
+        plotFuncs([PerfectForesightType.cFunc[0],InfiniteType.cFunc[0]],0,100)

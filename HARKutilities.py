@@ -349,7 +349,8 @@ def approxMeanOneLognormal(N, sigma):
       [Solution Methods for Microeconomic Dynamic Optimization Problems](http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
     Latest update: 01 May 2015
     '''
-    mu = -0.5*(sigma**2)
+    #mu = -0.5*(sigma**2)
+    mu=0.0
     return approxLognormal(N=N, mu=mu, sigma=sigma)
     
     
