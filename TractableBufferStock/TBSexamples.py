@@ -35,8 +35,8 @@ plotFuncs([ExampleType.solution[0].cFunc,ExampleType.solution[0].cFunc_U],0,m_up
 
 # Now solve the same model using backward induction
 init_consumer_objects = {"CRRA":base_primitives['rho'],
-                        "Rfree":base_primitives['R'],
-                        "PermGroFac":[base_primitives['G']/(1.0-base_primitives['mho'])],
+                        "Rfree":np.array(2*[base_primitives['R']]),
+                        "PermGroFac":[np.array(2*[base_primitives['G']/(1.0-base_primitives['mho'])])],
                         "BoroCnst":None,
                         "PermShkStd":[0.0],
                         "PermShkCount":1,

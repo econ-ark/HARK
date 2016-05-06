@@ -568,8 +568,8 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         """
         Take a solution, and add in vPPfunc to it, to prepare for cubic splines
         """
-        vPPfuncNow = MargMargValueFunc(solution.cFunc,self.CRRA)
-        solution.vPPfunc=vPPfuncNow
+        vPPfuncNow        = MargMargValueFunc(solution.cFunc,self.CRRA)
+        solution.vPPfunc  = vPPfuncNow
         return solution
 
 
@@ -577,7 +577,7 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         """
         Take a solution, and other things to it
         """
-        solution.hRto = self.hRtoNow
+        solution.hRto   = self.hRtoNow
         solution.MPCmin = self.MPCminNow
         solution.MPCmax = self.MPCmaxEff
         return solution
@@ -610,13 +610,10 @@ def consumptionSavingSolverENDG(solution_next,IncomeDist,LivFac,DiscFac,CRRA,Rfr
         solver = ConsumptionSavingSolverENDGBasic(solution_next,IncomeDist,LivFac,DiscFac,CRRA,Rfree,PermGroFac,BoroCnst,aDispGrid,
                                              vFuncBool,CubicBool)        
     else:
-
         solver = ConsumptionSavingSolverENDG(solution_next,IncomeDist,LivFac,DiscFac,CRRA,Rfree,PermGroFac,BoroCnst,aDispGrid,
                                              vFuncBool,CubicBool)
-
     solver.prepareToSolve()                      
     solution                   = solver.solve()
-
     return solution   
 
 
@@ -788,15 +785,16 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
     '''
 
     def __init__(self,solution_next,IncomeDist_list,LivFac,DiscFac,
-                      CRRA,Rfree,PermGroFac,transition_array,BoroCnst,aDispGrid,vFuncBool,CubicBool):
+                      CRRA,Rfree_list,PermGroFac_list,transition_array,BoroCnst,
+                      aDispGrid,vFuncBool,CubicBool):
 
         ConsumptionSavingSolverENDG.assignParameters(self,solution_next,np.nan,
-                                                     LivFac,DiscFac,CRRA,Rfree,PermGroFac,
+                                                     LivFac,DiscFac,CRRA,np.nan,np.nan,
                                                      BoroCnst,aDispGrid,vFuncBool,CubicBool)
-                                                     
-        
         self.defineUtilityFunctions()
         self.IncomeDist_list      = IncomeDist_list
+        self.Rfree_list           = Rfree_list
+        self.PermGroFac_list      = PermGroFac_list
         self.StateCount           = len(IncomeDist_list)
         self.transition_array     = transition_array
 
@@ -805,6 +803,8 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         Find the income distribution, etc., conditional on a given state next period
         """
         self.IncomeDist     = self.IncomeDist_list[state_index]
+        self.Rfree          = self.Rfree_list[state_index]
+        self.PermGroFac     = self.PermGroFac_list[state_index]
         self.vPfuncNext     = self.solution_next.vPfunc[state_index]
         self.mRtoMinNow     = self.mRtoMin_list[state_index]
         self.BoroCnstNat    = self.BoroCnstNat_list[state_index]
@@ -821,7 +821,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         for j in range(self.StateCount):
             PermShkMinNext      = np.min(self.IncomeDist_list[j][1])
             TranShkMinNext      = np.min(self.IncomeDist_list[j][2])
-            BoroCnstNatAll[j]   = (self.solution_next.mRtoMin[j] - TranShkMinNext)*(self.PermGroFac*PermShkMinNext)/self.Rfree
+            BoroCnstNatAll[j]   = (self.solution_next.mRtoMin[j] - TranShkMinNext)*(self.PermGroFac_list[j]*PermShkMinNext)/self.Rfree_list[j]
 
         self.BoroCnstNat_list   = np.zeros(self.StateCount) + np.nan
         self.mRtoMin_list       = np.zeros(self.StateCount) + np.nan
@@ -831,8 +831,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             self.BoroCnstNat_list[i] = np.max(BoroCnstNatAll[possible_next_states])
             self.mRtoMin_list[i]     = np.max([self.BoroCnstNat_list[i],self.BoroCnst])
             self.BoroCnstDependency[i,:] = self.BoroCnstNat_list[i] == BoroCnstNatAll
-            
-        self.cFuncNowCnst = lambda m: m - self.mRtoMinNow
+
 
     def solve(self):
         self.defBoundary()
@@ -877,23 +876,30 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             # Upper bound on MPC at lower m-bound
             WorstIncPrb_array = self.BoroCnstDependency*np.tile(np.reshape(WorstIncPrbAll,(1,self.StateCount)),(self.StateCount,1))
             temp_array = self.transition_array*WorstIncPrb_array
-            WorstIncPrbNow    = np.sum(temp_array,axis=1)
-            ExMPCmaxNext      = (np.dot(temp_array,self.solution_next.MPCmax**(-self.CRRA))/WorstIncPrbNow)**(-1.0/self.CRRA)
-            self.MPCmaxNow    = 1.0/(1.0 + (WorstIncPrbNow**(1.0/self.CRRA))*self.PatFac/ExMPCmaxNext)
+            WorstIncPrbNow    = np.sum(temp_array,axis=1) # Probability of getting the "worst" income shock and transition from each current state
+            ExMPCmaxNext      = (np.dot(temp_array,self.Rfree_list**(1.0-self.CRRA)*self.solution_next.MPCmax**(-self.CRRA))/WorstIncPrbNow)**(-1.0/self.CRRA)
+            self.MPCmaxNow    = 1.0/(1.0 + ((self.DiscFacEff*WorstIncPrbNow)**(1.0/self.CRRA))/ExMPCmaxNext)
             self.MPCmaxEff    = self.MPCmaxNow
             self.MPCmaxEff[self.BoroCnstNat_list < self.mRtoMin_list] = 1.0
             # State-conditional PDV of human wealth
             hRtoPlusIncNext   = ExIncNext + self.solution_next.hRto
-            self.hRtoNow      = self.PermGroFac/self.Rfree*np.dot(self.transition_array,hRtoPlusIncNext)
+            self.hRtoNow      = np.dot(self.transition_array,(self.PermGroFac_list/self.Rfree_list)*hRtoPlusIncNext)
+            # Lower bound on MPC as m gets arbitrarily large
+            temp = (self.DiscFacEff*np.dot(self.transition_array,(self.solution_next.MPCmin*self.Rfree_list)**(-self.CRRA)))**(1.0/self.CRRA)
+            self.MPCminNow = 1.0/(1.0 + temp)
    
         if self.CubicBool:
             self.gothicvPP = np.dot(self.transition_array,gothicvPP_cond)
             self.vPPfuncNext_list = self.vPPfuncNext
         
-        aRto = np.asarray(self.aDispGrid)[np.newaxis,:] + np.array(self.mRtoMin_list)[:,np.newaxis]
-        cRto,mRto        = self.getPointsForInterpolation(gothicvP,aRto)
-       
+        aRto = np.asarray(self.aDispGrid)[np.newaxis,:] + np.array(self.BoroCnstNat_list)[:,np.newaxis]
+        self.getPointsForInterpolation(gothicvP,aRto)
+        cRto = np.hstack((np.zeros((self.StateCount,1)),self.cRtoNow))
+        mRto = np.hstack((np.reshape(self.mRtoMin_list,(self.StateCount,1)),self.mRtoNow))
+        
+        self.BoroCnstNat = self.BoroCnstNat_list
         solution = self.usePointsForInterpolation(cRto,mRto,interpolator=LinearInterp)
+        solution.mRtoMin = self.mRtoMin_list
 
         if self.vFuncBool or self.CubicBool:
             solution = self.addMPCandHumanWealth(solution)
@@ -913,9 +919,11 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         
         for j in range(self.StateCount):
             if self.CubicBool:
-                self.MPC_temp_j = self.MPC_temp[j,:]
-                self.hRtoNow_j  = self.hRtoNow[j]
+                self.MPC_temp_j  = self.MPC_temp[j,:]
+                self.hRtoNow_j   = self.hRtoNow[j]
+                self.MPCminNow_j = self.MPCminNow[j]
 
+            self.cFuncNowCnst = LinearInterp([self.mRtoMin_list[j], self.mRtoMin_list[j]+1],[0.0,1.0])
             solution_cond = ConsumptionSavingSolverENDGBasic.usePointsForInterpolation(
                                    self,cRto[j,:],mRto[j,:],interpolator=interpfunc)            
             if self.CubicBool: 
@@ -930,7 +938,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         """
         Interpolate the unconstrained consumption function with cubic splines
         """        
-        cFuncNowUnc = CubicInterp(mRto,cRto,self.MPC_temp_j,self.MPCminNow*self.hRtoNow_j,self.MPCminNow)
+        cFuncNowUnc = CubicInterp(mRto,cRto,self.MPC_temp_j,self.MPCminNow_j*self.hRtoNow_j,self.MPCminNow_j)
         return cFuncNowUnc
 
 
@@ -1284,8 +1292,6 @@ def constructLognormalIncomeProcessUnemployment(parameters):
     return IncomeDist
     
 
-
-
 def applyFlatIncomeTax(IncomeDist,tax_rate,T_retire,unemployed_indices=[],transitory_index=2):
     '''
     Applies a flat income tax rate to all employed income states during the working
@@ -1561,7 +1567,6 @@ if __name__ == '__main__':
     do_markov_type          = True
     do_perfect_foresight    = True
 
-
 ####################################################################################################    
     
 #    # Make and solve a finite consumer type
@@ -1615,16 +1620,29 @@ if __name__ == '__main__':
         plotFunc(InfiniteType.solution[0].vFunc,0.5,10)
 
 
+#################################################################################################### 
+
+    if do_perfect_foresight:
+        # Make and solve a perfect foresight consumer type
+        PerfectForesightType = deepcopy(InfiniteType)    
+        PerfectForesightType.solveOnePeriod = solvePerfForesight
+        DiscFacEff = [PerfectForesightType.DiscFac[t]*PerfectForesightType.LivFac[t] for t in range(len(PerfectForesightType.DiscFac))]
+        PerfectForesightType(DiscFac=DiscFacEff)
+        
+        start_time = clock()
+        PerfectForesightType.solve()
+        end_time = clock()
+        print('Solving a Perfect Foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
+        PerfectForesightType.unpack_cFunc()
+        PerfectForesightType.timeFwd()
+                    
+        plotFuncs([PerfectForesightType.cFunc[0],InfiniteType.cFunc[0]],0,100)
 
 
     
 ####################################################################################################    
 
 
-
-
-        
-        
     # Make and solve an agent with a kinky interest rate
     KinkyType = deepcopy(InfiniteType)
 
@@ -1719,7 +1737,6 @@ if __name__ == '__main__':
         employed_income_dist = combineIndepDists(psi_dist, xi_dist)
         employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]
         unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
-        p_zero_income = [np.array([0.0,1.0,0.0,1.0])]
         
         MarkovType.solution_terminal.cFunc = 4*[MarkovType.solution_terminal.cFunc]
         MarkovType.solution_terminal.vFunc = 4*[MarkovType.solution_terminal.vFunc]
@@ -1727,15 +1744,16 @@ if __name__ == '__main__':
         MarkovType.solution_terminal.vPPfunc = 4*[MarkovType.solution_terminal.vPPfunc]
         MarkovType.solution_terminal.mRtoMin = 4*[MarkovType.solution_terminal.mRtoMin]
         MarkovType.solution_terminal.MPCmax = np.array(4*[1.0])
+        MarkovType.solution_terminal.MPCmin = np.array(4*[1.0])
+        
+        MarkovType.Rfree = np.array(4*[MarkovType.Rfree])
+        MarkovType.PermGroFac = [np.array(4*MarkovType.PermGroFac)]
         
         MarkovType.IncomeDist = [[employed_income_dist,unemployed_income_dist,employed_income_dist,unemployed_income_dist]]
-        MarkovType.p_zero_income = p_zero_income
         MarkovType.transition_array = transition_array
         MarkovType.time_inv.append('transition_array')
-        MarkovType.time_vary.append('p_zero_income')
         MarkovType.solveOnePeriod = consumptionSavingSolverMarkov
-        MarkovType.cycles = 0
-        
+        MarkovType.cycles = 0        
         MarkovType.vFuncBool = False
         
         MarkovType.timeFwd()
@@ -1746,22 +1764,3 @@ if __name__ == '__main__':
         print('Consumption functions for each discrete state:')
         plotFuncs(MarkovType.solution[0].cFunc,0,50)
 
-
-
-#################################################################################################### 
-
-    if do_perfect_foresight:
-        # Make and solve a perfect foresight consumer type
-        PerfectForesightType = deepcopy(InfiniteType)    
-        PerfectForesightType.solveOnePeriod = solvePerfForesight
-        DiscFacEff = [PerfectForesightType.DiscFac[t]*PerfectForesightType.LivFac[t] for t in range(len(PerfectForesightType.DiscFac))]
-        PerfectForesightType(DiscFac=DiscFacEff)
-        
-        start_time = clock()
-        PerfectForesightType.solve()
-        end_time = clock()
-        print('Solving a Perfect Foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
-        PerfectForesightType.unpack_cFunc()
-        PerfectForesightType.timeFwd()
-                    
-        plotFuncs([PerfectForesightType.cFunc[0],InfiniteType.cFunc[0]],0,100)
