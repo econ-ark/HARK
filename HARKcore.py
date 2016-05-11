@@ -1,5 +1,50 @@
 from HARKutilities import getArgNames, NullFunc
 from copy import deepcopy
+import numpy as np
+
+class Solution():
+    '''
+    A superclass for representing the "solution" to a single period problem in a
+    dynamic microeconomic model.  Its only method acs as a "universal distance
+    metric" that should be useful in many settings, but can be overwritten by a
+    subclass of Solution.
+    '''    
+    def distance(self,solution_other):  
+        distance_list = [0.0]
+        for attr_name in self.convergence_criteria:
+            obj_A = eval('self.' + attr_name)
+            obj_B = eval('solution_other.' + attr_name)
+            distance_list.append(distanceMetric(obj_A,obj_B))
+        return max(distance_list)
+        
+def distanceMetric(thing_A,thing_B):
+    typeA = type(thing_A)
+    typeB = type(thing_B)
+            
+    if typeA is list and typeB is list:
+        lenA = len(thing_A)
+        lenB = len(thing_B)
+        if lenA == lenB:
+            distance_temp = []
+            for n in range(lenA):
+                distance_temp.append(distanceMetric(thing_A[n],thing_B[n]))
+            distance = max(distance_temp)
+        else:
+            distance = float(abs(lenA - lenB))
+    elif (typeA is int or typeB is float) and (typeB is int or typeB is float):
+        distance = float(abs(thing_A - thing_B))
+    elif hasattr(thing_A,'shape') and hasattr(thing_B,'shape'):
+        if thing_A.shape == thing_B.shape:
+            distance = np.max(abs(thing_A - thing_B))
+        else:
+            distance = np.max(abs(thing_A.shape - thing_B.shape))
+    elif thing_A.__class__.__name__ is thing_B.__class__.__name__:
+        distance = thing_A.distance(thing_B)
+    else:
+        distance = 1000.0
+    
+    return distance
+
 
 
 class AgentType():
@@ -10,7 +55,7 @@ class AgentType():
     the fields time_vary and time_inv as lists of strings.  Each element of time_vary is the
     name of a field in AgentSubType that varies over time in the model.  Each element of
     time_inv is the name of a field in AgentSubType that is constant over time in the model.
-    The string 'solveAPeriod' should appear in exactly one of these lists, depending on
+    The string 'solveOnePeriod' should appear in exactly one of these lists, depending on
     whether the same solution method is used in all periods of the model.
     '''
     
@@ -22,7 +67,7 @@ class AgentType():
         self.cycles = cycles
         self.time_flow = time_flow
         self.pseudo_terminal = pseudo_terminal
-        self.solveAPeriod = NullFunc
+        self.solveOnePeriod = NullFunc
         self.tolerance = tolerance
         self.assignParameters(**kwds)
         
@@ -108,7 +153,6 @@ class AgentType():
         
 
 
-
 def solveAgent(agent):
     '''
     Solve the dynamic model for one agent type.  This function iterates on "cycles"
@@ -137,7 +181,7 @@ def solveAgent(agent):
     while go:
 
         # Solve a cycle of the model, recording it if horizon is finite
-        solution_cycle = solveACycle(agent,solution_last)
+        solution_cycle = solveOneCycle(agent,solution_last)
         if not infinite_horizon:
             solution += solution_cycle
 
@@ -167,7 +211,7 @@ def solveAgent(agent):
     return solution
 
 
-def solveACycle(agent,solution_last):
+def solveOneCycle(agent,solution_last):
     '''
     Solve one "cycle" of the dynamic model for one agent type.  This function
     iterates over the periods within an agent's cycle, updating the time-varying
@@ -182,10 +226,10 @@ def solveACycle(agent,solution_last):
         T = 1
 
     # Check whether the same solution method is used in all periods
-    always_same_solver = 'solveAPeriod' not in agent.time_vary
+    always_same_solver = 'solveOnePeriod' not in agent.time_vary
     if always_same_solver:
-        solveAPeriod = agent.solveAPeriod
-        these_args = getArgNames(solveAPeriod)
+        solveOnePeriod = agent.solveOnePeriod
+        these_args = getArgNames(solveOnePeriod)
 
     # Construct a dictionary to be passed to the solver
     time_inv_string = ''
@@ -198,27 +242,27 @@ def solveACycle(agent,solution_last):
 
     # Initialize the solution for this cycle, then iterate on periods
     solution_cycle = []
-    solution_tp1 = solution_last
+    solution_next = solution_last
     for t in range(T):
 
         # Update which single period solver to use
         if not always_same_solver:
-            solveAPeriod = agent.solveAPeriod[t]
-            these_args = getArgNames(solveAPeriod)
+            solveOnePeriod = agent.solveOnePeriod[t]
+            these_args = getArgNames(solveOnePeriod)
 
         # Update time-varying single period inputs
         for name in agent.time_vary:
             if name in these_args:
                 solve_dict[name] = eval('agent.' + name + '[t]')
-        solve_dict['solution_tp1'] = solution_tp1
+        solve_dict['solution_next'] = solution_next
         
         # Make a temporary dictionary for this period
         temp_dict = {name: solve_dict[name] for name in these_args}
 
         # Solve one period, add it to the solution, and move to the next period
-        solution_t = solveAPeriod(**temp_dict)
+        solution_t = solveOnePeriod(**temp_dict)
         solution_cycle.append(solution_t)
-        solution_tp1 = solution_t
+        solution_next = solution_t
 
     # Return the list of per-period solutions
     return solution_cycle

@@ -183,7 +183,7 @@ class HARKinterpolator4D():
         raise NotImplementedError()
 
 
-class Cubic1DInterpDecay(HARKinterpolator1D):
+class CubicInterp(HARKinterpolator1D):
     """
     An interpolating function using piecewise cubic splines and "decay extrapolation"
     above the highest gridpoint.  Matches level and slope of 1D function at gridpoints,
@@ -211,7 +211,9 @@ class Cubic1DInterpDecay(HARKinterpolator1D):
         NOTE: When no input is given for the limiting linear function, linear
         extrapolation is used above the highest gridpoint.        
         '''
-        self.x_list = x_list
+        self.x_list = np.asarray(x_list)
+        self.y_list = np.asarray(y_list)
+        self.dydx_list = np.asarray(dydx_list)
         self.n = len(x_list)
         
         # Define lower extrapolation as linear function 
@@ -358,23 +360,22 @@ class Cubic1DInterpDecay(HARKinterpolator1D):
         then the difference in the number of gridpoints is returned instead.
         '''
         other_class = other_function.__class__.__name__
-        if other_class is not 'Cubic1DInterpDecay':
+        if other_class is not 'CubicInterp':
             return 1000000
         xA = self.x_list
         xB = other_function.x_list
-        if (len(xA) == len(xB)):
-            yA = [self.coeffs[j][0] for j in range(len(xA)-1)]
-            yA.append(self.coeffs[-1][0] + self.coeffs[-1][1]*xA[-1] - self.coeffs[-1][2])
-            yA = np.array(yA)
-            yB = [other_function.coeffs[j][0] for j in range(len(xB)-1)]
-            yB.append(other_function.coeffs[-1][0] + other_function.coeffs[-1][1]*xB[-1] - other_function.coeffs[-1][2])
-            yB = np.array(yB)
-            
+        yA = self.y_list
+        yB = other_function.y_list
+        dydxA = self.dydx_list
+        dydxB = other_function.dydx_list
+        if (self.n == other_function.n):            
             x_dist = np.max(np.abs(np.subtract(xA,xB)))
             y_dist = np.max(np.abs(np.subtract(yA,yB)))
-            dist = max(x_dist,y_dist)
+            dydx_dist = np.max(np.abs(np.subtract(dydxA,dydxB)))
+            
+            dist = max([x_dist,y_dist,dydx_dist])
         else:
-            dist = np.abs(len(xA) - len(xB))
+            dist = np.abs(self.n - other_function.n)
         return dist
 
 
@@ -989,7 +990,7 @@ class QuadlinearInterp(HARKinterpolator4D):
         
 
 
-class ConstrainedComposite(HARKinterpolator1D):
+class LowerEnvelope(HARKinterpolator1D):
     """
     An arbitrary 1D function that has a linear constraint with slope of 1.  The
     unconstrained function can be of any class that has the methods __call__,
@@ -2140,7 +2141,7 @@ if __name__ == '__main__':
         for y in y_list:
             this_x_list = np.sort((RNG.rand(100)*5.0))
             this_interpolation = LinearInterp(this_x_list,f(this_x_list,y*np.ones(this_x_list.size)))
-            that_interpolation = Cubic1DInterpDecay(this_x_list,f(this_x_list,y*np.ones(this_x_list.size)),dfdx(this_x_list,y*np.ones(this_x_list.size)))
+            that_interpolation = CubicInterp(this_x_list,f(this_x_list,y*np.ones(this_x_list.size)),dfdx(this_x_list,y*np.ones(this_x_list.size)))
             xInterpolators.append(this_interpolation)
             xInterpolators_alt.append(that_interpolation)
         g = LinearInterpOnInterp1D(xInterpolators,y_list)

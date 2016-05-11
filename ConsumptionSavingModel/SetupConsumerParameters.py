@@ -11,23 +11,23 @@ import numpy as np
 # ---------------------------------------------------------------------------------
 
 exp_nest = 3                        # Number of times to "exponentially nest" when constructing a_grid
-a_min = 0.001                       # Minimum end-of-period assets value in a_grid
-a_max = 20                         # Maximum end-of-period assets value in a_grid                  
-a_huge = None                       # A very large value of assets to add to the grid, not used
-a_extra = None                      # Some other value of assets to add to the grid, not used
-a_size = 12                         # Number of points in the grid of assets
+aXtraMin = 0.001                       # Minimum end-of-period assets value in a_grid
+aXtraMax = 20                         # Maximum end-of-period assets value in a_grid                  
+aXtraHuge = None                       # A very large value of assets to add to the grid, not used
+aXtraExtra = None                      # Some other value of assets to add to the grid, not used
+aXtraCount = 12                         # Number of points in the grid of assets
 
-constraint = 0.0                  # Artificial borrowing constraint
-cubic_splines = True                # Use cubic spline interpolation when True, linear interpolation when False
-calc_vFunc = True                 # Whether to calculate the value function during solution
+BoroCnstArt = None                  # Artificial borrowing constraint
+CubicBool = True                # Use cubic spline interpolation when True, linear interpolation when False
+vFuncBool = False                 # Whether to calculate the value function during solution
 
-R = 1.03                            # Interest factor on assets
-psi_N = 6                           # Number of points in discrete approximation to permanent income shocks
-xi_N = 6                            # Number of points in discrete approximation to transitory income shocks
-p_unemploy = 0.05                  # Probability of unemployment while working
-p_unemploy_retire = 0.0005          # Probability of "unemployment" while retired
-income_unemploy = 0.3                 # Unemployment benefits replacement rate
-income_unemploy_retire = 0.0        # Ditto when retired
+Rfree = 1.03                            # Interest factor on assets
+PermShkCount = 6                           # Number of points in discrete approximation to permanent income shocks
+TranShkCount = 6                            # Number of points in discrete approximation to transitory income shocks
+UnempPrb = 0.05                  # Probability of unemployment while working
+UnempPrbRet = 0.0005          # Probability of "unemployment" while retired
+IncUnemp = 0.3                 # Unemployment benefits replacement rate
+IncUnempRet = 0.0        # Ditto when retired
 
 final_age = 90                      # Age at which the problem ends (die with certainty)
 retirement_age = 65                 # Age at which the consumer retires
@@ -35,13 +35,13 @@ initial_age = 25                    # Age at which the consumer enters the model
 TT = final_age - initial_age        # Total number of periods in the model
 retirement_t = retirement_age - initial_age - 1
 
-rho_start = 4.0                     # Initial guess of rho (CRRA) during estimation
-beth_start = 0.99                   # Initial guess of beth during estimation
-beth_bound = [0.0001,15.0]          # Bounds for beth; if violated, objective function returns "penalty value"
-rho_bound = [0.0001,15.0]           # Bounds for rho; if violated, objective function returns "penalty value"
+CRRA_start = 4.0                     # Initial guess of rho (CRRA) during estimation
+DiscFacAdj_start = 0.99                   # Initial guess of beth during estimation
+DiscFacAdj_bound = [0.0001,15.0]          # Bounds for beth; if violated, objective function returns "penalty value"
+CRRA_bound = [0.0001,15.0]           # Bounds for rho; if violated, objective function returns "penalty value"
 
 # Expected growth rates of permanent income
-Gamma = [ 1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,
+PermGroFac = [ 1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,
         1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,
         1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,
         1.025,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,
@@ -51,7 +51,7 @@ Gamma = [ 1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,
         1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ]
 
 # Age-varying discount factors, lifted from Cagetti (2003)
-timevary_discount_factors = [1.064914 ,  1.057997 ,  1.051422 ,  1.045179 ,  1.039259 ,
+DiscFac_timevary = [1.064914 ,  1.057997 ,  1.051422 ,  1.045179 ,  1.039259 ,
         1.033653 ,  1.028352 ,  1.023348 ,  1.018632 ,  1.014198 ,
         1.010037 ,  1.006143 ,  1.002509 ,  0.9991282,  0.9959943,
         0.9931012,  0.9904431,  0.9880143,  0.9858095,  0.9838233,
@@ -66,7 +66,7 @@ timevary_discount_factors = [1.064914 ,  1.057997 ,  1.051422 ,  1.045179 ,  1.0
         0.9902111,  0.9902111,  0.9902111,  0.9902111,  0.9902111]
 
 # Survival probabilities
-survival_probs = [ 1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
+LivPrb = [ 1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
         1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
         1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
         1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
@@ -81,14 +81,14 @@ survival_probs = [ 1.        ,  1.        ,  1.        ,  1.        ,  1.       
         0.63095734,  0.63095734,  0.63095734,  0.63095734,  0.63095734]
 
 # Standard deviations of permanent income shocks by age
-psi_sigma = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+PermShkStd = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0,
 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 # Standard deviations of transitory income shocks by age
-xi_sigma =  [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+TranShkStd =  [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0,
 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -121,32 +121,32 @@ bootstrap_size = 50                                # Number of re-estimations to
 # ------------------------------------------------------------------------------
 
 # Dictionary that can be passed to ConsumerType to instantiate
-init_consumer_objects = {"rho":rho_start,
-                        "R":R,
-                        "Gamma":Gamma,
-                        "constraint":constraint,
-                        "psi_sigma":psi_sigma,
-                        "psi_N":psi_N,
-                        "xi_sigma":xi_sigma,
-                        "xi_N":xi_N,
+init_consumer_objects = {"CRRA":CRRA_start,
+                        "Rfree":Rfree,
+                        "PermGroFac":PermGroFac,
+                        "BoroCnstArt":BoroCnstArt,
+                        "PermShkStd":PermShkStd,
+                        "PermShkCount":PermShkCount,
+                        "TranShkStd":TranShkStd,
+                        "TranShkCount":TranShkCount,
                         "T_total":TT,
-                        "p_unemploy":p_unemploy,
-                        "p_unemploy_retire":p_unemploy_retire,
+                        "UnempPrb":UnempPrb,
+                        "UnempPrbRet":UnempPrbRet,
                         "T_retire":retirement_t,
-                        "income_unemploy":income_unemploy,
-                        "income_unemploy_retire":income_unemploy_retire,
-                        "a_min":a_min,
-                        "a_max":a_max,
-                        "a_size":a_size,
-                        "a_extra":[a_extra,a_huge],
+                        "IncUnemp":IncUnemp,
+                        "IncUnempRet":IncUnempRet,
+                        "aXtraMin":aXtraMin,
+                        "aXtraMax":aXtraMax,
+                        "aXtraCount":aXtraCount,
+                        "aXtraExtra":[aXtraExtra,aXtraHuge],
                         "exp_nest":exp_nest,
-                        "survival_prob":survival_probs,
-                        "beta":timevary_discount_factors,
+                        "LivPrb":LivPrb,
+                        "DiscFac":DiscFac_timevary,
                         'Nagents':num_agents,
                         'psi_seed':perm_seed,
                         'xi_seed':temp_seed,
                         'unemp_seed':unemp_seed,
                         'tax_rate':0.0,
-                        'calc_vFunc':calc_vFunc,
-                        'cubic_splines':cubic_splines
+                        'vFuncBool':vFuncBool,
+                        'CubicBool':CubicBool
                         }

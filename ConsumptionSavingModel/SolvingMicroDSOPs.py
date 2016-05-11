@@ -6,7 +6,7 @@ sys.path.insert(0,'../')
 import SetupConsumerParameters as Params
 import ConsumptionSavingModel as Model
 import SetupSCFdata as Data
-from HARKsimulation import generateDiscreteDraws
+from HARKsimulation import drawDiscrete
 from HARKestimation import minimizeNelderMead, bootstrapSampleFromData
 import numpy as np
 import pylab
@@ -15,7 +15,7 @@ from time import time
 # Set booleans to determine which tasks should be done
 estimate_model = True
 compute_standard_errors = False
-make_contour_plot = False
+make_contour_plot = True
 
 #=====================================================
 # Define objects and functions used for the estimation
@@ -26,17 +26,17 @@ EstimationAgent = Model.ConsumerType(**Params.init_consumer_objects)
 
 # Make histories of permanent and transitory shocks, plus an initial distribution of wealth
 scriptR_shocks, xi_shocks = Model.generateIncomeShockHistoryLognormalUnemployment(EstimationAgent)
-w0_vector = generateDiscreteDraws(P=Params.initial_wealth_income_ratio_probs,
+w0_vector = drawDiscrete(P=Params.initial_wealth_income_ratio_probs,
                                          X=Params.initial_wealth_income_ratio_vals,
                                          N=Params.num_agents,
                                          seed=Params.seed)
 EstimationAgent.addIncomeShockPaths(scriptR_shocks,xi_shocks)
 
 # Define the objective function for the estimation
-def smmObjectiveFxn(beth, rho,
+def smmObjectiveFxn(DiscFacAdj, CRRA,
                      agent = EstimationAgent,
-                     beth_bound = Params.beth_bound,
-                     rho_bound = Params.rho_bound,
+                     DiscFacAdj_bound = Params.DiscFacAdj_bound,
+                     CRRA_bound = Params.CRRA_bound,
                      empirical_data = Data.w_to_y_data,
                      empirical_weights = Data.empirical_weights,
                      empirical_groups = Data.empirical_groups,
@@ -44,12 +44,12 @@ def smmObjectiveFxn(beth, rho,
                      map_simulated_to_empirical_cohorts = Data.simulation_map_cohorts_to_age_indices):
     '''
     The objective function for the SMM estimation.  Given values of discount-factor
-    adjuster beth, coeffecient of relative risk aversion rho, a base consumer agent
+    adjuster DiscFacAdj, coeffecient of relative risk aversion CRRA, a base consumer agent
     type, empirical data, and calibrated parameters, this function calculates the
     weighted distance between data and the simulated wealth-to-permanent income ratio.
 
     Steps:
-        a) solve for consumption functions for (beth, rho)
+        a) solve for consumption functions for (DiscFacAdj, CRRA)
         b) simulate wealth holdings for many consumers over time
         c) sum distances between empirical data and simulated medians within
             seven age groupings
@@ -59,13 +59,13 @@ def smmObjectiveFxn(beth, rho,
     agent.timeFwd()
     
     # A quick check to make sure that the parameter values are within bounds.
-    # Far flung falues of beth or rho might cause an error during solution or 
+    # Far flung falues of DiscFacAdj or CRRA might cause an error during solution or 
     # simulation, so the objective function doesn't even bother with them.
-    if beth < beth_bound[0] or beth > beth_bound[1] or rho < rho_bound[0] or rho > rho_bound[1]:
+    if DiscFacAdj < DiscFacAdj_bound[0] or DiscFacAdj > DiscFacAdj_bound[1] or CRRA < CRRA_bound[0] or CRRA > CRRA_bound[1]:
         return 1e30
         
-    # Update the agent with a new path of beta based on this beth (and a new rho)
-    agent(beta = [b*beth for b in Params.timevary_discount_factors], rho = rho)
+    # Update the agent with a new path of DiscFac based on this DiscFacAdj (and a new CRRA)
+    agent(DiscFac = [b*DiscFacAdj for b in Params.DiscFac_timevary], CRRA = CRRA)
     
     # Solve the model for these parameters, then simulate wealth data
     agent.solve()
@@ -88,7 +88,7 @@ def smmObjectiveFxn(beth, rho,
     return distance_sum
     
 # Make a single-input lambda function for use in the optimizer
-smmObjectiveFxnReduced = lambda parameters_to_estimate : smmObjectiveFxn(beth=parameters_to_estimate[0],rho=parameters_to_estimate[1])
+smmObjectiveFxnReduced = lambda parameters_to_estimate : smmObjectiveFxn(DiscFacAdj=parameters_to_estimate[0],CRRA=parameters_to_estimate[1])
 
 
 # Define the bootstrap procedure
@@ -115,8 +115,8 @@ def calculateStandardErrorsByBootstrap(initial_estimate,N,seed=0,verbose=False):
         empirical_weights_bootstrap = bootstrap_data[2,]
         
         # Make a temporary function for use in this estimation run
-        smmObjectiveFxnBootstrap = lambda parameters_to_estimate : smmObjectiveFxn(beth=parameters_to_estimate[0],
-                                                                                   rho=parameters_to_estimate[1],
+        smmObjectiveFxnBootstrap = lambda parameters_to_estimate : smmObjectiveFxn(DiscFacAdj=parameters_to_estimate[0],
+                                                                                   CRRA=parameters_to_estimate[1],
                                                                                    empirical_data = w_to_y_data_bootstrap,
                                                                                    empirical_weights = empirical_weights_bootstrap,
                                                                                    empirical_groups = empirical_groups_bootstrap)
@@ -132,10 +132,10 @@ def calculateStandardErrorsByBootstrap(initial_estimate,N,seed=0,verbose=False):
         
     # Calculate the standard errors for each parameter
     estimate_array = (np.array(estimate_list)).T
-    beth_std_error = np.std(estimate_array[0])
-    rho_std_error = np.std(estimate_array[1])
+    DiscFacAdj_std_error = np.std(estimate_array[0])
+    CRRA_std_error = np.std(estimate_array[1])
     
-    return [beth_std_error, rho_std_error]
+    return [DiscFacAdj_std_error, CRRA_std_error]
 
 
 #=================================================================
@@ -145,30 +145,30 @@ def calculateStandardErrorsByBootstrap(initial_estimate,N,seed=0,verbose=False):
 
 # Estimate the model using Nelder-Mead
 if estimate_model:
-    initial_guess = [Params.beth_start,Params.rho_start]
+    initial_guess = [Params.DiscFacAdj_start,Params.CRRA_start]
     print('Now estimating the model using Nelder-Mead from an initial guess of' + str(initial_guess) + '...')
     model_estimate = minimizeNelderMead(smmObjectiveFxnReduced,initial_guess,verbose=True)
-    print('Estimated values: beth=' + str(model_estimate[0]) + ', rho=' + str(model_estimate[1]))
+    print('Estimated values: DiscFacAdj=' + str(model_estimate[0]) + ', CRRA=' + str(model_estimate[1]))
 
 # Compute standard errors by bootstrap
 if compute_standard_errors:
     std_errors = calculateStandardErrorsByBootstrap(model_estimate,N=Params.bootstrap_size,seed=Params.seed,verbose=True)
-    print('Standard errors: beth--> ' + str(std_errors[0]) + ', rho--> ' + str(std_errors[1]))
+    print('Standard errors: DiscFacAdj--> ' + str(std_errors[0]) + ', CRRA--> ' + str(std_errors[1]))
 
 # Make a contour plot of the objective function
 if make_contour_plot:
-    grid_density = 100
-    level_count = 400
-    beth_list = np.linspace(0.85,1.05,grid_density)
-    rho_list = np.linspace(2,8,grid_density)
-    rho_mesh, beth_mesh = pylab.meshgrid(rho_list,beth_list)
+    grid_density = 20
+    level_count = 100
+    DiscFacAdj_list = np.linspace(0.85,1.05,grid_density)
+    CRRA_list = np.linspace(2,8,grid_density)
+    CRRA_mesh, DiscFacAdj_mesh = pylab.meshgrid(CRRA_list,DiscFacAdj_list)
     smm_obj_levels = np.empty([grid_density,grid_density])
     for j in range(grid_density):
-        beth = beth_list[j]
+        DiscFacAdj = DiscFacAdj_list[j]
         for k in range(grid_density):
-            rho = rho_list[k]
-            smm_obj_levels[j,k] = smmObjectiveFxn(beth,rho)    
-    smm_contour = pylab.contourf(rho_mesh,beth_mesh,smm_obj_levels,level_count)
+            CRRA = CRRA_list[k]
+            smm_obj_levels[j,k] = smmObjectiveFxn(DiscFacAdj,CRRA)    
+    smm_contour = pylab.contourf(CRRA_mesh,DiscFacAdj_mesh,smm_obj_levels,level_count)
     pylab.colorbar(smm_contour)
     pylab.plot(model_estimate[1],model_estimate[0],'*r',ms=15)
     pylab.xlabel(r'coefficient of relative risk aversion $\rho$',fontsize=14)

@@ -249,7 +249,7 @@ def CARAutility_invP(u, alpha):
 
 
 
-def calculateLognormalDiscreteApprox(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail_order=np.e):
+def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail_order=np.e):
     '''
     Construct a discrete approximation to a lognormal distribution with underlying
     normal distribution N(exp(mu),sigma).  Makes an equiprobable distribution by
@@ -324,7 +324,7 @@ def calculateLognormalDiscreteApprox(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=
 
 
 @memoize
-def calculateMeanOneLognormalDiscreteApprox(N, sigma):
+def approxMeanOneLognormal(N, sigma):
     '''
     Calculate a discrete approximation to a mean-1 lognormal distribution.
     Based on function calculateLognormalDiscreteApprox; see that function's
@@ -349,12 +349,13 @@ def calculateMeanOneLognormalDiscreteApprox(N, sigma):
       [Solution Methods for Microeconomic Dynamic Optimization Problems](http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
     Latest update: 01 May 2015
     '''
-    mu = -0.5*(sigma**2)
-    return calculateLognormalDiscreteApprox(N=N, mu=mu, sigma=sigma)
+    #mu = -0.5*(sigma**2)
+    mu=0.0
+    return approxLognormal(N=N, mu=mu, sigma=sigma)
     
     
     
-def calculateBetaDiscreteApprox(N,a=1.0,b=1.0):
+def approxBeta(N,a=1.0,b=1.0):
     '''
     Calculate a discrete approximation to the beta distribution.
     This needs to be made a bit more sophisticated.
@@ -380,6 +381,14 @@ def calculateBetaDiscreteApprox(N,a=1.0,b=1.0):
     X = np.mean(vals,axis=1)
     pmf = np.ones(N)/float(N)
     return( [pmf, X] )
+    
+    
+def approxUniform(beta,nabla,N):
+    '''
+    Makes a discrete approximation to a uniform distribution with center beta and
+    width 2*nabla, with N points.
+    '''
+    return beta + nabla*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
 
 
 def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):
@@ -508,7 +517,7 @@ def addDiscreteOutcome(distribution, x, p, sort = False):
     
 
 
-def createFlatStateSpaceFromIndepDiscreteProbs(*distributions):
+def combineIndepDstns(*distributions):
     '''
     Given n lists (or tuples) whose elements represent n independent, discrete
     probability spaces (points in the space, and the probabilties across these
@@ -596,17 +605,10 @@ def createFlatStateSpaceFromIndepDiscreteProbs(*distributions):
     return [P_out,] + X_out 
 
 
-def makeUniformDiscreteDistribution(beta,nabla,N):
-    '''
-    Makes a discrete approximation to a uniform distribution with center beta and
-    width 2*nabla, with N points.
-    '''
-    return beta + nabla*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
-
 # ==============================================================================
 # ============== Functions for generating state space grids  ===================
 # ==============================================================================
-def setupGridsExpMult(ming, maxg, ng, timestonest=20):
+def makeGridExpMult(ming, maxg, ng, timestonest=20):
     """
     Set up an exponentially spaced grid.
 
@@ -661,37 +663,8 @@ def setupGridsExpMult(ming, maxg, ng, timestonest=20):
 # ============== Uncategorized general functions  ===================
 # ==============================================================================
 
-def calculateMeanSacrificeValue(vinv,vhat,xvals,xprobs):
-    '''
-    Given the inverse of the optimal value function, a value function for an
-    approximate policy, and a discrete distribution, return the expected
-    sacrifice value.
 
-    Parameters
-    ----------
-    vinv: univariate real-valued function: vinv:R -> R
-        Inverse of the optimal value function.
-    vhat: univariate real-valued function: vinv:R -> R
-        Value function for approximate policy for which we will find the
-        expected sacrifice value.
-    xvals: np.ndarray
-        Discrete points for discrete probability mass function.
-    xprobs: np.ndarray
-        Probability associated with each point in xvals.
-
-    Returns
-    ----------
-    eps: float
-        Mean sacrifice value.
-
-    Written by Nathan M. Palmer
-    Latest update: 20 March 2015
-    '''
-    eps = lambda x: x - vinv(vhat(x))
-    return np.dot(eps(xvals), xprobs)
-
-
-def weightedAverageSimData(data,weights):
+def calcWeightedAvg(data,weights):
     '''
     Generates a weighted average of simulated data.  The Nth row of data is averaged
     and then weighted by the Nth element of weights in an aggregate average.
@@ -713,7 +686,7 @@ def weightedAverageSimData(data,weights):
     return weighted_sum
     
 
-def extractPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
+def getPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
     '''
     Calculates the requested percentiles of (weighted) data.  Median by default.
     
@@ -751,7 +724,7 @@ def extractPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
     return pctl_out
     
 
-def getLorenzPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
+def getLorenzShares(data,weights=None,percentiles=[0.5],presorted=False):
     '''
     Calculates the Lorenz curve at the requested percentiles of (weighted) data.
     Median by default.
@@ -792,7 +765,7 @@ def getLorenzPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
     return lorenz_out
     
 
-def avgDataSlice(data,reference,cutoffs,weights=None):
+def calcSubpopAvg(data,reference,cutoffs,weights=None):
     '''
     Calculates the average of (weighted) data between cutoff percentiles of a
     reference variable.
