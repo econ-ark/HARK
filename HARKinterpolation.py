@@ -211,7 +211,9 @@ class CubicInterp(HARKinterpolator1D):
         NOTE: When no input is given for the limiting linear function, linear
         extrapolation is used above the highest gridpoint.        
         '''
-        self.x_list = x_list
+        self.x_list = np.asarray(x_list)
+        self.y_list = np.asarray(y_list)
+        self.dydx_list = np.asarray(dydx_list)
         self.n = len(x_list)
         
         # Define lower extrapolation as linear function 
@@ -362,22 +364,18 @@ class CubicInterp(HARKinterpolator1D):
             return 1000000
         xA = self.x_list
         xB = other_function.x_list
-        if (len(xA) == len(xB)):
-            yA = [self.coeffs[j][0] for j in range(len(xA)-1)]
-            yA.append(self.coeffs[-1][0] + self.coeffs[-1][1]*xA[-1] - self.coeffs[-1][2])
-            yA = np.array(yA)
-            yB = [other_function.coeffs[j][0] for j in range(len(xB)-1)]
-            yB.append(other_function.coeffs[-1][0] + other_function.coeffs[-1][1]*xB[-1] - other_function.coeffs[-1][2])
-            yB = np.array(yB)
-            
+        yA = self.y_list
+        yB = other_function.y_list
+        dydxA = self.dydx_list
+        dydxB = other_function.dydx_list
+        if (self.n == other_function.n):            
             x_dist = np.max(np.abs(np.subtract(xA,xB)))
             y_dist = np.max(np.abs(np.subtract(yA,yB)))
+            dydx_dist = np.max(np.abs(np.subtract(dydxA,dydxB)))
             
-            extrap_dist = np.max(np.abs(np.array(self.coeffs[-1]) - np.array(other_function.coeffs[-1])))
-            
-            dist = max([x_dist,y_dist,extrap_dist])
+            dist = max([x_dist,y_dist,dydx_dist])
         else:
-            dist = np.abs(len(xA) - len(xB))
+            dist = np.abs(self.n - other_function.n)
         return dist
 
 

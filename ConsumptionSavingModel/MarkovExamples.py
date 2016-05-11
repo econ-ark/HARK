@@ -14,7 +14,7 @@ ImmunityPrb = 0.01
 ImmunityT   = 6
 
 StateCount = ImmunityT+1
-IncomeDistReg = [np.array([1-UnempPrb,UnempPrb]), np.array([1.0,1.0]), np.array([1.0,0.0])]
+IncomeDistReg = [np.array([1-UnempPrb,UnempPrb]), np.array([1.0,1.0]), np.array([1.0/(1.0-UnempPrb),0.0])]
 IncomeDistImm = [np.array([1.0]), np.array([1.0]), np.array([1.0])]
 IncomeDist = [IncomeDistReg] + ImmunityT*[IncomeDistImm]
 
@@ -45,11 +45,11 @@ ImmunityType.solution_terminal.MPCmax = np.array(StateCount*[1.0])
 ImmunityType.solution_terminal.MPCmin = np.array(StateCount*[1.0])
 
 start_time = clock()
-#ImmunityType.solve()
+ImmunityType.solve()
 end_time = clock()
 print('Solving an "unemployment immunity" consumer took ' + mystr(end_time-start_time) + ' seconds.')
 print('Consumption functions for each discrete state:')
-#plotFuncs(ImmunityType.solution[0].cFunc,0,10)
+plotFuncs(ImmunityType.solution[0].cFunc,0,10)
 
 
 ###############################################################################
@@ -57,7 +57,7 @@ print('Consumption functions for each discrete state:')
 # Make a consumer with serially correlated permanent income growth
 UnempPrb = 0.05
 StateCount = 5
-Persistence = 0.3
+Persistence = 0.5
 
 IncomeDistReg = [np.array([1-UnempPrb,UnempPrb]), np.array([1.0,1.0]), np.array([1.0,0.0])]
 IncomeDist = StateCount*[IncomeDistReg]
@@ -65,8 +65,8 @@ IncomeDist = StateCount*[IncomeDistReg]
 transition_array = Persistence*np.eye(StateCount) + (1.0/StateCount)*(1.0-Persistence)*np.ones((StateCount,StateCount))
 
 SerialGroType = ConsumerType(**Params.init_consumer_objects)
-SerialGroType.assignParameters(LivFac = [0.98],
-                              DiscFac = [0.96],
+SerialGroType.assignParameters(LivFac = [0.99375],
+                              DiscFac = [0.995],
                               Rfree = np.array(np.array(StateCount*[1.03])),
                               PermGroFac = [np.array([0.97,0.99,1.01,1.03,1.05])],
                               BoroCnst = None,
@@ -85,11 +85,11 @@ SerialGroType.solution_terminal.MPCmax = np.array(StateCount*[1.0])
 SerialGroType.solution_terminal.MPCmin = np.array(StateCount*[1.0])
 
 start_time = clock()
-#SerialGroType.solve()
+SerialGroType.solve()
 end_time = clock()
-print('Solving an serially correlated growth consumer took ' + mystr(end_time-start_time) + ' seconds.')
+print('Solving a serially correlated growth consumer took ' + mystr(end_time-start_time) + ' seconds.')
 print('Consumption functions for each discrete state:')
-#plotFuncs(SerialGroType.solution[0].cFunc,0,10)
+plotFuncs(SerialGroType.solution[0].cFunc,0,10)
 
 ###############################################################################
 
@@ -101,6 +101,6 @@ SerialRType.assignParameters(PermGroFac = [np.array(StateCount*[1.01])],
 start_time = clock()
 SerialRType.solve()
 end_time = clock()
-print('Solving an serially correlated interest consumer took ' + mystr(end_time-start_time) + ' seconds.')
+print('Solving a serially correlated interest consumer took ' + mystr(end_time-start_time) + ' seconds.')
 print('Consumption functions for each discrete state:')
 plotFuncs(SerialRType.solution[0].cFunc,0,10)

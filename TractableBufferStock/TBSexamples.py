@@ -9,7 +9,7 @@ sys.path.insert(0,'../ConsumptionSavingModel')
 
 import numpy as np
 import TractableBufferStock as Model
-from HARKutilities import plotFunc, plotFuncs
+from HARKutilities import plotFunc, plotFuncs, plotFuncDer
 from ConsumptionSavingModel import ConsumerType, consumptionSavingSolverMarkov
 from time import clock
 
@@ -50,7 +50,7 @@ init_consumer_objects = {"CRRA":base_primitives['rho'],
                         "IncUnempRet":0.0,
                         "aDispMin":0.001,
                         "aDispMax":ExampleType.m_max,
-                        "aDispCount":16,
+                        "aDispCount":48,
                         "aDispExtra":[None],
                         "exp_nest":3,
                         "LivFac":[1.0],

@@ -1,5 +1,50 @@
 from HARKutilities import getArgNames, NullFunc
 from copy import deepcopy
+import numpy as np
+
+class Solution():
+    '''
+    A superclass for representing the "solution" to a single period problem in a
+    dynamic microeconomic model.  Its only method acs as a "universal distance
+    metric" that should be useful in many settings, but can be overwritten by a
+    subclass of Solution.
+    '''    
+    def distance(self,solution_other):  
+        distance_list = [0.0]
+        for attr_name in self.convergence_criteria:
+            obj_A = eval('self.' + attr_name)
+            obj_B = eval('solution_other.' + attr_name)
+            distance_list.append(distanceMetric(obj_A,obj_B))
+        return max(distance_list)
+        
+def distanceMetric(thing_A,thing_B):
+    typeA = type(thing_A)
+    typeB = type(thing_B)
+            
+    if typeA is list and typeB is list:
+        lenA = len(thing_A)
+        lenB = len(thing_B)
+        if lenA == lenB:
+            distance_temp = []
+            for n in range(lenA):
+                distance_temp.append(distanceMetric(thing_A[n],thing_B[n]))
+            distance = max(distance_temp)
+        else:
+            distance = float(abs(lenA - lenB))
+    elif (typeA is int or typeB is float) and (typeB is int or typeB is float):
+        distance = float(abs(thing_A - thing_B))
+    elif hasattr(thing_A,'shape') and hasattr(thing_B,'shape'):
+        if thing_A.shape == thing_B.shape:
+            distance = np.max(abs(thing_A - thing_B))
+        else:
+            distance = np.max(abs(thing_A.shape - thing_B.shape))
+    elif thing_A.__class__.__name__ is thing_B.__class__.__name__:
+        distance = thing_A.distance(thing_B)
+    else:
+        distance = 1000.0
+    
+    return distance
+
 
 
 class AgentType():
@@ -106,7 +151,6 @@ class AgentType():
         '''
         return
         
-
 
 
 def solveAgent(agent):
