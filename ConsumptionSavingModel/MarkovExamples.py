@@ -14,33 +14,33 @@ ImmunityPrb = 0.01
 ImmunityT   = 6
 
 StateCount = ImmunityT+1
-IncomeDistReg = [np.array([1-UnempPrb,UnempPrb]), np.array([1.0,1.0]), np.array([1.0/(1.0-UnempPrb),0.0])]
-IncomeDistImm = [np.array([1.0]), np.array([1.0]), np.array([1.0])]
-IncomeDist = [IncomeDistReg] + ImmunityT*[IncomeDistImm]
+IncomeDstnReg = [np.array([1-UnempPrb,UnempPrb]), np.array([1.0,1.0]), np.array([1.0/(1.0-UnempPrb),0.0])]
+IncomeDstnImm = [np.array([1.0]), np.array([1.0]), np.array([1.0])]
+IncomeDstn = [IncomeDstnReg] + ImmunityT*[IncomeDstnImm]
 
-transition_array = np.zeros((StateCount,StateCount))
-transition_array[0,0] = 1.0 - ImmunityPrb
-transition_array[0,ImmunityT] = ImmunityPrb
+MrkvArray = np.zeros((StateCount,StateCount))
+MrkvArray[0,0] = 1.0 - ImmunityPrb
+MrkvArray[0,ImmunityT] = ImmunityPrb
 for j in range(ImmunityT):
-    transition_array[j+1,j] = 1.0
+    MrkvArray[j+1,j] = 1.0
 
 ImmunityType = ConsumerType(**Params.init_consumer_objects)
-ImmunityType.assignParameters(LivFac = [0.98],
+ImmunityType.assignParameters(LivPrb = [0.98],
                               DiscFac = [0.96],
                               Rfree = np.array(np.array(StateCount*[1.03])),
                               PermGroFac = [np.array(StateCount*[1.01])],
-                              BoroCnst = None,
+                              BoroCnstArt = None,
                               cycles = 0)
-ImmunityType.IncomeDist = [IncomeDist]
-ImmunityType.transition_array = transition_array
+ImmunityType.IncomeDstn = [IncomeDstn]
+ImmunityType.MrkvArray = MrkvArray
 ImmunityType.solveOnePeriod = consumptionSavingSolverMarkov
-ImmunityType.time_inv.append('transition_array')
+ImmunityType.time_inv.append('MrkvArray')
 
 ImmunityType.solution_terminal.cFunc = StateCount*[ImmunityType.solution_terminal.cFunc]
 ImmunityType.solution_terminal.vFunc = StateCount*[ImmunityType.solution_terminal.vFunc]
 ImmunityType.solution_terminal.vPfunc = StateCount*[ImmunityType.solution_terminal.vPfunc]
 ImmunityType.solution_terminal.vPPfunc = StateCount*[ImmunityType.solution_terminal.vPPfunc]
-ImmunityType.solution_terminal.mRtoMin = StateCount*[ImmunityType.solution_terminal.mRtoMin]
+ImmunityType.solution_terminal.mNrmMin = StateCount*[ImmunityType.solution_terminal.mNrmMin]
 ImmunityType.solution_terminal.MPCmax = np.array(StateCount*[1.0])
 ImmunityType.solution_terminal.MPCmin = np.array(StateCount*[1.0])
 
@@ -59,28 +59,28 @@ UnempPrb = 0.05
 StateCount = 5
 Persistence = 0.5
 
-IncomeDistReg = [np.array([1-UnempPrb,UnempPrb]), np.array([1.0,1.0]), np.array([1.0,0.0])]
-IncomeDist = StateCount*[IncomeDistReg]
+IncomeDstnReg = [np.array([1-UnempPrb,UnempPrb]), np.array([1.0,1.0]), np.array([1.0,0.0])]
+IncomeDstn = StateCount*[IncomeDstnReg]
 
-transition_array = Persistence*np.eye(StateCount) + (1.0/StateCount)*(1.0-Persistence)*np.ones((StateCount,StateCount))
+MrkvArray = Persistence*np.eye(StateCount) + (1.0/StateCount)*(1.0-Persistence)*np.ones((StateCount,StateCount))
 
 SerialGroType = ConsumerType(**Params.init_consumer_objects)
-SerialGroType.assignParameters(LivFac = [0.99375],
+SerialGroType.assignParameters(LivPrb = [0.99375],
                               DiscFac = [0.995],
                               Rfree = np.array(np.array(StateCount*[1.03])),
                               PermGroFac = [np.array([0.97,0.99,1.01,1.03,1.05])],
-                              BoroCnst = None,
+                              BoroCnstArt = None,
                               cycles = 0)
-SerialGroType.IncomeDist = [IncomeDist]
-SerialGroType.transition_array = transition_array
+SerialGroType.IncomeDstn = [IncomeDstn]
+SerialGroType.MrkvArray = MrkvArray
 SerialGroType.solveOnePeriod = consumptionSavingSolverMarkov
-SerialGroType.time_inv.append('transition_array')
+SerialGroType.time_inv.append('MrkvArray')
 
 SerialGroType.solution_terminal.cFunc = StateCount*[SerialGroType.solution_terminal.cFunc]
 SerialGroType.solution_terminal.vFunc = StateCount*[SerialGroType.solution_terminal.vFunc]
 SerialGroType.solution_terminal.vPfunc = StateCount*[SerialGroType.solution_terminal.vPfunc]
 SerialGroType.solution_terminal.vPPfunc = StateCount*[SerialGroType.solution_terminal.vPPfunc]
-SerialGroType.solution_terminal.mRtoMin = StateCount*[SerialGroType.solution_terminal.mRtoMin]
+SerialGroType.solution_terminal.mNrmMin = StateCount*[SerialGroType.solution_terminal.mNrmMin]
 SerialGroType.solution_terminal.MPCmax = np.array(StateCount*[1.0])
 SerialGroType.solution_terminal.MPCmin = np.array(StateCount*[1.0])
 

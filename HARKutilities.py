@@ -517,7 +517,7 @@ def addDiscreteOutcome(distribution, x, p, sort = False):
     
 
 
-def combineIndepDists(*distributions):
+def combineIndepDstns(*distributions):
     '''
     Given n lists (or tuples) whose elements represent n independent, discrete
     probability spaces (points in the space, and the probabilties across these

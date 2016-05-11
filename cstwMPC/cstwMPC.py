@@ -11,7 +11,7 @@ sys.path.insert(0,'../ConsumptionSavingModel')
 import numpy as np
 from copy import copy, deepcopy
 from time import time
-from HARKutilities import approxMeanOneLognormal, combineIndepDists, approxUniform, calcWeightedAvg, getPercentiles, getLorenzShares, calcSubpopAvg
+from HARKutilities import approxMeanOneLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, getPercentiles, getLorenzShares, calcSubpopAvg
 from HARKsimulation import drawDiscrete, drawMeanOneLognormal
 from HARKcore import AgentType
 from HARKparallel import multiThreadCommandsFake, multiThreadCommands
@@ -65,7 +65,7 @@ class cstwMPCagent(Model.ConsumerType):
         self.updateSolutionTerminal()
         self.timeFwd()
         if self.cycles > 0:
-            self.IncomeDist = Model.applyFlatIncomeTax(self.IncomeDist,
+            self.IncomeDstn = Model.applyFlatIncomeTax(self.IncomeDstn,
                                                  tax_rate=self.tax_rate,
                                                  T_retire=self.T_retire,
                                                  unemployed_indices=range(0,(self.xi_N+1)*self.psi_N,self.xi_N+1))
@@ -83,9 +83,9 @@ class cstwMPCagent(Model.ConsumerType):
         xi_dist[0] = np.insert(xi_dist[0]*(1.0-self.UnempPrb),0,self.UnempPrb)
         xi_dist[1] = np.insert(self.l_bar*xi_dist[1]*(1.0-tax_rate),0,self.IncUnemp)
         psi_dist = approxMeanOneLognormal(self.PermShkCount,self.PermShkStd[0])
-        self.IncomeDist = [combineIndepDists(psi_dist,xi_dist)]
-        if not 'IncomeDist' in self.time_vary:
-            self.time_vary.append('IncomeDist')
+        self.IncomeDstn = [combineIndepDstns(psi_dist,xi_dist)]
+        if not 'IncomeDstn' in self.time_vary:
+            self.time_vary.append('IncomeDstn')
             
 
     
@@ -520,10 +520,6 @@ if __name__ == "__main__":
         #spec_name=None
         makeCSTWresults(DiscFac,nabla,spec_name)
     
-#    t_start = time()
-#    x = DiscFacDistObjective(0.01)    
-#    t_end = time()
-#    print('That test took ' + str(t_end - t_start) + ' seconds.')
     
     
     # =================================================================

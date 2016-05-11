@@ -6,7 +6,7 @@ This module defines the Tractable Buffer Stock model described in CDC's notes.
 import sys 
 sys.path.insert(0,'../')
 
-from HARKcore import AgentType, NullFunc
+from HARKcore import AgentType, NullFunc, Solution
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityPPP, CRRAutilityPPPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
 from HARKinterpolation import CubicInterp
@@ -24,89 +24,87 @@ utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 
-class TractableConsumerSolution():
+class TractableConsumerSolution(Solution):
     '''
     A class representing the solution to a tractable buffer saving problem.
-    Attributes include a list of money points m_list, a list of consumption points
-    c_list, a list of MPCs kappa_list, a perfect foresight consumption function
+    Attributes include a list of money points mNrm_list, a list of consumption points
+    cNrm_list, a list of MPCs MPC_list, a perfect foresight consumption function
     while employed, and a perfect foresight consumption function while unemployed.
     The solution includes a consumption function constructed from the lists.
     '''
     
-    def __init__(self, m_list=[], c_list=[], kappa_list=[], cFunc_U=NullFunc, cFunc=NullFunc):
+    def __init__(self, mNrm_list=[], cNrm_list=[], MPC_list=[], cFunc_U=NullFunc, cFunc=NullFunc):
         '''
-        The constructor for a new TractableConsumerSolution object.
-        '''       
-        self.m_list = m_list
-        self.c_list = c_list
-        self.kappa_list = kappa_list
+        The constructor for a new TractableConsumerSolution object. The distance
+        between two solutions is the difference in the number of stable arm
+        points in each.  This is a very crude measure of distance that captures
+        the notion that the process is over when no more points are added.
+        '''
+        self.mNrm_list = mNrm_list
+        self.cNrm_list = cNrm_list
+        self.MPC_list = MPC_list
         self.cFunc_U = cFunc_U
         self.cFunc = cFunc
-        
-    def distance(self,other_soln):
-        '''
-        The distance between two solutions is the difference in the number of
-        stable arm points in each.  This is a very crude measure of distance that
-        captures the notion that the process is over when no more points are added.
-        '''
-        return abs(float(len(self.m_list) - len(other_soln.m_list)))
-
-
-def findNextPoint(beta,R,rho,Gamma,mho,scriptR,Beth,c_tp1,m_tp1,kappa_tp1,kappa_PF):
-    uPP = lambda x : utilityPP(x,gam=rho)
-    c_t = Gamma*(beta*R)**(-1.0/rho)*c_tp1*(1 + mho*((c_tp1/(kappa_PF*(m_tp1-1.0)))**rho-1.0))**(-1.0/rho)
-    m_t = (Gamma/R)*(m_tp1 - 1.0) + c_t
-    cU_tp1 = kappa_PF*(m_t-c_t)*scriptR
-    natural = Beth*scriptR*(1.0/uPP(c_t))*((1.0-mho)*uPP(c_tp1)*kappa_tp1 + mho*uPP(cU_tp1)*kappa_PF)
-    kappa_t = natural / (natural + 1)
-    return m_t, c_t, kappa_t
+        self.convergence_criteria = ['PointCount']
         
 
-def addToStableArmPoints(solution_next,beta,R,rho,Gamma,mho,kappa_PF,scriptR,Beth,m_min,m_max):
+
+def findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNext,MPCNext,PFMPC):
+    uPP = lambda x : utilityPP(x,gam=CRRA)
+    cNow = PermGroFacCmp*(DiscFac*Rfree)**(-1.0/CRRA)*cNext*(1 + UnempPrb*((cNext/(PFMPC*(mNext-1.0)))**CRRA-1.0))**(-1.0/CRRA)
+    mNow = (PermGroFacCmp/Rfree)*(mNext - 1.0) + cNow
+    cUNext = PFMPC*(mNow-cNow)*Rnrm
+    natural = Beth*Rnrm*(1.0/uPP(cNow))*((1.0-UnempPrb)*uPP(cNext)*MPCNext + UnempPrb*uPP(cUNext)*PFMPC)
+    MPCnow = natural / (natural + 1)
+    return mNow, cNow, MPCnow
+        
+
+def addToStableArmPoints(solution_next,DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,PFMPC,Rnrm,Beth,mLowerBnd,mUpperBnd):
     '''
     This is the solveAPeriod function for the Tractable Buffer Stock model.  If
-    the bounding levels of m_min (lower) and m_max (upper) have not yet been met
-    by a stable arm point in m_list, it adds a point to each end of the arm.  It
+    the bounding levels of mLowerBnd (lower) and mUpperBnd (upper) have not yet been met
+    by a stable arm point in mNrm_list, it adds a point to each end of the arm.  It
     is the contents of the "backshooting" loop.
     '''     
     # Unpack the lists of Euler points
-    m_list = copy(solution_next.m_list)
-    c_list = copy(solution_next.c_list)
-    kappa_list = copy(solution_next.kappa_list)
+    mNrm_list = copy(solution_next.mNrm_list)
+    cNrm_list = copy(solution_next.cNrm_list)
+    MPC_list = copy(solution_next.MPC_list)
     
     # Check whether to add a stable arm point to the top
-    m_tp1 = m_list[-1]
-    if m_tp1 < m_max:
+    mNext = mNrm_list[-1]
+    if mNext < mUpperBnd:
         # Get the rest of the data for the previous top point
-        c_tp1 = solution_next.c_list[-1]
-        kappa_tp1 = solution_next.kappa_list[-1]
+        cNext = solution_next.cNrm_list[-1]
+        MPCNext = solution_next.MPC_list[-1]
         
-        # Calculate employed levels of c, m, and kappa from next period's values
-        m_t, c_t, kappa_t = findNextPoint(beta,R,rho,Gamma,mho,scriptR,Beth,c_tp1,m_tp1,kappa_tp1,kappa_PF)
+        # Calculate employed levels of c, m, and MPC from next period's values
+        mNow, cNow, MPCnow = findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNext,MPCNext,PFMPC)
         
         # Add this point to the top of the stable arm list
-        m_list.append(m_t)
-        c_list.append(c_t)
-        kappa_list.append(kappa_t)
+        mNrm_list.append(mNow)
+        cNrm_list.append(cNow)
+        MPC_list.append(MPCnow)
     
     # Check whether to add a stable arm point to the bottom
-    m_tp1 = m_list[0]
-    if m_tp1 > m_min:
+    mNext = mNrm_list[0]
+    if mNext > mLowerBnd:
         # Get the rest of the data for the previous bottom point
-        c_tp1 = solution_next.c_list[0]
-        kappa_tp1 = solution_next.kappa_list[0]
+        cNext = solution_next.cNrm_list[0]
+        MPCNext = solution_next.MPC_list[0]
         
-        # Calculate employed levels of c, m, and kappa from next period's values
-        m_t, c_t, kappa_t = findNextPoint(beta,R,rho,Gamma,mho,scriptR,Beth,c_tp1,m_tp1,kappa_tp1,kappa_PF)
+        # Calculate employed levels of c, m, and MPC from next period's values
+        mNow, cNow, MPCnow = findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNext,MPCNext,PFMPC)
         
         # Add this point to the top of the stable arm list
-        m_list.insert(0,m_t)
-        c_list.insert(0,c_t)
-        kappa_list.insert(0,kappa_t)
+        mNrm_list.insert(0,mNow)
+        cNrm_list.insert(0,cNow)
+        MPC_list.insert(0,MPCnow)
         
     # Construct and return this period's solution
-    solution_t = TractableConsumerSolution(m_list=m_list, c_list=c_list, kappa_list=kappa_list)
-    return solution_t
+    solutionNow = TractableConsumerSolution(mNrm_list=mNrm_list, cNrm_list=cNrm_list, MPC_list=MPC_list)
+    solutionNow.PointCount = len(mNrm_list)
+    return solutionNow
     
 
 class TractableConsumerType(AgentType):
@@ -120,7 +118,7 @@ class TractableConsumerType(AgentType):
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = []
-        self.time_inv = ['beta','R','rho','Gamma','mho','kappa_PF','scriptR','Beth','m_min','m_max']
+        self.time_inv = ['DiscFac','Rfree','CRRA','PermGroFacCmp','UnempPrb','PFMPC','Rnrm','Beth','mLowerBnd','mUpperBnd']
         self.solveOnePeriod = addToStableArmPoints
         
     def preSolve(self):
@@ -131,68 +129,68 @@ class TractableConsumerType(AgentType):
         small perturbations around the steady state.
         '''
         # Define utility functions
-        uPP = lambda x : utilityPP(x,gam=self.rho)
-        uPPP = lambda x : utilityPPP(x,gam=self.rho)
-        uPPPP = lambda x : utilityPPPP(x,gam=self.rho)
+        uPP = lambda x : utilityPP(x,gam=self.CRRA)
+        uPPP = lambda x : utilityPPP(x,gam=self.CRRA)
+        uPPPP = lambda x : utilityPPPP(x,gam=self.CRRA)
         
         # Define some useful constants from model primitives
-        self.Gamma = self.G/(1.0-self.mho) #"uncertainty compensated" wage growth factor
-        self.scriptR = self.R/self.Gamma # net interest factor (R normalized by wage growth)
-        self.kappa_PF= 1.0-(self.R**(-1.0))*(self.R*self.beta)**(1.0/self.rho) # MPC for a perfect forsight consumer
-        self.Beth = self.scriptR*self.beta*self.Gamma**(1.0-self.rho)
+        self.PermGroFacCmp = self.PermGroFac/(1.0-self.UnempPrb) #"uncertainty compensated" wage growth factor
+        self.Rnrm = self.Rfree/self.PermGroFacCmp # net interest factor (Rfree normalized by wage growth)
+        self.PFMPC= 1.0-(self.Rfree**(-1.0))*(self.Rfree*self.DiscFac)**(1.0/self.CRRA) # MPC for a perfect forsight consumer
+        self.Beth = self.Rnrm*self.DiscFac*self.PermGroFacCmp**(1.0-self.CRRA)
         
         # Verify that this consumer is impatient
-        scriptPGrowth = (self.R*self.beta)**(1.0/self.rho)/self.Gamma 
-        scriptPReturn = (self.R*self.beta)**(1.0/self.rho)/self.R
-        if scriptPReturn >= 1.0:
+        PatFacGrowth = (self.Rfree*self.DiscFac)**(1.0/self.CRRA)/self.PermGroFacCmp 
+        PatFacReturn = (self.Rfree*self.DiscFac)**(1.0/self.CRRA)/self.Rfree
+        if PatFacReturn >= 1.0:
             raise Exception("Employed consumer not return impatient, cannot solve!")
-        if scriptPGrowth >= 1.0:
+        if PatFacGrowth >= 1.0:
             raise Exception("Employed consumer not growth impatient, cannot solve!")
             
         # Find target money and consumption
-        Pi = (1+(scriptPGrowth**(-self.rho)-1.0)/self.mho)**(1/self.rho)
-        self.h = (1.0/(1.0-self.G/self.R))
-        zeta = self.scriptR*self.kappa_PF*Pi
-        self.m_targ = 1.0+(self.R/(self.Gamma+zeta*self.Gamma-self.R))
-        self.c_targ = (1.0-self.scriptR**(-1.0))*self.m_targ+self.scriptR**(-1.0)
-        m_targU = (self.m_targ - self.c_targ)*self.scriptR
-        c_targU = m_targU*self.kappa_PF
-        self.epsilon = self.m_targ*0.1
+        Pi = (1+(PatFacGrowth**(-self.CRRA)-1.0)/self.UnempPrb)**(1/self.CRRA)
+        self.h = (1.0/(1.0-self.PermGroFac/self.Rfree))
+        zeta = self.Rnrm*self.PFMPC*Pi
+        self.mTarg = 1.0+(self.Rfree/(self.PermGroFacCmp+zeta*self.PermGroFacCmp-self.Rfree))
+        self.cTarg = (1.0-self.Rnrm**(-1.0))*self.mTarg+self.Rnrm**(-1.0)
+        mTargU = (self.mTarg - self.cTarg)*self.Rnrm
+        cTargU = mTargU*self.PFMPC
+        self.SSperturbance = self.mTarg*0.1
         
         # Find the MPC, MMPC, and MMMPC at the target
-        mpcTargFixedPointFunc = lambda k : k*uPP(self.c_targ) - self.Beth*((1.0-self.mho)*(1.0-k)*k*self.scriptR*uPP(self.c_targ)+self.kappa_PF*self.mho*(1.0-k)*self.scriptR*uPP(c_targU))
-        self.kappa_targ = newton(mpcTargFixedPointFunc,0)
-        mmpcTargFixedPointFunc = lambda kk : kk*uPP(self.c_targ) + self.kappa_targ**2.0*uPPP(self.c_targ) - self.Beth*(-(1.0 - self.mho)*self.kappa_targ*kk*self.scriptR*uPP(self.c_targ)+(1.0-self.mho)*(1.0 - self.kappa_targ)**2.0*kk*self.scriptR**2.0*uPP(self.c_targ)-self.kappa_PF*self.mho*kk*self.scriptR*uPP(c_targU)+(1.0-self.mho)*(1.0-self.kappa_targ)**2.0*self.kappa_targ**2.0*self.scriptR**2.0*uPPP(self.c_targ)+self.kappa_PF**2.0*self.mho*(1.0-self.kappa_targ)**2.0*self.scriptR**2.0*uPPP(c_targU))
-        self.kappaP_targ = newton(mmpcTargFixedPointFunc,0)
-        mmmpcTargFixedPointFunc = lambda kkk : kkk * uPP(self.c_targ) + 3 * self.kappa_targ * self.kappaP_targ * uPPP(self.c_targ) + self.kappa_targ**3 * uPPPP(self.c_targ) - self.Beth * (-(1 - self.mho) * self.kappa_targ * kkk * self.scriptR * uPP(self.c_targ) - 3 * (1 - self.mho) * (1 - self.kappa_targ) * self.kappaP_targ**2 * self.scriptR**2 * uPP(self.c_targ) + (1 - self.mho) * (1 - self.kappa_targ)**3 * kkk * self.scriptR**3 * uPP(self.c_targ) - self.kappa_PF * self.mho * kkk * self.scriptR * uPP(c_targU) - 3 * (1 - self.mho) * (1 - self.kappa_targ) * self.kappa_targ**2 * self.kappaP_targ * self.scriptR**2 * uPPP(self.c_targ) + 3 * (1 - self.mho) * (1 - self.kappa_targ)**3 * self.kappa_targ * self.kappaP_targ * self.scriptR**3 * uPPP(self.c_targ) - 3 * self.kappa_PF**2 * self.mho * (1 - self.kappa_targ) * self.kappaP_targ * self.scriptR**2 * uPPP(c_targU) + (1 - self.mho) * (1 - self.kappa_targ)**3 * self.kappa_targ**3 * self.scriptR**3 * uPPPP(self.c_targ) + self.kappa_PF**3 * self.mho * (1 - self.kappa_targ)**3 * self.scriptR**3 * uPPPP(c_targU))
-        self.kappaPP_targ = newton(mmmpcTargFixedPointFunc,0)
+        mpcTargFixedPointFunc = lambda k : k*uPP(self.cTarg) - self.Beth*((1.0-self.UnempPrb)*(1.0-k)*k*self.Rnrm*uPP(self.cTarg)+self.PFMPC*self.UnempPrb*(1.0-k)*self.Rnrm*uPP(cTargU))
+        self.MPCtarg = newton(mpcTargFixedPointFunc,0)
+        mmpcTargFixedPointFunc = lambda kk : kk*uPP(self.cTarg) + self.MPCtarg**2.0*uPPP(self.cTarg) - self.Beth*(-(1.0 - self.UnempPrb)*self.MPCtarg*kk*self.Rnrm*uPP(self.cTarg)+(1.0-self.UnempPrb)*(1.0 - self.MPCtarg)**2.0*kk*self.Rnrm**2.0*uPP(self.cTarg)-self.PFMPC*self.UnempPrb*kk*self.Rnrm*uPP(cTargU)+(1.0-self.UnempPrb)*(1.0-self.MPCtarg)**2.0*self.MPCtarg**2.0*self.Rnrm**2.0*uPPP(self.cTarg)+self.PFMPC**2.0*self.UnempPrb*(1.0-self.MPCtarg)**2.0*self.Rnrm**2.0*uPPP(cTargU))
+        self.MMPCtarg = newton(mmpcTargFixedPointFunc,0)
+        mmmpcTargFixedPointFunc = lambda kkk : kkk * uPP(self.cTarg) + 3 * self.MPCtarg * self.MMPCtarg * uPPP(self.cTarg) + self.MPCtarg**3 * uPPPP(self.cTarg) - self.Beth * (-(1 - self.UnempPrb) * self.MPCtarg * kkk * self.Rnrm * uPP(self.cTarg) - 3 * (1 - self.UnempPrb) * (1 - self.MPCtarg) * self.MMPCtarg**2 * self.Rnrm**2 * uPP(self.cTarg) + (1 - self.UnempPrb) * (1 - self.MPCtarg)**3 * kkk * self.Rnrm**3 * uPP(self.cTarg) - self.PFMPC * self.UnempPrb * kkk * self.Rnrm * uPP(cTargU) - 3 * (1 - self.UnempPrb) * (1 - self.MPCtarg) * self.MPCtarg**2 * self.MMPCtarg * self.Rnrm**2 * uPPP(self.cTarg) + 3 * (1 - self.UnempPrb) * (1 - self.MPCtarg)**3 * self.MPCtarg * self.MMPCtarg * self.Rnrm**3 * uPPP(self.cTarg) - 3 * self.PFMPC**2 * self.UnempPrb * (1 - self.MPCtarg) * self.MMPCtarg * self.Rnrm**2 * uPPP(cTargU) + (1 - self.UnempPrb) * (1 - self.MPCtarg)**3 * self.MPCtarg**3 * self.Rnrm**3 * uPPPP(self.cTarg) + self.PFMPC**3 * self.UnempPrb * (1 - self.MPCtarg)**3 * self.Rnrm**3 * uPPPP(cTargU))
+        self.MMMPCtarg = newton(mmmpcTargFixedPointFunc,0)
         
         # Find the MPC at m=0
-        f_temp = lambda k : self.Beth*self.scriptR*self.mho*(self.kappa_PF*self.scriptR*((1.0-k)/k))**(-self.rho-1.0)*self.kappa_PF
+        f_temp = lambda k : self.Beth*self.Rnrm*self.UnempPrb*(self.PFMPC*self.Rnrm*((1.0-k)/k))**(-self.CRRA-1.0)*self.PFMPC
         mpcAtZeroFixedPointFunc = lambda k : k - f_temp(k)/(1 + f_temp(k))
-        #self.kappa_max = newton(mpcAtZeroFixedPointFunc,0.5)
-        self.kappa_max = brentq(mpcAtZeroFixedPointFunc,self.kappa_PF,0.99,xtol=0.00000001,rtol=0.00000001)
+        #self.MPCmax = newton(mpcAtZeroFixedPointFunc,0.5)
+        self.MPCmax = brentq(mpcAtZeroFixedPointFunc,self.PFMPC,0.99,xtol=0.00000001,rtol=0.00000001)
         
         # Make the initial list of Euler points: target and perturbation to either side
-        m_list = [self.m_targ-self.epsilon, self.m_targ, self.m_targ+self.epsilon]
-        c_perturb_lo = self.c_targ - self.epsilon*self.kappa_targ + 0.5*self.epsilon**2.0*self.kappaP_targ - (1.0/6.0)*self.epsilon**3.0*self.kappaPP_targ
-        c_perturb_hi = self.c_targ + self.epsilon*self.kappa_targ + 0.5*self.epsilon**2.0*self.kappaP_targ + (1.0/6.0)*self.epsilon**3.0*self.kappaPP_targ
-        c_list = [c_perturb_lo, self.c_targ, c_perturb_hi]
-        kappa_perturb_lo = self.kappa_targ - self.epsilon*self.kappaP_targ + 0.5*self.epsilon**2.0*self.kappaPP_targ
-        kappa_perturb_hi = self.kappa_targ + self.epsilon*self.kappaP_targ + 0.5*self.epsilon**2.0*self.kappaPP_targ
-        kappa_list = [kappa_perturb_lo, self.kappa_targ, kappa_perturb_hi]
+        mNrm_list = [self.mTarg-self.SSperturbance, self.mTarg, self.mTarg+self.SSperturbance]
+        c_perturb_lo = self.cTarg - self.SSperturbance*self.MPCtarg + 0.5*self.SSperturbance**2.0*self.MMPCtarg - (1.0/6.0)*self.SSperturbance**3.0*self.MMMPCtarg
+        c_perturb_hi = self.cTarg + self.SSperturbance*self.MPCtarg + 0.5*self.SSperturbance**2.0*self.MMPCtarg + (1.0/6.0)*self.SSperturbance**3.0*self.MMMPCtarg
+        cNrm_list = [c_perturb_lo, self.cTarg, c_perturb_hi]
+        MPC_perturb_lo = self.MPCtarg - self.SSperturbance*self.MMPCtarg + 0.5*self.SSperturbance**2.0*self.MMMPCtarg
+        MPC_perturb_hi = self.MPCtarg + self.SSperturbance*self.MMPCtarg + 0.5*self.SSperturbance**2.0*self.MMMPCtarg
+        MPC_list = [MPC_perturb_lo, self.MPCtarg, MPC_perturb_hi]
         
         # Set bounds for money (stable arm construction stops when these are exceeded)
-        self.m_min = 1.0
-        self.m_max = 2.0*self.m_targ
+        self.mLowerBnd = 1.0
+        self.mUpperBnd = 2.0*self.mTarg
         
         # Make the terminal period solution
-        solution_terminal = TractableConsumerSolution(m_list=m_list,c_list=c_list,kappa_list=kappa_list)
+        solution_terminal = TractableConsumerSolution(mNrm_list=mNrm_list,cNrm_list=cNrm_list,MPC_list=MPC_list)
         self.solution_terminal = solution_terminal
         
         # Make two linear steady state functions
-        self.cSSfunc = lambda m : m*((self.scriptR*self.kappa_PF*Pi)/(1.0+self.scriptR*self.kappa_PF*Pi))
-        self.mSSfunc = lambda m : (self.Gamma/self.R)+(1.0-self.Gamma/self.R)*m
+        self.cSSfunc = lambda m : m*((self.Rnrm*self.PFMPC*Pi)/(1.0+self.Rnrm*self.PFMPC*Pi))
+        self.mSSfunc = lambda m : (self.PermGroFacCmp/self.Rfree)+(1.0-self.PermGroFacCmp/self.Rfree)*m
                 
     def postSolve(self):
         '''
@@ -201,13 +199,13 @@ class TractableConsumerType(AgentType):
         those points.  Should be run after the backshooting routine is complete.
         '''
         # Add bottom point to the stable arm points
-        self.solution[0].m_list.insert(0,0.0)
-        self.solution[0].c_list.insert(0,0.0)
-        self.solution[0].kappa_list.insert(0,self.kappa_max)
+        self.solution[0].mNrm_list.insert(0,0.0)
+        self.solution[0].cNrm_list.insert(0,0.0)
+        self.solution[0].MPC_list.insert(0,self.MPCmax)
         
         # Construct an interpolation of the consumption function from the stable arm points
-        self.solution[0].cFunc = CubicInterp(self.solution[0].m_list,self.solution[0].c_list,self.solution[0].kappa_list,self.kappa_PF*(self.h-1.0),self.kappa_PF)
-        self.solution[0].cFunc_U = lambda m : self.kappa_PF*m
+        self.solution[0].cFunc = CubicInterp(self.solution[0].mNrm_list,self.solution[0].cNrm_list,self.solution[0].MPC_list,self.PFMPC*(self.h-1.0),self.PFMPC)
+        self.solution[0].cFunc_U = lambda m : self.PFMPC*m
         #self.cFunc = self.solution[0].cFunc
         
     def update():

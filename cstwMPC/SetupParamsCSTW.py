@@ -34,14 +34,14 @@ UnempPrbRet = 0.0005    # Probabulity of "unemployment" while retired
 IncUnemp = 0.15        # Unemployment benefit replacement rate
 IncUnempRet = 0.0  # Ditto when retired
 Y0_sigma = 0.4                # Standard deviation of initial permanent income
-BoroCnst = 0.0
+BoroCnstArt = 0.0
 
 # Set grid sizes
 PermShkCount = 5                     # Number of points in permanent income shock grid
 TranShkCount = 5                      # Number of points in transitory income shock grid
-aDispMin = 0.00001                 # Minimum end-of-period assets in grid
-aDispMax = 20                    # Maximum end-of-period assets in grid
-aDispCount = 20                    # Number of points in assets grid
+aXtraMin = 0.00001                 # Minimum end-of-period assets in grid
+aXtraMax = 20                    # Maximum end-of-period assets in grid
+aXtraCount = 20                    # Number of points in assets grid
 exp_nest = 3                  # Number of times to 'exponentially nest' when constructing assets grid
 sim_pop_size = 2000           # Number of simulated agents per preference type
 CubicBool = False          # Whether to use cubic spline interpolation
@@ -82,13 +82,13 @@ for j in range(76,96):
     d_death_probs += [base_death_probs[j + init_age]*float(raw_adjustments[75][1])]
     h_death_probs += [base_death_probs[j + init_age]*float(raw_adjustments[75][2])]
     c_death_probs += [base_death_probs[j + init_age]*float(raw_adjustments[75][3])]
-LivFac_d = []
-LivFac_h = []
-LivFac_c = []
+LivPrb_d = []
+LivPrb_h = []
+LivPrb_c = []
 for j in range(len(d_death_probs)):
-    LivFac_d += 4*[(1 - d_death_probs[j])**0.25]
-    LivFac_h += 4*[(1 - h_death_probs[j])**0.25]
-    LivFac_c += 4*[(1 - c_death_probs[j])**0.25]
+    LivPrb_d += 4*[(1 - d_death_probs[j])**0.25]
+    LivPrb_h += 4*[(1 - h_death_probs[j])**0.25]
+    LivPrb_c += 4*[(1 - c_death_probs[j])**0.25]
 
 # Define permanent income growth rates for each education level
 PermGroFac_d_base = [5.2522391e-002,  5.0039782e-002,  4.7586132e-002,  4.5162424e-002,  4.2769638e-002,  4.0408757e-002,  3.8080763e-002,  3.5786635e-002,  3.3527358e-002,  3.1303911e-002,  2.9117277e-002,  2.6968437e-002,  2.4858374e-002, 2.2788068e-002,  2.0758501e-002,  1.8770655e-002,  1.6825511e-002,  1.4924052e-002,  1.3067258e-002,  1.1256112e-002, 9.4915947e-003,  7.7746883e-003,  6.1063742e-003,  4.4876340e-003,  2.9194495e-003,  1.4028022e-003, -6.1326258e-005, -1.4719542e-003, -2.8280999e-003, -4.1287819e-003, -5.3730185e-003, -6.5598280e-003, -7.6882288e-003, -8.7572392e-003, -9.7658777e-003, -1.0713163e-002, -1.1598112e-002, -1.2419745e-002, -1.3177079e-002, -1.3869133e-002, -4.3985368e-001, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003, -8.5623256e-003]
@@ -132,9 +132,9 @@ h_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_h)))*Y0_h
 c_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_c)))*Y0_c
 cohort_weight = pop_growth**np.array(np.arange(0,-(total_T+1),-1))
 econ_weight = econ_growth**np.array(np.arange(0,-(total_T+1),-1))
-d_survival_cum = np.concatenate((np.array([1]),np.cumprod(LivFac_d)))
-h_survival_cum = np.concatenate((np.array([1]),np.cumprod(LivFac_h)))
-c_survival_cum = np.concatenate((np.array([1]),np.cumprod(LivFac_c)))
+d_survival_cum = np.concatenate((np.array([1]),np.cumprod(LivPrb_d)))
+h_survival_cum = np.concatenate((np.array([1]),np.cumprod(LivPrb_h)))
+c_survival_cum = np.concatenate((np.array([1]),np.cumprod(LivPrb_c)))
 total_income_working = (d_pct*d_income[0:working_T]*d_survival_cum[0:working_T] + h_pct*h_income[0:working_T]*h_survival_cum[0:working_T] + c_pct*c_income[0:working_T]*c_survival_cum[0:working_T])*cohort_weight[0:working_T]*econ_weight[0:working_T]
 total_income_retired = (d_pct*d_income[working_T:total_T]*d_survival_cum[working_T:total_T] + h_pct*h_income[working_T:total_T]*h_survival_cum[working_T:total_T] + c_pct*c_income[working_T:total_T]*c_survival_cum[working_T:total_T])*cohort_weight[working_T:total_T]*econ_weight[working_T:total_T]
 tax_rate_SS = np.sum(total_income_retired)/np.sum(total_income_working)
@@ -157,14 +157,14 @@ total_output = np.sum(total_income_working)/total_pop_size
 l_bar = 10.0/9.0
 PermGroFac_i = [1.000**0.25]
 beta_i = 0.99
-LivFac_i = [1.0 - 1.0/160.0]
+LivPrb_i = [1.0 - 1.0/160.0]
 if do_liquid:
     PermShkStd_i = [(0.01*4/11)**0.5]
 else:
     PermShkStd_i = [(0.01*4/11)**0.5]
 TranShkStd_i = [(0.01*4)**0.5]
 sim_periods = 1000
-age_weight_i = LivFac_i**np.arange(0,sim_periods+1,dtype=float)
+age_weight_i = LivPrb_i**np.arange(0,sim_periods+1,dtype=float)
 total_pop_size_i = np.sum(age_weight_i)
 age_weight_i = age_weight_i/total_pop_size_i
 if not do_lifecycle:
@@ -187,7 +187,7 @@ for j in range(len(SCF_raw)):
 init_dropout = {"CRRA":CRRA,
                 "Rfree":Rfree,
                 "PermGroFac":PermGroFac_d,
-                "BoroCnst":BoroCnst,
+                "BoroCnstArt":BoroCnstArt,
                 "CubicBool":CubicBool,
                 "vFuncBool":vFuncBool,
                 "PermShkStd":PermShkStd,
@@ -200,12 +200,12 @@ init_dropout = {"CRRA":CRRA,
                 "T_retire":working_T-1,
                 "IncUnemp":IncUnemp,
                 "IncUnempRet":IncUnempRet,
-                "aDispMin":aDispMin,
-                "aDispMax":aDispMax,
-                "aDispCount":aDispCount,
-                "aDispExtra":[],
+                "aXtraMin":aXtraMin,
+                "aXtraMax":aXtraMax,
+                "aXtraCount":aXtraCount,
+                "aXtraExtra":[],
                 "exp_nest":exp_nest,
-                "LivFac":LivFac_d,
+                "LivPrb":LivPrb_d,
                 "DiscFac":DiscFac_guess, # dummy value, will be overwritten
                 "tax_rate":tax_rate_SS, # for math reasons, only SS tax goes here
                 'Nagents':sim_pop_size,
@@ -216,18 +216,18 @@ init_dropout = {"CRRA":CRRA,
                 }
 init_highschool = copy(init_dropout)
 init_highschool["PermGroFac"] = PermGroFac_h
-init_highschool["LivFac"] = LivFac_h
-adj_highschool = {"PermGroFac":PermGroFac_h,"LivFac":LivFac_h}
+init_highschool["LivPrb"] = LivPrb_h
+adj_highschool = {"PermGroFac":PermGroFac_h,"LivPrb":LivPrb_h}
 init_college = copy(init_dropout)
 init_college["PermGroFac"] = PermGroFac_c
-init_college["LivFac"] = LivFac_c
-adj_college = {"PermGroFac":PermGroFac_c,"LivFac":LivFac_c}
+init_college["LivPrb"] = LivPrb_c
+adj_college = {"PermGroFac":PermGroFac_c,"LivPrb":LivPrb_c}
 
 # Make a dictionary for the infinite horizon type
 init_infinite = {"CRRA":CRRA,
-                "Rfree":1.01/LivFac_i[0],
+                "Rfree":1.01/LivPrb_i[0],
                 "PermGroFac":PermGroFac_i,
-                "BoroCnst":BoroCnst,
+                "BoroCnstArt":BoroCnstArt,
                 "CubicBool":CubicBool,
                 "vFuncBool":vFuncBool,
                 "PermShkStd":PermShkStd_i,
@@ -238,12 +238,12 @@ init_infinite = {"CRRA":CRRA,
                 "IncUnemp":IncUnemp,
                 "UnempPrbRet":None,
                 "IncUnempRet":None,
-                "aDispMin":aDispMin,
-                "aDispMax":aDispMax,
-                "aDispCount":aDispCount,
-                "aDispExtra":[9000.0],
+                "aXtraMin":aXtraMin,
+                "aXtraMax":aXtraMax,
+                "aXtraCount":aXtraCount,
+                "aXtraExtra":[9000.0],
                 "exp_nest":exp_nest,
-                "LivFac":LivFac_i,
+                "LivPrb":LivPrb_i,
                 "beta":beta_i, # dummy value, will be overwritten
                 "cycles":0,
                 "T_total":1,
@@ -280,7 +280,7 @@ make_shocks_college['PermGroFac'] = PermGroFac_c
 make_shocks_infinite = {'PermShkStd':PermShkStd_i[0],
                         'TranShkStd':TranShkStd_i[0],
                         'PermGroFac':PermGroFac_i[0],
-                        'R':1.01/LivFac_i[0],
+                        'R':1.01/LivPrb_i[0],
                         'UnempPrb':UnempPrb,
                         'IncUnemp':IncUnemp,
                         'Nagents':sim_pop_size,

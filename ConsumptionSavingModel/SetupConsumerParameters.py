@@ -11,13 +11,13 @@ import numpy as np
 # ---------------------------------------------------------------------------------
 
 exp_nest = 3                        # Number of times to "exponentially nest" when constructing a_grid
-aDispMin = 0.001                       # Minimum end-of-period assets value in a_grid
-aDispMax = 20                         # Maximum end-of-period assets value in a_grid                  
-aDispHuge = None                       # A very large value of assets to add to the grid, not used
-aDispExtra = None                      # Some other value of assets to add to the grid, not used
-aDispCount = 12                         # Number of points in the grid of assets
+aXtraMin = 0.001                       # Minimum end-of-period assets value in a_grid
+aXtraMax = 20                         # Maximum end-of-period assets value in a_grid                  
+aXtraHuge = None                       # A very large value of assets to add to the grid, not used
+aXtraExtra = None                      # Some other value of assets to add to the grid, not used
+aXtraCount = 12                         # Number of points in the grid of assets
 
-BoroCnst = 0.0                  # Artificial borrowing constraint
+BoroCnstArt = None                  # Artificial borrowing constraint
 CubicBool = True                # Use cubic spline interpolation when True, linear interpolation when False
 vFuncBool = False                 # Whether to calculate the value function during solution
 
@@ -66,7 +66,7 @@ DiscFac_timevary = [1.064914 ,  1.057997 ,  1.051422 ,  1.045179 ,  1.039259 ,
         0.9902111,  0.9902111,  0.9902111,  0.9902111,  0.9902111]
 
 # Survival probabilities
-LivFac = [ 1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
+LivPrb = [ 1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
         1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
         1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
         1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
@@ -124,7 +124,7 @@ bootstrap_size = 50                                # Number of re-estimations to
 init_consumer_objects = {"CRRA":CRRA_start,
                         "Rfree":Rfree,
                         "PermGroFac":PermGroFac,
-                        "BoroCnst":BoroCnst,
+                        "BoroCnstArt":BoroCnstArt,
                         "PermShkStd":PermShkStd,
                         "PermShkCount":PermShkCount,
                         "TranShkStd":TranShkStd,
@@ -135,12 +135,12 @@ init_consumer_objects = {"CRRA":CRRA_start,
                         "T_retire":retirement_t,
                         "IncUnemp":IncUnemp,
                         "IncUnempRet":IncUnempRet,
-                        "aDispMin":aDispMin,
-                        "aDispMax":aDispMax,
-                        "aDispCount":aDispCount,
-                        "aDispExtra":[aDispExtra,aDispHuge],
+                        "aXtraMin":aXtraMin,
+                        "aXtraMax":aXtraMax,
+                        "aXtraCount":aXtraCount,
+                        "aXtraExtra":[aXtraExtra,aXtraHuge],
                         "exp_nest":exp_nest,
-                        "LivFac":LivFac,
+                        "LivPrb":LivPrb,
                         "DiscFac":DiscFac_timevary,
                         'Nagents':num_agents,
                         'psi_seed':perm_seed,
