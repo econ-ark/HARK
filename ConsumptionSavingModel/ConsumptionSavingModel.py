@@ -137,7 +137,7 @@ class PerfectForesightSolver(object):
         self.assignParameters(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac)
          
     def assignParameters(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
-        self.solution_next  = solution_next        
+        self.solution_next  = solution_next
         self.DiscFac        = DiscFac
         self.LivPrb         = LivPrb
         self.CRRA           = CRRA
@@ -153,8 +153,8 @@ class PerfectForesightSolver(object):
         MPCalt = self.MPC**(-self.CRRA/(1.0-self.CRRA))
         vFuncNvrs = LinearInterp(np.array([self.mNrmMin, self.mNrmMin+1.0]),np.array([0.0, MPCalt]))
         self.vFunc   = ValueFunc(vFuncNvrs,self.CRRA)
-        self.vPfunc  = lambda m: self.uP(self.cFunc(m))
-        self.vPPfunc = lambda m: self.MPC*self.uPP(self.cFunc(m))
+        self.vPfunc  = MargValueFunc(self.cFunc,self.CRRA)
+        #self.vPPfunc = MargMargValueFunc(self.cFunc,self.CRRA)
         
     def makecFunc(self):
         # Calculate human wealth this period (and lower bound of m)
@@ -172,7 +172,7 @@ class PerfectForesightSolver(object):
         self.makecFunc()
         self.defValueFuncs()
         solution = ConsumerSolution(cFunc=self.cFunc, vFunc=self.vFunc, 
-                       vPfunc=self.vPfunc, vPPfunc=self.vPPfunc,
+                       vPfunc=self.vPfunc,
                        mNrmMin=self.mNrmMin, hNrm=self.hNrmNow,
                        MPCmin=self.MPC, MPCmax=self.MPC)
         return solution
@@ -183,9 +183,11 @@ def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
     Solves a single period consumption - savings problem for a consumer with perfect foresight.
     '''
     solver = PerfectForesightSolver(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac)
-    solution = solver.solve()    
+    solution = solver.solve()
+    #solution = solution_next
     return solution
-    
+
+
 
 ####################################################################################################
 ####################################################################################################
@@ -248,7 +250,7 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
             self.MPCmaxEff = self.MPCmaxNow
     
         # Define the borrowing constraint (limiting consumption function)
-        self.cFuncNowCnst = lambda m: m - self.mNrmMinNow
+        self.cFuncNowCnst = LinearInterp(np.array([self.mNrmMinNow, self.mNrmMinNow+1]), np.array([0.0, 1.0]))
 
 
     def prepareToSolve(self):
@@ -367,7 +369,7 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         cFuncNow = LowerEnvelope(cFuncNowUnc,self.cFuncNowCnst)
 
         # Make the marginal value function and the marginal marginal value function
-        vPfuncNow = lambda m : self.uP(cFuncNow(m))
+        vPfuncNow = MargValueFunc(cFuncNow,self.CRRA)
 
         # Pack up the solution and return it
         solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow)
@@ -395,7 +397,7 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
                 
     def solve(self):
         aNrm       = self.prepareToGetGothicvP()           
-        EndOfPrdvP   = self.getGothicvP()                        
+        EndOfPrdvP = self.getGothicvP()                        
         solution   = self.getSolution(EndOfPrdvP,aNrm)
         solution   = self.addMPCandHumanWealth(solution)
         #print('Solved a period with ENDG!')
@@ -447,12 +449,12 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         # Construct the beginning-of-period value function
         vNvrs        = self.uinv(vNrmNow) # value transformed through inverse utility
         vNvrsP       = vPnow*self.uinvP(vNrmNow)
-        mNrm_temp   = np.insert(mNrm_temp,0,self.mNrmMinNow)
+        mNrm_temp    = np.insert(mNrm_temp,0,self.mNrmMinNow)
         vNvrs        = np.insert(vNvrs,0,0.0)
         vNvrsP       = np.insert(vNvrsP,0,self.MPCmaxEff**(-self.CRRA/(1.0-self.CRRA)))
         MPCminNvrs   = self.MPCminNow**(-self.CRRA/(1.0-self.CRRA))
         vNvrsFuncNow = CubicInterp(mNrm_temp,vNvrs,vNvrsP,MPCminNvrs*self.hNrmNow,MPCminNvrs)
-        vFuncNow    = lambda m : self.u(vNvrsFuncNow(m))        
+        vFuncNow     = ValueFunc(vNvrsFuncNow,self.CRRA)
 
         solution.vFunc = vFuncNow        
         return solution
@@ -468,7 +470,7 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
 
        
     def solve(self):        
-        aNrm       = self.prepareToGetGothicvP()           
+        aNrm         = self.prepareToGetGothicvP()           
         EndOfPrdvP   = self.getGothicvP()
         
         if self.CubicBool:
@@ -496,7 +498,7 @@ def consumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfr
         solver = ConsumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraGrid,
                                              vFuncBool,CubicBool)
     solver.prepareToSolve()                      
-    solution                   = solver.solve()
+    solution = solver.solve()
     return solution   
 
 
@@ -516,7 +518,7 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
     -----------
     solution_next: ConsumerSolution
         The solution to the following period.
-    IncomeDstn: [[float]]
+    IncomeDstn: [np.array]
         A list containing three lists of floats, representing a discrete approximation to the income
         process between the period being solved and the one immediately following (in solution_next).
         Order: probs, psi, xi
@@ -1573,7 +1575,7 @@ if __name__ == '__main__':
         PerfectForesightType.timeFwd()
         
         print('Consumption functions for perfect foresight vs risky income:')            
-        plotFuncs([PerfectForesightType.cFunc[0],InfiniteType.cFunc[0]],0,100)
+        plotFuncs([PerfectForesightType.cFunc[0],InfiniteType.cFunc[0]],InfiniteType.solution[0].mNrmMin,100)
         if InfiniteType.vFuncBool:
             print('Value functions for perfect foresight vs risky income:')
             plotFuncs([PerfectForesightType.solution[0].vFunc,InfiniteType.solution[0].vFunc],InfiniteType.solution[0].mNrmMin+0.5,10)

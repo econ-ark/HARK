@@ -1,7 +1,7 @@
 import numpy as np
 from ConsumptionSavingModel import ConsumerType, consumptionSavingSolverMarkov
 import SetupConsumerParameters as Params
-from HARKutilities import plotFunc, plotFuncDer, plotFuncs, approxMeanOneLognormal, addDiscreteOutcomeConstantMean
+from HARKutilities import plotFunc, plotFuncDer, plotFuncs
 from time import clock
 from copy import deepcopy
 mystr = lambda number : "{:.4f}".format(number)
