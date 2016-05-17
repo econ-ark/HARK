@@ -59,7 +59,7 @@ class AgentType():
     whether the same solution method is used in all periods of the model.
     '''
     
-    def __init__(self,solution_terminal=NullFunc,cycles=1,time_flow=False,pseudo_terminal=True,tolerance=0.000001,**kwds):
+    def __init__(self,solution_terminal=NullFunc,cycles=1,time_flow=False,pseudo_terminal=True,tolerance=0.000001,seed=0,**kwds):
         '''
         Initialize an instance of AgentType by setting attributes; all inputs have default values.
         '''
@@ -69,7 +69,9 @@ class AgentType():
         self.pseudo_terminal = pseudo_terminal
         self.solveOnePeriod = NullFunc
         self.tolerance = tolerance
+        self.seed = seed
         self.assignParameters(**kwds)
+        self.resetRNG()
         
     def __call__(self,**kwds):
         self.assignParameters(**kwds)
@@ -118,6 +120,11 @@ class AgentType():
             self.time_vary.append('solution')
         self.postSolve()
         
+    def resetRNG(self):
+        '''
+        Reset the random number generator for this type.
+        '''
+        self.RNG = np.random.RandomState(self.seed)
 
     def isSameThing(self,solutionA,solutionB):
         '''
@@ -142,14 +149,14 @@ class AgentType():
         A method that is run immediately before the model is solved, to prepare
         the terminal solution, perhaps.  Does nothing here.
         '''
-        return
+        return None
         
     def postSolve(self):
         '''
         A method that is run immediately after the model is solved, to finalize
         the solution in some way.  Does nothing here.
         '''
-        return
+        return None
         
 
 
@@ -318,6 +325,18 @@ class Market():
         Market solution process converged.  Distance is a user-defined metric.
     '''
     
+    def __init__(self,agents=[],sow_vars=[],reap_vars=[],const_vars=[],track_vars=[],dyn_vars=[],millRule=NullFunc,calcDynamics=NullFunc,act_T=1000,tolerance=0.000001):
+        self.agents = agents
+        self.reap_vars = reap_vars
+        self.sow_vars = sow_vars
+        self.const_vars = const_vars
+        self.track_vars = track_vars
+        self.dyn_vars = dyn_vars
+        self.millRule = millRule
+        self.calcDynamics = calcDynamics
+        self.act_T = act_T
+        self.tolerance = tolerance
+    
     def solve(self):
         '''
         "Solves" the market by finding a "dynamic rule" that governs the aggregate
@@ -388,7 +407,7 @@ class Market():
         
         product = self.millRule(**mill_dict)
         for j in range(len(self.sow_vars)):
-            this_var = self.sow_vars
+            this_var = self.sow_vars[j]
             this_product = getattr(product,this_var)
             setattr(self,this_var,this_product)
         
@@ -409,9 +428,11 @@ class Market():
         '''
         for var_name in self.track_vars: # Reset the history of tracked variables
             setattr(self,var_name + '_hist',[])
-        for var_name in self.sow_vars:
+        for var_name in self.sow_vars: # Set the sow variables to their initial levels
             initial_val = getattr(self,var_name + '_init')
             setattr(self,var_name,initial_val)
+        for this_type in self.agents: # Reset each AgentType in the market
+            this_type.reset()
             
     def store(self):
         '''
@@ -449,6 +470,6 @@ class Market():
         for var_name in self.dyn_vars:
             this_obj = getattr(dynamics,var_name)
             for this_type in self.agents:
-                setattr(this_type.var_name,this_obj)
+                setattr(this_type,var_name,this_obj)
         return dynamics
         

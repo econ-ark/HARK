@@ -98,9 +98,7 @@ def CRRAutilityP_inv(u, gam):
 def CRRAutility_invP(u, gam):
     return( ((1.0-gam)*u)**(gam/(1.0-gam)) )
     
-    
-    
-    
+        
 def CARAutility(c, alpha):
     """
     Return absolute relative risk aversion (ARRA) utility of consumption "c"
@@ -137,116 +135,6 @@ def CARAutilityP_inv(u, alpha):
     
 def CARAutility_invP(u, alpha):
     return( 1.0/(alpha*(1.0-u)) )
-
-
-
-# ================================================================================
-# = Functions for generating discrete approximations to continuous distributions =
-# ================================================================================
-#def calculateLognormalDiscreteApprox(N, mu, sigma):
-#    '''
-#    Calculate a discrete approximation to the lognormal distribution, as
-#    described in Carroll (2012 a,b). N is the number of non-overlapping,
-#    equiprobably partitions of the support to create. Mu and sigma are the
-#    mean and standard deviation of the underlying normal distribution.
-#
-#    See the full documentation for indications as to practical limitations
-#    on the numerical approximation accuracy.
-#
-#    Parameters
-#    ----------
-#    N: float
-#        Size of discrete space vector to be returned.
-#    mu: float
-#        mu associated with underlying normal probability distribution.
-#    sigma: float
-#        standard deviation associated with underlying normal probability distribution.
-#
-#    Returns
-#    -------
-#    X: np.ndarray
-#        Discrete points for discrete probability mass function.
-#    pmf: np.ndarray
-#        Probability associated with each point in X.
-#
-#    References
-#    ----------
-#    Carroll, C. D. (2012a). Theoretical Foundations of Buffer Stock Saving.
-#    Manuscript, Department of Economics, Johns Hopkins University, 2012.
-#    http://www.econ2.jhu.edu/people/ccarroll/papers/BufferStockTheory/
-#
-#    Carroll, C. D. (2012b). Solution methods for microeconomic dynamic stochastic
-#    optimization problems. Manuscript, Department of Economics, Johns Hopkins
-#    University, 2012. http://www.econ.jhu.edu/people/ccarroll/solvingmicrodsops
-#
-#    Written by Nathan M. Palmer
-#    Based on Matab function "setup_shocks.m," from Chris Carroll (2012),
-#      [Solution Methods for Microeconomic Dynamic Optimization Problems](http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
-#    Latest update: 31 Jan 2016
-#    --
-#    '''
-#    if sigma > 0.0:
-#        # Note: "return" convention will be: probs always come first, then values.
-#        distrib = stats.lognorm(sigma, 0, np.exp(mu))  # rv = generic_distrib(<shape(s)>, loc=0, scale=1)
-#    
-#        # ------ Set up discrete approx cutoffs ------
-#        probs_cutoffs = np.arange(N+1.0)/float(N)   # Includes 0 and 1
-#        state_cutoffs = distrib.ppf(probs_cutoffs)  # Inverse cdf applied to get the
-#            # "cuttoff" values in the support. Note that final value will be inf.
-#    
-#        # Set pmf:
-#        pmf = np.repeat(1.0/N, N)
-#        pmf_alt = []
-#    
-#        # Find the E[X|bin] values:
-#        F = lambda x: x*distrib.pdf(x)
-#        Ebins = []
-#    
-#        epsabs = 1e-10  # These are used to set the absolute and relative error
-#        epsrel = 1e-10
-#    
-#        # Integrate: get conditional means over partitions.
-#        for i, (x0, x1) in enumerate(zip(state_cutoffs[:-1], state_cutoffs[1:])):
-#    
-#            OUTPUT = quad(F, x0, x1, epsabs=epsabs, epsrel=epsrel, limit=100, full_output=1)
-#    
-#            # Check for errors and unpack the appropriate values:
-#            if len(OUTPUT) == 3:
-#                cond_mean = OUTPUT[0]
-#                abserr = OUTPUT[1]
-#                infodict = OUTPUT[2]
-#    
-#                # Check to see if there appears to be an error:
-#                if abserr > cond_mean:
-#                    warnings.warn("WARNING: abserr > cond_mean. You may likely need to set abserr=0, although this only solves the problem which arises when the true integral is very close to zero.")
-#            else:
-#                # Assume all other values indicate error. Raise exception.
-#                cond_mean = OUTPUT[0]
-#                abserr = OUTPUT[1]
-#                infodict = OUTPUT[2]
-#                errormessage = OUTPUT[3]
-#    
-#                # Do string cleaning to address issues which emerged during doctest.
-#                errormessage = re.sub('\s+', ' ', errormessage)
-#    
-#                # Now use the error message in raising a user exception:
-#                raise Exception(errormessage)
-#    
-#            # Following two lines purely for error-testing:
-#            pmf_alt.append(distrib.cdf(x1) - distrib.cdf(x0))
-#            assert np.isclose(pmf[i], pmf_alt[i]), "In discrete approximation: np.isclose(pmf[i], pmf_alt[i]) is not close!"
-#    
-#            # Save the conditional distribution:
-#            Ebins.append(cond_mean)
-#    
-#        X = np.array(Ebins) / pmf
-#        
-#    else: # No work to be done if there is no variance
-#        pmf = np.array([1.0])
-#        X = np.array([np.exp(mu)])
-#
-#    return( [pmf, X] )
-
 
 
 def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail_order=np.e):
@@ -353,8 +241,7 @@ def approxMeanOneLognormal(N, sigma):
     mu=0.0
     return approxLognormal(N=N, mu=mu, sigma=sigma)
     
-    
-    
+        
 def approxBeta(N,a=1.0,b=1.0):
     '''
     Calculate a discrete approximation to the beta distribution.
