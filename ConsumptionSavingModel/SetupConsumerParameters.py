@@ -4,7 +4,6 @@ to estimate the SolvingMicroDSOPs model.  The empirical data is stored in a
 separate csv file and is loaded in SetupSCFdata.  These parameters are also used
 as default settings in various examples of ConsumptionSavingModel.
 '''
-import numpy as np
 
 # ---------------------------------------------------------------------------------
 # - Define all of the model parameters for SolvingMicroDSOPs and ConsumerExamples -
@@ -18,14 +17,14 @@ aXtraExtra = None                      # Some other value of assets to add to th
 aXtraCount = 12                         # Number of points in the grid of assets
 
 BoroCnstArt = 0.0                  # Artificial borrowing constraint
-CubicBool = False                # Use cubic spline interpolation when True, linear interpolation when False
+CubicBool = True                # Use cubic spline interpolation when True, linear interpolation when False
 vFuncBool = False                 # Whether to calculate the value function during solution
 
 Rfree = 1.03                            # Interest factor on assets
-PermShkCount = 6                           # Number of points in discrete approximation to permanent income shocks
-TranShkCount = 6                            # Number of points in discrete approximation to transitory income shocks
+PermShkCount = 7                           # Number of points in discrete approximation to permanent income shocks
+TranShkCount = 7                            # Number of points in discrete approximation to transitory income shocks
 UnempPrb = 0.05                  # Probability of unemployment while working
-UnempPrbRet = 0.0005          # Probability of "unemployment" while retired
+UnempPrbRet = 0.005          # Probability of "unemployment" while retired
 IncUnemp = 0.3                 # Unemployment benefits replacement rate
 IncUnempRet = 0.0        # Ditto when retired
 
@@ -107,14 +106,8 @@ empirical_cohort_age_groups = [[ 26,27,28,29,30 ],
 initial_wealth_income_ratio_vals = [0.17, 0.5, 0.83]            # Three point discrete distribution of initial w
 initial_wealth_income_ratio_probs = [0.33333, 0.33333, 0.33334] # Equiprobable discrete distribution of initial w
 num_agents = 10000                                              # Number of agents to simulate
-
-seed = 123456                                      # A generic integer for a starting seed
-seed_RNG = np.random.RandomState(seed)
-perm_seed = seed_RNG.randint(low=1, high=2**31-1)  # Seed for drawing permanent income shocks
-temp_seed = seed_RNG.randint(low=1, high=2**31-1)  # Seed for drawing transitory income shocks
-unemp_seed = seed_RNG.randint(low=1, high=2**31-1) # Seed for drawing unemployment shocks
-bootstrap_size = 50                                # Number of re-estimations to do during bootstrap
-
+bootstrap_size = 50                                             # Number of re-estimations to do during bootstrap
+seed = 31382
 
 # ------------------------------------------------------------------------------
 # -- Set up the dictionary "container" for making a base lifecycle type --------
@@ -143,9 +136,7 @@ init_consumer_objects = {"CRRA":CRRA_start,
                         "LivPrb":LivPrb,
                         "DiscFac":DiscFac_timevary,
                         'Nagents':num_agents,
-                        'psi_seed':perm_seed,
-                        'xi_seed':temp_seed,
-                        'unemp_seed':unemp_seed,
+                        'seed':seed,
                         'tax_rate':0.0,
                         'vFuncBool':vFuncBool,
                         'CubicBool':CubicBool

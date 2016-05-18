@@ -8,8 +8,8 @@ from HARKcore import AgentType, Solution, NullFunc
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKutilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean, combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
-from HARKsimulation import drawMeanOneLognormal, drawBernoulli
-from copy import deepcopy
+from HARKsimulation import drawMeanOneLognormal, drawBernoulli, drawDiscrete
+from copy import copy, deepcopy
 
 utility      = CRRAutility
 utilityP     = CRRAutilityP
@@ -928,6 +928,8 @@ class ConsumerType(AgentType):
         self.time_inv     = deepcopy(ConsumerType.time_inv_)
         self.solveOnePeriod = consumptionSavingSolverENDG # this can be swapped for consumptionSavingSolverEXOG or another solver
         self.update()
+        self.a_init = np.zeros(self.Nagents)
+        self.P_init = np.ones(self.Nagents)
 
     def unpack_cFunc(self):
         '''
@@ -956,6 +958,38 @@ class ConsumerType(AgentType):
         if not 'TranShks' in self.time_vary:
             self.time_vary.append('TranShks')
         if not original_time:
+            self.timeRev()
+            
+    def makeIncShkHist(self):
+        '''
+        Makes histories of simulated income shocks for this consumer type by
+        drawing from the discrete income distributions.
+        '''
+        orig_time = self.time_flow
+        self.timeFwd()
+        self.resetRNG()
+        
+        # Initialize the shock histories
+        PermShkHist = np.zeros((self.sim_periods,self.Nagents)) + np.nan
+        TranShkHist = np.zeros((self.sim_periods,self.Nagents)) + np.nan
+        PermShkHist[0,:] = 1.0
+        TranShkHist[0,:] = 1.0
+        t_idx = 0
+        
+        for t in range(1,self.sim_periods):
+            IncomeDstnNow    = self.IncomeDstn[t_idx]
+            PermGroFacNow    = self.PermGroFac[t_idx]
+            Events           = np.arange(IncomeDstnNow[0].size) # just a list of integers
+            EventDraws       = drawDiscrete(IncomeDstnNow[0],Events,self.Nagents,self.RNG.randint(low=1, high=2**31-1))
+            PermShkHist[t,:] = IncomeDstnNow[1][EventDraws]*PermGroFacNow
+            TranShkHist[t,:] = IncomeDstnNow[2][EventDraws]
+            t_idx += 1
+            if t_idx >= len(self.IncomeDstn):
+                t_idx = 0
+                
+        self.PermShkHist = PermShkHist
+        self.TranShkHist = TranShkHist
+        if not orig_time:
             self.timeRev()
             
     def updateIncomeProcess(self):
@@ -995,8 +1029,7 @@ class ConsumerType(AgentType):
         self.updateIncomeProcess()
         self.updateAssetsGrid()
         self.updateSolutionTerminal()
-        
-            
+                    
     def simulate(self,w_init,t_first,t_last,which=['w']):
         '''
         Simulate the model forward from initial conditions w_init, beginning in
@@ -1014,6 +1047,114 @@ class ConsumerType(AgentType):
             self.timeRev()
         return simulated_history
         
+    def simConsHistory(self,a_init=None,P_init=None,t_init=0,sim_prds=None):
+        '''
+        Simulates a history of bank balances, market resources, consumption,
+        marginal propensity to consume, and assets (after all actions), given
+        initial assets (normalized by permanent income).  User can specify which
+        period of life to begin the simulation, and how many periods to simulate.
+        '''
+        orig_time = self.time_flow
+        self.timeFwd()
+        
+        # Fill in default values
+        if a_init is None:
+            a_init = self.a_init
+        if P_init is None:
+            P_init = self.P_init
+        if sim_prds is None:
+            sim_prds = len(self.TranShkHist)
+            
+        # Initialize indices
+        self.Shk_idx   = t_init
+        self.cFunc_idx = t_init
+        
+        # Initialize the history arrays
+        self.aNow     = a_init
+        self.Pnow     = P_init
+        self.RfreeNow = self.Rfree
+        blank_history = np.zeros((sim_prds,self.Nagents)) + np.nan
+        self.Phist    = copy(blank_history)
+        self.bHist    = copy(blank_history)
+        self.mHist    = copy(blank_history)
+        self.cHist    = copy(blank_history)
+        self.MPChist  = copy(blank_history)
+        self.aHist    = copy(blank_history)
+        
+        # Simulate a history of this consumer type
+        for t in range(sim_prds):
+            self.advanceIncShks()
+            self.advancecFunc()
+            self.simOnePrd()
+            self.Phist[t,:] = self.Pnow
+            self.bHist[t,:] = self.bNow
+            self.mHist[t,:] = self.mNow
+            self.cHist[t,:] = self.cNow
+            self.MPChist[t,:] = self.MPCnow
+            self.aHist[t,:] = self.aNow
+            
+        # Restore the original flow of time
+        if not orig_time:
+            self.timeRev()
+                
+    def simOnePrd(self):
+        '''
+        Simulate a single period of a consumption-saving model with permanent
+        and transitory income shocks.
+        '''
+        # Unpack objects from self for convenience
+        aPrev          = self.aNow
+        Pprev          = self.Pnow
+        TranShkNow     = self.TranShkNow
+        PermShkNow     = self.PermShkNow
+        RfreeNow       = self.RfreeNow
+        cFuncNow       = self.cFuncNow
+        
+        # Simulate the period
+        Pnow    = Pprev*PermShkNow
+        ReffNow = RfreeNow/PermShkNow   # "effective" interest factor on normalized assets
+        bNow    = ReffNow*aPrev                         # bank balances before labor income
+        mNow    = bNow + TranShkNow                     # Market resources after income
+        cNow,MPCnow = cFuncNow.eval_with_derivative(mNow) # Consumption and maginal propensity to consume
+        aNow    = mNow - cNow                           # Assets after all actions are accomplished
+        
+        # Store the new state and control variables
+        self.Pnow   = Pnow
+        self.bNow   = bNow
+        self.mNow   = mNow
+        self.cNow   = cNow
+        self.MPCnow = MPCnow
+        self.aNow   = aNow
+        
+    def advanceIncShks(self):
+        '''
+        Advance the permanent and transitory income shocks to the next period of
+        the shock history objects.
+        '''
+        self.PermShkNow = self.PermShkHist[self.Shk_idx]
+        self.TranShkNow = self.TranShkHist[self.Shk_idx]
+        self.Shk_idx += 1
+        if self.Shk_idx >= len(self.PermShkNow):
+            self.Shk_idx = 0 # Reset to zero if we've run out of shocks
+            
+    def advancecFunc(self):
+        '''
+        Advance the consumption function to the next period in the solution.
+        '''
+        self.cFuncNow  = self.cFunc[self.cFunc_idx]
+        self.cFunc_idx += 1
+        if self.cFunc_idx >= len(self.cFunc):
+            self.cFunc_idx = 0 # Reset to zero if we've run out of cFuncs
+            
+    def simMortality(self):
+        '''
+        Simulates the mortality process, killing off some percentage of agents
+        and replacing them with newborn agents.  Very basic right now.
+        '''
+        who_dies = drawBernoulli(self.DiePrb,self.Nagents,self.RNG.randint(low=1, high=2**31-1))
+        self.aNow[who_dies] = 0.0
+        self.Pnow[who_dies] = 1.0
+                
     def calcBoundingValues(self):
         '''
         Calculate the PDV of human wealth (after receiving income this period)
@@ -1281,7 +1422,7 @@ def generateIncomeShockHistoryLognormalUnemployment(parameters):
         Transitory income standard devisions for the consumer by age.
     PermGroFac : [float]
         Permanent income growth rates for the consumer by age.
-    Rfree : [float]
+    Rfree : float
         The time-invariant interest factor
     UnempPrb : float
         The probability of becoming unemployed
@@ -1298,12 +1439,8 @@ def generateIncomeShockHistoryLognormalUnemployment(parameters):
         The number of consumers to generate shocks for.
     tax_rate : float
         An income tax rate applied to employed income.
-    psi_seed : int
-        Seed for random number generator, permanent income shocks.
-    xi_seed : int
-        Seed for random number generator, temporary income shocks.
-    unemp_seed : int
-        Seed for random number generator, unemployment shocks.
+    RNG : numpy.random.RandomState
+        A random number generator for this type.
 
     Returns:
     ----------
@@ -1315,19 +1452,22 @@ def generateIncomeShockHistoryLognormalUnemployment(parameters):
     '''
     # Unpack the parameters
     PermShkStd               = parameters.PermShkStd
-    TranShkStd                = parameters.TranShkStd
-    PermGroFac                   = parameters.PermGroFac
-    Rfree                       = parameters.Rfree
-    UnempPrb              = parameters.UnempPrb
-    UnempPrbRet       = parameters.UnempPrbRet
-    IncUnemp         = parameters.IncUnemp
-    IncUnempRet  = parameters.IncUnempRet
-    T_retire                = parameters.T_retire
-    Nagents                 = parameters.Nagents
-    psi_seed                = parameters.psi_seed
-    xi_seed                 = parameters.xi_seed
-    unemp_seed              = parameters.unemp_seed
-    tax_rate                = parameters.tax_rate
+    TranShkStd               = parameters.TranShkStd
+    PermGroFac               = parameters.PermGroFac
+    Rfree                    = parameters.Rfree
+    UnempPrb                 = parameters.UnempPrb
+    UnempPrbRet              = parameters.UnempPrbRet
+    IncUnemp                 = parameters.IncUnemp
+    IncUnempRet              = parameters.IncUnempRet
+    T_retire                 = parameters.T_retire
+    Nagents                  = parameters.Nagents
+    RNG                      = parameters.RNG
+    tax_rate                 = parameters.tax_rate
+    
+    # Set the seeds we'll need for random draws 
+    PermShk_seed             = RNG.randint(low=1, high=2**31-1)
+    TranShk_seed             = RNG.randint(low=1, high=2**31-1)
+    Unemp_seed               = RNG.randint(low=1, high=2**31-1)
 
     # Truncate the lifecycle vectors to the working life
     PermShkStdWork   = PermShkStd[0:T_retire]
@@ -1338,12 +1478,11 @@ def generateIncomeShockHistoryLognormalUnemployment(parameters):
     retired_periods  = len(PermGroFacRet)
     
     # Generate transitory shocks in the working period (needs one extra period)
-    TranShkHistWork = drawMeanOneLognormal(TranShkStdWork, Nagents, xi_seed)
-    np.random.seed(0)
-    TranShkHistWork.insert(0,np.random.permutation(TranShkHistWork[0]))
+    TranShkHistWork = drawMeanOneLognormal(TranShkStdWork, Nagents, TranShk_seed)
+    TranShkHistWork.insert(0,RNG.permutation(TranShkHistWork[0]))
     
     # Generate permanent shocks in the working period
-    PermShkHistWork = drawMeanOneLognormal(PermShkStdWork, Nagents, psi_seed)
+    PermShkHistWork = drawMeanOneLognormal(PermShkStdWork, Nagents, PermShk_seed)
     for t in range(working_periods-1):
         PermShkHistWork[t] = Rfree/(PermShkHistWork[t]*PermGroFacWork[t])
 
@@ -1361,7 +1500,7 @@ def generateIncomeShockHistoryLognormalUnemployment(parameters):
     IncUnempScaleLife = [(1-tax_rate)*(1-UnempPrb*IncUnemp)/(1-UnempPrb)]*\
                           working_periods + [(1-UnempPrbRet*IncUnempRet)/
                           (1-UnempPrbRet)]*retired_periods
-    UnempHist = drawBernoulli(UnempPrbLife,Nagents,unemp_seed)   
+    UnempHist = drawBernoulli(UnempPrbLife,Nagents,Unemp_seed)   
     
     # Combine working and retired histories and apply unemployment
     TranShkHist         = TranShkHistWork + TranShkHistRet
@@ -1394,12 +1533,8 @@ def generateIncomeShockHistoryInfiniteSimple(parameters):
         Income received when unemployed. Often zero.
     Nagents : int
         The number of consumers to generate shocks for.
-    psi_seed : int
-        Seed for random number generator, permanent income shocks.
-    xi_seed : int
-        Seed for random number generator, temporary income shocks.
-    unemp_seed : int
-        Seed for random number generator, unemployment shocks.
+    RNG : numpy.random.RandomState
+        A random number generator for this type.
     sim_periods : int
         Number of periods of shocks to generate.
     
@@ -1419,14 +1554,17 @@ def generateIncomeShockHistoryInfiniteSimple(parameters):
     UnempPrb       = parameters.UnempPrb
     IncUnemp       = parameters.IncUnemp
     Nagents        = parameters.Nagents
-    psi_seed       = parameters.psi_seed
-    xi_seed        = parameters.xi_seed
-    unemp_seed     = parameters.unemp_seed
     sim_periods    = parameters.sim_periods
+    RNG            = parameters.RNG
     
-    TranShkHist    = drawMeanOneLognormal(sim_periods*TranShkStd, Nagents, xi_seed)
-    UnempHist      = drawBernoulli(sim_periods*[UnempPrb],Nagents,unemp_seed)
-    PermShkHist    = drawMeanOneLognormal(sim_periods*PermShkStd, Nagents, psi_seed)
+    # Set the seeds we'll need for random draws 
+    PermShk_seed   = RNG.randint(low=1, high=2**31-1)
+    TranShk_seed   = RNG.randint(low=1, high=2**31-1)
+    Unemp_seed     = RNG.randint(low=1, high=2**31-1)
+    
+    TranShkHist    = drawMeanOneLognormal(sim_periods*TranShkStd, Nagents, TranShk_seed)
+    UnempHist      = drawBernoulli(sim_periods*[UnempPrb],Nagents,Unemp_seed)
+    PermShkHist    = drawMeanOneLognormal(sim_periods*PermShkStd, Nagents, PermShk_seed)
     for t in range(sim_periods):
         PermShkHist[t] = Rfree/(PermShkHist[t]*PermGroFac)
         TranShkHist[t] = TranShkHist[t]*(1-UnempPrb*IncUnemp)/(1-UnempPrb)
@@ -1503,8 +1641,9 @@ if __name__ == '__main__':
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
 
-    do_markov_type          = True
-    do_perfect_foresight    = True
+    do_markov_type          = False
+    do_perfect_foresight    = False
+    do_simulation           = True
 
 ####################################################################################################    
     
@@ -1529,8 +1668,11 @@ if __name__ == '__main__':
     plotFuncs(LifecycleType.cFunc[40:],0,5)
     LifecycleType.timeRev()
     
-    
-    
+    # Simulate some data
+    if do_simulation:
+        LifecycleType.sim_periods = LifecycleType.T_total + 1
+        LifecycleType.makeIncShkHist()
+        LifecycleType.simConsHistory()
     
 ####################################################################################################    
     
@@ -1558,6 +1700,11 @@ if __name__ == '__main__':
     if InfiniteType.vFuncBool and not do_perfect_foresight:
         print('Value function:')
         plotFunc(InfiniteType.solution[0].vFunc,InfiniteType.solution[0].mNrmMin+0.5,10)
+        
+    if do_simulation:
+        InfiniteType.sim_periods = 120
+        InfiniteType.makeIncShkHist()
+        InfiniteType.simConsHistory()
 
 
 #################################################################################################### 
@@ -1603,7 +1750,10 @@ if __name__ == '__main__':
     KinkyType.timeFwd()
     plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].mNrmMin,5)
 
-
+    if do_simulation:
+        KinkyType.sim_periods = 120
+        KinkyType.makeIncShkHist()
+        KinkyType.simConsHistory()
     
 ####################################################################################################    
 
@@ -1628,6 +1778,11 @@ if __name__ == '__main__':
     # Plot the consumption functions for the cyclical consumer type
     print('Quarterly consumption functions:')
     plotFuncs(CyclicalType.cFunc,0,5)
+    
+    if do_simulation:
+        CyclicalType.sim_periods = 480
+        CyclicalType.makeIncShkHist()
+        CyclicalType.simConsHistory()
     
     
 ####################################################################################################    

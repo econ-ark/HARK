@@ -243,6 +243,6 @@ def drawDiscrete(P,X,N,seed):
     
     # Convert the basic uniform draws into discrete draws
     indices = cum_dist.searchsorted(base_draws)
-    draws = np.array(X)[indices]
+    draws = np.asarray(X)[indices]
     return draws
     
