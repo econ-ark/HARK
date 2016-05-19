@@ -191,7 +191,7 @@ class CubicInterp(HARKinterpolator1D):
     the limiting linear function y = b_limit + m_limit*x.
     """ 
 
-    def __init__(self,x_list,y_list,dydx_list,b_limit=None,m_limit=None):
+    def __init__(self,x_list,y_list,dydx_list,b_limit=None,m_limit=None,lower_extrap=False):
         '''
         The interpolation constructor.
         
@@ -216,8 +216,11 @@ class CubicInterp(HARKinterpolator1D):
         self.dydx_list = np.asarray(dydx_list)
         self.n = len(x_list)
         
-        # Define lower extrapolation as linear function 
-        self.coeffs = [[y_list[0],dydx_list[0]]]
+        # Define lower extrapolation as linear function (or just NaN)
+        if lower_extrap:
+            self.coeffs = [[y_list[0],dydx_list[0]]]
+        else:
+            self.coeffs = [[np.nan,np.nan]]
 
         # Calculate interpolation coefficients on segments mapped to [0,1]
         for i in xrange(self.n-1):
@@ -384,17 +387,32 @@ class LinearInterp(HARKinterpolator1D):
     A slight extension of scipy.interpolate's UnivariateSpline for linear interpolation.
     Adds a distance method to allow convergence checks.
     '''
-    def __init__(self,x,y):
+    def __init__(self,x,y,lower_extrap=False):
         self.function = UnivariateSpline(x,y,k=1,s=0)
+        self.lower_extrap = lower_extrap
         
     def _evaluate(self,x):
-        return self.function(x)
+        out = self.function(x)
+        if not self.lower_extrap:
+            below_lower_bound = x < self.function._data[0][0]
+            out[below_lower_bound] = np.nan
+        return out
         
     def _der(self,x):
-        return self.function(x,1)
+        out = self.function(x,1)
+        if not self.lower_extrap:
+            below_lower_bound = x < self.function._data[0][0]
+            out[below_lower_bound] = np.nan
+        return out
         
     def _evalAndDer(self,x):
-        return self.function(x), self.function(x,1)
+        out1 = self.function(x)
+        out2 = self.function(x,1)
+        if not self.lower_extrap:
+            below_lower_bound = x < self.function._data[0][0]
+            out1[below_lower_bound] = np.nan
+            out2[below_lower_bound] = np.nan
+        return out1, out2
 
     def distance(self,other_func):
         '''

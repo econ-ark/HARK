@@ -738,28 +738,28 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             WorstIncPrbAll[j] = self.WorstIncPrb
 
             aNrm_cond          = self.prepareToGetGothicvP()  
-            EndOfPrdvP_cond      = self.getGothicvP()
-            EndOfPrdvNvrsP_cond   = self.uPinv(EndOfPrdvP_cond)
+            EndOfPrdvP_cond    = self.getGothicvP()
+            EndOfPrdvNvrsP_cond= self.uPinv(EndOfPrdvP_cond)
 
             if self.vFuncBool:
-                VLvlNext        = (self.PermShkVals_temp**(1.0-self.CRRA)*self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
-                EndOfPrdv_cond    = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
+                VLvlNext           = (self.PermShkVals_temp**(1.0-self.CRRA)*self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
+                EndOfPrdv_cond     = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
                 EndOfPrdvNvrs_cond = self.uinv(EndOfPrdv_cond)
                 EndOfPrdvNvrsP_temp= EndOfPrdvP_cond*self.uinvP(EndOfPrdv_cond)
                 EndOfPrdvNvrs_temp = np.insert(EndOfPrdvNvrs_cond,0,0.0)
                 EndOfPrdvNvrsP_temp= np.insert(EndOfPrdvNvrsP_temp,0,EndOfPrdvNvrsP_temp[0])
-                aNrm_temp       = np.insert(aNrm_cond,0,self.BoroCnstNat)
+                aNrm_temp          = np.insert(aNrm_cond,0,self.BoroCnstNat)
                 EndOfPrdvNvrsFunc_cond = CubicInterp(aNrm_temp,EndOfPrdvNvrs_temp,EndOfPrdvNvrsP_temp)
-                EndOfPrdvFunc_cond= ValueFunc(EndOfPrdvNvrsFunc_cond,self.CRRA)
+                EndOfPrdvFunc_cond = ValueFunc(EndOfPrdvNvrsFunc_cond,self.CRRA)
                 EndOfPrdvFunc_list.append(EndOfPrdvFunc_cond)
     
             if self.CubicBool:
                 EndOfPrdvPP_cond       = self.DiscFacEff*self.Rfree*self.Rfree*self.PermGroFac**(-self.CRRA-1.0)*np.sum(self.PermShkVals_temp**(-self.CRRA-1.0)*
                                        self.vPPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)
                 EndOfPrdvNvrsPP_cond    = -1.0/self.CRRA*EndOfPrdvPP_cond*EndOfPrdvP_cond**(-1.0/self.CRRA-1.0)
-                EndOfPrdvNvrsPfunc_cond = CubicInterp(aNrm_cond,EndOfPrdvNvrsP_cond,EndOfPrdvNvrsPP_cond)
+                EndOfPrdvNvrsPfunc_cond = CubicInterp(aNrm_cond,EndOfPrdvNvrsP_cond,EndOfPrdvNvrsPP_cond,lower_extrap=True)
             else:
-                EndOfPrdvNvrsPfunc_cond = LinearInterp(aNrm_cond,EndOfPrdvNvrsP_cond)
+                EndOfPrdvNvrsPfunc_cond = LinearInterp(aNrm_cond,EndOfPrdvNvrsP_cond,lower_extrap=True)
             
             EndOfPrdvPfunc_cond = MargValueFunc(EndOfPrdvNvrsPfunc_cond,self.CRRA)
             EndOfPrdvPfunc_list.append(EndOfPrdvPfunc_cond)
@@ -1641,7 +1641,7 @@ if __name__ == '__main__':
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
 
-    do_markov_type          = False
+    do_markov_type          = True
     do_perfect_foresight    = False
     do_simulation           = True
 
@@ -1661,7 +1661,8 @@ if __name__ == '__main__':
     
     # Plot the consumption functions during working life
     print('Consumption functions while working:')
-    plotFuncs(LifecycleType.cFunc[:40],0,5)
+    mMin = min([LifecycleType.solution[t].mNrmMin for t in range(40)])
+    plotFuncs(LifecycleType.cFunc[:40],mMin,5)
 
     # Plot the consumption functions during retirement
     print('Consumption functions while retired:')
@@ -1777,7 +1778,8 @@ if __name__ == '__main__':
     
     # Plot the consumption functions for the cyclical consumer type
     print('Quarterly consumption functions:')
-    plotFuncs(CyclicalType.cFunc,0,5)
+    mMin = min([X.mNrmMin for X in CyclicalType.solution])
+    plotFuncs(CyclicalType.cFunc,mMin,5)
     
     if do_simulation:
         CyclicalType.sim_periods = 480
