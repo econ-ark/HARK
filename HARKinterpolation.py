@@ -218,9 +218,9 @@ class CubicInterp(HARKinterpolator1D):
         
         # Define lower extrapolation as linear function (or just NaN)
         if lower_extrap:
-            self.coeffs = [[y_list[0],dydx_list[0]]]
+            self.coeffs = [[y_list[0],dydx_list[0],0,0]]
         else:
-            self.coeffs = [[np.nan,np.nan]]
+            self.coeffs = [[np.nan,np.nan,np.nan,np.nan]]
 
         # Calculate interpolation coefficients on segments mapped to [0,1]
         for i in xrange(self.n-1):
@@ -248,6 +248,7 @@ class CubicInterp(HARKinterpolator1D):
         else:
             temp = [b_limit, m_limit, gap, 0]
         self.coeffs.append(temp)
+        self.coeffs = np.array(self.coeffs)
 
 
     def _evaluate(self,x):
@@ -257,29 +258,32 @@ class CubicInterp(HARKinterpolator1D):
         if _isscalar(x):
             pos = np.searchsorted(self.x_list,x)
             if pos == 0:
-                y = self.coeffs[0][0] + self.coeffs[0][1]*(x - self.x_list[0])
+                y = self.coeffs[0,0] + self.coeffs[0,1]*(x - self.x_list[0])
             elif (pos < self.n):
                 alpha = (x - self.x_list[pos-1])/(self.x_list[pos] - self.x_list[pos-1])
-                y = self.coeffs[pos][0] + alpha*(self.coeffs[pos][1] + alpha*(self.coeffs[pos][2] + alpha*self.coeffs[pos][3]))
+                y = self.coeffs[pos,0] + alpha*(self.coeffs[pos,1] + alpha*(self.coeffs[pos,2] + alpha*self.coeffs[pos,3]))
             else:
                 alpha = x - self.x_list[self.n-1]
-                y = self.coeffs[pos][0] + x*self.coeffs[pos][1] - self.coeffs[pos][2]*np.exp(alpha*self.coeffs[pos][3])
+                y = self.coeffs[pos,0] + x*self.coeffs[pos,1] - self.coeffs[pos,2]*np.exp(alpha*self.coeffs[pos,3])
         else:
             m = len(x)
             pos = np.searchsorted(self.x_list,x)
             y = np.zeros(m)
             if y.size > 0:
-                for i in xrange(self.n+1):
-                    c = pos == i
-                    if np.any(c):
-                        if i == 0:
-                            y[c] = self.coeffs[0][0] + self.coeffs[0][1]*(x[c] - self.x_list[0])
-                        elif i < self.n:
-                            alpha = (x[c] - self.x_list[i-1])/(self.x_list[i] - self.x_list[i-1])
-                            y[c] = self.coeffs[i][0] + alpha*(self.coeffs[i][1] + alpha*(self.coeffs[i][2] + alpha*self.coeffs[i][3]))
-                        else:
-                            alpha = x[c] - self.x_list[self.n-1]
-                            y[c] = self.coeffs[i][0] + x[c]*self.coeffs[i][1] - self.coeffs[i][2]*np.exp(alpha*self.coeffs[i][3])        
+                out_bot   = pos == 0
+                out_top   = pos == self.n
+                in_bnds   = np.logical_not(np.logical_or(out_bot, out_top))
+                
+                # Do the "in bounds" evaluation points
+                i = pos[in_bnds]
+                coeffs_in = self.coeffs[i,:]
+                alpha = (x[in_bnds] - self.x_list[i-1])/(self.x_list[i] - self.x_list[i-1])
+                y[in_bnds] = coeffs_in[:,0] + alpha*(coeffs_in[:,1] + alpha*(coeffs_in[:,2] + alpha*coeffs_in[:,3]))
+                
+                # Do the "out of bounds" evaluation points
+                y[out_bot] = self.coeffs[0,0] + self.coeffs[0,1]*(x[out_bot] - self.x_list[0])
+                alpha = x[out_top] - self.x_list[self.n-1]
+                y[out_top] = self.coeffs[self.n,0] + x[out_top]*self.coeffs[self.n,1] - self.coeffs[self.n,2]*np.exp(alpha*self.coeffs[self.n,3])                      
         return y
 
 
@@ -290,31 +294,33 @@ class CubicInterp(HARKinterpolator1D):
         if _isscalar(x):
             pos = np.searchsorted(self.x_list,x)
             if pos == 0:
-                dydx = self.coeffs[0][1]
+                dydx = self.coeffs[0,1]
             elif (pos < self.n):
                 alpha = (x - self.x_list[pos-1])/(self.x_list[pos] - self.x_list[pos-1])
-                dydx = (self.coeffs[pos][1] + alpha*(2*self.coeffs[pos][2] + alpha*3*self.coeffs[pos][3]))/(self.x_list[pos] - self.x_list[pos-1])
+                dydx = (self.coeffs[pos,1] + alpha*(2*self.coeffs[pos,2] + alpha*3*self.coeffs[pos,3]))/(self.x_list[pos] - self.x_list[pos-1])
             else:
                 alpha = x - self.x_list[self.n-1]
-                dydx = self.coeffs[pos][1] - self.coeffs[pos][2]*self.coeffs[pos][3]*np.exp(alpha*self.coeffs[pos][3])
+                dydx = self.coeffs[pos,1] - self.coeffs[pos,2]*self.coeffs[pos,3]*np.exp(alpha*self.coeffs[pos,3])
         else:
             m = len(x)
             pos = np.searchsorted(self.x_list,x)
             dydx = np.zeros(m)
             if dydx.size > 0:
-                for i in xrange(self.n+1):
-                    c = pos == i
-                    if np.any(c):
-                        if i == 0:
-                            dydx[c] = self.coeffs[0][1]
-                        elif i < self.n:
-                            alpha = (x[c] - self.x_list[i-1])/(self.x_list[i] - self.x_list[i-1])
-                            dydx[c] = (self.coeffs[i][1] + alpha*(2*self.coeffs[i][2] + alpha*3*self.coeffs[i][3]))/(self.x_list[i] - self.x_list[i-1])
-                        else:
-                            alpha = x[c] - self.x_list[self.n-1]
-                            dydx[c] = self.coeffs[i][1] - self.coeffs[i][2]*self.coeffs[i][3]*np.exp(alpha*self.coeffs[i][3])        
+                out_bot   = pos == 0
+                out_top   = pos == self.n
+                in_bnds   = np.logical_not(np.logical_or(out_bot, out_top))
+                
+                # Do the "in bounds" evaluation points
+                i = pos[in_bnds]
+                coeffs_in = self.coeffs[i,:]
+                alpha = (x[in_bnds] - self.x_list[i-1])/(self.x_list[i] - self.x_list[i-1])
+                dydx[in_bnds] = (coeffs_in[:,1] + alpha*(2*coeffs_in[:,2] + alpha*3*coeffs_in[:,3]))/(self.x_list[i] - self.x_list[i-1])
+                
+                # Do the "out of bounds" evaluation points
+                dydx[out_bot] = self.coeffs[0,1]
+                alpha = x[out_top] - self.x_list[self.n-1]
+                dydx[out_top] = self.coeffs[self.n,1] - self.coeffs[self.n,2]*self.coeffs[self.n,3]*np.exp(alpha*self.coeffs[self.n,3])
         return dydx
-
 
 
     def _evalAndDer(self,x):
@@ -324,37 +330,40 @@ class CubicInterp(HARKinterpolator1D):
         if _isscalar(x):
             pos = np.searchsorted(self.x_list,x)
             if pos == 0:
-                y = self.coeffs[0][0] + self.coeffs[0][1]*(x - self.x_list[0])
-                dydx = self.coeffs[0][1]
+                y = self.coeffs[0,0] + self.coeffs[0,1]*(x - self.x_list[0])
+                dydx = self.coeffs[0,1]
             elif (pos < self.n):
                 alpha = (x - self.x_list[pos-1])/(self.x_list[pos] - self.x_list[pos-1])
-                y = self.coeffs[pos][0] + alpha*(self.coeffs[pos][1] + alpha*(self.coeffs[pos][2] + alpha*self.coeffs[pos][3]))
-                dydx = (self.coeffs[pos][1] + alpha*(2*self.coeffs[pos][2] + alpha*3*self.coeffs[pos][3]))/(self.x_list[pos] - self.x_list[pos-1])
+                y = self.coeffs[pos,0] + alpha*(self.coeffs[pos,1] + alpha*(self.coeffs[pos,2] + alpha*self.coeffs[pos,3]))
+                dydx = (self.coeffs[pos,1] + alpha*(2*self.coeffs[pos,2] + alpha*3*self.coeffs[pos,3]))/(self.x_list[pos] - self.x_list[pos-1])
             else:
                 alpha = x - self.x_list[self.n-1]
-                y = self.coeffs[pos][0] + x*self.coeffs[pos][1] - self.coeffs[pos][2]*np.exp(alpha*self.coeffs[pos][3])
-                dydx = self.coeffs[pos][1] - self.coeffs[pos][2]*self.coeffs[pos][3]*np.exp(alpha*self.coeffs[pos][3])
+                y = self.coeffs[pos,0] + x*self.coeffs[pos,1] - self.coeffs[pos,2]*np.exp(alpha*self.coeffs[pos,3])
+                dydx = self.coeffs[pos,1] - self.coeffs[pos,2]*self.coeffs[pos,3]*np.exp(alpha*self.coeffs[pos,3])
         else:
             m = len(x)
             pos = np.searchsorted(self.x_list,x)
             y = np.zeros(m)
             dydx = np.zeros(m)
             if y.size > 0:
-                for i in xrange(self.n+1):
-                    c = pos == i
-                    if np.any(c):
-                        if i == 0:
-                            y[c] = self.coeffs[0][0] + self.coeffs[0][1]*(x[c] - self.x_list[0])
-                            dydx[c] = self.coeffs[0][1]
-                        elif i < self.n:
-                            alpha = (x[c] - self.x_list[i-1])/(self.x_list[i] - self.x_list[i-1])
-                            y[c] = self.coeffs[i][0] + alpha*(self.coeffs[i][1] + alpha*(self.coeffs[i][2] + alpha*self.coeffs[i][3]))
-                            dydx[c] = (self.coeffs[i][1] + alpha*(2*self.coeffs[i][2] + alpha*3*self.coeffs[i][3]))/(self.x_list[i] - self.x_list[i-1])
-                        else:
-                            alpha = x[c] - self.x_list[self.n-1]
-                            y[c] = self.coeffs[i][0] + x[c]*self.coeffs[i][1] - self.coeffs[i][2]*np.exp(alpha*self.coeffs[i][3])
-                            dydx[c] = self.coeffs[i][1] - self.coeffs[i][2]*self.coeffs[i][3]*np.exp(alpha*self.coeffs[i][3])      
-        return y,dydx
+                out_bot   = pos == 0
+                out_top   = pos == self.n
+                in_bnds   = np.logical_not(np.logical_or(out_bot, out_top))
+                
+                # Do the "in bounds" evaluation points
+                i = pos[in_bnds]
+                coeffs_in = self.coeffs[i,:]
+                alpha = (x[in_bnds] - self.x_list[i-1])/(self.x_list[i] - self.x_list[i-1])
+                y[in_bnds] = coeffs_in[:,0] + alpha*(coeffs_in[:,1] + alpha*(coeffs_in[:,2] + alpha*coeffs_in[:,3]))
+                dydx[in_bnds] = (coeffs_in[:,1] + alpha*(2*coeffs_in[:,2] + alpha*3*coeffs_in[:,3]))/(self.x_list[i] - self.x_list[i-1])
+                
+                # Do the "out of bounds" evaluation points
+                y[out_bot] = self.coeffs[0,0] + self.coeffs[0,1]*(x[out_bot] - self.x_list[0])
+                dydx[out_bot] = self.coeffs[0,1]
+                alpha = x[out_top] - self.x_list[self.n-1]
+                y[out_top] = self.coeffs[self.n,0] + x[out_top]*self.coeffs[self.n,1] - self.coeffs[self.n,2]*np.exp(alpha*self.coeffs[self.n,3])
+                dydx[out_top] = self.coeffs[self.n,1] - self.coeffs[self.n,2]*self.coeffs[self.n,3]*np.exp(alpha*self.coeffs[self.n,3])
+        return y, dydx
 
     def distance(self,other_function):
         '''
@@ -387,15 +396,31 @@ class LinearInterp(HARKinterpolator1D):
     A slight extension of scipy.interpolate's UnivariateSpline for linear interpolation.
     Adds a distance method to allow convergence checks.
     '''
-    def __init__(self,x,y,lower_extrap=False):
+    def __init__(self,x,y,intercept_limit=None,slope_limit=None,lower_extrap=False):
         self.function = UnivariateSpline(x,y,k=1,s=0)
         self.lower_extrap = lower_extrap
+        # Make a decay extrapolation
+        if intercept_limit is not None and slope_limit is not None:
+            slope_at_top = self.function(x[-1],1)
+            level_diff = intercept_limit + slope_limit*x[-1] - y[-1]
+            slope_diff = slope_limit - slope_at_top
+            self.decay_extrap_A = level_diff
+            self.decay_extrap_B = -slope_diff/level_diff
+            self.intercept_limit = intercept_limit
+            self.slope_limit = slope_limit
+            self.decay_extrap = True
+        else:
+            self.decay_extrap = False
         
     def _evaluate(self,x):
         out = self.function(x)
         if not self.lower_extrap:
             below_lower_bound = x < self.function._data[0][0]
             out[below_lower_bound] = np.nan
+        if self.decay_extrap:
+            above_upper_bound = x > self.function._data[0][-1]
+            x_temp = x[above_upper_bound] - self.function._data[0][-1]
+            out[above_upper_bound] = self.intercept_limit + self.slope_limit*x[above_upper_bound] - self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
         return out
         
     def _der(self,x):
@@ -403,6 +428,10 @@ class LinearInterp(HARKinterpolator1D):
         if not self.lower_extrap:
             below_lower_bound = x < self.function._data[0][0]
             out[below_lower_bound] = np.nan
+        if self.decay_extrap:
+            above_upper_bound = x > self.function._data[0][-1]
+            x_temp = x[above_upper_bound] - self.function._data[0][-1]
+            out[above_upper_bound] = self.slope_limit + self.decay_extrap_B*self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
         return out
         
     def _evalAndDer(self,x):
@@ -412,6 +441,11 @@ class LinearInterp(HARKinterpolator1D):
             below_lower_bound = x < self.function._data[0][0]
             out1[below_lower_bound] = np.nan
             out2[below_lower_bound] = np.nan
+        if self.decay_extrap:
+            above_upper_bound = x > self.function._data[0][-1]
+            x_temp = x[above_upper_bound] - self.function._data[0][-1]
+            out1[above_upper_bound] = self.intercept_limit + self.slope_limit*x[above_upper_bound] - self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
+            out2[above_upper_bound] = self.slope_limit + self.decay_extrap_B*self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
         return out1, out2
 
     def distance(self,other_func):
@@ -1010,85 +1044,71 @@ class QuadlinearInterp(HARKinterpolator4D):
 
 class LowerEnvelope(HARKinterpolator1D):
     """
-    An arbitrary 1D function that has a linear constraint with slope of 1.  The
-    unconstrained function can be of any class that has the methods __call__,
-    derivative, and eval_with_derivative.
+    The lower envelope of a finite set of 1D functions, each of which can be of
+    any class that has the methods __call__, derivative, and eval_with_derivative.
+    Generally: it combines HARKinterpolator1Ds. 
     """ 
 
-    def __init__(self,the_function,constraint):
+    def __init__(self,*functions):
         '''
         Constructor method for the interpolation.
         '''
-        self.function = the_function
-        self.constraint = constraint
+        self.functions = []
+        for function in functions:
+            self.functions.append(function)
+        self.funcCount = len(self.functions)
 
     def _evaluate(self,x):
         '''
-        Returns the level of the function at each value in x.
+        Returns the level of the function at each value in x as the minimum among
+        all of the functions.
         '''
-        unconstrained = self.function(x)
-        constrained = self.constraint(x)
         if _isscalar(x):
-            y = np.min([unconstrained,constrained])
+            y = np.nanmin([f(x) for f in self.functions])
         else:
             m = len(x)
-            y = np.zeros(m)
-            c = unconstrained < constrained
-            y[c] = unconstrained[c]
-            y[~c] = constrained[~c]
+            fx = np.zeros((m,self.funcCount))
+            for j in range(self.funcCount):
+                fx[:,j] = self.functions[j](x)
+            y = np.nanmin(fx,axis=1)       
         return y
 
     def _der(self,x):
         '''
         Returns the first derivative of the function at each value in x.
         '''
-        temp = self.function.eval_with_derivative(x)
-        unconstrained = temp[0]
-        slope = temp[1]
-        constrained = self.constraint(x)
-        if _isscalar(x):
-            if (constrained < unconstrained):
-                dydx = 1
-            else:
-                dydx = slope
-        else:
-            m = len(x)
-            dydx = np.zeros(m)
-            c = unconstrained < constrained
-            dydx[c] = slope[c]
-            dydx[~c] = 1
-        return dydx
-
+        y,dydx = self.eval_with_derivative(x)
+        return dydx  # Sadly, this is the fastest / most convenient way...
 
     def _evalAndDer(self,x):
         '''
         Returns the level and first derivative of the function at each value in x.
         '''
-        unconstrained,slope = self.function.eval_with_derivative(x)
-        constrained = self.constraint(x)
-        if _isscalar(x):
-            y = np.min([unconstrained,constrained])
-            if (constrained < unconstrained):
-                slope = 1
-        else:
-            m = len(x)
-            y = np.zeros(m)
-            dydx = np.zeros(m)
-            c = unconstrained < constrained
-            y[c] = unconstrained[c]
-            y[~c] = constrained[~c]
-            dydx[c] = slope[c]
-            dydx[~c] = 1
+        m = len(x)
+        fx = np.zeros((m,self.funcCount))
+        for j in range(self.funcCount):
+            fx[:,j] = self.functions[j](x)
+        fx[np.isnan(fx)] = np.inf
+        i = np.argmin(fx,axis=1)
+        y = fx[np.arange(m),i]
+        dydx = np.zeros_like(y)
+        for j in range(self.funcCount):
+            c = i == j
+            dydx[c] = self.functions[j].derivative(x[c])
         return y,dydx
-
     
     def distance(self,function_other):
         '''
         Returns the distance between this instance and another instance of the class.
         The distance is the distance between the corresponding unconstrained functions.
         '''
-        return self.function.distance(function_other.function)
-
+        if self.funcCount == function_other.funcCount:
+            dist_list = np.zeros(self.funcCount)
+            for j in range(self.funcCount):
+                dist_list[j] = self.functions[j].distance(function_other.functions[j])
+            return np.max(dist_list)
+        else:
+            return 100*np.abs(self.funcCount - function_other.funcCount)
 
 
 '''
@@ -2148,6 +2168,16 @@ if __name__ == '__main__':
     
     RNG = np.random.RandomState(123)
     
+    if True:
+        x = np.linspace(1,20,39)
+        y = np.log(x)
+        dydx = 1.0/x
+        f = CubicInterp(x,y,dydx)
+        x_test = np.linspace(0,30,200)
+        y_test = f(x_test)
+        plt.plot(x_test,y_test)
+        plt.show()
+    
     if False:
         f = lambda x,y : 3.0*x**2.0 + x*y + 4.0*y**2.0
         dfdx = lambda x,y : 6.0*x + y
@@ -2292,7 +2322,7 @@ if __name__ == '__main__':
         plt.plot(p)
         
         
-    if True:
+    if False:
         f = lambda w,x,y,z : 4.0*w*z - 2.5*w*x + w*y + 6.0*x*y - 10.0*x*z + 3.0*y*z - 7.0*z + 4.0*x + 2.0*y - 5.0*w
         dfdw = lambda w,x,y,z : 4.0*z - 2.5*x + y - 5.0
         dfdx = lambda w,x,y,z : -2.5*w + 6.0*y - 10.0*z + 4.0

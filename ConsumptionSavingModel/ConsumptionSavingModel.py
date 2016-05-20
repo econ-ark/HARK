@@ -6,7 +6,7 @@ sys.path.insert(0,'../')
 import numpy as np
 from HARKcore import AgentType, Solution, NullFunc
 from HARKutilities import warnings  # Because of "patch" to warnings modules
-from HARKutilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean, combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
+from HARKutilities import approxLognormal, approxMeanOneLognormal, addDiscreteOutcomeConstantMean, combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARKsimulation import drawMeanOneLognormal, drawBernoulli, drawDiscrete
 from copy import copy, deepcopy
@@ -156,7 +156,7 @@ class PerfectForesightSolver(object):
         self.vPfunc  = MargValueFunc(self.cFunc,self.CRRA)
         #self.vPPfunc = MargMargValueFunc(self.cFunc,self.CRRA)
         
-    def makecFunc(self):
+    def makecFuncPF(self):
         # Calculate human wealth this period (and lower bound of m)
         self.hNrmNow = (self.PermGroFac/self.Rfree)*(self.solution_next.hNrm + 1.0)
         self.mNrmMin = -self.hNrmNow
@@ -169,7 +169,7 @@ class PerfectForesightSolver(object):
     def solve(self):        
         self.defUtilityFuncs()
         self.DiscFacEff = self.DiscFac*self.LivPrb
-        self.makecFunc()
+        self.makecFuncPF()
         self.defValueFuncs()
         solution = ConsumerSolution(cFunc=self.cFunc, vFunc=self.vFunc, 
                        vPfunc=self.vPfunc,
@@ -373,10 +373,10 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
 
         # Pack up the solution and return it
         solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow)
-        return solution_now        
+        return solution_now
 
 
-    def getSolution(self,EndOfPrdvP,aNrm,interpolator = LinearInterp):
+    def getSolution(self,EndOfPrdvP,aNrm,interpolator):
         """
         Given a and EndOfPrdvP, return the solution for this period.
         """
@@ -393,12 +393,20 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         solution.MPCmin = self.MPCminNow
         solution.MPCmax = self.MPCmaxEff
         return solution
+
+        
+    def makecFuncLinear(self,mNrm,cNrm):
+        '''
+        Makes a linear interpolation to represent the (unconstrained) consumption function.
+        '''
+        cFuncUnc = LinearInterp(mNrm,cNrm,self.MPCminNow*self.hNrmNow,self.MPCminNow)
+        return cFuncUnc
         
                 
     def solve(self):
         aNrm       = self.prepareToGetGothicvP()           
         EndOfPrdvP = self.getGothicvP()                        
-        solution   = self.getSolution(EndOfPrdvP,aNrm)
+        solution   = self.getSolution(EndOfPrdvP,aNrm,self.makecFuncLinear)
         solution   = self.addMPCandHumanWealth(solution)
         #print('Solved a period with ENDG!')
         return solution        
@@ -476,7 +484,7 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         if self.CubicBool:
             solution   = self.getSolution(EndOfPrdvP,aNrm,interpolator=self.getConsumptionCubic)
         else:
-            solution   = self.getSolution(EndOfPrdvP,aNrm)
+            solution   = self.getSolution(EndOfPrdvP,aNrm,self.makecFuncLinear)
         solution       = self.addMPCandHumanWealth(solution)
         
         if self.vFuncBool:
@@ -487,7 +495,6 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         #print('Solved a period with ENDG!')
         return solution        
        
-
 
 def consumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
                                        
@@ -592,6 +599,7 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
         
         PatFacTop         = ((self.Rsave*self.DiscFacEff)**(1.0/self.CRRA))/self.Rsave
         self.MPCminNow    = 1.0/(1.0 + PatFacTop/self.solution_next.MPCmin)
+        self.hNrmNow      = self.PermGroFac/self.Rsave*(np.dot(self.ShkPrbsNext,self.TranShkValsNext*self.PermShkValsNext) + self.solution_next.hNrm)
 
         self.PermShkVals_temp = PermShkVals_temp
         self.ShkPrbs_temp     = ShkPrbs_temp
@@ -855,31 +863,51 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             self.MPC_temp = np.hstack((np.reshape(self.MPCmaxNow,(self.StateCount,1)),MPC))  
             interpfunc    = self.getConsumptionCubic            
         else:
-            interpfunc = LinearInterp
+            interpfunc    = self.makecFuncLinear
         
         for j in range(self.StateCount):
+            self.hNrmNow_j   = self.hNrmNow[j]
+            self.MPCminNow_j = self.MPCminNow[j]
             if self.CubicBool:
                 self.MPC_temp_j  = self.MPC_temp[j,:]
-                self.hNrmNow_j   = self.hNrmNow[j]
-                self.MPCminNow_j = self.MPCminNow[j]
+                
+            # Make the constrained portion of the consumption function for this state
+            self.cFuncNowCnst = LinearInterp([self.mNrmMin_list[j], self.mNrmMin_list[j]+1.0],[0.0,1.0])
+            
+            # Construct the unconstrained consumption function for this state
+            cFuncNowUnc = interpfunc(mNrm[j,:],cNrm[j,:])
 
-            self.cFuncNowCnst = LinearInterp([self.mNrmMin_list[j], self.mNrmMin_list[j]+1],[0.0,1.0])
-            solution_cond = ConsumptionSavingSolverENDGBasic.usePointsForInterpolation(
-                                   self,cNrm[j,:],mNrm[j,:],interpolator=interpfunc)            
+            # Combine the constrained and unconstrained functions into the true consumption function
+            cFuncNow = LowerEnvelope(cFuncNowUnc,self.cFuncNowCnst)
+
+            # Make the marginal value function and the marginal marginal value function
+            vPfuncNow = MargValueFunc(cFuncNow,self.CRRA)
+
+            # Pack up the solution and return it
+            solution_cond = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow)
+            
             if self.CubicBool: 
                 solution_cond = self.prepForCubicSplines(solution_cond)
 
             solution.appendSolution(solution_cond)
             
         return solution
+        
+    
+    def makecFuncLinear(self,mNrm,cNrm):
+        '''
+        Makes a linear interpolation to represent the (unconstrained) consumption function.
+        '''
+        cFuncUnc = LinearInterp(mNrm,cNrm,self.MPCminNow_j*self.hNrmNow_j,self.MPCminNow_j)
+        return cFuncUnc
 
 
     def getConsumptionCubic(self,mNrm,cNrm):
         """
         Interpolate the unconstrained consumption function with cubic splines
-        """        
-        cFuncNowUnc = CubicInterp(mNrm,cNrm,self.MPC_temp_j,self.MPCminNow_j*self.hNrmNow_j,self.MPCminNow_j)
-        return cFuncNowUnc
+        """
+        cFuncUnc = CubicInterp(mNrm,cNrm,self.MPC_temp_j,self.MPCminNow_j*self.hNrmNow_j,self.MPCminNow_j)
+        return cFuncUnc
 
 
 def consumptionSavingSolverMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
@@ -908,7 +936,7 @@ class ConsumerType(AgentType):
     #cFunc_terminal_ = Cubic1DInterpDecay([0.0, 1.0],[0.0, 1.0],[1.0, 1.0],0,1)
     cFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,1.0])
     vFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,0.0])
-    cFuncCnst_terminal_  = lambda x: x
+    cFuncCnst_terminal_  = LinearInterp([0.0, 1.0],[0.0,1.0])
     solution_terminal_   = ConsumerSolution(cFunc=LowerEnvelope(cFunc_terminal_,cFuncCnst_terminal_),
                                             vFunc = vFunc_terminal_, mNrmMin=0.0, hNrm=0.0, 
                                             MPCmin=1.0, MPCmax=1.0)
@@ -1162,7 +1190,7 @@ class ConsumerType(AgentType):
         Also calculates MPCmin and MPCmax for infinite horizon.
         '''
         if hasattr(self,'MrkvArray'):
-            StateCount = self.p_zero_income[0].size
+            StateCount = self.IncomeDstn[0].size
             ExIncNext = np.zeros(StateCount) + np.nan
             for j in range(StateCount):
                 PermShkValsNext = self.IncomeDstn[0][j][1]
@@ -1364,10 +1392,10 @@ def constructLognormalIncomeProcessUnemployment(parameters):
             IncomeDstn.append(deepcopy(IncomeDstnRet))
         else:
             # We are in the "working life" periods.
-            TranShkDstn     = approxMeanOneLognormal(N=TranShkCount, sigma=TranShkStd[t])
+            TranShkDstn     = approxLognormal(N=TranShkCount, sigma=TranShkStd[t], tail_N=0)
             if UnempPrb > 0:
                 TranShkDstn = addDiscreteOutcomeConstantMean(TranShkDstn, p=UnempPrb, x=IncUnemp)
-            PermShkDstn     = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t])
+            PermShkDstn     = approxLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=0)
             IncomeDstn.append(combineIndepDstns(PermShkDstn,TranShkDstn))
 
     return IncomeDstn
@@ -1642,14 +1670,13 @@ if __name__ == '__main__':
     mystr = lambda number : "{:.4f}".format(number)
 
     do_markov_type          = True
-    do_perfect_foresight    = False
-    do_simulation           = True
+    do_perfect_foresight    = True
+    do_simulation           = False
 
 ####################################################################################################    
     
 #    # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)
-#    LifecycleType.solveOnePeriod = consumptionSavingSolverEXOG
     LifecycleType.solveOnePeriod = consumptionSavingSolverENDG
     
     start_time = clock()

@@ -11,7 +11,7 @@ sys.path.insert(0,'../ConsumptionSavingModel')
 import numpy as np
 from copy import copy, deepcopy
 from time import time
-from HARKutilities import approxMeanOneLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, getPercentiles, getLorenzShares, calcSubpopAvg
+from HARKutilities import approxLognormal, approxMeanOneLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, getPercentiles, getLorenzShares, calcSubpopAvg
 from HARKsimulation import drawDiscrete, drawMeanOneLognormal
 from HARKcore import AgentType
 from HARKparallel import multiThreadCommandsFake, multiThreadCommands
@@ -64,6 +64,7 @@ class cstwMPCagent(Model.ConsumerType):
         self.updateAssetsGrid()
         self.updateSolutionTerminal()
         self.timeFwd()
+        self.resetRNG()
         if self.cycles > 0:
             self.IncomeDstn = Model.applyFlatIncomeTax(self.IncomeDstn,
                                                  tax_rate=self.tax_rate,
@@ -79,10 +80,10 @@ class cstwMPCagent(Model.ConsumerType):
             
     def updateIncomeProcessAlt(self):
         tax_rate = (self.IncUnemp*self.UnempPrb)/(self.l_bar*(1.0-self.UnempPrb))
-        xi_dist = deepcopy(approxMeanOneLognormal(self.TranShkCount,self.TranShkStd[0]))
+        xi_dist = deepcopy(approxLognormal(self.TranShkCount,sigma=self.TranShkStd[0],tail_N=0))
         xi_dist[0] = np.insert(xi_dist[0]*(1.0-self.UnempPrb),0,self.UnempPrb)
         xi_dist[1] = np.insert(self.l_bar*xi_dist[1]*(1.0-tax_rate),0,self.IncUnemp)
-        psi_dist = approxMeanOneLognormal(self.PermShkCount,self.PermShkStd[0])
+        psi_dist = approxLognormal(self.PermShkCount,sigma=self.PermShkStd[0],tail_N=0)
         self.IncomeDstn = [combineIndepDstns(psi_dist,xi_dist)]
         if not 'IncomeDstn' in self.time_vary:
             self.time_vary.append('IncomeDstn')

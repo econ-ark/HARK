@@ -152,7 +152,7 @@ def consPrefShockSolver(solution_next,IncomeDstn,PrefShkDstn,LivPrb,DiscFac,CRRA
     mNrmMinNow = max((solution_next.mNrmMin - TranShkMinNext)*(PermGroFac*PermShkMinNext)/Rboro, BoroCnstArt)
 
     # Define the borrowing constraint (limiting consumption function)
-    cFuncNowCnst = lambda m: m - mNrmMinNow
+    cFuncNowCnst = LinearInterp([mNrmMinNow,mNrmMinNow+1.0],[0.0,1.0])
 
     # Find data for the unconstrained consumption function in this period
     if mNrmMinNow < 0.0 and Rsave < Rboro:
@@ -209,7 +209,7 @@ class PrefShockConsumer(AgentType):
     '''        
     # Define some universal values for all consumer types
     cFunc_terminal_ = LinearInterp([0.0, 1.0],[0.0,1.0])
-    cFuncCnst_terminal_ = lambda x: x
+    cFuncCnst_terminal_ = LinearInterp([0.0, 1.0],[0.0,1.0])
     solution_terminal_ = ConsumerSolution(cFunc=LowerEnvelope(cFunc_terminal_,cFuncCnst_terminal_), vFunc=None, mNrmMin=0.0, hRto=0.0, MPCmin=1.0, MPCmax=1.0)
     time_vary_ = ['LivPrb','PermGroFac']
     time_inv_ = ['DiscFac','CRRA','Rsave','Rboro','aXtraGrid','BoroCnstArt']
