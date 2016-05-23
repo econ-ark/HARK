@@ -1029,7 +1029,7 @@ class ConsumerType(AgentType):
         original_time = self.time_flow
         self.timeFwd()
         IncomeDstn = constructLognormalIncomeProcessUnemployment(self)
-        self.IncomeDstn             = IncomeDstn
+        self.IncomeDstn = IncomeDstn
         if not 'IncomeDstn' in self.time_vary:
             self.time_vary.append('IncomeDstn')
         if not original_time:
@@ -1074,17 +1074,12 @@ class ConsumerType(AgentType):
         if not original_time:
             self.timeRev()
         return simulated_history
-        
-    def simConsHistory(self,a_init=None,P_init=None,t_init=0,sim_prds=None):
+                
+    def initializeSim(self,a_init=None,P_init=None,t_init=0,sim_prds=None):
         '''
-        Simulates a history of bank balances, market resources, consumption,
-        marginal propensity to consume, and assets (after all actions), given
-        initial assets (normalized by permanent income).  User can specify which
-        period of life to begin the simulation, and how many periods to simulate.
+        Readies this type for simulation by clearing its history, initializing
+        state variables, and setting time indices to their correct position.
         '''
-        orig_time = self.time_flow
-        self.timeFwd()
-        
         # Fill in default values
         if a_init is None:
             a_init = self.a_init
@@ -1094,6 +1089,7 @@ class ConsumerType(AgentType):
             sim_prds = len(self.TranShkHist)
             
         # Initialize indices
+        self.resetRNG()
         self.Shk_idx   = t_init
         self.cFunc_idx = t_init
         
@@ -1109,8 +1105,18 @@ class ConsumerType(AgentType):
         self.MPChist  = copy(blank_history)
         self.aHist    = copy(blank_history)
         
+    def simConsHistory(self):
+        '''
+        Simulates a history of bank balances, market resources, consumption,
+        marginal propensity to consume, and assets (after all actions), given
+        initial assets (normalized by permanent income).  User can specify which
+        period of life to begin the simulation, and how many periods to simulate.
+        '''
+        orig_time = self.time_flow
+        self.timeFwd()
+        
         # Simulate a history of this consumer type
-        for t in range(sim_prds):
+        for t in range(self.aHist.shape[0]):
             self.advanceIncShks()
             self.advancecFunc()
             self.simOnePrd()
@@ -1130,6 +1136,9 @@ class ConsumerType(AgentType):
         Simulate a single period of a consumption-saving model with permanent
         and transitory income shocks.
         '''
+        # Simulate mortality (if relevant)
+        self.simMortality()
+        
         # Unpack objects from self for convenience
         aPrev          = self.aNow
         Pprev          = self.Pnow
@@ -1162,7 +1171,7 @@ class ConsumerType(AgentType):
         self.PermShkNow = self.PermShkHist[self.Shk_idx]
         self.TranShkNow = self.TranShkHist[self.Shk_idx]
         self.Shk_idx += 1
-        if self.Shk_idx >= len(self.PermShkNow):
+        if self.Shk_idx >= self.PermShkHist.shape[0]:
             self.Shk_idx = 0 # Reset to zero if we've run out of shocks
             
     def advancecFunc(self):
@@ -1179,9 +1188,11 @@ class ConsumerType(AgentType):
         Simulates the mortality process, killing off some percentage of agents
         and replacing them with newborn agents.  Very basic right now.
         '''
-        who_dies = drawBernoulli(self.DiePrb,self.Nagents,self.RNG.randint(low=1, high=2**31-1))
-        self.aNow[who_dies] = 0.0
-        self.Pnow[who_dies] = 1.0
+        if hasattr(self,'DiePrb'):
+            if self.DiePrb > 0:
+                who_dies = drawBernoulli(self.DiePrb,self.Nagents,self.RNG.randint(low=1, high=2**31-1))
+                self.aNow[who_dies] = 0.0
+                self.Pnow[who_dies] = 1.0
                 
     def calcBoundingValues(self):
         '''

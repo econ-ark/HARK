@@ -69,7 +69,8 @@ def smmObjectiveFxn(DiscFacAdj, CRRA,
     agent.solve()
     agent.unpack_cFunc()
     max_sim_age = max([max(ages) for ages in map_simulated_to_empirical_cohorts])+1
-    agent.simConsHistory(sim_prds=max_sim_age)
+    agent.initializeSim(sim_prds=max_sim_age)
+    agent.simConsHistory()
     sim_w_history = agent.bHist
     
     # Find the distance between empirical data and simulated medians for each age group

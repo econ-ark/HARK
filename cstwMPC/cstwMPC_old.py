@@ -15,7 +15,7 @@ from HARKutilities import approxLognormal, approxMeanOneLognormal, combineIndepD
 from HARKsimulation import drawDiscrete, drawMeanOneLognormal
 from HARKcore import AgentType
 from HARKparallel import multiThreadCommandsFake, multiThreadCommands
-import SetupParamsCSTW as Params
+import SetupParamsCSTW_old as Params
 import ConsumptionSavingModel as Model
 from scipy.optimize import golden, brentq
 import matplotlib.pyplot as plt
@@ -42,13 +42,15 @@ class cstwMPCagent(Model.ConsumerType):
         self.solveOnePeriod = Model.consumptionSavingSolverENDG # this can be swapped for consumptionSavingSolverEXOG or another solver
         self.update()
         
-    def simulateCSTW(self):
-        if self.cycles == 0:
-            self.DiePrb = 1.0 - self.LivPrb[0]
-        self.initializeSim()
-        self.simConsHistory()
-        self.W_history = self.Phist*self.bHist/self.Rfree
-        self.kappa_history = 1.0 - (1.0 - self.MPChist)**4
+    def simulateCSTWa(self):
+        self.W_history = self.Y_history*self.simulate(self.w0,0,self.sim_periods,which=['w'])
+        
+    def simulateCSTWb(self):
+        kappa_quarterly = self.simulate(self.w0,0,self.sim_periods,which=['kappa'])
+        self.kappa_history = 1.0 - (1.0 - kappa_quarterly)**4
+        
+    def simulateCSTWc(self):
+        self.m_history = self.simulate(self.w0,0,self.sim_periods,which=['m'])
         
     def update(self):
         '''
@@ -67,18 +69,22 @@ class cstwMPCagent(Model.ConsumerType):
             self.IncomeDstn = Model.applyFlatIncomeTax(self.IncomeDstn,
                                                  tax_rate=self.tax_rate,
                                                  T_retire=self.T_retire,
-                                                 unemployed_indices=range(0,(self.TranShkCount+1)*self.PermShkCount,self.TranShkCount+1))          
-        self.makeIncShkHist()
+                                                 unemployed_indices=range(0,(self.TranShkCount+1)*self.PermShkCount,self.TranShkCount+1))
+            scriptR_shocks, xi_shocks = Model.generateIncomeShockHistoryLognormalUnemployment(self)    
+            self.addIncomeShockPaths(scriptR_shocks,xi_shocks)   
+        else:
+            scriptR_shocks, xi_shocks = Model.generateIncomeShockHistoryInfiniteSimple(self)
+            self.addIncomeShockPaths(scriptR_shocks,xi_shocks)
         if not orig_flow:
             self.timeRev()
             
     def updateIncomeProcessAlt(self):
         tax_rate = (self.IncUnemp*self.UnempPrb)/(self.l_bar*(1.0-self.UnempPrb))
-        TranShkDstn     = deepcopy(approxLognormal(self.TranShkCount,sigma=self.TranShkStd[0],tail_N=0))
-        TranShkDstn[0]  = np.insert(TranShkDstn[0]*(1.0-self.UnempPrb),0,self.UnempPrb)
-        TranShkDstn[1]  = np.insert(self.l_bar*TranShkDstn[1]*(1.0-tax_rate),0,self.IncUnemp)
-        PermShkDstn     = approxLognormal(self.PermShkCount,sigma=self.PermShkStd[0],tail_N=0)
-        self.IncomeDstn = [combineIndepDstns(PermShkDstn,TranShkDstn)]
+        xi_dist = deepcopy(approxLognormal(self.TranShkCount,sigma=self.TranShkStd[0],tail_N=0))
+        xi_dist[0] = np.insert(xi_dist[0]*(1.0-self.UnempPrb),0,self.UnempPrb)
+        xi_dist[1] = np.insert(self.l_bar*xi_dist[1]*(1.0-tax_rate),0,self.IncUnemp)
+        psi_dist = approxLognormal(self.PermShkCount,sigma=self.PermShkStd[0],tail_N=0)
+        self.IncomeDstn = [combineIndepDstns(psi_dist,xi_dist)]
         if not 'IncomeDstn' in self.time_vary:
             self.time_vary.append('IncomeDstn')
             
@@ -184,60 +190,61 @@ def makeCSTWresults(DiscFac,nabla,save_name=None):
     '''
     DiscFac_list = approxUniform(DiscFac,nabla,N=Params.pref_type_count)
     assignBetaDistribution(est_type_list,DiscFac_list)
-    multiThreadCommandsFake(est_type_list,beta_point_commands)
+    multiThreadCommandsFake(est_type_list,results_commands)
     
     lorenz_distance = np.sqrt(betaDistObjective(nabla))
     #lorenz_distance = 0.0
     
     if Params.do_lifecycle: # This can probably be removed
-        sim_length = Params.total_T+1
+        sim_length = Params.total_T
     else:
         sim_length = Params.sim_periods
     sim_wealth = (np.vstack((this_type.W_history for this_type in est_type_list))).flatten()
-    sim_wealth_short = (np.vstack((this_type.W_history[0:sim_length,:] for this_type in est_type_list))).flatten()
+    sim_wealth_short = (np.vstack((this_type.W_history[0:sim_length] for this_type in est_type_list))).flatten()
     sim_kappa = (np.vstack((this_type.kappa_history for this_type in est_type_list))).flatten()
-    sim_income = (np.vstack((this_type.Phist[0:sim_length,:]*np.asarray(this_type.TranShkHist[0:sim_length,:]) for this_type in est_type_list))).flatten()
-    sim_ratio = (np.vstack((this_type.W_history[0:sim_length,:]/this_type.Phist[0:sim_length,:] for this_type in est_type_list))).flatten()
+    sim_income = (np.vstack((this_type.Y_history[0:sim_length]*np.asarray(this_type.TranShks[0:sim_length]) for this_type in est_type_list))).flatten()
+    sim_ratio = (np.vstack((this_type.W_history[0:sim_length]/this_type.Y_history[0:sim_length] for this_type in est_type_list))).flatten()
     if Params.do_lifecycle:
-        sim_unemp = (np.vstack((np.vstack((this_type.IncUnemp == this_type.TranShkHist[0:Params.working_T,:],np.zeros((Params.retired_T+1,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
-        sim_emp = (np.vstack((np.vstack((this_type.IncUnemp != this_type.TranShkHist[0:Params.working_T,:],np.zeros((Params.retired_T+1,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
-        sim_ret = (np.vstack((np.vstack((np.zeros((Params.working_T,Params.sim_pop_size),dtype=bool),np.ones((Params.retired_T+1,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
+        sim_unemp = (np.vstack((np.vstack((this_type.IncUnemp == np.asarray(this_type.TranShks[0:Params.working_T]),np.zeros((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
+        sim_emp = (np.vstack((np.vstack((this_type.IncUnemp != np.asarray(this_type.TranShks[0:Params.working_T]),np.zeros((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
+        sim_ret = (np.vstack((np.vstack((np.zeros((Params.working_T,Params.sim_pop_size),dtype=bool),np.ones((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
     else:
-        sim_unemp = np.vstack((this_type.IncUnemp == this_type.TranShkHist[0:sim_length,:] for this_type in est_type_list)).flatten()
-        sim_emp = np.vstack((this_type.IncUnemp != this_type.TranShkHist[0:sim_length,:] for this_type in est_type_list)).flatten()
+        sim_unemp = np.vstack((this_type.IncUnemp == np.asarray(this_type.TranShks[0:sim_length]) for this_type in est_type_list)).flatten()
+        sim_emp = np.vstack((this_type.IncUnemp != np.asarray(this_type.TranShks[0:sim_length]) for this_type in est_type_list)).flatten()
         sim_ret = np.zeros(sim_emp.size,dtype=bool)
     sim_weight_all = np.tile(np.repeat(Params.age_weight_all,Params.sim_pop_size),Params.pref_type_count)
+    sim_weight_short = np.tile(np.repeat(Params.age_weight_short,Params.sim_pop_size),Params.pref_type_count)
     
     if Params.do_beta_dist and Params.do_lifecycle:
-        kappa_mean_by_age_type = (np.mean(np.vstack((this_type.kappa_history for this_type in est_type_list)),axis=1)).reshape((Params.pref_type_count*3,DropoutType.T_total+1))
-        kappa_mean_by_age_pref = np.zeros((Params.pref_type_count,DropoutType.T_total+1)) + np.nan
+        kappa_mean_by_age_type = (np.mean(np.vstack((this_type.kappa_history for this_type in est_type_list)),axis=1)).reshape((Params.pref_type_count*3,DropoutType.T_total))
+        kappa_mean_by_age_pref = np.zeros((Params.pref_type_count,DropoutType.T_total)) + np.nan
         for j in range(Params.pref_type_count):
             kappa_mean_by_age_pref[j,] = Params.d_pct*kappa_mean_by_age_type[3*j+0,] + Params.h_pct*kappa_mean_by_age_type[3*j+1,] + Params.c_pct*kappa_mean_by_age_type[3*j+2,] 
         kappa_mean_by_age = np.mean(kappa_mean_by_age_pref,axis=0)
-        kappa_lo_beta_by_age = kappa_mean_by_age_pref[0,:]
-        kappa_hi_beta_by_age = kappa_mean_by_age_pref[Params.pref_type_count-1,:]
+        kappa_lo_beta_by_age = kappa_mean_by_age_pref[0,]
+        kappa_hi_beta_by_age = kappa_mean_by_age_pref[Params.pref_type_count-1,]
     
     lorenz_fig_data = makeLorenzFig(Params.SCF_wealth,Params.SCF_weights,sim_wealth,sim_weight_all)
-    mpc_fig_data = makeMPCfig(sim_kappa,sim_weight_all)
+    mpc_fig_data = makeMPCfig(sim_kappa,sim_weight_short)
     
-    kappa_all = calcWeightedAvg(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_all/float(Params.pref_type_count),Params.pref_type_count))
-    kappa_unemp = np.sum(sim_kappa[sim_unemp]*sim_weight_all[sim_unemp])/np.sum(sim_weight_all[sim_unemp])
-    kappa_emp = np.sum(sim_kappa[sim_emp]*sim_weight_all[sim_emp])/np.sum(sim_weight_all[sim_emp])
-    kappa_ret = np.sum(sim_kappa[sim_ret]*sim_weight_all[sim_ret])/np.sum(sim_weight_all[sim_ret])
+    kappa_all = calcWeightedAvg(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_short/float(Params.pref_type_count),Params.pref_type_count))
+    kappa_unemp = np.sum(sim_kappa[sim_unemp]*sim_weight_short[sim_unemp])/np.sum(sim_weight_short[sim_unemp])
+    kappa_emp = np.sum(sim_kappa[sim_emp]*sim_weight_short[sim_emp])/np.sum(sim_weight_short[sim_emp])
+    kappa_ret = np.sum(sim_kappa[sim_ret]*sim_weight_short[sim_ret])/np.sum(sim_weight_short[sim_ret])
     
     my_cutoffs = [(0.99,1),(0.9,1),(0.8,1),(0.6,0.8),(0.4,0.6),(0.2,0.4),(0.0,0.2)]
-    kappa_by_ratio_groups = calcSubpopAvg(sim_kappa,sim_ratio,my_cutoffs,sim_weight_all)
-    kappa_by_income_groups = calcSubpopAvg(sim_kappa,sim_income,my_cutoffs,sim_weight_all)
+    kappa_by_ratio_groups = calcSubpopAvg(sim_kappa,sim_ratio,my_cutoffs,sim_weight_short)
+    kappa_by_income_groups = calcSubpopAvg(sim_kappa,sim_income,my_cutoffs,sim_weight_short)
     
-    quintile_points = getPercentiles(sim_wealth_short,weights=sim_weight_all,percentiles=[0.2, 0.4, 0.6, 0.8])
+    quintile_points = getPercentiles(sim_wealth_short,weights=sim_weight_short,percentiles=[0.2, 0.4, 0.6, 0.8])
     wealth_quintiles = np.ones(sim_wealth_short.size,dtype=int)
     wealth_quintiles[sim_wealth_short > quintile_points[0]] = 2
     wealth_quintiles[sim_wealth_short > quintile_points[1]] = 3
     wealth_quintiles[sim_wealth_short > quintile_points[2]] = 4
     wealth_quintiles[sim_wealth_short > quintile_points[3]] = 5
-    MPC_cutoff = getPercentiles(sim_kappa,weights=sim_weight_all,percentiles=[2.0/3.0])
+    MPC_cutoff = getPercentiles(sim_kappa,weights=sim_weight_short,percentiles=[2.0/3.0])
     these_quintiles = wealth_quintiles[sim_kappa > MPC_cutoff]
-    these_weights = sim_weight_all[sim_kappa > MPC_cutoff]
+    these_weights = sim_weight_short[sim_kappa > MPC_cutoff]
     hand_to_mouth_total = np.sum(these_weights)
     hand_to_mouth_pct = []
     for q in range(5):
@@ -333,9 +340,9 @@ def calcKappaMean(DiscFac,nabla):
     '''
     DiscFac_list = approxUniform(DiscFac,nabla,N=Params.pref_type_count)
     assignBetaDistribution(est_type_list,DiscFac_list)
-    multiThreadCommandsFake(est_type_list,beta_point_commands)
+    multiThreadCommandsFake(est_type_list,results_commands)
     
-    kappa_all = calcWeightedAvg(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_short/float(Params.pref_type_count),Params.pref_type_count))
+    kappa_all = approxUniform(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_short/float(Params.pref_type_count),Params.pref_type_count))
     return kappa_all
    
    
@@ -354,15 +361,19 @@ if __name__ == "__main__":
         lorenz_target = getLorenzShares(Params.SCF_wealth,weights=Params.SCF_weights,percentiles=Params.percentiles_to_match)
         #lorenz_target = np.array([-0.002, 0.01, 0.053,0.171])
         KY_target = 10.26
-       
+    
+    
     # Make a vector of initial wealth-to-permanent income ratios
-    a_init = drawDiscrete(P=Params.a0_probs,X=Params.a0_values,N=Params.sim_pop_size,seed=Params.a0_seed)
+    w0_vector = drawDiscrete(P=Params.w0_probs,
+                                             X=Params.w0_values,
+                                             N=Params.sim_pop_size,
+                                             seed=Params.w0_seed)
                                              
     # Make the list of types for this run, whether infinite or lifecycle
     if Params.do_lifecycle:
         # Make base consumer types for each education level
         DropoutType = cstwMPCagent(**Params.init_dropout)
-        DropoutType.a_init = a_init
+        DropoutType.w0 = w0_vector
         HighschoolType = deepcopy(DropoutType)
         HighschoolType(**Params.adj_highschool)
         CollegeType = deepcopy(DropoutType)
@@ -371,12 +382,21 @@ if __name__ == "__main__":
         HighschoolType.update()
         CollegeType.update()
         
-        # Make initial distributions of permanent income for each education level
-        P_init_base = drawMeanOneLognormal(Params.P0_sigma, Params.sim_pop_size, Params.P0_seed)
-        DropoutType.P_init = Params.P0_d*P_init_base
-        HighschoolType.P_init = Params.P0_h*P_init_base
-        CollegeType.P_init = Params.P0_c*P_init_base
-        
+        # Make histories of permanent income levels for each education type
+        Y0_vector_base = drawMeanOneLognormal(Params.Y0_sigma, Params.sim_pop_size, Params.Y0_seed)
+        psi_gamma_history_d = np.zeros((Params.total_T,Params.sim_pop_size)) + np.nan
+        psi_gamma_history_h = deepcopy(psi_gamma_history_d)
+        psi_gamma_history_c = deepcopy(psi_gamma_history_d)
+        for t in range(Params.total_T):
+            psi_gamma_history_d[t,] = (Params.econ_growth*DropoutType.PermShks[t]/Params.Rfree)**(-1)
+            psi_gamma_history_h[t,] = (Params.econ_growth*HighschoolType.PermShks[t]/Params.Rfree)**(-1)
+            psi_gamma_history_c[t,] = (Params.econ_growth*CollegeType.PermShks[t]/Params.Rfree)**(-1)
+        Y_history_d = np.cumprod(np.vstack((Params.Y0_d*Y0_vector_base,psi_gamma_history_d)),axis=0)
+        Y_history_h = np.cumprod(np.vstack((Params.Y0_h*Y0_vector_base,psi_gamma_history_h)),axis=0)
+        Y_history_c = np.cumprod(np.vstack((Params.Y0_c*Y0_vector_base,psi_gamma_history_c)),axis=0)
+        DropoutType.Y_history = Y_history_d
+        HighschoolType.Y_history = Y_history_h
+        CollegeType.Y_history = Y_history_c
         
         # Set the type list for the lifecycle estimation
         short_type_list = [DropoutType, HighschoolType, CollegeType]
@@ -386,26 +406,31 @@ if __name__ == "__main__":
         # Make the base infinite horizon type and assign income shocks
         InfiniteType = cstwMPCagent(**Params.init_infinite)
         InfiniteType.tolerance = 0.0001
-        InfiniteType.a_init = 0*np.ones_like(a_init)
+        InfiniteType.w0 = w0_vector*0.0
         
         # Make histories of permanent income levels for the infinite horizon type
-        P_init_base = np.ones(Params.sim_pop_size,dtype=float)
-        InfiniteType.P_init = P_init_base
+        Y0_vector_base = np.ones(Params.sim_pop_size,dtype=float)
+        psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
+        for t in range(Params.sim_periods):
+            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*InfiniteType.PermShks[t]/InfiniteType.Rfree)**(-1)
+        Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
+        InfiniteType.Y_history = Y_history_i
         
         # Use a "tractable consumer" instead if desired
         if Params.do_tractable:
             from TractableBufferStock import TractableConsumerType
             TractableInfType = TractableConsumerType(DiscFac=InfiniteType.DiscFac,
-                                                     UnempPrb=1-InfiniteType.LivPrb[0],
-                                                     Rfree=InfiniteType.Rfree,
-                                                     PermGroFac=InfiniteType.PermGroFac[0],
-                                                     CRRA=InfiniteType.CRRA,
+                                                     mho=1-InfiniteType.survival_prob[0],
+                                                     R=InfiniteType.Rfree,
+                                                     G=InfiniteType.PermGroFac[0],
+                                                     rho=InfiniteType.rho,
                                                      sim_periods=InfiniteType.sim_periods,
                                                      IncUnemp=InfiniteType.IncUnemp)
             TractableInfType.timeFwd()
-            TractableInfType.TranShkHist = InfiniteType.TranShkHist
-            TractableInfType.PermShkHist = InfiniteType.PermShkHist
-            TractableInfType.a_init = InfiniteType.a_init
+            TractableInfType.Y_history = Y_history_i
+            TractableInfType.TranShks = InfiniteType.TranShks
+            TractableInfType.PermShks = InfiniteType.PermShks
+            TractableInfType.w0 = InfiniteType.w0
                
         # Set the type list for the infinite horizon estimation
         if Params.do_tractable:
@@ -435,10 +460,11 @@ if __name__ == "__main__":
     #==================================================================
     
     # Set commands for the beta-point estimation
-    beta_point_commands = ['solve()','unpack_cFunc()','timeFwd()','simulateCSTW()']
+    beta_point_commands = ['solve()','unpack_cFunc()','timeFwd()','simulateCSTWa()']
+    results_commands = ['solve()','unpack_cFunc()','timeFwd()','simulateCSTWa()','simulateCSTWb()']
         
     # Make the objective function for the beta-point estimation
-    betaPointObjective = lambda DiscFac : simulateKYratioDifference(DiscFac,
+    betaPointObjective = lambda beta : simulateKYratioDifference(beta,
                                                                  nabla=0,
                                                                  N=1,
                                                                  type_list=est_type_list,
@@ -460,9 +486,9 @@ if __name__ == "__main__":
         #DiscFac_new = newton(intermediateObjective,Params.DiscFac_guess,maxiter=100)
         DiscFac_new = brentq(intermediateObjective,0.90,0.998,xtol=10**(-8))
         N=Params.pref_type_count
-        sim_wealth = (np.vstack((this_type.W_history for this_type in est_type_list))).flatten()
+        wealth_sim = (np.vstack((this_type.W_history for this_type in est_type_list))).flatten()
         sim_weights = np.tile(np.repeat(Params.age_weight_all,Params.sim_pop_size),N)
-        my_diff = calculateLorenzDifference(sim_wealth,sim_weights,Params.percentiles_to_match,lorenz_target)
+        my_diff = calculateLorenzDifference(wealth_sim,sim_weights,Params.percentiles_to_match,lorenz_target)
         print('DiscFac=' + str(DiscFac_new) + ', nabla=' + str(nabla) + ', diff=' + str(my_diff))
         if my_diff < Params.diff_save:
             Params.DiscFac_save = DiscFac_new
