@@ -7,7 +7,7 @@ import warnings                             # A library for runtime warnings
 import numpy as np
 import scipy.stats as stats
 
-def drawMeanOneLognormal(sigma, N, seed):
+def drawMeanOneLognormal(sigma, N, seed=0):
     """
     Generate a list of arrays of mean one lognormal draws. The sigma input can be
     a number or list-like.  If a number, output is a length N array of draws from
@@ -47,7 +47,7 @@ def drawMeanOneLognormal(sigma, N, seed):
             
     return draws
     
-def drawNormal(mu, sigma, N, seed):
+def drawNormal(mu, sigma, N, seed=0):
     """
     Generate an array of normal draws.  The mu and sigma inputs can be 
     numbers or list-likes.  If a number, output is a length N array of draws from
@@ -89,7 +89,7 @@ def drawNormal(mu, sigma, N, seed):
     
     
     
-def drawWeibull(scale, shape, N, seed):
+def drawWeibull(scale, shape, N, seed=0):
     """
     Generate an array of Weibull draws.  The magnitude and shape inputs can be 
     numbers or list-likes.  If a number, output is a length N array of draws from
@@ -137,7 +137,7 @@ def drawWeibull(scale, shape, N, seed):
     
     
     
-def drawUniform(bot, top, N, seed):
+def drawUniform(bot, top, N, seed=0):
     """
     Generate an array of uniform draws.  The bot and top inputs can be 
     numbers or list-likes.  If a number, output is a length N array of draws from
@@ -179,7 +179,7 @@ def drawUniform(bot, top, N, seed):
 
 
     
-def drawBernoulli(p,N,seed):
+def drawBernoulli(p,N,seed=0):
     '''
     Generates an array of booleans drawn from a simple Bernoulli distribution.
     The input p can be a float or a list-like of floats; its length T determines
@@ -215,7 +215,7 @@ def drawBernoulli(p,N,seed):
     return draws
     
     
-def drawDiscrete(P,X,N,seed):
+def drawDiscrete(P,X,N,seed=0):
     '''
     Simulates N draws from a discrete distribution with probabilities P and outcomes X.
     

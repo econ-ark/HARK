@@ -2,22 +2,11 @@ from HARKutilities import getArgNames, NullFunc
 from copy import deepcopy
 import numpy as np
 
-class Solution():
-    '''
-    A superclass for representing the "solution" to a single period problem in a
-    dynamic microeconomic model.  Its only method acs as a "universal distance
-    metric" that should be useful in many settings, but can be overwritten by a
-    subclass of Solution.
-    '''    
-    def distance(self,solution_other):  
-        distance_list = [0.0]
-        for attr_name in self.convergence_criteria:
-            obj_A = eval('self.' + attr_name)
-            obj_B = eval('solution_other.' + attr_name)
-            distance_list.append(distanceMetric(obj_A,obj_B))
-        return max(distance_list)
         
 def distanceMetric(thing_A,thing_B):
+    '''
+    A "universal" distance metric that can be used as a default in many settings.
+    '''
     typeA = type(thing_A)
     typeB = type(thing_B)
             
@@ -44,10 +33,46 @@ def distanceMetric(thing_A,thing_B):
         distance = 1000.0
     
     return distance
+    
+    
+class HARKobject():
+    '''
+    A superclass for object classes in HARK.  Comes with two useful methods:
+    a generic/universal distance method and an attribute assignment method.
+    '''
+    def distance(self,other):  
+        distance_list = [0.0]
+        for attr_name in self.convergence_criteria:
+            obj_A = eval('self.' + attr_name)
+            obj_B = eval('other.' + attr_name)
+            distance_list.append(distanceMetric(obj_A,obj_B))
+        return max(distance_list)
+        
+    def assignParameters(self,**kwds):
+        '''
+        Assign an arbitrary number of attributes to this agent.
+        '''
+        for key in kwds:
+            #temp = kwds[key]
+            #exec('self.' + key + ' = temp')
+            setattr(self,key,kwds[key])
+            
+    def __call__(self,**kwds):
+        self.assignParameters(**kwds)
+    
+    
+class Solution(HARKobject):
+    '''
+    A superclass for representing the "solution" to a single period problem in a
+    dynamic microeconomic model.  Its only method acs as a "universal distance
+    metric" that should be useful in many settings, but can be overwritten by a
+    subclass of Solution.
+    
+    NOTE: This can be deprecated now that HARKobject exists.
+    '''    
+    
 
-
-
-class AgentType():
+class AgentType(HARKobject):
     '''
     A superclass for economic agents in the HARK framework.  Each model should specify its
     own subclass of AgentType, inheriting its methods and overwriting as necessary.
@@ -72,9 +97,6 @@ class AgentType():
         self.seed = seed
         self.assignParameters(**kwds)
         self.resetRNG()
-        
-    def __call__(self,**kwds):
-        self.assignParameters(**kwds)
 
     def timeReport(self):
         '''
@@ -135,14 +157,6 @@ class AgentType():
         '''
         solution_distance = solutionA.distance(solutionB)
         return(solution_distance <= self.tolerance)
-    
-    def assignParameters(self,**kwds):
-        '''
-        Assign an arbitrary number of attributes to this agent.
-        '''
-        for key in kwds:
-            temp = kwds[key]
-            exec('self.' + key + ' = temp')
             
     def preSolve(self):
         '''
@@ -275,7 +289,7 @@ def solveOneCycle(agent,solution_last):
     return solution_cycle
     
       
-class Market():
+class Market(HARKobject):
     '''
     A class to represent a central clearinghouse of information or "market actions".
     The user provides the following attributes for proper functionality:
@@ -325,15 +339,17 @@ class Market():
         Market solution process converged.  Distance is a user-defined metric.
     '''
     
-    def __init__(self,agents=[],sow_vars=[],reap_vars=[],const_vars=[],track_vars=[],dyn_vars=[],millRule=NullFunc,calcDynamics=NullFunc,act_T=1000,tolerance=0.000001):
+    def __init__(self,agents=[],sow_vars=[],reap_vars=[],const_vars=[],track_vars=[],dyn_vars=[],millRule=None,calcDynamics=None,act_T=1000,tolerance=0.000001):
         self.agents = agents
         self.reap_vars = reap_vars
         self.sow_vars = sow_vars
         self.const_vars = const_vars
         self.track_vars = track_vars
         self.dyn_vars = dyn_vars
-        self.millRule = millRule
-        self.calcDynamics = calcDynamics
+        if millRule is not None: # To prevent overwriting of method-based millRules
+            self.millRule = millRule
+        if calcDynamics is not None: # Ditto for calcDynamics
+            self.calcDynamics = calcDynamics
         self.act_T = act_T
         self.tolerance = tolerance
     
@@ -354,12 +370,13 @@ class Market():
             new_dynamics = self.updateDynamics() # Find a new aggregate dynamic rule
             
             if completed_loops > 0:
-                distance_list = [] # Compute distance between dynamic rules (if this is not the first loop)
-                for var_name in self.dyn_vars:
-                    new_value = getattr(new_dynamics,var_name)
-                    old_value = getattr(old_dynamics,var_name)
-                    distance_list.append(distanceMetric(old_value,new_value))
-                distance = max(distance_list)
+                #distance_list = [] # Compute distance between dynamic rules (if this is not the first loop)
+#                for var_name in self.dyn_vars:
+#                    new_value = getattr(new_dynamics,var_name)
+#                    old_value = getattr(old_dynamics,var_name)
+#                    distance_list.append(distanceMetric(old_value,new_value))
+#                distance = max(distance_list)
+                distance = new_dynamics.distance(old_dynamics)
             else:
                 distance = 1000000.0
             

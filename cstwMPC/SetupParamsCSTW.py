@@ -7,12 +7,13 @@ from copy import copy, deepcopy
 
 # Choose percentiles of the data to match and which estimation to run
 do_lifecycle = False          # Use lifecycle model if True, perpetual youth if False
-do_beta_dist = False           # Do beta-dist version if True, beta-point if False
-run_estimation = True         # Runs the estimation if True
+do_beta_dist = True           # Do beta-dist version if True, beta-point if False
+run_estimation = False         # Runs the estimation if True
 find_beta_vs_KY = False       # Computes K/Y ratio for a wide range of beta; should have do_beta_dist = False
 do_sensitivity = [False, False, False, False, False, False, False, False] # Choose which sensitivity analyses to run: rho, xi_sigma, psi_sigma, mu, urate, mortality, g, R
 do_liquid = False             # Matches liquid assets data when True, net worth data when False
 do_tractable = False          # Uses a "tractable consumer" rather than solving full model when True
+do_agg_shocks = True         # Solve the FBS aggregate shocks version of the model
 SCF_data_file = 'SCFwealthDataReduced.txt'
 percentiles_to_match = [0.2, 0.4, 0.6, 0.8]    # Which points of the Lorenz curve to match in beta-dist (must be in (0,1))
 #percentiles_to_match = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
@@ -40,7 +41,7 @@ BoroCnstArt = 0.0
 PermShkCount = 5                     # Number of points in permanent income shock grid
 TranShkCount = 5                      # Number of points in transitory income shock grid
 aXtraMin = 0.00001                 # Minimum end-of-period assets in grid
-aXtraMax = 20                    # Maximum end-of-period assets in grid
+aXtraMax = 80                    # Maximum end-of-period assets in grid
 aXtraCount = 20                    # Number of points in assets grid
 exp_nest = 3                  # Number of times to 'exponentially nest' when constructing assets grid
 sim_pop_size = 2000           # Number of simulated agents per preference type
@@ -161,6 +162,8 @@ else:
     PermShkStd_i = [(0.01*4/11)**0.5]
 TranShkStd_i = [(0.01*4)**0.5]
 sim_periods = 1000
+sim_periods_agg_shocks = 3000
+Nagents_agg_shocks = 4800
 age_weight_i = LivPrb_i**np.arange(0,sim_periods,dtype=float)
 total_pop_size_i = np.sum(age_weight_i)
 age_weight_i = age_weight_i/total_pop_size_i
@@ -168,6 +171,16 @@ if not do_lifecycle:
     age_weight_all = age_weight_i
     age_weight_short = age_weight_i[0:sim_periods]
     total_output = l_bar
+    
+# Set aggregate parameters for the infinite horizon model
+PermShkAggCount = 3                # Number of discrete permanent aggregate shocks
+TranShkAggCount = 3                # Number of discrete transitory aggregate shocks
+PermShkAggStd = np.sqrt(0.00004)   # Standard deviation of permanent aggregate shocks
+TranShkAggStd = np.sqrt(0.00001)   # Standard deviation of transitory aggregate shocks
+CapShare = 0.36                    # Capital's share of output
+DeprFac = 0.025                    # Capital depreciation factor
+CRRAPF = 1.0                       # CRRA in perfect foresight calibration
+DiscFacPF = 0.99                   # Discount factor in perfect foresight calibration
 
 # Import the SCF wealth data
 f = open(SCF_data_file,'r')
@@ -235,7 +248,7 @@ init_infinite = {"CRRA":CRRA,
                 "aXtraMin":aXtraMin,
                 "aXtraMax":aXtraMax,
                 "aXtraCount":aXtraCount,
-                "aXtraExtra":[9000.0],
+                "aXtraExtra":[None],
                 "exp_nest":exp_nest,
                 "LivPrb":LivPrb_i,
                 "beta":beta_i, # dummy value, will be overwritten
@@ -274,6 +287,20 @@ make_shocks_infinite = {'PermShkStd':PermShkStd_i[0],
                         'Nagents':sim_pop_size,
                         'sim_periods':sim_periods
                         }
+                        
+# Make a dictionary for the aggrege shocks market
+aggregate_params = {'PermShkAggCount': PermShkAggCount,
+                    'TranShkAggCount': TranShkAggCount,
+                    'PermShkAggStd': PermShkAggStd,
+                    'TranShkAggStd': TranShkAggStd,
+                    'DeprFac': DeprFac,
+                    'CapShare': CapShare,
+                    'CRRA': CRRAPF,
+                    'DiscFac': DiscFacPF,
+                    'LivPrb': LivPrb_i[0]
+                    }
 
 beta_save = DiscFac_guess
 diff_save = 1000000.0
+slope_prev = 1.0
+intercept_prev = 0.0

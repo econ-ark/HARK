@@ -175,39 +175,43 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
     Latest update: 21 April 2016 by Matthew N. White
     '''
     # Find the CDF boundaries of each segment
-    mu_adj         = mu - 0.5*sigma**2;
-    if tail_N > 0:
-        lo_cut     = tail_bound[0]
-        hi_cut     = tail_bound[1]
+    if sigma > 0.0:
+        mu_adj         = mu - 0.5*sigma**2;
+        if tail_N > 0:
+            lo_cut     = tail_bound[0]
+            hi_cut     = tail_bound[1]
+        else:
+            lo_cut     = 0.0
+            hi_cut     = 1.0
+        inner_size     = hi_cut - lo_cut
+        inner_CDF_vals = [lo_cut + x*N**(-1.0)*inner_size for x in range(1, N)]
+        if inner_size < 1.0:
+            scale      = 1.0/tail_order
+            mag        = (1.0-scale**tail_N)/(1.0-scale)
+        lower_CDF_vals = [0.0]
+        if lo_cut > 0.0:
+            for x in range(tail_N-1,-1,-1):
+                lower_CDF_vals.append(lower_CDF_vals[-1] + lo_cut*scale**x/mag)
+        upper_CDF_vals  = [hi_cut]
+        if hi_cut < 1.0:
+            for x in range(tail_N):
+                upper_CDF_vals.append(upper_CDF_vals[-1] + (1.0-hi_cut)*scale**x/mag)
+        CDF_vals       = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
+        temp_cutoffs   = list(stats.lognorm.ppf(CDF_vals[1:-1], s=sigma, loc=0, scale=np.exp(mu_adj)))
+        cutoffs        = [0] + temp_cutoffs + [np.inf]
+        CDF_vals       = np.array(CDF_vals)
+    
+        # Construct the discrete approximation by finding the average value within each segment
+        K              = CDF_vals.size-1 # number of points in approximation
+        pmf            = CDF_vals[1:(K+1)] - CDF_vals[0:K]
+        X              = np.zeros(K)
+        for i in range(K):
+            zBot  = cutoffs[i]
+            zTop = cutoffs[i+1]
+            X[i] = (-0.5)*np.exp(mu_adj+(sigma**2)*0.5)*(erf((mu_adj+sigma**2-np.log(zTop))*((np.sqrt(2)*sigma)**(-1)))-erf((mu_adj+sigma**2-np.log(zBot))*((np.sqrt(2)*sigma)**(-1))))*(pmf[i]**(-1));           
     else:
-        lo_cut     = 0.0
-        hi_cut     = 1.0
-    inner_size     = hi_cut - lo_cut
-    inner_CDF_vals = [lo_cut + x*N**(-1.0)*inner_size for x in range(1, N)]
-    if inner_size < 1.0:
-        scale      = 1.0/tail_order
-        mag        = (1.0-scale**tail_N)/(1.0-scale)
-    lower_CDF_vals = [0.0]
-    if lo_cut > 0.0:
-        for x in range(tail_N-1,-1,-1):
-            lower_CDF_vals.append(lower_CDF_vals[-1] + lo_cut*scale**x/mag)
-    upper_CDF_vals  = [hi_cut]
-    if hi_cut < 1.0:
-        for x in range(tail_N):
-            upper_CDF_vals.append(upper_CDF_vals[-1] + (1.0-hi_cut)*scale**x/mag)
-    CDF_vals       = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
-    temp_cutoffs   = list(stats.lognorm.ppf(CDF_vals[1:-1], s=sigma, loc=0, scale=np.exp(mu_adj)))
-    cutoffs        = [0] + temp_cutoffs + [np.inf]
-    CDF_vals       = np.array(CDF_vals)
-
-    # Construct the discrete approximation by finding the average value within each segment
-    K              = CDF_vals.size-1 # number of points in approximation
-    pmf            = CDF_vals[1:(K+1)] - CDF_vals[0:K]
-    X              = np.zeros(K)
-    for i in range(K):
-        zBot  = cutoffs[i]
-        zTop = cutoffs[i+1]
-        X[i] = (-0.5)*np.exp(mu_adj+(sigma**2)*0.5)*(erf((mu_adj+sigma**2-np.log(zTop))*((np.sqrt(2)*sigma)**(-1)))-erf((mu_adj+sigma**2-np.log(zBot))*((np.sqrt(2)*sigma)**(-1))))*(pmf[i]**(-1));           
+        pmf = np.ones(N)/N
+        X   = np.exp(mu)*np.ones(N)
     return [pmf, X]
 
 

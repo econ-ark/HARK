@@ -957,7 +957,7 @@ class ConsumerType(AgentType):
         self.solveOnePeriod = consumptionSavingSolverENDG # this can be swapped for consumptionSavingSolverEXOG or another solver
         self.update()
         self.a_init = np.zeros(self.Nagents)
-        self.P_init = np.ones(self.Nagents)
+        self.p_init = np.ones(self.Nagents)
 
     def unpack_cFunc(self):
         '''
@@ -1008,7 +1008,14 @@ class ConsumerType(AgentType):
             IncomeDstnNow    = self.IncomeDstn[t_idx]
             PermGroFacNow    = self.PermGroFac[t_idx]
             Events           = np.arange(IncomeDstnNow[0].size) # just a list of integers
-            EventDraws       = drawDiscrete(IncomeDstnNow[0],Events,self.Nagents,self.RNG.randint(low=1, high=2**31-1))
+            Cutoffs          = np.round(np.cumsum(IncomeDstnNow[0])*self.Nagents)
+            top = 0
+            EventList        = []
+            for j in range(Events.size):
+                bot = top
+                top = Cutoffs[j]
+                EventList += (top-bot)*[Events[j]]
+            EventDraws       = self.RNG.permutation(EventList)
             PermShkHist[t,:] = IncomeDstnNow[1][EventDraws]*PermGroFacNow
             TranShkHist[t,:] = IncomeDstnNow[2][EventDraws]
             t_idx += 1
@@ -1075,7 +1082,7 @@ class ConsumerType(AgentType):
             self.timeRev()
         return simulated_history
                 
-    def initializeSim(self,a_init=None,P_init=None,t_init=0,sim_prds=None):
+    def initializeSim(self,a_init=None,p_init=None,t_init=0,sim_prds=None):
         '''
         Readies this type for simulation by clearing its history, initializing
         state variables, and setting time indices to their correct position.
@@ -1083,8 +1090,8 @@ class ConsumerType(AgentType):
         # Fill in default values
         if a_init is None:
             a_init = self.a_init
-        if P_init is None:
-            P_init = self.P_init
+        if p_init is None:
+            p_init = self.p_init
         if sim_prds is None:
             sim_prds = len(self.TranShkHist)
             
@@ -1095,10 +1102,10 @@ class ConsumerType(AgentType):
         
         # Initialize the history arrays
         self.aNow     = a_init
-        self.Pnow     = P_init
+        self.pNow     = p_init
         self.RfreeNow = self.Rfree
         blank_history = np.zeros((sim_prds,self.Nagents)) + np.nan
-        self.Phist    = copy(blank_history)
+        self.pHist    = copy(blank_history)
         self.bHist    = copy(blank_history)
         self.mHist    = copy(blank_history)
         self.cHist    = copy(blank_history)
@@ -1120,7 +1127,7 @@ class ConsumerType(AgentType):
             self.advanceIncShks()
             self.advancecFunc()
             self.simOnePrd()
-            self.Phist[t,:] = self.Pnow
+            self.pHist[t,:] = self.pNow
             self.bHist[t,:] = self.bNow
             self.mHist[t,:] = self.mNow
             self.cHist[t,:] = self.cNow
@@ -1136,27 +1143,25 @@ class ConsumerType(AgentType):
         Simulate a single period of a consumption-saving model with permanent
         and transitory income shocks.
         '''
-        # Simulate mortality (if relevant)
-        self.simMortality()
         
         # Unpack objects from self for convenience
         aPrev          = self.aNow
-        Pprev          = self.Pnow
+        pPrev          = self.pNow
         TranShkNow     = self.TranShkNow
         PermShkNow     = self.PermShkNow
         RfreeNow       = self.RfreeNow
         cFuncNow       = self.cFuncNow
         
         # Simulate the period
-        Pnow    = Pprev*PermShkNow
+        pNow    = pPrev*PermShkNow      # Updated permanent income level
         ReffNow = RfreeNow/PermShkNow   # "effective" interest factor on normalized assets
-        bNow    = ReffNow*aPrev                         # bank balances before labor income
-        mNow    = bNow + TranShkNow                     # Market resources after income
+        bNow    = ReffNow*aPrev         # Bank balances before labor income
+        mNow    = bNow + TranShkNow     # Market resources after income
         cNow,MPCnow = cFuncNow.eval_with_derivative(mNow) # Consumption and maginal propensity to consume
-        aNow    = mNow - cNow                           # Assets after all actions are accomplished
+        aNow    = mNow - cNow           # Assets after all actions are accomplished
         
         # Store the new state and control variables
-        self.Pnow   = Pnow
+        self.pNow   = pNow
         self.bNow   = bNow
         self.mNow   = mNow
         self.cNow   = cNow
@@ -1178,21 +1183,10 @@ class ConsumerType(AgentType):
         '''
         Advance the consumption function to the next period in the solution.
         '''
-        self.cFuncNow  = self.cFunc[self.cFunc_idx]
+        self.cFuncNow  = self.solution[self.cFunc_idx].cFunc
         self.cFunc_idx += 1
-        if self.cFunc_idx >= len(self.cFunc):
+        if self.cFunc_idx >= len(self.solution):
             self.cFunc_idx = 0 # Reset to zero if we've run out of cFuncs
-            
-    def simMortality(self):
-        '''
-        Simulates the mortality process, killing off some percentage of agents
-        and replacing them with newborn agents.  Very basic right now.
-        '''
-        if hasattr(self,'DiePrb'):
-            if self.DiePrb > 0:
-                who_dies = drawBernoulli(self.DiePrb,self.Nagents,self.RNG.randint(low=1, high=2**31-1))
-                self.aNow[who_dies] = 0.0
-                self.Pnow[who_dies] = 1.0
                 
     def calcBoundingValues(self):
         '''
