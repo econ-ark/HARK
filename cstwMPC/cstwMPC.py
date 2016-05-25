@@ -572,7 +572,47 @@ def calcKappaMean(DiscFac,nabla):
     
     kappa_all = calcWeightedAvg(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_short/float(Params.pref_type_count),Params.pref_type_count))
     return kappa_all
-   
+    
+    
+def sensitivityAnalysis(parameter,values,is_time_vary):
+    '''
+    Perform a sensitivity analysis by varying a chosen parameter over given values
+    and re-estimating the model at each.  Only works for perpetual youth version.
+    '''
+    fit_list = []
+    DiscFac_list = []
+    nabla_list = []
+    kappa_list = []
+    for value in values:
+        print('Now estimating model with ' + parameter + ' = ' + str(value))
+        Params.diff_save = 1000000.0
+        old_value_storage = []
+        for this_type in est_type_list:
+            old_value_storage.append(getattr(this_type,parameter))
+            if is_time_vary:
+                setattr(this_type,parameter,[value])
+            else:
+                setattr(this_type,parameter,value)
+            this_type.update()
+        output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
+        nabla = output[0]
+        fit = output[1]
+        DiscFac = Params.DiscFac_save
+        kappa = calcKappaMean(DiscFac,nabla)
+        DiscFac_list.append(DiscFac)
+        nabla_list.append(nabla)
+        fit_list.append(fit)
+        kappa_list.append(kappa)
+    with open('./Results/Sensitivity' + parameter + '.txt','w') as f:
+        my_writer = csv.writer(f, delimiter='\t',)
+        for j in range(len(DiscFac_list)):
+            my_writer.writerow([values[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
+        f.close()
+    j = 0
+    for this_type in est_type_list:
+        setattr(this_type,parameter,old_value_storage[j])
+        this_type.update()
+        j += 1   
    
 
 # Only run below this line if module is run rather than imported:
@@ -769,287 +809,43 @@ if __name__ == "__main__":
     spec_name = None
     
     if Params.do_sensitivity[0]: # coefficient of relative risk aversion sensitivity analysis
-        rho_list = np.linspace(0.5,4.0,15).tolist() #15
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for rho in rho_list:
-            print('Now estimating model with rho = ' + str(rho))
-            Params.diff_save = 1000000.0
-            for this_type in est_type_list:
-                this_type(rho = rho)
-                this_type.update()
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityRho.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([rho_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-            f.close()
-        for this_type in est_type_list:
-            this_type(rho = Params.rho)
+        CRRA_list = np.linspace(0.5,4.0,15).tolist() #15
+        sensitivityAnalysis('CRRA',CRRA_list,False)
     
     if Params.do_sensitivity[1]: # transitory income stdev sensitivity analysis
-        xi_sigma_list = [0.01] + np.linspace(0.05,0.8,16).tolist() #16
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for xi_sigma in xi_sigma_list:
-            print('Now estimating model with xi_sigma = ' + str(xi_sigma))
-            Params.diff_save = 1000000.0
-            for this_type in est_type_list:
-                this_type(xi_sigma = [xi_sigma])
-                this_type.update()
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityXiSigma.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([xi_sigma_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-            f.close()
-        for this_type in est_type_list:
-            this_type(xi_sigma = Params.xi_sigma_i)
-            this_type.update()
+        TranShkStd_list = [0.01] + np.linspace(0.05,0.8,16).tolist() #16
+        sensitivityAnalysis('TranShkStd',TranShkStd_list,True)
             
     if Params.do_sensitivity[2]: # permanent income stdev sensitivity analysis
-        psi_sigma_list = np.linspace(0.02,0.18,17).tolist() #17
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for psi_sigma in psi_sigma_list:
-            print('Now estimating model with psi_sigma = ' + str(psi_sigma))
-            Params.diff_save = 1000000.0
-            for this_type in est_type_list:
-                this_type(psi_sigma = [psi_sigma])
-                this_type.timeRev()
-                this_type.update()
-            psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
-            for t in range(Params.sim_periods):
-                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
-            Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
-            for this_type in est_type_list:
-                this_type.Y_history = Y_history_i
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityPsiSigma.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([psi_sigma_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-            f.close()
-        for this_type in est_type_list:
-            this_type(psi_sigma = Params.psi_sigma_i)
-            this_type.update()
-        psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
-        for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
-        Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
-        for this_type in est_type_list:
-            this_type.Y_history = Y_history_i
+        PermShkStd_list = np.linspace(0.02,0.18,17).tolist() #17
+        sensitivityAnalysis('PermShkStd',PermShkStd_list,True)
             
     if Params.do_sensitivity[3]: # unemployment benefits sensitivity analysis
-        mu_list = np.linspace(0.0,0.8,17).tolist() #17
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for mu in mu_list:
-            print('Now estimating model with mu = ' + str(mu))
-            Params.diff_save = 1000000.0
-            for this_type in est_type_list:
-                this_type(IncUnemp = mu)
-                this_type.timeRev()
-                this_type.update()
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityMu.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([mu_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-            f.close()
-        for this_type in est_type_list:
-            this_type(IncUnemp = Params.IncUnemp)
-            this_type.update()
+        IncUnemp_list = np.linspace(0.0,0.8,17).tolist() #17
+        sensitivityAnalysis('IncUnemp',IncUnemp_list,False)
     
     if Params.do_sensitivity[4]: # unemployment rate sensitivity analysis
-        urate_list = np.linspace(0.02,0.12,16).tolist() #16
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for urate in urate_list:
-            print('Now estimating model with urate = ' + str(urate))
-            Params.diff_save = 1000000.0
-            for this_type in est_type_list:
-                this_type(p_unemploy = urate)
-                this_type.update()
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityUrate.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([urate_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-            f.close()
-        for this_type in est_type_list:
-            this_type(p_unemploy = Params.p_unemploy)
-            this_type.update()
+        UnempPrb_list = np.linspace(0.02,0.12,16).tolist() #16
+        sensitivityAnalysis('UnempPrb',UnempPrb_list,False)
             
     if Params.do_sensitivity[5]: # mortality rate sensitivity analysis
-        death_prob_list = np.linspace(0.003,0.0125,16).tolist() #16
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for death_prob in death_prob_list:
-            print('Now estimating model with death_prob = ' + str(death_prob))
-            Params.diff_save = 1000000.0
-            for this_type in est_type_list:
-                this_type(survival_prob = [1 - death_prob])
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityMortality.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([death_prob_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-        for this_type in est_type_list:
-            this_type(survival_prob = Params.survival_prob_i)
-    
-    
+        LivPrb_list = 1.0 - np.linspace(0.003,0.0125,16).tolist() #16
+        sensitivityAnalysis('LivPrb',LivPrb_list,True)
+        
     if Params.do_sensitivity[6]: # permanent income growth rate sensitivity analysis
-        g_list = np.linspace(0.00,0.04,17).tolist() #17
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for g in g_list:
-            print('Now estimating model with g = ' + str(g))
-            Params.diff_save = 1000000.0
-            Params.PermGroFac_i = [(1 + g)**0.25]
-            for this_type in est_type_list:
-                this_type(PermGroFac = Params.PermGroFac_i)
-                this_type.timeRev()
-                this_type.update()
-            psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
-            for t in range(Params.sim_periods):
-                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
-            Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
-            for this_type in est_type_list:
-                this_type.Y_history = Y_history_i
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityG.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([g_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-            f.close()
-        Params.PermGroFac_i = [1.01**0.25]
-        for this_type in est_type_list:
-            this_type(PermGroFac = Params.PermGroFac_i)
-            this_type.update()
-        psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
-        for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
-        Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
-        for this_type in est_type_list:
-            this_type.Y_history = Y_history_i
-            
+        PermGroFac_list = np.linspace(0.00,0.04,17).tolist() #17
+        sensitivityAnalysis('PermGroFac',PermGroFac_list,True)
+                    
     if Params.do_sensitivity[7]: # interest rate sensitivity analysis
-        R_list = np.linspace(1.0,1.04,17).tolist()
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for R in R_list:
-            print('Now estimating model with R = ' + str(R))
-            R_adj = R/InfiniteType.survival_prob[0]
-            Params.diff_save = 1000000.0
-            for this_type in est_type_list:
-                this_type(R = R_adj)
-                this_type.timeRev()
-                this_type.update()
-            psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
-            for t in range(Params.sim_periods):
-                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/R_adj)**(-1)
-            Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
-            for this_type in est_type_list:
-                this_type.Y_history = Y_history_i
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityInterestRate.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([R_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-        for this_type in est_type_list:
-            this_type(R = 1.01/Params.survival_prob_i[0])
-            this_type.update()
-        psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
-        for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
-        Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
-        for this_type in est_type_list:
-            this_type.Y_history = Y_history_i
-            
-            
+        Rfree_list = (np.linspace(1.0,1.04,17)/InfiniteType.survival_prob[0]).tolist()
+        sensitivityAnalysis('Rfree',Rfree_list,False)
+
+        
+    # =======================================================================
+    # ========= FBS aggregate shocks model ==================================
+    #========================================================================
     if Params.do_agg_shocks:
-        # These are the perpetual youth estimates in case we want to skip estimation
+        # These are the perpetual youth estimates in case we want to skip estimation (and we do)
         beta_point_estimate = 0.989142
         beta_dist_estimate  = 0.985773
         nabla_estimate      = 0.0077
@@ -1117,13 +913,3 @@ if __name__ == "__main__":
         agg_shock_weights = agg_shock_weights/np.sum(agg_shock_weights)
         makeCSTWstats(beta_agg,nabla_agg,agg_shocks_type_list,agg_shock_weights)
         
-        # Test the aggregate shocks solver
-#        t_start = time()
-#        agg_shocks_market.agents[0].solve()
-#        t_end = time()
-#        print('Solving one agg shocks type took ' + str(t_end - t_start) + ' seconds.')
-#        agg_shocks_market.agents[0].unpack_cFunc()
-#        m = np.linspace(0,10,200)
-#        for k in agg_shocks_market.agents[0].kGrid:
-#            plt.plot(m,agg_shocks_market.agents[0].cFunc[0](m,k*np.ones_like(m)))
-#        plt.show()
