@@ -7,7 +7,7 @@ from copy import copy, deepcopy
 
 # Choose percentiles of the data to match and which estimation to run
 do_lifecycle = False          # Use lifecycle model if True, perpetual youth if False
-do_beta_dist = True           # Do beta-dist version if True, beta-point if False
+do_beta_dist = False           # Do beta-dist version if True, beta-point if False
 run_estimation = False         # Runs the estimation if True
 find_beta_vs_KY = False       # Computes K/Y ratio for a wide range of beta; should have do_beta_dist = False
 do_sensitivity = [False, False, False, False, False, False, False, False] # Choose which sensitivity analyses to run: rho, xi_sigma, psi_sigma, mu, urate, mortality, g, R

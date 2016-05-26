@@ -1,5 +1,5 @@
 import numpy as np
-from ConsumptionSavingModel import ConsumerType, consumptionSavingSolverMarkov
+from ConsumptionSavingModel import ConsumerType, solveConsumptionSavingMarkov
 import SetupConsumerParameters as Params
 from HARKutilities import plotFunc, plotFuncDer, plotFuncs
 from time import clock
@@ -33,7 +33,7 @@ ImmunityType.assignParameters(LivPrb = [0.98],
                               cycles = 0)
 ImmunityType.IncomeDstn = [IncomeDstn]
 ImmunityType.MrkvArray = MrkvArray
-ImmunityType.solveOnePeriod = consumptionSavingSolverMarkov
+ImmunityType.solveOnePeriod = solveConsumptionSavingMarkov
 ImmunityType.time_inv.append('MrkvArray')
 
 ImmunityType.solution_terminal.cFunc = StateCount*[ImmunityType.solution_terminal.cFunc]
@@ -49,7 +49,8 @@ ImmunityType.solve()
 end_time = clock()
 print('Solving an "unemployment immunity" consumer took ' + mystr(end_time-start_time) + ' seconds.')
 print('Consumption functions for each discrete state:')
-plotFuncs(ImmunityType.solution[0].cFunc,0,10)
+mNrmMin = np.min([ImmunityType.solution[0].mNrmMin[j] for j in range(StateCount)])
+plotFuncs(ImmunityType.solution[0].cFunc,mNrmMin,10)
 
 
 ###############################################################################
@@ -73,7 +74,7 @@ SerialGroType.assignParameters(LivPrb = [0.99375],
                               cycles = 0)
 SerialGroType.IncomeDstn = [IncomeDstn]
 SerialGroType.MrkvArray = MrkvArray
-SerialGroType.solveOnePeriod = consumptionSavingSolverMarkov
+SerialGroType.solveOnePeriod = solveConsumptionSavingMarkov
 SerialGroType.time_inv.append('MrkvArray')
 
 SerialGroType.solution_terminal.cFunc = StateCount*[SerialGroType.solution_terminal.cFunc]

@@ -98,6 +98,9 @@ def CRRAutilityP_inv(u, gam):
 def CRRAutility_invP(u, gam):
     return( ((1.0-gam)*u)**(gam/(1.0-gam)) )
     
+def CRRAutilityP_invP(u, gam):
+    return( (-1.0/gam)*u**(-1.0/gam-1.0) )
+    
         
 def CARAutility(c, alpha):
     """
