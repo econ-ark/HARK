@@ -1,95 +1,218 @@
 '''
-This is an extended version of ConsumptionSavingModel that includes preference
-shocks to marginal utility as well as an interest rate on borrowing that differs
-from the interest rate on saving.  It should be identical to DCL's "DAP model"
-and will be used as the "long run model" in the deferred interest project.
+This module contains extensions to ConsumptionSavingModel.py concerning models
+with preference shocks.  It currently only has one model, in which utility is
+subject to an iid lognormal multiplicative shock each period; it assumes that
+there are different interest rates on borrowing and saving.
 '''
-
 import sys 
 sys.path.insert(0,'../')
 
 import numpy as np
-from HARKcore import AgentType, NullFunc, Solution
-from HARKutilities import warnings  # Because of "patch" to warnings modules
-from HARKutilities import approxLognormal, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
-from HARKinterpolation import LowerEnvelope, LinearInterp, LinearInterpOnInterp1D
-from HARKsimulation import drawMeanOneLognormal, drawBernoulli
-from ConsumptionSavingModel import constructAssetsGrid, constructLognormalIncomeProcessUnemployment
-from copy import deepcopy
+from HARKutilities import approxLognormal
+from copy import copy
+from ConsumptionSavingModel import ConsumerType, ConsumerSolution, ConsumptionSavingSolverKinkedR, ValueFunc, MargValueFunc
+from HARKinterpolation import LinearInterpOnInterp1D, LinearInterp, CubicInterp, LowerEnvelope
 
-utility = CRRAutility
-utilityP = CRRAutilityP
-utilityPP = CRRAutilityPP
-utilityP_inv = CRRAutilityP_inv
-utility_invP = CRRAutility_invP
-utility_inv = CRRAutility_inv
-
-
-class ConsumerSolution(Solution):
+class PrefShockConsumerType(ConsumerType):
     '''
-    A class representing the solution of a single period of a consumption-saving
-    problem.  The solution must include a consumption function, but may also include
-    the minimum allowable money resources mNrmMin, expected human wealth hRto,
-    and the lower and upper bounds on the MPC MPCmin and MPCmax.  A value
-    function can also be included, as well as marginal value and marg marg value.
+    A class for representing consumers who experience multiplicative shocks to
+    utility each period, specified as iid lognormal.
     '''
-
-    def __init__(self, cFunc=NullFunc, vFunc=NullFunc, vPfunc=NullFunc, vPPfunc=NullFunc, mNrmMin=None, hRto=None, MPCmin=None, MPCmax=None):
+    def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
-        The constructor for a new ConsumerSolution object.
+        Instantiate a new PrefShockConsumerType with given data.
         '''
-        self.cFunc = cFunc
-        self.vFunc = vFunc
-        self.vPfunc = vPfunc
-        self.vPPfunc = vPPfunc
-        self.mNrmMin = mNrmMin
-        self.hRto = hRto
-        self.MPCmin = MPCmin
-        self.MPCmax = MPCmax
-        self.convergence_criteria = ['cFunc']
-       
+        ConsumerType.__init__(self,**kwds)
+        self.solveOnePeriod = solveConsPrefShock
+        self.time_inv.remove('Rfree')
+        self.time_inv.append('Rboro')
+        self.time_inv.append('Rsave')
+    
+    def update(self):
+        ConsumerType.update(self)     # Update assets grid, income process, terminal solution
+        self.updatePrefShockProcess() # Update the discrete preference shock process
+        
+    def updatePrefShockProcess(self):
+        '''
+        Make a discrete shock structure for each period in the cycle for this
+        agent type.
+        '''
+        time_orig = self.time_flow
+        self.timeFwd()
+        PrefShkDstn = []
+        for t in range(len(self.PrefShkStd)):
+            PrefShkStd = self.PrefShkStd[t]
+            PrefShkDstn.append(approxLognormal(N=self.PrefShkCount,mu=0.0,sigma=PrefShkStd,tail_N=self.PrefShk_tail_N))
+        self.PrefShkDstn = PrefShkDstn
+        if not 'PrefShkDstn' in self.time_vary:
+            self.time_vary.append('PrefShkDstn')
+        if not time_orig:
+            self.timeRev()
+            
+    def makePrefShkHist(self):
+        '''
+        Makes histories of simulated preference shocks for this consumer type by
+        drawing from the shock distribution's true lognormal form.
+        '''
+        orig_time = self.time_flow
+        self.timeFwd()
+        self.resetRNG()
+        
+        # Initialize the preference shock history
+        PrefShkHist = np.zeros((self.sim_periods,self.Nagents)) + np.nan
+        PrefShkHist[0,:] = 1.0
+        t_idx = 0
+        
+        # Make discrete distributions of preference shocks to permute
+        base_dstns = []
+        for t_idx in range(len(self.PrefShkStd)):
+            temp_dstn = approxLognormal(N=self.Nagents,mu=0.0,sigma=self.PrefShkStd[t_idx])
+            base_dstns.append(temp_dstn[1]) # only take values, not probs
+        
+        # Fill in the preference shock history
+        for t in range(1,self.sim_periods):
+            dstn_now         = base_dstns[t_idx]
+            PrefShkHist[t,:] = self.RNG.permutation(dstn_now)
+            t_idx += 1
+            if t_idx >= len(self.PrefShkStd):
+                t_idx = 0
+                
+        self.PrefShkHist = PrefShkHist
+        if not orig_time:
+            self.timeRev()
+            
+    def advanceIncShks(self):
+        '''
+        Advance the permanent and transitory income shocks to the next period of
+        the shock history objects, after first advancing the preference shocks.
+        '''
+        self.PrefShkNow = self.PrefShkHist[self.Shk_idx,:]
+        ConsumerType.advanceIncShks(self)
+            
+    def simOnePrd(self):
+        '''
+        Simulate a single period of a consumption-saving model with permanent
+        and transitory income shocks plus multiplicative utility shocks.
+        '''
+        # Unpack objects from self for convenience
+        aPrev          = self.aNow
+        pPrev          = self.pNow
+        TranShkNow     = self.TranShkNow
+        PermShkNow     = self.PermShkNow
+        PrefShkNow     = self.PrefShkNow
+        RfreeNow       = self.RfreeNow
+        cFuncNow       = self.cFuncNow
+        
+        # Simulate the period
+        pNow    = pPrev*PermShkNow      # Updated permanent income level
+        ReffNow = RfreeNow/PermShkNow   # "effective" interest factor on normalized assets
+        bNow    = ReffNow*aPrev         # Bank balances before labor income
+        mNow    = bNow + TranShkNow     # Market resources after income
+        cNow    = cFuncNow(mNow,PrefShkNow) # Consumption (normalized)
+        MPCnow  = cFuncNow.derivativeX(mNow,PrefShkNow) # Marginal propensity to consume
+        aNow    = mNow - cNow           # Assets after all actions are accomplished
+        
+        # Store the new state and control variables
+        self.pNow   = pNow
+        self.bNow   = bNow
+        self.mNow   = mNow
+        self.cNow   = cNow
+        self.MPCnow = MPCnow
+        self.aNow   = aNow
 
-class ValueFunc():
-    '''
-    A class for representing a value function.  The underlying interpolation is
-    in the space of (m,u_inv(v)); this class "re-curves" to the value function.
-    '''
-    def __init__(self,vFuncDecurved,CRRA):
-        self.func = deepcopy(vFuncDecurved)
-        self.CRRA = CRRA
-        
-    def __call__(self,m):
-        return utility(self.func(m),gam=self.CRRA)
 
-     
-class MargValueFunc():
+class PrefShockSolver(ConsumptionSavingSolverKinkedR):
     '''
-    A class for representing a marginal value function in models where the
-    standard envelope condition of v'(m) = u'(c(m)) holds (with CRRA utility).
+    A one period solver for the preference shock model.
     '''
-    def __init__(self,cFunc,CRRA):
-        self.cFunc = deepcopy(cFunc)
-        self.CRRA = CRRA
+    def __init__(self,solution_next,IncomeDstn,PrefShkDstn,LivPrb,DiscFac,CRRA,
+                      Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+        '''
+        Initialize the solver for this period, which largely duplicates the initialization
+        with no preference shocks.
+        '''
+        ConsumptionSavingSolverKinkedR.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
+                      Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+        self.PrefShkPrbs = PrefShkDstn[0]
+        self.PrefShkVals = PrefShkDstn[1]
+    
+    def getPointsForInterpolation(self,EndOfPrdvP,aNrmNow):
+        '''
+        Find endogenous interpolation points for each asset point and each
+        discrete preference shock.
+        '''
+        c_base = self.uPinv(EndOfPrdvP)
+        PrefShkCount = self.PrefShkVals.size
+        PrefShk_temp = np.tile(np.reshape(self.PrefShkVals**(1.0/self.CRRA),(PrefShkCount,1)),(1,c_base.size))
+        self.cNrmNow = np.tile(c_base,(PrefShkCount,1))*PrefShk_temp
+        self.mNrmNow = self.cNrmNow + np.tile(aNrmNow,(PrefShkCount,1))
         
-    def __call__(self,m):
-        return utilityP(self.cFunc(m),gam=self.CRRA)
+        # Add the bottom point to the c and m arrays
+        m_for_interpolation = np.concatenate((self.BoroCnstNat*np.ones((PrefShkCount,1)),self.mNrmNow),axis=1)
+        c_for_interpolation = np.concatenate((np.zeros((PrefShkCount,1)),self.cNrmNow),axis=1)
+        return c_for_interpolation,m_for_interpolation
+    
+    def usePointsForInterpolation(self,cNrm,mNrm,interpolator):
+        '''
+        Make a basic solution object with a consumption function and marginal
+        value function (unconditional on the preference shock).
+        '''
+        # Make the preference-shock specific consumption functions
+        PrefShkCount = self.PrefShkVals.size
+        cFunc_list = []
+        for j in range(PrefShkCount):
+            MPCmin_j = self.MPCminNow*self.PrefShkVals[j]**(1.0/self.CRRA)
+            cFunc_this_shock = LowerEnvelope(LinearInterp(mNrm[j,:],cNrm[j,:],intercept_limit=self.hNrmNow*MPCmin_j,slope_limit=MPCmin_j),self.cFuncNowCnst)
+            cFunc_list.append(cFunc_this_shock)
+            
+        # Combine the list of consumption functions into a single interpolation
+        cFuncNow = LinearInterpOnInterp1D(cFunc_list,self.PrefShkVals)
+            
+        # Make the ex ante marginal value function (before the preference shock)
+        m_grid = self.aXtraGrid + self.mNrmMinNow
+        vP_vec = np.zeros_like(m_grid)
+        for j in range(PrefShkCount): # numeric integration over the preference shock
+            vP_vec += self.uP(cFunc_list[j](m_grid))*self.PrefShkPrbs[j]*self.PrefShkVals[j]
+        vPnvrs_vec = self.uPinv(vP_vec)
+        vPfuncNow = MargValueFunc(LinearInterp(m_grid,vPnvrs_vec),self.CRRA)
+    
+        # Store the results in a solution object and return it
+        solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow)
+        return solution_now
+        
+    def makevFunc(self,solution):
+        '''
+        Make the beginning-of-period value function (unconditional on the shock).
+        '''
+        # Compute expected value and marginal value on a grid of market resources,
+        # accounting for all of the discrete preference shocks
+        PrefShkCount = self.PrefShkVals.size
+        mNrm_temp   = self.mNrmMinNow + self.aXtraGrid
+        vNrmNow     = np.zeros_like(mNrm_temp)
+        vPnow       = np.zeros_like(mNrm_temp)
+        for j in range(PrefShkCount):
+            this_shock  = self.PrefShkVals[j]
+            this_prob   = self.PrefShkPrbs[j]
+            cNrmNow     = solution.cFunc(mNrm_temp,this_shock*np.ones_like(mNrm_temp))
+            aNrmNow     = mNrm_temp - cNrmNow
+            vNrmNow    += this_prob*(this_shock*self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow))
+            vPnow      += this_prob*this_shock*self.uP(cNrmNow)
+        
+        # Construct the beginning-of-period value function
+        vNvrs        = self.uinv(vNrmNow) # value transformed through inverse utility
+        vNvrsP       = vPnow*self.uinvP(vNrmNow)
+        mNrm_temp    = np.insert(mNrm_temp,0,self.mNrmMinNow)
+        vNvrs        = np.insert(vNvrs,0,0.0)
+        vNvrsP       = np.insert(vNvrsP,0,self.MPCmaxEff**(-self.CRRA/(1.0-self.CRRA)))
+        MPCminNvrs   = self.MPCminNow**(-self.CRRA/(1.0-self.CRRA))
+        vNvrsFuncNow = CubicInterp(mNrm_temp,vNvrs,vNvrsP,MPCminNvrs*self.hNrmNow,MPCminNvrs)
+        vFuncNow     = ValueFunc(vNvrsFuncNow,self.CRRA)
+        return vFuncNow
         
         
-class MargMargValueFunc():
-    '''
-    A class for representing a marginal marginal value function in models where
-    the standard envelope condition of v'(m) = u'(c(m)) holds (with CRRA utility).
-    '''
-    def __init__(self,cFunc,CRRA):
-        self.cFunc = deepcopy(cFunc)
-        self.CRRA = CRRA
-        
-    def __call__(self,m):
-        c, MPC = self.cFunc.eval_with_derivative(m)
-        return MPC*utilityPP(c,gam=self.CRRA)
-        
-        
-def consPrefShockSolver(solution_next,IncomeDstn,PrefShkDstn,LivPrb,DiscFac,CRRA,Rsave,Rboro,PermGroFac,BoroCnstArt,aXtraGrid):
+def solveConsPrefShock(solution_next,IncomeDstn,PrefShkDstn,
+                       LivPrb,DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
+                       aXtraGrid,vFuncBool,CubicBool):
     '''
     Solves a single period of a consumption-saving model with preference shocks
     to marginal utility.  Problem is solved using the method of endogenous gridpoints.
@@ -133,376 +256,76 @@ def consPrefShockSolver(solution_next,IncomeDstn,PrefShkDstn,LivPrb,DiscFac,CRRA
         The solution to this period's problem, obtained using the method of endogenous gridpoints.
     '''
 
-    # Define utility and value functions
-    uP = lambda c : utilityP(c,gam=CRRA)
-    uPinv = lambda u : utilityP_inv(u,gam=CRRA)
+    solver = PrefShockSolver(solution_next,IncomeDstn,PrefShkDstn,LivPrb,
+                             DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,
+                             vFuncBool,CubicBool)
+    solver.prepareToSolve()                                      
+    solution = solver.solve()
+    return solution
 
-    # Set and update values for this period
-    DiscFacEff = DiscFac*LivPrb
-    PermShkValsNext = IncomeDstn[1]
-    TranShkValsNext = IncomeDstn[2]
-    IncShkPrbsNext = IncomeDstn[0]
-    vPfuncNext = solution_next.vPfunc
-    PermShkMinNext = np.min(PermShkValsNext)    
-    TranShkMinNext = np.min(TranShkValsNext)
-    PrefShkVals = PrefShkDstn[1]
-    PrefShkPrbs = PrefShkDstn[0]
+
+
+####################################################################################################     
     
-    # Calculate the minimum allowable value of money resources in this period
-    mNrmMinNow = max((solution_next.mNrmMin - TranShkMinNext)*(PermGroFac*PermShkMinNext)/Rboro, BoroCnstArt)
-
-    # Define the borrowing constraint (limiting consumption function)
-    cFuncNowCnst = LinearInterp([mNrmMinNow,mNrmMinNow+1.0],[0.0,1.0])
-
-    # Find data for the unconstrained consumption function in this period
-    if mNrmMinNow < 0.0 and Rsave < Rboro:
-        aGrid = np.sort(np.hstack((aXtraGrid + mNrmMinNow,np.array([0.0,0.0]))))
-    else: # Don't add kink points at zero unless borrowing is possible
-        aGrid = deepcopy(aXtraGrid + mNrmMinNow)
-    a_N = aGrid.size
-    R_vec = Rsave*np.ones(a_N)
-    borrow_count = (np.sum(aGrid<=0)-1)
-    if borrow_count > 0:
-        R_vec[0:borrow_count] = Rboro
-    shock_N = TranShkValsNext.size
-    aGrid_temp = np.tile(aGrid,(shock_N,1))
-    R_temp = np.tile(R_vec,(shock_N,1))
-    PermShkVals_temp = (np.tile(PermShkValsNext,(a_N,1))).transpose()
-    TranShkVals_temp = (np.tile(TranShkValsNext,(a_N,1))).transpose()
-    IncShkPrbs_temp = (np.tile(IncShkPrbsNext,(a_N,1))).transpose()
-    mNext = R_temp/(PermGroFac*PermShkVals_temp)*aGrid_temp + TranShkVals_temp
-    EndOfPrdvP = DiscFacEff*R_vec*PermGroFac**(-CRRA)*np.sum(PermShkVals_temp**(-CRRA)*vPfuncNext(mNext)*IncShkPrbs_temp,axis=0)
-    c_base = uPinv(EndOfPrdvP)
-    pref_N = PrefShkVals.size
-    PrefShk_temp = np.tile(np.reshape(PrefShkVals**(1.0/CRRA),(pref_N,1)),(1,a_N))
-    c = np.tile(c_base,(pref_N,1))*PrefShk_temp
-    m = c + np.tile(aGrid,(pref_N,1))
-
-    # Make the preference-shock specific consumption functions
-    cFunc_list = []
-    for j in range(pref_N):
-        m_temp = np.concatenate((np.array([mNrmMinNow]),m[j,:]))
-        c_temp = np.concatenate((np.array([0.0]),c[j,:]))
-        cFunc_this_shock = LowerEnvelope(LinearInterp(m_temp,c_temp),cFuncNowCnst)
-        cFunc_list.append(cFunc_this_shock)
-        
-    # Combine the list of consumption functions into a single interpolation
-    cFuncNow = LinearInterpOnInterp1D(cFunc_list,PrefShkVals)
-        
-    # Make the ex ante marginal value function (before the preference shock)
-    m_grid = aXtraGrid + mNrmMinNow
-    vP_vec = np.zeros_like(m_grid)
-    for j in range(1,pref_N): # numeric integration over the preference shock
-        vP_vec += uP(cFunc_list[j](m_grid))*PrefShkPrbs[j]*PrefShkVals[j]
-    c_pseudo = uPinv(vP_vec)
-    vPfuncNow = MargValueFunc(LinearInterp(m_grid,c_pseudo),CRRA)
-
-    # Store the results in a solution object and return it
-    solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=mNrmMinNow)
-    return solution_now
-    
-    
-    
-class PrefShockConsumer(AgentType):
-    '''
-    An agent in the consumption-saving model with preference shocks.
-    '''        
-    # Define some universal values for all consumer types
-    cFunc_terminal_ = LinearInterp([0.0, 1.0],[0.0,1.0])
-    cFuncCnst_terminal_ = LinearInterp([0.0, 1.0],[0.0,1.0])
-    solution_terminal_ = ConsumerSolution(cFunc=LowerEnvelope(cFunc_terminal_,cFuncCnst_terminal_), vFunc=None, mNrmMin=0.0, hRto=0.0, MPCmin=1.0, MPCmax=1.0)
-    time_vary_ = ['LivPrb','PermGroFac']
-    time_inv_ = ['DiscFac','CRRA','Rsave','Rboro','aXtraGrid','BoroCnstArt']
-    
-    def __init__(self,cycles=1,time_flow=True,**kwds):
-        '''
-        Instantiate a new PrefShockConsumer with given data.
-        '''       
-        # Initialize a basic AgentType
-        AgentType.__init__(self,solution_terminal=deepcopy(PrefShockConsumer.solution_terminal_),cycles=cycles,time_flow=time_flow,pseudo_terminal=False,**kwds)
-
-        # Add consumer-type specific objects, copying to create independent versions
-        self.time_vary = deepcopy(PrefShockConsumer.time_vary_)
-        self.time_inv = deepcopy(PrefShockConsumer.time_inv_)
-        self.solveOnePeriod = consPrefShockSolver
-        self.update()
-        
-                
-    def updateIncomeProcess(self):
-        '''
-        Updates this agent's income process based on his own attributes.  The
-        function that generates the discrete income process can be swapped out
-        for a different process.
-        '''
-        original_time = self.time_flow
-        self.timeFwd()
-        IncomeDstn = constructLognormalIncomeProcessUnemployment(self)
-        self.IncomeDstn = IncomeDstn
-        if not 'IncomeDstn' in self.time_vary:
-            self.time_vary.append('IncomeDstn')
-        if not original_time:
-            self.timeRev()
-            
-    def updateAssetsGrid(self):
-        '''
-       Updates this agent's end-of-period assets grid.
-        '''
-        aXtraGrid = constructAssetsGrid(self)
-        self.aXtraGrid = aXtraGrid
-        
-    def updateSolutionTerminal(self):
-        '''
-        Update the terminal period solution
-        '''
-        self.solution_terminal.vFunc = ValueFunc(self.solution_terminal.cFunc,self.CRRA)
-        self.solution_terminal.vPfunc = MargValueFunc(self.solution_terminal.cFunc,self.CRRA)
-        self.solution_terminal.vPPfunc = MargMargValueFunc(self.solution_terminal.cFunc,self.CRRA)
-     
-    def updatePrefDist(self):
-        '''
-        Updates this agent's preference shock distribution.
-        '''
-        PrefShkDstn = approxLognormal(self.PrefShk_N,0.0,self.PrefShkStd,tail_N=self.PrefShk_tail_N)
-        self.PrefShkDstn = PrefShkDstn
-        if not 'PrefShkDstn' in self.time_inv:
-            self.time_inv.append('PrefShkDstn')
-            
-    def update(self):
-        '''
-        Update income process, assets and preference shock grid, and terminal solution.
-        '''
-        self.updateIncomeProcess()
-        self.updateAssetsGrid()
-        self.updateSolutionTerminal()
-        self.updatePrefDist()
-        
-    def addShockPaths(self, perm_shocks,temp_shocks, PrefShks):
-        '''
-        Adds paths of simulated shocks to the agent as attributes.
-        '''
-        original_time = self.time_flow
-        self.timeFwd()
-        self.perm_shocks = perm_shocks
-        self.temp_shocks = temp_shocks
-        self.PrefShks = PrefShks
-        if not 'perm_shocks' in self.time_vary:
-            self.time_vary.append('perm_shocks')
-        if not 'temp_shocks' in self.time_vary:
-            self.time_vary.append('temp_shocks')
-        if not 'PrefShks' in self.time_vary:
-            self.time_vary.append('PrefShks')
-        if not original_time:
-            self.timeRev()
-            
-    def simulate(self,w_init,t_first,t_last,which=['w']):
-        '''
-        Simulate the model forward from initial conditions w_init, beginning in
-        t_first and ending in t_last.
-        '''
-        original_time = self.time_flow
-        self.timeFwd()
-        if self.cycles > 0:
-            cFuncs = self.cFunc[t_first:t_last]
-        else:
-            cFuncs = t_last*self.cFunc # This needs to be fixed for IH models
-        simulated_history = simulateConsumerHistory(cFuncs, w_init, self.perm_shocks[t_first:t_last], self.temp_shocks[t_first:t_last], self.PrefShks[t_first:t_last],self.Rboro,self.Rsave,which)
-        if not original_time:
-            self.timeRev()
-        return simulated_history
-        
-    def unpack_cFunc(self):
-        '''
-        "Unpacks" the consumption functions into their own field for easier access.
-        After the model has been solved, the consumption functions reside in the
-        attribute cFunc of each element of ConsumerType.solution.  This method
-        creates a (time varying) attribute cFunc that contains a list of consumption
-        functions.
-        '''
-        self.cFunc = []
-        for solution_t in self.solution:
-            self.cFunc.append(solution_t.cFunc)
-        if not ('cFunc' in self.time_vary):
-            self.time_vary.append('cFunc')
-        
-
-
-def simulateConsumerHistory(cFunc,w0,psi_adj,theta,eta,Rboro,Rsave,which):
-    """
-    Generates simulated consumer histories.  Agents begin with W/Y ratio of of
-    w0 and follow the consumption rules in cFunc each period. Permanent and trans-
-    itory shocks are provided in psi_adj and theta.  Note that psi_adj represents
-    "adjusted permanent income shock": psi_adj = psi*PermGroFac.
-    
-    The histories returned by the simulator are determined by which, a list of
-    strings that can include 'w', 'm', 'c', 'a', and 'kappa'.  Other strings will
-    cause an error on return.  Outputs are returned in the order listed by the user.
-    """
-    # Determine the size of potential simulated histories
-    periods_to_simulate = len(theta)
-    N_agents = len(theta[0])
-    
-    # Initialize arrays to hold simulated histories as requested
-    if 'w' in which:
-        w = np.zeros([periods_to_simulate+1,N_agents]) + np.nan
-        do_w = True
-    else:
-        do_w = False
-    if 'm' in which:
-        m = np.zeros([periods_to_simulate,N_agents]) + np.nan
-        do_m = True
-    else:
-        do_m = False
-    if 'c' in which:
-        c = np.zeros([periods_to_simulate,N_agents]) + np.nan
-        do_c = True
-    else:
-        do_c = False
-    if 'a' in which:
-        a = np.zeros([periods_to_simulate,N_agents]) + np.nan
-        do_a = True
-    else:
-        do_a = False
-    if 'kappa' in which:
-        kappa = np.zeros([periods_to_simulate,N_agents]) + np.nan
-        do_k = True
-    else:
-        do_k = False
-
-    # Initialize the simulation
-    w_t = w0
-    if do_w:
-        w[0,] = w_t
-    
-    # Run the simulation for all agents:
-    for t in range(periods_to_simulate):
-        m_t = w_t + theta[t]
-        if do_k:
-            kappa_t = cFunc[t].derivativeX(m_t,eta[t])        
-        c_t = cFunc[t](m_t,eta[t])
-        a_t = m_t - c_t
-        R_t = Rsave*np.ones_like(a_t)
-        R_t[a_t < 0.0] = Rboro
-        w_t = R_t*a_t/psi_adj[t]
-        
-        # Store the requested variables in the history arrays
-        if do_w:
-            w[t+1,] = w_t
-        if do_m:
-            m[t,] = m_t
-        if do_c:
-            c[t,] = c_t
-        if do_a:
-            a[t,] = a_t
-        if do_k:
-            kappa[t,] = kappa_t
-            
-    # Return the simulated histories as requested
-    return_list = ''
-    for var in which:
-        return_list = return_list + var + ', '
-    x = len(return_list)
-    return_list = return_list[0:(x-2)]
-    return eval(return_list)
-
-
-
-def generateShockHistoryInfiniteSimple(parameters):
-    '''
-    Creates arrays of permanent and transitory income shocks for sim_N simulated
-    consumers for sim_T identical infinite horizon periods.
-    
-    Arguments: (as attributes of parameters)
-    ----------
-    PermShkStd : [float]
-        Permanent income standard deviation for the consumer.
-    TranShkStd : [float]
-        Transitory income standard deviation for the consumer.
-    PrefShkStd : float
-        Preference shock standard deviation for the consumer.
-    PermGroFac : [float]
-        Permanent income growth rate for the consumer.
-    p_unemploy : float
-        The probability of becoming unemployed
-    income_unemploy : float
-        Income received when unemployed. Often zero.
-    sim_N : int
-        The number of consumers to generate shocks for.
-    RNG : np.random.rand
-        This type's random number generator.
-    sim_T : int
-        Number of periods of shocks to generate.
-    
-    Returns:
-    ----------
-    perm_shock_history : [np.array]
-        A sim_T-length list of sim_N-length arrays of permanent income shocks.
-        The shocks are adjusted to include permanent income growth PermGroFac.
-    trans_shock_history : [np.array]
-        A sim_T-length list of sim_N-length arrays of transitory income shocks.
-    PrefShk_history : [np.array]
-        A sim_T-length list of sim_N-length arrays of preference shocks.
-    '''
-    # Unpack the parameters
-    PermShkStd = parameters.PermShkStd
-    TranShkStd = parameters.TranShkStd
-    PrefShkStd = parameters.PrefShkStd
-    PermGroFac = parameters.PermGroFac
-    p_unemploy = parameters.p_unemploy
-    income_unemploy = parameters.income_unemploy
-    sim_N = parameters.sim_N
-    psi_seed = parameters.RNG.randint(2**31-1)
-    xi_seed = parameters.RNG.randint(2**31-1)
-    unemp_seed = parameters.RNG.randint(2**31-1)
-    pref_shock_seed = parameters.RNG.randint(2**31-1)
-    sim_T = parameters.sim_T
-    
-    trans_shock_history = drawMeanOneLognormal(sim_T*TranShkStd, sim_N, xi_seed)
-    unemployment_history = drawBernoulli(sim_T*[p_unemploy],sim_N,unemp_seed)
-    perm_shock_history = drawMeanOneLognormal(sim_T*PermShkStd, sim_N, psi_seed)
-    PrefShk_history = drawMeanOneLognormal(sim_T*[PrefShkStd], sim_N, pref_shock_seed)
-    for t in range(sim_T):
-        perm_shock_history[t] = (perm_shock_history[t]*PermGroFac[0])
-        trans_shock_history[t] = trans_shock_history[t]*(1-p_unemploy*income_unemploy)/(1-p_unemploy)
-        trans_shock_history[t][unemployment_history[t]] = income_unemploy
-        
-    return perm_shock_history, trans_shock_history, PrefShk_history
-        
-       
 if __name__ == '__main__':
-    import SetupPrefShockConsParameters as Params
-    from HARKutilities import plotFunc, plotFuncDer, plotFuncs
-    from time import time
+    import SetupConsumerParameters as Params
     import matplotlib.pyplot as plt
+    from HARKutilities import plotFunc
+    from time import clock
+    mystr = lambda number : "{:.4f}".format(number)
     
-    # Make an example agent type
-    ExampleType = PrefShockConsumer(**Params.init_consumer_objects)
-    ExampleType(cycles = 0)
-#    perm_shocks, temp_shocks, pref_shocks = generateShockHistoryInfiniteSimple(ExampleType)
-#    ExampleType.addShockPaths(perm_shocks, temp_shocks, pref_shocks)
-#    ExampleType(w_init = np.zeros(ExampleType.sim_N))
+    do_simulation = True
+
+    # Extend the default initialization dictionary
+    ConsPrefShock_dict = copy(Params.init_consumer_objects)
+    ConsPrefShock_dict['PrefShkCount'] = 12    # Number of points in discrete approximation to preference shock dist
+    ConsPrefShock_dict['PrefShk_tail_N'] = 4   # Number of "tail points" on each end of pref shock dist
+    ConsPrefShock_dict['PrefShkStd'] = [0.30]  # Standard deviation of utility shocks
+    ConsPrefShock_dict['Rboro'] = 1.20         # Interest factor when borrowing
+    ConsPrefShock_dict['Rsave'] = 1.03         # Interest factor when saving
+    ConsPrefShock_dict['BoroCnstArt'] = None   # Artificial borrowing constraint
+    ConsPrefShock_dict['aXtraCount'] = 64      # Number of asset gridpoints
+    ConsPrefShock_dict['aXtraMax'] = 100       # Highest asset gridpoint
+    ConsPrefShock_dict['T_total'] = 1
     
-    # Solve the agent's problem and plot the consumption functions
-    t_start = time()
-    ExampleType.solve()
-    t_end = time()
+    # Make and solve a preference shock consumer
+    PrefShockExample = PrefShockConsumerType(**ConsPrefShock_dict)
+    PrefShockExample.assignParameters(LivPrb = [0.98],
+                                      DiscFac = [0.96],
+                                      PermGroFac = [1.02],
+                                      CubicBool = False,
+                                      cycles = 0)
+    t_start = clock()
+    PrefShockExample.solve()
+    t_end = clock()
     print('Solving a preference shock consumer took ' + str(t_end-t_start) + ' seconds.')
     
-    m = np.linspace(ExampleType.solution[0].mNrmMin,2,200)
-    #m = np.linspace(0.0,1.0,200)
-    for j in range(ExampleType.PrefShkDstn[1].size):
-        PrefShk = ExampleType.PrefShkDstn[1][j]
-        c = ExampleType.solution[0].cFunc(m,PrefShk*np.ones_like(m))
+    # Plot the consumption function at each discrete shock
+    m = np.linspace(PrefShockExample.solution[0].mNrmMin,5,200)
+    print('Consumption functions at each discrete shock:')
+    for j in range(PrefShockExample.PrefShkDstn[0][1].size):
+        PrefShk = PrefShockExample.PrefShkDstn[0][1][j]
+        c = PrefShockExample.solution[0].cFunc(m,PrefShk*np.ones_like(m))
         plt.plot(m,c)
     plt.show()
-    c = ExampleType.solution[0].cFunc(m,np.ones_like(m))
-    k = ExampleType.solution[0].cFunc.derivativeX(m,np.ones_like(m))
+    
+    print('Consumption function (and MPC) when shock=1:')
+    c = PrefShockExample.solution[0].cFunc(m,np.ones_like(m))
+    k = PrefShockExample.solution[0].cFunc.derivativeX(m,np.ones_like(m))
     plt.plot(m,c)
     plt.plot(m,k)
     plt.show()
     
-    # Simulate some wealth history
-#    ExampleType.unpack_cFunc()
-#    history = ExampleType.simulate(ExampleType.w_init,0,ExampleType.sim_T,which=['m'])
-#    plt.plot(np.mean(history,axis=1))
-#    plt.show()
+    if PrefShockExample.vFuncBool:
+            print('Value function (unconditional on shock):')
+            plotFunc(PrefShockExample.solution[0].vFunc,PrefShockExample.solution[0].mNrmMin+0.5,5)
+    
+    # Test the simulator for the pref shock class
+    if do_simulation:
+        PrefShockExample.sim_periods = 120
+        PrefShockExample.makeIncShkHist()
+        PrefShockExample.makePrefShkHist()
+        PrefShockExample.initializeSim()
+        PrefShockExample.simConsHistory()
+        
     

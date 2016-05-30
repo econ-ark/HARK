@@ -435,25 +435,35 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
 
         cFuncNowUnc = CubicInterp(mNrm,cNrm,MPC,self.MPCminNow*self.hNrmNow,self.MPCminNow)
         return cFuncNowUnc
-
-
-    def putVfuncInSolution(self,solution,EndOfPrdvP):
-        # Construct the end-of-period value function
-        VLvlNext    = (self.PermShkVals_temp**(1.0-self.CRRA)*self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
-        EndOfPrdv     = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
+        
+        
+    def makeEndOfPrdvFunc(self,EndOfPrdvP):
+        '''
+        Construct the end-of-period value function.
+        '''
+        VLvlNext       = (self.PermShkVals_temp**(1.0-self.CRRA)*self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
+        EndOfPrdv      = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
         EndOfPrdvNvrs  = self.uinv(EndOfPrdv) # value transformed through inverse utility
         EndOfPrdvNvrsP = EndOfPrdvP*self.uinvP(EndOfPrdv)
         EndOfPrdvNvrs  = np.insert(EndOfPrdvNvrs,0,0.0)
         EndOfPrdvNvrsP = np.insert(EndOfPrdvNvrsP,0,EndOfPrdvNvrsP[0]) # This is *very* slightly wrong
-        aNrm_temp   = np.insert(self.aNrmNow,0,self.BoroCnstNat)
+        aNrm_temp      = np.insert(self.aNrmNow,0,self.BoroCnstNat)
         EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp,EndOfPrdvNvrs,EndOfPrdvNvrsP)
-        EndOfPrdvFunc = ValueFunc(EndOfPrdvNvrsFunc,self.CRRA)
+        self.EndOfPrdvFunc = ValueFunc(EndOfPrdvNvrsFunc,self.CRRA)
+
+
+    def putVfuncInSolution(self,solution,EndOfPrdvP):
+        self.makeEndOfPrdvFunc(EndOfPrdvP)
+        solution.vFunc = self.makevFunc(solution)
+        return solution
         
+
+    def makevFunc(self,solution):        
         # Compute expected value and marginal value on a grid of market resources
         mNrm_temp   = self.mNrmMinNow + self.aXtraGrid
         cNrmNow     = solution.cFunc(mNrm_temp)
         aNrmNow     = mNrm_temp - cNrmNow
-        vNrmNow     = self.u(cNrmNow) + EndOfPrdvFunc(aNrmNow)
+        vNrmNow     = self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
         vPnow       = self.uP(cNrmNow)
         
         # Construct the beginning-of-period value function
@@ -465,9 +475,7 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         MPCminNvrs   = self.MPCminNow**(-self.CRRA/(1.0-self.CRRA))
         vNvrsFuncNow = CubicInterp(mNrm_temp,vNvrs,vNvrsP,MPCminNvrs*self.hNrmNow,MPCminNvrs)
         vFuncNow     = ValueFunc(vNvrsFuncNow,self.CRRA)
-
-        solution.vFunc = vFuncNow        
-        return solution
+        return vFuncNow
 
 
     def addvPPfunc(self,solution):
@@ -564,7 +572,7 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                       Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):        
 
-        assert CubicBool==False,'KinkedR will only work with linear interpolation'
+        assert CubicBool==False,'KinkedR will only work with linear interpolation (for now)'
 
         # Initialize the solver.  Most of the steps are exactly the same as in the Endogenous Grid
         # linear case, so start with that.
@@ -1059,7 +1067,7 @@ class ConsumerType(AgentType):
     def makeIncShkHist(self):
         '''
         Makes histories of simulated income shocks for this consumer type by
-        drawing from the discrete income distributions.
+        drawing from the discrete income distributions.  Non-Markov version.
         '''
         orig_time = self.time_flow
         self.timeFwd()
@@ -1092,6 +1100,88 @@ class ConsumerType(AgentType):
                 
         self.PermShkHist = PermShkHist
         self.TranShkHist = TranShkHist
+        if not orig_time:
+            self.timeRev()
+            
+    def makeIncShkHistMrkv(self):
+        '''
+        Makes histories of simulated income shocks for this consumer type by
+        drawing from the discrete income distributions, respecting the Markov
+        state for each agent in each period.  Should be run after makeMrkvHist().
+        '''
+        orig_time = self.time_flow
+        self.timeFwd()
+        self.resetRNG()
+        
+        # Initialize the shock histories
+        N = self.MrkvArray.shape[0]
+        PermShkHist = np.zeros((self.sim_periods,self.Nagents)) + np.nan
+        TranShkHist = np.zeros((self.sim_periods,self.Nagents)) + np.nan
+        PermShkHist[0,:] = 1.0
+        TranShkHist[0,:] = 1.0
+        t_idx = 0
+        
+        # Draw income shocks for each simulated period, respecting the Markov state
+        for t in range(1,self.sim_periods):
+            MrkvNow = self.MrkvHist[t,:]
+            IncomeDstn_list    = self.IncomeDstn[t_idx]
+            PermGroFac_list    = self.PermGroFac[t_idx]
+            for n in range(N):
+                these = MrkvNow == n
+                IncomeDstnNow = IncomeDstn_list[n]
+                PermGroFacNow = PermGroFac_list[n]
+                Events           = np.arange(IncomeDstnNow[0].size) # just a list of integers
+                Cutoffs          = np.round(np.cumsum(IncomeDstnNow[0])*np.sum(these))
+                top = 0
+                EventList        = []
+                for j in range(Events.size):
+                    bot = top
+                    top = Cutoffs[j]
+                    EventList += (top-bot)*[Events[j]]
+                EventDraws       = self.RNG.permutation(EventList)
+                PermShkHist[t,these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow
+                TranShkHist[t,these] = IncomeDstnNow[2][EventDraws]
+            t_idx += 1
+            if t_idx >= len(self.IncomeDstn):
+                t_idx = 0
+                
+        self.PermShkHist = PermShkHist
+        self.TranShkHist = TranShkHist
+        if not orig_time:
+            self.timeRev()
+        
+            
+    def makeMrkvHist(self):
+        '''
+        Makes a history of simulated discrete Markov states, starting from the
+        initial states in markov_init.  Assumes that MrkvArray is constant
+        '''
+        orig_time = self.time_flow
+        self.timeFwd()
+        self.resetRNG()
+        
+        # Initialize the Markov state history
+        MrkvHist = np.zeros((self.sim_periods,self.Nagents),dtype=int)
+        MrkvNow = self.Mrkv_init
+        MrkvHist[0,:] = MrkvNow
+        base_draws = np.arange(self.Nagents,dtype=float)/self.Nagents + 1.0/(2*self.Nagents)
+        
+        # Make an array of Markov transition cutoffs
+        N = self.MrkvArray.shape[0] # number of states
+        Cutoffs = np.cumsum(self.MrkvArray,axis=1)
+        
+        # Draw Markov transitions for each period
+        for t in range(1,self.sim_periods):
+            draws_now = self.RNG.permutation(base_draws)
+            MrkvNext = np.zeros(self.Nagents) + np.nan
+            for n in range(N):
+                these = MrkvNow == n
+                MrkvNext[these] = np.searchsorted(Cutoffs[n,:],draws_now[these])
+            MrkvHist[t,:] = MrkvNext
+            MrkvNow = MrkvNext
+        
+        # Store the results and return time to its original flow
+        self.MrkvHist = MrkvHist
         if not orig_time:
             self.timeRev()
             
@@ -1167,6 +1257,7 @@ class ConsumerType(AgentType):
         self.resetRNG()
         self.Shk_idx   = t_init
         self.cFunc_idx = t_init
+        self.RfreeNow = self.Rfree
         
         # Initialize the history arrays
         self.aNow     = a_init
@@ -1211,13 +1302,21 @@ class ConsumerType(AgentType):
         Simulate a single period of a consumption-saving model with permanent
         and transitory income shocks.
         '''
+        if self.solveOnePeriod is solveConsumptionSavingMarkov:
+            is_markov = True
+            N = self.MrkvArray.shape[0]
+        else:
+            is_markov = False
         
         # Unpack objects from self for convenience
         aPrev          = self.aNow
         pPrev          = self.pNow
         TranShkNow     = self.TranShkNow
         PermShkNow     = self.PermShkNow
-        RfreeNow       = self.RfreeNow
+        if is_markov:
+            RfreeNow   = self.RfreeNow[self.MrkvNow]
+        else:
+            RfreeNow   = self.RfreeNow
         cFuncNow       = self.cFuncNow
         
         # Simulate the period
@@ -1225,7 +1324,14 @@ class ConsumerType(AgentType):
         ReffNow = RfreeNow/PermShkNow   # "effective" interest factor on normalized assets
         bNow    = ReffNow*aPrev         # Bank balances before labor income
         mNow    = bNow + TranShkNow     # Market resources after income
-        cNow,MPCnow = cFuncNow.eval_with_derivative(mNow) # Consumption and maginal propensity to consume
+        if is_markov:
+            cNow = np.zeros_like(mNow)
+            MPCnow = np.zeros_like(mNow)
+            for n in range(N):
+                these = self.MrkvNow == n
+                cNow[these], MPCnow[these] = cFuncNow[n].eval_with_derivative(mNow[these])
+        else:
+            cNow,MPCnow = cFuncNow.eval_with_derivative(mNow) # Consumption and maginal propensity to consume
         aNow    = mNow - cNow           # Assets after all actions are accomplished
         
         # Store the new state and control variables
@@ -1236,11 +1342,14 @@ class ConsumerType(AgentType):
         self.MPCnow = MPCnow
         self.aNow   = aNow
         
+        
     def advanceIncShks(self):
         '''
         Advance the permanent and transitory income shocks to the next period of
         the shock history objects.
         '''
+        if self.solveOnePeriod is solveConsumptionSavingMarkov:
+            self.MrkvNow = self.MrkvHist[self.Shk_idx,:]
         self.PermShkNow = self.PermShkHist[self.Shk_idx]
         self.TranShkNow = self.TranShkHist[self.Shk_idx]
         self.Shk_idx += 1
@@ -1744,7 +1853,7 @@ if __name__ == '__main__':
 
     do_markov_type          = True
     do_perfect_foresight    = True
-    do_simulation           = False
+    do_simulation           = True
 
 ####################################################################################################    
     
@@ -1948,3 +2057,9 @@ if __name__ == '__main__':
             print('Value functions for each discrete state:')
             plotFuncs(MarkovType.solution[0].vFunc,5,50)
 
+        if do_simulation:
+            MarkovType.Mrkv_init = np.zeros(MarkovType.Nagents,dtype=int)
+            MarkovType.makeMrkvHist()
+            MarkovType.makeIncShkHistMrkv()
+            MarkovType.initializeSim()
+            MarkovType.simConsHistory()

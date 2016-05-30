@@ -50,11 +50,6 @@ class cstwMPCagent(Model.ConsumerType):
         '''
         self.initializeSim()
         self.t_agg_sim = 0
-        self.KtoLnow = self.a_init[0]
-        self.RfreeNow = self.Rfree
-        self.wRteNow = 1.0
-        self.TranShkAggNow = 1.0
-        self.PermShkAggNow = 1.0
         
     def simulateCSTW(self):
         '''
@@ -192,10 +187,12 @@ class cstwMarket(Market):
         Use primitive parameters (and perfect foresight calibrations) to make
         interest factor and wage rate functions (of capital to labor ratio).
         '''
-        self.kSS   = ((self.CRRA/self.DiscFac - (1.0-self.DeprFac))/self.CapShare)**(-1.0)
-        self.wRteSS = (1.0-self.CapShare)*self.kSS**(self.CapShare/(1.0-self.CapShare))      
-        self.Rfunc = lambda k : (1.0 + self.CapShare*k**(-1.0) - self.DeprFac)
-        self.wFunc = lambda k : ((1.0-self.CapShare)*k**(self.CapShare/(1.0-self.CapShare)))/self.wRteSS
+        self.kSS   = ((self.CRRA/self.DiscFac - (1.0-self.DeprFac))/self.CapShare)**(1.0/(self.CapShare-1.0))
+        self.KtoYSS = self.kSS**(1.0-self.CapShare)
+        self.wRteSS = (1.0-self.CapShare)*self.kSS**(self.CapShare)
+        self.convertKtoY = lambda KtoY : KtoY**(1.0/(1.0 - self.CapShare)) # converts K/Y to K/L
+        self.Rfunc = lambda k : (1.0 + self.CapShare*k**(self.CapShare-1.0) - self.DeprFac)
+        self.wFunc = lambda k : ((1.0-self.CapShare)*k**(self.CapShare))/self.wRteSS
         self.KtoLnow_init = self.kSS
         self.RfreeNow_init = self.Rfunc(self.kSS)
         self.wRteNow_init = self.wFunc(self.kSS)
@@ -235,7 +232,7 @@ class cstwMarket(Market):
         for j in range(type_count):
             aAll[j,:] = aNow[j]
             pAll[j,:] = pNow[j]
-        KAgg = np.mean(aAll*pAll) # This version uses end-of-period assets and
+        KtoYnow = np.mean(aAll*pAll) # This version uses end-of-period assets and
         # permanent income to calculate aggregate capital, unlike the Mathematica
         # version, which first applies the idiosyncratic permanent income shocks
         # and then aggregates.  Obviously this is mathematically equivalent.
@@ -246,9 +243,9 @@ class cstwMarket(Market):
         self.Shk_idx += 1
         
         # Calculate the interest factor and wage rate this period
-        KtoLnow  = KAgg/(Params.l_bar*(1.0-Params.UnempPrb))
-        RfreeNow = self.Rfunc(KtoLnow*TranShkAggNow)
-        wRteNow  = self.wFunc(KtoLnow*TranShkAggNow)*TranShkAggNow # "effective" wage accounts for labor supply
+        KtoLnow  = self.convertKtoY(KtoYnow)
+        RfreeNow = self.Rfunc(KtoLnow/TranShkAggNow)
+        wRteNow  = self.wFunc(KtoLnow/TranShkAggNow)*TranShkAggNow # "effective" wage accounts for labor supply
         
         # Package the results into an object and return it
         AggVarsNow = CSTWaggVars(KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow)
@@ -419,7 +416,7 @@ def makeCSTWresults(DiscFac,nabla,save_name=None):
     lorenz_distance = np.sqrt(betaDistObjective(nabla))
     #lorenz_distance = 0.0
     
-    makeCSTWstats(DiscFac,nabla,est_type_list,lorenz_distance,Params.age_weight_all,save_name)   
+    makeCSTWstats(DiscFac,nabla,est_type_list,Params.age_weight_all,lorenz_distance,save_name)   
     
     
 def makeCSTWstats(DiscFac,nabla,this_type_list,age_weight,lorenz_distance=0.0,save_name=None):
@@ -442,6 +439,7 @@ def makeCSTWstats(DiscFac,nabla,this_type_list,age_weight,lorenz_distance=0.0,sa
         sim_emp = np.vstack((this_type.IncUnemp != this_type.TranShkHist[0:sim_length,:] for this_type in this_type_list)).flatten()
         sim_ret = np.zeros(sim_emp.size,dtype=bool)
     sim_weight_all = np.tile(np.repeat(age_weight,this_type_list[0].Nagents),Params.pref_type_count)
+    #print(sim_weight_all.shape)
     
     if Params.do_beta_dist and Params.do_lifecycle:
         kappa_mean_by_age_type = (np.mean(np.vstack((this_type.kappa_history for this_type in this_type_list)),axis=1)).reshape((Params.pref_type_count*3,DropoutType.T_total+1))
@@ -887,7 +885,7 @@ if __name__ == "__main__":
         
         # Edit the consumer types so they have the right data
         for this_type in agg_shocks_market.agents:
-            this_type.a_init = agg_shocks_market.kSS*np.ones(this_type.Nagents)
+            this_type.a_init = agg_shocks_market.KtoYSS*np.ones(this_type.Nagents)
             this_type.p_init = drawMeanOneLognormal(sigma=0.9,N=this_type.Nagents)
             this_type.kGrid  = agg_shocks_market.kSS*scale_grid[2:-1]
             this_type.kNextFunc = CapitalEvoRule(intercept=Params.intercept_prev,slope=Params.slope_prev)
