@@ -11,13 +11,15 @@ sys.path.insert(0,'../ConsumptionSavingModel')
 import numpy as np
 from copy import copy, deepcopy
 from time import time
-from HARKutilities import approxMeanOneLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, getPercentiles, getLorenzShares, calcSubpopAvg
-from HARKsimulation import drawDiscrete, drawMeanOneLognormal
-from HARKcore import AgentType
-from HARKparallel import multiThreadCommandsFake, multiThreadCommands
+from HARKutilities import approxLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, getPercentiles, getLorenzShares, calcSubpopAvg
+from HARKsimulation import drawDiscrete, drawMeanOneLognormal, drawBernoulli
+from HARKcore import AgentType, Market, HARKobject
+from HARKparallel import multiThreadCommandsFake
 import SetupParamsCSTW as Params
 import ConsumptionSavingModel as Model
+from ConsAggShock import solveConsumptionSavingAggShocks
 from scipy.optimize import golden, brentq
+import scipy.stats as stats
 import matplotlib.pyplot as plt
 import csv
 
@@ -42,15 +44,21 @@ class cstwMPCagent(Model.ConsumerType):
         self.solveOnePeriod = Model.consumptionSavingSolverENDG # this can be swapped for consumptionSavingSolverEXOG or another solver
         self.update()
         
-    def simulateCSTWa(self):
-        self.W_history = self.Y_history*self.simulate(self.w0,0,self.sim_periods,which=['w'])
+    def reset(self):
+        '''
+        Initialize this type for a new simulated history of K/L ratio.
+        '''
+        self.initializeSim()
+        self.t_agg_sim = 0
         
-    def simulateCSTWb(self):
-        kappa_quarterly = self.simulate(self.w0,0,self.sim_periods,which=['kappa'])
-        self.kappa_history = 1.0 - (1.0 - kappa_quarterly)**4
-        
-    def simulateCSTWc(self):
-        self.m_history = self.simulate(self.w0,0,self.sim_periods,which=['m'])
+    def simulateCSTW(self):
+        '''
+        The simulation method for the no aggregate shocks version of the model
+        '''
+        self.initializeSim()
+        self.simConsHistory()
+        self.W_history = self.pHist*self.bHist/self.Rfree
+        self.kappa_history = 1.0 - (1.0 - self.MPChist)**4
         
     def update(self):
         '''
@@ -64,30 +72,244 @@ class cstwMPCagent(Model.ConsumerType):
         self.updateAssetsGrid()
         self.updateSolutionTerminal()
         self.timeFwd()
+        self.resetRNG()
         if self.cycles > 0:
             self.IncomeDstn = Model.applyFlatIncomeTax(self.IncomeDstn,
                                                  tax_rate=self.tax_rate,
                                                  T_retire=self.T_retire,
-                                                 unemployed_indices=range(0,(self.xi_N+1)*self.psi_N,self.xi_N+1))
-            scriptR_shocks, xi_shocks = Model.generateIncomeShockHistoryLognormalUnemployment(self)    
-            self.addIncomeShockPaths(scriptR_shocks,xi_shocks)   
-        else:
-            scriptR_shocks, xi_shocks = Model.generateIncomeShockHistoryInfiniteSimple(self)
-            self.addIncomeShockPaths(scriptR_shocks,xi_shocks)
+                                                 unemployed_indices=range(0,(self.TranShkCount+1)*self.PermShkCount,self.TranShkCount+1))          
+        self.makeIncShkHist()
         if not orig_flow:
             self.timeRev()
             
     def updateIncomeProcessAlt(self):
         tax_rate = (self.IncUnemp*self.UnempPrb)/(self.l_bar*(1.0-self.UnempPrb))
-        xi_dist = deepcopy(approxMeanOneLognormal(self.TranShkCount,self.TranShkStd[0]))
-        xi_dist[0] = np.insert(xi_dist[0]*(1.0-self.UnempPrb),0,self.UnempPrb)
-        xi_dist[1] = np.insert(self.l_bar*xi_dist[1]*(1.0-tax_rate),0,self.IncUnemp)
-        psi_dist = approxMeanOneLognormal(self.PermShkCount,self.PermShkStd[0])
-        self.IncomeDstn = [combineIndepDstns(psi_dist,xi_dist)]
+        TranShkDstn     = deepcopy(approxLognormal(self.TranShkCount,sigma=self.TranShkStd[0],tail_N=0))
+        TranShkDstn[0]  = np.insert(TranShkDstn[0]*(1.0-self.UnempPrb),0,self.UnempPrb)
+        TranShkDstn[1]  = np.insert(self.l_bar*TranShkDstn[1]*(1.0-tax_rate),0,self.IncUnemp)
+        PermShkDstn     = approxLognormal(self.PermShkCount,sigma=self.PermShkStd[0],tail_N=0)
+        self.IncomeDstn = [combineIndepDstns(PermShkDstn,TranShkDstn)]
+        self.TranShkDstn = TranShkDstn
+        self.PermShkDstn = PermShkDstn
         if not 'IncomeDstn' in self.time_vary:
             self.time_vary.append('IncomeDstn')
             
+    def simOnePrdAggShks(self):
+        '''
+        Simulate a single period of a consumption-saving model with permanent
+        and transitory income shocks at both the idiosyncratic and aggregate level.
+        '''
+        
+        # Unpack objects from self for convenience
+        aPrev          = self.aNow
+        pPrev          = self.pNow
+        TranShkNow     = self.TranShkNow
+        PermShkNow     = self.PermShkNow
+        RfreeNow       = self.RfreeNow
+        cFuncNow       = self.cFuncNow
+        KtoLnow        = self.KtoLnow*np.ones_like(aPrev)
+        
+        # Simulate the period
+        pNow    = pPrev*PermShkNow      # Updated permanent income level
+        ReffNow = RfreeNow/PermShkNow   # "effective" interest factor on normalized assets
+        bNow    = ReffNow*aPrev         # Bank balances before labor income
+        mNow    = bNow + TranShkNow     # Market resources after income
+        cNow    = cFuncNow(mNow,KtoLnow) # Consumption (normalized by permanent income)
+        MPCnow  = cFuncNow.derivativeX(mNow,KtoLnow) # Marginal propensity to consume
+        aNow    = mNow - cNow           # Assets after all actions are accomplished
+        
+        # Store the new state and control variables
+        self.pNow   = pNow
+        self.bNow   = bNow
+        self.mNow   = mNow
+        self.cNow   = cNow
+        self.MPCnow = MPCnow
+        self.aNow   = aNow
+        
+    def simMortality(self):
+        '''
+        Simulates the mortality process, killing off some percentage of agents
+        and replacing them with newborn agents.
+        '''
+        if hasattr(self,'DiePrb'):
+            if self.DiePrb > 0:
+                who_dies = drawBernoulli(self.DiePrb,self.Nagents,self.RNG.randint(low=1, high=2**31-1))
+                wealth_all = self.aNow*self.pNow
+                #wealth_order = np.argsort(wealth_all)
+                #kill_every_n = np.round(1/self.DiePrb)
+                #kill_these_by_wealth = np.arange(kill_every_n,wealth_all.size,kill_every_n,dtype=int)
+                #kill_index = wealth_order[kill_these_by_wealth]
+                #who_dies = np.zeros_like(wealth_all,dtype=bool)
+                #who_dies[kill_index] = True
+                who_lives = np.logical_not(who_dies)
+                wealth_of_dead = np.sum(wealth_all[who_dies])
+                wealth_of_live = np.sum(wealth_all[who_lives])
+                R_actuarial = 1.0 + wealth_of_dead/wealth_of_live
+                self.aNow[who_dies] = 0.0
+                self.pNow[who_dies] = 1.0
+                self.aNow = self.aNow*R_actuarial
+            
+    def marketAction(self):
+        '''
+        In the aggregate shocks model, the "market action" is to simulate one
+        period of receiving income and choosing how much to consume.
+        '''
+        # Simulate the period
+        self.advanceIncShks()
+        self.advancecFunc()
+        self.simMortality()
+        self.TranShkNow = self.TranShkNow*self.wRteNow
+        self.PermShkNow = self.PermShkNow*self.PermShkAggNow
+        self.simOnePrdAggShks()
+        
+        # Record the results of the period
+        self.pHist[self.t_agg_sim,:] = self.pNow
+        self.bHist[self.t_agg_sim,:] = self.bNow
+        self.mHist[self.t_agg_sim,:] = self.mNow
+        self.cHist[self.t_agg_sim,:] = self.cNow
+        self.MPChist[self.t_agg_sim,:] = self.MPCnow
+        self.aHist[self.t_agg_sim,:] = self.aNow
+        self.t_agg_sim += 1
 
+    
+# =============================================================================
+# ====== Make an extension of the Market class for aggregate shocks version ===
+# =============================================================================
+class cstwMarket(Market):            
+    '''
+    A class for the FBS aggregate shocks version of the model.
+    '''
+    def millRule(self,pNow,aNow):
+        return self.calcRandW(pNow,aNow)
+        
+    def update(self):
+        '''
+        Use primitive parameters (and perfect foresight calibrations) to make
+        interest factor and wage rate functions (of capital to labor ratio).
+        '''
+        self.kSS   = ((self.CRRA/self.DiscFac - (1.0-self.DeprFac))/self.CapShare)**(1.0/(self.CapShare-1.0))
+        self.KtoYSS = self.kSS**(1.0-self.CapShare)
+        self.wRteSS = (1.0-self.CapShare)*self.kSS**(self.CapShare)
+        self.convertKtoY = lambda KtoY : KtoY**(1.0/(1.0 - self.CapShare)) # converts K/Y to K/L
+        self.Rfunc = lambda k : (1.0 + self.CapShare*k**(self.CapShare-1.0) - self.DeprFac)
+        self.wFunc = lambda k : ((1.0-self.CapShare)*k**(self.CapShare))/self.wRteSS
+        self.KtoLnow_init = self.kSS
+        self.RfreeNow_init = self.Rfunc(self.kSS)
+        self.wRteNow_init = self.wFunc(self.kSS)
+        self.PermShkAggNow_init = 1.0
+        self.TranShkAggNow_init = 1.0
+        self.TranShkAggDstn = approxLognormal(sigma=self.TranShkAggStd,N=self.TranShkAggCount)
+        self.PermShkAggDstn = approxLognormal(sigma=self.PermShkAggStd,N=self.PermShkAggCount)
+        self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn,self.TranShkAggDstn)
+        
+    def reset(self):
+        self.Shk_idx = 0
+        Market.reset(self)
+        
+    def makeAggShkHist(self):
+        '''
+        Make simulated histories of aggregate transitory and permanent shocks.
+        '''
+        sim_periods = self.act_T
+        Events      = np.arange(self.AggShkDstn[0].size) # just a list of integers
+        EventDraws  = drawDiscrete(self.AggShkDstn[0],Events,sim_periods,seed=0)
+        PermShkAggHist = self.AggShkDstn[1][EventDraws]
+        TranShkAggHist = self.AggShkDstn[2][EventDraws]
+        
+        # Store the histories       
+        self.PermShkAggHist = PermShkAggHist
+        self.TranShkAggHist = TranShkAggHist
+        
+    def calcRandW(self,pNow,aNow):
+        '''
+        Calculates the interest factor and wage rate this period using each agent's
+        capital stock to get the aggregate capital ratio.
+        '''
+        # Calculate aggregate capital this period
+        type_count = len(aNow)
+        aAll = np.zeros((type_count,aNow[0].size))
+        pAll = np.zeros((type_count,pNow[0].size))
+        for j in range(type_count):
+            aAll[j,:] = aNow[j]
+            pAll[j,:] = pNow[j]
+        KtoYnow = np.mean(aAll*pAll) # This version uses end-of-period assets and
+        # permanent income to calculate aggregate capital, unlike the Mathematica
+        # version, which first applies the idiosyncratic permanent income shocks
+        # and then aggregates.  Obviously this is mathematically equivalent.
+        
+        # Get this period's aggregate shocks
+        PermShkAggNow = self.PermShkAggHist[self.Shk_idx]
+        TranShkAggNow = self.TranShkAggHist[self.Shk_idx]
+        self.Shk_idx += 1
+        
+        # Calculate the interest factor and wage rate this period
+        KtoLnow  = self.convertKtoY(KtoYnow)
+        RfreeNow = self.Rfunc(KtoLnow/TranShkAggNow)
+        wRteNow  = self.wFunc(KtoLnow/TranShkAggNow)*TranShkAggNow # "effective" wage accounts for labor supply
+        
+        # Package the results into an object and return it
+        AggVarsNow = CSTWaggVars(KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow)
+        return AggVarsNow
+        
+                
+class CSTWaggVars():
+    '''
+    A simple class for holding the relevant aggregate variables that should be
+    passed from the market to each type.
+    '''
+    def __init__(self,KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow):
+        self.KtoLnow  = KtoLnow
+        self.RfreeNow = RfreeNow
+        self.wRteNow  = wRteNow
+        self.PermShkAggNow = PermShkAggNow
+        self.TranShkAggNow = TranShkAggNow
+        
+class CapitalEvoRule(HARKobject):
+    '''
+    A class to represent capital evolution rules.
+    '''
+    def __init__(self,intercept,slope):
+        self.intercept = intercept
+        self.slope = slope
+        self.convergence_criteria = ['slope','intercept']
+        
+    def __call__(self,kNow):
+        kNext = np.exp(self.intercept + self.slope*np.log(kNow))
+        return kNext
+
+    
+class CSTWdynamicRule(HARKobject):
+    '''
+    Just a container class for passing the capital evolution rule to agents.
+    '''
+    def __init__(self,kNextFunc):
+        self.kNextFunc = kNextFunc
+        self.convergence_criteria = ['kNextFunc']
+        
+        
+def calcCapitalEvoRule(KtoLnow):
+    '''
+    Calculate a new capital evolution rule as an AR1 process based on the history
+    of the capital-to-labor ratio from a simulation.
+    '''
+    discard_periods = 200
+    update_weight = 0.5
+    total_periods = len(KtoLnow)
+    logKtoL_t   = np.log(KtoLnow[discard_periods:(total_periods-1)])
+    logKtoL_tp1 = np.log(KtoLnow[(discard_periods+1):total_periods])
+    slope, intercept, r_value, p_value, std_err = stats.linregress(logKtoL_t,logKtoL_tp1)
+    intercept = update_weight*intercept + (1.0-update_weight)*Params.intercept_prev
+    slope = update_weight*slope + (1.0-update_weight)*Params.slope_prev
+    kNextFunc = CapitalEvoRule(intercept ,slope)
+    
+    print('intercept=' + str(intercept) + ', slope=' + str(slope) + ', r-sq=' + str(r_value**2))
+    Params.intercept_prev = intercept
+    Params.slope_prev = slope
+    plt.plot(KtoLnow)
+    plt.show()
+    
+    return CSTWdynamicRule(kNextFunc)      
+        
     
 def assignBetaDistribution(type_list,DiscFac_list):
     '''
@@ -133,7 +355,7 @@ def calculateKYratioDifference(sim_wealth,weights,total_output,target_KY):
     distance : float
         Absolute distance between simulated and actual K/Y ratios.
     '''
-    sim_K = calcWeightedAvg(sim_wealth,weights)
+    sim_K = calcWeightedAvg(sim_wealth,weights)/(Params.l_bar)
     sim_KY = sim_K/total_output
     distance = (sim_KY - target_KY)**1.0
     return distance
@@ -189,61 +411,66 @@ def makeCSTWresults(DiscFac,nabla,save_name=None):
     '''
     DiscFac_list = approxUniform(DiscFac,nabla,N=Params.pref_type_count)
     assignBetaDistribution(est_type_list,DiscFac_list)
-    multiThreadCommandsFake(est_type_list,results_commands)
+    multiThreadCommandsFake(est_type_list,beta_point_commands)
     
     lorenz_distance = np.sqrt(betaDistObjective(nabla))
     #lorenz_distance = 0.0
     
-    if Params.do_lifecycle: # This can probably be removed
-        sim_length = Params.total_T
-    else:
-        sim_length = Params.sim_periods
-    sim_wealth = (np.vstack((this_type.W_history for this_type in est_type_list))).flatten()
-    sim_wealth_short = (np.vstack((this_type.W_history[0:sim_length] for this_type in est_type_list))).flatten()
-    sim_kappa = (np.vstack((this_type.kappa_history for this_type in est_type_list))).flatten()
-    sim_income = (np.vstack((this_type.Y_history[0:sim_length]*np.asarray(this_type.TranShks[0:sim_length]) for this_type in est_type_list))).flatten()
-    sim_ratio = (np.vstack((this_type.W_history[0:sim_length]/this_type.Y_history[0:sim_length] for this_type in est_type_list))).flatten()
+    makeCSTWstats(DiscFac,nabla,est_type_list,Params.age_weight_all,lorenz_distance,save_name)   
+    
+    
+def makeCSTWstats(DiscFac,nabla,this_type_list,age_weight,lorenz_distance=0.0,save_name=None):
+    '''
+    Displays (and saves) a bunch of statistics.  Separate from makeCSTWresults()
+    for compatibility with the aggregate shock model.
+    '''
+    sim_length = this_type_list[0].sim_periods
+    sim_wealth = (np.vstack((this_type.W_history for this_type in this_type_list))).flatten()
+    sim_wealth_short = (np.vstack((this_type.W_history[0:sim_length,:] for this_type in this_type_list))).flatten()
+    sim_kappa = (np.vstack((this_type.kappa_history for this_type in this_type_list))).flatten()
+    sim_income = (np.vstack((this_type.pHist[0:sim_length,:]*np.asarray(this_type.TranShkHist[0:sim_length,:]) for this_type in this_type_list))).flatten()
+    sim_ratio = (np.vstack((this_type.W_history[0:sim_length,:]/this_type.pHist[0:sim_length,:] for this_type in this_type_list))).flatten()
     if Params.do_lifecycle:
-        sim_unemp = (np.vstack((np.vstack((this_type.IncUnemp == np.asarray(this_type.TranShks[0:Params.working_T]),np.zeros((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
-        sim_emp = (np.vstack((np.vstack((this_type.IncUnemp != np.asarray(this_type.TranShks[0:Params.working_T]),np.zeros((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
-        sim_ret = (np.vstack((np.vstack((np.zeros((Params.working_T,Params.sim_pop_size),dtype=bool),np.ones((Params.retired_T,Params.sim_pop_size),dtype=bool))) for this_type in est_type_list))).flatten()
+        sim_unemp = (np.vstack((np.vstack((this_type.IncUnemp == this_type.TranShkHist[0:Params.working_T,:],np.zeros((Params.retired_T+1,this_type_list[0].sim_periods),dtype=bool))) for this_type in this_type_list))).flatten()
+        sim_emp = (np.vstack((np.vstack((this_type.IncUnemp != this_type.TranShkHist[0:Params.working_T,:],np.zeros((Params.retired_T+1,this_type_list[0].sim_periods),dtype=bool))) for this_type in this_type_list))).flatten()
+        sim_ret = (np.vstack((np.vstack((np.zeros((Params.working_T,this_type_list[0].sim_periods),dtype=bool),np.ones((Params.retired_T+1,this_type_list[0].sim_periods),dtype=bool))) for this_type in this_type_list))).flatten()
     else:
-        sim_unemp = np.vstack((this_type.IncUnemp == np.asarray(this_type.TranShks[0:sim_length]) for this_type in est_type_list)).flatten()
-        sim_emp = np.vstack((this_type.IncUnemp != np.asarray(this_type.TranShks[0:sim_length]) for this_type in est_type_list)).flatten()
+        sim_unemp = np.vstack((this_type.IncUnemp == this_type.TranShkHist[0:sim_length,:] for this_type in this_type_list)).flatten()
+        sim_emp = np.vstack((this_type.IncUnemp != this_type.TranShkHist[0:sim_length,:] for this_type in this_type_list)).flatten()
         sim_ret = np.zeros(sim_emp.size,dtype=bool)
-    sim_weight_all = np.tile(np.repeat(Params.age_weight_all,Params.sim_pop_size),Params.pref_type_count)
-    sim_weight_short = np.tile(np.repeat(Params.age_weight_short,Params.sim_pop_size),Params.pref_type_count)
+    sim_weight_all = np.tile(np.repeat(age_weight,this_type_list[0].Nagents),Params.pref_type_count)
+    #print(sim_weight_all.shape)
     
     if Params.do_beta_dist and Params.do_lifecycle:
-        kappa_mean_by_age_type = (np.mean(np.vstack((this_type.kappa_history for this_type in est_type_list)),axis=1)).reshape((Params.pref_type_count*3,DropoutType.T_total))
-        kappa_mean_by_age_pref = np.zeros((Params.pref_type_count,DropoutType.T_total)) + np.nan
+        kappa_mean_by_age_type = (np.mean(np.vstack((this_type.kappa_history for this_type in this_type_list)),axis=1)).reshape((Params.pref_type_count*3,DropoutType.T_total+1))
+        kappa_mean_by_age_pref = np.zeros((Params.pref_type_count,DropoutType.T_total+1)) + np.nan
         for j in range(Params.pref_type_count):
             kappa_mean_by_age_pref[j,] = Params.d_pct*kappa_mean_by_age_type[3*j+0,] + Params.h_pct*kappa_mean_by_age_type[3*j+1,] + Params.c_pct*kappa_mean_by_age_type[3*j+2,] 
         kappa_mean_by_age = np.mean(kappa_mean_by_age_pref,axis=0)
-        kappa_lo_beta_by_age = kappa_mean_by_age_pref[0,]
-        kappa_hi_beta_by_age = kappa_mean_by_age_pref[Params.pref_type_count-1,]
+        kappa_lo_beta_by_age = kappa_mean_by_age_pref[0,:]
+        kappa_hi_beta_by_age = kappa_mean_by_age_pref[Params.pref_type_count-1,:]
     
     lorenz_fig_data = makeLorenzFig(Params.SCF_wealth,Params.SCF_weights,sim_wealth,sim_weight_all)
-    mpc_fig_data = makeMPCfig(sim_kappa,sim_weight_short)
+    mpc_fig_data = makeMPCfig(sim_kappa,sim_weight_all)
     
-    kappa_all = calcWeightedAvg(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_short/float(Params.pref_type_count),Params.pref_type_count))
-    kappa_unemp = np.sum(sim_kappa[sim_unemp]*sim_weight_short[sim_unemp])/np.sum(sim_weight_short[sim_unemp])
-    kappa_emp = np.sum(sim_kappa[sim_emp]*sim_weight_short[sim_emp])/np.sum(sim_weight_short[sim_emp])
-    kappa_ret = np.sum(sim_kappa[sim_ret]*sim_weight_short[sim_ret])/np.sum(sim_weight_short[sim_ret])
+    kappa_all = calcWeightedAvg(np.vstack((this_type.kappa_history for this_type in this_type_list)),np.tile(age_weight/float(Params.pref_type_count),Params.pref_type_count))
+    kappa_unemp = np.sum(sim_kappa[sim_unemp]*sim_weight_all[sim_unemp])/np.sum(sim_weight_all[sim_unemp])
+    kappa_emp = np.sum(sim_kappa[sim_emp]*sim_weight_all[sim_emp])/np.sum(sim_weight_all[sim_emp])
+    kappa_ret = np.sum(sim_kappa[sim_ret]*sim_weight_all[sim_ret])/np.sum(sim_weight_all[sim_ret])
     
     my_cutoffs = [(0.99,1),(0.9,1),(0.8,1),(0.6,0.8),(0.4,0.6),(0.2,0.4),(0.0,0.2)]
-    kappa_by_ratio_groups = calcSubpopAvg(sim_kappa,sim_ratio,my_cutoffs,sim_weight_short)
-    kappa_by_income_groups = calcSubpopAvg(sim_kappa,sim_income,my_cutoffs,sim_weight_short)
+    kappa_by_ratio_groups = calcSubpopAvg(sim_kappa,sim_ratio,my_cutoffs,sim_weight_all)
+    kappa_by_income_groups = calcSubpopAvg(sim_kappa,sim_income,my_cutoffs,sim_weight_all)
     
-    quintile_points = getPercentiles(sim_wealth_short,weights=sim_weight_short,percentiles=[0.2, 0.4, 0.6, 0.8])
+    quintile_points = getPercentiles(sim_wealth_short,weights=sim_weight_all,percentiles=[0.2, 0.4, 0.6, 0.8])
     wealth_quintiles = np.ones(sim_wealth_short.size,dtype=int)
     wealth_quintiles[sim_wealth_short > quintile_points[0]] = 2
     wealth_quintiles[sim_wealth_short > quintile_points[1]] = 3
     wealth_quintiles[sim_wealth_short > quintile_points[2]] = 4
     wealth_quintiles[sim_wealth_short > quintile_points[3]] = 5
-    MPC_cutoff = getPercentiles(sim_kappa,weights=sim_weight_short,percentiles=[2.0/3.0])
+    MPC_cutoff = getPercentiles(sim_kappa,weights=sim_weight_all,percentiles=[2.0/3.0])
     these_quintiles = wealth_quintiles[sim_kappa > MPC_cutoff]
-    these_weights = sim_weight_short[sim_kappa > MPC_cutoff]
+    these_weights = sim_weight_all[sim_kappa > MPC_cutoff]
     hand_to_mouth_total = np.sum(these_weights)
     hand_to_mouth_pct = []
     for q in range(5):
@@ -339,11 +566,51 @@ def calcKappaMean(DiscFac,nabla):
     '''
     DiscFac_list = approxUniform(DiscFac,nabla,N=Params.pref_type_count)
     assignBetaDistribution(est_type_list,DiscFac_list)
-    multiThreadCommandsFake(est_type_list,results_commands)
+    multiThreadCommandsFake(est_type_list,beta_point_commands)
     
-    kappa_all = approxUniform(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_short/float(Params.pref_type_count),Params.pref_type_count))
+    kappa_all = calcWeightedAvg(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_short/float(Params.pref_type_count),Params.pref_type_count))
     return kappa_all
-   
+    
+    
+def sensitivityAnalysis(parameter,values,is_time_vary):
+    '''
+    Perform a sensitivity analysis by varying a chosen parameter over given values
+    and re-estimating the model at each.  Only works for perpetual youth version.
+    '''
+    fit_list = []
+    DiscFac_list = []
+    nabla_list = []
+    kappa_list = []
+    for value in values:
+        print('Now estimating model with ' + parameter + ' = ' + str(value))
+        Params.diff_save = 1000000.0
+        old_value_storage = []
+        for this_type in est_type_list:
+            old_value_storage.append(getattr(this_type,parameter))
+            if is_time_vary:
+                setattr(this_type,parameter,[value])
+            else:
+                setattr(this_type,parameter,value)
+            this_type.update()
+        output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
+        nabla = output[0]
+        fit = output[1]
+        DiscFac = Params.DiscFac_save
+        kappa = calcKappaMean(DiscFac,nabla)
+        DiscFac_list.append(DiscFac)
+        nabla_list.append(nabla)
+        fit_list.append(fit)
+        kappa_list.append(kappa)
+    with open('./Results/Sensitivity' + parameter + '.txt','w') as f:
+        my_writer = csv.writer(f, delimiter='\t',)
+        for j in range(len(DiscFac_list)):
+            my_writer.writerow([values[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
+        f.close()
+    j = 0
+    for this_type in est_type_list:
+        setattr(this_type,parameter,old_value_storage[j])
+        this_type.update()
+        j += 1   
    
 
 # Only run below this line if module is run rather than imported:
@@ -360,19 +627,15 @@ if __name__ == "__main__":
         lorenz_target = getLorenzShares(Params.SCF_wealth,weights=Params.SCF_weights,percentiles=Params.percentiles_to_match)
         #lorenz_target = np.array([-0.002, 0.01, 0.053,0.171])
         KY_target = 10.26
-    
-    
+       
     # Make a vector of initial wealth-to-permanent income ratios
-    w0_vector = drawDiscrete(P=Params.w0_probs,
-                                             X=Params.w0_values,
-                                             N=Params.sim_pop_size,
-                                             seed=Params.w0_seed)
+    a_init = drawDiscrete(P=Params.a0_probs,X=Params.a0_values,N=Params.sim_pop_size,seed=Params.a0_seed)
                                              
     # Make the list of types for this run, whether infinite or lifecycle
     if Params.do_lifecycle:
         # Make base consumer types for each education level
         DropoutType = cstwMPCagent(**Params.init_dropout)
-        DropoutType.w0 = w0_vector
+        DropoutType.a_init = a_init
         HighschoolType = deepcopy(DropoutType)
         HighschoolType(**Params.adj_highschool)
         CollegeType = deepcopy(DropoutType)
@@ -381,21 +644,12 @@ if __name__ == "__main__":
         HighschoolType.update()
         CollegeType.update()
         
-        # Make histories of permanent income levels for each education type
-        Y0_vector_base = drawMeanOneLognormal(Params.Y0_sigma, Params.sim_pop_size, Params.Y0_seed)
-        psi_gamma_history_d = np.zeros((Params.total_T,Params.sim_pop_size)) + np.nan
-        psi_gamma_history_h = deepcopy(psi_gamma_history_d)
-        psi_gamma_history_c = deepcopy(psi_gamma_history_d)
-        for t in range(Params.total_T):
-            psi_gamma_history_d[t,] = (Params.econ_growth*DropoutType.PermShks[t]/Params.Rfree)**(-1)
-            psi_gamma_history_h[t,] = (Params.econ_growth*HighschoolType.PermShks[t]/Params.Rfree)**(-1)
-            psi_gamma_history_c[t,] = (Params.econ_growth*CollegeType.PermShks[t]/Params.Rfree)**(-1)
-        Y_history_d = np.cumprod(np.vstack((Params.Y0_d*Y0_vector_base,psi_gamma_history_d)),axis=0)
-        Y_history_h = np.cumprod(np.vstack((Params.Y0_h*Y0_vector_base,psi_gamma_history_h)),axis=0)
-        Y_history_c = np.cumprod(np.vstack((Params.Y0_c*Y0_vector_base,psi_gamma_history_c)),axis=0)
-        DropoutType.Y_history = Y_history_d
-        HighschoolType.Y_history = Y_history_h
-        CollegeType.Y_history = Y_history_c
+        # Make initial distributions of permanent income for each education level
+        p_init_base = drawMeanOneLognormal(Params.P0_sigma, Params.sim_pop_size, Params.P0_seed)
+        DropoutType.p_init = Params.P0_d*p_init_base
+        HighschoolType.p_init = Params.P0_h*p_init_base
+        CollegeType.p_init = Params.P0_c*p_init_base
+        
         
         # Set the type list for the lifecycle estimation
         short_type_list = [DropoutType, HighschoolType, CollegeType]
@@ -405,31 +659,26 @@ if __name__ == "__main__":
         # Make the base infinite horizon type and assign income shocks
         InfiniteType = cstwMPCagent(**Params.init_infinite)
         InfiniteType.tolerance = 0.0001
-        InfiniteType.w0 = w0_vector*0.0
+        InfiniteType.a_init = 0*np.ones_like(a_init)
         
         # Make histories of permanent income levels for the infinite horizon type
-        Y0_vector_base = np.ones(Params.sim_pop_size,dtype=float)
-        psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
-        for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*InfiniteType.PermShks[t]/InfiniteType.Rfree)**(-1)
-        Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
-        InfiniteType.Y_history = Y_history_i
+        p_init_base = np.ones(Params.sim_pop_size,dtype=float)
+        InfiniteType.p_init = p_init_base
         
         # Use a "tractable consumer" instead if desired
         if Params.do_tractable:
             from TractableBufferStock import TractableConsumerType
             TractableInfType = TractableConsumerType(DiscFac=InfiniteType.DiscFac,
-                                                     mho=1-InfiniteType.survival_prob[0],
-                                                     R=InfiniteType.Rfree,
-                                                     G=InfiniteType.PermGroFac[0],
-                                                     rho=InfiniteType.rho,
+                                                     UnempPrb=1-InfiniteType.LivPrb[0],
+                                                     Rfree=InfiniteType.Rfree,
+                                                     PermGroFac=InfiniteType.PermGroFac[0],
+                                                     CRRA=InfiniteType.CRRA,
                                                      sim_periods=InfiniteType.sim_periods,
                                                      IncUnemp=InfiniteType.IncUnemp)
             TractableInfType.timeFwd()
-            TractableInfType.Y_history = Y_history_i
-            TractableInfType.TranShks = InfiniteType.TranShks
-            TractableInfType.PermShks = InfiniteType.PermShks
-            TractableInfType.w0 = InfiniteType.w0
+            TractableInfType.TranShkHist = InfiniteType.TranShkHist
+            TractableInfType.PermShkHist = InfiniteType.PermShkHist
+            TractableInfType.a_init = InfiniteType.a_init
                
         # Set the type list for the infinite horizon estimation
         if Params.do_tractable:
@@ -459,11 +708,10 @@ if __name__ == "__main__":
     #==================================================================
     
     # Set commands for the beta-point estimation
-    beta_point_commands = ['solve()','unpack_cFunc()','timeFwd()','simulateCSTWa()']
-    results_commands = ['solve()','unpack_cFunc()','timeFwd()','simulateCSTWa()','simulateCSTWb()']
+    beta_point_commands = ['solve()','unpack_cFunc()','timeFwd()','simulateCSTW()']
         
     # Make the objective function for the beta-point estimation
-    betaPointObjective = lambda beta : simulateKYratioDifference(beta,
+    betaPointObjective = lambda DiscFac : simulateKYratioDifference(DiscFac,
                                                                  nabla=0,
                                                                  N=1,
                                                                  type_list=est_type_list,
@@ -485,9 +733,9 @@ if __name__ == "__main__":
         #DiscFac_new = newton(intermediateObjective,Params.DiscFac_guess,maxiter=100)
         DiscFac_new = brentq(intermediateObjective,0.90,0.998,xtol=10**(-8))
         N=Params.pref_type_count
-        wealth_sim = (np.vstack((this_type.W_history for this_type in est_type_list))).flatten()
+        sim_wealth = (np.vstack((this_type.W_history for this_type in est_type_list))).flatten()
         sim_weights = np.tile(np.repeat(Params.age_weight_all,Params.sim_pop_size),N)
-        my_diff = calculateLorenzDifference(wealth_sim,sim_weights,Params.percentiles_to_match,lorenz_target)
+        my_diff = calculateLorenzDifference(sim_wealth,sim_weights,Params.percentiles_to_match,lorenz_target)
         print('DiscFac=' + str(DiscFac_new) + ', nabla=' + str(nabla) + ', diff=' + str(my_diff))
         if my_diff < Params.diff_save:
             Params.DiscFac_save = DiscFac_new
@@ -559,280 +807,107 @@ if __name__ == "__main__":
     spec_name = None
     
     if Params.do_sensitivity[0]: # coefficient of relative risk aversion sensitivity analysis
-        rho_list = np.linspace(0.5,4.0,15).tolist() #15
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for rho in rho_list:
-            print('Now estimating model with rho = ' + str(rho))
-            Params.diff_save = 1000000.0
-            for this_type in est_type_list:
-                this_type(rho = rho)
-                this_type.update()
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityRho.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([rho_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-            f.close()
-        for this_type in est_type_list:
-            this_type(rho = Params.rho)
+        CRRA_list = np.linspace(0.5,4.0,15).tolist() #15
+        sensitivityAnalysis('CRRA',CRRA_list,False)
     
     if Params.do_sensitivity[1]: # transitory income stdev sensitivity analysis
-        xi_sigma_list = [0.01] + np.linspace(0.05,0.8,16).tolist() #16
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for xi_sigma in xi_sigma_list:
-            print('Now estimating model with xi_sigma = ' + str(xi_sigma))
-            Params.diff_save = 1000000.0
-            for this_type in est_type_list:
-                this_type(xi_sigma = [xi_sigma])
-                this_type.update()
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityXiSigma.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([xi_sigma_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-            f.close()
-        for this_type in est_type_list:
-            this_type(xi_sigma = Params.xi_sigma_i)
-            this_type.update()
+        TranShkStd_list = [0.01] + np.linspace(0.05,0.8,16).tolist() #16
+        sensitivityAnalysis('TranShkStd',TranShkStd_list,True)
             
     if Params.do_sensitivity[2]: # permanent income stdev sensitivity analysis
-        psi_sigma_list = np.linspace(0.02,0.18,17).tolist() #17
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for psi_sigma in psi_sigma_list:
-            print('Now estimating model with psi_sigma = ' + str(psi_sigma))
-            Params.diff_save = 1000000.0
-            for this_type in est_type_list:
-                this_type(psi_sigma = [psi_sigma])
-                this_type.timeRev()
-                this_type.update()
-            psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
-            for t in range(Params.sim_periods):
-                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
-            Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
-            for this_type in est_type_list:
-                this_type.Y_history = Y_history_i
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityPsiSigma.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([psi_sigma_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-            f.close()
-        for this_type in est_type_list:
-            this_type(psi_sigma = Params.psi_sigma_i)
-            this_type.update()
-        psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
-        for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
-        Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
-        for this_type in est_type_list:
-            this_type.Y_history = Y_history_i
+        PermShkStd_list = np.linspace(0.02,0.18,17).tolist() #17
+        sensitivityAnalysis('PermShkStd',PermShkStd_list,True)
             
     if Params.do_sensitivity[3]: # unemployment benefits sensitivity analysis
-        mu_list = np.linspace(0.0,0.8,17).tolist() #17
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for mu in mu_list:
-            print('Now estimating model with mu = ' + str(mu))
-            Params.diff_save = 1000000.0
-            for this_type in est_type_list:
-                this_type(IncUnemp = mu)
-                this_type.timeRev()
-                this_type.update()
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityMu.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([mu_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-            f.close()
-        for this_type in est_type_list:
-            this_type(IncUnemp = Params.IncUnemp)
-            this_type.update()
+        IncUnemp_list = np.linspace(0.0,0.8,17).tolist() #17
+        sensitivityAnalysis('IncUnemp',IncUnemp_list,False)
     
     if Params.do_sensitivity[4]: # unemployment rate sensitivity analysis
-        urate_list = np.linspace(0.02,0.12,16).tolist() #16
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for urate in urate_list:
-            print('Now estimating model with urate = ' + str(urate))
-            Params.diff_save = 1000000.0
-            for this_type in est_type_list:
-                this_type(p_unemploy = urate)
-                this_type.update()
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityUrate.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([urate_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-            f.close()
-        for this_type in est_type_list:
-            this_type(p_unemploy = Params.p_unemploy)
-            this_type.update()
+        UnempPrb_list = np.linspace(0.02,0.12,16).tolist() #16
+        sensitivityAnalysis('UnempPrb',UnempPrb_list,False)
             
     if Params.do_sensitivity[5]: # mortality rate sensitivity analysis
-        death_prob_list = np.linspace(0.003,0.0125,16).tolist() #16
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for death_prob in death_prob_list:
-            print('Now estimating model with death_prob = ' + str(death_prob))
-            Params.diff_save = 1000000.0
-            for this_type in est_type_list:
-                this_type(survival_prob = [1 - death_prob])
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityMortality.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([death_prob_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-        for this_type in est_type_list:
-            this_type(survival_prob = Params.survival_prob_i)
-    
-    
+        LivPrb_list = 1.0 - np.linspace(0.003,0.0125,16).tolist() #16
+        sensitivityAnalysis('LivPrb',LivPrb_list,True)
+        
     if Params.do_sensitivity[6]: # permanent income growth rate sensitivity analysis
-        g_list = np.linspace(0.00,0.04,17).tolist() #17
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for g in g_list:
-            print('Now estimating model with g = ' + str(g))
-            Params.diff_save = 1000000.0
-            Params.PermGroFac_i = [(1 + g)**0.25]
-            for this_type in est_type_list:
-                this_type(PermGroFac = Params.PermGroFac_i)
-                this_type.timeRev()
-                this_type.update()
-            psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
-            for t in range(Params.sim_periods):
-                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
-            Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
-            for this_type in est_type_list:
-                this_type.Y_history = Y_history_i
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityG.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([g_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-            f.close()
-        Params.PermGroFac_i = [1.01**0.25]
-        for this_type in est_type_list:
-            this_type(PermGroFac = Params.PermGroFac_i)
-            this_type.update()
-        psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
-        for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
-        Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
-        for this_type in est_type_list:
-            this_type.Y_history = Y_history_i
-            
+        PermGroFac_list = np.linspace(0.00,0.04,17).tolist() #17
+        sensitivityAnalysis('PermGroFac',PermGroFac_list,True)
+                    
     if Params.do_sensitivity[7]: # interest rate sensitivity analysis
-        R_list = np.linspace(1.0,1.04,17).tolist()
-        fit_list = []
-        DiscFac_list = []
-        nabla_list = []
-        kappa_list = []
-        for R in R_list:
-            print('Now estimating model with R = ' + str(R))
-            R_adj = R/InfiniteType.survival_prob[0]
-            Params.diff_save = 1000000.0
-            for this_type in est_type_list:
-                this_type(R = R_adj)
-                this_type.timeRev()
-                this_type.update()
-            psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
-            for t in range(Params.sim_periods):
-                psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/R_adj)**(-1)
-            Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
-            for this_type in est_type_list:
-                this_type.Y_history = Y_history_i
-            output = golden(betaDistObjective,brack=bracket,tol=10**(-4),full_output=True)
-            nabla = output[0]
-            fit = output[1]
-            DiscFac = Params.DiscFac_save
-            kappa = calcKappaMean(DiscFac,nabla)
-            DiscFac_list.append(DiscFac)
-            nabla_list.append(nabla)
-            fit_list.append(fit)
-            kappa_list.append(kappa)
-        with open('./Results/SensitivityInterestRate.txt','w') as f:
-            my_writer = csv.writer(f, delimiter='\t',)
-            for j in range(len(DiscFac_list)):
-                my_writer.writerow([R_list[j], kappa_list[j], DiscFac_list[j], nabla_list[j], fit_list[j]])
-        for this_type in est_type_list:
-            this_type(R = 1.01/Params.survival_prob_i[0])
-            this_type.update()
-        psi_gamma_history_i = np.zeros((Params.sim_periods,Params.sim_pop_size)) + np.nan
-        for t in range(Params.sim_periods):
-            psi_gamma_history_i[t,] = (Params.PermGroFac_i[0]*est_type_list[0].PermShks[Params.sim_periods-t-1]/InfiniteType.Rfree)**(-1)
-        Y_history_i = np.cumprod(np.vstack((Y0_vector_base,psi_gamma_history_i)),axis=0)
-        for this_type in est_type_list:
-            this_type.Y_history = Y_history_i
+        Rfree_list = (np.linspace(1.0,1.04,17)/InfiniteType.survival_prob[0]).tolist()
+        sensitivityAnalysis('Rfree',Rfree_list,False)
+
+        
+    # =======================================================================
+    # ========= FBS aggregate shocks model ==================================
+    #========================================================================
+    if Params.do_agg_shocks:
+        # These are the perpetual youth estimates in case we want to skip estimation (and we do)
+        beta_point_estimate = 0.989142
+        beta_dist_estimate  = 0.985773
+        nabla_estimate      = 0.0077
+        
+        # Make a set of consumer types for the FBS aggregate shocks model
+        BaseAggShksType = cstwMPCagent(**Params.init_infinite)
+        BaseAggShksType.tolerance = 0.0001
+        BaseAggShksType.solveOnePeriod = solveConsumptionSavingAggShocks
+        BaseAggShksType.sim_periods = Params.sim_periods_agg_shocks
+        BaseAggShksType.Nagents = Params.Nagents_agg_shocks
+        agg_shocks_type_list = []
+        for j in range(Params.pref_type_count):
+            new_type = deepcopy(BaseAggShksType)
+            new_type.seed = j
+            new_type.update()
+            agg_shocks_type_list.append(new_type)
+        if Params.do_beta_dist:
+            beta_agg = beta_dist_estimate
+            nabla_agg = nabla_estimate
+        else:
+            beta_agg = beta_point_estimate
+            nabla_agg = 0.0
+        DiscFac_list_agg = approxUniform(beta_agg,nabla_agg,Params.pref_type_count)
+        assignBetaDistribution(agg_shocks_type_list,DiscFac_list_agg)
+        
+        # Make a market for solving the FBS aggregate shocks model
+        scale_grid = np.array([0.01,0.1,0.3,0.6,0.8,0.98,1.0,1.02,1.1,1.2,1.6,2.0])
+        agg_shocks_market = cstwMarket(agents = agg_shocks_type_list,
+                        sow_vars      = ['KtoLnow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow'],
+                        reap_vars     = ['pNow','aNow'],
+                        track_vars    = ['KtoLnow'],
+                        dyn_vars      = ['kNextFunc'],
+                        calcDynamics  = calcCapitalEvoRule,
+                        act_T         = Params.sim_periods_agg_shocks,
+                        tolerance     = 0.0001)
+        agg_shocks_market(**Params.aggregate_params)
+        agg_shocks_market.update()
+        agg_shocks_market.makeAggShkHist()
+        
+        # Edit the consumer types so they have the right data
+        for this_type in agg_shocks_market.agents:
+            this_type.a_init = agg_shocks_market.KtoYSS*np.ones(this_type.Nagents)
+            this_type.p_init = drawMeanOneLognormal(sigma=0.9,N=this_type.Nagents)
+            this_type.kGrid  = agg_shocks_market.kSS*scale_grid[2:-1]
+            this_type.kNextFunc = CapitalEvoRule(intercept=Params.intercept_prev,slope=Params.slope_prev)
+            this_type.Rfunc = agg_shocks_market.Rfunc
+            this_type.wFunc = agg_shocks_market.wFunc
+            IncomeDstnWithAggShks = combineIndepDstns(this_type.PermShkDstn,this_type.TranShkDstn,agg_shocks_market.PermShkAggDstn,agg_shocks_market.TranShkAggDstn)
+            this_type.IncomeDstn = [IncomeDstnWithAggShks]
+            this_type.time_inv += ['kGrid','kNextFunc','Rfunc','wFunc']
+            vPfunc_terminal = lambda m,k : m**(-this_type.CRRA)
+            cFunc_terminal  = lambda m,k : m
+            this_type.solution_terminal = Model.ConsumerSolution(cFunc=cFunc_terminal,vPfunc=vPfunc_terminal)
+            this_type.DiePrb = 1.0 - this_type.LivPrb[0]
+        
+        # Solve the aggregate shocks version of the model
+        t_start = time()
+        agg_shocks_market.solve()
+        t_end = time()
+        print('Solving the aggregate shocks model took ' + str(t_end - t_start) + ' seconds.')
+        for this_type in agg_shocks_type_list:
+            this_type.W_history = this_type.pHist*this_type.bHist
+            this_type.kappa_history = 1.0 - (1.0 - this_type.MPChist)**4
+        agg_shock_weights = np.concatenate((np.zeros(200),np.ones(Params.sim_periods_agg_shocks-200)))
+        agg_shock_weights = agg_shock_weights/np.sum(agg_shock_weights)
+        makeCSTWstats(beta_agg,nabla_agg,agg_shocks_type_list,agg_shock_weights)
+        

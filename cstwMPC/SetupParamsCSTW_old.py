@@ -6,14 +6,13 @@ import csv
 from copy import copy, deepcopy
 
 # Choose percentiles of the data to match and which estimation to run
-do_lifecycle = False          # Use lifecycle model if True, perpetual youth if False
-do_beta_dist = True           # Do beta-dist version if True, beta-point if False
-run_estimation = False         # Runs the estimation if True
+do_lifecycle = True          # Use lifecycle model if True, perpetual youth if False
+do_beta_dist = False           # Do beta-dist version if True, beta-point if False
+run_estimation = True         # Runs the estimation if True
 find_beta_vs_KY = False       # Computes K/Y ratio for a wide range of beta; should have do_beta_dist = False
 do_sensitivity = [False, False, False, False, False, False, False, False] # Choose which sensitivity analyses to run: rho, xi_sigma, psi_sigma, mu, urate, mortality, g, R
 do_liquid = False             # Matches liquid assets data when True, net worth data when False
 do_tractable = False          # Uses a "tractable consumer" rather than solving full model when True
-do_agg_shocks = True         # Solve the FBS aggregate shocks version of the model
 SCF_data_file = 'SCFwealthDataReduced.txt'
 percentiles_to_match = [0.2, 0.4, 0.6, 0.8]    # Which points of the Lorenz curve to match in beta-dist (must be in (0,1))
 #percentiles_to_match = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
@@ -34,14 +33,14 @@ UnempPrb = 0.07             # Probability of unemployment while working
 UnempPrbRet = 0.0005    # Probabulity of "unemployment" while retired
 IncUnemp = 0.15        # Unemployment benefit replacement rate
 IncUnempRet = 0.0  # Ditto when retired
-P0_sigma = 0.4                # Standard deviation of initial permanent income
+Y0_sigma = 0.4                # Standard deviation of initial permanent income
 BoroCnstArt = 0.0
 
 # Set grid sizes
 PermShkCount = 5                     # Number of points in permanent income shock grid
 TranShkCount = 5                      # Number of points in transitory income shock grid
 aXtraMin = 0.00001                 # Minimum end-of-period assets in grid
-aXtraMax = 80                    # Maximum end-of-period assets in grid
+aXtraMax = 20                    # Maximum end-of-period assets in grid
 aXtraCount = 20                    # Number of points in assets grid
 exp_nest = 3                  # Number of times to 'exponentially nest' when constructing assets grid
 sim_pop_size = 2000           # Number of simulated agents per preference type
@@ -49,8 +48,11 @@ CubicBool = False          # Whether to use cubic spline interpolation
 vFuncBool = False            # Whether to calculate the value function during solution
 
 # Set random seeds
-a0_seed = 138                 # Seed for initial wealth draws
-P0_seed = 666                 # Seed for initial permanent income draws
+perm_seed = 31382             # Seed for permanent income shocks
+temp_seed = 112883            # Seed for transitory income shocks
+unemp_seed = 92615            # Seed for unemployment shocks
+w0_seed = 138                 # Seed for initial wealth draws
+Y0_seed = 666                 # Seed for initial permanent income draws
 
 # Define the paths of permanent and transitory shocks (from Sabelhaus and Song)
 TranShkStd = (np.concatenate((np.linspace(0.1,0.12,17), 0.12*np.ones(17), np.linspace(0.12,0.075,61), np.linspace(0.074,0.007,68), np.zeros(retired_T+1)))*4)**0.5
@@ -118,16 +120,16 @@ econ_growth = 1.015**(0.25)    # TFP growth rate
 d_pct = 0.11                   # proportion of HS dropouts
 h_pct = 0.55                   # proportion of HS graduates
 c_pct = 0.34                   # proportion of college graduates
-P0_d = 5                       # average initial permanent income, dropouts
-P0_h = 7.5                     # average initial permanent income, HS grads
-P0_c = 12                      # average initial permanent income, college grads
-a0_values = [0.17, 0.5, 0.83]  # initial wealth/income ratio values
-a0_probs = [1.0/3.0, 1.0/3.0, 1.0/3.0] # ...and probabilities 
+Y0_d = 5                       # average initial permanent income, dropouts
+Y0_h = 7.5                     # average initial permanent income, HS grads
+Y0_c = 12                      # average initial permanent income, college grads
+w0_values = [0.17, 0.5, 0.83]  # initial wealth/income ratio values
+w0_probs = [1.0/3.0, 1.0/3.0, 1.0/3.0] # ...and probabilities 
 
 # Calculate the social security tax rate for the economy
-d_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_d)))*P0_d
-h_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_h)))*P0_h
-c_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_c)))*P0_c
+d_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_d)))*Y0_d
+h_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_h)))*Y0_h
+c_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_c)))*Y0_c
 cohort_weight = pop_growth**np.array(np.arange(0,-(total_T+1),-1))
 econ_weight = econ_growth**np.array(np.arange(0,-(total_T+1),-1))
 d_survival_cum = np.concatenate((np.array([1]),np.cumprod(LivPrb_d)))
@@ -162,25 +164,13 @@ else:
     PermShkStd_i = [(0.01*4/11)**0.5]
 TranShkStd_i = [(0.01*4)**0.5]
 sim_periods = 1000
-sim_periods_agg_shocks = 3000
-Nagents_agg_shocks = 4800
-age_weight_i = LivPrb_i**np.arange(0,sim_periods,dtype=float)
+age_weight_i = LivPrb_i**np.arange(0,sim_periods+1,dtype=float)
 total_pop_size_i = np.sum(age_weight_i)
 age_weight_i = age_weight_i/total_pop_size_i
 if not do_lifecycle:
     age_weight_all = age_weight_i
     age_weight_short = age_weight_i[0:sim_periods]
     total_output = l_bar
-    
-# Set aggregate parameters for the infinite horizon model
-PermShkAggCount = 3                # Number of discrete permanent aggregate shocks
-TranShkAggCount = 3                # Number of discrete transitory aggregate shocks
-PermShkAggStd = np.sqrt(0.00004)   # Standard deviation of permanent aggregate shocks
-TranShkAggStd = np.sqrt(0.00001)   # Standard deviation of transitory aggregate shocks
-CapShare = 0.36                    # Capital's share of output
-DeprFac = 0.025                    # Capital depreciation factor
-CRRAPF = 1.0                       # CRRA in perfect foresight calibration
-DiscFacPF = 0.99                   # Discount factor in perfect foresight calibration
 
 # Import the SCF wealth data
 f = open(SCF_data_file,'r')
@@ -219,7 +209,10 @@ init_dropout = {"CRRA":CRRA,
                 "DiscFac":DiscFac_guess, # dummy value, will be overwritten
                 "tax_rate":tax_rate_SS, # for math reasons, only SS tax goes here
                 'Nagents':sim_pop_size,
-                'sim_periods':total_T+1,
+                'psi_seed':perm_seed,
+                'xi_seed':temp_seed,
+                'unemp_seed':unemp_seed,
+                'sim_periods':total_T,
                 }
 init_highschool = copy(init_dropout)
 init_highschool["PermGroFac"] = PermGroFac_h
@@ -248,7 +241,7 @@ init_infinite = {"CRRA":CRRA,
                 "aXtraMin":aXtraMin,
                 "aXtraMax":aXtraMax,
                 "aXtraCount":aXtraCount,
-                "aXtraExtra":[None],
+                "aXtraExtra":[9000.0],
                 "exp_nest":exp_nest,
                 "LivPrb":LivPrb_i,
                 "beta":beta_i, # dummy value, will be overwritten
@@ -258,6 +251,9 @@ init_infinite = {"CRRA":CRRA,
                 "tax_rate":0.0,
                 'sim_periods':sim_periods,
                 'Nagents':sim_pop_size,
+                'psi_seed':perm_seed,
+                'xi_seed':temp_seed,
+                'unemp_seed':unemp_seed,
                 'l_bar':l_bar,
                 }
 
@@ -272,6 +268,9 @@ make_shocks_dropout = {'PermShkStd':PermShkStd,
                       'IncUnempRet':IncUnempRet,
                       'T_retire':retired_T+1,
                       'Nagents':sim_pop_size,
+                      'psi_seed':perm_seed,
+                      'xi_seed':temp_seed,
+                      'unemp_seed':unemp_seed,
                       'tax_rate':tax_rate_SS
                       }
 make_shocks_highschool = copy(make_shocks_dropout)
@@ -285,22 +284,11 @@ make_shocks_infinite = {'PermShkStd':PermShkStd_i[0],
                         'UnempPrb':UnempPrb,
                         'IncUnemp':IncUnemp,
                         'Nagents':sim_pop_size,
+                        'psi_seed':perm_seed,
+                        'xi_seed':temp_seed,
+                        'unemp_seed':unemp_seed,
                         'sim_periods':sim_periods
                         }
-                        
-# Make a dictionary for the aggrege shocks market
-aggregate_params = {'PermShkAggCount': PermShkAggCount,
-                    'TranShkAggCount': TranShkAggCount,
-                    'PermShkAggStd': PermShkAggStd,
-                    'TranShkAggStd': TranShkAggStd,
-                    'DeprFac': DeprFac,
-                    'CapShare': CapShare,
-                    'CRRA': CRRAPF,
-                    'DiscFac': DiscFacPF,
-                    'LivPrb': LivPrb_i[0]
-                    }
 
 beta_save = DiscFac_guess
 diff_save = 1000000.0
-slope_prev = 1.0
-intercept_prev = 0.0

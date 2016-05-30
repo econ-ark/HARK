@@ -2,22 +2,11 @@ from HARKutilities import getArgNames, NullFunc
 from copy import deepcopy
 import numpy as np
 
-class Solution():
-    '''
-    A superclass for representing the "solution" to a single period problem in a
-    dynamic microeconomic model.  Its only method acs as a "universal distance
-    metric" that should be useful in many settings, but can be overwritten by a
-    subclass of Solution.
-    '''    
-    def distance(self,solution_other):  
-        distance_list = [0.0]
-        for attr_name in self.convergence_criteria:
-            obj_A = eval('self.' + attr_name)
-            obj_B = eval('solution_other.' + attr_name)
-            distance_list.append(distanceMetric(obj_A,obj_B))
-        return max(distance_list)
         
 def distanceMetric(thing_A,thing_B):
+    '''
+    A "universal" distance metric that can be used as a default in many settings.
+    '''
     typeA = type(thing_A)
     typeB = type(thing_B)
             
@@ -44,10 +33,46 @@ def distanceMetric(thing_A,thing_B):
         distance = 1000.0
     
     return distance
+    
+    
+class HARKobject():
+    '''
+    A superclass for object classes in HARK.  Comes with two useful methods:
+    a generic/universal distance method and an attribute assignment method.
+    '''
+    def distance(self,other):  
+        distance_list = [0.0]
+        for attr_name in self.convergence_criteria:
+            obj_A = eval('self.' + attr_name)
+            obj_B = eval('other.' + attr_name)
+            distance_list.append(distanceMetric(obj_A,obj_B))
+        return max(distance_list)
+        
+    def assignParameters(self,**kwds):
+        '''
+        Assign an arbitrary number of attributes to this agent.
+        '''
+        for key in kwds:
+            #temp = kwds[key]
+            #exec('self.' + key + ' = temp')
+            setattr(self,key,kwds[key])
+            
+    def __call__(self,**kwds):
+        self.assignParameters(**kwds)
+    
+    
+class Solution(HARKobject):
+    '''
+    A superclass for representing the "solution" to a single period problem in a
+    dynamic microeconomic model.  Its only method acs as a "universal distance
+    metric" that should be useful in many settings, but can be overwritten by a
+    subclass of Solution.
+    
+    NOTE: This can be deprecated now that HARKobject exists.
+    '''    
+    
 
-
-
-class AgentType():
+class AgentType(HARKobject):
     '''
     A superclass for economic agents in the HARK framework.  Each model should specify its
     own subclass of AgentType, inheriting its methods and overwriting as necessary.
@@ -59,7 +84,7 @@ class AgentType():
     whether the same solution method is used in all periods of the model.
     '''
     
-    def __init__(self,solution_terminal=NullFunc,cycles=1,time_flow=False,pseudo_terminal=True,tolerance=0.000001,**kwds):
+    def __init__(self,solution_terminal=NullFunc,cycles=1,time_flow=False,pseudo_terminal=True,tolerance=0.000001,seed=0,**kwds):
         '''
         Initialize an instance of AgentType by setting attributes; all inputs have default values.
         '''
@@ -69,10 +94,9 @@ class AgentType():
         self.pseudo_terminal = pseudo_terminal
         self.solveOnePeriod = NullFunc
         self.tolerance = tolerance
+        self.seed = seed
         self.assignParameters(**kwds)
-        
-    def __call__(self,**kwds):
-        self.assignParameters(**kwds)
+        self.resetRNG()
 
     def timeReport(self):
         '''
@@ -118,6 +142,11 @@ class AgentType():
             self.time_vary.append('solution')
         self.postSolve()
         
+    def resetRNG(self):
+        '''
+        Reset the random number generator for this type.
+        '''
+        self.RNG = np.random.RandomState(self.seed)
 
     def isSameThing(self,solutionA,solutionB):
         '''
@@ -128,28 +157,20 @@ class AgentType():
         '''
         solution_distance = solutionA.distance(solutionB)
         return(solution_distance <= self.tolerance)
-    
-    def assignParameters(self,**kwds):
-        '''
-        Assign an arbitrary number of attributes to this agent.
-        '''
-        for key in kwds:
-            temp = kwds[key]
-            exec('self.' + key + ' = temp')
             
     def preSolve(self):
         '''
         A method that is run immediately before the model is solved, to prepare
         the terminal solution, perhaps.  Does nothing here.
         '''
-        return
+        return None
         
     def postSolve(self):
         '''
         A method that is run immediately after the model is solved, to finalize
         the solution in some way.  Does nothing here.
         '''
-        return
+        return None
         
 
 
@@ -266,4 +287,206 @@ def solveOneCycle(agent,solution_last):
 
     # Return the list of per-period solutions
     return solution_cycle
-
+    
+      
+class Market(HARKobject):
+    '''
+    A class to represent a central clearinghouse of information or "market actions".
+    The user provides the following attributes for proper functionality:
+    
+    agents: [AgentType]
+        A list of all the AgentTypes in this market.
+    
+    sow_vars: [string]
+        Names of variables generated by the "aggregate market process" that should
+        be "sown" to the agents in the market.  Aggregate state, etc.
+        
+    reap_vars: [string]
+        Names of variables to be collected ("reaped") from agents in the market
+        to be used in the "aggregate market process".
+        
+    const_vars: [string]
+        Names of attributes of the Market instance that are used in the "aggregate
+        market process" but do not come from agents-- they are constant or simply
+        parameters inherent to the process.
+        
+    track_vars: [string]
+        Names of variables generated by the "aggregate market process" that should
+        be tracked as a "history" so that a new dynamic rule can be calculated.
+        This is often a subset of sow_vars.
+        
+    dyn_vars: [string]
+        Names of variables that constitute a "dynamic rule".
+        
+    millRule: function
+        A function that takes inputs named in reap_vars and returns an object
+        with attributes named in sow_vars.  The "aggregate market process" that
+        transforms individual agent actions/states/data into aggregate data to
+        be sent back to agents.
+        
+    calcDynamics: function
+        A function that takes inputs named in track_vars and returns an object
+        with attributes named in dyn_vars.  Looks at histories of aggregate
+        variables and generates a new "dynamic rule" for agents to believe and
+        act on.
+        
+    act_T: int
+        The number of times that the "aggregate market process" should be run
+        in order to generate a history of aggregate variables.
+        
+    tolerance: float
+        Minimum acceptable distance between "dynamic rules" to consider the
+        Market solution process converged.  Distance is a user-defined metric.
+    '''
+    
+    def __init__(self,agents=[],sow_vars=[],reap_vars=[],const_vars=[],track_vars=[],dyn_vars=[],millRule=None,calcDynamics=None,act_T=1000,tolerance=0.000001):
+        self.agents = agents
+        self.reap_vars = reap_vars
+        self.sow_vars = sow_vars
+        self.const_vars = const_vars
+        self.track_vars = track_vars
+        self.dyn_vars = dyn_vars
+        if millRule is not None: # To prevent overwriting of method-based millRules
+            self.millRule = millRule
+        if calcDynamics is not None: # Ditto for calcDynamics
+            self.calcDynamics = calcDynamics
+        self.act_T = act_T
+        self.tolerance = tolerance
+    
+    def solve(self):
+        '''
+        "Solves" the market by finding a "dynamic rule" that governs the aggregate
+        market state such that when agents believe in these dynamics, their actions
+        collectively generate the same dynamic rule.
+        '''
+        go = True
+        max_loops = 1000
+        completed_loops = 0
+        
+        while go: # Loop until the dynamic process converges or we hit the loop cap
+            for this_type in self.agents:
+                this_type.solve()  # Solve each AgentType's micro problem
+            self.makeHistory()     # "Run" the model while tracking aggregate variables
+            new_dynamics = self.updateDynamics() # Find a new aggregate dynamic rule
+            
+            if completed_loops > 0:
+                #distance_list = [] # Compute distance between dynamic rules (if this is not the first loop)
+#                for var_name in self.dyn_vars:
+#                    new_value = getattr(new_dynamics,var_name)
+#                    old_value = getattr(old_dynamics,var_name)
+#                    distance_list.append(distanceMetric(old_value,new_value))
+#                distance = max(distance_list)
+                distance = new_dynamics.distance(old_dynamics)
+            else:
+                distance = 1000000.0
+            
+            # Move to the next loop if the terminal conditions are unmet
+            old_dynamics = new_dynamics
+            completed_loops += 1
+            go = distance >= self.tolerance and completed_loops < max_loops
+            
+        self.dynamics = new_dynamics # Store the final dynamic rule in self
+        
+    
+    def reap(self):
+        '''
+        Collects attributes named in reap_vars from each AgentType in the market,
+        storing them in identically named attributes of self.
+        '''
+        for var_name in self.reap_vars:
+            harvest = []
+            for this_type in self.agents:
+                harvest.append(getattr(this_type,var_name))
+            setattr(self,var_name,harvest)
+            
+    def sow(self):
+        '''
+        Distributes attrributes named in sow_vars from self to each AgentType
+        in the market, storing them in identically named attributes.
+        '''
+        for var_name in self.sow_vars:
+            this_seed = getattr(self,var_name)
+            for this_type in self.agents:
+                setattr(this_type,var_name,this_seed)
+                    
+    def mill(self):
+        '''
+        Processes the variables collected from agents using the function millRule,
+        storing the results in attributes named in aggr_sow.
+        '''
+        reap_vars_string = ''
+        for name in self.reap_vars:
+            reap_vars_string += ' \'' + name + '\' : self.' + name + ','
+        const_vars_string = ''
+        for name in self.const_vars:
+            const_vars_string += ' \'' + name + '\' : self.' + name + ','
+        mill_dict = eval('{' + reap_vars_string + const_vars_string + '}')
+        
+        product = self.millRule(**mill_dict)
+        for j in range(len(self.sow_vars)):
+            this_var = self.sow_vars[j]
+            this_product = getattr(product,this_var)
+            setattr(self,this_var,this_product)
+        
+    def cultivate(self):
+        '''
+        Has each AgentType in agents perform their marketAction method, using
+        variables sown from the market (and maybe also "private" variables).
+        The marketAction method should store new results in attributes named in
+        reap_vars to be reaped later.
+        '''
+        for this_type in self.agents:
+            this_type.marketAction()
+            
+    def reset(self):
+        '''
+        Reset the state of the market (attributes in sow_vars, etc) to some
+        user-defined initial state, and erase the histories of tracked variables.
+        '''
+        for var_name in self.track_vars: # Reset the history of tracked variables
+            setattr(self,var_name + '_hist',[])
+        for var_name in self.sow_vars: # Set the sow variables to their initial levels
+            initial_val = getattr(self,var_name + '_init')
+            setattr(self,var_name,initial_val)
+        for this_type in self.agents: # Reset each AgentType in the market
+            this_type.reset()
+            
+    def store(self):
+        '''
+        Record the current value of each variable X named in track_vars in an
+        attribute named X_hist.
+        '''
+        for var_name in self.track_vars:
+            value_now = getattr(self,var_name)
+            getattr(self,var_name + '_hist').append(value_now)
+        
+    def makeHistory(self):
+        '''
+        Runs a loop of sow-->cultivate-->reap-->mill act_T times, tracking the
+        evolution of variables X named in track_vars in attributes named X_hist.
+        '''        
+        self.reset() # Initialize the state of the market
+        for t in range(self.act_T):
+            self.sow()       # Distribute aggregated information/state to agents
+            self.cultivate() # Agents take action
+            self.reap()      # Collect individual data from agents
+            self.mill()      # Process individual data into aggregate data
+            self.store()     # Record variables of interest
+            
+    def updateDynamics(self):
+        '''
+        Calculates a new "aggregate dynamic rule" using the history of variables
+        named in track_vars, and distributes this rule to AgentTypes in agents.
+        '''
+        history_vars_string = ''
+        for name in self.track_vars:
+            history_vars_string += ' \'' + name + '\' : self.' + name + '_hist,'
+        update_dict = eval('{' + history_vars_string + '}')
+        
+        dynamics = self.calcDynamics(**update_dict) # User-defined dynamic calculator
+        for var_name in self.dyn_vars:
+            this_obj = getattr(dynamics,var_name)
+            for this_type in self.agents:
+                setattr(this_type,var_name,this_obj)
+        return dynamics
+        

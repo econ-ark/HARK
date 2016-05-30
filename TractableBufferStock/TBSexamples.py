@@ -10,7 +10,7 @@ sys.path.insert(0,'../ConsumptionSavingModel')
 import numpy as np
 import TractableBufferStock as Model
 from HARKutilities import plotFunc, plotFuncs, plotFuncDer
-from ConsumptionSavingModel import ConsumerType, consumptionSavingSolverMarkov
+from ConsumptionSavingModel import ConsumerType, solveConsumptionSavingMarkov
 from time import clock
 
 # Define the model primitives
@@ -76,7 +76,7 @@ MarkovType.solution_terminal.MPCmax = np.array(2*[MarkovType.solution_terminal.M
 MarkovType.IncomeDstn = [[employed_income_dist,unemployed_income_dist]]
 MarkovType.MrkvArray = MrkvArray
 MarkovType.time_inv.append('MrkvArray')
-MarkovType.solveOnePeriod = consumptionSavingSolverMarkov
+MarkovType.solveOnePeriod = solveConsumptionSavingMarkov
 MarkovType.cycles = 0
 
 t_start = clock()
