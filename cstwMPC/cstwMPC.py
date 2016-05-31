@@ -58,6 +58,8 @@ class cstwMPCagent(Model.ConsumerType):
         self.initializeSim()
         self.simConsHistory()
         self.W_history = self.pHist*self.bHist/self.Rfree
+        if Params.do_lifecycle:
+            self.W_history = self.W_history*self.cohort_scale
         self.kappa_history = 1.0 - (1.0 - self.MPChist)**4
         
     def update(self):
@@ -431,9 +433,9 @@ def makeCSTWstats(DiscFac,nabla,this_type_list,age_weight,lorenz_distance=0.0,sa
     sim_income = (np.vstack((this_type.pHist[0:sim_length,:]*np.asarray(this_type.TranShkHist[0:sim_length,:]) for this_type in this_type_list))).flatten()
     sim_ratio = (np.vstack((this_type.W_history[0:sim_length,:]/this_type.pHist[0:sim_length,:] for this_type in this_type_list))).flatten()
     if Params.do_lifecycle:
-        sim_unemp = (np.vstack((np.vstack((this_type.IncUnemp == this_type.TranShkHist[0:Params.working_T,:],np.zeros((Params.retired_T+1,this_type_list[0].sim_periods),dtype=bool))) for this_type in this_type_list))).flatten()
-        sim_emp = (np.vstack((np.vstack((this_type.IncUnemp != this_type.TranShkHist[0:Params.working_T,:],np.zeros((Params.retired_T+1,this_type_list[0].sim_periods),dtype=bool))) for this_type in this_type_list))).flatten()
-        sim_ret = (np.vstack((np.vstack((np.zeros((Params.working_T,this_type_list[0].sim_periods),dtype=bool),np.ones((Params.retired_T+1,this_type_list[0].sim_periods),dtype=bool))) for this_type in this_type_list))).flatten()
+        sim_unemp = (np.vstack((np.vstack((this_type.IncUnemp == this_type.TranShkHist[0:Params.working_T,:],np.zeros((Params.retired_T+1,this_type_list[0].Nagents),dtype=bool))) for this_type in this_type_list))).flatten()
+        sim_emp = (np.vstack((np.vstack((this_type.IncUnemp != this_type.TranShkHist[0:Params.working_T,:],np.zeros((Params.retired_T+1,this_type_list[0].Nagents),dtype=bool))) for this_type in this_type_list))).flatten()
+        sim_ret = (np.vstack((np.vstack((np.zeros((Params.working_T,this_type_list[0].Nagents),dtype=bool),np.ones((Params.retired_T+1,this_type_list[0].Nagents),dtype=bool))) for this_type in this_type_list))).flatten()
     else:
         sim_unemp = np.vstack((this_type.IncUnemp == this_type.TranShkHist[0:sim_length,:] for this_type in this_type_list)).flatten()
         sim_emp = np.vstack((this_type.IncUnemp != this_type.TranShkHist[0:sim_length,:] for this_type in this_type_list)).flatten()
@@ -633,9 +635,14 @@ if __name__ == "__main__":
                                              
     # Make the list of types for this run, whether infinite or lifecycle
     if Params.do_lifecycle:
+        # Make cohort scaling array
+        cohort_scale = Params.TFP_growth**(-np.arange(Params.total_T+1))
+        cohort_scale_array = np.tile(np.reshape(cohort_scale,(Params.total_T+1,1)),(1,Params.sim_pop_size))
+        
         # Make base consumer types for each education level
         DropoutType = cstwMPCagent(**Params.init_dropout)
         DropoutType.a_init = a_init
+        DropoutType.cohort_scale = cohort_scale_array
         HighschoolType = deepcopy(DropoutType)
         HighschoolType(**Params.adj_highschool)
         CollegeType = deepcopy(DropoutType)
@@ -649,8 +656,7 @@ if __name__ == "__main__":
         DropoutType.p_init = Params.P0_d*p_init_base
         HighschoolType.p_init = Params.P0_h*p_init_base
         CollegeType.p_init = Params.P0_c*p_init_base
-        
-        
+                
         # Set the type list for the lifecycle estimation
         short_type_list = [DropoutType, HighschoolType, CollegeType]
         spec_add = 'LC'       

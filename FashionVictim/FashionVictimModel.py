@@ -35,6 +35,7 @@ class FashionEvoFunc(Solution):
         self.pNextIntercept = pNextIntercept
         self.pNextSlope = pNextSlope
         self.pNextWidth = pNextWidth
+        self.convergence_criteria = ['pNextSlope','pNextWidth','pNextIntercept']
         
         
 class FashionMarketInfo():
