@@ -14,14 +14,14 @@ BoroCnstArt = None                   # Artificial borrowing constraint
 Rboro = 1.20                     # Interest factor on assets when negative
 Rsave = 1.03                       # Interest factor on assets when positive
 
-PermShkCount = 15                           # Number of points in discrete approximation to permanent income shocks
-TranShkCount = 15                           # Number of points in discrete approximation to transitory income shocks
+PermShkCount = 7                           # Number of points in discrete approximation to permanent income shocks
+TranShkCount = 7                           # Number of points in discrete approximation to transitory income shocks
 PermShkStd = [0.1]                   # Standard deviation of permanent income shocks
 TranShkStd = [0.1]                    # Standard deviation of transitory income shocks
 
 UnempPrb = 0.05                  # Probability of unemployment while working
 UnempPrbRet = 0.0005          # Probability of "unemployment" while retired
-IncUnemp = 0.4               # Unemployment benefits replacement rate
+IncUnemp = 0.3               # Unemployment benefits replacement rate
 IncUnempRet = 0.0        # Ditto when retired
 
 PrefShkStd = 0.30              # Standard deviation of marginal utility shocks
@@ -36,7 +36,7 @@ sim_N = 10000                       # Number of agents to simulate
 seed = 31382                        # Any old integer
 RNG = RandomState(seed)             # A random number generator
 
-CRRA = 3.0                          # Coefficient of relative risk aversion
+CRRA = 4.0                          # Coefficient of relative risk aversion
 DiscFac = 0.96                         # Time preference discount factor
 PermGroFac = [1.02]                      # Timepath of expected permanent income growth
 LivPrb = [0.98]                     # Timepath of survival probabilities

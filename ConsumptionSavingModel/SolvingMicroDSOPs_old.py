@@ -15,21 +15,22 @@ from time import time
 # Set booleans to determine which tasks should be done
 estimate_model = True
 compute_standard_errors = False
-make_contour_plot = True
+make_contour_plot = False
 
 #=====================================================
 # Define objects and functions used for the estimation
 #=====================================================
 
-# Make a lifecycle consumer to be used for estimation, including simulated shocks (plus an initial distribution of wealth)
+# Make a lifecycle consumer to be used for estimation, including simulated shocks
 EstimationAgent = Model.ConsumerType(**Params.init_consumer_objects)
-EstimationAgent(sim_periods = EstimationAgent.T_total+1)
-EstimationAgent.makeIncShkHist()
-EstimationAgent.a_init = drawDiscrete(P=Params.initial_wealth_income_ratio_probs,
-                                      X=Params.initial_wealth_income_ratio_vals,
-                                      N=Params.num_agents,
-                                      seed=Params.seed)
 
+# Make histories of permanent and transitory shocks, plus an initial distribution of wealth
+scriptR_shocks, xi_shocks = Model.generateIncomeShockHistoryLognormalUnemployment(EstimationAgent)
+w0_vector = drawDiscrete(P=Params.initial_wealth_income_ratio_probs,
+                                         X=Params.initial_wealth_income_ratio_vals,
+                                         N=Params.num_agents,
+                                         seed=Params.seed)
+EstimationAgent.addIncomeShockPaths(scriptR_shocks,xi_shocks)
 
 # Define the objective function for the estimation
 def smmObjectiveFxn(DiscFacAdj, CRRA,
@@ -39,6 +40,7 @@ def smmObjectiveFxn(DiscFacAdj, CRRA,
                      empirical_data = Data.w_to_y_data,
                      empirical_weights = Data.empirical_weights,
                      empirical_groups = Data.empirical_groups,
+                     initial_wealth = w0_vector,
                      map_simulated_to_empirical_cohorts = Data.simulation_map_cohorts_to_age_indices):
     '''
     The objective function for the SMM estimation.  Given values of discount-factor
@@ -68,10 +70,8 @@ def smmObjectiveFxn(DiscFacAdj, CRRA,
     # Solve the model for these parameters, then simulate wealth data
     agent.solve()
     agent.unpack_cFunc()
-    max_sim_age = max([max(ages) for ages in map_simulated_to_empirical_cohorts])+1
-    agent.initializeSim(sim_prds=max_sim_age)
-    agent.simConsHistory()
-    sim_w_history = agent.bHist
+    max_sim_age = max([max(ages) for ages in map_simulated_to_empirical_cohorts])
+    sim_w_history = agent.simulate(w_init=initial_wealth,t_first=0,t_last=max_sim_age)
     
     # Find the distance between empirical data and simulated medians for each age group
     group_count = len(map_simulated_to_empirical_cohorts)
