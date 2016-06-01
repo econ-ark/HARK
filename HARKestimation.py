@@ -7,8 +7,8 @@ optimization methods and bootstrapping tools.
 from __future__ import division                         # Use new division function
 import numpy as np                                      # Numerical Python
 from time import time                                   # Used to time execution
-from copy import deepcopy
-from scipy.optimize import fmin, fmin_powell, brute     # Minimizers
+from copy import deepcopy                               # For replicating complex objects
+from scipy.optimize import fmin, fmin_powell            # Minimizers
 from HARKutilities import warnings                      # Import modified "warnings" library
 
 def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwargs):
@@ -33,14 +33,13 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwar
         The values that minimize objectiveFunction.
     '''
 
-    # Execute the minimization step using initial values from the parameters file.
-    # Time the process.
-    t0 = time()
+    # Execute the minimization, starting from the given parameter guess
+    t0 = time() # Time the process
     OUTPUT = fmin(objectiveFunction, parameter_guess, full_output=1, maxiter=1000, disp=verbose, **kwargs)
     t1 = time()
 
     # Extract values from optimization output:
-    xopt = OUTPUT[0]        # Parameter that minimizes function.
+    xopt = OUTPUT[0]        # Parameters that minimize function.
     fopt = OUTPUT[1]        # Value of function at minimum: ``fopt = func(xopt)``.
     optiter = OUTPUT[2]     # Number of iterations performed.
     funcalls = OUTPUT[3]    # Number of function calls made.
@@ -51,16 +50,15 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwar
     if warnflag != 0:
         warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) + ', optiter=' + str(optiter) +', funcalls=' + str(funcalls) +', warnflag=' + str(warnflag))
 
-    # Display the results:
+    # Display and return the results:
     if verbose:
         print("Time to estimate is " + str(t1-t0) +  " seconds.")
-
     return xopt
     
     
 def minimizePowell(objectiveFunction, parameter_guess, verbose=False):
     '''
-    Minimizes the objective function using derivative-free Powell algorithm,
+    Minimizes the objective function using a derivative-free Powell algorithm,
     starting from an initial parameter guess.
     
     Parameters:
@@ -80,14 +78,13 @@ def minimizePowell(objectiveFunction, parameter_guess, verbose=False):
         The values that minimize objectiveFunction.
     '''
 
-    # Execute the minimization step using initial values from the parameters file.
-    # Time the process.
-    t0 = time()
+    # Execute the minimization, starting from the given parameter guess
+    t0 = time() # Time the process
     OUTPUT = fmin_powell(objectiveFunction, parameter_guess, full_output=1, maxiter=1000, disp=verbose)
     t1 = time()
 
     # Extract values from optimization output:
-    xopt = OUTPUT[0]        # Parameter that minimizes function.
+    xopt = OUTPUT[0]        # Parameters that minimize function.
     fopt = OUTPUT[1]        # Value of function at minimum: ``fopt = func(xopt)``.
     direc = OUTPUT[2]
     optiter = OUTPUT[3]     # Number of iterations performed.
@@ -99,10 +96,9 @@ def minimizePowell(objectiveFunction, parameter_guess, verbose=False):
     if warnflag != 0:
         warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) + ', direc=' + str(direc) + ', optiter=' + str(optiter) +', funcalls=' + str(funcalls) +', warnflag=' + str(warnflag))
 
-    # Display the results:
+    # Display and return the results:
     if verbose:
         print("Time to estimate is " + str(t1-t0) +  " seconds.")
-
     return xopt
 
 
@@ -125,8 +121,7 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
     -----------
     new_data : np.array
         A resampled version of input data.
-    '''
-    
+    '''   
     # Set up the random number generator
     RNG = np.random.RandomState(seed)
     N = data.shape[0]
@@ -143,4 +138,3 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
     # Create a bootstrapped sample
     new_data = deepcopy(data[indices,])
     return new_data
-    
