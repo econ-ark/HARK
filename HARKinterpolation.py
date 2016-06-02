@@ -1,135 +1,371 @@
 '''
 This module contains custom interpolation methods for representing approximations
-to functions.  Also includes wrapper classes to enforce standard methods across
-classes.  Each interpolation class must have a distance() method that compares
-itself to another instance (returning an arbitrarily large distance if the input
-is not of the same class); this is used in HARKcore's solve() method to check
-for solution convergence.
+to functions.  It also includes wrapper classes to enforce standard methods
+across classes.  Each interpolation class must have a distance() method that
+compares itself to another instance; this is used in HARKcore's solve() method
+to check for solution convergence.  The interpolator classes currently in this
+module inherit their distance method from HARKobject.
 '''
 
 import warnings
 import numpy as np
 from scipy.interpolate import UnivariateSpline
+from HARKcore import HARKobject
 from copy import deepcopy
 
 def _isscalar(x):
-    """Check whether x is if a scalar type, or 0-dim"""
+    '''
+    Check whether x is if a scalar type, or 0-dim.
+    
+    Parameters:
+    ------------
+    x : anything
+        An input to be checked for scalar-ness.
+        
+    Returns:
+    -----------
+    is_scalar : boolean
+        True if the input is a scalar, False otherwise.
+    '''
     return np.isscalar(x) or hasattr(x, 'shape') and x.shape == ()
 
 
-class HARKinterpolator1D():
+class HARKinterpolator1D(HARKobject):
     '''
     A wrapper class for 1D interpolation methods in HARK.
     '''
     def __call__(self,x):
+        '''
+        Evaluates the interpolated function at the given input.
+        
+        Parameters:
+        ------------
+        x : np.array or float
+            Real values to be evaluated in the interpolated function.
+        
+        Returns:
+        -----------
+        y : np.array or float
+            The interpolated function evaluated at x: y = f(x), with the same
+            shape as x.
+        '''
         z = np.asarray(x)
         return (self._evaluate(z.flatten())).reshape(z.shape)
         
     def derivative(self,x):
+        '''
+        Evaluates the derivative of the interpolated function at the given input.
+        
+        Parameters:
+        ------------
+        x : np.array or float
+            Real values to be evaluated in the interpolated function.
+        
+        Returns:
+        -----------
+        dydx : np.array or float
+            The interpolated function's first derivative evaluated at x:
+            dydx = f'(x), with the same shape as x.
+        '''
         z = np.asarray(x)
         return (self._der(z.flatten())).reshape(z.shape)
         
     def eval_with_derivative(self,x):
+        '''
+        Evaluates the interpolated function and its derivative at the given input.
+        
+        Parameters:
+        ------------
+        x : np.array or float
+            Real values to be evaluated in the interpolated function.
+        
+        Returns:
+        -----------
+        y : np.array or float
+            The interpolated function evaluated at x: y = f(x), with the same
+            shape as x.
+        dydx : np.array or float
+            The interpolated function's first derivative evaluated at x:
+            dydx = f'(x), with the same shape as x.
+        '''
         z = np.asarray(x)
         y, dydx = self._evalAndDer(z.flatten())
         return y.reshape(z.shape), dydx.reshape(z.shape)
         
     def _evaluate(self,x):
+        '''
+        Interpolated function evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
         
     def _der(self,x):
+        '''
+        Interpolated function derivative evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
         
     def _evalAndDer(self,x):
+        '''
+        Interpolated function and derivative evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
-        
-    def distance(self,other):
-        raise NotImplementedError()
- 
+
        
-        
-class HARKinterpolator2D():
+class HARKinterpolator2D(HARKobject):
     '''
     A wrapper class for 2D interpolation methods in HARK.
     '''
     def __call__(self,x,y):
+        '''
+        Evaluates the interpolated function at the given input.
+        
+        Parameters:
+        ------------
+        x : np.array or float
+            Real values to be evaluated in the interpolated function.
+        y : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as x.
+        
+        Returns:
+        -----------
+        fxy : np.array or float
+            The interpolated function evaluated at x,y: fxy = f(x,y), with the
+            same shape as x and y.
+        '''
         xa = np.asarray(x)
         ya = np.asarray(y)
         return (self._evaluate(xa.flatten(),ya.flatten())).reshape(xa.shape)
         
     def derivativeX(self,x,y):
+        '''
+        Evaluates the partial derivative of interpolated function with respect
+        to x (the first argument) at the given input.
+        
+        Parameters:
+        ------------
+        x : np.array or float
+            Real values to be evaluated in the interpolated function.
+        y : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as x.
+        
+        Returns:
+        -----------
+        dfdx : np.array or float
+            The derivative of the interpolated function with respect to x, eval-
+            uated at x,y: dfdx = f_x(x,y), with the same shape as x and y.
+        '''
         xa = np.asarray(x)
         ya = np.asarray(y)
         return (self._derX(xa.flatten(),ya.flatten())).reshape(xa.shape)
         
     def derivativeY(self,x,y):
+        '''
+        Evaluates the partial derivative of interpolated function with respect
+        to y (the second argument) at the given input.
+        
+        Parameters:
+        ------------
+        x : np.array or float
+            Real values to be evaluated in the interpolated function.
+        y : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as x.
+        
+        Returns:
+        -----------
+        dfdy : np.array or float
+            The derivative of the interpolated function with respect to y, eval-
+            uated at x,y: dfdx = f_y(x,y), with the same shape as x and y.
+        '''
         xa = np.asarray(x)
         ya = np.asarray(y)
         return (self._derY(xa.flatten(),ya.flatten())).reshape(xa.shape)
         
     def _evaluate(self,x,y):
+        '''
+        Interpolated function evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
         
     def _derX(self,x,y):
+        '''
+        Interpolated function x-derivative evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
         
     def _derY(self,x,y):
-        raise NotImplementedError()
-        
-    def distance(self,other):
+        '''
+        Interpolated function y-derivative evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
 
-
         
-class HARKinterpolator3D():
+class HARKinterpolator3D(HARKobject):
     '''
     A wrapper class for 3D interpolation methods in HARK.
     '''
     def __call__(self,x,y,z):
+        '''
+        Evaluates the interpolated function at the given input.
+        
+        Parameters:
+        ------------
+        x : np.array or float
+            Real values to be evaluated in the interpolated function.
+        y : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as x.
+        z : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as x.
+        
+        Returns:
+        -----------
+        fxyz : np.array or float
+            The interpolated function evaluated at x,y,z: fxyz = f(x,y,z), with
+            the same shape as x, y, and z.
+        '''
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
         return (self._evaluate(xa.flatten(),ya.flatten(),za.flatten())).reshape(xa.shape)
         
     def derivativeX(self,x,y,z):
+        '''
+        Evaluates the partial derivative of the interpolated function with respect
+        to x (the first argument) at the given input.
+        
+        Parameters:
+        ------------
+        x : np.array or float
+            Real values to be evaluated in the interpolated function.
+        y : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as x.
+        z : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as x.
+        
+        Returns:
+        -----------
+        dfdx : np.array or float
+            The derivative with respect to x of the interpolated function evaluated
+            at x,y,z: dfdx = f_x(x,y,z), with the same shape as x, y, and z.
+        '''
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
         return (self._derX(xa.flatten(),ya.flatten(),za.flatten())).reshape(xa.shape)
         
     def derivativeY(self,x,y,z):
+        '''
+        Evaluates the partial derivative of the interpolated function with respect
+        to y (the second argument) at the given input.
+        
+        Parameters:
+        ------------
+        x : np.array or float
+            Real values to be evaluated in the interpolated function.
+        y : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as x.
+        z : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as x.
+        
+        Returns:
+        -----------
+        dfdy : np.array or float
+            The derivative with respect to y of the interpolated function evaluated
+            at x,y,z: dfdy = f_y(x,y,z), with the same shape as x, y, and z.
+        '''
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
         return (self._derY(xa.flatten(),ya.flatten(),za.flatten())).reshape(xa.shape)
         
     def derivativeZ(self,x,y,z):
+        '''
+        Evaluates the partial derivative of the interpolated function with respect
+        to z (the third argument) at the given input.
+        
+        Parameters:
+        ------------
+        x : np.array or float
+            Real values to be evaluated in the interpolated function.
+        y : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as x.
+        z : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as x.
+        
+        Returns:
+        -----------
+        dfdz : np.array or float
+            The derivative with respect to z of the interpolated function evaluated
+            at x,y,z: dfdz = f_z(x,y,z), with the same shape as x, y, and z.
+        '''
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
         return (self._derZ(xa.flatten(),ya.flatten(),za.flatten())).reshape(xa.shape)
         
     def _evaluate(self,x,y,z):
+        '''
+        Interpolated function evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
         
     def _derX(self,x,y,z):
+        '''
+        Interpolated function x-derivative evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
         
     def _derY(self,x,y,z):
+        '''
+        Interpolated function y-derivative evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
         
     def _derZ(self,x,y,z):
+        '''
+        Interpolated function y-derivative evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
         
-    def distance(self,other):
-        raise NotImplementedError()
         
-        
-class HARKinterpolator4D():
+class HARKinterpolator4D(HARKobject):
     '''
     A wrapper class for 4D interpolation methods in HARK.
     '''
     def __call__(self,w,x,y,z):
+        '''
+        Evaluates the interpolated function at the given input.
+        
+        Parameters:
+        ------------
+        w : np.array or float
+            Real values to be evaluated in the interpolated function.
+        x : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        y : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        z : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        
+        Returns:
+        -----------
+        fwxyz : np.array or float
+            The interpolated function evaluated at w,x,y,z: fwxyz = f(w,x,y,z),
+            with the same shape as w, x, y, and z.
+        '''
         wa = np.asarray(w)
         xa = np.asarray(x)
         ya = np.asarray(y)
@@ -137,6 +373,30 @@ class HARKinterpolator4D():
         return (self._evaluate(wa.flatten(),xa.flatten(),ya.flatten(),za.flatten())).reshape(wa.shape)
 
     def derivativeW(self,w,x,y,z):
+        '''
+        Evaluates the partial derivative with respect to w (the first argument)
+        of the interpolated function at the given input.
+        
+        Parameters:
+        ------------
+        w : np.array or float
+            Real values to be evaluated in the interpolated function.
+        x : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        y : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        z : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        
+        Returns:
+        -----------
+        dfdw : np.array or float
+            The derivative with respect to w of the interpolated function eval-
+            uated at w,x,y,z: dfdw = f_w(w,x,y,z), with the same shape as inputs.
+        '''
         wa = np.asarray(w)
         xa = np.asarray(x)
         ya = np.asarray(y)
@@ -144,6 +404,30 @@ class HARKinterpolator4D():
         return (self._derW(wa.flatten(),xa.flatten(),ya.flatten(),za.flatten())).reshape(wa.shape)
 
     def derivativeX(self,w,x,y,z):
+        '''
+        Evaluates the partial derivative with respect to x (the second argument)
+        of the interpolated function at the given input.
+        
+        Parameters:
+        ------------
+        w : np.array or float
+            Real values to be evaluated in the interpolated function.
+        x : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        y : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        z : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        
+        Returns:
+        -----------
+        dfdx : np.array or float
+            The derivative with respect to x of the interpolated function eval-
+            uated at w,x,y,z: dfdx = f_x(w,x,y,z), with the same shape as inputs.
+        '''
         wa = np.asarray(w)
         xa = np.asarray(x)
         ya = np.asarray(y)
@@ -151,6 +435,30 @@ class HARKinterpolator4D():
         return (self._derX(wa.flatten(),xa.flatten(),ya.flatten(),za.flatten())).reshape(wa.shape)
         
     def derivativeY(self,w,x,y,z):
+        '''
+        Evaluates the partial derivative with respect to y (the third argument)
+        of the interpolated function at the given input.
+        
+        Parameters:
+        ------------
+        w : np.array or float
+            Real values to be evaluated in the interpolated function.
+        x : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        y : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        z : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        
+        Returns:
+        -----------
+        dfdy : np.array or float
+            The derivative with respect to y of the interpolated function eval-
+            uated at w,x,y,z: dfdy = f_y(w,x,y,z), with the same shape as inputs.
+        '''
         wa = np.asarray(w)
         xa = np.asarray(x)
         ya = np.asarray(y)
@@ -158,6 +466,30 @@ class HARKinterpolator4D():
         return (self._derY(wa.flatten(),xa.flatten(),ya.flatten(),za.flatten())).reshape(wa.shape)
 
     def derivativeZ(self,w,x,y,z):
+        '''
+        Evaluates the partial derivative with respect to z (the fourth argument)
+        of the interpolated function at the given input.
+        
+        Parameters:
+        ------------
+        w : np.array or float
+            Real values to be evaluated in the interpolated function.
+        x : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        y : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        z : np.array or float
+            Real values to be evaluated in the interpolated function; must be
+            the same size as w.
+        
+        Returns:
+        -----------
+        dfdz : np.array or float
+            The derivative with respect to z of the interpolated function eval-
+            uated at w,x,y,z: dfdz = f_z(w,x,y,z), with the same shape as inputs.
+        '''
         wa = np.asarray(w)
         xa = np.asarray(x)
         ya = np.asarray(y)
@@ -165,48 +497,66 @@ class HARKinterpolator4D():
         return (self._derZ(wa.flatten(),xa.flatten(),ya.flatten(),za.flatten())).reshape(wa.shape)
         
     def _evaluate(self,w,x,y,z):
+        '''
+        Interpolated function evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
         
     def _derW(self,w,x,y,z):
+        '''
+        Interpolated function w-derivative evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
         
     def _derX(self,w,x,y,z):
+        '''
+        Interpolated function w-derivative evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
         
     def _derY(self,w,x,y,z):
+        '''
+        Interpolated function w-derivative evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
         
     def _derZ(self,w,x,y,z):
-        raise NotImplementedError()
-        
-    def distance(self,other):
+        '''
+        Interpolated function w-derivative evaluator, to be defined in subclasses.
+        '''
         raise NotImplementedError()
 
 
 class CubicInterp(HARKinterpolator1D):
-    """
-    An interpolating function using piecewise cubic splines and "decay extrapolation"
-    above the highest gridpoint.  Matches level and slope of 1D function at gridpoints,
-    smoothly interpolating in between.  Extrapolation above highest gridpoint approaches
-    the limiting linear function y = b_limit + m_limit*x.
-    """ 
-
-    def __init__(self,x_list,y_list,dydx_list,b_limit=None,m_limit=None,lower_extrap=False):
+    '''
+    An interpolating function using piecewise cubic splines.  Matches level and
+    slope of 1D function at gridpoints, smoothly interpolating in between.
+    Extrapolation above highest gridpoint approaches a limiting linear function
+    if desired (linear extrapolation also enabled.)
+    '''
+    def __init__(self,x_list,y_list,dydx_list,intercept_limit=None,slope_limit=None,lower_extrap=False):
         '''
-        The interpolation constructor.
+        The interpolation constructor to make a new cubic spline interpolation.
         
         Parameters:
-        -----------
-        x_list : [float]
+        ------------
+        x_list : np.array
             List of x values composing the grid.
-        y_list : [float]
+        y_list : np.array
             List of y values, representing f(x) at the points in x_list.
-        dydx_list : [float]
-            List of dydx
-        b_limit : float
+        dydx_list : np.array
+            List of dydx values, representing f'(x) at the points in x_list
+        intercept_limit : float
             Intercept of limiting linear function.
-        m_limit : float
+        slope_limit : float
             Slope of limiting linear function.
+        lower_extrap : boolean
+            Indicator for whether lower extrapolation is allowed.  False means
+            f(x) = NaN for x < min(x_list); True means linear extrapolation.
+            
+        Returns:
+        -----------
+        new instance of CubicInterp
             
         NOTE: When no input is given for the limiting linear function, linear
         extrapolation is used above the highest gridpoint.        
@@ -215,6 +565,7 @@ class CubicInterp(HARKinterpolator1D):
         self.y_list = np.asarray(y_list)
         self.dydx_list = np.asarray(dydx_list)
         self.n = len(x_list)
+        self.convergence_criteria = ['x_list','y_list','dydx_list']
         
         # Define lower extrapolation as linear function (or just NaN)
         if lower_extrap:
@@ -236,24 +587,24 @@ class CubicInterp(HARKinterpolator1D):
            self.coeffs.append(temp)
 
         # Calculate extrapolation coefficients as a decay toward limiting function y = mx+b
-        if m_limit is None and b_limit is None:
-            m_limit = dydx_list[-1]
-            b_limit = y_list[-1] - m_limit*x_list[-1]
-        gap = m_limit*x1 + b_limit - y1
-        slope = m_limit - dydx_list[self.n-1]
+        if slope_limit is None and intercept_limit is None:
+            slope_limit = dydx_list[-1]
+            intercept_limit = y_list[-1] - slope_limit*x_list[-1]
+        gap = slope_limit*x1 + intercept_limit - y1
+        slope = slope_limit - dydx_list[self.n-1]
         if (gap != 0) and (slope <= 0):
-            temp = [b_limit, m_limit, gap, slope/gap]
+            temp = [intercept_limit, slope_limit, gap, slope/gap]
         elif slope > 0:
-            temp = [b_limit, m_limit, 0, 0] # fixing a problem when slope is positive
+            temp = [intercept_limit, slope_limit, 0, 0] # fixing a problem when slope is positive
         else:
-            temp = [b_limit, m_limit, gap, 0]
+            temp = [intercept_limit, slope_limit, gap, 0]
         self.coeffs.append(temp)
         self.coeffs = np.array(self.coeffs)
 
-
     def _evaluate(self,x):
         '''
-        Returns the level of the function at each value in x.
+        Returns the level of the interpolated function at each value in x.  Only
+        called internally by HARKinterpolator1D.__call__ (etc).
         '''
         if _isscalar(x):
             pos = np.searchsorted(self.x_list,x)
@@ -286,10 +637,10 @@ class CubicInterp(HARKinterpolator1D):
                 y[out_top] = self.coeffs[self.n,0] + x[out_top]*self.coeffs[self.n,1] - self.coeffs[self.n,2]*np.exp(alpha*self.coeffs[self.n,3])                      
         return y
 
-
     def _der(self,x):
         '''
-        Returns the first derivative of the function at each value in x.
+        Returns the first derivative of the interpolated function at each value
+        in x. Only called internally by HARKinterpolator1D.derivative (etc).
         '''
         if _isscalar(x):
             pos = np.searchsorted(self.x_list,x)
@@ -325,7 +676,8 @@ class CubicInterp(HARKinterpolator1D):
 
     def _evalAndDer(self,x):
         '''
-        Returns the level and first derivative of the function at each value in x.
+        Returns the level and first derivative of the function at each value in
+        x.  Only called internally by HARKinterpolator1D.eval_and_der (etc).
         '''
         if _isscalar(x):
             pos = np.searchsorted(self.x_list,x)
@@ -365,44 +717,50 @@ class CubicInterp(HARKinterpolator1D):
                 dydx[out_top] = self.coeffs[self.n,1] - self.coeffs[self.n,2]*self.coeffs[self.n,3]*np.exp(alpha*self.coeffs[self.n,3])
         return y, dydx
 
-    def distance(self,other_function):
-        '''
-        The distance between two instances of the class is the largest difference
-        in x values or y values.  If the instances have different numbers of gridpoints,
-        then the difference in the number of gridpoints is returned instead.
-        '''
-        other_class = other_function.__class__.__name__
-        if other_class is not 'CubicInterp':
-            return 1000000
-        xA = self.x_list
-        xB = other_function.x_list
-        yA = self.y_list
-        yB = other_function.y_list
-        dydxA = self.dydx_list
-        dydxB = other_function.dydx_list
-        if (self.n == other_function.n):            
-            x_dist = np.max(np.abs(np.subtract(xA,xB)))
-            y_dist = np.max(np.abs(np.subtract(yA,yB)))
-            dydx_dist = np.max(np.abs(np.subtract(dydxA,dydxB)))
-            
-            dist = max([x_dist,y_dist,dydx_dist])
-        else:
-            dist = np.abs(self.n - other_function.n)
-        return dist
-
 
 class LinearInterp(HARKinterpolator1D):
     '''
-    A slight extension of scipy.interpolate's UnivariateSpline for linear interpolation.
-    Adds a distance method to allow convergence checks.
+    A slight extension of scipy.interpolate's UnivariateSpline for linear inter-
+    polation.  Allows for linear or decay extrapolation (approaching a limiting
+    linear function from below).
+    
     '''
-    def __init__(self,x,y,intercept_limit=None,slope_limit=None,lower_extrap=False):
-        self.function = UnivariateSpline(x,y,k=1,s=0)
+    def __init__(self,x_list,y_list,intercept_limit=None,slope_limit=None,lower_extrap=False):
+        '''
+        The interpolation constructor to make a new linear spline interpolation.
+        
+        Parameters:
+        ------------
+        x_list : np.array
+            List of x values composing the grid.
+        y_list : np.array
+            List of y values, representing f(x) at the points in x_list.
+        intercept_limit : float
+            Intercept of limiting linear function.
+        slope_limit : float
+            Slope of limiting linear function.
+        lower_extrap : boolean
+            Indicator for whether lower extrapolation is allowed.  False means
+            f(x) = NaN for x < min(x_list); True means linear extrapolation.
+            
+        Returns:
+        -----------
+        new instance of LinearInterp
+            
+        NOTE: When no input is given for the limiting linear function, linear
+        extrapolation is used above the highest gridpoint.        
+        '''
+        # Make the basic linear spline interpolation
+        self.x_list = x_list
+        self.y_list = y_list
+        self.function = UnivariateSpline(x_list,y_list,k=1,s=0)
         self.lower_extrap = lower_extrap
+        self.convergence_criteria = ['x_list','y_list']
+        
         # Make a decay extrapolation
         if intercept_limit is not None and slope_limit is not None:
-            slope_at_top = self.function(x[-1],1)
-            level_diff = intercept_limit + slope_limit*x[-1] - y[-1]
+            slope_at_top = self.function(x_list[-1],1)
+            level_diff = intercept_limit + slope_limit*x_list[-1] - y_list[-1]
             slope_diff = slope_limit - slope_at_top
             self.decay_extrap_A = level_diff
             self.decay_extrap_B = -slope_diff/level_diff
@@ -413,6 +771,10 @@ class LinearInterp(HARKinterpolator1D):
             self.decay_extrap = False
         
     def _evaluate(self,x):
+        '''
+        Returns the level of the interpolated function at each value in x.  Only
+        called internally by HARKinterpolator1D.__call__ (etc).
+        '''
         out = self.function(x)
         if not self.lower_extrap:
             below_lower_bound = x < self.function._data[0][0]
@@ -424,6 +786,10 @@ class LinearInterp(HARKinterpolator1D):
         return out
         
     def _der(self,x):
+        '''
+        Returns the first derivative of the interpolated function at each value
+        in x. Only called internally by HARKinterpolator1D.derivative (etc).
+        '''
         out = self.function(x,1)
         if not self.lower_extrap:
             below_lower_bound = x < self.function._data[0][0]
@@ -435,6 +801,10 @@ class LinearInterp(HARKinterpolator1D):
         return out
         
     def _evalAndDer(self,x):
+        '''
+        Returns the level and first derivative of the function at each value in
+        x.  Only called internally by HARKinterpolator1D.eval_and_der (etc).
+        '''
         out1 = self.function(x)
         out2 = self.function(x,1)
         if not self.lower_extrap:
@@ -447,27 +817,6 @@ class LinearInterp(HARKinterpolator1D):
             out1[above_upper_bound] = self.intercept_limit + self.slope_limit*x[above_upper_bound] - self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
             out2[above_upper_bound] = self.slope_limit + self.decay_extrap_B*self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
         return out1, out2
-
-    def distance(self,other_func):
-        '''
-        The distance between two instances of the class is the largest difference
-        in x values or y values.  If the instances have different numbers of gridpoints,
-        then the difference in the number of gridpoints is returned instead.
-        '''
-        other_class = other_func.__class__.__name__
-        if other_class is not 'LinearInterp':
-            return 1000000
-        xA = self.function._data[0]
-        xB = other_func.function._data[0]
-        yA = self.function._data[1]
-        yB = other_func.function._data[1]
-        if (xA.size == xB.size):
-            x_dist = np.max(np.abs(xA - xB))
-            y_dist = np.max(np.abs(yA - yB))
-            dist = max(x_dist,y_dist)
-        else:
-            dist = np.abs(xA.size - xB.size)
-        return dist
         
         
 class BilinearInterp(HARKinterpolator2D):
@@ -476,8 +825,10 @@ class BilinearInterp(HARKinterpolator2D):
     '''
     def __init__(self,f_values,x_list,y_list,xSearchFunc=None,ySearchFunc=None):
         '''
+        Constructor to make a new bilinear interpolation.
+        
         Parameters:
-        -------------
+        ------------
         f_values : numpy.array
             An array of size (x_n,y_n) such that f_values[i,j] = f(x_list[i],y_list[j])
         x_list : numpy.array
@@ -490,6 +841,10 @@ class BilinearInterp(HARKinterpolator2D):
         ySearchFunc : function
             An optional function that returns the reference location for y values:
             indices = ySearchFunc(y_list,y).  Default is np.searchsorted
+            
+        Returns:
+        ----------
+        a new instance of BilinearInterp
         '''
         self.f_values = f_values
         self.x_list = x_list
@@ -502,8 +857,13 @@ class BilinearInterp(HARKinterpolator2D):
             ySearchFunc = np.searchsorted
         self.xSearchFunc = xSearchFunc
         self.ySearchFunc = ySearchFunc
+        self.convergence_criteria = ['x_list','y_list','f_values']
         
     def _evaluate(self,x,y):
+        '''
+        Returns the level of the interpolated function at each value in x,y.
+        Only called internally by HARKinterpolator2D.__call__ (etc).
+        '''
         if _isscalar(x):
             x_pos = max(min(self.xSearchFunc(self.x_list,x),self.x_n-1),1)
             y_pos = max(min(self.ySearchFunc(self.y_list,y),self.y_n-1),1)
@@ -524,6 +884,10 @@ class BilinearInterp(HARKinterpolator2D):
         return f
         
     def _derX(self,x,y):
+        '''
+        Returns the derivative with respect to x of the interpolated function
+        at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
+        '''
         if _isscalar(x):
             x_pos = max(min(self.xSearchFunc(self.x_list,x),self.x_n-1),1)
             y_pos = max(min(self.ySearchFunc(self.y_list,y),self.y_n-1),1)
@@ -543,6 +907,10 @@ class BilinearInterp(HARKinterpolator2D):
         return dfdx
         
     def _derY(self,x,y):
+        '''
+        Returns the derivative with respect to y of the interpolated function
+        at each value in x,y. Only called internally by HARKinterpolator2D.derivativeY.
+        '''
         if _isscalar(x):
             x_pos = max(min(self.xSearchFunc(self.x_list,x),self.x_n-1),1)
             y_pos = max(min(self.ySearchFunc(self.y_list,y),self.y_n-1),1)
@@ -560,18 +928,6 @@ class BilinearInterp(HARKinterpolator2D):
               ((1-alpha)*self.f_values[x_pos-1,y_pos]
             +  alpha*self.f_values[x_pos-1,y_pos-1]))/(self.y_list[y_pos] - self.y_list[y_pos-1])
         return dfdy
-        
-    def distance(self,other):
-        other_class = other.__class__.__name__
-        if other_class is not 'BilinearInterp':
-            return 1000000
-        if (self.x_n != other.x_n) or (self.y_n != other.y_n):
-            return max(abs(self.x_n - other.x_n), abs(self.y_n - other.y_n))
-        f_dist = np.max(np.abs(self.f_values - other.f_values))
-        x_dist = np.max(np.abs(self.x_list - other.x_list))
-        y_dist = np.max(np.abs(self.y_list - other.y_list))
-        return max(f_dist,x_dist,y_dist)
-
 
 
 class TrilinearInterp(HARKinterpolator3D):
@@ -580,10 +936,13 @@ class TrilinearInterp(HARKinterpolator3D):
     '''
     def __init__(self,f_values,x_list,y_list,z_list,xSearchFunc=None,ySearchFunc=None,zSearchFunc=None):
         '''
+        Constructor to make a new trilinear interpolation.
+        
         Parameters:
         -------------
         f_values : numpy.array
-            An array of size (x_n,y_n,z_n) such that f_values[i,j,k] = f(x_list[i],y_list[j],z_list[k])
+            An array of size (x_n,y_n,z_n) such that f_values[i,j,k] =
+            f(x_list[i],y_list[j],z_list[k])
         x_list : numpy.array
             An array of x values, with length designated x_n.
         y_list : numpy.array
@@ -599,6 +958,10 @@ class TrilinearInterp(HARKinterpolator3D):
         zSearchFunc : function
             An optional function that returns the reference location for z values:
             indices = zSearchFunc(z_list,z).  Default is np.searchsorted
+            
+        Returns:
+        ----------
+        new instance of TrilinearInterp
         '''
         self.f_values = f_values
         self.x_list = x_list
@@ -616,8 +979,13 @@ class TrilinearInterp(HARKinterpolator3D):
         self.xSearchFunc = xSearchFunc
         self.ySearchFunc = ySearchFunc
         self.zSearchFunc = zSearchFunc
+        self.convergence_criteria = ['f_values','x_list','y_list','z_list']
         
     def _evaluate(self,x,y,z):
+        '''
+        Returns the level of the interpolated function at each value in x,y,z.
+        Only called internally by HARKinterpolator3D.__call__ (etc).
+        '''
         if _isscalar(x):
             x_pos = max(min(self.xSearchFunc(self.x_list,x),self.x_n-1),1)
             y_pos = max(min(self.ySearchFunc(self.y_list,y),self.y_n-1),1)
@@ -647,6 +1015,10 @@ class TrilinearInterp(HARKinterpolator3D):
         return f
         
     def _derX(self,x,y,z):
+        '''
+        Returns the derivative with respect to x of the interpolated function
+        at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeX.
+        '''
         if _isscalar(x):
             x_pos = max(min(self.xSearchFunc(self.x_list,x),self.x_n-1),1)
             y_pos = max(min(self.ySearchFunc(self.y_list,y),self.y_n-1),1)
@@ -675,6 +1047,10 @@ class TrilinearInterp(HARKinterpolator3D):
         return dfdx
         
     def _derY(self,x,y,z):
+        '''
+        Returns the derivative with respect to y of the interpolated function
+        at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeY.
+        '''
         if _isscalar(x):
             x_pos = max(min(self.xSearchFunc(self.x_list,x),self.x_n-1),1)
             y_pos = max(min(self.ySearchFunc(self.y_list,y),self.y_n-1),1)
@@ -703,6 +1079,10 @@ class TrilinearInterp(HARKinterpolator3D):
         return dfdy
         
     def _derZ(self,x,y,z):
+        '''
+        Returns the derivative with respect to z of the interpolated function
+        at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeZ.
+        '''
         if _isscalar(x):
             x_pos = max(min(self.xSearchFunc(self.x_list,x),self.x_n-1),1)
             y_pos = max(min(self.ySearchFunc(self.y_list,y),self.y_n-1),1)
@@ -730,19 +1110,6 @@ class TrilinearInterp(HARKinterpolator3D):
            +  alpha*beta*self.f_values[x_pos,y_pos,z_pos-1]))/(self.z_list[z_pos] - self.z_list[z_pos-1])
         return dfdz
         
-    def distance(self,other):
-        other_class = other.__class__.__name__
-        if other_class is not 'TrilinearInterp':
-            return 1000000
-        if (self.x_n != other.x_n) or (self.y_n != other.y_n) or (self.z_n != other.z_n):
-            return max(abs(self.x_n - other.x_n), abs(self.y_n - other.y_n), abs(self.z_n - other.z_n))
-        f_dist = np.max(np.abs(self.f_values - other.f_values))
-        x_dist = np.max(np.abs(self.x_list - other.x_list))
-        y_dist = np.max(np.abs(self.y_list - other.y_list))
-        z_dist = np.max(np.abs(self.z_list - other.z_list))
-        return max(f_dist,x_dist,y_dist,z_dist)
-        
-
 
 class QuadlinearInterp(HARKinterpolator4D):
     '''
@@ -750,10 +1117,13 @@ class QuadlinearInterp(HARKinterpolator4D):
     '''
     def __init__(self,f_values,w_list,x_list,y_list,z_list,wSearchFunc=None,xSearchFunc=None,ySearchFunc=None,zSearchFunc=None):
         '''
+        Constructor to make a new quadlinear interpolation.
+        
         Parameters:
         -------------
         f_values : numpy.array
-            An array of size (w_n,x_n,y_n,z_n) such that f_values[i,j,k,l] = f(w_list[i],x_list[j],y_list[k],z_list[l])
+            An array of size (w_n,x_n,y_n,z_n) such that f_values[i,j,k,l] =
+            f(w_list[i],x_list[j],y_list[k],z_list[l])
         w_list : numpy.array
             An array of x values, with length designated w_n.
         x_list : numpy.array
@@ -774,6 +1144,10 @@ class QuadlinearInterp(HARKinterpolator4D):
         zSearchFunc : function
             An optional function that returns the reference location for z values:
             indices = zSearchFunc(z_list,z).  Default is np.searchsorted
+            
+        Returns:
+        ----------
+        new instance of QuadlinearInterp
         '''
         self.f_values = f_values
         self.w_list = w_list
@@ -796,8 +1170,13 @@ class QuadlinearInterp(HARKinterpolator4D):
         self.xSearchFunc = xSearchFunc
         self.ySearchFunc = ySearchFunc
         self.zSearchFunc = zSearchFunc
+        self.convergence_criteria = ['f_values','w_list','x_list','y_list','z_list']
         
     def _evaluate(self,w,x,y,z):
+        '''
+        Returns the level of the interpolated function at each value in x,y,z.
+        Only called internally by HARKinterpolator4D.__call__ (etc).
+        '''
         if _isscalar(w):
             w_pos = max(min(self.wSearchFunc(self.w_list,w),self.w_n-1),1)
             x_pos = max(min(self.xSearchFunc(self.x_list,x),self.x_n-1),1)
@@ -844,6 +1223,10 @@ class QuadlinearInterp(HARKinterpolator4D):
         return f
         
     def _derW(self,w,x,y,z):
+        '''
+        Returns the derivative with respect to w of the interpolated function
+        at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeW.
+        '''
         if _isscalar(w):
             w_pos = max(min(self.wSearchFunc(self.w_list,w),self.w_n-1),1)
             x_pos = max(min(self.xSearchFunc(self.x_list,x),self.x_n-1),1)
@@ -890,6 +1273,10 @@ class QuadlinearInterp(HARKinterpolator4D):
         return dfdw
         
     def _derX(self,w,x,y,z):
+        '''
+        Returns the derivative with respect to x of the interpolated function
+        at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeX.
+        '''
         if _isscalar(w):
             w_pos = max(min(self.wSearchFunc(self.w_list,w),self.w_n-1),1)
             x_pos = max(min(self.xSearchFunc(self.x_list,x),self.x_n-1),1)
@@ -936,6 +1323,10 @@ class QuadlinearInterp(HARKinterpolator4D):
         return dfdx
         
     def _derY(self,w,x,y,z):
+        '''
+        Returns the derivative with respect to y of the interpolated function
+        at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeY.
+        '''
         if _isscalar(w):
             w_pos = max(min(self.wSearchFunc(self.w_list,w),self.w_n-1),1)
             x_pos = max(min(self.xSearchFunc(self.x_list,x),self.x_n-1),1)
@@ -982,6 +1373,10 @@ class QuadlinearInterp(HARKinterpolator4D):
         return dfdy
         
     def _derZ(self,w,x,y,z):
+        '''
+        Returns the derivative with respect to z of the interpolated function
+        at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeZ.
+        '''
         if _isscalar(w):
             w_pos = max(min(self.wSearchFunc(self.w_list,w),self.w_n-1),1)
             x_pos = max(min(self.xSearchFunc(self.x_list,x),self.x_n-1),1)
@@ -1027,41 +1422,37 @@ class QuadlinearInterp(HARKinterpolator4D):
               )/(self.z_list[l] - self.z_list[l-1])
         return dfdz
         
-    def distance(self,other):
-        other_class = other.__class__.__name__
-        if other_class is not 'QuadlinearInterp':
-            return 1000000
-        if (self.w_n != other.w_n) or (self.x_n != other.x_n) or (self.y_n != other.y_n) or (self.z_n != other.z_n):
-            return max(abs(self.w_n - other.w_n), abs(self.x_n - other.x_n), abs(self.y_n - other.y_n), abs(self.z_n - other.z_n))
-        f_dist = np.max(np.abs(self.f_values - other.f_values))
-        w_dist = np.max(np.abs(self.w_list - other.w_list))
-        x_dist = np.max(np.abs(self.x_list - other.x_list))
-        y_dist = np.max(np.abs(self.y_list - other.y_list))
-        z_dist = np.max(np.abs(self.z_list - other.z_list))
-        return max(f_dist,w_dist,x_dist,y_dist,z_dist)
-        
-
 
 class LowerEnvelope(HARKinterpolator1D):
-    """
+    '''
     The lower envelope of a finite set of 1D functions, each of which can be of
     any class that has the methods __call__, derivative, and eval_with_derivative.
     Generally: it combines HARKinterpolator1Ds. 
-    """ 
+    ''' 
 
     def __init__(self,*functions):
         '''
-        Constructor method for the interpolation.
+        Constructor to make a new lower envelope iterpolation.
+        
+        Parameters:
+        ------------
+        *functions : function
+            Any number of real functions; often instances of HARKinterpolator1D
+            
+        Returns:
+        -----------
+        new instance of LowerEnvelope
         '''
         self.functions = []
         for function in functions:
             self.functions.append(function)
         self.funcCount = len(self.functions)
+        self.convergence_criteria = ['functions']
 
     def _evaluate(self,x):
         '''
         Returns the level of the function at each value in x as the minimum among
-        all of the functions.
+        all of the functions.  Only called internally by HARKinterpolator1D.__call__.
         '''
         if _isscalar(x):
             y = np.nanmin([f(x) for f in self.functions])
@@ -1075,14 +1466,16 @@ class LowerEnvelope(HARKinterpolator1D):
 
     def _der(self,x):
         '''
-        Returns the first derivative of the function at each value in x.
+        Returns the first derivative of the function at each value in x.  Only
+        called internally by HARKinterpolator1D.derivative.
         '''
         y,dydx = self.eval_with_derivative(x)
         return dydx  # Sadly, this is the fastest / most convenient way...
 
     def _evalAndDer(self,x):
         '''
-        Returns the level and first derivative of the function at each value in x.
+        Returns the level and first derivative of the function at each value in
+        x.  Only called internally by HARKinterpolator1D.eval_and_der.
         '''
         m = len(x)
         fx = np.zeros((m,self.funcCount))
@@ -1097,25 +1490,11 @@ class LowerEnvelope(HARKinterpolator1D):
             dydx[c] = self.functions[j].derivative(x[c])
         return y,dydx
     
-    def distance(self,function_other):
-        '''
-        Returns the distance between this instance and another instance of the class.
-        The distance is the distance between the corresponding unconstrained functions.
-        '''
-        if self.funcCount == function_other.funcCount:
-            dist_list = np.zeros(self.funcCount)
-            for j in range(self.funcCount):
-                dist_list[j] = self.functions[j].distance(function_other.functions[j])
-            return np.max(dist_list)
-        else:
-            return 100*np.abs(self.funcCount - function_other.funcCount)
 
-
-'''
-A 2D interpolator that linearly interpolates among a list of 1D interpolators.
-'''
 class LinearInterpOnInterp1D(HARKinterpolator2D):
-    
+    '''
+    A 2D interpolator that linearly interpolates among a list of 1D interpolators.
+    '''    
     def __init__(self,xInterpolators,y_values):
         '''
         Constructor for the class, generating an approximation to a function of
@@ -1129,12 +1508,21 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
             xInterpolators represents f(x,y_values[n]).
         y_values: numpy.array
             An array of y values equal in length to xInterpolators.
+            
+        Returns:
+        ----------
+        new instance of LinearInterpOnInterp1D
         '''
         self.xInterpolators = xInterpolators
         self.y_list = y_values
         self.y_n = y_values.size
+        self.convergence_criteria = ['xInterpolators','y_list']
         
     def _evaluate(self,x,y):
+        '''
+        Returns the level of the interpolated function at each value in x,y.
+        Only called internally by HARKinterpolator2D.__call__ (etc).
+        '''
         if _isscalar(x):
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
             alpha = (y - self.y_list[y_pos-1])/(self.y_list[y_pos] - self.y_list[y_pos-1])
@@ -1154,6 +1542,10 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
         return f
         
     def _derX(self,x,y):
+        '''
+        Returns the derivative with respect to x of the interpolated function
+        at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
+        '''
         if _isscalar(x):
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
             alpha = (y - self.y_list[y_pos-1])/(self.y_list[y_pos] - self.y_list[y_pos-1])
@@ -1173,6 +1565,10 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
         return dfdx
         
     def _derY(self,x,y):
+        '''
+        Returns the derivative with respect to y of the interpolated function
+        at each value in x,y. Only called internally by HARKinterpolator2D.derivativeY.
+        '''
         if _isscalar(x):
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
             dfdy = (self.xInterpolators[y_pos](x) - self.xInterpolators[y_pos-1](x))/(self.y_list[y_pos] - self.y_list[y_pos-1])
@@ -1188,32 +1584,13 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
                     if np.any(c):
                         dfdy[c] = (self.xInterpolators[i](x[c]) - self.xInterpolators[i-1](x[c]))/(self.y_list[i] - self.y_list[i-1])
         return dfdy
-        
-    def distance(self,other_func):
-        '''
-        Distance between one instance and another is the greater of the maximum
-        of the distance between corresponding xInterpolators and the maximum of
-        the distance between corresponding y_list values.
-        '''
-        other_class = other_func.__class__.__name__
-        if other_class is not 'LinearInterpOnInterp1D':
-            return 1000000
-        if self.y_n != other_func.y_n:
-            return np.abs(self.y_n - other_func.y_n)
-        x_dist_vec = np.zeros(self.y_n) + np.nan
-        for j in range(self.y_n):
-            x_dist_vec[j] = self.xInterpolators[j].distance(other_func.xInterpolators[j])
-        y_dist_vec = np.abs(self.y_list - other_func.y_list)
-        x_dist = np.max(x_dist_vec)
-        y_dist = np.max(y_dist_vec)
-        return max(x_dist,y_dist)
-        
-        
-'''
-A 3D interpolator that bilinearly interpolates among a list of lists of 1D interpolators.
-'''
+
+
 class BilinearInterpOnInterp1D(HARKinterpolator3D):
-    
+    '''
+    A 3D interpolator that bilinearly interpolates among a list of lists of 1D
+    interpolators.
+    '''
     def __init__(self,xInterpolators,y_values,z_values):
         '''
         Constructor for the class, generating an approximation to a function of
@@ -1229,14 +1606,23 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
             An array of y values equal in length to xInterpolators.
         z_values: numpy.array
             An array of z values equal in length to xInterpolators[0].
+            
+        Returns:
+        ----------
+        new instance of BilinearInterpOnInterp1D
         '''
         self.xInterpolators = xInterpolators
         self.y_list = y_values
         self.y_n = y_values.size
         self.z_list = z_values
         self.z_n = z_values.size
+        self.convergence_criteria = ['xInterpolators','y_list','z_list']
         
     def _evaluate(self,x,y,z):
+        '''
+        Returns the level of the interpolated function at each value in x,y,z.
+        Only called internally by HARKinterpolator3D.__call__ (etc).
+        '''
         if _isscalar(x):
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
             z_pos = max(min(np.searchsorted(self.z_list,z),self.z_n-1),1)
@@ -1269,6 +1655,10 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
         return f
         
     def _derX(self,x,y,z):
+        '''
+        Returns the derivative with respect to x of the interpolated function
+        at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeX.
+        '''
         if _isscalar(x):
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
             z_pos = max(min(np.searchsorted(self.z_list,z),self.z_n-1),1)
@@ -1301,6 +1691,10 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
         return dfdx
         
     def _derY(self,x,y,z):
+        '''
+        Returns the derivative with respect to y of the interpolated function
+        at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeY.
+        '''
         if _isscalar(x):
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
             z_pos = max(min(np.searchsorted(self.z_list,z),self.z_n-1),1)
@@ -1326,6 +1720,10 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
         return dfdy
         
     def _derZ(self,x,y,z):
+        '''
+        Returns the derivative with respect to z of the interpolated function
+        at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeZ.
+        '''
         if _isscalar(x):
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
             z_pos = max(min(np.searchsorted(self.z_list,z),self.z_n-1),1)
@@ -1349,35 +1747,13 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
                         dfdz[c] = (((1-alpha)*self.xInterpolators[i-1][j](x[c]) + alpha*self.xInterpolators[i][j](x[c]))
                                 -  ((1-alpha)*self.xInterpolators[i-1][j-1](x[c]) + alpha*self.xInterpolators[i][j-1](x[c])))/(self.z_list[j] - self.z_list[j-1])
         return dfdz
-        
-    def distance(self,other_func):
-        '''
-        Distance between one instance and another is the greater of the maximum
-        of the distance between corresponding xInterpolators and the maximum of
-        the distance between corresponding y_list and z_list values.
-        '''
-        other_class = other_func.__class__.__name__
-        if other_class is not 'BilinearInterpOnInterp1D':
-            return 1000000
-        if (self.y_n != other_func.y_n) or (self.z_n != other_func.z_n):
-            return max(np.abs(self.y_n - other_func.y_n),np.abs(self.z_n - other_func.z_n))
-        x_dist_matrix = np.zeros((self.y_n,self.z_n)) + np.nan
-        for i in range(self.y_n):
-            for j in range(self.z_n):
-                x_dist_matrix[i,j] = self.xInterpolators[i][j].distance(other_func.xInterpolators[i][j])
-        y_dist_vec = np.abs(self.y_list - other_func.y_list)
-        z_dist_vec = np.abs(self.z_list - other_func.z_list)
-        x_dist = np.max(x_dist_matrix)
-        y_dist = np.max(y_dist_vec)
-        z_dist = np.max(z_dist_vec)
-        return max(x_dist,y_dist,z_dist)
-        
+
              
-'''
-A 4D interpolator that trilinearly interpolates among a list of lists of 1D interpolators.
-'''
+
 class TrilinearInterpOnInterp1D(HARKinterpolator4D):
-    
+    '''
+    A 4D interpolator that trilinearly interpolates among a list of lists of 1D interpolators.
+    '''    
     def __init__(self,wInterpolators,x_values,y_values,z_values):
         '''
         Constructor for the class, generating an approximation to a function of
@@ -1395,6 +1771,10 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
             An array of y values equal in length to wInterpolators[0].
         z_values: numpy.array
             An array of z values equal in length to wInterpolators[0][0]
+        
+        Returns:
+        -----------
+        new instance of TrilinearInterpOnInterp1D
         '''
         self.wInterpolators = wInterpolators
         self.x_list = x_values
@@ -1403,8 +1783,13 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
         self.y_n = y_values.size
         self.z_list = z_values
         self.z_n = z_values.size
+        self.convergence_criteria = ['wInterpolators','x_list','y_list','z_list']
 
     def _evaluate(self,w,x,y,z):
+        '''
+        Returns the level of the interpolated function at each value in w,x,y,z.
+        Only called internally by HARKinterpolator4D.__call__ (etc).
+        '''
         if _isscalar(w):
             x_pos = max(min(np.searchsorted(self.x_list,x),self.x_n-1),1)
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
@@ -1452,6 +1837,10 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
         return f
         
     def _derW(self,w,x,y,z):
+        '''
+        Returns the derivative with respect to w of the interpolated function
+        at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeW.
+        '''
         if _isscalar(w):
             x_pos = max(min(np.searchsorted(self.x_list,x),self.x_n-1),1)
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
@@ -1499,6 +1888,10 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
         return dfdw
         
     def _derX(self,w,x,y,z):
+        '''
+        Returns the derivative with respect to x of the interpolated function
+        at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeX.
+        '''
         if _isscalar(w):
             x_pos = max(min(np.searchsorted(self.x_list,x),self.x_n-1),1)
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
@@ -1544,6 +1937,10 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
         return dfdx
         
     def _derY(self,w,x,y,z):
+        '''
+        Returns the derivative with respect to y of the interpolated function
+        at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeY.
+        '''
         if _isscalar(w):
             x_pos = max(min(np.searchsorted(self.x_list,x),self.x_n-1),1)
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
@@ -1589,6 +1986,10 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
         return dfdy
         
     def _derZ(self,w,x,y,z):
+        '''
+        Returns the derivative with respect to z of the interpolated function
+        at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeZ.
+        '''
         if _isscalar(w):
             x_pos = max(min(np.searchsorted(self.x_list,x),self.x_n-1),1)
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
@@ -1633,42 +2034,15 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
                                  + alpha*beta*self.wInterpolators[i][j][k-1](w[c])))/(self.z_list[k] - self.z_list[k-1])
         return dfdz
         
-    def distance(self,other_func):
-        '''
-        Distance between one instance and another is the greater of the maximum
-        of the distance between corresponding wInterpolators and the maximum of
-        the distance between corresponding x_list, y_list, and z_list values.
-        '''
-        other_class = other_func.__class__.__name__
-        if other_class is not 'TrilinearInterpOnInterp1D':
-            return 1000000
-        if (self.x_n != other_func.x_n) or (self.y_n != other_func.y_n) or (self.z_n != other_func.z_n):
-            return max(np.abs(self.x_n - other_func.x_n),np.abs(self.y_n - other_func.y_n),np.abs(self.z_n - other_func.z_n))
-        w_dist_matrix = np.zeros((self.x_n,self.y_n,self.z_n)) + np.nan
-        for i in range(self.x_n):
-            for j in range(self.y_n):
-                for k in range(self.z_n):
-                    w_dist_matrix[i,j,k] = self.wInterpolators[i][j][k].distance(other_func.wInterpolators[i][j][k])
-        x_dist_vec = np.abs(self.x_list - other_func.x_list)
-        y_dist_vec = np.abs(self.y_list - other_func.y_list)
-        z_dist_vec = np.abs(self.z_list - other_func.z_list)
-        w_dist = np.max(w_dist_matrix)
-        x_dist = np.max(x_dist_vec)
-        y_dist = np.max(y_dist_vec)
-        z_dist = np.max(z_dist_vec)
-        return max(w_dist,x_dist,y_dist,z_dist)
-        
-        
-        
+       
+class LinearInterpOnInterp2D(HARKinterpolator3D):
     '''
     A 3D interpolation method that linearly interpolates between "layers" of
-    arbitrary 2D interpolations.  Useful for models with 2 endogenous state
+    arbitrary 2D interpolations.  Useful for models with two endogenous state
     variables and one exogenous state variable when solving with the endogenous
     grid method.  NOTE: should not be used if an exogenous 3D grid is used, will
     be significantly slower than TrilinearInterp.
     '''    
-class LinearInterpOnInterp2D(HARKinterpolator3D):
-    
     def __init__(self,xyInterpolators,z_values):
         '''
         Constructor for the class, generating an approximation to a function of
@@ -1682,12 +2056,21 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
             element of xyInterpolators represents f(x,y,z_values[n]).
         z_values: numpy.array
             An array of z values equal in length to xyInterpolators.
+            
+        Returns:
+        -----------
+        new instance of LinearInterpOnInterp2D
         '''
         self.xyInterpolators = xyInterpolators
         self.z_list = z_values
         self.z_n = z_values.size
+        self.convergence_criteria = ['xyInterpolators','z_list']
         
     def _evaluate(self,x,y,z):
+        '''
+        Returns the level of the interpolated function at each value in x,y,z.
+        Only called internally by HARKinterpolator3D.__call__ (etc).
+        '''
         if _isscalar(x):
             z_pos = max(min(np.searchsorted(self.z_list,z),self.z_n-1),1)
             alpha = (z - self.z_list[z_pos-1])/(self.z_list[z_pos] - self.z_list[z_pos-1])
@@ -1707,6 +2090,10 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
         return f
         
     def _derX(self,x,y,z):
+        '''
+        Returns the derivative with respect to x of the interpolated function
+        at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeX.
+        '''
         if _isscalar(x):
             z_pos = max(min(np.searchsorted(self.z_list,z),self.z_n-1),1)
             alpha = (z - self.z_list[z_pos-1])/(self.z_list[z_pos] - self.z_list[z_pos-1])
@@ -1726,6 +2113,10 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
         return dfdx
         
     def _derY(self,x,y,z):
+        '''
+        Returns the derivative with respect to y of the interpolated function
+        at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeY.
+        '''
         if _isscalar(x):
             z_pos = max(min(np.searchsorted(self.z_list,z),self.z_n-1),1)
             alpha = (z - self.z_list[z_pos-1])/(self.z_list[z_pos] - self.z_list[z_pos-1])
@@ -1745,6 +2136,10 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
         return dfdy
         
     def _derZ(self,x,y,z):
+        '''
+        Returns the derivative with respect to z of the interpolated function
+        at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeZ.
+        '''
         if _isscalar(x):
             z_pos = max(min(np.searchsorted(self.z_list,z),self.z_n-1),1)
             dfdz = (self.xyInterpolators[z_pos].derivativeX(x,y) - self.xyInterpolators[z_pos-1].derivativeX(x,y))/(self.z_list[z_pos] - self.z_list[z_pos-1])
@@ -1760,37 +2155,15 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
                     if np.any(c):
                         dfdz[c] = (self.xyInterpolators[i](x[c],y[c]) - self.xyInterpolators[i-1](x[c],y[c]))/(self.z_list[i] - self.z_list[i-1])
         return dfdz
-        
-    def distance(self,other):
-        '''
-        The distance between instances is the highest among the maximum distance
-        between corresponding xyInterpolators, and maximum absolute difference
-        between corresponding values of z_list.
-        '''
-        other_class = other.__class__.__name__
-        if other_class is not 'LinearInterpOnInterp2D':
-            return 1000000
-        if self.z_n != other.z_n:
-            return np.abs(self.z_n - other.z_n)
-        xy_dist_vec = np.zeros(self.z_n) + np.nan
-        for j in range(self.z_n):
-            xy_dist_vec[j] = self.xyInterpolators[j].distance(other.xyInterpolators[j])
-        z_dist_vec = np.abs(self.z_list - other.z_list)
-        xy_dist = np.max(xy_dist_vec)
-        z_dist = np.max(z_dist_vec)
-        return max(xy_dist,z_dist)
-        
 
-
-'''
+class BilinearInterpOnInterp2D(HARKinterpolator4D):
+    '''
     A 4D interpolation method that bilinearly interpolates among "layers" of
     arbitrary 2D interpolations.  Useful for models with two endogenous state
     variables and two exogenous state variables when solving with the endogenous
     grid method.  NOTE: should not be used if an exogenous 4D grid is used, will
     be significantly slower than QuadlinearInterp.
     '''    
-class BilinearInterpOnInterp2D(HARKinterpolator4D):
-    
     def __init__(self,wxInterpolators,y_values,z_values):
         '''
         Constructor for the class, generating an approximation to a function of
@@ -1807,14 +2180,23 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
             An array of y values equal in length to wxInterpolators.
         z_values: numpy.array
             An array of z values equal in length to wxInterpolators[0].
+            
+        Returns:
+        ----------
+        new instance of BilinearInterpOnInterp2D
         '''
         self.wxInterpolators = wxInterpolators
         self.y_list = y_values
         self.y_n = y_values.size
         self.z_list = z_values
         self.z_n = z_values.size
+        self.convergence_criteria = ['wxInterpolators','y_list','z_list']
         
     def _evaluate(self,w,x,y,z):
+        '''
+        Returns the level of the interpolated function at each value in x,y,z.
+        Only called internally by HARKinterpolator4D.__call__ (etc).
+        '''
         if _isscalar(x):
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
             z_pos = max(min(np.searchsorted(self.z_list,z),self.z_n-1),1)
@@ -1847,6 +2229,10 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
         return f
         
     def _derW(self,w,x,y,z):
+        '''
+        Returns the derivative with respect to w of the interpolated function
+        at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeW.
+        '''
         # This may look strange, as we call the derivativeX() method to get the
         # derivative with respect to w, but that's just a quirk of 4D interpolations
         # beginning with w rather than x.  The derivative wrt the first dimension
@@ -1883,6 +2269,10 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
         return dfdw
         
     def _derX(self,w,x,y,z):
+        '''
+        Returns the derivative with respect to x of the interpolated function
+        at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeX.
+        '''
         # This may look strange, as we call the derivativeY() method to get the
         # derivative with respect to x, but that's just a quirk of 4D interpolations
         # beginning with w rather than x.  The derivative wrt the second dimension
@@ -1919,6 +2309,10 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
         return dfdx
         
     def _derY(self,w,x,y,z):
+        '''
+        Returns the derivative with respect to y of the interpolated function
+        at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeY.
+        '''
         if _isscalar(x):
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
             z_pos = max(min(np.searchsorted(self.z_list,z),self.z_n-1),1)
@@ -1944,6 +2338,10 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
         return dfdy
         
     def _derZ(self,w,x,y,z):
+        '''
+        Returns the derivative with respect to z of the interpolated function
+        at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeZ.
+        '''
         if _isscalar(x):
             y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
             z_pos = max(min(np.searchsorted(self.z_list,z),self.z_n-1),1)
@@ -1968,31 +2366,6 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
                                 -  ((1-alpha)*self.wxInterpolators[i-1][j-1](w[c],x[c]) + alpha*self.wxInterpolators[i][j-1](w[c],x[c])))/(self.z_list[j] - self.z_list[j-1])
         return dfdz
         
-    def distance(self,other):
-        '''
-        The distance between instances is the highest among the maximum distance
-        between corresponding wxInterpolators, maximum absolute difference
-        between corresponding values of y_list, and maximum absolute difference
-        between corresponding values of z_list.
-        '''
-        other_class = other.__class__.__name__
-        if other_class is not 'BilinearInterpOnInterp2D':
-            return 1000000
-        if (self.y_n != other.y_n) or (self.z_n != other.z_n):
-            return max(np.abs(self.y_n - other.y_n),np.abs(self.z_n - other.z_n))
-        wx_dist_matrix = np.zeros((self.y_n,self.z_n)) + np.nan
-        for i in range(self.y_n):
-            for j in range(self.z_n):
-                wx_dist_matrix[i,j] = self.wxInterpolators[i,j].distance(other.wxInterpolators[i,j])
-        y_dist_vec = np.abs(self.y_list - other.y_list)
-        z_dist_vec = np.abs(self.z_list - other.z_list)
-        wx_dist = np.max(wx_dist_matrix)
-        y_dist = np.max(y_dist_vec)
-        z_dist = np.max(z_dist_vec)
-        return max(wx_dist,y_dist,z_dist)
-        
-
-        
         
 class Curvilinear2DInterp(HARKinterpolator2D):
     '''
@@ -2013,6 +2386,10 @@ class Curvilinear2DInterp(HARKinterpolator2D):
             A 2D array of x values of the same size as f_values.
         y_values: numpy.array
             A 2D array of y values of the same size as f_values.
+            
+        Returns:
+        ----------
+        new instance of Curvilinear2DInterp
         '''
         self.f_values = f_values
         self.x_values = x_values
@@ -2021,14 +2398,22 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         self.x_n = my_shape[0]
         self.y_n = my_shape[1]
         self.updatePolarity()
+        self.convergence_criteria = ['f_values','x_values','y_values']
         
     def updatePolarity(self):
         '''
         Fills in the polarity attribute of the interpolation, determining whether
         the "plus" (True) or "minus" (False) solution of the system of equations
         should be used for each sector.  Needs to be called in __init__.
-        '''
         
+        Parameters:
+        -------------
+        none
+            
+        Returns:
+        ----------
+        none
+        '''       
         # Grab a point known to be inside each sector: the midway point between
         # the lower left and upper right vertex of each sector
         x_temp = 0.5*(self.x_values[0:(self.x_n-1),0:(self.y_n-1)] + self.x_values[1:self.x_n,1:self.y_n])
@@ -2051,6 +2436,24 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         self.polarity = np.reshape(polarity,(self.x_n-1,self.y_n-1))
         
     def findSector(self,x,y):
+        '''
+        Finds the quadrilateral "sector" for each (x,y) point in the input.
+        Only called as a subroutine of _evaluate().
+        
+        Parameters:
+        -------------
+        x : np.array
+            Values whose sector should be found.
+        y : np.array
+            Values whose sector should be found.  Should be same size as x.
+            
+        Returns:
+        ----------
+        x_pos : np.array
+            Sector x-coordinates for each point of the input, of the same size.
+        y_pos : np.array
+            Sector y-coordinates for each point of the input, of the same size.
+        '''
         # Initialize the sector guess
         m = x.size
         x_pos_guess = (np.ones(m)*self.x_n/2).astype(int)
@@ -2111,10 +2514,35 @@ class Curvilinear2DInterp(HARKinterpolator2D):
             # Move to the next iteration of the search
             loops += 1
             
-        #print(np.sum(these))
-        return x_pos_guess, y_pos_guess
+        # Return the output
+        x_pos = x_pos_guess
+        y_pos = y_pos_guess
+        return x_pos, y_pos
         
     def findCoords(self,x,y,x_pos,y_pos):
+        '''
+        Calculates the relative coordinates (alpha,beta) for each point (x,y),
+        given the sectors (x_pos,y_pos) in which they reside.  Only called as
+        a subroutine of __call__().
+        
+        Parameters:
+        -------------
+        x : np.array
+            Values whose sector should be found.
+        y : np.array
+            Values whose sector should be found.  Should be same size as x.
+        x_pos : np.array
+            Sector x-coordinates for each point in (x,y), of the same size.
+        y_pos : np.array
+            Sector y-coordinates for each point in (x,y), of the same size.
+            
+        Returns:
+        ----------
+        alpha : np.array
+            Relative "horizontal" position of the input in their respective sectors.
+        beta : np.array
+            Relative "vertical" position of the input in their respective sectors.
+        '''
         # Calculate relative coordinates in the sector for each point
         xA = self.x_values[x_pos,y_pos]
         xB = self.x_values[x_pos+1,y_pos]
@@ -2145,6 +2573,10 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         return alpha, beta
         
     def _evaluate(self,x,y):
+        '''
+        Returns the level of the interpolated function at each value in x,y.
+        Only called internally by HARKinterpolator2D.__call__ (etc).
+        '''
         x_pos, y_pos = self.findSector(x,y)
         alpha, beta = self.findCoords(x,y,x_pos,y_pos)
         

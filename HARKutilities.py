@@ -14,7 +14,6 @@ import scipy.stats as stats         # Python's statistics library
 from scipy.integrate import quad, fixed_quad    # quad integration
 from scipy.interpolate import interp1d
 from scipy.special import erf
-from HARKinterpolation import LinearInterp
 
 def _warning(
     message,
@@ -43,6 +42,33 @@ def memoize(obj):
        return cache[key]
    return memoizer
 
+
+# ==============================================================================
+# ============== Some basic function tools  ====================================
+# ==============================================================================
+def getArgNames(function):
+    '''
+    Returns a list of strings naming all of the arguments for the passed function.
+    
+    Parameters:
+    ------------
+    function : function
+        A function whose argument names are wanted.
+    
+    Returns:
+    -----------
+    argNames : [string]
+        The names of the arguments of function.
+    '''
+    argCount = function.__code__.co_argcount
+    argNames = function.__code__.co_varnames[:argCount]
+    return argNames
+
+'''
+A trivial function that takes a single array and returns an array of NaNs of the
+same size.  A generic default function that does nothing.
+'''
+NullFunc = lambda x : np.zeros(x.size) + np.nan  
 
 # ==============================================================================
 # ============== Define utility functions        ===============================
@@ -919,7 +945,7 @@ def calcSubpopAvg(data,reference,cutoffs,weights=None):
         top = np.searchsorted(cum_dist,cutoffs[j][1])
         slice_avg.append(np.sum(data_sorted[bot:top]*weights_sorted[bot:top])/np.sum(weights_sorted[bot:top]))
     return slice_avg
-       
+     
 def kernelRegression(x,y,bot=None,top=None,N=500,h=None):
     '''
     Performs a non-parametric Nadaraya-Watson 1D kernel regression on given data
@@ -960,7 +986,7 @@ def kernelRegression(x,y,bot=None,top=None,N=500,h=None):
         x_here = x_vec[j]
         weights = epanechnikovKernel(x,x_here,h)
         y_vec[j] = np.dot(weights,y)/np.sum(weights)
-    regression = LinearInterp(x_vec,y_vec)
+    regression = interp1d(x_vec,y_vec,bounds_error=False,assume_sorted=True)
     return regression
        
 def epanechnikovKernel(x,ref_x,h=1.0):
@@ -986,35 +1012,6 @@ def epanechnikovKernel(x,ref_x,h=1.0):
     out = np.zeros_like(x)   # Initialize kernel output
     out[these] = 0.75*(1.0-u[these]**2.0) # Evaluate kernel
     return out
-
-
-# ==============================================================================
-# ============== Some basic function tools  ====================================
-# ==============================================================================
-
-def getArgNames(function):
-    '''
-    Returns a list of strings naming all of the arguments for the passed function.
-    
-    Parameters:
-    ------------
-    function : function
-        A function whose argument names are wanted.
-    
-    Returns:
-    -----------
-    argNames : [string]
-        The names of the arguments of function.
-    '''
-    argCount = function.__code__.co_argcount
-    argNames = function.__code__.co_varnames[:argCount]
-    return argNames
-    
-'''
-A trivial function that takes a single array and returns an array of NaNs of the
-same size.  A generic default function that does nothing.
-'''
-NullFunc = lambda x : np.zeros(x.size) + np.nan  
 
 
 # ==============================================================================
