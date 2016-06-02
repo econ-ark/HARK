@@ -15,7 +15,7 @@ from time import time
 # Set booleans to determine which tasks should be done
 estimate_model = True
 compute_standard_errors = False
-make_contour_plot = False
+make_contour_plot = True
 
 #=====================================================
 # Define objects and functions used for the estimation
