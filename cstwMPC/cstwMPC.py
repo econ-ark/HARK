@@ -17,7 +17,7 @@ from HARKcore import AgentType, Market, HARKobject
 from HARKparallel import multiThreadCommandsFake
 import SetupParamsCSTW as Params
 import ConsumptionSavingModel as Model
-from ConsAggShock import solveConsumptionSavingAggShocks
+from ConsAggShockModel import solveConsumptionSavingAggShocks
 from scipy.optimize import golden, brentq
 import scipy.stats as stats
 import matplotlib.pyplot as plt
