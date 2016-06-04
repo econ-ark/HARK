@@ -1,0 +1,220 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>HARKparallel &mdash; HARK 0.9 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.9',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="HARK 0.9 documentation" href="../index.html" />
+    <link rel="next" title="HARKinterpolation" href="HARKinterpolation.html" />
+    <link rel="prev" title="HARKsimulation" href="HARKsimulation.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="HARKinterpolation.html" title="HARKinterpolation"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="HARKsimulation.html" title="HARKsimulation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-HARKparallel">
+<span id="harkparallel"></span><h1>HARKparallel<a class="headerlink" href="#module-HARKparallel" title="Permalink to this headline">¶</a></h1>
+<p>This is a very minimal module for an early version of multithreading in HARK.
+To run this module, first install dill and joblib.  Packages can be installed by
+typing &#8220;conda install dill&#8221; (etc) at a command prompt.</p>
+<p class="rubric">Functions</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">clock</span></code>(()&nbsp;-&gt;&nbsp;floating&nbsp;point&nbsp;number)</td>
+<td>Return the CPU time or real time since the start of the process or since the first call to clock().</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">delayed</span></code>(function[,&nbsp;check_pickle])</td>
+<td>Decorator used to capture the arguments of a function.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKparallel.loadNelderMeadData" title="HARKparallel.loadNelderMeadData"><code class="xref py py-obj docutils literal"><span class="pre">loadNelderMeadData</span></code></a>(name)</td>
+<td>Reads the progress of a parallel Nelder-Mead search from a text file, as created by saveNelderMeadData().</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKparallel.multiThreadCommands" title="HARKparallel.multiThreadCommands"><code class="xref py py-obj docutils literal"><span class="pre">multiThreadCommands</span></code></a>(agent_list,&nbsp;command_list)</td>
+<td>Executes the list of commands in command_list for each AgentType in agent_list using a multithreaded system.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKparallel.multiThreadCommandsFake" title="HARKparallel.multiThreadCommandsFake"><code class="xref py py-obj docutils literal"><span class="pre">multiThreadCommandsFake</span></code></a>(agent_list,&nbsp;command_list)</td>
+<td>Executes the list of commands in command_list for each AgentType in agent_list in an ordinary, single-threaded loop.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKparallel.parallelNelderMead" title="HARKparallel.parallelNelderMead"><code class="xref py py-obj docutils literal"><span class="pre">parallelNelderMead</span></code></a>(objFunc,&nbsp;guess[,&nbsp;...])</td>
+<td>A parallel implementation of the Nelder-Mead minimization algorithm, as described in Lee and Wiswall.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKparallel.parallelNelderMeadWorker" title="HARKparallel.parallelNelderMeadWorker"><code class="xref py py-obj docutils literal"><span class="pre">parallelNelderMeadWorker</span></code></a>(objFunc,&nbsp;simplex,&nbsp;...)</td>
+<td>A worker process for the parallel Nelder-Mead algorithm.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKparallel.runCommands" title="HARKparallel.runCommands"><code class="xref py py-obj docutils literal"><span class="pre">runCommands</span></code></a>(agent,&nbsp;command_list)</td>
+<td>Executes each command in command_list on a given AgentType.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKparallel.saveNelderMeadData" title="HARKparallel.saveNelderMeadData"><code class="xref py py-obj docutils literal"><span class="pre">saveNelderMeadData</span></code></a>(name,&nbsp;simplex,&nbsp;fvals,&nbsp;...)</td>
+<td>Stores the progress of a parallel Nelder-Mead search in a text file so that it can be resumed later (after manual termination or a crash).</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">Parallel</span></code>([n_jobs,&nbsp;backend,&nbsp;verbose,&nbsp;...])</td>
+<td>Helper class for readable parallel mapping.</td>
+</tr>
+</tbody>
+</table>
+<dl class="function">
+<dt id="HARKparallel.loadNelderMeadData">
+<code class="descclassname">HARKparallel.</code><code class="descname">loadNelderMeadData</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKparallel.loadNelderMeadData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the progress of a parallel Nelder-Mead search from a text file, as
+created by saveNelderMeadData().</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="HARKparallel.multiThreadCommands">
+<code class="descclassname">HARKparallel.</code><code class="descname">multiThreadCommands</code><span class="sig-paren">(</span><em>agent_list</em>, <em>command_list</em>, <em>num_jobs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKparallel.multiThreadCommands" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes the list of commands in command_list for each AgentType in agent_list
+using a multithreaded system. Each command should be a method of that AgentType subclass.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="HARKparallel.multiThreadCommandsFake">
+<code class="descclassname">HARKparallel.</code><code class="descname">multiThreadCommandsFake</code><span class="sig-paren">(</span><em>agent_list</em>, <em>command_list</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKparallel.multiThreadCommandsFake" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes the list of commands in command_list for each AgentType in agent_list
+in an ordinary, single-threaded loop.  Each command should be a method of
+that AgentType subclass.  This function exists so as to easily disable
+multithreading, as it uses the same syntax as multithreadCommands.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="HARKparallel.parallelNelderMead">
+<code class="descclassname">HARKparallel.</code><code class="descname">parallelNelderMead</code><span class="sig-paren">(</span><em>objFunc</em>, <em>guess</em>, <em>perturb=None</em>, <em>P=1</em>, <em>ftol=1e-06</em>, <em>xtol=1e-08</em>, <em>maxiter=inf</em>, <em>maxeval=inf</em>, <em>r_param=1.0</em>, <em>e_param=1.0</em>, <em>c_param=0.5</em>, <em>s_param=0.5</em>, <em>maxcores=None</em>, <em>name=None</em>, <em>resume=False</em>, <em>savefreq=None</em>, <em>verbose=1</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKparallel.parallelNelderMead" title="Permalink to this definition">¶</a></dt>
+<dd><p>A parallel implementation of the Nelder-Mead minimization algorithm, as
+described in Lee and Wiswall.  For long optimization procedures, it can
+save progress between iterations and resume later.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="HARKparallel.parallelNelderMeadWorker">
+<code class="descclassname">HARKparallel.</code><code class="descname">parallelNelderMeadWorker</code><span class="sig-paren">(</span><em>objFunc</em>, <em>simplex</em>, <em>f_vals</em>, <em>j</em>, <em>P</em>, <em>opt_params</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKparallel.parallelNelderMeadWorker" title="Permalink to this definition">¶</a></dt>
+<dd><p>A worker process for the parallel Nelder-Mead algorithm.  Updates one point
+in the simplex, returning its function value as well.  Should basically
+never be called directly, only by parallelNelderMead().</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="HARKparallel.runCommands">
+<code class="descclassname">HARKparallel.</code><code class="descname">runCommands</code><span class="sig-paren">(</span><em>agent</em>, <em>command_list</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKparallel.runCommands" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes each command in command_list on a given AgentType.  The commands
+should be methods of that AgentType&#8217;s subclass.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="HARKparallel.saveNelderMeadData">
+<code class="descclassname">HARKparallel.</code><code class="descname">saveNelderMeadData</code><span class="sig-paren">(</span><em>name</em>, <em>simplex</em>, <em>fvals</em>, <em>iters</em>, <em>evals</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKparallel.saveNelderMeadData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stores the progress of a parallel Nelder-Mead search in a text file so that
+it can be resumed later (after manual termination or a crash).</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="HARKsimulation.html"
+                        title="previous chapter">HARKsimulation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="HARKinterpolation.html"
+                        title="next chapter">HARKinterpolation</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/generated/HARKparallel.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="HARKinterpolation.html" title="HARKinterpolation"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="HARKsimulation.html" title="HARKsimulation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, TEMP.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.1.
+    </div>
+  </body>
+</html>

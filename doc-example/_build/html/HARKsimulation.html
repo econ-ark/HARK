@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>HARKsimulation module &mdash; HARK 0.9 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.9',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="HARK 0.9 documentation" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-HARKsimulation">
+<span id="harksimulation-module"></span><h1>HARKsimulation module<a class="headerlink" href="#module-HARKsimulation" title="Permalink to this headline">¶</a></h1>
+<p>A collection of functions used for generating simulated data and shocks.</p>
+<dl class="function">
+<dt id="HARKsimulation.drawBernoulli">
+<code class="descclassname">HARKsimulation.</code><code class="descname">drawBernoulli</code><span class="sig-paren">(</span><em>p</em>, <em>N</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawBernoulli" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates arrays of booleans drawn from a simple Bernoulli distribution.
+The input p can be a float or a list-like of floats; its length T determines
+the number of entries in the output.  The t-th entry of the output is an
+array of N booleans which are True with probability p[t] and False otherwise.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="HARKsimulation.drawDiscrete">
+<code class="descclassname">HARKsimulation.</code><code class="descname">drawDiscrete</code><span class="sig-paren">(</span><em>P</em>, <em>X</em>, <em>N</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawDiscrete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulates N draws from a discrete distribution with probabilities P and outcomes X.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="HARKsimulation.drawMeanOneLognormal">
+<code class="descclassname">HARKsimulation.</code><code class="descname">drawMeanOneLognormal</code><span class="sig-paren">(</span><em>sigma</em>, <em>N</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawMeanOneLognormal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate arrays of mean one lognormal draws. The sigma input can be a number
+or list-like.  If a number, output is a length N array of draws from the
+lognormal distribution with standard deviation sigma. If a list, output is
+a length T list whose t-th entry is a length N array of draws from the
+lognormal with standard deviation sigma[t].</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="HARKsimulation.drawNormal">
+<code class="descclassname">HARKsimulation.</code><code class="descname">drawNormal</code><span class="sig-paren">(</span><em>mu</em>, <em>sigma</em>, <em>N</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawNormal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate arrays of normal draws.  The mu and sigma inputs can be numbers or
+list-likes.  If a number, output is a length N array of draws from the normal
+distribution with mean mu and standard deviation sigma. If a list, output is
+a length T list whose t-th entry is a length N array with draws from the
+normal distribution with mean mu[t] and standard deviation sigma[t].</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="HARKsimulation.drawUniform">
+<code class="descclassname">HARKsimulation.</code><code class="descname">drawUniform</code><span class="sig-paren">(</span><em>bot</em>, <em>top</em>, <em>N</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawUniform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate arrays of uniform draws.  The bot and top inputs can be numbers or
+list-likes.  If a number, output is a length N array of draws from the
+uniform distribution on [bot,top]. If a list, output is a length T list
+whose t-th entry is a length N array with draws from the uniform distribution
+on [bot[t],top[t]].</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="HARKsimulation.drawWeibull">
+<code class="descclassname">HARKsimulation.</code><code class="descname">drawWeibull</code><span class="sig-paren">(</span><em>scale</em>, <em>shape</em>, <em>N</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawWeibull" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate arrays of Weibull draws.  The scale and shape inputs can be 
+numbers or list-likes.  If a number, output is a length N array of draws from
+the Weibull distribution with the given scale and shape. If a list, output
+is a length T list whose t-th entry is a length N array with draws from the
+Weibull distribution with scale scale[t] and shape shape[t].</p>
+<p>Note: When shape=1, the Weibull distribution is simply the exponential dist.</p>
+<p>Mean: scale*Gamma(1 + 1/shape)</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/HARKsimulation.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, TEMP.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.1.
+    </div>
+  </body>
+</html>

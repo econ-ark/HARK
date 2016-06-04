@@ -1,0 +1,759 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>HARKinterpolation module &mdash; HARK 0.9 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.9',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="HARK 0.9 documentation" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-HARKinterpolation">
+<span id="harkinterpolation-module"></span><h1>HARKinterpolation module<a class="headerlink" href="#module-HARKinterpolation" title="Permalink to this headline">¶</a></h1>
+<p>This module contains custom interpolation methods for representing approximations
+to functions.  It also includes wrapper classes to enforce standard methods
+across classes.  Each interpolation class must have a distance() method that
+compares itself to another instance; this is used in HARKcore&#8217;s solve() method
+to check for solution convergence.  The interpolator classes currently in this
+module inherit their distance method from HARKobject.</p>
+<dl class="class">
+<dt id="HARKinterpolation.BilinearInterp">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">BilinearInterp</code><span class="sig-paren">(</span><em>f_values</em>, <em>x_list</em>, <em>y_list</em>, <em>xSearchFunc=None</em>, <em>ySearchFunc=None</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.BilinearInterp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator2D" title="HARKinterpolation.HARKinterpolator2D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator2D</span></code></a></p>
+<p>Bilinear full (or tensor) grid interpolation of a function f(x,y).</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(x,&nbsp;y)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code>(x,&nbsp;y)</td>
+<td>Evaluates the partial derivative of interpolated function with respect to x (the first argument) at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code>(x,&nbsp;y)</td>
+<td>Evaluates the partial derivative of interpolated function with respect to y (the second argument) at the given input.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.BilinearInterpOnInterp1D">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">BilinearInterpOnInterp1D</code><span class="sig-paren">(</span><em>xInterpolators</em>, <em>y_values</em>, <em>z_values</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.BilinearInterpOnInterp1D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator3D" title="HARKinterpolation.HARKinterpolator3D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator3D</span></code></a></p>
+<p>A 3D interpolator that bilinearly interpolates among a list of lists of 1D
+interpolators.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative of the interpolated function with respect to x (the first argument) at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative of the interpolated function with respect to y (the second argument) at the given input.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeZ</span></code>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative of the interpolated function with respect to z (the third argument) at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.BilinearInterpOnInterp2D">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">BilinearInterpOnInterp2D</code><span class="sig-paren">(</span><em>wxInterpolators</em>, <em>y_values</em>, <em>z_values</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.BilinearInterpOnInterp2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator4D" title="HARKinterpolation.HARKinterpolator4D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator4D</span></code></a></p>
+<p>A 4D interpolation method that bilinearly interpolates among &#8220;layers&#8221; of
+arbitrary 2D interpolations.  Useful for models with two endogenous state
+variables and two exogenous state variables when solving with the endogenous
+grid method.  NOTE: should not be used if an exogenous 4D grid is used, will
+be significantly slower than QuadlinearInterp.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeW</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to w (the first argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to x (the second argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to y (the third argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeZ</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to z (the fourth argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.CubicInterp">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">CubicInterp</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>dydx_list</em>, <em>intercept_limit=None</em>, <em>slope_limit=None</em>, <em>lower_extrap=False</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.CubicInterp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator1D" title="HARKinterpolation.HARKinterpolator1D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator1D</span></code></a></p>
+<p>An interpolating function using piecewise cubic splines.  Matches level and
+slope of 1D function at gridpoints, smoothly interpolating in between.
+Extrapolation above highest gridpoint approaches a limiting linear function
+if desired (linear extrapolation also enabled.)</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(x)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivative</span></code>(x)</td>
+<td>Evaluates the derivative of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">eval_with_derivative</span></code>(x)</td>
+<td>Evaluates the interpolated function and its derivative at the given input.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.Curvilinear2DInterp">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">Curvilinear2DInterp</code><span class="sig-paren">(</span><em>f_values</em>, <em>x_values</em>, <em>y_values</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.Curvilinear2DInterp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator2D" title="HARKinterpolation.HARKinterpolator2D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator2D</span></code></a></p>
+<p>A 2D interpolation method for curvilinear or &#8220;warped grid&#8221; interpolation, as
+in White (2015).  Used for models with two endogenous states that are solved
+with the endogenous grid method.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(x,&nbsp;y)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code>(x,&nbsp;y)</td>
+<td>Evaluates the partial derivative of interpolated function with respect to x (the first argument) at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code>(x,&nbsp;y)</td>
+<td>Evaluates the partial derivative of interpolated function with respect to y (the second argument) at the given input.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.Curvilinear2DInterp.findCoords" title="HARKinterpolation.Curvilinear2DInterp.findCoords"><code class="xref py py-obj docutils literal"><span class="pre">findCoords</span></code></a>(x,&nbsp;y,&nbsp;x_pos,&nbsp;y_pos)</td>
+<td>Calculates the relative coordinates (alpha,beta) for each point (x,y), given the sectors (x_pos,y_pos) in which they reside.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.Curvilinear2DInterp.findSector" title="HARKinterpolation.Curvilinear2DInterp.findSector"><code class="xref py py-obj docutils literal"><span class="pre">findSector</span></code></a>(x,&nbsp;y)</td>
+<td>Finds the quadrilateral &#8220;sector&#8221; for each (x,y) point in the input.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.Curvilinear2DInterp.updatePolarity" title="HARKinterpolation.Curvilinear2DInterp.updatePolarity"><code class="xref py py-obj docutils literal"><span class="pre">updatePolarity</span></code></a>()</td>
+<td>Fills in the polarity attribute of the interpolation, determining whether the &#8220;plus&#8221; (True) or &#8220;minus&#8221; (False) solution of the system of equations should be used for each sector.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="HARKinterpolation.Curvilinear2DInterp.findCoords">
+<code class="descname">findCoords</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>x_pos</em>, <em>y_pos</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.Curvilinear2DInterp.findCoords" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the relative coordinates (alpha,beta) for each point (x,y),
+given the sectors (x_pos,y_pos) in which they reside.  Only called as
+a subroutine of __call__().</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKinterpolation.Curvilinear2DInterp.findSector">
+<code class="descname">findSector</code><span class="sig-paren">(</span><em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.Curvilinear2DInterp.findSector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds the quadrilateral &#8220;sector&#8221; for each (x,y) point in the input.
+Only called as a subroutine of _evaluate().</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKinterpolation.Curvilinear2DInterp.updatePolarity">
+<code class="descname">updatePolarity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.Curvilinear2DInterp.updatePolarity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fills in the polarity attribute of the interpolation, determining whether
+the &#8220;plus&#8221; (True) or &#8220;minus&#8221; (False) solution of the system of equations
+should be used for each sector.  Needs to be called in __init__.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.HARKinterpolator1D">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">HARKinterpolator1D</code><a class="headerlink" href="#HARKinterpolation.HARKinterpolator1D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
+<p>A wrapper class for 1D interpolation methods in HARK.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(x)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator1D.derivative" title="HARKinterpolation.HARKinterpolator1D.derivative"><code class="xref py py-obj docutils literal"><span class="pre">derivative</span></code></a>(x)</td>
+<td>Evaluates the derivative of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator1D.eval_with_derivative" title="HARKinterpolation.HARKinterpolator1D.eval_with_derivative"><code class="xref py py-obj docutils literal"><span class="pre">eval_with_derivative</span></code></a>(x)</td>
+<td>Evaluates the interpolated function and its derivative at the given input.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="HARKinterpolation.HARKinterpolator1D.derivative">
+<code class="descname">derivative</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.HARKinterpolator1D.derivative" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the derivative of the interpolated function at the given input.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKinterpolation.HARKinterpolator1D.eval_with_derivative">
+<code class="descname">eval_with_derivative</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.HARKinterpolator1D.eval_with_derivative" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the interpolated function and its derivative at the given input.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.HARKinterpolator2D">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">HARKinterpolator2D</code><a class="headerlink" href="#HARKinterpolation.HARKinterpolator2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
+<p>A wrapper class for 2D interpolation methods in HARK.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(x,&nbsp;y)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator2D.derivativeX" title="HARKinterpolation.HARKinterpolator2D.derivativeX"><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code></a>(x,&nbsp;y)</td>
+<td>Evaluates the partial derivative of interpolated function with respect to x (the first argument) at the given input.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator2D.derivativeY" title="HARKinterpolation.HARKinterpolator2D.derivativeY"><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code></a>(x,&nbsp;y)</td>
+<td>Evaluates the partial derivative of interpolated function with respect to y (the second argument) at the given input.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="HARKinterpolation.HARKinterpolator2D.derivativeX">
+<code class="descname">derivativeX</code><span class="sig-paren">(</span><em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.HARKinterpolator2D.derivativeX" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the partial derivative of interpolated function with respect
+to x (the first argument) at the given input.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKinterpolation.HARKinterpolator2D.derivativeY">
+<code class="descname">derivativeY</code><span class="sig-paren">(</span><em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.HARKinterpolator2D.derivativeY" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the partial derivative of interpolated function with respect
+to y (the second argument) at the given input.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.HARKinterpolator3D">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">HARKinterpolator3D</code><a class="headerlink" href="#HARKinterpolation.HARKinterpolator3D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
+<p>A wrapper class for 3D interpolation methods in HARK.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator3D.derivativeX" title="HARKinterpolation.HARKinterpolator3D.derivativeX"><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code></a>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative of the interpolated function with respect to x (the first argument) at the given input.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator3D.derivativeY" title="HARKinterpolation.HARKinterpolator3D.derivativeY"><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code></a>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative of the interpolated function with respect to y (the second argument) at the given input.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator3D.derivativeZ" title="HARKinterpolation.HARKinterpolator3D.derivativeZ"><code class="xref py py-obj docutils literal"><span class="pre">derivativeZ</span></code></a>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative of the interpolated function with respect to z (the third argument) at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="HARKinterpolation.HARKinterpolator3D.derivativeX">
+<code class="descname">derivativeX</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>z</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.HARKinterpolator3D.derivativeX" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the partial derivative of the interpolated function with respect
+to x (the first argument) at the given input.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKinterpolation.HARKinterpolator3D.derivativeY">
+<code class="descname">derivativeY</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>z</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.HARKinterpolator3D.derivativeY" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the partial derivative of the interpolated function with respect
+to y (the second argument) at the given input.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKinterpolation.HARKinterpolator3D.derivativeZ">
+<code class="descname">derivativeZ</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>z</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.HARKinterpolator3D.derivativeZ" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the partial derivative of the interpolated function with respect
+to z (the third argument) at the given input.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.HARKinterpolator4D">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">HARKinterpolator4D</code><a class="headerlink" href="#HARKinterpolation.HARKinterpolator4D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
+<p>A wrapper class for 4D interpolation methods in HARK.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator4D.derivativeW" title="HARKinterpolation.HARKinterpolator4D.derivativeW"><code class="xref py py-obj docutils literal"><span class="pre">derivativeW</span></code></a>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to w (the first argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator4D.derivativeX" title="HARKinterpolation.HARKinterpolator4D.derivativeX"><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code></a>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to x (the second argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator4D.derivativeY" title="HARKinterpolation.HARKinterpolator4D.derivativeY"><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code></a>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to y (the third argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator4D.derivativeZ" title="HARKinterpolation.HARKinterpolator4D.derivativeZ"><code class="xref py py-obj docutils literal"><span class="pre">derivativeZ</span></code></a>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to z (the fourth argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="HARKinterpolation.HARKinterpolator4D.derivativeW">
+<code class="descname">derivativeW</code><span class="sig-paren">(</span><em>w</em>, <em>x</em>, <em>y</em>, <em>z</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.HARKinterpolator4D.derivativeW" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the partial derivative with respect to w (the first argument)
+of the interpolated function at the given input.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKinterpolation.HARKinterpolator4D.derivativeX">
+<code class="descname">derivativeX</code><span class="sig-paren">(</span><em>w</em>, <em>x</em>, <em>y</em>, <em>z</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.HARKinterpolator4D.derivativeX" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the partial derivative with respect to x (the second argument)
+of the interpolated function at the given input.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKinterpolation.HARKinterpolator4D.derivativeY">
+<code class="descname">derivativeY</code><span class="sig-paren">(</span><em>w</em>, <em>x</em>, <em>y</em>, <em>z</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.HARKinterpolator4D.derivativeY" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the partial derivative with respect to y (the third argument)
+of the interpolated function at the given input.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKinterpolation.HARKinterpolator4D.derivativeZ">
+<code class="descname">derivativeZ</code><span class="sig-paren">(</span><em>w</em>, <em>x</em>, <em>y</em>, <em>z</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.HARKinterpolator4D.derivativeZ" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the partial derivative with respect to z (the fourth argument)
+of the interpolated function at the given input.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.LinearInterp">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">LinearInterp</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>intercept_limit=None</em>, <em>slope_limit=None</em>, <em>lower_extrap=False</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.LinearInterp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator1D" title="HARKinterpolation.HARKinterpolator1D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator1D</span></code></a></p>
+<p>A slight extension of scipy.interpolate&#8217;s UnivariateSpline for linear inter-
+polation.  Allows for linear or decay extrapolation (approaching a limiting
+linear function from below).</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(x)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivative</span></code>(x)</td>
+<td>Evaluates the derivative of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">eval_with_derivative</span></code>(x)</td>
+<td>Evaluates the interpolated function and its derivative at the given input.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.LinearInterpOnInterp1D">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">LinearInterpOnInterp1D</code><span class="sig-paren">(</span><em>xInterpolators</em>, <em>y_values</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.LinearInterpOnInterp1D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator2D" title="HARKinterpolation.HARKinterpolator2D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator2D</span></code></a></p>
+<p>A 2D interpolator that linearly interpolates among a list of 1D interpolators.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(x,&nbsp;y)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code>(x,&nbsp;y)</td>
+<td>Evaluates the partial derivative of interpolated function with respect to x (the first argument) at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code>(x,&nbsp;y)</td>
+<td>Evaluates the partial derivative of interpolated function with respect to y (the second argument) at the given input.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.LinearInterpOnInterp2D">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">LinearInterpOnInterp2D</code><span class="sig-paren">(</span><em>xyInterpolators</em>, <em>z_values</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.LinearInterpOnInterp2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator3D" title="HARKinterpolation.HARKinterpolator3D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator3D</span></code></a></p>
+<p>A 3D interpolation method that linearly interpolates between &#8220;layers&#8221; of
+arbitrary 2D interpolations.  Useful for models with two endogenous state
+variables and one exogenous state variable when solving with the endogenous
+grid method.  NOTE: should not be used if an exogenous 3D grid is used, will
+be significantly slower than TrilinearInterp.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative of the interpolated function with respect to x (the first argument) at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative of the interpolated function with respect to y (the second argument) at the given input.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeZ</span></code>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative of the interpolated function with respect to z (the third argument) at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.LowerEnvelope">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">LowerEnvelope</code><span class="sig-paren">(</span><em>*functions</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.LowerEnvelope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator1D" title="HARKinterpolation.HARKinterpolator1D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator1D</span></code></a></p>
+<p>The lower envelope of a finite set of 1D functions, each of which can be of
+any class that has the methods __call__, derivative, and eval_with_derivative.
+Generally: it combines HARKinterpolator1Ds.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(x)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivative</span></code>(x)</td>
+<td>Evaluates the derivative of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">eval_with_derivative</span></code>(x)</td>
+<td>Evaluates the interpolated function and its derivative at the given input.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.QuadlinearInterp">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">QuadlinearInterp</code><span class="sig-paren">(</span><em>f_values</em>, <em>w_list</em>, <em>x_list</em>, <em>y_list</em>, <em>z_list</em>, <em>wSearchFunc=None</em>, <em>xSearchFunc=None</em>, <em>ySearchFunc=None</em>, <em>zSearchFunc=None</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.QuadlinearInterp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator4D" title="HARKinterpolation.HARKinterpolator4D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator4D</span></code></a></p>
+<p>Quadlinear full (or tensor) grid interpolation of a function f(w,x,y,z).</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeW</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to w (the first argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to x (the second argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to y (the third argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeZ</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to z (the fourth argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.TrilinearInterp">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">TrilinearInterp</code><span class="sig-paren">(</span><em>f_values</em>, <em>x_list</em>, <em>y_list</em>, <em>z_list</em>, <em>xSearchFunc=None</em>, <em>ySearchFunc=None</em>, <em>zSearchFunc=None</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.TrilinearInterp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator3D" title="HARKinterpolation.HARKinterpolator3D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator3D</span></code></a></p>
+<p>Trilinear full (or tensor) grid interpolation of a function f(x,y,z).</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative of the interpolated function with respect to x (the first argument) at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative of the interpolated function with respect to y (the second argument) at the given input.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeZ</span></code>(x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative of the interpolated function with respect to z (the third argument) at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKinterpolation.TrilinearInterpOnInterp1D">
+<em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">TrilinearInterpOnInterp1D</code><span class="sig-paren">(</span><em>wInterpolators</em>, <em>x_values</em>, <em>y_values</em>, <em>z_values</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.TrilinearInterpOnInterp1D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator4D" title="HARKinterpolation.HARKinterpolator4D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator4D</span></code></a></p>
+<p>A 4D interpolator that trilinearly interpolates among a list of lists of 1D interpolators.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeW</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to w (the first argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to x (the second argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to y (the third argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">derivativeZ</span></code>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<td>Evaluates the partial derivative with respect to z (the fourth argument) of the interpolated function at the given input.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/HARKinterpolation.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, TEMP.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.1.
+    </div>
+  </body>
+</html>

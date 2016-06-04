@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # HARK documentation build configuration file, created by
-# sphinx-quickstart on Thu Jun  2 21:04:51 2016.
+# sphinx-quickstart on Sat Jun  4 15:22:52 2016.
 #
 # This file is execfile()d with the current directory set to its
 # containing dir.
@@ -19,7 +19,7 @@ import os
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('..'))   # <- Careful here to add ".."
+sys.path.insert(0, os.path.abspath('..'))
 
 # -- General configuration ------------------------------------------------
 
@@ -32,16 +32,15 @@ sys.path.insert(0, os.path.abspath('..'))   # <- Careful here to add ".."
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
-    'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
+    'sphinx.ext.autosummary',
     'numpydoc',
 ]
 
-# Auto-add summaries:
-autodoc_default_flags = ['members']
+autodoc_default_flags = ['members']  # must add outside ']' bracket
 autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
@@ -60,8 +59,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'HARK'
-copyright = u'2016, Christopher D. Carroll, Alexander Kaufman, David C. Low, Nathan M. Palmer, Matthew N. White'
-author = u'Christopher D. Carroll, Alexander Kaufman, David C. Low, Nathan M. Palmer, Matthew N. White'
+copyright = u'2016, TEMP'
+author = u'TEMP'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -122,20 +121,7 @@ todo_include_todos = True
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'classic'
-# See much more here: http://www.sphinx-doc.org/en/stable/theming.html
-# options:
-# - alabaster
-# - sphinx_rtd_theme  # read the docs theme
-# - classic
-# - sphinxdoc
-# - scrolls
-# - agogo
-# - traditional
-# - nature
-# - haiku
-# - pyramid
-# - bizstyle
+html_theme = 'classic' # 'alabaster'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -252,7 +238,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'HARK.tex', u'HARK Documentation',
-     u'Christopher D. Carroll, Alexander Kaufman, David C. Low, Nathan M. Palmer, Matthew N. White', 'manual'),
+     u'TEMP', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
