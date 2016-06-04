@@ -294,7 +294,9 @@ Some extremely useful sources:
 
 - High-level, friendly overview (note install approach is deprecated):
     - https://codeandchaos.wordpress.com/2012/07/30/sphinx-autodoc-tutorial-for-dummies/
-    - https://codeandchaos.wordpress.com/2012/08/09/sphinx-and-numpydoc/
+        - https://codeandchaos.wordpress.com/2012/08/09/sphinx-and-numpydoc/
+    - http://gisellezeno.com/tutorials/sphinx-for-python-documentation.html
+    - http://thomas-cokelaer.info/tutorials/sphinx/docstring_python.html
 
 - Tutorial:
     - http://sphinx-tutorial.readthedocs.io/
