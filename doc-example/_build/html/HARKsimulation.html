@@ -55,12 +55,51 @@
 The input p can be a float or a list-like of floats; its length T determines
 the number of entries in the output.  The t-th entry of the output is an
 array of N booleans which are True with probability p[t] and False otherwise.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>draws</strong> : np.array or [np.array]</p>
+<blockquote class="last">
+<div><p>T-length list of arrays of Bernoulli draws each of size N, or a single
+array of size N (if sigma is a scalar).</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="HARKsimulation.drawDiscrete">
 <code class="descclassname">HARKsimulation.</code><code class="descname">drawDiscrete</code><span class="sig-paren">(</span><em>P</em>, <em>X</em>, <em>N</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawDiscrete" title="Permalink to this definition">¶</a></dt>
 <dd><p>Simulates N draws from a discrete distribution with probabilities P and outcomes X.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>P</strong> : [float]</p>
+<blockquote>
+<div><p>A list of probabilities of outcomes.</p>
+</div></blockquote>
+<p><strong>X</strong> : [float]</p>
+<blockquote>
+<div><p>A list of discrete outcomes.</p>
+</div></blockquote>
+<p><strong>N</strong> : int</p>
+<blockquote>
+<div><p>Number of draws to simulate.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>draws</strong> : np.array</p>
+<blockquote class="last">
+<div><p>An array draws from the discrete distribution; each element is a value in X.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -71,6 +110,27 @@ or list-like.  If a number, output is a length N array of draws from the
 lognormal distribution with standard deviation sigma. If a list, output is
 a length T list whose t-th entry is a length N array of draws from the
 lognormal with standard deviation sigma[t].</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>sigma</strong> : float or [float]</p>
+<blockquote>
+<div><p>One or more standard deviations. Number of elements T in sigma
+determines number of rows of output.</p>
+</div></blockquote>
+<p><strong>N</strong> : int</p>
+<blockquote>
+<div><p>Number of draws in each row.</p>
+</div></blockquote>
+<p><strong>seed</strong> : int</p>
+<blockquote class="last">
+<div><p>Seed for random number generator.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -81,6 +141,39 @@ list-likes.  If a number, output is a length N array of draws from the normal
 distribution with mean mu and standard deviation sigma. If a list, output is
 a length T list whose t-th entry is a length N array with draws from the
 normal distribution with mean mu[t] and standard deviation sigma[t].</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>mu</strong> : float or [float]</p>
+<blockquote>
+<div><p>One or more means.  Number of elements T in mu determines number of rows
+of output.</p>
+</div></blockquote>
+<p><strong>sigma</strong> : float or [float]</p>
+<blockquote>
+<div><p>One or more standard deviations. Number of elements T in sigma
+determines number of rows of output.</p>
+</div></blockquote>
+<p><strong>N</strong> : int</p>
+<blockquote>
+<div><p>Number of draws in each row.</p>
+</div></blockquote>
+<p><strong>seed</strong> : int</p>
+<blockquote>
+<div><p>Seed for random number generator.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>draws</strong> : np.array or [np.array]</p>
+<blockquote class="last">
+<div><p>T-length list of arrays of normal draws each of size N, or a single array
+of size N (if sigma is a scalar).</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -91,6 +184,39 @@ list-likes.  If a number, output is a length N array of draws from the
 uniform distribution on [bot,top]. If a list, output is a length T list
 whose t-th entry is a length N array with draws from the uniform distribution
 on [bot[t],top[t]].</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>bot</strong> : float or [float]</p>
+<blockquote>
+<div><p>One or more bottom values.  Number of elements T in mu determines number
+of rows of output.</p>
+</div></blockquote>
+<p><strong>top</strong> : float or [float]</p>
+<blockquote>
+<div><p>One or more top values. Number of elements T in top determines number of
+rows of output.</p>
+</div></blockquote>
+<p><strong>N</strong> : int</p>
+<blockquote>
+<div><p>Number of draws in each row.</p>
+</div></blockquote>
+<p><strong>seed</strong> : int</p>
+<blockquote>
+<div><p>Seed for random number generator.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>draws</strong> : np.array or [np.array]</p>
+<blockquote class="last">
+<div><p>T-length list of arrays of uniform draws each of size N, or a single
+array of size N (if sigma is a scalar).</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -103,6 +229,32 @@ is a length T list whose t-th entry is a length N array with draws from the
 Weibull distribution with scale scale[t] and shape shape[t].</p>
 <p>Note: When shape=1, the Weibull distribution is simply the exponential dist.</p>
 <p>Mean: scale*Gamma(1 + 1/shape)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>scale</strong> : float or [float]</p>
+<blockquote>
+<div><p>One or more scales.  Number of elements T in scale determines number of
+rows of output.</p>
+</div></blockquote>
+<p><strong>shape</strong> : float or [float]</p>
+<blockquote>
+<div><p>One or more shape parameters. Number of elements T in scale
+determines number of rows of output.</p>
+</div></blockquote>
+<p><strong>N</strong> : int</p>
+<blockquote>
+<div><p>Number of draws in each row.</p>
+</div></blockquote>
+<p><strong>seed</strong> : int</p>
+<blockquote class="last">
+<div><p>Seed for random number generator.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>

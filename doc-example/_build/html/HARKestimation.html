@@ -55,6 +55,32 @@ optimization methods and bootstrapping tools.</p>
 <dd><p>Samples rows from the input array of data, generating a new data array with
 an equal number of rows (records).  Rows are drawn with equal probability
 by default, but probabilities can be specified with weights (must sum to 1).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>data</strong> : np.array</p>
+<blockquote>
+<div><p>An array of data, with each row representing a record.</p>
+</div></blockquote>
+<p><strong>weights</strong> : np.array</p>
+<blockquote>
+<div><p>A weighting array with length equal to data.shape[0].</p>
+</div></blockquote>
+<p><strong>seed</strong> : int</p>
+<blockquote>
+<div><p>A seed for the random number generator.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>new_data</strong> : np.array</p>
+<blockquote class="last">
+<div><p>A resampled version of input data.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -62,6 +88,34 @@ by default, but probabilities can be specified with weights (must sum to 1).</p>
 <code class="descclassname">HARKestimation.</code><code class="descname">minimizeNelderMead</code><span class="sig-paren">(</span><em>objectiveFunction</em>, <em>parameter_guess</em>, <em>verbose=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKestimation.minimizeNelderMead" title="Permalink to this definition">¶</a></dt>
 <dd><p>Minimizes the objective function using the Nelder-Mead simplex algorithm,
 starting from an initial parameter guess.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>objectiveFunction</strong> : function</p>
+<blockquote>
+<div><p>The function to be minimized.  It should take only a single argument, which
+should be a list representing the parameters to be estimated.</p>
+</div></blockquote>
+<p><strong>parameter_guess</strong> : [float]</p>
+<blockquote>
+<div><p>A starting point for the Nelder-Mead algorithm, which must be a valid
+input for objectiveFunction.</p>
+</div></blockquote>
+<p><strong>verbose</strong> : boolean</p>
+<blockquote>
+<div><p>A flag for the amount of output to print.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>xopt</strong> : [float]</p>
+<blockquote class="last">
+<div><p>The values that minimize objectiveFunction.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -69,6 +123,34 @@ starting from an initial parameter guess.</p>
 <code class="descclassname">HARKestimation.</code><code class="descname">minimizePowell</code><span class="sig-paren">(</span><em>objectiveFunction</em>, <em>parameter_guess</em>, <em>verbose=False</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKestimation.minimizePowell" title="Permalink to this definition">¶</a></dt>
 <dd><p>Minimizes the objective function using a derivative-free Powell algorithm,
 starting from an initial parameter guess.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>objectiveFunction</strong> : function</p>
+<blockquote>
+<div><p>The function to be minimized.  It should take only a single argument, which
+should be a list representing the parameters to be estimated.</p>
+</div></blockquote>
+<p><strong>parameter_guess</strong> : [float]</p>
+<blockquote>
+<div><p>A starting point for the Powell algorithm, which must be a valid
+input for objectiveFunction.</p>
+</div></blockquote>
+<p><strong>verbose</strong> : boolean</p>
+<blockquote>
+<div><p>A flag for the amount of output to print.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>xopt</strong> : [float]</p>
+<blockquote class="last">
+<div><p>The values that minimize objectiveFunction.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>

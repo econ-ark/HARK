@@ -55,6 +55,36 @@ typing &#8220;conda install dill&#8221; (etc) at a command prompt.</p>
 <code class="descclassname">HARKparallel.</code><code class="descname">loadNelderMeadData</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKparallel.loadNelderMeadData" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads the progress of a parallel Nelder-Mead search from a text file, as
 created by saveNelderMeadData().</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>name</strong> : string</p>
+<blockquote>
+<div><p>Name of the txt file from which to read search progress.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>simplex</strong> : np.array</p>
+<blockquote>
+<div><p>The current state of the simplex of parameter guesses.</p>
+</div></blockquote>
+<p><strong>fvals</strong> : np.array</p>
+<blockquote>
+<div><p>The objective function value at each row of simplex.</p>
+</div></blockquote>
+<p><strong>iters</strong> : int</p>
+<blockquote>
+<div><p>The number of completed Nelder-Mead iterations.</p>
+</div></blockquote>
+<p><strong>evals</strong> : int</p>
+<blockquote class="last">
+<div><p>The cumulative number of function evaluations in the search process.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -62,6 +92,25 @@ created by saveNelderMeadData().</p>
 <code class="descclassname">HARKparallel.</code><code class="descname">multiThreadCommands</code><span class="sig-paren">(</span><em>agent_list</em>, <em>command_list</em>, <em>num_jobs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKparallel.multiThreadCommands" title="Permalink to this definition">¶</a></dt>
 <dd><p>Executes the list of commands in command_list for each AgentType in agent_list
 using a multithreaded system. Each command should be a method of that AgentType subclass.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>agent_list</strong> : [AgentType]</p>
+<blockquote>
+<div><p>A list of instances of AgentType on which the commands will be run.</p>
+</div></blockquote>
+<p><strong>command_list</strong> : [string]</p>
+<blockquote>
+<div><p>A list of commands to run for each AgentType in agent_list.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">none</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -71,6 +120,25 @@ using a multithreaded system. Each command should be a method of that AgentType 
 in an ordinary, single-threaded loop.  Each command should be a method of
 that AgentType subclass.  This function exists so as to easily disable
 multithreading, as it uses the same syntax as multithreadCommands.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>agent_list</strong> : [AgentType]</p>
+<blockquote>
+<div><p>A list of instances of AgentType on which the commands will be run.</p>
+</div></blockquote>
+<p><strong>command_list</strong> : [string]</p>
+<blockquote>
+<div><p>A list of commands to run for each AgentType.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">none</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -79,6 +147,110 @@ multithreading, as it uses the same syntax as multithreadCommands.</p>
 <dd><p>A parallel implementation of the Nelder-Mead minimization algorithm, as
 described in Lee and Wiswall.  For long optimization procedures, it can
 save progress between iterations and resume later.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>objFunc</strong> : function</p>
+<blockquote>
+<div><p>The objective function to be minimized. Takes a single 1D array as input.</p>
+</div></blockquote>
+<p><strong>guess</strong> : np.array</p>
+<blockquote>
+<div><p>Initial starting point for the simplex, representing an input for objFunc.</p>
+</div></blockquote>
+<p><strong>perturb</strong> : np.array</p>
+<blockquote>
+<div><p>Perturbation vector for the simplex, of the same length as an input to
+objFunc.  If perturb[j] is non-zero, a simplex point will be created
+that perturbs the j-th element of guess by perturb[j]; if it is zero,
+then the j-th parameter of objFunc will not be optimized over.  By
+default, guess=None, indicating that all parameters should be optimized,
+with an initial perturbation of 0.1*guess.</p>
+</div></blockquote>
+<p><strong>P</strong> : int</p>
+<blockquote>
+<div><p>Degree of parallelization: the number of vertices of the simplex to try
+to update on each iteration of the process.</p>
+</div></blockquote>
+<p><strong>ftol</strong> : float</p>
+<blockquote>
+<div><p>Absolute tolerance of the objective function for convergence.  If suc-
+cessive iterations return minimum function values that differ by less
+than ftol, the process terminates successfully.</p>
+</div></blockquote>
+<p><strong>xtol</strong> : float</p>
+<blockquote>
+<div><p>Absolute tolerance of the input values for convergence.  If the maximum
+distance between the current minimum point and the worst point in the
+simplex is less than xtol, then the process terminates successfully.</p>
+</div></blockquote>
+<p><strong>maxiter</strong> : int</p>
+<blockquote>
+<div><p>Maximum number of Nelder-Mead iterations; reaching iters=maxiter is
+reported as an &#8220;unsuccessful&#8221; minimization.</p>
+</div></blockquote>
+<p><strong>maxeval</strong> : int</p>
+<blockquote>
+<div><p>Maximum number of evaluations of objFunc (across all processes); reaching
+evals=maxeval is reported as an &#8220;unsuccessful&#8221; minimization.</p>
+</div></blockquote>
+<p><strong>r_param: float</strong></p>
+<blockquote>
+<div><p>Parameter indicating magnitude of the reflection point calculation.</p>
+</div></blockquote>
+<p><strong>e_param: float</strong></p>
+<blockquote>
+<div><p>Parameter indicating magnitude of the expansion point calculation.</p>
+</div></blockquote>
+<p><strong>c_param: float</strong></p>
+<blockquote>
+<div><p>Parameter indicating magnitude of the contraction point calculation.</p>
+</div></blockquote>
+<p><strong>s_param: float</strong></p>
+<blockquote>
+<div><p>Parameter indicating magnitude of the shrink calculation.</p>
+</div></blockquote>
+<p><strong>maxcores</strong> : int</p>
+<blockquote>
+<div><p>The maximum number of CPU cores that the optimization should use,
+regardless of the size of the problem.</p>
+</div></blockquote>
+<p><strong>name</strong> : string</p>
+<blockquote>
+<div><p>A filename for (optionally) saving the progress of the Nelder-Mead search,
+and for resuming a previous search (when resume=True).  Useful for long
+searches that could potentially be interrupted by computer down time.</p>
+</div></blockquote>
+<p><strong>resume</strong> : boolean</p>
+<blockquote>
+<div><p>An indicator for whether the search should resume from earlier progress.
+When True, the process will load a progress file named in input name.</p>
+</div></blockquote>
+<p><strong>savefreq</strong> : int</p>
+<blockquote>
+<div><p>When not None, search progress will be saved to name.txt every savefreq
+iterations, to be loaded later with resume=True).</p>
+</div></blockquote>
+<p><strong>verbose</strong> : int</p>
+<blockquote>
+<div><p>Indicator for the verbosity of the optimization routine.  Higher values
+generate more text output; verbose=0 produces no text output.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>min_point</strong> : np.array</p>
+<blockquote>
+<div><p>The input that minimizes objFunc, as found by the minimization.</p>
+</div></blockquote>
+<p><strong>fmin</strong> : float</p>
+<blockquote class="last">
+<div><p>The minimum of objFunc; fmin = objFunc(min_point).</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -87,6 +259,53 @@ save progress between iterations and resume later.</p>
 <dd><p>A worker process for the parallel Nelder-Mead algorithm.  Updates one point
 in the simplex, returning its function value as well.  Should basically
 never be called directly, only by parallelNelderMead().</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>objFunc</strong> : function</p>
+<blockquote>
+<div><p>The function to be minimized; takes a single 1D array as input.</p>
+</div></blockquote>
+<p><strong>simplex</strong> : numpy.array</p>
+<blockquote>
+<div><p>The current simplex for minimization; simplex[k,:] is an input for objFunc.</p>
+</div></blockquote>
+<p><strong>f_vals</strong> : numpy.array</p>
+<blockquote>
+<div><p>The values of the objective function at each point of the simplex:
+f_vals[k] = objFunc(simplex[k,:])</p>
+</div></blockquote>
+<p><strong>j</strong> : int</p>
+<blockquote>
+<div><p>Index of the point in the simplex to update: simplex[j,:]</p>
+</div></blockquote>
+<p><strong>P</strong> : int</p>
+<blockquote>
+<div><p>Degree of parallelization of the algorithm.</p>
+</div></blockquote>
+<p><strong>opt_params</strong> : numpy.array</p>
+<blockquote>
+<div><p>Three element array with parameters for reflection, contraction, expansion.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>new_point</strong> : numpy.array</p>
+<blockquote>
+<div><p>An updated point for the simplex; might be the same as simplex[j,:].</p>
+</div></blockquote>
+<p><strong>new_val</strong> : float</p>
+<blockquote>
+<div><p>The value of the objective function at the new point: objFunc(new_point).</p>
+</div></blockquote>
+<p><strong>evals</strong> : int</p>
+<blockquote class="last">
+<div><p>Number of evaluations of objFunc by this worker.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -94,6 +313,28 @@ never be called directly, only by parallelNelderMead().</p>
 <code class="descclassname">HARKparallel.</code><code class="descname">runCommands</code><span class="sig-paren">(</span><em>agent</em>, <em>command_list</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKparallel.runCommands" title="Permalink to this definition">¶</a></dt>
 <dd><p>Executes each command in command_list on a given AgentType.  The commands
 should be methods of that AgentType&#8217;s subclass.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>agent</strong> : AgentType</p>
+<blockquote>
+<div><p>An instance of AgentType on which the commands will be run.</p>
+</div></blockquote>
+<p><strong>command_list</strong> : [string]</p>
+<blockquote>
+<div><p>A list of commands that the agent should run, as methods.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>agent</strong> : AgentType</p>
+<blockquote class="last">
+<div><p>The same AgentType instance passed as input, after running the commands.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -101,6 +342,37 @@ should be methods of that AgentType&#8217;s subclass.</p>
 <code class="descclassname">HARKparallel.</code><code class="descname">saveNelderMeadData</code><span class="sig-paren">(</span><em>name</em>, <em>simplex</em>, <em>fvals</em>, <em>iters</em>, <em>evals</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKparallel.saveNelderMeadData" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stores the progress of a parallel Nelder-Mead search in a text file so that
 it can be resumed later (after manual termination or a crash).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>name</strong> : string</p>
+<blockquote>
+<div><p>Name of the txt file in which to store search progress.</p>
+</div></blockquote>
+<p><strong>simplex</strong> : np.array</p>
+<blockquote>
+<div><p>The current state of the simplex of parameter guesses.</p>
+</div></blockquote>
+<p><strong>fvals</strong> : np.array</p>
+<blockquote>
+<div><p>The objective function value at each row of simplex.</p>
+</div></blockquote>
+<p><strong>iters</strong> : int</p>
+<blockquote>
+<div><p>The number of completed Nelder-Mead iterations.</p>
+</div></blockquote>
+<p><strong>evals</strong> : int</p>
+<blockquote>
+<div><p>The cumulative number of function evaluations in the search process.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">none</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>
