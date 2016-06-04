@@ -30,8 +30,8 @@ class MargValueFunc2D():
         '''
         Constructor for a new marginal value function object.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         cFunc : function
             A real function representing the marginal value function composed
             with the inverse marginal utility function, defined on market
@@ -40,8 +40,8 @@ class MargValueFunc2D():
         CRRA : float
             Coefficient of relative risk aversion.
             
-        Returns:
-        ----------
+        Returns
+        -------
         new instance of MargValueFunc
         '''
         self.cFunc = deepcopy(cFunc)
@@ -58,8 +58,8 @@ def solveConsumptionSavingAggShocks(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA
     can't handle borrowing (assumes liquidity constraint) or cubic splines, nor
     can it calculate a value function.
     
-    Parameters:
-    -------------
+    Parameters
+    ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
     IncomeDstn : [np.array]
@@ -89,8 +89,8 @@ def solveConsumptionSavingAggShocks(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
                     
-    Returns:
-    ----------
+    Returns
+    -------
     solution_now : ConsumerSolution
         The solution to the single period consumption-saving problem.  Includes
         a consumption function cFunc (linear interpolation over linear interpola-

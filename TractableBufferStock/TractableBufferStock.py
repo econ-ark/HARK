@@ -53,8 +53,8 @@ class TractableConsumerSolution(Solution):
         '''
         The constructor for a new TractableConsumerSolution object.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         mNrm_list : [float]
             List of normalized market resources points on the stable arm.
         cNrm_list : [float]
@@ -67,8 +67,8 @@ class TractableConsumerSolution(Solution):
         cFunc : function
             The consumption function when employed.
             
-        Returns:
-        ----------
+        Returns
+        -------
         new instance of TractableConsumerSolution
         '''
         self.mNrm_list = mNrm_list
@@ -87,8 +87,8 @@ def findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNex
     to consume must have been in the previous period given model parameters and
     values of market resources, consumption, and MPC today.
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     DiscFac : float
         Intertemporal discount factor on future utility.
     Rfree : float
@@ -111,8 +111,8 @@ def findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNex
     PFMPC : float
         The perfect foresight MPC; also the MPC when permanently unemployed.
         
-    Returns:
-    -----------
+    Returns
+    -------
     mNow : float
         Normalized market resources this period.
     cNow : float
@@ -136,8 +136,8 @@ def addToStableArmPoints(solution_next,DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb
     been met by a stable arm point in mNrm_list.  This acts as the "one period
     solver" / solveOnePeriod in the tractable buffer stock model.
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     solution_next : TractableConsumerSolution
         The solution object from the previous iteration of the backshooting
         procedure.  Not the "next period" solution per se.
@@ -218,8 +218,8 @@ class TractableConsumerType(AgentType):
         '''
         Instantiate a new TractableConsumerType with given data.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         cycles : int
             Number of times the sequence of periods should be solved.
         time_flow : boolean
@@ -244,12 +244,12 @@ class TractableConsumerType(AgentType):
         fect foresight solution, (marginal) consumption at m=0, and the small
         perturbations around the steady state.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        -----------
+        Returns
+        -------
         none
         '''
         # Define utility functions
@@ -322,12 +322,12 @@ class TractableConsumerType(AgentType):
         then constructs the consumption function as a cubic interpolation over
         those points.  Should be run after the backshooting routine is complete.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        -----------
+        Returns
+        -------
         none
         '''
         # Add bottom point to the stable arm points

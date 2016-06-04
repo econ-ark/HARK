@@ -50,13 +50,13 @@ def getArgNames(function):
     '''
     Returns a list of strings naming all of the arguments for the passed function.
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     function : function
         A function whose argument names are wanted.
     
-    Returns:
-    -----------
+    Returns
+    -------
     argNames : [string]
         The names of the arguments of function.
     '''
@@ -64,11 +64,12 @@ def getArgNames(function):
     argNames = function.__code__.co_varnames[:argCount]
     return argNames
 
+
+NullFunc = lambda x : np.zeros(x.size) + np.nan
 '''
 A trivial function that takes a single array and returns an array of NaNs of the
 same size.  A generic default function that does nothing.
 '''
-NullFunc = lambda x : np.zeros(x.size) + np.nan  
 
 # ==============================================================================
 # ============== Define utility functions        ===============================
@@ -78,15 +79,15 @@ def CRRAutility(c, gam):
     Evaluates constant relative risk aversion (CRRA) utility of consumption c
     given risk aversion parameter gam.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     c : float
         Consumption value
     gam : float
         Risk aversion
 
-    Returns:
-    ------------
+    Returns
+    -------
     u : float
         Utility
 
@@ -107,15 +108,15 @@ def CRRAutilityP(c, gam):
     Evaluates constant relative risk aversion (CRRA) marginal utility of consumption
     c given risk aversion parameter gam.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     c : float
         Consumption value
     gam : float
         Risk aversion
 
-    Returns:
-    ------------
+    Returns
+    -------
     uP : float
         Marginal utility
     '''
@@ -126,15 +127,15 @@ def CRRAutilityPP(c, gam):
     Evaluates constant relative risk aversion (CRRA) marginal marginal utility of
     consumption c given risk aversion parameter gam.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     c : float
         Consumption value
     gam : float
         Risk aversion
 
-    Returns:
-    ------------
+    Returns
+    -------
     uPP : float
         Marginal marginal utility
     '''
@@ -145,15 +146,15 @@ def CRRAutilityPPP(c, gam):
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
     utility of consumption c given risk aversion parameter gam.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     c : float
         Consumption value
     gam : float
         Risk aversion
 
-    Returns:
-    ------------
+    Returns
+    -------
     uPPP : float
         Marginal marginal marginal utility
     '''
@@ -164,15 +165,15 @@ def CRRAutilityPPPP(c, gam):
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
     marginal utility of consumption c given risk aversion parameter gam.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     c : float
         Consumption value
     gam : float
         Risk aversion
 
-    Returns:
-    ------------
+    Returns
+    -------
     uPPPP : float
         Marginal marginal marginal marginal utility
     '''
@@ -183,15 +184,15 @@ def CRRAutility_inv(u, gam):
     Evaluates the inverse of the CRRA utility function (with risk aversion para-
     meter gam) at a given utility level u.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     u : float
         Utility value
     gam : float
         Risk aversion
 
-    Returns:
-    ------------
+    Returns
+    -------
     c : float
         Consumption corresponding to given utility value
     '''
@@ -205,15 +206,15 @@ def CRRAutilityP_inv(uP, gam):
     Evaluates the inverse of the CRRA marginal utility function (with risk aversion
     parameter gam) at a given marginal utility level uP.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     uP : float
         Marginal utility value
     gam : float
         Risk aversion
 
-    Returns:
-    ------------
+    Returns
+    -------
     c : float
         Consumption corresponding to given marginal utility value.
     '''
@@ -224,15 +225,15 @@ def CRRAutility_invP(u, gam):
     Evaluates the derivative of the inverse of the CRRA utility function (with
     risk aversion parameter gam) at a given utility level u.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     u : float
         Utility value
     gam : float
         Risk aversion
 
-    Returns:
-    ------------
+    Returns
+    -------
     cP : float
         Marginal consumption corresponding to given utility value
     '''
@@ -246,15 +247,15 @@ def CRRAutilityP_invP(u, gam):
     Evaluates the derivative of the inverse of the CRRA marginal utility function
     (with risk aversion parameter gam) at a given marginal utility level uP.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     uP : float
         Marginal utility value
     gam : float
         Risk aversion
 
-    Returns:
-    ------------
+    Returns
+    -------
     cP : float
         Marginal consumption corresponding to given marginal utility value
     '''
@@ -263,7 +264,7 @@ def CRRAutilityP_invP(u, gam):
         
 def CARAutility(c, alpha):
     '''
-    Evaluates absolute relative risk aversion (ARRA) utility of consumption c
+    Evaluates constant absolute risk aversion (CARA) utility of consumption c
     given risk aversion parameter alpha.
 
     Parameters
@@ -282,7 +283,7 @@ def CARAutility(c, alpha):
 
 def CARAutilityP(c, alpha):
     '''
-    Evaluates absolute relative risk aversion (ARRA) marginal utility of
+    Evaluates constant absolute risk aversion (CARA) marginal utility of
     consumption c given risk aversion parameter alpha.
 
     Parameters
@@ -301,7 +302,7 @@ def CARAutilityP(c, alpha):
 
 def CARAutilityPP(c, alpha):
     '''
-    Evaluates absolute relative risk aversion (ARRA) marginal marginal utility
+    Evaluates constant absolute risk aversion (CARA) marginal marginal utility
     of consumption c given risk aversion parameter alpha.
 
     Parameters
@@ -320,7 +321,7 @@ def CARAutilityPP(c, alpha):
     
 def CARAutilityPPP(c, alpha):
     '''
-    Evaluates absolute relative risk aversion (ARRA) marginal marginal marginal
+    Evaluates constant absolute risk aversion (CARA) marginal marginal marginal
     utility of consumption c given risk aversion parameter alpha.
 
     Parameters
@@ -339,7 +340,7 @@ def CARAutilityPPP(c, alpha):
 
 def CARAutility_inv(u, alpha):
     '''
-    Evaluates inverse of absolute relative risk aversion (ARRA) utility function
+    Evaluates inverse of constant absolute risk aversion (CARA) utility function
     at utility level u given risk aversion parameter alpha.
 
     Parameters
@@ -358,7 +359,7 @@ def CARAutility_inv(u, alpha):
 
 def CARAutilityP_inv(u, alpha):
     '''
-    Evaluates the inverse of absolute relative risk aversion (ARRA) marginal
+    Evaluates the inverse of constant absolute risk aversion (CARA) marginal
     utility function at marginal utility uP given risk aversion parameter alpha.
 
     Parameters
@@ -377,7 +378,7 @@ def CARAutilityP_inv(u, alpha):
     
 def CARAutility_invP(u, alpha):
     '''
-    Evaluates the derivative of inverse of absolute relative risk aversion (ARRA)
+    Evaluates the derivative of inverse of constant absolute risk aversion (CARA)
     utility function at utility level u given risk aversion parameter alpha.
 
     Parameters
@@ -402,8 +403,8 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
     default, but user can optionally request augmented tails with exponentially
     sized point masses.  This can improve solution accuracy in some models.
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     N: int
         Number of discrete points in the "main part" of the approximation.
     mu: float
@@ -420,8 +421,8 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
         Factor by which consecutive point masses in a "tail part" differ in
         probability.  Should be >= 1 for sensible spacing.
         
-    Returns:
-    -----------
+    Returns
+    -------
     pmf: np.ndarray
         Probabilities for discrete probability mass function.
     X: np.ndarray
@@ -481,16 +482,16 @@ def approxMeanOneLognormal(N, sigma=1.0, **kwargs):
 
     Parameters
     ----------
-    N: int
+    N : int
         Size of discrete space vector to be returned.
-    sigma: float
+    sigma : float
         standard deviation associated with underlying normal probability distribution.
 
     Returns
-    ----------
-    X: np.ndarray
+    -------
+    X : np.array
         Discrete points for discrete probability mass function.
-    pmf: np.ndarray
+    pmf : np.array
         Probability associated with each point in X.
 
     Written by Nathan M. Palmer
@@ -507,8 +508,8 @@ def approxBeta(N,a=1.0,b=1.0):
     slow, as it uses a rudimentary numeric integration method to generate the
     discrete approximation.
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     N : int
         Size of discrete space vector to be returned.
     a : float
@@ -516,11 +517,11 @@ def approxBeta(N,a=1.0,b=1.0):
     b : float
         Second shape parameter (sometimes called beta).
 
-    Returns:
-    ----------
-    X: np.ndarray
+    Returns
+    -------
+    X : np.array
         Discrete points for discrete probability mass function.
-    pmf: np.ndarray
+    pmf : np.array
         Probability associated with each point in X.
     '''
     P = 1000
@@ -534,8 +535,8 @@ def approxUniform(center,width,N):
     Makes a discrete approximation to a uniform distribution, given its center
     point and width.
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     center : float
         The center of the uniform distribution
     width : float
@@ -543,8 +544,8 @@ def approxUniform(center,width,N):
     N : int
         The number of points in the discrete approximation
         
-    Returns:
-    -----------
+    Returns
+    -------
     X : np.array
         An equiprobable discrete approximation to the uniform distribution.
     '''
@@ -557,8 +558,8 @@ def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):
     to values in x_grid.  If a RV is distributed x~N(mu,sigma), then the expectation
     of a continuous function f() is E[f(x)] = numpy.dot(p_vec,f(x_grid)).
     
-    Parameters:
-    -------------
+    Parameters
+    ----------
     x_grid: numpy.array
         A sorted 1D array of floats representing discrete values that a normally
         distributed RV could take on.    
@@ -571,8 +572,8 @@ def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):
     bound: float
         Truncation bound of the normal distribution, as +/- bound*sigma.
         
-    Returns:
-    -----------
+    Returns
+    -------
     p_vec: numpy.array
         A stochastic vector with probability weights for each x in x_grid.
     '''
@@ -616,8 +617,8 @@ def addDiscreteOutcomeConstantMean(distribution, x, p, sort = False):
     Adds a discrete outcome of x with probability p to an existing distribution,
     holding constant the relative probabilities of other outcomes and overall mean.
    
-    Parameters:
-    -----------
+    Parameters
+    ----------
     distribution : [np.array]
         Two element list containing a list of probabilities and a list of outcomes.
     x : float
@@ -627,8 +628,8 @@ def addDiscreteOutcomeConstantMean(distribution, x, p, sort = False):
     sort: bool
         Whether or not to sort X before returning it
  
-    Returns:
-    -----------
+    Returns
+    -------
     A new distribution object
  
     Written by Matthew N. White
@@ -649,8 +650,8 @@ def addDiscreteOutcome(distribution, x, p, sort = False):
     Adds a discrete outcome of x with probability p to an existing distribution,
     holding constant the relative probabilities of other outcomes.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     distribution : [np.array]
         Two element list containing a list of probabilities and a list of outcomes.
     x : float
@@ -658,8 +659,8 @@ def addDiscreteOutcome(distribution, x, p, sort = False):
     p : float
         The probability of the discrete outcome x occuring.
 
-    Returns:
-    -----------
+    Returns
+    -------
     A new distribution object
 
     Written by Matthew N. White
@@ -682,15 +683,15 @@ def combineIndepDstns(*distributions):
     probability spaces (probabilities and values), construct a joint pmf over
     all combinations of these independent points.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     distributions : [np.array]
         Arbitrary number of distributions (pmfs).  Each pmf is a list or tuple.
         For each pmf, the first vector is probabilities and the second is values.
         For each pmf, this should be true: len(X_pmf[0]) = len(X_pmf[1])
  
-    Returns:
-    ----------
+    Returns
+    -------
     List of arrays, consisting of:
     
     P_out: np.array
@@ -758,20 +759,20 @@ def makeGridExpMult(ming, maxg, ng, timestonest=20):
     '''
     Make a multi-exponentially spaced grid.
 
-    Parameters:
-    ------------
-    ming:   float
+    Parameters
+    ----------
+    ming : float
         Minimum value of the grid
-    maxg:   float
+    maxg : float
         Maximum value of the grid
-    ng:     int
+    ng : int
         The number of grid points
-    timestonest: int
+    timestonest : int
         the number of times to nest the exponentiation
 
-    Returns:
-    ----------
-    points:     np.array
+    Returns
+    -------
+    points : np.array
         A multi-exponentially spaced grid
 
     Original Matab code can be found in Chris Carroll's
@@ -805,15 +806,15 @@ def calcWeightedAvg(data,weights):
     Generates a weighted average of simulated data.  The Nth row of data is averaged
     and then weighted by the Nth element of weights in an aggregate average.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     data : numpy.array
         An array of data with N rows of J floats
     weights : numpy.array
         A length N array of weights for the N rows of data.
         
-    Returns:
-    -----------
+    Returns
+    -------
     weighted_sum : float
         The weighted sum of the data.
     '''    
@@ -825,8 +826,8 @@ def getPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
     '''
     Calculates the requested percentiles of (weighted) data.  Median by default.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     data : numpy.array
         A 1D array of float data.
     weights : np.array
@@ -837,8 +838,8 @@ def getPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
     presorted : boolean
         Indicator for whether data has already been sorted.
         
-    Returns:
-    ----------
+    Returns
+    -------
     pctl_out : numpy.array
         The requested percentiles of the data.
     '''
@@ -866,8 +867,8 @@ def getLorenzShares(data,weights=None,percentiles=[0.5],presorted=False):
     Calculates the Lorenz curve at the requested percentiles of (weighted) data.
     Median by default.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     data : numpy.array
         A 1D array of float data.
     weights : numpy.array
@@ -878,8 +879,8 @@ def getLorenzShares(data,weights=None,percentiles=[0.5],presorted=False):
     presorted : boolean
         Indicator for whether data has already been sorted.
         
-    Returns:
-    ----------
+    Returns
+    -------
     lorenz_out : numpy.array
         The requested Lorenz curve points of the data.
     '''
@@ -909,8 +910,8 @@ def calcSubpopAvg(data,reference,cutoffs,weights=None):
     Calculates the average of (weighted) data between cutoff percentiles of a
     reference variable.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     data : numpy.array
         A 1D array of float data.
     reference : numpy.array
@@ -921,8 +922,8 @@ def calcSubpopAvg(data,reference,cutoffs,weights=None):
     weights : numpy.array
         A weighting vector for the data.
         
-    Returns:
-    ----------
+    Returns
+    -------
     slice_avg
         The (weighted) average of data that falls within the cutoff percentiles
         of reference.
@@ -951,8 +952,8 @@ def kernelRegression(x,y,bot=None,top=None,N=500,h=None):
     Performs a non-parametric Nadaraya-Watson 1D kernel regression on given data
     with optionally specified range, number of points, and kernel bandwidth.
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     x : np.array
         The independent variable in the kernel regression.
     y : np.array
@@ -966,8 +967,8 @@ def kernelRegression(x,y,bot=None,top=None,N=500,h=None):
     h : float
         The bandwidth of the (Epanechnikov) kernel. To-do: GENERALIZE.
         
-    Returns:
-    ----------
+    Returns
+    -------
     regression : LinearInterp
         A piecewise locally linear kernel regression: y = f(x).
     '''
@@ -993,8 +994,8 @@ def epanechnikovKernel(x,ref_x,h=1.0):
     '''
     The Epanechnikov kernel.
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     x : np.array
         Values at which to evaluate the kernel
     x_ref : float
@@ -1002,8 +1003,8 @@ def epanechnikovKernel(x,ref_x,h=1.0):
     h : float
         Kernel bandwidth
     
-    Returns:
-    -----------
+    Returns
+    -------
     fx : np.array
         Kernel values at each value of x
     '''
@@ -1022,8 +1023,8 @@ def plotFunc(function,bottom,top,N=1000):
     '''
     Plots a 1D function over a given range.
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     function : function
         A real function to be plotted.
     bottom : float
@@ -1033,8 +1034,8 @@ def plotFunc(function,bottom,top,N=1000):
     N : int
         Number of points in the domain to evaluate.
         
-    Returns:
-    -----------
+    Returns
+    -------
     none
     '''
     step = (top-bottom)/N
@@ -1049,8 +1050,8 @@ def plotFuncDer(function,bottom,top,N=1000):
     '''
     Plots the first derivative of a 1D function over a given range.
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     function : function
         A real function to be plotted.
     bottom : float
@@ -1060,8 +1061,8 @@ def plotFuncDer(function,bottom,top,N=1000):
     N : int
         Number of points in the domain to evaluate.
         
-    Returns:
-    -----------
+    Returns
+    -------
     none
     '''
     step = (top-bottom)/N
@@ -1075,8 +1076,8 @@ def plotFuncs(function_list,bottom,top,N=1000):
     '''
     Plots a list of 1D function over a given range.
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     function_list : [function]
         A list of real functions to be plotted.
     bottom : float
@@ -1086,8 +1087,8 @@ def plotFuncs(function_list,bottom,top,N=1000):
     N : int
         Number of points in the domain to evaluate.
         
-    Returns:
-    -----------
+    Returns
+    -------
     none
     '''
     step = (top-bottom)/N

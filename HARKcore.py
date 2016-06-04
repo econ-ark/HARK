@@ -1,3 +1,7 @@
+'''
+This is the missing description for HARKcore.  We really ought to write it.
+'''
+
 from HARKutilities import getArgNames, NullFunc
 from copy import deepcopy
 import numpy as np
@@ -6,8 +10,8 @@ def distanceMetric(thing_A,thing_B):
     '''
     A "universal distance" metric that can be used as a default in many settings.
     
-    Parameters:
-    -------------
+    Parameters
+    ----------
     thing_A : object
         A generic object.        
     thing_B : object
@@ -62,13 +66,13 @@ class HARKobject():
         called convergence_criteria, giving a list of strings naming the attributes
         to be considered by the distance metric.
         
-        Parameters:
-        -------------
+        Parameters
+        ----------
         other : object
             Another object to compare this instance to.
             
-        Returns:
-        ------------
+        Returns
+        -------
         distance : float
             The distance between this object and another, using the "universal
             distance" metric.
@@ -83,21 +87,31 @@ class HARKobject():
     def assignParameters(self,**kwds):
         '''
         Assign an arbitrary number of attributes to this agent.
+        
+        Parameters
+        ----------
+        **kwds : keyword arguments
+            Any number of keyword arguments of the form key=value.  Each value
+            will be assigned to the attribute named in self.
+            
+        Returns
+        -------
+        none
         '''
         for key in kwds:
-            #temp = kwds[key]
-            #exec('self.' + key + ' = temp')
             setattr(self,key,kwds[key])
             
-    def __call__(self,**kwds): # Attribute assignment as call, for convenience
+    def __call__(self,**kwds):
+        '''
+        Assign an arbitrary number of attributes to this agent, as a convenience.
+        See assignParameters.
+        '''
         self.assignParameters(**kwds)
         
 class Solution(HARKobject):
     '''
     A superclass for representing the "solution" to a single period problem in a
-    dynamic microeconomic model.  Its only method acs as a "universal distance
-    metric" that should be useful in many settings, but can be overwritten by a
-    subclass of Solution.
+    dynamic microeconomic model.
     
     NOTE: This can be deprecated now that HARKobject exists, but this requires
     replacing each instance of Solution with HARKobject in the other modules.
@@ -119,8 +133,8 @@ class AgentType(HARKobject):
         '''
         Initialize an instance of AgentType by setting attributes.
         
-        Parameters:
-        -------------
+        Parameters
+        ----------
         solution_terminal : Solution
             A representation of the solution to the terminal period problem of
             this AgentType instance, or an initial guess of the solution if this
@@ -149,8 +163,8 @@ class AgentType(HARKobject):
         seed : int
             A seed for this instance's random number generator.
             
-        Returns:
-        -----------
+        Returns
+        -------
         a new instance of AgentType
         '''
         self.solution_terminal = solution_terminal
@@ -168,12 +182,12 @@ class AgentType(HARKobject):
         Report to the user the direction that time is currently "flowing" for
         this instance.  Only exists as a reminder of how time_flow works.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         if self.time_flow:
@@ -185,12 +199,12 @@ class AgentType(HARKobject):
         '''
         Reverse the flow of time for this instance.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         for name in self.time_vary:
@@ -201,12 +215,12 @@ class AgentType(HARKobject):
         '''
         Make time flow forward for this instance.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         if not self.time_flow:
@@ -216,12 +230,12 @@ class AgentType(HARKobject):
         '''
         Make time flow backward for this instance.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         if self.time_flow:
@@ -233,12 +247,12 @@ class AgentType(HARKobject):
         Loops through the sequence of one period problems, passing the solution
         to period t+1 to the problem for period t.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         self.preSolve() # Do pre-solution stuff
@@ -253,12 +267,12 @@ class AgentType(HARKobject):
         '''
         Reset the random number generator for this type.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         self.RNG = np.random.RandomState(self.seed)
@@ -270,16 +284,16 @@ class AgentType(HARKobject):
         solution object as an input and returns the "distance" between the solutions.
         This method is used to test for convergence in infinite horizon problems.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         solutionA : Solution
             The solution to a one period problem in the model.
             
-        solutionB: Solution
+        solutionB : Solution
             Another solution to (the same) one period problem in the model.
         
-        Returns:
-        ------------
+        Returns
+        -------
         is_close_enough : boolean
             True if the solutions are within a tolerable distance of each other.
         '''
@@ -291,12 +305,12 @@ class AgentType(HARKobject):
         A method that is run immediately before the model is solved, to prepare
         the terminal solution, perhaps.  Does nothing here.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         return None
@@ -306,12 +320,12 @@ class AgentType(HARKobject):
         A method that is run immediately after the model is solved, to finalize
         the solution in some way.  Does nothing here.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         return None
@@ -323,13 +337,13 @@ def solveAgent(agent):
     of an agent's model either a given number of times or until solution convergence
     if an infinite horizon model is used (with agent.cycles = 0).
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     agent : AgentType
         The microeconomic AgentType whose dynamic problem is to be solved.
         
-    Returns:
-    ------------
+    Returns
+    -------
     solution : [Solution]
         A list of solutions to the one period problems that the agent will
         encounter in his "lifetime".  Returns in reverse chronological order.
@@ -389,8 +403,8 @@ def solveOneCycle(agent,solution_last):
     iterates over the periods within an agent's cycle, updating the time-varying
     parameters and passing them to the single period solver(s).
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     agent : AgentType
         The microeconomic AgentType whose dynamic problem is to be solved.
     solution_last : Solution
@@ -399,8 +413,8 @@ def solveOneCycle(agent,solution_last):
         inal period solution, a "pseudo terminal" solution, a simply the
         solution to the earliest period from the succeeding cycle.
     
-    Returns:
-    ------------
+    Returns
+    -------
     solution_cycle : [Solution]
         A list of one period solutions for one "cycle" of the AgentType's
         microeconomic model.  Returns in reverse chronological order.
@@ -467,8 +481,8 @@ class Market(HARKobject):
         '''
         Make a new instance of the Market class.
         
-        Parameters:
-        -------------    
+        Parameters
+        ----------    
         agents : [AgentType]
             A list of all the AgentTypes in this market.    
         sow_vars : [string]
@@ -503,6 +517,10 @@ class Market(HARKobject):
         tolerance: float
             Minimum acceptable distance between "dynamic rules" to consider the
             Market solution process converged.  Distance is a user-defined metric.
+            
+        Returns
+        -------
+        new instance of Market
     '''
         self.agents = agents
         self.reap_vars = reap_vars
@@ -523,12 +541,12 @@ class Market(HARKobject):
         market state such that when agents believe in these dynamics, their actions
         collectively generate the same dynamic rule.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         go = True
@@ -560,12 +578,12 @@ class Market(HARKobject):
         Collects attributes named in reap_vars from each AgentType in the market,
         storing them in respectively named attributes of self.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         for var_name in self.reap_vars:
@@ -579,12 +597,12 @@ class Market(HARKobject):
         Distributes attrributes named in sow_vars from self to each AgentType
         in the market, storing them in respectively named attributes.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         for var_name in self.sow_vars:
@@ -597,12 +615,12 @@ class Market(HARKobject):
         Processes the variables collected from agents using the function millRule,
         storing the results in attributes named in aggr_sow.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         # Make a dictionary of inputs for the millRule
@@ -628,12 +646,12 @@ class Market(HARKobject):
         The marketAction method should store new results in attributes named in
         reap_vars to be reaped later.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         for this_type in self.agents:
@@ -644,12 +662,12 @@ class Market(HARKobject):
         Reset the state of the market (attributes in sow_vars, etc) to some
         user-defined initial state, and erase the histories of tracked variables.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         for var_name in self.track_vars: # Reset the history of tracked variables
@@ -665,12 +683,12 @@ class Market(HARKobject):
         Record the current value of each variable X named in track_vars in an
         attribute named X_hist.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         for var_name in self.track_vars:
@@ -682,12 +700,12 @@ class Market(HARKobject):
         Runs a loop of sow-->cultivate-->reap-->mill act_T times, tracking the
         evolution of variables X named in track_vars in attributes named X_hist.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''        
         self.reset() # Initialize the state of the market
@@ -703,12 +721,12 @@ class Market(HARKobject):
         Calculates a new "aggregate dynamic rule" using the history of variables
         named in track_vars, and distributes this rule to AgentTypes in agents.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        ------------
+        Returns
+        -------
         none
         '''
         # Make a dictionary of inputs for the dynamics calculator

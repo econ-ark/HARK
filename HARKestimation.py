@@ -16,8 +16,8 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwar
     Minimizes the objective function using the Nelder-Mead simplex algorithm,
     starting from an initial parameter guess.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     objectiveFunction : function
         The function to be minimized.  It should take only a single argument, which
         should be a list representing the parameters to be estimated.
@@ -27,8 +27,8 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwar
     verbose : boolean
         A flag for the amount of output to print.
         
-    Returns:
-    ----------
+    Returns
+    -------
     xopt : [float]
         The values that minimize objectiveFunction.
     '''
@@ -61,8 +61,8 @@ def minimizePowell(objectiveFunction, parameter_guess, verbose=False):
     Minimizes the objective function using a derivative-free Powell algorithm,
     starting from an initial parameter guess.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     objectiveFunction : function
         The function to be minimized.  It should take only a single argument, which
         should be a list representing the parameters to be estimated.
@@ -72,8 +72,8 @@ def minimizePowell(objectiveFunction, parameter_guess, verbose=False):
     verbose : boolean
         A flag for the amount of output to print.
         
-    Returns:
-    ----------
+    Returns
+    -------
     xopt : [float]
         The values that minimize objectiveFunction.
     '''
@@ -108,8 +108,8 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
     an equal number of rows (records).  Rows are drawn with equal probability
     by default, but probabilities can be specified with weights (must sum to 1).
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     data : np.array
         An array of data, with each row representing a record.
     weights : np.array
@@ -117,8 +117,8 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
     seed : int
         A seed for the random number generator.
         
-    Returns:
-    -----------
+    Returns
+    -------
     new_data : np.array
         A resampled version of input data.
     '''   

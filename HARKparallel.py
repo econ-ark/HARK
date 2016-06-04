@@ -17,15 +17,15 @@ def multiThreadCommandsFake(agent_list,command_list):
     that AgentType subclass.  This function exists so as to easily disable
     multithreading, as it uses the same syntax as multithreadCommands.
         
-    Parameters:
-    -----------
+    Parameters
+    ----------
     agent_list : [AgentType]
         A list of instances of AgentType on which the commands will be run.
     command_list : [string]
         A list of commands to run for each AgentType.
         
-    Returns:
-    ----------
+    Returns
+    -------
     none
     '''
     for agent in agent_list:
@@ -37,15 +37,15 @@ def multiThreadCommands(agent_list,command_list,num_jobs=None):
     Executes the list of commands in command_list for each AgentType in agent_list
     using a multithreaded system. Each command should be a method of that AgentType subclass.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     agent_list : [AgentType]
         A list of instances of AgentType on which the commands will be run.
     command_list : [string]
         A list of commands to run for each AgentType in agent_list.
         
-    Returns:
-    ----------
+    Returns
+    -------
     none
     '''
     # Default umber of parallel jobs is the smaller of number of AgentTypes in
@@ -65,15 +65,15 @@ def runCommands(agent,command_list):
     Executes each command in command_list on a given AgentType.  The commands
     should be methods of that AgentType's subclass.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     agent : AgentType
         An instance of AgentType on which the commands will be run.
     command_list : [string]
         A list of commands that the agent should run, as methods.
         
-    Returns:
-    ----------
+    Returns
+    -------
     agent : AgentType
         The same AgentType instance passed as input, after running the commands.
     '''
@@ -92,8 +92,8 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
     described in Lee and Wiswall.  For long optimization procedures, it can
     save progress between iterations and resume later.
     
-    Parameters:
-    -------------
+    Parameters
+    ----------
     objFunc : function
         The objective function to be minimized. Takes a single 1D array as input.
     guess : np.array
@@ -147,8 +147,8 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
         Indicator for the verbosity of the optimization routine.  Higher values
         generate more text output; verbose=0 produces no text output.
         
-    Returns:
-    ----------
+    Returns
+    -------
     min_point : np.array
         The input that minimizes objFunc, as found by the minimization.
     fmin : float
@@ -287,8 +287,8 @@ def saveNelderMeadData(name, simplex, fvals, iters, evals):
     Stores the progress of a parallel Nelder-Mead search in a text file so that
     it can be resumed later (after manual termination or a crash).
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     name : string
         Name of the txt file in which to store search progress.
     simplex : np.array
@@ -300,8 +300,8 @@ def saveNelderMeadData(name, simplex, fvals, iters, evals):
     evals : int
         The cumulative number of function evaluations in the search process.
         
-    Returns:
-    ------------
+    Returns
+    -------
     none
     '''
     f = open(name + '.txt','wb')
@@ -318,13 +318,13 @@ def loadNelderMeadData(name):
     Reads the progress of a parallel Nelder-Mead search from a text file, as
     created by saveNelderMeadData().
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     name : string
         Name of the txt file from which to read search progress.
         
-    Returns:
-    ------------
+    Returns
+    -------
     simplex : np.array
         The current state of the simplex of parameter guesses.
     fvals : np.array
@@ -349,16 +349,15 @@ def loadNelderMeadData(name):
     
     return simplex, fvals, iters, evals
         
-    
-
+        
 def parallelNelderMeadWorker(objFunc,simplex,f_vals,j,P,opt_params):
     '''
     A worker process for the parallel Nelder-Mead algorithm.  Updates one point
     in the simplex, returning its function value as well.  Should basically
     never be called directly, only by parallelNelderMead().
     
-    Parameters:
-    -------------
+    Parameters
+    ----------
     objFunc : function
         The function to be minimized; takes a single 1D array as input.
     simplex : numpy.array
@@ -372,8 +371,9 @@ def parallelNelderMeadWorker(objFunc,simplex,f_vals,j,P,opt_params):
         Degree of parallelization of the algorithm.
     opt_params : numpy.array
         Three element array with parameters for reflection, contraction, expansion.
-    Returns:
-    ------------
+        
+    Returns
+    -------
     new_point : numpy.array
         An updated point for the simplex; might be the same as simplex[j,:].
     new_val : float

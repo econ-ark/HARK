@@ -17,13 +17,13 @@ def _isscalar(x):
     '''
     Check whether x is if a scalar type, or 0-dim.
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     x : anything
         An input to be checked for scalar-ness.
         
-    Returns:
-    -----------
+    Returns
+    -------
     is_scalar : boolean
         True if the input is a scalar, False otherwise.
     '''
@@ -38,13 +38,13 @@ class HARKinterpolator1D(HARKobject):
         '''
         Evaluates the interpolated function at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         
-        Returns:
-        -----------
+        Returns
+        -------
         y : np.array or float
             The interpolated function evaluated at x: y = f(x), with the same
             shape as x.
@@ -56,13 +56,13 @@ class HARKinterpolator1D(HARKobject):
         '''
         Evaluates the derivative of the interpolated function at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         
-        Returns:
-        -----------
+        Returns
+        -------
         dydx : np.array or float
             The interpolated function's first derivative evaluated at x:
             dydx = f'(x), with the same shape as x.
@@ -74,13 +74,13 @@ class HARKinterpolator1D(HARKobject):
         '''
         Evaluates the interpolated function and its derivative at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         
-        Returns:
-        -----------
+        Returns
+        -------
         y : np.array or float
             The interpolated function evaluated at x: y = f(x), with the same
             shape as x.
@@ -119,16 +119,16 @@ class HARKinterpolator2D(HARKobject):
         '''
         Evaluates the interpolated function at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         y : np.array or float
             Real values to be evaluated in the interpolated function; must be
             the same size as x.
         
-        Returns:
-        -----------
+        Returns
+        -------
         fxy : np.array or float
             The interpolated function evaluated at x,y: fxy = f(x,y), with the
             same shape as x and y.
@@ -142,16 +142,16 @@ class HARKinterpolator2D(HARKobject):
         Evaluates the partial derivative of interpolated function with respect
         to x (the first argument) at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         y : np.array or float
             Real values to be evaluated in the interpolated function; must be
             the same size as x.
         
-        Returns:
-        -----------
+        Returns
+        -------
         dfdx : np.array or float
             The derivative of the interpolated function with respect to x, eval-
             uated at x,y: dfdx = f_x(x,y), with the same shape as x and y.
@@ -165,16 +165,16 @@ class HARKinterpolator2D(HARKobject):
         Evaluates the partial derivative of interpolated function with respect
         to y (the second argument) at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         y : np.array or float
             Real values to be evaluated in the interpolated function; must be
             the same size as x.
         
-        Returns:
-        -----------
+        Returns
+        -------
         dfdy : np.array or float
             The derivative of the interpolated function with respect to y, eval-
             uated at x,y: dfdx = f_y(x,y), with the same shape as x and y.
@@ -210,8 +210,8 @@ class HARKinterpolator3D(HARKobject):
         '''
         Evaluates the interpolated function at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         y : np.array or float
@@ -221,8 +221,8 @@ class HARKinterpolator3D(HARKobject):
             Real values to be evaluated in the interpolated function; must be
             the same size as x.
         
-        Returns:
-        -----------
+        Returns
+        -------
         fxyz : np.array or float
             The interpolated function evaluated at x,y,z: fxyz = f(x,y,z), with
             the same shape as x, y, and z.
@@ -237,8 +237,8 @@ class HARKinterpolator3D(HARKobject):
         Evaluates the partial derivative of the interpolated function with respect
         to x (the first argument) at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         y : np.array or float
@@ -248,8 +248,8 @@ class HARKinterpolator3D(HARKobject):
             Real values to be evaluated in the interpolated function; must be
             the same size as x.
         
-        Returns:
-        -----------
+        Returns
+        -------
         dfdx : np.array or float
             The derivative with respect to x of the interpolated function evaluated
             at x,y,z: dfdx = f_x(x,y,z), with the same shape as x, y, and z.
@@ -264,8 +264,8 @@ class HARKinterpolator3D(HARKobject):
         Evaluates the partial derivative of the interpolated function with respect
         to y (the second argument) at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         y : np.array or float
@@ -275,8 +275,8 @@ class HARKinterpolator3D(HARKobject):
             Real values to be evaluated in the interpolated function; must be
             the same size as x.
         
-        Returns:
-        -----------
+        Returns
+        -------
         dfdy : np.array or float
             The derivative with respect to y of the interpolated function evaluated
             at x,y,z: dfdy = f_y(x,y,z), with the same shape as x, y, and z.
@@ -291,8 +291,8 @@ class HARKinterpolator3D(HARKobject):
         Evaluates the partial derivative of the interpolated function with respect
         to z (the third argument) at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         y : np.array or float
@@ -302,8 +302,8 @@ class HARKinterpolator3D(HARKobject):
             Real values to be evaluated in the interpolated function; must be
             the same size as x.
         
-        Returns:
-        -----------
+        Returns
+        -------
         dfdz : np.array or float
             The derivative with respect to z of the interpolated function evaluated
             at x,y,z: dfdz = f_z(x,y,z), with the same shape as x, y, and z.
@@ -346,8 +346,8 @@ class HARKinterpolator4D(HARKobject):
         '''
         Evaluates the interpolated function at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         w : np.array or float
             Real values to be evaluated in the interpolated function.
         x : np.array or float
@@ -360,8 +360,8 @@ class HARKinterpolator4D(HARKobject):
             Real values to be evaluated in the interpolated function; must be
             the same size as w.
         
-        Returns:
-        -----------
+        Returns
+        -------
         fwxyz : np.array or float
             The interpolated function evaluated at w,x,y,z: fwxyz = f(w,x,y,z),
             with the same shape as w, x, y, and z.
@@ -377,8 +377,8 @@ class HARKinterpolator4D(HARKobject):
         Evaluates the partial derivative with respect to w (the first argument)
         of the interpolated function at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         w : np.array or float
             Real values to be evaluated in the interpolated function.
         x : np.array or float
@@ -391,8 +391,8 @@ class HARKinterpolator4D(HARKobject):
             Real values to be evaluated in the interpolated function; must be
             the same size as w.
         
-        Returns:
-        -----------
+        Returns
+        -------
         dfdw : np.array or float
             The derivative with respect to w of the interpolated function eval-
             uated at w,x,y,z: dfdw = f_w(w,x,y,z), with the same shape as inputs.
@@ -408,8 +408,8 @@ class HARKinterpolator4D(HARKobject):
         Evaluates the partial derivative with respect to x (the second argument)
         of the interpolated function at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         w : np.array or float
             Real values to be evaluated in the interpolated function.
         x : np.array or float
@@ -422,8 +422,8 @@ class HARKinterpolator4D(HARKobject):
             Real values to be evaluated in the interpolated function; must be
             the same size as w.
         
-        Returns:
-        -----------
+        Returns
+        -------
         dfdx : np.array or float
             The derivative with respect to x of the interpolated function eval-
             uated at w,x,y,z: dfdx = f_x(w,x,y,z), with the same shape as inputs.
@@ -439,8 +439,8 @@ class HARKinterpolator4D(HARKobject):
         Evaluates the partial derivative with respect to y (the third argument)
         of the interpolated function at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         w : np.array or float
             Real values to be evaluated in the interpolated function.
         x : np.array or float
@@ -453,8 +453,8 @@ class HARKinterpolator4D(HARKobject):
             Real values to be evaluated in the interpolated function; must be
             the same size as w.
         
-        Returns:
-        -----------
+        Returns
+        -------
         dfdy : np.array or float
             The derivative with respect to y of the interpolated function eval-
             uated at w,x,y,z: dfdy = f_y(w,x,y,z), with the same shape as inputs.
@@ -470,8 +470,8 @@ class HARKinterpolator4D(HARKobject):
         Evaluates the partial derivative with respect to z (the fourth argument)
         of the interpolated function at the given input.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         w : np.array or float
             Real values to be evaluated in the interpolated function.
         x : np.array or float
@@ -484,8 +484,8 @@ class HARKinterpolator4D(HARKobject):
             Real values to be evaluated in the interpolated function; must be
             the same size as w.
         
-        Returns:
-        -----------
+        Returns
+        -------
         dfdz : np.array or float
             The derivative with respect to z of the interpolated function eval-
             uated at w,x,y,z: dfdz = f_z(w,x,y,z), with the same shape as inputs.
@@ -538,8 +538,8 @@ class CubicInterp(HARKinterpolator1D):
         '''
         The interpolation constructor to make a new cubic spline interpolation.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         x_list : np.array
             List of x values composing the grid.
         y_list : np.array
@@ -554,8 +554,8 @@ class CubicInterp(HARKinterpolator1D):
             Indicator for whether lower extrapolation is allowed.  False means
             f(x) = NaN for x < min(x_list); True means linear extrapolation.
             
-        Returns:
-        -----------
+        Returns
+        -------
         new instance of CubicInterp
             
         NOTE: When no input is given for the limiting linear function, linear
@@ -729,8 +729,8 @@ class LinearInterp(HARKinterpolator1D):
         '''
         The interpolation constructor to make a new linear spline interpolation.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         x_list : np.array
             List of x values composing the grid.
         y_list : np.array
@@ -743,8 +743,8 @@ class LinearInterp(HARKinterpolator1D):
             Indicator for whether lower extrapolation is allowed.  False means
             f(x) = NaN for x < min(x_list); True means linear extrapolation.
             
-        Returns:
-        -----------
+        Returns
+        -------
         new instance of LinearInterp
             
         NOTE: When no input is given for the limiting linear function, linear
@@ -827,8 +827,8 @@ class BilinearInterp(HARKinterpolator2D):
         '''
         Constructor to make a new bilinear interpolation.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         f_values : numpy.array
             An array of size (x_n,y_n) such that f_values[i,j] = f(x_list[i],y_list[j])
         x_list : numpy.array
@@ -842,9 +842,9 @@ class BilinearInterp(HARKinterpolator2D):
             An optional function that returns the reference location for y values:
             indices = ySearchFunc(y_list,y).  Default is np.searchsorted
             
-        Returns:
-        ----------
-        a new instance of BilinearInterp
+        Returns
+        -------
+        new instance of BilinearInterp
         '''
         self.f_values = f_values
         self.x_list = x_list
@@ -938,8 +938,8 @@ class TrilinearInterp(HARKinterpolator3D):
         '''
         Constructor to make a new trilinear interpolation.
         
-        Parameters:
-        -------------
+        Parameters
+        ----------
         f_values : numpy.array
             An array of size (x_n,y_n,z_n) such that f_values[i,j,k] =
             f(x_list[i],y_list[j],z_list[k])
@@ -959,8 +959,8 @@ class TrilinearInterp(HARKinterpolator3D):
             An optional function that returns the reference location for z values:
             indices = zSearchFunc(z_list,z).  Default is np.searchsorted
             
-        Returns:
-        ----------
+        Returns
+        -------
         new instance of TrilinearInterp
         '''
         self.f_values = f_values
@@ -1119,8 +1119,8 @@ class QuadlinearInterp(HARKinterpolator4D):
         '''
         Constructor to make a new quadlinear interpolation.
         
-        Parameters:
-        -------------
+        Parameters
+        ----------
         f_values : numpy.array
             An array of size (w_n,x_n,y_n,z_n) such that f_values[i,j,k,l] =
             f(w_list[i],x_list[j],y_list[k],z_list[l])
@@ -1145,8 +1145,8 @@ class QuadlinearInterp(HARKinterpolator4D):
             An optional function that returns the reference location for z values:
             indices = zSearchFunc(z_list,z).  Default is np.searchsorted
             
-        Returns:
-        ----------
+        Returns
+        -------
         new instance of QuadlinearInterp
         '''
         self.f_values = f_values
@@ -1434,13 +1434,13 @@ class LowerEnvelope(HARKinterpolator1D):
         '''
         Constructor to make a new lower envelope iterpolation.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         *functions : function
             Any number of real functions; often instances of HARKinterpolator1D
             
-        Returns:
-        -----------
+        Returns
+        -------
         new instance of LowerEnvelope
         '''
         self.functions = []
@@ -1501,16 +1501,16 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
         the form f(x,y) using interpolations over f(x,y_0) for a fixed grid of
         y_0 values.
         
-        Parameters:
-        -------------
+        Parameters
+        ----------
         xInterpolators : [HARKinterpolator1D]
             A list of 1D interpolations over the x variable.  The nth element of
             xInterpolators represents f(x,y_values[n]).
         y_values: numpy.array
             An array of y values equal in length to xInterpolators.
             
-        Returns:
-        ----------
+        Returns
+        -------
         new instance of LinearInterpOnInterp1D
         '''
         self.xInterpolators = xInterpolators
@@ -1597,8 +1597,8 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
         the form f(x,y,z) using interpolations over f(x,y_0,z_0) for a fixed grid
         of y_0 and z_0 values.
         
-        Parameters:
-        -------------
+        Parameters
+        ----------
         xInterpolators : [[HARKinterpolator1D]]
             A list of lists of 1D interpolations over the x variable.  The i,j-th
             element of xInterpolators represents f(x,y_values[i],z_values[j]).
@@ -1607,8 +1607,8 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
         z_values: numpy.array
             An array of z values equal in length to xInterpolators[0].
             
-        Returns:
-        ----------
+        Returns
+        -------
         new instance of BilinearInterpOnInterp1D
         '''
         self.xInterpolators = xInterpolators
@@ -1760,8 +1760,8 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
         the form f(w,x,y,z) using interpolations over f(w,x_0,y_0,z_0) for a fixed
         grid of y_0 and z_0 values.
         
-        Parameters:
-        -------------
+        Parameters
+        ----------
         wInterpolators : [[[HARKinterpolator1D]]]
             A list of lists of lists of 1D interpolations over the x variable.
             The i,j,k-th element of wInterpolators represents f(w,x_values[i],y_values[j],z_values[k]).
@@ -1772,8 +1772,8 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
         z_values: numpy.array
             An array of z values equal in length to wInterpolators[0][0]
         
-        Returns:
-        -----------
+        Returns
+        -------
         new instance of TrilinearInterpOnInterp1D
         '''
         self.wInterpolators = wInterpolators
@@ -2049,16 +2049,16 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
         the form f(x,y,z) using interpolations over f(x,y,z_0) for a fixed grid
         of z_0 values.
         
-        Parameters:
-        -------------
+        Parameters
+        ----------
         xyInterpolators : [HARKinterpolator2D]
             A list of 2D interpolations over the x and y variables.  The nth
             element of xyInterpolators represents f(x,y,z_values[n]).
         z_values: numpy.array
             An array of z values equal in length to xyInterpolators.
             
-        Returns:
-        -----------
+        Returns
+        -------
         new instance of LinearInterpOnInterp2D
         '''
         self.xyInterpolators = xyInterpolators
@@ -2170,8 +2170,8 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
         the form f(w,x,y,z) using interpolations over f(w,x,y_0,z_0) for a fixed
         grid of y_0 and z_0 values.
         
-        Parameters:
-        -------------
+        Parameters
+        ----------
         wxInterpolators : [[HARKinterpolator2D]]
             A list of lists of 2D interpolations over the w and x variables.
             The i,j-th element of wxInterpolators represents
@@ -2181,8 +2181,8 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
         z_values: numpy.array
             An array of z values equal in length to wxInterpolators[0].
             
-        Returns:
-        ----------
+        Returns
+        -------
         new instance of BilinearInterpOnInterp2D
         '''
         self.wxInterpolators = wxInterpolators
@@ -2377,8 +2377,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         '''
         Constructor for 2D curvilinear interpolation for a function f(x,y)
         
-        Parameters:
-        -------------
+        Parameters
+        ----------
         f_values: numpy.array
             A 2D array of function values such that f_values[i,j] =
             f(x_values[i,j],y_values[i,j]).
@@ -2387,8 +2387,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         y_values: numpy.array
             A 2D array of y values of the same size as f_values.
             
-        Returns:
-        ----------
+        Returns
+        -------
         new instance of Curvilinear2DInterp
         '''
         self.f_values = f_values
@@ -2406,12 +2406,12 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         the "plus" (True) or "minus" (False) solution of the system of equations
         should be used for each sector.  Needs to be called in __init__.
         
-        Parameters:
-        -------------
+        Parameters
+        ----------
         none
             
-        Returns:
-        ----------
+        Returns
+        -------
         none
         '''       
         # Grab a point known to be inside each sector: the midway point between
@@ -2440,15 +2440,15 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         Finds the quadrilateral "sector" for each (x,y) point in the input.
         Only called as a subroutine of _evaluate().
         
-        Parameters:
-        -------------
+        Parameters
+        ----------
         x : np.array
             Values whose sector should be found.
         y : np.array
             Values whose sector should be found.  Should be same size as x.
             
-        Returns:
-        ----------
+        Returns
+        -------
         x_pos : np.array
             Sector x-coordinates for each point of the input, of the same size.
         y_pos : np.array
@@ -2525,8 +2525,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         given the sectors (x_pos,y_pos) in which they reside.  Only called as
         a subroutine of __call__().
         
-        Parameters:
-        -------------
+        Parameters
+        ----------
         x : np.array
             Values whose sector should be found.
         y : np.array
@@ -2536,8 +2536,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         y_pos : np.array
             Sector y-coordinates for each point in (x,y), of the same size.
             
-        Returns:
-        ----------
+        Returns
+        -------
         alpha : np.array
             Relative "horizontal" position of the input in their respective sectors.
         beta : np.array

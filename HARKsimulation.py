@@ -14,8 +14,8 @@ def drawMeanOneLognormal(sigma, N, seed=0):
     a length T list whose t-th entry is a length N array of draws from the
     lognormal with standard deviation sigma[t].
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     sigma : float or [float]
         One or more standard deviations. Number of elements T in sigma
         determines number of rows of output.
@@ -51,8 +51,8 @@ def drawNormal(mu, sigma, N, seed=0):
     a length T list whose t-th entry is a length N array with draws from the
     normal distribution with mean mu[t] and standard deviation sigma[t].
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     mu : float or [float]
         One or more means.  Number of elements T in mu determines number of rows
         of output.
@@ -64,8 +64,8 @@ def drawNormal(mu, sigma, N, seed=0):
     seed : int
         Seed for random number generator.
 
-    Returns:
-    -----------
+    Returns
+    -------
     draws : np.array or [np.array]
         T-length list of arrays of normal draws each of size N, or a single array
         of size N (if sigma is a scalar).
@@ -93,8 +93,8 @@ def drawWeibull(scale, shape, N, seed=0):
     
     Mean: scale*Gamma(1 + 1/shape)
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     scale : float or [float]
         One or more scales.  Number of elements T in scale determines number of
         rows of output.
@@ -133,8 +133,8 @@ def drawUniform(bot, top, N, seed=0):
     whose t-th entry is a length N array with draws from the uniform distribution
     on [bot[t],top[t]].
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     bot : float or [float]
         One or more bottom values.  Number of elements T in mu determines number
         of rows of output.
@@ -146,8 +146,8 @@ def drawUniform(bot, top, N, seed=0):
     seed : int
         Seed for random number generator.
 
-    Returns:
-    -----------
+    Returns
+    -------
     draws : np.array or [np.array]
         T-length list of arrays of uniform draws each of size N, or a single
         array of size N (if sigma is a scalar).
@@ -170,8 +170,8 @@ def drawBernoulli(p,N,seed=0):
     the number of entries in the output.  The t-th entry of the output is an
     array of N booleans which are True with probability p[t] and False otherwise.
     
-    Arguments:
-    ------------
+    Arguments
+    ---------
     p : float or [float]
         Probability or probabilities of the event occurring (True).
     N : int
@@ -179,8 +179,8 @@ def drawBernoulli(p,N,seed=0):
     seed : int
         Seed for random number generator.
 
-    Returns:
-    ------------
+    Returns
+    -------
     draws : np.array or [np.array]
         T-length list of arrays of Bernoulli draws each of size N, or a single
         array of size N (if sigma is a scalar).
@@ -200,8 +200,8 @@ def drawDiscrete(P,X,N,seed=0):
     '''
     Simulates N draws from a discrete distribution with probabilities P and outcomes X.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     P : [float]
         A list of probabilities of outcomes.
     X : [float]
@@ -209,8 +209,8 @@ def drawDiscrete(P,X,N,seed=0):
     N : int
         Number of draws to simulate.
         
-    Returns:
-    ----------
+    Returns
+    -------
     draws : np.array
         An array draws from the discrete distribution; each element is a value in X.
     '''

@@ -25,15 +25,15 @@ class PrefShockConsumerType(ConsumerType):
         See SetupConsumerParameters.init_consumer_objects for a dictionary of
         the keywords that should be passed to the constructor.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         cycles : int
             Number of times the sequence of periods should be solved.
         time_flow : boolean
             Whether time is currently "flowing" forward for this instance.
         
-        Returns:
-        -----------
+        Returns
+        -------
         New instance of PrefShockConsumerType.
         '''      
         ConsumerType.__init__(self,**kwds)
@@ -52,12 +52,12 @@ class PrefShockConsumerType(ConsumerType):
         for this agent type, storing them as attributes of self for use in the
         solution (and other methods).
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        -----------
+        Returns
+        -------
         none
         '''
         time_orig = self.time_flow
@@ -80,12 +80,12 @@ class PrefShockConsumerType(ConsumerType):
         Makes histories of simulated preference shocks for this consumer type by
         drawing from the shock distribution's true lognormal form.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        -----------
+        Returns
+        -------
         none
         '''
         orig_time = self.time_flow
@@ -120,12 +120,12 @@ class PrefShockConsumerType(ConsumerType):
         Advance the permanent and transitory income shocks to the next period of
         the shock history objects, after first advancing the preference shocks.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         none
         
-        Returns:
-        -----------
+        Returns
+        -------
         none
         '''
         self.PrefShkNow = self.PrefShkHist[self.Shk_idx,:]
@@ -135,6 +135,14 @@ class PrefShockConsumerType(ConsumerType):
         '''
         Simulate a single period of a consumption-saving model with permanent
         and transitory income shocks plus multiplicative utility shocks.
+        
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        none
         '''
         # Unpack objects from self for convenience
         aPrev          = self.aNow
@@ -175,8 +183,8 @@ class ConsPrefShockSolver(ConsumptionSavingSolverKinkedR):
         Constructor for a new solver for problems with risky income, a different
         interest rate on borrowing and saving, and multiplicative shocks to utility.
         
-        Parameters:
-        -------------
+        Parameters
+        ----------
         solution_next : ConsumerSolution
             The solution to the succeeding one period problem.
         IncomeDstn : [np.array]
@@ -217,8 +225,8 @@ class ConsPrefShockSolver(ConsumptionSavingSolverKinkedR):
             An indicator for whether the solver should use cubic or linear inter-
             polation.
             
-        Returns:
-        ---------
+        Returns
+        -------
         new instance of ConsPrefShockSolver
         '''
         ConsumptionSavingSolverKinkedR.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
@@ -231,16 +239,16 @@ class ConsPrefShockSolver(ConsumptionSavingSolverKinkedR):
         Find endogenous interpolation points for each asset point and each
         discrete preference shock.
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         EndOfPrdvP : np.array
             Array of end-of-period marginal values.
         aNrmNow : np.array
             Array of end-of-period asset values that yield the marginal values
             in EndOfPrdvP.
             
-        Returns:
-        ---------
+        Returns
+        -------
         c_for_interpolation : np.array
             Consumption points for interpolation.
         m_for_interpolation : np.array
@@ -261,8 +269,9 @@ class ConsPrefShockSolver(ConsumptionSavingSolverKinkedR):
         '''
         Make a basic solution object with a consumption function and marginal
         value function (unconditional on the preference shock).
-        Parameters:
-        ------------
+        
+        Parameters
+        ----------
         cNrm : np.array
             Consumption points for interpolation.
         mNrm : np.array
@@ -270,8 +279,8 @@ class ConsPrefShockSolver(ConsumptionSavingSolverKinkedR):
         interpolator : function
             A function that constructs and returns a consumption function.
             
-        Returns:
-        ----------
+        Returns
+        -------
         solution_now : ConsumerSolution
             The solution to this period's consumption-saving problem, with a
             consumption function, marginal value function, and minimum m.
@@ -303,14 +312,14 @@ class ConsPrefShockSolver(ConsumptionSavingSolverKinkedR):
         '''
         Make the beginning-of-period value function (unconditional on the shock).
         
-        Parameters:
-        ------------
+        Parameters
+        ----------
         solution : ConsumerSolution
             The solution to this single period problem, which must include the
             consumption function.
             
-        Returns:
-        -----------
+        Returns
+        -------
         vFuncNow : ValueFunc
             A representation of the value function for this period, defined over
             normalized market resources m: v = vFuncNow(m).
@@ -348,8 +357,8 @@ def solveConsPrefShock(solution_next,IncomeDstn,PrefShkDstn,
     Solves a single period of a consumption-saving model with preference shocks
     to marginal utility.  Problem is solved using the method of endogenous gridpoints.
 
-    Parameters:
-    -------------
+    Parameters
+    ----------
     solution_next : ConsumerSolution
         The solution to the succeeding one period problem.
     IncomeDstn : [np.array]
@@ -390,8 +399,8 @@ def solveConsPrefShock(solution_next,IncomeDstn,PrefShkDstn,
         An indicator for whether the solver should use cubic or linear inter-
         polation.
 
-    Returns:
-    -----------
+    Returns
+    -------
     solution_now: ConsumerSolution
         The solution to the single period consumption-saving problem.  Includes
         a consumption function cFunc (using linear splines), a marginal value
