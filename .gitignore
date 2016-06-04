@@ -239,3 +239,5 @@ eq
 # Emacs
 *.el
 
+# Particular user scratchwork directories
+nate-notes/
