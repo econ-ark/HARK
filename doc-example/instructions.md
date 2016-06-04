@@ -300,3 +300,4 @@ Some extremely useful sources:
 
 - Tutorial:
     - http://sphinx-tutorial.readthedocs.io/
+    - http://matplotlib.org/sampledoc/index.html
