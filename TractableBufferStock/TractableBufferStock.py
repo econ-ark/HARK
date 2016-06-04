@@ -1,5 +1,22 @@
 '''
 This module defines the Tractable Buffer Stock model described in CDC's notes.
+The model concerns an agent with constant relative risk aversion utility making
+decisions over consumption and saving.  He is subject to only a very particular
+sort of risk: the possibility that he will become permanently unemployed until
+the day he dies; barring this, his income is certain and grows at a constant rate.
+
+The model has an infinite horizon, but is not solved by backward iteration in a
+traditional sense.  Because of the very specific assumptions about risk, it is
+possible to find the agent's steady state or target level of market resources
+when employed, as well as information about the optimal consumption rule at this
+target level.  The full consumption function can then be constructed by "back-
+shooting", inverting the Euler equation to find what consumption *must have been*
+in the previous period.  The consumption function is thus constructed by repeat-
+edly adding "stable arm" points to either end of a growing list until specified
+bounds are exceeded.
+
+Despite the non-standard solution method, the iterative process can be embedded
+in the HARK framework, as shown below.
 '''
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder. 
@@ -31,14 +48,28 @@ class TractableConsumerSolution(Solution):
     cNrm_list, a list of MPCs MPC_list, a perfect foresight consumption function
     while employed, and a perfect foresight consumption function while unemployed.
     The solution includes a consumption function constructed from the lists.
-    '''
-    
+    '''    
     def __init__(self, mNrm_list=[], cNrm_list=[], MPC_list=[], cFunc_U=NullFunc, cFunc=NullFunc):
         '''
-        The constructor for a new TractableConsumerSolution object. The distance
-        between two solutions is the difference in the number of stable arm
-        points in each.  This is a very crude measure of distance that captures
-        the notion that the process is over when no more points are added.
+        The constructor for a new TractableConsumerSolution object.
+        
+        Parameters:
+        ------------
+        mNrm_list : [float]
+            List of normalized market resources points on the stable arm.
+        cNrm_list : [float]
+            List of normalized consumption points on the stable arm.
+        MPC_list : [float]
+            List of marginal propensities to consume on the stable arm, corres-
+            ponding to the (mNrm,cNrm) points.
+        cFunc_U : function
+            The (linear) consumption function when permanently unemployed.
+        cFunc : function
+            The consumption function when employed.
+            
+        Returns:
+        ----------
+        new instance of TractableConsumerSolution
         '''
         self.mNrm_list = mNrm_list
         self.cNrm_list = cNrm_list
@@ -46,25 +77,99 @@ class TractableConsumerSolution(Solution):
         self.cFunc_U = cFunc_U
         self.cFunc = cFunc
         self.convergence_criteria = ['PointCount']
+        # The distance between two solutions is the difference in the number of
+        # stable arm points in each.  This is a very crude measure of distance
+        # that captures the notion that the process is over when no points are added.
         
-
-
-def findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNext,MPCNext,PFMPC):
+def findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNext,MPCnext,PFMPC):
+    '''
+    Calculates what consumption, market resources, and the marginal propensity
+    to consume must have been in the previous period given model parameters and
+    values of market resources, consumption, and MPC today.
+    
+    Parameters:
+    ------------
+    DiscFac : float
+        Intertemporal discount factor on future utility.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    PermGroFacCmp : float
+        Permanent income growth factor, compensated for the possibility of
+        permanent unemployment.
+    UnempPrb : float
+        Probability of becoming permanently unemployed.
+    Rnrm : float
+        Interest factor normalized by compensated permanent income growth factor.
+    Beth : float
+        Damned if I know.
+    cNext : float
+        Normalized consumption in the succeeding period.
+    mNext : float
+        Normalized market resources in the succeeding period.
+    MPCnext : float
+        The marginal propensity to consume in the succeeding period.
+    PFMPC : float
+        The perfect foresight MPC; also the MPC when permanently unemployed.
+        
+    Returns:
+    -----------
+    mNow : float
+        Normalized market resources this period.
+    cNow : float
+        Normalized consumption this period.
+    MPCnow : float
+        Marginal propensity to consume this period.
+    '''
     uPP = lambda x : utilityPP(x,gam=CRRA)
     cNow = PermGroFacCmp*(DiscFac*Rfree)**(-1.0/CRRA)*cNext*(1 + UnempPrb*((cNext/(PFMPC*(mNext-1.0)))**CRRA-1.0))**(-1.0/CRRA)
     mNow = (PermGroFacCmp/Rfree)*(mNext - 1.0) + cNow
     cUNext = PFMPC*(mNow-cNow)*Rnrm
-    natural = Beth*Rnrm*(1.0/uPP(cNow))*((1.0-UnempPrb)*uPP(cNext)*MPCNext + UnempPrb*uPP(cUNext)*PFMPC)
+    natural = Beth*Rnrm*(1.0/uPP(cNow))*((1.0-UnempPrb)*uPP(cNext)*MPCnext + UnempPrb*uPP(cUNext)*PFMPC)
     MPCnow = natural / (natural + 1)
     return mNow, cNow, MPCnow
         
 
 def addToStableArmPoints(solution_next,DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,PFMPC,Rnrm,Beth,mLowerBnd,mUpperBnd):
     '''
-    This is the solveAPeriod function for the Tractable Buffer Stock model.  If
-    the bounding levels of mLowerBnd (lower) and mUpperBnd (upper) have not yet been met
-    by a stable arm point in mNrm_list, it adds a point to each end of the arm.  It
-    is the contents of the "backshooting" loop.
+    Adds a one point to the bottom and top of the list of stable arm points if
+    the bounding levels of mLowerBnd (lower) and mUpperBnd (upper) have not yet
+    been met by a stable arm point in mNrm_list.  This acts as the "one period
+    solver" / solveOnePeriod in the tractable buffer stock model.
+    
+    Parameters:
+    ------------
+    solution_next : TractableConsumerSolution
+        The solution object from the previous iteration of the backshooting
+        procedure.  Not the "next period" solution per se.
+    DiscFac : float
+        Intertemporal discount factor on future utility.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    PermGroFacCmp : float
+        Permanent income growth factor, compensated for the possibility of
+        permanent unemployment.
+    UnempPrb : float
+        Probability of becoming permanently unemployed.
+    PFMPC : float
+        The perfect foresight MPC; also the MPC when permanently unemployed.
+    Rnrm : float
+        Interest factor normalized by compensated permanent income growth factor.
+    Beth : float
+        Damned if I know.
+    mLowerBnd : float
+        Lower bound on market resources for the backshooting process.  If
+        min(solution_next.mNrm_list) < mLowerBnd, no new bottom point is found.
+    mUpperBnd : float
+        Upper bound on market resources for the backshooting process.  If
+        max(solution_next.mNrm_list) > mUpperBnd, no new top point is found. 
+        
+    Returns:
+    ---------
+    solution_now : TractableConsumerSolution
+        A new solution object with new points added to the top and bottom.  If
+        no new points were added, then the backshooting process is about to end.
     '''     
     # Unpack the lists of Euler points
     mNrm_list = copy(solution_next.mNrm_list)
@@ -102,9 +207,9 @@ def addToStableArmPoints(solution_next,DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb
         MPC_list.insert(0,MPCnow)
         
     # Construct and return this period's solution
-    solutionNow = TractableConsumerSolution(mNrm_list=mNrm_list, cNrm_list=cNrm_list, MPC_list=MPC_list)
-    solutionNow.PointCount = len(mNrm_list)
-    return solutionNow
+    solution_now = TractableConsumerSolution(mNrm_list=mNrm_list, cNrm_list=cNrm_list, MPC_list=MPC_list)
+    solution_now.PointCount = len(mNrm_list)
+    return solution_now
     
 
 class TractableConsumerType(AgentType):
@@ -112,21 +217,40 @@ class TractableConsumerType(AgentType):
     def __init__(self,cycles=0,time_flow=False,**kwds):
         '''
         Instantiate a new TractableConsumerType with given data.
-        '''       
+        
+        Parameters:
+        ------------
+        cycles : int
+            Number of times the sequence of periods should be solved.
+        time_flow : boolean
+            Whether time is currently "flowing" forward for this instance.
+        
+        Returns:
+        -----------
+        New instance of TractableConsumerType.
+        '''            
         # Initialize a basic AgentType
         AgentType.__init__(self,cycles=cycles,time_flow=time_flow,pseudo_terminal=True,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = []
         self.time_inv = ['DiscFac','Rfree','CRRA','PermGroFacCmp','UnempPrb','PFMPC','Rnrm','Beth','mLowerBnd','mUpperBnd']
-        self.solveOnePeriod = addToStableArmPoints
+        self.solveOnePeriod = addToStableArmPoints # set correct solver
         
     def preSolve(self):
         '''
-        This method calculates all of the solution objects that can be obtained
-        before conducting the backshooting routine, including the target levels,
-        the perfect foresight solution, (marginal) consumption at m=0, and the
-        small perturbations around the steady state.
+        Calculates all of the solution objects that can be obtained before con-
+        ducting the backshooting routine, including the target levels, the per-
+        fect foresight solution, (marginal) consumption at m=0, and the small
+        perturbations around the steady state.
+        
+        Parameters:
+        ------------
+        none
+        
+        Returns:
+        -----------
+        none
         '''
         # Define utility functions
         uPP = lambda x : utilityPP(x,gam=self.CRRA)
@@ -197,6 +321,14 @@ class TractableConsumerType(AgentType):
         This method adds consumption at m=0 to the list of stable arm points,
         then constructs the consumption function as a cubic interpolation over
         those points.  Should be run after the backshooting routine is complete.
+        
+        Parameters:
+        ------------
+        none
+        
+        Returns:
+        -----------
+        none
         '''
         # Add bottom point to the stable arm points
         self.solution[0].mNrm_list.insert(0,0.0)
@@ -206,10 +338,10 @@ class TractableConsumerType(AgentType):
         # Construct an interpolation of the consumption function from the stable arm points
         self.solution[0].cFunc = CubicInterp(self.solution[0].mNrm_list,self.solution[0].cNrm_list,self.solution[0].MPC_list,self.PFMPC*(self.h-1.0),self.PFMPC)
         self.solution[0].cFunc_U = lambda m : self.PFMPC*m
-        #self.cFunc = self.solution[0].cFunc
         
     def update():
         '''
-        This method does absolutely nothing.
+        This method does absolutely nothing, but should remain here for compati-
+        bility with cstwMPC when doing the "tractable" version.
         '''
         
