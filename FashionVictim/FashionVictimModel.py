@@ -1,5 +1,5 @@
 '''
-This module specifies a dynamic model of fashion selection, in a world with only
+This module specifies a dynamic model of fashion selection in a world with only
 two styles: jock and punk. Forward-looking agents receive utility from the style
 they choose based on the proportion of the population with the same style (as
 well as direct preferences each style), and pay switching costs if they change.
@@ -20,6 +20,28 @@ class FashionSolution(Solution):
     A class for representing the single period solution to a FashionVictim problem.
     '''
     def __init__(self,VfuncJock=NullFunc,VfuncPunk=NullFunc,switchFuncJock=NullFunc,switchFuncPunk=NullFunc):
+        '''
+        Make a new instance of FashionSolution.
+        
+        Parameters
+        ----------
+        VfuncJock : function
+            Value when entering the period as a jock as a function of the proportion
+            of the population dressed as a punk.
+        VfuncPunk : function
+            Value when entering the period as a punk as a function of the proportion
+            of the population dressed as a punk.
+        switchFuncJock : function
+            Probability of switching styles (to punk) when entering the period
+            as a jock, as a function of the population punk proportion.
+        switchFuncPunk : function
+            Probability of switching styles (to jock) when entering the period
+            as a punkk, as a function of the population punk proportion.
+            
+        Returns
+        -------
+        new instance of FashionSolution
+        '''
         self.VfuncJock = VfuncJock
         self.VfuncPunk = VfuncPunk
         self.switchFuncJock = switchFuncJock
@@ -30,8 +52,26 @@ class FashionSolution(Solution):
 class FashionEvoFunc(Solution):
     '''
     A class for representing a dynamic fashion rule in the FashionVictim model.
+    Fashion victims believe that the proportion of punks evolves according to
+    a uniform distribution around a linear function of the previous state.
     '''
     def __init__(self,pNextIntercept=None,pNextSlope=None,pNextWidth=None):
+        '''
+        Make a new instance of FashionEvoFunc.
+        
+        Parameters
+        ----------
+        pNextIntercept : float
+            Intercept of the linear evolution rule.
+        pNextSlope : float
+            Slope of the linear evolution rule.
+        pNextWidth : float
+            Width of the uniform distribution around the linear function.
+        
+        Returns
+        -------
+        new instance of FashionEvoFunc
+        '''
         self.pNextIntercept = pNextIntercept
         self.pNextSlope = pNextSlope
         self.pNextWidth = pNextWidth
@@ -43,10 +83,28 @@ class FashionMarketInfo():
     A class for representing the current distribution of styles in the population.
     '''
     def __init__(self,pPop):
+        '''
+        Make a new instance of FashionMarketInfo.
+        
+        Parameters
+        ----------
+        pPop : float
+            The current proportion of the population that is punk.
+        
+        Returns
+        -------
+        new instance of FashionMarketInfo
+        '''
         self.pPop = pPop
 
 
 class FashionVictimType(AgentType):
+    '''
+    A class for representing types of agents in the fashion victim model.  Agents
+    make a binary decision over which style to wear (jock or punk), subject to
+    switching costs.  They receive utility directly from their chosen style and
+    from the proportion of the population that wears the same style.
+    '''
     _solution_terminal = FashionSolution(VfuncJock=LinearInterp(np.array([0.0, 1.0]),np.array([0.0,0.0])),
                                          VfuncPunk=LinearInterp(np.array([0.0, 1.0]),np.array([0.0,0.0])),
                                          switchFuncJock=NullFunc,
@@ -55,7 +113,17 @@ class FashionVictimType(AgentType):
     def __init__(self,**kwds):
         '''
         Instantiate a new FashionVictim with given data.
-        '''       
+        
+        Parameters
+        ----------
+        **kwds : keyword arguments
+            Any number of keyword arguments key=value; each value will be assigned
+            to the attribute key in the new instance.
+        
+        Returns
+        -------
+        new instance of FashionVictimType
+        '''      
         # Initialize a basic AgentType
         AgentType.__init__(self,solution_terminal=FashionVictimType._solution_terminal,cycles=0,time_flow=True,pseudo_terminal=True,**kwds)
         
@@ -66,6 +134,23 @@ class FashionVictimType(AgentType):
         self.update()
         
     def updateEvolution(self):
+        '''
+        Updates the "population punk proportion" evolution array.  Fasion victims
+        believe that the proportion of punks in the subsequent period is a linear
+        function of the proportion of punks this period, subject to a uniform
+        shock.  Given attributes of self pNextIntercept, pNextSlope, pNextCount,
+        pNextWidth, and pGrid, this method generates a new array for the attri-
+        bute pEvolution, representing a discrete approximation of next period
+        states for each current period state in pGrid.
+        
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        none
+        '''
         self.pEvolution = np.zeros((self.pCount,self.pNextCount))
         for j in range(self.pCount):
             pNow = self.pGrid[j]
@@ -74,11 +159,31 @@ class FashionVictimType(AgentType):
             self.pEvolution[j,:] = dist
         
     def update(self):
+        '''
+        Updates the non-primitive objects needed for solution, using primitive
+        attributes.  This includes defining a "utility from conformity" function
+        conformUtilityFunc, a grid of population punk proportions, and an array
+        of future punk proportions (for each value in the grid).  Results are
+        stored as attributes of self.
+        
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        none
+        '''
         self.conformUtilityFunc = lambda x : stats.beta.pdf(x,self.uParamA,self.uParamB)
         self.pGrid = np.linspace(0.0001,0.9999,self.pCount)
         self.updateEvolution()
             
     def reset(self):
+        '''
+        Resets this agent type to prepare it for a new simulation run.  This
+        includes resetting the random number generator and initializing the style
+        of each agent of this type.
+        '''
         self.resetRNG()
         pNow = np.zeros(self.pop_size)
         Shk  = self.RNG.rand(self.pop_size)
@@ -86,18 +191,53 @@ class FashionVictimType(AgentType):
         self.pNow = pNow
         
     def preSolve(self):
+        '''
+        Updates the punk proportion evolution array by calling self.updateEvolution().
+        
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        none
+        '''
+        # This step is necessary in the general equilibrium framework, where a
+        # new evolution rule is calculated after each simulation run, but only
+        # the sufficient statistics describing it are sent back to agents.
         self.updateEvolution()
             
     def postSolve(self):
         '''
         Unpack the behavioral and value functions for more parsimonious access.
+        
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        none
         '''
         self.switchFuncPunk = self.solution[0].switchFuncPunk
         self.switchFuncJock = self.solution[0].switchFuncJock
         self.VfuncPunk      = self.solution[0].VfuncPunk
         self.VfuncJock      = self.solution[0].VfuncJock
         
-    def simOnePrdDiscrete(self):
+    def simOnePrd(self):
+        '''
+        Simulate one period of the fashion victom model for this type.  Each
+        agent receives an idiosyncratic preference shock and chooses whether to
+        change styles (using the optimal decision rule).
+        
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        none
+        '''
         pPop    = self.pPop
         pPrev   = self.pNow
         J2Pprob = self.switchFuncJock(pPop)
@@ -111,15 +251,27 @@ class FashionVictimType(AgentType):
         self.pNow = pNow
         
     def marketAction(self):
-        self.simOnePrdDiscrete()
+        '''
+        The "market action" for a FashionType in the general equilibrium setting.
+        Simulates a single period using self.simOnePrd().
+        
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        none
+        '''
+        self.simOnePrd()
         
         
 def solveFashion(solution_next,DiscFac,conformUtilityFunc,punk_utility,jock_utility,switchcost_J2P,switchcost_P2J,pGrid,pEvolution,pref_shock_mag):
     '''
     Solves a single period of the fashion victim model.
     
-    Parameters:
-    ------------
+    Parameters
+    ----------
     solution_next: FashionSolution
         A representation of the solution to the subsequent period's problem.
     DiscFac: float
@@ -144,10 +296,9 @@ def solveFashion(solution_next,DiscFac,conformUtilityFunc,punk_utility,jock_util
         period if p = pGrid[i] today.
     pref_shock_mag: float
         Standard deviation of T1EV preference shocks over style.
-        
-    
-    Returns:
-    ----------
+           
+    Returns
+    -------
     solution_now: FashionSolution
         A representation of the solution to this period's problem.
     '''
@@ -200,12 +351,18 @@ def solveFashion(solution_next,DiscFac,conformUtilityFunc,punk_utility,jock_util
                                    switchFuncPunk=switchFuncPunkNow)
     return solution_now
     
-    
-    
+   
 def calcPunkProp(pNow,pop_size):
     '''
     Calculates the proportion of punks in the population, given data from each type.
-    This version assumes that each type has a finite number of discrete agents.
+    
+    Parameters
+    ----------
+    pNow : [np.array]
+        List of arrays of binary data, representing the fashion choice of each
+        agent in each type of this market (0=jock, 1=punk).
+    pop_size : [int]
+        List with the number of agents of each type in the market.  Unused.
     '''
     pNowX = np.asarray(pNow).flatten()
     pPop  = np.mean(pNowX)
@@ -216,6 +373,17 @@ def calcFashionEvoFunc(pPop):
     '''
     Calculates a new approximate dynamic rule for the evolution of the proportion
     of punks as a linear function and a "shock width".
+    
+    Parameters
+    ----------
+    pPop : [float]
+        List describing the history of the proportion of punks in the population.
+        
+    Returns
+    -------
+    FashionEvoFunc_new : FashionEvoFunc
+        A new rule for the evolution of the population punk proportion, based on
+        the history in input pPop.
     '''
     pPopX = np.array(pPop)
     T = pPopX.size
