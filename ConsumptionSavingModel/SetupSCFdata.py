@@ -1,17 +1,17 @@
 '''
 This module sets up the SCF data for use in the SolvingMicroDSOPs estimation.
 '''
-from __future__ import division                         # Use new division function
+from __future__ import division      # Use new division function
 
 # Import the HARK library.  The assumption is that this code is in a folder
-# contained in the HARK folder.
+# contained in the HARK folder. 
 import sys 
 sys.path.insert(0,'../')
 
 # The following libraries are part of the standard python distribution
-import numpy as np                                      # Numerical Python
-import csv
-from SetupConsumerParameters import initial_age, empirical_cohort_age_groups
+import numpy as np                   # Numerical Python
+import csv                           # Comma-separated variable reader
+from SetupConsumerParameters import initial_age, empirical_cohort_age_groups                           
 
 # Libraries below are part of HARK's module system and must be in this directory
 from HARKutilities import warnings
@@ -20,7 +20,7 @@ from HARKutilities import warnings
 scf_data_path = './'
 
 # Open the file handle and create a reader object and a csv header
-infile = open(scf_data_path + 'SCFdata.csv', 'rb')
+infile = open(scf_data_path + 'SCFdata.csv', 'rb')  
 csv_reader = csv.reader(infile)
 data_csv_header = csv_reader.next()
 
@@ -51,8 +51,8 @@ empirical_weights = np.array(empirical_weights)
 # Close the data file
 infile.close()
 
-
 # Generate a mapping between the real ages in the groups and the indices of simulated data
 simulation_map_cohorts_to_age_indices = []
 for ages in empirical_cohort_age_groups:
     simulation_map_cohorts_to_age_indices.append(np.array(ages) - initial_age)
+    

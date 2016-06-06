@@ -7,18 +7,18 @@ import sys
 sys.path.insert(0,'../')
 sys.path.insert(0,'../ConsumptionSavingModel')
 
-import numpy as np
-import TractableBufferStock as Model
-from HARKutilities import plotFunc, plotFuncs, plotFuncDer
-from ConsumptionSavingModel import ConsumerType, solveConsumptionSavingMarkov
-from time import clock
+import numpy as np                   # numeric Python
+import TractableBufferStock as Model # tractable buffer stock model
+from HARKutilities import plotFunc, plotFuncs, plotFuncDer # basic plotting tools
+from ConsumptionSavingModel import ConsumerType, solveConsumptionSavingMarkov # An alternative, much longer way to solve the TBS model
+from time import clock               # timing utility
 
 # Define the model primitives
-base_primitives = {'UnempPrb' : .00625,
-                   'DiscFac' : 0.975,
-                   'Rfree' : 1.01,
-                   'PermGroFac' : 1.0025,
-                   'CRRA' : 1.0}
+base_primitives = {'UnempPrb' : .00625,    # Probability of becoming unemployed
+                   'DiscFac' : 0.975,      # Intertemporal discount factor
+                   'Rfree' : 1.01,         # Risk-free interest factor on assets
+                   'PermGroFac' : 1.0025,  # Permanent income growth factor (uncompensated)
+                   'CRRA' : 1.0}           # Coefficient of relative risk aversion
                    
 # Make and solve a tractable consumer type
 ExampleType = Model.TractableConsumerType(**base_primitives)
@@ -33,52 +33,52 @@ conFunc_PF = lambda m: ExampleType.h*ExampleType.PFMPC + ExampleType.PFMPC*m
 #plotFuncs([ExampleType.solution[0].cFunc,ExampleType.mSSfunc,ExampleType.cSSfunc],0,m_upper)
 plotFuncs([ExampleType.solution[0].cFunc,ExampleType.solution[0].cFunc_U],0,m_upper)
 
-# Now solve the same model using backward induction
+# Now solve the same model using backward induction rather than the analytic method of TBS.
+# The TBS model is equivalent to a Markov model with two states, one of them absorbing (permanent unemployment).
 init_consumer_objects = {"CRRA":base_primitives['CRRA'],
-                        "Rfree":np.array(2*[base_primitives['Rfree']]),
-                        "PermGroFac":[np.array(2*[base_primitives['PermGroFac']/(1.0-base_primitives['UnempPrb'])])],
-                        "BoroCnstArt":None,
-                        "PermShkStd":[0.0],
-                        "PermShkCount":1,
-                        "TranShkStd":[0.0],
-                        "TranShkCount":1,
-                        "T_total":1,
-                        "UnempPrb":0.0,
-                        "UnempPrbRet":0.0,
-                        "T_retire":0,
-                        "IncUnemp":0.0,
-                        "IncUnempRet":0.0,
-                        "aXtraMin":0.001,
-                        "aXtraMax":ExampleType.mUpperBnd,
-                        "aXtraCount":48,
-                        "aXtraExtra":[None],
-                        "exp_nest":3,
-                        "LivPrb":[1.0],
-                        "DiscFac":[base_primitives['DiscFac']],
-                        'Nagents':1,
-                        'psi_seed':0,
-                        'xi_seed':0,
-                        'unemp_seed':0,
-                        'tax_rate':0.0,
-                        'vFuncBool':False,
-                        'CubicBool':True
+                        "Rfree":np.array(2*[base_primitives['Rfree']]), # Interest factor (same in both states)
+                        "PermGroFac":[np.array(2*[base_primitives['PermGroFac']/(1.0-base_primitives['UnempPrb'])])], # Unemployment-compensated permanent growth factor
+                        "BoroCnstArt":None,   # Artificial borrowing constraint
+                        "PermShkStd":[0.0],   # Permanent shock standard deviation
+                        "PermShkCount":1,     # Number of shocks in discrete permanent shock distribution
+                        "TranShkStd":[0.0],   # Transitory shock standard deviation
+                        "TranShkCount":1,     # Number of shocks in discrete permanent shock distribution
+                        "T_total":1,          # Number of periods in cycle
+                        "UnempPrb":0.0,       # Unemployment probability (not used, as the unemployment here is *permanent*, not transitory)
+                        "UnempPrbRet":0.0,    # Unemployment probability when retired (irrelevant here)
+                        "T_retire":0,         # Age at retirement (turned off)
+                        "IncUnemp":0.0,       # Income when unemployed (irrelevant)
+                        "IncUnempRet":0.0,    # Income when unemployed and retired (irrelevant)
+                        "aXtraMin":0.001,     # Minimum value of assets above minimum in grid
+                        "aXtraMax":ExampleType.mUpperBnd, # Maximum value of assets above minimum in grid
+                        "aXtraCount":48,      # Number of points in assets grid
+                        "aXtraExtra":[None],  # Additional points to include in assets grid
+                        "exp_nest":3,         # Degree of exponential nesting when constructing assets grid
+                        "LivPrb":[1.0],       # Survival probability
+                        "DiscFac":[base_primitives['DiscFac']], # Intertemporal discount factor
+                        'Nagents':1,          # Number of agents in a simulation (irrelevant)
+                        'tax_rate':0.0,       # Tax rate on labor income (irrelevant)
+                        'vFuncBool':False,    # Whether to calculate the value function
+                        'CubicBool':True      # Whether to use cubic splines (False --> linear splines)
                         }
-MarkovType = ConsumerType(**init_consumer_objects)
-MrkvArray = np.array([[1.0-base_primitives['UnempPrb'],base_primitives['UnempPrb']],[0.0,1.0]])
-employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]
-unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
+MarkovType = ConsumerType(**init_consumer_objects)   # Make a basic consumer type
+MrkvArray = np.array([[1.0-base_primitives['UnempPrb'],base_primitives['UnempPrb']],[0.0,1.0]]) # Define the two state, absorbing unemployment Markov array
+employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]    # Income distribution when employed
+unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)] # Income distribution when permanently unemployed
+# Update the terminal period solution (all objects need to be lists, not single values)
 MarkovType.solution_terminal.cFunc = 2*[MarkovType.solution_terminal.cFunc]
 MarkovType.solution_terminal.vFunc = 2*[MarkovType.solution_terminal.vFunc]
 MarkovType.solution_terminal.vPfunc = 2*[MarkovType.solution_terminal.vPfunc]
 MarkovType.solution_terminal.vPPfunc = 2*[MarkovType.solution_terminal.vPPfunc]
 MarkovType.solution_terminal.mNrmMin = 2*[MarkovType.solution_terminal.mNrmMin]
 MarkovType.solution_terminal.MPCmax = np.array(2*[MarkovType.solution_terminal.MPCmax])
-MarkovType.IncomeDstn = [[employed_income_dist,unemployed_income_dist]]
+MarkovType.IncomeDstn = [[employed_income_dist,unemployed_income_dist]]  # set the income distribution in each state
 MarkovType.MrkvArray = MrkvArray
-MarkovType.time_inv.append('MrkvArray')
-MarkovType.solveOnePeriod = solveConsumptionSavingMarkov
+MarkovType.time_inv.append('MrkvArray')  # add this attribute to the list of time-invariant parameters
+MarkovType.solveOnePeriod = solveConsumptionSavingMarkov # set the correct solver
 MarkovType.cycles = 0
 
+# Solve the "Markov TBS" model
 t_start = clock()
 MarkovType.solve()
 t_end = clock()
