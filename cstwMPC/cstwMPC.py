@@ -17,12 +17,11 @@ from HARKcore import AgentType, Market, HARKobject
 from HARKparallel import multiThreadCommandsFake
 import SetupParamsCSTW as Params
 import ConsumptionSavingModel as Model
-from ConsAggShock import solveConsumptionSavingAggShocks
+from ConsAggShockModel import solveConsumptionSavingAggShocks
 from scipy.optimize import golden, brentq
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 import csv
-
 
 # =================================================================
 # ====== Make an extension of the basic ConsumerType ==============
@@ -33,6 +32,21 @@ class cstwMPCagent(Model.ConsumerType):
     A consumer type in the cstwMPC model; a slight modification of base ConsumerType.
     '''
     def __init__(self,time_flow=True,**kwds):
+        '''
+        Make a new consumer type for the cstwMPC model.
+        
+        Parameters
+        ----------
+        time_flow : boolean
+            Indictator for whether time is "flowing" forward for this agent.        
+        **kwds : keyword arguments
+            Any number of keyword arguments of the form key=value.  Each value
+            will be assigned to the attribute named in self.
+            
+        Returns
+        -------
+        new instance of cstwMPCagent
+        '''
         # Initialize a basic AgentType
         AgentType.__init__(self,solution_terminal=deepcopy(Model.ConsumerType.solution_terminal_),time_flow=time_flow,pseudo_terminal=False,**kwds)
 
@@ -47,13 +61,32 @@ class cstwMPCagent(Model.ConsumerType):
     def reset(self):
         '''
         Initialize this type for a new simulated history of K/L ratio.
+        
+        Parameters
+        ----------
+        none
+            
+        Returns
+        -------
+        none
         '''
         self.initializeSim()
         self.t_agg_sim = 0
         
     def simulateCSTW(self):
         '''
-        The simulation method for the no aggregate shocks version of the model
+        The simulation method for the no aggregate shocks version of the model.
+        Initializes the agent type, simulates a history of state and control
+        variables, and stores the wealth history in self.W_history and the
+        annualized MPC history in self.kappa_history.
+        
+        Parameters
+        ----------
+        none
+            
+        Returns
+        -------
+        none
         '''
         self.initializeSim()
         self.simConsHistory()
@@ -64,7 +97,15 @@ class cstwMPCagent(Model.ConsumerType):
         
     def update(self):
         '''
-        Update the income process and the assets grid.
+        Update the income process, the assets grid, and the terminal solution.
+        
+        Parameters
+        ----------
+        none
+            
+        Returns
+        -------
+        none
         '''
         orig_flow = self.time_flow        
         if self.cycles == 0: # hacky fix for labor supply l_bar
@@ -85,6 +126,18 @@ class cstwMPCagent(Model.ConsumerType):
             self.timeRev()
             
     def updateIncomeProcessAlt(self):
+        '''
+        An alternative method for constructing the income process in the infinite
+        horizon model, where the labor supply l_bar creates a small oddity.
+        
+        Parameters
+        ----------
+        none
+            
+        Returns
+        -------
+        none
+        '''
         tax_rate = (self.IncUnemp*self.UnempPrb)/(self.l_bar*(1.0-self.UnempPrb))
         TranShkDstn     = deepcopy(approxLognormal(self.TranShkCount,sigma=self.TranShkStd[0],tail_N=0))
         TranShkDstn[0]  = np.insert(TranShkDstn[0]*(1.0-self.UnempPrb),0,self.UnempPrb)
@@ -100,6 +153,14 @@ class cstwMPCagent(Model.ConsumerType):
         '''
         Simulate a single period of a consumption-saving model with permanent
         and transitory income shocks at both the idiosyncratic and aggregate level.
+        
+        Parameters
+        ----------
+        none
+            
+        Returns
+        -------
+        none
         '''
         
         # Unpack objects from self for convenience
@@ -132,17 +193,19 @@ class cstwMPCagent(Model.ConsumerType):
         '''
         Simulates the mortality process, killing off some percentage of agents
         and replacing them with newborn agents.
+        
+        Parameters
+        ----------
+        none
+            
+        Returns
+        -------
+        none
         '''
         if hasattr(self,'DiePrb'):
             if self.DiePrb > 0:
                 who_dies = drawBernoulli(self.DiePrb,self.Nagents,self.RNG.randint(low=1, high=2**31-1))
                 wealth_all = self.aNow*self.pNow
-                #wealth_order = np.argsort(wealth_all)
-                #kill_every_n = np.round(1/self.DiePrb)
-                #kill_these_by_wealth = np.arange(kill_every_n,wealth_all.size,kill_every_n,dtype=int)
-                #kill_index = wealth_order[kill_these_by_wealth]
-                #who_dies = np.zeros_like(wealth_all,dtype=bool)
-                #who_dies[kill_index] = True
                 who_lives = np.logical_not(who_dies)
                 wealth_of_dead = np.sum(wealth_all[who_dies])
                 wealth_of_live = np.sum(wealth_all[who_lives])
@@ -155,6 +218,14 @@ class cstwMPCagent(Model.ConsumerType):
         '''
         In the aggregate shocks model, the "market action" is to simulate one
         period of receiving income and choosing how much to consume.
+        
+        Parameters
+        ----------
+        none
+            
+        Returns
+        -------
+        none
         '''
         # Simulate the period
         self.advanceIncShks()
@@ -179,15 +250,30 @@ class cstwMPCagent(Model.ConsumerType):
 # =============================================================================
 class cstwMarket(Market):            
     '''
-    A class for the FBS aggregate shocks version of the model.
+    A class to represent the economy in the FBS aggregate shocks version of the model.
     '''
     def millRule(self,pNow,aNow):
+        '''
+        Function to calculate the capital to labor ratio, interest factor, and
+        wage rate based on each agent's current state.  Just calls calcRandW().
+        
+        See documentation for calcRandW for more information.
+        '''
         return self.calcRandW(pNow,aNow)
         
     def update(self):
         '''
         Use primitive parameters (and perfect foresight calibrations) to make
-        interest factor and wage rate functions (of capital to labor ratio).
+        interest factor and wage rate functions (of capital to labor ratio),
+        as well as discrete approximations to the aggregate shock distributions.
+        
+        Parameters
+        ----------
+        none
+            
+        Returns
+        -------
+        none
         '''
         self.kSS   = ((self.CRRA/self.DiscFac - (1.0-self.DeprFac))/self.CapShare)**(1.0/(self.CapShare-1.0))
         self.KtoYSS = self.kSS**(1.0-self.CapShare)
@@ -205,12 +291,34 @@ class cstwMarket(Market):
         self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn,self.TranShkAggDstn)
         
     def reset(self):
+        '''
+        Reset the economy to prepare for a new simulation.  Sets the time index
+        of aggregate shocks to zero and runs Market.reset().
+        
+        Parameters
+        ----------
+        none
+            
+        Returns
+        -------
+        none
+        '''
         self.Shk_idx = 0
         Market.reset(self)
         
     def makeAggShkHist(self):
         '''
         Make simulated histories of aggregate transitory and permanent shocks.
+        Histories are of length self.act_T, for use in the general equilibrium
+        simulation.
+        
+        Parameters
+        ----------
+        none
+            
+        Returns
+        -------
+        none
         '''
         sim_periods = self.act_T
         Events      = np.arange(self.AggShkDstn[0].size) # just a list of integers
@@ -226,6 +334,24 @@ class cstwMarket(Market):
         '''
         Calculates the interest factor and wage rate this period using each agent's
         capital stock to get the aggregate capital ratio.
+        
+        Parameters
+        ----------
+        pNow : [np.array]
+            Agents' current permanent income levels.  Elements of the list corr-
+            espond to types in the economy, entries within arrays to agents of
+            that type.
+        aNow : [np.array]
+            Agents' current end-of-period assets (normalized).  Elements of the
+            list correspond to types in the economy, entries within arrays to
+            agents of that type.
+            
+        Returns
+        -------
+        AggVarsNow : CSTWaggVars
+            An object containing the aggregate variables for the upcoming period:
+            capital-to-labor ratio, interest factor, (normalized) wage rate,
+            aggregate permanent and transitory shocks.
         '''
         # Calculate aggregate capital this period
         type_count = len(aNow)
@@ -260,6 +386,27 @@ class CSTWaggVars():
     passed from the market to each type.
     '''
     def __init__(self,KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow):
+        '''
+        Make a new instance of CSTWaggVars.
+        
+        Parameters
+        ----------
+        KtoLnow : float
+            Capital-to-labor ratio in the economy this period.
+        RfreeNow : float
+            Interest factor on assets in the economy this period.
+        wRteNow : float
+            Wage rate for labor in the economy this period (normalized by the
+            steady state wage rate).
+        PermShkAggNow : float
+            Permanent shock to aggregate labor productivity this period.
+        TranShkAggNow : float
+            Transitory shock to aggregate labor productivity this period.
+            
+        Returns
+        -------
+        new instance of CSTWaggVars
+        '''
         self.KtoLnow  = KtoLnow
         self.RfreeNow = RfreeNow
         self.wRteNow  = wRteNow
@@ -268,14 +415,43 @@ class CSTWaggVars():
         
 class CapitalEvoRule(HARKobject):
     '''
-    A class to represent capital evolution rules.
+    A class to represent capital evolution rules.  Agents believe that the log
+    capital ratio next period is a linear function of the log capital ratio
+    this period.
     '''
     def __init__(self,intercept,slope):
+        '''
+        Make a new instance of CapitalEvoRule.
+        
+        Parameters
+        ----------
+        intercept : float
+            Intercept of the log-linear capital evolution rule.
+        slope : float
+            Slope of the log-linear capital evolution rule.
+            
+        Returns
+        -------
+        new instance of CapitalEvoRule
+        '''
         self.intercept = intercept
         self.slope = slope
         self.convergence_criteria = ['slope','intercept']
         
     def __call__(self,kNow):
+        '''
+        Evaluates (expected) capital-to-labor ratio next period as a function
+        of the capital-to-labor ratio this period.
+        
+        Parameters
+        ----------
+        kNow : float
+            Capital-to-labor ratio this period.
+            
+        Returns
+        -------
+        kNext : (Expected) capital-to-labor ratio next period.
+        '''
         kNext = np.exp(self.intercept + self.slope*np.log(kNow))
         return kNext
 
@@ -285,6 +461,18 @@ class CSTWdynamicRule(HARKobject):
     Just a container class for passing the capital evolution rule to agents.
     '''
     def __init__(self,kNextFunc):
+        '''
+        Make a new instance of CSTWdynamicRule.
+        
+        Parameters
+        ----------
+        kNextFunc : CapitalEvoRule
+            Next period's capital-to-labor ratio as a function of this period's.
+            
+        Returns
+        -------
+        new instance of CSTWdynamicRule
+        '''
         self.kNextFunc = kNextFunc
         self.convergence_criteria = ['kNextFunc']
         
@@ -293,22 +481,43 @@ def calcCapitalEvoRule(KtoLnow):
     '''
     Calculate a new capital evolution rule as an AR1 process based on the history
     of the capital-to-labor ratio from a simulation.
+    
+    Parameters
+    ----------
+    KtoLnow : [float]
+        List of the history of the simulated  capital-to-labor ratio for an economy.
+        
+    Returns
+    -------
+    CSTWdynamics : CSTWdynamicRule
+        Object containing a new capital evolution rule, calculated from the
+        history of the capital-to-labor ratio.
     '''
-    discard_periods = 200
-    update_weight = 0.5
+    verbose = False
+    discard_periods = 200 # Throw out the first T periods to allow the simulation to approach the SS
+    update_weight = 0.5   # Proportional weight to put on new function vs old function parameters
     total_periods = len(KtoLnow)
+    
+    # Auto-regress the log capital-to-labor ratio, one period lag only
     logKtoL_t   = np.log(KtoLnow[discard_periods:(total_periods-1)])
     logKtoL_tp1 = np.log(KtoLnow[(discard_periods+1):total_periods])
     slope, intercept, r_value, p_value, std_err = stats.linregress(logKtoL_t,logKtoL_tp1)
+    
+    # Make a new capital evolution rule by combining the new regression parameters
+    # with the previous guess
     intercept = update_weight*intercept + (1.0-update_weight)*Params.intercept_prev
     slope = update_weight*slope + (1.0-update_weight)*Params.slope_prev
-    kNextFunc = CapitalEvoRule(intercept ,slope)
+    kNextFunc = CapitalEvoRule(intercept,slope) # Make a new 
     
-    print('intercept=' + str(intercept) + ', slope=' + str(slope) + ', r-sq=' + str(r_value**2))
+    # Save the new values as "previous" values for the next iteration    
     Params.intercept_prev = intercept
     Params.slope_prev = slope
-    plt.plot(KtoLnow)
-    plt.show()
+
+    # Plot the history of the capital ratio for this run and print the new parameters
+    if verbose:
+        print('intercept=' + str(intercept) + ', slope=' + str(slope) + ', r-sq=' + str(r_value**2))
+        plt.plot(KtoLnow)
+        plt.show()
     
     return CSTWdynamicRule(kNextFunc)      
         
@@ -318,6 +527,17 @@ def assignBetaDistribution(type_list,DiscFac_list):
     Assigns the discount factors in DiscFac_list to the types in type_list.  If
     there is heterogeneity beyond the discount factor, then the same DiscFac is
     assigned to consecutive types.
+    
+    Parameters
+    ----------
+    type_list : [cstwMPCagent]
+        The list of types that should be assigned discount factors.
+    DiscFac_list : [float] or np.array
+        List of discount factors to assign to the types.
+        
+    Returns
+    -------
+    none
     '''
     DiscFac_N = len(DiscFac_list)
     type_N = len(type_list)/DiscFac_N
@@ -341,8 +561,8 @@ def calculateKYratioDifference(sim_wealth,weights,total_output,target_KY):
     Calculates the absolute distance between the simulated capital-to-output
     ratio and the true U.S. level.
     
-    Parameters:
-    -------------
+    Parameters
+    ----------
     sim_wealth : numpy.array
         Array with simulated wealth values.
     weights : numpy.array
@@ -352,8 +572,8 @@ def calculateKYratioDifference(sim_wealth,weights,total_output,target_KY):
     target_KY : float
         Actual U.S. K/Y ratio to match.
         
-    Returns:
-    ------------
+    Returns
+    -------
     distance : float
         Absolute distance between simulated and actual K/Y ratios.
     '''
@@ -368,8 +588,8 @@ def calculateLorenzDifference(sim_wealth,weights,percentiles,target_levels):
     Calculates the sum of squared differences between the simulatedLorenz curve
     at the specified percentile levels and the target Lorenz levels.
     
-    Parameters:
-    -------------
+    Parameters
+    ----------
     sim_wealth : numpy.array
         Array with simulated wealth values.
     weights : numpy.array
@@ -379,8 +599,8 @@ def calculateLorenzDifference(sim_wealth,weights,percentiles,target_levels):
     target_levels : np.array
         Actual U.S. Lorenz curve levels at the specified percentiles.
         
-    Returns:
-    -----------
+    Returns
+    -------
     distance : float
         Sum of squared distances between simulated and target Lorenz curves.
     '''
@@ -395,6 +615,28 @@ def simulateKYratioDifference(DiscFac,nabla,N,type_list,weights,total_output,tar
     Assigns a uniform distribution over DiscFac with width 2*nabla and N points, then
     solves and simulates all agent types in type_list and compares the simuated
     K/Y ratio to the target K/Y ratio.
+    
+    Parameters
+    ----------
+    DiscFac : float
+        Center of the uniform distribution of discount factors.
+    nabla : float
+        Width of the uniform distribution of discount factors.
+    N : int
+        Number of discrete consumer types.
+    type_list : [cstwMPCagent]
+        List of agent types to solve and simulate after assigning discount factors.
+    weights : np.array
+        Age-conditional array of population weights.
+    total_output : float
+        Total output of the economy, denominator for the K/Y calculation.
+    target : float
+        Target level of capital-to-output ratio.
+        
+    Returns
+    -------
+    my_diff : float
+        Difference between simulated and target capital-to-output ratios.
     '''
     if type(DiscFac) in (list,np.ndarray,np.array):
         DiscFac = DiscFac[0]
@@ -402,21 +644,37 @@ def simulateKYratioDifference(DiscFac,nabla,N,type_list,weights,total_output,tar
     assignBetaDistribution(type_list,DiscFac_list)
     multiThreadCommandsFake(type_list,beta_point_commands)
     my_diff = calculateKYratioDifference(np.vstack((this_type.W_history for this_type in type_list)),np.tile(weights/float(N),N),total_output,target)
-    #print('Tried DiscFac=' + str(DiscFac) + ', nabla=' + str(nabla) + ', got diff=' + str(my_diff))
     return my_diff
 
 
-mystr = lambda number : "{:.3f}".format(number) 
+mystr = lambda number : "{:.3f}".format(number)
+'''
+Truncates a float at exactly three decimal places when displaying as a string.
+'''
+
 def makeCSTWresults(DiscFac,nabla,save_name=None):
     '''
     Produces a variety of results for the cstwMPC paper (usually after estimating).
+    
+    Parameters
+    ----------
+    DiscFac : float
+        Center of the uniform distribution of discount factors
+    nabla : float
+        Width of the uniform distribution of discount factors
+    save_name : string
+        Name to save the calculated results, for later use in producing figures
+        and tables, etc.
+        
+    Returns
+    -------
+    none
     '''
     DiscFac_list = approxUniform(DiscFac,nabla,N=Params.pref_type_count)
     assignBetaDistribution(est_type_list,DiscFac_list)
     multiThreadCommandsFake(est_type_list,beta_point_commands)
     
     lorenz_distance = np.sqrt(betaDistObjective(nabla))
-    #lorenz_distance = 0.0
     
     makeCSTWstats(DiscFac,nabla,est_type_list,Params.age_weight_all,lorenz_distance,save_name)   
     
@@ -425,6 +683,26 @@ def makeCSTWstats(DiscFac,nabla,this_type_list,age_weight,lorenz_distance=0.0,sa
     '''
     Displays (and saves) a bunch of statistics.  Separate from makeCSTWresults()
     for compatibility with the aggregate shock model.
+    
+    Parameters
+    ----------
+    DiscFac : float
+        Center of the uniform distribution of discount factors
+    nabla : float
+        Width of the uniform distribution of discount factors
+    this_type_list : [cstwMPCagent]
+        List of agent types in the economy.
+    age_weight : np.array
+        Age-conditional array of weights for the wealth data.
+    lorenz_distance : float
+        Distance between simulated and actual Lorenz curves, for display.
+    save_name : string
+        Name to save the calculated results, for later use in producing figures
+        and tables, etc.
+        
+    Returns
+    -------
+    none
     '''
     sim_length = this_type_list[0].sim_periods
     sim_wealth = (np.vstack((this_type.W_history for this_type in this_type_list))).flatten()
@@ -441,7 +719,6 @@ def makeCSTWstats(DiscFac,nabla,this_type_list,age_weight,lorenz_distance=0.0,sa
         sim_emp = np.vstack((this_type.IncUnemp != this_type.TranShkHist[0:sim_length,:] for this_type in this_type_list)).flatten()
         sim_ret = np.zeros(sim_emp.size,dtype=bool)
     sim_weight_all = np.tile(np.repeat(age_weight,this_type_list[0].Nagents),Params.pref_type_count)
-    #print(sim_weight_all.shape)
     
     if Params.do_beta_dist and Params.do_lifecycle:
         kappa_mean_by_age_type = (np.mean(np.vstack((this_type.kappa_history for this_type in this_type_list)),axis=1)).reshape((Params.pref_type_count*3,DropoutType.T_total+1))
@@ -532,6 +809,26 @@ def makeLorenzFig(real_wealth,real_weights,sim_wealth,sim_weights):
     '''
     Produces a Lorenz curve for the distribution of wealth, comparing simulated
     to actual data.  A sub-function of makeCSTWresults().
+    
+    Parameters
+    ----------
+    real_wealth : np.array
+        Data on household wealth.
+    real_weights : np.array
+        Weighting array of the same size as real_wealth.
+    sim_wealth : np.array
+        Simulated wealth holdings of many households.
+    sim_weights :np.array
+        Weighting array of the same size as sim_wealth.
+        
+    Returns
+    -------
+    these_percents : np.array
+        An array of percentiles of households, by wealth.
+    real_lorenz : np.array
+        Lorenz shares for real_wealth corresponding to these_percents.
+    sim_lorenz : np.array
+        Lorenz shares for sim_wealth corresponding to these_percents.
     '''
     these_percents = np.linspace(0.0001,0.9999,201)
     real_lorenz = getLorenzShares(real_wealth,weights=real_weights,percentiles=these_percents)
@@ -550,6 +847,20 @@ def makeLorenzFig(real_wealth,real_weights,sim_wealth,sim_weights):
 def makeMPCfig(kappa,weights):
     '''
     Plot the CDF of the marginal propensity to consume. A sub-function of makeCSTWresults().
+    
+    Parameters
+    ----------
+    kappa : np.array
+        Array of (annualized) marginal propensities to consume for the economy.
+    weights : np.array
+        Age-conditional weight array for the data in kappa.
+        
+    Returns
+    -------
+    these_percents : np.array
+        Array of percentiles of the marginal propensity to consume.
+    kappa_percentiles : np.array
+        Array of MPCs corresponding to the percentiles in these_percents.
     '''
     these_percents = np.linspace(0.0001,0.9999,201)
     kappa_percentiles = getPercentiles(kappa,weights,percentiles=these_percents)
@@ -564,13 +875,25 @@ def makeMPCfig(kappa,weights):
 def calcKappaMean(DiscFac,nabla):
     '''
     Calculates the average MPC for the given parameters.  This is a very small
-    sub-function of makeCSTWresults().
+    sub-function of sensitivityAnalysis.
+    
+    Parameters
+    ----------
+    DiscFac : float
+        Center of the uniform distribution of discount factors
+    nabla : float
+        Width of the uniform distribution of discount factors
+        
+    Returns
+    -------
+    kappa_all : float
+        Average marginal propensity to consume in the population.
     '''
     DiscFac_list = approxUniform(DiscFac,nabla,N=Params.pref_type_count)
     assignBetaDistribution(est_type_list,DiscFac_list)
     multiThreadCommandsFake(est_type_list,beta_point_commands)
     
-    kappa_all = calcWeightedAvg(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_short/float(Params.pref_type_count),Params.pref_type_count))
+    kappa_all = calcWeightedAvg(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_all/float(Params.pref_type_count),Params.pref_type_count))
     return kappa_all
     
     
@@ -578,6 +901,25 @@ def sensitivityAnalysis(parameter,values,is_time_vary):
     '''
     Perform a sensitivity analysis by varying a chosen parameter over given values
     and re-estimating the model at each.  Only works for perpetual youth version.
+    Saves numeric results in a file named SensitivityPARAMETER.txt.
+    
+    Parameters
+    ----------
+    parameter : string
+        Name of an attribute/parameter of cstwMPCagent on which to perform a
+        sensitivity analysis.  The attribute should be a single float.
+    values : [np.array]
+        Array of values that the parameter should take on in the analysis.
+    is_time_vary : boolean
+        Indicator for whether the parameter of analysis is time_varying (i.e. 
+        is an element of cstwMPCagent.time_vary).  While the sensitivity analysis
+        should only be used for the perpetual youth model, some parameters are
+        still considered "time varying" in the consumption-saving model and 
+        are encapsulated in a (length=1) list.
+        
+    Returns
+    -------
+    none
     '''
     fit_list = []
     DiscFac_list = []

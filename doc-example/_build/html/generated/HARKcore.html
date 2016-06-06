@@ -1,0 +1,771 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>HARKcore &mdash; HARK 0.9 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.9',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="HARK 0.9 documentation" href="../index.html" />
+    <link rel="prev" title="HARKestimation" href="HARKestimation.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="HARKestimation.html" title="HARKestimation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-HARKcore">
+<span id="harkcore"></span><h1>HARKcore<a class="headerlink" href="#module-HARKcore" title="Permalink to this headline">¶</a></h1>
+<p>This is the missing description for HARKcore.  We really ought to write it.</p>
+<p class="rubric">Functions</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">NullFunc</span></code>(x)</td>
+<td>A trivial function that takes a single array and returns an array of NaNs of the same size.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">deepcopy</span></code>(x[,&nbsp;memo,&nbsp;_nil])</td>
+<td>Deep copy operation on arbitrary Python objects.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKcore.distanceMetric" title="HARKcore.distanceMetric"><code class="xref py py-obj docutils literal"><span class="pre">distanceMetric</span></code></a>(thing_A,&nbsp;thing_B)</td>
+<td>A &#8220;universal distance&#8221; metric that can be used as a default in many settings.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">getArgNames</span></code>(function)</td>
+<td>Returns a list of strings naming all of the arguments for the passed function.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKcore.solveAgent" title="HARKcore.solveAgent"><code class="xref py py-obj docutils literal"><span class="pre">solveAgent</span></code></a>(agent)</td>
+<td>Solve the dynamic model for one agent type.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKcore.solveOneCycle" title="HARKcore.solveOneCycle"><code class="xref py py-obj docutils literal"><span class="pre">solveOneCycle</span></code></a>(agent,&nbsp;solution_last)</td>
+<td>Solve one &#8220;cycle&#8221; of the dynamic model for one agent type.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#HARKcore.AgentType" title="HARKcore.AgentType"><code class="xref py py-obj docutils literal"><span class="pre">AgentType</span></code></a>([solution_terminal,&nbsp;cycles,&nbsp;...])</td>
+<td>A superclass for economic agents in the HARK framework.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-obj docutils literal"><span class="pre">HARKobject</span></code></a></td>
+<td>A superclass for object classes in HARK.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKcore.Market" title="HARKcore.Market"><code class="xref py py-obj docutils literal"><span class="pre">Market</span></code></a>([agents,&nbsp;sow_vars,&nbsp;reap_vars,&nbsp;...])</td>
+<td>A class to represent a central clearinghouse of information.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKcore.Solution" title="HARKcore.Solution"><code class="xref py py-obj docutils literal"><span class="pre">Solution</span></code></a></td>
+<td>A superclass for representing the &#8220;solution&#8221; to a single period problem in a dynamic microeconomic model.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="HARKcore.AgentType">
+<em class="property">class </em><code class="descclassname">HARKcore.</code><code class="descname">AgentType</code><span class="sig-paren">(</span><em>solution_terminal=&lt;function &lt;lambda&gt; at 0x0000000011EBAC88&gt;</em>, <em>cycles=1</em>, <em>time_flow=False</em>, <em>pseudo_terminal=True</em>, <em>tolerance=1e-06</em>, <em>seed=0</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.AgentType" title="Permalink to this definition">¶</a></dt>
+<dd><p>A superclass for economic agents in the HARK framework.  Each model should
+specify its own subclass of AgentType, inheriting its methods and overwriting
+as necessary.  Critically, every subclass of AgentType should define class-
+specific static values of the attributes time_vary and time_inv as lists of
+strings.  Each element of time_vary is the name of a field in AgentSubType
+that varies over time in the model.  Each element of time_inv is the name of
+a field in AgentSubType that is constant over time in the model. The string
+&#8216;solveOnePeriod&#8217; should appear in exactly one of these lists, depending on
+whether the same solution method is used in all periods of the model.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKcore.AgentType.isSameThing" title="HARKcore.AgentType.isSameThing"><code class="xref py py-obj docutils literal"><span class="pre">isSameThing</span></code></a>(solutionA,&nbsp;solutionB)</td>
+<td>Compare two solutions to see if they are the &#8220;same&#8221;.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKcore.AgentType.postSolve" title="HARKcore.AgentType.postSolve"><code class="xref py py-obj docutils literal"><span class="pre">postSolve</span></code></a>()</td>
+<td>A method that is run immediately after the model is solved, to finalize the solution in some way.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKcore.AgentType.preSolve" title="HARKcore.AgentType.preSolve"><code class="xref py py-obj docutils literal"><span class="pre">preSolve</span></code></a>()</td>
+<td>A method that is run immediately before the model is solved, to prepare the terminal solution, perhaps.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKcore.AgentType.resetRNG" title="HARKcore.AgentType.resetRNG"><code class="xref py py-obj docutils literal"><span class="pre">resetRNG</span></code></a>()</td>
+<td>Reset the random number generator for this type.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKcore.AgentType.solve" title="HARKcore.AgentType.solve"><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code></a>()</td>
+<td>Solve the model for this instance of an agent type by backward induction.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKcore.AgentType.timeFlip" title="HARKcore.AgentType.timeFlip"><code class="xref py py-obj docutils literal"><span class="pre">timeFlip</span></code></a>()</td>
+<td>Reverse the flow of time for this instance.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKcore.AgentType.timeFwd" title="HARKcore.AgentType.timeFwd"><code class="xref py py-obj docutils literal"><span class="pre">timeFwd</span></code></a>()</td>
+<td>Make time flow forward for this instance.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKcore.AgentType.timeReport" title="HARKcore.AgentType.timeReport"><code class="xref py py-obj docutils literal"><span class="pre">timeReport</span></code></a>()</td>
+<td>Report to the user the direction that time is currently &#8220;flowing&#8221; for this instance.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKcore.AgentType.timeRev" title="HARKcore.AgentType.timeRev"><code class="xref py py-obj docutils literal"><span class="pre">timeRev</span></code></a>()</td>
+<td>Make time flow backward for this instance.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="HARKcore.AgentType.isSameThing">
+<code class="descname">isSameThing</code><span class="sig-paren">(</span><em>solutionA</em>, <em>solutionB</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.AgentType.isSameThing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compare two solutions to see if they are the &#8220;same&#8221;.  The model-specific
+solution class must have a method called distance, which takes another
+solution object as an input and returns the &#8220;distance&#8221; between the solutions.
+This method is used to test for convergence in infinite horizon problems.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>solutionA</strong> : Solution</p>
+<blockquote>
+<div><p>The solution to a one period problem in the model.</p>
+</div></blockquote>
+<p><strong>solutionB</strong> : Solution</p>
+<blockquote>
+<div><p>Another solution to (the same) one period problem in the model.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>is_close_enough</strong> : boolean</p>
+<blockquote class="last">
+<div><p>True if the solutions are within a tolerable distance of each other.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.AgentType.postSolve">
+<code class="descname">postSolve</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.AgentType.postSolve" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method that is run immediately after the model is solved, to finalize
+the solution in some way.  Does nothing here.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.AgentType.preSolve">
+<code class="descname">preSolve</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.AgentType.preSolve" title="Permalink to this definition">¶</a></dt>
+<dd><p>A method that is run immediately before the model is solved, to prepare
+the terminal solution, perhaps.  Does nothing here.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.AgentType.resetRNG">
+<code class="descname">resetRNG</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.AgentType.resetRNG" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the random number generator for this type.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.AgentType.solve">
+<code class="descname">solve</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.AgentType.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solve the model for this instance of an agent type by backward induction.
+Loops through the sequence of one period problems, passing the solution
+to period t+1 to the problem for period t.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.AgentType.timeFlip">
+<code class="descname">timeFlip</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.AgentType.timeFlip" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reverse the flow of time for this instance.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.AgentType.timeFwd">
+<code class="descname">timeFwd</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.AgentType.timeFwd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make time flow forward for this instance.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.AgentType.timeReport">
+<code class="descname">timeReport</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.AgentType.timeReport" title="Permalink to this definition">¶</a></dt>
+<dd><p>Report to the user the direction that time is currently &#8220;flowing&#8221; for
+this instance.  Only exists as a reminder of how time_flow works.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.AgentType.timeRev">
+<code class="descname">timeRev</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.AgentType.timeRev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make time flow backward for this instance.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKcore.HARKobject">
+<em class="property">class </em><code class="descclassname">HARKcore.</code><code class="descname">HARKobject</code><a class="headerlink" href="#HARKcore.HARKobject" title="Permalink to this definition">¶</a></dt>
+<dd><p>A superclass for object classes in HARK.  Comes with two useful methods:
+a generic/universal distance method and an attribute assignment method.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKcore.HARKobject.assignParameters" title="HARKcore.HARKobject.assignParameters"><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code></a>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKcore.HARKobject.distance" title="HARKcore.HARKobject.distance"><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code></a>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="HARKcore.HARKobject.assignParameters">
+<code class="descname">assignParameters</code><span class="sig-paren">(</span><em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.HARKobject.assignParameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign an arbitrary number of attributes to this agent.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>**kwds</strong> : keyword arguments</p>
+<blockquote>
+<div><p>Any number of keyword arguments of the form key=value.  Each value
+will be assigned to the attribute named in self.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">none</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.HARKobject.distance">
+<code class="descname">distance</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.HARKobject.distance" title="Permalink to this definition">¶</a></dt>
+<dd><p>A generic distance method, which requires the existence of an attribute
+called convergence_criteria, giving a list of strings naming the attributes
+to be considered by the distance metric.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>other</strong> : object</p>
+<blockquote>
+<div><p>Another object to compare this instance to.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>distance</strong> : float</p>
+<blockquote class="last">
+<div><p>The distance between this object and another, using the &#8220;universal
+distance&#8221; metric.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKcore.Market">
+<em class="property">class </em><code class="descclassname">HARKcore.</code><code class="descname">Market</code><span class="sig-paren">(</span><em>agents=[]</em>, <em>sow_vars=[]</em>, <em>reap_vars=[]</em>, <em>const_vars=[]</em>, <em>track_vars=[]</em>, <em>dyn_vars=[]</em>, <em>millRule=None</em>, <em>calcDynamics=None</em>, <em>act_T=1000</em>, <em>tolerance=1e-06</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.Market" title="Permalink to this definition">¶</a></dt>
+<dd><p>A class to represent a central clearinghouse of information.  Used for
+dynamic general equilibrium models to solve the &#8220;macroeconomic&#8221; model as a
+layer on top of the &#8220;microeconomic&#8221; models of one or more AgentTypes.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKcore.Market.cultivate" title="HARKcore.Market.cultivate"><code class="xref py py-obj docutils literal"><span class="pre">cultivate</span></code></a>()</td>
+<td>Has each AgentType in agents perform their marketAction method, using variables sown from the market (and maybe also &#8220;private&#8221; variables).</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKcore.Market.makeHistory" title="HARKcore.Market.makeHistory"><code class="xref py py-obj docutils literal"><span class="pre">makeHistory</span></code></a>()</td>
+<td>Runs a loop of sow&#8211;&gt;cultivate&#8211;&gt;reap&#8211;&gt;mill act_T times, tracking the evolution of variables X named in track_vars in attributes named X_hist.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKcore.Market.mill" title="HARKcore.Market.mill"><code class="xref py py-obj docutils literal"><span class="pre">mill</span></code></a>()</td>
+<td>Processes the variables collected from agents using the function millRule, storing the results in attributes named in aggr_sow.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKcore.Market.reap" title="HARKcore.Market.reap"><code class="xref py py-obj docutils literal"><span class="pre">reap</span></code></a>()</td>
+<td>Collects attributes named in reap_vars from each AgentType in the market, storing them in respectively named attributes of self.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKcore.Market.reset" title="HARKcore.Market.reset"><code class="xref py py-obj docutils literal"><span class="pre">reset</span></code></a>()</td>
+<td>Reset the state of the market (attributes in sow_vars, etc) to some user-defined initial state, and erase the histories of tracked variables.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKcore.Market.solve" title="HARKcore.Market.solve"><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code></a>()</td>
+<td>&#8220;Solves&#8221; the market by finding a &#8220;dynamic rule&#8221; that governs the aggregate</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKcore.Market.sow" title="HARKcore.Market.sow"><code class="xref py py-obj docutils literal"><span class="pre">sow</span></code></a>()</td>
+<td>Distributes attrributes named in sow_vars from self to each AgentType in the market, storing them in respectively named attributes.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKcore.Market.store" title="HARKcore.Market.store"><code class="xref py py-obj docutils literal"><span class="pre">store</span></code></a>()</td>
+<td>Record the current value of each variable X named in track_vars in an attribute named X_hist.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#HARKcore.Market.updateDynamics" title="HARKcore.Market.updateDynamics"><code class="xref py py-obj docutils literal"><span class="pre">updateDynamics</span></code></a>()</td>
+<td>Calculates a new &#8220;aggregate dynamic rule&#8221; using the history of variables named in track_vars, and distributes this rule to AgentTypes in agents.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="HARKcore.Market.cultivate">
+<code class="descname">cultivate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.Market.cultivate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Has each AgentType in agents perform their marketAction method, using
+variables sown from the market (and maybe also &#8220;private&#8221; variables).
+The marketAction method should store new results in attributes named in
+reap_vars to be reaped later.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.Market.makeHistory">
+<code class="descname">makeHistory</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.Market.makeHistory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs a loop of sow&#8211;&gt;cultivate&#8211;&gt;reap&#8211;&gt;mill act_T times, tracking the
+evolution of variables X named in track_vars in attributes named X_hist.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.Market.mill">
+<code class="descname">mill</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.Market.mill" title="Permalink to this definition">¶</a></dt>
+<dd><p>Processes the variables collected from agents using the function millRule,
+storing the results in attributes named in aggr_sow.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.Market.reap">
+<code class="descname">reap</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.Market.reap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collects attributes named in reap_vars from each AgentType in the market,
+storing them in respectively named attributes of self.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.Market.reset">
+<code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.Market.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the state of the market (attributes in sow_vars, etc) to some
+user-defined initial state, and erase the histories of tracked variables.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.Market.solve">
+<code class="descname">solve</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.Market.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#8220;Solves&#8221; the market by finding a &#8220;dynamic rule&#8221; that governs the aggregate
+market state such that when agents believe in these dynamics, their actions
+collectively generate the same dynamic rule.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.Market.sow">
+<code class="descname">sow</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.Market.sow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Distributes attrributes named in sow_vars from self to each AgentType
+in the market, storing them in respectively named attributes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.Market.store">
+<code class="descname">store</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.Market.store" title="Permalink to this definition">¶</a></dt>
+<dd><p>Record the current value of each variable X named in track_vars in an
+attribute named X_hist.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="HARKcore.Market.updateDynamics">
+<code class="descname">updateDynamics</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.Market.updateDynamics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates a new &#8220;aggregate dynamic rule&#8221; using the history of variables
+named in track_vars, and distributes this rule to AgentTypes in agents.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="HARKcore.Solution">
+<em class="property">class </em><code class="descclassname">HARKcore.</code><code class="descname">Solution</code><a class="headerlink" href="#HARKcore.Solution" title="Permalink to this definition">¶</a></dt>
+<dd><p>A superclass for representing the &#8220;solution&#8221; to a single period problem in a
+dynamic microeconomic model.</p>
+<p>NOTE: This can be deprecated now that HARKobject exists, but this requires
+replacing each instance of Solution with HARKobject in the other modules.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called convergence_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="HARKcore.distanceMetric">
+<code class="descclassname">HARKcore.</code><code class="descname">distanceMetric</code><span class="sig-paren">(</span><em>thing_A</em>, <em>thing_B</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.distanceMetric" title="Permalink to this definition">¶</a></dt>
+<dd><p>A &#8220;universal distance&#8221; metric that can be used as a default in many settings.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>thing_A</strong> : object</p>
+<blockquote>
+<div><p>A generic object.</p>
+</div></blockquote>
+<p><strong>thing_B</strong> : object</p>
+<blockquote class="last">
+<div><p>Another generic object.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="HARKcore.solveAgent">
+<code class="descclassname">HARKcore.</code><code class="descname">solveAgent</code><span class="sig-paren">(</span><em>agent</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.solveAgent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solve the dynamic model for one agent type.  This function iterates on &#8220;cycles&#8221;
+of an agent&#8217;s model either a given number of times or until solution convergence
+if an infinite horizon model is used (with agent.cycles = 0).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>agent</strong> : AgentType</p>
+<blockquote>
+<div><p>The microeconomic AgentType whose dynamic problem is to be solved.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>solution</strong> : [Solution]</p>
+<blockquote class="last">
+<div><p>A list of solutions to the one period problems that the agent will
+encounter in his &#8220;lifetime&#8221;.  Returns in reverse chronological order.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="HARKcore.solveOneCycle">
+<code class="descclassname">HARKcore.</code><code class="descname">solveOneCycle</code><span class="sig-paren">(</span><em>agent</em>, <em>solution_last</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.solveOneCycle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solve one &#8220;cycle&#8221; of the dynamic model for one agent type.  This function
+iterates over the periods within an agent&#8217;s cycle, updating the time-varying
+parameters and passing them to the single period solver(s).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>agent</strong> : AgentType</p>
+<blockquote>
+<div><p>The microeconomic AgentType whose dynamic problem is to be solved.</p>
+</div></blockquote>
+<p><strong>solution_last</strong> : Solution</p>
+<blockquote>
+<div><p>A representation of the solution of the period that comes after the
+end of the sequence of one period problems.  This might be the term-
+inal period solution, a &#8220;pseudo terminal&#8221; solution, a simply the
+solution to the earliest period from the succeeding cycle.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>solution_cycle</strong> : [Solution]</p>
+<blockquote class="last">
+<div><p>A list of one period solutions for one &#8220;cycle&#8221; of the AgentType&#8217;s
+microeconomic model.  Returns in reverse chronological order.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="HARKestimation.html"
+                        title="previous chapter">HARKestimation</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/generated/HARKcore.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="HARKestimation.html" title="HARKestimation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, TEMP.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.1.
+    </div>
+  </body>
+</html>

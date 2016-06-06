@@ -1,5 +1,9 @@
 '''
-A consumption-saving solver for a general equilibrium model with aggregate shocks.
+This module concerns consumption-saving models with aggregate productivity shocks
+as well as idiosyncratic income shocks.  Currently only contains one model with
+a basic solver.  The model here is implemented in a general equilibrium frame-
+work in the /cstwMPC folder, finding the capital-to-labor ratio evolution rule
+kNextFunc in a dynamic stochastic general equilibrium.
 '''
 import sys 
 sys.path.insert(0,'../')
@@ -23,6 +27,23 @@ class MargValueFunc2D():
     standard envelope condition of v'(m,k) = u'(c(m,k)) holds (with CRRA utility).
     '''
     def __init__(self,cFunc,CRRA):
+        '''
+        Constructor for a new marginal value function object.
+        
+        Parameters
+        ----------
+        cFunc : function
+            A real function representing the marginal value function composed
+            with the inverse marginal utility function, defined on market
+            resources: uP_inv(vPfunc(m,k)).  Called cFunc because when standard
+            envelope condition applies, uP_inv(vPfunc(m,k)) = cFunc(m,k).
+        CRRA : float
+            Coefficient of relative risk aversion.
+            
+        Returns
+        -------
+        new instance of MargValueFunc
+        '''
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
         
@@ -36,6 +57,44 @@ def solveConsumptionSavingAggShocks(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA
     aggregate shocks (transitory and permanent).  This is a basic solver that
     can't handle borrowing (assumes liquidity constraint) or cubic splines, nor
     can it calculate a value function.
+    
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to the succeeding one period problem.
+    IncomeDstn : [np.array]
+        A list containing five arrays of floats, representing a discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, idisyncratic permanent shocks, idiosyncratic transitory
+        shocks, aggregate permanent shocks, aggregate transitory shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.    
+    DiscFac : float
+        Intertemporal discount factor for future utility.        
+    CRRA : float
+        Coefficient of relative risk aversion.
+    PermGroGac : float
+        Expected permanent income growth factor at the end of this period.
+    aXtraGrid : np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    kGrid : np.array
+        A grid of capital-to-labor ratios in the economy.
+    kNextFunc : function
+        Next period's capital-to-labor ratio as a function of this period's ratio.
+    Rfunc : function
+        The net interest factor on assets as a function of capital ratio k.
+    wFunc : function
+        The wage rate for labor as a function of capital-to-labor ratio k.
+                    
+    Returns
+    -------
+    solution_now : ConsumerSolution
+        The solution to the single period consumption-saving problem.  Includes
+        a consumption function cFunc (linear interpolation over linear interpola-
+        tions) and marginal value function vPfunc.
     '''
     # Unpack next period's solution
     vPfuncNext = solution_next.vPfunc
@@ -100,6 +159,5 @@ def solveConsumptionSavingAggShocks(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA
     
     # Pack up and return the solution
     solution_now = ConsumerSolution(cFunc=cFuncNow,vPfunc=vPfuncNow)
-    #print('Solved a period of the agg shocks model!')
     return solution_now
         
