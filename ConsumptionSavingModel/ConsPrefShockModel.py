@@ -10,7 +10,8 @@ sys.path.insert(0,'../')
 import numpy as np
 from HARKutilities import approxMeanOneLognormal
 from copy import copy
-from ConsumptionSavingModel import ConsumerType, ConsumerSolution, ConsumptionSavingSolverKinkedR, ValueFunc, MargValueFunc
+from ConsumptionSavingModel import ConsumerType, ConsumerSolution, ConsumptionSavingSolverKinkedR, \
+                                   ValueFunc, MargValueFunc
 from HARKinterpolation import LinearInterpOnInterp1D, LinearInterp, CubicInterp, LowerEnvelope
 
 class PrefShockConsumerType(ConsumerType):
@@ -34,7 +35,7 @@ class PrefShockConsumerType(ConsumerType):
         
         Returns
         -------
-        New instance of PrefShockConsumerType.
+        None
         '''      
         ConsumerType.__init__(self,**kwds)
         self.solveOnePeriod = solveConsPrefShock # Choose correct solver
@@ -66,7 +67,8 @@ class PrefShockConsumerType(ConsumerType):
         PrefShkDstn = [] # discrete distributions of preference shocks
         for t in range(len(self.PrefShkStd)):
             PrefShkStd = self.PrefShkStd[t]
-            PrefShkDstn.append(approxMeanOneLognormal(N=self.PrefShkCount,sigma=PrefShkStd,tail_N=self.PrefShk_tail_N))
+            PrefShkDstn.append(approxMeanOneLognormal(N=self.PrefShkCount,
+                                                      sigma=PrefShkStd,tail_N=self.PrefShk_tail_N))
             
         # Store the preference shocks in self (time-varying) and restore time flow
         self.PrefShkDstn = PrefShkDstn
@@ -93,9 +95,9 @@ class PrefShockConsumerType(ConsumerType):
         self.resetRNG()
         
         # Initialize the preference shock history
-        PrefShkHist = np.zeros((self.sim_periods,self.Nagents)) + np.nan
+        PrefShkHist      = np.zeros((self.sim_periods,self.Nagents)) + np.nan
         PrefShkHist[0,:] = 1.0
-        t_idx = 0
+        t_idx            = 0
         
         # Make discrete distributions of preference shocks to permute
         base_dstns = []
@@ -227,7 +229,7 @@ class ConsPrefShockSolver(ConsumptionSavingSolverKinkedR):
             
         Returns
         -------
-        new instance of ConsPrefShockSolver
+        None
         '''
         ConsumptionSavingSolverKinkedR.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                       Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
@@ -254,14 +256,16 @@ class ConsPrefShockSolver(ConsumptionSavingSolverKinkedR):
         m_for_interpolation : np.array
             Corresponding market resource points for interpolation.
         '''
-        c_base = self.uPinv(EndOfPrdvP)
+        c_base       = self.uPinv(EndOfPrdvP)
         PrefShkCount = self.PrefShkVals.size
-        PrefShk_temp = np.tile(np.reshape(self.PrefShkVals**(1.0/self.CRRA),(PrefShkCount,1)),(1,c_base.size))
+        PrefShk_temp = np.tile(np.reshape(self.PrefShkVals**(1.0/self.CRRA),(PrefShkCount,1)),
+                               (1,c_base.size))
         self.cNrmNow = np.tile(c_base,(PrefShkCount,1))*PrefShk_temp
         self.mNrmNow = self.cNrmNow + np.tile(aNrmNow,(PrefShkCount,1))
         
         # Add the bottom point to the c and m arrays
-        m_for_interpolation = np.concatenate((self.BoroCnstNat*np.ones((PrefShkCount,1)),self.mNrmNow),axis=1)
+        m_for_interpolation = np.concatenate((self.BoroCnstNat*np.ones((PrefShkCount,1)),
+                                              self.mNrmNow),axis=1)
         c_for_interpolation = np.concatenate((np.zeros((PrefShkCount,1)),self.cNrmNow),axis=1)
         return c_for_interpolation,m_for_interpolation
     
@@ -287,10 +291,12 @@ class ConsPrefShockSolver(ConsumptionSavingSolverKinkedR):
         '''
         # Make the preference-shock specific consumption functions
         PrefShkCount = self.PrefShkVals.size
-        cFunc_list = []
+        cFunc_list   = []
         for j in range(PrefShkCount):
-            MPCmin_j = self.MPCminNow*self.PrefShkVals[j]**(1.0/self.CRRA)
-            cFunc_this_shock = LowerEnvelope(LinearInterp(mNrm[j,:],cNrm[j,:],intercept_limit=self.hNrmNow*MPCmin_j,slope_limit=MPCmin_j),self.cFuncNowCnst)
+            MPCmin_j         = self.MPCminNow*self.PrefShkVals[j]**(1.0/self.CRRA)
+            cFunc_this_shock = LowerEnvelope(LinearInterp(mNrm[j,:],cNrm[j,:],
+                                             intercept_limit=self.hNrmNow*MPCmin_j,
+                                             slope_limit=MPCmin_j),self.cFuncNowCnst)
             cFunc_list.append(cFunc_this_shock)
             
         # Combine the list of consumption functions into a single interpolation
@@ -302,7 +308,7 @@ class ConsPrefShockSolver(ConsumptionSavingSolverKinkedR):
         for j in range(PrefShkCount): # numeric integration over the preference shock
             vP_vec += self.uP(cFunc_list[j](m_grid))*self.PrefShkPrbs[j]*self.PrefShkVals[j]
         vPnvrs_vec = self.uPinv(vP_vec)
-        vPfuncNow = MargValueFunc(LinearInterp(m_grid,vPnvrs_vec),self.CRRA)
+        vPfuncNow  = MargValueFunc(LinearInterp(m_grid,vPnvrs_vec),self.CRRA)
     
         # Store the results in a solution object and return it
         solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow)
@@ -401,7 +407,7 @@ def solveConsPrefShock(solution_next,IncomeDstn,PrefShkDstn,
 
     Returns
     -------
-    solution_now: ConsumerSolution
+    solution: ConsumerSolution
         The solution to the single period consumption-saving problem.  Includes
         a consumption function cFunc (using linear splines), a marginal value
         function vPfunc, a minimum acceptable level of normalized market re-
@@ -432,16 +438,16 @@ if __name__ == '__main__':
     do_simulation = True
 
     # Extend the default initialization dictionary
-    ConsPrefShock_dict = copy(Params.init_consumer_objects)
-    ConsPrefShock_dict['PrefShkCount'] = 12    # Number of points in discrete approximation to preference shock dist
-    ConsPrefShock_dict['PrefShk_tail_N'] = 4   # Number of "tail points" on each end of pref shock dist
-    ConsPrefShock_dict['PrefShkStd'] = [0.30]  # Standard deviation of utility shocks
-    ConsPrefShock_dict['Rboro'] = 1.20         # Interest factor when borrowing
-    ConsPrefShock_dict['Rsave'] = 1.03         # Interest factor when saving
-    ConsPrefShock_dict['BoroCnstArt'] = None   # Artificial borrowing constraint
-    ConsPrefShock_dict['aXtraCount'] = 64      # Number of asset gridpoints
-    ConsPrefShock_dict['aXtraMax'] = 100       # Highest asset gridpoint
-    ConsPrefShock_dict['T_total'] = 1
+    ConsPrefShock_dict                      = copy(Params.init_consumer_objects)
+    ConsPrefShock_dict['PrefShkCount']      = 12      # Number of points in discrete approximation to preference shock dist
+    ConsPrefShock_dict['PrefShk_tail_N']    = 4       # Number of "tail points" on each end of pref shock dist
+    ConsPrefShock_dict['PrefShkStd']        = [0.30]  # Standard deviation of utility shocks
+    ConsPrefShock_dict['Rboro']             = 1.20    # Interest factor when borrowing
+    ConsPrefShock_dict['Rsave']             = 1.03    # Interest factor when saving
+    ConsPrefShock_dict['BoroCnstArt']       = None    # Artificial borrowing constraint
+    ConsPrefShock_dict['aXtraCount']        = 64      # Number of asset gridpoints
+    ConsPrefShock_dict['aXtraMax']          = 100     # Highest asset gridpoint
+    ConsPrefShock_dict['T_total']           = 1
     
     # Make and solve a preference shock consumer
     PrefShockExample = PrefShockConsumerType(**ConsPrefShock_dict)
