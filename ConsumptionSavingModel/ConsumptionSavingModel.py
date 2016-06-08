@@ -1,27 +1,42 @@
 '''
-This is a missing description of ConsumptionSavingModel.py
+This module contains classes to solve canonical consumption-savings models with CRRA utility.  
+It currently solves four models.
+   1) A very basic one-period "perfect foresight" consumption-savings model with no uncertainty.
+   2) An infinite-horizon OR lifecycle consumption-savings model with uncertainty over transitory
+      and permanent income shocks.
+   3) The model described in (2), with an interest rate for debt that differs from the interest
+      rate for savings.
+   4) The model described in (2), with the addition of an exogenous Markov state that affects
+      income (e.g. unemployment.)
+
+See NARK for information on variable naming conventions.
+See HARK documentation for mathematical descriptions of the models being solved.
 '''
 import sys 
 sys.path.insert(0,'../')
 
+from copy import copy, deepcopy
 import numpy as np
 from HARKcore import AgentType, Solution, NullFunc
 from HARKutilities import warnings  # Because of "patch" to warnings modules
-from HARKutilities import approxLognormal, approxMeanOneLognormal, addDiscreteOutcomeConstantMean, combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARKsimulation import drawMeanOneLognormal, drawBernoulli
-from copy import copy, deepcopy
+from HARKutilities import approxLognormal, approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
+                          combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
+                          CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
+                          CRRAutilityP_invP
 
-utility      = CRRAutility
-utilityP     = CRRAutilityP
-utilityPP    = CRRAutilityPP
-utilityP_inv = CRRAutilityP_inv
-utility_invP = CRRAutility_invP
-utility_inv  = CRRAutility_inv
-utilityP_invP= CRRAutilityP_invP
+
+utility       = CRRAutility
+utilityP      = CRRAutilityP
+utilityPP     = CRRAutilityPP
+utilityP_inv  = CRRAutilityP_inv
+utility_invP  = CRRAutility_invP
+utility_inv   = CRRAutility_inv
+utilityP_invP = CRRAutilityP_invP
 
 # =====================================================================
-# === Classes and functions used to solve consumption-saving models ===
+# === Classes that help solve consumption-saving models ===
 # =====================================================================
 
 class ConsumerSolution(Solution):
@@ -29,6 +44,8 @@ class ConsumerSolution(Solution):
     A class representing the solution of a single period of a consumption-saving
     problem.  The solution must include a consumption function and marginal
     value function.
+    
+    Here and elsewhere in the code, Nrm indicates that variables are normalized by permanent income.
     '''
     def __init__(self, cFunc=NullFunc, vFunc=NullFunc, 
                        vPfunc=NullFunc, vPPfunc=NullFunc,
@@ -65,7 +82,7 @@ class ConsumerSolution(Solution):
             
         Returns
         -------
-        new instance of ConsumerSolution        
+        None        
         '''
         self.cFunc        = cFunc
         self.vFunc        = vFunc
@@ -77,31 +94,12 @@ class ConsumerSolution(Solution):
         self.MPCmax       = MPCmax
         self.convergence_criteria = ['cFunc']
 
-    def getEulerEquationErrorFunction(self,uPfunc):
-        '''
-        Return the Euler Equation Error function, to check that the solution is
-        "good enough".  Note right now this method needs to be passed uPfunc,
-        which I find awkward and annoying.
-        
-        Parameters
-        ----------
-        uPunc : function
-            The instantaneous marginal utility function.
-            
-        Returns
-        -------
-        eulerEquationErrorFunction : function
-            Function yielding the absolute difference between marginal utility
-            and end-of-period marginal value.
-        '''
-        def eulerEquationErrorFunction(m):
-            return np.abs(uPfunc(self.cFunc(m)) - self.EndOfPrdvPfunc(m))            
-        return eulerEquationErrorFunction
-            
     def appendSolution(self,new_solution):
         '''
         Appends one solution to another to create a ConsumerSolution whose
-        attributes are lists.  Used in solveConsumptionSavingMarkov.
+        attributes are lists.  Used in solveConsumptionSavingMarkov, where we append solutions
+        *conditional* on a particular value of a Markov state to each other in order to get the
+        entire solution.
         
         Parameters
         ----------
@@ -114,8 +112,11 @@ class ConsumerSolution(Solution):
         none
         '''
         if type(self.cFunc)!=list:
-            assert self.cFunc==NullFunc            
-            # Then the assumption is self is an empty initialized instance, we need to start a list
+            # Then we assume that self is an empty initialized solution instance.
+            # Begin by checking this is so.            
+            assert self.cFunc==NullFunc, 'appendSolution called incorrectly!'         
+
+            # We will need the attributes of the solution instance to be lists.  Do that here.
             self.cFunc       = [new_solution.cFunc]
             self.vFunc       = [new_solution.vFunc]
             self.vPfunc      = [new_solution.vPfunc]
@@ -148,7 +149,7 @@ class ValueFunc():
             
         Returns
         -------
-        new instance of ValueFunc
+        None
         '''
         self.func = deepcopy(vFuncDecurved)
         self.CRRA = CRRA
@@ -193,7 +194,7 @@ class MargValueFunc():
             
         Returns
         -------
-        new instance of MargValueFunc
+        None
         '''
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
@@ -258,7 +259,7 @@ class MargMargValueFunc():
             
         Returns
         -------
-        new instance of MargMargValueFunc
+        None
         '''
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
@@ -277,20 +278,23 @@ class MargMargValueFunc():
         Returns
         -------
         vPP : float or np.array
-            Marginal lifetime value of beginning this period with market
+            Marginal marginal lifetime value of beginning this period with market
             resources m; has same size as input m.
         '''
         c, MPC = self.cFunc.eval_with_derivative(m)
         return MPC*utilityPP(c,gam=self.CRRA)
 
 
-####################################################################################################
-####################################################################################################
+
+
+# =====================================================================
+# === Classes and functions that solve consumption-saving models ===
+# =====================================================================
 
 class PerfectForesightSolver(object):
     '''
     A class for solving a one period perfect foresight consumption-saving problem.
-    An instance of this class is created by solvePerfForesight in each period.
+    An instance of this class is created by the function solvePerfForesight in each period.
     '''
     def __init__(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
         '''
@@ -299,12 +303,12 @@ class PerfectForesightSolver(object):
         Parameters
         ----------
         solution_next : ConsumerSolution
-            The solution to the succeeding one period problem.
+            The solution to next period's one-period problem.
         DiscFac : float
             Intertemporal discount factor for future utility.
         LivPrb : float
             Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
+            the next period.
         CRRA : float
             Coefficient of relative risk aversion.
         Rfree : float
@@ -314,8 +318,11 @@ class PerfectForesightSolver(object):
             
         Returns:
         ----------
-        new instance of PerfectForesightSolver        
+        None       
         '''
+        # We ask that HARK users define single-letter variables they use in a dictionary
+        # attribute called notation.
+        # Do that first.
         self.notation = {'a': 'assets after all actions',
                          'm': 'market resources at decision time',
                          'c': 'consumption'}
@@ -328,7 +335,7 @@ class PerfectForesightSolver(object):
         Parameters
         ----------
         solution_next : ConsumerSolution
-            The solution to the succeeding one period problem.
+            The solution to next period's one period problem.
         DiscFac : float
             Intertemporal discount factor for future utility.
         LivPrb : float
@@ -381,8 +388,8 @@ class PerfectForesightSolver(object):
         -------
         none
         '''
-        MPCnvrs = self.MPC**(-self.CRRA/(1.0-self.CRRA))
-        vFuncNvrs = LinearInterp(np.array([self.mNrmMin, self.mNrmMin+1.0]),np.array([0.0, MPCnvrs]))
+        MPCnvrs      = self.MPC**(-self.CRRA/(1.0-self.CRRA))
+        vFuncNvrs    = LinearInterp(np.array([self.mNrmMin, self.mNrmMin+1.0]),np.array([0.0, MPCnvrs]))
         self.vFunc   = ValueFunc(vFuncNvrs,self.CRRA)
         self.vPfunc  = MargValueFunc(self.cFunc,self.CRRA)
         
@@ -424,10 +431,9 @@ class PerfectForesightSolver(object):
         self.DiscFacEff = self.DiscFac*self.LivPrb
         self.makecFuncPF()
         self.defValueFuncs()
-        solution = ConsumerSolution(cFunc=self.cFunc, vFunc=self.vFunc, 
-                       vPfunc=self.vPfunc,
-                       mNrmMin=self.mNrmMin, hNrm=self.hNrmNow,
-                       MPCmin=self.MPC, MPCmax=self.MPC)
+        solution = ConsumerSolution(cFunc=self.cFunc, vFunc=self.vFunc, vPfunc=self.vPfunc,
+                                    mNrmMin=self.mNrmMin, hNrm=self.hNrmNow,
+                                    MPCmin=self.MPC, MPCmax=self.MPC)
         return solution
 
 
@@ -438,7 +444,7 @@ def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
     Parameters
     ----------
     solution_next : ConsumerSolution
-        The solution to the succeeding one period problem.
+        The solution to next period's one period problem.
     DiscFac : float
         Intertemporal discount factor for future utility.
     LivPrb : float
@@ -470,14 +476,15 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
     to income.
     '''
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+                      PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
         '''
-        Constructor for a new solver for problems with risky income.
+        Constructor for a new solver for problems with income subject to permanent and transitory
+        shocks.
         
         Parameters
         ----------
         solution_next : ConsumerSolution
-            The solution to the succeeding one period problem.
+            The solution to next period's one period problem.
         IncomeDstn : [np.array]
             A list containing three arrays of floats, representing a discrete
             approximation to the income process between the period being solved
@@ -511,7 +518,7 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
                         
         Returns
         -------
-        new instance of SetupImperfectForesightSolver  
+        None
         '''
         self.assignParameters(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
                                 PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
@@ -525,7 +532,7 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         Parameters
         ----------
         solution_next : ConsumerSolution
-            The solution to the succeeding one period problem.
+            The solution to next period's one period problem.
         IncomeDstn : [np.array]
             A list containing three arrays of floats, representing a discrete
             approximation to the income process between the period being solved
@@ -561,7 +568,8 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         -------
         none
         '''
-        PerfectForesightSolver.assignParameters(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac)
+        PerfectForesightSolver.assignParameters(self,solution_next,DiscFac,LivPrb,
+                                                CRRA,Rfree,PermGroFac)
         self.BoroCnstArt       = BoroCnstArt
         self.IncomeDstn     = IncomeDstn
         self.aXtraGrid      = aXtraGrid
@@ -602,7 +610,7 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         Parameters
         ----------
         solution_next : ConsumerSolution
-            The solution to the succeeding one period problem.
+            The solution to next period's one period problem.
         IncomeDstn : [np.array]
             A list containing three arrays of floats, representing a discrete
             approximation to the income process between the period being solved
@@ -625,7 +633,9 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         self.PermShkMinNext   = np.min(self.PermShkValsNext)    
         self.TranShkMinNext   = np.min(self.TranShkValsNext)
         self.vPfuncNext       = solution_next.vPfunc        
-        self.WorstIncPrb      = np.sum(self.ShkPrbsNext[(self.PermShkValsNext*self.TranShkValsNext)==(self.PermShkMinNext*self.TranShkMinNext)]) 
+        self.WorstIncPrb      = np.sum(self.ShkPrbsNext[
+                                (self.PermShkValsNext*self.TranShkValsNext)==
+                                (self.PermShkMinNext*self.TranShkMinNext)]) 
 
         if self.CubicBool:
             self.vPPfuncNext  = solution_next.vPPfunc
@@ -636,8 +646,11 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         # Update the bounding MPCs and PDV of human wealth:
         self.PatFac       = ((self.Rfree*self.DiscFacEff)**(1.0/self.CRRA))/self.Rfree
         self.MPCminNow    = 1.0/(1.0 + self.PatFac/solution_next.MPCmin)
-        self.hNrmNow      = self.PermGroFac/self.Rfree*(np.dot(self.ShkPrbsNext,self.TranShkValsNext*self.PermShkValsNext) + solution_next.hNrm)
-        self.MPCmaxNow    = 1.0/(1.0 + (self.WorstIncPrb**(1.0/self.CRRA))*self.PatFac/solution_next.MPCmax)
+        self.hNrmNow      = self.PermGroFac/self.Rfree*(
+                            np.dot(self.ShkPrbsNext,self.TranShkValsNext*self.PermShkValsNext) + 
+                            solution_next.hNrm)
+        self.MPCmaxNow    = 1.0/(1.0 + (self.WorstIncPrb**(1.0/self.CRRA))*
+                                        self.PatFac/solution_next.MPCmax)
 
 
     def defineBorrowingConstraint(self,BoroCnstArt):
@@ -658,7 +671,8 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         none
         '''
         # Calculate the minimum allowable value of money resources in this period
-        self.BoroCnstNat = (self.solution_next.mNrmMin - self.TranShkMinNext)*(self.PermGroFac*self.PermShkMinNext)/self.Rfree
+        self.BoroCnstNat = (self.solution_next.mNrmMin - self.TranShkMinNext)*\
+                           (self.PermGroFac*self.PermShkMinNext)/self.Rfree
         self.mNrmMinNow = np.max([self.BoroCnstNat,BoroCnstArt])
         if self.BoroCnstNat < self.mNrmMinNow: 
             self.MPCmaxEff = 1.0 # If actually constrained, MPC near limit is 1
@@ -666,7 +680,8 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
             self.MPCmaxEff = self.MPCmaxNow
     
         # Define the borrowing constraint (limiting consumption function)
-        self.cFuncNowCnst = LinearInterp(np.array([self.mNrmMinNow, self.mNrmMinNow+1]), np.array([0.0, 1.0]))
+        self.cFuncNowCnst = LinearInterp(np.array([self.mNrmMinNow, self.mNrmMinNow+1]), 
+                                         np.array([0.0, 1.0]))
 
 
     def prepareToSolve(self):
@@ -749,16 +764,18 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         
         Returns
         -------
-        none
+        EndOfPrdvP : np.array
+            A 1D array of end-of-period marginal value of assets
         '''        
         EndOfPrdvP  = self.DiscFacEff*self.Rfree*self.PermGroFac**(-self.CRRA)*np.sum(
-                    self.PermShkVals_temp**(-self.CRRA)*self.vPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)                    
+                      self.PermShkVals_temp**(-self.CRRA)*
+                      self.vPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)  
         return EndOfPrdvP
                     
 
     def getPointsForInterpolation(self,EndOfPrdvP,aNrmNow):
         '''
-        Finds interpolation points for the consumption function (m,c).
+        Finds interpolation points (c,m) for the consumption function.
         
         Parameters
         ----------
@@ -797,9 +814,9 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         Parameters
         ----------
         cNrm : np.array
-            Consumption points for interpolation.
+            (Normalized) consumption points for interpolation.
         mNrm : np.array
-            Corresponding market resource points for interpolation.
+            (Normalized) corresponding market resource points for interpolation.
         interpolator : function
             A function that constructs and returns a consumption function.
             
@@ -845,7 +862,7 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
             The solution to this period's consumption-saving problem, with a
             consumption function, marginal value function, and minimum m.
         '''
-        cNrm,mNrm  = self.getPointsForInterpolation(EndOfPrdvP,aNrm)       
+        cNrm,mNrm    = self.getPointsForInterpolation(EndOfPrdvP,aNrm)       
         solution_now = self.usePointsForInterpolation(cNrm,mNrm,interpolator)
         return solution_now
 
@@ -937,8 +954,9 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         cFuncUnc : CubicInterp
             The unconstrained consumption function for this period.        
         '''        
-        EndOfPrdvPP   = self.DiscFacEff*self.Rfree*self.Rfree*self.PermGroFac**(-self.CRRA-1.0)* \
-                      np.sum(self.PermShkVals_temp**(-self.CRRA-1.0)*self.vPPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)    
+        EndOfPrdvPP = self.DiscFacEff*self.Rfree*self.Rfree*self.PermGroFac**(-self.CRRA-1.0)* \
+                      np.sum(self.PermShkVals_temp**(-self.CRRA-1.0)*
+                             self.vPPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)    
         dcda        = EndOfPrdvPP/self.uPP(np.array(cNrm[1:]))
         MPC         = dcda/(dcda+1.)
         MPC         = np.insert(MPC,0,self.MPCmaxNow)
@@ -962,15 +980,16 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         -------
         none
         '''
-        VLvlNext       = (self.PermShkVals_temp**(1.0-self.CRRA)*self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
-        EndOfPrdv      = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
-        EndOfPrdvNvrs  = self.uinv(EndOfPrdv) # value transformed through inverse utility
-        EndOfPrdvNvrsP = EndOfPrdvP*self.uinvP(EndOfPrdv)
-        EndOfPrdvNvrs  = np.insert(EndOfPrdvNvrs,0,0.0)
-        EndOfPrdvNvrsP = np.insert(EndOfPrdvNvrsP,0,EndOfPrdvNvrsP[0]) # This is *very* slightly wrong
-        aNrm_temp      = np.insert(self.aNrmNow,0,self.BoroCnstNat)
-        EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp,EndOfPrdvNvrs,EndOfPrdvNvrsP)
-        self.EndOfPrdvFunc = ValueFunc(EndOfPrdvNvrsFunc,self.CRRA)
+        VLvlNext            = (self.PermShkVals_temp**(1.0-self.CRRA)*\
+                               self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
+        EndOfPrdv           = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
+        EndOfPrdvNvrs       = self.uinv(EndOfPrdv) # value transformed through inverse utility
+        EndOfPrdvNvrsP      = EndOfPrdvP*self.uinvP(EndOfPrdv)
+        EndOfPrdvNvrs       = np.insert(EndOfPrdvNvrs,0,0.0)
+        EndOfPrdvNvrsP      = np.insert(EndOfPrdvNvrsP,0,EndOfPrdvNvrsP[0]) # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+        aNrm_temp           = np.insert(self.aNrmNow,0,self.BoroCnstNat)
+        EndOfPrdvNvrsFunc   = CubicInterp(aNrm_temp,EndOfPrdvNvrs,EndOfPrdvNvrsP)
+        self.EndOfPrdvFunc  = ValueFunc(EndOfPrdvNvrsFunc,self.CRRA)
 
 
     def putVfuncInSolution(self,solution,EndOfPrdvP):
@@ -1093,7 +1112,8 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         return solution        
        
 
-def consumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+def consumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
+                                BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
     '''
     Solves a single period consumption-saving problem with CRRA utility and risky
     income (subject to permanent and transitory shocks).  Can generate a value
@@ -1102,7 +1122,7 @@ def consumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfr
     Parameters
     ----------
     solution_next : ConsumerSolution
-        The solution to the succeeding one period problem.
+        The solution to next period's one period problem.
     IncomeDstn : [np.array]
         A list containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
@@ -1145,9 +1165,12 @@ def consumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfr
     '''
     # Use the basic solver if user doesn't want cubic splines or the value function
     if (not CubicBool) and (not vFuncBool): 
-        solver = ConsumptionSavingSolverENDGBasic(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)        
+        solver = ConsumptionSavingSolverENDGBasic(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
+                                                  Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,
+                                                  CubicBool)        
     else: # Use the "advanced" solver if either is requested
-        solver = ConsumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+        solver = ConsumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
+                                             PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
     solver.prepareToSolve()       # Do some preparatory work
     solution_now = solver.solve() # Solve the period
     return solution_now  
@@ -1172,7 +1195,7 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
         Parameters
         ----------
         solution_next : ConsumerSolution
-            The solution to the succeeding one period problem.
+            The solution to next period's one period problem.
         IncomeDstn : [np.array]
             A list containing three arrays of floats, representing a discrete
             approximation to the income process between the period being solved
@@ -1210,13 +1233,15 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
                         
         Returns
         -------
-        new instance of ConsumptionSavingSolverKinkedR
+        None
         '''
         assert CubicBool==False,'KinkedR will only work with linear interpolation (for now)'
 
         # Initialize the solver.  Most of the steps are exactly the same as in
         # the non-kinked-R basic case, so start with that.
-        ConsumptionSavingSolverENDG.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool) 
+        ConsumptionSavingSolverENDG.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
+                                             Rboro,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,
+                                             CubicBool) 
 
         # Assign the interest rates as class attributes, to use them later.
         self.Rboro   = Rboro
@@ -1236,7 +1261,8 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
         
         Returns
         -------
-        none
+        aNrmNow : np.array
+            A 1D array of end-of-period assets; also stored as attribute of self.
         ''' 
         # Make a grid of end-of-period assets, including *two* copies of a=0
         aNrmNow           = np.sort(np.hstack((np.asarray(self.aXtraGrid) + 
@@ -1258,13 +1284,15 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
         
         # Make an array of market resources that we could have next period,
         # considering the grid of assets and the income shocks that could occur
-        mNrmNext          = Rfree_temp/(self.PermGroFac*PermShkVals_temp)*aNrm_temp + TranShkVals_temp
+        mNrmNext          = Rfree_temp/(self.PermGroFac*PermShkVals_temp)*aNrm_temp + \
+                            TranShkVals_temp
         
         # Recalculate the minimum MPC and human wealth using the interest factor on saving.
         # This overwrites values from setAndUpdateValues, which were based on Rboro instead.
         PatFacTop         = ((self.Rsave*self.DiscFacEff)**(1.0/self.CRRA))/self.Rsave
         self.MPCminNow    = 1.0/(1.0 + PatFacTop/self.solution_next.MPCmin)
-        self.hNrmNow      = self.PermGroFac/self.Rsave*(np.dot(self.ShkPrbsNext,self.TranShkValsNext*self.PermShkValsNext) + self.solution_next.hNrm)
+        self.hNrmNow      = self.PermGroFac/self.Rsave*(np.dot(self.ShkPrbsNext,
+                            self.TranShkValsNext*self.PermShkValsNext) + self.solution_next.hNrm)
 
         # Store some of the constructed arrays for later use and return the assets grid
         self.PermShkVals_temp = PermShkVals_temp
@@ -1274,7 +1302,8 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
         return aNrmNow
 
 
-def consumptionSavingSolverKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+def consumptionSavingSolverKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
+                                   PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
     '''
     Solves a single period consumption-saving problem with CRRA utility and risky
     income (subject to permanent and transitory shocks), and different interest
@@ -1285,7 +1314,7 @@ def consumptionSavingSolverKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
     Parameters
     ----------
     solution_next : ConsumerSolution
-        The solution to the succeeding one period problem.
+        The solution to next period's one period problem.
     IncomeDstn : [np.array]
         A list containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
@@ -1329,9 +1358,11 @@ def consumptionSavingSolverKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
         resources mNrmMin, normalized human wealth hNrm, and bounding MPCs MPCmin
         and MPCmax.  It might also have a value function vFunc.
     '''
+    assert Rboro>=Rsave, 'Interest factor on debt less than interest factor on savings!'    
+    
     solver = ConsumptionSavingSolverKinkedR(solution_next,IncomeDstn,LivPrb,
-                                            DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,
-                                            vFuncBool,CubicBool)
+                                            DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
+                                            aXtraGrid,vFuncBool,CubicBool)
     solver.prepareToSolve()                                      
     solution = solver.solve()
 
@@ -1360,7 +1391,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         Parameters
         ----------
         solution_next : ConsumerSolution
-            The solution to the succeeding one period problem.
+            The solution to next period's one period problem.
         IncomeDstn_list : [[np.array]]
             A length N list of income distributions in each succeeding Markov
             state.  Each income distribution contains three arrays of floats,
@@ -1401,13 +1432,14 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
                         
         Returns
         -------
-        new instance of ConsumptionSavingSolverMarkov
+        None
         '''
         # Set basic attributes of the problem
         ConsumptionSavingSolverENDG.assignParameters(self,solution_next,np.nan,
                                                      LivPrb,DiscFac,CRRA,np.nan,np.nan,
                                                      BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
         self.defineUtilityFunctions()
+        
         # Set additional attributes specific to the Markov model
         self.IncomeDstn_list      = IncomeDstn_list
         self.Rfree_list           = Rfree_list
@@ -1440,20 +1472,21 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         self.defBoundary()
         
         # Initialize end-of-period (marginal) value functions
-        self.EndOfPrdvFunc_list = []
+        self.EndOfPrdvFunc_list  = []
         self.EndOfPrdvPfunc_list = []
-        self.ExIncNext      = np.zeros(self.StateCount) + np.nan # expected income conditional on the next state
-        self.WorstIncPrbAll = np.zeros(self.StateCount) + np.nan # # probability of getting the worst income shock in each next period state
+        self.ExIncNext           = np.zeros(self.StateCount) + np.nan # expected income conditional on the next state
+        self.WorstIncPrbAll      = np.zeros(self.StateCount) + np.nan # probability of getting the worst income shock in each next period state
 
         # Loop through each next-period-state and calculate the end-of-period
         # (marginal) value function
         for j in range(self.StateCount):
             # Condition values on next period's state (and record a couple for later use)
             self.conditionOnState(j)
-            self.ExIncNext[j]      = np.dot(self.ShkPrbsNext,self.PermShkValsNext*self.TranShkValsNext)
+            self.ExIncNext[j]      = np.dot(self.ShkPrbsNext,
+                                            self.PermShkValsNext*self.TranShkValsNext)
             self.WorstIncPrbAll[j] = self.WorstIncPrb
             
-            # Construct the end-of-period value marginal functional conditional
+            # Construct the end-of-period marginal value function conditional
             # on next period's state and add it to the list of value functions
             EndOfPrdvPfunc_cond = self.makeEndOfPrdvPfuncCond()
             self.EndOfPrdvPfunc_list.append(EndOfPrdvPfunc_cond)
@@ -1501,7 +1534,8 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         for j in range(self.StateCount):
             PermShkMinNext         = np.min(self.IncomeDstn_list[j][1])
             TranShkMinNext         = np.min(self.IncomeDstn_list[j][2])
-            self.BoroCnstNatAll[j] = (self.solution_next.mNrmMin[j] - TranShkMinNext)*(self.PermGroFac_list[j]*PermShkMinNext)/self.Rfree_list[j]
+            self.BoroCnstNatAll[j] = (self.solution_next.mNrmMin[j] - TranShkMinNext)*\
+                                     (self.PermGroFac_list[j]*PermShkMinNext)/self.Rfree_list[j]
 
         self.BoroCnstNat_list   = np.zeros(self.StateCount) + np.nan
         self.mNrmMin_list       = np.zeros(self.StateCount) + np.nan
@@ -1510,9 +1544,9 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         # among next-state-conditional natural borrowing constraints that could
         # occur from this current state.
         for i in range(self.StateCount):
-            possible_next_states     = self.MrkvArray[i,:] > 0
-            self.BoroCnstNat_list[i] = np.max(self.BoroCnstNatAll[possible_next_states])
-            self.mNrmMin_list[i]     = np.max([self.BoroCnstNat_list[i],self.BoroCnstArt])
+            possible_next_states         = self.MrkvArray[i,:] > 0
+            self.BoroCnstNat_list[i]     = np.max(self.BoroCnstNatAll[possible_next_states])
+            self.mNrmMin_list[i]         = np.max([self.BoroCnstNat_list[i],self.BoroCnstArt])
             self.BoroCnstDependency[i,:] = self.BoroCnstNat_list[i] == self.BoroCnstNatAll
         # Also creates a Boolean array indicating whether the natural borrowing
         # constraint *could* be hit when transitioning from i to j.
@@ -1562,8 +1596,9 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         -------
         none
         '''
-        EndOfPrdvPP = self.DiscFacEff*self.Rfree*self.Rfree*self.PermGroFac**(-self.CRRA-1.0)*np.sum(self.PermShkVals_temp**(-self.CRRA-1.0)*
-                      self.vPPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)
+        EndOfPrdvPP = self.DiscFacEff*self.Rfree*self.Rfree*self.PermGroFac**(-self.CRRA-1.0)*\
+                      np.sum(self.PermShkVals_temp**(-self.CRRA-1.0)*self.vPPfuncNext(self.mNrmNext)
+                      *self.ShkPrbs_temp,axis=0)
         return EndOfPrdvPP
             
     def makeEndOfPrdvFuncCond(self):
@@ -1581,17 +1616,19 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         -------
         EndofPrdvFunc_cond : ValueFunc
             The end-of-period value function conditional on a particular state
-            occuring in the succeeding period.            
+            occuring in the next period.            
         '''
-        VLvlNext           = (self.PermShkVals_temp**(1.0-self.CRRA)*self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
-        EndOfPrdv_cond     = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
-        EndOfPrdvNvrs_cond = self.uinv(EndOfPrdv_cond)
-        EndOfPrdvNvrsP_cond= self.EndOfPrdvP_cond*self.uinvP(EndOfPrdv_cond)
-        EndOfPrdvNvrs_cond = np.insert(EndOfPrdvNvrs_cond,0,0.0)
-        EndOfPrdvNvrsP_cond= np.insert(EndOfPrdvNvrsP_cond,0,EndOfPrdvNvrsP_cond[0])
-        aNrm_temp          = np.insert(self.aNrm_cond,0,self.BoroCnstNat)
+        VLvlNext               = (self.PermShkVals_temp**(1.0-self.CRRA)*
+                                  self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
+        EndOfPrdv_cond         = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
+        EndOfPrdvNvrs_cond     = self.uinv(EndOfPrdv_cond)
+        EndOfPrdvNvrsP_cond    = self.EndOfPrdvP_cond*self.uinvP(EndOfPrdv_cond)
+        EndOfPrdvNvrs_cond     = np.insert(EndOfPrdvNvrs_cond,0,0.0)
+        EndOfPrdvNvrsP_cond    = np.insert(EndOfPrdvNvrsP_cond,0,EndOfPrdvNvrsP_cond[0])
+        aNrm_temp              = np.insert(self.aNrm_cond,0,self.BoroCnstNat)
         EndOfPrdvNvrsFunc_cond = CubicInterp(aNrm_temp,EndOfPrdvNvrs_cond,EndOfPrdvNvrsP_cond)
-        return ValueFunc(EndOfPrdvNvrsFunc_cond,self.CRRA)
+        EndofPrdvFunc_cond     = ValueFunc(EndOfPrdvNvrsFunc_cond,self.CRRA)        
+        return EndofPrdvFunc_cond
         
             
     def makeEndOfPrdvPfuncCond(self):
@@ -1619,10 +1656,13 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         
         # Construct the end-of-period marginal value function conditional on the next state.
         if self.CubicBool:
-            EndOfPrdvPnvrsFunc_cond = CubicInterp(self.aNrm_cond,EndOfPrdvPnvrs_cond,EndOfPrdvPnvrsP_cond,lower_extrap=True)
+            EndOfPrdvPnvrsFunc_cond = CubicInterp(self.aNrm_cond,EndOfPrdvPnvrs_cond,
+                                                  EndOfPrdvPnvrsP_cond,lower_extrap=True)
         else:
-            EndOfPrdvPnvrsFunc_cond = LinearInterp(self.aNrm_cond,EndOfPrdvPnvrs_cond,lower_extrap=True)            
-        return MargValueFunc(EndOfPrdvPnvrsFunc_cond,self.CRRA) # "recurve" the interpolated marginal value function
+            EndOfPrdvPnvrsFunc_cond = LinearInterp(self.aNrm_cond,EndOfPrdvPnvrs_cond,
+                                                   lower_extrap=True)            
+        EndofPrdvPfunc_cond = MargValueFunc(EndOfPrdvPnvrsFunc_cond,self.CRRA) # "recurve" the interpolated marginal value function
+        return EndofPrdvPfunc_cond
             
     def calcEndOfPrdvP(self):
         '''
@@ -1686,19 +1726,25 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         none
         '''
         # Upper bound on MPC at lower m-bound
-        WorstIncPrb_array = self.BoroCnstDependency*np.tile(np.reshape(self.WorstIncPrbAll,(1,self.StateCount)),(self.StateCount,1))
-        temp_array = self.MrkvArray*WorstIncPrb_array
+        WorstIncPrb_array = self.BoroCnstDependency*np.tile(np.reshape(self.WorstIncPrbAll,
+                            (1,self.StateCount)),(self.StateCount,1))
+        temp_array        = self.MrkvArray*WorstIncPrb_array
         WorstIncPrbNow    = np.sum(temp_array,axis=1) # Probability of getting the "worst" income shock and transition from each current state
-        ExMPCmaxNext      = (np.dot(temp_array,self.Rfree_list**(1.0-self.CRRA)*self.solution_next.MPCmax**(-self.CRRA))/WorstIncPrbNow)**(-1.0/self.CRRA)
-        self.MPCmaxNow    = 1.0/(1.0 + ((self.DiscFacEff*WorstIncPrbNow)**(1.0/self.CRRA))/ExMPCmaxNext)
+        ExMPCmaxNext      = (np.dot(temp_array,self.Rfree_list**(1.0-self.CRRA)*
+                            self.solution_next.MPCmax**(-self.CRRA))/WorstIncPrbNow)**\
+                            (-1.0/self.CRRA)
+        self.MPCmaxNow    = 1.0/(1.0 + ((self.DiscFacEff*WorstIncPrbNow)**
+                            (1.0/self.CRRA))/ExMPCmaxNext)
         self.MPCmaxEff    = self.MPCmaxNow
         self.MPCmaxEff[self.BoroCnstNat_list < self.mNrmMin_list] = 1.0
         # State-conditional PDV of human wealth
         hNrmPlusIncNext   = self.ExIncNext + self.solution_next.hNrm
-        self.hNrmNow      = np.dot(self.MrkvArray,(self.PermGroFac_list/self.Rfree_list)*hNrmPlusIncNext)
+        self.hNrmNow      = np.dot(self.MrkvArray,(self.PermGroFac_list/self.Rfree_list)*
+                            hNrmPlusIncNext)
         # Lower bound on MPC as m gets arbitrarily large
-        temp = (self.DiscFacEff*np.dot(self.MrkvArray,self.solution_next.MPCmin**(-self.CRRA)*self.Rfree_list**(1.0-self.CRRA)))**(1.0/self.CRRA)
-        self.MPCminNow = 1.0/(1.0 + temp)
+        temp              = (self.DiscFacEff*np.dot(self.MrkvArray,self.solution_next.MPCmin**
+                            (-self.CRRA)*self.Rfree_list**(1.0-self.CRRA)))**(1.0/self.CRRA)
+        self.MPCminNow    = 1.0/(1.0 + temp)
 
     def makeSolution(self,cNrm,mNrm):
         '''
@@ -1745,13 +1791,15 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
                 self.MPC_temp_j  = self.MPC_temp[i,:]
                 
             # Construct the consumption function by combining the constrained and unconstrained portions
-            self.cFuncNowCnst = LinearInterp([self.mNrmMin_list[i], self.mNrmMin_list[i]+1.0],[0.0,1.0])
-            cFuncNowUnc = interpfunc(mNrm[i,:],cNrm[i,:])
-            cFuncNow = LowerEnvelope(cFuncNowUnc,self.cFuncNowCnst)
+            self.cFuncNowCnst = LinearInterp([self.mNrmMin_list[i], self.mNrmMin_list[i]+1.0],
+                                             [0.0,1.0])
+            cFuncNowUnc       = interpfunc(mNrm[i,:],cNrm[i,:])
+            cFuncNow          = LowerEnvelope(cFuncNowUnc,self.cFuncNowCnst)
 
             # Make the marginal value function and pack up the current-state-conditional solution
-            vPfuncNow = MargValueFunc(cFuncNow,self.CRRA)
-            solution_cond = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow)
+            vPfuncNow     = MargValueFunc(cFuncNow,self.CRRA)
+            solution_cond = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, 
+                                             mNrmMin=self.mNrmMinNow)
             if self.CubicBool: # Add the state-conditional marginal marginal value function (if desired)    
                 solution_cond = self.addvPPfunc(solution_cond)
 
@@ -1761,7 +1809,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         # Add the lower bounds of market resources, MPC limits, human resources,
         # and the value functions to the overall solution
         solution.mNrmMin = self.mNrmMin_list
-        solution = self.addMPCandHumanWealth(solution)
+        solution         = self.addMPCandHumanWealth(solution)
         if self.vFuncBool:
             vFuncNow = self.makevFunc(solution)
             solution.vFunc = vFuncNow
@@ -1784,7 +1832,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
                 
         Returns
         -------
-        none
+        cFuncUnc: an instance of HARKinterpolation.LinearInterp
         '''
         cFuncUnc = LinearInterp(mNrm,cNrm,self.MPCminNow_j*self.hNrmNow_j,self.MPCminNow_j)
         return cFuncUnc
@@ -1804,9 +1852,10 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
                 
         Returns
         -------
-        none
+        cFuncUnc: an instance of HARKinterpolation.CubicInterp
         '''
-        cFuncUnc = CubicInterp(mNrm,cNrm,self.MPC_temp_j,self.MPCminNow_j*self.hNrmNow_j,self.MPCminNow_j)
+        cFuncUnc = CubicInterp(mNrm,cNrm,self.MPC_temp_j,self.MPCminNow_j*self.hNrmNow_j,
+                               self.MPCminNow_j)
         return cFuncUnc
         
     def makevFunc(self,solution):
@@ -1863,20 +1912,20 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         return vFuncNow
 
 
-def solveConsumptionSavingMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+def solveConsumptionSavingMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
+                                 MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
     '''
     Solves a single period consumption-saving problem with risky income and
     stochastic transitions between discrete states, in a Markov fashion.  Has
-    identical inputs as solveConsumptionSavingENDG  a discrete Markovtransition
-    rule MrkvArray.  Markov states can differ in their interest factor, permanent
-    growth factor, and income distribution, so the inputs Rfree, PermGroFac, and
-    IncomeDstn are arrays or lists specifying those values in each (succeeding)
-    Markov state.
+    identical inputs as solveConsumptionSavingENDG, except for a discrete 
+    Markov transitionrule MrkvArray.  Markov states can differ in their interest 
+    factor, permanent growth factor, and income distribution, so the inputs Rfree, PermGroFac, and
+    IncomeDstn are arrays or lists specifying those values in each (succeeding) Markov state.
     
     Parameters
     ----------
     solution_next : ConsumerSolution
-        The solution to the succeeding one period problem.
+        The solution to next period's one period problem.
     IncomeDstn_list : [[np.array]]
         A length N list of income distributions in each succeeding Markov
         state.  Each income distribution contains three arrays of floats,
@@ -1928,8 +1977,9 @@ def solveConsumptionSavingMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rf
         Markov state.  E.g. solution.cFunc[0] is the consumption function
         when in the i=0 Markov state this period.
     '''                                       
-    solver = ConsumptionSavingSolverMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,MrkvArray,BoroCnstArt,aXtraGrid,
-                                               vFuncBool,CubicBool)              
+    solver = ConsumptionSavingSolverMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
+                                           PermGroFac,MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,
+                                           CubicBool)              
     solution_now = solver.solve()
     return solution_now             
           
@@ -1971,15 +2021,15 @@ class ConsumerType(AgentType):
         
         Returns
         -------
-        New instance of ConsumerType.
+        None
         '''       
         # Initialize a basic AgentType
         AgentType.__init__(self,solution_terminal=deepcopy(ConsumerType.solution_terminal_),
                            cycles=cycles,time_flow=time_flow,pseudo_terminal=False,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.time_vary    = deepcopy(ConsumerType.time_vary_)
-        self.time_inv     = deepcopy(ConsumerType.time_inv_)
+        self.time_vary      = deepcopy(ConsumerType.time_vary_)
+        self.time_inv       = deepcopy(ConsumerType.time_inv_)
         self.solveOnePeriod = consumptionSavingSolverENDG # solver can be changed depending on model
         self.update() # make income distributions, an assets grid, and update the terminal period solution
         self.a_init = np.zeros(self.Nagents) # initialize assets for simulation
@@ -2433,6 +2483,7 @@ class ConsumerType(AgentType):
         MPCmin : float
             Lower bound on the marginal propensity to consume as m --> infty.
         '''
+        assert False, 'calcBoundingValues IS BROKEN AND NEEDS FIXING'
         if hasattr(self,'MrkvArray'):
             StateCount = self.IncomeDstn[0].size
             ExIncNext = np.zeros(StateCount) + np.nan
@@ -2480,7 +2531,7 @@ def constructLognormalIncomeProcessUnemployment(parameters):
     
     Note 2: All parameters are passed as attributes of the input parameters.
 
-    Parameters
+    Parameters (passed as attributes of the input parameters)
     ----------
     PermShkStd : [float]
         List of standard deviations in log permanent income uncertainty during
@@ -2527,14 +2578,15 @@ def constructLognormalIncomeProcessUnemployment(parameters):
     UnempPrbRet   = parameters.UnempPrbRet        
     IncUnempRet   = parameters.IncUnempRet
     
-    IncomeDstn = [] # Discrete approximations to income process in each period
+    IncomeDstn    = [] # Discrete approximations to income process in each period
 
     # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
     # in normal times; value 0.0 in "unemployment" times with small prob.
     if T_retire > 0:
         if UnempPrbRet > 0:
             PermShkValsRet  = np.array([1.0, 1.0])    # Permanent income is deterministic in retirement (2 states for temp income shocks)
-            TranShkValsRet  = np.array([IncUnempRet, (1.0-UnempPrbRet*IncUnempRet)/(1.0-UnempPrbRet)])
+            TranShkValsRet  = np.array([IncUnempRet, 
+                                        (1.0-UnempPrbRet*IncUnempRet)/(1.0-UnempPrbRet)])
             ShkPrbsRet      = np.array([UnempPrbRet, 1.0-UnempPrbRet])
         else:
             PermShkValsRet  = np.array([1.0])
@@ -2662,7 +2714,7 @@ if __name__ == '__main__':
 
 ####################################################################################################    
     
-#    # Make and solve a finite consumer type
+    # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)
     LifecycleType.solveOnePeriod = consumptionSavingSolverENDG
     
@@ -2734,15 +2786,18 @@ if __name__ == '__main__':
         start_time = clock()
         PerfectForesightType.solve()
         end_time = clock()
-        print('Solving a perfect foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
+        print('Solving a perfect foresight consumer took ' + mystr(end_time-start_time) + 
+              ' seconds.')
         PerfectForesightType.unpack_cFunc()
         PerfectForesightType.timeFwd()
         
         print('Consumption functions for perfect foresight vs risky income:')            
-        plotFuncs([PerfectForesightType.cFunc[0],InfiniteType.cFunc[0]],InfiniteType.solution[0].mNrmMin,100)
+        plotFuncs([PerfectForesightType.cFunc[0],InfiniteType.cFunc[0]],
+                  InfiniteType.solution[0].mNrmMin,100)
         if InfiniteType.vFuncBool:
             print('Value functions for perfect foresight vs risky income:')
-            plotFuncs([PerfectForesightType.solution[0].vFunc,InfiniteType.solution[0].vFunc],InfiniteType.solution[0].mNrmMin+0.5,10)
+            plotFuncs([PerfectForesightType.solution[0].vFunc,InfiniteType.solution[0].vFunc],
+                      InfiniteType.solution[0].mNrmMin+0.5,10)
             
     
 ####################################################################################################    
@@ -2753,7 +2808,8 @@ if __name__ == '__main__':
 
     KinkyType.time_inv.remove('Rfree')
     KinkyType.time_inv += ['Rboro','Rsave']
-    KinkyType(Rboro = 1.2, Rsave = 1.03, BoroCnstArt = None, aXtraCount = 48, cycles=0, CubicBool = False)
+    KinkyType(Rboro = 1.2, Rsave = 1.03, BoroCnstArt = None, aXtraCount = 48, cycles=0, 
+              CubicBool = False)
 
     KinkyType.solveOnePeriod = consumptionSavingSolverKinkedR
     KinkyType.updateAssetsGrid()
@@ -2821,10 +2877,14 @@ if __name__ == '__main__':
         p_unemploy_good = p_reemploy*urate_good/(1-urate_good)
         p_unemploy_bad = p_reemploy*urate_bad/(1-urate_bad)
         boom_prob = 1.0/recession_length
-        MrkvArray = np.array([[(1-p_unemploy_good)*(1-bust_prob),p_unemploy_good*(1-bust_prob),(1-p_unemploy_good)*bust_prob,p_unemploy_good*bust_prob],
-                                      [p_reemploy*(1-bust_prob),(1-p_reemploy)*(1-bust_prob),p_reemploy*bust_prob,(1-p_reemploy)*bust_prob],
-                                      [(1-p_unemploy_bad)*boom_prob,p_unemploy_bad*boom_prob,(1-p_unemploy_bad)*(1-boom_prob),p_unemploy_bad*(1-boom_prob)],
-                                      [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
+        MrkvArray = np.array([[(1-p_unemploy_good)*(1-bust_prob),p_unemploy_good*(1-bust_prob),
+                               (1-p_unemploy_good)*bust_prob,p_unemploy_good*bust_prob],
+                              [p_reemploy*(1-bust_prob),(1-p_reemploy)*(1-bust_prob),
+                               p_reemploy*bust_prob,(1-p_reemploy)*bust_prob],
+                              [(1-p_unemploy_bad)*boom_prob,p_unemploy_bad*boom_prob,
+                               (1-p_unemploy_bad)*(1-boom_prob),p_unemploy_bad*(1-boom_prob)],
+                              [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,
+                               p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
         
         MarkovType = deepcopy(InfiniteType)
         xi_dist = approxMeanOneLognormal(MarkovType.TranShkCount, 0.1)
@@ -2844,7 +2904,8 @@ if __name__ == '__main__':
         MarkovType.Rfree = np.array(4*[MarkovType.Rfree])
         MarkovType.PermGroFac = [np.array(4*MarkovType.PermGroFac)]
         
-        MarkovType.IncomeDstn = [[employed_income_dist,unemployed_income_dist,employed_income_dist,unemployed_income_dist]]
+        MarkovType.IncomeDstn = [[employed_income_dist,unemployed_income_dist,employed_income_dist,
+                                  unemployed_income_dist]]
         MarkovType.MrkvArray = MrkvArray
         MarkovType.time_inv.append('MrkvArray')
         MarkovType.solveOnePeriod = solveConsumptionSavingMarkov
