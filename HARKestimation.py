@@ -48,7 +48,9 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwar
                             #   2 : Maximum number of iterations reached.
     # Check that optimization succeeded:
     if warnflag != 0:
-        warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) + ', optiter=' + str(optiter) +', funcalls=' + str(funcalls) +', warnflag=' + str(warnflag))
+        warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) + 
+                      ', optiter=' + str(optiter) +', funcalls=' + str(funcalls) +
+                      ', warnflag=' + str(warnflag))
 
     # Display and return the results:
     if verbose:

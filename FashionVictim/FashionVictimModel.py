@@ -46,7 +46,7 @@ class FashionSolution(Solution):
         self.VfuncPunk = VfuncPunk
         self.switchFuncJock = switchFuncJock
         self.switchFuncPunk = switchFuncPunk
-        self.convergence_criteria = ['VfuncJock','VfuncPunk']
+        self.distance_criteria = ['VfuncJock','VfuncPunk']
         
         
 class FashionEvoFunc(Solution):
@@ -72,10 +72,10 @@ class FashionEvoFunc(Solution):
         -------
         new instance of FashionEvoFunc
         '''
-        self.pNextIntercept = pNextIntercept
-        self.pNextSlope = pNextSlope
-        self.pNextWidth = pNextWidth
-        self.convergence_criteria = ['pNextSlope','pNextWidth','pNextIntercept']
+        self.pNextIntercept    = pNextIntercept
+        self.pNextSlope        = pNextSlope
+        self.pNextWidth        = pNextWidth
+        self.distance_criteria = ['pNextSlope','pNextWidth','pNextIntercept']
         
         
 class FashionMarketInfo():

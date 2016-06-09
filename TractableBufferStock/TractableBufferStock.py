@@ -76,7 +76,7 @@ class TractableConsumerSolution(Solution):
         self.MPC_list = MPC_list
         self.cFunc_U = cFunc_U
         self.cFunc = cFunc
-        self.convergence_criteria = ['PointCount']
+        self.distance_criteria = ['PointCount']
         # The distance between two solutions is the difference in the number of
         # stable arm points in each.  This is a very crude measure of distance
         # that captures the notion that the process is over when no points are added.

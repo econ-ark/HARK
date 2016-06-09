@@ -63,7 +63,7 @@ class HARKobject():
     def distance(self,other):
         '''
         A generic distance method, which requires the existence of an attribute
-        called convergence_criteria, giving a list of strings naming the attributes
+        called distance_criteria, giving a list of strings naming the attributes
         to be considered by the distance metric.
         
         Parameters
@@ -78,7 +78,7 @@ class HARKobject():
             distance" metric.
         '''
         distance_list = [0.0]
-        for attr_name in self.convergence_criteria:
+        for attr_name in self.distance_criteria:
             obj_A = eval('self.' + attr_name)
             obj_B = eval('other.' + attr_name)
             distance_list.append(distanceMetric(obj_A,obj_B))

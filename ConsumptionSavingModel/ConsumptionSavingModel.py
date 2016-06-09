@@ -92,7 +92,7 @@ class ConsumerSolution(Solution):
         self.hNrm         = hNrm
         self.MPCmin       = MPCmin
         self.MPCmax       = MPCmax
-        self.convergence_criteria = ['cFunc']
+        self.distance_criteria = ['cFunc']
 
     def appendSolution(self,new_solution):
         '''

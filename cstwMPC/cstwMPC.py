@@ -11,7 +11,8 @@ sys.path.insert(0,'../ConsumptionSavingModel')
 import numpy as np
 from copy import copy, deepcopy
 from time import time
-from HARKutilities import approxLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, getPercentiles, getLorenzShares, calcSubpopAvg
+from HARKutilities import approxLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, \
+                          getPercentiles, getLorenzShares, calcSubpopAvg
 from HARKsimulation import drawDiscrete, drawMeanOneLognormal, drawBernoulli
 from HARKcore import AgentType, Market, HARKobject
 from HARKparallel import multiThreadCommandsFake
@@ -48,7 +49,8 @@ class cstwMPCagent(Model.ConsumerType):
         new instance of cstwMPCagent
         '''
         # Initialize a basic AgentType
-        AgentType.__init__(self,solution_terminal=deepcopy(Model.ConsumerType.solution_terminal_),time_flow=time_flow,pseudo_terminal=False,**kwds)
+        AgentType.__init__(self,solution_terminal=deepcopy(Model.ConsumerType.solution_terminal_),
+                           time_flow=time_flow,pseudo_terminal=False,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(Model.ConsumerType.time_vary_)
@@ -120,7 +122,8 @@ class cstwMPCagent(Model.ConsumerType):
             self.IncomeDstn = Model.applyFlatIncomeTax(self.IncomeDstn,
                                                  tax_rate=self.tax_rate,
                                                  T_retire=self.T_retire,
-                                                 unemployed_indices=range(0,(self.TranShkCount+1)*self.PermShkCount,self.TranShkCount+1))          
+                                                 unemployed_indices=range(0,(self.TranShkCount+1)*
+                                                 self.PermShkCount,self.TranShkCount+1))          
         self.makeIncShkHist()
         if not orig_flow:
             self.timeRev()
@@ -407,9 +410,9 @@ class CSTWaggVars():
         -------
         new instance of CSTWaggVars
         '''
-        self.KtoLnow  = KtoLnow
-        self.RfreeNow = RfreeNow
-        self.wRteNow  = wRteNow
+        self.KtoLnow       = KtoLnow
+        self.RfreeNow      = RfreeNow
+        self.wRteNow       = wRteNow
         self.PermShkAggNow = PermShkAggNow
         self.TranShkAggNow = TranShkAggNow
         
@@ -434,9 +437,9 @@ class CapitalEvoRule(HARKobject):
         -------
         new instance of CapitalEvoRule
         '''
-        self.intercept = intercept
-        self.slope = slope
-        self.convergence_criteria = ['slope','intercept']
+        self.intercept         = intercept
+        self.slope             = slope
+        self.distance_criteria = ['slope','intercept']
         
     def __call__(self,kNow):
         '''
@@ -474,7 +477,7 @@ class CSTWdynamicRule(HARKobject):
         new instance of CSTWdynamicRule
         '''
         self.kNextFunc = kNextFunc
-        self.convergence_criteria = ['kNextFunc']
+        self.distance_criteria = ['kNextFunc']
         
         
 def calcCapitalEvoRule(KtoLnow):
@@ -643,7 +646,8 @@ def simulateKYratioDifference(DiscFac,nabla,N,type_list,weights,total_output,tar
     DiscFac_list = approxUniform(DiscFac,nabla,N)
     assignBetaDistribution(type_list,DiscFac_list)
     multiThreadCommandsFake(type_list,beta_point_commands)
-    my_diff = calculateKYratioDifference(np.vstack((this_type.W_history for this_type in type_list)),np.tile(weights/float(N),N),total_output,target)
+    my_diff = calculateKYratioDifference(np.vstack((this_type.W_history for this_type in type_list)),
+                                         np.tile(weights/float(N),N),total_output,target)
     return my_diff
 
 
@@ -893,7 +897,9 @@ def calcKappaMean(DiscFac,nabla):
     assignBetaDistribution(est_type_list,DiscFac_list)
     multiThreadCommandsFake(est_type_list,beta_point_commands)
     
-    kappa_all = calcWeightedAvg(np.vstack((this_type.kappa_history for this_type in est_type_list)),np.tile(Params.age_weight_all/float(Params.pref_type_count),Params.pref_type_count))
+    kappa_all = calcWeightedAvg(np.vstack((this_type.kappa_history for this_type in est_type_list)),
+                                np.tile(Params.age_weight_all/float(Params.pref_type_count),
+                                        Params.pref_type_count))
     return kappa_all
     
     

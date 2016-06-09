@@ -565,7 +565,7 @@ class CubicInterp(HARKinterpolator1D):
         self.y_list = np.asarray(y_list)
         self.dydx_list = np.asarray(dydx_list)
         self.n = len(x_list)
-        self.convergence_criteria = ['x_list','y_list','dydx_list']
+        self.distance_criteria = ['x_list','y_list','dydx_list']
         
         # Define lower extrapolation as linear function (or just NaN)
         if lower_extrap:
@@ -755,7 +755,7 @@ class LinearInterp(HARKinterpolator1D):
         self.y_list = y_list
         self.function = UnivariateSpline(x_list,y_list,k=1,s=0)
         self.lower_extrap = lower_extrap
-        self.convergence_criteria = ['x_list','y_list']
+        self.distance_criteria = ['x_list','y_list']
         
         # Make a decay extrapolation
         if intercept_limit is not None and slope_limit is not None:
@@ -857,7 +857,7 @@ class BilinearInterp(HARKinterpolator2D):
             ySearchFunc = np.searchsorted
         self.xSearchFunc = xSearchFunc
         self.ySearchFunc = ySearchFunc
-        self.convergence_criteria = ['x_list','y_list','f_values']
+        self.distance_criteria = ['x_list','y_list','f_values']
         
     def _evaluate(self,x,y):
         '''
@@ -979,7 +979,7 @@ class TrilinearInterp(HARKinterpolator3D):
         self.xSearchFunc = xSearchFunc
         self.ySearchFunc = ySearchFunc
         self.zSearchFunc = zSearchFunc
-        self.convergence_criteria = ['f_values','x_list','y_list','z_list']
+        self.distance_criteria = ['f_values','x_list','y_list','z_list']
         
     def _evaluate(self,x,y,z):
         '''
@@ -1170,7 +1170,7 @@ class QuadlinearInterp(HARKinterpolator4D):
         self.xSearchFunc = xSearchFunc
         self.ySearchFunc = ySearchFunc
         self.zSearchFunc = zSearchFunc
-        self.convergence_criteria = ['f_values','w_list','x_list','y_list','z_list']
+        self.distance_criteria = ['f_values','w_list','x_list','y_list','z_list']
         
     def _evaluate(self,w,x,y,z):
         '''
@@ -1447,7 +1447,7 @@ class LowerEnvelope(HARKinterpolator1D):
         for function in functions:
             self.functions.append(function)
         self.funcCount = len(self.functions)
-        self.convergence_criteria = ['functions']
+        self.distance_criteria = ['functions']
 
     def _evaluate(self,x):
         '''
@@ -1516,7 +1516,7 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
         self.xInterpolators = xInterpolators
         self.y_list = y_values
         self.y_n = y_values.size
-        self.convergence_criteria = ['xInterpolators','y_list']
+        self.distance_criteria = ['xInterpolators','y_list']
         
     def _evaluate(self,x,y):
         '''
@@ -1616,7 +1616,7 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
         self.y_n = y_values.size
         self.z_list = z_values
         self.z_n = z_values.size
-        self.convergence_criteria = ['xInterpolators','y_list','z_list']
+        self.distance_criteria = ['xInterpolators','y_list','z_list']
         
     def _evaluate(self,x,y,z):
         '''
@@ -1783,7 +1783,7 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
         self.y_n = y_values.size
         self.z_list = z_values
         self.z_n = z_values.size
-        self.convergence_criteria = ['wInterpolators','x_list','y_list','z_list']
+        self.distance_criteria = ['wInterpolators','x_list','y_list','z_list']
 
     def _evaluate(self,w,x,y,z):
         '''
@@ -2064,7 +2064,7 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
         self.xyInterpolators = xyInterpolators
         self.z_list = z_values
         self.z_n = z_values.size
-        self.convergence_criteria = ['xyInterpolators','z_list']
+        self.distance_criteria = ['xyInterpolators','z_list']
         
     def _evaluate(self,x,y,z):
         '''
@@ -2190,7 +2190,7 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
         self.y_n = y_values.size
         self.z_list = z_values
         self.z_n = z_values.size
-        self.convergence_criteria = ['wxInterpolators','y_list','z_list']
+        self.distance_criteria = ['wxInterpolators','y_list','z_list']
         
     def _evaluate(self,w,x,y,z):
         '''
@@ -2398,7 +2398,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         self.x_n = my_shape[0]
         self.y_n = my_shape[1]
         self.updatePolarity()
-        self.convergence_criteria = ['f_values','x_values','y_values']
+        self.distance_criteria = ['f_values','x_values','y_values']
         
     def updatePolarity(self):
         '''
