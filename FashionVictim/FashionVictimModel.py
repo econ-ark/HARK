@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0,'../')
 from HARKcore import AgentType, Solution, NullFunc
 from HARKinterpolation import LinearInterp
-from HARKutilities import approxUniform, plotFunc
+from HARKutilities import approxUniform, plotFuncs
 import numpy as np
 import scipy.stats as stats
 import FashionVictimParams as Params
@@ -411,7 +411,7 @@ if __name__ == '__main__':
     # Make a test case and solve the micro model
     TestType = FashionVictimType(**Params.default_params)
     print('Utility function:')
-    plotFunc(TestType.conformUtilityFunc,0,1)
+    plotFuncs(TestType.conformUtilityFunc,0,1)
     
     t_start = clock()
     TestType.solve()
@@ -419,13 +419,13 @@ if __name__ == '__main__':
     print('Solving a fashion victim micro model took ' + mystr(t_end-t_start) + ' seconds.')
     
     print('Jock value function:')
-    plotFunc(TestType.VfuncJock,0,1)
+    plotFuncs(TestType.VfuncJock,0,1)
     print('Punk value function:')
-    plotFunc(TestType.VfuncPunk,0,1)
+    plotFuncs(TestType.VfuncPunk,0,1)
     print('Jock switch probability:')
-    plotFunc(TestType.switchFuncJock,0,1)
+    plotFuncs(TestType.switchFuncJock,0,1)
     print('Punk switch probability:')
-    plotFunc(TestType.switchFuncPunk,0,1)
+    plotFuncs(TestType.switchFuncPunk,0,1)
         
     # Make a list of different types
     AltType = deepcopy(TestType)

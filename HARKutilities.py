@@ -1036,78 +1036,29 @@ def epanechnikovKernel(x,ref_x,h=1.0):
 # ============== Some basic plotting tools  ====================================
 # ==============================================================================
 
-def plotFunc(function,bottom,top,N=1000):
+def plotFuncs(functions,bottom,top,N=1000):
     '''
-    Plots a 1D function over a given range.
+    Plots 1D function(s) over a given range.
     
     Parameters
     ----------
-    function : function
-        A real function to be plotted.
+    functions : [function] or function
+        A single function, or a list of functions, to be plotted.
     bottom : float
         The lower limit of the domain to be plotted.
     top : float
         The upper limit of the domain to be plotted.
     N : int
         Number of points in the domain to evaluate.
-        
     Returns
     -------
     none
     '''
-    step = (top-bottom)/N
-    x    = np.arange(bottom,top,step)
-    y    = function(x)
-    plt.plot(x,y)
-    plt.xlim([bottom, top])
-    plt.show()
-
-
-def plotFuncDer(function,bottom,top,N=1000):
-    '''
-    Plots the first derivative of a 1D function over a given range.
-    
-    Parameters
-    ----------
-    function : function
-        A real function to be plotted.
-    bottom : float
-        The lower limit of the domain to be plotted.
-    top : float
-        The upper limit of the domain to be plotted.
-    N : int
-        Number of points in the domain to evaluate.
-        
-    Returns
-    -------
-    none
-    '''
-    step = (top-bottom)/N
-    x    = np.arange(bottom,top,step)
-    y    = function.derivative(x)
-    plt.plot(x,y)
-    plt.xlim([bottom, top])
-    plt.show()
-
-def plotFuncs(function_list,bottom,top,N=1000):
-    '''
-    Plots a list of 1D function over a given range.
-    
-    Parameters
-    ----------
-    function_list : [function]
-        A list of real functions to be plotted.
-    bottom : float
-        The lower limit of the domain to be plotted.
-    top : float
-        The upper limit of the domain to be plotted.
-    N : int
-        Number of points in the domain to evaluate.
-        
-    Returns
-    -------
-    none
-    '''
+    if type(functions)==list:
+        function_list = functions
+    else:
+        function_list = [functions]
+       
     step = (top-bottom)/N
     for function in function_list:
         x = np.arange(bottom,top,step)
@@ -1115,3 +1066,38 @@ def plotFuncs(function_list,bottom,top,N=1000):
         plt.plot(x,y)
     plt.xlim([bottom, top])
     plt.show()
+
+
+
+def plotFuncsDer(functions,bottom,top,N=1000):
+    '''
+    Plots the first derivative of 1D function(s) over a given range.
+    
+    Parameters
+    ----------
+    function : function
+        A function or list of functions, the derivatives of which are to be plotted.
+    bottom : float
+        The lower limit of the domain to be plotted.
+    top : float
+        The upper limit of the domain to be plotted.
+    N : int
+        Number of points in the domain to evaluate.
+        
+    Returns
+    -------
+    none
+    '''
+    if type(functions)==list:
+        function_list = functions
+    else:
+        function_list = [functions]
+       
+    step = (top-bottom)/N
+    for function in function_list:
+        x = np.arange(bottom,top,step)
+        y = function.derivative(x)
+        plt.plot(x,y)
+    plt.xlim([bottom, top])
+    plt.show()
+

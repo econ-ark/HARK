@@ -2704,7 +2704,7 @@ def constructAssetsGrid(parameters):
     
 if __name__ == '__main__':
     import SetupConsumerParameters as Params
-    from HARKutilities import plotFunc, plotFuncDer, plotFuncs
+    from HARKutilities import plotFuncsDer, plotFuncs
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
 
@@ -2762,12 +2762,12 @@ if __name__ == '__main__':
     
     # Plot the consumption function and MPC for the infinite horizon consumer
     print('Consumption function:')
-    plotFunc(InfiniteType.cFunc[0],InfiniteType.solution[0].mNrmMin,5)    # plot consumption
+    plotFuncs(InfiniteType.cFunc[0],InfiniteType.solution[0].mNrmMin,5)    # plot consumption
     print('Marginal consumption function:')
-    plotFuncDer(InfiniteType.cFunc[0],InfiniteType.solution[0].mNrmMin,5) # plot MPC
+    plotFuncsDer(InfiniteType.cFunc[0],InfiniteType.solution[0].mNrmMin,5) # plot MPC
     if InfiniteType.vFuncBool and not do_perfect_foresight:
         print('Value function:')
-        plotFunc(InfiniteType.solution[0].vFunc,InfiniteType.solution[0].mNrmMin+0.5,10)
+        plotFuncs(InfiniteType.solution[0].vFunc,InfiniteType.solution[0].mNrmMin+0.5,10)
         
     if do_simulation:
         InfiniteType.sim_periods = 120
@@ -2821,7 +2821,7 @@ if __name__ == '__main__':
     KinkyType.unpack_cFunc()
     print('Kinky consumption function:')
     KinkyType.timeFwd()
-    plotFunc(KinkyType.cFunc[0],KinkyType.solution[0].mNrmMin,5)
+    plotFuncs(KinkyType.cFunc[0],KinkyType.solution[0].mNrmMin,5)
 
     if do_simulation:
         KinkyType.sim_periods = 120
