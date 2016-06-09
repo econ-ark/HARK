@@ -4,6 +4,7 @@
 \usepackage{econtexSetup}\usepackage{econtexShortcuts}
 \usepackage{graphicx}
 \usepackage{hyperref}
+\newcommand{\E}{\mathbb{E}}
 
 \begin{document}
 \title{\LARGE A User's Guide for HARK: \\ Heterogeneous Agents Resources and toolKit}
@@ -75,7 +76,25 @@ Python modules (files with the \texttt{.py} extension) in HARK can generally be 
 
 \subsection{Other Resources}
 
-blah blah
+In the incredibly unlikely scenario in which this document does not fill all of the gaps in your knowledge and answer any questions you might have while reading it, here is a collection of potentially helpful other resources.
+
+\begin{itemize}
+
+\item A \href{https://docs.python.org/2.7/tutorial/}{tutorial on Python 2.7}, straight from the source.
+
+\item \href{https://en.wikipedia.org/wiki/Object-oriented_programming}{Wikipedia article on object-oriented programming}, not the subject of an edit war.
+
+\item \href{http://quant-econ.net/}{QuantEcon}, a collection of lectures on quantitative economic modeling from a couple of no-name economists, which in no way influenced HARK.
+
+\item A \href{https://www.atlassian.com/git/tutorials/}{tutorial on git}, the repository management and tracking system used by the HARK project, created by Linus Torvalds.
+
+\item A \href{https://guides.github.com/activities/hello-world/}{tutorial on GitHub}, a website that provides a useful framework for git that makes it significantly more user-friendly, despised by Linus Torvalds.
+
+\item \href{https://en.wikipedia.org/wiki/Linus_Torvalds}{Wikipedia article on Linus Torvalds}, just in case.
+
+\item The \href{http://www.numpy.org/}{homepage for NumPy}, a numerical package extensively used by HARK.
+
+\end{itemize}
 
 \newpage
 
@@ -175,7 +194,76 @@ The base \texttt{AgentType} is sparsely defined, as most ``real'' methods will b
 
 \subsection{Sample Model: Perfect Foresight Consumption-Saving}
 
-blah blah
+To provide a concrete example of how the \texttt{AgentType} class works, consider the very simple case of a perfect foresight consumption-saving model.  The agent has time separably additive CRRA preferences over consumption, discounting future utility at a constant rate; he receives a particular stream of labor income each period, and knows the interest rate on assets that he holds from one period to the next.  His decision about how much to consume in a particular period can be expressed in Bellman form as:
+
+\begin{eqnarray*}
+V_t(M_t) &=& \max_{C_t} \utilFunc(C_t) + \beta \PLives_t \E [V_{t+1}(M_{t+1}) ], \\
+A_t &=& M_t - C_t, \\
+M_{t+1} &=& \Rfree A_t + Y_{t+1}, \\
+Y_{t+1} &=& \Gamma_{t+1} Y_t, \\
+\utilFunc(C) &=& \frac{C^{1-\CRRA}}{1-\CRRA}.
+\end{eqnarray*}
+An agent's problem is thus characterized by values of $\CRRA$, $\Rfree$,  and $\beta$ plus sequences of survival probabilities $\PLives_t$ and income growth factors $\Gamma_t$ for $t=0,\cdots,T$.  This problem has an analytical solution for both the value function and the consumption function.
+
+The \texttt{ConsIndShockModel} module defines the class \texttt{ConsumerType} as a subclass of \texttt{AgentType} and provides solver functions for several variations of a consumption-saving model, including the perfect foresight problem.\footnote{As the name implies, the module is mostly concerned with models with idiosyncratic shocks to income.}  A HARK user could specify and solve a ten period perfect foresight model with the following commands:
+
+\vspace{0.25cm}
+
+\noindent \texttt{MyConsumer = ConsumerType(time\_flow=True, cycles=1)}
+
+\noindent \texttt{MyConsumer.CRRA = 2.7}
+
+\noindent \texttt{MyConsumer.Rfree = 1.03}
+
+\noindent \texttt{MyConsumer.DiscFac = 0.98}
+
+\noindent \texttt{MyConsumer.LivPrb = [0.99,0.98,0.97,0.96,0.95,0.94,0.93,0.92,0.91,0.90]}
+
+\noindent \texttt{MyConsumer.PermGroFac = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]}
+
+\noindent \texttt{MyConsumer.solveOnePeriod = solvePerfForesight}
+
+\noindent \texttt{MyConsumer.solve()}
+
+\vspace{0.25cm}
+
+The first line makes a new instance of \texttt{ConsumerType}, specifying that time is currently ``flowing'' forward\footnote{This is relevant for the intepretation of the time-varying inputs \texttt{LivPrb} and \texttt{PermGroFac}.} and that the sequence of periods happens exactly once.  The next five lines set the time invariant (\texttt{CRRA}, \texttt{Rfree}, \texttt{DiscFac}) and time varying parameters (\texttt{LivPrb}, \texttt{PermGroFac}), and the following one sets the appropriate one period solver.\footnote{By default, a new instance of \texttt{ConsumerType} has a solver for a model with risky income.}  After running the \texttt{solve} method, \texttt{MyConsumer} will have an attribute called \texttt{solution}, which will be a list with eleven \texttt{ConsumerSolution} objects, representing the period-by-period solution to the model.\footnote{The last element of \texttt{solution} represents the terminal period solution, where the agent consumes all available resources because there is no future.}  Each \texttt{ConsumerSolution} has several attributes:
+\begin{itemize}
+\item \texttt{cFunc}: Optimal consumption function for this period as a function of (normalized) market resources $m_t = M_t/Y_t$. Can be called like any other function: \texttt{MyConsumer.solution[0].cFunc(5)} evaluates the consumption function at $m_t = 5$.
+
+\item \texttt{vFunc}: Value function (over market resources $m_t$); can be evaluated like \texttt{cFunc}.
+
+\item \texttt{mNrmMin}: Minimum value of normalized market resources $m_t$ such that \texttt{cFunc} and \texttt{vFunc} are defined. 
+
+\item \texttt{hNrm}: Normalized human wealth-- the PDV of future income (ignoring mortality) divided by current period income $Y_t$.
+
+\item \texttt{MPC}: The constant marginal propensity to consume (linear consumption function).
+
+\end{itemize}
+
+To solve a version of this problem in which the sequence of ten periods happens three times (yielding a \texttt{solution} attribute with thirty-one elements), the user can do:
+
+\vspace{0.25cm}
+
+\noindent \texttt{MyConsumer(cycles = 3)}
+
+\noindent \texttt{MyConsumer.solve()}
+
+\vspace{0.25cm}
+
+To solve an infinite horizon problem in which the agent experiences the same one period problem indefinitely, the user can do:
+
+\vspace{0.25cm}
+
+\noindent \texttt{OtherConsumer = ConsumerType(cycles=0, CRRA=3.5, Rfree=1.02, DiscFac=0.95,}
+
+\texttt{LivPrb = [0.99], PermGroFac = [1.01], solveOnePeriod = solvePerfForesight}
+
+\noindent \texttt{OtherConsumer.solve()}
+
+\vspace{0.25cm}
+
+This instance is specified as being infinite horizon by setting \texttt{cycles=0}.  Note that the time-varying inputs are still specified as (one element) lists, even though they take on the same value in every period; this is because an infinite horizon model might consist of a multi-period sequence repeated indefinitely, rather than just one repeated period.  The \texttt{solution} attribute of \texttt{OtherConsumer} will be a list containing one instance of \texttt{ConsumerSolution}, representing the solution to every period of the model.
 
 \section{Macroeconomics: the Market Class}
 
