@@ -827,7 +827,33 @@ class ConsumerType(ConsumptionSavingModelType):
         self.MrkvNow = self.MrkvHist[self.Shk_idx,:]
         ConsumptionSavingModelType.advanceIncShks(self)
 
-    
+    def updateSolutionTerminal(self):
+        '''
+        Update the terminal period solution.  This method should be run when a
+        new AgentType is created or when CRRA changes.
+        
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        none
+        '''
+        ConsumptionSavingModelType.updateSolutionTerminal(self)
+        
+        # Make replicated terminal period solution: consume all resources, no human wealth, minimum m is 0
+        StateCount = self.MrkvArray.shape[0]
+        self.solution_terminal.cFunc   = StateCount*[self.cFunc_terminal_]
+        self.solution_terminal.vFunc   = StateCount*[self.solution_terminal.vFunc]
+        self.solution_terminal.vPfunc  = StateCount*[self.solution_terminal.vPfunc]
+        self.solution_terminal.vPPfunc = StateCount*[self.solution_terminal.vPPfunc]
+        self.solution_terminal.mNrmMin = np.zeros(StateCount)
+        self.solution_terminal.hRto    = np.zeros(StateCount)
+        self.solution_terminal.MPCmax  = np.ones(StateCount)
+        self.solution_terminal.MPCmin  = np.ones(StateCount)
+        
+
     
 
 if __name__ == '__main__':
@@ -859,7 +885,8 @@ if __name__ == '__main__':
                            (1-p_unemploy_bad)*(1-boom_prob),p_unemploy_bad*(1-boom_prob)],
                           [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,
                            p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
-    
+
+    Params.init_consumer_objects['MrkvArray'] = MrkvArray
     MarkovType = ConsumerType(**Params.init_consumer_objects)
     MarkovType.assignParameters(    LivPrb = [0.98],
                                       DiscFac = [0.96],
@@ -873,20 +900,11 @@ if __name__ == '__main__':
     employed_income_dist   = [np.ones(1),np.ones(1),np.ones(1)]
     unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
     
-    MarkovType.solution_terminal.cFunc   = 4*[MarkovType.solution_terminal.cFunc]
-    MarkovType.solution_terminal.vFunc   = 4*[MarkovType.solution_terminal.vFunc]
-    MarkovType.solution_terminal.vPfunc  = 4*[MarkovType.solution_terminal.vPfunc]
-    MarkovType.solution_terminal.vPPfunc = 4*[MarkovType.solution_terminal.vPPfunc]
-    MarkovType.solution_terminal.mNrmMin = 4*[MarkovType.solution_terminal.mNrmMin]
-    MarkovType.solution_terminal.MPCmax = np.array(4*[1.0])
-    MarkovType.solution_terminal.MPCmin = np.array(4*[1.0])
-    
     MarkovType.Rfree = np.array(4*[MarkovType.Rfree])
     MarkovType.PermGroFac = [np.array(4*MarkovType.PermGroFac)]
 
     MarkovType.IncomeDstn = [[employed_income_dist,unemployed_income_dist,employed_income_dist,
                               unemployed_income_dist]]
-    MarkovType.MrkvArray = MrkvArray
     MarkovType.time_inv.append('MrkvArray')
     MarkovType.solveOnePeriod = solveConsumptionSavingMarkov
     MarkovType.cycles = 0        
