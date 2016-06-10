@@ -192,6 +192,8 @@ These methods are invoked to more conveniently access time-varying objects.  Whe
 
 The base \texttt{AgentType} is sparsely defined, as most ``real'' methods will be application-specific.  One final method bears mentioning: the \texttt{\_\_call\_\_()} method points to \texttt{assignParameters()}, a convenience method for adding or adjusting attributes (inherited from \texttt{HARKobject}).  These methods take any number of keyword arguments, so that code can be parsimoniously written as, for example, \texttt{AgentInstance(attribute1 = value1, attribute2 = value2)}.  Using Python's dictionary capabilities, many attributes can be conveniently set with minimal code.
 
+ADD PARAGRAPH ABOUT PRESOLVE AND POSTSOLVE
+
 \subsection{Sample Model: Perfect Foresight Consumption-Saving}
 
 To provide a concrete example of how the \texttt{AgentType} class works, consider the very simple case of a perfect foresight consumption-saving model.  The agent has time separably additive CRRA preferences over consumption, discounting future utility at a constant rate; he receives a particular stream of labor income each period, and knows the interest rate on assets that he holds from one period to the next.  His decision about how much to consume in a particular period can be expressed in Bellman form as:
@@ -267,19 +269,106 @@ This instance is specified as being infinite horizon by setting \texttt{cycles=0
 
 \section{Macroeconomics: the Market Class}
 
-blah blah
+The modeling framework of \texttt{AgentType} is deemed ``microeconomic'' because it pertains only to the dynamic optimization problem of agents, treating all inputs of the problem as exogenously fixed.  In what we label as ``macroeconomic'' models, some of the inputs for the microeconomic models are endogenously determined by the collective states and controls of agents in the model.  In a dynamic general equilibrium, there must be consistency between agents' beliefs about these macroeconomic objects, their individual behavior, and the realizations of the macroeconomic objects that result from individual choices.
+
+The \texttt{Market} class in \texttt{HARKcore} provides a framework for such macroeconomic models, with a \texttt{solve} method that searches for a dynamic general equilibrium.  An instance of \texttt{Market} includes a list of \texttt{AgentType}s that compose the economy, a methods converting microeconomic outcomes (states, controls, and/or shocks) into macroeconomic outcomes, and a method for converting a history or sequence of macroeconomic outcomes into a new ``dynamic rule'' for agents to believe.  Agents treat the dynamic rule as an input to their microeconomic problem, conditioning their optimal policy functions on it.  A dynamic general equilibrium is a fixed point dynamic rule: when agents act optimally while believing the equilibrium rule, their individual actions generate a macroeconomic history consistent with the equilibrium rule.
 
 \subsection{Down on the Farm}
 
-blah blah
+The \texttt{Market} class uses a farming metaphor to conceptualize the process for generating a history of macroeconomic outcomes in a model.  Suppose all \texttt{AgentTypes} in the economy believe in some dynamic rule (i.e.\ the rule is stored as attributes of each \texttt{AgentType}, which directly or indirectly enters their dynamic optimization problem), and that they have each found the solution to their microeconomic model using their \texttt{solve} method.  Further, the macroeconomic and microeconomic states have been reset to some initial orientation.
+
+To generate a history of macroeconomic outcomes, the \texttt{Market} repeatedly loops over the following steps a set number of times:
+\begin{enumerate}
+\item \texttt{sow}: Distribute the macroeconomic state variables to all \texttt{AgentType}s in the market.
+
+\item \texttt{cultivate}: Each \texttt{AgentType} executes their \texttt{marketAction} method, likely corresponding to simulating one period of the microeconomic model.
+
+\item \texttt{reap}: Microeconomic outcomes are gathered from each \texttt{AgentType} in the market.
+
+\item \texttt{mill}: Data gathered by \texttt{reap} is processed into new macroeconomic states according to some ``aggregate market process''.
+
+\item \texttt{store}: Relevant macroeconomic states are added to a running history of outcomes.
+\end{enumerate}
+This procedure is conducted by the \texttt{makeHistory} method of \texttt{Market} as a subroutine of its \texttt{solve} method.  After making histories of the relevant macroeconomic variables, the market then executes its \texttt{calcDynamics} function with the macroeconomic history as inputs, generating a new dynamic rule to distribute to the \texttt{AgentType}s in the market.  The process then begins again, with the agents solving their updated microeconomic models given the new dynamic rule; the \texttt{solve} loop continues until the ``distance'' between successive dynamic rules is sufficiently small.
 
 \subsection{Attributes of a Market}
 
-blah blah
+To specify a complete instance of \texttt{Market}, the user should give it the following attributes:\footnote{For some purposes, it might be useful to specify a subclass of \texttt{Market}, defining \texttt{millRule} and/or \texttt{calcDynamics} as methods rather than functions.}
+\begin{itemize}
+\item \texttt{agents}: A list of \texttt{AgentType}s, representing the agents in the market.  Each element in \texttt{agents} represents on \textit{ex ante} heterogeneous type; each type could have many \textit{ex post} heterogeneous agents.
+
+\item \texttt{sow\_vars}: A list of strings naming variables that output from the aggregate market process, representing the macroeconomic outcomes.  These variables will be distributed to the texttt{agents} in the \texttt{sow} step.
+
+\item \texttt{reap\_vars}: A list of strings naming variables to be collected from the \texttt{agents} in the \texttt{reap} step, to be used as inputs for the aggregate market process.
+
+\item \texttt{const\_vars}: A list of strings naming variables used by the aggregate market process but \textit{do not} come from \texttt{agents}; they are constant or come from the \texttt{Market} itself.
+
+\item \texttt{track\_vars}: A list of strings naming variables generated by the aggregate market process that should be tracked as a history, to be used when calculating a new dynamic rule.  Usually a subset of \texttt{sow\_vars}.
+
+\item \texttt{dyn\_vars}: A list of strings naming the variables that constitute a dynamic rule.  These will be stored as attributes of the \texttt{agents} whenever a new rule is calculated.
+
+\item \texttt{millRule}: A function for the ``aggregate market process'', transforming microeconomic outcomes into macroeconomic outcomes.  Its inputs are named in \texttt{reap\_vars} and \texttt{const\_vars}, and it returns a single object with attributes named in \texttt{sow\_vars} and/or \texttt{track\_vars}.  Can be defined as a method of a subclass of \texttt{Market}.
+
+\item \texttt{calcDynamics}: A function that generates a new dynamic rule from a history of macroeconomic outcomes.  Its inputs are named in \texttt{track\_vars}, and it returns a single object with attributes named in \texttt{dyn\_vars}.
+
+\item \texttt{act\_T}: The number of times that the \texttt{makeHistory} method should execute the ``farming loop'' when generating a new macroeconomic history.
+
+\item \texttt{tolerance}: The minimum acceptable ``distance'' between successive dynamic rules produced by \texttt{calcDynamics} to constitute a sufficiently converged solution.
+\end{itemize}
+
+Further, each \texttt{AgentType} in \texttt{agents} must have two methods not necessary for microeconomic models; neither takes any input (except \texttt{self}):
+\begin{itemize}
+\item \texttt{marketAction}: The microeconomic process to be run in the \texttt{cultivate} step.  Likely uses the new macroeconomic outcomes named in \texttt{sow\_vars}; should store new values of relevant microeconomic outcomes in the attributes (of \texttt{self}) named in \texttt{reap\_vars}.
+
+\item \texttt{reset}: Reset, initialize, or prepare for a new ``farming loop'' to generate a macroeconomic history.  Might reset its internal random number generator, set initial state varibles, clear personal histories, etc.
+\end{itemize}
+
+When solving macroeconomic models in HARK, the user should also define classes to represent the output from the aggregate market process in \texttt{millRule} and for the model-specific dynamic rule.  The latter should have a \texttt{distance} method to test for solution convergence; if the class inherits from \texttt{HARKobject}, the user need only list relevant attributes in \texttt{distance\_criteria}.
 
 \subsection{Sample Model: FashionVictim}
 
-blah blah
+To illustrate the \texttt{Market} class, consider a simple example in the emerging economic subfield of aesthemetrics, the \texttt{FashionVictimModel}.\footnote{This model is inspired by the paper ``The hipster effect: When anticonformists all look the same'' by Jonathan Touboul.}\footnote{For a more traditional macroeconomic model, the \texttt{cstwMPC} module includes a consumption-saving model with both idiosyncratic and aggregate shocks, in which individual asset holdings are aggregated into total productive capital, endogenizing the (dynamic) interest and wage rate.}  This module defines a subclass of \texttt{AgentType} called \texttt{FashionVictimType}.  Each period, fashion victims make a binary choice of style $s$: to dress as a jock (0) or punk (1).  They receive utility directly from the outfit they wear and as a function of the proportion of the population who \textit{just wore} the same style; they also pay switching costs ($c_{pj}$,$c_{jp}$) if they change styles rather than keep the same as the previous period.  Moreover, they receive an idiosyncratic T1EV preference shock to each style in each period.  Defining the population punk proportion as $p$ and the conformity utility function as $f:[0,1]\rightarrow \mathbb{R}$, the current period utility function is thus:
+\begin{equation*}
+u(s_t;s_{t-1},p_t) = s_t f(p_t) + (1-s_t) f(1-p_t) + s_t U_p + (1-s_t) U_j - c_{pj} s_{t-1}(1-s_t) - c_{jp}(1-s_{t-1})s_t.
+\end{equation*}
+
+Fashion victims are forward looking and discount future utility at a constant rate of $\beta$ per period.  To simplify the analysis, we assume they believe that the population punk proportion in the next period is a linear function of the punk proportion in the current period, subject to a uniformly distributed shock.  No restrictions are put on the function $f$; fashion victims might be conformists who like to dress the same as others ($f'(p) > 0$) or hipsters who like to style themselves in the minority ($f'(p) < 0$).\footnote{In practice, $f$ is parameterized as the beta distribution for convenience.}  A fashion victim's problem can be written in Bellman form as:
+\begin{equation*}
+V(s_{t-1},p_t) = \E \left[ \max_{s_t \in \{0,1\}} u(s_t;s_{t-1},p_t) + \eta_{s_t} + \beta \E \left[ V(s_t,p_{t+1}) \right] \right], 
+\end{equation*}
+\begin{equation*}
+p_{t+1} = a p_t + b + \pi_{t+1}, \qquad \pi_{t+1} \sim U[-w,w], \qquad \eta_0,\eta_1 \sim T1EV.
+\end{equation*}
+
+An instance of \texttt{FashionVictimType} is thus characterized by values of $U_p$, $U_j$, $c_{pj}$, $c_{jp}$ and a function $f$, as well as beliefs about $p_{t+1}$ as a function of $p_t$ (summarized by slope $a$, intercept $b$, and uniform shock width $w$).  Given this information, a \texttt{FashionVictimType}'s infinite horizon microeconomic model can be solved by backward induction in a few lines; the ``one period solver'' is given by \texttt{solveFashion}.  However, while individual agents treat the dynamics of $p_t$ as exogenous, they are in fact endogenously determined by the actions of all the fashion victims in the market.\footnote{The market might consist of agents all of the same type, or might have several types with \textit{ex ante} heterogeneity.}  A dynamic general equilibrium of the ``macroeconomic fashion model'' is thus characterized by a triple of $(a,b,w)$ such that when fashion victims believe in this ``punk evolution rule'' and act optimally, their collective fashion choices exhibit this same rule when the model is simulated.
+
+The search for a dynamic general equilibrium is implemented in HARK's \texttt{Market} class with the following definitions:
+
+\vspace{0.25cm}
+
+\noindent \texttt{sow\_vars      = ['pNow']} (macroeconomic outcome is $p_t$)
+
+\noindent \texttt{reap\_vars     = ['sNow']} (microeconomic outcomes are $s_t$ for many agents)
+
+\noindent \texttt{track\_vars    = ['pNow']} (must track history of $p_t$)
+
+\noindent \texttt{dyn\_vars      = ['pNextSlope','pNextIntercept','pNextWidth']} (dynamic rule $(a,b,w)$)
+
+\noindent \texttt{millRule      = calcPunkProp} (aggregate process: average the style choices of all agents)
+
+\noindent \texttt{calcDynamics  = calcFashionEvoFunc} (calculate new $(a,b,w)$ with autoregression of $p_t$)
+
+\noindent \texttt{act\_T         = 1000} (simulate 1000 periods of the fashion market)
+
+\noindent \texttt{tolerance     = 0.01} (terminate solution when $(a,b,w)$ changes by less than 0.01)
+
+\vspace{0.25cm}
+
+The \texttt{agents} attribute has a list of 22 \texttt{FashionVictimType}s, which vary in their values of $U_p$ and $U_j$, and their $f$ functions.  The \texttt{marketAction} method of \texttt{FashionVictimType} simulates one period of the microeconomic model: each agent receives style preference shocks $\eta_0$ and $\eta_1$, sees the current proportion of punks $p_t$ (sown to them as \texttt{pNow}), and chooses which style to wear, storing it in the binary array \texttt{sNow}, an attribute of \texttt{self}.
+
+The \texttt{millRule} for this market is extremely simple: it flattens the list of binary arrays of individual style choices (gathered in the \texttt{reap} step) and averages them into a new value of $p_t$, to be tracked as a history and \texttt{sow}n back to the \texttt{agents} to begin the cycle again.  Once a history of 1000 values of $p_t$ has been generated with the \texttt{makeHistory} method, we can calculate a new dynamic fashion rule with \texttt{calcFashionEvoFunc} by regressing $p_t$ on $p_{t-1}$, approximating $w$ as twice the standard deviation of prediction errors.\footnote{This is an arbitrary way to calculate $w$, but accuracy is not important in a silly example.}  The new fashion rule is an instance of the simple \text{FashionEvoFunc} class, whose only methods are inherited from \texttt{HARKobject}.
+
+When the \texttt{solve} method is run, the solver successively solves each agent's microeconomic problem, runs the \texttt{makeHistory} method to generate a 1000 period history of $p_t$, and calculates a new punk evolution rule based on this history; the solver terminates when consecutive rules differ by less than 0.01 in any dimension.
 
 \section{Contributing to HARK}
 
