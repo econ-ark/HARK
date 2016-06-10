@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
 """
-Created on Thu Jun 09 13:14:47 2016
-
-@author: lowd
+This module contains classes to solve and simulate consumption-savings models, of the type
+studied in ConsumptionSavingModel.py, with the addition of a discrete, exogenous, stochastic 
+Markov state (e.g. unemployment).
 """
 
 import sys 
 sys.path.insert(0,'../')
-sys.path.insert(0,'../ConsumptionSavingModel')
 
 from copy import copy, deepcopy
 import numpy as np
@@ -30,22 +28,6 @@ utilityP_inv  = CRRAutilityP_inv
 utility_invP  = CRRAutility_invP
 utility_inv   = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -125,7 +107,6 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         self.IncomeDstn_list      = IncomeDstn_list
         self.Rfree_list           = Rfree_list
         self.PermGroFac_list      = PermGroFac_list
-        assert False
         self.StateCount           = len(IncomeDstn_list)
         self.MrkvArray            = MrkvArray
 
@@ -667,42 +648,19 @@ def solveConsumptionSavingMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rf
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+####################################################################################################
+####################################################################################################
 
 
 
 
 class ConsumerType(ConsumptionSavingModelType):
     '''
-    An agent in the consumption-saving model.  His problem is defined by a sequence
+    An agent in the Markov consumption-saving model.  His problem is defined by a sequence
     of income distributions, survival probabilities, discount factors, and permanent
     income growth rates, as well as time invariant values for risk aversion, the
     interest rate, the grid of end-of-period assets, and how he is borrowing constrained.
     '''    
-
-
-
-
 
     def makeIncShkHist(self):
         '''
@@ -826,7 +784,7 @@ class ConsumerType(ConsumptionSavingModelType):
         pPrev          = self.pNow
         TranShkNow     = self.TranShkNow
         PermShkNow     = self.PermShkNow
-        RfreeNow   = self.RfreeNow[self.MrkvNow]
+        RfreeNow       = self.RfreeNow[self.MrkvNow]
         cFuncNow       = self.cFuncNow
         
         # Simulate the period
@@ -853,9 +811,6 @@ class ConsumerType(ConsumptionSavingModelType):
         self.aNow   = aNow
 
 
-
-
-
     def advanceIncShks(self):
         '''
         Advance the permanent and transitory income shocks to the next period of
@@ -870,26 +825,7 @@ class ConsumerType(ConsumptionSavingModelType):
         none
         '''
         self.MrkvNow = self.MrkvHist[self.Shk_idx,:]
-        ConsumptionSavingModelType.advanceIncShks()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        ConsumptionSavingModelType.advanceIncShks(self)
 
     
     
@@ -925,15 +861,21 @@ if __name__ == '__main__':
                            p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
     
     MarkovType = ConsumerType(**Params.init_consumer_objects)
-    xi_dist = approxMeanOneLognormal(MarkovType.TranShkCount, 0.1)
+    MarkovType.assignParameters(    LivPrb = [0.98],
+                                      DiscFac = [0.96],
+                                      PermGroFac = [1.01],
+                                      cycles = 0) # This is what makes the type infinite horizon
+    MarkovType.IncomeDstn = [MarkovType.IncomeDstn[-1]]
+
+    xi_dist  = approxMeanOneLognormal(MarkovType.TranShkCount, 0.1)
     psi_dist = approxMeanOneLognormal(MarkovType.PermShkCount, 0.1)
-    employed_income_dist = combineIndepDstns(psi_dist, xi_dist)
-    employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]
+    employed_income_dist   = combineIndepDstns(psi_dist, xi_dist)
+    employed_income_dist   = [np.ones(1),np.ones(1),np.ones(1)]
     unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
     
-    MarkovType.solution_terminal.cFunc = 4*[MarkovType.solution_terminal.cFunc]
-    MarkovType.solution_terminal.vFunc = 4*[MarkovType.solution_terminal.vFunc]
-    MarkovType.solution_terminal.vPfunc = 4*[MarkovType.solution_terminal.vPfunc]
+    MarkovType.solution_terminal.cFunc   = 4*[MarkovType.solution_terminal.cFunc]
+    MarkovType.solution_terminal.vFunc   = 4*[MarkovType.solution_terminal.vFunc]
+    MarkovType.solution_terminal.vPfunc  = 4*[MarkovType.solution_terminal.vPfunc]
     MarkovType.solution_terminal.vPPfunc = 4*[MarkovType.solution_terminal.vPPfunc]
     MarkovType.solution_terminal.mNrmMin = 4*[MarkovType.solution_terminal.mNrmMin]
     MarkovType.solution_terminal.MPCmax = np.array(4*[1.0])
@@ -941,32 +883,33 @@ if __name__ == '__main__':
     
     MarkovType.Rfree = np.array(4*[MarkovType.Rfree])
     MarkovType.PermGroFac = [np.array(4*MarkovType.PermGroFac)]
-    
+
     MarkovType.IncomeDstn = [[employed_income_dist,unemployed_income_dist,employed_income_dist,
                               unemployed_income_dist]]
     MarkovType.MrkvArray = MrkvArray
     MarkovType.time_inv.append('MrkvArray')
     MarkovType.solveOnePeriod = solveConsumptionSavingMarkov
     MarkovType.cycles = 0        
-    #MarkovType.vFuncBool = False
+    MarkovType.vFuncBool = False
     
-#    MarkovType.timeFwd()
-#    start_time = clock()
-#    MarkovType.solve()
-#    end_time = clock()
-#    print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
-#    print('Consumption functions for each discrete state:')
-#    plotFuncs(MarkovType.solution[0].cFunc,0,50)
-#    if MarkovType.vFuncBool:
-#        print('Value functions for each discrete state:')
-#        plotFuncs(MarkovType.solution[0].vFunc,5,50)
-#
-#    if do_simulation:
-#        MarkovType.Mrkv_init = np.zeros(MarkovType.Nagents,dtype=int)
-#        MarkovType.makeMrkvHist()
-#        MarkovType.makeIncShkHistMrkv()
-#        MarkovType.initializeSim()
-#        MarkovType.simConsHistory()
+    MarkovType.timeFwd()
+    start_time = clock()
+    MarkovType.solve()
+    end_time = clock()
+    print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    print('Consumption functions for each discrete state:')
+    plotFuncs(MarkovType.solution[0].cFunc,0,50)
+    if MarkovType.vFuncBool:
+        print('Value functions for each discrete state:')
+        plotFuncs(MarkovType.solution[0].vFunc,5,50)
+
+    if do_simulation:
+        MarkovType.sim_periods = 120
+        MarkovType.Mrkv_init = np.zeros(MarkovType.Nagents,dtype=int)
+        MarkovType.makeMrkvHist()
+        MarkovType.makeIncShkHist()
+        MarkovType.initializeSim()
+        MarkovType.simConsHistory()
 
 
 

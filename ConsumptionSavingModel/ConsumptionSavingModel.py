@@ -1,7 +1,7 @@
 '''
 This module contains classes to solve canonical consumption-savings models with CRRA utility.  
 It currently solves four models.
-   1) A very basic one-period "perfect foresight" consumption-savings model with no uncertainty.
+   1) A very basic "perfect foresight" consumption-savings model with no uncertainty.
    2) An infinite-horizon OR lifecycle consumption-savings model with uncertainty over transitory
       and permanent income shocks.
    3) The model described in (2), with an interest rate for debt that differs from the interest
