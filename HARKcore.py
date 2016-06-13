@@ -1,5 +1,6 @@
 '''
-This is the missing description for HARKcore.  We really ought to write it.
+This module contains high-level functions and classes useful for solving a wide variety of 
+economic models.
 '''
 
 from HARKutilities import getArgNames, NullFunc
@@ -73,7 +74,7 @@ class HARKobject():
             
         Returns
         -------
-        distance : float
+        (unnamed) : float
             The distance between this object and another, using the "universal
             distance" metric.
         '''
@@ -166,7 +167,7 @@ class AgentType(HARKobject):
             
         Returns
         -------
-        a new instance of AgentType
+        None
         '''
         self.solution_terminal  = solution_terminal
         self.cycles             = cycles
@@ -295,7 +296,7 @@ class AgentType(HARKobject):
         
         Returns
         -------
-        is_close_enough : boolean
+        (unnamed) : boolean
             True if the solutions are within a tolerable distance of each other.
         '''
         solution_distance = solutionA.distance(solutionB)
@@ -523,7 +524,7 @@ class Market(HARKobject):
             
         Returns
         -------
-        new instance of Market
+        None
     '''
         self.agents      = agents
         self.reap_vars  = reap_vars
@@ -730,7 +731,9 @@ class Market(HARKobject):
         
         Returns
         -------
-        none
+        dynamics : instance
+            The new "aggregate dynamic rule" that agents believe in and act on.
+            Should have attributes named in dyn_vars.  
         '''
         # Make a dictionary of inputs for the dynamics calculator
         history_vars_string = ''

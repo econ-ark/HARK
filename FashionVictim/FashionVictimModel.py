@@ -381,7 +381,7 @@ def calcFashionEvoFunc(pPop):
         
     Returns
     -------
-    FashionEvoFunc_new : FashionEvoFunc
+    (unnamed) : FashionEvoFunc
         A new rule for the evolution of the population punk proportion, based on
         the history in input pPop.
     '''
