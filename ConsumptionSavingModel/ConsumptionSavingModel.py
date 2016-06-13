@@ -21,11 +21,10 @@ from HARKcore import AgentType, Solution, NullFunc
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARKsimulation import drawMeanOneLognormal, drawBernoulli
-from HARKutilities import approxLognormal, approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
+from HARKutilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
                           combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
                           CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
                           CRRAutilityP_invP
-
 
 utility       = CRRAutility
 utilityP      = CRRAutilityP
@@ -1416,8 +1415,8 @@ class ConsumerType(AgentType):
                            cycles=cycles,time_flow=time_flow,pseudo_terminal=False,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.time_vary      = deepcopy(ConsumerType.time_vary_)
-        self.time_inv       = deepcopy(ConsumerType.time_inv_)
+        self.time_vary      = deepcopy(self.time_vary_)
+        self.time_inv       = deepcopy(self.time_inv_)
         self.solveOnePeriod = consumptionSavingSolverENDG # solver can be changed depending on model
         self.update() # make income distributions, an assets grid, and update the terminal period solution
         self.a_init = np.zeros(self.Nagents) # initialize assets for simulation
@@ -1551,9 +1550,9 @@ class ConsumerType(AgentType):
         -------
         none
         '''
-        self.solution_terminal.vFunc   = ValueFunc(self.solution_terminal.cFunc,self.CRRA)
-        self.solution_terminal.vPfunc  = MargValueFunc(self.solution_terminal.cFunc,self.CRRA)
-        self.solution_terminal.vPPfunc = MargMargValueFunc(self.solution_terminal.cFunc,self.CRRA)
+        self.solution_terminal.vFunc   = ValueFunc(self.cFunc_terminal_,self.CRRA)
+        self.solution_terminal.vPfunc  = MargValueFunc(self.cFunc_terminal_,self.CRRA)
+        self.solution_terminal.vPPfunc = MargMargValueFunc(self.cFunc_terminal_,self.CRRA)
         
     def update(self):
         '''
@@ -1613,7 +1612,11 @@ class ConsumerType(AgentType):
         # Initialize the history arrays
         self.aNow     = a_init
         self.pNow     = p_init
-        self.RfreeNow = self.Rfree
+        if hasattr(self,'Rboro'):
+            self.RboroNow = self.Rboro
+            self.RsaveNow = self.Rsave
+        else:
+            self.RfreeNow = self.Rfree
         blank_history = np.zeros((sim_prds,self.Nagents)) + np.nan
         self.pHist    = copy(blank_history)
         self.bHist    = copy(blank_history)
@@ -1674,7 +1677,13 @@ class ConsumerType(AgentType):
         pPrev          = self.pNow
         TranShkNow     = self.TranShkNow
         PermShkNow     = self.PermShkNow
-        RfreeNow   = self.RfreeNow
+        if hasattr(self,'RboroNow'):
+            RboroNow   = self.RboroNow
+            RsaveNow   = self.RsaveNow
+            RfreeNow   = RboroNow*np.ones_like(aPrev)
+            RfreeNow[aPrev > 0] = RsaveNow
+        else:
+            RfreeNow   = self.RfreeNow
         cFuncNow       = self.cFuncNow
         
         # Simulate the period
@@ -1781,6 +1790,9 @@ class ConsumerType(AgentType):
         
         MPCmin = 1.0 - PatFac
         return hNrm, MPCmax, MPCmin
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
 # ==================================================================================
 # = Functions for generating discrete income processes and simulated income shocks =
@@ -1872,10 +1884,10 @@ def constructLognormalIncomeProcessUnemployment(parameters):
             IncomeDstn.append(deepcopy(IncomeDstnRet))
         else:
             # We are in the "working life" periods.
-            TranShkDstn     = approxLognormal(N=TranShkCount, sigma=TranShkStd[t], tail_N=0)
+            TranShkDstn     = approxMeanOneLognormal(N=TranShkCount, sigma=TranShkStd[t], tail_N=0)
             if UnempPrb > 0:
                 TranShkDstn = addDiscreteOutcomeConstantMean(TranShkDstn, p=UnempPrb, x=IncUnemp)
-            PermShkDstn     = approxLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=0)
+            PermShkDstn     = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=0)
             IncomeDstn.append(combineIndepDstns(PermShkDstn,TranShkDstn)) # mix the independent distributions
     return IncomeDstn
     

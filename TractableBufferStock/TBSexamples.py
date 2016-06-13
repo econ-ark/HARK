@@ -9,8 +9,8 @@ sys.path.insert(0,'../ConsumptionSavingModel')
 
 import numpy as np                   # numeric Python
 import TractableBufferStock as Model # tractable buffer stock model
-from HARKutilities import plotFunc, plotFuncs, plotFuncDer # basic plotting tools
-from ConsumptionSavingModel import ConsumerType, solveConsumptionSavingMarkov # An alternative, much longer way to solve the TBS model
+from HARKutilities import plotFuncs # basic plotting tools
+from ConsMarkovModel import MarkovConsumerType # An alternative, much longer way to solve the TBS model
 from time import clock               # timing utility
 
 # Define the model primitives
@@ -35,6 +35,7 @@ plotFuncs([ExampleType.solution[0].cFunc,ExampleType.solution[0].cFunc_U],0,m_up
 
 # Now solve the same model using backward induction rather than the analytic method of TBS.
 # The TBS model is equivalent to a Markov model with two states, one of them absorbing (permanent unemployment).
+MrkvArray = np.array([[1.0-base_primitives['UnempPrb'],base_primitives['UnempPrb']],[0.0,1.0]]) # Define the two state, absorbing unemployment Markov array
 init_consumer_objects = {"CRRA":base_primitives['CRRA'],
                         "Rfree":np.array(2*[base_primitives['Rfree']]), # Interest factor (same in both states)
                         "PermGroFac":[np.array(2*[base_primitives['PermGroFac']/(1.0-base_primitives['UnempPrb'])])], # Unemployment-compensated permanent growth factor
@@ -59,23 +60,14 @@ init_consumer_objects = {"CRRA":base_primitives['CRRA'],
                         'Nagents':1,          # Number of agents in a simulation (irrelevant)
                         'tax_rate':0.0,       # Tax rate on labor income (irrelevant)
                         'vFuncBool':False,    # Whether to calculate the value function
-                        'CubicBool':True      # Whether to use cubic splines (False --> linear splines)
+                        'CubicBool':True,     # Whether to use cubic splines (False --> linear splines)
+                        'MrkvArray':MrkvArray # State transition probabilities
                         }
-MarkovType = ConsumerType(**init_consumer_objects)   # Make a basic consumer type
-MrkvArray = np.array([[1.0-base_primitives['UnempPrb'],base_primitives['UnempPrb']],[0.0,1.0]]) # Define the two state, absorbing unemployment Markov array
+MarkovType = MarkovConsumerType(**init_consumer_objects)   # Make a basic consumer type
 employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]    # Income distribution when employed
 unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)] # Income distribution when permanently unemployed
-# Update the terminal period solution (all objects need to be lists, not single values)
-MarkovType.solution_terminal.cFunc = 2*[MarkovType.solution_terminal.cFunc]
-MarkovType.solution_terminal.vFunc = 2*[MarkovType.solution_terminal.vFunc]
-MarkovType.solution_terminal.vPfunc = 2*[MarkovType.solution_terminal.vPfunc]
-MarkovType.solution_terminal.vPPfunc = 2*[MarkovType.solution_terminal.vPPfunc]
-MarkovType.solution_terminal.mNrmMin = 2*[MarkovType.solution_terminal.mNrmMin]
-MarkovType.solution_terminal.MPCmax = np.array(2*[MarkovType.solution_terminal.MPCmax])
 MarkovType.IncomeDstn = [[employed_income_dist,unemployed_income_dist]]  # set the income distribution in each state
 MarkovType.MrkvArray = MrkvArray
-MarkovType.time_inv.append('MrkvArray')  # add this attribute to the list of time-invariant parameters
-MarkovType.solveOnePeriod = solveConsumptionSavingMarkov # set the correct solver
 MarkovType.cycles = 0
 
 # Solve the "Markov TBS" model
@@ -89,4 +81,4 @@ print('Solving the same model "the long way" took ' + str(t_end-t_start) + ' sec
 plotFuncs(MarkovType.cFunc[0],0,m_upper)
 diffFunc = lambda m : ExampleType.solution[0].cFunc(m) - MarkovType.cFunc[0][0](m)
 print('Difference between the (employed) consumption functions:')
-plotFunc(diffFunc,0,m_upper)
+plotFuncs(diffFunc,0,m_upper)
