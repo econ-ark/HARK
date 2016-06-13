@@ -1366,10 +1366,7 @@ def consumptionSavingSolverKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
     solution = solver.solve()
 
     return solution                                   
-
-
-
-          
+         
 # ============================================================================
 # == A class for representing types of consumer agents (and things they do) ==
 # ============================================================================
@@ -1514,8 +1511,11 @@ class ConsumerType(AgentType):
         '''
         original_time = self.time_flow
         self.timeFwd()
-        IncomeDstn = constructLognormalIncomeProcessUnemployment(self)
+        IncomeDstn, PermShkDstn, TranShkDstn = constructLognormalIncomeProcessUnemployment(self)
         self.IncomeDstn = IncomeDstn
+        if len(IncomeDstn) == 1:
+            self.PermShkDstn = PermShkDstn
+            self.TranShkDstn = TranShkDstn
         if not 'IncomeDstn' in self.time_vary:
             self.time_vary.append('IncomeDstn')
         if not original_time:
@@ -1888,7 +1888,7 @@ def constructLognormalIncomeProcessUnemployment(parameters):
                 TranShkDstn = addDiscreteOutcomeConstantMean(TranShkDstn, p=UnempPrb, x=IncUnemp)
             PermShkDstn     = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=0)
             IncomeDstn.append(combineIndepDstns(PermShkDstn,TranShkDstn)) # mix the independent distributions
-    return IncomeDstn
+    return IncomeDstn, PermShkDstn, TranShkDstn
     
 
 def applyFlatIncomeTax(IncomeDstn,tax_rate,T_retire,unemployed_indices=[],transitory_index=2):

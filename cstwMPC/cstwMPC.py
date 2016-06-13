@@ -13,12 +13,12 @@ from copy import copy, deepcopy
 from time import time
 from HARKutilities import approxLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, \
                           getPercentiles, getLorenzShares, calcSubpopAvg
-from HARKsimulation import drawDiscrete, drawMeanOneLognormal, drawBernoulli
+from HARKsimulation import drawDiscrete, drawMeanOneLognormal
 from HARKcore import AgentType
 from HARKparallel import multiThreadCommandsFake
 import SetupParamsCSTW as Params
 import ConsumptionSavingModel as Model
-from ConsAggShockModel import solveConsumptionSavingAggShocks, CapitalEvoRule, CobbDouglasEconomy
+from ConsAggShockModel import CobbDouglasEconomy, AggShockConsumerType
 from scipy.optimize import golden, brentq
 import matplotlib.pyplot as plt
 import csv
@@ -58,21 +58,6 @@ class cstwMPCagent(Model.ConsumerType):
         self.time_inv.append('DiscFac')
         self.solveOnePeriod = Model.consumptionSavingSolverENDG # this can be swapped for consumptionSavingSolverEXOG or another solver
         self.update()
-        
-    def reset(self):
-        '''
-        Initialize this type for a new simulated history of K/L ratio.
-        
-        Parameters
-        ----------
-        none
-            
-        Returns
-        -------
-        none
-        '''
-        self.initializeSim()
-        self.t_agg_sim = 0
         
     def simulateCSTW(self):
         '''
@@ -150,102 +135,7 @@ class cstwMPCagent(Model.ConsumerType):
         self.PermShkDstn = PermShkDstn
         if not 'IncomeDstn' in self.time_vary:
             self.time_vary.append('IncomeDstn')
-            
-    def simOnePrdAggShks(self):
-        '''
-        Simulate a single period of a consumption-saving model with permanent
-        and transitory income shocks at both the idiosyncratic and aggregate level.
-        
-        Parameters
-        ----------
-        none
-            
-        Returns
-        -------
-        none
-        '''
-        
-        # Unpack objects from self for convenience
-        aPrev          = self.aNow
-        pPrev          = self.pNow
-        TranShkNow     = self.TranShkNow
-        PermShkNow     = self.PermShkNow
-        RfreeNow       = self.RfreeNow
-        cFuncNow       = self.cFuncNow
-        KtoLnow        = self.KtoLnow*np.ones_like(aPrev)
-        
-        # Simulate the period
-        pNow    = pPrev*PermShkNow      # Updated permanent income level
-        ReffNow = RfreeNow/PermShkNow   # "effective" interest factor on normalized assets
-        bNow    = ReffNow*aPrev         # Bank balances before labor income
-        mNow    = bNow + TranShkNow     # Market resources after income
-        cNow    = cFuncNow(mNow,KtoLnow) # Consumption (normalized by permanent income)
-        MPCnow  = cFuncNow.derivativeX(mNow,KtoLnow) # Marginal propensity to consume
-        aNow    = mNow - cNow           # Assets after all actions are accomplished
-        
-        # Store the new state and control variables
-        self.pNow   = pNow
-        self.bNow   = bNow
-        self.mNow   = mNow
-        self.cNow   = cNow
-        self.MPCnow = MPCnow
-        self.aNow   = aNow
-        
-    def simMortality(self):
-        '''
-        Simulates the mortality process, killing off some percentage of agents
-        and replacing them with newborn agents.
-        
-        Parameters
-        ----------
-        none
-            
-        Returns
-        -------
-        none
-        '''
-        if hasattr(self,'DiePrb'):
-            if self.DiePrb > 0:
-                who_dies = drawBernoulli(self.DiePrb,self.Nagents,self.RNG.randint(low=1, high=2**31-1))
-                wealth_all = self.aNow*self.pNow
-                who_lives = np.logical_not(who_dies)
-                wealth_of_dead = np.sum(wealth_all[who_dies])
-                wealth_of_live = np.sum(wealth_all[who_lives])
-                R_actuarial = 1.0 + wealth_of_dead/wealth_of_live
-                self.aNow[who_dies] = 0.0
-                self.pNow[who_dies] = 1.0
-                self.aNow = self.aNow*R_actuarial
-            
-    def marketAction(self):
-        '''
-        In the aggregate shocks model, the "market action" is to simulate one
-        period of receiving income and choosing how much to consume.
-        
-        Parameters
-        ----------
-        none
-            
-        Returns
-        -------
-        none
-        '''
-        # Simulate the period
-        self.advanceIncShks()
-        self.advancecFunc()
-        self.simMortality()
-        self.TranShkNow = self.TranShkNow*self.wRteNow
-        self.PermShkNow = self.PermShkNow*self.PermShkAggNow
-        self.simOnePrdAggShks()
-        
-        # Record the results of the period
-        self.pHist[self.t_agg_sim,:] = self.pNow
-        self.bHist[self.t_agg_sim,:] = self.bNow
-        self.mHist[self.t_agg_sim,:] = self.mNow
-        self.cHist[self.t_agg_sim,:] = self.cNow
-        self.MPChist[self.t_agg_sim,:] = self.MPCnow
-        self.aHist[self.t_agg_sim,:] = self.aNow
-        self.t_agg_sim += 1
-  
+              
 
 def assignBetaDistribution(type_list,DiscFac_list):
     '''
@@ -925,16 +815,13 @@ if __name__ == "__main__":
         nabla_estimate      = 0.0077
         
         # Make a set of consumer types for the FBS aggregate shocks model
-        BaseAggShksType = cstwMPCagent(**Params.init_infinite)
-        BaseAggShksType.tolerance = 0.0001
-        BaseAggShksType.solveOnePeriod = solveConsumptionSavingAggShocks
-        BaseAggShksType.sim_periods = Params.sim_periods_agg_shocks
-        BaseAggShksType.Nagents = Params.Nagents_agg_shocks
+        BaseAggShksType = AggShockConsumerType(**Params.init_agg_shocks)
         agg_shocks_type_list = []
         for j in range(Params.pref_type_count):
             new_type = deepcopy(BaseAggShksType)
             new_type.seed = j
-            new_type.update()
+            new_type.resetRNG()
+            new_type.makeIncShkHist()
             agg_shocks_type_list.append(new_type)
         if Params.do_beta_dist:
             beta_agg = beta_dist_estimate
@@ -959,15 +846,11 @@ if __name__ == "__main__":
             this_type.a_init = agg_shocks_market.KtoYSS*np.ones(this_type.Nagents)
             this_type.p_init = drawMeanOneLognormal(sigma=0.9,N=this_type.Nagents)
             this_type.kGrid  = agg_shocks_market.kSS*scale_grid[2:-1]
-            this_type.kNextFunc = CapitalEvoRule(intercept=Params.intercept_prev,slope=Params.slope_prev)
+            this_type.kNextFunc = agg_shocks_market.kNextFunc
             this_type.Rfunc = agg_shocks_market.Rfunc
             this_type.wFunc = agg_shocks_market.wFunc
             IncomeDstnWithAggShks = combineIndepDstns(this_type.PermShkDstn,this_type.TranShkDstn,agg_shocks_market.PermShkAggDstn,agg_shocks_market.TranShkAggDstn)
             this_type.IncomeDstn = [IncomeDstnWithAggShks]
-            this_type.time_inv += ['kGrid','kNextFunc','Rfunc','wFunc']
-            vPfunc_terminal = lambda m,k : m**(-this_type.CRRA)
-            cFunc_terminal  = lambda m,k : m
-            this_type.solution_terminal = Model.ConsumerSolution(cFunc=cFunc_terminal,vPfunc=vPfunc_terminal)
             this_type.DiePrb = 1.0 - this_type.LivPrb[0]
         
         # Solve the aggregate shocks version of the model

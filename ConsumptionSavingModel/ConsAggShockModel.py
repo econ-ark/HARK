@@ -15,9 +15,9 @@ from HARKinterpolation import LinearInterp, LinearInterpOnInterp1D
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                           CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
                           approxMeanOneLognormal
-from HARKsimulation import drawDiscrete
-from ConsumptionSavingModel import ConsumerSolution
-from HARKcore import HARKobject, Market
+from HARKsimulation import drawDiscrete, drawBernoulli
+from ConsumptionSavingModel import ConsumerSolution, ConsumerType
+from HARKcore import HARKobject, Market, AgentType
 from copy import deepcopy
 
 utility      = CRRAutility
@@ -55,6 +55,162 @@ class MargValueFunc2D():
         
     def __call__(self,m,k):
         return utilityP(self.cFunc(m,k),gam=self.CRRA)
+        
+###############################################################################
+        
+class AggShockConsumerType(ConsumerType):
+    '''
+    A class to represent consumers who face idiosyncratic (transitory and per-
+    manent) shocks to their income and live in an economy that has aggregate
+    (transitory and permanent) shocks to labor productivity.  As the capital-
+    to-labor ratio varies in the economy, so does the wage rate and interest
+    rate.  "Aggregate shock consumers" have beliefs about how the capital ratio
+    evolves over time and take aggregate shocks into account when making their
+    decision about how much to consume.    
+    '''
+    def __init__(self,time_flow=True,**kwds):
+        '''
+        Make a new instance of AggShockConsumerType, an extension of the basic
+        ConsumerType.  Sets appropriate solver and input lists.
+        '''
+        AgentType.__init__(self,solution_terminal=deepcopy(ConsumerType.solution_terminal_),
+                           time_flow=time_flow,pseudo_terminal=False,**kwds)
+
+        # Add consumer-type specific objects, copying to create independent versions
+        self.time_vary = deepcopy(ConsumerType.time_vary_)
+        self.time_inv = deepcopy(ConsumerType.time_inv_)
+        self.time_vary.remove('DiscFac')
+        self.time_inv += ['DiscFac','kGrid','kNextFunc','Rfunc','wFunc']
+        self.solveOnePeriod = solveConsumptionSavingAggShocks
+        self.update()
+        
+    def reset(self):
+        '''
+        Initialize this type for a new simulated history of K/L ratio.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        self.initializeSim()
+        self.t_agg_sim = 0
+        
+    def updateSolutionTerminal(self):
+        '''
+        Updates the terminal period solution for an aggregate shock consumer.
+        Only fills in the consumption function and marginal value function.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        vPfunc_terminal = lambda m,k : m**(-self.CRRA)
+        cFunc_terminal  = lambda m,k : m
+        self.solution_terminal = ConsumerSolution(cFunc=cFunc_terminal,vPfunc=vPfunc_terminal)
+        
+    def simOnePrd(self):
+        '''
+        Simulate a single period of a consumption-saving model with permanent
+        and transitory income shocks at both the idiosyncratic and aggregate level.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''        
+        # Unpack objects from self for convenience
+        aPrev          = self.aNow
+        pPrev          = self.pNow
+        TranShkNow     = self.TranShkNow
+        PermShkNow     = self.PermShkNow
+        RfreeNow       = self.RfreeNow
+        cFuncNow       = self.cFuncNow
+        KtoLnow        = self.KtoLnow*np.ones_like(aPrev)
+        
+        # Simulate the period
+        pNow    = pPrev*PermShkNow      # Updated permanent income level
+        ReffNow = RfreeNow/PermShkNow   # "effective" interest factor on normalized assets
+        bNow    = ReffNow*aPrev         # Bank balances before labor income
+        mNow    = bNow + TranShkNow     # Market resources after income
+        cNow    = cFuncNow(mNow,KtoLnow) # Consumption (normalized by permanent income)
+        MPCnow  = cFuncNow.derivativeX(mNow,KtoLnow) # Marginal propensity to consume
+        aNow    = mNow - cNow           # Assets after all actions are accomplished
+        
+        # Store the new state and control variables
+        self.pNow   = pNow
+        self.bNow   = bNow
+        self.mNow   = mNow
+        self.cNow   = cNow
+        self.MPCnow = MPCnow
+        self.aNow   = aNow
+        
+    def simMortality(self):
+        '''
+        Simulates the mortality process, killing off some percentage of agents
+        and replacing them with newborn agents.
+        
+        Parameters
+        ----------
+        none
+            
+        Returns
+        -------
+        none
+        '''
+        if hasattr(self,'DiePrb'):
+            if self.DiePrb > 0:
+                who_dies = drawBernoulli(self.DiePrb,self.Nagents,self.RNG.randint(low=1, high=2**31-1))
+                wealth_all = self.aNow*self.pNow
+                who_lives = np.logical_not(who_dies)
+                wealth_of_dead = np.sum(wealth_all[who_dies])
+                wealth_of_live = np.sum(wealth_all[who_lives])
+                R_actuarial = 1.0 + wealth_of_dead/wealth_of_live
+                self.aNow[who_dies] = 0.0
+                self.pNow[who_dies] = 1.0
+                self.aNow = self.aNow*R_actuarial
+            
+    def marketAction(self):
+        '''
+        In the aggregate shocks model, the "market action" is to simulate one
+        period of receiving income and choosing how much to consume.
+        
+        Parameters
+        ----------
+        none
+            
+        Returns
+        -------
+        none
+        '''
+        # Simulate the period
+        self.advanceIncShks()
+        self.advancecFunc()
+        self.simMortality()
+        self.TranShkNow = self.TranShkNow*self.wRteNow
+        self.PermShkNow = self.PermShkNow*self.PermShkAggNow
+        self.simOnePrd()
+        
+        # Record the results of the period
+        self.pHist[self.t_agg_sim,:] = self.pNow
+        self.bHist[self.t_agg_sim,:] = self.bNow
+        self.mHist[self.t_agg_sim,:] = self.mNow
+        self.cHist[self.t_agg_sim,:] = self.cNow
+        self.MPChist[self.t_agg_sim,:] = self.MPCnow
+        self.aHist[self.t_agg_sim,:] = self.aNow
+        self.t_agg_sim += 1
+        
+###############################################################################
 
 
 def solveConsumptionSavingAggShocks(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aXtraGrid,kGrid,kNextFunc,Rfunc,wFunc):
@@ -200,10 +356,10 @@ class CobbDouglasEconomy(Market):
         -------
         None
         '''
-        Market.init__init__(self,agents=agents,
+        Market.__init__(self,agents=agents,
                             sow_vars=['KtoLnow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow'],
                             reap_vars=['pNow','aNow'],
-                            track_vars['KtoLnow'],
+                            track_vars=['KtoLnow'],
                             dyn_vars=['kNextFunc'],
                             tolerance=tolerance,
                             act_T=act_T)
@@ -217,6 +373,15 @@ class CobbDouglasEconomy(Market):
         See documentation for calcRandW for more information.
         '''
         return self.calcRandW(pNow,aNow)
+        
+    def calcDynamics(self,KtoLnow):
+        '''
+        Calculates a new dynamic rule for the economy: next period's capital
+        ratio as a function of this period's.  Just calls calcCapitalEvoRule().
+        
+        See documentation for calcCapitalEvoRule for more information.
+        '''
+        return self.calcCapitalEvoRule(KtoLnow)
         
     def update(self):
         '''
@@ -246,6 +411,7 @@ class CobbDouglasEconomy(Market):
         self.TranShkAggDstn = approxMeanOneLognormal(sigma=self.TranShkAggStd,N=self.TranShkAggCount)
         self.PermShkAggDstn = approxMeanOneLognormal(sigma=self.PermShkAggStd,N=self.PermShkAggCount)
         self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn,self.TranShkAggDstn)
+        self.kNextFunc = CapitalEvoRule(self.intercept_prev,self.slope_prev)
         
     def reset(self):
         '''
@@ -375,7 +541,7 @@ class CobbDouglasEconomy(Market):
         # Plot the history of the capital ratio for this run and print the new parameters
         if verbose:
             print('intercept=' + str(intercept) + ', slope=' + str(slope) + ', r-sq=' + str(r_value**2))
-            plt.plot(KtoLnow)
+            plt.plot(KtoLnow[discard_periods:])
             plt.show()
         
         return CapDynamicRule(kNextFunc)
