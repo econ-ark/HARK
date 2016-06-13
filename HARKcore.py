@@ -129,7 +129,8 @@ class AgentType(HARKobject):
     'solveOnePeriod' should appear in exactly one of these lists, depending on
     whether the same solution method is used in all periods of the model.
     '''    
-    def __init__(self,solution_terminal=NullFunc,cycles=1,time_flow=False,pseudo_terminal=True,tolerance=0.000001,seed=0,**kwds):
+    def __init__(self,solution_terminal=NullFunc,cycles=1,time_flow=False,pseudo_terminal=True,
+                 tolerance=0.000001,seed=0,**kwds):
         '''
         Initialize an instance of AgentType by setting attributes.
         
@@ -167,13 +168,13 @@ class AgentType(HARKobject):
         -------
         a new instance of AgentType
         '''
-        self.solution_terminal = solution_terminal
-        self.cycles = cycles
-        self.time_flow = time_flow
-        self.pseudo_terminal = pseudo_terminal
-        self.solveOnePeriod = NullFunc
-        self.tolerance = tolerance
-        self.seed = seed
+        self.solution_terminal  = solution_terminal
+        self.cycles             = cycles
+        self.time_flow          = time_flow
+        self.pseudo_terminal    = pseudo_terminal
+        self.solveOnePeriod     = NullFunc
+        self.tolerance          = tolerance
+        self.seed               = seed
         self.assignParameters(**kwds)
         self.resetRNG()
 
@@ -279,7 +280,7 @@ class AgentType(HARKobject):
 
     def isSameThing(self,solutionA,solutionB):
         '''
-        Compare two solutions to see if they are the "same".  The model-specific
+        Compare two solutions to see if they are the "same."  The model-specific
         solution class must have a method called distance, which takes another
         solution object as an input and returns the "distance" between the solutions.
         This method is used to test for convergence in infinite horizon problems.
@@ -353,7 +354,7 @@ def solveAgent(agent):
     agent.timeRev()
 
     # Check to see whether this is an (in)finite horizon problem
-    cycles_left = agent.cycles
+    cycles_left      = agent.cycles
     infinite_horizon = cycles_left == 0
     
     # Initialize the solution, which includes the terminal solution if it's not a pseudo-terminal period
@@ -362,10 +363,10 @@ def solveAgent(agent):
         solution.append(deepcopy(agent.solution_terminal))
 
     # Initialize the process, then loop over cycles
-    solution_last = agent.solution_terminal
-    go = True
+    solution_last    = agent.solution_terminal
+    go               = True
     completed_cycles = 0
-    max_cycles = 5000 # escape clause
+    max_cycles       = 5000 # escape clause
     while go:
         # Solve a cycle of the model, recording it if horizon is finite
         solution_cycle = solveOneCycle(agent,solution_last)
@@ -376,7 +377,8 @@ def solveAgent(agent):
         solution_now = solution_cycle[-1]
         if infinite_horizon:
             if completed_cycles > 0:
-                go = (not agent.isSameThing(solution_now,solution_last)) and (completed_cycles < max_cycles)
+                go = (not agent.isSameThing(solution_now,solution_last)) and \
+                     (completed_cycles < max_cycles)
             else: # Assume solution does not converge after only one cycle
                 go = True
         else:
@@ -410,7 +412,7 @@ def solveOneCycle(agent,solution_last):
     solution_last : Solution
         A representation of the solution of the period that comes after the
         end of the sequence of one period problems.  This might be the term-
-        inal period solution, a "pseudo terminal" solution, a simply the
+        inal period solution, a "pseudo terminal" solution, or simply the
         solution to the earliest period from the succeeding cycle.
     
     Returns
@@ -422,7 +424,7 @@ def solveOneCycle(agent,solution_last):
     # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
     if len(agent.time_vary) > 0:
         name = agent.time_vary[0]
-        T = len(eval('agent.' + name))
+        T    = len(eval('agent.' + name))
     else:
         T = 1
 
@@ -430,7 +432,7 @@ def solveOneCycle(agent,solution_last):
     always_same_solver = 'solveOnePeriod' not in agent.time_vary
     if always_same_solver:
         solveOnePeriod = agent.solveOnePeriod
-        these_args = getArgNames(solveOnePeriod)
+        these_args     = getArgNames(solveOnePeriod)
 
     # Construct a dictionary to be passed to the solver
     time_inv_string = ''
@@ -443,7 +445,7 @@ def solveOneCycle(agent,solution_last):
 
     # Initialize the solution for this cycle, then iterate on periods
     solution_cycle = []
-    solution_next = solution_last
+    solution_next  = solution_last
     for t in range(T):
         # Update which single period solver to use (if it depends on time)
         if not always_same_solver:
@@ -477,7 +479,8 @@ class Market(HARKobject):
     dynamic general equilibrium models to solve the "macroeconomic" model as a
     layer on top of the "microeconomic" models of one or more AgentTypes.
     '''   
-    def __init__(self,agents=[],sow_vars=[],reap_vars=[],const_vars=[],track_vars=[],dyn_vars=[],millRule=None,calcDynamics=None,act_T=1000,tolerance=0.000001):
+    def __init__(self,agents=[],sow_vars=[],reap_vars=[],const_vars=[],track_vars=[],dyn_vars=[],
+                 millRule=None,calcDynamics=None,act_T=1000,tolerance=0.000001):
         '''
         Make a new instance of the Market class.
         
@@ -522,12 +525,12 @@ class Market(HARKobject):
         -------
         new instance of Market
     '''
-        self.agents = agents
-        self.reap_vars = reap_vars
-        self.sow_vars = sow_vars
+        self.agents      = agents
+        self.reap_vars  = reap_vars
+        self.sow_vars   = sow_vars
         self.const_vars = const_vars
         self.track_vars = track_vars
-        self.dyn_vars = dyn_vars
+        self.dyn_vars   = dyn_vars
         if millRule is not None: # To prevent overwriting of method-based millRules
             self.millRule = millRule
         if calcDynamics is not None: # Ditto for calcDynamics
@@ -549,11 +552,11 @@ class Market(HARKobject):
         -------
         none
         '''
-        go = True
-        max_loops = 1000 # Failsafe against infinite solution loop
+        go              = True
+        max_loops       = 1000 # Failsafe against infinite solution loop
         completed_loops = 0
-        
-        old_dynamics = None
+        old_dynamics    = None
+
         while go: # Loop until the dynamic process converges or we hit the loop cap
             for this_type in self.agents:
                 this_type.solve()  # Solve each AgentType's micro problem
@@ -567,9 +570,9 @@ class Market(HARKobject):
                 distance = 1000000.0
             
             # Move to the next loop if the terminal conditions are not met
-            old_dynamics = new_dynamics
+            old_dynamics     = new_dynamics
             completed_loops += 1
-            go = distance >= self.tolerance and completed_loops < max_loops
+            go               = distance >= self.tolerance and completed_loops < max_loops
             
         self.dynamics = new_dynamics # Store the final dynamic rule in self
             
