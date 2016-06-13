@@ -767,6 +767,7 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         EndOfPrdvP : np.array
             A 1D array of end-of-period marginal value of assets
         '''        
+
         EndOfPrdvP  = self.DiscFacEff*self.Rfree*self.PermGroFac**(-self.CRRA)*np.sum(
                       self.PermShkVals_temp**(-self.CRRA)*
                       self.vPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)  
@@ -1554,6 +1555,9 @@ class ConsumerType(AgentType):
         self.solution_terminal.vFunc   = ValueFunc(self.solution_terminal.cFunc,self.CRRA)
         self.solution_terminal.vPfunc  = MargValueFunc(self.solution_terminal.cFunc,self.CRRA)
         self.solution_terminal.vPPfunc = MargMargValueFunc(self.solution_terminal.cFunc,self.CRRA)
+
+    def preSolve(self):
+        self.updateSolutionTerminal()
         
     def update(self):
         '''
@@ -1674,7 +1678,7 @@ class ConsumerType(AgentType):
         pPrev          = self.pNow
         TranShkNow     = self.TranShkNow
         PermShkNow     = self.PermShkNow
-        RfreeNow   = self.RfreeNow
+        RfreeNow       = self.RfreeNow
         cFuncNow       = self.cFuncNow
         
         # Simulate the period
