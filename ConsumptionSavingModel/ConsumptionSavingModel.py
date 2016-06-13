@@ -1670,8 +1670,7 @@ class ConsumerType(AgentType):
         Returns
         -------
         none
-        '''
-        
+        '''       
         # Unpack objects from self for convenience
         aPrev          = self.aNow
         pPrev          = self.pNow

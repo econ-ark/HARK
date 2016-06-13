@@ -44,6 +44,19 @@ class PrefShockConsumerType(ConsumerType):
         self.time_inv.append('Rsave')
     
     def update(self):
+        '''
+        Updates the assets grid, income process, terminal period solution, and
+        preference shock process.  A very slight extension of ConsumerType.update()
+        for the preference shock model.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
         ConsumerType.update(self)     # Update assets grid, income process, terminal solution
         self.updatePrefShockProcess() # Update the discrete preference shock process
         
@@ -152,7 +165,13 @@ class PrefShockConsumerType(ConsumerType):
         TranShkNow     = self.TranShkNow
         PermShkNow     = self.PermShkNow
         PrefShkNow     = self.PrefShkNow
-        RfreeNow       = self.RfreeNow
+        if hasattr(self,'RboroNow'):
+            RboroNow   = self.RboroNow
+            RsaveNow   = self.RsaveNow
+            RfreeNow   = RboroNow*np.ones_like(aPrev)
+            RfreeNow[aPrev > 0] = RsaveNow
+        else:
+            RfreeNow   = self.RfreeNow
         cFuncNow       = self.cFuncNow
         
         # Simulate the period
