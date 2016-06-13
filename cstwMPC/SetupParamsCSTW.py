@@ -6,8 +6,8 @@ import csv
 from copy import copy, deepcopy
 
 # Choose percentiles of the data to match and which estimation to run
-do_lifecycle = True          # Use lifecycle model if True, perpetual youth if False
-do_beta_dist = True           # Do beta-dist version if True, beta-point if False
+do_lifecycle = False          # Use lifecycle model if True, perpetual youth if False
+do_beta_dist = False           # Do beta-dist version if True, beta-point if False
 run_estimation = True         # Runs the estimation if True
 find_beta_vs_KY = False       # Computes K/Y ratio for a wide range of beta; should have do_beta_dist = False
 do_sensitivity = [False, False, False, False, False, False, False, False] # Choose which sensitivity analyses to run: rho, xi_sigma, psi_sigma, mu, urate, mortality, g, R
@@ -180,6 +180,8 @@ CapShare = 0.36                    # Capital's share of output
 DeprFac = 0.025                    # Capital depreciation factor
 CRRAPF = 1.0                       # CRRA in perfect foresight calibration
 DiscFacPF = 0.99                   # Discount factor in perfect foresight calibration
+slope_prev = 1.0                   # Initial slope of kNextFunc (aggregate shocks model)
+intercept_prev = 0.0               # Initial intercept of kNextFunc (aggregate shocks model)
 
 # Import the SCF wealth data
 f = open(SCF_data_file,'r')
@@ -259,33 +261,12 @@ init_infinite = {"CRRA":CRRA,
                 'Nagents':sim_pop_size,
                 'l_bar':l_bar,
                 }
-
-# Make dictionaries for constructing income shocks
-make_shocks_dropout = {'PermShkStd':PermShkStd,
-                      'TranShkStd':TranShkStd,
-                      'PermGroFac':PermGroFac_d,
-                      'Rfree':Rfree,
-                      'UnempPrb':UnempPrb,
-                      'UnempPrbRet':UnempPrbRet,
-                      'IncUnemp':IncUnemp,
-                      'IncUnempRet':IncUnempRet,
-                      'T_retire':retired_T+1,
-                      'Nagents':sim_pop_size,
-                      'tax_rate':tax_rate_SS
-                      }
-make_shocks_highschool = copy(make_shocks_dropout)
-make_shocks_highschool['PermGroFac'] = PermGroFac_h
-make_shocks_college = copy(make_shocks_dropout)
-make_shocks_college['PermGroFac'] = PermGroFac_c
-make_shocks_infinite = {'PermShkStd':PermShkStd_i[0],
-                        'TranShkStd':TranShkStd_i[0],
-                        'PermGroFac':PermGroFac_i[0],
-                        'R':1.01/LivPrb_i[0],
-                        'UnempPrb':UnempPrb,
-                        'IncUnemp':IncUnemp,
-                        'Nagents':sim_pop_size,
-                        'sim_periods':sim_periods
-                        }
+                
+# Make a dictionary for the aggregate shocks type
+init_agg_shocks = deepcopy(init_infinite)
+init_agg_shocks['Nagents'] = Nagents_agg_shocks
+init_agg_shocks['sim_periods'] = sim_periods_agg_shocks
+init_agg_shocks['tolerance'] = 0.0001
                         
 # Make a dictionary for the aggrege shocks market
 aggregate_params = {'PermShkAggCount': PermShkAggCount,
@@ -296,10 +277,10 @@ aggregate_params = {'PermShkAggCount': PermShkAggCount,
                     'CapShare': CapShare,
                     'CRRA': CRRAPF,
                     'DiscFac': DiscFacPF,
-                    'LivPrb': LivPrb_i[0]
+                    'LivPrb': LivPrb_i[0],
+                    'slope_prev': slope_prev,
+                    'intercept_prev': intercept_prev
                     }
 
 beta_save = DiscFac_guess # Hacky way to save progress of estimation
 diff_save = 1000000.0  # Hacky way to save progress of estimation
-slope_prev = 1.0       # Initial slope of kNextFunc (aggregate shocks model)
-intercept_prev = 0.0   # Initial intercept of kNextFunc (aggregate shocks model)
