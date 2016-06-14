@@ -396,15 +396,57 @@ blah blah
 
 \section{Future of HARK}
 
-blah blah
+HARK is in a state of perpetual incompleteness, always expanding to include more tools and more models.  As an open source project in the hands of many contributors around the world, the HARK team cannot fully predict future features of the toolKit.  This section provides an overview of what we would like to see in the near future, as well as potential mechanisms to encourage researchers to contribute their code to the project.
 
 \subsection{Future Tools}
 
-blah blah
+The current frameworks in \texttt{HARKcore} concern agents who have ``isolated'' dynamic problems or interact with each other only through aggregate outcomes to which they contribute atomically.  We hope to eventually provide a framework for models in which agents directly interact with each other; this may include a system for specifying the state of networks and how connections are formed and broken.  \texttt{HARKcore} might also develop a framework more suited to industrial organization models and dynamic games.\footnote{It might already be possible to shoehorn some of these models into the \texttt{Market} framework.}
+
+The \texttt{HARKestimation} module in particular is very sparsely populated, with its functions mostly serving as wrappers for ``off the shelf'' optimization methods from \texttt{scipy.optimize}.  There are plenty of non-standard or more complex optimization techniques available, including global and/or stochastic search methods.  We believe that additional optimizers are ``low hanging fruit'' as straightforward contributions to HARK and thus will be added in the near future.  Moreover, there are plenty of distributions that have no approximator in \texttt{HARKutilities} (or data generator in \texttt{HARKsimulation}), and these functions are among the easiest for new contributors to write.  The data analysis tools in \texttt{HARKutilities} only include functions that we happened to use for our current research projects, and we expect that this will be the mode of growth for future tools.  There are some obvious holes that we believe will be filled quite quickly; for example, we provide a rudimentary non-parametric kernel regression function, but have not written a kernel density estimator to generate PDFs from data.
+
+The classes currently in \texttt{HARKinterpolation} are all variations on linear (or cubic) spline interpolation, and each is specifically written for a fixed number of dimensions.  As these methods use full tensor grids, they are highly impractical for representing functions in higher dimensions, suffering greatly from the curse of dimensionality.\footnote{The HARK team only included interpolators for up to 4 dimensions, and some would argue this is already too many for tensor grid methods.}  We are quite confident that \texttt{HARKinterpolation} will soon include techniques more applicable to high dimensional state spaces, including Smolnyak interpolation, other (adaptive) sparse grid methods, and regression-based interpolation.  For lower-dimensional spaces, HARK will also soon provide Delaunay interpolation classes.
+
+The \texttt{HARKparallel} module currently provides a simple interface for handling \textit{ex ante} heterogeneity among agents.  While useful for speeding up moderately-sized problems, the libraries used are only able to access the CPU of the local machine running the code.  In the very near future, the HARK team will provide an interface (and example) for using Apache Spark, which bills itself as a ``fast and general engine for large-scale data processing''.  Specifically, users will be able to easily scale up their computing resources and run HARK code on an Amazon EC2 session or other cluster.
 
 \subsection{Future Models}
 
-blah blah
+The economics models currently included in HARK mostly concern consumption-saving problems with constant relative risk aversion consumers who experience fully permanent and fully transitory shocks to income.  This is obviously a very small subset of all consumption-saving models (which are themselves a small subset of all dynamic models economists might be interested in).  Consider some examples of variants, features, and extensions that are not included in HARK, but could be in the future:
+\begin{itemize}
+\item Consumers with other utility functions, such as CARA or expo-power.
+
+\item Income shocks that are neither fully transitory nor fully permanent.
+
+\item Consumers with a bequest motive or terminal utility function.
+
+\item Utility from leisure and endogenous labor supply.
+
+\item Investment in a durable consumption good such as housing.
+
+\item Exogenous shocks to expenses.
+
+\item Multiple consumption goods, as with endogenous medical care.
+
+\item Portfolio allocation between a risky and riskless asset.
+
+\item Endogenous health evolution and health investment.
+\end{itemize}
+
+The HARK team is currently developing a module for mixing discrete and continuous choice models, in the style of Jorgensen, Rust, Iskhakov, and Schjerning (2015).  Among many other models, this framework will enable HARK users to easily develop features like:
+\begin{itemize}
+\item Labor supply on the extensive margin: the timing of retirement.
+
+\item Selection of job type or sector (by riskiness, specific human capital, etc).
+
+\item Choice of medical insurance contract.
+
+\item Decision to rent or own housing.
+
+\item Endogenous default on debt (with ``macroeconomic'' pricing of debt).
+
+\item Household formation, dissolution, and reproduction.
+\end{itemize}
+
+The scope of HARK is limited only by what users choose to put in it.  We hope that within a year of its debut, HARK will include a significant number of canonical models, providing more building blocks for future researchers to create novel combinations and new extensions.
 
 \subsection{Bounty Hunting}
 
