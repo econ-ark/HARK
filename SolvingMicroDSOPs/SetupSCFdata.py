@@ -11,7 +11,7 @@ sys.path.insert(0,'../')
 # The following libraries are part of the standard python distribution
 import numpy as np                   # Numerical Python
 import csv                           # Comma-separated variable reader
-from SetupConsumerParameters import initial_age, empirical_cohort_age_groups                           
+from EstimationParameters import initial_age, empirical_cohort_age_groups                           
 
 # Libraries below are part of HARK's module system and must be in this directory
 from HARKutilities import warnings

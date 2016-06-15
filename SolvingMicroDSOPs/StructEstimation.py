@@ -12,8 +12,9 @@ income as defined in ConsumptionSavingModel.py.
 # contained in the HARK folder. 
 import sys 
 sys.path.insert(0,'../')
+sys.path.insert(0,'../ConsumptionSavingModel')
 
-import SetupConsumerParameters as Params        # Parameters for the consumer type and the estimation
+import EstimationParameters as Params        # Parameters for the consumer type and the estimation
 import ConsumptionSavingModel as Model          # The consumption-saving micro model
 import SetupSCFdata as Data                     # SCF 2004 data on household wealth
 from HARKsimulation import drawDiscrete         # Method for sampling from a discrete distribution

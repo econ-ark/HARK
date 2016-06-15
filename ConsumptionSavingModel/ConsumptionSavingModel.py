@@ -20,7 +20,6 @@ import numpy as np
 from HARKcore import AgentType, Solution, NullFunc
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
-from HARKsimulation import drawMeanOneLognormal, drawBernoulli
 from HARKutilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
                           combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
                           CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
@@ -1985,15 +1984,13 @@ def constructAssetsGrid(parameters):
 ####################################################################################################     
     
 if __name__ == '__main__':
-    import SetupConsumerParameters as Params
+    import ConsumerParameters as Params
     from HARKutilities import plotFuncsDer, plotFuncs
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
 
     do_perfect_foresight    = True
-    do_simulation           = True
-
-####################################################################################################    
+    do_simulation           = True  
     
     # Make and solve a finite consumer type
     LifecycleType = ConsumerType(**Params.init_consumer_objects)
