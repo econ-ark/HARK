@@ -14,7 +14,7 @@ aXtraMin = 0.001                    # Minimum end-of-period "assets above minimu
 aXtraMax = 20                       # Minimum end-of-period "assets above minimum" value               
 aXtraHuge = None                    # A very large value of assets to add to the grid, not used
 aXtraExtra = None                   # Some other value of assets to add to the grid, not used
-aXtraCount = 12                     # Number of points in the grid of "assets above minimum"
+aXtraCount = 8                      # Number of points in the grid of "assets above minimum"
 
 BoroCnstArt = 0.0                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
 CubicBool = True                    # Use cubic spline interpolation when True, linear interpolation when False
@@ -23,9 +23,9 @@ vFuncBool = False                   # Whether to calculate the value function du
 Rfree = 1.03                        # Interest factor on assets
 PermShkCount = 7                    # Number of points in discrete approximation to permanent income shocks
 TranShkCount = 7                    # Number of points in discrete approximation to transitory income shocks
-UnempPrb = 0.05                     # Probability of unemployment while working
-UnempPrbRet = 0.005                 # Probability of "unemployment" while retired
-IncUnemp = 0.3                      # Unemployment benefits replacement rate
+UnempPrb = 0.005                     # Probability of unemployment while working
+UnempPrbRet = 0.000                 # Probability of "unemployment" while retired
+IncUnemp = 0.0                      # Unemployment benefits replacement rate
 IncUnempRet = 0.0                   # "Unemployment" benefits when retired
 
 final_age = 90                      # Age at which the problem ends (die with certainty)

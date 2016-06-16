@@ -33,7 +33,7 @@ make_contour_plot = False         # Whether to make a contour map of the objecti
 #=====================================================
 
 # Make a lifecycle consumer to be used for estimation, including simulated shocks (plus an initial distribution of wealth)
-EstimationAgent = Model.ConsumerType(**Params.init_consumer_objects) # Make a ConsumerType for estimation
+EstimationAgent = Model.IndShockConsumerType(**Params.init_consumer_objects) # Make a ConsumerType for estimation
 EstimationAgent(sim_periods = EstimationAgent.T_total+1)             # Set the number of periods to simulate
 EstimationAgent.makeIncShkHist()                                     # Make a simulated history of income shocks for many consumers
 EstimationAgent.a_init = drawDiscrete(P=Params.initial_wealth_income_ratio_probs,

@@ -9,8 +9,7 @@ sys.path.insert(0,'../')
 
 from copy import deepcopy
 import numpy as np
-from ConsumptionSavingModel import ConsumptionSavingSolverENDG, ValueFunc, MargValueFunc, ConsumerSolution
-from ConsumptionSavingModel import ConsumerType
+from ConsumptionSavingModel import ConsumptionSavingSolverENDG, ValueFunc, MargValueFunc, ConsumerSolution, IndShockConsumerType
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARKutilities import approxMeanOneLognormal, combineIndepDstns, CRRAutility, CRRAutilityP, \
@@ -642,17 +641,17 @@ def solveConsumptionSavingMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rf
 ####################################################################################################
 ####################################################################################################
 
-class MarkovConsumerType(ConsumerType):
+class MarkovConsumerType(IndShockConsumerType):
     '''
     An agent in the Markov consumption-saving model.  His problem is defined by a sequence
     of income distributions, survival probabilities, discount factors, and permanent
     income growth rates, as well as time invariant values for risk aversion, the
     interest rate, the grid of end-of-period assets, and how he is borrowing constrained.
     '''
-    time_inv_ = ConsumerType.time_inv_ + ['MrkvArray']
+    time_inv_ = IndShockConsumerType.time_inv_ + ['MrkvArray']
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
-        ConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
+        IndShockConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
         self.solveOnePeriod = solveConsumptionSavingMarkov
 
     def makeIncShkHist(self):
@@ -816,7 +815,7 @@ class MarkovConsumerType(ConsumerType):
         none
         '''
         self.MrkvNow = self.MrkvHist[self.Shk_idx,:]
-        ConsumerType.advanceIncShks(self)
+        IndShockConsumerType.advanceIncShks(self)
 
     def updateSolutionTerminal(self):
         '''
@@ -831,7 +830,7 @@ class MarkovConsumerType(ConsumerType):
         -------
         none
         '''
-        ConsumerType.updateSolutionTerminal(self)
+        IndShockConsumerType.updateSolutionTerminal(self)
         
         # Make replicated terminal period solution: consume all resources, no human wealth, minimum m is 0
         StateCount = self.MrkvArray.shape[0]
@@ -845,22 +844,24 @@ class MarkovConsumerType(ConsumerType):
         self.solution_terminal.MPCmin  = np.ones(StateCount)
         
 
+###############################################################################
+
 if __name__ == '__main__':
     
-    import SetupConsumerParameters as Params
+    import ConsumerParameters as Params
     from HARKutilities import plotFuncs
     from time import clock
+    from copy import copy
     mystr = lambda number : "{:.4f}".format(number)
 
     do_simulation           = True
 
-    # Make and solve a type that has serially correlated unemployment   
-    # Define the Markov transition matrix
-    unemp_length = 5
-    urate_good = 0.05
-    urate_bad = 0.12
-    bust_prob = 0.01
-    recession_length = 20
+    # Define the Markov transition matrix for serially correlated unemployment
+    unemp_length = 5         # Averange length of unemployment spell
+    urate_good = 0.05        # Unemployment rate when economy is in good state
+    urate_bad = 0.12         # Unemployment rate when economy is in bad state
+    bust_prob = 0.01         # Probability of economy switching from good to bad
+    recession_length = 20    # Averange length of bad state
     p_reemploy =1.0/unemp_length
     p_unemploy_good = p_reemploy*urate_good/(1-urate_good)
     p_unemploy_bad = p_reemploy*urate_bad/(1-urate_bad)
@@ -873,48 +874,47 @@ if __name__ == '__main__':
                            (1-p_unemploy_bad)*(1-boom_prob),p_unemploy_bad*(1-boom_prob)],
                           [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,
                            p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
-    Params.init_consumer_objects['MrkvArray'] = MrkvArray
-    MarkovType = MarkovConsumerType(**Params.init_consumer_objects)
-    MarkovType.assignParameters(    LivPrb = [0.98],
-                                    DiscFac = [0.96],
-                                    PermGroFac = [1.01],
-                                    cycles = 0) # This is what makes the type infinite horizon
-    MarkovType.IncomeDstn = [MarkovType.IncomeDstn[-1]]
-
-    xi_dist  = approxMeanOneLognormal(MarkovType.TranShkCount, 0.1)
-    psi_dist = approxMeanOneLognormal(MarkovType.PermShkCount, 0.1)
-    employed_income_dist   = combineIndepDstns(psi_dist, xi_dist)
-    employed_income_dist   = [np.ones(1),np.ones(1),np.ones(1)]
-    unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
+                           
+    # Make a consumer with serially correlated unemployment, subject to boom and bust cycles
+    init_serial_unemployment = copy(Params.init_idiosyncratic_shocks)
+    init_serial_unemployment['MrkvArray'] = MrkvArray
+    init_serial_unemployment['UnempPrb'] = 0 # to make income distribution when employed
+    SerialUnemploymentExample = MarkovConsumerType(**init_serial_unemployment)
+    SerialUnemploymentExample.cycles = 0
+    SerialUnemploymentExample.vFuncBool = False # for easy toggling here
     
-    MarkovType.Rfree = np.array(4*[MarkovType.Rfree])
-    MarkovType.PermGroFac = [np.array(4*MarkovType.PermGroFac)]
-
-    MarkovType.IncomeDstn = [[employed_income_dist,unemployed_income_dist,employed_income_dist,
+    # Replace the default (lognormal) income distribution with a custom one
+    employed_income_dist   = [np.ones(1),np.ones(1),np.ones(1)] # Definitely get income
+    unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)] # Definitely don't
+    SerialUnemploymentExample.IncomeDstn = [[employed_income_dist,unemployed_income_dist,employed_income_dist,
                               unemployed_income_dist]]
-    MarkovType.cycles = 0        
-    MarkovType.vFuncBool = False
     
-    MarkovType.timeFwd()
+    # Interest factor and permanent growth rates are constant arrays
+    SerialUnemploymentExample.Rfree = np.array(4*[SerialUnemploymentExample.Rfree])
+    SerialUnemploymentExample.PermGroFac = [np.array(4*SerialUnemploymentExample.PermGroFac)]
+    
+    # Solve the serial unemployment consumer's problem and display solution
+    SerialUnemploymentExample.timeFwd()
     start_time = clock()
-    MarkovType.solve()
+    SerialUnemploymentExample.solve()
     end_time = clock()
     print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
-    plotFuncs(MarkovType.solution[0].cFunc,0,50)
-    if MarkovType.vFuncBool:
+    plotFuncs(SerialUnemploymentExample.solution[0].cFunc,0,50)
+    if SerialUnemploymentExample.vFuncBool:
         print('Value functions for each discrete state:')
-        plotFuncs(MarkovType.solution[0].vFunc,5,50)
-
+        plotFuncs(SerialUnemploymentExample.solution[0].vFunc,5,50)
+    
+    # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
     if do_simulation:
-        MarkovType.sim_periods = 120
-        MarkovType.Mrkv_init = np.zeros(MarkovType.Nagents,dtype=int)
-        MarkovType.makeMrkvHist()
-        MarkovType.makeIncShkHist()
-        MarkovType.initializeSim()
-        MarkovType.simConsHistory()
+        SerialUnemploymentExample.sim_periods = 120
+        SerialUnemploymentExample.Mrkv_init = np.zeros(SerialUnemploymentExample.Nagents,dtype=int)
+        SerialUnemploymentExample.makeMrkvHist()
+        SerialUnemploymentExample.makeIncShkHist()
+        SerialUnemploymentExample.initializeSim()
+        SerialUnemploymentExample.simConsHistory()
         
-    ###############################################################################
+###############################################################################
 
     # Make a consumer who occasionally gets "unemployment immunity" for a fixed period
     UnempPrb    = 0.05  # Probability of becoming unemployed each period
@@ -934,11 +934,10 @@ if __name__ == '__main__':
     for j in range(ImmunityT):
         MrkvArray[j+1,j] = 1.0  # When immune, have 100% chance of transition to state with one fewer immunity periods remaining
     
-    Params.init_consumer_objects['MrkvArray'] = MrkvArray
-    ImmunityType = MarkovConsumerType(**Params.init_consumer_objects) # Make a basic consumer type
-    ImmunityType.assignParameters(LivPrb = [0.98],              # Replace with "one period" infinite horizon data
-                                  DiscFac = [0.96],
-                                  Rfree = np.array(np.array(StateCount*[1.03])), # Interest factor same in all states
+    init_unemployment_immunity = copy(Params.init_idiosyncratic_shocks)
+    init_unemployment_immunity['MrkvArray'] = MrkvArray
+    ImmunityType = MarkovConsumerType(**init_unemployment_immunity)
+    ImmunityType.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])), # Interest factor same in all states
                                   PermGroFac = [np.array(StateCount*[1.01])],    # Permanent growth factor same in all states
                                   BoroCnstArt = None,                            # No artificial borrowing constraint
                                   cycles = 0)                                    # Infinite horizon
@@ -953,7 +952,7 @@ if __name__ == '__main__':
     mNrmMin = np.min([ImmunityType.solution[0].mNrmMin[j] for j in range(StateCount)])
     plotFuncs(ImmunityType.solution[0].cFunc,mNrmMin,10)
      
-    ###############################################################################
+###############################################################################
     
     # Make a consumer with serially correlated permanent income growth
     UnempPrb = 0.05    # Unemployment probability
@@ -966,14 +965,12 @@ if __name__ == '__main__':
     # Make the state transition array for this type: Persistence probability of remaining in the same state, equiprobable otherwise
     MrkvArray = Persistence*np.eye(StateCount) + (1.0/StateCount)*(1.0-Persistence)*np.ones((StateCount,StateCount))
     
-    Params.init_consumer_objects['MrkvArray'] = MrkvArray
-    SerialGroType = MarkovConsumerType(**Params.init_consumer_objects) # Make a basic type
-    SerialGroType.assignParameters(LivPrb = [0.99375],
-                                  DiscFac = [0.995],
-                                  Rfree = np.array(np.array(StateCount*[1.03])),       # Same interest factor in each Markov state
-                                  PermGroFac = [np.array([0.97,0.99,1.01,1.03,1.05])], # Different permanent growth factor in each Markov state
-                                  BoroCnstArt = None,
-                                  cycles = 0)
+    init_serial_growth = copy(Params.init_idiosyncratic_shocks)
+    init_serial_growth['MrkvArray'] = MrkvArray
+    SerialGroType = MarkovConsumerType(**init_serial_growth)
+    SerialGroType.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])),       # Same interest factor in each Markov state
+                                   PermGroFac = [np.array([0.97,0.99,1.01,1.03,1.05])], # Different permanent growth factor in each Markov state
+                                   cycles = 0)
     SerialGroType.IncomeDstn = [IncomeDstn]         
     
     # Solve the serially correlated permanent growth shock problem and display the consumption functions
@@ -984,7 +981,7 @@ if __name__ == '__main__':
     print('Consumption functions for each discrete state:')
     plotFuncs(SerialGroType.solution[0].cFunc,0,10)
     
-    ###############################################################################
+###############################################################################
     
     # Make a consumer with serially correlated interest factors
     SerialRType = deepcopy(SerialGroType) # Same as the last problem...

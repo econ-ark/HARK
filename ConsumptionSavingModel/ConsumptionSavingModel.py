@@ -1368,32 +1368,29 @@ def consumptionSavingSolverKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
     return solution                                   
          
 # ============================================================================
-# == A class for representing types of consumer agents (and things they do) ==
+# == Classes for representing types of consumer agents (and things they do) ==
 # ============================================================================
 
-class ConsumerType(AgentType):
+class PerfForesightConsumerType(AgentType):
     '''
-    An agent in the consumption-saving model.  His problem is defined by a sequence
-    of income distributions, survival probabilities, discount factors, and permanent
-    income growth rates, as well as time invariant values for risk aversion, the
-    interest rate, the grid of end-of-period assets, and how he is borrowing constrained.
-    '''    
-    
+    A perfect foresight consumer type who has no uncertainty other than mortality.
+    His problem is defined by a coefficient of relative risk aversion, intertemporal
+    discount factor, interest factor, and time sequences of the permanent income
+    growth rate and survival probability.
+    '''
     # Define some universal values for all consumer types
     cFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,1.0]) # c=m in terminal period
     vFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,0.0]) # This is overwritten
-    cFuncCnst_terminal_  = LinearInterp([0.0, 1.0],[0.0,1.0])
-    solution_terminal_   = ConsumerSolution(cFunc=LowerEnvelope(cFunc_terminal_,cFuncCnst_terminal_),
+    solution_terminal_   = ConsumerSolution(cFunc = cFunc_terminal_,
                                             vFunc = vFunc_terminal_, mNrmMin=0.0, hNrm=0.0, 
                                             MPCmin=1.0, MPCmax=1.0)
     time_vary_ = ['LivPrb','DiscFac','PermGroFac']
-    time_inv_  = ['CRRA','Rfree','aXtraGrid','BoroCnstArt','vFuncBool','CubicBool']
+    time_inv_  = ['CRRA','Rfree']
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
-        Instantiate a new ConsumerType with given data, and construct objects
-        to be used during solution (income distribution, assets grid, etc).
-        See SetupConsumerParameters.init_consumer_objects for a dictionary of
+        Instantiate a new consumer type with given data.
+        See ConsumerParameters.init_perfect_foresight for a dictionary of
         the keywords that should be passed to the constructor.
         
         Parameters
@@ -1408,17 +1405,33 @@ class ConsumerType(AgentType):
         None
         '''       
         # Initialize a basic AgentType
-        AgentType.__init__(self,solution_terminal=deepcopy(ConsumerType.solution_terminal_),
+        AgentType.__init__(self,solution_terminal=deepcopy(self.solution_terminal_),
                            cycles=cycles,time_flow=time_flow,pseudo_terminal=False,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary      = deepcopy(self.time_vary_)
         self.time_inv       = deepcopy(self.time_inv_)
-        self.solveOnePeriod = consumptionSavingSolverENDG # solver can be changed depending on model
-        self.update() # make income distributions, an assets grid, and update the terminal period solution
+        self.solveOnePeriod = solvePerfForesight # solver for perfect foresight model
         self.a_init = np.zeros(self.Nagents) # initialize assets for simulation
         self.p_init = np.ones(self.Nagents)  # initialize permanent income for simulation
-
+        
+    def updateSolutionTerminal(self):
+        '''
+        Update the terminal period solution.  This method should be run when a
+        new AgentType is created or when CRRA changes.
+        
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        none
+        '''
+        self.solution_terminal.vFunc   = ValueFunc(self.cFunc_terminal_,self.CRRA)
+        self.solution_terminal.vPfunc  = MargValueFunc(self.cFunc_terminal_,self.CRRA)
+        self.solution_terminal.vPPfunc = MargMargValueFunc(self.cFunc_terminal_,self.CRRA)
+        
     def unpack_cFunc(self):
         '''
         "Unpacks" the consumption functions into their own field for easier access.
@@ -1440,6 +1453,41 @@ class ConsumerType(AgentType):
             self.cFunc.append(solution_t.cFunc)
         if not ('cFunc' in self.time_vary):
             self.time_vary.append('cFunc')
+
+
+class IndShockConsumerType(PerfForesightConsumerType):
+    '''
+    A consumer type with idiosyncratic shocks to permanent and transitory income.
+    His problem is defined by a sequence of income distributions, survival probabilities,
+    discount factors, and permanent income growth rates, as well as time invariant
+    values for risk aversion, the interest rate, the grid of end-of-period assets,
+    and how he is borrowing constrained.
+    '''        
+    time_inv_ = PerfForesightConsumerType.time_inv_ + ['BoroCnstArt','vFuncBool','CubicBool']
+    
+    def __init__(self,cycles=1,time_flow=True,**kwds):
+        '''
+        Instantiate a new ConsumerType with given data.
+        See ConsumerParameters.init_idiosyncratic_shocks for a dictionary of
+        the keywords that should be passed to the constructor.
+        
+        Parameters
+        ----------
+        cycles : int
+            Number of times the sequence of periods should be solved.
+        time_flow : boolean
+            Whether time is currently "flowing" forward for this instance.
+        
+        Returns
+        -------
+        None
+        '''       
+        # Initialize a basic AgentType
+        PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
+
+        # Add consumer-type specific objects, copying to create independent versions
+        self.solveOnePeriod = consumptionSavingSolverENDG # idiosyncratic shocks solver
+        self.update() # Make assets grid, income process, terminal solution
             
     def makeIncShkHist(self):
         '''
@@ -1536,24 +1584,9 @@ class ConsumerType(AgentType):
         '''
         aXtraGrid = constructAssetsGrid(self)
         self.aXtraGrid = aXtraGrid
-        
-    def updateSolutionTerminal(self):
-        '''
-        Update the terminal period solution.  This method should be run when a
-        new AgentType is created or when CRRA changes.
-        
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''
-        self.solution_terminal.vFunc   = ValueFunc(self.cFunc_terminal_,self.CRRA)
-        self.solution_terminal.vPfunc  = MargValueFunc(self.cFunc_terminal_,self.CRRA)
-        self.solution_terminal.vPPfunc = MargMargValueFunc(self.cFunc_terminal_,self.CRRA)
-        
+        if not 'aXtraGrid' in self.time_inv:
+            self.time_inv.append('aXtraGrid')
+                
     def update(self):
         '''
         Update the income process, the assets grid, and the terminal solution.
@@ -1607,7 +1640,6 @@ class ConsumerType(AgentType):
         self.resetRNG()
         self.Shk_idx   = t_init
         self.cFunc_idx = t_init
-        self.RfreeNow = self.Rfree
         
         # Initialize the history arrays
         self.aNow     = a_init
@@ -1700,8 +1732,7 @@ class ConsumerType(AgentType):
         self.cNow   = cNow
         self.MPCnow = MPCnow
         self.aNow   = aNow
-        
-        
+               
     def advanceIncShks(self):
         '''
         Advance the permanent and transitory income shocks to the next period of
@@ -1792,6 +1823,42 @@ class ConsumerType(AgentType):
         
     def preSolve(self):
         self.updateSolutionTerminal()
+        
+        
+class KinkedRconsumerType(IndShockConsumerType):
+    '''
+    A consumer type that faces idiosyncratic shocks to income and has a different
+    interest factor on saving vs borrowing.  Extends IndShockConsumerType, with
+    very small changes.  Solver for this class is currently only compatible with
+    linear spline interpolation.
+    '''
+    time_inv_ = copy(IndShockConsumerType.time_inv_)
+    time_inv_.remove('Rfree')
+    time_inv_ += ['Rboro', 'Rsave']
+    
+    def __init__(self,cycles=1,time_flow=True,**kwds):
+        '''
+        Instantiate a new ConsumerType with given data.
+        See ConsumerParameters.init_kinked_R for a dictionary of
+        the keywords that should be passed to the constructor.
+        
+        Parameters
+        ----------
+        cycles : int
+            Number of times the sequence of periods should be solved.
+        time_flow : boolean
+            Whether time is currently "flowing" forward for this instance.
+        
+        Returns
+        -------
+        None
+        '''       
+        # Initialize a basic AgentType
+        PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
+
+        # Add consumer-type specific objects, copying to create independent versions
+        self.solveOnePeriod = consumptionSavingSolverKinkedR # kinked R solver
+        self.update() # Make assets grid, income process, terminal solution
 
 # ==================================================================================
 # = Functions for generating discrete income processes and simulated income shocks =
@@ -1989,12 +2056,66 @@ if __name__ == '__main__':
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
 
-    do_perfect_foresight    = True
-    do_simulation           = True  
+    do_simulation           = True
     
-    # Make and solve a finite consumer type
-    LifecycleType = ConsumerType(**Params.init_consumer_objects)
-    LifecycleType.solveOnePeriod = consumptionSavingSolverENDG
+    # Make and solve an example perfect foresight consumer
+    PFexample = PerfForesightConsumerType(**Params.init_perfect_foresight)   
+    PFexample.cycles = 0 # Make this type have an infinite horizon
+    
+    start_time = clock()
+    PFexample.solve()
+    end_time = clock()
+    print('Solving a perfect foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    PFexample.unpack_cFunc()
+    PFexample.timeFwd()
+    
+    # Plot the perfect foresight consumption function
+    print('Linear consumption function:')
+    mMin = PFexample.solution[0].mNrmMin
+    plotFuncs(PFexample.cFunc[0],mMin,mMin+10)
+    
+    ###########################################################################
+    
+    # Make and solve an example consumer with idiosyncratic income shocks
+    IndShockExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
+    IndShockExample.cycles = 0 # Make this type have an infinite horizon
+    
+    start_time = clock()
+    IndShockExample.solve()
+    end_time = clock()
+    print('Solving a consumer with idiosyncratic shocks took ' + mystr(end_time-start_time) + ' seconds.')
+    IndShockExample.unpack_cFunc()
+    IndShockExample.timeFwd()
+    
+    # Plot the consumption function and MPC for the infinite horizon consumer
+    print('Concave consumption function:')
+    plotFuncs(IndShockExample.cFunc[0],IndShockExample.solution[0].mNrmMin,5)
+    print('Marginal consumption function:')
+    plotFuncsDer(IndShockExample.cFunc[0],IndShockExample.solution[0].mNrmMin,5)
+    
+    # Compare the consumption functions for the perfect foresight and idiosyncratic
+    # shock types.  Risky income cFunc asymptotically approaches perfect foresight cFunc.
+    print('Consumption functions for perfect foresight vs idiosyncratic shocks:')            
+    plotFuncs([PFexample.cFunc[0],IndShockExample.cFunc[0]],IndShockExample.solution[0].mNrmMin,100)
+    
+    # Compare the value functions for the two types
+    if IndShockExample.vFuncBool:
+        print('Value functions for perfect foresight vs idiosyncratic shocks:')
+        plotFuncs([PFexample.solution[0].vFunc,IndShockExample.solution[0].vFunc],
+                      IndShockExample.solution[0].mNrmMin+0.5,10)
+    
+    # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
+    if do_simulation:
+        IndShockExample.sim_periods = 120
+        IndShockExample.makeIncShkHist()
+        IndShockExample.initializeSim()
+        IndShockExample.simConsHistory()
+    
+    ###########################################################################
+    
+    # Make and solve an idiosyncratic shocks consumer with a finite lifecycle
+    LifecycleType = IndShockConsumerType(**Params.init_lifecycle)
+    LifecycleType.cycles = 1 # Make this consumer live a sequence of periods exactly once
     
     start_time = clock()
     LifecycleType.solve()
@@ -2005,92 +2126,54 @@ if __name__ == '__main__':
     
     # Plot the consumption functions during working life
     print('Consumption functions while working:')
-    mMin = min([LifecycleType.solution[t].mNrmMin for t in range(40)])
-    plotFuncs(LifecycleType.cFunc[:40],mMin,5)
+    mMin = min([LifecycleType.solution[t].mNrmMin for t in range(LifecycleType.T_total)])
+    plotFuncs(LifecycleType.cFunc[:LifecycleType.T_retire],mMin,5)
 
     # Plot the consumption functions during retirement
     print('Consumption functions while retired:')
-    plotFuncs(LifecycleType.cFunc[40:],0,5)
+    plotFuncs(LifecycleType.cFunc[LifecycleType.T_retire:],0,5)
     LifecycleType.timeRev()
     
-    # Simulate some data
+    # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
     if do_simulation:
         LifecycleType.sim_periods = LifecycleType.T_total + 1
         LifecycleType.makeIncShkHist()
         LifecycleType.initializeSim()
         LifecycleType.simConsHistory()
-    
-####################################################################################################    
-    
-    
-    # Make and solve an infinite horizon consumer
-    InfiniteType = deepcopy(LifecycleType)
-    InfiniteType.assignParameters(    LivPrb = [0.98],
-                                      DiscFac = [0.96],
-                                      PermGroFac = [1.01],
-                                      cycles = 0) # This is what makes the type infinite horizon
-    InfiniteType.IncomeDstn = [LifecycleType.IncomeDstn[-1]]
+        
+        
+###############################################################################        
+        
+    # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
+    # The consumer has income that greatly fluctuates throughout the year.
+    CyclicalExample = IndShockConsumerType(**Params.init_cyclical)
+    CyclicalExample.cycles = 0
     
     start_time = clock()
-    InfiniteType.solve()
+    CyclicalExample.solve()
     end_time = clock()
-    print('Solving an infinite horizon consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    InfiniteType.timeFwd()
-    InfiniteType.unpack_cFunc()
+    print('Solving a cyclical consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    CyclicalExample.unpack_cFunc()
+    CyclicalExample.timeFwd()
     
-    # Plot the consumption function and MPC for the infinite horizon consumer
-    print('Consumption function:')
-    plotFuncs(InfiniteType.cFunc[0],InfiniteType.solution[0].mNrmMin,5)    # plot consumption
-    print('Marginal consumption function:')
-    plotFuncsDer(InfiniteType.cFunc[0],InfiniteType.solution[0].mNrmMin,5) # plot MPC
-    if InfiniteType.vFuncBool and not do_perfect_foresight:
-        print('Value function:')
-        plotFuncs(InfiniteType.solution[0].vFunc,InfiniteType.solution[0].mNrmMin+0.5,10)
-        
+    # Plot the consumption functions for the cyclical consumer type
+    print('Quarterly consumption functions:')
+    mMin = min([X.mNrmMin for X in CyclicalExample.solution])
+    plotFuncs(CyclicalExample.cFunc,mMin,5)
+    
+    # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
     if do_simulation:
-        InfiniteType.sim_periods = 120
-        InfiniteType.makeIncShkHist()
-        InfiniteType.initializeSim()
-        InfiniteType.simConsHistory()
-
-
-#################################################################################################### 
-
-    if do_perfect_foresight:
-        # Make and solve a perfect foresight consumer type
-        PerfectForesightType = deepcopy(InfiniteType)    
-        PerfectForesightType.solveOnePeriod = solvePerfForesight
-        
-        start_time = clock()
-        PerfectForesightType.solve()
-        end_time = clock()
-        print('Solving a perfect foresight consumer took ' + mystr(end_time-start_time) + 
-              ' seconds.')
-        PerfectForesightType.unpack_cFunc()
-        PerfectForesightType.timeFwd()
-        
-        print('Consumption functions for perfect foresight vs risky income:')            
-        plotFuncs([PerfectForesightType.cFunc[0],InfiniteType.cFunc[0]],
-                  InfiniteType.solution[0].mNrmMin,100)
-        if InfiniteType.vFuncBool:
-            print('Value functions for perfect foresight vs risky income:')
-            plotFuncs([PerfectForesightType.solution[0].vFunc,InfiniteType.solution[0].vFunc],
-                      InfiniteType.solution[0].mNrmMin+0.5,10)
-            
+        CyclicalExample.sim_periods = 480
+        CyclicalExample.makeIncShkHist()
+        CyclicalExample.initializeSim()
+        CyclicalExample.simConsHistory()
     
-####################################################################################################    
-
+ 
+###############################################################################
 
     # Make and solve an agent with a kinky interest rate
-    KinkyType = deepcopy(InfiniteType)
-
-    KinkyType.time_inv.remove('Rfree')
-    KinkyType.time_inv += ['Rboro','Rsave']
-    KinkyType(Rboro = 1.2, Rsave = 1.03, BoroCnstArt = None, aXtraCount = 48, cycles=0, 
-              CubicBool = False)
-
-    KinkyType.solveOnePeriod = consumptionSavingSolverKinkedR
-    KinkyType.updateAssetsGrid()
+    KinkyType = KinkedRconsumerType(**Params.init_kinked_R)
+    KinkyType.cycles = 0 # Make the type infinite horizon
     
     start_time = clock()
     KinkyType.solve()
@@ -2106,36 +2189,5 @@ if __name__ == '__main__':
         KinkyType.makeIncShkHist()
         KinkyType.initializeSim()
         KinkyType.simConsHistory()
-    
-####################################################################################################    
-
-
-    
-    # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
-    # The consumer has income that greatly fluctuates throughout the year.
-    CyclicalType = deepcopy(LifecycleType)
-    CyclicalType.assignParameters(LivPrb = [0.98]*4,
-                                      DiscFac = [0.96]*4,
-                                      PermGroFac = [1.1, 0.3, 2.8, 1.082251],
-                                      cycles = 0) # This is what makes the type (cyclically) infinite horizon)
-    CyclicalType.IncomeDstn = [LifecycleType.IncomeDstn[-1]]*4
-    
-    start_time = clock()
-    CyclicalType.solve()
-    end_time = clock()
-    print('Solving a cyclical consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    CyclicalType.unpack_cFunc()
-    CyclicalType.timeFwd()
-    
-    # Plot the consumption functions for the cyclical consumer type
-    print('Quarterly consumption functions:')
-    mMin = min([X.mNrmMin for X in CyclicalType.solution])
-    plotFuncs(CyclicalType.cFunc,mMin,5)
-    
-    if do_simulation:
-        CyclicalType.sim_periods = 480
-        CyclicalType.makeIncShkHist()
-        CyclicalType.initializeSim()
-        CyclicalType.simConsHistory()
     
     

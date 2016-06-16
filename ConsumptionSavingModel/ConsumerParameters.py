@@ -2,6 +2,9 @@
 Specifies examples of the full set of parameters required to solve various
 consumption-saving models.
 '''
+from copy import copy
+import numpy as np
+
 # -----------------------------------------------------------------------------
 # --- Define all of the parameters for the perfect foresight model ------------
 # -----------------------------------------------------------------------------
@@ -79,4 +82,65 @@ init_idiosyncratic_shocks = { 'CRRA': CRRA,
                               'T_retire':T_retire,
                               'T_total':T_total
                              }
+                             
+# Make a dictionary to specify a lifecycle consumer with a finite horizon
+init_lifecycle = copy(init_idiosyncratic_shocks)
+init_lifecycle['DiscFac'] = 10*DiscFac
+init_lifecycle['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
+init_lifecycle['PermShkStd'] = [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0,0,0]
+init_lifecycle['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,0,0,0]
+init_lifecycle['LivPrb']     = [0.99,0.98,0.97,0.96,0.95,0.94,0.93,0.92,0.91,0.90]
+init_lifecycle['T_total']    = 10
+init_lifecycle['T_retire']   = 7
 
+# Make a dictionary to specify an infinite consumer with a four period cycle
+init_cyclical = copy(init_idiosyncratic_shocks)
+init_cyclical['DiscFac'] = 4*DiscFac
+init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
+init_cyclical['PermShkStd'] = [0.1,0.1,0.1,0.1]
+init_cyclical['TranShkStd'] = [0.1,0.1,0.1,0.1]
+init_cyclical['LivPrb']     = 4*[0.98]
+init_cyclical['T_total']    = 4
+
+
+# -----------------------------------------------------------------------------
+# -------- Define additional parameters for the "kinked R" model --------------
+# -----------------------------------------------------------------------------
+
+Rboro = 1.20           # Interest factor on assets when borrowing, a < 0
+Rsave = 1.01           # Interest factor on assets when saving, a > 0
+
+# Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
+init_kinked_R = copy(init_idiosyncratic_shocks)
+del init_kinked_R['Rfree'] # get rid of constant interest factor
+init_kinked_R['Rboro'] = Rboro
+init_kinked_R['Rsave'] = Rsave
+init_kinked_R['BoroCnstArt'] = None # kinked R is a bit silly if borrowing not allowed
+init_kinked_R['aXtraCount'] = 48
+init_kinked_R['CubicBool'] = False # kinked R currently only compatible with linear cFunc
+
+
+# -----------------------------------------------------------------------------
+# ----- Define additional parameters for the preference shock model -----------
+# -----------------------------------------------------------------------------
+
+PrefShkCount = 12        # Number of points in discrete approximation to preference shock dist
+PrefShk_tail_N = 4       # Number of "tail points" on each end of pref shock dist
+PrefShkStd = [0.30]      # Standard deviation of utility shocks
+
+# Make a dictionary to specify a preference shock consumer
+init_preference_shocks = copy(init_kinked_R)
+init_preference_shocks['PrefShkCount'] = PrefShkCount
+init_preference_shocks['PrefShk_tail_N'] = PrefShk_tail_N
+init_preference_shocks['PrefShkStd'] = PrefShkStd
+
+
+# -----------------------------------------------------------------------------
+# ----- Define additional parameters for the aggregate shocks model -----------
+# -----------------------------------------------------------------------------
+kGrid = np.array([0.01,0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0])  # Grid of capital-to-labor-ratios
+kNextFunc = lambda k : 0.1 + 0.9*k    # Beliefs about next period's capital ratio as a function of this period's
+Rfunc = lambda k : 1.0/k              # Interest factor on assets as a function of capital-to-labor ratio
+wFunc = lambda k : k                  # Wage rate as a function of capital-to-labor ratio
+
+# Make a dictionary to specify an aggregate shocks consumer
