@@ -9,12 +9,11 @@ sys.path.insert(0,'../')
 
 import numpy as np
 from HARKutilities import approxMeanOneLognormal
-from copy import copy
-from ConsumptionSavingModel import ConsumerType, ConsumerSolution, ConsumptionSavingSolverKinkedR, \
+from ConsumptionSavingModel import KinkedRconsumerType, ConsumerSolution, ConsumptionSavingSolverKinkedR, \
                                    ValueFunc, MargValueFunc
 from HARKinterpolation import LinearInterpOnInterp1D, LinearInterp, CubicInterp, LowerEnvelope
 
-class PrefShockConsumerType(ConsumerType):
+class PrefShockConsumerType(KinkedRconsumerType):
     '''
     A class for representing consumers who experience multiplicative shocks to
     utility each period, specified as iid lognormal.
@@ -37,11 +36,8 @@ class PrefShockConsumerType(ConsumerType):
         -------
         None
         '''      
-        ConsumerType.__init__(self,**kwds)
+        KinkedRconsumerType.__init__(self,**kwds)
         self.solveOnePeriod = solveConsPrefShock # Choose correct solver
-        self.time_inv.remove('Rfree') # Remove constant interest factor
-        self.time_inv.append('Rboro') # Replace with interest factors on borrowing and saving
-        self.time_inv.append('Rsave')
     
     def update(self):
         '''
@@ -57,7 +53,7 @@ class PrefShockConsumerType(ConsumerType):
         -------
         None
         '''
-        ConsumerType.update(self)     # Update assets grid, income process, terminal solution
+        KinkedRconsumerType.update(self)     # Update assets grid, income process, terminal solution
         self.updatePrefShockProcess() # Update the discrete preference shock process
         
     def updatePrefShockProcess(self):
@@ -144,7 +140,7 @@ class PrefShockConsumerType(ConsumerType):
         none
         '''
         self.PrefShkNow = self.PrefShkHist[self.Shk_idx,:]
-        ConsumerType.advanceIncShks(self)
+        KinkedRconsumerType.advanceIncShks(self)
             
     def simOnePrd(self):
         '''
@@ -443,38 +439,21 @@ def solveConsPrefShock(solution_next,IncomeDstn,PrefShkDstn,
     solution = solver.solve()
     return solution
 
-
-
-####################################################################################################     
+###############################################################################
     
 if __name__ == '__main__':
-    import SetupConsumerParameters as Params
+    import ConsumerParameters as Params
     import matplotlib.pyplot as plt
-    from HARKutilities import plotFunc
+    from HARKutilities import plotFuncs
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
     
     do_simulation = True
-
-    # Extend the default initialization dictionary
-    ConsPrefShock_dict                      = copy(Params.init_consumer_objects)
-    ConsPrefShock_dict['PrefShkCount']      = 12      # Number of points in discrete approximation to preference shock dist
-    ConsPrefShock_dict['PrefShk_tail_N']    = 4       # Number of "tail points" on each end of pref shock dist
-    ConsPrefShock_dict['PrefShkStd']        = [0.30]  # Standard deviation of utility shocks
-    ConsPrefShock_dict['Rboro']             = 1.20    # Interest factor when borrowing
-    ConsPrefShock_dict['Rsave']             = 1.03    # Interest factor when saving
-    ConsPrefShock_dict['BoroCnstArt']       = None    # Artificial borrowing constraint
-    ConsPrefShock_dict['aXtraCount']        = 64      # Number of asset gridpoints
-    ConsPrefShock_dict['aXtraMax']          = 100     # Highest asset gridpoint
-    ConsPrefShock_dict['T_total']           = 1
     
     # Make and solve a preference shock consumer
-    PrefShockExample = PrefShockConsumerType(**ConsPrefShock_dict)
-    PrefShockExample.assignParameters(LivPrb = [0.98],
-                                      DiscFac = [0.96],
-                                      PermGroFac = [1.02],
-                                      CubicBool = False,
-                                      cycles = 0)
+    PrefShockExample = PrefShockConsumerType(**Params.init_preference_shocks)
+    PrefShockExample.cycles = 0 # Infinite horizon    
+    
     t_start = clock()
     PrefShockExample.solve()
     t_end = clock()
@@ -498,7 +477,7 @@ if __name__ == '__main__':
     
     if PrefShockExample.vFuncBool:
             print('Value function (unconditional on shock):')
-            plotFunc(PrefShockExample.solution[0].vFunc,PrefShockExample.solution[0].mNrmMin+0.5,5)
+            plotFuncs(PrefShockExample.solution[0].vFunc,PrefShockExample.solution[0].mNrmMin+0.5,5)
     
     # Test the simulator for the pref shock class
     if do_simulation:
@@ -507,5 +486,3 @@ if __name__ == '__main__':
         PrefShockExample.makePrefShkHist()
         PrefShockExample.initializeSim()
         PrefShockExample.simConsHistory()
-        
-    

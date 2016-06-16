@@ -16,7 +16,7 @@ from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP
                           CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
                           approxMeanOneLognormal
 from HARKsimulation import drawDiscrete, drawBernoulli
-from ConsumptionSavingModel import ConsumerSolution, ConsumerType
+from ConsumptionSavingModel import ConsumerSolution, IndShockConsumerType
 from HARKcore import HARKobject, Market, AgentType
 from copy import deepcopy
 
@@ -58,7 +58,7 @@ class MargValueFunc2D():
         
 ###############################################################################
         
-class AggShockConsumerType(ConsumerType):
+class AggShockConsumerType(IndShockConsumerType):
     '''
     A class to represent consumers who face idiosyncratic (transitory and per-
     manent) shocks to their income and live in an economy that has aggregate
@@ -73,12 +73,12 @@ class AggShockConsumerType(ConsumerType):
         Make a new instance of AggShockConsumerType, an extension of the basic
         ConsumerType.  Sets appropriate solver and input lists.
         '''
-        AgentType.__init__(self,solution_terminal=deepcopy(ConsumerType.solution_terminal_),
+        AgentType.__init__(self,solution_terminal=deepcopy(IndShockConsumerType.solution_terminal_),
                            time_flow=time_flow,pseudo_terminal=False,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.time_vary = deepcopy(ConsumerType.time_vary_)
-        self.time_inv = deepcopy(ConsumerType.time_inv_)
+        self.time_vary = deepcopy(IndShockConsumerType.time_vary_)
+        self.time_inv = deepcopy(IndShockConsumerType.time_inv_)
         self.time_vary.remove('DiscFac')
         self.time_inv += ['DiscFac','kGrid','kNextFunc','Rfunc','wFunc']
         self.solveOnePeriod = solveConsumptionSavingAggShocks

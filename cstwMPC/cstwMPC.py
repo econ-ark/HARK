@@ -9,7 +9,7 @@ sys.path.insert(0,'../')
 sys.path.insert(0,'../ConsumptionSavingModel')
 
 import numpy as np
-from copy import copy, deepcopy
+from copy import deepcopy
 from time import time
 from HARKutilities import approxLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, \
                           getPercentiles, getLorenzShares, calcSubpopAvg
@@ -27,7 +27,7 @@ import csv
 # ====== Make an extension of the basic ConsumerType ==============
 # =================================================================
 
-class cstwMPCagent(Model.ConsumerType):
+class cstwMPCagent(Model.IndShockConsumerType):
     '''
     A consumer type in the cstwMPC model; a slight modification of base ConsumerType.
     '''
@@ -48,12 +48,12 @@ class cstwMPCagent(Model.ConsumerType):
         new instance of cstwMPCagent
         '''
         # Initialize a basic AgentType
-        AgentType.__init__(self,solution_terminal=deepcopy(Model.ConsumerType.solution_terminal_),
+        AgentType.__init__(self,solution_terminal=deepcopy(Model.IndShockConsumerType.solution_terminal_),
                            time_flow=time_flow,pseudo_terminal=False,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.time_vary = deepcopy(Model.ConsumerType.time_vary_)
-        self.time_inv = deepcopy(Model.ConsumerType.time_inv_)
+        self.time_vary = deepcopy(Model.IndShockConsumerType.time_vary_)
+        self.time_inv = deepcopy(Model.IndShockConsumerType.time_inv_)
         self.time_vary.remove('DiscFac')
         self.time_inv.append('DiscFac')
         self.solveOnePeriod = Model.consumptionSavingSolverENDG # this can be swapped for consumptionSavingSolverEXOG or another solver
@@ -833,7 +833,7 @@ if __name__ == "__main__":
         assignBetaDistribution(agg_shocks_type_list,DiscFac_list_agg)
         
         # Make a market for solving the FBS aggregate shocks model
-        scale_grid = np.array([0.01,0.1,0.3,0.6,0.8,0.98,1.0,1.02,1.1,1.2,1.6,2.0])
+        scale_grid = np.array([0.01,0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0])
         agg_shocks_market = CobbDouglasEconomy(agents = agg_shocks_type_list,
                         act_T         = Params.sim_periods_agg_shocks,
                         tolerance     = 0.0001)
