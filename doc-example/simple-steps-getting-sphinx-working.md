@@ -53,7 +53,7 @@ Basic steps to get Sphinx running:
         $ sphinx-apidoc -f -o ./ ../
     - NOTE: syntax is:
         * '-f' force overwrite of html files
-        * '-o' Requred: where to find the *source .rst files for sphinx*; we are using 'doc' directly
+        * '-o' Required: where to find the *source .rst files for sphinx*; we are using 'doc' directly
         * './' target for '-o'
         * '../' where to look for the Python files to pull code out of
     - NOTE that when we want to create these for other files, such as ConsumptionSavingModel, we will need to indicate that here as well. Run this to generate .rst files for ConsumptionSavingModel:
@@ -109,6 +109,9 @@ Indices and tables
 
 
 10. Add a Very Brief Welcome Text -- **TODO** -- this can be raw text directly above "Contents" or something as included in a seperate .rst file we reference before "Contents"
+
+10.5. NOTE: If you do not have joblib installed, Sphinx will fail when it attempts to run HARKParallel. If you do not want to install joblib, remove HARKParallel from the index.rst file. To install: conda install joblib should install joblib to your anaconda package.
+
 
 11. Run
 
