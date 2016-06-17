@@ -1647,7 +1647,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if hasattr(self,'Rboro'):
             self.RboroNow = self.Rboro
             self.RsaveNow = self.Rsave
-        else:
+        elif hasattr(self,'Rfree'):
             self.RfreeNow = self.Rfree
         blank_history = np.zeros((sim_prds,self.Nagents)) + np.nan
         self.pHist    = copy(blank_history)

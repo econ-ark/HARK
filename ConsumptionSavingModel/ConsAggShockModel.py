@@ -10,7 +10,6 @@ sys.path.insert(0,'../')
 
 import numpy as np
 import scipy.stats as stats
-import matplotlib.pyplot as plt
 from HARKinterpolation import LinearInterp, LinearInterpOnInterp1D
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                           CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
@@ -80,8 +79,13 @@ class AggShockConsumerType(IndShockConsumerType):
         self.time_vary = deepcopy(IndShockConsumerType.time_vary_)
         self.time_inv = deepcopy(IndShockConsumerType.time_inv_)
         self.time_vary.remove('DiscFac')
-        self.time_inv += ['DiscFac','kGrid','kNextFunc','Rfunc','wFunc']
+        self.time_inv += ['DiscFac']
+        self.time_inv.remove('Rfree')
+        self.time_inv.remove('BoroCnstArt')
+        self.time_inv.remove('vFuncBool')
+        self.time_inv.remove('CubicBool')
         self.solveOnePeriod = solveConsumptionSavingAggShocks
+        self.p_init = np.ones(self.Nagents)
         self.update()
         
     def reset(self):
@@ -115,6 +119,43 @@ class AggShockConsumerType(IndShockConsumerType):
         vPfunc_terminal = lambda m,k : m**(-self.CRRA)
         cFunc_terminal  = lambda m,k : m
         self.solution_terminal = ConsumerSolution(cFunc=cFunc_terminal,vPfunc=vPfunc_terminal)
+        
+    def getEconomyData(self,Economy):
+        '''
+        Imports economy-determined objects into the ConsumerType from a Market.
+        Instances of AggShockConsumerType "live" in some macroeconomy that has
+        attributes relevant to their microeconomic model, like the relationship
+        between the capital-to-labor ratio and the interest and wage rates; this
+        method imports those attributes from an "economy" object and makes them
+        attributes of the ConsumerType.
+        
+        Parameters
+        ----------
+        Economy : Market
+            The "macroeconomy" in which this instance "lives".  Might be of the
+            subclass CobbDouglasEconomy, which has methods to generate the
+            relevant attributes.
+            
+        Returns
+        -------
+        None
+        '''
+        self.a_init = Economy.KtoYSS*np.ones(self.Nagents)  # Initialize assets to steady state
+        self.kGrid  = Economy.kSS*self.kGridBase            # Capital ratio grid adjusted around SS ratio
+        self.kNextFunc = Economy.kNextFunc                  # Next period's capital ratio as function of current ratio
+        self.Rfunc = Economy.Rfunc                          # Interest factor as function of capital ratio
+        self.wFunc = Economy.wFunc                          # (Normalized) wage rate as function of capital ratio
+        IncomeDstnWithAggShks = combineIndepDstns(self.PermShkDstn,self.TranShkDstn,Economy.PermShkAggDstn,Economy.TranShkAggDstn)
+        self.IncomeDstn = [IncomeDstnWithAggShks]           # Discrete income distribution with aggregate and idiosyncratic shocks
+        self.DiePrb = 1.0 - self.LivPrb[0]                  # Only relevant for simulating with mortality
+        if not ('kGrid' in self.time_inv):
+            self.time_inv.append('kGrid')
+        if not ('kNextFunc' in self.time_inv):
+            self.time_inv.append('kNextFunc')
+        if not ('Rfunc' in self.time_inv):
+            self.time_inv.append('Rfunc')
+        if not ('wFunc' in self.time_inv):
+            self.time_inv.append('wFunc')
         
     def simOnePrd(self):
         '''
@@ -336,7 +377,7 @@ class CobbDouglasEconomy(Market):
     Note: In the current implementation assumes a constant labor supply, but
     this will be generalized in the future.
     '''
-    def __init__(self,agents=[],tolerance=0.0001,act_T=1000):
+    def __init__(self,agents=[],tolerance=0.0001,act_T=1000,**kwds):
         '''
         Make a new instance of CobbDouglasEconomy by filling in attributes
         specific to this kind of market.
@@ -363,6 +404,8 @@ class CobbDouglasEconomy(Market):
                             dyn_vars=['kNextFunc'],
                             tolerance=tolerance,
                             act_T=act_T)
+        self.assignParameters(**kwds)
+        self.update()
     
     
     def millRule(self,pNow,aNow):
@@ -644,4 +687,55 @@ class CapDynamicRule(HARKobject):
         '''
         self.kNextFunc = kNextFunc
         self.distance_criteria = ['kNextFunc']
-               
+        
+        
+###############################################################################
+        
+if __name__ == '__main__':
+    import ConsumerParameters as Params
+    from time import clock
+    import matplotlib.pyplot as plt
+    from HARKutilities import plotFuncs
+    mystr = lambda number : "{:.4f}".format(number)
+    
+    # Make an aggregate shocks consumer
+    AggShockExample = AggShockConsumerType(**Params.init_agg_shocks)
+    AggShockExample.cycles = 0
+    AggShockExample.sim_periods = 3000
+    AggShockExample.makeIncShkHist()  # Simulate a history of idiosyncratic shocks
+    
+    # Make a Cobb-Douglas economy for the agents
+    EconomyExample = CobbDouglasEconomy(agents = [AggShockExample],act_T=3000,**Params.init_cobb_douglas)
+    EconomyExample.makeAggShkHist() # Simulate a history of aggregate shocks
+    
+    # Have the consumers inherit relevant objects from the economy
+    AggShockExample.getEconomyData(EconomyExample)
+    
+    # Solve the microeconomic model for the aggregate shocks example type (and display results)
+    t_start = clock()
+    AggShockExample.solve()
+    t_end = clock()
+    print('Solving an aggregate shocks consumer took ' + mystr(t_end-t_start) + ' seconds.')
+    print('Consumption function at each capital-to-labor ratio gridpoint:')
+    m_grid = np.linspace(0,10,200)
+    AggShockExample.unpack_cFunc()
+    for k in AggShockExample.kGrid.tolist():
+        c_at_this_k = AggShockExample.cFunc[0](m_grid,k*np.ones_like(m_grid))
+        plt.plot(m_grid,c_at_this_k)
+    plt.show()
+    
+    # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
+    t_start = clock()
+    EconomyExample.solve()
+    t_end = clock()
+    print('Solving the "macroeconomic" aggregate shocks model took ' + str(t_end - t_start) + ' seconds.')
+    print('Next capital-to-labor ratio as function of current ratio:')
+    plotFuncs(EconomyExample.kNextFunc,0,2*EconomyExample.kSS)
+    print('Consumption function at each capital-to-labor ratio gridpoint (in general equilibrium):')
+    AggShockExample.unpack_cFunc()
+    m_grid = np.linspace(0,10,200)
+    for k in AggShockExample.kGrid.tolist():
+        c_at_this_k = AggShockExample.cFunc[0](m_grid,k*np.ones_like(m_grid))
+        plt.plot(m_grid,c_at_this_k)
+    plt.show()
+    

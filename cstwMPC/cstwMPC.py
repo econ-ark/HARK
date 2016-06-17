@@ -833,25 +833,16 @@ if __name__ == "__main__":
         assignBetaDistribution(agg_shocks_type_list,DiscFac_list_agg)
         
         # Make a market for solving the FBS aggregate shocks model
-        scale_grid = np.array([0.01,0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0])
         agg_shocks_market = CobbDouglasEconomy(agents = agg_shocks_type_list,
                         act_T         = Params.sim_periods_agg_shocks,
-                        tolerance     = 0.0001)
-        agg_shocks_market(**Params.aggregate_params)
-        agg_shocks_market.update()
+                        tolerance     = 0.0001,
+                        **Params.aggregate_params)
         agg_shocks_market.makeAggShkHist()
         
         # Edit the consumer types so they have the right data
         for this_type in agg_shocks_market.agents:
-            this_type.a_init = agg_shocks_market.KtoYSS*np.ones(this_type.Nagents)
             this_type.p_init = drawMeanOneLognormal(sigma=0.9,N=this_type.Nagents)
-            this_type.kGrid  = agg_shocks_market.kSS*scale_grid[2:-1]
-            this_type.kNextFunc = agg_shocks_market.kNextFunc
-            this_type.Rfunc = agg_shocks_market.Rfunc
-            this_type.wFunc = agg_shocks_market.wFunc
-            IncomeDstnWithAggShks = combineIndepDstns(this_type.PermShkDstn,this_type.TranShkDstn,agg_shocks_market.PermShkAggDstn,agg_shocks_market.TranShkAggDstn)
-            this_type.IncomeDstn = [IncomeDstnWithAggShks]
-            this_type.DiePrb = 1.0 - this_type.LivPrb[0]
+            this_type.getEconomyData(agg_shocks_market)
         
         # Solve the aggregate shocks version of the model
         t_start = time()
