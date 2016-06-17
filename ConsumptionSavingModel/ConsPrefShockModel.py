@@ -9,7 +9,7 @@ sys.path.insert(0,'../')
 
 import numpy as np
 from HARKutilities import approxMeanOneLognormal
-from ConsumptionSavingModel import KinkedRconsumerType, ConsumerSolution, ConsumptionSavingSolverKinkedR, \
+from ConsIndShockModel import KinkedRconsumerType, ConsumerSolution, ConsKinkedRsolver, \
                                    ValueFunc, MargValueFunc
 from HARKinterpolation import LinearInterpOnInterp1D, LinearInterp, CubicInterp, LowerEnvelope
 
@@ -188,7 +188,7 @@ class PrefShockConsumerType(KinkedRconsumerType):
         self.aNow   = aNow
 
 
-class ConsPrefShockSolver(ConsumptionSavingSolverKinkedR):
+class ConsPrefShockSolver(ConsKinkedRsolver):
     '''
     A class for solving the one period consumption-saving problem with risky
     income (permanent and transitory shocks), a different interest factor on
@@ -246,7 +246,7 @@ class ConsPrefShockSolver(ConsumptionSavingSolverKinkedR):
         -------
         None
         '''
-        ConsumptionSavingSolverKinkedR.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
+        ConsKinkedRsolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                       Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
         self.PrefShkPrbs = PrefShkDstn[0]
         self.PrefShkVals = PrefShkDstn[1]

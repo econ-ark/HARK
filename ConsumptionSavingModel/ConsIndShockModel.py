@@ -289,7 +289,7 @@ class MargMargValueFunc():
 # === Classes and functions that solve consumption-saving models ===
 # =====================================================================
 
-class PerfectForesightSolver(object):
+class ConsPerfForesightSolver(object):
     '''
     A class for solving a one period perfect foresight consumption-saving problem.
     An instance of this class is created by the function solvePerfForesight in each period.
@@ -391,7 +391,7 @@ class PerfectForesightSolver(object):
         self.vFunc   = ValueFunc(vFuncNvrs,self.CRRA)
         self.vPfunc  = MargValueFunc(self.cFunc,self.CRRA)
         
-    def makecFuncPF(self):
+    def makePFcFunc(self):
         '''
         Makes the (linear) consumption function for this period.
         
@@ -427,7 +427,7 @@ class PerfectForesightSolver(object):
         '''
         self.defUtilityFuncs()
         self.DiscFacEff = self.DiscFac*self.LivPrb
-        self.makecFuncPF()
+        self.makePFcFunc()
         self.defValueFuncs()
         solution = ConsumerSolution(cFunc=self.cFunc, vFunc=self.vFunc, vPfunc=self.vPfunc,
                                     mNrmMin=self.mNrmMin, hNrm=self.hNrmNow,
@@ -460,24 +460,24 @@ def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
     solution : ConsumerSolution
             The solution to this period's problem.
     '''
-    solver = PerfectForesightSolver(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac)
+    solver = ConsPerfForesightSolver(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac)
     solution = solver.solve()
     return solution
 
 
 ###############################################################################
 ###############################################################################
-class SetupImperfectForesightSolver(PerfectForesightSolver):
+class ConsIndShockSetup(ConsPerfForesightSolver):
     '''
     A superclass for solvers of one period consumption-saving problems with
     constant relative risk aversion utility and permanent and transitory shocks
-    to income.
+    to income.  Has methods to set up but not solve the one period problem.
     '''
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
                       PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
         '''
-        Constructor for a new solver for problems with income subject to permanent and transitory
-        shocks.
+        Constructor for a new solver for problems with income subject to permanent
+        and transitory shocks.
         
         Parameters
         ----------
@@ -520,7 +520,7 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         '''
         self.assignParameters(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
                                 PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
-        self.defineUtilityFunctions()
+        self.defUtilityFuncs()
 
     def assignParameters(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
                                 PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
@@ -566,16 +566,16 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         -------
         none
         '''
-        PerfectForesightSolver.assignParameters(self,solution_next,DiscFac,LivPrb,
+        ConsPerfForesightSolver.assignParameters(self,solution_next,DiscFac,LivPrb,
                                                 CRRA,Rfree,PermGroFac)
-        self.BoroCnstArt       = BoroCnstArt
+        self.BoroCnstArt    = BoroCnstArt
         self.IncomeDstn     = IncomeDstn
         self.aXtraGrid      = aXtraGrid
         self.vFuncBool      = vFuncBool
         self.CubicBool      = CubicBool
         
 
-    def defineUtilityFunctions(self):
+    def defUtilityFuncs(self):
         '''
         Defines CRRA utility function for this period (and its derivatives,
         and their inverses), saving them as attributes of self for other methods
@@ -589,7 +589,7 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         -------
         none
         '''
-        PerfectForesightSolver.defUtilityFuncs(self)
+        ConsPerfForesightSolver.defUtilityFuncs(self)
         self.uPinv     = lambda u : utilityP_inv(u,gam=self.CRRA)
         self.uPinvP    = lambda u : utilityP_invP(u,gam=self.CRRA)
         self.uinvP     = lambda u : utility_invP(u,gam=self.CRRA)        
@@ -651,7 +651,7 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
                                         self.PatFac/solution_next.MPCmax)
 
 
-    def defineBorrowingConstraint(self,BoroCnstArt):
+    def defBoroCnst(self,BoroCnstArt):
         '''
         Defines the constrained portion of the consumption function as cFuncNowCnst,
         an attribute of self.  Uses the artificial and natural borrowing constraints.
@@ -696,13 +696,13 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         none
         '''
         self.setAndUpdateValues(self.solution_next,self.IncomeDstn,self.LivPrb,self.DiscFac)
-        self.defineBorrowingConstraint(self.BoroCnstArt)
+        self.defBoroCnst(self.BoroCnstArt)
 
 
 ####################################################################################################
 ####################################################################################################
 
-class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
+class ConsIndShockSolverBasic(ConsIndShockSetup):
     '''
     This class solves a single period of a standard consumption-saving problem,
     using linear interpolation and without the ability to calculate the value
@@ -713,7 +713,7 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
     izes the same problem in the same way as SetupImperfectForesightSolver,
     from which it inherits.
     '''    
-    def prepareToGetGothicvP(self):
+    def prepareToCalcEndOfPrdvP(self):
         '''
         Prepare to calculate end-of-period marginal value by creating an array
         of market resources that the agent could have next period, considering
@@ -750,7 +750,7 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         return aNrmNow
 
 
-    def getGothicvP(self):
+    def calcEndOfPrdvP(self):
         '''
         Calculate end-of-period marginal value of assets at each point in aNrmNow
         by taking a weighted sum of next period marginal values across income
@@ -839,7 +839,7 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         return solution_now
 
 
-    def getSolution(self,EndOfPrdvP,aNrm,interpolator):
+    def makeBasicSolution(self,EndOfPrdvP,aNrm,interpolator):
         '''
         Given end of period assets and end of period marginal value, construct
         the basic solution for this period.
@@ -887,7 +887,7 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         return solution
 
         
-    def makecFuncLinear(self,mNrm,cNrm):
+    def makeLinearcFunc(self,mNrm,cNrm):
         '''
         Makes a linear interpolation to represent the (unconstrained) consumption function.
         
@@ -919,9 +919,9 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         -------
         none
         '''
-        aNrm       = self.prepareToGetGothicvP()           
-        EndOfPrdvP = self.getGothicvP()                        
-        solution   = self.getSolution(EndOfPrdvP,aNrm,self.makecFuncLinear)
+        aNrm       = self.prepareToCalcEndOfPrdvP()           
+        EndOfPrdvP = self.calcEndOfPrdvP()                        
+        solution   = self.makeBasicSolution(EndOfPrdvP,aNrm,self.makeLinearcFunc)
         solution   = self.addMPCandHumanWealth(solution)
         return solution        
        
@@ -929,14 +929,14 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
 ###############################################################################
 ###############################################################################
 
-class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
+class ConsIndShockSolver(ConsIndShockSolverBasic):
     '''
     This class solves a single period of a standard consumption-saving problem.
     It inherits from ConsumptionSavingSolverENDGBasic, adding the ability to
     perform cubic interpolation and to calculate the value function.
     '''
 
-    def getConsumptionCubic(self,mNrm,cNrm):
+    def makeCubiccFunc(self,mNrm,cNrm):
         '''
         Makes a cubic spline interpolation of the unconstrained consumption
         function for this period.
@@ -991,7 +991,7 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         self.EndOfPrdvFunc  = ValueFunc(EndOfPrdvNvrsFunc,self.CRRA)
 
 
-    def putVfuncInSolution(self,solution,EndOfPrdvP):
+    def addvFunc(self,solution,EndOfPrdvP):
         '''
         Creates the value function for this period and adds it to the solution.
         
@@ -1092,26 +1092,26 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
             The solution to the single period consumption-saving problem.
         '''
         # Make arrays of end-of-period assets and end-of-period marginal value
-        aNrm         = self.prepareToGetGothicvP()           
-        EndOfPrdvP   = self.getGothicvP()
+        aNrm         = self.prepareToCalcEndOfPrdvP()           
+        EndOfPrdvP   = self.calcEndOfPrdvP()
         
         # Construct a basic solution for this period
         if self.CubicBool:
-            solution   = self.getSolution(EndOfPrdvP,aNrm,interpolator=self.getConsumptionCubic)
+            solution   = self.makeBasicSolution(EndOfPrdvP,aNrm,interpolator=self.makeCubiccFunc)
         else:
-            solution   = self.getSolution(EndOfPrdvP,aNrm,interpolator=self.makecFuncLinear)
+            solution   = self.makeBasicSolution(EndOfPrdvP,aNrm,interpolator=self.makeLinearcFunc)
         solution       = self.addMPCandHumanWealth(solution) # add a few things
         
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used (to prepare for next period)
         if self.vFuncBool:
-            solution = self.putVfuncInSolution(solution,EndOfPrdvP)
+            solution = self.addvFunc(solution,EndOfPrdvP)
         if self.CubicBool: 
             solution = self.addvPPfunc(solution)
         return solution        
        
 
-def consumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
+def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
                                 BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
     '''
     Solves a single period consumption-saving problem with CRRA utility and risky
@@ -1164,11 +1164,11 @@ def consumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfr
     '''
     # Use the basic solver if user doesn't want cubic splines or the value function
     if (not CubicBool) and (not vFuncBool): 
-        solver = ConsumptionSavingSolverENDGBasic(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
+        solver = ConsIndShockSolverBasic(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                                                   Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,
                                                   CubicBool)        
     else: # Use the "advanced" solver if either is requested
-        solver = ConsumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
+        solver = ConsIndShockSolver(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
                                              PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
     solver.prepareToSolve()       # Do some preparatory work
     solution_now = solver.solve() # Solve the period
@@ -1178,7 +1178,7 @@ def consumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfr
 ####################################################################################################
 ####################################################################################################
 
-class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
+class ConsKinkedRsolver(ConsIndShockSolver):
     '''
     A class to solve a single period consumption-saving problem where the interest
     rate on debt differs from the interest rate on savings.  Inherits from
@@ -1238,7 +1238,7 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
 
         # Initialize the solver.  Most of the steps are exactly the same as in
         # the non-kinked-R basic case, so start with that.
-        ConsumptionSavingSolverENDG.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
+        ConsIndShockSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                                              Rboro,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,
                                              CubicBool) 
 
@@ -1246,7 +1246,7 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
         self.Rboro   = Rboro
         self.Rsave   = Rsave
 
-    def prepareToGetGothicvP(self):
+    def prepareToCalcEndOfPrdvP(self):
         '''
         Prepare to calculate end-of-period marginal value by creating an array
         of market resources that the agent could have next period, considering
@@ -1301,7 +1301,7 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
         return aNrmNow
 
 
-def consumptionSavingSolverKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
+def solveConsKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
                                    PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
     '''
     Solves a single period consumption-saving problem with CRRA utility and risky
@@ -1359,7 +1359,7 @@ def consumptionSavingSolverKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
     '''
     assert Rboro>=Rsave, 'Interest factor on debt less than interest factor on savings!'    
     
-    solver = ConsumptionSavingSolverKinkedR(solution_next,IncomeDstn,LivPrb,
+    solver = ConsKinkedRsolver(solution_next,IncomeDstn,LivPrb,
                                             DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
                                             aXtraGrid,vFuncBool,CubicBool)
     solver.prepareToSolve()                                      
@@ -1486,7 +1486,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.solveOnePeriod = consumptionSavingSolverENDG # idiosyncratic shocks solver
+        self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
         self.update() # Make assets grid, income process, terminal solution
             
     def makeIncShkHist(self):
@@ -1857,7 +1857,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.solveOnePeriod = consumptionSavingSolverKinkedR # kinked R solver
+        self.solveOnePeriod = solveConsKinkedR # kinked R solver
         self.update() # Make assets grid, income process, terminal solution
 
 # ==================================================================================

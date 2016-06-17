@@ -7,10 +7,12 @@ does not include two packages needed for it; see HARKparallel.py.  When given a
 sufficiently large amount of work for each thread to do, the maximum speedup
 factor seems to be around P/2, where P is the number of processors.
 '''
-import SetupConsumerParameters as Params       # Parameters for a consumer type
-import ConsumptionSavingModel as Model         # Consumption-saving model with idiosyncratic shocks
-import sys
-from HARKutilities import plotFunc, plotFuncDer, plotFuncs # Basic plotting tools
+import sys 
+sys.path.insert(0,'../')
+
+import ConsumerParameters as Params       # Parameters for a consumer type
+import ConsIndShockModel as Model         # Consumption-saving model with idiosyncratic shocks
+from HARKutilities import plotFuncs, plotFuncsDer # Basic plotting tools
 from time import clock                         # Timing utility
 from copy import deepcopy                      # "Deep" copying for complex objects
 from HARKparallel import multiThreadCommandsFake, multiThreadCommands # Parallel processing
@@ -24,17 +26,12 @@ if __name__ == '__main__': # Parallel calls *must* be inside a call to __main__
     # The basic type has an artificially dense assets grid, as the problem to be
     # solved must be sufficiently large for multithreading to be faster than
     # single-threading (looping), due to overhead.
-    BasicType = Model.ConsumerType(**Params.init_consumer_objects)
-    BasicType.aXtraMax  = 100
-    BasicType.aXtraCount = 64
-    BasicType.updateAssetsGrid()
-    BasicType.timeFwd()
-    BasicType.assignParameters(       LivPrb = [0.98],
-                                      DiscFac = [0.96],
-                                      PermGroFac = [1.01],
-                                      cycles = 0) # This is what makes the type infinite horizon
+    BasicType = Model.IndShockConsumerType(**Params.init_idiosyncratic_shocks)
+    BasicType.cycles = 0
+    BasicType(aXtraMax  = 100, aXtraCount = 64)
     BasicType(vFuncBool = False, cubicBool = True)
-    BasicType.IncomeDstn = [BasicType.IncomeDstn[0]] # A "one period" infinite horizon model, so only need one period of income distributions
+    BasicType.updateAssetsGrid()
+    BasicType.timeFwd()    
    
     # Solve the basic type and plot the results, to make sure things are working
     start_time = clock()
@@ -44,12 +41,12 @@ if __name__ == '__main__': # Parallel calls *must* be inside a call to __main__
     print('Solving the basic consumer took ' + mystr(end_time-start_time) + ' seconds.')
     BasicType.unpack_cFunc()
     print('Consumption function:')
-    plotFunc(BasicType.cFunc[0],0,5)    # plot consumption
+    plotFuncs(BasicType.cFunc[0],0,5)    # plot consumption
     print('Marginal consumption function:')
-    plotFuncDer(BasicType.cFunc[0],0,5) # plot MPC
+    plotFuncsDer(BasicType.cFunc[0],0,5) # plot MPC
     if BasicType.vFuncBool:
         print('Value function:')
-        plotFunc(BasicType.solution[0].vFunc,0.2,5)
+        plotFuncs(BasicType.solution[0].vFunc,0.2,5)
     
     # Make many copies of the basic type, each with a different risk aversion
     BasicType.vFuncBool = False # just in case it was set to True above

@@ -9,12 +9,11 @@ sys.path.insert(0,'../')
 
 from copy import deepcopy
 import numpy as np
-from ConsumptionSavingModel import ConsumptionSavingSolverENDG, ValueFunc, MargValueFunc, ConsumerSolution, IndShockConsumerType
+from ConsIndShockModel import ConsIndShockSolver, ValueFunc, MargValueFunc, ConsumerSolution, IndShockConsumerType
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
-from HARKutilities import approxMeanOneLognormal, combineIndepDstns, CRRAutility, CRRAutilityP, \
-                          CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
-                          CRRAutilityP_invP
+from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
+                          CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP
 
 utility       = CRRAutility
 utilityP      = CRRAutilityP
@@ -24,7 +23,7 @@ utility_invP  = CRRAutility_invP
 utility_inv   = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
 
-class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
+class ConsMarkovSolver(ConsIndShockSolver):
     '''
     A class to solve a single period consumption-saving problem with risky income
     and stochastic transitions between discrete states, in a Markov fashion.
@@ -88,10 +87,10 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         None
         '''
         # Set basic attributes of the problem
-        ConsumptionSavingSolverENDG.assignParameters(self,solution_next,np.nan,
+        ConsIndShockSolver.assignParameters(self,solution_next,np.nan,
                                                      LivPrb,DiscFac,CRRA,np.nan,np.nan,
                                                      BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
-        self.defineUtilityFunctions()
+        self.defUtilityFuncs()
         
         # Set additional attributes specific to the Markov model
         self.IncomeDstn_list      = IncomeDstn_list
@@ -236,7 +235,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         if self.vFuncBool:
             self.vFuncNext  = self.solution_next.vFunc[state_index]
         
-    def getGothicvPP(self):
+    def calcEndOfPrdvPP(self):
         '''
         Calculates end-of-period marginal marginal value using a pre-defined
         array of next period market resources in self.mNrmNext.
@@ -247,7 +246,9 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         
         Returns
         -------
-        none
+        EndOfPrdvPP : np.array
+            End-of-period marginal marginal value of assets at each value in
+            the grid of assets.
         '''
         EndOfPrdvPP = self.DiscFacEff*self.Rfree*self.Rfree*self.PermGroFac**(-self.CRRA-1.0)*\
                       np.sum(self.PermShkVals_temp**(-self.CRRA-1.0)*self.vPPfuncNext(self.mNrmNext)
@@ -283,6 +284,24 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         EndofPrdvFunc_cond     = ValueFunc(EndOfPrdvNvrsFunc_cond,self.CRRA)        
         return EndofPrdvFunc_cond
         
+    
+    def calcEndOfPrdvPcond(self):
+        '''
+        Calculate end-of-period marginal value of assets at each point in aNrmNow
+        conditional on a particular state occuring in the next period.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        EndOfPrdvP : np.array
+            A 1D array of end-of-period marginal value of assets.
+        '''
+        EndOfPrdvPcond = ConsIndShockSolver.calcEndOfPrdvP(self)
+        return EndOfPrdvPcond
+        
             
     def makeEndOfPrdvPfuncCond(self):
         '''
@@ -291,7 +310,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         
         Parameters
         ----------
-        none
+        None
         
         Returns
         -------
@@ -300,11 +319,11 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
             state occuring in the succeeding period.
         '''
         # Get data to construct the end-of-period marginal value function (conditional on next state) 
-        self.aNrm_cond      = self.prepareToGetGothicvP()  
-        self.EndOfPrdvP_cond= self.getGothicvP()
+        self.aNrm_cond      = self.prepareToCalcEndOfPrdvP()  
+        self.EndOfPrdvP_cond= self.calcEndOfPrdvPcond()
         EndOfPrdvPnvrs_cond = self.uPinv(self.EndOfPrdvP_cond) # "decurved" marginal value
         if self.CubicBool:
-            EndOfPrdvPP_cond = self.getGothicvPP()
+            EndOfPrdvPP_cond = self.calcEndOfPrdvPP()
             EndOfPrdvPnvrsP_cond = EndOfPrdvPP_cond*self.uPinvP(self.EndOfPrdvP_cond) # "decurved" marginal marginal value
         
         # Construct the end-of-period marginal value function conditional on the next state.
@@ -565,7 +584,7 @@ class ConsumptionSavingSolverMarkov(ConsumptionSavingSolverENDG):
         return vFuncNow
 
 
-def solveConsumptionSavingMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
+def solveConsMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
                                  MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
     '''
     Solves a single period consumption-saving problem with risky income and
@@ -630,9 +649,8 @@ def solveConsumptionSavingMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rf
         Markov state.  E.g. solution.cFunc[0] is the consumption function
         when in the i=0 Markov state this period.
     '''                                       
-    solver = ConsumptionSavingSolverMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                           PermGroFac,MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,
-                                           CubicBool)              
+    solver = ConsMarkovSolver(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
+                              PermGroFac,MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)              
     solution_now = solver.solve()
     return solution_now             
 
@@ -652,7 +670,7 @@ class MarkovConsumerType(IndShockConsumerType):
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
         IndShockConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
-        self.solveOnePeriod = solveConsumptionSavingMarkov
+        self.solveOnePeriod = solveConsMarkov
 
     def makeIncShkHist(self):
         '''
@@ -936,21 +954,21 @@ if __name__ == '__main__':
     
     init_unemployment_immunity = copy(Params.init_idiosyncratic_shocks)
     init_unemployment_immunity['MrkvArray'] = MrkvArray
-    ImmunityType = MarkovConsumerType(**init_unemployment_immunity)
-    ImmunityType.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])), # Interest factor same in all states
+    ImmunityExample = MarkovConsumerType(**init_unemployment_immunity)
+    ImmunityExample.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])), # Interest factor same in all states
                                   PermGroFac = [np.array(StateCount*[1.01])],    # Permanent growth factor same in all states
                                   BoroCnstArt = None,                            # No artificial borrowing constraint
                                   cycles = 0)                                    # Infinite horizon
-    ImmunityType.IncomeDstn = [IncomeDstn]
+    ImmunityExample.IncomeDstn = [IncomeDstn]
     
     # Solve the unemployment immunity problem and display the consumption functions
     start_time = clock()
-    ImmunityType.solve()
+    ImmunityExample.solve()
     end_time = clock()
     print('Solving an "unemployment immunity" consumer took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
-    mNrmMin = np.min([ImmunityType.solution[0].mNrmMin[j] for j in range(StateCount)])
-    plotFuncs(ImmunityType.solution[0].cFunc,mNrmMin,10)
+    mNrmMin = np.min([ImmunityExample.solution[0].mNrmMin[j] for j in range(StateCount)])
+    plotFuncs(ImmunityExample.solution[0].cFunc,mNrmMin,10)
      
 ###############################################################################
     
@@ -967,31 +985,31 @@ if __name__ == '__main__':
     
     init_serial_growth = copy(Params.init_idiosyncratic_shocks)
     init_serial_growth['MrkvArray'] = MrkvArray
-    SerialGroType = MarkovConsumerType(**init_serial_growth)
-    SerialGroType.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])),       # Same interest factor in each Markov state
+    SerialGroExample = MarkovConsumerType(**init_serial_growth)
+    SerialGroExample.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])),       # Same interest factor in each Markov state
                                    PermGroFac = [np.array([0.97,0.99,1.01,1.03,1.05])], # Different permanent growth factor in each Markov state
                                    cycles = 0)
-    SerialGroType.IncomeDstn = [IncomeDstn]         
+    SerialGroExample.IncomeDstn = [IncomeDstn]         
     
     # Solve the serially correlated permanent growth shock problem and display the consumption functions
     start_time = clock()
-    SerialGroType.solve()
+    SerialGroExample.solve()
     end_time = clock()
     print('Solving a serially correlated growth consumer took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
-    plotFuncs(SerialGroType.solution[0].cFunc,0,10)
+    plotFuncs(SerialGroExample.solution[0].cFunc,0,10)
     
 ###############################################################################
     
     # Make a consumer with serially correlated interest factors
-    SerialRType = deepcopy(SerialGroType) # Same as the last problem...
-    SerialRType.assignParameters(PermGroFac = [np.array(StateCount*[1.01])],   # ...but now the permanent growth factor is constant...
+    SerialRExample = deepcopy(SerialGroExample) # Same as the last problem...
+    SerialRExample.assignParameters(PermGroFac = [np.array(StateCount*[1.01])],   # ...but now the permanent growth factor is constant...
                                  Rfree = np.array([1.01,1.02,1.03,1.04,1.05])) # ...and the interest factor is what varies across states
     
     # Solve the serially correlated interest rate problem and display the consumption functions
     start_time = clock()
-    SerialRType.solve()
+    SerialRExample.solve()
     end_time = clock()
     print('Solving a serially correlated interest consumer took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
-    plotFuncs(SerialRType.solution[0].cFunc,0,10)
+    plotFuncs(SerialRExample.solution[0].cFunc,0,10)

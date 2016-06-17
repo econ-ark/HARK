@@ -15,7 +15,7 @@ from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP
                           CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
                           approxMeanOneLognormal
 from HARKsimulation import drawDiscrete, drawBernoulli
-from ConsumptionSavingModel import ConsumerSolution, IndShockConsumerType
+from ConsIndShockModel import ConsumerSolution, IndShockConsumerType
 from HARKcore import HARKobject, Market, AgentType
 from copy import deepcopy
 
@@ -84,7 +84,7 @@ class AggShockConsumerType(IndShockConsumerType):
         self.time_inv.remove('BoroCnstArt')
         self.time_inv.remove('vFuncBool')
         self.time_inv.remove('CubicBool')
-        self.solveOnePeriod = solveConsumptionSavingAggShocks
+        self.solveOnePeriod = solveConsAggShock
         self.p_init = np.ones(self.Nagents)
         self.update()
         
@@ -254,7 +254,7 @@ class AggShockConsumerType(IndShockConsumerType):
 ###############################################################################
 
 
-def solveConsumptionSavingAggShocks(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aXtraGrid,kGrid,kNextFunc,Rfunc,wFunc):
+def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aXtraGrid,kGrid,kNextFunc,Rfunc,wFunc):
     '''
     Solve one period of a consumption-saving problem with idiosyncratic and 
     aggregate shocks (transitory and permanent).  This is a basic solver that
