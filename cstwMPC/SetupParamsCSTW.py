@@ -267,6 +267,7 @@ init_agg_shocks = deepcopy(init_infinite)
 init_agg_shocks['Nagents'] = Nagents_agg_shocks
 init_agg_shocks['sim_periods'] = sim_periods_agg_shocks
 init_agg_shocks['tolerance'] = 0.0001
+init_agg_shocks['kGridBase'] = np.array([0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6])
                         
 # Make a dictionary for the aggrege shocks market
 aggregate_params = {'PermShkAggCount': PermShkAggCount,

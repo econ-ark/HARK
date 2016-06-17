@@ -14,8 +14,8 @@ import sys
 sys.path.insert(0,'../')
 sys.path.insert(0,'../ConsumptionSavingModel')
 
-import EstimationParameters as Params        # Parameters for the consumer type and the estimation
-import ConsumptionSavingModel as Model          # The consumption-saving micro model
+import EstimationParameters as Params           # Parameters for the consumer type and the estimation
+import ConsIndShockModel as Model               # The consumption-saving micro model
 import SetupSCFdata as Data                     # SCF 2004 data on household wealth
 from HARKsimulation import drawDiscrete         # Method for sampling from a discrete distribution
 from HARKestimation import minimizeNelderMead, bootstrapSampleFromData # Estimation methods
@@ -34,6 +34,8 @@ make_contour_plot = False         # Whether to make a contour map of the objecti
 
 # Make a lifecycle consumer to be used for estimation, including simulated shocks (plus an initial distribution of wealth)
 EstimationAgent = Model.IndShockConsumerType(**Params.init_consumer_objects) # Make a ConsumerType for estimation
+EstimationAgent.time_inv.remove('DiscFac')                           # This estimation uses age-varying discount factors as
+EstimationAgent.time_vary.append('DiscFac')                          # estimated by Cagetti (2003), so switch from time_inv to time_vary
 EstimationAgent(sim_periods = EstimationAgent.T_total+1)             # Set the number of periods to simulate
 EstimationAgent.makeIncShkHist()                                     # Make a simulated history of income shocks for many consumers
 EstimationAgent.a_init = drawDiscrete(P=Params.initial_wealth_income_ratio_probs,

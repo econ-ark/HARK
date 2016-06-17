@@ -1384,8 +1384,8 @@ class PerfForesightConsumerType(AgentType):
     solution_terminal_   = ConsumerSolution(cFunc = cFunc_terminal_,
                                             vFunc = vFunc_terminal_, mNrmMin=0.0, hNrm=0.0, 
                                             MPCmin=1.0, MPCmax=1.0)
-    time_vary_ = ['LivPrb','DiscFac','PermGroFac']
-    time_inv_  = ['CRRA','Rfree']
+    time_vary_ = ['LivPrb','PermGroFac']
+    time_inv_  = ['CRRA','Rfree','DiscFac']
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''

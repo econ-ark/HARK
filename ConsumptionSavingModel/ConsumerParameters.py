@@ -11,7 +11,7 @@ import numpy as np
 
 CRRA = 4.0                          # Coefficient of relative risk aversion
 Rfree = 1.03                        # Interest factor on assets
-DiscFac = [0.96]                    # Intertemporal discount factor
+DiscFac = 0.96                      # Intertemporal discount factor
 LivPrb = [0.98]                     # Survival probability
 PermGroFac = [1.01]                 # Permanent income growth factor
 Nagents = 10000                     # Number of agents of this type (only matters for simulation)
@@ -85,7 +85,6 @@ init_idiosyncratic_shocks = { 'CRRA': CRRA,
                              
 # Make a dictionary to specify a lifecycle consumer with a finite horizon
 init_lifecycle = copy(init_idiosyncratic_shocks)
-init_lifecycle['DiscFac'] = 10*DiscFac
 init_lifecycle['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
 init_lifecycle['PermShkStd'] = [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0,0,0]
 init_lifecycle['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,0,0,0]
@@ -95,7 +94,6 @@ init_lifecycle['T_retire']   = 7
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
-init_cyclical['DiscFac'] = 4*DiscFac
 init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
 init_cyclical['PermShkStd'] = [0.1,0.1,0.1,0.1]
 init_cyclical['TranShkStd'] = [0.1,0.1,0.1,0.1]
@@ -159,7 +157,6 @@ del init_agg_shocks['BoroCnstArt'] # Not supported yet for agg shocks model
 del init_agg_shocks['CubicBool']   # Not supported yet for agg shocks model
 del init_agg_shocks['vFuncBool']   # Not supported yet for agg shocks model
 init_agg_shocks['kGridBase'] = kGridBase
-init_agg_shocks['DiscFac'] = DiscFac[0] # This type already fixed the time-varying DiscFac issue
 init_agg_shocks['aXtraCount'] = 20
 
 # Make a dictionary to specify a Cobb-Douglas economy

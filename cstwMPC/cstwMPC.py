@@ -17,7 +17,7 @@ from HARKsimulation import drawDiscrete, drawMeanOneLognormal
 from HARKcore import AgentType
 from HARKparallel import multiThreadCommandsFake
 import SetupParamsCSTW as Params
-import ConsumptionSavingModel as Model
+import ConsIndShockModel as Model
 from ConsAggShockModel import CobbDouglasEconomy, AggShockConsumerType
 from scipy.optimize import golden, brentq
 import matplotlib.pyplot as plt
@@ -54,9 +54,7 @@ class cstwMPCagent(Model.IndShockConsumerType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(Model.IndShockConsumerType.time_vary_)
         self.time_inv = deepcopy(Model.IndShockConsumerType.time_inv_)
-        self.time_vary.remove('DiscFac')
-        self.time_inv.append('DiscFac')
-        self.solveOnePeriod = Model.consumptionSavingSolverENDG # this can be swapped for consumptionSavingSolverEXOG or another solver
+        self.solveOnePeriod = Model.solveConsIndShock
         self.update()
         
     def simulateCSTW(self):

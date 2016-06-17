@@ -1,5 +1,5 @@
 '''
-This module defines the Tractable Buffer Stock model described in CDC's notes.
+Defines the Tractable Buffer Stock model described in CDC's notes.
 The model concerns an agent with constant relative risk aversion utility making
 decisions over consumption and saving.  He is subject to only a very particular
 sort of risk: the possibility that he will become permanently unemployed until
@@ -398,7 +398,7 @@ if __name__ == '__main__':
                             "aXtraExtra":[None],  # Additional points to include in assets grid
                             "exp_nest":3,         # Degree of exponential nesting when constructing assets grid
                             "LivPrb":[1.0],       # Survival probability
-                            "DiscFac":[base_primitives['DiscFac']], # Intertemporal discount factor
+                            "DiscFac":base_primitives['DiscFac'], # Intertemporal discount factor
                             'Nagents':1,          # Number of agents in a simulation (irrelevant)
                             'tax_rate':0.0,       # Tax rate on labor income (irrelevant)
                             'vFuncBool':False,    # Whether to calculate the value function
