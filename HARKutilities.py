@@ -11,7 +11,6 @@ import warnings
 import numpy as np                  # Python's numeric library, abbreviated "np"
 import pylab as plt                 # Python's plotting library
 import scipy.stats as stats         # Python's statistics library
-from scipy.integrate import quad, fixed_quad    # quad integration
 from scipy.interpolate import interp1d
 from scipy.special import erf
 
@@ -539,26 +538,31 @@ def approxBeta(N,a=1.0,b=1.0):
     pmf  = np.ones(N)/float(N)
     return( [pmf, X] )
         
-def approxUniform(center,width,N):
+def approxUniform(N,bot=0.0,top=1.0):
     '''
     Makes a discrete approximation to a uniform distribution, given its center
     point and width.
     
     Parameters
     ----------
-    center : float
-        The center of the uniform distribution
-    width : float
-        The width of the distribution, to either side of the center
     N : int
         The number of points in the discrete approximation
-        
+    bot : float
+        The bottom of the uniform distribution
+    top : float
+        The top of the uniform distribution
+     
     Returns
     -------
     (unnamed) : np.array
         An equiprobable discrete approximation to the uniform distribution.
     '''
-    return center + width*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
+    pmf = np.ones(N)/float(N)
+    center = (top+bot)/2.0
+    width = (top-bot)/2.0
+    X = center + width*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
+    return [pmf,X]
+
 
 def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):
     '''

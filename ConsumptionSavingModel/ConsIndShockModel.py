@@ -20,6 +20,7 @@ import numpy as np
 from HARKcore import AgentType, Solution, NullFunc
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
+from HARKsimulation import drawDiscrete
 from HARKutilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
                           combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
                           CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
@@ -1518,17 +1519,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         for t in range(1,self.sim_periods):
             IncomeDstnNow    = self.IncomeDstn[t_idx] # set current income distribution
             PermGroFacNow    = self.PermGroFac[t_idx] # and permanent growth factor
-            Events           = np.arange(IncomeDstnNow[0].size) # just a list of integers
-            Cutoffs          = np.round(np.cumsum(IncomeDstnNow[0])*self.Nagents)
-            top = 0
-            # Make a list of event indices that closely matches the discrete income distribution
-            EventList        = []
-            for j in range(Events.size):
-                bot = top
-                top = Cutoffs[j]
-                EventList += (top-bot)*[Events[j]]
-            # Randomly permute the event indices and store the corresponding results
-            EventDraws       = self.RNG.permutation(EventList)
+            Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
+            # Get random draws of income shocks from the discrete distribution
+            EventDraws       = drawDiscrete(X=Indices,P=IncomeDstnNow[0],N=self.Nagents,exact_match=False,seed=self.RNG.randint(0,2**31-1))
             PermShkHist[t,:] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
             TranShkHist[t,:] = IncomeDstnNow[2][EventDraws]
             # Advance the time index, looping if we've run out of income distributions

@@ -253,7 +253,7 @@ def simulateKYratioDifference(DiscFac,nabla,N,type_list,weights,total_output,tar
     '''
     if type(DiscFac) in (list,np.ndarray,np.array):
         DiscFac = DiscFac[0]
-    DiscFac_list = approxUniform(DiscFac,nabla,N)
+    DiscFac_list = approxUniform(N,DiscFac-nabla,DiscFac+nabla)[1] # only take values, not probs
     assignBetaDistribution(type_list,DiscFac_list)
     multiThreadCommandsFake(type_list,beta_point_commands)
     my_diff = calculateKYratioDifference(np.vstack((this_type.W_history for this_type in type_list)),
@@ -284,7 +284,7 @@ def makeCSTWresults(DiscFac,nabla,save_name=None):
     -------
     none
     '''
-    DiscFac_list = approxUniform(DiscFac,nabla,N=Params.pref_type_count)
+    DiscFac_list = approxUniform(N=Params.pref_type_count,bot=DiscFac-nabla,top=DiscFac+nabla)[1]
     assignBetaDistribution(est_type_list,DiscFac_list)
     multiThreadCommandsFake(est_type_list,beta_point_commands)
     
@@ -503,7 +503,7 @@ def calcKappaMean(DiscFac,nabla):
     kappa_all : float
         Average marginal propensity to consume in the population.
     '''
-    DiscFac_list = approxUniform(DiscFac,nabla,N=Params.pref_type_count)
+    DiscFac_list = approxUniform(N=Params.pref_type_count,bot=DiscFac-nabla,top=DiscFac+nabla)[1]
     assignBetaDistribution(est_type_list,DiscFac_list)
     multiThreadCommandsFake(est_type_list,beta_point_commands)
     
@@ -827,7 +827,7 @@ if __name__ == "__main__":
         else:
             beta_agg = beta_point_estimate
             nabla_agg = 0.0
-        DiscFac_list_agg = approxUniform(beta_agg,nabla_agg,Params.pref_type_count)
+        DiscFac_list_agg = approxUniform(N=Params.pref_type_count,bot=beta_agg-nabla_agg,top=beta_agg+nabla_agg)[1]
         assignBetaDistribution(agg_shocks_type_list,DiscFac_list_agg)
         
         # Make a market for solving the FBS aggregate shocks model

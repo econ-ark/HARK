@@ -11,6 +11,7 @@ from copy import deepcopy
 import numpy as np
 from ConsIndShockModel import ConsIndShockSolver, ValueFunc, MargValueFunc, ConsumerSolution, IndShockConsumerType
 from HARKutilities import warnings  # Because of "patch" to warnings modules
+from HARKsimulation import drawDiscrete
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                           CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP
@@ -707,17 +708,9 @@ class MarkovConsumerType(IndShockConsumerType):
                 these = MrkvNow == n
                 IncomeDstnNow = IncomeDstn_list[n]
                 PermGroFacNow = PermGroFac_list[n]
-                Events           = np.arange(IncomeDstnNow[0].size) # just a list of integers
-                Cutoffs          = np.round(np.cumsum(IncomeDstnNow[0])*np.sum(these))
-                top = 0
-                # Make a list of event indices that closely matches the discrete income distribution
-                EventList        = []
-                for j in range(Events.size):
-                    bot = top
-                    top = Cutoffs[j]
-                    EventList += (top-bot)*[Events[j]]
-                # Randomly permute the event indices and store the corresponding results
-                EventDraws       = self.RNG.permutation(EventList)
+                Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
+                # Get random draws of income shocks from the discrete distribution
+                EventDraws       = drawDiscrete(X=Indices,P=IncomeDstnNow[0],N=np.sum(these),exact_match=False,seed=self.RNG.randint(0,2**31-1))
                 PermShkHist[t,these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow
                 TranShkHist[t,these] = IncomeDstnNow[2][EventDraws]
             # Advance the time index, looping if we've run out of income distributions
