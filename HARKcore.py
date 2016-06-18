@@ -133,7 +133,7 @@ class AgentType(HARKobject):
     'solveOnePeriod' should appear in exactly one of these lists, depending on
     whether the same solution method is used in all periods of the model.
     '''    
-    def __init__(self,solution_terminal=NullFunc,cycles=1,time_flow=False,pseudo_terminal=True,
+    def __init__(self,solution_terminal=None,cycles=1,time_flow=False,pseudo_terminal=True,
                  tolerance=0.000001,seed=0,**kwds):
         '''
         Initialize an instance of AgentType by setting attributes.
@@ -172,11 +172,13 @@ class AgentType(HARKobject):
         -------
         None
         '''
+        if solution_terminal is None:
+            solution_terminal = NullFunc()
         self.solution_terminal  = solution_terminal
         self.cycles             = cycles
         self.time_flow          = time_flow
         self.pseudo_terminal    = pseudo_terminal
-        self.solveOnePeriod     = NullFunc
+        self.solveOnePeriod     = NullFunc()
         self.tolerance          = tolerance
         self.seed               = seed
         self.assignParameters(**kwds)

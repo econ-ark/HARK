@@ -50,8 +50,8 @@ class ConsumerSolution(Solution):
     '''
     distance_criteria = ['cFunc']
     
-    def __init__(self, cFunc=NullFunc, vFunc=NullFunc, 
-                       vPfunc=NullFunc, vPPfunc=NullFunc,
+    def __init__(self, cFunc=None, vFunc=None, 
+                       vPfunc=None, vPPfunc=None,
                        mNrmMin=None, hNrm=None, MPCmin=None, MPCmax=None):
         '''
         The constructor for a new ConsumerSolution object.
@@ -87,6 +87,15 @@ class ConsumerSolution(Solution):
         -------
         None        
         '''
+        # Change any missing function inputs to NullFunc
+        if cFunc is None:
+            cFunc = NullFunc()
+        if vFunc is None:
+            vFunc = NullFunc()
+        if vPfunc is None:
+            vPfunc = NullFunc()
+        if vPPfunc is None:
+            vPPfunc = NullFunc()    
         self.cFunc        = cFunc
         self.vFunc        = vFunc
         self.vPfunc       = vPfunc
@@ -116,14 +125,14 @@ class ConsumerSolution(Solution):
         if type(self.cFunc)!=list:
             # Then we assume that self is an empty initialized solution instance.
             # Begin by checking this is so.            
-            assert self.cFunc==NullFunc, 'appendSolution called incorrectly!'         
+            assert NullFunc().distance(self.cFunc) == 0, 'appendSolution called incorrectly!'         
 
             # We will need the attributes of the solution instance to be lists.  Do that here.
             self.cFunc       = [new_solution.cFunc]
             self.vFunc       = [new_solution.vFunc]
             self.vPfunc      = [new_solution.vPfunc]
             self.vPPfunc     = [new_solution.vPPfunc]
-            self.mNrmMin     = [new_solution.mNrmMin]        
+            self.mNrmMin     = [new_solution.mNrmMin] 
         else:
             self.cFunc.append(new_solution.cFunc)
             self.vFunc.append(new_solution.vFunc)

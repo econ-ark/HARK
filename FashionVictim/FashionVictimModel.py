@@ -19,7 +19,7 @@ class FashionSolution(Solution):
     '''
     A class for representing the single period solution to a FashionVictim problem.
     '''
-    def __init__(self,VfuncJock=NullFunc,VfuncPunk=NullFunc,switchFuncJock=NullFunc,switchFuncPunk=NullFunc):
+    def __init__(self,VfuncJock=None,VfuncPunk=None,switchFuncJock=None,switchFuncPunk=None):
         '''
         Make a new instance of FashionSolution.
         
@@ -42,6 +42,15 @@ class FashionSolution(Solution):
         -------
         new instance of FashionSolution
         '''
+        # Fill in missing function inputs with trivial defaults        
+        if VfuncJock is None:
+            VfuncJock = NullFunc()
+        if VfuncPunk is None:
+            VfuncPunk = NullFunc()
+        if switchFuncJock is None:
+            switchFuncJock = NullFunc()
+        if switchFuncPunk is None:
+            switchFuncPunk = NullFunc()
         self.VfuncJock = VfuncJock
         self.VfuncPunk = VfuncPunk
         self.switchFuncJock = switchFuncJock
@@ -107,8 +116,8 @@ class FashionVictimType(AgentType):
     '''
     _solution_terminal = FashionSolution(VfuncJock=LinearInterp(np.array([0.0, 1.0]),np.array([0.0,0.0])),
                                          VfuncPunk=LinearInterp(np.array([0.0, 1.0]),np.array([0.0,0.0])),
-                                         switchFuncJock=NullFunc,
-                                         switchFuncPunk=NullFunc)
+                                         switchFuncJock=NullFunc(),
+                                         switchFuncPunk=NullFunc())
     
     def __init__(self,**kwds):
         '''
@@ -155,7 +164,7 @@ class FashionVictimType(AgentType):
         for j in range(self.pCount):
             pNow = self.pGrid[j]
             pNextMean = self.pNextIntercept + self.pNextSlope*pNow
-            dist = approxUniform(pNextMean,self.pNextWidth,self.pNextCount)
+            dist = approxUniform(N=self.pNextCount,bot=pNextMean-self.pNextWidth,top=pNextMean+self.pNextWidth)[1]
             self.pEvolution[j,:] = dist
         
     def update(self):
