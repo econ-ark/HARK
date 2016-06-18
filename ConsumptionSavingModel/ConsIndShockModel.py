@@ -1805,55 +1805,47 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 
     def calcBoundingValues(self):
         '''
-        Calculate the PDV of human wealth (after receiving income this period)
-        in an infinite horizon model with only one period repeated indefinitely.
-        Also calculates MPCmin and MPCmax.  Outputs are np.array if the model
-        has a Markov state process.
-        
-        THIS IS BROKEN AND NEEDS FIXING
+        Calculate human wealth plus minimum and maximum MPC in an infinite
+        horizon model with only one period repeated indefinitely.  Store results
+        as attributes of self.  Human wealth is the present discounted value of
+        expected future income after receiving income this period, ignoring mort-
+        ality.  The maximum MPC is the limit of the MPC as m --> mNrmMin.  The
+        minimum MPC is the limit of the MPC as m --> infty.
         
         Parameters
         ----------
-        none
+        None
         
         Returns
         -------
-        hNrm : float or np.array
-            Human wealth, the present discounted value of expected future income
-            after receiving income this period, ignoring mortality.  
-        MPCmax : float
-            Upper bound on the marginal propensity to consume as m --> mNrmMin.
-        MPCmin : float
-            Lower bound on the marginal propensity to consume as m --> infty.
+        None
         '''
-        assert False, 'calcBoundingValues IS BROKEN AND NEEDS FIXING'
-        if hasattr(self,'MrkvArray'):
-            StateCount = self.IncomeDstn[0].size
-            ExIncNext = np.zeros(StateCount) + np.nan
-            for j in range(StateCount):
-                PermShkValsNext = self.IncomeDstn[0][j][1]
-                TranShkValsNext = self.IncomeDstn[0][j][2]
-                ShkPrbsNext     = self.IncomeDstn[0][j][0]
-                ExIncNext[j] = np.dot(ShkPrbsNext,PermShkValsNext*TranShkValsNext)                
-            hNrm        = np.dot(np.dot(np.linalg.inv((self.Rfree/self.PermGroFac[0])*np.eye(StateCount) -
-                              self.MrkvArray),self.MrkvArray),ExIncNext)
-            
-            p_zero_income_now = np.dot(self.MrkvArray,self.p_zero_income[0])
-            PatFac            = (self.DiscFac[0]*self.Rfree)**(1.0/self.CRRA)/self.Rfree
-            MPCmax            = 1.0 - p_zero_income_now**(1.0/self.CRRA)*PatFac # THIS IS WRONG
-            
-        else:
-            PermShkValsNext   = self.IncomeDstn[0][1]
-            TranShkValsNext   = self.IncomeDstn[0][2]
-            ShkPrbsNext       = self.IncomeDstn[0][0]
-            ExIncNext         = np.dot(ShkPrbsNext,PermShkValsNext*TranShkValsNext)
-            hNrm              = (ExIncNext*self.PermGroFac[0]/self.Rfree)/(1.0-self.PermGroFac[0]/self.Rfree)
-            
-            PatFac    = (self.DiscFac[0]*self.Rfree)**(1.0/self.CRRA)/self.Rfree
-            MPCmax    = 1.0 - self.p_zero_income[0]**(1.0/self.CRRA)*PatFac
+        # Unpack the income distribution and get average and worst outcomes
+        PermShkValsNext   = self.IncomeDstn[0][1]
+        TranShkValsNext   = self.IncomeDstn[0][2]
+        ShkPrbsNext       = self.IncomeDstn[0][0]
+        ExIncNext         = np.dot(ShkPrbsNext,PermShkValsNext*TranShkValsNext)
+        PermShkMinNext    = np.min(PermShkValsNext)    
+        TranShkMinNext    = np.min(TranShkValsNext)
+        WorstIncNext      = PermShkMinNext*TranShkMinNext
+        WorstIncPrb       = np.sum(ShkPrbsNext[(PermShkValsNext*TranShkValsNext)==WorstIncNext])
         
+        # Calculate human wealth and the infinite horizon natural borrowing constraint
+        hNrm              = (ExIncNext*self.PermGroFac[0]/self.Rfree)/(1.0-self.PermGroFac[0]/self.Rfree)            
+        temp              = self.PermGroFac[0]*PermShkMinNext/self.Rfree
+        BoroCnstNat       = -TranShkMinNext*temp/(1.0-temp)
+        
+        PatFac    = (self.DiscFac*self.LivPrb[0]*self.Rfree)**(1.0/self.CRRA)/self.Rfree
+        if BoroCnstNat < self.BoroCnstArt:
+            MPCmax    = 1.0 # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
+        else:
+            MPCmax    = 1.0 - WorstIncPrb**(1.0/self.CRRA)*PatFac        
         MPCmin = 1.0 - PatFac
-        return hNrm, MPCmax, MPCmin
+        
+        # Store the results as attributes of self
+        self.hNrm   = hNrm
+        self.MPCmin = MPCmin
+        self.MPCmax = MPCmax
         
     def preSolve(self):
         self.updateSolutionTerminal()
@@ -1893,6 +1885,52 @@ class KinkedRconsumerType(IndShockConsumerType):
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsKinkedR # kinked R solver
         self.update() # Make assets grid, income process, terminal solution
+        
+    def calcBoundingValues(self):
+        '''
+        Calculate human wealth plus minimum and maximum MPC in an infinite
+        horizon model with only one period repeated indefinitely.  Store results
+        as attributes of self.  Human wealth is the present discounted value of
+        expected future income after receiving income this period, ignoring mort-
+        ality.  The maximum MPC is the limit of the MPC as m --> mNrmMin.  The
+        minimum MPC is the limit of the MPC as m --> infty.  This version deals
+        with the different interest rates on borrowing vs saving.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        # Unpack the income distribution and get average and worst outcomes
+        PermShkValsNext   = self.IncomeDstn[0][1]
+        TranShkValsNext   = self.IncomeDstn[0][2]
+        ShkPrbsNext       = self.IncomeDstn[0][0]
+        ExIncNext         = np.dot(ShkPrbsNext,PermShkValsNext*TranShkValsNext)
+        PermShkMinNext    = np.min(PermShkValsNext)    
+        TranShkMinNext    = np.min(TranShkValsNext)
+        WorstIncNext      = PermShkMinNext*TranShkMinNext
+        WorstIncPrb       = np.sum(ShkPrbsNext[(PermShkValsNext*TranShkValsNext)==WorstIncNext])
+        
+        # Calculate human wealth and the infinite horizon natural borrowing constraint
+        hNrm              = (ExIncNext*self.PermGroFac[0]/self.Rsave)/(1.0-self.PermGroFac[0]/self.Rsave)            
+        temp              = self.PermGroFac[0]*PermShkMinNext/self.Rboro
+        BoroCnstNat       = -TranShkMinNext*temp/(1.0-temp)
+        
+        PatFacTop = (self.DiscFac*self.LivPrb[0]*self.Rsave)**(1.0/self.CRRA)/self.Rsave
+        PatFacBot = (self.DiscFac*self.LivPrb[0]*self.Rboro)**(1.0/self.CRRA)/self.Rboro
+        if BoroCnstNat < self.BoroCnstArt:
+            MPCmax    = 1.0 # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
+        else:
+            MPCmax    = 1.0 - WorstIncPrb**(1.0/self.CRRA)*PatFacBot        
+        MPCmin = 1.0 - PatFacTop
+        
+        # Store the results as attributes of self
+        self.hNrm   = hNrm
+        self.MPCmin = MPCmin
+        self.MPCmax = MPCmax
 
 # ==================================================================================
 # = Functions for generating discrete income processes and simulated income shocks =

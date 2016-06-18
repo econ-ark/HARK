@@ -106,7 +106,7 @@ init_cyclical['T_total']    = 4
 # -----------------------------------------------------------------------------
 
 Rboro = 1.20           # Interest factor on assets when borrowing, a < 0
-Rsave = 1.01           # Interest factor on assets when saving, a > 0
+Rsave = 1.02           # Interest factor on assets when saving, a > 0
 
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
 init_kinked_R = copy(init_idiosyncratic_shocks)

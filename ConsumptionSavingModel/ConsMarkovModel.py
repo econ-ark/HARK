@@ -854,6 +854,29 @@ class MarkovConsumerType(IndShockConsumerType):
         self.solution_terminal.MPCmax  = np.ones(StateCount)
         self.solution_terminal.MPCmin  = np.ones(StateCount)
         
+    def calcBoundingValues(self):
+        '''
+        Calculate human wealth plus minimum and maximum MPC in an infinite
+        horizon model with only one period repeated indefinitely.  Store results
+        as attributes of self.  Human wealth is the present discounted value of
+        expected future income after receiving income this period, ignoring mort-
+        ality.  The maximum MPC is the limit of the MPC as m --> mNrmMin.  The
+        minimum MPC is the limit of the MPC as m --> infty.  Results are all
+        np.array with elements corresponding to each Markov state.
+        
+        NOT YET IMPLEMENTED FOR THIS CLASS
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        raise NotImplementedError()
+            
+        
 
 ###############################################################################
 
