@@ -17,6 +17,7 @@ sys.path.insert(0,'../')
 
 from copy import copy, deepcopy
 import numpy as np
+from scipy.optimize import newton
 from HARKcore import AgentType, Solution, NullFunc, HARKobject
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
@@ -653,9 +654,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # Update the bounding MPCs and PDV of human wealth:
         self.PatFac       = ((self.Rfree*self.DiscFacEff)**(1.0/self.CRRA))/self.Rfree
         self.MPCminNow    = 1.0/(1.0 + self.PatFac/solution_next.MPCmin)
-        self.hNrmNow      = self.PermGroFac/self.Rfree*(
-                            np.dot(self.ShkPrbsNext,self.TranShkValsNext*self.PermShkValsNext) + 
-                            solution_next.hNrm)
+        self.ExIncNext    = np.dot(self.ShkPrbsNext,self.TranShkValsNext*self.PermShkValsNext)
+        self.hNrmNow      = self.PermGroFac/self.Rfree*(self.ExIncNext + solution_next.hNrm)
         self.MPCmaxNow    = 1.0/(1.0 + (self.WorstIncPrb**(1.0/self.CRRA))*
                                         self.PatFac/solution_next.MPCmax)
 
@@ -1080,6 +1080,38 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         vPPfuncNow        = MargMargValueFunc(solution.cFunc,self.CRRA)
         solution.vPPfunc  = vPPfuncNow
         return solution
+        
+        
+    def addSSmNrm(self,solution):
+        '''
+        Finds steady state (normalized) market resources and adds it to the
+        solution.  This is the level of market resources such that the expectation
+        of market resources in the next period is unchanged.  This value doesn't
+        necessarily exist.
+        
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            Solution to this period's problem, which must have attribute cFunc.
+        Returns
+        -------
+        solution : ConsumerSolution
+            Same solution that was passed, but now with the attribute mNrmSS.
+        '''
+        # Make a linear function of all combinations of c and m that yield mNext = mNow
+        mZeroChangeFunc = lambda m : (1.0-self.PermGroFac/self.Rfree)*m + (self.PermGroFac/self.Rfree)*self.ExIncNext
+        
+        # Find the steady state level of market resources
+        searchSSfunc = lambda m : solution.cFunc(m) - mZeroChangeFunc(m) # A zero of this is SS market resources
+        m_init_guess = self.mNrmMinNow + self.ExIncNext # Minimum market resources plus next income is okay starting guess
+        try:
+            mNrmSS = newton(searchSSfunc,m_init_guess)
+        except:
+            mNrmSS = None
+        
+        # Add mNrmSS to the solution and return it
+        solution.mNrmSS = mNrmSS
+        return solution
 
        
     def solve(self):
@@ -1110,6 +1142,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         else:
             solution   = self.makeBasicSolution(EndOfPrdvP,aNrm,interpolator=self.makeLinearcFunc)
         solution       = self.addMPCandHumanWealth(solution) # add a few things
+        #solution       = self.addSSmNrm(solution) # find steady state m
         
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used (to prepare for next period)

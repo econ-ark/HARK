@@ -80,9 +80,12 @@ class HARKobject():
         '''
         distance_list = [0.0]
         for attr_name in self.distance_criteria:
-            obj_A = eval('self.' + attr_name)
-            obj_B = eval('other.' + attr_name)
-            distance_list.append(distanceMetric(obj_A,obj_B))
+            try:
+                obj_A = getattr(self,attr_name)
+                obj_B = getattr(other,attr_name)
+                distance_list.append(distanceMetric(obj_A,obj_B))
+            except:
+                distance_list.append(1000.0) # if either object lacks attribute, they are not the same
         return max(distance_list)
         
     def assignParameters(self,**kwds):
