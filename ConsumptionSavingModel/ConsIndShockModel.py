@@ -17,7 +17,7 @@ sys.path.insert(0,'../')
 
 from copy import copy, deepcopy
 import numpy as np
-from HARKcore import AgentType, Solution, NullFunc
+from HARKcore import AgentType, Solution, NullFunc, HARKobject
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARKsimulation import drawDiscrete
@@ -44,8 +44,11 @@ class ConsumerSolution(Solution):
     problem.  The solution must include a consumption function and marginal
     value function.
     
-    Here and elsewhere in the code, Nrm indicates that variables are normalized by permanent income.
+    Here and elsewhere in the code, Nrm indicates that variables are normalized
+    by permanent income.
     '''
+    distance_criteria = ['cFunc']
+    
     def __init__(self, cFunc=NullFunc, vFunc=NullFunc, 
                        vPfunc=NullFunc, vPPfunc=NullFunc,
                        mNrmMin=None, hNrm=None, MPCmin=None, MPCmax=None):
@@ -91,7 +94,6 @@ class ConsumerSolution(Solution):
         self.hNrm         = hNrm
         self.MPCmin       = MPCmin
         self.MPCmax       = MPCmax
-        self.distance_criteria = ['cFunc']
 
     def appendSolution(self,new_solution):
         '''
@@ -129,11 +131,13 @@ class ConsumerSolution(Solution):
             self.mNrmMin.append(new_solution.mNrmMin)
 
         
-class ValueFunc():
+class ValueFunc(HARKobject):
     '''
     A class for representing a value function.  The underlying interpolation is
     in the space of (m,u_inv(v)); this class "re-curves" to the value function.
     '''
+    distance_criteria = ['func','CRRA']
+    
     def __init__(self,vFuncDecurved,CRRA):
         '''
         Constructor for a new value function object.
@@ -172,11 +176,13 @@ class ValueFunc():
         return utility(self.func(m),gam=self.CRRA)
 
      
-class MargValueFunc():
+class MargValueFunc(HARKobject):
     '''
     A class for representing a marginal value function in models where the
     standard envelope condition of v'(m) = u'(c(m)) holds (with CRRA utility).
     '''
+    distance_criteria = ['cFunc','CRRA']
+    
     def __init__(self,cFunc,CRRA):
         '''
         Constructor for a new marginal value function object.
@@ -237,11 +243,13 @@ class MargValueFunc():
         return MPC*utilityPP(c,gam=self.CRRA)
         
         
-class MargMargValueFunc():
+class MargMargValueFunc(HARKobject):
     '''
     A class for representing a marginal marginal value function in models where
     the standard envelope condition of v'(m) = u'(c(m)) holds (with CRRA utility).
     '''
+    distance_criteria = ['cFunc','CRRA']
+    
     def __init__(self,cFunc,CRRA):
         '''
         Constructor for a new marginal marginal value function object.
