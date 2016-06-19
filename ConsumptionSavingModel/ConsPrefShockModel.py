@@ -208,6 +208,32 @@ class PrefShockConsumerType(KinkedRconsumerType):
         None
         '''
         raise NotImplementedError()
+        
+    def makeEulerErrorFunc(self,mMax=100,approx_inc_dstn=True):
+        '''
+        Creates a "normalized Euler error" function for this instance, mapping
+        from market resources to "consumption error per dollar of consumption."
+        Stores result in attribute eulerErrorFunc as an interpolated function.
+        Has option to use approximate income distribution stored in self.IncomeDstn
+        or to use a (temporary) very dense approximation.
+        
+        NOT YET IMPLEMENTED FOR THIS CLASS
+        
+        Parameters
+        ----------
+        mMax : float
+            Maximum normalized market resources for the Euler error function.
+        approx_inc_dstn : Boolean
+            Indicator for whether to use the approximate discrete income distri-
+            bution stored in self.IncomeDstn[0], or to use a very accurate
+            discrete approximation instead.  When True, uses approximation in
+            IncomeDstn; when False, makes and uses a very dense approximation.
+        
+        Returns
+        -------
+        None
+        '''
+        raise NotImplementedError()
 
 
 class ConsPrefShockSolver(ConsKinkedRsolver):

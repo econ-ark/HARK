@@ -1856,6 +1856,78 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
         
+    def makeEulerErrorFunc(self,mMax=100,approx_inc_dstn=True):
+        '''
+        Creates a "normalized Euler error" function for this instance, mapping
+        from market resources to "consumption error per dollar of consumption."
+        Stores result in attribute eulerErrorFunc as an interpolated function.
+        Has option to use approximate income distribution stored in self.IncomeDstn
+        or to use a (temporary) very dense approximation.
+        
+        Only works on (one period) infinite horizon models at this time, will
+        be generalized later.
+        
+        Parameters
+        ----------
+        mMax : float
+            Maximum normalized market resources for the Euler error function.
+        approx_inc_dstn : Boolean
+            Indicator for whether to use the approximate discrete income distri-
+            bution stored in self.IncomeDstn[0], or to use a very accurate
+            discrete approximation instead.  When True, uses approximation in
+            IncomeDstn; when False, makes and uses a very dense approximation.
+        
+        Returns
+        -------
+        None
+        '''
+        # Get the income distribution (or make a very dense one)
+        if approx_inc_dstn:
+            IncomeDstn = self.IncomeDstn[0]
+        else:
+            TranShkDstn = approxMeanOneLognormal(N=200,sigma=self.TranShkStd[0],
+                                                 tail_N=50,tail_order=1.3, tail_bound=[0.05,0.95])
+            TranShkDstn = addDiscreteOutcomeConstantMean(TranShkDstn,self.UnempPrb,self.IncUnemp)
+            PermShkDstn = approxMeanOneLognormal(N=200,sigma=self.PermShkStd[0],
+                                                 tail_N=50,tail_order=1.3, tail_bound=[0.05,0.95])
+            IncomeDstn  = combineIndepDstns(PermShkDstn,TranShkDstn)
+            
+        # Make a grid of market resources
+        mNowMin  = self.solution[0].mNrmMin + 10**(-15) # add tiny bit to get around 0/0 problem
+        mNowMax  = mMax
+        mNowGrid = np.linspace(mNowMin,mNowMax,1000)
+        
+        # Get the consumption function this period and the marginal value function
+        # for next period.  Note that this part assumes a one period cycle.
+        cFuncNow   = self.solution[0].cFunc
+        vPfuncNext = self.solution[0].vPfunc
+        
+        # Calculate consumption this period at each gridpoint (and assets)
+        cNowGrid = cFuncNow(mNowGrid)
+        aNowGrid = mNowGrid - cNowGrid
+        
+        # Tile the grids for fast computation
+        ShkCount          = IncomeDstn[0].size
+        aCount            = aNowGrid.size
+        aNowGrid_tiled    = np.tile(aNowGrid,(ShkCount,1))        
+        PermShkVals_tiled = (np.tile(IncomeDstn[1],(aCount,1))).transpose()
+        TranShkVals_tiled = (np.tile(IncomeDstn[2],(aCount,1))).transpose()
+        ShkPrbs_tiled     = (np.tile(IncomeDstn[0],(aCount,1))).transpose()
+        
+        # Calculate marginal value next period for each gridpoint and each shock
+        mNextArray        = self.Rfree/(self.PermGroFac[0]*PermShkVals_tiled)*aNowGrid_tiled + TranShkVals_tiled
+        vPnextArray       = vPfuncNext(mNextArray)
+        
+        # Calculate expected marginal value and implied optimal consumption
+        ExvPnextGrid = self.DiscFac*self.Rfree*self.LivPrb[0]*self.PermGroFac[0]**(-self.CRRA)* \
+                       np.sum(PermShkVals_tiled**(-self.CRRA)*vPnextArray*ShkPrbs_tiled,axis=0)
+        cOptGrid     = ExvPnextGrid**(-1.0/self.CRRA)
+        
+        # Calculate Euler error and store an interpolated function
+        EulerErrorNrmGrid = (cNowGrid - cOptGrid)/cOptGrid
+        eulerErrorFunc    = LinearInterp(mNowGrid,EulerErrorNrmGrid)
+        self.eulerErrorFunc = eulerErrorFunc
+        
     def preSolve(self):
         self.updateSolutionTerminal()
         
@@ -1940,6 +2012,32 @@ class KinkedRconsumerType(IndShockConsumerType):
         self.hNrm   = hNrm
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
+                
+    def makeEulerErrorFunc(self,mMax=100,approx_inc_dstn=True):
+        '''
+        Creates a "normalized Euler error" function for this instance, mapping
+        from market resources to "consumption error per dollar of consumption."
+        Stores result in attribute eulerErrorFunc as an interpolated function.
+        Has option to use approximate income distribution stored in self.IncomeDstn
+        or to use a (temporary) very dense approximation.
+        
+        NOT YET IMPLEMENTED FOR THIS CLASS
+        
+        Parameters
+        ----------
+        mMax : float
+            Maximum normalized market resources for the Euler error function.
+        approx_inc_dstn : Boolean
+            Indicator for whether to use the approximate discrete income distri-
+            bution stored in self.IncomeDstn[0], or to use a very accurate
+            discrete approximation instead.  When True, uses approximation in
+            IncomeDstn; when False, makes and uses a very dense approximation.
+        
+        Returns
+        -------
+        None
+        '''
+        raise NotImplementedError()
 
 # ==================================================================================
 # = Functions for generating discrete income processes and simulated income shocks =
@@ -2253,22 +2351,22 @@ if __name__ == '__main__':
 ###############################################################################
 
     # Make and solve an agent with a kinky interest rate
-    KinkyType = KinkedRconsumerType(**Params.init_kinked_R)
-    KinkyType.cycles = 0 # Make the type infinite horizon
+    KinkyExample = KinkedRconsumerExample(**Params.init_kinked_R)
+    KinkyExample.cycles = 0 # Make the Example infinite horizon
     
     start_time = clock()
-    KinkyType.solve()
+    KinkyExample.solve()
     end_time = clock()
     print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    KinkyType.unpack_cFunc()
+    KinkyExample.unpack_cFunc()
     print('Kinky consumption function:')
-    KinkyType.timeFwd()
-    plotFuncs(KinkyType.cFunc[0],KinkyType.solution[0].mNrmMin,5)
+    KinkyExample.timeFwd()
+    plotFuncs(KinkyExample.cFunc[0],KinkyExample.solution[0].mNrmMin,5)
 
     if do_simulation:
-        KinkyType.sim_periods = 120
-        KinkyType.makeIncShkHist()
-        KinkyType.initializeSim()
-        KinkyType.simConsHistory()
+        KinkyExample.sim_periods = 120
+        KinkyExample.makeIncShkHist()
+        KinkyExample.initializeSim()
+        KinkyExample.simConsHistory()
     
     
