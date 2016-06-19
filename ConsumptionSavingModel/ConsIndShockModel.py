@@ -108,19 +108,19 @@ class ConsumerSolution(Solution):
     def appendSolution(self,new_solution):
         '''
         Appends one solution to another to create a ConsumerSolution whose
-        attributes are lists.  Used in solveConsumptionSavingMarkov, where we append solutions
-        *conditional* on a particular value of a Markov state to each other in order to get the
-        entire solution.
+        attributes are lists.  Used in ConsMarkovModel, where we append solutions
+        *conditional* on a particular value of a Markov state to each other in
+        order to get the entire solution.
         
         Parameters
         ----------
         new_solution : ConsumerSolution
-            The solution to a consumption-saving problem conditional on being
-            in a particular Markov state to begin the period.
+            The solution to a consumption-saving problem; each attribute is a
+            list representing state-conditional values or functions.
             
         Returns
         -------
-        none
+        None
         '''
         if type(self.cFunc)!=list:
             # Then we assume that self is an empty initialized solution instance.
@@ -148,13 +148,13 @@ class ValueFunc(HARKobject):
     '''
     distance_criteria = ['func','CRRA']
     
-    def __init__(self,vFuncDecurved,CRRA):
+    def __init__(self,vFuncNvrs,CRRA):
         '''
         Constructor for a new value function object.
         
         Parameters
         ----------
-        vFuncDecurved : function
+        vFuncNvrs : function
             A real function representing the value function composed with the
             inverse utility function, defined on market resources: u_inv(vFunc(m))
         CRRA : float
@@ -164,7 +164,7 @@ class ValueFunc(HARKobject):
         -------
         None
         '''
-        self.func = deepcopy(vFuncDecurved)
+        self.func = deepcopy(vFuncNvrs)
         self.CRRA = CRRA
         
     def __call__(self,m):
@@ -315,7 +315,7 @@ class ConsPerfForesightSolver(object):
     '''
     def __init__(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
         '''
-        Constructor for a new PerfectForesightSolver.
+        Constructor for a new ConsPerfForesightSolver.
         
         Parameters
         ----------
@@ -495,8 +495,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
                       PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
         '''
-        Constructor for a new solver for problems with income subject to permanent
-        and transitory shocks.
+        Constructor for a new solver-setup for problems with income subject to
+        permanent and transitory shocks.
         
         Parameters
         ----------
@@ -724,12 +724,12 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
     '''
     This class solves a single period of a standard consumption-saving problem,
     using linear interpolation and without the ability to calculate the value
-    function.  ConsumptionSavingSolverENDG inherits from this class and adds the
-    ability to perform cubic interpolation and to calculate the value function.
+    function.  ConsIndShockSolver inherits from this class and adds the ability
+    to perform cubic interpolation and to calculate the value function.
     
     Note that this class does not have its own initializing method.  It initial-
-    izes the same problem in the same way as SetupImperfectForesightSolver,
-    from which it inherits.
+    izes the same problem in the same way as ConsIndShockSetup, from which it
+    inherits.
     '''    
     def prepareToCalcEndOfPrdvP(self):
         '''
@@ -770,9 +770,9 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
     def calcEndOfPrdvP(self):
         '''
-        Calculate end-of-period marginal value of assets at each point in aNrmNow
-        by taking a weighted sum of next period marginal values across income
-        shocks (in a preconstructed grid self.mNrmNext).
+        Calculate end-of-period marginal value of assets at each point in aNrmNow.
+        Does so by taking a weighted sum of next period marginal values across
+        income shocks (in a preconstructed grid self.mNrmNext).
         
         Parameters
         ----------
@@ -950,8 +950,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 class ConsIndShockSolver(ConsIndShockSolverBasic):
     '''
     This class solves a single period of a standard consumption-saving problem.
-    It inherits from ConsumptionSavingSolverENDGBasic, adding the ability to
-    perform cubic interpolation and to calculate the value function.
+    It inherits from ConsIndShockSolverBasic, adding the ability to perform cubic
+    interpolation and to calculate the value function.
     '''
 
     def makeCubiccFunc(self,mNrm,cNrm):
@@ -1233,8 +1233,8 @@ class ConsKinkedRsolver(ConsIndShockSolver):
     '''
     A class to solve a single period consumption-saving problem where the interest
     rate on debt differs from the interest rate on savings.  Inherits from
-    ConsumptionSavingSolverENDG, with nearly identical inputs and outputs.  The
-    key difference is that Rfree is replaced by Rsave (a>0) and Rboro (a<0).
+    ConsIndShockSolver, with nearly identical inputs and outputs.  The key diff-
+    erence is that Rfree is replaced by Rsave (a>0) and Rboro (a<0).
     '''
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                       Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
@@ -1509,10 +1509,10 @@ class PerfForesightConsumerType(AgentType):
 class IndShockConsumerType(PerfForesightConsumerType):
     '''
     A consumer type with idiosyncratic shocks to permanent and transitory income.
-    His problem is defined by a sequence of income distributions, survival probabilities,
-    discount factors, and permanent income growth rates, as well as time invariant
-    values for risk aversion, the interest rate, the grid of end-of-period assets,
-    and how he is borrowing constrained.
+    His problem is defined by a sequence of income distributions, survival prob-
+    abilities, and permanent income growth rates, as well as time invariant values
+    for risk aversion, discount factor, the interest rate, the grid of end-of-
+    period assets, and an artificial borrowing constraint.
     '''        
     time_inv_ = PerfForesightConsumerType.time_inv_ + ['BoroCnstArt','vFuncBool','CubicBool']
     
@@ -1544,7 +1544,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         '''
         Makes histories of simulated income shocks for this consumer type by
         drawing from the discrete income distributions, storing them as attributes
-        of self for use by simulation methods.  Non-Markov version.
+        of self for use by simulation methods.
         
         Parameters
         ----------
@@ -1704,7 +1704,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         '''
         Simulates a history of bank balances, market resources, consumption,
         marginal propensity to consume, assets (after all actions), and permanent
-        income giveninitial assets (normalized by permanent income).
+        income given initial assets (normalized by permanent income).
         
         Parameters
         ----------
@@ -2175,7 +2175,8 @@ def applyFlatIncomeTax(IncomeDstn,tax_rate,T_retire,unemployed_indices=[],transi
 
 def constructAssetsGrid(parameters):
     '''
-    Constructs the grid of post-decision states, representing end-of-period assets.
+    Constructs the base grid of post-decision states, representing end-of-period
+    assets above the absolute minimum.
 
     All parameters are passed as attributes of the single input parameters.  The
     input can be an instance of a ConsumerType, or a custom Parameters class.    
@@ -2190,8 +2191,6 @@ def constructAssetsGrid(parameters):
         Size of the a-grid
     aXtraExtra:                [float]
         Extra values for the a-grid.
-    grid_type:              string
-        String indicating the type of grid. "linear" or "exp_mult"
     exp_nest:               int
         Level of nesting for the exponentially spaced grid
         
@@ -2203,10 +2202,10 @@ def constructAssetsGrid(parameters):
     # Unpack the parameters
     aXtraMin     = parameters.aXtraMin
     aXtraMax     = parameters.aXtraMax
-    aXtraCount    = parameters.aXtraCount
+    aXtraCount   = parameters.aXtraCount
     aXtraExtra   = parameters.aXtraExtra
-    grid_type = 'exp_mult'
-    exp_nest  = parameters.exp_nest
+    grid_type    = 'exp_mult'
+    exp_nest     = parameters.exp_nest
     
     # Set up post decision state grid:
     aXtraGrid = None
@@ -2351,7 +2350,7 @@ if __name__ == '__main__':
 ###############################################################################
 
     # Make and solve an agent with a kinky interest rate
-    KinkyExample = KinkedRconsumerExample(**Params.init_kinked_R)
+    KinkyExample = KinkedRconsumerType(**Params.init_kinked_R)
     KinkyExample.cycles = 0 # Make the Example infinite horizon
     
     start_time = clock()
