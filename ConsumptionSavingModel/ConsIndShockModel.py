@@ -1,13 +1,13 @@
 '''
-This module contains classes to solve canonical consumption-savings models with CRRA utility.  
-It currently solves four models.
+Classes to solve canonical consumption-savings models with idiosyncratic shocks
+to income.  All models here assume CRRA utility with geometric discounting, no
+bequest motive, and income shocks are fully transitory or fully permanent.
+ 
+It currently solves three types of models:
    1) A very basic "perfect foresight" consumption-savings model with no uncertainty.
-   2) An infinite-horizon OR lifecycle consumption-savings model with uncertainty over transitory
-      and permanent income shocks.
-   3) The model described in (2), with an interest rate for debt that differs from the interest
-      rate for savings.
-   4) The model described in (2), with the addition of an exogenous Markov state that affects
-      income (e.g. unemployment.)
+   2) A consumption-savings model with risk over transitory and permanent income shocks.
+   3) The model described in (2), with an interest rate for debt that differs
+      from the interest rate for savings.
 
 See NARK for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.

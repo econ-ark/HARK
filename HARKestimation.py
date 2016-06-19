@@ -1,6 +1,6 @@
 '''
-This module contains functions useful for estimating structural models, including
-optimization methods and bootstrapping tools.
+Functions used for estimating structural models, including optimization methods
+and bootstrapping tools.
 '''
 
 # The following libraries are part of the standard python distribution

@@ -1,7 +1,7 @@
 '''
-This is a very minimal module for an early version of multithreading in HARK.
-To run this module, first install dill and joblib.  Packages can be installed by
-typing "conda install dill" (etc) at a command prompt.
+Early version of multithreading in HARK. To use this module, first install dill
+and joblib.  Packages can be installed by typing "conda install dill" (etc) at
+a command prompt.
 '''
 import multiprocessing
 from joblib import Parallel, delayed

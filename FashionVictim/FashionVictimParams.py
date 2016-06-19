@@ -1,5 +1,5 @@
 '''
-This module defines some default parameters for the fashion victim model.
+Defines some default parameters for the fashion victim model.
 '''
 
 DiscFac          = 0.95   # Intertemporal discount factor

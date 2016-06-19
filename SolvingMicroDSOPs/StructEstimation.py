@@ -1,12 +1,12 @@
 '''
 Demonstrates an example estimation of microeconomic dynamic stochastic optimization
-problem, as described in Section X of Chris Carroll's SolvingMicroDSOPs.pdf notes.
+problem, as described in Section 9 of Chris Carroll's SolvingMicroDSOPs.pdf notes.
 The estimation attempts to match the age-conditional wealth profile of simulated
 consumers to the median wealth holdings of seven age groups in the 2004 SCF by
 varying only two parameters: the coefficient of relative risk aversion and a scaling
 factor for an age-varying sequence of discount factors.  The estimation uses a
 consumption-saving model with idiosyncratic shocks to permanent and transitory
-income as defined in ConsumptionSavingModel.py.
+income as defined in ConsIndShockModel.
 '''
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder. 

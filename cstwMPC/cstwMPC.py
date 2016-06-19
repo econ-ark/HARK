@@ -1,5 +1,9 @@
 '''
-This package contains the estimations for cstwMPC.
+Nearly all of the estimations for the paper "The Distribution of Wealth and the
+Marginal Propensity to Consume", by Chris Carroll, Jiri Slacalek, Kiichi Tokuoka,
+and Matthew White.  The micro model is a very slightly altered version of
+ConsIndShockModel; the macro model is ConsAggShockModel.  See SetupParamsCSTW
+for parameters and execution options.
 '''
 
 # Import the HARK library.  The assumption is that this code is in a folder

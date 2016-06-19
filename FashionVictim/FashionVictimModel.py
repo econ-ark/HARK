@@ -1,8 +1,8 @@
 '''
-This module specifies a dynamic model of fashion selection in a world with only
-two styles: jock and punk. Forward-looking agents receive utility from the style
-they choose based on the proportion of the population with the same style (as
-well as direct preferences each style), and pay switching costs if they change.
+Specifies a dynamic model of fashion selection in a world with only two styles:
+jock and punk. Forward-looking agents receive utility from the style they choose
+based on the proportion of the population with the same style (as well as direct
+preferences each style), and pay switching costs if they change.
 '''
 
 import sys 

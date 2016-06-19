@@ -1,5 +1,5 @@
 '''
-This is a brief demonstration of parallel processing in HARK using HARKparallel.
+A demonstration of parallel processing in HARK using HARKparallel.
 A benchmark consumption-saving model is solved for individuals whose CRRA varies
 between 1 and 8.  The infinite horizon model is solved serially and then in
 parallel.  Note that HARKparallel will not work "out of the box", as Anaconda

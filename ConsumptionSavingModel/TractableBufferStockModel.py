@@ -1,5 +1,5 @@
 '''
-Defines the Tractable Buffer Stock model described in CDC's notes.
+Defines and solves the Tractable Buffer Stock model described in CDC's notes.
 The model concerns an agent with constant relative risk aversion utility making
 decisions over consumption and saving.  He is subject to only a very particular
 sort of risk: the possibility that he will become permanently unemployed until

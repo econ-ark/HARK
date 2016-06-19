@@ -1,8 +1,8 @@
 '''
-This module contains extensions to ConsumptionSavingModel.py concerning models
-with preference shocks.  It currently only has one model, in which utility is
-subject to an iid lognormal multiplicative shock each period; it assumes that
-there are different interest rates on borrowing and saving.
+Extensions to ConsumptionSavingModel concerning models with preference shocks.
+It currently only has one model, in which utility is subject to an iid lognormal
+multiplicative shock each period; it assumes that there are different interest
+rates on borrowing and saving.
 '''
 import sys 
 sys.path.insert(0,'../')

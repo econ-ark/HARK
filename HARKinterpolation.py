@@ -1,10 +1,10 @@
 '''
-This module contains custom interpolation methods for representing approximations
-to functions.  It also includes wrapper classes to enforce standard methods
-across classes.  Each interpolation class must have a distance() method that
-compares itself to another instance; this is used in HARKcore's solve() method
-to check for solution convergence.  The interpolator classes currently in this
-module inherit their distance method from HARKobject.
+Custom interpolation methods for representing approximations to functions.
+It also includes wrapper classes to enforce standard methods across classes.
+Each interpolation class must have a distance() method that compares itself to
+another instance; this is used in HARKcore's solve() method to check for solution
+convergence.  The interpolator classes currently in this module inherit their
+distance method from HARKobject.
 '''
 
 import warnings

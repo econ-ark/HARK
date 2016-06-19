@@ -1,7 +1,7 @@
 '''
-This module contains a number of utilities, including the code that implements
-agent expectations, utility functions (and their derivatives), manipulation of
-discrete approximations, and basic plotting tools.
+General purpose  / miscellaneous functions.  Includes functions to approximate
+continuous distributions with discrete ones, utility functions (and their
+derivatives), manipulation of discrete distributions, and basic plotting tools.
 '''
 
 from __future__ import division     # Import Python 3.x division function

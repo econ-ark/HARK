@@ -1,9 +1,8 @@
 '''
-This module concerns consumption-saving models with aggregate productivity shocks
-as well as idiosyncratic income shocks.  Currently only contains one model with
-a basic solver.  The model here is implemented in a general equilibrium frame-
-work in the /cstwMPC folder, finding the capital-to-labor ratio evolution rule
-kNextFunc in a dynamic stochastic general equilibrium.
+Consumption-saving models with aggregate productivity shocks as well as idiosyn-
+cratic income shocks.  Currently only contains one microeconomic model with a
+basic solver.  Also includes a subclass of Market called CobbDouglas economy,
+used for solving "macroeconomic" models with aggregate shocks.
 '''
 import sys 
 sys.path.insert(0,'../')

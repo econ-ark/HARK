@@ -1,5 +1,5 @@
 '''
-A collection of functions used for generating simulated data and shocks.
+Functions for generating simulated data and shocks.
 '''
 
 from __future__ import division

@@ -1,9 +1,9 @@
-"""
-This module contains classes to solve and simulate consumption-savings models, of the type
-studied in ConsumptionSavingModel.py, with the addition of a discrete, exogenous, stochastic 
-Markov state (e.g. unemployment).
-"""
-
+'''
+Classes to solve and simulate consumption-savings model with a discrete, exogenous,
+stochastic Markov state.  The only solver here extends ConsIndShockModel to
+include a Markov state; the interest factor, permanent growth factor, and income
+distribution can vary with the discrete state.
+'''
 import sys 
 sys.path.insert(0,'../')
 

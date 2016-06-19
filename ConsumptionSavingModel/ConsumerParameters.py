@@ -1,6 +1,7 @@
 '''
 Specifies examples of the full set of parameters required to solve various
-consumption-saving models.
+consumption-saving models.  These models can be found in ConsIndShockModel,
+ConsAggShockModel, ConsPrefShockModel, and ConsMarkovModel.
 '''
 from copy import copy
 import numpy as np

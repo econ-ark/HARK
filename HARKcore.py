@@ -1,6 +1,10 @@
 '''
-This module contains high-level functions and classes useful for solving a wide variety of 
-economic models.
+High-level functions and classes useful for solving a wide variety of  economic
+models.  The "core" of HARK is a framework for "microeconomic" and "macroeconomic"
+models.  A micro model concerns the dynamic optimization problem for some type
+of agents, where agents take the inputs to their problem as exogenous.  A macro
+model adds an additional layer, endogenizing some of the inputs to the micro
+problem by finding a general equilibrium dynamic rule.
 '''
 
 from HARKutilities import getArgNames, NullFunc

@@ -1,5 +1,5 @@
 '''
-This module sets up the SCF data for use in the SolvingMicroDSOPs estimation.
+Sets up the SCF data for use in the SolvingMicroDSOPs estimation.
 '''
 from __future__ import division      # Use new division function
 
