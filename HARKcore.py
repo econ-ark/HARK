@@ -757,3 +757,10 @@ class Market(HARKobject):
             for this_type in self.agents:
                 setattr(this_type,var_name,this_obj)
         return dynamics
+        
+if __name__ == '__main__':
+    print("Sorry, HARKcore doesn't actually do anything on its own.")
+    print("To see some examples of its frameworks in action, try running a model module.")
+    print("Several interesting model modules can be found in /ConsumptionSavingModel.")
+    print('For an extraordinarily simple model that demonstrates the "microeconomic" and')
+    print('"macroeconomic" frameworks, see /FashionVictim/FashionVictimModel.')

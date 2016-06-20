@@ -140,3 +140,10 @@ init_consumer_objects = {"CRRA":CRRA_start,
                         'vFuncBool':vFuncBool,
                         'CubicBool':CubicBool
                         }
+
+
+if __name__ == '__main__':
+    print("Sorry, EstimationParameters doesn't actually do anything on its own.")
+    print("This module is imported by StructEstimation, providing calibrated ")
+    print("parameters for the example estimation.  Please see that module if you ")
+    print("want more interesting output.")

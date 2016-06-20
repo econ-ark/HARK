@@ -285,3 +285,10 @@ aggregate_params = {'PermShkAggCount': PermShkAggCount,
 
 beta_save = DiscFac_guess # Hacky way to save progress of estimation
 diff_save = 1000000.0  # Hacky way to save progress of estimation
+
+
+if __name__ == '__main__':
+    print("Sorry, SetupParamsCSTW doesn't actually do anything on its own.")
+    print("This module is imported by cstwMPC, providing data and calibrated")
+    print("parameters for the various estimations.  Please see that module if")
+    print("you want more interesting output.")

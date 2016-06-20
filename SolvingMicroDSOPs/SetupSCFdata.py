@@ -56,3 +56,10 @@ simulation_map_cohorts_to_age_indices = []
 for ages in empirical_cohort_age_groups:
     simulation_map_cohorts_to_age_indices.append(np.array(ages) - initial_age)
     
+    
+if __name__ == '__main__':
+    print("Sorry, SetupSCFdata doesn't actually do anything on its own.")
+    print("This module is imported by StructEstimation, providing data for")
+    print("the example estimation.  Please see that module if you want more")
+    print("interesting output.")
+    

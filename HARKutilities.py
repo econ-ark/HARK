@@ -1143,3 +1143,11 @@ def plotFuncsDer(functions,bottom,top,N=1000):
     plt.xlim([bottom, top])
     plt.show()
 
+
+if __name__ == '__main__':       
+    print("Sorry, HARKutilities doesn't actually do anything on its own.")
+    print("To see some examples of its functions in action, look at any")
+    print("of the model modules in /ConsumptionSavingModel.  As these functions")
+    print("are the basic building blocks of HARK, you'll find them used")
+    print("everywhere! In the future, this module will show examples of each")
+    print("function in the module.")

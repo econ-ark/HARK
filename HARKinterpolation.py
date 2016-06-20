@@ -2676,9 +2676,11 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         
         
 if __name__ == '__main__':       
-    '''
-    Tests of some of the interpolation methods.  Should be expanded and cleaned up.
-    '''
+    print("Sorry, HARKinterpolation doesn't actually do much on its own.")
+    print("To see some examples of its interpolation methods in action, look at any")
+    print("of the model modules in /ConsumptionSavingModel.  In the future, running")
+    print("this module will show examples of each interpolation class.")
+    
     from time import clock
     import matplotlib.pyplot as plt
     

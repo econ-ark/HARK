@@ -248,3 +248,10 @@ def drawDiscrete(P,X,N,exact_match=False,seed=0):
         draws = np.asarray(X)[indices]
     return draws
     
+    
+if __name__ == '__main__':       
+    print("Sorry, HARKsimulation doesn't actually do anything on its own.")
+    print("To see some examples of its functions in action, look at any")
+    print("of the model modules in /ConsumptionSavingModel.  In the future, running")
+    print("this module will show examples of each function in the module.")
+    
