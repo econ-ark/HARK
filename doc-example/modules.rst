@@ -5,14 +5,9 @@ ConsumptionSavingModel
    :maxdepth: 4
 
    ConsAggShockModel
+   ConsIndShockModel
+   ConsMarkovModel
    ConsPrefShockModel
-   ConsPrefShockModel_old
-   ConsumptionSavingModel
-   ConsumptionSavingModel_old
-   MarkovExamples
+   ConsumerParameters
    MultithreadDemo
-   SetupConsumerParameters
-   SetupPrefShockConsParameters
-   SetupSCFdata
-   SolvingMicroDSOPs
-   SolvingMicroDSOPs_old
+   TractableBufferStockModel

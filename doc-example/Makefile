@@ -5,7 +5,7 @@
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
-BUILDDIR      = ../../sphinxdoc-test-docs
+BUILDDIR      = ../../HARK-docs
 #PDFBUILDDIR   = /tmp
 #PDF           = ../manual.pdf
 # NOTE: pdf changes indicated at https://daler.github.io/sphinxdoc-test/includeme.html
