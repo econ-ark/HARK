@@ -11,6 +11,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   includeme
+
 .. autosummary::
    :toctree: generated
 

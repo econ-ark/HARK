@@ -5,12 +5,7 @@
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
-BUILDDIR      = ../../sphinxdoc-test-docs
-#PDFBUILDDIR   = /tmp
-#PDF           = ../manual.pdf
-# NOTE: pdf changes indicated at https://daler.github.io/sphinxdoc-test/includeme.html
-# are not used yet.
-#_build
+BUILDDIR      = _build
 
 # User-friendly check for sphinx-build
 ifeq ($(shell which $(SPHINXBUILD) >/dev/null 2>&1; echo $$?), 1)
