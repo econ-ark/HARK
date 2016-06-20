@@ -1,5 +1,5 @@
 '''
-Functions used for estimating structural models, including optimization methods
+Functions for estimating structural models, including optimization methods
 and bootstrapping tools.
 '''
 

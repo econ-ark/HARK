@@ -1,5 +1,5 @@
 '''
-Extensions to ConsumptionSavingModel concerning models with preference shocks.
+Extensions to ConsIndShockModel concerning models with preference shocks.
 It currently only has one model, in which utility is subject to an iid lognormal
 multiplicative shock each period; it assumes that there are different interest
 rates on borrowing and saving.
@@ -22,7 +22,7 @@ class PrefShockConsumerType(KinkedRconsumerType):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
         to be used during solution (income distribution, assets grid, etc).
-        See SetupConsumerParameters.init_consumer_objects for a dictionary of
+        See ConsumerParameters.init_consumer_objects for a dictionary of
         the keywords that should be passed to the constructor.
         
         Parameters
@@ -42,7 +42,7 @@ class PrefShockConsumerType(KinkedRconsumerType):
     def update(self):
         '''
         Updates the assets grid, income process, terminal period solution, and
-        preference shock process.  A very slight extension of ConsumerType.update()
+        preference shock process.  A very slight extension of IndShockConsumerType.update()
         for the preference shock model.
         
         Parameters
@@ -53,8 +53,8 @@ class PrefShockConsumerType(KinkedRconsumerType):
         -------
         None
         '''
-        KinkedRconsumerType.update(self)     # Update assets grid, income process, terminal solution
-        self.updatePrefShockProcess() # Update the discrete preference shock process
+        KinkedRconsumerType.update(self)  # Update assets grid, income process, terminal solution
+        self.updatePrefShockProcess()     # Update the discrete preference shock process
         
     def updatePrefShockProcess(self):
         '''

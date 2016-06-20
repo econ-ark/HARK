@@ -68,8 +68,8 @@ class AggShockConsumerType(IndShockConsumerType):
     '''
     def __init__(self,time_flow=True,**kwds):
         '''
-        Make a new instance of AggShockConsumerType, an extension of the basic
-        ConsumerType.  Sets appropriate solver and input lists.
+        Make a new instance of AggShockConsumerType, an extension of
+        IndShockConsumerType.  Sets appropriate solver and input lists.
         '''
         AgentType.__init__(self,solution_terminal=deepcopy(IndShockConsumerType.solution_terminal_),
                            time_flow=time_flow,pseudo_terminal=False,**kwds)
@@ -119,7 +119,7 @@ class AggShockConsumerType(IndShockConsumerType):
         
     def getEconomyData(self,Economy):
         '''
-        Imports economy-determined objects into the ConsumerType from a Market.
+        Imports economy-determined objects into self from a Market.
         Instances of AggShockConsumerType "live" in some macroeconomy that has
         attributes relevant to their microeconomic model, like the relationship
         between the capital-to-labor ratio and the interest and wage rates; this
@@ -418,7 +418,7 @@ class CobbDouglasEconomy(Market):
     into aggregate capital, yielding the interest factor on assets and the wage
     rate for the upcoming period.
     
-    Note: In the current implementation assumes a constant labor supply, but
+    Note: The current implementation assumes a constant labor supply, but
     this will be generalized in the future.
     '''
     def __init__(self,agents=[],tolerance=0.0001,act_T=1000,**kwds):
@@ -558,7 +558,7 @@ class CobbDouglasEconomy(Market):
             
         Returns
         -------
-        AggVarsNow : CSTWaggVars
+        AggVarsNow : CobbDouglasAggVars
             An object containing the aggregate variables for the upcoming period:
             capital-to-labor ratio, interest factor, (normalized) wage rate,
             aggregate permanent and transitory shocks.
@@ -601,7 +601,7 @@ class CobbDouglasEconomy(Market):
             
         Returns
         -------
-        CSTWdynamics : CSTWdynamicRule
+        (unnamed) : CapDynamicRule
             Object containing a new capital evolution rule, calculated from the
             history of the capital-to-labor ratio.
         '''
@@ -643,7 +643,7 @@ class CobbDouglasAggVars():
     '''
     def __init__(self,KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow):
         '''
-        Make a new instance of CSTWaggVars.
+        Make a new instance of CobbDouglasAggVars.
         
         Parameters
         ----------
@@ -661,7 +661,7 @@ class CobbDouglasAggVars():
             
         Returns
         -------
-        new instance of CSTWaggVars
+        None
         '''
         self.KtoLnow       = KtoLnow
         self.RfreeNow      = RfreeNow
@@ -718,7 +718,7 @@ class CapDynamicRule(HARKobject):
     '''
     def __init__(self,kNextFunc):
         '''
-        Make a new instance of CSTWdynamicRule.
+        Make a new instance of CapDynamicRule.
         
         Parameters
         ----------
@@ -727,7 +727,7 @@ class CapDynamicRule(HARKobject):
             
         Returns
         -------
-        new instance of CSTWdynamicRule
+        None
         '''
         self.kNextFunc = kNextFunc
         self.distance_criteria = ['kNextFunc']

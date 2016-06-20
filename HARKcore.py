@@ -1,6 +1,6 @@
 '''
-High-level functions and classes useful for solving a wide variety of  economic
-models.  The "core" of HARK is a framework for "microeconomic" and "macroeconomic"
+High-level functions and classes for solving a wide variety of economic models.
+The "core" of HARK is a framework for "microeconomic" and "macroeconomic"
 models.  A micro model concerns the dynamic optimization problem for some type
 of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
@@ -485,7 +485,7 @@ def solveOneCycle(agent,solution_last):
       
 class Market(HARKobject):
     '''
-    A class to represent a central clearinghouse of information.  Used for
+    A superclass to represent a central clearinghouse of information.  Used for
     dynamic general equilibrium models to solve the "macroeconomic" model as a
     layer on top of the "microeconomic" models of one or more AgentTypes.
     '''   

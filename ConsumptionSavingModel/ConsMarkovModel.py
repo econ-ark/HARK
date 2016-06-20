@@ -28,7 +28,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
     '''
     A class to solve a single period consumption-saving problem with risky income
     and stochastic transitions between discrete states, in a Markov fashion.
-    Extends ConsumptionSavingSolverENDG, with identical inputs but for a discrete
+    Extends ConsIndShockSolver, with identical inputs but for a discrete
     Markov state, whose transition rule is summarized in MrkvArray.  Markov
     states can differ in their interest factor, permanent growth factor, and
     income distribution, so the inputs Rfree, PermGroFac, and IncomeDstn are
@@ -39,7 +39,8 @@ class ConsMarkovSolver(ConsIndShockSolver):
                       aXtraGrid,vFuncBool,CubicBool):
         '''
         Constructor for a new solver for a one period problem with risky income
-        and transitions between discrete Markov states (assume there are N states).
+        and transitions between discrete Markov states.  In the descriptions below,
+        N is the number of discrete states.
         
         Parameters
         ----------
@@ -259,7 +260,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         '''
         Construct the end-of-period value function conditional on next period's
         state.  NOTE: It might be possible to eliminate this method and replace
-        it with ConsumptionSavingSolverENDG.makeEndOfPrdvFunc, but the self.X_cond
+        it with ConsIndShockSolver.makeEndOfPrdvFunc, but the self.X_cond
         variables must be renamed.
         
         Parameters
@@ -589,10 +590,11 @@ def solveConsMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFa
     '''
     Solves a single period consumption-saving problem with risky income and
     stochastic transitions between discrete states, in a Markov fashion.  Has
-    identical inputs as solveConsumptionSavingENDG, except for a discrete 
+    identical inputs as solveConsIndShock, except for a discrete 
     Markov transitionrule MrkvArray.  Markov states can differ in their interest 
-    factor, permanent growth factor, and income distribution, so the inputs Rfree, PermGroFac, and
-    IncomeDstn are arrays or lists specifying those values in each (succeeding) Markov state.
+    factor, permanent growth factor, and income distribution, so the inputs Rfree,
+    PermGroFac, and IncomeDstn are arrays or lists specifying those values in each
+    (succeeding) Markov state.
     
     Parameters
     ----------
