@@ -711,7 +711,7 @@ class MarkovConsumerType(IndShockConsumerType):
                 PermGroFacNow = PermGroFac_list[n]
                 Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
                 # Get random draws of income shocks from the discrete distribution
-                EventDraws       = drawDiscrete(X=Indices,P=IncomeDstnNow[0],N=np.sum(these),exact_match=False,seed=self.RNG.randint(0,2**31-1))
+                EventDraws       = drawDiscrete(N=np.sum(these),X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
                 PermShkHist[t,these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow
                 TranShkHist[t,these] = IncomeDstnNow[2][EventDraws]
             # Advance the time index, looping if we've run out of income distributions

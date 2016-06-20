@@ -593,7 +593,7 @@ if __name__ == "__main__":
         KY_target = 10.26
        
     # Make a vector of initial wealth-to-permanent income ratios
-    a_init = drawDiscrete(P=Params.a0_probs,X=Params.a0_values,N=Params.sim_pop_size,seed=Params.a0_seed)
+    a_init = drawDiscrete(N=Params.sim_pop_size,P=Params.a0_probs,X=Params.a0_values,seed=Params.a0_seed)
                                              
     # Make the list of types for this run, whether infinite or lifecycle
     if Params.do_lifecycle:
@@ -614,7 +614,7 @@ if __name__ == "__main__":
         CollegeType.update()
         
         # Make initial distributions of permanent income for each education level
-        p_init_base = drawMeanOneLognormal(Params.P0_sigma, Params.sim_pop_size, Params.P0_seed)
+        p_init_base = drawMeanOneLognormal(N=Params.sim_pop_size, sigma=Params.P0_sigma, seed=Params.P0_seed)
         DropoutType.p_init = Params.P0_d*p_init_base
         HighschoolType.p_init = Params.P0_h*p_init_base
         CollegeType.p_init = Params.P0_c*p_init_base
@@ -843,7 +843,7 @@ if __name__ == "__main__":
         
         # Edit the consumer types so they have the right data
         for this_type in agg_shocks_market.agents:
-            this_type.p_init = drawMeanOneLognormal(sigma=0.9,N=this_type.Nagents)
+            this_type.p_init = drawMeanOneLognormal(N=this_type.Nagents,sigma=0.9,seed=0)
             this_type.getEconomyData(agg_shocks_market)
         
         # Solve the aggregate shocks version of the model

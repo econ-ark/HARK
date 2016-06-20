@@ -38,9 +38,9 @@ EstimationAgent.time_inv.remove('DiscFac')                           # This esti
 EstimationAgent.time_vary.append('DiscFac')                          # estimated by Cagetti (2003), so switch from time_inv to time_vary
 EstimationAgent(sim_periods = EstimationAgent.T_total+1)             # Set the number of periods to simulate
 EstimationAgent.makeIncShkHist()                                     # Make a simulated history of income shocks for many consumers
-EstimationAgent.a_init = drawDiscrete(P=Params.initial_wealth_income_ratio_probs,
-                                      X=Params.initial_wealth_income_ratio_vals,
-                                      N=Params.num_agents,
+EstimationAgent.a_init = drawDiscrete(N=Params.num_agents,
+                                      P=Params.initial_wealth_income_ratio_probs,
+                                      X=Params.initial_wealth_income_ratio_vals,                                      
                                       seed=Params.seed)              # Draw initial assets for each consumer
 
 # Define the objective function for the simulated method of moments estimation

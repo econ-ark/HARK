@@ -208,7 +208,7 @@ class AggShockConsumerType(IndShockConsumerType):
         '''
         if hasattr(self,'DiePrb'):
             if self.DiePrb > 0:
-                who_dies = drawBernoulli(self.DiePrb,self.Nagents,self.RNG.randint(low=1, high=2**31-1))
+                who_dies = drawBernoulli(N=self.Nagents,p=self.DiePrb,seed=self.RNG.randint(low=1, high=2**31-1))
                 wealth_all = self.aNow*self.pNow
                 who_lives = np.logical_not(who_dies)
                 wealth_of_dead = np.sum(wealth_all[who_dies])
@@ -532,7 +532,7 @@ class CobbDouglasEconomy(Market):
         '''
         sim_periods = self.act_T
         Events      = np.arange(self.AggShkDstn[0].size) # just a list of integers
-        EventDraws  = drawDiscrete(self.AggShkDstn[0],Events,sim_periods,seed=0)
+        EventDraws  = drawDiscrete(N=sim_periods,P=self.AggShkDstn[0],X=Events,seed=0)
         PermShkAggHist = self.AggShkDstn[1][EventDraws]
         TranShkAggHist = self.AggShkDstn[2][EventDraws]
         
