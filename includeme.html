@@ -1,0 +1,247 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>&lt;no title&gt; &mdash; HARK 0.9 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.9',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="HARK 0.9 documentation" href="index.html" />
+    <link rel="next" title="HARKutilities" href="generated/HARKutilities.html" />
+    <link rel="prev" title="Welcome to HARK’s documentation!" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="generated/HARKutilities.html" title="HARKutilities"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to HARK’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <p>Heterogeneous Agents Resources and toolKit (HARK)
+alpha release - December 14, 2015</p>
+<p>Table of Contents:</p>
+<ol class="upperroman simple">
+<li>Introduction</li>
+<li>Quick start guide</li>
+<li>List of archived files</li>
+<li>Warnings and disclaimers</li>
+</ol>
+<hr class="docutils" />
+<ol class="upperroman simple">
+<li>INTRODUCTION</li>
+</ol>
+<p>Welcome to HARK!  We are tremendously excited you&#8217;re here.  HARK is
+very much a work in progress, but we hope you find it valuable.  We
+<em>really</em> hope you find it so valuable that you decide to contribute
+to it yourself.  This document will tell you how to get HARK up and
+running on your machine, and what you will find in HARK once you do.</p>
+<p>If you have any comments on the code or documentation, we&#8217;d love to
+hear from you!  Our email addresses are:</p>
+<p>Chris Carroll: <a class="reference external" href="mailto:ccarroll&#37;&#52;&#48;llorracc&#46;org">ccarroll<span>&#64;</span>llorracc<span>&#46;</span>org</a>
+Matthew White: <a class="reference external" href="mailto:mnwhite&#37;&#52;&#48;gmail&#46;com">mnwhite<span>&#64;</span>gmail<span>&#46;</span>com</a>
+Nathan Palmer: <a class="reference external" href="mailto:Nathan&#46;Palmer&#37;&#52;&#48;ofr&#46;treasury&#46;gov">Nathan<span>&#46;</span>Palmer<span>&#64;</span>ofr<span>&#46;</span>treasury<span>&#46;</span>gov</a>
+David Low: <a class="reference external" href="mailto:David&#46;Low&#37;&#52;&#48;cfpb&#46;gov">David<span>&#46;</span>Low<span>&#64;</span>cfpb<span>&#46;</span>gov</a></p>
+<hr class="docutils" />
+<ol class="upperroman simple" start="2">
+<li>QUICK START GUIDE</li>
+</ol>
+<p>This is going to be easy, friend.  HARK is written in Python, specifically the
+Anaconda distribution of Python.  Follow these easy steps to get HARK going:</p>
+<p>1) Go to <a class="reference external" href="https://www.continuum.io/downloads">https://www.continuum.io/downloads</a> and download Anaconda for your
+operating system; be sure to get the version for Python 2.7</p>
+<p>2) Install Anaconda, using the instructions provided on that page.  Now you have
+installed everything you need to run most of HARK.  But you still need to get HARK
+on your machine.</p>
+<p>3) To get HARK on your machine, you should know that HARK is managed with version
+control software called &#8220;Git&#8221;.  HARK is hosted on a website called &#8220;GitHub&#8221; devoted
+to hosting projects managed with Git.</p>
+<p>If you don&#8217;t want to know more than that, you don&#8217;t have to.  Go to HARK&#8217;s page
+on GitHub, and then click the &#8220;Download ZIP&#8221; button in the upper right hand
+corner of the page. Download the ZIP file and unzip it into an empty directory.
+Maybe call that directory /HARK ?  The choice is yours.</p>
+<p>You can also clone HARK off GitHub using Git.  This is slightly more difficult,
+because it involves installing Git on your machine and learning a little about
+how to use Git.  We believe this is an investment worth making, but it is up to you.
+To learn more about Git, read the documentation at <a class="reference external" href="https://git-scm.com/documentation">https://git-scm.com/documentation</a>
+or visit many other great Git resources on the internet.</p>
+<p>4) Open Spyder, an interactive development environment (IDE) for Python
+(specifically, iPython).  On Windows, open a command prompt and type &#8220;spyder&#8221;.
+On Linux, open the command line and type &#8220;spyder&#8221;.  On Mac, open the command
+line and type &#8220;spyder&#8221;.</p>
+<p>5) Navigate to the directory where you put the HARK files.  This can be done
+within Spyder by doing &#8220;import os&#8221; and then using os.chdir() to change directories.
+chdir works just like cd at a command prompt on most operating systems, except that
+it takes a string as input: os.chdir(&#8216;Music&#8217;) moves to the Music subdirectory
+of the current working directory.</p>
+<ol class="arabic simple" start="6">
+<li>Test one of HARK&#8217;s sample modules with one of the following commands:</li>
+</ol>
+<p>&#8220;run ConsumerExamples&#8221;
+&#8220;run SolvingMicroDSOPs&#8221;
+&#8220;run cstwMPC&#8221;
+&#8220;run TBSexamples&#8221;</p>
+<p>7) The Python environment can be cleared or reset with ctrl+.  Note that
+this will also change the current working directory back to its default.
+To change the default directory (the &#8220;global working directory&#8221;), see
+Tools&#8211;&gt;Preferences&#8211;&gt;Global working directory; you might need to restart
+Spyder for the change to take effect.</p>
+<ol class="arabic simple" start="8">
+<li>Read the more complete documentation in HARKdoc.pdf.</li>
+</ol>
+<p>9) OPTIONAL: If you want to use HARK&#8217;s multithreading capabilities, you will
+need two Python packages that do not come automatically with Anaconda: joblib
+and dill.  Assuming you have the necessary permissions on your machine, the
+easiest way to do this is through Anaconda.  Go to the command line, and type
+&#8220;conda install joblib&#8221; and then &#8220;conda install dill&#8221;.  If this doesn&#8217;t work,
+but you have Git, you can just clone the packages directly off GitHub.
+Go to the command line and navigate to the directory you want to put these
+packages in.  Then type &#8220;git clone <a class="reference external" href="https://github.com/joblib/joblib.git">https://github.com/joblib/joblib.git</a>&#8221;
+and then &#8220;git clone <a class="reference external" href="https://github.com/uqfoundation/dill">https://github.com/uqfoundation/dill</a>&#8221;.  Joblib should work
+after this, but there is one more step to get dill working.  Navigate to dill&#8217;s
+directory in the command line, and then type &#8220;python setup.py build&#8221;.  Then you
+should have joblib and dill working on your machine.</p>
+<p>Note: If you did not put joblib and dill in one of the paths in sys.path, you will
+need to add the joblib and dill directories to sys.path.  The easiest way to do this
+is to open up Anaconda, and type:</p>
+<p>import sys
+sys.path.append(&#8216;path_to_joblib_directory&#8217;)
+sys.path.append(&#8216;path_to_dill_directory&#8217;)</p>
+<hr class="docutils" />
+<ol class="upperroman simple" start="3">
+<li>LIST OF ARCHIVED FILES</li>
+</ol>
+<p>Documentation:
+- README.txt                   The file you are currently reading.
+- HARKdoc.pdf                  Somewhat more complete description of the HARK project</p>
+<p>Main HARK Python modules:
+- HARKcore.py                  The microeconomic agent framework
+- HARKutilities.py             Assorted useful tools
+- HARKestimation.py            Model estimation methods, etc
+- HARKsimulation.py            Tools for generating simulated data
+- HARKinterpolation.py         Methods for representing interpolated functions</p>
+<p>Consumption-saving model files:
+- ConsumptionSavingModel.py    ConsumerType and related solvers
+- SetupConsumerParameters.py   Load in a baseline specification for SolvingMicroDSOPs
+- ConsumerExamples.py          Demonstrate a few simple consumption-saving models
+- SolvingMicroDSOPs.py         Estimate a very simple lifecycle model
+- SetupSCFdata.py              Imports SCF data for use by SolvingMicroDSOPs
+- SCFdata.scv                  SCF data for SolvingMicroDSOPs
+- SMMcontour.png               Contour plot of objective function for SolvingMicroDSOPs</p>
+<p>CSTWmpc files:
+- cstwMPC.py                   The CSTWmpc model and estimation
+- SetupParamsCSTW.py           Loads in model parameters for CSTW, chooses specification
+- MakeCSTWfigs.py              Makes figures for CSTWmpc paper (needs results files)
+- MakeCSTWfigsForSlides.py     Makes figures for CSTWmpc slides (doesn&#8217;t need results)
+- SCFwealthDataReduced.txt     SCF data with just net worth and data weights
+- USactuarial.txt              U.S. mortality data from the Social Security Admin
+- EducMortAdj.txt              Education-age mortality adjusters</p>
+<p>Tractable buffer stock files:
+- TractableBufferStock.py      TractableConsumerType and its solver
+- TBSexamples.py               An example of the TBS model in action</p>
+<p>Empty directories:
+- ./Figures                    Holds figures produced by CSTWmpc
+- ./Results                    Holds results files produced by CSTWmpc</p>
+<hr class="docutils" />
+<ol class="upperroman simple" start="4">
+<li>WARNINGS AND DISCLAIMERS</li>
+</ol>
+<p>This is an early &#8220;alpha&#8221; version of HARK.  The code has not been
+extensively tested as it should be.  We hope it is useful, but
+there are absolutely no guarantees (expressed or implied) that
+it works or will do what you want.  Use at your own risk.  And
+please, let us know if you find bugs!</p>
+<hr class="docutils" />
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to HARK&#8217;s documentation!</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="generated/HARKutilities.html"
+                        title="next chapter">HARKutilities</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/includeme.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="generated/HARKutilities.html" title="HARKutilities"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to HARK’s documentation!"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, TEMP.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.1.
+    </div>
+  </body>
+</html>
