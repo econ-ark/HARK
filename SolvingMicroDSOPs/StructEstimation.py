@@ -11,8 +11,12 @@ income as defined in ConsIndShockModel.
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder. 
 import sys 
-sys.path.insert(0,'../')
-sys.path.insert(0,'../ConsumptionSavingModel')
+#sys.path.insert(0,'../')
+#sys.path.insert(0,'../ConsumptionSavingModel')
+import os
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../ConsumptionSavingModel'))
+
 
 import EstimationParameters as Params           # Parameters for the consumer type and the estimation
 import ConsIndShockModel as Model               # The consumption-saving micro model

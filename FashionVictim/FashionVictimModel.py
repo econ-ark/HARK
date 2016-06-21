@@ -6,7 +6,10 @@ preferences each style), and pay switching costs if they change.
 '''
 
 import sys 
-sys.path.insert(0,'../')
+#sys.path.insert(0,'../')
+import os
+sys.path.insert(0, os.path.abspath('../'))
+
 from HARKcore import AgentType, Solution, NullFunc
 from HARKinterpolation import LinearInterp
 from HARKutilities import approxUniform, plotFuncs

@@ -6,7 +6,10 @@ from __future__ import division      # Use new division function
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder. 
 import sys 
-sys.path.insert(0,'../')
+#sys.path.insert(0,'../')
+import os
+sys.path.insert(0, os.path.abspath('../'))
+
 
 # The following libraries are part of the standard python distribution
 import numpy as np                   # Numerical Python
@@ -17,10 +20,10 @@ from EstimationParameters import initial_age, empirical_cohort_age_groups
 from HARKutilities import warnings
 
 # Set the path to the empirical data:
-scf_data_path = './'
+scf_data_path = data_location = os.path.dirname(os.path.abspath(__file__))  # os.path.abspath('./')   #'./'
 
 # Open the file handle and create a reader object and a csv header
-infile = open(scf_data_path + 'SCFdata.csv', 'rb')  
+infile = open(scf_data_path + '/SCFdata.csv', 'rb')  
 csv_reader = csv.reader(infile)
 data_csv_header = csv_reader.next()
 
