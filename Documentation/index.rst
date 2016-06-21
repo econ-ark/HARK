@@ -31,8 +31,6 @@ Contents:
 
    FashionVictimModel
 
-   cstwMPC
-
 
 
 Indices and tables
