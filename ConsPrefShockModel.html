@@ -54,7 +54,7 @@ rates on borrowing and saving.</p>
 <dl class="class">
 <dt id="ConsPrefShockModel.ConsPrefShockSolver">
 <em class="property">class </em><code class="descclassname">ConsPrefShockModel.</code><code class="descname">ConsPrefShockSolver</code><span class="sig-paren">(</span><em>solution_next</em>, <em>IncomeDstn</em>, <em>PrefShkDstn</em>, <em>LivPrb</em>, <em>DiscFac</em>, <em>CRRA</em>, <em>Rboro</em>, <em>Rsave</em>, <em>PermGroFac</em>, <em>BoroCnstArt</em>, <em>aXtraGrid</em>, <em>vFuncBool</em>, <em>CubicBool</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsPrefShockModel.ConsPrefShockSolver" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="ConsIndShockModel.html#ConsIndShockModel.ConsKinkedRsolver" title="ConsIndShockModel.ConsKinkedRsolver"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.ConsKinkedRsolver</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsKinkedRsolver" title="ConsIndShockModel.ConsKinkedRsolver"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.ConsKinkedRsolver</span></code></a></p>
 <p>A class for solving the one period consumption-saving problem with risky
 income (permanent and transitory shocks), a different interest factor on
 borrowing and saving, and multiplicative shocks to utility each period.</p>
@@ -92,7 +92,7 @@ borrowing and saving, and multiplicative shocks to utility each period.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">defValueFuncs</span></code>()</td>
 <td>Defines the value and marginal value function for this period.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsPrefShockModel.ConsPrefShockSolver.getPointsForInterpolation" title="ConsPrefShockModel.ConsPrefShockSolver.getPointsForInterpolation"><code class="xref py py-obj docutils literal"><span class="pre">getPointsForInterpolation</span></code></a>(EndOfPrdvP,&nbsp;aNrmNow)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsPrefShockModel.html#ConsPrefShockModel.ConsPrefShockSolver.getPointsForInterpolation" title="ConsPrefShockModel.ConsPrefShockSolver.getPointsForInterpolation"><code class="xref py py-obj docutils literal"><span class="pre">getPointsForInterpolation</span></code></a>(EndOfPrdvP,&nbsp;aNrmNow)</td>
 <td>Find endogenous interpolation points for each asset point and each discrete preference shock.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">makeBasicSolution</span></code>(EndOfPrdvP,&nbsp;aNrm,&nbsp;interpolator)</td>
@@ -110,7 +110,7 @@ borrowing and saving, and multiplicative shocks to utility each period.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">makePFcFunc</span></code>()</td>
 <td>Makes the (linear) consumption function for this period.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsPrefShockModel.ConsPrefShockSolver.makevFunc" title="ConsPrefShockModel.ConsPrefShockSolver.makevFunc"><code class="xref py py-obj docutils literal"><span class="pre">makevFunc</span></code></a>(solution)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsPrefShockModel.html#ConsPrefShockModel.ConsPrefShockSolver.makevFunc" title="ConsPrefShockModel.ConsPrefShockSolver.makevFunc"><code class="xref py py-obj docutils literal"><span class="pre">makevFunc</span></code></a>(solution)</td>
 <td>Make the beginning-of-period value function (unconditional on the shock).</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">prepareToCalcEndOfPrdvP</span></code>()</td>
@@ -125,7 +125,7 @@ borrowing and saving, and multiplicative shocks to utility each period.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code>()</td>
 <td>Solves the single period consumption-saving problem using the method of endogenous gridpoints.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsPrefShockModel.ConsPrefShockSolver.usePointsForInterpolation" title="ConsPrefShockModel.ConsPrefShockSolver.usePointsForInterpolation"><code class="xref py py-obj docutils literal"><span class="pre">usePointsForInterpolation</span></code></a>(cNrm,&nbsp;mNrm,&nbsp;...)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsPrefShockModel.html#ConsPrefShockModel.ConsPrefShockSolver.usePointsForInterpolation" title="ConsPrefShockModel.ConsPrefShockSolver.usePointsForInterpolation"><code class="xref py py-obj docutils literal"><span class="pre">usePointsForInterpolation</span></code></a>(cNrm,&nbsp;mNrm,&nbsp;...)</td>
 <td>Make a basic solution object with a consumption function and marginal value function (unconditional on the preference shock).</td>
 </tr>
 </tbody>
@@ -229,7 +229,7 @@ consumption function, marginal value function, and minimum m.</p>
 <dl class="class">
 <dt id="ConsPrefShockModel.PrefShockConsumerType">
 <em class="property">class </em><code class="descclassname">ConsPrefShockModel.</code><code class="descname">PrefShockConsumerType</code><span class="sig-paren">(</span><em>cycles=1</em>, <em>time_flow=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsPrefShockModel.PrefShockConsumerType" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="ConsIndShockModel.html#ConsIndShockModel.KinkedRconsumerType" title="ConsIndShockModel.KinkedRconsumerType"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.KinkedRconsumerType</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.KinkedRconsumerType" title="ConsIndShockModel.KinkedRconsumerType"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.KinkedRconsumerType</span></code></a></p>
 <p>A class for representing consumers who experience multiplicative shocks to
 utility each period, specified as iid lognormal.</p>
 <p class="rubric">Methods</p>
@@ -242,7 +242,7 @@ utility each period, specified as iid lognormal.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsPrefShockModel.PrefShockConsumerType.advanceIncShks" title="ConsPrefShockModel.PrefShockConsumerType.advanceIncShks"><code class="xref py py-obj docutils literal"><span class="pre">advanceIncShks</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsPrefShockModel.html#ConsPrefShockModel.PrefShockConsumerType.advanceIncShks" title="ConsPrefShockModel.PrefShockConsumerType.advanceIncShks"><code class="xref py py-obj docutils literal"><span class="pre">advanceIncShks</span></code></a>()</td>
 <td>Advance the permanent and transitory income shocks to the next period of the shock history objects, after first advancing the preference shocks.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">advancecFunc</span></code>()</td>
@@ -254,7 +254,7 @@ utility each period, specified as iid lognormal.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">cFunc_terminal_</span></code></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsPrefShockModel.PrefShockConsumerType.calcBoundingValues" title="ConsPrefShockModel.PrefShockConsumerType.calcBoundingValues"><code class="xref py py-obj docutils literal"><span class="pre">calcBoundingValues</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsPrefShockModel.html#ConsPrefShockModel.PrefShockConsumerType.calcBoundingValues" title="ConsPrefShockModel.PrefShockConsumerType.calcBoundingValues"><code class="xref py py-obj docutils literal"><span class="pre">calcBoundingValues</span></code></a>()</td>
 <td>Calculate human wealth plus minimum and maximum MPC in an infinite horizon model with only one period repeated indefinitely.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
@@ -266,13 +266,13 @@ utility each period, specified as iid lognormal.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">isSameThing</span></code>(solutionA,&nbsp;solutionB)</td>
 <td>Compare two solutions to see if they are the &#8220;same.&#8221;  The model-specific solution class must have a method called distance, which takes another solution object as an input and returns the &#8220;distance&#8221; between the solutions.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsPrefShockModel.PrefShockConsumerType.makeEulerErrorFunc" title="ConsPrefShockModel.PrefShockConsumerType.makeEulerErrorFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeEulerErrorFunc</span></code></a>([mMax,&nbsp;approx_inc_dstn])</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsPrefShockModel.html#ConsPrefShockModel.PrefShockConsumerType.makeEulerErrorFunc" title="ConsPrefShockModel.PrefShockConsumerType.makeEulerErrorFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeEulerErrorFunc</span></code></a>([mMax,&nbsp;approx_inc_dstn])</td>
 <td>Creates a &#8220;normalized Euler error&#8221; function for this instance, mapping from market resources to &#8220;consumption error per dollar of consumption.&#8221; Stores result in attribute eulerErrorFunc as an interpolated function.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">makeIncShkHist</span></code>()</td>
 <td>Makes histories of simulated income shocks for this consumer type by drawing from the discrete income distributions, storing them as attributes of self for use by simulation methods.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsPrefShockModel.PrefShockConsumerType.makePrefShkHist" title="ConsPrefShockModel.PrefShockConsumerType.makePrefShkHist"><code class="xref py py-obj docutils literal"><span class="pre">makePrefShkHist</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsPrefShockModel.html#ConsPrefShockModel.PrefShockConsumerType.makePrefShkHist" title="ConsPrefShockModel.PrefShockConsumerType.makePrefShkHist"><code class="xref py py-obj docutils literal"><span class="pre">makePrefShkHist</span></code></a>()</td>
 <td>Makes histories of simulated preference shocks for this consumer type by drawing from the shock distribution&#8217;s true lognormal form.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">postSolve</span></code>()</td>
@@ -287,7 +287,7 @@ utility each period, specified as iid lognormal.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">simConsHistory</span></code>()</td>
 <td>Simulates a history of bank balances, market resources, consumption, marginal propensity to consume, assets (after all actions), and permanent income given initial assets (normalized by permanent income).</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsPrefShockModel.PrefShockConsumerType.simOnePrd" title="ConsPrefShockModel.PrefShockConsumerType.simOnePrd"><code class="xref py py-obj docutils literal"><span class="pre">simOnePrd</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsPrefShockModel.html#ConsPrefShockModel.PrefShockConsumerType.simOnePrd" title="ConsPrefShockModel.PrefShockConsumerType.simOnePrd"><code class="xref py py-obj docutils literal"><span class="pre">simOnePrd</span></code></a>()</td>
 <td>Simulate a single period of a consumption-saving model with permanent and transitory income shocks plus multiplicative utility shocks.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">solution_terminal_</span></code></td>
@@ -311,7 +311,7 @@ utility each period, specified as iid lognormal.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">unpack_cFunc</span></code>()</td>
 <td>&#8220;Unpacks&#8221; the consumption functions into their own field for easier access.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsPrefShockModel.PrefShockConsumerType.update" title="ConsPrefShockModel.PrefShockConsumerType.update"><code class="xref py py-obj docutils literal"><span class="pre">update</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsPrefShockModel.html#ConsPrefShockModel.PrefShockConsumerType.update" title="ConsPrefShockModel.PrefShockConsumerType.update"><code class="xref py py-obj docutils literal"><span class="pre">update</span></code></a>()</td>
 <td>Updates the assets grid, income process, terminal period solution, and preference shock process.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">updateAssetsGrid</span></code>()</td>
@@ -320,7 +320,7 @@ utility each period, specified as iid lognormal.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">updateIncomeProcess</span></code>()</td>
 <td>Updates this agent&#8217;s income process based on his own attributes.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsPrefShockModel.PrefShockConsumerType.updatePrefShockProcess" title="ConsPrefShockModel.PrefShockConsumerType.updatePrefShockProcess"><code class="xref py py-obj docutils literal"><span class="pre">updatePrefShockProcess</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsPrefShockModel.html#ConsPrefShockModel.PrefShockConsumerType.updatePrefShockProcess" title="ConsPrefShockModel.PrefShockConsumerType.updatePrefShockProcess"><code class="xref py py-obj docutils literal"><span class="pre">updatePrefShockProcess</span></code></a>()</td>
 <td>Make a discrete preference shock structure for each period in the cycle for this agent type, storing them as attributes of self for use in the solution (and other methods).</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">updateSolutionTerminal</span></code>()</td>

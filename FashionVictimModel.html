@@ -54,7 +54,7 @@ preferences each style), and pay switching costs if they change.</p>
 <dl class="class">
 <dt id="FashionVictimModel.FashionEvoFunc">
 <em class="property">class </em><code class="descclassname">FashionVictimModel.</code><code class="descname">FashionEvoFunc</code><span class="sig-paren">(</span><em>pNextIntercept=None</em>, <em>pNextSlope=None</em>, <em>pNextWidth=None</em><span class="sig-paren">)</span><a class="headerlink" href="#FashionVictimModel.FashionEvoFunc" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.Solution" title="HARKcore.Solution"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.Solution</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.Solution" title="HARKcore.Solution"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.Solution</span></code></a></p>
 <p>A class for representing a dynamic fashion rule in the FashionVictim model.
 Fashion victims believe that the proportion of punks evolves according to
 a uniform distribution around a linear function of the previous state.</p>
@@ -87,7 +87,7 @@ a uniform distribution around a linear function of the previous state.</p>
 <dl class="class">
 <dt id="FashionVictimModel.FashionSolution">
 <em class="property">class </em><code class="descclassname">FashionVictimModel.</code><code class="descname">FashionSolution</code><span class="sig-paren">(</span><em>VfuncJock=None</em>, <em>VfuncPunk=None</em>, <em>switchFuncJock=None</em>, <em>switchFuncPunk=None</em><span class="sig-paren">)</span><a class="headerlink" href="#FashionVictimModel.FashionSolution" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.Solution" title="HARKcore.Solution"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.Solution</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.Solution" title="HARKcore.Solution"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.Solution</span></code></a></p>
 <p>A class for representing the single period solution to a FashionVictim problem.</p>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
@@ -112,7 +112,7 @@ a uniform distribution around a linear function of the previous state.</p>
 <dl class="class">
 <dt id="FashionVictimModel.FashionVictimType">
 <em class="property">class </em><code class="descclassname">FashionVictimModel.</code><code class="descname">FashionVictimType</code><span class="sig-paren">(</span><em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#FashionVictimModel.FashionVictimType" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.AgentType" title="HARKcore.AgentType"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.AgentType</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.AgentType" title="HARKcore.AgentType"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.AgentType</span></code></a></p>
 <p>A class for representing types of agents in the fashion victim model.  Agents
 make a binary decision over which style to wear (jock or punk), subject to
 switching costs.  They receive utility directly from their chosen style and
@@ -136,22 +136,22 @@ from the proportion of the population that wears the same style.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">isSameThing</span></code>(solutionA,&nbsp;solutionB)</td>
 <td>Compare two solutions to see if they are the &#8220;same.&#8221;  The model-specific solution class must have a method called distance, which takes another solution object as an input and returns the &#8220;distance&#8221; between the solutions.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#FashionVictimModel.FashionVictimType.marketAction" title="FashionVictimModel.FashionVictimType.marketAction"><code class="xref py py-obj docutils literal"><span class="pre">marketAction</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/FashionVictimModel.html#FashionVictimModel.FashionVictimType.marketAction" title="FashionVictimModel.FashionVictimType.marketAction"><code class="xref py py-obj docutils literal"><span class="pre">marketAction</span></code></a>()</td>
 <td>The &#8220;market action&#8221; for a FashionType in the general equilibrium setting.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#FashionVictimModel.FashionVictimType.postSolve" title="FashionVictimModel.FashionVictimType.postSolve"><code class="xref py py-obj docutils literal"><span class="pre">postSolve</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/FashionVictimModel.html#FashionVictimModel.FashionVictimType.postSolve" title="FashionVictimModel.FashionVictimType.postSolve"><code class="xref py py-obj docutils literal"><span class="pre">postSolve</span></code></a>()</td>
 <td>Unpack the behavioral and value functions for more parsimonious access.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#FashionVictimModel.FashionVictimType.preSolve" title="FashionVictimModel.FashionVictimType.preSolve"><code class="xref py py-obj docutils literal"><span class="pre">preSolve</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/FashionVictimModel.html#FashionVictimModel.FashionVictimType.preSolve" title="FashionVictimModel.FashionVictimType.preSolve"><code class="xref py py-obj docutils literal"><span class="pre">preSolve</span></code></a>()</td>
 <td>Updates the punk proportion evolution array by calling self.updateEvolution().</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#FashionVictimModel.FashionVictimType.reset" title="FashionVictimModel.FashionVictimType.reset"><code class="xref py py-obj docutils literal"><span class="pre">reset</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/FashionVictimModel.html#FashionVictimModel.FashionVictimType.reset" title="FashionVictimModel.FashionVictimType.reset"><code class="xref py py-obj docutils literal"><span class="pre">reset</span></code></a>()</td>
 <td>Resets this agent type to prepare it for a new simulation run.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">resetRNG</span></code>()</td>
 <td>Reset the random number generator for this type.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#FashionVictimModel.FashionVictimType.simOnePrd" title="FashionVictimModel.FashionVictimType.simOnePrd"><code class="xref py py-obj docutils literal"><span class="pre">simOnePrd</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/FashionVictimModel.html#FashionVictimModel.FashionVictimType.simOnePrd" title="FashionVictimModel.FashionVictimType.simOnePrd"><code class="xref py py-obj docutils literal"><span class="pre">simOnePrd</span></code></a>()</td>
 <td>Simulate one period of the fashion victom model for this type.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code>()</td>
@@ -169,10 +169,10 @@ from the proportion of the population that wears the same style.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">timeRev</span></code>()</td>
 <td>Make time flow backward for this instance.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#FashionVictimModel.FashionVictimType.update" title="FashionVictimModel.FashionVictimType.update"><code class="xref py py-obj docutils literal"><span class="pre">update</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/FashionVictimModel.html#FashionVictimModel.FashionVictimType.update" title="FashionVictimModel.FashionVictimType.update"><code class="xref py py-obj docutils literal"><span class="pre">update</span></code></a>()</td>
 <td>Updates the non-primitive objects needed for solution, using primitive attributes.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#FashionVictimModel.FashionVictimType.updateEvolution" title="FashionVictimModel.FashionVictimType.updateEvolution"><code class="xref py py-obj docutils literal"><span class="pre">updateEvolution</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/FashionVictimModel.html#FashionVictimModel.FashionVictimType.updateEvolution" title="FashionVictimModel.FashionVictimType.updateEvolution"><code class="xref py py-obj docutils literal"><span class="pre">updateEvolution</span></code></a>()</td>
 <td>Updates the &#8220;population punk proportion&#8221; evolution array.</td>
 </tr>
 </tbody>

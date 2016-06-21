@@ -65,7 +65,7 @@ See HARK documentation for mathematical descriptions of the models being solved.
 <dl class="class">
 <dt id="ConsIndShockModel.ConsIndShockSetup">
 <em class="property">class </em><code class="descclassname">ConsIndShockModel.</code><code class="descname">ConsIndShockSetup</code><span class="sig-paren">(</span><em>solution_next</em>, <em>IncomeDstn</em>, <em>LivPrb</em>, <em>DiscFac</em>, <em>CRRA</em>, <em>Rfree</em>, <em>PermGroFac</em>, <em>BoroCnstArt</em>, <em>aXtraGrid</em>, <em>vFuncBool</em>, <em>CubicBool</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsIndShockModel.ConsIndShockSetup" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#ConsIndShockModel.ConsPerfForesightSolver" title="ConsIndShockModel.ConsPerfForesightSolver"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.ConsPerfForesightSolver</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsPerfForesightSolver" title="ConsIndShockModel.ConsPerfForesightSolver"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.ConsPerfForesightSolver</span></code></a></p>
 <p>A superclass for solvers of one period consumption-saving problems with
 constant relative risk aversion utility and permanent and transitory shocks
 to income.  Has methods to set up but not solve the one period problem.</p>
@@ -76,13 +76,13 @@ to income.  Has methods to set up but not solve the one period problem.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSetup.assignParameters" title="ConsIndShockModel.ConsIndShockSetup.assignParameters"><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code></a>(solution_next,&nbsp;IncomeDstn,&nbsp;...)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSetup.assignParameters" title="ConsIndShockModel.ConsIndShockSetup.assignParameters"><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code></a>(solution_next,&nbsp;IncomeDstn,&nbsp;...)</td>
 <td>Assigns period parameters as attributes of self for use by other methods</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSetup.defBoroCnst" title="ConsIndShockModel.ConsIndShockSetup.defBoroCnst"><code class="xref py py-obj docutils literal"><span class="pre">defBoroCnst</span></code></a>(BoroCnstArt)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSetup.defBoroCnst" title="ConsIndShockModel.ConsIndShockSetup.defBoroCnst"><code class="xref py py-obj docutils literal"><span class="pre">defBoroCnst</span></code></a>(BoroCnstArt)</td>
 <td>Defines the constrained portion of the consumption function as cFuncNowCnst, an attribute of self.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSetup.defUtilityFuncs" title="ConsIndShockModel.ConsIndShockSetup.defUtilityFuncs"><code class="xref py py-obj docutils literal"><span class="pre">defUtilityFuncs</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSetup.defUtilityFuncs" title="ConsIndShockModel.ConsIndShockSetup.defUtilityFuncs"><code class="xref py py-obj docutils literal"><span class="pre">defUtilityFuncs</span></code></a>()</td>
 <td>Defines CRRA utility function for this period (and its derivatives, and their inverses), saving them as attributes of self for other methods to use.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">defValueFuncs</span></code>()</td>
@@ -91,10 +91,10 @@ to income.  Has methods to set up but not solve the one period problem.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">makePFcFunc</span></code>()</td>
 <td>Makes the (linear) consumption function for this period.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSetup.prepareToSolve" title="ConsIndShockModel.ConsIndShockSetup.prepareToSolve"><code class="xref py py-obj docutils literal"><span class="pre">prepareToSolve</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSetup.prepareToSolve" title="ConsIndShockModel.ConsIndShockSetup.prepareToSolve"><code class="xref py py-obj docutils literal"><span class="pre">prepareToSolve</span></code></a>()</td>
 <td>Perform preparatory work before calculating the unconstrained consumption function.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSetup.setAndUpdateValues" title="ConsIndShockModel.ConsIndShockSetup.setAndUpdateValues"><code class="xref py py-obj docutils literal"><span class="pre">setAndUpdateValues</span></code></a>(solution_next,&nbsp;...)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSetup.setAndUpdateValues" title="ConsIndShockModel.ConsIndShockSetup.setAndUpdateValues"><code class="xref py py-obj docutils literal"><span class="pre">setAndUpdateValues</span></code></a>(solution_next,&nbsp;...)</td>
 <td>Unpacks some of the inputs (and calculates simple objects based on them), storing the results in self for use by other methods.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code>()</td>
@@ -279,7 +279,7 @@ the succeeding period.</p>
 <dl class="class">
 <dt id="ConsIndShockModel.ConsIndShockSolver">
 <em class="property">class </em><code class="descclassname">ConsIndShockModel.</code><code class="descname">ConsIndShockSolver</code><span class="sig-paren">(</span><em>solution_next</em>, <em>IncomeDstn</em>, <em>LivPrb</em>, <em>DiscFac</em>, <em>CRRA</em>, <em>Rfree</em>, <em>PermGroFac</em>, <em>BoroCnstArt</em>, <em>aXtraGrid</em>, <em>vFuncBool</em>, <em>CubicBool</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsIndShockModel.ConsIndShockSolver" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolverBasic" title="ConsIndShockModel.ConsIndShockSolverBasic"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.ConsIndShockSolverBasic</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolverBasic" title="ConsIndShockModel.ConsIndShockSolverBasic"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.ConsIndShockSolverBasic</span></code></a></p>
 <p>This class solves a single period of a standard consumption-saving problem.
 It inherits from ConsIndShockSolverBasic, adding the ability to perform cubic
 interpolation and to calculate the value function.</p>
@@ -293,13 +293,13 @@ interpolation and to calculate the value function.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">addMPCandHumanWealth</span></code>(solution)</td>
 <td>Take a solution and add human wealth and the bounding MPCs to it.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolver.addSSmNrm" title="ConsIndShockModel.ConsIndShockSolver.addSSmNrm"><code class="xref py py-obj docutils literal"><span class="pre">addSSmNrm</span></code></a>(solution)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolver.addSSmNrm" title="ConsIndShockModel.ConsIndShockSolver.addSSmNrm"><code class="xref py py-obj docutils literal"><span class="pre">addSSmNrm</span></code></a>(solution)</td>
 <td>Finds steady state (normalized) market resources and adds it to the solution.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolver.addvFunc" title="ConsIndShockModel.ConsIndShockSolver.addvFunc"><code class="xref py py-obj docutils literal"><span class="pre">addvFunc</span></code></a>(solution,&nbsp;EndOfPrdvP)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolver.addvFunc" title="ConsIndShockModel.ConsIndShockSolver.addvFunc"><code class="xref py py-obj docutils literal"><span class="pre">addvFunc</span></code></a>(solution,&nbsp;EndOfPrdvP)</td>
 <td>Creates the value function for this period and adds it to the solution.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolver.addvPPfunc" title="ConsIndShockModel.ConsIndShockSolver.addvPPfunc"><code class="xref py py-obj docutils literal"><span class="pre">addvPPfunc</span></code></a>(solution)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolver.addvPPfunc" title="ConsIndShockModel.ConsIndShockSolver.addvPPfunc"><code class="xref py py-obj docutils literal"><span class="pre">addvPPfunc</span></code></a>(solution)</td>
 <td>Adds the marginal marginal value function to an existing solution, so that the next solver can evaluate vPP and thus use cubic interpolation.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(solution_next,&nbsp;IncomeDstn,&nbsp;...)</td>
@@ -323,10 +323,10 @@ interpolation and to calculate the value function.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">makeBasicSolution</span></code>(EndOfPrdvP,&nbsp;aNrm,&nbsp;interpolator)</td>
 <td>Given end of period assets and end of period marginal value, construct the basic solution for this period.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolver.makeCubiccFunc" title="ConsIndShockModel.ConsIndShockSolver.makeCubiccFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeCubiccFunc</span></code></a>(mNrm,&nbsp;cNrm)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolver.makeCubiccFunc" title="ConsIndShockModel.ConsIndShockSolver.makeCubiccFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeCubiccFunc</span></code></a>(mNrm,&nbsp;cNrm)</td>
 <td>Makes a cubic spline interpolation of the unconstrained consumption function for this period.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolver.makeEndOfPrdvFunc" title="ConsIndShockModel.ConsIndShockSolver.makeEndOfPrdvFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeEndOfPrdvFunc</span></code></a>(EndOfPrdvP)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolver.makeEndOfPrdvFunc" title="ConsIndShockModel.ConsIndShockSolver.makeEndOfPrdvFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeEndOfPrdvFunc</span></code></a>(EndOfPrdvP)</td>
 <td>Construct the end-of-period value function for this period, storing it as an attribute of self for use by other methods.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">makeLinearcFunc</span></code>(mNrm,&nbsp;cNrm)</td>
@@ -335,7 +335,7 @@ interpolation and to calculate the value function.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">makePFcFunc</span></code>()</td>
 <td>Makes the (linear) consumption function for this period.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolver.makevFunc" title="ConsIndShockModel.ConsIndShockSolver.makevFunc"><code class="xref py py-obj docutils literal"><span class="pre">makevFunc</span></code></a>(solution)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolver.makevFunc" title="ConsIndShockModel.ConsIndShockSolver.makevFunc"><code class="xref py py-obj docutils literal"><span class="pre">makevFunc</span></code></a>(solution)</td>
 <td>Creates the value function for this period, defined over market resources m.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">prepareToCalcEndOfPrdvP</span></code>()</td>
@@ -347,7 +347,7 @@ interpolation and to calculate the value function.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">setAndUpdateValues</span></code>(solution_next,&nbsp;...)</td>
 <td>Unpacks some of the inputs (and calculates simple objects based on them), storing the results in self for use by other methods.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolver.solve" title="ConsIndShockModel.ConsIndShockSolver.solve"><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolver.solve" title="ConsIndShockModel.ConsIndShockSolver.solve"><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code></a>()</td>
 <td>Solves the single period consumption-saving problem using the method of endogenous gridpoints.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">usePointsForInterpolation</span></code>(cNrm,&nbsp;mNrm,&nbsp;...)</td>
@@ -550,7 +550,7 @@ have a value function vFunc and marginal marginal value function vPPfunc.</p>
 <dl class="class">
 <dt id="ConsIndShockModel.ConsIndShockSolverBasic">
 <em class="property">class </em><code class="descclassname">ConsIndShockModel.</code><code class="descname">ConsIndShockSolverBasic</code><span class="sig-paren">(</span><em>solution_next</em>, <em>IncomeDstn</em>, <em>LivPrb</em>, <em>DiscFac</em>, <em>CRRA</em>, <em>Rfree</em>, <em>PermGroFac</em>, <em>BoroCnstArt</em>, <em>aXtraGrid</em>, <em>vFuncBool</em>, <em>CubicBool</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsIndShockModel.ConsIndShockSolverBasic" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#ConsIndShockModel.ConsIndShockSetup" title="ConsIndShockModel.ConsIndShockSetup"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.ConsIndShockSetup</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSetup" title="ConsIndShockModel.ConsIndShockSetup"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.ConsIndShockSetup</span></code></a></p>
 <p>This class solves a single period of a standard consumption-saving problem,
 using linear interpolation and without the ability to calculate the value
 function.  ConsIndShockSolver inherits from this class and adds the ability
@@ -565,13 +565,13 @@ inherits.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolverBasic.addMPCandHumanWealth" title="ConsIndShockModel.ConsIndShockSolverBasic.addMPCandHumanWealth"><code class="xref py py-obj docutils literal"><span class="pre">addMPCandHumanWealth</span></code></a>(solution)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolverBasic.addMPCandHumanWealth" title="ConsIndShockModel.ConsIndShockSolverBasic.addMPCandHumanWealth"><code class="xref py py-obj docutils literal"><span class="pre">addMPCandHumanWealth</span></code></a>(solution)</td>
 <td>Take a solution and add human wealth and the bounding MPCs to it.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(solution_next,&nbsp;IncomeDstn,&nbsp;...)</td>
 <td>Assigns period parameters as attributes of self for use by other methods</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolverBasic.calcEndOfPrdvP" title="ConsIndShockModel.ConsIndShockSolverBasic.calcEndOfPrdvP"><code class="xref py py-obj docutils literal"><span class="pre">calcEndOfPrdvP</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolverBasic.calcEndOfPrdvP" title="ConsIndShockModel.ConsIndShockSolverBasic.calcEndOfPrdvP"><code class="xref py py-obj docutils literal"><span class="pre">calcEndOfPrdvP</span></code></a>()</td>
 <td>Calculate end-of-period marginal value of assets at each point in aNrmNow.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">defBoroCnst</span></code>(BoroCnstArt)</td>
@@ -583,19 +583,19 @@ inherits.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">defValueFuncs</span></code>()</td>
 <td>Defines the value and marginal value function for this period.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolverBasic.getPointsForInterpolation" title="ConsIndShockModel.ConsIndShockSolverBasic.getPointsForInterpolation"><code class="xref py py-obj docutils literal"><span class="pre">getPointsForInterpolation</span></code></a>(EndOfPrdvP,&nbsp;aNrmNow)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolverBasic.getPointsForInterpolation" title="ConsIndShockModel.ConsIndShockSolverBasic.getPointsForInterpolation"><code class="xref py py-obj docutils literal"><span class="pre">getPointsForInterpolation</span></code></a>(EndOfPrdvP,&nbsp;aNrmNow)</td>
 <td>Finds interpolation points (c,m) for the consumption function.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolverBasic.makeBasicSolution" title="ConsIndShockModel.ConsIndShockSolverBasic.makeBasicSolution"><code class="xref py py-obj docutils literal"><span class="pre">makeBasicSolution</span></code></a>(EndOfPrdvP,&nbsp;aNrm,&nbsp;interpolator)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolverBasic.makeBasicSolution" title="ConsIndShockModel.ConsIndShockSolverBasic.makeBasicSolution"><code class="xref py py-obj docutils literal"><span class="pre">makeBasicSolution</span></code></a>(EndOfPrdvP,&nbsp;aNrm,&nbsp;interpolator)</td>
 <td>Given end of period assets and end of period marginal value, construct the basic solution for this period.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolverBasic.makeLinearcFunc" title="ConsIndShockModel.ConsIndShockSolverBasic.makeLinearcFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeLinearcFunc</span></code></a>(mNrm,&nbsp;cNrm)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolverBasic.makeLinearcFunc" title="ConsIndShockModel.ConsIndShockSolverBasic.makeLinearcFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeLinearcFunc</span></code></a>(mNrm,&nbsp;cNrm)</td>
 <td>Makes a linear interpolation to represent the (unconstrained) consumption function.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">makePFcFunc</span></code>()</td>
 <td>Makes the (linear) consumption function for this period.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolverBasic.prepareToCalcEndOfPrdvP" title="ConsIndShockModel.ConsIndShockSolverBasic.prepareToCalcEndOfPrdvP"><code class="xref py py-obj docutils literal"><span class="pre">prepareToCalcEndOfPrdvP</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolverBasic.prepareToCalcEndOfPrdvP" title="ConsIndShockModel.ConsIndShockSolverBasic.prepareToCalcEndOfPrdvP"><code class="xref py py-obj docutils literal"><span class="pre">prepareToCalcEndOfPrdvP</span></code></a>()</td>
 <td>Prepare to calculate end-of-period marginal value by creating an array of market resources that the agent could have next period, considering the grid of end-of-period assets and the distribution of shocks he might experience next period.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">prepareToSolve</span></code>()</td>
@@ -604,10 +604,10 @@ inherits.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">setAndUpdateValues</span></code>(solution_next,&nbsp;...)</td>
 <td>Unpacks some of the inputs (and calculates simple objects based on them), storing the results in self for use by other methods.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolverBasic.solve" title="ConsIndShockModel.ConsIndShockSolverBasic.solve"><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolverBasic.solve" title="ConsIndShockModel.ConsIndShockSolverBasic.solve"><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code></a>()</td>
 <td>Solves a one period consumption saving problem with risky income.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolverBasic.usePointsForInterpolation" title="ConsIndShockModel.ConsIndShockSolverBasic.usePointsForInterpolation"><code class="xref py py-obj docutils literal"><span class="pre">usePointsForInterpolation</span></code></a>(cNrm,&nbsp;mNrm,&nbsp;...)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolverBasic.usePointsForInterpolation" title="ConsIndShockModel.ConsIndShockSolverBasic.usePointsForInterpolation"><code class="xref py py-obj docutils literal"><span class="pre">usePointsForInterpolation</span></code></a>(cNrm,&nbsp;mNrm,&nbsp;...)</td>
 <td>Constructs a basic solution for this period, including the consumption function and marginal value function.</td>
 </tr>
 </tbody>
@@ -828,7 +828,7 @@ consumption function, marginal value function, and minimum m.</p>
 <dl class="class">
 <dt id="ConsIndShockModel.ConsKinkedRsolver">
 <em class="property">class </em><code class="descclassname">ConsIndShockModel.</code><code class="descname">ConsKinkedRsolver</code><span class="sig-paren">(</span><em>solution_next</em>, <em>IncomeDstn</em>, <em>LivPrb</em>, <em>DiscFac</em>, <em>CRRA</em>, <em>Rboro</em>, <em>Rsave</em>, <em>PermGroFac</em>, <em>BoroCnstArt</em>, <em>aXtraGrid</em>, <em>vFuncBool</em>, <em>CubicBool</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsIndShockModel.ConsKinkedRsolver" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#ConsIndShockModel.ConsIndShockSolver" title="ConsIndShockModel.ConsIndShockSolver"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.ConsIndShockSolver</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolver" title="ConsIndShockModel.ConsIndShockSolver"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.ConsIndShockSolver</span></code></a></p>
 <p>A class to solve a single period consumption-saving problem where the interest
 rate on debt differs from the interest rate on savings.  Inherits from
 ConsIndShockSolver, with nearly identical inputs and outputs.  The key diff-
@@ -888,7 +888,7 @@ erence is that Rfree is replaced by Rsave (a&gt;0) and Rboro (a&lt;0).</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">makevFunc</span></code>(solution)</td>
 <td>Creates the value function for this period, defined over market resources m.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsKinkedRsolver.prepareToCalcEndOfPrdvP" title="ConsIndShockModel.ConsKinkedRsolver.prepareToCalcEndOfPrdvP"><code class="xref py py-obj docutils literal"><span class="pre">prepareToCalcEndOfPrdvP</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsKinkedRsolver.prepareToCalcEndOfPrdvP" title="ConsIndShockModel.ConsKinkedRsolver.prepareToCalcEndOfPrdvP"><code class="xref py py-obj docutils literal"><span class="pre">prepareToCalcEndOfPrdvP</span></code></a>()</td>
 <td>Prepare to calculate end-of-period marginal value by creating an array of market resources that the agent could have next period, considering the grid of end-of-period assets and the distribution of shocks he might experience next period.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">prepareToSolve</span></code>()</td>
@@ -945,19 +945,19 @@ An instance of this class is created by the function solvePerfForesight in each 
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsPerfForesightSolver.assignParameters" title="ConsIndShockModel.ConsPerfForesightSolver.assignParameters"><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code></a>(solution_next,&nbsp;DiscFac,&nbsp;...)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsPerfForesightSolver.assignParameters" title="ConsIndShockModel.ConsPerfForesightSolver.assignParameters"><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code></a>(solution_next,&nbsp;DiscFac,&nbsp;...)</td>
 <td>Saves necessary parameters as attributes of self for use by other methods.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.ConsPerfForesightSolver.defUtilityFuncs" title="ConsIndShockModel.ConsPerfForesightSolver.defUtilityFuncs"><code class="xref py py-obj docutils literal"><span class="pre">defUtilityFuncs</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsPerfForesightSolver.defUtilityFuncs" title="ConsIndShockModel.ConsPerfForesightSolver.defUtilityFuncs"><code class="xref py py-obj docutils literal"><span class="pre">defUtilityFuncs</span></code></a>()</td>
 <td>Defines CRRA utility function for this period (and its derivatives), saving them as attributes of self for other methods to use.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsPerfForesightSolver.defValueFuncs" title="ConsIndShockModel.ConsPerfForesightSolver.defValueFuncs"><code class="xref py py-obj docutils literal"><span class="pre">defValueFuncs</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsPerfForesightSolver.defValueFuncs" title="ConsIndShockModel.ConsPerfForesightSolver.defValueFuncs"><code class="xref py py-obj docutils literal"><span class="pre">defValueFuncs</span></code></a>()</td>
 <td>Defines the value and marginal value function for this period.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.ConsPerfForesightSolver.makePFcFunc" title="ConsIndShockModel.ConsPerfForesightSolver.makePFcFunc"><code class="xref py py-obj docutils literal"><span class="pre">makePFcFunc</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsPerfForesightSolver.makePFcFunc" title="ConsIndShockModel.ConsPerfForesightSolver.makePFcFunc"><code class="xref py py-obj docutils literal"><span class="pre">makePFcFunc</span></code></a>()</td>
 <td>Makes the (linear) consumption function for this period.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.ConsPerfForesightSolver.solve" title="ConsIndShockModel.ConsPerfForesightSolver.solve"><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsPerfForesightSolver.solve" title="ConsIndShockModel.ConsPerfForesightSolver.solve"><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code></a>()</td>
 <td>Solves the one period perfect foresight consumption-saving problem.</td>
 </tr>
 </tbody>
@@ -1079,7 +1079,7 @@ saving them as attributes of self for other methods to use.</p>
 <dl class="class">
 <dt id="ConsIndShockModel.ConsumerSolution">
 <em class="property">class </em><code class="descclassname">ConsIndShockModel.</code><code class="descname">ConsumerSolution</code><span class="sig-paren">(</span><em>cFunc=None</em>, <em>vFunc=None</em>, <em>vPfunc=None</em>, <em>vPPfunc=None</em>, <em>mNrmMin=None</em>, <em>hNrm=None</em>, <em>MPCmin=None</em>, <em>MPCmax=None</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsIndShockModel.ConsumerSolution" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.Solution" title="HARKcore.Solution"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.Solution</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.Solution" title="HARKcore.Solution"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.Solution</span></code></a></p>
 <p>A class representing the solution of a single period of a consumption-saving
 problem.  The solution must include a consumption function and marginal
 value function.</p>
@@ -1095,7 +1095,7 @@ by permanent income.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.ConsumerSolution.appendSolution" title="ConsIndShockModel.ConsumerSolution.appendSolution"><code class="xref py py-obj docutils literal"><span class="pre">appendSolution</span></code></a>(new_solution)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsumerSolution.appendSolution" title="ConsIndShockModel.ConsumerSolution.appendSolution"><code class="xref py py-obj docutils literal"><span class="pre">appendSolution</span></code></a>(new_solution)</td>
 <td>Appends one solution to another to create a ConsumerSolution whose attributes are lists.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
@@ -1141,7 +1141,7 @@ list representing state-conditional values or functions.</p>
 <dl class="class">
 <dt id="ConsIndShockModel.IndShockConsumerType">
 <em class="property">class </em><code class="descclassname">ConsIndShockModel.</code><code class="descname">IndShockConsumerType</code><span class="sig-paren">(</span><em>cycles=1</em>, <em>time_flow=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsIndShockModel.IndShockConsumerType" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#ConsIndShockModel.PerfForesightConsumerType" title="ConsIndShockModel.PerfForesightConsumerType"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.PerfForesightConsumerType</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.PerfForesightConsumerType" title="ConsIndShockModel.PerfForesightConsumerType"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.PerfForesightConsumerType</span></code></a></p>
 <p>A consumer type with idiosyncratic shocks to permanent and transitory income.
 His problem is defined by a sequence of income distributions, survival prob-
 abilities, and permanent income growth rates, as well as time invariant values
@@ -1157,10 +1157,10 @@ period assets, and an artificial borrowing constraint.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.IndShockConsumerType.advanceIncShks" title="ConsIndShockModel.IndShockConsumerType.advanceIncShks"><code class="xref py py-obj docutils literal"><span class="pre">advanceIncShks</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType.advanceIncShks" title="ConsIndShockModel.IndShockConsumerType.advanceIncShks"><code class="xref py py-obj docutils literal"><span class="pre">advanceIncShks</span></code></a>()</td>
 <td>Advance the permanent and transitory income shocks to the next period of the shock history objects.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.IndShockConsumerType.advancecFunc" title="ConsIndShockModel.IndShockConsumerType.advancecFunc"><code class="xref py py-obj docutils literal"><span class="pre">advancecFunc</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType.advancecFunc" title="ConsIndShockModel.IndShockConsumerType.advancecFunc"><code class="xref py py-obj docutils literal"><span class="pre">advancecFunc</span></code></a>()</td>
 <td>Advance the consumption function to the next period in the solution.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
@@ -1169,22 +1169,22 @@ period assets, and an artificial borrowing constraint.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">cFunc_terminal_</span></code></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.IndShockConsumerType.calcBoundingValues" title="ConsIndShockModel.IndShockConsumerType.calcBoundingValues"><code class="xref py py-obj docutils literal"><span class="pre">calcBoundingValues</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType.calcBoundingValues" title="ConsIndShockModel.IndShockConsumerType.calcBoundingValues"><code class="xref py py-obj docutils literal"><span class="pre">calcBoundingValues</span></code></a>()</td>
 <td>Calculate human wealth plus minimum and maximum MPC in an infinite horizon model with only one period repeated indefinitely.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
 <td>A generic distance method, which requires the existence of an attribute called distance_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.IndShockConsumerType.initializeSim" title="ConsIndShockModel.IndShockConsumerType.initializeSim"><code class="xref py py-obj docutils literal"><span class="pre">initializeSim</span></code></a>([a_init,&nbsp;p_init,&nbsp;t_init,&nbsp;sim_prds])</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType.initializeSim" title="ConsIndShockModel.IndShockConsumerType.initializeSim"><code class="xref py py-obj docutils literal"><span class="pre">initializeSim</span></code></a>([a_init,&nbsp;p_init,&nbsp;t_init,&nbsp;sim_prds])</td>
 <td>Readies this type for simulation by clearing its history, initializing state variables, and setting time indices to their correct position.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">isSameThing</span></code>(solutionA,&nbsp;solutionB)</td>
 <td>Compare two solutions to see if they are the &#8220;same.&#8221;  The model-specific solution class must have a method called distance, which takes another solution object as an input and returns the &#8220;distance&#8221; between the solutions.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.IndShockConsumerType.makeEulerErrorFunc" title="ConsIndShockModel.IndShockConsumerType.makeEulerErrorFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeEulerErrorFunc</span></code></a>([mMax,&nbsp;approx_inc_dstn])</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType.makeEulerErrorFunc" title="ConsIndShockModel.IndShockConsumerType.makeEulerErrorFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeEulerErrorFunc</span></code></a>([mMax,&nbsp;approx_inc_dstn])</td>
 <td>Creates a &#8220;normalized Euler error&#8221; function for this instance, mapping from market resources to &#8220;consumption error per dollar of consumption.&#8221; Stores result in attribute eulerErrorFunc as an interpolated function.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.IndShockConsumerType.makeIncShkHist" title="ConsIndShockModel.IndShockConsumerType.makeIncShkHist"><code class="xref py py-obj docutils literal"><span class="pre">makeIncShkHist</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType.makeIncShkHist" title="ConsIndShockModel.IndShockConsumerType.makeIncShkHist"><code class="xref py py-obj docutils literal"><span class="pre">makeIncShkHist</span></code></a>()</td>
 <td>Makes histories of simulated income shocks for this consumer type by drawing from the discrete income distributions, storing them as attributes of self for use by simulation methods.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">postSolve</span></code>()</td>
@@ -1196,10 +1196,10 @@ period assets, and an artificial borrowing constraint.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">resetRNG</span></code>()</td>
 <td>Reset the random number generator for this type.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.IndShockConsumerType.simConsHistory" title="ConsIndShockModel.IndShockConsumerType.simConsHistory"><code class="xref py py-obj docutils literal"><span class="pre">simConsHistory</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType.simConsHistory" title="ConsIndShockModel.IndShockConsumerType.simConsHistory"><code class="xref py py-obj docutils literal"><span class="pre">simConsHistory</span></code></a>()</td>
 <td>Simulates a history of bank balances, market resources, consumption, marginal propensity to consume, assets (after all actions), and permanent income given initial assets (normalized by permanent income).</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.IndShockConsumerType.simOnePrd" title="ConsIndShockModel.IndShockConsumerType.simOnePrd"><code class="xref py py-obj docutils literal"><span class="pre">simOnePrd</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType.simOnePrd" title="ConsIndShockModel.IndShockConsumerType.simOnePrd"><code class="xref py py-obj docutils literal"><span class="pre">simOnePrd</span></code></a>()</td>
 <td>Simulate a single period of a consumption-saving model with permanent and transitory income shocks.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">solution_terminal_</span></code></td>
@@ -1223,13 +1223,13 @@ period assets, and an artificial borrowing constraint.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">unpack_cFunc</span></code>()</td>
 <td>&#8220;Unpacks&#8221; the consumption functions into their own field for easier access.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.IndShockConsumerType.update" title="ConsIndShockModel.IndShockConsumerType.update"><code class="xref py py-obj docutils literal"><span class="pre">update</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType.update" title="ConsIndShockModel.IndShockConsumerType.update"><code class="xref py py-obj docutils literal"><span class="pre">update</span></code></a>()</td>
 <td>Update the income process, the assets grid, and the terminal solution.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.IndShockConsumerType.updateAssetsGrid" title="ConsIndShockModel.IndShockConsumerType.updateAssetsGrid"><code class="xref py py-obj docutils literal"><span class="pre">updateAssetsGrid</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType.updateAssetsGrid" title="ConsIndShockModel.IndShockConsumerType.updateAssetsGrid"><code class="xref py py-obj docutils literal"><span class="pre">updateAssetsGrid</span></code></a>()</td>
 <td>Updates this agent&#8217;s end-of-period assets grid by constructing a multi- exponentially spaced grid of aXtra values.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.IndShockConsumerType.updateIncomeProcess" title="ConsIndShockModel.IndShockConsumerType.updateIncomeProcess"><code class="xref py py-obj docutils literal"><span class="pre">updateIncomeProcess</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType.updateIncomeProcess" title="ConsIndShockModel.IndShockConsumerType.updateIncomeProcess"><code class="xref py py-obj docutils literal"><span class="pre">updateIncomeProcess</span></code></a>()</td>
 <td>Updates this agent&#8217;s income process based on his own attributes.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">updateSolutionTerminal</span></code>()</td>
@@ -1484,7 +1484,7 @@ for a different process.</p>
 <dl class="class">
 <dt id="ConsIndShockModel.KinkedRconsumerType">
 <em class="property">class </em><code class="descclassname">ConsIndShockModel.</code><code class="descname">KinkedRconsumerType</code><span class="sig-paren">(</span><em>cycles=1</em>, <em>time_flow=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsIndShockModel.KinkedRconsumerType" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#ConsIndShockModel.IndShockConsumerType" title="ConsIndShockModel.IndShockConsumerType"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.IndShockConsumerType</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType" title="ConsIndShockModel.IndShockConsumerType"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.IndShockConsumerType</span></code></a></p>
 <p>A consumer type that faces idiosyncratic shocks to income and has a different
 interest factor on saving vs borrowing.  Extends IndShockConsumerType, with
 very small changes.  Solver for this class is currently only compatible with
@@ -1511,7 +1511,7 @@ linear spline interpolation.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">cFunc_terminal_</span></code></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.KinkedRconsumerType.calcBoundingValues" title="ConsIndShockModel.KinkedRconsumerType.calcBoundingValues"><code class="xref py py-obj docutils literal"><span class="pre">calcBoundingValues</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.KinkedRconsumerType.calcBoundingValues" title="ConsIndShockModel.KinkedRconsumerType.calcBoundingValues"><code class="xref py py-obj docutils literal"><span class="pre">calcBoundingValues</span></code></a>()</td>
 <td>Calculate human wealth plus minimum and maximum MPC in an infinite horizon model with only one period repeated indefinitely.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
@@ -1523,7 +1523,7 @@ linear spline interpolation.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">isSameThing</span></code>(solutionA,&nbsp;solutionB)</td>
 <td>Compare two solutions to see if they are the &#8220;same.&#8221;  The model-specific solution class must have a method called distance, which takes another solution object as an input and returns the &#8220;distance&#8221; between the solutions.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.KinkedRconsumerType.makeEulerErrorFunc" title="ConsIndShockModel.KinkedRconsumerType.makeEulerErrorFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeEulerErrorFunc</span></code></a>([mMax,&nbsp;approx_inc_dstn])</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.KinkedRconsumerType.makeEulerErrorFunc" title="ConsIndShockModel.KinkedRconsumerType.makeEulerErrorFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeEulerErrorFunc</span></code></a>([mMax,&nbsp;approx_inc_dstn])</td>
 <td>Creates a &#8220;normalized Euler error&#8221; function for this instance, mapping from market resources to &#8220;consumption error per dollar of consumption.&#8221; Stores result in attribute eulerErrorFunc as an interpolated function.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">makeIncShkHist</span></code>()</td>
@@ -1647,7 +1647,7 @@ IncomeDstn; when False, makes and uses a very dense approximation.</p>
 <dl class="class">
 <dt id="ConsIndShockModel.MargMargValueFunc">
 <em class="property">class </em><code class="descclassname">ConsIndShockModel.</code><code class="descname">MargMargValueFunc</code><span class="sig-paren">(</span><em>cFunc</em>, <em>CRRA</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsIndShockModel.MargMargValueFunc" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
 <p>A class for representing a marginal marginal value function in models where
 the standard envelope condition of v&#8217;(m) = u&#8217;(c(m)) holds (with CRRA utility).</p>
 <p class="rubric">Methods</p>
@@ -1678,7 +1678,7 @@ the standard envelope condition of v&#8217;(m) = u&#8217;(c(m)) holds (with CRRA
 <dl class="class">
 <dt id="ConsIndShockModel.MargValueFunc">
 <em class="property">class </em><code class="descclassname">ConsIndShockModel.</code><code class="descname">MargValueFunc</code><span class="sig-paren">(</span><em>cFunc</em>, <em>CRRA</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsIndShockModel.MargValueFunc" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
 <p>A class for representing a marginal value function in models where the
 standard envelope condition of v&#8217;(m) = u&#8217;(c(m)) holds (with CRRA utility).</p>
 <p class="rubric">Methods</p>
@@ -1694,7 +1694,7 @@ standard envelope condition of v&#8217;(m) = u&#8217;(c(m)) holds (with CRRA uti
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.MargValueFunc.derivative" title="ConsIndShockModel.MargValueFunc.derivative"><code class="xref py py-obj docutils literal"><span class="pre">derivative</span></code></a>(m)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.MargValueFunc.derivative" title="ConsIndShockModel.MargValueFunc.derivative"><code class="xref py py-obj docutils literal"><span class="pre">derivative</span></code></a>(m)</td>
 <td>Evaluate the derivative of the marginal value function at given levels of market resources m; this is the marginal marginal value function.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
@@ -1739,7 +1739,7 @@ resources m; has same size as input m.</p>
 <dl class="class">
 <dt id="ConsIndShockModel.PerfForesightConsumerType">
 <em class="property">class </em><code class="descclassname">ConsIndShockModel.</code><code class="descname">PerfForesightConsumerType</code><span class="sig-paren">(</span><em>cycles=1</em>, <em>time_flow=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsIndShockModel.PerfForesightConsumerType" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.AgentType" title="HARKcore.AgentType"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.AgentType</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.AgentType" title="HARKcore.AgentType"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.AgentType</span></code></a></p>
 <p>A perfect foresight consumer type who has no uncertainty other than mortality.
 His problem is defined by a coefficient of relative risk aversion, intertemporal
 discount factor, interest factor, and time sequences of the permanent income
@@ -1793,10 +1793,10 @@ growth rate and survival probability.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">timeRev</span></code>()</td>
 <td>Make time flow backward for this instance.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.PerfForesightConsumerType.unpack_cFunc" title="ConsIndShockModel.PerfForesightConsumerType.unpack_cFunc"><code class="xref py py-obj docutils literal"><span class="pre">unpack_cFunc</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.PerfForesightConsumerType.unpack_cFunc" title="ConsIndShockModel.PerfForesightConsumerType.unpack_cFunc"><code class="xref py py-obj docutils literal"><span class="pre">unpack_cFunc</span></code></a>()</td>
 <td>&#8220;Unpacks&#8221; the consumption functions into their own field for easier access.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsIndShockModel.PerfForesightConsumerType.updateSolutionTerminal" title="ConsIndShockModel.PerfForesightConsumerType.updateSolutionTerminal"><code class="xref py py-obj docutils literal"><span class="pre">updateSolutionTerminal</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.PerfForesightConsumerType.updateSolutionTerminal" title="ConsIndShockModel.PerfForesightConsumerType.updateSolutionTerminal"><code class="xref py py-obj docutils literal"><span class="pre">updateSolutionTerminal</span></code></a>()</td>
 <td>Update the terminal period solution.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.PerfForesightConsumerType.vFunc_terminal_" title="ConsIndShockModel.PerfForesightConsumerType.vFunc_terminal_"><code class="xref py py-obj docutils literal"><span class="pre">vFunc_terminal_</span></code></a></td>
@@ -1871,7 +1871,7 @@ new AgentType is created or when CRRA changes.</p>
 <dl class="class">
 <dt id="ConsIndShockModel.ValueFunc">
 <em class="property">class </em><code class="descclassname">ConsIndShockModel.</code><code class="descname">ValueFunc</code><span class="sig-paren">(</span><em>vFuncNvrs</em>, <em>CRRA</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsIndShockModel.ValueFunc" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
 <p>A class for representing a value function.  The underlying interpolation is
 in the space of (m,u_inv(v)); this class &#8220;re-curves&#8221; to the value function.</p>
 <p class="rubric">Methods</p>

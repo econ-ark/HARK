@@ -54,7 +54,7 @@ used for solving &#8220;macroeconomic&#8221; models with aggregate shocks.</p>
 <dl class="class">
 <dt id="ConsAggShockModel.AggShockConsumerType">
 <em class="property">class </em><code class="descclassname">ConsAggShockModel.</code><code class="descname">AggShockConsumerType</code><span class="sig-paren">(</span><em>time_flow=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsAggShockModel.AggShockConsumerType" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType" title="ConsIndShockModel.IndShockConsumerType"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.IndShockConsumerType</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType" title="ConsIndShockModel.IndShockConsumerType"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.IndShockConsumerType</span></code></a></p>
 <p>A class to represent consumers who face idiosyncratic (transitory and per-
 manent) shocks to their income and live in an economy that has aggregate
 (transitory and permanent) shocks to labor productivity.  As the capital-
@@ -84,13 +84,13 @@ decision about how much to consume.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">cFunc_terminal_</span></code></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsAggShockModel.AggShockConsumerType.calcBoundingValues" title="ConsAggShockModel.AggShockConsumerType.calcBoundingValues"><code class="xref py py-obj docutils literal"><span class="pre">calcBoundingValues</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.AggShockConsumerType.calcBoundingValues" title="ConsAggShockModel.AggShockConsumerType.calcBoundingValues"><code class="xref py py-obj docutils literal"><span class="pre">calcBoundingValues</span></code></a>()</td>
 <td>Calculate human wealth plus minimum and maximum MPC in an infinite horizon model with only one period repeated indefinitely.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
 <td>A generic distance method, which requires the existence of an attribute called distance_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsAggShockModel.AggShockConsumerType.getEconomyData" title="ConsAggShockModel.AggShockConsumerType.getEconomyData"><code class="xref py py-obj docutils literal"><span class="pre">getEconomyData</span></code></a>(Economy)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.AggShockConsumerType.getEconomyData" title="ConsAggShockModel.AggShockConsumerType.getEconomyData"><code class="xref py py-obj docutils literal"><span class="pre">getEconomyData</span></code></a>(Economy)</td>
 <td>Imports economy-determined objects into self from a Market.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">initializeSim</span></code>([a_init,&nbsp;p_init,&nbsp;t_init,&nbsp;sim_prds])</td>
@@ -99,13 +99,13 @@ decision about how much to consume.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">isSameThing</span></code>(solutionA,&nbsp;solutionB)</td>
 <td>Compare two solutions to see if they are the &#8220;same.&#8221;  The model-specific solution class must have a method called distance, which takes another solution object as an input and returns the &#8220;distance&#8221; between the solutions.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsAggShockModel.AggShockConsumerType.makeEulerErrorFunc" title="ConsAggShockModel.AggShockConsumerType.makeEulerErrorFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeEulerErrorFunc</span></code></a>([mMax,&nbsp;approx_inc_dstn])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.AggShockConsumerType.makeEulerErrorFunc" title="ConsAggShockModel.AggShockConsumerType.makeEulerErrorFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeEulerErrorFunc</span></code></a>([mMax,&nbsp;approx_inc_dstn])</td>
 <td>Creates a &#8220;normalized Euler error&#8221; function for this instance, mapping from market resources to &#8220;consumption error per dollar of consumption.&#8221; Stores result in attribute eulerErrorFunc as an interpolated function.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">makeIncShkHist</span></code>()</td>
 <td>Makes histories of simulated income shocks for this consumer type by drawing from the discrete income distributions, storing them as attributes of self for use by simulation methods.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsAggShockModel.AggShockConsumerType.marketAction" title="ConsAggShockModel.AggShockConsumerType.marketAction"><code class="xref py py-obj docutils literal"><span class="pre">marketAction</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.AggShockConsumerType.marketAction" title="ConsAggShockModel.AggShockConsumerType.marketAction"><code class="xref py py-obj docutils literal"><span class="pre">marketAction</span></code></a>()</td>
 <td>In the aggregate shocks model, the &#8220;market action&#8221; is to simulate one period of receiving income and choosing how much to consume.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">postSolve</span></code>()</td>
@@ -114,7 +114,7 @@ decision about how much to consume.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">preSolve</span></code>()</td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsAggShockModel.AggShockConsumerType.reset" title="ConsAggShockModel.AggShockConsumerType.reset"><code class="xref py py-obj docutils literal"><span class="pre">reset</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.AggShockConsumerType.reset" title="ConsAggShockModel.AggShockConsumerType.reset"><code class="xref py py-obj docutils literal"><span class="pre">reset</span></code></a>()</td>
 <td>Initialize this type for a new simulated history of K/L ratio.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">resetRNG</span></code>()</td>
@@ -123,10 +123,10 @@ decision about how much to consume.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">simConsHistory</span></code>()</td>
 <td>Simulates a history of bank balances, market resources, consumption, marginal propensity to consume, assets (after all actions), and permanent income given initial assets (normalized by permanent income).</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsAggShockModel.AggShockConsumerType.simMortality" title="ConsAggShockModel.AggShockConsumerType.simMortality"><code class="xref py py-obj docutils literal"><span class="pre">simMortality</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.AggShockConsumerType.simMortality" title="ConsAggShockModel.AggShockConsumerType.simMortality"><code class="xref py py-obj docutils literal"><span class="pre">simMortality</span></code></a>()</td>
 <td>Simulates the mortality process, killing off some percentage of agents and replacing them with newborn agents.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsAggShockModel.AggShockConsumerType.simOnePrd" title="ConsAggShockModel.AggShockConsumerType.simOnePrd"><code class="xref py py-obj docutils literal"><span class="pre">simOnePrd</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.AggShockConsumerType.simOnePrd" title="ConsAggShockModel.AggShockConsumerType.simOnePrd"><code class="xref py py-obj docutils literal"><span class="pre">simOnePrd</span></code></a>()</td>
 <td>Simulate a single period of a consumption-saving model with permanent and transitory income shocks at both the idiosyncratic and aggregate level.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">solution_terminal_</span></code></td>
@@ -159,7 +159,7 @@ decision about how much to consume.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">updateIncomeProcess</span></code>()</td>
 <td>Updates this agent&#8217;s income process based on his own attributes.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsAggShockModel.AggShockConsumerType.updateSolutionTerminal" title="ConsAggShockModel.AggShockConsumerType.updateSolutionTerminal"><code class="xref py py-obj docutils literal"><span class="pre">updateSolutionTerminal</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.AggShockConsumerType.updateSolutionTerminal" title="ConsAggShockModel.AggShockConsumerType.updateSolutionTerminal"><code class="xref py py-obj docutils literal"><span class="pre">updateSolutionTerminal</span></code></a>()</td>
 <td>Updates the terminal period solution for an aggregate shock consumer.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">vFunc_terminal_</span></code></td>
@@ -339,7 +339,7 @@ Only fills in the consumption function and marginal value function.</p>
 <dl class="class">
 <dt id="ConsAggShockModel.CapDynamicRule">
 <em class="property">class </em><code class="descclassname">ConsAggShockModel.</code><code class="descname">CapDynamicRule</code><span class="sig-paren">(</span><em>kNextFunc</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsAggShockModel.CapDynamicRule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
 <p>Just a container class for passing the capital evolution rule to agents.</p>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
@@ -364,7 +364,7 @@ Only fills in the consumption function and marginal value function.</p>
 <dl class="class">
 <dt id="ConsAggShockModel.CapitalEvoRule">
 <em class="property">class </em><code class="descclassname">ConsAggShockModel.</code><code class="descname">CapitalEvoRule</code><span class="sig-paren">(</span><em>intercept</em>, <em>slope</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsAggShockModel.CapitalEvoRule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
 <p>A class to represent capital evolution rules.  Agents believe that the log
 capital ratio next period is a linear function of the log capital ratio
 this period.</p>
@@ -400,7 +400,7 @@ sitory shocks.</p>
 <dl class="class">
 <dt id="ConsAggShockModel.CobbDouglasEconomy">
 <em class="property">class </em><code class="descclassname">ConsAggShockModel.</code><code class="descname">CobbDouglasEconomy</code><span class="sig-paren">(</span><em>agents=[]</em>, <em>tolerance=0.0001</em>, <em>act_T=1000</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsAggShockModel.CobbDouglasEconomy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.Market" title="HARKcore.Market"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.Market</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.Market" title="HARKcore.Market"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.Market</span></code></a></p>
 <p>A class to represent an economy with a Cobb-Douglas aggregate production
 function over labor and capital, extending HARKcore.Market.  The &#8220;aggregate
 market process&#8221; for this market combines all individuals&#8217; asset holdings
@@ -421,13 +421,13 @@ this will be generalized in the future.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsAggShockModel.CobbDouglasEconomy.calcCapitalEvoRule" title="ConsAggShockModel.CobbDouglasEconomy.calcCapitalEvoRule"><code class="xref py py-obj docutils literal"><span class="pre">calcCapitalEvoRule</span></code></a>(KtoLnow)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.CobbDouglasEconomy.calcCapitalEvoRule" title="ConsAggShockModel.CobbDouglasEconomy.calcCapitalEvoRule"><code class="xref py py-obj docutils literal"><span class="pre">calcCapitalEvoRule</span></code></a>(KtoLnow)</td>
 <td>Calculate a new capital evolution rule as an AR1 process based on the history of the capital-to-labor ratio from a simulation.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsAggShockModel.CobbDouglasEconomy.calcDynamics" title="ConsAggShockModel.CobbDouglasEconomy.calcDynamics"><code class="xref py py-obj docutils literal"><span class="pre">calcDynamics</span></code></a>(KtoLnow)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.CobbDouglasEconomy.calcDynamics" title="ConsAggShockModel.CobbDouglasEconomy.calcDynamics"><code class="xref py py-obj docutils literal"><span class="pre">calcDynamics</span></code></a>(KtoLnow)</td>
 <td>Calculates a new dynamic rule for the economy: next period&#8217;s capital ratio as a function of this period&#8217;s.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsAggShockModel.CobbDouglasEconomy.calcRandW" title="ConsAggShockModel.CobbDouglasEconomy.calcRandW"><code class="xref py py-obj docutils literal"><span class="pre">calcRandW</span></code></a>(pNow,&nbsp;aNow)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.CobbDouglasEconomy.calcRandW" title="ConsAggShockModel.CobbDouglasEconomy.calcRandW"><code class="xref py py-obj docutils literal"><span class="pre">calcRandW</span></code></a>(pNow,&nbsp;aNow)</td>
 <td>Calculates the interest factor and wage rate this period using each agent&#8217;s capital stock to get the aggregate capital ratio.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">cultivate</span></code>()</td>
@@ -436,7 +436,7 @@ this will be generalized in the future.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
 <td>A generic distance method, which requires the existence of an attribute called distance_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsAggShockModel.CobbDouglasEconomy.makeAggShkHist" title="ConsAggShockModel.CobbDouglasEconomy.makeAggShkHist"><code class="xref py py-obj docutils literal"><span class="pre">makeAggShkHist</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.CobbDouglasEconomy.makeAggShkHist" title="ConsAggShockModel.CobbDouglasEconomy.makeAggShkHist"><code class="xref py py-obj docutils literal"><span class="pre">makeAggShkHist</span></code></a>()</td>
 <td>Make simulated histories of aggregate transitory and permanent shocks.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">makeHistory</span></code>()</td>
@@ -445,13 +445,13 @@ this will be generalized in the future.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">mill</span></code>()</td>
 <td>Processes the variables collected from agents using the function millRule, storing the results in attributes named in aggr_sow.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsAggShockModel.CobbDouglasEconomy.millRule" title="ConsAggShockModel.CobbDouglasEconomy.millRule"><code class="xref py py-obj docutils literal"><span class="pre">millRule</span></code></a>(pNow,&nbsp;aNow)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.CobbDouglasEconomy.millRule" title="ConsAggShockModel.CobbDouglasEconomy.millRule"><code class="xref py py-obj docutils literal"><span class="pre">millRule</span></code></a>(pNow,&nbsp;aNow)</td>
 <td>Function to calculate the capital to labor ratio, interest factor, and wage rate based on each agent&#8217;s current state.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">reap</span></code>()</td>
 <td>Collects attributes named in reap_vars from each AgentType in the market, storing them in respectively named attributes of self.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsAggShockModel.CobbDouglasEconomy.reset" title="ConsAggShockModel.CobbDouglasEconomy.reset"><code class="xref py py-obj docutils literal"><span class="pre">reset</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.CobbDouglasEconomy.reset" title="ConsAggShockModel.CobbDouglasEconomy.reset"><code class="xref py py-obj docutils literal"><span class="pre">reset</span></code></a>()</td>
 <td>Reset the economy to prepare for a new simulation.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code>()</td>
@@ -463,7 +463,7 @@ this will be generalized in the future.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">store</span></code>()</td>
 <td>Record the current value of each variable X named in track_vars in an attribute named X_hist.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsAggShockModel.CobbDouglasEconomy.update" title="ConsAggShockModel.CobbDouglasEconomy.update"><code class="xref py py-obj docutils literal"><span class="pre">update</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsAggShockModel.html#ConsAggShockModel.CobbDouglasEconomy.update" title="ConsAggShockModel.CobbDouglasEconomy.update"><code class="xref py py-obj docutils literal"><span class="pre">update</span></code></a>()</td>
 <td>Use primitive parameters (and perfect foresight calibrations) to make interest factor and wage rate functions (of capital to labor ratio), as well as discrete approximations to the aggregate shock distributions.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">updateDynamics</span></code>()</td>

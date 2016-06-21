@@ -54,7 +54,7 @@ distribution can vary with the discrete state.</p>
 <dl class="class">
 <dt id="ConsMarkovModel.ConsMarkovSolver">
 <em class="property">class </em><code class="descclassname">ConsMarkovModel.</code><code class="descname">ConsMarkovSolver</code><span class="sig-paren">(</span><em>solution_next</em>, <em>IncomeDstn_list</em>, <em>LivPrb</em>, <em>DiscFac</em>, <em>CRRA</em>, <em>Rfree_list</em>, <em>PermGroFac_list</em>, <em>MrkvArray</em>, <em>BoroCnstArt</em>, <em>aXtraGrid</em>, <em>vFuncBool</em>, <em>CubicBool</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsMarkovModel.ConsMarkovSolver" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolver" title="ConsIndShockModel.ConsIndShockSolver"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.ConsIndShockSolver</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolver" title="ConsIndShockModel.ConsIndShockSolver"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.ConsIndShockSolver</span></code></a></p>
 <p>A class to solve a single period consumption-saving problem with risky income
 and stochastic transitions between discrete states, in a Markov fashion.
 Extends ConsIndShockSolver, with identical inputs but for a discrete
@@ -84,25 +84,25 @@ now arrays or lists specifying those values in each (succeeding) Markov state.</
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(solution_next,&nbsp;IncomeDstn,&nbsp;...)</td>
 <td>Assigns period parameters as attributes of self for use by other methods</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsMarkovModel.ConsMarkovSolver.calcEndOfPrdvP" title="ConsMarkovModel.ConsMarkovSolver.calcEndOfPrdvP"><code class="xref py py-obj docutils literal"><span class="pre">calcEndOfPrdvP</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.ConsMarkovSolver.calcEndOfPrdvP" title="ConsMarkovModel.ConsMarkovSolver.calcEndOfPrdvP"><code class="xref py py-obj docutils literal"><span class="pre">calcEndOfPrdvP</span></code></a>()</td>
 <td>Calculates end of period marginal value (and marginal marginal) value at each aXtra gridpoint for each current state, unconditional on the future Markov state (i.e.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsMarkovModel.ConsMarkovSolver.calcEndOfPrdvPP" title="ConsMarkovModel.ConsMarkovSolver.calcEndOfPrdvPP"><code class="xref py py-obj docutils literal"><span class="pre">calcEndOfPrdvPP</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.ConsMarkovSolver.calcEndOfPrdvPP" title="ConsMarkovModel.ConsMarkovSolver.calcEndOfPrdvPP"><code class="xref py py-obj docutils literal"><span class="pre">calcEndOfPrdvPP</span></code></a>()</td>
 <td>Calculates end-of-period marginal marginal value using a pre-defined array of next period market resources in self.mNrmNext.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsMarkovModel.ConsMarkovSolver.calcEndOfPrdvPcond" title="ConsMarkovModel.ConsMarkovSolver.calcEndOfPrdvPcond"><code class="xref py py-obj docutils literal"><span class="pre">calcEndOfPrdvPcond</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.ConsMarkovSolver.calcEndOfPrdvPcond" title="ConsMarkovModel.ConsMarkovSolver.calcEndOfPrdvPcond"><code class="xref py py-obj docutils literal"><span class="pre">calcEndOfPrdvPcond</span></code></a>()</td>
 <td>Calculate end-of-period marginal value of assets at each point in aNrmNow conditional on a particular state occuring in the next period.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsMarkovModel.ConsMarkovSolver.calcHumWealthAndBoundingMPCs" title="ConsMarkovModel.ConsMarkovSolver.calcHumWealthAndBoundingMPCs"><code class="xref py py-obj docutils literal"><span class="pre">calcHumWealthAndBoundingMPCs</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.ConsMarkovSolver.calcHumWealthAndBoundingMPCs" title="ConsMarkovModel.ConsMarkovSolver.calcHumWealthAndBoundingMPCs"><code class="xref py py-obj docutils literal"><span class="pre">calcHumWealthAndBoundingMPCs</span></code></a>()</td>
 <td>Calculates human wealth and the maximum and minimum MPC for each current period state, then stores them as attributes of self for use by other methods.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsMarkovModel.ConsMarkovSolver.conditionOnState" title="ConsMarkovModel.ConsMarkovSolver.conditionOnState"><code class="xref py py-obj docutils literal"><span class="pre">conditionOnState</span></code></a>(state_index)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.ConsMarkovSolver.conditionOnState" title="ConsMarkovModel.ConsMarkovSolver.conditionOnState"><code class="xref py py-obj docutils literal"><span class="pre">conditionOnState</span></code></a>(state_index)</td>
 <td>Temporarily assume that a particular Markov state will occur in the succeeding period, and condition solver attributes on this assumption.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">defBoroCnst</span></code>(BoroCnstArt)</td>
 <td>Defines the constrained portion of the consumption function as cFuncNowCnst, an attribute of self.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsMarkovModel.ConsMarkovSolver.defBoundary" title="ConsMarkovModel.ConsMarkovSolver.defBoundary"><code class="xref py py-obj docutils literal"><span class="pre">defBoundary</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.ConsMarkovSolver.defBoundary" title="ConsMarkovModel.ConsMarkovSolver.defBoundary"><code class="xref py py-obj docutils literal"><span class="pre">defBoundary</span></code></a>()</td>
 <td>Find the borrowing constraint for each current state and save it as an attribute of self for use by other methods.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">defUtilityFuncs</span></code>()</td>
@@ -117,28 +117,28 @@ now arrays or lists specifying those values in each (succeeding) Markov state.</
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">makeBasicSolution</span></code>(EndOfPrdvP,&nbsp;aNrm,&nbsp;interpolator)</td>
 <td>Given end of period assets and end of period marginal value, construct the basic solution for this period.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsMarkovModel.ConsMarkovSolver.makeCubiccFunc" title="ConsMarkovModel.ConsMarkovSolver.makeCubiccFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeCubiccFunc</span></code></a>(mNrm,&nbsp;cNrm)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.ConsMarkovSolver.makeCubiccFunc" title="ConsMarkovModel.ConsMarkovSolver.makeCubiccFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeCubiccFunc</span></code></a>(mNrm,&nbsp;cNrm)</td>
 <td>Make a cubic interpolation to represent the (unconstrained) consumption function conditional on the current period state.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">makeEndOfPrdvFunc</span></code>(EndOfPrdvP)</td>
 <td>Construct the end-of-period value function for this period, storing it as an attribute of self for use by other methods.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsMarkovModel.ConsMarkovSolver.makeEndOfPrdvFuncCond" title="ConsMarkovModel.ConsMarkovSolver.makeEndOfPrdvFuncCond"><code class="xref py py-obj docutils literal"><span class="pre">makeEndOfPrdvFuncCond</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.ConsMarkovSolver.makeEndOfPrdvFuncCond" title="ConsMarkovModel.ConsMarkovSolver.makeEndOfPrdvFuncCond"><code class="xref py py-obj docutils literal"><span class="pre">makeEndOfPrdvFuncCond</span></code></a>()</td>
 <td>Construct the end-of-period value function conditional on next period&#8217;s state.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsMarkovModel.ConsMarkovSolver.makeEndOfPrdvPfuncCond" title="ConsMarkovModel.ConsMarkovSolver.makeEndOfPrdvPfuncCond"><code class="xref py py-obj docutils literal"><span class="pre">makeEndOfPrdvPfuncCond</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.ConsMarkovSolver.makeEndOfPrdvPfuncCond" title="ConsMarkovModel.ConsMarkovSolver.makeEndOfPrdvPfuncCond"><code class="xref py py-obj docutils literal"><span class="pre">makeEndOfPrdvPfuncCond</span></code></a>()</td>
 <td>Construct the end-of-period marginal value function conditional on next period&#8217;s state.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsMarkovModel.ConsMarkovSolver.makeLinearcFunc" title="ConsMarkovModel.ConsMarkovSolver.makeLinearcFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeLinearcFunc</span></code></a>(mNrm,&nbsp;cNrm)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.ConsMarkovSolver.makeLinearcFunc" title="ConsMarkovModel.ConsMarkovSolver.makeLinearcFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeLinearcFunc</span></code></a>(mNrm,&nbsp;cNrm)</td>
 <td>Make a linear interpolation to represent the (unconstrained) consumption function conditional on the current period state.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">makePFcFunc</span></code>()</td>
 <td>Makes the (linear) consumption function for this period.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsMarkovModel.ConsMarkovSolver.makeSolution" title="ConsMarkovModel.ConsMarkovSolver.makeSolution"><code class="xref py py-obj docutils literal"><span class="pre">makeSolution</span></code></a>(cNrm,&nbsp;mNrm)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.ConsMarkovSolver.makeSolution" title="ConsMarkovModel.ConsMarkovSolver.makeSolution"><code class="xref py py-obj docutils literal"><span class="pre">makeSolution</span></code></a>(cNrm,&nbsp;mNrm)</td>
 <td>Construct an object representing the solution to this period&#8217;s problem.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsMarkovModel.ConsMarkovSolver.makevFunc" title="ConsMarkovModel.ConsMarkovSolver.makevFunc"><code class="xref py py-obj docutils literal"><span class="pre">makevFunc</span></code></a>(solution)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.ConsMarkovSolver.makevFunc" title="ConsMarkovModel.ConsMarkovSolver.makevFunc"><code class="xref py py-obj docutils literal"><span class="pre">makevFunc</span></code></a>(solution)</td>
 <td>Construct the value function for each current state.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">prepareToCalcEndOfPrdvP</span></code>()</td>
@@ -150,7 +150,7 @@ now arrays or lists specifying those values in each (succeeding) Markov state.</
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">setAndUpdateValues</span></code>(solution_next,&nbsp;...)</td>
 <td>Unpacks some of the inputs (and calculates simple objects based on them), storing the results in self for use by other methods.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsMarkovModel.ConsMarkovSolver.solve" title="ConsMarkovModel.ConsMarkovSolver.solve"><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.ConsMarkovSolver.solve" title="ConsMarkovModel.ConsMarkovSolver.solve"><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code></a>()</td>
 <td>Solve the one period problem of the consumption-saving model with a Markov state.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">usePointsForInterpolation</span></code>(cNrm,&nbsp;mNrm,&nbsp;...)</td>
@@ -481,7 +481,7 @@ when in the i=0 Markov state this period.</p>
 <dl class="class">
 <dt id="ConsMarkovModel.MarkovConsumerType">
 <em class="property">class </em><code class="descclassname">ConsMarkovModel.</code><code class="descname">MarkovConsumerType</code><span class="sig-paren">(</span><em>cycles=1</em>, <em>time_flow=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsMarkovModel.MarkovConsumerType" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType" title="ConsIndShockModel.IndShockConsumerType"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.IndShockConsumerType</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType" title="ConsIndShockModel.IndShockConsumerType"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.IndShockConsumerType</span></code></a></p>
 <p>An agent in the Markov consumption-saving model.  His problem is defined by a sequence
 of income distributions, survival probabilities, discount factors, and permanent
 income growth rates, as well as time invariant values for risk aversion, the
@@ -496,7 +496,7 @@ interest rate, the grid of end-of-period assets, and how he is borrowing constra
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsMarkovModel.MarkovConsumerType.advanceIncShks" title="ConsMarkovModel.MarkovConsumerType.advanceIncShks"><code class="xref py py-obj docutils literal"><span class="pre">advanceIncShks</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.MarkovConsumerType.advanceIncShks" title="ConsMarkovModel.MarkovConsumerType.advanceIncShks"><code class="xref py py-obj docutils literal"><span class="pre">advanceIncShks</span></code></a>()</td>
 <td>Advance the permanent and transitory income shocks to the next period of the shock history objects.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">advancecFunc</span></code>()</td>
@@ -508,7 +508,7 @@ interest rate, the grid of end-of-period assets, and how he is borrowing constra
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">cFunc_terminal_</span></code></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsMarkovModel.MarkovConsumerType.calcBoundingValues" title="ConsMarkovModel.MarkovConsumerType.calcBoundingValues"><code class="xref py py-obj docutils literal"><span class="pre">calcBoundingValues</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.MarkovConsumerType.calcBoundingValues" title="ConsMarkovModel.MarkovConsumerType.calcBoundingValues"><code class="xref py py-obj docutils literal"><span class="pre">calcBoundingValues</span></code></a>()</td>
 <td>Calculate human wealth plus minimum and maximum MPC in an infinite horizon model with only one period repeated indefinitely.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
@@ -520,13 +520,13 @@ interest rate, the grid of end-of-period assets, and how he is borrowing constra
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">isSameThing</span></code>(solutionA,&nbsp;solutionB)</td>
 <td>Compare two solutions to see if they are the &#8220;same.&#8221;  The model-specific solution class must have a method called distance, which takes another solution object as an input and returns the &#8220;distance&#8221; between the solutions.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsMarkovModel.MarkovConsumerType.makeEulerErrorFunc" title="ConsMarkovModel.MarkovConsumerType.makeEulerErrorFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeEulerErrorFunc</span></code></a>([mMax,&nbsp;approx_inc_dstn])</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.MarkovConsumerType.makeEulerErrorFunc" title="ConsMarkovModel.MarkovConsumerType.makeEulerErrorFunc"><code class="xref py py-obj docutils literal"><span class="pre">makeEulerErrorFunc</span></code></a>([mMax,&nbsp;approx_inc_dstn])</td>
 <td>Creates a &#8220;normalized Euler error&#8221; function for this instance, mapping from market resources to &#8220;consumption error per dollar of consumption.&#8221; Stores result in attribute eulerErrorFunc as an interpolated function.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsMarkovModel.MarkovConsumerType.makeIncShkHist" title="ConsMarkovModel.MarkovConsumerType.makeIncShkHist"><code class="xref py py-obj docutils literal"><span class="pre">makeIncShkHist</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.MarkovConsumerType.makeIncShkHist" title="ConsMarkovModel.MarkovConsumerType.makeIncShkHist"><code class="xref py py-obj docutils literal"><span class="pre">makeIncShkHist</span></code></a>()</td>
 <td>Makes histories of simulated income shocks for this consumer type by drawing from the discrete income distributions, respecting the Markov state for each agent in each period.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsMarkovModel.MarkovConsumerType.makeMrkvHist" title="ConsMarkovModel.MarkovConsumerType.makeMrkvHist"><code class="xref py py-obj docutils literal"><span class="pre">makeMrkvHist</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.MarkovConsumerType.makeMrkvHist" title="ConsMarkovModel.MarkovConsumerType.makeMrkvHist"><code class="xref py py-obj docutils literal"><span class="pre">makeMrkvHist</span></code></a>()</td>
 <td>Makes a history of simulated discrete Markov states, starting from the initial states in markov_init.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">postSolve</span></code>()</td>
@@ -541,7 +541,7 @@ interest rate, the grid of end-of-period assets, and how he is borrowing constra
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">simConsHistory</span></code>()</td>
 <td>Simulates a history of bank balances, market resources, consumption, marginal propensity to consume, assets (after all actions), and permanent income given initial assets (normalized by permanent income).</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#ConsMarkovModel.MarkovConsumerType.simOnePrd" title="ConsMarkovModel.MarkovConsumerType.simOnePrd"><code class="xref py py-obj docutils literal"><span class="pre">simOnePrd</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.MarkovConsumerType.simOnePrd" title="ConsMarkovModel.MarkovConsumerType.simOnePrd"><code class="xref py py-obj docutils literal"><span class="pre">simOnePrd</span></code></a>()</td>
 <td>Simulate a single period of a consumption-saving model with permanent and transitory income shocks.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">solution_terminal_</span></code></td>
@@ -574,7 +574,7 @@ interest rate, the grid of end-of-period assets, and how he is borrowing constra
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">updateIncomeProcess</span></code>()</td>
 <td>Updates this agent&#8217;s income process based on his own attributes.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#ConsMarkovModel.MarkovConsumerType.updateSolutionTerminal" title="ConsMarkovModel.MarkovConsumerType.updateSolutionTerminal"><code class="xref py py-obj docutils literal"><span class="pre">updateSolutionTerminal</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/ConsMarkovModel.html#ConsMarkovModel.MarkovConsumerType.updateSolutionTerminal" title="ConsMarkovModel.MarkovConsumerType.updateSolutionTerminal"><code class="xref py py-obj docutils literal"><span class="pre">updateSolutionTerminal</span></code></a>()</td>
 <td>Update the terminal period solution.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">vFunc_terminal_</span></code></td>
