@@ -28,15 +28,10 @@ Contents:
    ConsMarkovModel
    ConsAggShockModel
    TractableBufferStockModel
-   MultithreadDemo
-   ConsumerParameters
-   
-   StructEstimation
 
    FashionVictimModel
 
    cstwMPC
-   SetupParamsCSTW
 
 
 

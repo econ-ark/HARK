@@ -53,8 +53,31 @@ coverage.xml
 *.log
 
 # Sphinx documentation
-docs/_build/
-docs/generated/
+Documentation/generated
+Documentation/_build
+Documentation/TractableBufferStockModel.rst
+Documentation/MultithreadDemo.rst
+Documentation/modules.rst
+Documentation/ConsumerParameters.rst
+Documentation/ConsPrefShockModel.rst
+Documentation/ConsMarkovModel.rst
+Documentation/ConsIndShockModel.rst
+Documentation/ConsAggShockModel.rst
+Documentation/StructEstimation.rst
+Documentation/SetupSCFdata.rst
+Documentation/EstimationParameters.rst
+Documentation/SetupParamsCSTW.rst
+Documentation/cstwMPC.rst
+Documentation/FashionVictimParams.rst
+Documentation/FashionVictimModel.rst
+Documentation/HARKutilities.rst
+Documentation/HARKsimulation.rst
+Documentation/HARKparallel.rst
+Documentation/HARKinterpolation.rst
+Documentation/HARKestimation.rst
+Documentation/HARKcore.rst
+doc/_build/
+doc/generated/
 
 # PyBuilder
 target/
