@@ -59,29 +59,29 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#HARKsimulation.drawBernoulli" title="HARKsimulation.drawBernoulli"><code class="xref py py-obj docutils literal"><span class="pre">drawBernoulli</span></code></a>(p,&nbsp;N[,&nbsp;seed])</td>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKsimulation.drawBernoulli" title="HARKsimulation.drawBernoulli"><code class="xref py py-obj docutils literal"><span class="pre">drawBernoulli</span></code></a>(N[,&nbsp;p,&nbsp;seed])</td>
 <td>Generates arrays of booleans drawn from a simple Bernoulli distribution.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#HARKsimulation.drawDiscrete" title="HARKsimulation.drawDiscrete"><code class="xref py py-obj docutils literal"><span class="pre">drawDiscrete</span></code></a>(P,&nbsp;X,&nbsp;N[,&nbsp;exact_match,&nbsp;seed])</td>
+<tr class="row-even"><td><a class="reference internal" href="#HARKsimulation.drawDiscrete" title="HARKsimulation.drawDiscrete"><code class="xref py py-obj docutils literal"><span class="pre">drawDiscrete</span></code></a>(N[,&nbsp;P,&nbsp;X,&nbsp;exact_match,&nbsp;seed])</td>
 <td>Simulates N draws from a discrete distribution with probabilities P and outcomes X.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#HARKsimulation.drawMeanOneLognormal" title="HARKsimulation.drawMeanOneLognormal"><code class="xref py py-obj docutils literal"><span class="pre">drawMeanOneLognormal</span></code></a>(sigma,&nbsp;N[,&nbsp;seed])</td>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKsimulation.drawMeanOneLognormal" title="HARKsimulation.drawMeanOneLognormal"><code class="xref py py-obj docutils literal"><span class="pre">drawMeanOneLognormal</span></code></a>(N[,&nbsp;sigma,&nbsp;seed])</td>
 <td>Generate arrays of mean one lognormal draws.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#HARKsimulation.drawNormal" title="HARKsimulation.drawNormal"><code class="xref py py-obj docutils literal"><span class="pre">drawNormal</span></code></a>(mu,&nbsp;sigma,&nbsp;N[,&nbsp;seed])</td>
+<tr class="row-even"><td><a class="reference internal" href="#HARKsimulation.drawNormal" title="HARKsimulation.drawNormal"><code class="xref py py-obj docutils literal"><span class="pre">drawNormal</span></code></a>(N[,&nbsp;mu,&nbsp;sigma,&nbsp;seed])</td>
 <td>Generate arrays of normal draws.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#HARKsimulation.drawUniform" title="HARKsimulation.drawUniform"><code class="xref py py-obj docutils literal"><span class="pre">drawUniform</span></code></a>(bot,&nbsp;top,&nbsp;N[,&nbsp;seed])</td>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKsimulation.drawUniform" title="HARKsimulation.drawUniform"><code class="xref py py-obj docutils literal"><span class="pre">drawUniform</span></code></a>(N[,&nbsp;bot,&nbsp;top,&nbsp;seed])</td>
 <td>Generate arrays of uniform draws.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#HARKsimulation.drawWeibull" title="HARKsimulation.drawWeibull"><code class="xref py py-obj docutils literal"><span class="pre">drawWeibull</span></code></a>(scale,&nbsp;shape,&nbsp;N[,&nbsp;seed])</td>
+<tr class="row-even"><td><a class="reference internal" href="#HARKsimulation.drawWeibull" title="HARKsimulation.drawWeibull"><code class="xref py py-obj docutils literal"><span class="pre">drawWeibull</span></code></a>(N[,&nbsp;scale,&nbsp;shape,&nbsp;seed])</td>
 <td>Generate arrays of Weibull draws.</td>
 </tr>
 </tbody>
 </table>
 <dl class="function">
 <dt id="HARKsimulation.drawBernoulli">
-<code class="descclassname">HARKsimulation.</code><code class="descname">drawBernoulli</code><span class="sig-paren">(</span><em>p</em>, <em>N</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawBernoulli" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">HARKsimulation.</code><code class="descname">drawBernoulli</code><span class="sig-paren">(</span><em>N</em>, <em>p=0.5</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawBernoulli" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates arrays of booleans drawn from a simple Bernoulli distribution.
 The input p can be a float or a list-like of floats; its length T determines
 the number of entries in the output.  The t-th entry of the output is an
@@ -103,7 +103,7 @@ array of size N (if sigma is a scalar).</p>
 
 <dl class="function">
 <dt id="HARKsimulation.drawDiscrete">
-<code class="descclassname">HARKsimulation.</code><code class="descname">drawDiscrete</code><span class="sig-paren">(</span><em>P</em>, <em>X</em>, <em>N</em>, <em>exact_match=False</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawDiscrete" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">HARKsimulation.</code><code class="descname">drawDiscrete</code><span class="sig-paren">(</span><em>N, P=[1.0], X=[0.0], exact_match=False, seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawDiscrete" title="Permalink to this definition">¶</a></dt>
 <dd><p>Simulates N draws from a discrete distribution with probabilities P and outcomes X.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -147,7 +147,7 @@ others and the result could deviate from the input.</p>
 
 <dl class="function">
 <dt id="HARKsimulation.drawMeanOneLognormal">
-<code class="descclassname">HARKsimulation.</code><code class="descname">drawMeanOneLognormal</code><span class="sig-paren">(</span><em>sigma</em>, <em>N</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawMeanOneLognormal" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">HARKsimulation.</code><code class="descname">drawMeanOneLognormal</code><span class="sig-paren">(</span><em>N</em>, <em>sigma=1.0</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawMeanOneLognormal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate arrays of mean one lognormal draws. The sigma input can be a number
 or list-like.  If a number, output is a length N array of draws from the
 lognormal distribution with standard deviation sigma. If a list, output is
@@ -157,14 +157,14 @@ lognormal with standard deviation sigma[t].</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>sigma</strong> : float or [float]</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>N</strong> : int</p>
+<blockquote>
+<div><p>Number of draws in each row.</p>
+</div></blockquote>
+<p><strong>sigma</strong> : float or [float]</p>
 <blockquote>
 <div><p>One or more standard deviations. Number of elements T in sigma
 determines number of rows of output.</p>
-</div></blockquote>
-<p><strong>N</strong> : int</p>
-<blockquote>
-<div><p>Number of draws in each row.</p>
 </div></blockquote>
 <p><strong>seed</strong> : int</p>
 <blockquote class="last">
@@ -178,7 +178,7 @@ determines number of rows of output.</p>
 
 <dl class="function">
 <dt id="HARKsimulation.drawNormal">
-<code class="descclassname">HARKsimulation.</code><code class="descname">drawNormal</code><span class="sig-paren">(</span><em>mu</em>, <em>sigma</em>, <em>N</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawNormal" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">HARKsimulation.</code><code class="descname">drawNormal</code><span class="sig-paren">(</span><em>N</em>, <em>mu=0.0</em>, <em>sigma=1.0</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawNormal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate arrays of normal draws.  The mu and sigma inputs can be numbers or
 list-likes.  If a number, output is a length N array of draws from the normal
 distribution with mean mu and standard deviation sigma. If a list, output is
@@ -188,7 +188,11 @@ normal distribution with mean mu[t] and standard deviation sigma[t].</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>mu</strong> : float or [float]</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>N</strong> : int</p>
+<blockquote>
+<div><p>Number of draws in each row.</p>
+</div></blockquote>
+<p><strong>mu</strong> : float or [float]</p>
 <blockquote>
 <div><p>One or more means.  Number of elements T in mu determines number of rows
 of output.</p>
@@ -197,10 +201,6 @@ of output.</p>
 <blockquote>
 <div><p>One or more standard deviations. Number of elements T in sigma
 determines number of rows of output.</p>
-</div></blockquote>
-<p><strong>N</strong> : int</p>
-<blockquote>
-<div><p>Number of draws in each row.</p>
 </div></blockquote>
 <p><strong>seed</strong> : int</p>
 <blockquote>
@@ -221,7 +221,7 @@ of size N (if sigma is a scalar).</p>
 
 <dl class="function">
 <dt id="HARKsimulation.drawUniform">
-<code class="descclassname">HARKsimulation.</code><code class="descname">drawUniform</code><span class="sig-paren">(</span><em>bot</em>, <em>top</em>, <em>N</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawUniform" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">HARKsimulation.</code><code class="descname">drawUniform</code><span class="sig-paren">(</span><em>N</em>, <em>bot=0.0</em>, <em>top=1.0</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawUniform" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate arrays of uniform draws.  The bot and top inputs can be numbers or
 list-likes.  If a number, output is a length N array of draws from the
 uniform distribution on [bot,top]. If a list, output is a length T list
@@ -231,7 +231,11 @@ on [bot[t],top[t]].</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>bot</strong> : float or [float]</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>N</strong> : int</p>
+<blockquote>
+<div><p>Number of draws in each row.</p>
+</div></blockquote>
+<p><strong>bot</strong> : float or [float]</p>
 <blockquote>
 <div><p>One or more bottom values.  Number of elements T in mu determines number
 of rows of output.</p>
@@ -240,10 +244,6 @@ of rows of output.</p>
 <blockquote>
 <div><p>One or more top values. Number of elements T in top determines number of
 rows of output.</p>
-</div></blockquote>
-<p><strong>N</strong> : int</p>
-<blockquote>
-<div><p>Number of draws in each row.</p>
 </div></blockquote>
 <p><strong>seed</strong> : int</p>
 <blockquote>
@@ -264,7 +264,7 @@ array of size N (if sigma is a scalar).</p>
 
 <dl class="function">
 <dt id="HARKsimulation.drawWeibull">
-<code class="descclassname">HARKsimulation.</code><code class="descname">drawWeibull</code><span class="sig-paren">(</span><em>scale</em>, <em>shape</em>, <em>N</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawWeibull" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">HARKsimulation.</code><code class="descname">drawWeibull</code><span class="sig-paren">(</span><em>N</em>, <em>scale=1.0</em>, <em>shape=1.0</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKsimulation.drawWeibull" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate arrays of Weibull draws.  The scale and shape inputs can be 
 numbers or list-likes.  If a number, output is a length N array of draws from
 the Weibull distribution with the given scale and shape. If a list, output
@@ -276,7 +276,11 @@ Weibull distribution with scale scale[t] and shape shape[t].</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>scale</strong> : float or [float]</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>N</strong> : int</p>
+<blockquote>
+<div><p>Number of draws in each row.</p>
+</div></blockquote>
+<p><strong>scale</strong> : float or [float]</p>
 <blockquote>
 <div><p>One or more scales.  Number of elements T in scale determines number of
 rows of output.</p>
@@ -285,10 +289,6 @@ rows of output.</p>
 <blockquote>
 <div><p>One or more shape parameters. Number of elements T in scale
 determines number of rows of output.</p>
-</div></blockquote>
-<p><strong>N</strong> : int</p>
-<blockquote>
-<div><p>Number of draws in each row.</p>
 </div></blockquote>
 <p><strong>seed</strong> : int</p>
 <blockquote class="last">

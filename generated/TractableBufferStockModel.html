@@ -1,0 +1,376 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>TractableBufferStockModel &mdash; HARK 0.9 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.9',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="HARK 0.9 documentation" href="../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-TractableBufferStockModel">
+<span id="tractablebufferstockmodel"></span><h1>TractableBufferStockModel<a class="headerlink" href="#module-TractableBufferStockModel" title="Permalink to this headline">¶</a></h1>
+<p>Defines and solves the Tractable Buffer Stock model described in CDC&#8217;s notes.
+The model concerns an agent with constant relative risk aversion utility making
+decisions over consumption and saving.  He is subject to only a very particular
+sort of risk: the possibility that he will become permanently unemployed until
+the day he dies; barring this, his income is certain and grows at a constant rate.</p>
+<p>The model has an infinite horizon, but is not solved by backward iteration in a
+traditional sense.  Because of the very specific assumptions about risk, it is
+possible to find the agent&#8217;s steady state or target level of market resources
+when employed, as well as information about the optimal consumption rule at this
+target level.  The full consumption function can then be constructed by &#8220;back-
+shooting&#8221;, inverting the Euler equation to find what consumption <em>must have been</em>
+in the previous period.  The consumption function is thus constructed by repeat-
+edly adding &#8220;stable arm&#8221; points to either end of a growing list until specified
+bounds are exceeded.</p>
+<p>Despite the non-standard solution method, the iterative process can be embedded
+in the HARK framework, as shown below.</p>
+<p class="rubric">Functions</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutility</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutilityP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutilityPP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutilityPPP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal marginal marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutilityPPPP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal marginal marginal marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutilityP_inv</span></code>(uP,&nbsp;gam)</td>
+<td>Evaluates the inverse of the CRRA marginal utility function (with risk aversion parameter gam) at a given marginal utility level uP.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutility_inv</span></code>(u,&nbsp;gam)</td>
+<td>Evaluates the inverse of the CRRA utility function (with risk aversion para- meter gam) at a given utility level u.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutility_invP</span></code>(u,&nbsp;gam)</td>
+<td>Evaluates the derivative of the inverse of the CRRA utility function (with risk aversion parameter gam) at a given utility level u.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#TractableBufferStockModel.addToStableArmPoints" title="TractableBufferStockModel.addToStableArmPoints"><code class="xref py py-obj docutils literal"><span class="pre">addToStableArmPoints</span></code></a>(solution_next,&nbsp;DiscFac,&nbsp;...)</td>
+<td>Adds a one point to the bottom and top of the list of stable arm points if the bounding levels of mLowerBnd (lower) and mUpperBnd (upper) have not yet been met by a stable arm point in mNrm_list.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">brentq</span></code>(f,&nbsp;a,&nbsp;b[,&nbsp;args,&nbsp;xtol,&nbsp;rtol,&nbsp;maxiter,&nbsp;...])</td>
+<td>Find a root of a function in given interval.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">copy</span></code>(x)</td>
+<td>Shallow copy operation on arbitrary Python objects.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#TractableBufferStockModel.findNextPoint" title="TractableBufferStockModel.findNextPoint"><code class="xref py py-obj docutils literal"><span class="pre">findNextPoint</span></code></a>(DiscFac,&nbsp;Rfree,&nbsp;CRRA,&nbsp;...)</td>
+<td>Calculates what consumption, market resources, and the marginal propensity to consume must have been in the previous period given model parameters and values of market resources, consumption, and MPC today.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">newton</span></code>(func,&nbsp;x0[,&nbsp;fprime,&nbsp;args,&nbsp;tol,&nbsp;...])</td>
+<td>Find a zero using the Newton-Raphson or secant method.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">utility</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">utilityP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">utilityPP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">utilityPPP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal marginal marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">utilityPPPP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal marginal marginal marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">utilityP_inv</span></code>(uP,&nbsp;gam)</td>
+<td>Evaluates the inverse of the CRRA marginal utility function (with risk aversion parameter gam) at a given marginal utility level uP.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">utility_inv</span></code>(u,&nbsp;gam)</td>
+<td>Evaluates the inverse of the CRRA utility function (with risk aversion para- meter gam) at a given utility level u.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">utility_invP</span></code>(u,&nbsp;gam)</td>
+<td>Evaluates the derivative of the inverse of the CRRA utility function (with risk aversion parameter gam) at a given utility level u.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">AgentType</span></code>([solution_terminal,&nbsp;cycles,&nbsp;...])</td>
+<td>A superclass for economic agents in the HARK framework.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">CubicInterp</span></code>(x_list,&nbsp;y_list,&nbsp;dydx_list[,&nbsp;...])</td>
+<td>An interpolating function using piecewise cubic splines.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">NullFunc</span></code></td>
+<td>A trivial class that acts as a placeholder &#8220;do nothing&#8221; function.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">Solution</span></code></td>
+<td>A superclass for representing the &#8220;solution&#8221; to a single period problem in a dynamic microeconomic model.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#TractableBufferStockModel.TractableConsumerSolution" title="TractableBufferStockModel.TractableConsumerSolution"><code class="xref py py-obj docutils literal"><span class="pre">TractableConsumerSolution</span></code></a>([mNrm_list,&nbsp;...])</td>
+<td>A class representing the solution to a tractable buffer saving problem.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="../TractableBufferStockModel.html#TractableBufferStockModel.TractableConsumerType" title="TractableBufferStockModel.TractableConsumerType"><code class="xref py py-obj docutils literal"><span class="pre">TractableConsumerType</span></code></a>([cycles,&nbsp;time_flow])</td>
+<td><p class="rubric">Methods</p>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="TractableBufferStockModel.TractableConsumerSolution">
+<em class="property">class </em><code class="descclassname">TractableBufferStockModel.</code><code class="descname">TractableConsumerSolution</code><span class="sig-paren">(</span><em>mNrm_list=[]</em>, <em>cNrm_list=[]</em>, <em>MPC_list=[]</em>, <em>cFunc_U=&lt;class HARKutilities.NullFunc&gt;</em>, <em>cFunc=&lt;class HARKutilities.NullFunc&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#TractableBufferStockModel.TractableConsumerSolution" title="Permalink to this definition">¶</a></dt>
+<dd><p>A class representing the solution to a tractable buffer saving problem.
+Attributes include a list of money points mNrm_list, a list of consumption points
+cNrm_list, a list of MPCs MPC_list, a perfect foresight consumption function
+while employed, and a perfect foresight consumption function while unemployed.
+The solution includes a consumption function constructed from the lists.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called distance_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="TractableBufferStockModel.addToStableArmPoints">
+<code class="descclassname">TractableBufferStockModel.</code><code class="descname">addToStableArmPoints</code><span class="sig-paren">(</span><em>solution_next</em>, <em>DiscFac</em>, <em>Rfree</em>, <em>CRRA</em>, <em>PermGroFacCmp</em>, <em>UnempPrb</em>, <em>PFMPC</em>, <em>Rnrm</em>, <em>Beth</em>, <em>mLowerBnd</em>, <em>mUpperBnd</em><span class="sig-paren">)</span><a class="headerlink" href="#TractableBufferStockModel.addToStableArmPoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a one point to the bottom and top of the list of stable arm points if
+the bounding levels of mLowerBnd (lower) and mUpperBnd (upper) have not yet
+been met by a stable arm point in mNrm_list.  This acts as the &#8220;one period
+solver&#8221; / solveOnePeriod in the tractable buffer stock model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>solution_next</strong> : TractableConsumerSolution</p>
+<blockquote>
+<div><p>The solution object from the previous iteration of the backshooting
+procedure.  Not the &#8220;next period&#8221; solution per se.</p>
+</div></blockquote>
+<p><strong>DiscFac</strong> : float</p>
+<blockquote>
+<div><p>Intertemporal discount factor on future utility.</p>
+</div></blockquote>
+<p><strong>Rfree</strong> : float</p>
+<blockquote>
+<div><p>Risk free interest factor on end-of-period assets.</p>
+</div></blockquote>
+<p><strong>CRRA</strong> : float</p>
+<blockquote>
+<div><p>Coefficient of relative risk aversion.</p>
+</div></blockquote>
+<p><strong>PermGroFacCmp</strong> : float</p>
+<blockquote>
+<div><p>Permanent income growth factor, compensated for the possibility of
+permanent unemployment.</p>
+</div></blockquote>
+<p><strong>UnempPrb</strong> : float</p>
+<blockquote>
+<div><p>Probability of becoming permanently unemployed.</p>
+</div></blockquote>
+<p><strong>PFMPC</strong> : float</p>
+<blockquote>
+<div><p>The perfect foresight MPC; also the MPC when permanently unemployed.</p>
+</div></blockquote>
+<p><strong>Rnrm</strong> : float</p>
+<blockquote>
+<div><p>Interest factor normalized by compensated permanent income growth factor.</p>
+</div></blockquote>
+<p><strong>Beth</strong> : float</p>
+<blockquote>
+<div><p>Damned if I know.</p>
+</div></blockquote>
+<p><strong>mLowerBnd</strong> : float</p>
+<blockquote>
+<div><p>Lower bound on market resources for the backshooting process.  If
+min(solution_next.mNrm_list) &lt; mLowerBnd, no new bottom point is found.</p>
+</div></blockquote>
+<p><strong>mUpperBnd</strong> : float</p>
+<blockquote class="last">
+<div><p>Upper bound on market resources for the backshooting process.  If
+max(solution_next.mNrm_list) &gt; mUpperBnd, no new top point is found.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="TractableBufferStockModel.findNextPoint">
+<code class="descclassname">TractableBufferStockModel.</code><code class="descname">findNextPoint</code><span class="sig-paren">(</span><em>DiscFac</em>, <em>Rfree</em>, <em>CRRA</em>, <em>PermGroFacCmp</em>, <em>UnempPrb</em>, <em>Rnrm</em>, <em>Beth</em>, <em>cNext</em>, <em>mNext</em>, <em>MPCnext</em>, <em>PFMPC</em><span class="sig-paren">)</span><a class="headerlink" href="#TractableBufferStockModel.findNextPoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates what consumption, market resources, and the marginal propensity
+to consume must have been in the previous period given model parameters and
+values of market resources, consumption, and MPC today.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>DiscFac</strong> : float</p>
+<blockquote>
+<div><p>Intertemporal discount factor on future utility.</p>
+</div></blockquote>
+<p><strong>Rfree</strong> : float</p>
+<blockquote>
+<div><p>Risk free interest factor on end-of-period assets.</p>
+</div></blockquote>
+<p><strong>PermGroFacCmp</strong> : float</p>
+<blockquote>
+<div><p>Permanent income growth factor, compensated for the possibility of
+permanent unemployment.</p>
+</div></blockquote>
+<p><strong>UnempPrb</strong> : float</p>
+<blockquote>
+<div><p>Probability of becoming permanently unemployed.</p>
+</div></blockquote>
+<p><strong>Rnrm</strong> : float</p>
+<blockquote>
+<div><p>Interest factor normalized by compensated permanent income growth factor.</p>
+</div></blockquote>
+<p><strong>Beth</strong> : float</p>
+<blockquote>
+<div><p>Damned if I know.</p>
+</div></blockquote>
+<p><strong>cNext</strong> : float</p>
+<blockquote>
+<div><p>Normalized consumption in the succeeding period.</p>
+</div></blockquote>
+<p><strong>mNext</strong> : float</p>
+<blockquote>
+<div><p>Normalized market resources in the succeeding period.</p>
+</div></blockquote>
+<p><strong>MPCnext</strong> : float</p>
+<blockquote>
+<div><p>The marginal propensity to consume in the succeeding period.</p>
+</div></blockquote>
+<p><strong>PFMPC</strong> : float</p>
+<blockquote>
+<div><p>The perfect foresight MPC; also the MPC when permanently unemployed.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>mNow</strong> : float</p>
+<blockquote>
+<div><p>Normalized market resources this period.</p>
+</div></blockquote>
+<p><strong>cNow</strong> : float</p>
+<blockquote>
+<div><p>Normalized consumption this period.</p>
+</div></blockquote>
+<p><strong>MPCnow</strong> : float</p>
+<blockquote class="last">
+<div><p>Marginal propensity to consume this period.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/generated/TractableBufferStockModel.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, TEMP.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.1.
+    </div>
+  </body>
+</html>

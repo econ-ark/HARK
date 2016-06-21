@@ -56,7 +56,7 @@ distance method from HARKobject.</p>
 <dl class="class">
 <dt id="HARKinterpolation.BilinearInterp">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">BilinearInterp</code><span class="sig-paren">(</span><em>f_values</em>, <em>x_list</em>, <em>y_list</em>, <em>xSearchFunc=None</em>, <em>ySearchFunc=None</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.BilinearInterp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator2D" title="HARKinterpolation.HARKinterpolator2D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator2D</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#HARKinterpolation.HARKinterpolator2D" title="HARKinterpolation.HARKinterpolator2D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator2D</span></code></a></p>
 <p>Bilinear full (or tensor) grid interpolation of a function f(x,y).</p>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
@@ -87,7 +87,7 @@ distance method from HARKobject.</p>
 <dl class="class">
 <dt id="HARKinterpolation.BilinearInterpOnInterp1D">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">BilinearInterpOnInterp1D</code><span class="sig-paren">(</span><em>xInterpolators</em>, <em>y_values</em>, <em>z_values</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.BilinearInterpOnInterp1D" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator3D" title="HARKinterpolation.HARKinterpolator3D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator3D</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#HARKinterpolation.HARKinterpolator3D" title="HARKinterpolation.HARKinterpolator3D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator3D</span></code></a></p>
 <p>A 3D interpolator that bilinearly interpolates among a list of lists of 1D
 interpolators.</p>
 <p class="rubric">Methods</p>
@@ -122,7 +122,7 @@ interpolators.</p>
 <dl class="class">
 <dt id="HARKinterpolation.BilinearInterpOnInterp2D">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">BilinearInterpOnInterp2D</code><span class="sig-paren">(</span><em>wxInterpolators</em>, <em>y_values</em>, <em>z_values</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.BilinearInterpOnInterp2D" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator4D" title="HARKinterpolation.HARKinterpolator4D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator4D</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#HARKinterpolation.HARKinterpolator4D" title="HARKinterpolation.HARKinterpolator4D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator4D</span></code></a></p>
 <p>A 4D interpolation method that bilinearly interpolates among &#8220;layers&#8221; of
 arbitrary 2D interpolations.  Useful for models with two endogenous state
 variables and two exogenous state variables when solving with the endogenous
@@ -163,7 +163,7 @@ be significantly slower than QuadlinearInterp.</p>
 <dl class="class">
 <dt id="HARKinterpolation.CubicInterp">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">CubicInterp</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>dydx_list</em>, <em>intercept_limit=None</em>, <em>slope_limit=None</em>, <em>lower_extrap=False</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.CubicInterp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator1D" title="HARKinterpolation.HARKinterpolator1D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator1D</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#HARKinterpolation.HARKinterpolator1D" title="HARKinterpolation.HARKinterpolator1D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator1D</span></code></a></p>
 <p>An interpolating function using piecewise cubic splines.  Matches level and
 slope of 1D function at gridpoints, smoothly interpolating in between.
 Extrapolation above highest gridpoint approaches a limiting linear function
@@ -197,7 +197,7 @@ if desired (linear extrapolation also enabled.)</p>
 <dl class="class">
 <dt id="HARKinterpolation.Curvilinear2DInterp">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">Curvilinear2DInterp</code><span class="sig-paren">(</span><em>f_values</em>, <em>x_values</em>, <em>y_values</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.Curvilinear2DInterp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator2D" title="HARKinterpolation.HARKinterpolator2D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator2D</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#HARKinterpolation.HARKinterpolator2D" title="HARKinterpolation.HARKinterpolator2D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator2D</span></code></a></p>
 <p>A 2D interpolation method for curvilinear or &#8220;warped grid&#8221; interpolation, as
 in White (2015).  Used for models with two endogenous states that are solved
 with the endogenous grid method.</p>
@@ -223,13 +223,13 @@ with the endogenous grid method.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
 <td>A generic distance method, which requires the existence of an attribute called distance_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.Curvilinear2DInterp.findCoords" title="HARKinterpolation.Curvilinear2DInterp.findCoords"><code class="xref py py-obj docutils literal"><span class="pre">findCoords</span></code></a>(x,&nbsp;y,&nbsp;x_pos,&nbsp;y_pos)</td>
+<tr class="row-even"><td><a class="reference internal" href="#HARKinterpolation.Curvilinear2DInterp.findCoords" title="HARKinterpolation.Curvilinear2DInterp.findCoords"><code class="xref py py-obj docutils literal"><span class="pre">findCoords</span></code></a>(x,&nbsp;y,&nbsp;x_pos,&nbsp;y_pos)</td>
 <td>Calculates the relative coordinates (alpha,beta) for each point (x,y), given the sectors (x_pos,y_pos) in which they reside.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.Curvilinear2DInterp.findSector" title="HARKinterpolation.Curvilinear2DInterp.findSector"><code class="xref py py-obj docutils literal"><span class="pre">findSector</span></code></a>(x,&nbsp;y)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKinterpolation.Curvilinear2DInterp.findSector" title="HARKinterpolation.Curvilinear2DInterp.findSector"><code class="xref py py-obj docutils literal"><span class="pre">findSector</span></code></a>(x,&nbsp;y)</td>
 <td>Finds the quadrilateral &#8220;sector&#8221; for each (x,y) point in the input.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.Curvilinear2DInterp.updatePolarity" title="HARKinterpolation.Curvilinear2DInterp.updatePolarity"><code class="xref py py-obj docutils literal"><span class="pre">updatePolarity</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="#HARKinterpolation.Curvilinear2DInterp.updatePolarity" title="HARKinterpolation.Curvilinear2DInterp.updatePolarity"><code class="xref py py-obj docutils literal"><span class="pre">updatePolarity</span></code></a>()</td>
 <td>Fills in the polarity attribute of the interpolation, determining whether the &#8220;plus&#8221; (True) or &#8220;minus&#8221; (False) solution of the system of equations should be used for each sector.</td>
 </tr>
 </tbody>
@@ -332,7 +332,7 @@ should be used for each sector.  Needs to be called in __init__.</p>
 <dl class="class">
 <dt id="HARKinterpolation.HARKinterpolator1D">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">HARKinterpolator1D</code><a class="headerlink" href="#HARKinterpolation.HARKinterpolator1D" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
 <p>A wrapper class for 1D interpolation methods in HARK.</p>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
@@ -347,13 +347,13 @@ should be used for each sector.  Needs to be called in __init__.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator1D.derivative" title="HARKinterpolation.HARKinterpolator1D.derivative"><code class="xref py py-obj docutils literal"><span class="pre">derivative</span></code></a>(x)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKinterpolation.HARKinterpolator1D.derivative" title="HARKinterpolation.HARKinterpolator1D.derivative"><code class="xref py py-obj docutils literal"><span class="pre">derivative</span></code></a>(x)</td>
 <td>Evaluates the derivative of the interpolated function at the given input.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
 <td>A generic distance method, which requires the existence of an attribute called distance_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator1D.eval_with_derivative" title="HARKinterpolation.HARKinterpolator1D.eval_with_derivative"><code class="xref py py-obj docutils literal"><span class="pre">eval_with_derivative</span></code></a>(x)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKinterpolation.HARKinterpolator1D.eval_with_derivative" title="HARKinterpolation.HARKinterpolator1D.eval_with_derivative"><code class="xref py py-obj docutils literal"><span class="pre">eval_with_derivative</span></code></a>(x)</td>
 <td>Evaluates the interpolated function and its derivative at the given input.</td>
 </tr>
 </tbody>
@@ -418,7 +418,7 @@ dydx = f&#8217;(x), with the same shape as x.</p>
 <dl class="class">
 <dt id="HARKinterpolation.HARKinterpolator2D">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">HARKinterpolator2D</code><a class="headerlink" href="#HARKinterpolation.HARKinterpolator2D" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
 <p>A wrapper class for 2D interpolation methods in HARK.</p>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
@@ -433,10 +433,10 @@ dydx = f&#8217;(x), with the same shape as x.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator2D.derivativeX" title="HARKinterpolation.HARKinterpolator2D.derivativeX"><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code></a>(x,&nbsp;y)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKinterpolation.HARKinterpolator2D.derivativeX" title="HARKinterpolation.HARKinterpolator2D.derivativeX"><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code></a>(x,&nbsp;y)</td>
 <td>Evaluates the partial derivative of interpolated function with respect to x (the first argument) at the given input.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator2D.derivativeY" title="HARKinterpolation.HARKinterpolator2D.derivativeY"><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code></a>(x,&nbsp;y)</td>
+<tr class="row-even"><td><a class="reference internal" href="#HARKinterpolation.HARKinterpolator2D.derivativeY" title="HARKinterpolation.HARKinterpolator2D.derivativeY"><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code></a>(x,&nbsp;y)</td>
 <td>Evaluates the partial derivative of interpolated function with respect to y (the second argument) at the given input.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
@@ -511,7 +511,7 @@ uated at x,y: dfdx = f_y(x,y), with the same shape as x and y.</p>
 <dl class="class">
 <dt id="HARKinterpolation.HARKinterpolator3D">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">HARKinterpolator3D</code><a class="headerlink" href="#HARKinterpolation.HARKinterpolator3D" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
 <p>A wrapper class for 3D interpolation methods in HARK.</p>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
@@ -526,13 +526,13 @@ uated at x,y: dfdx = f_y(x,y), with the same shape as x and y.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator3D.derivativeX" title="HARKinterpolation.HARKinterpolator3D.derivativeX"><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code></a>(x,&nbsp;y,&nbsp;z)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKinterpolation.HARKinterpolator3D.derivativeX" title="HARKinterpolation.HARKinterpolator3D.derivativeX"><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code></a>(x,&nbsp;y,&nbsp;z)</td>
 <td>Evaluates the partial derivative of the interpolated function with respect to x (the first argument) at the given input.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator3D.derivativeY" title="HARKinterpolation.HARKinterpolator3D.derivativeY"><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code></a>(x,&nbsp;y,&nbsp;z)</td>
+<tr class="row-even"><td><a class="reference internal" href="#HARKinterpolation.HARKinterpolator3D.derivativeY" title="HARKinterpolation.HARKinterpolator3D.derivativeY"><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code></a>(x,&nbsp;y,&nbsp;z)</td>
 <td>Evaluates the partial derivative of the interpolated function with respect to y (the second argument) at the given input.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator3D.derivativeZ" title="HARKinterpolation.HARKinterpolator3D.derivativeZ"><code class="xref py py-obj docutils literal"><span class="pre">derivativeZ</span></code></a>(x,&nbsp;y,&nbsp;z)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKinterpolation.HARKinterpolator3D.derivativeZ" title="HARKinterpolation.HARKinterpolator3D.derivativeZ"><code class="xref py py-obj docutils literal"><span class="pre">derivativeZ</span></code></a>(x,&nbsp;y,&nbsp;z)</td>
 <td>Evaluates the partial derivative of the interpolated function with respect to z (the third argument) at the given input.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
@@ -653,7 +653,7 @@ at x,y,z: dfdz = f_z(x,y,z), with the same shape as x, y, and z.</p>
 <dl class="class">
 <dt id="HARKinterpolation.HARKinterpolator4D">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">HARKinterpolator4D</code><a class="headerlink" href="#HARKinterpolation.HARKinterpolator4D" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
 <p>A wrapper class for 4D interpolation methods in HARK.</p>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
@@ -668,16 +668,16 @@ at x,y,z: dfdz = f_z(x,y,z), with the same shape as x, y, and z.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator4D.derivativeW" title="HARKinterpolation.HARKinterpolator4D.derivativeW"><code class="xref py py-obj docutils literal"><span class="pre">derivativeW</span></code></a>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKinterpolation.HARKinterpolator4D.derivativeW" title="HARKinterpolation.HARKinterpolator4D.derivativeW"><code class="xref py py-obj docutils literal"><span class="pre">derivativeW</span></code></a>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
 <td>Evaluates the partial derivative with respect to w (the first argument) of the interpolated function at the given input.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator4D.derivativeX" title="HARKinterpolation.HARKinterpolator4D.derivativeX"><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code></a>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<tr class="row-even"><td><a class="reference internal" href="#HARKinterpolation.HARKinterpolator4D.derivativeX" title="HARKinterpolation.HARKinterpolator4D.derivativeX"><code class="xref py py-obj docutils literal"><span class="pre">derivativeX</span></code></a>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
 <td>Evaluates the partial derivative with respect to x (the second argument) of the interpolated function at the given input.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator4D.derivativeY" title="HARKinterpolation.HARKinterpolator4D.derivativeY"><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code></a>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#HARKinterpolation.HARKinterpolator4D.derivativeY" title="HARKinterpolation.HARKinterpolator4D.derivativeY"><code class="xref py py-obj docutils literal"><span class="pre">derivativeY</span></code></a>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
 <td>Evaluates the partial derivative with respect to y (the third argument) of the interpolated function at the given input.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator4D.derivativeZ" title="HARKinterpolation.HARKinterpolator4D.derivativeZ"><code class="xref py py-obj docutils literal"><span class="pre">derivativeZ</span></code></a>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
+<tr class="row-even"><td><a class="reference internal" href="#HARKinterpolation.HARKinterpolator4D.derivativeZ" title="HARKinterpolation.HARKinterpolator4D.derivativeZ"><code class="xref py py-obj docutils literal"><span class="pre">derivativeZ</span></code></a>(w,&nbsp;x,&nbsp;y,&nbsp;z)</td>
 <td>Evaluates the partial derivative with respect to z (the fourth argument) of the interpolated function at the given input.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
@@ -854,7 +854,7 @@ uated at w,x,y,z: dfdz = f_z(w,x,y,z), with the same shape as inputs.</p>
 <dl class="class">
 <dt id="HARKinterpolation.LinearInterp">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">LinearInterp</code><span class="sig-paren">(</span><em>x_list</em>, <em>y_list</em>, <em>intercept_limit=None</em>, <em>slope_limit=None</em>, <em>lower_extrap=False</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.LinearInterp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator1D" title="HARKinterpolation.HARKinterpolator1D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator1D</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#HARKinterpolation.HARKinterpolator1D" title="HARKinterpolation.HARKinterpolator1D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator1D</span></code></a></p>
 <p>A slight extension of scipy.interpolate&#8217;s UnivariateSpline for linear inter-
 polation.  Allows for linear or decay extrapolation (approaching a limiting
 linear function from below).</p>
@@ -887,7 +887,7 @@ linear function from below).</p>
 <dl class="class">
 <dt id="HARKinterpolation.LinearInterpOnInterp1D">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">LinearInterpOnInterp1D</code><span class="sig-paren">(</span><em>xInterpolators</em>, <em>y_values</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.LinearInterpOnInterp1D" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator2D" title="HARKinterpolation.HARKinterpolator2D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator2D</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#HARKinterpolation.HARKinterpolator2D" title="HARKinterpolation.HARKinterpolator2D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator2D</span></code></a></p>
 <p>A 2D interpolator that linearly interpolates among a list of 1D interpolators.</p>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
@@ -918,7 +918,7 @@ linear function from below).</p>
 <dl class="class">
 <dt id="HARKinterpolation.LinearInterpOnInterp2D">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">LinearInterpOnInterp2D</code><span class="sig-paren">(</span><em>xyInterpolators</em>, <em>z_values</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.LinearInterpOnInterp2D" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator3D" title="HARKinterpolation.HARKinterpolator3D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator3D</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#HARKinterpolation.HARKinterpolator3D" title="HARKinterpolation.HARKinterpolator3D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator3D</span></code></a></p>
 <p>A 3D interpolation method that linearly interpolates between &#8220;layers&#8221; of
 arbitrary 2D interpolations.  Useful for models with two endogenous state
 variables and one exogenous state variable when solving with the endogenous
@@ -956,7 +956,7 @@ be significantly slower than TrilinearInterp.</p>
 <dl class="class">
 <dt id="HARKinterpolation.LowerEnvelope">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">LowerEnvelope</code><span class="sig-paren">(</span><em>*functions</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.LowerEnvelope" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator1D" title="HARKinterpolation.HARKinterpolator1D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator1D</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#HARKinterpolation.HARKinterpolator1D" title="HARKinterpolation.HARKinterpolator1D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator1D</span></code></a></p>
 <p>The lower envelope of a finite set of 1D functions, each of which can be of
 any class that has the methods __call__, derivative, and eval_with_derivative.
 Generally: it combines HARKinterpolator1Ds.</p>
@@ -989,7 +989,7 @@ Generally: it combines HARKinterpolator1Ds.</p>
 <dl class="class">
 <dt id="HARKinterpolation.QuadlinearInterp">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">QuadlinearInterp</code><span class="sig-paren">(</span><em>f_values</em>, <em>w_list</em>, <em>x_list</em>, <em>y_list</em>, <em>z_list</em>, <em>wSearchFunc=None</em>, <em>xSearchFunc=None</em>, <em>ySearchFunc=None</em>, <em>zSearchFunc=None</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.QuadlinearInterp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator4D" title="HARKinterpolation.HARKinterpolator4D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator4D</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#HARKinterpolation.HARKinterpolator4D" title="HARKinterpolation.HARKinterpolator4D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator4D</span></code></a></p>
 <p>Quadlinear full (or tensor) grid interpolation of a function f(w,x,y,z).</p>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
@@ -1026,7 +1026,7 @@ Generally: it combines HARKinterpolator1Ds.</p>
 <dl class="class">
 <dt id="HARKinterpolation.TrilinearInterp">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">TrilinearInterp</code><span class="sig-paren">(</span><em>f_values</em>, <em>x_list</em>, <em>y_list</em>, <em>z_list</em>, <em>xSearchFunc=None</em>, <em>ySearchFunc=None</em>, <em>zSearchFunc=None</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.TrilinearInterp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator3D" title="HARKinterpolation.HARKinterpolator3D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator3D</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#HARKinterpolation.HARKinterpolator3D" title="HARKinterpolation.HARKinterpolator3D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator3D</span></code></a></p>
 <p>Trilinear full (or tensor) grid interpolation of a function f(x,y,z).</p>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
@@ -1060,7 +1060,7 @@ Generally: it combines HARKinterpolator1Ds.</p>
 <dl class="class">
 <dt id="HARKinterpolation.TrilinearInterpOnInterp1D">
 <em class="property">class </em><code class="descclassname">HARKinterpolation.</code><code class="descname">TrilinearInterpOnInterp1D</code><span class="sig-paren">(</span><em>wInterpolators</em>, <em>x_values</em>, <em>y_values</em>, <em>z_values</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKinterpolation.TrilinearInterpOnInterp1D" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="generated/HARKinterpolation.html#HARKinterpolation.HARKinterpolator4D" title="HARKinterpolation.HARKinterpolator4D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator4D</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#HARKinterpolation.HARKinterpolator4D" title="HARKinterpolation.HARKinterpolator4D"><code class="xref py py-class docutils literal"><span class="pre">HARKinterpolation.HARKinterpolator4D</span></code></a></p>
 <p>A 4D interpolator that trilinearly interpolates among a list of lists of 1D interpolators.</p>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">

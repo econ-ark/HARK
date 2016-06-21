@@ -1,0 +1,53 @@
+TractableBufferStockModel
+=========================
+
+.. automodule:: TractableBufferStockModel
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      CRRAutility
+      CRRAutilityP
+      CRRAutilityPP
+      CRRAutilityPPP
+      CRRAutilityPPPP
+      CRRAutilityP_inv
+      CRRAutility_inv
+      CRRAutility_invP
+      addToStableArmPoints
+      brentq
+      copy
+      findNextPoint
+      newton
+      utility
+      utilityP
+      utilityPP
+      utilityPPP
+      utilityPPPP
+      utilityP_inv
+      utility_inv
+      utility_invP
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AgentType
+      CubicInterp
+      NullFunc
+      Solution
+      TractableConsumerSolution
+      TractableConsumerType
+   
+   
+
+   
+   
+   

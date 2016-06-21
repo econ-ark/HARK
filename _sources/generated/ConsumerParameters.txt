@@ -1,0 +1,22 @@
+ConsumerParameters
+==================
+
+.. automodule:: ConsumerParameters
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      copy
+   
+   
+
+   
+   
+   
+
+   
+   
+   

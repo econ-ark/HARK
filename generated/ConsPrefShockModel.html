@@ -6,37 +6,37 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>ConsPrefShockModel module &mdash; HARK 0.9 documentation</title>
+    <title>ConsPrefShockModel &mdash; HARK 0.9 documentation</title>
     
-    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
+        URL_ROOT:    '../',
         VERSION:     '0.9',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
       };
     </script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="HARK 0.9 documentation" href="index.html" /> 
+    <link rel="top" title="HARK 0.9 documentation" href="../index.html" /> 
   </head>
   <body role="document">
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
+          <a href="../genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
+          <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">HARK 0.9 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">HARK 0.9 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -46,16 +46,72 @@
           <div class="body" role="main">
             
   <div class="section" id="module-ConsPrefShockModel">
-<span id="consprefshockmodel-module"></span><h1>ConsPrefShockModel module<a class="headerlink" href="#module-ConsPrefShockModel" title="Permalink to this headline">¶</a></h1>
+<span id="consprefshockmodel"></span><h1>ConsPrefShockModel<a class="headerlink" href="#module-ConsPrefShockModel" title="Permalink to this headline">¶</a></h1>
 <p>Extensions to ConsIndShockModel concerning models with preference shocks.
 It currently only has one model, in which utility is subject to an iid lognormal
 multiplicative shock each period; it assumes that there are different interest
 rates on borrowing and saving.</p>
+<p class="rubric">Functions</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">approxMeanOneLognormal</span></code>(*args,&nbsp;**kwargs)</td>
+<td>Calculate a discrete approximation to a mean one lognormal distribution.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#ConsPrefShockModel.solveConsPrefShock" title="ConsPrefShockModel.solveConsPrefShock"><code class="xref py py-obj docutils literal"><span class="pre">solveConsPrefShock</span></code></a>(solution_next,&nbsp;...)</td>
+<td>Solves a single period of a consumption-saving model with preference shocks to marginal utility.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">ConsKinkedRsolver</span></code>(solution_next,&nbsp;IncomeDstn,&nbsp;...)</td>
+<td>A class to solve a single period consumption-saving problem where the interest rate on debt differs from the interest rate on savings.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#ConsPrefShockModel.ConsPrefShockSolver" title="ConsPrefShockModel.ConsPrefShockSolver"><code class="xref py py-obj docutils literal"><span class="pre">ConsPrefShockSolver</span></code></a>(solution_next,&nbsp;...)</td>
+<td>A class for solving the one period consumption-saving problem with risky income (permanent and transitory shocks), a different interest factor on borrowing and saving, and multiplicative shocks to utility each period.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">ConsumerSolution</span></code>([cFunc,&nbsp;vFunc,&nbsp;vPfunc,&nbsp;...])</td>
+<td>A class representing the solution of a single period of a consumption-saving problem.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">CubicInterp</span></code>(x_list,&nbsp;y_list,&nbsp;dydx_list[,&nbsp;...])</td>
+<td>An interpolating function using piecewise cubic splines.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">KinkedRconsumerType</span></code>([cycles,&nbsp;time_flow])</td>
+<td>A consumer type that faces idiosyncratic shocks to income and has a different interest factor on saving vs borrowing.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">LinearInterp</span></code>(x_list,&nbsp;y_list[,&nbsp;...])</td>
+<td>A slight extension of scipy.interpolate&#8217;s UnivariateSpline for linear inter- polation.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">LinearInterpOnInterp1D</span></code>(xInterpolators,&nbsp;y_values)</td>
+<td>A 2D interpolator that linearly interpolates among a list of 1D interpolators.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">LowerEnvelope</span></code>(*functions)</td>
+<td>The lower envelope of a finite set of 1D functions, each of which can be of any class that has the methods __call__, derivative, and eval_with_derivative.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">MargValueFunc</span></code>(cFunc,&nbsp;CRRA)</td>
+<td>A class for representing a marginal value function in models where the standard envelope condition of v&#8217;(m) = u&#8217;(c(m)) holds (with CRRA utility).</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#ConsPrefShockModel.PrefShockConsumerType" title="ConsPrefShockModel.PrefShockConsumerType"><code class="xref py py-obj docutils literal"><span class="pre">PrefShockConsumerType</span></code></a>([cycles,&nbsp;time_flow])</td>
+<td>A class for representing consumers who experience multiplicative shocks to utility each period, specified as iid lognormal.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">ValueFunc</span></code>(vFuncNvrs,&nbsp;CRRA)</td>
+<td>A class for representing a value function.</td>
+</tr>
+</tbody>
+</table>
 <dl class="class">
 <dt id="ConsPrefShockModel.ConsPrefShockSolver">
 <em class="property">class </em><code class="descclassname">ConsPrefShockModel.</code><code class="descname">ConsPrefShockSolver</code><span class="sig-paren">(</span><em>solution_next</em>, <em>IncomeDstn</em>, <em>PrefShkDstn</em>, <em>LivPrb</em>, <em>DiscFac</em>, <em>CRRA</em>, <em>Rboro</em>, <em>Rsave</em>, <em>PermGroFac</em>, <em>BoroCnstArt</em>, <em>aXtraGrid</em>, <em>vFuncBool</em>, <em>CubicBool</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsPrefShockModel.ConsPrefShockSolver" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="ConsIndShockModel.html#ConsIndShockModel.ConsKinkedRsolver" title="ConsIndShockModel.ConsKinkedRsolver"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.ConsKinkedRsolver</span></code></a></p>
-<p>A class for solving the one period consumption-saving problem with risky
+<dd><p>A class for solving the one period consumption-saving problem with risky
 income (permanent and transitory shocks), a different interest factor on
 borrowing and saving, and multiplicative shocks to utility each period.</p>
 <p class="rubric">Methods</p>
@@ -229,8 +285,7 @@ consumption function, marginal value function, and minimum m.</p>
 <dl class="class">
 <dt id="ConsPrefShockModel.PrefShockConsumerType">
 <em class="property">class </em><code class="descclassname">ConsPrefShockModel.</code><code class="descname">PrefShockConsumerType</code><span class="sig-paren">(</span><em>cycles=1</em>, <em>time_flow=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsPrefShockModel.PrefShockConsumerType" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="ConsIndShockModel.html#ConsIndShockModel.KinkedRconsumerType" title="ConsIndShockModel.KinkedRconsumerType"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.KinkedRconsumerType</span></code></a></p>
-<p>A class for representing consumers who experience multiplicative shocks to
+<dd><p>A class for representing consumers who experience multiplicative shocks to
 utility each period, specified as iid lognormal.</p>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
@@ -579,13 +634,13 @@ unconditionally on the shock, just before it is revealed.</p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/ConsPrefShockModel.txt"
+      <li><a href="../_sources/generated/ConsPrefShockModel.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
-    <form class="search" action="search.html" method="get">
+    <form class="search" action="../search.html" method="get">
       <input type="text" name="q" />
       <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
@@ -601,12 +656,12 @@ unconditionally on the shock, just before it is revealed.</p>
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
+          <a href="../genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
+          <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">HARK 0.9 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">HARK 0.9 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

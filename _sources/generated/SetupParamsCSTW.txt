@@ -1,0 +1,23 @@
+SetupParamsCSTW
+===============
+
+.. automodule:: SetupParamsCSTW
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      copy
+      deepcopy
+   
+   
+
+   
+   
+   
+
+   
+   
+   

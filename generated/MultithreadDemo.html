@@ -1,0 +1,143 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>MultithreadDemo &mdash; HARK 0.9 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.9',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="HARK 0.9 documentation" href="../index.html" />
+    <link rel="next" title="ConsumerParameters" href="ConsumerParameters.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ConsumerParameters.html" title="ConsumerParameters"
+             accesskey="N">next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-MultithreadDemo">
+<span id="multithreaddemo"></span><h1>MultithreadDemo<a class="headerlink" href="#module-MultithreadDemo" title="Permalink to this headline">¶</a></h1>
+<p>A demonstration of parallel processing in HARK using HARKparallel.
+A benchmark consumption-saving model is solved for individuals whose CRRA varies
+between 1 and 8.  The infinite horizon model is solved serially and then in
+parallel.  Note that HARKparallel will not work &#8220;out of the box&#8221;, as Anaconda
+does not include two packages needed for it; see HARKparallel.py.  When given a
+sufficiently large amount of work for each thread to do, the maximum speedup
+factor seems to be around P/2, where P is the number of processors.</p>
+<p class="rubric">Functions</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">clock</span></code>(()&nbsp;-&gt;&nbsp;floating&nbsp;point&nbsp;number)</td>
+<td>Return the CPU time or real time since the start of the process or since the first call to clock().</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">deepcopy</span></code>(x[,&nbsp;memo,&nbsp;_nil])</td>
+<td>Deep copy operation on arbitrary Python objects.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">multiThreadCommands</span></code>(agent_list,&nbsp;command_list)</td>
+<td>Executes the list of commands in command_list for each AgentType in agent_list using a multithreaded system.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">multiThreadCommandsFake</span></code>(agent_list,&nbsp;command_list)</td>
+<td>Executes the list of commands in command_list for each AgentType in agent_list in an ordinary, single-threaded loop.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="../MultithreadDemo.html#MultithreadDemo.mystr" title="MultithreadDemo.mystr"><code class="xref py py-obj docutils literal"><span class="pre">mystr</span></code></a>(number)</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">plotFuncs</span></code>(functions,&nbsp;bottom,&nbsp;top[,&nbsp;N])</td>
+<td>Plots 1D function(s) over a given range.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">plotFuncsDer</span></code>(functions,&nbsp;bottom,&nbsp;top[,&nbsp;N])</td>
+<td>Plots the first derivative of 1D function(s) over a given range.</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Next topic</h4>
+  <p class="topless"><a href="ConsumerParameters.html"
+                        title="next chapter">ConsumerParameters</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/generated/MultithreadDemo.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ConsumerParameters.html" title="ConsumerParameters"
+             >next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, TEMP.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.1.
+    </div>
+  </body>
+</html>

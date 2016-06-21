@@ -51,8 +51,8 @@
             
   <div class="section" id="module-HARKcore">
 <span id="harkcore"></span><h1>HARKcore<a class="headerlink" href="#module-HARKcore" title="Permalink to this headline">¶</a></h1>
-<p>High-level functions and classes useful for solving a wide variety of  economic
-models.  The &#8220;core&#8221; of HARK is a framework for &#8220;microeconomic&#8221; and &#8220;macroeconomic&#8221;
+<p>High-level functions and classes for solving a wide variety of economic models.
+The &#8220;core&#8221; of HARK is a framework for &#8220;microeconomic&#8221; and &#8220;macroeconomic&#8221;
 models.  A micro model concerns the dynamic optimization problem for some type
 of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
@@ -98,7 +98,7 @@ problem by finding a general equilibrium dynamic rule.</p>
 <td>A superclass for object classes in HARK.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#HARKcore.Market" title="HARKcore.Market"><code class="xref py py-obj docutils literal"><span class="pre">Market</span></code></a>([agents,&nbsp;sow_vars,&nbsp;reap_vars,&nbsp;...])</td>
-<td>A class to represent a central clearinghouse of information.</td>
+<td>A superclass to represent a central clearinghouse of information.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#HARKcore.Solution" title="HARKcore.Solution"><code class="xref py py-obj docutils literal"><span class="pre">Solution</span></code></a></td>
 <td>A superclass for representing the &#8220;solution&#8221; to a single period problem in a dynamic microeconomic model.</td>
@@ -405,7 +405,7 @@ distance&#8221; metric.</p>
 <dl class="class">
 <dt id="HARKcore.Market">
 <em class="property">class </em><code class="descclassname">HARKcore.</code><code class="descname">Market</code><span class="sig-paren">(</span><em>agents=[]</em>, <em>sow_vars=[]</em>, <em>reap_vars=[]</em>, <em>const_vars=[]</em>, <em>track_vars=[]</em>, <em>dyn_vars=[]</em>, <em>millRule=None</em>, <em>calcDynamics=None</em>, <em>act_T=1000</em>, <em>tolerance=1e-06</em><span class="sig-paren">)</span><a class="headerlink" href="#HARKcore.Market" title="Permalink to this definition">¶</a></dt>
-<dd><p>A class to represent a central clearinghouse of information.  Used for
+<dd><p>A superclass to represent a central clearinghouse of information.  Used for
 dynamic general equilibrium models to solve the &#8220;macroeconomic&#8221; model as a
 layer on top of the &#8220;microeconomic&#8221; models of one or more AgentTypes.</p>
 <p class="rubric">Methods</p>

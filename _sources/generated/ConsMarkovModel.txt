@@ -1,0 +1,53 @@
+ConsMarkovModel
+===============
+
+.. automodule:: ConsMarkovModel
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      CRRAutility
+      CRRAutilityP
+      CRRAutilityPP
+      CRRAutilityP_inv
+      CRRAutilityP_invP
+      CRRAutility_inv
+      CRRAutility_invP
+      deepcopy
+      drawDiscrete
+      solveConsMarkov
+      utility
+      utilityP
+      utilityPP
+      utilityP_inv
+      utilityP_invP
+      utility_inv
+      utility_invP
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ConsIndShockSolver
+      ConsMarkovSolver
+      ConsumerSolution
+      CubicInterp
+      IndShockConsumerType
+      LinearInterp
+      LowerEnvelope
+      MargValueFunc
+      MarkovConsumerType
+      ValueFunc
+   
+   
+
+   
+   
+   

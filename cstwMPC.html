@@ -1,0 +1,631 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>cstwMPC module &mdash; HARK 0.9 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.9',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="HARK 0.9 documentation" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-cstwMPC">
+<span id="cstwmpc-module"></span><h1>cstwMPC module<a class="headerlink" href="#module-cstwMPC" title="Permalink to this headline">¶</a></h1>
+<p>Nearly all of the estimations for the paper &#8220;The Distribution of Wealth and the
+Marginal Propensity to Consume&#8221;, by Chris Carroll, Jiri Slacalek, Kiichi Tokuoka,
+and Matthew White.  The micro model is a very slightly altered version of
+ConsIndShockModel; the macro model is ConsAggShockModel.  See SetupParamsCSTW
+for parameters and execution options.</p>
+<dl class="function">
+<dt id="cstwMPC.assignBetaDistribution">
+<code class="descclassname">cstwMPC.</code><code class="descname">assignBetaDistribution</code><span class="sig-paren">(</span><em>type_list</em>, <em>DiscFac_list</em><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.assignBetaDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assigns the discount factors in DiscFac_list to the types in type_list.  If
+there is heterogeneity beyond the discount factor, then the same DiscFac is
+assigned to consecutive types.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>type_list</strong> : [cstwMPCagent]</p>
+<blockquote>
+<div><p>The list of types that should be assigned discount factors.</p>
+</div></blockquote>
+<p><strong>DiscFac_list</strong> : [float] or np.array</p>
+<blockquote>
+<div><p>List of discount factors to assign to the types.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">none</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="cstwMPC.calcKappaMean">
+<code class="descclassname">cstwMPC.</code><code class="descname">calcKappaMean</code><span class="sig-paren">(</span><em>DiscFac</em>, <em>nabla</em><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.calcKappaMean" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the average MPC for the given parameters.  This is a very small
+sub-function of sensitivityAnalysis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>DiscFac</strong> : float</p>
+<blockquote>
+<div><p>Center of the uniform distribution of discount factors</p>
+</div></blockquote>
+<p><strong>nabla</strong> : float</p>
+<blockquote>
+<div><p>Width of the uniform distribution of discount factors</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>kappa_all</strong> : float</p>
+<blockquote class="last">
+<div><p>Average marginal propensity to consume in the population.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="cstwMPC.calculateKYratioDifference">
+<code class="descclassname">cstwMPC.</code><code class="descname">calculateKYratioDifference</code><span class="sig-paren">(</span><em>sim_wealth</em>, <em>weights</em>, <em>total_output</em>, <em>target_KY</em><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.calculateKYratioDifference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the absolute distance between the simulated capital-to-output
+ratio and the true U.S. level.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>sim_wealth</strong> : numpy.array</p>
+<blockquote>
+<div><p>Array with simulated wealth values.</p>
+</div></blockquote>
+<p><strong>weights</strong> : numpy.array</p>
+<blockquote>
+<div><p>List of weights for each row of sim_wealth.</p>
+</div></blockquote>
+<p><strong>total_output</strong> : float</p>
+<blockquote>
+<div><p>Denominator for the simulated K/Y ratio.</p>
+</div></blockquote>
+<p><strong>target_KY</strong> : float</p>
+<blockquote>
+<div><p>Actual U.S. K/Y ratio to match.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>distance</strong> : float</p>
+<blockquote class="last">
+<div><p>Absolute distance between simulated and actual K/Y ratios.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="cstwMPC.calculateLorenzDifference">
+<code class="descclassname">cstwMPC.</code><code class="descname">calculateLorenzDifference</code><span class="sig-paren">(</span><em>sim_wealth</em>, <em>weights</em>, <em>percentiles</em>, <em>target_levels</em><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.calculateLorenzDifference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the sum of squared differences between the simulatedLorenz curve
+at the specified percentile levels and the target Lorenz levels.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>sim_wealth</strong> : numpy.array</p>
+<blockquote>
+<div><p>Array with simulated wealth values.</p>
+</div></blockquote>
+<p><strong>weights</strong> : numpy.array</p>
+<blockquote>
+<div><p>List of weights for each row of sim_wealth.</p>
+</div></blockquote>
+<p><strong>percentiles</strong> : [float]</p>
+<blockquote>
+<div><p>Points in the distribution of wealth to match.</p>
+</div></blockquote>
+<p><strong>target_levels</strong> : np.array</p>
+<blockquote>
+<div><p>Actual U.S. Lorenz curve levels at the specified percentiles.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>distance</strong> : float</p>
+<blockquote class="last">
+<div><p>Sum of squared distances between simulated and target Lorenz curves.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="cstwMPC.cstwMPCagent">
+<em class="property">class </em><code class="descclassname">cstwMPC.</code><code class="descname">cstwMPCagent</code><span class="sig-paren">(</span><em>time_flow=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.cstwMPCagent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType" title="ConsIndShockModel.IndShockConsumerType"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.IndShockConsumerType</span></code></a></p>
+<p>A consumer type in the cstwMPC model; a slight modification of base ConsumerType.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">advanceIncShks</span></code>()</td>
+<td>Advance the permanent and transitory income shocks to the next period of the shock history objects.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">advancecFunc</span></code>()</td>
+<td>Advance the consumption function to the next period in the solution.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">cFunc_terminal_</span></code></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">calcBoundingValues</span></code>()</td>
+<td>Calculate human wealth plus minimum and maximum MPC in an infinite horizon model with only one period repeated indefinitely.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called distance_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">initializeSim</span></code>([a_init,&nbsp;p_init,&nbsp;t_init,&nbsp;sim_prds])</td>
+<td>Readies this type for simulation by clearing its history, initializing state variables, and setting time indices to their correct position.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">isSameThing</span></code>(solutionA,&nbsp;solutionB)</td>
+<td>Compare two solutions to see if they are the &#8220;same.&#8221;  The model-specific solution class must have a method called distance, which takes another solution object as an input and returns the &#8220;distance&#8221; between the solutions.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">makeEulerErrorFunc</span></code>([mMax,&nbsp;approx_inc_dstn])</td>
+<td>Creates a &#8220;normalized Euler error&#8221; function for this instance, mapping from market resources to &#8220;consumption error per dollar of consumption.&#8221; Stores result in attribute eulerErrorFunc as an interpolated function.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">makeIncShkHist</span></code>()</td>
+<td>Makes histories of simulated income shocks for this consumer type by drawing from the discrete income distributions, storing them as attributes of self for use by simulation methods.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">postSolve</span></code>()</td>
+<td>A method that is run immediately after the model is solved, to finalize the solution in some way.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">preSolve</span></code>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">resetRNG</span></code>()</td>
+<td>Reset the random number generator for this type.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">simConsHistory</span></code>()</td>
+<td>Simulates a history of bank balances, market resources, consumption, marginal propensity to consume, assets (after all actions), and permanent income given initial assets (normalized by permanent income).</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">simOnePrd</span></code>()</td>
+<td>Simulate a single period of a consumption-saving model with permanent and transitory income shocks.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#cstwMPC.cstwMPCagent.simulateCSTW" title="cstwMPC.cstwMPCagent.simulateCSTW"><code class="xref py py-obj docutils literal"><span class="pre">simulateCSTW</span></code></a>()</td>
+<td>The simulation method for the no aggregate shocks version of the model.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">solution_terminal_</span></code></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code>()</td>
+<td>Solve the model for this instance of an agent type by backward induction.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">timeFlip</span></code>()</td>
+<td>Reverse the flow of time for this instance.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">timeFwd</span></code>()</td>
+<td>Make time flow forward for this instance.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">timeReport</span></code>()</td>
+<td>Report to the user the direction that time is currently &#8220;flowing&#8221; for this instance.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">timeRev</span></code>()</td>
+<td>Make time flow backward for this instance.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">unpack_cFunc</span></code>()</td>
+<td>&#8220;Unpacks&#8221; the consumption functions into their own field for easier access.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#cstwMPC.cstwMPCagent.update" title="cstwMPC.cstwMPCagent.update"><code class="xref py py-obj docutils literal"><span class="pre">update</span></code></a>()</td>
+<td>Update the income process, the assets grid, and the terminal solution.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">updateAssetsGrid</span></code>()</td>
+<td>Updates this agent&#8217;s end-of-period assets grid by constructing a multi- exponentially spaced grid of aXtra values.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">updateIncomeProcess</span></code>()</td>
+<td>Updates this agent&#8217;s income process based on his own attributes.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#cstwMPC.cstwMPCagent.updateIncomeProcessAlt" title="cstwMPC.cstwMPCagent.updateIncomeProcessAlt"><code class="xref py py-obj docutils literal"><span class="pre">updateIncomeProcessAlt</span></code></a>()</td>
+<td>An alternative method for constructing the income process in the infinite horizon model, where the labor supply l_bar creates a small oddity.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">updateSolutionTerminal</span></code>()</td>
+<td>Update the terminal period solution.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">vFunc_terminal_</span></code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="cstwMPC.cstwMPCagent.simulateCSTW">
+<code class="descname">simulateCSTW</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.cstwMPCagent.simulateCSTW" title="Permalink to this definition">¶</a></dt>
+<dd><p>The simulation method for the no aggregate shocks version of the model.
+Initializes the agent type, simulates a history of state and control
+variables, and stores the wealth history in self.W_history and the
+annualized MPC history in self.kappa_history.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cstwMPC.cstwMPCagent.update">
+<code class="descname">update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.cstwMPCagent.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the income process, the assets grid, and the terminal solution.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="cstwMPC.cstwMPCagent.updateIncomeProcessAlt">
+<code class="descname">updateIncomeProcessAlt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.cstwMPCagent.updateIncomeProcessAlt" title="Permalink to this definition">¶</a></dt>
+<dd><p>An alternative method for constructing the income process in the infinite
+horizon model, where the labor supply l_bar creates a small oddity.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="cstwMPC.makeCSTWresults">
+<code class="descclassname">cstwMPC.</code><code class="descname">makeCSTWresults</code><span class="sig-paren">(</span><em>DiscFac</em>, <em>nabla</em>, <em>save_name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.makeCSTWresults" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produces a variety of results for the cstwMPC paper (usually after estimating).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>DiscFac</strong> : float</p>
+<blockquote>
+<div><p>Center of the uniform distribution of discount factors</p>
+</div></blockquote>
+<p><strong>nabla</strong> : float</p>
+<blockquote>
+<div><p>Width of the uniform distribution of discount factors</p>
+</div></blockquote>
+<p><strong>save_name</strong> : string</p>
+<blockquote>
+<div><p>Name to save the calculated results, for later use in producing figures
+and tables, etc.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">none</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="cstwMPC.makeCSTWstats">
+<code class="descclassname">cstwMPC.</code><code class="descname">makeCSTWstats</code><span class="sig-paren">(</span><em>DiscFac</em>, <em>nabla</em>, <em>this_type_list</em>, <em>age_weight</em>, <em>lorenz_distance=0.0</em>, <em>save_name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.makeCSTWstats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Displays (and saves) a bunch of statistics.  Separate from makeCSTWresults()
+for compatibility with the aggregate shock model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>DiscFac</strong> : float</p>
+<blockquote>
+<div><p>Center of the uniform distribution of discount factors</p>
+</div></blockquote>
+<p><strong>nabla</strong> : float</p>
+<blockquote>
+<div><p>Width of the uniform distribution of discount factors</p>
+</div></blockquote>
+<p><strong>this_type_list</strong> : [cstwMPCagent]</p>
+<blockquote>
+<div><p>List of agent types in the economy.</p>
+</div></blockquote>
+<p><strong>age_weight</strong> : np.array</p>
+<blockquote>
+<div><p>Age-conditional array of weights for the wealth data.</p>
+</div></blockquote>
+<p><strong>lorenz_distance</strong> : float</p>
+<blockquote>
+<div><p>Distance between simulated and actual Lorenz curves, for display.</p>
+</div></blockquote>
+<p><strong>save_name</strong> : string</p>
+<blockquote>
+<div><p>Name to save the calculated results, for later use in producing figures
+and tables, etc.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">none</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="cstwMPC.makeLorenzFig">
+<code class="descclassname">cstwMPC.</code><code class="descname">makeLorenzFig</code><span class="sig-paren">(</span><em>real_wealth</em>, <em>real_weights</em>, <em>sim_wealth</em>, <em>sim_weights</em><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.makeLorenzFig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produces a Lorenz curve for the distribution of wealth, comparing simulated
+to actual data.  A sub-function of makeCSTWresults().</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>real_wealth</strong> : np.array</p>
+<blockquote>
+<div><p>Data on household wealth.</p>
+</div></blockquote>
+<p><strong>real_weights</strong> : np.array</p>
+<blockquote>
+<div><p>Weighting array of the same size as real_wealth.</p>
+</div></blockquote>
+<p><strong>sim_wealth</strong> : np.array</p>
+<blockquote>
+<div><p>Simulated wealth holdings of many households.</p>
+</div></blockquote>
+<p><strong>sim_weights :np.array</strong></p>
+<blockquote>
+<div><p>Weighting array of the same size as sim_wealth.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>these_percents</strong> : np.array</p>
+<blockquote>
+<div><p>An array of percentiles of households, by wealth.</p>
+</div></blockquote>
+<p><strong>real_lorenz</strong> : np.array</p>
+<blockquote>
+<div><p>Lorenz shares for real_wealth corresponding to these_percents.</p>
+</div></blockquote>
+<p><strong>sim_lorenz</strong> : np.array</p>
+<blockquote class="last">
+<div><p>Lorenz shares for sim_wealth corresponding to these_percents.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="cstwMPC.makeMPCfig">
+<code class="descclassname">cstwMPC.</code><code class="descname">makeMPCfig</code><span class="sig-paren">(</span><em>kappa</em>, <em>weights</em><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.makeMPCfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the CDF of the marginal propensity to consume. A sub-function of makeCSTWresults().</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>kappa</strong> : np.array</p>
+<blockquote>
+<div><p>Array of (annualized) marginal propensities to consume for the economy.</p>
+</div></blockquote>
+<p><strong>weights</strong> : np.array</p>
+<blockquote>
+<div><p>Age-conditional weight array for the data in kappa.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>these_percents</strong> : np.array</p>
+<blockquote>
+<div><p>Array of percentiles of the marginal propensity to consume.</p>
+</div></blockquote>
+<p><strong>kappa_percentiles</strong> : np.array</p>
+<blockquote class="last">
+<div><p>Array of MPCs corresponding to the percentiles in these_percents.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="cstwMPC.mystr">
+<code class="descclassname">cstwMPC.</code><code class="descname">mystr</code><span class="sig-paren">(</span><em>number</em><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.mystr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Truncates a float at exactly three decimal places when displaying as a string.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="cstwMPC.sensitivityAnalysis">
+<code class="descclassname">cstwMPC.</code><code class="descname">sensitivityAnalysis</code><span class="sig-paren">(</span><em>parameter</em>, <em>values</em>, <em>is_time_vary</em><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.sensitivityAnalysis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform a sensitivity analysis by varying a chosen parameter over given values
+and re-estimating the model at each.  Only works for perpetual youth version.
+Saves numeric results in a file named SensitivityPARAMETER.txt.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>parameter</strong> : string</p>
+<blockquote>
+<div><p>Name of an attribute/parameter of cstwMPCagent on which to perform a
+sensitivity analysis.  The attribute should be a single float.</p>
+</div></blockquote>
+<p><strong>values</strong> : [np.array]</p>
+<blockquote>
+<div><p>Array of values that the parameter should take on in the analysis.</p>
+</div></blockquote>
+<p><strong>is_time_vary</strong> : boolean</p>
+<blockquote>
+<div><p>Indicator for whether the parameter of analysis is time_varying (i.e. 
+is an element of cstwMPCagent.time_vary).  While the sensitivity analysis
+should only be used for the perpetual youth model, some parameters are
+still considered &#8220;time varying&#8221; in the consumption-saving model and 
+are encapsulated in a (length=1) list.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">none</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="cstwMPC.simulateKYratioDifference">
+<code class="descclassname">cstwMPC.</code><code class="descname">simulateKYratioDifference</code><span class="sig-paren">(</span><em>DiscFac</em>, <em>nabla</em>, <em>N</em>, <em>type_list</em>, <em>weights</em>, <em>total_output</em>, <em>target</em><span class="sig-paren">)</span><a class="headerlink" href="#cstwMPC.simulateKYratioDifference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assigns a uniform distribution over DiscFac with width 2*nabla and N points, then
+solves and simulates all agent types in type_list and compares the simuated
+K/Y ratio to the target K/Y ratio.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>DiscFac</strong> : float</p>
+<blockquote>
+<div><p>Center of the uniform distribution of discount factors.</p>
+</div></blockquote>
+<p><strong>nabla</strong> : float</p>
+<blockquote>
+<div><p>Width of the uniform distribution of discount factors.</p>
+</div></blockquote>
+<p><strong>N</strong> : int</p>
+<blockquote>
+<div><p>Number of discrete consumer types.</p>
+</div></blockquote>
+<p><strong>type_list</strong> : [cstwMPCagent]</p>
+<blockquote>
+<div><p>List of agent types to solve and simulate after assigning discount factors.</p>
+</div></blockquote>
+<p><strong>weights</strong> : np.array</p>
+<blockquote>
+<div><p>Age-conditional array of population weights.</p>
+</div></blockquote>
+<p><strong>total_output</strong> : float</p>
+<blockquote>
+<div><p>Total output of the economy, denominator for the K/Y calculation.</p>
+</div></blockquote>
+<p><strong>target</strong> : float</p>
+<blockquote>
+<div><p>Target level of capital-to-output ratio.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>my_diff</strong> : float</p>
+<blockquote class="last">
+<div><p>Difference between simulated and target capital-to-output ratios.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/cstwMPC.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">HARK 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, TEMP.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.1.
+    </div>
+  </body>
+</html>

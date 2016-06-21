@@ -6,37 +6,37 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>ConsMarkovModel module &mdash; HARK 0.9 documentation</title>
+    <title>ConsMarkovModel &mdash; HARK 0.9 documentation</title>
     
-    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
+        URL_ROOT:    '../',
         VERSION:     '0.9',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
       };
     </script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="HARK 0.9 documentation" href="index.html" /> 
+    <link rel="top" title="HARK 0.9 documentation" href="../index.html" /> 
   </head>
   <body role="document">
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
+          <a href="../genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
+          <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">HARK 0.9 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">HARK 0.9 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -46,16 +46,114 @@
           <div class="body" role="main">
             
   <div class="section" id="module-ConsMarkovModel">
-<span id="consmarkovmodel-module"></span><h1>ConsMarkovModel module<a class="headerlink" href="#module-ConsMarkovModel" title="Permalink to this headline">¶</a></h1>
+<span id="consmarkovmodel"></span><h1>ConsMarkovModel<a class="headerlink" href="#module-ConsMarkovModel" title="Permalink to this headline">¶</a></h1>
 <p>Classes to solve and simulate consumption-savings model with a discrete, exogenous,
 stochastic Markov state.  The only solver here extends ConsIndShockModel to
 include a Markov state; the interest factor, permanent growth factor, and income
 distribution can vary with the discrete state.</p>
+<p class="rubric">Functions</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutility</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutilityP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutilityPP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutilityP_inv</span></code>(uP,&nbsp;gam)</td>
+<td>Evaluates the inverse of the CRRA marginal utility function (with risk aversion parameter gam) at a given marginal utility level uP.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutilityP_invP</span></code>(u,&nbsp;gam)</td>
+<td>Evaluates the derivative of the inverse of the CRRA marginal utility function (with risk aversion parameter gam) at a given marginal utility level uP.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutility_inv</span></code>(u,&nbsp;gam)</td>
+<td>Evaluates the inverse of the CRRA utility function (with risk aversion para- meter gam) at a given utility level u.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutility_invP</span></code>(u,&nbsp;gam)</td>
+<td>Evaluates the derivative of the inverse of the CRRA utility function (with risk aversion parameter gam) at a given utility level u.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">deepcopy</span></code>(x[,&nbsp;memo,&nbsp;_nil])</td>
+<td>Deep copy operation on arbitrary Python objects.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">drawDiscrete</span></code>(N[,&nbsp;P,&nbsp;X,&nbsp;exact_match,&nbsp;seed])</td>
+<td>Simulates N draws from a discrete distribution with probabilities P and outcomes X.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#ConsMarkovModel.solveConsMarkov" title="ConsMarkovModel.solveConsMarkov"><code class="xref py py-obj docutils literal"><span class="pre">solveConsMarkov</span></code></a>(solution_next,&nbsp;IncomeDstn,&nbsp;...)</td>
+<td>Solves a single period consumption-saving problem with risky income and stochastic transitions between discrete states, in a Markov fashion.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">utility</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">utilityP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">utilityPP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">utilityP_inv</span></code>(uP,&nbsp;gam)</td>
+<td>Evaluates the inverse of the CRRA marginal utility function (with risk aversion parameter gam) at a given marginal utility level uP.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">utilityP_invP</span></code>(u,&nbsp;gam)</td>
+<td>Evaluates the derivative of the inverse of the CRRA marginal utility function (with risk aversion parameter gam) at a given marginal utility level uP.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">utility_inv</span></code>(u,&nbsp;gam)</td>
+<td>Evaluates the inverse of the CRRA utility function (with risk aversion para- meter gam) at a given utility level u.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">utility_invP</span></code>(u,&nbsp;gam)</td>
+<td>Evaluates the derivative of the inverse of the CRRA utility function (with risk aversion parameter gam) at a given utility level u.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">ConsIndShockSolver</span></code>(solution_next,&nbsp;...)</td>
+<td>This class solves a single period of a standard consumption-saving problem.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#ConsMarkovModel.ConsMarkovSolver" title="ConsMarkovModel.ConsMarkovSolver"><code class="xref py py-obj docutils literal"><span class="pre">ConsMarkovSolver</span></code></a>(solution_next,&nbsp;...)</td>
+<td>A class to solve a single period consumption-saving problem with risky income and stochastic transitions between discrete states, in a Markov fashion.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">ConsumerSolution</span></code>([cFunc,&nbsp;vFunc,&nbsp;vPfunc,&nbsp;...])</td>
+<td>A class representing the solution of a single period of a consumption-saving problem.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">CubicInterp</span></code>(x_list,&nbsp;y_list,&nbsp;dydx_list[,&nbsp;...])</td>
+<td>An interpolating function using piecewise cubic splines.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">IndShockConsumerType</span></code>([cycles,&nbsp;time_flow])</td>
+<td>A consumer type with idiosyncratic shocks to permanent and transitory income.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">LinearInterp</span></code>(x_list,&nbsp;y_list[,&nbsp;...])</td>
+<td>A slight extension of scipy.interpolate&#8217;s UnivariateSpline for linear inter- polation.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">LowerEnvelope</span></code>(*functions)</td>
+<td>The lower envelope of a finite set of 1D functions, each of which can be of any class that has the methods __call__, derivative, and eval_with_derivative.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">MargValueFunc</span></code>(cFunc,&nbsp;CRRA)</td>
+<td>A class for representing a marginal value function in models where the standard envelope condition of v&#8217;(m) = u&#8217;(c(m)) holds (with CRRA utility).</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#ConsMarkovModel.MarkovConsumerType" title="ConsMarkovModel.MarkovConsumerType"><code class="xref py py-obj docutils literal"><span class="pre">MarkovConsumerType</span></code></a>([cycles,&nbsp;time_flow])</td>
+<td>An agent in the Markov consumption-saving model.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">ValueFunc</span></code>(vFuncNvrs,&nbsp;CRRA)</td>
+<td>A class for representing a value function.</td>
+</tr>
+</tbody>
+</table>
 <dl class="class">
 <dt id="ConsMarkovModel.ConsMarkovSolver">
 <em class="property">class </em><code class="descclassname">ConsMarkovModel.</code><code class="descname">ConsMarkovSolver</code><span class="sig-paren">(</span><em>solution_next</em>, <em>IncomeDstn_list</em>, <em>LivPrb</em>, <em>DiscFac</em>, <em>CRRA</em>, <em>Rfree_list</em>, <em>PermGroFac_list</em>, <em>MrkvArray</em>, <em>BoroCnstArt</em>, <em>aXtraGrid</em>, <em>vFuncBool</em>, <em>CubicBool</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsMarkovModel.ConsMarkovSolver" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="ConsIndShockModel.html#ConsIndShockModel.ConsIndShockSolver" title="ConsIndShockModel.ConsIndShockSolver"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.ConsIndShockSolver</span></code></a></p>
-<p>A class to solve a single period consumption-saving problem with risky income
+<dd><p>A class to solve a single period consumption-saving problem with risky income
 and stochastic transitions between discrete states, in a Markov fashion.
 Extends ConsIndShockSolver, with identical inputs but for a discrete
 Markov state, whose transition rule is summarized in MrkvArray.  Markov
@@ -481,8 +579,7 @@ when in the i=0 Markov state this period.</p>
 <dl class="class">
 <dt id="ConsMarkovModel.MarkovConsumerType">
 <em class="property">class </em><code class="descclassname">ConsMarkovModel.</code><code class="descname">MarkovConsumerType</code><span class="sig-paren">(</span><em>cycles=1</em>, <em>time_flow=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsMarkovModel.MarkovConsumerType" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType" title="ConsIndShockModel.IndShockConsumerType"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.IndShockConsumerType</span></code></a></p>
-<p>An agent in the Markov consumption-saving model.  His problem is defined by a sequence
+<dd><p>An agent in the Markov consumption-saving model.  His problem is defined by a sequence
 of income distributions, survival probabilities, discount factors, and permanent
 income growth rates, as well as time invariant values for risk aversion, the
 interest rate, the grid of end-of-period assets, and how he is borrowing constrained.</p>
@@ -707,11 +804,6 @@ and transitory income shocks.</p>
 </table>
 </dd></dl>
 
-<dl class="attribute">
-<dt id="ConsMarkovModel.MarkovConsumerType.time_inv_">
-<code class="descname">time_inv_</code><em class="property"> = ['CRRA', 'Rfree', 'DiscFac', 'BoroCnstArt', 'vFuncBool', 'CubicBool', 'MrkvArray']</em><a class="headerlink" href="#ConsMarkovModel.MarkovConsumerType.time_inv_" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="ConsMarkovModel.MarkovConsumerType.updateSolutionTerminal">
 <code class="descname">updateSolutionTerminal</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ConsMarkovModel.MarkovConsumerType.updateSolutionTerminal" title="Permalink to this definition">¶</a></dt>
@@ -839,13 +931,13 @@ when in the i=0 Markov state this period.</p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/ConsMarkovModel.txt"
+      <li><a href="../_sources/generated/ConsMarkovModel.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
-    <form class="search" action="search.html" method="get">
+    <form class="search" action="../search.html" method="get">
       <input type="text" name="q" />
       <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
@@ -861,12 +953,12 @@ when in the i=0 Markov state this period.</p>
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
+          <a href="../genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
+          <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">HARK 0.9 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">HARK 0.9 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

@@ -45,8 +45,20 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="multithreaddemo-module">
-<h1>MultithreadDemo module<a class="headerlink" href="#multithreaddemo-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-MultithreadDemo">
+<span id="multithreaddemo-module"></span><h1>MultithreadDemo module<a class="headerlink" href="#module-MultithreadDemo" title="Permalink to this headline">¶</a></h1>
+<p>A demonstration of parallel processing in HARK using HARKparallel.
+A benchmark consumption-saving model is solved for individuals whose CRRA varies
+between 1 and 8.  The infinite horizon model is solved serially and then in
+parallel.  Note that HARKparallel will not work &#8220;out of the box&#8221;, as Anaconda
+does not include two packages needed for it; see HARKparallel.py.  When given a
+sufficiently large amount of work for each thread to do, the maximum speedup
+factor seems to be around P/2, where P is the number of processors.</p>
+<dl class="function">
+<dt id="MultithreadDemo.mystr">
+<code class="descclassname">MultithreadDemo.</code><code class="descname">mystr</code><span class="sig-paren">(</span><em>number</em><span class="sig-paren">)</span><a class="headerlink" href="#MultithreadDemo.mystr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </div>
 
 

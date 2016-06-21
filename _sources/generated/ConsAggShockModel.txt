@@ -1,0 +1,57 @@
+ConsAggShockModel
+=================
+
+.. automodule:: ConsAggShockModel
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      CRRAutility
+      CRRAutilityP
+      CRRAutilityPP
+      CRRAutilityP_inv
+      CRRAutility_inv
+      CRRAutility_invP
+      approxMeanOneLognormal
+      combineIndepDstns
+      deepcopy
+      drawBernoulli
+      drawDiscrete
+      solveConsAggShock
+      utility
+      utilityP
+      utilityPP
+      utilityP_inv
+      utility_inv
+      utility_invP
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      AgentType
+      AggShockConsumerType
+      CapDynamicRule
+      CapitalEvoRule
+      CobbDouglasAggVars
+      CobbDouglasEconomy
+      ConsumerSolution
+      HARKobject
+      IndShockConsumerType
+      LinearInterp
+      LinearInterpOnInterp1D
+      MargValueFunc2D
+      Market
+   
+   
+
+   
+   
+   

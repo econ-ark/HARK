@@ -1,0 +1,39 @@
+ConsPrefShockModel
+==================
+
+.. automodule:: ConsPrefShockModel
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      approxMeanOneLognormal
+      solveConsPrefShock
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ConsKinkedRsolver
+      ConsPrefShockSolver
+      ConsumerSolution
+      CubicInterp
+      KinkedRconsumerType
+      LinearInterp
+      LinearInterpOnInterp1D
+      LowerEnvelope
+      MargValueFunc
+      PrefShockConsumerType
+      ValueFunc
+   
+   
+
+   
+   
+   

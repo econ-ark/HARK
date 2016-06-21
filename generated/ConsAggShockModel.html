@@ -6,37 +6,37 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>ConsAggShockModel module &mdash; HARK 0.9 documentation</title>
+    <title>ConsAggShockModel &mdash; HARK 0.9 documentation</title>
     
-    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
+        URL_ROOT:    '../',
         VERSION:     '0.9',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
       };
     </script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="HARK 0.9 documentation" href="index.html" /> 
+    <link rel="top" title="HARK 0.9 documentation" href="../index.html" /> 
   </head>
   <body role="document">
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
+          <a href="../genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
+          <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">HARK 0.9 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">HARK 0.9 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -46,16 +46,126 @@
           <div class="body" role="main">
             
   <div class="section" id="module-ConsAggShockModel">
-<span id="consaggshockmodel-module"></span><h1>ConsAggShockModel module<a class="headerlink" href="#module-ConsAggShockModel" title="Permalink to this headline">¶</a></h1>
+<span id="consaggshockmodel"></span><h1>ConsAggShockModel<a class="headerlink" href="#module-ConsAggShockModel" title="Permalink to this headline">¶</a></h1>
 <p>Consumption-saving models with aggregate productivity shocks as well as idiosyn-
 cratic income shocks.  Currently only contains one microeconomic model with a
 basic solver.  Also includes a subclass of Market called CobbDouglas economy,
 used for solving &#8220;macroeconomic&#8221; models with aggregate shocks.</p>
+<p class="rubric">Functions</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutility</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutilityP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutilityPP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutilityP_inv</span></code>(uP,&nbsp;gam)</td>
+<td>Evaluates the inverse of the CRRA marginal utility function (with risk aversion parameter gam) at a given marginal utility level uP.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutility_inv</span></code>(u,&nbsp;gam)</td>
+<td>Evaluates the inverse of the CRRA utility function (with risk aversion para- meter gam) at a given utility level u.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">CRRAutility_invP</span></code>(u,&nbsp;gam)</td>
+<td>Evaluates the derivative of the inverse of the CRRA utility function (with risk aversion parameter gam) at a given utility level u.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">approxMeanOneLognormal</span></code>(*args,&nbsp;**kwargs)</td>
+<td>Calculate a discrete approximation to a mean one lognormal distribution.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">combineIndepDstns</span></code>(*distributions)</td>
+<td>Given n lists (or tuples) whose elements represent n independent, discrete probability spaces (probabilities and values), construct a joint pmf over all combinations of these independent points.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">deepcopy</span></code>(x[,&nbsp;memo,&nbsp;_nil])</td>
+<td>Deep copy operation on arbitrary Python objects.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">drawBernoulli</span></code>(N[,&nbsp;p,&nbsp;seed])</td>
+<td>Generates arrays of booleans drawn from a simple Bernoulli distribution.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">drawDiscrete</span></code>(N[,&nbsp;P,&nbsp;X,&nbsp;exact_match,&nbsp;seed])</td>
+<td>Simulates N draws from a discrete distribution with probabilities P and outcomes X.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#ConsAggShockModel.solveConsAggShock" title="ConsAggShockModel.solveConsAggShock"><code class="xref py py-obj docutils literal"><span class="pre">solveConsAggShock</span></code></a>(solution_next,&nbsp;IncomeDstn,&nbsp;...)</td>
+<td>Solve one period of a consumption-saving problem with idiosyncratic and  aggregate shocks (transitory and permanent).</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">utility</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">utilityP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">utilityPP</span></code>(c,&nbsp;gam)</td>
+<td>Evaluates constant relative risk aversion (CRRA) marginal marginal utility of consumption c given risk aversion parameter gam.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">utilityP_inv</span></code>(uP,&nbsp;gam)</td>
+<td>Evaluates the inverse of the CRRA marginal utility function (with risk aversion parameter gam) at a given marginal utility level uP.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">utility_inv</span></code>(u,&nbsp;gam)</td>
+<td>Evaluates the inverse of the CRRA utility function (with risk aversion para- meter gam) at a given utility level u.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">utility_invP</span></code>(u,&nbsp;gam)</td>
+<td>Evaluates the derivative of the inverse of the CRRA utility function (with risk aversion parameter gam) at a given utility level u.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">AgentType</span></code>([solution_terminal,&nbsp;cycles,&nbsp;...])</td>
+<td>A superclass for economic agents in the HARK framework.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#ConsAggShockModel.AggShockConsumerType" title="ConsAggShockModel.AggShockConsumerType"><code class="xref py py-obj docutils literal"><span class="pre">AggShockConsumerType</span></code></a>([time_flow])</td>
+<td>A class to represent consumers who face idiosyncratic (transitory and per- manent) shocks to their income and live in an economy that has aggregate (transitory and permanent) shocks to labor productivity.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#ConsAggShockModel.CapDynamicRule" title="ConsAggShockModel.CapDynamicRule"><code class="xref py py-obj docutils literal"><span class="pre">CapDynamicRule</span></code></a>(kNextFunc)</td>
+<td>Just a container class for passing the capital evolution rule to agents.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#ConsAggShockModel.CapitalEvoRule" title="ConsAggShockModel.CapitalEvoRule"><code class="xref py py-obj docutils literal"><span class="pre">CapitalEvoRule</span></code></a>(intercept,&nbsp;slope)</td>
+<td>A class to represent capital evolution rules.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#ConsAggShockModel.CobbDouglasAggVars" title="ConsAggShockModel.CobbDouglasAggVars"><code class="xref py py-obj docutils literal"><span class="pre">CobbDouglasAggVars</span></code></a>(KtoLnow,&nbsp;RfreeNow,&nbsp;...)</td>
+<td>A simple class for holding the relevant aggregate variables that should be passed from the market to each type.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#ConsAggShockModel.CobbDouglasEconomy" title="ConsAggShockModel.CobbDouglasEconomy"><code class="xref py py-obj docutils literal"><span class="pre">CobbDouglasEconomy</span></code></a>([agents,&nbsp;tolerance,&nbsp;act_T])</td>
+<td>A class to represent an economy with a Cobb-Douglas aggregate production function over labor and capital, extending HARKcore.Market.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">ConsumerSolution</span></code>([cFunc,&nbsp;vFunc,&nbsp;vPfunc,&nbsp;...])</td>
+<td>A class representing the solution of a single period of a consumption-saving problem.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">HARKobject</span></code></td>
+<td>A superclass for object classes in HARK.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">IndShockConsumerType</span></code>([cycles,&nbsp;time_flow])</td>
+<td>A consumer type with idiosyncratic shocks to permanent and transitory income.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">LinearInterp</span></code>(x_list,&nbsp;y_list[,&nbsp;...])</td>
+<td>A slight extension of scipy.interpolate&#8217;s UnivariateSpline for linear inter- polation.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">LinearInterpOnInterp1D</span></code>(xInterpolators,&nbsp;y_values)</td>
+<td>A 2D interpolator that linearly interpolates among a list of 1D interpolators.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#ConsAggShockModel.MargValueFunc2D" title="ConsAggShockModel.MargValueFunc2D"><code class="xref py py-obj docutils literal"><span class="pre">MargValueFunc2D</span></code></a>(cFunc,&nbsp;CRRA)</td>
+<td>A class for representing a marginal value function in models where the standard envelope condition of v&#8217;(m,k) = u&#8217;(c(m,k)) holds (with CRRA utility).</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">Market</span></code>([agents,&nbsp;sow_vars,&nbsp;reap_vars,&nbsp;...])</td>
+<td>A superclass to represent a central clearinghouse of information.</td>
+</tr>
+</tbody>
+</table>
 <dl class="class">
 <dt id="ConsAggShockModel.AggShockConsumerType">
 <em class="property">class </em><code class="descclassname">ConsAggShockModel.</code><code class="descname">AggShockConsumerType</code><span class="sig-paren">(</span><em>time_flow=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsAggShockModel.AggShockConsumerType" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType" title="ConsIndShockModel.IndShockConsumerType"><code class="xref py py-class docutils literal"><span class="pre">ConsIndShockModel.IndShockConsumerType</span></code></a></p>
-<p>A class to represent consumers who face idiosyncratic (transitory and per-
+<dd><p>A class to represent consumers who face idiosyncratic (transitory and per-
 manent) shocks to their income and live in an economy that has aggregate
 (transitory and permanent) shocks to labor productivity.  As the capital-
 to-labor ratio varies in the economy, so does the wage rate and interest
@@ -339,8 +449,7 @@ Only fills in the consumption function and marginal value function.</p>
 <dl class="class">
 <dt id="ConsAggShockModel.CapDynamicRule">
 <em class="property">class </em><code class="descclassname">ConsAggShockModel.</code><code class="descname">CapDynamicRule</code><span class="sig-paren">(</span><em>kNextFunc</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsAggShockModel.CapDynamicRule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
-<p>Just a container class for passing the capital evolution rule to agents.</p>
+<dd><p>Just a container class for passing the capital evolution rule to agents.</p>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
 <colgroup>
@@ -364,8 +473,7 @@ Only fills in the consumption function and marginal value function.</p>
 <dl class="class">
 <dt id="ConsAggShockModel.CapitalEvoRule">
 <em class="property">class </em><code class="descclassname">ConsAggShockModel.</code><code class="descname">CapitalEvoRule</code><span class="sig-paren">(</span><em>intercept</em>, <em>slope</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsAggShockModel.CapitalEvoRule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.HARKobject" title="HARKcore.HARKobject"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.HARKobject</span></code></a></p>
-<p>A class to represent capital evolution rules.  Agents believe that the log
+<dd><p>A class to represent capital evolution rules.  Agents believe that the log
 capital ratio next period is a linear function of the log capital ratio
 this period.</p>
 <p class="rubric">Methods</p>
@@ -400,8 +508,7 @@ sitory shocks.</p>
 <dl class="class">
 <dt id="ConsAggShockModel.CobbDouglasEconomy">
 <em class="property">class </em><code class="descclassname">ConsAggShockModel.</code><code class="descname">CobbDouglasEconomy</code><span class="sig-paren">(</span><em>agents=[]</em>, <em>tolerance=0.0001</em>, <em>act_T=1000</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#ConsAggShockModel.CobbDouglasEconomy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.Market" title="HARKcore.Market"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.Market</span></code></a></p>
-<p>A class to represent an economy with a Cobb-Douglas aggregate production
+<dd><p>A class to represent an economy with a Cobb-Douglas aggregate production
 function over labor and capital, extending HARKcore.Market.  The &#8220;aggregate
 market process&#8221; for this market combines all individuals&#8217; asset holdings
 into aggregate capital, yielding the interest factor on assets and the wage
@@ -708,13 +815,13 @@ tions) and marginal value function vPfunc.</p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/ConsAggShockModel.txt"
+      <li><a href="../_sources/generated/ConsAggShockModel.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
-    <form class="search" action="search.html" method="get">
+    <form class="search" action="../search.html" method="get">
       <input type="text" name="q" />
       <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
@@ -730,12 +837,12 @@ tions) and marginal value function vPfunc.</p>
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
+          <a href="../genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
+          <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">HARK 0.9 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">HARK 0.9 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

@@ -45,8 +45,287 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="tractablebufferstockmodel-module">
-<h1>TractableBufferStockModel module<a class="headerlink" href="#tractablebufferstockmodel-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-TractableBufferStockModel">
+<span id="tractablebufferstockmodel-module"></span><h1>TractableBufferStockModel module<a class="headerlink" href="#module-TractableBufferStockModel" title="Permalink to this headline">¶</a></h1>
+<p>Defines and solves the Tractable Buffer Stock model described in CDC&#8217;s notes.
+The model concerns an agent with constant relative risk aversion utility making
+decisions over consumption and saving.  He is subject to only a very particular
+sort of risk: the possibility that he will become permanently unemployed until
+the day he dies; barring this, his income is certain and grows at a constant rate.</p>
+<p>The model has an infinite horizon, but is not solved by backward iteration in a
+traditional sense.  Because of the very specific assumptions about risk, it is
+possible to find the agent&#8217;s steady state or target level of market resources
+when employed, as well as information about the optimal consumption rule at this
+target level.  The full consumption function can then be constructed by &#8220;back-
+shooting&#8221;, inverting the Euler equation to find what consumption <em>must have been</em>
+in the previous period.  The consumption function is thus constructed by repeat-
+edly adding &#8220;stable arm&#8221; points to either end of a growing list until specified
+bounds are exceeded.</p>
+<p>Despite the non-standard solution method, the iterative process can be embedded
+in the HARK framework, as shown below.</p>
+<dl class="class">
+<dt id="TractableBufferStockModel.TractableConsumerSolution">
+<em class="property">class </em><code class="descclassname">TractableBufferStockModel.</code><code class="descname">TractableConsumerSolution</code><span class="sig-paren">(</span><em>mNrm_list=[]</em>, <em>cNrm_list=[]</em>, <em>MPC_list=[]</em>, <em>cFunc_U=&lt;class HARKutilities.NullFunc&gt;</em>, <em>cFunc=&lt;class HARKutilities.NullFunc&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#TractableBufferStockModel.TractableConsumerSolution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.Solution" title="HARKcore.Solution"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.Solution</span></code></a></p>
+<p>A class representing the solution to a tractable buffer saving problem.
+Attributes include a list of money points mNrm_list, a list of consumption points
+cNrm_list, a list of MPCs MPC_list, a perfect foresight consumption function
+while employed, and a perfect foresight consumption function while unemployed.
+The solution includes a consumption function constructed from the lists.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called distance_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="TractableBufferStockModel.TractableConsumerType">
+<em class="property">class </em><code class="descclassname">TractableBufferStockModel.</code><code class="descname">TractableConsumerType</code><span class="sig-paren">(</span><em>cycles=0</em>, <em>time_flow=False</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#TractableBufferStockModel.TractableConsumerType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="HARKcore.html#HARKcore.AgentType" title="HARKcore.AgentType"><code class="xref py py-class docutils literal"><span class="pre">HARKcore.AgentType</span></code></a></p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
+<td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
+<td>A generic distance method, which requires the existence of an attribute called distance_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">isSameThing</span></code>(solutionA,&nbsp;solutionB)</td>
+<td>Compare two solutions to see if they are the &#8220;same.&#8221;  The model-specific solution class must have a method called distance, which takes another solution object as an input and returns the &#8220;distance&#8221; between the solutions.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#TractableBufferStockModel.TractableConsumerType.postSolve" title="TractableBufferStockModel.TractableConsumerType.postSolve"><code class="xref py py-obj docutils literal"><span class="pre">postSolve</span></code></a>()</td>
+<td>This method adds consumption at m=0 to the list of stable arm points, then constructs the consumption function as a cubic interpolation over those points.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#TractableBufferStockModel.TractableConsumerType.preSolve" title="TractableBufferStockModel.TractableConsumerType.preSolve"><code class="xref py py-obj docutils literal"><span class="pre">preSolve</span></code></a>()</td>
+<td>Calculates all of the solution objects that can be obtained before con- ducting the backshooting routine, including the target levels, the per- fect foresight solution, (marginal) consumption at m=0, and the small perturbations around the steady state.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">resetRNG</span></code>()</td>
+<td>Reset the random number generator for this type.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">solve</span></code>()</td>
+<td>Solve the model for this instance of an agent type by backward induction.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">timeFlip</span></code>()</td>
+<td>Reverse the flow of time for this instance.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">timeFwd</span></code>()</td>
+<td>Make time flow forward for this instance.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">timeReport</span></code>()</td>
+<td>Report to the user the direction that time is currently &#8220;flowing&#8221; for this instance.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">timeRev</span></code>()</td>
+<td>Make time flow backward for this instance.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#TractableBufferStockModel.TractableConsumerType.update" title="TractableBufferStockModel.TractableConsumerType.update"><code class="xref py py-obj docutils literal"><span class="pre">update</span></code></a>()</td>
+<td>This method does absolutely nothing, but should remain here for compati- bility with cstwMPC when doing the &#8220;tractable&#8221; version.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="TractableBufferStockModel.TractableConsumerType.postSolve">
+<code class="descname">postSolve</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TractableBufferStockModel.TractableConsumerType.postSolve" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method adds consumption at m=0 to the list of stable arm points,
+then constructs the consumption function as a cubic interpolation over
+those points.  Should be run after the backshooting routine is complete.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="TractableBufferStockModel.TractableConsumerType.preSolve">
+<code class="descname">preSolve</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TractableBufferStockModel.TractableConsumerType.preSolve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates all of the solution objects that can be obtained before con-
+ducting the backshooting routine, including the target levels, the per-
+fect foresight solution, (marginal) consumption at m=0, and the small
+perturbations around the steady state.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>none</strong></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">none</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="TractableBufferStockModel.TractableConsumerType.update">
+<code class="descname">update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TractableBufferStockModel.TractableConsumerType.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method does absolutely nothing, but should remain here for compati-
+bility with cstwMPC when doing the &#8220;tractable&#8221; version.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="TractableBufferStockModel.addToStableArmPoints">
+<code class="descclassname">TractableBufferStockModel.</code><code class="descname">addToStableArmPoints</code><span class="sig-paren">(</span><em>solution_next</em>, <em>DiscFac</em>, <em>Rfree</em>, <em>CRRA</em>, <em>PermGroFacCmp</em>, <em>UnempPrb</em>, <em>PFMPC</em>, <em>Rnrm</em>, <em>Beth</em>, <em>mLowerBnd</em>, <em>mUpperBnd</em><span class="sig-paren">)</span><a class="headerlink" href="#TractableBufferStockModel.addToStableArmPoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a one point to the bottom and top of the list of stable arm points if
+the bounding levels of mLowerBnd (lower) and mUpperBnd (upper) have not yet
+been met by a stable arm point in mNrm_list.  This acts as the &#8220;one period
+solver&#8221; / solveOnePeriod in the tractable buffer stock model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>solution_next</strong> : TractableConsumerSolution</p>
+<blockquote>
+<div><p>The solution object from the previous iteration of the backshooting
+procedure.  Not the &#8220;next period&#8221; solution per se.</p>
+</div></blockquote>
+<p><strong>DiscFac</strong> : float</p>
+<blockquote>
+<div><p>Intertemporal discount factor on future utility.</p>
+</div></blockquote>
+<p><strong>Rfree</strong> : float</p>
+<blockquote>
+<div><p>Risk free interest factor on end-of-period assets.</p>
+</div></blockquote>
+<p><strong>CRRA</strong> : float</p>
+<blockquote>
+<div><p>Coefficient of relative risk aversion.</p>
+</div></blockquote>
+<p><strong>PermGroFacCmp</strong> : float</p>
+<blockquote>
+<div><p>Permanent income growth factor, compensated for the possibility of
+permanent unemployment.</p>
+</div></blockquote>
+<p><strong>UnempPrb</strong> : float</p>
+<blockquote>
+<div><p>Probability of becoming permanently unemployed.</p>
+</div></blockquote>
+<p><strong>PFMPC</strong> : float</p>
+<blockquote>
+<div><p>The perfect foresight MPC; also the MPC when permanently unemployed.</p>
+</div></blockquote>
+<p><strong>Rnrm</strong> : float</p>
+<blockquote>
+<div><p>Interest factor normalized by compensated permanent income growth factor.</p>
+</div></blockquote>
+<p><strong>Beth</strong> : float</p>
+<blockquote>
+<div><p>Damned if I know.</p>
+</div></blockquote>
+<p><strong>mLowerBnd</strong> : float</p>
+<blockquote>
+<div><p>Lower bound on market resources for the backshooting process.  If
+min(solution_next.mNrm_list) &lt; mLowerBnd, no new bottom point is found.</p>
+</div></blockquote>
+<p><strong>mUpperBnd</strong> : float</p>
+<blockquote class="last">
+<div><p>Upper bound on market resources for the backshooting process.  If
+max(solution_next.mNrm_list) &gt; mUpperBnd, no new top point is found.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="TractableBufferStockModel.findNextPoint">
+<code class="descclassname">TractableBufferStockModel.</code><code class="descname">findNextPoint</code><span class="sig-paren">(</span><em>DiscFac</em>, <em>Rfree</em>, <em>CRRA</em>, <em>PermGroFacCmp</em>, <em>UnempPrb</em>, <em>Rnrm</em>, <em>Beth</em>, <em>cNext</em>, <em>mNext</em>, <em>MPCnext</em>, <em>PFMPC</em><span class="sig-paren">)</span><a class="headerlink" href="#TractableBufferStockModel.findNextPoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates what consumption, market resources, and the marginal propensity
+to consume must have been in the previous period given model parameters and
+values of market resources, consumption, and MPC today.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>DiscFac</strong> : float</p>
+<blockquote>
+<div><p>Intertemporal discount factor on future utility.</p>
+</div></blockquote>
+<p><strong>Rfree</strong> : float</p>
+<blockquote>
+<div><p>Risk free interest factor on end-of-period assets.</p>
+</div></blockquote>
+<p><strong>PermGroFacCmp</strong> : float</p>
+<blockquote>
+<div><p>Permanent income growth factor, compensated for the possibility of
+permanent unemployment.</p>
+</div></blockquote>
+<p><strong>UnempPrb</strong> : float</p>
+<blockquote>
+<div><p>Probability of becoming permanently unemployed.</p>
+</div></blockquote>
+<p><strong>Rnrm</strong> : float</p>
+<blockquote>
+<div><p>Interest factor normalized by compensated permanent income growth factor.</p>
+</div></blockquote>
+<p><strong>Beth</strong> : float</p>
+<blockquote>
+<div><p>Damned if I know.</p>
+</div></blockquote>
+<p><strong>cNext</strong> : float</p>
+<blockquote>
+<div><p>Normalized consumption in the succeeding period.</p>
+</div></blockquote>
+<p><strong>mNext</strong> : float</p>
+<blockquote>
+<div><p>Normalized market resources in the succeeding period.</p>
+</div></blockquote>
+<p><strong>MPCnext</strong> : float</p>
+<blockquote>
+<div><p>The marginal propensity to consume in the succeeding period.</p>
+</div></blockquote>
+<p><strong>PFMPC</strong> : float</p>
+<blockquote>
+<div><p>The perfect foresight MPC; also the MPC when permanently unemployed.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>mNow</strong> : float</p>
+<blockquote>
+<div><p>Normalized market resources this period.</p>
+</div></blockquote>
+<p><strong>cNow</strong> : float</p>
+<blockquote>
+<div><p>Normalized consumption this period.</p>
+</div></blockquote>
+<p><strong>MPCnow</strong> : float</p>
+<blockquote class="last">
+<div><p>Marginal propensity to consume this period.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 
 

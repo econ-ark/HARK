@@ -1,0 +1,7 @@
+MakeCSTWfigs module
+===================
+
+.. automodule:: MakeCSTWfigs
+    :members:
+    :undoc-members:
+    :show-inheritance:

@@ -1,0 +1,28 @@
+StructEstimation
+================
+
+.. automodule:: StructEstimation
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      bootstrapSampleFromData
+      calculateStandardErrorsByBootstrap
+      drawDiscrete
+      minimizeNelderMead
+      smmObjectiveFxn
+      smmObjectiveFxnReduced
+      time
+   
+   
+
+   
+   
+   
+
+   
+   
+   
