@@ -118,10 +118,29 @@ Indices and tables
     $ cd ~/workspace/HARK/doc   # if not already here
     $ make html
 
-10. You'll get a billion warnings, I think mostly because some things are missing documentations. Regardless,
+12. You'll get a billion warnings, I think mostly because some things are missing documentations. Regardless,
     open this and observe the nice-looking API/docs. Be sure to try the search and index features!
 
     $ ~/workspace/HARK/doc/_build/html/index.html
+
+
+14. Update: creating of these docs for the website was accomplished following this tutorial: https://daler.github.io/sphinxdoc-test/includeme.html  This approach is nice because it allows one to maintain the code physically in one location (simplifying creation of the docs) and the html output in another location. When all is done in the same physical directory, there is extensive switching between branches to accomplish the docs update. 
+Important steps include:
+    - in Makefile, appropriately changing the relative path to BUILDDIR
+        - NOTE: this may be particularly important for changing the "windows make file" as well, however I do not have a windows machine to test this on. 
+    - Note: I did not use any of the "pdf manual" options. 
+    - adding the .nojekyll file to the appropriate place
+
+
+
+15. Steps to update docs and post:
+    $ sphinx-apidoc -f -o ./ ../Module-name-to-document  # recall, also need to insert in index.rst
+    $ make html 
+    $ cd ../../HARK-docs
+    $ git branch           # confirm on gh-pages branch
+    $ git push origin master
+
+
 
 
 
