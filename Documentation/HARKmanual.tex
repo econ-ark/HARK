@@ -11,10 +11,43 @@
 
 \date{\normalsize{\today}}
 
+\author{
+{Christopher D Carroll\authNum} \\ {\small Johns Hopkins University}
+\and
+{Alexander M Kaufman\authNum} \\ {\small Consumer Financial Protection Bureau}
+\and
+{David C Low\authNum} \\ {\small Consumer Financial Protection Bureau}
+\and
+{Nathan M Palmer\authNum} \\ {\small OFR, United States Treasury}
+\and
+{Matthew N White\authNum} \\ {\small University of Delaware}
+}
+
+
+\begin{authorsinfo}
+\name{
+Carroll: \url{http://econ.jhu.edu/people/ccarroll/}, email: \href{mailto:ccarroll@jhu.edu}{\texttt{ccarroll@jhu.edu}}
+}
+\name{
+Kaufman: \href{mailto:alexander.kaufman@cfpb.gov}{\texttt{alexander.kaufman@cfpb.gov}}
+}
+\name{
+Low: \href{mailto:david.c.low@cfpb.gov}{\texttt{david.c.low@cfpb.gov}}
+}
+\name{
+Palmer: \href{mailto:nathan.m.palmer@ofr.treasury.gov}{\texttt{nathan.m.palmer@ofr.treasury.gov}}
+}
+\name{
+White: \href{mailto:mnwecon@udel.edu}{\texttt{mnwecon@udel.edu}}
+}
+\end{authorsinfo}
+
+\thanks{The materials in this resource reflect work by the persons named herein and others, much of it accomplished at the CFPB.  However, none of the materials here should be interpreted as reflecting official opinions of the CFPB or any employees of the CFPB.  After appropriate technical review, these resources are expected to appear on the CFPB's official GitHub page.}
+
 \maketitle
 
 \begin{center}
-\includegraphics{UserGuidePic.pdf}
+\includegraphics[scale=0.8]{UserGuidePic.pdf}
 \end{center}
 
 \thispagestyle{empty}
@@ -24,7 +57,7 @@
 
 \newpage
 
-\section{Introduction}
+\section{Introduction}\label{sec:Introduction}
 
 If you are willing to risk some mild psychological trauma, conjure to mind your first experience of hand-coding a structural economic model.  Your clunky effort probably built on legacy code provided by an adviser or colleague -- which itself came from who-knows-what apocryphal sources.  Efforts to combine elements from one model with those from another were likely frustrated by the ``Tower of Babel'' problem: Code from one source could not ``speak'' to code from another without your own intermediation as a translator, possibly between two unfamiliar languages and aided only by oracular comments that, at best, made sense only in the context of other (now missing) code.
 
@@ -38,7 +71,7 @@ The ultimate goal of the HARK project is to fix these problems.  Specifically, o
 
 We hope that HARK will make it much easier and faster for researchers to develop solution and estimation methods for new models.  The open source nature of HARK will make it easier for other researchers to audit and verify new models and methods, and to collaborate on correcting deficiencies when found.  As HARK expands to include more canonical models and more tools and utilities, we can all spend less time managing numerical minutiae and more time fretting about identification arguments and data accuracy.
 
-\subsection{Getting Started}
+\subsection{Getting Started}\label{sec:GettingStarted}
 
 If you want to get started using HARK right away, this section provides a very easy quickstart guide for getting HARK up and running on your computer in just a few minutes.  More information can be found in the \texttt{README.txt} file in the HARK repository (step 4), but here is a quick version for those who want to jump right in:
 
@@ -49,7 +82,7 @@ If you want to get started using HARK right away, this section provides a very e
 
 \item \textbf{Add extra packages:} (optional) If you want to use HARK's multithreading feature, you need to add two packages that aren't part of the default Anaconda distribution.  Simply open a command prompt and do \texttt{conda install joblib} and \texttt{conda install dill}, accepting defaults to install.
 
-\item \textbf{Download HARK:} Go to \href{https://github.com/econ-ark/HARK}{https://github.com/econ-ark/HARK}, the home of the HARK repository.  Click on the lime green button labeled ``Clone or download'' toward the upper right of the main panel, and select ``Download ZIP''.\footnote{This is the fastest way to get HARK running on a computer.  Later, if you want to make your own contributions to HARK by adding code (or fixing ours!), you'll need to clone the repository on your computer.  See section 5.2 for more.}
+\item \textbf{Download HARK:} Go to \href{https://github.com/econ-ark/HARK}{https://github.com/econ-ark/HARK}, the home of the HARK repository.  Click on the lime green button labeled ``Clone or download'' toward the upper right of the main panel, and select ``Download ZIP''.\footnote{This is the fastest way to get HARK running on a computer.  Later, if you want to make your own contributions to HARK by adding code (or fixing ours!), you'll need to clone the repository on your computer.  See section \ref{sec:GitHub} for more.}
 
 \item \textbf{Unzip HARK:} Unpack the \texttt{HARK.zip} file using any archive utility, like \href{http://www.peazip.org/}{Peazip}.  Put the files anywhere you'd like, maintaining the internal directory structure.
 
@@ -62,7 +95,7 @@ If you want to get started using HARK right away, this section provides a very e
 
 If you followed our recommendation to try \texttt{/ConsumptionSaving/ConsIndShockModel.py}, you should see graphical representations of the solution to a few consumption-saving models with idiosyncratic shocks to permanent and transitory income (see OTHER DOCUMENT for details of these models).  If you chose a different module, you might get some examples of some other model, results of a structural estimation, a polite notification that this particular module doesn't do much on its own, or no output at all.  See the \texttt{README.txt} for a full list of modules from which you can expect non-trivial output.
 
-\subsection{Structure of HARK}
+\subsection{Structure of HARK}\label{sec:StructureOfHARK}
 
 HARK is written in Python, an object-oriented programming language that has experienced increasing popularity in the scientific community in the past several years.  A significant reason for the adoption of Python is the \texttt{numpy} and \texttt{scipy} packages, which offer a wide array of mathematical and statistical functions and tools; HARK makes liberal use of these libraries.  Python's object-oriented nature allows models in HARK to be easily extended: more complex models can inherit functions and methods from more fundamental ``parent'' models, eliminating the need to reproduce or repurpose code.
 
@@ -74,7 +107,7 @@ Python modules (files with the \texttt{.py} extension) in HARK can generally be 
 
 \textbf{Application modules} use tool and model modules to solve, simulate, and/or estimate economic models \textit{for a particular purpose}.  While tool modules have no particular economic content and model modules describe entire classes of economic models, applications are uses of a model for some research purpose.  For example, \texttt{/SolvingMicroDSOPs/StructEstimation.py} uses a consumption-saving model from \texttt{ConsIndShockModel.py}, calibrating it with age-dependent sequences of permanent income growth, survival probabilities, and the standard deviation of income shocks (etc); it then estimates the coefficient of relative risk aversion and shifter for an age-varying sequence of discount factors that best fits simulated wealth profiles to empirical data from the Survey of Consumer Finance.  A particular application might have multiple modules associated with it, all of which generally reside in one directory.
 
-\subsection{Other Resources}
+\subsection{Other Resources}\label{sec:OtherResources}
 
 In the incredibly unlikely scenario in which this document does not fill all of the gaps in your knowledge and answer any questions you might have while reading it, here is a collection of potentially helpful other resources.
 
@@ -94,55 +127,57 @@ In the incredibly unlikely scenario in which this document does not fill all of 
 
 \item The \href{http://www.numpy.org/}{homepage for NumPy}, a numerical package extensively used by HARK.
 
+\item The \href{http://www.sphinx-doc.org/}{homepage for Sphinx}, a tool for producing HTML documentation.
+
 \end{itemize}
 
 \newpage
 
-\section{General Purpose Tools}
+\section{General Purpose Tools}\label{sec:GeneralPurposeTools}
 
 HARK's root directory contains six tool modules,\footnote{The ``taxonomy'' of these modules is in flux; the functions described here could be combined into fewer modules or further divided by purpose.} each containing a variety of functions and classes that can be used in many economic models-- or even for mathematical purposes that have nothing to do with economics.  Some of the tool modules are very sparely populated at this time, while others are quite large.  We expect that all of these modules will grow considerably in the near future, as new tools are ``low hanging fruit'' for contribution to the project.\footnote{That is, as the foundational, building-block elements of HARK, new tools are not difficult to program and do not require extensive integration with many moving parts.}
 
-\subsection{HARKcore}
+\subsection{HARKcore}\label{sec:HARKcore}
 
 A key goal of the project is to create modularity and interoperability between models, making them easy to combine, adapt, and extend.  To this end, the \texttt{HARKcore} module specifies a framework for economic models in HARK, creating a common structure for them on two levels that can be called ``microeconomic'' and ``macroeconomic''.
 
-Microeconomic models in HARK use the \texttt{AgentType} class to represent agents with an intertemporal optimization problem.  Each of these models specifies a subclass of \texttt{AgentType}; an instance of the subclass represents agents who are \textit{ex-ante} homogeneous-- they have common values for all parameters that describe the problem.  For example, \texttt{ConsIndShockModel} specifies the \texttt{ConsumerType} class, which has methods specific to consumption-saving models with idiosyncratic shocks to income; an instance of the class might represent all consumers who have a CRRA of 3, discount factor of 0.98, etc.  The \texttt{AgentType} class has a \texttt{solve} method that acts as a ``universal microeconomic solver'' for any properly formatted model, making it easier to set up a new model and to combine elements from different models; the solver is intended to encompass any model that can be framed as a sequence of one period problems.  For a more complete description, see section 3.
+Microeconomic models in HARK use the \texttt{AgentType} class to represent agents with an intertemporal optimization problem.  Each of these models specifies a subclass of \texttt{AgentType}; an instance of the subclass represents agents who are \textit{ex-ante} homogeneous-- they have common values for all parameters that describe the problem.  For example, \texttt{ConsIndShockModel} specifies the \texttt{IndShockConsumerType} class, which has methods specific to consumption-saving models with idiosyncratic shocks to income; an instance of the class might represent all consumers who have a CRRA of 3, discount factor of 0.98, etc.  The \texttt{AgentType} class has a \texttt{solve} method that acts as a ``universal microeconomic solver'' for any properly formatted model, making it easier to set up a new model and to combine elements from different models; the solver is intended to encompass any model that can be framed as a sequence of one period problems.  For a complete description, see section \ref{sec:Microeconomics}.
 
-Macroeconomic models in HARK use the \texttt{Market} class to represent a market (or other aggregator) that combines the actions, states, and/or shocks (generally, outcomes) of individual agents in the model into aggregate outcomes that are ``passed back'' to the agents.  For example, the market in a consumption-saving model might combine the individual asset holdings of all agents in the market to generate aggregate capital in the economy, yielding the interest rate on assets (as the marginal product of capital); the individual agents then learn the aggregate capital level and interest rate, conditioning their next action on this information.  Objects that microeconomic agents treat as exogenous when solving (or simulating) their model are thus endogenous at the macroeconomic level. Like \texttt{AgentType}, the \texttt{Market} class also has a \texttt{solve} method, which seeks out a dynamic general equilibrium: a ``rule'' governing the dynamic evolution of macroeconomic objects such that if agents believe this rule and act accordingly, then their collective actions generate a sequence of macroeconomic outcomes that justify the belief in that rule.  For a more complete description, see section 4.
+Macroeconomic models in HARK use the \texttt{Market} class to represent a market (or other aggregator) that combines the actions, states, and/or shocks (generally, outcomes) of individual agents in the model into aggregate outcomes that are ``passed back'' to the agents.  For example, the market in a consumption-saving model might combine the individual asset holdings of all agents in the market to generate aggregate capital in the economy, yielding the interest rate on assets (as the marginal product of capital); the individual agents then learn the aggregate capital level and interest rate, conditioning their next action on this information.  Objects that microeconomic agents treat as exogenous when solving (or simulating) their model are thus endogenous at the macroeconomic level. Like \texttt{AgentType}, the \texttt{Market} class also has a \texttt{solve} method, which seeks out a dynamic general equilibrium: a ``rule'' governing the dynamic evolution of macroeconomic objects such that if agents believe this rule and act accordingly, then their collective actions generate a sequence of macroeconomic outcomes that justify the belief in that rule.  For a more complete description, see section \ref{sec:Macroeconomics}.
 
-Beyond the model frameworks, \texttt{HARKcore} also defines a ``supersuperclass'' called \texttt{HARKobject}.  When solving a dynamic microeconomic model with an infinite horizon (or searching for a dynamic general equilibrium), it is often required to consider whether two solutions are sufficiently close to each other to warrant stopping the process (i.e.\ approximate convergence).  It is thus necessary to calculate the ``distance'' between two solutions, so HARK specifies that classes should have a \texttt{distance} method that takes a single input and returns a non-negative value representing the (generally dimensionless) distance between the object in question and the input to the method.  As a convenient default, \texttt{HARKobject} provides a ``universal distance metric'' that should be useful in many contexts.\footnote{Roughly speaking, the universal distance metric is a recursive supnorm, returning the largest distance between two instances, among attributes named in \texttt{distance\_criteria}.  Those attributes might be complex objects themselves rather than real numbers, generating a recursive call to the universal distance metric.}  When defining a new subclass of \texttt{HARKobject}, the user simply defines the attribute \texttt{distance\_criteria} as a list of strings naming the attributes of the class that should be compared when calculating the distance between two instances of that class.  For example, the class \texttt{ConsumerSolution} has \texttt{distance\_criteria = ['cFunc']}, indicating that only the consumption function attribute of the solution matters when comparing the distance between two instances of \texttt{ConsumerSolution}.
+Beyond the model frameworks, \texttt{HARKcore} also defines a ``supersuperclass'' called \texttt{HARKobject}.  When solving a dynamic microeconomic model with an infinite horizon (or searching for a dynamic general equilibrium), it is often required to consider whether two solutions are sufficiently close to each other to warrant stopping the process (i.e.\ approximate convergence).  It is thus necessary to calculate the ``distance'' between two solutions, so HARK specifies that classes should have a \texttt{distance} method that takes a single input and returns a non-negative value representing the (generally dimensionless) distance between the object in question and the input to the method.  As a convenient default, \texttt{HARKobject} provides a ``universal distance metric'' that should be useful in many contexts.\footnote{Roughly speaking, the universal distance metric is a recursive supnorm, returning the largest distance between two instances, among attributes named in \texttt{distance\_criteria}.  Those attributes might be complex objects themselves rather than real numbers, generating a recursive call to the universal distance metric.}  When defining a new subclass of \texttt{HARKobject}, the user simply defines the attribute \texttt{distance\_criteria} as a list of strings naming the attributes of the class that should be compared when calculating the distance between two instances of that class.  For example, the class \texttt{ConsumerSolution} has \texttt{distance\_criteria = ['cFunc']}, indicating that only the consumption function attribute of the solution matters when comparing the distance between two instances of \texttt{ConsumerSolution}.  See \href{https://econ-ark.github.io/HARK/generated/HARKcore.html}{here} for online documentation.
 
-\subsection{HARKutilities}
+\subsection{HARKutilities}\label{sec:HARKutilities}
 
 The \texttt{HARKutilities} module carries a double meaning in its name, as it contains both utility functions (and their derivatives, inverses, and combinations thereof) in the economic modeling sense as well as utilities in the sense of general tools.  Utility functions included at this time are constant relative risk aversion and constant absolute risk aversion.  Other functions in \texttt{HARKutilities} include some data manipulation tools (e.g.\ for calculating an average of data conditional on being within a percentile range of different data), functions for constructing discrete state space grids, convenience functions for retrieving information about functions, and basic plotting tools using \texttt{matplotlib.pyplot}.
 
-The module also includes functions for constructing discrete approximations to continuous distributions (e.g.\ \texttt{approxLognormal()} to approximate a log-normal distribution) as well as manipulating these representations (e.g.\ appending one outcome to an existing distribution, or combining independent univariate distributions into one multivariate distribution).  As a convention in HARK, continuous distributions are approximated as finite discrete distributions when solving models; an $N$-dimensional random variable is formatted as a length $N+1$ list of 1D arrays, with the first element representing event probabilities and all other elements are realizations of the $N$ component RVs.  This both simplifies solution methods (reducing numeric integrals to simple dot products) and allows users to easily test whether their chosen degree of discretization yields a sufficient approximation to the full distribution.  See LINK TO SPHINX for full documentation.
+The module also includes functions for constructing discrete approximations to continuous distributions (e.g.\ \texttt{approxLognormal()} to approximate a log-normal distribution) as well as manipulating these representations (e.g.\ appending one outcome to an existing distribution, or combining independent univariate distributions into one multivariate distribution).  As a convention in HARK, continuous distributions are approximated as finite discrete distributions when solving models; an $N$-dimensional random variable is formatted as a length $N+1$ list of 1D arrays, with the first element representing event probabilities and all other elements are realizations of the $N$ component RVs.  This both simplifies solution methods (reducing numeric integrals to simple dot products) and allows users to easily test whether their chosen degree of discretization yields a sufficient approximation to the full distribution.  See \href{https://econ-ark.github.io/HARK/generated/HARKutilities.html}{here} for online documentation.
 
-\subsection{HARKinterpolation}
+\subsection{HARKinterpolation}\label{sec:HARKinterpolation}
 
 The \texttt{HARKinterpolation} module defines classes for representing interpolated function approximations.  Interpolation methods in HARK all inherit from a superclass such as \texttt{HARKinterpolator1D} or \texttt{HARKinterpolator2D}, wrapper classes that ensures interoperability across interpolation methods.  For example, \texttt{HARKinterpolator1D} specifies the methods \texttt{\_\_call\_\_} and \texttt{derivative} to accept an arbitrary array as an input and return an identically shaped array with the interpolated function evaluated at the values in the array or its first derivative, respectively.  However, these methods do little on their own, merely reshaping arrays and referring to the \texttt{\_evaluate} and \texttt{\_der} methods, which are \textit{not actually defined in} \texttt{HARKinterpolator1D}.  Each subclass of \texttt{HARKinterpolator1D} specifies their own implementation of \texttt{\_evaluate} and \texttt{\_der} particular to that interpolation method, accepting and returning only 1D arrays.  In this way, subclasses of \texttt{HARKinterpolator1D} are easily interchangeable with each other, as all methods that the user interacts with are identical, varying only by ``internal'' methods.
 
 When evaluating a stopping criterion for an infinite horizon problem, it is often necessary to know the ``distance'' between functions generated by successive iterations of a solution procedure.  To this end, each interpolator class in HARK must define a \texttt{distance} method that takes as an input another instance of the same class and returns a non-negative real number representing the ``distance'' between the two.  As each of the \texttt{HARKinterpolatorXD} classes inherits from \texttt{HARKobject}, all interpolator classes have the default ``universal'' distance method; the user must simply list the names of the relevant attributes in the attribute \texttt{distance\_criteria} of the class.
 
-Interpolation methods currently implemented in HARK include (multi)linear interpolation up to 4D, 1D cubic spline interpolation, (multi)linear interpolation over 1D interpolations (up to 4D total), (multi)linear interpolation over 2D interpolations (up to 4D total), linear interpolation over 3D interpolations, 2D curvilinear interpolation over irregular grids, and a 1D ``lower envelope'' interpolator.  See LINK TO SPHINX for full documentation.
+Interpolation methods currently implemented in HARK include (multi)linear interpolation up to 4D, 1D cubic spline interpolation, (multi)linear interpolation over 1D interpolations (up to 4D total), (multi)linear interpolation over 2D interpolations (up to 4D total), linear interpolation over 3D interpolations, 2D curvilinear interpolation over irregular grids, and a 1D ``lower envelope'' interpolator.  See \href{https://econ-ark.github.io/HARK/generated/HARKinterpolation.html}{here} for online documentation.
 
-\subsection{HARKsimulation}
+\subsection{HARKsimulation}\label{sec:HARKsimulation}
 
-The \texttt{HARKsimulation} module provides tools for generating simulated data or shocks for post-solution use of models.  Currently implemented distributions include normal, lognormal, Weibull (including exponential), uniform, Bernoulli, and discrete.  As an example of their use, these tools are used in the consumption-saving models of \texttt{ConsIndShockModel.py} to simulate permanent and transitory income shocks as well as unemployment events.  See LINK TO SPHINX for full documentation.
+The \texttt{HARKsimulation} module provides tools for generating simulated data or shocks for post-solution use of models.  Currently implemented distributions include normal, lognormal, Weibull (including exponential), uniform, Bernoulli, and discrete.  As an example of their use, these tools are used in the consumption-saving models of \texttt{ConsIndShockModel.py} to simulate permanent and transitory income shocks as well as unemployment events.  See \href{https://econ-ark.github.io/HARK/generated/HARKsimulation.html}{here} for online documentation.
 
-\subsection{HARKestimation}
+\subsection{HARKestimation}\label{sec:HARKestimation}
 
-Methods for optimizing an objective function for the purposes of estimating a model can be found in \texttt{HARKestimation}.  As of this writing, the implementation includes only minimization by the Nelder-Mead simplex method, minimization by a derivative-free Powell method variant, and two small tools for resampling data (i.e.\ for a bootstrap); the minimizers are merely convenience wrappers (with result reporting) for optimizers included in \texttt{scipy.optimize}.  Future functionality will include more robust global search methods, including genetic algorithms, simulated annealing, and differential evolution.  See LINK TO SPHINX for full documentation.
+Methods for optimizing an objective function for the purposes of estimating a model can be found in \texttt{HARKestimation}.  As of this writing, the implementation includes only minimization by the Nelder-Mead simplex method, minimization by a derivative-free Powell method variant, and two small tools for resampling data (i.e.\ for a bootstrap); the minimizers are merely convenience wrappers (with result reporting) for optimizers included in \texttt{scipy.optimize}.  Future functionality will include more robust global search methods, including genetic algorithms, simulated annealing, and differential evolution.  See \href{https://econ-ark.github.io/HARK/generated/HARKestimation.html}{here} for full documentation.
 
-\subsection{HARKparallel}
+\subsection{HARKparallel}\label{sec:HARKparallel}
 
-By default, processes in Python are single-threaded, using only a single CPU core.  The \texttt{HARKparallel} module provides basic tools for using multiple CPU cores simultaneously, with minimal effort.\footnote{\texttt{HARKparallel} uses two packages that aren't included in the default distribution of Anaconda: \texttt{joblib} and \texttt{dill}; see step 3 of the instructions in section 1.1 for how to install them.}  In particular, it provides the function \texttt{multiThreadCommands}, which takes two arguments: a list of \texttt{AgentType}s and a list of commands as strings; each command should be a method of the \texttt{AgentType}s.  The function simply distributes the \texttt{AgentType}s across threads on different cores and executes each command in order, returning no output (the \texttt{AgentType}s themselves are changed by running the commands).  Equivalent results would be achieved by simply looping over each type and running each method in the list.  Indeed, \texttt{HARKparallel} also has a function called \texttt{multiThreadCommandsFake} that does just that, with identical syntax to \texttt{multiThreadCommands}; multithreading in HARK can thus be easily turned on and off.\footnote{In the future, \texttt{HARKparallel} might be absorbed into \texttt{HARKcore} and \texttt{HARKestimation}, particularly if \texttt{joblib} and \texttt{dill} become part of the standard Anaconda distribution.}  The module also has functions for a parallel implementation of the Nelder-Mead simplex algorithm, as described in Wiswall and Lee (2011). See LINK TO SPHINX for full documentation.
+By default, processes in Python are single-threaded, using only a single CPU core.  The \texttt{HARKparallel} module provides basic tools for using multiple CPU cores simultaneously, with minimal effort.\footnote{\texttt{HARKparallel} uses two packages that aren't included in the default distribution of Anaconda: \texttt{joblib} and \texttt{dill}; see step 3 of the instructions in section \ref{sec:GettingStarted} for how to install them.}  In particular, it provides the function \texttt{multiThreadCommands}, which takes two arguments: a list of \texttt{AgentType}s and a list of commands as strings; each command should be a method of the \texttt{AgentType}s.  The function simply distributes the \texttt{AgentType}s across threads on different cores and executes each command in order, returning no output (the \texttt{AgentType}s themselves are changed by running the commands).  Equivalent results would be achieved by simply looping over each type and running each method in the list.  Indeed, \texttt{HARKparallel} also has a function called \texttt{multiThreadCommandsFake} that does just that, with identical syntax to \texttt{multiThreadCommands}; multithreading in HARK can thus be easily turned on and off.\footnote{In the future, \texttt{HARKparallel} might be absorbed into \texttt{HARKcore} and \texttt{HARKestimation}, particularly if \texttt{joblib} and \texttt{dill} become part of the standard Anaconda distribution.}  The module also has functions for a parallel implementation of the Nelder-Mead simplex algorithm, as described in Wiswall and Lee (2011). See \href{https://econ-ark.github.io/HARK/generated/HARKparallel.html}{here} for full documentation.
 
-\section{Microeconomics: the AgentType Class}
+\section{Microeconomics: the AgentType Class}\label{sec:Microeconomics}
 
 The core of our microeconomic dynamic optimization framework is a flexible object-oriented representation of economic agents.  The \texttt{HARKcore} module defines a superclass called \texttt{AgentType}; each model defines a subclass of \texttt{AgentType}, specifying additional model-specific features and methods while inheriting the methods of the superclass.  Most importantly, the method \texttt{solve} acts as a ``universal solver'' applicable to any (properly formatted) discrete time model.  This section describes the format of an instance of \texttt{AgentType} as it defines a dynamic microeconomic problem;\footnote{Each instance of \texttt{AgentType} represents an \textit{ex-ante} heterogeneous ``type'' of agent; \textit{ex-post} heterogeneity is achieved by simulating many agents of the same type, each of whom receives a unique sequence of shocks.}
 
-\subsection{Attributes of an AgentType}
+\subsection{Attributes of an AgentType}\label{sec:AttributesOfAnAgentType}
 
 A discrete time model in our framework is characterized by a sequence of ``periods'' that the agent will experience.  A well-formed instance of \texttt{AgentType} includes the following attributes:
 \begin{itemize}
@@ -165,17 +200,17 @@ A discrete time model in our framework is characterized by a sequence of ``perio
 
 An instance of \texttt{AgentType} also has the attributes named in \texttt{time\_vary} and \texttt{time\_inv}, and may have other attributes that are not included in either (e.g.\  values not used in the model solution, but instead to construct objects used in the solution).
 
-\subsection{A Universal Solver}
+\subsection{A Universal Solver}\label{sec:UniversalSolver}
 
 When an instance of \texttt{AgentType} invokes its \texttt{solve} method, the solution to the agent's problem is stored in the attribute \texttt{solution}.  The solution is computed by recursively solving the sequence of periods defined by the variables listed in \texttt{time\_vary} and \texttt{time\_inv} using the functions in \texttt{solveOnePeriod}.  The time-varying inputs are updated each period, including the successive period's solution as \texttt{solution\_next}; the same values of time invariant inputs in \texttt{time\_inv} are passed to the solver in every period.  The first call to \texttt{solveOnePeriod} uses \texttt{solution\_terminal} as \texttt{solution\_next}.  In a finite horizon problem, the sequence of periods is solved \texttt{cycles} times over; in an infinite horizon problem, the sequence of periods is solved until the solutions of successive cycles have a ``distance'' of less than \texttt{tolerance}.
 
 The output from a function in \texttt{solveOnePeriod} is an instance of a model-specific solution class.  The attributes of a solution to one period of a problem might include behavioral functions, (marginal) value functions, and other variables characterizing the result.  Each solution class must have a method called \texttt{distance()}, which returns the ``distance'' between itself and another instance of the same solution class, so as to define convergence as a stopping criterion; for many models, this will be the ``distance'' between a policy or value function in the solutions.  If the solution class is defined as a subclass of \texttt{HARKobject}, it automatically inherits the default \texttt{distance} method, so that the user must only list the relevant object attributes in \texttt{distance\_criteria}.
 
-The \texttt{AgentType} also has methods named \texttt{preSolve} and \texttt{postSolve}, both of which take no arguments and do absolutely nothing.  A subclass of \texttt{AgentType} can overwrite these blank methods with its own model specific methods.  \texttt{preSolve} is automatically called near the beginning of the \texttt{solve} method, before solving the sequence of periods.  It is used for specifying tasks that should be done before solving the sequence of periods, such as pre-constructing some objects repeatedly used by the solution method or finding an analytical terminal period solution.  For example, the \texttt{ConsumerType} class in \texttt{ConsIndShockModel} has a \texttt{preSolve} method that calls its \texttt{updateSolutionTerminal} method to ensure that \texttt{solution\_terminal} is consistent with the model parameters.  The \texttt{postSolve} method is called shortly after the sequence of periods is fully solved; it can be used for ``post-processing'' of the solution or performing a step that is only useful after solution convergence.  For example, the \texttt{TractableConsumerType} in \texttt{TractableBufferStock} has a \texttt{postSolve} method that constructs an interpolated consumption function from the list of stable arm points found during solution.
+The \texttt{AgentType} also has methods named \texttt{preSolve} and \texttt{postSolve}, both of which take no arguments and do absolutely nothing.  A subclass of \texttt{AgentType} can overwrite these blank methods with its own model specific methods.  \texttt{preSolve} is automatically called near the beginning of the \texttt{solve} method, before solving the sequence of periods.  It is used for specifying tasks that should be done before solving the sequence of periods, such as pre-constructing some objects repeatedly used by the solution method or finding an analytical terminal period solution.  For example, the \texttt{IndShockConsumerType} class in \texttt{ConsIndShockModel} has a \texttt{preSolve} method that calls its \texttt{updateSolutionTerminal} method to ensure that \texttt{solution\_terminal} is consistent with the model parameters.  The \texttt{postSolve} method is called shortly after the sequence of periods is fully solved; it can be used for ``post-processing'' of the solution or performing a step that is only useful after solution convergence.  For example, the \texttt{TractableConsumerType} in \texttt{TractableBufferStockModel} has a \texttt{postSolve} method that constructs an interpolated consumption function from the list of stable arm points found during solution.
 
 Our universal solver is written in a very general way that should be applicable to any discrete time optimization problem-- because Python is so flexible in defining objects, the time-varying inputs for each period can take any form.  Indeed, the solver does no ``real work'' itself, but merely provides a structure for describing models in the HARK framework, allowing interoperability among current and future modules. 
 
-\subsection{The Flow of Time and Other Methods}
+\subsection{The Flow of Time and Other Methods}\label{sec:OtherMethods}
 
 Because dynamic optimization problems are solved recursively in our framework, it is natural to list time-varying values in reverse chronological order-- the \texttt{solve()} method loops over the values in each time-varying list in the same direction that a human would read them.  When simulating agents after the solution has been obtained, however, it is much more convenient for time-varying parameters to be listed in ordinary chronological order-- the direction in which they will be experienced by simulated agents.  To allow the user to set the order in which ``time is flowing'' for an instance of \texttt{AgentType}, the HARK framework includes functionality to easily change ordering of time-varying values.
 
@@ -195,8 +230,7 @@ These methods are invoked to more conveniently access time-varying objects.  Whe
 The base \texttt{AgentType} is sparsely defined, as most ``real'' methods will be application-specific.  Two final methods bear mentioning.  First, the \texttt{\_\_call\_\_} method points to \texttt{assignParameters()}, a convenience method for adding or adjusting attributes (inherited from \texttt{HARKobject}).  This method takes any number of keyword arguments, so that code can be parsimoniously written as, for example, \texttt{AgentInstance(attribute1 = value1, attribute2 = value2)}.  Using Python's dictionary capabilities, many attributes can be conveniently set with minimal code.  Second, the \texttt{resetRNG} method simply resets the \texttt{AgentType}'s random number generator (as the attribute \texttt{RNG}) using the value in the attribute \texttt{seed}.\footnote{Every instance of \texttt{AgentType} is created with a random number generator as an instance of the class \texttt{numpy.random.RandomState}, with a default \texttt{seed} of zero.}  This method is useful for (\textit{inter alia}) ensuring that the same underlying sequence of shocks is used for every simulation run when a model is solved or estimated.
 
 
-
-\subsection{Sample Model: Perfect Foresight Consumption-Saving}
+\subsection{Sample Model: Perfect Foresight Consumption-Saving}\label{sec:PerfectForesight}
 
 To provide a concrete example of how the \texttt{AgentType} class works, consider the very simple case of a perfect foresight consumption-saving model.  The agent has time-separable, additive CRRA preferences over consumption, discounting future utility at a constant rate; he receives a particular stream of labor income each period, and knows the interest rate on assets that he holds from one period to the next.  His decision about how much to consume in a particular period can be expressed in Bellman form as:
 
@@ -209,11 +243,11 @@ Y_{t+1} &=& \Gamma_{t+1} Y_t, \\
 \end{eqnarray*}
 An agent's problem is thus characterized by values of $\CRRA$, $\Rfree$,  and $\beta$ plus sequences of survival probabilities $\PLives_t$ and income growth factors $\Gamma_t$ for $t=0,\cdots,T$.  This problem has an analytical solution for both the value function and the consumption function.
 
-The \texttt{ConsIndShockModel} module defines the class \texttt{ConsumerType} as a subclass of \texttt{AgentType} and provides solver functions for several variations of a consumption-saving model, including the perfect foresight problem.\footnote{As the name implies, the module is mostly concerned with models with idiosyncratic shocks to income.}  A HARK user could specify and solve a ten period perfect foresight model with the following commands:
+The \texttt{ConsIndShockModel} module defines the class \texttt{PerfForesightConsumerType} as a subclass of \texttt{AgentType} and provides solver functions for several variations of a consumption-saving model, including the perfect foresight problem.\footnote{As the name implies, the module is mostly concerned with models with idiosyncratic shocks to income.}  A HARK user could specify and solve a ten period perfect foresight model with the following commands:
 
 \vspace{0.25cm}
 
-\noindent \texttt{MyConsumer = ConsumerType(time\_flow=True, cycles=1)}
+\noindent \texttt{MyConsumer = PerfForesightConsumerType(time\_flow=True, cycles=1)}
 
 \noindent \texttt{MyConsumer.CRRA = 2.7}
 
@@ -225,15 +259,13 @@ The \texttt{ConsIndShockModel} module defines the class \texttt{ConsumerType} as
 
 \noindent \texttt{MyConsumer.PermGroFac = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]}
 
-\noindent \texttt{MyConsumer.solveOnePeriod = solvePerfForesight}
-
 \noindent \texttt{MyConsumer.solve()}
 
 \vspace{0.25cm}
 
-The first line makes a new instance of \texttt{ConsumerType}, specifying that time is currently ``flowing'' forward\footnote{This is relevant for the intepretation of the time-varying inputs \texttt{LivPrb} and \texttt{PermGroFac}.} and that the sequence of periods happens exactly once.  The next five lines set the time invariant (\texttt{CRRA}, \texttt{Rfree}, \texttt{DiscFac}) and time varying parameters (\texttt{LivPrb}, \texttt{PermGroFac}), and the following one sets the appropriate one period solver.\footnote{By default, a new instance of \texttt{ConsumerType} has a solver for a model with risky income.}  After running the \texttt{solve} method, \texttt{MyConsumer} will have an attribute called \texttt{solution}, which will be a list with eleven \texttt{ConsumerSolution} objects, representing the period-by-period solution to the model.\footnote{The last element of \texttt{solution} represents the terminal period solution, where the agent consumes all available resources because there is no future.}  Each \texttt{ConsumerSolution} has several attributes:
+The first line makes a new instance of \texttt{ConsumerType}, specifying that time is currently ``flowing'' forward\footnote{This is relevant for the intepretation of the time-varying inputs \texttt{LivPrb} and \texttt{PermGroFac}.} and that the sequence of periods happens exactly once.  The next five lines set the time invariant (\texttt{CRRA}, \texttt{Rfree}, \texttt{DiscFac}) and time varying parameters (\texttt{LivPrb}, \texttt{PermGroFac}).  After running the \texttt{solve} method, \texttt{MyConsumer} will have an attribute called \texttt{solution}, which will be a list with eleven \texttt{ConsumerSolution} objects, representing the period-by-period solution to the model.\footnote{The last element of \texttt{solution} represents the terminal period solution, where the agent consumes all available resources because there is no future.}  Each \texttt{ConsumerSolution} has several attributes:
 \begin{itemize}
-\item \texttt{cFunc}: Optimal consumption function for this period as a function of (normalized) market resources $m_t = M_t/Y_t$. Can be called like any other function: \texttt{MyConsumer.solution[0].cFunc(5)} evaluates the consumption function at $m_t = 5$.
+\item \texttt{cFunc}: Optimal consumption function for this period as a function of (normalized) market resources $m_t = M_t/Y_t$. Can be called like any other function: \texttt{MyConsumer.solution[0].cFunc(5)} returns consumption at $m_t = 5$.
 
 \item \texttt{vFunc}: Value function (over market resources $m_t$); can be evaluated like \texttt{cFunc}.
 
@@ -259,9 +291,9 @@ To solve an infinite horizon problem in which the agent experiences the same one
 
 \vspace{0.25cm}
 
-\noindent \texttt{OtherConsumer = ConsumerType(cycles=0, CRRA=3.5, Rfree=1.02, DiscFac=0.95,}
+\noindent \texttt{OtherConsumer = PerfForesightConsumerType(cycles=0, CRRA=3.5, Rfree=1.02,}
 
-\texttt{LivPrb = [0.99], PermGroFac = [1.01], solveOnePeriod = solvePerfForesight)}
+\texttt{DiscFac=0.95, LivPrb = [0.99], PermGroFac = [1.01])}
 
 \noindent \texttt{OtherConsumer.solve()}
 
@@ -269,13 +301,13 @@ To solve an infinite horizon problem in which the agent experiences the same one
 
 This instance is specified as being infinite horizon by setting \texttt{cycles=0}.  Note that the time-varying inputs are still specified as (one element) lists, even though they take on the same value in every period; this is because an infinite horizon model might consist of a multi-period sequence repeated indefinitely, rather than just one repeated period.  The \texttt{solution} attribute of \texttt{OtherConsumer} will be a list containing one instance of \texttt{ConsumerSolution}, representing the solution to every period of the model.
 
-\section{Macroeconomics: the Market Class}
+\section{Macroeconomics: the Market Class}\label{sec:Macroeconomics}
 
 The modeling framework of \texttt{AgentType} is deemed ``microeconomic'' because it pertains only to the dynamic optimization problem of agents, treating all inputs of the problem as exogenously fixed.  In what we label as ``macroeconomic'' models, some of the inputs for the microeconomic models are endogenously determined by the collective states and controls of agents in the model.  In a dynamic general equilibrium, there must be consistency between agents' beliefs about these macroeconomic objects, their individual behavior, and the realizations of the macroeconomic objects that result from individual choices.
 
 The \texttt{Market} class in \texttt{HARKcore} provides a framework for such macroeconomic models, with a \texttt{solve} method that searches for a dynamic general equilibrium.  An instance of \texttt{Market} includes a list of \texttt{AgentType}s that compose the economy, a method for transforming microeconomic outcomes (states, controls, and/or shocks) into macroeconomic outcomes, and a method for interpreting a history or sequence of macroeconomic outcomes into a new ``dynamic rule'' for agents to believe.  Agents treat the dynamic rule as an input to their microeconomic problem, conditioning their optimal policy functions on it.  A dynamic general equilibrium is a fixed point dynamic rule: when agents act optimally while believing the equilibrium rule, their individual actions generate a macroeconomic history consistent with the equilibrium rule.
 
-\subsection{Down on the Farm}
+\subsection{Down on the Farm}\label{sec:DownOnTheFarm}
 
 The \texttt{Market} class uses a farming metaphor to conceptualize the process for generating a history of macroeconomic outcomes in a model.  Suppose all \texttt{AgentTypes} in the economy believe in some dynamic rule (i.e.\ the rule is stored as attributes of each \texttt{AgentType}, which directly or indirectly enters their dynamic optimization problem), and that they have each found the solution to their microeconomic model using their \texttt{solve} method.  Further, the macroeconomic and microeconomic states have been reset to some initial orientation.
 
@@ -293,7 +325,7 @@ To generate a history of macroeconomic outcomes, the \texttt{Market} repeatedly 
 \end{enumerate}
 This procedure is conducted by the \texttt{makeHistory} method of \texttt{Market} as a subroutine of its \texttt{solve} method.  After making histories of the relevant macroeconomic variables, the market then executes its \texttt{calcDynamics} function with the macroeconomic history as inputs, generating a new dynamic rule to distribute to the \texttt{AgentType}s in the market.  The process then begins again, with the agents solving their updated microeconomic models given the new dynamic rule; the \texttt{solve} loop continues until the ``distance'' between successive dynamic rules is sufficiently small.
 
-\subsection{Attributes of a Market}
+\subsection{Attributes of a Market}\label{sec:AttributesOfAMarket}
 
 To specify a complete instance of \texttt{Market}, the user should give it the following attributes:\footnote{For some purposes, it might be useful to specify a subclass of \texttt{Market}, defining \texttt{millRule} and/or \texttt{calcDynamics} as methods rather than functions.}
 \begin{itemize}
@@ -327,7 +359,7 @@ Further, each \texttt{AgentType} in \texttt{agents} must have two methods not ne
 
 When solving macroeconomic models in HARK, the user should also define classes to represent the output from the aggregate market process in \texttt{millRule} and for the model-specific dynamic rule.  The latter should have a \texttt{distance} method to test for solution convergence; if the class inherits from \texttt{HARKobject}, the user need only list relevant attributes in \texttt{distance\_criteria}.
 
-\subsection{Sample Model: FashionVictim}
+\subsection{Sample Model: FashionVictim}\label{sec:FashionVictim}
 
 To illustrate the \texttt{Market} class, consider a simple example in the emerging economic subfield of aesthemetrics, the \texttt{FashionVictimModel}.\footnote{This model is inspired by the paper ``The hipster effect: When anticonformists all look the same'' by Jonathan Touboul.}\footnote{For a more traditional macroeconomic model, the \texttt{cstwMPC} module includes a consumption-saving model with both idiosyncratic and aggregate shocks, in which individual asset holdings are aggregated into total productive capital, endogenizing the (dynamic) interest and wage rate.}  This module defines a subclass of \texttt{AgentType} called \texttt{FashionVictimType}.  Each period, fashion victims make a binary choice of style $s$: to dress as a jock (0) or punk (1).  They receive utility directly from the outfit they wear and as a function of the proportion of the population who \textit{just wore} the same style; they also pay switching costs ($c_{pj}$,$c_{jp}$) if they change styles rather than keep the same as the previous period.  Moreover, they receive an idiosyncratic type 1 extreme value (T1EV) preference shock to each style in each period.  Defining the population punk proportion as $p$ and the conformity utility function as $f:[0,1]\rightarrow \mathbb{R}$, the current period utility function is thus:
 \begin{equation*}
@@ -372,21 +404,21 @@ The \texttt{millRule} for this market is extremely simple: it flattens the list 
 
 When the \texttt{solve} method is run, the solver successively solves each agent's microeconomic problem, runs the \texttt{makeHistory} method to generate a 1000 period history of $p_t$, and calculates a new punk evolution rule based on this history; the solver terminates when consecutive rules differ by less than 0.01 in any dimension.
 
-\section{Contributing to HARK}
+\section{Contributing to HARK}\label{sec:ContributingToHARK}
 
 After reading this far into the user guide, it is safe to assume that you are eager to contribute to HARK's development.  This section provides an overview of how users can contribute new code, what sort of contributions are most desired, and style conventions for the toolKit.  Before attempting to extend HARK, we strongly recommend that you familiarize yourself with its features and models by looking at the source code.
 
-\subsection{What Does HARK Want?}
+\subsection{What Does HARK Want?}\label{sec:WhatDoesHARKWant}
 
 The easiest and most straightforward way to contribute to HARK is by writing new general purpose tools for inclusion in one of the top-level modules.  This might be a commonly known data analysis technique (e.g.\ a kernel density estimator) for \texttt{HARKutilities}, an optimization method (local or global) for \texttt{HARKestimation}, an interpolation method for \texttt{HARKinterpolation}, etc.  If you've found a technique useful in your own research and believe it could be of use to others on entirely different projects, then it probably belongs in HARK.  Likewise, if you read through a HARK module expecting to find a certain tool or function (because of similar functions that are present, or merely because \textit{it's very useful}) but don't, this is a good sign that HARK has a hole that you can fill.\footnote{Case in point: As of this moment, \texttt{HARKutilities} has no function for making a discrete approximation to the normal distribution, even though there are several well known methods for doing so and it is an obviously useful function.}
 
-Secondly, the development team wants to expand HARK to include more canonical models.  Most of the models available in the toolKit at the time of its public beta release concern agents with (geometrically discounted) CRRA utility over a unitary consumption good, who receive permanent and transitory shocks to income and have access to a single risk free asset.  This is an important class of models, but that description has an awful lot of qualifiers.  In short, there are many more common features of dynamic household models that are not yet in HARK, but would be very valuable for the toolKit.  New model contributions should ``play nicely'' with existing models and tools, following HARK style guidelines (see sections 5.4 and 5.5) to the greatest extent possible.  For ideas of potential model extensions for HARK, see section 6.2.\footnote{Although that list is limited to extensions and variations on consumption-saving models, HARK has no such restrictions.  If there is an entirely different sort of dynamic model that fits in the HARK framework, it can be contributed.}
+Secondly, the development team wants to expand HARK to include more canonical models.  Most of the models available in the toolKit at the time of its public beta release concern agents with (geometrically discounted) CRRA utility over a unitary consumption good, who receive permanent and transitory shocks to income and have access to a single risk free asset.  This is an important class of models, but that description has an awful lot of qualifiers.  In short, there are many more common features of dynamic household models that are not yet in HARK, but would be very valuable for the toolKit.  New model contributions should ``play nicely'' with existing models and tools, following HARK style guidelines (see sections 5.4 and 5.5) to the greatest extent possible.  For ideas of potential model extensions for HARK, see section \ref{sec:FutureModels}.\footnote{Although that list is limited to extensions and variations on consumption-saving models, HARK has no such restrictions.  If there is an entirely different sort of dynamic model that fits in the HARK framework, it can be contributed.}
 
 Finally, contributions to HARK are not restricted to entirely new functionality.  While we have done our best to provide flexible frameworks and useful tools, we have almost certainly overlooked an unexpected case that would not be (properly) handled by the toolKit as is.  Moreover, there might even be flaws in our solution or simulation methods.  If you find a mistake or error, we strongly encourage you to contribute a fix for the problem, or at least to flag it as an Issue on GitHub so that someone else might.  The ``mistake'' you find might not even be in the code itself, but a deficiency in the documentation: a misnamed (or incorrectly typed) parameter or return variable in the docstring, an incorrect (or missing) comment, even a grammatical or spelling error. No matter how niggling, we want your fix.
 
 For those who want to contribute to the HARK project without programming a new model or digging through the code for errors and omissions, consider reading through the Issues page on GitHub to see what other users have flagged for development.  You might find several pieces of ``low hanging fruit'' for you to quickly fix.
 
-\subsection{Git and GitHub}
+\subsection{Git and GitHub}\label{sec:GitHub}
 
 Git is a distributed version control system that has gained increasing popularity in the decade since its creation; it is designed to enable collaboration and ``non-linear workflow'' among a (potentially disperse) programming team.  As HARK is to be developed by volunteer researchers all around the world, git is an excellent fit for the toolKit.  Originally designed by Linus Torvalds as a command line tool, others have since extended git with further functionality and a user interface more friendly to those more familiar with GUIs.  Foremost among these tools is GitHub.com, where the HARK project is hosted.  This section provides a brief overview of how to use GitHub to interact with (and potentially contribute to) HARK.
 
@@ -418,15 +450,15 @@ Suppose you have mucked about in your fork for a while and have made changes to 
 
 \item \textbf{Issue a pull request:} Go to \href{https://github.com/econ-ark/HARK}{HARK's GitHub page} and click the ``New pull request'' button.  Click the text that says ``compare across forks'', and select \texttt{econ-ark/HARK} as the base fork, \texttt{master} as the base, your fork as the head fork, and the branch to be merged as the ``compare''.  In the boxes below, give a name to your pull request and provide sufficient comments about your contribution so that a development team member can understand what you've done.  Click the ``Create pull request'' button.
 
-\item \textbf{Be patient:} Someone from the development team will look at your contribution and either merge it into the main repository or return it with comments.  See section 5.3 for procedures followed by the HARK team when evaluating outside contributions.
+\item \textbf{Be patient:} Someone from the development team will look at your contribution and either merge it into the main repository or return it with comments.  See section \ref{sec:SubmissionApprovalProcess} for procedures followed by the HARK team when evaluating outside contributions.
 
 \end{enumerate}
 
-\subsection{Submitting Code}
+\subsection{Submission Approval Process}\label{sec:SubmissionApprovalProcess}
 
 THIS SECTION NEEDS TO BE WRITTEN
 
-\subsection{Naming Conventions}
+\subsection{Naming Conventions}\label{sec:NamingConventions}
 
 Object naming conventions in HARK are fairly different than existing standards, and differ somewhat between tool modules vs model or application modules.  The following conventions apply throughout HARK:
 \begin{itemize}
@@ -436,16 +468,16 @@ Object naming conventions in HARK are fairly different than existing standards, 
 
 \item Variable and class names \textit{should not} have a verb as their first word.
 
-\item Class names should use no underscores and capitalize the first letter of each word; moreover, a class name \textit{must include a noun}.  E.g.\ \texttt{PerfForesightSolver}.
+\item Class names should use no underscores and capitalize the first letter of each word; moreover, a class name \textit{must include a noun}.  E.g.\ \texttt{ConsPerfForesightSolver}.
 \end{itemize}
 
 When naming variables in model modules, the HARK team strongly discourages using single letter names, like \texttt{c} for consumption.  Instead, we encourage contributors to use longer, more descriptive variable names using additional words and common abbreviations to specify the variable more precisely.  In DOCUMENT, we list standard single letter variable ``bases'' and an array of prefixes and suffixes to adjust them.  Economic variables in model modules should (usually) not use underscores, instead using camel case to the greatest extent possible.\footnote{For ``non-economic'' variables that are only used temporarily, underscores are permissible.}  The development team prefers this standard so that users can translate between Python code and LaTeX script with minimal work.
 
-Conventions for naming variables in HARK's tool modules are significantly closer to more commonly used standards.  Variable names should be in all lower case, with underscores between words, e.g.\ \texttt{data\_to\_match}.  The functions and classes in these modules are more general and almost surely do not have any inherent ``economic content''; they are numerical or algorithmic objects, not variables that might appear in an equation in a article for a (non-computational) economics journal.  Variable names in application modules (e.g.\ the files that execute the \texttt{cstwMPC} estimations) are a mix of the conventions for tool and model files, as appropriate for each variable.  That is, variables that are directly related to ``economic variables'' in model modules should follow those conventions, while objects created solely for data manipulation or reporting should use the style of tool modules.
+Conventions for naming variables in HARK's tool modules are significantly closer to more commonly used standards.  Variable names should be in all lower case, with underscores between words, e.g.\ \texttt{data\_to\_match}.  The functions and classes in these modules are more general and almost surely do not have any inherent ``economic content''; they are numerical or algorithmic objects, not variables that might appear in an equation in an article for a (non-computational) economics journal.  Variable names in application modules (e.g.\ the files that execute the \texttt{cstwMPC} estimations) are a mix of the conventions for tool and model files, as appropriate for each variable.  That is, variables that are directly related to ``economic variables'' in model modules should follow those conventions, while objects created solely for data manipulation or reporting should use the style of tool modules.
 
-\subsection{Documentation Conventions}
+\subsection{Documentation Conventions}\label{sec:DocumentationConventions}
 
-The HARK team wants the toolKit to be as accessible to users as possible; our greatest fear\footnote{Other than spiders, of course.} is that a new user will open up our code, get hopelessly confused trying to read it, and then never look at HARK again.  To prevent this tragic outcome, we have tried hard to provide comprehensive, accurate documentation and comments within the code describing our methods.\footnote{To the extent that documentation and comments are missing, we encourage users to rectify this in their contributions.}  Moreover, HARK uses the Sphinx utility to generate a website with online documentation for all of our tool and model modules, so that users can learn about what's available in HARK without digging through the source code.  When making contributions to HARK, the development team asks users to format their inline documentation to work with Sphinx by following a few simple rules.
+The HARK team wants the toolKit to be as accessible to users as possible; our greatest fear\footnote{Other than spiders, of course.} is that a new user will open up our code, get hopelessly confused trying to read it, and then never look at HARK again.  To prevent this tragic outcome, we have tried hard to provide comprehensive, accurate documentation and comments within the code describing our methods.\footnote{To the extent that documentation and comments are missing, we encourage users to rectify this in their contributions.}  Moreover, HARK uses the Sphinx utility to generate a website with \href{https://econ-ark.github.io/HARK/}{online documentation} for all of our tool and model modules, so that users can learn about what's available in HARK without digging through the source code.  When making contributions to HARK, the development team asks users to format their inline documentation to work with Sphinx by following a few simple rules.
 
 \begin{itemize}
 \item The top of every module should begin with a ``docstring'' providing a clear description of the contents of the module.  The first sentence should concisely summarize the file, as it may appear in an index or summary of all modules without the remaining sentences.  A docstring at the top of a module should be formatted as:\footnote{The triple quote to begin and end a docstring can use either the apostrophe \texttt{'} or quotations marks \texttt{"}.}
@@ -501,11 +533,11 @@ The HARK team wants the toolKit to be as accessible to users as possible; our gr
 
 Finally, if you write a new model module, the HARK team asks that you also provide a short mathematical writeup of the model as a PDF.  This document does not need to go into great detail about the solution method for the model or the functions and classes included in the module, merely specify the economic model and provide a summary of how it is solved.  See DOCUMENT for an example of such a writeup.
 
-\section{Future of HARK}
+\section{Future of HARK}\label{sec:FutureOfHARK}
 
 HARK is in a state of perpetual incompleteness, always expanding to include more tools and more models.  As an open source project in the hands of many contributors around the world, the HARK team cannot fully predict future features of the toolKit.  This section provides an overview of what we would like to see in the near future, as well as potential mechanisms to encourage researchers to contribute their code to the project.
 
-\subsection{Future Tools}
+\subsection{Future Tools}\label{sec:FutureTools}
 
 The current frameworks in \texttt{HARKcore} concern agents who have ``isolated'' dynamic problems or interact with each other only through aggregate outcomes to which they contribute atomically.  We hope to eventually provide a framework for models in which agents directly interact with each other; this may include a system for specifying the state of networks and how connections are formed and broken.  \texttt{HARKcore} might also develop a framework more suited to industrial organization models and dynamic games.\footnote{It might already be possible to shoehorn some of these models into the \texttt{Market} framework.}
 
@@ -515,7 +547,7 @@ The classes currently in \texttt{HARKinterpolation} are all variations on linear
 
 The \texttt{HARKparallel} module currently provides a simple interface for handling \textit{ex-ante} heterogeneity among agents.  While useful for speeding up moderately-sized problems, the libraries used are only able to access the CPU of the local machine running the code.  In the very near future, the HARK team will provide an interface (and example) for using Apache Spark, which bills itself as a ``fast and general engine for large-scale data processing''.  Specifically, users will be able to easily scale up their computing resources and run HARK code on an Amazon EC2 session or other cluster.
 
-\subsection{Future Models}
+\subsection{Future Models}\label{sec:FutureModels}
 
 The economics models currently included in HARK mostly concern consumption-saving problems with constant relative risk aversion consumers who experience fully permanent and fully transitory shocks to income.  This is obviously a very small subset of all consumption-saving models (which are themselves a small subset of all dynamic models economists might be interested in).  Consider some examples of variants, features, and extensions that are not included in HARK, but could be in the future:
 \begin{itemize}
@@ -559,20 +591,20 @@ The HARK team is currently developing a module for mixing discrete and continuou
 
 Finally, we hope to provide a generic solver for any discrete choice model with T1EV shocks.  The scope of HARK is limited only by what users choose to put in it.  We hope that within a year of its debut, HARK will include a significant number of canonical models, providing more building blocks for future researchers to create novel combinations and new extensions.
 
-\subsection{Bounty Hunting}
+\subsection{Bounty Hunting}\label{sec:BountyHunting}
 
 While HARK users are free to write and contribute any tools and models that they believe could be helpful, building the toolKit in a ``bottom up'' style, the HARK team hopes to provide mechanisms for targeted ``top down'' development.  The team is working to secure grant funding for HARK so as to offer ``bounties'' for particular models, tools, applications, or frameworks.  Suppose the team decides that the model in Important Paper X should be included as part of HARK; we will issue a call for contributions to fill this hole, offering a modest prize of, say, \$20,000 to the programmer who submits the best implementation of the model, as judged by clearly stated criteria.\footnote{Actual bounties may be significantly smaller than this.  But be honest: You're much more interested in contributing to HARK after reading that sentence.}  The bounty would be announced as an Issue on HARK's GitHub page, as well as in a potential electronic digest of HARK news.
 
 Bounties might be placed on items as small as a single data analysis tool or as large as a complex estimation of a large general equilibrium model, with prizes scaling accordingly.  We hasten to emphasize that we cannot guarantee funding for HARK, so the bounties (like everything else in this section) are purely speculative.  As economists, the HARK team understands the incentive compatibility problems associated with asking researchers to contribute significant amounts of their time, effort, and unique skills in service of a tenuous concept like the Greater Good in exchange for even more tenuous Glory.  We acknowledge that economic researchers are also optimizing agents with their own preferences over leisure and consumption, and agree that Greed is a valid mechanism to expand HARK. 
 
-\subsection{All Aboard the Ark}
+\subsection{All Aboard the Ark}\label{sec:AllAboardTheArk}
 
-As observant readers may have noticed, the HARK repository is hosted by a GitHub account named Econ-Ark, with no explanation as to what this might mean.  Looking a few years into the future, the development team believes that HARK might be the first piece of a broader collection of computational economics resources.  HARK is open source but somewhat akin to an exclusive club: contributions are required to adhere to standards and norms so as to foster modularity and interoperability between models and tools.  Consistent with its namesake ship, the Econ-Ark has a significantly lower bar for admission, with a place on board for everything.
+As observant readers may have noticed, the HARK repository is hosted by a GitHub account named Econ-Ark, with no explanation as to what this might mean.  Looking a few years into the future, the development team believes that HARK might be the first piece of a broader collection of computational economics resources.  HARK is open source but somewhat akin to an exclusive club: contributions are required to adhere to standards and norms so as to foster modularity and interoperability among models and tools.  Consistent with its namesake ship, the Econ-Ark has a significantly lower bar for admission, with a place on board for everything.
 
 On one level, the Ark might serve as a warehouse for any and all quantitative models and tools, for any economic purpose, in any subfield, and written in any language.  Through nearly unanimous feedback, the HARK team understands that many economists are willing to share code that they have already written, but are reluctant to expend the considerable effort to translate and format it for HARK.  In the future, we will set up a mechanism for code like this to be hosted on the Ark, with minimal requirements imposed on its authors (and correspondingly minimal warranty for potential users).  Relevant projects on the Ark might become bounty targets for HARK, with users incentivized to port the original code into Python and to meet HARK standards; direct access to the original source code will significantly expedite the translation process, and provide a suitable benchmark for testing and verifying the contribution to HARK.
 
 On a different level, the Ark might also include cohesive toolkits like HARK, but geared toward purposes other than heterogeneous agents macroeconomics models.  For example, the previously mentioned modules for networks among agents (and other agent-based modeling), industrial organization and dynamic games, and traditional discrete choice models might become their own toolkits, with some interoperability with HARK.  In support of this, some of the tool modules currently in HARK might be ``promoted'' and become universally shared across all Econ-Ark toolkits.
 
-The dark secret of HARK is that it is named for heterogeneous agents macroeconomics, but designed and written by structural microeconomists.  The development team believes these subfields to have considerable overlap in terms of methods and techniques, and that HARK might not be noticed by half of its potential audience due to its name.  In a general sense, the Econ-Ark gives us cover to expand the scope of our efforts and/or rebrand the toolkit for an alternative audience.
+The dark secret of HARK is that it is named for heterogeneous agents macroeconomics, but designed and written by structural microeconomists.  The development team believes these subfields to have considerable overlap in terms of methods and techniques, and that HARK might not be noticed by half of its potential audience due to its name.  In a general sense, the Econ-Ark gives us cover to expand the scope of our efforts and/or rebrand the toolKit for an alternative audience.
 
 \end{document}
