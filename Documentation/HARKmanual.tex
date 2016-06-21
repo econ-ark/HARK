@@ -456,7 +456,26 @@ Suppose you have mucked about in your fork for a while and have made changes to 
 
 \subsection{Submission Approval Process}\label{sec:SubmissionApprovalProcess}
 
-THIS SECTION NEEDS TO BE WRITTEN
+After creating a pull request to submit your contribution, it will be evaluated by one or more members of the HARK team.  Criteria that the HARK team will consider when choosing whether to accept a submission include:
+\begin{enumerate}
+\item \textbf{Does the contribution break previous code?} If you change or expand an existing function, you should make sure that this does not cause some models or applications to work incorrectly.  In the near future, HARK will have a core set of tests to run to check for full compatibility.
+
+\item \textbf{Is the code well documented?} Code submissions should have properly formatted docstrings for each new function, class, method, and module (see section \ref{sec:DocumentationConventions}) and enough comments for a reader to follow the algorithm.
+
+\item \textbf{Is the contribution relevant?} The development team intends for HARK to be diverse, but not everything goes in HARK.  If your submission concerns a representative agent model or a method for estimating a reduced form model, then it probably doesn't belong in HARK.
+
+\item \textbf{Is the code demonstrated with an example?} If your solve a new model in HARK, you should include a set of example parameters for other users to easily test.  If you've contributed a new function, consider providing a snippet of code demonstrating its use.\footnote{In the future, HARK will make use of in-line testing.}
+
+\item \textbf{Is the code correct?} Your code should actually do what it claims to do.
+
+\item \textbf{Does the code use HARK conventions?} To the best of your ability, contributions to HARK should follow the style guidelines in section \ref{sec:NamingConventions}.  We don't demand perfection, as these are guidelines rather than rules.
+
+\item \textbf{Is the code well integrated in HARK?} In the beta release of HARK, we have tried to present a ``taxonomy'' of consumption-saving models that build up from each other.  When possible, new models in HARK should try to continue this pattern.  A submission that introduces a model in a new module that could have easily been made as an extension of an existing module might be rejected.  However, we acknowledge that there is value in providing a solver for a new model, and that a future contributor might make her mark by integrating it into the existing hierarchy.
+
+\item \textbf{Is this already in HARK?} If your contribution is already in HARK, then it will almost certainly be rejected.  Of course, if you submit a version that dominates the existing implementation (or even one that works better in a well described, non-trivial set of circumstances), it belongs in HARK.
+\end{enumerate}
+
+The HARK team intends to release more specific guidelines in the near future, so that contributors are better able to judge their submissions before issuing a pull request.  We are in the process of recruiting ``czars'' to oversee particular aspects of HARK, providing their knowledge and expertise.\footnote{If you have knowledge and/or expertise and would like to contribute as a czar, please contact a HARK team member so that we can judge your credentials even though we have way less expertise.}  While czars might directly evaluate submissions as a HARK team member, their more important role is to help establish these guidelines for their domain, more specifically nailing down what we mean by ``correct'' or ``well integrated''.
 
 \subsection{Naming Conventions}\label{sec:NamingConventions}
 
