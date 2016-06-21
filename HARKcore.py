@@ -251,6 +251,74 @@ class AgentType(HARKobject):
         '''
         if self.time_flow:
             self.timeFlip()
+            
+    def addToTimeVary(self,*params):
+        '''
+        Adds any number of parameters to time_vary for this instance.
+        
+        Parameters
+        ----------
+        params : string
+            Any number of strings naming attributes to be added to time_vary
+        
+        Returns
+        -------
+        None
+        '''
+        for param in params:
+            if param not in self.time_vary:
+                self.time_vary.append(param)
+                
+    def addToTimeInv(self,*params):
+        '''
+        Adds any number of parameters to time_inv for this instance.
+        
+        Parameters
+        ----------
+        params : string
+            Any number of strings naming attributes to be added to time_inv
+        
+        Returns
+        -------
+        None
+        '''
+        for param in params:
+            if param not in self.time_inv:
+                self.time_inv.append(param)
+                
+    def delFromTimeVary(self,*params):
+        '''
+        Removes any number of parameters from time_vary for this instance.
+        
+        Parameters
+        ----------
+        params : string
+            Any number of strings naming attributes to be removed from time_vary
+        
+        Returns
+        -------
+        None
+        '''
+        for param in params:
+            if param in self.time_vary:
+                self.time_vary.remove(param)
+                
+    def delFromTimeInv(self,*params):
+        '''
+        Removes any number of parameters from time_inv for this instance.
+        
+        Parameters
+        ----------
+        params : string
+            Any number of strings naming attributes to be removed from time_inv
+        
+        Returns
+        -------
+        None
+        '''
+        for param in params:
+            if param in self.time_inv:
+                self.time_inv.remove(param)
 
     def solve(self):
         '''
@@ -270,8 +338,7 @@ class AgentType(HARKobject):
         self.solution = solveAgent(self) # Solve the model by backward induction
         if self.time_flow: # Put the solution in chronological order if this instance's time flow runs that way
             self.solution.reverse()
-        if not ('solution' in self.time_vary):
-            self.time_vary.append('solution') # Add solution to the list of time-varying attributes
+        self.addToTimeVary('solution') # Add solution to the list of time-varying attributes
         self.postSolve() # Do post-solution stuff
         
     def resetRNG(self):

@@ -11,12 +11,9 @@ income as defined in ConsIndShockModel.
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder. 
 import sys 
-#sys.path.insert(0,'../')
-#sys.path.insert(0,'../ConsumptionSavingModel')
 import os
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSavingModel'))
-
 
 import EstimationParameters as Params           # Parameters for the consumer type and the estimation
 import ConsIndShockModel as Model               # The consumption-saving micro model
@@ -116,7 +113,7 @@ def smmObjectiveFxn(DiscFacAdj, CRRA,
     
     # Solve the model for these parameters, then simulate wealth data
     agent.solve()        # Solve the microeconomic model
-    agent.unpack_cFunc() # "Unpack" the consumption function for convenient access
+    agent.unpackcFunc() # "Unpack" the consumption function for convenient access
     max_sim_age = max([max(ages) for ages in map_simulated_to_empirical_cohorts])+1
     agent.initializeSim(sim_prds=max_sim_age) # Initialize the simulation by clearing histories, resetting initial values
     agent.simConsHistory()                    # Simulate histories of consumption and wealth

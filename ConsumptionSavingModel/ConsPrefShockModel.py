@@ -81,8 +81,7 @@ class PrefShockConsumerType(KinkedRconsumerType):
             
         # Store the preference shocks in self (time-varying) and restore time flow
         self.PrefShkDstn = PrefShkDstn
-        if not 'PrefShkDstn' in self.time_vary:
-            self.time_vary.append('PrefShkDstn')
+        self.addToTimeVary('PrefShkDstn')
         if not time_orig:
             self.timeRev()
             

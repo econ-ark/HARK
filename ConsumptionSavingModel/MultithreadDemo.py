@@ -36,10 +36,9 @@ if __name__ == '__main__': # Parallel calls *must* be inside a call to __main__
     # Solve the basic type and plot the results, to make sure things are working
     start_time = clock()
     BasicType.solve()
-    BasicType.unpack_cFunc()
     end_time = clock()
     print('Solving the basic consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    BasicType.unpack_cFunc()
+    BasicType.unpackcFunc()
     print('Consumption function:')
     plotFuncs(BasicType.cFunc[0],0,5)    # plot consumption
     print('Marginal consumption function:')
@@ -58,7 +57,7 @@ if __name__ == '__main__': # Parallel calls *must* be inside a call to __main__
         my_agent_list.append(this_agent)   # Addd it to the list of agent types
         
     # Make a list of commands to be run in parallel; these should be methods of ConsumerType
-    do_this_stuff = ['updateSolutionTerminal()','solve()','unpack_cFunc()']
+    do_this_stuff = ['updateSolutionTerminal()','solve()','unpackcFunc()']
     
     # Solve the model for each type by looping over the types (not multithreading)
     start_time = clock()

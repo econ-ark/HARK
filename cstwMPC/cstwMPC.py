@@ -10,18 +10,13 @@ for parameters and execution options.
 # contained in the HARK folder. Also import ConsumptionSavingModel
 import sys 
 import os
-#sys.path.insert(0,'../')
-#sys.path.insert(0,'../ConsumptionSavingModel')
-
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSavingModel'))
-
-
 
 import numpy as np
 from copy import deepcopy
 from time import time
-from HARKutilities import approxLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, \
+from HARKutilities import approxMeanOneLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, \
                           getPercentiles, getLorenzShares, calcSubpopAvg
 from HARKsimulation import drawDiscrete, drawMeanOneLognormal
 from HARKcore import AgentType
@@ -134,15 +129,14 @@ class cstwMPCagent(Model.IndShockConsumerType):
         none
         '''
         tax_rate = (self.IncUnemp*self.UnempPrb)/(self.l_bar*(1.0-self.UnempPrb))
-        TranShkDstn     = deepcopy(approxLognormal(self.TranShkCount,sigma=self.TranShkStd[0],tail_N=0))
+        TranShkDstn     = deepcopy(approxMeanOneLognormal(self.TranShkCount,sigma=self.TranShkStd[0],tail_N=0))
         TranShkDstn[0]  = np.insert(TranShkDstn[0]*(1.0-self.UnempPrb),0,self.UnempPrb)
         TranShkDstn[1]  = np.insert(self.l_bar*TranShkDstn[1]*(1.0-tax_rate),0,self.IncUnemp)
-        PermShkDstn     = approxLognormal(self.PermShkCount,sigma=self.PermShkStd[0],tail_N=0)
+        PermShkDstn     = approxMeanOneLognormal(self.PermShkCount,sigma=self.PermShkStd[0],tail_N=0)
         self.IncomeDstn = [combineIndepDstns(PermShkDstn,TranShkDstn)]
         self.TranShkDstn = TranShkDstn
         self.PermShkDstn = PermShkDstn
-        if not 'IncomeDstn' in self.time_vary:
-            self.time_vary.append('IncomeDstn')
+        self.addToTimeVary('IncomeDstn')
               
 
 def assignBetaDistribution(type_list,DiscFac_list):
@@ -682,7 +676,7 @@ if __name__ == "__main__":
     #==================================================================
     
     # Set commands for the beta-point estimation
-    beta_point_commands = ['solve()','unpack_cFunc()','timeFwd()','simulateCSTW()']
+    beta_point_commands = ['solve()','unpackcFunc()','timeFwd()','simulateCSTW()']
         
     # Make the objective function for the beta-point estimation
     betaPointObjective = lambda DiscFac : simulateKYratioDifference(DiscFac,

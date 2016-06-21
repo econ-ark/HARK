@@ -77,10 +77,7 @@ class AggShockConsumerType(IndShockConsumerType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(IndShockConsumerType.time_vary_)
         self.time_inv = deepcopy(IndShockConsumerType.time_inv_)
-        self.time_inv.remove('Rfree')
-        self.time_inv.remove('BoroCnstArt')
-        self.time_inv.remove('vFuncBool')
-        self.time_inv.remove('CubicBool')
+        self.delFromTimeInv('Rfree','BoroCnstArt','vFuncBool','CubicBool')
         self.solveOnePeriod = solveConsAggShock
         self.p_init = np.ones(self.Nagents)
         self.update()
@@ -145,14 +142,7 @@ class AggShockConsumerType(IndShockConsumerType):
         IncomeDstnWithAggShks = combineIndepDstns(self.PermShkDstn,self.TranShkDstn,Economy.PermShkAggDstn,Economy.TranShkAggDstn)
         self.IncomeDstn = [IncomeDstnWithAggShks]           # Discrete income distribution with aggregate and idiosyncratic shocks
         self.DiePrb = 1.0 - self.LivPrb[0]                  # Only relevant for simulating with mortality
-        if not ('kGrid' in self.time_inv):
-            self.time_inv.append('kGrid')
-        if not ('kNextFunc' in self.time_inv):
-            self.time_inv.append('kNextFunc')
-        if not ('Rfunc' in self.time_inv):
-            self.time_inv.append('Rfunc')
-        if not ('wFunc' in self.time_inv):
-            self.time_inv.append('wFunc')
+        self.addToTimeInv('kGrid','kNextFunc','Rfunc', 'wFunc')
         
     def simOnePrd(self):
         '''
@@ -762,7 +752,7 @@ if __name__ == '__main__':
     print('Solving an aggregate shocks consumer took ' + mystr(t_end-t_start) + ' seconds.')
     print('Consumption function at each capital-to-labor ratio gridpoint:')
     m_grid = np.linspace(0,10,200)
-    AggShockExample.unpack_cFunc()
+    AggShockExample.unpackcFunc()
     for k in AggShockExample.kGrid.tolist():
         c_at_this_k = AggShockExample.cFunc[0](m_grid,k*np.ones_like(m_grid))
         plt.plot(m_grid,c_at_this_k)
@@ -776,7 +766,7 @@ if __name__ == '__main__':
     print('Next capital-to-labor ratio as function of current ratio:')
     plotFuncs(EconomyExample.kNextFunc,0,2*EconomyExample.kSS)
     print('Consumption function at each capital-to-labor ratio gridpoint (in general equilibrium):')
-    AggShockExample.unpack_cFunc()
+    AggShockExample.unpackcFunc()
     m_grid = np.linspace(0,10,200)
     for k in AggShockExample.kGrid.tolist():
         c_at_this_k = AggShockExample.cFunc[0](m_grid,k*np.ones_like(m_grid))

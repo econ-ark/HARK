@@ -20,8 +20,9 @@ in the HARK framework, as shown below.
 '''
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder. 
-import sys 
-sys.path.insert(0,'../')
+import sys
+import os
+sys.path.insert(0, os.path.abspath('../'))
 
 from HARKcore import AgentType, NullFunc, Solution
 from HARKutilities import warnings  # Because of "patch" to warnings modules
@@ -416,7 +417,7 @@ if __name__ == '__main__':
     t_start = clock()
     MarkovType.solve()
     t_end = clock()
-    MarkovType.unpack_cFunc()
+    MarkovType.unpackcFunc()
     
     print('Solving the same model "the long way" took ' + str(t_end-t_start) + ' seconds.')
     #plotFuncs([ExampleType.solution[0].cFunc,ExampleType.solution[0].cFunc_U],0,m_upper)

@@ -16,7 +16,6 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('./'))
-#sys.path.insert(0,'../')
 
 from copy import copy, deepcopy
 import numpy as np
@@ -1486,7 +1485,7 @@ class PerfForesightConsumerType(AgentType):
         self.solution_terminal.vPfunc  = MargValueFunc(self.cFunc_terminal_,self.CRRA)
         self.solution_terminal.vPPfunc = MargMargValueFunc(self.cFunc_terminal_,self.CRRA)
         
-    def unpack_cFunc(self):
+    def unpackcFunc(self):
         '''
         "Unpacks" the consumption functions into their own field for easier access.
         After the model has been solved, the consumption functions reside in the
@@ -1505,8 +1504,7 @@ class PerfForesightConsumerType(AgentType):
         self.cFunc = []
         for solution_t in self.solution:
             self.cFunc.append(solution_t.cFunc)
-        if not ('cFunc' in self.time_vary):
-            self.time_vary.append('cFunc')
+        self.addToTimeVary('cFunc')
 
 
 class IndShockConsumerType(PerfForesightConsumerType):
@@ -1610,8 +1608,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if len(IncomeDstn) == 1:
             self.PermShkDstn = PermShkDstn
             self.TranShkDstn = TranShkDstn
-        if not 'IncomeDstn' in self.time_vary:
-            self.time_vary.append('IncomeDstn')
+        self.addToTimeVary('IncomeDstn')
         if not original_time:
             self.timeRev()
             
@@ -1630,8 +1627,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         '''
         aXtraGrid = constructAssetsGrid(self)
         self.aXtraGrid = aXtraGrid
-        if not 'aXtraGrid' in self.time_inv:
-            self.time_inv.append('aXtraGrid')
+        self.addToTimeInv('aXtraGrid')
                 
     def update(self):
         '''
@@ -2247,7 +2243,7 @@ if __name__ == '__main__':
     PFexample.solve()
     end_time = clock()
     print('Solving a perfect foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    PFexample.unpack_cFunc()
+    PFexample.unpackcFunc()
     PFexample.timeFwd()
     
     # Plot the perfect foresight consumption function
@@ -2265,7 +2261,7 @@ if __name__ == '__main__':
     IndShockExample.solve()
     end_time = clock()
     print('Solving a consumer with idiosyncratic shocks took ' + mystr(end_time-start_time) + ' seconds.')
-    IndShockExample.unpack_cFunc()
+    IndShockExample.unpackcFunc()
     IndShockExample.timeFwd()
     
     # Plot the consumption function and MPC for the infinite horizon consumer
@@ -2302,7 +2298,7 @@ if __name__ == '__main__':
     LifecycleType.solve()
     end_time = clock()
     print('Solving a lifecycle consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    LifecycleType.unpack_cFunc()
+    LifecycleType.unpackcFunc()
     LifecycleType.timeFwd()
     
     # Plot the consumption functions during working life
@@ -2334,7 +2330,7 @@ if __name__ == '__main__':
     CyclicalExample.solve()
     end_time = clock()
     print('Solving a cyclical consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    CyclicalExample.unpack_cFunc()
+    CyclicalExample.unpackcFunc()
     CyclicalExample.timeFwd()
     
     # Plot the consumption functions for the cyclical consumer type
@@ -2360,7 +2356,7 @@ if __name__ == '__main__':
     KinkyExample.solve()
     end_time = clock()
     print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    KinkyExample.unpack_cFunc()
+    KinkyExample.unpackcFunc()
     print('Kinky consumption function:')
     KinkyExample.timeFwd()
     plotFuncs(KinkyExample.cFunc[0],KinkyExample.solution[0].mNrmMin,5)

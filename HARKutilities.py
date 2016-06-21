@@ -475,8 +475,7 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
     Latest update: 21 April 2016 by Matthew N. White
     '''
     # Find the CDF boundaries of each segment
-    if sigma > 0.0:
-        mu_adj         = mu - 0.5*sigma**2;
+    if sigma > 0.0:        
         if tail_N > 0:
             lo_cut     = tail_bound[0]
             hi_cut     = tail_bound[1]
@@ -498,7 +497,7 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
                 upper_CDF_vals.append(upper_CDF_vals[-1] + (1.0-hi_cut)*scale**x/mag)
         CDF_vals       = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
         temp_cutoffs   = list(stats.lognorm.ppf(CDF_vals[1:-1], s=sigma, loc=0, 
-                                                scale=np.exp(mu_adj)))
+                                                scale=np.exp(mu)))
         cutoffs        = [0] + temp_cutoffs + [np.inf]
         CDF_vals       = np.array(CDF_vals)
     
@@ -509,8 +508,8 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
         for i in range(K):
             zBot  = cutoffs[i]
             zTop = cutoffs[i+1]
-            X[i] = (-0.5)*np.exp(mu_adj+(sigma**2)*0.5)*(erf((mu_adj+sigma**2-np.log(zTop))*(
-                   (np.sqrt(2)*sigma)**(-1)))-erf((mu_adj+sigma**2-np.log(zBot))*((np.sqrt(2)*sigma)
+            X[i] = (-0.5)*np.exp(mu+(sigma**2)*0.5)*(erf((mu+sigma**2-np.log(zTop))*(
+                   (np.sqrt(2)*sigma)**(-1)))-erf((mu+sigma**2-np.log(zBot))*((np.sqrt(2)*sigma)
                    **(-1))))*(pmf[i]**(-1))           
     else:
         pmf = np.ones(N)/N
@@ -544,8 +543,8 @@ def approxMeanOneLognormal(N, sigma=1.0, **kwargs):
       (http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
     Latest update: 01 May 2015
     '''
-    mu=0.0
-    pmf,X = approxLognormal(N=N, mu=mu, sigma=sigma, **kwargs)
+    mu_adj = - 0.5*sigma**2;
+    pmf,X = approxLognormal(N=N, mu=mu_adj, sigma=sigma, **kwargs)
     return [pmf,X]
             
 def approxBeta(N,a=1.0,b=1.0):
