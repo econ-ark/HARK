@@ -52,7 +52,7 @@ IncUnempRet = 0.0                   # "Unemployment" benefits when retired
 BoroCnstArt = 0.0                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
 tax_rate = 0.0                      # Flat income tax rate
 CubicBool = True                    # Use cubic spline interpolation when True, linear interpolation when False
-vFuncBool = True                   # Whether to calculate the value function during solution
+vFuncBool = False                   # Whether to calculate the value function during solution
 T_total = 1                         # Total number of periods in cycle for this agent
 T_retire = 0                        # Period of retirement (0 --> no retirement)
 
