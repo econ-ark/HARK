@@ -4,14 +4,15 @@ Created on Thu Jun 02 13:29:44 2016
 
 @author: lowd
 """
+import sys
+import os
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../ConsumptionSavingModel'))
+sys.path.insert(0, os.path.abspath('./'))
 
-import sys 
-sys.path.insert(0,'../')
-sys.path.insert(0,'../ConsumptionSavingModel')
-sys.path.insert(0,'../TractableBufferStock')
-
-from ConsumptionSavingModel import ConsumerType, solveConsumptionSavingMarkov, consumptionSavingSolverENDG, solvePerfForesight
-from TractableBufferStock import TractableConsumerType
+from ConsIndShockModel import solvePerfForesight, IndShockConsumerType
+from ConsMarkovModel import MarkovConsumerType
+from TractableBufferStockModel import TractableConsumerType
 from copy import deepcopy
 
 import unittest
@@ -22,12 +23,11 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
     def setUp(self):
 
         # Set up and solve infinite type
-        import SetupConsumerParameters as Params
+        import ConsumerParameters as Params
         
-        InfiniteType = ConsumerType(**Params.init_consumer_objects)
-        InfiniteType.solveOnePeriod = consumptionSavingSolverENDG
+        InfiniteType = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
         InfiniteType.assignParameters(LivPrb = [1.],
-                                      DiscFac = [0.955],
+                                      DiscFac = 0.955,
                                       PermGroFac = [1.],
                                       PermShkStd  = [0.],
                                       TempShkStd  = [0.],
@@ -37,7 +37,7 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
         InfiniteType.updateIncomeProcess()        
         InfiniteType.solve()
         InfiniteType.timeFwd()
-        InfiniteType.unpack_cFunc()
+        InfiniteType.unpackcFunc()
 
 
         # Make and solve a perfect foresight consumer type
@@ -45,7 +45,7 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
         PerfectForesightType.solveOnePeriod = solvePerfForesight
         
         PerfectForesightType.solve()
-        PerfectForesightType.unpack_cFunc()
+        PerfectForesightType.unpackcFunc()
         PerfectForesightType.timeFwd()
 
         self.InfiniteType = InfiniteType
@@ -79,6 +79,7 @@ class Compare_TBS_and_Markov(unittest.TestCase):
         TBSType.solve()
  
         # Set up and solve Markov
+        MrkvArray = np.array([[1.0-base_primitives['UnempPrb'],base_primitives['UnempPrb']],[0.0,1.0]])
         Markov_primitives = {"CRRA":base_primitives['CRRA'],
                             "Rfree":np.array(2*[base_primitives['Rfree']]),
                             "PermGroFac":[np.array(2*[base_primitives['PermGroFac']/(1.0-base_primitives['UnempPrb'])])],
@@ -99,35 +100,25 @@ class Compare_TBS_and_Markov(unittest.TestCase):
                             "aXtraExtra":[None],
                             "exp_nest":3,
                             "LivPrb":[1.0],
-                            "DiscFac":[base_primitives['DiscFac']],
+                            "DiscFac":base_primitives['DiscFac'],
                             'Nagents':1,
                             'psi_seed':0,
                             'xi_seed':0,
                             'unemp_seed':0,
                             'tax_rate':0.0,
                             'vFuncBool':False,
-                            'CubicBool':True
+                            'CubicBool':True,
+                            'MrkvArray':MrkvArray
                             }
-        
-        
-        MarkovType = ConsumerType(**Markov_primitives)                           
-        MrkvArray                            = np.array([[1.0-base_primitives['UnempPrb'],
-                                                          base_primitives['UnempPrb']],[0.0,1.0]])
+                
+        MarkovType = MarkovConsumerType(**Markov_primitives)                           
+        MarkovType.cycles = 0
         employed_income_dist                 = [np.ones(1),np.ones(1),np.ones(1)]
         unemployed_income_dist               = [np.ones(1),np.ones(1),np.zeros(1)]
-        MarkovType.solution_terminal.cFunc   = 2*[MarkovType.solution_terminal.cFunc]
-        MarkovType.solution_terminal.vFunc   = 2*[MarkovType.solution_terminal.vFunc]
-        MarkovType.solution_terminal.vPfunc  = 2*[MarkovType.solution_terminal.vPfunc]
-        MarkovType.solution_terminal.vPPfunc = 2*[MarkovType.solution_terminal.vPPfunc]
-        MarkovType.solution_terminal.mNrmMin = 2*[MarkovType.solution_terminal.mNrmMin]
-        MarkovType.solution_terminal.MPCmax  = np.array(2*[MarkovType.solution_terminal.MPCmax])
         MarkovType.IncomeDstn = [[employed_income_dist,unemployed_income_dist]]
-        MarkovType.MrkvArray = MrkvArray
-        MarkovType.time_inv.append('MrkvArray')
-        MarkovType.solveOnePeriod = solveConsumptionSavingMarkov
-        MarkovType.cycles = 0
+        
         MarkovType.solve()
-        MarkovType.unpack_cFunc()
+        MarkovType.unpackcFunc()
  
         self.TBSType    = TBSType
         self.MarkovType = MarkovType

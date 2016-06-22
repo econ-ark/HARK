@@ -4,9 +4,13 @@ Created on Tue Apr 12 15:08:22 2016
 
 @author: kaufmana
 """
+import sys
+import os
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../ConsumptionSavingModel'))
+sys.path.insert(0, os.path.abspath('./'))
 
-
-import TractableBufferStock as Model
+import TractableBufferStockModel as Model
 import ModelTesting as test
 
 base_primitives = {'UnempPrb' : .015,
@@ -15,8 +19,6 @@ base_primitives = {'UnempPrb' : .015,
                    'PermGroFac' : 1.05,
                    'CRRA' : .95}
                    
-                   
-
 #assign a model and base parameters to be checked
 TBSCheck = test.parameterCheck(Model.TractableConsumerType,base_primitives)
 

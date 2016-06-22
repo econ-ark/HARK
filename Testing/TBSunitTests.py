@@ -4,8 +4,13 @@ Created on Thu Mar 24 11:01:50 2016
 
 @author: kaufmana
 """
+import sys
+import os
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../ConsumptionSavingModel'))
+sys.path.insert(0, os.path.abspath('./'))
 
-import TractableBufferStock as Model
+import TractableBufferStockModel as Model
 import unittest
 
 class FuncTest(unittest.TestCase):
@@ -52,7 +57,6 @@ class FuncTest(unittest.TestCase):
         results = self.setUp()
         self.assertEqual(results[0],results[1])
         
-
-       
+     
 if __name__ == '__main__':
     unittest.main()
