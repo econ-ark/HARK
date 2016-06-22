@@ -1,7 +1,10 @@
 '''
 Extensions to ConsIndShockModel concerning models with preference shocks.
-It currently only has one model, in which utility is subject to an iid lognormal
-multiplicative shock each period.
+It currently only two models:
+
+1) An extension of ConsIndShock, but with an iid lognormal multiplicative shock each period.
+2) A combination of (1) and ConsKinkedR, demonstrating how to construct a new model
+   by inheriting from multiple classes.
 '''
 import sys 
 sys.path.insert(0,'../')
@@ -511,7 +514,7 @@ def solveConsPrefShock(solution_next,IncomeDstn,PrefShkDstn,
         
 ###############################################################################
         
-class ConsKinkyPrefSolver(ConsPrefShockSolver, ConsKinkedRsolver):
+class ConsKinkyPrefSolver(ConsPrefShockSolver,ConsKinkedRsolver):
     '''
     A class for solving the one period consumption-saving problem with risky
     income (permanent and transitory shocks), multiplicative shocks to utility
