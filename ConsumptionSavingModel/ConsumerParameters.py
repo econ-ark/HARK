@@ -52,7 +52,7 @@ IncUnempRet = 0.0                   # "Unemployment" benefits when retired
 BoroCnstArt = 0.0                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
 tax_rate = 0.0                      # Flat income tax rate
 CubicBool = True                    # Use cubic spline interpolation when True, linear interpolation when False
-vFuncBool = False                   # Whether to calculate the value function during solution
+vFuncBool = True                   # Whether to calculate the value function during solution
 T_total = 1                         # Total number of periods in cycle for this agent
 T_retire = 0                        # Period of retirement (0 --> no retirement)
 
@@ -128,11 +128,19 @@ PrefShk_tail_N = 4       # Number of "tail points" on each end of pref shock dis
 PrefShkStd = [0.30]      # Standard deviation of utility shocks
 
 # Make a dictionary to specify a preference shock consumer
-init_preference_shocks = copy(init_kinked_R)
+init_preference_shocks = copy(init_idiosyncratic_shocks)
 init_preference_shocks['PrefShkCount'] = PrefShkCount
 init_preference_shocks['PrefShk_tail_N'] = PrefShk_tail_N
 init_preference_shocks['PrefShkStd'] = PrefShkStd
+init_preference_shocks['aXtraCount'] = 48
+init_preference_shocks['CubicBool'] = False # pref shocks currently only compatible with linear cFunc
 
+# Make a dictionary to specify a "kinky preference" consumer, who has both shocks
+# to utility and a different interest rate on borrowing vs saving
+init_kinky_pref = copy(init_kinked_R)
+init_kinky_pref['PrefShkCount'] = PrefShkCount
+init_kinky_pref['PrefShk_tail_N'] = PrefShk_tail_N
+init_kinky_pref['PrefShkStd'] = PrefShkStd
 
 # -----------------------------------------------------------------------------
 # ----- Define additional parameters for the aggregate shocks model -----------
