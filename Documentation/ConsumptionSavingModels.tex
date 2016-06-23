@@ -1,0 +1,198 @@
+% !TeX spellcheck = en_GB
+
+\documentclass[12pt,titlepage,letterpaper]{econtex}
+\usepackage{econtexSetup}\usepackage{econtexShortcuts}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\newcommand{\E}{\mathbb{E}}
+
+\begin{document}
+\noindent This document describes the models in the folder \texttt{/ConsumptionSaving} as of 6/25/16.
+
+\section{ConsIndShockModel.py}
+
+Defines consumption-saving models whose agents have CRRA utility over a unitary consumption good, geometric discounting, and who face idiosyncratic shocks to income.
+
+\subsection{Perfect Foresight}
+
+Consider an agent with CRRA utility over consumption, who discounts future utility at a constant rate per period and has no bequest motive.  His problem can be written as:
+\begin{eqnarray*}
+V_t(M_t) &=& \max_{C_t} \utilFunc(C_t) + \beta \PLives_{t+1} \E [V_{t+1}(M_{t+1}) ], \\
+A_t &=& M_t - C_t, \\
+M_{t+1} &=& \Rfree A_t + Y_{t+1}, \\
+Y_{t+1} &=& \Gamma_{t+1} Y_t, \\
+\utilFunc(C) &=& \frac{C^{1-\CRRA}}{1-\CRRA}.
+\end{eqnarray*}
+The model can be normalized by current income (which is also permanent income in this model) by defining lower case variables as their upper case version divided by $Y_t$:
+\begin{eqnarray*}
+\vFunc_t(m_t) &=& \max_{c_t} \utilFunc(c_t) + \beta \PLives_{t+1} \E [\vFunc_{t+1}(m_{t+1}) ], \\
+a_t &=& m_t - c_t, \\
+m_{t+1} &=& (\Rfree/\Gamma_{t+1}) a_t + 1, \\
+\utilFunc(c) &=& \frac{c^{1-\CRRA}}{1-\CRRA}.
+\end{eqnarray*}
+An individual agent's model is thus characterized by values of $\CRRA$, $\beta$, and $\Rfree$ along with sequences $\{\Gamma_t\}_{t=1}^T$ and $\{\PLives_t\}_{t=1}^T$, with $T = \infty$ possible.
+
+The one period problem for this model is solved by the function \texttt{solveConsPerfForesight}, which creates an instance of the class \texttt{ConsPerfForesightSolver}.  The class \texttt{PerfForesightConsumerType} extends \texttt{AgentType} to represent agents in this model. The concordance between model variables and their code equivalents is as follows.
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{c c c}
+Var & Description & Code \\
+\hline
+$\CRRA$ & Coefficient of relative risk aversion & \texttt{CRRA} \\
+$\beta$ & Intertemporal discount factor & \texttt{DiscFac} \\
+$\Rfree$ & Risk free interest factor & \texttt{Rfree} \\
+$\PLives$ & Survival probability & \texttt{LivPrb} \\
+$\Gamma$ & Permanent income growth factor & \texttt{PermGroFac}
+\end{tabular}
+\end{table}
+
+These are the only five parameters that an instance of \texttt{PerfForesightConsumerType} must have in order to use its \texttt{solve} method.  Note that \texttt{PLives} and \texttt{PermGroFac} are assumed to be time-varying, so they should be input as a list.  Each element of the \texttt{solution} attribute will be an instance of \texttt{ConsumerSolution} with the following attributes:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{c c c}
+Var & Description & Code \\
+\hline
+$\cFunc(\cdot)$ & Noramlized consumption function & \texttt{cFunc} \\
+$\vFunc(\cdot)$ & Normalized value function & \texttt{vFunc} \\
+$\vFunc'(\cdot)$ & Normalized marginal value function & \texttt{vPfunc} \\
+$\underline{m}$ & Mininum normalized market resources & \texttt{mNrmMin} \\
+$h$ & Normalized human wealth & \texttt{hNrm} \\
+$\overline{\kappa}$ & Maximum marginal propensity to consume & \texttt{MPCmin} \\
+$\underline{\kappa}$ & Minimum marginal propensity to consume & \texttt{MPCmin} \\
+\end{tabular}
+\end{table}
+In the perfect foresight model, the consumption function is linear, so the maximum and minimum MPC are equal.  Each of the functions takes normalized market resources $m$ as an argument, and they only defined on the domain $m \geq \underline{m} = -h$.
+
+
+\subsection{Permanent and Transitory Idiosyncratic Shocks}
+
+Consider an agent with CRRA utility over consumption, who discounts future utility at a constant rate per period and has no bequest motive.  He foresees that he will experience shocks to his income that are fully transitory or fully permanent.  Using the normalization above, his problem can be written as:
+
+\begin{eqnarray*}
+\vFunc_t(m_t) &=& \max_{c_t} \utilFunc(c_t) + \beta \PLives_{t+1} \E [\vFunc_{t+1}(m_{t+1}) ], \\
+a_t &=& m_t - c_t, \\
+a_t &\geq& \underline{a}, \\
+m_{t+1} &=& \Rfree/(\Gamma_{t+1} \psi_{t+1}) a_t + \theta_{t+1}, \\
+\theta_t \sim F_{\theta t}, &\qquad& \psi_t \sim F_{\psi t}, \hspace{0.25cm} \E[F_{\psi t}] = 1\\
+\utilFunc(c) &=& \frac{c^{1-\CRRA}}{1-\CRRA}.
+\end{eqnarray*}
+That is, this agent is identical to the perfect foresight agent except that his income is subject to permanent ($\psi$) and transitory ($\theta$) shocks to income, and he might have an artificial borrowing constraint $\underline{a}$.
+
+The one period problem for this model is solved by the function \texttt{solveConsIndShock}, which creates an instance of the class \texttt{ConsIndShockSolver}.  The class \texttt{IndShockConsumerType} extends \texttt{PerfForesightConsumerType} to represent agents in this model.  To construct an instance of this class, several additional parameters must be passed to the constructor.  Note that most of these parameters are \textit{indirect} inputs to the consumer's model: they are used to construct direct inputs to the one period problem.  The concordance between the model and code is as follows:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{c c c}
+Var & Description & Code \\
+\hline
+(none) & Minimum of ``assets above minimum'' grid & \texttt{aXtraMin} \\
+(none) & Maximum of ``assets above minimum'' grid & \texttt{aXtraMax} \\
+(none) & Number of points in ``assets above minimum'' grid & \texttt{aXtraCount} \\
+(none) & Additional values for the ``assets above minimum'' grid & \texttt{aXtraExtra} \\
+(none) & Degree of exponential nesting for assets grid & \texttt{exp\_nest} \\
+$N_{\theta}$ & Number of discrete values in transitory shock distribution & \texttt{TranShkCount} \\
+$N_{\psi}$ & Number of discrete values in permanent shock distribution & \texttt{PermShkCount} \\
+$\sigma_\theta$ & Standard deviation of log transitory shocks & \texttt{TranShkStd} \\
+$\sigma_\psi$ & Standard deviation of log permanent shocks & \texttt{PermShkStd} \\
+$\mho$ & Unemployment probability in working period & \texttt{UnempPrb} \\
+$\mho_{ret}$ & ``Unemployment'' probability in retirement period & \texttt{UnempPrbRet} \\
+$\underline{\theta}$ & Transitory income when unemployed in working period & \texttt{IncUnemp} \\
+$\underline{\theta}_{ret}$ & Transitory income when ``unemployed'' in retired period & \texttt{IncUnempRet} \\
+$\tau$ & Marginal income tax rate & \texttt{tax\_rate} \\
+$T_{ret}$ & Period of retirement; number of working periods & \texttt{T\_retire} \\
+$\underline{a}$ & Artificial borrowing constraint & \texttt{BoroCnstArt} \\
+(none) & Indicator for whether \texttt{cFunc} should use cubic splines & \texttt{CubicBool} \\
+(none) & Indicator for whether \texttt{vFunc} should be computed & \texttt{vFuncBool} \\
+$T$ & Total number of (non-terminal) periods in sequence & \texttt{T\_total} \\
+(none) & Number of agents of this type & \texttt{Nagents}
+\end{tabular}
+\end{table}
+
+The first five attributes in the table above are used to construct the ``assets above minimum'' grid \texttt{aXtraGrid}, an input for \texttt{solveConsIndShock}.\footnote{In the current configuration, the grid is multi-exponentially spaced given minimum, maximum, number of gridpoints, and degree of exponential nesting (with additional values to force into the grid with \texttt{aXtraExtra}).  It is simple to replace this grid with another by changing the function \texttt{makeAssetsGrid}.}  The next ten attributes specify an assumed form for the income distribution $(F_{\psi t}, F_{\theta t})$. Both permanent and transitory shocks are lognormally distributed, and with a point mass in the transitory distribution representing unemployment.  Further, the sequence of periods is broken into two parts, ``working'' and ``retired'' to allow for a different income process in retirement.\footnote{Permanent and transitory shocks are turned off during retirement, other than the possibility of ``unemployment'', representing (say) a temporary failure of the retirement benefit system.} The attributes \texttt{PermShkStd} and \texttt{TranShkStd} are thus lists of the (log) standard deviation of shocks period-by-period.
+
+Like the assets grid, the specification of the income process can be changed with little difficulty.  No matter what form is used, the relevant direct input to \texttt{solveConsIndShock} is \texttt{IncomeDstn}, a finite discrete approximation to the true income process.  This attribute is specified as a list with three elements: an array of probabilities (that sum to 1), an array of permanent income shocks, and an array of transitory income shocks.
+
+The artificial borrowing constraint imposes a restriction on assets at the end of the period; it can be set to \texttt{None} to turn off the constraint (i.e.\ only the ``natural'' borrowing constraint will be used). The attributes \texttt{CubicBool} and \texttt{vFuncBool} should be set to \texttt{True} or \texttt{False}, as their name implies.  The solver can construct a linear or cubic spline interpolation of the consumption function; cubic interpolation is slower but more accurate at any number of gridpoints.  The value function is not strictly necessary to compute during solution and carries a computational burden, so it can be turned off with \texttt{vFuncBool=False}.  The number of agents of this type \texttt{Nagents} is irrelevant during solution and is only used during simulation (when \textit{ex-post} heterogeneity emerges within the \textit{ex-ante} homogeneous type).
+
+The \texttt{solve} method of \texttt{IndShockConsumerType} will populate the \texttt{solution} attribute with a list containing instances of \texttt{ConsumerSolution}.  Each of these instances has all the elements listed above in the perfect foresight section plus the attribute \texttt{vPPfunc} (representing $\vFunc''(m)$) if \texttt{CubicBool=True}.\footnote{\texttt{vFunc} will be a placeholder function of the class \texttt{NullFunc} if \texttt{vFuncBool=False}.}
+
+
+\subsection{Different Interest Rate on Borrowing vs Saving}
+
+Consider an agent identical to the ``idiosyncratic shocks'' model above, except that his interest factor differs depending on whether he borrows or saves on net.  His problem is the same as the one above, with a simple addition:
+\begin{equation*}
+\Rfree = \begin{cases}
+\Rfree_{boro} & \text{if  } a_t < 0 \\
+\Rfree_{save} & \text{if  } a_t > 0
+\end{cases}, \qquad \Rfree_{boro} \geq \Rfree_{save}.
+\end{equation*}
+
+The one period problem for this model is solved by \texttt{solveConsKinkedR}, which creates an instance of \texttt{ConsKinkedRsolver}.  The class \texttt{KinkedRconsumerType} extends \texttt{IndShockConsumerType} to represent agents in this model.  The attributes required to specify an instance of \texttt{KinkedRconsumerType} are the same as \texttt{IndShockConsumerType} except that \texttt{Rfree} \textit{should not} be included, instead replaced by values of \texttt{Rboro} and \texttt{Rsave}.  The ``kinked R'' solver is not yet compatible with cubic spline interpolation for \texttt{cFunc}; if the \texttt{solve} method is run with \texttt{CubicBool=True}, it will throw an exception.\footnote{This is an item that is ripe for development by an outside contributor.}
+
+The \texttt{solve} method of \texttt{KinkedRconsumerType} populates the \texttt{solution} attribute with a list of \texttt{ConsumerSolution} instances, in the same format as the idiosyncratic shocks model.
+
+\newpage
+
+\section{ConsPrefShockModel.py}
+
+Defines consumption-saving models whose agents have CRRA utility over a unitary consumption good, geometric discounting, who face idiosyncratic shocks to income and to their utility or preferences.
+
+\subsection{Multiplicative Shocks to Utility}
+
+Consider an agent with a very similar problem to that of the ``idiosyncratic shocks'' model in the preceding section, except that he receives an iid multiplicative shock to his utility at the beginning of each period, before making the consumption decision.  This model can be written in Bellman form as:
+
+\begin{eqnarray*}
+\vFunc_t(m_t,\eta_t) &=& \max_{c_t} \eta \cdot \utilFunc(c_t) + \beta \PLives_{t+1} \E [\vFunc_{t+1}(m_{t+1},\eta_{t+1}) ] \\
+a_t &=& m_t - c_t \\
+a_t &\geq& \underline{a} \\
+m_{t+1} &=& \Rfree/(\Gamma_{t+1} \psi_{t+1}) a_t + \theta_{t+1} \\
+\theta_t \sim F_{\theta t}, &\qquad& \psi_t \sim F_{\psi t}, \hspace{0.25cm} \E[F_{\psi t}] = 1\\
+\utilFunc(c) &=& \frac{c^{1-\CRRA}}{1-\CRRA}, \qquad \eta_t \sim F_{\eta t}.
+\end{eqnarray*}
+
+The one period problem for this model is solved by the function \texttt{solveConsPrefShock}, which creates an instance of \texttt{ConsPrefShockSolver}.  The class \texttt{PrefShockConsumerType} is used to represent agents in this model.  The attributes required to construct an instance of this class are the same as for \texttt{IndShockConsumerType} above, but with three additions:
+\begin{table}[h!]
+\centering
+\begin{tabular}{c c c}
+Var & Description & Code \\
+\hline
+$N_\eta$ & Number of discrete points in ``body'' of preference shock distribution & \texttt{PrefShkCount} \\
+$N_\eta^{tail}$ & Number of discrete points in ``tails'' of preference shock distribution & \texttt{PrefShk\_tail\_N} \\
+$\sigma_\eta$ & Log standard deviation of multiplicative utility shocks & \texttt{PrefShkStd}
+\end{tabular}
+\end{table}
+
+These attributes are indirect inputs to the problem, used during instantiation to construct the \texttt{PrefShkDstn}, an input to \texttt{solveConsPrefShock}.  The tails of the preference shock distribution matter a great deal for the accuracy of the solution and are underrepresented by the default equiprobable discrete approximation (unless a very large number of points are used).  To fix this issue, the attribute \texttt{PrefShk\_tail\_N} specifies the number of points in each ``augmented tail'' section of the preference shock discrete approximation.\footnote{See documentation for \texttt{HARKutilities.approxLognormal} for more details.}  The standard deviation of preference shocks might vary by period, so \texttt{PrefShkStd} should be input as a list.  The ``preference shock'' solver is not yet compatible with cubic spline interpolation for the consumption function and will throw an exception if \texttt{CubicBool=True}.
+
+The \texttt{solve} method of \texttt{PrefShockConsumerType} populates the \texttt{solution} attribute with a list of \texttt{ConsumerSolution} instaces.  These single-period-solution objects have the same attributes as the ``idiosyncratic shocks'' models above, but the attribute \texttt{cFunc} is defined over the space of $(m_t,\eta_t)$ rather than just $m_t$.  The value function \texttt{vFunc} and marginal value \texttt{vPfunc}, however, are defined \textit{only} over $m_t$, as they represent expected (marginal) value \textit{just before} the preference shock $\eta_t$ is realized:\footnote{Particularly in the case of \texttt{vPfunc}, this is the object of interest for solving the preceding period.}
+\begin{eqnarray*}
+\overline{\vFunc}_t(m_t) &=& \int_0^\infty \vFunc(m_t,\eta)dF_{\eta t}(\eta), \\
+\overline{\vFunc}_t'(m_t) &=& \int_0^\infty \vFunc'(m_t,\eta)dF_{\eta t}(\eta).
+\end{eqnarray*}
+
+
+\subsection{Utility Shocks and Different Interest Rates}
+
+Consider an agent with idiosyncratic shocks to permanent and transitory income and multiplicative shocks to utility \textit{and} faces a different interest rate on borrowing vs saving.  This agent's model is identical to that of the ``preference shock'' consumer in section 2.1, with the addition of the interest rate rule from the ``kinked R'' consumer in section 1.3.
+
+The one period problem of this combination model is solved by the function \texttt{solveConsKinkyPref}, which creates an instance of \texttt{ConsKinkyPrefSolver}.  The class \texttt{KinkyPrefConsumerType} represents agents in this model.  As you will see in \texttt{ConsPrefShockModel.py}, there is \textit{very} little new code required to program this model: the solver and consumer classes each inherit from both \texttt{KinkedR} and \texttt{PrefShock} and only need a trivial constructor function to rectify the differences between the two.  This is a good demonstration of the benefit of HARK's object-oriented approach to solution methods: it is sometimes trivial to combine two models to make a new one.
+
+The attributes required to properly construct an instance of \texttt{KinkyPrefConsumerType} are the same as for \texttt{PrefShockConsumerType} except that (like the ``kinked R'' parent model) \texttt{Rfree} should not be replaced with \texttt{Rboro} and \texttt{Rsave}.  Like both of its parents, \texttt{KinkyPref} is not yet compatible with cubic spline interpolation of the consumption function.
+
+\newpage
+
+\section{ConsMarkovModel.py}
+
+blah blah
+
+\newpage \section{ConsAggShockModel.py}
+
+blah blah
+
+\newpage
+
+\section{TractableBufferStockModel.py}
+
+\end{document}

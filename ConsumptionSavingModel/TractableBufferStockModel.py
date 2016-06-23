@@ -30,6 +30,10 @@ from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP
 from HARKinterpolation import CubicInterp
 from copy import copy
 from scipy.optimize import newton, brentq
+
+# If you want to run the "tractable" version of cstwMPC, uncomment the two lines below
+# and have TractableConsumerType inherit from cstwMPCagent rather than AgentType
+#sys.path.insert(0, os.path.abspath('../cstwMPC/'))
 #from cstwMPC import cstwMPCagent
 
 # Define utility function and its derivatives (plus inverses)

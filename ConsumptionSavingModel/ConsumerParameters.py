@@ -34,8 +34,7 @@ init_perfect_foresight = { 'CRRA': CRRA,
 exp_nest = 3                        # Number of times to "exponentially nest" when constructing a_grid
 aXtraMin = 0.001                    # Minimum end-of-period "assets above minimum" value
 aXtraMax = 20                       # Minimum end-of-period "assets above minimum" value               
-aXtraHuge = None                    # A very large value of assets to add to the grid, not used
-aXtraExtra = None                   # Some other value of assets to add to the grid, not used
+aXtraExtra = None                   # Some other value of "assets above minimum" to add to the grid, not used
 aXtraCount = 12                     # Number of points in the grid of "assets above minimum"
 
 # Parameters describing the income process
@@ -47,14 +46,14 @@ UnempPrb = 0.05                     # Probability of unemployment while working
 UnempPrbRet = 0.005                 # Probability of "unemployment" while retired
 IncUnemp = 0.3                      # Unemployment benefits replacement rate
 IncUnempRet = 0.0                   # "Unemployment" benefits when retired
+tax_rate = 0.0                      # Flat income tax rate
+T_retire = 0                        # Period of retirement (0 --> no retirement)
 
 # A few other parameters
 BoroCnstArt = 0.0                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
-tax_rate = 0.0                      # Flat income tax rate
 CubicBool = True                    # Use cubic spline interpolation when True, linear interpolation when False
 vFuncBool = False                   # Whether to calculate the value function during solution
 T_total = 1                         # Total number of periods in cycle for this agent
-T_retire = 0                        # Period of retirement (0 --> no retirement)
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
 init_idiosyncratic_shocks = { 'CRRA': CRRA,
@@ -67,7 +66,7 @@ init_idiosyncratic_shocks = { 'CRRA': CRRA,
                               'aXtraMin': aXtraMin,
                               'aXtraMax': aXtraMax,
                               'aXtraCount': aXtraCount,
-                              'aXtraExtra': [aXtraExtra,aXtraHuge],
+                              'aXtraExtra': [aXtraExtra],
                               'PermShkStd': PermShkStd,
                               'PermShkCount': PermShkCount,
                               'TranShkStd': TranShkStd,
@@ -115,8 +114,8 @@ del init_kinked_R['Rfree'] # get rid of constant interest factor
 init_kinked_R['Rboro'] = Rboro
 init_kinked_R['Rsave'] = Rsave
 init_kinked_R['BoroCnstArt'] = None # kinked R is a bit silly if borrowing not allowed
-init_kinked_R['aXtraCount'] = 48
 init_kinked_R['CubicBool'] = False # kinked R currently only compatible with linear cFunc
+init_kinked_R['aXtraCount'] = 48   # ...so need lots of extra gridpoints to make up for it
 
 
 # -----------------------------------------------------------------------------

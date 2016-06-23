@@ -13,7 +13,7 @@ run_estimation = True         # Runs the estimation if True
 find_beta_vs_KY = False       # Computes K/Y ratio for a wide range of beta; should have do_beta_dist = False
 do_sensitivity = [False, False, False, False, False, False, False, False] # Choose which sensitivity analyses to run: rho, xi_sigma, psi_sigma, mu, urate, mortality, g, R
 do_liquid = False             # Matches liquid assets data when True, net worth data when False
-do_tractable = False          # Uses a "tractable consumer" rather than solving full model when True
+do_tractable = False           # Uses a "tractable consumer" rather than solving full model when True
 do_agg_shocks = False         # Solve the FBS aggregate shocks version of the model
 SCF_data_file = 'SCFwealthDataReduced.txt'
 percentiles_to_match = [0.2, 0.4, 0.6, 0.8]    # Which points of the Lorenz curve to match in beta-dist (must be in (0,1))

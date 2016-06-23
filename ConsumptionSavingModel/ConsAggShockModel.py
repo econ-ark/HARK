@@ -595,7 +595,7 @@ class CobbDouglasEconomy(Market):
             Object containing a new capital evolution rule, calculated from the
             history of the capital-to-labor ratio.
         '''
-        verbose = False
+        verbose = True
         discard_periods = 200 # Throw out the first T periods to allow the simulation to approach the SS
         update_weight = 0.5   # Proportional weight to put on new function vs old function parameters
         total_periods = len(KtoLnow)
