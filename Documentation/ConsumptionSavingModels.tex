@@ -47,7 +47,7 @@ $\Gamma$ & Permanent income growth factor & \texttt{PermGroFac}
 \end{tabular}
 \end{table}
 
-These are the only five parameters that an instance of \texttt{PerfForesightConsumerType} must have in order to use its \texttt{solve} method.  Note that \texttt{PLives} and \texttt{PermGroFac} are assumed to be time-varying, so they should be input as a list.  Each element of the \texttt{solution} attribute will be an instance of \texttt{ConsumerSolution} with the following attributes:
+These are the only five parameters that an instance of \texttt{PerfForesightConsumerType} must have in order to use its \texttt{solve} method.  Note that \texttt{LivPrb} and \texttt{PermGroFac} are assumed to be time-varying, so they should be input as a list.  Each element of the \texttt{solution} attribute will be an instance of \texttt{ConsumerSolution} with the following attributes:
 
 \begin{table}[h!]
 \centering
@@ -59,7 +59,7 @@ $\vFunc(\cdot)$ & Normalized value function & \texttt{vFunc} \\
 $\vFunc'(\cdot)$ & Normalized marginal value function & \texttt{vPfunc} \\
 $\underline{m}$ & Mininum normalized market resources & \texttt{mNrmMin} \\
 $h$ & Normalized human wealth & \texttt{hNrm} \\
-$\overline{\kappa}$ & Maximum marginal propensity to consume & \texttt{MPCmin} \\
+$\overline{\kappa}$ & Maximum marginal propensity to consume & \texttt{MPCmax} \\
 $\underline{\kappa}$ & Minimum marginal propensity to consume & \texttt{MPCmin} \\
 \end{tabular}
 \end{table}
@@ -194,5 +194,37 @@ blah blah
 \newpage
 
 \section{TractableBufferStockModel.py}
+
+Defines the ``tractable buffer stock'' model from Chris Carroll's \href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/Consumption/TractableBufferStock.pdf}{lecture notes}.
+
+\subsection{Tractable Buffer Stock}
+
+Consider a consumer with CRRA utility who faces only a single, very specific risk: that he will become permanently unemployed and receive no income until the end of time.  Otherwise, he faces an infinite horizon problem with a steady stream of income that grows by a fixed factor each period, and earns a constant rate of return on assets retained betweed periods.  His model when still employed can be written in Bellman form as:\footnote{For technical / teaching reasons, permanent income growth while employed is ``risk compensated'' so that human wealth does not vary with the unemployment probability.}
+\begin{eqnarray*}
+\vFunc^e(m_t) &=& \max_{c_t} \utilFunc(c_t) + \beta  \left( (1-\mho)\vFunc^e(m^e_{t+1}) + \mho \vFunc^u(m^u_{t+1}) \right) \\
+a_t &=& m_t - c_t \\
+m^e_{t+1} &=& (\Rfree/\widehat{\Gamma}) a_t + 1, \qquad \widehat{\Gamma} = \Gamma/(1-\mho)\\
+m^u_{t+1} &=& (\Rfree/\widehat{\Gamma}) a_t.
+\end{eqnarray*}
+His model while unemployed is simply:
+\begin{eqnarray*}
+\vFunc^u(m_t) &=& \max_{c_t} \utilFunc(c_t) + \beta  \vFunc^u(m^u_{t+1}) \\
+a_t &=& m_t - c_t \\
+m^u_{t+1} &=& (\Rfree/\widehat{\Gamma}) a_t.
+\end{eqnarray*}
+
+This model is solved by the class \texttt{TractableConsumerType} when its \texttt{solve()} method is invoked.  An instance of this class is specified by the five parameters in the table below:
+\begin{table}[h!]
+\centering
+\begin{tabular}{c c c}
+Var & Description & Code \\
+\hline
+$\CRRA$ & Coefficient of relative risk aversion & \texttt{CRRA} \\
+$\beta$ & Intertemporal discount factor & \texttt{DiscFac} \\
+$\Rfree$ & Interest factor on assets & \texttt{Rfree} \\
+$\Gamma$ & Permanent income growth factor & \texttt{PermGroFac} \\
+$\mho$ & Probability of becoming unemployed & \texttt{UnempPrb}
+\end{tabular}
+\end{table}
 
 \end{document}
