@@ -5,6 +5,7 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \newcommand{\E}{\mathbb{E}}
+%\newcommand{\pd}[2]{\frac{\partial#1}{\partial#2}}
 
 \begin{document}
 \noindent This document describes the models in the folder \texttt{/ConsumptionSaving} as of 6/25/16.
@@ -75,7 +76,7 @@ Consider an agent with CRRA utility over consumption, who discounts future utili
 a_t &=& m_t - c_t, \\
 a_t &\geq& \underline{a}, \\
 m_{t+1} &=& \Rfree/(\Gamma_{t+1} \psi_{t+1}) a_t + \theta_{t+1}, \\
-\theta_t \sim F_{\theta t}, &\qquad& \psi_t \sim F_{\psi t}, \hspace{0.25cm} \E[F_{\psi t}] = 1\\
+\theta_t \sim F_{\theta t}, &\qquad& \psi_t \sim F_{\psi t}, \hspace{0.25cm} \E[F_{\psi t}] = 1, \\
 \utilFunc(c) &=& \frac{c^{1-\CRRA}}{1-\CRRA}.
 \end{eqnarray*}
 That is, this agent is identical to the perfect foresight agent except that his income is subject to permanent ($\psi$) and transitory ($\theta$) shocks to income, and he might have an artificial borrowing constraint $\underline{a}$.
@@ -116,7 +117,7 @@ Like the assets grid, the specification of the income process can be changed wit
 
 The artificial borrowing constraint imposes a restriction on assets at the end of the period; it can be set to \texttt{None} to turn off the constraint (i.e.\ only the ``natural'' borrowing constraint will be used). The attributes \texttt{CubicBool} and \texttt{vFuncBool} should be set to \texttt{True} or \texttt{False}, as their name implies.  The solver can construct a linear or cubic spline interpolation of the consumption function; cubic interpolation is slower but more accurate at any number of gridpoints.  The value function is not strictly necessary to compute during solution and carries a computational burden, so it can be turned off with \texttt{vFuncBool=False}.  The number of agents of this type \texttt{Nagents} is irrelevant during solution and is only used during simulation (when \textit{ex-post} heterogeneity emerges within the \textit{ex-ante} homogeneous type).
 
-The \texttt{solve} method of \texttt{IndShockConsumerType} will populate the \texttt{solution} attribute with a list containing instances of \texttt{ConsumerSolution}.  Each of these instances has all the elements listed above in the perfect foresight section plus the attribute \texttt{vPPfunc} (representing $\vFunc''(m)$) if \texttt{CubicBool=True}.\footnote{\texttt{vFunc} will be a placeholder function of the class \texttt{NullFunc} if \texttt{vFuncBool=False}.}
+The \texttt{solve} method of \texttt{IndShockConsumerType} will populate the \texttt{solution} attribute with a list containing instances of \texttt{ConsumerSolution}.  Each of these instances has all the elements listed above in the perfect foresight section plus the attribute \texttt{vPPfunc} (representing $\vFunc''(m)$) if \texttt{CubicBool=True}.\footnote{\texttt{vFunc} will be a placeholder function of the class \texttt{NullFunc} if \texttt{vFuncBool=False}.}  The problem is solved using the method of endogenous gridpoints, which is explained for this model in section 5.8 of \href{http://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/}{this set of lecture notes}.
 
 
 \subsection{Different Interest Rate on Borrowing vs Saving}
@@ -131,7 +132,7 @@ Consider an agent identical to the ``idiosyncratic shocks'' model above, except 
 
 The one period problem for this model is solved by \texttt{solveConsKinkedR}, which creates an instance of \texttt{ConsKinkedRsolver}.  The class \texttt{KinkedRconsumerType} extends \texttt{IndShockConsumerType} to represent agents in this model.  The attributes required to specify an instance of \texttt{KinkedRconsumerType} are the same as \texttt{IndShockConsumerType} except that \texttt{Rfree} \textit{should not} be included, instead replaced by values of \texttt{Rboro} and \texttt{Rsave}.  The ``kinked R'' solver is not yet compatible with cubic spline interpolation for \texttt{cFunc}; if the \texttt{solve} method is run with \texttt{CubicBool=True}, it will throw an exception.\footnote{This is an item that is ripe for development by an outside contributor.}
 
-The \texttt{solve} method of \texttt{KinkedRconsumerType} populates the \texttt{solution} attribute with a list of \texttt{ConsumerSolution} instances, in the same format as the idiosyncratic shocks model.
+The \texttt{solve} method of \texttt{KinkedRconsumerType} populates the \texttt{solution} attribute with a list of \texttt{ConsumerSolution} instances, in the same format as the idiosyncratic shocks model.  The problem is solved using the method of endogenous gridpoints with \textit{two} copies of $a_t = 0$ in the grid of end-of-period states-- one for $\Rfree_{boro}$ and the other for $\Rfree_{save}$.  This generates the ``kinked'' portion of the resulting consumption function, where the consumer is unwilling to borrow and insufficiently motivated to save, so he consumes at $c_t = m_t$.
 
 \newpage
 
@@ -144,11 +145,11 @@ Defines consumption-saving models whose agents have CRRA utility over a unitary 
 Consider an agent with a very similar problem to that of the ``idiosyncratic shocks'' model in the preceding section, except that he receives an iid multiplicative shock to his utility at the beginning of each period, before making the consumption decision.  This model can be written in Bellman form as:
 
 \begin{eqnarray*}
-\vFunc_t(m_t,\eta_t) &=& \max_{c_t} \eta \cdot \utilFunc(c_t) + \beta \PLives_{t+1} \E [\vFunc_{t+1}(m_{t+1},\eta_{t+1}) ] \\
-a_t &=& m_t - c_t \\
-a_t &\geq& \underline{a} \\
-m_{t+1} &=& \Rfree/(\Gamma_{t+1} \psi_{t+1}) a_t + \theta_{t+1} \\
-\theta_t \sim F_{\theta t}, &\qquad& \psi_t \sim F_{\psi t}, \hspace{0.25cm} \E[F_{\psi t}] = 1\\
+\vFunc_t(m_t,\eta_t) &=& \max_{c_t} \eta \cdot \utilFunc(c_t) + \beta \PLives_{t+1} \E [\vFunc_{t+1}(m_{t+1},\eta_{t+1}) ], \\
+a_t &=& m_t - c_t, \\
+a_t &\geq& \underline{a}, \\
+m_{t+1} &=& \Rfree/(\Gamma_{t+1} \psi_{t+1}) a_t + \theta_{t+1}, \\
+\theta_t \sim F_{\theta t}, &\qquad& \psi_t \sim F_{\psi t}, \hspace{0.25cm} \E[F_{\psi t}] = 1, \\
 \utilFunc(c) &=& \frac{c^{1-\CRRA}}{1-\CRRA}, \qquad \eta_t \sim F_{\eta t}.
 \end{eqnarray*}
 
@@ -185,14 +186,134 @@ The attributes required to properly construct an instance of \texttt{KinkyPrefCo
 
 \section{ConsMarkovModel.py}
 
-blah blah
+Defines consumption-saving models with a discrete state that evolves according to an exogenous Markov process.
 
-\newpage \section{ConsAggShockModel.py}
+\subsection{Markov States and Idiosyncratic Shocks}
 
-blah blah
+Consider an agent with CRRA utility over consumption who geometrically discounts future utility flows and expects to experience transitory and permanent shocks to his income.  Moreover, in any given period he finds himself in exactly one of several discrete states; this state evolves from period to period according to a Markov process.  The individual's income distribution, permanent income growth rate, and interest factor might vary across states.  This agent's problem can be written in Bellman form as:
+\begin{eqnarray*}
+\vFunc_t(m_t,s_t) &=& \max_{c_t} \utilFunc(c_t) + \beta \PLives_{t+1} \E [\vFunc_{t+1}(m_{t+1},s_{t+1}) ], \\
+a_t &=& m_t - c_t, \\
+a_t &\geq& \underline{a}, \\
+m_{t+1} &=& \frac{\Rfree(s_{t+1})}{\Gamma_{t+1}(s_{t+1})\psi_{t+1}} \cdot a_t + \theta_{t+1}, \\
+\theta_t \sim F_{\theta t}(s_{t}), &\qquad& \psi_t \sim F_{\psi t}(s_{t}), \hspace{0.25cm} \E[F_{\psi t}(s_{t})] = 1, \\
+\text{Prob}[s_{t+1}=j | s_t=i] &=& \Delta_{ij}, \\
+\utilFunc(c) &=& \frac{c^{1-\CRRA}}{1-\CRRA}.
+\end{eqnarray*}
+The Markov matrix is $\Delta$, giving transition probabilities from current state $i$ to future state $j$.  This model is the same as the ``idiosyncratic shocks'' model of section 2.1 but for the presence of the Markov state $s_t$, so that the interest factor $\Rfree$, income distribution $(F_{\psi t},F_{\theta t})$, and permanent income growth factor $\Gamma_{t+1}$ are all functions of the Markov state, having a value for each state.
+
+The function \texttt{solveConsMarkov} solves the one period problem of this model, creating an instance of \texttt{ConsMarkovSolver}.  The class \texttt{MarkovConsumerType} is used to represent agents in this model, extending \texttt{IndShockConsumerType}.  The attributes required to specify an instance of this class are the same as for \texttt{IndShockConsumerType} but for one addition:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{c c c}
+Var & Description & Code \\
+\hline
+$\Delta$ & Discrete state transition probability matrix & \texttt{MrkvArray}
+\end{tabular}
+\end{table}
+
+The attribute \texttt{MrkvArray} is a \texttt{numpy.array} of size $(N_s,N_s)$ corresponding to the number of discrete states.\footnote{As is, \texttt{MrkvArray} is an element of \texttt{time\_inv}, so the same transition probabilities are used for each period.  However, it can be moved to \texttt{time\_vary} and specified as a list of \texttt{array}s instead.}  The attributes \texttt{Rfree}, \texttt{PermGroFac}, and \texttt{IncomeDstn} should be specified as lists\footnote{\texttt{PermGroFac} and \texttt{Rfree} can be arrays or lists.} with $N_s$ elements for each period.  Note that \texttt{MarkovConsumerType} currently has no method to automatically construct a valid \texttt{IncomeDstn}; as seen in the examples in \texttt{ConsMarkovModel.py}, the \texttt{IncomeDstn} is manually constructed in each case.\footnote{Writing a method to supersede  \texttt{IndShockConsumerType.updateIncomeProcess} for the ``Markov model'' would be a welcome contribution.}  All other attributes are specified the same as in the ``idiosyncratic shocks'' model.
+
+When the \texttt{solve} method of a \texttt{MarkovConsumerType} is invoked, the \texttt{solution} attribute is populated with a list of \texttt{ConsumerSolution} objects, which each have the same attributes as the ``idiosyncratic shocks'' model.  However, each attribute is now a list (or array) whose elements are \textit{state-conditional} values of that object.  For example, in a model with four discrete states, each the \texttt{cFunc} attribute of each element of \texttt{solution} is a length-4 list whose elements are state-conditional consumption functions (e.g. \texttt{cFunc[2]} is the consumption function when $s_t=2$).  The ``Markov model'' is compatible with cubic spline interpolation for the consumption functions, so \texttt{CubicBool=True} will not generate an exception.  The problem is solved using the method of endogenous gridpoints, which is moderately more complicated than in the basic ``idiosyncratic shocks'' model.
+
+\section{ConsAggShockModel.py}
+
+Defines consumption-saving models with idiosyncratic and aggregate shocks to income.
+
+\subsection{Idiosyncratic and Aggregate Shocks to Income}
+
+Consider an agent with CRRA preferences over consumption who discounts future utility flows and expects to experience permanent and transitory shocks to his income.  He also believes that the market to which he supplies (a fixed amount of) labor will experience \textit{aggregate} permanent and transitory shocks to the effective productivity of labor.  The wage rate in the market is the marginal product of labor in the aggregate production function, and the interest factor is one plus the (net) marginal product of capital; assume that the ratio of aggregate capital-to-labor is a sufficient statistic for these marginal products.  Further, the agent believes that the capital-to-labor ratio evolves as a function of its current value.  This model can be written in Bellman form as:
+
+\begin{eqnarray*}
+\vFunc_t(m_t,k_t) &=& \max_{c_t} \utilFunc(c_t) + \beta \PLives_{t+1} \E [\vFunc_{t+1}(m_{t+1},k_{t+1}) ], \\
+a_t &=& m_t - c_t, \\
+a_t &\geq& 0, \\
+m_{t+1} &=& \frac{\Rfree_{t+1}}{\Gamma_{t+1}\psi_{t+1} \Psi_{t+1}} \cdot a_t + W_{t+1} \theta_{t+1}, \\
+\Rfree_{t+1} = \textbf{R}(k_{t+1}/\Theta_{t+1}), & & W_{t+1} = \textbf{W}(k_{t+1}/\Theta_{t+1}), \\
+k_{t+1} &=& \textbf{k}(k_t), \\
+\theta_t \sim F_{\theta t}, &\qquad& \psi_t \sim F_{\psi t}, \hspace{0.25cm} \E[F_{\psi t}] = 1, \\
+\Theta_t \sim F_{\Theta}, &\qquad& \Psi_t \sim F_{\Psi}, \hspace{0.25cm} \E[F_{\Psi}] = \E[F_{\Theta}] = 1, \\
+\utilFunc(c) &=& \frac{c^{1-\CRRA}}{1-\CRRA}.
+\end{eqnarray*}
+
+The objects $\textbf{R}(\cdot)$ and $\textbf{W}(\cdot)$, are functions of the (effective) capital-to-labor ratio that yield the (net) interest factor and wage rate respectively.  As noted above, these are determined by the aggregate production function and the degree of capital depreciation.  The $\texttt{k}(\cdot)$ function represents the agent's beliefs about the evolution of the capital-to-labor ratio $k_t$.  As with idiosyncratic shocks, there is an aggregate shock process $(F_{\Theta},F_{\Psi})$.
+
+The one period problem of this model is solved by the function \texttt{solveConsAggShock}, the default value of \texttt{solveOnePeriod} for \texttt{AggShockConsumerType}.  The attributes required to specify an instance of this class are listed in the concordance below.
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{c c c}
+Var & Description & Code \\
+\hline
+$\CRRA$ & Coefficient of relative risk aversion & \texttt{CRRA} \\
+$\beta$ & Intertemporal discount factor & \texttt{DiscFac} \\
+$\PLives$ & Survival probability & \texttt{LivPrb} \\
+$\Gamma$ & Permanent income growth factor & \texttt{PermGroFac} \\
+(none) & Minimum of ``assets above minimum'' grid & \texttt{aXtraMin} \\
+(none) & Maximum of ``assets above minimum'' grid & \texttt{aXtraMax} \\
+(none) & Number of points in ``assets above minimum'' grid & \texttt{aXtraCount} \\
+(none) & Additional values for the ``assets above minimum'' grid & \texttt{aXtraExtra} \\
+(none) & Degree of exponential nesting for assets grid & \texttt{exp\_nest} \\
+$\{\hat{k}\}$ & Array of scaling factors for capital ratio (around SS) & \texttt{kGridBase} \\
+$N_{\theta}$ & Number of discrete values in transitory shock distribution & \texttt{TranShkCount} \\
+$N_{\psi}$ & Number of discrete values in permanent shock distribution & \texttt{PermShkCount} \\
+$\sigma_\theta$ & Standard deviation of log transitory shocks & \texttt{TranShkStd} \\
+$\sigma_\psi$ & Standard deviation of log permanent shocks & \texttt{PermShkStd} \\
+$\mho$ & Unemployment probability in working period & \texttt{UnempPrb} \\
+$\mho_{ret}$ & ``Unemployment'' probability in retirement period & \texttt{UnempPrbRet} \\
+$\underline{\theta}$ & Transitory income when unemployed in working period & \texttt{IncUnemp} \\
+$\underline{\theta}_{ret}$ & Transitory income when ``unemployed'' in retired period & \texttt{IncUnempRet} \\
+$\tau$ & Marginal income tax rate & \texttt{tax\_rate} \\
+$T_{ret}$ & Period of retirement; number of working periods & \texttt{T\_retire} \\
+$T$ & Total number of (non-terminal) periods in sequence & \texttt{T\_total} \\
+(none) & Number of agents of this type & \texttt{Nagents}
+\end{tabular}
+\end{table}
+
+This list is very similar to the one for \texttt{IndShockConsumerType}, but several attributes have been removed: \texttt{Rfree} is endogenous here, while \texttt{CubicBool}, \texttt{vFuncBool}, and \texttt{BoroCnstArt} are not yet supported in the ``aggregate shocks'' model.  The only new attribute is \texttt{kGridBase}, an array of scaling factors for the (perfect foresight equivalent) steady state capital ratio; it is used to construct \texttt{kGrid}, a direct input for \texttt{solveConsAggShock}.
+
+A new \texttt{AggShockConsumerType} with these attributes is not yet ready to solve its micro model, as it lacks several features.  After creating a valid \texttt{CobbDouglasEconomy} instance (see section 4.2), the agent type must get ``macro'' level objects from this by invoking its \texttt{getEconomyData} method with the \texttt{CobbDouglasEconomy} as the input.  This gives the agent type its interest, wage, and next-capital-ratio functions as the attributes \texttt{Rfunc}, \texttt{Wfunc}, and \texttt{kNextFunc}, its capital ratio grid \texttt{kGrid}, and reformats the \texttt{IncomeDstn} attribute as a discrete joint distribution across all four types of shocks.\footnote{As of the beta release, this method is only compatible with one period infinite horizon micro models, but this can be fixed with minimal difficulty.}
+
+After obtaining ``macro''-level inputs to its model, an \texttt{AggShockConsumerType}'s \texttt{solve} method will populate the \texttt{solution} attribute with a list of \texttt{ConsumerSolution} instances.  Unlike the models with only idiosyncratic shocks, the one-period-solution objects have only two attributes, \texttt{cFunc} and \texttt{vPfunc}; both of these functions are defined over the space of $(m_t,k_t)$.  The model is solved using the method of endogenous gridpoints, following Kiichi Tokuoka's Mathematica code for the \href{http://www.econ2.jhu.edu/people/ccarroll/papers/cstwMPC/}{``cstwMPC'' project}.
+
+\subsection{Cobb-Douglas Economy}
+
+A model with ``aggregate shocks'' only makes sense if there is some market-level object that experiences these shocks.  The \texttt{CobbDouglasEconomy} class extends \texttt{Market} to represent an economy with a Cobb-Douglas production function over aggregate capital and aggregate labor\footnote{As the microeconomic model in section 4.1 assumes a fixed per capita labor supply, aggregate labor for this class is assumed constant and disappears into the background.  The HARK team welcomes contributions that extend both the micro and macro models to account for endogenous labor supply.} and permanent and transitory shocks to labor productivity.  The basic model for the Cobb-Douglas economy is:
+
+\begin{eqnarray*}
+Y &=& K^\alpha L^{1-\alpha}, \qquad k \equiv K/L,\\
+W = \pd{Y}{L} &=& (1-\alpha) K^{\alpha} L^{-\alpha} = (1-\alpha) k^\alpha, \\
+\rfree = \pd{Y}{K} &=& \alpha K^{\alpha-1} L^{1-\alpha} = \alpha k^{\alpha-1}, \\
+\Rfree &=& 1 + \rfree - \delta.
+\end{eqnarray*}
+
+A new instance of \texttt{CobbDouglasEconomy} must have attributes listed in the table below.  The constructor for the class uses these attributes to calculate the perfect foresight steady state of the capital-to-labor ratio\footnote{If the economy were populated with perfect foresight agents with preferences given by $\beta^{PF}$ and $\CRRA^{PF}$, the steady state level of capital is where $k_{t+1} = k_t$ (when aggregate shocks are turned off as well).}, wage rate, and interest rate; the interest and wage functions; a discretization of the aggregate shock process, and an initial guess of the next-capital-ratio function.  Following Krusell and Smith (1998), we assume that the log of next period's capital ratio is a linear function of the log of this period's capital ratio.
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{c c c}
+Var & Description & Code \\
+\hline
+$\alpha$ & Capital's share of output & \texttt{CapShare} \\
+$\delta$ & Capital depreciation rate & \texttt{DeprFac} \\
+$\sigma_\Psi$ & Standard deviation of log permanent aggregate shocks & \texttt{PermShkAggStd} \\
+$\sigma_\Theta$ & Standard deviation of log transitory aggregate shocks & \texttt{TranShkAggStd} \\
+$N_\Psi$ & Number of discrete values in permanent agg shock distribution & \texttt{PermShkAggCount} \\
+$N_\Theta$ & Number of discrete values in transitory agg shock distribution & \texttt{TranShkAggCount} \\
+$\CRRA^{PF}$ & Perfect foresight coefficient of relative risk aversion & \texttt{CRRAPF} \\
+$\beta^{PF}$ & Perfect foresight intertemporal discount factor & \texttt{DiscFacPF} \\
+\end{tabular}
+\end{table}
+
+After a well-formed \texttt{CobbDouglasEconomy} has been created, its \texttt{agents} attribute can be populated with one or more instances of \texttt{AggShockConsumerType} (who have taken ``macro'' level information from the \texttt{CobbDouglasEconomy}).  A history of aggregate shocks can be created by invoking the \texttt{makeAggShkHist} method.  If each element of \texttt{AggShockConsumerType} has run its \texttt{makeIncShkHist} method to create a history of idiosyncratic income shocks (for many agents in each type), then the \texttt{CobbDouglasEconomy} can invoke its \texttt{solve} method.  This will search for a general equilibrium of the model, defined as a ``dynamic rule'' for the capital ratio $\textbf{k}(k_t)$ that is \textit{consistent}: when agents believe this $\textbf{k}(k_t)$ in their microeconomic problem, and the model is simulated for many periods, the resulting history of the capital ratio is consistent with that same dynamic rule.
+
+In the \texttt{Market} framework, the \texttt{millRule} for \texttt{CobbDouglasEconomy} gathers each agent's end-of-period normalized assets $a_t$ and permanent income $p_t$.  It aggregates wealth across all consumers into total capital, which it transforms into the capital-to-labor ratio.  It then uses the next aggregate shock values to calculate $\Rfree_t$ and $W_t$, which are distributed back to the consumers along with the aggregate shocks and new capital ratio, so that they can simulated another period.
+
+After generating a history of several thousand periods, the \texttt{CobbDouglasEconomy} can calculate a new dynamic rule for the capital ratio with its \texttt{calcDynamics} method.  The dynamics calculator simply throws out the first 200 periods of the history and runs a one-period-lag autoregression on the log capital ratio.  This generates a new function for \texttt{kNextFunc}, which is distributed to the consumer types in \texttt{agents} to re-solve their micro models.  This process continues until successive \texttt{kNextFunc}s are sufficiently close to consider the process converged (as determined by the \texttt{tolerance} attribute).
+
 
 \newpage
-
 \section{TractableBufferStockModel.py}
 
 Defines the ``tractable buffer stock'' model from Chris Carroll's \href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/Consumption/TractableBufferStock.pdf}{lecture notes}.
@@ -223,8 +344,30 @@ $\CRRA$ & Coefficient of relative risk aversion & \texttt{CRRA} \\
 $\beta$ & Intertemporal discount factor & \texttt{DiscFac} \\
 $\Rfree$ & Interest factor on assets & \texttt{Rfree} \\
 $\Gamma$ & Permanent income growth factor & \texttt{PermGroFac} \\
-$\mho$ & Probability of becoming unemployed & \texttt{UnempPrb}
+$\mho$ & Probability of becoming unemployed & \texttt{UnempPrb} \\
 \end{tabular}
 \end{table}
+
+Unlike other models in HARK, tractable buffer stock is not solved by backward induction beginning from an initial guess of the solution.  Because of the very specific form of risk faced by the agent, it is possible to calculate\footnote{As long as the consumer is both ``return impatient'' and ``growth impatient'', else there is no steady state or no solution at all.} analytical values of the steady state $(m_t,c_t)$ and to find several derivatives of the consumption function at this point (i.e.\ the MPC, MMPC, etc).  Further, the Euler and transition equations can be inverted to yield $(m_{t-1},c_{t-1})$ as a function of $(m_t,c_t)$ conditional on being employed in both periods.  Beginning from a small perturbation along a Taylor approximation of the consumption function around the steady state, the solution method generates a sequence of ``stable arm points'' along the consumption function.  After reaching specified bounds (and appending the lower bound at $(0,0)$), the (employed) consumption function is constructed as a cubic spline interpolation.
+
+After running the \texttt{solve} method, the \texttt{solution} attribute of a \texttt{TractableConsumerType} will have a list with a single instance of \texttt{TractableConsumerSolution}.  This object has the following attributes:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{c c c}
+Var & Description & Code \\
+\hline
+$\{m_t\}$ & List of market resources values on the stable arm & \texttt{mNrm\_list} \\
+$\{c_t\}$ & List of consumption values on the stable arm & \texttt{cNrm\_list} \\
+$\{\kappa_t\}$ & List of MPCs at points on the stable arm & \texttt{MPC\_list} \\
+$\cFunc^e(m_t)$ & Consumption function when employed & \texttt{cFunc} \\
+$\cFunc^u(m_t)$ & Consumption function when unemployed & \texttt{cFunc\_U} \\
+(none) & Number of stable arm points included & \texttt{PointCount}
+\end{tabular}
+\end{table}
+
+\subsection{Tractable Buffer Stock as Markov}
+
+The tractable buffer stock model can also be solved by the standard backward induction approach if it is framed in terms of the Markov model in section 3.  There are two discrete state, \textit{employed} and \textit{unemployed}; transition probabilities from the former are $(1-\mho,\mho)$ and the latter is an absorbing state.  The interest factor and permanent income growth rate are identical in the two states, and both have degenerate income distributions: $\psi_e = \theta_e = 1$, while $\psi_u = 1$ and $\theta_u = 0$ for sure.  The model takes about 300 times longer to solve using the ``Markov formulation'' as the backshooting method, yielding a nearly identical solution.
 
 \end{document}
