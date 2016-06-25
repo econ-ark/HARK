@@ -3,11 +3,11 @@ beta release - June 25, 2016
 
 Table of Contents:
 
-I.   Introduction
-II.  Quick start guide
-III. List of files in repository
-IV.  Warnings and disclaimers
-V.   License Information
+* I.   Introduction
+* II.  Quick start guide
+* III. List of files in repository
+* IV.  Warnings and disclaimers
+* V.   License Information
 
 -------------------------------------------------------------------
 
@@ -22,13 +22,17 @@ running on your machine, and what you will find in HARK once you do.
 If you have any comments on the code or documentation, we'd love to
 hear from you!  Our email addresses are:
 
-Chris Carroll: ccarroll@llorracc.org
-Matthew White: mnwhite@gmail.com
-Nathan Palmer: Nathan.Palmer@ofr.treasury.gov
-David Low: David.Low@cfpb.gov
+* Chris Carroll: ccarroll@llorracc.org
+* Matthew White: mnwhite@gmail.com
+* Nathan Palmer: Nathan.Palmer@ofr.treasury.gov
+* David Low: David.Low@cfpb.gov
+* Alexander Kaufman: akaufman10@gmail.com
 
 GitHub repository:    https://github.com/econ-ark/HARK
+
 Online documentation: https://econ-ark.github.io/HARK
+
+User guide: /Documentation/HARKmanual.pdf (in the repository)
 
 -------------------------------------------------------------------
 
@@ -114,17 +118,13 @@ This section contains descriptions of every file included in the HARK
 repository at the time of the beta release, categorized for convenience.
 
 Documentation files:
-- README.txt
-    The file you are currently reading.
-- Documentation/HARKdoc.pdf
-    A mini-user guide produced for a December 2015 workshop on HARK,
-    unofficially representing the alpha version.  Somewhat out of date.
-- Documentation/HARKmanual.pdf
-    A user guide for HARK, written for the beta release at CEF 2016 in
-    Bordeaux.  Should contain 90% fewer lies relative to HARKdoc.pdf.
-- Documentation/HARKmanual.tex
-    LaTeX source for the user guide.  Open source code probably requires
-    an open source manual as well.
+* README.txt: The file you are currently reading.
+* Documentation/HARKdoc.pdf: A mini-user guide produced for a December 2015 workshop on HARK, unofficially representing the alpha version.  Somewhat out of date.
+* Documentation/HARKmanual.pdf: A user guide for HARK, written for the beta release at CEF 2016 in Bordeaux.  Should contain 90% fewer lies relative to HARKdoc.pdf.
+* Documentation/HARKmanual.tex: LaTeX source for the user guide.  Open source code probably requires an open source manual as well.
+* Documentation/ConsumptionSavingModels.pdf: Mathematical descriptions of the various consumption-saving models in HARK and how they map into the code.
+* Documentation/ConsumptionSavingModels.tex: LaTeX source for the "models" writeup.
+    
 
 Tool modules:
 - HARKcore.py
