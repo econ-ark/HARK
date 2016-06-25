@@ -1157,6 +1157,12 @@ period assets, and an artificial borrowing constraint.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
 </tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">addToTimeInv</span></code>(*params)</td>
+<td>Adds any number of parameters to time_inv for this instance.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">addToTimeVary</span></code>(*params)</td>
+<td>Adds any number of parameters to time_vary for this instance.</td>
+</tr>
 <tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType.advanceIncShks" title="ConsIndShockModel.IndShockConsumerType.advanceIncShks"><code class="xref py py-obj docutils literal"><span class="pre">advanceIncShks</span></code></a>()</td>
 <td>Advance the permanent and transitory income shocks to the next period of the shock history objects.</td>
 </tr>
@@ -1171,6 +1177,12 @@ period assets, and an artificial borrowing constraint.</p>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType.calcBoundingValues" title="ConsIndShockModel.IndShockConsumerType.calcBoundingValues"><code class="xref py py-obj docutils literal"><span class="pre">calcBoundingValues</span></code></a>()</td>
 <td>Calculate human wealth plus minimum and maximum MPC in an infinite horizon model with only one period repeated indefinitely.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">delFromTimeInv</span></code>(*params)</td>
+<td>Removes any number of parameters from time_inv for this instance.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">delFromTimeVary</span></code>(*params)</td>
+<td>Removes any number of parameters from time_vary for this instance.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
 <td>A generic distance method, which requires the existence of an attribute called distance_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
@@ -1220,7 +1232,7 @@ period assets, and an artificial borrowing constraint.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">timeRev</span></code>()</td>
 <td>Make time flow backward for this instance.</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">unpack_cFunc</span></code>()</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">unpackcFunc</span></code>()</td>
 <td>&#8220;Unpacks&#8221; the consumption functions into their own field for easier access.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.IndShockConsumerType.update" title="ConsIndShockModel.IndShockConsumerType.update"><code class="xref py py-obj docutils literal"><span class="pre">update</span></code></a>()</td>
@@ -1499,6 +1511,12 @@ linear spline interpolation.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
 </tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">addToTimeInv</span></code>(*params)</td>
+<td>Adds any number of parameters to time_inv for this instance.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">addToTimeVary</span></code>(*params)</td>
+<td>Adds any number of parameters to time_vary for this instance.</td>
+</tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">advanceIncShks</span></code>()</td>
 <td>Advance the permanent and transitory income shocks to the next period of the shock history objects.</td>
 </tr>
@@ -1513,6 +1531,12 @@ linear spline interpolation.</p>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.KinkedRconsumerType.calcBoundingValues" title="ConsIndShockModel.KinkedRconsumerType.calcBoundingValues"><code class="xref py py-obj docutils literal"><span class="pre">calcBoundingValues</span></code></a>()</td>
 <td>Calculate human wealth plus minimum and maximum MPC in an infinite horizon model with only one period repeated indefinitely.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">delFromTimeInv</span></code>(*params)</td>
+<td>Removes any number of parameters from time_inv for this instance.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">delFromTimeVary</span></code>(*params)</td>
+<td>Removes any number of parameters from time_vary for this instance.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
 <td>A generic distance method, which requires the existence of an attribute called distance_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
@@ -1562,7 +1586,7 @@ linear spline interpolation.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">timeRev</span></code>()</td>
 <td>Make time flow backward for this instance.</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">unpack_cFunc</span></code>()</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">unpackcFunc</span></code>()</td>
 <td>&#8220;Unpacks&#8221; the consumption functions into their own field for easier access.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">update</span></code>()</td>
@@ -1754,11 +1778,23 @@ growth rate and survival probability.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
 </tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">addToTimeInv</span></code>(*params)</td>
+<td>Adds any number of parameters to time_inv for this instance.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">addToTimeVary</span></code>(*params)</td>
+<td>Adds any number of parameters to time_vary for this instance.</td>
+</tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#ConsIndShockModel.PerfForesightConsumerType.cFunc_terminal_" title="ConsIndShockModel.PerfForesightConsumerType.cFunc_terminal_"><code class="xref py py-obj docutils literal"><span class="pre">cFunc_terminal_</span></code></a></td>
 <td></td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">delFromTimeInv</span></code>(*params)</td>
+<td>Removes any number of parameters from time_inv for this instance.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">delFromTimeVary</span></code>(*params)</td>
+<td>Removes any number of parameters from time_vary for this instance.</td>
 </tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
 <td>A generic distance method, which requires the existence of an attribute called distance_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
@@ -1793,7 +1829,7 @@ growth rate and survival probability.</p>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">timeRev</span></code>()</td>
 <td>Make time flow backward for this instance.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.PerfForesightConsumerType.unpack_cFunc" title="ConsIndShockModel.PerfForesightConsumerType.unpack_cFunc"><code class="xref py py-obj docutils literal"><span class="pre">unpack_cFunc</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.PerfForesightConsumerType.unpackcFunc" title="ConsIndShockModel.PerfForesightConsumerType.unpackcFunc"><code class="xref py py-obj docutils literal"><span class="pre">unpackcFunc</span></code></a>()</td>
 <td>&#8220;Unpacks&#8221; the consumption functions into their own field for easier access.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="generated/ConsIndShockModel.html#ConsIndShockModel.PerfForesightConsumerType.updateSolutionTerminal" title="ConsIndShockModel.PerfForesightConsumerType.updateSolutionTerminal"><code class="xref py py-obj docutils literal"><span class="pre">updateSolutionTerminal</span></code></a>()</td>
@@ -1825,8 +1861,8 @@ growth rate and survival probability.</p>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="ConsIndShockModel.PerfForesightConsumerType.unpack_cFunc">
-<code class="descname">unpack_cFunc</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ConsIndShockModel.PerfForesightConsumerType.unpack_cFunc" title="Permalink to this definition">¶</a></dt>
+<dt id="ConsIndShockModel.PerfForesightConsumerType.unpackcFunc">
+<code class="descname">unpackcFunc</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ConsIndShockModel.PerfForesightConsumerType.unpackcFunc" title="Permalink to this definition">¶</a></dt>
 <dd><p>&#8220;Unpacks&#8221; the consumption functions into their own field for easier access.
 After the model has been solved, the consumption functions reside in the
 attribute cFunc of each element of ConsumerType.solution.  This method
@@ -1997,31 +2033,31 @@ after t=T_retire periods of working.</p>
 <p>Note 1: All time in this function runs forward, from t=0 to t=T</p>
 <p>Note 2: All parameters are passed as attributes of the input parameters.</p>
 <dl class="docutils">
-<dt>PermShkStd</dt>
- <span class="classifier-delimiter">:</span> <span class="classifier">[float]</span><dd>List of standard deviations in log permanent income uncertainty during
+<dt>PermShkStd <span class="classifier-delimiter">:</span> <span class="classifier">[float]</span></dt>
+<dd>List of standard deviations in log permanent income uncertainty during
 the agent&#8217;s life.</dd>
-<dt>PermShkCount</dt>
- <span class="classifier-delimiter">:</span> <span class="classifier">int</span><dd>The number of approximation points to be used in the discrete approxima-
+<dt>PermShkCount <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The number of approximation points to be used in the discrete approxima-
 tion to the permanent income shock distribution.</dd>
-<dt>TranShkStd</dt>
- <span class="classifier-delimiter">:</span> <span class="classifier">[float]</span><dd>List of standard deviations in log transitory income uncertainty during
+<dt>TranShkStd <span class="classifier-delimiter">:</span> <span class="classifier">[float]</span></dt>
+<dd>List of standard deviations in log transitory income uncertainty during
 the agent&#8217;s life.</dd>
-<dt>TranShkCount</dt>
- <span class="classifier-delimiter">:</span> <span class="classifier">int</span><dd>The number of approximation points to be used in the discrete approxima-
+<dt>TranShkCount <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The number of approximation points to be used in the discrete approxima-
 tion to the permanent income shock distribution.</dd>
-<dt>UnempPrb</dt>
- <span class="classifier-delimiter">:</span> <span class="classifier">float</span><dd>The probability of becoming unemployed during the working period.</dd>
-<dt>UnempPrbRet</dt>
- <span class="classifier-delimiter">:</span> <span class="classifier">float</span><dd>The probability of not receiving typical retirement income when retired.</dd>
-<dt>T_retire</dt>
- <span class="classifier-delimiter">:</span> <span class="classifier">int</span><dd>The index value for the final working period in the agent&#8217;s life.
+<dt>UnempPrb <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The probability of becoming unemployed during the working period.</dd>
+<dt>UnempPrbRet <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The probability of not receiving typical retirement income when retired.</dd>
+<dt>T_retire <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The index value for the final working period in the agent&#8217;s life.
 If T_retire &lt;= 0 then there is no retirement.</dd>
-<dt>IncUnemp</dt>
- <span class="classifier-delimiter">:</span> <span class="classifier">float</span><dd>Transitory income received when unemployed.</dd>
-<dt>IncUnempRet</dt>
- <span class="classifier-delimiter">:</span> <span class="classifier">float</span><dd>Transitory income received while &#8220;unemployed&#8221; when retired.</dd>
-<dt>T_total</dt>
- <span class="classifier-delimiter">:</span> <span class="classifier">int</span><dd>Total number of non-terminal periods in the consumer&#8217;s sequence of periods.</dd>
+<dt>IncUnemp <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>Transitory income received when unemployed.</dd>
+<dt>IncUnempRet <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>Transitory income received while &#8220;unemployed&#8221; when retired.</dd>
+<dt>T_total <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>Total number of non-terminal periods in the consumer&#8217;s sequence of periods.</dd>
 </dl>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -2274,6 +2310,9 @@ the succeeding period.</p>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -2293,8 +2332,8 @@ the succeeding period.</p>
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &copy; Copyright 2016, TEMP.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.1.
+        &copy; Copyright 2016, Christopher D. Carroll, Alexander M. Kaufman, David C. Low, Nathan M. Palmer, Matthew N. White.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.5.
     </div>
   </body>
 </html>

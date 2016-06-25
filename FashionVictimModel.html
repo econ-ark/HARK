@@ -80,7 +80,7 @@ a uniform distribution around a linear function of the previous state.</p>
 
 <dl class="class">
 <dt id="FashionVictimModel.FashionMarketInfo">
-<em class="property">class </em><code class="descclassname">FashionVictimModel.</code><code class="descname">FashionMarketInfo</code><span class="sig-paren">(</span><em>pPop</em><span class="sig-paren">)</span><a class="headerlink" href="#FashionVictimModel.FashionMarketInfo" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">FashionVictimModel.</code><code class="descname">FashionMarketInfo</code><span class="sig-paren">(</span><em>pNow</em><span class="sig-paren">)</span><a class="headerlink" href="#FashionVictimModel.FashionMarketInfo" title="Permalink to this definition">¶</a></dt>
 <dd><p>A class for representing the current distribution of styles in the population.</p>
 </dd></dl>
 
@@ -127,8 +127,20 @@ from the proportion of the population that wears the same style.</p>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">__call__</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent, as a convenience.</td>
 </tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">addToTimeInv</span></code>(*params)</td>
+<td>Adds any number of parameters to time_inv for this instance.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">addToTimeVary</span></code>(*params)</td>
+<td>Adds any number of parameters to time_vary for this instance.</td>
+</tr>
 <tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">assignParameters</span></code>(**kwds)</td>
 <td>Assign an arbitrary number of attributes to this agent.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">delFromTimeInv</span></code>(*params)</td>
+<td>Removes any number of parameters from time_inv for this instance.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">delFromTimeVary</span></code>(*params)</td>
+<td>Removes any number of parameters from time_vary for this instance.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">distance</span></code>(other)</td>
 <td>A generic distance method, which requires the existence of an attribute called distance_criteria, giving a list of strings naming the attributes to be considered by the distance metric.</td>
@@ -298,14 +310,14 @@ states for each current period state in pGrid.</p>
 
 <dl class="function">
 <dt id="FashionVictimModel.calcFashionEvoFunc">
-<code class="descclassname">FashionVictimModel.</code><code class="descname">calcFashionEvoFunc</code><span class="sig-paren">(</span><em>pPop</em><span class="sig-paren">)</span><a class="headerlink" href="#FashionVictimModel.calcFashionEvoFunc" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">FashionVictimModel.</code><code class="descname">calcFashionEvoFunc</code><span class="sig-paren">(</span><em>pNow</em><span class="sig-paren">)</span><a class="headerlink" href="#FashionVictimModel.calcFashionEvoFunc" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates a new approximate dynamic rule for the evolution of the proportion
 of punks as a linear function and a &#8220;shock width&#8221;.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>pPop</strong> : [float]</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>pNow</strong> : [float]</p>
 <blockquote>
 <div><p>List describing the history of the proportion of punks in the population.</p>
 </div></blockquote>
@@ -314,7 +326,7 @@ of punks as a linear function and a &#8220;shock width&#8221;.</p>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>(unnamed)</strong> : FashionEvoFunc</p>
 <blockquote class="last">
 <div><p>A new rule for the evolution of the population punk proportion, based on
-the history in input pPop.</p>
+the history in input pNow.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -324,7 +336,7 @@ the history in input pPop.</p>
 
 <dl class="function">
 <dt id="FashionVictimModel.calcPunkProp">
-<code class="descclassname">FashionVictimModel.</code><code class="descname">calcPunkProp</code><span class="sig-paren">(</span><em>pNow</em>, <em>pop_size</em><span class="sig-paren">)</span><a class="headerlink" href="#FashionVictimModel.calcPunkProp" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">FashionVictimModel.</code><code class="descname">calcPunkProp</code><span class="sig-paren">(</span><em>sNow</em><span class="sig-paren">)</span><a class="headerlink" href="#FashionVictimModel.calcPunkProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the proportion of punks in the population, given data from each type.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -432,6 +444,9 @@ period if p = pGrid[i] today.</p>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -451,8 +466,8 @@ period if p = pGrid[i] today.</p>
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &copy; Copyright 2016, TEMP.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.1.
+        &copy; Copyright 2016, Christopher D. Carroll, Alexander M. Kaufman, David C. Low, Nathan M. Palmer, Matthew N. White.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.5.
     </div>
   </body>
 </html>

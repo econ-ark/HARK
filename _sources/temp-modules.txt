@@ -33,13 +33,13 @@ FashionVictim
    FashionVictimModel
    FashionVictimParams
 
-SolvingMicroDSOPs
-=================
+cstwMPC
+=======
 
 .. toctree::
    :maxdepth: 4
 
-   EstimationParameters
-   SetupSCFdata
-   StructEstimation
-
+   MakeCSTWfigs
+   MakeCSTWfigsForSlides
+   SetupParamsCSTW
+   cstwMPC

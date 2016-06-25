@@ -6,12 +6,15 @@
 Welcome to HARK's documentation!
 ================================
 
+Welcome to HARK! We are tremendously excited you’re here. HARK is very much a work in progress, but we hope you find it valuable. This is the the code documentation; for more details and the project itself please see the `main repository <https://github.com/econ-ark/hark>`_  for a README and much more.
+
+
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
-   includeme
+   readme_link
 
 .. autosummary::
    :toctree: generated
@@ -30,8 +33,6 @@ Contents:
    TractableBufferStockModel
 
    FashionVictimModel
-
-   cstwMPC
 
 
 

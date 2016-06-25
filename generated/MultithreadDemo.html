@@ -45,45 +45,8 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="module-MultithreadDemo">
-<span id="multithreaddemo"></span><h1>MultithreadDemo<a class="headerlink" href="#module-MultithreadDemo" title="Permalink to this headline">¶</a></h1>
-<p>A demonstration of parallel processing in HARK using HARKparallel.
-A benchmark consumption-saving model is solved for individuals whose CRRA varies
-between 1 and 8.  The infinite horizon model is solved serially and then in
-parallel.  Note that HARKparallel will not work &#8220;out of the box&#8221;, as Anaconda
-does not include two packages needed for it; see HARKparallel.py.  When given a
-sufficiently large amount of work for each thread to do, the maximum speedup
-factor seems to be around P/2, where P is the number of processors.</p>
-<p class="rubric">Functions</p>
-<table border="1" class="longtable docutils">
-<colgroup>
-<col width="10%" />
-<col width="90%" />
-</colgroup>
-<tbody valign="top">
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">clock</span></code>(()&nbsp;-&gt;&nbsp;floating&nbsp;point&nbsp;number)</td>
-<td>Return the CPU time or real time since the start of the process or since the first call to clock().</td>
-</tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">deepcopy</span></code>(x[,&nbsp;memo,&nbsp;_nil])</td>
-<td>Deep copy operation on arbitrary Python objects.</td>
-</tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">multiThreadCommands</span></code>(agent_list,&nbsp;command_list)</td>
-<td>Executes the list of commands in command_list for each AgentType in agent_list using a multithreaded system.</td>
-</tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">multiThreadCommandsFake</span></code>(agent_list,&nbsp;command_list)</td>
-<td>Executes the list of commands in command_list for each AgentType in agent_list in an ordinary, single-threaded loop.</td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="../MultithreadDemo.html#MultithreadDemo.mystr" title="MultithreadDemo.mystr"><code class="xref py py-obj docutils literal"><span class="pre">mystr</span></code></a>(number)</td>
-<td></td>
-</tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">plotFuncs</span></code>(functions,&nbsp;bottom,&nbsp;top[,&nbsp;N])</td>
-<td>Plots 1D function(s) over a given range.</td>
-</tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">plotFuncsDer</span></code>(functions,&nbsp;bottom,&nbsp;top[,&nbsp;N])</td>
-<td>Plots the first derivative of 1D function(s) over a given range.</td>
-</tr>
-</tbody>
-</table>
+  <div class="section" id="multithreaddemo">
+<h1>MultithreadDemo<a class="headerlink" href="#multithreaddemo" title="Permalink to this headline">¶</a></h1>
 </div>
 
 
@@ -107,6 +70,9 @@ factor seems to be around P/2, where P is the number of processors.</p>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -126,8 +92,8 @@ factor seems to be around P/2, where P is the number of processors.</p>
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &copy; Copyright 2016, TEMP.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.1.
+        &copy; Copyright 2016, Christopher D. Carroll, Alexander M. Kaufman, David C. Low, Nathan M. Palmer, Matthew N. White.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.5.
     </div>
   </body>
 </html>
