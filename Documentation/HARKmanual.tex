@@ -255,23 +255,19 @@ The \texttt{ConsIndShockModel} module defines the class \texttt{PerfForesightCon
 
 \vspace{0.25cm}
 
-\noindent \texttt{MyConsumer = PerfForesightConsumerType(time\_flow=True, cycles=1)}
+\noindent \texttt{MyConsumer = PerfForesightConsumerType(time\_flow=True, cycles=1,}
 
-\noindent \texttt{MyConsumer.CRRA = 2.7}
+\texttt{    CRRA = 2.7, Rfree = 1.03, DiscFac = 0.98,}
 
-\noindent \texttt{MyConsumer.Rfree = 1.03}
+\texttt{    LivPrb = [0.99,0.98,0.97,0.96,0.95,0.94,0.93,0.92,0.91,0.90],}
 
-\noindent \texttt{MyConsumer.DiscFac = 0.98}
-
-\noindent \texttt{MyConsumer.LivPrb = [0.99,0.98,0.97,0.96,0.95,0.94,0.93,0.92,0.91,0.90]}
-
-\noindent \texttt{MyConsumer.PermGroFac = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]}
+\texttt{    PermGroFac = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02])}
 
 \noindent \texttt{MyConsumer.solve()}
 
 \vspace{0.25cm}
 
-The first line makes a new instance of \texttt{ConsumerType}, specifying that time is currently ``flowing'' forward\footnote{This is relevant for the intepretation of the time-varying inputs \texttt{LivPrb} and \texttt{PermGroFac}.} and that the sequence of periods happens exactly once.  The next five lines set the time invariant (\texttt{CRRA}, \texttt{Rfree}, \texttt{DiscFac}) and time varying parameters (\texttt{LivPrb}, \texttt{PermGroFac}).  After running the \texttt{solve} method, \texttt{MyConsumer} will have an attribute called \texttt{solution}, which will be a list with eleven \texttt{ConsumerSolution} objects, representing the period-by-period solution to the model.\footnote{The last element of \texttt{solution} represents the terminal period solution, where the agent consumes all available resources because there is no future.}  Each \texttt{ConsumerSolution} has several attributes:
+The first line makes a new instance of \texttt{ConsumerType}, specifying that time is currently ``flowing'' forward\footnote{This is relevant for the intepretation of the time-varying inputs \texttt{LivPrb} and \texttt{PermGroFac}.} and that the sequence of periods happens exactly once; the next three lines (all part of the same command) set the time invariant (\texttt{CRRA}, \texttt{Rfree}, \texttt{DiscFac}) and time varying parameters (\texttt{LivPrb}, \texttt{PermGroFac}).  After running the \texttt{solve} method, \texttt{MyConsumer} will have an attribute called \texttt{solution}, which will be a list with eleven \texttt{ConsumerSolution} objects, representing the period-by-period solution to the model.\footnote{The last element of \texttt{solution} represents the terminal period solution, where the agent consumes all available resources because there is no future.}  Each \texttt{ConsumerSolution} has several attributes:
 \begin{itemize}
 \item \texttt{cFunc}: Optimal consumption function for this period as a function of (normalized) market resources $m_t = M_t/Y_t$. Can be called like any other function: \texttt{MyConsumer.solution[0].cFunc(5)} returns consumption at $m_t = 5$.
 

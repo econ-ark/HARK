@@ -577,8 +577,8 @@ def approxBeta(N,a=1.0,b=1.0):
         
 def approxUniform(N,bot=0.0,top=1.0):
     '''
-    Makes a discrete approximation to a uniform distribution, given its center
-    point and width.
+    Makes a discrete approximation to a uniform distribution, given its bottom
+    and top limits and number of points.
     
     Parameters
     ----------
