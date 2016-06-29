@@ -39,8 +39,9 @@ class MargValueFunc2D():
         cFunc : function
             A real function representing the marginal value function composed
             with the inverse marginal utility function, defined on market
-            resources: uP_inv(vPfunc(m,k)).  Called cFunc because when standard
-            envelope condition applies, uP_inv(vPfunc(m,k)) = cFunc(m,k).
+            resources and the capital-to-labor ratio: uP_inv(vPfunc(m,k)).
+            Called cFunc because when standard envelope condition applies,
+            uP_inv(vPfunc(m,k)) = cFunc(m,k).
         CRRA : float
             Coefficient of relative risk aversion.
             

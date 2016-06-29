@@ -432,6 +432,40 @@ class ConsPerfForesightSolver(object):
         self.MPC     = 1.0/(1.0 + PatFac/self.solution_next.MPCmin)
         # Construct the consumption function
         self.cFunc   = LinearInterp([self.mNrmMin, self.mNrmMin+1.0],[0.0, self.MPC])
+        # Add two attributes to enable calculation of steady state market resources
+        self.ExIncNext = 1.0 # Perfect foresight income of 1
+        self.mNrmMinNow = self.mNrmMin # Relabeling for compatibility with addSSmNrm
+        
+    def addSSmNrm(self,solution):
+        '''
+        Finds steady state (normalized) market resources and adds it to the
+        solution.  This is the level of market resources such that the expectation
+        of market resources in the next period is unchanged.  This value doesn't
+        necessarily exist.
+        
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            Solution to this period's problem, which must have attribute cFunc.
+        Returns
+        -------
+        solution : ConsumerSolution
+            Same solution that was passed, but now with the attribute mNrmSS.
+        '''
+        # Make a linear function of all combinations of c and m that yield mNext = mNow
+        mZeroChangeFunc = lambda m : (1.0-self.PermGroFac/self.Rfree)*m + (self.PermGroFac/self.Rfree)*self.ExIncNext
+        
+        # Find the steady state level of market resources
+        searchSSfunc = lambda m : solution.cFunc(m) - mZeroChangeFunc(m) # A zero of this is SS market resources
+        m_init_guess = self.mNrmMinNow + self.ExIncNext # Minimum market resources plus next income is okay starting guess
+        try:
+            mNrmSS = newton(searchSSfunc,m_init_guess)
+        except:
+            mNrmSS = None
+        
+        # Add mNrmSS to the solution and return it
+        solution.mNrmSS = mNrmSS
+        return solution
         
     def solve(self): 
         '''
@@ -453,6 +487,7 @@ class ConsPerfForesightSolver(object):
         solution = ConsumerSolution(cFunc=self.cFunc, vFunc=self.vFunc, vPfunc=self.vPfunc,
                                     mNrmMin=self.mNrmMin, hNrm=self.hNrmNow,
                                     MPCmin=self.MPC, MPCmax=self.MPC)
+        solution = self.addSSmNrm(solution)
         return solution
 
 
@@ -1090,38 +1125,6 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         '''
         vPPfuncNow        = MargMargValueFunc(solution.cFunc,self.CRRA)
         solution.vPPfunc  = vPPfuncNow
-        return solution
-        
-        
-    def addSSmNrm(self,solution):
-        '''
-        Finds steady state (normalized) market resources and adds it to the
-        solution.  This is the level of market resources such that the expectation
-        of market resources in the next period is unchanged.  This value doesn't
-        necessarily exist.
-        
-        Parameters
-        ----------
-        solution : ConsumerSolution
-            Solution to this period's problem, which must have attribute cFunc.
-        Returns
-        -------
-        solution : ConsumerSolution
-            Same solution that was passed, but now with the attribute mNrmSS.
-        '''
-        # Make a linear function of all combinations of c and m that yield mNext = mNow
-        mZeroChangeFunc = lambda m : (1.0-self.PermGroFac/self.Rfree)*m + (self.PermGroFac/self.Rfree)*self.ExIncNext
-        
-        # Find the steady state level of market resources
-        searchSSfunc = lambda m : solution.cFunc(m) - mZeroChangeFunc(m) # A zero of this is SS market resources
-        m_init_guess = self.mNrmMinNow + self.ExIncNext # Minimum market resources plus next income is okay starting guess
-        try:
-            mNrmSS = newton(searchSSfunc,m_init_guess)
-        except:
-            mNrmSS = None
-        
-        # Add mNrmSS to the solution and return it
-        solution.mNrmSS = mNrmSS
         return solution
 
        
