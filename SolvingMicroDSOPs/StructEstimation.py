@@ -1,21 +1,22 @@
 '''
 Demonstrates an example estimation of microeconomic dynamic stochastic optimization
-problem, as described in Section X of Chris Carroll's SolvingMicroDSOPs.pdf notes.
+problem, as described in Section 9 of Chris Carroll's SolvingMicroDSOPs.pdf notes.
 The estimation attempts to match the age-conditional wealth profile of simulated
 consumers to the median wealth holdings of seven age groups in the 2004 SCF by
 varying only two parameters: the coefficient of relative risk aversion and a scaling
 factor for an age-varying sequence of discount factors.  The estimation uses a
 consumption-saving model with idiosyncratic shocks to permanent and transitory
-income as defined in ConsumptionSavingModel.py.
+income as defined in ConsIndShockModel.
 '''
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder. 
 import sys 
-sys.path.insert(0,'../')
-sys.path.insert(0,'../ConsumptionSavingModel')
+import os
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../ConsumptionSavingModel'))
 
-import EstimationParameters as Params        # Parameters for the consumer type and the estimation
-import ConsumptionSavingModel as Model          # The consumption-saving micro model
+import EstimationParameters as Params           # Parameters for the consumer type and the estimation
+import ConsIndShockModel as Model               # The consumption-saving micro model
 import SetupSCFdata as Data                     # SCF 2004 data on household wealth
 from HARKsimulation import drawDiscrete         # Method for sampling from a discrete distribution
 from HARKestimation import minimizeNelderMead, bootstrapSampleFromData # Estimation methods
@@ -34,11 +35,13 @@ make_contour_plot = False         # Whether to make a contour map of the objecti
 
 # Make a lifecycle consumer to be used for estimation, including simulated shocks (plus an initial distribution of wealth)
 EstimationAgent = Model.IndShockConsumerType(**Params.init_consumer_objects) # Make a ConsumerType for estimation
+EstimationAgent.time_inv.remove('DiscFac')                           # This estimation uses age-varying discount factors as
+EstimationAgent.time_vary.append('DiscFac')                          # estimated by Cagetti (2003), so switch from time_inv to time_vary
 EstimationAgent(sim_periods = EstimationAgent.T_total+1)             # Set the number of periods to simulate
 EstimationAgent.makeIncShkHist()                                     # Make a simulated history of income shocks for many consumers
-EstimationAgent.a_init = drawDiscrete(P=Params.initial_wealth_income_ratio_probs,
-                                      X=Params.initial_wealth_income_ratio_vals,
-                                      N=Params.num_agents,
+EstimationAgent.a_init = drawDiscrete(N=Params.num_agents,
+                                      P=Params.initial_wealth_income_ratio_probs,
+                                      X=Params.initial_wealth_income_ratio_vals,                                      
                                       seed=Params.seed)              # Draw initial assets for each consumer
 
 # Define the objective function for the simulated method of moments estimation
@@ -110,7 +113,7 @@ def smmObjectiveFxn(DiscFacAdj, CRRA,
     
     # Solve the model for these parameters, then simulate wealth data
     agent.solve()        # Solve the microeconomic model
-    agent.unpack_cFunc() # "Unpack" the consumption function for convenient access
+    agent.unpackcFunc() # "Unpack" the consumption function for convenient access
     max_sim_age = max([max(ages) for ages in map_simulated_to_empirical_cohorts])+1
     agent.initializeSim(sim_prds=max_sim_age) # Initialize the simulation by clearing histories, resetting initial values
     agent.simConsHistory()                    # Simulate histories of consumption and wealth

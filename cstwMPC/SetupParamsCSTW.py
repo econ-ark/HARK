@@ -1,18 +1,19 @@
 '''
-This package load parameters used in the cstwMPC estimations.
+Loads parameters used in the cstwMPC estimations.
 '''
 import numpy as np
 import csv
 from copy import copy, deepcopy
+import os
 
 # Choose percentiles of the data to match and which estimation to run
 do_lifecycle = False          # Use lifecycle model if True, perpetual youth if False
-do_beta_dist = False           # Do beta-dist version if True, beta-point if False
+do_beta_dist = False          # Do beta-dist version if True, beta-point if False
 run_estimation = True         # Runs the estimation if True
 find_beta_vs_KY = False       # Computes K/Y ratio for a wide range of beta; should have do_beta_dist = False
 do_sensitivity = [False, False, False, False, False, False, False, False] # Choose which sensitivity analyses to run: rho, xi_sigma, psi_sigma, mu, urate, mortality, g, R
 do_liquid = False             # Matches liquid assets data when True, net worth data when False
-do_tractable = False          # Uses a "tractable consumer" rather than solving full model when True
+do_tractable = False           # Uses a "tractable consumer" rather than solving full model when True
 do_agg_shocks = False         # Solve the FBS aggregate shocks version of the model
 SCF_data_file = 'SCFwealthDataReduced.txt'
 percentiles_to_match = [0.2, 0.4, 0.6, 0.8]    # Which points of the Lorenz curve to match in beta-dist (must be in (0,1))
@@ -59,7 +60,8 @@ PermShkStd = np.concatenate((((0.00011342*(np.linspace(24,64.75,working_T-1)-47)
 PermShkStd = np.ndarray.tolist(PermShkStd)
 
 # Import survival probabilities from SSA data
-f = open('USactuarial.txt','r')
+data_location = os.path.dirname(os.path.abspath(__file__))
+f = open(data_location + '/' + 'USactuarial.txt','r')
 actuarial_reader = csv.reader(f,delimiter='\t')
 raw_actuarial = list(actuarial_reader)
 base_death_probs = []
@@ -68,7 +70,7 @@ for j in range(len(raw_actuarial)):
 f.close
 
 # Import adjustments for education and apply them to the base mortality rates
-f = open('EducMortAdj.txt','r')
+f = open(data_location + '/' + 'EducMortAdj.txt','r')
 adjustment_reader = csv.reader(f,delimiter=' ')
 raw_adjustments = list(adjustment_reader)
 d_death_probs = []
@@ -184,7 +186,7 @@ slope_prev = 1.0                   # Initial slope of kNextFunc (aggregate shock
 intercept_prev = 0.0               # Initial intercept of kNextFunc (aggregate shocks model)
 
 # Import the SCF wealth data
-f = open(SCF_data_file,'r')
+f = open(data_location + '/' + SCF_data_file,'r')
 SCF_reader = csv.reader(f,delimiter='\t')
 SCF_raw = list(SCF_reader)
 SCF_wealth = np.zeros(len(SCF_raw)) + np.nan
@@ -267,6 +269,7 @@ init_agg_shocks = deepcopy(init_infinite)
 init_agg_shocks['Nagents'] = Nagents_agg_shocks
 init_agg_shocks['sim_periods'] = sim_periods_agg_shocks
 init_agg_shocks['tolerance'] = 0.0001
+init_agg_shocks['kGridBase'] = np.array([0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6])
                         
 # Make a dictionary for the aggrege shocks market
 aggregate_params = {'PermShkAggCount': PermShkAggCount,
@@ -284,3 +287,10 @@ aggregate_params = {'PermShkAggCount': PermShkAggCount,
 
 beta_save = DiscFac_guess # Hacky way to save progress of estimation
 diff_save = 1000000.0  # Hacky way to save progress of estimation
+
+
+if __name__ == '__main__':
+    print("Sorry, SetupParamsCSTW doesn't actually do anything on its own.")
+    print("This module is imported by cstwMPC, providing data and calibrated")
+    print("parameters for the various estimations.  Please see that module if")
+    print("you want more interesting output.")
