@@ -919,8 +919,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cNrm,mNrm    = self.getPointsForInterpolation(EndOfPrdvP,aNrm)       
         solution_now = self.usePointsForInterpolation(cNrm,mNrm,interpolator)
         return solution_now
-
-        
+      
     def addMPCandHumanWealth(self,solution):
         '''
         Take a solution and add human wealth and the bounding MPCs to it.
@@ -940,7 +939,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution.MPCmin = self.MPCminNow
         solution.MPCmax = self.MPCmaxEff
         return solution
-
         
     def makeLinearcFunc(self,mNrm,cNrm):
         '''
@@ -960,19 +958,19 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         '''
         cFuncUnc = LinearInterp(mNrm,cNrm,self.MPCminNow*self.hNrmNow,self.MPCminNow)
         return cFuncUnc
-        
-                
+                   
     def solve(self):
         '''
         Solves a one period consumption saving problem with risky income.
         
         Parameters
         ----------
-        none
+        None
             
         Returns
         -------
-        none
+        solution : ConsumerSolution
+            The solution to the one period problem.
         '''
         aNrm       = self.prepareToCalcEndOfPrdvP()           
         EndOfPrdvP = self.calcEndOfPrdvP()                        
@@ -1588,8 +1586,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.TranShkHist = TranShkHist
         if not orig_time:
             self.timeRev()
-            
-            
+                      
     def updateIncomeProcess(self):
         '''
         Updates this agent's income process based on his own attributes.  The
