@@ -50,7 +50,7 @@ tax_rate = 0.0                      # Flat income tax rate
 T_retire = 0                        # Period of retirement (0 --> no retirement)
 
 # A few other parameters
-BoroCnstArt = 0.0                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+BoroCnstArt = 0.0                  # Artificial borrowing constraint; imposed minimum level of end-of period assets
 CubicBool = True                    # Use cubic spline interpolation when True, linear interpolation when False
 vFuncBool = False                   # Whether to calculate the value function during solution
 T_total = 1                         # Total number of periods in cycle for this agent
@@ -144,7 +144,7 @@ init_kinky_pref['PrefShkStd'] = PrefShkStd
 # -----------------------------------------------------------------------------
 # ----- Define additional parameters for the aggregate shocks model -----------
 # -----------------------------------------------------------------------------
-kGridBase = np.array([0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6])  # Grid of capital-to-labor-ratios (factors)
+kGridBase = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])  # Grid of capital-to-labor-ratios (factors)
 
 # Parameters for a Cobb-Douglas economy
 PermShkAggCount = 3           # Number of points in discrete approximation to aggregate permanent shock dist
@@ -155,8 +155,8 @@ DeprFac = 0.1                 # Capital depreciation rate
 CapShare = 0.3                # Capital's share of income
 CRRAPF = 1.0                  # CRRA of perfect foresight calibration
 DiscFacPF = 0.96              # Discount factor of perfect foresight calibration
-intercept_prev = 0.1          # Intercept of log-capital-ratio function
-slope_prev = 0.9              # Slope of log-capital-ratio function
+intercept_prev = 0.01         # Intercept of log-capital-ratio function
+slope_prev = 0.99             # Slope of log-capital-ratio function
 
 # Make a dictionary to specify an aggregate shocks consumer
 init_agg_shocks = copy(init_idiosyncratic_shocks)
@@ -179,3 +179,24 @@ init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
                      'slope_prev': slope_prev,
                      'intercept_prev': intercept_prev
                      }
+                     
+# -----------------------------------------------------------------------------
+# ----- Define additional parameters for the persistent shocks model ----------
+# -----------------------------------------------------------------------------
+
+PermIncCount = 12        # Number of permanent income gridpoints in "body"
+PermInc_tail_N = 3       # Number of permanent income gridpoints in each "tail"
+PermIncStdInit = 0.4     # Initial standard deviation of (log) permanent income (not used in example)
+PermIncAvgInit = 1.0     # Initial average of permanent income (not used in example)
+cycles = 0
+
+# Make a dictionary for the "explicit permanent income" idiosyncratic shocks model
+init_explicit_perm_inc = copy(init_idiosyncratic_shocks)
+init_explicit_perm_inc['PermIncCount'] = PermIncCount
+init_explicit_perm_inc['PermInc_tail_N'] = PermInc_tail_N
+init_explicit_perm_inc['PermIncAvgInit'] = PermIncAvgInit
+init_explicit_perm_inc['PermIncStdInit'] = PermIncStdInit
+init_explicit_perm_inc['PermGroFac'] = [1.0] # long run permanent income growth doesn't work yet
+init_explicit_perm_inc['cycles'] = cycles
+init_explicit_perm_inc['aXtraCount'] = 48
+init_explicit_perm_inc['CubicBool'] = False # explicit perm inc currently only compatible with linear cFunc

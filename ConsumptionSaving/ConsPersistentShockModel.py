@@ -12,10 +12,12 @@ sys.path.insert(0, os.path.abspath('./'))
 from copy import copy, deepcopy
 import numpy as np
 from HARKutilities import warnings  # Because of "patch" to warnings modules
-from HARKinterpolation import LowerEnvelope2D, BilinearInterp, Curvilinear2DInterp
+from HARKinterpolation import LowerEnvelope2D, BilinearInterp, Curvilinear2DInterp,\
+                              LinearInterpOnInterp1D, LinearInterp
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
-                          CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP
-from ConsIndShockModel import ConsIndShockSetup, ConsIndShockSolverBasic, ConsumerSolution, IndShockConsumerType
+                          CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
+                          approxLognormal
+from ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
 
 utility       = CRRAutility
 utilityP      = CRRAutilityP
@@ -182,8 +184,9 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         none
         '''
         # Everything is the same as base model except the constrained consumption function has to be 2D
-        ConsIndShockSetup.defBoroCnst(self)
-        self.cFuncNowCnst = BilinearInterp(np.array([0.0,1.0]),np.array([0.0,1.0]),np.array([[0.0,-self.mNrmMinNow],[1.0,1.0-self.mNrmMinNow]]))
+        ConsIndShockSetup.defBoroCnst(self,BoroCnstArt)
+        self.cFuncNowCnst = BilinearInterp(np.array([[0.0,-self.mNrmMinNow],[1.0,1.0-self.mNrmMinNow]]),
+                                           np.array([0.0,1.0]),np.array([0.0,1.0]))
         #self.cFuncNowCnst = lambda mLvl,pLvl : mLvl - self.mNrmMinNow*pLvl # alternate version
                                          
     def prepareToCalcEndOfPrdvP(self):
@@ -245,7 +248,7 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         EndOfPrdVP : np.array
             A 2D array of end-of-period marginal value of assets.
         '''
-        EndOfPrdvP  = self.DiscFacEff*self.Rfree*np.sum(self.vPfuncNext(self.MLvlNext,self.pLvlNext)*self.ShkPrbs_temp,axis=0)  
+        EndOfPrdvP  = self.DiscFacEff*self.Rfree*np.sum(self.vPfuncNext(self.mLvlNext,self.pLvlNext)*self.ShkPrbs_temp,axis=0)  
         return EndOfPrdvP
     
     def getPointsForInterpolation(self,EndOfPrdvP,aLvlNow):
@@ -271,8 +274,13 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         mLvlNow = cLvlNow + aLvlNow
 
         # Limiting consumption is zero as m approaches mNrmMin
-        c_for_interpolation = np.concatenate((np.zeros(self.pLvlGrid.size,1),cLvlNow),axis=-1)
-        m_for_interpolation = np.concatenate((self.mNrmMinNow*self.pLvlGrid.transpose(),mLvlNow),axis=-1)
+        c_for_interpolation = np.concatenate((np.zeros((self.pLvlGrid.size,1)),cLvlNow),axis=-1)
+        m_for_interpolation = np.concatenate((self.BoroCnstNat*np.reshape(self.pLvlGrid,(self.pLvlGrid.size,1)),mLvlNow),axis=-1)
+        
+        # Limiting consumption is MPCmin*mLvl as p approaches 0
+        m_temp = np.reshape(m_for_interpolation[0,:],(1,m_for_interpolation.shape[1]))
+        m_for_interpolation = np.concatenate((m_temp,m_for_interpolation),axis=0)
+        c_for_interpolation = np.concatenate((self.MPCminNow*m_temp,c_for_interpolation),axis=0)
         
         return c_for_interpolation, m_for_interpolation
         
@@ -335,8 +343,10 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
             The solution to this period's consumption-saving problem, with a
             consumption function, marginal value function, and minimum m.
         '''
-        cLvl,mLvl    = self.getPointsForInterpolation(EndOfPrdvP,aLvl)       
-        solution_now = self.usePointsForInterpolation(cLvl,mLvl,pLvl,interpolator)
+        cLvl,mLvl    = self.getPointsForInterpolation(EndOfPrdvP,aLvl)
+        pLvl_temp    = np.concatenate((np.reshape(self.pLvlGrid,(self.pLvlGrid.size,1)),pLvl),axis=-1)
+        pLvl_temp    = np.concatenate((np.zeros((1,mLvl.shape[1])),pLvl_temp))
+        solution_now = self.usePointsForInterpolation(cLvl,mLvl,pLvl_temp,interpolator)
         return solution_now
         
     def makeCurvilinearcFunc(self,mLvl,pLvl,cLvl):
@@ -358,8 +368,58 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         cFuncUnc : LinearInterp
             The unconstrained consumption function for this period.
         '''
-        cFuncUnc = Curvilinear2DInterp(mLvl,pLvl,cLvl)
+        cFuncUnc = Curvilinear2DInterp(f_values=cLvl.transpose(),x_values=mLvl.transpose(),y_values=pLvl.transpose())
         return cFuncUnc
+        
+    def makeLinearcFunc(self,mLvl,pLvl,cLvl):
+        '''
+        Makes a quasi-bilinear interpolation to represent the (unconstrained)
+        consumption function.
+        
+        Parameters
+        ----------
+        mLvl : np.array
+            Market resource points for interpolation.
+        cLvl : np.array
+            Consumption points for interpolation.
+        pLvl : np.array
+            Permanent income level points for interpolation.
+            
+        Returns
+        -------
+        cFuncUnc : LinearInterp
+            The unconstrained consumption function for this period.
+        '''
+        cFunc_by_pLvl_list = [] # list of consumption functions for each pLvl
+        for j in range(pLvl.shape[0]):
+            m_temp = mLvl[j,:]
+            c_temp = cLvl[j,:] # Make a linear consumption function for this pLvl
+            cFunc_by_pLvl_list.append(LinearInterp(m_temp,c_temp,lower_extrap=True))
+        pLvl_list = pLvl[:,0]
+        cFuncUnc = LinearInterpOnInterp1D(cFunc_by_pLvl_list,pLvl_list) # Combine all linear cFuncs
+        return cFuncUnc
+        
+    def addMPCandHumanWealth(self,solution):
+        '''
+        Take a solution and add human wealth and the bounding MPCs to it.  This
+        is identical to the version in ConsIndShockSolverBasic, but that version
+        can't be called due to inheritance problems.
+        
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            The solution to this period's consumption-saving problem.
+            
+        Returns:
+        ----------
+        solution : ConsumerSolution
+            The solution to this period's consumption-saving problem, but now
+            with human wealth and the bounding MPCs.
+        '''
+        solution.hNrm   = self.hNrmNow
+        solution.MPCmin = self.MPCminNow
+        solution.MPCmax = self.MPCmaxEff
+        return solution
         
     def solve(self):
         '''
@@ -378,9 +438,13 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
             marginal value function, bounding MPCs, and normalized human wealth.
         '''
         aLvl,pLvl  = self.prepareToCalcEndOfPrdvP()           
-        EndOfPrdvP = self.calcEndOfPrdvP()                        
-        solution   = self.makeBasicSolution(EndOfPrdvP,aLvl,pLvl,self.makeCurvilinearcFunc)
-        solution   = ConsIndShockSolverBasic.addMPCandHumanWealth(self,solution)
+        EndOfPrdvP = self.calcEndOfPrdvP()
+        if self.mNrmMinNow == 0.0:   
+            interpolator = self.makeLinearcFunc
+        else: # Can use a faster solution method if lower bound of m is zero
+            interpolator = self.makeCurvilinearcFunc
+        solution   = self.makeBasicSolution(EndOfPrdvP,aLvl,pLvl,interpolator)
+        solution   = self.addMPCandHumanWealth(solution)
         return solution
         
         
@@ -451,7 +515,7 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
     IndShockConsumerType except that permanent income is tracked as a state
     variable rather than normalized out.
     '''
-    cFunc_terminal_ = BilinearInterp(np.array([0.0,1.0]),np.array([0.0,1.0]),np.array([[0.0,0.0],[1.0,1.0]]))
+    cFunc_terminal_ = BilinearInterp(np.array([[0.0,0.0],[1.0,1.0]]),np.array([0.0,1.0]),np.array([0.0,1.0]))
     solution_terminal_ = ConsumerSolution(cFunc = cFunc_terminal_, mNrmMin=0.0, hNrm=0.0, MPCmin=1.0, MPCmax=1.0)
      
     def __init__(self,cycles=1,time_flow=True,**kwds):
@@ -471,12 +535,9 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
         -------
         None
         '''       
-        # Initialize a basic AgentType
+        # Initialize a basic ConsumerType
         IndShockConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
-
-        # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsIndShockExplicitPermInc # idiosyncratic shocks solver with explicit permanent income
-        self.update() # Make assets grid, permanent income grids, income process, terminal solution
         
     def update(self):
         '''
@@ -485,11 +546,11 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
         
         Parameters
         ----------
-        none
+        None
         
         Returns
         -------
-        none
+        None
         '''
         IndShockConsumerType.update(self)
         self.updatePermIncGrid()
@@ -501,12 +562,92 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
         
         Parameters
         ----------
-        none
+        None
         
         Returns
         -------
-        none
+        None
         '''
         self.solution_terminal.vPfunc = MargValueFunc2D(self.cFunc_terminal_,self.CRRA)
         
+    def updatePermIncGrid(self):
+        '''
+        Update the grid of permanent income levels.  Currently only works for
+        infinite horizon models (cycles=0) and lifecycle models (cycles=1).  Not
+        clear what to do about cycles>1.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        if self.cycles == 1: 
+            PermIncStdNow = self.PermIncStdInit # get initial distribution of permanent income
+            PermIncAvgNow = self.PermIncAvgInit
+            PermIncGrid = [] # empty list of time-varying permanent income grids
+            # Calculate distribution of permanent income in each period of lifecycle
+            for t in range(len(self.PermShkStd)):
+                PermIncGrid.append(approxLognormal(mu=(np.log(PermIncAvgNow)-0.5*PermIncStdNow**2),
+                                   sigma=PermIncStdNow, N=self.PermIncCount, tail_N=self.PermInc_tail_N, tail_bound=[0.05,0.95])[1])
+                PermIncStdNow = np.sqrt(PermIncStdNow**2 + self.PermShkStd[t]**2)
+                PermIncAvgNow = PermIncAvgNow*self.PermGroFac[t]
+                
+        # Calculate "stationary" distribution in infinite horizon (might vary across periods of cycle)
+        elif self.cycles == 0:
+            assert np.isclose(np.product(self.PermGroFac),1.0), "Long run permanent income growth not allowed!" 
+            CumLivPrb     = np.product(self.LivPrb)
+            CumDeathPrb   = 1.0 - CumLivPrb
+            CumPermShkStd = np.sqrt(np.sum(np.array(self.PermShkStd)**2))
+            ExPermShkSq   = np.exp(CumPermShkStd**2)
+            ExPermIncSq   = CumDeathPrb/(1.0 - CumLivPrb*ExPermShkSq)
+            PermIncStdNow = np.sqrt(np.log(ExPermIncSq))
+            PermIncAvgNow = 1.0
+            PermIncGrid = [] # empty list of time-varying permanent income grids
+            # Calculate distribution of permanent income in each period of infinite cycle
+            for t in range(len(self.PermShkStd)):
+                PermIncGrid.append(approxLognormal(mu=(np.log(PermIncAvgNow)-0.5*PermIncStdNow**2),
+                                   sigma=PermIncStdNow, N=self.PermIncCount, tail_N=self.PermInc_tail_N, tail_bound=[0.05,0.95])[1])
+                PermIncStdNow = np.sqrt(PermIncStdNow**2 + self.PermShkStd[t]**2)
+                PermIncAvgNow = PermIncAvgNow*self.PermGroFac[t]
+        
+        # Throw an error if cycles>1
+        else:
+            assert False, "Can only handle cycles=0 or cycles=1!"
+            
+        # Store the result and add attribute to time_vary
+        orig_time = self.time_flow
+        self.timeFwd()
+        self.pLvlGrid = PermIncGrid
+        self.addToTimeVary('pLvlGrid')
+        if not orig_time:
+            self.timeRev()
+            
+            
+###############################################################################
+
+if __name__ == '__main__':
+    import ConsumerParameters as Params
+    from time import clock
+    import matplotlib.pyplot as plt
+    mystr = lambda number : "{:.4f}".format(number)
+    
+    # Make and solve an example "explicit permanent income" consumer with idiosyncratic shocks
+    ExplicitExample = IndShockExplicitPermIncConsumerType(**Params.init_explicit_perm_inc)
+    
+    t_start = clock()
+    ExplicitExample.solve()
+    t_end = clock()
+    print('Solving an explicit permanent income consumer took ' + mystr(t_end-t_start) + ' seconds.')
+    
+    # Plot the consumption function at various permanent income levels
+    pGrid = np.linspace(0.1,8,24)
+    M = np.linspace(0,20,300)
+    for p in pGrid:
+        M_temp = M+p*ExplicitExample.solution[0].mNrmMin
+        C = ExplicitExample.solution[0].cFunc(M_temp,p*np.ones_like(M_temp))
+        plt.plot(M_temp,C)
+    plt.show()
     
