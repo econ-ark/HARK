@@ -1,6 +1,6 @@
 '''
-This module contains functions useful for estimating structural models, including
-optimization methods and bootstrapping tools.
+Functions for estimating structural models, including optimization methods
+and bootstrapping tools.
 '''
 
 # The following libraries are part of the standard python distribution
@@ -48,7 +48,9 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwar
                             #   2 : Maximum number of iterations reached.
     # Check that optimization succeeded:
     if warnflag != 0:
-        warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) + ', optiter=' + str(optiter) +', funcalls=' + str(funcalls) +', warnflag=' + str(warnflag))
+        warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) + 
+                      ', optiter=' + str(optiter) +', funcalls=' + str(funcalls) +
+                      ', warnflag=' + str(warnflag))
 
     # Display and return the results:
     if verbose:
@@ -138,3 +140,9 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
     # Create a bootstrapped sample
     new_data = deepcopy(data[indices,])
     return new_data
+    
+    
+if __name__ == '__main__':
+    print("Sorry, HARKestimation doesn't actually do anything on its own.")
+    print("To see some examples of its functions in actions, check out an application")
+    print("like /SolvingMicroDSOPs/StructEstimation or /cstwMPC/cstwMPC.")

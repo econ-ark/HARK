@@ -1,5 +1,10 @@
 '''
-This is the missing description for HARKcore.  We really ought to write it.
+High-level functions and classes for solving a wide variety of economic models.
+The "core" of HARK is a framework for "microeconomic" and "macroeconomic"
+models.  A micro model concerns the dynamic optimization problem for some type
+of agents, where agents take the inputs to their problem as exogenous.  A macro
+model adds an additional layer, endogenizing some of the inputs to the micro
+problem by finding a general equilibrium dynamic rule.
 '''
 
 from HARKutilities import getArgNames, NullFunc
@@ -63,7 +68,7 @@ class HARKobject():
     def distance(self,other):
         '''
         A generic distance method, which requires the existence of an attribute
-        called convergence_criteria, giving a list of strings naming the attributes
+        called distance_criteria, giving a list of strings naming the attributes
         to be considered by the distance metric.
         
         Parameters
@@ -73,15 +78,18 @@ class HARKobject():
             
         Returns
         -------
-        distance : float
+        (unnamed) : float
             The distance between this object and another, using the "universal
             distance" metric.
         '''
         distance_list = [0.0]
-        for attr_name in self.convergence_criteria:
-            obj_A = eval('self.' + attr_name)
-            obj_B = eval('other.' + attr_name)
-            distance_list.append(distanceMetric(obj_A,obj_B))
+        for attr_name in self.distance_criteria:
+            try:
+                obj_A = getattr(self,attr_name)
+                obj_B = getattr(other,attr_name)
+                distance_list.append(distanceMetric(obj_A,obj_B))
+            except:
+                distance_list.append(1000.0) # if either object lacks attribute, they are not the same
         return max(distance_list)
         
     def assignParameters(self,**kwds):
@@ -129,7 +137,8 @@ class AgentType(HARKobject):
     'solveOnePeriod' should appear in exactly one of these lists, depending on
     whether the same solution method is used in all periods of the model.
     '''    
-    def __init__(self,solution_terminal=NullFunc,cycles=1,time_flow=False,pseudo_terminal=True,tolerance=0.000001,seed=0,**kwds):
+    def __init__(self,solution_terminal=None,cycles=1,time_flow=False,pseudo_terminal=True,
+                 tolerance=0.000001,seed=0,**kwds):
         '''
         Initialize an instance of AgentType by setting attributes.
         
@@ -165,15 +174,17 @@ class AgentType(HARKobject):
             
         Returns
         -------
-        a new instance of AgentType
+        None
         '''
-        self.solution_terminal = solution_terminal
-        self.cycles = cycles
-        self.time_flow = time_flow
-        self.pseudo_terminal = pseudo_terminal
-        self.solveOnePeriod = NullFunc
-        self.tolerance = tolerance
-        self.seed = seed
+        if solution_terminal is None:
+            solution_terminal = NullFunc()
+        self.solution_terminal  = solution_terminal
+        self.cycles             = cycles
+        self.time_flow          = time_flow
+        self.pseudo_terminal    = pseudo_terminal
+        self.solveOnePeriod     = NullFunc()
+        self.tolerance          = tolerance
+        self.seed               = seed
         self.assignParameters(**kwds)
         self.resetRNG()
 
@@ -240,6 +251,74 @@ class AgentType(HARKobject):
         '''
         if self.time_flow:
             self.timeFlip()
+            
+    def addToTimeVary(self,*params):
+        '''
+        Adds any number of parameters to time_vary for this instance.
+        
+        Parameters
+        ----------
+        params : string
+            Any number of strings naming attributes to be added to time_vary
+        
+        Returns
+        -------
+        None
+        '''
+        for param in params:
+            if param not in self.time_vary:
+                self.time_vary.append(param)
+                
+    def addToTimeInv(self,*params):
+        '''
+        Adds any number of parameters to time_inv for this instance.
+        
+        Parameters
+        ----------
+        params : string
+            Any number of strings naming attributes to be added to time_inv
+        
+        Returns
+        -------
+        None
+        '''
+        for param in params:
+            if param not in self.time_inv:
+                self.time_inv.append(param)
+                
+    def delFromTimeVary(self,*params):
+        '''
+        Removes any number of parameters from time_vary for this instance.
+        
+        Parameters
+        ----------
+        params : string
+            Any number of strings naming attributes to be removed from time_vary
+        
+        Returns
+        -------
+        None
+        '''
+        for param in params:
+            if param in self.time_vary:
+                self.time_vary.remove(param)
+                
+    def delFromTimeInv(self,*params):
+        '''
+        Removes any number of parameters from time_inv for this instance.
+        
+        Parameters
+        ----------
+        params : string
+            Any number of strings naming attributes to be removed from time_inv
+        
+        Returns
+        -------
+        None
+        '''
+        for param in params:
+            if param in self.time_inv:
+                self.time_inv.remove(param)
 
     def solve(self):
         '''
@@ -259,8 +338,7 @@ class AgentType(HARKobject):
         self.solution = solveAgent(self) # Solve the model by backward induction
         if self.time_flow: # Put the solution in chronological order if this instance's time flow runs that way
             self.solution.reverse()
-        if not ('solution' in self.time_vary):
-            self.time_vary.append('solution') # Add solution to the list of time-varying attributes
+        self.addToTimeVary('solution') # Add solution to the list of time-varying attributes
         self.postSolve() # Do post-solution stuff
         
     def resetRNG(self):
@@ -279,7 +357,7 @@ class AgentType(HARKobject):
 
     def isSameThing(self,solutionA,solutionB):
         '''
-        Compare two solutions to see if they are the "same".  The model-specific
+        Compare two solutions to see if they are the "same."  The model-specific
         solution class must have a method called distance, which takes another
         solution object as an input and returns the "distance" between the solutions.
         This method is used to test for convergence in infinite horizon problems.
@@ -294,7 +372,7 @@ class AgentType(HARKobject):
         
         Returns
         -------
-        is_close_enough : boolean
+        (unnamed) : boolean
             True if the solutions are within a tolerable distance of each other.
         '''
         solution_distance = solutionA.distance(solutionB)
@@ -353,7 +431,7 @@ def solveAgent(agent):
     agent.timeRev()
 
     # Check to see whether this is an (in)finite horizon problem
-    cycles_left = agent.cycles
+    cycles_left      = agent.cycles
     infinite_horizon = cycles_left == 0
     
     # Initialize the solution, which includes the terminal solution if it's not a pseudo-terminal period
@@ -362,10 +440,10 @@ def solveAgent(agent):
         solution.append(deepcopy(agent.solution_terminal))
 
     # Initialize the process, then loop over cycles
-    solution_last = agent.solution_terminal
-    go = True
+    solution_last    = agent.solution_terminal
+    go               = True
     completed_cycles = 0
-    max_cycles = 5000 # escape clause
+    max_cycles       = 5000 # escape clause
     while go:
         # Solve a cycle of the model, recording it if horizon is finite
         solution_cycle = solveOneCycle(agent,solution_last)
@@ -376,7 +454,8 @@ def solveAgent(agent):
         solution_now = solution_cycle[-1]
         if infinite_horizon:
             if completed_cycles > 0:
-                go = (not agent.isSameThing(solution_now,solution_last)) and (completed_cycles < max_cycles)
+                go = (not agent.isSameThing(solution_now,solution_last)) and \
+                     (completed_cycles < max_cycles)
             else: # Assume solution does not converge after only one cycle
                 go = True
         else:
@@ -410,7 +489,7 @@ def solveOneCycle(agent,solution_last):
     solution_last : Solution
         A representation of the solution of the period that comes after the
         end of the sequence of one period problems.  This might be the term-
-        inal period solution, a "pseudo terminal" solution, a simply the
+        inal period solution, a "pseudo terminal" solution, or simply the
         solution to the earliest period from the succeeding cycle.
     
     Returns
@@ -422,7 +501,7 @@ def solveOneCycle(agent,solution_last):
     # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
     if len(agent.time_vary) > 0:
         name = agent.time_vary[0]
-        T = len(eval('agent.' + name))
+        T    = len(eval('agent.' + name))
     else:
         T = 1
 
@@ -430,7 +509,7 @@ def solveOneCycle(agent,solution_last):
     always_same_solver = 'solveOnePeriod' not in agent.time_vary
     if always_same_solver:
         solveOnePeriod = agent.solveOnePeriod
-        these_args = getArgNames(solveOnePeriod)
+        these_args     = getArgNames(solveOnePeriod)
 
     # Construct a dictionary to be passed to the solver
     time_inv_string = ''
@@ -443,7 +522,7 @@ def solveOneCycle(agent,solution_last):
 
     # Initialize the solution for this cycle, then iterate on periods
     solution_cycle = []
-    solution_next = solution_last
+    solution_next  = solution_last
     for t in range(T):
         # Update which single period solver to use (if it depends on time)
         if not always_same_solver:
@@ -473,11 +552,12 @@ def solveOneCycle(agent,solution_last):
       
 class Market(HARKobject):
     '''
-    A class to represent a central clearinghouse of information.  Used for
+    A superclass to represent a central clearinghouse of information.  Used for
     dynamic general equilibrium models to solve the "macroeconomic" model as a
     layer on top of the "microeconomic" models of one or more AgentTypes.
     '''   
-    def __init__(self,agents=[],sow_vars=[],reap_vars=[],const_vars=[],track_vars=[],dyn_vars=[],millRule=None,calcDynamics=None,act_T=1000,tolerance=0.000001):
+    def __init__(self,agents=[],sow_vars=[],reap_vars=[],const_vars=[],track_vars=[],dyn_vars=[],
+                 millRule=None,calcDynamics=None,act_T=1000,tolerance=0.000001):
         '''
         Make a new instance of the Market class.
         
@@ -520,14 +600,14 @@ class Market(HARKobject):
             
         Returns
         -------
-        new instance of Market
+        None
     '''
-        self.agents = agents
-        self.reap_vars = reap_vars
-        self.sow_vars = sow_vars
+        self.agents      = agents
+        self.reap_vars  = reap_vars
+        self.sow_vars   = sow_vars
         self.const_vars = const_vars
         self.track_vars = track_vars
-        self.dyn_vars = dyn_vars
+        self.dyn_vars   = dyn_vars
         if millRule is not None: # To prevent overwriting of method-based millRules
             self.millRule = millRule
         if calcDynamics is not None: # Ditto for calcDynamics
@@ -549,11 +629,11 @@ class Market(HARKobject):
         -------
         none
         '''
-        go = True
-        max_loops = 1000 # Failsafe against infinite solution loop
+        go              = True
+        max_loops       = 1000 # Failsafe against infinite solution loop
         completed_loops = 0
-        
-        old_dynamics = None
+        old_dynamics    = None
+
         while go: # Loop until the dynamic process converges or we hit the loop cap
             for this_type in self.agents:
                 this_type.solve()  # Solve each AgentType's micro problem
@@ -567,9 +647,9 @@ class Market(HARKobject):
                 distance = 1000000.0
             
             # Move to the next loop if the terminal conditions are not met
-            old_dynamics = new_dynamics
+            old_dynamics     = new_dynamics
             completed_loops += 1
-            go = distance >= self.tolerance and completed_loops < max_loops
+            go               = distance >= self.tolerance and completed_loops < max_loops
             
         self.dynamics = new_dynamics # Store the final dynamic rule in self
             
@@ -727,7 +807,9 @@ class Market(HARKobject):
         
         Returns
         -------
-        none
+        dynamics : instance
+            The new "aggregate dynamic rule" that agents believe in and act on.
+            Should have attributes named in dyn_vars.  
         '''
         # Make a dictionary of inputs for the dynamics calculator
         history_vars_string = ''
@@ -742,3 +824,10 @@ class Market(HARKobject):
             for this_type in self.agents:
                 setattr(this_type,var_name,this_obj)
         return dynamics
+        
+if __name__ == '__main__':
+    print("Sorry, HARKcore doesn't actually do anything on its own.")
+    print("To see some examples of its frameworks in action, try running a model module.")
+    print("Several interesting model modules can be found in /ConsumptionSavingModel.")
+    print('For an extraordinarily simple model that demonstrates the "microeconomic" and')
+    print('"macroeconomic" frameworks, see /FashionVictim/FashionVictimModel.')

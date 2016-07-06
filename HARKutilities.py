@@ -1,7 +1,7 @@
 '''
-This module contains a number of utilities, including the code that implements
-agent expectations, utility functions (and their derivatives), manipulation of
-discrete approximations, and basic plotting tools.
+General purpose  / miscellaneous functions.  Includes functions to approximate
+continuous distributions with discrete ones, utility functions (and their
+derivatives), manipulation of discrete distributions, and basic plotting tools.
 '''
 
 from __future__ import division     # Import Python 3.x division function
@@ -11,15 +11,10 @@ import warnings
 import numpy as np                  # Python's numeric library, abbreviated "np"
 import pylab as plt                 # Python's plotting library
 import scipy.stats as stats         # Python's statistics library
-from scipy.integrate import quad, fixed_quad    # quad integration
 from scipy.interpolate import interp1d
 from scipy.special import erf
 
-def _warning(
-    message,
-    category = UserWarning,
-    filename = '',
-    lineno = -1):
+def _warning(message,category = UserWarning,filename = '',lineno = -1):
     '''
     A "monkeypatch" to warnings, to print pretty-looking warnings. The
     default behavior of the "warnings" module is to print some extra, unusual-
@@ -32,6 +27,13 @@ def _warning(
 warnings.showwarning = _warning
 
 def memoize(obj):
+   '''
+   A decorator to (potentially) make functions more efficient.
+   
+   With this decorator, functions will "remember" if they have been evaluated with given inputs 
+   before.  If they have, they will "remember" the outputs that have already been calculated 
+   for those inputs, rather than calculating them again.
+   '''
    cache = obj._cache = {}
 
    @functools.wraps(obj)
@@ -65,11 +67,49 @@ def getArgNames(function):
     return argNames
 
 
-NullFunc = lambda x : np.zeros(x.size) + np.nan
-'''
-A trivial function that takes a single array and returns an array of NaNs of the
-same size.  A generic default function that does nothing.
-'''
+class NullFunc():
+    '''
+    A trivial class that acts as a placeholder "do nothing" function.
+    '''
+    def __call__(self,*args):
+        '''
+        Returns meaningless output no matter what the input(s) is.  If no input,
+        returns None.  Otherwise, returns an array of NaNs (or a single NaN) of
+        the same size as the first input.
+        '''
+        if len(args) == 0:
+            return None
+        else:
+            arg = args[0]
+            if hasattr(arg,'shape'):
+                return np.zeros_like(arg) + np.nan
+            else:
+                return np.nan
+            
+    def distance(self,other):
+        '''
+        Trivial distance metric that only cares whether the other object is also
+        an instance of NullFunc.  Intentionally does not inherit from HARKobject
+        as this might create dependency problems.
+        
+        Parameters
+        ----------
+        other : any
+            Any object for comparison to this instance of NullFunc.
+            
+        Returns
+        -------
+        (unnamed) : float
+            The distance between self and other.  Returns 0 if other is also a
+            NullFunc; otherwise returns an arbitrary high number.
+        '''
+        try:            
+            if other.__class__ is self.__class__:
+                return 0.0
+            else:
+                return 1000.0
+        except:
+            return 10000.0
 
 # ==============================================================================
 # ============== Define utility functions        ===============================
@@ -88,7 +128,7 @@ def CRRAutility(c, gam):
 
     Returns
     -------
-    u : float
+    (unnamed) : float
         Utility
 
     Tests
@@ -117,7 +157,7 @@ def CRRAutilityP(c, gam):
 
     Returns
     -------
-    uP : float
+    (unnamed) : float
         Marginal utility
     '''
     return( c**-gam )
@@ -136,7 +176,7 @@ def CRRAutilityPP(c, gam):
 
     Returns
     -------
-    uPP : float
+    (unnamed) : float
         Marginal marginal utility
     '''
     return( -gam*c**(-gam-1.0) )
@@ -155,7 +195,7 @@ def CRRAutilityPPP(c, gam):
 
     Returns
     -------
-    uPPP : float
+    (unnamed) : float
         Marginal marginal marginal utility
     '''
     return( (gam+1.0)*gam*c**(-gam-2.0) )
@@ -174,7 +214,7 @@ def CRRAutilityPPPP(c, gam):
 
     Returns
     -------
-    uPPPP : float
+    (unnamed) : float
         Marginal marginal marginal marginal utility
     '''
     return( -(gam+2.0)*(gam+1.0)*gam*c**(-gam-3.0) )
@@ -193,7 +233,7 @@ def CRRAutility_inv(u, gam):
 
     Returns
     -------
-    c : float
+    (unnamed) : float
         Consumption corresponding to given utility value
     '''
     if gam == 1:
@@ -215,7 +255,7 @@ def CRRAutilityP_inv(uP, gam):
 
     Returns
     -------
-    c : float
+    (unnamed) : float
         Consumption corresponding to given marginal utility value.
     '''
     return( uP**(-1.0/gam) )
@@ -234,7 +274,7 @@ def CRRAutility_invP(u, gam):
 
     Returns
     -------
-    cP : float
+    (unnamed) : float
         Marginal consumption corresponding to given utility value
     '''
     if gam == 1:
@@ -256,7 +296,7 @@ def CRRAutilityP_invP(u, gam):
 
     Returns
     -------
-    cP : float
+    (unnamed) : float
         Marginal consumption corresponding to given marginal utility value
     '''
     return( (-1.0/gam)*u**(-1.0/gam-1.0) )
@@ -276,7 +316,7 @@ def CARAutility(c, alpha):
 
     Returns
     -------
-    u: float
+    (unnamed): float
         Utility
     '''
     return( 1 - np.exp(-alpha*c)/alpha )
@@ -295,7 +335,7 @@ def CARAutilityP(c, alpha):
 
     Returns
     -------
-    uP: float
+    (unnamed): float
         Marginal utility
     '''
     return( np.exp(-alpha*c) )
@@ -314,7 +354,7 @@ def CARAutilityPP(c, alpha):
 
     Returns
     -------
-    uPP: float
+    (unnamed): float
         Marginal marginal utility
     '''
     return( -alpha*np.exp(-alpha*c) )
@@ -333,7 +373,7 @@ def CARAutilityPPP(c, alpha):
 
     Returns
     -------
-    uPPP: float
+    (unnamed): float
         Marginal marginal marginal utility
     '''
     return( alpha**2.0*np.exp(-alpha*c) )
@@ -352,7 +392,7 @@ def CARAutility_inv(u, alpha):
 
     Returns
     -------
-    c: float
+    (unnamed): float
         Consumption value corresponding to u
     '''
     return( -1.0/alpha * np.log(alpha*(1-u)) )
@@ -371,7 +411,7 @@ def CARAutilityP_inv(u, alpha):
 
     Returns
     -------
-    c: float
+    (unnamed): float
         Consumption value corresponding to uP
     '''
     return( -1.0/alpha*np.log(u) )
@@ -390,7 +430,7 @@ def CARAutility_invP(u, alpha):
 
     Returns
     -------
-    cP: float
+    (unnamed): float
         Marginal onsumption value corresponding to u
     '''
     return( 1.0/(alpha*(1.0-u)) )
@@ -430,12 +470,12 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
         
     Written by Luca Gerotto
     Based on Matab function "setup_workspace.m," from Chris Carroll's
-      [Solution Methods for Microeconomic Dynamic Optimization Problems](http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
+      [Solution Methods for Microeconomic Dynamic Optimization Problems]
+      (http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
     Latest update: 21 April 2016 by Matthew N. White
     '''
     # Find the CDF boundaries of each segment
-    if sigma > 0.0:
-        mu_adj         = mu - 0.5*sigma**2;
+    if sigma > 0.0:        
         if tail_N > 0:
             lo_cut     = tail_bound[0]
             hi_cut     = tail_bound[1]
@@ -456,7 +496,8 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
             for x in range(tail_N):
                 upper_CDF_vals.append(upper_CDF_vals[-1] + (1.0-hi_cut)*scale**x/mag)
         CDF_vals       = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
-        temp_cutoffs   = list(stats.lognorm.ppf(CDF_vals[1:-1], s=sigma, loc=0, scale=np.exp(mu_adj)))
+        temp_cutoffs   = list(stats.lognorm.ppf(CDF_vals[1:-1], s=sigma, loc=0, 
+                                                scale=np.exp(mu)))
         cutoffs        = [0] + temp_cutoffs + [np.inf]
         CDF_vals       = np.array(CDF_vals)
     
@@ -467,7 +508,9 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
         for i in range(K):
             zBot  = cutoffs[i]
             zTop = cutoffs[i+1]
-            X[i] = (-0.5)*np.exp(mu_adj+(sigma**2)*0.5)*(erf((mu_adj+sigma**2-np.log(zTop))*((np.sqrt(2)*sigma)**(-1)))-erf((mu_adj+sigma**2-np.log(zBot))*((np.sqrt(2)*sigma)**(-1))))*(pmf[i]**(-1));           
+            X[i] = (-0.5)*np.exp(mu+(sigma**2)*0.5)*(erf((mu+sigma**2-np.log(zTop))*(
+                   (np.sqrt(2)*sigma)**(-1)))-erf((mu+sigma**2-np.log(zBot))*((np.sqrt(2)*sigma)
+                   **(-1))))*(pmf[i]**(-1))           
     else:
         pmf = np.ones(N)/N
         X   = np.exp(mu)*np.ones(N)
@@ -496,11 +539,13 @@ def approxMeanOneLognormal(N, sigma=1.0, **kwargs):
 
     Written by Nathan M. Palmer
     Based on Matab function "setup_shocks.m," from Chris Carroll's
-      [Solution Methods for Microeconomic Dynamic Optimization Problems](http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
+      [Solution Methods for Microeconomic Dynamic Optimization Problems]
+      (http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
     Latest update: 01 May 2015
     '''
-    mu=0.0
-    return approxLognormal(N=N, mu=mu, sigma=sigma, **kwargs)
+    mu_adj = - 0.5*sigma**2;
+    pmf,X = approxLognormal(N=N, mu=mu_adj, sigma=sigma, **kwargs)
+    return [pmf,X]
             
 def approxBeta(N,a=1.0,b=1.0):
     '''
@@ -524,32 +569,37 @@ def approxBeta(N,a=1.0,b=1.0):
     pmf : np.array
         Probability associated with each point in X.
     '''
-    P = 1000
+    P    = 1000
     vals = np.reshape(stats.beta.ppf(np.linspace(0.0,1.0,N*P),a,b),(N,P))
-    X = np.mean(vals,axis=1)
-    pmf = np.ones(N)/float(N)
+    X    = np.mean(vals,axis=1)
+    pmf  = np.ones(N)/float(N)
     return( [pmf, X] )
         
-def approxUniform(center,width,N):
+def approxUniform(N,bot=0.0,top=1.0):
     '''
-    Makes a discrete approximation to a uniform distribution, given its center
-    point and width.
+    Makes a discrete approximation to a uniform distribution, given its bottom
+    and top limits and number of points.
     
     Parameters
     ----------
-    center : float
-        The center of the uniform distribution
-    width : float
-        The width of the distribution, to either side of the center
     N : int
         The number of points in the discrete approximation
-        
+    bot : float
+        The bottom of the uniform distribution
+    top : float
+        The top of the uniform distribution
+     
     Returns
     -------
-    X : np.array
+    (unnamed) : np.array
         An equiprobable discrete approximation to the uniform distribution.
     '''
-    return center + width*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
+    pmf = np.ones(N)/float(N)
+    center = (top+bot)/2.0
+    width = (top-bot)/2.0
+    X = center + width*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
+    return [pmf,X]
+
 
 def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):
     '''
@@ -630,19 +680,22 @@ def addDiscreteOutcomeConstantMean(distribution, x, p, sort = False):
  
     Returns
     -------
-    A new distribution object
- 
+    X : np.array
+        Discrete points for discrete probability mass function.
+    pmf : np.array
+        Probability associated with each point in X.
+        
     Written by Matthew N. White
     Latest update: 08 December 2015 by David Low
     '''  
-    X = np.append(x,distribution[1]*(1-p*x)/(1-p))
+    X   = np.append(x,distribution[1]*(1-p*x)/(1-p))
     pmf = np.append(p,distribution[0]*(1-p))
  
     if sort:
         indices = np.argsort(X)
         X       = X[indices]
         pmf     = pmf[indices]
- 
+
     return([pmf,X])
         
 def addDiscreteOutcome(distribution, x, p, sort = False):
@@ -661,13 +714,16 @@ def addDiscreteOutcome(distribution, x, p, sort = False):
 
     Returns
     -------
-    A new distribution object
+    X : np.array
+        Discrete points for discrete probability mass function.
+    pmf : np.array
+        Probability associated with each point in X.
 
     Written by Matthew N. White
     Latest update: 11 December 2015
     '''
     
-    X = np.append(x,distribution[1])
+    X   = np.append(x,distribution[1])
     pmf = np.append(p,distribution[0]*(1-p))
     
     if sort:
@@ -776,7 +832,8 @@ def makeGridExpMult(ming, maxg, ng, timestonest=20):
         A multi-exponentially spaced grid
 
     Original Matab code can be found in Chris Carroll's
-    [Solution Methods for Microeconomic Dynamic Optimization Problems](http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
+    [Solution Methods for Microeconomic Dynamic Optimization Problems]
+    (http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
     Latest update: 01 May 2015
     '''
     if timestonest > 0:
@@ -944,7 +1001,8 @@ def calcSubpopAvg(data,reference,cutoffs,weights=None):
     for j in range(len(cutoffs)):
         bot = np.searchsorted(cum_dist,cutoffs[j][0])
         top = np.searchsorted(cum_dist,cutoffs[j][1])
-        slice_avg.append(np.sum(data_sorted[bot:top]*weights_sorted[bot:top])/np.sum(weights_sorted[bot:top]))
+        slice_avg.append(np.sum(data_sorted[bot:top]*weights_sorted[bot:top])/
+                         np.sum(weights_sorted[bot:top]))
     return slice_avg
      
 def kernelRegression(x,y,bot=None,top=None,N=500,h=None):
@@ -1005,12 +1063,12 @@ def epanechnikovKernel(x,ref_x,h=1.0):
     
     Returns
     -------
-    fx : np.array
+    out : np.array
         Kernel values at each value of x
     '''
-    u = (x-ref_x)/h   # Normalize distance by bandwidth
-    these = np.abs(u) <= 1.0 # Kernel = 0 outside [-1,1]
-    out = np.zeros_like(x)   # Initialize kernel output
+    u          = (x-ref_x)/h   # Normalize distance by bandwidth
+    these      = np.abs(u) <= 1.0 # Kernel = 0 outside [-1,1]
+    out        = np.zeros_like(x)   # Initialize kernel output
     out[these] = 0.75*(1.0-u[these]**2.0) # Evaluate kernel
     return out
 
@@ -1019,78 +1077,29 @@ def epanechnikovKernel(x,ref_x,h=1.0):
 # ============== Some basic plotting tools  ====================================
 # ==============================================================================
 
-def plotFunc(function,bottom,top,N=1000):
+def plotFuncs(functions,bottom,top,N=1000):
     '''
-    Plots a 1D function over a given range.
+    Plots 1D function(s) over a given range.
     
     Parameters
     ----------
-    function : function
-        A real function to be plotted.
+    functions : [function] or function
+        A single function, or a list of functions, to be plotted.
     bottom : float
         The lower limit of the domain to be plotted.
     top : float
         The upper limit of the domain to be plotted.
     N : int
         Number of points in the domain to evaluate.
-        
     Returns
     -------
     none
     '''
-    step = (top-bottom)/N
-    x = np.arange(bottom,top,step)
-    y = function(x)
-    plt.plot(x,y)
-    plt.xlim([bottom, top])
-    plt.show()
-
-
-def plotFuncDer(function,bottom,top,N=1000):
-    '''
-    Plots the first derivative of a 1D function over a given range.
-    
-    Parameters
-    ----------
-    function : function
-        A real function to be plotted.
-    bottom : float
-        The lower limit of the domain to be plotted.
-    top : float
-        The upper limit of the domain to be plotted.
-    N : int
-        Number of points in the domain to evaluate.
-        
-    Returns
-    -------
-    none
-    '''
-    step = (top-bottom)/N
-    x = np.arange(bottom,top,step)
-    y = function.derivative(x)
-    plt.plot(x,y)
-    plt.xlim([bottom, top])
-    plt.show()
-
-def plotFuncs(function_list,bottom,top,N=1000):
-    '''
-    Plots a list of 1D function over a given range.
-    
-    Parameters
-    ----------
-    function_list : [function]
-        A list of real functions to be plotted.
-    bottom : float
-        The lower limit of the domain to be plotted.
-    top : float
-        The upper limit of the domain to be plotted.
-    N : int
-        Number of points in the domain to evaluate.
-        
-    Returns
-    -------
-    none
-    '''
+    if type(functions)==list:
+        function_list = functions
+    else:
+        function_list = [functions]
+       
     step = (top-bottom)/N
     for function in function_list:
         x = np.arange(bottom,top,step)
@@ -1098,3 +1107,46 @@ def plotFuncs(function_list,bottom,top,N=1000):
         plt.plot(x,y)
     plt.xlim([bottom, top])
     plt.show()
+
+
+
+def plotFuncsDer(functions,bottom,top,N=1000):
+    '''
+    Plots the first derivative of 1D function(s) over a given range.
+    
+    Parameters
+    ----------
+    function : function
+        A function or list of functions, the derivatives of which are to be plotted.
+    bottom : float
+        The lower limit of the domain to be plotted.
+    top : float
+        The upper limit of the domain to be plotted.
+    N : int
+        Number of points in the domain to evaluate.
+        
+    Returns
+    -------
+    none
+    '''
+    if type(functions)==list:
+        function_list = functions
+    else:
+        function_list = [functions]
+       
+    step = (top-bottom)/N
+    for function in function_list:
+        x = np.arange(bottom,top,step)
+        y = function.derivative(x)
+        plt.plot(x,y)
+    plt.xlim([bottom, top])
+    plt.show()
+
+
+if __name__ == '__main__':       
+    print("Sorry, HARKutilities doesn't actually do anything on its own.")
+    print("To see some examples of its functions in action, look at any")
+    print("of the model modules in /ConsumptionSavingModel.  As these functions")
+    print("are the basic building blocks of HARK, you'll find them used")
+    print("everywhere! In the future, this module will show examples of each")
+    print("function in the module.")

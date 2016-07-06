@@ -1,7 +1,7 @@
 '''
-This is a very minimal module for an early version of multithreading in HARK.
-To run this module, first install dill and joblib.  Packages can be installed by
-typing "conda install dill" (etc) at a command prompt.
+Early version of multithreading in HARK. To use this module, first install dill
+and joblib.  Packages can be installed by typing "conda install dill" (etc) at
+a command prompt.
 '''
 import multiprocessing
 from joblib import Parallel, delayed
@@ -439,8 +439,14 @@ def parallelNelderMeadWorker(objFunc,simplex,f_vals,j,P,opt_params):
 #=============================================================================
 #=============================================================================    
  
-# Demonstrate the parallel Nelder-Mead algorithm  
+  
 if __name__ == "__main__":
+    print("Sorry, HARKparallel doesn't actually do much on its own.")
+    print("To see an example of multithreading in HARK, see /Tests/MultithreadDemo.")
+    print('To ensure full compatibility "out of the box", multithreading is not')
+    print('used in our models and applications; users can turn it on by modifying')
+    print('the source code slightly.')
+    
     K = 36
     P = 24
     my_guess = np.random.rand(K) - 0.5
