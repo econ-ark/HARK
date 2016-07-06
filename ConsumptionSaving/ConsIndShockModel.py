@@ -23,7 +23,7 @@ from scipy.optimize import newton
 from HARKcore import AgentType, Solution, NullFunc, HARKobject
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
-from HARKsimulation import drawDiscrete
+from HARKsimulation import drawDiscrete, drawBernoulli
 from HARKutilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
                           combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
                           CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
@@ -1573,7 +1573,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             PermGroFacNow    = self.PermGroFac[t_idx] # and permanent growth factor
             Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
             # Get random draws of income shocks from the discrete distribution
-            EventDraws       = drawDiscrete(N=self.Nagents,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
+            EventDraws       = drawDiscrete(N=self.Nagents,X=Indices,P=IncomeDstnNow[0],exact_match=True,seed=self.RNG.randint(0,2**31-1))
             PermShkHist[t,:] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
             TranShkHist[t,:] = IncomeDstnNow[2][EventDraws]
             # Advance the time index, looping if we've run out of income distributions
@@ -1731,6 +1731,32 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Restore the original flow of time
         if not orig_time:
             self.timeRev()
+            
+    def simMortality(self):
+        '''
+        Simulates the mortality process, killing off some percentage of agents
+        and replacing them with newborn agents.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        if hasattr(self,'DiePrb'):
+            if self.DiePrb > 0:
+                who_dies = drawBernoulli(N=self.Nagents,p=self.DiePrb,seed=self.RNG.randint(low=1, high=2**31-1))
+                wealth_all = self.aNow*self.pNow     # de-normalizing assets
+                who_lives = np.logical_not(who_dies) # indicator for who survives
+                wealth_of_dead = np.sum(wealth_all[who_dies]) # total wealth of those who die
+                wealth_of_live = np.sum(wealth_all[who_lives])# total wealth of those who survive
+                R_actuarial = 1.0 + wealth_of_dead/wealth_of_live # "interest" payout for survivors
+                self.aNow[who_dies] = 0.0 # newborns have no assets...
+                self.pNow[who_dies] = 1.0 # ...and they have permanent income of 1
+                if not np.isnan(R_actuarial): # don't bother with this if no one had wealth anyway!
+                    self.aNow = self.aNow*R_actuarial
                 
     def simOnePrd(self):
         '''
@@ -1764,7 +1790,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         ReffNow     = RfreeNow/PermShkNow   # "effective" interest factor on normalized assets
         bNow        = ReffNow*aPrev         # Bank balances before labor income
         mNow        = bNow + TranShkNow     # Market resources after income
-        cNow,MPCnow = cFuncNow.eval_with_derivative(mNow) # Consumption and maginal propensity to consume
+        cNow,MPCnow = cFuncNow.eval_with_derivative(mNow) # Consumption and marginal propensity to consume
         aNow        = mNow - cNow           # Assets after all actions are accomplished
         
         # Store the new state and control variables

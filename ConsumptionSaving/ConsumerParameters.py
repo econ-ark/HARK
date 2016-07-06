@@ -188,6 +188,7 @@ PermIncCount = 12        # Number of permanent income gridpoints in "body"
 PermInc_tail_N = 3       # Number of permanent income gridpoints in each "tail"
 PermIncStdInit = 0.4     # Initial standard deviation of (log) permanent income (not used in example)
 PermIncAvgInit = 1.0     # Initial average of permanent income (not used in example)
+PermIncCorr = 0.95       # Serial correlation coefficient for permanent income
 cycles = 0
 
 # Make a dictionary for the "explicit permanent income" idiosyncratic shocks model
@@ -199,4 +200,9 @@ init_explicit_perm_inc['PermIncStdInit'] = PermIncStdInit
 init_explicit_perm_inc['PermGroFac'] = [1.0] # long run permanent income growth doesn't work yet
 init_explicit_perm_inc['cycles'] = cycles
 init_explicit_perm_inc['aXtraCount'] = 48
+init_explicit_perm_inc['aXtraMax'] = 20
 init_explicit_perm_inc['CubicBool'] = False # explicit perm inc currently only compatible with linear cFunc
+
+# Make a dictionary for the "persistent idiosyncratic shocks" model
+init_persistent_shocks = copy(init_explicit_perm_inc)
+init_persistent_shocks['PermIncCorr'] = PermIncCorr

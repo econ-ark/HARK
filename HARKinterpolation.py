@@ -1529,7 +1529,7 @@ class LowerEnvelope2D(HARKinterpolator2D):
             m = len(x)
             temp = np.zeros((m,self.funcCount))
             for j in range(self.funcCount):
-                temp[:,j] = self.functions[j]._evaluate(x,y)
+                temp[:,j] = self.functions[j](x,y)
             f = np.nanmin(temp,axis=1)       
         return f
 
@@ -1544,7 +1544,6 @@ class LowerEnvelope2D(HARKinterpolator2D):
             temp[:,j] = self.functions[j](x,y)
         temp[np.isnan(temp)] = np.inf
         i = np.argmin(temp,axis=1)
-        y = temp[np.arange(m),i]
         dfdx = np.zeros_like(x)
         for j in range(self.funcCount):
             c = i == j
