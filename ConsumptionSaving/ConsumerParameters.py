@@ -188,7 +188,7 @@ PermIncCount = 12        # Number of permanent income gridpoints in "body"
 PermInc_tail_N = 3       # Number of permanent income gridpoints in each "tail"
 PermIncStdInit = 0.4     # Initial standard deviation of (log) permanent income (not used in example)
 PermIncAvgInit = 1.0     # Initial average of permanent income (not used in example)
-PermIncCorr = 0.95       # Serial correlation coefficient for permanent income
+PermIncCorr = 0.98       # Serial correlation coefficient for permanent income
 cycles = 0
 
 # Make a dictionary for the "explicit permanent income" idiosyncratic shocks model

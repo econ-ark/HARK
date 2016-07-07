@@ -13,7 +13,7 @@ from copy import copy, deepcopy
 import numpy as np
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import LowerEnvelope2D, BilinearInterp, Curvilinear2DInterp,\
-                              LinearInterpOnInterp1D, LinearInterp
+                              LinearInterpOnInterp1D, LinearInterp, HARKinterpolator2D
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                           CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
                           approxLognormal
@@ -647,7 +647,10 @@ class ConsPersistentShockSolver(ConsIndShockSolverExplicitPermInc):
     
         # Define the constrained portion of the consumption function and the
         # minimum allowable level of market resources by permanent income
-        cFuncNowCnstNat = lambda m,p : m - BoroCnstNat(p)
+        cFuncNowCnstNat = HARKinterpolator2D()
+        cFuncNowCnstNat.__call__    = lambda m,p : m - BoroCnstNat(p)
+        cFuncNowCnstNat.derivativeX = lambda m,p : np.ones_like(m)
+        cFuncNowCnstNat.derivativeY = lambda m,p : np.zeros_like(m)
         if self.BoroCnstArt is not None:
             cFuncNowCnstArt   = BilinearInterp(np.array([[0.0,-self.BoroCnstArt],[1.0,1.0-self.BoroCnstArt]]),
                                            np.array([0.0,1.0]),np.array([0.0,1.0]))
@@ -868,8 +871,14 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
         RfreeNow       = self.RfreeNow
         cFuncNow       = self.cFuncNow
         
+        # Get correlation coefficient for permanent income
+        if hasattr(self,'PermIncCorr'):
+            Corr = self.PermIncCorr
+        else:
+            Corr = 1.0       
+        
         # Simulate the period
-        pNow        = pPrev*PermShkNow      # Updated permanent income level
+        pNow        = pPrev**Corr*PermShkNow# Updated permanent income level
         bNow        = RfreeNow*aPrev        # Bank balances before labor income
         mNow        = bNow + TranShkNow*pNow# Market resources after income
         cNow        = cFuncNow(mNow,pNow)   # Consumption
@@ -953,7 +962,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     mystr = lambda number : "{:.4f}".format(number)
     
-    do_simulation = False
+    do_simulation = True
     
     # Make and solve an example "explicit permanent income" consumer with idiosyncratic shocks
     ExplicitExample = IndShockExplicitPermIncConsumerType(**Params.init_explicit_perm_inc)    
@@ -979,10 +988,10 @@ if __name__ == '__main__':
         ExplicitExample.initializeSim()
         ExplicitExample.simConsHistory()
         plt.plot(np.mean(ExplicitExample.mHist,axis=1))
+        plt.show()
         
     # Make and solve an example "persistent idisyncratic shocks" consumer 
     PersistentExample = PersistentShockConsumerType(**Params.init_persistent_shocks)
-    #PersistentExample.cycles = 200
     t_start = clock()
     PersistentExample.solve()
     t_end = clock()
@@ -997,4 +1006,12 @@ if __name__ == '__main__':
         plt.plot(M_temp,C)
     plt.show()
 
-    
+    # Simulate some data
+    if do_simulation:
+        PersistentExample.sim_periods = 1000
+        PersistentExample.DiePrb = 1.0 - ExplicitExample.LivPrb[0]
+        PersistentExample.makeIncShkHist()
+        PersistentExample.initializeSim()
+        PersistentExample.simConsHistory()
+        plt.plot(np.mean(PersistentExample.mHist,axis=1))
+        plt.show()

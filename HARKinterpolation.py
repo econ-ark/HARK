@@ -34,6 +34,8 @@ class HARKinterpolator1D(HARKobject):
     '''
     A wrapper class for 1D interpolation methods in HARK.
     '''
+    distance_criteria = []
+    
     def __call__(self,x):
         '''
         Evaluates the interpolated function at the given input.
@@ -115,6 +117,8 @@ class HARKinterpolator2D(HARKobject):
     '''
     A wrapper class for 2D interpolation methods in HARK.
     '''
+    distance_criteria = []
+    
     def __call__(self,x,y):
         '''
         Evaluates the interpolated function at the given input.
@@ -206,6 +210,8 @@ class HARKinterpolator3D(HARKobject):
     '''
     A wrapper class for 3D interpolation methods in HARK.
     '''
+    distance_criteria = []
+    
     def __call__(self,x,y,z):
         '''
         Evaluates the interpolated function at the given input.
@@ -342,6 +348,8 @@ class HARKinterpolator4D(HARKobject):
     '''
     A wrapper class for 4D interpolation methods in HARK.
     '''
+    distance_criteria = []
+    
     def __call__(self,w,x,y,z):
         '''
         Evaluates the interpolated function at the given input.
@@ -1494,7 +1502,7 @@ class LowerEnvelope(HARKinterpolator1D):
 class LowerEnvelope2D(HARKinterpolator2D):
     '''
     The lower envelope of a finite set of 2D functions, each of which can be of
-    any class that has the methods _evaluate, _derX, and _derY.
+    any class that has the methods __call__, derivativeX, and derivativeY.
     Generally: it combines HARKinterpolator2Ds. 
     ''' 
 
@@ -1547,7 +1555,7 @@ class LowerEnvelope2D(HARKinterpolator2D):
         dfdx = np.zeros_like(x)
         for j in range(self.funcCount):
             c = i == j
-            dfdx[c] = self.functions[j]._derX(x[c],y[c])
+            dfdx[c] = self.functions[j].derivativeX(x[c],y[c])
         return dfdx
         
     def _derY(self,x,y):
@@ -1565,7 +1573,7 @@ class LowerEnvelope2D(HARKinterpolator2D):
         dfdy = np.zeros_like(x)
         for j in range(self.funcCount):
             c = i == j
-            dfdy[c] = self.functions[j]._derY(x[c],y[c])
+            dfdy[c] = self.functions[j].derivativeY(x[c],y[c])
         return dfdy
     
 
