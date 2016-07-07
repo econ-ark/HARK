@@ -362,12 +362,30 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         # Combine the constrained and unconstrained functions into the true consumption function
         cFuncNow = LowerEnvelope2D(cFuncNowUnc,self.cFuncNowCnst)
 
-        # Make the marginal value function and the marginal marginal value function
-        vPfuncNow = MargValueFunc2D(cFuncNow,self.CRRA)
+        # Make the marginal value function
+        vPfuncNow = self.makevPfunc(cFuncNow)
 
         # Pack up the solution and return it
         solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow)
         return solution_now
+        
+    def makevPfunc(self,cFunc):
+        '''
+        Constructs the marginal value function for this period.
+        
+        Parameters
+        ----------
+        cFunc : function
+            Consumption function this period, defined over market resources and
+            permanent income level.
+        
+        Returns
+        -------
+        vPfunc : function
+            Marginal value (of market resources) function for this period.
+        '''
+        vPfunc = MargValueFunc2D(cFunc,self.CRRA)
+        return vPfunc
         
     def makeBasicSolution(self,EndOfPrdvP,aLvl,pLvl,interpolator):
         '''
@@ -568,7 +586,7 @@ class ConsPersistentShockSolver(ConsIndShockSolverExplicitPermInc):
     while (log) permanent income follows an AR1 process rather than a random walk.
     '''
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                      PermGroFac,PermIncCorr,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
+                 PermGroFac,PermIncCorr,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
         '''
         Constructor for a new solver for a one period problem with idiosyncratic
         shocks to permanent and transitory income.  Transitory shocks are iid,
@@ -962,7 +980,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     mystr = lambda number : "{:.4f}".format(number)
     
-    do_simulation = True
+    do_simulation = False
     
     # Make and solve an example "explicit permanent income" consumer with idiosyncratic shocks
     ExplicitExample = IndShockExplicitPermIncConsumerType(**Params.init_explicit_perm_inc)    

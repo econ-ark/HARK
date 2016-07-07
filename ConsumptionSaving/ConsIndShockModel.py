@@ -678,7 +678,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             
         Returns
         -------
-        none
+        None
         '''
         self.DiscFacEff       = DiscFac*LivPrb # "effective" discount factor
         self.ShkPrbsNext      = IncomeDstn[0]
