@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.abspath('./'))
 
 from copy import copy, deepcopy
 import numpy as np
+from HARKcore import HARKobject
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import LowerEnvelope2D, BilinearInterp, Curvilinear2DInterp,\
                               LinearInterpOnInterp1D, LinearInterp, HARKinterpolator2D
@@ -28,13 +29,15 @@ utility_invP  = CRRAutility_invP
 utility_inv   = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
 
-class MargValueFunc2D():
+class MargValueFunc2D(HARKobject):
     '''
     A class for representing a marginal value function in models where the
     standard envelope condition of V'(M,p) = u'(c(M,p)) holds (with CRRA utility).
     This is copied from ConsAggShockModel, with the second state variable re-
     labeled as permanent income p.    
     '''
+    distance_criteria = ['cFunc','CRRA']
+    
     def __init__(self,cFunc,CRRA):
         '''
         Constructor for a new marginal value function object.
@@ -265,6 +268,8 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         aLvlNow     = np.tile(np.asarray(self.aXtraGrid),(pLvlCount,1))*pLvlNow + self.BoroCnstNat(pLvlNow)
         pLvlNow_tiled = np.tile(pLvlNow,(ShkCount,1,1))
         aLvlNow_tiled = np.tile(aLvlNow,(ShkCount,1,1)) # shape = (ShkCount,pLvlCount,aNrmCount)
+        if self.pLvlGrid[0] == 0.0:  # aLvl turns out badly if pLvl is 0 at bottom
+            aLvlNow_tiled[:,0,:] = aLvlNow_tiled[:,1,:]
         
         # Tile arrays of the income shocks and put them into useful shapes
         PermShkVals_tiled = np.transpose(np.tile(self.PermShkValsNext,(aNrmCount,pLvlCount,1)),(2,1,0))
@@ -509,7 +514,8 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         solution : ConsumerSolution
             The solution to the one period problem, including a consumption
             function (defined over market resources and permanent income), a
-            marginal value function, bounding MPCs, and normalized human wealth.
+            marginal value function, bounding MPCs, and human wealth as a func-
+            tion of permanent income.
         '''
         aLvl,pLvl  = self.prepareToCalcEndOfPrdvP()           
         EndOfPrdvP = self.calcEndOfPrdvP()

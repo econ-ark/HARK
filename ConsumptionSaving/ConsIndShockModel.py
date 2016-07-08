@@ -50,7 +50,7 @@ class ConsumerSolution(Solution):
     Here and elsewhere in the code, Nrm indicates that variables are normalized
     by permanent income.
     '''
-    distance_criteria = ['cFunc']
+    distance_criteria = ['vPfunc']
     
     def __init__(self, cFunc=None, vFunc=None, 
                        vPfunc=None, vPPfunc=None,
