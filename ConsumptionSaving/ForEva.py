@@ -12,15 +12,17 @@ import ConsumerParameters as Params
 from HARKutilities import plotFuncs
 
 # Define the baseline example
-BaselineExample = KinkedRconsumerType(**Params.init_kinked_R)
-#BaselineExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
+#BaselineExample = KinkedRconsumerType(**Params.init_kinked_R)
+BaselineExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
 #BaselineExample.Rfree       = 1.03
 BaselineExample.cycles      = 0 # Make the Example infinite horizon
 BaselineExample.CRRA        = 2.
 BaselineExample.BoroCnstArt = -.3
-credit_change               = .001
 BaselineExample.DiscFac     = .5 #chosen so that target debt-to-permanent-income_ratio is about .1
                                  # i.e. BaselineExample.cFunc[0](.9) ROUGHLY = 1.
+
+credit_change               = .001
+
 
 # Create the comparison example, a consumer with a borrowing constraint that is looser by credit_change
 XtraCreditExample = deepcopy(BaselineExample)
@@ -44,7 +46,7 @@ def ExampleFirstDiff(x):
     return XtraCreditExample.cFunc[0](x) - BaselineExample.cFunc[0](x)
 
 def ExampleFirstDiffMPC(x):
-    return ExampleFirstDiff(x) / (credit_change / BaselineExample.Rboro)
+    return ExampleFirstDiff(x) / (credit_change / 1.) # BaselineExample.Rboro)
 
 def UpwardFirstDiffMPC(x):
     return (BaselineExample.cFunc[0](x + credit_change) - BaselineExample.cFunc[0](x)) / credit_change
