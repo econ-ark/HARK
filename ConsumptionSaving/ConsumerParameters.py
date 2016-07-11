@@ -10,7 +10,7 @@ import numpy as np
 # --- Define all of the parameters for the perfect foresight model ------------
 # -----------------------------------------------------------------------------
 
-CRRA = 4.0                          # Coefficient of relative risk aversion
+CRRA = 2.0                          # Coefficient of relative risk aversion
 Rfree = 1.03                        # Interest factor on assets
 DiscFac = 0.96                      # Intertemporal discount factor
 LivPrb = [0.98]                     # Survival probability
@@ -200,9 +200,29 @@ init_explicit_perm_inc['PermIncStdInit'] = PermIncStdInit
 init_explicit_perm_inc['PermGroFac'] = [1.0] # long run permanent income growth doesn't work yet
 init_explicit_perm_inc['cycles'] = cycles
 init_explicit_perm_inc['aXtraCount'] = 48
-init_explicit_perm_inc['aXtraMax'] = 20
+init_explicit_perm_inc['aXtraMax'] = 30
 init_explicit_perm_inc['CubicBool'] = False # explicit perm inc currently only compatible with linear cFunc
 
 # Make a dictionary for the "persistent idiosyncratic shocks" model
 init_persistent_shocks = copy(init_explicit_perm_inc)
 init_persistent_shocks['PermIncCorr'] = PermIncCorr
+
+# -----------------------------------------------------------------------------
+# ----- Define additional parameters for the medical shocks model -------------
+# -----------------------------------------------------------------------------
+
+CRRAmed = 1.5*CRRA    # Coefficient of relative risk aversion for medical care
+MedShkAvg = [0.001]    # Average of medical need shocks
+MedShkStd = [5.0]     # Standard deviation of (log) medical need shocks
+MedShkCount = 5      # Number of medical shock points in "body"
+MedShkCountTail = 15  # Number of medical shock points in "tail" (upper only)
+MedPrice = [1.5]      # Relative price of a unit of medical care
+
+# Make a dictionary for the "medical shocks" model
+init_medical_shocks = copy(init_persistent_shocks)
+init_medical_shocks['CRRAmed'] = CRRAmed
+init_medical_shocks['MedShkAvg'] = MedShkAvg
+init_medical_shocks['MedShkStd'] = MedShkStd
+init_medical_shocks['MedShkCount'] = MedShkCount
+init_medical_shocks['MedShkCountTail'] = MedShkCountTail
+init_medical_shocks['MedPrice'] = MedPrice

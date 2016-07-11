@@ -936,6 +936,152 @@ class BilinearInterp(HARKinterpolator2D):
               ((1-alpha)*self.f_values[x_pos-1,y_pos]
             +  alpha*self.f_values[x_pos-1,y_pos-1]))/(self.y_list[y_pos] - self.y_list[y_pos-1])
         return dfdy
+        
+        
+class BicubicInterp(HARKinterpolator2D):
+    '''
+    Bicubic full (or tensor) grid interpolation of a function f(x,y,z).
+    '''
+    Ainv = np.array([
+        [ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [ 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [-3, 3, 0, 0,-2,-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [ 2,-2, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [ 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+        [ 0, 0, 0, 0, 0, 0, 0, 0,-3, 3, 0, 0,-2,-1, 0, 0],
+        [ 0, 0, 0, 0, 0, 0, 0, 0, 2,-2, 0, 0, 1, 1, 0, 0],
+        [-3, 0, 3, 0, 0, 0, 0, 0,-2, 0,-1, 0, 0, 0, 0, 0],
+        [ 0, 0, 0, 0,-3, 0, 3, 0, 0, 0, 0, 0,-2, 0,-1, 0],
+        [ 9,-9,-9, 9, 6, 3,-6,-3, 6,-6, 3,-3, 4, 2, 2, 1],
+        [-6, 6, 6,-6,-3,-3, 3, 3,-4, 4,-2, 2,-2,-2,-1,-1],
+        [ 2, 0,-2, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+        [ 0, 0, 0, 0, 2, 0,-2, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+        [-6, 6, 6,-6,-4,-2, 4, 2,-3, 3,-3, 3,-2,-1,-2,-1],
+        [ 4,-4,-4, 4, 2, 2,-2,-2, 2,-2, 2,-2, 1, 1, 1, 1]
+    ],dtype=float)
+    
+    def __init__(self,f_values,dfdx_values,dfdy_values,d2fdxdy_values,x_list,y_list):
+        '''
+        Make a new bicubic spline interpolation.
+        
+        Parameters
+        ----------
+        f_values : np.array
+             2D array of function values: f(x_list[i],y_list[j]) = f_values[i,j]
+        dfdx_values : np.array
+             2D array of function derivatives: dfdx(x_list[i],y_list[j]) = dfdx_values[i,j]
+        dfdy_values : np.array
+             2D array of function derivatives: dfdy(x_list[i],y_list[j]) = dfdy_values[i,j]
+        d2fdxdy_values : np.array
+             2D array of function cross derivatives: d2fdxdy(x_list[i],y_list[j]) = d2fdxdy_values[i,j]
+        x_list : np.array
+             1D array representing grid of x values; must be sorted.
+        y_list : np.array
+             1D array representing grid of y values; must be sorted.
+        
+        Returns
+        -------
+        None
+        '''
+        # Add data to self
+        self.f_values = f_values
+        self.dfdx_values = dfdx_values
+        self.dfdy_values = dfdy_values
+        self.d2fdxdy_values = d2fdxdy_values
+        self.x_list = x_list
+        self.y_list = y_list
+        self.x_n = x_list.size
+        self.y_n = y_list.size
+        
+        # Calculate cubic spline coefficients for each sector
+        coeffs = np.zeros((x_list.size-1,y_list.size-1,16)) + np.nan
+        for i in range(coeffs.shape[0]):
+            x0 = x_list[i]
+            x1 = x_list[i+1]
+            xspan = x1 - x0
+            for j in range(coeffs.shape[1]):
+                y0 = y_list[j]
+                y1 = y_list[j+1]
+                yspan = y1 - y0
+                sector_data = np.array([ # Pull data for this sector
+                             f_values[i,j],
+                             f_values[i+1,j],
+                             f_values[i,j+1],
+                             f_values[i+1,j+1],
+                             dfdx_values[i,j]*xspan,
+                             dfdx_values[i+1,j]*xspan,
+                             dfdx_values[i,j+1]*xspan,
+                             dfdx_values[i+1,j+1]*xspan,
+                             dfdy_values[i,j]*yspan,
+                             dfdy_values[i+1,j]*yspan,
+                             dfdy_values[i,j+1]*yspan,
+                             dfdy_values[i+1,j+1]*yspan,
+                             d2fdxdy_values[i,j]*xspan*yspan,
+                             d2fdxdy_values[i+1,j]*xspan*yspan,
+                             d2fdxdy_values[i,j+1]*xspan*yspan,
+                             d2fdxdy_values[i+1,j+1]*xspan*yspan
+                           ])
+                sector_coeffs = np.dot(self.Ainv,sector_data) # calculate coefficients
+                coeffs[i,j,:] = sector_coeffs # and store them in the array
+        self.coeffs = coeffs
+        
+    def _evaluate(self,x,y):
+        '''
+        Evaluate the bicubic interpolation at given data.  Only called internally
+        by HARKinterpolator2D.
+        '''
+        # Find the correct sector and relative position for each input point
+        if _isscalar(x):
+            x_pos = max(min(np.searchsorted(self.x_list,x),self.x_n-1),1)
+            y_pos = max(min(np.searchsorted(self.y_list,y),self.y_n-1),1)
+        else:
+            x_pos = np.searchsorted(self.x_list,x)
+            x_pos[x_pos < 1] = 1
+            x_pos[x_pos > self.x_n-1] = self.x_n-1
+            y_pos = np.searchsorted(self.y_list,y)
+            y_pos[y_pos < 1] = 1
+            y_pos[y_pos > self.y_n-1] = self.y_n-1
+        alpha = (x - self.x_list[x_pos-1])/(self.x_list[x_pos] - self.x_list[x_pos-1])
+        beta = (y - self.y_list[y_pos-1])/(self.y_list[y_pos] - self.y_list[y_pos-1])
+        
+        # Calculate combinations of powers of alpha and beta
+        a0b0 = np.ones_like(alpha)
+        a1b0 = alpha
+        a2b0 = alpha*alpha
+        a3b0 = a2b0*alpha
+        a0b1 = beta
+        a0b2 = beta*a0b1
+        a0b3 = beta*a0b2
+        a1b1 = a1b0*a0b1
+        a2b1 = a2b0*a0b1
+        a3b1 = a3b0*a0b1
+        a1b2 = a1b0*a0b2
+        a2b2 = a2b0*a0b2
+        a3b2 = a3b0*a0b2
+        a1b3 = a1b0*a0b3
+        a2b3 = a2b0*a0b3
+        a3b3 = a3b0*a0b3
+        data = np.vstack((a0b0,a1b0,a2b0,a3b0,a0b1,a1b1,a2b1,a3b1,a0b2,a1b2,a2b2,a3b2,a0b3,a1b3,a2b3,a3b3))
+        
+        # Conduct nine different evaluations depending on whether the points are
+        # interior or in one of eight "exterior zones"
+        f = np.zeros_like(x) + np.nan
+        out_left = alpha < 0
+        out_right = alpha > 1
+        out_bot = beta < 0
+        out_top = beta > 1
+        in_horz = np.logical_not(np.logical_or(out_left,out_right))
+        in_vert = np.logical_not(np.logical_or(out_bot,out_top))
+        
+        # First for interior points
+        c = np.logical_and(in_horz,in_vert)
+        internal_coeffs = self.coeffs[x_pos[c],y_pos[c],:]
+        f[c] = np.sum(data[c,:]*internal_coeffs,axis=1)
+        
+        # NEED TO WRITE OTHER 8 VERSIONS FOR EACH COMBINATION OF BEING OUT OF BOUNDS: LINEAR INTERPOLATION
+        return f
+        
 
 
 class TrilinearInterp(HARKinterpolator3D):

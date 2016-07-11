@@ -5,10 +5,12 @@ import sys
 sys.path.insert(0,'../')
 
 import numpy as np
+from scipy.optimize import newton
 from HARKcore import HARKobject
 from HARKutilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv
+from HARKsimulation import drawLognormal
 from ConsIndShockModel import ConsumerSolution
-from HARKinterpolation import BilinearInterpOnInterp1D, BilinearInterp, LinearInterp
+from HARKinterpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, LinearInterp
 from ConsPersistentShockModel import ConsPersistentShockSolver, PersistentShockConsumerType, MargValueFunc2D
 from copy import copy, deepcopy
 
@@ -85,7 +87,8 @@ class MedFunc(HARKobject):
         dMeddm : np.array
             Array of same shape as inputs, containing marginal medical care.
         '''
-        # WRITE THIS METHOD
+        dMeddm = (MedShk/self.MedPrice)**(1.0/self.CRRAmed) * self.cFunc.derivativeX(mLvl,pLvl,MedShk) * self.cFunc(mLvl,pLvl,MedShk)**(self.CRRAcon/self.CRRAmed - 1.0)
+        return dMeddm
         
     def derivativeY(self,mLvl,pLvl,MedShk):
         '''
@@ -106,7 +109,8 @@ class MedFunc(HARKobject):
         dMeddp : np.array
             Array of same shape as inputs, containing marginal medical care.
         '''
-        # WRITE THIS METHOD
+        dMeddp = (MedShk/self.MedPrice)**(1.0/self.CRRAmed) * self.cFunc.derivativeY(mLvl,pLvl,MedShk) * self.cFunc(mLvl,pLvl,MedShk)**(self.CRRAcon/self.CRRAmed - 1.0)
+        return dMeddp
         
     def derivativeZ(self,mLvl,pLvl,MedShk):
         '''
@@ -127,7 +131,11 @@ class MedFunc(HARKobject):
         dMeddMedShk : np.array
             Array of same shape as inputs, containing marginal medical care.
         '''
-        # WRITE THIS METHOD
+        first_term = (MedShk/self.MedPrice)**(1.0/self.CRRAmed) * self.cFunc.derivativeZ(mLvl,pLvl,MedShk) * self.cFunc(mLvl,pLvl,MedShk)**(self.CRRAcon/self.CRRAmed - 1.0)
+        second_term = (1.0/(MedShk*self.MedPrice)) * (MedShk/self.MedPrice)**(1.0/self.CRRAmed - 1.0) * self.cFunc(mLvl,pLvl,MedShk)**(self.CRRAcon/self.CRRAmed)
+        dMeddMedShk = first_term + second_term
+        return dMeddMedShk
+        
 
 class MedShockConsumerType(PersistentShockConsumerType):
     '''
@@ -161,21 +169,22 @@ class MedShockConsumerType(PersistentShockConsumerType):
         
     def update(self):
         '''
-        Updates the assets grid, permanent income grid, medical shock grid, income
-        process, terminal period solution, and preference shock process.  A very
-        slight extension of PersistentShockConsumerType.update() for the medical
-        shock model.
+        Update the income process, the assets grid, the permanent income grid,
+        the medical shock distribution, and the terminal solution.
         
         Parameters
         ----------
-        None
+        none
         
         Returns
         -------
-        None
+        none
         '''
-        PersistentShockConsumerType.update(self)  # Update assets grid, income process, terminal solution
-        self.updateMedShockProcess() # Update the discrete medical shock process
+        self.updateIncomeProcess()
+        self.updateAssetsGrid()
+        self.updatePermIncGrid()
+        self.updateMedShockProcess()
+        self.updateSolutionTerminal()
         
     def updateMedShockProcess(self):
         '''
@@ -195,7 +204,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.T_total):
             MedShkAvgNow  = self.MedShkAvg[t] # get shock distribution parameters
             MedShkStdNow  = self.MedShkStd[t]
-            MedShkDstnNow = approxLognormal(mu=np.log(MedShkAvgNow), sigma=MedShkStdNow, N=self.MedShkCount, tail_N=self.MedShkCountTail, tail_bound=[0,0.9])
+            MedShkDstnNow = approxLognormal(mu=np.log(MedShkAvgNow)-0.5*MedShkStdNow**2, sigma=MedShkStdNow, N=self.MedShkCount, tail_N=self.MedShkCountTail, tail_bound=[0,0.9])
             MedShkDstnNow = addDiscreteOutcomeConstantMean(MedShkDstnNow,0.0,0.0,sort=True) # add point at zero with no probability
             MedShkDstn.append(MedShkDstnNow)
         self.MedShkDstn = MedShkDstn
@@ -221,6 +230,76 @@ class MedShockConsumerType(PersistentShockConsumerType):
             self.IncomeDstn[j][0] = np.insert(self.IncomeDstn[j][0],0,tiny_prob)
             self.IncomeDstn[j][1] = np.insert(self.IncomeDstn[j][1],0,1.0)
             self.IncomeDstn[j][2] = np.insert(self.IncomeDstn[j][2],0,0.0)
+            
+    def updateSolutionTerminal(self):
+        '''
+        Update the terminal period solution for this type.  Similar to other models,
+        optimal behavior involves spending all available market resources; however,
+        the agent must split his resources between consumption and medical care.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns:
+        --------
+        None
+        '''
+        # Take last period data, whichever way time is flowing
+        if self.time_flow: 
+            MedPrice = self.MedPrice[-1]
+            MedShkVals = self.MedShkDstn[-1][1]
+            MedShkPrbs = self.MedShkDstn[-1][0]
+        else:
+            MedPrice = self.MedPrice[0]
+            MedShkVals = self.MedShkDstn[0][1]
+            MedShkPrbs = self.MedShkDstn[0][0]
+        
+        # Initialize grids of medical need shocks, market resources, and optimal consumption
+        MedShkGrid = MedShkVals
+        mGrid = np.insert(self.aXtraGrid,0,0.0)
+        cGrid = np.zeros((mGrid.size,MedShkGrid.size))
+        pGrid = np.array([0.0,1.0]) # Trivial grid, c doesn't depend on p in terminal period
+                
+        # Calculate optimal consumption at each combination of mLvl and MedShk.
+        for i in range(mGrid.size):
+            mLvl = mGrid[i]
+            for j in range(MedShkGrid.size):
+                MedShk = MedShkGrid[j]
+                if mLvl == 0: # Zero consumption when mLvl = 0
+                    lastC = 0.0
+                elif MedShk == 0: # All consumption when MedShk = 0
+                    lastC = mLvl
+                else:
+                    lastC = mLvl*0.5
+                    optMedZeroFunc = lambda cLvl : (MedShk/self.MedPrice)**(-1.0/self.CRRA)*((mLvl-cLvl)/MedPrice)**(self.CRRAmed/self.CRRA) - cLvl
+                    lastC = newton(optMedZeroFunc,x0=lastC)
+                cGrid[i,j] = lastC
+                
+        # Construct the consumption function for the terminal period (and medical care function)
+        cFunc_terminal = TrilinearInterp(np.tile(np.reshape(cGrid,(mGrid.size,1,MedShkGrid.size)),(1,pGrid.size,1)),mGrid,pGrid,MedShkGrid)
+        MedFunc_terminal = MedFunc(cFunc_terminal,self.CRRA,self.CRRAmed,MedPrice)
+        
+        # Integrate marginal value across shocks to get expected marginal value
+        vPgrid = cGrid**(-self.CRRA)
+        vPgrid[np.isinf(vPgrid)] = 0.0 # correct for issue at bottom edges
+        PrbGrid = np.tile(np.reshape(MedShkPrbs,(1,MedShkGrid.size)),(mGrid.size,1))
+        vP_expected = np.sum(vPgrid*PrbGrid,axis=1)
+        
+        # Construct the marginal value function for the terminal period
+        vPnvrs = vP_expected**(-1.0/self.CRRA)
+        vPnvrs[0] = 0.0
+        vPnvrsFunc = BilinearInterp(np.tile(np.reshape(vPnvrs,(vPnvrs.size,1)),(1,pGrid.size)),mGrid,pGrid)
+        vPfunc_terminal = MargValueFunc2D(vPnvrsFunc,self.CRRA)
+        
+        # Make the terminal period solution
+        self.solution_terminal.cFunc = cFunc_terminal
+        self.solution_terminal.MedFunc = MedFunc_terminal
+        self.solution_terminal.vPfunc = vPfunc_terminal
+        self.solution_terminal.hNrm = 0.0 # Don't track normalized human wealth
+        self.solution_terminal.hLvl = lambda p : np.zeros_like(p) # But do track absolute human wealth by permanent income
+        self.solution_terminal.mLvlMin = lambda p : np.zeros_like(p) # And minimum allowable market resources by perm inc
+        
         
     def updatePermIncGrid(self):
         '''
@@ -243,6 +322,172 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for j in range(len(self.pLvlGrid)): # Then add 0 to the bottom of each pLvlGrid
             this_grid = self.pLvlGrid[j]
             self.pLvlGrid[j] = np.insert(this_grid,0,0.0)
+            
+    def makeMedShkHist(self):
+        '''
+        Makes a history of simulated medical need shocks for this consumer type by
+        drawing from the true continuous distribution of medical shocks.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        orig_time = self.time_flow
+        self.timeFwd()
+        self.resetRNG()
+        
+        # Initialize the shock history
+        MedShkHist = np.zeros((self.sim_periods,self.Nagents)) + np.nan
+        t_idx = 0
+        
+        # Loop through each simulated period
+        for t in range(self.sim_periods):
+            MedShkAvg = self.MedShkAvg[t_idx]
+            MedShkStd = self.MedShkStd[t_idx]
+            MedShkHist[t,:] = drawLognormal(N=self.Nagents,mu=np.log(MedShkAvg)-0.5*MedShkStd**2,sigma=MedShkStd,seed=self.RNG.randint(0,2**31-1))
+            # Advance the time index, looping if we've run out of income distributions
+            t_idx += 1
+            if t_idx >= len(self.MedShkAvg):
+                t_idx = 0
+        
+        # Store the results as attributes of self and restore time to its original flow
+        self.MedShkHist = MedShkHist
+        if not orig_time:
+            self.timeRev()
+        
+            
+    def advanceIncShks(self):
+        '''
+        Advance the permanent and transitory income shocks to the next period of
+        the shock history objects, after first advancing the medical need shocks.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        self.MedShkNow = self.MedShkHist[self.Shk_idx,:]
+        self.advanceMedPrice()
+        PersistentShockConsumerType.advanceIncShks(self)
+        
+    def advancecFunc(self):
+        '''
+        Advance the consumption function and medical spending function to the
+        next period in the solution.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        self.MedFuncNow  = self.solution[self.cFunc_idx].MedFunc
+        PersistentShockConsumerType.advancecFunc(self)
+        
+    def advanceMedPrice(self):
+        '''
+        Updates the variable MedPriceNow to the current period in a simulation.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        self.MedPriceNow = self.MedPrice[self.Price_idx]
+        self.Price_idx += 1
+        if self.Price_idx == len(self.MedPrice):
+            self.Price_idx = 0
+            
+    def initializeSim(self,a_init=None,p_init=None,t_init=0,sim_prds=None):
+        '''
+        Readies this type for simulation by clearing its history, initializing
+        state variables, and setting time indices to their correct position.
+        Extends version in ConsIndShockModel by also tracking medical care.
+        
+        Parameters
+        ----------
+        a_init : np.array
+            Array of initial end-of-period assets at the beginning of the sim-
+            ulation.  Should be of size self.Nagents.  If omitted, will default
+            to values in self.a_init (which are all 0 by default).
+        p_init : np.array
+            Array of initial permanent income levels at the beginning of the sim-
+            ulation.  Should be of size self.Nagents.  If omitted, will default
+            to values in self.p_init (which are all 1 by default).
+        t_init : int
+            Period of life in which to begin the simulation.  Defaults to 0.
+        sim_prds : int
+            Number of periods to simulate.  Defaults to the length of the trans-
+            itory income shock history.
+        
+        Returns
+        -------
+        None
+        '''
+        PersistentShockConsumerType.initializeSim(self,a_init,p_init,t_init,sim_prds)
+        self.Price_idx = 0
+        self.MedHist = copy(self.pHist)
+        
+    def simOnePrd(self):
+        '''
+        Simulate a single period of a consumption-saving model with permanent
+        and transitory income shocks, with permanent income explcitly included
+        as an argument to the consumption function.
+        
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        none
+        '''
+        # Simulate the mortality process, replacing some agents with "newborns"
+        self.simMortality()        
+        
+        # Unpack objects from self for convenience
+        aPrev          = self.aNow
+        pPrev          = self.pNow
+        TranShkNow     = self.TranShkNow
+        PermShkNow     = self.PermShkNow
+        MedShkNow      = self.MedShkNow
+        RfreeNow       = self.RfreeNow
+        cFuncNow       = self.cFuncNow
+        MedFuncNow     = self.MedFuncNow
+        MedPrice       = self.MedPriceNow
+        
+        # Get correlation coefficient for permanent income
+        Corr = self.PermIncCorr      
+        
+        # Simulate the period
+        pNow        = pPrev**Corr*PermShkNow          # Updated permanent income level
+        bNow        = RfreeNow*aPrev                  # Bank balances before labor income
+        mNow        = bNow + TranShkNow*pNow          # Market resources after income
+        cNow        = cFuncNow(mNow,pNow,MedShkNow)   # Consumption
+        MedNow      = MedFuncNow(mNow,pNow,MedShkNow) # Medical care
+        aNow        = mNow - cNow - MedPrice*MedNow   # Assets after all actions are accomplished
+        aNow[aNow < 0] = 0.0 # Hacky fix for overspending problem
+        
+        # Store the new state and control variables
+        self.pNow   = pNow
+        self.bNow   = bNow
+        self.mNow   = mNow
+        self.cNow   = cNow
+        self.MedNow = MedNow
+        self.aNow   = aNow
+        self.MPCnow = np.zeros_like(cNow) # skip this for now
         
 ###############################################################################
         
@@ -397,7 +642,7 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         MedShkVals_tiled = np.tile(np.reshape(self.MedShkVals**(1.0/self.CRRAmed),(MedCount,1,1)),(1,pCount,mCount))
         MedLvlNow = MedShkVals_tiled*MedBaseNow
         aLvlNow_tiled = np.tile(np.reshape(aLvlNow,(1,pCount,mCount)),(MedCount,1,1))
-        mLvlNow = cLvlNow + MedLvlNow + aLvlNow_tiled
+        mLvlNow = cLvlNow + self.MedPrice*MedLvlNow + aLvlNow_tiled
 
         # Limiting consumption is zero as m approaches the natural borrowing constraint
         c_for_interpolation = np.concatenate((np.zeros((MedCount,pCount,1)),cLvlNow),axis=-1)
@@ -520,6 +765,10 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
             for j in range(MedCount):
                 m_temp = mLvl[j,i,:]
                 c_temp = cLvl[j,i,:]
+                #print(i)
+                #print(j)
+                #print(m_temp)
+                #print(c_temp)
                 temp_list.append(LinearInterp(m_temp,c_temp))
             cFunc_by_pLvl_and_MedShk.append(deepcopy(temp_list))
                 
@@ -658,6 +907,8 @@ if __name__ == '__main__':
     from time import clock
     import matplotlib.pyplot as plt
     mystr = lambda number : "{:.4f}".format(number)
+    
+    do_simulation = True
 
     # Make an example medical shocks consumer type
     MedicalExample = MedShockConsumerType(**Params.init_medical_shocks)
@@ -674,6 +925,7 @@ if __name__ == '__main__':
         MedShk = MedicalExample.MedShkDstn[0][1][j]*np.ones_like(M)
         C = MedicalExample.solution[0].cFunc(M,P,MedShk)
         plt.plot(M,C)
+    print('Consumption function by medical need shock (constant permanent income)')
     plt.show()
     
     # Plot the medical care function
@@ -681,5 +933,21 @@ if __name__ == '__main__':
         MedShk = MedicalExample.MedShkDstn[0][1][j]*np.ones_like(M)
         Med = MedicalExample.solution[0].MedFunc(M,P,MedShk)
         plt.plot(M,Med)
+    print('Medical care function by medical need shock (constant permanent income)')
     plt.show()
+    
+    # Plot the marginal value function
+    M = np.linspace(0.1,30,300)
+    vP = MedicalExample.solution[0].vPfunc.cFunc(M,P)
+    plt.plot(M,vP)
+    print('Marginal value function (constant permanent income)')
+    plt.show()
+    
+    if do_simulation:
+        MedicalExample.sim_periods = 100
+        MedicalExample.makeIncShkHist()
+        MedicalExample.makeMedShkHist()
+        MedicalExample.initializeSim()
+        MedicalExample.simConsHistory()
+    
     

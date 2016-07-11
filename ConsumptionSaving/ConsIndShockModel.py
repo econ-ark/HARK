@@ -1550,11 +1550,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         Parameters
         ----------
-        none
+        None
         
         Returns
         -------
-        none
+        None
         '''
         orig_time = self.time_flow
         self.timeFwd()
