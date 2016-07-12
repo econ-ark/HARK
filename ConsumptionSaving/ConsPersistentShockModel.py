@@ -17,7 +17,7 @@ from HARKinterpolation import LowerEnvelope2D, BilinearInterp, Curvilinear2DInte
                               LinearInterpOnInterp1D, LinearInterp, CubicInterp, HARKinterpolator2D
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                           CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
-                          approxLognormal
+                          approxLognormal, plotFuncs
 from HARKsimulation import drawBernoulli
 from ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
 
@@ -460,18 +460,23 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         -------
         none
         '''
-        VLvlNext            = self.vFuncNext(self.mLvlNext)
+        VLvlNext            = self.vFuncNext(self.mLvlNext,self.pLvlNext)
         EndOfPrdv           = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
         EndOfPrdvNvrs       = self.uinv(EndOfPrdv) # value transformed through inverse utility
         EndOfPrdvNvrsP      = EndOfPrdvP*self.uinvP(EndOfPrdv)
-        EndOfPrdvNvrs       = np.concatenate((EndOfPrdvNvrs,np.zeros(self.pLvlGrid.size,1)),axis=1)
-        EndOfPrdvNvrsP      = np.concatenate((EndOfPrdvNvrsP,EndOfPrdvNvrsP[:,0]),axis=1) # This is a very good approximation, vNvrsPP = 0 at the asset minimum
-        aLvl_temp           = np.concatenate((self.aLvlNow,np.reshape(self.BoroCnstNat(self.pLvlGrid),(self.pLvlGrid.size,1))),axis=1)
+        EndOfPrdvNvrs       = np.concatenate((np.zeros((self.pLvlGrid.size,1)),EndOfPrdvNvrs),axis=1)
+        EndOfPrdvNvrsP      = np.concatenate((np.reshape(EndOfPrdvNvrsP[:,0],(self.pLvlGrid.size,1)),EndOfPrdvNvrsP),axis=1) # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+        aLvl_temp           = np.concatenate((np.reshape(self.BoroCnstNat(self.pLvlGrid),(self.pLvlGrid.size,1)),self.aLvlNow),axis=1)
         EndOfPrdvNvrsFunc_list = []
-        for p in range(self.pLvlGrid.size,1):
-            EndOfPrdvNvrsFunc_list.append(CubicInterp(aLvl_temp[p,:],EndOfPrdvNvrs[p,:],EndOfPrdvNvrsP[p,:]))        
-        EndOfPrdvNvrsFunc   = LinearInterpOnInterp1D(EndOfPrdvNvrsFunc_list,self.pLvlGrid)
-        self.EndOfPrdvFunc  = ValueFunc2D(EndOfPrdvNvrsFunc,self.CRRA)
+        for p in range(self.pLvlGrid.size):
+            EndOfPrdvNvrsFunc_list.append(CubicInterp(aLvl_temp[p,:]-self.BoroCnstNat(self.pLvlGrid[p]),EndOfPrdvNvrs[p,:],EndOfPrdvNvrsP[p,:]))
+#        plt.plot(aLvl_temp[p,:]-self.BoroCnstNat(self.pLvlGrid[p]),EndOfPrdvNvrs[p,:],'ok')
+#        plt.xlim([0,1])
+#        plt.ylim([0,10])
+#        plotFuncs(EndOfPrdvNvrsFunc_list,0,1)
+        EndOfPrdvNvrsFuncBase = LinearInterpOnInterp1D(EndOfPrdvNvrsFunc_list,self.pLvlGrid)
+        EndOfPrdvNvrsFunc     = VariableLowerBoundFunc2D(EndOfPrdvNvrsFuncBase,self.BoroCnstNat)
+        self.EndOfPrdvFunc    = ValueFunc2D(EndOfPrdvNvrsFunc,self.CRRA)
     
     def getPointsForInterpolation(self,EndOfPrdvP,aLvlNow):
         '''
@@ -593,22 +598,23 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         vNvrsP       = vPnow*self.uinvP(vNow)
         
         # Add data at the lower bound of m
-        mLvl_temp    = np.concatenate((self.mLvlMinNow(self.pLvlGrid),mLvl_temp),axis=0)
+        mLvl_temp    = np.concatenate((np.reshape(self.mLvlMinNow(self.pLvlGrid),(1,pSize)),mLvl_temp),axis=0)
         vNvrs        = np.concatenate((np.zeros((1,pSize)),vNvrs),axis=0)
         vNvrsP       = np.concatenate((self.MPCmaxEff**(-self.CRRA/(1.0-self.CRRA))*np.ones((1,pSize)),vNvrsP),axis=0)
         
         # Add data at the lower bound of p
         MPCminNvrs   = self.MPCminNow**(-self.CRRA/(1.0-self.CRRA))
-        mLvl_temp    = np.concatenate((mLvl_temp[:,0],mLvl_temp),axis=1)
-        vNvrs        = np.concatenate((np.zeros((mSize+1,1)),vNvrs),axis=0)
-        vNvrsP       = np.concatenate((MPCminNvrs*np.ones((mSize+1,1)),vNvrsP),axis=0)
+        mLvl_temp    = np.concatenate((np.reshape(mLvl_temp[:,0],(mSize+1,1)),mLvl_temp),axis=1)
+        vNvrs        = np.concatenate((np.zeros((mSize+1,1)),vNvrs),axis=1)
+        vNvrsP       = np.concatenate((MPCminNvrs*np.ones((mSize+1,1)),vNvrsP),axis=1)
         
         # Construct the pseudo-inverse value function
         vNvrsFunc_list = []
         for j in range(pSize+1):
             pLvl = np.insert(self.pLvlGrid,0,0.0)[j]
-            vNvrsFunc_list.append(CubicInterp(mLvl_temp[:,j],vNvrs[:,j],vNvrsP[:,j],MPCminNvrs*self.hLvlNow(pLvl),MPCminNvrs))            
-        vNvrsFuncNow = LinearInterpOnInterp1D(vNvrsFunc_list,np.insert(self.pLvlGrid,0,0.0))
+            vNvrsFunc_list.append(CubicInterp(mLvl_temp[:,j]-self.mLvlMinNow(pLvl),vNvrs[:,j],vNvrsP[:,j],MPCminNvrs*self.hLvlNow(pLvl),MPCminNvrs))            
+        vNvrsFuncBase = LinearInterpOnInterp1D(vNvrsFunc_list,np.insert(self.pLvlGrid,0,0.0)) # Value function "shifted"
+        vNvrsFuncNow  = VariableLowerBoundFunc2D(vNvrsFuncBase,self.mLvlMinNow)
         
         # "Re-curve" the pseudo-inverse value function into the value function
         vFuncNow     = ValueFunc2D(vNvrsFuncNow,self.CRRA)
@@ -742,13 +748,13 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         '''
         aLvl,pLvl  = self.prepareToCalcEndOfPrdvP()           
         EndOfPrdvP = self.calcEndOfPrdvP()
-        #if np.all(self.mLvlMinNow(self.pLvlGrid) == 0.0):
-        if True:
-            interpolator = self.makeLinearcFunc
-        else: # Can use a faster solution method if lower bound of m is zero everywhere
-            interpolator = self.makeCurvilinearcFunc
+        if self.vFuncBool:
+            self.makeEndOfPrdvFunc(EndOfPrdvP)
+        interpolator = self.makeLinearcFunc
         solution   = self.makeBasicSolution(EndOfPrdvP,aLvl,pLvl,interpolator)
         solution   = self.addMPCandHumanWealth(solution)
+        if self.vFuncBool:
+            solution.vFunc = self.makevFunc(solution)
         return solution
         
         
@@ -1032,6 +1038,7 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
         -------
         None
         '''
+        self.solution_terminal.vFunc = ValueFunc2D(self.cFunc_terminal_,self.CRRA)
         self.solution_terminal.vPfunc = MargValueFunc2D(self.cFunc_terminal_,self.CRRA)
         self.solution_terminal.hNrm = 0.0 # Don't track normalized human wealth
         self.solution_terminal.hLvl = lambda p : np.zeros_like(p) # But do track absolute human wealth by permanent income
@@ -1211,20 +1218,31 @@ if __name__ == '__main__':
     do_simulation = False
     
     # Make and solve an example "explicit permanent income" consumer with idiosyncratic shocks
-    ExplicitExample = IndShockExplicitPermIncConsumerType(**Params.init_explicit_perm_inc)    
+    ExplicitExample = IndShockExplicitPermIncConsumerType(**Params.init_explicit_perm_inc)
     t_start = clock()
     ExplicitExample.solve()
     t_end = clock()
     print('Solving an explicit permanent income consumer took ' + mystr(t_end-t_start) + ' seconds.')
     
     # Plot the consumption function at various permanent income levels
-    pGrid = np.linspace(0.1,3,24)
+    pGrid = np.linspace(0,3,24)
     M = np.linspace(0,20,300)
     for p in pGrid:
         M_temp = M+ExplicitExample.solution[0].mLvlMin(p)
         C = ExplicitExample.solution[0].cFunc(M_temp,p*np.ones_like(M_temp))
         plt.plot(M_temp,C)
     plt.show()
+    
+    # Plot the value function at various permanent income levels
+    if ExplicitExample.vFuncBool:
+        pGrid = np.linspace(0.1,3,24)
+        M = np.linspace(0.001,5,300)
+        for p in pGrid:
+            M_temp = M+ExplicitExample.solution[0].mLvlMin(p)
+            C = ExplicitExample.solution[0].vFunc(M_temp,p*np.ones_like(M_temp))
+            plt.plot(M_temp,C)
+        plt.ylim([-200,0])
+        plt.show()
     
     # Simulate some data
     if do_simulation:
@@ -1238,7 +1256,6 @@ if __name__ == '__main__':
         
     # Make and solve an example "persistent idisyncratic shocks" consumer 
     PersistentExample = PersistentShockConsumerType(**Params.init_persistent_shocks)
-    #PersistentExample.cycles=1
     t_start = clock()
     PersistentExample.solve()
     t_end = clock()
@@ -1252,6 +1269,17 @@ if __name__ == '__main__':
         C = PersistentExample.solution[0].cFunc(M_temp,p*np.ones_like(M_temp))
         plt.plot(M_temp,C)
     plt.show()
+    
+    # Plot the value function at various permanent income levels
+    if PersistentExample.vFuncBool:
+        pGrid = np.linspace(0.1,3,24)
+        M = np.linspace(0.001,5,300)
+        for p in pGrid:
+            M_temp = M+PersistentExample.solution[0].mLvlMin(p)
+            C = PersistentExample.solution[0].vFunc(M_temp,p*np.ones_like(M_temp))
+            plt.plot(M_temp,C)
+        plt.ylim([-200,0])
+        plt.show()
 
     # Simulate some data
     if do_simulation:
