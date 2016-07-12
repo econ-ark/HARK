@@ -1,23 +1,45 @@
 '''
+<<<<<<< HEAD
 This package contains the estimations for cstwMPC.
+=======
+Nearly all of the estimations for the paper "The Distribution of Wealth and the
+Marginal Propensity to Consume", by Chris Carroll, Jiri Slacalek, Kiichi Tokuoka,
+and Matthew White.  The micro model is a very slightly altered version of
+ConsIndShockModel; the macro model is ConsAggShockModel.  See SetupParamsCSTW
+for parameters and execution options.
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 '''
 
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder. Also import ConsumptionSavingModel
 import sys 
+<<<<<<< HEAD
 sys.path.insert(0,'../')
 sys.path.insert(0,'../ConsumptionSavingModel')
+=======
+import os
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../ConsumptionSavingModel'))
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 
 import numpy as np
 from copy import deepcopy
 from time import time
+<<<<<<< HEAD
 from HARKutilities import approxLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, \
+=======
+from HARKutilities import approxMeanOneLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, \
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
                           getPercentiles, getLorenzShares, calcSubpopAvg
 from HARKsimulation import drawDiscrete, drawMeanOneLognormal
 from HARKcore import AgentType
 from HARKparallel import multiThreadCommandsFake
 import SetupParamsCSTW as Params
+<<<<<<< HEAD
 import ConsumptionSavingModel as Model
+=======
+import ConsIndShockModel as Model
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 from ConsAggShockModel import CobbDouglasEconomy, AggShockConsumerType
 from scipy.optimize import golden, brentq
 import matplotlib.pyplot as plt
@@ -54,9 +76,13 @@ class cstwMPCagent(Model.IndShockConsumerType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(Model.IndShockConsumerType.time_vary_)
         self.time_inv = deepcopy(Model.IndShockConsumerType.time_inv_)
+<<<<<<< HEAD
         self.time_vary.remove('DiscFac')
         self.time_inv.append('DiscFac')
         self.solveOnePeriod = Model.consumptionSavingSolverENDG # this can be swapped for consumptionSavingSolverEXOG or another solver
+=======
+        self.solveOnePeriod = Model.solveConsIndShock
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
         self.update()
         
     def simulateCSTW(self):
@@ -126,6 +152,7 @@ class cstwMPCagent(Model.IndShockConsumerType):
         none
         '''
         tax_rate = (self.IncUnemp*self.UnempPrb)/(self.l_bar*(1.0-self.UnempPrb))
+<<<<<<< HEAD
         TranShkDstn     = deepcopy(approxLognormal(self.TranShkCount,sigma=self.TranShkStd[0],tail_N=0))
         TranShkDstn[0]  = np.insert(TranShkDstn[0]*(1.0-self.UnempPrb),0,self.UnempPrb)
         TranShkDstn[1]  = np.insert(self.l_bar*TranShkDstn[1]*(1.0-tax_rate),0,self.IncUnemp)
@@ -135,6 +162,16 @@ class cstwMPCagent(Model.IndShockConsumerType):
         self.PermShkDstn = PermShkDstn
         if not 'IncomeDstn' in self.time_vary:
             self.time_vary.append('IncomeDstn')
+=======
+        TranShkDstn     = deepcopy(approxMeanOneLognormal(self.TranShkCount,sigma=self.TranShkStd[0],tail_N=0))
+        TranShkDstn[0]  = np.insert(TranShkDstn[0]*(1.0-self.UnempPrb),0,self.UnempPrb)
+        TranShkDstn[1]  = np.insert(self.l_bar*TranShkDstn[1]*(1.0-tax_rate),0,self.IncUnemp)
+        PermShkDstn     = approxMeanOneLognormal(self.PermShkCount,sigma=self.PermShkStd[0],tail_N=0)
+        self.IncomeDstn = [combineIndepDstns(PermShkDstn,TranShkDstn)]
+        self.TranShkDstn = TranShkDstn
+        self.PermShkDstn = PermShkDstn
+        self.addToTimeVary('IncomeDstn')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
               
 
 def assignBetaDistribution(type_list,DiscFac_list):
@@ -255,7 +292,11 @@ def simulateKYratioDifference(DiscFac,nabla,N,type_list,weights,total_output,tar
     '''
     if type(DiscFac) in (list,np.ndarray,np.array):
         DiscFac = DiscFac[0]
+<<<<<<< HEAD
     DiscFac_list = approxUniform(DiscFac,nabla,N)
+=======
+    DiscFac_list = approxUniform(N,DiscFac-nabla,DiscFac+nabla)[1] # only take values, not probs
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
     assignBetaDistribution(type_list,DiscFac_list)
     multiThreadCommandsFake(type_list,beta_point_commands)
     my_diff = calculateKYratioDifference(np.vstack((this_type.W_history for this_type in type_list)),
@@ -286,7 +327,11 @@ def makeCSTWresults(DiscFac,nabla,save_name=None):
     -------
     none
     '''
+<<<<<<< HEAD
     DiscFac_list = approxUniform(DiscFac,nabla,N=Params.pref_type_count)
+=======
+    DiscFac_list = approxUniform(N=Params.pref_type_count,bot=DiscFac-nabla,top=DiscFac+nabla)[1]
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
     assignBetaDistribution(est_type_list,DiscFac_list)
     multiThreadCommandsFake(est_type_list,beta_point_commands)
     
@@ -505,7 +550,11 @@ def calcKappaMean(DiscFac,nabla):
     kappa_all : float
         Average marginal propensity to consume in the population.
     '''
+<<<<<<< HEAD
     DiscFac_list = approxUniform(DiscFac,nabla,N=Params.pref_type_count)
+=======
+    DiscFac_list = approxUniform(N=Params.pref_type_count,bot=DiscFac-nabla,top=DiscFac+nabla)[1]
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
     assignBetaDistribution(est_type_list,DiscFac_list)
     multiThreadCommandsFake(est_type_list,beta_point_commands)
     
@@ -591,7 +640,11 @@ if __name__ == "__main__":
         KY_target = 10.26
        
     # Make a vector of initial wealth-to-permanent income ratios
+<<<<<<< HEAD
     a_init = drawDiscrete(P=Params.a0_probs,X=Params.a0_values,N=Params.sim_pop_size,seed=Params.a0_seed)
+=======
+    a_init = drawDiscrete(N=Params.sim_pop_size,P=Params.a0_probs,X=Params.a0_values,seed=Params.a0_seed)
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
                                              
     # Make the list of types for this run, whether infinite or lifecycle
     if Params.do_lifecycle:
@@ -612,7 +665,11 @@ if __name__ == "__main__":
         CollegeType.update()
         
         # Make initial distributions of permanent income for each education level
+<<<<<<< HEAD
         p_init_base = drawMeanOneLognormal(Params.P0_sigma, Params.sim_pop_size, Params.P0_seed)
+=======
+        p_init_base = drawMeanOneLognormal(N=Params.sim_pop_size, sigma=Params.P0_sigma, seed=Params.P0_seed)
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
         DropoutType.p_init = Params.P0_d*p_init_base
         HighschoolType.p_init = Params.P0_h*p_init_base
         CollegeType.p_init = Params.P0_c*p_init_base
@@ -631,16 +688,31 @@ if __name__ == "__main__":
         p_init_base = np.ones(Params.sim_pop_size,dtype=float)
         InfiniteType.p_init = p_init_base
         
+<<<<<<< HEAD
         # Use a "tractable consumer" instead if desired
         if Params.do_tractable:
             from TractableBufferStock import TractableConsumerType
             TractableInfType = TractableConsumerType(DiscFac=InfiniteType.DiscFac,
+=======
+        # Use a "tractable consumer" instead if desired.
+        # If you want this to work, you must edit TractableBufferStockModel slightly.
+        # See comments around line 34 in that module for instructions.
+        if Params.do_tractable:
+            from TractableBufferStockModel import TractableConsumerType
+            TractableInfType = TractableConsumerType(DiscFac=0.99, # will be overwritten
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
                                                      UnempPrb=1-InfiniteType.LivPrb[0],
                                                      Rfree=InfiniteType.Rfree,
                                                      PermGroFac=InfiniteType.PermGroFac[0],
                                                      CRRA=InfiniteType.CRRA,
                                                      sim_periods=InfiniteType.sim_periods,
+<<<<<<< HEAD
                                                      IncUnemp=InfiniteType.IncUnemp)
+=======
+                                                     IncUnemp=InfiniteType.IncUnemp,
+                                                     Nagents=InfiniteType.Nagents)
+            TractableInfType.p_init = InfiniteType.p_init
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
             TractableInfType.timeFwd()
             TractableInfType.TranShkHist = InfiniteType.TranShkHist
             TractableInfType.PermShkHist = InfiniteType.PermShkHist
@@ -674,7 +746,11 @@ if __name__ == "__main__":
     #==================================================================
     
     # Set commands for the beta-point estimation
+<<<<<<< HEAD
     beta_point_commands = ['solve()','unpack_cFunc()','timeFwd()','simulateCSTW()']
+=======
+    beta_point_commands = ['solve()','unpackcFunc()','timeFwd()','simulateCSTW()']
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
         
     # Make the objective function for the beta-point estimation
     betaPointObjective = lambda DiscFac : simulateKYratioDifference(DiscFac,
@@ -696,8 +772,16 @@ if __name__ == "__main__":
                                                                  weights=Params.age_weight_all,
                                                                  total_output=Params.total_output,
                                                                  target=KY_target)
+<<<<<<< HEAD
         #DiscFac_new = newton(intermediateObjective,Params.DiscFac_guess,maxiter=100)
         DiscFac_new = brentq(intermediateObjective,0.90,0.998,xtol=10**(-8))
+=======
+        if Params.do_tractable:
+            top = 0.98
+        else:
+            top = 0.998
+        DiscFac_new = brentq(intermediateObjective,0.90,top,xtol=10**(-8))
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
         N=Params.pref_type_count
         sim_wealth = (np.vstack((this_type.W_history for this_type in est_type_list))).flatten()
         sim_weights = np.tile(np.repeat(Params.age_weight_all,Params.sim_pop_size),N)
@@ -724,10 +808,19 @@ if __name__ == "__main__":
         else:
             nabla = 0
             if Params.do_tractable:
+<<<<<<< HEAD
                 top = 0.991
             else:
                 top = 1.0
             DiscFac = brentq(betaPointObjective,0.90,top,xtol=10**(-8))
+=======
+                bot = 0.9
+                top = 0.98
+            else:
+                bot = 0.9
+                top = 1.0
+            DiscFac = brentq(betaPointObjective,bot,top,xtol=10**(-8))
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
             spec_name = spec_add + 'betaPoint' + wealth_measure
         t_end = time()
         print('Estimate is DiscFac=' + str(DiscFac) + ', nabla=' + str(nabla) + ', took ' + str(t_end-t_start) + ' seconds.')
@@ -829,6 +922,7 @@ if __name__ == "__main__":
         else:
             beta_agg = beta_point_estimate
             nabla_agg = 0.0
+<<<<<<< HEAD
         DiscFac_list_agg = approxUniform(beta_agg,nabla_agg,Params.pref_type_count)
         assignBetaDistribution(agg_shocks_type_list,DiscFac_list_agg)
         
@@ -839,10 +933,21 @@ if __name__ == "__main__":
                         tolerance     = 0.0001)
         agg_shocks_market(**Params.aggregate_params)
         agg_shocks_market.update()
+=======
+        DiscFac_list_agg = approxUniform(N=Params.pref_type_count,bot=beta_agg-nabla_agg,top=beta_agg+nabla_agg)[1]
+        assignBetaDistribution(agg_shocks_type_list,DiscFac_list_agg)
+        
+        # Make a market for solving the FBS aggregate shocks model
+        agg_shocks_market = CobbDouglasEconomy(agents = agg_shocks_type_list,
+                        act_T         = Params.sim_periods_agg_shocks,
+                        tolerance     = 0.0001,
+                        **Params.aggregate_params)
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
         agg_shocks_market.makeAggShkHist()
         
         # Edit the consumer types so they have the right data
         for this_type in agg_shocks_market.agents:
+<<<<<<< HEAD
             this_type.a_init = agg_shocks_market.KtoYSS*np.ones(this_type.Nagents)
             this_type.p_init = drawMeanOneLognormal(sigma=0.9,N=this_type.Nagents)
             this_type.kGrid  = agg_shocks_market.kSS*scale_grid[2:-1]
@@ -852,6 +957,10 @@ if __name__ == "__main__":
             IncomeDstnWithAggShks = combineIndepDstns(this_type.PermShkDstn,this_type.TranShkDstn,agg_shocks_market.PermShkAggDstn,agg_shocks_market.TranShkAggDstn)
             this_type.IncomeDstn = [IncomeDstnWithAggShks]
             this_type.DiePrb = 1.0 - this_type.LivPrb[0]
+=======
+            this_type.p_init = drawMeanOneLognormal(N=this_type.Nagents,sigma=0.9,seed=0)
+            this_type.getEconomyData(agg_shocks_market)
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
         
         # Solve the aggregate shocks version of the model
         t_start = time()

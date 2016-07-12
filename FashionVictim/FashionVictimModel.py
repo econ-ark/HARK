@@ -1,4 +1,5 @@
 '''
+<<<<<<< HEAD
 This module specifies a dynamic model of fashion selection in a world with only
 two styles: jock and punk. Forward-looking agents receive utility from the style
 they choose based on the proportion of the population with the same style (as
@@ -7,6 +8,18 @@ well as direct preferences each style), and pay switching costs if they change.
 
 import sys 
 sys.path.insert(0,'../')
+=======
+Specifies a dynamic model of fashion selection in a world with only two styles:
+jock and punk. Forward-looking agents receive utility from the style they choose
+based on the proportion of the population with the same style (as well as direct
+preferences each style), and pay switching costs if they change.
+'''
+
+import sys 
+import os
+sys.path.insert(0, os.path.abspath('../'))
+
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 from HARKcore import AgentType, Solution, NullFunc
 from HARKinterpolation import LinearInterp
 from HARKutilities import approxUniform, plotFuncs
@@ -19,7 +32,11 @@ class FashionSolution(Solution):
     '''
     A class for representing the single period solution to a FashionVictim problem.
     '''
+<<<<<<< HEAD
     def __init__(self,VfuncJock=NullFunc,VfuncPunk=NullFunc,switchFuncJock=NullFunc,switchFuncPunk=NullFunc):
+=======
+    def __init__(self,VfuncJock=None,VfuncPunk=None,switchFuncJock=None,switchFuncPunk=None):
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
         '''
         Make a new instance of FashionSolution.
         
@@ -42,6 +59,18 @@ class FashionSolution(Solution):
         -------
         new instance of FashionSolution
         '''
+<<<<<<< HEAD
+=======
+        # Fill in missing function inputs with trivial defaults        
+        if VfuncJock is None:
+            VfuncJock = NullFunc()
+        if VfuncPunk is None:
+            VfuncPunk = NullFunc()
+        if switchFuncJock is None:
+            switchFuncJock = NullFunc()
+        if switchFuncPunk is None:
+            switchFuncPunk = NullFunc()
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
         self.VfuncJock = VfuncJock
         self.VfuncPunk = VfuncPunk
         self.switchFuncJock = switchFuncJock
@@ -82,20 +111,32 @@ class FashionMarketInfo():
     '''
     A class for representing the current distribution of styles in the population.
     '''
+<<<<<<< HEAD
     def __init__(self,pPop):
+=======
+    def __init__(self,pNow):
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
         '''
         Make a new instance of FashionMarketInfo.
         
         Parameters
         ----------
+<<<<<<< HEAD
         pPop : float
+=======
+        pNow : float
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
             The current proportion of the population that is punk.
         
         Returns
         -------
         new instance of FashionMarketInfo
         '''
+<<<<<<< HEAD
         self.pPop = pPop
+=======
+        self.pNow = pNow
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 
 
 class FashionVictimType(AgentType):
@@ -107,8 +148,13 @@ class FashionVictimType(AgentType):
     '''
     _solution_terminal = FashionSolution(VfuncJock=LinearInterp(np.array([0.0, 1.0]),np.array([0.0,0.0])),
                                          VfuncPunk=LinearInterp(np.array([0.0, 1.0]),np.array([0.0,0.0])),
+<<<<<<< HEAD
                                          switchFuncJock=NullFunc,
                                          switchFuncPunk=NullFunc)
+=======
+                                         switchFuncJock=NullFunc(),
+                                         switchFuncPunk=NullFunc())
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
     
     def __init__(self,**kwds):
         '''
@@ -155,7 +201,11 @@ class FashionVictimType(AgentType):
         for j in range(self.pCount):
             pNow = self.pGrid[j]
             pNextMean = self.pNextIntercept + self.pNextSlope*pNow
+<<<<<<< HEAD
             dist = approxUniform(pNextMean,self.pNextWidth,self.pNextCount)
+=======
+            dist = approxUniform(N=self.pNextCount,bot=pNextMean-self.pNextWidth,top=pNextMean+self.pNextWidth)[1]
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
             self.pEvolution[j,:] = dist
         
     def update(self):
@@ -185,10 +235,17 @@ class FashionVictimType(AgentType):
         of each agent of this type.
         '''
         self.resetRNG()
+<<<<<<< HEAD
         pNow = np.zeros(self.pop_size)
         Shk  = self.RNG.rand(self.pop_size)
         pNow[Shk < self.p_init] = 1
         self.pNow = pNow
+=======
+        sNow = np.zeros(self.pop_size)
+        Shk  = self.RNG.rand(self.pop_size)
+        sNow[Shk < self.p_init] = 1
+        self.sNow = sNow
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
         
     def preSolve(self):
         '''
@@ -238,6 +295,7 @@ class FashionVictimType(AgentType):
         -------
         none
         '''
+<<<<<<< HEAD
         pPop    = self.pPop
         pPrev   = self.pNow
         J2Pprob = self.switchFuncJock(pPop)
@@ -249,6 +307,19 @@ class FashionVictimType(AgentType):
         pNow[J2P] = 1
         pNow[P2J] = 0
         self.pNow = pNow
+=======
+        pNow    = self.pNow
+        sPrev   = self.sNow
+        J2Pprob = self.switchFuncJock(pNow)
+        P2Jprob = self.switchFuncPunk(pNow)
+        Shks    = self.RNG.rand(self.pop_size)
+        J2P     = np.logical_and(sPrev == 0,Shks < J2Pprob)
+        P2J     = np.logical_and(sPrev == 1,Shks < P2Jprob)
+        sNow    = copy(sPrev)
+        sNow[J2P] = 1
+        sNow[P2J] = 0
+        self.sNow = sNow
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
         
     def marketAction(self):
         '''
@@ -352,7 +423,11 @@ def solveFashion(solution_next,DiscFac,conformUtilityFunc,punk_utility,jock_util
     return solution_now
     
    
+<<<<<<< HEAD
 def calcPunkProp(pNow,pop_size):
+=======
+def calcPunkProp(sNow):
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
     '''
     Calculates the proportion of punks in the population, given data from each type.
     
@@ -364,25 +439,39 @@ def calcPunkProp(pNow,pop_size):
     pop_size : [int]
         List with the number of agents of each type in the market.  Unused.
     '''
+<<<<<<< HEAD
     pNowX = np.asarray(pNow).flatten()
     pPop  = np.mean(pNowX)
     return FashionMarketInfo(pPop)
     
     
 def calcFashionEvoFunc(pPop):
+=======
+    sNowX = np.asarray(sNow).flatten()
+    pNow  = np.mean(sNowX)
+    return FashionMarketInfo(pNow)
+    
+    
+def calcFashionEvoFunc(pNow):
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
     '''
     Calculates a new approximate dynamic rule for the evolution of the proportion
     of punks as a linear function and a "shock width".
     
     Parameters
     ----------
+<<<<<<< HEAD
     pPop : [float]
+=======
+    pNow : [float]
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
         List describing the history of the proportion of punks in the population.
         
     Returns
     -------
     (unnamed) : FashionEvoFunc
         A new rule for the evolution of the population punk proportion, based on
+<<<<<<< HEAD
         the history in input pPop.
     '''
     pPopX = np.array(pPop)
@@ -392,6 +481,17 @@ def calcFashionEvoFunc(pPop):
     pNextSlope, pNextIntercept, trash1, trash2, trash3 = stats.linregress(pPopNow,pPopNext)
     pPopExp  = pNextIntercept + pNextSlope*pPopNow
     pPopErrSq= (pPopExp - pPopNext)**2
+=======
+        the history in input pNow.
+    '''
+    pNowX = np.array(pNow)
+    T = pNowX.size
+    p_t   = pNowX[100:(T-1)]
+    p_tp1 = pNowX[101:T]
+    pNextSlope, pNextIntercept, trash1, trash2, trash3 = stats.linregress(p_t,p_tp1)
+    pPopExp  = pNextIntercept + pNextSlope*p_t
+    pPopErrSq= (pPopExp - p_tp1)**2
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
     pNextStd  = np.sqrt(np.mean(pPopErrSq))
     print(str(pNextIntercept) + ', ' + str(pNextSlope) + ', ' + str(pNextStd))
     return FashionEvoFunc(pNextIntercept,pNextSlope,2*pNextStd)
@@ -456,16 +556,29 @@ if __name__ == '__main__':
     
     # Now run the simulation inside a Market 
     TestMarket = Market(agents        = type_list,
+<<<<<<< HEAD
                         sow_vars      = ['pPop'],
                         reap_vars     = ['pNow','pop_size'],
                         track_vars    = ['pPop'],
+=======
+                        sow_vars      = ['pNow'],
+                        reap_vars     = ['sNow'],
+                        track_vars    = ['pNow'],
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
                         dyn_vars      = ['pNextIntercept','pNextSlope','pNextWidth'],
                         millRule      = calcPunkProp,
                         calcDynamics  = calcFashionEvoFunc,
                         act_T         = 1000,
                         tolerance     = 0.01)
+<<<<<<< HEAD
     TestMarket.pPop_init = 0.5
         
     TestMarket.solve()
     plt.plot(TestMarket.pPop_hist)
+=======
+    TestMarket.pNow_init = 0.5
+        
+    TestMarket.solve()
+    plt.plot(TestMarket.pNow_hist)
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
     plt.show()

@@ -1,6 +1,6 @@
 '''
-This module contains functions useful for estimating structural models, including
-optimization methods and bootstrapping tools.
+Functions for estimating structural models, including optimization methods
+and bootstrapping tools.
 '''
 
 # The following libraries are part of the standard python distribution
@@ -140,3 +140,9 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
     # Create a bootstrapped sample
     new_data = deepcopy(data[indices,])
     return new_data
+    
+    
+if __name__ == '__main__':
+    print("Sorry, HARKestimation doesn't actually do anything on its own.")
+    print("To see some examples of its functions in actions, check out an application")
+    print("like /SolvingMicroDSOPs/StructEstimation or /cstwMPC/cstwMPC.")

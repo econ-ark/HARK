@@ -1,8 +1,13 @@
 '''
+<<<<<<< HEAD
 SetupConsumersParameters specifies the full set of calibrated values required
 to estimate the SolvingMicroDSOPs model.  The empirical data is stored in a
 separate csv file and is loaded in SetupSCFdata.  These parameters are also used
 as default settings in various examples of ConsumptionSavingModel.
+=======
+Specifies the full set of calibrated values required to estimate the SolvingMicroDSOPs
+model.  The empirical data is stored in a separate csv file and is loaded in SetupSCFdata.
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 '''
 
 # ---------------------------------------------------------------------------------
@@ -142,3 +147,13 @@ init_consumer_objects = {"CRRA":CRRA_start,
                         'vFuncBool':vFuncBool,
                         'CubicBool':CubicBool
                         }
+<<<<<<< HEAD
+=======
+
+
+if __name__ == '__main__':
+    print("Sorry, EstimationParameters doesn't actually do anything on its own.")
+    print("This module is imported by StructEstimation, providing calibrated ")
+    print("parameters for the example estimation.  Please see that module if you ")
+    print("want more interesting output.")
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86

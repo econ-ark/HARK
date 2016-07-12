@@ -1,7 +1,7 @@
 '''
-This module contains a number of utilities, including the code that implements
-agent expectations, utility functions (and their derivatives), manipulation of
-discrete approximations, and basic plotting tools.
+General purpose  / miscellaneous functions.  Includes functions to approximate
+continuous distributions with discrete ones, utility functions (and their
+derivatives), manipulation of discrete distributions, and basic plotting tools.
 '''
 
 from __future__ import division     # Import Python 3.x division function
@@ -11,7 +11,6 @@ import warnings
 import numpy as np                  # Python's numeric library, abbreviated "np"
 import pylab as plt                 # Python's plotting library
 import scipy.stats as stats         # Python's statistics library
-from scipy.integrate import quad, fixed_quad    # quad integration
 from scipy.interpolate import interp1d
 from scipy.special import erf
 
@@ -68,11 +67,49 @@ def getArgNames(function):
     return argNames
 
 
-NullFunc = lambda x : np.zeros(x.size) + np.nan
-'''
-A trivial function that takes a single array and returns an array of NaNs of the
-same size.  A generic default function that does nothing.
-'''
+class NullFunc():
+    '''
+    A trivial class that acts as a placeholder "do nothing" function.
+    '''
+    def __call__(self,*args):
+        '''
+        Returns meaningless output no matter what the input(s) is.  If no input,
+        returns None.  Otherwise, returns an array of NaNs (or a single NaN) of
+        the same size as the first input.
+        '''
+        if len(args) == 0:
+            return None
+        else:
+            arg = args[0]
+            if hasattr(arg,'shape'):
+                return np.zeros_like(arg) + np.nan
+            else:
+                return np.nan
+            
+    def distance(self,other):
+        '''
+        Trivial distance metric that only cares whether the other object is also
+        an instance of NullFunc.  Intentionally does not inherit from HARKobject
+        as this might create dependency problems.
+        
+        Parameters
+        ----------
+        other : any
+            Any object for comparison to this instance of NullFunc.
+            
+        Returns
+        -------
+        (unnamed) : float
+            The distance between self and other.  Returns 0 if other is also a
+            NullFunc; otherwise returns an arbitrary high number.
+        '''
+        try:            
+            if other.__class__ is self.__class__:
+                return 0.0
+            else:
+                return 1000.0
+        except:
+            return 10000.0
 
 # ==============================================================================
 # ============== Define utility functions        ===============================
@@ -438,8 +475,7 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
     Latest update: 21 April 2016 by Matthew N. White
     '''
     # Find the CDF boundaries of each segment
-    if sigma > 0.0:
-        mu_adj         = mu - 0.5*sigma**2;
+    if sigma > 0.0:        
         if tail_N > 0:
             lo_cut     = tail_bound[0]
             hi_cut     = tail_bound[1]
@@ -461,7 +497,7 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
                 upper_CDF_vals.append(upper_CDF_vals[-1] + (1.0-hi_cut)*scale**x/mag)
         CDF_vals       = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
         temp_cutoffs   = list(stats.lognorm.ppf(CDF_vals[1:-1], s=sigma, loc=0, 
-                                                scale=np.exp(mu_adj)))
+                                                scale=np.exp(mu)))
         cutoffs        = [0] + temp_cutoffs + [np.inf]
         CDF_vals       = np.array(CDF_vals)
     
@@ -472,8 +508,8 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
         for i in range(K):
             zBot  = cutoffs[i]
             zTop = cutoffs[i+1]
-            X[i] = (-0.5)*np.exp(mu_adj+(sigma**2)*0.5)*(erf((mu_adj+sigma**2-np.log(zTop))*(
-                   (np.sqrt(2)*sigma)**(-1)))-erf((mu_adj+sigma**2-np.log(zBot))*((np.sqrt(2)*sigma)
+            X[i] = (-0.5)*np.exp(mu+(sigma**2)*0.5)*(erf((mu+sigma**2-np.log(zTop))*(
+                   (np.sqrt(2)*sigma)**(-1)))-erf((mu+sigma**2-np.log(zBot))*((np.sqrt(2)*sigma)
                    **(-1))))*(pmf[i]**(-1))           
     else:
         pmf = np.ones(N)/N
@@ -507,8 +543,8 @@ def approxMeanOneLognormal(N, sigma=1.0, **kwargs):
       (http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
     Latest update: 01 May 2015
     '''
-    mu=0.0
-    pmf,X = approxLognormal(N=N, mu=mu, sigma=sigma, **kwargs)
+    mu_adj = - 0.5*sigma**2;
+    pmf,X = approxLognormal(N=N, mu=mu_adj, sigma=sigma, **kwargs)
     return [pmf,X]
             
 def approxBeta(N,a=1.0,b=1.0):
@@ -539,26 +575,31 @@ def approxBeta(N,a=1.0,b=1.0):
     pmf  = np.ones(N)/float(N)
     return( [pmf, X] )
         
-def approxUniform(center,width,N):
+def approxUniform(N,bot=0.0,top=1.0):
     '''
-    Makes a discrete approximation to a uniform distribution, given its center
-    point and width.
+    Makes a discrete approximation to a uniform distribution, given its bottom
+    and top limits and number of points.
     
     Parameters
     ----------
-    center : float
-        The center of the uniform distribution
-    width : float
-        The width of the distribution, to either side of the center
     N : int
         The number of points in the discrete approximation
-        
+    bot : float
+        The bottom of the uniform distribution
+    top : float
+        The top of the uniform distribution
+     
     Returns
     -------
     (unnamed) : np.array
         An equiprobable discrete approximation to the uniform distribution.
     '''
-    return center + width*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
+    pmf = np.ones(N)/float(N)
+    center = (top+bot)/2.0
+    width = (top-bot)/2.0
+    X = center + width*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
+    return [pmf,X]
+
 
 def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):
     '''
@@ -1101,3 +1142,11 @@ def plotFuncsDer(functions,bottom,top,N=1000):
     plt.xlim([bottom, top])
     plt.show()
 
+
+if __name__ == '__main__':       
+    print("Sorry, HARKutilities doesn't actually do anything on its own.")
+    print("To see some examples of its functions in action, look at any")
+    print("of the model modules in /ConsumptionSavingModel.  As these functions")
+    print("are the basic building blocks of HARK, you'll find them used")
+    print("everywhere! In the future, this module will show examples of each")
+    print("function in the module.")

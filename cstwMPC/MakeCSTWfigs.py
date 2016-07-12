@@ -1,13 +1,21 @@
 '''
 This module makes some figures for cstwMPC.  It requires that quite a few specifications
+<<<<<<< HEAD
 of the model have been estimated, with the results stored in ../Results.
+=======
+of the model have been estimated, with the results stored in ./Results.
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 '''
 
 import matplotlib.pyplot as plt
 import csv
 import numpy as np
 
+<<<<<<< HEAD
 f = open('../Results/LCbetaPointNetWorthLorenzFig.txt','r')
+=======
+f = open('./Results/LCbetaPointNetWorthLorenzFig.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 lorenz_percentiles = []
@@ -22,7 +30,11 @@ lorenz_percentiles = np.array(lorenz_percentiles)
 scf_lorenz = np.array(scf_lorenz)
 beta_point_lorenz = np.array(beta_point_lorenz)
 
+<<<<<<< HEAD
 f = open('../Results/LCbetaDistNetWorthLorenzFig.txt','r')
+=======
+f = open('./Results/LCbetaDistNetWorthLorenzFig.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 beta_dist_lorenz = []
@@ -31,7 +43,11 @@ for j in range(len(raw_data)):
 f.close()
 beta_dist_lorenz = np.array(beta_dist_lorenz)
 
+<<<<<<< HEAD
 f = open('../Results/LCbetaPointNetWorthMPCfig.txt','r')
+=======
+f = open('./Results/LCbetaPointNetWorthMPCfig.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 mpc_percentiles = []
@@ -43,7 +59,11 @@ f.close()
 mpc_percentiles = np.asarray(mpc_percentiles)
 mpc_beta_point = np.asarray(mpc_beta_point)
 
+<<<<<<< HEAD
 f = open('../Results/LCbetaDistNetWorthMPCfig.txt','r')
+=======
+f = open('./Results/LCbetaDistNetWorthMPCfig.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 mpc_beta_dist = []
@@ -52,7 +72,11 @@ for j in range(len(raw_data)):
 f.close()
 mpc_beta_dist = np.asarray(mpc_beta_dist)
 
+<<<<<<< HEAD
 f = open('../Results/LCbetaDistLiquidMPCfig.txt','r')
+=======
+f = open('./Results/LCbetaDistLiquidMPCfig.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 mpc_beta_dist_liquid = []
@@ -61,7 +85,11 @@ for j in range(len(raw_data)):
 f.close()
 mpc_beta_dist_liquid = np.asarray(mpc_beta_dist_liquid)
 
+<<<<<<< HEAD
 f = open('../Results/LCbetaDistNetWorthKappaByAge.txt','r')
+=======
+f = open('./Results/LCbetaDistNetWorthKappaByAge.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 kappa_mean_age = []
@@ -77,7 +105,11 @@ kappa_hi_beta_age = np.array(kappa_hi_beta_age)
 age_list = np.array(range(len(kappa_mean_age)),dtype=float)*0.25 + 24.0
 f.close()
 
+<<<<<<< HEAD
 f = open('../Results/LC_KYbyBeta.txt','r')
+=======
+f = open('./Results/LC_KYbyBeta.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 KY_by_beta_lifecycle = []
@@ -89,7 +121,11 @@ beta_list = np.array(beta_list)
 KY_by_beta_lifecycle = np.array(KY_by_beta_lifecycle)
 f.close()
 
+<<<<<<< HEAD
 f = open('../Results/IH_KYbyBeta.txt','r')
+=======
+f = open('./Results/IH_KYbyBeta.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 KY_by_beta_infinite = []
@@ -107,7 +143,11 @@ plt.ylabel('Cumulative wealth ownership',fontsize=14)
 plt.title('Lorenz Curve Matching, Lifecycle Model',fontsize=16)
 plt.legend((r'$\beta$-point',r'$\beta$-dist','SCF data'),loc=2,fontsize=12)
 plt.ylim(-0.01,1)
+<<<<<<< HEAD
 plt.savefig('../Figures/LorenzLifecycle.pdf')
+=======
+plt.savefig('./Figures/LorenzLifecycle.pdf')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 plt.show()
 
 plt.plot(mpc_beta_point,mpc_percentiles,'-.k',linewidth=1.5)
@@ -117,7 +157,11 @@ plt.xlabel('Marginal propensity to consume',fontsize=14)
 plt.ylabel('Cumulative probability',fontsize=14)
 plt.title('CDF of the MPC, Lifecycle Model',fontsize=16)
 plt.legend((r'$\beta$-point NW',r'$\beta$-dist NW',r'$\beta$-dist LA'),loc=0,fontsize=12)
+<<<<<<< HEAD
 plt.savefig('../Figures/MPCdistLifecycle.pdf')
+=======
+plt.savefig('./Figures/MPCdistLifecycle.pdf')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 plt.show()
 
 plt.plot(age_list,kappa_mean_age,'-k',linewidth=1.5)
@@ -129,7 +173,11 @@ plt.ylabel('Average MPC',fontsize=14)
 plt.title('Marginal Propensity to Consume by Age',fontsize=16)
 plt.xlim(24,100)
 plt.ylim(0,1)
+<<<<<<< HEAD
 plt.savefig('../Figures/MPCbyAge.pdf')
+=======
+plt.savefig('./Figures/MPCbyAge.pdf')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 plt.show()
 
 plt.plot(beta_list,KY_by_beta_infinite,'-k',linewidth=1.5)
@@ -141,11 +189,19 @@ plt.xlabel(r'Discount factor $\beta$',fontsize=14)
 plt.ylabel('Capital to output ratio',fontsize=14)
 plt.title('K/Y Ratio by Discount Factor',fontsize=16)
 plt.ylim(0,100)
+<<<<<<< HEAD
 plt.savefig('../Figures/KYratioByBeta.pdf')
 plt.show()
 
 
 f = open('../Results/IHbetaPointNetWorthLorenzFig.txt','r')
+=======
+plt.savefig('./Figures/KYratioByBeta.pdf')
+plt.show()
+
+
+f = open('./Results/IHbetaPointNetWorthLorenzFig.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 lorenz_percentiles = []
@@ -160,7 +216,11 @@ lorenz_percentiles = np.array(lorenz_percentiles)
 scf_lorenz = np.array(scf_lorenz)
 beta_point_lorenz = np.array(beta_point_lorenz)
 
+<<<<<<< HEAD
 f = open('../Results/IHbetaDistNetWorthLorenzFig.txt','r')
+=======
+f = open('./Results/IHbetaDistNetWorthLorenzFig.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 beta_dist_lorenz = []
@@ -170,7 +230,11 @@ f.close()
 beta_dist_lorenz = np.array(beta_dist_lorenz)
 
 
+<<<<<<< HEAD
 f = open('../Results/IHbetaPointLiquidLorenzFig.txt','r')
+=======
+f = open('./Results/IHbetaPointLiquidLorenzFig.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 beta_point_lorenz_liquid = []
@@ -179,7 +243,11 @@ for j in range(len(raw_data)):
 f.close()
 beta_point_lorenz_liquid = np.array(beta_point_lorenz_liquid)
 
+<<<<<<< HEAD
 f = open('../Results/IHbetaDistLiquidLorenzFig.txt','r')
+=======
+f = open('./Results/IHbetaDistLiquidLorenzFig.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 beta_dist_lorenz_liquid = []
@@ -188,7 +256,11 @@ for j in range(len(raw_data)):
 f.close()
 beta_dist_lorenz_liquid = np.array(beta_dist_lorenz_liquid)
 
+<<<<<<< HEAD
 f = open('../Results/IHbetaPointNetWorthMPCfig.txt','r')
+=======
+f = open('./Results/IHbetaPointNetWorthMPCfig.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 mpc_percentiles = []
@@ -200,7 +272,11 @@ f.close()
 mpc_percentiles = np.asarray(mpc_percentiles)
 mpc_beta_point = np.asarray(mpc_beta_point)
 
+<<<<<<< HEAD
 f = open('../Results/IHbetaDistNetWorthMPCfig.txt','r')
+=======
+f = open('./Results/IHbetaDistNetWorthMPCfig.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 mpc_beta_dist = []
@@ -209,7 +285,11 @@ for j in range(len(raw_data)):
 f.close()
 mpc_beta_dist = np.asarray(mpc_beta_dist)
 
+<<<<<<< HEAD
 f = open('../Results/IHbetaDistLiquidMPCfig.txt','r')
+=======
+f = open('./Results/IHbetaDistLiquidMPCfig.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 mpc_beta_dist_liquid = []
@@ -226,7 +306,11 @@ plt.ylabel('Cumulative wealth ownership',fontsize=14)
 plt.title('Lorenz Curve Matching, Perpetual Youth Model',fontsize=16)
 plt.legend((r'$\beta$-point','SCF data'),loc=2,fontsize=12)
 plt.ylim(-0.01,1)
+<<<<<<< HEAD
 plt.savefig('../Figures/LorenzInfiniteBP.pdf')
+=======
+plt.savefig('./Figures/LorenzInfiniteBP.pdf')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 plt.show()
 
 plt.plot(100*lorenz_percentiles,beta_point_lorenz,'-.k',linewidth=1.5)
@@ -237,7 +321,11 @@ plt.ylabel('Cumulative wealth ownership',fontsize=14)
 plt.title('Lorenz Curve Matching, Perpetual Youth Model',fontsize=16)
 plt.legend((r'$\beta$-point',r'$\beta$-dist','SCF data'),loc=2,fontsize=12)
 plt.ylim(-0.01,1)
+<<<<<<< HEAD
 plt.savefig('../Figures/LorenzInfinite.pdf')
+=======
+plt.savefig('./Figures/LorenzInfinite.pdf')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 plt.show()
 
 plt.plot(100*lorenz_percentiles,beta_point_lorenz_liquid,'-.k',linewidth=1.5)
@@ -248,7 +336,11 @@ plt.ylabel('Cumulative wealth ownership',fontsize=14)
 plt.title('Lorenz Curve Matching, Perpetual Youth (Liquid Assets)',fontsize=16)
 plt.legend((r'$\beta$-point',r'$\beta$-dist','SCF targets'),loc=2,fontsize=12)
 plt.ylim(-0.01,1)
+<<<<<<< HEAD
 plt.savefig('../Figures/LorenzLiquid.pdf')
+=======
+plt.savefig('./Figures/LorenzLiquid.pdf')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 plt.show()
 
 plt.plot(mpc_beta_point,mpc_percentiles,'-.k',linewidth=1.5)
@@ -258,49 +350,81 @@ plt.xlabel('Marginal propensity to consume',fontsize=14)
 plt.ylabel('Cumulative probability',fontsize=14)
 plt.title('CDF of the MPC, Perpetual Youth Model',fontsize=16)
 plt.legend((r'$\beta$-point NW',r'$\beta$-dist NW',r'$\beta$-dist LA'),loc=0,fontsize=12)
+<<<<<<< HEAD
 plt.savefig('../Figures/MPCdistInfinite.pdf')
+=======
+plt.savefig('./Figures/MPCdistInfinite.pdf')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 plt.show()
 
 
 
 
+<<<<<<< HEAD
 f = open('../Results/SensitivityRho.txt','r')
+=======
+f = open('./Results/SensitivityRho.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 rho_sensitivity = np.array(raw_data)
 f.close()
 
+<<<<<<< HEAD
 f = open('../Results/SensitivityXiSigma.txt','r')
+=======
+f = open('./Results/SensitivityXiSigma.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 xi_sigma_sensitivity = np.array(raw_data)
 f.close()
 
+<<<<<<< HEAD
 f = open('../Results/SensitivityPsiSigma.txt','r')
+=======
+f = open('./Results/SensitivityPsiSigma.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 psi_sigma_sensitivity = np.array(raw_data)
 f.close()
 
+<<<<<<< HEAD
 f = open('../Results/SensitivityMu.txt','r')
+=======
+f = open('./Results/SensitivityMu.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 mu_sensitivity = np.array(raw_data)
 f.close()
 
+<<<<<<< HEAD
 f = open('../Results/SensitivityUrate.txt','r')
+=======
+f = open('./Results/SensitivityUrate.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 urate_sensitivity = np.array(raw_data)
 f.close()
 
+<<<<<<< HEAD
 f = open('../Results/SensitivityMortality.txt','r')
+=======
+f = open('./Results/SensitivityMortality.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 mortality_sensitivity = np.array(raw_data)
 f.close()
 
+<<<<<<< HEAD
 f = open('../Results/SensitivityG.txt','r')
+=======
+f = open('./Results/SensitivityG.txt','r')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 my_reader = csv.reader(f,delimiter='\t')
 raw_data = list(my_reader)
 g_sensitivity = np.array(raw_data)
@@ -359,7 +483,11 @@ plt.yticks([0.22,0.26,0.30,0.34],[])
 plt.text(0.008,0.34,r'Aggregate',fontsize=11)
 plt.text(0.005,0.32,r'growth rate $g$',fontsize=11)
 
+<<<<<<< HEAD
 plt.savefig('../Figures/KappaSensitivity.pdf')
+=======
+plt.savefig('./Figures/KappaSensitivity.pdf')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 plt.show()
 
 
@@ -416,7 +544,11 @@ plt.yticks([0.95,0.96,0.97,0.98,0.99,1.0],[])
 plt.text(0.008,0.9625,r'Aggregate',fontsize=11)
 plt.text(0.005,0.955,r'growth rate $g$',fontsize=11)
 
+<<<<<<< HEAD
 plt.savefig('../Figures/BetaSensitivity.pdf')
+=======
+plt.savefig('./Figures/BetaSensitivity.pdf')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 plt.show()
 
 
@@ -474,7 +606,11 @@ plt.yticks([0,0.01,0.02,0.03,0.04,0.05],[])
 plt.text(0.008,0.0475,r'Aggregate',fontsize=11)
 plt.text(0.005,0.04,r'growth rate $g$',fontsize=11)
 
+<<<<<<< HEAD
 plt.savefig('../Figures/NablaSensitivity.pdf')
+=======
+plt.savefig('./Figures/NablaSensitivity.pdf')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 plt.show()
 
 
@@ -532,5 +668,9 @@ plt.yticks([1,3,5,7,9],[])
 plt.text(0.008,8.5,r'Aggregate',fontsize=11)
 plt.text(0.005,7.25,r'growth rate $g$',fontsize=11)
 
+<<<<<<< HEAD
 plt.savefig('../Figures/FitSensitivity.pdf')
+=======
+plt.savefig('./Figures/FitSensitivity.pdf')
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 plt.show()

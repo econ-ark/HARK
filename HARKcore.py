@@ -1,6 +1,10 @@
 '''
-This module contains high-level functions and classes useful for solving a wide variety of 
-economic models.
+High-level functions and classes for solving a wide variety of economic models.
+The "core" of HARK is a framework for "microeconomic" and "macroeconomic"
+models.  A micro model concerns the dynamic optimization problem for some type
+of agents, where agents take the inputs to their problem as exogenous.  A macro
+model adds an additional layer, endogenizing some of the inputs to the micro
+problem by finding a general equilibrium dynamic rule.
 '''
 
 from HARKutilities import getArgNames, NullFunc
@@ -80,9 +84,12 @@ class HARKobject():
         '''
         distance_list = [0.0]
         for attr_name in self.distance_criteria:
-            obj_A = eval('self.' + attr_name)
-            obj_B = eval('other.' + attr_name)
-            distance_list.append(distanceMetric(obj_A,obj_B))
+            try:
+                obj_A = getattr(self,attr_name)
+                obj_B = getattr(other,attr_name)
+                distance_list.append(distanceMetric(obj_A,obj_B))
+            except:
+                distance_list.append(1000.0) # if either object lacks attribute, they are not the same
         return max(distance_list)
         
     def assignParameters(self,**kwds):
@@ -130,7 +137,7 @@ class AgentType(HARKobject):
     'solveOnePeriod' should appear in exactly one of these lists, depending on
     whether the same solution method is used in all periods of the model.
     '''    
-    def __init__(self,solution_terminal=NullFunc,cycles=1,time_flow=False,pseudo_terminal=True,
+    def __init__(self,solution_terminal=None,cycles=1,time_flow=False,pseudo_terminal=True,
                  tolerance=0.000001,seed=0,**kwds):
         '''
         Initialize an instance of AgentType by setting attributes.
@@ -169,11 +176,13 @@ class AgentType(HARKobject):
         -------
         None
         '''
+        if solution_terminal is None:
+            solution_terminal = NullFunc()
         self.solution_terminal  = solution_terminal
         self.cycles             = cycles
         self.time_flow          = time_flow
         self.pseudo_terminal    = pseudo_terminal
-        self.solveOnePeriod     = NullFunc
+        self.solveOnePeriod     = NullFunc()
         self.tolerance          = tolerance
         self.seed               = seed
         self.assignParameters(**kwds)
@@ -242,6 +251,74 @@ class AgentType(HARKobject):
         '''
         if self.time_flow:
             self.timeFlip()
+            
+    def addToTimeVary(self,*params):
+        '''
+        Adds any number of parameters to time_vary for this instance.
+        
+        Parameters
+        ----------
+        params : string
+            Any number of strings naming attributes to be added to time_vary
+        
+        Returns
+        -------
+        None
+        '''
+        for param in params:
+            if param not in self.time_vary:
+                self.time_vary.append(param)
+                
+    def addToTimeInv(self,*params):
+        '''
+        Adds any number of parameters to time_inv for this instance.
+        
+        Parameters
+        ----------
+        params : string
+            Any number of strings naming attributes to be added to time_inv
+        
+        Returns
+        -------
+        None
+        '''
+        for param in params:
+            if param not in self.time_inv:
+                self.time_inv.append(param)
+                
+    def delFromTimeVary(self,*params):
+        '''
+        Removes any number of parameters from time_vary for this instance.
+        
+        Parameters
+        ----------
+        params : string
+            Any number of strings naming attributes to be removed from time_vary
+        
+        Returns
+        -------
+        None
+        '''
+        for param in params:
+            if param in self.time_vary:
+                self.time_vary.remove(param)
+                
+    def delFromTimeInv(self,*params):
+        '''
+        Removes any number of parameters from time_inv for this instance.
+        
+        Parameters
+        ----------
+        params : string
+            Any number of strings naming attributes to be removed from time_inv
+        
+        Returns
+        -------
+        None
+        '''
+        for param in params:
+            if param in self.time_inv:
+                self.time_inv.remove(param)
 
     def solve(self):
         '''
@@ -261,8 +338,7 @@ class AgentType(HARKobject):
         self.solution = solveAgent(self) # Solve the model by backward induction
         if self.time_flow: # Put the solution in chronological order if this instance's time flow runs that way
             self.solution.reverse()
-        if not ('solution' in self.time_vary):
-            self.time_vary.append('solution') # Add solution to the list of time-varying attributes
+        self.addToTimeVary('solution') # Add solution to the list of time-varying attributes
         self.postSolve() # Do post-solution stuff
         
     def resetRNG(self):
@@ -476,7 +552,7 @@ def solveOneCycle(agent,solution_last):
       
 class Market(HARKobject):
     '''
-    A class to represent a central clearinghouse of information.  Used for
+    A superclass to represent a central clearinghouse of information.  Used for
     dynamic general equilibrium models to solve the "macroeconomic" model as a
     layer on top of the "microeconomic" models of one or more AgentTypes.
     '''   
@@ -748,3 +824,10 @@ class Market(HARKobject):
             for this_type in self.agents:
                 setattr(this_type,var_name,this_obj)
         return dynamics
+        
+if __name__ == '__main__':
+    print("Sorry, HARKcore doesn't actually do anything on its own.")
+    print("To see some examples of its frameworks in action, try running a model module.")
+    print("Several interesting model modules can be found in /ConsumptionSavingModel.")
+    print('For an extraordinarily simple model that demonstrates the "microeconomic" and')
+    print('"macroeconomic" frameworks, see /FashionVictim/FashionVictimModel.')

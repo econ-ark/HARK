@@ -4,6 +4,7 @@ Created on Thu Jun 02 13:29:44 2016
 
 @author: lowd
 """
+<<<<<<< HEAD
 
 import sys 
 sys.path.insert(0,'../')
@@ -12,6 +13,17 @@ sys.path.insert(0,'../TractableBufferStock')
 
 from ConsumptionSavingModel import ConsumerType, solveConsumptionSavingMarkov, consumptionSavingSolverENDG, solvePerfForesight
 from TractableBufferStock import TractableConsumerType
+=======
+import sys
+import os
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../ConsumptionSavingModel'))
+sys.path.insert(0, os.path.abspath('./'))
+
+from ConsIndShockModel import solvePerfForesight, IndShockConsumerType
+from ConsMarkovModel import MarkovConsumerType
+from TractableBufferStockModel import TractableConsumerType
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 from copy import deepcopy
 
 import unittest
@@ -22,12 +34,20 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
     def setUp(self):
 
         # Set up and solve infinite type
+<<<<<<< HEAD
         import SetupConsumerParameters as Params
         
         InfiniteType = ConsumerType(**Params.init_consumer_objects)
         InfiniteType.solveOnePeriod = consumptionSavingSolverENDG
         InfiniteType.assignParameters(LivPrb = [1.],
                                       DiscFac = [0.955],
+=======
+        import ConsumerParameters as Params
+        
+        InfiniteType = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
+        InfiniteType.assignParameters(LivPrb = [1.],
+                                      DiscFac = 0.955,
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
                                       PermGroFac = [1.],
                                       PermShkStd  = [0.],
                                       TempShkStd  = [0.],
@@ -37,7 +57,11 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
         InfiniteType.updateIncomeProcess()        
         InfiniteType.solve()
         InfiniteType.timeFwd()
+<<<<<<< HEAD
         InfiniteType.unpack_cFunc()
+=======
+        InfiniteType.unpackcFunc()
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 
 
         # Make and solve a perfect foresight consumer type
@@ -45,7 +69,11 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
         PerfectForesightType.solveOnePeriod = solvePerfForesight
         
         PerfectForesightType.solve()
+<<<<<<< HEAD
         PerfectForesightType.unpack_cFunc()
+=======
+        PerfectForesightType.unpackcFunc()
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
         PerfectForesightType.timeFwd()
 
         self.InfiniteType = InfiniteType
@@ -79,6 +107,10 @@ class Compare_TBS_and_Markov(unittest.TestCase):
         TBSType.solve()
  
         # Set up and solve Markov
+<<<<<<< HEAD
+=======
+        MrkvArray = np.array([[1.0-base_primitives['UnempPrb'],base_primitives['UnempPrb']],[0.0,1.0]])
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
         Markov_primitives = {"CRRA":base_primitives['CRRA'],
                             "Rfree":np.array(2*[base_primitives['Rfree']]),
                             "PermGroFac":[np.array(2*[base_primitives['PermGroFac']/(1.0-base_primitives['UnempPrb'])])],
@@ -99,13 +131,18 @@ class Compare_TBS_and_Markov(unittest.TestCase):
                             "aXtraExtra":[None],
                             "exp_nest":3,
                             "LivPrb":[1.0],
+<<<<<<< HEAD
                             "DiscFac":[base_primitives['DiscFac']],
+=======
+                            "DiscFac":base_primitives['DiscFac'],
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
                             'Nagents':1,
                             'psi_seed':0,
                             'xi_seed':0,
                             'unemp_seed':0,
                             'tax_rate':0.0,
                             'vFuncBool':False,
+<<<<<<< HEAD
                             'CubicBool':True
                             }
         
@@ -128,6 +165,20 @@ class Compare_TBS_and_Markov(unittest.TestCase):
         MarkovType.cycles = 0
         MarkovType.solve()
         MarkovType.unpack_cFunc()
+=======
+                            'CubicBool':True,
+                            'MrkvArray':MrkvArray
+                            }
+                
+        MarkovType = MarkovConsumerType(**Markov_primitives)                           
+        MarkovType.cycles = 0
+        employed_income_dist                 = [np.ones(1),np.ones(1),np.ones(1)]
+        unemployed_income_dist               = [np.ones(1),np.ones(1),np.zeros(1)]
+        MarkovType.IncomeDstn = [[employed_income_dist,unemployed_income_dist]]
+        
+        MarkovType.solve()
+        MarkovType.unpackcFunc()
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
  
         self.TBSType    = TBSType
         self.MarkovType = MarkovType

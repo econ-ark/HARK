@@ -1,10 +1,10 @@
 '''
-This module contains custom interpolation methods for representing approximations
-to functions.  It also includes wrapper classes to enforce standard methods
-across classes.  Each interpolation class must have a distance() method that
-compares itself to another instance; this is used in HARKcore's solve() method
-to check for solution convergence.  The interpolator classes currently in this
-module inherit their distance method from HARKobject.
+Custom interpolation methods for representing approximations to functions.
+It also includes wrapper classes to enforce standard methods across classes.
+Each interpolation class must have a distance() method that compares itself to
+another instance; this is used in HARKcore's solve() method to check for solution
+convergence.  The interpolator classes currently in this module inherit their
+distance method from HARKobject.
 '''
 
 import warnings
@@ -2588,19 +2588,105 @@ class Curvilinear2DInterp(HARKinterpolator2D):
           +  alpha*beta*self.f_values[x_pos+1,y_pos+1])
         return f
         
-    # Need to add _derX and _derY methods; math is in desk drawer at UD
+    def _derX(self,x,y):
+        '''
+        Returns the derivative with respect to x of the interpolated function
+        at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
+        '''
+        x_pos, y_pos = self.findSector(x,y)
+        alpha, beta = self.findCoords(x,y,x_pos,y_pos)
+        
+        # Get four corners data for each point
+        xA = self.x_values[x_pos,y_pos]
+        xB = self.x_values[x_pos+1,y_pos]
+        xC = self.x_values[x_pos,y_pos+1]
+        xD = self.x_values[x_pos+1,y_pos+1]
+        yA = self.y_values[x_pos,y_pos]
+        yB = self.y_values[x_pos+1,y_pos]
+        yC = self.y_values[x_pos,y_pos+1]
+        yD = self.y_values[x_pos+1,y_pos+1]
+        fA = self.f_values[x_pos,y_pos]
+        fB = self.f_values[x_pos+1,y_pos]
+        fC = self.f_values[x_pos,y_pos+1]
+        fD = self.f_values[x_pos+1,y_pos+1]
+        
+        # Calculate components of the alpha,beta --> x,y delta translation matrix
+        alpha_x = (1-beta)*(xB-xA) + beta*(xD-xC)
+        alpha_y = (1-beta)*(yB-yA) + beta*(yD-yC)
+        beta_x  = (1-alpha)*(xC-xA) + alpha*(xD-xB)
+        beta_y  = (1-alpha)*(yC-yA) + alpha*(yD-yB)
+        
+        # Invert the delta translation matrix into x,y --> alpha,beta
+        det = alpha_x*beta_y - beta_x*alpha_y
+        x_alpha = beta_y/det
+        x_beta  = -alpha_y/det
+        #y_alpha = -beta_x/det
+        #y_beta  = alpha_x/det
+        
+        # Calculate the derivative of f w.r.t. alpha and beta
+        dfda = (1-beta)*(fB-fA) + beta*(fD-fC)
+        dfdb = (1-alpha)*(fC-fA) + alpha*(fD-fB)
+        
+        # Calculate the derivative with respect to x (and return it)
+        dfdx = x_alpha*dfda + x_beta*dfdb
+        return dfdx
+        
+    def _derY(self,x,y):
+        '''
+        Returns the derivative with respect to y of the interpolated function
+        at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
+        '''
+        x_pos, y_pos = self.findSector(x,y)
+        alpha, beta = self.findCoords(x,y,x_pos,y_pos)
+        
+        # Get four corners data for each point
+        xA = self.x_values[x_pos,y_pos]
+        xB = self.x_values[x_pos+1,y_pos]
+        xC = self.x_values[x_pos,y_pos+1]
+        xD = self.x_values[x_pos+1,y_pos+1]
+        yA = self.y_values[x_pos,y_pos]
+        yB = self.y_values[x_pos+1,y_pos]
+        yC = self.y_values[x_pos,y_pos+1]
+        yD = self.y_values[x_pos+1,y_pos+1]
+        fA = self.f_values[x_pos,y_pos]
+        fB = self.f_values[x_pos+1,y_pos]
+        fC = self.f_values[x_pos,y_pos+1]
+        fD = self.f_values[x_pos+1,y_pos+1]
+        
+        # Calculate components of the alpha,beta --> x,y delta translation matrix
+        alpha_x = (1-beta)*(xB-xA) + beta*(xD-xC)
+        alpha_y = (1-beta)*(yB-yA) + beta*(yD-yC)
+        beta_x  = (1-alpha)*(xC-xA) + alpha*(xD-xB)
+        beta_y  = (1-alpha)*(yC-yA) + alpha*(yD-yB)
+        
+        # Invert the delta translation matrix into x,y --> alpha,beta
+        det = alpha_x*beta_y - beta_x*alpha_y
+        #x_alpha = beta_y/det
+        #x_beta  = -alpha_y/det
+        y_alpha = -beta_x/det
+        y_beta  = alpha_x/det
+        
+        # Calculate the derivative of f w.r.t. alpha and beta
+        dfda = (1-beta)*(fB-fA) + beta*(fD-fC)
+        dfdb = (1-alpha)*(fC-fA) + alpha*(fD-fB)
+        
+        # Calculate the derivative with respect to x (and return it)
+        dfdy = y_alpha*dfda + y_beta*dfdb
+        return dfdy
         
         
 if __name__ == '__main__':       
-    '''
-    Tests of some of the interpolation methods.  Should be expanded and cleaned up.
-    '''
+    print("Sorry, HARKinterpolation doesn't actually do much on its own.")
+    print("To see some examples of its interpolation methods in action, look at any")
+    print("of the model modules in /ConsumptionSavingModel.  In the future, running")
+    print("this module will show examples of each interpolation class.")
+    
     from time import clock
     import matplotlib.pyplot as plt
     
     RNG = np.random.RandomState(123)
     
-    if True:
+    if False:
         x = np.linspace(1,20,39)
         y = np.log(x)
         dydx = 1.0/x
@@ -2798,9 +2884,13 @@ if __name__ == '__main__':
         rand_y = RNG.rand(1000)*5.0
         t_start = clock()
         z = (f(rand_x,rand_y) - g(rand_x,rand_y))/f(rand_x,rand_y)
+        q = (dfdx(rand_x,rand_y) - g.derivativeX(rand_x,rand_y))/dfdx(rand_x,rand_y)
+        r = (dfdy(rand_x,rand_y) - g.derivativeY(rand_x,rand_y))/dfdy(rand_x,rand_y)
         t_end = clock()
         z.sort()
-        print(z)
+        q.sort()
+        r.sort()
+        #print(z)
         print(t_end-t_start)
         
         

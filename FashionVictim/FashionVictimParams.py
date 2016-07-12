@@ -1,5 +1,9 @@
 '''
+<<<<<<< HEAD
 This module defines some default parameters for the fashion victim model.
+=======
+Defines some default parameters for the fashion victim model.
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 '''
 
 DiscFac          = 0.95   # Intertemporal discount factor
@@ -35,3 +39,13 @@ default_params={'DiscFac'      : DiscFac,
                'pop_size'      : pop_size,
                'p_init'        : p_init
                }
+<<<<<<< HEAD
+=======
+               
+               
+if __name__ == '__main__':
+    print("Sorry, FashionVictimParams doesn't actually do anything on its own.")
+    print("This module is imported by FashionVictimModel, providing example")
+    print("parameters for the model.  Please see that module if you want more")
+    print("interesting output.")
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86

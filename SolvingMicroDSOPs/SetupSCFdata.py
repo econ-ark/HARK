@@ -1,12 +1,23 @@
 '''
+<<<<<<< HEAD
 This module sets up the SCF data for use in the SolvingMicroDSOPs estimation.
+=======
+Sets up the SCF data for use in the SolvingMicroDSOPs estimation.
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 '''
 from __future__ import division      # Use new division function
 
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder. 
 import sys 
+<<<<<<< HEAD
 sys.path.insert(0,'../')
+=======
+#sys.path.insert(0,'../')
+import os
+sys.path.insert(0, os.path.abspath('../'))
+
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 
 # The following libraries are part of the standard python distribution
 import numpy as np                   # Numerical Python
@@ -17,10 +28,17 @@ from EstimationParameters import initial_age, empirical_cohort_age_groups
 from HARKutilities import warnings
 
 # Set the path to the empirical data:
+<<<<<<< HEAD
 scf_data_path = './'
 
 # Open the file handle and create a reader object and a csv header
 infile = open(scf_data_path + 'SCFdata.csv', 'rb')  
+=======
+scf_data_path = data_location = os.path.dirname(os.path.abspath(__file__))  # os.path.abspath('./')   #'./'
+
+# Open the file handle and create a reader object and a csv header
+infile = open(scf_data_path + '/SCFdata.csv', 'rb')  
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 csv_reader = csv.reader(infile)
 data_csv_header = csv_reader.next()
 
@@ -55,4 +73,15 @@ infile.close()
 simulation_map_cohorts_to_age_indices = []
 for ages in empirical_cohort_age_groups:
     simulation_map_cohorts_to_age_indices.append(np.array(ages) - initial_age)
+<<<<<<< HEAD
     
+=======
+    
+    
+if __name__ == '__main__':
+    print("Sorry, SetupSCFdata doesn't actually do anything on its own.")
+    print("This module is imported by StructEstimation, providing data for")
+    print("the example estimation.  Please see that module if you want more")
+    print("interesting output.")
+    
+>>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
