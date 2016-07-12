@@ -16,7 +16,7 @@ sys.path.remove('/Users/ganong/Library/Enthought/Canopy_64bit/User/lib/python2.7
 sys.path.insert(0,'../')
 sys.path.insert(0,'../ConsumptionSavingModel')
 sys.path.insert(0,'../SolvingMicroDSOPs')
-
+#test
 from copy import copy, deepcopy
 import numpy as np
 #from HARKcore_gn import AgentType, Solution, NullFunc
