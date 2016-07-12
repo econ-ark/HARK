@@ -14,7 +14,7 @@ import numpy as np
 from HARKcore import HARKobject
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import LowerEnvelope2D, BilinearInterp, Curvilinear2DInterp,\
-                              LinearInterpOnInterp1D, LinearInterp, HARKinterpolator2D
+                              LinearInterpOnInterp1D, LinearInterp, CubicInterp, HARKinterpolator2D
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                           CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
                           approxLognormal
@@ -28,6 +28,54 @@ utilityP_inv  = CRRAutilityP_inv
 utility_invP  = CRRAutility_invP
 utility_inv   = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
+
+class ValueFunc2D(HARKobject):
+    '''
+    A class for representing a value function in a model where permanent income
+    is explicitly included as a state variable.  The underlying interpolation is
+    in the space of (m,p) --> u_inv(v); this class "re-curves" to the value function.
+    '''
+    distance_criteria = ['func','CRRA']
+    
+    def __init__(self,vFuncNvrs,CRRA):
+        '''
+        Constructor for a new value function object.
+        
+        Parameters
+        ----------
+        vFuncNvrs : function
+            A real function representing the value function composed with the
+            inverse utility function, defined on market resources and permanent
+            income: u_inv(vFunc(m,p))
+        CRRA : float
+            Coefficient of relative risk aversion.
+            
+        Returns
+        -------
+        None
+        '''
+        self.func = deepcopy(vFuncNvrs)
+        self.CRRA = CRRA
+        
+    def __call__(self,m,p):
+        '''
+        Evaluate the value function at given levels of market resources m and
+        permanent income p.
+        
+        Parameters
+        ----------
+        m : float or np.array
+            Market resources whose value is to be calcuated.
+        p : float or np.array
+            Permanent income levels whose value is to be calculated.
+            
+        Returns
+        -------
+        v : float or np.array
+            Lifetime value of beginning this period with market resources m and
+            permanent income p; has same size as inputs m and p.
+        '''
+        return utility(self.func(m,p),gam=self.CRRA)
 
 class MargValueFunc2D(HARKobject):
     '''
@@ -62,6 +110,97 @@ class MargValueFunc2D(HARKobject):
         
     def __call__(self,M,p):
         return utilityP(self.cFunc(M,p),gam=self.CRRA)
+        
+        
+class VariableLowerBoundFunc2D(HARKobject):
+    '''
+    A class for representing a function with two real inputs whose lower bound
+    in the first input depends on the second input.  Useful for managing curved
+    natural borrowing constraints, as occurs in 
+    '''
+    distance_criteria = ['func','lowerBound']
+    
+    def __init__(self,func,lowerBound):
+        '''
+        Make a new instance of VariableLowerBoundFunc2D.
+        
+        Parameters
+        ----------
+        func : function
+            A function f: (R_+ x R) --> R representing the function of interest
+            shifted by its lower bound in the first input.
+        lowerBound : function
+            The lower bound in the first input of the function of interest, as
+            a function of the second input.
+            
+        Returns
+        -------
+        None
+        '''
+        self.func = func
+        self.lowerBound = lowerBound
+        
+    def __call__(self,x,y):
+        '''
+        Evaluate the function at given state space points.
+        
+        Parameters
+        ----------
+        x : np.array
+             First input values.
+        y : np.array
+             Second input values; should be of same shape as x.
+             
+        Returns
+        -------
+        f_out : np.array
+            Function evaluated at (x,y), of same shape as inputs.
+        '''
+        xShift = self.lowerBound(y)
+        f_out = self.func(x-xShift,y)
+        return f_out
+        
+    def derivativeX(self,x,y):
+        '''
+        Evaluate the first derivative with respect to x of the function at given
+        state space points.
+        
+        Parameters
+        ----------
+        x : np.array
+             First input values.
+        y : np.array
+             Second input values; should be of same shape as x.
+             
+        Returns
+        -------
+        dfdx_out : np.array
+            Function evaluated at (x,y), of same shape as inputs.
+        '''
+        xShift = self.lowerBound(y)
+        dfdx_out = self.func.derivativeX(x-xShift,y)
+        return dfdx_out
+        
+    def derivativeY(self,x,y):
+        '''
+        Evaluate the first derivative with respect to y of the function at given
+        state space points.
+        
+        Parameters
+        ----------
+        x : np.array
+             First input values.
+        y : np.array
+             Second input values; should be of same shape as x.
+             
+        Returns
+        -------
+        dfdx_out : np.array
+            Function evaluated at (x,y), of same shape as inputs.
+        '''
+        xShift,xShiftDer = self.lowerBound.eval_with_derivative(y)
+        dfdy_out = self.func.derivativeY(x-xShift,y) - xShiftDer*self.func.derivativeX(x-xShift,y)
+        return dfdy_out
         
 ###############################################################################
         
@@ -305,6 +444,34 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         '''
         EndOfPrdvP  = self.DiscFacEff*self.Rfree*np.sum(self.vPfuncNext(self.mLvlNext,self.pLvlNext)*self.ShkPrbs_temp,axis=0)  
         return EndOfPrdvP
+        
+    def makeEndOfPrdvFunc(self,EndOfPrdvP):
+        '''
+        Construct the end-of-period value function for this period, storing it
+        as an attribute of self for use by other methods.
+        
+        Parameters
+        ----------
+        EndOfPrdvP : np.array
+            Array of end-of-period marginal value of assets corresponding to the
+            asset values in self.aLvlNow x self.pLvlGrid.
+            
+        Returns
+        -------
+        none
+        '''
+        VLvlNext            = self.vFuncNext(self.mLvlNext)
+        EndOfPrdv           = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
+        EndOfPrdvNvrs       = self.uinv(EndOfPrdv) # value transformed through inverse utility
+        EndOfPrdvNvrsP      = EndOfPrdvP*self.uinvP(EndOfPrdv)
+        EndOfPrdvNvrs       = np.concatenate((EndOfPrdvNvrs,np.zeros(self.pLvlGrid.size,1)),axis=1)
+        EndOfPrdvNvrsP      = np.concatenate((EndOfPrdvNvrsP,EndOfPrdvNvrsP[:,0]),axis=1) # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+        aLvl_temp           = np.concatenate((self.aLvlNow,np.reshape(self.BoroCnstNat(self.pLvlGrid),(self.pLvlGrid.size,1))),axis=1)
+        EndOfPrdvNvrsFunc_list = []
+        for p in range(self.pLvlGrid.size,1):
+            EndOfPrdvNvrsFunc_list.append(CubicInterp(aLvl_temp[p,:],EndOfPrdvNvrs[p,:],EndOfPrdvNvrsP[p,:]))        
+        EndOfPrdvNvrsFunc   = LinearInterpOnInterp1D(EndOfPrdvNvrsFunc_list,self.pLvlGrid)
+        self.EndOfPrdvFunc  = ValueFunc2D(EndOfPrdvNvrsFunc,self.CRRA)
     
     def getPointsForInterpolation(self,EndOfPrdvP,aLvlNow):
         '''
@@ -392,6 +559,61 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         vPfunc = MargValueFunc2D(cFunc,self.CRRA)
         return vPfunc
         
+    def makevFunc(self,solution):
+        '''
+        Creates the value function for this period, defined over market resources
+        m and permanent income p.  self must have the attribute EndOfPrdvFunc in
+        order to execute.
+        
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            The solution to this single period problem, which must include the
+            consumption function.
+            
+        Returns
+        -------
+        vFuncNow : ValueFunc
+            A representation of the value function for this period, defined over
+            normalized market resources m: v = vFuncNow(m).
+        '''
+        mSize = self.aXtraGrid.size
+        pSize = self.pLvlGrid.size
+        
+        # Compute expected value and marginal value on a grid of market resources
+        pLvl_temp   = np.tile(self.pLvlGrid,(mSize,1))
+        mLvl_temp   = np.tile(self.mLvlMinNow(self.pLvlGrid),(mSize,1)) + np.tile(np.reshape(self.aXtraGrid,(mSize,1)),(1,pSize))*pLvl_temp
+        cLvlNow     = solution.cFunc(mLvl_temp,pLvl_temp)
+        aLvlNow     = mLvl_temp - cLvlNow
+        vNow        = self.u(cLvlNow) + self.EndOfPrdvFunc(aLvlNow,pLvl_temp)
+        vPnow       = self.uP(cLvlNow)
+        
+        # Calculate pseudo-inverse value and its first derivative (wrt mLvl)
+        vNvrs        = self.uinv(vNow) # value transformed through inverse utility
+        vNvrsP       = vPnow*self.uinvP(vNow)
+        
+        # Add data at the lower bound of m
+        mLvl_temp    = np.concatenate((self.mLvlMinNow(self.pLvlGrid),mLvl_temp),axis=0)
+        vNvrs        = np.concatenate((np.zeros((1,pSize)),vNvrs),axis=0)
+        vNvrsP       = np.concatenate((self.MPCmaxEff**(-self.CRRA/(1.0-self.CRRA))*np.ones((1,pSize)),vNvrsP),axis=0)
+        
+        # Add data at the lower bound of p
+        MPCminNvrs   = self.MPCminNow**(-self.CRRA/(1.0-self.CRRA))
+        mLvl_temp    = np.concatenate((mLvl_temp[:,0],mLvl_temp),axis=1)
+        vNvrs        = np.concatenate((np.zeros((mSize+1,1)),vNvrs),axis=0)
+        vNvrsP       = np.concatenate((MPCminNvrs*np.ones((mSize+1,1)),vNvrsP),axis=0)
+        
+        # Construct the pseudo-inverse value function
+        vNvrsFunc_list = []
+        for j in range(pSize+1):
+            pLvl = np.insert(self.pLvlGrid,0,0.0)[j]
+            vNvrsFunc_list.append(CubicInterp(mLvl_temp[:,j],vNvrs[:,j],vNvrsP[:,j],MPCminNvrs*self.hLvlNow(pLvl),MPCminNvrs))            
+        vNvrsFuncNow = LinearInterpOnInterp1D(vNvrsFunc_list,np.insert(self.pLvlGrid,0,0.0))
+        
+        # "Re-curve" the pseudo-inverse value function into the value function
+        vFuncNow     = ValueFunc2D(vNvrsFuncNow,self.CRRA)
+        return vFuncNow
+        
     def makeBasicSolution(self,EndOfPrdvP,aLvl,pLvl,interpolator):
         '''
         Given end of period assets and end of period marginal value, construct
@@ -465,15 +687,16 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         '''
         cFunc_by_pLvl_list = [] # list of consumption functions for each pLvl
         for j in range(pLvl.shape[0]):
-            m_temp = mLvl[j,:]
-            c_temp = cLvl[j,:] # Make a linear consumption function for this pLvl
             pLvl_j = pLvl[j,0]
+            m_temp = mLvl[j,:] - self.BoroCnstNat(pLvl_j)
+            c_temp = cLvl[j,:] # Make a linear consumption function for this pLvl            
             if pLvl_j > 0:
                 cFunc_by_pLvl_list.append(LinearInterp(m_temp,c_temp,lower_extrap=True,slope_limit=self.MPCminNow,intercept_limit=self.MPCminNow*self.hLvlNow(pLvl_j)))
             else:
                 cFunc_by_pLvl_list.append(LinearInterp(m_temp,c_temp,lower_extrap=True))
         pLvl_list = pLvl[:,0]
-        cFuncUnc = LinearInterpOnInterp1D(cFunc_by_pLvl_list,pLvl_list) # Combine all linear cFuncs
+        cFuncUncBase = LinearInterpOnInterp1D(cFunc_by_pLvl_list,pLvl_list) # Combine all linear cFuncs
+        cFuncUnc     = VariableLowerBoundFunc2D(cFuncUncBase,self.BoroCnstNat)
         return cFuncUnc
         
     def addMPCandHumanWealth(self,solution):
@@ -519,7 +742,8 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         '''
         aLvl,pLvl  = self.prepareToCalcEndOfPrdvP()           
         EndOfPrdvP = self.calcEndOfPrdvP()
-        if np.all(self.mLvlMinNow(self.pLvlGrid) == 0.0):   
+        #if np.all(self.mLvlMinNow(self.pLvlGrid) == 0.0):
+        if True:
             interpolator = self.makeLinearcFunc
         else: # Can use a faster solution method if lower bound of m is zero everywhere
             interpolator = self.makeCurvilinearcFunc
@@ -663,7 +887,7 @@ class ConsPersistentShockSolver(ConsIndShockSolverExplicitPermInc):
         # Find minimum allowable end-of-period assets at each permanent income level
         PermIncMinNext = self.PermGroFac*self.PermShkMinNext*self.pLvlGrid**self.PermIncCorr
         IncLvlMinNext  = PermIncMinNext*self.TranShkMinNext
-        aLvlMin = (self.solution_next.mLvlMin(self.pLvlGrid) - IncLvlMinNext)/self.Rfree
+        aLvlMin = (self.solution_next.mLvlMin(PermIncMinNext) - IncLvlMinNext)/self.Rfree
         
         # Make a function for the natural borrowing constraint by permanent income
         BoroCnstNat = LinearInterp(np.insert(self.pLvlGrid,0,0.0),np.insert(aLvlMin,0,0.0))
@@ -671,10 +895,8 @@ class ConsPersistentShockSolver(ConsIndShockSolverExplicitPermInc):
     
         # Define the constrained portion of the consumption function and the
         # minimum allowable level of market resources by permanent income
-        cFuncNowCnstNat = HARKinterpolator2D()
-        cFuncNowCnstNat.__call__    = lambda m,p : m - BoroCnstNat(p)
-        cFuncNowCnstNat.derivativeX = lambda m,p : np.ones_like(m)
-        cFuncNowCnstNat.derivativeY = lambda m,p : np.zeros_like(m)
+        tempFunc = BilinearInterp(np.array([[0.0,0.0],[1.0,1.0]]),np.array([0.0,1.0]),np.array([0.0,1.0])) # consume everything
+        cFuncNowCnstNat = VariableLowerBoundFunc2D(tempFunc,BoroCnstNat)
         if self.BoroCnstArt is not None:
             cFuncNowCnstArt   = BilinearInterp(np.array([[0.0,-self.BoroCnstArt],[1.0,1.0-self.BoroCnstArt]]),
                                            np.array([0.0,1.0]),np.array([0.0,1.0]))
@@ -996,7 +1218,7 @@ if __name__ == '__main__':
     print('Solving an explicit permanent income consumer took ' + mystr(t_end-t_start) + ' seconds.')
     
     # Plot the consumption function at various permanent income levels
-    pGrid = np.linspace(0.1,8,24)
+    pGrid = np.linspace(0.1,3,24)
     M = np.linspace(0,20,300)
     for p in pGrid:
         M_temp = M+ExplicitExample.solution[0].mLvlMin(p)
@@ -1016,13 +1238,14 @@ if __name__ == '__main__':
         
     # Make and solve an example "persistent idisyncratic shocks" consumer 
     PersistentExample = PersistentShockConsumerType(**Params.init_persistent_shocks)
+    #PersistentExample.cycles=1
     t_start = clock()
     PersistentExample.solve()
     t_end = clock()
     print('Solving a persistent income shocks consumer took ' + mystr(t_end-t_start) + ' seconds.')
     
     # Plot the consumption function at various permanent income levels
-    pGrid = np.linspace(0.1,8,24)
+    pGrid = np.linspace(0.1,3,24)
     M = np.linspace(0,20,300)
     for p in pGrid:
         M_temp = M + PersistentExample.solution[0].mLvlMin(p)

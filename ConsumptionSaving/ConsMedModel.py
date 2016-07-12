@@ -5,7 +5,7 @@ import sys
 sys.path.insert(0,'../')
 
 import numpy as np
-from scipy.optimize import newton
+from scipy.optimize import newton, brentq
 from HARKcore import HARKobject
 from HARKutilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv
 from HARKsimulation import drawLognormal
@@ -271,9 +271,10 @@ class MedShockConsumerType(PersistentShockConsumerType):
                 elif MedShk == 0: # All consumption when MedShk = 0
                     lastC = mLvl
                 else:
-                    lastC = mLvl*0.5
+                    #lastC = mLvl*0.01
                     optMedZeroFunc = lambda cLvl : (MedShk/self.MedPrice)**(-1.0/self.CRRA)*((mLvl-cLvl)/MedPrice)**(self.CRRAmed/self.CRRA) - cLvl
-                    lastC = newton(optMedZeroFunc,x0=lastC)
+                    #lastC = newton(optMedZeroFunc,x0=lastC)
+                    lastC = brentq(optMedZeroFunc,0.0,mLvl)
                 cGrid[i,j] = lastC
                 
         # Construct the consumption function for the terminal period (and medical care function)
@@ -765,10 +766,6 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
             for j in range(MedCount):
                 m_temp = mLvl[j,i,:]
                 c_temp = cLvl[j,i,:]
-                #print(i)
-                #print(j)
-                #print(m_temp)
-                #print(c_temp)
                 temp_list.append(LinearInterp(m_temp,c_temp))
             cFunc_by_pLvl_and_MedShk.append(deepcopy(temp_list))
                 
@@ -912,7 +909,7 @@ if __name__ == '__main__':
 
     # Make an example medical shocks consumer type
     MedicalExample = MedShockConsumerType(**Params.init_medical_shocks)
-    MedicalExample.cycles = 100
+    MedicalExample.cycles = 0
     t_start = clock()
     MedicalExample.solve()
     t_end = clock()
@@ -936,6 +933,15 @@ if __name__ == '__main__':
     print('Medical care function by medical need shock (constant permanent income)')
     plt.show()
     
+    # Plot the savings function
+    for j in range(MedicalExample.MedShkDstn[0][0].size):
+        MedShk = MedicalExample.MedShkDstn[0][1][j]*np.ones_like(M)
+        Sav = M - MedicalExample.solution[0].cFunc(M,P,MedShk) - MedicalExample.MedPrice[0]*MedicalExample.solution[0].MedFunc(M,P,MedShk)
+        plt.plot(M,Sav)
+    print('End of period savings by medical need shock (constant permanent income)')
+    plt.ylim([-1,0])
+    plt.show()
+    
     # Plot the marginal value function
     M = np.linspace(0.1,30,300)
     vP = MedicalExample.solution[0].vPfunc.cFunc(M,P)
@@ -945,6 +951,7 @@ if __name__ == '__main__':
     
     if do_simulation:
         MedicalExample.sim_periods = 100
+        MedicalExample.DiePrb = 1.0 - MedicalExample.LivPrb[0]
         MedicalExample.makeIncShkHist()
         MedicalExample.makeMedShkHist()
         MedicalExample.initializeSim()

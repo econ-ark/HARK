@@ -31,10 +31,10 @@ init_perfect_foresight = { 'CRRA': CRRA,
 # -----------------------------------------------------------------------------
 
 # Parameters for constructing the "assets above minimum" grid
-exp_nest = 3                        # Number of times to "exponentially nest" when constructing a_grid
 aXtraMin = 0.001                    # Minimum end-of-period "assets above minimum" value
 aXtraMax = 20                       # Minimum end-of-period "assets above minimum" value               
 aXtraExtra = None                   # Some other value of "assets above minimum" to add to the grid, not used
+aXtraNestFac = 3                    # Exponential nesting factor when constructing "assets above minimum" grid
 aXtraCount = 12                     # Number of points in the grid of "assets above minimum"
 
 # Parameters describing the income process
@@ -50,7 +50,7 @@ tax_rate = 0.0                      # Flat income tax rate
 T_retire = 0                        # Period of retirement (0 --> no retirement)
 
 # A few other parameters
-BoroCnstArt = 0.0                  # Artificial borrowing constraint; imposed minimum level of end-of period assets
+BoroCnstArt = 0.0                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
 CubicBool = True                    # Use cubic spline interpolation when True, linear interpolation when False
 vFuncBool = False                   # Whether to calculate the value function during solution
 T_total = 1                         # Total number of periods in cycle for this agent
@@ -62,9 +62,9 @@ init_idiosyncratic_shocks = { 'CRRA': CRRA,
                               'LivPrb': LivPrb,
                               'PermGroFac': PermGroFac,
                               'Nagents': Nagents,
-                              'exp_nest': exp_nest,
                               'aXtraMin': aXtraMin,
                               'aXtraMax': aXtraMax,
+                              'aXtraNestFac':aXtraNestFac,
                               'aXtraCount': aXtraCount,
                               'aXtraExtra': [aXtraExtra],
                               'PermShkStd': PermShkStd,
@@ -201,6 +201,7 @@ init_explicit_perm_inc['PermGroFac'] = [1.0] # long run permanent income growth 
 init_explicit_perm_inc['cycles'] = cycles
 init_explicit_perm_inc['aXtraCount'] = 48
 init_explicit_perm_inc['aXtraMax'] = 30
+#init_explicit_perm_inc['aXtraExtra'] = [200]
 init_explicit_perm_inc['CubicBool'] = False # explicit perm inc currently only compatible with linear cFunc
 
 # Make a dictionary for the "persistent idiosyncratic shocks" model
@@ -226,3 +227,4 @@ init_medical_shocks['MedShkStd'] = MedShkStd
 init_medical_shocks['MedShkCount'] = MedShkCount
 init_medical_shocks['MedShkCountTail'] = MedShkCountTail
 init_medical_shocks['MedPrice'] = MedPrice
+init_medical_shocks['aXtraExtra'] = [1e-10,1e-9,1e-8,1e-7,1e-6,1e-5,1e-4]

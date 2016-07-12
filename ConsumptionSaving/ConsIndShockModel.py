@@ -2230,7 +2230,7 @@ def constructAssetsGrid(parameters):
     aXtraCount   = parameters.aXtraCount
     aXtraExtra   = parameters.aXtraExtra
     grid_type    = 'exp_mult'
-    exp_nest     = parameters.exp_nest
+    exp_nest     = parameters.aXtraNestFac
     
     # Set up post decision state grid:
     aXtraGrid = None
