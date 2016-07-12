@@ -50,9 +50,9 @@ tax_rate = 0.0                      # Flat income tax rate
 T_retire = 0                        # Period of retirement (0 --> no retirement)
 
 # A few other parameters
-BoroCnstArt = 0.0                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+BoroCnstArt = None                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
 CubicBool = True                    # Use cubic spline interpolation when True, linear interpolation when False
-vFuncBool = False                    # Whether to calculate the value function during solution
+vFuncBool = False                   # Whether to calculate the value function during solution
 T_total = 1                         # Total number of periods in cycle for this agent
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
@@ -199,9 +199,10 @@ init_explicit_perm_inc['PermIncAvgInit'] = PermIncAvgInit
 init_explicit_perm_inc['PermIncStdInit'] = PermIncStdInit
 init_explicit_perm_inc['PermGroFac'] = [1.0] # long run permanent income growth doesn't work yet
 init_explicit_perm_inc['cycles'] = cycles
-init_explicit_perm_inc['aXtraCount'] = 48
+#init_explicit_perm_inc['aXtraCount'] = 48
 init_explicit_perm_inc['aXtraMax'] = 30
-init_explicit_perm_inc['CubicBool'] = False # explicit perm inc currently only compatible with linear cFunc
+init_explicit_perm_inc['aXtraExtra'] = [0.005,0.01]
+#init_explicit_perm_inc['CubicBool'] = False # explicit perm inc currently only compatible with linear cFunc
 
 # Make a dictionary for the "persistent idiosyncratic shocks" model
 init_persistent_shocks = copy(init_explicit_perm_inc)

@@ -14,10 +14,10 @@ import numpy as np
 from HARKcore import HARKobject
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import LowerEnvelope2D, BilinearInterp, Curvilinear2DInterp,\
-                              LinearInterpOnInterp1D, LinearInterp, CubicInterp, HARKinterpolator2D
+                              LinearInterpOnInterp1D, LinearInterp, CubicInterp
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                           CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
-                          approxLognormal, plotFuncs
+                          approxLognormal
 from HARKsimulation import drawBernoulli
 from ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
 
@@ -110,6 +110,57 @@ class MargValueFunc2D(HARKobject):
         
     def __call__(self,M,p):
         return utilityP(self.cFunc(M,p),gam=self.CRRA)
+        
+class MargMargValueFunc2D(HARKobject):
+    '''
+    A class for representing a marginal marginal value function in models where the
+    standard envelope condition of V'(M,p) = u'(c(M,p)) holds (with CRRA utility).
+    '''
+    distance_criteria = ['cFunc','CRRA']
+    
+    def __init__(self,cFunc,CRRA):
+        '''
+        Constructor for a new marginal marginal value function object.
+        
+        Parameters
+        ----------
+        cFunc : function
+            A real function representing the marginal value function composed
+            with the inverse marginal utility function, defined on market
+            resources and the level of permanent income: uP_inv(VPfunc(M,p)).
+            Called cFunc because when standard envelope condition applies,
+            uP_inv(VPfunc(M,p)) = cFunc(M,p).
+        CRRA : float
+            Coefficient of relative risk aversion.
+            
+        Returns
+        -------
+        new instance of MargValueFunc
+        '''
+        self.cFunc = deepcopy(cFunc)
+        self.CRRA = CRRA
+        
+    def __call__(self,m,p):
+        '''
+        Evaluate the marginal marginal value function at given levels of market
+        resources m and permanent income p.
+        
+        Parameters
+        ----------
+        m : float or np.array
+            Market resources whose marginal marginal value is to be calculated.
+        p : float or np.array
+            Permanent income levels whose marginal marginal value is to be calculated.
+            
+        Returns
+        -------
+        vPP : float or np.array
+            Marginal marginal lifetime value of beginning this period with market
+            resources m and permanent income p; has same size as inputs.
+        '''
+        c = self.cFunc(m,p)
+        MPC = self.cFunc.derivativeX(m,p)
+        return MPC*utilityPP(c,gam=self.CRRA)
         
         
 class VariableLowerBoundFunc2D(HARKobject):
@@ -472,7 +523,7 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
             EndOfPrdvNvrsFunc_list.append(CubicInterp(aLvl_temp[p,:]-self.BoroCnstNat(self.pLvlGrid[p]),EndOfPrdvNvrs[p,:],EndOfPrdvNvrsP[p,:]))
 #        plt.plot(aLvl_temp[p,:]-self.BoroCnstNat(self.pLvlGrid[p]),EndOfPrdvNvrs[p,:],'ok')
 #        plt.xlim([0,1])
-#        plt.ylim([0,10])
+#        plt.ylim([0,5])
 #        plotFuncs(EndOfPrdvNvrsFunc_list,0,1)
         EndOfPrdvNvrsFuncBase = LinearInterpOnInterp1D(EndOfPrdvNvrsFunc_list,self.pLvlGrid)
         EndOfPrdvNvrsFunc     = VariableLowerBoundFunc2D(EndOfPrdvNvrsFuncBase,self.BoroCnstNat)
@@ -705,6 +756,49 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         cFuncUnc     = VariableLowerBoundFunc2D(cFuncUncBase,self.BoroCnstNat)
         return cFuncUnc
         
+    def makeCubiccFunc(self,mLvl,pLvl,cLvl):
+        '''
+        Makes a quasi-cubic spline interpolation of the unconstrained consumption
+        function for this period.  Function is cubic splines with respect to mLvl,
+        but linear in pLvl.
+        
+        Parameters
+        ----------
+        mLvl : np.array
+            Market resource points for interpolation.
+        cLvl : np.array
+            Consumption points for interpolation.
+        pLvl : np.array
+            Permanent income level points for interpolation.
+            
+        Returns
+        -------
+        cFuncUnc : CubicInterp
+            The unconstrained consumption function for this period.        
+        '''
+        # Calculate the MPC at each gridpoint
+        EndOfPrdvPP = self.DiscFacEff*self.Rfree*self.Rfree*np.sum(self.vPPfuncNext(self.mLvlNext,self.pLvlNext)*self.ShkPrbs_temp,axis=0)    
+        dcda        = EndOfPrdvPP/self.uPP(np.array(cLvl[1:,1:]))
+        MPC         = dcda/(dcda+1.)
+        MPC         = np.concatenate((self.MPCmaxNow*np.ones((self.pLvlGrid.size,1)),MPC),axis=1)
+        MPC         = np.concatenate((self.MPCminNow*np.ones((1,self.aXtraGrid.size+1)),MPC),axis=0)
+
+        cFunc_by_pLvl_list = [] # list of consumption functions for each pLvl
+        for j in range(pLvl.shape[0]):
+            pLvl_j = pLvl[j,0]
+            m_temp = mLvl[j,:] - self.BoroCnstNat(pLvl_j)
+            c_temp = cLvl[j,:] # Make a cubic consumption function for this pLvl
+            MPC_temp = MPC[j,:]
+            if pLvl_j > 0:
+                cFunc_by_pLvl_list.append(CubicInterp(m_temp,c_temp,MPC_temp,lower_extrap=True,slope_limit=self.MPCminNow,intercept_limit=self.MPCminNow*self.hLvlNow(pLvl_j)))
+            else:
+                cFunc_by_pLvl_list.append(LinearInterp(m_temp,c_temp,lower_extrap=True))
+        pLvl_list = pLvl[:,0]
+        cFuncUncBase = LinearInterpOnInterp1D(cFunc_by_pLvl_list,pLvl_list) # Combine all linear cFuncs
+        cFuncUnc     = VariableLowerBoundFunc2D(cFuncUncBase,self.BoroCnstNat)
+        return cFuncUnc
+
+        
     def addMPCandHumanWealth(self,solution):
         '''
         Take a solution and add human wealth and the bounding MPCs to it.  This
@@ -729,6 +823,27 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         solution.MPCmax = self.MPCmaxEff
         return solution
         
+    def addvPPfunc(self,solution):
+        '''
+        Adds the marginal marginal value function to an existing solution, so
+        that the next solver can evaluate vPP and thus use cubic interpolation.
+        
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            The solution to this single period problem, which must include the
+            consumption function.
+            
+        Returns
+        -------
+        solution : ConsumerSolution
+            The same solution passed as input, but with the marginal marginal
+            value function for this period added as the attribute vPPfunc.
+        '''
+        vPPfuncNow        = MargMargValueFunc2D(solution.cFunc,self.CRRA)
+        solution.vPPfunc  = vPPfuncNow
+        return solution
+        
     def solve(self):
         '''
         Solves a one period consumption saving problem with risky income, with
@@ -750,11 +865,16 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         EndOfPrdvP = self.calcEndOfPrdvP()
         if self.vFuncBool:
             self.makeEndOfPrdvFunc(EndOfPrdvP)
-        interpolator = self.makeLinearcFunc
+        if self.CubicBool:
+            interpolator = self.makeCubiccFunc
+        else:
+            interpolator = self.makeLinearcFunc
         solution   = self.makeBasicSolution(EndOfPrdvP,aLvl,pLvl,interpolator)
         solution   = self.addMPCandHumanWealth(solution)
         if self.vFuncBool:
             solution.vFunc = self.makevFunc(solution)
+        if self.CubicBool:
+            solution = self.addvPPfunc(solution)
         return solution
         
         
@@ -1040,6 +1160,7 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
         '''
         self.solution_terminal.vFunc = ValueFunc2D(self.cFunc_terminal_,self.CRRA)
         self.solution_terminal.vPfunc = MargValueFunc2D(self.cFunc_terminal_,self.CRRA)
+        self.solution_terminal.vPPfunc = MargMargValueFunc2D(self.cFunc_terminal_,self.CRRA)
         self.solution_terminal.hNrm = 0.0 # Don't track normalized human wealth
         self.solution_terminal.hLvl = lambda p : np.zeros_like(p) # But do track absolute human wealth by permanent income
         self.solution_terminal.mLvlMin = lambda p : np.zeros_like(p) # And minimum allowable market resources by perm inc
@@ -1219,6 +1340,7 @@ if __name__ == '__main__':
     
     # Make and solve an example "explicit permanent income" consumer with idiosyncratic shocks
     ExplicitExample = IndShockExplicitPermIncConsumerType(**Params.init_explicit_perm_inc)
+    #ExplicitExample.cycles = 1
     t_start = clock()
     ExplicitExample.solve()
     t_end = clock()
@@ -1256,6 +1378,7 @@ if __name__ == '__main__':
         
     # Make and solve an example "persistent idisyncratic shocks" consumer 
     PersistentExample = PersistentShockConsumerType(**Params.init_persistent_shocks)
+    #PersistentExample.cycles = 1
     t_start = clock()
     PersistentExample.solve()
     t_end = clock()
