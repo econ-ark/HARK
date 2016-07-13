@@ -1,14 +1,14 @@
 '''
-This module contains functions useful for estimating structural models, including
-optimization methods and bootstrapping tools.
+Functions for estimating structural models, including optimization methods
+and bootstrapping tools.
 '''
 
 # The following libraries are part of the standard python distribution
 from __future__ import division                         # Use new division function
 import numpy as np                                      # Numerical Python
 from time import time                                   # Used to time execution
-from copy import deepcopy
-from scipy.optimize import fmin, fmin_powell, brute     # Minimizers
+from copy import deepcopy                               # For replicating complex objects
+from scipy.optimize import fmin, fmin_powell            # Minimizers
 from HARKutilities import warnings                      # Import modified "warnings" library
 
 def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwargs):
@@ -16,8 +16,8 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwar
     Minimizes the objective function using the Nelder-Mead simplex algorithm,
     starting from an initial parameter guess.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     objectiveFunction : function
         The function to be minimized.  It should take only a single argument, which
         should be a list representing the parameters to be estimated.
@@ -27,20 +27,19 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwar
     verbose : boolean
         A flag for the amount of output to print.
         
-    Returns:
-    ----------
+    Returns
+    -------
     xopt : [float]
         The values that minimize objectiveFunction.
     '''
 
-    # Execute the minimization step using initial values from the parameters file.
-    # Time the process.
-    t0 = time()
+    # Execute the minimization, starting from the given parameter guess
+    t0 = time() # Time the process
     OUTPUT = fmin(objectiveFunction, parameter_guess, full_output=1, maxiter=1000, disp=verbose, **kwargs)
     t1 = time()
 
     # Extract values from optimization output:
-    xopt = OUTPUT[0]        # Parameter that minimizes function.
+    xopt = OUTPUT[0]        # Parameters that minimize function.
     fopt = OUTPUT[1]        # Value of function at minimum: ``fopt = func(xopt)``.
     optiter = OUTPUT[2]     # Number of iterations performed.
     funcalls = OUTPUT[3]    # Number of function calls made.
@@ -49,22 +48,23 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwar
                             #   2 : Maximum number of iterations reached.
     # Check that optimization succeeded:
     if warnflag != 0:
-        warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) + ', optiter=' + str(optiter) +', funcalls=' + str(funcalls) +', warnflag=' + str(warnflag))
+        warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) + 
+                      ', optiter=' + str(optiter) +', funcalls=' + str(funcalls) +
+                      ', warnflag=' + str(warnflag))
 
-    # Display the results:
+    # Display and return the results:
     if verbose:
         print("Time to estimate is " + str(t1-t0) +  " seconds.")
-
     return xopt
     
     
 def minimizePowell(objectiveFunction, parameter_guess, verbose=False):
     '''
-    Minimizes the objective function using derivative-free Powell algorithm,
+    Minimizes the objective function using a derivative-free Powell algorithm,
     starting from an initial parameter guess.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     objectiveFunction : function
         The function to be minimized.  It should take only a single argument, which
         should be a list representing the parameters to be estimated.
@@ -74,20 +74,19 @@ def minimizePowell(objectiveFunction, parameter_guess, verbose=False):
     verbose : boolean
         A flag for the amount of output to print.
         
-    Returns:
-    ----------
+    Returns
+    -------
     xopt : [float]
         The values that minimize objectiveFunction.
     '''
 
-    # Execute the minimization step using initial values from the parameters file.
-    # Time the process.
-    t0 = time()
+    # Execute the minimization, starting from the given parameter guess
+    t0 = time() # Time the process
     OUTPUT = fmin_powell(objectiveFunction, parameter_guess, full_output=1, maxiter=1000, disp=verbose)
     t1 = time()
 
     # Extract values from optimization output:
-    xopt = OUTPUT[0]        # Parameter that minimizes function.
+    xopt = OUTPUT[0]        # Parameters that minimize function.
     fopt = OUTPUT[1]        # Value of function at minimum: ``fopt = func(xopt)``.
     direc = OUTPUT[2]
     optiter = OUTPUT[3]     # Number of iterations performed.
@@ -99,10 +98,9 @@ def minimizePowell(objectiveFunction, parameter_guess, verbose=False):
     if warnflag != 0:
         warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) + ', direc=' + str(direc) + ', optiter=' + str(optiter) +', funcalls=' + str(funcalls) +', warnflag=' + str(warnflag))
 
-    # Display the results:
+    # Display and return the results:
     if verbose:
         print("Time to estimate is " + str(t1-t0) +  " seconds.")
-
     return xopt
 
 
@@ -112,8 +110,8 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
     an equal number of rows (records).  Rows are drawn with equal probability
     by default, but probabilities can be specified with weights (must sum to 1).
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     data : np.array
         An array of data, with each row representing a record.
     weights : np.array
@@ -121,12 +119,11 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
     seed : int
         A seed for the random number generator.
         
-    Returns:
-    -----------
+    Returns
+    -------
     new_data : np.array
         A resampled version of input data.
-    '''
-    
+    '''   
     # Set up the random number generator
     RNG = np.random.RandomState(seed)
     N = data.shape[0]
@@ -144,3 +141,8 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
     new_data = deepcopy(data[indices,])
     return new_data
     
+    
+if __name__ == '__main__':
+    print("Sorry, HARKestimation doesn't actually do anything on its own.")
+    print("To see some examples of its functions in actions, check out an application")
+    print("like /SolvingMicroDSOPs/StructEstimation or /cstwMPC/cstwMPC.")
