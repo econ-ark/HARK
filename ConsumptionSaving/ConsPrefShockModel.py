@@ -265,8 +265,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         self.solveOnePeriod = solveConsKinkyPref # Choose correct solver
         self.addToTimeInv('Rboro','Rsave')
         self.delFromTimeInv('Rfree')
-
-
+        
 ###############################################################################
 
 class ConsPrefShockSolver(ConsIndShockSolver):
@@ -646,7 +645,7 @@ def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,
     solver.prepareToSolve()                                      
     solution = solver.solve()
     return solution
-
+    
 ###############################################################################
     
 if __name__ == '__main__':

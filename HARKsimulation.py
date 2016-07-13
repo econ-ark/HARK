@@ -43,6 +43,42 @@ def drawMeanOneLognormal(N, sigma=1.0, seed=0):
             draws.append(RNG.lognormal(mean=mu, sigma=sig, size=N))            
     return draws
     
+def drawLognormal(N,mu=0.0,sigma=1.0,seed=0):
+    '''
+    Generate arrays of mean one lognormal draws. The sigma input can be a number
+    or list-like.  If a number, output is a length N array of draws from the
+    lognormal distribution with standard deviation sigma. If a list, output is
+    a length T list whose t-th entry is a length N array of draws from the
+    lognormal with standard deviation sigma[t].
+
+    Parameters
+    ----------
+    N : int
+        Number of draws in each row.
+    sigma : float or [float]
+        One or more standard deviations. Number of elements T in sigma
+        determines number of rows of output.
+    seed : int
+        Seed for random number generator.
+
+    Returns:
+    ------------
+    draws : np.array or [np.array]
+        T-length list of arrays of mean one lognormal draws each of size N, or
+        a single array of size N (if sigma is a scalar).
+    '''
+    # Set up the RNG
+    RNG = np.random.RandomState(seed)
+    
+    if type(sigma) == float: # Return a single array of length N
+        draws = RNG.lognormal(mean=mu, sigma=sigma, size=N)
+    else: # Set up empty list to populate, then loop and populate list with draws
+        draws=[]
+        for j in range(len(sigma)):       
+            draws.append(RNG.lognormal(mean=mu[j], sigma=sigma[j], size=N))            
+    return draws
+    
+    
 def drawNormal(N, mu=0.0, sigma=1.0, seed=0):
     '''
     Generate arrays of normal draws.  The mu and sigma inputs can be numbers or

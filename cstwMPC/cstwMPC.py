@@ -633,16 +633,20 @@ if __name__ == "__main__":
         p_init_base = np.ones(Params.sim_pop_size,dtype=float)
         InfiniteType.p_init = p_init_base
         
-        # Use a "tractable consumer" instead if desired
+        # Use a "tractable consumer" instead if desired.
+        # If you want this to work, you must edit TractableBufferStockModel slightly.
+        # See comments around line 34 in that module for instructions.
         if Params.do_tractable:
-            from TractableBufferStock import TractableConsumerType
-            TractableInfType = TractableConsumerType(DiscFac=InfiniteType.DiscFac,
+            from TractableBufferStockModel import TractableConsumerType
+            TractableInfType = TractableConsumerType(DiscFac=0.99, # will be overwritten
                                                      UnempPrb=1-InfiniteType.LivPrb[0],
                                                      Rfree=InfiniteType.Rfree,
                                                      PermGroFac=InfiniteType.PermGroFac[0],
                                                      CRRA=InfiniteType.CRRA,
                                                      sim_periods=InfiniteType.sim_periods,
-                                                     IncUnemp=InfiniteType.IncUnemp)
+                                                     IncUnemp=InfiniteType.IncUnemp,
+                                                     Nagents=InfiniteType.Nagents)
+            TractableInfType.p_init = InfiniteType.p_init
             TractableInfType.timeFwd()
             TractableInfType.TranShkHist = InfiniteType.TranShkHist
             TractableInfType.PermShkHist = InfiniteType.PermShkHist
@@ -698,8 +702,11 @@ if __name__ == "__main__":
                                                                  weights=Params.age_weight_all,
                                                                  total_output=Params.total_output,
                                                                  target=KY_target)
-        #DiscFac_new = newton(intermediateObjective,Params.DiscFac_guess,maxiter=100)
-        DiscFac_new = brentq(intermediateObjective,0.90,0.998,xtol=10**(-8))
+        if Params.do_tractable:
+            top = 0.98
+        else:
+            top = 0.998
+        DiscFac_new = brentq(intermediateObjective,0.90,top,xtol=10**(-8))
         N=Params.pref_type_count
         sim_wealth = (np.vstack((this_type.W_history for this_type in est_type_list))).flatten()
         sim_weights = np.tile(np.repeat(Params.age_weight_all,Params.sim_pop_size),N)
@@ -726,10 +733,12 @@ if __name__ == "__main__":
         else:
             nabla = 0
             if Params.do_tractable:
-                top = 0.991
+                bot = 0.9
+                top = 0.98
             else:
+                bot = 0.9
                 top = 1.0
-            DiscFac = brentq(betaPointObjective,0.90,top,xtol=10**(-8))
+            DiscFac = brentq(betaPointObjective,bot,top,xtol=10**(-8))
             spec_name = spec_add + 'betaPoint' + wealth_measure
         t_end = time()
         print('Estimate is DiscFac=' + str(DiscFac) + ', nabla=' + str(nabla) + ', took ' + str(t_end-t_start) + ' seconds.')

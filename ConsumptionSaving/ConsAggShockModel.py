@@ -13,7 +13,7 @@ from HARKinterpolation import LinearInterp, LinearInterpOnInterp1D
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                           CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
                           approxMeanOneLognormal
-from HARKsimulation import drawDiscrete, drawBernoulli
+from HARKsimulation import drawDiscrete
 from ConsIndShockModel import ConsumerSolution, IndShockConsumerType
 from HARKcore import HARKobject, Market, AgentType
 from copy import deepcopy
@@ -39,8 +39,9 @@ class MargValueFunc2D():
         cFunc : function
             A real function representing the marginal value function composed
             with the inverse marginal utility function, defined on market
-            resources: uP_inv(vPfunc(m,k)).  Called cFunc because when standard
-            envelope condition applies, uP_inv(vPfunc(m,k)) = cFunc(m,k).
+            resources and the capital-to-labor ratio: uP_inv(vPfunc(m,k)).
+            Called cFunc because when standard envelope condition applies,
+            uP_inv(vPfunc(m,k)) = cFunc(m,k).
         CRRA : float
             Coefficient of relative risk aversion.
             
@@ -182,31 +183,6 @@ class AggShockConsumerType(IndShockConsumerType):
         self.cNow   = cNow
         self.MPCnow = MPCnow
         self.aNow   = aNow
-        
-    def simMortality(self):
-        '''
-        Simulates the mortality process, killing off some percentage of agents
-        and replacing them with newborn agents.
-        
-        Parameters
-        ----------
-        none
-            
-        Returns
-        -------
-        none
-        '''
-        if hasattr(self,'DiePrb'):
-            if self.DiePrb > 0:
-                who_dies = drawBernoulli(N=self.Nagents,p=self.DiePrb,seed=self.RNG.randint(low=1, high=2**31-1))
-                wealth_all = self.aNow*self.pNow
-                who_lives = np.logical_not(who_dies)
-                wealth_of_dead = np.sum(wealth_all[who_dies])
-                wealth_of_live = np.sum(wealth_all[who_lives])
-                R_actuarial = 1.0 + wealth_of_dead/wealth_of_live
-                self.aNow[who_dies] = 0.0
-                self.pNow[who_dies] = 1.0
-                self.aNow = self.aNow*R_actuarial
             
     def marketAction(self):
         '''
@@ -595,7 +571,7 @@ class CobbDouglasEconomy(Market):
             Object containing a new capital evolution rule, calculated from the
             history of the capital-to-labor ratio.
         '''
-        verbose = False
+        verbose = True
         discard_periods = 200 # Throw out the first T periods to allow the simulation to approach the SS
         update_weight = 0.5   # Proportional weight to put on new function vs old function parameters
         total_periods = len(KtoLnow)
