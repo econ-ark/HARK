@@ -199,10 +199,8 @@ init_explicit_perm_inc['PermIncAvgInit'] = PermIncAvgInit
 init_explicit_perm_inc['PermIncStdInit'] = PermIncStdInit
 init_explicit_perm_inc['PermGroFac'] = [1.0] # long run permanent income growth doesn't work yet
 init_explicit_perm_inc['cycles'] = cycles
-#init_explicit_perm_inc['aXtraCount'] = 48
 init_explicit_perm_inc['aXtraMax'] = 30
 init_explicit_perm_inc['aXtraExtra'] = [0.005,0.01]
-#init_explicit_perm_inc['CubicBool'] = False # explicit perm inc currently only compatible with linear cFunc
 
 # Make a dictionary for the "persistent idiosyncratic shocks" model
 init_persistent_shocks = copy(init_explicit_perm_inc)
@@ -227,4 +225,6 @@ init_medical_shocks['MedShkStd'] = MedShkStd
 init_medical_shocks['MedShkCount'] = MedShkCount
 init_medical_shocks['MedShkCountTail'] = MedShkCountTail
 init_medical_shocks['MedPrice'] = MedPrice
+init_explicit_perm_inc['aXtraCount'] = 48
+init_explicit_perm_inc['CubicBool'] = False
 init_medical_shocks['aXtraExtra'] = [1e-10,1e-9,1e-8,1e-7,1e-6,1e-5,1e-4]
