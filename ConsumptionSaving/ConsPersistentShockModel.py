@@ -1,7 +1,8 @@
 '''
 Classes to solve consumption-saving models with idiosyncratic shocks to income
 in which shocks are not necessarily fully transitory or fully permanent.  Extends
-ConsIndShockModel by explicitly tracking permanent income as a state variable.
+ConsIndShockModel by explicitly tracking permanent income as a state variable,
+and allows (log) permanent income to follow an AR1 process rather than random walk.
 '''
 
 import sys 
@@ -80,7 +81,7 @@ class ValueFunc2D(HARKobject):
 class MargValueFunc2D(HARKobject):
     '''
     A class for representing a marginal value function in models where the
-    standard envelope condition of V'(M,p) = u'(c(M,p)) holds (with CRRA utility).
+    standard envelope condition of v'(m,p) = u'(c(m,p)) holds (with CRRA utility).
     This is copied from ConsAggShockModel, with the second state variable re-
     labeled as permanent income p.    
     '''
@@ -95,26 +96,44 @@ class MargValueFunc2D(HARKobject):
         cFunc : function
             A real function representing the marginal value function composed
             with the inverse marginal utility function, defined on market
-            resources and the level of permanent income: uP_inv(VPfunc(M,p)).
+            resources and the level of permanent income: uP_inv(vPfunc(m,p)).
             Called cFunc because when standard envelope condition applies,
-            uP_inv(VPfunc(M,p)) = cFunc(M,p).
+            uP_inv(vPfunc(m,p)) = cFunc(m,p).
         CRRA : float
             Coefficient of relative risk aversion.
             
         Returns
         -------
-        new instance of MargValueFunc
+        None
         '''
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
         
-    def __call__(self,M,p):
-        return utilityP(self.cFunc(M,p),gam=self.CRRA)
+    def __call__(self,m,p):
+        '''
+        Evaluate the marginal value function at given levels of market resources
+        m and permanent income p.
+        
+        Parameters
+        ----------
+        m : float or np.array
+            Market resources whose value is to be calcuated.
+        p : float or np.array
+            Permanent income levels whose value is to be calculated.
+            
+        Returns
+        -------
+        v : float or np.array
+            Marginal value of market resources when beginning this period with
+            market resources m and permanent income p; has same size as inputs\
+            m and p.
+        '''
+        return utilityP(self.cFunc(m,p),gam=self.CRRA)
         
 class MargMargValueFunc2D(HARKobject):
     '''
     A class for representing a marginal marginal value function in models where the
-    standard envelope condition of V'(M,p) = u'(c(M,p)) holds (with CRRA utility).
+    standard envelope condition of v'(m,p) = u'(c(m,p)) holds (with CRRA utility).
     '''
     distance_criteria = ['cFunc','CRRA']
     
@@ -127,15 +146,15 @@ class MargMargValueFunc2D(HARKobject):
         cFunc : function
             A real function representing the marginal value function composed
             with the inverse marginal utility function, defined on market
-            resources and the level of permanent income: uP_inv(VPfunc(M,p)).
+            resources and the level of permanent income: uP_inv(vPfunc(m,p)).
             Called cFunc because when standard envelope condition applies,
-            uP_inv(VPfunc(M,p)) = cFunc(M,p).
+            uP_inv(vPfunc(M,p)) = cFunc(m,p).
         CRRA : float
             Coefficient of relative risk aversion.
             
         Returns
         -------
-        new instance of MargValueFunc
+        None
         '''
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
@@ -155,7 +174,7 @@ class MargMargValueFunc2D(HARKobject):
         Returns
         -------
         vPP : float or np.array
-            Marginal marginal lifetime value of beginning this period with market
+            Marginal marginal value of beginning this period with market
             resources m and permanent income p; has same size as inputs.
         '''
         c = self.cFunc(m,p)
@@ -167,7 +186,7 @@ class VariableLowerBoundFunc2D(HARKobject):
     '''
     A class for representing a function with two real inputs whose lower bound
     in the first input depends on the second input.  Useful for managing curved
-    natural borrowing constraints, as occurs in 
+    natural borrowing constraints, as occurs in the persistent shocks model.
     '''
     distance_criteria = ['func','lowerBound']
     
@@ -226,7 +245,8 @@ class VariableLowerBoundFunc2D(HARKobject):
         Returns
         -------
         dfdx_out : np.array
-            Function evaluated at (x,y), of same shape as inputs.
+            First derivative of function with respect to the first input, 
+            evaluated at (x,y), of same shape as inputs.
         '''
         xShift = self.lowerBound(y)
         dfdx_out = self.func.derivativeX(x-xShift,y)
@@ -246,8 +266,9 @@ class VariableLowerBoundFunc2D(HARKobject):
              
         Returns
         -------
-        dfdx_out : np.array
-            Function evaluated at (x,y), of same shape as inputs.
+        dfdy_out : np.array
+            First derivative of function with respect to the second input, 
+            evaluated at (x,y), of same shape as inputs.
         '''
         xShift,xShiftDer = self.lowerBound.eval_with_derivative(y)
         dfdy_out = self.func.derivativeY(x-xShift,y) - xShiftDer*self.func.derivativeX(x-xShift,y)
@@ -259,8 +280,6 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
     '''
     A class for solving the same one period "idiosyncratic shocks" problem as
     ConsIndShock, but with permanent income explicitly tracked as a state variable.
-    Can't yet handle value function calculation, or cubic spline interpolation
-    of the consumption function.
     '''
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
                       PermGroFac,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
@@ -299,10 +318,10 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
             Array of permanent income levels at which to solve the problem.
         vFuncBool: boolean
             An indicator for whether the value function should be computed and
-            included in the reported solution.  Can't yet handle vFuncBool=True.
+            included in the reported solution.
         CubicBool: boolean
             An indicator for whether the solver should use cubic or linear inter-
-            polation.  Can't yet handle CubicBool=True.
+            polation.
                         
         Returns
         -------
@@ -347,10 +366,10 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
             Array of permanent income levels at which to solve the problem.
         vFuncBool: boolean
             An indicator for whether the value function should be computed and
-            included in the reported solution.  Can't yet handle vFuncBool=True.
+            included in the reported solution.
         CubicBool: boolean
             An indicator for whether the solver should use cubic or linear inter-
-            polation.  Can't yet handle CubicBool=True.
+            polation.
                         
         Returns
         -------
@@ -367,7 +386,7 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         income shocks and probabilities, next period's marginal value function
         (etc), the probability of getting the worst income shock next period,
         the patience factor, human wealth, and the bounding MPCs.  Human wealth
-        is stored as an array corresponding to values in pLvlGrid.
+        is stored as a function of permanent income.
         
         Parameters
         ----------
@@ -418,7 +437,7 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
             
         Returns
         -------
-        none
+        None
         '''
         # Everything is the same as base model except the constrained consumption function has to be 2D
         ConsIndShockSetup.defBoroCnst(self,BoroCnstArt)
@@ -480,13 +499,13 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
     def calcEndOfPrdvP(self):
         '''
         Calculates end-of-period marginal value of assets at each state space
-        point in ALvlNow x pLvlNow. Does so by taking a weighted sum of next
+        point in aLvlNow x pLvlNow. Does so by taking a weighted sum of next
         period marginal values across income shocks (in preconstructed grids
-        self.MLvlNext x self.pLvlNext).
+        self.mLvlNext x self.pLvlNext).
         
         Parameters
         ----------
-        none
+        None
         
         Returns
         -------
@@ -511,21 +530,23 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         -------
         none
         '''
-        VLvlNext            = self.vFuncNext(self.mLvlNext,self.pLvlNext)
-        EndOfPrdv           = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
+        VLvlNext            = self.vFuncNext(self.mLvlNext,self.pLvlNext) # value in many possible future states
+        EndOfPrdv           = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0) # expected value, averaging across states
         EndOfPrdvNvrs       = self.uinv(EndOfPrdv) # value transformed through inverse utility
         EndOfPrdvNvrsP      = EndOfPrdvP*self.uinvP(EndOfPrdv)
+        
+        # Add points at mLvl=zero
         EndOfPrdvNvrs       = np.concatenate((np.zeros((self.pLvlGrid.size,1)),EndOfPrdvNvrs),axis=1)
         EndOfPrdvNvrsP      = np.concatenate((np.reshape(EndOfPrdvNvrsP[:,0],(self.pLvlGrid.size,1)),EndOfPrdvNvrsP),axis=1) # This is a very good approximation, vNvrsPP = 0 at the asset minimum
         aLvl_temp           = np.concatenate((np.reshape(self.BoroCnstNat(self.pLvlGrid),(self.pLvlGrid.size,1)),self.aLvlNow),axis=1)
+        
+        # Make an end-of-period value function for each permanent income level in the grid
         EndOfPrdvNvrsFunc_list = []
         for p in range(self.pLvlGrid.size):
             EndOfPrdvNvrsFunc_list.append(CubicInterp(aLvl_temp[p,:]-self.BoroCnstNat(self.pLvlGrid[p]),EndOfPrdvNvrs[p,:],EndOfPrdvNvrsP[p,:]))
-#        plt.plot(aLvl_temp[p,:]-self.BoroCnstNat(self.pLvlGrid[p]),EndOfPrdvNvrs[p,:],'ok')
-#        plt.xlim([0,1])
-#        plt.ylim([0,5])
-#        plotFuncs(EndOfPrdvNvrsFunc_list,0,1)
         EndOfPrdvNvrsFuncBase = LinearInterpOnInterp1D(EndOfPrdvNvrsFunc_list,self.pLvlGrid)
+        
+        # Re-adjust the combined end-of-period value function to account for the natural borrowing constraint shifter
         EndOfPrdvNvrsFunc     = VariableLowerBoundFunc2D(EndOfPrdvNvrsFuncBase,self.BoroCnstNat)
         self.EndOfPrdvFunc    = ValueFunc2D(EndOfPrdvNvrsFunc,self.CRRA)
     
@@ -704,16 +725,16 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
     def makeCurvilinearcFunc(self,mLvl,pLvl,cLvl):
         '''
         Makes a curvilinear interpolation to represent the (unconstrained)
-        consumption function.
+        consumption function.  No longer used by solver, will be deleted in future.
         
         Parameters
         ----------
         mLvl : np.array
             Market resource points for interpolation.
-        cLvl : np.array
-            Consumption points for interpolation.
         pLvl : np.array
             Permanent income level points for interpolation.
+        cLvl : np.array
+            Consumption points for interpolation.
             
         Returns
         -------
@@ -732,10 +753,10 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         ----------
         mLvl : np.array
             Market resource points for interpolation.
-        cLvl : np.array
-            Consumption points for interpolation.
         pLvl : np.array
             Permanent income level points for interpolation.
+        cLvl : np.array
+            Consumption points for interpolation.
             
         Returns
         -------
@@ -753,7 +774,7 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
                 cFunc_by_pLvl_list.append(LinearInterp(m_temp,c_temp,lower_extrap=True))
         pLvl_list = pLvl[:,0]
         cFuncUncBase = LinearInterpOnInterp1D(cFunc_by_pLvl_list,pLvl_list) # Combine all linear cFuncs
-        cFuncUnc     = VariableLowerBoundFunc2D(cFuncUncBase,self.BoroCnstNat)
+        cFuncUnc     = VariableLowerBoundFunc2D(cFuncUncBase,self.BoroCnstNat) # Re-adjust for natural borrowing constraint (as lower bound)
         return cFuncUnc
         
     def makeCubiccFunc(self,mLvl,pLvl,cLvl):
@@ -766,10 +787,10 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         ----------
         mLvl : np.array
             Market resource points for interpolation.
-        cLvl : np.array
-            Consumption points for interpolation.
         pLvl : np.array
             Permanent income level points for interpolation.
+        cLvl : np.array
+            Consumption points for interpolation.
             
         Returns
         -------
@@ -783,6 +804,7 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         MPC         = np.concatenate((self.MPCmaxNow*np.ones((self.pLvlGrid.size,1)),MPC),axis=1)
         MPC         = np.concatenate((self.MPCminNow*np.ones((1,self.aXtraGrid.size+1)),MPC),axis=0)
 
+        # Make cubic consumption function with respect to mLvl for each permanent income level
         cFunc_by_pLvl_list = [] # list of consumption functions for each pLvl
         for j in range(pLvl.shape[0]):
             pLvl_j = pLvl[j,0]
@@ -791,19 +813,16 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
             MPC_temp = MPC[j,:]
             if pLvl_j > 0:
                 cFunc_by_pLvl_list.append(CubicInterp(m_temp,c_temp,MPC_temp,lower_extrap=True,slope_limit=self.MPCminNow,intercept_limit=self.MPCminNow*self.hLvlNow(pLvl_j)))
-            else:
+            else: # When pLvl=0, cFunc is linear
                 cFunc_by_pLvl_list.append(LinearInterp(m_temp,c_temp,lower_extrap=True))
         pLvl_list = pLvl[:,0]
         cFuncUncBase = LinearInterpOnInterp1D(cFunc_by_pLvl_list,pLvl_list) # Combine all linear cFuncs
-        cFuncUnc     = VariableLowerBoundFunc2D(cFuncUncBase,self.BoroCnstNat)
+        cFuncUnc     = VariableLowerBoundFunc2D(cFuncUncBase,self.BoroCnstNat) # Re-adjust for lower bound of natural borrowing constraint
         return cFuncUnc
 
-        
     def addMPCandHumanWealth(self,solution):
         '''
-        Take a solution and add human wealth and the bounding MPCs to it.  This
-        is identical to the version in ConsIndShockSolverBasic, but that version
-        can't be called due to inheritance problems.
+        Take a solution and add human wealth and the bounding MPCs to it.
         
         Parameters
         ----------
@@ -859,7 +878,8 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
             The solution to the one period problem, including a consumption
             function (defined over market resources and permanent income), a
             marginal value function, bounding MPCs, and human wealth as a func-
-            tion of permanent income.
+            tion of permanent income.  Might also include a value function and
+            marginal marginal value function, depending on options selected.
         '''
         aLvl,pLvl  = self.prepareToCalcEndOfPrdvP()           
         EndOfPrdvP = self.calcEndOfPrdvP()
@@ -915,10 +935,10 @@ def solveConsIndShockExplicitPermInc(solution_next,IncomeDstn,LivPrb,DiscFac,CRR
         Array of permanent income levels at which to solve the problem.
     vFuncBool: boolean
         An indicator for whether the value function should be computed and
-        included in the reported solution.  Can't yet handle vFuncBool=True.
+        included in the reported solution.
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
-        polation.  Can't yet handle CubicBool=True.
+        polation.
                         
     Returns
     -------
@@ -980,10 +1000,10 @@ class ConsPersistentShockSolver(ConsIndShockSolverExplicitPermInc):
             Array of permanent income levels at which to solve the problem.
         vFuncBool: boolean
             An indicator for whether the value function should be computed and
-            included in the reported solution.  Can't yet handle vFuncBool=True.
+            included in the reported solution.
         CubicBool: boolean
             An indicator for whether the solver should use cubic or linear inter-
-            polation.  Can't yet handle CubicBool=True.
+            polation.
                         
         Returns
         -------
@@ -1039,8 +1059,8 @@ def solveConsPersistentShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
                                 BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
     '''
     Solves the one period problem of a consumer who experiences permanent and
-    transitory shocks to his income; the permanent income level is tracked as a
-    state variable rather than normalized out as in ConsIndShock.
+    transitory shocks to his income; transitory shocks are iid, while (log) perm-
+    anent income follows an AR1 process.
     
     Parameters
     ----------
@@ -1074,10 +1094,10 @@ def solveConsPersistentShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
         Array of permanent income levels at which to solve the problem.
     vFuncBool: boolean
         An indicator for whether the value function should be computed and
-        included in the reported solution.  Can't yet handle vFuncBool=True.
+        included in the reported solution.
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
-        polation.  Can't yet handle CubicBool=True.
+        polation.
                         
     Returns
     -------
@@ -1111,8 +1131,8 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
         Instantiate a new ConsumerType with given data.
-        See ConsumerParameters.make_this_dictionary for a dictionary of
-        the keywords that should be passed to the constructor.
+        See ConsumerParameters.init_explicit_perm_inc for a dictionary of the
+        keywords that should be passed to the constructor.
         
         Parameters
         ----------
@@ -1169,7 +1189,9 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
         '''
         Update the grid of permanent income levels.  Currently only works for
         infinite horizon models (cycles=0) and lifecycle models (cycles=1).  Not
-        clear what to do about cycles>1.
+        clear what to do about cycles>1 because the distribution of permanent
+        income will be different within a period depending on how many cycles
+        have elapsed.
         
         Parameters
         ----------
