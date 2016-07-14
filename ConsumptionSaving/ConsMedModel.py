@@ -845,8 +845,10 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         '''
-        self.MedFuncNow  = self.solution[self.cFunc_idx].MedFunc
-        PersistentShockConsumerType.advancecFunc(self)
+        self.policyFuncNow  = self.solution[self.cFunc_idx].policyFunc
+        self.cFunc_idx += 1
+        if self.cFunc_idx >= len(self.solution):
+            self.cFunc_idx = 0 # Reset to zero if we've run out of cFuncs
         
     def advanceMedPrice(self):
         '''
@@ -919,8 +921,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         PermShkNow     = self.PermShkNow
         MedShkNow      = self.MedShkNow
         RfreeNow       = self.RfreeNow
-        cFuncNow       = self.cFuncNow
-        MedFuncNow     = self.MedFuncNow
+        policyFuncNow  = self.policyFuncNow
         MedPrice       = self.MedPriceNow
         
         # Get correlation coefficient for permanent income
@@ -930,10 +931,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         pNow        = pPrev**Corr*PermShkNow          # Updated permanent income level
         bNow        = RfreeNow*aPrev                  # Bank balances before labor income
         mNow        = bNow + TranShkNow*pNow          # Market resources after income
-        cNow        = cFuncNow(mNow,pNow,MedShkNow)   # Consumption
-        MedNow      = MedFuncNow(mNow,pNow,MedShkNow) # Medical care
+        cNow,MedNow = policyFuncNow(mNow,pNow,MedShkNow)# Consumption and medical care
         aNow        = mNow - cNow - MedPrice*MedNow   # Assets after all actions are accomplished
-        aNow[aNow < 0] = 0.0 # Hacky fix for overspending problem
         
         # Store the new state and control variables
         self.pNow   = pNow
@@ -1067,7 +1066,7 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
                
     def getPointsForInterpolation(self,EndOfPrdvP,aLvlNow):
         '''
-        Finds endogenous interpolation points (c,m) for the consumption function.
+        Finds endogenous interpolation points (x,m) for the expenditure function.
         
         Parameters
         ----------
@@ -1079,8 +1078,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
             
         Returns
         -------
-        c_for_interpolation : np.array
-            Consumption points for interpolation.
+        x_for_interpolation : np.array
+            Total expenditure points for interpolation.
         m_for_interpolation : np.array
             Corresponding market resource points for interpolation.
         p_for_interpolation : np.array
@@ -1097,27 +1096,28 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         MedShkVals_tiled = np.tile(np.reshape(self.MedShkVals**(1.0/self.CRRAmed),(MedCount,1,1)),(1,pCount,mCount))
         MedLvlNow = MedShkVals_tiled*MedBaseNow
         aLvlNow_tiled = np.tile(np.reshape(aLvlNow,(1,pCount,mCount)),(MedCount,1,1))
-        mLvlNow = cLvlNow + self.MedPrice*MedLvlNow + aLvlNow_tiled
+        xLvlNow = cLvlNow + self.MedPrice*MedLvlNow
+        mLvlNow = xLvlNow + aLvlNow_tiled
 
         # Limiting consumption is zero as m approaches the natural borrowing constraint
-        c_for_interpolation = np.concatenate((np.zeros((MedCount,pCount,1)),cLvlNow),axis=-1)
+        x_for_interpolation = np.concatenate((np.zeros((MedCount,pCount,1)),xLvlNow),axis=-1)
         temp = np.tile(self.BoroCnstNat(np.reshape(self.pLvlGrid,(1,self.pLvlGrid.size,1))),(MedCount,1,1))
         m_for_interpolation = np.concatenate((temp,mLvlNow),axis=-1)
         
         # Make a 3D array of permanent income for interpolation
         p_for_interpolation = np.tile(np.reshape(self.pLvlGrid,(1,pCount,1)),(MedCount,1,mCount+1))
         
-        return c_for_interpolation, m_for_interpolation, p_for_interpolation
+        return x_for_interpolation, m_for_interpolation, p_for_interpolation
         
-    def usePointsForInterpolation(self,cLvl,mLvl,pLvl,MedShk,interpolator):
+    def usePointsForInterpolation(self,xLvl,mLvl,pLvl,MedShk,interpolator):
         '''
         Constructs a basic solution for this period, including the consumption
         function and marginal value function.
         
         Parameters
         ----------
-        cLvl : np.array
-            Consumption points for interpolation.
+        xLvl : np.array
+            Total expenditure points for interpolation.
         mLvl : np.array
             Corresponding market resource points for interpolation.
         pLvl : np.array
@@ -1133,17 +1133,23 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
             The solution to this period's consumption-saving problem, with a
             consumption function, marginal value function, and minimum m.
         '''
-        # Construct the unconstrained consumption function
-        cFuncNowUnc = interpolator(mLvl,pLvl,MedShk,cLvl)
+        # Construct the unconstrained total expenditure function
+        xFuncNowUnc = interpolator(mLvl,pLvl,MedShk,xLvl)
+        xFuncNow = xFuncNowUnc # # Currently can't handle constrained problem, will fix in near future
 
-        # Currently can't handle constrained consumption function, cFunc is just cFuncUnc
-        cFuncNow = cFuncNowUnc
+        # Transform the expenditure function into policy functions for consumption and medical care
+        xLvlGrid = makeGridExpMult(np.min(xLvl),np.max(xLvl),2*self.aXtraGrid.size,8)
+        policyFuncNow = MedShockPolicyFunc(xFuncNow,xLvlGrid,self.MedShkVals,self.MedPrice,self.CRRA,self.CRRAmed)
+        cFuncNow = cThruXfunc(xFuncNow,policyFuncNow.cFunc)
+        MedFuncNow = MedThruXfunc(xFuncNow,policyFuncNow.cFunc,self.MedPrice)
 
         # Make the marginal value function
         vPfuncNow = self.makevPfunc(cFuncNow)
 
         # Pack up the solution and return it
         solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow)
+        solution_now.MedFunc = MedFuncNow
+        solution_now.policyFunc = policyFuncNow
         return solution_now
         
     def makevPfunc(self,cFunc):
@@ -1169,11 +1175,11 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         # Make temporary grids to evaluate the consumption function
         mGrid_temp = np.tile(np.reshape(self.aXtraGrid,(mCount,1,1)),(1,pCount,MedCount))
         pGrid_temp = np.tile(np.reshape(self.pLvlGrid,(1,pCount,1)),(mCount,1,MedCount))
-        MedGrid_temp = np.tile(np.reshape(self.MedShkVals,(1,1,MedCount)),(mCount,pCount,1))
+        MedShkGrid_temp = np.tile(np.reshape(self.MedShkVals,(1,1,MedCount)),(mCount,pCount,1))
         probs_temp = np.tile(np.reshape(self.MedShkPrbs,(1,1,MedCount)),(mCount,pCount,1))
         
         # Calculate expected marginal value by "integrating" across medical shocks
-        cGrid_temp = cFunc(mGrid_temp,pGrid_temp,MedGrid_temp)
+        cGrid_temp = cFunc(mGrid_temp,pGrid_temp,MedShkGrid_temp)
         vPgrid_temp= self.uP(cGrid_temp)
         vPnow      = np.sum(vPgrid_temp*probs_temp,axis=2)
         vPnvrsNow  = np.concatenate((np.zeros((1,pCount)),self.uPinv(vPnow)))
@@ -1184,9 +1190,9 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         vPfunc = MargValueFunc2D(vPnvrsFunc,self.CRRA)
         return vPfunc
         
-    def makeLinearcFunc(self,mLvl,pLvl,MedShk,cLvl):
+    def makeLinearxFunc(self,mLvl,pLvl,MedShk,xLvl):
         '''
-        Constructs the (unconstrained) consumption function for this period using
+        Constructs the (unconstrained) expenditure function for this period using
         bilinear interpolation (over permanent income and the medical shock) among
         an array of linear interpolations over market resources.
         
@@ -1198,36 +1204,36 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
             Corresponding permanent income level points for interpolation.
         MedShk : np.array
             Corresponding medical need shocks for interpolation.
-        cLvl : np.array
-            Consumption points for interpolation, corresponding to those in mLvl,
+        xLvl : np.array
+            Expenditure points for interpolation, corresponding to those in mLvl,
             pLvl, and MedShk.
             
         Returns
         -------
-        cFuncUnc : BilinearInterpOnInterp1D
-            Unconstrained consumption function for this period.
+        xFuncUnc : BilinearInterpOnInterp1D
+            Unconstrained total expenditure function for this period.
         '''
         # Get state dimensions
         pCount = mLvl.shape[1]
         MedCount = mLvl.shape[0]
         
         # Initialize the empty list of lists of 1D cFuncs
-        cFunc_by_pLvl_and_MedShk = []
+        xFunc_by_pLvl_and_MedShk = []
         
         # Loop over each permanent income level and medical shock and make a linear cFunc
         for i in range(pCount):
             temp_list = []
             for j in range(MedCount):
                 m_temp = mLvl[j,i,:]
-                c_temp = cLvl[j,i,:]
-                temp_list.append(LinearInterp(m_temp,c_temp))
-            cFunc_by_pLvl_and_MedShk.append(deepcopy(temp_list))
+                x_temp = xLvl[j,i,:]
+                temp_list.append(LinearInterp(m_temp,x_temp))
+            xFunc_by_pLvl_and_MedShk.append(deepcopy(temp_list))
                 
         # Combine the nested list of linear cFuncs into a single function
         pLvl_temp = pLvl[0,:,0]
         MedShk_temp = MedShk[:,0,0]
-        cFuncUnc = BilinearInterpOnInterp1D(cFunc_by_pLvl_and_MedShk,pLvl_temp,MedShk_temp)
-        return cFuncUnc
+        xFuncUnc = BilinearInterpOnInterp1D(xFunc_by_pLvl_and_MedShk,pLvl_temp,MedShk_temp)
+        return xFuncUnc
         
     def makeBasicSolution(self,EndOfPrdvP,aLvl,interpolator):
         '''
@@ -1250,10 +1256,9 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
             The solution to this period's consumption-saving problem, with a
             consumption function, marginal value function, and minimum m.
         '''
-        cLvl,mLvl,pLvl = self.getPointsForInterpolation(EndOfPrdvP,aLvl)
+        xLvl,mLvl,pLvl = self.getPointsForInterpolation(EndOfPrdvP,aLvl)
         MedShk_temp    = np.tile(np.reshape(self.MedShkVals,(self.MedShkVals.size,1,1)),(1,mLvl.shape[1],mLvl.shape[2]))
-        solution_now   = self.usePointsForInterpolation(cLvl,mLvl,pLvl,MedShk_temp,interpolator)
-        solution_now.MedFunc = MedFromCfunc(solution_now.cFunc,self.CRRA,self.CRRAmed,self.MedPrice)
+        solution_now   = self.usePointsForInterpolation(xLvl,mLvl,pLvl,MedShk_temp,interpolator)
         return solution_now
         
     def solve(self):
@@ -1277,7 +1282,7 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         aLvl,trash  = self.prepareToCalcEndOfPrdvP()           
         EndOfPrdvP = self.calcEndOfPrdvP()
         if np.all(self.mLvlMinNow(self.pLvlGrid) == 0.0):   
-            interpolator = self.makeLinearcFunc
+            interpolator = self.makeLinearxFunc
         else: # Solver only works with lower bound of m=0 everywhere at this time
             assert False, "Medical shocks model can't handle mLvlMin < 0 yet!"
         solution   = self.makeBasicSolution(EndOfPrdvP,aLvl,interpolator)
@@ -1393,7 +1398,6 @@ if __name__ == '__main__':
         Sav = M - MedicalExample.solution[0].cFunc(M,P,MedShk) - MedicalExample.MedPrice[0]*MedicalExample.solution[0].MedFunc(M,P,MedShk)
         plt.plot(M,Sav)
     print('End of period savings by medical need shock (constant permanent income)')
-    plt.ylim([-1,0])
     plt.show()
     
     # Plot the marginal value function
@@ -1410,5 +1414,4 @@ if __name__ == '__main__':
         MedicalExample.makeMedShkHist()
         MedicalExample.initializeSim()
         MedicalExample.simConsHistory()
-    
     
