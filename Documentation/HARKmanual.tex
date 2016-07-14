@@ -99,21 +99,20 @@ If you followed our recommendation to try \texttt{/ConsumptionSaving/ConsIndShoc
 
 HARK is written in Python, an object-oriented programming (OOP) language that has experienced increasing popularity in the scientific community in the past several years.  A significant reason for the adoption of Python is the \texttt{numpy} and \texttt{scipy} packages, which offer a wide array of mathematical and statistical functions and tools; HARK makes liberal use of these libraries.  Python's object-oriented nature allows models in HARK to be easily extended: more complex models can inherit functions and methods from more fundamental ``parent'' models, eliminating the need to reproduce or repurpose code.
 
-For users unfamiliar with OOP, we strongly encourage you to review the background material on OOP provided by the good people at \href{http://quant-econ.net/}{QuantEcon} (for more on them, see below) at this link: \href{http://quant-econ.net/py/python_oop.html}{Object Oriented Programming}. Unlike non-OOP languages, OOP bundles together data and functions, which are called \textit{methods}, into \textit{objects}. These data and methods can be accessed via: \texttt{object\_name.data} and \texttt{object\_name.method\_name()}, respectively. For organizational purposes, definitions of multiple objects are stored in \textit{modules}, which are simply files with a \texttt{.py} extension. Modules can be accessed in Python via:\\
+As implied in the previous section, we strongly encourage HARK users to use the Anaconda distribution of Python, which includes all commonly used mathematical and scientific packages, an interactive development environment for iPython (Spyder), and a package manager that allows users to quickly install or update packages not included in the default distribution (conda).
+
+For users unfamiliar with OOP, we strongly encourage you to review the background material on OOP provided by the good people at \href{http://quant-econ.net/}{QuantEcon} (for more on them, see below) at this link: \href{http://quant-econ.net/py/python_oop.html}{Object Oriented Programming}. Unlike non-OOP languages, OOP bundles together data and functions into \textit{objects}. These can be accessed via: \texttt{object\_name.data} and \texttt{object\_name.method\_name()}, respectively. For organizational purposes, definitions of multiple objects are stored in \textit{modules}, which are simply files with a \texttt{.py} extension. Modules can be accessed in Python via:\\
 
 \texttt{import module\_name as import\_name}
 \\
 
 \noindent
-This imports the module and gives it a local name of \texttt{import\_name}. We can access a method within this module by simply typing: \texttt{import\_name.module\_name()}. The following example will illustrate the usage of these commands. There is a module in HARK named HARKutilities. Amongst other things, it contains the method for calculating the CRRA utility. In order to calculate the CRRA utility with a consumption of 1 and a coefficient of risk aversion of 2 we run:\\
+This imports the module and gives it a local name of \texttt{import\_name}. We can access a function within this module by simply typing: \texttt{import\_name.function\_name()}. The following example will illustrate the usage of these commands. There is a module in HARK named \texttt{HARKutilities}. Amongst other things, it contains the function for calculating CRRA utility. In order to calculate CRRA utility with a consumption of 1 and a coefficient of risk aversion of 2 we run:\\
 
 \texttt{import HARKutilities as Hutil}
 
 \texttt{Hutil.CRRAutility(1,2)}\\
 
-%As implied in the previous section, we strongly encourage HARK users to use the Anaconda distribution of Python, which includes all commonly used mathematical and scientific packages, an interactive development environment for iPython (Spyder), and a package manager that allows users to quickly install or update packages not included in the default distribution (conda).
-
-%Python modules (files with the \texttt{.py} extension) in HARK can generally be categorized into three types: tools, models, and applications.
 Python modules in HARK can generally be categorized into three types: tools, models, and applications.  \textbf{Tool modules} contain functions and classes with general purpose tools that have no inherent ``economic content'', but that can be used in many economic models as building blocks or utilities; they could plausibly be useful in non-economic settings.  Tools might include functions for data analysis (e.g.\ calculating Lorenz shares from data, or constructing a non-parametric kernel regression), functions to create and manipulate discrete approximations to continuous distributions, or classes for constructing interpolated approximations to non-parametric functions.  Tool modules generally reside in HARK's root directory and have names like \texttt{HARKsimulation} and \texttt{HARKinterpolation}; they do not necessarily do anything when run.
 
 \textbf{Model modules} specify particular economic models, including classes to represent agents in the model (and the ``market structure'' in which they interact) and functions for solving the ``one period problem'' of those models.  For example, \texttt{ConsIndShockModel.py} concerns consumption-saving models in which agents have CRRA utility over consumption and face idiosyncratic shocks to permanent and transitory income.  The module includes classes for representing ``types'' of consumers, along with functions for solving (several flavors of) the one period consumption-saving problem.  When run, model modules might demonstrate example specifications of their models, filling in the model parameters with arbitrary values.  When \texttt{ConsIndShockModel.py} is run, it specifies an infinite horizon consumer with a particular discount factor, permanent income growth rate, coefficient of relative risk aversion (etc), who faces lognormal shocks to permanent and transitory income each period with a particular standard deviation; it then solves this consumer's problem and graphically displays the results.\footnote{Running \texttt{ConsIndShockModel.py} also demonstrates other variations of the consumption-saving problem, but their description is omitted here for brevity.}  Model modules generally have \texttt{Model} in their name.
@@ -152,7 +151,6 @@ In the incredibly unlikely scenario in which this document does not fill all of 
 
 \end{itemize}
 
-\newpage
 
 \section{General Purpose Tools}\label{sec:GeneralPurposeTools}
 
