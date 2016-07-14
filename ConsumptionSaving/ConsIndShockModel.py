@@ -23,7 +23,7 @@ from scipy.optimize import newton
 from HARKcore import AgentType, Solution, NullFunc, HARKobject
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
-from HARKsimulation import drawDiscrete
+from HARKsimulation import drawDiscrete, drawBernoulli
 from HARKutilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
                           combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
                           CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
@@ -50,7 +50,7 @@ class ConsumerSolution(Solution):
     Here and elsewhere in the code, Nrm indicates that variables are normalized
     by permanent income.
     '''
-    distance_criteria = ['cFunc']
+    distance_criteria = ['vPfunc']
     
     def __init__(self, cFunc=None, vFunc=None, 
                        vPfunc=None, vPPfunc=None,
@@ -432,6 +432,40 @@ class ConsPerfForesightSolver(object):
         self.MPC     = 1.0/(1.0 + PatFac/self.solution_next.MPCmin)
         # Construct the consumption function
         self.cFunc   = LinearInterp([self.mNrmMin, self.mNrmMin+1.0],[0.0, self.MPC])
+        # Add two attributes to enable calculation of steady state market resources
+        self.ExIncNext = 1.0 # Perfect foresight income of 1
+        self.mNrmMinNow = self.mNrmMin # Relabeling for compatibility with addSSmNrm
+        
+    def addSSmNrm(self,solution):
+        '''
+        Finds steady state (normalized) market resources and adds it to the
+        solution.  This is the level of market resources such that the expectation
+        of market resources in the next period is unchanged.  This value doesn't
+        necessarily exist.
+        
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            Solution to this period's problem, which must have attribute cFunc.
+        Returns
+        -------
+        solution : ConsumerSolution
+            Same solution that was passed, but now with the attribute mNrmSS.
+        '''
+        # Make a linear function of all combinations of c and m that yield mNext = mNow
+        mZeroChangeFunc = lambda m : (1.0-self.PermGroFac/self.Rfree)*m + (self.PermGroFac/self.Rfree)*self.ExIncNext
+        
+        # Find the steady state level of market resources
+        searchSSfunc = lambda m : solution.cFunc(m) - mZeroChangeFunc(m) # A zero of this is SS market resources
+        m_init_guess = self.mNrmMinNow + self.ExIncNext # Minimum market resources plus next income is okay starting guess
+        try:
+            mNrmSS = newton(searchSSfunc,m_init_guess)
+        except:
+            mNrmSS = None
+        
+        # Add mNrmSS to the solution and return it
+        solution.mNrmSS = mNrmSS
+        return solution
         
     def solve(self): 
         '''
@@ -453,6 +487,7 @@ class ConsPerfForesightSolver(object):
         solution = ConsumerSolution(cFunc=self.cFunc, vFunc=self.vFunc, vPfunc=self.vPfunc,
                                     mNrmMin=self.mNrmMin, hNrm=self.hNrmNow,
                                     MPCmin=self.MPC, MPCmax=self.MPC)
+        solution = self.addSSmNrm(solution)
         return solution
 
 
@@ -643,7 +678,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             
         Returns
         -------
-        none
+        None
         '''
         self.DiscFacEff       = DiscFac*LivPrb # "effective" discount factor
         self.ShkPrbsNext      = IncomeDstn[0]
@@ -884,8 +919,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cNrm,mNrm    = self.getPointsForInterpolation(EndOfPrdvP,aNrm)       
         solution_now = self.usePointsForInterpolation(cNrm,mNrm,interpolator)
         return solution_now
-
-        
+      
     def addMPCandHumanWealth(self,solution):
         '''
         Take a solution and add human wealth and the bounding MPCs to it.
@@ -905,7 +939,6 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         solution.MPCmin = self.MPCminNow
         solution.MPCmax = self.MPCmaxEff
         return solution
-
         
     def makeLinearcFunc(self,mNrm,cNrm):
         '''
@@ -925,19 +958,19 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         '''
         cFuncUnc = LinearInterp(mNrm,cNrm,self.MPCminNow*self.hNrmNow,self.MPCminNow)
         return cFuncUnc
-        
-                
+                   
     def solve(self):
         '''
         Solves a one period consumption saving problem with risky income.
         
         Parameters
         ----------
-        none
+        None
             
         Returns
         -------
-        none
+        solution : ConsumerSolution
+            The solution to the one period problem.
         '''
         aNrm       = self.prepareToCalcEndOfPrdvP()           
         EndOfPrdvP = self.calcEndOfPrdvP()                        
@@ -1090,38 +1123,6 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         '''
         vPPfuncNow        = MargMargValueFunc(solution.cFunc,self.CRRA)
         solution.vPPfunc  = vPPfuncNow
-        return solution
-        
-        
-    def addSSmNrm(self,solution):
-        '''
-        Finds steady state (normalized) market resources and adds it to the
-        solution.  This is the level of market resources such that the expectation
-        of market resources in the next period is unchanged.  This value doesn't
-        necessarily exist.
-        
-        Parameters
-        ----------
-        solution : ConsumerSolution
-            Solution to this period's problem, which must have attribute cFunc.
-        Returns
-        -------
-        solution : ConsumerSolution
-            Same solution that was passed, but now with the attribute mNrmSS.
-        '''
-        # Make a linear function of all combinations of c and m that yield mNext = mNow
-        mZeroChangeFunc = lambda m : (1.0-self.PermGroFac/self.Rfree)*m + (self.PermGroFac/self.Rfree)*self.ExIncNext
-        
-        # Find the steady state level of market resources
-        searchSSfunc = lambda m : solution.cFunc(m) - mZeroChangeFunc(m) # A zero of this is SS market resources
-        m_init_guess = self.mNrmMinNow + self.ExIncNext # Minimum market resources plus next income is okay starting guess
-        try:
-            mNrmSS = newton(searchSSfunc,m_init_guess)
-        except:
-            mNrmSS = None
-        
-        # Add mNrmSS to the solution and return it
-        solution.mNrmSS = mNrmSS
         return solution
 
        
@@ -1549,11 +1550,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         Parameters
         ----------
-        none
+        None
         
         Returns
         -------
-        none
+        None
         '''
         orig_time = self.time_flow
         self.timeFwd()
@@ -1572,7 +1573,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             PermGroFacNow    = self.PermGroFac[t_idx] # and permanent growth factor
             Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
             # Get random draws of income shocks from the discrete distribution
-            EventDraws       = drawDiscrete(N=self.Nagents,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
+            EventDraws       = drawDiscrete(N=self.Nagents,X=Indices,P=IncomeDstnNow[0],exact_match=True,seed=self.RNG.randint(0,2**31-1))
             PermShkHist[t,:] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
             TranShkHist[t,:] = IncomeDstnNow[2][EventDraws]
             # Advance the time index, looping if we've run out of income distributions
@@ -1585,8 +1586,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.TranShkHist = TranShkHist
         if not orig_time:
             self.timeRev()
-            
-            
+                      
     def updateIncomeProcess(self):
         '''
         Updates this agent's income process based on his own attributes.  The
@@ -1731,6 +1731,32 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Restore the original flow of time
         if not orig_time:
             self.timeRev()
+            
+    def simMortality(self):
+        '''
+        Simulates the mortality process, killing off some percentage of agents
+        and replacing them with newborn agents.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        if hasattr(self,'DiePrb'):
+            if self.DiePrb > 0:
+                who_dies = drawBernoulli(N=self.Nagents,p=self.DiePrb,seed=self.RNG.randint(low=1, high=2**31-1))
+                wealth_all = self.aNow*self.pNow     # de-normalizing assets
+                who_lives = np.logical_not(who_dies) # indicator for who survives
+                wealth_of_dead = np.sum(wealth_all[who_dies]) # total wealth of those who die
+                wealth_of_live = np.sum(wealth_all[who_lives])# total wealth of those who survive
+                R_actuarial = 1.0 + wealth_of_dead/wealth_of_live # "interest" payout for survivors
+                self.aNow[who_dies] = 0.0 # newborns have no assets...
+                self.pNow[who_dies] = 1.0 # ...and they have permanent income of 1
+                if not np.isnan(R_actuarial): # don't bother with this if no one had wealth anyway!
+                    self.aNow = self.aNow*R_actuarial
                 
     def simOnePrd(self):
         '''
@@ -1764,7 +1790,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         ReffNow     = RfreeNow/PermShkNow   # "effective" interest factor on normalized assets
         bNow        = ReffNow*aPrev         # Bank balances before labor income
         mNow        = bNow + TranShkNow     # Market resources after income
-        cNow,MPCnow = cFuncNow.eval_with_derivative(mNow) # Consumption and maginal propensity to consume
+        cNow,MPCnow = cFuncNow.eval_with_derivative(mNow) # Consumption and marginal propensity to consume
         aNow        = mNow - cNow           # Assets after all actions are accomplished
         
         # Store the new state and control variables
@@ -2204,7 +2230,7 @@ def constructAssetsGrid(parameters):
     aXtraCount   = parameters.aXtraCount
     aXtraExtra   = parameters.aXtraExtra
     grid_type    = 'exp_mult'
-    exp_nest     = parameters.exp_nest
+    exp_nest     = parameters.aXtraNestFac
     
     # Set up post decision state grid:
     aXtraGrid = None

@@ -10,7 +10,7 @@ import numpy as np
 # --- Define all of the parameters for the perfect foresight model ------------
 # -----------------------------------------------------------------------------
 
-CRRA = 4.0                          # Coefficient of relative risk aversion
+CRRA = 2.0                          # Coefficient of relative risk aversion
 Rfree = 1.03                        # Interest factor on assets
 DiscFac = 0.96                      # Intertemporal discount factor
 LivPrb = [0.98]                     # Survival probability
@@ -31,10 +31,10 @@ init_perfect_foresight = { 'CRRA': CRRA,
 # -----------------------------------------------------------------------------
 
 # Parameters for constructing the "assets above minimum" grid
-exp_nest = 3                        # Number of times to "exponentially nest" when constructing a_grid
 aXtraMin = 0.001                    # Minimum end-of-period "assets above minimum" value
 aXtraMax = 20                       # Minimum end-of-period "assets above minimum" value               
 aXtraExtra = None                   # Some other value of "assets above minimum" to add to the grid, not used
+aXtraNestFac = 3                    # Exponential nesting factor when constructing "assets above minimum" grid
 aXtraCount = 12                     # Number of points in the grid of "assets above minimum"
 
 # Parameters describing the income process
@@ -50,7 +50,7 @@ tax_rate = 0.0                      # Flat income tax rate
 T_retire = 0                        # Period of retirement (0 --> no retirement)
 
 # A few other parameters
-BoroCnstArt = 0.0                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+BoroCnstArt = None                  # Artificial borrowing constraint; imposed minimum level of end-of period assets
 CubicBool = True                    # Use cubic spline interpolation when True, linear interpolation when False
 vFuncBool = False                   # Whether to calculate the value function during solution
 T_total = 1                         # Total number of periods in cycle for this agent
@@ -62,9 +62,9 @@ init_idiosyncratic_shocks = { 'CRRA': CRRA,
                               'LivPrb': LivPrb,
                               'PermGroFac': PermGroFac,
                               'Nagents': Nagents,
-                              'exp_nest': exp_nest,
                               'aXtraMin': aXtraMin,
                               'aXtraMax': aXtraMax,
+                              'aXtraNestFac':aXtraNestFac,
                               'aXtraCount': aXtraCount,
                               'aXtraExtra': [aXtraExtra],
                               'PermShkStd': PermShkStd,
@@ -144,7 +144,7 @@ init_kinky_pref['PrefShkStd'] = PrefShkStd
 # -----------------------------------------------------------------------------
 # ----- Define additional parameters for the aggregate shocks model -----------
 # -----------------------------------------------------------------------------
-kGridBase = np.array([0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6])  # Grid of capital-to-labor-ratios (factors)
+kGridBase = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])  # Grid of capital-to-labor-ratios (factors)
 
 # Parameters for a Cobb-Douglas economy
 PermShkAggCount = 3           # Number of points in discrete approximation to aggregate permanent shock dist
@@ -155,8 +155,8 @@ DeprFac = 0.1                 # Capital depreciation rate
 CapShare = 0.3                # Capital's share of income
 CRRAPF = 1.0                  # CRRA of perfect foresight calibration
 DiscFacPF = 0.96              # Discount factor of perfect foresight calibration
-intercept_prev = 0.1          # Intercept of log-capital-ratio function
-slope_prev = 0.9              # Slope of log-capital-ratio function
+intercept_prev = 0.01         # Intercept of log-capital-ratio function
+slope_prev = 0.99             # Slope of log-capital-ratio function
 
 # Make a dictionary to specify an aggregate shocks consumer
 init_agg_shocks = copy(init_idiosyncratic_shocks)
@@ -179,3 +179,52 @@ init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
                      'slope_prev': slope_prev,
                      'intercept_prev': intercept_prev
                      }
+                     
+# -----------------------------------------------------------------------------
+# ----- Define additional parameters for the persistent shocks model ----------
+# -----------------------------------------------------------------------------
+
+PermIncCount = 12        # Number of permanent income gridpoints in "body"
+PermInc_tail_N = 4       # Number of permanent income gridpoints in each "tail"
+PermIncStdInit = 0.4     # Initial standard deviation of (log) permanent income (not used in example)
+PermIncAvgInit = 1.0     # Initial average of permanent income (not used in example)
+PermIncCorr = 0.98       # Serial correlation coefficient for permanent income
+cycles = 0
+
+# Make a dictionary for the "explicit permanent income" idiosyncratic shocks model
+init_explicit_perm_inc = copy(init_idiosyncratic_shocks)
+init_explicit_perm_inc['PermIncCount'] = PermIncCount
+init_explicit_perm_inc['PermInc_tail_N'] = PermInc_tail_N
+init_explicit_perm_inc['PermIncAvgInit'] = PermIncAvgInit
+init_explicit_perm_inc['PermIncStdInit'] = PermIncStdInit
+init_explicit_perm_inc['PermGroFac'] = [1.0] # long run permanent income growth doesn't work yet
+init_explicit_perm_inc['cycles'] = cycles
+init_explicit_perm_inc['aXtraMax'] = 30
+init_explicit_perm_inc['aXtraExtra'] = [0.005,0.01]
+
+# Make a dictionary for the "persistent idiosyncratic shocks" model
+init_persistent_shocks = copy(init_explicit_perm_inc)
+init_persistent_shocks['PermIncCorr'] = PermIncCorr
+
+# -----------------------------------------------------------------------------
+# ----- Define additional parameters for the medical shocks model -------------
+# -----------------------------------------------------------------------------
+
+CRRAmed = 1.5*CRRA    # Coefficient of relative risk aversion for medical care
+MedShkAvg = [0.001]    # Average of medical need shocks
+MedShkStd = [5.0]     # Standard deviation of (log) medical need shocks
+MedShkCount = 5      # Number of medical shock points in "body"
+MedShkCountTail = 15  # Number of medical shock points in "tail" (upper only)
+MedPrice = [1.5]      # Relative price of a unit of medical care
+
+# Make a dictionary for the "medical shocks" model
+init_medical_shocks = copy(init_persistent_shocks)
+init_medical_shocks['CRRAmed'] = CRRAmed
+init_medical_shocks['MedShkAvg'] = MedShkAvg
+init_medical_shocks['MedShkStd'] = MedShkStd
+init_medical_shocks['MedShkCount'] = MedShkCount
+init_medical_shocks['MedShkCountTail'] = MedShkCountTail
+init_medical_shocks['MedPrice'] = MedPrice
+init_explicit_perm_inc['aXtraCount'] = 48
+init_explicit_perm_inc['CubicBool'] = False
+init_medical_shocks['aXtraExtra'] = [1e-10,1e-9,1e-8,1e-7,1e-6,1e-5,1e-4]
