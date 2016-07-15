@@ -474,11 +474,12 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         pLvlCount   = self.pLvlGrid.size
         aNrmCount   = self.aXtraGrid.size
         pLvlNow     = np.tile(self.pLvlGrid,(aNrmCount,1)).transpose()
-        aLvlNow     = np.tile(np.asarray(self.aXtraGrid),(pLvlCount,1))*pLvlNow + self.BoroCnstNat(pLvlNow)
+        aLvlNow     = np.tile(self.aXtraGrid,(pLvlCount,1))*pLvlNow + self.BoroCnstNat(pLvlNow)
         pLvlNow_tiled = np.tile(pLvlNow,(ShkCount,1,1))
         aLvlNow_tiled = np.tile(aLvlNow,(ShkCount,1,1)) # shape = (ShkCount,pLvlCount,aNrmCount)
         if self.pLvlGrid[0] == 0.0:  # aLvl turns out badly if pLvl is 0 at bottom
-            aLvlNow_tiled[:,0,:] = aLvlNow_tiled[:,1,:]
+            aLvlNow[0,:] = self.aXtraGrid
+            aLvlNow_tiled[:,0,:] = np.tile(self.aXtraGrid,(ShkCount,1))
         
         # Tile arrays of the income shocks and put them into useful shapes
         PermShkVals_tiled = np.transpose(np.tile(self.PermShkValsNext,(aNrmCount,pLvlCount,1)),(2,1,0))

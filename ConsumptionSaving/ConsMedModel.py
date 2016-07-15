@@ -10,8 +10,10 @@ from HARKcore import HARKobject
 from HARKutilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv, makeGridExpMult
 from HARKsimulation import drawLognormal
 from ConsIndShockModel import ConsumerSolution
-from HARKinterpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, LinearInterp
-from ConsPersistentShockModel import ConsPersistentShockSolver, PersistentShockConsumerType, MargValueFunc2D
+from HARKinterpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp,\
+                              LinearInterp, LowerEnvelope3D, UpperEnvelope, LinearInterpOnInterp1D
+from ConsPersistentShockModel import ConsPersistentShockSolver, PersistentShockConsumerType,\
+                                     MargValueFunc2D, VariableLowerBoundFunc2D
 from copy import copy, deepcopy
 
 utilityP_inv  = CRRAutilityP_inv
@@ -190,6 +192,8 @@ class MedShockPolicyFunc(HARKobject):
                 elif MedShk == 0: # All consumption when MedShk = 0
                     cLvl = xLvl
                 else:
+                    #print(xLvl)
+                    #print(MedShk)
                     optMedZeroFunc = lambda c : (MedShk/MedPrice)**(-1.0/CRRAcon)*((xLvl-c)/MedPrice)**(CRRAmed/CRRAcon) - c
                     cLvl = brentq(optMedZeroFunc,0.0,xLvl) # Find solution to FOC
                 cLvlGrid[i,j] = cLvl
@@ -595,6 +599,129 @@ class MedThruXfunc(HARKobject):
         dMeddShk = (dxdShk - dcdShk)/self.MedPrice
         return dMeddShk
         
+        
+class VariableLowerBoundFunc3D(HARKobject):
+    '''
+    A class for representing a function with three real inputs whose lower bound
+    in the first input depends on the second input.  Useful for managing curved
+    natural borrowing constraints.
+    '''
+    distance_criteria = ['func','lowerBound']
+    
+    def __init__(self,func,lowerBound):
+        '''
+        Make a new instance of VariableLowerBoundFunc3D.
+        
+        Parameters
+        ----------
+        func : function
+            A function f: (R_+ x R^2) --> R representing the function of interest
+            shifted by its lower bound in the first input.
+        lowerBound : function
+            The lower bound in the first input of the function of interest, as
+            a function of the second input.
+            
+        Returns
+        -------
+        None
+        '''
+        self.func = func
+        self.lowerBound = lowerBound
+        
+    def __call__(self,x,y,z):
+        '''
+        Evaluate the function at given state space points.
+        
+        Parameters
+        ----------
+        x : np.array
+             First input values.
+        y : np.array
+             Second input values; should be of same shape as x.
+        z : np.array
+             Third input values; should be of same shape as x.
+             
+        Returns
+        -------
+        f_out : np.array
+            Function evaluated at (x,y,z), of same shape as inputs.
+        '''
+        xShift = self.lowerBound(y)
+        f_out = self.func(x-xShift,y,z)
+        return f_out
+        
+    def derivativeX(self,x,y,z):
+        '''
+        Evaluate the first derivative with respect to x of the function at given
+        state space points.
+        
+        Parameters
+        ----------
+        x : np.array
+             First input values.
+        y : np.array
+             Second input values; should be of same shape as x.
+        z : np.array
+             Third input values; should be of same shape as x.
+             
+        Returns
+        -------
+        dfdx_out : np.array
+            First derivative of function with respect to the first input, 
+            evaluated at (x,y,z), of same shape as inputs.
+        '''
+        xShift = self.lowerBound(y)
+        dfdx_out = self.func.derivativeX(x-xShift,y,z)
+        return dfdx_out
+        
+    def derivativeY(self,x,y,z):
+        '''
+        Evaluate the first derivative with respect to y of the function at given
+        state space points.
+        
+        Parameters
+        ----------
+        x : np.array
+             First input values.
+        y : np.array
+             Second input values; should be of same shape as x.
+        z : np.array
+             Third input values; should be of same shape as x.
+             
+        Returns
+        -------
+        dfdy_out : np.array
+            First derivative of function with respect to the second input, 
+            evaluated at (x,y,z), of same shape as inputs.
+        '''
+        xShift,xShiftDer = self.lowerBound.eval_with_derivative(y)
+        dfdy_out = self.func.derivativeY(x-xShift,y,z) - xShiftDer*self.func.derivativeX(x-xShift,y,z)
+        return dfdy_out
+        
+    def derivativeZ(self,x,y,z):
+        '''
+        Evaluate the first derivative with respect to z of the function at given
+        state space points.
+        
+        Parameters
+        ----------
+        x : np.array
+             First input values.
+        y : np.array
+             Second input values; should be of same shape as x.
+        z : np.array
+             Third input values; should be of same shape as x.
+             
+        Returns
+        -------
+        dfdz_out : np.array
+            First derivative of function with respect to the third input, 
+            evaluated at (x,y,z), of same shape as inputs.
+        '''
+        xShift = self.lowerBound(y)
+        dfdz_out = self.func.derivativeZ(x-xShift,y,z)
+        return dfdz_out
+        
 ###############################################################################
 
 class MedShockConsumerType(PersistentShockConsumerType):
@@ -669,27 +796,6 @@ class MedShockConsumerType(PersistentShockConsumerType):
             MedShkDstn.append(MedShkDstnNow)
         self.MedShkDstn = MedShkDstn
         self.addToTimeVary('MedShkDstn')
-        
-    def updateIncomeProcess(self):
-        '''
-        Updates this agent's income process based on his own attributes.  The
-        function that generates the discrete income process can be swapped out
-        for a different process.
-        
-        Parameters
-        ----------
-        None
-        
-        Returns:
-        --------
-        None
-        '''
-        PersistentShockConsumerType.updateIncomeProcess(self)
-        tiny_prob = 1e-15
-        for j in range(len(self.IncomeDstn)): # Add very tiny event at TranShk=0
-            self.IncomeDstn[j][0] = np.insert(self.IncomeDstn[j][0],0,tiny_prob)
-            self.IncomeDstn[j][1] = np.insert(self.IncomeDstn[j][1],0,1.0)
-            self.IncomeDstn[j][2] = np.insert(self.IncomeDstn[j][2],0,0.0)
             
     def updateSolutionTerminal(self):
         '''
@@ -749,7 +855,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         
         # Make the terminal period solution
         self.solution_terminal.cFunc = cFunc_terminal
-        self.solution_terminal.MedFromCfunc = MedFunc_terminal
+        self.solution_terminal.MedFunc = MedFunc_terminal
+        self.solution_terminal.policyFunc = policyFunc_terminal
         self.solution_terminal.vPfunc = vPfunc_terminal
         self.solution_terminal.hNrm = 0.0 # Don't track normalized human wealth
         self.solution_terminal.hLvl = lambda p : np.zeros_like(p) # But do track absolute human wealth by permanent income
@@ -1063,6 +1170,47 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         '''
         ConsPersistentShockSolver.defUtilityFuncs(self) # Do basic version
         self.uMedPinv = lambda Med : utilityP_inv(Med,gam=self.CRRAmed)
+        
+    def defBoroCnst(self,BoroCnstArt):
+        '''
+        Defines the constrained portion of the consumption function as cFuncNowCnst,
+        an attribute of self.  Uses the artificial and natural borrowing constraints.
+        
+        Parameters
+        ----------
+        BoroCnstArt : float or None
+            Borrowing constraint for the minimum allowable (normalized) assets
+            to end the period with.  If it is less than the natural borrowing
+            constraint at a particular permanent income level, then it is irrelevant;
+            BoroCnstArt=None indicates no artificial borrowing constraint.
+            
+        Returns
+        -------
+        None
+        '''
+        # Find minimum allowable end-of-period assets at each permanent income level
+        PermIncMinNext = self.PermGroFac*self.PermShkMinNext*self.pLvlGrid**self.PermIncCorr
+        IncLvlMinNext  = PermIncMinNext*self.TranShkMinNext
+        aLvlMin = (self.solution_next.mLvlMin(PermIncMinNext) - IncLvlMinNext)/self.Rfree
+        
+        # Make a function for the natural borrowing constraint by permanent income
+        BoroCnstNat = LinearInterp(np.insert(self.pLvlGrid,0,0.0),np.insert(aLvlMin,0,0.0))
+        self.BoroCnstNat = BoroCnstNat
+    
+        # Define the minimum allowable level of market resources by permanent income
+        if self.BoroCnstArt is not None:
+            BoroCnstArt = LinearInterp([0.0,1.0],[0.0,self.BoroCnstArt])
+            self.mLvlMinNow = UpperEnvelope(BoroCnstNat,BoroCnstArt)
+        else:
+            self.mLvlMinNow = BoroCnstNat
+        
+        # Make the constrained total spending function: spend all market resources
+        trivial_grid = np.array([0.0,1.0]) # Trivial grid
+        spendAllFunc = TrilinearInterp(np.array([[[0.0,0.0],[0.0,0.0]],[[1.0,1.0],[1.0,1.0]]]),trivial_grid,trivial_grid,trivial_grid)
+        self.xFuncNowCnst = VariableLowerBoundFunc3D(spendAllFunc,self.mLvlMinNow)
+        
+        self.mNrmMinNow = 0.0 # Needs to exist so as not to break when solution is created
+        self.MPCmaxEff  = 0.0 # Actually might vary by p, but no use formulating as a function
                
     def getPointsForInterpolation(self,EndOfPrdvP,aLvlNow):
         '''
@@ -1135,7 +1283,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         '''
         # Construct the unconstrained total expenditure function
         xFuncNowUnc = interpolator(mLvl,pLvl,MedShk,xLvl)
-        xFuncNow = xFuncNowUnc # # Currently can't handle constrained problem, will fix in near future
+        xFuncNowCnst = self.xFuncNowCnst
+        xFuncNow = LowerEnvelope3D(xFuncNowUnc,xFuncNowCnst)
 
         # Transform the expenditure function into policy functions for consumption and medical care
         xLvlGrid = makeGridExpMult(np.min(xLvl),np.max(xLvl),2*self.aXtraGrid.size,8)
@@ -1168,26 +1317,39 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
             Marginal value (of market resources) function for this period.
         '''
         # Get state dimension sizes
-        mCount = self.aXtraGrid.size
-        pCount = self.pLvlGrid.size
+        mCount   = self.aXtraGrid.size
+        pCount   = self.pLvlGrid.size
         MedCount = self.MedShkVals.size
         
         # Make temporary grids to evaluate the consumption function
-        mGrid_temp = np.tile(np.reshape(self.aXtraGrid,(mCount,1,1)),(1,pCount,MedCount))
-        pGrid_temp = np.tile(np.reshape(self.pLvlGrid,(1,pCount,1)),(mCount,1,MedCount))
-        MedShkGrid_temp = np.tile(np.reshape(self.MedShkVals,(1,1,MedCount)),(mCount,pCount,1))
-        probs_temp = np.tile(np.reshape(self.MedShkPrbs,(1,1,MedCount)),(mCount,pCount,1))
+        temp_grid  = np.tile(np.reshape(self.aXtraGrid,(mCount,1,1)),(1,pCount,MedCount))
+        mAdj_grid  = np.tile(np.reshape(self.mLvlMinNow(self.pLvlGrid),(1,pCount,1)),(mCount,1,MedCount))
+        pGrid      = np.tile(np.reshape(self.pLvlGrid,(1,pCount,1)),(mCount,1,MedCount))
+        mGrid      = temp_grid*pGrid + mAdj_grid
+        if self.pLvlGrid[0] == 0:
+            mGrid[:,0,:] = mGrid[:,1,:]
+        MedShkGrid = np.tile(np.reshape(self.MedShkVals,(1,1,MedCount)),(mCount,pCount,1))
+        probsGrid  = np.tile(np.reshape(self.MedShkPrbs,(1,1,MedCount)),(mCount,pCount,1))
         
         # Calculate expected marginal value by "integrating" across medical shocks
-        cGrid_temp = cFunc(mGrid_temp,pGrid_temp,MedShkGrid_temp)
-        vPgrid_temp= self.uP(cGrid_temp)
-        vPnow      = np.sum(vPgrid_temp*probs_temp,axis=2)
-        vPnvrsNow  = np.concatenate((np.zeros((1,pCount)),self.uPinv(vPnow)))
-        # ^^^ Add vPnvrs at m=0 to close it off at the bottom
+        cGrid  = cFunc(mGrid,pGrid,MedShkGrid)
+        vPgrid = self.uP(cGrid)
+        vPnow  = np.sum(vPgrid*probsGrid,axis=2)
         
+        # Add vPnvrs=0 at m=mLvlMin to close it off at the bottom
+        mGrid_small = np.concatenate((np.reshape(self.mLvlMinNow(self.pLvlGrid),(1,pCount)),mGrid[:,:,0]))
+        vPnvrsNow  = np.concatenate((np.zeros((1,pCount)),self.uPinv(vPnow)))
+               
         # Construct and return the marginal value function over mLvl,pLvl
-        vPnvrsFunc = BilinearInterp(vPnvrsNow,np.insert(self.aXtraGrid,0,0.0),self.pLvlGrid)
-        vPfunc = MargValueFunc2D(vPnvrsFunc,self.CRRA)
+        vPnvrsFunc_by_pLvl = []
+        for j in range(pCount): # Make a pseudo inverse marginal value function for each pLvl
+            pLvl = self.pLvlGrid[j]
+            m_temp = mGrid_small[:,j] - self.mLvlMinNow(pLvl)
+            vPnvrs_temp = vPnvrsNow[:,j]
+            vPnvrsFunc_by_pLvl.append(LinearInterp(m_temp,vPnvrs_temp))        
+        vPnvrsFunc = LinearInterpOnInterp1D(vPnvrsFunc_by_pLvl,self.pLvlGrid)
+        vPfuncBase = MargValueFunc2D(vPnvrsFunc,self.CRRA)
+        vPfunc = VariableLowerBoundFunc2D(vPfuncBase,self.mLvlMinNow)
         return vPfunc
         
     def makeLinearxFunc(self,mLvl,pLvl,MedShk,xLvl):
@@ -1223,8 +1385,10 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         # Loop over each permanent income level and medical shock and make a linear cFunc
         for i in range(pCount):
             temp_list = []
+            pLvl_i = pLvl[0,i,0]
+            mLvlMin_i = self.BoroCnstNat(pLvl_i)
             for j in range(MedCount):
-                m_temp = mLvl[j,i,:]
+                m_temp = mLvl[j,i,:] - mLvlMin_i
                 x_temp = xLvl[j,i,:]
                 temp_list.append(LinearInterp(m_temp,x_temp))
             xFunc_by_pLvl_and_MedShk.append(deepcopy(temp_list))
@@ -1232,7 +1396,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         # Combine the nested list of linear cFuncs into a single function
         pLvl_temp = pLvl[0,:,0]
         MedShk_temp = MedShk[:,0,0]
-        xFuncUnc = BilinearInterpOnInterp1D(xFunc_by_pLvl_and_MedShk,pLvl_temp,MedShk_temp)
+        xFuncUncBase = BilinearInterpOnInterp1D(xFunc_by_pLvl_and_MedShk,pLvl_temp,MedShk_temp)
+        xFuncUnc = VariableLowerBoundFunc3D(xFuncUncBase,self.BoroCnstNat)
         return xFuncUnc
         
     def makeBasicSolution(self,EndOfPrdvP,aLvl,interpolator):
@@ -1281,7 +1446,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         '''
         aLvl,trash  = self.prepareToCalcEndOfPrdvP()           
         EndOfPrdvP = self.calcEndOfPrdvP()
-        if np.all(self.mLvlMinNow(self.pLvlGrid) == 0.0):   
+        #if np.all(self.mLvlMinNow(self.pLvlGrid) == 0.0):
+        if True:
             interpolator = self.makeLinearxFunc
         else: # Solver only works with lower bound of m=0 everywhere at this time
             assert False, "Medical shocks model can't handle mLvlMin < 0 yet!"
@@ -1364,7 +1530,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     mystr = lambda number : "{:.4f}".format(number)
     
-    do_simulation = True
+    do_simulation = False
 
     # Make an example medical shocks consumer type
     MedicalExample = MedShockConsumerType(**Params.init_medical_shocks)
@@ -1376,34 +1542,40 @@ if __name__ == '__main__':
     
     # Plot the consumption function
     M = np.linspace(0,30,300)
-    P = np.ones_like(M)
+    pLvl = 1.0
+    P = pLvl*np.ones_like(M)
     for j in range(MedicalExample.MedShkDstn[0][0].size):
         MedShk = MedicalExample.MedShkDstn[0][1][j]*np.ones_like(M)
-        C = MedicalExample.solution[0].cFunc(M,P,MedShk)
-        plt.plot(M,C)
+        M_temp = M + MedicalExample.solution[0].mLvlMin(pLvl)
+        C = MedicalExample.solution[0].cFunc(M_temp,P,MedShk)
+        plt.plot(M_temp,C)
     print('Consumption function by medical need shock (constant permanent income)')
+    plt.savefig('cFuncMedShocks.pdf')
     plt.show()
     
     # Plot the medical care function
     for j in range(MedicalExample.MedShkDstn[0][0].size):
         MedShk = MedicalExample.MedShkDstn[0][1][j]*np.ones_like(M)
-        Med = MedicalExample.solution[0].MedFunc(M,P,MedShk)
-        plt.plot(M,Med)
+        Med = MedicalExample.solution[0].MedFunc(M_temp,P,MedShk)
+        plt.plot(M_temp,Med)
     print('Medical care function by medical need shock (constant permanent income)')
+    plt.ylim([0,20])
+    plt.savefig('MedFuncMedShocks.pdf')
     plt.show()
     
     # Plot the savings function
     for j in range(MedicalExample.MedShkDstn[0][0].size):
         MedShk = MedicalExample.MedShkDstn[0][1][j]*np.ones_like(M)
-        Sav = M - MedicalExample.solution[0].cFunc(M,P,MedShk) - MedicalExample.MedPrice[0]*MedicalExample.solution[0].MedFunc(M,P,MedShk)
-        plt.plot(M,Sav)
+        Sav = M_temp - MedicalExample.solution[0].cFunc(M_temp,P,MedShk) - MedicalExample.MedPrice[0]*MedicalExample.solution[0].MedFunc(M_temp,P,MedShk)
+        plt.plot(M_temp,Sav)
     print('End of period savings by medical need shock (constant permanent income)')
     plt.show()
     
     # Plot the marginal value function
-    M = np.linspace(0.1,30,300)
-    vP = MedicalExample.solution[0].vPfunc.cFunc(M,P)
-    plt.plot(M,vP)
+    M = np.linspace(0.0,30,300)
+    M_temp = M + MedicalExample.solution[0].mLvlMin(pLvl)
+    vP = MedicalExample.solution[0].vPfunc(M_temp,P)**(-1.0/MedicalExample.CRRA)
+    plt.plot(M_temp,vP)
     print('Marginal value function (constant permanent income)')
     plt.show()
     

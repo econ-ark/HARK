@@ -185,7 +185,7 @@ init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
 # -----------------------------------------------------------------------------
 
 PermIncCount = 12        # Number of permanent income gridpoints in "body"
-PermInc_tail_N = 4       # Number of permanent income gridpoints in each "tail"
+PermInc_tail_N = 5       # Number of permanent income gridpoints in each "tail"
 PermIncStdInit = 0.4     # Initial standard deviation of (log) permanent income (not used in example)
 PermIncAvgInit = 1.0     # Initial average of permanent income (not used in example)
 PermIncCorr = 0.98       # Serial correlation coefficient for permanent income
@@ -225,6 +225,6 @@ init_medical_shocks['MedShkStd'] = MedShkStd
 init_medical_shocks['MedShkCount'] = MedShkCount
 init_medical_shocks['MedShkCountTail'] = MedShkCountTail
 init_medical_shocks['MedPrice'] = MedPrice
-init_explicit_perm_inc['aXtraCount'] = 48
-init_explicit_perm_inc['CubicBool'] = False
-init_medical_shocks['aXtraExtra'] = [1e-10,1e-9,1e-8,1e-7,1e-6,1e-5,1e-4]
+init_medical_shocks['aXtraCount'] = 32
+init_medical_shocks['CubicBool'] = False
+init_medical_shocks['aXtraExtra'] = [1e-7,1e-6,1e-5,1e-4]

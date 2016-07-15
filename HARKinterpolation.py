@@ -1582,7 +1582,8 @@ class LowerEnvelope(HARKinterpolator1D):
     The lower envelope of a finite set of 1D functions, each of which can be of
     any class that has the methods __call__, derivative, and eval_with_derivative.
     Generally: it combines HARKinterpolator1Ds. 
-    ''' 
+    '''
+    distance_criteria = ['functions']
 
     def __init__(self,*functions):
         '''
@@ -1601,7 +1602,6 @@ class LowerEnvelope(HARKinterpolator1D):
         for function in functions:
             self.functions.append(function)
         self.funcCount = len(self.functions)
-        self.distance_criteria = ['functions']
 
     def _evaluate(self,x):
         '''
@@ -1637,6 +1637,74 @@ class LowerEnvelope(HARKinterpolator1D):
             fx[:,j] = self.functions[j](x)
         fx[np.isnan(fx)] = np.inf
         i = np.argmin(fx,axis=1)
+        y = fx[np.arange(m),i]
+        dydx = np.zeros_like(y)
+        for j in range(self.funcCount):
+            c = i == j
+            dydx[c] = self.functions[j].derivative(x[c])
+        return y,dydx
+
+
+class UpperEnvelope(HARKinterpolator1D):
+    '''
+    The upper envelope of a finite set of 1D functions, each of which can be of
+    any class that has the methods __call__, derivative, and eval_with_derivative.
+    Generally: it combines HARKinterpolator1Ds. 
+    '''
+    distance_criteria = ['functions']
+
+    def __init__(self,*functions):
+        '''
+        Constructor to make a new upper envelope iterpolation.
+        
+        Parameters
+        ----------
+        *functions : function
+            Any number of real functions; often instances of HARKinterpolator1D
+            
+        Returns
+        -------
+        new instance of UpperEnvelope
+        '''
+        self.functions = []
+        for function in functions:
+            self.functions.append(function)
+        self.funcCount = len(self.functions)
+
+    def _evaluate(self,x):
+        '''
+        Returns the level of the function at each value in x as the maximum among
+        all of the functions.  Only called internally by HARKinterpolator1D.__call__.
+        '''
+        if _isscalar(x):
+            y = np.nanmax([f(x) for f in self.functions])
+        else:
+            m = len(x)
+            fx = np.zeros((m,self.funcCount))
+            for j in range(self.funcCount):
+                fx[:,j] = self.functions[j](x)
+            y = np.nanmax(fx,axis=1)       
+        return y
+
+    def _der(self,x):
+        '''
+        Returns the first derivative of the function at each value in x.  Only
+        called internally by HARKinterpolator1D.derivative.
+        '''
+        y,dydx = self.eval_with_derivative(x)
+        return dydx  # Sadly, this is the fastest / most convenient way...
+
+    def _evalAndDer(self,x):
+        '''
+        Returns the level and first derivative of the function at each value in
+        x.  Only called internally by HARKinterpolator1D.eval_and_der.
+        '''
+        m = len(x)
+        fx = np.zeros((m,self.funcCount))
+        for j in range(self.funcCount):
+            fx[:,j] = self.functions[j](x)
+        fx[np.isnan(fx)] = np.inf
+        i = np.argmax(fx,axis=1)
         y = fx[np.arange(m),i]
         dydx = np.zeros_like(y)
         for j in range(self.funcCount):
@@ -1706,8 +1774,8 @@ class LowerEnvelope2D(HARKinterpolator2D):
         
     def _derY(self,x,y):
         '''
-        Returns the first derivative of the function with respect to X at each
-        value in (x,y).  Only called internally by HARKinterpolator2D._derX.
+        Returns the first derivative of the function with respect to Y at each
+        value in (x,y).  Only called internally by HARKinterpolator2D._derY.
         '''
         m = len(x)
         temp = np.zeros((m,self.funcCount))
@@ -1721,7 +1789,102 @@ class LowerEnvelope2D(HARKinterpolator2D):
             c = i == j
             dfdy[c] = self.functions[j].derivativeY(x[c],y[c])
         return dfdy
+        
     
+class LowerEnvelope3D(HARKinterpolator3D):
+    '''
+    The lower envelope of a finite set of 3D functions, each of which can be of
+    any class that has the methods __call__, derivativeX, derivativeY, and
+    derivativeZ. Generally: it combines HARKinterpolator2Ds. 
+    '''
+    distance_criteria = ['functions']
+
+    def __init__(self,*functions):
+        '''
+        Constructor to make a new lower envelope iterpolation.
+        
+        Parameters
+        ----------
+        *functions : function
+            Any number of real functions; often instances of HARKinterpolator3D
+            
+        Returns
+        -------
+        None
+        '''
+        self.functions = []
+        for function in functions:
+            self.functions.append(function)
+        self.funcCount = len(self.functions)
+
+    def _evaluate(self,x,y,z):
+        '''
+        Returns the level of the function at each value in (x,y,z) as the minimum
+        among all of the functions.  Only called internally by
+        HARKinterpolator3D.__call__.
+        '''
+        if _isscalar(x):
+            f = np.nanmin([f(x,y,z) for f in self.functions])
+        else:
+            m = len(x)
+            temp = np.zeros((m,self.funcCount))
+            for j in range(self.funcCount):
+                temp[:,j] = self.functions[j](x,y,z)
+            f = np.nanmin(temp,axis=1)       
+        return f
+
+    def _derX(self,x,y,z):
+        '''
+        Returns the first derivative of the function with respect to X at each
+        value in (x,y,z).  Only called internally by HARKinterpolator3D._derX.
+        '''
+        m = len(x)
+        temp = np.zeros((m,self.funcCount))
+        for j in range(self.funcCount):
+            temp[:,j] = self.functions[j](x,y,z)
+        temp[np.isnan(temp)] = np.inf
+        i = np.argmin(temp,axis=1)
+        dfdx = np.zeros_like(x)
+        for j in range(self.funcCount):
+            c = i == j
+            dfdx[c] = self.functions[j].derivativeX(x[c],y[c],z[c])
+        return dfdx
+        
+    def _derY(self,x,y,z):
+        '''
+        Returns the first derivative of the function with respect to Y at each
+        value in (x,y,z).  Only called internally by HARKinterpolator3D._derY.
+        '''
+        m = len(x)
+        temp = np.zeros((m,self.funcCount))
+        for j in range(self.funcCount):
+            temp[:,j] = self.functions[j](x,y,z)
+        temp[np.isnan(temp)] = np.inf
+        i = np.argmin(temp,axis=1)
+        y = temp[np.arange(m),i]
+        dfdy = np.zeros_like(x)
+        for j in range(self.funcCount):
+            c = i == j
+            dfdy[c] = self.functions[j].derivativeY(x[c],y[c],z[c])
+        return dfdy
+
+    def _derZ(self,x,y,z):
+        '''
+        Returns the first derivative of the function with respect to Z at each
+        value in (x,y,z).  Only called internally by HARKinterpolator3D._derZ.
+        '''
+        m = len(x)
+        temp = np.zeros((m,self.funcCount))
+        for j in range(self.funcCount):
+            temp[:,j] = self.functions[j](x,y,z)
+        temp[np.isnan(temp)] = np.inf
+        i = np.argmin(temp,axis=1)
+        y = temp[np.arange(m),i]
+        dfdz = np.zeros_like(x)
+        for j in range(self.funcCount):
+            c = i == j
+            dfdz[c] = self.functions[j].derivativeZ(x[c],y[c],z[c])
+        return dfdz    
 
 class LinearInterpOnInterp1D(HARKinterpolator2D):
     '''
