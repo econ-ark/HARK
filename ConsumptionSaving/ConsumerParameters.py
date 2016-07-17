@@ -50,9 +50,9 @@ tax_rate = 0.0                      # Flat income tax rate
 T_retire = 0                        # Period of retirement (0 --> no retirement)
 
 # A few other parameters
-BoroCnstArt = None                  # Artificial borrowing constraint; imposed minimum level of end-of period assets
+BoroCnstArt = 0.0                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
 CubicBool = True                    # Use cubic spline interpolation when True, linear interpolation when False
-vFuncBool = False                   # Whether to calculate the value function during solution
+vFuncBool = True                    # Whether to calculate the value function during solution
 T_total = 1                         # Total number of periods in cycle for this agent
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
@@ -185,7 +185,7 @@ init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
 # -----------------------------------------------------------------------------
 
 PermIncCount = 12        # Number of permanent income gridpoints in "body"
-PermInc_tail_N = 5       # Number of permanent income gridpoints in each "tail"
+PermInc_tail_N = 4       # Number of permanent income gridpoints in each "tail"
 PermIncStdInit = 0.4     # Initial standard deviation of (log) permanent income (not used in example)
 PermIncAvgInit = 1.0     # Initial average of permanent income (not used in example)
 PermIncCorr = 0.98       # Serial correlation coefficient for permanent income

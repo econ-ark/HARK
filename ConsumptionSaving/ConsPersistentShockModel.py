@@ -537,9 +537,12 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         EndOfPrdvNvrsP      = EndOfPrdvP*self.uinvP(EndOfPrdv)
         
         # Add points at mLvl=zero
-        EndOfPrdvNvrs       = np.concatenate((np.zeros((self.pLvlGrid.size,1)),EndOfPrdvNvrs),axis=1)
-        EndOfPrdvNvrsP      = np.concatenate((np.reshape(EndOfPrdvNvrsP[:,0],(self.pLvlGrid.size,1)),EndOfPrdvNvrsP),axis=1) # This is a very good approximation, vNvrsPP = 0 at the asset minimum
-        aLvl_temp           = np.concatenate((np.reshape(self.BoroCnstNat(self.pLvlGrid),(self.pLvlGrid.size,1)),self.aLvlNow),axis=1)
+        EndOfPrdvNvrs      = np.concatenate((np.zeros((self.pLvlGrid.size,1)),EndOfPrdvNvrs),axis=1)
+        if hasattr(self,'MedShkDstn'):
+            EndOfPrdvNvrsP = np.concatenate((np.zeros((self.pLvlGrid.size,1)),EndOfPrdvNvrsP),axis=1)
+        else:
+            EndOfPrdvNvrsP = np.concatenate((np.reshape(EndOfPrdvNvrsP[:,0],(self.pLvlGrid.size,1)),EndOfPrdvNvrsP),axis=1) # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+        aLvl_temp          = np.concatenate((np.reshape(self.BoroCnstNat(self.pLvlGrid),(self.pLvlGrid.size,1)),self.aLvlNow),axis=1)
         
         # Make an end-of-period value function for each permanent income level in the grid
         EndOfPrdvNvrsFunc_list = []
@@ -653,7 +656,7 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         -------
         vFuncNow : ValueFunc
             A representation of the value function for this period, defined over
-            normalized market resources m: v = vFuncNow(m).
+            market resources m and permanent income p: v = vFuncNow(m,p).
         '''
         mSize = self.aXtraGrid.size
         pSize = self.pLvlGrid.size

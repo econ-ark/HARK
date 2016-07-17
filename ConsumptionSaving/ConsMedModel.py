@@ -5,18 +5,22 @@ import sys
 sys.path.insert(0,'../')
 
 import numpy as np
-from scipy.optimize import newton, brentq
+from scipy.optimize import brentq
 from HARKcore import HARKobject
-from HARKutilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv, makeGridExpMult
+from HARKutilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv,\
+                          CRRAutility, CRRAutility_inv, CRRAutility_invP, makeGridExpMult, NullFunc, plotFuncs
 from HARKsimulation import drawLognormal
 from ConsIndShockModel import ConsumerSolution
-from HARKinterpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp,\
+from HARKinterpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, CubicInterp,\
                               LinearInterp, LowerEnvelope3D, UpperEnvelope, LinearInterpOnInterp1D
 from ConsPersistentShockModel import ConsPersistentShockSolver, PersistentShockConsumerType,\
-                                     MargValueFunc2D, VariableLowerBoundFunc2D
+                                     ValueFunc2D, MargValueFunc2D, VariableLowerBoundFunc2D
 from copy import copy, deepcopy
 
+utility_inv = CRRAutility_inv
 utilityP_inv  = CRRAutilityP_inv
+utility       = CRRAutility
+utility_invP = CRRAutility_invP
 
 class MedFromCfunc(HARKobject):
     '''
@@ -192,8 +196,6 @@ class MedShockPolicyFunc(HARKobject):
                 elif MedShk == 0: # All consumption when MedShk = 0
                     cLvl = xLvl
                 else:
-                    #print(xLvl)
-                    #print(MedShk)
                     optMedZeroFunc = lambda c : (MedShk/MedPrice)**(-1.0/CRRAcon)*((xLvl-c)/MedPrice)**(CRRAmed/CRRAcon) - c
                     cLvl = brentq(optMedZeroFunc,0.0,xLvl) # Find solution to FOC
                 cLvlGrid[i,j] = cLvl
@@ -853,11 +855,28 @@ class MedShockConsumerType(PersistentShockConsumerType):
         vPnvrsFunc = BilinearInterp(np.tile(np.reshape(vPnvrs,(vPnvrs.size,1)),(1,trivial_grid.size)),mLvlGrid,trivial_grid)
         vPfunc_terminal = MargValueFunc2D(vPnvrsFunc,self.CRRA)
         
+        # Integrate value across shocks to get expected value
+        vGrid = utility(cLvlGrid,gam=self.CRRA) + MedShkGrid_tiled*utility(MedGrid,gam=self.CRRAmed)
+        vGrid[:,0] = utility(cLvlGrid[:,0],gam=self.CRRA) # correct for issue when MedShk=0
+        vGrid[np.isinf(vGrid)] = 0.0 # correct for issue at bottom edges        
+        v_expected = np.sum(vGrid*PrbGrid,axis=1)        
+        
+        # Construct the value function for the terminal period
+        vNvrs = utility_inv(v_expected,gam=self.CRRA)
+        vNvrs[0] = 0.0
+        vNvrsP = vP_expected*utility_invP(v_expected,gam=self.CRRA) # NEED TO FIGURE OUT MPC MAX IN THIS MODEL
+        #vNvrsP[0] = vNvrsP[1]
+        vNvrsP[0] = 0.0
+        tempFunc = CubicInterp(mLvlGrid,vNvrs,vNvrsP)
+        vNvrsFunc = LinearInterpOnInterp1D([tempFunc,tempFunc],trivial_grid)
+        vFunc_terminal = ValueFunc2D(vNvrsFunc,self.CRRA)
+        
         # Make the terminal period solution
         self.solution_terminal.cFunc = cFunc_terminal
         self.solution_terminal.MedFunc = MedFunc_terminal
         self.solution_terminal.policyFunc = policyFunc_terminal
         self.solution_terminal.vPfunc = vPfunc_terminal
+        self.solution_terminal.vFunc = vFunc_terminal
         self.solution_terminal.hNrm = 0.0 # Don't track normalized human wealth
         self.solution_terminal.hLvl = lambda p : np.zeros_like(p) # But do track absolute human wealth by permanent income
         self.solution_terminal.mLvlMin = lambda p : np.zeros_like(p) # And minimum allowable market resources by perm inc
@@ -1170,6 +1189,7 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         '''
         ConsPersistentShockSolver.defUtilityFuncs(self) # Do basic version
         self.uMedPinv = lambda Med : utilityP_inv(Med,gam=self.CRRAmed)
+        self.uMed     = lambda Med : utility(Med,gam=self.CRRAmed)
         
     def defBoroCnst(self,BoroCnstArt):
         '''
@@ -1292,29 +1312,33 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         cFuncNow = cThruXfunc(xFuncNow,policyFuncNow.cFunc)
         MedFuncNow = MedThruXfunc(xFuncNow,policyFuncNow.cFunc,self.MedPrice)
 
-        # Make the marginal value function
-        vPfuncNow = self.makevPfunc(cFuncNow)
+        # Make the marginal value function (and the value function if vFuncBool=True)
+        vFuncNow, vPfuncNow = self.makevAndvPfuncs(policyFuncNow)
 
         # Pack up the solution and return it
-        solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow)
+        solution_now = ConsumerSolution(cFunc=cFuncNow, vFunc=vFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow)
         solution_now.MedFunc = MedFuncNow
         solution_now.policyFunc = policyFuncNow
         return solution_now
         
-    def makevPfunc(self,cFunc):
+    def makevAndvPfuncs(self,policyFunc):
         '''
         Constructs the marginal value function for this period.
         
         Parameters
         ----------
-        cFunc : function
-            Consumption function this period, defined over market resources and
-            permanent income level.
+        policyFunc : function
+            Consumption and medical care function for this period, defined over
+            market resources, permanent income level, and the medical need shock.
         
         Returns
         -------
+        vFunc : function
+            Value function for this period, defined over market resources and
+            permanent income.
         vPfunc : function
-            Marginal value (of market resources) function for this period.
+            Marginal value (of market resources) function for this period, defined
+            over market resources and permanent income.
         '''
         # Get state dimension sizes
         mCount   = self.aXtraGrid.size
@@ -1323,34 +1347,63 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         
         # Make temporary grids to evaluate the consumption function
         temp_grid  = np.tile(np.reshape(self.aXtraGrid,(mCount,1,1)),(1,pCount,MedCount))
-        mAdj_grid  = np.tile(np.reshape(self.mLvlMinNow(self.pLvlGrid),(1,pCount,1)),(mCount,1,MedCount))
+        aMinGrid   = np.tile(np.reshape(self.mLvlMinNow(self.pLvlGrid),(1,pCount,1)),(mCount,1,MedCount))
         pGrid      = np.tile(np.reshape(self.pLvlGrid,(1,pCount,1)),(mCount,1,MedCount))
-        mGrid      = temp_grid*pGrid + mAdj_grid
+        mGrid      = temp_grid*pGrid + aMinGrid
         if self.pLvlGrid[0] == 0:
-            mGrid[:,0,:] = mGrid[:,1,:]
+            mGrid[:,0,:] = np.tile(np.reshape(self.aXtraGrid,(mCount,1)),(1,MedCount))
         MedShkGrid = np.tile(np.reshape(self.MedShkVals,(1,1,MedCount)),(mCount,pCount,1))
         probsGrid  = np.tile(np.reshape(self.MedShkPrbs,(1,1,MedCount)),(mCount,pCount,1))
         
+        # Get optimal consumption (and medical care) for each state
+        cGrid,MedGrid = policyFunc(mGrid,pGrid,MedShkGrid)
+        
+        # Calculate expected value by "integrating" across medical shocks
+        if self.vFuncBool:
+            MedGrid = np.maximum(MedGrid,1e-100) # interpolation error sometimes makes Med < 0 (barely)
+            aGrid = np.maximum(mGrid - cGrid - self.MedPrice*MedGrid, aMinGrid) # interpolation error sometimes makes tiny violations
+            vGrid = self.u(cGrid) + MedShkGrid*self.uMed(MedGrid) + self.EndOfPrdvFunc(aGrid,pGrid)
+            vNow  = np.sum(vGrid*probsGrid,axis=2)
+        
         # Calculate expected marginal value by "integrating" across medical shocks
-        cGrid  = cFunc(mGrid,pGrid,MedShkGrid)
         vPgrid = self.uP(cGrid)
         vPnow  = np.sum(vPgrid*probsGrid,axis=2)
         
-        # Add vPnvrs=0 at m=mLvlMin to close it off at the bottom
+        # Add vPnvrs=0 at m=mLvlMin to close it off at the bottom (and vNvrs=0)
         mGrid_small = np.concatenate((np.reshape(self.mLvlMinNow(self.pLvlGrid),(1,pCount)),mGrid[:,:,0]))
         vPnvrsNow  = np.concatenate((np.zeros((1,pCount)),self.uPinv(vPnow)))
+        if self.vFuncBool:
+            vNvrsNow  = np.concatenate((np.zeros((1,pCount)),self.uinv(vNow)),axis=0)
+            vNvrsPnow = vPnow*self.uinvP(vNow) # NEED TO FIGURE OUT MPC MAX IN THIS MODEL
+            #vNvrsPnow = np.concatenate((np.reshape(vNvrsPnow[0,:],(1,pCount)),vNvrsPnow),axis=0)
+            vNvrsPnow = np.concatenate((np.zeros((1,pCount)),vNvrsPnow),axis=0)
                
-        # Construct and return the marginal value function over mLvl,pLvl
+        # Construct the pseudo-inverse value and marginal value functions over mLvl,pLvl
         vPnvrsFunc_by_pLvl = []
+        vNvrsFunc_by_pLvl = []
         for j in range(pCount): # Make a pseudo inverse marginal value function for each pLvl
             pLvl = self.pLvlGrid[j]
             m_temp = mGrid_small[:,j] - self.mLvlMinNow(pLvl)
             vPnvrs_temp = vPnvrsNow[:,j]
-            vPnvrsFunc_by_pLvl.append(LinearInterp(m_temp,vPnvrs_temp))        
+            vPnvrsFunc_by_pLvl.append(LinearInterp(m_temp,vPnvrs_temp))  
+            if self.vFuncBool:
+                vNvrs_temp  = vNvrsNow[:,j]
+                vNvrsP_temp = vNvrsPnow[:,j]
+                vNvrsFunc_by_pLvl.append(CubicInterp(m_temp,vNvrs_temp,vNvrsP_temp))
         vPnvrsFunc = LinearInterpOnInterp1D(vPnvrsFunc_by_pLvl,self.pLvlGrid)
+        if self.vFuncBool:
+            vNvrsFunc  = LinearInterpOnInterp1D(vNvrsFunc_by_pLvl,self.pLvlGrid)
+        
+        # "Re-curve" the (marginal) value function and adjust for the lower bound of mLvl
         vPfuncBase = MargValueFunc2D(vPnvrsFunc,self.CRRA)
-        vPfunc = VariableLowerBoundFunc2D(vPfuncBase,self.mLvlMinNow)
-        return vPfunc
+        vPfunc     = VariableLowerBoundFunc2D(vPfuncBase,self.mLvlMinNow)
+        if self.vFuncBool:
+            vFuncBase = ValueFunc2D(vNvrsFunc,self.CRRA)
+            vFunc     = VariableLowerBoundFunc2D(vFuncBase,self.mLvlMinNow)
+        else:
+            vFunc = NullFunc()
+        
+        return vFunc, vPfunc
         
     def makeLinearxFunc(self,mLvl,pLvl,MedShk,xLvl):
         '''
@@ -1399,6 +1452,7 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         xFuncUncBase = BilinearInterpOnInterp1D(xFunc_by_pLvl_and_MedShk,pLvl_temp,MedShk_temp)
         xFuncUnc = VariableLowerBoundFunc3D(xFuncUncBase,self.BoroCnstNat)
         return xFuncUnc
+
         
     def makeBasicSolution(self,EndOfPrdvP,aLvl,interpolator):
         '''
@@ -1446,7 +1500,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         '''
         aLvl,trash  = self.prepareToCalcEndOfPrdvP()           
         EndOfPrdvP = self.calcEndOfPrdvP()
-        #if np.all(self.mLvlMinNow(self.pLvlGrid) == 0.0):
+        if self.vFuncBool:
+            self.makeEndOfPrdvFunc(EndOfPrdvP)
         if True:
             interpolator = self.makeLinearxFunc
         else: # Solver only works with lower bound of m=0 everywhere at this time
@@ -1526,6 +1581,7 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
 
 if __name__ == '__main__':
     import ConsumerParameters as Params
+    from HARKutilities import CRRAutility_inv
     from time import clock
     import matplotlib.pyplot as plt
     mystr = lambda number : "{:.4f}".format(number)
@@ -1573,11 +1629,26 @@ if __name__ == '__main__':
     
     # Plot the marginal value function
     M = np.linspace(0.0,30,300)
-    M_temp = M + MedicalExample.solution[0].mLvlMin(pLvl)
-    vP = MedicalExample.solution[0].vPfunc(M_temp,P)**(-1.0/MedicalExample.CRRA)
-    plt.plot(M_temp,vP)
-    print('Marginal value function (constant permanent income)')
+    for p in range(MedicalExample.pLvlGrid[0].size):
+        pLvl = MedicalExample.pLvlGrid[0][p]
+        M_temp = pLvl*M + MedicalExample.solution[0].mLvlMin(pLvl)
+        P = pLvl*np.ones_like(M)
+        v = MedicalExample.solution[0].vPfunc(M_temp,P)**(-1.0/MedicalExample.CRRA)
+        plt.plot(M_temp,v)
+    print('Marginal value function')
     plt.show()
+    
+    if MedicalExample.vFuncBool:
+        # Plot the value function
+        M = np.linspace(0.0,1,300)
+        for p in range(MedicalExample.pLvlGrid[0].size):
+            pLvl = MedicalExample.pLvlGrid[0][p]
+            M_temp = pLvl*M + MedicalExample.solution[0].mLvlMin(pLvl)
+            P = pLvl*np.ones_like(M)
+            v = CRRAutility_inv(MedicalExample.solution[0].vFunc(M_temp,P),gam=MedicalExample.CRRA)
+            plt.plot(M_temp,v)
+        print('Value function')
+        plt.show()
     
     if do_simulation:
         MedicalExample.sim_periods = 100
