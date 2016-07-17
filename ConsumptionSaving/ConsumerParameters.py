@@ -50,7 +50,7 @@ tax_rate = 0.0                      # Flat income tax rate
 T_retire = 0                        # Period of retirement (0 --> no retirement)
 
 # A few other parameters
-BoroCnstArt = 0.0                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+BoroCnstArt = None                  # Artificial borrowing constraint; imposed minimum level of end-of period assets
 CubicBool = True                    # Use cubic spline interpolation when True, linear interpolation when False
 vFuncBool = True                    # Whether to calculate the value function during solution
 T_total = 1                         # Total number of periods in cycle for this agent
@@ -227,4 +227,3 @@ init_medical_shocks['MedShkCountTail'] = MedShkCountTail
 init_medical_shocks['MedPrice'] = MedPrice
 init_medical_shocks['aXtraCount'] = 32
 init_medical_shocks['CubicBool'] = False
-init_medical_shocks['aXtraExtra'] = [1e-7,1e-6,1e-5,1e-4]

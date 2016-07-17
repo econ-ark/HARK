@@ -1606,7 +1606,6 @@ if __name__ == '__main__':
         C = MedicalExample.solution[0].cFunc(M_temp,P,MedShk)
         plt.plot(M_temp,C)
     print('Consumption function by medical need shock (constant permanent income)')
-    plt.savefig('cFuncMedShocks.pdf')
     plt.show()
     
     # Plot the medical care function
@@ -1616,7 +1615,6 @@ if __name__ == '__main__':
         plt.plot(M_temp,Med)
     print('Medical care function by medical need shock (constant permanent income)')
     plt.ylim([0,20])
-    plt.savefig('MedFuncMedShocks.pdf')
     plt.show()
     
     # Plot the savings function
