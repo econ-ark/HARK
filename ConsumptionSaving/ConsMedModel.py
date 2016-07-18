@@ -8,7 +8,8 @@ import numpy as np
 from scipy.optimize import brentq
 from HARKcore import HARKobject
 from HARKutilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv,\
-                          CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP, makeGridExpMult, NullFunc
+                          CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP,\
+                          makeGridExpMult, NullFunc
 from HARKsimulation import drawLognormal
 from ConsIndShockModel import ConsumerSolution
 from HARKinterpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, CubicInterp,\
@@ -77,7 +78,8 @@ class MedShockPolicyFunc(HARKobject):
                 elif MedShk == 0: # All consumption when MedShk = 0
                     cLvl = xLvl
                 else:
-                    optMedZeroFunc = lambda c : (MedShk/MedPrice)**(-1.0/CRRAcon)*((xLvl-c)/MedPrice)**(CRRAmed/CRRAcon) - c
+                    optMedZeroFunc = lambda c : (MedShk/MedPrice)**(-1.0/CRRAcon)*\
+                                     ((xLvl-c)/MedPrice)**(CRRAmed/CRRAcon) - c
                     cLvl = brentq(optMedZeroFunc,0.0,xLvl) # Find solution to FOC
                 cLvlGrid[i,j] = cLvl
                 
@@ -89,7 +91,8 @@ class MedShockPolicyFunc(HARKobject):
             else:
                 xLvlGrid_tiled = np.tile(np.reshape(xLvlGrid,(xLvlGrid.size,1)),(1,MedShkGrid.size))
                 MedShkGrid_tiled = np.tile(np.reshape(MedShkGrid,(1,MedShkGrid.size)),(xLvlGrid.size,1))
-                dfdx = (CRRAmed/(CRRAcon*MedPrice))*(MedShkGrid_tiled/MedPrice)**(-1.0/CRRAcon)*((xLvlGrid_tiled - cLvlGrid)/MedPrice)**(CRRAmed/CRRAcon - 1.0)
+                dfdx = (CRRAmed/(CRRAcon*MedPrice))*(MedShkGrid_tiled/MedPrice)**(-1.0/CRRAcon)*\
+                       ((xLvlGrid_tiled - cLvlGrid)/MedPrice)**(CRRAmed/CRRAcon - 1.0)
                 dcdx = dfdx/(dfdx + 1.0)
                 dcdx[0,:] = dcdx[1,:] # approximation; function goes crazy otherwise
                 dcdx[:,0] = 1.0 # no Med when MedShk=0, so all x is c
@@ -682,7 +685,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.T_total):
             MedShkAvgNow  = self.MedShkAvg[t] # get shock distribution parameters
             MedShkStdNow  = self.MedShkStd[t]
-            MedShkDstnNow = approxLognormal(mu=np.log(MedShkAvgNow)-0.5*MedShkStdNow**2, sigma=MedShkStdNow, N=self.MedShkCount, tail_N=self.MedShkCountTail, tail_bound=[0,0.9])
+            MedShkDstnNow = approxLognormal(mu=np.log(MedShkAvgNow)-0.5*MedShkStdNow**2,\
+                sigma=MedShkStdNow,N=self.MedShkCount, tail_N=self.MedShkCountTail, tail_bound=[0,0.9])
             MedShkDstnNow = addDiscreteOutcomeConstantMean(MedShkDstnNow,0.0,0.0,sort=True) # add point at zero with no probability
             MedShkDstn.append(MedShkDstnNow)
         self.MedShkDstn = MedShkDstn
@@ -720,8 +724,10 @@ class MedShockConsumerType(PersistentShockConsumerType):
         trivial_grid = np.array([0.0,1.0]) # Trivial grid
                 
         # Make the policy functions for the terminal period
-        xFunc_terminal = TrilinearInterp(np.array([[[0.0,0.0],[0.0,0.0]],[[1.0,1.0],[1.0,1.0]]]),trivial_grid,trivial_grid,trivial_grid)
-        policyFunc_terminal = MedShockPolicyFunc(xFunc_terminal,xLvlGrid,MedShkGrid,MedPrice,self.CRRA,self.CRRAmed,xLvlCubicBool=self.CubicBool)
+        xFunc_terminal = TrilinearInterp(np.array([[[0.0,0.0],[0.0,0.0]],[[1.0,1.0],[1.0,1.0]]]),\
+                         trivial_grid,trivial_grid,trivial_grid)
+        policyFunc_terminal = MedShockPolicyFunc(xFunc_terminal,xLvlGrid,MedShkGrid,MedPrice,self.CRRA,\
+                              self.CRRAmed,xLvlCubicBool=self.CubicBool)
         cFunc_terminal = cThruXfunc(xFunc_terminal,policyFunc_terminal.cFunc)
         MedFunc_terminal = MedThruXfunc(xFunc_terminal,policyFunc_terminal.cFunc,MedPrice)
         
@@ -741,7 +747,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         # Construct the marginal (marginal) value function for the terminal period
         vPnvrs = vP_expected**(-1.0/self.CRRA)
         vPnvrs[0] = 0.0
-        vPnvrsFunc = BilinearInterp(np.tile(np.reshape(vPnvrs,(vPnvrs.size,1)),(1,trivial_grid.size)),mLvlGrid,trivial_grid)
+        vPnvrsFunc = BilinearInterp(np.tile(np.reshape(vPnvrs,(vPnvrs.size,1)),(1,trivial_grid.size)),\
+                     mLvlGrid,trivial_grid)
         vPfunc_terminal = MargValueFunc2D(vPnvrsFunc,self.CRRA)
         vPPfunc_terminal = MargMargValueFunc2D(vPnvrsFunc,self.CRRA)
         
@@ -819,7 +826,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.sim_periods):
             MedShkAvg = self.MedShkAvg[t_idx]
             MedShkStd = self.MedShkStd[t_idx]
-            MedShkHist[t,:] = drawLognormal(N=self.Nagents,mu=np.log(MedShkAvg)-0.5*MedShkStd**2,sigma=MedShkStd,seed=self.RNG.randint(0,2**31-1))
+            MedShkHist[t,:] = drawLognormal(N=self.Nagents,mu=np.log(MedShkAvg)-0.5*MedShkStd**2,\
+                              sigma=MedShkStd,seed=self.RNG.randint(0,2**31-1))
             # Advance the time index, looping if we've run out of income distributions
             t_idx += 1
             if t_idx >= len(self.MedShkAvg):
@@ -1117,7 +1125,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         
         # Make the constrained total spending function: spend all market resources
         trivial_grid = np.array([0.0,1.0]) # Trivial grid
-        spendAllFunc = TrilinearInterp(np.array([[[0.0,0.0],[0.0,0.0]],[[1.0,1.0],[1.0,1.0]]]),trivial_grid,trivial_grid,trivial_grid)
+        spendAllFunc = TrilinearInterp(np.array([[[0.0,0.0],[0.0,0.0]],[[1.0,1.0],[1.0,1.0]]]),\
+                       trivial_grid,trivial_grid,trivial_grid)
         self.xFuncNowCnst = VariableLowerBoundFunc3D(spendAllFunc,self.mLvlMinNow)
         
         self.mNrmMinNow = 0.0 # Needs to exist so as not to break when solution is created
@@ -1205,7 +1214,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         # Transform the expenditure function into policy functions for consumption and medical care
         aug_factor = 2
         xLvlGrid = makeGridExpMult(np.min(xLvl),np.max(xLvl),aug_factor*self.aXtraGrid.size,8)
-        policyFuncNow = MedShockPolicyFunc(xFuncNow,xLvlGrid,self.MedShkVals,self.MedPrice,self.CRRA,self.CRRAmed,xLvlCubicBool=self.CubicBool)
+        policyFuncNow = MedShockPolicyFunc(xFuncNow,xLvlGrid,self.MedShkVals,self.MedPrice,self.CRRA,\
+                        self.CRRAmed,xLvlCubicBool=self.CubicBool)
         cFuncNow = cThruXfunc(xFuncNow,policyFuncNow.cFunc)
         MedFuncNow = MedThruXfunc(xFuncNow,policyFuncNow.cFunc,self.MedPrice)
 
@@ -1213,7 +1223,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         vFuncNow, vPfuncNow = self.makevAndvPfuncs(policyFuncNow)
 
         # Pack up the solution and return it
-        solution_now = ConsumerSolution(cFunc=cFuncNow, vFunc=vFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow)
+        solution_now = ConsumerSolution(cFunc=cFuncNow, vFunc=vFuncNow, vPfunc=vPfuncNow,\
+                                        mNrmMin=self.mNrmMinNow)
         solution_now.MedFunc = MedFuncNow
         solution_now.policyFunc = policyFuncNow
         return solution_now
@@ -1375,7 +1386,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         MedCount = mLvl.shape[0]
         
         # Calculate the MPC and MPM at each gridpoint
-        EndOfPrdvPP = self.DiscFacEff*self.Rfree*self.Rfree*np.sum(self.vPPfuncNext(self.mLvlNext,self.pLvlNext)*self.ShkPrbs_temp,axis=0)
+        EndOfPrdvPP = self.DiscFacEff*self.Rfree*self.Rfree*np.sum(self.vPPfuncNext(self.mLvlNext,\
+                      self.pLvlNext)*self.ShkPrbs_temp,axis=0)
         EndOfPrdvPP = np.tile(np.reshape(EndOfPrdvPP,(1,pCount,EndOfPrdvPP.shape[1])),(MedCount,1,1))
         dcda        = EndOfPrdvPP/self.uPP(np.array(self.cLvlNow))
         dMedda      = EndOfPrdvPP/(self.MedShkVals_tiled*self.uMedPP(self.MedLvlNow))
@@ -1430,7 +1442,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
             consumption function, marginal value function, and minimum m.
         '''
         xLvl,mLvl,pLvl = self.getPointsForInterpolation(EndOfPrdvP,aLvl)
-        MedShk_temp    = np.tile(np.reshape(self.MedShkVals,(self.MedShkVals.size,1,1)),(1,mLvl.shape[1],mLvl.shape[2]))
+        MedShk_temp    = np.tile(np.reshape(self.MedShkVals,(self.MedShkVals.size,1,1)),\
+                         (1,mLvl.shape[1],mLvl.shape[2]))
         solution_now   = self.usePointsForInterpolation(xLvl,mLvl,pLvl,MedShk_temp,interpolator)
         return solution_now
         
@@ -1548,7 +1561,7 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
         on (mLvl,pLvl), with MedShk integrated out.
     '''
     solver = ConsMedShockSolver(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CRRAmed,Rfree,
-                            MedPrice,PermGroFac,PermIncCorr,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
+                MedPrice,PermGroFac,PermIncCorr,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
     solver.prepareToSolve()       # Do some preparatory work
     solution_now = solver.solve() # Solve the period
     return solution_now
@@ -1597,7 +1610,8 @@ if __name__ == '__main__':
     # Plot the savings function
     for j in range(MedicalExample.MedShkDstn[0][0].size):
         MedShk = MedicalExample.MedShkDstn[0][1][j]*np.ones_like(M)
-        Sav = M_temp - MedicalExample.solution[0].cFunc(M_temp,P,MedShk) - MedicalExample.MedPrice[0]*MedicalExample.solution[0].MedFunc(M_temp,P,MedShk)
+        Sav = M_temp - MedicalExample.solution[0].cFunc(M_temp,P,MedShk) - MedicalExample.MedPrice[0]*\
+              MedicalExample.solution[0].MedFunc(M_temp,P,MedShk)
         plt.plot(M_temp,Sav)
     print('End of period savings by medical need shock (constant permanent income)')
     plt.show()
