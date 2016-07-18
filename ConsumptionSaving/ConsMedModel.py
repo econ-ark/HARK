@@ -78,8 +78,6 @@ class MedShockPolicyFunc(HARKobject):
                     cLvl = xLvl
                 else:
                     optMedZeroFunc = lambda c : (MedShk/MedPrice)**(-1.0/CRRAcon)*((xLvl-c)/MedPrice)**(CRRAmed/CRRAcon) - c
-                    #print(MedShk)
-                    #print(xLvl)
                     cLvl = brentq(optMedZeroFunc,0.0,xLvl) # Find solution to FOC
                 cLvlGrid[i,j] = cLvl
                 
@@ -93,8 +91,8 @@ class MedShockPolicyFunc(HARKobject):
                 MedShkGrid_tiled = np.tile(np.reshape(MedShkGrid,(1,MedShkGrid.size)),(xLvlGrid.size,1))
                 dfdx = (CRRAmed/(CRRAcon*MedPrice))*(MedShkGrid_tiled/MedPrice)**(-1.0/CRRAcon)*((xLvlGrid_tiled - cLvlGrid)/MedPrice)**(CRRAmed/CRRAcon - 1.0)
                 dcdx = dfdx/(dfdx + 1.0)
-                dcdx[0,:] = dcdx[1,:] # approximation
-                dcdx[:,0] = 1.0 # unity when MedShk=0
+                dcdx[0,:] = dcdx[1,:] # approximation; function goes crazy otherwise
+                dcdx[:,0] = 1.0 # no Med when MedShk=0, so all x is c
                 cFromxFunc_by_MedShk = []
                 for j in range(MedShkGrid.size):
                     cFromxFunc_by_MedShk.append(CubicInterp(xLvlGrid,cLvlGrid[:,j],dcdx[:,j]))
@@ -387,7 +385,7 @@ class MedThruXfunc(HARKobject):
     def __call__(self,mLvl,pLvl,MedShk):
         '''
         Evaluate optimal medical care at given levels of market resources,
-        permanent income, and medical need shock
+        permanent income, and medical need shock.
         
         Parameters
         ----------
@@ -1273,8 +1271,7 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         vPnvrsNow  = np.concatenate((np.zeros((1,pCount)),self.uPinv(vPnow)))
         if self.vFuncBool:
             vNvrsNow  = np.concatenate((np.zeros((1,pCount)),self.uinv(vNow)),axis=0)
-            vNvrsPnow = vPnow*self.uinvP(vNow) # NEED TO FIGURE OUT MPC MAX IN THIS MODEL
-            #vNvrsPnow = np.concatenate((np.reshape(vNvrsPnow[0,:],(1,pCount)),vNvrsPnow),axis=0)
+            vNvrsPnow = vPnow*self.uinvP(vNow)
             vNvrsPnow = np.concatenate((np.zeros((1,pCount)),vNvrsPnow),axis=0)
                
         # Construct the pseudo-inverse value and marginal value functions over mLvl,pLvl
@@ -1331,8 +1328,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         pCount = mLvl.shape[1]
         MedCount = mLvl.shape[0]
         
-        # Loop over each permanent income level and medical shock and make a linear cFunc
-        xFunc_by_pLvl_and_MedShk = [] # Initialize the empty list of lists of 1D cFuncs
+        # Loop over each permanent income level and medical shock and make a linear xFunc
+        xFunc_by_pLvl_and_MedShk = [] # Initialize the empty list of lists of 1D xFuncs
         for i in range(pCount):
             temp_list = []
             pLvl_i = pLvl[0,i,0]
@@ -1343,7 +1340,7 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
                 temp_list.append(LinearInterp(m_temp,x_temp))
             xFunc_by_pLvl_and_MedShk.append(deepcopy(temp_list))
                 
-        # Combine the nested list of linear cFuncs into a single function
+        # Combine the nested list of linear xFuncs into a single function
         pLvl_temp = pLvl[0,:,0]
         MedShk_temp = MedShk[:,0,0]
         xFuncUncBase = BilinearInterpOnInterp1D(xFunc_by_pLvl_and_MedShk,pLvl_temp,MedShk_temp)
@@ -1391,10 +1388,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         MPX = np.concatenate((np.reshape(MPX[:,:,0],(MedCount,pCount,1)),MPX),axis=2) # NEED TO CALCULATE MPM AT NATURAL BORROWING CONSTRAINT
         MPX[0,:,0] = self.MPCmaxNow
         
-        # Initialize the empty list of lists of 1D cFuncs
-        xFunc_by_pLvl_and_MedShk = []
-        
-        # Loop over each permanent income level and medical shock and make a linear cFunc
+        # Loop over each permanent income level and medical shock and make a cubic xFunc
+        xFunc_by_pLvl_and_MedShk = [] # Initialize the empty list of lists of 1D xFuncs
         for i in range(pCount):
             temp_list = []
             pLvl_i = pLvl[0,i,0]
@@ -1406,7 +1401,7 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
                 temp_list.append(CubicInterp(m_temp,x_temp,MPX_temp))
             xFunc_by_pLvl_and_MedShk.append(deepcopy(temp_list))
                 
-        # Combine the nested list of linear cFuncs into a single function
+        # Combine the nested list of cubic xFuncs into a single function
         pLvl_temp = pLvl[0,:,0]
         MedShk_temp = MedShk[:,0,0]
         xFuncUncBase = BilinearInterpOnInterp1D(xFunc_by_pLvl_and_MedShk,pLvl_temp,MedShk_temp)
