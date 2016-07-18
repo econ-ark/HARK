@@ -1,16 +1,19 @@
-# -*- coding: utf-8 -*-
 """
-Created on Tue Apr 12 15:08:22 2016
+This file solves the Tractable Buffer Stock model for many different parameter values, keeping
+track of when the model generates an error.
+"""
 
-@author: kaufmana
-"""
+# First, tell Python what directories we will be using
 import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../ConsumptionSavingModel'))
+sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 sys.path.insert(0, os.path.abspath('./'))
 
+# Bring in the HARK model we want to test
 import TractableBufferStockModel as Model
+
+# Bring in...
 import ModelTesting as test
 
 base_primitives = {'UnempPrb' : .015,

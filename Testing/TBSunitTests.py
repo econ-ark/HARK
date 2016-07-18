@@ -7,7 +7,7 @@ Created on Thu Mar 24 11:01:50 2016
 import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../ConsumptionSavingModel'))
+sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 sys.path.insert(0, os.path.abspath('./'))
 
 import TractableBufferStockModel as Model
