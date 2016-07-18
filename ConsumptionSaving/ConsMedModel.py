@@ -23,126 +23,6 @@ utility       = CRRAutility
 utility_invP  = CRRAutility_invP
 utilityPP     = CRRAutilityPP
 
-class MedFromCfunc(HARKobject):
-    '''
-    A class to represent the medical care function for consumers.
-    '''
-    distance_critera = ['cFunc','CRRAcon','CRRAmed','MedPrice']
-    
-    def __init__(self,cFunc,CRRAcon,CRRAmed,MedPrice):
-        '''
-        Make a new medical care function.
-        
-        Parameters
-        -----------
-        cFunc : function
-            Consumption function, defined over market resources, permanent income,
-            and medical need shock.
-        CRRAcon : float
-            Coefficient of relative risk aversion for consumption.
-        CRRAmed : float
-            Coefficient of relative risk aversion for medical care.
-        MedPrice : float
-            Relative price of medical care.
-            
-        Returns
-        -------
-        None
-        '''
-        self.cFunc = cFunc
-        self.CRRAcon = CRRAcon
-        self.CRRAmed = CRRAmed
-        self.MedPrice = MedPrice
-        
-    def __call__(self,mLvl,pLvl,MedShk):
-        '''
-        Evaluate the medical care function at given state space points.
-        
-        Parameters
-        ----------
-        mLvl : np.array
-            Market resource levels.
-        mLvl : np.array
-            Permanent income levels.
-        MedShk : np.array
-            Medical need shocks.
-            
-        Returns
-        -------
-        Med : np.array
-            Array of same shape as inputs, containing medical care levels.
-        '''
-        Med = (MedShk/self.MedPrice)**(1.0/self.CRRAmed) * self.cFunc(mLvl,pLvl,MedShk)**(self.CRRAcon/self.CRRAmed)
-        return Med
-        
-    def derivativeX(self,mLvl,pLvl,MedShk):
-        '''
-        Evaluate marginal medical care w.r.t market resources at given state
-        space points.
-        
-        Parameters
-        ----------
-        mLvl : np.array
-            Market resource levels.
-        mLvl : np.array
-            Permanent income levels.
-        MedShk : np.array
-            Medical need shocks.
-            
-        Returns
-        -------
-        dMeddm : np.array
-            Array of same shape as inputs, containing marginal medical care.
-        '''
-        dMeddm = (MedShk/self.MedPrice)**(1.0/self.CRRAmed) * self.cFunc.derivativeX(mLvl,pLvl,MedShk) * self.cFunc(mLvl,pLvl,MedShk)**(self.CRRAcon/self.CRRAmed - 1.0)
-        return dMeddm
-        
-    def derivativeY(self,mLvl,pLvl,MedShk):
-        '''
-        Evaluate marginal medical care w.r.t permanent income at given state
-        space points.
-        
-        Parameters
-        ----------
-        mLvl : np.array
-            Market resource levels.
-        mLvl : np.array
-            Permanent income levels.
-        MedShk : np.array
-            Medical need shocks.
-            
-        Returns
-        -------
-        dMeddp : np.array
-            Array of same shape as inputs, containing marginal medical care.
-        '''
-        dMeddp = (MedShk/self.MedPrice)**(1.0/self.CRRAmed) * self.cFunc.derivativeY(mLvl,pLvl,MedShk) * self.cFunc(mLvl,pLvl,MedShk)**(self.CRRAcon/self.CRRAmed - 1.0)
-        return dMeddp
-        
-    def derivativeZ(self,mLvl,pLvl,MedShk):
-        '''
-        Evaluate marginal medical care w.r.t medical need shock at given state
-        space points.
-        
-        Parameters
-        ----------
-        mLvl : np.array
-            Market resource levels.
-        mLvl : np.array
-            Permanent income levels.
-        MedShk : np.array
-            Medical need shocks.
-            
-        Returns
-        -------
-        dMeddMedShk : np.array
-            Array of same shape as inputs, containing marginal medical care.
-        '''
-        first_term = (MedShk/self.MedPrice)**(1.0/self.CRRAmed) * self.cFunc.derivativeZ(mLvl,pLvl,MedShk) * self.cFunc(mLvl,pLvl,MedShk)**(self.CRRAcon/self.CRRAmed - 1.0)
-        second_term = (1.0/(MedShk*self.MedPrice)) * (MedShk/self.MedPrice)**(1.0/self.CRRAmed - 1.0) * self.cFunc(mLvl,pLvl,MedShk)**(self.CRRAcon/self.CRRAmed)
-        dMeddMedShk = first_term + second_term
-        return dMeddMedShk
-
 
 class MedShockPolicyFunc(HARKobject):
     '''
@@ -198,6 +78,8 @@ class MedShockPolicyFunc(HARKobject):
                     cLvl = xLvl
                 else:
                     optMedZeroFunc = lambda c : (MedShk/MedPrice)**(-1.0/CRRAcon)*((xLvl-c)/MedPrice)**(CRRAmed/CRRAcon) - c
+                    #print(MedShk)
+                    #print(xLvl)
                     cLvl = brentq(optMedZeroFunc,0.0,xLvl) # Find solution to FOC
                 cLvlGrid[i,j] = cLvl
                 
@@ -207,8 +89,16 @@ class MedShockPolicyFunc(HARKobject):
                 # WRITE BICUBICINTERP VERSION
                 1 + 1
             else:
-                # WRITE LINEARINTERPONINTERP1D / CUBIC SPLINE VERSION
-                1 + 1
+                xLvlGrid_tiled = np.tile(np.reshape(xLvlGrid,(xLvlGrid.size,1)),(1,MedShkGrid.size))
+                MedShkGrid_tiled = np.tile(np.reshape(MedShkGrid,(1,MedShkGrid.size)),(xLvlGrid.size,1))
+                dfdx = (CRRAmed/(CRRAcon*MedPrice))*(MedShkGrid_tiled/MedPrice)**(-1.0/CRRAcon)*((xLvlGrid_tiled - cLvlGrid)/MedPrice)**(CRRAmed/CRRAcon - 1.0)
+                dcdx = dfdx/(dfdx + 1.0)
+                dcdx[0,:] = dcdx[1,:] # approximation
+                dcdx[:,0] = 1.0 # unity when MedShk=0
+                cFromxFunc_by_MedShk = []
+                for j in range(MedShkGrid.size):
+                    cFromxFunc_by_MedShk.append(CubicInterp(xLvlGrid,cLvlGrid[:,j],dcdx[:,j]))
+                cFunc = LinearInterpOnInterp1D(cFromxFunc_by_MedShk,MedShkGrid)
         else:
             cFunc = BilinearInterp(cLvlGrid,xLvlGrid,MedShkGrid)
         self.cFunc = cFunc
@@ -833,7 +723,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
                 
         # Make the policy functions for the terminal period
         xFunc_terminal = TrilinearInterp(np.array([[[0.0,0.0],[0.0,0.0]],[[1.0,1.0],[1.0,1.0]]]),trivial_grid,trivial_grid,trivial_grid)
-        policyFunc_terminal = MedShockPolicyFunc(xFunc_terminal,xLvlGrid,MedShkGrid,MedPrice,self.CRRA,self.CRRAmed)
+        policyFunc_terminal = MedShockPolicyFunc(xFunc_terminal,xLvlGrid,MedShkGrid,MedPrice,self.CRRA,self.CRRAmed,xLvlCubicBool=self.CubicBool)
         cFunc_terminal = cThruXfunc(xFunc_terminal,policyFunc_terminal.cFunc)
         MedFunc_terminal = MedThruXfunc(xFunc_terminal,policyFunc_terminal.cFunc,MedPrice)
         
@@ -1315,8 +1205,9 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         xFuncNow = LowerEnvelope3D(xFuncNowUnc,xFuncNowCnst)
 
         # Transform the expenditure function into policy functions for consumption and medical care
-        xLvlGrid = makeGridExpMult(np.min(xLvl),np.max(xLvl),2*self.aXtraGrid.size,8)
-        policyFuncNow = MedShockPolicyFunc(xFuncNow,xLvlGrid,self.MedShkVals,self.MedPrice,self.CRRA,self.CRRAmed)
+        aug_factor = 2
+        xLvlGrid = makeGridExpMult(np.min(xLvl),np.max(xLvl),aug_factor*self.aXtraGrid.size,8)
+        policyFuncNow = MedShockPolicyFunc(xFuncNow,xLvlGrid,self.MedShkVals,self.MedPrice,self.CRRA,self.CRRAmed,xLvlCubicBool=self.CubicBool)
         cFuncNow = cThruXfunc(xFuncNow,policyFuncNow.cFunc)
         MedFuncNow = MedThruXfunc(xFuncNow,policyFuncNow.cFunc,self.MedPrice)
 
@@ -1679,17 +1570,17 @@ if __name__ == '__main__':
     
     do_simulation = False
 
-    # Make an example medical shocks consumer type
+    # Make and solve an example medical shocks consumer type
     MedicalExample = MedShockConsumerType(**Params.init_medical_shocks)
     MedicalExample.cycles = 0
     t_start = clock()
     MedicalExample.solve()
     t_end = clock()
     print('Solving a medical shocks consumer took ' + mystr(t_end-t_start) + ' seconds.')
-    
+        
     # Plot the consumption function
     M = np.linspace(0,30,300)
-    pLvl = 2.0
+    pLvl = 1.0
     P = pLvl*np.ones_like(M)
     for j in range(MedicalExample.MedShkDstn[0][0].size):
         MedShk = MedicalExample.MedShkDstn[0][1][j]*np.ones_like(M)
@@ -1722,9 +1613,9 @@ if __name__ == '__main__':
         pLvl = MedicalExample.pLvlGrid[0][p]
         M_temp = pLvl*M + MedicalExample.solution[0].mLvlMin(pLvl)
         P = pLvl*np.ones_like(M)
-        v = MedicalExample.solution[0].vPfunc(M_temp,P)**(-1.0/MedicalExample.CRRA)
-        plt.plot(M_temp,v)
-    print('Marginal value function')
+        vP = MedicalExample.solution[0].vPfunc(M_temp,P)**(-1.0/MedicalExample.CRRA)
+        plt.plot(M_temp,vP)
+    print('Marginal value function (pseudo inverse)')
     plt.show()
     
     if MedicalExample.vFuncBool:
@@ -1736,7 +1627,7 @@ if __name__ == '__main__':
             P = pLvl*np.ones_like(M)
             v = CRRAutility_inv(MedicalExample.solution[0].vFunc(M_temp,P),gam=MedicalExample.CRRA)
             plt.plot(M_temp,v)
-        print('Value function')
+        print('Value function (pseudo inverse)')
         plt.show()
     
     if do_simulation:
