@@ -52,7 +52,7 @@ T_retire = 0                        # Period of retirement (0 --> no retirement)
 # A few other parameters
 BoroCnstArt = None                  # Artificial borrowing constraint; imposed minimum level of end-of period assets
 CubicBool = True                    # Use cubic spline interpolation when True, linear interpolation when False
-vFuncBool = True                    # Whether to calculate the value function during solution
+vFuncBool = False                   # Whether to calculate the value function during solution
 T_total = 1                         # Total number of periods in cycle for this agent
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
@@ -210,12 +210,12 @@ init_persistent_shocks['PermIncCorr'] = PermIncCorr
 # ----- Define additional parameters for the medical shocks model -------------
 # -----------------------------------------------------------------------------
 
-CRRAmed = 1.5*CRRA    # Coefficient of relative risk aversion for medical care
+CRRAmed = 1.5*CRRA     # Coefficient of relative risk aversion for medical care
 MedShkAvg = [0.001]    # Average of medical need shocks
-MedShkStd = [5.0]     # Standard deviation of (log) medical need shocks
-MedShkCount = 5      # Number of medical shock points in "body"
-MedShkCountTail = 15  # Number of medical shock points in "tail" (upper only)
-MedPrice = [1.5]      # Relative price of a unit of medical care
+MedShkStd = [5.0]      # Standard deviation of (log) medical need shocks
+MedShkCount = 5        # Number of medical shock points in "body"
+MedShkCountTail = 15   # Number of medical shock points in "tail" (upper only)
+MedPrice = [1.5]       # Relative price of a unit of medical care
 
 # Make a dictionary for the "medical shocks" model
 init_medical_shocks = copy(init_persistent_shocks)
@@ -226,4 +226,4 @@ init_medical_shocks['MedShkCount'] = MedShkCount
 init_medical_shocks['MedShkCountTail'] = MedShkCountTail
 init_medical_shocks['MedPrice'] = MedPrice
 init_medical_shocks['aXtraCount'] = 32
-init_medical_shocks['CubicBool'] = False
+#init_medical_shocks['CubicBool'] = False

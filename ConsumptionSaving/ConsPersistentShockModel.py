@@ -123,12 +123,36 @@ class MargValueFunc2D(HARKobject):
             
         Returns
         -------
-        v : float or np.array
+        vP : float or np.array
             Marginal value of market resources when beginning this period with
-            market resources m and permanent income p; has same size as inputs\
+            market resources m and permanent income p; has same size as inputs
             m and p.
         '''
         return utilityP(self.cFunc(m,p),gam=self.CRRA)
+        
+    def derivativeX(self,m,p):
+        '''
+        Evaluate the first derivative with respect to market resources of the
+        marginal value function at given levels of market resources m and per-
+        manent income p.
+        
+        Parameters
+        ----------
+        m : float or np.array
+            Market resources whose value is to be calcuated.
+        p : float or np.array
+            Permanent income levels whose value is to be calculated.
+            
+        Returns
+        -------
+        vPP : float or np.array
+            Marginal marginal value of market resources when beginning this period
+            with market resources m and permanent income p; has same size as inputs
+            m and p.
+        '''
+        c = self.cFunc(m,p)
+        MPC = self.cFunc.derivativeX(m,p)
+        return MPC*utilityPP(c,gam=self.CRRA)
         
 class MargMargValueFunc2D(HARKobject):
     '''
