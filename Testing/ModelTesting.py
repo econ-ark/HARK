@@ -56,11 +56,14 @@ class parameterCheck(object):
         returns a dictionary that specifies the range and intervals for each parameter
         
         '''
-        mixMaxRangeTupples = {k:(v-self._multiplier*v,v+self._multiplier*v,v/self._interval) 
+        mixMaxRangeTuples = {k:(v-self._multiplier*v,v+self._multiplier*v,v/self._interval) 
                               for k,v in self._base_primitives.iteritems()}
+
         totalLoops = self._interval**len(self._base_primitives)
+
         print("There are " + str(totalLoops)+ " parameter combinations to test.")
-        return mixMaxRangeTupples
+        
+        return mixMaxRangeTuples
         
     def findTestParameters(self):
         '''
@@ -84,8 +87,8 @@ class parameterCheck(object):
     
     def testParameters(self):
         '''
-        runs the model on the test parameters and store error results
-        print out the error messages that were thrown
+        Runs the model on the test parameters and stores the error results.
+        Also prints out the error messages that were thrown.
         '''        
         
         self.runModel(self._testParams)
@@ -109,7 +112,8 @@ class parameterCheck(object):
         self.runModel(pairwise)
         '''
         pass
-    def runModel(self,paramtersToTest):
+    
+    def runModel(self,parametersToTest):
         '''
         run the model using each set of test parameters.  for each model, a new
         object (an instance of parameterInstanceCheck) records the results of
@@ -117,9 +121,9 @@ class parameterCheck(object):
         
         Each result is places in the appropriate list (failedParams or validParams)
         '''
-        for i in range(len(paramtersToTest)):
+        for i in range(len(parametersToTest)):
             tempDict   = dict(self._base_primitives)
-            tempParams = paramtersToTest[i]
+            tempParams = parametersToTest[i]
             testData   = parameterInstanceCheck(i,tempParams,tempDict)
             Test       = self._model(**tempParams)
             try:
@@ -150,7 +154,8 @@ class parameterInstanceCheck(object):
     '''
     this class holds information for a single test of a model
     '''
-    def __init__(self,testNumber,base_primitives,original_primitives,errorBoolean=False,errorCode=None,tracebackText=None):
+    def __init__(self,testNumber,base_primitives,original_primitives,errorBoolean=False,
+                 errorCode=None,tracebackText=None):
         '''
         testNumber: the test number
         
@@ -182,3 +187,39 @@ class parameterInstanceCheck(object):
             traceback.print_exception(*self._tracebackText)
         except TypeError:
             print("The test was run successfully - no error generated")
+            
+            
+if __name__ == '__main__': 
+    """
+    Solve the Tractable Buffer Stock model for many different parameter values, keeping
+    track of when the model generates an error.
+    """
+
+    # Bring in the TractableBufferStockModel to test it
+    import TractableBufferStockModel as Model
+    
+    
+    base_primitives = {'UnempPrb' : .015,
+                       'DiscFac' : 0.9,
+                       'Rfree' : 1.1,
+                       'PermGroFac' : 1.05,
+                       'CRRA' : .95}
+                       
+    # Assign a model and base parameters to be checked
+    TBSCheck = parameterCheck(Model.TractableConsumerType,base_primitives)
+    
+    #run the testing function.  This runs the model multiple times
+    TBSCheck.testParameters()
+    print("-----------------------------------------------------------------------")
+    
+    #get a test result and find out more info
+    test100 = TBSCheck.test_results[0]
+    print("the test number is : " + str(test100.testNumber))
+    print("")
+    print("the test parameters were : " + str(test100.tested_primitives))
+    print("")
+    print("the error code is : " + str(test100.errorCode))
+    print("")
+    print("the traceback for the error looked like : ")
+    test100.traceback()
+    
