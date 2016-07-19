@@ -107,7 +107,7 @@ For users unfamiliar with OOP, we strongly encourage you to review the backgroun
 \\
 
 \noindent
-This imports the module and gives it a local name of \texttt{import\_name}. We can access a function within this module by simply typing: \texttt{import\_name.function\_name()}. The following example will illustrate the usage of these commands. There is a module in HARK named \texttt{HARKutilities}. Amongst other things, it contains the function for calculating CRRA utility. In order to calculate CRRA utility with a consumption of 1 and a coefficient of risk aversion of 2 we run:\\
+This imports the module and gives it a local name of \texttt{import\_name}. We can access a function within this module by simply typing: \texttt{import\_name.function\_name()}. The following example will illustrate the usage of these commands. \texttt{CRRAutility} is the function object for calculating CRRA utility supplied by \texttt{HARKutilities} module. \texttt{CRRAutility} is called \textit{attributes} of the module  \texttt{HARKutilities}. In order to calculate CRRA utility with a consumption of 1 and a coefficient of risk aversion of 2 we run:\\
 
 \texttt{import HARKutilities as Hutil}
 
@@ -272,7 +272,9 @@ The \texttt{ConsIndShockModel} module defines the class \texttt{PerfForesightCon
 
 \texttt{    LivPrb = [0.99,0.98,0.97,0.96,0.95,0.94,0.93,0.92,0.91,0.90],}
 
-\texttt{    PermGroFac = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02])}
+\texttt{    PermGroFac = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02],}
+
+\texttt{    Nagents=1000)}
 
 \noindent \texttt{MyConsumer.solve()}
 
@@ -308,7 +310,7 @@ To solve an infinite horizon problem in which the agent experiences the same one
 
 \noindent \texttt{OtherConsumer = PerfForesightConsumerType(cycles=0, CRRA=3.5, Rfree=1.02,}
 
-\texttt{DiscFac=0.95, LivPrb = [0.99], PermGroFac = [1.01])}
+\texttt{DiscFac=0.95, LivPrb = [0.99], PermGroFac = [1.01], Nagents=1000 )}
 
 \noindent \texttt{OtherConsumer.solve()}
 
