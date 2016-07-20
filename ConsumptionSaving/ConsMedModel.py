@@ -15,7 +15,8 @@ from ConsIndShockModel import ConsumerSolution
 from HARKinterpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, CubicInterp,\
                               LinearInterp, LowerEnvelope3D, UpperEnvelope, LinearInterpOnInterp1D
 from ConsPersistentShockModel import ConsPersistentShockSolver, PersistentShockConsumerType,\
-                                     ValueFunc2D, MargValueFunc2D, MargMargValueFunc2D, VariableLowerBoundFunc2D
+                                     ValueFunc2D, MargValueFunc2D, MargMargValueFunc2D, \
+                                     VariableLowerBoundFunc2D
 from copy import copy, deepcopy
 
 utility_inv   = CRRAutility_inv
@@ -33,7 +34,8 @@ class MedShockPolicyFunc(HARKobject):
     '''
     distance_criteria = ['xFunc','cFunc','MedPrice']
     
-    def __init__(self,xFunc,xLvlGrid,MedShkGrid,MedPrice,CRRAcon,CRRAmed,xLvlCubicBool=False,MedShkCubicBool=False):
+    def __init__(self,xFunc,xLvlGrid,MedShkGrid,MedPrice,CRRAcon,CRRAmed,xLvlCubicBool=False,
+                 MedShkCubicBool=False):
         '''
         Make a new MedShockPolicyFunc.
         
@@ -86,11 +88,12 @@ class MedShockPolicyFunc(HARKobject):
         # Construct the consumption function and medical care function
         if xLvlCubicBool:
             if MedShkCubicBool:
-                # WRITE BICUBICINTERP VERSION
-                1 + 1
+                raise NotImplementedError(), 'Bicubic interpolation not yet implemented'
             else:
-                xLvlGrid_tiled = np.tile(np.reshape(xLvlGrid,(xLvlGrid.size,1)),(1,MedShkGrid.size))
-                MedShkGrid_tiled = np.tile(np.reshape(MedShkGrid,(1,MedShkGrid.size)),(xLvlGrid.size,1))
+                xLvlGrid_tiled   = np.tile(np.reshape(xLvlGrid,(xLvlGrid.size,1)),
+                                           (1,MedShkGrid.size))
+                MedShkGrid_tiled = np.tile(np.reshape(MedShkGrid,(1,MedShkGrid.size)),
+                                           (xLvlGrid.size,1))
                 dfdx = (CRRAmed/(CRRAcon*MedPrice))*(MedShkGrid_tiled/MedPrice)**(-1.0/CRRAcon)*\
                        ((xLvlGrid_tiled - cLvlGrid)/MedPrice)**(CRRAmed/CRRAcon - 1.0)
                 dcdx = dfdx/(dfdx + 1.0)
@@ -589,7 +592,8 @@ class VariableLowerBoundFunc3D(HARKobject):
             evaluated at (x,y,z), of same shape as inputs.
         '''
         xShift,xShiftDer = self.lowerBound.eval_with_derivative(y)
-        dfdy_out = self.func.derivativeY(x-xShift,y,z) - xShiftDer*self.func.derivativeX(x-xShift,y,z)
+        dfdy_out = self.func.derivativeY(x-xShift,y,z) - \
+                   xShiftDer*self.func.derivativeX(x-xShift,y,z)
         return dfdy_out
         
     def derivativeZ(self,x,y,z):
@@ -686,7 +690,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
             MedShkAvgNow  = self.MedShkAvg[t] # get shock distribution parameters
             MedShkStdNow  = self.MedShkStd[t]
             MedShkDstnNow = approxLognormal(mu=np.log(MedShkAvgNow)-0.5*MedShkStdNow**2,\
-                sigma=MedShkStdNow,N=self.MedShkCount, tail_N=self.MedShkCountTail, tail_bound=[0,0.9])
+                            sigma=MedShkStdNow,N=self.MedShkCount, tail_N=self.MedShkCountTail, 
+                            tail_bound=[0,0.9])
             MedShkDstnNow = addDiscreteOutcomeConstantMean(MedShkDstnNow,0.0,0.0,sort=True) # add point at zero with no probability
             MedShkDstn.append(MedShkDstnNow)
         self.MedShkDstn = MedShkDstn
@@ -726,8 +731,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         # Make the policy functions for the terminal period
         xFunc_terminal = TrilinearInterp(np.array([[[0.0,0.0],[0.0,0.0]],[[1.0,1.0],[1.0,1.0]]]),\
                          trivial_grid,trivial_grid,trivial_grid)
-        policyFunc_terminal = MedShockPolicyFunc(xFunc_terminal,xLvlGrid,MedShkGrid,MedPrice,self.CRRA,\
-                              self.CRRAmed,xLvlCubicBool=self.CubicBool)
+        policyFunc_terminal = MedShockPolicyFunc(xFunc_terminal,xLvlGrid,MedShkGrid,MedPrice,
+                              self.CRRA,self.CRRAmed,xLvlCubicBool=self.CubicBool)
         cFunc_terminal = cThruXfunc(xFunc_terminal,policyFunc_terminal.cFunc)
         MedFunc_terminal = MedThruXfunc(xFunc_terminal,policyFunc_terminal.cFunc,MedPrice)
         
@@ -747,8 +752,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         # Construct the marginal (marginal) value function for the terminal period
         vPnvrs = vP_expected**(-1.0/self.CRRA)
         vPnvrs[0] = 0.0
-        vPnvrsFunc = BilinearInterp(np.tile(np.reshape(vPnvrs,(vPnvrs.size,1)),(1,trivial_grid.size)),\
-                     mLvlGrid,trivial_grid)
+        vPnvrsFunc = BilinearInterp(np.tile(np.reshape(vPnvrs,(vPnvrs.size,1)),
+                     (1,trivial_grid.size)),mLvlGrid,trivial_grid)
         vPfunc_terminal = MargValueFunc2D(vPnvrsFunc,self.CRRA)
         vPPfunc_terminal = MargMargValueFunc2D(vPnvrsFunc,self.CRRA)
         
@@ -1020,10 +1025,10 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
             Array of permanent income levels at which to solve the problem.
         vFuncBool: boolean
             An indicator for whether the value function should be computed and
-            included in the reported solution.  Can't yet handle vFuncBool=True.
+            included in the reported solution.
         CubicBool: boolean
             An indicator for whether the solver should use cubic or linear inter-
-            polation.  Can't yet handle CubicBool=True.
+            polation.  
                         
         Returns
         -------
@@ -1064,7 +1069,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         None
         '''
         # Run basic version of this method
-        ConsPersistentShockSolver.setAndUpdateValues(self,self.solution_next,self.IncomeDstn,self.LivPrb,self.DiscFac)
+        ConsPersistentShockSolver.setAndUpdateValues(self,self.solution_next,self.IncomeDstn,
+                                                     self.LivPrb,self.DiscFac)
         
         # Also unpack the medical shock distribution
         self.MedShkPrbs = self.MedShkDstn[0]
@@ -1160,8 +1166,10 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         
         # Calculate endogenous gridpoints and controls
         cLvlNow = np.tile(np.reshape(self.uPinv(EndOfPrdvP),(1,pCount,mCount)),(MedCount,1,1))
-        MedBaseNow = np.tile(np.reshape(self.uMedPinv(self.MedPrice*EndOfPrdvP),(1,pCount,mCount)),(MedCount,1,1))
-        MedShkVals_tiled = np.tile(np.reshape(self.MedShkVals**(1.0/self.CRRAmed),(MedCount,1,1)),(1,pCount,mCount))
+        MedBaseNow = np.tile(np.reshape(self.uMedPinv(self.MedPrice*EndOfPrdvP),(1,pCount,mCount)),
+                             (MedCount,1,1))
+        MedShkVals_tiled = np.tile(np.reshape(self.MedShkVals**(1.0/self.CRRAmed),(MedCount,1,1)),
+                                   (1,pCount,mCount))
         MedLvlNow = MedShkVals_tiled*MedBaseNow
         aLvlNow_tiled = np.tile(np.reshape(aLvlNow,(1,pCount,mCount)),(MedCount,1,1))
         xLvlNow = cLvlNow + self.MedPrice*MedLvlNow
@@ -1169,7 +1177,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
 
         # Limiting consumption is zero as m approaches the natural borrowing constraint
         x_for_interpolation = np.concatenate((np.zeros((MedCount,pCount,1)),xLvlNow),axis=-1)
-        temp = np.tile(self.BoroCnstNat(np.reshape(self.pLvlGrid,(1,self.pLvlGrid.size,1))),(MedCount,1,1))
+        temp = np.tile(self.BoroCnstNat(np.reshape(self.pLvlGrid,(1,self.pLvlGrid.size,1))),
+                       (MedCount,1,1))
         m_for_interpolation = np.concatenate((temp,mLvlNow),axis=-1)
         
         # Make a 3D array of permanent income for interpolation
@@ -1214,8 +1223,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         # Transform the expenditure function into policy functions for consumption and medical care
         aug_factor = 2
         xLvlGrid = makeGridExpMult(np.min(xLvl),np.max(xLvl),aug_factor*self.aXtraGrid.size,8)
-        policyFuncNow = MedShockPolicyFunc(xFuncNow,xLvlGrid,self.MedShkVals,self.MedPrice,self.CRRA,\
-                        self.CRRAmed,xLvlCubicBool=self.CubicBool)
+        policyFuncNow = MedShockPolicyFunc(xFuncNow,xLvlGrid,self.MedShkVals,self.MedPrice,
+                        self.CRRA,self.CRRAmed,xLvlCubicBool=self.CubicBool)
         cFuncNow = cThruXfunc(xFuncNow,policyFuncNow.cFunc)
         MedFuncNow = MedThruXfunc(xFuncNow,policyFuncNow.cFunc,self.MedPrice)
 
@@ -1255,7 +1264,8 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         
         # Make temporary grids to evaluate the consumption function
         temp_grid  = np.tile(np.reshape(self.aXtraGrid,(mCount,1,1)),(1,pCount,MedCount))
-        aMinGrid   = np.tile(np.reshape(self.mLvlMinNow(self.pLvlGrid),(1,pCount,1)),(mCount,1,MedCount))
+        aMinGrid   = np.tile(np.reshape(self.mLvlMinNow(self.pLvlGrid),(1,pCount,1)),
+                             (mCount,1,MedCount))
         pGrid      = np.tile(np.reshape(self.pLvlGrid,(1,pCount,1)),(mCount,1,MedCount))
         mGrid      = temp_grid*pGrid + aMinGrid
         if self.pLvlGrid[0] == 0:
@@ -1278,8 +1288,9 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         vPnow  = np.sum(vPgrid*probsGrid,axis=2)
         
         # Add vPnvrs=0 at m=mLvlMin to close it off at the bottom (and vNvrs=0)
-        mGrid_small = np.concatenate((np.reshape(self.mLvlMinNow(self.pLvlGrid),(1,pCount)),mGrid[:,:,0]))
-        vPnvrsNow  = np.concatenate((np.zeros((1,pCount)),self.uPinv(vPnow)))
+        mGrid_small = np.concatenate((np.reshape(self.mLvlMinNow(self.pLvlGrid),
+                                                 (1,pCount)),mGrid[:,:,0]))
+        vPnvrsNow   = np.concatenate((np.zeros((1,pCount)),self.uPinv(vPnow)))
         if self.vFuncBool:
             vNvrsNow  = np.concatenate((np.zeros((1,pCount)),self.uinv(vNow)),axis=0)
             vNvrsPnow = vPnow*self.uinvP(vNow)
@@ -1547,10 +1558,10 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
         Array of permanent income levels at which to solve the problem.
     vFuncBool: boolean
         An indicator for whether the value function should be computed and
-        included in the reported solution.  Can't yet handle vFuncBool=True.
+        included in the reported solution.
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
-        polation.  Can't yet handle CubicBool=True.
+        polation.
                     
     Returns
     -------
