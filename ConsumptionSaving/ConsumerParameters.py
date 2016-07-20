@@ -210,12 +210,12 @@ init_persistent_shocks['PermIncCorr'] = PermIncCorr
 # ----- Define additional parameters for the medical shocks model -------------
 # -----------------------------------------------------------------------------
 
-CRRAmed = 1.5*CRRA    # Coefficient of relative risk aversion for medical care
+CRRAmed = 1.5*CRRA     # Coefficient of relative risk aversion for medical care
 MedShkAvg = [0.001]    # Average of medical need shocks
-MedShkStd = [5.0]     # Standard deviation of (log) medical need shocks
-MedShkCount = 5      # Number of medical shock points in "body"
-MedShkCountTail = 15  # Number of medical shock points in "tail" (upper only)
-MedPrice = [1.5]      # Relative price of a unit of medical care
+MedShkStd = [5.0]      # Standard deviation of (log) medical need shocks
+MedShkCount = 5        # Number of medical shock points in "body"
+MedShkCountTail = 15   # Number of medical shock points in "tail" (upper only)
+MedPrice = [1.5]       # Relative price of a unit of medical care
 
 # Make a dictionary for the "medical shocks" model
 init_medical_shocks = copy(init_persistent_shocks)
@@ -225,6 +225,4 @@ init_medical_shocks['MedShkStd'] = MedShkStd
 init_medical_shocks['MedShkCount'] = MedShkCount
 init_medical_shocks['MedShkCountTail'] = MedShkCountTail
 init_medical_shocks['MedPrice'] = MedPrice
-init_explicit_perm_inc['aXtraCount'] = 48
-init_explicit_perm_inc['CubicBool'] = False
-init_medical_shocks['aXtraExtra'] = [1e-10,1e-9,1e-8,1e-7,1e-6,1e-5,1e-4]
+init_medical_shocks['aXtraCount'] = 32
