@@ -123,12 +123,36 @@ class MargValueFunc2D(HARKobject):
             
         Returns
         -------
-        v : float or np.array
+        vP : float or np.array
             Marginal value of market resources when beginning this period with
-            market resources m and permanent income p; has same size as inputs\
+            market resources m and permanent income p; has same size as inputs
             m and p.
         '''
         return utilityP(self.cFunc(m,p),gam=self.CRRA)
+        
+    def derivativeX(self,m,p):
+        '''
+        Evaluate the first derivative with respect to market resources of the
+        marginal value function at given levels of market resources m and per-
+        manent income p.
+        
+        Parameters
+        ----------
+        m : float or np.array
+            Market resources whose value is to be calcuated.
+        p : float or np.array
+            Permanent income levels whose value is to be calculated.
+            
+        Returns
+        -------
+        vPP : float or np.array
+            Marginal marginal value of market resources when beginning this period
+            with market resources m and permanent income p; has same size as inputs
+            m and p.
+        '''
+        c = self.cFunc(m,p)
+        MPC = self.cFunc.derivativeX(m,p)
+        return MPC*utilityPP(c,gam=self.CRRA)
         
 class MargMargValueFunc2D(HARKobject):
     '''
@@ -474,11 +498,12 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         pLvlCount   = self.pLvlGrid.size
         aNrmCount   = self.aXtraGrid.size
         pLvlNow     = np.tile(self.pLvlGrid,(aNrmCount,1)).transpose()
-        aLvlNow     = np.tile(np.asarray(self.aXtraGrid),(pLvlCount,1))*pLvlNow + self.BoroCnstNat(pLvlNow)
+        aLvlNow     = np.tile(self.aXtraGrid,(pLvlCount,1))*pLvlNow + self.BoroCnstNat(pLvlNow)
         pLvlNow_tiled = np.tile(pLvlNow,(ShkCount,1,1))
         aLvlNow_tiled = np.tile(aLvlNow,(ShkCount,1,1)) # shape = (ShkCount,pLvlCount,aNrmCount)
         if self.pLvlGrid[0] == 0.0:  # aLvl turns out badly if pLvl is 0 at bottom
-            aLvlNow_tiled[:,0,:] = aLvlNow_tiled[:,1,:]
+            aLvlNow[0,:] = self.aXtraGrid
+            aLvlNow_tiled[:,0,:] = np.tile(self.aXtraGrid,(ShkCount,1))
         
         # Tile arrays of the income shocks and put them into useful shapes
         PermShkVals_tiled = np.transpose(np.tile(self.PermShkValsNext,(aNrmCount,pLvlCount,1)),(2,1,0))
@@ -536,9 +561,12 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         EndOfPrdvNvrsP      = EndOfPrdvP*self.uinvP(EndOfPrdv)
         
         # Add points at mLvl=zero
-        EndOfPrdvNvrs       = np.concatenate((np.zeros((self.pLvlGrid.size,1)),EndOfPrdvNvrs),axis=1)
-        EndOfPrdvNvrsP      = np.concatenate((np.reshape(EndOfPrdvNvrsP[:,0],(self.pLvlGrid.size,1)),EndOfPrdvNvrsP),axis=1) # This is a very good approximation, vNvrsPP = 0 at the asset minimum
-        aLvl_temp           = np.concatenate((np.reshape(self.BoroCnstNat(self.pLvlGrid),(self.pLvlGrid.size,1)),self.aLvlNow),axis=1)
+        EndOfPrdvNvrs      = np.concatenate((np.zeros((self.pLvlGrid.size,1)),EndOfPrdvNvrs),axis=1)
+        if hasattr(self,'MedShkDstn'):
+            EndOfPrdvNvrsP = np.concatenate((np.zeros((self.pLvlGrid.size,1)),EndOfPrdvNvrsP),axis=1)
+        else:
+            EndOfPrdvNvrsP = np.concatenate((np.reshape(EndOfPrdvNvrsP[:,0],(self.pLvlGrid.size,1)),EndOfPrdvNvrsP),axis=1) # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+        aLvl_temp          = np.concatenate((np.reshape(self.BoroCnstNat(self.pLvlGrid),(self.pLvlGrid.size,1)),self.aLvlNow),axis=1)
         
         # Make an end-of-period value function for each permanent income level in the grid
         EndOfPrdvNvrsFunc_list = []
@@ -652,7 +680,7 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         -------
         vFuncNow : ValueFunc
             A representation of the value function for this period, defined over
-            normalized market resources m: v = vFuncNow(m).
+            market resources m and permanent income p: v = vFuncNow(m,p).
         '''
         mSize = self.aXtraGrid.size
         pSize = self.pLvlGrid.size
