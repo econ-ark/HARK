@@ -327,7 +327,7 @@ class AgentType(HARKobject):
         '''
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period problems, passing the solution
-        to period t+1 to the problem for period t.
+        from period t+1 to the problem for period t.
         
         Parameters
         ----------
