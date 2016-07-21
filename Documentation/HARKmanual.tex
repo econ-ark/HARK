@@ -280,7 +280,7 @@ The \texttt{ConsIndShockModel} module defines the class \texttt{PerfForesightCon
 
 \vspace{0.25cm}
 
-The first line makes a new instance of \texttt{ConsumerType}, specifying that time is currently ``flowing'' forward\footnote{This is relevant for the intepretation of the time-varying inputs \texttt{LivPrb} and \texttt{PermGroFac}.} and that the sequence of periods happens exactly once; the next three lines (all part of the same command) set the time invariant (\texttt{CRRA}, \texttt{Rfree}, \texttt{DiscFac}) and time varying parameters (\texttt{LivPrb}, \texttt{PermGroFac}).  After running the \texttt{solve} method, \texttt{MyConsumer} will have an attribute called \texttt{solution}, which will be a list with eleven \texttt{ConsumerSolution} objects, representing the period-by-period solution to the model.\footnote{The last element of \texttt{solution} represents the terminal period solution, where the agent consumes all available resources because there is no future.}  Each \texttt{ConsumerSolution} has several attributes:
+The first line makes a new instance of \texttt{ConsumerType}, specifying that time is currently ``flowing'' forward\footnote{This is relevant for the intepretation of the time-varying inputs \texttt{LivPrb} and \texttt{PermGroFac}.} and that the sequence of periods happens exactly once; the next three lines (all part of the same command) set the time invariant (\texttt{CRRA}, \texttt{Rfree}, \texttt{DiscFac}) and time varying parameters (\texttt{LivPrb}, \texttt{PermGroFac}). Note that \texttt{dir(MyConsumer)} shows all the attributes of \texttt{MyConsumer}. After running the \texttt{solve} method, \texttt{MyConsumer} will have an attribute called \texttt{solution}, which will be a list with eleven \texttt{ConsumerSolution} objects, representing the period-by-period solution to the model.\footnote{The last element of \texttt{solution} represents the terminal period solution, where the agent consumes all available resources because there is no future.}  Each \texttt{ConsumerSolution} has several attributes:
 \begin{itemize}
 \item \texttt{cFunc}: Optimal consumption function for this period as a function of (normalized) market resources $m_t = M_t/Y_t$. Can be called like any other function: \texttt{MyConsumer.solution[0].cFunc(5)} returns consumption at $m_t = 5$.
 
@@ -293,6 +293,16 @@ The first line makes a new instance of \texttt{ConsumerType}, specifying that ti
 \item \texttt{MPC}: The constant marginal propensity to consume (linear consumption function).
 
 \end{itemize}
+
+The following command generates the plot for the perfect foresight consumption function:
+	
+\vspace{0.25cm}
+		
+\noindent \texttt{mMin = MyConsumer.solution[0].mNrmMin} 
+
+\noindent \texttt{plotFuncs(MyConsumer.solution[0].cFunc,  mMin,  mMin+10)}
+	
+\vspace{0.25cm}
 
 To solve a version of this problem in which the sequence of ten periods happens three times (yielding a \texttt{solution} attribute with thirty-one elements), the user can do:
 
@@ -310,9 +320,9 @@ To solve an infinite horizon problem in which the agent experiences the same one
 
 \noindent \texttt{OtherConsumer = PerfForesightConsumerType(cycles=0, CRRA=3.5, Rfree=1.02,}
 
-\texttt{DiscFac=0.95, LivPrb = [0.99], PermGroFac = [1.01], Nagents=1000 )}
+\texttt{DiscFac=0.95, LivPrb = [0.99], PermGroFac = [1.01], Nagents=1000)}
 
-\noindent \texttt{OtherConsumer.solve()}
+\noindent \texttt{OtherConsumer.solve()}  
 
 \vspace{0.25cm}
 
