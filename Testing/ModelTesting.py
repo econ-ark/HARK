@@ -26,38 +26,51 @@ class parameterCheck(object):
     '''
     
     def __init__(self, model, base_primitives, multiplier = .1, N_param_values_in_range = 2):
-        '''        
-        model: an instance of AgentType with a working .solve() function
+        '''
+        Inputs
+        ----------        
+        model: 
+            an instance of AgentType with a working .solve() function
         
-        base_primitives: a dictionary of input parameters for the the model
+        base_primitives: 
+            dictionary of input parameters for the the model
         
-        multiplier: coefficient that determines the range for each parameter 
-        within testing sets.  
-        the range for each parameter P is [P-P*multiplier,P+P*multiplier].  All 
-        testing parameters will be within this range
+        multiplier: 
+            coefficient that determines the range for each parameter 
+            within testing sets.  the range for each parameter P is [P-P*multiplier,P+P*multiplier].  
+            All testing parameters will be within this range
         
-        N_param_ values_in_range: number of different parameter values to test within the given range
+        N_param_ values_in_range: 
+            number of different parameter values to test within the given range
+
         '''
         self._model            = model
         self._base_primitives  = base_primitives
         self._multiplier       = multiplier
         
-        self.N_param_values_in_range        = N_param_values_in_range
-        self.dict_of_min_max_and_N          = self.makeParameterIterator()
-        self._testParams       = self.findTestParameters()
+        self.N_param_values_in_range = N_param_values_in_range
+        self.dict_of_min_max_and_N   = self.makeParameterDictionary()
+        self._parametersToTest       = self.findTestParameters()
         
         self.test_results      = []
         self.validParams       = []
         self.failedParams      = []
 
-    def makeParameterIterator(self):
+    def makeParameterDictionary(self):
         '''
-        create an object that contains all the information needed to generate 
-        sets of parameters for testing
-        
-        returns a dictionary that specifies the min, max, and number of values to check
+        Returns a dictionary that specifies the min, max, and number of values to check
         for each parameter
         
+        Inputs
+        ----------    
+        none
+        
+        Returns
+        ----------  
+        dict_of_min_max_and_N: dictionary
+            Each key is a parameter name in _base_primitives.  Each value is a tuple of length 3, 
+            consisting of (1) the minimum value of that parameter to ry, (2) the maximum value
+            of that parameter to try, and (3) the number of values for that parameter to try
         '''
         dict_of_min_max_and_N = {key:(value-self._multiplier*value,  # the min
                                       value+self._multiplier*value,  # the max
@@ -72,38 +85,57 @@ class parameterCheck(object):
         
     def findTestParameters(self):
         '''
-        this function creates sets (dictionaries) of parameters to test in the model
+        This function creates sets (dictionaries) of parameters to test in the model
         
-        returns a list of parameter sets (dictionaries) for testing
+        It returns a list of parameter sets (dictionaries) for testing
+
+        Inputs
+        ----------    
+        none
+        
+        Returns
+        ----------  
+        parametersToTest: list
+            Each element of parametersToTest is a dictionary.  Every key in a dictionary in 
+            parametersToTest is the name of a parameter.  Every value is the value of that 
+            parameter to test, so e.g. parametersToTest[2]{'Rfree'} = 1.02 means that the 
+            2nd test run should use a value of 1.02 for Rfree.
         '''
         parameterLists = []
         keyOrder       = []
-        testParams     = []
+        parametersToTest     = []
         for key,value in self.dict_of_min_max_and_N.iteritems():
             parameterRange = np.linspace(*value)
             parameterLists.append(parameterRange)
             keyOrder.append(key)
         for param_combination in itertools.product(*parameterLists):
-            testParams.append(dict(zip(keyOrder,param_combination)))
-
-        return testParams
+            parametersToTest.append(dict(zip(keyOrder,param_combination)))
+        return parametersToTest
     
     def testParameters(self):
         '''
         Runs the model on the test parameters and stores the error results.
         Also prints out the error messages that were thrown.
+
+        Inputs
+        ----------    
+        none
+        
+        Returns
+        ---------- 
+        None
         '''        
 
-        self.runModel(self._testParams)
+        self.runModel(self._parametersToTest)
         self.printErrors()
         
     def narrowParameters(self):
         '''
         this function needs to be able to identify the valid parameter space
 
-        then it can plug in those values to the makeParameterIterator function and rerun the models        
+        then it can plug in those values to the makeParameterDictionary function and rerun the models        
         
-        self._iterator = self.makeParameterIterator()
+        self._iterator = self.makeParameterDictionary()
         
         parameterLists = []
         for k,v in self._iterator.iteritems():
@@ -114,7 +146,7 @@ class parameterCheck(object):
         
         self.runModel(pairwise)
         '''
-        pass
+        raise NotImplementedError()
     
     def runModel(self,parametersToTest):
         '''
@@ -123,7 +155,18 @@ class parameterCheck(object):
         the test.  
         
         Each result is places in the appropriate list (failedParams or validParams)
+
+        Inputs
+        ----------    
+        parametersToTest: list
+            A list of dictionaries produced by findTestParameters.  See the
+            documentation for findTestParameters for more info.
+        
+        Returns
+        ----------  
+            None
         '''
+        
         for i in range(len(parametersToTest)):
             tempDict   = dict(self._base_primitives)
             tempParams = parametersToTest[i]
@@ -147,7 +190,15 @@ class parameterCheck(object):
                 
     def printErrors(self):
         '''
-        print out the test numbers and error codes for all failed tests
+        Print out the test numbers and error codes for all failed tests
+
+        Inputs
+        ----------    
+        none
+        
+        Returns
+        ----------  
+        None
         '''
         for i in range(len(self.test_results)):
             if self.test_results[i].errorBoolean:
@@ -155,6 +206,18 @@ class parameterCheck(object):
                 print(self.test_results[i].errorCode)
 
     def printTestResults(self,test_number):
+        """
+        This method prints out the results for a specific test.
+        
+        Inputs
+        ----------    
+        test_number: int
+            The number of the test to print results for
+        
+        Returns
+        ----------  
+        None
+        """        
         print("-----------------------------------------------------------------------")
         print("Showing specific results for test number " + str(test_number))
         #get a test result and find out more info
@@ -167,40 +230,59 @@ class parameterCheck(object):
         print("")
         print("the traceback for the error looked like : ")
         test.traceback()
-     
+
    
 class parameterInstanceCheck(object):
     '''
     this class holds information for a single test of a model
     '''
-    def __init__(self,testNumber,base_primitives,original_primitives,errorBoolean=False,
+    def __init__(self,testNumber,tested_primitives,original_primitives,errorBoolean=False,
                  errorCode=None,tracebackText=None):
         '''
-        testNumber: the test number
+ 
+        Inputs
+        ----------    
+        testNumber: int
+            The number of the test
         
-        base_primitives: the set of parameters that was tested
+       
+        tested_primitives: dict
+            the set of parameters that was tested
         
-        original_primitives: the original parameters that test parameters were constructed from
+        original_primitives: dict
+            the original parameters that test parameters were constructed from
                     
-        errorBoolean: boolean indicator of an error    
+        errorBoolean: boolean 
+            indicator of an error    
 
-        errorCode: text of the error (exception type included)
+        errorCode: None or string
+            text of the error (exception type included), if there is one.  None otherwise.
         
-        tracebackText: full traceback, printable using the traceback.prin_excpetino function
+        tracebackText: 
+            full traceback, printable using the traceback.prin_excpetino function
         
         '''
         
         self.testNumber          = testNumber
         self.original_primitives = original_primitives
-        self.tested_primitives   = base_primitives
+        self.tested_primitives   = tested_primitives
         self.errorBoolean        = errorBoolean
         self.errorCode           = errorCode
         self._tracebackText      = tracebackText
-        
+
         
     def traceback(self):
         '''
         function that prints a traceback for an errror
+
+        Inputs
+        ----------   
+        none
+        
+        Returns
+        ----------   
+        None
+
         '''
         try:
             traceback.print_exception(*self._tracebackText)
