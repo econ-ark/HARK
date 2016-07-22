@@ -127,7 +127,7 @@ class Compare_TBS_and_Markov(unittest.TestCase):
                             "aXtraMax":TBSType.mUpperBnd,
                             "aXtraCount":48,
                             "aXtraExtra":[None],
-                            "exp_nest":3,
+                            "aXtraNestFac":3,
                             "LivPrb":[1.0],
                             "DiscFac":base_primitives['DiscFac'],
                             'Nagents':1,
