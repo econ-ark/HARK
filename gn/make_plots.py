@@ -73,7 +73,7 @@ pandas2ri.activate()
 base_plot =  ggplot2.aes_string(x='x', y='value',group='variable',colour='variable', shape = 'variable')
 line = ggplot2.geom_line()
 point = ggplot2.geom_point() 
-vert_line_onset = ggplot2.geom_vline(xintercept=0, linetype=2, colour="red", alpha=0.25)           
+vert_line_onset = ggplot2.geom_vline(xintercept=-1, linetype=2, colour="red", alpha=0.25)           
 vert_line_exhaust = ggplot2.geom_vline(xintercept=5, linetype=2, colour="red", alpha=0.25)  
 ltitle = "crazy"         
 ltitle_default = 'Variable'

@@ -14,7 +14,8 @@ import sys
 sys.path.remove('/Users/ganong/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages')
 sys.path.remove('/Users/ganong/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/PIL')
 sys.path.insert(0,'../')
-sys.path.insert(0,'../ConsumptionSavingModel')
+#sys.path.insert(0,'../ConsumptionSavingModel')
+sys.path.insert(0,'../ConsumptionSaving')
 sys.path.insert(0,'../SolvingMicroDSOPs')
 #test
 from copy import copy, deepcopy
