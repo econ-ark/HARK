@@ -8,8 +8,6 @@
 %\newcommand{\pd}[2]{\frac{\partial#1}{\partial#2}}
 
 \begin{document}
-\noindent This document describes the models in the folder \texttt{/ConsumptionSaving} as of 6/25/16.
-
 \section{ConsIndShockModel.py}
 
 Defines consumption-saving models whose agents have CRRA utility over a unitary consumption good, geometric discounting, and who face idiosyncratic shocks to income.
@@ -44,11 +42,12 @@ $\CRRA$ & Coefficient of relative risk aversion & \texttt{CRRA} \\
 $\beta$ & Intertemporal discount factor & \texttt{DiscFac} \\
 $\Rfree$ & Risk free interest factor & \texttt{Rfree} \\
 $\PLives$ & Survival probability & \texttt{LivPrb} \\
-$\Gamma$ & Permanent income growth factor & \texttt{PermGroFac}
+$\Gamma$ & Permanent income growth factor & \texttt{PermGroFac} \\
+(none) & Number of agents of this type & \texttt{Nagents}
 \end{tabular}
 \end{table}
 
-These are the only five parameters that an instance of \texttt{PerfForesightConsumerType} must have in order to use its \texttt{solve} method.  Note that \texttt{LivPrb} and \texttt{PermGroFac} are assumed to be time-varying, so they should be input as a list.  Each element of the \texttt{solution} attribute will be an instance of \texttt{ConsumerSolution} with the following attributes:
+These are the only six parameters that an instance of \texttt{PerfForesightConsumerType} must have in order to create an instance and its \texttt{solve} method.\footnote{The attribute \texttt{Nagents} is not needed to \texttt{solve} this type, but is instead used during simulation.  However, this attribute is used by the constructor method for this class (to set the attributes \texttt{a\_init} and \texttt{p\_init}), so it must be passed when a new instance is created.}  Note that \texttt{LivPrb} and \texttt{PermGroFac} are assumed to be time-varying, so they should be input as a list.  Each element of the \texttt{solution} attribute will be an instance of \texttt{ConsumerSolution} with the following attributes:
 
 \begin{table}[h!]
 \centering
@@ -133,8 +132,6 @@ Consider an agent identical to the ``idiosyncratic shocks'' model above, except 
 The one period problem for this model is solved by \texttt{solveConsKinkedR}, which creates an instance of \texttt{ConsKinkedRsolver}.  The class \texttt{KinkedRconsumerType} extends \texttt{IndShockConsumerType} to represent agents in this model.  The attributes required to specify an instance of \texttt{KinkedRconsumerType} are the same as \texttt{IndShockConsumerType} except that \texttt{Rfree} \textit{should not} be included, instead replaced by values of \texttt{Rboro} and \texttt{Rsave}.  The ``kinked R'' solver is not yet compatible with cubic spline interpolation for \texttt{cFunc}; if the \texttt{solve} method is run with \texttt{CubicBool=True}, it will throw an exception.\footnote{This is an item that is ripe for development by an outside contributor.}
 
 The \texttt{solve} method of \texttt{KinkedRconsumerType} populates the \texttt{solution} attribute with a list of \texttt{ConsumerSolution} instances, in the same format as the idiosyncratic shocks model.  The problem is solved using the method of endogenous gridpoints with \textit{two} copies of $a_t = 0$ in the grid of end-of-period states-- one for $\Rfree_{boro}$ and the other for $\Rfree_{save}$.  This generates the ``kinked'' portion of the resulting consumption function, where the consumer is unwilling to borrow and insufficiently motivated to save, so he consumes at $c_t = m_t$.
-
-\newpage
 
 \section{ConsPrefShockModel.py}
 
