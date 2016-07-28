@@ -18,7 +18,10 @@ sys.path.insert(0,'../')
 from copy import copy, deepcopy
 import numpy as np
 #PNG addition 2016-06-30
-import settings
+if __name__ == '__main__':
+    import settings
+else:
+    from __main__ import settings
 from HARKcore_gn import AgentType, Solution, NullFunc
 
 from HARKutilities import warnings  # Because of "patch" to warnings modules
@@ -747,11 +750,12 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         mNrmNext          = self.Rfree/(self.PermGroFac*PermShkVals_temp)*aNrm_temp + TranShkVals_temp
             
         #PNG addition 2016-06-30
+        print(settings.t_curr)
         if settings.t_curr == settings.t_rebate :
             if settings.verbose:
-                print mNrmNext[0], mNrmNext[54] 
-                print str(settings.t_rebate) + " date, I just gave a rebate of " + str(settings.rebate_size)
-                print mNrmNext[0]+ settings.rebate_size, mNrmNext[54]+ settings.rebate_size
+                print mNrmNext[0] 
+                print str(settings.t_rebate) + " years before death, I just gave a rebate of " + str(settings.rebate_size)
+                print mNrmNext[0]+ settings.rebate_size
             mNrmNext = mNrmNext + settings.rebate_size            
                 
             

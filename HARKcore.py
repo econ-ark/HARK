@@ -10,7 +10,10 @@ problem by finding a general equilibrium dynamic rule.
 from HARKutilities import getArgNames, NullFunc
 from copy import deepcopy
 import numpy as np
-  
+ #test comment
+#PNG addition 2016-06-30
+from __main__ import settings
+ 
 def distanceMetric(thing_A,thing_B):
     '''
     A "universal distance" metric that can be used as a default in many settings.
@@ -537,7 +540,8 @@ def solveOneCycle(agent,solution_last):
         
         # Make a temporary dictionary for this period
         temp_dict = {name: solve_dict[name] for name in these_args}
-
+        #PNG addition 2016-06-30
+        settings.t_curr = t
         # Solve one period, add it to the solution, and move to the next period
         solution_t = solveOnePeriod(**temp_dict)
         solution_cycle.append(solution_t)

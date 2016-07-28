@@ -10,9 +10,9 @@ os.chdir("/Users/ganong/repo/HARK-comments-and-cleanup/gn")
 import settings
 
 import sys 
-#xxx want to change this default path
-#sys.path.remove('/Users/ganong/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages')
-#sys.path.remove('/Users/ganong/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/PIL')
+#xxx want to modify this default path not to have all these bad things starting out
+sys.path.remove('/Users/ganong/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages')
+sys.path.remove('/Users/ganong/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/PIL')
 sys.path.insert(0,'../')
 #sys.path.insert(0,'../ConsumptionSavingModel')
 sys.path.insert(0,'../ConsumptionSaving')
@@ -24,21 +24,16 @@ import numpy as np
 #from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import LinearInterp  #, LowerEnvelope, CubicInterp
 from HARKutilities import   plotFuncs
-
 #xx why does this error out on later runs but not on the first run? that's weird.
 import ConsumptionSavingModel_gn as Model
-#import ConsumerParameters as Params
 import EstimationParameters as Params
-
-
 #from time import clock
 mystr = lambda number : "{:.4f}".format(number)
-
 do_simulation           = True
-T_series = 30
 baseline_params = Params.init_consumer_objects
 
 import pandas as pd
+#this line errors out sometimes. Driven by issues with the Canopy_64bit path
 from rpy2 import robjects
 import rpy2.robjects.lib.ggplot2 as gg
 from rpy2.robjects import pandas2ri
@@ -61,8 +56,8 @@ def ggplot_notebook(gg, width = 800, height = 600):
     
 ###########################################################################
 #set economic parameters 
-age = 45
-t_eval = age - 25
+age_of_rebate = 45
+t_eval = age_of_rebate - 25
 def mpc(cF, rebate = 1, a = 0.1):
     return round((cF(a+rebate) - cF(a)) / rebate,2)
 tmp_lo = 0.8
@@ -84,7 +79,7 @@ from functools import partial
 # Solve consumer problems
 #does this still work?
 settings.init()
-settings.t_rebate = age
+settings.t_rebate = age_of_rebate
 settings.rebate_size = 0
 
 IndShockExample = Model.IndShockConsumerType(**baseline_params)
@@ -100,23 +95,11 @@ FutRebateExample.solve()
 FutRebateExample.unpack_cFunc()
 FutRebateExample.timeFwd()
 
-settings.rebate_size = 0
-settings.init()
-# Switch to natural borrowing constraint consumer
-init_natural_borrowing_constraint = deepcopy(baseline_params)
-init_natural_borrowing_constraint['BoroCnstArt'] = None #min is at -0.42 with a natural borrowing constraint
-NBCExample = Model.IndShockConsumerType(**init_natural_borrowing_constraint)  
-NBCExample.solve()
-NBCExample.unpack_cFunc()
-NBCExample.timeFwd()
-#print('Natural Borrowing Constraint consumption function:')
-mMin = NBCExample.solution[t_eval].mNrmMin
-
 
 pandas2ri.activate() 
 loc = robjects.r('c(1,0)')
 
-def gg_funcs(functions,bottom,top,N=1000,labels = ["Baseline"],
+def gg_funcs(functions,bottom,top,N=1000,labels = [],
              title = "Consumption and Cash-on-Hand", ylab = "y", xlab="x", 
              loc = loc, ltitle = 'Variable',
              file_name = None):
@@ -128,9 +111,11 @@ def gg_funcs(functions,bottom,top,N=1000,labels = ["Baseline"],
     step = (top-bottom)/N
     x = np.arange(bottom,top,step)
     fig = pd.DataFrame({'x': x})
-    #xx there's got to be a better way to scroll through this list
+    #xx there's got to be a better way to scroll through this list    
     i = 0
     for function in function_list:
+        if i > len(labels)-1:
+            labels.append("func" + str(i))
         fig[labels[i]] = function(x)
         #print labels[i]
         i=i+1
@@ -146,17 +131,6 @@ def gg_funcs(functions,bottom,top,N=1000,labels = ["Baseline"],
     if file_name is not None:
         mp.ggsave(file_name,g)
     return(g)
-
-
-###########################################################################
-# Begin Plots
-cf_exo = IndShockExample.cFunc[t_eval]
-cf_nbc = NBCExample.cFunc[t_eval]
-cf_fut = FutRebateExample.cFunc[t_eval-1]
-cf_fut_tm3 = FutRebateExample.cFunc[t_eval-3]
-cf_fut_tm5 = FutRebateExample.cFunc[t_eval-5]
-
-
 
 #right now takes 0.0855 seconds per run
 #in the future, consider saving each function rather than just saving the output for a certain temp inc realization
@@ -182,6 +156,68 @@ def c_future_wealth(fut_period = 1, coh = 1, exo = True):
     
 yr = gg.ylim(range=robjects.r('c(0.55,1)'))
 
+
+
+
+###########################################################################
+# Begin Plots
+cf_exo = IndShockExample.cFunc[t_eval]
+cf_fut = FutRebateExample.cFunc[t_eval-1]
+cf_fut_tm3 = FutRebateExample.cFunc[t_eval-3]
+cf_fut_tm5 = FutRebateExample.cFunc[t_eval-5]
+
+###########################################################################
+cf_list = []
+for i in range(10):
+    cf_list.append(FutRebateExample.cFunc[t_eval-i+5])
+g = gg_funcs(cf_list,0.01,2.5, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function With Predictable Rebate of One Year's Income at Age " + str(age_of_rebate),
+        ylab = "Consumption", xlab = "Cash-on-Hand")
+ggplot_notebook(g, height=300,width=400)
+
+#slide 3 with moving around date of rebate
+#if you give rebate during retirement then no change (except that your wealth is higher)
+#because there is no income uncertainty left
+
+#figure out much younger and much older
+#bumping age of rebate by ONE year bumps age of cons func affected by TWO years. why?
+#there is s ahre cons bump at 
+
+#baseline cons function is much higher (and has bigger h2m region) after retirement
+#cons function with rebate at 45 is much higher after age 50
+
+#when we had a rebate, then we find that cons funcs change sharply at age 50
+# at age 50 inc growth rate  from 2.5% per year to 1% per year
+#i don't understand conceptually why this matters
+#also, tried this again later and couldn't reproduce
+age_at_rebate = 50
+age_eval_min = 44
+years_eval = 9
+dyear = 3
+settings.t_rebate = baseline_params['T_total'] + 25 - age_at_rebate 
+settings.rebate_size = 1
+rebate_alt_age = Model.IndShockConsumerType(**baseline_params)
+rebate_alt_age.solve()
+rebate_alt_age.unpack_cFunc()
+rebate_alt_age.timeFwd()
+cf_list = [IndShockExample.cFunc[age_eval_min-25]]
+for i in range(years_eval):
+    cf_list.append(rebate_alt_age.cFunc[age_eval_min-25+i*dyear])
+g = gg_funcs(cf_list,0.01,2.5, N=50, loc=robjects.r('c(1,0)'),
+         ltitle = '', labels = ['no rebate'],
+        title = "Rebate at Age " + str(age_at_rebate) + " cons func age " + str(age_eval_min) + " to " + str(age_eval_min + dyear*years_eval),
+        ylab = "Consumption", xlab = "Cash-on-Hand")
+ggplot_notebook(g, height=300,width=400)
+
+
+#slide 3. consumption function out of future wealth
+g = gg_funcs([cf_fut_tm5,cf_fut, cf_exo],0.01,2.5, N=50, loc=robjects.r('c(1,0)'),
+         ltitle = '',
+         labels = ['Rebate Arrives In 5 Years','Rebate Arrives Next Year', 'No Rebate'],
+        title = "Consumption Function With Predictable Rebate of One Year's Income at Age " + str(age_of_rebate),
+        ylab = "Consumption", xlab = "Cash-on-Hand")
+mp.ggsave("future_rebate" + str(age_of_rebate),g)
+ggplot_notebook(g, height=300,width=400)
 
 
 ###########################################################################
@@ -239,15 +275,6 @@ g += gg.ylim(range=robjects.r('c(-0.2,0.45)'))
 mp.ggsave("saving_rate_exo",g)
 ggplot_notebook(g, height=300,width=400)
   
-###########################################################################
-#slide 3. consumption function out of future wealth
-g = gg_funcs([cf_fut_tm5,cf_fut, cf_exo],0.01,2.5, N=50, loc=robjects.r('c(1,0)'),
-         ltitle = '',
-         labels = ['Rebate Arrives In 5 Years','Rebate Arrives Next Year', 'No Rebate'],
-        title = "Consumption Function With Predictable Rebate of One Year's Income",
-        ylab = "Consumption", xlab = "Cash-on-Hand")
-mp.ggsave("future_rebate",g)
-ggplot_notebook(g, height=300,width=400)
 
 #slide 3 backup
 #xx these can be cleaned up by sharing a common baseplot.

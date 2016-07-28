@@ -1,15 +1,11 @@
 '''
-<<<<<<< HEAD
 SetupConsumersParameters specifies the full set of calibrated values required
 to estimate the SolvingMicroDSOPs model.  The empirical data is stored in a
 separate csv file and is loaded in SetupSCFdata.  These parameters are also used
 as default settings in various examples of ConsumptionSavingModel.
-=======
-Specifies the full set of calibrated values required to estimate the SolvingMicroDSOPs
-model.  The empirical data is stored in a separate csv file and is loaded in SetupSCFdata.
->>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
 '''
-
+from copy import copy
+import numpy as np
 # ---------------------------------------------------------------------------------
 # - Define all of the model parameters for SolvingMicroDSOPs and ConsumerExamples -
 # ---------------------------------------------------------------------------------
@@ -147,13 +143,51 @@ init_consumer_objects = {"CRRA":CRRA_start,
                         'vFuncBool':vFuncBool,
                         'CubicBool':CubicBool
                         }
-<<<<<<< HEAD
-=======
 
+
+# -----------------------------------------------------------------------------
+# ----- Define additional parameters for the aggregate shocks model -----------
+# -----------------------------------------------------------------------------
+kGridBase = np.array([0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6])  # Grid of capital-to-labor-ratios (factors)
+
+# Parameters for a Cobb-Douglas economy
+PermShkAggCount = 3           # Number of points in discrete approximation to aggregate permanent shock dist
+TranShkAggCount = 3           # Number of points in discrete approximation to aggregate transitory shock dist
+PermShkAggStd = 0.01          # Standard deviation of log aggregate permanent shocks
+TranShkAggStd = 0.01          # Standard deviation of log aggregate transitory shocks
+DeprFac = 0.1                 # Capital depreciation rate
+CapShare = 0.3                # Capital's share of income
+CRRAPF = 1.0                  # CRRA of perfect foresight calibration
+DiscFacPF = 0.96              # Discount factor of perfect foresight calibration
+intercept_prev = 0.1          # Intercept of log-capital-ratio function
+slope_prev = 0.9              # Slope of log-capital-ratio function
+
+# Make a dictionary to specify an aggregate shocks consumer
+init_agg_shocks = copy(init_consumer_objects)
+del init_agg_shocks['Rfree']       # Interest factor is endogenous in agg shocks model
+del init_agg_shocks['BoroCnstArt'] # Not supported yet for agg shocks model
+del init_agg_shocks['CubicBool']   # Not supported yet for agg shocks model
+del init_agg_shocks['vFuncBool']   # Not supported yet for agg shocks model
+init_agg_shocks['kGridBase'] = kGridBase
+init_agg_shocks['aXtraCount'] = 20
+
+
+# Make a dictionary to specify a Cobb-Douglas economy
+init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
+                     'TranShkAggCount': TranShkAggCount,
+                     'PermShkAggStd': PermShkAggStd,
+                     'TranShkAggStd': TranShkAggStd,
+                     'DeprFac': DeprFac,
+                     'CapShare': CapShare,
+                     'CRRA': CRRAPF,
+                     'DiscFac': DiscFacPF,
+                     'slope_prev': slope_prev,
+                     'intercept_prev': intercept_prev
+                     }
 
 if __name__ == '__main__':
     print("Sorry, EstimationParameters doesn't actually do anything on its own.")
     print("This module is imported by StructEstimation, providing calibrated ")
     print("parameters for the example estimation.  Please see that module if you ")
     print("want more interesting output.")
->>>>>>> eeb37f24755d0c683c9d9efbe5e7447425c98b86
+

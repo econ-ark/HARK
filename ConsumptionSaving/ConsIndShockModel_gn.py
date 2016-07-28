@@ -17,6 +17,9 @@ import os
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('./'))
 
+os.chdir("/Users/ganong/repo/HARK-comments-and-cleanup/gn")
+import settings
+
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
@@ -304,7 +307,35 @@ class MargMargValueFunc(HARKobject):
         return MPC*utilityPP(c,gam=self.CRRA)
 
 
-
+class MargValueFunc2D():
+    '''
+    A class for representing a marginal value function in models where the
+    standard envelope condition of v'(m,k) = u'(c(m,k)) holds (with CRRA utility).
+    '''
+    def __init__(self,cFunc,CRRA):
+        '''
+        Constructor for a new marginal value function object.
+        
+        Parameters
+        ----------
+        cFunc : function
+            A real function representing the marginal value function composed
+            with the inverse marginal utility function, defined on market
+            resources: uP_inv(vPfunc(m,k)).  Called cFunc because when standard
+            envelope condition applies, uP_inv(vPfunc(m,k)) = cFunc(m,k).
+        CRRA : float
+            Coefficient of relative risk aversion.
+            
+        Returns
+        -------
+        new instance of MargValueFunc
+        '''
+        self.cFunc = deepcopy(cFunc)
+        self.CRRA = CRRA
+        
+    def __call__(self,m,k):
+        return utilityP(self.cFunc(m,k),gam=self.CRRA)
+        
 
 # =====================================================================
 # === Classes and functions that solve consumption-saving models ===
