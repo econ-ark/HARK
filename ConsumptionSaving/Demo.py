@@ -1,7 +1,7 @@
 """
 This is a HARK demo.
 
-It is very heavily commented so that HARK newcomers can use it to figure out HARK works.
+It is very heavily commented so that HARK newcomers can use it to figure out how HARK works.
 It also does things, like import modules in the body of the code rather than at the top, that
 are typically deprecated by Python programmers.  This is all to make the code easier to read
 and understand.

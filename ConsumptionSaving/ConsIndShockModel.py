@@ -487,7 +487,7 @@ class ConsPerfForesightSolver(object):
         solution = ConsumerSolution(cFunc=self.cFunc, vFunc=self.vFunc, vPfunc=self.vPfunc,
                                     mNrmMin=self.mNrmMin, hNrm=self.hNrmNow,
                                     MPCmin=self.MPC, MPCmax=self.MPC)
-        solution = self.addSSmNrm(solution)
+        #solution = self.addSSmNrm(solution)
         return solution
 
 
