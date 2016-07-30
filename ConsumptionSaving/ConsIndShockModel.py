@@ -1154,7 +1154,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         else:
             solution   = self.makeBasicSolution(EndOfPrdvP,aNrm,interpolator=self.makeLinearcFunc)
         solution       = self.addMPCandHumanWealth(solution) # add a few things
-        #solution       = self.addSSmNrm(solution) # find steady state m
+        solution       = self.addSSmNrm(solution) # find steady state m
         
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used (to prepare for next period)
