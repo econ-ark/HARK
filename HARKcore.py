@@ -10,6 +10,7 @@ problem by finding a general equilibrium dynamic rule.
 from HARKutilities import getArgNames, NullFunc
 from copy import deepcopy
 import numpy as np
+from time import clock
   
 def distanceMetric(thing_A,thing_B):
     '''
@@ -323,7 +324,7 @@ class AgentType(HARKobject):
             if param in self.time_inv:
                 self.time_inv.remove(param)
 
-    def solve(self):
+    def solve(self,verbose=False):
         '''
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period problems, passing the solution
@@ -331,14 +332,15 @@ class AgentType(HARKobject):
         
         Parameters
         ----------
-        none
+        verbose : boolean
+            If True, solution progress is printed to screen.
         
         Returns
         -------
         none
         '''
         self.preSolve() # Do pre-solution stuff
-        self.solution = solveAgent(self) # Solve the model by backward induction
+        self.solution = solveAgent(self,verbose) # Solve the model by backward induction
         if self.time_flow: # Put the solution in chronological order if this instance's time flow runs that way
             self.solution.reverse()
         self.addToTimeVary('solution') # Add solution to the list of time-varying attributes
@@ -357,29 +359,6 @@ class AgentType(HARKobject):
         none
         '''
         self.RNG = np.random.RandomState(self.seed)
-
-    def isSameThing(self,solutionA,solutionB):
-        '''
-        Compare two solutions to see if they are the "same."  The model-specific
-        solution class must have a method called distance, which takes another
-        solution object as an input and returns the "distance" between the solutions.
-        This method is used to test for convergence in infinite horizon problems.
-        
-        Parameters
-        ----------
-        solutionA : Solution
-            The solution to a one period problem in the model.
-            
-        solutionB : Solution
-            Another solution to (the same) one period problem in the model.
-        
-        Returns
-        -------
-        (unnamed) : boolean
-            True if the solutions are within a tolerable distance of each other.
-        '''
-        solution_distance = solutionA.distance(solutionB)
-        return(solution_distance <= self.tolerance)
             
     def preSolve(self):
         '''
@@ -412,7 +391,7 @@ class AgentType(HARKobject):
         return None
         
 
-def solveAgent(agent):
+def solveAgent(agent,verbose):
     '''
     Solve the dynamic model for one agent type.  This function iterates on "cycles"
     of an agent's model either a given number of times or until solution convergence
@@ -422,6 +401,8 @@ def solveAgent(agent):
     ----------
     agent : AgentType
         The microeconomic AgentType whose dynamic problem is to be solved.
+    verbose : boolean
+        If True, solution progress is printed to screen (when cycles != 1).
         
     Returns
     -------
@@ -447,6 +428,8 @@ def solveAgent(agent):
     go               = True
     completed_cycles = 0
     max_cycles       = 5000 # escape clause
+    if verbose:
+        t_last = clock()
     while go:
         # Solve a cycle of the model, recording it if horizon is finite
         solution_cycle = solveOneCycle(agent,solution_last)
@@ -457,9 +440,10 @@ def solveAgent(agent):
         solution_now = solution_cycle[-1]
         if infinite_horizon:
             if completed_cycles > 0:
-                go = (not agent.isSameThing(solution_now,solution_last)) and \
-                     (completed_cycles < max_cycles)
+                solution_distance = solution_now.distance(solution_last)
+                go = (solution_distance > agent.tolerance and completed_cycles < max_cycles)
             else: # Assume solution does not converge after only one cycle
+                solution_distance = 100.0
                 go = True
         else:
             cycles_left += -1
@@ -468,6 +452,17 @@ def solveAgent(agent):
         # Update the "last period solution"
         solution_last = solution_now
         completed_cycles += 1
+        
+        # Display progress if requested
+        if verbose:
+            t_now = clock()
+            if infinite_horizon:
+                print('Finished cycle #' + str(completed_cycles) + ' in ' + str(t_now-t_last) +\
+                ' seconds, solution distance = ' + str(solution_distance))
+            else:
+                print('Finished cycle #' + str(completed_cycles) + ' of ' + str(agent.cycles) +\
+                ' in ' + str(t_now-t_last) + ' seconds.')
+            t_last = t_now
 
     # Record the last cycle if horizon is infinite (solution is still empty!)
     if infinite_horizon:
