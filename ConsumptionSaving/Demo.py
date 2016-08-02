@@ -149,11 +149,15 @@ Now that we have the solutions to the 2 different problems, we can compare them
 
 ## First, declare useful functions to plot later
 
+# Declare how much we want to increase income by
+income_change =  .001
+
+
 def FirstDiffMPC_Income(x):
     # Approximate the MPC out of income by giving the agent a tiny bit more income,
     # and plotting the proportion of the change that is reflected in increased consumption
-    return (BaselineExample.solution[0].cFunc(x + credit_change) - 
-            BaselineExample.solution[0].cFunc(x)) / credit_change
+    return (BaselineExample.solution[0].cFunc(x + income_change) - 
+            BaselineExample.solution[0].cFunc(x)) / income_change
 
 
 def FirstDiffMPC_Credit(x):
@@ -180,7 +184,7 @@ x_max = 10.
 
 # Plot the consumption functions to compare them
 print('Consumption functions:')
-plotFuncs([BaselineExample.solution[0].cFunc,XtraCreditExample.solution[0].cFunc],
+plotFuncs([BaselineExample.solution[0].cFunc, XtraCreditExample.solution[0].cFunc],
            BaselineExample.solution[0].mNrmMin,x_max)
 
 # Plot the MPCs to compare them
