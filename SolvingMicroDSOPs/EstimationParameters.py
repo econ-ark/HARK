@@ -9,7 +9,7 @@ model.  The empirical data is stored in a separate csv file and is loaded in Set
 
 exp_nest = 3                        # Number of times to "exponentially nest" when constructing a_grid
 aXtraMin = 0.001                    # Minimum end-of-period "assets above minimum" value
-aXtraMax = 20                       # Minimum end-of-period "assets above minimum" value               
+aXtraMax = 20                       # Maximum end-of-period "assets above minimum" value               
 aXtraHuge = None                    # A very large value of assets to add to the grid, not used
 aXtraExtra = None                   # Some other value of assets to add to the grid, not used
 aXtraCount = 8                      # Number of points in the grid of "assets above minimum"
@@ -33,7 +33,7 @@ TT = final_age - initial_age        # Total number of periods in the model
 retirement_t = retirement_age - initial_age - 1
 
 CRRA_start = 4.0                    # Initial guess of the coefficient of relative risk aversion during estimation (rho)
-DiscFacAdj_start = 0.99             # Initial guess of the adjustment to the discount factor during estimation (beth)
+DiscFacAdj_start = 0.99             # Initial guess of the adjustment to the discount factor during estimation (beta)
 DiscFacAdj_bound = [0.0001,15.0]    # Bounds for beth; if violated, objective function returns "penalty value"
 CRRA_bound = [0.0001,15.0]          # Bounds for rho; if violated, objective function returns "penalty value"
 
