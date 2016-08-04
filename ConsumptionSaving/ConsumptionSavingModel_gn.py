@@ -603,7 +603,7 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
             self.uinv  = lambda u : utility_inv(u,gam=self.CRRA)
 
 
-    def setAndUpdateValues(self,solution_next,IncomeDstn,LivPrb,DiscFac):
+    def setAndUpdateValues(self,solution_next,IncomeDstn,LivPrb,DiscFac): #PNG tried adding borrowing 2016-07-29, but not sure necessary
         '''
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -677,7 +677,9 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         # Calculate the minimum allowable value of money resources in this period
         self.BoroCnstNat = (self.solution_next.mNrmMin - self.TranShkMinNext)*\
                            (self.PermGroFac*self.PermShkMinNext)/self.Rfree
-        self.mNrmMinNow = np.max([self.BoroCnstNat,BoroCnstArt])
+        #PNG modification 2016-07-29
+        self.mNrmMinNow_old = np.max([self.BoroCnstNat,BoroCnstArt])
+        self.mNrmMinNow = BoroCnstArt
         if self.BoroCnstNat < self.mNrmMinNow: 
             self.MPCmaxEff = 1.0 # If actually constrained, MPC near limit is 1
         else:
@@ -701,7 +703,7 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         -------
         none
         '''
-        self.setAndUpdateValues(self.solution_next,self.IncomeDstn,self.LivPrb,self.DiscFac)
+        self.setAndUpdateValues(self.solution_next,self.IncomeDstn,self.LivPrb,self.DiscFac) #PNG considered adding borrowing 2016-07-29, but not sure necessary 
         self.defineBorrowingConstraint(self.BoroCnstArt)
 
 
@@ -750,7 +752,7 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         mNrmNext          = self.Rfree/(self.PermGroFac*PermShkVals_temp)*aNrm_temp + TranShkVals_temp
             
         #PNG addition 2016-06-30
-        print(settings.t_curr)
+        #print(settings.t_curr)
         if settings.t_curr == settings.t_rebate :
             if settings.verbose:
                 print mNrmNext[0] 
@@ -1405,7 +1407,9 @@ class PerfForesightConsumerType(AgentType):
     solution_terminal_   = ConsumerSolution(cFunc = cFunc_terminal_,
                                             vFunc = vFunc_terminal_, mNrmMin=0.0, hNrm=0.0, 
                                             MPCmin=1.0, MPCmax=1.0)
-    time_vary_ = ['LivPrb','DiscFac','PermGroFac']
+    time_vary_ = ['LivPrb','DiscFac','PermGroFac','BoroCnstArt']
+    #PNG modification 2016-07-29
+    #time_vary_ = ['LivPrb','DiscFac','PermGroFac']
     time_inv_  = ['CRRA','Rfree']
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
@@ -1484,8 +1488,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
     values for risk aversion, the interest rate, the grid of end-of-period assets,
     and how he is borrowing constrained.
     '''        
-    time_inv_ = PerfForesightConsumerType.time_inv_ + ['BoroCnstArt','vFuncBool','CubicBool']
-    
+    time_inv_ = PerfForesightConsumerType.time_inv_ + ['vFuncBool','CubicBool'] # PNG mod 2016-07-29 delete BoroCnstArt
+     
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
         Instantiate a new ConsumerType with given data.

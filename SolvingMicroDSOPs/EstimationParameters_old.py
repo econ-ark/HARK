@@ -17,8 +17,7 @@ aXtraHuge = None                    # A very large value of assets to add to the
 aXtraExtra = None                   # Some other value of assets to add to the grid, not used
 aXtraCount = 8                      # Number of points in the grid of "assets above minimum"
 
-#PNG Commented this out 2016-07-29
-#BoroCnstArt = 0.0                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+BoroCnstArt = -10.0                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
 CubicBool = True                    # Use cubic spline interpolation when True, linear interpolation when False
 vFuncBool = False                   # Whether to calculate the value function during solution
 
@@ -81,15 +80,12 @@ LivPrb = [ 1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
            0.93721595,  0.93721595,  0.93721595,  0.93721595,  0.93721595,
            0.63095734,  0.63095734,  0.63095734,  0.63095734,  0.63095734]
 
-#Borrowing constraint over lifecycle, starting from age 25 
 age_relaxed = 45       
 BoroCnstArt_timevary =  []  
 for i in range(age_relaxed - initial_age):     
     BoroCnstArt_timevary.append(0.0)
 for i in range(final_age - age_relaxed):     
     BoroCnstArt_timevary.append(0.0)
-    
-rebate_age_65 = 0.0
 
 # Standard deviations of permanent income shocks by age, starting from age 25
 PermShkStd = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
@@ -129,7 +125,7 @@ seed = 31382                                                    # Just an intege
 init_consumer_objects = {"CRRA":CRRA_start,
                         "Rfree":Rfree,
                         "PermGroFac":PermGroFac,
-                        "BoroCnstArt": BoroCnstArt_timevary, #"BoroCnstArt":BoroCnstArt,
+                        "BoroCnstArt": BoroCnstArt_timevary, #BoroCnstArt,
                         "PermShkStd":PermShkStd,
                         "PermShkCount":PermShkCount,
                         "TranShkStd":TranShkStd,
@@ -152,8 +148,7 @@ init_consumer_objects = {"CRRA":CRRA_start,
                         'tax_rate':0.0,
                         'vFuncBool':vFuncBool,
                         'CubicBool':CubicBool,
-                        'two_state':False,
-                        'rebate_age_65':rebate_age_65
+                        'two_state':False
                         }
 
 

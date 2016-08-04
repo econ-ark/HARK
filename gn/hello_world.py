@@ -28,7 +28,7 @@ from HARKutilities import   plotFuncs
 #xx why does this error out on later runs but not on the first run? that's weird.
 import ConsumptionSavingModel_gn as Model
 #import ConsumerParameters as Params
-import EstimationParameters as Params
+import EstimationParameters_old as Params
 
 
 #from time import clock
@@ -103,14 +103,14 @@ FutRebateExample.timeFwd()
 settings.rebate_size = 0
 settings.init()
 # Switch to natural borrowing constraint consumer
-init_natural_borrowing_constraint = deepcopy(baseline_params)
-init_natural_borrowing_constraint['BoroCnstArt'] = None #min is at -0.42 with a natural borrowing constraint
-NBCExample = Model.IndShockConsumerType(**init_natural_borrowing_constraint)  
-NBCExample.solve()
-NBCExample.unpack_cFunc()
-NBCExample.timeFwd()
-#print('Natural Borrowing Constraint consumption function:')
-mMin = NBCExample.solution[t_eval].mNrmMin
+#init_natural_borrowing_constraint = deepcopy(baseline_params)
+#init_natural_borrowing_constraint['BoroCnstArt'] = None #min is at -0.42 with a natural borrowing constraint
+#NBCExample = Model.IndShockConsumerType(**init_natural_borrowing_constraint)  
+#NBCExample.solve()
+#NBCExample.unpack_cFunc()
+#NBCExample.timeFwd()
+##print('Natural Borrowing Constraint consumption function:')
+#mMin = NBCExample.solution[t_eval].mNrmMin
 
 
 pandas2ri.activate() 
@@ -151,7 +151,7 @@ def gg_funcs(functions,bottom,top,N=1000,labels = ["Baseline"],
 ###########################################################################
 # Begin Plots
 cf_exo = IndShockExample.cFunc[t_eval]
-cf_nbc = NBCExample.cFunc[t_eval]
+#cf_nbc = NBCExample.cFunc[t_eval]
 cf_fut = FutRebateExample.cFunc[t_eval-1]
 cf_fut_tm3 = FutRebateExample.cFunc[t_eval-3]
 cf_fut_tm5 = FutRebateExample.cFunc[t_eval-5]
@@ -183,6 +183,19 @@ def c_future_wealth(fut_period = 1, coh = 1, exo = True):
 yr = gg.ylim(range=robjects.r('c(0.55,1)'))
 
 
+
+###########################################################################
+#g = gg_funcs([IndShockExample.cFunc[5],NBCExample.cFunc[5]],-5,2.5, N=50, loc=robjects.r('c(1,0)'),
+#        title = "Consumption Functions age 30", labels = ['Exo Constraint = -10','Nat Borrowing Constraint'],
+#        ylab = "Consumption", xlab = "Cash-on-Hand")
+#mp.ggsave("exo_minus_10_vs_nbc_age_39",g)
+#ggplot_notebook(g, height=300,width=400)
+#
+#g = gg_funcs([cf_exo,cf_nbc],-0.5,2.5, N=50, loc=robjects.r('c(1,0)'),
+#        title = "Consumption Functions age 45", labels = ['Exo Constraint = -10','Nat Borrowing Constraint'],
+#        ylab = "Consumption", xlab = "Cash-on-Hand")
+#mp.ggsave("exo_minus_10_vs_nbc_age_45",g)
+#ggplot_notebook(g, height=300,width=400)
 
 ###########################################################################
 #slide 1: traditional consumption function
@@ -473,63 +486,63 @@ ggplot_notebook(g, height=300,width=400)
 
 
 
-base = 0.5
-mpc_exo = mpc(cf_exo,rebate=rebate, a=base)
-mpc_nbc = mpc(cf_nbc,rebate=rebate, a=base)
-g = gg_funcs([cf_exo,cf_nbc],0.01,2.5, N=50, 
-         labels = ['Exogenous','Natural'],xlab="Cash-on-Hand",
-        ylab = "Consumption", ltitle = "Borrowing Constraint")
-g += mp.annotate(geom = "text", x = 1, y = 0.2, label = "Exogenous MPC: " + str(mpc_exo))
-g += mp.annotate(geom = "text", x = 1, y = 0.9, label = "Natural MPC: " + str(mpc_nbc))
-g += gg.geom_segment(gg.aes_string(x = base+dy, y = float(cf_exo(base+rebate)), xend = base+rebate, yend = float(cf_exo(base+rebate))),color= robjects.r.palette_lines[1])
-g += gg.geom_segment(gg.aes_string(x = base+dy, y = float(cf_exo(base+dy)), xend = base+dy, yend = float(cf_exo(base+rebate))),color= robjects.r.palette_lines[1])
-g += gg.geom_segment(gg.aes_string(x = base, y = float(cf_nbc(base+rebate)), xend = base+rebate, yend = float(cf_nbc(base+rebate))),color= robjects.r.palette_lines[2])
-g += gg.geom_segment(gg.aes_string(x = base, y = float(cf_nbc(base)), xend = base, yend = float(cf_nbc(base+rebate))),color= robjects.r.palette_lines[2])
-mp.ggsave("exo_vs_nbc",g)
-ggplot_notebook(g, height=300,width=400)
+#base = 0.5
+#mpc_exo = mpc(cf_exo,rebate=rebate, a=base)
+#mpc_nbc = mpc(cf_nbc,rebate=rebate, a=base)
+#g = gg_funcs([cf_exo,cf_nbc],0.01,2.5, N=50, 
+#         labels = ['Exogenous','Natural'],xlab="Cash-on-Hand",
+#        ylab = "Consumption", ltitle = "Borrowing Constraint")
+#g += mp.annotate(geom = "text", x = 1, y = 0.2, label = "Exogenous MPC: " + str(mpc_exo))
+#g += mp.annotate(geom = "text", x = 1, y = 0.9, label = "Natural MPC: " + str(mpc_nbc))
+#g += gg.geom_segment(gg.aes_string(x = base+dy, y = float(cf_exo(base+rebate)), xend = base+rebate, yend = float(cf_exo(base+rebate))),color= robjects.r.palette_lines[1])
+#g += gg.geom_segment(gg.aes_string(x = base+dy, y = float(cf_exo(base+dy)), xend = base+dy, yend = float(cf_exo(base+rebate))),color= robjects.r.palette_lines[1])
+#g += gg.geom_segment(gg.aes_string(x = base, y = float(cf_nbc(base+rebate)), xend = base+rebate, yend = float(cf_nbc(base+rebate))),color= robjects.r.palette_lines[2])
+#g += gg.geom_segment(gg.aes_string(x = base, y = float(cf_nbc(base)), xend = base, yend = float(cf_nbc(base+rebate))),color= robjects.r.palette_lines[2])
+#mp.ggsave("exo_vs_nbc",g)
+#ggplot_notebook(g, height=300,width=400)
 
-
-base = 1
-mpc_exo = mpc(cf_exo,rebate=rebate, a=base)
-mpc_nbc = mpc(cf_nbc,rebate=rebate, a=base)
-g = gg_funcs([cf_exo,cf_nbc],0.01,2.5, N=50, 
-         labels = ['Exogenous','Natural'],xlab="Cash-on-Hand",
-        ylab = "Consumption", ltitle = "Borrowing Constraint")
-g += mp.annotate(geom = "text", x = 1.7, y = 0.7, label = "Exogenous MPC: " + str(mpc_exo))
-g += mp.annotate(geom = "text", x = 0.4, y = 0.9, label = "Natural MPC: " + str(mpc_nbc))
-g += gg.geom_segment(gg.aes_string(x = base+dy, y = float(cf_exo(base+rebate)), xend = base+rebate, yend = float(cf_exo(base+rebate))),color= robjects.r.palette_lines[1])
-g += gg.geom_segment(gg.aes_string(x = base+dy, y = float(cf_exo(base+dy)), xend = base+dy, yend = float(cf_exo(base+rebate))),color= robjects.r.palette_lines[1])
-g += gg.geom_segment(gg.aes_string(x = base, y = float(cf_nbc(base+rebate)), xend = base+rebate, yend = float(cf_nbc(base+rebate))),color= robjects.r.palette_lines[2])
-g += gg.geom_segment(gg.aes_string(x = base, y = float(cf_nbc(base)), xend = base, yend = float(cf_nbc(base+rebate))),color= robjects.r.palette_lines[2])
-mp.ggsave("exo_vs_nbc_a1",g)
-ggplot_notebook(g, height=300,width=400)
-
-base = 1.5
-mpc_exo = mpc(cf_exo,rebate=rebate, a=base)
-mpc_nbc = mpc(cf_nbc,rebate=rebate, a=base)
-g = gg_funcs([cf_exo,cf_nbc],0.01,2.5, N=50, 
-         labels = ['Exogenous','Natural'],xlab="Cash-on-Hand",
-        ylab = "Consumption", ltitle = "Borrowing Constraint")
-g += mp.annotate(geom = "text", x = 1.7, y = 0.8, label = "Exogenous MPC: " + str(mpc_exo))
-g += mp.annotate(geom = "text", x = 1.3, y = 0.95, label = "Natural MPC: " + str(mpc_nbc))
-g += gg.geom_segment(gg.aes_string(x = base+dy, y = float(cf_exo(base+rebate)), xend = base+rebate, yend = float(cf_exo(base+rebate))),color= robjects.r.palette_lines[1])
-g += gg.geom_segment(gg.aes_string(x = base+dy, y = float(cf_exo(base+dy)), xend = base+dy, yend = float(cf_exo(base+rebate))),color= robjects.r.palette_lines[1])
-g += gg.geom_segment(gg.aes_string(x = base, y = float(cf_nbc(base+rebate)), xend = base+rebate, yend = float(cf_nbc(base+rebate))),color= robjects.r.palette_lines[2])
-g += gg.geom_segment(gg.aes_string(x = base, y = float(cf_nbc(base)), xend = base, yend = float(cf_nbc(base+rebate))),color= robjects.r.palette_lines[2])
-mp.ggsave("exo_vs_nbc_a2",g)
-ggplot_notebook(g, height=300,width=400)
-
-
-cons_2 = partial(cons_bop,tran_shk=tmp_hi, cf = cf_nbc) 
-cons_1 = partial(cons_bop,tran_shk=tmp_norm, cf = cf_nbc)
-cons_0 = partial(cons_bop,tran_shk=tmp_lo, cf = cf_nbc)  
-g = gg_funcs([cons_0,cons_1,cons_2],0.01,2.5, N=10, loc=robjects.r('c(1,0)'),
-         ltitle = 'Temp Income',
-         labels = ['Low','Normal', 'High'],
-        title = "Consumption with Natural Borrowing Constraint",
-        ylab = "Consumption", xlab = "Beginning-of-Period Assets",
-        file_name = "cons_bop_nbc")
-ggplot_notebook(g, height=300,width=400)
-
+#
+#base = 1
+#mpc_exo = mpc(cf_exo,rebate=rebate, a=base)
+#mpc_nbc = mpc(cf_nbc,rebate=rebate, a=base)
+#g = gg_funcs([cf_exo,cf_nbc],0.01,2.5, N=50, 
+#         labels = ['Exogenous','Natural'],xlab="Cash-on-Hand",
+#        ylab = "Consumption", ltitle = "Borrowing Constraint")
+#g += mp.annotate(geom = "text", x = 1.7, y = 0.7, label = "Exogenous MPC: " + str(mpc_exo))
+#g += mp.annotate(geom = "text", x = 0.4, y = 0.9, label = "Natural MPC: " + str(mpc_nbc))
+#g += gg.geom_segment(gg.aes_string(x = base+dy, y = float(cf_exo(base+rebate)), xend = base+rebate, yend = float(cf_exo(base+rebate))),color= robjects.r.palette_lines[1])
+#g += gg.geom_segment(gg.aes_string(x = base+dy, y = float(cf_exo(base+dy)), xend = base+dy, yend = float(cf_exo(base+rebate))),color= robjects.r.palette_lines[1])
+#g += gg.geom_segment(gg.aes_string(x = base, y = float(cf_nbc(base+rebate)), xend = base+rebate, yend = float(cf_nbc(base+rebate))),color= robjects.r.palette_lines[2])
+#g += gg.geom_segment(gg.aes_string(x = base, y = float(cf_nbc(base)), xend = base, yend = float(cf_nbc(base+rebate))),color= robjects.r.palette_lines[2])
+#mp.ggsave("exo_vs_nbc_a1",g)
+#ggplot_notebook(g, height=300,width=400)
+#
+#base = 1.5
+#mpc_exo = mpc(cf_exo,rebate=rebate, a=base)
+#mpc_nbc = mpc(cf_nbc,rebate=rebate, a=base)
+#g = gg_funcs([cf_exo,cf_nbc],0.01,2.5, N=50, 
+#         labels = ['Exogenous','Natural'],xlab="Cash-on-Hand",
+#        ylab = "Consumption", ltitle = "Borrowing Constraint")
+#g += mp.annotate(geom = "text", x = 1.7, y = 0.8, label = "Exogenous MPC: " + str(mpc_exo))
+#g += mp.annotate(geom = "text", x = 1.3, y = 0.95, label = "Natural MPC: " + str(mpc_nbc))
+#g += gg.geom_segment(gg.aes_string(x = base+dy, y = float(cf_exo(base+rebate)), xend = base+rebate, yend = float(cf_exo(base+rebate))),color= robjects.r.palette_lines[1])
+#g += gg.geom_segment(gg.aes_string(x = base+dy, y = float(cf_exo(base+dy)), xend = base+dy, yend = float(cf_exo(base+rebate))),color= robjects.r.palette_lines[1])
+#g += gg.geom_segment(gg.aes_string(x = base, y = float(cf_nbc(base+rebate)), xend = base+rebate, yend = float(cf_nbc(base+rebate))),color= robjects.r.palette_lines[2])
+#g += gg.geom_segment(gg.aes_string(x = base, y = float(cf_nbc(base)), xend = base, yend = float(cf_nbc(base+rebate))),color= robjects.r.palette_lines[2])
+#mp.ggsave("exo_vs_nbc_a2",g)
+#ggplot_notebook(g, height=300,width=400)
+#
+#
+#cons_2 = partial(cons_bop,tran_shk=tmp_hi, cf = cf_nbc) 
+#cons_1 = partial(cons_bop,tran_shk=tmp_norm, cf = cf_nbc)
+#cons_0 = partial(cons_bop,tran_shk=tmp_lo, cf = cf_nbc)  
+#g = gg_funcs([cons_0,cons_1,cons_2],0.01,2.5, N=10, loc=robjects.r('c(1,0)'),
+#         ltitle = 'Temp Income',
+#         labels = ['Low','Normal', 'High'],
+#        title = "Consumption with Natural Borrowing Constraint",
+#        ylab = "Consumption", xlab = "Beginning-of-Period Assets",
+#        file_name = "cons_bop_nbc")
+#ggplot_notebook(g, height=300,width=400)
+#
 
 

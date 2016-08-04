@@ -2376,26 +2376,26 @@ if __name__ == '__main__':
 #        CyclicalExample.initializeSim()
 #        CyclicalExample.simConsHistory()
 #    
- 
-###############################################################################
-
-    # Make and solve an agent with a kinky interest rate
-    KinkyExample = KinkedRconsumerType(**Params.init_kinked_R)
-    KinkyExample.cycles = 1 # Make the Example infinite horizon
-    
-    start_time = clock()
-    KinkyExample.solve()
-    end_time = clock()
-    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    KinkyExample.unpackcFunc()
-    print('Kinky consumption function:')
-    KinkyExample.timeFwd()
-    plotFuncs(KinkyExample.cFunc[0],KinkyExample.solution[0].mNrmMin,5)
-
-    if do_simulation:
-        KinkyExample.sim_periods = 120
-        KinkyExample.makeIncShkHist()
-        KinkyExample.initializeSim()
-        KinkyExample.simConsHistory()
-    
+# 
+################################################################################
+#
+#    # Make and solve an agent with a kinky interest rate
+#    KinkyExample = KinkedRconsumerType(**Params.init_kinked_R)
+#    KinkyExample.cycles = 1 # Make the Example infinite horizon
+#    
+#    start_time = clock()
+#    KinkyExample.solve()
+#    end_time = clock()
+#    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
+#    KinkyExample.unpackcFunc()
+#    print('Kinky consumption function:')
+#    KinkyExample.timeFwd()
+#    plotFuncs(KinkyExample.cFunc[0],KinkyExample.solution[0].mNrmMin,5)
+#
+#    if do_simulation:
+#        KinkyExample.sim_periods = 120
+#        KinkyExample.makeIncShkHist()
+#        KinkyExample.initializeSim()
+#        KinkyExample.simConsHistory()
+#    
     
