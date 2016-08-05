@@ -152,8 +152,15 @@ Now that we have the solutions to the 2 different problems, we can compare them
 def FirstDiffMPC_Income(x):
     # Approximate the MPC out of income by giving the agent a tiny bit more income,
     # and plotting the proportion of the change that is reflected in increased consumption
-    return (BaselineExample.solution[0].cFunc(x + credit_change) - 
-            BaselineExample.solution[0].cFunc(x)) / credit_change
+
+    # First, declare how much we want to increase income by
+    # Change income by the same amount we change credit, so that the two MPC
+    # approximations are comparable
+    income_change = credit_change
+
+    # Now, calculate the approximate MPC out of income
+    return (BaselineExample.solution[0].cFunc(x + income_change) - 
+            BaselineExample.solution[0].cFunc(x)) / income_change
 
 
 def FirstDiffMPC_Credit(x):
