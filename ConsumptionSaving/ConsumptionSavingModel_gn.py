@@ -738,6 +738,8 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
             A 1D array of end-of-period assets; also stored as attribute of self.
         '''               
         aNrmNow     = np.asarray(self.aXtraGrid) + self.BoroCnstNat
+        #PNG modification 2016-08-06
+        #aNrmNow     = np.asarray(self.aXtraGrid) + self.BoroCnstArt
         ShkCount    = self.TranShkValsNext.size
         aNrm_temp   = np.tile(aNrmNow,(ShkCount,1))
 
@@ -753,6 +755,11 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
             
         #PNG addition 2016-06-30
         #print(settings.t_curr)
+        if settings.t_curr == settings.t_rebate + 2:
+            if settings.verbose:
+                print "Borrowing Constraint: " + str(self.BoroCnstArt)
+                #print np.asarray(self.aXtraGrid)
+                #print aNrmNow
         if settings.t_curr == settings.t_rebate :
             if settings.verbose:
                 print mNrmNext[0] 
@@ -884,8 +891,17 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
             The solution to this period's consumption-saving problem, with a
             consumption function, marginal value function, and minimum m.
         '''
-        cNrm,mNrm    = self.getPointsForInterpolation(EndOfPrdvP,aNrm)       
+                
+        cNrm,mNrm    = self.getPointsForInterpolation(EndOfPrdvP,aNrm) 
         solution_now = self.usePointsForInterpolation(cNrm,mNrm,interpolator)
+        #PNG modification 2016-08-08
+        if settings.t_curr == settings.t_rebate + 2:
+            if settings.verbose:
+                print "Asset grid\n", aNrm
+                print "Marginal utility grid\n", EndOfPrdvP
+                print "Consumption grid\n", cNrm
+                from HARKutilities import plotFuncs
+                plotFuncs(solution_now.cFunc,aNrm[0],aNrm[0]+10)
         return solution_now
 
         

@@ -37,7 +37,9 @@ credentials = ServiceAccountCredentials.from_json_keyfile_name('gspread-oauth.js
 gc = gspread.authorize(credentials)
 g_params = gc.open("HAMPRA Model Parameters").sheet1 #in this case
 df = pd.DataFrame(g_params.get_all_records())
-hamp_params = df[['Param','Value']].set_index('Param')['Value'].to_dict()
+hamp_params = df[['Param','Value']].set_index('Param')['Value'][:6].to_dict()
+initialize_hamp_recip = df[['Param','Value']].set_index('Param')['Value'][6:7].to_dict()
+
 #xxx want to modify this default path not to have all these bad things starting out
 #sys.path.remove('/Users/ganong/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages')
 #sys.path.remove('/Users/ganong/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/PIL')
@@ -58,7 +60,7 @@ def ggplot_notebook(gg, width = 800, height = 600):
 #set economic parameters 
 rebate_years_until_death = 25
 age_of_rebate = 90 - rebate_years_until_death
-t_eval = age_of_rebate - 25
+t_eval = age_of_rebate - 25 - 20
 def mpc(cF, rebate = 1, a = 0.1):
     return round((cF(a+rebate) - cF(a)) / rebate,2)
 tmp_lo = 0.8
@@ -69,7 +71,10 @@ tmp_hi = 1.2
 #calculate rebate and borrowing constraints under HAMP
 #in future, when simulating histories, need to adjust for realized income shocks as well
 def hsg_wealth(debt, annual_hp_growth, collateral_constraint, initial_debt, initial_price, int_rate, pra_forgive, age_at_mod = 45):
-    print annual_hp_growth, collateral_constraint, initial_debt, initial_price, int_rate
+    if initial_debt < 0:
+        print("Error: cannot have negative mortgage")
+        return
+    print "Hsg wealth params: ", annual_hp_growth, collateral_constraint, initial_debt, initial_price, int_rate
     T = 65 - age_at_mod
     price = [initial_price]
     debt = [debt]
@@ -79,12 +84,18 @@ def hsg_wealth(debt, annual_hp_growth, collateral_constraint, initial_debt, init
         price.append(price[-1]*(1+annual_hp_growth)/perm_gro)
         debt.append(debt[-1]/perm_gro) #this is the no amortization condition
     equity = np.array(price) - np.array(debt)
-    limit_from_mod_to_retire = np.min(np.vstack((-equity*(1-collateral_constraint),np.zeros(T))),axis=0).tolist()
+    limit_from_mod_to_retire = np.min(np.vstack((-(np.array(price)*(1-collateral_constraint) - np.array(debt)),np.zeros(T))),axis=0).tolist()
     limit = [0.0] * (age_at_mod - 26) + limit_from_mod_to_retire + [0.0] * 26
     if equity[T-1] < 0:
         print("Error: still underwater at sale date")
         return
     return equity[T-1], limit
+
+#hamp_params['collateral_constraint'] = 0
+#r, L = hsg_wealth(debt =  hamp_params['initial_debt'], **hamp_params)
+hamp_params['collateral_constraint'] = 0.2
+#r2, L2 = hsg_wealth(debt =  hamp_params['initial_debt'], **hamp_params)
+#L[30:40], L2[30:40]
 
 uw_house_params = deepcopy(baseline_params)
 uw_house_params['rebate_age_65'], uw_house_params['BoroCnstArt'] = hsg_wealth(debt =  hamp_params['initial_debt'], **hamp_params)
@@ -99,61 +110,6 @@ def saving_rate(x,tran_shk, cf):
 def cons_bop(x,tran_shk, cf):
     return(cf(x+tran_shk)) 
 from functools import partial
-
-###########################################################################
-# Solve consumer problems
-
-settings.init()
-def solve_unpack(params):
-    IndShockConsumerType = Model.IndShockConsumerType(**params)
-    IndShockConsumerType.solve()
-    IndShockConsumerType.unpack_cFunc()
-    IndShockConsumerType.timeFwd()
-    return IndShockConsumerType
-
-IndShockExample = solve_unpack(baseline_params)
-
-
-settings.t_rebate = 35
-settings.rebate_size = 1
-RebateAge55 = solve_unpack(baseline_params)
-
-settings.t_rebate = 44
-RebateAge46 = solve_unpack(baseline_params)
-
-settings.rebate_size = 0
-l = baseline_params['BoroCnstArt']
-for i in range(len(l)):
-    l[i] = -1
-Boro1YrInc = solve_unpack(baseline_params)
-
-
-
-#complete package: rebate and borrowing constraint relaxed
-settings.rebate_size = uw_house_params['rebate_age_65']
-uw_house_example = solve_unpack(uw_house_params)
-
-settings.rebate_size = pra_params['rebate_age_65']
-uw_house_example = solve_unpack(pra_params)
-
-
-settings.t_rebate = rebate_years_until_death
-
-settings.rebate_size = uw_house_params['rebate_age_65']
-settings.init()
-FutRebateExample = Model.IndShockConsumerType(**baseline_params)
-FutRebateExample.solve()
-FutRebateExample.unpack_cFunc()
-FutRebateExample.timeFwd()
-
-
-IndShockExample.cFunc[19](2)
-FutRebateExample.cFunc[19](2)
-
-IndShockExample.cFunc[38](2)
-FutRebateExample.cFunc[38](2)
-
-
 
 pandas2ri.activate() 
 loc = robjects.r('c(1,0)')
@@ -190,28 +146,312 @@ def gg_funcs(functions,bottom,top,N=1000,labels = [],
     if file_name is not None:
         mp.ggsave(file_name,g)
     return(g)
-
-
-def c_future_wealth(fut_period = 1, coh = 1, exo = True):
-    c_list = []
-    rebate_fut_vals = np.linspace(0, 1, num=11)
-    rebate_curr_vals = rebate_fut_vals[1:]
-    for rebate_fut in rebate_fut_vals:
-        settings.rebate_size = rebate_fut
-        settings.init()
-        if exo:
-            IndShockExample = Model.IndShockConsumerType(**baseline_params)
-        else :
-            IndShockExample = Model.IndShockConsumerType(**init_natural_borrowing_constraint)
-        IndShockExample.solve()
-        IndShockExample.unpack_cFunc()
-        IndShockExample.timeFwd()
-        c_list = np.append(c_list,IndShockExample.cFunc[t_eval-fut_period](coh))
-    for rebate_cur in rebate_curr_vals:
-        c_list = np.append(c_list,IndShockExample.cFunc[t_eval-fut_period](coh+rebate_cur))
-    c_func = LinearInterp(np.linspace(0, 2, num=21),np.array(c_list))             
-    return(c_func)
     
+###########################################################################
+# Solve consumer problems
+
+settings.init()
+settings.t_rebate = rebate_years_until_death
+
+def solve_unpack(params):
+    #settings.rebate_size = 
+    settings.rebate_size = params['rebate_age_65']
+    print "Rebate is " + str(round(settings.rebate_size,2)) + " at age " + str(90-settings.t_rebate)
+    IndShockConsumerType = Model.IndShockConsumerType(**params)
+    IndShockConsumerType.solve()
+    IndShockConsumerType.unpack_cFunc()
+    IndShockConsumerType.timeFwd()
+    return IndShockConsumerType
+baseline_params['aXtraCount'] = 30
+
+
+
+#DEBUGGING Nans in progress
+#xx divide by zero encountered in log
+#xx error: All-NaN axis encountered. bottom five values of grid are Nan
+#what's going wrong?
+#starting only during working years...
+#p self.vPfuncNext(self.mNrmNext)[0] has five nan values at bottom
+#p self.vPfuncNext(self.mNrmNext)[1] and every subsequent value is defined. so it's just this [0].
+#can also be recast as p self.vPfuncNext(self.mNrmNext[0])
+#vPfuncNext goes back to vPfunc goes back to vPfuncNow goes back to MargValueFunc
+#this is why we are getting the results wrong is we are estimating two slopes
+#self.mNrmNext[24] looks pretty good
+#MargValueFunc fails when given a number < -1 (if you give it -1, it returns 0)
+#it calls cFunc
+#why can't cFunc handle arguments < -1? I don't know
+#baseline_params['DiscFac'] = (np.array(Params.DiscFac_timevary)*0.96).tolist()
+baseline_params['DiscFac'] = (np.ones(65)*0.96).tolist()
+baseline_params['vFuncBool'] = True
+IndShockExample = solve_unpack(baseline_params)
+
+# Simulate some data for num_agents defaults to 10000; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
+IndShockExample.sim_periods = IndShockExample.T_total + 1
+IndShockExample.makeIncShkHist()
+IndShockExample.initializeSim()
+IndShockExample.simConsHistory()
+
+#how do these change with age
+np.mean(IndShockExample.cHist,axis=1) #rising w age and then falling right before death
+np.mean(IndShockExample.mHist,axis=1) #rising then falling
+np.mean(IndShockExample.bHist,axis=1) #rising then falling bank balances before labor income
+np.mean(IndShockExample.aHist,axis=1) #rising then falling
+np.mean(IndShockExample.MPChist,axis=1) #falling very rapidly in first five years.
+np.mean(IndShockExample.pHist,axis=1) #rising permanent income level
+
+np.mean(IndShockExample.MPChist[:40]) 
+np.mean(IndShockExample.MPChist[:20]) 
+
+#redo lifecycle model with housing
+lifecycle_hsg_params = deepcopy(baseline_params)
+#xx at age 65 you are selling your house for 5. this should be reflected in your asset balances starting at age 65
+hamp_params['collateral_constraint'] = 0
+rebate, equity = hsg_wealth(debt = 3.25, age_at_mod = 30, **hamp_params)
+hamp_params['collateral_constraint'] = 0.2
+lifecycle_hsg_params['rebate_age_65'], lifecycle_hsg_params['BoroCnstArt'] = hsg_wealth(debt = 3.25, age_at_mod = 30, **hamp_params)
+lifecycle_hsg_example = solve_unpack(lifecycle_hsg_params)
+lifecycle_hsg_example.sim_periods = lifecycle_hsg_example.T_total + 1
+lifecycle_hsg_example.makeIncShkHist()
+lifecycle_hsg_example.initializeSim()
+lifecycle_hsg_example.simConsHistory()
+
+np.mean(lifecycle_hsg_example.cHist,axis=1) #rising w age and then falling right before death
+np.mean(lifecycle_hsg_example.mHist,axis=1) #rising then falling
+np.mean(lifecycle_hsg_example.bHist,axis=1) #rising then falling bank balances before labor income
+np.mean(lifecycle_hsg_example.aHist,axis=1) #rising then falling
+np.mean(lifecycle_hsg_example.MPChist,axis=1) #falling very rapidly in first five years.
+np.mean(lifecycle_hsg_example.pHist,axis=1) #rising permanent income level
+
+np.mean(lifecycle_hsg_example.MPChist[:40]) 
+np.mean(lifecycle_hsg_example.MPChist[:20]) 
+
+#array of x-values
+
+#array of y-values
+
+
+#df = pd.DataFrame({'Loan-To-Value': 100*(1+np.array(equity[4:38]/rebate)), 
+#                      'MPC': np.mean(lifecycle_hsg_example.MPChist,axis=1)[4:38]})
+#g = gg.ggplot2(df) + \
+#    gg.aes_string(x='Loan-To-Value', y='MPC')
+#    
+#    + mp.line + mp.point     +  \
+#    mp.theme_bw(base_size=9) + mp.fte_theme +mp.colors + \
+#    gg.labs(title="Home Equity and Marginal Propensity to Consume",
+#                  y="MPC", x = "Loan-to-Value Ratio")
+#mp.ggsave("ltv_and_mpc",g)
+#ggplot_notebook(g, height=300,width=400)
+#np.vstack((-1*np.array(lifecycle_hsg_params['BoroCnstArt'][4:38]),np.mean(lifecycle_hsg_example.MPChist,axis=1)[:40]))
+#
+
+#alternative consumption functions
+example_params = deepcopy(baseline_params)
+settings.t_rebate = 35
+example_params['rebate_age_65'] = 1
+RebateAge55 = solve_unpack(example_params)
+settings.t_rebate = 44
+RebateAge46 = solve_unpack(example_params)
+#settings.verbose = True
+example_params['rebate_age_65'] = 0
+l = example_params['BoroCnstArt']
+for i in range(len(l)):
+    l[i] = -1
+Boro1YrInc = solve_unpack(example_params)
+#settings.verbose = False
+
+
+#complete package: rebate and borrowing constraint relaxed
+settings.t_rebate = rebate_years_until_death
+settings.rebate_size = uw_house_params['rebate_age_65']
+wealth_grant_only = solve_unpack(baseline_params)
+uw_house_example = solve_unpack(uw_house_params)
+
+settings.rebate_size = pra_params['rebate_age_65']
+pra_example = solve_unpack(pra_params)
+
+#resolve for 10 different rebate values
+hw_cf_params = deepcopy(baseline_params)
+
+#xx in future start with 2D interpolation
+hamp_params['collateral_constraint'] = 0.2
+tmp_vlo = 0.6
+cFuncs = []
+hw_cf_list = []
+hw_cf_coh_hi_list = []
+hw_cf_coh_vlo_list = []
+grid_len = 16
+grid_int = 0.25
+grid_max = grid_len*grid_int
+for i in range(grid_len):
+    hw_cf_params['rebate_age_65'], hw_cf_params['BoroCnstArt'] = hsg_wealth(debt =  hamp_params['initial_debt'] - i*grid_int, **hamp_params)
+    #print hw_cf_params['BoroCnstArt'][20:40]
+    settings.rebate_size = hw_cf_params['rebate_age_65']
+    print settings.rebate_size
+    cf = solve_unpack(hw_cf_params)
+    cFuncs.append(cf.cFunc)
+    hw_cf_list.append(cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand']))
+    hw_cf_coh_hi_list.append(cf.cFunc[t_eval](tmp_hi))
+    hw_cf_coh_vlo_list.append(cf.cFunc[t_eval](tmp_vlo))
+
+#first index says. second index says age 44, I believe 
+#t_eval = 19
+#cFuncs[0][t_eval](initialize_hamp_recip['cash_on_hand'])
+equity_initial = hamp_params['initial_debt'] - hamp_params['initial_price']
+#gr_min = -equity_initial
+#gr_max = grid_len*grid_int - equity_initial
+gr_min = 100*-equity_initial/hamp_params['initial_price']
+gr_max = 100*(grid_len*grid_int - equity_initial)/hamp_params['initial_price']
+grid_int2 = (gr_max-gr_min)/grid_len
+hw_cf = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_list))
+hw_cf_coh_hi = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_coh_hi_list))
+hw_cf_coh_vlo = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_coh_vlo_list))
+
+
+hamp_params['collateral_constraint'] = 0
+cFuncs_0_pct = []
+hw_cf_0_pct_list = []
+for i in range(grid_len):
+    hw_cf_params['rebate_age_65'], hw_cf_params['BoroCnstArt'] = hsg_wealth(debt =  hamp_params['initial_debt'] - i*grid_int, **hamp_params)
+    settings.rebate_size = hw_cf_params['rebate_age_65']
+    cf = solve_unpack(hw_cf_params)
+    cFuncs_0_pct.append(cf.cFunc)
+    hw_cf_0_pct_list.append(cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand']))
+#gr_min = 100*-equity_initial/hamp_params['initial_price']
+#gr_max = 100*(grid_len*grid_int - equity_initial)/hamp_params['initial_price']
+#grid_int2 = (gr_max-gr_min)/grid_len
+hw_cf_0_pct = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_0_pct_list))
+
+#slide 1 -- consumption function out of future wealth
+g = gg_funcs([IndShockExample.cFunc[t_eval],RebateAge46.cFunc[t_eval],RebateAge55.cFunc[t_eval]],
+        -1.001,3, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Future Wealth",
+        labels = ["Baseline (No Grant)","1 Year Away", "10 Years Away"],
+        ylab = "Consumption", xlab = "Cash-on-hand")
+mp.ggsave("cf_fut_wealth",g)
+ggplot_notebook(g, height=300,width=400)
+
+#slide 2 -- Consumption function out of collateral
+g = gg_funcs([IndShockExample.cFunc[t_eval],Boro1YrInc.cFunc[t_eval]],
+        -1.001,3, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Collateral",
+        labels = ["Baseline (No Collateral)","Collateral = 1 Year's Inc"],
+        ylab = "Consumption", xlab = "Cash-on-hand")
+mp.ggsave("cf_fut_collateral",g)
+ggplot_notebook(g, height=300,width=400)
+
+#slide 3 -- housing equity 
+#Add proceeds of house sale at age 65 as a vertical arrow.
+def neg(x): return -1*x
+boro_cnst_pre_pra = list(map(neg, uw_house_params['BoroCnstArt']))
+boro_cnst_post_pra = list(map(neg, pra_params['BoroCnstArt']))
+#this is 1.1. should be 1.5, i think.
+#pra_params['BoroCnstArt'][38] - uw_house_params['BoroCnstArt'][38]
+
+g = gg_funcs([LinearInterp(np.arange(25,90),boro_cnst_pre_pra),LinearInterp(np.arange(25,90),boro_cnst_post_pra)],
+              25.11,64, N=40, loc=robjects.r('c(0,0.5)'),
+        title = "Borrowing Limits by Year",
+        labels = ["Baseline (No PRA)", "With PRA"],
+        ylab = "Borrowing Limit", xlab = "Age")
+mp.ggsave("borrowing_limits_and_pra",g)
+ggplot_notebook(g, height=300,width=400)
+
+#xx anchor on 100 and figure out how to reverse the order 
+#slide 4 -- Consumption function out of principal forgiveness
+g = gg_funcs(hw_cf,gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Principal Forgiveness",
+        labels = ["Baseline"],
+        ylab = "Consumption", xlab = "Collateral Position (Loan-to-Value w < 0 as Underwater)")
+mp.ggsave("cons_and_prin_forgive",g)
+ggplot_notebook(g, height=300,width=400)
+
+g = gg_funcs([hw_cf,hw_cf_0_pct,],gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Principal Forgiveness",
+        labels = ["Baseline","Housing Equity >= 0%"],
+        ylab = "Consumption", xlab = "Collateral Position (Loan-to-Value w < 0 as Underwater)")
+mp.ggsave("cons_and_prin_forgive_v2",g)
+ggplot_notebook(g, height=300,width=400)
+
+
+g = gg_funcs([hw_cf,hw_cf_0_pct,hw_cf_coh_hi],gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Principal Forgiveness",
+        labels = ["Baseline","Housing Equity >= 0%","Cash-on-Hand = " + str(tmp_hi)],
+        ylab = "Consumption", xlab = "Collateral Position (Loan-to-Value w < 0 as Underwater)")
+mp.ggsave("cons_and_prin_forgive_v2",g)
+ggplot_notebook(g, height=300,width=400)
+
+
+g = gg_funcs([hw_cf,hw_cf_coh_vlo,hw_cf_coh_hi],gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Principal Forgiveness By Initial Cash-On-Hand",
+        labels = ["Baseline","Cash-on-Hand = " + str(tmp_vlo),"Cash-on-Hand = " + str(tmp_hi)],
+        ylab = "Consumption", xlab = "Collateral Position (Loan-to-Value w < 0 as Underwater)")
+mp.ggsave("cons_and_prin_forgive_coh",g)
+ggplot_notebook(g, height=300,width=400)
+
+hw_cf_comp_coh = lambda x: 0.33*hw_cf(x) + 0.33*hw_cf_coh_vlo(x) + 0.34*hw_cf_coh_hi(x)
+hw_cf_comp_collat = lambda x: 0.5*hw_cf(x) + 0.5*hw_cf_0_pct(x)
+g = gg_funcs([hw_cf,hw_cf_comp_coh,hw_cf_comp_collat],gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Principal Forgiveness By Initial Cash-On-Hand",
+        labels = ["Baseline","Composite w Hetero CoH","Composite w Hetero Collateral"],
+        ylab = "Consumption", xlab = "Collateral Position (Loan-to-Value w < 0 as Underwater)")
+mp.ggsave("cons_and_prin_forgive_coh_v2",g)
+ggplot_notebook(g, height=300,width=400)
+
+#xx figure out the jags near zero. these are appearing only when collateral is below zero
+
+#xx graphs are generating a division by zero error. need to step through this to figure out the issues
+
+
+#diagnostic plot with consumption functions
+cFuncs44 = []
+for i in range(0,16,2):
+    cFuncs44.append(cFuncs[i][t_eval])
+g = gg_funcs(cFuncs44,-1.5,3, N=200, loc=robjects.r('c(1,0)'),
+        title = "Consumption Functions. Each line is 0.5 more of Principal Forgiveness",
+        ylab = "Consumption", xlab = "Cash on Hand")
+mp.ggsave("cfuncs_prin_forgive",g)
+ggplot_notebook(g, height=300,width=400)
+
+cFuncs44 = []
+for i in range(0,16,2):
+    cFuncs44.append(cFuncs_0_pct[i][t_eval])
+g = gg_funcs(cFuncs44,-1.5,3, N=200, loc=robjects.r('c(1,0)'),
+        title = "Consumption Functions. Each line is 0.5 more of Principal Forgiveness",
+        ylab = "Consumption", xlab = "Cash on Hand")
+mp.ggsave("cfuncs_prin_forgive_0_pct",g)
+ggplot_notebook(g, height=300,width=400)
+
+
+
+
+
+
+
+
+
+
+
+
+
+settings.rebate_size = uw_house_params['rebate_age_65']
+settings.init()
+FutRebateExample = Model.IndShockConsumerType(**baseline_params)
+FutRebateExample.solve()
+FutRebateExample.unpack_cFunc()
+FutRebateExample.timeFwd()
+
+IndShockExample.cFunc[19](2)
+FutRebateExample.cFunc[19](2)
+
+IndShockExample.cFunc[38](2)
+FutRebateExample.cFunc[38](2)
+
+#plot borrowing constraint from age 45 to 65
+-uw_house_params['BoroCnstArt'][20:40]
+-pra_params['BoroCnstArt'][20:40]
+
+
+
+
 yr = gg.ylim(range=robjects.r('c(0.55,1)'))
 
 
@@ -468,17 +708,44 @@ ggplot_notebook(g, height=300,width=400)
 
 ###########################################################################
 #slide 4  -- convex consumpion function out of debt forgiveness
+
+
+def c_future_wealth(fut_period = 1, coh = 1, exo = True):
+    c_list = []
+    rebate_fut_vals = np.linspace(0, 2, num=11)
+    rebate_curr_vals = rebate_fut_vals[1:]
+    for rebate_fut in rebate_fut_vals:
+        settings.rebate_size = rebate_fut
+        settings.init()
+        if exo:
+            IndShockExample = Model.IndShockConsumerType(**baseline_params)
+        else :
+            IndShockExample = Model.IndShockConsumerType(**init_natural_borrowing_constraint)
+        IndShockExample.solve()
+        IndShockExample.unpack_cFunc()
+        IndShockExample.timeFwd()
+        c_list = np.append(c_list,IndShockExample.cFunc[t_eval-fut_period](coh))
+    for rebate_cur in rebate_curr_vals:
+        c_list = np.append(c_list,IndShockExample.cFunc[t_eval-fut_period](coh+rebate_cur))
+    c_func = LinearInterp(np.linspace(0, 4, num=21),np.array(c_list))             
+    return(c_func)
+    
+    
+rebate_years_until_death = 45
+age_of_rebate = 90 - rebate_years_until_death
+t_eval = age_of_rebate - 25
 convex_c_1 = c_future_wealth(fut_period = 1)
 convex_c_2 = c_future_wealth(fut_period = 2)
 convex_c_3 = c_future_wealth(fut_period = 3)
 convex_c_4 = c_future_wealth(fut_period = 4)
-g = gg_funcs([convex_c_1,convex_c_2, convex_c_3,convex_c_4],0.0,2, N=50, 
-         labels = ['1 Year','2 Years','3 Years','4 Years'],
+convex_c_5 = c_future_wealth(fut_period = 20)
+g = gg_funcs([convex_c_1,convex_c_2, convex_c_3,convex_c_4,convex_c_5],0.0,4, N=50, 
+         labels = ['1 Year','2 Years','3 Years','4 Years', '20 Years'],
         xlab="Wealth Grant",
         title = 'Impact of Pseudo-Debt Forgivenss \n \
         From 0 to 1.0 is Future Grant. From 1.0 to 2.0 is Present Grant.\n Temp Inc = ' + str(tmp_norm),
         ylab = "Consumption", ltitle = "Years Until Future Grant")
-g += gg.geom_vline(xintercept=1, linetype=2, colour="red", alpha=0.25)
+g += gg.geom_vline(xintercept=2, linetype=2, colour="red", alpha=0.25)
 g += yr     
 mp.ggsave("convex_cons_func_v2",g)
 ggplot_notebook(g, height=300,width=400)

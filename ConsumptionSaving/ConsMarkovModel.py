@@ -908,7 +908,7 @@ class MarkovConsumerType(IndShockConsumerType):
 ###############################################################################
 
 if __name__ == '__main__':
-    
+
     import ConsumerParameters as Params
     from HARKutilities import plotFuncs
     from time import clock
