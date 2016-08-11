@@ -33,7 +33,7 @@ TT = final_age - initial_age        # Total number of periods in the model
 retirement_t = retirement_age - initial_age - 1
 
 CRRA_start = 4.0                    # Initial guess of the coefficient of relative risk aversion during estimation (rho)
-DiscFacAdj_start = 0.99             # Initial guess of the adjustment to the discount factor during estimation (beta)
+DiscFacAdj_start = 0.99             # Initial guess of the adjustment to the discount factor during estimation (beth)
 DiscFacAdj_bound = [0.0001,15.0]    # Bounds for beth; if violated, objective function returns "penalty value"
 CRRA_bound = [0.0001,15.0]          # Bounds for rho; if violated, objective function returns "penalty value"
 
