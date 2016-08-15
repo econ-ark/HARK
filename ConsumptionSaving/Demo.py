@@ -182,17 +182,21 @@ import pylab as plt # We need this module to change the y-axis on the graphs
 x_max = 10.
 
 
-# Note that plotFuncs takes three arguments: (1) a list of the arguments to plot, 
-# (2) the lower bound for the plots, and (3) the upper bound for the plots
+# Note that plotFuncs takes four arguments: (1) a list of the arguments to plot, 
+# (2) the lower bound for the plots, (3) the upper bound for the plots, and (4) keywords to pass
+# to the legend for the plot.
 
 # Plot the consumption functions to compare them
 print('Consumption functions:')
 plotFuncs([BaselineExample.solution[0].cFunc,XtraCreditExample.solution[0].cFunc],
-           BaselineExample.solution[0].mNrmMin,x_max)
+           BaselineExample.solution[0].mNrmMin,x_max,
+           legend_kwds = {'loc': 'upper left', 'labels': ["Baseline","XtraCredit"]})
+
 
 # Plot the MPCs to compare them
 print('MPC out of Credit v MPC out of Income')
 plt.ylim([0.,1.2])
 plotFuncs([FirstDiffMPC_Credit,FirstDiffMPC_Income],
-          BaselineExample.solution[0].mNrmMin,x_max)
+          BaselineExample.solution[0].mNrmMin,x_max,
+          legend_kwds = {'labels': ["MPC out of Credit","MPC out of Income"]})
 
