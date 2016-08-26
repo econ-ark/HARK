@@ -547,7 +547,8 @@ class ConstantFunction(HARKobject):
         
         Parameters
         ----------
-        None
+        value : float
+            The constant value that the function returns.
         
         Returns
         -------
