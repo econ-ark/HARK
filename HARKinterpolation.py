@@ -533,6 +533,84 @@ class HARKinterpolator4D(HARKobject):
         Interpolated function w-derivative evaluator, to be defined in subclasses.
         '''
         raise NotImplementedError()
+        
+        
+class ConstantFunction(HARKobject):
+    '''
+    A class for representing trivial functions that return the same real output for any input.
+    '''
+    convergence_criteria = ['value']
+    
+    def __init__(self,value):
+        '''
+        Make a new ConstantFunction object.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        self.value = float(value)
+        
+    def __call__(self,*args):
+        '''
+        Evaluate the constant function.  The first input must exist and should be an array.
+        Returns an array of identical shape to args[0].
+        '''
+        if _isscalar(args[0]):
+            return self.value
+        else:    
+            shape = args[0].shape
+            return self.value*np.ones(shape)
+        
+    def derivative(self,*args):
+        '''
+        Evaluate the derivative of the function.  The first input must exist and should be an array.
+        Returns an array of identical shape to args[0].  This is an array of zeros.
+        '''
+        if _isscalar(args[0]):
+            return 0.0
+        else:
+            shape = args[0].shape
+            return np.zeros(shape)
+        
+    def derivativeW(self,*args):
+        '''
+        Evaluate the derivative of the function.  The first input must exist and should be an array.
+        Returns an array of identical shape to args[0].  This is an array of zeros.
+        '''
+        return self.derivative(args[0])
+        
+    def derivativeX(self,*args):
+        '''
+        Evaluate the derivative of the function.  The first input must exist and should be an array.
+        Returns an array of identical shape to args[0].  This is an array of zeros.
+        '''
+        return self.derivative(args[0])
+        
+    def derivativeY(self,*args):
+        '''
+        Evaluate the derivative of the function.  The first input must exist and should be an array.
+        Returns an array of identical shape to args[0].  This is an array of zeros.
+        '''
+        return self.derivative(args[0])
+    
+    def derivativeZ(self,*args):
+        '''
+        Evaluate the derivative of the function.  The first input must exist and should be an array.
+        Returns an array of identical shape to args[0].  This is an array of zeros.
+        '''
+        return self.derivative(args[0])
+        
+    def derivativeXX(self,*args):
+        '''
+        Evaluate the derivative of the function.  The first input must exist and should be an array.
+        Returns an array of identical shape to args[0].  This is an array of zeros.
+        '''
+        return self.derivative(args[0])
 
 
 class CubicInterp(HARKinterpolator1D):
