@@ -10,9 +10,7 @@ problem by finding a general equilibrium dynamic rule.
 from HARKutilities import getArgNames, NullFunc
 from copy import deepcopy
 import numpy as np
- #test comment
-#PNG addition 2016-06-30
-from __main__ import settings
+
  
 def distanceMetric(thing_A,thing_B):
     '''

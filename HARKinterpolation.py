@@ -10,7 +10,8 @@ distance method from HARKobject.
 import warnings
 import numpy as np
 from scipy.interpolate import UnivariateSpline
-from HARKcore import HARKobject
+#PNG modification 2016-08-17
+from HARKcore_original import HARKobject
 from copy import deepcopy
 
 def _isscalar(x):

@@ -13,5 +13,8 @@ def init():
     global t_rebate
     global rebate_size
     global verbose
+    global lil_verbose
+    global hsg_pay
     verbose = False
+    lil_verbose = False
     

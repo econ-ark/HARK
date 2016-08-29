@@ -883,6 +883,10 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         '''
         cNrm,mNrm    = self.getPointsForInterpolation(EndOfPrdvP,aNrm)       
         solution_now = self.usePointsForInterpolation(cNrm,mNrm,interpolator)
+        #print "\nPeriod ", settings.t_curr, "Age", 90-settings.t_curr 
+        print "Next period's asset grid\n", self.mNrmNext[0][0:7]
+        print "Marginal utility grid\n", EndOfPrdvP[0:7]
+        print "Consumption grid\n", cNrm[0:7]
         return solution_now
 
         
@@ -2233,63 +2237,63 @@ if __name__ == '__main__':
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
 
-    do_simulation           = True
-    
-    # Make and solve an example perfect foresight consumer
-    PFexample = PerfForesightConsumerType(**Params.init_perfect_foresight)   
-    PFexample.cycles = 0 # Make this type have an infinite horizon
-    
-    start_time = clock()
-    PFexample.solve()
-    end_time = clock()
-    print('Solving a perfect foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    PFexample.unpackcFunc()
-    PFexample.timeFwd()
-    
-    # Plot the perfect foresight consumption function
-    print('Linear consumption function:')
-    mMin = PFexample.solution[0].mNrmMin
-    plotFuncs(PFexample.cFunc[0],mMin,mMin+10)
-    
-    ###########################################################################
-    
-    # Make and solve an example consumer with idiosyncratic income shocks
-    IndShockExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
-    IndShockExample.cycles = 0 # Make this type have an infinite horizon
-    
-    start_time = clock()
-    IndShockExample.solve()
-    end_time = clock()
-    print('Solving a consumer with idiosyncratic shocks took ' + mystr(end_time-start_time) + ' seconds.')
-    IndShockExample.unpackcFunc()
-    IndShockExample.timeFwd()
-    
-    # Plot the consumption function and MPC for the infinite horizon consumer
-    print('Concave consumption function:')
-    plotFuncs(IndShockExample.cFunc[0],IndShockExample.solution[0].mNrmMin,5)
-    print('Marginal consumption function:')
-    plotFuncsDer(IndShockExample.cFunc[0],IndShockExample.solution[0].mNrmMin,5)
-    
-    # Compare the consumption functions for the perfect foresight and idiosyncratic
-    # shock types.  Risky income cFunc asymptotically approaches perfect foresight cFunc.
-    print('Consumption functions for perfect foresight vs idiosyncratic shocks:')            
-    plotFuncs([PFexample.cFunc[0],IndShockExample.cFunc[0]],IndShockExample.solution[0].mNrmMin,100)
-    
-    # Compare the value functions for the two types
-    if IndShockExample.vFuncBool:
-        print('Value functions for perfect foresight vs idiosyncratic shocks:')
-        plotFuncs([PFexample.solution[0].vFunc,IndShockExample.solution[0].vFunc],
-                      IndShockExample.solution[0].mNrmMin+0.5,10)
-    
-    # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
-    if do_simulation:
-        IndShockExample.sim_periods = 120
-        IndShockExample.makeIncShkHist()
-        IndShockExample.initializeSim()
-        IndShockExample.simConsHistory()
+#    do_simulation           = True
+#    
+#    # Make and solve an example perfect foresight consumer
+#    PFexample = PerfForesightConsumerType(**Params.init_perfect_foresight)   
+#    PFexample.cycles = 0 # Make this type have an infinite horizon
+#    
+#    start_time = clock()
+#    PFexample.solve()
+#    end_time = clock()
+#    print('Solving a perfect foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
+#    PFexample.unpackcFunc()
+#    PFexample.timeFwd()
+#    
+#    # Plot the perfect foresight consumption function
+#    print('Linear consumption function:')
+#    mMin = PFexample.solution[0].mNrmMin
+#    plotFuncs(PFexample.cFunc[0],mMin,mMin+10)
 #    
 #    ###########################################################################
 #    
+#    # Make and solve an example consumer with idiosyncratic income shocks
+#    IndShockExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
+#    IndShockExample.cycles = 0 # Make this type have an infinite horizon
+#    
+#    start_time = clock()
+#    IndShockExample.solve()
+#    end_time = clock()
+#    print('Solving a consumer with idiosyncratic shocks took ' + mystr(end_time-start_time) + ' seconds.')
+#    IndShockExample.unpackcFunc()
+#    IndShockExample.timeFwd()
+#    
+#    # Plot the consumption function and MPC for the infinite horizon consumer
+#    print('Concave consumption function:')
+#    plotFuncs(IndShockExample.cFunc[0],IndShockExample.solution[0].mNrmMin,5)
+#    print('Marginal consumption function:')
+#    plotFuncsDer(IndShockExample.cFunc[0],IndShockExample.solution[0].mNrmMin,5)
+#    
+#    # Compare the consumption functions for the perfect foresight and idiosyncratic
+#    # shock types.  Risky income cFunc asymptotically approaches perfect foresight cFunc.
+#    print('Consumption functions for perfect foresight vs idiosyncratic shocks:')            
+#    plotFuncs([PFexample.cFunc[0],IndShockExample.cFunc[0]],IndShockExample.solution[0].mNrmMin,100)
+#    
+#    # Compare the value functions for the two types
+#    if IndShockExample.vFuncBool:
+#        print('Value functions for perfect foresight vs idiosyncratic shocks:')
+#        plotFuncs([PFexample.solution[0].vFunc,IndShockExample.solution[0].vFunc],
+#                      IndShockExample.solution[0].mNrmMin+0.5,10)
+#    
+#    # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
+#    if do_simulation:
+#        IndShockExample.sim_periods = 120
+#        IndShockExample.makeIncShkHist()
+#        IndShockExample.initializeSim()
+#        IndShockExample.simConsHistory()
+##    
+##    ###########################################################################
+##    
     # Make and solve an idiosyncratic shocks consumer with a finite lifecycle
     LifecycleType = IndShockConsumerType(**Params.init_lifecycle)
     LifecycleType.cycles = 1 # Make this consumer live a sequence of periods exactly once
@@ -2301,22 +2305,22 @@ if __name__ == '__main__':
     LifecycleType.unpackcFunc()
     LifecycleType.timeFwd()
     
-    # Plot the consumption functions during working life
-    print('Consumption functions while working:')
-    mMin = min([LifecycleType.solution[t].mNrmMin for t in range(LifecycleType.T_total)])
-    plotFuncs(LifecycleType.cFunc[:LifecycleType.T_retire],mMin,5)
-
-    # Plot the consumption functions during retirement
-    print('Consumption functions while retired:')
-    plotFuncs(LifecycleType.cFunc[LifecycleType.T_retire:],0,5)
-    LifecycleType.timeRev()
-    
-    # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
-    if do_simulation:
-        LifecycleType.sim_periods = LifecycleType.T_total + 1
-        LifecycleType.makeIncShkHist()
-        LifecycleType.initializeSim()
-        LifecycleType.simConsHistory()
+#    # Plot the consumption functions during working life
+#    print('Consumption functions while working:')
+#    mMin = min([LifecycleType.solution[t].mNrmMin for t in range(LifecycleType.T_total)])
+#    plotFuncs(LifecycleType.cFunc[:LifecycleType.T_retire],mMin,5)
+#
+#    # Plot the consumption functions during retirement
+#    print('Consumption functions while retired:')
+#    plotFuncs(LifecycleType.cFunc[LifecycleType.T_retire:],0,5)
+#    LifecycleType.timeRev()
+#    
+#    # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
+#    if do_simulation:
+#        LifecycleType.sim_periods = LifecycleType.T_total + 1
+#        LifecycleType.makeIncShkHist()
+#        LifecycleType.initializeSim()
+#        LifecycleType.simConsHistory()
 #        
 #        
 ################################################################################        
@@ -2347,24 +2351,24 @@ if __name__ == '__main__':
 #    
  
 ###############################################################################
-
-    # Make and solve an agent with a kinky interest rate
-    KinkyExample = KinkedRconsumerType(**Params.init_kinked_R)
-    KinkyExample.cycles = 1 # Make the Example infinite horizon
-    
-    start_time = clock()
-    KinkyExample.solve()
-    end_time = clock()
-    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    KinkyExample.unpackcFunc()
-    print('Kinky consumption function:')
-    KinkyExample.timeFwd()
-    plotFuncs(KinkyExample.cFunc[0],KinkyExample.solution[0].mNrmMin,5)
-
-    if do_simulation:
-        KinkyExample.sim_periods = 120
-        KinkyExample.makeIncShkHist()
-        KinkyExample.initializeSim()
-        KinkyExample.simConsHistory()
+#
+#    # Make and solve an agent with a kinky interest rate
+#    KinkyExample = KinkedRconsumerType(**Params.init_kinked_R)
+#    KinkyExample.cycles = 1 # Make the Example infinite horizon
+#    
+#    start_time = clock()
+#    KinkyExample.solve()
+#    end_time = clock()
+#    print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
+#    KinkyExample.unpackcFunc()
+#    print('Kinky consumption function:')
+#    KinkyExample.timeFwd()
+#    plotFuncs(KinkyExample.cFunc[0],KinkyExample.solution[0].mNrmMin,5)
+#
+#    if do_simulation:
+#        KinkyExample.sim_periods = 120
+#        KinkyExample.makeIncShkHist()
+#        KinkyExample.initializeSim()
+#        KinkyExample.simConsHistory()
     
     

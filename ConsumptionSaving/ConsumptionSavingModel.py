@@ -17,7 +17,8 @@ sys.path.insert(0,'../')
 
 from copy import copy, deepcopy
 import numpy as np
-from HARKcore import AgentType, Solution, NullFunc
+#PNG modification 2016-08-17
+from HARKcore_original import AgentType, Solution, NullFunc
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARKutilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\

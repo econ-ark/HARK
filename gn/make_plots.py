@@ -42,7 +42,7 @@ robjects.r('''
   color_axis_title = palette[7]
   color_title = palette[9]
   #palette_lines <- brewer.pal("Dark2", n=3)
-  palette_lines <- brewer.pal("Set2", n=9)
+  palette_lines <- brewer.pal("Set2", n=8)
 ''')
 
 fte_theme = theme(**{'axis.ticks':element_blank(),

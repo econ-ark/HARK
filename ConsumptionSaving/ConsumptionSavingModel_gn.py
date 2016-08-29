@@ -480,7 +480,7 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
     to income.
     '''
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                      PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+                      PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,HsgPay):
         '''
         Constructor for a new solver for problems with income subject to permanent and transitory
         shocks.
@@ -510,6 +510,8 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
             period with.  If it is less than the natural borrowing constraint,
             then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
             rowing constraint.
+        HsgPay : float
+            Housing payment as a fraction of income
         aXtraGrid: np.array
             Array of "extra" end-of-period asset values-- assets above the
             absolute minimum acceptable level.
@@ -525,11 +527,11 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         None
         '''
         self.assignParameters(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,HsgPay)
         self.defineUtilityFunctions()
 
     def assignParameters(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,HsgPay):
         '''
         Assigns period parameters as attributes of self for use by other methods
         
@@ -574,7 +576,8 @@ class SetupImperfectForesightSolver(PerfectForesightSolver):
         '''
         PerfectForesightSolver.assignParameters(self,solution_next,DiscFac,LivPrb,
                                                 CRRA,Rfree,PermGroFac)
-        self.BoroCnstArt       = BoroCnstArt
+        self.BoroCnstArt       = BoroCnstArt 
+        self.HsgPay         = HsgPay #PNG modification 2016-08-17
         self.IncomeDstn     = IncomeDstn
         self.aXtraGrid      = aXtraGrid
         self.vFuncBool      = vFuncBool
@@ -737,19 +740,25 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         aNrmNow : np.array
             A 1D array of end-of-period assets; also stored as attribute of self.
         '''               
-        aNrmNow     = np.asarray(self.aXtraGrid) + self.BoroCnstNat
+        #aNrmNow     = np.asarray(self.aXtraGrid) + self.BoroCnstNat
         #PNG modification 2016-08-06
-        #aNrmNow     = np.asarray(self.aXtraGrid) + self.BoroCnstArt
+        aNrmNow     = np.asarray(self.aXtraGrid) + self.BoroCnstArt
         ShkCount    = self.TranShkValsNext.size
         aNrm_temp   = np.tile(aNrmNow,(ShkCount,1))
 
+        #update with mortgage payment
+        if settings.verbose:
+            print "\n"
+            print self.TranShkValsNext 
+            print settings.t_curr,  " years before death, I just paid ", self.HsgPay, " in housing costs " 
+            print self.TranShkValsNext - self.HsgPay
+        self.TranShkValsNext = self.TranShkValsNext - self.HsgPay      
+        
         # Tile arrays of the income shocks and put them into useful shapes
         aNrmCount         = aNrmNow.shape[0]
         PermShkVals_temp  = (np.tile(self.PermShkValsNext,(aNrmCount,1))).transpose()
         TranShkVals_temp  = (np.tile(self.TranShkValsNext,(aNrmCount,1))).transpose()
         ShkPrbs_temp      = (np.tile(self.ShkPrbsNext,(aNrmCount,1))).transpose()
-        
-
         # Get cash on hand next period
         mNrmNext          = self.Rfree/(self.PermGroFac*PermShkVals_temp)*aNrm_temp + TranShkVals_temp
             
@@ -766,7 +775,8 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
                 print str(settings.t_rebate) + " years before death, I just gave a rebate of " + str(settings.rebate_size)
                 print mNrmNext[0]+ settings.rebate_size
             mNrmNext = mNrmNext + settings.rebate_size            
-                
+        
+   
             
         #print t_curr
         #print [mNrmNext[0],mNrmNext[0]+1]
@@ -826,7 +836,9 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
 
         # Limiting consumption is zero as m approaches mNrmMin
         c_for_interpolation = np.insert(cNrmNow,0,0.,axis=-1)
-        m_for_interpolation = np.insert(mNrmNow,0,self.BoroCnstNat,axis=-1)
+        #m_for_interpolation = np.insert(mNrmNow,0,self.BoroCnstNat,axis=-1)
+        #2016-08-17 PNG modification
+        m_for_interpolation = np.insert(mNrmNow,0,self.BoroCnstArt,axis=-1)
         
         # Store these for calcvFunc
         self.cNrmNow = cNrmNow
@@ -895,13 +907,14 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         cNrm,mNrm    = self.getPointsForInterpolation(EndOfPrdvP,aNrm) 
         solution_now = self.usePointsForInterpolation(cNrm,mNrm,interpolator)
         #PNG modification 2016-08-08
-        if settings.t_curr == settings.t_rebate + 2:
-            if settings.verbose:
-                print "Asset grid\n", aNrm
-                print "Marginal utility grid\n", EndOfPrdvP
-                print "Consumption grid\n", cNrm
-                from HARKutilities import plotFuncs
-                plotFuncs(solution_now.cFunc,aNrm[0],aNrm[0]+10)
+        #if settings.t_curr == settings.t_rebate + 2:
+        if settings.verbose & (89-settings.t_curr >= 62) & (89-settings.t_curr <= 65): #settings.t_curr >= 24 & settings.t_curr <= 28 & 
+            print "\nPeriod ", settings.t_curr, "Age", 90-settings.t_curr 
+            print "Next period's asset grid\n", self.mNrmNext[0][0:7]
+            print "Marginal utility grid\n", EndOfPrdvP[0:7]
+            print "Consumption grid\n", cNrm[0:7]
+#                from HARKutilities import plotFuncs
+#                plotFuncs(solution_now.cFunc,aNrm[0],aNrm[0]+10)
         return solution_now
 
         
@@ -1151,7 +1164,7 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
        
 
 def consumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
-                                BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+                                BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,HsgPay):
     '''
     Solves a single period consumption-saving problem with CRRA utility and risky
     income (subject to permanent and transitory shocks).  Can generate a value
@@ -1205,10 +1218,10 @@ def consumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfr
     if (not CubicBool) and (not vFuncBool): 
         solver = ConsumptionSavingSolverENDGBasic(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                                                   Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,
-                                                  CubicBool)        
+                                                  CubicBool,HsgPay)        
     else: # Use the "advanced" solver if either is requested
         solver = ConsumptionSavingSolverENDG(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                             PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+                                             PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,HsgPay)
     solver.prepareToSolve()       # Do some preparatory work
     solution_now = solver.solve() # Solve the period
     return solution_now  
@@ -1225,7 +1238,7 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
     key difference is that Rfree is replaced by Rsave (a>0) and Rboro (a<0).
     '''
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
-                      Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+                      Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,HsgPay):
         '''
         Constructor for a new solver for problems with risky income and a different
         interest rate on borrowing and saving.
@@ -1279,7 +1292,7 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
         # the non-kinked-R basic case, so start with that.
         ConsumptionSavingSolverENDG.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                                              Rboro,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,
-                                             CubicBool) 
+                                             CubicBool,HsgPay) 
 
         # Assign the interest rates as class attributes, to use them later.
         self.Rboro   = Rboro
@@ -1339,9 +1352,9 @@ class ConsumptionSavingSolverKinkedR(ConsumptionSavingSolverENDG):
         self.aNrmNow          = aNrmNow
         return aNrmNow
 
-
+#xxx need to move around HsgPay argument once you figure this out above
 def consumptionSavingSolverKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
-                                   PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+                                   PermGroFac,BoroCnstArt,HsgPay,aXtraGrid,vFuncBool,CubicBool):
     '''
     Solves a single period consumption-saving problem with CRRA utility and risky
     income (subject to permanent and transitory shocks), and different interest
@@ -1399,7 +1412,7 @@ def consumptionSavingSolverKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
     assert Rboro>=Rsave, 'Interest factor on debt less than interest factor on savings!'    
     
     solver = ConsumptionSavingSolverKinkedR(solution_next,IncomeDstn,LivPrb,
-                                            DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
+                                            DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,HsgPay,
                                             aXtraGrid,vFuncBool,CubicBool)
     solver.prepareToSolve()                                      
     solution = solver.solve()
@@ -1423,7 +1436,7 @@ class PerfForesightConsumerType(AgentType):
     solution_terminal_   = ConsumerSolution(cFunc = cFunc_terminal_,
                                             vFunc = vFunc_terminal_, mNrmMin=0.0, hNrm=0.0, 
                                             MPCmin=1.0, MPCmax=1.0)
-    time_vary_ = ['LivPrb','DiscFac','PermGroFac','BoroCnstArt']
+    time_vary_ = ['LivPrb','DiscFac','PermGroFac','BoroCnstArt','HsgPay']
     #PNG modification 2016-07-29
     #time_vary_ = ['LivPrb','DiscFac','PermGroFac']
     time_inv_  = ['CRRA','Rfree']

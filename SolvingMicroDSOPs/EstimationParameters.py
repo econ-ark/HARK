@@ -23,11 +23,11 @@ CubicBool = True                    # Use cubic spline interpolation when True, 
 vFuncBool = False                   # Whether to calculate the value function during solution
 
 Rfree = 1.03                        # Interest factor on assets
-PermShkCount = 7                    # Number of points in discrete approximation to permanent income shocks
+PermShkCount = 1                    # Number of points in discrete approximation to permanent income shocks
 TranShkCount = 7                    # Number of points in discrete approximation to transitory income shocks
-UnempPrb = 0.005                     # Probability of unemployment while working
+UnempPrb = 0.05                    # Probability of unemployment while working. PNG 2016-08-16. Default value was 0.005
 UnempPrbRet = 0.000                 # Probability of "unemployment" while retired
-IncUnemp = 0.0                      # Unemployment benefits replacement rate
+IncUnemp = 0.3                      # Unemployment benefits replacement rate Default value is zero
 IncUnempRet = 0.0                   # "Unemployment" benefits when retired
 
 final_age = 90                      # Age at which the problem ends (die with certainty)
@@ -89,20 +89,26 @@ for i in range(age_relaxed - initial_age):
 for i in range(final_age - age_relaxed):     
     BoroCnstArt_timevary.append(0.0)
     
-rebate_age_65 = 0.0
+rebate_amt = 0.0
+rebate_age = 25
+
+HsgPay =  []
+for i in range(final_age - initial_age):     
+    HsgPay.append(0.0)
+    
 
 # Standard deviations of permanent income shocks by age, starting from age 25
-PermShkStd = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+PermShkStdPos = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0, # <-- no permanent income shocks after retirement
 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
-#PermShkStd = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-#0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-#0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # <-- no permanent income shocks after retirement
-#0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-#0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+PermShkStd = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, # <-- no permanent income shocks after retirement
+0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 # Standard deviations of transitory income shocks by age, starting from age 25
 TranShkStd =  [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
@@ -110,6 +116,12 @@ TranShkStd =  [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 
 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0, # <-- no transitory income shocs after retirement
 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+#TranShkStd =  [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
+#0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
+#0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0, 0.0, # <-- no transitory income shocs after retirement
+#0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+#0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 # Age groups for the estimation: calculate average wealth-to-permanent income ratio
 # for consumers within each of these age groups, compare actual to simulated data
@@ -136,6 +148,7 @@ init_consumer_objects = {"CRRA":CRRA_start,
                         "Rfree":Rfree,
                         "PermGroFac":PermGroFac,
                         "BoroCnstArt": BoroCnstArt_timevary, #"BoroCnstArt":BoroCnstArt,
+                        "HsgPay": HsgPay,
                         "PermShkStd":PermShkStd,
                         "PermShkCount":PermShkCount,
                         "TranShkStd":TranShkStd,
@@ -159,7 +172,8 @@ init_consumer_objects = {"CRRA":CRRA_start,
                         'vFuncBool':vFuncBool,
                         'CubicBool':CubicBool,
                         'two_state':False,
-                        'rebate_age_65':rebate_age_65
+                        'rebate_amt':rebate_amt,
+                        'rebate_age':rebate_age
                         }
 
 
