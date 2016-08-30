@@ -22,7 +22,7 @@ import EstimationParameters as Params
 #from time import clock
 mystr = lambda number : "{:.4f}".format(number)
 do_simulation           = True
-
+from operator import sub, add
 import pandas as pd
 #this line errors out sometimes. Driven by issues with the Canopy_64bit path
 from rpy2 import robjects
@@ -39,9 +39,11 @@ gc = gspread.authorize(credentials)
 g_params = gc.open("HAMPRA Model Parameters").sheet1 #in this case
 df = pd.DataFrame(g_params.get_all_records())
 hamp_params = df[['Param','Value']].set_index('Param')['Value'][:8].to_dict()
-initialize_hamp_recip = df[['Param','Value']].set_index('Param')['Value'][8:9].to_dict()
+#initialize_hamp_recip = df[['Param','Value']].set_index('Param')['Value'][8:9].to_dict()
+hamp_coh = float(df[['Param','Value']].set_index('Param')['Value'][8:9])
+
 boom_params = df[['Param','Value']].set_index('Param')['Value'][10:15].to_dict()
-heloc_param = df[['Param','Value']].set_index('Param')['Value'][16:17].to_dict()
+heloc_L = float(df[['Param','Value']].set_index('Param')['Value'][16:17])
 
 g_params = gc.open("HAMPRA Loan-to-Value Distribution")
 ltv_wksheet = g_params.worksheet("PythonInput")
@@ -79,6 +81,7 @@ tmp_vlo = Params.IncUnemp
 tmp_lo = 0.8
 tmp_norm = 1
 tmp_hi = 3
+tmp_vhi = 6
 
 def mpc_pih(cF, rebate = 1, a = 10):
     return round((cF(a+rebate) - cF(a)) / rebate,3)
@@ -124,8 +127,8 @@ def gg_funcs(functions,bottom,top,N=1000,labels = [],
     fig = pd.melt(fig, id_vars=['x'])  
     g = gg.ggplot(fig) + \
         mp.base_plot + mp.line + mp.point +  \
-        mp.theme_bw(base_size=9) + mp.fte_theme +mp.colors +  \
-        gg.labs(title=title,y=ylab,x=xlab) + mp.legend_f(loc) + mp.legend_t_c(ltitle) + mp.legend_t_s(ltitle)
+        mp.theme_bw(base_size=9) + mp.fte_theme + \
+        gg.labs(title=title,y=ylab,x=xlab) + mp.legend_f(loc) + mp.legend_t_c(ltitle) + mp.colors #+ mp.legend_t_s(ltitle) 
     if file_name is not None:
         mp.ggsave(file_name,g)
     return(g)
@@ -139,7 +142,8 @@ def gg_funcs(functions,bottom,top,N=1000,labels = [],
 #remark: right now you are actually selling the house one year before retirement rather than at retirement. not sure if this is a problem.
 def hsg_wealth(initial_debt, annual_hp_growth, collateral_constraint, baseline_debt, 
                initial_price, int_rate, pra_forgive, hsg_rent_p, hsg_own_p, 
-               d_house_price = 0, age_at_mod = 45, rent_share_y = False):
+               d_house_price = 0, age_at_mod = 45, hsg_pmt_wk_own = True, hsg_pmt_ret_y = False,
+               annual_hp_growth_base = None):
     '''
     Calculates annual mortgage contract using parameters at date of mod.
     Everything is measured in years of income.
@@ -181,90 +185,138 @@ def hsg_wealth(initial_debt, annual_hp_growth, collateral_constraint, baseline_d
         return
     price = [initial_price + d_house_price]
     if settings.verbose:
-        print "Hsg wealth params: P=", price, " D=", baseline_debt, " g=", annual_hp_growth, " r=", int_rate, " phi=", collateral_constraint, " rent as share of inc=", rent_share_y
+        print "Hsg wealth params: P=", price, " D=", baseline_debt, " g=", annual_hp_growth, " r=", int_rate, " phi=", collateral_constraint, " owner cost while work:", hsg_pmt_wk_own , " share inc while ret: ", hsg_pmt_ret_y
     T = 65 - age_at_mod
+    
+    #working life housing payments and collateral    
     debt = [initial_debt]
     amort = int_rate*(1+int_rate)**30/((1+int_rate)**30-1)
-    mtg_pmt = [initial_debt*amort]
+    hsg_pmt = [initial_debt*amort]
     for i in range(1,T):
         #print "age: " + str(i + age_at_mod) + " has growth fac: " + str(Params.PermGroFac[(i-1) + age_at_mod - 25])
         perm_gro = Params.PermGroFac[i + age_at_mod - 26]
         price.append(price[-1]*(1+annual_hp_growth)/perm_gro)
-        mtg_pmt.append(mtg_pmt[-1]/perm_gro)
-        debt.append((debt[-1]*(1+int_rate))/perm_gro - mtg_pmt[-1]) #xx double-check timing assumptions here
+        hsg_pmt.append(hsg_pmt[-1]/perm_gro)
+        debt.append((debt[-1]*(1+int_rate))/perm_gro - hsg_pmt[-1]) #xx double-check timing assumptions here
     equity = np.array(price) - np.array(debt)
-    equity = [0.0] * (age_at_mod - 26) + equity.tolist() + [0.0] * 26
     limit = np.min(np.vstack((-(np.array(price)*(1-collateral_constraint) - np.array(debt)),np.zeros(T))),axis=0).tolist()
-    limit = [0.0] * (age_at_mod - 26) + limit + [0.0] * 26
-    if rent_share_y is True:
-        hsg_pay_retire = mtg_pmt[-1]/Params.PermGroFac[39]
-        mtg_pmt = [0.0] * (age_at_mod - 26) + mtg_pmt + [hsg_pay_retire] * 26
-        if hsg_pay_retire > 1:
-            print("Error: cannot have housing payment > income")
-            return
+    if hsg_pmt_wk_own:
+        user_cost = [x * hamp_params['hsg_own_p'] for x in price]
+        hsg_pmt = map(add, hsg_pmt, user_cost)
+    if max(hsg_pmt) >= baseline_params['IncUnemp'] + 0.3:
+        print("Error: cannot have housing payment > UI Benefit")
+        print hsg_pmt
+        return
+    
+    #housing payments in retirement
+    if hsg_pmt_ret_y:
+        if annual_hp_growth_base is None:
+            annual_hp_growth_base = annual_hp_growth
+        price_baseline = [initial_price]
+        for i in range(1,T):
+            perm_gro = Params.PermGroFac[i + age_at_mod - 26]
+            price_baseline.append(price[-1]*(1+annual_hp_growth_base)/perm_gro)        
+        hsg_pmt_ret = [hamp_params['hsg_rent_p']*price_baseline[-1]/Params.PermGroFac[39]]
+        hsg_pmt_ret = hsg_pmt_ret * 26
     else:
-        mtg_pmt = [0.0] * (age_at_mod - 26) + mtg_pmt
-        for i in range(39,65):
-            perm_gro = Params.PermGroFac[i]
-            price.append(price[-1]*(1+annual_hp_growth)/perm_gro)
-            #print "t=", i, price[-1]*hsg_rent_p
-            mtg_pmt.append(price[-1]*hsg_rent_p)
-        #mtg_pmt = [0.0] * (age_at_mod - 26) + mtg_pmt + [price[-26:]*hsg_rent_p] * 26
-    sale_proceeds = max(equity[38],0)
-    return sale_proceeds, equity, limit, mtg_pmt
-
-#i'm stuck on getting the rent linked to house prices to work. something about constructing the list in retirement is not working.
-#uw_house_params['rebate_amt'], e, uw_house_params['BoroCnstArt'], uw_house_params['HsgPay'] = \
-#    hsg_wealth(initial_debt =  hamp_params['baseline_debt'],age_at_mod = 45, rent_share_y = False, **hamp_params)
-#uw_house_params['HsgPay']
-
-#calculate NPV of mortgage payments at mod date
-def npv_mtg_nominal(beta, initial_debt, annual_hp_growth, collateral_constraint, 
-                    baseline_debt, initial_price, int_rate, pra_forgive, 
-                    hsg_rent_p, hsg_own_p,  age_at_mod = 45):
-    if settings.verbose:
-        print "Hsg wealth params: P=", initial_price, " D=", baseline_debt, " g=", annual_hp_growth, " r=", int_rate, " phi=", collateral_constraint
-    T = 65 - age_at_mod
-    price = [initial_price]
-    debt = [initial_debt]
-    amort = int_rate*(1+int_rate)**30/((1+int_rate)**30-1)
-    mtg_pmt = [initial_debt*amort]
-    mtg_pmt_npv = initial_debt*amort
-    for i in range(1,T):
-        price.append(price[-1]*(1+annual_hp_growth))
-        mtg_pmt.append(mtg_pmt[-1])
-        debt.append((debt[-1]*(1+int_rate)) - mtg_pmt[-1]) #xx double-check timing assumptions here
-        mtg_pmt_npv += (initial_debt*amort)*beta**i
-    equity = np.array(price) - np.array(debt)
+        hsg_pmt_ret = [hamp_params['hsg_rent_p']*price[-1]*(1+annual_hp_growth)/Params.PermGroFac[39]]
+        for i in range(25):
+            hsg_pmt_ret.append(hsg_pmt_ret[-1]*(1+annual_hp_growth))  
+    if max(hsg_pmt_ret) >= 1:
+        print("Error: cannot have housing payment > income")
+        print hsg_pmt_ret  
+        return
+    #fill out arguments to return
+    hsg_pmt = [0.0] * (age_at_mod - 26) + hsg_pmt + hsg_pmt_ret
     equity = [0.0] * (age_at_mod - 26) + equity.tolist() + [0.0] * 26
-    mtg_pmt = [0.0] * (age_at_mod - 26) + mtg_pmt + [0.0] * 26
-    sale_proceeds = equity[38]
-    npv_tot = sale_proceeds*beta**T - mtg_pmt_npv
-    return npv_tot, sale_proceeds*beta**T, mtg_pmt_npv
+    limit = [0.0] * (age_at_mod - 26) + limit + [0.0] * 26
+    sale_proceeds = max(equity[38],0)
+    #print hsg_pmt
+    return sale_proceeds, equity, limit, hsg_pmt
+
 
 def pra_pmt(annual_hp_growth, collateral_constraint, baseline_debt, initial_price, 
-            int_rate, pra_forgive, hsg_rent_p, hsg_own_p, 
+            int_rate, pra_forgive, hsg_rent_p, hsg_own_p, hsg_pmt_wk_own = True, hsg_pmt_ret_y = False,
             age = 45, forgive = hamp_params['pra_forgive']):
-    r, e, L, d_hamp = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], age_at_mod = age, **hamp_params)
-    r, e, L, d_prin_red = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - forgive, age_at_mod = age,  **hamp_params)
+    r, e, L, d_hamp = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], age_at_mod = age, hsg_pmt_wk_own = hsg_pmt_wk_own, hsg_pmt_ret_y = hsg_pmt_ret_y, **hamp_params)
+    r, e, L, d_prin_red = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - forgive, age_at_mod = age, hsg_pmt_wk_own = hsg_pmt_wk_own, hsg_pmt_ret_y = hsg_pmt_ret_y, **hamp_params)
     pra_pmt = d_prin_red[:age-26] + d_hamp[age-26:age-21] + d_prin_red[age-21:]
     return pra_pmt
 #pra_pmt(age = 45, forgive = 1, **hamp_params)[20:40]
 
-#calculate NPV of mortgage payments to compare to calculations inside R code
-#remark: this calculation ignores the higher payments in the first five years (which we are assuming get flushed down the toilet)
-#npv_mtg_nominal(beta = 0.96,initial_debt = hamp_params['baseline_debt'],**hamp_params)
-#npv_mtg_nominal(beta = 0.96,initial_debt = hamp_params['baseline_debt'] - hamp_params['pra_forgive'],**hamp_params)  
-  
 #reload(Params)  
 baseline_params = Params.init_consumer_objects
 
+#construct results w default specification for how to set up house prices (neg wealth effect)
 uw_house_params = deepcopy(baseline_params)
-uw_house_params['rebate_amt'], e, uw_house_params['BoroCnstArt'], uw_house_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'],age_at_mod = 45,  **hamp_params)
-
+uw_house_params['rebate_amt'], e, uw_house_params['BoroCnstArt'], uw_house_params['HsgPay'] = \
+    hsg_wealth(initial_debt =  hamp_params['baseline_debt'], **hamp_params)
 pra_params = deepcopy(baseline_params)
-pra_params['rebate_amt'], e, pra_params['BoroCnstArt'], pra_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - hamp_params['pra_forgive'], **hamp_params)
+pra_params['rebate_amt'], e, pra_params['BoroCnstArt'], pra_params['HsgPay'] = \
+    hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - hamp_params['pra_forgive'], **hamp_params)
 pra_params['HsgPay'] = pra_pmt(age = 45, **hamp_params)
+
+#slide 3 -- housing equity 
+def neg(x): return -1*x
+boro_cnst_pre_pra = LinearInterp(np.arange(25,90),list(map(neg, uw_house_params['BoroCnstArt'])))
+boro_cnst_post_pra = LinearInterp(np.arange(25,90),list(map(neg, pra_params['BoroCnstArt'])))
+g = gg_funcs([boro_cnst_pre_pra,boro_cnst_post_pra],
+              45.001,75, N=round(75-45.001), loc=robjects.r('c(0,0.5)'),
+        title = "Borrowing Limits \n Receive Treatment at Age 45",
+        labels = ["Baseline (No Principal Forgiveness)", "With Principal Forgiveness"],
+        ylab = "Borrowing Limit (Years of Income)", xlab = "Age", file_name = "borrowing_limits_and_pra_diag")
+ggplot_notebook(g, height=300,width=400)
+g = gg_funcs([boro_cnst_pre_pra,boro_cnst_post_pra],
+              45.001,64, N=round(64-45.001), loc=robjects.r('c(0,0.5)'),
+        title = "Borrowing Limits \n Receive Treatment at Age 45",
+        labels = ["Baseline (No Principal Forgiveness)", "With Principal Forgiveness"],
+        ylab = "Borrowing Limit (Years of Income)", xlab = "Age", file_name = "borrowing_limits_and_pra")
+ggplot_notebook(g, height=300,width=400)
+
+#slide 4 -- housing payments 
+pmt_pre_pra =  LinearInterp(np.arange(25,90),uw_house_params['HsgPay']) 
+pmt_post_pra = LinearInterp(np.arange(25,90),pra_pmt(age = 45, **hamp_params))
+g = gg_funcs([pmt_pre_pra,pmt_post_pra],
+              44.0001,75, N=round(75-44.001), loc=robjects.r('c(0,0)'),
+        title = "Mortgage Payments \n Receive Treatment at Age 45",
+        labels = ["Baseline (No Principal Forgiveness)", "With Principal Forgiveness"],
+        ylab = "Payment As Share of Income", xlab = "Age", file_name = "hsg_pmt_and_pra_diag")
+ggplot_notebook(g, height=300,width=400)
+g = gg_funcs([pmt_pre_pra,pmt_post_pra],
+              44.0001,64, N=round(64-44.001), loc=robjects.r('c(1,1)'),
+        title = "Mortgage Payments \n Receive Treatment at Age 45",
+        labels = ["Baseline (No Principal Forgiveness)", "With Principal Forgiveness"],
+        ylab = "Payment As Share of Income", xlab = "Age", file_name = "hsg_pmt_and_pra")
+ggplot_notebook(g, height=300,width=400)
+
+#construct change in payments and change in borrowing limits
+d_boro_cnst = LinearInterp(np.arange(25,90),map(sub, uw_house_params['BoroCnstArt'],pra_params['BoroCnstArt']))
+d_pmt =  LinearInterp(np.arange(25,90),map(sub,pra_pmt(age = 45, **hamp_params),uw_house_params['HsgPay'])) 
+g = gg_funcs([d_boro_cnst,d_pmt],
+              44.0001,64, N=round(64-44.001), loc=robjects.r('c(0,1)'),
+        title = "Impact of Principal Forgiveness on Mortgage Payments and Borrowing Limits",
+        labels = ["Borrowing Constraint", "Annual Payment"],
+        ylab = "Change As Share of Annual Income", xlab = "Age", file_name = "suff_stat_for_pra")
+ggplot_notebook(g, height=300,width=400)
+
+#housing payments diagnostic
+params_hsg_own_inc = deepcopy(baseline_params)
+params_hsg_own_inc['rebate_amt'], e, params_hsg_own_inc['BoroCnstArt'], params_hsg_own_inc['HsgPay'] = \
+    hsg_wealth(initial_debt =  hamp_params['baseline_debt'],\
+               hsg_pmt_wk_own = True, hsg_pmt_ret_y = True, **hamp_params)
+params_hsg_mtg_inc = deepcopy(baseline_params)               
+params_hsg_mtg_inc['rebate_amt'], e, params_hsg_mtg_inc['BoroCnstArt'], params_hsg_mtg_inc['HsgPay'] = \
+    hsg_wealth(initial_debt =  hamp_params['baseline_debt'], \
+               hsg_pmt_wk_own = False, hsg_pmt_ret_y = True, **hamp_params)
+pmt_own_inc =  LinearInterp(np.arange(25,90),params_hsg_own_inc['HsgPay']) 
+pmt_mtg_inc =  LinearInterp(np.arange(25,90),params_hsg_mtg_inc['HsgPay']) 
+g = gg_funcs([pmt_pre_pra,pmt_own_inc,pmt_mtg_inc],
+              44.0001,75, N=round(75-44.001), loc=robjects.r('c(0,0.5)'),
+        title = "Mortgage Payments",
+        labels = ["Wk: Owner Cost, Ret: User Cost", "Wk: Owner Cost, Ret: Inc Share","Wk: Mortgage, Ret: Inc Share"],
+        ylab = "Payment As Share of Income", xlab = "Age", file_name = "hsg_pmt_diag")
+ggplot_notebook(g, height=300,width=400)
+
 
 
 
@@ -275,16 +327,16 @@ pandas2ri.activate()
 def solve_unpack(params):
     settings.rebate_size = params['rebate_amt']
     settings.t_rebate = params['rebate_age']
-    #params['Rfree'] = hamp_params['int_rate']
+    params['Rfree'] = 1+ hamp_params['int_rate']
     if settings.lil_verbose:
-        print "Rebate is " + str(round(settings.rebate_size,2)) + " at age " + str(90-settings.t_rebate) + " & int rate is: " + str(params['Rfree'])
+        print "Rebate is " + str(round(settings.rebate_size,2)) + " at age " + str(90-settings.t_rebate) #+ " & int rate is: " + str(params['Rfree'])
     IndShockConsumerType = Model.IndShockConsumerType(**params)
     IndShockConsumerType.solve()
     IndShockConsumerType.unpack_cFunc()
     IndShockConsumerType.timeFwd()
     return IndShockConsumerType
     
-#xxx want to reset this back to a lower number now to see what happens to speed
+#rrr want to reset this back to a lower number now to see what happens to speed
 baseline_params['aXtraCount'] = 30
 baseline_params['DiscFac'] = (np.ones(65)*0.96).tolist()
 baseline_params['vFuncBool'] = True
@@ -306,33 +358,6 @@ mpc_pih(IndShockExample.cFunc[0]), mpc_pih(IndShockExample.cFunc[20]), mpc_pih(I
 #perm inc risk off, disc fac 0.96, R = 1.01: (0.059, 0.035, 0.058)
 
 
-#relax collateral constraint
-example_params = deepcopy(baseline_params)
-example_params['rebate_amt'] = 0
-l = example_params['BoroCnstArt']
-for i in range(len(l)):
-    l[i] = -1
-Boro1YrInc = solve_unpack(example_params)
-for i in range(21):
-    l[i] = 0
-l = example_params['BoroCnstArt']
-Boro1YrInc_tm1 = solve_unpack(example_params)
-for i in range(26):
-    l[i] = 0
-Boro1YrInc_tm6 = solve_unpack(example_params)
-l = example_params['BoroCnstArt']
-for i in range(len(l)):
-    l[i] = -1
-Boro_heloc = solve_unpack(example_params)
-
-#slide 2 -- Consumption function out of collateral
-g = gg_funcs([IndShockExample.cFunc[t_eval],Boro1YrInc.cFunc[t_eval], Boro1YrInc_tm1.cFunc[t_eval], Boro1YrInc_tm6.cFunc[t_eval]],
-        -1.001,3, N=50, loc=robjects.r('c(1,0)'),
-        title = "Consumption Function \n Collateral = 1 Years's Inc",
-        labels = ["Baseline (No Collateral)","Collateral Now","Collateral 1 Year Away","Collateral 6 Years Away"],
-        ylab = "Consumption", xlab = "Cash-on-hand", file_name="cf_fut_collateral_fut")
-ggplot_notebook(g, height=300,width=400)
-
 #alternative consumption functions
 example_params = deepcopy(baseline_params)
 example_params['rebate_age'] = 39
@@ -343,57 +368,89 @@ RebateAge46 = solve_unpack(example_params)
 settings.t_rebate = rebate_years_until_death
 grant_now = lambda x: IndShockExample.cFunc[t_eval](x+1)
 
-#slide 1 -- consumption function out of future wealth
+#relax collateral constraint
+example_params = deepcopy(baseline_params)
+example_params['rebate_amt'] = 0
+l = example_params['BoroCnstArt']
+for i in range(len(l)):
+    l[i] = -1
+Boro1YrInc = solve_unpack(example_params)
+l = example_params['BoroCnstArt']
+for i in range(len(l)):
+    l[i] = heloc_L
+Boro_heloc = solve_unpack(example_params)
+
+#slide 1.1 -- consumption function out of future wealth
+g = gg_funcs([IndShockExample.cFunc[t_eval]],
+        -0.001,3, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Wealth & Collateral",
+        labels = ["Baseline","Grant 0 Years Away (Now)"],
+        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_fut_slide1")
+ggplot_notebook(g, height=300,width=400)
+
+#slide 1.2 -- consumption function out of future wealth
+g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now],
+        -0.001,3, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Wealth & Collateral",
+        labels = ["Baseline","Grant 0 Years Away (Now)"],
+        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_fut_slide2")
+ggplot_notebook(g, height=300,width=400)
+
+#slide 1.3 -- consumption function out of future wealth
+g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now,RebateAge46.cFunc[t_eval]],
+        -0.001,3, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Wealth & Collateral",
+        labels = ["Baseline","Grant 0 Years Away (Now)","Grant 1 Year Away", "Grant 6 Years Away"],
+        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_fut_slide3")
+ggplot_notebook(g, height=300,width=400)
+
+#slide 1.4 -- consumption function out of future wealth
 g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now,RebateAge46.cFunc[t_eval],RebateAge51.cFunc[t_eval]],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Wealth & Collateral",
-        labels = ["Baseline (No Grant)","Grant Now","Grant 1 Year Away", "Grant 6 Years Away"],
-        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_fut_wealth_fut")
+        labels = ["Baseline","Grant 0 Years Away (Now)","Grant 1 Year Away", "Grant 6 Years Away"],
+        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_fut_slide4")
 ggplot_notebook(g, height=300,width=400)
 
-
-#slide 2 -- consumption function out of future wealth
+#slide 1.5 -- consumption function out of future wealth
 g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now,RebateAge46.cFunc[t_eval],RebateAge51.cFunc[t_eval],Boro1YrInc.cFunc[t_eval]],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Wealth & Collateral",
-        labels = ["Baseline (No Grant)","Grant Now","Grant 1 Year Away", "Grant 6 Years Away","Collateral Now"],
-        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_fut_wealth_fut_slide2")
+        labels = ["Baseline","Grant 0 Years Away (Now)","Grant 1 Year Away", "Grant 6 Years Away","Raise Collateral Now"],
+        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_fut_slide5")
 ggplot_notebook(g, height=300,width=400)
 
+#consumption function w and without HELOC
+g = gg_funcs([IndShockExample.cFunc[t_eval],Boro_heloc.cFunc[t_eval]],
+        -0.001,3, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Wealth & Collateral",
+        labels = ["Baseline","HELOC Borrow Limit: " + str(heloc_L)],
+        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_heloc_diag")
+ggplot_notebook(g, height=300,width=400)
 
-#complete package: rebate and borrowing constraint relaxed
-#settings.t_rebate = rebate_years_until_death
-#settings.rebate_size = uw_house_params['rebate_amt']
-#wealth_grant_only = solve_unpack(baseline_params)
-#uw_house_example = solve_unpack(uw_house_params)
-#settings.rebate_size = pra_params['rebate_amt']
-#pra_example = solve_unpack(pra_params)
+#####################################
+#analyze principal forgiveness
+######################################
 
 cFuncs = []
 cFuncs_w = []
 cFuncs_L = []
 cFuncs_rL = []
 cFuncs_0_pct =[]
-cFuncs_g =[]
+cFuncs_heloc =[]
 hw_cf_list = []
 hw_cf_coh_hi_list = []
-hw_cf_coh_vlo_list = []
+hw_cf_coh_vhi_list = []
 hw_cf_w_list = []
 hw_cf_rL_list = []
 hw_cf_L_list = []
 hw_cf_0_pct_list = []
-hw_cf_g_list = []
+hw_cf_heloc_list = []
 grid_len = 20
 grid_int = 0.25
 grid_max = grid_len*grid_int
 
-#xx lot of repetitive code here. can probably be cleaned up with a function
-#would need to be able to handle pra payment or regular payment. need to decide which borrowing limit to use
-#return a list of consumption functions and a list of results for a specific value of cash-on-hand
-#ideally be able to handle house price changes as well as rebate changes
-#also should return consumption level since we need that in some cases
-#seems like a class might do the trick...
-#need to ideally take disctionary params as a default but be able to handle alterantives explicitly specified too
+#rrr switch to a class
 for i in range(grid_len):
     #full specification
     hw_cf_params = deepcopy(baseline_params)
@@ -401,9 +458,15 @@ for i in range(grid_len):
     hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = i*grid_int, **hamp_params)   
     cf = solve_unpack(hw_cf_params)
     cFuncs.append(cf.cFunc)
-    hw_cf_list.append(cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand']))
+    hw_cf_list.append(cf.cFunc[t_eval](hamp_coh))
     hw_cf_coh_hi_list.append(cf.cFunc[t_eval](tmp_hi))
-    hw_cf_coh_vlo_list.append(cf.cFunc[t_eval](tmp_vlo))
+    hw_cf_coh_vhi_list.append(cf.cFunc[t_eval](6))
+
+    #full specification with heloc
+    hw_cf_params['BoroCnstArt']   = map(lambda x:x-heloc_L, hw_cf_params['BoroCnstArt'])
+    cf = solve_unpack(hw_cf_params)
+    cFuncs_heloc.append(cf.cFunc)
+    hw_cf_heloc_list.append(cf.cFunc[t_eval](hamp_coh))
 
     #cash payments only
     hw_cf_params = deepcopy(baseline_params)
@@ -411,7 +474,7 @@ for i in range(grid_len):
     hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = i*grid_int, **hamp_params)   
     cf = solve_unpack(hw_cf_params)
     cFuncs_w.append(cf.cFunc)
-    hw_cf_w_list.append(cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand']))
+    hw_cf_w_list.append(cf.cFunc[t_eval](hamp_coh))
     
     #collateral only
     hw_cf_params = deepcopy(baseline_params)
@@ -420,7 +483,7 @@ for i in range(grid_len):
     hw_cf_params['rebate_amt'] = 0
     cf = solve_unpack(hw_cf_params)
     cFuncs_L.append(cf.cFunc)
-    hw_cf_L_list.append(cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand']))
+    hw_cf_L_list.append(cf.cFunc[t_eval](hamp_coh))
     
     #collateral and rebate specification
     hw_cf_params = deepcopy(baseline_params)
@@ -428,7 +491,7 @@ for i in range(grid_len):
     hw_cf_params['HsgPay']  = uw_house_params['HsgPay']
     cf = solve_unpack(hw_cf_params)
     cFuncs_rL.append(cf.cFunc)
-    hw_cf_rL_list.append(cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand']))
+    hw_cf_rL_list.append(cf.cFunc[t_eval](hamp_coh))
     
     #0% LTV specification
     hamp_params['collateral_constraint'] = 0
@@ -437,26 +500,12 @@ for i in range(grid_len):
     hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = i*grid_int, **hamp_params)   
     cf = solve_unpack(hw_cf_params)
     cFuncs_0_pct.append(cf.cFunc)
-    hw_cf_0_pct_list.append(cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand']))
+    hw_cf_0_pct_list.append(cf.cFunc[t_eval](hamp_coh))
     hamp_params['collateral_constraint'] = 0.20
     
-    #boom     
-    hamp_params['annual_hp_growth'] = deepcopy(boom_params['annual_hp_growth'])
-    hw_cf_params = deepcopy(baseline_params)
-    hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - i*grid_int, **hamp_params)
-    hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = i*grid_int, **hamp_params)   
-    cf = solve_unpack(hw_cf_params)
-    cFuncs_g.append(cf.cFunc)
-    hw_cf_g_list.append(cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand']))
-    hamp_params['annual_hp_growth'] = 0.016
 
-hw_cf_params = deepcopy(baseline_params)
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], **hamp_params)
-hw_cf_params['HsgPay']  = uw_house_params['HsgPay']
-hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = i*grid_int, **hamp_params)   
-cf = solve_unpack(hw_cf_params)
-
-
+    
+    
 #first index says. second index says age 44, I believe 
 #t_eval = 19
 equity_initial = hamp_params['baseline_debt'] - hamp_params['initial_price']
@@ -465,20 +514,14 @@ gr_max = 100*(grid_len*grid_int - equity_initial)/hamp_params['initial_price']
 grid_int2 = (gr_max-gr_min)/grid_len
 hw_cf = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_list))
 hw_cf_coh_hi = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_coh_hi_list))
-hw_cf_coh_vlo = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_coh_vlo_list))
+hw_cf_coh_vhi = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_coh_vhi_list))
+#xxx this is a temporary hack to deal with a bump in this function
+hw_cf_coh_hi_hack = LinearInterp(np.arange(gr_min+ 2*grid_int2,gr_max,grid_int2),np.array(hw_cf_coh_hi_list[2:]), lower_extrap = True)
 hw_cf_w = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_w_list))
 hw_cf_L = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_L_list))
 hw_cf_rL = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_rL_list))
 hw_cf_0_pct = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_0_pct_list))
-hw_cf_g = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_g_list))
-
-g = gg_funcs([hw_cf,hw_cf_w,hw_cf_L],gr_min,gr_max, N=50, loc=robjects.r('c(0,1)'), #hw_cf_rL
-        title = "Consumption Function Out of Principal Forgiveness Decomposition",
-        labels = ["Full Mod (Collateral & Cash)","Cash Only","Collateral Only"],
-        ylab = "Consumption", xlab = "Housing Equity Position (< 0 is Underwater)")
-g += gg.geom_vline(xintercept=hamp_params['collateral_constraint']*100, linetype=2, colour="red", alpha=0.25)
-mp.ggsave("cons_and_prin_forgive_decomp",g)
-ggplot_notebook(g, height=300,width=400)
+hw_cf_heloc = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_heloc_list))
 
 
 #xx cosmetics: figure out how to reverse the direction on the x-axis 
@@ -487,42 +530,61 @@ g = gg_funcs(hw_cf,gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Principal Forgiveness",
         labels = ["Baseline"],
         ylab = "Consumption", xlab = "Housing Equity Position (< 0 is Underwater)")
-g += gg.geom_vline(xintercept=hamp_params['collateral_constraint']*100, linetype=2, colour="red", alpha=0.25)
+g += gg.geom_vline(xintercept=hamp_params['collateral_constraint']*100, linetype=2, colour="#66C2A5", alpha=0.75)
 mp.ggsave("cons_and_prin_forgive",g)
 ggplot_notebook(g, height=300,width=400)
 
-g = gg_funcs([hw_cf,hw_cf_0_pct,hw_cf_g],gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
+g = gg_funcs([hw_cf,hw_cf_0_pct],gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Principal Forgiveness",
-        labels = ["Baseline","Housing Equity >= 0%","House Price Growth 6%"],
+        labels = ["Baseline","Housing Equity >= 0%"],
         ylab = "Consumption", xlab = "Housing Equity Position (< 0 is Underwater)")
-g += gg.geom_vline(xintercept=hamp_params['collateral_constraint']*100, linetype=2, colour="red", alpha=0.25)
-g += gg.geom_vline(xintercept=0, linetype=2, colour="blue", alpha=0.25)
-mp.ggsave("cons_and_prin_forgive_0_pct_and_hpg",g)
+g += gg.geom_vline(xintercept=hamp_params['collateral_constraint']*100, linetype=2, colour="#66C2A5", alpha=0.75)
+g += gg.geom_vline(xintercept=0, linetype=2, colour="#FC8D62", alpha=0.75)
+mp.ggsave("cons_and_prin_forgive_0-pct",g)
+ggplot_notebook(g, height=300,width=400)
+
+g = gg_funcs([hw_cf,hw_cf_0_pct, hw_cf_coh_hi_hack],gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Principal Forgiveness",
+        labels = ["Baseline","Housing Equity >= 0%","Cash-on-Hand = " + str(tmp_hi)],
+        ylab = "Consumption", xlab = "Housing Equity Position (< 0 is Underwater)")
+g += gg.geom_vline(xintercept=hamp_params['collateral_constraint']*100, linetype=2, colour="#66C2A5", alpha=0.75)
+g += gg.geom_vline(xintercept=0, linetype=2, colour="#FC8D62", alpha=0.75)
+mp.ggsave("cons_and_prin_forgive_0-pct_coh-hi",g)
+ggplot_notebook(g, height=300,width=400)
+
+g = gg_funcs([hw_cf,hw_cf_0_pct, hw_cf_coh_hi_hack,hw_cf_coh_vhi],gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Principal Forgiveness",
+        labels = ["Baseline","Housing Equity >= 0%","Cash-on-Hand = " + str(tmp_hi), "Cash-on-Hand = 6"],
+        ylab = "Consumption", xlab = "Housing Equity Position (< 0 is Underwater)")
+g += gg.geom_vline(xintercept=hamp_params['collateral_constraint']*100, linetype=2, colour="#66C2A5", alpha=0.75)
+g += gg.geom_vline(xintercept=0, linetype=2, colour="#FC8D62", alpha=0.75)
+mp.ggsave("cons_and_prin_forgive_0-pct_coh-hi_diag",g)
+ggplot_notebook(g, height=300,width=400)
+
+g = gg_funcs([hw_cf,hw_cf_w,hw_cf_L],gr_min,gr_max, N=50, loc=robjects.r('c(0,1)'), #hw_cf_rL
+        title = "Consumption Function Out of Principal Forgiveness Decomposition",
+        labels = ["Baseline (Collateral & Cash)","Cash Only","Collateral Only"],
+        ylab = "Consumption", xlab = "Housing Equity Position (< 0 is Underwater)")
+g += gg.geom_vline(xintercept=hamp_params['collateral_constraint']*100, linetype=2, colour="#66C2A5", alpha=0.75)
+mp.ggsave("cons_and_prin_forgive_decomp",g)
 ggplot_notebook(g, height=300,width=400)
 
 
-g = gg_funcs([hw_cf,hw_cf_coh_vlo,hw_cf_coh_hi],gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
-        title = "Consumption Function Out of Principal Forgiveness By Initial Cash-On-Hand",
-        labels = ["Baseline","Cash-on-Hand = " + str(tmp_vlo),"Cash-on-Hand = " + str(tmp_hi)],
-        ylab = "Consumption", xlab = "Housing Equity Position (< 0 is Underwater)",
-        file_name = "cons_and_prin_forgive_coh")
-ggplot_notebook(g, height=300,width=400)
-
-#study consumption functions to compare them
+########## diagnostic plots########## 
 #below threshold
 cFuncsBelow = [cFuncs[0][t_eval],cFuncs_w[0][t_eval],cFuncs_L[0][t_eval],cFuncs_rL[0][t_eval]]
 g = gg_funcs(cFuncsBelow,-1.5,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Functions For Underwater HHs",
         labels = ["Full Mod (Collateral, Rebates, Payments)","Rebates and Payments Only","Collateral Only", "Collateral and Rebates Only"],
-        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_below_collat_threshold")
+        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_below_collat_threshold_diag")
 ggplot_notebook(g, height=300,width=400)
-
-#at LTV 80
+#
+##at LTV 80
 cFuncsAt = [cFuncs[11][t_eval],cFuncs_w[11][t_eval],cFuncs_L[11][t_eval],cFuncs_rL[11][t_eval]]
 g = gg_funcs(cFuncsAt,-1.5,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Functions For HHs At LTV = 80",
         labels = ["Full Mod (Collateral, Rebates, Payments)","Rebates and Payments Only","Collateral Only", "Collateral and Rebates Only"],
-        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_at_collat_threshold")
+        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_at_collat_threshold_diag")
 ggplot_notebook(g, height=300,width=400)
 
 #far above threshold
@@ -530,34 +592,43 @@ cFuncsAbove = [cFuncs[19][t_eval],cFuncs_w[19][t_eval],cFuncs_L[19][t_eval],cFun
 g = gg_funcs(cFuncsAbove,-2.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Functions For HHs At LTV = 0",
         labels = ["Full Mod (Collateral, Rebates, Payments)","Rebates and Payments Only","Collateral Only", "Collateral and Rebates Only"],
-        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_above_collat_threshold")
+        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_above_collat_threshold_diag")
 ggplot_notebook(g, height=300,width=400)
 
-
-
-#diagnostic plot with consumption functions
+# consumption functions
 cFuncs44 = []
-for i in range(0,20,2):
+for i in range(0,grid_len-4,2):
     cFuncs44.append(cFuncs[i][t_eval])
-g = gg_funcs(cFuncs44,-1.5,3, N=200, loc=robjects.r('c(1,0)'),
+g = gg_funcs(cFuncs44,-1.5,6, N=200, loc=robjects.r('c(1,0)'),
         title = "Consumption Functions. Each line is 0.5 more of Principal Forgiveness",
-        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_prin_forgive")
+        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_prin_forgive_diag")
 ggplot_notebook(g, height=300,width=400)
 
-#####################################
-#analyze house price increases
-######################################
-tmp_params = deepcopy(baseline_params)
-tmp_params["PermShkStd"] = Params.PermShkStdPos
-tmp_params["PermShkCount"] = 7
+cFuncs44 = []
+for i in range(7):
+    cFuncs44.append(cFuncs[i][t_eval])
+g = gg_funcs(cFuncs44,2.01,4, N=200, loc=robjects.r('c(1,0)'),
+        title = "Consumption Functions. Each line is 0.25 more of Principal Forgiveness",
+        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_prin_forgive_high_coh_diag")
+ggplot_notebook(g, height=300,width=400)
 
-from operator import sub
+g = gg_funcs([hw_cf,hw_cf_heloc],gr_min,gr_max, N=50, loc=robjects.r('c(0,1)'), #hw_cf_rL
+        title = "Consumption Function Out of Principal Forgiveness -- Agent w HELOC",
+        labels = ["Baseline","Agent has HELOC"],
+        ylab = "Consumption", xlab = "Housing Equity Position (< 0 is Underwater)")
+g += gg.geom_vline(xintercept=hamp_params['collateral_constraint']*100, linetype=2, colour="red", alpha=0.25)
+mp.ggsave("cons_and_prin_forgive_heloc_diag",g)
+ggplot_notebook(g, height=300,width=400)
+
+
+######################################
+##analyze house price increases
+#######################################
 cFuncs = []
-cFuncs_rL = []
-cFuncs_perm = []
+cFuncs_pos_w = []
 hp_cf_list = []
-hp_perm_cf_list = []
-hw_cf_rL_list = []
+hp_cf_pos_w_list = []
+hw_cf_pos_w_list = []
 grid_len = 20
 grid_int = 0.25
 grid_max = grid_len*grid_int
@@ -569,167 +640,488 @@ for i in range(grid_len): #
     hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], d_house_price = i*grid_int, **hamp_params)
     cf = solve_unpack(hw_cf_params)
     cFuncs.append(cf.cFunc)
-    hp_cf_list.append(cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand']))
+    hp_cf_list.append(cf.cFunc[t_eval](hamp_coh))
 
-    #collateral and rebate specification
-    pf_decomp_params = deepcopy(baseline_params)
-    pf_decomp_params['rebate_amt'], e, pf_decomp_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - i*grid_int, **hamp_params)
-    pf_decomp_params['HsgPay']  = uw_house_params['HsgPay']
-    #print hw_cf_params['rebate_amt'] - pf_decomp_params['rebate_amt']
-    #print hw_cf_params['BoroCnstArt'][40] - pf_decomp_params['BoroCnstArt'][40]
-    #print map(sub, hw_cf_params['BoroCnstArt'], pf_decomp_params['BoroCnstArt']) 
-    #print map(sub, hw_cf_params['HsgPay'], pf_decomp_params['HsgPay']) 
-    cf = solve_unpack(pf_decomp_params)
-    cFuncs_rL.append(cf.cFunc)
-    hw_cf_rL_list.append(cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand']))
+    #house prices in pos wealth effect spec
+    hp_pos_w_params = deepcopy(baseline_params)
+    hp_pos_w_params['rebate_amt'], e, hp_pos_w_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - i*grid_int, hsg_pmt_wk_own = False, hsg_pmt_ret_y = True, **hamp_params)
+    hp_pos_w_params['HsgPay']  = uw_house_params['HsgPay']
+    cf = solve_unpack(hp_pos_w_params)
+    cFuncs_pos_w.append(cf.cFunc)
+    hp_cf_pos_w_list.append(cf.cFunc[t_eval](hamp_coh))
     
-#    #permanent income
-#    tmp_params['rebate_amt'], tmp_params['BoroCnstArt'], tmp_params['HsgPay'] = hw_cf_params['rebate_amt'], hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay']
-#    AddBackPermIncRisk = solve_unpack(tmp_params)
-#    cFuncs_perm.append(AddBackPermIncRisk.cFunc)
-#    hp_perm_cf_list.append(AddBackPermIncRisk.cFunc[t_eval](initialize_hamp_recip['cash_on_hand']))
-    
-equity_initial = hamp_params['baseline_debt'] - hamp_params['initial_price']
-gr_min = 100*-equity_initial/hamp_params['initial_price']
-gr_max = 100*(hamp_params['baseline_debt'])/(hamp_params['initial_price'] + grid_len*grid_int)
-grid_int2 = (gr_max-gr_min)/grid_len
-hp_cf = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hp_cf_list))
-
-cFuncs44 = []
-for i in range(0,20,2):
-    cFuncs44.append(cFuncs[i][t_eval])
-g = gg_funcs(cFuncs44,-1.5,8, N=50, loc=robjects.r('c(0,1)'),
-        title = "Consumption Functions. Each line is 0.5 Increase in house value",
-        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_house_price")
-ggplot_notebook(g, height=300,width=400)
-#
-#cFuncsPerm44 = []
-#for i in range(0,20,2):
-#    cFuncsPerm44.append(cFuncs_perm[i][t_eval])
-#g = gg_funcs(cFuncsPerm44,-1.5,8, N=50, loc=robjects.r('c(0,1)'),
-#        title = "Consumption Functions. Each line is 0.5 Increase in house value. W/perm inc risk",
-#        ylab = "Consumption", xlab = "Cash on Hand")
-#mp.ggsave("cfuncs_house_price_perm",g)
-#ggplot_notebook(g, height=300,width=400)
-
-
+    #prin forgive in pos wealth effect spec
+    hw_cf_params = deepcopy(baseline_params)
+    hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - i*grid_int, hsg_pmt_wk_own = False, hsg_pmt_ret_y = True, **hamp_params)
+    hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = i*grid_int, **hamp_params)   
+    cf = solve_unpack(hw_cf_params)
+    cFuncs.append(cf.cFunc)
+    hw_cf_pos_w_list.append(cf.cFunc[t_eval](hamp_coh))
+  
 gr_min = 0
 gr_max =  grid_len*grid_int
 grid_int2 = (gr_max-gr_min)/grid_len
 hp_cf = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hp_cf_list))
-#hp_perm_cf = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hp_perm_cf_list))
 hw_cf_yrs = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_list))
-hw_cf_rL = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_rL_list))
+hp_cf_pos_w = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hp_cf_pos_w_list))
+hw_cf_pos_w = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_pos_w_list))
 
 
-g = gg_funcs([hp_cf,hw_cf_yrs,hw_cf_rL],gr_min,gr_max, N=50, loc=robjects.r('c(0,1)'),
+g = gg_funcs([hw_cf_yrs,hw_cf_pos_w,hp_cf,hp_cf_pos_w],gr_min,gr_max, N=50, loc=robjects.r('c(0,1)'),
         title = "Consumption Function Out of Principal Forgiveness",
-        labels = ["House Price Increase","Principal Forgiveness: Full Mod","PF: Collateral and Rebate Only"],
+        labels = ["Principal Forgiveness (Neg Wealth Effect, Baseline)","Principal Forgiveness (Pos Wealth Effect)","House Price Increase (Neg Wealth Effect)","House Price Increase (Pos Wealth Effect)"],
         ylab = "Consumption", xlab = "House Price Increase Measured In Years of Income",
-        file_name = "cons_dprice_forgive_years_of_inc")
+        file_name = "cons_dprice_forgive_years_of_inc_diag")
 ggplot_notebook(g, height=300,width=400)
 
-#g = gg_funcs([hp_cf,hp_perm_cf],gr_min,gr_max, N=50, loc=robjects.r('c(0,1)'),
-#        title = "Consumption Function Out of Principal Forgiveness",
-#        labels = ["House Price Increase","House Price Increase, Add Back Perm Inc Risk"],
-#        ylab = "Consumption", xlab = "Housing Equity Position (< 0 is Underwater)")
-#mp.ggsave("cons_dprice_perm",g)
-#ggplot_notebook(g, height=300,width=400)
 
-###########################################################################
-# Calculate consumption impact of House Price Increases
-###########################################################################
+cFuncs44 = []
+for i in range(0,grid_len-4,2):
+    cFuncs44.append(cFuncs[i][t_eval])
+g = gg_funcs(cFuncs44,-1.5,8, N=50, loc=robjects.r('c(0,1)'),
+        title = "Consumption Functions. Each line is 0.5 Increase in house value",
+        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_house_price_diag")
+ggplot_notebook(g, height=300,width=400)
 
-df_ltv = df_ltv.loc[5:10,:]
-ltv_rows = list(df_ltv['LTV_Midpoint'])
-#index = pd.Index(ltv_rows, name='rows')
-scenarios = ['mpc_L0_g60', 'mpc_L0_g16','mpc_L20_g16']
+
+#
+#
+############################################################################
+## Housing MPC and Cash MPC by LTV
+############################################################################
+ltv_rows = range(10,160,10)
+index = pd.Index(ltv_rows, name='rows')
+scenarios = ['cash','hsg','debt']
 columns = pd.Index(scenarios, name='cols')
-hp_mpc = pd.DataFrame(np.zeros((len(df_ltv), len(scenarios))), columns=columns) #index=index, 
-coh = 2
 dhp = 0.1
-hw_cf_params = deepcopy(baseline_params)
-  
-#baseline case
-for spec in scenarios:
-    #set parameters [is there a more efficient way to do this?]
-    if spec is 'mpc_L0_g60':
-        hamp_params['collateral_constraint'] = 0
-        hamp_params['annual_hp_growth'] = 0.06
-    elif spec is 'mpc_L0_g16':
-        hamp_params['collateral_constraint'] = 0
-        hamp_params['annual_hp_growth'] = 0.016
-    elif spec is 'mpc_L20_g16':
-        hamp_params['collateral_constraint'] = 0.20
-        hamp_params['annual_hp_growth'] = 0.016
-    #compute MPCs
-    for eq in ltv_rows:
-        hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  (eq/100.)*hamp_params['initial_price'] , **hamp_params)
-        cf_pre = solve_unpack(hw_cf_params)
-        hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt = (eq/100.)*hamp_params['initial_price'] , d_house_price = dhp, **hamp_params)
-        cf_post = solve_unpack(hw_cf_params)
-        hp_mpc.loc[eq,spec] = (cf_post.cFunc[t_eval](coh) - cf_pre.cFunc[t_eval](coh))/dhp
+coh = 2
 
-#even w/coh = 2 we are still getting high MPCs out of housing prices!
-#xxx could look up typical coh for a 45 year old in order to be a big more disciplned
+hp_mpc = pd.DataFrame(np.zeros((len(ltv_rows), len(scenarios))), index=index, columns=columns) 
+for eq in ltv_rows:
+    hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  (eq/100.)*hamp_params['initial_price'] , **hamp_params)
+    cf_pre = solve_unpack(hw_cf_params)
+    hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt = (eq/100.)*hamp_params['initial_price'] - dhp, **hamp_params)
+    cf_debt = solve_unpack(hw_cf_params)
+    hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt = (eq/100.)*hamp_params['initial_price'],  d_house_price = dhp, **hamp_params)
+    cf_hp = solve_unpack(hw_cf_params)
+    hp_mpc.loc[eq,'hsg'] = (cf_hp.cFunc[t_eval](coh) - cf_pre.cFunc[t_eval](coh))/dhp
+    hp_mpc.loc[eq,'debt'] = (cf_debt.cFunc[t_eval](coh) - cf_pre.cFunc[t_eval](coh))/dhp
+    hp_mpc.loc[eq,'cash'] = (cf_pre.cFunc[t_eval](coh+dhp) - cf_pre.cFunc[t_eval](coh))/dhp
+hp_mpc.to_csv("~/dropbox/hampra/out2/tbl_hp_mpc.csv")
+hp_mpc
 
-hp_mpc_ltv = pd.merge(df_ltv, hp_mpc, left_on="LTV_Midpoint", right_index=True)
+hamp_params['collateral_constraint'] = 0
+hp_mpc_0 = pd.DataFrame(np.zeros((len(ltv_rows), len(scenarios))), index=index, columns=columns) 
+for eq in ltv_rows:
+    hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  (eq/100.)*hamp_params['initial_price'] , **hamp_params)
+    cf_pre = solve_unpack(hw_cf_params)
+    hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt = (eq/100.)*hamp_params['initial_price'] - dhp, **hamp_params)
+    cf_debt = solve_unpack(hw_cf_params)
+    hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt = (eq/100.)*hamp_params['initial_price'],  d_house_price = dhp, **hamp_params)
+    cf_hp = solve_unpack(hw_cf_params)
+    hp_mpc_0.loc[eq,'hsg'] = (cf_hp.cFunc[t_eval](coh) - cf_pre.cFunc[t_eval](coh))/dhp
+    hp_mpc_0.loc[eq,'debt'] = (cf_debt.cFunc[t_eval](coh) - cf_pre.cFunc[t_eval](coh))/dhp
+    hp_mpc_0.loc[eq,'cash'] = (cf_pre.cFunc[t_eval](coh+dhp) - cf_pre.cFunc[t_eval](coh))/dhp
+hamp_params['collateral_constraint'] = 0.2
+hp_mpc_0.to_csv("~/dropbox/hampra/out2/tbl_hp_mpc_collat_0.csv")
+hp_mpc_0
 
-output_rows = []
-for spec in scenarios:
-    for yr in ["_2005","_2010"]:
-        hp_mpc_ltv[spec+yr] = hp_mpc_ltv[spec]*hp_mpc_ltv["Share"+yr]/100
-        output_rows.append(spec+yr)
-#study only people above 80% LTV
-#hp_mpc_ltv.set_index('LTV_Midpoint')
-#hp_mpc_ltv[hp_mpc_ltv['LTV_Midpoint'] > 80]
-hp_mpc_select_rows = df_ltv[df_ltv['LTV_Midpoint'] > 80]
-#hp_mpc_select_rows['Share_2005_adj'] = hp_mpc_select_rows['Share_2005']/sum(hp_mpc_select_rows['Share_2005'])
-#[output_rows].sum()
-hp_mpc_ltv.to_csv("~/dropbox/hampra/out2/tbl_mpc_ltv_src.csv")
-hp_mpc_ltv[output_rows].sum().to_csv("~/dropbox/hampra/out2/tbl_mpc_ltv_summary.csv")
+mpc_hsg_f = LinearInterp(np.arange(-60,90,10),np.array(hp_mpc['hsg'])[::-1])
+mpc_cash_f = LinearInterp(np.arange(-60,90,10),np.array(hp_mpc['cash'])[::-1])
+mpc_debt_f = LinearInterp(np.arange(-60,90,10),np.array(hp_mpc['debt'])[::-1])
 
+g = gg_funcs([mpc_hsg_f,mpc_cash_f,mpc_debt_f],-60,90, N=len(ltv_rows), loc=robjects.r('c(1,1)'),
+        title = "Marginal Propensity to Consume by Home Equity",
+        labels = ["Housing MPC","Cash MPC","Debt MPC"],
+        ylab = "MPC", xlab = "Home Equity",
+        file_name = "mpc_cash_hsg")
+ggplot_notebook(g, height=300,width=400)
+
+mpc_hsg_0_f = LinearInterp(np.arange(-60,90,10),np.array(hp_mpc_0['hsg'])[::-1])
+mpc_cash_0_f = LinearInterp(np.arange(-60,90,10),np.array(hp_mpc_0['cash'])[::-1])
+mpc_debt_0_f = LinearInterp(np.arange(-60,90,10),np.array(hp_mpc_0['debt'])[::-1])
+
+g = gg_funcs([mpc_hsg_0_f,mpc_cash_0_f,mpc_debt_0_f],-60,100, N=len(ltv_rows), loc=robjects.r('c(1,1)'),
+        title = "Marginal Propensity to Consume by Home Equity \n Collateral Constraint = 0%",
+        labels = ["Housing MPC","Cash MPC","Debt MPC"],
+        ylab = "MPC", xlab = "Home Equity",
+        file_name = "mpc_cash_hsg_0")
+ggplot_notebook(g, height=300,width=400)
+
+#important to do this for different models of housing costs wealth values
+
+
+
+
+#
+#df_ltv = df_ltv.loc[5:10,:]
+#ltv_rows = list(df_ltv['LTV_Midpoint'])
+##index = pd.Index(ltv_rows, name='rows')
+#scenarios = [ 'mpc_L0_g16','mpc_L20_g16']
+#columns = pd.Index(scenarios, name='cols')
+#hp_mpc = pd.DataFrame(np.zeros((len(df_ltv), len(scenarios))), columns=columns) #index=index, 
+#coh = 2
+#dhp = 0.1
+#hw_cf_params = deepcopy(baseline_params)
+#  
+##baseline case
+#for spec in scenarios:
+#    #set parameters [is there a more efficient way to do this?]
+#    if spec is 'mpc_L0_g16':
+#        hamp_params['collateral_constraint'] = 0
+#        hamp_params['annual_hp_growth'] = 0.016
+#    elif spec is 'mpc_L20_g16':
+#        hamp_params['collateral_constraint'] = 0.20
+#        hamp_params['annual_hp_growth'] = 0.016
+#    #compute MPCs
+#    for eq in ltv_rows:
+#        hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  (eq/100.)*hamp_params['initial_price'] , **hamp_params)
+#        cf_pre = solve_unpack(hw_cf_params)
+#        hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt = (eq/100.)*hamp_params['initial_price'] , d_house_price = dhp, **hamp_params)
+#        cf_post = solve_unpack(hw_cf_params)
+#        hp_mpc.loc[eq,spec] = (cf_post.cFunc[t_eval](coh) - cf_pre.cFunc[t_eval](coh))/dhp
+#
+##even w/coh = 2 we are still getting high MPCs out of housing prices!
+##xxx could look up typical coh for a 45 year old in order to be a big more disciplned
+#
+#hp_mpc_ltv = pd.merge(df_ltv, hp_mpc, left_on="LTV_Midpoint", right_index=True)
+#
+#output_rows = []
+#for spec in scenarios:
+#    for yr in ["_2005","_2010"]:
+#        hp_mpc_ltv[spec+yr] = hp_mpc_ltv[spec]*hp_mpc_ltv["Share"+yr]/100
+#        output_rows.append(spec+yr)
+##study only people above 80% LTV
+##hp_mpc_ltv.set_index('LTV_Midpoint')
+##hp_mpc_ltv[hp_mpc_ltv['LTV_Midpoint'] > 80]
+#hp_mpc_select_rows = df_ltv[df_ltv['LTV_Midpoint'] > 80]
+##hp_mpc_select_rows['Share_2005_adj'] = hp_mpc_select_rows['Share_2005']/sum(hp_mpc_select_rows['Share_2005'])
+##[output_rows].sum()
+#hp_mpc_ltv.to_csv("~/dropbox/hampra/out2/tbl_mpc_ltv_src.csv")
+#hp_mpc_ltv[output_rows].sum().to_csv("~/dropbox/hampra/out2/tbl_mpc_ltv_summary.csv")
+#
 #df = pd.DataFrame({'Loan-To-Value': 100*(1+np.array(equity[4:38]/rebate)), 
 #                      'MPC': np.mean(lifecycle_hsg_example.MPChist,axis=1)[4:38]})
 #g = gg.ggplot2(df) + \
-#    gg.aes_string(x='Loan-To-Value', y='MPC')
-#    
-#    + mp.line + mp.point     +  \
+#    gg.aes_string(x='Loan-To-Value', y='MPC') + mp.line + mp.point     +  \
 #    mp.theme_bw(base_size=9) + mp.fte_theme +mp.colors + \
 #    gg.labs(title="Home Equity and Marginal Propensity to Consume",
 #                  y="MPC", x = "Loan-to-Value Ratio")
 #mp.ggsave("ltv_and_mpc",g)
 #ggplot_notebook(g, height=300,width=400)
 #np.vstack((-1*np.array(lifecycle_hsg_params['BoroCnstArt'][4:38]),np.mean(lifecycle_hsg_example.MPChist,axis=1)[:40]))
-#
+
 
 #pseudo code:
 #make a table (and then a figure) with lines for average MPCs        
-loc = robjects.r('c(1,1)')         
-title = "Consumption and Cash-on-Hand"
-ylab = "y"
-xlab="Loan-To-Value Ratio"
-ltitle = 'cols'
-labels = ['MPC: Collateral >= 0%','MPC: Collateral >= 20%']
-tmp = hp_mpc_ltv
-tmp = tmp.rename(columns={scenarios[1]: labels[0], scenarios[2]: labels[1]})
-fig = pd.melt(tmp, id_vars =['LTV_Midpoint'], value_vars = labels)
-fig = fig.rename(columns={"LTV_Midpoint": "x"})
+#loc = robjects.r('c(1,1)')         
+#title = "Consumption and Cash-on-Hand"
+#ylab = "y"
+#xlab="Loan-To-Value Ratio"
+#ltitle = 'cols'
+#labels = ['MPC: Collateral >= 0%','MPC: Collateral >= 20%']
+#tmp = hp_mpc_ltv
+#tmp = tmp.rename(columns={scenarios[0]: labels[0], scenarios[1]: labels[1]})
+#fig = pd.melt(tmp, id_vars =['LTV_Midpoint'], value_vars = labels)
+#fig = fig.rename(columns={"LTV_Midpoint": "x"})
+
 #g = gg.ggplot(fig) + \
 #    mp.base_plot + mp.line + mp.point +  \
 #    mp.theme_bw(base_size=9) + mp.fte_theme +mp.colors +  \
 #    gg.labs(title=title,y=ylab,x=xlab) + mp.legend_f(loc) + mp.legend_t_c(ltitle) + mp.legend_t_s(ltitle)
 #ggplot_notebook(g, height=300,width=400)
 #make x values into a factor variable so that they are equally spaced
+#
 
-#make a table (and then a figure) with overlapping histogram of population shares
-tmp = df_ltv
-labels = ['Share of Mortgages 2005', 'Share of Mortgages 2010']
-tmp = tmp.rename(columns={df_ltv.columns[2]: labels[0], df_ltv.columns[3]: labels[1]})
-fig2 = pd.melt(tmp, id_vars =['LTV_Midpoint'], value_vars = labels)
-fig2['value'] = fig2['value']/100
-fig2 = fig2.rename(columns={"LTV_Midpoint": "x"})
-fig.append(fig2).to_csv("~/dropbox/hampra/out2/tbl_ltv_ggplot.csv")
+#rrr graphs are generating a division by zero error. need to step through this to figure out the issues
+
+
+##############################################
+#try out alternative consumption functions
+##############################################
+IndShockExample = solve_unpack(baseline_params)
+
+tmp_params = deepcopy(baseline_params)
+tmp_params['PermShkStd'] = Params.PermShkStdPos
+tmp_params["PermShkCount"] = 7
+AddBackPermIncRisk = solve_unpack(tmp_params)
+
+tmp_params = deepcopy(baseline_params)
+tmp_params['TranShkStd'] =  [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
+0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
+0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0, 0.0, # <-- no transitory income shocs after retirement
+0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+DoubleTempIncRisk = solve_unpack(tmp_params)
+
+tmp_params = deepcopy(baseline_params)
+tmp_params["UnempPrb"] = 0.2
+QuadrupleURisk = solve_unpack(tmp_params)
+
+tmp_params = deepcopy(baseline_params)
+tmp_params['HsgPay'] = uw_house_params['HsgPay']
+AddHsgPay = solve_unpack(tmp_params)
+
+#double temp inc risk not working
+g = gg_funcs([IndShockExample.cFunc[t_eval],AddBackPermIncRisk.cFunc[t_eval],AddHsgPay.cFunc[t_eval]], #DoubleTempIncRisk.cFunc[t_eval],QuadrupleURisk.cFunc[t_eval],
+        -.001,8, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Functions",
+        labels = ["Baseline (No Housing, No Perm Inc Risk)","Add Perm Inc Risk", "Add Housing Payments"], #"Double Temp Inc SD", "Quadruple U risk", 
+        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_concavity")
+ggplot_notebook(g, height=300,width=400)
+
+###########################################################################
+# Calculate consumption impact of PRA
+###########################################################################
+index = pd.Index(list(["High Cash-on-Hand"]), name='rows') #, "Baseline","Low Cash-on-Hand", "Has HELOC",
+#                       "Write down to 90% LTV","Collateral Constraint = 0",
+#                       "Age At Mod = 35","Age At Mod = 55",
+#                       "Most Optimistic Combo","90% LTV & Constraint = 0",
+#                       "High Cash-on-Hand & r = 0", "Cash-on-Hand = " + str(tmp_vhi)
+columns = pd.Index(['c_pre', 'c_post'], name='cols')
+pra_mpc = pd.DataFrame(np.zeros((1,2)), index=index, columns=columns)
+
+#advice from Kareem
+#def pra_impact(params,row_name):
+#    call without principal forgiveness
+#    p.modify
+#    call with principal fogivenes 
+#    append a row called row_name
+#pra_impact(params,"Baseline")
+#  changes = [{modification1},{modification2}]
+#  results = map(lambda x: p.modify(x), changes)
+#  pra_mpc['c_pre'] = results #not 100% sure of this syntax
+# http://stackoverflow.com/questions/17547507/update-method-in-python-dictionary
+# normally make the pandas data frame all at once instead of making blanks and filling it in
+
+#baseline case & heloc case
+hw_cf_params = deepcopy(baseline_params)
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] , **hamp_params)
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Baseline','c_pre'] = cf.cFunc[t_eval](hamp_coh)
+pra_mpc.loc['Low Cash-on-Hand','c_pre'] = cf.cFunc[t_eval](tmp_vlo)
+pra_mpc.loc['High Cash-on-Hand','c_pre'] = cf.cFunc[t_eval](tmp_hi)
+pra_mpc.loc["Cash-on-Hand = " + str(tmp_vhi),'c_pre'] = cf.cFunc[t_eval](tmp_vhi)
+hw_cf_params['BoroCnstArt']   = map(lambda x:x-heloc_L, hw_cf_params['BoroCnstArt'])
+cf_heloc = solve_unpack(hw_cf_params)
+pra_mpc.loc['Has HELOC','c_pre'] = cf_heloc.cFunc[t_eval](hamp_coh)
+
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'] , **hamp_params)
+hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = hamp_params['pra_forgive'] , **hamp_params)   
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Baseline','c_post'] = cf.cFunc[t_eval](hamp_coh)
+pra_mpc.loc['Low Cash-on-Hand','c_post'] = cf.cFunc[t_eval](tmp_vlo)
+pra_mpc.loc['High Cash-on-Hand','c_post'] = cf.cFunc[t_eval](tmp_hi)
+pra_mpc.loc["Cash-on-Hand = " + str(tmp_vhi),'c_post'] = cf.cFunc[t_eval](tmp_vhi)
+hw_cf_params['BoroCnstArt']   = map(lambda x:x-heloc_L, hw_cf_params['BoroCnstArt'])
+cf_heloc = solve_unpack(hw_cf_params)
+pra_mpc.loc['Has HELOC','c_post'] = cf_heloc.cFunc[t_eval](hamp_coh)
+
+#lower interest rate
+hw_cf_params = deepcopy(baseline_params)
+hamp_params['int_rate'] = 0.001
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] , **hamp_params)
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['High Cash-on-Hand & r = 0','c_pre'] = cf.cFunc[t_eval](tmp_hi)
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'] , **hamp_params)
+hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = hamp_params['pra_forgive'] , **hamp_params)   
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['High Cash-on-Hand & r = 0','c_post'] = cf.cFunc[t_eval](tmp_hi)
+hamp_params['int_rate'] = 0.02
+
+#change baseline debt to 135% LTV
+tmp = deepcopy(hamp_params['baseline_debt'])
+hamp_params['baseline_debt'] = 1.35*hamp_params['initial_price']
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt']  , **hamp_params)
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Write down to 90% LTV','c_pre'] = cf.cFunc[t_eval](hamp_coh)
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt = hamp_params['baseline_debt']  -hamp_params['pra_forgive'] , **hamp_params)
+hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = hamp_params['pra_forgive'] , **hamp_params)   
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Write down to 90% LTV','c_post'] = cf.cFunc[t_eval](hamp_coh)
+hamp_params['baseline_debt'] = tmp
+
+#xxx this is where I stopped
+#i am getting a weird bug where consumption is FALLING in the post sttate
+#change baseline debt to 95% LTV
+grant_size = 0.1
+hamp_params['collateral_constraint'] = 0
+hw_cf_params = deepcopy(baseline_params)
+col_frgv = 'MPC Forgive Debt From 95% LTV'
+col_hp = 'MPC House Price From 95% LTV'
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  0.95*hamp_params['initial_price']  , **hamp_params)
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc[col_frgv,'c_pre'] = cf.cFunc[t_eval](hamp_coh)
+pra_mpc.loc[col_hp,'c_pre'] = cf.cFunc[t_eval](hamp_coh)
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt = 0.95*hamp_params['initial_price']  - grant_size , **hamp_params)
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc[col_frgv,'c_post'] = cf.cFunc[t_eval](hamp_coh)
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay']  = hsg_wealth(initial_debt = 0.95*hamp_params['initial_price'], d_house_price = grant_size, **hamp_params)
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc[col_hp,'c_post'] = cf.cFunc[t_eval](hamp_coh)
+hamp_params['collateral_constraint'] = 0.20
+
+
+#collateral constraint
+hamp_params['collateral_constraint'] = 0
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] , **hamp_params)
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Collateral Constraint = 0','c_pre'] = cf.cFunc[t_eval](hamp_coh)
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'] , **hamp_params)
+hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = hamp_params['pra_forgive'] , **hamp_params)   
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Collateral Constraint = 0','c_post'] = cf.cFunc[t_eval](hamp_coh)
+tmp = deepcopy(hamp_params['baseline_debt'])
+hamp_params['baseline_debt'] = 1.35*hamp_params['initial_price']
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt = hamp_params['baseline_debt']   , **hamp_params)
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['90% LTV & Constraint = 0','c_pre'] = cf.cFunc[t_eval](hamp_coh)
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt = hamp_params['baseline_debt']   -hamp_params['pra_forgive'] , **hamp_params)
+hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = hamp_params['pra_forgive'] , **hamp_params)   
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['90% LTV & Constraint = 0','c_post'] = cf.cFunc[t_eval](hamp_coh)
+hamp_params['collateral_constraint'] = 0.20
+hamp_params['baseline_debt'] = tmp
+
+#age 35 and 55
+t_eval_35 = 10
+age_young = 35
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], age_at_mod = age_young , **hamp_params)
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Age At Mod = 35','c_pre'] = cf.cFunc[t_eval_35](hamp_coh)
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'], age_at_mod = age_young , **hamp_params)
+hw_cf_params['HsgPay'] =  pra_pmt(age = 35, forgive = hamp_params['pra_forgive'] , **hamp_params)   
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Age At Mod = 35','c_post'] = cf.cFunc[t_eval_35](hamp_coh)
+t_eval_55 = 30
+age_old = 55
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], age_at_mod = age_old , **hamp_params)
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Age At Mod = 55','c_pre'] = cf.cFunc[t_eval_55](hamp_coh)
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'], age_at_mod = age_old , **hamp_params)
+hw_cf_params['HsgPay'] =  pra_pmt(age = age_old, forgive = hamp_params['pra_forgive'] , **hamp_params)   
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Age At Mod = 55','c_post'] = cf.cFunc[t_eval_55](hamp_coh)
+
+#why is the most optimistic combo less than the original PIH guy?
+#(1) he has more collateral -- this is pushing up MPC slighly
+#(2) we are looking at an older guy
+#most optimistic: 0 collateral, age 55, high cash-on-hand
+age_eval = 45
+t_eval_55 = t_eval # was 30 
+hamp_params['collateral_constraint'] = 0 # was 0
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], age_at_mod = age_eval , **hamp_params)
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Most Optimistic Combo','c_pre'] = cf.cFunc[t_eval_55](tmp_hi)
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'], age_at_mod = age_eval , **hamp_params)
+hw_cf_params['HsgPay'] =  pra_pmt(age = age_eval, forgive = hamp_params['pra_forgive'] , **hamp_params)   
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Most Optimistic Combo','c_post'] = cf.cFunc[t_eval_55](tmp_hi)
+hamp_params['collateral_constraint'] = 0.20
+
+#remark: I don't know how we interpret the high PIH agent. just say that we can reject this behavior?
+#why is consumption going down for the low coh agent and the 90% LTV agent?
+pra_mpc['mpc'] = (pra_mpc['c_post'] - pra_mpc['c_pre'])/hamp_params['pra_forgive']
+pra_mpc.loc[col_frgv,'mpc'] = (pra_mpc.loc[col_frgv,'c_post'] - pra_mpc.loc[col_frgv,'c_pre']) / grant_size
+pra_mpc.loc[col_hp,'mpc'] = (pra_mpc.loc[col_frgv,'c_post'] - pra_mpc.loc[col_frgv,'c_pre']) / grant_size
+pra_mpc = pra_mpc.round(3)
+pra_mpc
+
+pra_mpc.to_csv("~/dropbox/hampra/out2/tbl_pra_mpc.csv")
+
+
+#
+#
+############################################################################
+## Calculate consumption impact of House Price Increases
+############################################################################
+#
+#df_ltv = df_ltv.loc[5:10,:]
+#ltv_rows = list(df_ltv['LTV_Midpoint'])
+##index = pd.Index(ltv_rows, name='rows')
+#scenarios = [ 'mpc_L0_g16','mpc_L20_g16']
+#columns = pd.Index(scenarios, name='cols')
+#hp_mpc = pd.DataFrame(np.zeros((len(df_ltv), len(scenarios))), columns=columns) #index=index, 
+#coh = 2
+#dhp = 0.1
+#hw_cf_params = deepcopy(baseline_params)
+#  
+##baseline case
+#for spec in scenarios:
+#    #set parameters [is there a more efficient way to do this?]
+#    if spec is 'mpc_L0_g16':
+#        hamp_params['collateral_constraint'] = 0
+#        hamp_params['annual_hp_growth'] = 0.016
+#    elif spec is 'mpc_L20_g16':
+#        hamp_params['collateral_constraint'] = 0.20
+#        hamp_params['annual_hp_growth'] = 0.016
+#    #compute MPCs
+#    for eq in ltv_rows:
+#        hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  (eq/100.)*hamp_params['initial_price'] , **hamp_params)
+#        cf_pre = solve_unpack(hw_cf_params)
+#        hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt = (eq/100.)*hamp_params['initial_price'] , d_house_price = dhp, **hamp_params)
+#        cf_post = solve_unpack(hw_cf_params)
+#        hp_mpc.loc[eq,spec] = (cf_post.cFunc[t_eval](coh) - cf_pre.cFunc[t_eval](coh))/dhp
+#
+##even w/coh = 2 we are still getting high MPCs out of housing prices!
+##xxx could look up typical coh for a 45 year old in order to be a big more disciplned
+#
+#hp_mpc_ltv = pd.merge(df_ltv, hp_mpc, left_on="LTV_Midpoint", right_index=True)
+#
+#output_rows = []
+#for spec in scenarios:
+#    for yr in ["_2005","_2010"]:
+#        hp_mpc_ltv[spec+yr] = hp_mpc_ltv[spec]*hp_mpc_ltv["Share"+yr]/100
+#        output_rows.append(spec+yr)
+##study only people above 80% LTV
+##hp_mpc_ltv.set_index('LTV_Midpoint')
+##hp_mpc_ltv[hp_mpc_ltv['LTV_Midpoint'] > 80]
+#hp_mpc_select_rows = df_ltv[df_ltv['LTV_Midpoint'] > 80]
+##hp_mpc_select_rows['Share_2005_adj'] = hp_mpc_select_rows['Share_2005']/sum(hp_mpc_select_rows['Share_2005'])
+##[output_rows].sum()
+#hp_mpc_ltv.to_csv("~/dropbox/hampra/out2/tbl_mpc_ltv_src.csv")
+#hp_mpc_ltv[output_rows].sum().to_csv("~/dropbox/hampra/out2/tbl_mpc_ltv_summary.csv")
+#
+#df = pd.DataFrame({'Loan-To-Value': 100*(1+np.array(equity[4:38]/rebate)), 
+#                      'MPC': np.mean(lifecycle_hsg_example.MPChist,axis=1)[4:38]})
+#g = gg.ggplot2(df) + \
+#    gg.aes_string(x='Loan-To-Value', y='MPC') + mp.line + mp.point     +  \
+#    mp.theme_bw(base_size=9) + mp.fte_theme +mp.colors + \
+#    gg.labs(title="Home Equity and Marginal Propensity to Consume",
+#                  y="MPC", x = "Loan-to-Value Ratio")
+#mp.ggsave("ltv_and_mpc",g)
+#ggplot_notebook(g, height=300,width=400)
+#np.vstack((-1*np.array(lifecycle_hsg_params['BoroCnstArt'][4:38]),np.mean(lifecycle_hsg_example.MPChist,axis=1)[:40]))
+
+
+#pseudo code:
+#make a table (and then a figure) with lines for average MPCs        
+#loc = robjects.r('c(1,1)')         
+#title = "Consumption and Cash-on-Hand"
+#ylab = "y"
+#xlab="Loan-To-Value Ratio"
+#ltitle = 'cols'
+#labels = ['MPC: Collateral >= 0%','MPC: Collateral >= 20%']
+#tmp = hp_mpc_ltv
+#tmp = tmp.rename(columns={scenarios[0]: labels[0], scenarios[1]: labels[1]})
+#fig = pd.melt(tmp, id_vars =['LTV_Midpoint'], value_vars = labels)
+#fig = fig.rename(columns={"LTV_Midpoint": "x"})
+
+#g = gg.ggplot(fig) + \
+#    mp.base_plot + mp.line + mp.point +  \
+#    mp.theme_bw(base_size=9) + mp.fte_theme +mp.colors +  \
+#    gg.labs(title=title,y=ylab,x=xlab) + mp.legend_f(loc) + mp.legend_t_c(ltitle) + mp.legend_t_s(ltitle)
+#ggplot_notebook(g, height=300,width=400)
+#make x values into a factor variable so that they are equally spaced
+#
+##make a table (and then a figure) with overlapping histogram of population shares
+#tmp = df_ltv
+#labels = ['Share of Mortgages 2005', 'Share of Mortgages 2010']
+#tmp = tmp.rename(columns={df_ltv.columns[2]: labels[0], df_ltv.columns[3]: labels[1]})
+#fig2 = pd.melt(tmp, id_vars =['LTV_Midpoint'], value_vars = labels)
+#fig2['value'] = fig2['value']/100
+#fig2 = fig2.rename(columns={"LTV_Midpoint": "x"})
+#fig.append(fig2).to_csv("~/dropbox/hampra/out2/tbl_ltv_ggplot.csv")
 
 #h = gg.ggplot(fig2) + \
 #    gg.aes_string(x='x', y='value',fill = 'variable') + \
@@ -765,186 +1157,37 @@ fig.append(fig2).to_csv("~/dropbox/hampra/out2/tbl_ltv_ggplot.csv")
 #calculate population average MPC and write as text on plot
 
 
+##################################
+#calculate NPV of mortgage payments at mod date
+##################################
+#def npv_mtg_nominal(beta, initial_debt, annual_hp_growth, collateral_constraint, 
+#                    baseline_debt, initial_price, int_rate, pra_forgive, 
+#                    hsg_rent_p, hsg_own_p,  age_at_mod = 45):
+#    if settings.verbose:
+#        print "Hsg wealth params: P=", initial_price, " D=", baseline_debt, " g=", annual_hp_growth, " r=", int_rate, " phi=", collateral_constraint
+#    T = 65 - age_at_mod
+#    price = [initial_price]
+#    debt = [initial_debt]
+#    amort = int_rate*(1+int_rate)**30/((1+int_rate)**30-1)
+#    mtg_pmt = [initial_debt*amort]
+#    mtg_pmt_npv = initial_debt*amort
+#    for i in range(1,T):
+#        price.append(price[-1]*(1+annual_hp_growth))
+#        mtg_pmt.append(mtg_pmt[-1])
+#        debt.append((debt[-1]*(1+int_rate)) - mtg_pmt[-1]) #xx double-check timing assumptions here
+#        mtg_pmt_npv += (initial_debt*amort)*beta**i
+#    equity = np.array(price) - np.array(debt)
+#    equity = [0.0] * (age_at_mod - 26) + equity.tolist() + [0.0] * 26
+#    mtg_pmt = [0.0] * (age_at_mod - 26) + mtg_pmt + [0.0] * 26
+#    sale_proceeds = equity[38]
+#    npv_tot = sale_proceeds*beta**T - mtg_pmt_npv
+#    return npv_tot, sale_proceeds*beta**T, mtg_pmt_npv
 
-
-#slide 3 -- housing equity 
-def neg(x): return -1*x
-boro_cnst_pre_pra = list(map(neg, uw_house_params['BoroCnstArt']))
-boro_cnst_post_pra = list(map(neg, pra_params['BoroCnstArt']))
-g = gg_funcs([LinearInterp(np.arange(25,90),boro_cnst_pre_pra),LinearInterp(np.arange(25,90),boro_cnst_post_pra)],
-              45.001,75, N=round(75-45.001), loc=robjects.r('c(0,0.5)'),
-        title = "Borrowing Limits by Year \n Receive Treatment at Age 45",
-        labels = ["Baseline (No Principal Forgiveness)", "With Principal Forgiveness"],
-        ylab = "Borrowing Limit", xlab = "Age", file_name = "borrowing_limits_and_pra")
-ggplot_notebook(g, height=300,width=400)
-
-#slide 4 -- housing payments 
-pmt_pre_pra =  uw_house_params['HsgPay']
-pmt_post_pra = pra_pmt(age = 45, **hamp_params)
-g = gg_funcs([LinearInterp(np.arange(25,90),pmt_pre_pra),LinearInterp(np.arange(25,90),pmt_post_pra)],
-              44.0001,75, N=round(75-44.001), loc=robjects.r('c(0,0)'),
-        title = "Mortgage Payments by Year \n Receive Treatment at Age 45",
-        labels = ["Baseline (No Principal Forgiveness)", "With Principal Forgiveness"],
-        ylab = "Payment As Share of Income", xlab = "Age", file_name = "hsg_pmt_and_pra")
-ggplot_notebook(g, height=300,width=400)
-
-#xx graphs are generating a division by zero error. need to step through this to figure out the issues
-
-
-##############################################
-#try out alternative consumption functions
-##############################################
-IndShockExample = solve_unpack(baseline_params)
-
-tmp_params = deepcopy(baseline_params)
-tmp_params['PermShkStd'] = Params.PermShkStdPos
-tmp_params["PermShkCount"] = 7
-AddBackPermIncRisk = solve_unpack(tmp_params)
-
-tmp_params = deepcopy(baseline_params)
-tmp_params['TranShkStd'] =  [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
-0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2,
-0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0, 0.0, # <-- no transitory income shocs after retirement
-0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-DoubleTempIncRisk = solve_unpack(tmp_params)
-
-tmp_params = deepcopy(baseline_params)
-tmp_params["UnempPrb"] = 0.2
-QuadrupleURisk = solve_unpack(tmp_params)
-
-tmp_params = deepcopy(baseline_params)
-tmp_params['HsgPay'] = uw_house_params['HsgPay']
-AddHsgPay = solve_unpack(tmp_params)
-
-#double temp inc risk not working
-g = gg_funcs([IndShockExample.cFunc[t_eval],AddBackPermIncRisk.cFunc[t_eval],AddHsgPay.cFunc[t_eval]], #DoubleTempIncRisk.cFunc[t_eval],QuadrupleURisk.cFunc[t_eval],
-        -.001,8, N=50, loc=robjects.r('c(1,0)'),
-        title = "Consumption Functions",
-        labels = ["Baseline (No Housing, No Perm Inc Risk)","Add Perm Inc Risk", "Add Housing Payments"], #"Double Temp Inc SD", "Quadruple U risk", 
-        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_concavity_diagnostic")
-ggplot_notebook(g, height=300,width=400)
-
-#baseline_params['PermShkCount'] = 7
-#baseline_params['PermShkStd'] = Params.PermShkStdPos
-
-
-###########################################################################
-# Calculate consumption impact of PRA
-###########################################################################
-index = pd.Index(list(["Baseline","Low Cash-on-Hand","High Cash-on-Hand", 
-                       "Write down to 90% LTV","Collateral Constraint = 0",
-                       "Age At Mod = 35","Age At Mod = 55",
-                       "Most Optimistic Combo","90% LTV & Constraint = 0"]), name='rows')
-columns = pd.Index(['c_pre', 'c_post'], name='cols')
-pra_mpc = pd.DataFrame(np.zeros((9,2)), index=index, columns=columns)
-
-#advice from Kareem
-#def pra_impact(params,row_name):
-#    call without principal forgiveness
-#    p.modify
-#    call with principal fogivenes 
-#    append a row called row_name
-#pra_impact(params,"Baseline")
-#  changes = [{modification1},{modification2}]
-#  results = map(lambda x: p.modify(x), changes)
-#  pra_mpc['c_pre'] = results #not 100% sure of this syntax
-# http://stackoverflow.com/questions/17547507/update-method-in-python-dictionary
-# normally make the pandas data frame all at once instead of making blanks and filling it in
-
-#baseline case
-hw_cf_params = deepcopy(baseline_params)
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] , **hamp_params)
-cf = solve_unpack(hw_cf_params)
-pra_mpc.loc['Baseline','c_pre'] = cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand'])
-pra_mpc.loc['Low Cash-on-Hand','c_pre'] = cf.cFunc[t_eval](tmp_vlo)
-pra_mpc.loc['High Cash-on-Hand','c_pre'] = cf.cFunc[t_eval](tmp_hi)
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'] , **hamp_params)
-hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = hamp_params['pra_forgive'] , **hamp_params)   
-cf = solve_unpack(hw_cf_params)
-pra_mpc.loc['Baseline','c_post'] = cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand'])
-pra_mpc.loc['Low Cash-on-Hand','c_post'] = cf.cFunc[t_eval](tmp_vlo)
-pra_mpc.loc['High Cash-on-Hand','c_post'] = cf.cFunc[t_eval](tmp_hi)
-
-#change baseline debt amount
-tmp = deepcopy(hamp_params['baseline_debt'])
-hamp_params['baseline_debt'] = 1.35*hamp_params['initial_price']
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt']  , **hamp_params)
-cf = solve_unpack(hw_cf_params)
-pra_mpc.loc['Write down to 90% LTV','c_pre'] = cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand'])
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt = hamp_params['baseline_debt']  -hamp_params['pra_forgive'] , **hamp_params)
-hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = hamp_params['pra_forgive'] , **hamp_params)   
-cf = solve_unpack(hw_cf_params)
-pra_mpc.loc['Write down to 90% LTV','c_post'] = cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand'])
-hamp_params['baseline_debt'] = tmp
-
-#collateral constraint
-hamp_params['collateral_constraint'] = 0
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] , **hamp_params)
-cf = solve_unpack(hw_cf_params)
-pra_mpc.loc['Collateral Constraint = 0','c_pre'] = cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand'])
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'] , **hamp_params)
-hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = hamp_params['pra_forgive'] , **hamp_params)   
-cf = solve_unpack(hw_cf_params)
-pra_mpc.loc['Collateral Constraint = 0','c_post'] = cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand'])
-tmp = deepcopy(hamp_params['baseline_debt'])
-hamp_params['baseline_debt'] = 1.35*hamp_params['initial_price']
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt = hamp_params['baseline_debt']   , **hamp_params)
-cf = solve_unpack(hw_cf_params)
-pra_mpc.loc['90% LTV & Constraint = 0','c_pre'] = cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand'])
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt = hamp_params['baseline_debt']   -hamp_params['pra_forgive'] , **hamp_params)
-hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = hamp_params['pra_forgive'] , **hamp_params)   
-cf = solve_unpack(hw_cf_params)
-pra_mpc.loc['90% LTV & Constraint = 0','c_post'] = cf.cFunc[t_eval](initialize_hamp_recip['cash_on_hand'])
-hamp_params['collateral_constraint'] = 0.20
-hamp_params['baseline_debt'] = tmp
-
-#age 35 and 55
-t_eval_35 = 10
-age_young = 35
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], age_at_mod = age_young , **hamp_params)
-cf = solve_unpack(hw_cf_params)
-pra_mpc.loc['Age At Mod = 35','c_pre'] = cf.cFunc[t_eval_35](initialize_hamp_recip['cash_on_hand'])
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'], age_at_mod = age_young , **hamp_params)
-hw_cf_params['HsgPay'] =  pra_pmt(age = 35, forgive = hamp_params['pra_forgive'] , **hamp_params)   
-cf = solve_unpack(hw_cf_params)
-pra_mpc.loc['Age At Mod = 35','c_post'] = cf.cFunc[t_eval_35](initialize_hamp_recip['cash_on_hand'])
-t_eval_55 = 30
-age_old = 55
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], age_at_mod = age_old , **hamp_params)
-cf = solve_unpack(hw_cf_params)
-pra_mpc.loc['Age At Mod = 55','c_pre'] = cf.cFunc[t_eval_55](initialize_hamp_recip['cash_on_hand'])
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'], age_at_mod = age_old , **hamp_params)
-hw_cf_params['HsgPay'] =  pra_pmt(age = age_old, forgive = hamp_params['pra_forgive'] , **hamp_params)   
-cf = solve_unpack(hw_cf_params)
-pra_mpc.loc['Age At Mod = 55','c_post'] = cf.cFunc[t_eval_55](initialize_hamp_recip['cash_on_hand'])
-
-#why is the most optimistic combo less than the original PIH guy?
-#(1) he has more collateral -- this is pushing up MPC slighly
-#(2) we are looking at an older guy
-#most optimistic: 0 collateral, age 55, high cash-on-hand
-age_eval = 45
-t_eval_55 = t_eval # was 30 
-hamp_params['collateral_constraint'] = 0 # was 0
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], age_at_mod = age_eval , **hamp_params)
-cf = solve_unpack(hw_cf_params)
-pra_mpc.loc['Most Optimistic Combo','c_pre'] = cf.cFunc[t_eval_55](tmp_hi)
-hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], d = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'], age_at_mod = age_eval , **hamp_params)
-hw_cf_params['HsgPay'] =  pra_pmt(age = age_eval, forgive = hamp_params['pra_forgive'] , **hamp_params)   
-cf = solve_unpack(hw_cf_params)
-pra_mpc.loc['Most Optimistic Combo','c_post'] = cf.cFunc[t_eval_55](tmp_hi)
-hamp_params['collateral_constraint'] = 0.20
-
-#remark: I don't know how we interpret the high PIH agent. just say that we can reject this behavior?
-#why is consumption going down for the low coh agent and the 90% LTV agent?
-
-pra_mpc['mpc'] = (pra_mpc['c_post'] - pra_mpc['c_pre'])/hamp_params['pra_forgive']
-pra_mpc = pra_mpc.round(3)
-pra_mpc
-
-pra_mpc.to_csv("~/dropbox/hampra/out2/tbl_pra_mpc.csv")
-
-
+#calculate NPV of mortgage payments to compare to calculations inside R code
+#remark: this calculation ignores the higher payments in the first five years (which we are assuming get flushed down the toilet)
+#npv_mtg_nominal(beta = 0.96,initial_debt = hamp_params['baseline_debt'],**hamp_params)
+#npv_mtg_nominal(beta = 0.96,initial_debt = hamp_params['baseline_debt'] - hamp_params['pra_forgive'],**hamp_params)  
+  
 ##################################
 #Simulate data and study MPC over the lifecycle
 ##################################

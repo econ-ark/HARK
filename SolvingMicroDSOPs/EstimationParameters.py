@@ -27,7 +27,7 @@ PermShkCount = 1                    # Number of points in discrete approximation
 TranShkCount = 7                    # Number of points in discrete approximation to transitory income shocks
 UnempPrb = 0.05                    # Probability of unemployment while working. PNG 2016-08-16. Default value was 0.005
 UnempPrbRet = 0.000                 # Probability of "unemployment" while retired
-IncUnemp = 0.3                      # Unemployment benefits replacement rate Default value is zero
+IncUnemp = 0.36                      # Unemployment benefits replacement rate Default value is zero
 IncUnempRet = 0.0                   # "Unemployment" benefits when retired
 
 final_age = 90                      # Age at which the problem ends (die with certainty)
