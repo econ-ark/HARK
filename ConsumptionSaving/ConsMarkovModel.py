@@ -89,9 +89,8 @@ class ConsMarkovSolver(ConsIndShockSolver):
         None
         '''
         # Set basic attributes of the problem
-        ConsIndShockSolver.assignParameters(self,solution_next,np.nan,
-                                                     LivPrb,DiscFac,CRRA,np.nan,np.nan,
-                                                     BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+        ConsIndShockSolver.assignParameters(self,solution_next,np.nan,LivPrb,DiscFac,CRRA,np.nan,
+                                            np.nan,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
         self.defUtilityFuncs()
         
         # Set additional attributes specific to the Markov model
@@ -228,6 +227,8 @@ class ConsMarkovSolver(ConsIndShockSolver):
         self.mNrmMinNow     = self.mNrmMin_list[state_index]
         self.BoroCnstNat    = self.BoroCnstNatAll[state_index]        
         self.setAndUpdateValues(self.solution_next,self.IncomeDstn,self.LivPrb,self.DiscFac)
+        self.DiscFacEff     = self.DiscFac # survival probability LivPrb represents probability from 
+                                           # *current* state, so DiscFacEff is just DiscFac for now
 
         # These lines have to come after setAndUpdateValues to override the definitions there
         self.vPfuncNext = self.solution_next.vPfunc[state_index]
@@ -380,10 +381,11 @@ class ConsMarkovSolver(ConsIndShockSolver):
                 EndOfPrdvPP_temp = np.dot(self.MrkvArray,EndOfPrdvPP_all)
                 EndOfPrdvPP[which_states,:] = EndOfPrdvPP_temp[which_states,:]
                 
-        # Store the results as attributes of self
-        self.EndOfPrdvP = EndOfPrdvP
+        # Store the results as attributes of self, scaling end of period marginal value by survival probability from each current state
+        LivPrb_tiled = np.tile(np.reshape(self.LivPrb,(self.StateCount,1)),(1,self.aXtraGrid.size))
+        self.EndOfPrdvP = LivPrb_tiled*EndOfPrdvP
         if self.CubicBool:
-            self.EndOfPrdvPP = EndOfPrdvPP
+            self.EndOfPrdvPP = LivPrb_tiled*EndOfPrdvPP
             
     def calcHumWealthAndBoundingMPCs(self):
         '''
@@ -406,7 +408,8 @@ class ConsMarkovSolver(ConsIndShockSolver):
         ExMPCmaxNext      = (np.dot(temp_array,self.Rfree_list**(1.0-self.CRRA)*
                             self.solution_next.MPCmax**(-self.CRRA))/WorstIncPrbNow)**\
                             (-1.0/self.CRRA)
-        self.MPCmaxNow    = 1.0/(1.0 + ((self.DiscFacEff*WorstIncPrbNow)**
+        DiscFacEff_temp   = self.DiscFac*self.LivPrb
+        self.MPCmaxNow    = 1.0/(1.0 + ((DiscFacEff_temp*WorstIncPrbNow)**
                             (1.0/self.CRRA))/ExMPCmaxNext)
         self.MPCmaxEff    = self.MPCmaxNow
         self.MPCmaxEff[self.BoroCnstNat_list < self.mNrmMin_list] = 1.0
@@ -415,7 +418,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         self.hNrmNow      = np.dot(self.MrkvArray,(self.PermGroFac_list/self.Rfree_list)*
                             hNrmPlusIncNext)
         # Lower bound on MPC as m gets arbitrarily large
-        temp              = (self.DiscFacEff*np.dot(self.MrkvArray,self.solution_next.MPCmin**
+        temp              = (DiscFacEff_temp*np.dot(self.MrkvArray,self.solution_next.MPCmin**
                             (-self.CRRA)*self.Rfree_list**(1.0-self.CRRA)))**(1.0/self.CRRA)
         self.MPCminNow    = 1.0/(1.0 + temp)
 
@@ -950,9 +953,10 @@ if __name__ == '__main__':
     SerialUnemploymentExample.IncomeDstn = [[employed_income_dist,unemployed_income_dist,employed_income_dist,
                               unemployed_income_dist]]
     
-    # Interest factor and permanent growth rates are constant arrays
+    # Interest factor, permanent growth rates, and survival probabilities are constant arrays
     SerialUnemploymentExample.Rfree = np.array(4*[SerialUnemploymentExample.Rfree])
     SerialUnemploymentExample.PermGroFac = [np.array(4*SerialUnemploymentExample.PermGroFac)]
+    SerialUnemploymentExample.LivPrb = [SerialUnemploymentExample.LivPrb*np.ones(4)]
     
     # Solve the serial unemployment consumer's problem and display solution
     SerialUnemploymentExample.timeFwd()
@@ -1000,6 +1004,7 @@ if __name__ == '__main__':
     ImmunityExample = MarkovConsumerType(**init_unemployment_immunity)
     ImmunityExample.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])), # Interest factor same in all states
                                   PermGroFac = [np.array(StateCount*[1.01])],    # Permanent growth factor same in all states
+                                  LivPrb = [np.array(StateCount*[0.98])],        # Same survival probability in all states
                                   BoroCnstArt = None,                            # No artificial borrowing constraint
                                   cycles = 0)                                    # Infinite horizon
     ImmunityExample.IncomeDstn = [IncomeDstn]
@@ -1029,8 +1034,9 @@ if __name__ == '__main__':
     init_serial_growth = copy(Params.init_idiosyncratic_shocks)
     init_serial_growth['MrkvArray'] = MrkvArray
     SerialGroExample = MarkovConsumerType(**init_serial_growth)
-    SerialGroExample.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])),       # Same interest factor in each Markov state
+    SerialGroExample.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])),    # Same interest factor in each Markov state
                                    PermGroFac = [np.array([0.97,0.99,1.01,1.03,1.05])], # Different permanent growth factor in each Markov state
+                                   LivPrb = [np.array(StateCount*[0.98])],              # Same survival probability in all states
                                    cycles = 0)
     SerialGroExample.IncomeDstn = [IncomeDstn]         
     
