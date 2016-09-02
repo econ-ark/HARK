@@ -621,6 +621,8 @@ class CubicInterp(HARKinterpolator1D):
     Extrapolation above highest gridpoint approaches a limiting linear function
     if desired (linear extrapolation also enabled.)
     '''
+    distance_criteria = ['x_list','y_list','dydx_list']
+    
     def __init__(self,x_list,y_list,dydx_list,intercept_limit=None,slope_limit=None,lower_extrap=False):
         '''
         The interpolation constructor to make a new cubic spline interpolation.
@@ -652,7 +654,6 @@ class CubicInterp(HARKinterpolator1D):
         self.y_list = np.asarray(y_list)
         self.dydx_list = np.asarray(dydx_list)
         self.n = len(x_list)
-        self.distance_criteria = ['x_list','y_list','dydx_list']
         
         # Define lower extrapolation as linear function (or just NaN)
         if lower_extrap:
