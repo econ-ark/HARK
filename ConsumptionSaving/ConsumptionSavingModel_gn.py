@@ -17,12 +17,14 @@ sys.path.insert(0,'../')
 
 from copy import copy, deepcopy
 import numpy as np
-#PNG addition 2016-06-30
+#PNG addition 2016-06-30 thru Sep
 if __name__ == '__main__':
     import settings
 else:
     from __main__ import settings
 from HARKcore_gn import AgentType, Solution, NullFunc
+import pylab as plt
+
 
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
@@ -30,7 +32,8 @@ from HARKutilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean
                           combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
                           CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
                           CRRAutilityP_invP
-
+                         
+                
 utility       = CRRAutility
 utilityP      = CRRAutilityP
 utilityPP     = CRRAutilityPP
@@ -747,11 +750,11 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         aNrm_temp   = np.tile(aNrmNow,(ShkCount,1))
 
         #update with mortgage payment
-        if settings.verbose:
-            print "\n"
-            print self.TranShkValsNext 
-            print settings.t_curr,  " years before death, I just paid ", self.HsgPay, " in housing costs " 
-            print self.TranShkValsNext - self.HsgPay
+#        if settings.verbose & (90-settings.t_curr >= settings.min_age) & (90-settings.t_curr <= settings.max_age): 
+#            print "\n Pre-housing payment income"
+#            print self.TranShkValsNext 
+#            print settings.t_curr,  " years before death, I just paid ", self.HsgPay, " in housing costs " 
+#            print self.TranShkValsNext - self.HsgPay
         self.TranShkValsNext = self.TranShkValsNext - self.HsgPay      
         
         # Tile arrays of the income shocks and put them into useful shapes
@@ -763,12 +766,6 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         mNrmNext          = self.Rfree/(self.PermGroFac*PermShkVals_temp)*aNrm_temp + TranShkVals_temp
             
         #PNG addition 2016-06-30
-        #print(settings.t_curr)
-        if settings.t_curr == settings.t_rebate + 2:
-            if settings.verbose:
-                print "Borrowing Constraint: " + str(self.BoroCnstArt)
-                #print np.asarray(self.aXtraGrid)
-                #print aNrmNow
         if settings.t_curr == settings.t_rebate :
             if settings.verbose:
                 print mNrmNext[0] 
@@ -809,8 +806,15 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         EndOfPrdvP  = self.DiscFacEff*self.Rfree*self.PermGroFac**(-self.CRRA)*np.sum(
                       self.PermShkVals_temp**(-self.CRRA)*
                       self.vPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)  
+        #fixes Marginal utility grid -- output  and the consumption grid           
+        #PNG active modification 2016-09-05
+#        if  settings.t_curr == settings.t_rebate + 1:
+#            EndOfPrdvP  = self.DiscFacEff*self.Rfree*self.PermGroFac**(-self.CRRA)*np.sum(
+#                          self.PermShkVals_temp**(-self.CRRA)*
+#                          self.vPfuncNext(self.mNrmNext + settings.rebate_size)*self.ShkPrbs_temp,axis=0)  
+        
         return EndOfPrdvP
-                    
+
 
     def getPointsForInterpolation(self,EndOfPrdvP,aNrmNow):
         '''
@@ -833,6 +837,9 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         '''
         cNrmNow = self.uPinv(EndOfPrdvP)
         mNrmNow = cNrmNow + aNrmNow
+        #PNG defunct modification
+#        if settings.t_curr == settings.t_rebate:
+#            mNrmNow = mNrmNow + settings.rebate_size
 
         # Limiting consumption is zero as m approaches mNrmMin
         c_for_interpolation = np.insert(cNrmNow,0,0.,axis=-1)
@@ -907,14 +914,38 @@ class ConsumptionSavingSolverENDGBasic(SetupImperfectForesightSolver):
         cNrm,mNrm    = self.getPointsForInterpolation(EndOfPrdvP,aNrm) 
         solution_now = self.usePointsForInterpolation(cNrm,mNrm,interpolator)
         #PNG modification 2016-08-08
-        #if settings.t_curr == settings.t_rebate + 2:
-        if settings.verbose & (89-settings.t_curr >= 62) & (89-settings.t_curr <= 65): #settings.t_curr >= 24 & settings.t_curr <= 28 & 
+        if settings.verbose & (90-settings.t_curr >= settings.min_age) & (90-settings.t_curr <= settings.max_age): #settings.t_curr >= 24 & settings.t_curr <= 28 & 
             print "\nPeriod ", settings.t_curr, "Age", 90-settings.t_curr 
-            print "Next period's asset grid\n", self.mNrmNext[0][0:7]
-            print "Marginal utility grid\n", EndOfPrdvP[0:7]
-            print "Consumption grid\n", cNrm[0:7]
-#                from HARKutilities import plotFuncs
-#                plotFuncs(solution_now.cFunc,aNrm[0],aNrm[0]+10)
+            i = len(self.mNrmNext)-1
+            j = len(self.mNrmNext[i])-1
+            print "\n # of values in grid", i
+            if i == 0:
+                #k = len(self.mNrmNext)-1
+                print "Next period's asset grid\n", self.mNrmNext
+                print "Marginal utility grid -- input\n", self.vPfuncNext(self.mNrmNext)
+                print "Marginal utility grid -- output\n", EndOfPrdvP
+                #plt.plot(aNrm,EndOfPrdvP)
+                #plt.show()
+                print "Consumption grid\n", cNrm
+                print "Value func\n", self.vFuncNext(self.mNrmNext)  
+#                EndOfPrdvP  = self.DiscFacEff*self.Rfree*self.PermGroFac**(-self.CRRA)*np.sum(
+#                      self.PermShkVals_temp**(-self.CRRA)*
+#                      self.vPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)  
+                #xxx this plot not working and I'm unsure why
+#                from HARKutilities import plotFuncs 
+#                plotFuncs(self.vFuncNext,self.mNrmNext[0],10)
+            elif i > 0:
+                index = 0
+                print "Next period's asset grid\n", self.mNrmNext[index]
+                print "Marginal utility grid -- input\n", self.vPfuncNext(self.mNrmNext[index])
+                print "Marginal utility grid -- output\n", EndOfPrdvP
+                #plt.plot(aNrm,EndOfPrdvP)
+                #plt.show()
+                print "Consumption grid\n", cNrm
+                print "Value func\n", self.vFuncNext(self.mNrmNext[index])
+                #print "Value func\n", self.vFuncNext(self.mNrmNext[index] + settings.rebate_size) 
+                from HARKutilities import plotFuncs 
+                #plotFuncs(self.vFuncNext,self.mNrmNext[index][0],self.mNrmNext[index][j])
         return solution_now
 
         
@@ -1033,14 +1064,29 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
         '''
         VLvlNext            = (self.PermShkVals_temp**(1.0-self.CRRA)*\
                                self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
+        #this code fixes    EndOfPrdvNvrs and  VLvlNext  
+        #PNG active modification 2016-09-05                       
+#        if settings.t_curr == settings.t_rebate + 1:
+#            VLvlNext        = (self.PermShkVals_temp**(1.0-self.CRRA)*\
+#                               self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext + settings.rebate_size)
+            
         EndOfPrdv           = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
         EndOfPrdvNvrs       = self.uinv(EndOfPrdv) # value transformed through inverse utility
         EndOfPrdvNvrsP      = EndOfPrdvP*self.uinvP(EndOfPrdv)
         EndOfPrdvNvrs       = np.insert(EndOfPrdvNvrs,0,0.0)
-        EndOfPrdvNvrsP      = np.insert(EndOfPrdvNvrsP,0,EndOfPrdvNvrsP[0]) # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+        EndOfPrdvNvrsP      = np.insert(EndOfPrdvNvrsP,0,EndOfPrdvNvrsP[0]) # This is a very good approximation, vNvrsPP = 0 at the asset minimum          
         aNrm_temp           = np.insert(self.aNrmNow,0,self.BoroCnstNat)
+        #PNG active modification      2016-09-05 
+#        aNrm_temp           = np.insert(self.aNrmNow,0,self.BoroCnstArt)
         EndOfPrdvNvrsFunc   = CubicInterp(aNrm_temp,EndOfPrdvNvrs,EndOfPrdvNvrsP)
         self.EndOfPrdvFunc  = ValueFunc(EndOfPrdvNvrsFunc,self.CRRA)
+        if settings.verbose & (90-settings.t_curr >= settings.min_age) & (90-settings.t_curr <= settings.max_age): #settings.t_curr >= 24 & settings.t_curr <= 28 & 
+            print " \n Period: ", settings.t_curr
+            print "\n self.mNrmNext: ", self.mNrmNext[0]
+            print "\n self.vFuncNext(self.mNrmNext): ", self.vFuncNext(self.mNrmNext[0])
+            print "\n VLvlNext: ", VLvlNext[0]
+            print "\n EndOfPrdvNvrs: ", EndOfPrdvNvrs
+            print "\n EndOfPrdvFunc: ", self.EndOfPrdvFunc(-1)
 
 
     def putVfuncInSolution(self,solution,EndOfPrdvP):
@@ -1084,9 +1130,20 @@ class ConsumptionSavingSolverENDG(ConsumptionSavingSolverENDGBasic):
             A representation of the value function for this period, defined over
             normalized market resources m: v = vFuncNow(m).
         '''
+
         # Compute expected value and marginal value on a grid of market resources
         mNrm_temp   = self.mNrmMinNow + self.aXtraGrid
+        #PNG defunct modification 2016-09-05
+#        if settings.t_curr == settings.t_rebate :
+#            mNrm_temp = mNrm_temp + settings.rebate_size
         cNrmNow     = solution.cFunc(mNrm_temp)
+        #PNG modification 2016-09-05
+#        if settings.verbose and  (90-settings.t_curr >= settings.min_age) & (90-settings.t_curr <= settings.max_age):
+#            print "\n Try to create a new asset grid -- m, m-c, V(m-c) -- in period", 90 - settings.t_curr
+#            print mNrm_temp
+##            mNrm_temp = np.insert(mNrm_temp[11:],0,mNrm_temp[0])
+#            print mNrm_temp - cNrmNow
+#            print self.EndOfPrdvFunc(mNrm_temp - cNrmNow)
         aNrmNow     = mNrm_temp - cNrmNow
         vNrmNow     = self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
         vPnow       = self.uP(cNrmNow)
