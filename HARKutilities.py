@@ -1113,9 +1113,7 @@ def plotFuncs(functions,bottom,top,N=1000,legend_kwds = None):
         plt.legend(**legend_kwds)
     plt.show()
 
-
-
-def plotFuncsDer(functions,bottom,top,N=1000):
+def plotFuncsDer(functions,bottom,top,N=1000,legend_kwds = None):
     '''
     Plots the first derivative of 1D function(s) over a given range.
     
