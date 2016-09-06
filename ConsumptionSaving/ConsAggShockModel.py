@@ -25,11 +25,13 @@ utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv  = CRRAutility_inv
 
-class MargValueFunc2D():
+class MargValueFunc2D(HARKobject):
     '''
     A class for representing a marginal value function in models where the
     standard envelope condition of v'(m,k) = u'(c(m,k)) holds (with CRRA utility).
     '''
+    distance_criteria = ['cFunc','CRRA']
+    
     def __init__(self,cFunc,CRRA):
         '''
         Constructor for a new marginal value function object.
