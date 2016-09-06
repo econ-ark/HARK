@@ -88,7 +88,7 @@ def mpc_pih(cF, rebate = 1, a = 10):
 settings.init()
 settings.hsg_pay = 0.25 #code is currently designed to force choosing this value explicitly
 settings.lil_verbose = True
-
+settings.min_age, settings.max_age = 60, 65
 ###########################################################################
 #plotting functions 
 ###########################################################################
@@ -257,19 +257,20 @@ pra_params['rebate_amt'], e, pra_params['BoroCnstArt'], pra_params['HsgPay'] = \
 pra_params['HsgPay'] = pra_pmt(age = 45, **hamp_params)
 
 #slide 3 -- housing equity 
+labels = ["Payment Reduction", "Payment & Principal Reduction"]
 def neg(x): return -1*x
 boro_cnst_pre_pra = LinearInterp(np.arange(25,90),list(map(neg, uw_house_params['BoroCnstArt'])))
 boro_cnst_post_pra = LinearInterp(np.arange(25,90),list(map(neg, pra_params['BoroCnstArt'])))
 g = gg_funcs([boro_cnst_pre_pra,boro_cnst_post_pra],
               45.001,75, N=round(75-45.001), loc=robjects.r('c(0,0.5)'),
         title = "Borrowing Limits \n Receive Treatment at Age 45",
-        labels = ["Baseline (No Principal Forgiveness)", "With Principal Forgiveness"],
+        labels = labels,
         ylab = "Borrowing Limit (Years of Income)", xlab = "Age", file_name = "borrowing_limits_and_pra_diag")
 ggplot_notebook(g, height=300,width=400)
 g = gg_funcs([boro_cnst_pre_pra,boro_cnst_post_pra],
               45.001,64, N=round(64-45.001), loc=robjects.r('c(0,0.5)'),
         title = "Borrowing Limits \n Receive Treatment at Age 45",
-        labels = ["Baseline (No Principal Forgiveness)", "With Principal Forgiveness"],
+        labels = labels,
         ylab = "Borrowing Limit (Years of Income)", xlab = "Age", file_name = "borrowing_limits_and_pra")
 ggplot_notebook(g, height=300,width=400)
 
@@ -277,15 +278,15 @@ ggplot_notebook(g, height=300,width=400)
 pmt_pre_pra =  LinearInterp(np.arange(25,90),uw_house_params['HsgPay']) 
 pmt_post_pra = LinearInterp(np.arange(25,90),pra_pmt(age = 45, **hamp_params))
 g = gg_funcs([pmt_pre_pra,pmt_post_pra],
-              44.0001,75, N=round(75-44.001), loc=robjects.r('c(0,0)'),
+              44.0001,75, N=round(75-44.001), loc=robjects.r('c(1,1)'),
         title = "Mortgage Payments \n Receive Treatment at Age 45",
-        labels = ["Baseline (No Principal Forgiveness)", "With Principal Forgiveness"],
+        labels = labels,
         ylab = "Payment As Share of Income", xlab = "Age", file_name = "hsg_pmt_and_pra_diag")
 ggplot_notebook(g, height=300,width=400)
 g = gg_funcs([pmt_pre_pra,pmt_post_pra],
               44.0001,64, N=round(64-44.001), loc=robjects.r('c(1,1)'),
         title = "Mortgage Payments \n Receive Treatment at Age 45",
-        labels = ["Baseline (No Principal Forgiveness)", "With Principal Forgiveness"],
+        labels = labels,
         ylab = "Payment As Share of Income", xlab = "Age", file_name = "hsg_pmt_and_pra")
 ggplot_notebook(g, height=300,width=400)
 
@@ -311,7 +312,7 @@ params_hsg_mtg_inc['rebate_amt'], e, params_hsg_mtg_inc['BoroCnstArt'], params_h
 pmt_own_inc =  LinearInterp(np.arange(25,90),params_hsg_own_inc['HsgPay']) 
 pmt_mtg_inc =  LinearInterp(np.arange(25,90),params_hsg_mtg_inc['HsgPay']) 
 g = gg_funcs([pmt_pre_pra,pmt_own_inc,pmt_mtg_inc],
-              44.0001,75, N=round(75-44.001), loc=robjects.r('c(0,0.5)'),
+              44.0001,75, N=round(75-44.001), loc=robjects.r('c(0,0.4)'),
         title = "Mortgage Payments",
         labels = ["Wk: Owner Cost, Ret: User Cost", "Wk: Owner Cost, Ret: Inc Share","Wk: Mortgage, Ret: Inc Share"],
         ylab = "Payment As Share of Income", xlab = "Age", file_name = "hsg_pmt_diag")
@@ -522,6 +523,8 @@ hw_cf_rL = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_rL_lis
 hw_cf_0_pct = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_0_pct_list))
 hw_cf_heloc = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_heloc_list))
 
+ltv_start = -100*(hamp_params['baseline_debt']/hamp_params['initial_price']-1)
+ltv_end = -100*((hamp_params['baseline_debt'] - hamp_params['pra_forgive'])/hamp_params['initial_price']-1)
 
 #xx cosmetics: figure out how to reverse the direction on the x-axis 
 #slide 5 -- Consumption function out of principal forgiveness
@@ -531,7 +534,12 @@ g = gg_funcs(hw_cf,gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
         ylab = "Consumption", xlab = "Housing Equity Position (< 0 is Underwater)")
 g += gg.geom_vline(xintercept=hamp_params['collateral_constraint']*100, linetype=2, colour="#66C2A5", alpha=0.75)
 mp.ggsave("cons_and_prin_forgive",g)
+g += gg.geom_segment(gg.aes_string(x = ltv_start, y = 0.5, xend = ltv_end, yend = 0.5),
+                     arrow = robjects.r('arrow(length = unit(0.5, "cm"))'),
+                     color= robjects.r.palette_lines[1])
+mp.ggsave("cons_and_prin_forgive_arrow",g)
 ggplot_notebook(g, height=300,width=400)
+
 
 g = gg_funcs([hw_cf,hw_cf_0_pct],gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Principal Forgiveness",
@@ -561,8 +569,8 @@ mp.ggsave("cons_and_prin_forgive_0-pct_coh-hi_diag",g)
 ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([hw_cf,hw_cf_w,hw_cf_L],gr_min,gr_max, N=50, loc=robjects.r('c(0,1)'), #hw_cf_rL
-        title = "Consumption Function Out of Principal Forgiveness Decomposition",
-        labels = ["Baseline (Collateral & Cash)","Cash Only","Collateral Only"],
+        title = "Consumption Function Out of Principal Forgiveness: Channels",
+        labels = ["Collateral & Future Cash","Future Cash Only","Collateral Only"],
         ylab = "Consumption", xlab = "Housing Equity Position (< 0 is Underwater)")
 g += gg.geom_vline(xintercept=hamp_params['collateral_constraint']*100, linetype=2, colour="#66C2A5", alpha=0.75)
 mp.ggsave("cons_and_prin_forgive_decomp",g)
@@ -748,7 +756,7 @@ mpc_debt_f = LinearInterp(equity_a,np.array(hp_mpc['debt'])[::-1])
 g = gg_funcs([mpc_hsg_f,mpc_cash_f,mpc_debt_f],-60,90, N=len(ltv_rows), loc=robjects.r('c(1,1)'),
         title = "Marginal Propensity to Consume by Home Equity\n Cash-On-Hand = " + str(coh),
         labels = ["Housing MPC","Cash MPC","Debt MPC"],
-        ylab = "MPC", xlab = "Home Equity",
+        ylab = "MPC", xlab = "Home Equity (< 0 is Underwater)",
         file_name = "mpc_cash_hsg")
 ggplot_notebook(g, height=300,width=400)
 
@@ -759,14 +767,14 @@ mpc_debt_low_coh_f = LinearInterp(equity_a,np.array(hp_mpc_low_coh['debt'])[::-1
 g = gg_funcs([mpc_cash_low_coh_f,mpc_debt_low_coh_f],-60,90, N=len(ltv_rows), loc=robjects.r('c(1,1)'),
         title = "Marginal Propensity to Consume by Home Equity",
         labels = ["Cash MPC","Debt MPC","Housing MPC"],
-        ylab = "MPC", xlab = "Home Equity",
+        ylab = "MPC", xlab = "Home Equity  (< 0 is Underwater)",
         file_name = "mpc_cash_hsg_low_coh")
 ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([mpc_cash_low_coh_f,mpc_debt_low_coh_f,mpc_hsg_low_coh_f],-60,90, N=len(ltv_rows), loc=robjects.r('c(1,1)'),
         title = "Marginal Propensity to Consume by Home Equity",
         labels = ["Cash MPC","Debt MPC","Housing MPC"],
-        ylab = "MPC", xlab = "Home Equity",
+        ylab = "MPC", xlab = "Home Equity  (< 0 is Underwater)",
         file_name = "mpc_cash_hsg_low_coh_backup")
 ggplot_notebook(g, height=300,width=400)
 
@@ -775,7 +783,7 @@ mpc_hsg_pos_f = LinearInterp(equity_a,np.array(hp_mpc['hsg_pos'])[::-1])
 g = gg_funcs([mpc_debt_low_coh_f,mpc_hsg_low_coh_f,mpc_hsg_pos_f],-60,90, N=len(ltv_rows), loc=robjects.r('c(0,1)'), #mpc_hsg_zero_f
         title = "Marginal Propensity to Consume Out of Housing by Home Equity",
         labels = ["Debt","Hsg Neg Wealth Effect","Hsg Pos Wealth Effect"], #"Hsg Zero Wealth Effect",
-        ylab = "MPC", xlab = "Home Equity",
+        ylab = "MPC", xlab = "Home Equity  (< 0 is Underwater)",
         file_name = "mpc_hsg_backup")
 ggplot_notebook(g, height=300,width=400)
 
@@ -804,7 +812,7 @@ mpc_debt_0_f = LinearInterp(equity_a,np.array(hp_mpc_0['debt'])[::-1])
 g = gg_funcs([mpc_hsg_0_f,mpc_cash_0_f,mpc_debt_0_f],-60,90, N=len(ltv_rows), loc=robjects.r('c(1,1)'),
         title = "Marginal Propensity to Consume by Home Equity \n Collateral Constraint = 0%",
         labels = ["Housing MPC","Cash MPC","Debt MPC"],
-        ylab = "MPC", xlab = "Home Equity",
+        ylab = "MPC", xlab = "Home Equity  (< 0 is Underwater)",
         file_name = "mpc_cash_hsg_0_backup")
 ggplot_notebook(g, height=300,width=400)
 

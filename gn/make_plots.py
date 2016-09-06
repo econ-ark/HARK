@@ -45,6 +45,7 @@ robjects.r('''
   palette_lines <- brewer.pal("Set2", n=8)
 ''')
 
+size = 9
 fte_theme = theme(**{'axis.ticks':element_blank(),
       'panel.background':element_rect(fill=robjects.r.color_background, color=robjects.r.color_background),
       'plot.background':element_rect(fill=robjects.r.color_background, color=robjects.r.color_background),
@@ -52,15 +53,15 @@ fte_theme = theme(**{'axis.ticks':element_blank(),
       'panel.grid.minor':element_blank(),
       'axis.ticks':element_blank(),
       'legend.position':"right",
-      'legend.background': element_rect(fill=robjects.r.color_background),
-      'legend.text': element_text(size=7,color=robjects.r.color_axis_title),
-      'legend.title': element_text(size=7,color=robjects.r.color_axis_title),
+      'legend.background': element_rect(fill="transparent"),
+      'legend.text': element_text(size=size,color=robjects.r.color_axis_title),
+      'legend.title': element_text(size=size,color=robjects.r.color_axis_title),
       'plot.title':element_text(color=robjects.r.color_title, size=10, vjust=1.25),
-      'axis.text.x':element_text(size=7,color=robjects.r.color_axis_text),
-      'axis.text.y':element_text(size=7,color=robjects.r.color_axis_text),
-      'axis.title.x':element_text(size=8,color=robjects.r.color_axis_title, vjust=0),
+      'axis.text.x':element_text(size=size,color=robjects.r.color_axis_text),
+      'axis.text.y':element_text(size=size,color=robjects.r.color_axis_text),
+      'axis.title.x':element_text(size=size,color=robjects.r.color_axis_title, vjust=0),
       #'panel.grid.major':element_line(color=robjects.r.color_grid_major,size=.25),
-      'axis.title.y':element_text(size=8,color=robjects.r.color_axis_title,angle=90)})
+      'axis.title.y':element_text(size=size,color=robjects.r.color_axis_title,angle=90)})
 
 #??? efficiently change legend titles
 #right now it takes two legend calls to make this work

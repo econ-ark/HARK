@@ -353,7 +353,7 @@ house2 = solve_unpack(house_params2)
 g = gg_funcs([house.solution[t_eval].vFunc,house2.solution[t_eval].vFunc],
              0.5,5, N=50, loc=robjects.r('c(1,0)'),
         title = "Value Functions, LTV = 80", 
-        ylab = "Value", xlab = "End-of-Period Assets", file_name = "value_funcs_house_diag")
+        ylab = "Value", xlab = "Cash-on-Hand", file_name = "value_funcs_house_diag")
 ggplot_notebook(g, height=300,width=400)
 
 
@@ -397,28 +397,28 @@ stig_cnst = 12
 v_def_stig = partial(v_stig, stig = - stig_cnst, vf = agent_d.solution[t_eval].vFunc) 
 
 yr = robjects.r('c(-60,-8)')
-labels = ["Pay Mortgage","Stop Paying, No Utility Loss","Stop Paying, Utility Loss = " + str(stig_cnst),"Treatment: Prin Forgive & Pay Mortgage"]
-funcs = [HouseExample.solution[t_eval].vFunc,agent_d.solution[t_eval].vFunc,
-         v_def_stig,PrinFrgvExample.solution[t_eval].vFunc]
-g = gg_funcs(funcs,0.4,1.5, N=20, loc=robjects.r('c(1,0)'),
-        title = "Value Functions", labels = labels, ylab = "Value", xlab = "End-of-Period Assets")
+labels = ["Pay Mortgage                                          ","Stop Paying","Treatment: Prin Forgive & Pay Mortgage"]
+
+funcs = [HouseExample.solution[t_eval].vFunc,
+         v_def_stig,PrinFrgvExample.solution[t_eval].vFunc] #agent_d.solution[t_eval].vFunc,
+g = gg_funcs(funcs[:1],0.5,1.5, N=50, loc=robjects.r('c(1,0)'),
+        title = "Value Functions", labels = labels[:1], ylab = "Value", xlab = "Cash-on-Hand")
+g+= gg.ylim(yr)
+mp.ggsave("value_funcs_house_slide1",g)  
+ggplot_notebook(g, height=300,width=400)
+g = gg_funcs(funcs[:2],
+             0.5,1.5, N=50, loc=robjects.r('c(1,0)'),
+        title = "Value Functions", labels = labels[:2], ylab = "Value", xlab = "Cash-on-Hand")
+g+= gg.ylim(yr)
+mp.ggsave("value_funcs_house_slide2",g)  
+ggplot_notebook(g, height=300,width=400)
+
+
+g = gg_funcs(funcs,0.5,1.5, N=20, loc=robjects.r('c(1,0)'),
+        title = "Value Functions", labels = labels, ylab = "Value", xlab = "Cash-on-Hand")
 g+= gg.ylim(yr)
 mp.ggsave("value_funcs_house",g)        
 ggplot_notebook(g, height=300,width=400)
-
-g = gg_funcs(funcs[:1],0.5,1.5, N=50, loc=robjects.r('c(1,0)'),
-        title = "Value Functions", labels = labels[:1], ylab = "Value", xlab = "End-of-Period Assets")
-g+= gg.ylim(yr)
-mp.ggsave("value_funcs_house_slide1",g)  
-g = gg_funcs(funcs[:2],
-             0.5,1.5, N=50, loc=robjects.r('c(1,0)'),
-        title = "Value Functions", labels = labels[:2], ylab = "Value", xlab = "End-of-Period Assets")
-g+= gg.ylim(yr)
-mp.ggsave("value_funcs_house_slide2",g)  
-g = gg_funcs(funcs[:3], 0.5,1.5, N=50, loc=robjects.r('c(1,0)'),
-        title = "Value Functions", labels = labels[:3], ylab = "Value", xlab = "End-of-Period Assets")
-g+= gg.ylim(yr)
-mp.ggsave("value_funcs_house_slide3",g)  
 
 #my interpretation for why it is 21% is that you don't care a lot 
 #about future income when your income today is sooo low
@@ -431,7 +431,7 @@ g = gg_funcs([agent_d_c_equiv.solution[t_eval].vFunc,agent_d.solution[t_eval].vF
              0.5,2, N=50, loc=robjects.r('c(1,0)'),
         title = "Value Functions", labels = ["Default, Perm Inc Loss = " + str(pih_loss) +"%",
         "Default, No Utility Loss","Default, One-Time Utility Loss = " + str(stig_cnst),"Pay Mortgage"],
-        ylab = "Value", xlab = "End-of-Period Assets", file_name = "value_funcs_house_backup")
+        ylab = "Value", xlab = "Cash-on-Hand", file_name = "value_funcs_house_backup")
 ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([agent_d_c_equiv.solution[t_eval].vFunc,agent_d.solution[t_eval].vFunc,
@@ -439,7 +439,7 @@ g = gg_funcs([agent_d_c_equiv.solution[t_eval].vFunc,agent_d.solution[t_eval].vF
              0.5,10, N=50, loc=robjects.r('c(1,0)'),
         title = "Value Functions", labels = ["Default, Perm Inc Loss = " + str(pih_loss) +"%",
         "Default, No Utility Loss","Default, One-Time Utility Loss = " + str(stig_cnst),"Pay Mortgage"],
-        ylab = "Value", xlab = "End-of-Period Assets", file_name = "value_funcs_house_backup_wide")
+        ylab = "Value", xlab = "Cash-on-Hand", file_name = "value_funcs_house_backup_wide")
 ggplot_notebook(g, height=300,width=400)
 
 #
@@ -455,7 +455,7 @@ ggplot_notebook(g, height=300,width=400)
 #    vFuncs_L.append(Boro_solution[-1][t_eval].vFunc)
 #g = gg_funcs(vFuncs_L,0.5,2, N=200, loc=robjects.r('c(1,0)'),
 #        title = "Value Functions. Each line is 0.2 higher borrowing limit. Age 45",
-#        ylab = "Value", xlab = "End-of-Period Assets", file_name = "value_funcs_L_wrk_diag")
+#        ylab = "Value", xlab = "Cash-on-Hand", file_name = "value_funcs_L_wrk_diag")
 #ggplot_notebook(g, height=300,width=400)
 
 ###########################################################################
@@ -596,6 +596,11 @@ g = gg_funcs([def_u_f,def_hi_dti_f], #
 ggplot_notebook(g, height=300,width=400)
 
 
+g = gg_funcs([def_u_f], #
+            min(ltv_rows),max(ltv_rows)+10, N=len(ltv_rows), loc=robjects.r('c(0,1)'),
+        title = "Default Rate \n Beginning-of-Period Assets = 0", labels = [labels[1]],
+        ylab = "Share Defaulting ", xlab = "Loan-to-Value", file_name = "default_rate_u_hi_dti_slide1")
+ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([def_f,def_u_f,def_stig_f], #
             min(ltv_rows),max(ltv_rows)+10, N=len(ltv_rows), loc=robjects.r('c(0,1)'),
@@ -676,19 +681,19 @@ ggplot_notebook(g, height=300,width=400)
 #g = gg_funcs([agent_d.solution[t_eval].vPPfunc,HouseExample.solution[t_eval].vPPfunc],
 #            0.9,2, N=50, loc=robjects.r('c(1,0)'),
 #        title = "Marginal Marginal Value Functions.", labels = ["Default","Pay Mortgage"],
-#        ylab = "Marg Marg Value", xlab = "End-of-Period Assets", file_name = "value_funcs_vPPfunc_diag")
+#        ylab = "Marg Marg Value", xlab = "Cash-on-Hand", file_name = "value_funcs_vPPfunc_diag")
 #ggplot_notebook(g, height=300,width=400)
 #
 #g = gg_funcs([agent_d.solution[t_eval].vPfunc,HouseExample.solution[t_eval].vPfunc],
 #            0.9,2, N=50, loc=robjects.r('c(1,0)'),
 #        title = "Marginal Value Functions.", labels = ["Default","Pay Mortgage"],
-#        ylab = "Marg Value", xlab = "End-of-Period Assets", file_name = "value_funcs_vPfunc_diag")
+#        ylab = "Marg Value", xlab = "Cash-on-Hand", file_name = "value_funcs_vPfunc_diag")
 #ggplot_notebook(g, height=300,width=400)
 #
 #g = gg_funcs([agent_d.solution[t_eval].vPfunc,HouseExample.solution[t_eval].vPfunc],
 #            0.2,0.9, N=50, loc=robjects.r('c(1,0)'),
 #        title = "Marginal Value Functions.", labels = ["Default","Pay Mortgage"],
-#        ylab = "MargValue", xlab = "End-of-Period Assets", file_name = "value_funcs_vPfunc_low_a_diag")
+#        ylab = "MargValue", xlab = "Cash-on-Hand", file_name = "value_funcs_vPfunc_low_a_diag")
 #ggplot_notebook(g, height=300,width=400)
 
 #requirements: we need an income level at which you default which is not too low
@@ -697,13 +702,13 @@ ggplot_notebook(g, height=300,width=400)
 g = gg_funcs([IndShockExample.solution[t_eval].cFunc,HouseExample.solution[t_eval].cFunc],
             0.5,6, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Functions.", labels = ["Baseline","With House"],
-        ylab = "Consumption", xlab = "End-of-Period Assets", file_name = "c_funcs_house_diag")
+        ylab = "Consumption", xlab = "Cash-on-Hand", file_name = "c_funcs_house_diag")
 ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([IndShockExample.solution[t_eval].cFunc,HouseExample.solution[t_eval].cFunc],
             0.1,1.5, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Functions.", labels = ["Baseline","With House"],
-        ylab = "Consumption", xlab = "End-of-Period Assets", file_name = "c_funcs_house_low_diag")
+        ylab = "Consumption", xlab = "Cash-on-Hand", file_name = "c_funcs_house_low_diag")
 ggplot_notebook(g, height=300,width=400)
 
 
@@ -719,7 +724,7 @@ for i in range(0,65,9):
     vFuncs_age.append(IndShockExample.solution[i].vFunc)
 g = gg_funcs(vFuncs_age,0.5,4, N=200, loc=robjects.r('c(1,0)'),
         title = "Value Functions. Each line is 9 years forward in time",
-        ylab = "Value", xlab = "End-of-Period Assets", file_name = "value_funcs_age_diag")
+        ylab = "Value", xlab = "Cash-on-Hand", file_name = "value_funcs_age_diag")
 ggplot_notebook(g, height=300,width=400)
 
 #plot value function by housing costs
@@ -732,7 +737,7 @@ for i in np.arange(0.2,0.3,0.02):
     vFuncs_d.append(HsgPay_solution[-1][t_eval].vFunc)
 g = gg_funcs(vFuncs_d,0.5,5, N=20, loc=robjects.r('c(1,0)'),
         title = "Value Functions. Each line is 0.02 higher housing cost starting w base of 0.2. Age 45",
-        ylab = "Value", xlab = "End-of-Period Assets", file_name = "value_funcs_d_diag")
+        ylab = "Value", xlab = "Cash-on-Hand", file_name = "value_funcs_d_diag")
 ggplot_notebook(g, height=300,width=400)
 
 #plot value function by age 65 rebate
@@ -746,7 +751,7 @@ for i in np.arange(5):
     vFuncs_reb.append(rebate_solution[-1][t_eval].vFunc)
 g = gg_funcs(vFuncs_reb,0.5,5, N=20, loc=robjects.r('c(1,0)'),
         title = "Value Functions. Each line is 1 higher rebate. Age 45",
-        ylab = "Value", xlab = "End-of-Period Assets", file_name = "value_funcs_rebate_diag")
+        ylab = "Value", xlab = "Cash-on-Hand", file_name = "value_funcs_rebate_diag")
 ggplot_notebook(g, height=300,width=400)
 
 
@@ -760,7 +765,7 @@ for i in np.arange(0,1,0.2):
     vFuncs_L.append(Boro_solution[-1][t_eval].vFunc)
 g = gg_funcs(vFuncs_L,0.5,2, N=200, loc=robjects.r('c(1,0)'),
         title = "Value Functions. Each line is 0.2 higher borrowing limit. Age 45",
-        ylab = "Value", xlab = "End-of-Period Assets", file_name = "value_funcs_L_diag")
+        ylab = "Value", xlab = "Cash-on-Hand", file_name = "value_funcs_L_diag")
 ggplot_notebook(g, height=300,width=400)
 
 #borrow only while working
@@ -774,7 +779,7 @@ for i in np.arange(0,0.6,0.2):
     vFuncs_L.append(Boro_solution[-1][t_eval].vFunc)
 g = gg_funcs(vFuncs_L[:3],0.5,2, N=200, loc=robjects.r('c(1,0)'),
         title = "Value Functions. Each line is 0.2 higher borrowing limit. Age 45",
-        ylab = "Value", xlab = "End-of-Period Assets", file_name = "value_funcs_L_wrk_diag")
+        ylab = "Value", xlab = "Cash-on-Hand", file_name = "value_funcs_L_wrk_diag")
 ggplot_notebook(g, height=300,width=400)
 
 for i in range(65):
