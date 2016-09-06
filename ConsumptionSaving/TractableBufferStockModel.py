@@ -401,8 +401,8 @@ if __name__ == '__main__':
                             "aXtraMax":ExampleType.mUpperBnd, # Maximum value of assets above minimum in grid
                             "aXtraCount":48,      # Number of points in assets grid
                             "aXtraExtra":[None],  # Additional points to include in assets grid
-                            "exp_nest":3,         # Degree of exponential nesting when constructing assets grid
-                            "LivPrb":[1.0],       # Survival probability
+                            "aXtraNestFac":3,     # Degree of exponential nesting when constructing assets grid
+                            "LivPrb":[np.array([1.0,1.0])], # Survival probability
                             "DiscFac":base_primitives['DiscFac'], # Intertemporal discount factor
                             'Nagents':1,          # Number of agents in a simulation (irrelevant)
                             'tax_rate':0.0,       # Tax rate on labor income (irrelevant)
