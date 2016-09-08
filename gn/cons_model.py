@@ -314,7 +314,7 @@ pmt_mtg_inc =  LinearInterp(np.arange(25,90),params_hsg_mtg_inc['HsgPay'])
 g = gg_funcs([pmt_pre_pra,pmt_own_inc,pmt_mtg_inc],
               44.0001,75, N=round(75-44.001), loc=robjects.r('c(0,0.4)'),
         title = "Mortgage Payments",
-        labels = ["Wk: Owner Cost, Ret: User Cost", "Wk: Owner Cost, Ret: Inc Share","Wk: Mortgage, Ret: Inc Share"],
+        labels = ["Work: Owner Cost, Ret: User Cost", "Work: Owner Cost, Ret: Inc Share","Work: Mortgage, Ret: Inc Share"],
         ylab = "Payment As Share of Income", xlab = "Age", file_name = "hsg_pmt_diag")
 ggplot_notebook(g, height=300,width=400)
 
@@ -385,7 +385,7 @@ g = gg_funcs([IndShockExample.cFunc[t_eval]],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Wealth & Collateral",
         labels = ["Baseline","Grant 0 Years Away (Now)"],
-        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_fut_slide1")
+        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide1")
 ggplot_notebook(g, height=300,width=400)
 
 #slide 1.2 -- consumption function out of future wealth
@@ -393,7 +393,7 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Wealth & Collateral",
         labels = ["Baseline","Grant 0 Years Away (Now)"],
-        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_fut_slide2")
+        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide2")
 ggplot_notebook(g, height=300,width=400)
 
 #slide 1.3 -- consumption function out of future wealth
@@ -401,7 +401,7 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now,RebateAge46.cFunc[t_eval]]
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Wealth & Collateral",
         labels = ["Baseline","Grant 0 Years Away (Now)","Grant 1 Year Away", "Grant 6 Years Away"],
-        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_fut_slide3")
+        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide3")
 ggplot_notebook(g, height=300,width=400)
 
 #slide 1.4 -- consumption function out of future wealth
@@ -409,7 +409,7 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now,RebateAge46.cFunc[t_eval],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Wealth & Collateral",
         labels = ["Baseline","Grant 0 Years Away (Now)","Grant 1 Year Away", "Grant 6 Years Away"],
-        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_fut_slide4")
+        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide4")
 ggplot_notebook(g, height=300,width=400)
 
 #slide 1.5 -- consumption function out of future wealth
@@ -417,7 +417,7 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now,RebateAge46.cFunc[t_eval],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Wealth & Collateral",
         labels = ["Baseline","Grant 0 Years Away (Now)","Grant 1 Year Away", "Grant 6 Years Away","Raise Collateral Now"],
-        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_fut_slide5")
+        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide5")
 ggplot_notebook(g, height=300,width=400)
 
 #consumption function w and without HELOC
@@ -425,7 +425,7 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],Boro_heloc.cFunc[t_eval]],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Wealth & Collateral",
         labels = ["Baseline","HELOC Borrow Limit: " + str(heloc_L)],
-        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_heloc_diag")
+        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_heloc_diag")
 ggplot_notebook(g, height=300,width=400)
 
 #####################################
@@ -694,8 +694,9 @@ ggplot_notebook(g, height=300,width=400)
 ############################################################################
 ## Housing MPC and Cash MPC by LTV
 ############################################################################
-ltv_rows = range(30,160,10) #range(10,160,10)
-equity_a = np.arange(-60,70,10) #np.arange(-60,90,10)
+ltv_rows = range(10,170,10)
+#ltv_rows = list(df_ltv['LTV_Midpoint'])
+equity_a = np.arange(-60,100,10) #np.arange(-60,90,10)
 index = pd.Index(ltv_rows, name='rows')
 scenarios = ['cash','hsg','debt']
 columns = pd.Index(scenarios, name='cols')
@@ -741,24 +742,77 @@ for eq in ltv_rows: #
     #print "Change in housing payment after HP increase, spec: pos", map(sub,hw_cf_params['HsgPay'],hsg_pay_pre_pos)
     cf_hp_pos = solve_unpack(hw_cf_params)
     
-    hp_mpc.loc[eq,'hsg_pos'] = (cf_hp_pos.cFunc[t_eval](hamp_coh) - cf_pre_pos.cFunc[t_eval](hamp_coh))/dhp
-    hp_mpc.loc[eq,'hsg_zero'] = (cf_hp_zero.cFunc[t_eval](hamp_coh) - cf_pre_zero.cFunc[t_eval](hamp_coh))/dhp
+    hp_mpc.loc[eq,'hsg_pos'] = (cf_hp_pos.cFunc[t_eval](coh) - cf_pre_pos.cFunc[t_eval](coh))/dhp
+    hp_mpc.loc[eq,'hsg_zero'] = (cf_hp_zero.cFunc[t_eval](coh) - cf_pre_zero.cFunc[t_eval](coh))/dhp
+    hp_mpc_low_coh.loc[eq,'hsg_pos'] = (cf_hp_pos.cFunc[t_eval](hamp_coh) - cf_pre_pos.cFunc[t_eval](hamp_coh))/dhp
+    hp_mpc_low_coh.loc[eq,'hsg_zero'] = (cf_hp_zero.cFunc[t_eval](hamp_coh) - cf_pre_zero.cFunc[t_eval](hamp_coh))/dhp
 
 
 hp_mpc.to_csv("~/dropbox/hampra/out2/tbl_hp_mpc.csv")
 hp_mpc
 hp_mpc_low_coh
 
+#make table for CSV output
+ltv_rows_alt = list(df_ltv['LTV_Midpoint'])
+index_alt = pd.Index(ltv_rows_alt, name='rows')
+hp_mpc_tbl = pd.DataFrame(np.zeros((len(ltv_rows_alt), len(scenarios))), index=index_alt, columns=columns) 
+for eq in ltv_rows_alt: #
+    hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  (eq/100.)*hamp_params['initial_price'] , **hamp_params)
+    hsg_pay_pre_neg = deepcopy(hw_cf_params['HsgPay'])
+    cf_pre = solve_unpack(hw_cf_params)  
+    hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt = (eq/100.)*hamp_params['initial_price'] - dhp, **hamp_params)
+    cf_debt = solve_unpack(hw_cf_params)    
+    hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt = (eq/100.)*hamp_params['initial_price'],  d_house_price = dhp, **hamp_params)
+    cf_hp = solve_unpack(hw_cf_params)
+    hp_mpc_tbl.loc[eq,'hsg'] = (cf_hp.cFunc[t_eval](coh) - cf_pre.cFunc[t_eval](coh))/dhp
+    hp_mpc_tbl.loc[eq,'debt'] = (cf_debt.cFunc[t_eval](coh) - cf_pre.cFunc[t_eval](coh))/dhp
+    hp_mpc_tbl.loc[eq,'cash'] = (cf_pre.cFunc[t_eval](coh+dhp) - cf_pre.cFunc[t_eval](coh))/dhp
+
+hp_mpc_tbl
+
+
+#average MPC out of housing wealth right now is 3.6 cents w 4% user cost and 6.8 cents with 1.5% user cost
+hp_mpc_tbl_ltv = pd.merge(df_ltv, hp_mpc_tbl, left_on="LTV_Midpoint", right_index=True)
+hp_mpc_tbl_ltv = hp_mpc_tbl_ltv[df_ltv['LTV_Midpoint'] <= 95]
+hp_mpc_tbl_ltv.loc[:,'hsg'] = hp_mpc_tbl_ltv['hsg']*hp_mpc_tbl_ltv['Share_2005']/sum(hp_mpc_tbl_ltv['Share_2005'])
+hp_mpc_tbl_ltv.loc[:,'cash'] = hp_mpc_tbl_ltv['cash']*hp_mpc_tbl_ltv['Share_2005']/sum(hp_mpc_tbl_ltv['Share_2005'])
+hp_mpc_tbl_ltv.loc[:,'debt'] = hp_mpc_tbl_ltv['debt']*hp_mpc_tbl_ltv['Share_2005']/sum(hp_mpc_tbl_ltv['Share_2005'])
+
+hp_mpc_tbl_sum = pd.DataFrame({"Mean": hp_mpc_tbl_ltv[['cash','hsg','debt']].sum(),
+                                "Levered":hp_mpc_tbl.loc[95,:],
+                               "Underwater":hp_mpc_tbl.loc[150,:]}).round(3)
+hp_mpc_tbl_sum.to_csv("~/dropbox/hampra/out2/tbl_mpc_ltv.csv")
+
+
 mpc_hsg_f = LinearInterp(equity_a,np.array(hp_mpc['hsg'])[::-1])
 mpc_cash_f = LinearInterp(equity_a,np.array(hp_mpc['cash'])[::-1])
 mpc_debt_f = LinearInterp(equity_a,np.array(hp_mpc['debt'])[::-1])
 
+#xxx consider turning arrow into an mp item
 g = gg_funcs([mpc_hsg_f,mpc_cash_f,mpc_debt_f],-60,90, N=len(ltv_rows), loc=robjects.r('c(1,1)'),
         title = "Marginal Propensity to Consume by Home Equity\n Cash-On-Hand = " + str(coh),
-        labels = ["Housing MPC","Cash MPC","Debt MPC"],
+        labels = ["Housing Price MPC","Cash MPC","Housing Debt MPC"],
         ylab = "MPC", xlab = "Home Equity (< 0 is Underwater)",
         file_name = "mpc_cash_hsg")
 ggplot_notebook(g, height=300,width=400)
+g += mp.annotate(geom = "text", x = 40, y = 0.02, label = "MPC\n Avg = 6.8 cents")
+g += mp.annotate(geom = "text", x = 5, y = 0.05, label = "MPC\n Levered / Avg = 1.5")
+g += gg.geom_segment(gg.aes_string(x = 0, y = 0.07, xend = 0, yend = 0.10),
+                     arrow = robjects.r('arrow(length = unit(0.4, "cm"))'),
+                     color= robjects.r.palette_lines[1])
+mp.ggsave("mpc_cash_hsg_arrow_backup",g)
+ggplot_notebook(g, height=300,width=400)
+
+
+mpc_hsg_pos_f = LinearInterp(equity_a,np.array(hp_mpc['hsg_pos'])[::-1])
+#mpc_hsg_zero_f = LinearInterp(equity_a,np.array(hp_mpc['hsg_zero'])[::-1])
+g = gg_funcs([mpc_debt_f,mpc_hsg_f,mpc_hsg_pos_f],-60,90, N=len(ltv_rows), loc=robjects.r('c(0,1)'), #mpc_hsg_zero_f
+        title = "Marginal Propensity to Consume Out of Housing by Home Equity",
+        labels = ["Debt","Hsg Neg Wealth Effect","Hsg Pos Wealth Effect"], #"Hsg Zero Wealth Effect",
+        ylab = "MPC", xlab = "Home Equity  (< 0 is Underwater)",
+        file_name = "mpc_hsg_backup")
+ggplot_notebook(g, height=300,width=400)
+
 
 
 mpc_hsg_low_coh_f = LinearInterp(equity_a,np.array(hp_mpc_low_coh['hsg'])[::-1])
@@ -766,25 +820,16 @@ mpc_cash_low_coh_f = LinearInterp(equity_a,np.array(hp_mpc_low_coh['cash'])[::-1
 mpc_debt_low_coh_f = LinearInterp(equity_a,np.array(hp_mpc_low_coh['debt'])[::-1])
 g = gg_funcs([mpc_cash_low_coh_f,mpc_debt_low_coh_f],-60,90, N=len(ltv_rows), loc=robjects.r('c(1,1)'),
         title = "Marginal Propensity to Consume by Home Equity",
-        labels = ["Cash MPC","Debt MPC","Housing MPC"],
+        labels = ["Cash MPC","Housing Debt MPC","Housing Price MPC"],
         ylab = "MPC", xlab = "Home Equity  (< 0 is Underwater)",
         file_name = "mpc_cash_hsg_low_coh")
 ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([mpc_cash_low_coh_f,mpc_debt_low_coh_f,mpc_hsg_low_coh_f],-60,90, N=len(ltv_rows), loc=robjects.r('c(1,1)'),
         title = "Marginal Propensity to Consume by Home Equity",
-        labels = ["Cash MPC","Debt MPC","Housing MPC"],
+        labels = ["Cash MPC","Housing Debt MPC","Housing Price MPC"],
         ylab = "MPC", xlab = "Home Equity  (< 0 is Underwater)",
         file_name = "mpc_cash_hsg_low_coh_backup")
-ggplot_notebook(g, height=300,width=400)
-
-mpc_hsg_pos_f = LinearInterp(equity_a,np.array(hp_mpc['hsg_pos'])[::-1])
-#mpc_hsg_zero_f = LinearInterp(equity_a,np.array(hp_mpc['hsg_zero'])[::-1])
-g = gg_funcs([mpc_debt_low_coh_f,mpc_hsg_low_coh_f,mpc_hsg_pos_f],-60,90, N=len(ltv_rows), loc=robjects.r('c(0,1)'), #mpc_hsg_zero_f
-        title = "Marginal Propensity to Consume Out of Housing by Home Equity",
-        labels = ["Debt","Hsg Neg Wealth Effect","Hsg Pos Wealth Effect"], #"Hsg Zero Wealth Effect",
-        ylab = "MPC", xlab = "Home Equity  (< 0 is Underwater)",
-        file_name = "mpc_hsg_backup")
 ggplot_notebook(g, height=300,width=400)
 
 
@@ -811,7 +856,7 @@ mpc_debt_0_f = LinearInterp(equity_a,np.array(hp_mpc_0['debt'])[::-1])
 
 g = gg_funcs([mpc_hsg_0_f,mpc_cash_0_f,mpc_debt_0_f],-60,90, N=len(ltv_rows), loc=robjects.r('c(1,1)'),
         title = "Marginal Propensity to Consume by Home Equity \n Collateral Constraint = 0%",
-        labels = ["Housing MPC","Cash MPC","Debt MPC"],
+        labels = ["Housing Price MPC","Cash MPC","Housing Debt MPC"],
         ylab = "MPC", xlab = "Home Equity  (< 0 is Underwater)",
         file_name = "mpc_cash_hsg_0_backup")
 ggplot_notebook(g, height=300,width=400)
@@ -935,7 +980,7 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],AddBackPermIncRisk.cFunc[t_eval],Add
         -.001,8, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Functions",
         labels = ["Baseline (No Housing, No Perm Inc Risk)","Add Perm Inc Risk", "Add Housing Payments"], #"Double Temp Inc SD", "Quadruple U risk", 
-        ylab = "Consumption", xlab = "Cash-on-hand", file_name = "cf_concavity")
+        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_concavity")
 ggplot_notebook(g, height=300,width=400)
 
 ###########################################################################
@@ -1073,6 +1118,22 @@ hw_cf_params['HsgPay'] =  pra_pmt(age = age_eval, forgive = hamp_params['pra_for
 cf = solve_unpack(hw_cf_params)
 pra_mpc.loc['Most Optimistic Combo','c_post'] = cf.cFunc[t_eval_55](tmp_hi)
 hamp_params['collateral_constraint'] = 0.20
+
+
+
+#rapid house price growth
+tmp = deepcopy(hamp_params['annual_hp_growth'])
+hamp_params['annual_hp_growth'] = 0.05
+hw_cf_params = deepcopy(baseline_params)
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] , **hamp_params)
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Fast House Price Growth (5%)','c_pre'] = cf.cFunc[t_eval](hamp_coh)
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'] , **hamp_params)
+hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = hamp_params['pra_forgive'] , **hamp_params)   
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Fast House Price Growth (5%)','c_post'] = cf.cFunc[t_eval](hamp_coh)
+hamp_params['annual_hp_growth'] = tmp
+
 
 #remark: I don't know how we interpret the high PIH agent. just say that we can reject this behavior?
 #why is consumption going down for the low coh agent and the 90% LTV agent?
@@ -1273,7 +1334,7 @@ pra_mpc
 #cf_list = [IndShockExample.cFunc[t_eval],uw_house_example.cFunc[t_eval],pra_example.cFunc[t_eval]]
 #g = gg_funcs(cf_list,-2,2.5, N=50, loc=robjects.r('c(1,0)'),
 #        title = "Consumption at Age " + str(25+t_eval) + " With Relaxed Collateral Constraint",
-#        ylab = "Consumption Function", xlab = "Cash-on-Hand")
+#        ylab = "Consumption Function", xlab = "Cash-on-Hand (Ratio to Permanent Income)")
 #mp.ggsave("future_collateral",g)
 #ggplot_notebook(g, height=300,width=400)
 #
@@ -1282,7 +1343,7 @@ pra_mpc
 #cf_list = [IndShockExample.cFunc[t_eval],FutRebateExample.cFunc[t_eval]]
 #g = gg_funcs(cf_list,0,2.5, N=50, loc=robjects.r('c(1,0)'),
 #        title = "Consumption at Age " + str(25+t_eval) + " With Age 65 Rebate",
-#        ylab = "Consumption Function", xlab = "Cash-on-Hand")
+#        ylab = "Consumption Function", xlab = "Cash-on-Hand (Ratio to Permanent Income)")
 #mp.ggsave("future_rebate_v2",g)
 #ggplot_notebook(g, height=300,width=400)
 #
@@ -1293,7 +1354,7 @@ pra_mpc
 #    cf_list.append(dc)
 #g = gg_funcs(cf_list,0.01,2.5, N=50, loc=robjects.r('c(1,0)'),
 #        title = "Consumption With Predictable Collateral at Age " + str(age_of_rebate),
-#        ylab = "Consumption Change From Predictable Collateral Movement", xlab = "Cash-on-Hand")
+#        ylab = "Consumption Change From Predictable Collateral Movement", xlab = "Cash-on-Hand (Ratio to Permanent Income)")
 #mp.ggsave("future_collateral_cons_ages",g)
 #ggplot_notebook(g, height=300,width=400)
 #
@@ -1301,7 +1362,7 @@ pra_mpc
 #cf_list = [IndShockExample.cFunc[t_eval],RelaxCollat.cFunc[t_eval]]
 #g = gg_funcs(cf_list,-1,2.5, N=50, loc=robjects.r('c(1,0)'),
 #        title = "Consumption at Age " + str(25+t_eval) + " With Predictable Collateral at Age " + str(age_of_rebate),
-#        ylab = "Consumption Change From Predictable Collateral Grant", xlab = "Cash-on-Hand")
+#        ylab = "Consumption Change From Predictable Collateral Grant", xlab = "Cash-on-Hand (Ratio to Permanent Income)")
 #mp.ggsave("future_collateral_cons_age" + str(25+t_eval),g)
 #ggplot_notebook(g, height=300,width=400)
 
@@ -1328,14 +1389,14 @@ pra_mpc
 #
 #g = gg_funcs([cf_exo,cf_nbc],-0.5,2.5, N=50, loc=robjects.r('c(1,0)'),
 #        title = "Consumption Functions age 45", labels = ['Exo Constraint','Nat Borrowing Constraint'],
-#        ylab = "Consumption", xlab = "Cash-on-Hand")
+#        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)")
 #mp.ggsave("nbc_age_45",g)
 #ggplot_notebook(g, height=300,width=400)
 #
 #
 #g = gg_funcs([IndShockExample.cFunc[10],NbcExample.cFunc[10]],-0.5,2.5, N=50, loc=robjects.r('c(1,0)'),
 #        title = "Consumption Functions age 35", labels = ['Exo Constraint','Nat Borrowing Constraint'],
-#        ylab = "Consumption", xlab = "Cash-on-Hand")
+#        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)")
 #mp.ggsave("nbc_age_35",g)
 #ggplot_notebook(g, height=300,width=400)
 #
@@ -1343,7 +1404,7 @@ pra_mpc
 #
 #g = gg_funcs([IndShockExample.cFunc[40],NbcExample.cFunc[40]],-10,2.5, N=50, loc=robjects.r('c(1,0)'),
 #        title = "Consumption Functions age 65", labels = ['Exo Constraint','Nat Borrowing Constraint'],
-#        ylab = "Consumption", xlab = "Cash-on-Hand")
+#        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)")
 #mp.ggsave("nbc_age_65",g)
 #ggplot_notebook(g, height=300,width=400)
 
@@ -1357,7 +1418,7 @@ pra_mpc
 #    cf_list.append(FutRebateExample.cFunc[40-i+5])
 #g = gg_funcs(cf_list,0.01,2.5, N=50, loc=robjects.r('c(1,0)'),
 #        title = "Consumption Function With Predictable Rebate of One Year's Income at Age " + str(age_of_rebate),
-#        ylab = "Consumption", xlab = "Cash-on-Hand")
+#        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)")
 #ggplot_notebook(g, height=300,width=400)
 #
 ##slide 3 with moving around date of rebate
@@ -1391,6 +1452,6 @@ pra_mpc
 #g = gg_funcs(cf_list,0.01,2.5, N=50, loc=robjects.r('c(1,0)'),
 #         ltitle = '', labels = ['no rebate'],
 #        title = "Rebate at Age " + str(age_at_rebate) + " cons func age " + str(age_eval_min) + " to " + str(age_eval_min + dyear*years_eval),
-#        ylab = "Consumption", xlab = "Cash-on-Hand")
+#        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)")
 #ggplot_notebook(g, height=300,width=400)
 #
