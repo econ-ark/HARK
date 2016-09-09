@@ -29,25 +29,24 @@ from rpy2 import robjects
 import rpy2.robjects.lib.ggplot2 as gg
 from rpy2.robjects import pandas2ri
 import make_plots as mp
+import pickle
 
 
 #read in HAMP parameters from google docs
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-scope = ['https://spreadsheets.google.com/feeds']
-credentials = ServiceAccountCredentials.from_json_keyfile_name('gspread-oauth.json', scope)
-gc = gspread.authorize(credentials)
-g_params = gc.open("HAMPRA Model Parameters").sheet1 #in this case
-df = pd.DataFrame(g_params.get_all_records())
+#import gspread
+#from oauth2client.service_account import ServiceAccountCredentials
+#scope = ['https://spreadsheets.google.com/feeds']
+#credentials = ServiceAccountCredentials.from_json_keyfile_name('gspread-oauth.json', scope)
+#gc = gspread.authorize(credentials)
+#g_params = gc.open("HAMPRA Model Parameters").sheet1 #in this case
+#df = pd.DataFrame(g_params.get_all_records())
+df = pickle.load( open( "params_google_df.p", "rb" ) )
+
 hamp_params = df[['Param','Value']].set_index('Param')['Value'][:8].to_dict()
 inc_params = df[['Param','Value']].set_index('Param')['Value'][8:11].to_dict()
 hamp_coh = float(inc_params['cash_on_hand'])
 boom_params = df[['Param','Value']].set_index('Param')['Value'][12:17].to_dict()
 heloc_L = float(df[['Param','Value']].set_index('Param')['Value'][18:19])
-
-g_params = gc.open("HAMPRA Loan-to-Value Distribution")
-ltv_wksheet = g_params.worksheet("PythonInput")
-df_ltv = pd.DataFrame(ltv_wksheet.get_all_records())
 
 #imports specific to default code
 from scipy.optimize import fsolve
@@ -397,10 +396,17 @@ stig_cnst = 12
 v_def_stig = partial(v_stig, stig = - stig_cnst, vf = agent_d.solution[t_eval].vFunc) 
 
 yr = robjects.r('c(-60,-8)')
-labels = ["Pay Mortgage                                          ","Stop Paying","Treatment: Prin Forgive & Pay Mortgage"]
-
+labels = ["Pay Mortgage                                          ",
+          "Stop Paying","Treatment: Prin Forgive & Pay Mortgage"]
 funcs = [HouseExample.solution[t_eval].vFunc,
-         v_def_stig,PrinFrgvExample.solution[t_eval].vFunc] #agent_d.solution[t_eval].vFunc,
+         v_def_stig,PrinFrgvExample.solution[t_eval].vFunc] #
+
+g = gg_funcs(funcs,0.5,1.5, N=20, loc=robjects.r('c(1,0)'),
+        title = "Value Functions", labels = labels, ylab = "Value", xlab = "Cash-on-Hand")
+g+= gg.ylim(yr)
+mp.ggsave("value_funcs_house",g)        
+ggplot_notebook(g, height=300,width=400)
+
 g = gg_funcs(funcs[:1],0.5,1.5, N=50, loc=robjects.r('c(1,0)'),
         title = "Value Functions", labels = labels[:1], ylab = "Value", xlab = "Cash-on-Hand")
 g+= gg.ylim(yr)
@@ -413,12 +419,6 @@ g+= gg.ylim(yr)
 mp.ggsave("value_funcs_house_slide2",g)  
 ggplot_notebook(g, height=300,width=400)
 
-
-g = gg_funcs(funcs,0.5,1.5, N=20, loc=robjects.r('c(1,0)'),
-        title = "Value Functions", labels = labels, ylab = "Value", xlab = "Cash-on-Hand")
-g+= gg.ylim(yr)
-mp.ggsave("value_funcs_house",g)        
-ggplot_notebook(g, height=300,width=400)
 
 #my interpretation for why it is 21% is that you don't care a lot 
 #about future income when your income today is sooo low
@@ -658,6 +658,7 @@ ggplot_notebook(g, height=300,width=400)
 ###########################################################################
 #xxx this code is quite repetitive. there's got to be a way to clean this up
 #I think a class where I write to .self in the function calls will solve this
+
 npv_a_list = []
 npv_d_list = []
 for ltv in ltv_rows:
@@ -670,9 +671,28 @@ npv_d_f = LinearInterp(ltv_rows,np.array(npv_d_list))
 g = gg_funcs([npv_a_f,npv_d_f],
             min(ltv_rows),max(ltv_rows), N=50, loc=robjects.r('c(0,1)'),
         title = "Net Present Value at Age 45 of Asset and Debt", labels = ["Asset","Debt"],
-        ylab = "Net Present Value (Years of Income)", xlab = "Loan-to-Value", file_name = "npv_ltv")
+        ylab = "Net Present Value (Years of Income)", xlab = "Loan-to-Value", 
+        file_name = "npv_ltv")
 ggplot_notebook(g, height=300,width=400)
 
+tmp = deepcopy(hamp_params['annual_hp_growth'])
+hamp_params['annual_hp_growth'] = 0.02
+npv_a_list = []
+npv_d_list = []
+for ltv in ltv_rows:
+    npv_a, npv_d, npv_diff = npv_mtg_nominal(initial_debt =  hamp_params['initial_price']*(ltv/100.),**hamp_params)
+    npv_a_list.append(npv_a)
+    npv_d_list.append(npv_d)
+npv_a_f = LinearInterp(ltv_rows,np.array(npv_a_list))
+npv_d_f = LinearInterp(ltv_rows,np.array(npv_d_list))
+
+g = gg_funcs([npv_a_f,npv_d_f],
+            min(ltv_rows),max(ltv_rows), N=50, loc=robjects.r('c(0,1)'),
+        title = "Net Present Value at Age 45 of Asset and Debt \n Set House Price Growth = Interest Rate on Assets", labels = ["Asset","Debt"],
+        ylab = "Net Present Value (Years of Income)", xlab = "Loan-to-Value", 
+        file_name = "npv_ltv_interest_parity")
+ggplot_notebook(g, height=300,width=400)
+hamp_params['annual_hp_growth'] = tmp
 
 ###########################################################################
 # Begin Diagnostic plots

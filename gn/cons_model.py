@@ -29,38 +29,33 @@ from rpy2 import robjects
 import rpy2.robjects.lib.ggplot2 as gg
 from rpy2.robjects import pandas2ri
 import make_plots as mp
+import pickle
 #read in HAMP parameters from google docs
 
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-scope = ['https://spreadsheets.google.com/feeds']
-credentials = ServiceAccountCredentials.from_json_keyfile_name('gspread-oauth.json', scope)
-gc = gspread.authorize(credentials)
-g_params = gc.open("HAMPRA Model Parameters").sheet1 #in this case
-df = pd.DataFrame(g_params.get_all_records())
+#import gspread
+#from oauth2client.service_account import ServiceAccountCredentials
+#scope = ['https://spreadsheets.google.com/feeds']
+#credentials = ServiceAccountCredentials.from_json_keyfile_name('gspread-oauth.json', scope)
+#gc = gspread.authorize(credentials)
+#g_params = gc.open("HAMPRA Model Parameters").sheet1 #in this case
+#df = pd.DataFrame(g_params.get_all_records())
+#pickle.dump( df, open("params_google_df.p", "wb" ) )
+df = pickle.load( open( "params_google_df.p", "rb" ) )
+
 hamp_params = df[['Param','Value']].set_index('Param')['Value'][:8].to_dict()
 inc_params = df[['Param','Value']].set_index('Param')['Value'][8:11].to_dict()
 hamp_coh = float(inc_params['cash_on_hand'])
 boom_params = df[['Param','Value']].set_index('Param')['Value'][12:17].to_dict()
 heloc_L = float(df[['Param','Value']].set_index('Param')['Value'][18:19])
 
-g_params = gc.open("HAMPRA Loan-to-Value Distribution")
-ltv_wksheet = g_params.worksheet("PythonInput")
-df_ltv = pd.DataFrame(ltv_wksheet.get_all_records())
+#g_params = gc.open("HAMPRA Loan-to-Value Distribution")
+#ltv_wksheet = g_params.worksheet("PythonInput")
+#df_ltv = pd.DataFrame(ltv_wksheet.get_all_records())
+#pickle.dump( df_ltv, open("params_google_df_ltv.p", "wb" ) )
+df_ltv = pickle.load( open( "params_google_df_ltv.p", "rb" ) )
+
 #ltv_params = df_ltv.set_index('LTV_Midpoint')
 
-
-
-#xx this doesn't actually work as a substitute because it adds an index that is messing up the output
-#hamp_params = pd.DataFrame({'annual_hp_growth': 0.016,
-# 'collateral_constraint': 0.0,
-# 'hsg_rental_rate': 0.014,
-# 'baseline_debt': 5.08,
-# 'initial_price': 3.25,
-# 'int_rate': 0.03,
-# 'pra_forgive': 1.45}, index=[0])
-#initialize_hamp_recip = pd.DataFrame({'cash_on_hand': 0.85}, index=[0])
-# 
 #xxx want to modify this default path not to have all these bad things starting out
 #sys.path.remove('/Users/ganong/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages')
 #sys.path.remove('/Users/ganong/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/PIL')
@@ -266,9 +261,9 @@ g = gg_funcs([boro_cnst_pre_pra,boro_cnst_post_pra],
         title = "Borrowing Limits \n Receive Treatment at Age 45",
         labels = labels,
         ylab = "Borrowing Limit (Years of Income)", xlab = "Age", file_name = "borrowing_limits_and_pra_diag")
-ggplot_notebook(g, height=300,width=400)
+#ggplot_notebook(g, height=300,width=400)
 g = gg_funcs([boro_cnst_pre_pra,boro_cnst_post_pra],
-              45.001,64, N=round(64-45.001), loc=robjects.r('c(0,0.5)'),
+              45.001,64, N=round(65-44.001), loc=robjects.r('c(0,0.5)'),
         title = "Borrowing Limits \n Receive Treatment at Age 45",
         labels = labels,
         ylab = "Borrowing Limit (Years of Income)", xlab = "Age", file_name = "borrowing_limits_and_pra")
@@ -278,23 +273,24 @@ ggplot_notebook(g, height=300,width=400)
 pmt_pre_pra =  LinearInterp(np.arange(25,90),uw_house_params['HsgPay']) 
 pmt_post_pra = LinearInterp(np.arange(25,90),pra_pmt(age = 45, **hamp_params))
 g = gg_funcs([pmt_pre_pra,pmt_post_pra],
-              44.0001,75, N=round(75-44.001), loc=robjects.r('c(1,1)'),
+              45.0001,75, N=round(75-45.001), loc=robjects.r('c(1,1)'),
         title = "Mortgage Payments \n Receive Treatment at Age 45",
         labels = labels,
         ylab = "Payment As Share of Income", xlab = "Age", file_name = "hsg_pmt_and_pra_diag")
 ggplot_notebook(g, height=300,width=400)
 g = gg_funcs([pmt_pre_pra,pmt_post_pra],
-              44.0001,64, N=round(64-44.001), loc=robjects.r('c(1,1)'),
+              45.0001,65, N=round(65-45.001), loc=robjects.r('c(1,1)'),
         title = "Mortgage Payments \n Receive Treatment at Age 45",
         labels = labels,
         ylab = "Payment As Share of Income", xlab = "Age", file_name = "hsg_pmt_and_pra")
+g += gg.ylim(robjects.r('c(0.1,0.25)'))
 ggplot_notebook(g, height=300,width=400)
 
 #construct change in payments and change in borrowing limits
 d_boro_cnst = LinearInterp(np.arange(25,90),map(sub, uw_house_params['BoroCnstArt'],pra_params['BoroCnstArt']))
 d_pmt =  LinearInterp(np.arange(25,90),map(sub,pra_pmt(age = 45, **hamp_params),uw_house_params['HsgPay'])) 
 g = gg_funcs([d_boro_cnst,d_pmt],
-              44.0001,64, N=round(64-44.001), loc=robjects.r('c(0,1)'),
+              45.0001,65, N=round(65-45.001), loc=robjects.r('c(0,1)'),
         title = "Impact of Principal Forgiveness on Mortgage Payments and Borrowing Limits",
         labels = ["Borrowing Constraint", "Annual Payment"],
         ylab = "Change As Share of Annual Income", xlab = "Age", file_name = "suff_stat_for_pra")
@@ -526,7 +522,6 @@ hw_cf_heloc = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hw_cf_hel
 ltv_start = -100*(hamp_params['baseline_debt']/hamp_params['initial_price']-1)
 ltv_end = -100*((hamp_params['baseline_debt'] - hamp_params['pra_forgive'])/hamp_params['initial_price']-1)
 
-#xx cosmetics: figure out how to reverse the direction on the x-axis 
 #slide 5 -- Consumption function out of principal forgiveness
 g = gg_funcs(hw_cf,gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Principal Forgiveness",
@@ -534,7 +529,8 @@ g = gg_funcs(hw_cf,gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
         ylab = "Consumption", xlab = "Housing Equity Position (< 0 is Underwater)")
 g += gg.geom_vline(xintercept=hamp_params['collateral_constraint']*100, linetype=2, colour="#66C2A5", alpha=0.75)
 mp.ggsave("cons_and_prin_forgive",g)
-g += gg.geom_segment(gg.aes_string(x = ltv_start, y = 0.5, xend = ltv_end, yend = 0.5),
+ggplot_notebook(g, height=300,width=400)
+g += gg.geom_segment(gg.aes_string(x = ltv_start, y = hw_cf_list[0] + 0.03, xend = ltv_end, yend =  hw_cf_list[0] + 0.03),
                      arrow = robjects.r('arrow(length = unit(0.5, "cm"))'),
                      color= robjects.r.palette_lines[1])
 mp.ggsave("cons_and_prin_forgive_arrow",g)
