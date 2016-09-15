@@ -9,7 +9,8 @@ Created on Sat Dec  5 21:44:30 2015
 from rpy2 import robjects
 from rpy2.robjects.lib import grid
 from rpy2.robjects.packages import importr
-
+from __main__ import out_path
+print "Output sent to:", out_path
 # The R 'print' function
 rprint = robjects.globalenv.get("print")
 stats = importr('stats')
@@ -85,7 +86,7 @@ legend_t_c = lambda ltitle = ltitle_default: ggplot2.scale_color_discrete(name =
 legend_t_s = lambda ltitle = ltitle_default: ggplot2.scale_shape_discrete(name = ltitle)
 loc_default = robjects.r('c(1,0)')
 legend_f  = lambda loc = loc_default: ggplot2.theme(**{'legend.position':loc, 'legend.justification':loc})
-ggsave = lambda filename, plot: robjects.r.ggsave(filename="~/dropbox/hampra/out/" + filename + ".pdf", plot=plot, width = 6, height = 4)
+ggsave = lambda filename, plot: robjects.r.ggsave(filename=out_path + filename + ".pdf", plot=plot, width = 6, height = 4)
 
 colors_alt = ggplot2.scale_colour_manual(values=robjects.r.palette_lines[1])
 shape_alt = ggplot2.scale_shape_manual(values=17)

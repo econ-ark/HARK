@@ -7,6 +7,7 @@ Created on Mon Jun 20 15:55:59 2016
 import os
 os.environ["R_HOME"] = "/Library/Frameworks/R.framework/Resources"
 os.chdir("/Users/ganong/repo/HARK-comments-and-cleanup/gn")
+out_path = "~/dropbox/hampra/out/"
 import settings
 import sys 
 sys.path.insert(0,'../')
@@ -31,16 +32,15 @@ from rpy2.robjects import pandas2ri
 import make_plots as mp
 import pickle
 #read in HAMP parameters from google docs
-
-#import gspread
-#from oauth2client.service_account import ServiceAccountCredentials
-#scope = ['https://spreadsheets.google.com/feeds']
-#credentials = ServiceAccountCredentials.from_json_keyfile_name('gspread-oauth.json', scope)
-#gc = gspread.authorize(credentials)
-#g_params = gc.open("HAMPRA Model Parameters").sheet1 #in this case
-#df = pd.DataFrame(g_params.get_all_records())
-#pickle.dump( df, open("params_google_df.p", "wb" ) )
-df = pickle.load( open( "params_google_df.p", "rb" ) )
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+scope = ['https://spreadsheets.google.com/feeds']
+credentials = ServiceAccountCredentials.from_json_keyfile_name('gspread-oauth.json', scope)
+gc = gspread.authorize(credentials)
+g_params = gc.open("HAMPRA Model Parameters").sheet1 #in this case
+df = pd.DataFrame(g_params.get_all_records())
+pickle.dump( df, open("params_google_df.p", "wb" ) )
+#df = pickle.load( open( "params_google_df.p", "rb" ) )
 
 hamp_params = df[['Param','Value']].set_index('Param')['Value'][:8].to_dict()
 inc_params = df[['Param','Value']].set_index('Param')['Value'][8:11].to_dict()
@@ -254,8 +254,8 @@ pra_params['HsgPay'] = pra_pmt(age = 45, **hamp_params)
 #slide 3 -- housing equity 
 labels = ["Payment Reduction", "Payment & Principal Reduction"]
 def neg(x): return -1*x
-boro_cnst_pre_pra = LinearInterp(np.arange(25,90),list(map(neg, uw_house_params['BoroCnstArt'])))
-boro_cnst_post_pra = LinearInterp(np.arange(25,90),list(map(neg, pra_params['BoroCnstArt'])))
+boro_cnst_pre_pra = LinearInterp(np.arange(26,91),list(map(neg, uw_house_params['BoroCnstArt'])))
+boro_cnst_post_pra = LinearInterp(np.arange(26,91),list(map(neg, pra_params['BoroCnstArt'])))
 g = gg_funcs([boro_cnst_pre_pra,boro_cnst_post_pra],
               45.001,75, N=round(75-45.001), loc=robjects.r('c(0,0.5)'),
         title = "Borrowing Limits \n Receive Treatment at Age 45",
@@ -263,27 +263,28 @@ g = gg_funcs([boro_cnst_pre_pra,boro_cnst_post_pra],
         ylab = "Borrowing Limit (Years of Income)", xlab = "Age", file_name = "borrowing_limits_and_pra_diag")
 #ggplot_notebook(g, height=300,width=400)
 g = gg_funcs([boro_cnst_pre_pra,boro_cnst_post_pra],
-              45.001,64, N=round(65-44.001), loc=robjects.r('c(0,0.5)'),
+              45.001,64, N=round(64-45.001), loc=robjects.r('c(0,0.5)'),
         title = "Borrowing Limits \n Receive Treatment at Age 45",
         labels = labels,
         ylab = "Borrowing Limit (Years of Income)", xlab = "Age", file_name = "borrowing_limits_and_pra")
 ggplot_notebook(g, height=300,width=400)
 
+x_min = 45.001
 #slide 4 -- housing payments 
-pmt_pre_pra =  LinearInterp(np.arange(25,90),uw_house_params['HsgPay']) 
-pmt_post_pra = LinearInterp(np.arange(25,90),pra_pmt(age = 45, **hamp_params))
+pmt_pre_pra =  LinearInterp(np.arange(26,91),uw_house_params['HsgPay']) 
+pmt_post_pra = LinearInterp(np.arange(26,91),pra_pmt(age = 45, **hamp_params))
 g = gg_funcs([pmt_pre_pra,pmt_post_pra],
-              45.0001,75, N=round(75-45.001), loc=robjects.r('c(1,1)'),
+              x_min,75, N=round(75-x_min), loc=robjects.r('c(1,1)'),
         title = "Mortgage Payments \n Receive Treatment at Age 45",
         labels = labels,
         ylab = "Payment As Share of Income", xlab = "Age", file_name = "hsg_pmt_and_pra_diag")
 ggplot_notebook(g, height=300,width=400)
 g = gg_funcs([pmt_pre_pra,pmt_post_pra],
-              45.0001,65, N=round(65-45.001), loc=robjects.r('c(1,1)'),
+              x_min,65, N=round(65-x_min), loc=robjects.r('c(1,1)'),
         title = "Mortgage Payments \n Receive Treatment at Age 45",
         labels = labels,
         ylab = "Payment As Share of Income", xlab = "Age", file_name = "hsg_pmt_and_pra")
-g += gg.ylim(robjects.r('c(0.1,0.25)'))
+g += gg.ylim(robjects.r('c(0.15,0.3)'))
 ggplot_notebook(g, height=300,width=400)
 
 #construct change in payments and change in borrowing limits
@@ -744,7 +745,7 @@ for eq in ltv_rows: #
     hp_mpc_low_coh.loc[eq,'hsg_zero'] = (cf_hp_zero.cFunc[t_eval](hamp_coh) - cf_pre_zero.cFunc[t_eval](hamp_coh))/dhp
 
 
-hp_mpc.to_csv("~/dropbox/hampra/out2/tbl_hp_mpc.csv")
+hp_mpc.to_csv(out_path + "tbl_hp_mpc.csv")
 hp_mpc
 hp_mpc_low_coh
 
@@ -777,7 +778,7 @@ hp_mpc_tbl_ltv.loc[:,'debt'] = hp_mpc_tbl_ltv['debt']*hp_mpc_tbl_ltv['Share_2005
 hp_mpc_tbl_sum = pd.DataFrame({"Mean": hp_mpc_tbl_ltv[['cash','hsg','debt']].sum(),
                                 "Levered":hp_mpc_tbl.loc[95,:],
                                "Underwater":hp_mpc_tbl.loc[150,:]}).round(3)
-hp_mpc_tbl_sum.to_csv("~/dropbox/hampra/out2/tbl_mpc_ltv.csv")
+hp_mpc_tbl_sum.to_csv(out_path + "tbl_mpc_ltv.csv")
 
 
 mpc_hsg_f = LinearInterp(equity_a,np.array(hp_mpc['hsg'])[::-1])
@@ -843,7 +844,7 @@ for eq in ltv_rows:
     hp_mpc_0.loc[eq,'debt'] = (cf_debt.cFunc[t_eval](hamp_coh) - cf_pre.cFunc[t_eval](hamp_coh))/dhp
     hp_mpc_0.loc[eq,'cash'] = (cf_pre.cFunc[t_eval](hamp_coh+dhp) - cf_pre.cFunc[t_eval](hamp_coh))/dhp
 hamp_params['collateral_constraint'] = 0.2
-hp_mpc_0.to_csv("~/dropbox/hampra/out2/tbl_hp_mpc_collat_0.csv")
+hp_mpc_0.to_csv(out_path + "tbl_hp_mpc_collat_0.csv")
 hp_mpc_0
 
 mpc_hsg_0_f = LinearInterp(equity_a,np.array(hp_mpc_0['hsg'])[::-1])
@@ -1137,7 +1138,7 @@ pra_mpc['mpc'] = (pra_mpc['c_post'] - pra_mpc['c_pre'])/hamp_params['pra_forgive
 pra_mpc.loc[col_frgv,'mpc'] = (pra_mpc.loc[col_frgv,'c_post'] - pra_mpc.loc[col_frgv,'c_pre']) / grant_size
 pra_mpc.loc[col_hp,'mpc'] = (pra_mpc.loc[col_frgv,'c_post'] - pra_mpc.loc[col_frgv,'c_pre']) / grant_size
 pra_mpc = pra_mpc.round(3)
-pra_mpc.to_csv("~/dropbox/hampra/out2/tbl_pra_mpc.csv")
+pra_mpc.to_csv(out_path + "tbl_pra_mpc.csv")
 pra_mpc
 
 
