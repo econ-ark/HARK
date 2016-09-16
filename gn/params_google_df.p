@@ -101,7 +101,7 @@ p47
 I1
 sS'stop'
 p48
-I72
+I74
 sg41
 Nstp49
 Rp50
@@ -115,12 +115,14 @@ tp53
 Rp54
 (I1
 (I7
-I72
+I74
 tp55
 g29
 I00
 (lp56
 g33
+ag33
+ag33
 ag33
 ag33
 ag33
@@ -227,6 +229,8 @@ ag33
 ag33
 ag33
 ag33
+ag33
+ag33
 aS'Calculated using means above'
 p63
 aS'Calculated in the data, then take means. Should be same as row above, must differ due to differing missing values'
@@ -282,6 +286,8 @@ ag33
 aF5.41
 aF3.63
 aF0.25
+ag33
+ag33
 ag33
 ag33
 ag33
@@ -380,6 +386,8 @@ ag33
 ag33
 ag33
 ag33
+ag33
+ag33
 aI104
 aI111
 aI122
@@ -443,153 +451,161 @@ aS'inc_unemp'
 p80
 aS'prb_unemp'
 p81
-aS'cash_on_hand'
+aS'inc_shk_rescale'
 p82
-aS'Boom parameters'
+aS'cash_on_hand'
 p83
-aS'annual_hp_growth'
+aS'Boom parameters'
 p84
-aS'Initial debt'
+aS'annual_hp_growth'
 p85
-aS'Assumed initial LTV'
+aS'Initial debt'
 p86
-aS'Initial price'
+aS'Assumed initial LTV'
 p87
-aS'New price'
+aS'Initial price'
 p88
-aS'HELOC experiment'
+aS'New price'
 p89
-aS'heloc_limit'
+aS'mortgagor_coh'
 p90
-aS'rd parameters'
+aS'HELOC experiment'
 p91
-aS'default_rate'
+aS'heloc_limit'
 p92
-aS'pre_mod_ltv'
+aS'rd parameters'
 p93
-aS'post_mod_ltv'
+aS'default_rate'
 p94
+aS'pre_mod_ltv'
+p95
+aS'post_mod_ltv'
+p96
 ag33
 aS'rent_if_default_first_period'
-p95
-aS'Period 1-5 payment to income'
-p96
-aS'Period t>5 payment to income'
 p97
-aS'rent_at_age_65'
+aS'Period 1-5 payment to income'
 p98
+aS'Period t>5 payment to income'
+p99
+aS'rent_at_age_65'
+p100
 ag33
 aS'Implied post-modLTV'
-p99
-aS'Calculated post-mod LTV'
-p100
-aS'Post-mod LTV using post-mod UPB'
 p101
-aS'Implied arrears'
+aS'Calculated post-mod LTV'
 p102
-aS'Pre-mod collateral as share of income'
+aS'Post-mod LTV using post-mod UPB'
 p103
-aS'Post-mod collateral as share of income'
+aS'Implied arrears'
 p104
-aS'Outstanding question for PN (low priority): why does calculated post-mod LTV differ from post-mod LTV using post-mod UPB? Pascal says arrears. Why are there differential arrears for HAMP vs PRA?'
+aS'Pre-mod collateral as share of income'
 p105
-aS'implied pre-mod LTV'
+aS'Post-mod collateral as share of income'
 p106
-aS'LTV of 0.5 years of income underwater'
+aS'Outstanding question for PN (low priority): why does calculated post-mod LTV differ from post-mod LTV using post-mod UPB? Pascal says arrears. Why are there differential arrears for HAMP vs PRA?'
 p107
+aS'implied pre-mod LTV'
+p108
+aS'LTV of 0.5 years of income underwater'
+p109
 ag33
 aS'Payment reduction in dollars'
-p108
+p110
 ag33
 aS'HAMP NPV calculations (discount factor 0.96, age at mod 45)'
-p109
-aS'PDV of sale value'
-p110
-aS'PDV of payments'
 p111
-aS'PDV of mortgage (sum of two above)'
+aS'PDV of sale value'
 p112
+aS'PDV of payments'
+p113
+aS'PDV of mortgage (sum of two above)'
+p114
 ag33
 aS'HELOC limit, dollars'
-p113
+p115
 ag33
 aS'LTV ratio'
-p114
-aS'Home price'
-p115
-aS'Implied debt'
 p116
-aS'New debt after 0.1 grant'
+aS'Home price'
 p117
-aS'New LTV'
+aS'Implied debt'
 p118
+aS'New debt after 0.1 grant'
+p119
+aS'New LTV'
+p120
 ag33
 aS'Price at age 65'
-p119
-aS'Original rental cost at age 65'
-p120
-aS'Rental cost adding 4% maintenance and property taxes'
 p121
-aS'Rental cost with new user cost'
+aS'Original rental cost at age 65'
 p122
-aS'Age 45 rental cost'
+aS'Rental cost adding 4% maintenance and property taxes'
 p123
+aS'Rental cost with new user cost'
+p124
+aS'Age 45 rental cost'
+p125
 ag33
 aS'Price at age 75'
-p124
-aS'Rental cost at age 75'
-p125
-aS'Rental cost adding 4% maintenance and property taxes'
 p126
+aS'Rental cost at age 75'
+p127
+aS'Rental cost adding 4% maintenance and property taxes'
+p128
 ag33
 aS'Price at age 65 under new 0.9% inflation inflation'
-p127
-aS'Original rental cost at age 65'
-p128
-aS'Rental cost adding 4% maintenance and property taxes'
 p129
+aS'Original rental cost at age 65'
+p130
+aS'Rental cost adding 4% maintenance and property taxes'
+p131
 ag33
 ag33
 aS'Maintenance cost'
-p130
-aS'Property tax rate'
-p131
-aS'Initial property and maintenance cost'
 p132
-aS'Average real growth from FHFA between 1990 and 2010'
+aS'Property tax rate'
 p133
-aS'Change in average CLTV per CoreLogic'
+aS'Initial property and maintenance cost'
 p134
-aS'Freddie Mac conforming loan survey, average July 2010 through July 2014, deflated using expected inflation from Treausry yield https://www.treasury.gov/resource-center/data-chart-center/interest-rates/Pages/Historic-Yield-Data-Visualization.aspx'
+aS'Average real growth from FHFA between 1990 and 2010'
 p135
-aS'HAMP-TU Matched Sample'
+aS'Change in average CLTV per CoreLogic'
 p136
-aS'HAMP-TU Matched Sample'
+aS'Freddie Mac conforming loan survey, average July 2010 through July 2014, deflated using expected inflation from Treausry yield https://www.treasury.gov/resource-center/data-chart-center/interest-rates/Pages/Historic-Yield-Data-Visualization.aspx'
 p137
 aS'HAMP-TU Matched Sample'
 p138
-aS'Interest cost + Taxes + maintenance'
+aS'HAMP-TU Matched Sample'
 p139
-aS'Taxes + maintenance. suggestion: previous was 0.04'
+aS'HAMP-TU Matched Sample'
 p140
-aS'SCF, sort of'
+aS'Interest cost + Taxes + maintenance'
 p141
-aS'SCF, sort of'
+aS'Taxes + maintenance. suggestion: previous was 0.04'
 p142
-aS'Bernstein 2015 Figure 7 shows income rising by 15% in the two years after a mortgage mod'
+aS'SCF, sort of'
 p143
-ag33
-aS'FHFA. Real growth during boom. See hampra/data/HPI_PO_summary_edit'
+aS'SCF, sort of'
 p144
-aS'Assume debt level (and so housing payments) are same'
+aS'baseline is 0.1 so 1.4*0.1 = 0.14'
 p145
-aS'Just assuming high leveraged group (hoping to Match Mian and Sufi 18 cents MPC)'
+aS'Bernstein 2015 Figure 7 shows income rising by 15% in the two years after a mortgage mod'
 p146
 ag33
+aS'FHFA. Real growth during boom. See hampra/data/HPI_PO_summary_edit'
+p147
+aS'Assume debt level (and so housing payments) are same'
+p148
+aS'Just assuming high leveraged group (hoping to Match Mian and Sufi 18 cents MPC)'
+p149
 ag33
+ag33
+aS'I calculated in our 2013 SCF microdata for wage-earners with at least $15K in wage income: 39750 median total financial assets and 72031 median in income. So that gives 1.55. When I add an additional screen of having a mortgage, then I get a ratio of 1.97.'
+p150
 ag33
 aS'As a share of income'
-p147
+p151
 ag33
 ag33
 ag33
@@ -613,13 +629,13 @@ ag33
 ag33
 ag33
 aS'Difference'
-p148
+p152
 aF0.3
 aF1.03
 aF1.33
 ag33
 aS'Average unsused HELOC for homeowners is about $10,000 in NY Fed credit panel. Give people twice this'
-p149
+p153
 ag33
 ag33
 ag33
@@ -655,6 +671,7 @@ aF0.026
 aF0.015
 aF0.36
 aF0.07
+aF1.4
 aF0.85
 ag33
 aF0.06
@@ -662,6 +679,7 @@ aF5.08
 aI95
 aF4.83
 aF5.12
+aI2
 ag33
 aF0.377
 ag33
@@ -685,7 +703,7 @@ aI156
 aF1.154
 ag33
 aS'$3,228'
-p150
+p154
 ag33
 ag33
 ag33
@@ -718,25 +736,25 @@ ag33
 aF0.025
 aF0.015
 aF0.13015108
-atp151
-ba(lp152
+atp155
+ba(lp156
 g15
 (g16
-(dp153
+(dp157
 g18
 g19
 (g20
 (I0
-tp154
+tp158
 g22
-tp155
-Rp156
+tp159
+Rp160
 (I1
 (I7
-tp157
+tp161
 g29
 I00
-(lp158
+(lp162
 g33
 ag34
 ag35
@@ -744,33 +762,33 @@ ag36
 ag37
 ag38
 ag39
-atp159
+atp163
 bsg41
-Nstp160
-Rp161
-a(dp162
+Nstp164
+Rp165
+a(dp166
 S'0.14.1'
-p163
-(dp164
+p167
+(dp168
 S'axes'
-p165
+p169
 g14
 sS'blocks'
-p166
-(lp167
-(dp168
+p170
+(lp171
+(dp172
 S'mgr_locs'
-p169
+p173
 c__builtin__
 slice
-p170
+p174
 (I0
 I7
 I1
-tp171
-Rp172
+tp175
+Rp176
 sS'values'
-p173
+p177
 g54
-sasstp174
+sasstp178
 bsb.

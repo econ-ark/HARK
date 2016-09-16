@@ -45,10 +45,10 @@ py_out = sh.worksheet("py_out") #sh.add_worksheet(title = "py_out", rows = "10",
 #df = pickle.load( open( "params_google_df.p", "rb" ) )
 
 hamp_params = df[['Param','Value']].set_index('Param')['Value'][:8].to_dict()
-inc_params = df[['Param','Value']].set_index('Param')['Value'][8:11].to_dict()
+inc_params = df[['Param','Value']].set_index('Param')['Value'][8:12].to_dict()
 hamp_coh = float(inc_params['cash_on_hand'])
-boom_params = df[['Param','Value']].set_index('Param')['Value'][12:17].to_dict()
-heloc_L = float(df[['Param','Value']].set_index('Param')['Value'][18:19])
+boom_params = df[['Param','Value']].set_index('Param')['Value'][13:19].to_dict()
+heloc_L = float(df[['Param','Value']].set_index('Param')['Value'][20:21])
 
 #imports specific to default code
 from scipy.optimize import fsolve
@@ -65,6 +65,7 @@ t_eval = age_of_rebate - 25 - 20
 def mpc(cF, rebate = 1, a = 0.1):
     return round((cF(a+rebate) - cF(a)) / rebate,3)
 tmp_vlo = Params.IncUnemp
+
 
 settings.init()
 settings.lil_verbose = True
@@ -280,6 +281,12 @@ baseline_params['vFuncBool'] = True
 settings.verbose = False
 #baseline_params['IncUnemp'] = inc_params['inc_unemp']
 #baseline_params['UnempPrb'] = inc_params['prb_unemp']
+#xxx this code exists only on default side and not on consumption side
+py_out.update_acell('B9', baseline_params['PermGroFac'][0])
+py_out.update_acell('B10', baseline_params['PermGroFac'][39])
+py_out.update_acell('B11', baseline_params['CRRA'])
+py_out.update_acell('B12', baseline_params['DiscFac'][0])
+
 
 IndShockExample = solve_unpack(baseline_params)
 
