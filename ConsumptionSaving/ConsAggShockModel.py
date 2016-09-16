@@ -17,6 +17,7 @@ from HARKsimulation import drawDiscrete
 from ConsIndShockModel import ConsumerSolution, IndShockConsumerType
 from HARKcore import HARKobject, Market, AgentType
 from copy import deepcopy
+import matplotlib.pyplot as plt
 
 utility      = CRRAutility
 utilityP     = CRRAutilityP
