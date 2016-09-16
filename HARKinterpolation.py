@@ -537,7 +537,13 @@ class HARKinterpolator4D(HARKobject):
         
 class ConstantFunction(HARKobject):
     '''
-    A class for representing trivial functions that return the same real output for any input.
+    A class for representing trivial functions that return the same real output for any input.  This
+    is convenient for models where an object might be a (non-trivial) function, but in some variations
+    that object is just a constant number.  Rather than needing to make a (Bi/Tri/Quad)-
+    LinearInterpolation with trivial state grids and the same f_value in every entry, ConstantFunction
+    allows the user to quickly make a constant/trivial function.  This comes up, e.g., in models
+    with endogenous pricing of insurance contracts; a contract's premium might depend on some state
+    variables of the individual, but in some variations the premium of a contract is just a number.
     '''
     convergence_criteria = ['value']
     
@@ -559,59 +565,37 @@ class ConstantFunction(HARKobject):
     def __call__(self,*args):
         '''
         Evaluate the constant function.  The first input must exist and should be an array.
-        Returns an array of identical shape to args[0].
+        Returns an array of identical shape to args[0] (if it exists).
         '''
-        if _isscalar(args[0]):
+        if len(args) > 0: # If there is at least one argument, return appropriately sized array
+            if _isscalar(args[0]):
+                return self.value
+            else:    
+                shape = args[0].shape
+                return self.value*np.ones(shape)
+        else: # Otherwise, return a single instance of the constant value
             return self.value
-        else:    
-            shape = args[0].shape
-            return self.value*np.ones(shape)
         
     def derivative(self,*args):
         '''
         Evaluate the derivative of the function.  The first input must exist and should be an array.
-        Returns an array of identical shape to args[0].  This is an array of zeros.
+        Returns an array of identical shape to args[0] (if it exists).  This is an array of zeros.
         '''
-        if _isscalar(args[0]):
-            return 0.0
+        if len(args) > 0:
+            if _isscalar(args[0]):
+                return 0.0
+            else:
+                shape = args[0].shape
+                return np.zeros(shape)
         else:
-            shape = args[0].shape
-            return np.zeros(shape)
+            return 0.0
         
-    def derivativeW(self,*args):
-        '''
-        Evaluate the derivative of the function.  The first input must exist and should be an array.
-        Returns an array of identical shape to args[0].  This is an array of zeros.
-        '''
-        return self.derivative(args[0])
-        
-    def derivativeX(self,*args):
-        '''
-        Evaluate the derivative of the function.  The first input must exist and should be an array.
-        Returns an array of identical shape to args[0].  This is an array of zeros.
-        '''
-        return self.derivative(args[0])
-        
-    def derivativeY(self,*args):
-        '''
-        Evaluate the derivative of the function.  The first input must exist and should be an array.
-        Returns an array of identical shape to args[0].  This is an array of zeros.
-        '''
-        return self.derivative(args[0])
-    
-    def derivativeZ(self,*args):
-        '''
-        Evaluate the derivative of the function.  The first input must exist and should be an array.
-        Returns an array of identical shape to args[0].  This is an array of zeros.
-        '''
-        return self.derivative(args[0])
-        
-    def derivativeXX(self,*args):
-        '''
-        Evaluate the derivative of the function.  The first input must exist and should be an array.
-        Returns an array of identical shape to args[0].  This is an array of zeros.
-        '''
-        return self.derivative(args[0])
+    # All other derivatives are also zero everywhere, so these methods just point to derivative    
+    derivativeX = derivative
+    derivativeY = derivative
+    derivativeZ = derivative
+    derivativeW = derivative
+    derivativeXX= derivative
 
 
 class CubicInterp(HARKinterpolator1D):
