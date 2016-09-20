@@ -254,7 +254,21 @@ a, d, npv_stay = npv_mtg_nominal(initial_debt =  hamp_params['baseline_debt'],**
 a, d, npv_stay_pra = npv_mtg_nominal(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'],**hamp_params)
 py_out.update_acell('B2', npv_stay_pra-npv_stay)
 
-
+def hsg_params(params,ltv,default = False, pra = False, pra_start = hamp_params['baseline_debt'], add_hsg = 0): #xxx code is missing uw_house_params['BoroCnstArt']
+    new_params = deepcopy(params)
+    new_params['rebate_amt'], e, L, new_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['initial_price']*(ltv/100.),default = default, **hamp_params) 
+    if default:
+        new_params['rebate_amt'] = 0
+    if pra:
+        forgive_amt = pra_start - hamp_params['initial_price']*(ltv/100.)
+        new_params['rebate_amt'], e, L, d = \
+            hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - forgive_amt, **hamp_params)
+        new_params['HsgPay'] = pra_pmt(age = 45, forgive = forgive_amt, **hamp_params) 
+        #new_params['BoroCnstArt'] = L
+    new_params['HsgPay'] = map(add,new_params['HsgPay'],[0] * 19 + [add_hsg] * 20 + [0] * 26)
+    return new_params
+    
+    
 ###########################################################################
 # Solve consumer problems
 ###########################################################################
@@ -279,8 +293,8 @@ baseline_params['aXtraCount'] = 30
 baseline_params['DiscFac'] = (np.ones(65)*0.96).tolist()
 baseline_params['vFuncBool'] = True
 settings.verbose = False
-#baseline_params['IncUnemp'] = inc_params['inc_unemp']
-#baseline_params['UnempPrb'] = inc_params['prb_unemp']
+baseline_params['IncUnemp'] = inc_params['inc_unemp']
+baseline_params['UnempPrb'] = inc_params['prb_unemp']
 #xxx this code exists only on default side and not on consumption side
 py_out.update_acell('B9', baseline_params['PermGroFac'][0])
 py_out.update_acell('B10', baseline_params['PermGroFac'][39])
@@ -293,7 +307,7 @@ IndShockExample = solve_unpack(baseline_params)
 ###########################################################################
 # Set parameters
 ###########################################################################
-def inc_params(TranShkCount = 15, inc_shock_rescale = 1, p_unemp = 0.05, CRRA = 4  ):
+def set_inc_params(TranShkCount = 15, inc_shock_rescale = inc_params['inc_shk_rescale'], p_unemp = inc_params['prb_unemp'], CRRA = 4  ):
     agent_params = deepcopy(baseline_params)
     agent_params['TranShkCount'] = TranShkCount
     agent_params['TranShkStd'] = [item*inc_shock_rescale for item in agent_params['TranShkStd']]
@@ -301,14 +315,14 @@ def inc_params(TranShkCount = 15, inc_shock_rescale = 1, p_unemp = 0.05, CRRA = 
     agent_params['CRRA'] = CRRA
     return agent_params
 
-
+stig_cnst = -4.5 #was 12
 #can also be set further down
-def_p = pd.DataFrame({ "grid_n": 75, "inc_sd": 3.5, "p_unemp": 0., "stig": -7, "CRRA": 4}, index=["std"])
-params_std = inc_params(TranShkCount = int(def_p.loc["std","grid_n"]), inc_shock_rescale = def_p.loc["std","inc_sd"], p_unemp = def_p.loc["std","p_unemp"])
-def_p = def_p.append(pd.DataFrame({ "grid_n": 25, "inc_sd": 1.4, "p_unemp": 0.07, "stig": -7, "CRRA": 4}, index=["u"]))
-params_u = inc_params(TranShkCount = int(def_p.loc["u","grid_n"]), inc_shock_rescale = def_p.loc["u","inc_sd"], p_unemp = def_p.loc["u","p_unemp"])
-def_p = def_p.append(pd.DataFrame({ "grid_n": 25, "inc_sd": 1.4, "p_unemp": 0.07, "stig": -7, "CRRA": 2}, index=["u_crra"]))
-params_u_crra = inc_params(TranShkCount = int(def_p.loc["u","grid_n"]), inc_shock_rescale = def_p.loc["u","inc_sd"], p_unemp = def_p.loc["u","p_unemp"], CRRA = def_p.loc["u_crra","CRRA"])
+def_p = pd.DataFrame({ "grid_n": 75, "inc_sd": 3.5, "p_unemp": 0., "stig": -6, "CRRA": 4}, index=["std"])
+params_std = set_inc_params(TranShkCount = int(def_p.loc["std","grid_n"]), inc_shock_rescale = def_p.loc["std","inc_sd"], p_unemp = def_p.loc["std","p_unemp"])
+def_p = def_p.append(pd.DataFrame({ "grid_n": 25, "inc_sd": inc_params['inc_shk_rescale'], "p_unemp": inc_params['prb_unemp'], "stig": stig_cnst, "CRRA": 4}, index=["u"]))
+params_u = set_inc_params(TranShkCount = int(def_p.loc["u","grid_n"]))
+def_p = def_p.append(pd.DataFrame({ "grid_n": 25, "stig": -3, "CRRA": 2, "inc_sd": inc_params['inc_shk_rescale'], "p_unemp": inc_params['prb_unemp']}, index=["u_crra"]))
+params_u_crra = set_inc_params(TranShkCount = int(def_p.loc["u","grid_n"]), CRRA = def_p.loc["u_crra","CRRA"])
 def_p.to_csv(out_path + "default_params.csv")
 
 
@@ -320,8 +334,9 @@ pra_params = deepcopy(params_u) #pra_params['BoroCnstArt']
 pra_params['rebate_amt'], e, L, pra_params['HsgPay'] = \
     hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - hamp_params['pra_forgive'], **hamp_params)
 default_params = deepcopy(params_u)
-r, e, L, default_params['HsgPay'] = \
-    hsg_wealth(initial_debt =  hamp_params['baseline_debt'], default = True, **hamp_params) 
+#r, e, L, default_params['HsgPay'] = \
+#    hsg_wealth(initial_debt =  hamp_params['baseline_debt'], default = True, **hamp_params) 
+default_params = hsg_params(default_params, ltv = hamp_params['baseline_debt']/hamp_params['initial_price'], default = True)
 
    
 ###########################################################################
@@ -333,9 +348,9 @@ agent_d = solve_unpack(default_params)
 
 def v_stig(m,stig,vf):
     return(vf(m)+stig)
-stig_cnst = 7 #was 12
+
 py_out.update_acell('B6', stig_cnst)
-v_def_stig = partial(v_stig, stig = - stig_cnst, vf = agent_d.solution[t_eval].vFunc) 
+v_def_stig = partial(v_stig, stig = - 5, vf = agent_d.solution[t_eval].vFunc) 
 stig_cnst_lo = 3
 v_def_stig_lo = partial(v_stig, stig = - stig_cnst_lo, vf = agent_d.solution[t_eval].vFunc) 
 
@@ -348,7 +363,7 @@ funcs = [HouseExample.solution[t_eval].vFunc,
          PrinFrgvExample.solution[t_eval].vFunc] #v_def_stig_lo agent_d.solution[t_eval].vFunc
 g = gg_funcs(funcs,0.3,3, N=20, loc=robjects.r('c(1,0)'),
         title = "Value Functions", labels = labels, ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)")
-g+= gg.ylim(yr)
+#g+= gg.ylim(yr)
 mp.ggsave("value_funcs_house_backup",g)        
 ggplot_notebook(g, height=300,width=400)
 
@@ -368,19 +383,7 @@ ggplot_notebook(g, height=300,width=400)
 #sum(HouseExample.IncomeDstn[0][0][HouseExample.IncomeDstn[0][2]<m_star])
 
 
-def hsg_params(params,ltv,default = False, pra = False, pra_start = hamp_params['baseline_debt'], add_hsg = 0): #xxx code is missing uw_house_params['BoroCnstArt']
-    new_params = deepcopy(params)
-    new_params['rebate_amt'], e, L, new_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['initial_price']*(ltv/100.),default = default, **hamp_params) 
-    if default:
-        new_params['rebate_amt'] = 0
-    if pra:
-        forgive_amt = pra_start - hamp_params['initial_price']*(ltv/100.)
-        new_params['rebate_amt'], e, L, d = \
-            hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - forgive_amt, **hamp_params)
-        new_params['HsgPay'] = pra_pmt(age = 45, forgive = forgive_amt, **hamp_params) 
-        #new_params['BoroCnstArt'] = L
-    new_params['HsgPay'] = map(add,new_params['HsgPay'],[0] * 19 + [add_hsg] * 20 + [0] * 26)
-    return new_params
+
     
 def default_rate_solved(v_func_def,agent):
     if agent.solution[t_eval].vFunc(3) < v_func_def(3):
@@ -392,12 +395,19 @@ def default_rate_solved(v_func_def,agent):
     share_default = sum(agent.IncomeDstn[0][0][agent.IncomeDstn[0][2]<m_star])
     return m_star, share_default
 
+#troubleshooting parameter
+#risk of 0.07 lowers BOTH the mean and the slope afterward since I guess precautionary motive changes
+#BACKUP plan: does fine on the baseline curve, but the jump in response to higher mortgage payments is unattractice
 
+#def_p = pd.DataFrame({ "grid_n": 25, "inc_sd": 1.4, "p_unemp": 0.1, "stig": -4.5, "CRRA": 4}, index=["u"])
+##def_p = def_p.append(pd.DataFrame({ "grid_n": 25, "inc_sd": 1.4, "p_unemp": 0.07, "stig": -7, "CRRA": 4}, index=["u"]))
+#params_u = set_inc_params(TranShkCount = int(def_p.loc["u","grid_n"]), inc_shock_rescale = def_p.loc["u","inc_sd"], p_unemp = def_p.loc["u","p_unemp"], CRRA = def_p.loc["u","CRRA"])
+#params_u['IncUnemp'] = 0.5 
 settings.lil_verbose = False
 ltv_rows = range(30,190,10) 
-def_p.loc["std","stig"] = -6
-def_p.loc["u","stig"] = -6
-def_p.loc["u_crra","stig"] = -3
+#def_p.loc["std","stig"] = -6
+#def_p.loc["u","stig"] = -6
+#def_p.loc["u_crra","stig"] = -3
 m_std_pra_list = []
 def_std_pra_list = []
 m_u_pra_list = []
@@ -415,8 +425,8 @@ def_hi_dti_list2 = []
 def_params = hsg_params(params_u, ltv = hamp_params['baseline_debt']/hamp_params['initial_price'], default = True)
 agent_d = solve_unpack(def_params)
 v_def_stig_tmp = partial(v_stig, stig = def_p.loc["u","stig"], vf = agent_d.solution[t_eval].vFunc) 
-v_def_stig_tmp_lo = partial(v_stig, stig = def_p.loc["u","stig"] + 0.25, vf = agent_d.solution[t_eval].vFunc) 
-v_def_stig_tmp_hi = partial(v_stig, stig = def_p.loc["u","stig"] - 0.25, vf = agent_d.solution[t_eval].vFunc) 
+v_def_stig_tmp_lo = partial(v_stig, stig = def_p.loc["u","stig"] + 0.5, vf = agent_d.solution[t_eval].vFunc) 
+v_def_stig_tmp_hi = partial(v_stig, stig = def_p.loc["u","stig"] - 0.5, vf = agent_d.solution[t_eval].vFunc) 
 def_params = hsg_params(params_u_crra, ltv = hamp_params['baseline_debt']/hamp_params['initial_price'], default = True)
 agent_d_crra = solve_unpack(def_params)
 v_def_stig_crra = partial(v_stig, stig = def_p.loc["u_crra","stig"], vf = agent_d_crra.solution[t_eval].vFunc) 
@@ -425,19 +435,21 @@ agent_d = solve_unpack(def_params)
 v_def_stig_std = partial(v_stig, stig = def_p.loc["std","stig"], vf = agent_d.solution[t_eval].vFunc) 
 
 for ltv in ltv_rows:
-    mtg_params = hsg_params(params_std, ltv = ltv, pra = True) 
-    agent_nd = solve_unpack(mtg_params)
-    m_star, share_default = default_rate_solved(v_def_stig_std,agent_nd)
-    m_std_pra_list.append(m_star)
-    if ltv <= 100: share_default = 0
-    def_std_pra_list.append(share_default)
-    
     mtg_params = hsg_params(params_u, ltv = ltv, pra = True) 
     agent_nd = solve_unpack(mtg_params)
     m_star, share_default = default_rate_solved(v_def_stig_tmp,agent_nd)
     m_u_pra_list.append(m_star)
     if ltv <= 100: share_default = 0
     def_u_pra_list.append(share_default)
+
+    mtg_hi_dti_params = hsg_params(params_u, ltv = ltv, pra = True, add_hsg = 0.05)
+    agent_hi_dti_nd2 = solve_unpack(mtg_hi_dti_params)
+    v_def_stig_tmp3 = partial(v_stig, stig = def_p.loc["u","stig"], vf = agent_d.solution[t_eval].vFunc) 
+    m_star, share_default = default_rate_solved(v_def_stig_tmp3,agent_hi_dti_nd2)
+    if ltv <= 100: share_default = 0
+    m_star_hi_dti_list2.append(m_star)
+    def_hi_dti_list2.append(share_default)
+    print v_def_stig_tmp(1), agent_nd.solution[t_eval].vFunc(1), agent_hi_dti_nd2.solution[t_eval].vFunc(1)
    
     m_star, share_default = default_rate_solved(v_def_stig_tmp_lo,agent_nd)
     m_u_pra_stig_lo_list.append(m_star)
@@ -457,16 +469,15 @@ for ltv in ltv_rows:
     m_star_hi_dti_list.append(m_star)
     def_hi_dti_list.append(share_default)
     
-    mtg_hi_dti_params = hsg_params(params_u, ltv = ltv, pra = True, add_hsg = 0.05)
-    agent_hi_dti_nd2 = solve_unpack(mtg_hi_dti_params)
-    v_def_stig_tmp3 = partial(v_stig, stig = def_p.loc["u","stig"], vf = agent_d.solution[t_eval].vFunc) 
-    m_star, share_default = default_rate_solved(v_def_stig_tmp2,agent_hi_dti_nd2)
+
+    mtg_params = hsg_params(params_std, ltv = ltv, pra = True) 
+    agent_nd = solve_unpack(mtg_params)
+    m_star, share_default = default_rate_solved(v_def_stig_std,agent_nd)
+    m_std_pra_list.append(m_star)
     if ltv <= 100: share_default = 0
-    m_star_hi_dti_list2.append(m_star)
-    def_hi_dti_list2.append(share_default)
+    def_std_pra_list.append(share_default)
     
-    print v_def_stig_tmp(1), agent_nd.solution[t_eval].vFunc(1), agent_hi_dti_nd2.solution[t_eval].vFunc(1)
-    
+        
     mtg_params = hsg_params(params_u_crra, ltv = ltv, pra = True) 
     agent_nd = solve_unpack(mtg_params)
     m_star, share_default = default_rate_solved(v_def_stig_crra,agent_nd)
@@ -474,12 +485,15 @@ for ltv in ltv_rows:
     if ltv <= 100: share_default = 0
     def_u_pra_crra_list.append(share_default)
     print v_def_stig_crra(1), agent_nd.solution[t_eval].vFunc(1)
-    
+
+mstar_u_pra_f = LinearInterp(ltv_rows,np.array(m_u_pra_list))
+def_u_pra_f = LinearInterp(ltv_rows,np.array(def_u_pra_list))
+
+mstar_hi_dti_f2 = LinearInterp(ltv_rows,np.array(m_star_hi_dti_list2))
+def_hi_dti_f2 = LinearInterp(ltv_rows,np.array(def_hi_dti_list2))
 
 mstar_std_pra_f = LinearInterp(ltv_rows,np.array(m_std_pra_list))
 def_std_pra_f = LinearInterp(ltv_rows,np.array(def_std_pra_list))
-mstar_u_pra_f = LinearInterp(ltv_rows,np.array(m_u_pra_list))
-def_u_pra_f = LinearInterp(ltv_rows,np.array(def_u_pra_list))
 mstar_u_pra_stig_lo_f = LinearInterp(ltv_rows,np.array(m_u_pra_stig_lo_list))
 def_u_pra_stig_lo_f = LinearInterp(ltv_rows,np.array(def_u_pra_stig_lo_list))
 mstar_u_pra_stig_hi_f = LinearInterp(ltv_rows,np.array(m_u_pra_stig_hi_list))
@@ -488,101 +502,100 @@ mstar_u_pra_crra_f = LinearInterp(ltv_rows,np.array(m_u_pra_crra_list))
 def_u_pra_crra_f = LinearInterp(ltv_rows,np.array(def_u_pra_crra_list))
 mstar_hi_dti_f = LinearInterp(ltv_rows,np.array(m_star_hi_dti_list))
 def_hi_dti_f = LinearInterp(ltv_rows,np.array(def_hi_dti_list))
-mstar_hi_dti_f2 = LinearInterp(ltv_rows,np.array(m_star_hi_dti_list2))
-def_hi_dti_f2 = LinearInterp(ltv_rows,np.array(def_hi_dti_list2))
 
 py_out.update_acell('B4', def_hi_dti_f2(130)-def_hi_dti_f2(119))
 py_out.update_acell('B5', def_std_pra_f(130)-def_std_pra_f(119))
 
 
 labels = ["Model: Baseline","Model: Match Xsec Correlation"]
+labels_main = ["Baseline","Raise Mortgage Pmts by 2% of Income","Higher Current Mortgage Payments"]
 labels_pmt = ["Baseline","Raise Mortgage Pmts by 2% of Income","Raise Mortgage Pmts by 5% of Income"]
 labels_stig = ["Baseline","Default Stigma Low","Default Stigma High"]
 labels_pra = ["PRA, CRRA = 4","PRA, CRRA = 2"]
 
 g = gg_funcs([def_u_pra_f,def_hi_dti_f2], #
             min(ltv_rows),max(ltv_rows)+10, N=len(ltv_rows), loc=robjects.r('c(0,1)'),
-        title = "Default Rate", labels = [labels_pmt[0] , labels_pmt[2]],
+        title = "Default Rate", labels = [labels_main[0] , labels_main[2]],
         ylab = "Share Defaulting ", xlab = "Loan-to-Value", file_name = "default_rate")
 ggplot_notebook(g, height=300,width=400)
 
+g = gg_funcs([mstar_u_pra_f,mstar_hi_dti_f2], 
+            100,max(ltv_rows), N=50, loc=robjects.r('c(0,1)'),
+        title = "Cutoff Values to Leave House \n Default if Income + Assets < Threshold",
+        labels = [labels_main[0] , labels_main[2]],
+        ylab = "Income + Assets Threshold", xlab = "Loan-to-Value")
+g += gg.ylim(robjects.r('c(0.3,' + str(mstar_hi_dti_f2(180)+0.05) + ')'))  
+mp.ggsave("default_inc_threshold",g)      
+ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([def_u_pra_f], #
-            min(ltv_rows),max(ltv_rows)+10, N=len(ltv_rows), loc=robjects.r('c(0,1)'),
-        title = "Default Rate", labels = [labels_pmt[0]],
+            min(ltv_rows),max(ltv_rows), N=len(ltv_rows), loc=robjects.r('c(0,1)'),
+        title = "Default Rate", labels = [labels_main[0]],
         ylab = "Share Defaulting ", xlab = "Loan-to-Value")
 g += gg.ylim(robjects.r('c(0,1)'))
 mp.ggsave("default_rate_slide1",g)
 ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([def_u_pra_f,def_std_pra_f], #
-            min(ltv_rows),max(ltv_rows)+10, N=len(ltv_rows), loc=robjects.r('c(0,1)'),
+            min(ltv_rows),max(ltv_rows), N=len(ltv_rows), loc=robjects.r('c(0,1)'),
         title = "Default Rate", labels = labels,
         ylab = "Share Defaulting ", xlab = "Loan-to-Value", file_name = "default_rate_inc_backup")
 ggplot_notebook(g, height=300,width=400)
 
 
 g = gg_funcs([def_u_pra_f,def_hi_dti_f,def_hi_dti_f2], 
-            min(ltv_rows),max(ltv_rows)+10, N=len(ltv_rows), loc=robjects.r('c(0,1)'),
+            min(ltv_rows),max(ltv_rows), N=len(ltv_rows), loc=robjects.r('c(0,1)'),
         title = "Default Rate", labels = labels_pmt,
         ylab = "Share Defaulting ", xlab = "Loan-to-Value", file_name = "default_rate_pmt_backup")
 ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([def_u_pra_f,def_u_pra_stig_lo_f,def_u_pra_stig_hi_f], 
-            min(ltv_rows),max(ltv_rows)+10, N=len(ltv_rows), loc=robjects.r('c(0,1)'),
+            min(ltv_rows),max(ltv_rows), N=len(ltv_rows), loc=robjects.r('c(0,1)'),
         title = "Default Rate", labels = labels_stig,
         ylab = "Share Defaulting ", xlab = "Loan-to-Value", file_name = "default_rate_stig_backup")
 ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([def_u_pra_f,def_u_pra_crra_f], 
-            min(ltv_rows),max(ltv_rows)+10, N=len(ltv_rows), loc=robjects.r('c(0,1)'),
+            min(ltv_rows),max(ltv_rows), N=len(ltv_rows), loc=robjects.r('c(0,1)'),
         title = "Default Rate", labels = labels_pra,
         ylab = "Share Defaulting ", xlab = "Loan-to-Value", file_name = "default_rate_crra_backup")
 ggplot_notebook(g, height=300,width=400)
 
-g = gg_funcs([mstar_u_pra_f,mstar_hi_dti_f2], 
-            min(ltv_rows),max(ltv_rows)+10, N=50, loc=robjects.r('c(0,1)'),
-        title = "Cutoff Values to Leave House \n Default or Sell if Income + Assets < Threshold",
-        labels = [labels_pmt[0] , labels_pmt[2]],
-        ylab = "Income + Assets Threshold", xlab = "Loan-to-Value")
-g += gg.ylim(robjects.r('c(0.5,' + str(mstar_hi_dti_f2(180)+0.05) + ')'))  
-mp.ggsave("default_inc_threshold",g)      
-ggplot_notebook(g, height=300,width=400)
+
 
 g = gg_funcs([mstar_u_pra_f], 
-            min(ltv_rows),max(ltv_rows)+10, N=50, loc=robjects.r('c(0,1)'),
-        title = "Cutoff Values to Leave House \n Default or Sell if Income + Assets < Threshold",
+            100,max(ltv_rows), N=50, loc=robjects.r('c(0,1)'),
+        title = "Cutoff Values to Leave House \n Default if Income + Assets < Threshold",
         labels = [labels_pmt[0] , labels_pmt[2]], 
         ylab = "Income + Assets Threshold", xlab = "Loan-to-Value")
-g += gg.ylim(robjects.r('c(0.5,' + str(mstar_hi_dti_f2(180+0.05)) + ')'))
+g += gg.ylim(robjects.r('c(0.3,' + str(mstar_hi_dti_f2(180)+0.05) + ')'))  
 mp.ggsave("default_inc_threshold_slide1",g)
 ggplot_notebook(g, height=300,width=400)
 
-
 g = gg_funcs([mstar_u_pra_f,mstar_std_pra_f], #mstar_f
-            min(ltv_rows),max(ltv_rows)+10, N=50, loc=robjects.r('c(0,1)'),
-        title = "Cutoff Values to Leave House \n Default or Sell if Income + Assets < Threshold",
+            100,max(ltv_rows), N=50, loc=robjects.r('c(0,1)'),
+        title = "Cutoff Values to Leave House \n Default if Income + Assets < Threshold",
         labels = labels, 
         ylab = "Income + Assets Threshold", xlab = "Loan-to-Value", file_name = "default_inc_threshold_inc_backup")
 ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([mstar_u_pra_f,mstar_hi_dti_f,mstar_hi_dti_f2], #mstar_f
-            min(ltv_rows),max(ltv_rows)+10, N=50, loc=robjects.r('c(0,1)'),
-        title = "Cutoff Values to Leave House \n Default or Sell if Income + Assets < Threshold",
+            100,max(ltv_rows), N=50, loc=robjects.r('c(0,1)'),
+        title = "Cutoff Values to Leave House \n Default if Income + Assets < Threshold",
         labels = labels_pmt, #ltitle = ["Income Risk Process"]
         ylab = "Income + Assets Threshold", xlab = "Loan-to-Value", file_name = "default_inc_threshold_pmt_backup")
 ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([mstar_u_pra_f,mstar_u_pra_stig_lo_f,mstar_u_pra_stig_hi_f], #mstar_f
-            min(ltv_rows),max(ltv_rows)+10, N=50, loc=robjects.r('c(0,1)'),
-        title = "Cutoff Values to Leave House \n Default or Sell if Income + Assets < Threshold",
+            100,max(ltv_rows), N=50, loc=robjects.r('c(0,1)'),
+        title = "Cutoff Values to Leave House \n Default if Income + Assets < Threshold",
         labels = labels_stig, #ltitle = ["Income Risk Process"]
         ylab = "Income + Assets Threshold", xlab = "Loan-to-Value", file_name = "default_inc_threshold_stig_backup")
 ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([mstar_u_pra_f,mstar_u_pra_crra_f], #mstar_f
-            min(ltv_rows),max(ltv_rows)+10, N=50, loc=robjects.r('c(0,1)'),
-        title = "Cutoff Values to Leave House \n Default or Sell if Income + Assets < Threshold",
+            100,max(ltv_rows), N=50, loc=robjects.r('c(0,1)'),
+        title = "Cutoff Values to Leave House \n Default if Income + Assets < Threshold",
         labels = labels_pra, #ltitle = ["Income Risk Process"]
         ylab = "Income + Assets Threshold", xlab = "Loan-to-Value", file_name = "default_inc_threshold_crra_backup")
 ggplot_notebook(g, height=300,width=400)
@@ -890,18 +903,21 @@ HouseExample = solve_unpack(uw_house_params)
 PrinFrgvExample = solve_unpack(pra_params)
 agent_d = solve_unpack(default_params)
     
-v_def_stig = partial(v_stig, stig = - stig_cnst, vf = agent_d.solution[t_eval].vFunc) 
+v_def_stig = partial(v_stig, stig = stig_cnst, vf = agent_d.solution[t_eval].vFunc) 
 
-v_def_stig_12 = partial(v_stig, stig =-12, vf = agent_d.solution[t_eval].vFunc) 
-v_def_stig_4 = partial(v_stig,stig = -4, vf = agent_d.solution[t_eval].vFunc) 
+stig_cnst_hi = -6.5
+stig_cnst_lo = -2.5
+v_def_stig_12 = partial(v_stig, stig = stig_cnst_hi, vf = agent_d.solution[t_eval].vFunc) 
+v_def_stig_4 = partial(v_stig,stig = stig_cnst_lo, vf = agent_d.solution[t_eval].vFunc) 
 v_def_stig_1 = partial(v_stig,stig = -1.5, vf = agent_d.solution[t_eval].vFunc) 
 
 g = gg_funcs([HouseExample.solution[t_eval].vFunc,v_def_stig,
               v_def_stig_12,v_def_stig_4],
         0.4,2, N=20, loc=robjects.r('c(1,0)'),
         title = "Value Functions", ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", 
-        labels = ["Pay Mortgage","Default, Utility Cost of " + str(stig_cnst),
-                  "Default, Utility Cost of 12","Default, Utility Cost of 4"])
+        labels = ["Pay Mortgage","Default, Utility Cost of " + str(-stig_cnst),
+                  "Default, Utility Cost of " + str(-stig_cnst_hi),
+                  "Default, Utility Cost of " + str(-stig_cnst_lo)])
 #g+= gg.ylim(yr)
 mp.ggsave("value_funcs_vary_util_cost_diag",g)        
 ggplot_notebook(g, height=300,width=400)
@@ -917,11 +933,11 @@ r, e, L, default_parity_params['HsgPay'] = \
 hamp_params['annual_hp_growth'] = 0.009
 
 agent_d_parity = solve_unpack(default_parity_params)
-v_def_stig_parity = partial(v_stig, stig =-12, vf = agent_d_parity.solution[t_eval].vFunc) 
+v_def_stig_parity = partial(v_stig, stig = stig_cnst, vf = agent_d_parity.solution[t_eval].vFunc) 
 HouseExample_parity = solve_unpack(uw_parity_house_params)
 g = gg_funcs([HouseExample.solution[t_eval].vFunc,
               HouseExample_parity.solution[t_eval].vFunc,
-              v_def_stig_12,v_def_stig_parity],
+              v_def_stig,v_def_stig_parity],
         0.5,4, N=20, loc=robjects.r('c(1,0)'),
         title = "Value Functions", ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", 
         labels = ["Pay Mortgage","Pay Mortgage w/Asset Return Parity",
@@ -930,13 +946,13 @@ mp.ggsave("value_funcs_vary_parity_diag",g)
 ggplot_notebook(g, height=300,width=400)
 
 default_pih_params = deepcopy(default_params)
-pih_hi = 20
+pih_hi = 16
 default_pih_params['PermGroFac'][20] = (100. - pih_hi)/100.
 agent_d_c_equiv_hi = solve_unpack(default_pih_params)
-pih_med = 18
+pih_med = 13
 default_pih_params['PermGroFac'][20] = (100. - pih_med)/100.
 agent_d_c_equiv_med = solve_unpack(default_pih_params)
-pih_lo = 12
+pih_lo = 10
 default_pih_params['PermGroFac'][20] = (100. - pih_lo)/100.
 agent_d_c_equiv_lo = solve_unpack(default_pih_params)
 

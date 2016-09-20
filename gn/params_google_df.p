@@ -49,7 +49,7 @@ p22
 tp23
 Rp24
 (I1
-(I7
+(I8
 tp25
 cnumpy
 dtype
@@ -75,51 +75,53 @@ aS'Comment'
 p34
 aS'HAMP'
 p35
-aS'PRA'
+aS'PG Comment'
 p36
-aS'Param'
+aS'PRA'
 p37
-aS'Source'
+aS'Param'
 p38
-aS'Value'
+aS'Source'
 p39
-atp40
+aS'Value'
+p40
+atp41
 bsS'name'
-p41
-Nstp42
-Rp43
+p42
+Nstp43
+Rp44
 ag15
 (cpandas.indexes.range
 RangeIndex
-p44
-(dp45
+p45
+(dp46
 S'start'
-p46
+p47
 I0
 sS'step'
-p47
+p48
 I1
 sS'stop'
-p48
+p49
 I74
-sg41
-Nstp49
-Rp50
-a(lp51
+sg42
+Nstp50
+Rp51
+a(lp52
 g19
 (g20
 (I0
-tp52
-g22
 tp53
-Rp54
+g22
+tp54
+Rp55
 (I1
-(I7
+(I8
 I74
-tp55
+tp56
 g29
 I00
-(lp56
+(lp57
 g33
 ag33
 ag33
@@ -195,19 +197,18 @@ ag33
 ag33
 ag33
 aS'Fell 3% in 2010 and 4% in 2011 and then started growing'
-p57
-ag33
-ag33
-aS'Mean'
 p58
+ag33
+ag33
 aS'Mean'
 p59
 aS'Mean'
 p60
-ag33
-ag33
-aS"Tables 1 and Table 3 show that 15-20% of families have an income shock equal to 30% of their income. We are basically extending this assumption further into the tail linearly, but don't have any good ground for that choice. https://www.federalreserve.gov/pubs/feds/2012/201264/201264pap.pdf"
+aS'Mean'
 p61
+ag33
+ag33
+ag33
 ag33
 ag33
 ag33
@@ -359,6 +360,81 @@ ag33
 ag33
 ag33
 ag33
+aS'I manually reset this to 1.5*initial_price'
+p71
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
+ag33
 aF5.08
 aF3.25
 aF1.7
@@ -431,180 +507,180 @@ ag33
 ag33
 ag33
 aS'annual_hp_growth'
-p71
-aS'collateral_constraint'
 p72
-aS'int_rate'
+aS'collateral_constraint'
 p73
-aS'baseline_debt'
+aS'int_rate'
 p74
-aS'initial_price'
+aS'baseline_debt'
 p75
-aS'pra_forgive'
+aS'initial_price'
 p76
-aS'hsg_rent_p'
+aS'pra_forgive'
 p77
-aS'hsg_own_p'
+aS'hsg_rent_p'
 p78
-aS'inc_unemp'
+aS'hsg_own_p'
 p79
-aS'prb_unemp'
+aS'inc_unemp'
 p80
-aS'inc_shk_rescale'
+aS'prb_unemp'
 p81
-aS'cash_on_hand'
+aS'inc_shk_rescale'
 p82
-aS'Boom parameters'
+aS'cash_on_hand'
 p83
-aS'annual_hp_growth'
+aS'Boom parameters'
 p84
-aS'Initial debt'
+aS'annual_hp_growth'
 p85
-aS'Assumed initial LTV'
+aS'Initial debt'
 p86
-aS'Initial price'
+aS'Assumed initial LTV'
 p87
-aS'New price'
+aS'Initial price'
 p88
-aS'mortgagor_coh'
+aS'New price'
 p89
-aS'HELOC experiment'
+aS'mortgagor_coh'
 p90
-aS'heloc_limit'
+aS'HELOC experiment'
 p91
-aS'rd parameters'
+aS'heloc_limit'
 p92
-aS'default_rate'
+aS'rd parameters'
 p93
-aS'pre_mod_ltv'
+aS'default_rate'
 p94
-aS'post_mod_ltv'
+aS'pre_mod_ltv'
 p95
+aS'post_mod_ltv'
+p96
 ag33
 aS'rent_if_default_first_period'
-p96
-aS'Period 1-5 payment to income'
 p97
-aS'Period t>5 payment to income'
+aS'Period 1-5 payment to income'
 p98
-aS'rent_at_age_65'
+aS'Period t>5 payment to income'
 p99
+aS'rent_at_age_65'
+p100
 ag33
 aS'Implied post-modLTV'
-p100
-aS'Calculated post-mod LTV'
 p101
-aS'Post-mod LTV using post-mod UPB'
+aS'Calculated post-mod LTV'
 p102
-aS'Implied arrears'
+aS'Post-mod LTV using post-mod UPB'
 p103
-aS'Pre-mod collateral as share of income'
+aS'Implied arrears'
 p104
-aS'Post-mod collateral as share of income'
+aS'Pre-mod collateral as share of income'
 p105
-aS'Outstanding question for PN (low priority): why does calculated post-mod LTV differ from post-mod LTV using post-mod UPB? Pascal says arrears. Why are there differential arrears for HAMP vs PRA?'
+aS'Post-mod collateral as share of income'
 p106
-aS'implied pre-mod LTV'
+aS'Outstanding question for PN (low priority): why does calculated post-mod LTV differ from post-mod LTV using post-mod UPB? Pascal says arrears. Why are there differential arrears for HAMP vs PRA?'
 p107
-aS'LTV of 0.5 years of income underwater'
+aS'implied pre-mod LTV'
 p108
-ag33
-aS'Payment reduction in dollars'
+aS'LTV of 0.5 years of income underwater'
 p109
 ag33
-aS'HAMP NPV calculations (discount factor 0.96, age at mod 45)'
+aS'Payment reduction in dollars'
 p110
-aS'PDV of sale value'
-p111
-aS'PDV of payments'
-p112
-aS'PDV of mortgage (sum of two above)'
-p113
 ag33
-aS'HELOC limit, dollars'
+aS'HAMP NPV calculations (discount factor 0.96, age at mod 45)'
+p111
+aS'PDV of sale value'
+p112
+aS'PDV of payments'
+p113
+aS'PDV of mortgage (sum of two above)'
 p114
 ag33
-aS'LTV ratio'
+aS'HELOC limit, dollars'
 p115
-aS'Home price'
+ag33
+aS'LTV ratio'
 p116
-aS'Implied debt'
+aS'Home price'
 p117
-aS'New debt after 0.1 grant'
+aS'Implied debt'
 p118
-aS'New LTV'
+aS'New debt after 0.1 grant'
 p119
+aS'New LTV'
+p120
 ag33
 aS'Price at age 65'
-p120
-aS'Original rental cost at age 65'
 p121
-aS'Rental cost adding 4% maintenance and property taxes'
+aS'Original rental cost at age 65'
 p122
-aS'Rental cost with new user cost'
+aS'Rental cost adding 4% maintenance and property taxes'
 p123
-aS'Age 45 rental cost'
+aS'Rental cost with new user cost'
 p124
+aS'Age 45 rental cost'
+p125
 ag33
 aS'Price at age 75'
-p125
-aS'Rental cost at age 75'
 p126
-aS'Rental cost adding 4% maintenance and property taxes'
+aS'Rental cost at age 75'
 p127
+aS'Rental cost adding 4% maintenance and property taxes'
+p128
 ag33
 aS'Price at age 65 under new 0.9% inflation inflation'
-p128
-aS'Original rental cost at age 65'
 p129
-aS'Rental cost adding 4% maintenance and property taxes'
+aS'Original rental cost at age 65'
 p130
+aS'Rental cost adding 4% maintenance and property taxes'
+p131
 ag33
 ag33
 aS'Maintenance cost'
-p131
-aS'Property tax rate'
 p132
-aS'Initial property and maintenance cost'
+aS'Property tax rate'
 p133
-aS'Average real growth from FHFA between 1990 and 2010'
+aS'Initial property and maintenance cost'
 p134
-aS'Change in average CLTV per CoreLogic'
+aS'Average real growth from FHFA between 1990 and 2010'
 p135
-aS'Freddie Mac conforming loan survey, average July 2010 through July 2014, deflated using expected inflation from Treausry yield https://www.treasury.gov/resource-center/data-chart-center/interest-rates/Pages/Historic-Yield-Data-Visualization.aspx'
+aS'Change in average CLTV per CoreLogic'
 p136
-aS'HAMP-TU Matched Sample'
+aS'Freddie Mac conforming loan survey, average July 2010 through July 2014, deflated using expected inflation from Treausry yield https://www.treasury.gov/resource-center/data-chart-center/interest-rates/Pages/Historic-Yield-Data-Visualization.aspx'
 p137
 aS'HAMP-TU Matched Sample'
 p138
 aS'HAMP-TU Matched Sample'
 p139
-aS'Interest cost + Taxes + maintenance'
+aS'HAMP-TU Matched Sample'
 p140
-aS'Taxes + maintenance. suggestion: previous was 0.04'
+aS'Interest cost + Taxes + maintenance'
 p141
-aS'SCF, sort of'
+aS'Taxes + maintenance. suggestion: previous was 0.04'
 p142
-aS'SCF, sort of'
+aS'Eyeballed average of 1-yr 10th percentile values in tab C.1 col H of Guvenen for 2008-2010: https://fguvenendotcom.files.wordpress.com/2014/04/gos_2014_appendix_tables_in_excel.xlsx'
 p143
-aS'baseline is 0.1 so 1.4*0.1 = 0.14'
+aS'10% risk of ending up in bottom decile in Guvennen JPE'
 p144
-aS'Bernstein 2015 Figure 7 shows income rising by 15% in the two years after a mortgage mod'
+aS'baseline is 0.1 so 1.4*0.1 = 0.14'
 p145
+aS'Bernstein 2015 Figure 7 shows income rising by 15% in the two years after a mortgage mod'
+p146
 ag33
 aS'FHFA. Real growth during boom. See hampra/data/HPI_PO_summary_edit'
-p146
-aS'Assume debt level (and so housing payments) are same'
 p147
-aS'Just assuming high leveraged group (hoping to Match Mian and Sufi 18 cents MPC)'
+aS'Assume debt level (and so housing payments) are same'
 p148
+aS'Just assuming high leveraged group (hoping to Match Mian and Sufi 18 cents MPC)'
+p149
 ag33
 ag33
 aS'I calculated in our 2013 SCF microdata for wage-earners with at least $15K in wage income: 39750 median total financial assets and 72031 median in income. So that gives 1.55. When I add an additional screen of having a mortgage, then I get a ratio of 1.97.'
-p149
+p150
 ag33
 aS'As a share of income'
-p150
+p151
 ag33
 ag33
 ag33
@@ -628,13 +704,13 @@ ag33
 ag33
 ag33
 aS'Difference'
-p151
+p152
 aF0.3
 aF1.03
 aF1.33
 ag33
 aS'Average unsused HELOC for homeowners is about $10,000 in NY Fed credit panel. Give people twice this'
-p152
+p153
 ag33
 ag33
 ag33
@@ -668,8 +744,8 @@ aF3.25
 aF1.45
 aF0.026
 aF0.015
-aF0.36
-aF0.07
+aF0.5
+aF0.1
 aF1.4
 aF0.85
 ag33
@@ -702,7 +778,7 @@ aI156
 aF1.154
 ag33
 aS'$3,228'
-p153
+p154
 ag33
 ag33
 ag33
@@ -735,25 +811,25 @@ ag33
 aF0.025
 aF0.015
 aF0.13015108
-atp154
-ba(lp155
+atp155
+ba(lp156
 g15
 (g16
-(dp156
+(dp157
 g18
 g19
 (g20
 (I0
-tp157
-g22
 tp158
-Rp159
+g22
+tp159
+Rp160
 (I1
-(I7
-tp160
+(I8
+tp161
 g29
 I00
-(lp161
+(lp162
 g33
 ag34
 ag35
@@ -761,33 +837,34 @@ ag36
 ag37
 ag38
 ag39
-atp162
-bsg41
-Nstp163
-Rp164
-a(dp165
+ag40
+atp163
+bsg42
+Nstp164
+Rp165
+a(dp166
 S'0.14.1'
-p166
-(dp167
+p167
+(dp168
 S'axes'
-p168
+p169
 g14
 sS'blocks'
-p169
-(lp170
-(dp171
+p170
+(lp171
+(dp172
 S'mgr_locs'
-p172
+p173
 c__builtin__
 slice
-p173
+p174
 (I0
-I7
+I8
 I1
-tp174
-Rp175
+tp175
+Rp176
 sS'values'
-p176
-g54
-sasstp177
+p177
+g55
+sasstp178
 bsb.
