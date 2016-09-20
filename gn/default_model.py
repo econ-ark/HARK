@@ -339,16 +339,14 @@ v_def_stig = partial(v_stig, stig = - stig_cnst, vf = agent_d.solution[t_eval].v
 stig_cnst_lo = 3
 v_def_stig_lo = partial(v_stig, stig = - stig_cnst_lo, vf = agent_d.solution[t_eval].vFunc) 
 
-yr = robjects.r('c(-25,-5)')
+yr = robjects.r('c(-30,-5)')
 labels = ["Pay Mortgage                ",
           "Default, Utility Cost of " + str(stig_cnst),
-          "Pay Mortgage (Post-PRA)",
-          "Default, Utility Cost of " + str(stig_cnst_lo)]
+          "Pay Mortgage (Post-PRA)"] #"Default, Utility Cost of " + str(stig_cnst_lo)
 funcs = [HouseExample.solution[t_eval].vFunc,
          v_def_stig,
-         PrinFrgvExample.solution[t_eval].vFunc,
-        v_def_stig_lo] #agent_d.solution[t_eval].vFunc
-g = gg_funcs(funcs,0.5,3, N=20, loc=robjects.r('c(1,0)'),
+         PrinFrgvExample.solution[t_eval].vFunc] #v_def_stig_lo agent_d.solution[t_eval].vFunc
+g = gg_funcs(funcs,0.3,3, N=20, loc=robjects.r('c(1,0)'),
         title = "Value Functions", labels = labels, ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)")
 g+= gg.ylim(yr)
 mp.ggsave("value_funcs_house_backup",g)        
@@ -417,8 +415,8 @@ def_hi_dti_list2 = []
 def_params = hsg_params(params_u, ltv = hamp_params['baseline_debt']/hamp_params['initial_price'], default = True)
 agent_d = solve_unpack(def_params)
 v_def_stig_tmp = partial(v_stig, stig = def_p.loc["u","stig"], vf = agent_d.solution[t_eval].vFunc) 
-v_def_stig_tmp_lo = partial(v_stig, stig = def_p.loc["u","stig"] + 1, vf = agent_d.solution[t_eval].vFunc) 
-v_def_stig_tmp_hi = partial(v_stig, stig = def_p.loc["u","stig"] - 1, vf = agent_d.solution[t_eval].vFunc) 
+v_def_stig_tmp_lo = partial(v_stig, stig = def_p.loc["u","stig"] + 0.25, vf = agent_d.solution[t_eval].vFunc) 
+v_def_stig_tmp_hi = partial(v_stig, stig = def_p.loc["u","stig"] - 0.25, vf = agent_d.solution[t_eval].vFunc) 
 def_params = hsg_params(params_u_crra, ltv = hamp_params['baseline_debt']/hamp_params['initial_price'], default = True)
 agent_d_crra = solve_unpack(def_params)
 v_def_stig_crra = partial(v_stig, stig = def_p.loc["u_crra","stig"], vf = agent_d_crra.solution[t_eval].vFunc) 

@@ -123,6 +123,8 @@ I00
 g33
 ag33
 ag33
+aF269995.3805
+aF172847.1418
 ag33
 ag33
 ag33
@@ -150,9 +152,6 @@ ag33
 ag33
 ag33
 ag33
-ag33
-aS'2.95%'
-p57
 ag33
 ag33
 ag33
@@ -196,19 +195,19 @@ ag33
 ag33
 ag33
 aS'Fell 3% in 2010 and 4% in 2011 and then started growing'
+p57
+ag33
+ag33
+aS'Mean'
 p58
-ag33
-ag33
 aS'Mean'
 p59
 aS'Mean'
 p60
-aS'Mean'
-p61
 ag33
 ag33
 aS"Tables 1 and Table 3 show that 15-20% of families have an income shock equal to 30% of their income. We are basically extending this assumption further into the tail linearly, but don't have any good ground for that choice. https://www.federalreserve.gov/pubs/feds/2012/201264/201264pap.pdf"
-p62
+p61
 ag33
 ag33
 ag33
@@ -232,19 +231,19 @@ ag33
 ag33
 ag33
 aS'Calculated using means above'
-p63
+p62
 aS'Calculated in the data, then take means. Should be same as row above, must differ due to differing missing values'
-p64
+p63
 aS'Main difference is capitalization of arrears. Increase of LTV of 0.1 is 0.33 years of income, or 4 months. If mortgage payments are 50% of income, this is 8 months delinquent'
-p65
+p64
 aS'Note that 122 is currently the number we report in our summary stats in the paper'
-p66
+p65
 ag33
 ag33
 ag33
 ag33
 aS'So when collateral constraint is zero, start responding at about 115 LTV.'
-p67
+p66
 ag33
 ag33
 ag33
@@ -252,7 +251,7 @@ ag33
 ag33
 ag33
 aS'So PRA is worth more in way we have modelled it than in reality, where it is closer to 0.75'
-p68
+p67
 ag33
 ag33
 ag33
@@ -339,7 +338,7 @@ ag33
 ag33
 ag33
 aS'Large share of income'
-p69
+p68
 ag33
 ag33
 ag33
@@ -353,9 +352,9 @@ ag33
 ag33
 ag33
 aS'Campbell and Cocco (2015), from Hiummelberg, Mayer,and Sinai (2005)'
-p70
+p69
 aS'Campbell and Cocco (2015), from Hiummelberg, Mayer,and Sinai'
-p71
+p70
 ag33
 ag33
 ag33
@@ -432,180 +431,180 @@ ag33
 ag33
 ag33
 aS'annual_hp_growth'
-p72
+p71
 aS'collateral_constraint'
-p73
+p72
 aS'int_rate'
-p74
+p73
 aS'baseline_debt'
-p75
+p74
 aS'initial_price'
-p76
+p75
 aS'pra_forgive'
-p77
+p76
 aS'hsg_rent_p'
-p78
+p77
 aS'hsg_own_p'
-p79
+p78
 aS'inc_unemp'
-p80
+p79
 aS'prb_unemp'
-p81
+p80
 aS'inc_shk_rescale'
-p82
+p81
 aS'cash_on_hand'
-p83
+p82
 aS'Boom parameters'
-p84
+p83
 aS'annual_hp_growth'
-p85
+p84
 aS'Initial debt'
-p86
+p85
 aS'Assumed initial LTV'
-p87
+p86
 aS'Initial price'
-p88
+p87
 aS'New price'
-p89
+p88
 aS'mortgagor_coh'
-p90
+p89
 aS'HELOC experiment'
-p91
+p90
 aS'heloc_limit'
-p92
+p91
 aS'rd parameters'
-p93
+p92
 aS'default_rate'
-p94
+p93
 aS'pre_mod_ltv'
-p95
+p94
 aS'post_mod_ltv'
-p96
+p95
 ag33
 aS'rent_if_default_first_period'
-p97
+p96
 aS'Period 1-5 payment to income'
-p98
+p97
 aS'Period t>5 payment to income'
-p99
+p98
 aS'rent_at_age_65'
-p100
+p99
 ag33
 aS'Implied post-modLTV'
-p101
+p100
 aS'Calculated post-mod LTV'
-p102
+p101
 aS'Post-mod LTV using post-mod UPB'
-p103
+p102
 aS'Implied arrears'
-p104
+p103
 aS'Pre-mod collateral as share of income'
-p105
+p104
 aS'Post-mod collateral as share of income'
-p106
+p105
 aS'Outstanding question for PN (low priority): why does calculated post-mod LTV differ from post-mod LTV using post-mod UPB? Pascal says arrears. Why are there differential arrears for HAMP vs PRA?'
-p107
+p106
 aS'implied pre-mod LTV'
-p108
+p107
 aS'LTV of 0.5 years of income underwater'
-p109
+p108
 ag33
 aS'Payment reduction in dollars'
-p110
+p109
 ag33
 aS'HAMP NPV calculations (discount factor 0.96, age at mod 45)'
-p111
+p110
 aS'PDV of sale value'
-p112
+p111
 aS'PDV of payments'
-p113
+p112
 aS'PDV of mortgage (sum of two above)'
-p114
+p113
 ag33
 aS'HELOC limit, dollars'
-p115
+p114
 ag33
 aS'LTV ratio'
-p116
+p115
 aS'Home price'
-p117
+p116
 aS'Implied debt'
-p118
+p117
 aS'New debt after 0.1 grant'
-p119
+p118
 aS'New LTV'
-p120
+p119
 ag33
 aS'Price at age 65'
-p121
+p120
 aS'Original rental cost at age 65'
-p122
+p121
 aS'Rental cost adding 4% maintenance and property taxes'
-p123
+p122
 aS'Rental cost with new user cost'
-p124
+p123
 aS'Age 45 rental cost'
-p125
+p124
 ag33
 aS'Price at age 75'
-p126
+p125
 aS'Rental cost at age 75'
-p127
+p126
 aS'Rental cost adding 4% maintenance and property taxes'
-p128
+p127
 ag33
 aS'Price at age 65 under new 0.9% inflation inflation'
-p129
+p128
 aS'Original rental cost at age 65'
-p130
+p129
 aS'Rental cost adding 4% maintenance and property taxes'
-p131
+p130
 ag33
 ag33
 aS'Maintenance cost'
-p132
+p131
 aS'Property tax rate'
-p133
+p132
 aS'Initial property and maintenance cost'
-p134
+p133
 aS'Average real growth from FHFA between 1990 and 2010'
-p135
+p134
 aS'Change in average CLTV per CoreLogic'
-p136
+p135
 aS'Freddie Mac conforming loan survey, average July 2010 through July 2014, deflated using expected inflation from Treausry yield https://www.treasury.gov/resource-center/data-chart-center/interest-rates/Pages/Historic-Yield-Data-Visualization.aspx'
+p136
+aS'HAMP-TU Matched Sample'
 p137
 aS'HAMP-TU Matched Sample'
 p138
 aS'HAMP-TU Matched Sample'
 p139
-aS'HAMP-TU Matched Sample'
-p140
 aS'Interest cost + Taxes + maintenance'
-p141
+p140
 aS'Taxes + maintenance. suggestion: previous was 0.04'
+p141
+aS'SCF, sort of'
 p142
 aS'SCF, sort of'
 p143
-aS'SCF, sort of'
-p144
 aS'baseline is 0.1 so 1.4*0.1 = 0.14'
-p145
+p144
 aS'Bernstein 2015 Figure 7 shows income rising by 15% in the two years after a mortgage mod'
-p146
+p145
 ag33
 aS'FHFA. Real growth during boom. See hampra/data/HPI_PO_summary_edit'
-p147
+p146
 aS'Assume debt level (and so housing payments) are same'
-p148
+p147
 aS'Just assuming high leveraged group (hoping to Match Mian and Sufi 18 cents MPC)'
-p149
+p148
 ag33
 ag33
 aS'I calculated in our 2013 SCF microdata for wage-earners with at least $15K in wage income: 39750 median total financial assets and 72031 median in income. So that gives 1.55. When I add an additional screen of having a mortgage, then I get a ratio of 1.97.'
-p150
+p149
 ag33
 aS'As a share of income'
-p151
+p150
 ag33
 ag33
 ag33
@@ -629,13 +628,13 @@ ag33
 ag33
 ag33
 aS'Difference'
-p152
+p151
 aF0.3
 aF1.03
 aF1.33
 ag33
 aS'Average unsused HELOC for homeowners is about $10,000 in NY Fed credit panel. Give people twice this'
-p153
+p152
 ag33
 ag33
 ag33
@@ -703,7 +702,7 @@ aI156
 aF1.154
 ag33
 aS'$3,228'
-p154
+p153
 ag33
 ag33
 ag33
@@ -736,25 +735,25 @@ ag33
 aF0.025
 aF0.015
 aF0.13015108
-atp155
-ba(lp156
+atp154
+ba(lp155
 g15
 (g16
-(dp157
+(dp156
 g18
 g19
 (g20
 (I0
-tp158
+tp157
 g22
-tp159
-Rp160
+tp158
+Rp159
 (I1
 (I7
-tp161
+tp160
 g29
 I00
-(lp162
+(lp161
 g33
 ag34
 ag35
@@ -762,33 +761,33 @@ ag36
 ag37
 ag38
 ag39
-atp163
+atp162
 bsg41
-Nstp164
-Rp165
-a(dp166
+Nstp163
+Rp164
+a(dp165
 S'0.14.1'
-p167
-(dp168
+p166
+(dp167
 S'axes'
-p169
+p168
 g14
 sS'blocks'
-p170
-(lp171
-(dp172
+p169
+(lp170
+(dp171
 S'mgr_locs'
-p173
+p172
 c__builtin__
 slice
-p174
+p173
 (I0
 I7
 I1
-tp175
-Rp176
+tp174
+Rp175
 sS'values'
-p177
+p176
 g54
-sasstp178
+sasstp177
 bsb.

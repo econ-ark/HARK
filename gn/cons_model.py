@@ -362,15 +362,23 @@ grant_now = lambda x: IndShockExample.cFunc[t_eval](x+1)
 
 #relax collateral constraint
 example_params = deepcopy(baseline_params)
-example_params['rebate_amt'] = 0
 l = example_params['BoroCnstArt']
 for i in range(len(l)):
     l[i] = -1
+for i in range(40,65):
+    l[i] = 0
 Boro1YrInc = solve_unpack(example_params)
+for i in range(21):
+    l[i] = 0
+BoroAge46 = solve_unpack(example_params)
+for i in range(26):
+    l[i] = 0
+BoroAge51 = solve_unpack(example_params)
 l = example_params['BoroCnstArt']
 for i in range(len(l)):
     l[i] = heloc_L
 Boro_heloc = solve_unpack(example_params)
+
 
 #slide 1.1 -- consumption function out of future wealth
 g = gg_funcs([IndShockExample.cFunc[t_eval]],
@@ -404,6 +412,7 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now,RebateAge46.cFunc[t_eval],
         ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide4")
 ggplot_notebook(g, height=300,width=400)
 
+
 #slide 1.5 -- consumption function out of future wealth
 g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now,RebateAge46.cFunc[t_eval],RebateAge51.cFunc[t_eval],Boro1YrInc.cFunc[t_eval]],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
@@ -418,6 +427,21 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],Boro_heloc.cFunc[t_eval]],
         title = "Consumption Function Out of Wealth & Collateral",
         labels = ["Baseline","HELOC Borrow Limit: " + str(heloc_L)],
         ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_heloc_diag")
+ggplot_notebook(g, height=300,width=400)
+
+#paper plots
+g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now,RebateAge46.cFunc[t_eval],RebateAge51.cFunc[t_eval]],
+        -0.001,3, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Future Wealth",
+        labels = ["Baseline","Grant 0 Years Away","Grant 1 Year Away", "Grant 6 Years Away"],
+        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_wealth")
+ggplot_notebook(g, height=300,width=400)
+
+g = gg_funcs([IndShockExample.cFunc[t_eval],Boro1YrInc.cFunc[t_eval],BoroAge46.cFunc[t_eval],BoroAge51.cFunc[t_eval]],
+        -0.001,3, N=50, loc=robjects.r('c(1,0)'),
+        title = "Consumption Function Out of Future Collateral",
+        labels = ["Baseline","Collateral 0 Years Away","Collateral 1 Year Away", "Collateral 6 Years Away"],
+        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_collateral")
 ggplot_notebook(g, height=300,width=400)
 
 #####################################
