@@ -21,12 +21,22 @@ The first step is to create the ConsumerType we want to solve the model for.
 from ConsIndShockModel import IndShockConsumerType
 
 ## Import the default parameter values
-import ConsumerParameters as Params
+import ConsumerParameters as BasicParams
 
+
+import sys 
+import os
+sys.path.insert(0, os.path.abspath('../cstwMPC'))
+
+import SetupParamsCSTW as cstwParams
+
+
+BaselineExample = IndShockConsumerType(**cstwParams.init_infinite)
+BaselineExample.DiscFac = BasicParams.init_idiosyncratic_shocks['DiscFac']
 ## Now, create an instance of the consumer type using the default parameter values
 ## We create the instance of the consumer type by calling IndShockConsumerType()
 ## We use the default parameter values by passing **Params.init_idiosyncratic_shocks as an argument
-BaselineExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
+#BaselineExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
 
 
 
@@ -71,8 +81,8 @@ TODO: CHANGE PARAMETER VALUES to cstwMPC
 ## Note that another complication with the cycles attribute is that it does not come from 
 ## Params.init_idiosyncratic_shocks.  Instead it is a keyword argument to the  __init__() method of 
 ## IndShockConsumerType.
-BaselineExample.cycles      = 0  
-
+#BaselineExample.cycles      = 0  
+#
 
 
 
@@ -87,18 +97,18 @@ import numpy as np
 ### First solve the baseline example.
 BaselineExample.solve()
 
-### Now simulate
+### Now simulate many periods to get to the stationary distribution
 
-BaselineExample.sim_periods = 500
+BaselineExample.sim_periods = 1000
 BaselineExample.makeIncShkHist()
 BaselineExample.initializeSim()
 BaselineExample.simConsHistory()
     
-# Take last period, assuming we've reached stationarity
-cNrm = BaselineExample.cHist[-1,:]
-pLvl = BaselineExample.pHist[-1,:]
-AgentCount = cNrm.size
-avgC = np.sum(cNrm*pLvl)/AgentCount
+# Now take the information from the last period, assuming we've reached stationarity
+cNrm        = BaselineExample.cHist[-1,:]
+pLvl        = BaselineExample.pHist[-1,:]
+AgentCount  = cNrm.size
+avgC        = np.sum(cNrm*pLvl)/AgentCount
 
 
 
@@ -106,24 +116,80 @@ avgC = np.sum(cNrm*pLvl)/AgentCount
 ####################################################################################################
 ####################################################################################################
 """
-Now, create the functions Matt mentioned
+Now, create functions to change household income volatility in various ways
 """
 from copy import deepcopy
 
+def cChangeAfterVolChange(newVals,paramToChange):
+
+    changesInConsumption = []
+
+    for newVal in newVals:
+
+        # Copy everything from the Baseline Example
+        NewExample = deepcopy(BaselineExample)
+        
+        # Change what we want to change
+        if paramToChange == "PermShkStd":
+            NewExample.PermShkStd = [newVal]
+        elif paramToChange == "TranShkStd":
+            NewExample.TranShkStd = [newVal]
+        elif paramToChange == "UnempPrb":
+            NewExample.UnempPrb = newVal #note, unlike the others, not a list
+        else:
+            raise ValueError,'Invalid parameter to change!'            
+        # Solve the new problem
+        NewExample.updateIncomeProcess()
+        NewExample.solve()
+        
+        # Advance the simulation one period
+        NewExample.advanceIncShks()
+        NewExample.advancecFunc()
+        NewExample.simOnePrd()
+        
+        # Get new consumption
+        newC    = NewExample.cNow
+        newAvgC = np.sum(newC * NewExample.pNow) / AgentCount
+        
+        # Calculate and return the percent change in consumption
+        changeInConsumption = 100. * (newAvgC - avgC) / avgC
+
+        changesInConsumption.append(changeInConsumption)
+
+    return changesInConsumption
 
 
-def Function1(newPermShkStd):
+def cChangeAfterPrmShkChange(newVals):
+    return cChangeAfterVolChange(newVals,"PermShkStd")
 
-    NewExample = deepcopy(BaselineExample)
-    NewExample.PermShkStd = [newPermShkStd]
-    NewExample.updateIncomeProcess()
-    NewExample.solve()
-    NewExample.advanceIncShks()
-    NewExample.advancecFunc()
-    NewExample.simOnePrd()
-    
-    newC = NewExample.cNow
-    newAvgC = np.sum(newC * NewExample.pNow) / AgentCount
-    
-    changeInConsumption = 100. * (newAvgC - avgC) / avgC
-    return changeInConsumption
+def cChangeAfterTranShkChange(newVals):
+    return cChangeAfterVolChange(newVals,"TranShkStd")
+
+def cChangeAfterUnempPrbChange(newVals):
+    return cChangeAfterVolChange(newVals,"UnempPrb")
+
+
+## Now, plot the functions we want
+
+# Import a useful plotting function from HARKutilities
+from HARKutilities import plotFuncs
+import pylab as plt # We need this module to change the y-axis on the graphs
+
+xmin = .01
+xmax = .2
+targetChangeInC = -10.
+
+plt.ylabel('% Change in Consumption')
+plt.hlines(targetChangeInC,xmin,xmax)
+plotFuncs([cChangeAfterPrmShkChange],xmin,xmax,N=5,legend_kwds = {'labels': ["PermShk"]})
+
+plt.ylabel('% Change in Consumption')
+plt.hlines(targetChangeInC,xmin,xmax)
+plotFuncs([cChangeAfterTranShkChange],xmin,xmax,N=5,legend_kwds = {'labels': ["TranShk"]})
+
+
+plt.ylabel('% Change in Consumption')
+plt.hlines(targetChangeInC,xmin,xmax)
+plotFuncs([cChangeAfterUnempPrbChange],xmin,xmax,N=5,legend_kwds = {'labels': ["UnempPrb"]})
+
+
