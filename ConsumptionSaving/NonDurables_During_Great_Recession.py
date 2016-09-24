@@ -2,7 +2,7 @@
 """
 At the onset of the Great Recession, there was a large drop (X%) in consumer spending on 
 non-durables.  Some economists have proffered that this could be attributed to precautionary 
-motives-- a perceived increase in household income volatility induces more saving (less consumption)
+motives-- a perceived increase in household income uncertainty induces more saving (less consumption)
 to protect future consumption against bad income shocks.  How large of an increase in the standard
 deviation of (log) permanent income shocks would be necessary to see an X% drop in consumption in
 one quarter?  What about transitory income shocks?  How high would the perceived unemployment 
@@ -38,12 +38,12 @@ BaselineType = IndShockConsumerType(**cstwParams.init_infinite)
 # in the discount factor.  To prepare to create this ex-ante heterogeneity, first create
 # the desired number of consumer types
 from copy import deepcopy
-ConsumerTypes = []
+consumerTypeList = []
 num_consumer_types = 7
 
 for nn in range(num_consumer_types):
     newType = deepcopy(BaselineType)    
-    ConsumerTypes.append(newType)
+    consumerTypeList.append(newType)
 
 # Now, generate the desired ex-ante heterogeneity, by giving the different consumer types
 # each with their own discount factor
@@ -52,7 +52,7 @@ topDiscFac    = 0.9934
 
 from HARKutilities import approxUniform
 DiscFac_list = approxUniform(N=num_consumer_types,bot=bottomDiscFac,top=topDiscFac)[1]
-cstwMPC.assignBetaDistribution(ConsumerTypes,DiscFac_list)
+cstwMPC.assignBetaDistribution(consumerTypeList,DiscFac_list)
 
 
 
@@ -64,7 +64,7 @@ Now, solve and simulate the model for each consumer type
 """
 import numpy as np
 
-for ConsumerType in ConsumerTypes:
+for ConsumerType in consumerTypeList:
 
     ### First solve the baseline example.
     ConsumerType.solve()
@@ -82,7 +82,7 @@ for ConsumerType in ConsumerTypes:
 #####################################################################################################
 #####################################################################################################
 """
-Now, create functions to change household income volatility in various ways
+Now, create functions to change household income uncertainty in various ways
 """
 
 def calcAvgC(Types):
@@ -104,59 +104,59 @@ def calcAvgC(Types):
     return avgC
         
 
-def cChangeAfterVolChange(consumerTypes,newVals,paramToChange):
+def cChangeAfterUncertaintyChange(consumerTypeList,newVals,paramToChange):
     """
     Function to calculate the change in average consumption after a change in income uncertainty
     
     Inputs:
-        consumerTypes, a list of consumer types
+        consumerTypeList, a list of consumer types
         
         newvals, new values for the income parameters
         
         paramToChange, a string telling the function which part of the income process to change
     """
     changesInConsumption = []
-    oldAvgC = calcAvgC(consumerTypes)
+    oldAvgC = calcAvgC(consumerTypeList)
 
     # Loop through the new values to assign, first assigning them, and then
     # solving and simulating another period with those values
     for newVal in newVals:
 
-        # Copy everything we have from the consumerTypes 
-        NewConsumerTypes = deepcopy(consumerTypes)
+        # Copy everything we have from the consumerTypeList 
+        consumerTypeListNew = deepcopy(consumerTypeList)
           
-        for NewConsumerType in NewConsumerTypes:
+        for consumerTypeNew in consumerTypeListNew:
             # Change what we want to change
             if paramToChange == "PermShkStd":
-                NewConsumerType.PermShkStd = [newVal]
+                consumerTypeNew.PermShkStd = [newVal]
             elif paramToChange == "TranShkStd":
-                NewConsumerType.TranShkStd = [newVal]
+                consumerTypeNew.TranShkStd = [newVal]
             elif paramToChange == "UnempPrb":
-                NewConsumerType.UnempPrb = newVal #note, unlike the others, not a list
+                consumerTypeNew.UnempPrb = newVal #note, unlike the others, not a list
             else:
                 raise ValueError,'Invalid parameter to change!'            
             # Solve the new problem
-            NewConsumerType.updateIncomeProcess()
-            NewConsumerType.solve()
+            consumerTypeNew.updateIncomeProcess()
+            consumerTypeNew.solve()
             
             # Advance the simulation one period
-            NewConsumerType.advanceIncShks()
-            NewConsumerType.advancecFunc()
-            NewConsumerType.simOnePrd()
+            consumerTypeNew.advanceIncShks()
+            consumerTypeNew.advancecFunc()
+            consumerTypeNew.simOnePrd()
 
             # Add the new period to the simulation history
-            NewConsumerType.cHist = np.append(NewConsumerType.cHist,
-                                              NewConsumerType.cNow[np.newaxis,:],
+            consumerTypeNew.cHist = np.append(consumerTypeNew.cHist,
+                                              consumerTypeNew.cNow[np.newaxis,:],
                                               axis=0)
 
-            NewConsumerType.pHist = np.append(NewConsumerType.pHist,
-                                              NewConsumerType.pNow[np.newaxis,:],
+            consumerTypeNew.pHist = np.append(consumerTypeNew.pHist,
+                                              consumerTypeNew.pNow[np.newaxis,:],
                                               axis=0)
         
 
                 
         # Calculate and return the percent change in consumption
-        newAvgC = calcAvgC(NewConsumerTypes)
+        newAvgC = calcAvgC(consumerTypeListNew)
         changeInConsumption = 100. * (newAvgC - oldAvgC) / oldAvgC
 
         changesInConsumption.append(changeInConsumption)
@@ -165,13 +165,13 @@ def cChangeAfterVolChange(consumerTypes,newVals,paramToChange):
 
 ## Define functions that calculate the change in average consumption after income process changes
 def cChangeAfterPrmShkChange(newVals):
-    return cChangeAfterVolChange(ConsumerTypes,newVals,"PermShkStd")
+    return cChangeAfterUncertaintyChange(consumerTypeList,newVals,"PermShkStd")
 
 def cChangeAfterTranShkChange(newVals):
-    return cChangeAfterVolChange(ConsumerTypes,newVals,"TranShkStd")
+    return cChangeAfterUncertaintyChange(consumerTypeList,newVals,"TranShkStd")
 
 def cChangeAfterUnempPrbChange(newVals):
-    return cChangeAfterVolChange(ConsumerTypes,newVals,"UnempPrb")
+    return cChangeAfterUncertaintyChange(consumerTypeList,newVals,"UnempPrb")
 
 
 ## Now, plot the functions we want
