@@ -20,153 +20,158 @@ The first step is to create the ConsumerType we want to solve the model for.
 ## to transitory and permanent income shocks.
 from ConsIndShockModel import IndShockConsumerType
 
-## Import the default parameter values
-import ConsumerParameters as BasicParams
+## Import some things from cstwMPC
 
-
+# First, we need to be able to bring things in from the correct directory
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../cstwMPC'))
 
+# Now, bring in what we need from cstwMPC
+import cstwMPC
 import SetupParamsCSTW as cstwParams
 
+# Now, initialize a baseline consumer type, using the default parameters from the infinite horizon cstwMPC
+BaselineType = IndShockConsumerType(**cstwParams.init_infinite)
 
-BaselineExample = IndShockConsumerType(**cstwParams.init_infinite)
-BaselineExample.DiscFac = BasicParams.init_idiosyncratic_shocks['DiscFac']
-## Now, create an instance of the consumer type using the default parameter values
-## We create the instance of the consumer type by calling IndShockConsumerType()
-## We use the default parameter values by passing **Params.init_idiosyncratic_shocks as an argument
-#BaselineExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
+# The cstwMPC parameters do not define a discount factor, since there is ex-ante heterogeneity
+# in the discount factor.  To prepare to create this ex-ante heterogeneity, first create
+# the desired number of consumer types
+from copy import deepcopy
+ConsumerTypes = []
+num_consumer_types = 7
+
+for nn in range(num_consumer_types):
+    newType = deepcopy(BaselineType)    
+    ConsumerTypes.append(newType)
+
+# Now, generate the desired ex-ante heterogeneity, by giving the different consumer types
+# each with their own discount factor
+bottomDiscFac = 0.9800
+topDiscFac    = 0.9934
+
+from HARKutilities import approxUniform
+DiscFac_list = approxUniform(N=num_consumer_types,bot=bottomDiscFac,top=topDiscFac)[1]
+cstwMPC.assignBetaDistribution(ConsumerTypes,DiscFac_list)
 
 
 
 
-####################################################################################################
-####################################################################################################
-
+#####################################################################################################
+#####################################################################################################
 """
-The next step is to change the values of parameters as we want.
-
-To see all the parameters used in the model, along with their default values, see
-ConsumerParameters.py
-
-Parameter values are stored as attributes of the ConsumerType the values are used for.
-For example, the risk-free interest rate Rfree is stored as BaselineExample.Rfree.
-Because we created BaselineExample using the default parameters values.
-at the moment BaselineExample.Rfree is set to the default value of Rfree (which, at the time
-this demo was written, was 1.03).  Therefore, to change the risk-free interest rate used in 
-BaselineExample to (say) 1.02, all we need to do is:
-
-BaselineExample.Rfree = 1.02
-"""
-
-## Change some parameter values
-"""
-TODO: CHANGE PARAMETER VALUES to cstwMPC
-"""
-
-
-## There is one more parameter value we need to change.  This one is more complicated than the rest.
-## We could solve the problem for a consumer with an infinite horizon of periods that (ex-ante)
-## are all identical.  We could also solve the problem for a consumer with a fininite lifecycle,
-## or for a consumer who faces an infinite horizon of periods that cycle (e.g., a ski instructor
-## facing an infinite series of winters, with lots of income, and summers, with very little income.)
-## The way to differentiate is through the "cycles" attribute, which indicates how often the
-## sequence of periods needs to be solved.  The default value is 1, for a consumer with a finite
-## lifecycle that is only experienced 1 time.  A consumer who lived that life twice in a row, and
-## then died, would have cycles = 2.  But neither is what we want.  Here, we need to set cycles = 0,
-## to tell HARK that we are solving the model for an infinite horizon consumer.
-
-
-## Note that another complication with the cycles attribute is that it does not come from 
-## Params.init_idiosyncratic_shocks.  Instead it is a keyword argument to the  __init__() method of 
-## IndShockConsumerType.
-#BaselineExample.cycles      = 0  
-#
-
-
-
-
-####################################################################################################
-####################################################################################################
-"""
-Now, simulate
+Now, solve and simulate the model for each consumer type
 """
 import numpy as np
 
-### First solve the baseline example.
-BaselineExample.solve()
+for ConsumerType in ConsumerTypes:
 
-### Now simulate many periods to get to the stationary distribution
-
-BaselineExample.sim_periods = 1000
-BaselineExample.makeIncShkHist()
-BaselineExample.initializeSim()
-BaselineExample.simConsHistory()
+    ### First solve the baseline example.
+    ConsumerType.solve()
     
-# Now take the information from the last period, assuming we've reached stationarity
-cNrm        = BaselineExample.cHist[-1,:]
-pLvl        = BaselineExample.pHist[-1,:]
-AgentCount  = cNrm.size
-avgC        = np.sum(cNrm*pLvl)/AgentCount
+    ### Now simulate many periods to get to the stationary distribution
+    
+    ConsumerType.sim_periods = 1000
+    ConsumerType.makeIncShkHist()
+    ConsumerType.initializeSim()
+    ConsumerType.simConsHistory()
 
 
 
 
-####################################################################################################
-####################################################################################################
+#####################################################################################################
+#####################################################################################################
 """
 Now, create functions to change household income volatility in various ways
 """
-from copy import deepcopy
 
-def cChangeAfterVolChange(newVals,paramToChange):
+def calcAvgC(Types):
+    """
+    Function to get average consumption in the economy in last simulated period
+    """
+    numTypes = len(Types)
+    AgentCount = Types[0].cHist[-1,:].size * numTypes
+    cNrm = np.array([0,])
+    pLvl = np.array([0,])
+        
+        
+    for Type in Types:
+        ## Now take the information from the last period, assuming we've reached stationarity
+        cNrm = np.append(cNrm,Type.cHist[-1,:])     
+        pLvl = np.append(pLvl,Type.pHist[-1,:])
 
+    avgC        = np.sum(cNrm*pLvl)/AgentCount
+    return avgC
+        
+
+def cChangeAfterVolChange(consumerTypes,newVals,paramToChange):
+    """
+    Function to calculate the change in average consumption after a change in income uncertainty
+    
+    Inputs:
+        consumerTypes, a list of consumer types
+        
+        newvals, new values for the income parameters
+        
+        paramToChange, a string telling the function which part of the income process to change
+    """
     changesInConsumption = []
+    oldAvgC = calcAvgC(consumerTypes)
 
+    # Loop through the new values to assign, first assigning them, and then
+    # solving and simulating another period with those values
     for newVal in newVals:
 
-        # Copy everything from the Baseline Example
-        NewExample = deepcopy(BaselineExample)
+        # Copy everything we have from the consumerTypes 
+        NewConsumerTypes = deepcopy(consumerTypes)
+          
+        for NewConsumerType in NewConsumerTypes:
+            # Change what we want to change
+            if paramToChange == "PermShkStd":
+                NewConsumerType.PermShkStd = [newVal]
+            elif paramToChange == "TranShkStd":
+                NewConsumerType.TranShkStd = [newVal]
+            elif paramToChange == "UnempPrb":
+                NewConsumerType.UnempPrb = newVal #note, unlike the others, not a list
+            else:
+                raise ValueError,'Invalid parameter to change!'            
+            # Solve the new problem
+            NewConsumerType.updateIncomeProcess()
+            NewConsumerType.solve()
+            
+            # Advance the simulation one period
+            NewConsumerType.advanceIncShks()
+            NewConsumerType.advancecFunc()
+            NewConsumerType.simOnePrd()
+
+            # Add the new period to the simulation history
+            NewConsumerType.cHist = np.append(NewConsumerType.cHist,
+                                              NewConsumerType.cNow[np.newaxis,:],
+                                              axis=0)
+
+            NewConsumerType.pHist = np.append(NewConsumerType.pHist,
+                                              NewConsumerType.pNow[np.newaxis,:],
+                                              axis=0)
         
-        # Change what we want to change
-        if paramToChange == "PermShkStd":
-            NewExample.PermShkStd = [newVal]
-        elif paramToChange == "TranShkStd":
-            NewExample.TranShkStd = [newVal]
-        elif paramToChange == "UnempPrb":
-            NewExample.UnempPrb = newVal #note, unlike the others, not a list
-        else:
-            raise ValueError,'Invalid parameter to change!'            
-        # Solve the new problem
-        NewExample.updateIncomeProcess()
-        NewExample.solve()
-        
-        # Advance the simulation one period
-        NewExample.advanceIncShks()
-        NewExample.advancecFunc()
-        NewExample.simOnePrd()
-        
-        # Get new consumption
-        newC    = NewExample.cNow
-        newAvgC = np.sum(newC * NewExample.pNow) / AgentCount
-        
+
+                
         # Calculate and return the percent change in consumption
-        changeInConsumption = 100. * (newAvgC - avgC) / avgC
+        newAvgC = calcAvgC(NewConsumerTypes)
+        changeInConsumption = 100. * (newAvgC - oldAvgC) / oldAvgC
 
         changesInConsumption.append(changeInConsumption)
 
     return changesInConsumption
 
-
+## Define functions that calculate the change in average consumption after income process changes
 def cChangeAfterPrmShkChange(newVals):
-    return cChangeAfterVolChange(newVals,"PermShkStd")
+    return cChangeAfterVolChange(ConsumerTypes,newVals,"PermShkStd")
 
 def cChangeAfterTranShkChange(newVals):
-    return cChangeAfterVolChange(newVals,"TranShkStd")
+    return cChangeAfterVolChange(ConsumerTypes,newVals,"TranShkStd")
 
 def cChangeAfterUnempPrbChange(newVals):
-    return cChangeAfterVolChange(newVals,"UnempPrb")
+    return cChangeAfterVolChange(ConsumerTypes,newVals,"UnempPrb")
 
 
 ## Now, plot the functions we want
@@ -175,21 +180,36 @@ def cChangeAfterUnempPrbChange(newVals):
 from HARKutilities import plotFuncs
 import pylab as plt # We need this module to change the y-axis on the graphs
 
-xmin = .01
-xmax = .2
+ratio_min = .8 # obviously decreasing uncertainty won't do what we want...
+ratio_max = 10.
 targetChangeInC = -10.
+num_points = 10
+
+## First change the variance of the permanent income shock
+perm_min = BaselineType.PermShkStd[0] * ratio_min
+perm_max = BaselineType.PermShkStd[0] * ratio_max
 
 plt.ylabel('% Change in Consumption')
-plt.hlines(targetChangeInC,xmin,xmax)
-plotFuncs([cChangeAfterPrmShkChange],xmin,xmax,N=5,legend_kwds = {'labels': ["PermShk"]})
+plt.hlines(targetChangeInC,perm_min,perm_max)
+plotFuncs([cChangeAfterPrmShkChange],perm_min,perm_max,N=num_points,legend_kwds = {'labels': ["PermShk"]})
+
+
+## Now change the variance of the temporary income shock
+temp_min = BaselineType.TranShkStd[0] * ratio_min
+temp_max = BaselineType.TranShkStd[0] * ratio_max
 
 plt.ylabel('% Change in Consumption')
-plt.hlines(targetChangeInC,xmin,xmax)
-plotFuncs([cChangeAfterTranShkChange],xmin,xmax,N=5,legend_kwds = {'labels': ["TranShk"]})
+plt.hlines(targetChangeInC,temp_min,temp_max)
+plotFuncs([cChangeAfterTranShkChange],temp_min,temp_max,N=num_points,legend_kwds = {'labels': ["TranShk"]})
 
+
+
+## Now change the probability of unemployment
+unemp_min = BaselineType.UnempPrb * ratio_min
+unemp_max = BaselineType.UnempPrb * ratio_max
 
 plt.ylabel('% Change in Consumption')
-plt.hlines(targetChangeInC,xmin,xmax)
-plotFuncs([cChangeAfterUnempPrbChange],xmin,xmax,N=5,legend_kwds = {'labels': ["UnempPrb"]})
+plt.hlines(targetChangeInC,unemp_min,unemp_max)
+plotFuncs([cChangeAfterUnempPrbChange],unemp_min,unemp_max,N=num_points,legend_kwds = {'labels': ["UnempPrb"]})
 
 
