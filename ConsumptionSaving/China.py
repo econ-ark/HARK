@@ -59,56 +59,64 @@ MrkvArray = np.array([[1.,0.],[ProbGrowthEnds,1.-ProbGrowthEnds]])
 
 import ConsumerParameters as Params
 
-
+#ARE PARAMETERS RIGHT FOR A QUARTERLY MODEL??? DiscFac is .96 -- meaning .96**4., or .85 annually!
 
 init_China_example = deepcopy(Params.init_idiosyncratic_shocks)
 init_China_example['MrkvArray'] = MrkvArray
 
 ChinaExample = MarkovConsumerType(**init_China_example)
 
-ChinaExample.assignParameters(PermGroFac = [np.array([1.,1.06])],
-                              Rfree = np.array(StateCount*[1.03]),
+ChinaExample.assignParameters(PermGroFac = [np.array([1.,1.06])], #needs tobe a list
+                              Rfree  = np.array(StateCount*[1.03]), #neesd tobe an array
+                              LivPrb = [np.array(StateCount*[.98])], #needs tobe a list
                               cycles=0)
 
-UnempPrb = 0.05    # Unemployment probability
 
-IncomeDstnReg = [np.array([1-UnempPrb,UnempPrb]), np.array([1.0,1.0]), np.array([1.0,0.0])]
-IncomeDstn = StateCount*[IncomeDstnReg] # Same simple income distribution in each state
+#    # Interest factor, permanent growth rates, and survival probabilities are constant arrays
+#    SerialUnemploymentExample.Rfree = np.array(4*[SerialUnemploymentExample.Rfree])
+#    SerialUnemploymentExample.PermGroFac = [np.array(4*SerialUnemploymentExample.PermGroFac)]
+#    SerialUnemploymentExample.LivPrb = [SerialUnemploymentExample.LivPrb*np.ones(4)]
 
-
-ChinaExample.IncomeDstn = [IncomeDstn]  
+#MarkovIncomeDstn = StateCount*[ChinaExample.IncomeDstn[0]] # Same simple income distribution in each state
+#
+#"""
+#        IncomeDstn_list : [[np.array]]
+#            A length N list of income distributions in each succeeding Markov
+#            state.  Each income distribution contains three arrays of floats,
+#            representing a discrete approximation to the income process at the
+#            beginning of the succeeding period. Order: event probabilities,
+#            permanent shocks, transitory shocks.
+#"""
+#
+ChinaExample.IncomeDstn = [[ChinaExample.IncomeDstn[0],ChinaExample.IncomeDstn[0]]]
 
 ChinaExample.solve()
-#
-## Make a consumer with serially correlated permanent income growth
-#UnempPrb = 0.05    # Unemployment probability
-#StateCount = 5     # Number of permanent income growth rates
-#Persistence = 0.5  # Probability of getting the same permanent income growth rate next period
-#
-#IncomeDstnReg = [np.array([1-UnempPrb,UnempPrb]), np.array([1.0,1.0]), np.array([1.0,0.0])]
-#IncomeDstn = StateCount*[IncomeDstnReg] # Same simple income distribution in each state
-#
-## Make the state transition array for this type: Persistence probability of remaining in the same state, equiprobable otherwise
-#MrkvArray = Persistence*np.eye(StateCount) + (1.0/StateCount)*(1.0-Persistence)*np.ones((StateCount,StateCount))
-#    
-#    init_serial_growth = copy(Params.init_idiosyncratic_shocks)
-#    init_serial_growth['MrkvArray'] = MrkvArray
-#    SerialGroExample = MarkovConsumerType(**init_serial_growth)
-#    SerialGroExample.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])),    # Same interest factor in each Markov state
-#                                   PermGroFac = [np.array([0.97,0.99,1.01,1.03,1.05])], # Different permanent growth factor in each Markov state
-#                                   LivPrb = [np.array(StateCount*[0.98])],              # Same survival probability in all states
-#                                   cycles = 0)
-       
-#    
-#    # Solve the serially correlated permanent growth shock problem and display the consumption functions
-#    start_time = clock()
-#    SerialGroExample.solve()
-#    end_time = clock()
-#    print('Solving a serially correlated growth consumer took ' + mystr(end_time-start_time) + ' seconds.')
-#    print('Consumption functions for each discrete state:')
-#    plotFuncs(SerialGroExample.solution[0].cFunc,0,10)
-#
-#
-#
-#
+
+
+## Now, simulate
+
+ChinaExample.sim_periods = 1160 #1000 periods to get to steady state, then 40 years of take-off growth
+#ChinaExample.Mrkv_init = np.zeros(ChinaExample.Nagents,dtype=int) #everyone starts off in low-growth state
+
+#### Now, CHOOSE the Markov states we want, rather than simulating them according to agents' perceived probabilities
+ChineseHistory = np.zeros((ChinaExample.sim_periods,ChinaExample.Nagents),dtype=int)
+ChineseHistory[-160:,:] = 1 #high-growth period!
+
+ChinaExample.MrkvHist = ChineseHistory
+ChinaExample.makeIncShkHist()
+ChinaExample.initializeSim()
+ChinaExample.simConsHistory()
+
+
+#        SerialUnemploymentExample.sim_periods = 120
+#        SerialUnemploymentExample.Mrkv_init = np.zeros(SerialUnemploymentExample.Nagents,dtype=int)
+#        SerialUnemploymentExample.makeMrkvHist()
+#        SerialUnemploymentExample.makeIncShkHist()
+#        SerialUnemploymentExample.initializeSim()
+#        SerialUnemploymentExample.simConsHistory()
+
+
+
+
+
 #DONT INVOKE makeMrkvHist, just set it to whatever we want (1000 periods of no growth, then change)

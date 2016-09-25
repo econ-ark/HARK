@@ -767,6 +767,7 @@ class MarkovConsumerType(IndShockConsumerType):
         
         # Store the results and return time to its original flow
         self.MrkvHist = MrkvHist
+        assert False
         if not orig_time:
             self.timeRev()
 
@@ -965,13 +966,14 @@ if __name__ == '__main__':
     end_time = clock()
     print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
+
     plotFuncs(SerialUnemploymentExample.solution[0].cFunc,0,50)
     if SerialUnemploymentExample.vFuncBool:
         print('Value functions for each discrete state:')
         plotFuncs(SerialUnemploymentExample.solution[0].vFunc,5,50)
     
     # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
-    if do_simulation:
+    if True: #do_simulation:
         SerialUnemploymentExample.sim_periods = 120
         SerialUnemploymentExample.Mrkv_init = np.zeros(SerialUnemploymentExample.Nagents,dtype=int)
         SerialUnemploymentExample.makeMrkvHist()
