@@ -66,29 +66,16 @@ init_China_example['MrkvArray'] = MrkvArray
 
 ChinaExample = MarkovConsumerType(**init_China_example)
 
-ChinaExample.assignParameters(PermGroFac = [np.array([1.,1.06])], #needs tobe a list
+ChinaExample.assignParameters(PermGroFac = [np.array([1.,1.06 ** (.25)])], #needs tobe a list
                               Rfree  = np.array(StateCount*[1.03]), #neesd tobe an array
                               LivPrb = [np.array(StateCount*[.98])], #needs tobe a list
                               cycles=0)
 
 
-#    # Interest factor, permanent growth rates, and survival probabilities are constant arrays
-#    SerialUnemploymentExample.Rfree = np.array(4*[SerialUnemploymentExample.Rfree])
-#    SerialUnemploymentExample.PermGroFac = [np.array(4*SerialUnemploymentExample.PermGroFac)]
-#    SerialUnemploymentExample.LivPrb = [SerialUnemploymentExample.LivPrb*np.ones(4)]
+LowGrowthIncomeDstn  = ChinaExample.IncomeDstn[0]
+HighGrowthIncomeDstn = ChinaExample.IncomeDstn[0]
 
-#MarkovIncomeDstn = StateCount*[ChinaExample.IncomeDstn[0]] # Same simple income distribution in each state
-#
-#"""
-#        IncomeDstn_list : [[np.array]]
-#            A length N list of income distributions in each succeeding Markov
-#            state.  Each income distribution contains three arrays of floats,
-#            representing a discrete approximation to the income process at the
-#            beginning of the succeeding period. Order: event probabilities,
-#            permanent shocks, transitory shocks.
-#"""
-#
-ChinaExample.IncomeDstn = [[ChinaExample.IncomeDstn[0],ChinaExample.IncomeDstn[0]]]
+ChinaExample.IncomeDstn = [[LowGrowthIncomeDstn,HighGrowthIncomeDstn]]
 
 ChinaExample.solve()
 
@@ -107,6 +94,11 @@ ChinaExample.makeIncShkHist()
 ChinaExample.initializeSim()
 ChinaExample.simConsHistory()
 
+NatlIncome = np.sum(ChinaExample.aHist * ChinaExample.pHist*(ChinaExample.Rfree[0]) + ChinaExample.pHist,axis=1)
+NatlCons   = np.sum(ChinaExample.cHist * ChinaExample.pHist,axis=1)
+NatlSavingRate = (NatlIncome - NatlCons)/NatlIncome
+#NatlSavingRate = 
+#Y = np.sum(aNrm*pLvl*(Rfree-1) + pLvl), SavingRate = (Y - np.sum(cNrm*pLvl)/Y
 
 #        SerialUnemploymentExample.sim_periods = 120
 #        SerialUnemploymentExample.Mrkv_init = np.zeros(SerialUnemploymentExample.Nagents,dtype=int)

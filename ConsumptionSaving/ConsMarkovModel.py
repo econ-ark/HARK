@@ -767,7 +767,7 @@ class MarkovConsumerType(IndShockConsumerType):
         
         # Store the results and return time to its original flow
         self.MrkvHist = MrkvHist
-        assert False
+
         if not orig_time:
             self.timeRev()
 
@@ -973,7 +973,7 @@ if __name__ == '__main__':
         plotFuncs(SerialUnemploymentExample.solution[0].vFunc,5,50)
     
     # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
-    if True: #do_simulation:
+    if do_simulation:
         SerialUnemploymentExample.sim_periods = 120
         SerialUnemploymentExample.Mrkv_init = np.zeros(SerialUnemploymentExample.Nagents,dtype=int)
         SerialUnemploymentExample.makeMrkvHist()
