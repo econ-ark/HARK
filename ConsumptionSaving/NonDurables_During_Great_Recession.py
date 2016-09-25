@@ -2,7 +2,7 @@
 """
 At the onset of the Great Recession, there was a large drop (X%) in consumer spending on 
 non-durables.  Some economists have proffered that this could be attributed to precautionary 
-motives-- a perceived increase in household income volatility induces more saving (less consumption)
+motives-- a perceived increase in household income uncertainty induces more saving (less consumption)
 to protect future consumption against bad income shocks.  How large of an increase in the standard
 deviation of (log) permanent income shocks would be necessary to see an X% drop in consumption in
 one quarter?  What about transitory income shocks?  How high would the perceived unemployment 
@@ -82,7 +82,7 @@ for ConsumerType in ConsumerTypes:
 #####################################################################################################
 #####################################################################################################
 """
-Now, create functions to change household income volatility in various ways
+Now, create functions to change household income uncertainty in various ways
 """
 
 def calcAvgC(Types):
@@ -104,7 +104,7 @@ def calcAvgC(Types):
     return avgC
         
 
-def cChangeAfterVolChange(consumerTypes,newVals,paramToChange):
+def cChangeAfterUncertaintyChange(consumerTypes,newVals,paramToChange):
     """
     Function to calculate the change in average consumption after a change in income uncertainty
     
@@ -165,13 +165,13 @@ def cChangeAfterVolChange(consumerTypes,newVals,paramToChange):
 
 ## Define functions that calculate the change in average consumption after income process changes
 def cChangeAfterPrmShkChange(newVals):
-    return cChangeAfterVolChange(ConsumerTypes,newVals,"PermShkStd")
+    return cChangeAfterUncertaintyChange(ConsumerTypes,newVals,"PermShkStd")
 
 def cChangeAfterTranShkChange(newVals):
-    return cChangeAfterVolChange(ConsumerTypes,newVals,"TranShkStd")
+    return cChangeAfterUncertaintyChange(ConsumerTypes,newVals,"TranShkStd")
 
 def cChangeAfterUnempPrbChange(newVals):
-    return cChangeAfterVolChange(ConsumerTypes,newVals,"UnempPrb")
+    return cChangeAfterUncertaintyChange(ConsumerTypes,newVals,"UnempPrb")
 
 
 ## Now, plot the functions we want
@@ -180,7 +180,7 @@ def cChangeAfterUnempPrbChange(newVals):
 from HARKutilities import plotFuncs
 import pylab as plt # We need this module to change the y-axis on the graphs
 
-ratio_min = .8 # obviously decreasing uncertainty won't do what we want...
+ratio_min = 1. # obviously decreasing uncertainty won't do what we want...
 ratio_max = 10.
 targetChangeInC = -10.
 num_points = 10
@@ -189,6 +189,7 @@ num_points = 10
 perm_min = BaselineType.PermShkStd[0] * ratio_min
 perm_max = BaselineType.PermShkStd[0] * ratio_max
 
+PUT IN VERTICAL LINE AT DEFAULT VALUE
 plt.ylabel('% Change in Consumption')
 plt.hlines(targetChangeInC,perm_min,perm_max)
 plotFuncs([cChangeAfterPrmShkChange],perm_min,perm_max,N=num_points,legend_kwds = {'labels': ["PermShk"]})
@@ -207,6 +208,11 @@ plotFuncs([cChangeAfterTranShkChange],temp_min,temp_max,N=num_points,legend_kwds
 ## Now change the probability of unemployment
 unemp_min = BaselineType.UnempPrb * ratio_min
 unemp_max = BaselineType.UnempPrb * ratio_max
+
+MAKE SURE ADVANCE INC SHOCK WORKS FOR THIS
+IS THERE A MEAN PRESERVING SPREAD IN THE INCOME??  DO HIGH INCOME PPL EARN LOTS?
+
+ALSO MAKE SAME VERTICAL AXIS FOR ALL GRAPHS.  FROM 5 to -20.  OR SOMETHING.  SAME FOR ALL.
 
 plt.ylabel('% Change in Consumption')
 plt.hlines(targetChangeInC,unemp_min,unemp_max)
