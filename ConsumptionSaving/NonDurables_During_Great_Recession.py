@@ -1,4 +1,3 @@
-
 """
 At the onset of the Great Recession, there was a large drop (X%) in consumer spending on 
 non-durables.  Some economists have proffered that this could be attributed to precautionary 
@@ -31,10 +30,16 @@ sys.path.insert(0, os.path.abspath('../cstwMPC'))
 import cstwMPC
 import SetupParamsCSTW as cstwParams
 
-#cstwParams.init_infite['Nagents'] = 5000
+# Note if we change Nagents, we need to change it here, before it is passed, because the constructor uses Nagents to construct p_init etc
+#cstwParams.init_infinite['Nagents'] = 10000 
+
 # Now, initialize a baseline consumer type, using the default parameters from the infinite horizon cstwMPC
 BaselineType = IndShockConsumerType(**cstwParams.init_infinite)
-BaselineType.Nagents = 5000
+BaselineType.seed = 212
+
+#assert False
+#BaselineType.Nagents = 5000
+#BaselineType.sim_pop_size = 5001
 
 # The cstwMPC parameters do not define a discount factor, since there is ex-ante heterogeneity
 # in the discount factor.  To prepare to create this ex-ante heterogeneity, first create
@@ -47,13 +52,16 @@ for nn in range(num_consumer_types):
     newType = deepcopy(BaselineType)    
     ConsumerTypes.append(newType)
 
-# Now, generate the desired ex-ante heterogeneity, by giving the different consumer types
-# each with their own discount factor
-bottomDiscFac = 0.9800
-topDiscFac    = .9834 #0.9934
+## Now, generate the desired ex-ante heterogeneity, by giving the different consumer types
+## each with their own discount factor
 
+# First, decide the discount factors to assign
+bottomDiscFac = 0.9800
+topDiscFac    = 0.9934 #.9834
 from HARKutilities import approxUniform
 DiscFac_list = approxUniform(N=num_consumer_types,bot=bottomDiscFac,top=topDiscFac)[1]
+
+# Now, assign the discount factors we want
 cstwMPC.assignBetaDistribution(ConsumerTypes,DiscFac_list)
 
 
@@ -64,7 +72,6 @@ cstwMPC.assignBetaDistribution(ConsumerTypes,DiscFac_list)
 """
 Now, solve and simulate the model for each consumer type
 """
-import numpy as np
 
 for ConsumerType in ConsumerTypes:
 
@@ -74,7 +81,6 @@ for ConsumerType in ConsumerTypes:
     ### Now simulate many periods to get to the stationary distribution
     
     ConsumerType.sim_periods = 1000
-    assert False
     ConsumerType.makeIncShkHist()
     ConsumerType.initializeSim()
     ConsumerType.simConsHistory()
@@ -87,6 +93,7 @@ for ConsumerType in ConsumerTypes:
 """
 Now, create functions to change household income uncertainty in various ways
 """
+import numpy as np
 
 def calcAvgC(Types):
     """
@@ -128,7 +135,7 @@ def cChangeAfterUncertaintyChange(consumerTypes,newVals,paramToChange):
         # Copy everything we have from the consumerTypes 
         NewConsumerTypes = deepcopy(consumerTypes)
           
-        for NewConsumerType in NewConsumerTypes:
+        for index,NewConsumerType in enumerate(NewConsumerTypes):
             # Change what we want to change
             if paramToChange == "PermShkStd":
                 NewConsumerType.PermShkStd = [newVal]
@@ -143,24 +150,19 @@ def cChangeAfterUncertaintyChange(consumerTypes,newVals,paramToChange):
             NewConsumerType.solve()
             
             # Advance the simulation one period
-#            NewConsumerType.Shk_idx = ConsumerType.sim_periods - 1          
-#            NewConsumerType.advanceIncShks()
-#            NewConsumerType.advancecFunc()
-#            NewConsumerType.simOnePrd()
-
-            assert False
             NewConsumerType.sim_periods = 1
             NewConsumerType.makeIncShkHist()
-            NewConsumerType.initializeSim(a_init=ConsumerType.aHist[-1:,:],p_init=ConsumerType.pHist[-1,:])
+            NewConsumerType.initializeSim(a_init=ConsumerTypes[index].aHist[-1:,:],
+                                          p_init=ConsumerTypes[index].pHist[-1,:])
             NewConsumerType.simConsHistory()
 
             # Add the new period to the simulation history
 
-            NewConsumerType.cHist = np.append(ConsumerType.cHist,
+            NewConsumerType.cHist = np.append(ConsumerTypes[index].cHist,
                                               NewConsumerType.cNow, #cNow has shape (N,1)
                                               axis=0)
 
-            NewConsumerType.pHist = np.append(ConsumerType.pHist,
+            NewConsumerType.pHist = np.append(ConsumerTypes[index].pHist,
                                               NewConsumerType.pNow[np.newaxis,:], #pNow has shape (N,)
                                               axis=0)
         
@@ -171,7 +173,7 @@ def cChangeAfterUncertaintyChange(consumerTypes,newVals,paramToChange):
         changeInConsumption = 100. * (newAvgC - oldAvgC) / oldAvgC
 
         changesInConsumption.append(changeInConsumption)
-    assert False
+
     return changesInConsumption
 
 ## Define functions that calculate the change in average consumption after income process changes
