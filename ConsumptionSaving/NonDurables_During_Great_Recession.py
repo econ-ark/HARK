@@ -39,7 +39,7 @@ BaselineType = IndShockConsumerType(**cstwParams.init_infinite)
 # the desired number of consumer types
 from copy import deepcopy
 ConsumerTypes = []
-num_consumer_types = 7
+num_consumer_types = 3 #7
 
 for nn in range(num_consumer_types):
     newType = deepcopy(BaselineType)    
@@ -48,7 +48,7 @@ for nn in range(num_consumer_types):
 # Now, generate the desired ex-ante heterogeneity, by giving the different consumer types
 # each with their own discount factor
 bottomDiscFac = 0.9800
-topDiscFac    = 0.9934
+topDiscFac    = .9834 #0.9934
 
 from HARKutilities import approxUniform
 DiscFac_list = approxUniform(N=num_consumer_types,bot=bottomDiscFac,top=topDiscFac)[1]
@@ -140,17 +140,25 @@ def cChangeAfterUncertaintyChange(consumerTypes,newVals,paramToChange):
             NewConsumerType.solve()
             
             # Advance the simulation one period
-            NewConsumerType.advanceIncShks()
-            NewConsumerType.advancecFunc()
-            NewConsumerType.simOnePrd()
+#            NewConsumerType.Shk_idx = ConsumerType.sim_periods - 1          
+#            NewConsumerType.advanceIncShks()
+#            NewConsumerType.advancecFunc()
+#            NewConsumerType.simOnePrd()
+
+
+            NewConsumerType.sim_periods = 1
+            NewConsumerType.makeIncShkHist()
+            NewConsumerType.initializeSim(a_init=ConsumerType.aHist[-1:,:],p_init=ConsumerType.pHist[-1,:])
+            NewConsumerType.simConsHistory()
 
             # Add the new period to the simulation history
-            NewConsumerType.cHist = np.append(NewConsumerType.cHist,
-                                              NewConsumerType.cNow[np.newaxis,:],
+
+            NewConsumerType.cHist = np.append(ConsumerType.cHist,
+                                              NewConsumerType.cNow, #cNow has shape (N,1)
                                               axis=0)
 
-            NewConsumerType.pHist = np.append(NewConsumerType.pHist,
-                                              NewConsumerType.pNow[np.newaxis,:],
+            NewConsumerType.pHist = np.append(ConsumerType.pHist,
+                                              NewConsumerType.pNow[np.newaxis,:], #pNow has shape (N,)
                                               axis=0)
         
 
@@ -160,7 +168,7 @@ def cChangeAfterUncertaintyChange(consumerTypes,newVals,paramToChange):
         changeInConsumption = 100. * (newAvgC - oldAvgC) / oldAvgC
 
         changesInConsumption.append(changeInConsumption)
-
+    assert False
     return changesInConsumption
 
 ## Define functions that calculate the change in average consumption after income process changes
@@ -189,8 +197,8 @@ num_points = 10
 perm_min = BaselineType.PermShkStd[0] * ratio_min
 perm_max = BaselineType.PermShkStd[0] * ratio_max
 
-PUT IN VERTICAL LINE AT DEFAULT VALUE
 plt.ylabel('% Change in Consumption')
+plt.ylim(-20.,5.)
 plt.hlines(targetChangeInC,perm_min,perm_max)
 plotFuncs([cChangeAfterPrmShkChange],perm_min,perm_max,N=num_points,legend_kwds = {'labels': ["PermShk"]})
 
@@ -200,6 +208,7 @@ temp_min = BaselineType.TranShkStd[0] * ratio_min
 temp_max = BaselineType.TranShkStd[0] * ratio_max
 
 plt.ylabel('% Change in Consumption')
+plt.ylim(-20.,5.)
 plt.hlines(targetChangeInC,temp_min,temp_max)
 plotFuncs([cChangeAfterTranShkChange],temp_min,temp_max,N=num_points,legend_kwds = {'labels': ["TranShk"]})
 
@@ -209,12 +218,8 @@ plotFuncs([cChangeAfterTranShkChange],temp_min,temp_max,N=num_points,legend_kwds
 unemp_min = BaselineType.UnempPrb * ratio_min
 unemp_max = BaselineType.UnempPrb * ratio_max
 
-MAKE SURE ADVANCE INC SHOCK WORKS FOR THIS
-IS THERE A MEAN PRESERVING SPREAD IN THE INCOME??  DO HIGH INCOME PPL EARN LOTS?
-
-ALSO MAKE SAME VERTICAL AXIS FOR ALL GRAPHS.  FROM 5 to -20.  OR SOMETHING.  SAME FOR ALL.
-
 plt.ylabel('% Change in Consumption')
+plt.ylim(-20.,5.)
 plt.hlines(targetChangeInC,unemp_min,unemp_max)
 plotFuncs([cChangeAfterUnempPrbChange],unemp_min,unemp_max,N=num_points,legend_kwds = {'labels': ["UnempPrb"]})
 
