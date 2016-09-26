@@ -31,8 +31,10 @@ sys.path.insert(0, os.path.abspath('../cstwMPC'))
 import cstwMPC
 import SetupParamsCSTW as cstwParams
 
+#cstwParams.init_infite['Nagents'] = 5000
 # Now, initialize a baseline consumer type, using the default parameters from the infinite horizon cstwMPC
 BaselineType = IndShockConsumerType(**cstwParams.init_infinite)
+BaselineType.Nagents = 5000
 
 # The cstwMPC parameters do not define a discount factor, since there is ex-ante heterogeneity
 # in the discount factor.  To prepare to create this ex-ante heterogeneity, first create
@@ -72,6 +74,7 @@ for ConsumerType in ConsumerTypes:
     ### Now simulate many periods to get to the stationary distribution
     
     ConsumerType.sim_periods = 1000
+    assert False
     ConsumerType.makeIncShkHist()
     ConsumerType.initializeSim()
     ConsumerType.simConsHistory()
@@ -145,7 +148,7 @@ def cChangeAfterUncertaintyChange(consumerTypes,newVals,paramToChange):
 #            NewConsumerType.advancecFunc()
 #            NewConsumerType.simOnePrd()
 
-
+            assert False
             NewConsumerType.sim_periods = 1
             NewConsumerType.makeIncShkHist()
             NewConsumerType.initializeSim(a_init=ConsumerType.aHist[-1:,:],p_init=ConsumerType.pHist[-1,:])
