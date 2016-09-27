@@ -57,7 +57,7 @@ import numpy as np
 StateCount                      = 2 # just a low-growth state, and a high-growth state
 ProbGrowthEnds                  = (1./160.)
 MrkvArray                       = np.array([[1.,0.],[ProbGrowthEnds,1.-ProbGrowthEnds]])
-init_China_parameters['Nagents']   = 1000 #10000
+init_China_parameters['Nagents']   = 10000
 init_China_parameters['MrkvArray'] = MrkvArray
 
 ### Import the HARK ConsumerType we want 
@@ -85,7 +85,7 @@ ChinaExample.assignParameters(PermGroFac = [np.array([1.,1.06 ** (.25)])], #need
 # the desired number of consumer types
 
 ChineseConsumerTypes = []
-num_consumer_types = 3 #7
+num_consumer_types = 7
 
 for nn in range(num_consumer_types):
     newType = deepcopy(ChinaExample)    
@@ -97,9 +97,6 @@ for nn in range(num_consumer_types):
 # First, decide the discount factors to assign
 bottomDiscFac = 0.9800
 topDiscFac    = 0.9934 
-
-#bottomDiscFac = 0.9200
-#topDiscFac    = 0.9234 
 
 from HARKutilities import approxUniform
 DiscFac_list = approxUniform(N=num_consumer_types,bot=bottomDiscFac,top=topDiscFac)[1]
@@ -245,18 +242,23 @@ periods_before_start = 5
 x = np.arange(-periods_before_start,160,1)
 
 NatlSavingsRates = []
+PermShkVarMultipliers = (1.,2.,4.,8.,11.)
 
 
-
-for PermShkVarMultiplier in (1.,2.,4.,8.,11.):
+for PermShkVarMultiplier in PermShkVarMultipliers:
     NatlSavingsRates.append(calcNatlSavingRate(PermShkVarMultiplier)[-160 - periods_before_start:])
 
 plt.ylabel('Natl Savings Rate')
 plt.xlabel('Quarters Since Growth Surge')
-plt.legend(label = ["1","2","4","8","11"])
-plt.plot(x,NatlSavingsRates[0],x,NatlSavingsRates[1],x,NatlSavingsRates[2],x,NatlSavingsRates[3],x,NatlSavingsRates[4])
+plt.title('test')
+plt.plot(x,NatlSavingsRates[0],label=str(PermShkVarMultipliers[0]))
+plt.plot(x,NatlSavingsRates[1],label=str(PermShkVarMultipliers[1]))
+plt.plot(x,NatlSavingsRates[2],label=str(PermShkVarMultipliers[2]))
+plt.plot(x,NatlSavingsRates[3],label=str(PermShkVarMultipliers[3]))
+plt.plot(x,NatlSavingsRates[4],label=str(PermShkVarMultipliers[4]))
+plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+           ncol=2, mode="expand", borderaxespad=0.) #put the legend on top
 
-#,x,NatlSavingsRates[4])
 
 
 #put what happens after growth stops in back pocket]
