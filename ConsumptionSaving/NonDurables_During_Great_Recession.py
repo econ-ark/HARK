@@ -30,16 +30,8 @@ sys.path.insert(0, os.path.abspath('../cstwMPC'))
 import cstwMPC
 import SetupParamsCSTW as cstwParams
 
-# Note if we change Nagents, we need to change it here, before it is passed, because the constructor uses Nagents to construct p_init etc
-#cstwParams.init_infinite['Nagents'] = 10000 
-
 # Now, initialize a baseline consumer type, using the default parameters from the infinite horizon cstwMPC
 BaselineType = IndShockConsumerType(**cstwParams.init_infinite)
-BaselineType.seed = 212
-
-#assert False
-#BaselineType.Nagents = 5000
-#BaselineType.sim_pop_size = 5001
 
 # The cstwMPC parameters do not define a discount factor, since there is ex-ante heterogeneity
 # in the discount factor.  To prepare to create this ex-ante heterogeneity, first create
@@ -57,7 +49,7 @@ for nn in range(num_consumer_types):
 
 # First, decide the discount factors to assign
 bottomDiscFac = 0.9800
-topDiscFac    = 0.9934 #.9834
+topDiscFac    = 0.9934 
 from HARKutilities import approxUniform
 DiscFac_list = approxUniform(N=num_consumer_types,bot=bottomDiscFac,top=topDiscFac)[1]
 
