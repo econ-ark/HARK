@@ -130,7 +130,7 @@ LowGrowth_PermShkStd = IncomeParams.PermShkStd
 
 
 
-def calcNatlSavingRate(PrmShkVar_multiplier):
+def calcNatlSavingRate(PrmShkVar_multiplier,RNG_seed = 0):
 
     # First, make a deepcopy of the ChineseConsumerTypes, because we are going to alter them
     NewChineseConsumerTypes = deepcopy(ChineseConsumerTypes)
@@ -146,7 +146,7 @@ def calcNatlSavingRate(PrmShkVar_multiplier):
     NatlIncome = 0.
     NatlCons   = 0.
 
-    RNG_seed = 0
+
 
     for NewChineseConsumerType in NewChineseConsumerTypes:
         ### For each consumer type (i.e. each discount factor), calculate total income and consumption
@@ -244,9 +244,10 @@ x = np.arange(-periods_before_start,160,1)
 NatlSavingsRates = []
 PermShkVarMultipliers = (1.,2.,4.,8.,11.)
 
-
+index = 0
 for PermShkVarMultiplier in PermShkVarMultipliers:
-    NatlSavingsRates.append(calcNatlSavingRate(PermShkVarMultiplier)[-160 - periods_before_start:])
+    NatlSavingsRates.append(calcNatlSavingRate(PermShkVarMultiplier,RNG_seed = index)[-160 - periods_before_start:])
+    index +=1
 
 plt.ylabel('Natl Savings Rate')
 plt.xlabel('Quarters Since Growth Surge')
