@@ -17,12 +17,12 @@ The first step is to create the ConsumerType we want to solve the model for.
 
 ## Import some things from cstwMPC
 
-# First, we need to be able to bring things in from the correct directory
+# The first step is to be able to bring things in from different directories
 import sys 
 import os
-sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../')) #Path to ConsumptionSaving folder
 sys.path.insert(0, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('../../cstwMPC'))
+sys.path.insert(0, os.path.abspath('../../cstwMPC')) #Path to cstwMPC folder
 
 
 ## Import the HARK ConsumerType we want 
@@ -38,14 +38,27 @@ import SetupParamsCSTW as cstwParams
 # Now, initialize a baseline consumer type, using the default parameters from the infinite horizon cstwMPC
 BaselineType = IndShockConsumerType(**cstwParams.init_infinite)
 
+####################################################################################################
+####################################################################################################
+"""
+Now, add in ex-ante heterogeneity in consumers' discount factors
+"""
+
+
+
 # The cstwMPC parameters do not define a discount factor, since there is ex-ante heterogeneity
 # in the discount factor.  To prepare to create this ex-ante heterogeneity, first create
 # the desired number of consumer types
 from copy import deepcopy
-ConsumerTypes = []
-num_consumer_types = 3 #7
+#ConsumerTypes = []
+#num_consumer_types = 7
+
+
+num_consumer_types   = 7 # declare the number of types we want
+ConsumerTypes = [] # initialize an empty list
 
 for nn in range(num_consumer_types):
+    # Now create the types, and append them to the list ConsumerTypes
     newType = deepcopy(BaselineType)    
     ConsumerTypes.append(newType)
 
@@ -116,11 +129,9 @@ def cChangeAfterUncertaintyChange(consumerTypes,newVals,paramToChange):
     Function to calculate the change in average consumption after a change in income uncertainty
     
     Inputs:
-        consumerTypes, a list of consumer types
-        
-        newvals, new values for the income parameters
-        
-        paramToChange, a string telling the function which part of the income process to change
+        * consumerTypes, a list of consumer types
+        * newvals, new values for the income parameters
+        * paramToChange, a string telling the function which part of the income process to change
     """
     changesInConsumption = []
     oldAvgC = calcAvgC(consumerTypes)
