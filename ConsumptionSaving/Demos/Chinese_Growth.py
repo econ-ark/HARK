@@ -37,14 +37,16 @@ prepare the parameters to create that ConsumerType, and then create it.
 # The first step is to be able to bring things in from the correct directory
 import sys 
 import os
-sys.path.insert(0, os.path.abspath('../cstwMPC'))
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../../'))
+sys.path.insert(0, os.path.abspath('../../cstwMPC'))
+
 
 # Now, bring in what we need from cstwMPC
 import cstwMPC
 import SetupParamsCSTW as cstwParams
-
-
 from copy import deepcopy
+
 init_China_parameters = deepcopy(cstwParams.init_infinite)
 
 ### Now, change the parameters as necessary
@@ -55,17 +57,23 @@ import numpy as np
 StateCount                      = 2 # just a low-growth state, and a high-growth state
 ProbGrowthEnds                  = (1./160.)
 MrkvArray                       = np.array([[1.,0.],[ProbGrowthEnds,1.-ProbGrowthEnds]])
-init_China_example['MrkvArray'] = MrkvArray
+init_China_parameters['MrkvArray'] = MrkvArray
 
-## Import the HARK ConsumerType we want 
-## Here, we bring in an agent making a consumption/savings decision every period, subject
-## to transitory and permanent income shocks, AND a Markov shock
+#assert False
+### Import the HARK ConsumerType we want 
+### Here, we bring in an agent making a consumption/savings decision every period, subject
+### to transitory and permanent income shocks, AND a Markov shock
+
 from ConsMarkovModel import MarkovConsumerType
-ChinaExample = MarkovConsumerType(**init_China_example)
+ChinaExample = MarkovConsumerType(**init_China_parameters)
+
+# Currently, Markov states can differ in their interest factor, permanent growth factor, 
+# survival probability (???), and income distribution.  Each of these needs to be specifically set.  
+# Do that here, except income distribution.  That will be done later.
 
 ChinaExample.assignParameters(PermGroFac = [np.array([1.,1.06 ** (.25)])], #needs to be a list, with 0th element of shape of shape (StateCount,)
-                              Rfree      = np.array(StateCount*[init_China_example['Rfree']]), #need to be an array, of shape (StateCount,)
-                              LivPrb     = [np.array(StateCount*[init_China_example['LivPrb']][0])], #needs to be a list, with 0th element of shape of shape (StateCount,)
+                              Rfree      = np.array(StateCount*[init_China_parameters['Rfree']]), #need to be an array, of shape (StateCount,)
+                              LivPrb     = [np.array(StateCount*[init_China_parameters['LivPrb']][0])], #needs to be a list, with 0th element of shape of shape (StateCount,)
                               cycles     = 0)
 
 
@@ -89,6 +97,10 @@ for nn in range(num_consumer_types):
 # First, decide the discount factors to assign
 bottomDiscFac = 0.9800
 topDiscFac    = 0.9934 
+
+#bottomDiscFac = 0.9200
+#topDiscFac    = 0.9234 
+
 from HARKutilities import approxUniform
 DiscFac_list = approxUniform(N=num_consumer_types,bot=bottomDiscFac,top=topDiscFac)[1]
 
@@ -102,6 +114,11 @@ cstwMPC.assignBetaDistribution(ChineseConsumerTypes,DiscFac_list)
 ####################################################################################################
 """
 Now, write the function to do the experiment
+
+Recall that all parameters have been assigned appropriately, except for the income process.
+
+This is because we want to see how much uncertainty needs to accompany the high-growth state
+to generate the high savings rate.
 """
 
 
@@ -116,20 +133,35 @@ import ConsumerParameters as HighGrowthIncomeParams
 
 
 def calcNatlSavingRate(multiplier):
+
+    # First, make a deepcopy of the ChineseConsumerTypes, because we are going to alter them
     NewChineseConsumerTypes = deepcopy(ChineseConsumerTypes)
 
+    # Set the uncertainty in the high-growth state to the desired amount
     HighGrowthIncomeParams.PermShkStd = [LowGrowthIncomeParams.PermShkStd[0] * multiplier] 
 
+    # Construct the appropriate income distributions
     LowGrowthIncomeDstn  = constructLognormalIncomeProcessUnemployment(LowGrowthIncomeParams)[0][0]
     HighGrowthIncomeDstn = constructLognormalIncomeProcessUnemployment(HighGrowthIncomeParams)[0][0]
 
+    # Initialize national income/consumption
     NatlIncome = 0.
     NatlCons   = 0.
 
+    RNG_seed = 0
+
     for NewChineseConsumerType in NewChineseConsumerTypes:
+        ### For each consumer type (i.e. each discount factor), calculate total income and consumption
+
+        
+        # First give each ConsumerType their own random number seed
+        RNG_seed += 17
+        NewChineseConsumerType.seed  = RNG_seed
+        
+
+
+        # Start by setting the income distribution appropriately        
         NewChineseConsumerType.IncomeDstn = [[LowGrowthIncomeDstn,HighGrowthIncomeDstn]]
-
-
 
 
         ####################################################################################################
@@ -139,7 +171,7 @@ def calcNatlSavingRate(multiplier):
         """
         
         NewChineseConsumerType.solve()
-        
+        NewChineseConsumerType.solution[0].cFunc[0]
         ####################################################################################################
         """
         Now we are ready to simulate.
@@ -165,7 +197,8 @@ def calcNatlSavingRate(multiplier):
         #ChinaExample.makeMrkvHist()
         
         # Declare the history for China that we are interested in
-        ChineseHistory          = np.zeros((NewChineseConsumerType.sim_periods,NewChineseConsumerType.Nagents),dtype=int)
+        ChineseHistory          = np.zeros((NewChineseConsumerType.sim_periods,
+                                            NewChineseConsumerType.Nagents),dtype=int)
         ChineseHistory[-160:,:] = 1 #high-growth period!
         NewChineseConsumerType.MrkvHist   = ChineseHistory
         
@@ -183,12 +216,41 @@ def calcNatlSavingRate(multiplier):
         
         
         
-        NatlIncome     += np.sum(NewChineseConsumerType.aHist * NewChineseConsumerType.pHist*(NewChineseConsumerType.Rfree[0]) + NewChineseConsumerType.pHist,axis=1)
+        NatlIncome     += np.sum((NewChineseConsumerType.aHist * NewChineseConsumerType.pHist*
+                                (NewChineseConsumerType.Rfree[0] - 1.)) + NewChineseConsumerType.pHist,axis=1)
+        
+        
         NatlCons       += np.sum(NewChineseConsumerType.cHist * NewChineseConsumerType.pHist,axis=1)
+
+        
+
     NatlSavingRate = (NatlIncome - NatlCons)/NatlIncome
 
 
     return NatlSavingRate
+
+
+####################################################################################################
+####################################################################################################
+"""
+Now, run the experiment and plot the results
+"""
+import pylab as plt
+
+max_increase = 11. #from Spinal Tap
+
+periods_before_start = 5
+
+x = np.arange(-periods_before_start,160,1)
+
+NatlSavingsRates = []
+
+for PermShkStdMultiplier in (1.,2.,4.,8.,11.):
+    NatlSavingsRates.append(calcNatlSavingRate(PermShkStdMultiplier)[-160 - periods_before_start:])
+
+plt.plot(x,NatlSavingsRates[0],x,NatlSavingsRates[1],x,NatlSavingsRates[2],x,NatlSavingsRates[3])
+
+#,x,NatlSavingsRates[4])
 
 
 #put what happens after growth stops in back pocket]
