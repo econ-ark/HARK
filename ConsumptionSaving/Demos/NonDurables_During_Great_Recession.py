@@ -187,7 +187,7 @@ import pylab as plt # We need this module to change the y-axis on the graphs
 
 ratio_min = 1. # obviously decreasing uncertainty won't do what we want...
 ratio_max = 10.
-targetChangeInC = -10.
+targetChangeInC = -6.32 # Source: FRED
 num_points = 10
 
 ## First change the variance of the permanent income shock

@@ -8,11 +8,9 @@ agent increased"), the next exercise may reassure you.  It is designed to show t
 limits to the phenomena that can be explained by invoking uncertainty.
  
 It asks "what beliefs about uncertainty would Chinese consumers need to hold in order to generate a
-saving rate of 25%"?
+saving rate of 25%, given the rapid pace of Chinese growth"?
 
-baseline: china in 1978.  social safety net disappears right when growth rate surges.
-
-theory: huge jump upwards when you increase uncertainty, then decline over time
+Theory: huge jump upwards when you increase uncertainty, then decline over time
 really: opposite!
 
 """
@@ -23,81 +21,61 @@ really: opposite!
 ####################################################################################################
 """
 The first step is to create the ConsumerType we want to solve the model for.
+
+In our experiment, consumers will live in a stationary, low-growth environment (intended to 
+approximate China before 1978).  Then, unexpectedly, income growth will surge at the same time
+that income uncertainty increases (intended to approximate the effect of economic reforms in China
+since 1978.)  Consumers believe high-growth, high-uncertainty state is highly persistent, but
+temporary.
+
+HARK's Markov ConsumerType will be a very convient way to run this experiment.  So we need to
+prepare the parameters to create that ConsumerType, and then create it.
 """
 
-## Import the HARK ConsumerType we want 
-## Here, we bring in an agent making a consumption/savings decision every period, subject
-## to transitory and permanent income shocks, AND a Markov shock
-from ConsMarkovModel import MarkovConsumerType
-import numpy as np
-from copy import deepcopy
+### First bring in default parameter values from cstwPMC.  We will change these as necessary.
 
-# First bring in default parameter values
-# First, we need to be able to bring things in from the correct directory
+# The first step is to be able to bring things in from the correct directory
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../cstwMPC'))
 
 # Now, bring in what we need from cstwMPC
-#import cstwMPC
-#import SetupParamsCSTW as cstwParams
-#import SetupParamsCSTW as HighGrowthParams
+import cstwMPC
+import SetupParamsCSTW as cstwParams
 
-import ConsumerParameters as LowGrowthIncomeParams
-import ConsumerParameters as HighGrowthIncomeParams
-import ConsumerParameters as Params
 
-#import SetupParamsCSTW as LowGrowthIncomeParams
-#import SetupParamsCSTW as HighGrowthIncomeParams
+from copy import deepcopy
+init_China_parameters = deepcopy(cstwParams.init_infinite)
 
-cstwParams.init_infinite['Nagents'] = 500
-#init_China_example = deepcopy(cstwParams.init_infinite)
-init_China_example = deepcopy(Params.init_idiosyncratic_shocks)
+### Now, change the parameters as necessary
 
 # Declare some other important variables
-StateCount     = 2 # just a low-growth state, and a high-growth state
-ProbGrowthEnds = (1./160.)
-MrkvArray      = np.array([[1.,0.],[ProbGrowthEnds,1.-ProbGrowthEnds]])
+import numpy as np
+
+StateCount                      = 2 # just a low-growth state, and a high-growth state
+ProbGrowthEnds                  = (1./160.)
+MrkvArray                       = np.array([[1.,0.],[ProbGrowthEnds,1.-ProbGrowthEnds]])
 init_China_example['MrkvArray'] = MrkvArray
 
-
+## Import the HARK ConsumerType we want 
+## Here, we bring in an agent making a consumption/savings decision every period, subject
+## to transitory and permanent income shocks, AND a Markov shock
+from ConsMarkovModel import MarkovConsumerType
 ChinaExample = MarkovConsumerType(**init_China_example)
 
-ChinaExample.assignParameters(PermGroFac = [np.array([1.,1.06 ** (.25)])], #needs tobe a list
-                              Rfree      = np.array(StateCount*[ChinaExample.Rfree]), #neesd tobe an array
-                              LivPrb     = [np.array(StateCount*[ChinaExample.LivPrb])], #needs tobe a list
+ChinaExample.assignParameters(PermGroFac = [np.array([1.,1.06 ** (.25)])], #needs to be a list, with 0th element of shape of shape (StateCount,)
+                              Rfree      = np.array(StateCount*[init_China_example['Rfree']]), #need to be an array, of shape (StateCount,)
+                              LivPrb     = [np.array(StateCount*[init_China_example['LivPrb']][0])], #needs to be a list, with 0th element of shape of shape (StateCount,)
                               cycles     = 0)
 
 
-
-
-from ConsIndShockModel import constructLognormalIncomeProcessUnemployment
-
-LowGrowthIncomeDstn  = ChinaExample.IncomeDstn[0]
-
-
-#LowGrowthIncomeDstn  = constructLognormalIncomeProcessUnemployment(LowGrowthIncomeParams)[0][0]
-#HighGrowthIncomeDstn = constructLognormalIncomeProcessUnemployment(HighGrowthIncomeParams)[0][0]
-
-ChinaExample.DiscFac = .97
-ChinaExample.IncomeDstn = [[LowGrowthIncomeDstn ,LowGrowthIncomeDstn ]]
-ChinaExample.solve()
-
-
-
-
-
-
-
-
-assert False
 
 
 
 # The cstwMPC parameters do not define a discount factor, since there is ex-ante heterogeneity
 # in the discount factor.  To prepare to create this ex-ante heterogeneity, first create
 # the desired number of consumer types
-from copy import deepcopy
+
 ChineseConsumerTypes = []
 num_consumer_types = 3 #7
 
@@ -120,31 +98,19 @@ cstwMPC.assignBetaDistribution(ChineseConsumerTypes,DiscFac_list)
 
 
 
+####################################################################################################
+####################################################################################################
+"""
+Now, write the function to do the experiment
+"""
+
+
+
 # Decide the income distributions in the low- and high- income states
 from ConsIndShockModel import constructLognormalIncomeProcessUnemployment
 
-#LowGrowthIncomeDstn  = ChinaExample.IncomeDstn[0]
-
-assert False
-LowGrowthIncomeDstn  = constructLognormalIncomeProcessUnemployment(LowGrowthIncomeParams)[0][0]
-HighGrowthIncomeDstn = constructLognormalIncomeProcessUnemployment(HighGrowthIncomeParams)[0][0]
-
-test = ChineseConsumerTypes[0]
-
-test.IncomeDstn = [[LowGrowthIncomeDstn ,LowGrowthIncomeDstn ]]
-test.solve()
-
-
-
-
-
-
-
-
-
-
-
-
+import ConsumerParameters as LowGrowthIncomeParams
+import ConsumerParameters as HighGrowthIncomeParams
 
 
 
@@ -161,11 +127,10 @@ def calcNatlSavingRate(multiplier):
     NatlCons   = 0.
 
     for NewChineseConsumerType in NewChineseConsumerTypes:
-        print('hi')
-#        NewChineseConsumerType.IncomeDstn = [[LowGrowthIncomeDstn,HighGrowthIncomeDstn]]
-        NewChineseConsumerType.IncomeDstn = [[LowGrowthIncomeDstn ,LowGrowthIncomeDstn ]]
-#        test = [np.ones(1),np.ones(1),np.ones(1)]
-#        NewChineseConsumerType.IncomeDstn = [[test,test]]
+        NewChineseConsumerType.IncomeDstn = [[LowGrowthIncomeDstn,HighGrowthIncomeDstn]]
+
+
+
 
         ####################################################################################################
         """

@@ -958,7 +958,7 @@ if __name__ == '__main__':
     SerialUnemploymentExample.Rfree = np.array(4*[SerialUnemploymentExample.Rfree])
     SerialUnemploymentExample.PermGroFac = [np.array(4*SerialUnemploymentExample.PermGroFac)]
     SerialUnemploymentExample.LivPrb = [SerialUnemploymentExample.LivPrb*np.ones(4)]
-    
+    assert False
     # Solve the serial unemployment consumer's problem and display solution
     SerialUnemploymentExample.timeFwd()
     start_time = clock()
