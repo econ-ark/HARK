@@ -14,17 +14,22 @@ probability have to be?
 The first step is to create the ConsumerType we want to solve the model for.
 """
 
-## Import the HARK ConsumerType we want 
-## Here, we bring in an agent making a consumption/savings decision every period, subject
-## to transitory and permanent income shocks.
-from ConsIndShockModel import IndShockConsumerType
 
 ## Import some things from cstwMPC
 
 # First, we need to be able to bring things in from the correct directory
 import sys 
 import os
-sys.path.insert(0, os.path.abspath('../cstwMPC'))
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../../'))
+sys.path.insert(0, os.path.abspath('../../cstwMPC'))
+
+
+## Import the HARK ConsumerType we want 
+## Here, we bring in an agent making a consumption/savings decision every period, subject
+## to transitory and permanent income shocks.
+from ConsIndShockModel import IndShockConsumerType
+
 
 # Now, bring in what we need from cstwMPC
 import cstwMPC

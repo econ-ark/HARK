@@ -57,9 +57,9 @@ import numpy as np
 StateCount                      = 2 # just a low-growth state, and a high-growth state
 ProbGrowthEnds                  = (1./160.)
 MrkvArray                       = np.array([[1.,0.],[ProbGrowthEnds,1.-ProbGrowthEnds]])
+init_China_parameters['Nagents']   = 1000 #10000
 init_China_parameters['MrkvArray'] = MrkvArray
 
-#assert False
 ### Import the HARK ConsumerType we want 
 ### Here, we bring in an agent making a consumption/savings decision every period, subject
 ### to transitory and permanent income shocks, AND a Markov shock
@@ -126,23 +126,24 @@ to generate the high savings rate.
 # Decide the income distributions in the low- and high- income states
 from ConsIndShockModel import constructLognormalIncomeProcessUnemployment
 
-import ConsumerParameters as LowGrowthIncomeParams
-import ConsumerParameters as HighGrowthIncomeParams
+import ConsumerParameters as IncomeParams
+
+LowGrowthIncomeDstn  = constructLognormalIncomeProcessUnemployment(IncomeParams)[0][0]
+LowGrowth_PermShkStd = IncomeParams.PermShkStd
 
 
 
-
-def calcNatlSavingRate(multiplier):
+def calcNatlSavingRate(PrmShkVar_multiplier):
 
     # First, make a deepcopy of the ChineseConsumerTypes, because we are going to alter them
     NewChineseConsumerTypes = deepcopy(ChineseConsumerTypes)
 
     # Set the uncertainty in the high-growth state to the desired amount
-    HighGrowthIncomeParams.PermShkStd = [LowGrowthIncomeParams.PermShkStd[0] * multiplier] 
+    PrmShkStd_multiplier    = PrmShkVar_multiplier ** .5
+    IncomeParams.PermShkStd = [LowGrowth_PermShkStd[0] * PrmShkStd_multiplier] 
 
     # Construct the appropriate income distributions
-    LowGrowthIncomeDstn  = constructLognormalIncomeProcessUnemployment(LowGrowthIncomeParams)[0][0]
-    HighGrowthIncomeDstn = constructLognormalIncomeProcessUnemployment(HighGrowthIncomeParams)[0][0]
+    HighGrowthIncomeDstn = constructLognormalIncomeProcessUnemployment(IncomeParams)[0][0]
 
     # Initialize national income/consumption
     NatlIncome = 0.
@@ -155,7 +156,7 @@ def calcNatlSavingRate(multiplier):
 
         
         # First give each ConsumerType their own random number seed
-        RNG_seed += 17
+        RNG_seed += 19
         NewChineseConsumerType.seed  = RNG_seed
         
 
@@ -245,10 +246,15 @@ x = np.arange(-periods_before_start,160,1)
 
 NatlSavingsRates = []
 
-for PermShkStdMultiplier in (1.,2.,4.,8.,11.):
-    NatlSavingsRates.append(calcNatlSavingRate(PermShkStdMultiplier)[-160 - periods_before_start:])
 
-plt.plot(x,NatlSavingsRates[0],x,NatlSavingsRates[1],x,NatlSavingsRates[2],x,NatlSavingsRates[3])
+
+for PermShkVarMultiplier in (1.,2.,4.,8.,11.):
+    NatlSavingsRates.append(calcNatlSavingRate(PermShkVarMultiplier)[-160 - periods_before_start:])
+
+plt.ylabel('Natl Savings Rate')
+plt.xlabel('Quarters Since Growth Surge')
+plt.legend(label = ["1","2","4","8","11"])
+plt.plot(x,NatlSavingsRates[0],x,NatlSavingsRates[1],x,NatlSavingsRates[2],x,NatlSavingsRates[3],x,NatlSavingsRates[4])
 
 #,x,NatlSavingsRates[4])
 
