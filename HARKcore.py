@@ -120,6 +120,26 @@ class HARKobject():
         '''
         self.assignParameters(**kwds)
         
+    def getAvg(self,varname,**kwds):
+        '''
+        Calculates the average of an attribute of this instance.  Returns NaN if no such attribute.
+        
+        Parameters
+        ----------
+        varname : string
+            The name of the attribute whose average is to be calculated.  This attribute must be an
+            np.array or other class compatible with np.mean.
+                       
+        Returns
+        -------
+        avg : float or np.array
+            The average of this attribute.  Might be an array if the axis keyword is passed.
+        '''
+        if hasattr(self,varname):
+            return np.mean(getattr(self,varname),**kwds)
+        else:
+            return np.nan
+        
 class Solution(HARKobject):
     '''
     A superclass for representing the "solution" to a single period problem in a
