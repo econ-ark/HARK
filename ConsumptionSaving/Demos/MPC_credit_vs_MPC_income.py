@@ -21,6 +21,12 @@ values, to see how parameters affect the solution.
 The first step is to create the ConsumerType we want to solve the model for.
 """
 
+# The first step is to be able to bring things in from different directories
+import sys 
+import os
+sys.path.insert(0, os.path.abspath('../')) #Path to ConsumptionSaving folder
+sys.path.insert(0, os.path.abspath('../../'))
+
 ## Import the HARK ConsumerType we want 
 ## Here, we bring in an agent making a consumption/savings decision every period, subject
 ## to transitory and permanent income shocks.
