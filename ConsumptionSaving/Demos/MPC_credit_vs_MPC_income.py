@@ -1,7 +1,10 @@
 """
-This is a HARK demo.
+This is a HARK demo.  
 
-It is very heavily commented so that HARK newcomers can use it to figure out how HARK works.
+The application here is to examine the Marginal Propensity to Consume (MPC) out of an increase in
+a credit limit, and to compare it to the MPC out of temporary income.
+
+This demo is very heavily commented so that HARK newcomers can use it to figure out how HARK works.
 It also does things, like import modules in the body of the code rather than at the top, that
 are typically deprecated by Python programmers.  This is all to make the code easier to read
 and understand.
@@ -9,9 +12,6 @@ and understand.
 There are many ways to use HARK, and this demo cannot show them all.  
 This demo demonstrates one great way to use HARK: import and solve a model for different parameter
 values, to see how parameters affect the solution.
-
-The application here is to examine the Marginal Propensity to Consume (MPC) out of an increase in
-a credit limit, and to compare it to the MPC out of temporary income.
 """
 
 
@@ -20,6 +20,12 @@ a credit limit, and to compare it to the MPC out of temporary income.
 """
 The first step is to create the ConsumerType we want to solve the model for.
 """
+
+# The first step is to be able to bring things in from different directories
+import sys 
+import os
+sys.path.insert(0, os.path.abspath('../')) #Path to ConsumptionSaving folder
+sys.path.insert(0, os.path.abspath('../../'))
 
 ## Import the HARK ConsumerType we want 
 ## Here, we bring in an agent making a consumption/savings decision every period, subject

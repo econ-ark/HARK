@@ -5,7 +5,7 @@ a command prompt.
 '''
 import multiprocessing
 from joblib import Parallel, delayed
-import dill as pickle
+#import dill as pickle
 import numpy as np
 from time import clock
 import csv

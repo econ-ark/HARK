@@ -767,6 +767,7 @@ class MarkovConsumerType(IndShockConsumerType):
         
         # Store the results and return time to its original flow
         self.MrkvHist = MrkvHist
+
         if not orig_time:
             self.timeRev()
 
@@ -957,7 +958,7 @@ if __name__ == '__main__':
     SerialUnemploymentExample.Rfree = np.array(4*[SerialUnemploymentExample.Rfree])
     SerialUnemploymentExample.PermGroFac = [np.array(4*SerialUnemploymentExample.PermGroFac)]
     SerialUnemploymentExample.LivPrb = [SerialUnemploymentExample.LivPrb*np.ones(4)]
-    
+    assert False
     # Solve the serial unemployment consumer's problem and display solution
     SerialUnemploymentExample.timeFwd()
     start_time = clock()
@@ -965,6 +966,7 @@ if __name__ == '__main__':
     end_time = clock()
     print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
+
     plotFuncs(SerialUnemploymentExample.solution[0].cFunc,0,50)
     if SerialUnemploymentExample.vFuncBool:
         print('Value functions for each discrete state:')
