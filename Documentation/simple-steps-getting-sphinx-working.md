@@ -177,3 +177,6 @@ _Useful references:_
     - http://matplotlib.org/sampledoc/index.html
         - very nice for details of sphinx setup in quickly digestible, reproducible format.
         - see here for nice example of including "welcome text."
+
+- Related:
+    - http://mpastell.com/pweave/
