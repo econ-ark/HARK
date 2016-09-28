@@ -21,6 +21,7 @@ The first step is to create the ConsumerType we want to solve the model for.
 Model set up:
     * "Standard" infinite horizon consumption/savings model, with mortality and 
       permanent and temporary shocks to income
+    * Markov state that represents the state of the Chinese economy (to be detailed later)
     * Ex-ante heterogeneity in consumers' discount factors
 
 In our experiment, consumers will live in a stationary, low-growth environment (intended to 
@@ -29,7 +30,7 @@ that income uncertainty increases (intended to approximate the effect of economi
 since 1978.)  Consumers believe the high-growth, high-uncertainty state is highly persistent, but
 temporary.
 
-HARK's Markov ConsumerType will be a very convient way to run this experiment.  So we need to
+HARK's MarkovConsumerType will be a very convient way to run this experiment.  So we need to
 prepare the parameters to create that ConsumerType, and then create it.
 """
 
@@ -168,7 +169,7 @@ def calcNatlSavingRate(PrmShkVar_multiplier,RNG_seed = 0):
 
     # First, make a deepcopy of the ChineseConsumerTypes (each with their own discount factor), 
     # because we are going to alter them
-    NewChineseConsumerTypes = deepcopy(ChineseConsumerTypes)
+    ChineseConsumerTypesNew = deepcopy(ChineseConsumerTypes)
 
     # Set the uncertainty in the high-growth state to the desired amount, keeping in mind
     # that PermShkStd is a list of length 1
@@ -184,22 +185,22 @@ def calcNatlSavingRate(PrmShkVar_multiplier,RNG_seed = 0):
     NatlIncome = 0.
     NatlCons   = 0.
 
-    for NewChineseConsumerType in NewChineseConsumerTypes:
+    for ChineseConsumerTypeNew in ChineseConsumerTypesNew:
         ### For each consumer type (i.e. each discount factor), calculate total income 
         ### and consumption
 
         # First give each ConsumerType their own random number seed
         RNG_seed += 19
-        NewChineseConsumerType.seed  = RNG_seed
+        ChineseConsumerTypeNew.seed  = RNG_seed
         
 
         # Set the income distribution in each Markov state appropriately        
-        NewChineseConsumerType.IncomeDstn = [[LowGrowthIncomeDstn,HighGrowthIncomeDstn]]
+        ChineseConsumerTypeNew.IncomeDstn = [[LowGrowthIncomeDstn,HighGrowthIncomeDstn]]
 
 
 
-        # Solve the problem for this NewChineseConsumerType
-        NewChineseConsumerType.solve()
+        # Solve the problem for this ChineseConsumerTypeNew
+        ChineseConsumerTypeNew.solve()
 
 
         """
@@ -215,7 +216,7 @@ def calcNatlSavingRate(PrmShkVar_multiplier,RNG_seed = 0):
         """
         
         ## Now, simulate 500 quarters to get to steady state, then 40 years of high growth
-        NewChineseConsumerType.sim_periods = 660 
+        ChineseConsumerTypeNew.sim_periods = 660 
         
 
         ## If we wanted to *simulate* the Markov states according to agents' perceived 
@@ -227,27 +228,27 @@ def calcNatlSavingRate(PrmShkVar_multiplier,RNG_seed = 0):
         ## To do that, first set the history for China that we are interested in
         
         # Initialize an array of 0s, to reflect the long low-growth period before the reforms
-        ChineseHistory          = np.zeros((NewChineseConsumerType.sim_periods,
-                                            NewChineseConsumerType.Nagents),dtype=int)
+        ChineseHistory          = np.zeros((ChineseConsumerTypeNew.sim_periods,
+                                            ChineseConsumerTypeNew.Nagents),dtype=int)
                                             
         # Set values of 1 to reflect the high-growth period following reforms
         ChineseHistory[-160:,:] = 1 
         
         # Finally, assign our radically simplified version of ChineseHistory as the history
         # of Markov states experienced by our simulated consumers
-        NewChineseConsumerType.MrkvHist   = ChineseHistory
+        ChineseConsumerTypeNew.MrkvHist   = ChineseHistory
         
         # Finish the rest of the simulation
-        NewChineseConsumerType.makeIncShkHist() #create the history of income shocks, conditional on the Markov state
-        NewChineseConsumerType.initializeSim() #get ready to simulate everything else
-        NewChineseConsumerType.simConsHistory() #simulate everything else
+        ChineseConsumerTypeNew.makeIncShkHist() #create the history of income shocks, conditional on the Markov state
+        ChineseConsumerTypeNew.initializeSim() #get ready to simulate everything else
+        ChineseConsumerTypeNew.simConsHistory() #simulate everything else
     
         # Now, get the aggregate income and consumption of this ConsumerType
-        IncomeOfThisConsumerType = np.sum((NewChineseConsumerType.aHist * NewChineseConsumerType.pHist*
-                                          (NewChineseConsumerType.Rfree[0] - 1.)) +
-                                           NewChineseConsumerType.pHist, axis=1)
+        IncomeOfThisConsumerType = np.sum((ChineseConsumerTypeNew.aHist * ChineseConsumerTypeNew.pHist*
+                                          (ChineseConsumerTypeNew.Rfree[0] - 1.)) +
+                                           ChineseConsumerTypeNew.pHist, axis=1)
         
-        ConsOfThisConsumerType = np.sum(NewChineseConsumerType.cHist * NewChineseConsumerType.pHist,
+        ConsOfThisConsumerType = np.sum(ChineseConsumerTypeNew.cHist * ChineseConsumerTypeNew.pHist,
                                         axis=1)
         # Add the income and consumption of this ConsumerType to national income and consumption
         NatlIncome     += IncomeOfThisConsumerType
@@ -298,11 +299,11 @@ for PermShkVarMultiplier in PermShkVarMultipliers:
 import pylab as plt
 plt.ylabel('Natl Savings Rate')
 plt.xlabel('Quarters Since Economic Reforms')
-plt.plot(quarters_to_plot,NatlSavingsRates[0],label=str(PermShkVarMultipliers[0]))
-plt.plot(quarters_to_plot,NatlSavingsRates[1],label=str(PermShkVarMultipliers[1]))
-plt.plot(quarters_to_plot,NatlSavingsRates[2],label=str(PermShkVarMultipliers[2]))
-plt.plot(quarters_to_plot,NatlSavingsRates[3],label=str(PermShkVarMultipliers[3]))
-plt.plot(quarters_to_plot,NatlSavingsRates[4],label=str(PermShkVarMultipliers[4]))
+plt.plot(quarters_to_plot,NatlSavingsRates[0],label=str(PermShkVarMultipliers[0]) + ' x variance')
+plt.plot(quarters_to_plot,NatlSavingsRates[1],label=str(PermShkVarMultipliers[1]) + ' x variance')
+plt.plot(quarters_to_plot,NatlSavingsRates[2],label=str(PermShkVarMultipliers[2]) + ' x variance')
+plt.plot(quarters_to_plot,NatlSavingsRates[3],label=str(PermShkVarMultipliers[3]) + ' x variance')
+plt.plot(quarters_to_plot,NatlSavingsRates[4],label=str(PermShkVarMultipliers[4]) + ' x variance')
 plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
            ncol=2, mode="expand", borderaxespad=0.) #put the legend on top
 

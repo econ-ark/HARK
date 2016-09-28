@@ -1,9 +1,9 @@
 """
-At the onset of the Great Recession, there was a large drop (X%) in consumer spending on 
-non-durables.  Some economists have proffered that this could be attributed to precautionary 
+At the onset of the Great Recession, there was a large drop (6.32%, according to FRED) in consumer 
+spending on non-durables.  Some economists have proffered that this could be attributed to precautionary 
 motives-- a perceived increase in household income uncertainty induces more saving (less consumption)
 to protect future consumption against bad income shocks.  How large of an increase in the standard
-deviation of (log) permanent income shocks would be necessary to see an X% drop in consumption in
+deviation of (log) permanent income shocks would be necessary to see an 6.32% drop in consumption in
 one quarter?  What about transitory income shocks?  How high would the perceived unemployment 
 probability have to be?
 """
@@ -12,8 +12,15 @@ probability have to be?
 ####################################################################################################
 """
 The first step is to create the ConsumerType we want to solve the model for.
-"""
 
+Model set up:
+    * "Standard" infinite horizon consumption/savings model, with mortality and 
+      permanent and temporary shocks to income
+    * Ex-ante heterogeneity in consumers' discount factors
+    
+With this basic setup, HARK's IndShockConsumerType is the appropriate ConsumerType.
+So we need to prepare the parameters to create that ConsumerType, and then create it.    
+"""
 
 ## Import some things from cstwMPC
 
@@ -50,10 +57,6 @@ Now, add in ex-ante heterogeneity in consumers' discount factors
 # in the discount factor.  To prepare to create this ex-ante heterogeneity, first create
 # the desired number of consumer types
 from copy import deepcopy
-#ConsumerTypes = []
-#num_consumer_types = 7
-
-
 num_consumer_types   = 7 # declare the number of types we want
 ConsumerTypes = [] # initialize an empty list
 
@@ -141,43 +144,43 @@ def cChangeAfterUncertaintyChange(consumerTypes,newVals,paramToChange):
     for newVal in newVals:
 
         # Copy everything we have from the consumerTypes 
-        NewConsumerTypes = deepcopy(consumerTypes)
+        ConsumerTypesNew = deepcopy(consumerTypes)
           
-        for index,NewConsumerType in enumerate(NewConsumerTypes):
+        for index,ConsumerTypeNew in enumerate(ConsumerTypesNew):
             # Change what we want to change
             if paramToChange == "PermShkStd":
-                NewConsumerType.PermShkStd = [newVal]
+                ConsumerTypeNew.PermShkStd = [newVal]
             elif paramToChange == "TranShkStd":
-                NewConsumerType.TranShkStd = [newVal]
+                ConsumerTypeNew.TranShkStd = [newVal]
             elif paramToChange == "UnempPrb":
-                NewConsumerType.UnempPrb = newVal #note, unlike the others, not a list
+                ConsumerTypeNew.UnempPrb = newVal #note, unlike the others, not a list
             else:
                 raise ValueError,'Invalid parameter to change!'            
             # Solve the new problem
-            NewConsumerType.updateIncomeProcess()
-            NewConsumerType.solve()
+            ConsumerTypeNew.updateIncomeProcess()
+            ConsumerTypeNew.solve()
             
             # Advance the simulation one period
-            NewConsumerType.sim_periods = 1
-            NewConsumerType.makeIncShkHist()
-            NewConsumerType.initializeSim(a_init=ConsumerTypes[index].aHist[-1:,:],
+            ConsumerTypeNew.sim_periods = 1
+            ConsumerTypeNew.makeIncShkHist()
+            ConsumerTypeNew.initializeSim(a_init=ConsumerTypes[index].aHist[-1:,:],
                                           p_init=ConsumerTypes[index].pHist[-1,:])
-            NewConsumerType.simConsHistory()
+            ConsumerTypeNew.simConsHistory()
 
             # Add the new period to the simulation history
 
-            NewConsumerType.cHist = np.append(ConsumerTypes[index].cHist,
-                                              NewConsumerType.cNow, #cNow has shape (N,1)
+            ConsumerTypeNew.cHist = np.append(ConsumerTypes[index].cHist,
+                                              ConsumerTypeNew.cNow, #cNow has shape (N,1)
                                               axis=0)
 
-            NewConsumerType.pHist = np.append(ConsumerTypes[index].pHist,
-                                              NewConsumerType.pNow[np.newaxis,:], #pNow has shape (N,)
+            ConsumerTypeNew.pHist = np.append(ConsumerTypes[index].pHist,
+                                              ConsumerTypeNew.pNow[np.newaxis,:], #pNow has shape (N,)
                                               axis=0)
         
 
                 
         # Calculate and return the percent change in consumption
-        newAvgC = calcAvgC(NewConsumerTypes)
+        newAvgC = calcAvgC(ConsumerTypesNew)
         changeInConsumption = 100. * (newAvgC - oldAvgC) / oldAvgC
 
         changesInConsumption.append(changeInConsumption)
