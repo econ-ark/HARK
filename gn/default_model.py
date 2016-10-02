@@ -7,7 +7,7 @@ Created on Mon Jun 20 15:55:59 2016
 import os
 os.environ["R_HOME"] = "/Library/Frameworks/R.framework/Resources"
 os.chdir("/Users/ganong/repo/HARK-comments-and-cleanup/gn")
-out_path = "~/dropbox/hampra/out2/"
+out_path = "~/dropbox/hampra/out/"
 import settings
 import sys 
 sys.path.insert(0,'../')
