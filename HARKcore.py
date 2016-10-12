@@ -359,6 +359,7 @@ class AgentType(HARKobject):
         -------
         none
         '''
+
         self.preSolve() # Do pre-solution stuff
         self.solution = solveAgent(self,verbose) # Solve the model by backward induction
         if self.time_flow: # Put the solution in chronological order if this instance's time flow runs that way
@@ -380,10 +381,19 @@ class AgentType(HARKobject):
         '''
         self.RNG = np.random.RandomState(self.seed)
             
+    def checkElementsOfTimeVaryAreLists(self):
+        """
+        A method to check that elements of time_vary are lists.
+        """
+        for param in self.time_vary:
+            assert type(getattr(self,param))==list,param + ' is not a list, but should be' + \
+                                                   ' because it is in time_vary'
+
+        
     def preSolve(self):
         '''
-        A method that is run immediately before the model is solved, to prepare
-        the terminal solution, perhaps.  Does nothing here.
+        A method that is run immediately before the model is solved, to check inputs or to prepare
+        the terminal solution, perhaps.  
         
         Parameters
         ----------
@@ -393,6 +403,7 @@ class AgentType(HARKobject):
         -------
         none
         '''
+        self.checkElementsOfTimeVaryAreLists()
         return None
         
     def postSolve(self):
