@@ -10,7 +10,7 @@ import numpy as np
 from ConsAggShockModel import AggShockConsumerType, CobbDouglasEconomy, solveConsAggShock
 from HARKsimulation import drawBernoulli
 from HARKcore import AgentType
-from ImpulseResponse import AggCons_impulseResponseAgg, impulseResponseAgg
+from ImpulseResponse import AggCons_impulseResponseAgg
 from copy import copy, deepcopy
 import matplotlib.pyplot as plt
      ###############################################################################
@@ -161,13 +161,16 @@ class AggShockStickyExpectationsConsumerType(AggShockConsumerType):
                 bBeliefNow[i]    = ReffBeliefNow[i]*aBeliefPrev[i]         
                 mBeliefNow[i]    = bBeliefNow[i] + TranShkBeliefNow[i]    
                 
-        cNow    = cFuncNow(mBeliefNow,KtoLBeliefNow) # Consumption (normalized by permanent income)
-        MPCnow  = cFuncNow.derivativeX(mBeliefNow,KtoLBeliefNow) # Marginal propensity to consume
+        cBeliefNow    = cFuncNow(mBeliefNow,KtoLBeliefNow) # Consumption (normalized by permanent income)
+        MPCBeliefnow  = cFuncNow.derivativeX(mBeliefNow,KtoLBeliefNow) # Marginal propensity to consume
 
-        aNow    = mNow - cNow*pBeliefNow/pNow          # Assets after all actions are accomplished
+        cNow = cBeliefNow*pBeliefNow/pNow  
+        MPCnow= MPCBeliefnow
+        
+        aNow    = mNow - cNow        # Assets after all actions are accomplished
         # Hack so that assets don't go below their minimum value
         aNow = np.max([aNow, self.aXtraMin*np.ones_like(aNow)],0)
-        aBeliefNow = mBeliefNow - cNow
+        aBeliefNow = mBeliefNow - cBeliefNow
         
         # Store the new state and control variables
         self.pNow   = pNow
@@ -284,47 +287,6 @@ class AggShockStickyExpectationsConsumerType(AggShockConsumerType):
         if not orig_time:
             self.timeRev()
             
-def AggConsSticky_impulseResponseAgg(Market, PermShk, TranShk, TimeBefore = 100, TimeAfter = 20):
-    '''
-    Routine to calculate the aggregate consumption impulse response for a Market
-    
-    Parameters
-    ----------
-    Market : Market
-        An instance of the Market to be shocked
-    PermShk : [np.array]
-        An array containing the permanent aggregate shocks
-    TranShk : [np.array]
-        An array containing the transitory aggregate shocks 
-    TimeBefore : float
-        Number of time periods to run the simulation before applying the shocks
-            TimeBefore : float
-        Number of time periods to run the simulation after applying the shocks
-    Returns
-    -------
-    impulse_response : [np.array]
-        An array containing the aggregate consumption response
-    '''
-    (ShockedMarket, NoShockMarket) = impulseResponseAgg(Market, PermShk, TranShk, TimeBefore, TimeAfter)
-    
-    cAggNoShkHist = np.zeros(NoShockMarket.act_T)
-    for this_type in NoShockMarket.agents:
-        pBeliefNoShkHist = this_type.pBeliefHist
-        cNoShkHist = this_type.cHist
-        cAggNoShkHist += np.sum(pBeliefNoShkHist*cNoShkHist,1)
-    
-    cAggShkHist = np.zeros(ShockedMarket.act_T)
-    for this_type in ShockedMarket.agents:
-        pBeliefShkHist = this_type.pBeliefHist
-        cShkHist = this_type.cHist
-        cAggShkHist += np.sum(pBeliefShkHist*cShkHist,1)
-    
-    cAggImpulseResponse = (cAggShkHist - cAggNoShkHist)/cAggNoShkHist
-    
-    # Remove TimeBefore periods
-    cAggImpulseResponse = cAggImpulseResponse[TimeBefore:]
-
-    return cAggImpulseResponse
     
 ###############################################################################
 
@@ -371,7 +333,7 @@ if __name__ == '__main__':
   
     PermShk = 1.1
     TranShk = 1
-    StickyImpulseResponse = AggConsSticky_impulseResponseAgg(StickyEconomyExample,PermShk,TranShk,100,25)
+    StickyImpulseResponse = AggCons_impulseResponseAgg(StickyEconomyExample,PermShk,TranShk,100,25)
     NotStickyImpulseResponse = AggCons_impulseResponseAgg(NotStickyEconomyExample,PermShk,TranShk,100,25)
     plt.plot(StickyImpulseResponse)
     plt.plot(NotStickyImpulseResponse)
