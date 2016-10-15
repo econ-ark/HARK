@@ -52,17 +52,17 @@ class ConsMarkovSolver(ConsIndShockSolver):
             representing a discrete approximation to the income process at the
             beginning of the succeeding period. Order: event probabilities,
             permanent shocks, transitory shocks.
-        LivPrb : list of arrays
+        LivPrb : np.array
             Survival probability; likelihood of being alive at the beginning of
             the succeeding period for each Markov state.  
         DiscFac : float
             Intertemporal discount factor for future utility.        
         CRRA : float
             Coefficient of relative risk aversion.
-        Rfree_list : list of np.arrays
+        Rfree_list : np.array
             Risk free interest factor on end-of-period assets for each Markov
             state in the succeeding period.
-        PermGroGac_list : list of np.arrays
+        PermGroGac_list : np.array
             Expected permanent income growth factor at the end of this period
             for each Markov state in the succeeding period.
         MrkvArray : np.array
@@ -700,10 +700,10 @@ class MarkovConsumerType(IndShockConsumerType):
         assert self.Rfree.shape      == (StateCount,),'Rfree not the right shape!'
         
         # Check that arrays in lists are the right shape
-        for LivPrb_cond in self.LivPrb:
-            assert LivPrb_cond.shape == (StateCount,),'Array in LivPrb is not the right shape!'
-        for PermGroFac_cond in self.LivPrb:
-            assert PermGroFac_cond.shape == (StateCount,),'Array in PermGroFac is not the right shape!'
+        for LivPrb_t in self.LivPrb:
+            assert LivPrb_t.shape == (StateCount,),'Array in LivPrb is not the right shape!'
+        for PermGroFac_t in self.LivPrb:
+            assert PermGroFac_t.shape == (StateCount,),'Array in PermGroFac is not the right shape!'
 
         # Now check the income distribution.
         # Note IncomeDstn is (potentially) time-varying, so it is in time_vary.
@@ -1014,7 +1014,7 @@ if __name__ == '__main__':
     SerialUnemploymentExample.Rfree = np.array(4*[SerialUnemploymentExample.Rfree])
     SerialUnemploymentExample.PermGroFac = [np.array(4*SerialUnemploymentExample.PermGroFac)]
     SerialUnemploymentExample.LivPrb = [SerialUnemploymentExample.LivPrb*np.ones(4)]
-    assert False
+
     # Solve the serial unemployment consumer's problem and display solution
     SerialUnemploymentExample.timeFwd()
     start_time = clock()
