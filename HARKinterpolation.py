@@ -1802,7 +1802,101 @@ class LowerEnvelope3D(HARKinterpolator3D):
         for j in range(self.funcCount):
             c = i == j
             dfdz[c] = self.functions[j].derivativeZ(x[c],y[c],z[c])
-        return dfdz    
+        return dfdz
+        
+        
+class VariableLowerBoundFunc2D(HARKobject):
+    '''
+    A class for representing a function with two real inputs whose lower bound
+    in the first input depends on the second input.  Useful for managing curved
+    natural borrowing constraints, as occurs in the persistent shocks model.
+    '''
+    distance_criteria = ['func','lowerBound']
+    
+    def __init__(self,func,lowerBound):
+        '''
+        Make a new instance of VariableLowerBoundFunc2D.
+        
+        Parameters
+        ----------
+        func : function
+            A function f: (R_+ x R) --> R representing the function of interest
+            shifted by its lower bound in the first input.
+        lowerBound : function
+            The lower bound in the first input of the function of interest, as
+            a function of the second input.
+            
+        Returns
+        -------
+        None
+        '''
+        self.func = func
+        self.lowerBound = lowerBound
+        
+    def __call__(self,x,y):
+        '''
+        Evaluate the function at given state space points.
+        
+        Parameters
+        ----------
+        x : np.array
+             First input values.
+        y : np.array
+             Second input values; should be of same shape as x.
+             
+        Returns
+        -------
+        f_out : np.array
+            Function evaluated at (x,y), of same shape as inputs.
+        '''
+        xShift = self.lowerBound(y)
+        f_out = self.func(x-xShift,y)
+        return f_out
+        
+    def derivativeX(self,x,y):
+        '''
+        Evaluate the first derivative with respect to x of the function at given
+        state space points.
+        
+        Parameters
+        ----------
+        x : np.array
+             First input values.
+        y : np.array
+             Second input values; should be of same shape as x.
+             
+        Returns
+        -------
+        dfdx_out : np.array
+            First derivative of function with respect to the first input, 
+            evaluated at (x,y), of same shape as inputs.
+        '''
+        xShift = self.lowerBound(y)
+        dfdx_out = self.func.derivativeX(x-xShift,y)
+        return dfdx_out
+        
+    def derivativeY(self,x,y):
+        '''
+        Evaluate the first derivative with respect to y of the function at given
+        state space points.
+        
+        Parameters
+        ----------
+        x : np.array
+             First input values.
+        y : np.array
+             Second input values; should be of same shape as x.
+             
+        Returns
+        -------
+        dfdy_out : np.array
+            First derivative of function with respect to the second input, 
+            evaluated at (x,y), of same shape as inputs.
+        '''
+        xShift,xShiftDer = self.lowerBound.eval_with_derivative(y)
+        dfdy_out = self.func.derivativeY(x-xShift,y) - xShiftDer*self.func.derivativeX(x-xShift,y)
+        return dfdy_out
+
 
 class LinearInterpOnInterp1D(HARKinterpolator2D):
     '''
