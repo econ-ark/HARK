@@ -30,8 +30,8 @@ class ConsMarkovSolver(ConsIndShockSolver):
     and stochastic transitions between discrete states, in a Markov fashion.
     Extends ConsIndShockSolver, with identical inputs but for a discrete
     Markov state, whose transition rule is summarized in MrkvArray.  Markov
-    states can differ in their interest factor, permanent growth factor, and
-    income distribution, so the inputs Rfree, PermGroFac, and IncomeDstn are
+    states can differ in their interest factor, permanent growth factor, live probability, and
+    income distribution, so the inputs Rfree, PermGroFac, IncomeDstn, and LivPrb are
     now arrays or lists specifying those values in each (succeeding) Markov state.
     '''
     def __init__(self,solution_next,IncomeDstn_list,LivPrb,DiscFac,
@@ -52,9 +52,9 @@ class ConsMarkovSolver(ConsIndShockSolver):
             representing a discrete approximation to the income process at the
             beginning of the succeeding period. Order: event probabilities,
             permanent shocks, transitory shocks.
-        LivPrb : float
+        LivPrb : np.array
             Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.    
+            the succeeding period for each Markov state.  
         DiscFac : float
             Intertemporal discount factor for future utility.        
         CRRA : float
@@ -62,10 +62,10 @@ class ConsMarkovSolver(ConsIndShockSolver):
         Rfree_list : np.array
             Risk free interest factor on end-of-period assets for each Markov
             state in the succeeding period.
-        PermGroGac_list : float
+        PermGroGac_list : np.array
             Expected permanent income growth factor at the end of this period
             for each Markov state in the succeeding period.
-        MrkvArray : numpy.array
+        MrkvArray : np.array
             An NxN array representing a Markov transition matrix between discrete
             states.  The i,j-th element of MrkvArray is the probability of
             moving from state i in period t to state j in period t+1.
@@ -97,8 +97,9 @@ class ConsMarkovSolver(ConsIndShockSolver):
         self.IncomeDstn_list      = IncomeDstn_list
         self.Rfree_list           = Rfree_list
         self.PermGroFac_list      = PermGroFac_list
-        self.StateCount           = len(IncomeDstn_list)
         self.MrkvArray            = MrkvArray
+        self.StateCount           = MrkvArray.shape[0]
+
 
     def solve(self):
         '''
@@ -121,6 +122,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             Markov state.  E.g. solution.cFunc[0] is the consumption function
             when in the i=0 Markov state this period.
         '''
+
         # Find the natural borrowing constraint in each current state
         self.defBoundary()
         
@@ -166,6 +168,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         # Package and return the solution for this period
         self.BoroCnstNat = self.BoroCnstNat_list
         solution = self.makeSolution(cNrm,mNrm)
+
         return solution
         
     def defBoundary(self):
@@ -677,6 +680,59 @@ class MarkovConsumerType(IndShockConsumerType):
         IndShockConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
         self.solveOnePeriod = solveConsMarkov
 
+    def checkMarkovInputs(self):
+        """
+        Many parameters used by MarkovConsumerType are arrays.  Make sure those arrays are the
+        right shape.
+
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        none
+        """
+        StateCount = self.MrkvArray.shape[0]        
+        
+        # Check that arrays are the right shape
+        assert self.MrkvArray.shape  == (StateCount,StateCount),'MrkvArray not the right shape!'
+        assert self.Rfree.shape      == (StateCount,),'Rfree not the right shape!'
+        
+        # Check that arrays in lists are the right shape
+        for LivPrb_t in self.LivPrb:
+            assert LivPrb_t.shape == (StateCount,),'Array in LivPrb is not the right shape!'
+        for PermGroFac_t in self.LivPrb:
+            assert PermGroFac_t.shape == (StateCount,),'Array in PermGroFac is not the right shape!'
+
+        # Now check the income distribution.
+        # Note IncomeDstn is (potentially) time-varying, so it is in time_vary.
+        # Therefore it is a list, and each element of that list responds to the income distribution
+        # at a particular point in time.  Each income distribution at a point in time should itself 
+        # be a list, with each element corresponding to the income distribution
+        # conditional on a particular Markov state. 
+        for IncomeDstn_t in self.IncomeDstn:
+            assert len(IncomeDstn_t) == StateCount,'List in IncomeDstn is not the right length!'
+        
+
+    def preSolve(self):
+        """
+        Do preSolve stuff inherited from IndShockConsumerType.
+        
+        Also, check to make sure that the inputs that are specific to MarkovConsumerType
+        are of the right shape (if arrays) or length (if lists).
+
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        none
+        """
+        IndShockConsumerType.preSolve(self)
+        self.checkMarkovInputs()
+
     def makeIncShkHist(self):
         '''
         Makes histories of simulated income shocks for this consumer type by
@@ -958,7 +1014,7 @@ if __name__ == '__main__':
     SerialUnemploymentExample.Rfree = np.array(4*[SerialUnemploymentExample.Rfree])
     SerialUnemploymentExample.PermGroFac = [np.array(4*SerialUnemploymentExample.PermGroFac)]
     SerialUnemploymentExample.LivPrb = [SerialUnemploymentExample.LivPrb*np.ones(4)]
-    assert False
+
     # Solve the serial unemployment consumer's problem and display solution
     SerialUnemploymentExample.timeFwd()
     start_time = clock()

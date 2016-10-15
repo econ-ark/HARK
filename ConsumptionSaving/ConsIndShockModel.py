@@ -1954,6 +1954,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
         
     def preSolve(self):
+        PerfForesightConsumerType.preSolve(self)
         self.updateSolutionTerminal()
         
         
