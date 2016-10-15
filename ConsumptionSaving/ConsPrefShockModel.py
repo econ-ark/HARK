@@ -187,6 +187,46 @@ class PrefShockConsumerType(IndShockConsumerType):
         self.cNow   = cNow
         self.MPCnow = MPCnow
         self.aNow   = aNow
+        
+    def getShocks(self):
+        '''
+        Gets permanent and transitory income shocks for this period as well as preference shocks.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.getShocks(self) # Get permanent and transitory income shocks
+        PrefShkNow = np.zeros(self.AgentCount) # Initialize shock array
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            N = np.sum(these)
+            if N > 0:
+                PrefShkNow[these] = self.RNG.permutation(approxMeanOneLognormal(N,sigma=self.PrefShkStd[t])[1])
+        self.PrefShkNow = PrefShkNow
+        
+    def getControls(self):
+        '''
+        Calculates consumption for each consumer of this type using the consumption functions.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        cNrmNow = np.zeros(self.AgentCount) + np.nan
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            cNrmNow[these] = self.solution[t].cFunc(self.mNrmNow[these],self.PrefShkNow[these])
+        self.cNrmNow = cNrmNow
+        return None
  
        
     def calcBoundingValues(self):
@@ -265,6 +305,9 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         self.solveOnePeriod = solveConsKinkyPref # Choose correct solver
         self.addToTimeInv('Rboro','Rsave')
         self.delFromTimeInv('Rfree')
+        
+    def getRfree(self): # Specify which getRfree to use
+        return KinkedRconsumerType.getRfree(self)
         
 ###############################################################################
 
@@ -688,11 +731,10 @@ if __name__ == '__main__':
     
     # Test the simulator for the pref shock class
     if do_simulation:
-        PrefShockExample.sim_periods = 120
-        PrefShockExample.makeIncShkHist()
-        PrefShockExample.makePrefShkHist()
+        PrefShockExample.T_sim = 120
+        PrefShockExample.track_vars = ['cNrmNow','PrefShkNow']
         PrefShockExample.initializeSim()
-        PrefShockExample.simConsHistory()
+        PrefShockExample.simulate()
         
     ###########################################################################
         
@@ -727,8 +769,7 @@ if __name__ == '__main__':
         
     # Test the simulator for the kinky preference class
     if do_simulation:
-        KinkyPrefExample.sim_periods = 120
-        KinkyPrefExample.makeIncShkHist()
-        KinkyPrefExample.makePrefShkHist()
+        KinkyPrefExample.T_sim = 120
+        KinkyPrefExample.track_vars = ['cNrmNow','PrefShkNow']
         KinkyPrefExample.initializeSim()
-        KinkyPrefExample.simConsHistory()
+        KinkyPrefExample.simulate()
