@@ -38,7 +38,7 @@ UnempPrb = 0.07               # Probability of unemployment while working
 UnempPrbRet = 0.0005          # Probabulity of "unemployment" while retired
 IncUnemp = 0.15               # Unemployment benefit replacement rate
 IncUnempRet = 0.0             # Ditto when retired
-BoroCnstArt = -2.0            # Artificial borrowing constraint
+BoroCnstArt = 0.0             # Artificial borrowing constraint
 
 # Set grid sizes
 PermShkCount = 5              # Number of points in permanent income shock grid

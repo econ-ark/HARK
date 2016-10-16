@@ -31,9 +31,9 @@ sys.path.insert(0, os.path.abspath('../')) #Path to ConsumptionSaving folder
 sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../../cstwMPC')) #Path to cstwMPC folder
 
-# Now, bring in what we need from cstwMPC
-import cstwMPC
-import SetupParamsCSTW as cstwParams
+# Now, bring in what we need from the cstwMPC parameters
+import SetupParamsCSTWnew as cstwParams
+from HARKutilities import approxUniform
 
 ## Import the HARK ConsumerType we want 
 ## Here, we bring in an agent making a consumption/savings decision every period, subject
@@ -42,6 +42,7 @@ from ConsIndShockModel import IndShockConsumerType
 
 # Now initialize a baseline consumer type, using default parameters from infinite horizon cstwMPC
 BaselineType = IndShockConsumerType(**cstwParams.init_infinite)
+BaselineType.AgentCount = 10000 # Assign the baseline consumer type to have many agents in simulation
 
 ####################################################################################################
 ####################################################################################################
@@ -60,21 +61,19 @@ for nn in range(num_consumer_types):
     # Now create the types, and append them to the list ConsumerTypes
     newType = deepcopy(BaselineType)    
     ConsumerTypes.append(newType)
+    ConsumerTypes[-1].seed = nn # give each consumer type a different RNG seed
 
 ## Now, generate the desired ex-ante heterogeneity, by giving the different consumer types
 ## each their own discount factor
 
 # First, decide the discount factors to assign
-bottomDiscFac = 0.9800
-topDiscFac    = 0.9934 
-from HARKutilities import approxUniform
-DiscFac_list = approxUniform(N=num_consumer_types,bot=bottomDiscFac,top=topDiscFac)[1]
+bottomDiscFac  = 0.9800
+topDiscFac     = 0.9934 
+DiscFac_list   = approxUniform(N=num_consumer_types,bot=bottomDiscFac,top=topDiscFac)[1]
 
 # Now, assign the discount factors we want
-cstwMPC.assignBetaDistribution(ConsumerTypes,DiscFac_list)
-
-
-
+for j in range(num_consumer_types):
+    ConsumerTypes[j].DiscFac = DiscFac_list[j]
 
 #####################################################################################################
 #####################################################################################################
@@ -83,16 +82,13 @@ Now, solve and simulate the model for each consumer type
 """
 
 for ConsumerType in ConsumerTypes:
-
     ### First solve the problem for this ConsumerType.
     ConsumerType.solve()
     
     ### Now simulate many periods to get to the stationary distribution
-    ConsumerType.sim_periods = 1000
-    ConsumerType.makeIncShkHist()
+    ConsumerType.T_sim = 1000
     ConsumerType.initializeSim()
-    ConsumerType.simConsHistory()
-
+    ConsumerType.simulate()
 
 #####################################################################################################
 #####################################################################################################
@@ -109,19 +105,18 @@ def calcAvgC(ConsumerTypes):
     This function calculates average consumption in the economy in last simulated period,
     averaging across ConsumerTypes.
     """
-    numTypes   = len(ConsumerTypes) # number of agent types in the economy
-    AgentCount = ConsumerTypes[0].cHist[-1,:].size * numTypes #total number of agents in the economy
-    cNrm = np.array([0,]) #initialize an array to hold consumption (normalized by permanent income)
-    pLvl = np.array([0,]) #initialize an array to hold the level of permanent income
+    AgentCount = np.sum([ThisType.AgentCount for ThisType in ConsumerTypes]) #total number of agents in the economy
+    cNrm = np.array([]) #initialize an array to hold consumption (normalized by permanent income)
+    pLvl = np.array([]) #initialize an array to hold the level of permanent income
         
     # Now loop through all the ConsumerTypes, appending their cNrm and pLvl to the appropriate arrays
     for ConsumerType in ConsumerTypes:
         # Note we take the information from the last period
-        cNrm = np.append(cNrm,ConsumerType.cHist[-1,:])     
-        pLvl = np.append(pLvl,ConsumerType.pHist[-1,:])
+        cNrm = np.append(cNrm,ConsumerType.cNrmNow)     
+        pLvl = np.append(pLvl,ConsumerType.pLvlNow)
 
     # Calculate and return average consumption it the economy
-    avgC        = np.sum(cNrm*pLvl)/AgentCount 
+    avgC = np.sum(cNrm*pLvl)/AgentCount 
     return avgC
         
 # Now create a function to run the experiment we want -- change income uncertainty, and see
@@ -166,27 +161,15 @@ def cChangeAfterUncertaintyChange(consumerTypes,newVals,paramToChange):
             # Solve the new problem
             ConsumerTypeNew.solve()
             
-            # Advance the simulation one period
-            ConsumerTypeNew.sim_periods = 1
-            ConsumerTypeNew.makeIncShkHist() #make the history of income shocks
+            # Initialize the new consumer type to have the same distribution of assets and permanent
+            # income as the stationary distribution we simulated above
+            ConsumerTypeNew.initializeSim() # Reset the tracked history
+            ConsumerTypeNew.aNrmNow = ConsumerTypes[index].aNrmNow # Set assets to stationary distribution
+            ConsumerTypeNew.pLvlNow = ConsumerTypes[index].pLvlNow # Set permanent income to stationary dstn
             
-            ConsumerTypeNew.initializeSim( #prepare to simulate one more period...
-              a_init=ConsumerTypes[index].aHist[-1:,:], # using assets from previous period as starting assets...
-              p_init=ConsumerTypes[index].pHist[-1,:])  # and permanent income from previous period as starting permanent income
-            
-            ConsumerTypeNew.simConsHistory() # simulate one more period
+            # Simulate one more period, which changes the values in cNrm and pLvl for each agent type
+            ConsumerTypeNew.simOnePeriod() 
 
-            # Add the new period to the simulation history
-            ConsumerTypeNew.cHist = np.append(ConsumerTypes[index].cHist,
-                                              ConsumerTypeNew.cNow, #cNow has shape (N,1)
-                                              axis=0)
-
-            ConsumerTypeNew.pHist = np.append(ConsumerTypes[index].pHist,
-                                              ConsumerTypeNew.pNow[np.newaxis,:], #pNow has shape (N,)
-                                              axis=0)
-        
-
-                
         # Calculate the percent change in consumption, for this value newVal for the given parameter
         newAvgC = calcAvgC(ConsumerTypesNew)
         changeInConsumption = 100. * (newAvgC - oldAvgC) / oldAvgC
@@ -207,12 +190,11 @@ def cChangeAfterTranShkChange(newVals):
 def cChangeAfterUnempPrbChange(newVals):
     return cChangeAfterUncertaintyChange(ConsumerTypes,newVals,"UnempPrb")
 
-
 ## Now, plot the functions we want
 
 # Import a useful plotting function from HARKutilities
 from HARKutilities import plotFuncs
-import pylab as plt # We need this module to change the y-axis on the graphs
+import matplotlib.pyplot as plt # We need this module to change the y-axis on the graphs
 
 ratio_min = 1. # minimum number to multiply income parameter by
 targetChangeInC = -6.32 # Source: FRED
@@ -234,7 +216,6 @@ plotFuncs([cChangeAfterPrmShkChange],perm_min,perm_max,N=num_points)
 
 ### Now change the variance of the temporary income shock
 #temp_ratio_max = ??? # Put whatever value in you want!  maximum number to multiply std dev of temp income shock by
-#
 #
 #temp_min = BaselineType.TranShkStd[0] * ratio_min
 #temp_max = BaselineType.TranShkStd[0] * temp_ratio_max
@@ -260,5 +241,5 @@ plotFuncs([cChangeAfterPrmShkChange],perm_min,perm_max,N=num_points)
 #plt.ylim(-20.,5.)
 #plt.hlines(targetChangeInC,unemp_min,unemp_max)
 #plotFuncs([cChangeAfterUnempPrbChange],unemp_min,unemp_max,N=num_points)
-
-
+#
+#
