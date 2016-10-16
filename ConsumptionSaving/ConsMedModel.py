@@ -13,7 +13,8 @@ from HARKutilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAu
 from HARKsimulation import drawLognormal
 from ConsIndShockModel import ConsumerSolution
 from HARKinterpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, CubicInterp,\
-                              LinearInterp, LowerEnvelope3D, UpperEnvelope, LinearInterpOnInterp1D
+                              LinearInterp, LowerEnvelope3D, UpperEnvelope, LinearInterpOnInterp1D,\
+                              VariableLowerBoundFunc3D
 from ConsPersistentShockModel import ConsPersistentShockSolver, PersistentShockConsumerType,\
                                      ValueFunc2D, MargValueFunc2D, MargMargValueFunc2D, \
                                      VariableLowerBoundFunc2D
@@ -496,129 +497,6 @@ class MedThruXfunc(HARKobject):
         dMeddShk = (dxdShk - dcdShk)/self.MedPrice
         return dMeddShk
         
-        
-class VariableLowerBoundFunc3D(HARKobject):
-    '''
-    A class for representing a function with three real inputs whose lower bound
-    in the first input depends on the second input.  Useful for managing curved
-    natural borrowing constraints.
-    '''
-    distance_criteria = ['func','lowerBound']
-    
-    def __init__(self,func,lowerBound):
-        '''
-        Make a new instance of VariableLowerBoundFunc3D.
-        
-        Parameters
-        ----------
-        func : function
-            A function f: (R_+ x R^2) --> R representing the function of interest
-            shifted by its lower bound in the first input.
-        lowerBound : function
-            The lower bound in the first input of the function of interest, as
-            a function of the second input.
-            
-        Returns
-        -------
-        None
-        '''
-        self.func = func
-        self.lowerBound = lowerBound
-        
-    def __call__(self,x,y,z):
-        '''
-        Evaluate the function at given state space points.
-        
-        Parameters
-        ----------
-        x : np.array
-             First input values.
-        y : np.array
-             Second input values; should be of same shape as x.
-        z : np.array
-             Third input values; should be of same shape as x.
-             
-        Returns
-        -------
-        f_out : np.array
-            Function evaluated at (x,y,z), of same shape as inputs.
-        '''
-        xShift = self.lowerBound(y)
-        f_out = self.func(x-xShift,y,z)
-        return f_out
-        
-    def derivativeX(self,x,y,z):
-        '''
-        Evaluate the first derivative with respect to x of the function at given
-        state space points.
-        
-        Parameters
-        ----------
-        x : np.array
-             First input values.
-        y : np.array
-             Second input values; should be of same shape as x.
-        z : np.array
-             Third input values; should be of same shape as x.
-             
-        Returns
-        -------
-        dfdx_out : np.array
-            First derivative of function with respect to the first input, 
-            evaluated at (x,y,z), of same shape as inputs.
-        '''
-        xShift = self.lowerBound(y)
-        dfdx_out = self.func.derivativeX(x-xShift,y,z)
-        return dfdx_out
-        
-    def derivativeY(self,x,y,z):
-        '''
-        Evaluate the first derivative with respect to y of the function at given
-        state space points.
-        
-        Parameters
-        ----------
-        x : np.array
-             First input values.
-        y : np.array
-             Second input values; should be of same shape as x.
-        z : np.array
-             Third input values; should be of same shape as x.
-             
-        Returns
-        -------
-        dfdy_out : np.array
-            First derivative of function with respect to the second input, 
-            evaluated at (x,y,z), of same shape as inputs.
-        '''
-        xShift,xShiftDer = self.lowerBound.eval_with_derivative(y)
-        dfdy_out = self.func.derivativeY(x-xShift,y,z) - \
-                   xShiftDer*self.func.derivativeX(x-xShift,y,z)
-        return dfdy_out
-        
-    def derivativeZ(self,x,y,z):
-        '''
-        Evaluate the first derivative with respect to z of the function at given
-        state space points.
-        
-        Parameters
-        ----------
-        x : np.array
-             First input values.
-        y : np.array
-             Second input values; should be of same shape as x.
-        z : np.array
-             Third input values; should be of same shape as x.
-             
-        Returns
-        -------
-        dfdz_out : np.array
-            First derivative of function with respect to the third input, 
-            evaluated at (x,y,z), of same shape as inputs.
-        '''
-        xShift = self.lowerBound(y)
-        dfdz_out = self.func.derivativeZ(x-xShift,y,z)
-        return dfdz_out
         
 ###############################################################################
 
