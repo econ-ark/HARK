@@ -679,18 +679,18 @@ class MarkovConsumerType(IndShockConsumerType):
         self.poststate_vars += ['MrkvNow']
         
     def checkMarkovInputs(self):
-        """
+        '''
         Many parameters used by MarkovConsumerType are arrays.  Make sure those arrays are the
         right shape.
 
         Parameters
         ----------
-        none
+        None
         
         Returns
         -------
-        none
-        """
+        None
+        '''
         StateCount = self.MrkvArray[0].shape[0]        
         
         # Check that arrays are the right shape
@@ -712,161 +712,6 @@ class MarkovConsumerType(IndShockConsumerType):
         # conditional on a particular Markov state. 
         for IncomeDstn_t in self.IncomeDstn:
             assert len(IncomeDstn_t) == StateCount,'List in IncomeDstn is not the right length!'
-
-    def makeIncShkHist(self):
-        '''
-        Makes histories of simulated income shocks for this consumer type by
-        drawing from the discrete income distributions, respecting the Markov
-        state for each agent in each period.  Should be run after makeMrkvHist().
-        
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''
-        orig_time = self.time_flow
-        self.timeFwd()
-        self.resetRNG()
-        
-        # Initialize the shock histories
-        N = self.MrkvArray.shape[0]
-        PermShkHist = np.zeros((self.sim_periods,self.Nagents)) + np.nan
-        TranShkHist = np.zeros((self.sim_periods,self.Nagents)) + np.nan
-        PermShkHist[0,:] = 1.0
-        TranShkHist[0,:] = 1.0
-        t_idx = 0
-        
-        # Draw income shocks for each simulated period, respecting the Markov state
-        for t in range(1,self.sim_periods):
-            MrkvNow = self.MrkvHist[t,:]
-            IncomeDstn_list    = self.IncomeDstn[t_idx]
-            PermGroFac_list    = self.PermGroFac[t_idx]
-            for n in range(N):
-                these = MrkvNow == n
-                IncomeDstnNow = IncomeDstn_list[n]
-                PermGroFacNow = PermGroFac_list[n]
-                Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
-                # Get random draws of income shocks from the discrete distribution
-                EventDraws       = drawDiscrete(N=np.sum(these),X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
-                PermShkHist[t,these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow
-                TranShkHist[t,these] = IncomeDstnNow[2][EventDraws]
-            # Advance the time index, looping if we've run out of income distributions
-            t_idx += 1
-            if t_idx >= len(self.IncomeDstn):
-                t_idx = 0
-        
-        # Store the results as attributes of self and restore time to its original flow        
-        self.PermShkHist = PermShkHist
-        self.TranShkHist = TranShkHist
-        if not orig_time:
-            self.timeRev()
-                    
-    def makeMrkvHist(self):
-        '''
-        Makes a history of simulated discrete Markov states, starting from the
-        initial states in markov_init.  Assumes that MrkvArray is constant.
-
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''
-        orig_time = self.time_flow
-        self.timeFwd()
-        self.resetRNG()
-        
-        # Initialize the Markov state history
-        MrkvHist      = np.zeros((self.sim_periods,self.Nagents),dtype=int)
-        MrkvNow       = self.Mrkv_init
-        MrkvHist[0,:] = MrkvNow
-        base_draws    = np.arange(self.Nagents,dtype=float)/self.Nagents + 1.0/(2*self.Nagents)
-        
-        # Make an array of Markov transition cutoffs
-        N = self.MrkvArray.shape[0] # number of states
-        Cutoffs = np.cumsum(self.MrkvArray,axis=1)
-        
-        # Draw Markov transitions for each period
-        for t in range(1,self.sim_periods):
-            draws_now = self.RNG.permutation(base_draws)
-            MrkvNext = np.zeros(self.Nagents) + np.nan
-            for n in range(N):
-                these = MrkvNow == n
-                MrkvNext[these] = np.searchsorted(Cutoffs[n,:],draws_now[these])
-            MrkvHist[t,:] = MrkvNext
-            MrkvNow = MrkvNext
-        
-        # Store the results and return time to its original flow
-        self.MrkvHist = MrkvHist
-        if not orig_time:
-            self.timeRev()
-
-
-    def simOnePrd(self):
-        '''
-        Simulate a single period of a consumption-saving model with permanent
-        and transitory income shocks.
-        
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''        
-        # Unpack objects from self for convenience
-        aPrev          = self.aNow
-        pPrev          = self.pNow
-        TranShkNow     = self.TranShkNow
-        PermShkNow     = self.PermShkNow
-        RfreeNow       = self.RfreeNow[self.MrkvNow]
-        cFuncNow       = self.cFuncNow
-        
-        # Simulate the period
-        pNow    = pPrev*PermShkNow      # Updated permanent income level
-        ReffNow = RfreeNow/PermShkNow   # "effective" interest factor on normalized assets
-        bNow    = ReffNow*aPrev         # Bank balances before labor income
-        mNow    = bNow + TranShkNow     # Market resources after income
-
-        N      = self.MrkvArray.shape[0]            
-        cNow   = np.zeros_like(mNow)
-        MPCnow = np.zeros_like(mNow)
-        for n in range(N):
-            these = self.MrkvNow == n
-            cNow[these], MPCnow[these] = cFuncNow[n].eval_with_derivative(mNow[these]) # Consumption and maginal propensity to consume
-
-        aNow    = mNow - cNow           # Assets after all actions are accomplished
-        
-        # Store the new state and control variables
-        self.pNow   = pNow
-        self.bNow   = bNow
-        self.mNow   = mNow
-        self.cNow   = cNow
-        self.MPCnow = MPCnow
-        self.aNow   = aNow
-
-
-    def advanceIncShks(self):
-        '''
-        Advance the permanent and transitory income shocks to the next period of
-        the shock history objects.
-        
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''
-        self.MrkvNow = self.MrkvHist[self.Shk_idx,:]
-        IndShockConsumerType.advanceIncShks(self)
 
     def updateSolutionTerminal(self):
         '''
