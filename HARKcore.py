@@ -5,6 +5,7 @@ models.  A micro model concerns the dynamic optimization problem for some type
 of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
+Explained
 '''
 
 from HARKutilities import getArgNames, NullFunc
