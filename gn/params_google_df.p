@@ -103,7 +103,7 @@ p48
 I1
 sS'stop'
 p49
-I74
+I75
 sg42
 Nstp50
 Rp51
@@ -117,7 +117,7 @@ tp54
 Rp55
 (I1
 (I8
-I74
+I75
 tp56
 g29
 I00
@@ -125,8 +125,9 @@ I00
 g33
 ag33
 ag33
-aF269995.3805
+aF259270.7127
 aF172847.1418
+ag33
 ag33
 ag33
 ag33
@@ -231,6 +232,7 @@ ag33
 ag33
 ag33
 ag33
+ag33
 aS'Calculated using means above'
 p62
 aS'Calculated in the data, then take means. Should be same as row above, must differ due to differing missing values'
@@ -286,6 +288,7 @@ ag33
 aF5.41
 aF3.63
 aF0.25
+ag33
 ag33
 ag33
 ag33
@@ -435,9 +438,11 @@ ag33
 ag33
 ag33
 ag33
+ag33
 aF5.08
 aF3.25
 aF1.7
+ag33
 ag33
 ag33
 ag33
@@ -522,165 +527,169 @@ aS'hsg_rent_p'
 p78
 aS'hsg_own_p'
 p79
-aS'inc_unemp'
+aS'maint'
 p80
-aS'prb_unemp'
+aS'inc_unemp'
 p81
-aS'inc_shk_rescale'
+aS'prb_unemp'
 p82
-aS'cash_on_hand'
+aS'inc_shk_rescale'
 p83
-aS'Boom parameters'
+aS'cash_on_hand'
 p84
-aS'annual_hp_growth'
+aS'Boom parameters'
 p85
-aS'Initial debt'
+aS'annual_hp_growth'
 p86
-aS'Assumed initial LTV'
+aS'Initial debt'
 p87
-aS'Initial price'
+aS'Assumed initial LTV'
 p88
-aS'New price'
+aS'Initial price'
 p89
-aS'mortgagor_coh'
+aS'New price'
 p90
-aS'HELOC experiment'
+aS'mortgagor_coh'
 p91
-aS'heloc_limit'
+aS'HELOC experiment'
 p92
-aS'rd parameters'
+aS'heloc_limit'
 p93
-aS'default_rate'
+aS'rd parameters'
 p94
-aS'pre_mod_ltv'
+aS'default_rate'
 p95
-aS'post_mod_ltv'
+aS'baseline_debt_rd'
 p96
+aS'post_mod_ltv'
+p97
 ag33
 aS'rent_if_default_first_period'
-p97
-aS'Period 1-5 payment to income'
 p98
-aS'Period t>5 payment to income'
+aS'Period 1-5 payment to income'
 p99
-aS'rent_at_age_65'
+aS'Period t>5 payment to income'
 p100
+aS'rent_at_age_65'
+p101
 ag33
 aS'Implied post-modLTV'
-p101
-aS'Calculated post-mod LTV'
 p102
-aS'Post-mod LTV using post-mod UPB'
+aS'Calculated post-mod LTV'
 p103
-aS'Implied arrears'
+aS'Post-mod LTV using post-mod UPB'
 p104
-aS'Pre-mod collateral as share of income'
+aS'Implied arrears'
 p105
-aS'Post-mod collateral as share of income'
+aS'Pre-mod collateral as share of income'
 p106
-aS'Outstanding question for PN (low priority): why does calculated post-mod LTV differ from post-mod LTV using post-mod UPB? Pascal says arrears. Why are there differential arrears for HAMP vs PRA?'
+aS'Post-mod collateral as share of income'
 p107
-aS'implied pre-mod LTV'
+aS'Outstanding question for PN (low priority): why does calculated post-mod LTV differ from post-mod LTV using post-mod UPB? Pascal says arrears. Why are there differential arrears for HAMP vs PRA?'
 p108
-aS'LTV of 0.5 years of income underwater'
+aS'implied pre-mod LTV'
 p109
-ag33
-aS'Payment reduction in dollars'
+aS'LTV of 0.5 years of income underwater'
 p110
 ag33
-aS'HAMP NPV calculations (discount factor 0.96, age at mod 45)'
+aS'Payment reduction in dollars'
 p111
-aS'PDV of sale value'
-p112
-aS'PDV of payments'
-p113
-aS'PDV of mortgage (sum of two above)'
-p114
 ag33
-aS'HELOC limit, dollars'
+aS'HAMP NPV calculations (discount factor 0.96, age at mod 45)'
+p112
+aS'PDV of sale value'
+p113
+aS'PDV of payments'
+p114
+aS'PDV of mortgage (sum of two above)'
 p115
 ag33
-aS'LTV ratio'
+aS'HELOC limit, dollars'
 p116
-aS'Home price'
+ag33
+aS'LTV ratio'
 p117
-aS'Implied debt'
+aS'Home price'
 p118
-aS'New debt after 0.1 grant'
+aS'Implied debt'
 p119
-aS'New LTV'
+aS'New debt after 0.1 grant'
 p120
+aS'New LTV'
+p121
 ag33
 aS'Price at age 65'
-p121
-aS'Original rental cost at age 65'
 p122
-aS'Rental cost adding 4% maintenance and property taxes'
+aS'Original rental cost at age 65'
 p123
-aS'Rental cost with new user cost'
+aS'Rental cost adding 4% maintenance and property taxes'
 p124
-aS'Age 45 rental cost'
+aS'Rental cost with new user cost'
 p125
+aS'Age 45 rental cost'
+p126
 ag33
 aS'Price at age 75'
-p126
-aS'Rental cost at age 75'
 p127
-aS'Rental cost adding 4% maintenance and property taxes'
+aS'Rental cost at age 75'
 p128
+aS'Rental cost adding 4% maintenance and property taxes'
+p129
 ag33
 aS'Price at age 65 under new 0.9% inflation inflation'
-p129
-aS'Original rental cost at age 65'
 p130
-aS'Rental cost adding 4% maintenance and property taxes'
+aS'Original rental cost at age 65'
 p131
+aS'Rental cost adding 4% maintenance and property taxes'
+p132
 ag33
 ag33
 aS'Maintenance cost'
-p132
-aS'Property tax rate'
 p133
-aS'Initial property and maintenance cost'
+aS'Property tax rate'
 p134
-aS'Average real growth from FHFA between 1990 and 2010'
+aS'Initial property and maintenance cost'
 p135
-aS'Change in average CLTV per CoreLogic'
+aS'Average real growth from FHFA between 1990 and 2010'
 p136
-aS'Freddie Mac conforming loan survey, average July 2010 through July 2014, deflated using expected inflation from Treausry yield https://www.treasury.gov/resource-center/data-chart-center/interest-rates/Pages/Historic-Yield-Data-Visualization.aspx'
+aS'Change in average CLTV per CoreLogic'
 p137
-aS'HAMP-TU Matched Sample'
+aS'Freddie Mac conforming loan survey, average July 2010 through July 2014, deflated using expected inflation from Treausry yield https://www.treasury.gov/resource-center/data-chart-center/interest-rates/Pages/Historic-Yield-Data-Visualization.aspx'
 p138
 aS'HAMP-TU Matched Sample'
 p139
 aS'HAMP-TU Matched Sample'
 p140
-aS'Interest cost + Taxes + maintenance'
+aS'HAMP-TU Matched Sample'
 p141
-aS'Taxes + maintenance. suggestion: previous was 0.04'
+aS'Interest cost + Taxes + maintenance'
 p142
-aS'Eyeballed average of 1-yr 10th percentile values in tab C.1 col H of Guvenen for 2008-2010: https://fguvenendotcom.files.wordpress.com/2014/04/gos_2014_appendix_tables_in_excel.xlsx'
+aS'Taxes + maintenance. suggestion: previous was 0.04'
 p143
-aS'10% risk of ending up in bottom decile in Guvennen JPE'
+aS'Does not grow w home value'
 p144
-aS'baseline is 0.1 so 1.4*0.1 = 0.14'
+aS'Eyeballed average of 1-yr 10th percentile values in tab C.1 col H of Guvenen for 2008-2010: https://fguvenendotcom.files.wordpress.com/2014/04/gos_2014_appendix_tables_in_excel.xlsx'
 p145
-aS'Bernstein 2015 Figure 7 shows income rising by 15% in the two years after a mortgage mod'
+aS'10% risk of ending up in bottom decile in Guvennen JPE'
 p146
+aS'baseline is 0.1 so 1.4*0.1 = 0.14'
+p147
+aS'Bernstein 2015 Figure 7 shows income rising by 15% in the two years after a mortgage mod'
+p148
 ag33
 aS'FHFA. Real growth during boom. See hampra/data/HPI_PO_summary_edit'
-p147
-aS'Assume debt level (and so housing payments) are same'
-p148
-aS'Just assuming high leveraged group (hoping to Match Mian and Sufi 18 cents MPC)'
 p149
+aS'Assume debt level (and so housing payments) are same'
+p150
+aS'Just assuming high leveraged group (hoping to Match Mian and Sufi 18 cents MPC)'
+p151
 ag33
 ag33
 aS'I calculated in our 2013 SCF microdata for wage-earners with at least $15K in wage income: 39750 median total financial assets and 72031 median in income. So that gives 1.55. When I add an additional screen of having a mortgage, then I get a ratio of 1.97.'
-p150
+p152
 ag33
 aS'As a share of income'
-p151
+p153
 ag33
 ag33
 ag33
@@ -704,13 +713,13 @@ ag33
 ag33
 ag33
 aS'Difference'
-p152
+p154
 aF0.3
 aF1.03
 aF1.33
 ag33
 aS'Average unsused HELOC for homeowners is about $10,000 in NY Fed credit panel. Give people twice this'
-p153
+p155
 ag33
 ag33
 ag33
@@ -739,46 +748,47 @@ ag33
 aF0.009
 aF0.2
 aF0.02
-aF5.08
+aF4.88
 aF3.25
 aF1.45
 aF0.026
 aF0.015
+aF0.025
 aF0.5
 aF0.1
 aF1.4
 aF0.85
 ag33
 aF0.06
-aF5.08
+aF4.88
 aI95
-aF4.83
-aF5.12
+aF4.64
+aF4.91
 aI2
 ag33
 aF0.377
 ag33
 aF0.07
-aF120.0
-aI109
+aF3.87
+aI108
 ag33
 aF0.08
-aF0.23
-aF0.16
+aF0.22
+aF0.15
 aF0.101
 ag33
-aI112
+aI106
 ag33
 ag33
 ag33
 ag33
 ag33
 ag33
-aI156
+aI150
 aF1.154
 ag33
 aS'$3,228'
-p154
+p156
 ag33
 ag33
 ag33
@@ -811,25 +821,25 @@ ag33
 aF0.025
 aF0.015
 aF0.13015108
-atp155
-ba(lp156
+atp157
+ba(lp158
 g15
 (g16
-(dp157
+(dp159
 g18
 g19
 (g20
 (I0
-tp158
+tp160
 g22
-tp159
-Rp160
+tp161
+Rp162
 (I1
 (I8
-tp161
+tp163
 g29
 I00
-(lp162
+(lp164
 g33
 ag34
 ag35
@@ -838,33 +848,33 @@ ag37
 ag38
 ag39
 ag40
-atp163
+atp165
 bsg42
-Nstp164
-Rp165
-a(dp166
+Nstp166
+Rp167
+a(dp168
 S'0.14.1'
-p167
-(dp168
-S'axes'
 p169
+(dp170
+S'axes'
+p171
 g14
 sS'blocks'
-p170
-(lp171
-(dp172
+p172
+(lp173
+(dp174
 S'mgr_locs'
-p173
+p175
 c__builtin__
 slice
-p174
+p176
 (I0
 I8
 I1
-tp175
-Rp176
+tp177
+Rp178
 sS'values'
-p177
+p179
 g55
-sasstp178
+sasstp180
 bsb.

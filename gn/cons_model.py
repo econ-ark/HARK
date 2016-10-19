@@ -24,6 +24,7 @@ import EstimationParameters as Params
 mystr = lambda number : "{:.4f}".format(number)
 do_simulation           = True
 from operator import sub, add
+import pdb
 import pandas as pd
 #this line errors out sometimes. Driven by issues with the Canopy_64bit path
 from rpy2 import robjects
@@ -42,11 +43,12 @@ df = pd.DataFrame(g_params.get_all_records())
 pickle.dump( df, open("params_google_df.p", "wb" ) )
 #df = pickle.load( open( "params_google_df.p", "rb" ) )
 
-hamp_params = df[['Param','Value']].set_index('Param')['Value'][:8].to_dict()
-inc_params = df[['Param','Value']].set_index('Param')['Value'][8:12].to_dict()
+hamp_params = df[['Param','Value']].set_index('Param')['Value'][:9].to_dict()
+inc_params = df[['Param','Value']].set_index('Param')['Value'][9:13].to_dict()
 hamp_coh = float(inc_params['cash_on_hand'])
-boom_params = df[['Param','Value']].set_index('Param')['Value'][13:19].to_dict()
-heloc_L = float(df[['Param','Value']].set_index('Param')['Value'][20:21])
+boom_params = df[['Param','Value']].set_index('Param')['Value'][14:20].to_dict()
+heloc_L = float(df[['Param','Value']].set_index('Param')['Value'][21:22])
+rd_params = df[['Param','Value']].set_index('Param')['Value'][23:26].to_dict()
 
 g_params = gc.open("HAMPRA Loan-to-Value Distribution")
 ltv_wksheet = g_params.worksheet("PythonInput")
@@ -126,7 +128,7 @@ def gg_funcs(functions,bottom,top,N=1000,labels = [],
 #xxx the version in the default script is now more up to date
 #remark: right now you are actually selling the house one year before retirement rather than at retirement. not sure if this is a problem.
 def hsg_wealth(initial_debt, annual_hp_growth, collateral_constraint, baseline_debt, 
-               initial_price, int_rate, pra_forgive, hsg_rent_p, hsg_own_p, 
+               initial_price, int_rate, pra_forgive, hsg_rent_p, hsg_own_p, maint,
                d_house_price = 0, age_at_mod = 45, hsg_pmt_wk_own = True, hsg_pmt_ret_y = False, default = False,
                annual_hp_growth_base = None):
     '''
@@ -177,12 +179,14 @@ def hsg_wealth(initial_debt, annual_hp_growth, collateral_constraint, baseline_d
     debt = [initial_debt]
     amort = int_rate*(1+int_rate)**30/((1+int_rate)**30-1)
     hsg_pmt = [initial_debt*amort]
+    maint_pmt = [initial_price*maint]
     for i in range(1,T):
         #print "age: " + str(i + age_at_mod) + " has growth fac: " + str(Params.PermGroFac[(i-1) + age_at_mod - 25])
         perm_gro = Params.PermGroFac[i + age_at_mod - 26]
         price.append(price[-1]*(1+annual_hp_growth)/perm_gro)
+        debt.append((debt[-1]*(1+int_rate))/perm_gro - hsg_pmt[-1]/perm_gro) #xx double-check timing assumptions here
+        maint_pmt.append(maint_pmt[-1]/perm_gro)
         hsg_pmt.append(hsg_pmt[-1]/perm_gro)
-        debt.append((debt[-1]*(1+int_rate))/perm_gro - hsg_pmt[-1]) #xx double-check timing assumptions here
     equity = np.array(price) - np.array(debt)
     limit = np.min(np.vstack((-(np.array(price)*(1-collateral_constraint) - np.array(debt)),np.zeros(T))),axis=0).tolist()
     if hsg_pmt_wk_own and not default:
@@ -194,6 +198,8 @@ def hsg_wealth(initial_debt, annual_hp_growth, collateral_constraint, baseline_d
         print("Error: cannot have housing payment > UI Benefit")
         print hsg_pmt
         return
+    hsg_pmt = map(add, hsg_pmt, maint_pmt)
+
     
     #housing payments in retirement
     if default:
@@ -202,7 +208,7 @@ def hsg_wealth(initial_debt, annual_hp_growth, collateral_constraint, baseline_d
         if annual_hp_growth_base is None:
             annual_hp_growth_base = annual_hp_growth
         price_baseline = [initial_price]
-        for i in range(1,T):
+        for i in range(1,T): 
             perm_gro = Params.PermGroFac[i + age_at_mod - 26]
             price_baseline.append(price[-1]*(1+annual_hp_growth_base)/perm_gro)        
         hsg_pmt_ret = [hamp_params['hsg_rent_p']*price_baseline[-1]/Params.PermGroFac[39]]
@@ -215,7 +221,9 @@ def hsg_wealth(initial_debt, annual_hp_growth, collateral_constraint, baseline_d
         print("Error: cannot have housing payment > income")
         print hsg_pmt_ret  
         return
-    
+    #pdb.set_trace()
+    hsg_pmt_ret = map(add, hsg_pmt_ret, [maint_pmt[-1]/Params.PermGroFac[39]] * 26)
+
     #fill out arguments to return
     hsg_pmt = [0.0] * (age_at_mod - 26) + hsg_pmt + hsg_pmt_ret
     equity = [0.0] * (age_at_mod - 26) + equity.tolist() + [0.0] * 26
@@ -225,7 +233,7 @@ def hsg_wealth(initial_debt, annual_hp_growth, collateral_constraint, baseline_d
 
 
 def pra_pmt(annual_hp_growth, collateral_constraint, baseline_debt, initial_price, 
-            int_rate, pra_forgive, hsg_rent_p, hsg_own_p, hsg_pmt_wk_own = True, hsg_pmt_ret_y = False,
+            int_rate, pra_forgive, hsg_rent_p, hsg_own_p, maint, hsg_pmt_wk_own = True, hsg_pmt_ret_y = False,
             age = 45, forgive = hamp_params['pra_forgive']):
     r, e, L, d_hamp = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], age_at_mod = age, hsg_pmt_wk_own = hsg_pmt_wk_own, hsg_pmt_ret_y = hsg_pmt_ret_y, **hamp_params)
     r, e, L, d_prin_red = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - forgive, age_at_mod = age, hsg_pmt_wk_own = hsg_pmt_wk_own, hsg_pmt_ret_y = hsg_pmt_ret_y, **hamp_params)
@@ -235,6 +243,11 @@ def pra_pmt(annual_hp_growth, collateral_constraint, baseline_debt, initial_pric
 
 #reload(Params)  
 baseline_params = Params.init_consumer_objects
+#hsg_wealth(initial_debt =  hamp_params['baseline_debt'], **hamp_params)
+#hamp_params['maint'] = 0.
+#hsg_wealth(initial_debt =  hamp_params['baseline_debt'], **hamp_params)
+#hamp_params['maint'] = 0.025
+
 
 #construct results w default specification for how to set up house prices (neg wealth effect)
 uw_house_params = deepcopy(baseline_params)
@@ -279,6 +292,9 @@ g = gg_funcs([pmt_pre_pra,pmt_post_pra],
         labels = labels,
         ylab = "Payment As Share of Income", xlab = "Age", file_name = "hsg_pmt_and_pra")
 g += gg.ylim(robjects.r('c(0.15,0.3)'))
+#this is where color code will go in future
+#g += gg.scale_colour_manual(values=robjects.r.palette_lines)
+
 ggplot_notebook(g, height=300,width=400)
 
 #construct change in payments and change in borrowing limits
@@ -385,7 +401,7 @@ g = gg_funcs([IndShockExample.cFunc[t_eval]],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Wealth & Collateral",
         labels = ["Baseline","Grant 0 Years Away (Now)"],
-        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide1")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide1")
 ggplot_notebook(g, height=300,width=400)
 
 #slide 1.2 -- consumption function out of future wealth
@@ -393,7 +409,7 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Wealth & Collateral",
         labels = ["Baseline","Grant 0 Years Away (Now)"],
-        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide2")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide2")
 ggplot_notebook(g, height=300,width=400)
 
 #slide 1.3 -- consumption function out of future wealth
@@ -401,7 +417,7 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now,RebateAge46.cFunc[t_eval]]
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Wealth & Collateral",
         labels = ["Baseline","Grant 0 Years Away (Now)","Grant 1 Year Away", "Grant 6 Years Away"],
-        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide3")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide3")
 ggplot_notebook(g, height=300,width=400)
 
 #slide 1.4 -- consumption function out of future wealth
@@ -409,7 +425,7 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now,RebateAge46.cFunc[t_eval],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Wealth & Collateral",
         labels = ["Baseline","Grant 0 Years Away (Now)","Grant 1 Year Away", "Grant 6 Years Away"],
-        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide4")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide4")
 ggplot_notebook(g, height=300,width=400)
 
 
@@ -418,7 +434,7 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now,RebateAge46.cFunc[t_eval],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Wealth & Collateral",
         labels = ["Baseline","Grant 0 Years Away (Now)","Grant 1 Year Away", "Grant 6 Years Away","Raise Collateral Now"],
-        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide5")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_slide5")
 ggplot_notebook(g, height=300,width=400)
 
 #consumption function w and without HELOC
@@ -426,7 +442,7 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],Boro_heloc.cFunc[t_eval]],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Wealth & Collateral",
         labels = ["Baseline","HELOC Borrow Limit: " + str(heloc_L)],
-        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_heloc_diag")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_heloc_diag")
 ggplot_notebook(g, height=300,width=400)
 
 #paper plots
@@ -434,14 +450,14 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],grant_now,RebateAge46.cFunc[t_eval],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Future Wealth",
         labels = ["Baseline","Grant 0 Years Away","Grant 1 Year Away", "Grant 6 Years Away"],
-        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_wealth")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_wealth")
 ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([IndShockExample.cFunc[t_eval],Boro1YrInc.cFunc[t_eval],BoroAge46.cFunc[t_eval],BoroAge51.cFunc[t_eval]],
         -0.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Future Collateral",
         labels = ["Baseline","Collateral 0 Years Away","Collateral 1 Year Away", "Collateral 6 Years Away"],
-        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_collateral")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_fut_collateral")
 ggplot_notebook(g, height=300,width=400)
 
 #####################################
@@ -523,7 +539,7 @@ equity_initial = hamp_params['baseline_debt'] - hamp_params['initial_price']
 #gr_min = 100*-equity_initial/hamp_params['initial_price']
 #gr_max = 100*(grid_len*grid_int - equity_initial)/hamp_params['initial_price']
 #grid_int2 = (gr_max-gr_min)/grid_len
-gr_max = 100*(1+equity_initial/hamp_params['initial_price'])
+gr_max = 100*(1+equity_initial/hamp_params['initial_price']) + 2
 gr_min = 100*(1-((grid_len*grid_int - equity_initial)/hamp_params['initial_price']))
 grid_int2 = (gr_max-gr_min)/grid_len
 
@@ -546,7 +562,7 @@ ltv_end = 100*((hamp_params['baseline_debt'] - hamp_params['pra_forgive'])/hamp_
 g = gg_funcs(hw_cf,gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Principal Forgiveness",
         labels = ["Baseline"],
-        ylab = "Consumption", xlab = "Loan-to-Value (> 100 is Underwater)")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Loan-to-Value (> 100 is Underwater)")
 g += gg.geom_vline(xintercept=(1-hamp_params['collateral_constraint'])*100, linetype=2, colour="#66C2A5", alpha=0.75)
 g += gg.xlim(robjects.r('c(' + str(gr_max) + ',' + str(gr_min) + ')'))
 mp.ggsave("cons_and_prin_forgive",g)
@@ -562,7 +578,7 @@ ggplot_notebook(g, height=300,width=400)
 g = gg_funcs([hw_cf,hw_cf_0_pct],gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Principal Forgiveness",
         labels = ["Baseline","Housing Equity >= 0%"],
-        ylab = "Consumption", xlab = "Loan-to-Value (> 100 is Underwater)")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Loan-to-Value (> 100 is Underwater)")
 g += gg.geom_vline(xintercept=80, linetype=2, colour="#66C2A5", alpha=0.75)
 g += gg.geom_vline(xintercept=100, linetype=2, colour="#FC8D62", alpha=0.75)
 g += gg.xlim(robjects.r('c(' + str(gr_max) + ',' + str(gr_min) + ')'))
@@ -572,7 +588,7 @@ ggplot_notebook(g, height=300,width=400)
 g = gg_funcs([hw_cf,hw_cf_0_pct, hw_cf_coh_hi_hack],gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Principal Forgiveness",
         labels = ["Baseline","Housing Equity >= 0%","PIH: Cash-on-Hand = " + str(tmp_hi)],
-        ylab = "Consumption", xlab = "Loan-to-Value (> 100 is Underwater)")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Loan-to-Value (> 100 is Underwater)")
 g += gg.geom_vline(xintercept=80, linetype=2, colour="#66C2A5", alpha=0.75)
 g += gg.geom_vline(xintercept=100, linetype=2, colour="#FC8D62", alpha=0.75)
 g += gg.xlim(robjects.r('c(' + str(gr_max) + ',' + str(gr_min) + ')'))
@@ -582,7 +598,7 @@ ggplot_notebook(g, height=300,width=400)
 g = gg_funcs([hw_cf,hw_cf_0_pct, hw_cf_coh_hi_hack,hw_cf_coh_vhi],gr_min,gr_max, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Function Out of Principal Forgiveness",
         labels = ["Baseline","Housing Equity >= 0%","PIH: Cash-on-Hand = " + str(tmp_hi), "PIH: Cash-on-Hand = 6"],
-        ylab = "Consumption", xlab = "Loan-to-Value (> 100 is Underwater)")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Loan-to-Value (> 100 is Underwater)")
 g += gg.geom_vline(xintercept=80, linetype=2, colour="#66C2A5", alpha=0.75)
 g += gg.geom_vline(xintercept=100, linetype=2, colour="#FC8D62", alpha=0.75)
 g += gg.xlim(robjects.r('c(' + str(gr_max) + ',' + str(gr_min) + ')'))
@@ -592,7 +608,7 @@ ggplot_notebook(g, height=300,width=400)
 g = gg_funcs([hw_cf,hw_cf_w,hw_cf_L],gr_min,gr_max, N=50, loc=robjects.r('c(0,1)'), #hw_cf_rL
         title = "Consumption Function Out of Principal Forgiveness: Channels",
         labels = ["Collateral & Future Cash","Future Cash Only","Collateral Only"],
-        ylab = "Consumption", xlab = "Loan-to-Value (> 100 is Underwater)")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Loan-to-Value (> 100 is Underwater)")
 g += gg.geom_vline(xintercept=80, linetype=2, colour="#66C2A5", alpha=0.75)
 g += gg.xlim(robjects.r('c(' + str(gr_max) + ',' + str(gr_min) + ')'))
 mp.ggsave("cons_and_prin_forgive_decomp_backup",g)
@@ -602,7 +618,7 @@ ggplot_notebook(g, height=300,width=400)
 g = gg_funcs([hw_cf,hw_cf_heloc],gr_min,gr_max, N=50, loc=robjects.r('c(0,1)'), #hw_cf_rL
         title = "Consumption Function Out of Principal Forgiveness -- Agent w HELOC",
         labels = ["Baseline","Agent has HELOC"],
-        ylab = "Consumption", xlab = "Loan-to-Value (> 100 is Underwater)")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Loan-to-Value (> 100 is Underwater)")
 g += gg.geom_vline(xintercept=80, linetype=2, colour="red", alpha=0.25)
 g += gg.xlim(robjects.r('c(' + str(gr_max) + ',' + str(gr_min) + ')'))
 mp.ggsave("cons_and_prin_forgive_heloc_diag",g)
@@ -615,7 +631,7 @@ cFuncsBelow = [cFuncs[0][t_eval],cFuncs_w[0][t_eval],cFuncs_L[0][t_eval],cFuncs_
 g = gg_funcs(cFuncsBelow,-1.5,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Functions For Underwater HHs",
         labels = ["Full Mod (Collateral, Rebates, Payments)","Rebates and Payments Only","Collateral Only", "Collateral and Rebates Only"],
-        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_below_collat_threshold_diag")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash on Hand", file_name = "cfuncs_below_collat_threshold_diag")
 ggplot_notebook(g, height=300,width=400)
 #
 ##at LTV 80
@@ -623,7 +639,7 @@ cFuncsAt = [cFuncs[11][t_eval],cFuncs_w[11][t_eval],cFuncs_L[11][t_eval],cFuncs_
 g = gg_funcs(cFuncsAt,-1.5,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Functions For HHs At LTV = 80",
         labels = ["Full Mod (Collateral, Rebates, Payments)","Rebates and Payments Only","Collateral Only", "Collateral and Rebates Only"],
-        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_at_collat_threshold_diag")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash on Hand", file_name = "cfuncs_at_collat_threshold_diag")
 ggplot_notebook(g, height=300,width=400)
 
 #far above threshold
@@ -631,7 +647,7 @@ cFuncsAbove = [cFuncs[19][t_eval],cFuncs_w[19][t_eval],cFuncs_L[19][t_eval],cFun
 g = gg_funcs(cFuncsAbove,-2.001,3, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Functions For HHs At LTV = 0",
         labels = ["Full Mod (Collateral, Rebates, Payments)","Rebates and Payments Only","Collateral Only", "Collateral and Rebates Only"],
-        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_above_collat_threshold_diag")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash on Hand", file_name = "cfuncs_above_collat_threshold_diag")
 ggplot_notebook(g, height=300,width=400)
 
 # consumption functions
@@ -640,7 +656,7 @@ for i in range(0,grid_len-4,2):
     cFuncs44.append(cFuncs[i][t_eval])
 g = gg_funcs(cFuncs44,-1.5,6, N=200, loc=robjects.r('c(1,0)'),
         title = "Consumption Functions. Each line is 0.5 more of Principal Forgiveness",
-        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_prin_forgive_diag")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash on Hand", file_name = "cfuncs_prin_forgive_diag")
 ggplot_notebook(g, height=300,width=400)
 
 cFuncs44 = []
@@ -648,7 +664,7 @@ for i in range(7):
     cFuncs44.append(cFuncs[i][t_eval])
 g = gg_funcs(cFuncs44,2.01,4, N=200, loc=robjects.r('c(1,0)'),
         title = "Consumption Functions. Each line is 0.25 more of Principal Forgiveness",
-        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_prin_forgive_high_coh_diag")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash on Hand", file_name = "cfuncs_prin_forgive_high_coh_diag")
 ggplot_notebook(g, height=300,width=400)
 
 ############################################################################
@@ -716,7 +732,7 @@ mpc_cash_f = LinearInterp(equity_a,np.array(hp_mpc['cash'])[::-1])
 mpc_debt_f = LinearInterp(equity_a,np.array(hp_mpc['debt'])[::-1])
 
 gr_min = 10
-gr_max = 160
+gr_max = 155
 #xxx consider turning arrow into an mp item
 g = gg_funcs([mpc_hsg_f,mpc_cash_f,mpc_debt_f],gr_min,gr_max, N=len(ltv_rows), loc=robjects.r('c(1,1)'),
         title = "Marginal Propensity to Consume by Home Equity\n Cash-On-Hand = " + str(coh),
@@ -745,6 +761,7 @@ g += gg.xlim(robjects.r('c(' + str(gr_max) + ',' + str(gr_min) + ')'))
 mp.ggsave("mpc_hsg_backup",g)
 ggplot_notebook(g, height=300,width=400)
 
+
 mpc_hsg_low_coh_f = LinearInterp(equity_a,np.array(hp_mpc_low_coh['hsg'])[::-1])
 mpc_cash_low_coh_f = LinearInterp(equity_a,np.array(hp_mpc_low_coh['cash'])[::-1])
 mpc_debt_low_coh_f = LinearInterp(equity_a,np.array(hp_mpc_low_coh['debt'])[::-1])
@@ -753,7 +770,20 @@ g = gg_funcs([mpc_cash_low_coh_f,mpc_debt_low_coh_f],gr_min,gr_max, N=len(ltv_ro
         labels = ["Cash MPC","Housing Debt MPC","Housing Price MPC"],
         ylab = "MPC", xlab = "Loan-to-Value (> 100 is Underwater)")
 g += gg.xlim(robjects.r('c(' + str(gr_max) + ',' + str(gr_min) + ')'))
+mp.ggsave("mpc_cash_hsg_low_coh_slide2",g)   
+g += gg.geom_segment(gg.aes_string(x = ltv_start, y = hp_mpc_low_coh['debt'][160] + 0.05, xend = ltv_end, yend =  hp_mpc_low_coh['debt'][160] + 0.05),
+                     arrow = robjects.r('arrow(length = unit(0.5, "cm"))'),
+                     color= robjects.r.palette_lines[1])
 mp.ggsave("mpc_cash_hsg_low_coh",g)        
+ggplot_notebook(g, height=300,width=400)
+
+g = gg_funcs([mpc_cash_low_coh_f,mpc_debt_low_coh_f],gr_min,90, N=9, loc=robjects.r('c(1,1)'),
+        title = "Marginal Propensity to Consume by Home Equity",
+        labels = ["Cash MPC","Housing Debt MPC","Housing Price MPC"],
+        ylab = "MPC", xlab = "Loan-to-Value (> 100 is Underwater)")
+g += gg.xlim(robjects.r('c(' + str(gr_max) + ',' + str(gr_min) + ')'))
+g += gg.ylim(robjects.r('c(' + str(min(hp_mpc_low_coh['debt'])) + ',' + str(max(hp_mpc_low_coh['cash'])) + ')'))
+mp.ggsave("mpc_cash_hsg_low_coh_slide1",g)        
 ggplot_notebook(g, height=300,width=400)
 
 g = gg_funcs([mpc_cash_low_coh_f,mpc_debt_low_coh_f,mpc_hsg_low_coh_f],gr_min,gr_max, N=len(ltv_rows), loc=robjects.r('c(1,1)'),
@@ -989,6 +1019,18 @@ hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay
 hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = hamp_params['pra_forgive'] , **hamp_params)   
 cf = solve_unpack(hw_cf_params)
 pra_mpc.loc['Fast House Price Growth (5%)','c_post'] = cf.cFunc[t_eval](hamp_coh)
+
+hamp_params['collateral_constraint'] = 0
+hw_cf_params = deepcopy(baseline_params)
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] , **hamp_params)
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Fast House Price Growth (5%) & Collateral = 0','c_pre'] = cf.cFunc[t_eval](hamp_coh)
+hw_cf_params['rebate_amt'], e, hw_cf_params['BoroCnstArt'], hw_cf_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'] , **hamp_params)
+hw_cf_params['HsgPay'] =  pra_pmt(age = 45, forgive = hamp_params['pra_forgive'] , **hamp_params)   
+cf = solve_unpack(hw_cf_params)
+pra_mpc.loc['Fast House Price Growth (5%) & Collateral = 0','c_post'] = cf.cFunc[t_eval](hamp_coh)
+
+hamp_params['collateral_constraint'] = 0.20
 hamp_params['annual_hp_growth'] = tmp
 
 #CRRA = 2
@@ -1098,7 +1140,7 @@ hp_cf_pos_w = LinearInterp(np.arange(gr_min,gr_max,grid_int2),np.array(hp_cf_pos
 g = gg_funcs([hw_cf_yrs,hw_cf_pos_w,hp_cf,hp_cf_pos_w],gr_min,gr_max, N=50, loc=robjects.r('c(0,1)'),
         title = "Consumption Function Out of Principal Forgiveness",
         labels = ["Principal Forgiveness (Neg Wealth Effect, Baseline)","Principal Forgiveness (Pos Wealth Effect)","House Price Increase (Neg Wealth Effect)","House Price Increase (Pos Wealth Effect)"],
-        ylab = "Consumption", xlab = "House Price Increase Measured In Years of Income")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "House Price Increase Measured In Years of Income")
 #g += gg.xlim(robjects.r('c(' + str(gr_max) + ',' + str(gr_min) + ')'))
 mp.ggsave("cons_dprice_forgive_years_of_inc_backup",g)
 ggplot_notebook(g, height=300,width=400)
@@ -1109,7 +1151,7 @@ for i in range(0,grid_len-4,2):
     cFuncs44.append(cFuncs[i][t_eval])
 g = gg_funcs(cFuncs44,-1.5,8, N=50, loc=robjects.r('c(0,1)'),
         title = "Consumption Functions. Each line is 0.5 Increase in house value",
-        ylab = "Consumption", xlab = "Cash on Hand", file_name = "cfuncs_house_price_diag")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash on Hand", file_name = "cfuncs_house_price_diag")
 ggplot_notebook(g, height=300,width=400)
 
 
@@ -1141,5 +1183,5 @@ g = gg_funcs([IndShockExample.cFunc[t_eval],AddBackPermIncRisk.cFunc[t_eval],Add
         -.001,8, N=50, loc=robjects.r('c(1,0)'),
         title = "Consumption Functions",
         labels = ["Baseline (No Housing, No Perm Inc Risk)","Add Perm Inc Risk", "Add Housing Payments"], #"Double Temp Inc SD", "Quadruple U risk", 
-        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_concavity_diag")
+        ylab = "Consumption (Ratio to Permanent Income)", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "cf_concavity_diag")
 ggplot_notebook(g, height=300,width=400)

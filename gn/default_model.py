@@ -7,7 +7,7 @@ Created on Mon Jun 20 15:55:59 2016
 import os
 os.environ["R_HOME"] = "/Library/Frameworks/R.framework/Resources"
 os.chdir("/Users/ganong/repo/HARK-comments-and-cleanup/gn")
-out_path = "~/dropbox/hampra/out/"
+out_path = "~/dropbox/hampra/out2/"
 import settings
 import sys 
 sys.path.insert(0,'../')
@@ -23,6 +23,7 @@ import EstimationParameters as Params
 mystr = lambda number : "{:.4f}".format(number)
 do_simulation           = True
 from operator import sub, add
+import pdb
 import pandas as pd
 #this line errors out sometimes. Driven by issues with the Canopy_64bit path
 from rpy2 import robjects
@@ -44,11 +45,12 @@ py_out = sh.worksheet("py_out") #sh.add_worksheet(title = "py_out", rows = "10",
 #import pickle
 #df = pickle.load( open( "params_google_df.p", "rb" ) )
 
-hamp_params = df[['Param','Value']].set_index('Param')['Value'][:8].to_dict()
-inc_params = df[['Param','Value']].set_index('Param')['Value'][8:12].to_dict()
+hamp_params = df[['Param','Value']].set_index('Param')['Value'][:9].to_dict()
+inc_params = df[['Param','Value']].set_index('Param')['Value'][9:13].to_dict()
 hamp_coh = float(inc_params['cash_on_hand'])
-boom_params = df[['Param','Value']].set_index('Param')['Value'][13:19].to_dict()
-heloc_L = float(df[['Param','Value']].set_index('Param')['Value'][20:21])
+boom_params = df[['Param','Value']].set_index('Param')['Value'][14:20].to_dict()
+heloc_L = float(df[['Param','Value']].set_index('Param')['Value'][21:22])
+rd_params = df[['Param','Value']].set_index('Param')['Value'][23:26].to_dict()
 
 #imports specific to default code
 from scipy.optimize import fsolve
@@ -120,7 +122,7 @@ def gg_funcs(functions,bottom,top,N=1000,labels = [],
 #xx move to outside script and import in the future. got errors because I was modifying the wrong do file before...
 #remark: right now you are actually selling the house one year before retirement rather than at retirement. not sure if this is a problem.
 def hsg_wealth(initial_debt, annual_hp_growth, collateral_constraint, baseline_debt, 
-               initial_price, int_rate, pra_forgive, hsg_rent_p, hsg_own_p, 
+               initial_price, int_rate, pra_forgive, hsg_rent_p, hsg_own_p, maint,
                d_house_price = 0, age_at_mod = 45, hsg_pmt_wk_own = True, hsg_pmt_ret_y = False, default = False,
                annual_hp_growth_base = None):
     '''
@@ -171,12 +173,14 @@ def hsg_wealth(initial_debt, annual_hp_growth, collateral_constraint, baseline_d
     debt = [initial_debt]
     amort = int_rate*(1+int_rate)**30/((1+int_rate)**30-1)
     hsg_pmt = [initial_debt*amort]
+    maint_pmt = [initial_price*maint]
     for i in range(1,T):
         #print "age: " + str(i + age_at_mod) + " has growth fac: " + str(Params.PermGroFac[(i-1) + age_at_mod - 25])
         perm_gro = Params.PermGroFac[i + age_at_mod - 26]
         price.append(price[-1]*(1+annual_hp_growth)/perm_gro)
+        debt.append((debt[-1]*(1+int_rate))/perm_gro - hsg_pmt[-1]/perm_gro) #xx double-check timing assumptions here
+        maint_pmt.append(maint_pmt[-1]/perm_gro)
         hsg_pmt.append(hsg_pmt[-1]/perm_gro)
-        debt.append((debt[-1]*(1+int_rate))/perm_gro - hsg_pmt[-1]) #xx double-check timing assumptions here
     equity = np.array(price) - np.array(debt)
     limit = np.min(np.vstack((-(np.array(price)*(1-collateral_constraint) - np.array(debt)),np.zeros(T))),axis=0).tolist()
     if hsg_pmt_wk_own and not default:
@@ -188,6 +192,8 @@ def hsg_wealth(initial_debt, annual_hp_growth, collateral_constraint, baseline_d
         print("Error: cannot have housing payment > UI Benefit")
         print hsg_pmt
         return
+    hsg_pmt = map(add, hsg_pmt, maint_pmt)
+
     
     #housing payments in retirement
     if default:
@@ -196,7 +202,7 @@ def hsg_wealth(initial_debt, annual_hp_growth, collateral_constraint, baseline_d
         if annual_hp_growth_base is None:
             annual_hp_growth_base = annual_hp_growth
         price_baseline = [initial_price]
-        for i in range(1,T):
+        for i in range(1,T): 
             perm_gro = Params.PermGroFac[i + age_at_mod - 26]
             price_baseline.append(price[-1]*(1+annual_hp_growth_base)/perm_gro)        
         hsg_pmt_ret = [hamp_params['hsg_rent_p']*price_baseline[-1]/Params.PermGroFac[39]]
@@ -209,7 +215,9 @@ def hsg_wealth(initial_debt, annual_hp_growth, collateral_constraint, baseline_d
         print("Error: cannot have housing payment > income")
         print hsg_pmt_ret  
         return
-    
+    #pdb.set_trace()
+    hsg_pmt_ret = map(add, hsg_pmt_ret, [maint_pmt[-1]/Params.PermGroFac[39]] * 26)
+
     #fill out arguments to return
     hsg_pmt = [0.0] * (age_at_mod - 26) + hsg_pmt + hsg_pmt_ret
     equity = [0.0] * (age_at_mod - 26) + equity.tolist() + [0.0] * 26
@@ -218,11 +226,12 @@ def hsg_wealth(initial_debt, annual_hp_growth, collateral_constraint, baseline_d
     return sale_proceeds, equity, limit, hsg_pmt
 
 
+
 def pra_pmt(annual_hp_growth, collateral_constraint, baseline_debt, initial_price, 
-            int_rate, pra_forgive, hsg_rent_p, hsg_own_p, hsg_pmt_wk_own = True, hsg_pmt_ret_y = False,
+            int_rate, pra_forgive, hsg_rent_p, hsg_own_p,  maint, hsg_pmt_wk_own = True, hsg_pmt_ret_y = False,
             age = 45, forgive = hamp_params['pra_forgive']):
-    r, e, L, d_hamp = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], age_at_mod = age, hsg_pmt_wk_own = hsg_pmt_wk_own, hsg_pmt_ret_y = hsg_pmt_ret_y, **hamp_params)
-    r, e, L, d_prin_red = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - forgive, age_at_mod = age, hsg_pmt_wk_own = hsg_pmt_wk_own, hsg_pmt_ret_y = hsg_pmt_ret_y, **hamp_params)
+    r, e, L, d_hamp = hsg_wealth(initial_debt =  rd_params['baseline_debt_rd'], age_at_mod = age, hsg_pmt_wk_own = hsg_pmt_wk_own, hsg_pmt_ret_y = hsg_pmt_ret_y, **hamp_params)
+    r, e, L, d_prin_red = hsg_wealth(initial_debt =  rd_params['baseline_debt_rd'] - forgive, age_at_mod = age, hsg_pmt_wk_own = hsg_pmt_wk_own, hsg_pmt_ret_y = hsg_pmt_ret_y, **hamp_params)
     pra_pmt = d_prin_red[:age-26] + d_hamp[age-26:age-21] + d_prin_red[age-21:]
     return pra_pmt
 
@@ -230,7 +239,7 @@ def pra_pmt(annual_hp_growth, collateral_constraint, baseline_debt, initial_pric
 #remark: this calculation ignores the higher payments in the first five years (which we are assuming get flushed down the toilet)
 def npv_mtg_nominal(initial_debt, annual_hp_growth, collateral_constraint, 
                     baseline_debt, initial_price, int_rate, pra_forgive, 
-                    hsg_rent_p, hsg_own_p,  age_at_mod = 45):
+                    hsg_rent_p, hsg_own_p, maint, age_at_mod = 45):
     if settings.verbose:
         print "Hsg wealth params: P=", initial_price, " D=", baseline_debt, " g=", annual_hp_growth, " r=", int_rate, " phi=", collateral_constraint
     T = 65 - age_at_mod
@@ -250,11 +259,11 @@ def npv_mtg_nominal(initial_debt, annual_hp_growth, collateral_constraint,
     npv_stay = npv_asset - npv_debt
     return npv_asset, npv_debt, npv_stay
 
-a, d, npv_stay = npv_mtg_nominal(initial_debt =  hamp_params['baseline_debt'],**hamp_params)
-a, d, npv_stay_pra = npv_mtg_nominal(initial_debt =  hamp_params['baseline_debt'] -hamp_params['pra_forgive'],**hamp_params)
+a, d, npv_stay = npv_mtg_nominal(initial_debt =  rd_params['baseline_debt_rd'],**hamp_params)
+a, d, npv_stay_pra = npv_mtg_nominal(initial_debt =  rd_params['baseline_debt_rd'] -hamp_params['pra_forgive'],**hamp_params)
 py_out.update_acell('B2', npv_stay_pra-npv_stay)
 
-def hsg_params(params,ltv,default = False, pra = False, pra_start = hamp_params['baseline_debt'], add_hsg = 0): #xxx code is missing uw_house_params['BoroCnstArt']
+def hsg_params(params,ltv,default = False, pra = False, pra_start = rd_params['baseline_debt_rd'], add_hsg = 0): #xxx code is missing uw_house_params['BoroCnstArt']
     new_params = deepcopy(params)
     new_params['rebate_amt'], e, L, new_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['initial_price']*(ltv/100.),default = default, **hamp_params) 
     if default:
@@ -262,7 +271,7 @@ def hsg_params(params,ltv,default = False, pra = False, pra_start = hamp_params[
     if pra:
         forgive_amt = pra_start - hamp_params['initial_price']*(ltv/100.)
         new_params['rebate_amt'], e, L, d = \
-            hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - forgive_amt, **hamp_params)
+            hsg_wealth(initial_debt =  rd_params['baseline_debt_rd'] - forgive_amt, **hamp_params)
         new_params['HsgPay'] = pra_pmt(age = 45, forgive = forgive_amt, **hamp_params) 
         #new_params['BoroCnstArt'] = L
     new_params['HsgPay'] = map(add,new_params['HsgPay'],[0] * 19 + [add_hsg] * 20 + [0] * 26)
@@ -315,7 +324,7 @@ def set_inc_params(TranShkCount = 15, inc_shock_rescale = inc_params['inc_shk_re
     agent_params['CRRA'] = CRRA
     return agent_params
 
-stig_cnst = -4.5 #was 12
+stig_cnst = -5.4 #was 12
 #can also be set further down
 def_p = pd.DataFrame({ "grid_n": 75, "inc_sd": 3.5, "p_unemp": 0., "stig": -6, "CRRA": 4}, index=["std"])
 params_std = set_inc_params(TranShkCount = int(def_p.loc["std","grid_n"]), inc_shock_rescale = def_p.loc["std","inc_sd"], p_unemp = def_p.loc["std","p_unemp"])
@@ -329,14 +338,14 @@ def_p.to_csv(out_path + "default_params.csv")
 
 uw_house_params = deepcopy(params_u) #uw_house_params['BoroCnstArt']
 uw_house_params['rebate_amt'], e, L, uw_house_params['HsgPay'] = \
-    hsg_wealth(initial_debt =  hamp_params['baseline_debt'], **hamp_params) 
+    hsg_wealth(initial_debt =  rd_params['baseline_debt_rd'], **hamp_params) 
 pra_params = deepcopy(params_u) #pra_params['BoroCnstArt']
 pra_params['rebate_amt'], e, L, pra_params['HsgPay'] = \
-    hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - hamp_params['pra_forgive'], **hamp_params)
+    hsg_wealth(initial_debt =  rd_params['baseline_debt_rd'] - hamp_params['pra_forgive'], **hamp_params)
 default_params = deepcopy(params_u)
 #r, e, L, default_params['HsgPay'] = \
-#    hsg_wealth(initial_debt =  hamp_params['baseline_debt'], default = True, **hamp_params) 
-default_params = hsg_params(default_params, ltv = hamp_params['baseline_debt']/hamp_params['initial_price'], default = True)
+#    hsg_wealth(initial_debt =  rd_params['baseline_debt_rd'], default = True, **hamp_params) 
+default_params = hsg_params(default_params, ltv = rd_params['baseline_debt_rd']/hamp_params['initial_price'], default = True)
 
    
 ###########################################################################
@@ -422,15 +431,15 @@ m_star_hi_dti_list = []
 def_hi_dti_list = []
 m_star_hi_dti_list2 = []
 def_hi_dti_list2 = []
-def_params = hsg_params(params_u, ltv = hamp_params['baseline_debt']/hamp_params['initial_price'], default = True)
+def_params = hsg_params(params_u, ltv = rd_params['baseline_debt_rd']/hamp_params['initial_price'], default = True)
 agent_d = solve_unpack(def_params)
 v_def_stig_tmp = partial(v_stig, stig = def_p.loc["u","stig"], vf = agent_d.solution[t_eval].vFunc) 
 v_def_stig_tmp_lo = partial(v_stig, stig = def_p.loc["u","stig"] + 0.5, vf = agent_d.solution[t_eval].vFunc) 
 v_def_stig_tmp_hi = partial(v_stig, stig = def_p.loc["u","stig"] - 0.5, vf = agent_d.solution[t_eval].vFunc) 
-def_params = hsg_params(params_u_crra, ltv = hamp_params['baseline_debt']/hamp_params['initial_price'], default = True)
+def_params = hsg_params(params_u_crra, ltv = rd_params['baseline_debt_rd']/hamp_params['initial_price'], default = True)
 agent_d_crra = solve_unpack(def_params)
 v_def_stig_crra = partial(v_stig, stig = def_p.loc["u_crra","stig"], vf = agent_d_crra.solution[t_eval].vFunc) 
-def_params = hsg_params(params_std, ltv = hamp_params['baseline_debt']/hamp_params['initial_price'], default = True)
+def_params = hsg_params(params_std, ltv = rd_params['baseline_debt_rd']/hamp_params['initial_price'], default = True)
 agent_d = solve_unpack(def_params)
 v_def_stig_std = partial(v_stig, stig = def_p.loc["std","stig"], vf = agent_d.solution[t_eval].vFunc) 
 
@@ -632,401 +641,406 @@ g = gg.ggplot(df_inc_u) + mp.base_plot + mp.colors  + gg.aes_string(fill='variab
 mp.ggsave("inc_dstn_backup",g)
 ggplot_notebook(g, height=300,width=400)
 
-###########################################################################
-# NPV of asset and of mortgage
-###########################################################################
-
-npv_a_list = []
-npv_d_list = []
-for ltv in ltv_rows:
-    npv_a, npv_d, npv_diff = npv_mtg_nominal(initial_debt =  hamp_params['initial_price']*(ltv/100.),**hamp_params)
-    npv_a_list.append(npv_a)
-    npv_d_list.append(npv_d)
-npv_a_f = LinearInterp(ltv_rows,np.array(npv_a_list))
-npv_d_f = LinearInterp(ltv_rows,np.array(npv_d_list))
-
-g = gg_funcs([npv_a_f,npv_d_f],
-            min(ltv_rows),max(ltv_rows), N=50, loc=robjects.r('c(0,1)'),
-        title = "Net Present Value at Age 45 of Asset and Debt", labels = ["Asset","Debt"],
-        ylab = "Net Present Value (Years of Income)", xlab = "Loan-to-Value", 
-        file_name = "npv_ltv_backup")
-ggplot_notebook(g, height=300,width=400)
-
-tmp = deepcopy(hamp_params['annual_hp_growth'])
-hamp_params['annual_hp_growth'] = 0.02
-npv_a_list = []
-npv_d_list = []
-for ltv in ltv_rows:
-    npv_a, npv_d, npv_diff = npv_mtg_nominal(initial_debt =  hamp_params['initial_price']*(ltv/100.),**hamp_params)
-    npv_a_list.append(npv_a)
-    npv_d_list.append(npv_d)
-npv_a_f = LinearInterp(ltv_rows,np.array(npv_a_list))
-npv_d_f = LinearInterp(ltv_rows,np.array(npv_d_list))
-
-g = gg_funcs([npv_a_f,npv_d_f],
-            min(ltv_rows),max(ltv_rows), N=50, loc=robjects.r('c(0,1)'),
-        title = "Net Present Value at Age 45 of Asset and Debt \n Set House Price Growth = Interest Rate on Assets", labels = ["Asset","Debt"],
-        ylab = "Net Present Value (Years of Income)", xlab = "Loan-to-Value", 
-        file_name = "npv_ltv_interest_parity_diag")
-ggplot_notebook(g, height=300,width=400)
-hamp_params['annual_hp_growth'] = tmp
-
-###########################################################################
-# Begin Diagnostic plots
-###########################################################################
-
-#find lowest utility cost code
-#xx this is 
-inc_min = agent_u.IncomeDstn[0][2][1]
-stig_grid = np.arange(-10,0.5,0.25)
-stig_list = []
-stig_list_asset = []
-stig_list_crra = []
-for ltv in ltv_rows:
-    mtg_params = hsg_params(params_std, ltv = ltv)
-    def_params = hsg_params(params_std, ltv = ltv, default = True)
-    agent_nd = solve_unpack(mtg_params)
-    agent_d = solve_unpack(def_params)
-    mtg_params['CRRA'] = 2
-    def_params['CRRA'] = 2
-    agent_nd_low_crra = solve_unpack(mtg_params)
-    agent_d_low_crra = solve_unpack(def_params)
-    stig_lowest = min(stig_grid)
-    stig_lowest_asset = min(stig_grid)
-    stig_lowest_crra = min(stig_grid)
-    for stig_cnst in stig_grid:
-        v_def_stig_tmp = partial(v_stig, stig = stig_cnst, vf = agent_d.solution[t_eval].vFunc) 
-        m_star, share_default = default_rate_solved(v_def_stig_tmp,agent_nd)
-        if v_def_stig_tmp(inc_min) < agent_nd.solution[t_eval].vFunc(inc_min):
-            stig_lowest = stig_cnst
-        if v_def_stig_tmp(inc_min+1) < agent_nd.solution[t_eval].vFunc(inc_min+1):
-            stig_lowest_asset = stig_cnst
-        v_def_stig_tmp = partial(v_stig, stig = stig_cnst, vf = agent_d_low_crra.solution[t_eval].vFunc) 
-        if v_def_stig_tmp(inc_min) < agent_nd_low_crra.solution[t_eval].vFunc(inc_min):
-            stig_lowest_crra = stig_cnst
-        
-    print ltv, stig_lowest
-    stig_list.append(stig_lowest)   
-    stig_list_asset.append(stig_lowest_asset)  
-    stig_list_crra.append(stig_lowest_crra)  
-    print "V(0.3): ", v_def_stig_tmp(0.3), agent_nd.solution[t_eval].vFunc(0.3)
-    print "V(3): ", v_def_stig_tmp(3), agent_nd.solution[t_eval].vFunc(3)
-
-stig_f = LinearInterp(ltv_rows,np.array(stig_list))
-stig_asset_f = LinearInterp(ltv_rows,np.array(stig_list_asset))
-stig_crra_f = LinearInterp(ltv_rows,np.array(stig_list_crra))
-labels_asset = ["Baseline (Asset = 0)","Assets = 1"]
-g = gg_funcs([stig_f,stig_asset_f], #stig_crra_f
-            min(ltv_rows),max(ltv_rows)+10, N=len(ltv_rows), loc=robjects.r('c(0,0)'),
-        title = "Moving Cost Such That Agent Sells or Defaults Only If Unemployed", labels = labels_asset,
-        ylab = "Utility Cost ", xlab = "Loan-to-Value", file_name = "util_cost_by_ltv_diag")
-ggplot_notebook(g, height=300,width=400)
+############################################################################
+## Code below is temporarilty commented out in order to improve speed
+############################################################################
 
 #
-#g = gg_funcs([agent_d.solution[t_eval].vPPfunc,HouseExample.solution[t_eval].vPPfunc],
-#            0.9,2, N=50, loc=robjects.r('c(1,0)'),
-#        title = "Marginal Marginal Value Functions.", labels = ["Default","Pay Mortgage"],
-#        ylab = "Marg Marg Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_vPPfunc_diag")
+############################################################################
+## NPV of asset and of mortgage
+############################################################################
+#
+#npv_a_list = []
+#npv_d_list = []
+#for ltv in ltv_rows:
+#    npv_a, npv_d, npv_diff = npv_mtg_nominal(initial_debt =  hamp_params['initial_price']*(ltv/100.),**hamp_params)
+#    npv_a_list.append(npv_a)
+#    npv_d_list.append(npv_d)
+#npv_a_f = LinearInterp(ltv_rows,np.array(npv_a_list))
+#npv_d_f = LinearInterp(ltv_rows,np.array(npv_d_list))
+#
+#g = gg_funcs([npv_a_f,npv_d_f],
+#            min(ltv_rows),max(ltv_rows), N=50, loc=robjects.r('c(0,1)'),
+#        title = "Net Present Value at Age 45 of Asset and Debt", labels = ["Asset","Debt"],
+#        ylab = "Net Present Value (Years of Income)", xlab = "Loan-to-Value", 
+#        file_name = "npv_ltv_backup")
 #ggplot_notebook(g, height=300,width=400)
 #
-#g = gg_funcs([agent_d.solution[t_eval].vPfunc,HouseExample.solution[t_eval].vPfunc],
-#            0.9,2, N=50, loc=robjects.r('c(1,0)'),
-#        title = "Marginal Value Functions.", labels = ["Default","Pay Mortgage"],
-#        ylab = "Marg Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_vPfunc_diag")
+#tmp = deepcopy(hamp_params['annual_hp_growth'])
+#hamp_params['annual_hp_growth'] = 0.02
+#npv_a_list = []
+#npv_d_list = []
+#for ltv in ltv_rows:
+#    npv_a, npv_d, npv_diff = npv_mtg_nominal(initial_debt =  hamp_params['initial_price']*(ltv/100.),**hamp_params)
+#    npv_a_list.append(npv_a)
+#    npv_d_list.append(npv_d)
+#npv_a_f = LinearInterp(ltv_rows,np.array(npv_a_list))
+#npv_d_f = LinearInterp(ltv_rows,np.array(npv_d_list))
+#
+#g = gg_funcs([npv_a_f,npv_d_f],
+#            min(ltv_rows),max(ltv_rows), N=50, loc=robjects.r('c(0,1)'),
+#        title = "Net Present Value at Age 45 of Asset and Debt \n Set House Price Growth = Interest Rate on Assets", labels = ["Asset","Debt"],
+#        ylab = "Net Present Value (Years of Income)", xlab = "Loan-to-Value", 
+#        file_name = "npv_ltv_interest_parity_diag")
+#ggplot_notebook(g, height=300,width=400)
+#hamp_params['annual_hp_growth'] = tmp
+#
+############################################################################
+## Begin Diagnostic plots
+############################################################################
+#
+##find lowest utility cost code
+##xx this is 
+#inc_min = agent_u.IncomeDstn[0][2][1]
+#stig_grid = np.arange(-10,0.5,0.25)
+#stig_list = []
+#stig_list_asset = []
+#stig_list_crra = []
+#for ltv in ltv_rows:
+#    mtg_params = hsg_params(params_std, ltv = ltv)
+#    def_params = hsg_params(params_std, ltv = ltv, default = True)
+#    agent_nd = solve_unpack(mtg_params)
+#    agent_d = solve_unpack(def_params)
+#    mtg_params['CRRA'] = 2
+#    def_params['CRRA'] = 2
+#    agent_nd_low_crra = solve_unpack(mtg_params)
+#    agent_d_low_crra = solve_unpack(def_params)
+#    stig_lowest = min(stig_grid)
+#    stig_lowest_asset = min(stig_grid)
+#    stig_lowest_crra = min(stig_grid)
+#    for stig_cnst in stig_grid:
+#        v_def_stig_tmp = partial(v_stig, stig = stig_cnst, vf = agent_d.solution[t_eval].vFunc) 
+#        m_star, share_default = default_rate_solved(v_def_stig_tmp,agent_nd)
+#        if v_def_stig_tmp(inc_min) < agent_nd.solution[t_eval].vFunc(inc_min):
+#            stig_lowest = stig_cnst
+#        if v_def_stig_tmp(inc_min+1) < agent_nd.solution[t_eval].vFunc(inc_min+1):
+#            stig_lowest_asset = stig_cnst
+#        v_def_stig_tmp = partial(v_stig, stig = stig_cnst, vf = agent_d_low_crra.solution[t_eval].vFunc) 
+#        if v_def_stig_tmp(inc_min) < agent_nd_low_crra.solution[t_eval].vFunc(inc_min):
+#            stig_lowest_crra = stig_cnst
+#        
+#    print ltv, stig_lowest
+#    stig_list.append(stig_lowest)   
+#    stig_list_asset.append(stig_lowest_asset)  
+#    stig_list_crra.append(stig_lowest_crra)  
+#    print "V(0.3): ", v_def_stig_tmp(0.3), agent_nd.solution[t_eval].vFunc(0.3)
+#    print "V(3): ", v_def_stig_tmp(3), agent_nd.solution[t_eval].vFunc(3)
+#
+#stig_f = LinearInterp(ltv_rows,np.array(stig_list))
+#stig_asset_f = LinearInterp(ltv_rows,np.array(stig_list_asset))
+#stig_crra_f = LinearInterp(ltv_rows,np.array(stig_list_crra))
+#labels_asset = ["Baseline (Asset = 0)","Assets = 1"]
+#g = gg_funcs([stig_f,stig_asset_f], #stig_crra_f
+#            min(ltv_rows),max(ltv_rows)+10, N=len(ltv_rows), loc=robjects.r('c(0,0)'),
+#        title = "Moving Cost Such That Agent Sells or Defaults Only If Unemployed", labels = labels_asset,
+#        ylab = "Utility Cost ", xlab = "Loan-to-Value", file_name = "util_cost_by_ltv_diag")
 #ggplot_notebook(g, height=300,width=400)
 #
-#g = gg_funcs([agent_d.solution[t_eval].vPfunc,HouseExample.solution[t_eval].vPfunc],
-#            0.2,0.9, N=50, loc=robjects.r('c(1,0)'),
-#        title = "Marginal Value Functions.", labels = ["Default","Pay Mortgage"],
-#        ylab = "MargValue", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_vPfunc_low_a_diag")
+##
+##g = gg_funcs([agent_d.solution[t_eval].vPPfunc,HouseExample.solution[t_eval].vPPfunc],
+##            0.9,2, N=50, loc=robjects.r('c(1,0)'),
+##        title = "Marginal Marginal Value Functions.", labels = ["Default","Pay Mortgage"],
+##        ylab = "Marg Marg Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_vPPfunc_diag")
+##ggplot_notebook(g, height=300,width=400)
+##
+##g = gg_funcs([agent_d.solution[t_eval].vPfunc,HouseExample.solution[t_eval].vPfunc],
+##            0.9,2, N=50, loc=robjects.r('c(1,0)'),
+##        title = "Marginal Value Functions.", labels = ["Default","Pay Mortgage"],
+##        ylab = "Marg Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_vPfunc_diag")
+##ggplot_notebook(g, height=300,width=400)
+##
+##g = gg_funcs([agent_d.solution[t_eval].vPfunc,HouseExample.solution[t_eval].vPfunc],
+##            0.2,0.9, N=50, loc=robjects.r('c(1,0)'),
+##        title = "Marginal Value Functions.", labels = ["Default","Pay Mortgage"],
+##        ylab = "MargValue", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_vPfunc_low_a_diag")
+##ggplot_notebook(g, height=300,width=400)
+#
+#g = gg_funcs([IndShockExample.solution[t_eval].cFunc,HouseExample.solution[t_eval].cFunc],
+#            0.5,6, N=50, loc=robjects.r('c(1,0)'),
+#        title = "Consumption Functions.", labels = ["Baseline","With House"],
+#        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "c_funcs_house_diag")
 #ggplot_notebook(g, height=300,width=400)
-
-g = gg_funcs([IndShockExample.solution[t_eval].cFunc,HouseExample.solution[t_eval].cFunc],
-            0.5,6, N=50, loc=robjects.r('c(1,0)'),
-        title = "Consumption Functions.", labels = ["Baseline","With House"],
-        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "c_funcs_house_diag")
-ggplot_notebook(g, height=300,width=400)
-
-g = gg_funcs([IndShockExample.solution[t_eval].cFunc,HouseExample.solution[t_eval].cFunc],
-            0.1,1.5, N=50, loc=robjects.r('c(1,0)'),
-        title = "Consumption Functions.", labels = ["Baseline","With House"],
-        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "c_funcs_house_low_diag")
-ggplot_notebook(g, height=300,width=400)
-
-
-##############################################
-#show how value function changes with parameters of problem
-##############################################
-
-#rrr this code is highly repetitive so it can be cleaned up
-#plot value function by age
-#it is steepest right before retirement and most shallow before death
-vFuncs_age = []
-for i in range(0,65,9):
-    vFuncs_age.append(IndShockExample.solution[i].vFunc)
-g = gg_funcs(vFuncs_age,0.5,4, N=200, loc=robjects.r('c(1,0)'),
-        title = "Value Functions. Each line is 9 years forward in time",
-        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_age_diag")
-ggplot_notebook(g, height=300,width=400)
-
-#plot value function by housing costs
-HsgPay_solution = []
-vFuncs_d = []
-for i in np.arange(0.2,0.3,0.02):
-    tmp_params = deepcopy(baseline_params)
-    tmp_params['HsgPay'] = map(add,tmp_params['HsgPay'], [i]*65)
-    HsgPay_solution.append(solve_unpack(tmp_params).solution)
-    vFuncs_d.append(HsgPay_solution[-1][t_eval].vFunc)
-g = gg_funcs(vFuncs_d,0.5,5, N=20, loc=robjects.r('c(1,0)'),
-        title = "Value Functions. Each line is 0.02 higher housing cost starting w base of 0.2. Age 45",
-        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_d_diag")
-ggplot_notebook(g, height=300,width=400)
-
-#plot value function by age 65 rebate
-rebate_solution = []
-vFuncs_reb = []
-for i in np.arange(5):
-    tmp_params = deepcopy(baseline_params)
-    tmp_params['rebate_amt'] = tmp_params['rebate_amt'] + i
-    map(add,tmp_params['HsgPay'], [0.2]*65)
-    rebate_solution.append(solve_unpack(tmp_params).solution)
-    vFuncs_reb.append(rebate_solution[-1][t_eval].vFunc)
-g = gg_funcs(vFuncs_reb,0.5,5, N=20, loc=robjects.r('c(1,0)'),
-        title = "Value Functions. Each line is 1 higher rebate. Age 45",
-        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_rebate_diag")
-ggplot_notebook(g, height=300,width=400)
-
-
-#plot value function by borrowing limit 
-Boro_solution = []
-vFuncs_L = []
-for i in np.arange(0,1,0.2):
-    tmp_params = deepcopy(baseline_params)
-    tmp_params['BoroCnstArt'] = map(sub,tmp_params['BoroCnstArt'], [i]*65)
-    Boro_solution.append(solve_unpack(tmp_params).solution)
-    vFuncs_L.append(Boro_solution[-1][t_eval].vFunc)
-g = gg_funcs(vFuncs_L,0.5,2, N=200, loc=robjects.r('c(1,0)'),
-        title = "Value Functions. Each line is 0.2 higher borrowing limit. Age 45",
-        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_L_diag")
-ggplot_notebook(g, height=300,width=400)
-
-#borrow only while working
-Boro_solution = []
-vFuncs_L = []
-for i in np.arange(0,0.6,0.2):
-    tmp_params = deepcopy(baseline_params)
-    tmp_params['BoroCnstArt'] = map(sub,tmp_params['BoroCnstArt'], [0] * 20 + [i]*20 + [0]*25)
-    tmp_params['rebate_amt'] = i
-    Boro_solution.append(solve_unpack(tmp_params).solution)
-    vFuncs_L.append(Boro_solution[-1][t_eval].vFunc)
-g = gg_funcs(vFuncs_L[:3],0.5,2, N=200, loc=robjects.r('c(1,0)'),
-        title = "Value Functions. Each line is 0.2 higher borrowing limit. Age 45",
-        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_L_wrk_diag")
-ggplot_notebook(g, height=300,width=400)
-
-for i in range(65):
-    print "Vfunc ", i, Boro_solution[-1][i].vFunc(0.2)
-    
-
-###########################################################################
-# Value functions DEBUGGING
-###########################################################################
-#diagnostic: calculate default discount
-#map(sub,uw_house_params['HsgPay'],default_params['HsgPay'])  
-
-hamp_params['collateral_constraint'] = 0
-i_d = hamp_params['initial_price']*0.8
-default_params = deepcopy(baseline_params)
-r, e, L, default_params['HsgPay'] = \
-    hsg_wealth(initial_debt =  i_d, default = True, **hamp_params) 
-default_params_mtg = deepcopy(params_u)
-r, e, L, default_params_mtg['HsgPay'] = \
-    hsg_wealth(initial_debt =  i_d, **hamp_params) 
-default_params_mtg_pay = deepcopy(params_u)
-default_params_mtg_pay['rebate_amt'], e, L, default_params_mtg_pay['HsgPay'] = \
-    hsg_wealth(initial_debt =  i_d, **hamp_params) 
-#default = solve_unpack(default_params)
-#default_mtg = solve_unpack(default_params_mtg)
-#default_mtg_pay = solve_unpack(default_params_mtg_pay)
-house_params = deepcopy(baseline_params)
-house_params['rebate_amt'], e, house_params['BoroCnstArt'], house_params['HsgPay'] = \
-    hsg_wealth(initial_debt =  i_d, **hamp_params)
-house_params['rebate_amt'] += 0.01
-#house_params['BoroCnstArt'] = map(sub,house_params['BoroCnstArt'], [0] * 20 + [0]*20 + [0]*25)
-house_params2 = deepcopy(baseline_params)
-house_params2['BoroCnstArt'] = map(sub,house_params2['BoroCnstArt'], [0] * 20 + [0.4]*20 + [0]*25)
-house_params2['rebate_amt'] = 0.4
-hamp_params['collateral_constraint'] = 0.2 
-
-settings.verbose = False
-reload(Model)
-settings.min_age, settings.max_age = 64,65
-house = solve_unpack(house_params)
-for i in range(65):
-    print "vFunc ", i, house.solution[i].vFunc(5)
-settings.verbose = False
-house2 = solve_unpack(house_params2)
-
-
-#g = gg_funcs([house.solution[t_eval].vFunc,house2.solution[t_eval].vFunc],
-#             0.5,5, N=50, loc=robjects.r('c(1,0)'),
-#        title = "Value Functions, LTV = 80", 
-#        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_house_diag")
+#
+#g = gg_funcs([IndShockExample.solution[t_eval].cFunc,HouseExample.solution[t_eval].cFunc],
+#            0.1,1.5, N=50, loc=robjects.r('c(1,0)'),
+#        title = "Consumption Functions.", labels = ["Baseline","With House"],
+#        ylab = "Consumption", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "c_funcs_house_low_diag")
 #ggplot_notebook(g, height=300,width=400)
-
-
-    
-    
-#figure out where value func breaks. what value and what period starting w vfunc terminal. step thru debugger.
-#KEY ISSUE: THIS EVALUATES TO nan: house2.solution[t_eval].vFunc(4)
-#KEY ISSUE: THIS EVALUATES TO nan: Boro_solution.solution[t_eval].vFunc for limit = -0.8
-#why does the valu function evaluation to Nan when the borrowing limit  gets too large?
-#need to find the cutoff by trial and error and then step through the code to figure out what's going on
-
-
-###########################################################################
-# Value functions
-###########################################################################
-#xxx note that is redundant to code run earlier.
-#I am re-running since these items may have changed in the interim. in future, make sure ethat for loop does not change them
-uw_house_params = deepcopy(params_u) #uw_house_params['BoroCnstArt']
-uw_house_params['rebate_amt'], e, L, uw_house_params['HsgPay'] = \
-    hsg_wealth(initial_debt =  hamp_params['baseline_debt'], **hamp_params) 
-pra_params = deepcopy(params_u) #pra_params['BoroCnstArt']
-pra_params['rebate_amt'], e, L, pra_params['HsgPay'] = \
-    hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - hamp_params['pra_forgive'], **hamp_params)
-default_params = deepcopy(params_u)
-r, e, L, default_params['HsgPay'] = \
-    hsg_wealth(initial_debt =  hamp_params['baseline_debt'], default = True, **hamp_params) 
-
-HouseExample = solve_unpack(uw_house_params)
-PrinFrgvExample = solve_unpack(pra_params)
-agent_d = solve_unpack(default_params)
-    
-v_def_stig = partial(v_stig, stig = stig_cnst, vf = agent_d.solution[t_eval].vFunc) 
-
-stig_cnst_hi = -6.5
-stig_cnst_lo = -2.5
-v_def_stig_12 = partial(v_stig, stig = stig_cnst_hi, vf = agent_d.solution[t_eval].vFunc) 
-v_def_stig_4 = partial(v_stig,stig = stig_cnst_lo, vf = agent_d.solution[t_eval].vFunc) 
-v_def_stig_1 = partial(v_stig,stig = -1.5, vf = agent_d.solution[t_eval].vFunc) 
-
-g = gg_funcs([HouseExample.solution[t_eval].vFunc,v_def_stig,
-              v_def_stig_12,v_def_stig_4],
-        0.4,2, N=20, loc=robjects.r('c(1,0)'),
-        title = "Value Functions", ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", 
-        labels = ["Pay Mortgage","Default, Utility Cost of " + str(-stig_cnst),
-                  "Default, Utility Cost of " + str(-stig_cnst_hi),
-                  "Default, Utility Cost of " + str(-stig_cnst_lo)])
-#g+= gg.ylim(yr)
-mp.ggsave("value_funcs_vary_util_cost_diag",g)        
-ggplot_notebook(g, height=300,width=400)
-
-
-uw_parity_house_params = deepcopy(params_u)
-default_parity_params = deepcopy(params_u)
-hamp_params['annual_hp_growth'] = 0.02
-uw_parity_house_params['rebate_amt'], e, L, uw_parity_house_params['HsgPay'] = \
-    hsg_wealth(initial_debt =  hamp_params['baseline_debt'], **hamp_params) 
-r, e, L, default_parity_params['HsgPay'] = \
-    hsg_wealth(initial_debt =  hamp_params['baseline_debt'], default = True, **hamp_params) 
-hamp_params['annual_hp_growth'] = 0.009
-
-agent_d_parity = solve_unpack(default_parity_params)
-v_def_stig_parity = partial(v_stig, stig = stig_cnst, vf = agent_d_parity.solution[t_eval].vFunc) 
-HouseExample_parity = solve_unpack(uw_parity_house_params)
-g = gg_funcs([HouseExample.solution[t_eval].vFunc,
-              HouseExample_parity.solution[t_eval].vFunc,
-              v_def_stig,v_def_stig_parity],
-        0.5,4, N=20, loc=robjects.r('c(1,0)'),
-        title = "Value Functions", ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", 
-        labels = ["Pay Mortgage","Pay Mortgage w/Asset Return Parity",
-                  "Default","Default w/Asset Return Parity"])
-mp.ggsave("value_funcs_vary_parity_diag",g)        
-ggplot_notebook(g, height=300,width=400)
-
-default_pih_params = deepcopy(default_params)
-pih_hi = 16
-default_pih_params['PermGroFac'][20] = (100. - pih_hi)/100.
-agent_d_c_equiv_hi = solve_unpack(default_pih_params)
-pih_med = 13
-default_pih_params['PermGroFac'][20] = (100. - pih_med)/100.
-agent_d_c_equiv_med = solve_unpack(default_pih_params)
-pih_lo = 10
-default_pih_params['PermGroFac'][20] = (100. - pih_lo)/100.
-agent_d_c_equiv_lo = solve_unpack(default_pih_params)
-
-g = gg_funcs([agent_d_c_equiv_hi.solution[t_eval].vFunc,
-              agent_d_c_equiv_med.solution[t_eval].vFunc,
-            agent_d_c_equiv_lo.solution[t_eval].vFunc,
-              v_def_stig,HouseExample.solution[t_eval].vFunc],
-             0.5,2, N=50, loc=robjects.r('c(1,0)'),
-        title = "Value Functions", labels = 
-        ['PIH Loss Hi ' + str(pih_hi),'PIH Loss Med ' + str(pih_med),'PIH Loss Lo ' + str(pih_lo),
-         'Default w/Stigma of ' + str(stig_cnst),'Pay Mortgage'],
-        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_house_pih_diag")
-ggplot_notebook(g, height=300,width=400)
-py_out.update_acell('B7', pih_med)
-
-default_hsg_pay_params = deepcopy(default_params)
-default_hsg_pay_params['HsgPay'] = map(add,default_hsg_pay_params['HsgPay'],[0]*20 + [0.17]*45)
-agent_d_c_equiv_hi = solve_unpack(default_hsg_pay_params)
-default_hsg_pay_params['HsgPay'] = map(sub,default_hsg_pay_params['HsgPay'],[0]*20 + [0.03]*45)
-agent_d_c_equiv_med = solve_unpack(default_hsg_pay_params)
-default_hsg_pay_params['HsgPay'] = map(sub,default_hsg_pay_params['HsgPay'],[0]*20 + [0.02]*45)
-agent_d_c_equiv_lo = solve_unpack(default_hsg_pay_params)
-
-g = gg_funcs([agent_d_c_equiv_hi.solution[t_eval].vFunc,
-              agent_d_c_equiv_med.solution[t_eval].vFunc,
-            agent_d_c_equiv_lo.solution[t_eval].vFunc,
-              v_def_stig,HouseExample.solution[t_eval].vFunc],
-             0.5,2, N=50, loc=robjects.r('c(1,0)'),
-        title = "Value Functions", labels = 
-        ['Default, Pay 17% Extra of Inc','Default, Pay 14% Extra','Default, Pay 12% Extra',
-         'Default w/Stigma','Pay Mortgage'],
-        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_house_hsg_pay_diag")
-ggplot_notebook(g, height=300,width=400)
-
-default_hsg_pay_params = deepcopy(default_params)
-default_hsg_pay_params['HsgPay'] = map(add,default_hsg_pay_params['HsgPay'],[0]*20 + [0.095]*45)
-agent_d_c_equiv_hi = solve_unpack(default_hsg_pay_params)
-default_hsg_pay_params['HsgPay'] = map(sub,default_hsg_pay_params['HsgPay'],[0]*20 + [0.015]*45)
-agent_d_c_equiv_med = solve_unpack(default_hsg_pay_params)
-default_hsg_pay_params['HsgPay'] = map(sub,default_hsg_pay_params['HsgPay'],[0]*20 + [0.02]*45)
-agent_d_c_equiv_lo = solve_unpack(default_hsg_pay_params)
-g = gg_funcs([agent_d_c_equiv_hi.solution[t_eval].vFunc,
-              agent_d_c_equiv_med.solution[t_eval].vFunc,
-            agent_d_c_equiv_lo.solution[t_eval].vFunc,
-              v_def_stig,PrinFrgvExample.solution[t_eval].vFunc],
-             0.5,2, N=50, loc=robjects.r('c(1,0)'),
-        title = "Value Functions", labels = 
-        ['Default, Pay 9.5% Extra of Inc','Default, Pay 8% Extra','Default, Pay 6% Extra',
-         'Default w/Stigma','Pay Mortgage (Post-PRA)'],
-        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_house_hsg_pay_pra_diag")
-ggplot_notebook(g, height=300,width=400)
-
-tmp = deepcopy(hamp_params['hsg_rent_p'])
-hamp_params['hsg_rent_p'] = 0.075
-r, e, L, default_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], default = True, **hamp_params) 
-agent_d_c_equiv_hi = solve_unpack(default_params)
-hamp_params['hsg_rent_p'] = 0.07
-r, e, L, default_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], default = True, **hamp_params) 
-agent_d_c_equiv_med = solve_unpack(default_params)
-hamp_params['hsg_rent_p'] = 0.06
-r, e, L, default_params['HsgPay'] = hsg_wealth(initial_debt =  hamp_params['baseline_debt'], default = True, **hamp_params) 
-agent_d_c_equiv_lo = solve_unpack(default_params)
-hamp_params['hsg_rent_p'] = tmp
-
-g = gg_funcs([agent_d_c_equiv_hi.solution[t_eval].vFunc,
-              agent_d_c_equiv_med.solution[t_eval].vFunc,
-            agent_d_c_equiv_lo.solution[t_eval].vFunc,
-              v_def_stig,HouseExample.solution[t_eval].vFunc],
-             0.5,2, N=50, loc=robjects.r('c(1,0)'),
-        title = "Value Functions", labels = 
-        ['Default, Rent 7.5% of P','Default, Rent 7% of P','Default, Rent 6% of P',
-         'Default w/Stigma','Pay Mortgage'],
-        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_house_rent_p_diag")
-ggplot_notebook(g, height=300,width=400)
+#
+#
+###############################################
+##show how value function changes with parameters of problem
+###############################################
+#
+##rrr this code is highly repetitive so it can be cleaned up
+##plot value function by age
+##it is steepest right before retirement and most shallow before death
+#vFuncs_age = []
+#for i in range(0,65,9):
+#    vFuncs_age.append(IndShockExample.solution[i].vFunc)
+#g = gg_funcs(vFuncs_age,0.5,4, N=200, loc=robjects.r('c(1,0)'),
+#        title = "Value Functions. Each line is 9 years forward in time",
+#        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_age_diag")
+#ggplot_notebook(g, height=300,width=400)
+#
+##plot value function by housing costs
+#HsgPay_solution = []
+#vFuncs_d = []
+#for i in np.arange(0.2,0.3,0.02):
+#    tmp_params = deepcopy(baseline_params)
+#    tmp_params['HsgPay'] = map(add,tmp_params['HsgPay'], [i]*65)
+#    HsgPay_solution.append(solve_unpack(tmp_params).solution)
+#    vFuncs_d.append(HsgPay_solution[-1][t_eval].vFunc)
+#g = gg_funcs(vFuncs_d,0.5,5, N=20, loc=robjects.r('c(1,0)'),
+#        title = "Value Functions. Each line is 0.02 higher housing cost starting w base of 0.2. Age 45",
+#        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_d_diag")
+#ggplot_notebook(g, height=300,width=400)
+#
+##plot value function by age 65 rebate
+#rebate_solution = []
+#vFuncs_reb = []
+#for i in np.arange(5):
+#    tmp_params = deepcopy(baseline_params)
+#    tmp_params['rebate_amt'] = tmp_params['rebate_amt'] + i
+#    map(add,tmp_params['HsgPay'], [0.2]*65)
+#    rebate_solution.append(solve_unpack(tmp_params).solution)
+#    vFuncs_reb.append(rebate_solution[-1][t_eval].vFunc)
+#g = gg_funcs(vFuncs_reb,0.5,5, N=20, loc=robjects.r('c(1,0)'),
+#        title = "Value Functions. Each line is 1 higher rebate. Age 45",
+#        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_rebate_diag")
+#ggplot_notebook(g, height=300,width=400)
+#
+#
+##plot value function by borrowing limit 
+#Boro_solution = []
+#vFuncs_L = []
+#for i in np.arange(0,1,0.2):
+#    tmp_params = deepcopy(baseline_params)
+#    tmp_params['BoroCnstArt'] = map(sub,tmp_params['BoroCnstArt'], [i]*65)
+#    Boro_solution.append(solve_unpack(tmp_params).solution)
+#    vFuncs_L.append(Boro_solution[-1][t_eval].vFunc)
+#g = gg_funcs(vFuncs_L,0.5,2, N=200, loc=robjects.r('c(1,0)'),
+#        title = "Value Functions. Each line is 0.2 higher borrowing limit. Age 45",
+#        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_L_diag")
+#ggplot_notebook(g, height=300,width=400)
+#
+##borrow only while working
+#Boro_solution = []
+#vFuncs_L = []
+#for i in np.arange(0,0.6,0.2):
+#    tmp_params = deepcopy(baseline_params)
+#    tmp_params['BoroCnstArt'] = map(sub,tmp_params['BoroCnstArt'], [0] * 20 + [i]*20 + [0]*25)
+#    tmp_params['rebate_amt'] = i
+#    Boro_solution.append(solve_unpack(tmp_params).solution)
+#    vFuncs_L.append(Boro_solution[-1][t_eval].vFunc)
+#g = gg_funcs(vFuncs_L[:3],0.5,2, N=200, loc=robjects.r('c(1,0)'),
+#        title = "Value Functions. Each line is 0.2 higher borrowing limit. Age 45",
+#        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_L_wrk_diag")
+#ggplot_notebook(g, height=300,width=400)
+#
+#for i in range(65):
+#    print "Vfunc ", i, Boro_solution[-1][i].vFunc(0.2)
+#    
+#
+############################################################################
+## Value functions DEBUGGING
+############################################################################
+##diagnostic: calculate default discount
+##map(sub,uw_house_params['HsgPay'],default_params['HsgPay'])  
+#
+#hamp_params['collateral_constraint'] = 0
+#i_d = hamp_params['initial_price']*0.8
+#default_params = deepcopy(baseline_params)
+#r, e, L, default_params['HsgPay'] = \
+#    hsg_wealth(initial_debt =  i_d, default = True, **hamp_params) 
+#default_params_mtg = deepcopy(params_u)
+#r, e, L, default_params_mtg['HsgPay'] = \
+#    hsg_wealth(initial_debt =  i_d, **hamp_params) 
+#default_params_mtg_pay = deepcopy(params_u)
+#default_params_mtg_pay['rebate_amt'], e, L, default_params_mtg_pay['HsgPay'] = \
+#    hsg_wealth(initial_debt =  i_d, **hamp_params) 
+##default = solve_unpack(default_params)
+##default_mtg = solve_unpack(default_params_mtg)
+##default_mtg_pay = solve_unpack(default_params_mtg_pay)
+#house_params = deepcopy(baseline_params)
+#house_params['rebate_amt'], e, house_params['BoroCnstArt'], house_params['HsgPay'] = \
+#    hsg_wealth(initial_debt =  i_d, **hamp_params)
+#house_params['rebate_amt'] += 0.01
+##house_params['BoroCnstArt'] = map(sub,house_params['BoroCnstArt'], [0] * 20 + [0]*20 + [0]*25)
+#house_params2 = deepcopy(baseline_params)
+#house_params2['BoroCnstArt'] = map(sub,house_params2['BoroCnstArt'], [0] * 20 + [0.4]*20 + [0]*25)
+#house_params2['rebate_amt'] = 0.4
+#hamp_params['collateral_constraint'] = 0.2 
+#
+#settings.verbose = False
+#reload(Model)
+#settings.min_age, settings.max_age = 64,65
+#house = solve_unpack(house_params)
+#for i in range(65):
+#    print "vFunc ", i, house.solution[i].vFunc(5)
+#settings.verbose = False
+#house2 = solve_unpack(house_params2)
+#
+#
+##g = gg_funcs([house.solution[t_eval].vFunc,house2.solution[t_eval].vFunc],
+##             0.5,5, N=50, loc=robjects.r('c(1,0)'),
+##        title = "Value Functions, LTV = 80", 
+##        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_house_diag")
+##ggplot_notebook(g, height=300,width=400)
+#
+#
+#    
+#    
+##figure out where value func breaks. what value and what period starting w vfunc terminal. step thru debugger.
+##KEY ISSUE: THIS EVALUATES TO nan: house2.solution[t_eval].vFunc(4)
+##KEY ISSUE: THIS EVALUATES TO nan: Boro_solution.solution[t_eval].vFunc for limit = -0.8
+##why does the valu function evaluation to Nan when the borrowing limit  gets too large?
+##need to find the cutoff by trial and error and then step through the code to figure out what's going on
+#
+#
+############################################################################
+## Value functions
+############################################################################
+##xxx note that is redundant to code run earlier.
+##I am re-running since these items may have changed in the interim. in future, make sure ethat for loop does not change them
+#uw_house_params = deepcopy(params_u) #uw_house_params['BoroCnstArt']
+#uw_house_params['rebate_amt'], e, L, uw_house_params['HsgPay'] = \
+#    hsg_wealth(initial_debt =  rd_params['baseline_debt_rd'], **hamp_params) 
+#pra_params = deepcopy(params_u) #pra_params['BoroCnstArt']
+#pra_params['rebate_amt'], e, L, pra_params['HsgPay'] = \
+#    hsg_wealth(initial_debt =  rd_params['baseline_debt_rd'] - hamp_params['pra_forgive'], **hamp_params)
+#default_params = deepcopy(params_u)
+#r, e, L, default_params['HsgPay'] = \
+#    hsg_wealth(initial_debt =  rd_params['baseline_debt_rd'], default = True, **hamp_params) 
+#
+#HouseExample = solve_unpack(uw_house_params)
+#PrinFrgvExample = solve_unpack(pra_params)
+#agent_d = solve_unpack(default_params)
+#    
+#v_def_stig = partial(v_stig, stig = stig_cnst, vf = agent_d.solution[t_eval].vFunc) 
+#
+#stig_cnst_hi = -6.5
+#stig_cnst_lo = -2.5
+#v_def_stig_12 = partial(v_stig, stig = stig_cnst_hi, vf = agent_d.solution[t_eval].vFunc) 
+#v_def_stig_4 = partial(v_stig,stig = stig_cnst_lo, vf = agent_d.solution[t_eval].vFunc) 
+#v_def_stig_1 = partial(v_stig,stig = -1.5, vf = agent_d.solution[t_eval].vFunc) 
+#
+#g = gg_funcs([HouseExample.solution[t_eval].vFunc,v_def_stig,
+#              v_def_stig_12,v_def_stig_4],
+#        0.4,2, N=20, loc=robjects.r('c(1,0)'),
+#        title = "Value Functions", ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", 
+#        labels = ["Pay Mortgage","Default, Utility Cost of " + str(-stig_cnst),
+#                  "Default, Utility Cost of " + str(-stig_cnst_hi),
+#                  "Default, Utility Cost of " + str(-stig_cnst_lo)])
+##g+= gg.ylim(yr)
+#mp.ggsave("value_funcs_vary_util_cost_diag",g)        
+#ggplot_notebook(g, height=300,width=400)
+#
+#
+#uw_parity_house_params = deepcopy(params_u)
+#default_parity_params = deepcopy(params_u)
+#hamp_params['annual_hp_growth'] = 0.02
+#uw_parity_house_params['rebate_amt'], e, L, uw_parity_house_params['HsgPay'] = \
+#    hsg_wealth(initial_debt =  rd_params['baseline_debt_rd'], **hamp_params) 
+#r, e, L, default_parity_params['HsgPay'] = \
+#    hsg_wealth(initial_debt =  rd_params['baseline_debt_rd'], default = True, **hamp_params) 
+#hamp_params['annual_hp_growth'] = 0.009
+#
+#agent_d_parity = solve_unpack(default_parity_params)
+#v_def_stig_parity = partial(v_stig, stig = stig_cnst, vf = agent_d_parity.solution[t_eval].vFunc) 
+#HouseExample_parity = solve_unpack(uw_parity_house_params)
+#g = gg_funcs([HouseExample.solution[t_eval].vFunc,
+#              HouseExample_parity.solution[t_eval].vFunc,
+#              v_def_stig,v_def_stig_parity],
+#        0.5,4, N=20, loc=robjects.r('c(1,0)'),
+#        title = "Value Functions", ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", 
+#        labels = ["Pay Mortgage","Pay Mortgage w/Asset Return Parity",
+#                  "Default","Default w/Asset Return Parity"])
+#mp.ggsave("value_funcs_vary_parity_diag",g)        
+#ggplot_notebook(g, height=300,width=400)
+#
+#default_pih_params = deepcopy(default_params)
+#pih_hi = 16
+#default_pih_params['PermGroFac'][20] = (100. - pih_hi)/100.
+#agent_d_c_equiv_hi = solve_unpack(default_pih_params)
+#pih_med = 13
+#default_pih_params['PermGroFac'][20] = (100. - pih_med)/100.
+#agent_d_c_equiv_med = solve_unpack(default_pih_params)
+#pih_lo = 10
+#default_pih_params['PermGroFac'][20] = (100. - pih_lo)/100.
+#agent_d_c_equiv_lo = solve_unpack(default_pih_params)
+#
+#g = gg_funcs([agent_d_c_equiv_hi.solution[t_eval].vFunc,
+#              agent_d_c_equiv_med.solution[t_eval].vFunc,
+#            agent_d_c_equiv_lo.solution[t_eval].vFunc,
+#              v_def_stig,HouseExample.solution[t_eval].vFunc],
+#             0.5,2, N=50, loc=robjects.r('c(1,0)'),
+#        title = "Value Functions", labels = 
+#        ['PIH Loss Hi ' + str(pih_hi),'PIH Loss Med ' + str(pih_med),'PIH Loss Lo ' + str(pih_lo),
+#         'Default w/Stigma of ' + str(stig_cnst),'Pay Mortgage'],
+#        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_house_pih_diag")
+#ggplot_notebook(g, height=300,width=400)
+#py_out.update_acell('B7', pih_med)
+#
+#default_hsg_pay_params = deepcopy(default_params)
+#default_hsg_pay_params['HsgPay'] = map(add,default_hsg_pay_params['HsgPay'],[0]*20 + [0.17]*45)
+#agent_d_c_equiv_hi = solve_unpack(default_hsg_pay_params)
+#default_hsg_pay_params['HsgPay'] = map(sub,default_hsg_pay_params['HsgPay'],[0]*20 + [0.03]*45)
+#agent_d_c_equiv_med = solve_unpack(default_hsg_pay_params)
+#default_hsg_pay_params['HsgPay'] = map(sub,default_hsg_pay_params['HsgPay'],[0]*20 + [0.02]*45)
+#agent_d_c_equiv_lo = solve_unpack(default_hsg_pay_params)
+#
+#g = gg_funcs([agent_d_c_equiv_hi.solution[t_eval].vFunc,
+#              agent_d_c_equiv_med.solution[t_eval].vFunc,
+#            agent_d_c_equiv_lo.solution[t_eval].vFunc,
+#              v_def_stig,HouseExample.solution[t_eval].vFunc],
+#             0.5,2, N=50, loc=robjects.r('c(1,0)'),
+#        title = "Value Functions", labels = 
+#        ['Default, Pay 17% Extra of Inc','Default, Pay 14% Extra','Default, Pay 12% Extra',
+#         'Default w/Stigma','Pay Mortgage'],
+#        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_house_hsg_pay_diag")
+#ggplot_notebook(g, height=300,width=400)
+#
+#default_hsg_pay_params = deepcopy(default_params)
+#default_hsg_pay_params['HsgPay'] = map(add,default_hsg_pay_params['HsgPay'],[0]*20 + [0.095]*45)
+#agent_d_c_equiv_hi = solve_unpack(default_hsg_pay_params)
+#default_hsg_pay_params['HsgPay'] = map(sub,default_hsg_pay_params['HsgPay'],[0]*20 + [0.015]*45)
+#agent_d_c_equiv_med = solve_unpack(default_hsg_pay_params)
+#default_hsg_pay_params['HsgPay'] = map(sub,default_hsg_pay_params['HsgPay'],[0]*20 + [0.02]*45)
+#agent_d_c_equiv_lo = solve_unpack(default_hsg_pay_params)
+#g = gg_funcs([agent_d_c_equiv_hi.solution[t_eval].vFunc,
+#              agent_d_c_equiv_med.solution[t_eval].vFunc,
+#            agent_d_c_equiv_lo.solution[t_eval].vFunc,
+#              v_def_stig,PrinFrgvExample.solution[t_eval].vFunc],
+#             0.5,2, N=50, loc=robjects.r('c(1,0)'),
+#        title = "Value Functions", labels = 
+#        ['Default, Pay 9.5% Extra of Inc','Default, Pay 8% Extra','Default, Pay 6% Extra',
+#         'Default w/Stigma','Pay Mortgage (Post-PRA)'],
+#        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_house_hsg_pay_pra_diag")
+#ggplot_notebook(g, height=300,width=400)
+#
+#tmp = deepcopy(hamp_params['hsg_rent_p'])
+#hamp_params['hsg_rent_p'] = 0.075
+#r, e, L, default_params['HsgPay'] = hsg_wealth(initial_debt =  rd_params['baseline_debt_rd'], default = True, **hamp_params) 
+#agent_d_c_equiv_hi = solve_unpack(default_params)
+#hamp_params['hsg_rent_p'] = 0.07
+#r, e, L, default_params['HsgPay'] = hsg_wealth(initial_debt =  rd_params['baseline_debt_rd'], default = True, **hamp_params) 
+#agent_d_c_equiv_med = solve_unpack(default_params)
+#hamp_params['hsg_rent_p'] = 0.06
+#r, e, L, default_params['HsgPay'] = hsg_wealth(initial_debt =  rd_params['baseline_debt_rd'], default = True, **hamp_params) 
+#agent_d_c_equiv_lo = solve_unpack(default_params)
+#hamp_params['hsg_rent_p'] = tmp
+#
+#g = gg_funcs([agent_d_c_equiv_hi.solution[t_eval].vFunc,
+#              agent_d_c_equiv_med.solution[t_eval].vFunc,
+#            agent_d_c_equiv_lo.solution[t_eval].vFunc,
+#              v_def_stig,HouseExample.solution[t_eval].vFunc],
+#             0.5,2, N=50, loc=robjects.r('c(1,0)'),
+#        title = "Value Functions", labels = 
+#        ['Default, Rent 7.5% of P','Default, Rent 7% of P','Default, Rent 6% of P',
+#         'Default w/Stigma','Pay Mortgage'],
+#        ylab = "Value", xlab = "Cash-on-Hand (Ratio to Permanent Income)", file_name = "value_funcs_house_rent_p_diag")
+#ggplot_notebook(g, height=300,width=400)
 
 #
 ##borrow only while working

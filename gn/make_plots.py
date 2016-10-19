@@ -34,15 +34,12 @@ pandas2ri.activate()
 robjects.r('''
     library(RColorBrewer)
     library(grid)
-    #print(brewer.pal(8,"Set3")) Greys
     palette <- brewer.pal("Greys", n=9)
-    #print(palette)
   color_background = palette[2]
   color_grid_major = palette[3]
   color_axis_text = palette[6]
   color_axis_title = palette[7]
   color_title = palette[9]
-  #palette_lines <- brewer.pal("Dark2", n=3)
   palette_lines <- brewer.pal("Set2", n=8)
 ''')
 
