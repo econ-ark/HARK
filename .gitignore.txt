@@ -1,2 +1,2 @@
 #ignore graphs printed to temp directory
-gn/tmp/*
+gn/tmp/
