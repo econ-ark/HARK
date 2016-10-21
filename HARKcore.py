@@ -1010,6 +1010,11 @@ class Market(HARKobject):
         for var_name in self.track_vars:
             value_now = getattr(self,var_name)
             getattr(self,var_name + '_hist').append(value_now)
+            
+        # Also track track_vars for each agent
+        for agent in self.agents:
+            for var_name in agent.track_vars:
+                exec('agent.' + var_name + '_hist[self.Shk_idx-1,:] = agent.' + var_name)
         
     def makeHistory(self):
         '''
