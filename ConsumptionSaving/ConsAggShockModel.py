@@ -498,7 +498,7 @@ class CobbDouglasEconomy(Market):
         '''
         Market.__init__(self,agents=agents,
                             sow_vars=['KtoLnow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow'],
-                            reap_vars=['aLvlNow'],
+                            reap_vars=['aLvlNow','pLvlNow'],
                             track_vars=['KtoLnow'],
                             dyn_vars=['kNextFunc'],
                             tolerance=tolerance,
@@ -508,14 +508,14 @@ class CobbDouglasEconomy(Market):
         self.update()
     
     
-    def millRule(self,aLvlNow):
+    def millRule(self,aLvlNow,pLvlNow):
         '''
         Function to calculate the capital to labor ratio, interest factor, and
         wage rate based on each agent's current state.  Just calls calcRandW().
         
         See documentation for calcRandW for more information.
         '''
-        return self.calcRandW(aLvlNow)
+        return self.calcRandW(aLvlNow,pLvlNow)
         
     def calcDynamics(self,KtoLnow):
         '''
@@ -596,7 +596,7 @@ class CobbDouglasEconomy(Market):
         self.PermShkAggHist = PermShkAggHist
         self.TranShkAggHist = TranShkAggHist
         
-    def calcRandW(self,aLvlNow):
+    def calcRandW(self,aLvlNow,pLvlNow):
         '''
         Calculates the interest factor and wage rate this period using each agent's
         capital stock to get the aggregate capital ratio.
@@ -619,12 +619,15 @@ class CobbDouglasEconomy(Market):
         # permanent income to calculate aggregate capital, unlike the Mathematica
         # version, which first applies the idiosyncratic permanent income shocks
         # and then aggregates.  Obviously this is mathematically equivalent.
-        AggregateL = self.AggregateL # Exogenous labor supply, can be changed later
+        
+        #AggregateL = self.AggregateL # Exogenous labor supply, can be changed later
         
         # Get this period's aggregate shocks
         PermShkAggNow = self.PermShkAggHist[self.Shk_idx]
         TranShkAggNow = self.TranShkAggHist[self.Shk_idx]
         self.Shk_idx += 1
+        
+        AggregateL = np.mean(pLvlNow)*PermShkAggNow
         
         # Calculate the interest factor and wage rate this period
         KtoLnow = AggregateK/AggregateL
