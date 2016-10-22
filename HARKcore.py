@@ -29,7 +29,7 @@ def distanceMetric(thing_A,thing_B):
     distance : float
         The "distance" between thing_A and thing_B.
     '''
-    # Get the types of the two inputs
+    # Getting the types of the two inputs
     typeA = type(thing_A)
     typeB = type(thing_B)
             
