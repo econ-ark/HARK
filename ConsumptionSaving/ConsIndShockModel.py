@@ -1721,6 +1721,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             self.advanceIncShks()
             self.advancecFunc()
             self.simOnePrd()
+            #self.simMortality()
             self.pHist[t,:] = self.pNow
             self.bHist[t,:] = self.bNow
             self.mHist[t,:] = self.mNow
@@ -1754,7 +1755,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 wealth_of_live = np.sum(wealth_all[who_lives])# total wealth of those who survive
                 R_actuarial = 1.0 + wealth_of_dead/wealth_of_live # "interest" payout for survivors
                 self.aNow[who_dies] = 0.0 # newborns have no assets...
-                self.pNow[who_dies] = 1.0 # ...and they have permanent income of 1
+                mean_p = np.mean(self.pNow[who_dies])
+                self.pNow[who_dies] = mean_p # ...and mean permanent income stays the same              
+
                 if not np.isnan(R_actuarial): # don't bother with this if no one had wealth anyway!
                     self.aNow = self.aNow*R_actuarial
                 

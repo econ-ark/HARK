@@ -5,6 +5,7 @@ models.  A micro model concerns the dynamic optimization problem for some type
 of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
+Explained
 '''
 
 from HARKutilities import getArgNames, NullFunc
@@ -28,7 +29,7 @@ def distanceMetric(thing_A,thing_B):
     distance : float
         The "distance" between thing_A and thing_B.
     '''
-    # Get the types of the two inputs
+    # Getting the types of the two inputs
     typeA = type(thing_A)
     typeB = type(thing_B)
             

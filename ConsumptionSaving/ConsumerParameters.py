@@ -10,7 +10,7 @@ import numpy as np
 # --- Define all of the parameters for the perfect foresight model ------------
 # -----------------------------------------------------------------------------
 
-CRRA = 2.0                          # Coefficient of relative risk aversion
+CRRA = 9.0                          # Coefficient of relative risk aversion
 Rfree = 1.03                        # Interest factor on assets
 DiscFac = 0.96                      # Intertemporal discount factor
 LivPrb = [0.98]                     # Survival probability
@@ -155,8 +155,8 @@ DeprFac = 0.1                 # Capital depreciation rate
 CapShare = 0.3                # Capital's share of income
 CRRAPF = 1.0                  # CRRA of perfect foresight calibration
 DiscFacPF = 0.96              # Discount factor of perfect foresight calibration
-intercept_prev = 0.01         # Intercept of log-capital-ratio function
-slope_prev = 0.99             # Slope of log-capital-ratio function
+intercept_prev = 0.133642863002        # Intercept of log-capital-ratio function
+slope_prev = 0.841529787471          # Slope of log-capital-ratio function
 
 # Make a dictionary to specify an aggregate shocks consumer
 init_agg_shocks = copy(init_idiosyncratic_shocks)
@@ -226,3 +226,13 @@ init_medical_shocks['MedShkCount'] = MedShkCount
 init_medical_shocks['MedShkCountTail'] = MedShkCountTail
 init_medical_shocks['MedPrice'] = MedPrice
 init_medical_shocks['aXtraCount'] = 32
+
+# -----------------------------------------------------------------------------
+# ----- Define additional parameters for the sticky expectations model -------------
+# -----------------------------------------------------------------------------
+
+updateBeliefProb = 0.5      #probility and agent updates their beliefs about the aggregate economy in a period
+
+# Make a dictionary to specify an aggregate shocks consumer
+init_sticky_shocks = copy(init_agg_shocks)
+init_sticky_shocks['updateBeliefProb'] = updateBeliefProb
