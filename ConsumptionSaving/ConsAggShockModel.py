@@ -203,7 +203,7 @@ class AggShockConsumerType(IndShockConsumerType):
         # Simulate the period
         self.advanceIncShks()
         self.advancecFunc()
-        self.simMortality()  
+        self.simMortality()
         self.TranShkNow = self.TranShkNow*self.wRteNow
         self.PermShkNow = self.PermShkNow*self.PermShkAggNow
         self.simOnePrd()
@@ -291,7 +291,7 @@ def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aX
         Intertemporal discount factor for future utility.        
     CRRA : float
         Coefficient of relative risk aversion.
-    PermGroFac : float
+    PermGroGac : float
         Expected permanent income growth factor at the end of this period.
     aXtraGrid : np.array
         Array of "extra" end-of-period asset values-- assets above the
@@ -539,7 +539,7 @@ class CobbDouglasEconomy(Market):
         for j in range(type_count):
             aAll[j,:] = aNow[j]
             pAll[j,:] = pNow[j]
-        KtoYnow = np.mean(aAll*pAll)/np.mean(pAll) # This version uses end-of-period assets and
+        KtoYnow = np.mean(aAll*pAll) # This version uses end-of-period assets and
         # permanent income to calculate aggregate capital, unlike the Mathematica
         # version, which first applies the idiosyncratic permanent income shocks
         # and then aggregates.  Obviously this is mathematically equivalent.
@@ -550,7 +550,6 @@ class CobbDouglasEconomy(Market):
         self.Shk_idx += 1
         
         # Calculate the interest factor and wage rate this period
-        KtoYnow = KtoYnow/PermShkAggNow
         KtoLnow  = self.convertKtoY(KtoYnow)
         RfreeNow = self.Rfunc(KtoLnow/TranShkAggNow)
         wRteNow  = self.wFunc(KtoLnow/TranShkAggNow)*TranShkAggNow # "effective" wage accounts for labor supply
@@ -575,14 +574,6 @@ class CobbDouglasEconomy(Market):
             Object containing a new capital evolution rule, calculated from the
             history of the capital-to-labor ratio.
         '''
-        
-        #Hack to get out of here
-        if True:
-            intercept = 0.133642863002
-            slope = 0.841529787471
-            kNextFunc = CapitalEvoRule(self.intercept_prev,self.slope_prev)
-            return CapDynamicRule(kNextFunc)
-        
         verbose = True
         discard_periods = 200 # Throw out the first T periods to allow the simulation to approach the SS
         update_weight = 0.5   # Proportional weight to put on new function vs old function parameters
