@@ -176,11 +176,14 @@ DeprFac = 0.025               # Capital depreciation rate
 CapShare = 0.36               # Capital's share of income
 CRRAPF = 1.0                  # CRRA of perfect foresight calibration
 DiscFacPF = 0.99              # Discount factor of perfect foresight calibration
-#intercept_prev = 0.141894720634         # Intercept of log-capital-ratio function
-#slope_prev = 0.928460987063              # Slope of log-capital-ratio function
+intercept_prev = 0.141894720634         # Intercept of log-capital-ratio function
+slope_prev = 0.928460987063              # Slope of log-capital-ratio function
 
-intercept_prev = 0.346315750376
-slope_prev = 0.898038439664
+#intercept_prev = 0.346315750376    # Parameters without the M-lag (wrong...?)
+#slope_prev = 0.898038439664
+
+#intercept_prev = 0.51440178348     # Parameters with Magg lagged
+#slope_prev = 0.846706018319
 
 # Make a dictionary to specify an aggregate shocks consumer
 init_agg_shocks = copy(init_idiosyncratic_shocks)
