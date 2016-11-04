@@ -409,7 +409,7 @@ def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aX
     # Loop through the values in MGrid and calculate a linear consumption function for each
     cFuncBaseByM_list = []
     BoroCnstNat_array = np.zeros(MGrid.size)
-    mNrmMinNext_array = mNrmMinNext(AFunc(MGrid)*(1-DeprFac))   # This is an approximation
+    mNrmMinNext_array = mNrmMinNext(AFunc(MGrid)*(1-DeprFac))
     for j in range(MGrid.size):
         MNow = MGrid[j]
         AggA = AFunc(MNow)
@@ -419,7 +419,7 @@ def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aX
         Reff_array = Rfunc(kNextEff_array)/LivPrb # Effective interest rate
         wEff_array = wFunc(kNextEff_array)*TranShkAggValsNext_tiled # Effective wage rate (accounts for labor supply)
         PermShkTotal_array = PermGroFac*PermShkValsNext_tiled*PermShkAggValsNext_tiled # total / combined permanent shock
-        MNext_array = AggA*(1-DeprFac)/(PermGroFac*PermShkAggValsNext_tiled) + wEff_array
+        MNext_array = AggA*(1-DeprFac)/(PermGroFac*PermShkAggValsNext_tiled)*Reff_array + wEff_array
         
         # Find the natural borrowing constraint for this capital-to-labor ratio
         aNrmMin_candidates = PermGroFac*PermShkValsNext*PermShkAggValsNext/Reff_array[:,0]*(mNrmMinNext_array[j] - wEff_array[:,0]*TranShkValsNext)
@@ -641,7 +641,7 @@ class CobbDouglasEconomy(Market):
         self.KtoYnow = KtoLnow**(1.0-self.CapShare)
         RfreeNow = self.Rfunc(KtoLnow/TranShkAggNow)
         wRteNow  = self.wFunc(KtoLnow/TranShkAggNow)
-        MaggNow =KtoLnow + wRteNow
+        MaggNow =KtoLnow*RfreeNow + wRteNow*TranShkAggNow
         
         # Package the results into an object and return it
         AggVarsNow = CobbDouglasAggVars(MaggNow, AggANow,KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow)
@@ -672,7 +672,7 @@ class CobbDouglasEconomy(Market):
         
         # Regress the log savings against log market resources
         logAggA   = np.log(AggANow[discard_periods:total_periods])
-        logMagg = np.log(MaggNow[discard_periods:total_periods])
+        logMagg = np.log(MaggNow[discard_periods-1:total_periods-1])
         slope, intercept, r_value, p_value, std_err = stats.linregress(logAggA,logMagg)
         
         # Make a new aggregate savings rule by combining the new regression parameters
@@ -833,10 +833,8 @@ class SmallOpenEconomy(Market):
         TranShkAggNow = self.TranShkAggHist[self.Shk_idx]
         self.Shk_idx += 1
         
-        # Set the constant interest factor and wage rate this period
-        KtoLnow = 1.0/PermShkAggNow
-        RfreeNow = self.Rfunc(KtoLnow/TranShkAggNow)
-        wRteNow  = self.wFunc(KtoLnow/TranShkAggNow)
+        RfreeNow = np.nan
+        wRteNow  = np.nan
         # Aggregates are also irrelavent
         AggANow = np.nan
         MaggNow = np.nan
