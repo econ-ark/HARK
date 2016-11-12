@@ -712,6 +712,23 @@ class MarkovConsumerType(IndShockConsumerType):
         # conditional on a particular Markov state. 
         for IncomeDstn_t in self.IncomeDstn:
             assert len(IncomeDstn_t) == StateCount,'List in IncomeDstn is not the right length!'
+            
+    def preSolve(self):
+        """
+        Do preSolve stuff inherited from IndShockConsumerType, then check to make sure that the
+        inputs that are specific to MarkovConsumerType are of the right shape (if arrays) or length
+        (if lists).
+
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        """
+        IndShockConsumerType.preSolve(self)
+        self.checkMarkovInputs()
 
     def updateSolutionTerminal(self):
         '''

@@ -461,7 +461,7 @@ class AgentType(HARKobject):
         -------
         None
         '''
-        self.simMortality()
+        self.getMortality()
         self.getShocks()
         self.getStates()
         self.getControls()
@@ -472,7 +472,7 @@ class AgentType(HARKobject):
         self.t_cycle = self.t_cycle + 1 # Age all consumers within their cycle
         self.t_cycle[self.t_cycle == self.T_cycle] = 0 # Resetting to zero for those who have reached the end
         
-    def simMortality(self):
+    def getMortality(self):
         '''
         Simulates mortality or agent turnover according to some model-specific rules named simDeath
         and simBirth (methods of an AgentType subclass).  simDeath takes no arguments and returns
@@ -491,6 +491,26 @@ class AgentType(HARKobject):
         who_dies = self.simDeath()
         self.simBirth(who_dies)
         return None
+        
+    def simDeath(self):
+        '''
+        Determines which agents in the current population "die" or should be replaced.  Takes no
+        inputs, returns a Boolean array of size self.AgentCount, which has True for agents who die
+        and False for those that survive. Returns all False by default, must be overwritten by a
+        subclass to have replacement events.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        who_dies : np.array
+            Boolean array of size self.AgentCount indicating which agents die and are replaced.
+        '''
+        print('AgentType subclass must define method simDeath!')
+        who_dies = np.ones(self.AgentCount,dtype=bool)
+        return who_dies
         
     def simBirth(self,which_agents):
         '''
