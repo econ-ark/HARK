@@ -241,6 +241,7 @@ class TractableConsumerType(AgentType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = []
         self.time_inv = ['DiscFac','Rfree','CRRA','PermGroFacCmp','UnempPrb','PFMPC','Rnrm','Beth','mLowerBnd','mUpperBnd']
+        self.shock_vars = ['eStateNow']
         self.poststate_vars = ['aLvlNow','eStateNow'] # For simulation
         self.solveOnePeriod = addToStableArmPoints # set correct solver
         
@@ -502,7 +503,8 @@ if __name__ == '__main__':
     
     if do_simulation:
         ExampleType(**simulation_values) # Set attributes needed for simulation
-        ExampleType.track_vars = ['mLvlNow','eStateNow']
+        ExampleType.track_vars = ['mLvlNow']
+        ExampleType.makeShockHistory()
         ExampleType.initializeSim()
         ExampleType.simulate()
         

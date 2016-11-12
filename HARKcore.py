@@ -211,6 +211,7 @@ class AgentType(HARKobject):
         self.seed               = seed
         self.track_vars         = []
         self.poststate_vars     = []
+        self.read_shocks        = False
         self.assignParameters(**kwds)
         self.resetRNG()
 
@@ -450,8 +451,10 @@ class AgentType(HARKobject):
         
     def simOnePeriod(self):
         '''
-        Simulates one period for this type.  Calls the methods simMortality(), getShocks(),
-        getStates(), getControls(), and getPostStates(); these should be defined for model subclasses.
+        Simulates one period for this type.  Calls the methods getMortality(), getShocks() or
+        readShocks, getStates(), getControls(), and getPostStates().  These should be defined for
+        AgentType subclasses, except getMortality (define its components simDeath and simBirth
+        instead) and readShocks.
         
         Parameters
         ----------
@@ -461,16 +464,61 @@ class AgentType(HARKobject):
         -------
         None
         '''
-        self.getMortality()
-        self.getShocks()
-        self.getStates()
-        self.getControls()
-        self.getPostStates()
+        self.getMortality()  # Replace some agents with "newborns"
+        if self.read_shocks: # If shock histories have been pre-specified, use those
+            self.readShocks()
+        else:                # Otherwise, draw shocks as usual according to subclass-specific method
+            self.getShocks()
+        self.getStates()     # Determine each agent's state at decision time
+        self.getControls()   # Determine each agent's choice or control variables based on states
+        self.getPostStates() # Determine each agent's post-decision / end-of-period states using states and controls
         
         # Advance time for all agents
         self.t_age = self.t_age + 1 # Age all consumers by one period
         self.t_cycle = self.t_cycle + 1 # Age all consumers within their cycle
         self.t_cycle[self.t_cycle == self.T_cycle] = 0 # Resetting to zero for those who have reached the end
+        
+    def makeShockHistory(self):
+        '''
+        Makes a pre-specified history of shocks for the simulation.  Shock variables should be named
+        in self.shock_vars, a list of strings that is subclass-specific.  This method runs a subset
+        of the standard simulation loop by simulating only mortality and shocks; each variable named
+        in shock_vars is stored in a T_sim x AgentCount array in an attribute of self named X_hist.
+        Automatically sets self.read_shocks to True so that these pre-specified shocks are used for
+        all subsequent calls to simulate().
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        # Make sure time is flowing forward and re-initialize the simulation
+        orig_time = self.time_flow
+        self.timeFwd()
+        self.initializeSim()
+        
+        # Make blank history arrays for each shock variable
+        for var_name in self.shock_vars:
+            setattr(self,var_name+'_hist',np.zeros((self.T_sim,self.AgentCount))+np.nan)
+        
+        # Make and store the history of shocks for each period
+        for t in range(self.T_sim):
+            self.getMortality()
+            self.getShocks()
+            for var_name in self.shock_vars:
+                exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
+            self.t_sim += 1
+            self.t_age = self.t_age + 1 # Age all consumers by one period
+            self.t_cycle = self.t_cycle + 1 # Age all consumers within their cycle
+            self.t_cycle[self.t_cycle == self.T_cycle] = 0 # Resetting to zero for those who have reached the end
+        
+        # Restore the flow of time and flag that shocks can be read rather than simulated
+        self.read_shocks = True
+        if not orig_time:
+            self.timeRev()
         
     def getMortality(self):
         '''
@@ -543,6 +591,25 @@ class AgentType(HARKobject):
         None
         '''
         return None
+        
+    def readShocks(self):
+        '''
+        Reads values of shock variables for the current period from history arrays.  For each var-
+        iable X named in self.shock_vars, this attribute of self is set to self.X_hist[self.t_sim,:].
+        
+        This method is only ever called if self.read_shocks is True.  This can be achieved by using
+        the method makeShockHistory() (or manually after storing a "handcrafted" shock history).
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        for var_name in self.shock_vars:
+            setattr(self,var_name,getattr(self,var_name+'_hist')[self.t_sim,:])
         
     def getStates(self):
         '''

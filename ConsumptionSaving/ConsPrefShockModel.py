@@ -20,6 +20,8 @@ class PrefShockConsumerType(IndShockConsumerType):
     A class for representing consumers who experience multiplicative shocks to
     utility each period, specified as iid lognormal.
     '''
+    shock_vars_ = IndShockConsumerType.shock_vars_ + ['PrefShkNow']
+    
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
@@ -631,7 +633,8 @@ if __name__ == '__main__':
     # Test the simulator for the pref shock class
     if do_simulation:
         PrefShockExample.T_sim = 120
-        PrefShockExample.track_vars = ['cNrmNow','PrefShkNow']
+        PrefShockExample.track_vars = ['cNrmNow']
+        PrefShockExample.makeShockHistory() # This is optional
         PrefShockExample.initializeSim()
         PrefShockExample.simulate()
         
