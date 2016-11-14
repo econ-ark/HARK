@@ -12,8 +12,10 @@ import numpy as np
 
 CRRA = 2.0                          # Coefficient of relative risk aversion
 Rfree = 1.03                        # Interest factor on assets
-DiscFac = 0.96                      # Intertemporal discount factor
+#DiscFac = 0.96                      # Intertemporal discount factor
 LivPrb = [0.98]                     # Survival probability
+DiscFac = 0.99375
+LivPrb = [0.99375]  
 #PermGroFac = [1.01]                 # Permanent income growth factor
 PermGroFac = [1.0]
 AgentCount = 10000                  # Number of agents of this type (only matters for simulation)
@@ -176,8 +178,14 @@ DeprFac = 0.025               # Capital depreciation rate
 CapShare = 0.36               # Capital's share of income
 CRRAPF = 1.0                  # CRRA of perfect foresight calibration
 DiscFacPF = 0.99              # Discount factor of perfect foresight calibration
-intercept_prev = 0.141894720634         # Intercept of log-capital-ratio function
-slope_prev = 0.928460987063              # Slope of log-capital-ratio function
+#intercept_prev = 0.153934730084         # Intercept of log-capital-ratio function
+#slope_prev = 0.938861290739              # Slope of log-capital-ratio function
+
+#intercept_prev = 0.155872352646     # Parameters after changing DiscFac to 0.99 and LivPrb accordingly
+#slope_prev = 0.960964979436
+
+intercept_prev = 0.241163454504     # Parameters with M instead of K, DiscFac 0.99
+slope_prev = 0.94638386141
 
 #intercept_prev = 0.346315750376    # Parameters without the M-lag (wrong...?)
 #slope_prev = 0.898038439664
