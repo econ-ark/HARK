@@ -1440,6 +1440,7 @@ class PerfForesightConsumerType(AgentType):
     time_vary_ = ['LivPrb','PermGroFac']
     time_inv_  = ['CRRA','Rfree','DiscFac']
     poststate_vars_ = ['aNrmNow','pLvlNow']
+    shock_vars_ = []
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
@@ -1466,6 +1467,7 @@ class PerfForesightConsumerType(AgentType):
         self.time_vary      = deepcopy(self.time_vary_)
         self.time_inv       = deepcopy(self.time_inv_)
         self.poststate_vars = deepcopy(self.poststate_vars_)
+        self.shock_vars     = deepcopy(self.shock_vars_)
         self.solveOnePeriod = solvePerfForesight # solver for perfect foresight model
         
     def updateSolutionTerminal(self):
@@ -1660,6 +1662,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     period assets, and an artificial borrowing constraint.
     '''        
     time_inv_ = PerfForesightConsumerType.time_inv_ + ['BoroCnstArt','vFuncBool','CubicBool']
+    shock_vars_ = ['PermShkNow','TranShkNow']
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
@@ -2233,7 +2236,6 @@ if __name__ == '__main__':
     from HARKutilities import plotFuncsDer, plotFuncs
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
-    import matplotlib.pyplot as plt
 
     do_simulation           = True
     
@@ -2293,6 +2295,7 @@ if __name__ == '__main__':
     if do_simulation:
         IndShockExample.T_sim = 120
         IndShockExample.track_vars = ['mNrmNow','cNrmNow','pLvlNow']
+        IndShockExample.makeShockHistory() # This is optional, simulation will draw shocks on the fly if it isn't run.
         IndShockExample.initializeSim()
         IndShockExample.simulate()
     

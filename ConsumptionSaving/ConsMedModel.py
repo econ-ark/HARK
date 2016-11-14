@@ -507,6 +507,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
     goods might be different.  Agents expect to receive shocks to permanent and
     transitory income as well as multiplicative shocks to utility from medical care.
     '''
+    shock_vars_ = PersistentShockConsumerType.shock_vars_ + ['MedShkNow']
+    
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
@@ -1429,9 +1431,10 @@ if __name__ == '__main__':
     if do_simulation:
         t_start = clock()
         MedicalExample.T_sim = 100
-        MedicalExample.track_vars = ['mLvlNow','cLvlNow','MedNow','MedShkNow']
+        MedicalExample.track_vars = ['mLvlNow','cLvlNow','MedNow']
+        MedicalExample.makeShockHistory()
         MedicalExample.initializeSim()
         MedicalExample.simulate()
         t_end = clock()
-        print('Simulating ' + str(MedicalExample.AgentCount) + ' for ' + str(MedicalExample.T_sim) + ' periods took ' + mystr(t_end-t_start) + ' seconds.')
+        print('Simulating ' + str(MedicalExample.AgentCount) + ' agents for ' + str(MedicalExample.T_sim) + ' periods took ' + mystr(t_end-t_start) + ' seconds.')
     

@@ -672,6 +672,7 @@ class MarkovConsumerType(IndShockConsumerType):
     interest rate, the grid of end-of-period assets, and how he is borrowing constrained.
     '''
     time_vary_ = IndShockConsumerType.time_vary_ + ['MrkvArray']
+    shock_vars_ = IndShockConsumerType.shock_vars_ + ['MrkvNow']
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
         IndShockConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
@@ -691,13 +692,13 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        StateCount = self.MrkvArray[0].shape[0]        
+        StateCount = self.MrkvArray[0].shape[0]
         
         # Check that arrays are the right shape
         assert self.Rfree.shape      == (StateCount,),'Rfree not the right shape!'
         
         # Check that arrays in lists are the right shape
-        for MrkvArray_t in MrkvArray:
+        for MrkvArray_t in self.MrkvArray:
             assert MrkvArray_t.shape  == (StateCount,StateCount),'MrkvArray not the right shape!'
         for LivPrb_t in self.LivPrb:
             assert LivPrb_t.shape == (StateCount,),'Array in LivPrb is not the right shape!'
@@ -712,6 +713,23 @@ class MarkovConsumerType(IndShockConsumerType):
         # conditional on a particular Markov state. 
         for IncomeDstn_t in self.IncomeDstn:
             assert len(IncomeDstn_t) == StateCount,'List in IncomeDstn is not the right length!'
+            
+    def preSolve(self):
+        """
+        Do preSolve stuff inherited from IndShockConsumerType, then check to make sure that the
+        inputs that are specific to MarkovConsumerType are of the right shape (if arrays) or length
+        (if lists).
+
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        """
+        IndShockConsumerType.preSolve(self)
+        self.checkMarkovInputs()
 
     def updateSolutionTerminal(self):
         '''
@@ -833,6 +851,21 @@ class MarkovConsumerType(IndShockConsumerType):
         self.PermShkNow = PermShkNow
         self.TranShkNow = TranShkNow
         
+    def readShocks(self):
+        '''
+        A slight modification of AgentType.readShocks that makes sure that MrkvNow is int, not float.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.readShocks(self)
+        self.MrkvNow = self.MrkvNow.astype(int)
+                
     def getRfree(self):
         '''
         Returns an array of size self.AgentCount with interest factor that varies with discrete state.
@@ -985,7 +1018,8 @@ if __name__ == '__main__':
     if do_simulation:
         SerialUnemploymentExample.T_sim = 120
         SerialUnemploymentExample.MrkvPrbsInit = [0.25,0.25,0.25,0.25]
-        SerialUnemploymentExample.track_vars = ['mNrmNow','cNrmNow','MrkvNow']
+        SerialUnemploymentExample.track_vars = ['mNrmNow','cNrmNow']
+        SerialUnemploymentExample.makeShockHistory() # This is optional
         SerialUnemploymentExample.initializeSim()
         SerialUnemploymentExample.simulate()
         

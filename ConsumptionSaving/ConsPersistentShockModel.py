@@ -1380,6 +1380,7 @@ if __name__ == '__main__':
     if do_simulation:
         ExplicitExample.T_sim = 500
         ExplicitExample.track_vars = ['mLvlNow','cLvlNow','pLvlNow']
+        ExplicitExample.makeShockHistory() # This is optional
         ExplicitExample.initializeSim()
         ExplicitExample.simulate()
         plt.plot(np.mean(ExplicitExample.mLvlNow_hist,axis=1))

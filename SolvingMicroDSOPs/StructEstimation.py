@@ -88,6 +88,7 @@ EstimationAgent.aNrmInit = drawDiscrete(N=Params.num_agents,
                                       P=Params.initial_wealth_income_ratio_probs,
                                       X=Params.initial_wealth_income_ratio_vals,                                      
                                       seed=Params.seed)              # Draw initial assets for each consumer
+EstimationAgent.makeShockHistory()
 
 # Define the objective function for the simulated method of moments estimation
 def smmObjectiveFxn(DiscFacAdj, CRRA,
