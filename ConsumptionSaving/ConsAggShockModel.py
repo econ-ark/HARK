@@ -643,6 +643,8 @@ class CobbDouglasEconomy(Market):
         wRteNow  = self.wFunc(KtoLnow/TranShkAggNow)
         MaggNow =KtoLnow*RfreeNow + wRteNow*TranShkAggNow
         
+        self.KtoLnow = KtoLnow   # Need to store this as it is not a sow variable
+        
         # Package the results into an object and return it
         AggVarsNow = CobbDouglasAggVars(MaggNow, AggANow,KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow)
         return AggVarsNow
@@ -673,7 +675,7 @@ class CobbDouglasEconomy(Market):
         # Regress the log savings against log market resources
         logAggA   = np.log(AggANow[discard_periods:total_periods])
         logMagg = np.log(MaggNow[discard_periods-1:total_periods-1])
-        slope, intercept, r_value, p_value, std_err = stats.linregress(logAggA,logMagg)
+        slope, intercept, r_value, p_value, std_err = stats.linregress(logMagg,logAggA)
         
         # Make a new aggregate savings rule by combining the new regression parameters
         # with the previous guess
