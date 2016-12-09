@@ -15,11 +15,11 @@ import numpy as np
 from HARKcore import HARKobject
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import LowerEnvelope2D, BilinearInterp, Curvilinear2DInterp,\
-                              LinearInterpOnInterp1D, LinearInterp, CubicInterp
+                              LinearInterpOnInterp1D, LinearInterp, CubicInterp, VariableLowerBoundFunc2D
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                           CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
                           approxLognormal
-from HARKsimulation import drawBernoulli
+from HARKsimulation import drawBernoulli, drawLognormal
 from ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
 
 utility       = CRRAutility
@@ -205,98 +205,6 @@ class MargMargValueFunc2D(HARKobject):
         MPC = self.cFunc.derivativeX(m,p)
         return MPC*utilityPP(c,gam=self.CRRA)
         
-        
-class VariableLowerBoundFunc2D(HARKobject):
-    '''
-    A class for representing a function with two real inputs whose lower bound
-    in the first input depends on the second input.  Useful for managing curved
-    natural borrowing constraints, as occurs in the persistent shocks model.
-    '''
-    distance_criteria = ['func','lowerBound']
-    
-    def __init__(self,func,lowerBound):
-        '''
-        Make a new instance of VariableLowerBoundFunc2D.
-        
-        Parameters
-        ----------
-        func : function
-            A function f: (R_+ x R) --> R representing the function of interest
-            shifted by its lower bound in the first input.
-        lowerBound : function
-            The lower bound in the first input of the function of interest, as
-            a function of the second input.
-            
-        Returns
-        -------
-        None
-        '''
-        self.func = func
-        self.lowerBound = lowerBound
-        
-    def __call__(self,x,y):
-        '''
-        Evaluate the function at given state space points.
-        
-        Parameters
-        ----------
-        x : np.array
-             First input values.
-        y : np.array
-             Second input values; should be of same shape as x.
-             
-        Returns
-        -------
-        f_out : np.array
-            Function evaluated at (x,y), of same shape as inputs.
-        '''
-        xShift = self.lowerBound(y)
-        f_out = self.func(x-xShift,y)
-        return f_out
-        
-    def derivativeX(self,x,y):
-        '''
-        Evaluate the first derivative with respect to x of the function at given
-        state space points.
-        
-        Parameters
-        ----------
-        x : np.array
-             First input values.
-        y : np.array
-             Second input values; should be of same shape as x.
-             
-        Returns
-        -------
-        dfdx_out : np.array
-            First derivative of function with respect to the first input, 
-            evaluated at (x,y), of same shape as inputs.
-        '''
-        xShift = self.lowerBound(y)
-        dfdx_out = self.func.derivativeX(x-xShift,y)
-        return dfdx_out
-        
-    def derivativeY(self,x,y):
-        '''
-        Evaluate the first derivative with respect to y of the function at given
-        state space points.
-        
-        Parameters
-        ----------
-        x : np.array
-             First input values.
-        y : np.array
-             Second input values; should be of same shape as x.
-             
-        Returns
-        -------
-        dfdy_out : np.array
-            First derivative of function with respect to the second input, 
-            evaluated at (x,y), of same shape as inputs.
-        '''
-        xShift,xShiftDer = self.lowerBound.eval_with_derivative(y)
-        dfdy_out = self.func.derivativeY(x-xShift,y) - xShiftDer*self.func.derivativeX(x-xShift,y)
-        return dfdy_out
         
 ###############################################################################
         
@@ -1155,6 +1063,7 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
     '''
     cFunc_terminal_ = BilinearInterp(np.array([[0.0,0.0],[1.0,1.0]]),np.array([0.0,1.0]),np.array([0.0,1.0]))
     solution_terminal_ = ConsumerSolution(cFunc = cFunc_terminal_, mNrmMin=0.0, hNrm=0.0, MPCmin=1.0, MPCmax=1.0)
+    poststate_vars_ = ['aLvlNow','pLvlNow']
      
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
@@ -1237,8 +1146,14 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
             for t in range(len(self.PermShkStd)):
                 PermIncGrid.append(approxLognormal(mu=(np.log(PermIncAvgNow)-0.5*PermIncStdNow**2),
                                    sigma=PermIncStdNow, N=self.PermIncCount, tail_N=self.PermInc_tail_N, tail_bound=[0.05,0.95])[1])
-                PermIncStdNow = np.sqrt(PermIncStdNow**2 + self.PermShkStd[t]**2)
-                PermIncAvgNow = PermIncAvgNow*self.PermGroFac[t]
+                if type(self.PermShkStd[t]) == list:
+                    temp_std = max(self.PermShkStd[t])
+                    temp_fac = max(self.PermGroFac[t])
+                else:
+                    temp_std = self.PermShkStd[t]
+                    temp_fac = self.PermGroFac[t]    
+                PermIncStdNow = np.sqrt(PermIncStdNow**2 + temp_std**2)
+                PermIncAvgNow = PermIncAvgNow*temp_fac
                 
         # Calculate "stationary" distribution in infinite horizon (might vary across periods of cycle)
         elif self.cycles == 0:
@@ -1255,8 +1170,14 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
             for t in range(len(self.PermShkStd)):
                 PermIncGrid.append(approxLognormal(mu=(np.log(PermIncAvgNow)-0.5*PermIncStdNow**2),
                                    sigma=PermIncStdNow, N=self.PermIncCount, tail_N=self.PermInc_tail_N, tail_bound=[0.05,0.95])[1])
-                PermIncStdNow = np.sqrt(PermIncStdNow**2 + self.PermShkStd[t]**2)
-                PermIncAvgNow = PermIncAvgNow*self.PermGroFac[t]
+                if type(self.PermShkStd[t]) == list:
+                    temp_std = max(self.PermShkStd[t])
+                    temp_fac = max(self.PermGroFac[t])
+                else:
+                    temp_std = self.PermShkStd[t]
+                    temp_fac = self.PermGroFac[t]    
+                PermIncStdNow = np.sqrt(PermIncStdNow**2 + temp_std**2)
+                PermIncAvgNow = PermIncAvgNow*temp_fac
         
         # Throw an error if cycles>1
         else:
@@ -1269,81 +1190,103 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
         self.addToTimeVary('pLvlGrid')
         if not orig_time:
             self.timeRev()
-            
-    def simOnePrd(self):
+                    
+    def simBirth(self,which_agents):
         '''
-        Simulate a single period of a consumption-saving model with permanent
-        and transitory income shocks, with permanent income explcitly included
-        as an argument to the consumption function.
+        Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
+        well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
+        are drawn from lognormal distributions given by aNrmInitMean and aNrmInitStd (etc).
         
         Parameters
         ----------
-        none
+        which_agents : np.array(Bool)
+            Boolean array of size self.AgentCount indicating which agents should be "born".
         
-        Returns
-        -------
-        none
-        '''
-        # Simulate the mortality process, replacing some agents with "newborns"
-        self.simMortality()        
-        
-        # Unpack objects from self for convenience
-        aPrev          = self.aNow
-        pPrev          = self.pNow
-        TranShkNow     = self.TranShkNow
-        PermShkNow     = self.PermShkNow
-        RfreeNow       = self.RfreeNow
-        cFuncNow       = self.cFuncNow
-        
-        # Get correlation coefficient for permanent income
-        if hasattr(self,'PermIncCorr'):
-            Corr = self.PermIncCorr
-        else:
-            Corr = 1.0       
-        
-        # Simulate the period
-        pNow        = pPrev**Corr*PermShkNow# Updated permanent income level
-        bNow        = RfreeNow*aPrev        # Bank balances before labor income
-        mNow        = bNow + TranShkNow*pNow# Market resources after income
-        cNow        = cFuncNow(mNow,pNow)   # Consumption
-        MPCnow      = cFuncNow.derivativeX(mNow,pNow) # Marginal propensity to consume
-        aNow        = mNow - cNow           # Assets after all actions are accomplished
-        
-        # Store the new state and control variables
-        self.pNow   = pNow
-        self.bNow   = bNow
-        self.mNow   = mNow
-        self.cNow   = cNow
-        self.MPCnow = MPCnow
-        self.aNow   = aNow
-        
-    def simMortality(self):
-        '''
-        Simulates the mortality process, killing off some percentage of agents
-        and replacing them with newborn agents.  Differs slightly from version
-        in ConsIndShockModel because assets aNow do not need to be denormalized.
-        These methods should be unified in a future revision.
-        
-        Parameters
-        ----------
-        None
-            
         Returns
         -------
         None
         '''
-        if hasattr(self,'DiePrb'):
-            if self.DiePrb > 0:
-                who_dies = drawBernoulli(N=self.Nagents,p=self.DiePrb,seed=self.RNG.randint(low=1, high=2**31-1))
-                wealth_all = self.aNow
-                who_lives = np.logical_not(who_dies) # indicator for who survives
-                wealth_of_dead = np.sum(wealth_all[who_dies]) # total wealth of those who die
-                wealth_of_live = np.sum(wealth_all[who_lives])# total wealth of those who survive
-                R_actuarial = 1.0 + wealth_of_dead/wealth_of_live # "interest" payout for survivors
-                self.aNow[who_dies] = 0.0 # newborns have no assets...
-                self.pNow[who_dies] = 1.0 # ...and they have permanent income of 1
-                if not np.isnan(R_actuarial): # don't bother with this if no one had wealth anyway!
-                    self.aNow = self.aNow*R_actuarial
+        # Get and store states for newly born agents
+        N = np.sum(which_agents) # Number of new consumers to make      
+        aNrmNow_new = drawLognormal(N,mu=self.aNrmInitMean,sigma=self.aNrmInitStd,seed=self.RNG.randint(0,2**31-1))
+        self.pLvlNow[which_agents] = drawLognormal(N,mu=self.pLvlInitMean,sigma=self.pLvlInitStd,seed=self.RNG.randint(0,2**31-1))
+        self.aLvlNow[which_agents] = aNrmNow_new*self.pLvlNow[which_agents]
+        self.t_age[which_agents]   = 0 # How many periods since each agent was born
+        self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
+        return None
+        
+    def getpLvl(self):
+        '''
+        Returns the updated permanent income levels for each agent this period.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        pLvlNow : np.array
+            Array of size self.AgentCount with updated permanent income levels.
+        '''
+        pLvlNow = self.pLvlNow*self.PermShkNow
+        return pLvlNow
+                    
+    def getStates(self):
+        '''
+        Calculates updated values of normalized market resources and permanent income level for each
+        agent.  Uses pLvlNow, aLvlNow, PermShkNow, TranShkNow.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        aLvlPrev = self.aLvlNow
+        RfreeNow = self.getRfree()
+        
+        # Calculate new states: normalized market resources and permanent income level
+        self.pLvlNow = self.getpLvl()           # Updated permanent income level
+        self.bLvlNow = RfreeNow*aLvlPrev        # Bank balances before labor income
+        self.mLvlNow = self.bLvlNow + self.TranShkNow*self.pLvlNow # Market resources after income
+        return None
+                    
+    def getControls(self):
+        '''
+        Calculates consumption for each consumer of this type using the consumption functions.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        cLvlNow = np.zeros(self.AgentCount) + np.nan
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            cLvlNow[these] = self.solution[t].cFunc(self.mLvlNow[these],self.pLvlNow[these])
+        self.cLvlNow = cLvlNow
+        return None
+        
+    def getPostStates(self):
+        '''
+        Calculates end-of-period assets for each consumer of this type.
+        Identical to version in IndShockConsumerType but uses Lvl rather than Nrm variables.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        self.aLvlNow = self.mLvlNow - self.cLvlNow
+        return None
                         
 ###############################################################################
                         
@@ -1377,6 +1320,23 @@ class PersistentShockConsumerType(IndShockExplicitPermIncConsumerType):
         IndShockConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
         self.solveOnePeriod = solveConsPersistentShock # persistent shocks solver
         self.addToTimeInv('PermIncCorr')
+        
+    def getpLvl(self):
+        '''
+        Returns the updated permanent income levels for each agent this period.  Identical to version
+        in IndShockExplicitPermIncConsumerType.getpLvl except that PermIncCorr is used.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        pLvlNow : np.array
+            Array of size self.AgentCount with updated permanent income levels.
+        '''
+        pLvlNow = self.pLvlNow**self.PermIncCorr*self.PermShkNow
+        return pLvlNow
     
 ###############################################################################
 
@@ -1386,7 +1346,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     mystr = lambda number : "{:.4f}".format(number)
     
-    do_simulation = False
+    do_simulation = True
     
     # Make and solve an example "explicit permanent income" consumer with idiosyncratic shocks
     ExplicitExample = IndShockExplicitPermIncConsumerType(**Params.init_explicit_perm_inc)
@@ -1418,12 +1378,12 @@ if __name__ == '__main__':
     
     # Simulate some data
     if do_simulation:
-        ExplicitExample.sim_periods = 1000
-        ExplicitExample.DiePrb = 1.0 - ExplicitExample.LivPrb[0]
-        ExplicitExample.makeIncShkHist()
+        ExplicitExample.T_sim = 500
+        ExplicitExample.track_vars = ['mLvlNow','cLvlNow','pLvlNow']
+        ExplicitExample.makeShockHistory() # This is optional
         ExplicitExample.initializeSim()
-        ExplicitExample.simConsHistory()
-        plt.plot(np.mean(ExplicitExample.mHist,axis=1))
+        ExplicitExample.simulate()
+        plt.plot(np.mean(ExplicitExample.mLvlNow_hist,axis=1))
         plt.show()
         
     # Make and solve an example "persistent idisyncratic shocks" consumer 
@@ -1456,10 +1416,9 @@ if __name__ == '__main__':
 
     # Simulate some data
     if do_simulation:
-        PersistentExample.sim_periods = 1000
-        PersistentExample.DiePrb = 1.0 - ExplicitExample.LivPrb[0]
-        PersistentExample.makeIncShkHist()
+        PersistentExample.T_sim = 500
+        PersistentExample.track_vars = ['mLvlNow','cLvlNow','pLvlNow']
         PersistentExample.initializeSim()
-        PersistentExample.simConsHistory()
-        plt.plot(np.mean(PersistentExample.mHist,axis=1))
+        PersistentExample.simulate()
+        plt.plot(np.mean(PersistentExample.mLvlNow_hist,axis=1))
         plt.show()

@@ -8,7 +8,7 @@ problem by finding a general equilibrium dynamic rule.
 '''
 
 from HARKutilities import getArgNames, NullFunc
-from copy import deepcopy
+from copy import copy, deepcopy
 import numpy as np
 from time import clock
   
@@ -209,6 +209,9 @@ class AgentType(HARKobject):
         self.solveOnePeriod     = NullFunc()
         self.tolerance          = tolerance
         self.seed               = seed
+        self.track_vars         = []
+        self.poststate_vars     = []
+        self.read_shocks        = False
         self.assignParameters(**kwds)
         self.resetRNG()
 
@@ -421,6 +424,282 @@ class AgentType(HARKobject):
         '''
         return None
         
+    def initializeSim(self):
+        '''
+        Prepares this AgentType for a new simulation.  Resets the internal random number generator,
+        makes initial states for all agents (using simBirth), clears histories of tracked variables.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        self.resetRNG()
+        self.t_sim = 0
+        all_agents = np.ones(self.AgentCount,dtype=bool)
+        blank_array = np.zeros(self.AgentCount)
+        for var_name in self.poststate_vars:
+            exec('self.' + var_name + ' = copy(blank_array)')
+        self.t_age = np.zeros(self.AgentCount,dtype=int)   # Number of periods since agent entry
+        self.t_cycle = np.zeros(self.AgentCount,dtype=int) # Which cycle period each agent is on
+        self.simBirth(all_agents)
+        self.clearHistory()
+        return None
+        
+    def simOnePeriod(self):
+        '''
+        Simulates one period for this type.  Calls the methods getMortality(), getShocks() or
+        readShocks, getStates(), getControls(), and getPostStates().  These should be defined for
+        AgentType subclasses, except getMortality (define its components simDeath and simBirth
+        instead) and readShocks.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        self.getMortality()  # Replace some agents with "newborns"
+        if self.read_shocks: # If shock histories have been pre-specified, use those
+            self.readShocks()
+        else:                # Otherwise, draw shocks as usual according to subclass-specific method
+            self.getShocks()
+        self.getStates()     # Determine each agent's state at decision time
+        self.getControls()   # Determine each agent's choice or control variables based on states
+        self.getPostStates() # Determine each agent's post-decision / end-of-period states using states and controls
+        
+        # Advance time for all agents
+        self.t_age = self.t_age + 1 # Age all consumers by one period
+        self.t_cycle = self.t_cycle + 1 # Age all consumers within their cycle
+        self.t_cycle[self.t_cycle == self.T_cycle] = 0 # Resetting to zero for those who have reached the end
+        
+    def makeShockHistory(self):
+        '''
+        Makes a pre-specified history of shocks for the simulation.  Shock variables should be named
+        in self.shock_vars, a list of strings that is subclass-specific.  This method runs a subset
+        of the standard simulation loop by simulating only mortality and shocks; each variable named
+        in shock_vars is stored in a T_sim x AgentCount array in an attribute of self named X_hist.
+        Automatically sets self.read_shocks to True so that these pre-specified shocks are used for
+        all subsequent calls to simulate().
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        # Make sure time is flowing forward and re-initialize the simulation
+        orig_time = self.time_flow
+        self.timeFwd()
+        self.initializeSim()
+        
+        # Make blank history arrays for each shock variable
+        for var_name in self.shock_vars:
+            setattr(self,var_name+'_hist',np.zeros((self.T_sim,self.AgentCount))+np.nan)
+        
+        # Make and store the history of shocks for each period
+        for t in range(self.T_sim):
+            self.getMortality()
+            self.getShocks()
+            for var_name in self.shock_vars:
+                exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
+            self.t_sim += 1
+            self.t_age = self.t_age + 1 # Age all consumers by one period
+            self.t_cycle = self.t_cycle + 1 # Age all consumers within their cycle
+            self.t_cycle[self.t_cycle == self.T_cycle] = 0 # Resetting to zero for those who have reached the end
+        
+        # Restore the flow of time and flag that shocks can be read rather than simulated
+        self.read_shocks = True
+        if not orig_time:
+            self.timeRev()
+        
+    def getMortality(self):
+        '''
+        Simulates mortality or agent turnover according to some model-specific rules named simDeath
+        and simBirth (methods of an AgentType subclass).  simDeath takes no arguments and returns
+        a Boolean array of size AgentCount, indicating which agents of this type have "died" and
+        must be replaced.  simBirth takes such a Boolean array as an argument and generates initial
+        post-decision states for those agent indices.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        who_dies = self.simDeath()
+        self.simBirth(who_dies)
+        return None
+        
+    def simDeath(self):
+        '''
+        Determines which agents in the current population "die" or should be replaced.  Takes no
+        inputs, returns a Boolean array of size self.AgentCount, which has True for agents who die
+        and False for those that survive. Returns all False by default, must be overwritten by a
+        subclass to have replacement events.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        who_dies : np.array
+            Boolean array of size self.AgentCount indicating which agents die and are replaced.
+        '''
+        print('AgentType subclass must define method simDeath!')
+        who_dies = np.ones(self.AgentCount,dtype=bool)
+        return who_dies
+        
+    def simBirth(self,which_agents):
+        '''
+        Makes new agents for the simulation.  Takes a boolean array as an input, indicating which
+        agent indices are to be "born".  Does nothing by default, must be overwritten by a subclass.
+        
+        Parameters
+        ----------
+        which_agents : np.array(Bool)
+            Boolean array of size self.AgentCount indicating which agents should be "born".
+        
+        Returns
+        -------
+        None
+        '''
+        print('AgentType subclass must define method simBirth!')
+        return None
+        
+    def getShocks(self):
+        '''
+        Gets values of shock variables for the current period.  Does nothing by default, but can
+        be overwritten by subclasses of AgentType.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        return None
+        
+    def readShocks(self):
+        '''
+        Reads values of shock variables for the current period from history arrays.  For each var-
+        iable X named in self.shock_vars, this attribute of self is set to self.X_hist[self.t_sim,:].
+        
+        This method is only ever called if self.read_shocks is True.  This can be achieved by using
+        the method makeShockHistory() (or manually after storing a "handcrafted" shock history).
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        for var_name in self.shock_vars:
+            setattr(self,var_name,getattr(self,var_name+'_hist')[self.t_sim,:])
+        
+    def getStates(self):
+        '''
+        Gets values of state variables for the current period, probably by using post-decision states
+        from last period, current period shocks, and maybe market-level events.  Does nothing by
+        default, but can be overwritten by subclasses of AgentType.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        return None
+        
+    def getControls(self):
+        '''
+        Gets values of control variables for the current period, probably by using current states.
+        Does nothing by default, but can be overwritten by subclasses of AgentType.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        return None
+        
+    def getPostStates(self):
+        '''
+        Gets values of post-decision state variables for the current period, probably by current
+        states and controls and maybe market-level events or shock variables.  Does nothing by
+        default, but can be overwritten by subclasses of AgentType.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        return None
+        
+    def simulate(self,sim_periods=None):
+        '''
+        Simulates this agent type for a given number of periods (defaults to self.T_sim if no input).
+        Records histories of attributes named in self.track_vars in attributes named varname_hist.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        orig_time = self.time_flow
+        self.timeFwd()
+        if sim_periods is None:
+            sim_periods = self.T_sim
+            
+        for t in range(sim_periods):
+            self.simOnePeriod()
+            for var_name in self.track_vars:
+                exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
+            self.t_sim += 1
+            
+        if not orig_time:
+            self.timeRev()
+            
+    def clearHistory(self):
+        '''
+        Clears the histories of the attributes named in self.track_vars.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        for var_name in self.track_vars:
+            exec('self.' + var_name + '_hist = np.zeros((self.T_sim,self.AgentCount)) + np.nan')
+        
 
 def solveAgent(agent,verbose):
     '''
@@ -631,7 +910,7 @@ class Market(HARKobject):
         -------
         None
     '''
-        self.agents      = agents
+        self.agents     = agents
         self.reap_vars  = reap_vars
         self.sow_vars   = sow_vars
         self.const_vars = const_vars
@@ -643,6 +922,22 @@ class Market(HARKobject):
             self.calcDynamics = calcDynamics
         self.act_T = act_T
         self.tolerance = tolerance
+        self.max_loops = 1000
+        
+    def solveAgents(self):
+        '''
+        Solves the microeconomic problem for all AgentTypes in this market.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        for this_type in self.agents:
+            this_type.solve()  
     
     def solve(self):
         '''
@@ -652,20 +947,19 @@ class Market(HARKobject):
         
         Parameters
         ----------
-        none
+        None
         
         Returns
         -------
-        none
+        None
         '''
         go              = True
-        max_loops       = 1000 # Failsafe against infinite solution loop
+        max_loops       = self.max_loops # Failsafe against infinite solution loop
         completed_loops = 0
         old_dynamics    = None
 
         while go: # Loop until the dynamic process converges or we hit the loop cap
-            for this_type in self.agents:
-                this_type.solve()  # Solve each AgentType's micro problem
+            self.solveAgents()     # Solve each AgentType's micro problem
             self.makeHistory()     # "Run" the model while tracking aggregate variables
             new_dynamics = self.updateDynamics() # Find a new aggregate dynamic rule
             
@@ -842,7 +1136,10 @@ class Market(HARKobject):
         '''
         # Make a dictionary of inputs for the dynamics calculator
         history_vars_string = ''
-        for name in self.track_vars:
+        arg_names = list(getArgNames(self.calcDynamics))
+        if 'self' in arg_names:
+            arg_names.remove('self')
+        for name in arg_names:
             history_vars_string += ' \'' + name + '\' : self.' + name + '_hist,'
         update_dict = eval('{' + history_vars_string + '}')
         
