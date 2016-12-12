@@ -11,7 +11,7 @@ from copy import deepcopy
 import numpy as np
 from ConsIndShockModel import ConsIndShockSolver, ValueFunc, MargValueFunc, ConsumerSolution, IndShockConsumerType
 from HARKutilities import warnings  # Because of "patch" to warnings modules
-from HARKsimulation import drawDiscrete
+from HARKsimulation import drawDiscrete, drawUniform
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                           CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP
@@ -54,7 +54,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             permanent shocks, transitory shocks.
         LivPrb : np.array
             Survival probability; likelihood of being alive at the beginning of
-            the succeeding period for each Markov state.  
+            the succeeding period for each Markov state.   
         DiscFac : float
             Intertemporal discount factor for future utility.        
         CRRA : float
@@ -62,7 +62,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         Rfree_list : np.array
             Risk free interest factor on end-of-period assets for each Markov
             state in the succeeding period.
-        PermGroGac_list : np.array
+        PermGroFac_list : np.array
             Expected permanent income growth factor at the end of this period
             for each Markov state in the succeeding period.
         MrkvArray : np.array
@@ -100,7 +100,6 @@ class ConsMarkovSolver(ConsIndShockSolver):
         self.MrkvArray            = MrkvArray
         self.StateCount           = MrkvArray.shape[0]
 
-
     def solve(self):
         '''
         Solve the one period problem of the consumption-saving model with a Markov state.
@@ -122,7 +121,6 @@ class ConsMarkovSolver(ConsIndShockSolver):
             Markov state.  E.g. solution.cFunc[0] is the consumption function
             when in the i=0 Markov state this period.
         '''
-
         # Find the natural borrowing constraint in each current state
         self.defBoundary()
         
@@ -168,7 +166,6 @@ class ConsMarkovSolver(ConsIndShockSolver):
         # Package and return the solution for this period
         self.BoroCnstNat = self.BoroCnstNat_list
         solution = self.makeSolution(cNrm,mNrm)
-
         return solution
         
     def defBoundary(self):
@@ -674,32 +671,35 @@ class MarkovConsumerType(IndShockConsumerType):
     income growth rates, as well as time invariant values for risk aversion, the
     interest rate, the grid of end-of-period assets, and how he is borrowing constrained.
     '''
-    time_inv_ = IndShockConsumerType.time_inv_ + ['MrkvArray']
+    time_vary_ = IndShockConsumerType.time_vary_ + ['MrkvArray']
+    shock_vars_ = IndShockConsumerType.shock_vars_ + ['MrkvNow']
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
         IndShockConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
         self.solveOnePeriod = solveConsMarkov
-
+        self.poststate_vars += ['MrkvNow']
+        
     def checkMarkovInputs(self):
-        """
+        '''
         Many parameters used by MarkovConsumerType are arrays.  Make sure those arrays are the
         right shape.
 
         Parameters
         ----------
-        none
+        None
         
         Returns
         -------
-        none
-        """
-        StateCount = self.MrkvArray.shape[0]        
+        None
+        '''
+        StateCount = self.MrkvArray[0].shape[0]
         
         # Check that arrays are the right shape
-        assert self.MrkvArray.shape  == (StateCount,StateCount),'MrkvArray not the right shape!'
         assert self.Rfree.shape      == (StateCount,),'Rfree not the right shape!'
         
         # Check that arrays in lists are the right shape
+        for MrkvArray_t in self.MrkvArray:
+            assert MrkvArray_t.shape  == (StateCount,StateCount),'MrkvArray not the right shape!'
         for LivPrb_t in self.LivPrb:
             assert LivPrb_t.shape == (StateCount,),'Array in LivPrb is not the right shape!'
         for PermGroFac_t in self.LivPrb:
@@ -713,181 +713,23 @@ class MarkovConsumerType(IndShockConsumerType):
         # conditional on a particular Markov state. 
         for IncomeDstn_t in self.IncomeDstn:
             assert len(IncomeDstn_t) == StateCount,'List in IncomeDstn is not the right length!'
-        
-
+            
     def preSolve(self):
         """
-        Do preSolve stuff inherited from IndShockConsumerType.
-        
-        Also, check to make sure that the inputs that are specific to MarkovConsumerType
-        are of the right shape (if arrays) or length (if lists).
+        Do preSolve stuff inherited from IndShockConsumerType, then check to make sure that the
+        inputs that are specific to MarkovConsumerType are of the right shape (if arrays) or length
+        (if lists).
 
         Parameters
         ----------
-        none
+        None
         
         Returns
         -------
-        none
+        None
         """
         IndShockConsumerType.preSolve(self)
         self.checkMarkovInputs()
-
-    def makeIncShkHist(self):
-        '''
-        Makes histories of simulated income shocks for this consumer type by
-        drawing from the discrete income distributions, respecting the Markov
-        state for each agent in each period.  Should be run after makeMrkvHist().
-        
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''
-        orig_time = self.time_flow
-        self.timeFwd()
-        self.resetRNG()
-        
-        # Initialize the shock histories
-        N = self.MrkvArray.shape[0]
-        PermShkHist = np.zeros((self.sim_periods,self.Nagents)) + np.nan
-        TranShkHist = np.zeros((self.sim_periods,self.Nagents)) + np.nan
-        PermShkHist[0,:] = 1.0
-        TranShkHist[0,:] = 1.0
-        t_idx = 0
-        
-        # Draw income shocks for each simulated period, respecting the Markov state
-        for t in range(1,self.sim_periods):
-            MrkvNow = self.MrkvHist[t,:]
-            IncomeDstn_list    = self.IncomeDstn[t_idx]
-            PermGroFac_list    = self.PermGroFac[t_idx]
-            for n in range(N):
-                these = MrkvNow == n
-                IncomeDstnNow = IncomeDstn_list[n]
-                PermGroFacNow = PermGroFac_list[n]
-                Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
-                # Get random draws of income shocks from the discrete distribution
-                EventDraws       = drawDiscrete(N=np.sum(these),X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
-                PermShkHist[t,these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow
-                TranShkHist[t,these] = IncomeDstnNow[2][EventDraws]
-            # Advance the time index, looping if we've run out of income distributions
-            t_idx += 1
-            if t_idx >= len(self.IncomeDstn):
-                t_idx = 0
-        
-        # Store the results as attributes of self and restore time to its original flow        
-        self.PermShkHist = PermShkHist
-        self.TranShkHist = TranShkHist
-        if not orig_time:
-            self.timeRev()
-                    
-    def makeMrkvHist(self):
-        '''
-        Makes a history of simulated discrete Markov states, starting from the
-        initial states in markov_init.  Assumes that MrkvArray is constant.
-
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''
-        orig_time = self.time_flow
-        self.timeFwd()
-        self.resetRNG()
-        
-        # Initialize the Markov state history
-        MrkvHist      = np.zeros((self.sim_periods,self.Nagents),dtype=int)
-        MrkvNow       = self.Mrkv_init
-        MrkvHist[0,:] = MrkvNow
-        base_draws    = np.arange(self.Nagents,dtype=float)/self.Nagents + 1.0/(2*self.Nagents)
-        
-        # Make an array of Markov transition cutoffs
-        N = self.MrkvArray.shape[0] # number of states
-        Cutoffs = np.cumsum(self.MrkvArray,axis=1)
-        
-        # Draw Markov transitions for each period
-        for t in range(1,self.sim_periods):
-            draws_now = self.RNG.permutation(base_draws)
-            MrkvNext = np.zeros(self.Nagents) + np.nan
-            for n in range(N):
-                these = MrkvNow == n
-                MrkvNext[these] = np.searchsorted(Cutoffs[n,:],draws_now[these])
-            MrkvHist[t,:] = MrkvNext
-            MrkvNow = MrkvNext
-        
-        # Store the results and return time to its original flow
-        self.MrkvHist = MrkvHist
-
-        if not orig_time:
-            self.timeRev()
-
-
-    def simOnePrd(self):
-        '''
-        Simulate a single period of a consumption-saving model with permanent
-        and transitory income shocks.
-        
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''        
-        # Unpack objects from self for convenience
-        aPrev          = self.aNow
-        pPrev          = self.pNow
-        TranShkNow     = self.TranShkNow
-        PermShkNow     = self.PermShkNow
-        RfreeNow       = self.RfreeNow[self.MrkvNow]
-        cFuncNow       = self.cFuncNow
-        
-        # Simulate the period
-        pNow    = pPrev*PermShkNow      # Updated permanent income level
-        ReffNow = RfreeNow/PermShkNow   # "effective" interest factor on normalized assets
-        bNow    = ReffNow*aPrev         # Bank balances before labor income
-        mNow    = bNow + TranShkNow     # Market resources after income
-
-        N      = self.MrkvArray.shape[0]            
-        cNow   = np.zeros_like(mNow)
-        MPCnow = np.zeros_like(mNow)
-        for n in range(N):
-            these = self.MrkvNow == n
-            cNow[these], MPCnow[these] = cFuncNow[n].eval_with_derivative(mNow[these]) # Consumption and maginal propensity to consume
-
-        aNow    = mNow - cNow           # Assets after all actions are accomplished
-        
-        # Store the new state and control variables
-        self.pNow   = pNow
-        self.bNow   = bNow
-        self.mNow   = mNow
-        self.cNow   = cNow
-        self.MPCnow = MPCnow
-        self.aNow   = aNow
-
-
-    def advanceIncShks(self):
-        '''
-        Advance the permanent and transitory income shocks to the next period of
-        the shock history objects.
-        
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''
-        self.MrkvNow = self.MrkvHist[self.Shk_idx,:]
-        IndShockConsumerType.advanceIncShks(self)
 
     def updateSolutionTerminal(self):
         '''
@@ -905,7 +747,7 @@ class MarkovConsumerType(IndShockConsumerType):
         IndShockConsumerType.updateSolutionTerminal(self)
         
         # Make replicated terminal period solution: consume all resources, no human wealth, minimum m is 0
-        StateCount = self.MrkvArray.shape[0]
+        StateCount = self.MrkvArray[0].shape[0]
         self.solution_terminal.cFunc   = StateCount*[self.cFunc_terminal_]
         self.solution_terminal.vFunc   = StateCount*[self.solution_terminal.vFunc]
         self.solution_terminal.vPfunc  = StateCount*[self.solution_terminal.vPfunc]
@@ -914,6 +756,151 @@ class MarkovConsumerType(IndShockConsumerType):
         self.solution_terminal.hRto    = np.zeros(StateCount)
         self.solution_terminal.MPCmax  = np.ones(StateCount)
         self.solution_terminal.MPCmin  = np.ones(StateCount)
+        
+    def initializeSim(self):
+        IndShockConsumerType.initializeSim(self)
+        self.MrkvNow = self.MrkvNow.astype(int)
+        
+    def simDeath(self):
+        '''
+        Determines which agents die this period and must be replaced.  Uses the sequence in LivPrb
+        to determine survival probabilities for each agent.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        which_agents : np.array(bool)
+            Boolean array of size AgentCount indicating which agents die.
+        '''
+        # Determine who dies
+        LivPrb = np.array(self.LivPrb)[self.t_cycle-1,self.MrkvNow] # Time has already advanced, so look back one
+        DiePrb = 1.0 - LivPrb
+        DeathShks = drawUniform(N=self.AgentCount,seed=self.RNG.randint(0,2**31-1))
+        which_agents = DeathShks < DiePrb
+        if self.T_age is not None: # Kill agents that have lived for too many periods
+            too_old = self.t_age >= self.T_age
+            which_agents = np.logical_or(which_agents,too_old)
+        return which_agents
+        
+    def simBirth(self,which_agents):
+        '''
+        Makes new Markov consumer by drawing initial normalized assets, permanent income levels, and
+        discrete states. Calls IndShockConsumerType.simBirth, then draws from initial Markov distribution.
+        
+        Parameters
+        ----------
+        which_agents : np.array(Bool)
+            Boolean array of size self.AgentCount indicating which agents should be "born".
+        
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.simBirth(self,which_agents) # Get initial assets and permanent income
+        N = np.sum(which_agents)
+        base_draws = drawUniform(N,seed=self.RNG.randint(0,2**31-1))
+        Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
+        self.MrkvNow[which_agents] = np.searchsorted(Cutoffs,base_draws).astype(int)
+        
+    def getShocks(self):
+        '''
+        Gets new Markov states and permanent and transitory income shocks for this period.  Samples
+        from IncomeDstn for each period-state in the cycle.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        # Get new Markov states for each agent
+        base_draws = self.RNG.permutation(np.arange(self.AgentCount,dtype=float)/self.AgentCount + 1.0/(2*self.AgentCount))
+        newborn = self.t_age == 0 # Don't change Markov state for those who were just born
+        MrkvPrev = self.MrkvNow
+        MrkvNow = np.zeros(self.AgentCount,dtype=int)
+        for t in range(self.T_cycle):
+            Cutoffs = np.cumsum(self.MrkvArray[t],axis=1)
+            for j in range(self.MrkvArray[t].shape[0]):
+                these = np.logical_and(self.t_cycle == t,MrkvPrev == j)
+                MrkvNow[these] = np.searchsorted(Cutoffs[j,:],base_draws[these]).astype(int)
+        MrkvNow[newborn] = MrkvPrev[newborn]
+        self.MrkvNow = MrkvNow        
+        
+        # Now get income shocks for each consumer, by cycle-time and discrete state
+        PermShkNow = np.zeros(self.AgentCount) # Initialize shock arrays
+        TranShkNow = np.zeros(self.AgentCount)
+        for t in range(self.T_cycle):
+            for j in range(self.MrkvArray[t].shape[0]):
+                these = np.logical_and(t == self.t_cycle, j == MrkvNow)
+                N = np.sum(these)
+                if N > 0:
+                    IncomeDstnNow    = self.IncomeDstn[t-1][j] # set current income distribution
+                    PermGroFacNow    = self.PermGroFac[t-1][j] # and permanent growth factor
+                    Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
+                    # Get random draws of income shocks from the discrete distribution
+                    EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
+                    PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
+                    TranShkNow[these] = IncomeDstnNow[2][EventDraws]
+        PermShkNow[newborn] = 1.0
+        TranShkNow[newborn] = 1.0
+        self.PermShkNow = PermShkNow
+        self.TranShkNow = TranShkNow
+        
+    def readShocks(self):
+        '''
+        A slight modification of AgentType.readShocks that makes sure that MrkvNow is int, not float.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.readShocks(self)
+        self.MrkvNow = self.MrkvNow.astype(int)
+                
+    def getRfree(self):
+        '''
+        Returns an array of size self.AgentCount with interest factor that varies with discrete state.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        RfreeNow : np.array
+             Array of size self.AgentCount with risk free interest rate for each agent.
+        '''
+        RfreeNow = self.Rfree[self.MrkvNow]
+        return RfreeNow
+           
+    def getControls(self):
+        '''
+        Calculates consumption for each consumer of this type using the consumption functions.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        cNrmNow = np.zeros(self.AgentCount) + np.nan
+        for t in range(self.T_cycle):
+            for j in range(self.MrkvArray[t].shape[0]):
+                these = np.logical_and(t == self.t_cycle, j == self.MrkvNow)
+                cNrmNow[these] = self.solution[t].cFunc[j](self.mNrmNow[these])
+        self.cNrmNow = cNrmNow
+        return None
         
     def calcBoundingValues(self):
         '''
@@ -998,7 +985,7 @@ if __name__ == '__main__':
                            
     # Make a consumer with serially correlated unemployment, subject to boom and bust cycles
     init_serial_unemployment = copy(Params.init_idiosyncratic_shocks)
-    init_serial_unemployment['MrkvArray'] = MrkvArray
+    init_serial_unemployment['MrkvArray'] = [MrkvArray]
     init_serial_unemployment['UnempPrb'] = 0 # to make income distribution when employed
     SerialUnemploymentExample = MarkovConsumerType(**init_serial_unemployment)
     SerialUnemploymentExample.cycles = 0
@@ -1014,7 +1001,7 @@ if __name__ == '__main__':
     SerialUnemploymentExample.Rfree = np.array(4*[SerialUnemploymentExample.Rfree])
     SerialUnemploymentExample.PermGroFac = [np.array(4*SerialUnemploymentExample.PermGroFac)]
     SerialUnemploymentExample.LivPrb = [SerialUnemploymentExample.LivPrb*np.ones(4)]
-
+    
     # Solve the serial unemployment consumer's problem and display solution
     SerialUnemploymentExample.timeFwd()
     start_time = clock()
@@ -1022,20 +1009,19 @@ if __name__ == '__main__':
     end_time = clock()
     print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
-
     plotFuncs(SerialUnemploymentExample.solution[0].cFunc,0,50)
     if SerialUnemploymentExample.vFuncBool:
         print('Value functions for each discrete state:')
         plotFuncs(SerialUnemploymentExample.solution[0].vFunc,5,50)
     
-    # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
+    # Simulate some data; results stored in cHist, mNrmNow_hist, cNrmNow_hist, and MrkvNow_hist
     if do_simulation:
-        SerialUnemploymentExample.sim_periods = 120
-        SerialUnemploymentExample.Mrkv_init = np.zeros(SerialUnemploymentExample.Nagents,dtype=int)
-        SerialUnemploymentExample.makeMrkvHist()
-        SerialUnemploymentExample.makeIncShkHist()
+        SerialUnemploymentExample.T_sim = 120
+        SerialUnemploymentExample.MrkvPrbsInit = [0.25,0.25,0.25,0.25]
+        SerialUnemploymentExample.track_vars = ['mNrmNow','cNrmNow']
+        SerialUnemploymentExample.makeShockHistory() # This is optional
         SerialUnemploymentExample.initializeSim()
-        SerialUnemploymentExample.simConsHistory()
+        SerialUnemploymentExample.simulate()
         
 ###############################################################################
 
@@ -1058,7 +1044,7 @@ if __name__ == '__main__':
         MrkvArray[j+1,j] = 1.0  # When immune, have 100% chance of transition to state with one fewer immunity periods remaining
     
     init_unemployment_immunity = copy(Params.init_idiosyncratic_shocks)
-    init_unemployment_immunity['MrkvArray'] = MrkvArray
+    init_unemployment_immunity['MrkvArray'] = [MrkvArray]
     ImmunityExample = MarkovConsumerType(**init_unemployment_immunity)
     ImmunityExample.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])), # Interest factor same in all states
                                   PermGroFac = [np.array(StateCount*[1.01])],    # Permanent growth factor same in all states
@@ -1090,7 +1076,7 @@ if __name__ == '__main__':
     MrkvArray = Persistence*np.eye(StateCount) + (1.0/StateCount)*(1.0-Persistence)*np.ones((StateCount,StateCount))
     
     init_serial_growth = copy(Params.init_idiosyncratic_shocks)
-    init_serial_growth['MrkvArray'] = MrkvArray
+    init_serial_growth['MrkvArray'] = [MrkvArray]
     SerialGroExample = MarkovConsumerType(**init_serial_growth)
     SerialGroExample.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])),    # Same interest factor in each Markov state
                                    PermGroFac = [np.array([0.97,0.99,1.01,1.03,1.05])], # Different permanent growth factor in each Markov state

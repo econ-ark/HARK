@@ -20,6 +20,8 @@ class PrefShockConsumerType(IndShockConsumerType):
     A class for representing consumers who experience multiplicative shocks to
     utility each period, specified as iid lognormal.
     '''
+    shock_vars_ = IndShockConsumerType.shock_vars_ + ['PrefShkNow']
+    
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
@@ -86,107 +88,46 @@ class PrefShockConsumerType(IndShockConsumerType):
         self.addToTimeVary('PrefShkDstn')
         if not time_orig:
             self.timeRev()
-            
-    def makePrefShkHist(self):
+        
+    def getShocks(self):
         '''
-        Makes histories of simulated preference shocks for this consumer type by
-        drawing from the shock distribution's true lognormal form.
+        Gets permanent and transitory income shocks for this period as well as preference shocks.
         
         Parameters
         ----------
-        none
+        None
         
         Returns
         -------
-        none
+        None
         '''
-        orig_time = self.time_flow
-        self.timeFwd()
-        self.resetRNG()
+        IndShockConsumerType.getShocks(self) # Get permanent and transitory income shocks
+        PrefShkNow = np.zeros(self.AgentCount) # Initialize shock array
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            N = np.sum(these)
+            if N > 0:
+                PrefShkNow[these] = self.RNG.permutation(approxMeanOneLognormal(N,sigma=self.PrefShkStd[t])[1])
+        self.PrefShkNow = PrefShkNow
         
-        # Initialize the preference shock history
-        PrefShkHist      = np.zeros((self.sim_periods,self.Nagents)) + np.nan
-        PrefShkHist[0,:] = 1.0
-        t_idx            = 0
-        
-        # Make discrete distributions of preference shocks to permute
-        base_dstns = []
-        for t_idx in range(len(self.PrefShkStd)):
-            temp_dstn = approxMeanOneLognormal(N=self.Nagents,sigma=self.PrefShkStd[t_idx])
-            base_dstns.append(temp_dstn[1]) # only take values, not probs
-        
-        # Fill in the preference shock history
-        for t in range(1,self.sim_periods):
-            dstn_now         = base_dstns[t_idx]
-            PrefShkHist[t,:] = self.RNG.permutation(dstn_now)
-            t_idx += 1
-            if t_idx >= len(self.PrefShkStd):
-                t_idx = 0
-                
-        self.PrefShkHist = PrefShkHist
-        if not orig_time:
-            self.timeRev()
-            
-    def advanceIncShks(self):
+    def getControls(self):
         '''
-        Advance the permanent and transitory income shocks to the next period of
-        the shock history objects, after first advancing the preference shocks.
+        Calculates consumption for each consumer of this type using the consumption functions.
         
         Parameters
         ----------
-        none
+        None
         
         Returns
         -------
-        none
+        None
         '''
-        self.PrefShkNow = self.PrefShkHist[self.Shk_idx,:]
-        IndShockConsumerType.advanceIncShks(self)
-            
-    def simOnePrd(self):
-        '''
-        Simulate a single period of a consumption-saving model with permanent
-        and transitory income shocks plus multiplicative utility shocks.
-        
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''
-        # Unpack objects from self for convenience
-        aPrev          = self.aNow
-        pPrev          = self.pNow
-        TranShkNow     = self.TranShkNow
-        PermShkNow     = self.PermShkNow
-        PrefShkNow     = self.PrefShkNow
-        if hasattr(self,'RboroNow'):
-            RboroNow   = self.RboroNow
-            RsaveNow   = self.RsaveNow
-            RfreeNow   = RboroNow*np.ones_like(aPrev)
-            RfreeNow[aPrev > 0] = RsaveNow
-        else:
-            RfreeNow   = self.RfreeNow
-        cFuncNow       = self.cFuncNow
-        
-        # Simulate the period
-        pNow    = pPrev*PermShkNow      # Updated permanent income level
-        ReffNow = RfreeNow/PermShkNow   # "effective" interest factor on normalized assets
-        bNow    = ReffNow*aPrev         # Bank balances before labor income
-        mNow    = bNow + TranShkNow     # Market resources after income
-        cNow    = cFuncNow(mNow,PrefShkNow) # Consumption (normalized)
-        MPCnow  = cFuncNow.derivativeX(mNow,PrefShkNow) # Marginal propensity to consume
-        aNow    = mNow - cNow           # Assets after all actions are accomplished
-        
-        # Store the new state and control variables
-        self.pNow   = pNow
-        self.bNow   = bNow
-        self.mNow   = mNow
-        self.cNow   = cNow
-        self.MPCnow = MPCnow
-        self.aNow   = aNow
+        cNrmNow = np.zeros(self.AgentCount) + np.nan
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            cNrmNow[these] = self.solution[t].cFunc(self.mNrmNow[these],self.PrefShkNow[these])
+        self.cNrmNow = cNrmNow
+        return None
  
        
     def calcBoundingValues(self):
@@ -265,6 +206,9 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         self.solveOnePeriod = solveConsKinkyPref # Choose correct solver
         self.addToTimeInv('Rboro','Rsave')
         self.delFromTimeInv('Rfree')
+        
+    def getRfree(self): # Specify which getRfree to use
+        return KinkedRconsumerType.getRfree(self)
         
 ###############################################################################
 
@@ -688,11 +632,11 @@ if __name__ == '__main__':
     
     # Test the simulator for the pref shock class
     if do_simulation:
-        PrefShockExample.sim_periods = 120
-        PrefShockExample.makeIncShkHist()
-        PrefShockExample.makePrefShkHist()
+        PrefShockExample.T_sim = 120
+        PrefShockExample.track_vars = ['cNrmNow']
+        PrefShockExample.makeShockHistory() # This is optional
         PrefShockExample.initializeSim()
-        PrefShockExample.simConsHistory()
+        PrefShockExample.simulate()
         
     ###########################################################################
         
@@ -727,8 +671,7 @@ if __name__ == '__main__':
         
     # Test the simulator for the kinky preference class
     if do_simulation:
-        KinkyPrefExample.sim_periods = 120
-        KinkyPrefExample.makeIncShkHist()
-        KinkyPrefExample.makePrefShkHist()
+        KinkyPrefExample.T_sim = 120
+        KinkyPrefExample.track_vars = ['cNrmNow','PrefShkNow']
         KinkyPrefExample.initializeSim()
-        KinkyPrefExample.simConsHistory()
+        KinkyPrefExample.simulate()

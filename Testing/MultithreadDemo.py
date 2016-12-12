@@ -32,7 +32,7 @@ if __name__ == '__main__': # Parallel calls *must* be inside a call to __main__
     BasicType = Model.IndShockConsumerType(**Params.init_idiosyncratic_shocks)
     BasicType.cycles = 0
     BasicType(aXtraMax  = 100, aXtraCount = 64)
-    BasicType(vFuncBool = False, cubicBool = True)
+    BasicType(vFuncBool = False, CubicBool = True)
     BasicType.updateAssetsGrid()
     BasicType.timeFwd()    
    

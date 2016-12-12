@@ -55,6 +55,9 @@ def drawLognormal(N,mu=0.0,sigma=1.0,seed=0):
     ----------
     N : int
         Number of draws in each row.
+    mu : float or [float]
+        One or more means.  Number of elements T in mu determines number
+        of rows of output.
     sigma : float or [float]
         One or more standard deviations. Number of elements T in sigma
         determines number of rows of output.
@@ -71,11 +74,17 @@ def drawLognormal(N,mu=0.0,sigma=1.0,seed=0):
     RNG = np.random.RandomState(seed)
     
     if type(sigma) == float: # Return a single array of length N
-        draws = RNG.lognormal(mean=mu, sigma=sigma, size=N)
+        if sigma == 0:
+            draws = np.exp(mu)*np.ones(N)
+        else:
+            draws = RNG.lognormal(mean=mu, sigma=sigma, size=N)
     else: # Set up empty list to populate, then loop and populate list with draws
         draws=[]
-        for j in range(len(sigma)):       
-            draws.append(RNG.lognormal(mean=mu[j], sigma=sigma[j], size=N))            
+        for j in range(len(sigma)):
+            if sigma[j] == 0:
+                draws.append(np.exp(mu[j])*np.ones(N))
+            else:
+                draws.append(RNG.lognormal(mean=mu[j], sigma=sigma[j], size=N))            
     return draws
     
     
