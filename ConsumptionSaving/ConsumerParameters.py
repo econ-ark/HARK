@@ -12,10 +12,8 @@ import numpy as np
 
 CRRA = 2.0                          # Coefficient of relative risk aversion
 Rfree = 1.03                        # Interest factor on assets
-#DiscFac = 0.96                      # Intertemporal discount factor
+DiscFac = 0.96                      # Intertemporal discount factor
 LivPrb = [0.98]                     # Survival probability
-DiscFac = 0.99375
-LivPrb = [0.99375]  
 #PermGroFac = [1.01]                 # Permanent income growth factor
 PermGroFac = [1.0]
 AgentCount = 10000                  # Number of agents of this type (only matters for simulation)
@@ -57,8 +55,8 @@ aXtraCount = 48                     # Number of points in the grid of "assets ab
 # Parameters describing the income process
 PermShkCount = 7                    # Number of points in discrete approximation to permanent income shocks
 TranShkCount = 7                    # Number of points in discrete approximation to transitory income shocks
-PermShkStd = [(0.01*4/11)**0.5]                  # Standard deviation of log permanent income shocks
-TranShkStd = [0.01**0.5]                  # Standard deviation of log transitory income shocks
+PermShkStd = [0.1]                  # Standard deviation of log permanent income shocks
+TranShkStd = [0.1]                  # Standard deviation of log transitory income shocks
 UnempPrb = 0.05                     # Probability of unemployment while working
 UnempPrbRet = 0.005                 # Probability of "unemployment" while retired
 IncUnemp = 0.3                      # Unemployment benefits replacement rate
@@ -177,9 +175,9 @@ TranShkAggStd = 0.0031        # Standard deviation of log aggregate transitory s
 DeprFac = 0.025               # Capital depreciation rate
 CapShare = 0.36               # Capital's share of income
 CRRAPF = 1.0                  # CRRA of perfect foresight calibration
-DiscFacPF = 0.99375              # Discount factor of perfect foresight calibration
-intercept_prev = -0.140808621713        # Intercept of AFunc function
-slope_prev = 1.0272576827               # Slope of AFunc function
+DiscFacPF = 0.99              # Discount factor of perfect foresight calibration
+intercept_prev = -0.305568464142        # Intercept of AFunc function
+slope_prev = 1.06154769008               # Slope of AFunc function
 
 # Make a dictionary to specify an aggregate shocks consumer
 init_agg_shocks = copy(init_idiosyncratic_shocks)

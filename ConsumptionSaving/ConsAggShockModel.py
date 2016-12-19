@@ -42,8 +42,8 @@ class MargValueFunc2D(HARKobject):
         ----------
         cFunc : function
             A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on market
-            resources and the capital-to-labor ratio: uP_inv(vPfunc(m,M)).
+            with the inverse marginal utility function, defined on individual market
+            resources and aggregate market resources-to-labor ratio: uP_inv(vPfunc(m,M)).
             Called cFunc because when standard envelope condition applies,
             uP_inv(vPfunc(m,M)) = cFunc(m,M).
         CRRA : float
@@ -522,12 +522,12 @@ class CobbDouglasEconomy(Market):
         
     def calcDynamics(self,MaggNow,AggANow):
         '''
-        Calculates a new dynamic rule for the economy: next period's capital
-        ratio as a function of this period's.  Just calls calcCapitalEvoRule().
+        Calculates a new dynamic rule for the economy: end of period savings as
+        a function of aggregate market resources.  Just calls calcAFunc().
         
         See documentation for calcCapitalEvoRule for more information.
         '''
-        return self.calcCapitalEvoRule(MaggNow,AggANow)
+        return self.calcAFunc(MaggNow,AggANow)
         
     def update(self):
         '''
@@ -627,14 +627,12 @@ class CobbDouglasEconomy(Market):
         # version, which first applies the idiosyncratic permanent income shocks
         # and then aggregates.  Obviously this is mathematically equivalent.
         
-        #AggregateL = self.AggregateL # Exogenous labor supply, can be changed later
-        
         # Get this period's aggregate shocks
         PermShkAggNow = self.PermShkAggHist[self.Shk_idx]
         TranShkAggNow = self.TranShkAggHist[self.Shk_idx]
         self.Shk_idx += 1
         
-        AggregateL = np.mean(pLvlNow)*PermShkAggNow    #STRICTLY WE NEED THE PERMGROFAC HERE TOO, and mortality
+        AggregateL = np.mean(pLvlNow)*PermShkAggNow    #STRICTLY WE NEED THE PERMGROFAC HERE TOO
         
         # Calculate the interest factor and wage rate this period
         KtoLnow = AggregateK/AggregateL
@@ -649,23 +647,22 @@ class CobbDouglasEconomy(Market):
         AggVarsNow = CobbDouglasAggVars(MaggNow, AggANow,KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow)
         return AggVarsNow
         
-    def calcCapitalEvoRule(self,MaggNow,AggANow):
+    def calcAFunc(self,MaggNow,AggANow):
         '''
         Calculate a new aggregate savings rule based on the history
-        of the aggregate savings from a simulation.
+        of the aggregate savings and aggregate market resources from a simulation.
         
         Parameters
         ----------
         MaggNow : [float]
             List of the history of the simulated  aggregate market resources for an economy.
         AggANow : [float]
-            List of the history of the simulated  aggregate savomgs for an economy.
+            List of the history of the simulated  aggregate savings for an economy.
             
         Returns
         -------
         (unnamed) : CapDynamicRule
-            Object containing a new capital evolution rule, calculated from the
-            history of the capital-to-labor ratio.
+            Object containing a new savings rule
         '''
         verbose = True
         discard_periods = 200 # Throw out the first T periods to allow the simulation to approach the SS
@@ -974,7 +971,7 @@ if __name__ == '__main__':
     AggShockExample.solve()
     t_end = clock()
     print('Solving an aggregate shocks consumer took ' + mystr(t_end-t_start) + ' seconds.')
-    print('Consumption function at each capital-to-labor ratio gridpoint:')
+    print('Consumption function at each market resources-to-labor ratio gridpoint:')
     m_grid = np.linspace(0,10,200)
     AggShockExample.unpackcFunc()
     for M in AggShockExample.MGrid.tolist():
