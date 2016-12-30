@@ -14,7 +14,8 @@ CRRA = 2.0                          # Coefficient of relative risk aversion
 Rfree = 1.03                        # Interest factor on assets
 DiscFac = 0.96                      # Intertemporal discount factor
 LivPrb = [0.98]                     # Survival probability
-PermGroFac = [1.01]                 # Permanent income growth factor
+#PermGroFac = [1.01]                 # Permanent income growth factor
+PermGroFac = [1.0]
 AgentCount = 10000                  # Number of agents of this type (only matters for simulation)
 aNrmInitMean = 0.0                  # Mean of log initial assets (only matters for simulation)
 aNrmInitStd  = 1.0                  # Standard deviation of log initial assets (only for simulation)
@@ -175,8 +176,8 @@ DeprFac = 0.025               # Capital depreciation rate
 CapShare = 0.36               # Capital's share of income
 CRRAPF = 1.0                  # CRRA of perfect foresight calibration
 DiscFacPF = 0.99              # Discount factor of perfect foresight calibration
-intercept_prev = 0.00         # Intercept of log-capital-ratio function
-slope_prev = 1.0              # Slope of log-capital-ratio function
+intercept_prev = -0.305568464142        # Intercept of AFunc function
+slope_prev = 1.06154769008               # Slope of AFunc function
 
 # Make a dictionary to specify an aggregate shocks consumer
 init_agg_shocks = copy(init_idiosyncratic_shocks)
