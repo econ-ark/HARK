@@ -176,8 +176,10 @@ DeprFac = 0.025               # Capital depreciation rate
 CapShare = 0.36               # Capital's share of income
 CRRAPF = 1.0                  # CRRA of perfect foresight calibration
 DiscFacPF = 0.99              # Discount factor of perfect foresight calibration
-intercept_prev = -0.305568464142        # Intercept of AFunc function
-slope_prev = 1.06154769008               # Slope of AFunc function
+#intercept_prev = -0.305568464142        # Intercept of AFunc function
+#slope_prev = 1.06154769008               # Slope of AFunc function
+intercept_prev = 0.0         # Intercept of AFunc function
+slope_prev = 1.0             # Slope of AFunc function
 
 # Make a dictionary to specify an aggregate shocks consumer
 init_agg_shocks = copy(init_idiosyncratic_shocks)
