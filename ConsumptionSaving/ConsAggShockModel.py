@@ -9,7 +9,8 @@ sys.path.insert(0,'../')
 
 import numpy as np
 import scipy.stats as stats
-from HARKinterpolation import LinearInterp, LinearInterpOnInterp1D
+from HARKinterpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFunction,\
+                              VariableLowerBoundFunc2D, BilinearInterp, LowerEnvelope2D, UpperEnvelope
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                           CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
                           approxMeanOneLognormal
@@ -17,6 +18,7 @@ from HARKsimulation import drawDiscrete
 from ConsIndShockModel import ConsumerSolution, IndShockConsumerType
 from HARKcore import HARKobject, Market, AgentType
 from copy import deepcopy
+import matplotlib.pyplot as plt
 
 utility      = CRRAutility
 utilityP     = CRRAutilityP
@@ -25,11 +27,13 @@ utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv  = CRRAutility_inv
 
-class MargValueFunc2D():
+class MargValueFunc2D(HARKobject):
     '''
     A class for representing a marginal value function in models where the
-    standard envelope condition of v'(m,k) = u'(c(m,k)) holds (with CRRA utility).
+    standard envelope condition of dvdm(m,M) = u'(c(m,M)) holds (with CRRA utility).
     '''
+    distance_criteria = ['cFunc','CRRA']
+    
     def __init__(self,cFunc,CRRA):
         '''
         Constructor for a new marginal value function object.
@@ -38,10 +42,10 @@ class MargValueFunc2D():
         ----------
         cFunc : function
             A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on market
-            resources and the capital-to-labor ratio: uP_inv(vPfunc(m,k)).
+            with the inverse marginal utility function, defined on normalized individual market
+            resources and aggregate market resources-to-labor ratio: uP_inv(vPfunc(m,M)).
             Called cFunc because when standard envelope condition applies,
-            uP_inv(vPfunc(m,k)) = cFunc(m,k).
+            uP_inv(vPfunc(m,M)) = cFunc(m,M).
         CRRA : float
             Coefficient of relative risk aversion.
             
@@ -52,8 +56,8 @@ class MargValueFunc2D():
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
         
-    def __call__(self,m,k):
-        return utilityP(self.cFunc(m,k),gam=self.CRRA)
+    def __call__(self,m,M):
+        return utilityP(self.cFunc(m,M),gam=self.CRRA)
         
 ###############################################################################
         
@@ -78,9 +82,9 @@ class AggShockConsumerType(IndShockConsumerType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(IndShockConsumerType.time_vary_)
         self.time_inv = deepcopy(IndShockConsumerType.time_inv_)
-        self.delFromTimeInv('Rfree','BoroCnstArt','vFuncBool','CubicBool')
+        self.delFromTimeInv('Rfree','vFuncBool','CubicBool')
+        self.poststate_vars = IndShockConsumerType.poststate_vars_
         self.solveOnePeriod = solveConsAggShock
-        self.p_init = np.ones(self.Nagents)
         self.update()
         
     def reset(self):
@@ -96,7 +100,8 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         '''
         self.initializeSim()
-        self.t_agg_sim = 0
+        self.aLvlNow = self.kInit*np.ones(self.AgentCount) # Start simulation near SS
+        self.aNrmNow = self.aLvlNow/self.pLvlNow
         
     def updateSolutionTerminal(self):
         '''
@@ -111,9 +116,10 @@ class AggShockConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        vPfunc_terminal = lambda m,k : m**(-self.CRRA)
-        cFunc_terminal  = lambda m,k : m
-        self.solution_terminal = ConsumerSolution(cFunc=cFunc_terminal,vPfunc=vPfunc_terminal)
+        cFunc_terminal  = BilinearInterp(np.array([[0.0,0.0],[1.0,1.0]]),np.array([0.0,1.0]),np.array([0.0,1.0]))
+        vPfunc_terminal = MargValueFunc2D(cFunc_terminal,self.CRRA)
+        mNrmMin_terminal = ConstantFunction(0)
+        self.solution_terminal = ConsumerSolution(cFunc=cFunc_terminal,vPfunc=vPfunc_terminal,mNrmMin=mNrmMin_terminal)
         
     def getEconomyData(self,Economy):
         '''
@@ -135,55 +141,132 @@ class AggShockConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        self.a_init = Economy.KtoYSS*np.ones(self.Nagents)  # Initialize assets to steady state
-        self.kGrid  = Economy.kSS*self.kGridBase            # Capital ratio grid adjusted around SS ratio
-        self.kNextFunc = Economy.kNextFunc                  # Next period's capital ratio as function of current ratio
+        self.kInit = Economy.kSS                            # Initialize simulation assets to steady state
+        self.aNrmInitMean = np.log(0.00000001)              # Initialize newborn assets to nearly zero
+        self.MGrid = Economy.kSS*self.kGridBase             # Aggregate market resources grid adjusted around SS capital ratio
+        self.AFunc = Economy.AFunc                          # Next period's aggregate savings function
         self.Rfunc = Economy.Rfunc                          # Interest factor as function of capital ratio
-        self.wFunc = Economy.wFunc                          # (Normalized) wage rate as function of capital ratio
+        self.wFunc = Economy.wFunc                          # Wage rate as function of capital ratio
+        self.DeprFac = Economy.DeprFac                      # Rate of capital depreciation
         IncomeDstnWithAggShks = combineIndepDstns(self.PermShkDstn,self.TranShkDstn,Economy.PermShkAggDstn,Economy.TranShkAggDstn)
         self.IncomeDstn = [IncomeDstnWithAggShks]           # Discrete income distribution with aggregate and idiosyncratic shocks
-        self.DiePrb = 1.0 - self.LivPrb[0]                  # Only relevant for simulating with mortality
-        self.addToTimeInv('kGrid','kNextFunc','Rfunc', 'wFunc')
+        self.addToTimeInv('MGrid','AFunc','Rfunc', 'wFunc','DeprFac')
         
-    def simOnePrd(self):
+    def simBirth(self,which_agents):
         '''
-        Simulate a single period of a consumption-saving model with permanent
-        and transitory income shocks at both the idiosyncratic and aggregate level.
+        Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
+        well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
+        are drawn from lognormal distributions given by aNrmInitMean and aNrmInitStd (etc).
+        
+        Parameters
+        ----------
+        which_agents : np.array(Bool)
+            Boolean array of size self.AgentCount indicating which agents should be "born".
+        
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.simBirth(self,which_agents)
+        if hasattr(self,'aLvlNow'):
+            self.aLvlNow[which_agents] = self.aNrmNow[which_agents]*self.pLvlNow[which_agents]
+        else:
+            self.aLvlNow = self.aNrmNow*self.pLvlNow
+        
+    def simDeath(self):
+        '''
+        Randomly determine which consumers die, and distribute their wealth among the survivors.
+        This method only works if there is only one period in the cycle.
         
         Parameters
         ----------
         None
-            
+        
+        Returns
+        -------
+        who_dies : np.array(bool)
+            Boolean array of size AgentCount indicating which agents die.
+        '''
+        # Divide agents into wealth groups, kill one random agent per wealth group
+#        order = np.argsort(self.aLvlNow)
+#        how_many_die = int(self.AgentCount*(1.0-self.LivPrb[0]))
+#        group_size = self.AgentCount/how_many_die # This should be an integer
+#        base_idx = self.RNG.randint(0,group_size,size=how_many_die)
+#        kill_by_rank = np.arange(how_many_die,dtype=int)*group_size + base_idx
+#        who_dies = np.zeros(self.AgentCount,dtype=bool)
+#        who_dies[order[kill_by_rank]] = True
+        how_many_die = int(round(self.AgentCount*(1.0-self.LivPrb[0])))
+        base_bool = np.zeros(self.AgentCount,dtype=bool)
+        base_bool[0:how_many_die] = True
+        who_dies = self.RNG.permutation(base_bool)
+        if self.T_age is not None:
+            who_dies[self.t_age >= self.T_age] = True
+        
+        # Divide up the wealth of those who die, giving it to those who survive
+        who_lives = np.logical_not(who_dies)
+        wealth_living = np.sum(self.aLvlNow[who_lives])
+        wealth_dead = np.sum(self.aLvlNow[who_dies])
+        Ractuarial = 1.0 + wealth_dead/wealth_living
+        self.aNrmNow[who_lives] = self.aNrmNow[who_lives]*Ractuarial
+        self.aLvlNow[who_lives] = self.aLvlNow[who_lives]*Ractuarial
+        return who_dies
+        
+    def getRfree(self):
+        '''
+        Returns an array of size self.AgentCount with self.RfreeNow in every entry.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        RfreeNow : np.array
+             Array of size self.AgentCount with risk free interest rate for each agent.
+        '''
+        RfreeNow = self.RfreeNow*np.ones(self.AgentCount)
+        return RfreeNow
+        
+    def getShocks(self):
+        '''
+        Finds the effective permanent and transitory shocks this period by combining the aggregate
+        and idiosyncratic shocks of each type.
+        
+        Parameters
+        ----------
+        None
+        
         Returns
         -------
         None
-        '''        
-        # Unpack objects from self for convenience
-        aPrev          = self.aNow
-        pPrev          = self.pNow
-        TranShkNow     = self.TranShkNow
-        PermShkNow     = self.PermShkNow
-        RfreeNow       = self.RfreeNow
-        cFuncNow       = self.cFuncNow
-        KtoLnow        = self.KtoLnow*np.ones_like(aPrev)
+        '''
+        IndShockConsumerType.getShocks(self) # Update idiosyncratic shocks
+        self.TranShkNow = self.TranShkNow*self.TranShkAggNow*self.wRteNow
+        self.PermShkNow = self.PermShkNow*self.PermShkAggNow
         
-        # Simulate the period
-        pNow    = pPrev*PermShkNow      # Updated permanent income level
-        ReffNow = RfreeNow/PermShkNow   # "effective" interest factor on normalized assets
-        bNow    = ReffNow*aPrev         # Bank balances before labor income
-        mNow    = bNow + TranShkNow     # Market resources after income
-        cNow    = cFuncNow(mNow,KtoLnow) # Consumption (normalized by permanent income)
-        MPCnow  = cFuncNow.derivativeX(mNow,KtoLnow) # Marginal propensity to consume
-        aNow    = mNow - cNow           # Assets after all actions are accomplished
+    def getControls(self):
+        '''
+        Calculates consumption for each consumer of this type using the consumption functions.
         
-        # Store the new state and control variables
-        self.pNow   = pNow
-        self.bNow   = bNow
-        self.mNow   = mNow
-        self.cNow   = cNow
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        cNrmNow = np.zeros(self.AgentCount) + np.nan
+        MPCnow = np.zeros(self.AgentCount) + np.nan
+        MaggNow = self.MaggNow*np.ones(self.AgentCount)
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            cNrmNow[these] = self.solution[t].cFunc(self.mNrmNow[these],MaggNow[these])
+            MPCnow[these]  = self.solution[t].cFunc.derivativeX(self.mNrmNow[these],MaggNow[these]) # Marginal propensity to consume
+        self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow
-        self.aNow   = aNow
-            
+        return None
+                
     def marketAction(self):
         '''
         In the aggregate shocks model, the "market action" is to simulate one
@@ -191,28 +274,13 @@ class AggShockConsumerType(IndShockConsumerType):
         
         Parameters
         ----------
-        none
+        None
             
         Returns
         -------
-        none
+        None
         '''
-        # Simulate the period
-        self.advanceIncShks()
-        self.advancecFunc()
-        self.simMortality()
-        self.TranShkNow = self.TranShkNow*self.wRteNow
-        self.PermShkNow = self.PermShkNow*self.PermShkAggNow
-        self.simOnePrd()
-        
-        # Record the results of the period
-        self.pHist[self.t_agg_sim,:] = self.pNow
-        self.bHist[self.t_agg_sim,:] = self.bNow
-        self.mHist[self.t_agg_sim,:] = self.mNow
-        self.cHist[self.t_agg_sim,:] = self.cNow
-        self.MPChist[self.t_agg_sim,:] = self.MPCnow
-        self.aHist[self.t_agg_sim,:] = self.aNow
-        self.t_agg_sim += 1
+        self.simulate(1)
         
     def calcBoundingValues(self):
         '''
@@ -264,7 +332,7 @@ class AggShockConsumerType(IndShockConsumerType):
 ###############################################################################
 
 
-def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aXtraGrid,kGrid,kNextFunc,Rfunc,wFunc):
+def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aXtraGrid,BoroCnstArt,MGrid,AFunc,Rfunc,wFunc,DeprFac):
     '''
     Solve one period of a consumption-saving problem with idiosyncratic and 
     aggregate shocks (transitory and permanent).  This is a basic solver that
@@ -293,14 +361,19 @@ def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aX
     aXtraGrid : np.array
         Array of "extra" end-of-period asset values-- assets above the
         absolute minimum acceptable level.
-    kGrid : np.array
-        A grid of capital-to-labor ratios in the economy.
-    kNextFunc : function
-        Next period's capital-to-labor ratio as a function of this period's ratio.
+    BoroCnstArt : float
+        Artificial borrowing constraint; minimum allowable end-of-period asset-to-
+        permanent-income ratio.  Unlike other models, this *can't* be None.
+    MNrmGrid : np.array
+        A grid of aggregate market resourses to permanent income in the economy.
+    AFunc : function
+        Aggregate savings as a function of aggregate market resources.
     Rfunc : function
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
+    DeprFac : float
+        Capital Depreciation Rate
                     
     Returns
     -------
@@ -311,6 +384,7 @@ def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aX
     '''
     # Unpack next period's solution
     vPfuncNext = solution_next.vPfunc
+    mNrmMinNext = solution_next.mNrmMin
     
     # Unpack the income shocks
     ShkPrbsNext  = IncomeDstn[0]
@@ -331,47 +405,66 @@ def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aX
     TranShkValsNext_tiled = (np.tile(TranShkValsNext,(aCount,1))).transpose()
     PermShkAggValsNext_tiled = (np.tile(PermShkAggValsNext,(aCount,1))).transpose()
     TranShkAggValsNext_tiled = (np.tile(TranShkAggValsNext,(aCount,1))).transpose()
-    
-    # Loop through the values in kGrid and calculate a linear consumption function for each
-    cFuncByK_list = []
-    for j in range(kGrid.size):
-        kNow = kGrid[j]
-        kNext = kNextFunc(kNow)
         
-        # Calculate returns to capital and labor in the next period        
-        kNextEff_array = kNext/TranShkAggValsNext_tiled
+    # Loop through the values in MGrid and calculate a linear consumption function for each
+    cFuncBaseByM_list = []
+    BoroCnstNat_array = np.zeros(MGrid.size)
+    mNrmMinNext_array = mNrmMinNext(AFunc(MGrid)*(1-DeprFac))
+    for j in range(MGrid.size):
+        MNow = MGrid[j]
+        AaggNow = AFunc(MNow)
+        
+        # Calculate returns to capital and labor in the next period
+        kNext_array = AaggNow*(1-DeprFac)/(PermGroFac*PermShkAggValsNext_tiled*TranShkAggValsNext_tiled)
+        kNextEff_array = kNext_array/TranShkAggValsNext_tiled
         Reff_array = Rfunc(kNextEff_array)/LivPrb # Effective interest rate
         wEff_array = wFunc(kNextEff_array)*TranShkAggValsNext_tiled # Effective wage rate (accounts for labor supply)
-        
-        # Calculate market resources next period (and a constant array of capital-to-labor ratio)
         PermShkTotal_array = PermGroFac*PermShkValsNext_tiled*PermShkAggValsNext_tiled # total / combined permanent shock
-        mNrmNext_array = Reff_array*aNrmNow_tiled/PermShkTotal_array + TranShkValsNext_tiled*wEff_array
-        kNext_array = kNext*np.ones_like(mNrmNext_array)
+        Mnext_array = kNext_array*Reff_array + wEff_array
         
-        # Find marginal value next period at every income shock realization and every asset gridpoint
-        vPnext_array = Reff_array*PermShkTotal_array**(-CRRA)*vPfuncNext(mNrmNext_array,kNext_array)
+        # Find the natural borrowing constraint for this capital-to-labor ratio
+        aNrmMin_candidates = PermGroFac*PermShkValsNext*PermShkAggValsNext/Reff_array[:,0]*(mNrmMinNext_array[j] - wEff_array[:,0]*TranShkValsNext)
+        aNrmMin = np.max(aNrmMin_candidates)
+        BoroCnstNat = aNrmMin
+        BoroCnstNat_array[j] = BoroCnstNat
+        
+        # Calculate market resources next period (and a constant array of capital-to-labor ratio)       
+        mNrmNext_array = Reff_array*(aNrmNow_tiled + aNrmMin)/PermShkTotal_array + TranShkValsNext_tiled*wEff_array
+                
+        # Find marginal value next period at every income shock realization and every aggregate market resource gridpoint
+        vPnext_array = Reff_array*PermShkTotal_array**(-CRRA)*vPfuncNext(mNrmNext_array,Mnext_array)
         
         # Calculate expectated marginal value at the end of the period at every asset gridpoint
         EndOfPrdvP = DiscFac*LivPrb*PermGroFac**(-CRRA)*np.sum(vPnext_array*ShkPrbsNext_tiled,axis=0)
         
         # Calculate optimal consumption from each asset gridpoint, and construct a linear interpolation
         cNrmNow = EndOfPrdvP**(-1.0/CRRA)
-        mNrmNow = aNrmNow + cNrmNow
+        mNrmNow = (aNrmNow + aNrmMin) + cNrmNow
         c_for_interpolation = np.insert(cNrmNow,0,0.0) # Add liquidity constrained portion
-        m_for_interpolation = np.insert(mNrmNow,0,0.0)
-        cFuncNow_j = LinearInterp(m_for_interpolation,c_for_interpolation)
+        m_for_interpolation = np.insert(mNrmNow-BoroCnstNat,0,0.0)
+        cFuncBase_j = LinearInterp(m_for_interpolation,c_for_interpolation)
         
-        # Add the k-specific consumption function to the list
-        cFuncByK_list.append(cFuncNow_j)
+        # Add the M-specific consumption function to the list
+        cFuncBaseByM_list.append(cFuncBase_j)
     
-    # Construct the overall consumption function by combining the k-specific functions
-    cFuncNow = LinearInterpOnInterp1D(cFuncByK_list,kGrid)
+    # Construct the overall unconstrained consumption function by combining the M-specific functions
+    BoroCnstNat = LinearInterp(np.insert(MGrid,0,0.0),np.insert(BoroCnstNat_array,0,0.0))
+    cFuncBase = LinearInterpOnInterp1D(cFuncBaseByM_list,MGrid)
+    cFuncUnc  = VariableLowerBoundFunc2D(cFuncBase,BoroCnstNat)
+    
+    # Make the constrained consumption function and combine it with the unconstrained component
+    cFuncCnst = BilinearInterp(np.array([[0.0,0.0],[1.0,1.0]]),
+                                           np.array([BoroCnstArt,BoroCnstArt+1.0]),np.array([0.0,1.0]))
+    cFuncNow = LowerEnvelope2D(cFuncUnc,cFuncCnst)
+    
+    # Make the minimum m function as the greater of the natural and artificial constraints
+    mNrmMinNow = UpperEnvelope(BoroCnstNat,ConstantFunction(BoroCnstArt))
     
     # Construct the marginal value function using the envelope condition
     vPfuncNow = MargValueFunc2D(cFuncNow,CRRA)
     
     # Pack up and return the solution
-    solution_now = ConsumerSolution(cFunc=cFuncNow,vPfunc=vPfuncNow)
+    solution_now = ConsumerSolution(cFunc=cFuncNow,vPfunc=vPfuncNow,mNrmMin=mNrmMinNow)
     return solution_now
     
 ###############################################################################
@@ -408,33 +501,34 @@ class CobbDouglasEconomy(Market):
         None
         '''
         Market.__init__(self,agents=agents,
-                            sow_vars=['KtoLnow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow'],
-                            reap_vars=['pNow','aNow'],
-                            track_vars=['KtoLnow'],
-                            dyn_vars=['kNextFunc'],
+                            sow_vars=['MaggNow','AaggNow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow'],
+                            reap_vars=['aLvlNow','pLvlNow'],
+                            track_vars=['MaggNow','AaggNow'],
+                            dyn_vars=['AFunc'],
                             tolerance=tolerance,
                             act_T=act_T)
         self.assignParameters(**kwds)
+        self.max_loops = 20
         self.update()
     
     
-    def millRule(self,pNow,aNow):
+    def millRule(self,aLvlNow,pLvlNow):
         '''
         Function to calculate the capital to labor ratio, interest factor, and
         wage rate based on each agent's current state.  Just calls calcRandW().
         
         See documentation for calcRandW for more information.
         '''
-        return self.calcRandW(pNow,aNow)
+        return self.calcRandW(aLvlNow,pLvlNow)
         
-    def calcDynamics(self,KtoLnow):
+    def calcDynamics(self,MaggNow,AaggNow):
         '''
-        Calculates a new dynamic rule for the economy: next period's capital
-        ratio as a function of this period's.  Just calls calcCapitalEvoRule().
+        Calculates a new dynamic rule for the economy: end of period savings as
+        a function of aggregate market resources.  Just calls calcAFunc().
         
-        See documentation for calcCapitalEvoRule for more information.
+        See documentation for calcAFunc for more information.
         '''
-        return self.calcCapitalEvoRule(KtoLnow)
+        return self.calcAFunc(MaggNow,AaggNow)
         
     def update(self):
         '''
@@ -450,13 +544,15 @@ class CobbDouglasEconomy(Market):
         -------
         none
         '''
-        self.kSS   = ((self.CRRA/self.DiscFac - (1.0-self.DeprFac))/self.CapShare)**(1.0/(self.CapShare-1.0))
+        self.kSS    = ((1.0/self.DiscFac - (1.0-self.DeprFac))/self.CapShare)**(1.0/(self.CapShare-1.0))
         self.KtoYSS = self.kSS**(1.0-self.CapShare)
         self.wRteSS = (1.0-self.CapShare)*self.kSS**(self.CapShare)
         self.convertKtoY = lambda KtoY : KtoY**(1.0/(1.0 - self.CapShare)) # converts K/Y to K/L
-        self.Rfunc = lambda k : (1.0 + self.CapShare*k**(self.CapShare-1.0) - self.DeprFac)
-        self.wFunc = lambda k : ((1.0-self.CapShare)*k**(self.CapShare))/self.wRteSS
+        self.Rfunc = lambda k : (1.0 + self.CapShare*k**(self.CapShare-1.0))*(1.0 - self.DeprFac)
+        self.wFunc = lambda k : ((1.0-self.CapShare)*k**(self.CapShare))
         self.KtoLnow_init = self.kSS
+        self.MaggNow_init = self.kSS
+        self.AaggNow_init = self.kSS
         self.RfreeNow_init = self.Rfunc(self.kSS)
         self.wRteNow_init = self.wFunc(self.kSS)
         self.PermShkAggNow_init = 1.0
@@ -464,7 +560,7 @@ class CobbDouglasEconomy(Market):
         self.TranShkAggDstn = approxMeanOneLognormal(sigma=self.TranShkAggStd,N=self.TranShkAggCount)
         self.PermShkAggDstn = approxMeanOneLognormal(sigma=self.PermShkAggStd,N=self.PermShkAggCount)
         self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn,self.TranShkAggDstn)
-        self.kNextFunc = CapitalEvoRule(self.intercept_prev,self.slope_prev)
+        self.AFunc = AggregateSavingRule(self.intercept_prev,self.slope_prev)
         
     def reset(self):
         '''
@@ -506,21 +602,16 @@ class CobbDouglasEconomy(Market):
         self.PermShkAggHist = PermShkAggHist
         self.TranShkAggHist = TranShkAggHist
         
-    def calcRandW(self,pNow,aNow):
+    def calcRandW(self,aLvlNow,pLvlNow):
         '''
         Calculates the interest factor and wage rate this period using each agent's
         capital stock to get the aggregate capital ratio.
         
         Parameters
         ----------
-        pNow : [np.array]
-            Agents' current permanent income levels.  Elements of the list corr-
-            espond to types in the economy, entries within arrays to agents of
-            that type.
-        aNow : [np.array]
-            Agents' current end-of-period assets (normalized).  Elements of the
-            list correspond to types in the economy, entries within arrays to
-            agents of that type.
+        aLvlNow : [np.array]
+            Agents' current end-of-period assets.  Elements of the list correspond
+            to types in the economy, entries within arrays to agents of that type.
             
         Returns
         -------
@@ -529,14 +620,11 @@ class CobbDouglasEconomy(Market):
             capital-to-labor ratio, interest factor, (normalized) wage rate,
             aggregate permanent and transitory shocks.
         '''
+        # Calculate aggregate savings
+        AaggPrev = np.mean(np.array(aLvlNow))/np.mean(pLvlNow) # End-of-period savings from last period
         # Calculate aggregate capital this period
-        type_count = len(aNow)
-        aAll = np.zeros((type_count,aNow[0].size))
-        pAll = np.zeros((type_count,pNow[0].size))
-        for j in range(type_count):
-            aAll[j,:] = aNow[j]
-            pAll[j,:] = pNow[j]
-        KtoYnow = np.mean(aAll*pAll) # This version uses end-of-period assets and
+        AggregateK = (1.0 - self.DeprFac)*np.mean(np.array(aLvlNow)) # ...becomes capital today
+        # This version uses end-of-period assets and
         # permanent income to calculate aggregate capital, unlike the Mathematica
         # version, which first applies the idiosyncratic permanent income shocks
         # and then aggregates.  Obviously this is mathematically equivalent.
@@ -546,59 +634,217 @@ class CobbDouglasEconomy(Market):
         TranShkAggNow = self.TranShkAggHist[self.Shk_idx]
         self.Shk_idx += 1
         
+        AggregateL = np.mean(pLvlNow)*PermShkAggNow    #STRICTLY WE NEED THE PERMGROFAC HERE TOO
+        
         # Calculate the interest factor and wage rate this period
-        KtoLnow  = self.convertKtoY(KtoYnow)
+        KtoLnow = AggregateK/AggregateL
+        self.KtoYnow = KtoLnow**(1.0-self.CapShare)
         RfreeNow = self.Rfunc(KtoLnow/TranShkAggNow)
-        wRteNow  = self.wFunc(KtoLnow/TranShkAggNow)*TranShkAggNow # "effective" wage accounts for labor supply
+        wRteNow  = self.wFunc(KtoLnow/TranShkAggNow)
+        MaggNow =KtoLnow*RfreeNow + wRteNow*TranShkAggNow
+        self.KtoLnow = KtoLnow   # Need to store this as it is a sow variable
         
         # Package the results into an object and return it
-        AggVarsNow = CobbDouglasAggVars(KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow)
+        AggVarsNow = CobbDouglasAggVars(MaggNow,AaggPrev,KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow)
         return AggVarsNow
         
-    def calcCapitalEvoRule(self,KtoLnow):
+    def calcAFunc(self,MaggNow,AaggNow):
         '''
-        Calculate a new capital evolution rule as an AR1 process based on the history
-        of the capital-to-labor ratio from a simulation.
+        Calculate a new aggregate savings rule based on the history
+        of the aggregate savings and aggregate market resources from a simulation.
         
         Parameters
         ----------
-        KtoLnow : [float]
-            List of the history of the simulated  capital-to-labor ratio for an economy.
+        MaggNow : [float]
+            List of the history of the simulated  aggregate market resources for an economy.
+        AaggNow : [float]
+            List of the history of the simulated  aggregate savings for an economy.
             
         Returns
         -------
         (unnamed) : CapDynamicRule
-            Object containing a new capital evolution rule, calculated from the
-            history of the capital-to-labor ratio.
+            Object containing a new savings rule
         '''
         verbose = True
         discard_periods = 200 # Throw out the first T periods to allow the simulation to approach the SS
-        update_weight = 0.5   # Proportional weight to put on new function vs old function parameters
-        total_periods = len(KtoLnow)
+        update_weight = 0.8   # Proportional weight to put on new function vs old function parameters
+        total_periods = len(MaggNow)
         
-        # Auto-regress the log capital-to-labor ratio, one period lag only
-        logKtoL_t   = np.log(KtoLnow[discard_periods:(total_periods-1)])
-        logKtoL_tp1 = np.log(KtoLnow[(discard_periods+1):total_periods])
-        slope, intercept, r_value, p_value, std_err = stats.linregress(logKtoL_t,logKtoL_tp1)
+        # Regress the log savings against log market resources
+        logAagg   = np.log(AaggNow[discard_periods:total_periods])
+        logMagg = np.log(MaggNow[discard_periods-1:total_periods-1])
+        slope, intercept, r_value, p_value, std_err = stats.linregress(logMagg,logAagg)
         
-        # Make a new capital evolution rule by combining the new regression parameters
+        # Make a new aggregate savings rule by combining the new regression parameters
         # with the previous guess
         intercept = update_weight*intercept + (1.0-update_weight)*self.intercept_prev
         slope = update_weight*slope + (1.0-update_weight)*self.slope_prev
-        kNextFunc = CapitalEvoRule(intercept,slope) # Make a new 
+        AFunc = AggregateSavingRule(intercept,slope) # Make a new next-period capital function
         
         # Save the new values as "previous" values for the next iteration    
         self.intercept_prev = intercept
         self.slope_prev = slope
     
-        # Plot the history of the capital ratio for this run and print the new parameters
+        # Plot aggregate resources vs aggregate savings for this run and print the new parameters
         if verbose:
             print('intercept=' + str(intercept) + ', slope=' + str(slope) + ', r-sq=' + str(r_value**2))
-            plt.plot(KtoLnow[discard_periods:])
+            plot_start = discard_periods
+            plt.plot(logMagg[plot_start:],logAagg[plot_start:],'.k')
             plt.show()
         
-        return CapDynamicRule(kNextFunc)
+        return AggShocksDynamicRule(AFunc)
         
+        
+class SmallOpenEconomy(Market):
+    '''
+    A class for representing a small open economy, where the wage rate and interest rate are
+    exogenously determined by some "global" rate.  However, the economy is still subject to
+    aggregate productivity shocks.
+    '''
+    def __init__(self,agents=[],tolerance=0.0001,act_T=1000,**kwds):
+        '''
+        Make a new instance of SmallOpenEconomy by filling in attributes specific to this kind of market.
+        
+        Parameters
+        ----------
+        agents : [ConsumerType]
+            List of types of consumers that live in this economy.
+        tolerance: float
+            Minimum acceptable distance between "dynamic rules" to consider the
+            solution process converged.  Distance depends on intercept and slope
+            of the log-linear "next capital ratio" function.
+        act_T : int
+            Number of periods to simulate when making a history of of the market.
+            
+        Returns
+        -------
+        None
+        '''
+        Market.__init__(self,agents=agents,
+                            sow_vars=['KtoLnow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow'],
+                            reap_vars=[],
+                            track_vars=['KtoLnow'],
+                            dyn_vars=[],
+                            tolerance=tolerance,
+                            act_T=act_T)
+        self.assignParameters(**kwds)
+        self.update()
+        
+    def update(self):
+        '''
+        Use primitive parameters to set basic objects.  This is an extremely stripped-down version
+        of update for CobbDouglasEconomy.
+        
+        Parameters
+        ----------
+        none
+            
+        Returns
+        -------
+        none
+        '''
+        self.kSS = 1.0
+        self.KtoLnow_init = self.kSS
+        self.Rfunc = ConstantFunction(self.Rfree)
+        self.wFunc = ConstantFunction(self.wRte)
+        self.RfreeNow_init = self.Rfunc(self.kSS)
+        self.wRteNow_init = self.wFunc(self.kSS)
+        self.PermShkAggNow_init = 1.0
+        self.TranShkAggNow_init = 1.0
+        self.TranShkAggDstn = approxMeanOneLognormal(sigma=self.TranShkAggStd,N=self.TranShkAggCount)
+        self.PermShkAggDstn = approxMeanOneLognormal(sigma=self.PermShkAggStd,N=self.PermShkAggCount)
+        self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn,self.TranShkAggDstn)
+        self.kNextFunc = ConstantFunction(1.0)
+        
+    def millRule(self):
+        '''
+        No aggregation occurs for a small open economy, because the wage and interest rates are
+        exogenously determined.  However, aggregate shocks may occur.
+        
+        See documentation for getAggShocks() for more information.
+        '''
+        return self.getAggShocks()
+        
+    def calcDynamics(self,KtoLnow):
+        '''
+        Calculates a new dynamic rule for the economy, which is just an empty object.
+        There is no "dynamic rule" for a small open economy, because K/L does not generate w and R.
+        '''
+        return HARKobject()
+        
+    def reset(self):
+        '''
+        Reset the economy to prepare for a new simulation.  Sets the time index of aggregate shocks
+        to zero and runs Market.reset().  This replicates the reset method for CobbDouglasEconomy;
+        future version should create parent class of that class and this one.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        self.Shk_idx = 0
+        Market.reset(self)
+        
+    def makeAggShkHist(self):
+        '''
+        Make simulated histories of aggregate transitory and permanent shocks. Histories are of
+        length self.act_T, for use in the general equilibrium simulation.  This replicates the same
+        method for CobbDouglasEconomy; future version should create parent class.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        sim_periods = self.act_T
+        Events      = np.arange(self.AggShkDstn[0].size) # just a list of integers
+        EventDraws  = drawDiscrete(N=sim_periods,P=self.AggShkDstn[0],X=Events,seed=0)
+        PermShkAggHist = self.AggShkDstn[1][EventDraws]
+        TranShkAggHist = self.AggShkDstn[2][EventDraws]
+        
+        # Store the histories       
+        self.PermShkAggHist = PermShkAggHist
+        self.TranShkAggHist = TranShkAggHist
+        
+    def getAggShocks(self):
+        '''
+        Returns aggregate state variables and shocks for this period.  The capital-to-labor ratio
+        is irrelevant and thus treated as constant, and the wage and interest rates are also
+        constant.  However, aggregate shocks are assigned from a prespecified history.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        AggVarsNow : CobbDouglasAggVars
+            Aggregate state and shock variables for this period.
+        '''
+        # Get this period's aggregate shocks
+        PermShkAggNow = self.PermShkAggHist[self.Shk_idx]
+        TranShkAggNow = self.TranShkAggHist[self.Shk_idx]
+        self.Shk_idx += 1
+        
+        # Factor prices are irrelevant
+        RfreeNow = np.nan
+        wRteNow  = np.nan
+        
+        # Aggregates are also irrelavent
+        AaggNow = np.nan
+        MaggNow = np.nan
+        KtoLnow = np.nan
+        
+        # Package the results into an object and return it
+        AggVarsNow = CobbDouglasAggVars(MaggNow,AaggNow,KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow)
+        return AggVarsNow
                 
 class CobbDouglasAggVars():
     '''
@@ -607,12 +853,16 @@ class CobbDouglasAggVars():
     the interest factor, the wage rate, and the aggregate permanent and tran-
     sitory shocks.
     '''
-    def __init__(self,KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow):
+    def __init__(self,MaggNow,AaggNow,KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow):
         '''
         Make a new instance of CobbDouglasAggVars.
         
         Parameters
         ----------
+        MaggNow : float
+            Aggregate market resources for this period normalized by mean permanent income
+        AaggNow : float
+            Aggregate savings for this period normalized by mean permanent income
         KtoLnow : float
             Capital-to-labor ratio in the economy this period.
         RfreeNow : float
@@ -629,17 +879,18 @@ class CobbDouglasAggVars():
         -------
         None
         '''
+        self.MaggNow       = MaggNow
+        self.AaggNow       = AaggNow
         self.KtoLnow       = KtoLnow
         self.RfreeNow      = RfreeNow
         self.wRteNow       = wRteNow
         self.PermShkAggNow = PermShkAggNow
         self.TranShkAggNow = TranShkAggNow
         
-class CapitalEvoRule(HARKobject):
+class AggregateSavingRule(HARKobject):
     '''
-    A class to represent capital evolution rules.  Agents believe that the log
-    capital ratio next period is a linear function of the log capital ratio
-    this period.
+    A class to represent agent beliefs about aggregate saving at the end of this period (AaggNow) as
+    a function of (normalized) aggregate market resources at the beginning of the period (MaggNow).
     '''
     def __init__(self,intercept,slope):
         '''
@@ -660,43 +911,42 @@ class CapitalEvoRule(HARKobject):
         self.slope             = slope
         self.distance_criteria = ['slope','intercept']
         
-    def __call__(self,kNow):
+    def __call__(self,Mnow):
         '''
-        Evaluates (expected) capital-to-labor ratio next period as a function
-        of the capital-to-labor ratio this period.
+        Evaluates aggregate savings as a function of the aggregate market resources this period.
         
         Parameters
         ----------
-        kNow : float
-            Capital-to-labor ratio this period.
+        Mnow : float
+            Aggregate market resources this period.
             
         Returns
         -------
-        kNext : (Expected) capital-to-labor ratio next period.
+        Aagg : Expected aggregate savings this period.
         '''
-        kNext = np.exp(self.intercept + self.slope*np.log(kNow))
-        return kNext
+        Aagg = np.exp(self.intercept + self.slope*np.log(Mnow))
+        return Aagg
 
     
-class CapDynamicRule(HARKobject):
+class AggShocksDynamicRule(HARKobject):
     '''
-    Just a container class for passing the capital evolution rule to agents.
+    Just a container class for passing the dynamic rule in the aggregate shocks model to agents.
     '''
-    def __init__(self,kNextFunc):
+    def __init__(self,AFunc):
         '''
         Make a new instance of CapDynamicRule.
         
         Parameters
         ----------
-        kNextFunc : CapitalEvoRule
-            Next period's capital-to-labor ratio as a function of this period's.
+        AFunc : CapitalEvoRule
+            Aggregate savings as a function of aggregate market resources.
             
         Returns
         -------
         None
         '''
-        self.kNextFunc = kNextFunc
-        self.distance_criteria = ['kNextFunc']
+        self.AFunc = AFunc
+        self.distance_criteria = ['AFunc']
         
         
 ###############################################################################
@@ -704,18 +954,15 @@ class CapDynamicRule(HARKobject):
 if __name__ == '__main__':
     import ConsumerParameters as Params
     from time import clock
-    import matplotlib.pyplot as plt
     from HARKutilities import plotFuncs
     mystr = lambda number : "{:.4f}".format(number)
     
-    # Make an aggregate shocks consumer
+    # Make an aggregate shocks consumer type
     AggShockExample = AggShockConsumerType(**Params.init_agg_shocks)
     AggShockExample.cycles = 0
-    AggShockExample.sim_periods = 3000
-    AggShockExample.makeIncShkHist()  # Simulate a history of idiosyncratic shocks
     
     # Make a Cobb-Douglas economy for the agents
-    EconomyExample = CobbDouglasEconomy(agents = [AggShockExample],act_T=3000,**Params.init_cobb_douglas)
+    EconomyExample = CobbDouglasEconomy(agents = [AggShockExample],**Params.init_cobb_douglas)
     EconomyExample.makeAggShkHist() # Simulate a history of aggregate shocks
     
     # Have the consumers inherit relevant objects from the economy
@@ -726,12 +973,13 @@ if __name__ == '__main__':
     AggShockExample.solve()
     t_end = clock()
     print('Solving an aggregate shocks consumer took ' + mystr(t_end-t_start) + ' seconds.')
-    print('Consumption function at each capital-to-labor ratio gridpoint:')
+    print('Consumption function at each aggregate market resources-to-labor ratio gridpoint:')
     m_grid = np.linspace(0,10,200)
     AggShockExample.unpackcFunc()
-    for k in AggShockExample.kGrid.tolist():
-        c_at_this_k = AggShockExample.cFunc[0](m_grid,k*np.ones_like(m_grid))
-        plt.plot(m_grid,c_at_this_k)
+    for M in AggShockExample.MGrid.tolist():
+        mMin = AggShockExample.solution[0].mNrmMin(M)
+        c_at_this_M = AggShockExample.cFunc[0](m_grid+mMin,M*np.ones_like(m_grid))
+        plt.plot(m_grid+mMin,c_at_this_M)
     plt.show()
     
     # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
@@ -739,13 +987,15 @@ if __name__ == '__main__':
     EconomyExample.solve()
     t_end = clock()
     print('Solving the "macroeconomic" aggregate shocks model took ' + str(t_end - t_start) + ' seconds.')
-    print('Next capital-to-labor ratio as function of current ratio:')
-    plotFuncs(EconomyExample.kNextFunc,0,2*EconomyExample.kSS)
-    print('Consumption function at each capital-to-labor ratio gridpoint (in general equilibrium):')
+    print('Aggregate savings as a function of aggregate market resources:')
+    plotFuncs(EconomyExample.AFunc,0,2*EconomyExample.kSS)
+    print('Consumption function at each aggregate market resources gridpoint (in general equilibrium):')
     AggShockExample.unpackcFunc()
     m_grid = np.linspace(0,10,200)
-    for k in AggShockExample.kGrid.tolist():
-        c_at_this_k = AggShockExample.cFunc[0](m_grid,k*np.ones_like(m_grid))
-        plt.plot(m_grid,c_at_this_k)
+    AggShockExample.unpackcFunc()
+    for M in AggShockExample.MGrid.tolist():
+        mMin = AggShockExample.solution[0].mNrmMin(M)
+        c_at_this_M = AggShockExample.cFunc[0](m_grid+mMin,M*np.ones_like(m_grid))
+        plt.plot(m_grid+mMin,c_at_this_M)
     plt.show()
     
