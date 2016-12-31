@@ -526,7 +526,7 @@ class CobbDouglasEconomy(Market):
         Calculates a new dynamic rule for the economy: end of period savings as
         a function of aggregate market resources.  Just calls calcAFunc().
         
-        See documentation for calcCapitalEvoRule for more information.
+        See documentation for calcAFunc for more information.
         '''
         return self.calcAFunc(MaggNow,AaggNow)
         
@@ -548,7 +548,7 @@ class CobbDouglasEconomy(Market):
         self.KtoYSS = self.kSS**(1.0-self.CapShare)
         self.wRteSS = (1.0-self.CapShare)*self.kSS**(self.CapShare)
         self.convertKtoY = lambda KtoY : KtoY**(1.0/(1.0 - self.CapShare)) # converts K/Y to K/L
-        self.Rfunc = lambda k : (1.0 + self.CapShare*k**(self.CapShare-1.0) - self.DeprFac)
+        self.Rfunc = lambda k : (1.0 + self.CapShare*k**(self.CapShare-1.0))*(1.0 - self.DeprFac)
         self.wFunc = lambda k : ((1.0-self.CapShare)*k**(self.CapShare))
         self.KtoLnow_init = self.kSS
         self.MaggNow_init = self.kSS
@@ -621,9 +621,9 @@ class CobbDouglasEconomy(Market):
             aggregate permanent and transitory shocks.
         '''
         # Calculate aggregate savings
-        AaggNow = np.mean(np.array(aLvlNow))/np.mean(pLvlNow)
+        AaggPrev = np.mean(np.array(aLvlNow))/np.mean(pLvlNow) # End-of-period savings from last period
         # Calculate aggregate capital this period
-        AggregateK = (1.0 - self.DeprFac)*np.mean(np.array(aLvlNow))
+        AggregateK = (1.0 - self.DeprFac)*np.mean(np.array(aLvlNow)) # ...becomes capital today
         # This version uses end-of-period assets and
         # permanent income to calculate aggregate capital, unlike the Mathematica
         # version, which first applies the idiosyncratic permanent income shocks
@@ -645,7 +645,7 @@ class CobbDouglasEconomy(Market):
         self.KtoLnow = KtoLnow   # Need to store this as it is a sow variable
         
         # Package the results into an object and return it
-        AggVarsNow = CobbDouglasAggVars(MaggNow,AaggNow,KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow)
+        AggVarsNow = CobbDouglasAggVars(MaggNow,AaggPrev,KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow)
         return AggVarsNow
         
     def calcAFunc(self,MaggNow,AaggNow):
@@ -754,7 +754,7 @@ class SmallOpenEconomy(Market):
         self.TranShkAggDstn = approxMeanOneLognormal(sigma=self.TranShkAggStd,N=self.TranShkAggCount)
         self.PermShkAggDstn = approxMeanOneLognormal(sigma=self.PermShkAggStd,N=self.PermShkAggCount)
         self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn,self.TranShkAggDstn)
-        self.kNextFunc = ConstantFunction(1.0)
+        self.AFunc = ConstantFunction(1.0)
         
     def millRule(self):
         '''
