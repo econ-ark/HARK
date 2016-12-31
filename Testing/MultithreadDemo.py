@@ -10,7 +10,7 @@ factor seems to be around P/2, where P is the number of processors.
 import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../ConsumptionSavingModel'))
+sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 sys.path.insert(0, os.path.abspath('./'))
 
 import ConsumerParameters as Params       # Parameters for a consumer type
@@ -32,7 +32,7 @@ if __name__ == '__main__': # Parallel calls *must* be inside a call to __main__
     BasicType = Model.IndShockConsumerType(**Params.init_idiosyncratic_shocks)
     BasicType.cycles = 0
     BasicType(aXtraMax  = 100, aXtraCount = 64)
-    BasicType(vFuncBool = False, cubicBool = True)
+    BasicType(vFuncBool = False, CubicBool = True)
     BasicType.updateAssetsGrid()
     BasicType.timeFwd()    
    

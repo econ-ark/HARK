@@ -192,7 +192,6 @@ init_agg_shocks['aXtraCount'] = 24
 init_agg_shocks['aNrmInitStd'] = 0.0
 init_agg_shocks['LivPrb'] = LivPrb
 
-
 # Make a dictionary to specify a Cobb-Douglas economy
 init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
                      'TranShkAggCount': TranShkAggCount,

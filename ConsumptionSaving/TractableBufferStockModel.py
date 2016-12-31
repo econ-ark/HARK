@@ -28,6 +28,7 @@ from HARKcore import AgentType, NullFunc, Solution
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityPPP, CRRAutilityPPPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
 from HARKinterpolation import CubicInterp
+from HARKsimulation import drawLognormal, drawBernoulli
 from copy import copy
 from scipy.optimize import newton, brentq
 
@@ -240,6 +241,8 @@ class TractableConsumerType(AgentType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = []
         self.time_inv = ['DiscFac','Rfree','CRRA','PermGroFacCmp','UnempPrb','PFMPC','Rnrm','Beth','mLowerBnd','mUpperBnd']
+        self.shock_vars = ['eStateNow']
+        self.poststate_vars = ['aLvlNow','eStateNow'] # For simulation
         self.solveOnePeriod = addToStableArmPoints # set correct solver
         
     def preSolve(self):
@@ -349,6 +352,115 @@ class TractableConsumerType(AgentType):
         This method does absolutely nothing, but should remain here for compati-
         bility with cstwMPC when doing the "tractable" version.
         '''
+        return None
+        
+    def simBirth(self,which_agents):
+        '''
+        Makes new consumers for the given indices.  Initialized variables include aNrm, as
+        well as time variables t_age and t_cycle.  Normalized assets are drawn from a lognormal
+        distributions given by aLvlInitMean and aLvlInitStd.
+        
+        Parameters
+        ----------
+        which_agents : np.array(Bool)
+            Boolean array of size self.AgentCount indicating which agents should be "born".
+        
+        Returns
+        -------
+        None
+        '''
+        # Get and store states for newly born agents
+        N = np.sum(which_agents) # Number of new consumers to make      
+        self.aLvlNow[which_agents] = drawLognormal(N,mu=self.aLvlInitMean,sigma=self.aLvlInitStd,seed=self.RNG.randint(0,2**31-1))
+        self.eStateNow[which_agents] = 1.0 # Agents are born employed
+        self.t_age[which_agents]   = 0 # How many periods since each agent was born
+        self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
+        return None
+        
+    def simDeath(self):
+        '''
+        Trivial function that returns boolean array of all False, as there is no death.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        which_agents : np.array(bool)
+            Boolean array of size AgentCount indicating which agents die.
+        '''
+        # Nobody dies in this model
+        which_agents = np.zeros(self.AgentCount,dtype=bool)
+        return which_agents
+        
+    def getShocks(self):
+        '''
+        Determine which agents switch from employment to unemployment.  All unemployed agents remain
+        unemployed until death.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        employed = self.eStateNow == 1.0
+        N = int(np.sum(employed))
+        newly_unemployed = drawBernoulli(N,p=self.UnempPrb,seed=self.RNG.randint(0,2**31-1))
+        self.eStateNow[employed] = 1.0 - newly_unemployed
+        
+    def getStates(self):
+        '''
+        Calculate market resources for all agents this period.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        self.bLvlNow = self.Rfree*self.aLvlNow
+        self.mLvlNow = self.bLvlNow + self.eStateNow
+        
+    def getControls(self):
+        '''
+        Calculate consumption for each agent this period.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        employed = self.eStateNow == 1.0
+        unemployed = np.logical_not(employed)
+        cLvlNow = np.zeros(self.AgentCount)
+        cLvlNow[employed] = self.solution[0].cFunc(self.mLvlNow[employed])
+        cLvlNow[unemployed] = self.solution[0].cFunc_U(self.mLvlNow[unemployed])
+        self.cLvlNow = cLvlNow
+        
+    def getPostStates(self):
+        '''
+        Calculates end-of-period assets for each consumer of this type.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        self.aLvlNow = self.mLvlNow - self.cLvlNow
+        return None
+        
 
 ###############################################################################
 
@@ -360,6 +472,8 @@ if __name__ == '__main__':
     from ConsMarkovModel import MarkovConsumerType # An alternative, much longer way to solve the TBS model
     from time import clock               # timing utility
     
+    do_simulation = True
+    
     # Define the model primitives
     base_primitives = {'UnempPrb' : .00625,    # Probability of becoming unemployed
                        'DiscFac' : 0.975,      # Intertemporal discount factor
@@ -367,6 +481,13 @@ if __name__ == '__main__':
                        'PermGroFac' : 1.0025,  # Permanent income growth factor (uncompensated)
                        'CRRA' : 1.0}           # Coefficient of relative risk aversion
                        
+    # Define a dictionary to be used in case of simulation
+    simulation_values = {'aLvlInitMean' : 0.0,  # Mean of log initial assets for new agents 
+                         'aLvlInitStd' : 1.0,   # Stdev of log initial assets for new agents
+                         'AgentCount' : 10000,  # Number of agents to simulate
+                         'T_sim' : 120,         # Number of periods to simulate
+                         'T_cycle' : 1}         # Number of periods in the cycle
+                                                
     # Make and solve a tractable consumer type
     ExampleType = TractableConsumerType(**base_primitives)
     t_start = clock()
@@ -380,6 +501,14 @@ if __name__ == '__main__':
     #plotFuncs([ExampleType.solution[0].cFunc,ExampleType.mSSfunc,ExampleType.cSSfunc],0,m_upper)
     plotFuncs([ExampleType.solution[0].cFunc,ExampleType.solution[0].cFunc_U],0,m_upper)
     
+    if do_simulation:
+        ExampleType(**simulation_values) # Set attributes needed for simulation
+        ExampleType.track_vars = ['mLvlNow']
+        ExampleType.makeShockHistory()
+        ExampleType.initializeSim()
+        ExampleType.simulate()
+        
+    
     # Now solve the same model using backward induction rather than the analytic method of TBS.
     # The TBS model is equivalent to a Markov model with two states, one of them absorbing (permanent unemployment).
     MrkvArray = np.array([[1.0-base_primitives['UnempPrb'],base_primitives['UnempPrb']],[0.0,1.0]]) # Define the two state, absorbing unemployment Markov array
@@ -391,7 +520,7 @@ if __name__ == '__main__':
                             "PermShkCount":1,     # Number of shocks in discrete permanent shock distribution
                             "TranShkStd":[0.0],   # Transitory shock standard deviation
                             "TranShkCount":1,     # Number of shocks in discrete permanent shock distribution
-                            "T_total":1,          # Number of periods in cycle
+                            "T_cycle":1,          # Number of periods in cycle
                             "UnempPrb":0.0,       # Unemployment probability (not used, as the unemployment here is *permanent*, not transitory)
                             "UnempPrbRet":0.0,    # Unemployment probability when retired (irrelevant here)
                             "T_retire":0,         # Age at retirement (turned off)
@@ -401,20 +530,19 @@ if __name__ == '__main__':
                             "aXtraMax":ExampleType.mUpperBnd, # Maximum value of assets above minimum in grid
                             "aXtraCount":48,      # Number of points in assets grid
                             "aXtraExtra":[None],  # Additional points to include in assets grid
-                            "exp_nest":3,         # Degree of exponential nesting when constructing assets grid
-                            "LivPrb":[1.0],       # Survival probability
+                            "aXtraNestFac":3,     # Degree of exponential nesting when constructing assets grid
+                            "LivPrb":[np.array([1.0,1.0])], # Survival probability
                             "DiscFac":base_primitives['DiscFac'], # Intertemporal discount factor
-                            'Nagents':1,          # Number of agents in a simulation (irrelevant)
+                            'AgentCount':1,       # Number of agents in a simulation (irrelevant)
                             'tax_rate':0.0,       # Tax rate on labor income (irrelevant)
                             'vFuncBool':False,    # Whether to calculate the value function
                             'CubicBool':True,     # Whether to use cubic splines (False --> linear splines)
-                            'MrkvArray':MrkvArray # State transition probabilities
+                            'MrkvArray':[MrkvArray] # State transition probabilities
                             }
     MarkovType = MarkovConsumerType(**init_consumer_objects)   # Make a basic consumer type
     employed_income_dist = [np.ones(1),np.ones(1),np.ones(1)]    # Income distribution when employed
     unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)] # Income distribution when permanently unemployed
     MarkovType.IncomeDstn = [[employed_income_dist,unemployed_income_dist]]  # set the income distribution in each state
-    MarkovType.MrkvArray = MrkvArray
     MarkovType.cycles = 0
     
     # Solve the "Markov TBS" model

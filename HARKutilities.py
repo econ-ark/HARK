@@ -1077,7 +1077,7 @@ def epanechnikovKernel(x,ref_x,h=1.0):
 # ============== Some basic plotting tools  ====================================
 # ==============================================================================
 
-def plotFuncs(functions,bottom,top,N=1000):
+def plotFuncs(functions,bottom,top,N=1000,legend_kwds = None):
     '''
     Plots 1D function(s) over a given range.
     
@@ -1091,6 +1091,9 @@ def plotFuncs(functions,bottom,top,N=1000):
         The upper limit of the domain to be plotted.
     N : int
         Number of points in the domain to evaluate.
+    legend_kwds: None, or dictionary
+        If not None, the keyword dictionary to pass to plt.legend
+
     Returns
     -------
     none
@@ -1106,11 +1109,11 @@ def plotFuncs(functions,bottom,top,N=1000):
         y = function(x)
         plt.plot(x,y)
     plt.xlim([bottom, top])
+    if legend_kwds is not None:
+        plt.legend(**legend_kwds)
     plt.show()
 
-
-
-def plotFuncsDer(functions,bottom,top,N=1000):
+def plotFuncsDer(functions,bottom,top,N=1000,legend_kwds = None):
     '''
     Plots the first derivative of 1D function(s) over a given range.
     
@@ -1124,6 +1127,8 @@ def plotFuncsDer(functions,bottom,top,N=1000):
         The upper limit of the domain to be plotted.
     N : int
         Number of points in the domain to evaluate.
+    legend_kwds: None, or dictionary
+        If not None, the keyword dictionary to pass to plt.legend
         
     Returns
     -------
@@ -1140,6 +1145,8 @@ def plotFuncsDer(functions,bottom,top,N=1000):
         y = function.derivative(x)
         plt.plot(x,y)
     plt.xlim([bottom, top])
+    if legend_kwds is not None:
+        plt.legend(**legend_kwds)
     plt.show()
 
 

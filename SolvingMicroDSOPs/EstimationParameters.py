@@ -9,7 +9,7 @@ model.  The empirical data is stored in a separate csv file and is loaded in Set
 
 exp_nest = 3                        # Number of times to "exponentially nest" when constructing a_grid
 aXtraMin = 0.001                    # Minimum end-of-period "assets above minimum" value
-aXtraMax = 20                       # Minimum end-of-period "assets above minimum" value               
+aXtraMax = 20                       # Maximum end-of-period "assets above minimum" value               
 aXtraHuge = None                    # A very large value of assets to add to the grid, not used
 aXtraExtra = None                   # Some other value of assets to add to the grid, not used
 aXtraCount = 8                      # Number of points in the grid of "assets above minimum"
@@ -121,10 +121,11 @@ init_consumer_objects = {"CRRA":CRRA_start,
                         "PermShkCount":PermShkCount,
                         "TranShkStd":TranShkStd,
                         "TranShkCount":TranShkCount,
-                        "T_total":TT,
+                        "T_cycle":TT,
                         "UnempPrb":UnempPrb,
                         "UnempPrbRet":UnempPrbRet,
                         "T_retire":retirement_t,
+                        "T_age":TT+1,
                         "IncUnemp":IncUnemp,
                         "IncUnempRet":IncUnempRet,
                         "aXtraMin":aXtraMin,
@@ -134,7 +135,7 @@ init_consumer_objects = {"CRRA":CRRA_start,
                         "aXtraNestFac":exp_nest,
                         "LivPrb":LivPrb,
                         "DiscFac":DiscFac_timevary,
-                        'Nagents':num_agents,
+                        'AgentCount':num_agents,
                         'seed':seed,
                         'tax_rate':0.0,
                         'vFuncBool':vFuncBool,
