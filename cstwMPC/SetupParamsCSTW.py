@@ -252,7 +252,7 @@ init_infinite = {"CRRA":CRRA,
                 "aXtraMax":aXtraMax,
                 "aXtraCount":aXtraCount,
                 "aXtraExtra":[None],
-                "exp_nest":exp_nest,
+                "aXtraNestFac":exp_nest,
                 "LivPrb":LivPrb_i,
                 "beta":beta_i, # dummy value, will be overwritten
                 "cycles":0,

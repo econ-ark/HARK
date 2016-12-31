@@ -13,7 +13,7 @@ income as defined in ConsIndShockModel.
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../ConsumptionSavingModel'))
+sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import EstimationParameters as Params           # Parameters for the consumer type and the estimation
 import ConsIndShockModel as Model               # The consumption-saving micro model
