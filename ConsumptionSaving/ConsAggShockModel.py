@@ -501,7 +501,7 @@ class CobbDouglasEconomy(Market):
         None
         '''
         Market.__init__(self,agents=agents,
-                            sow_vars=['MaggNow','AaggNow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow'],
+                            sow_vars=['MaggNow','AaggNow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow','KtoLnow'],
                             reap_vars=['aLvlNow','pLvlNow'],
                             track_vars=['MaggNow','AaggNow'],
                             dyn_vars=['AFunc'],
@@ -721,9 +721,9 @@ class SmallOpenEconomy(Market):
         None
         '''
         Market.__init__(self,agents=agents,
-                            sow_vars=['KtoLnow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow'],
+                            sow_vars=['MaggNow','AaggNow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow','KtoLnow'],
                             reap_vars=[],
-                            track_vars=['KtoLnow'],
+                            track_vars=['MaggNow','AaggNow'],
                             dyn_vars=[],
                             tolerance=tolerance,
                             act_T=act_T)
@@ -749,12 +749,14 @@ class SmallOpenEconomy(Market):
         self.wFunc = ConstantFunction(self.wRte)
         self.RfreeNow_init = self.Rfunc(self.kSS)
         self.wRteNow_init = self.wFunc(self.kSS)
+        self.MaggNow_init = self.kSS
+        self.AaggNow_init = self.kSS
         self.PermShkAggNow_init = 1.0
         self.TranShkAggNow_init = 1.0
         self.TranShkAggDstn = approxMeanOneLognormal(sigma=self.TranShkAggStd,N=self.TranShkAggCount)
         self.PermShkAggDstn = approxMeanOneLognormal(sigma=self.PermShkAggStd,N=self.PermShkAggCount)
         self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn,self.TranShkAggDstn)
-        self.kNextFunc = ConstantFunction(1.0)
+        self.AFunc = ConstantFunction(1.0)
         
     def millRule(self):
         '''
@@ -833,14 +835,14 @@ class SmallOpenEconomy(Market):
         TranShkAggNow = self.TranShkAggHist[self.Shk_idx]
         self.Shk_idx += 1
         
-        # Factor prices are irrelevant
-        RfreeNow = np.nan
-        wRteNow  = np.nan
+        # Factor prices are constant
+        RfreeNow = self.Rfunc(1.0/PermShkAggNow)
+        wRteNow  = self.wFunc(1.0/PermShkAggNow)
         
-        # Aggregates are also irrelavent
-        AaggNow = np.nan
-        MaggNow = np.nan
-        KtoLnow = np.nan
+        # Aggregates are irrelavent
+        AaggNow = 1.0
+        MaggNow = 1.0
+        KtoLnow = 1.0/PermShkAggNow
         
         # Package the results into an object and return it
         AggVarsNow = CobbDouglasAggVars(MaggNow,AaggNow,KtoLnow,RfreeNow,wRteNow,PermShkAggNow,TranShkAggNow)

@@ -18,7 +18,7 @@ ignore_periods = 100
 
 # Define parameters for the small open economy version of the model
 init_SOE_consumer = { 'CRRA': 2.0,
-                      'DiscFac': 0.969/0.995,
+                      'DiscFac': 0.969,
                       'LivPrb': [0.995],
                       'PermGroFac': [1.0],
                       'AgentCount': 10000,
@@ -170,7 +170,14 @@ StickyDSGEconsumer.track_vars = ['aLvlNow','mNrmNow','cNrmNow','pLvlNow','pLvlEr
 StickyDSGEeconomy.solve()
 
 m_grid = np.linspace(0,10,200)
-for k in StickyDSGEconsumer.kGrid.tolist():
-    c_at_this_k = StickyDSGEconsumer.solution[0].cFunc(m_grid,k*np.ones_like(m_grid))
-    plt.plot(m_grid,c_at_this_k)
+for M in StickyDSGEconsumer.MGrid.tolist():
+    c_at_this_M = StickyDSGEconsumer.solution[0].cFunc(m_grid,M*np.ones_like(m_grid))
+    plt.plot(m_grid,c_at_this_M)
 plt.show()
+
+print('Average aggregate assets = ' + str(np.mean(StickyDSGEconsumer.aLvlNow_hist[ignore_periods:,:])))
+print('Average aggregate consumption = ' + str(np.mean(StickyDSGEconsumer.cNrmNow_hist[ignore_periods:,:]*StickyDSGEconsumer.pLvlNow_hist[ignore_periods:,:])))
+print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(np.mean(StickyDSGEconsumer.aLvlNow_hist[ignore_periods:,:],axis=1)))))
+LogC = np.log(np.mean(StickySOEconsumers.cNrmNow_hist*StickyDSGEconsumer.pLvlNow_hist,axis=1))[ignore_periods:]
+DeltaLogC = LogC[1:] - LogC[0:-1]
+print('Standard deviation of change in log aggregate consumption = ' + str(np.std(DeltaLogC)))
