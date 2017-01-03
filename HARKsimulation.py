@@ -33,7 +33,7 @@ def drawMeanOneLognormal(N, sigma=1.0, seed=0):
     # Set up the RNG
     RNG = np.random.RandomState(seed)
     
-    if type(sigma) == float: # Return a single array of length N
+    if isinstance(sigma,float): # Return a single array of length N
         mu = -0.5*sigma**2
         draws = RNG.lognormal(mean=mu, sigma=sigma, size=N)
     else: # Set up empty list to populate, then loop and populate list with draws
@@ -73,7 +73,7 @@ def drawLognormal(N,mu=0.0,sigma=1.0,seed=0):
     # Set up the RNG
     RNG = np.random.RandomState(seed)
     
-    if type(sigma) == float: # Return a single array of length N
+    if isinstance(sigma,float): # Return a single array of length N
         if sigma == 0:
             draws = np.exp(mu)*np.ones(N)
         else:
@@ -118,7 +118,7 @@ def drawNormal(N, mu=0.0, sigma=1.0, seed=0):
     # Set up the RNG
     RNG = np.random.RandomState(seed)
    
-    if type(sigma) == float: # Return a single array of length N
+    if isinstance(sigma,float): # Return a single array of length N
         draws = sigma*RNG.randn(N) + mu
     else: # Set up empty list to populate, then loop and populate list with draws
         draws=[]
@@ -162,7 +162,7 @@ def drawWeibull(N, scale=1.0, shape=1.0,  seed=0):
     
     if scale == 1:
         scale = float(scale)
-    if type(scale) == float: # Return a single array of length N
+    if isinstance(scale,float): # Return a single array of length N
         draws = scale*(-np.log(1.0-RNG.rand(N)))**(1.0/shape)
     else: # Set up empty list to populate, then loop and populate list with draws
         draws=[]
@@ -200,7 +200,7 @@ def drawUniform(N, bot=0.0, top=1.0, seed=0):
     # Set up the RNG
     RNG = np.random.RandomState(seed)
    
-    if type(bot) == float or type(bot) == int: # Return a single array of size N
+    if isinstance(bot,float) or isinstance(bot,int): # Return a single array of size N
         draws = bot + (top - bot)*RNG.rand(N)
     else: # Set up empty list to populate, then loop and populate list with draws
         draws=[]
@@ -233,7 +233,7 @@ def drawBernoulli(N,p=0.5,seed=0):
     # Set up the RNG
     RNG = np.random.RandomState(seed)
 
-    if type(p) == float:# Return a single array of size N
+    if isinstance(p,float):# Return a single array of size N
         draws = RNG.uniform(size=N) < p
     else: # Set up empty list to populate, then loop and populate list with draws:
         draws=[]

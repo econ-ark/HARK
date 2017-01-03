@@ -749,6 +749,7 @@ class SmallOpenEconomy(Market):
         none
         '''
         self.kSS = 1.0
+        self.MSS = 1.0
         self.KtoLnow_init = self.kSS
         self.Rfunc = ConstantFunction(self.Rfree)
         self.wFunc = ConstantFunction(self.wRte)
