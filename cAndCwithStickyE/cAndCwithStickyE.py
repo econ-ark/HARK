@@ -13,8 +13,8 @@ from ConsAggShockModel import SmallOpenEconomy, CobbDouglasEconomy
 from HARKutilities import plotFuncs
 import matplotlib.pyplot as plt
 
-periods_to_sim = 1000
-ignore_periods = 100
+periods_to_sim = 1200
+ignore_periods = 500
 
 # Define parameters for the small open economy version of the model
 init_SOE_consumer = { 'CRRA': 2.0,
@@ -27,10 +27,10 @@ init_SOE_consumer = { 'CRRA': 2.0,
                       'aXtraNestFac': 3,
                       'aXtraCount': 48,
                       'aXtraExtra': [None],
-                      'PermShkStd': [np.sqrt(0.003)],
-                      'PermShkCount': 5,
+                      'PermShkStd': [np.sqrt(0.004)],
+                      'PermShkCount': 7,
                       'TranShkStd': [np.sqrt(0.12)],
-                      'TranShkCount': 5,
+                      'TranShkCount': 7,
                       'UnempPrb': 0.05,
                       'UnempPrbRet': 0.0,
                       'IncUnemp': 0.0,
@@ -38,7 +38,7 @@ init_SOE_consumer = { 'CRRA': 2.0,
                       'BoroCnstArt':0.0,
                       'tax_rate':0.0,
                       'T_retire':0,
-                      'kGridBase': np.array([0.5,1.5]),
+                      'MgridBase': np.array([0.5,1.5]),
                       'aNrmInitMean' : np.log(0.00001),
                       'aNrmInitStd' : 0.0,
                       'pLvlInitMean' : 0.0,
@@ -72,7 +72,7 @@ init_DSGE_consumer = { 'CRRA': 2.0,
                       'BoroCnstArt':0.0,
                       'tax_rate':0.0,
                       'T_retire':0,
-                      'kGridBase': np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0]),
+                      'MgridBase': np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0]),
                       'aNrmInitMean' : np.log(0.00001),
                       'aNrmInitStd' : 0.0,
                       'pLvlInitMean' : 0.0,
@@ -89,7 +89,7 @@ init_DSGE_consumer = { 'CRRA': 2.0,
 init_SOE_market = {  'PermShkAggCount': 3,
                      'TranShkAggCount': 3,
                      'PermShkAggStd': np.sqrt(0.00004),
-                     'TranShkAggStd': np.sqrt(0.000004),
+                     'TranShkAggStd': np.sqrt(0.00001),
                      'DeprFac': 1.0 - 0.94**(0.25),
                      'CapShare': 0.36,
                      'Rfree': 1.014189682528173,
@@ -100,7 +100,7 @@ init_SOE_market = {  'PermShkAggCount': 3,
 init_DSGE_market = { 'PermShkAggCount': 7,
                      'TranShkAggCount': 7,
                      'PermShkAggStd': np.sqrt(0.00004),
-                     'TranShkAggStd': np.sqrt(0.000004),
+                     'TranShkAggStd': np.sqrt(0.00001),
                      'DeprFac': 1.0 - 0.94**(0.25),
                      'CapShare': 0.36,
                      'CRRA': 2.0,
@@ -134,7 +134,7 @@ plotFuncs(cFunc,0.0,20.0)
 plt.plot(np.mean(StickySOEconsumers.aLvlNow_hist,axis=1))
 plt.show()
 
-plt.plot(np.mean(StickySOEconsumers.mNrmNow_hist,axis=1))
+plt.plot(np.mean(StickySOEconsumers.mNrmNow_hist*StickySOEconsumers.pLvlNow_hist,axis=1))
 plt.show()
 
 plt.plot(np.mean(StickySOEconsumers.cNrmNow_hist*StickySOEconsumers.pLvlNow_hist,axis=1))
@@ -170,14 +170,14 @@ StickyDSGEconsumer.track_vars = ['aLvlNow','mNrmNow','cNrmNow','pLvlNow','pLvlEr
 StickyDSGEeconomy.solve()
 
 m_grid = np.linspace(0,10,200)
-for M in StickyDSGEconsumer.MGrid.tolist():
+for M in StickyDSGEconsumer.Mgrid.tolist():
     c_at_this_M = StickyDSGEconsumer.solution[0].cFunc(m_grid,M*np.ones_like(m_grid))
     plt.plot(m_grid,c_at_this_M)
 plt.show()
 
 print('Average aggregate assets = ' + str(np.mean(StickyDSGEconsumer.aLvlNow_hist[ignore_periods:,:])))
 print('Average aggregate consumption = ' + str(np.mean(StickyDSGEconsumer.cNrmNow_hist[ignore_periods:,:]*StickyDSGEconsumer.pLvlNow_hist[ignore_periods:,:])))
-print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(np.mean(StickyDSGEconsumer.aLvlNow_hist[ignore_periods:,:],axis=1)))))
-LogC = np.log(np.mean(StickySOEconsumers.cNrmNow_hist*StickyDSGEconsumer.pLvlNow_hist,axis=1))[ignore_periods:]
+print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(StickyDSGEconsumer.aLvlNow_hist[ignore_periods:,:]))))
+LogC = np.log(np.mean(StickyDSGEconsumer.cNrmNow_hist*StickyDSGEconsumer.pLvlNow_hist,axis=1))[ignore_periods:]
 DeltaLogC = LogC[1:] - LogC[0:-1]
 print('Standard deviation of change in log aggregate consumption = ' + str(np.std(DeltaLogC)))
