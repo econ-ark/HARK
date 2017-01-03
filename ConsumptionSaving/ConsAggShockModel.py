@@ -366,11 +366,7 @@ def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aX
     BoroCnstArt : float
         Artificial borrowing constraint; minimum allowable end-of-period asset-to-
         permanent-income ratio.  Unlike other models, this *can't* be None.
-<<<<<<< HEAD
-    MNrmGrid : np.array
-=======
     Mgrid : np.array
->>>>>>> upstream/master
         A grid of aggregate market resourses to permanent income in the economy.
     AFunc : function
         Aggregate savings as a function of aggregate market resources.
