@@ -164,7 +164,7 @@ init_kinky_pref['PrefShkStd'] = PrefShkStd
 # -----------------------------------------------------------------------------
 # ----- Define additional parameters for the aggregate shocks model -----------
 # -----------------------------------------------------------------------------
-kGridBase = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])  # Grid of capital-to-labor-ratios (factors)
+MgridBase = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])  # Grid of capital-to-labor-ratios (factors)
 
 # Parameters for a Cobb-Douglas economy
 PermShkAggCount = 3           # Number of points in discrete approximation to aggregate permanent shock dist
@@ -173,22 +173,25 @@ PermShkAggStd = 0.0063        # Standard deviation of log aggregate permanent sh
 TranShkAggStd = 0.0031        # Standard deviation of log aggregate transitory shocks
 DeprFac = 0.025               # Capital depreciation rate
 CapShare = 0.36               # Capital's share of income
-CRRAPF = 1.0                  # CRRA of perfect foresight calibration
-DiscFacPF = 0.99              # Discount factor of perfect foresight calibration
-intercept_prev = 0.00         # Intercept of log-capital-ratio function
-slope_prev = 1.0              # Slope of log-capital-ratio function
+DiscFacPF = DiscFac           # Discount factor of perfect foresight calibration
+#intercept_prev = -0.305568464142        # Intercept of AFunc function
+#slope_prev = 1.06154769008               # Slope of AFunc function
+intercept_prev = 0.0         # Intercept of aggregate savings function
+slope_prev = 1.0             # Slope of aggregate savings function
 
 # Make a dictionary to specify an aggregate shocks consumer
 init_agg_shocks = copy(init_idiosyncratic_shocks)
-del init_agg_shocks['Rfree']       # Interest factor is endogenous in agg shocks model
-del init_agg_shocks['CubicBool']   # Not supported yet for agg shocks model
-del init_agg_shocks['vFuncBool']   # Not supported yet for agg shocks model
-init_agg_shocks['kGridBase'] = kGridBase
-init_agg_shocks['aXtraCount'] = 20
+del init_agg_shocks['Rfree']        # Interest factor is endogenous in agg shocks model
+del init_agg_shocks['CubicBool']    # Not supported yet for agg shocks model
+del init_agg_shocks['vFuncBool']    # Not supported yet for agg shocks model
+init_agg_shocks['PermGroFac'] = [1.0] # Not yet correctly handled for agg shocks model, set to 1
+init_agg_shocks['MgridBase'] = MgridBase
+init_agg_shocks['aXtraCount'] = 24
 #init_agg_shocks['aXtraMax'] = 80.0
 #init_agg_shocks['aXtraExtra'] = [1000.0]
 init_agg_shocks['aNrmInitStd'] = 0.0
 init_agg_shocks['LivPrb'] = LivPrb
+
 
 # Make a dictionary to specify a Cobb-Douglas economy
 init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
@@ -197,7 +200,6 @@ init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
                      'TranShkAggStd': TranShkAggStd,
                      'DeprFac': DeprFac,
                      'CapShare': CapShare,
-                     'CRRA': CRRAPF,
                      'DiscFac': DiscFacPF,
                      'AggregateL':1.0,
                      'slope_prev': slope_prev,
