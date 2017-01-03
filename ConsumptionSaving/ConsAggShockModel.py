@@ -557,7 +557,7 @@ class CobbDouglasEconomy(Market):
         self.RfreeSS = (1.0 + self.CapShare*self.kSS**(self.CapShare-1.0) - self.DeprFac)
         self.MSS = self.kSS*(self.RfreeSS + self.DeprFac) + self.wRteSS
         self.convertKtoY = lambda KtoY : KtoY**(1.0/(1.0 - self.CapShare)) # converts K/Y to K/L
-        self.Rfunc = lambda k : (1.0 + self.CapShare*k**(self.CapShare-1.0))*(1.0 - self.DeprFac)
+        self.Rfunc = lambda k : (1.0 + self.CapShare*k**(self.CapShare-1.0) - self.DeprFac)
         self.wFunc = lambda k : ((1.0-self.CapShare)*k**(self.CapShare))
         self.KtoLnow_init = self.kSS
         self.MaggNow_init = self.kSS
