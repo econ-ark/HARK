@@ -116,8 +116,8 @@ init_DSGE_market = { 'PermShkAggCount': 7,
 
 
 # Make a small open economy and the consumers who live in it
-StickySOEconsumers = StickyEconsumerSOEType(**init_SOE_consumer)
-StickySOEconomy = SmallOpenEconomy(**init_SOE_market)
+StickySOEconsumers     = StickyEconsumerSOEType(**init_SOE_consumer)
+StickySOEconomy        = SmallOpenEconomy(**init_SOE_market)
 StickySOEconomy.agents = [StickySOEconsumers]
 StickySOEconomy.makeAggShkHist()
 StickySOEconsumers.getEconomyData(StickySOEconomy)
