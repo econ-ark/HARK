@@ -82,7 +82,7 @@ class cstwMPCmarket(EstimationMarketClass):
     reap_vars = ['aLvlNow','pLvlNow','MPCnow','TranShkNow','EmpNow','t_age']
     sow_vars  = [] # Nothing needs to be sent back to agents in the idiosyncratic shocks version
     const_vars = ['LorenzBool','ManyStatsBool']
-    track_vars = ['KtoYnow','Lorenz','LorenzLong','MPCall','MPCretired','MPCemployed','MPCunemployed','MPCbyIncome','MPCbyWealthRatio','HandToMouthPct']
+    track_vars = ['MaggNow','AaggNow','KtoYnow','Lorenz','LorenzLong','MPCall','MPCretired','MPCemployed','MPCunemployed','MPCbyIncome','MPCbyWealthRatio','HandToMouthPct']
     dyn_vars = [] # No dynamics in the idiosyncratic shocks version
     
     def __init__(self,**kwds):
@@ -91,9 +91,8 @@ class cstwMPCmarket(EstimationMarketClass):
         '''
         self.assignParameters(**kwds)
         if self.AggShockBool:
-            self.sow_vars = ['KtoLnow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow']
-            self.track_vars += ['KtoLnow']
-            self.dyn_vars = ['kNextFunc']
+            self.sow_vars=['MaggNow','AaggNow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow','KtoLnow']
+            self.dyn_vars=['AFunc']
             self.max_loops = 20
         
     def solve(self):
@@ -114,7 +113,7 @@ class cstwMPCmarket(EstimationMarketClass):
         '''
         self.calcStats(aLvlNow,pLvlNow,MPCnow,TranShkNow,EmpNow,t_age,LorenzBool,ManyStatsBool)
         if self.AggShockBool:
-            return self.calcRandW(aLvlNow)
+            return self.calcRandW(aLvlNow,pLvlNow)
         
     def calcStats(self,aLvlNow,pLvlNow,MPCnow,TranShkNow,EmpNow,t_age,LorenzBool,ManyStatsBool):
         '''

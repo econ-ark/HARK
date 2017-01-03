@@ -164,7 +164,7 @@ init_kinky_pref['PrefShkStd'] = PrefShkStd
 # -----------------------------------------------------------------------------
 # ----- Define additional parameters for the aggregate shocks model -----------
 # -----------------------------------------------------------------------------
-kGridBase = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])  # Grid of capital-to-labor-ratios (factors)
+MgridBase = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])  # Grid of capital-to-labor-ratios (factors)
 
 # Parameters for a Cobb-Douglas economy
 PermShkAggCount = 3           # Number of points in discrete approximation to aggregate permanent shock dist
@@ -185,7 +185,7 @@ del init_agg_shocks['Rfree']        # Interest factor is endogenous in agg shock
 del init_agg_shocks['CubicBool']    # Not supported yet for agg shocks model
 del init_agg_shocks['vFuncBool']    # Not supported yet for agg shocks model
 init_agg_shocks['PermGroFac'] = [1.0] # Not yet correctly handled for agg shocks model, set to 1
-init_agg_shocks['kGridBase'] = kGridBase
+init_agg_shocks['MgridBase'] = MgridBase
 init_agg_shocks['aXtraCount'] = 24
 #init_agg_shocks['aXtraMax'] = 80.0
 #init_agg_shocks['aXtraExtra'] = [1000.0]

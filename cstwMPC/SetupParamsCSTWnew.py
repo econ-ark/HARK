@@ -7,17 +7,17 @@ from copy import  deepcopy
 import os
 
 # Choose percentiles of the data to match and which estimation to run
-spec_name = 'BetaPointPY'
+spec_name = 'BetaDistPY'
 param_name = 'DiscFac'        # Which parameter to introduce heterogeneity in
 dist_type = 'uniform'         # Which type of distribution to use
 do_lifecycle = False          # Use lifecycle model if True, perpetual youth if False
-do_param_dist = False         # Do param-dist version if True, param-point if False
+do_param_dist = True          # Do param-dist version if True, param-point if False
 run_estimation = True         # Runs the estimation if True
 find_beta_vs_KY = False       # Computes K/Y ratio for a wide range of beta; should have do_beta_dist = False
 do_sensitivity = [False, False, False, False, False, False, False, False] # Choose which sensitivity analyses to run: rho, xi_sigma, psi_sigma, mu, urate, mortality, g, R
 do_liquid = False             # Matches liquid assets data when True, net worth data when False
 do_tractable = False          # Uses a "tractable consumer" rather than solving full model when True
-do_agg_shocks = False         # Solve the FBS aggregate shocks version of the model
+do_agg_shocks = True          # Solve the FBS aggregate shocks version of the model
 SCF_data_file = 'SCFwealthDataReduced.txt'
 percentiles_to_match = [0.2, 0.4, 0.6, 0.8]    # Which points of the Lorenz curve to match in beta-dist (must be in (0,1))
 #percentiles_to_match = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9] # Can use this line if you want to match more percentiles
@@ -268,7 +268,7 @@ init_market = {'LorenzBool': False,
 init_agg_shocks = deepcopy(init_infinite)
 init_agg_shocks['T_sim'] = T_sim_agg_shocks
 init_agg_shocks['tolerance'] = 0.0001
-init_agg_shocks['kGridBase'] = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])
+init_agg_shocks['MgridBase'] = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])
                         
 # Make a dictionary for the aggrege shocks market
 aggregate_params = {'PermShkAggCount': PermShkAggCount,
