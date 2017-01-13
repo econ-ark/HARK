@@ -1237,7 +1237,9 @@ class ConsKinkedRsolver(ConsIndShockSolver):
     A class to solve a single period consumption-saving problem where the interest
     rate on debt differs from the interest rate on savings.  Inherits from
     ConsIndShockSolver, with nearly identical inputs and outputs.  The key diff-
-    erence is that Rfree is replaced by Rsave (a>0) and Rboro (a<0).
+    erence is that Rfree is replaced by Rsave (a>0) and Rboro (a<0).  The solver
+    can handle Rboro == Rsave, which makes it identical to ConsIndShocksolver, but
+    it terminates immediately if Rboro < Rsave, as this has a different solution.
     '''
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                       Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
@@ -1289,12 +1291,12 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         None
         '''
         assert CubicBool==False,'KinkedR will only work with linear interpolation (for now)'
+        assert Rboro>=Rsave, 'Interest factor on debt less than interest factor on savings!'
 
         # Initialize the solver.  Most of the steps are exactly the same as in
         # the non-kinked-R basic case, so start with that.
-        ConsIndShockSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
-                                             Rboro,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,
-                                             CubicBool) 
+        ConsIndShockSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,
+                                    PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool) 
 
         # Assign the interest rates as class attributes, to use them later.
         self.Rboro   = Rboro
@@ -1317,9 +1319,16 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         aNrmNow : np.array
             A 1D array of end-of-period assets; also stored as attribute of self.
         ''' 
+        KinkBool = self.Rboro > self.Rsave # Boolean indicating that there is actually a kink.
+        # When Rboro == Rsave, this method acts just like it did in IndShock.
+        # When Rboro < Rsave, the solver would have terminated when it was called.
+        
         # Make a grid of end-of-period assets, including *two* copies of a=0
-        aNrmNow           = np.sort(np.hstack((np.asarray(self.aXtraGrid) + 
-                            self.mNrmMinNow,np.array([0.0,0.0]))))
+        if KinkBool:
+            aNrmNow       = np.sort(np.hstack((np.asarray(self.aXtraGrid) + self.mNrmMinNow,
+                                                   np.array([0.0,0.0]))))
+        else:
+            aNrmNow       = np.asarray(self.aXtraGrid) + self.mNrmMinNow
         aXtraCount        = aNrmNow.size
         
         # Make tiled versions of the assets grid and income shocks
@@ -1331,7 +1340,8 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         
         # Make a 1D array of the interest factor at each asset gridpoint
         Rfree_vec         = self.Rsave*np.ones(aXtraCount)
-        Rfree_vec[0:(np.sum(aNrmNow<=0)-1)] = self.Rboro
+        if KinkBool:
+            Rfree_vec[0:(np.sum(aNrmNow<=0)-1)] = self.Rboro
         self.Rfree        = Rfree_vec
         Rfree_temp        = np.tile(Rfree_vec,(ShkCount,1))
         
@@ -1341,10 +1351,11 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         
         # Recalculate the minimum MPC and human wealth using the interest factor on saving.
         # This overwrites values from setAndUpdateValues, which were based on Rboro instead.
-        PatFacTop         = ((self.Rsave*self.DiscFacEff)**(1.0/self.CRRA))/self.Rsave
-        self.MPCminNow    = 1.0/(1.0 + PatFacTop/self.solution_next.MPCmin)
-        self.hNrmNow      = self.PermGroFac/self.Rsave*(np.dot(self.ShkPrbsNext,
-                            self.TranShkValsNext*self.PermShkValsNext) + self.solution_next.hNrm)
+        if KinkBool:
+            PatFacTop         = ((self.Rsave*self.DiscFacEff)**(1.0/self.CRRA))/self.Rsave
+            self.MPCminNow    = 1.0/(1.0 + PatFacTop/self.solution_next.MPCmin)
+            self.hNrmNow      = self.PermGroFac/self.Rsave*(np.dot(self.ShkPrbsNext,
+                                self.TranShkValsNext*self.PermShkValsNext) + self.solution_next.hNrm)
 
         # Store some of the constructed arrays for later use and return the assets grid
         self.PermShkVals_temp = PermShkVals_temp
@@ -1410,7 +1421,6 @@ def solveConsKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
         resources mNrmMin, normalized human wealth hNrm, and bounding MPCs MPCmin
         and MPCmax.  It might also have a value function vFunc.
     '''
-    assert Rboro>=Rsave, 'Interest factor on debt less than interest factor on savings!'    
     
     solver = ConsKinkedRsolver(solution_next,IncomeDstn,LivPrb,
                                             DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
