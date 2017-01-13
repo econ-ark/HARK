@@ -1411,6 +1411,8 @@ def solveConsKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
         and MPCmax.  It might also have a value function vFunc.
     '''
     assert Rboro>=Rsave, 'Interest factor on debt less than interest factor on savings!'    
+    assert Rboro>Rsave, 'Interest factor on debt is equal to interest factor on savings, ' \
+                         'the model without kinks is best suited for that case.'
     
     solver = ConsKinkedRsolver(solution_next,IncomeDstn,LivPrb,
                                             DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
