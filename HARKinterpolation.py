@@ -596,6 +596,133 @@ class ConstantFunction(HARKobject):
     derivativeZ = derivative
     derivativeW = derivative
     derivativeXX= derivative
+    
+    
+class LinearInterp(HARKinterpolator1D):
+    '''
+    A "from scratch" 1D linear interpolation class.  Allows for linear or decay
+    extrapolation (approaching a limiting linear function from below).    
+    '''
+    distance_criteria = ['x_list','y_list']
+    
+    def __init__(self,x_list,y_list,intercept_limit=None,slope_limit=None,lower_extrap=False):
+        '''
+        The interpolation constructor to make a new linear spline interpolation.
+        
+        Parameters
+        ----------
+        x_list : np.array
+            List of x values composing the grid.
+        y_list : np.array
+            List of y values, representing f(x) at the points in x_list.
+        intercept_limit : float
+            Intercept of limiting linear function.
+        slope_limit : float
+            Slope of limiting linear function.
+        lower_extrap : boolean
+            Indicator for whether lower extrapolation is allowed.  False means
+            f(x) = NaN for x < min(x_list); True means linear extrapolation.
+            
+        Returns
+        -------
+        new instance of LinearInterp
+            
+        NOTE: When no input is given for the limiting linear function, linear
+        extrapolation is used above the highest gridpoint.        
+        '''
+        # Make the basic linear spline interpolation
+        self.x_list = np.array(x_list)
+        self.y_list = np.array(y_list)
+        self.lower_extrap = lower_extrap
+        self.x_n = self.x_list.size
+        
+        # Make a decay extrapolation
+        if intercept_limit is not None and slope_limit is not None:
+            slope_at_top = (y_list[-1] - y_list[-2])/(x_list[-1] - x_list[-2])
+            level_diff = intercept_limit + slope_limit*x_list[-1] - y_list[-1]
+            slope_diff = slope_limit - slope_at_top
+            self.decay_extrap_A = level_diff
+            self.decay_extrap_B = -slope_diff/level_diff
+            self.intercept_limit = intercept_limit
+            self.slope_limit = slope_limit
+            self.decay_extrap = True
+        else:
+            self.decay_extrap = False
+        
+    def _evaluate(self,x):
+        '''
+        Returns the level of the interpolated function at each value in x.  Only
+        called internally by HARKinterpolator1D.__call__ (etc).
+        '''
+        if _isscalar(x):
+            i = max(min(np.searchsorted(self.x_list,x),self.x_n-1),1)
+            alpha = (x-self.x_list[i-1])/(self.x_list[i]-self.x_list[i-1])
+            y = (1-alpha)*self.y_list[i-1] + alpha*self.y_list[i]
+        else:
+            y = np.zeros_like(x,dtype=float)
+            if y.size > 0:
+                i = np.maximum(np.searchsorted(self.x_list[:-1],x),1)
+                alpha = (x-self.x_list[i-1])/(self.x_list[i]-self.x_list[i-1])
+                y = (1-alpha)*self.y_list[i-1] + alpha*self.y_list[i]                        
+        if not self.lower_extrap:
+            below_lower_bound = x < self.x_list[0]
+            y[below_lower_bound] = np.nan
+        if self.decay_extrap:
+            above_upper_bound = x > self.x_list[-1]
+            x_temp = x[above_upper_bound] - self.x_list[-1]
+            y[above_upper_bound] = self.intercept_limit + self.slope_limit*x[above_upper_bound] - self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
+        return y
+        
+    def _der(self,x):
+        '''
+        Returns the first derivative of the interpolated function at each value
+        in x. Only called internally by HARKinterpolator1D.derivative (etc).
+        '''
+        if _isscalar(x):
+            i = max(min(np.searchsorted(self.x_list,x),self.x_n-1),1)
+            dydx = (self.y_list[i] - self.y_list[i-1])/(self.x_list[i] - self.x_list[i-1])
+        else:
+            dydx = np.zeros_like(x,dtype=float)
+            if dydx.size > 0:
+                i = np.maximum(np.searchsorted(self.x_list[:-1],x),1)
+                dydx = (self.y_list[i] - self.y_list[i-1])/(self.x_list[i] - self.x_list[i-1])
+        if not self.lower_extrap:
+            below_lower_bound = x < self.x_list[0]
+            dydx[below_lower_bound] = np.nan
+        if self.decay_extrap:
+            above_upper_bound = x > self.x_list[-1]
+            x_temp = x[above_upper_bound] - self.x_list[-1]
+            dydx[above_upper_bound] = self.slope_limit + self.decay_extrap_B*self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
+        return dydx
+        
+    def _evalAndDer(self,x):
+        '''
+        Returns the level and first derivative of the function at each value in
+        x.  Only called internally by HARKinterpolator1D.eval_and_der (etc).
+        '''
+        if _isscalar(x):
+            i = max(min(np.searchsorted(self.x_list,x),self.x_n-1),1)
+            alpha = (x-self.x_list[i-1])/(self.x_list[i]-self.x_list[i-1])
+            y = (1-alpha)*self.y_list[i-1] + alpha*self.y_list[i]
+            dydx = (self.y_list[i] - self.y_list[i-1])/(self.x_list[i] - self.x_list[i-1])
+        else:
+            y = np.zeros_like(x,dtype=float)
+            dydx = np.zeros_like(x,dtype=float)
+            if y.size > 0:
+                i = np.maximum(np.searchsorted(self.x_list[:-1],x),1)
+                alpha = (x-self.x_list[i-1])/(self.x_list[i]-self.x_list[i-1])
+                y = (1-alpha)*self.y_list[i-1] + alpha*self.y_list[i]
+                dydx = (self.y_list[i] - self.y_list[i-1])/(self.x_list[i] - self.x_list[i-1])
+        if not self.lower_extrap:
+            below_lower_bound = x < self.x_list[0]
+            y[below_lower_bound] = np.nan
+            dydx[below_lower_bound] = np.nan
+        if self.decay_extrap:
+            above_upper_bound = x > self.x_list[-1]
+            x_temp = x[above_upper_bound] - self.function.x_list[-1]
+            y[above_upper_bound] = self.intercept_limit + self.slope_limit*x[above_upper_bound] - self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
+            dydx[above_upper_bound] = self.slope_limit + self.decay_extrap_B*self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
+        return y, dydx
 
 
 class CubicInterp(HARKinterpolator1D):
@@ -790,13 +917,14 @@ class CubicInterp(HARKinterpolator1D):
         return y, dydx
 
 
-class LinearInterp(HARKinterpolator1D):
+class LinearInterpOLD(HARKinterpolator1D):
     '''
     A slight extension of scipy.interpolate's UnivariateSpline for linear inter-
     polation.  Allows for linear or decay extrapolation (approaching a limiting
     linear function from below).
-    
     '''
+    distance_criteria = ['x_list','y_list']
+    
     def __init__(self,x_list,y_list,intercept_limit=None,slope_limit=None,lower_extrap=False):
         '''
         The interpolation constructor to make a new linear spline interpolation.
@@ -827,7 +955,6 @@ class LinearInterp(HARKinterpolator1D):
         self.y_list = y_list
         self.function = UnivariateSpline(x_list,y_list,k=1,s=0)
         self.lower_extrap = lower_extrap
-        self.distance_criteria = ['x_list','y_list']
         
         # Make a decay extrapolation
         if intercept_limit is not None and slope_limit is not None:
@@ -895,6 +1022,8 @@ class BilinearInterp(HARKinterpolator2D):
     '''
     Bilinear full (or tensor) grid interpolation of a function f(x,y).
     '''
+    distance_criteria = ['x_list','y_list','f_values']
+
     def __init__(self,f_values,x_list,y_list,xSearchFunc=None,ySearchFunc=None):
         '''
         Constructor to make a new bilinear interpolation.
@@ -929,7 +1058,6 @@ class BilinearInterp(HARKinterpolator2D):
             ySearchFunc = np.searchsorted
         self.xSearchFunc = xSearchFunc
         self.ySearchFunc = ySearchFunc
-        self.distance_criteria = ['x_list','y_list','f_values']
         
     def _evaluate(self,x,y):
         '''
@@ -1006,6 +1134,8 @@ class TrilinearInterp(HARKinterpolator3D):
     '''
     Trilinear full (or tensor) grid interpolation of a function f(x,y,z).
     '''
+    distance_criteria = ['f_values','x_list','y_list','z_list']
+    
     def __init__(self,f_values,x_list,y_list,z_list,xSearchFunc=None,ySearchFunc=None,zSearchFunc=None):
         '''
         Constructor to make a new trilinear interpolation.
@@ -1051,7 +1181,6 @@ class TrilinearInterp(HARKinterpolator3D):
         self.xSearchFunc = xSearchFunc
         self.ySearchFunc = ySearchFunc
         self.zSearchFunc = zSearchFunc
-        self.distance_criteria = ['f_values','x_list','y_list','z_list']
         
     def _evaluate(self,x,y,z):
         '''
@@ -1187,6 +1316,8 @@ class QuadlinearInterp(HARKinterpolator4D):
     '''
     Quadlinear full (or tensor) grid interpolation of a function f(w,x,y,z).
     '''
+    distance_criteria = ['f_values','w_list','x_list','y_list','z_list']
+    
     def __init__(self,f_values,w_list,x_list,y_list,z_list,wSearchFunc=None,xSearchFunc=None,ySearchFunc=None,zSearchFunc=None):
         '''
         Constructor to make a new quadlinear interpolation.
@@ -1242,7 +1373,6 @@ class QuadlinearInterp(HARKinterpolator4D):
         self.xSearchFunc = xSearchFunc
         self.ySearchFunc = ySearchFunc
         self.zSearchFunc = zSearchFunc
-        self.distance_criteria = ['f_values','w_list','x_list','y_list','z_list']
         
     def _evaluate(self,w,x,y,z):
         '''
@@ -1636,7 +1766,8 @@ class LowerEnvelope2D(HARKinterpolator2D):
     The lower envelope of a finite set of 2D functions, each of which can be of
     any class that has the methods __call__, derivativeX, and derivativeY.
     Generally: it combines HARKinterpolator2Ds. 
-    ''' 
+    '''
+    distance_criteria = ['functions']
 
     def __init__(self,*functions):
         '''
@@ -1655,7 +1786,6 @@ class LowerEnvelope2D(HARKinterpolator2D):
         for function in functions:
             self.functions.append(function)
         self.funcCount = len(self.functions)
-        self.distance_criteria = ['functions']
 
     def _evaluate(self,x,y):
         '''
@@ -2025,7 +2155,8 @@ class VariableLowerBoundFunc3D(HARKobject):
 class LinearInterpOnInterp1D(HARKinterpolator2D):
     '''
     A 2D interpolator that linearly interpolates among a list of 1D interpolators.
-    '''    
+    '''
+    distance_criteria = ['xInterpolators','y_list']
     def __init__(self,xInterpolators,y_values):
         '''
         Constructor for the class, generating an approximation to a function of
@@ -2047,7 +2178,6 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
         self.xInterpolators = xInterpolators
         self.y_list = y_values
         self.y_n = y_values.size
-        self.distance_criteria = ['xInterpolators','y_list']
         
     def _evaluate(self,x,y):
         '''
@@ -2122,6 +2252,8 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
     A 3D interpolator that bilinearly interpolates among a list of lists of 1D
     interpolators.
     '''
+    distance_criteria = ['xInterpolators','y_list','z_list']
+    
     def __init__(self,xInterpolators,y_values,z_values):
         '''
         Constructor for the class, generating an approximation to a function of
@@ -2147,7 +2279,6 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
         self.y_n = y_values.size
         self.z_list = z_values
         self.z_n = z_values.size
-        self.distance_criteria = ['xInterpolators','y_list','z_list']
         
     def _evaluate(self,x,y,z):
         '''
@@ -2284,7 +2415,9 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
 class TrilinearInterpOnInterp1D(HARKinterpolator4D):
     '''
     A 4D interpolator that trilinearly interpolates among a list of lists of 1D interpolators.
-    '''    
+    '''
+    distance_criteria = ['wInterpolators','x_list','y_list','z_list']
+    
     def __init__(self,wInterpolators,x_values,y_values,z_values):
         '''
         Constructor for the class, generating an approximation to a function of
@@ -2314,7 +2447,6 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
         self.y_n = y_values.size
         self.z_list = z_values
         self.z_n = z_values.size
-        self.distance_criteria = ['wInterpolators','x_list','y_list','z_list']
 
     def _evaluate(self,w,x,y,z):
         '''
@@ -2573,7 +2705,9 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
     variables and one exogenous state variable when solving with the endogenous
     grid method.  NOTE: should not be used if an exogenous 3D grid is used, will
     be significantly slower than TrilinearInterp.
-    '''    
+    '''
+    distance_criteria = ['xyInterpolators','z_list']
+
     def __init__(self,xyInterpolators,z_values):
         '''
         Constructor for the class, generating an approximation to a function of
@@ -2595,7 +2729,6 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
         self.xyInterpolators = xyInterpolators
         self.z_list = z_values
         self.z_n = z_values.size
-        self.distance_criteria = ['xyInterpolators','z_list']
         
     def _evaluate(self,x,y,z):
         '''
@@ -2694,7 +2827,9 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
     variables and two exogenous state variables when solving with the endogenous
     grid method.  NOTE: should not be used if an exogenous 4D grid is used, will
     be significantly slower than QuadlinearInterp.
-    '''    
+    '''
+    distance_criteria = ['wxInterpolators','y_list','z_list']
+    
     def __init__(self,wxInterpolators,y_values,z_values):
         '''
         Constructor for the class, generating an approximation to a function of
@@ -2721,7 +2856,6 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
         self.y_n = y_values.size
         self.z_list = z_values
         self.z_n = z_values.size
-        self.distance_criteria = ['wxInterpolators','y_list','z_list']
         
     def _evaluate(self,w,x,y,z):
         '''
@@ -2904,6 +3038,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
     in White (2015).  Used for models with two endogenous states that are solved
     with the endogenous grid method.
     '''
+    distance_criteria = ['f_values','x_values','y_values']
+    
     def __init__(self,f_values,x_values,y_values):
         '''
         Constructor for 2D curvilinear interpolation for a function f(x,y)
@@ -2929,7 +3065,6 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         self.x_n = my_shape[0]
         self.y_n = my_shape[1]
         self.updatePolarity()
-        self.distance_criteria = ['f_values','x_values','y_values']
         
     def updatePolarity(self):
         '''
