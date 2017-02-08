@@ -6,8 +6,11 @@ Created on Mon Jun 20 15:55:59 2016
 """
 import os
 os.environ["R_HOME"] = "/Library/Frameworks/R.framework/Resources"
-os.chdir("/Users/ganong/repo/HARK-comments-and-cleanup/gn")
-out_path = "~/dropbox/hampra/out2/"
+if getpass.getuser() == 'peterganong':
+    os.chdir("/Users/peterganong/repo/HARK/gn") 
+    out_path = "~/dropbox/hampra/out_test/"
+elif getpass.getuser() == 'pascalnoel':
+    os.chdir("/Users/Pascal/repo/HARK/gn") 
 import settings
 import sys 
 sys.path.insert(0,'../')
@@ -36,9 +39,9 @@ import pickle
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 scope = ['https://spreadsheets.google.com/feeds']
-credentials = ServiceAccountCredentials.from_json_keyfile_name('gspread-oauth.json', scope)
+credentials = ServiceAccountCredentials.from_json_keyfile_name('gspread-oauth-2017.json', scope)
 gc = gspread.authorize(credentials)
-g_params = gc.open("HAMPRA Model Parameters").sheet1 #in this case
+g_params = gc.open("HAMPRA Model Parameters").sheet1 
 df = pd.DataFrame(g_params.get_all_records())
 pickle.dump( df, open("params_google_df.p", "wb" ) )
 #df = pickle.load( open( "params_google_df.p", "rb" ) )
@@ -50,10 +53,10 @@ boom_params = df[['Param','Value']].set_index('Param')['Value'][14:20].to_dict()
 heloc_L = float(df[['Param','Value']].set_index('Param')['Value'][21:22])
 rd_params = df[['Param','Value']].set_index('Param')['Value'][23:26].to_dict()
 
-g_params = gc.open("HAMPRA Loan-to-Value Distribution")
-ltv_wksheet = g_params.worksheet("PythonInput")
-df_ltv = pd.DataFrame(ltv_wksheet.get_all_records())
-pickle.dump( df_ltv, open("params_google_df_ltv.p", "wb" ) )
+#g_params = gc.open("HAMPRA Loan-to-Value Distribution")
+#ltv_wksheet = g_params.worksheet("PythonInput")
+#df_ltv = pd.DataFrame(ltv_wksheet.get_all_records())
+#pickle.dump( df_ltv, open("params_google_df_ltv.p", "wb" ) )
 #df_ltv = pickle.load( open( "params_google_df_ltv.p", "rb" ) )
     
 ###########################################################################

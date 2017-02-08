@@ -265,3 +265,5 @@ eq
 
 # Particular user scratchwork directories
 nate-notes/
+
+gn/gspread-oauth-2017.json
