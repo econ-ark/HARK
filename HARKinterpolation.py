@@ -639,90 +639,101 @@ class LinearInterp(HARKinterpolator1D):
         # Make a decay extrapolation
         if intercept_limit is not None and slope_limit is not None:
             slope_at_top = (y_list[-1] - y_list[-2])/(x_list[-1] - x_list[-2])
-            level_diff = intercept_limit + slope_limit*x_list[-1] - y_list[-1]
-            slope_diff = slope_limit - slope_at_top
-            self.decay_extrap_A = level_diff
-            self.decay_extrap_B = -slope_diff/level_diff
+            level_diff   = intercept_limit + slope_limit*x_list[-1] - y_list[-1]
+            slope_diff   = slope_limit - slope_at_top
+            
+            self.decay_extrap_A  = level_diff
+            self.decay_extrap_B  = -slope_diff/level_diff
             self.intercept_limit = intercept_limit
-            self.slope_limit = slope_limit
-            self.decay_extrap = True
+            self.slope_limit     = slope_limit
+            self.decay_extrap    = True
         else:
             self.decay_extrap = False
+
+
+    def _evalOrDer(self,x,_eval,_Der):
+        '''
+        Returns the level and/or first derivative of the function at each value in
+        x.  Only called internally by HARKinterpolator1D.eval_and_der (etc).
+
+        Parameters
+        ----------
+        x_list : scalar or np.array
+            Set of points where we want to evlauate the interpolated function and/or its derivative..
+        _eval : boolean
+            Indicator for whether to evalute the level of the interpolated function.
+        _Der : boolean
+            Indicator for whether to evaluate the derivative of the interpolated function.
+            
+        Returns
+        -------
+        A list including the level and/or derivative of the interpolated function where requested.
+        '''
+
+
+
+        i      = np.maximum(np.searchsorted(self.x_list[:-1],x),1)
+        alpha  = (x-self.x_list[i-1])/(self.x_list[i]-self.x_list[i-1])
+
+        if _eval:
+                y = (1.-alpha)*self.y_list[i-1] + alpha*self.y_list[i]
+        if _Der:
+                dydx = (self.y_list[i] - self.y_list[i-1])/(self.x_list[i] - self.x_list[i-1])
+
+        if not self.lower_extrap:
+            below_lower_bound = x < self.x_list[0]
+
+            if _eval:
+                y[below_lower_bound] = np.nan
+            if _Der:           
+                dydx[below_lower_bound] = np.nan
         
-    def _evaluate(self,x):
+        if self.decay_extrap:
+            above_upper_bound = x > self.x_list[-1]
+            x_temp = x[above_upper_bound] - self.function.x_list[-1]
+
+            if _eval:
+                y[above_upper_bound] = self.intercept_limit + \
+                                       self.slope_limit*x[above_upper_bound] - \
+                                       self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
+            
+            if _Der:            
+                dydx[above_upper_bound] = self.slope_limit + \
+                                          self.decay_extrap_B*self.decay_extrap_A*\
+                                          np.exp(-self.decay_extrap_B*x_temp)
+
+        output = []
+        if _eval:
+            output += [y,]
+        if _Der:
+            output += [dydx,]
+
+        return output
+            
+    def _evaluate(self,x,return_indices = False):
         '''
         Returns the level of the interpolated function at each value in x.  Only
         called internally by HARKinterpolator1D.__call__ (etc).
         '''
-        if _isscalar(x):
-            i = max(min(np.searchsorted(self.x_list,x),self.x_n-1),1)
-            alpha = (x-self.x_list[i-1])/(self.x_list[i]-self.x_list[i-1])
-            y = (1-alpha)*self.y_list[i-1] + alpha*self.y_list[i]
-        else:
-            y = np.zeros_like(x,dtype=float)
-            if y.size > 0:
-                i = np.maximum(np.searchsorted(self.x_list[:-1],x),1)
-                alpha = (x-self.x_list[i-1])/(self.x_list[i]-self.x_list[i-1])
-                y = (1-alpha)*self.y_list[i-1] + alpha*self.y_list[i]                        
-        if not self.lower_extrap:
-            below_lower_bound = x < self.x_list[0]
-            y[below_lower_bound] = np.nan
-        if self.decay_extrap:
-            above_upper_bound = x > self.x_list[-1]
-            x_temp = x[above_upper_bound] - self.x_list[-1]
-            y[above_upper_bound] = self.intercept_limit + self.slope_limit*x[above_upper_bound] - self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
-        return y
+        return self._evalOrDer(x,True,False)[0]
         
     def _der(self,x):
         '''
         Returns the first derivative of the interpolated function at each value
         in x. Only called internally by HARKinterpolator1D.derivative (etc).
         '''
-        if _isscalar(x):
-            i = max(min(np.searchsorted(self.x_list,x),self.x_n-1),1)
-            dydx = (self.y_list[i] - self.y_list[i-1])/(self.x_list[i] - self.x_list[i-1])
-        else:
-            dydx = np.zeros_like(x,dtype=float)
-            if dydx.size > 0:
-                i = np.maximum(np.searchsorted(self.x_list[:-1],x),1)
-                dydx = (self.y_list[i] - self.y_list[i-1])/(self.x_list[i] - self.x_list[i-1])
-        if not self.lower_extrap:
-            below_lower_bound = x < self.x_list[0]
-            dydx[below_lower_bound] = np.nan
-        if self.decay_extrap:
-            above_upper_bound = x > self.x_list[-1]
-            x_temp = x[above_upper_bound] - self.x_list[-1]
-            dydx[above_upper_bound] = self.slope_limit + self.decay_extrap_B*self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
-        return dydx
-        
+        return self._evalOrDer(x,False,True)[0]
+
     def _evalAndDer(self,x):
         '''
         Returns the level and first derivative of the function at each value in
         x.  Only called internally by HARKinterpolator1D.eval_and_der (etc).
         '''
-        if _isscalar(x):
-            i = max(min(np.searchsorted(self.x_list,x),self.x_n-1),1)
-            alpha = (x-self.x_list[i-1])/(self.x_list[i]-self.x_list[i-1])
-            y = (1-alpha)*self.y_list[i-1] + alpha*self.y_list[i]
-            dydx = (self.y_list[i] - self.y_list[i-1])/(self.x_list[i] - self.x_list[i-1])
-        else:
-            y = np.zeros_like(x,dtype=float)
-            dydx = np.zeros_like(x,dtype=float)
-            if y.size > 0:
-                i = np.maximum(np.searchsorted(self.x_list[:-1],x),1)
-                alpha = (x-self.x_list[i-1])/(self.x_list[i]-self.x_list[i-1])
-                y = (1-alpha)*self.y_list[i-1] + alpha*self.y_list[i]
-                dydx = (self.y_list[i] - self.y_list[i-1])/(self.x_list[i] - self.x_list[i-1])
-        if not self.lower_extrap:
-            below_lower_bound = x < self.x_list[0]
-            y[below_lower_bound] = np.nan
-            dydx[below_lower_bound] = np.nan
-        if self.decay_extrap:
-            above_upper_bound = x > self.x_list[-1]
-            x_temp = x[above_upper_bound] - self.function.x_list[-1]
-            y[above_upper_bound] = self.intercept_limit + self.slope_limit*x[above_upper_bound] - self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
-            dydx[above_upper_bound] = self.slope_limit + self.decay_extrap_B*self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
-        return y, dydx
+        y,dydx = self._evalOrDer(x,True,True)
+
+        return y,dydx
+        
+
 
 
 class CubicInterp(HARKinterpolator1D):
