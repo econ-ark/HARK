@@ -690,7 +690,7 @@ class LinearInterp(HARKinterpolator1D):
         
         if self.decay_extrap:
             above_upper_bound = x > self.x_list[-1]
-            x_temp = x[above_upper_bound] - self.function.x_list[-1]
+            x_temp = x[above_upper_bound] - self.x_list[-1]
 
             if _eval:
                 y[above_upper_bound] = self.intercept_limit + \
