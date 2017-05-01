@@ -734,8 +734,6 @@ class LinearInterp(HARKinterpolator1D):
         return y,dydx
         
 
-
-
 class CubicInterp(HARKinterpolator1D):
     '''
     An interpolating function using piecewise cubic splines.  Matches level and
@@ -928,106 +926,91 @@ class CubicInterp(HARKinterpolator1D):
         return y, dydx
 
 
-class LinearInterpOLD(HARKinterpolator1D):
+class FellaInterp(HARKobject):
     '''
-    A slight extension of scipy.interpolate's UnivariateSpline for linear inter-
-    polation.  Allows for linear or decay extrapolation (approaching a limiting
-    linear function from below).
+    A 1D interpolator that implements  a variation on Giulio Fella's "upper envelope" method.
+    Fella presents a method for applying the endogenous grid method with non-concave value.
+    Ordinarily, this would create an issue when the optimal policy implied by the first order
+    condition "doubles back" on itself near the non-concavity.  Fella's method generates the
+    correct policy function by taking the upper envelope of the value function when multiple
+    solutions to the FOC are found for one state.
     '''
-    distance_criteria = ['x_list','y_list']
-    
-    def __init__(self,x_list,y_list,intercept_limit=None,slope_limit=None,lower_extrap=False):
+    distance_criteria = ['PolicyFunc']
+
+    def __init__(self, v0=-np.inf, control0=0.0, lower_bound=None):
         '''
-        The interpolation constructor to make a new linear spline interpolation.
+        Make a new FellaInterp instance.  It will initially have a constant value
+        function and constant policy functions; these will be improved by calls to
+        the method _________.
         
         Parameters
         ----------
-        x_list : np.array
-            List of x values composing the grid.
-        y_list : np.array
-            List of y values, representing f(x) at the points in x_list.
-        intercept_limit : float
-            Intercept of limiting linear function.
-        slope_limit : float
-            Slope of limiting linear function.
-        lower_extrap : boolean
-            Indicator for whether lower extrapolation is allowed.  False means
-            f(x) = NaN for x < min(x_list); True means linear extrapolation.
-            
-        Returns
-        -------
-        new instance of LinearInterp
-            
-        NOTE: When no input is given for the limiting linear function, linear
-        extrapolation is used above the highest gridpoint.        
+        v0 : float
+            Initial value for the Fella value function, constant across all states.
+        control0 : float or [float]
+            Initial control levels, constant across all states; can be a single float or a list of floats.
+        lower_bound : float or None
+            Lower bound of the state variable (domain),  if any.
         '''
-        # Make the basic linear spline interpolation
-        self.x_list = x_list
-        self.y_list = y_list
-        self.function = UnivariateSpline(x_list,y_list,k=1,s=0)
-        self.lower_extrap = lower_extrap
-        
-        # Make a decay extrapolation
-        if intercept_limit is not None and slope_limit is not None:
-            slope_at_top = self.function(x_list[-1],1)
-            level_diff = intercept_limit + slope_limit*x_list[-1] - y_list[-1]
-            slope_diff = slope_limit - slope_at_top
-            self.decay_extrap_A = level_diff
-            self.decay_extrap_B = -slope_diff/level_diff
-            self.intercept_limit = intercept_limit
-            self.slope_limit = slope_limit
-            self.decay_extrap = True
+        if lower_bound is None:
+            bot = 0.0
         else:
-            self.decay_extrap = False
+            bot = lower_bound
+        top = bot + 1.
         
-    def _evaluate(self,x):
+        self.lower_bound = lower_bound
+        self.vFunc = LinearInterp([bot,top],[v0,v0])
+        self.PolicyFunc = []
+        if type(control0) is not list:
+            control0 = [control0]
+        for control0_i in control0:
+            self.PolicyFunc.append(LinearInterp([bot,top],[control0_i,control0_i]))
+            
+    def addNewPoints(self,states,values,policies):
         '''
-        Returns the level of the interpolated function at each value in x.  Only
-        called internally by HARKinterpolator1D.__call__ (etc).
-        '''
-        out = self.function(x)
-        if not self.lower_extrap:
-            below_lower_bound = x < self.function._data[0][0]
-            out[below_lower_bound] = np.nan
-        if self.decay_extrap:
-            above_upper_bound = x > self.function._data[0][-1]
-            x_temp = x[above_upper_bound] - self.function._data[0][-1]
-            out[above_upper_bound] = self.intercept_limit + self.slope_limit*x[above_upper_bound] - self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
-        return out
+        Update the Fella functions with new candidate points.  Each input is an
+        array of the same length; corresponding elements across arrays represent
+        a candidate (state,value,policy).  This method incorporates these new
+        points into the "upper envelope" of the current value function, generating
+        potentially discontinuous policy functions.
         
-    def _der(self,x):
+        Parameters
+        ----------
+        states : np.array
+            1D array of states for the candidate points.
+        values : np.array
+            1D array of values associated with each of the candidate states.
+        policies : np.array
+            1D or 2D array of control variables at the candidate states; different
+            control variables are stored in different rows of policies.
         '''
-        Returns the first derivative of the interpolated function at each value
-        in x. Only called internally by HARKinterpolator1D.derivative (etc).
-        '''
-        out = self.function(x,1)
-        if not self.lower_extrap:
-            below_lower_bound = x < self.function._data[0][0]
-            out[below_lower_bound] = np.nan
-        if self.decay_extrap:
-            above_upper_bound = x > self.function._data[0][-1]
-            x_temp = x[above_upper_bound] - self.function._data[0][-1]
-            out[above_upper_bound] = self.slope_limit + self.decay_extrap_B*self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
-        return out
+        if len(policies.shape) == 1:
+            policies = np.reshape(policies,(1,policies.size))
         
-    def _evalAndDer(self,x):
-        '''
-        Returns the level and first derivative of the function at each value in
-        x.  Only called internally by HARKinterpolator1D.eval_and_der (etc).
-        '''
-        out1 = self.function(x)
-        out2 = self.function(x,1)
-        if not self.lower_extrap:
-            below_lower_bound = x < self.function._data[0][0]
-            out1[below_lower_bound] = np.nan
-            out2[below_lower_bound] = np.nan
-        if self.decay_extrap:
-            above_upper_bound = x > self.function._data[0][-1]
-            x_temp = x[above_upper_bound] - self.function._data[0][-1]
-            out1[above_upper_bound] = self.intercept_limit + self.slope_limit*x[above_upper_bound] - self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
-            out2[above_upper_bound] = self.slope_limit + self.decay_extrap_B*self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
-        return out1, out2
-        
+        for j in range(len(states)-1):
+            # Orient this candidate segment so that it's "facing" the right way
+            if states[j] < states[j+1]:
+                x0 = states[j]
+                x1 = states[j+1]
+                v0 = values[j]
+                v1 = values[j+1]
+                y0 = policies[:,j]
+                y1 = policies[:,j+1]
+            else:
+                x1 = states[j]
+                x0 = states[j+1]
+                v1 = values[j]
+                v0 = values[j+1]
+                y1 = policies[:,j]
+                y0 = policies[:,j+1]
+
+            # Get value at the endpoints of this segment and at all state nodes
+            # for the value function inside the segment
+            V_ends = self.vFunc([x0,x1])
+            bot = np.searchsorted(self.vFunc.x_list,x0,side='right')
+            top = np.searchsorted(self.vFunc.x_list,x1)
+            V_list = np.concatenate(([V_ends[0]],self.vFunc.y_list[bot:top],[V_ends[1]]))
+            
         
 class BilinearInterp(HARKinterpolator2D):
     '''
