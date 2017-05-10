@@ -17,7 +17,7 @@ from HARKutilities import approxMeanOneLognormal, combineIndepDstns, approxUnifo
 from HARKsimulation import drawDiscrete
 from HARKcore import Market
 #from HARKparallel import multiThreadCommandsFake
-import SetupParamsCSTWnew as Params
+import SetupParamsCSTW as Params
 import ConsIndShockModel as Model
 from ConsAggShockModel import CobbDouglasEconomy, AggShockConsumerType
 from scipy.optimize import golden, brentq
