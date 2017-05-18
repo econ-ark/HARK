@@ -111,6 +111,7 @@ init_lifecycle['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
 init_lifecycle['T_cycle']    = 10
 init_lifecycle['T_retire']   = 7
 init_lifecycle['T_age']      = 11 # Make sure that old people die at terminal age and don't turn into newborns!
+init_lifecycle['cycles']     = 1
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
