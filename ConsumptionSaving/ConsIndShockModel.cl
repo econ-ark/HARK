@@ -4,8 +4,9 @@
 /* Random number generator */
 inline uint RNG(uint s) {
     uint seed = (s * 0x5DEECE66DL + 0xBL) & ((1L << 48) - 1);
-    return (seed >> 16);
+    return (seed >> 0);
 }
+
 
 
 
@@ -17,6 +18,7 @@ __kernel void getMortality(
     ,__global int *tAgeNow
     ,__global int *TypeAddress
     ,__global double *NormDraws
+    ,__global double *UniDraws
     ,__global double *LivPrb
     ,__global double *aNrmInitMean
     ,__global double *aNrmInitStd
@@ -35,6 +37,8 @@ __kernel void getMortality(
     /* Unpack the integer inputs */
     int AgentCount = IntegerInputs[0];
     int tSim = IntegerInputs[4];
+    int NormCount = IntegerInputs[5];
+    int UniCount = IntegerInputs[6];
 
     /* Get basic information about this agent */
     int Type = TypeNow[Gid];
@@ -42,14 +46,15 @@ __kernel void getMortality(
     int temp = LocA + tCycleNow[Gid];
     
     /* Randomly draw whether this agent should be replaced */
-    uint Seed = (uint)(tSim*AgentCount + Gid) + 15;
+    uint Seed = (uint)(tSim*AgentCount + Gid + 15);
     uint LivRand = RNG(Seed);
-    double LivShk = ((double)LivRand)/pown(2.0,16);
+    LivRand = LivRand - UniCount*(LivRand/UniCount);
+    double LivShk = UniDraws[LivRand];
     if (LivShk > LivPrb[temp]) {
 	uint pRand = RNG(Seed+1);
 	uint aRand = RNG(Seed+2);
-        pRand = pRand - 65536*(pRand/65536);
-        aRand = aRand - 65536*(aRand/65536);
+        pRand = pRand - NormCount*(pRand/NormCount);
+        aRand = aRand - NormCount*(aRand/NormCount);
         pLvlNow[Gid] = exp(NormDraws[pRand]*pLvlInitStd[temp] + pLvlInitMean[temp]);
         aNrmNow[Gid] = exp(NormDraws[aRand]*aNrmInitStd[temp] + aNrmInitMean[temp]);
         tCycleNow[Gid] = 0;
@@ -67,6 +72,7 @@ __kernel void getShocks(
     ,__global int *tCycleNow
     ,__global int *TypeAddress
     ,__global double *NormDraws
+    ,__global double *UniDraws
     ,__global double *PermStd
     ,__global double *TranStd
     ,__global double *UnempPrb
@@ -84,6 +90,8 @@ __kernel void getShocks(
     /* Unpack the integer inputs */
     int AgentCount = IntegerInputs[0];
     int tSim = IntegerInputs[4];
+    int NormCount = IntegerInputs[5];
+    int UniCount = IntegerInputs[6];
 
     /* Get basic information about this agent */
     int Type = TypeNow[Gid];
@@ -94,16 +102,17 @@ __kernel void getShocks(
     uint Seed = (uint)((tSim*AgentCount + Gid)*3);
     uint PermRand = RNG(Seed);
     uint TranRand = RNG(Seed+1);
-    PermRand = PermRand - 65536*(PermRand/65536);
-    TranRand = TranRand - 65536*(TranRand/65536);
+    PermRand = PermRand - NormCount*(PermRand/NormCount);
+    TranRand = TranRand - NormCount*(TranRand/NormCount);
     uint UnempRand = RNG(Seed+2);
+    UnempRand = UnempRand - UniCount*(UnempRand/UniCount);
 
     /* Transform random integers into shocks for this agent */
     double psiStd = PermStd[temp];
     double thetaStd = TranStd[temp];
     double PermShk = exp(NormDraws[PermRand]*psiStd - 0.5*powr(psiStd,2.0));
     double TranShk = exp(NormDraws[TranRand]*thetaStd - 0.5*powr(thetaStd,2.0));
-    double UnempShk = ((double)UnempRand)/pown(2.0,16);
+    double UnempShk = UniDraws[UnempRand];
     if (UnempShk < UnempPrb[temp]) {
         TranShk = IncUnemp[temp];
     }
@@ -161,6 +170,7 @@ __kernel void getControls(
      __global int *IntegerInputs
     ,__global int *TypeNow
     ,__global int *tCycleNow
+    ,__global int *Ttotal
     ,__global int *TypeAddress
     ,__global int *CoeffsAddress
     ,__global double *mGrid
@@ -217,6 +227,10 @@ __kernel void getControls(
     }
     double mBound = mLowerBound[LocB];
 
+    cNrm = mNrm; /* Default, which is kept if this is terminal period */
+    MPC = 1.0;
+
+    if (tCycleNow[Gid] < (Ttotal[Type]-1)) {
     /* Find correct grid sector for this agent */
     Botj = 0;
     Topj = GridSize - 1;
@@ -280,6 +294,7 @@ __kernel void getControls(
         cNrm = cNrmCons;
         MPC = 1.0;
     }
+    } /* End of "if not terminal period" block */
 
     /* Store this agent's consumption and MPC in global buffers */
     cNrmNow[Gid] = cNrm;
@@ -319,7 +334,7 @@ __kernel void getPostStates(
     int Type = TypeNow[Gid];
     tAgeNow[Gid] = tAgeNow[Gid] + 1;
     int temp = tCycleNow[Gid] + 1;
-    if (temp == Ttotal[Type]) {
+    if (temp == (Ttotal[Type])) {
         temp = 0;
     }
     tCycleNow[Gid] = temp;

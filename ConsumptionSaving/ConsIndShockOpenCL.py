@@ -36,7 +36,7 @@ class IndShockConsumerTypesOpenCL():
         '''
         self.agents = agents
         self.TypeCount = len(agents)
-        self.IntegerInputs = np.zeros(6,dtype=int)
+        self.IntegerInputs = np.zeros(8,dtype=int)
         self.IntegerInputs[1] = self.TypeCount
         self.IntegerInputs_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,self.IntegerInputs)
         
@@ -69,6 +69,7 @@ class IndShockConsumerTypesOpenCL():
                                       self.t_age_buf,
                                       self.TypeAddress_buf,
                                       self.NormDraws_buf,
+                                      self.UniDraws_buf,
                                       self.LivPrb_buf,
                                       self.aNrmInitMean_buf,
                                       self.aNrmInitStd_buf,
@@ -83,6 +84,7 @@ class IndShockConsumerTypesOpenCL():
                                    self.t_cycle_buf,
                                    self.TypeAddress_buf,
                                    self.NormDraws_buf,
+                                   self.UniDraws_buf,
                                    self.PermStd_buf,
                                    self.TranStd_buf,
                                    self.UnempPrb_buf,
@@ -107,6 +109,7 @@ class IndShockConsumerTypesOpenCL():
         self.getControlsKrn.set_args(self.IntegerInputs_buf,
                                      self.TypeNow_buf,
                                      self.t_cycle_buf,
+                                     self.T_total_buf,
                                      self.TypeAddress_buf,
                                      self.CoeffsAddress_buf,
                                      self.mGrid_buf,
@@ -256,9 +259,14 @@ class IndShockConsumerTypesOpenCL():
         self.MPCnow_buf  = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,blank_float_vec)
         self.PermShkNow_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,blank_float_vec)
         self.TranShkNow_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,blank_float_vec)
+        self.TestVar_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,blank_float_vec)
         NormDraws_vec = np.random.randn(65536)
-        self.NormDraws_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,NormDraws_vec)
+        UniDraws_vec = np.random.rand(500000)
+        self.NormDraws_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,NormDraws_vec)
+        self.UniDraws_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,UniDraws_vec)
         self.IntegerInputs[0] = AgentCount
+        self.IntegerInputs[5] = NormDraws_vec.size
+        self.IntegerInputs[6] = UniDraws_vec.size
         queue.write_buffer(self.IntegerInputs_buf,self.IntegerInputs)
         
         
@@ -297,6 +305,7 @@ class IndShockConsumerTypesOpenCL():
             mLowerBound_vec[bot:top] = np.array([agent.solution[t].mNrmMin for t in range(T)])
             mGrid_size += np.sum(temp)
         CoeffsAddress_vec = CoeffsAddress_vec[:-1]
+        self.CoeffsAddress = CoeffsAddress_vec
         mGrid_vec = np.concatenate(mGrid_list)
         Coeffs0_vec = np.zeros(mGrid_size)
         Coeffs1_vec = np.zeros(mGrid_size)
@@ -392,36 +401,118 @@ class IndShockConsumerTypesOpenCL():
             bot = top
             
             
+    def simOnePeriod(self):
+        '''
+        Simulates one period of the consumption-saving model for all agents
+        represented by this instance.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        queue.execute_kernel(self.getMortalityKrn, [self.AgentCount], None)
+        queue.execute_kernel(self.getShocksKrn, [self.AgentCount], None)
+        queue.execute_kernel(self.getStatesKrn, [self.AgentCount], None)
+        queue.execute_kernel(self.getControlsKrn, [self.AgentCount], None)
+        queue.execute_kernel(self.getPostStatesKrn, [self.AgentCount], None)
+        self.IntegerInputs[4] += 1 # Advance t_sim, else RNG works badly
+        queue.write_buffer(self.IntegerInputs_buf,self.IntegerInputs)
+        
+        
+        
+    def simNperiods(self,N):
+        '''
+        Simulates N periods of the consumption-saving model for all agents
+        represented by this instance.
+        
+        Parameters
+        ----------
+        N : int
+            Number of periods to simulate.
+            
+        Returns
+        -------
+        None
+        '''
+        for n in range(N):
+            self.simOnePeriod()
+            
+            
             
 if __name__ == '__main__':
     import ConsumerParameters as Params
     from ConsIndShockModel import IndShockConsumerType
     import matplotlib.pyplot as plt
-    from copy import copy
+    from copy import copy, deepcopy
+    from time import clock
     
     TestType = IndShockConsumerType(**Params.init_lifecycle)
+    TestType.TestVar = np.empty(10000)
     TestType.CubicBool = True
+    T_sim = 1000
+    TestType.T_sim = T_sim
+    
+    OtherType = deepcopy(TestType)
+    OtherType.CRRA += 1.0
     TestType.solve()
-    TestOpenCL = IndShockConsumerTypesOpenCL([TestType])
+    OtherType.solve()
+    TestOpenCL = IndShockConsumerTypesOpenCL([TestType,OtherType])
     
-    TestType.T_sim = 10
     TestType.initializeSim()
-    TestType.simulate(1)
+    OtherType.initializeSim()
+#    TestType.simulate(1)
     
-    TestOpenCL.writeSimVar('mNrmNow')
-#    TestOpenCL.writeSimVar('cNrmNow')
-    TestOpenCL.writeSimVar('pLvlNow')
     TestOpenCL.loadSimulationKernels()
+    TestOpenCL.writeSimVar('aNrmNow')
+    TestOpenCL.writeSimVar('pLvlNow')
     
-    queue.execute_kernel(TestOpenCL.getControlsKrn, [TestOpenCL.AgentCount], None)
-    X = copy(TestType.cNrmNow)
-    Y = copy(TestType.MPCnow)
+    t_start = clock()
+    TestOpenCL.simNperiods(T_sim)
+    TestOpenCL.readSimVar('t_cycle')
+    t_end = clock()
+    print('Simulating ' + str(TestOpenCL.AgentCount) + ' consumers for ' + str(T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds on OpenCL.')
+    
+    TestOpenCL.readSimVar('mNrmNow')
     TestOpenCL.readSimVar('cNrmNow')
-    TestOpenCL.readSimVar('MPCnow')
-    plt.plot(np.sort(TestType.cNrmNow - X))
-    plt.show()
+#    TestOpenCL.readSimVar('TestVar')
     
-
+#    C_test = np.zeros(TestType.AgentCount)
+#    for t in range(TestType.T_cycle+1):
+#        these = TestType.TestVar == t
+#        C_test[these] = TestType.solution[t].cFunc(TestType.mNrmNow[these])
+#    plt.plot(C_test,TestType.cNrmNow,'.k')
+#    plt.show()
+#    
+#    C_test = np.zeros(OtherType.AgentCount)
+#    for t in range(OtherType.T_cycle+1):
+#        these = OtherType.TestVar == t
+#        C_test[these] = OtherType.solution[t].cFunc(OtherType.mNrmNow[these])
+#    plt.plot(C_test,OtherType.cNrmNow,'.k')
+#    plt.show()
+    
+#    t_start = clock()
+#    TestType.simulate()
+#    t_end = clock()
+#    print('Simulating ' + str(TestType.AgentCount) + ' consumers for ' + str(T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds on Python.')
+    
+    
+#    TestOpenCL.writeSimVar('mNrmNow')
+#    TestOpenCL.writeSimVar('cNrmNow')
+#    TestOpenCL.writeSimVar('pLvlNow')
+#    TestOpenCL.loadSimulationKernels()
+    
+#    queue.execute_kernel(TestOpenCL.getControlsKrn, [TestOpenCL.AgentCount], None)
+#    X = copy(TestType.cNrmNow)
+#    Y = copy(TestType.MPCnow)
+#    TestOpenCL.readSimVar('cNrmNow')
+#    TestOpenCL.readSimVar('MPCnow')
+#    plt.plot(np.sort(TestType.cNrmNow - X))
+#    plt.show()
+    
 #    queue.execute_kernel(TestOpenCL.getPostStatesKrn, [TestOpenCL.AgentCount], None)
 #    queue.execute_kernel(TestOpenCL.getMortalityKrn, [TestOpenCL.AgentCount], None)
 #    queue.execute_kernel(TestOpenCL.getShocksKrn, [TestOpenCL.AgentCount], None)
