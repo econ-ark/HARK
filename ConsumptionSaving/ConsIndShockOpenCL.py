@@ -133,6 +133,43 @@ class IndShockConsumerTypesOpenCL():
                                        self.pLvlNow_buf,
                                        self.aNrmNow_buf,
                                        self.aLvlNow_buf)
+        
+        self.simOnePeriodKrn = self.program.get_kernel("simOnePeriod")
+        self.simOnePeriodKrn.set_args(self.IntegerInputs_buf,
+                                      self.TypeNow_buf,
+                                      self.t_cycle_buf,
+                                      self.t_age_buf,
+                                      self.T_total_buf,
+                                      self.TypeAddress_buf,
+                                      self.CoeffsAddress_buf,
+                                      self.NormDraws_buf,
+                                      self.UniDraws_buf,
+                                      self.LivPrb_buf,
+                                      self.aNrmInitMean_buf,
+                                      self.aNrmInitStd_buf,
+                                      self.pLvlInitMean_buf,
+                                      self.pLvlInitStd_buf,
+                                      self.PermStd_buf,
+                                      self.TranStd_buf,
+                                      self.UnempPrb_buf,
+                                      self.IncUnemp_buf,
+                                      self.PermGroFac_buf,
+                                      self.Rfree_buf,
+                                      self.mGrid_buf,
+                                      self.mLowerBound_buf,
+                                      self.Coeffs0_buf,
+                                      self.Coeffs1_buf,
+                                      self.Coeffs2_buf,
+                                      self.Coeffs3_buf,
+                                      self.PermShkNow_buf,
+                                      self.TranShkNow_buf,
+                                      self.aNrmNow_buf,
+                                      self.pLvlNow_buf,
+                                      self.mNrmNow_buf,
+                                      self.cNrmNow_buf,
+                                      self.MPCnow_buf,
+                                      self.aLvlNow_buf,
+                                      self.TestVar_buf)
                                        
         
 
@@ -401,7 +438,7 @@ class IndShockConsumerTypesOpenCL():
             bot = top
             
             
-    def simOnePeriod(self):
+    def simOnePeriodOLD(self):
         '''
         Simulates one period of the consumption-saving model for all agents
         represented by this instance.
@@ -423,6 +460,24 @@ class IndShockConsumerTypesOpenCL():
         queue.write_buffer(self.IntegerInputs_buf,self.IntegerInputs)
         
         
+    def simOnePeriodNEW(self):
+        '''
+        Simulates one period of the consumption-saving model for all agents
+        represented by this instance.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        queue.execute_kernel(self.simOnePeriodKrn, [self.AgentCount], None)
+        self.IntegerInputs[4] += 1 # Advance t_sim, else RNG works badly
+        queue.write_buffer(self.IntegerInputs_buf,self.IntegerInputs)
+        
+        
         
     def simNperiods(self,N):
         '''
@@ -439,7 +494,7 @@ class IndShockConsumerTypesOpenCL():
         None
         '''
         for n in range(N):
-            self.simOnePeriod()
+            self.simOnePeriodNEW()
             
             
             
@@ -478,21 +533,21 @@ if __name__ == '__main__':
     
     TestOpenCL.readSimVar('mNrmNow')
     TestOpenCL.readSimVar('cNrmNow')
-#    TestOpenCL.readSimVar('TestVar')
+    TestOpenCL.readSimVar('TestVar')
     
-#    C_test = np.zeros(TestType.AgentCount)
-#    for t in range(TestType.T_cycle+1):
-#        these = TestType.TestVar == t
-#        C_test[these] = TestType.solution[t].cFunc(TestType.mNrmNow[these])
-#    plt.plot(C_test,TestType.cNrmNow,'.k')
-#    plt.show()
-#    
-#    C_test = np.zeros(OtherType.AgentCount)
-#    for t in range(OtherType.T_cycle+1):
-#        these = OtherType.TestVar == t
-#        C_test[these] = OtherType.solution[t].cFunc(OtherType.mNrmNow[these])
-#    plt.plot(C_test,OtherType.cNrmNow,'.k')
-#    plt.show()
+    C_test = np.zeros(TestType.AgentCount)
+    for t in range(TestType.T_cycle+1):
+        these = TestType.TestVar == t
+        C_test[these] = TestType.solution[t].cFunc(TestType.mNrmNow[these])
+    plt.plot(C_test,TestType.cNrmNow,'.k')
+    plt.show()
+    
+    C_test = np.zeros(OtherType.AgentCount)
+    for t in range(OtherType.T_cycle+1):
+        these = OtherType.TestVar == t
+        C_test[these] = OtherType.solution[t].cFunc(OtherType.mNrmNow[these])
+    plt.plot(C_test,OtherType.cNrmNow,'.k')
+    plt.show()
     
 #    t_start = clock()
 #    TestType.simulate()
