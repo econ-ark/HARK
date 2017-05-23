@@ -35,7 +35,6 @@ __kernel void solveConsIndShock(
     ,__global double *mTemp
     ,__global double *cTemp
     ,__global double *MPCtemp
-    ,__global double *TestVar
 ) {
 
     /* Initialize this thread's id */
@@ -243,9 +242,7 @@ __kernel void solveConsIndShock(
             vPP = -rho*MPC*powr(psi*cNrm,-rho-1.0);
             EndOfPrdvP += prob*vP;
             EndOfPrdvPP += prob*vPP;
-            if (i == 0) {
-                TestVar[Gid] = (double)IdxNext;
-            }
+            
             i += 1;
         }
 
@@ -525,7 +522,7 @@ __kernel void getControls(
     else {
         GridSize = CoeffsAddress[temp+1] - LocB;
     }
-    double mBound = mLowerBound[LocB];
+    double mBound = mLowerBound[temp];
 
     cNrm = mNrm; /* Default, which is kept if this is terminal period */
     MPC = 1.0;
@@ -775,6 +772,7 @@ __kernel void simOnePeriod(
     double mX;
     double cNrm;
     double MPC;
+    double cNrmCons;
 
     /* Get some indices and bounds for this consumer's type-age */
     int LocB = CoeffsAddress[temp];
@@ -785,7 +783,7 @@ __kernel void simOnePeriod(
     else {
         GridSize = CoeffsAddress[temp+1] - LocB;
     }
-    double mBound = mLowerBound[LocB];
+    double mBound = mLowerBound[temp];
 
     cNrm = mNrm; /* Default, which is kept if this is terminal period */
     MPC = 1.0;
@@ -849,7 +847,7 @@ __kernel void simOnePeriod(
     }
 
     /* Make sure consumption does not violate the borrowing constraint */
-    double cNrmCons = mNrm - mBound;
+    cNrmCons = mNrm - mBound;
     if (cNrmCons < cNrm) {
         cNrm = cNrmCons;
         MPC = 1.0;

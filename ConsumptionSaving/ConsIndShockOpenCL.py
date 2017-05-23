@@ -280,8 +280,6 @@ class IndShockConsumerTypesOpenCL():
         # Adjust integer inputs
         self.IntegerInputs[7] = self.agents[0].aXtraCount # assumes all types have same aXtraCount
         queue.write_buffer(self.IntegerInputs_buf,self.IntegerInputs)
-        self.TestVar_vec = np.zeros(ThreadCount)
-        self.TestVar_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,self.TestVar_vec)
         
         # Load the solver kernel
         self.solveConsIndShockKrn = self.program.get_kernel("solveConsIndShock")
@@ -309,8 +307,7 @@ class IndShockConsumerTypesOpenCL():
                                         self.Coeffs3_buf,
                                         self.mTemp_buf,
                                         self.cTemp_buf,
-                                        self.MPCtemp_buf,
-                                        self.TestVar_buf)
+                                        self.MPCtemp_buf)
                                        
         
 
@@ -678,7 +675,7 @@ if __name__ == '__main__':
     OtherType.CRRA += 1.0
 #    TestType.solve()
 #    OtherType.solve()
-    TestOpenCL = IndShockConsumerTypesOpenCL(4*[TestType])
+    TestOpenCL = IndShockConsumerTypesOpenCL([TestType])
     
     TestOpenCL.prepareToSolve()
     t_start = clock()
@@ -707,30 +704,31 @@ if __name__ == '__main__':
 #    f = CubicInterp(test0,test1,test2)
 #    plotFuncs(f,test0[0],20)
     
+    TestType.solve()
+    OtherType.solve()
+    TestType.initializeSim()
+    OtherType.initializeSim()
     
-#    TestType.initializeSim()
-#    OtherType.initializeSim()
-#    
-#    TestOpenCL.loadSimulationKernels()
-#    TestOpenCL.writeSimVar('aNrmNow')
-#    TestOpenCL.writeSimVar('pLvlNow')
+    TestOpenCL.loadSimulationKernels()
+    TestOpenCL.writeSimVar('aNrmNow')
+    TestOpenCL.writeSimVar('pLvlNow')
     
-#    t_start = clock()
-#    TestOpenCL.simNperiods(T_sim)
-#    TestOpenCL.readSimVar('t_cycle')
-#    t_end = clock()
-#    print('Simulating ' + str(TestOpenCL.AgentCount) + ' consumers for ' + str(T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds on OpenCL.')
-#    
-#    TestOpenCL.readSimVar('mNrmNow')
-#    TestOpenCL.readSimVar('cNrmNow')
-#    TestOpenCL.readSimVar('TestVar')
-#    
-#    C_test = np.zeros(TestType.AgentCount)
-#    for t in range(TestType.T_cycle+1):
-#        these = TestType.TestVar == t
-#        C_test[these] = TestType.solution[t].cFunc(TestType.mNrmNow[these])
-#    plt.plot(C_test,TestType.cNrmNow,'.k')
-#    plt.show()
+    t_start = clock()
+    TestOpenCL.simNperiods(T_sim)
+    TestOpenCL.readSimVar('t_cycle')
+    t_end = clock()
+    print('Simulating ' + str(TestOpenCL.AgentCount) + ' consumers for ' + str(T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds on OpenCL.')
+    
+    TestOpenCL.readSimVar('mNrmNow')
+    TestOpenCL.readSimVar('cNrmNow')
+    TestOpenCL.readSimVar('TestVar')
+    
+    C_test = np.zeros(TestType.AgentCount)
+    for t in range(TestType.T_cycle+1):
+        these = TestType.TestVar == t
+        C_test[these] = TestType.solution[t].cFunc(TestType.mNrmNow[these])
+    plt.plot(C_test,TestType.cNrmNow,'.k')
+    plt.show()
 #    
 #    C_test = np.zeros(OtherType.AgentCount)
 #    for t in range(OtherType.T_cycle+1):
