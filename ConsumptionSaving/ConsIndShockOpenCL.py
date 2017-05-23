@@ -3,10 +3,13 @@ This module provides functions and classes for implementing ConsIndShockModel
 on OpenCL, enabling the use of GPU computing.
 '''
 
+import sys
 import os
 import numpy as np
 import opencl4py as cl
 os.environ["PYOPENCL_CTX"] = "2" # This is where you choose a device number
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('./'))
 
 f = open('ConsIndShockModel.cl')
 program_code = f.read()
@@ -170,6 +173,144 @@ class IndShockConsumerTypesOpenCL():
                                       self.MPCnow_buf,
                                       self.aLvlNow_buf,
                                       self.TestVar_buf)
+        
+        
+        
+    def prepareToSolve(self):
+        '''
+        Makes buffers to hold data that will be used by the OpenCL solver kernel,
+        including buffers to hold the solution itself.  All buffers are stored as
+        attributes of self with the _buf suffix.  Needs primitive parameters to be
+        defined, and the update() method to have run (so that IncomeDstn exists).
+        This method only works for cycles != 0.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        # Make buffers with preference parameters
+        CRRA_vec = np.array([agent.CRRA for agent in self.agents])
+        DiscFac_vec = np.array([agent.DiscFac for agent in self.agents])
+        BoroCnst_vec = np.array([agent.BoroCnstArt for agent in self.agents])
+        self.CRRA_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,CRRA_vec)
+        self.DiscFac_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,DiscFac_vec)
+        self.BoroCnst_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,BoroCnst_vec)
+        
+        # Make buffer for the aXtraGrid
+        aXtraGrid_vec = np.concatenate([agent.aXtraGrid for agent in self.agents])
+        self.aXtraGrid_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,aXtraGrid_vec)
+        
+        # Prepare to make buffers for income distributions
+        T_total_vec = self.T_total_vec
+        IncomePrbs_list = []
+        PermShks_list = []
+        TranShks_list = []
+        IncDstnAddress_vec = np.zeros(np.sum(T_total_vec)+1,dtype=int)
+        WorstIncPrb_vec = np.zeros(np.sum(T_total_vec)+1)
+        idx = 0
+        loc = 0
+        for j in range(len(self.agents)):
+            this_agent = self.agents[j]
+            lengths = this_agent.cycles*[this_agent.IncomeDstn[t][0].size for t in range(this_agent.T_cycle)]
+            lengths.append(0)
+            IncDstnAddress_vec[(idx+1):(idx+T_total_vec[j]+1)] = loc + np.cumsum(lengths)
+            loc += np.sum(lengths)
+            IncomePrbs_temp = np.concatenate([this_agent.IncomeDstn[t][0] for t in range(this_agent.T_cycle)])
+            IncomePrbs_list.append(np.tile(IncomePrbs_temp,this_agent.cycles))
+            PermShks_temp = np.concatenate([this_agent.IncomeDstn[t][1] for t in range(this_agent.T_cycle)])
+            PermShks_list.append(np.tile(PermShks_temp,this_agent.cycles))
+            TranShks_temp = np.concatenate([this_agent.IncomeDstn[t][2] for t in range(this_agent.T_cycle)])
+            TranShks_list.append(np.tile(TranShks_temp,this_agent.cycles))
+            
+            # Get the worst income probability by t for this agent type
+            PermShkMin = [np.min(agent.IncomeDstn[t][1]) for t in range(agent.T_cycle)]
+            TranShkMin = [np.min(agent.IncomeDstn[t][2]) for t in range(agent.T_cycle)]
+            WorstIncPrb = [np.sum(agent.IncomeDstn[t][0]*(agent.IncomeDstn[t][1]==PermShkMin[t])*(agent.IncomeDstn[t][2]==TranShkMin[t])) for t in range(agent.T_cycle)]
+            WorstIncPrb_adj = agent.cycles*WorstIncPrb + [0.0]
+            WorstIncPrb_vec[idx:(idx+T_total_vec[j])] = WorstIncPrb_adj
+            idx += T_total_vec[j]
+        
+        # Make buffers for income distributions                
+        IncomePrbs_vec = np.concatenate(IncomePrbs_list)
+        PermShks_vec = np.concatenate(PermShks_list)
+        TranShks_vec = np.concatenate(TranShks_list)
+        self.IncomePrbs_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,IncomePrbs_vec)
+        self.PermShks_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,PermShks_vec)
+        self.TranShks_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,TranShks_vec)
+        self.WorstIncPrb_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,WorstIncPrb_vec)
+        self.IncDstnAddress_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,IncDstnAddress_vec[:-1])
+        #print(IncDstnAddress_vec)
+        
+        # Make buffers to hold the solution
+        mGridSize = np.sum((T_total_vec-1)*np.array([(agent.aXtraCount+1) for agent in self.agents])) # this assumes a terminal period
+        empty_soln_vec = np.zeros(mGridSize)
+        self.mGrid_buf   = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,empty_soln_vec)
+        self.Coeffs0_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,empty_soln_vec)
+        self.Coeffs1_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,empty_soln_vec)
+        self.Coeffs2_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,empty_soln_vec)
+        self.Coeffs3_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,empty_soln_vec)
+        self.mLowerBound_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,np.zeros(np.sum(T_total_vec)))
+        CoeffsAddress_vec = np.zeros(np.sum(T_total_vec),dtype=int)
+        j = 0
+        idx = 0 # This is a really lazy way to do this
+        for k in range(len(self.agents)):
+            this_agent = self.agents[k]
+            for t in range(T_total_vec[k]):
+                count = (this_agent.aXtraCount+1)*(t < (T_total_vec[k]-1))
+                idx += count
+                CoeffsAddress_vec[j] = idx
+                j += 1
+        CoeffsAddress_vec = np.insert(CoeffsAddress_vec[:-1],0,0.0)
+        self.CoeffsAddress_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,CoeffsAddress_vec)
+        self.SolnSize = mGridSize
+        #print(CoeffsAddress_vec)
+        
+        # Make buffers with temporary global memory
+        ThreadCount = np.sum(np.array([agent.aXtraCount for agent in self.agents]))
+        self.ThreadCountSoln = ThreadCount
+        empty_temp_vec = np.zeros(ThreadCount)
+        self.mTemp_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,empty_temp_vec)
+        self.cTemp_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,empty_temp_vec)
+        self.MPCtemp_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,empty_temp_vec)
+        
+        # Adjust integer inputs
+        self.IntegerInputs[7] = self.agents[0].aXtraCount # assumes all types have same aXtraCount
+        queue.write_buffer(self.IntegerInputs_buf,self.IntegerInputs)
+        self.TestVar_vec = np.zeros(ThreadCount)
+        self.TestVar_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,self.TestVar_vec)
+        
+        # Load the solver kernel
+        self.solveConsIndShockKrn = self.program.get_kernel("solveConsIndShock")
+        self.solveConsIndShockKrn.set_args(self.IntegerInputs_buf,
+                                        self.TypeAddress_buf,
+                                        self.T_total_buf,
+                                        self.CoeffsAddress_buf,
+                                        self.IncDstnAddress_buf,
+                                        self.LivPrb_buf,
+                                        self.IncomePrbs_buf,
+                                        self.PermShks_buf,
+                                        self.TranShks_buf,
+                                        self.WorstIncPrb_buf,
+                                        self.PermGroFac_buf,
+                                        self.Rfree_buf,
+                                        self.CRRA_buf,
+                                        self.DiscFac_buf,
+                                        self.BoroCnst_buf,
+                                        self.aXtraGrid_buf,
+                                        self.mGrid_buf,
+                                        self.mLowerBound_buf,
+                                        self.Coeffs0_buf,
+                                        self.Coeffs1_buf,
+                                        self.Coeffs2_buf,
+                                        self.Coeffs3_buf,
+                                        self.mTemp_buf,
+                                        self.cTemp_buf,
+                                        self.MPCtemp_buf,
+                                        self.TestVar_buf)
                                        
         
 
@@ -438,6 +579,26 @@ class IndShockConsumerTypesOpenCL():
             bot = top
             
             
+            
+    def solveByOpenCL(self):
+        '''
+        Solve all agent types using the OpenCL kernel.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        WorkGroupSize = self.agents[0].aXtraCount
+        GlobalThreadCount = self.ThreadCountSoln
+        queue.execute_kernel(self.solveConsIndShockKrn, [GlobalThreadCount], [WorkGroupSize])
+        queue.read_buffer(TestOpenCL.IntegerInputs_buf,TestOpenCL.IntegerInputs)
+            
+            
+            
     def simOnePeriodOLD(self):
         '''
         Simulates one period of the consumption-saving model for all agents
@@ -504,6 +665,8 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from copy import copy, deepcopy
     from time import clock
+    from HARKinterpolation import CubicInterp
+    from HARKutilities import plotFuncs
     
     TestType = IndShockConsumerType(**Params.init_lifecycle)
     TestType.TestVar = np.empty(10000)
@@ -513,41 +676,68 @@ if __name__ == '__main__':
     
     OtherType = deepcopy(TestType)
     OtherType.CRRA += 1.0
-    TestType.solve()
-    OtherType.solve()
-    TestOpenCL = IndShockConsumerTypesOpenCL([TestType,OtherType])
+#    TestType.solve()
+#    OtherType.solve()
+    TestOpenCL = IndShockConsumerTypesOpenCL(4*[TestType])
     
-    TestType.initializeSim()
-    OtherType.initializeSim()
-#    TestType.simulate(1)
-    
-    TestOpenCL.loadSimulationKernels()
-    TestOpenCL.writeSimVar('aNrmNow')
-    TestOpenCL.writeSimVar('pLvlNow')
-    
+    TestOpenCL.prepareToSolve()
     t_start = clock()
-    TestOpenCL.simNperiods(T_sim)
-    TestOpenCL.readSimVar('t_cycle')
+    TestOpenCL.solveByOpenCL()
     t_end = clock()
-    print('Simulating ' + str(TestOpenCL.AgentCount) + ' consumers for ' + str(T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds on OpenCL.')
+    print('Solving ' + str(TestOpenCL.TypeCount) + ' types took ' + str(t_end-t_start) + ' seconds.')
     
-    TestOpenCL.readSimVar('mNrmNow')
-    TestOpenCL.readSimVar('cNrmNow')
-    TestOpenCL.readSimVar('TestVar')
+#    Coeffs0 = np.empty(TestOpenCL.SolnSize)
+#    queue.read_buffer(TestOpenCL.Coeffs0_buf,Coeffs0)
+#    Coeffs1 = np.empty(TestOpenCL.SolnSize)
+#    queue.read_buffer(TestOpenCL.Coeffs1_buf,Coeffs1)
+#    Coeffs2 = np.empty(TestOpenCL.SolnSize)
+#    queue.read_buffer(TestOpenCL.Coeffs2_buf,Coeffs2)
+#    Coeffs3 = np.empty(TestOpenCL.SolnSize)
+#    queue.read_buffer(TestOpenCL.Coeffs3_buf,Coeffs3)
+#    mGrid = np.empty(TestOpenCL.SolnSize)
+#    queue.read_buffer(TestOpenCL.mGrid_buf,mGrid)
+#    
+#    test0 = np.empty(TestOpenCL.ThreadCountSoln)
+#    test1 = np.empty(TestOpenCL.ThreadCountSoln)
+#    test2 = np.empty(TestOpenCL.ThreadCountSoln)
+#    queue.read_buffer(TestOpenCL.mTemp_buf,test0)
+#    queue.read_buffer(TestOpenCL.cTemp_buf,test1)
+#    queue.read_buffer(TestOpenCL.MPCtemp_buf,test2)
     
-    C_test = np.zeros(TestType.AgentCount)
-    for t in range(TestType.T_cycle+1):
-        these = TestType.TestVar == t
-        C_test[these] = TestType.solution[t].cFunc(TestType.mNrmNow[these])
-    plt.plot(C_test,TestType.cNrmNow,'.k')
-    plt.show()
+#    f = CubicInterp(test0,test1,test2)
+#    plotFuncs(f,test0[0],20)
     
-    C_test = np.zeros(OtherType.AgentCount)
-    for t in range(OtherType.T_cycle+1):
-        these = OtherType.TestVar == t
-        C_test[these] = OtherType.solution[t].cFunc(OtherType.mNrmNow[these])
-    plt.plot(C_test,OtherType.cNrmNow,'.k')
-    plt.show()
+    
+#    TestType.initializeSim()
+#    OtherType.initializeSim()
+#    
+#    TestOpenCL.loadSimulationKernels()
+#    TestOpenCL.writeSimVar('aNrmNow')
+#    TestOpenCL.writeSimVar('pLvlNow')
+    
+#    t_start = clock()
+#    TestOpenCL.simNperiods(T_sim)
+#    TestOpenCL.readSimVar('t_cycle')
+#    t_end = clock()
+#    print('Simulating ' + str(TestOpenCL.AgentCount) + ' consumers for ' + str(T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds on OpenCL.')
+#    
+#    TestOpenCL.readSimVar('mNrmNow')
+#    TestOpenCL.readSimVar('cNrmNow')
+#    TestOpenCL.readSimVar('TestVar')
+#    
+#    C_test = np.zeros(TestType.AgentCount)
+#    for t in range(TestType.T_cycle+1):
+#        these = TestType.TestVar == t
+#        C_test[these] = TestType.solution[t].cFunc(TestType.mNrmNow[these])
+#    plt.plot(C_test,TestType.cNrmNow,'.k')
+#    plt.show()
+#    
+#    C_test = np.zeros(OtherType.AgentCount)
+#    for t in range(OtherType.T_cycle+1):
+#        these = OtherType.TestVar == t
+#        C_test[these] = OtherType.solution[t].cFunc(OtherType.mNrmNow[these])
+#    plt.plot(C_test,OtherType.cNrmNow,'.k')
+#    plt.show()
     
 #    t_start = clock()
 #    TestType.simulate()
