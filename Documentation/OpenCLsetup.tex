@@ -1,0 +1,104 @@
+% !TeX spellcheck = en_GB
+       \documentclass[12pt,pdftex,letterpaper]{article}
+%            \usepackage{setspace}
+            \usepackage[dvips,]{graphicx} %draft option suppresses graphics dvi display
+%            \usepackage{lscape}
+%            \usepackage{latexsym}
+%            \usepackage{endnotes}
+%            \usepackage{epsfig}
+            \usepackage{hyperref}
+%           \singlespace
+            \setlength{\textwidth}{6.5in}
+            \setlength{\textheight}{9in}
+            \addtolength{\topmargin}{-\topmargin} 
+            \setlength{\oddsidemargin}{0in}
+            \setlength{\evensidemargin}{0in}
+            \addtolength{\headsep}{-\headsep}
+            \addtolength{\topskip}{-\topskip}
+            \addtolength{\headheight}{-\headheight}
+            \setcounter{secnumdepth}{2}
+%            \renewcommand{\thesection}{\arabic{section}}
+            % \renewcommand{\footnote}{\endnote}
+            \newtheorem{proposition}{Proposition}
+            \newtheorem{definition}{Definition}
+            \newtheorem{lemma}{lemma}
+            \newtheorem{corollary}{Corollary}
+            \newtheorem{assumption}{Assumption}
+            \newcommand{\Prob}{\operatorname{Prob}}
+            \clubpenalty 5000
+            \widowpenalty 5000
+            \renewcommand{\baselinestretch}{1.5}
+            \usepackage{amsmath}
+            \usepackage{amsthm}
+            \usepackage{amsfonts}
+            \usepackage{amssymb}
+            \usepackage{bbm}
+            \newcommand{\N}{\mathbb{N}}
+			\newcommand{\R}{\mathbb{R}}
+						
+\begin{document}
+\begin{center}
+\textbf{Notes on Setting Up OpenCL for HARK (edited May 26, 2017)}
+\end{center}
+
+The module \texttt{ConsIndShockOpenCL.py} ports the \texttt{ConsIndShock} model into OpenCL, a heterogeneous computing language that enables code to be run on a CPU or a graphics processing unit (GPU).  OpenCL is effectively a restricted subset of C.  This module will not run ``out of the box''; you must do a bit of extra setup first.  This document has instructions for getting OpenCL to work with HARK.
+
+First, you must install OpenCL on your computer.  Different versions (or implementations or ``platforms'') of OpenCL are required for different devices.  To run OpenCL code on a CPU (whether manufactured by Intel or AMD) or an AMD GPU, you should install the AMD APP SDK, which can be found \href{http://developer.amd.com/tools-and-sdks/opencl-zone/amd-accelerated-parallel-processing-app-sdk/}{here}.  You should read through the installation notes (linked on that page) before installing the SDK, but there isn't much to know.  The most important caveat is that you should update your graphics drivers before installing if you have an AMD GPU.  To run OpenCL on an nVidia GPU, you should install the nVidia CUDA Toolkit from \href{https://developer.nvidia.com/cuda-downloads}{here}.  There is also an Intel version of OpenCL that (I believe) only works on Intel CPUs; I don't think there are any advantages of this platform over the AMD SDK.
+
+Second, you must install the package \texttt{opencl4py} in your Python environment.  This package can be found \href{https://pypi.python.org/pypi/opencl4py/1.0.1}{here}, and \textit{might} have been written by someone at Samsung.  The easiest way to install the package is to copy the directory \texttt{src/opencl4py} into the same directory as all of your other packages; if you're using Anaconda, this is something like \texttt{.../Anaconda2/lib/site-packages/}.
+
+This should be all you need to set up OpenCL, but there's a bit more to do to figure out how it will work on your system.  Because OpenCL can be run on a CPU or a GPU, the user needs to specify \textit{which device} will actually run the code; you need to figure out the menu of devices available to you in order to make this choice.  In Python, run the following lines:
+
+\texttt{import opencl4py as cl}
+
+\texttt{platforms = cl.Platforms()}
+
+\texttt{print(platforms.dump\_devices)}
+
+This will print to screen a list of OpenCL platforms and devices (for each platform).  This will likely include your CPU, and possibly one or more GPUs on your machine.  The naming of GPUs can be slightly cryptic, as the name often displays as the development codename of that particular model.  You might need to look on Wikipedia to translate the GPU names you see here into the name that you know the device by.
+
+You must now decide which devices should ever be used for OpenCL computing.  All code that calls \texttt{opencl4py} must specify the ``context'': which devices are to be used.  This is done with lines like:
+
+\texttt{import os}
+
+\texttt{os.environ["PYOPENCL\_CTX"] = "0:0,1,2"}\\
+This sets the environment variable \texttt{PYOPENCL\_CTX} to refer to devices 0, 1, and 2 on platform 0, as named by the \texttt{dump\_devices()} method.  As a default, include in the context all devices from the list (for one particular platform).  There are two main reasons to exclude a device from the context:
+\begin{enumerate}
+\item This GPU is being used for its intended purpose of displaying graphics to a monitor(s).  Running OpenCL code on a GPU that's displaying graphics doesn't necessarily result in a crash, but it often does.
+
+\item This device does not have support for double precision floating point operations, and you want to run code that uses double precision.  Older or low end GPUs (often chips that are hardwired to micro-ATX form motherboards) do not have native double precision capabilities; this is also possible for \textit{very} old CPUs (486 and lower). 
+\end{enumerate}
+To determine whether a device has double precision capability in OpenCL, run:
+
+\texttt{ctx = platforms.create\_some\_context()}
+
+\texttt{ctx.devices[n].extensions}\\
+Do this for each device number \texttt{n} for this platform (e.g.\ 0, 1, and 2).  If a device has double precision capabilities, its list of extensions should include \texttt{cl\_khr\_fp64} and/or \texttt{cl\_amd\_fp64}.  The vast majority of GPUs manufactured since 2011 should have double precision capability; I have yet to encounter a CPU that does not.  If you intend to use DP (and I expect you will), remove its device number from the \texttt{PYOPENCL\_CTX} environment variable.
+
+To run a very simple test kernel, open up the module \texttt{OpenCLtest.py} in the \texttt{/Testing/} directory of HARK.  Set the context to include the appropriate devices, and then run the module.  It should display the device list, then give timings for adding two vectors and multiplying by a constant.  The structure of how to run a function (or ``kernel'') using \texttt{opencl4py} is as follows:
+
+\begin{enumerate}
+\item Make an OpenCL \textit{context} as above with \texttt{create\_some\_context()}.
+
+\item Make a \textit{queue} for one of the devices in the context by doing (e.g.)\\ \texttt{queue = ctx.create\_queue(ctx.devices[0])}.  Note that the device number here does not necessarily correspond to the numbering from \texttt{cl.dump\_devices}.  If not all devices were included in this context, then these are excluded from the numbering.  See \texttt{ctx.devices} for the appropriate numbering.
+
+\item Load in a \textit{program} as a \texttt{string} with \texttt{prg = ctx.create\_program(my\_code)}.  In the test file, I explicitly define the code as a \texttt{string}, typed out.  In most applications, your OpenCL code will be stored in a separate file which can then be read in to Python as a \texttt{string}; see for example \texttt{ConsIndShockOpenCL.py} and \texttt{ConsIndShockModel.cl}.
+
+\item Define a \textit{kernel} from your program with \texttt{krn = prg.get\_kernel("test")}.  In the test file, the name \texttt{test} refers to the name of the kernel in \texttt{my\_code}.
+
+\item Define memory \textit{buffers} that the kernel will use with the \texttt{create\_buffer} method.  This method must be passed appropriate flags to indicate whether the memory is read only, write only, or read-write (these distinctions only matter within a kernel); and for whether the buffer should copy data from a \texttt{numpy} array or merely allocate memory space of a given number of bytes.
+
+\item Set the arguments of the kernel to point to the appropriate buffers with \texttt{krn.set\_args()}.  The number of buffers passed to \texttt{set\_args} should equal the number of inputs listed for that kernel, as in its code.
+
+\item Put the kernel in the queue to be executed with \texttt{queue.execute\_kernel}.  The second argument for this method is the \textit{global work size}, or total number of work items.  The third argument is the \textit{work group size}, which can be set to a default with \texttt{None}.  Setting work group size to something other than a factor of 16 on a GPU can result in extreme slowdowns.
+
+\item Read the buffer back into a \texttt{numpy.array} with \texttt{queue.read\_buffer}.
+\end{enumerate}
+
+The command queue works exactly as you expect it would, holding a list of operations to perform.  If you write a loop that executes a kernel 100 times, then after that loop you read the buffer, the resulting \texttt{array} will be the result after all 100 kernel executions.  If you want to edit the contents of a buffer after creating it, you can use \texttt{queue.write\_buffer}.
+
+In the test module, I have provided two different kernels: a single precision version and a double precision version.  You can choose which version is used with the \texttt{use\_DP} variable near the top of the file.  Note that this boolean both sets \texttt{my\_code} and \texttt{my\_type}.  When passing \texttt{arrays} to OpenCL buffers, you must take care that the \texttt{dtype} of the \texttt{array} corresponds to the data type used in the kernel.  If you make a buffer using a double precision array (\texttt{float64}, the default in \texttt{numpy}), but then use that buffer in a kernel that expects \texttt{float}, a 32-bit floating point number, your code will run... but it will generate nonsense.  When the kernel executes, it will try to interpret the data in the buffer \textit{as if} it were made up of \texttt{float}s, reading in 32 bits per number.  These bits actually correspond to \textit{half} the bits of some 64-bit floating point number (the first half or second half) and thus have no relation to the number you actually want to represent!
+
+The module \texttt{ConsIndShockOpenCL.py} provides a non-trivial application of OpenCL.  This module defines the class \texttt{IndShockConsumerTypesOpenCL}, which is constructed by passing a list of \texttt{IndShockConsumerTypes} instances.  Data that defines the problem of each instance type will be loaded into OpenCL buffers on the chosen device.  If the user wants to manually move existing model solutions (found in HARK) into OpenCL for simulation, this can be done with the method \texttt{makeSolutionBuffers()}.  If the user wants solution to be performed by OpenCL, he should run the method \texttt{prepareToSolve()}, which makes buffers that will hold the solution, as well as additional objects needed to solve the model.  All types can then be solved using \texttt{solve()}, filling in the solution buffers.  As of this writing, OpenCL can only solve lifecycle models (\texttt{cycles=1}), but this will be improved in the near future.  Whether the solution is loaded from Python or solved in OpenCL, the model can be simulated using \texttt{simNperiods()} (which will be renamed).  Simulation variables (like \texttt{cNrmNow}) can be extracted from OpenCL buffers into attributes of each agent type with the \texttt{readSimVar()} method; \texttt{writeSimVar()} moves simulation data in the opposite direction, into a buffer.
+\end{document}
+

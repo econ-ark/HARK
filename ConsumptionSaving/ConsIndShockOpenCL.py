@@ -7,7 +7,7 @@ import sys
 import os
 import numpy as np
 import opencl4py as cl
-os.environ["PYOPENCL_CTX"] = "2" # This is where you choose a device number
+os.environ["PYOPENCL_CTX"] = "0:2" # This is where you choose a device number
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('./'))
 
@@ -45,9 +45,6 @@ class IndShockConsumerTypesOpenCL():
         
         self.makeParameterBuffers()  # Make buffers with primitive and constructed parameters
         self.makeSimulationBuffers() # Make buffers for holding current simulated variables
-        has_solved = [hasattr(agents[j],'solution') for j in range(self.TypeCount)]
-        if np.all(np.array(has_solved)):
-            self.makeSolutionBuffers() # Make buffers for the consumption function            
         self.program = ctx.create_program(program_code)
         
         
@@ -577,9 +574,9 @@ class IndShockConsumerTypesOpenCL():
             
             
             
-    def solveByOpenCL(self):
+    def solve(self):
         '''
-        Solve all agent types using the OpenCL kernel.
+        Solve all agent types using the OpenCL kernel.  This overwrites AgentType.solve().
         
         Parameters
         ----------
@@ -592,7 +589,7 @@ class IndShockConsumerTypesOpenCL():
         WorkGroupSize = self.agents[0].aXtraCount
         GlobalThreadCount = self.ThreadCountSoln
         queue.execute_kernel(self.solveConsIndShockKrn, [GlobalThreadCount], [WorkGroupSize])
-        queue.read_buffer(TestOpenCL.IntegerInputs_buf,TestOpenCL.IntegerInputs)
+        queue.read_buffer(self.IntegerInputs_buf,self.IntegerInputs)
             
             
             
@@ -673,39 +670,20 @@ if __name__ == '__main__':
     
     OtherType = deepcopy(TestType)
     OtherType.CRRA += 1.0
-#    TestType.solve()
-#    OtherType.solve()
     TestOpenCL = IndShockConsumerTypesOpenCL([TestType])
     
     TestOpenCL.prepareToSolve()
     t_start = clock()
-    TestOpenCL.solveByOpenCL()
+    TestOpenCL.solve()
     t_end = clock()
-    print('Solving ' + str(TestOpenCL.TypeCount) + ' types took ' + str(t_end-t_start) + ' seconds.')
+    print('Solving ' + str(TestOpenCL.TypeCount) + ' types took ' + str(t_end-t_start) + ' seconds with OpenCL.')
     
-#    Coeffs0 = np.empty(TestOpenCL.SolnSize)
-#    queue.read_buffer(TestOpenCL.Coeffs0_buf,Coeffs0)
-#    Coeffs1 = np.empty(TestOpenCL.SolnSize)
-#    queue.read_buffer(TestOpenCL.Coeffs1_buf,Coeffs1)
-#    Coeffs2 = np.empty(TestOpenCL.SolnSize)
-#    queue.read_buffer(TestOpenCL.Coeffs2_buf,Coeffs2)
-#    Coeffs3 = np.empty(TestOpenCL.SolnSize)
-#    queue.read_buffer(TestOpenCL.Coeffs3_buf,Coeffs3)
-#    mGrid = np.empty(TestOpenCL.SolnSize)
-#    queue.read_buffer(TestOpenCL.mGrid_buf,mGrid)
-#    
-#    test0 = np.empty(TestOpenCL.ThreadCountSoln)
-#    test1 = np.empty(TestOpenCL.ThreadCountSoln)
-#    test2 = np.empty(TestOpenCL.ThreadCountSoln)
-#    queue.read_buffer(TestOpenCL.mTemp_buf,test0)
-#    queue.read_buffer(TestOpenCL.cTemp_buf,test1)
-#    queue.read_buffer(TestOpenCL.MPCtemp_buf,test2)
-    
-#    f = CubicInterp(test0,test1,test2)
-#    plotFuncs(f,test0[0],20)
-    
+    t_start = clock()
     TestType.solve()
-    OtherType.solve()
+#    OtherType.solve()
+    t_end = clock()
+    print('Solving took ' + str(t_end-t_start) + ' seconds with Python.')
+    
     TestType.initializeSim()
     OtherType.initializeSim()
     
@@ -715,7 +693,6 @@ if __name__ == '__main__':
     
     t_start = clock()
     TestOpenCL.simNperiods(T_sim)
-    TestOpenCL.readSimVar('t_cycle')
     t_end = clock()
     print('Simulating ' + str(TestOpenCL.AgentCount) + ' consumers for ' + str(T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds on OpenCL.')
     
@@ -729,40 +706,11 @@ if __name__ == '__main__':
         C_test[these] = TestType.solution[t].cFunc(TestType.mNrmNow[these])
     plt.plot(C_test,TestType.cNrmNow,'.k')
     plt.show()
-#    
-#    C_test = np.zeros(OtherType.AgentCount)
-#    for t in range(OtherType.T_cycle+1):
-#        these = OtherType.TestVar == t
-#        C_test[these] = OtherType.solution[t].cFunc(OtherType.mNrmNow[these])
-#    plt.plot(C_test,OtherType.cNrmNow,'.k')
-#    plt.show()
     
-#    t_start = clock()
-#    TestType.simulate()
-#    t_end = clock()
-#    print('Simulating ' + str(TestType.AgentCount) + ' consumers for ' + str(T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds on Python.')
+    TestType.initializeSim()
+    t_start = clock()
+    TestType.simulate()
+    t_end = clock()
+    print('Simulating ' + str(TestType.AgentCount) + ' consumers for ' + str(T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds on Python.')
     
-    
-#    TestOpenCL.writeSimVar('mNrmNow')
-#    TestOpenCL.writeSimVar('cNrmNow')
-#    TestOpenCL.writeSimVar('pLvlNow')
-#    TestOpenCL.loadSimulationKernels()
-    
-#    queue.execute_kernel(TestOpenCL.getControlsKrn, [TestOpenCL.AgentCount], None)
-#    X = copy(TestType.cNrmNow)
-#    Y = copy(TestType.MPCnow)
-#    TestOpenCL.readSimVar('cNrmNow')
-#    TestOpenCL.readSimVar('MPCnow')
-#    plt.plot(np.sort(TestType.cNrmNow - X))
-#    plt.show()
-    
-#    queue.execute_kernel(TestOpenCL.getPostStatesKrn, [TestOpenCL.AgentCount], None)
-#    queue.execute_kernel(TestOpenCL.getMortalityKrn, [TestOpenCL.AgentCount], None)
-#    queue.execute_kernel(TestOpenCL.getShocksKrn, [TestOpenCL.AgentCount], None)
-#    queue.execute_kernel(TestOpenCL.getStatesKrn, [TestOpenCL.AgentCount], None)
-#    
-#    X = copy(TestType.pLvlNow)
-#    TestOpenCL.readSimVar('pLvlNow')
-#    plt.plot(np.sort(TestType.pLvlNow/X))
-#    plt.show()
-    
+  
