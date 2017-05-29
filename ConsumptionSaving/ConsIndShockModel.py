@@ -23,7 +23,7 @@ from scipy.optimize import newton
 from HARKcore import AgentType, Solution, NullFunc, HARKobject
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
-from HARKsimulation import drawDiscrete, drawBernoulli
+from HARKsimulation import drawDiscrete, drawBernoulli, drawLognormal, drawUniform
 from HARKutilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
                           combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
                           CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
@@ -823,7 +823,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         EndOfPrdvP  = self.DiscFacEff*self.Rfree*self.PermGroFac**(-self.CRRA)*np.sum(
                       self.PermShkVals_temp**(-self.CRRA)*
-                      self.vPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)  
+                      self.vPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)
         return EndOfPrdvP
                     
 
@@ -1237,7 +1237,9 @@ class ConsKinkedRsolver(ConsIndShockSolver):
     A class to solve a single period consumption-saving problem where the interest
     rate on debt differs from the interest rate on savings.  Inherits from
     ConsIndShockSolver, with nearly identical inputs and outputs.  The key diff-
-    erence is that Rfree is replaced by Rsave (a>0) and Rboro (a<0).
+    erence is that Rfree is replaced by Rsave (a>0) and Rboro (a<0).  The solver
+    can handle Rboro == Rsave, which makes it identical to ConsIndShocksolver, but
+    it terminates immediately if Rboro < Rsave, as this has a different solution.
     '''
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                       Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
@@ -1289,12 +1291,12 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         None
         '''
         assert CubicBool==False,'KinkedR will only work with linear interpolation (for now)'
+        assert Rboro>=Rsave, 'Interest factor on debt less than interest factor on savings!'
 
         # Initialize the solver.  Most of the steps are exactly the same as in
         # the non-kinked-R basic case, so start with that.
-        ConsIndShockSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
-                                             Rboro,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,
-                                             CubicBool) 
+        ConsIndShockSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,
+                                    PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool) 
 
         # Assign the interest rates as class attributes, to use them later.
         self.Rboro   = Rboro
@@ -1317,9 +1319,16 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         aNrmNow : np.array
             A 1D array of end-of-period assets; also stored as attribute of self.
         ''' 
+        KinkBool = self.Rboro > self.Rsave # Boolean indicating that there is actually a kink.
+        # When Rboro == Rsave, this method acts just like it did in IndShock.
+        # When Rboro < Rsave, the solver would have terminated when it was called.
+        
         # Make a grid of end-of-period assets, including *two* copies of a=0
-        aNrmNow           = np.sort(np.hstack((np.asarray(self.aXtraGrid) + 
-                            self.mNrmMinNow,np.array([0.0,0.0]))))
+        if KinkBool:
+            aNrmNow       = np.sort(np.hstack((np.asarray(self.aXtraGrid) + self.mNrmMinNow,
+                                                   np.array([0.0,0.0]))))
+        else:
+            aNrmNow       = np.asarray(self.aXtraGrid) + self.mNrmMinNow
         aXtraCount        = aNrmNow.size
         
         # Make tiled versions of the assets grid and income shocks
@@ -1331,21 +1340,22 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         
         # Make a 1D array of the interest factor at each asset gridpoint
         Rfree_vec         = self.Rsave*np.ones(aXtraCount)
-        Rfree_vec[0:(np.sum(aNrmNow<=0)-1)] = self.Rboro
+        if KinkBool:
+            Rfree_vec[0:(np.sum(aNrmNow<=0)-1)] = self.Rboro
         self.Rfree        = Rfree_vec
         Rfree_temp        = np.tile(Rfree_vec,(ShkCount,1))
         
         # Make an array of market resources that we could have next period,
         # considering the grid of assets and the income shocks that could occur
-        mNrmNext          = Rfree_temp/(self.PermGroFac*PermShkVals_temp)*aNrm_temp + \
-                            TranShkVals_temp
+        mNrmNext          = Rfree_temp/(self.PermGroFac*PermShkVals_temp)*aNrm_temp + TranShkVals_temp
         
         # Recalculate the minimum MPC and human wealth using the interest factor on saving.
         # This overwrites values from setAndUpdateValues, which were based on Rboro instead.
-        PatFacTop         = ((self.Rsave*self.DiscFacEff)**(1.0/self.CRRA))/self.Rsave
-        self.MPCminNow    = 1.0/(1.0 + PatFacTop/self.solution_next.MPCmin)
-        self.hNrmNow      = self.PermGroFac/self.Rsave*(np.dot(self.ShkPrbsNext,
-                            self.TranShkValsNext*self.PermShkValsNext) + self.solution_next.hNrm)
+        if KinkBool:
+            PatFacTop         = ((self.Rsave*self.DiscFacEff)**(1.0/self.CRRA))/self.Rsave
+            self.MPCminNow    = 1.0/(1.0 + PatFacTop/self.solution_next.MPCmin)
+            self.hNrmNow      = self.PermGroFac/self.Rsave*(np.dot(self.ShkPrbsNext,
+                                self.TranShkValsNext*self.PermShkValsNext) + self.solution_next.hNrm)
 
         # Store some of the constructed arrays for later use and return the assets grid
         self.PermShkVals_temp = PermShkVals_temp
@@ -1411,7 +1421,6 @@ def solveConsKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
         resources mNrmMin, normalized human wealth hNrm, and bounding MPCs MPCmin
         and MPCmax.  It might also have a value function vFunc.
     '''
-    assert Rboro>=Rsave, 'Interest factor on debt less than interest factor on savings!'    
     
     solver = ConsKinkedRsolver(solution_next,IncomeDstn,LivPrb,
                                             DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
@@ -1440,6 +1449,8 @@ class PerfForesightConsumerType(AgentType):
                                             MPCmin=1.0, MPCmax=1.0)
     time_vary_ = ['LivPrb','PermGroFac']
     time_inv_  = ['CRRA','Rfree','DiscFac']
+    poststate_vars_ = ['aNrmNow','pLvlNow']
+    shock_vars_ = []
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
@@ -1465,9 +1476,9 @@ class PerfForesightConsumerType(AgentType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary      = deepcopy(self.time_vary_)
         self.time_inv       = deepcopy(self.time_inv_)
+        self.poststate_vars = deepcopy(self.poststate_vars_)
+        self.shock_vars     = deepcopy(self.shock_vars_)
         self.solveOnePeriod = solvePerfForesight # solver for perfect foresight model
-        self.a_init = np.zeros(self.Nagents) # initialize assets for simulation
-        self.p_init = np.ones(self.Nagents)  # initialize permanent income for simulation
         
     def updateSolutionTerminal(self):
         '''
@@ -1506,7 +1517,151 @@ class PerfForesightConsumerType(AgentType):
         for solution_t in self.solution:
             self.cFunc.append(solution_t.cFunc)
         self.addToTimeVary('cFunc')
+        
+    def simBirth(self,which_agents):
+        '''
+        Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
+        well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
+        are drawn from lognormal distributions given by aNrmInitMean and aNrmInitStd (etc).
+        
+        Parameters
+        ----------
+        which_agents : np.array(Bool)
+            Boolean array of size self.AgentCount indicating which agents should be "born".
+        
+        Returns
+        -------
+        None
+        '''
+        # Get and store states for newly born agents
+        N = np.sum(which_agents) # Number of new consumers to make
+        self.aNrmNow[which_agents] = drawLognormal(N,mu=self.aNrmInitMean,sigma=self.aNrmInitStd,seed=self.RNG.randint(0,2**31-1))
+        pLvlInitMeanNow = self.pLvlInitMean + np.log(self.PermGroFacAgg**self.t_sim) # Account for newer cohorts having higher permanent income
+        self.pLvlNow[which_agents] = drawLognormal(N,mu=pLvlInitMeanNow,sigma=self.pLvlInitStd,seed=self.RNG.randint(0,2**31-1))
+        self.t_age[which_agents]   = 0 # How many periods since each agent was born
+        self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
+        return None
+        
+    def simDeath(self):
+        '''
+        Determines which agents die this period and must be replaced.  Uses the sequence in LivPrb
+        to determine survival probabilities for each agent.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        which_agents : np.array(bool)
+            Boolean array of size AgentCount indicating which agents die.
+        '''
+        # Determine who dies
+        DiePrb_by_t_cycle = 1.0 - np.asarray(self.LivPrb)
+        DiePrb = DiePrb_by_t_cycle[self.t_cycle-1] # Time has already advanced, so look back one
+        DeathShks = drawUniform(N=self.AgentCount,seed=self.RNG.randint(0,2**31-1))
+        which_agents = DeathShks < DiePrb
+        if self.T_age is not None: # Kill agents that have lived for too many periods
+            too_old = self.t_age >= self.T_age
+            which_agents = np.logical_or(which_agents,too_old)
+        return which_agents
+        
+    def getShocks(self):
+        '''
+        Finds permanent and transitory income "shocks" for each agent this period.  As this is a
+        perfect foresight model, there are no stochastic shocks: PermShkNow = PermGroFac for each
+        agent (according to their t_cycle) and TranShkNow = 1.0 for all agents.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        PermGroFac = np.array(self.PermGroFac)
+        self.PermShkNow = PermGroFac[self.t_cycle-1] # cycle time has already been advanced
+        self.TranShkNow = np.ones(self.AgentCount)
+                
+    def getRfree(self):
+        '''
+        Returns an array of size self.AgentCount with self.Rfree in every entry.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        RfreeNow : np.array
+             Array of size self.AgentCount with risk free interest rate for each agent.
+        '''
+        RfreeNow = self.Rfree*np.ones(self.AgentCount)
+        return RfreeNow
+        
+    def getStates(self):
+        '''
+        Calculates updated values of normalized market resources and permanent income level for each
+        agent.  Uses pLvlNow, aNrmNow, PermShkNow, TranShkNow.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        pLvlPrev = self.pLvlNow
+        aNrmPrev = self.aNrmNow
+        RfreeNow = self.getRfree()
+        
+        # Calculate new states: normalized market resources and permanent income level
+        self.pLvlNow = pLvlPrev*self.PermShkNow # Updated permanent income level
+        ReffNow      = RfreeNow/self.PermShkNow # "Effective" interest factor on normalized assets
+        self.bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
+        self.mNrmNow = self.bNrmNow + self.TranShkNow # Market resources after income
+        return None
+        
+    def getControls(self):
+        '''
+        Calculates consumption for each consumer of this type using the consumption functions.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        cNrmNow = np.zeros(self.AgentCount) + np.nan
+        MPCnow  = np.zeros(self.AgentCount) + np.nan
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            cNrmNow[these], MPCnow[these] = self.solution[t].cFunc.eval_with_derivative(self.mNrmNow[these])
+        self.cNrmNow = cNrmNow
+        self.MPCnow = MPCnow
+        return None
+        
+    def getPostStates(self):
+        '''
+        Calculates end-of-period assets for each consumer of this type.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        self.aNrmNow = self.mNrmNow - self.cNrmNow
+        self.aLvlNow = self.aNrmNow*self.pLvlNow   # Useful in some cases to precalculate asset level
+        return None
 
+        
 
 class IndShockConsumerType(PerfForesightConsumerType):
     '''
@@ -1517,6 +1672,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     period assets, and an artificial borrowing constraint.
     '''        
     time_inv_ = PerfForesightConsumerType.time_inv_ + ['BoroCnstArt','vFuncBool','CubicBool']
+    shock_vars_ = ['PermShkNow','TranShkNow']
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
@@ -1541,51 +1697,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
         self.update() # Make assets grid, income process, terminal solution
-            
-    def makeIncShkHist(self):
-        '''
-        Makes histories of simulated income shocks for this consumer type by
-        drawing from the discrete income distributions, storing them as attributes
-        of self for use by simulation methods.
-        
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        None
-        '''
-        orig_time = self.time_flow
-        self.timeFwd()
-        self.resetRNG()
-        
-        # Initialize the shock histories
-        PermShkHist = np.zeros((self.sim_periods,self.Nagents)) + np.nan
-        TranShkHist = np.zeros((self.sim_periods,self.Nagents)) + np.nan
-        PermShkHist[0,:] = 1.0
-        TranShkHist[0,:] = 1.0
-        t_idx = 0
-        
-        # Loop through each simulated period
-        for t in range(1,self.sim_periods):
-            IncomeDstnNow    = self.IncomeDstn[t_idx] # set current income distribution
-            PermGroFacNow    = self.PermGroFac[t_idx] # and permanent growth factor
-            Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
-            # Get random draws of income shocks from the discrete distribution
-            EventDraws       = drawDiscrete(N=self.Nagents,X=Indices,P=IncomeDstnNow[0],exact_match=True,seed=self.RNG.randint(0,2**31-1))
-            PermShkHist[t,:] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
-            TranShkHist[t,:] = IncomeDstnNow[2][EventDraws]
-            # Advance the time index, looping if we've run out of income distributions
-            t_idx += 1
-            if t_idx >= len(self.IncomeDstn):
-                t_idx = 0
-        
-        # Store the results as attributes of self and restore time to its original flow
-        self.PermShkHist = PermShkHist
-        self.TranShkHist = TranShkHist
-        if not orig_time:
-            self.timeRev()
                       
     def updateIncomeProcess(self):
         '''
@@ -1644,198 +1755,56 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.updateIncomeProcess()
         self.updateAssetsGrid()
         self.updateSolutionTerminal()
-                
-    def initializeSim(self,a_init=None,p_init=None,t_init=0,sim_prds=None):
-        '''
-        Readies this type for simulation by clearing its history, initializing
-        state variables, and setting time indices to their correct position.
-        
-        Parameters
-        ----------
-        a_init : np.array
-            Array of initial end-of-period assets at the beginning of the sim-
-            ulation.  Should be of size self.Nagents.  If omitted, will default
-            to values in self.a_init (which are all 0 by default).
-        p_init : np.array
-            Array of initial permanent income levels at the beginning of the sim-
-            ulation.  Should be of size self.Nagents.  If omitted, will default
-            to values in self.p_init (which are all 1 by default).
-        t_init : int
-            Period of life in which to begin the simulation.  Defaults to 0.
-        sim_prds : int
-            Number of periods to simulate.  Defaults to the length of the trans-
-            itory income shock history.
-        
-        Returns
-        -------
-        none
-        '''
-        # Fill in default values
-        if a_init is None:
-            a_init = self.a_init
-        if p_init is None:
-            p_init = self.p_init
-        if sim_prds is None:
-            sim_prds = len(self.TranShkHist)
             
-        # Initialize indices
-        self.resetRNG()
-        self.Shk_idx   = t_init
-        self.cFunc_idx = t_init
-        
-        # Initialize the history arrays
-        self.aNow     = a_init
-        self.pNow     = p_init
-        if hasattr(self,'Rboro'):
-            self.RboroNow = self.Rboro
-            self.RsaveNow = self.Rsave
-        elif hasattr(self,'Rfree'):
-            self.RfreeNow = self.Rfree
-        blank_history = np.zeros((sim_prds,self.Nagents)) + np.nan
-        self.pHist    = copy(blank_history)
-        self.bHist    = copy(blank_history)
-        self.mHist    = copy(blank_history)
-        self.cHist    = copy(blank_history)
-        self.MPChist  = copy(blank_history)
-        self.aHist    = copy(blank_history)
-        
-    def simConsHistory(self):
+    def getShocks(self):
         '''
-        Simulates a history of bank balances, market resources, consumption,
-        marginal propensity to consume, assets (after all actions), and permanent
-        income given initial assets (normalized by permanent income).
-        
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''
-        orig_time = self.time_flow
-        self.timeFwd()
-        
-        # Simulate a history of this consumer type
-        for t in range(self.aHist.shape[0]):
-            self.advanceIncShks()
-            self.advancecFunc()
-            self.simOnePrd()
-            self.pHist[t,:] = self.pNow
-            self.bHist[t,:] = self.bNow
-            self.mHist[t,:] = self.mNow
-            self.cHist[t,:] = self.cNow
-            self.MPChist[t,:] = self.MPCnow
-            self.aHist[t,:] = self.aNow
-            
-        # Restore the original flow of time
-        if not orig_time:
-            self.timeRev()
-            
-    def simMortality(self):
-        '''
-        Simulates the mortality process, killing off some percentage of agents
-        and replacing them with newborn agents.
+        Gets permanent and transitory income shocks for this period.  Samples from IncomeDstn for
+        each period in the cycle.
         
         Parameters
         ----------
         None
-            
+        
         Returns
         -------
         None
         '''
-        if hasattr(self,'DiePrb'):
-            if self.DiePrb > 0:
-                who_dies = drawBernoulli(N=self.Nagents,p=self.DiePrb,seed=self.RNG.randint(low=1, high=2**31-1))
-                wealth_all = self.aNow*self.pNow     # de-normalizing assets
-                who_lives = np.logical_not(who_dies) # indicator for who survives
-                wealth_of_dead = np.sum(wealth_all[who_dies]) # total wealth of those who die
-                wealth_of_live = np.sum(wealth_all[who_lives])# total wealth of those who survive
-                R_actuarial = 1.0 + wealth_of_dead/wealth_of_live # "interest" payout for survivors
-                self.aNow[who_dies] = 0.0 # newborns have no assets...
-                self.pNow[who_dies] = 1.0 # ...and they have permanent income of 1
-                if not np.isnan(R_actuarial): # don't bother with this if no one had wealth anyway!
-                    self.aNow = self.aNow*R_actuarial
-                
-    def simOnePrd(self):
-        '''
-        Simulate a single period of a consumption-saving model with permanent
-        and transitory income shocks.
+        PermShkNow = np.zeros(self.AgentCount) # Initialize shock arrays
+        TranShkNow = np.zeros(self.AgentCount)
+        newborn = self.t_age == 0
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            N = np.sum(these)
+            if N > 0:
+                IncomeDstnNow    = self.IncomeDstn[t-1] # set current income distribution
+                PermGroFacNow    = self.PermGroFac[t-1] # and permanent growth factor
+                Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
+                # Get random draws of income shocks from the discrete distribution
+                EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=True,seed=self.RNG.randint(0,2**31-1))
+                PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
+                TranShkNow[these] = IncomeDstnNow[2][EventDraws]
         
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''       
-        # Unpack objects from self for convenience
-        aPrev          = self.aNow
-        pPrev          = self.pNow
-        TranShkNow     = self.TranShkNow
-        PermShkNow     = self.PermShkNow
-        if hasattr(self,'RboroNow'):
-            RboroNow   = self.RboroNow
-            RsaveNow   = self.RsaveNow
-            RfreeNow   = RboroNow*np.ones_like(aPrev)
-            RfreeNow[aPrev > 0] = RsaveNow
-        else:
-            RfreeNow   = self.RfreeNow
-        cFuncNow       = self.cFuncNow
-        
-        # Simulate the period
-        pNow        = pPrev*PermShkNow      # Updated permanent income level
-        ReffNow     = RfreeNow/PermShkNow   # "effective" interest factor on normalized assets
-        bNow        = ReffNow*aPrev         # Bank balances before labor income
-        mNow        = bNow + TranShkNow     # Market resources after income
-        cNow,MPCnow = cFuncNow.eval_with_derivative(mNow) # Consumption and marginal propensity to consume
-        aNow        = mNow - cNow           # Assets after all actions are accomplished
-        
-        # Store the new state and control variables
-        self.pNow   = pNow
-        self.bNow   = bNow
-        self.mNow   = mNow
-        self.cNow   = cNow
-        self.MPCnow = MPCnow
-        self.aNow   = aNow
-               
-    def advanceIncShks(self):
-        '''
-        Advance the permanent and transitory income shocks to the next period of
-        the shock history objects.
-        
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''
-        self.PermShkNow = self.PermShkHist[self.Shk_idx]
-        self.TranShkNow = self.TranShkHist[self.Shk_idx]
-        self.Shk_idx += 1
-        if self.Shk_idx >= self.PermShkHist.shape[0]:
-            self.Shk_idx = 0 # Reset to zero if we've run out of shocks
+        # That procedure used the *last* period in the sequence for newborns, but that's not right
+        # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
+        N = np.sum(newborn)
+        if N > 0:
+            these = newborn
+            IncomeDstnNow    = self.IncomeDstn[0] # set current income distribution
+            PermGroFacNow    = self.PermGroFac[0] # and permanent growth factor
+            Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
+            # Get random draws of income shocks from the discrete distribution
+            EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
+            PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
+            TranShkNow[these] = IncomeDstnNow[2][EventDraws]
+#        PermShkNow[newborn] = 1.0
+#        TranShkNow[newborn] = 1.0
+              
+        # Store the shocks in self
+        self.EmpNow = np.ones(self.AgentCount,dtype=bool)
+        self.EmpNow[TranShkNow == self.IncUnemp] = False
+        self.PermShkNow = PermShkNow
+        self.TranShkNow = TranShkNow
             
-    def advancecFunc(self):
-        '''
-        Advance the consumption function to the next period in the solution.
-        
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''
-        self.cFuncNow  = self.solution[self.cFunc_idx].cFunc
-        self.cFunc_idx += 1
-        if self.cFunc_idx >= len(self.solution):
-            self.cFunc_idx = 0 # Reset to zero if we've run out of cFuncs
                 
     def calcBoundingValues(self):
         '''
@@ -1954,6 +1923,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
         
     def preSolve(self):
+        PerfForesightConsumerType.preSolve(self)
         self.updateSolutionTerminal()
         
         
@@ -2063,6 +2033,24 @@ class KinkedRconsumerType(IndShockConsumerType):
         None
         '''
         raise NotImplementedError()
+        
+    def getRfree(self):
+        '''
+        Returns an array of size self.AgentCount with self.Rboro or self.Rsave in each entry, based
+        on whether self.aNrmNow >< 0.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        RfreeNow : np.array
+             Array of size self.AgentCount with risk free interest rate for each agent.
+        '''
+        RfreeNow = self.Rboro*np.ones(self.AgentCount)
+        RfreeNow[self.aNrmNow > 0] = self.Rsave
+        return RfreeNow
 
 # ==================================================================================
 # = Functions for generating discrete income processes and simulated income shocks =
@@ -2108,13 +2096,13 @@ def constructLognormalIncomeProcessUnemployment(parameters):
         Transitory income received when unemployed.
     IncUnempRet : float
         Transitory income received while "unemployed" when retired.
-    T_total :  int
+    T_cycle :  int
         Total number of non-terminal periods in the consumer's sequence of periods.
 
     Returns
     -------
     IncomeDstn:  [[np.array]]
-        A list with T_total elements, each of which is a list of three arrays
+        A list with T_cycle elements, each of which is a list of three arrays
         representing a discrete approximation to the income process in a period.
         Order: probabilities, permanent shocks, transitory shocks.
     '''
@@ -2123,7 +2111,7 @@ def constructLognormalIncomeProcessUnemployment(parameters):
     PermShkCount  = parameters.PermShkCount
     TranShkStd    = parameters.TranShkStd
     TranShkCount  = parameters.TranShkCount
-    T_total       = parameters.T_total
+    T_cycle       = parameters.T_cycle
     T_retire      = parameters.T_retire
     UnempPrb      = parameters.UnempPrb
     IncUnemp      = parameters.IncUnemp
@@ -2147,7 +2135,7 @@ def constructLognormalIncomeProcessUnemployment(parameters):
         IncomeDstnRet = [ShkPrbsRet,PermShkValsRet,TranShkValsRet]
 
     # Loop to fill in the list of IncomeDstn random variables.
-    for t in range(T_total): # Iterate over all periods, counting forward
+    for t in range(T_cycle): # Iterate over all periods, counting forward
 
         if T_retire > 0 and t >= T_retire:
             # Then we are in the "retirement period" and add a retirement income object.
@@ -2277,7 +2265,13 @@ if __name__ == '__main__':
     mMin = PFexample.solution[0].mNrmMin
     plotFuncs(PFexample.cFunc[0],mMin,mMin+10)
     
-    ###########################################################################
+    if do_simulation:
+        PFexample.T_sim = 120 # Set number of simulation periods
+        PFexample.track_vars = ['mNrmNow']
+        PFexample.initializeSim()
+        PFexample.simulate()
+    
+###############################################################################
     
     # Make and solve an example consumer with idiosyncratic income shocks
     IndShockExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
@@ -2307,43 +2301,43 @@ if __name__ == '__main__':
         plotFuncs([PFexample.solution[0].vFunc,IndShockExample.solution[0].vFunc],
                       IndShockExample.solution[0].mNrmMin+0.5,10)
     
-    # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
+    # Simulate some data; results stored in mNrmNow_hist, cNrmNow_hist, and pLvlNow_hist
     if do_simulation:
-        IndShockExample.sim_periods = 120
-        IndShockExample.makeIncShkHist()
+        IndShockExample.T_sim = 120
+        IndShockExample.track_vars = ['mNrmNow','cNrmNow','pLvlNow']
+        IndShockExample.makeShockHistory() # This is optional, simulation will draw shocks on the fly if it isn't run.
         IndShockExample.initializeSim()
-        IndShockExample.simConsHistory()
+        IndShockExample.simulate()
     
     ###########################################################################
     
     # Make and solve an idiosyncratic shocks consumer with a finite lifecycle
-    LifecycleType = IndShockConsumerType(**Params.init_lifecycle)
-    LifecycleType.cycles = 1 # Make this consumer live a sequence of periods exactly once
+    LifecycleExample = IndShockConsumerType(**Params.init_lifecycle)
+    LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
     
     start_time = clock()
-    LifecycleType.solve()
+    LifecycleExample.solve()
     end_time = clock()
     print('Solving a lifecycle consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    LifecycleType.unpackcFunc()
-    LifecycleType.timeFwd()
+    LifecycleExample.unpackcFunc()
+    LifecycleExample.timeFwd()
     
     # Plot the consumption functions during working life
     print('Consumption functions while working:')
-    mMin = min([LifecycleType.solution[t].mNrmMin for t in range(LifecycleType.T_total)])
-    plotFuncs(LifecycleType.cFunc[:LifecycleType.T_retire],mMin,5)
+    mMin = min([LifecycleExample.solution[t].mNrmMin for t in range(LifecycleExample.T_cycle)])
+    plotFuncs(LifecycleExample.cFunc[:LifecycleExample.T_retire],mMin,5)
 
     # Plot the consumption functions during retirement
     print('Consumption functions while retired:')
-    plotFuncs(LifecycleType.cFunc[LifecycleType.T_retire:],0,5)
-    LifecycleType.timeRev()
+    plotFuncs(LifecycleExample.cFunc[LifecycleExample.T_retire:],0,5)
+    LifecycleExample.timeRev()
     
-    # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
+    # Simulate some data; results stored in mNrmNow_hist, cNrmNow_hist, pLvlNow_hist, and t_age_hist
     if do_simulation:
-        LifecycleType.sim_periods = LifecycleType.T_total + 1
-        LifecycleType.makeIncShkHist()
-        LifecycleType.initializeSim()
-        LifecycleType.simConsHistory()
-        
+        LifecycleExample.T_sim = 120
+        LifecycleExample.track_vars = ['mNrmNow','cNrmNow','pLvlNow','t_age']
+        LifecycleExample.initializeSim()
+        LifecycleExample.simulate()
         
 ###############################################################################        
         
@@ -2366,12 +2360,11 @@ if __name__ == '__main__':
     
     # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
     if do_simulation:
-        CyclicalExample.sim_periods = 480
-        CyclicalExample.makeIncShkHist()
+        CyclicalExample.T_sim = 480
+        CyclicalExample.track_vars = ['mNrmNow','cNrmNow','pLvlNow','t_cycle']
         CyclicalExample.initializeSim()
-        CyclicalExample.simConsHistory()
+        CyclicalExample.simulate()
     
- 
 ###############################################################################
 
     # Make and solve an agent with a kinky interest rate
@@ -2388,9 +2381,8 @@ if __name__ == '__main__':
     plotFuncs(KinkyExample.cFunc[0],KinkyExample.solution[0].mNrmMin,5)
 
     if do_simulation:
-        KinkyExample.sim_periods = 120
-        KinkyExample.makeIncShkHist()
+        KinkyExample.T_sim = 120
+        KinkyExample.track_vars = ['mNrmNow','cNrmNow','pLvlNow']
         KinkyExample.initializeSim()
-        KinkyExample.simConsHistory()
-    
+        KinkyExample.simulate()
     

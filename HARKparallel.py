@@ -1,14 +1,32 @@
 '''
-Early version of multithreading in HARK. To use this module, first install dill
+Early version of multithreading in HARK. To use most of this module, you should first install dill
 and joblib.  Packages can be installed by typing "conda install dill" (etc) at
 a command prompt.
 '''
 import multiprocessing
-from joblib import Parallel, delayed
-#import dill as pickle
 import numpy as np
 from time import clock
 import csv
+
+try:
+    # Try to import joblib and dill
+    from joblib import Parallel, delayed
+    import dill as pickle
+except:
+    # We want to be able to import this module even if joblib and dill are not installed.
+    # If we can't import joblib and dill, define the functions we tried to import
+    # such that they will raise useful errors if called.
+    def raiseImportError(moduleStr):
+        def defineImportError(*args):
+            raise ImportError,moduleStr + ' could not be imported, and is required for this'+\
+            ' function.  See HARK documentation for more information on how to install the ' \
+            + moduleStr + ' module.'
+        return defineImportError
+
+    Parallel = raiseImportError('joblib')
+    delayed  = raiseImportError('joblib')
+    pickle   = raiseImportError('dill')
+
 
 def multiThreadCommandsFake(agent_list,command_list):
     '''

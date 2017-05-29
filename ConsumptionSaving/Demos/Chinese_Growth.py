@@ -44,9 +44,8 @@ sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../../cstwMPC')) #Path to cstwMPC folder
 
 
-# Now, bring in what we need from cstwMPC
-import cstwMPC
-import SetupParamsCSTW as cstwParams
+# Now, bring in what we need from the cstwMPC parameters
+import SetupParamsCSTWnew as cstwParams
 
 
 # Initialize the cstwMPC parameters
@@ -61,7 +60,7 @@ import numpy as np
 StateCount                      = 2 #number of Markov states
 ProbGrowthEnds                  = (1./160.) #probability agents assign to the high-growth state ending
 MrkvArray                       = np.array([[1.,0.],[ProbGrowthEnds,1.-ProbGrowthEnds]]) #Markov array
-init_China_parameters['MrkvArray'] = MrkvArray #assign the Markov array as a parameter
+init_China_parameters['MrkvArray'] = [MrkvArray] #assign the Markov array as a parameter
 
 # One other parameter to change: the number of agents in simulation
 # We want to increase this, because later on when we vastly increase the variance of the permanent
@@ -72,7 +71,7 @@ init_China_parameters['MrkvArray'] = MrkvArray #assign the Markov array as a par
 # by changing the appropriate value in the init_China_parameters_dictionary; however,
 # they can also be changed later, by altering the appropriate attribute of the initialized
 # MarkovConsumerType.
-init_China_parameters['Nagents']   = 10000
+init_China_parameters['AgentCount']   = 10000
 
 ### Import and initialize the HARK ConsumerType we want 
 ### Here, we bring in an agent making a consumption/savings decision every period, subject
@@ -89,7 +88,7 @@ ChinaExample.assignParameters(PermGroFac = [np.array([1.,1.06 ** (.25)])], #need
                               Rfree      = np.array(StateCount*[init_China_parameters['Rfree']]), #need to be an array, of shape (StateCount,)
                               LivPrb     = [np.array(StateCount*[init_China_parameters['LivPrb']][0])], #needs to be a list, with 0th element of shape of shape (StateCount,)
                               cycles     = 0)
-
+ChinaExample.track_vars = ['aNrmNow','cNrmNow','pLvlNow'] # Names of variables to be tracked
 
 ####################################################################################################
 ####################################################################################################
@@ -120,7 +119,8 @@ topDiscFac    = 0.9934
 DiscFac_list  = approxUniform(N=num_consumer_types,bot=bottomDiscFac,top=topDiscFac)[1]
 
 # Now, assign the discount factors we want to the ChineseConsumerTypes
-cstwMPC.assignBetaDistribution(ChineseConsumerTypes,DiscFac_list)
+for j in range(num_consumer_types):
+    ChineseConsumerTypes[j].DiscFac = DiscFac_list[j]
 
 ####################################################################################################
 ####################################################################################################
@@ -135,8 +135,6 @@ Therefore, among other things, this function will have to initialize and assign
 the appropriate income process.
 """
 
-
-
 # First create the income distribution in the low-growth state, which we will not change
 from ConsIndShockModel import constructLognormalIncomeProcessUnemployment
 import ConsumerParameters as IncomeParams
@@ -145,6 +143,7 @@ LowGrowthIncomeDstn  = constructLognormalIncomeProcessUnemployment(IncomeParams)
 
 # Remember the standard deviation of the permanent income shock in the low-growth state for later
 LowGrowth_PermShkStd = IncomeParams.PermShkStd
+
 
 
 def calcNatlSavingRate(PrmShkVar_multiplier,RNG_seed = 0):
@@ -193,15 +192,11 @@ def calcNatlSavingRate(PrmShkVar_multiplier,RNG_seed = 0):
         RNG_seed += 19
         ChineseConsumerTypeNew.seed  = RNG_seed
         
-
         # Set the income distribution in each Markov state appropriately        
         ChineseConsumerTypeNew.IncomeDstn = [[LowGrowthIncomeDstn,HighGrowthIncomeDstn]]
 
-
-
         # Solve the problem for this ChineseConsumerTypeNew
         ChineseConsumerTypeNew.solve()
-
 
         """
         Now we are ready to simulate.
@@ -216,40 +211,42 @@ def calcNatlSavingRate(PrmShkVar_multiplier,RNG_seed = 0):
         """
         
         ## Now, simulate 500 quarters to get to steady state, then 40 years of high growth
-        ChineseConsumerTypeNew.sim_periods = 660 
+        ChineseConsumerTypeNew.T_sim = 660 
         
-
-        ## If we wanted to *simulate* the Markov states according to agents' perceived 
-        ## probabilities, this is how we would do it
-        #ChinaExample.Mrkv_init = np.zeros(ChinaExample.Nagents,dtype=int) #everyone starts off in low-growth state
-        #ChinaExample.makeMrkvHist()
+        # Ordinarily, the simulate method for a MarkovConsumerType randomly draws Markov states
+        # according to the transition probabilities in MrkvArray *independently* for each simulated
+        # agent.  In this case, however, we want the discrete state to be *perfectly coordinated*
+        # across agents-- it represents a macroeconomic state, not a microeconomic one!  In fact,
+        # we don't want a random history at all, but rather a specific, predetermined history: 125
+        # years of low growth, followed by 40 years of high growth.
         
-        ## We actually want to CHOOSE the Markov states, rather than simulate them.
-        ## To do that, first set the history for China that we are interested in
+        # To do this, we're going to "hack" our consumer type a bit.  First, we set the attribute
+        # MrkvPrbsInit so that all of the initial Markov states are in the low growth state.  Then
+        # we initialize the simulation and run it for 500 quarters.  However, as we do not
+        # want the Markov state to change during this time, we change its MrkvArray to always be in
+        # the low growth state with probability 1.
         
-        # Initialize an array of 0s, to reflect the long low-growth period before the reforms
-        ChineseHistory          = np.zeros((ChineseConsumerTypeNew.sim_periods,
-                                            ChineseConsumerTypeNew.Nagents),dtype=int)
-                                            
-        # Set values of 1 to reflect the high-growth period following reforms
-        ChineseHistory[-160:,:] = 1 
+        ChineseConsumerTypeNew.MrkvPrbsInit = np.array([1.0,0.0]) # All consumers born in low growth state
+        ChineseConsumerTypeNew.MrkvArray[0] = np.array([[1.0,0.0],[1.0,0.0]]) # Stay in low growth state
+        ChineseConsumerTypeNew.initializeSim() # Clear the history and make all newborn agents
+        ChineseConsumerTypeNew.simulate(500)   # Simulate 500 quarders of data
         
-        # Finally, assign our radically simplified version of ChineseHistory as the history
-        # of Markov states experienced by our simulated consumers
-        ChineseConsumerTypeNew.MrkvHist   = ChineseHistory
+        # Now we want the high growth state to occur for the next 160 periods.  We change the initial
+        # Markov probabilities so that any agents born during this time (to replace an agent who
+        # died) is born in the high growth state.  Moreover, we change the MrkvArray to *always* be
+        # in the high growth state with probability 1.  Then we simulate 160 more quarters.
         
-        # Finish the rest of the simulation
-        ChineseConsumerTypeNew.makeIncShkHist() #create the history of income shocks, conditional on the Markov state
-        ChineseConsumerTypeNew.initializeSim() #get ready to simulate everything else
-        ChineseConsumerTypeNew.simConsHistory() #simulate everything else
+        ChineseConsumerTypeNew.MrkvPrbsInit = np.array([0.0,1.0]) # All consumers born in low growth state
+        ChineseConsumerTypeNew.MrkvArray[0] = np.array([[0.0,1.0],[0.0,1.0]]) # Stay in low growth state
+        ChineseConsumerTypeNew.simulate(160)   # Simulate 160 quarders of data
     
-        # Now, get the aggregate income and consumption of this ConsumerType
-        IncomeOfThisConsumerType = np.sum((ChineseConsumerTypeNew.aHist * ChineseConsumerTypeNew.pHist*
+        # Now, get the aggregate income and consumption of this ConsumerType over time
+        IncomeOfThisConsumerType = np.sum((ChineseConsumerTypeNew.aNrmNow_hist*ChineseConsumerTypeNew.pLvlNow_hist*
                                           (ChineseConsumerTypeNew.Rfree[0] - 1.)) +
-                                           ChineseConsumerTypeNew.pHist, axis=1)
+                                           ChineseConsumerTypeNew.pLvlNow_hist, axis=1)
         
-        ConsOfThisConsumerType = np.sum(ChineseConsumerTypeNew.cHist * ChineseConsumerTypeNew.pHist,
-                                        axis=1)
+        ConsOfThisConsumerType = np.sum(ChineseConsumerTypeNew.cNrmNow_hist*ChineseConsumerTypeNew.pLvlNow_hist,axis=1)
+        
         # Add the income and consumption of this ConsumerType to national income and consumption
         NatlIncome     += IncomeOfThisConsumerType
         NatlCons       += ConsOfThisConsumerType

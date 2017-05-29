@@ -3,25 +3,22 @@ Loads parameters used in the cstwMPC estimations.
 '''
 import numpy as np
 import csv
-from copy import  deepcopy
+from copy import copy, deepcopy
 import os
 
 # Choose percentiles of the data to match and which estimation to run
-spec_name = 'BetaDistPY'
-param_name = 'DiscFac'        # Which parameter to introduce heterogeneity in
-dist_type = 'uniform'         # Which type of distribution to use
 do_lifecycle = False          # Use lifecycle model if True, perpetual youth if False
-do_param_dist = False         # Do param-dist version if True, param-point if False
-run_estimation = True         # Runs the estimation if True
+do_beta_dist = True          # Do beta-dist version if True, beta-point if False
+run_estimation = False         # Runs the estimation if True
 find_beta_vs_KY = False       # Computes K/Y ratio for a wide range of beta; should have do_beta_dist = False
 do_sensitivity = [False, False, False, False, False, False, False, False] # Choose which sensitivity analyses to run: rho, xi_sigma, psi_sigma, mu, urate, mortality, g, R
 do_liquid = False             # Matches liquid assets data when True, net worth data when False
-do_tractable = False          # Uses a "tractable consumer" rather than solving full model when True
-do_agg_shocks = False         # Solve the FBS aggregate shocks version of the model
+do_tractable = False           # Uses a "tractable consumer" rather than solving full model when True
+do_agg_shocks = True         # Solve the FBS aggregate shocks version of the model
 SCF_data_file = 'SCFwealthDataReduced.txt'
 percentiles_to_match = [0.2, 0.4, 0.6, 0.8]    # Which points of the Lorenz curve to match in beta-dist (must be in (0,1))
 #percentiles_to_match = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9] # Can use this line if you want to match more percentiles
-if do_param_dist:
+if do_beta_dist:
     pref_type_count = 7       # Number of discrete beta types in beta-dist
 else:
     pref_type_count = 1       # Just one beta type in beta-point
@@ -31,13 +28,14 @@ init_age = 24                 # Starting age for agents
 Rfree = 1.04**(0.25)          # Quarterly interest factor
 working_T = 41*4              # Number of working periods
 retired_T = 55*4              # Number of retired periods
-T_cycle = working_T+retired_T # Total number of periods
+total_T = working_T+retired_T # Total number of periods
 CRRA = 1.0                    # Coefficient of relative risk aversion   
 DiscFac_guess = 0.99          # Initial starting point for discount factor
 UnempPrb = 0.07               # Probability of unemployment while working
 UnempPrbRet = 0.0005          # Probabulity of "unemployment" while retired
 IncUnemp = 0.15               # Unemployment benefit replacement rate
 IncUnempRet = 0.0             # Ditto when retired
+P0_sigma = 0.4                # Standard deviation of initial permanent income
 BoroCnstArt = 0.0             # Artificial borrowing constraint
 
 # Set grid sizes
@@ -46,67 +44,20 @@ TranShkCount = 5              # Number of points in transitory income shock grid
 aXtraMin = 0.00001            # Minimum end-of-period assets in grid
 aXtraMax = 20                 # Maximum end-of-period assets in grid
 aXtraCount = 20               # Number of points in assets grid
-aXtraNestFac = 3              # Number of times to 'exponentially nest' when constructing assets grid
+exp_nest = 3                  # Number of times to 'exponentially nest' when constructing assets grid
+sim_pop_size = 2000           # Number of simulated agents per preference type
 CubicBool = False             # Whether to use cubic spline interpolation
 vFuncBool = False             # Whether to calculate the value function during solution
 
-# Set simulation parameters
-if do_param_dist:
-    if do_agg_shocks:
-        Population = 16800
-    else:
-        Population = 14000
-else:
-    if do_agg_shocks:
-        Population = 9600
-    else:
-        Population = 10000    # Total number of simulated agents in the population
-T_sim_PY = 1200               # Number of periods to simulate (idiosyncratic shocks model, perpetual youth)
-T_sim_LC = 1200               # Number of periods to simulate (idiosyncratic shocks model, lifecycle)
-T_sim_agg_shocks = 1200       # Number of periods to simulate (aggregate shocks model)
-ignore_periods_PY = 400       # Number of periods to throw out when looking at history (perpetual youth)
-ignore_periods_LC = 400       # Number of periods to throw out when looking at history (lifecycle)
-T_age = T_cycle + 1           # Don't let simulated agents survive beyond this age
-pLvlInitMean_d = np.log(5)    # average initial permanent income, dropouts
-pLvlInitMean_h = np.log(7.5)  # average initial permanent income, HS grads
-pLvlInitMean_c = np.log(12)   # average initial permanent income, college grads
-pLvlInitStd = 0.4             # Standard deviation of initial permanent income
-aNrmInitMean = np.log(0.5)    # log initial wealth/income mean
-aNrmInitStd  = 0.5            # log initial wealth/income standard deviation
-
-# Set population macro parameters
-PopGroFac = 1.01**(0.25)      # Population growth rate
-PermGroFacAgg = 1.015**(0.25) # TFP growth rate
-d_pct = 0.11                  # proportion of HS dropouts
-h_pct = 0.55                  # proportion of HS graduates
-c_pct = 0.34                  # proportion of college graduates
-TypeWeight_lifecycle = [d_pct,h_pct,c_pct]
-
-# Set indiividual parameters for the infinite horizon model
-IndL = 10.0/9.0               # Labor supply per individual (constant)
-PermGroFac_i = [1.000**0.25]  # Permanent income growth factor (no perm growth)
-DiscFac_i = 0.97              # Default intertemporal discount factor
-LivPrb_i = [1.0 - 1.0/160.0]  # Survival probability
-PermShkStd_i = [(0.01*4/11)**0.5] # Standard deviation of permanent shocks to income
-TranShkStd_i = [(0.01*4)**0.5]    # Standard deviation of transitory shocks to income
+# Set random seeds
+a0_seed = 138                 # Seed for initial wealth draws
+P0_seed = 666                 # Seed for initial permanent income draws
 
 # Define the paths of permanent and transitory shocks (from Sabelhaus and Song)
 TranShkStd = (np.concatenate((np.linspace(0.1,0.12,17), 0.12*np.ones(17), np.linspace(0.12,0.075,61), np.linspace(0.074,0.007,68), np.zeros(retired_T+1)))*4)**0.5
 TranShkStd = np.ndarray.tolist(TranShkStd)
 PermShkStd = np.concatenate((((0.00011342*(np.linspace(24,64.75,working_T-1)-47)**2 + 0.01)/(11.0/4.0))**0.5,np.zeros(retired_T+1)))
 PermShkStd = np.ndarray.tolist(PermShkStd)
-
-# Set aggregate parameters for the infinite horizon model
-PermShkAggCount = 3                # Number of discrete permanent aggregate shocks
-TranShkAggCount = 3                # Number of discrete transitory aggregate shocks
-PermShkAggStd = np.sqrt(0.00004)   # Standard deviation of permanent aggregate shocks
-TranShkAggStd = np.sqrt(0.00001)   # Standard deviation of transitory aggregate shocks
-CapShare = 0.36                    # Capital's share of output
-DeprFac = 0.025                    # Capital depreciation factor
-CRRAPF = 1.0                       # CRRA in perfect foresight calibration
-DiscFacPF = 0.99                   # Discount factor in perfect foresight calibration
-slope_prev = 1.0                   # Initial slope of kNextFunc (aggregate shocks model)
-intercept_prev = 0.0               # Initial intercept of kNextFunc (aggregate shocks model)
 
 # Import survival probabilities from SSA data
 data_location = os.path.dirname(os.path.abspath(__file__))
@@ -165,6 +116,75 @@ PermGroFac_d[working_T-1] = 1 + PermGroFac_d_retire  # Put the big shock at reti
 PermGroFac_h[working_T-1] = 1 + PermGroFac_h_retire
 PermGroFac_c[working_T-1] = 1 + PermGroFac_c_retire
 
+# Set population macro parameters
+pop_growth = 1.01**(0.25)      # population growth rate
+TFP_growth = 1.015**(0.25)     # TFP growth rate
+d_pct = 0.11                   # proportion of HS dropouts
+h_pct = 0.55                   # proportion of HS graduates
+c_pct = 0.34                   # proportion of college graduates
+P0_d = 5                       # average initial permanent income, dropouts
+P0_h = 7.5                     # average initial permanent income, HS grads
+P0_c = 12                      # average initial permanent income, college grads
+a0_values = [0.17, 0.5, 0.83]  # initial wealth/income ratio values
+a0_probs = [1.0/3.0, 1.0/3.0, 1.0/3.0] # ...and probabilities 
+
+# Calculate the social security tax rate for the economy
+d_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_d)))*P0_d
+h_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_h)))*P0_h
+c_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_c)))*P0_c
+cohort_weight = pop_growth**np.array(np.arange(0,-(total_T+1),-1))
+econ_weight = TFP_growth**np.array(np.arange(0,-(total_T+1),-1))
+d_survival_cum = np.concatenate((np.array([1]),np.cumprod(LivPrb_d)))
+h_survival_cum = np.concatenate((np.array([1]),np.cumprod(LivPrb_h)))
+c_survival_cum = np.concatenate((np.array([1]),np.cumprod(LivPrb_c)))
+total_income_working = (d_pct*d_income[0:working_T]*d_survival_cum[0:working_T] + h_pct*h_income[0:working_T]*h_survival_cum[0:working_T] + c_pct*c_income[0:working_T]*c_survival_cum[0:working_T])*cohort_weight[0:working_T]*econ_weight[0:working_T]
+total_income_retired = (d_pct*d_income[working_T:total_T]*d_survival_cum[working_T:total_T] + h_pct*h_income[working_T:total_T]*h_survival_cum[working_T:total_T] + c_pct*c_income[working_T:total_T]*c_survival_cum[working_T:total_T])*cohort_weight[working_T:total_T]*econ_weight[working_T:total_T]
+tax_rate_SS = np.sum(total_income_retired)/np.sum(total_income_working)
+tax_rate_U = UnempPrb*IncUnemp
+tax_rate = tax_rate_SS + tax_rate_U
+
+# Generate normalized weighting vectors for each age and education level
+age_size_d = d_pct*cohort_weight*d_survival_cum
+age_size_h = h_pct*cohort_weight*h_survival_cum
+age_size_c = c_pct*cohort_weight*c_survival_cum
+total_pop_size = sum(age_size_d) + sum(age_size_h) + sum(age_size_c)
+age_weight_d = age_size_d/total_pop_size
+age_weight_h = age_size_h/total_pop_size
+age_weight_c = age_size_c/total_pop_size
+age_weight_all = np.concatenate((age_weight_d,age_weight_h,age_weight_c))
+age_weight_short = np.concatenate((age_weight_d[0:total_T],age_weight_h[0:total_T],age_weight_c[0:total_T]))
+total_output = np.sum(total_income_working)/total_pop_size
+
+# Set indiividual parameters for the infinite horizon model
+l_bar = 10.0/9.0             # Labor supply per individual (constant)
+PermGroFac_i = [1.000**0.25] # Permanent income growth factor (no perm growth)
+beta_i = 0.99                # Default intertemporal discount factor
+LivPrb_i = [1.0 - 1.0/160.0] # Survival probability
+PermShkStd_i = [(0.01*4/11)**0.5] # Standard deviation of permanent shocks to income
+TranShkStd_i = [(0.01*4)**0.5]    # Standard deviation of transitory shocks to income
+sim_periods = 1000           # Number of periods to simulate (idiosyncratic shocks model)
+sim_periods_agg_shocks = 3000# Number of periods to simulate (aggregate shocks model)
+Nagents_agg_shocks = 4800    # Number of agents to simulate (aggregate shocks model)
+age_weight_i = LivPrb_i**np.arange(0,sim_periods,dtype=float) # Weight on each cohort, from youngest to oldest
+total_pop_size_i = np.sum(age_weight_i) 
+age_weight_i = age_weight_i/total_pop_size_i # *Normalized* weight on each cohort
+if not do_lifecycle:
+    age_weight_all = age_weight_i
+    age_weight_short = age_weight_i[0:sim_periods]
+    total_output = l_bar
+    
+# Set aggregate parameters for the infinite horizon model
+PermShkAggCount = 3                # Number of discrete permanent aggregate shocks
+TranShkAggCount = 3                # Number of discrete transitory aggregate shocks
+PermShkAggStd = np.sqrt(0.00004)   # Standard deviation of permanent aggregate shocks
+TranShkAggStd = np.sqrt(0.00001)   # Standard deviation of transitory aggregate shocks
+CapShare = 0.36                    # Capital's share of output
+DeprFac = 0.025                    # Capital depreciation factor
+CRRAPF = 1.0                       # CRRA in perfect foresight calibration
+DiscFacPF = 0.99                   # Discount factor in perfect foresight calibration
+slope_prev = 1.0                   # Initial slope of kNextFunc (aggregate shocks model)
+intercept_prev = 0.0               # Initial intercept of kNextFunc (aggregate shocks model)
+
 # Import the SCF wealth data
 f = open(data_location + '/' + SCF_data_file,'r')
 SCF_reader = csv.reader(f,delimiter='\t')
@@ -180,7 +200,6 @@ for j in range(len(SCF_raw)):
 init_dropout = {"CRRA":CRRA,
                 "Rfree":Rfree,
                 "PermGroFac":PermGroFac_d,
-                "PermGroFacAgg":PermGroFacAgg,
                 "BoroCnstArt":BoroCnstArt,
                 "CubicBool":CubicBool,
                 "vFuncBool":vFuncBool,
@@ -188,7 +207,7 @@ init_dropout = {"CRRA":CRRA,
                 "PermShkCount":PermShkCount,
                 "TranShkStd":TranShkStd,
                 "TranShkCount":TranShkCount,
-                "T_cycle":T_cycle,
+                "T_total":total_T,
                 "UnempPrb":UnempPrb,
                 "UnempPrbRet":UnempPrbRet,
                 "T_retire":working_T-1,
@@ -198,25 +217,26 @@ init_dropout = {"CRRA":CRRA,
                 "aXtraMax":aXtraMax,
                 "aXtraCount":aXtraCount,
                 "aXtraExtra":[],
-                "aXtraNestFac":aXtraNestFac,
+                "exp_nest":exp_nest,
                 "LivPrb":LivPrb_d,
                 "DiscFac":DiscFac_guess, # dummy value, will be overwritten
-                'AgentCount': 0, # this is overwritten by parameter distributor 
-                'T_sim':T_sim_LC,
-                'T_age':T_age,
-                'aNrmInitMean':aNrmInitMean,
-                'aNrmInitStd':aNrmInitStd,
-                'pLvlInitMean':pLvlInitMean_d,
-                'pLvlInitStd':pLvlInitStd
+                "tax_rate":tax_rate_SS, # for math reasons, only SS tax goes here
+                'Nagents':sim_pop_size,
+                'sim_periods':total_T+1,
                 }
-adj_highschool = {"PermGroFac":PermGroFac_h,"LivPrb":LivPrb_h,'pLvlInitMean':pLvlInitMean_h}
-adj_college = {"PermGroFac":PermGroFac_c,"LivPrb":LivPrb_c,'pLvlInitMean':pLvlInitMean_c}
+init_highschool = copy(init_dropout)
+init_highschool["PermGroFac"] = PermGroFac_h
+init_highschool["LivPrb"] = LivPrb_h
+adj_highschool = {"PermGroFac":PermGroFac_h,"LivPrb":LivPrb_h}
+init_college = copy(init_dropout)
+init_college["PermGroFac"] = PermGroFac_c
+init_college["LivPrb"] = LivPrb_c
+adj_college = {"PermGroFac":PermGroFac_c,"LivPrb":LivPrb_c}
 
 # Make a dictionary for the infinite horizon type
 init_infinite = {"CRRA":CRRA,
                 "Rfree":1.01/LivPrb_i[0],
                 "PermGroFac":PermGroFac_i,
-                "PermGroFacAgg":1.0,
                 "BoroCnstArt":BoroCnstArt,
                 "CubicBool":CubicBool,
                 "vFuncBool":vFuncBool,
@@ -232,43 +252,24 @@ init_infinite = {"CRRA":CRRA,
                 "aXtraMax":aXtraMax,
                 "aXtraCount":aXtraCount,
                 "aXtraExtra":[None],
-                "aXtraNestFac":aXtraNestFac,
+                "aXtraNestFac":exp_nest,
                 "LivPrb":LivPrb_i,
-                "DiscFac":DiscFac_i, # dummy value, will be overwritten
+                "beta":beta_i, # dummy value, will be overwritten
                 "cycles":0,
-                "T_cycle":1,
+                "T_total":1,
                 "T_retire":0,
-                'T_sim':T_sim_PY,
-                'T_age': 400,
-                'IndL': IndL,
-                'aNrmInitMean':np.log(0.00001),
-                'aNrmInitStd':0.0,
-                'pLvlInitMean':0.0,
-                'pLvlInitStd':0.0,
-                'AgentCount':0, # will be overwritten by parameter distributor
+                "tax_rate":0.0,
+                'sim_periods':sim_periods,
+                'Nagents':sim_pop_size,
+                'l_bar':l_bar,
                 }
-                
-# Make a base dictionary for the cstwMPCmarket
-init_market = {'LorenzBool': False,
-               'ManyStatsBool': False,
-               'ignore_periods':0,    # Will get overwritten
-               'PopGroFac':0.0,       # Will get overwritten
-               'T_retire':0,          # Will get overwritten
-               'TypeWeights':[],      # Will get overwritten
-               'Population':Population,
-               'act_T':0,             # Will get overwritten
-               'IncUnemp':IncUnemp,
-               'cutoffs':[(0.99,1),(0.9,1),(0.8,1),(0.6,0.8),(0.4,0.6),(0.2,0.4),(0.0,0.2)],
-               'LorenzPercentiles':percentiles_to_match,
-               'AggShockBool':do_agg_shocks
-               }
-
                 
 # Make a dictionary for the aggregate shocks type
 init_agg_shocks = deepcopy(init_infinite)
-init_agg_shocks['T_sim'] = T_sim_agg_shocks
+init_agg_shocks['Nagents'] = Nagents_agg_shocks
+init_agg_shocks['sim_periods'] = sim_periods_agg_shocks
 init_agg_shocks['tolerance'] = 0.0001
-init_agg_shocks['MgridBase'] = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])
+init_agg_shocks['kGridBase'] = np.array([0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6])
                         
 # Make a dictionary for the aggrege shocks market
 aggregate_params = {'PermShkAggCount': PermShkAggCount,
@@ -277,19 +278,19 @@ aggregate_params = {'PermShkAggCount': PermShkAggCount,
                     'TranShkAggStd': TranShkAggStd,
                     'DeprFac': DeprFac,
                     'CapShare': CapShare,
-                    'AggregateL':(1.0-UnempPrb)*IndL,
                     'CRRA': CRRAPF,
                     'DiscFac': DiscFacPF,
                     'LivPrb': LivPrb_i[0],
                     'slope_prev': slope_prev,
                     'intercept_prev': intercept_prev,
-                    'act_T':T_sim_agg_shocks,
-                    'ignore_periods':200,
-                    'tolerance':0.0001
                     }
 
+beta_save = DiscFac_guess # Hacky way to save progress of estimation
+diff_save = 1000000.0  # Hacky way to save progress of estimation
+
+
 if __name__ == '__main__':
-    print("Sorry, SetupParamsCSTWnew doesn't actually do anything on its own.")
-    print("This module is imported by cstwMPCnew, providing data and calibrated")
+    print("Sorry, SetupParamsCSTW doesn't actually do anything on its own.")
+    print("This module is imported by cstwMPC, providing data and calibrated")
     print("parameters for the various estimations.  Please see that module if")
     print("you want more interesting output.")

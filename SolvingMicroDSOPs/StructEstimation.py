@@ -33,16 +33,62 @@ make_contour_plot = False         # Whether to make a contour map of the objecti
 # Define objects and functions used for the estimation
 #=====================================================
 
+class TempConsumerType(Model.IndShockConsumerType):
+    '''
+    A very lightly edited version of IndShockConsumerType.  Uses an alternate method of making new
+    consumers and specifies DiscFac as being age-dependent.  Called "temp" because only used here.
+    '''
+    def __init__(self,cycles=1,time_flow=True,**kwds):
+        '''
+        Make a new consumer type.
+        
+        Parameters
+        ----------
+        cycles : int
+            Number of times the sequence of periods should be solved.
+        time_flow : boolean
+            Whether time is currently "flowing" forward for this instance.
+        
+        Returns
+        -------
+        None
+        '''       
+        # Initialize a basic AgentType
+        Model.IndShockConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
+        self.addToTimeVary('DiscFac') # This estimation uses age-varying discount factors as
+        self.delFromTimeInv('DiscFac')# estimated by Cagetti (2003), so switch from time_inv to time_vary
+        
+    def simBirth(self,which_agents):
+        '''
+        Alternate method for simulating initial states for simulated agents, drawing from a finite
+        distribution.  Used to overwrite IndShockConsumerType.simBirth, which uses lognormal distributions.
+        
+        Parameters
+        ----------
+        which_agents : np.array(Bool)
+            Boolean array of size self.AgentCount indicating which agents should be "born".
+        
+        Returns
+        -------
+        None
+        '''
+        # Get and store states for newly born agents
+        self.aNrmNow[which_agents] = self.aNrmInit[which_agents] # Take directly from pre-specified distribution
+        self.pLvlNow[which_agents] = 1.0 # No variation in permanent income needed
+        self.t_age[which_agents]   = 0 # How many periods since each agent was born
+        self.t_cycle[which_agents] = 0 # Which period of the cycle each agents is currently in
+        return None
+
+
 # Make a lifecycle consumer to be used for estimation, including simulated shocks (plus an initial distribution of wealth)
-EstimationAgent = Model.IndShockConsumerType(**Params.init_consumer_objects) # Make a ConsumerType for estimation
-EstimationAgent.time_inv.remove('DiscFac')                           # This estimation uses age-varying discount factors as
-EstimationAgent.time_vary.append('DiscFac')                          # estimated by Cagetti (2003), so switch from time_inv to time_vary
-EstimationAgent(sim_periods = EstimationAgent.T_total+1)             # Set the number of periods to simulate
-EstimationAgent.makeIncShkHist()                                     # Make a simulated history of income shocks for many consumers
-EstimationAgent.a_init = drawDiscrete(N=Params.num_agents,
+EstimationAgent = TempConsumerType(**Params.init_consumer_objects)   # Make a TempConsumerType for estimation
+EstimationAgent(T_sim = EstimationAgent.T_cycle+1)                   # Set the number of periods to simulate
+EstimationAgent.track_vars = ['bNrmNow']                             # Choose to track bank balances as wealth
+EstimationAgent.aNrmInit = drawDiscrete(N=Params.num_agents,
                                       P=Params.initial_wealth_income_ratio_probs,
                                       X=Params.initial_wealth_income_ratio_vals,                                      
                                       seed=Params.seed)              # Draw initial assets for each consumer
+EstimationAgent.makeShockHistory()
 
 # Define the objective function for the simulated method of moments estimation
 def smmObjectiveFxn(DiscFacAdj, CRRA,
@@ -115,9 +161,9 @@ def smmObjectiveFxn(DiscFacAdj, CRRA,
     agent.solve()        # Solve the microeconomic model
     agent.unpackcFunc() # "Unpack" the consumption function for convenient access
     max_sim_age = max([max(ages) for ages in map_simulated_to_empirical_cohorts])+1
-    agent.initializeSim(sim_prds=max_sim_age) # Initialize the simulation by clearing histories, resetting initial values
-    agent.simConsHistory()                    # Simulate histories of consumption and wealth
-    sim_w_history = agent.bHist               # Take "wealth" to mean bank balances before receiving labor income
+    agent.initializeSim()                     # Initialize the simulation by clearing histories, resetting initial values
+    agent.simulate(max_sim_age)               # Simulate histories of consumption and wealth
+    sim_w_history = agent.bNrmNow_hist        # Take "wealth" to mean bank balances before receiving labor income
     
     # Find the distance between empirical data and simulated medians for each age group
     group_count = len(map_simulated_to_empirical_cohorts)

@@ -13,7 +13,8 @@ from HARKutilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAu
 from HARKsimulation import drawLognormal
 from ConsIndShockModel import ConsumerSolution
 from HARKinterpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, CubicInterp,\
-                              LinearInterp, LowerEnvelope3D, UpperEnvelope, LinearInterpOnInterp1D
+                              LinearInterp, LowerEnvelope3D, UpperEnvelope, LinearInterpOnInterp1D,\
+                              VariableLowerBoundFunc3D
 from ConsPersistentShockModel import ConsPersistentShockSolver, PersistentShockConsumerType,\
                                      ValueFunc2D, MargValueFunc2D, MargMargValueFunc2D, \
                                      VariableLowerBoundFunc2D
@@ -41,7 +42,7 @@ class MedShockPolicyFunc(HARKobject):
         
         Parameters
         ----------
-        xFunc : np.array
+        xFunc : function
             Optimal total spending as a function of market resources, permanent
             income, and the medical need shock.
         xLvlGrid : np.array
@@ -497,129 +498,6 @@ class MedThruXfunc(HARKobject):
         return dMeddShk
         
         
-class VariableLowerBoundFunc3D(HARKobject):
-    '''
-    A class for representing a function with three real inputs whose lower bound
-    in the first input depends on the second input.  Useful for managing curved
-    natural borrowing constraints.
-    '''
-    distance_criteria = ['func','lowerBound']
-    
-    def __init__(self,func,lowerBound):
-        '''
-        Make a new instance of VariableLowerBoundFunc3D.
-        
-        Parameters
-        ----------
-        func : function
-            A function f: (R_+ x R^2) --> R representing the function of interest
-            shifted by its lower bound in the first input.
-        lowerBound : function
-            The lower bound in the first input of the function of interest, as
-            a function of the second input.
-            
-        Returns
-        -------
-        None
-        '''
-        self.func = func
-        self.lowerBound = lowerBound
-        
-    def __call__(self,x,y,z):
-        '''
-        Evaluate the function at given state space points.
-        
-        Parameters
-        ----------
-        x : np.array
-             First input values.
-        y : np.array
-             Second input values; should be of same shape as x.
-        z : np.array
-             Third input values; should be of same shape as x.
-             
-        Returns
-        -------
-        f_out : np.array
-            Function evaluated at (x,y,z), of same shape as inputs.
-        '''
-        xShift = self.lowerBound(y)
-        f_out = self.func(x-xShift,y,z)
-        return f_out
-        
-    def derivativeX(self,x,y,z):
-        '''
-        Evaluate the first derivative with respect to x of the function at given
-        state space points.
-        
-        Parameters
-        ----------
-        x : np.array
-             First input values.
-        y : np.array
-             Second input values; should be of same shape as x.
-        z : np.array
-             Third input values; should be of same shape as x.
-             
-        Returns
-        -------
-        dfdx_out : np.array
-            First derivative of function with respect to the first input, 
-            evaluated at (x,y,z), of same shape as inputs.
-        '''
-        xShift = self.lowerBound(y)
-        dfdx_out = self.func.derivativeX(x-xShift,y,z)
-        return dfdx_out
-        
-    def derivativeY(self,x,y,z):
-        '''
-        Evaluate the first derivative with respect to y of the function at given
-        state space points.
-        
-        Parameters
-        ----------
-        x : np.array
-             First input values.
-        y : np.array
-             Second input values; should be of same shape as x.
-        z : np.array
-             Third input values; should be of same shape as x.
-             
-        Returns
-        -------
-        dfdy_out : np.array
-            First derivative of function with respect to the second input, 
-            evaluated at (x,y,z), of same shape as inputs.
-        '''
-        xShift,xShiftDer = self.lowerBound.eval_with_derivative(y)
-        dfdy_out = self.func.derivativeY(x-xShift,y,z) - \
-                   xShiftDer*self.func.derivativeX(x-xShift,y,z)
-        return dfdy_out
-        
-    def derivativeZ(self,x,y,z):
-        '''
-        Evaluate the first derivative with respect to z of the function at given
-        state space points.
-        
-        Parameters
-        ----------
-        x : np.array
-             First input values.
-        y : np.array
-             Second input values; should be of same shape as x.
-        z : np.array
-             Third input values; should be of same shape as x.
-             
-        Returns
-        -------
-        dfdz_out : np.array
-            First derivative of function with respect to the third input, 
-            evaluated at (x,y,z), of same shape as inputs.
-        '''
-        xShift = self.lowerBound(y)
-        dfdz_out = self.func.derivativeZ(x-xShift,y,z)
-        return dfdz_out
-        
 ###############################################################################
 
 class MedShockConsumerType(PersistentShockConsumerType):
@@ -629,6 +507,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
     goods might be different.  Agents expect to receive shocks to permanent and
     transitory income as well as multiplicative shocks to utility from medical care.
     '''
+    shock_vars_ = PersistentShockConsumerType.shock_vars_ + ['MedShkNow']
+    
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
@@ -686,7 +566,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         None
         '''
         MedShkDstn = [] # empty list for medical shock distribution each period
-        for t in range(self.T_total):
+        for t in range(self.T_cycle):
             MedShkAvgNow  = self.MedShkAvg[t] # get shock distribution parameters
             MedShkStdNow  = self.MedShkStd[t]
             MedShkDstnNow = approxLognormal(mu=np.log(MedShkAvgNow)-0.5*MedShkStdNow**2,\
@@ -804,12 +684,12 @@ class MedShockConsumerType(PersistentShockConsumerType):
         PersistentShockConsumerType.updatePermIncGrid(self)
         for j in range(len(self.pLvlGrid)): # Then add 0 to the bottom of each pLvlGrid
             this_grid = self.pLvlGrid[j]
-            self.pLvlGrid[j] = np.insert(this_grid,0,0.0)
-            
-    def makeMedShkHist(self):
+            self.pLvlGrid[j] = np.insert(this_grid,0,0.0001)
+        
+    def getShocks(self):
         '''
-        Makes a history of simulated medical need shocks for this consumer type by
-        drawing from the true continuous distribution of medical shocks.
+        Gets permanent and transitory income shocks for this period as well as medical need shocks
+        and the price of medical care.
         
         Parameters
         ----------
@@ -819,35 +699,25 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         '''
-        orig_time = self.time_flow
-        self.timeFwd()
-        self.resetRNG()
+        PersistentShockConsumerType.getShocks(self) # Get permanent and transitory income shocks
+        MedShkNow = np.zeros(self.AgentCount) # Initialize medical shock array
+        MedPriceNow = np.zeros(self.AgentCount) # Initialize relative price array
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            N = np.sum(these)
+            if N > 0:
+                MedShkAvg = self.MedShkAvg[t]
+                MedShkStd = self.MedShkStd[t]
+                MedPrice  = self.MedPrice[t]
+                MedShkNow[these] = self.RNG.permutation(approxLognormal(N,mu=np.log(MedShkAvg)-0.5*MedShkStd**2,sigma=MedShkStd)[1])
+                MedPriceNow[these] = MedPrice
+        self.MedShkNow = MedShkNow
+        self.MedPriceNow = MedPriceNow
         
-        # Initialize the shock history
-        MedShkHist = np.zeros((self.sim_periods,self.Nagents)) + np.nan
-        t_idx = 0
-        
-        # Loop through each simulated period
-        for t in range(self.sim_periods):
-            MedShkAvg = self.MedShkAvg[t_idx]
-            MedShkStd = self.MedShkStd[t_idx]
-            MedShkHist[t,:] = drawLognormal(N=self.Nagents,mu=np.log(MedShkAvg)-0.5*MedShkStd**2,\
-                              sigma=MedShkStd,seed=self.RNG.randint(0,2**31-1))
-            # Advance the time index, looping if we've run out of income distributions
-            t_idx += 1
-            if t_idx >= len(self.MedShkAvg):
-                t_idx = 0
-        
-        # Store the results as attributes of self and restore time to its original flow
-        self.MedShkHist = MedShkHist
-        if not orig_time:
-            self.timeRev()
-        
-            
-    def advanceIncShks(self):
+    def getControls(self):
         '''
-        Advance the permanent and transitory income shocks to the next period of
-        the shock history objects, after first advancing the medical need shocks.
+        Calculates consumption and medical care for each consumer of this type using the consumption
+        and medical care functions.
         
         Parameters
         ----------
@@ -857,14 +727,18 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         '''
-        self.MedShkNow = self.MedShkHist[self.Shk_idx,:]
-        self.advanceMedPrice()
-        PersistentShockConsumerType.advanceIncShks(self)
+        cLvlNow = np.zeros(self.AgentCount) + np.nan
+        MedNow  = np.zeros(self.AgentCount) + np.nan
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            cLvlNow[these], MedNow[these] = self.solution[t].policyFunc(self.mLvlNow[these],self.pLvlNow[these],self.MedShkNow[these])
+        self.cLvlNow = cLvlNow
+        self.MedNow  = MedNow
+        return None
         
-    def advancecFunc(self):
+    def getPostStates(self):
         '''
-        Advance the consumption function and medical spending function to the
-        next period in the solution.
+        Calculates end-of-period assets for each consumer of this type.
         
         Parameters
         ----------
@@ -874,103 +748,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         '''
-        self.policyFuncNow  = self.solution[self.cFunc_idx].policyFunc
-        self.cFunc_idx += 1
-        if self.cFunc_idx >= len(self.solution):
-            self.cFunc_idx = 0 # Reset to zero if we've run out of cFuncs
-        
-    def advanceMedPrice(self):
-        '''
-        Updates the variable MedPriceNow to the current period in a simulation.
-        
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        None
-        '''
-        self.MedPriceNow = self.MedPrice[self.Price_idx]
-        self.Price_idx += 1
-        if self.Price_idx == len(self.MedPrice):
-            self.Price_idx = 0
-            
-    def initializeSim(self,a_init=None,p_init=None,t_init=0,sim_prds=None):
-        '''
-        Readies this type for simulation by clearing its history, initializing
-        state variables, and setting time indices to their correct position.
-        Extends version in ConsIndShockModel by also tracking medical care.
-        
-        Parameters
-        ----------
-        a_init : np.array
-            Array of initial end-of-period assets at the beginning of the sim-
-            ulation.  Should be of size self.Nagents.  If omitted, will default
-            to values in self.a_init (which are all 0 by default).
-        p_init : np.array
-            Array of initial permanent income levels at the beginning of the sim-
-            ulation.  Should be of size self.Nagents.  If omitted, will default
-            to values in self.p_init (which are all 1 by default).
-        t_init : int
-            Period of life in which to begin the simulation.  Defaults to 0.
-        sim_prds : int
-            Number of periods to simulate.  Defaults to the length of the trans-
-            itory income shock history.
-        
-        Returns
-        -------
-        None
-        '''
-        PersistentShockConsumerType.initializeSim(self,a_init,p_init,t_init,sim_prds)
-        self.Price_idx = 0
-        self.MedHist = copy(self.pHist)
-        
-    def simOnePrd(self):
-        '''
-        Simulate a single period of a consumption-saving model with permanent
-        and transitory income shocks, with permanent income explcitly included
-        as an argument to the consumption function.
-        
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        none
-        '''
-        # Simulate the mortality process, replacing some agents with "newborns"
-        self.simMortality()        
-        
-        # Unpack objects from self for convenience
-        aPrev          = self.aNow
-        pPrev          = self.pNow
-        TranShkNow     = self.TranShkNow
-        PermShkNow     = self.PermShkNow
-        MedShkNow      = self.MedShkNow
-        RfreeNow       = self.RfreeNow
-        policyFuncNow  = self.policyFuncNow
-        MedPrice       = self.MedPriceNow
-        
-        # Get correlation coefficient for permanent income
-        Corr = self.PermIncCorr      
-        
-        # Simulate the period
-        pNow        = pPrev**Corr*PermShkNow          # Updated permanent income level
-        bNow        = RfreeNow*aPrev                  # Bank balances before labor income
-        mNow        = bNow + TranShkNow*pNow          # Market resources after income
-        cNow,MedNow = policyFuncNow(mNow,pNow,MedShkNow)# Consumption and medical care
-        aNow        = mNow - cNow - MedPrice*MedNow   # Assets after all actions are accomplished
-        
-        # Store the new state and control variables
-        self.pNow   = pNow
-        self.bNow   = bNow
-        self.mNow   = mNow
-        self.cNow   = cNow
-        self.MedNow = MedNow
-        self.aNow   = aNow
-        self.MPCnow = np.zeros_like(cNow) # skip this for now
+        self.aLvlNow = self.mLvlNow - self.cLvlNow - self.MedPriceNow*self.MedNow
+        return None
         
 ###############################################################################
         
@@ -1288,8 +1067,7 @@ class ConsMedShockSolver(ConsPersistentShockSolver):
         vPnow  = np.sum(vPgrid*probsGrid,axis=2)
         
         # Add vPnvrs=0 at m=mLvlMin to close it off at the bottom (and vNvrs=0)
-        mGrid_small = np.concatenate((np.reshape(self.mLvlMinNow(self.pLvlGrid),
-                                                 (1,pCount)),mGrid[:,:,0]))
+        mGrid_small = np.concatenate((np.reshape(self.mLvlMinNow(self.pLvlGrid),(1,pCount)),mGrid[:,:,0]))
         vPnvrsNow   = np.concatenate((np.zeros((1,pCount)),self.uPinv(vPnow)))
         if self.vFuncBool:
             vNvrsNow  = np.concatenate((np.zeros((1,pCount)),self.uinv(vNow)),axis=0)
@@ -1587,7 +1365,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     mystr = lambda number : "{:.4f}".format(number)
     
-    do_simulation = False
+    do_simulation = True
 
     # Make and solve an example medical shocks consumer type
     MedicalExample = MedShockConsumerType(**Params.init_medical_shocks)
@@ -1651,10 +1429,12 @@ if __name__ == '__main__':
         plt.show()
     
     if do_simulation:
-        MedicalExample.sim_periods = 100
-        MedicalExample.DiePrb = 1.0 - MedicalExample.LivPrb[0]
-        MedicalExample.makeIncShkHist()
-        MedicalExample.makeMedShkHist()
+        t_start = clock()
+        MedicalExample.T_sim = 100
+        MedicalExample.track_vars = ['mLvlNow','cLvlNow','MedNow']
+        MedicalExample.makeShockHistory()
         MedicalExample.initializeSim()
-        MedicalExample.simConsHistory()
+        MedicalExample.simulate()
+        t_end = clock()
+        print('Simulating ' + str(MedicalExample.AgentCount) + ' agents for ' + str(MedicalExample.T_sim) + ' periods took ' + mystr(t_end-t_start) + ' seconds.')
     
