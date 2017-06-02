@@ -926,6 +926,76 @@ class CubicInterp(HARKinterpolator1D):
         return y, dydx
 
 
+
+def evalTwoPointLine(x0,x1,y0,y1,x_query):
+    '''
+    Quick function for evaluating a linear function as defined by two points.
+    Called repeatedly in FellaInterp.addPoints().  Either the y values or query
+    points can be array, but not both.
+    
+    Parameters
+    ----------
+    x0 : float
+        First point x value.
+    x1 : float
+        Second point x value.
+    y0 : float or np.array
+        First point y = f(x) value(s).
+    y1 : float or np.array
+        Second point y = f(x) value(s).
+    x_query : float or np.array
+        x values to be evaluated along the line.
+        
+    Returns
+    -------
+    out : float or np.array
+    '''
+    alpha = (x_query-x0)/(x1-x0)
+    out = (1.-alpha)*y0 + alpha*y1
+    return out
+    
+    
+    
+def solveTwoPointLines(x0,x1,y0,y1,x2,x3,y2,y3):
+    '''
+    Quick function for finding the intersection of two lines, each of which is
+    defined by two points.  Called repeatedly by FellaInterp.addPoints().
+    
+    Parameters
+    ----------
+    x0 : float
+        First point of first line x value.
+    x1 : float
+        Second point of first line x value.
+    y0 : float
+        First point of first line y = f(x) value.
+    y1 : float
+        Second point of first line y = f(x) value.
+    x2 : float
+        First point of second line x value.
+    x3 : float
+        Second point of second line x value.
+    y2 : float
+        First point of second line y = f(x) value.
+    y3 : float
+        Second point of second line y = f(x) value.
+        
+    Returns
+    -------
+    x : float
+        Intersection of two lines in x.
+    y : float
+        Intersection of two lines in y = f(x).
+    '''
+    denom = ((x0 - x1)*(y2 - y3) - (y0 - y1)*(x2 - x3))
+    A = (x0*y1 - x1*y0)
+    B = (x2*y3 - x3*y2)
+    x = (A*(x2 - x3) - (x0 - x1)*B)/denom
+    y = (A*(y2 - y3) - (y0 - y1)*B)/denom
+    return x, y
+        
+        
+        
 class FellaInterp(HARKobject):
     '''
     A 1D interpolator that implements  a variation on Giulio Fella's "upper envelope" method.
@@ -937,7 +1007,7 @@ class FellaInterp(HARKobject):
     '''
     distance_criteria = ['PolicyFunc']
 
-    def __init__(self, v0=-np.inf, control0=0.0, lower_bound=None):
+    def __init__(self, v0=-np.inf, control0=0.0, lower_bound=None, upper_bound=None):
         '''
         Make a new FellaInterp instance.  It will initially have a constant value
         function and constant policy functions; these will be improved by calls to
@@ -951,22 +1021,35 @@ class FellaInterp(HARKobject):
             Initial control levels, constant across all states; can be a single float or a list of floats.
         lower_bound : float or None
             Lower bound of the state variable (domain),  if any.
+        upper_bound : float or None
+            Initial upper bound of the state variable (domain), if any.
         '''
         if lower_bound is None:
             bot = 0.0
         else:
             bot = lower_bound
-        top = bot + 1.
+        if upper_bound is None:
+            top = bot + 1000000.
+        else:
+            top = upper_bound
         
         self.lower_bound = lower_bound
-        self.vFunc = LinearInterp([bot,top],[v0,v0])
-        self.PolicyFunc = []
+        self.upper_bound = upper_bound
+        self.value_grid = np.array([v0,v0])
+        self.state_grid = np.array([bot,top])
         if type(control0) is not list:
-            control0 = [control0]
-        for control0_i in control0:
-            self.PolicyFunc.append(LinearInterp([bot,top],[control0_i,control0_i]))
+            policy_count = 1
+        else:
+            policy_count = len(control0)
+        self.left_policy = np.zeros((policy_count,2))
+        self.right_policy = np.zeros((policy_count,2))
+        self.left_policy[:,0] = control0
+        self.right_policy[:,0] = control0
+        self.left_policy[:,1] = control0
+        self.right_policy[:,1] = control0
+        
             
-    def addNewPoints(self,states,values,policies):
+    def addNewPoints(self,states,values,policies,extrapolate):
         '''
         Update the Fella functions with new candidate points.  Each input is an
         array of the same length; corresponding elements across arrays represent
@@ -983,33 +1066,219 @@ class FellaInterp(HARKobject):
         policies : np.array
             1D or 2D array of control variables at the candidate states; different
             control variables are stored in different rows of policies.
+        extrapolate : bool
+            Indicator for whether the last linear segment of the candidate should
+            be extrapolated indefinitely outward.
         '''
         if len(policies.shape) == 1:
             policies = np.reshape(policies,(1,policies.size))
+        N = policies.shape[0]
         
-        for j in range(len(states)-1):
-            # Orient this candidate segment so that it's "facing" the right way
-            if states[j] < states[j+1]:
-                x0 = states[j]
-                x1 = states[j+1]
-                v0 = values[j]
-                v1 = values[j+1]
-                y0 = policies[:,j]
-                y1 = policies[:,j+1]
+        # Loop over the segments in the candidate set
+        for j in range(states.size-1):
+            moving_right = (states[j+1] > states[j])
+            start_idx = np.searchsorted(self.state_grid,states[j])
+            end_idx = np.searchsorted(self.state_grid,states[j+1])
+            skip_start = False
+            
+            # If the beginning of the segment is beyond the highest existing gridpoint, accept it immediately
+            if start_idx == self.state_grid.size:
+                self.state_grid = np.insert(self.state_grid,-1,states[j])
+                self.value_grid = np.insert(self.value_grid,-1,values[j])
+                self.left_policy  = np.insert(self.left_policy,-1,policies[:,j],axis=1)
+                self.right_policy = np.insert(self.right_policy,-1,policies[:,j],axis=1)
+                skip_start = True # starting point has already been added, skip it later
+                if not moving_right:
+                    end_idx = np.searchsorted(self.state_grid,states[j+1])
+                                
+            # Determine index bounds for this segment and make the set of original indices to loop over
+            if moving_right:
+                bot = start_idx
+                if j == (states.size-1): # If this is the last candidate segment,
+                    top = self.state_grid.size # take all remaining original points
+                else:
+                    top = end_idx
+                idx_set = range(bot,top)
+                i = bot
             else:
-                x1 = states[j]
-                x0 = states[j+1]
-                v1 = values[j]
-                v0 = values[j+1]
-                y1 = policies[:,j]
-                y0 = policies[:,j+1]
+                bot = end_idx
+                top = start_idx
+                idx_set = range(top-1,bot-1,-1)
+                i = top
+                
+            # Determine whether candidate or original value is higher at each point
+            state_temp = self.state_grid[bot:top]
+            v_orig = self.value_grid[bot:top]
+            v_cand = evalTwoPointLine(states[j],states[j+1],values[j],values[j+1],state_temp)
+            dominance = v_cand > v_orig
+            
+            K = 0 # Counter for number of replacement points
+                        
+            # Add the starting point of the segment to replacement points if it dominates original
+            v_temp = evalTwoPointLine(self.state_grid[i-1],self.state_grid[i],self.value_grid[i-1],self.value_grid[i],states[j])
+            if (values[j] > v_temp) and (not skip_start):
+                value_new = np.array(values[j])
+                state_new = np.array(states[j])
+                left_policy_new = np.reshape(policies[:,j],(N,1))
+                right_policy_new = np.reshape(policies[:,j],(N,1))
+                if j == 0: # If this is the very first candidate point AND it dominates...
+                    orig_policies = evalTwoPointLine(self.state_grid[i-1],self.state_grid[i],self.right_policy[i-1],self.left_policy[i],states[j])
+                    if moving_right:
+                        left_policy_new[:,0] = orig_policies
+                    else:
+                        right_policy_new[:,0] = orig_policies
+                candidate_better = True
+                K += 1
+            else: # Initialize the set of replacement points to be inserted as empty                
+                value_new = np.zeros(0)
+                state_new = np.zeros(0)
+                left_policy_new  = np.zeros((N,0))
+                right_policy_new = np.zeros((N,0))
+                candidate_better = False
+            
+            # Loop over the index set to fill in the set of replacement points
+            for i in idx_set:
+                # If dominance switches, add a point at value crossing
+                if dominance[i] != candidate_better: 
+                    cross_state, cross_value = solveTwoPointLines(states[j],states[j+1],values[j],values[j+1],self.state_grid[i-1],self.state_grid[i],self.value_grid[i-1],self.value_grid[i])
+                    cand_policies = np.reshape(evalTwoPointLine(states[j],states[j+1],policies[:,j],policies[:,j+1],cross_state),(N,1))
+                    orig_policies = np.reshape(evalTwoPointLine(self.state_grid[i-1],self.state_grid[i],self.right_policy[i-1],self.left_policy[i],cross_state),(N,1))
+                    z = moving_right*K # 0 if moving left, K if moving right
+                    state_new = np.insert(state_new,z,cross_state)
+                    value_new = np.insert(value_new,z,cross_value)
+                    if candidate_better == moving_right: # Candidate goes on left, original goes on right
+                        left_policy_new  = np.insert(left_policy_new,z,cand_policies,axis=1)
+                        right_policy_new = np.insert(right_policy_new,z,orig_policies,axis=1)
+                    else:                                # Original goes on left, candidate goes on right
+                        left_policy_new  = np.insert(left_policy_new,z,orig_policies,axis=1)
+                        right_policy_new = np.insert(right_policy_new,z,cand_policies,axis=1)
+                    K += 1
+                
+                # If original dominates, add it to our replacement set
+                if not dominance[i]:
+                    z = moving_right*K # 0 if moving left, K if moving right
+                    state_new = np.insert(state_new,z,self.state_grid[i])
+                    value_new = np.insert(value_new,z,self.value_grid[i])
+                    left_policy_new  = np.insert(left_policy_new,z,np.reshape(self.left_policy[:,i],(N,1)),axis=1)
+                    right_policy_new = np.insert(right_policy_new,z,np.reshape(self.right_policy[:,i],(N,1)),axis=1)
+                    K += 1
+                    
+                candidate_better = dominance[i]
+                    
+            # Check for dominance switching between last original state and end point of segment
+            # CHECK VALUE OF i FOR THIS SECTION
+            v_orig = evalTwoPointLine(self.state_grid[i],self.state_grid[i-1],self.value_grid[i],self.value_grid[i-1],states[j+1])
+            end_dom = values[j+1] > v_orig
+            if end_dom != candidate_better:
+                cross_state, cross_value = solveTwoPointLines(states[j],states[j+1],values[j],values[j+1],self.state_grid[i-1],self.state_grid[i],self.value_grid[i-1],self.value_grid[i])
+                cand_policies = np.reshape(evalTwoPointLine(states[j],states[j+1],policies[:,j],policies[:,j+1],cross_state),(N,1))
+                orig_policies = np.reshape(evalTwoPointLine(self.state_grid[i-1],self.state_grid[i],self.right_policy[i-1],self.left_policy[i],cross_state),(N,1))
+                z = moving_right*K # 0 if moving left, K if moving right
+                state_new = np.insert(state_new,z,cross_state)
+                value_new = np.insert(value_new,z,cross_value)
+                if candidate_better == moving_right: # Candidate goes on left, original goes on right
+                    left_policy_new  = np.insert(left_policy_new,z,cand_policies,axis=1)
+                    right_policy_new = np.insert(right_policy_new,z,orig_policies,axis=1)
+                else:                                # Original goes on left, candidate goes on right
+                    left_policy_new  = np.insert(left_policy_new,z,orig_policies,axis=1)
+                    right_policy_new = np.insert(right_policy_new,z,cand_policies,axis=1)
+                K += 1
+            candidate_better = end_dom
 
-            # Get value at the endpoints of this segment and at all state nodes
-            # for the value function inside the segment
-            V_ends = self.vFunc([x0,x1])
-            bot = np.searchsorted(self.vFunc.x_list,x0,side='right')
-            top = np.searchsorted(self.vFunc.x_list,x1)
-            V_list = np.concatenate(([V_ends[0]],self.vFunc.y_list[bot:top],[V_ends[1]]))
+            # If this is the last segment *and* the end point dominates the original, add it to the set
+            if j == (states.size-2):
+                i = np.searchsorted(self.state_grid,states[-1])
+                v_orig = evalTwoPointLine(self.state_grid[i],self.state_grid[i-1],self.value_grid[i],self.value_grid[i-1],states[-1])
+                orig_policies = evalTwoPointLine(self.state_grid[i],self.state_grid[i-1],self.right_policy[i],self.left_policy[i-1],states[-1])
+                if (values[-1] > v_orig) or (states[-1] > self.state_grid[-1]):
+                    z = np.searchsorted(state_new,states[-1]) # usually 0 if moving left, K if moving right, but possibly elsewhere in a weird case
+                    state_new = np.insert(state_new,z,states[-1])
+                    value_new = np.insert(value_new,z,states[-1])
+                    if moving_right:
+                        left_policy_new = np.insert(left_policy_new,z,policies[:,-1],axis=1)
+                        right_policy_new = np.insert(right_policy_new,z,orig_policies,axis=1)
+                    else:
+                        left_policy_new = np.insert(left_policy_new,z,orig_policies,axis=1)
+                        right_policy_new = np.insert(right_policy_new,z,policies[:,-1],axis=1)
+                    K += 1
+                    candidate_better = True
+                else:
+                    candidate_better = False
+            
+            # Delete the original points inside this segment's range, and replace them with the replacement set
+            self.state_grid = np.delete(self.state_grid,np.arange(bot,top))
+            self.value_grid = np.delete(self.value_grid,np.arange(bot,top))
+            self.left_policy  = np.delete(self.left_policy, np.arange(bot,top),axis=1)
+            self.right_policy = np.delete(self.right_policy,np.arange(bot,top),axis=1)
+            self.state_grid = np.insert(self.state_grid,bot,state_new)
+            self.value_grid = np.insert(self.value_grid,bot,value_new)
+            self.left_policy = np.insert(self.left_policy,bot,left_policy_new,axis=1)
+            self.right_policy = np.insert(self.right_policy,bot,right_policy_new,axis=1)
+            
+        # Deal with upper extrapolation if requested
+        if extrapolate and moving_right:
+            if (self.state_grid[-1] == states[-1]) and (self.value_grid[-1] == values[-1]):
+                # Highest gridpoint is the last candidate gridpoint, so extrapolate it
+                value_slope = (self.value_grid[-1] - self.value_grid[-2])/(self.state_grid[-1] - self.state_grid[-2])
+                policy_slope = (self.left_policy[:,-1] - self.right_policy[:,-2])/(self.state_grid[-1] - self.state_grid[-2])
+                big_jump = 1000000.
+                self.state_grid = np.insert(self.state_grid,-1,self.state_grid[-1] + big_jump)
+                self.value_grid = np.insert(self.value_grid,-1,self.value_grid[-1] + big_jump*value_slope)
+                self.left_policy = np.insert(self.left_policy,-1,self.right_policy[-1,:] + big_jump*policy_slope,axis=1)
+                self.right_policy = np.insert(self.right_policy,-1,self.right_policy[-1,:] + big_jump*policy_slope,axis=1)
+            else:
+                # If top gridpoint is not last candidate gridpoint, check whether last candidate segment *eventually* overtakes current version
+                cross_state, cross_value = solveTwoPointLines(states[-2],states[-1],values[-2],values[-1],self.state_grid[-2],self.state_grid[-1],self.value_grid[-2],self.value_grid[-1])
+                if cross_state > self.state_grid[-1]: # Add crossing point if it's past last gridpoint
+                    orig_policies = np.reshape(evalTwoPointLine(self.state_grid[-2],self.state_grid[-1],self.right_policy[-2],self.left_policy[-1],cross_state),(N,1))
+                    cand_policies = np.reshape(evalTwoPointLine(states[-2],states[-1],policies[:,-2],policies[:,-1],cross_state),(N,1))
+                    self.state_grid = np.append(self.state_grid,cross_state)
+                    self.value_grid = np.append(self.value_grid,cross_value)
+                    self.left_policy = np.append(self.left_policy,orig_policies,axis=1)
+                    self.right_policy = np.append(self.right_policy,cand_policies,axis=1)
+                    
+                    # Then add extrapolation point
+                    value_slope = (values[-1] - values[-2])/(states[-1] - states[-2])
+                    policy_slope = (policies[-1] - policies[-2])/(states[-1] - states[-2])
+                    big_jump = 1000000.
+                    self.state_grid = np.insert(self.state_grid,-1,self.state_grid[-1] + big_jump)
+                    self.value_grid = np.insert(self.value_grid,-1,self.value_grid[-1] + big_jump*value_slope)
+                    self.left_policy = np.insert(self.left_policy,-1,self.right_policy[-1,:] + big_jump*policy_slope,axis=1)
+                    self.right_policy = np.insert(self.right_policy,-1,self.right_policy[-1,:] + big_jump*policy_slope,axis=1)
+        
+    
+                    
+    def makeValueAndPolicyFuncs(self):
+        '''
+        Make a value function and policy functions based on the current grids.
+        Uses the attributes state_grid, value_grid, left_policy, right_policy to
+        construct value and policy functions; these were created by one or more
+        calls to addPoints().  Makes attributes ValueFunc and PolicyFuncs
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        self.ValueFunction = LinearInterp(self.state_grid,self.value_grid)
+        state_grid_temp = np.array(self.state_grid[0])
+        N = self.left_policy.shape[1]
+        policy_grid_temp = np.reshape(self.right_policy[:,0],(N,1))
+        for j in range(1,self.state_grid.size):
+            state_grid_temp = np.append(state_grid_temp,self.state_grid[j])
+            policy_grid_temp = np.append(policy_grid_temp,np.reshape(self.left_policy[:,j],(N,1)),axis=1)
+            if not np.all(self.left_policy[:,j] == self.right_policy[:,j]):
+                step = (1. + np.abs(self.state_grid[j]))*1e-15
+                state_grid_temp = np.append(state_grid_temp,self.state_grid[j] + step)
+                policy_grid_temp = np.append(policy_grid_temp,np.reshape(self.right_policy[:,j],(N,1)),axis=1)
+        PolicyFuncs = []
+        for n in range(N):
+            PolicyFuncs.append(LinearInterp(state_grid_temp,policy_grid_temp[n,:]))
+        self.PolicyFuncs = PolicyFuncs
+                
             
         
 class BilinearInterp(HARKinterpolator2D):
