@@ -1074,24 +1074,69 @@ class FellaInterp(HARKobject):
             policies = np.reshape(policies,(1,policies.size))
         N = policies.shape[0]
         
+        # Initialize direction so that first "switch check" passes and initialize empty replacement point objects
+        moving_right = (states[1] > states[0]) # Hopefully always True
+        value_new = np.zeros(0)
+        state_new = np.zeros(0)
+        left_policy_new  = np.zeros((N,0))
+        right_policy_new = np.zeros((N,0))
+        K = 0
+        
         # Loop over the segments in the candidate set
         for j in range(states.size-1):
             print(j)
-            moving_right = (states[j+1] > states[j])
+            skip_start = False
+            
+            # Check whether direction has changed; if so, insert replacement points now
+            new_dir = (states[j+1] > states[j])
+            if (new_dir != moving_right) and (state_new.size > 0):
+                # Add "turning point" if it dominates
+                i = np.searchsorted(self.state_grid,states[j])
+                v_temp = evalTwoPointLine(self.state_grid[i-1],self.state_grid[i],self.value_grid[i-1],self.value_grid[i],states[j])
+                if (values[j] > v_temp):
+                    orig_policies = np.reshape(evalTwoPointLine(self.state_grid[i-1],self.state_grid[i],self.right_policy[i-1],self.left_policy[i],states[j]),(N,1))
+                    if moving_right:
+                        i = -1
+                    else:
+                        i = 0
+                    value_new = np.insert(value_new,i,values[j])
+                    state_new = np.insert(state_new,i,states[j])
+                    if moving_right:
+                        left_policy_new = np.insert(left_policy_new,i,np.reshape(policies[:,j],(N,1)),axis=1)
+                        right_policy_new = np.insert(right_policy_new,i,np.reshape(orig_policies[:,j],(N,1)),axis=1)
+                    else:
+                        right_policy_new = np.insert(right_policy_new,i,np.reshape(policies[:,j],(N,1)),axis=1)
+                        left_policy_new = np.insert(left_policy_new,i,np.reshape(orig_policies[:,j],(N,1)),axis=1)
+                    candidate_better = True
+                    skip_start = True
+                               
+                # Delete points inside span of replacement points
+                bot = np.searchsorted(self.state_grid,state_new[0])
+                top = np.searchsorted(self.state_grid,state_new[-1])
+                self.state_grid = np.delete(self.state_grid,np.arange(bot,top))
+                self.value_grid = np.delete(self.value_grid,np.arange(bot,top))
+                self.left_policy  = np.delete(self.left_policy, np.arange(bot,top),axis=1)
+                self.right_policy = np.delete(self.right_policy,np.arange(bot,top),axis=1)
+                
+                # Add new points to self
+                self.state_grid = np.insert(self.state_grid,bot,state_new)
+                self.value_grid = np.insert(self.value_grid,bot,value_new)
+                self.left_policy = np.insert(self.left_policy,[bot],left_policy_new,axis=1)
+                self.right_policy = np.insert(self.right_policy,[bot],right_policy_new,axis=1)
+                
+                # Reset the replacement points objects
+                value_new = np.zeros(0)
+                state_new = np.zeros(0)
+                left_policy_new  = np.zeros((N,0))
+                right_policy_new = np.zeros((N,0))
+                K = 0
+                
+            # Get bounds of this segment with respect to existing state grid   
+            moving_right = new_dir    
             start_idx = np.searchsorted(self.state_grid,states[j])
             end_idx = np.searchsorted(self.state_grid,states[j+1])
             skip_start = False
-            
-            # If the beginning of the segment is beyond the highest existing gridpoint, accept it immediately
-            if start_idx == self.state_grid.size:
-                self.state_grid = np.insert(self.state_grid,-1,states[j])
-                self.value_grid = np.insert(self.value_grid,-1,values[j])
-                self.left_policy  = np.insert(self.left_policy,-1,policies[:,j],axis=1)
-                self.right_policy = np.insert(self.right_policy,-1,policies[:,j],axis=1)
-                skip_start = True # starting point has already been added, skip it later
-                if not moving_right:
-                    end_idx = np.searchsorted(self.state_grid,states[j+1])
-                                
+
             # Determine index bounds for this segment and make the set of original indices to loop over
             if moving_right:
                 bot = start_idx
@@ -1116,16 +1161,16 @@ class FellaInterp(HARKobject):
             dominance = v_cand > v_orig
             if not moving_right:
                 dominance = np.flip(dominance)
-            
-            K = 0 # Counter for number of replacement points
                         
             # Add the starting point of the segment to replacement points if it dominates original
+            # Also add starting point if starting point is above highest gridpoint
             v_temp = evalTwoPointLine(self.state_grid[i-1],self.state_grid[i],self.value_grid[i-1],self.value_grid[i],states[j])
-            if (values[j] > v_temp) and (not skip_start):
-                value_new = np.array([values[j]])
-                state_new = np.array([states[j]])
-                left_policy_new = np.reshape(policies[:,j],(N,1))
-                right_policy_new = np.reshape(policies[:,j],(N,1))
+            if ((values[j] > v_temp) or (start_idx == self.state_grid.size)) and (not skip_start):
+                z = moving_right*K # 0 if moving left, K if moving right
+                value_new = np.insert(value_new,z,values[j])
+                state_new = np.insert(state_new,z,states[j])
+                left_policy_new = np.insert(left_policy_new,z,np.reshape(policies[:,j],(N,1)),axis=1)
+                right_policy_new = np.insert(right_policy_new,z,np.reshape(orig_policies[:,j],(N,1)),axis=1)
                 if j == 0: # If this is the very first candidate point AND it dominates...
                     orig_policies = evalTwoPointLine(self.state_grid[i-1],self.state_grid[i],self.right_policy[i-1],self.left_policy[i],states[j])
                     if moving_right:
@@ -1134,11 +1179,7 @@ class FellaInterp(HARKobject):
                         right_policy_new[:,0] = orig_policies
                 candidate_better = True
                 K += 1
-            else: # Initialize the set of replacement points to be inserted as empty                
-                value_new = np.zeros(0)
-                state_new = np.zeros(0)
-                left_policy_new  = np.zeros((N,0))
-                right_policy_new = np.zeros((N,0))
+            else:
                 candidate_better = False
             
             # Loop over the index set to fill in the set of replacement points
@@ -1214,10 +1255,10 @@ class FellaInterp(HARKobject):
                 else:
                     candidate_better = False
             
-            #print(state_new)
-            #print(left_policy_new)
-            
-            # Delete the original points inside this segment's range, and replace them with the replacement set
+        # Looping over segments is done, add last batch of replavement points
+        if state_new.size > 0:
+            bot = np.searchsorted(self.state_grid,state_new[0])
+            top = np.searchsorted(self.state_grid,state_new[-1])
             self.state_grid = np.delete(self.state_grid,np.arange(bot,top))
             self.value_grid = np.delete(self.value_grid,np.arange(bot,top))
             self.left_policy  = np.delete(self.left_policy, np.arange(bot,top),axis=1)
@@ -1226,11 +1267,6 @@ class FellaInterp(HARKobject):
             self.value_grid = np.insert(self.value_grid,bot,value_new)
             self.left_policy = np.insert(self.left_policy,[bot],left_policy_new,axis=1)
             self.right_policy = np.insert(self.right_policy,[bot],right_policy_new,axis=1)
-            
-            #print(self.state_grid)
-            #print(self.value_grid)
-            #print(self.left_policy)
-            #print(self.right_policy)
             
         # Deal with upper extrapolation if requested
         if extrapolate and moving_right:
