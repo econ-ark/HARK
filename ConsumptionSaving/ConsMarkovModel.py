@@ -678,6 +678,8 @@ class MarkovConsumerType(IndShockConsumerType):
         IndShockConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
         self.solveOnePeriod = solveConsMarkov
         self.poststate_vars += ['MrkvNow']
+        if not hasattr(self, 'global_markov'):
+            self.global_markov = False
         
     def checkMarkovInputs(self):
         '''
@@ -759,6 +761,10 @@ class MarkovConsumerType(IndShockConsumerType):
         
     def initializeSim(self):
         IndShockConsumerType.initializeSim(self)
+        if self.global_markov:  #Need to initialize markov state to be the same for all agents
+            base_draw = drawUniform(1,seed=self.RNG.randint(0,2**31-1))
+            Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
+            self.MrkvNow = np.ones(self.AgentCount)*np.searchsorted(Cutoffs,base_draw).astype(int)
         self.MrkvNow = self.MrkvNow.astype(int)
         
     def simDeath(self):
@@ -800,10 +806,11 @@ class MarkovConsumerType(IndShockConsumerType):
         None
         '''
         IndShockConsumerType.simBirth(self,which_agents) # Get initial assets and permanent income
-        N = np.sum(which_agents)
-        base_draws = drawUniform(N,seed=self.RNG.randint(0,2**31-1))
-        Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
-        self.MrkvNow[which_agents] = np.searchsorted(Cutoffs,base_draws).astype(int)
+        if not self.global_markov:  #Markov state is not changed if it is set at the global level
+            N = np.sum(which_agents)
+            base_draws = drawUniform(N,seed=self.RNG.randint(0,2**31-1))
+            Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
+            self.MrkvNow[which_agents] = np.searchsorted(Cutoffs,base_draws).astype(int)
         
     def getShocks(self):
         '''
@@ -819,8 +826,11 @@ class MarkovConsumerType(IndShockConsumerType):
         None
         '''
         # Get new Markov states for each agent
-        base_draws = self.RNG.permutation(np.arange(self.AgentCount,dtype=float)/self.AgentCount + 1.0/(2*self.AgentCount))
-        newborn = self.t_age == 0 # Don't change Markov state for those who were just born
+        if self.global_markov:
+            base_draws = np.ones(self.AgentCount)*drawUniform(1,seed=self.RNG.randint(0,2**31-1))
+        else:
+            base_draws = self.RNG.permutation(np.arange(self.AgentCount,dtype=float)/self.AgentCount + 1.0/(2*self.AgentCount))
+        newborn = self.t_age == 0 # Don't change Markov state for those who were just born (unless global_markov)
         MrkvPrev = self.MrkvNow
         MrkvNow = np.zeros(self.AgentCount,dtype=int)
         for t in range(self.T_cycle):
@@ -828,7 +838,8 @@ class MarkovConsumerType(IndShockConsumerType):
             for j in range(self.MrkvArray[t].shape[0]):
                 these = np.logical_and(self.t_cycle == t,MrkvPrev == j)
                 MrkvNow[these] = np.searchsorted(Cutoffs[j,:],base_draws[these]).astype(int)
-        MrkvNow[newborn] = MrkvPrev[newborn]
+        if not self.global_markov:
+                MrkvNow[newborn] = MrkvPrev[newborn]
         self.MrkvNow = MrkvNow        
         
         # Now get income shocks for each consumer, by cycle-time and discrete state
@@ -987,6 +998,7 @@ if __name__ == '__main__':
     init_serial_unemployment = copy(Params.init_idiosyncratic_shocks)
     init_serial_unemployment['MrkvArray'] = [MrkvArray]
     init_serial_unemployment['UnempPrb'] = 0 # to make income distribution when employed
+    init_serial_unemployment['global_markov'] = False
     SerialUnemploymentExample = MarkovConsumerType(**init_serial_unemployment)
     SerialUnemploymentExample.cycles = 0
     SerialUnemploymentExample.vFuncBool = False # for easy toggling here
