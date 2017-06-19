@@ -9,8 +9,8 @@ distance method from HARKobject.
 
 import warnings
 import numpy as np
-from scipy.interpolate import UnivariateSpline
 from HARKcore import HARKobject
+from HARKutilities import CRRAutility, CRRAutilityP, CRRAutility_invP
 from copy import deepcopy
 
 def _isscalar(x):
@@ -658,7 +658,7 @@ class LinearInterp(HARKinterpolator1D):
 
         Parameters
         ----------
-        x_list : scalar or np.array
+        x : scalar or np.array
             Set of points where we want to evlauate the interpolated function and/or its derivative..
         _eval : boolean
             Indicator for whether to evalute the level of the interpolated function.
@@ -669,9 +669,6 @@ class LinearInterp(HARKinterpolator1D):
         -------
         A list including the level and/or derivative of the interpolated function where requested.
         '''
-
-
-
         i      = np.maximum(np.searchsorted(self.x_list[:-1],x),1)
         alpha  = (x-self.x_list[i-1])/(self.x_list[i]-self.x_list[i-1])
 
@@ -695,13 +692,11 @@ class LinearInterp(HARKinterpolator1D):
             if _eval:
                 y[above_upper_bound] = self.intercept_limit + \
                                        self.slope_limit*x[above_upper_bound] - \
-                                       self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)
-            
+                                       self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)            
             if _Der:            
                 dydx[above_upper_bound] = self.slope_limit + \
                                           self.decay_extrap_B*self.decay_extrap_A*\
                                           np.exp(-self.decay_extrap_B*x_temp)
-
         output = []
         if _eval:
             output += [y,]
@@ -924,6 +919,214 @@ class CubicInterp(HARKinterpolator1D):
                 y[out_top] = self.coeffs[self.n,0] + x[out_top]*self.coeffs[self.n,1] - self.coeffs[self.n,2]*np.exp(alpha*self.coeffs[self.n,3])
                 dydx[out_top] = self.coeffs[self.n,1] - self.coeffs[self.n,2]*self.coeffs[self.n,3]*np.exp(alpha*self.coeffs[self.n,3])
         return y, dydx
+    
+    
+    
+    
+class LinearInterpDiscont(LinearInterp):
+    '''
+    A "from scratch" 1D linear interpolation class.  Allows for linear or decay
+    extrapolation (approaching a limiting linear function from below).  Function
+    is not necessarily continuous; user can specify both y_left and y_right.
+    '''
+    distance_criteria = ['x_list','coeffs']
+    
+    def __init__(self,x_list,y_left,y_right=None,intercept_limit=None,slope_limit=None,lower_extrap=False):
+        '''
+        The interpolation constructor to make a new linear spline interpolation.
+        
+        NOTE: When no input is given for the limiting linear function, linear
+        extrapolation is used above the highest gridpoint.   
+        
+        Parameters
+        ----------
+        x_list : np.array
+            List of x values composing the grid.
+        y_left : np.array
+            List of y values, representing f(x-) at the points in x_list.  If
+            y_right is not specified, these are f(x) value (no discontinuities).
+        y_right : np.array
+            List of y values, representing f(x+) at the points in x_list.  If
+            not specified, then are y_left is f(x+) values (no discontinuities).
+        intercept_limit : float
+            Intercept of limiting linear function.
+        slope_limit : float
+            Slope of limiting linear function.
+        lower_extrap : boolean
+            Indicator for whether lower extrapolation is allowed.  False means
+            f(x) = NaN for x < min(x_list); True means linear extrapolation.
+            
+        Returns
+        -------
+        new instance of LinearInterpDisCont
+        '''
+        # Store basic attributes
+        x_list = np.array(x_list)
+        self.x_list = x_list
+        self.lower_extrap = lower_extrap
+        self.x_n = self.x_list.size
+        if y_right is None:
+            y_right = y_left
+            y_left = np.array(y_left)
+            y_right = np.array(y_right)
+        
+        # Calculate coefficients for each segment
+        slopes = (y_left[1:] - y_right[0:-1])/(x_list[1:] - x_list[0:-1])
+        intercepts = y_right[0:-1] - slopes*x_list[0:-1]
+        self.coeffs = np.vstack((intercepts,slopes))
+        
+        # Make a decay extrapolation
+        if intercept_limit is not None and slope_limit is not None:
+            slope_at_top = (y_list[-1] - y_list[-2])/(x_list[-1] - x_list[-2])
+            level_diff   = intercept_limit + slope_limit*x_list[-1] - y_list[-1]
+            slope_diff   = slope_limit - slope_at_top
+            
+            self.decay_extrap_A  = level_diff
+            self.decay_extrap_B  = -slope_diff/level_diff
+            self.intercept_limit = intercept_limit
+            self.slope_limit     = slope_limit
+            self.decay_extrap    = True
+        else:
+            self.decay_extrap = False
+
+
+    def _evalOrDer(self,x,_eval,_Der):
+        '''
+        Returns the level and/or first derivative of the function at each value in
+        x.  Only called internally by HARKinterpolator1D.eval_and_der (etc).
+
+        Parameters
+        ----------
+        x : scalar or np.array
+            Set of points where we want to evlauate the interpolated function and/or its derivative..
+        _eval : boolean
+            Indicator for whether to evalute the level of the interpolated function.
+        _Der : boolean
+            Indicator for whether to evaluate the derivative of the interpolated function.
+            
+        Returns
+        -------
+        A list including the level and/or derivative of the interpolated function where requested.
+        '''
+        i      = np.searchsorted(self.x_list[:-1],x) - 1
+        
+        slopes = self.coeffs[1,i]
+        if _eval:
+                y = self.coeffs[0,i] + slopes*x
+        if _Der:
+                dydx = slopes
+
+        if not self.lower_extrap:
+            below_lower_bound = x < self.x_list[0]
+
+            if _eval:
+                y[below_lower_bound] = np.nan
+            if _Der:           
+                dydx[below_lower_bound] = np.nan
+        
+        if self.decay_extrap:
+            above_upper_bound = x > self.x_list[-1]
+            x_temp = x[above_upper_bound] - self.x_list[-1]
+
+            if _eval:
+                y[above_upper_bound] = self.intercept_limit + \
+                                       self.slope_limit*x[above_upper_bound] - \
+                                       self.decay_extrap_A*np.exp(-self.decay_extrap_B*x_temp)            
+            if _Der:            
+                dydx[above_upper_bound] = self.slope_limit + \
+                                          self.decay_extrap_B*self.decay_extrap_A*\
+                                          np.exp(-self.decay_extrap_B*x_temp)
+        output = []
+        if _eval:
+            output += [y,]
+        if _Der:
+            output += [dydx,]
+
+        return output
+
+    
+    
+class CubicInterpDiscont(CubicInterp):
+    '''
+    An interpolating function using piecewise cubic splines.  User supplies left
+    and right value and derivative at each gridpoint, which may or may not be
+    the same.  That is, discontinuities in level or derivative are permitted.
+    Extrapolation above highest gridpoint approaches a limiting linear function
+    if desired (linear extrapolation also enabled.)
+    '''
+    distance_criteria = ['x_list','coeffs']
+    
+    def __init__(self,x_list,y_left,y_right,dydx_left,dydx_right,intercept_limit=None,slope_limit=None,lower_extrap=False):
+        '''
+        The interpolation constructor to make a new cubic spline interpolation.
+        
+        Parameters
+        ----------
+        x_list : np.array
+            List of x values composing the grid.
+        y_left : np.array
+            List of y values, representing f(x-) at the points in x_list.
+        y_right : np.array
+            List of y values, representing f(x+) at the points in x_list.
+        dydx_left : np.array
+            List of dydx values, representing f'(x-) at the points in x_list.
+        dydx_right : np.array
+            List of dydx values, representing f'(x+) at the points in x_list.
+        intercept_limit : float
+            Intercept of limiting linear function.
+        slope_limit : float
+            Slope of limiting linear function.
+        lower_extrap : boolean
+            Indicator for whether lower extrapolation is allowed.  False means
+            f(x) = NaN for x < min(x_list); True means linear extrapolation.
+            
+        Returns
+        -------
+        new instance of CubicInterp
+            
+        NOTE: When no input is given for the limiting linear function, linear
+        extrapolation is used above the highest gridpoint.        
+        '''
+        self.x_list = np.asarray(x_list)
+        self.y_left = np.asarray(y_left)
+        self.dydx_left = np.asarray(dydx_left)
+        self.y_right = np.asarray(y_right)
+        self.dydx_right = np.asarray(dydx_right)
+        self.n = len(x_list)
+        
+        # Define lower extrapolation as linear function (or just NaN)
+        if lower_extrap:
+            self.coeffs = [[y_left[0],dydx_left[0],0,0]]
+        else:
+            self.coeffs = [[np.nan,np.nan,np.nan,np.nan]]
+
+        # Calculate interpolation coefficients on segments mapped to [0,1]
+        for i in xrange(self.n-1):
+           x0 = x_list[i]
+           y0 = y_right[i]
+           x1 = x_list[i+1]
+           y1 = y_left[i+1]
+           Span = x1 - x0
+           dydx0 = dydx_right[i]*Span
+           dydx1 = dydx_left[i+1]*Span
+           
+           temp = [y0, dydx0, 3*(y1 - y0) - 2*dydx0 - dydx1, 2*(y0 - y1) + dydx0 + dydx1];
+           self.coeffs.append(temp)
+
+        # Calculate extrapolation coefficients as a decay toward limiting function y = mx+b
+        if slope_limit is None and intercept_limit is None:
+            slope_limit = dydx_right[-1]
+            intercept_limit = y_right[-1] - slope_limit*x_list[-1]
+        gap = slope_limit*x1 + intercept_limit - y1
+        slope = slope_limit - dydx_right[self.n-1]
+        if (gap != 0) and (slope <= 0):
+            temp = [intercept_limit, slope_limit, gap, slope/gap]
+        elif slope > 0:
+            temp = [intercept_limit, slope_limit, 0, 0] # fixing a problem when slope is positive
+        else:
+            temp = [intercept_limit, slope_limit, gap, 0]
+        self.coeffs.append(temp)
+        self.coeffs = np.array(self.coeffs)
 
 
 
@@ -1011,7 +1214,7 @@ class FellaInterp(HARKobject):
         '''
         Make a new FellaInterp instance.  It will initially have a constant value
         function and constant policy functions; these will be improved by calls to
-        the method _________.
+        the method addNewPoints.
         
         Parameters
         ----------
@@ -1084,7 +1287,7 @@ class FellaInterp(HARKobject):
         
         # Loop over the segments in the candidate set
         for j in range(states.size-1):
-            print(j)
+            #print(j)
             skip_start = False
             
             # Check whether direction has changed; if so, insert replacement points now
@@ -1094,7 +1297,7 @@ class FellaInterp(HARKobject):
                 i = np.searchsorted(self.state_grid,states[j])
                 v_temp = evalTwoPointLine(self.state_grid[i-1],self.state_grid[i],self.value_grid[i-1],self.value_grid[i],states[j])
                 if (values[j] > v_temp):
-                    orig_policies = np.reshape(evalTwoPointLine(self.state_grid[i-1],self.state_grid[i],self.right_policy[i-1],self.left_policy[i],states[j]),(N,1))
+                    orig_policies = np.reshape(evalTwoPointLine(self.state_grid[i-1],self.state_grid[i],self.right_policy[:,i-1],self.left_policy[:,i],states[j]),(N,1))
                     if moving_right:
                         i = -1
                     else:
@@ -1102,11 +1305,11 @@ class FellaInterp(HARKobject):
                     value_new = np.insert(value_new,i,values[j])
                     state_new = np.insert(state_new,i,states[j])
                     if moving_right:
-                        left_policy_new = np.insert(left_policy_new,i,np.reshape(policies[:,j],(N,1)),axis=1)
-                        right_policy_new = np.insert(right_policy_new,i,np.reshape(orig_policies[:,j],(N,1)),axis=1)
+                        left_policy_new = np.insert(left_policy_new,[i],np.reshape(policies[:,j],(N,1)),axis=1)
+                        right_policy_new = np.insert(right_policy_new,[i],np.reshape(orig_policies,(N,1)),axis=1)
                     else:
-                        right_policy_new = np.insert(right_policy_new,i,np.reshape(policies[:,j],(N,1)),axis=1)
-                        left_policy_new = np.insert(left_policy_new,i,np.reshape(orig_policies[:,j],(N,1)),axis=1)
+                        right_policy_new = np.insert(right_policy_new,[i],np.reshape(policies[:,j],(N,1)),axis=1)
+                        left_policy_new = np.insert(left_policy_new,[i],np.reshape(orig_policies,(N,1)),axis=1)
                     candidate_better = True
                     skip_start = True
                                
@@ -1135,7 +1338,6 @@ class FellaInterp(HARKobject):
             moving_right = new_dir    
             start_idx = np.searchsorted(self.state_grid,states[j])
             end_idx = np.searchsorted(self.state_grid,states[j+1])
-            skip_start = False
 
             # Determine index bounds for this segment and make the set of original indices to loop over
             if moving_right:
@@ -1160,7 +1362,7 @@ class FellaInterp(HARKobject):
             v_cand = evalTwoPointLine(states[j],states[j+1],values[j],values[j+1],state_temp)
             dominance = v_cand > v_orig
             if not moving_right:
-                dominance = np.flip(dominance)
+                dominance = np.flip(dominance,axis=0)
                         
             # Add the starting point of the segment to replacement points if it dominates original
             # Also add starting point if starting point is above highest gridpoint
@@ -1170,8 +1372,8 @@ class FellaInterp(HARKobject):
                 orig_policies = evalTwoPointLine(self.state_grid[i-1],self.state_grid[i],self.right_policy[:,i-1],self.left_policy[:,i],states[j])
                 value_new = np.insert(value_new,z,values[j])
                 state_new = np.insert(state_new,z,states[j])
-                left_policy_new = np.insert(left_policy_new,z,np.reshape(policies[:,j],(N,1)),axis=1)
-                right_policy_new = np.insert(right_policy_new,z,np.reshape(policies[:,j],(N,1)),axis=1)
+                left_policy_new = np.insert(left_policy_new,[z],np.reshape(policies[:,j],(N,1)),axis=1)
+                right_policy_new = np.insert(right_policy_new,[z],np.reshape(policies[:,j],(N,1)),axis=1)
                 if j == 0: # If this is the very first candidate point AND it dominates...
                     if moving_right:
                         left_policy_new[:,0] = orig_policies
@@ -1194,11 +1396,11 @@ class FellaInterp(HARKobject):
                     state_new = np.insert(state_new,z,cross_state)
                     value_new = np.insert(value_new,z,cross_value)
                     if candidate_better == moving_right: # Candidate goes on left, original goes on right
-                        left_policy_new  = np.insert(left_policy_new,z,cand_policies,axis=1)
-                        right_policy_new = np.insert(right_policy_new,z,orig_policies,axis=1)
+                        left_policy_new  = np.insert(left_policy_new,[z],cand_policies,axis=1)
+                        right_policy_new = np.insert(right_policy_new,[z],orig_policies,axis=1)
                     else:                                # Original goes on left, candidate goes on right
-                        left_policy_new  = np.insert(left_policy_new,z,orig_policies,axis=1)
-                        right_policy_new = np.insert(right_policy_new,z,cand_policies,axis=1)
+                        left_policy_new  = np.insert(left_policy_new,[z],orig_policies,axis=1)
+                        right_policy_new = np.insert(right_policy_new,[z],cand_policies,axis=1)
                     K += 1
                 
                 # If original dominates, add it to our replacement set
@@ -1206,8 +1408,8 @@ class FellaInterp(HARKobject):
                     z = moving_right*K # 0 if moving left, K if moving right
                     state_new = np.insert(state_new,z,self.state_grid[i])
                     value_new = np.insert(value_new,z,self.value_grid[i])
-                    left_policy_new  = np.insert(left_policy_new,z,np.reshape(self.left_policy[:,i],(N,1)),axis=1)
-                    right_policy_new = np.insert(right_policy_new,z,np.reshape(self.right_policy[:,i],(N,1)),axis=1)
+                    left_policy_new  = np.insert(left_policy_new,[z],np.reshape(self.left_policy[:,i],(N,1)),axis=1)
+                    right_policy_new = np.insert(right_policy_new,[z],np.reshape(self.right_policy[:,i],(N,1)),axis=1)
                     K += 1
                     
                 candidate_better = dominance[k]
@@ -1224,11 +1426,11 @@ class FellaInterp(HARKobject):
                 state_new = np.insert(state_new,z,cross_state)
                 value_new = np.insert(value_new,z,cross_value)
                 if candidate_better == moving_right: # Candidate goes on left, original goes on right
-                    left_policy_new  = np.insert(left_policy_new,z,cand_policies,axis=1)
-                    right_policy_new = np.insert(right_policy_new,z,orig_policies,axis=1)
+                    left_policy_new  = np.insert(left_policy_new,[z],cand_policies,axis=1)
+                    right_policy_new = np.insert(right_policy_new,[z],orig_policies,axis=1)
                 else:                                # Original goes on left, candidate goes on right
-                    left_policy_new  = np.insert(left_policy_new,z,orig_policies,axis=1)
-                    right_policy_new = np.insert(right_policy_new,z,cand_policies,axis=1)
+                    left_policy_new  = np.insert(left_policy_new,[z],orig_policies,axis=1)
+                    right_policy_new = np.insert(right_policy_new,[z],cand_policies,axis=1)
                 K += 1
                 candidate_better = end_dom
 
@@ -1244,20 +1446,15 @@ class FellaInterp(HARKobject):
                         z = 0
                     state_new = np.insert(state_new,z,states[-1])
                     value_new = np.insert(value_new,z,values[-1])
-                    left_policy_new = np.insert(left_policy_new,z,policies[:,-1],axis=1)
-                    right_policy_new = np.insert(right_policy_new,z,policies[:,-1],axis=1)
+                    left_policy_new = np.insert(left_policy_new,[z],np.reshape(policies[:,-1],(N,1)),axis=1)
+                    right_policy_new = np.insert(right_policy_new,[z],np.reshape(policies[:,-1],(N,1)),axis=1)
                     if not moving_right:
                         left_policy_new[:,z] = orig_policies
                     elif (z == state_new.size-1) and not extrapolate:
                         right_policy_new[:,z] = orig_policies
                     K += 1
-                    
-#            print(state_new)
-#            print(value_new)
-#            print(left_policy_new)
-#            print(right_policy_new)
             
-        # Looping over segments is done, add last batch of replacement points
+        # Looping over candidate segments is done, add last batch of replacement points
         if state_new.size > 0:
             bot = np.searchsorted(self.state_grid,state_new[0])
             if moving_right:
@@ -1315,7 +1512,6 @@ class FellaInterp(HARKobject):
                 self.left_policy = np.append(self.left_policy,np.reshape(self.right_policy[:,-1] + big_jump*policy_slope,(N,1)),axis=1)
                 self.right_policy = np.append(self.right_policy,np.reshape(self.right_policy[:,-1] + big_jump*policy_slope,(N,1)),axis=1)
         
-    
                     
     def makeValueAndPolicyFuncs(self):
         '''
@@ -1323,6 +1519,8 @@ class FellaInterp(HARKobject):
         Uses the attributes state_grid, value_grid, left_policy, right_policy to
         construct value and policy functions; these were created by one or more
         calls to addNewPoints().  Makes attributes ValueFunc and PolicyFuncs.
+        
+        Needs to be fixed to handle decay extrapolation.
         
         Parameters
         ----------
@@ -1333,20 +1531,48 @@ class FellaInterp(HARKobject):
         None
         '''
         self.ValueFunc = LinearInterp(self.state_grid,self.value_grid)
-        state_grid_temp = np.array(self.state_grid[0])
         N = self.left_policy.shape[0]
-        policy_grid_temp = np.reshape(self.right_policy[:,0],(N,1))
-        for j in range(1,self.state_grid.size):
-            state_grid_temp = np.append(state_grid_temp,self.state_grid[j])
-            policy_grid_temp = np.append(policy_grid_temp,np.reshape(self.left_policy[:,j],(N,1)),axis=1)
-            if not np.all(self.left_policy[:,j] == self.right_policy[:,j]):
-                step = (1. + np.abs(self.state_grid[j]))*1e-15
-                state_grid_temp = np.append(state_grid_temp,self.state_grid[j] + step)
-                policy_grid_temp = np.append(policy_grid_temp,np.reshape(self.right_policy[:,j],(N,1)),axis=1)
         PolicyFuncs = []
         for n in range(N):
-            PolicyFuncs.append(LinearInterp(state_grid_temp,policy_grid_temp[n,:]))
+            PolicyFuncs.append(LinearInterpDiscont(self.state_grid,self.left_policy[n,:],self.right_policy[n,:]))
         self.PolicyFuncs = PolicyFuncs
+        
+        
+    def makeCRRAvNvrsFunc(self,CRRA,vPnvrsIdx):
+        '''
+        Make a pseudo-inverse CRRA value function compatible with ConsIndShockModel.ValueFunc.
+        The ValueFunc attribute will be a CubicInterpDiscount that is continuous
+        but non-smooth.  Pseudo-inverse marginal value function index must be given.
+        value_grid is assumed to be in pseudo-inverse form.
+        
+        Needs to be improved to fix extrapolation and slope at bottom.
+        
+        Parameters
+        ----------
+        CRRA : float
+            Coefficient of relative risk aversion.
+        vPnvrsIdx : int
+            Index for the pseudo-inverse marginal value function in attributes
+            left_policy and right_policy.
+            
+        Returns
+        -------
+        None
+        '''
+        u = lambda c : CRRAutility(c,gam=CRRA)
+        uP = lambda c : CRRAutilityP(c,gam=CRRA)
+        uinvP = lambda x : CRRAutility_invP(x,gam=CRRA)
+        
+        vNvrs = self.value_grid
+        v = u(vNvrs)
+        vP_left = uP(self.left_policy[vPnvrsIdx,:])
+        vP_right = uP(self.right_policy[vPnvrsIdx,:])
+        
+        temp = uinvP(v)
+        vNvrsP_left = vP_left*temp
+        vNvrsP_right = vP_right*temp
+        vNvrsFunc = CubicInterpDiscont(self.state_grid,vNvrs,vNvrs,vNvrsP_left,vNvrsP_right)
+        self.ValueFunc = vNvrsFunc
                 
             
         

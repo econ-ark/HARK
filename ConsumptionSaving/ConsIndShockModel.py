@@ -52,8 +52,7 @@ class ConsumerSolution(Solution):
     '''
     distance_criteria = ['vPfunc']
     
-    def __init__(self, cFunc=None, vFunc=None, 
-                       vPfunc=None, vPPfunc=None,
+    def __init__(self, cFunc=None, vFunc=None, vPfunc=None, vPPfunc=None,
                        mNrmMin=None, hNrm=None, MPCmin=None, MPCmax=None):
         '''
         The constructor for a new ConsumerSolution object.

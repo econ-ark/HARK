@@ -1,7 +1,7 @@
 '''
 Specifies examples of the full set of parameters required to solve various
 consumption-saving models.  These models can be found in ConsIndShockModel,
-ConsAggShockModel, ConsPrefShockModel, and ConsMarkovModel.
+ConsAggShockModel, ConsPrefShockModel, ConsLaborModel, and ConsMarkovModel.
 '''
 from copy import copy
 import numpy as np
@@ -253,3 +253,23 @@ init_medical_shocks['MedShkCount'] = MedShkCount
 init_medical_shocks['MedShkCountTail'] = MedShkCountTail
 init_medical_shocks['MedPrice'] = MedPrice
 init_medical_shocks['aXtraCount'] = 32
+
+
+# -----------------------------------------------------------------------------
+# -------- Define additional parameters for the baby labor model --------------
+# -----------------------------------------------------------------------------
+
+LbrDisutilCoeffs = [-1.5,0.1,0.05] # Constant, linear, and quadratic coefficients
+                                  # on transformed labor disutility factor
+                                  
+# Make a dictionary for "baby labor" model
+init_baby_labor = copy(init_lifecycle)
+init_baby_labor['LbrDisutilCoeffs'] = LbrDisutilCoeffs
+init_baby_labor['TranShkCount'] = 1 # No transitory shocks in baby labor model
+init_baby_labor['TranShkStd'] = [0.0]*init_lifecycle['T_cycle']
+init_baby_labor['T_retire'] = 0 # turn off retirement
+init_baby_labor['PermShkStd'] = [0.1]*init_lifecycle['T_cycle']
+init_baby_labor['UnempPrb'] = 0.0 # turn off unemployment
+init_baby_labor['UnempPrbRet'] = 0.0
+init_baby_labor['PermShkCount'] = 25 # Crank up permanent shock count
+init_baby_labor['aXtraCount'] = 200 # Might be important to have many gridpoints
