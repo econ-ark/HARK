@@ -123,11 +123,11 @@ def solveConsBabyLabor(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGr
     else: # Add one point right at natural borrowing constraint
         bNrmAug = np.array([bNrmMinLbr0])
         cNrmAug = np.array([0.])
-        if CRRA < 1.:
+        if CRRA >= 1.:
             temp_u = -np.inf
         else:
             temp_u = 0.
-        vNowAug = np.array([temp_u + EndOfPeriodv[0]])
+        vNowAug = np.array([temp_u])
         aug_N = 1
     bNrmLbr0 = np.concatenate([bNrmAug,bNrmLbr0])
     cNrmLbr0 = np.concatenate([cNrmAug,cNrmLbr0])
@@ -145,11 +145,11 @@ def solveConsBabyLabor(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGr
     else: # Add one point right at natural borrowing constraint
         bNrmAug = np.array([bNrmMinLbr1])
         cNrmAug = np.array([0.])
-        if CRRA < 1.:
+        if CRRA >= 1.:
             temp_u = -np.inf
         else:
             temp_u = 0.
-        vNowAug = np.array([temp_u + EndOfPeriodv[0]])
+        vNowAug = np.array([temp_u])
     bNrmLbr1 = np.concatenate([bNrmAug,bNrmLbr1])
     cNrmLbr1 = np.concatenate([cNrmAug,cNrmLbr1])
     vNowLbr1 = np.concatenate([vNowAug,vNowLbr1])
@@ -162,8 +162,8 @@ def solveConsBabyLabor(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGr
     SolnFunc.addNewPoints(bNrmLbr0,uinv(vNowLbr0),np.vstack((cNrmLbr0,cNrmLbr0,Lbr0)),True)
     
     # Construct the value, marginal value, and policy functions
-    SolnFunc.makeValueAndPolicyFuncs()
-    SolnFunc.makeCRRAvNvrsFunc(CRRA,0)
+    SolnFunc.makeValueAndPolicyFuncs(intercept_limit = [0.0, 0.0, None], slope_limit = [MPCminNow, MPCminNow, None])
+    SolnFunc.makeCRRAvNvrsFunc(CRRA,(1.-LbrDisutil)**((1.-CRRA)/(-CRRA))*MPCmaxNow,MPCminNow,0)
     
     # Package the solution and return it
     vFuncNow = ValueFunc(SolnFunc.ValueFunc,CRRA)
@@ -280,9 +280,15 @@ if __name__ == '__main__':
     import ConsumerParameters as Params
     import matplotlib.pyplot as plt
     from HARKutilities import plotFuncs
+    from time import clock
     
     # Make and solve an example baby labor consumer type
     BabyLaborExample = BabyLaborConsumerType(**Params.init_baby_labor)
+    t_start = clock()
     BabyLaborExample.solve()
+    t_end = clock()
+    print('Solving a ' + str(BabyLaborExample.T_cycle) + ' period baby labor model took ' + str(t_end-t_start) + ' seconds.')
+    bot = BabyLaborExample.solution[0].bNrmMin
+    plotFuncs(BabyLaborExample.solution[0].cFunc,bot,bot+30)
     
     

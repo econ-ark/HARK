@@ -7,7 +7,6 @@ convergence.  The interpolator classes currently in this module inherit their
 distance method from HARKobject.
 '''
 
-import warnings
 import numpy as np
 from HARKcore import HARKobject
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutility_invP
@@ -977,8 +976,8 @@ class LinearInterpDiscont(LinearInterp):
         
         # Make a decay extrapolation
         if intercept_limit is not None and slope_limit is not None:
-            slope_at_top = (y_list[-1] - y_list[-2])/(x_list[-1] - x_list[-2])
-            level_diff   = intercept_limit + slope_limit*x_list[-1] - y_list[-1]
+            slope_at_top = (y_left[-1] - y_right[-2])/(x_list[-1] - x_list[-2])
+            level_diff   = intercept_limit + slope_limit*x_list[-1] - y_left[-1]
             slope_diff   = slope_limit - slope_at_top
             
             self.decay_extrap_A  = level_diff
@@ -1008,7 +1007,7 @@ class LinearInterpDiscont(LinearInterp):
         -------
         A list including the level and/or derivative of the interpolated function where requested.
         '''
-        i      = np.searchsorted(self.x_list[:-1],x) - 1
+        i      = np.searchsorted(self.x_list[:-1],x,side='right') - 1
         
         slopes = self.coeffs[1,i]
         if _eval:
@@ -1513,7 +1512,7 @@ class FellaInterp(HARKobject):
                 self.right_policy = np.append(self.right_policy,np.reshape(self.right_policy[:,-1] + big_jump*policy_slope,(N,1)),axis=1)
         
                     
-    def makeValueAndPolicyFuncs(self):
+    def makeValueAndPolicyFuncs(self,intercept_limit=None,slope_limit=None):
         '''
         Make a value function and policy functions based on the current grids.
         Uses the attributes state_grid, value_grid, left_policy, right_policy to
@@ -1531,14 +1530,21 @@ class FellaInterp(HARKobject):
         None
         '''
         self.ValueFunc = LinearInterp(self.state_grid,self.value_grid)
+        
         N = self.left_policy.shape[0]
+        if intercept_limit is None:
+            intercept_limit = [None]*N
+        if slope_limit is None:
+            slope_limit = [None]*N
+        
         PolicyFuncs = []
         for n in range(N):
-            PolicyFuncs.append(LinearInterpDiscont(self.state_grid,self.left_policy[n,:],self.right_policy[n,:]))
+            PolicyFuncs.append(LinearInterpDiscont(self.state_grid,self.left_policy[n,:],self.right_policy[n,:],
+                                                   intercept_limit=intercept_limit[n], slope_limit = slope_limit[n]))
         self.PolicyFuncs = PolicyFuncs
         
         
-    def makeCRRAvNvrsFunc(self,CRRA,vPnvrsIdx):
+    def makeCRRAvNvrsFunc(self,CRRA,MPCmax,MPCmin,vPnvrsIdx):
         '''
         Make a pseudo-inverse CRRA value function compatible with ConsIndShockModel.ValueFunc.
         The ValueFunc attribute will be a CubicInterpDiscount that is continuous
@@ -1551,6 +1557,10 @@ class FellaInterp(HARKobject):
         ----------
         CRRA : float
             Coefficient of relative risk aversion.
+        MPCmax : float
+            Effective MPC as resources approach lower bound.
+        MPCmin : float
+            Effective MPC as resources go to infinity.
         vPnvrsIdx : int
             Index for the pseudo-inverse marginal value function in attributes
             left_policy and right_policy.
@@ -1571,7 +1581,10 @@ class FellaInterp(HARKobject):
         temp = uinvP(v)
         vNvrsP_left = vP_left*temp
         vNvrsP_right = vP_right*temp
-        vNvrsFunc = CubicInterpDiscont(self.state_grid,vNvrs,vNvrs,vNvrsP_left,vNvrsP_right)
+        vNvrsP_left[0] = MPCmax**(-CRRA/(1.-CRRA))
+        vNvrsP_right[0] = vNvrsP_left[0]
+        MPCminNvrs = MPCmin**(-CRRA/(1.0-CRRA))
+        vNvrsFunc = CubicInterpDiscont(self.state_grid,vNvrs,vNvrs,vNvrsP_left,vNvrsP_right,0.0,MPCminNvrs)
         self.ValueFunc = vNvrsFunc
                 
             
