@@ -332,7 +332,7 @@ class ConsPerfForesightSolver(object):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
             
         Returns:
@@ -364,7 +364,7 @@ class ConsPerfForesightSolver(object):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
             
         Returns
@@ -508,7 +508,7 @@ def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
         Coefficient of relative risk aversion.
     Rfree : float
         Risk free interest factor on end-of-period assets.
-    PermGroGac : float
+    PermGroFac : float
         Expected permanent income growth factor at the end of this period.
         
     Returns
@@ -553,7 +553,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
@@ -601,7 +601,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
@@ -1190,7 +1190,7 @@ def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
         Coefficient of relative risk aversion.
     Rfree : float
         Risk free interest factor on end-of-period assets.
-    PermGroGac : float
+    PermGroFac : float
         Expected permanent income growth factor at the end of this period.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the
@@ -1269,7 +1269,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         Rsave: float
             Interest factor on assets between this period and the succeeding
             period when assets are positive.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
@@ -1396,7 +1396,7 @@ def solveConsKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
     Rsave: float
         Interest factor on assets between this period and the succeeding
         period when assets are positive.
-    PermGroGac : float
+    PermGroFac : float
         Expected permanent income growth factor at the end of this period.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the

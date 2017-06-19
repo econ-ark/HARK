@@ -338,8 +338,7 @@ def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aX
     '''
     Solve one period of a consumption-saving problem with idiosyncratic and 
     aggregate shocks (transitory and permanent).  This is a basic solver that
-    can't handle borrowing (assumes liquidity constraint) or cubic splines, nor
-    can it calculate a value function.
+    can't handle cubic splines, nor can it calculate a value function.
     
     Parameters
     ----------
@@ -358,7 +357,7 @@ def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aX
         Intertemporal discount factor for future utility.        
     CRRA : float
         Coefficient of relative risk aversion.
-    PermGroGac : float
+    PermGroFac : float
         Expected permanent income growth factor at the end of this period.
     aXtraGrid : np.array
         Array of "extra" end-of-period asset values-- assets above the
@@ -397,7 +396,7 @@ def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aX
     ShkCount = ShkPrbsNext.size
         
     # Make the grid of end-of-period asset values, and a tiled version
-    aNrmNow = np.insert(aXtraGrid,0,0.0)
+    aNrmNow = aXtraGrid
     aNrmNow_tiled   = np.tile(aNrmNow,(ShkCount,1))
     aCount = aNrmNow.size
     
@@ -417,13 +416,13 @@ def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,aX
         AaggNow = AFunc(MNow)
         
         # Calculate returns to capital and labor in the next period
-        kNext_array = AaggNow*(1-DeprFac)/(PermGroFac*PermShkAggValsNext_tiled*TranShkAggValsNext_tiled)
+        kNext_array = AaggNow/(PermGroFac*PermShkAggValsNext_tiled)
         kNextEff_array = kNext_array/TranShkAggValsNext_tiled
         R_array = Rfunc(kNextEff_array) # Interest factor on aggregate assets
         Reff_array = R_array/LivPrb # Effective interest factor on individual assets *for survivors*
         wEff_array = wFunc(kNextEff_array)*TranShkAggValsNext_tiled # Effective wage rate (accounts for labor supply)
         PermShkTotal_array = PermGroFac*PermShkValsNext_tiled*PermShkAggValsNext_tiled # total / combined permanent shock
-        Mnext_array = kNext_array*(R_array + DeprFac) + wEff_array
+        Mnext_array = kNext_array*(R_array) + wEff_array
         
         # Find the natural borrowing constraint for this capital-to-labor ratio
         aNrmMin_candidates = PermGroFac*PermShkValsNext*PermShkAggValsNext/Reff_array[:,0]*(mNrmMinNext_array[j] - wEff_array[:,0]*TranShkValsNext)
