@@ -1006,6 +1006,7 @@ class MarkovSOEType(MarkovConsumerType):
         '''
         self.MrkvPrbsInit = Economy.MrkvPrbsInit         # Initialize Markov simulation
         self.MrkvArray = Economy.MrkvArray      # Markov dynamics inherited from the market
+        self.Rfree = Economy.Rfree
         
     def getShocks(self):
         '''
@@ -1347,7 +1348,8 @@ if __name__ == '__main__':
     init_markov_soe = {'act_T':1200,
                        'MrkvArray':[MrkvArray],
                        'MrkvPrbsInit':[0.2,0.2,0.2,0.2,0.2],
-                       'MktMrkvNow_init':2
+                       'MktMrkvNow_init':2,
+                       'Rfree':np.array(np.array(StateCount*[1.03]))
                      }
     SerialGroExample2 = MarkovSOEType(**init_serial_growth)
     SerialGroExample2.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])),    # Same interest factor in each Markov state
