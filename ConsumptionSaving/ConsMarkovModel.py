@@ -11,6 +11,7 @@ from copy import deepcopy
 import numpy as np
 from ConsIndShockModel import ConsIndShockSolver, ValueFunc, MargValueFunc, ConsumerSolution, IndShockConsumerType
 from HARKutilities import warnings  # Because of "patch" to warnings modules
+from HARKcore import Market, HARKobject
 from HARKsimulation import drawDiscrete, drawUniform
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
@@ -840,7 +841,7 @@ class MarkovConsumerType(IndShockConsumerType):
                 MrkvNow[these] = np.searchsorted(Cutoffs[j,:],base_draws[these]).astype(int)
         if not self.global_markov:
                 MrkvNow[newborn] = MrkvPrev[newborn]
-        self.MrkvNow = MrkvNow        
+        self.MrkvNow = MrkvNow.astype(int)        
         
         # Now get income shocks for each consumer, by cycle-time and discrete state
         PermShkNow = np.zeros(self.AgentCount) # Initialize shock arrays
@@ -857,6 +858,7 @@ class MarkovConsumerType(IndShockConsumerType):
                     EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
                     PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
                     TranShkNow[these] = IncomeDstnNow[2][EventDraws]
+        newborn = self.t_age == 0 
         PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0
         self.PermShkNow = PermShkNow
@@ -961,8 +963,245 @@ class MarkovConsumerType(IndShockConsumerType):
         '''
         raise NotImplementedError()
             
+class MarkovSOEType(MarkovConsumerType):
+    '''
+    A class to represent consumers who face idiosyncratic transitory and 
+    permanent shocks to income, but their Markov state variable is exogenously
+    set by the market.
+    '''
+    time_vary_ = MarkovConsumerType.time_vary_ 
+    shock_vars_ = MarkovConsumerType.shock_vars_ 
+    
+    def __init__(self,cycles=1,time_flow=True,**kwds):
+        MarkovConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
+        self.solveOnePeriod = solveConsMarkov
+        self.poststate_vars += ['MrkvNow']
+        self.global_markov = True
         
+    def reset(self):
+        '''
+        Initialize this type for a new simulated history of K/L ratio.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        self.initializeSim()
 
+    def getEconomyData(self,Economy):
+        '''
+        Imports economy-determined objects into self from a Market.
+        
+        Parameters
+        ----------
+        Economy : Market
+            The "macroeconomy" in which this instance "lives".              
+        Returns
+        -------
+        None
+        '''
+        self.MrkvPrbsInit = Economy.MrkvPrbsInit         # Initialize Markov simulation
+        self.MrkvArray = Economy.MrkvArray      # Markov dynamics inherited from the market
+        
+    def getShocks(self):
+        '''
+        Finds the effective permanent and transitory shocks this period based on
+        the markov state of the economy
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        MrkvNow = self.MktMrkvNow*np.ones(self.AgentCount)
+        self.MrkvNow = MrkvNow.astype(int)
+        # Now get income shocks for each consumer, by cycle-time and discrete state
+        PermShkNow = np.zeros(self.AgentCount) # Initialize shock arrays
+        TranShkNow = np.zeros(self.AgentCount)
+        for t in range(self.T_cycle):
+            for j in range(self.MrkvArray[t].shape[0]):
+                these = np.logical_and(t == self.t_cycle, j == MrkvNow)
+                N = np.sum(these)
+                if N > 0:
+                    IncomeDstnNow    = self.IncomeDstn[t-1][j] # set current income distribution
+                    PermGroFacNow    = self.PermGroFac[t-1][j] # and permanent growth factor
+                    Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
+                    # Get random draws of income shocks from the discrete distribution
+                    EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
+                    PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
+                    TranShkNow[these] = IncomeDstnNow[2][EventDraws]
+        newborn = self.t_age == 0 
+        PermShkNow[newborn] = 1.0
+        TranShkNow[newborn] = 1.0
+        self.PermShkNow = PermShkNow
+        self.TranShkNow = TranShkNow
+        
+    def marketAction(self):
+        '''
+        The "market action" is to simulate one
+        period of receiving income and choosing how much to consume.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        self.simulate(1)
+        
+class MarkovSmallOpenEconomy(Market):
+    '''
+    A class for representing a small open economy, where the Markov state is 
+    exogenously set but there is no feedback from agent's actions
+    '''
+    def __init__(self,agents=[],tolerance=0.0001,act_T=1000,**kwds):
+        '''
+        Make a new instance of MarkovSmallOpenEconomy
+        
+        Parameters
+        ----------
+        agents : [ConsumerType]
+            List of types of consumers that live in this economy.
+        tolerance: float
+            Minimum acceptable distance between "dynamic rules" to consider the
+            solution process converged.  Distance depends on intercept and slope
+            of the log-linear "next capital ratio" function.
+        act_T : int
+            Number of periods to simulate when making a history of of the market.
+            
+        Returns
+        -------
+        None
+        '''
+        Market.__init__(self,agents=agents,
+                            sow_vars=['MktMrkvNow'],
+                            reap_vars=[],
+                            track_vars=[],
+                            dyn_vars=[],
+                            tolerance=tolerance,
+                            act_T=act_T)
+        self.assignParameters(**kwds)
+        
+    def millRule(self):
+        '''
+        No aggregation occurs for a small open economy.
+
+        '''
+        return self.getMkvShock()
+        
+    def reset(self):
+        '''
+        Reset the economy to prepare for a new simulation.  Sets the time index of aggregate shocks
+        to zero and runs Market.reset().  This replicates the reset method for CobbDouglasEconomy;
+        future version should create parent class of that class and this one.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        self.Shk_idx = 0
+        Market.reset(self)
+        
+    def makeMkvShkHist(self):
+        '''
+        Make simulated historie Markov state. Histories are of
+        length self.act_T, for use in the general equilibrium simulation.  
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        sim_periods = self.act_T
+        MrkvShkHist = np.zeros(sim_periods)
+        base_draws = drawUniform(sim_periods,seed=0)
+        Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
+        MrkvShkHist[0] = np.searchsorted(Cutoffs,base_draws[0]).astype(int)
+
+        Cutoffs = np.cumsum(self.MrkvArray[0],axis=1)       
+        for t in range(sim_periods-1):
+            MrkvShkHist[t+1] = np.searchsorted(Cutoffs[MrkvShkHist[t],:],base_draws[t+1]).astype(int)
+        # Store the histories       
+        self.MrkvShkHist = MrkvShkHist
+
+    def getMkvShock(self):
+        '''
+        Returns Markov state variables and shocks for this period.  Markov states
+        are assigned from a prespecified history.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        # Get this period's aggregate shocks
+        MktMrkvNow = self.MrkvShkHist[self.Shk_idx]
+        self.Shk_idx += 1
+        self.MktMrkvNow = MktMrkvNow.astype(int)
+        MkvShkReturn = HARKobject()
+        MkvShkReturn.MktMrkvNow = MktMrkvNow
+        return MkvShkReturn
+        
+    def calcDynamics(self):
+        '''
+        Calculates a new dynamic rule for the economy, which is just an empty object.
+        There is no "dynamic rule" for a small open economy.
+        '''
+        return HARKobject()
+        
+    def updateDynamics(self):
+        '''
+        Calculates a new dynamic rule for the economy, which is just an empty object.
+        There is no "dynamic rule" for a small open economy.
+        
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        dynamics : instance
+        '''
+        return HARKobject()
+        
+    def solve(self):
+        '''
+        "Solves" the market by finding a "dynamic rule" that governs the aggregate
+        market state.
+        Nothing to be done for a small open economy.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''     
+        self.solveAgents()     # Solve each AgentType's micro problem
+        self.makeHistory()     # "Run" the model while tracking aggregate variables
+        self.dynamics = HARKobject() 
+        
+        
 ###############################################################################
 
 if __name__ == '__main__':
@@ -1103,6 +1342,31 @@ if __name__ == '__main__':
     print('Solving a serially correlated growth consumer took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
     plotFuncs(SerialGroExample.solution[0].cFunc,0,10)
+    
+    # Put serially correlated permanent income growth consumers in a MarkovSmallOpenEconomy
+    init_markov_soe = {'act_T':1200,
+                       'MrkvArray':[MrkvArray],
+                       'MrkvPrbsInit':[0.2,0.2,0.2,0.2,0.2],
+                       'MktMrkvNow_init':2
+                     }
+    SerialGroExample2 = MarkovSOEType(**init_serial_growth)
+    SerialGroExample2.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])),    # Same interest factor in each Markov state
+                                   PermGroFac = [np.array([0.97,0.99,1.01,1.03,1.05])], # Different permanent growth factor in each Markov state
+                                   LivPrb = [np.array(StateCount*[0.98])],              # Same survival probability in all states
+                                   cycles = 0)
+    SerialGroExample2.IncomeDstn = [IncomeDstn]  
+    MarkovEconomy = MarkovSmallOpenEconomy(agents = [SerialGroExample2],**init_markov_soe)
+    MarkovEconomy.makeMkvShkHist() # Simulate a history of markov shocks
+    
+    # Have the consumers inherit relevant objects from the economy
+    SerialGroExample2.getEconomyData(MarkovEconomy)
+    
+    # Solve the microeconomic model for the aggregate shocks example type (and display results)
+    t_start = clock()
+    MarkovEconomy.solve()
+    t_end = clock()
+    
+    
     
 ###############################################################################
     
