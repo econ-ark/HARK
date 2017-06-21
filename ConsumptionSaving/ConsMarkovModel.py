@@ -991,6 +991,8 @@ class MarkovSOEType(MarkovConsumerType):
         None
         '''
         self.initializeSim()
+        self.aLvlNow = self.aInit*np.ones(self.AgentCount) # Start simulation near SS
+        self.aNrmNow = self.aLvlNow/self.pLvlNow
 
     def getEconomyData(self,Economy):
         '''
@@ -1007,6 +1009,8 @@ class MarkovSOEType(MarkovConsumerType):
         self.MrkvPrbsInit = Economy.MrkvPrbsInit         # Initialize Markov simulation
         self.MrkvArray = Economy.MrkvArray      # Markov dynamics inherited from the market
         self.Rfree = Economy.Rfree
+        self.MktMrkvNow = Economy.MktMrkvNow_init
+        self.aInit = Economy.aSS
         
     def getShocks(self):
         '''
@@ -1349,6 +1353,7 @@ if __name__ == '__main__':
                        'MrkvArray':[MrkvArray],
                        'MrkvPrbsInit':[0.2,0.2,0.2,0.2,0.2],
                        'MktMrkvNow_init':2,
+                       'aSS':4.0,
                        'Rfree':np.array(np.array(StateCount*[1.03]))
                      }
     SerialGroExample2 = MarkovSOEType(**init_serial_growth)
