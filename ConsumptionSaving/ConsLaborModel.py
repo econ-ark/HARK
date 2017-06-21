@@ -180,7 +180,9 @@ class BabyLaborConsumerType(IndShockConsumerType):
     A class for representing consumers in the baby labor model.  Agents choose
     consumption and whether to supply a unit of labor each period; their productivity
     is subject to permanent shocks (but not transitory shocks, which would require
-    a second continuous state variable).
+    a second continuous state variable).  Agents who work in period t experience
+    "effective consumption" of (1-alpha)*C, where alpha is in (0,1) and called
+    LbrDisutil in the code below.  Makes use of the FellaInterp class.
     '''
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''

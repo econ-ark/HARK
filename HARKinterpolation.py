@@ -1206,6 +1206,21 @@ class FellaInterp(HARKobject):
     condition "doubles back" on itself near the non-concavity.  Fella's method generates the
     correct policy function by taking the upper envelope of the value function when multiple
     solutions to the FOC are found for one state.
+    
+    Stated differently, generic EGM generates an approximation to the set of states and
+    controls that satisfy the first order condition(s), with accompanying continuation values.
+    In many models (like ConsIndShock), there is exactly one control that satisfies the FOC
+    at each state in the state space, so generic EGM generates the true policy and value
+    functions, with no additional work.  However, in the presence of non-concave future value,
+    discrete choice, and/or discontinuities in the utility or transition functions, the set
+    of FOC-satisfying points might have multiple controls at a particular state; the *true*
+    policy at this state is the control associated with the highest continuation value.
+    
+    This class initializes with a constant value and policy function, and is subsequently
+    "improved" by passing sequences of candidate states-values-policies (assumed to be 
+    linearly continuous) and selecting the best candidate policy at each state, constructing
+    a new value and policy function.  The constructed policy function may be discontinuous,
+    and the constructed value function may be non-concave.
     '''
     distance_criteria = ['PolicyFunc']
 
@@ -1286,7 +1301,6 @@ class FellaInterp(HARKobject):
         
         # Loop over the segments in the candidate set
         for j in range(states.size-1):
-            #print(j)
             skip_start = False
             
             # Check whether direction has changed; if so, insert replacement points now
@@ -1523,8 +1537,13 @@ class FellaInterp(HARKobject):
         
         Parameters
         ----------
-        None
-        
+        intercept_limit : float, [float], or None
+            Intercept(s) of limiting linear policy function(s), for decay extrapolation.
+            Optional, defaults to None (linear extrapolation).
+        slope_limit : float, [float], or None
+            Slope(s) of limiting linear policy functions, for decay extrapolation.
+            Optional, defaults to None (linear extrapolation).
+            
         Returns
         -------
         None
