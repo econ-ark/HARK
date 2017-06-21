@@ -102,14 +102,11 @@ class StickyEMarkovSOEType(BaseAgentType):
         # Calculate what the consumers perceive their normalized market resources to be
         RfreeNow = self.getRfree()
         bLvlNow = RfreeNow*self.aLvlNow # This is the true level
-        yLvlPcvdNow = self.pLvlNow*self.TranShkNow # This is only correct if individual updated this period
-        mLvlPcvdNow = bLvlNow + yLvlPcvdNow # Consumers' perception of their 
-        mNrmPcvdNow = mLvlPcvdNow/self.pLvlNow
-        self.mNrmNow = mNrmPcvdNow
         
-        # And calculate consumers' true level of market resources
-        yLvlTrueNow = yLvlPcvdNow/self.pLvlErrNow # This is same as Pcvd if we updated, as pLvlErrNow = 1.0
+        yLvlTrueNow = self.pLvlNow/self.pLvlErrNow*self.TranShkNow
         mLvlTrueNow = bLvlNow + yLvlTrueNow
+        mNrmPcvdNow = mLvlTrueNow/self.pLvlNow
+        self.mNrmNow = mNrmPcvdNow
         self.mLvlTrueNow = mLvlTrueNow
         
     def getPostStates(self):
@@ -126,5 +123,6 @@ class StickyEMarkovSOEType(BaseAgentType):
         None
         '''
         BaseAgentType.getPostStates(self)
-        self.aLvlNow = np.maximum(self.mLvlTrueNow - self.cNrmNow*self.pLvlNow,0.0) #Fix so that savings are never negative. This should really be fixed in the output for consumption too...
+        self.aLvlNow = self.mLvlTrueNow - self.cNrmNow*self.pLvlNow
+#        self.aLvlNow = np.maximum(self.mLvlTrueNow - self.cNrmNow*self.pLvlNow,0.0) #Fix so that savings are never negative. This should really be fixed in the output for consumption too...
         
