@@ -507,7 +507,10 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
         for i in range(K):
             zBot  = cutoffs[i]
             zTop = cutoffs[i+1]
-            tempBot = (mu+sigma**2-np.log(zBot))/(np.sqrt(2)*sigma)
+            if zBot == 0.:
+                tempBot = np.inf
+            else:
+                tempBot = (mu+sigma**2-np.log(zBot))/(np.sqrt(2)*sigma)
             tempTop = (mu+sigma**2-np.log(zTop))/(np.sqrt(2)*sigma)
             if tempBot <= 4:
                 X[i] = -0.5*np.exp(mu+(sigma**2)*0.5)*(erf(tempTop) - erf(tempBot))/pmf[i]

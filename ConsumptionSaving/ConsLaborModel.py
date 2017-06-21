@@ -72,7 +72,6 @@ def solveConsBabyLabor(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGr
     PermShkValsNext = IncomeDstn[1]
     ShockCount  = ShkPrbsNext.size
     u = lambda c : CRRAutility(c,gam=CRRA)
-    uP = lambda c : CRRAutilityP(c,gam=CRRA)
     uinv = lambda x : CRRAutility_inv(x,gam=CRRA) 
     uPinv = lambda x : CRRAutilityP_inv(x,gam=CRRA)
     AugPointCount = 10 # Number of gridpoints to add on constrained portion
@@ -110,6 +109,12 @@ def solveConsBabyLabor(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGr
     vPnext = vPfuncNext(bNext)*PermShkVals_rep**(-CRRA) # Next period's marginal value
     EndOfPeriodv  = DiscFacEff*PermGroFac**(1.-CRRA)*np.sum(vNext*ShkPrbs_rep,axis=1) # Value of end-of-period assets
     EndOfPeriodvP = DiscFacEff*Rfree*PermGroFac**(-CRRA)*np.sum(vPnext*ShkPrbs_rep,axis=1) # Marginal value of end-of-period assets
+    
+    # Utility at bottom of function
+    if CRRA >= 1.:
+        temp_u = -np.inf
+    else:
+        temp_u = 0.
 
     # Calculate consumption and endogenous b_t gridpoints if consumer does not work
     cNrmLbr0 = uPinv(EndOfPeriodvP)
@@ -118,15 +123,11 @@ def solveConsBabyLabor(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGr
     if ArtCnstBinds: # Add augmented points on constrained portion
         bNrmAug = np.linspace(bNrmMinLbr0,bNrmLbr0[0],num=AugPointCount,endpoint=False)
         cNrmAug = bNrmAug - bNrmMinLbr0
-        vNowAug = EndOfPeriodv[0] + u(cNrmAug)
+        vNowAug = EndOfPeriodv[0] + np.insert(u(cNrmAug[1:]),0,temp_u)
         aug_N = AugPointCount
     else: # Add one point right at natural borrowing constraint
         bNrmAug = np.array([bNrmMinLbr0])
         cNrmAug = np.array([0.])
-        if CRRA >= 1.:
-            temp_u = -np.inf
-        else:
-            temp_u = 0.
         vNowAug = np.array([temp_u])
         aug_N = 1
     bNrmLbr0 = np.concatenate([bNrmAug,bNrmLbr0])
@@ -141,14 +142,10 @@ def solveConsBabyLabor(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGr
     if ArtCnstBinds: # Add augmented points on constrained portion
         bNrmAug = np.linspace(bNrmMinLbr1,bNrmLbr1[0],num=AugPointCount,endpoint=False)
         cNrmAug = bNrmAug - bNrmMinLbr1
-        vNowAug = EndOfPeriodv[0] + u((1.-LbrDisutil)*cNrmAug)
+        vNowAug = EndOfPeriodv[0] + np.insert(u((1.-LbrDisutil)*cNrmAug[1:]),0,temp_u)
     else: # Add one point right at natural borrowing constraint
         bNrmAug = np.array([bNrmMinLbr1])
         cNrmAug = np.array([0.])
-        if CRRA >= 1.:
-            temp_u = -np.inf
-        else:
-            temp_u = 0.
         vNowAug = np.array([temp_u])
     bNrmLbr1 = np.concatenate([bNrmAug,bNrmLbr1])
     cNrmLbr1 = np.concatenate([cNrmAug,cNrmLbr1])
@@ -289,6 +286,22 @@ if __name__ == '__main__':
     t_end = clock()
     print('Solving a ' + str(BabyLaborExample.T_cycle) + ' period baby labor model took ' + str(t_end-t_start) + ' seconds.')
     bot = BabyLaborExample.solution[0].bNrmMin
+    print('Consumption function in first period:')
     plotFuncs(BabyLaborExample.solution[0].cFunc,bot,bot+30)
     
+    # Test simulation of the baby labor model
+    t_start = clock()
+    BabyLaborExample.T_sim = 200
+    BabyLaborExample.initializeSim()
+    BabyLaborExample.simulate()
+    t_end = clock()
+    print('Simulating ' + str(BabyLaborExample.AgentCount) + ' agents for ' + str(BabyLaborExample.T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds.')
+    
+    LaborRate_vec = np.zeros(BabyLaborExample.T_cycle)
+    for t in range(LaborRate_vec.size):
+        these = (BabyLaborExample.t_age-1) == t
+        LaborRate_vec[t] = float(np.sum(BabyLaborExample.LbrNow[these]))/np.sum(these)
+    print('Labor supply rate by age in example:')
+    plt.plot(LaborRate_vec)
+    plt.show()
     

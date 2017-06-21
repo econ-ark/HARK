@@ -1574,15 +1574,25 @@ class FellaInterp(HARKobject):
         uinvP = lambda x : CRRAutility_invP(x,gam=CRRA)
         
         vNvrs = self.value_grid
-        v = u(vNvrs)
-        vP_left = uP(self.left_policy[vPnvrsIdx,:])
-        vP_right = uP(self.right_policy[vPnvrsIdx,:])
+        if (vNvrs[0] == 0.) and (CRRA >= 1.):
+            bot_fix = True # numpy generates obnoxious warnings when value goes to -inf at bottom
+            these = np.arange(1,vNvrs.size,dtype=int)
+        else:
+            bot_fix = False
+            these = np.arange(vNvrs.size,dtype=int)
+        v = u(vNvrs[these])
+        vP_left = uP(self.left_policy[vPnvrsIdx,these])
+        vP_right = uP(self.right_policy[vPnvrsIdx,these])
         
         temp = uinvP(v)
         vNvrsP_left = vP_left*temp
         vNvrsP_right = vP_right*temp
-        vNvrsP_left[0] = MPCmax**(-CRRA/(1.-CRRA))
-        vNvrsP_right[0] = vNvrsP_left[0]
+        if bot_fix: # If bottom point was removed, add it back on...
+            vNvrsP_left = np.insert(vNvrsP_left,0,MPCmax**(-CRRA/(1.-CRRA)))
+            vNvrsP_right = np.insert(vNvrsP_right,0,vNvrsP_left[0])
+        else: # ...or just fix pseudo-inverse marg value at bottom
+            vNvrsP_left[0] = MPCmax**(-CRRA/(1.-CRRA))
+            vNvrsP_right[0] = vNvrsP_left[0]
         MPCminNvrs = MPCmin**(-CRRA/(1.0-CRRA))
         vNvrsFunc = CubicInterpDiscont(self.state_grid,vNvrs,vNvrs,vNvrsP_left,vNvrsP_right,0.0,MPCminNvrs)
         self.ValueFunc = vNvrsFunc
