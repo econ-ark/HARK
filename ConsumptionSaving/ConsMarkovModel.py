@@ -10,7 +10,7 @@ sys.path.insert(0,'../')
 from copy import deepcopy
 import numpy as np
 from ConsIndShockModel import ConsIndShockSolver, ValueFunc, MargValueFunc, ConsumerSolution, IndShockConsumerType
-from HARKutilities import warnings  # Because of "patch" to warnings modules
+from HARKutilities import combineIndepDstns, warnings  # Because of "patch" to warnings modules
 from HARKcore import Market, HARKobject
 from HARKsimulation import drawDiscrete, drawUniform
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
@@ -963,6 +963,34 @@ class MarkovConsumerType(IndShockConsumerType):
         '''
         raise NotImplementedError()
             
+def solveSOEMarkov(solution_next,IncomeDstn,TranShkAggDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
+                                 MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+    '''
+    See solveConsMarkov. The difference is the global transitory shocks. In a 
+    small open economy setting, the global nature of the shocks does not change
+    the agent's problem, but the IncomeDstn needs to be changed to merge 
+    idiosyncratic and global transitory shocks into one
+    
+    Parameters
+    ----------
+    See solveConsMarkov  except:
+    IncomeDstn_list : [[np.array]]
+        A length N list of income distributions in each succeeding Markov
+        state.  Each income distribution contains four arrays of floats,
+        representing a discrete approximation to the income process at the
+        beginning of the succeeding period. Order: event probabilities,
+        permanent shocks, idiosyncratic transitory shocks, aggregate transitory shocks.
+    '''
+    merged_IncomeDstn = []
+    for i in range(len(IncomeDstn)):
+        this_IncomeDstn = IncomeDstn[i]
+        this_mergedIncomeDstn = combineIndepDstns([this_IncomeDstn[0],this_IncomeDstn[1]],TranShkAggDstn)
+        this_mergedIncomeDstn2 = combineIndepDstns([this_IncomeDstn[0],this_IncomeDstn[2]],TranShkAggDstn)
+        this_mergedIncomeDstn[2] = this_mergedIncomeDstn[2]*this_mergedIncomeDstn2[1] #multiply idiosyncratic and aggregate transitive shocks together
+        merged_IncomeDstn.append(this_mergedIncomeDstn)    
+    solution_now = solveConsMarkov(solution_next,merged_IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+    return solution_now
+        
 class MarkovSOEType(MarkovConsumerType):
     '''
     A class to represent consumers who face idiosyncratic transitory and 
@@ -970,11 +998,12 @@ class MarkovSOEType(MarkovConsumerType):
     set by the market.
     '''
     time_vary_ = MarkovConsumerType.time_vary_ 
+    time_inv_ = MarkovConsumerType.time_inv_  + ['TranShkAggDstn']
     shock_vars_ = MarkovConsumerType.shock_vars_ 
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
         MarkovConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
-        self.solveOnePeriod = solveConsMarkov
+        self.solveOnePeriod = solveSOEMarkov
         self.poststate_vars += ['MrkvNow']
         self.global_markov = True
         
@@ -1010,7 +1039,9 @@ class MarkovSOEType(MarkovConsumerType):
         self.MrkvArray = Economy.MrkvArray      # Markov dynamics inherited from the market
         self.Rfree = Economy.Rfree
         self.MktMrkvNow = Economy.MktMrkvNow_init
+        self.TranShkAggNow_init = Economy.TranShkAggNow_init
         self.aInit = Economy.aSS
+        self.TranShkAggDstn = Economy.TranShkAggDstn
         
     def getShocks(self):
         '''
@@ -1041,10 +1072,10 @@ class MarkovSOEType(MarkovConsumerType):
                     # Get random draws of income shocks from the discrete distribution
                     EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
                     PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
-                    TranShkNow[these] = IncomeDstnNow[2][EventDraws]
+                    TranShkNow[these] = IncomeDstnNow[2][EventDraws]*self.TranShkAggNow
         newborn = self.t_age == 0 
         PermShkNow[newborn] = 1.0
-        TranShkNow[newborn] = 1.0
+        TranShkNow[newborn] = 1.0*self.TranShkAggNow
         self.PermShkNow = PermShkNow
         self.TranShkNow = TranShkNow
         
@@ -1088,7 +1119,7 @@ class MarkovSmallOpenEconomy(Market):
         None
         '''
         Market.__init__(self,agents=agents,
-                            sow_vars=['MktMrkvNow'],
+                            sow_vars=['MktMrkvNow','TranShkAggNow'],
                             reap_vars=[],
                             track_vars=[],
                             dyn_vars=[],
@@ -1144,6 +1175,13 @@ class MarkovSmallOpenEconomy(Market):
             MrkvShkHist[t+1] = np.searchsorted(Cutoffs[MrkvShkHist[t],:],base_draws[t+1]).astype(int)
         # Store the histories       
         self.MrkvShkHist = MrkvShkHist
+        #Also make history of aggregate transitory shocks
+        Events      = np.arange(self.TranShkAggDstn[0].size) # just a list of integers
+        EventDraws  = drawDiscrete(N=sim_periods,P=self.TranShkAggDstn[0],X=Events,seed=0)
+        TranShkAggHist = self.TranShkAggDstn[1][EventDraws]
+        # Store the histories       
+        self.TranShkAggHist = TranShkAggHist
+        
 
     def getMkvShock(self):
         '''
@@ -1160,10 +1198,12 @@ class MarkovSmallOpenEconomy(Market):
         '''
         # Get this period's aggregate shocks
         MktMrkvNow = self.MrkvShkHist[self.Shk_idx]
+        TranShkAggNow = self.TranShkAggHist[self.Shk_idx]
         self.Shk_idx += 1
         self.MktMrkvNow = MktMrkvNow.astype(int)
         MkvShkReturn = HARKobject()
         MkvShkReturn.MktMrkvNow = MktMrkvNow
+        MkvShkReturn.TranShkAggNow = TranShkAggNow
         return MkvShkReturn
         
     def calcDynamics(self):
@@ -1349,12 +1389,15 @@ if __name__ == '__main__':
     plotFuncs(SerialGroExample.solution[0].cFunc,0,10)
     
     # Put serially correlated permanent income growth consumers in a MarkovSmallOpenEconomy
+    TranShkAggDstn = [np.array([0.2,0.6,0.2]),np.array([0.99,1.0,1.01])]
     init_markov_soe = {'act_T':1200,
                        'MrkvArray':[MrkvArray],
                        'MrkvPrbsInit':[0.2,0.2,0.2,0.2,0.2],
                        'MktMrkvNow_init':2,
                        'aSS':4.0,
-                       'Rfree':np.array(np.array(StateCount*[1.03]))
+                       'Rfree':np.array(np.array(StateCount*[1.03])),
+                       'TranShkAggDstn':TranShkAggDstn,
+                       'TranShkAggNow_init':1.0
                      }
     SerialGroExample2 = MarkovSOEType(**init_serial_growth)
     SerialGroExample2.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])),    # Same interest factor in each Markov state

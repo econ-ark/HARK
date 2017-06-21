@@ -11,7 +11,7 @@ import numpy as np
 from StickyEMarkovmodel import StickyEMarkovSOEType
 from ConsMarkovModel import MarkovSmallOpenEconomy
 from ConsIndShockModel import IndShockConsumerType, constructLognormalIncomeProcessUnemployment
-from HARKutilities import plotFuncs
+from HARKutilities import plotFuncs, approxMeanOneLognormal
 import matplotlib.pyplot as plt
 
 periods_to_sim = 1200
@@ -57,6 +57,8 @@ init_MarkovSOE_consumer = { 'CRRA': 2.0,
 #Need to get the income distribution of a standard ConsIndShockModel consumer
 StateCount = 5
 Persistence = 0.5
+TranShkAggStd = 0.0031
+TranShkAggCount = 7
 DummyForIncomeDstn = IndShockConsumerType(**init_MarkovSOE_consumer)
 IncomeDstn, PermShkDstn, TranShkDstn = constructLognormalIncomeProcessUnemployment(DummyForIncomeDstn)
 IncomeDstn = StateCount*IncomeDstn
@@ -65,14 +67,17 @@ MrkvArray = Persistence*np.eye(StateCount) + (1.0/StateCount)*(1.0-Persistence)*
 init_MarkovSOE_consumer['MrkvArray'] = [MrkvArray]
 init_MarkovSOE_consumer['PermGroFac'] = [np.array([0.99,0.995,1.0,1.005,1.01])]
 init_MarkovSOE_consumer['LivPrb'] = [np.array(StateCount*[0.995])]
-                           
+                        
+TranShkAggDstn = approxMeanOneLognormal(sigma=TranShkAggStd,N=TranShkAggCount)   
 init_MarkovSOE_market = {  
                      'Rfree': np.array(np.array(StateCount*[1.014189682528173])),
                      'act_T': periods_to_sim,
                      'MrkvArray':[MrkvArray],
                      'MrkvPrbsInit':StateCount*[1.0/StateCount],
                      'MktMrkvNow_init':StateCount/2,
-                     'aSS':2.0
+                     'aSS':2.0,
+                     'TranShkAggDstn':TranShkAggDstn,
+                     'TranShkAggNow_init':1.0
                      }
                      
 # Make a small open economy and the consumers who live in it
