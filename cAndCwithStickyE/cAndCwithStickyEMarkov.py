@@ -11,8 +11,10 @@ import numpy as np
 from StickyEMarkovmodel import StickyEMarkovSOEType
 from ConsMarkovModel import MarkovSmallOpenEconomy
 from ConsIndShockModel import IndShockConsumerType, constructLognormalIncomeProcessUnemployment
-from HARKutilities import plotFuncs, approxMeanOneLognormal
+from HARKutilities import plotFuncs, approxMeanOneLognormal, TauchenAR1
 import matplotlib.pyplot as plt
+import statsmodels.api as sm
+import statsmodels.sandbox.regression.gmm as smsrg
 
 periods_to_sim = 1200
 ignore_periods = 500
@@ -20,8 +22,6 @@ ignore_periods = 500
 # Define parameters for the small open economy version of the model
 init_MarkovSOE_consumer = { 'CRRA': 2.0,
                       'DiscFac': 0.969,
-                      'LivPrb': [0.995],
-                      'PermGroFac': [1.0],
                       'AgentCount': 10000,
                       'aXtraMin': 0.00001,
                       'aXtraMax': 40.0,
@@ -54,23 +54,33 @@ init_MarkovSOE_consumer = { 'CRRA': 2.0,
                       'CubicBool' : False
                     }
                     
-#Need to get the income distribution of a standard ConsIndShockModel consumer
-StateCount = 5
-Persistence = 0.5
 TranShkAggStd = 0.0031
 TranShkAggCount = 7
+LivPrb = 0.995
+Rfree = 1.014189682528173
+
+#Markov Parameters follow an AR1
+StateCount = 5
+sigma = 0.006
+rho = 0.8
+m=3
+PermGroFac, MrkvArray = TauchenAR1(sigma, rho, StateCount, m)
+PermGroFac = [np.exp(PermGroFac)/np.mean(np.exp(PermGroFac))]
+              
+###############################################################################
+
+#Need to get the income distribution of a standard ConsIndShockModel consumer
 DummyForIncomeDstn = IndShockConsumerType(**init_MarkovSOE_consumer)
 IncomeDstn, PermShkDstn, TranShkDstn = constructLognormalIncomeProcessUnemployment(DummyForIncomeDstn)
 IncomeDstn = StateCount*IncomeDstn
 # Make the state transition array for this type: Persistence probability of remaining in the same state, equiprobable otherwise
-MrkvArray = Persistence*np.eye(StateCount) + (1.0/StateCount)*(1.0-Persistence)*np.ones((StateCount,StateCount))
 init_MarkovSOE_consumer['MrkvArray'] = [MrkvArray]
-init_MarkovSOE_consumer['PermGroFac'] = [np.array([0.99,0.995,1.0,1.005,1.01])]
-init_MarkovSOE_consumer['LivPrb'] = [np.array(StateCount*[0.995])]
+init_MarkovSOE_consumer['PermGroFac'] = PermGroFac
+init_MarkovSOE_consumer['LivPrb'] = [np.array(StateCount*[LivPrb])]
                         
 TranShkAggDstn = approxMeanOneLognormal(sigma=TranShkAggStd,N=TranShkAggCount)   
 init_MarkovSOE_market = {  
-                     'Rfree': np.array(np.array(StateCount*[1.014189682528173])),
+                     'Rfree': np.array(np.array(StateCount*[Rfree])),
                      'act_T': periods_to_sim,
                      'MrkvArray':[MrkvArray],
                      'MrkvPrbsInit':StateCount*[1.0/StateCount],
@@ -88,7 +98,7 @@ StickyMarkovSOEconomy        = MarkovSmallOpenEconomy(**init_MarkovSOE_market)
 StickyMarkovSOEconomy.agents = [StickyMarkovSOEconsumers]
 StickyMarkovSOEconomy.makeMkvShkHist()
 StickyMarkovSOEconsumers.getEconomyData(StickyMarkovSOEconomy)
-StickyMarkovSOEconsumers.track_vars = ['aLvlNow','mNrmNow','cNrmNow','pLvlNow','pLvlErrNow','MrkvNow']
+StickyMarkovSOEconsumers.track_vars = ['aLvlNow','mNrmNow','cNrmNow','pLvlNow','pLvlErrNow','MrkvNow','TranShkAggNow']
 
 # Solve the model and display some output
 StickyMarkovSOEconomy.solve()
@@ -121,3 +131,49 @@ print('Standard deviation of log individual productivity = ' + str(np.mean(np.st
 Logc = np.log(StickyMarkovSOEconsumers.cNrmNow_hist*StickyMarkovSOEconsumers.pLvlNow_hist)[ignore_periods:,:]
 DeltaLogc = Logc[1:,:] - Logc[0:-1,:]
 print('Standard deviation of change in log individual consumption = ' + str(np.mean(np.std(DeltaLogc,axis=1))))
+
+# Do aggregate regressions
+LogY = np.log(np.mean(StickyMarkovSOEconsumers.TranShkAggNow_hist*StickyMarkovSOEconsumers.pLvlNow_hist,axis=1))[ignore_periods:]
+DeltaLogY = LogY[1:] - LogY[0:-1]
+A = np.mean(StickyMarkovSOEconsumers.aLvlNow_hist,axis=1)[ignore_periods+1:]
+
+#OLS on log consumption (no measurement error)
+mod = sm.OLS(DeltaLogC[1:],sm.add_constant(DeltaLogC[0:-1]))
+res = mod.fit()
+print(res.summary())
+
+#Add measurement error to LogC
+sigma_me = np.std(DeltaLogC)/2.5
+np.random.seed(10)
+LogC_me = LogC + sigma_me*np.random.normal(0,1,len(LogC))
+DeltaLogC_me = LogC_me[1:] - LogC_me[0:-1]
+
+#OLS on log consumption (with measurement error)
+mod = sm.OLS(DeltaLogC_me[1:],sm.add_constant(DeltaLogC_me[0:-1]))
+res = mod.fit()
+print(res.summary())
+
+instruments = sm.add_constant(np.transpose(np.array([DeltaLogC_me[1:-2],DeltaLogC_me[:-3],DeltaLogY[1:-2],DeltaLogY[:-3],A[1:-2],A[:-3]])))
+#IV on log consumption (with measurement error)
+mod = smsrg.IV2SLS(DeltaLogC_me[3:],sm.add_constant(DeltaLogC_me[2:-1]),instruments)
+res = mod.fit()
+print(res.summary())
+
+#IV on log income (with measurement error)
+mod = smsrg.IV2SLS(DeltaLogC_me[3:],sm.add_constant(DeltaLogY[2:-1]),instruments)
+res = mod.fit()
+print(res.summary())
+
+#IV on assets (with measurement error)
+mod = smsrg.IV2SLS(DeltaLogC_me[3:],sm.add_constant(A[2:-1]),instruments)
+res = mod.fit()
+print(res.summary())
+
+#Horserace IV (with measurement error)
+regressors = sm.add_constant(np.transpose(np.array([DeltaLogC_me[2:-1],DeltaLogY[2:-1],A[2:-1]])))
+mod = smsrg.IV2SLS(DeltaLogC_me[3:],regressors,instruments)
+res = mod.fit()
+print(res.summary())
+
+
+
