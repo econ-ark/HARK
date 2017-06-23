@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import statsmodels.sandbox.regression.gmm as smsrg
 
-periods_to_sim = 1200
-ignore_periods = 500
+periods_to_sim = 3500
+ignore_periods = 1000
 
 # Define parameters for the small open economy version of the model
 init_MarkovSOE_consumer = { 'CRRA': 2.0,
@@ -60,12 +60,12 @@ LivPrb = 0.995
 Rfree = 1.014189682528173
 
 #Markov Parameters follow an AR1
-StateCount = 5
-sigma = 0.006
+StateCount = 9
 rho = 0.8
-m=3
+sigma = np.sqrt(0.00004*(1-rho**2))  #ergodic distribution has same standard deviation as in the rho=0 case
+m=4
 PermGroFac, MrkvArray = TauchenAR1(sigma, rho, StateCount, m)
-PermGroFac = [np.exp(PermGroFac)/np.mean(np.exp(PermGroFac))]
+PermGroFac = [PermGroFac+1.0]
               
 ###############################################################################
 
@@ -132,6 +132,10 @@ Logc = np.log(StickyMarkovSOEconsumers.cNrmNow_hist*StickyMarkovSOEconsumers.pLv
 DeltaLogc = Logc[1:,:] - Logc[0:-1,:]
 print('Standard deviation of change in log individual consumption = ' + str(np.mean(np.std(DeltaLogc,axis=1))))
 
+print('Standard deviation of log aggregate permanent income = ' + str(np.std(np.log(np.mean(StickyMarkovSOEconsumers.pLvlNow_hist[ignore_periods:,:],axis=1)))))
+print('Standard deviation of log aggregate  income = ' + str(np.std(np.log(np.mean(StickyMarkovSOEconsumers.TranShkAggNow_hist[ignore_periods:,:]*StickyMarkovSOEconsumers.pLvlNow_hist[ignore_periods:,:],axis=1)))))
+
+
 # Do aggregate regressions
 LogY = np.log(np.mean(StickyMarkovSOEconsumers.TranShkAggNow_hist*StickyMarkovSOEconsumers.pLvlNow_hist,axis=1))[ignore_periods:]
 DeltaLogY = LogY[1:] - LogY[0:-1]
@@ -139,8 +143,8 @@ A = np.mean(StickyMarkovSOEconsumers.aLvlNow_hist,axis=1)[ignore_periods+1:]
 
 #OLS on log consumption (no measurement error)
 mod = sm.OLS(DeltaLogC[1:],sm.add_constant(DeltaLogC[0:-1]))
-res = mod.fit()
-print(res.summary())
+res1 = mod.fit()
+print(res1.summary())
 
 #Add measurement error to LogC
 sigma_me = np.std(DeltaLogC)/2.5
@@ -150,30 +154,41 @@ DeltaLogC_me = LogC_me[1:] - LogC_me[0:-1]
 
 #OLS on log consumption (with measurement error)
 mod = sm.OLS(DeltaLogC_me[1:],sm.add_constant(DeltaLogC_me[0:-1]))
-res = mod.fit()
-print(res.summary())
+res2 = mod.fit()
+print(res2.summary())
 
 instruments = sm.add_constant(np.transpose(np.array([DeltaLogC_me[1:-2],DeltaLogC_me[:-3],DeltaLogY[1:-2],DeltaLogY[:-3],A[1:-2],A[:-3]])))
 #IV on log consumption (with measurement error)
 mod = smsrg.IV2SLS(DeltaLogC_me[3:],sm.add_constant(DeltaLogC_me[2:-1]),instruments)
-res = mod.fit()
-print(res.summary())
+res3 = mod.fit()
+print(res3.summary())
 
 #IV on log income (with measurement error)
 mod = smsrg.IV2SLS(DeltaLogC_me[3:],sm.add_constant(DeltaLogY[2:-1]),instruments)
-res = mod.fit()
-print(res.summary())
+res4 = mod.fit()
+print(res4.summary())
 
 #IV on assets (with measurement error)
 mod = smsrg.IV2SLS(DeltaLogC_me[3:],sm.add_constant(A[2:-1]),instruments)
-res = mod.fit()
-print(res.summary())
+res5 = mod.fit()
+print(res5.summary())
 
 #Horserace IV (with measurement error)
 regressors = sm.add_constant(np.transpose(np.array([DeltaLogC_me[2:-1],DeltaLogY[2:-1],A[2:-1]])))
 mod = smsrg.IV2SLS(DeltaLogC_me[3:],regressors,instruments)
-res = mod.fit()
-print(res.summary())
+res6 = mod.fit()
+print(res6.summary())
 
+#Also report frictionless results with no measurement error
+instruments2 = sm.add_constant(np.transpose(np.array([DeltaLogC[1:-2],DeltaLogC[:-3],DeltaLogY[1:-2],DeltaLogY[:-3],A[1:-2],A[:-3]])))
+#IV on log consumption (with measurement error)
+mod = smsrg.IV2SLS(DeltaLogC[3:],sm.add_constant(DeltaLogY[2:-1]),instruments2)
+res7 = mod.fit()
 
+mod = smsrg.IV2SLS(DeltaLogC[3:],sm.add_constant(A[2:-1]),instruments2)
+res8 = mod.fit()
 
+#Horserace IV (with measurement error)
+regressors = sm.add_constant(np.transpose(np.array([DeltaLogC[2:-1],DeltaLogY[2:-1],A[2:-1]])))
+mod = smsrg.IV2SLS(DeltaLogC[3:],regressors,instruments2)
+res9 = mod.fit()
