@@ -10,6 +10,7 @@ sys.path.insert(0,'../')
 from copy import deepcopy
 import numpy as np
 from ConsIndShockModel import ConsIndShockSolver, ValueFunc, MargValueFunc, ConsumerSolution, IndShockConsumerType
+from ConsAggShockModel import AggShockConsumerType
 from HARKutilities import combineIndepDstns, warnings  # Because of "patch" to warnings modules
 from HARKcore import Market, HARKobject
 from HARKsimulation import drawDiscrete, drawUniform
@@ -987,11 +988,12 @@ def solveSOEMarkov(solution_next,IncomeDstn,TranShkAggDstn,LivPrb,DiscFac,CRRA,R
         this_mergedIncomeDstn = combineIndepDstns([this_IncomeDstn[0],this_IncomeDstn[1]],TranShkAggDstn)
         this_mergedIncomeDstn2 = combineIndepDstns([this_IncomeDstn[0],this_IncomeDstn[2]],TranShkAggDstn)
         this_mergedIncomeDstn[2] = this_mergedIncomeDstn[2]*this_mergedIncomeDstn2[1] #multiply idiosyncratic and aggregate transitive shocks together
-        merged_IncomeDstn.append(this_mergedIncomeDstn)    
-    solution_now = solveConsMarkov(solution_next,merged_IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+        merged_IncomeDstn.append(this_mergedIncomeDstn)   
+    Rfree_eff = Rfree/LivPrb[0] #To account for the division of assets of those who die
+    solution_now = solveConsMarkov(solution_next,merged_IncomeDstn,LivPrb,DiscFac,CRRA,Rfree_eff,PermGroFac,MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
     return solution_now
         
-class MarkovSOEType(MarkovConsumerType):
+class MarkovSOEType(MarkovConsumerType, AggShockConsumerType):
     '''
     A class to represent consumers who face idiosyncratic transitory and 
     permanent shocks to income, but their Markov state variable is exogenously
@@ -1022,6 +1024,52 @@ class MarkovSOEType(MarkovConsumerType):
         self.initializeSim()
         self.aLvlNow = self.aInit*np.ones(self.AgentCount) # Start simulation near SS
         self.aNrmNow = self.aLvlNow/self.pLvlNow
+        
+    def simBirth(self,which_agents):
+        '''    
+        Parameters
+        ----------
+        which_agents : np.array(Bool)
+            Boolean array of size self.AgentCount indicating which agents should be "born".
+        
+        Returns
+        -------
+        None
+        '''
+        AggShockConsumerType.simBirth(self,which_agents)
+        
+    def simDeath(self):
+        '''
+        Determines which agents die this period and must be replaced.  Uses the sequence in LivPrb
+        to determine survival probabilities for each agent.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        which_agents : np.array(bool)
+            Boolean array of size AgentCount indicating which agents die.
+        '''
+        # Determine who dies
+        LivPrb = np.array(self.LivPrb)[self.t_cycle-1,self.MrkvNow] # Time has already advanced, so look back one
+        DiePrb = 1.0 - LivPrb
+        DeathShks = drawUniform(N=self.AgentCount,seed=self.RNG.randint(0,2**31-1))
+        which_agents = DeathShks < DiePrb
+        if self.T_age is not None: # Kill agents that have lived for too many periods
+            too_old = self.t_age >= self.T_age
+            which_agents = np.logical_or(which_agents,too_old)
+            
+        # Divide up the wealth of those who die, giving it to those who survive
+        who_lives = np.logical_not(which_agents)
+        wealth_living = np.sum(self.aLvlNow[who_lives])
+        wealth_dead = np.sum(self.aLvlNow[which_agents])
+        Ractuarial = 1.0 + wealth_dead/wealth_living
+        self.aNrmNow[who_lives] = self.aNrmNow[who_lives]*Ractuarial
+        self.aLvlNow[who_lives] = self.aLvlNow[who_lives]*Ractuarial
+        return which_agents
+
 
     def getEconomyData(self,Economy):
         '''
