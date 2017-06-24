@@ -1090,6 +1090,7 @@ class MarkovSOEType(MarkovConsumerType, AggShockConsumerType):
         self.TranShkAggNow_init = Economy.TranShkAggNow_init
         self.aInit = Economy.aSS
         self.TranShkAggDstn = Economy.TranShkAggDstn
+        self.aNrmInitMean = np.log(0.00000001)              # Initialize newborn assets to nearly zero
         
     def getShocks(self):
         '''
