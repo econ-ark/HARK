@@ -1215,7 +1215,7 @@ class MarkovSmallOpenEconomy(Market):
         '''
         sim_periods = self.act_T
         MrkvShkHist = np.zeros(sim_periods)
-        base_draws = drawUniform(sim_periods,seed=0)
+        base_draws = drawUniform(sim_periods,seed=2)
         Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
         MrkvShkHist[0] = np.searchsorted(Cutoffs,base_draws[0]).astype(int)
 
@@ -1226,7 +1226,7 @@ class MarkovSmallOpenEconomy(Market):
         self.MrkvShkHist = MrkvShkHist
         #Also make history of aggregate transitory shocks
         Events      = np.arange(self.TranShkAggDstn[0].size) # just a list of integers
-        EventDraws  = drawDiscrete(N=sim_periods,P=self.TranShkAggDstn[0],X=Events,seed=0)
+        EventDraws  = drawDiscrete(N=sim_periods,P=self.TranShkAggDstn[0],X=Events,seed=1)
         TranShkAggHist = self.TranShkAggDstn[1][EventDraws]
         # Store the histories       
         self.TranShkAggHist = TranShkAggHist
