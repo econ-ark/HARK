@@ -67,10 +67,8 @@ class StickyEconsumerSOEType(BaseAgentType):
         update = self.RNG.permutation(base_bool)
         dont = np.logical_not(update)
         
-        # For agents who don't update, the aggregate transitory shocks aren't observed
-        self.TranShkNow[dont] = self.TranShkNow[dont]/self.TranShkAggNow
-        
         # Non-updaters misperception of their productivity gets worse, but updaters incorporate all the news they've missed
+        self.PermShkNow = self.PermShkNow/self.PermShkAggNow
         self.pLvlErrNow = self.pLvlErrNow/self.PermShkAggNow
         self.PermShkNow[update] = self.PermShkNow[update]/self.pLvlErrNow[update]
         self.pLvlErrNow[update] = 1.0
@@ -96,14 +94,11 @@ class StickyEconsumerSOEType(BaseAgentType):
         # Calculate what the consumers perceive their normalized market resources to be
         RfreeNow = self.getRfree()
         bLvlNow = RfreeNow*self.aLvlNow # This is the true level
-        yLvlPcvdNow = self.pLvlNow*self.TranShkNow # This is only correct if individual updated this period
-        mLvlPcvdNow = bLvlNow + yLvlPcvdNow # Consumers' perception of their 
-        mNrmPcvdNow = mLvlPcvdNow/self.pLvlNow
-        self.mNrmNow = mNrmPcvdNow
         
-        # And calculate consumers' true level of market resources
-        yLvlTrueNow = yLvlPcvdNow/self.pLvlErrNow # This is same as Pcvd if we updated, as pLvlErrNow = 1.0
+        yLvlTrueNow = self.pLvlNow/self.pLvlErrNow*self.TranShkNow
         mLvlTrueNow = bLvlNow + yLvlTrueNow
+        mNrmPcvdNow = mLvlTrueNow/self.pLvlNow
+        self.mNrmNow = mNrmPcvdNow
         self.mLvlTrueNow = mLvlTrueNow
         
     def getPostStates(self):
