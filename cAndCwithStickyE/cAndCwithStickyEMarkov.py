@@ -54,19 +54,19 @@ init_MarkovSOE_consumer = { 'CRRA': 2.0,
                       'CubicBool' : False
                     }
                     
-TranShkAggStd = 0.0031
+TranShkAggStd = np.sqrt(0.00001)
 TranShkAggCount = 7
 LivPrb = 0.995
 Rfree = 1.014189682528173
 
 #Markov Parameters follow an AR1
-StateCount = 9
+StateCount = 7
 rho = 0.8
 sigma = np.sqrt(0.00004*(1-rho**2))  #ergodic distribution has same standard deviation as in the rho=0 case
 m=4
 PermGroFac, MrkvArray = TauchenAR1(sigma, rho, StateCount, m)
 PermGroFac = [PermGroFac+1.0]
-              
+             
 ###############################################################################
 
 #Need to get the income distribution of a standard ConsIndShockModel consumer
@@ -98,6 +98,7 @@ StickyMarkovSOEconomy        = MarkovSmallOpenEconomy(**init_MarkovSOE_market)
 StickyMarkovSOEconomy.agents = [StickyMarkovSOEconsumers]
 StickyMarkovSOEconomy.makeMkvShkHist()
 StickyMarkovSOEconsumers.getEconomyData(StickyMarkovSOEconomy)
+StickyMarkovSOEconsumers.aNrmInitMean = np.log(1.0)  #Don't want newborns to have no assets and also be unemployed
 StickyMarkovSOEconsumers.track_vars = ['aLvlNow','mNrmNow','cNrmNow','pLvlNow','pLvlErrNow','MrkvNow','TranShkAggNow']
 
 # Solve the model and display some output
@@ -137,7 +138,7 @@ print('Standard deviation of log aggregate  income = ' + str(np.std(np.log(np.me
 
 
 # Do aggregate regressions
-LogY = np.log(np.mean(StickyMarkovSOEconsumers.TranShkAggNow_hist*StickyMarkovSOEconsumers.pLvlNow_hist,axis=1))[ignore_periods:]
+LogY = np.log(np.mean(StickyMarkovSOEconsumers.TranShkAggNow_hist*StickyMarkovSOEconsumers.pLvlNow_hist/StickyMarkovSOEconsumers.pLvlErrNow_hist,axis=1))[ignore_periods:]
 DeltaLogY = LogY[1:] - LogY[0:-1]
 A = np.mean(StickyMarkovSOEconsumers.aLvlNow_hist,axis=1)[ignore_periods+1:]
 
