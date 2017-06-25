@@ -13,8 +13,8 @@ from ConsAggShockModel import SmallOpenEconomy, CobbDouglasEconomy
 from HARKutilities import plotFuncs
 import matplotlib.pyplot as plt
 
-periods_to_sim = 1200
-ignore_periods = 500
+periods_to_sim = 3500
+ignore_periods = 1000
 
 # Define parameters for the small open economy version of the model
 init_SOE_consumer = { 'CRRA': 2.0,
@@ -39,7 +39,7 @@ init_SOE_consumer = { 'CRRA': 2.0,
                       'tax_rate':0.0,
                       'T_retire':0,
                       'MgridBase': np.array([0.5,1.5]),
-                      'aNrmInitMean' : np.log(0.00001),
+                      'aNrmInitMean' : np.log(0.00001),#gets overidden with much smaller number
                       'aNrmInitStd' : 0.0,
                       'pLvlInitMean' : 0.0,
                       'pLvlInitStd' : 0.0,
@@ -121,7 +121,8 @@ StickySOEconomy        = SmallOpenEconomy(**init_SOE_market)
 StickySOEconomy.agents = [StickySOEconsumers]
 StickySOEconomy.makeAggShkHist()
 StickySOEconsumers.getEconomyData(StickySOEconomy)
-StickySOEconsumers.track_vars = ['aLvlNow','mNrmNow','cNrmNow','pLvlNow','pLvlErrNow']
+StickySOEconsumers.aNrmInitMean = np.log(1.0)  #Don't want newborns to have no assets and also be unemployed
+StickySOEconsumers.track_vars = ['aLvlNow','aNrmNow','mNrmNow','cNrmNow','mLvlTrueNow','pLvlNow','pLvlErrNow','TranShkAggNow']
 
 # Solve the model and display some output
 StickySOEconomy.solveAgents()
