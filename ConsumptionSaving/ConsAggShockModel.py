@@ -437,7 +437,7 @@ def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,
     vPnext_array = Reff_array*PermShkTotal_array**(-CRRA)*vPfuncNext(mNrmNext_array,Mnext_array)
     
     # Calculate expectated marginal value at the end of the period at every asset gridpoint
-    EndOfPrdvP = DiscFac*LivPrb*PermGroFac**(-CRRA)*np.sum(vPnext_array*ShkPrbsNext_tiled,axis=2)
+    EndOfPrdvP = DiscFac*LivPrb*np.sum(vPnext_array*ShkPrbsNext_tiled,axis=2)
     
     # Calculate optimal consumption from each asset gridpoint
     cNrmNow = EndOfPrdvP**(-1.0/CRRA)
@@ -472,6 +472,217 @@ def solveConsAggShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,PermGroFac,
     return solution_now
     
 ###############################################################################
+
+
+
+def solveConsAggMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,MrkvArray,
+                       PermGroFac,PermGroFacAgg,aXtraGrid,BoroCnstArt,Mgrid,
+                       AFunc,Rfunc,wFunc,DeprFac):
+    '''
+    Solve one period of a consumption-saving problem with idiosyncratic and 
+    aggregate shocks (transitory and permanent).  Moreover, the macroeconomic
+    state follows a Markov process that determines the income distribution and
+    aggregate permanent growth factor. This is a basic solver that can't handle
+    cubic splines, nor can it calculate a value function.
+    
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to the succeeding one period problem.
+    IncomeDstn : [[np.array]]
+        A list of lists, each containing five arrays of floats, representing a
+        discrete approximation to the income process between the period being
+        solved and the one immediately following (in solution_next). Order: event
+        probabilities, idisyncratic permanent shocks, idiosyncratic transitory
+        shocks, aggregate permanent shocks, aggregate transitory shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.    
+    DiscFac : float
+        Intertemporal discount factor for future utility.        
+    CRRA : float
+        Coefficient of relative risk aversion.
+    MrkvArray : np.array
+        Markov transition matrix between discrete macroeconomic states.
+        MrkvArray[i,j] is probability of being in state j next period conditional
+        on being in state i this period.
+    PermGroFac : float
+        Expected permanent income growth factor at the end of this period,
+        for the *individual*'s productivity.
+    PermGroFacAgg : [float]
+        Expected aggregate productivity growth in each Markov macro state.
+    aXtraGrid : np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    BoroCnstArt : float
+        Artificial borrowing constraint; minimum allowable end-of-period asset-to-
+        permanent-income ratio.  Unlike other models, this *can't* be None.
+    Mgrid : np.array
+        A grid of aggregate market resourses to permanent income in the economy.
+    AFunc : [function]
+        Aggregate savings as a function of aggregate market resources, for each
+        Markov macro state.
+    Rfunc : function
+        The net interest factor on assets as a function of capital ratio k.
+    wFunc : function
+        The wage rate for labor as a function of capital-to-labor ratio k.
+    DeprFac : float
+        Capital Depreciation Rate
+                    
+    Returns
+    -------
+    solution_now : ConsumerSolution
+        The solution to the single period consumption-saving problem.  Includes
+        a consumption function cFunc (linear interpolation over linear interpola-
+        tions) and marginal value function vPfunc.
+    '''    
+    # Get sizes of grids
+    aCount = aXtraGrid.size
+    Mcount = Mgrid.size
+    StateCount = MrkvArray.shape[0]
+    
+    # Loop through next period's states, assuming we reach each one at a time.
+    # Construct EndOfPrdvP_cond functions for each state.
+    EndOfPrdvPfunc_cond = []
+    BoroCnstNat_cond = []
+    for j in range(StateCount):
+        # Unpack next period's solution
+        vPfuncNext = solution_next.vPfunc[j]
+        mNrmMinNext = solution_next.mNrmMin[j]
+        
+        # Unpack the income shocks
+        ShkPrbsNext  = IncomeDstn[j][0]
+        PermShkValsNext = IncomeDstn[j][1]
+        TranShkValsNext = IncomeDstn[j][2]
+        PermShkAggValsNext = IncomeDstn[j][3]
+        TranShkAggValsNext = IncomeDstn[j][4]
+        ShkCount = ShkPrbsNext.size
+        aXtra_tiled = np.tile(np.reshape(aXtraGrid,(1,aCount,1)),(Mcount,1,ShkCount))
+        
+        # Make tiled versions of the income shocks
+        # Dimension order: Mnow, aNow, Shk
+        ShkPrbsNext_tiled = np.tile(np.reshape(ShkPrbsNext,(1,1,ShkCount)),(Mcount,aCount,1))
+        PermShkValsNext_tiled = np.tile(np.reshape(PermShkValsNext,(1,1,ShkCount)),(Mcount,aCount,1))
+        TranShkValsNext_tiled = np.tile(np.reshape(TranShkValsNext,(1,1,ShkCount)),(Mcount,aCount,1))
+        PermShkAggValsNext_tiled = np.tile(np.reshape(PermShkAggValsNext,(1,1,ShkCount)),(Mcount,aCount,1))
+        TranShkAggValsNext_tiled = np.tile(np.reshape(TranShkAggValsNext,(1,1,ShkCount)),(Mcount,aCount,1))
+        
+        # Make a tiled grid of end-of-period aggregate assets.  These lines use
+        # next prd state j's aggregate saving rule to get a relevant set of Aagg,
+        # which will be used to make an interpolated EndOfPrdvP_cond function.
+        # After constructing these functions, we will use the aggregate saving
+        # rule for *current* state i to get values of Aagg at which to evaluate
+        # these conditional marginal value functions.  In the strange, maybe even
+        # impossible case where the aggregate saving rules differ wildly across
+        # macro states *and* there is "anti-persistence", so that the macro state
+        # is very likely to change each period, then this procedure will lead to
+        # an inaccurate solution because the grid of Aagg values on which the
+        # conditional marginal value functions are constructed is not relevant
+        # to the values at which it will actually be evaluated.
+        AaggGrid = AFunc[j](Mgrid)
+        AaggNow_tiled = np.tile(np.reshape(AaggGrid,(Mcount,1,1)),(1,aCount,ShkCount))
+        
+        # Calculate returns to capital and labor in the next period
+        kNext_array = AaggNow_tiled/(PermGroFacAgg*PermShkAggValsNext_tiled) # Next period's aggregate capital to labor ratio
+        kNextEff_array = kNext_array/TranShkAggValsNext_tiled # Same thing, but account for *transitory* shock
+        R_array = Rfunc(kNextEff_array) # Interest factor on aggregate assets
+        Reff_array = R_array/LivPrb # Effective interest factor on individual assets *for survivors*
+        wEff_array = wFunc(kNextEff_array)*TranShkAggValsNext_tiled # Effective wage rate (accounts for labor supply)
+        PermShkTotal_array = PermGroFac*PermGroFacAgg*PermShkValsNext_tiled*PermShkAggValsNext_tiled # total / combined permanent shock
+        Mnext_array = kNext_array*R_array + wEff_array # next period's aggregate market resources
+        
+        # Find the natural borrowing constraint for each value of M in the Mgrid.
+        # There is likely a faster way to do this, but someone needs to do the math:
+        # is aNrmMin determined by getting the worst shock of all four types?
+        aNrmMin_candidates = PermGroFac*PermGroFacAgg*PermShkValsNext_tiled[:,0,:]*PermShkAggValsNext_tiled[:,0,:]/Reff_array[:,0,:]*\
+                             (mNrmMinNext[j](Mnext_array[:,0,:]) - wEff_array[:,0,:]*TranShkValsNext_tiled[:,0,:])
+        aNrmMin_vec = np.max(aNrmMin_candidates,axis=1)
+        BoroCnstNat_vec = aNrmMin_vec
+        aNrmMin_tiled = np.tile(np.reshape(aNrmMin_vec,(Mcount,1,1)),(1,aCount,ShkCount))
+        aNrmNow_tiled = aNrmMin_tiled + aXtra_tiled
+        
+        # Calculate market resources next period (and a constant array of capital-to-labor ratio)   
+        mNrmNext_array = Reff_array*aNrmNow_tiled/PermShkTotal_array + TranShkValsNext_tiled*wEff_array
+                
+        # Find marginal value next period at every income shock realization and every aggregate market resource gridpoint
+        vPnext_array = Reff_array*PermShkTotal_array**(-CRRA)*vPfuncNext(mNrmNext_array,Mnext_array)
+        
+        # Calculate expectated marginal value at the end of the period at every asset gridpoint
+        EndOfPrdvP = DiscFac*LivPrb*np.sum(vPnext_array*ShkPrbsNext_tiled,axis=2)
+        
+        # Make the conditional end-of-period marginal value function
+        BoroCnstNat = LinearInterp(np.insert(AaggGrid,0,0.0),np.insert(BoroCnstNat_vec,0,0.0))
+        EndOfPrdvPnvrs = np.concatenate((np.zeros(Mcount,1),EndOfPrdvP**(-1./CRRA)),axis=1)
+        EndOfPrdvPnvrsFunc_base = BilinearInterp(EndOfPrdvPnvrs,np.insert(AaggGrid,0,0.0),np.insert(aXtraGrid,0,0.0))
+        EndOfPrdvPnvrsFunc = VariableLowerBoundFunc2D(EndOfPrdvPnvrsFunc_base,BoroCnstNat)
+        EndOfPrdvPfunc_cond.append(MargValueFunc2D(EndOfPrdvPnvrsFunc,CRRA))
+        BoroCnstNat_cond.append(BoroCnstNat)
+        
+    # Prepare some objects that are the same across all current states
+    aXtra_tiled = np.tile(np.reshape(aXtraGrid,(1,aCount)),(Mcount,1))
+    cFuncCnst = BilinearInterp(np.array([[0.0,0.0],[1.0,1.0]]),np.array([BoroCnstArt,BoroCnstArt+1.0]),np.array([0.0,1.0]))
+    
+    # Now loop through *this* period's discrete states, calculating end-of-period
+    # marginal value (weighting across state transitions), then construct consumption
+    # and marginal value function for each state.
+    cFuncNow = []
+    vPfuncNow = []
+    mNrmMinNow = []
+    for i in range(StateCount):
+        # Find natural borrowing constraint for this state by Aagg
+        AaggNow = AFunc[i](Mgrid)
+        aNrmMin_candidates = np.zeros((StateCount,Mcount)) + np.nan
+        for j in range(StateCount):
+            if MrkvArray[i,j] > 0.: # Irrelevant if transition is impossible
+                aNrmMin_candidates[j,:] = BoroCnstNat_cond[j](AaggNow)
+        aNrmMin_vec = np.nanmax(aNrmMin_candidates,axis=0)
+        BoroCnstNat_vec = aNrmMin_vec
+        
+        # Make tiled grids of aNrm and Aagg
+        aNrmMin_tiled = np.tile(np.reshape(aNrmMin_vec,(Mcount,1)),(1,aCount))
+        aNrmNow_tiled = aNrmMin_tiled + aXtra_tiled
+        AaggNow_tiled = np.tile(np.reshape(AaggNow,(Mcount,1)),(1,aCount))
+        
+        # Loop through feasible transitions and calculate end-of-period marginal value
+        EndOfPrdvP = np.zeros((Mcount,aCount))
+        for j in range(StateCount):
+            if MrkvArray[i,j] > 0.:
+                EndOfPrdvP += MrkvArray[i,j]*EndOfPrdvPfunc_cond[j](AaggNow_tiled,aNrmNow_tiled)
+                
+        # Calculate consumption and the endogenous mNrm gridpoints for this state
+        cNrmNow = EndOfPrdvP**(-1./CRRA)
+        mNrmNow = aNrmNow_tiled + cNrmNow
+            
+        # Loop through the values in Mgrid and make a piecewise linear consumption function for each
+        cFuncBaseByM_list = []
+        for n in range(Mcount):
+            c_temp = np.insert(cNrmNow[n,:],0,0.0) # Add point at bottom
+            m_temp = np.insert(mNrmNow[n,:] - BoroCnstNat_vec[n],0,0.0)
+            cFuncBaseByM_list.append(LinearInterp(m_temp,c_temp))
+            # Add the M-specific consumption function to the list
+    
+        # Construct the unconstrained consumption function by combining the M-specific functions
+        BoroCnstNat = LinearInterp(np.insert(Mgrid,0,0.0),np.insert(BoroCnstNat_vec,0,0.0))
+        cFuncBase = LinearInterpOnInterp1D(cFuncBaseByM_list,Mgrid)
+        cFuncUnc  = VariableLowerBoundFunc2D(cFuncBase,BoroCnstNat)
+        
+        # Combine the constrained consumption function with unconstrained component    
+        cFuncNow.append(LowerEnvelope2D(cFuncUnc,cFuncCnst))
+        
+        # Make the minimum m function as the greater of the natural and artificial constraints
+        mNrmMinNow.append(UpperEnvelope(BoroCnstNat,ConstantFunction(BoroCnstArt)))
+        
+        # Construct the marginal value function using the envelope condition
+        vPfuncNow.append(MargValueFunc2D(cFuncNow[-1],CRRA))
+    
+    # Pack up and return the solution
+    solution_now = ConsumerSolution(cFunc=cFuncNow,vPfunc=vPfuncNow,mNrmMin=mNrmMinNow)
+    return solution_now
+
+
+###############################################################################
+
+
     
 class CobbDouglasEconomy(Market):            
     '''
