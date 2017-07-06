@@ -148,9 +148,30 @@ class AggShockConsumerType(IndShockConsumerType):
         self.Rfunc = Economy.Rfunc                          # Interest factor as function of capital ratio
         self.wFunc = Economy.wFunc                          # Wage rate as function of capital ratio
         self.DeprFac = Economy.DeprFac                      # Rate of capital depreciation
-        IncomeDstnWithAggShks = combineIndepDstns(self.PermShkDstn,self.TranShkDstn,Economy.PermShkAggDstn,Economy.TranShkAggDstn)
-        self.IncomeDstn = [IncomeDstnWithAggShks]           # Discrete income distribution with aggregate and idiosyncratic shocks
+        self.updateIncomeDstn()
+        self.addAggShkDstn(Economy.AggShkDstn)              # Combine idiosyncratic and aggregate shocks into one dstn 
         self.addToTimeInv('Mgrid','AFunc','Rfunc', 'wFunc','DeprFac')
+        
+        
+    def addAggShkDstn(self,AggShkDstn):
+        '''
+        Updates attribute IncomeDstn by combining idiosyncratic shocks with
+        aggregate shocks.  Should not be run multiple times unless updateIncomeDstn
+        is called in between (done automatically in getEconomyData).
+        
+        Parameters
+        ----------
+        AggShkDstn : [np.array]
+            Aggregate productivity shock distribution.  First element is proba-
+            bilities, second element is agg permanent shocks, third element is
+            agg transitory shocks.
+            
+        Returns
+        -------
+        None
+        '''
+        self.IncomeDstn = [combineIndepDstns(self.IncomeDstn[t],AggShkDstn) for t in range(self.T_cycle)]
+        
         
     def simBirth(self,which_agents):
         '''
@@ -330,6 +351,88 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         '''
         raise NotImplementedError()
+        
+        
+        
+        
+class AggShockMarkovConsumerType(AggShockConsumerType):
+    '''
+    A class for representing ex ante heterogeneous "types" of consumers who
+    experience both aggregate and idiosyncratic shocks to productivity (both
+    permanent and transitory), who lives in an environment where the macroeconomic
+    state is subject to Markov-style discrete state evolution.
+    '''
+    def __init__(self,**kwds):
+        AggShockConsumerType.__init__(self,**kwds)
+        self.addToTimeInv('PermGroFacAgg','MrkvArray')
+    
+    
+    def addAggShkDstn(self,AggShkDstn):
+        '''
+        Variation on AggShockConsumerType.addAggShkDstn that handles the Markov
+        state. AggShkDstn is a list of aggregate productivity shock distributions
+        for each Markov state.
+        '''
+        IncomeDstnOut = []
+        N = self.MrkvArray.shape[0]
+        for t in range(self.T_cycle):
+            IncomeDstnOut.append([combineIndepDstns(self.IncomeDstn[t][n],AggShkDstn[n]) for n in range(N)])
+            
+    
+    def updateSolutionTerminal(self):
+        '''
+        Update the terminal period solution.  This method should be run when a
+        new AgentType is created or when CRRA changes.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        AggShockConsumerType.updateSolutionTerminal(self)
+        
+        # Make replicated terminal period solution
+        StateCount = self.MrkvArray[0].shape[0]
+        self.solution_terminal.cFunc   = StateCount*[self.cFunc_terminal_]
+        self.solution_terminal.vPfunc  = StateCount*[self.solution_terminal.vPfunc]
+        self.solution_terminal.mNrmMin = StateCount*[self.solution_terminal.mNrmMin]
+    
+        
+    def getControls(self):
+        '''
+        Calculates consumption for each consumer of this type using the consumption functions.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        cNrmNow = np.zeros(self.AgentCount) + np.nan
+        MPCnow = np.zeros(self.AgentCount) + np.nan
+        MaggNow = self.MaggNow*np.ones(self.AgentCount)
+        MrkvNow = self.getMrkvNow()
+        
+        StateCount = self.MrkvArray[0].shape[0]
+        MrkvBoolArray = np.zeros((StateCount,self.AgentCount),dtype=bool)
+        for i in range(StateCount):
+            MrkvBoolArray[i,:] = i == MrkvNow
+        
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            for i in range(self.MrkvArray[0].shape[0]):
+                those = np.logical_and(these,MrkvBoolArray[i,:])
+                cNrmNow[those] = self.solution[t].cFunc[i](self.mNrmNow[those],MaggNow[those])
+                MPCnow[those]  = self.solution[t].cFunc[i].derivativeX(self.mNrmNow[those],MaggNow[those]) # Marginal propensity to consume
+        self.cNrmNow = cNrmNow
+        self.MPCnow = MPCnow
+        return None
+
         
 ###############################################################################
 
