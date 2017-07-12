@@ -1449,7 +1449,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         # Trim the histories of M_t and A_t and convert them to logs
         logAagg   = np.log(AaggNow[discard_periods:total_periods])
         logMagg   = np.log(MaggNow[discard_periods-1:total_periods-1])
-        MrkvHist  = self.MrkvNow_hist[discard_periods-2:total_periods-2]
+        MrkvHist  = self.MrkvNow_hist[discard_periods-1:total_periods-1]
         
         # For each Markov state, regress A_t on M_t and update the saving rule
         AFunc_list = []
