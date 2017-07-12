@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
+import scipy.linalg as linalg
 #from copy import copy, deepcopy
 from StickyEMarkovmodel import StickyEMarkovSOEType
 from ConsMarkovModel import MarkovSmallOpenEconomy
@@ -44,7 +45,7 @@ init_MarkovSOE_consumer = { 'CRRA': 2.0,
                       'aNrmInitStd' : 0.0,
                       'pLvlInitMean' : 0.0,
                       'pLvlInitStd' : 0.0,
-                      'PermGroFacAgg' : 1.0,
+                      'PermGroFacAgg' : 1.0,#+0.015/4.0,
                       'UpdatePrb' : 0.25,
                       'T_age' : None,
                       'T_cycle' : 1,
@@ -59,14 +60,22 @@ TranShkAggCount = 7
 LivPrb = 0.995
 Rfree = 1.014189682528173
 
-#Markov Parameters follow an AR1
-StateCount = 7
-rho = 0.8
-sigma = np.sqrt(0.00004*(1-rho**2))  #ergodic distribution has same standard deviation as in the rho=0 case
-m=4
-PermGroFac, MrkvArray = TauchenAR1(sigma, rho, StateCount, m)
-PermGroFac = [PermGroFac+1.0]
-             
+##Markov Parameters follow an AR1
+#StateCount = 7
+#rho = 0.8
+#sigma = np.sqrt(0.00004*(1-rho**2))  #ergodic distribution has same standard deviation as in the rho=0 case
+#m=4
+#PermGroFac, MrkvArray = TauchenAR1(sigma, rho, StateCount, m)
+#PermGroFac = [PermGroFac+1.0]
+
+#Markov Parameters follow a random walk bounded above and below
+StateCount = 21
+dont_move_prob = 0.0
+MrkvArray = linalg.toeplitz([dont_move_prob,(1.0-dont_move_prob)/2.0]+[0.0]*(StateCount-2), [dont_move_prob,(1.0-dont_move_prob)/2.0]+[0.0]*(StateCount-2))
+MrkvArray[0,1] = (1.0-dont_move_prob)
+MrkvArray[StateCount-1,StateCount-2] = (1.0-dont_move_prob)
+PermGroFac = [1.0+np.linspace(-0.015/4.0,0.015/4.0,StateCount)]
+
 ###############################################################################
 
 #Need to get the income distribution of a standard ConsIndShockModel consumer
@@ -148,7 +157,7 @@ res1 = mod.fit()
 print(res1.summary())
 
 #Add measurement error to LogC
-sigma_me = np.std(DeltaLogC)/2.5
+sigma_me = np.std(DeltaLogC)/1.5
 np.random.seed(10)
 LogC_me = LogC + sigma_me*np.random.normal(0,1,len(LogC))
 DeltaLogC_me = LogC_me[1:] - LogC_me[0:-1]
@@ -158,38 +167,38 @@ mod = sm.OLS(DeltaLogC_me[1:],sm.add_constant(DeltaLogC_me[0:-1]))
 res2 = mod.fit()
 print(res2.summary())
 
-instruments = sm.add_constant(np.transpose(np.array([DeltaLogC_me[1:-2],DeltaLogC_me[:-3],DeltaLogY[1:-2],DeltaLogY[:-3],A[1:-2],A[:-3]])))
+instruments = sm.add_constant(np.transpose(np.array([DeltaLogC_me[1:-3],DeltaLogC_me[:-4],DeltaLogY[1:-3],DeltaLogY[:-4],A[1:-3],A[:-4]])))
 #IV on log consumption (with measurement error)
-mod = smsrg.IV2SLS(DeltaLogC_me[3:],sm.add_constant(DeltaLogC_me[2:-1]),instruments)
+mod = smsrg.IV2SLS(DeltaLogC_me[4:],sm.add_constant(DeltaLogC_me[3:-1]),instruments)
 res3 = mod.fit()
 print(res3.summary())
 
 #IV on log income (with measurement error)
-mod = smsrg.IV2SLS(DeltaLogC_me[3:],sm.add_constant(DeltaLogY[2:-1]),instruments)
+mod = smsrg.IV2SLS(DeltaLogC_me[4:],sm.add_constant(DeltaLogY[4:]),instruments)
 res4 = mod.fit()
 print(res4.summary())
 
 #IV on assets (with measurement error)
-mod = smsrg.IV2SLS(DeltaLogC_me[3:],sm.add_constant(A[2:-1]),instruments)
+mod = smsrg.IV2SLS(DeltaLogC_me[4:],sm.add_constant(A[3:-1]),instruments)
 res5 = mod.fit()
 print(res5.summary())
 
 #Horserace IV (with measurement error)
-regressors = sm.add_constant(np.transpose(np.array([DeltaLogC_me[2:-1],DeltaLogY[2:-1],A[2:-1]])))
-mod = smsrg.IV2SLS(DeltaLogC_me[3:],regressors,instruments)
+regressors = sm.add_constant(np.transpose(np.array([DeltaLogC_me[3:-1],DeltaLogY[4:],A[3:-1]])))
+mod = smsrg.IV2SLS(DeltaLogC_me[4:],regressors,instruments)
 res6 = mod.fit()
 print(res6.summary())
 
 #Also report frictionless results with no measurement error
-instruments2 = sm.add_constant(np.transpose(np.array([DeltaLogC[1:-2],DeltaLogC[:-3],DeltaLogY[1:-2],DeltaLogY[:-3],A[1:-2],A[:-3]])))
+instruments2 = sm.add_constant(np.transpose(np.array([DeltaLogC[1:-3],DeltaLogC[:-4],DeltaLogY[1:-3],DeltaLogY[:-4],A[1:-3],A[:-4]])))
 #IV on log consumption (with measurement error)
-mod = smsrg.IV2SLS(DeltaLogC[3:],sm.add_constant(DeltaLogY[2:-1]),instruments2)
+mod = smsrg.IV2SLS(DeltaLogC[4:],sm.add_constant(DeltaLogY[4:]),instruments2)
 res7 = mod.fit()
 
-mod = smsrg.IV2SLS(DeltaLogC[3:],sm.add_constant(A[2:-1]),instruments2)
+mod = smsrg.IV2SLS(DeltaLogC[4:],sm.add_constant(A[3:-1]),instruments2)
 res8 = mod.fit()
 
-#Horserace IV (with measurement error)
-regressors = sm.add_constant(np.transpose(np.array([DeltaLogC[2:-1],DeltaLogY[2:-1],A[2:-1]])))
-mod = smsrg.IV2SLS(DeltaLogC[3:],regressors,instruments2)
+#Horserace IV (with no measurement error)
+regressors = sm.add_constant(np.transpose(np.array([DeltaLogC[3:-1],DeltaLogY[4:],A[3:-1]])))
+mod = smsrg.IV2SLS(DeltaLogC[4:],regressors,instruments2)
 res9 = mod.fit()
