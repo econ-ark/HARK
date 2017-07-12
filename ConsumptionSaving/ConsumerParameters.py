@@ -201,11 +201,36 @@ init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
                      'DeprFac': DeprFac,
                      'CapShare': CapShare,
                      'DiscFac': DiscFacPF,
+                     'PermGroFacAgg': PermGroFacAgg,
                      'AggregateL':1.0,
-                     'slope_prev': slope_prev,
+                     'act_T':1200,
                      'intercept_prev': intercept_prev,
-                     'act_T':1200
+                     'slope_prev': slope_prev
                      }
+
+# -----------------------------------------------------------------------------
+# ----- Define additional parameters for the Markov agg shocks model ----------
+# -----------------------------------------------------------------------------
+# This example makes a high risk, low growth state and a low risk, high growth state
+MrkvArray = np.array([[0.8,0.2],[0.2,0.8]])
+PermShkAggStd = [0.0063,0.0063]     # Standard deviation of log aggregate permanent shocks by state
+TranShkAggStd = [0.0031,0.0031]     # Standard deviation of log aggregate transitory shocks by state
+PermGroFacAgg = [1.00,1.00]         # Aggregate permanent income growth factor
+
+# Make a dictionary to specify a Markov aggregate shocks consumer
+init_agg_mrkv_shocks = copy(init_agg_shocks)
+init_agg_mrkv_shocks['MrkvArray'] = MrkvArray
+
+# Make a dictionary to specify a Markov Cobb-Douglas economy
+init_mrkv_cobb_douglas = copy(init_cobb_douglas)
+init_mrkv_cobb_douglas['PermShkAggStd'] = PermShkAggStd
+init_mrkv_cobb_douglas['TranShkAggStd'] = TranShkAggStd
+init_mrkv_cobb_douglas['PermGroFacAgg'] = PermGroFacAgg
+init_mrkv_cobb_douglas['MrkvArray'] = MrkvArray
+init_mrkv_cobb_douglas['MrkvNow_init'] = 0
+init_mrkv_cobb_douglas['slope_prev'] = 2*[slope_prev],
+init_mrkv_cobb_douglas['intercept_prev'] = 2*[intercept_prev],
+                     
                      
 # -----------------------------------------------------------------------------
 # ----- Define additional parameters for the persistent shocks model ----------
