@@ -47,3 +47,11 @@ EconomyExample.solve()
 t_end = clock()
 print('Solving the "macroeconomic" aggregate shocks model took ' + str(t_end - t_start) + ' seconds.')
 print('Aggregate savings as a function of aggregate market resources (for each macro state):')
+m_grid = np.linspace(0,10,200)
+AggShockMrkvExample.unpackcFunc()
+for i in range(2):
+    for M in AggShockMrkvExample.Mgrid.tolist():
+        mMin = AggShockMrkvExample.solution[0].mNrmMin[i](M)
+        c_at_this_M = AggShockMrkvExample.cFunc[0][i](m_grid+mMin,M*np.ones_like(m_grid))
+        plt.plot(m_grid+mMin,c_at_this_M)
+    plt.show()

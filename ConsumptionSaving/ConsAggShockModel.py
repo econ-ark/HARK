@@ -460,8 +460,8 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount,dtype=bool)
         self.EmpNow[TranShkNow == self.IncUnemp] = False
-        self.PermShkNow = PermShkNow
-        self.TranShkNow = TranShkNow
+        self.TranShkNow = TranShkNow*self.TranShkAggNow*self.wRteNow
+        self.PermShkNow = PermShkNow*self.PermShkAggNow
     
         
     def getControls(self):
@@ -500,7 +500,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         return None
     
     def getMrkvNow(self):
-        return self.MrkvNow*np.ones(self.AgentCount)
+        return self.MrkvNow*np.ones(self.AgentCount,dtype=int)
 
         
 ###############################################################################
@@ -1417,8 +1417,8 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         
         See documentation for calcRandW for more information.
         '''
+        MrkvNow = self.MrkvNow_hist[self.Shk_idx]
         temp =  self.calcRandW(aLvlNow,pLvlNow)
-        MrkvNow = self.MrkvNow_hist[self.Shk_idx-1]
         temp(MrkvNow = MrkvNow)
         return temp
         
@@ -1449,14 +1449,16 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         # Trim the histories of M_t and A_t and convert them to logs
         logAagg   = np.log(AaggNow[discard_periods:total_periods])
         logMagg   = np.log(MaggNow[discard_periods-1:total_periods-1])
-        MrkvHist  = self.MrkvNow_hist[discard_periods-1:total_periods-1]
+        MrkvHist  = self.MrkvNow_hist[discard_periods-2:total_periods-2]
         
         # For each Markov state, regress A_t on M_t and update the saving rule
         AFunc_list = []
         rSq_list = []
+        colors = ['.r','.b']
         for i in range(self.MrkvArray.shape[0]):
             these = i == MrkvHist
             slope, intercept, r_value, p_value, std_err = stats.linregress(logMagg[these],logAagg[these])
+            plt.plot(logMagg[these],logAagg[these],colors[i])
         
             # Make a new aggregate savings rule by combining the new regression parameters
             # with the previous guess
@@ -1472,9 +1474,11 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         # Plot aggregate resources vs aggregate savings for this run and print the new parameters
         if verbose:
             print('intercept=' + str(self.intercept_prev) + ', slope=' + str(self.slope_prev) + ', r-sq=' + str(rSq_list))
+            plt.show()
                     
         return AggShocksDynamicRule(AFunc_list)
-                
+
+               
 class CobbDouglasAggVars(HARKobject):
     '''
     A simple class for holding the relevant aggregate variables that should be
@@ -1611,20 +1615,20 @@ if __name__ == '__main__':
         plt.plot(m_grid+mMin,c_at_this_M)
     plt.show()
     
-    # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
-    t_start = clock()
-    EconomyExample.solve()
-    t_end = clock()
-    print('Solving the "macroeconomic" aggregate shocks model took ' + str(t_end - t_start) + ' seconds.')
-    print('Aggregate savings as a function of aggregate market resources:')
-    plotFuncs(EconomyExample.AFunc,0,2*EconomyExample.kSS)
-    print('Consumption function at each aggregate market resources gridpoint (in general equilibrium):')
-    AggShockExample.unpackcFunc()
-    m_grid = np.linspace(0,10,200)
-    AggShockExample.unpackcFunc()
-    for M in AggShockExample.Mgrid.tolist():
-        mMin = AggShockExample.solution[0].mNrmMin(M)
-        c_at_this_M = AggShockExample.cFunc[0](m_grid+mMin,M*np.ones_like(m_grid))
-        plt.plot(m_grid+mMin,c_at_this_M)
-    plt.show()
+#    # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
+#    t_start = clock()
+#    EconomyExample.solve()
+#    t_end = clock()
+#    print('Solving the "macroeconomic" aggregate shocks model took ' + str(t_end - t_start) + ' seconds.')
+#    print('Aggregate savings as a function of aggregate market resources:')
+#    plotFuncs(EconomyExample.AFunc,0,2*EconomyExample.kSS)
+#    print('Consumption function at each aggregate market resources gridpoint (in general equilibrium):')
+#    AggShockExample.unpackcFunc()
+#    m_grid = np.linspace(0,10,200)
+#    AggShockExample.unpackcFunc()
+#    for M in AggShockExample.Mgrid.tolist():
+#        mMin = AggShockExample.solution[0].mNrmMin(M)
+#        c_at_this_M = AggShockExample.cFunc[0](m_grid+mMin,M*np.ones_like(m_grid))
+#        plt.plot(m_grid+mMin,c_at_this_M)
+#    plt.show()
     
