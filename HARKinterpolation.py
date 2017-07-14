@@ -1610,7 +1610,10 @@ class FellaInterp(HARKobject):
             vNvrsP_left = np.insert(vNvrsP_left,0,MPCmax**(-CRRA/(1.-CRRA)))
             vNvrsP_right = np.insert(vNvrsP_right,0,vNvrsP_left[0])
         else: # ...or just fix pseudo-inverse marg value at bottom
-            vNvrsP_left[0] = MPCmax**(-CRRA/(1.-CRRA))
+            try:
+                vNvrsP_left[0] = MPCmax**(-CRRA/(1.-CRRA))
+            except: # Only when MPCmax = 0 and CRRA < 1 ... this is rare
+                vNvrsP_left[0] = 0.0
             vNvrsP_right[0] = vNvrsP_left[0]
         MPCminNvrs = MPCmin**(-CRRA/(1.0-CRRA))
         vNvrsFunc = CubicInterpDiscont(self.state_grid,vNvrs,vNvrs,vNvrsP_left,vNvrsP_right,0.0,MPCminNvrs)
