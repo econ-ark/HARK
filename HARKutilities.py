@@ -1105,9 +1105,8 @@ def plotFuncs(functions,bottom,top,N=1000,legend_kwds = None):
     else:
         function_list = [functions]
        
-    step = (top-bottom)/N
     for function in function_list:
-        x = np.arange(bottom,top,step)
+        x = np.linspace(bottom,top,N,endpoint=True)
         y = function(x)
         plt.plot(x,y)
     plt.xlim([bottom, top])

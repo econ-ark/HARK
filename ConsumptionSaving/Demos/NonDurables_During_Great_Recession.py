@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../../cstwMPC')) #Path to cstwMPC folder
 
 # Now, bring in what we need from the cstwMPC parameters
-import SetupParamsCSTWnew as cstwParams
+import SetupParamsCSTW as cstwParams
 from HARKutilities import approxUniform
 
 ## Import the HARK ConsumerType we want 
