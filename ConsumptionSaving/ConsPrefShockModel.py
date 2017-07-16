@@ -604,8 +604,6 @@ if __name__ == '__main__':
     # Make and solve a preference shock consumer
     PrefShockExample = PrefShockConsumerType(**Params.init_preference_shocks)
     PrefShockExample.cycles = 0 # Infinite horizon
-    PrefShockExample.PermShkStd[0] = 0.05
-    PrefShockExample.updateIncomeProcess()
     
     t_start = clock()
     PrefShockExample.solve()
@@ -639,8 +637,6 @@ if __name__ == '__main__':
         PrefShockExample.makeShockHistory() # This is optional
         PrefShockExample.initializeSim()
         PrefShockExample.simulate()
-        
-    breakhere
         
     ###########################################################################
         
