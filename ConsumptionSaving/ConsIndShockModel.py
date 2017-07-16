@@ -1699,12 +1699,12 @@ class PerfForesightConsumerType(AgentType):
                 exp_psi_to_one_minus_rho=exp_psi_to_one_minus_rho+(1.0/self.PermShkCount)*(self.PermShkDstn[1][i])**(1-self.CRRA)  
             
             #Calculate the LHS of each condition                                                         
-            GIC=(self.LivPrb*exp_psi_inv*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.PermGroFac
+            GIC=(self.LivPrb*exp_psi_inv*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.PermGroFac[0]
             RIC=(self.LivPrb*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
             WRIC=(self.LivPrb*(self.UnempPrb**(1/self.CRRA))*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
             AIC=self.LivPrb*(self.Rfree*self.DiscFac)**(1/self.CRRA)
-            FHWC=self.PermGroFac/self.Rfree
-            FVAC=self.LivPrb*self.DiscFac*exp_psi_to_one_minus_rho*(self.PermGroFac**(1-self.CRRA))
+            FHWC=self.PermGroFac[0]/self.Rfree
+            FVAC=self.LivPrb*self.DiscFac*exp_psi_to_one_minus_rho*(self.PermGroFac[0]**(1-self.CRRA))
             
             #Report the results
             if verbose==False:
