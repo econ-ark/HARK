@@ -971,6 +971,9 @@ class LinearInterpDiscont(LinearInterp):
         
         # Calculate coefficients for each segment
         slopes = (y_left[1:] - y_right[0:-1])/(x_list[1:] - x_list[0:-1])
+        if np.any(np.isnan(slopes)):
+            these = np.logical_and(np.isinf(y_left[1:]),np.isinf(y_right[0:-1]))
+            slopes[these] = 0
         intercepts = y_right[0:-1] - slopes*x_list[0:-1]
         self.coeffs = np.vstack((intercepts,slopes))
         

@@ -331,7 +331,7 @@ class ConsPerfForesightSolver(object):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
             
         Returns:
@@ -363,7 +363,7 @@ class ConsPerfForesightSolver(object):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
             
         Returns
@@ -507,7 +507,7 @@ def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
         Coefficient of relative risk aversion.
     Rfree : float
         Risk free interest factor on end-of-period assets.
-    PermGroGac : float
+    PermGroFac : float
         Expected permanent income growth factor at the end of this period.
         
     Returns
@@ -552,7 +552,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
@@ -600,7 +600,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
@@ -837,10 +837,10 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         EndOfPrdvP : np.array
             A 1D array of end-of-period marginal value of assets
         '''        
-
+        vPnext = self.vPfuncNext(self.mNrmNext)
         EndOfPrdvP  = self.DiscFacEff*self.Rfree*self.PermGroFac**(-self.CRRA)*np.sum(
                       self.PermShkVals_temp**(-self.CRRA)*
-                      self.vPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)
+                      vPnext*self.ShkPrbs_temp,axis=0)
         return EndOfPrdvP
                     
 
@@ -1225,7 +1225,7 @@ def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
         Coefficient of relative risk aversion.
     Rfree : float
         Risk free interest factor on end-of-period assets.
-    PermGroGac : float
+    PermGroFac : float
         Expected permanent income growth factor at the end of this period.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the
@@ -1459,7 +1459,7 @@ class ConsIndShockSolverRobust(ConsIndShockSolver):
         vPnvrs  = cNrmNow
         
         # Determine the "effective" consumption floor
-        if self.BoroCnstBinds:
+        if self.BoroCnstArtBinds:
             cFloorEff = self.cFloor # This is the usual case in this model, but...
         else:
             cFloorEff = 0.0 # If the artificial borrowing constraint is no more restrictive
@@ -1482,14 +1482,14 @@ class ConsIndShockSolverRobust(ConsIndShockSolver):
         FellaTemp  = FellaInterp(v0=vFloorNvrs, control0=[cFloorEff,np.inf], lower_bound=self.BoroCnstArt)
         
         # Make the set of candidate points to be added
-        policy_temp = np.hstack((cNrmNow,vPnvrs)) # Might need to trim infs?
-        FellaTemp.addNewPoints(self,states=mNrmNow, values=vNvrs, policies=policy_temp, extrapolate=True)
+        policy_temp = np.vstack((cNrmNow,vPnvrs)) # Might need to trim infs?
+        FellaTemp.addNewPoints(states=mNrmNow, values=vNvrs, policies=policy_temp, extrapolate=True)
         
         # Unpack the policy and (marginal) value function
         FellaTemp.makeValueAndPolicyFuncs()
         if cFloorEff > 0.: # If the consumption floor is relevant, then marginal value at bottom is zero
             self.MPCmaxEff = 0.0
-        FellaTemp.makeCRRAvNvrsFunc(self, CRRA=self.CRRA, MPCmax=self.MPCmaxEff, MPCmin=self.MPCminNow, vPnvrsIdx=1)
+        FellaTemp.makeCRRAvNvrsFunc(CRRA=self.CRRA, MPCmax=self.MPCmaxEff, MPCmin=self.MPCminNow, vPnvrsIdx=1)
         cFuncNow  = FellaTemp.PolicyFuncs[0]
         vPfuncNow = MargValueFunc(FellaTemp.PolicyFuncs[1],self.CRRA)
         vFuncNow  = ValueFunc(FellaTemp.ValueFunc,self.CRRA)
@@ -1525,7 +1525,7 @@ def solveConsIndShockRobust(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,P
         Coefficient of relative risk aversion.
     Rfree : float
         Risk free interest factor on end-of-period assets.
-    PermGroGac : float
+    PermGroFac : float
         Expected permanent income growth factor at the end of this period.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the
@@ -1546,7 +1546,8 @@ def solveConsIndShockRobust(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,P
         and MPCmax and a value function vFunc.
     '''
     solver = ConsIndShockSolverRobust(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                         PermGroFac,BoroCnstArt,cFloor,aXtraGrid,True,False)
+                                      PermGroFac,BoroCnstArt,cFloor,aXtraGrid,
+                                      vFuncBool=True,CubicBool=False)
     solver.prepareToSolve()       # Do some preparatory work
     solution_now = solver.solve() # Solve the period
     return solution_now
@@ -1591,7 +1592,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         Rsave: float
             Interest factor on assets between this period and the succeeding
             period when assets are positive.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
@@ -1649,7 +1650,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         if KinkBool:
             aNrmNow       = np.sort(np.hstack((np.asarray(self.aXtraGrid) + self.mNrmMinNow,
                                                    np.array([0.0,0.0]))))
-        else:
+        else: # (unless Rboro == Rsave)
             aNrmNow       = np.asarray(self.aXtraGrid) + self.mNrmMinNow
         aXtraCount        = aNrmNow.size
         
@@ -1718,7 +1719,7 @@ def solveConsKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
     Rsave: float
         Interest factor on assets between this period and the succeeding
         period when assets are positive.
-    PermGroGac : float
+    PermGroFac : float
         Expected permanent income growth factor at the end of this period.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the
@@ -2249,6 +2250,40 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.updateSolutionTerminal()
         
         
+        
+class IndShockRobustConsumerType(IndShockConsumerType):
+    '''
+    A consumer type that faces the same problem as IndShockConsumerType, but might
+    have a (normalized) consumption floor.  Solution method can handle non-concave
+    future value function by using FellaInterp.
+    '''
+    time_inv_ = IndShockConsumerType.time_inv_ + ['cFloor']
+    
+    def __init__(self,cycles=1,time_flow=True,**kwds):
+        '''
+        Instantiate a new ConsumerType with given data.
+        See ConsumerParameters.init_idiosyncratic_shocks for a dictionary of
+        the keywords that should be passed to the constructor.
+        
+        Parameters
+        ----------
+        cycles : int
+            Number of times the sequence of periods should be solved.
+        time_flow : boolean
+            Whether time is currently "flowing" forward for this instance.
+        
+        Returns
+        -------
+        None
+        '''       
+        # Initialize a basic AgentType
+        PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
+
+        # Add consumer-type specific objects, copying to create independent versions
+        self.solveOnePeriod = solveConsIndShockRobust # robust idiosyncratic shocks solver
+        self.update() # Make assets grid, income process, terminal solution
+        
+        
 class KinkedRconsumerType(IndShockConsumerType):
     '''
     A consumer type that faces idiosyncratic shocks to income and has a different
@@ -2630,6 +2665,20 @@ if __name__ == '__main__':
         IndShockExample.makeShockHistory() # This is optional, simulation will draw shocks on the fly if it isn't run.
         IndShockExample.initializeSim()
         IndShockExample.simulate()
+        
+    ###########################################################################
+        
+    # Now test the "robust" ind shock solver with a consumption floor
+    RobustExample = IndShockRobustConsumerType(**Params.init_idiosyncratic_shocks)
+    RobustExample.cycles = 0
+    RobustExample.cFloor = 0.2
+    
+    start_time = clock()
+    RobustExample.solve()
+    end_time = clock()
+    print('Robustly solving a consumer with idiosyncratic shocks took ' + mystr(end_time-start_time) + ' seconds.')
+    print('Consumption function with consumption floor:')
+    plotFuncs(RobustExample.solution[0].cFunc,0,5)
     
     ###########################################################################
     
