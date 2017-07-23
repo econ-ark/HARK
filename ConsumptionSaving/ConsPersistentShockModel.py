@@ -1145,7 +1145,7 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
             # Calculate distribution of permanent income in each period of lifecycle
             for t in range(len(self.PermShkStd)):
                 PermIncGrid.append(approxLognormal(mu=(np.log(PermIncAvgNow)-0.5*PermIncStdNow**2),
-                                   sigma=PermIncStdNow, N=self.PermIncCount, tail_N=self.PermInc_tail_N, tail_bound=[0.05,0.95])[1])
+                                   sigma=PermIncStdNow, N=self.PermIncCount, tail_N=self.PermIncCountTail, tail_bound=[0.05,0.95])[1])
                 if type(self.PermShkStd[t]) == list:
                     temp_std = max(self.PermShkStd[t])
                     temp_fac = max(self.PermGroFac[t])
@@ -1169,7 +1169,7 @@ class IndShockExplicitPermIncConsumerType(IndShockConsumerType):
             # Calculate distribution of permanent income in each period of infinite cycle
             for t in range(len(self.PermShkStd)):
                 PermIncGrid.append(approxLognormal(mu=(np.log(PermIncAvgNow)-0.5*PermIncStdNow**2),
-                                   sigma=PermIncStdNow, N=self.PermIncCount, tail_N=self.PermInc_tail_N, tail_bound=[0.05,0.95])[1])
+                                   sigma=PermIncStdNow, N=self.PermIncCount, tail_N=self.PermIncCountTail, tail_bound=[0.05,0.95])[1])
                 if type(self.PermShkStd[t]) == list:
                     temp_std = max(self.PermShkStd[t])
                     temp_fac = max(self.PermGroFac[t])

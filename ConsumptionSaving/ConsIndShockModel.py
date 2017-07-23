@@ -2499,10 +2499,10 @@ def constructLognormalIncomeProcessUnemployment(parameters):
             IncomeDstn.append(deepcopy(IncomeDstnRet))
         else:
             # We are in the "working life" periods.
-            TranShkDstn     = approxMeanOneLognormal(N=TranShkCount, sigma=TranShkStd[t], tail_N=0)
+            TranShkDstn     = approxMeanOneLognormal(N=TranShkCount, sigma=TranShkStd[t], tail_N=None)
             if UnempPrb > 0:
                 TranShkDstn = addDiscreteOutcomeConstantMean(TranShkDstn, p=UnempPrb, x=IncUnemp)
-            PermShkDstn     = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=0)
+            PermShkDstn     = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=None)
             IncomeDstn.append(combineIndepDstns(PermShkDstn,TranShkDstn)) # mix the independent distributions
     return IncomeDstn, PermShkDstn, TranShkDstn
     

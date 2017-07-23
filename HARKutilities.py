@@ -436,7 +436,7 @@ def CARAutility_invP(u, alpha):
     return( 1.0/(alpha*(1.0-u)) )
 
 
-def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail_order=np.e):
+def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=None, tail_bound=[0.0,1.0], tail_order=np.e, check_prob_sum=True):
     '''
     Construct a discrete approximation to a lognormal distribution with underlying
     normal distribution N(mu,sigma).  Makes an equiprobable distribution by
@@ -452,14 +452,21 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
     sigma: float
         Standard deviation of underlying normal distribution.
     tail_N: int
-        Number of points in each "tail part" of the approximation; 0 = no tail.
+        Number of points in each "tail part" of the approximation. Default is
+        None = no tail; can approximate truncated lognormal with tail_N = 0.
+        When truncating, user chooses whether to return a valid or invalid pmf
+        with the input check_prob_sum.
     tail_bound: [float]
         CDF boundaries of the tails vs main portion; tail_bound[0] is the lower
         tail bound, tail_bound[1] is the upper tail bound.  Inoperative when
-        tail_N = 0.  Can make "one tailed" approximations with 0.0 or 1.0.
+        tail_N = None.  Can make "one tailed" approximations with 0.0 or 1.0.
     tail_order: float
         Factor by which consecutive point masses in a "tail part" differ in
         probability.  Should be >= 1 for sensible spacing.
+    check_prob_sum : bool
+        When True, will only return a "valid" pmf whose probabilities sum to
+        (approximately) 1.  When False, allows invalid pmfs, which might be
+        desired when approximating truncated lognormal.
         
     Returns
     -------
@@ -472,11 +479,11 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
     Based on Matab function "setup_workspace.m," from Chris Carroll's
       [Solution Methods for Microeconomic Dynamic Optimization Problems]
       (http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
-    Latest update: 11 February 2017 by Matthew N. White
+    Latest update: 23 July, 2017 by Matthew N. White
     '''
     # Find the CDF boundaries of each segment
     if sigma > 0.0:        
-        if tail_N > 0:
+        if tail_N is not None:
             lo_cut     = tail_bound[0]
             hi_cut     = tail_bound[1]
         else:
@@ -488,16 +495,17 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
             scale      = 1.0/tail_order
             mag        = (1.0-scale**tail_N)/(1.0-scale)
         lower_CDF_vals = [0.0]
-        if lo_cut > 0.0:
+        if lo_cut > 0.0 and tail_N > 0:
             for x in range(tail_N-1,-1,-1):
                 lower_CDF_vals.append(lower_CDF_vals[-1] + lo_cut*scale**x/mag)
+        elif lo_cut > 0.0:
+            lower_CDF_vals = [lo_cut]
         upper_CDF_vals  = [hi_cut]
         if hi_cut < 1.0:
             for x in range(tail_N):
                 upper_CDF_vals.append(upper_CDF_vals[-1] + (1.0-hi_cut)*scale**x/mag)
         CDF_vals       = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
-        temp_cutoffs   = list(stats.lognorm.ppf(CDF_vals[1:-1], s=sigma, loc=0, scale=np.exp(mu)))
-        cutoffs        = [0] + temp_cutoffs + [np.inf]
+        cutoffs   = list(stats.lognorm.ppf(CDF_vals,s=sigma, loc=0, scale=np.exp(mu)))
         CDF_vals       = np.array(CDF_vals)
     
         # Construct the discrete approximation by finding the average value within each segment
@@ -519,6 +527,12 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
     else:
         pmf = np.ones(N)/N
         X   = np.exp(mu)*np.ones(N)
+        
+    if check_prob_sum: # Do a quick check to make sure probabilities sum to 1
+        P = np.sum(pmf)
+        if not np.isclose(P,1.0,atol=1e-12):
+            pmf = pmf/P
+    
     return [pmf, X]
 
 @memoize

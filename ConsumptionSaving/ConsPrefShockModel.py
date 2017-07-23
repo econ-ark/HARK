@@ -80,8 +80,8 @@ class PrefShockConsumerType(IndShockConsumerType):
         PrefShkDstn = [] # discrete distributions of preference shocks
         for t in range(len(self.PrefShkStd)):
             PrefShkStd = self.PrefShkStd[t]
-            PrefShkDstn.append(approxMeanOneLognormal(N=self.PrefShkCount,
-                                                      sigma=PrefShkStd,tail_N=self.PrefShk_tail_N))
+            PrefShkDstn.append(approxMeanOneLognormal(N=self.PrefShkCount,sigma=PrefShkStd,
+                                                      tail_N=self.PrefShkCountTail,tail_bound=[0.02,0.98]))
             
         # Store the preference shocks in self (time-varying) and restore time flow
         self.PrefShkDstn = PrefShkDstn

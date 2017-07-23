@@ -143,13 +143,13 @@ init_kinked_R['aXtraCount'] = 48   # ...so need lots of extra gridpoints to make
 # -----------------------------------------------------------------------------
 
 PrefShkCount = 12        # Number of points in discrete approximation to preference shock dist
-PrefShk_tail_N = 4       # Number of "tail points" on each end of pref shock dist
+PrefShkCountTail = 4    # Number of "tail points" on each end of pref shock dist
 PrefShkStd = [0.30]      # Standard deviation of utility shocks
 
 # Make a dictionary to specify a preference shock consumer
 init_preference_shocks = copy(init_idiosyncratic_shocks)
 init_preference_shocks['PrefShkCount'] = PrefShkCount
-init_preference_shocks['PrefShk_tail_N'] = PrefShk_tail_N
+init_preference_shocks['PrefShkCountTail'] = PrefShkCountTail
 init_preference_shocks['PrefShkStd'] = PrefShkStd
 init_preference_shocks['aXtraCount'] = 48
 init_preference_shocks['CubicBool'] = False # pref shocks currently only compatible with linear cFunc
@@ -158,7 +158,7 @@ init_preference_shocks['CubicBool'] = False # pref shocks currently only compati
 # to utility and a different interest rate on borrowing vs saving
 init_kinky_pref = copy(init_kinked_R)
 init_kinky_pref['PrefShkCount'] = PrefShkCount
-init_kinky_pref['PrefShk_tail_N'] = PrefShk_tail_N
+init_kinky_pref['PrefShkCountTail'] = PrefShkCountTail
 init_kinky_pref['PrefShkStd'] = PrefShkStd
 
 # -----------------------------------------------------------------------------
@@ -212,7 +212,7 @@ init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
 # -----------------------------------------------------------------------------
 
 PermIncCount = 12        # Number of permanent income gridpoints in "body"
-PermInc_tail_N = 4       # Number of permanent income gridpoints in each "tail"
+PermIncCountTail = 4     # Number of permanent income gridpoints in each "tail"
 PermIncStdInit = 0.4     # Initial standard deviation of (log) permanent income (not used in example)
 PermIncAvgInit = 1.0     # Initial average of permanent income (not used in example)
 PermIncCorr = 0.98       # Serial correlation coefficient for permanent income
@@ -221,7 +221,7 @@ cycles = 0
 # Make a dictionary for the "explicit permanent income" idiosyncratic shocks model
 init_explicit_perm_inc = copy(init_idiosyncratic_shocks)
 init_explicit_perm_inc['PermIncCount'] = PermIncCount
-init_explicit_perm_inc['PermInc_tail_N'] = PermInc_tail_N
+init_explicit_perm_inc['PermIncCountTail'] = PermIncCountTail
 init_explicit_perm_inc['PermIncAvgInit'] = PermIncAvgInit
 init_explicit_perm_inc['PermIncStdInit'] = PermIncStdInit
 init_explicit_perm_inc['PermGroFac'] = [1.0] # long run permanent income growth doesn't work yet
