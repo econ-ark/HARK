@@ -504,9 +504,11 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=None, tail_bound=[0.0,1.0], tai
         if hi_cut < 1.0:
             for x in range(tail_N):
                 upper_CDF_vals.append(upper_CDF_vals[-1] + (1.0-hi_cut)*scale**x/mag)
-        CDF_vals       = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
-        cutoffs   = list(stats.lognorm.ppf(CDF_vals,s=sigma, loc=0, scale=np.exp(mu)))
-        CDF_vals       = np.array(CDF_vals)
+        CDF_vals       = np.array(lower_CDF_vals + inner_CDF_vals + upper_CDF_vals)
+        cutoffs        = stats.lognorm.ppf(CDF_vals,s=sigma, loc=0, scale=np.exp(mu))
+        if np.isclose(CDF_vals[-1], 1.0, atol=1e-14):
+            cutoffs[-1] = np.inf # ppf function sometimes returns nan rather than inf for 1.0
+                                 # due to numeric error that makes top CDF value just above 1.0
     
         # Construct the discrete approximation by finding the average value within each segment
         K              = CDF_vals.size-1 # number of points in approximation

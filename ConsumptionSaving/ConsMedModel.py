@@ -571,7 +571,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
             MedShkStdNow  = self.MedShkStd[t]
             MedShkDstnNow = approxLognormal(mu=np.log(MedShkAvgNow)-0.5*MedShkStdNow**2,\
                             sigma=MedShkStdNow,N=self.MedShkCount, tail_N=self.MedShkCountTail, 
-                            tail_bound=[0,0.9])
+                            tail_bound=[0.0,0.9])
             MedShkDstnNow = addDiscreteOutcomeConstantMean(MedShkDstnNow,0.0,0.0,sort=True) # add point at zero with no probability
             MedShkDstn.append(MedShkDstnNow)
         self.MedShkDstn = MedShkDstn
