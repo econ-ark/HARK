@@ -311,7 +311,7 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
                                 PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
         self.pLvlGrid = pLvlGrid
         
-    def setAndUpdateValues(self,solution_next,IncomeDstn,LivPrb,DiscFac):
+    def setAndUpdateValues(self,solution_next):
         '''
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -324,23 +324,13 @@ class ConsIndShockSolverExplicitPermInc(ConsIndShockSetup):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.    
-        DiscFac : float
-            Intertemporal discount factor for future utility.
             
         Returns
         -------
         None
         '''
         # Run basic version of this method
-        ConsIndShockSetup.setAndUpdateValues(self,solution_next,IncomeDstn,LivPrb,DiscFac)
+        ConsIndShockSetup.setAndUpdateValues(self,solution_next)
         
         # Replace normalized human wealth (scalar) with human wealth level as function of permanent income
         self.hNrmNow = None

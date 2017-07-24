@@ -226,7 +226,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         self.vPfuncNext     = self.solution_next.vPfunc[state_index]
         self.mNrmMinNow     = self.mNrmMin_list[state_index]
         self.BoroCnstNat    = self.BoroCnstNatAll[state_index]        
-        self.setAndUpdateValues(self.solution_next,self.IncomeDstn,self.LivPrb,self.DiscFac)
+        self.setAndUpdateValues(self.solution_next)
         self.DiscFacEff     = self.DiscFac # survival probability LivPrb represents probability from 
                                            # *current* state, so DiscFacEff is just DiscFac for now
 

@@ -652,7 +652,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             self.uinv  = lambda u : utility_inv(u,gam=self.CRRA)
 
 
-    def setAndUpdateValues(self,solution_next,IncomeDstn,LivPrb,DiscFac):
+    def setAndUpdateValues(self,solution_next):
         '''
         Unpacks some of the inputs (and calculates simple objects based on them),
         storing the results in self for use by other methods.  These include:
@@ -664,45 +664,69 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.    
-        DiscFac : float
-            Intertemporal discount factor for future utility.
             
         Returns
         -------
         None
         '''
-        self.DiscFacEff       = DiscFac*LivPrb # "effective" discount factor
-        self.ShkPrbsNext      = IncomeDstn[0]
-        self.PermShkValsNext  = IncomeDstn[1]
-        self.TranShkValsNext  = IncomeDstn[2]
-        self.PermShkMinNext   = np.min(self.PermShkValsNext)    
-        self.TranShkMinNext   = np.min(self.TranShkValsNext)
-        self.vPfuncNext       = solution_next.vPfunc        
-        self.WorstIncPrb      = np.sum(self.ShkPrbsNext[
-                                (self.PermShkValsNext*self.TranShkValsNext)==
-                                (self.PermShkMinNext*self.TranShkMinNext)]) 
-
+        self.unpackIncomeDstn() # Unpack IncomeDstn into some useful components
+        
+        # Unpack next period's (marginal) value function as appropriate
+        self.vPfuncNext       = solution_next.vPfunc
         if self.CubicBool:
             self.vPPfuncNext  = solution_next.vPPfunc
-            
         if self.vFuncBool:
             self.vFuncNext    = solution_next.vFunc
             
         # Update the bounding MPCs and PDV of human wealth:
+        self.DiscFacEff   = self.DiscFac*self.LivPrb # "effective" discount factor
         self.PatFac       = ((self.Rfree*self.DiscFacEff)**(1.0/self.CRRA))/self.Rfree
         self.MPCminNow    = 1.0/(1.0 + self.PatFac/solution_next.MPCmin)
-        self.ExIncNext    = np.dot(self.ShkPrbsNext,self.TranShkValsNext*self.PermShkValsNext)
+        self.ExIncNext    = self.getIncExNext()
         self.hNrmNow      = self.PermGroFac/self.Rfree*(self.ExIncNext + solution_next.hNrm)
         self.MPCmaxNow    = 1.0/(1.0 + (self.WorstIncPrb**(1.0/self.CRRA))*
                                         self.PatFac/solution_next.MPCmax)
+        
+        
+    def unpackIncomeDstn(self):
+        '''
+        Use properties of the attribute IncomeDstn to make other attributes that
+        will be used during solution.  This version unpacks IncomeDstn into its
+        components: ShkPrbsNext, PermShkValsNext, and TranShkValsNext; it also
+        calculates the values PermShkMinNext, TranShkMinNext, and WorstIncPrb.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        self.ShkPrbsNext      = self.IncomeDstn[0]
+        self.PermShkValsNext  = self.IncomeDstn[1]
+        self.TranShkValsNext  = self.IncomeDstn[2]
+        self.PermShkMinNext   = np.min(self.PermShkValsNext)    
+        self.TranShkMinNext   = np.min(self.TranShkValsNext)
+        self.WorstIncPrb      = np.sum(self.ShkPrbsNext[
+                                (self.PermShkValsNext*self.TranShkValsNext)==
+                                (self.PermShkMinNext*self.TranShkMinNext)])
+        
+    def getIncExNext(self):
+        '''
+        Calculates and returns expected income next period.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        ExIncNext : float
+            Expected income next period.
+        '''
+        ExIncNext = np.dot(self.ShkPrbsNext,self.TranShkValsNext*self.PermShkValsNext)
+        return ExIncNext
 
 
     def defBoroCnst(self,BoroCnstArt):
@@ -751,7 +775,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         -------
         none
         '''
-        self.setAndUpdateValues(self.solution_next,self.IncomeDstn,self.LivPrb,self.DiscFac)
+        self.setAndUpdateValues(self.solution_next)
         self.defBoroCnst(self.BoroCnstArt)
 
 
@@ -784,25 +808,21 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         aNrmNow : np.array
             A 1D array of end-of-period assets; also stored as attribute of self.
         '''               
-        aNrmNow     = self.getaNrmNow()
-        ShkCount    = self.TranShkValsNext.size
-        aNrm_temp   = np.tile(aNrmNow,(ShkCount,1))
+        self.aNrmNow = self.getaNrmNow()
+        ShkCount     = self.IncomeDstn[0].size
+        aNrm_temp    = np.tile(self.aNrmNow,(ShkCount,1))
 
         # Tile arrays of the income shocks and put them into useful shapes
-        aNrmCount         = aNrmNow.size
-        PermShkVals_temp  = (np.tile(self.PermShkValsNext,(aNrmCount,1))).transpose()
-        TranShkVals_temp  = (np.tile(self.TranShkValsNext,(aNrmCount,1))).transpose()
-        ShkPrbs_temp      = (np.tile(self.ShkPrbsNext,(aNrmCount,1))).transpose()
+        ShkPrbs_temp, PermShkVals_temp, TranShkVals_temp = self.makeShockArrays()
         
         # Get cash on hand next period
-        mNrmNext          = self.Rfree/(self.PermGroFac*PermShkVals_temp)*aNrm_temp + TranShkVals_temp
+        mNrmNext     = self.Rfree/(self.PermGroFac*PermShkVals_temp)*aNrm_temp + TranShkVals_temp
 
         # Store and report the results
         self.PermShkVals_temp  = PermShkVals_temp
         self.ShkPrbs_temp      = ShkPrbs_temp
         self.mNrmNext          = mNrmNext 
-        self.aNrmNow           = aNrmNow               
-        return aNrmNow
+        return self.aNrmNow
     
     
     def getaNrmNow(self):
@@ -820,6 +840,32 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             A 1D array of end-of-period normalized assets.
         '''
         return np.asarray(self.aXtraGrid) + self.BoroCnstNat
+    
+    
+    def makeShockArrays(self):
+        '''
+        Make and return arrays of permanent shocks, transitory shocks, and shock
+        probabilities.  Each array has shape (ShkCount,aNrmCount).  This version
+        simply tiles the same shocks for each gridpoint.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        ShkPrbArray : np.array
+            Array of shock probabilities for each aNrm gridpoint.
+        PermShkArray : np.array
+            Array of permanent income shocks for each aNrm gridpoint.
+        TranShkArray : np.array
+            Array of transitory income shocks for each aNrm gridpoint.  
+        '''
+        aNrmCount     = self.aNrmNow.size
+        PermShkArray  = (np.tile(self.PermShkValsNext,(aNrmCount,1))).transpose()
+        TranShkArray  = (np.tile(self.TranShkValsNext,(aNrmCount,1))).transpose()
+        ShkPrbArray   = (np.tile(self.ShkPrbsNext,(aNrmCount,1))).transpose()
+        return ShkPrbArray, PermShkArray, TranShkArray
         
 
     def calcEndOfPrdvP(self):
@@ -1268,14 +1314,14 @@ def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
 ###############################################################################
 ###############################################################################
 
-class ConsIndShockSolverRobust(ConsIndShockSolver):
+class ConsIndShockSolverCfloor(ConsIndShockSolver):
     '''
     This class solves a single period of a standard consumption-saving problem.
     It inherits from ConsIndShockSolver, adding the ability to handle a consumption
     floor and non-concave next period value.
     '''
-    def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                      PermGroFac,BoroCnstArt,cFloor,aXtraGrid,vFuncBool,CubicBool):
+    def __init__(self,solution_next,TranShkDstn,PermShkStd,PermShkCount,LivPrb,
+                 DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,cFloor,aXtraGrid):
         '''
         Constructor for a new solver-setup for problems with income subject to
         permanent and transitory shocks.
@@ -1284,11 +1330,15 @@ class ConsIndShockSolverRobust(ConsIndShockSolver):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
+        TranShkDstn : [np.array]
+            A list containing two arrays of floats, representing a discrete
+            approximation to the transitory income process between the period
+            being solved and the one immediately following (in solution_next).
+            Order: event probabilities, transitory shocks.
+        PermShkStd : float
+            Standard deviation of (log) permanent income shocks, assumed mean one.
+        PermShkCount : int
+            Number of points in equiprobable approximation to permanent income shocks.
         LivPrb : float
             Survival probability; likelihood of being alive at the beginning of
             the succeeding period.    
@@ -1310,20 +1360,17 @@ class ConsIndShockSolverRobust(ConsIndShockSolver):
         aXtraGrid: np.array
             Array of "extra" end-of-period asset values-- assets above the
             absolute minimum acceptable level.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.  Not used, passed a dummy value.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear interpolation.
-            Not used, passed a dummy value.
                         
         Returns
         -------
         None
         '''
-        self.assignParameters(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+        self.assignParameters(solution_next,None,LivPrb,DiscFac,CRRA,Rfree,
+                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool=True,CubicBool=False)
         self.cFloor = cFloor
+        self.TranShkDstn = TranShkDstn
+        self.PermShkStd = PermShkStd
+        self.PermShkCount = PermShkCount
         self.defUtilityFuncs()
         
              
@@ -1348,6 +1395,77 @@ class ConsIndShockSolverRobust(ConsIndShockSolver):
         else: # Do the usual grid of aNrmNow, beginning just above the natural borrowing constraint
             aNrmNow = np.asarray(self.aXtraGrid) + self.BoroCnstNat
         return aNrmNow
+    
+    
+    def unpackIncomeDstn(self):
+        '''
+        Use properties of the attributes TranShkDstn, PermShkStd, and PermShkCount
+        to make other attributes that will be used during solution.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        self.TranShkPrbsNext  = self.TranShkDstn[0]
+        self.TranShkValsNext  = self.TranShkDstn[1]
+        
+        # Make the basic version of the permanent shock distribution
+        self.PermShkDstn      = approxMeanOneLognormal(N=self.PermShkCount,sigma=self.PermShkStd)
+        self.PermShkPrbsNext  = self.PermShkDstn[0]
+        self.PermShkValsNext  = self.PermShkDstn[1]
+        
+        self.IncomeDstn = combineIndepDstns(self.PermShkDstn,self.TranShkDstn)
+        self.PermShkMinNext   = np.min(self.PermShkValsNext)    
+        self.TranShkMinNext   = np.min(self.TranShkValsNext)
+        self.WorstIncPrb      = np.sum(self.PermShkPrbsNext[self.PermShkValsNext == self.PermShkMinNext])*\
+                                np.sum(self.TranShkPrbsNext[self.TranShkValsNext == self.TranShkMinNext])
+                                
+                                
+    def makeShockArrays(self):
+        '''
+        Make and return arrays of permanent shocks, transitory shocks, and shock
+        probabilities.  Each array has shape (ShkCount,aNrmCount).  This version
+        simply tiles the same shocks for each gridpoint.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        ShkPrbArray : np.array
+            Array of shock probabilities for each aNrm gridpoint.
+        PermShkArray : np.array
+            Array of permanent income shocks for each aNrm gridpoint.
+        TranShkArray : np.array
+            Array of transitory income shocks for each aNrm gridpoint.  
+        '''
+        aNrmCount     = self.aNrmNow.size
+        PermShkArray  = (np.tile(self.IncomeDstn[1],(aNrmCount,1))).transpose()
+        TranShkArray  = (np.tile(self.IncomeDstn[2],(aNrmCount,1))).transpose()
+        ShkPrbArray   = (np.tile(self.IncomeDstn[0],(aNrmCount,1))).transpose()
+        return ShkPrbArray, PermShkArray, TranShkArray
+
+                                                                
+    def getIncExNext(self):
+        '''
+        Calculates and returns expected income next period.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        ExIncNext : float
+            Expected income next period.
+        '''
+        ExIncNext = np.dot(self.IncomeDstn[0],self.IncomeDstn[1]*self.IncomeDstn[2])
+        return ExIncNext
         
         
     def solve(self):
@@ -1500,8 +1618,8 @@ class ConsIndShockSolverRobust(ConsIndShockSolver):
         return solution
         
     
-def solveConsIndShockRobust(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
-                            BoroCnstArt,cFloor,aXtraGrid):
+def solveConsIndShockRobust(solution_next,TranShkDstn,PermShkStd,PermShkCount,LivPrb,DiscFac,
+                            CRRA,Rfree,PermGroFac,BoroCnstArt,cFloor,aXtraGrid):
     '''
     Solves a single period consumption-saving problem with CRRA utility and risky
     income (subject to permanent and transitory shocks).  Can generate a value
@@ -1511,11 +1629,15 @@ def solveConsIndShockRobust(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,P
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncomeDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
+    TranShkDstn : [np.array]
+        A list containing two arrays of floats, representing a discrete
+        approximation to the transitory income process between the period
+        being solved and the one immediately following (in solution_next).
+        Order: event probabilities, transitory shocks.
+    PermShkStd : float
+        Standard deviation of (log) permanent income shocks, assumed mean one.
+    PermShkCount : int
+        Number of points in equiprobable approximation to permanent income shocks.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.    
@@ -1530,8 +1652,9 @@ def solveConsIndShockRobust(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,P
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the
         period with.  If it is less than the natural borrowing constraint,
-        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-        rowing constraint.
+        then it is irrelevant; BoroCnstArt=None is invalid if cFloor=0.
+    cFloor : float
+        Consumption floor (normalized by permanent income).
     aXtraGrid: np.array
         Array of "extra" end-of-period asset values-- assets above the
         absolute minimum acceptable level.
@@ -1545,9 +1668,8 @@ def solveConsIndShockRobust(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,P
         resources mNrmMin, normalized human wealth hNrm, bounding MPCs MPCmin
         and MPCmax and a value function vFunc.
     '''
-    solver = ConsIndShockSolverRobust(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                      PermGroFac,BoroCnstArt,cFloor,aXtraGrid,
-                                      vFuncBool=True,CubicBool=False)
+    solver = ConsIndShockSolverCfloor(solution_next,TranShkDstn,PermShkStd,PermShkCount,LivPrb,
+                                      DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,cFloor,aXtraGrid)
     solver.prepareToSolve()       # Do some preparatory work
     solution_now = solver.solve() # Solve the period
     return solution_now
@@ -2251,13 +2373,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         
         
-class IndShockRobustConsumerType(IndShockConsumerType):
+class IndShockCfloorConsumerType(IndShockConsumerType):
     '''
     A consumer type that faces the same problem as IndShockConsumerType, but might
     have a (normalized) consumption floor.  Solution method can handle non-concave
     future value function by using FellaInterp.
     '''
-    time_inv_ = IndShockConsumerType.time_inv_ + ['cFloor']
+    time_inv_ = IndShockConsumerType.time_inv_ + ['cFloor','TranShkDstn','PermShkCount'] # Need to remove TranShkDstn later
+    time_vary_ = IndShockConsumerType.time_vary_ + ['PermShkStd']
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
@@ -2669,16 +2792,16 @@ if __name__ == '__main__':
     ###########################################################################
         
     # Now test the "robust" ind shock solver with a consumption floor
-    RobustExample = IndShockRobustConsumerType(**Params.init_idiosyncratic_shocks)
-    RobustExample.cycles = 0
-    RobustExample.cFloor = 0.2
+    CfloorExample = IndShockCfloorConsumerType(**Params.init_idiosyncratic_shocks)
+    CfloorExample.cycles = 0
+    CfloorExample.cFloor = 0.2
     
     start_time = clock()
-    RobustExample.solve()
+    CfloorExample.solve()
     end_time = clock()
     print('Robustly solving a consumer with idiosyncratic shocks took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption function with consumption floor:')
-    plotFuncs(RobustExample.solution[0].cFunc,0,5)
+    plotFuncs(CfloorExample.solution[0].cFunc,0,5)
     
     ###########################################################################
     
