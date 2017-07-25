@@ -19,15 +19,16 @@ sys.path.insert(0, os.path.abspath('./'))
 
 from copy import copy, deepcopy
 import numpy as np
+from scipy.stats import lognorm
 from scipy.optimize import newton
 from HARKcore import AgentType, Solution, NullFunc, HARKobject
 from HARKutilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp, FellaInterp
-from HARKsimulation import drawDiscrete, drawBernoulli, drawLognormal, drawUniform
+from HARKsimulation import drawDiscrete, drawLognormal, drawUniform
 from HARKutilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
                           combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
                           CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
-                          CRRAutilityP_invP
+                          CRRAutilityP_invP, approxLognormal
 
 utility       = CRRAutility
 utilityP      = CRRAutilityP
@@ -1429,7 +1430,12 @@ class ConsIndShockSolverCfloor(ConsIndShockSolver):
         '''
         Make and return arrays of permanent shocks, transitory shocks, and shock
         probabilities.  Each array has shape (ShkCount,aNrmCount).  This version
-        simply tiles the same shocks for each gridpoint.
+        can choose the permanent shocks separately for each aNrm-TranShk pair,
+        with a default of PermShkValsNext.  If the probability of hitting the
+        consumption floor next period is zero for a particular aNrm-TranShk, then
+        the default is used.  When it is non-zero, a truncated lognormal distri-
+        bution is calculated for that particular pair.  This methodology ensures
+        continuity of the mapping from aNrm to EndOfPrdvP.
         
         Parameters
         ----------
@@ -1445,9 +1451,68 @@ class ConsIndShockSolverCfloor(ConsIndShockSolver):
             Array of transitory income shocks for each aNrm gridpoint.  
         '''
         aNrmCount     = self.aNrmNow.size
-        PermShkArray  = (np.tile(self.IncomeDstn[1],(aNrmCount,1))).transpose()
-        TranShkArray  = (np.tile(self.IncomeDstn[2],(aNrmCount,1))).transpose()
-        ShkPrbArray   = (np.tile(self.IncomeDstn[0],(aNrmCount,1))).transpose()
+        PermShkCount  = self.PermShkCount
+        TranShkCount  = self.TranShkDstn[0].size
+        
+        # Find the mNrm point where the cFloor begins to bind next period
+        mNrmKink = self.solution_next.mNrmMin + self.solution_next.cFloor
+        
+        # Calculate the critical PermShk for each aNrm-TranShk pair
+        aNrm_temp = np.tile(np.reshape(self.aNrmNow,(aNrmCount,1)),(1,TranShkCount))
+        TranShk_temp = np.tile(np.reshape(self.TranShkValsNext,(1,TranShkCount)),(aNrmCount,1))
+        PermShkCrit = (self.Rfree*aNrm_temp/self.PermGroFac)/(mNrmKink - TranShk_temp)
+        
+        # Initialize 3D arrays of shocks and probabilities: aNrm x PermShk x TranShk
+        PermValArray  = np.zeros((aNrmCount,PermShkCount,TranShkCount)) + np.nan
+        PermPrbArray  = np.zeros((aNrmCount,PermShkCount,TranShkCount)) + np.nan
+        TranValArray  = np.tile(np.reshape(self.TranShkValsNext,(1,1,TranShkCount)),(aNrmCount,PermShkCount,1))
+        TranPrbArray  = np.tile(np.reshape(self.TranShkPrbsNext,(1,1,TranShkCount)),(aNrmCount,PermShkCount,1))
+        PermValDefault = np.tile(np.reshape(self.PermShkValsNext,(1,PermShkCount)),(aNrmCount,1))
+        PermPrbDefault = np.tile(np.reshape(self.PermShkPrbsNext,(1,PermShkCount)),(aNrmCount,1))
+        
+        # Loop through values of aNrm and TranShk, filling in the permanent shock array
+        cFloorProbArray = np.zeros((aNrmCount,TranShkCount))
+        for j in range(TranShkCount):
+            TranShk = self.TranShkValsNext[j]
+            if TranShk > mNrmKink:
+                PermValArray[:,:,j] = PermValDefault
+                PermPrbArray[:,:,j] = PermPrbDefault
+                cFloorProbArray[:,j] = 0.0
+            else:
+                for i in range(aNrmCount):
+                    aNrm = self.aNrmNow[i]
+                    Crit = PermShkCrit[i,j]
+                    if aNrm > 0.0:
+                        if Crit > 0.0:
+                            cFloorProb = lognorm.sf(Crit,s=self.PermShkStd,scale=np.exp(-0.5*self.PermShkStd**2))
+                            if cFloorProb < 1.0:
+                                temp_dstn = approxMeanOneLognormal(N=PermShkCount,sigma=self.PermShkStd,tail_N=0,tail_bound=[0.,1.-cFloorProb],check_prob_sum=False)
+                                PermValArray[i,:,j] = temp_dstn[1]
+                                PermPrbArray[i,:,j] = temp_dstn[0]
+                            else:
+                                PermValArray[i,:,j] = 1.0
+                                PermPrbArray[i,:,j] = 0.0
+                        else:
+                            cFloorProb = 0.0
+                            PermValArray[i,:,j] = self.PermShkValsNext
+                            PermPrbArray[i,:,j] = self.PermShkPrbsNext
+                    elif aNrm == 0.0:
+                        if TranShk < mNrmKink:
+                            cFloorProb = 1.0
+                            PermValArray[i,:,j] = 1.0 # irrelevant values
+                            PermPrbArray[i,:,j] = 0.0 # these shocks never happen
+                        else:
+                            cFloorProb = 0.0
+                            PermValArray[i,:,j] = self.PermShkValsNext
+                            PermPrbArray[i,:,j] = self.PermShkPrbsNext
+                    cFloorProbArray[i,j] = cFloorProb
+                            
+        # Reshape the arrays for output
+        IncPrbArray = PermPrbArray*TranPrbArray
+        ShkPrbArray = (np.reshape(IncPrbArray,(aNrmCount,PermShkCount*TranShkCount))).transpose()
+        PermShkArray = (np.reshape(PermValArray,(aNrmCount,PermShkCount*TranShkCount))).transpose()
+        TranShkArray = (np.reshape(TranValArray,(aNrmCount,PermShkCount*TranShkCount))).transpose()
+        self.cFloorProbArray = cFloorProbArray
         return ShkPrbArray, PermShkArray, TranShkArray
 
                                                                 
@@ -1524,7 +1589,7 @@ class ConsIndShockSolverCfloor(ConsIndShockSolver):
         vNvrs  = self.uinv(vNow)
         vNvrsP = self.uinvP(vNow)*self.uP(cNrmNow)
         vNvrs[0] = 0.0
-        vNvrsP = self.MPCmaxEff**(-self.CRRA/(1.-self.CRRA))
+        vNvrsP[0] = self.MPCmaxEff**(-self.CRRA/(1.-self.CRRA))
         MPCminNvrs = self.MPCminNow**(-self.CRRA/(1.0-self.CRRA))
         vNvrsFunc  = CubicInterp(mNrmNow,vNvrs,vNvrsP,MPCminNvrs*self.hNrmNow,MPCminNvrs)
         vFuncNow   = ValueFunc(vNvrsFunc,self.CRRA)
@@ -1532,6 +1597,7 @@ class ConsIndShockSolverCfloor(ConsIndShockSolver):
         # Package and return the solution
         solution = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, vFunc=vFuncNow, mNrmMin=self.mNrmMinNow)
         solution = self.addMPCandHumanWealth(solution)
+        solution.cFloor = self.cFloor
         return solution
     
     
@@ -1595,12 +1661,13 @@ class ConsIndShockSolverCfloor(ConsIndShockSolver):
             return solution
         
         # Otherwise, lay down the default option: taking the cFloor and ending at BoroCnstArt
-        vFloor     = self.u(cFloorEff) + EndOfPrdv[0] # This is -inf when cFloorEff is 0
-        vFloorNvrs = self.uinv(vFloor)                # This is 0 when cFloorEff is 0
+        vFloor     = self.u(np.array([cFloorEff])) + EndOfPrdv[0] # This is -inf when cFloorEff is 0
+        vFloorNvrs = self.uinv(vFloor)[0]                # This is 0 when cFloorEff is 0
         FellaTemp  = FellaInterp(v0=vFloorNvrs, control0=[cFloorEff,np.inf], lower_bound=self.BoroCnstArt)
         
         # Make the set of candidate points to be added
         policy_temp = np.vstack((cNrmNow,vPnvrs)) # Might need to trim infs?
+        
         FellaTemp.addNewPoints(states=mNrmNow, values=vNvrs, policies=policy_temp, extrapolate=True)
         
         # Unpack the policy and (marginal) value function
@@ -1615,10 +1682,45 @@ class ConsIndShockSolverCfloor(ConsIndShockSolver):
         # Pack up the solution and return it
         solution = ConsumerSolution(cFunc=cFuncNow, vFunc=vFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow)
         solution = self.addMPCandHumanWealth(solution)
+        solution.cFloor = self.cFloor
         return solution
+    
+    
+    def calcEndOfPrdv(self):
+        '''
+        Calculates and returns end-of-period expected value at the grid of assets
+        specified in self.aNrmNow.  This version extends ConsIndShock by adding
+        expected future value when the consumption floor is reached.
+        
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        EndOfPrdv : np.array
+            End-of-period value at each aNrmNow gridpoint.
+        '''
+        EndOfPrdv = ConsIndShockSolver.calcEndOfPrdv(self) # basic end of period value by aNrm
+        
+        # Add on extra value term for hitting consumption floor next period
+        vFloorNext = self.vFuncNext(self.solution_next.mNrmMin+1e-14)
+        vBonusArray = np.zeros((self.aNrmNow.size,self.TranShkDstn[0].size))
+        for i in range(vBonusArray.shape[0]):
+            for j in range(vBonusArray.shape[1]):
+                cFloorProb = self.cFloorProbArray[i,j]
+                if cFloorProb > 0.:
+                    temp = approxLognormal(N=1,mu=-0.5*self.PermShkStd**2*(1.-self.CRRA),sigma=self.PermShkStd*np.abs(1.-self.CRRA),tail_N=0,tail_bound=[0.,cFloorProb])
+                    vBonusArray[i,j] = cFloorProb*temp[1]
+        TempPrbArray = np.reshape(self.TranShkPrbsNext,(self.TranShkPrbsNext.size,1))
+        vBonus = vFloorNext*np.dot(vBonusArray,TempPrbArray).flatten()
+        
+        EndOfPrdv += self.DiscFacEff*self.PermGroFac**(1.-self.CRRA)*vBonus
+        return EndOfPrdv
         
     
-def solveConsIndShockRobust(solution_next,TranShkDstn,PermShkStd,PermShkCount,LivPrb,DiscFac,
+def solveConsIndShockCfloor(solution_next,TranShkDstn,PermShkStd,PermShkCount,LivPrb,DiscFac,
                             CRRA,Rfree,PermGroFac,BoroCnstArt,cFloor,aXtraGrid):
     '''
     Solves a single period consumption-saving problem with CRRA utility and risky
@@ -2403,8 +2505,24 @@ class IndShockCfloorConsumerType(IndShockConsumerType):
         PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.solveOnePeriod = solveConsIndShockRobust # robust idiosyncratic shocks solver
+        self.solveOnePeriod = solveConsIndShockCfloor # robust idiosyncratic shocks solver
         self.update() # Make assets grid, income process, terminal solution
+        
+    def updateSolutionTerminal(self):
+        '''
+        Update the terminal period solution.  This method should be run when a
+        new AgentType is created or when CRRA changes.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.updateSolutionTerminal(self)
+        self.solution_terminal.cFloor = 0.0
         
         
 class KinkedRconsumerType(IndShockConsumerType):
@@ -2794,14 +2912,21 @@ if __name__ == '__main__':
     # Now test the "robust" ind shock solver with a consumption floor
     CfloorExample = IndShockCfloorConsumerType(**Params.init_idiosyncratic_shocks)
     CfloorExample.cycles = 0
-    CfloorExample.cFloor = 0.2
+    CfloorExample.cFloor = 0.5
+    CfloorExample.aXtraCount = 100
+    CfloorExample.TranShkCount = 15
+    CfloorExample.PermShkCount = 15
+    CfloorExample.updateAssetsGrid()
+    CfloorExample.updateIncomeProcess()
     
     start_time = clock()
     CfloorExample.solve()
     end_time = clock()
-    print('Robustly solving a consumer with idiosyncratic shocks took ' + mystr(end_time-start_time) + ' seconds.')
+    print('Solving a consumer with idiosyncratic shocks and a consumption floor took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption function with consumption floor:')
-    plotFuncs(CfloorExample.solution[0].cFunc,0,5)
+    plotFuncs(CfloorExample.solution[0].cFunc,0,2)
+    print('Marginal value function with consumption floor:')
+    plotFuncs(CfloorExample.solution[0].vPfunc,0,2)
     
     ###########################################################################
     
