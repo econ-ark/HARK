@@ -1354,7 +1354,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         -------
         None
         '''
-        self.makeMrkvHist() # Make a (pseudo)random sequence of Markov states
+        self.makeMrkvHistNEW() # Make a (pseudo)random sequence of Markov states
         sim_periods = self.act_T
         
         # For each Markov state in each simulated period, draw the aggregate shocks
@@ -1409,6 +1409,97 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             
         self.MrkvNow_hist = MrkvNow_hist
         
+    
+    def makeMrkvHistNEW(self):
+        '''
+        Makes a history of macroeconomic Markov states, stored in the attribute
+        MrkvNow_hist.  This version ensures that each state is reached a sufficient
+        number of times to have a valid sample for calcDynamics to produce a good
+        dynamic rule.  It will sometimes cause act_T to be increased beyond its
+        initially specified level.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        loops_max   = 10 # Maximum number of loops; final act_T never exceeds act_T*loops_max
+        state_T_min = 50 # Choose minimum number of periods in each state for a valid Markov sequence
+        logit_scale = 0.2 # Scaling factor on logit choice shocks when jumping to a new state
+        # Values close to zero make the most underrepresented states very likely to visit, while
+        # large values of logit_scale make any state very likely to be jumped to.
+        
+        # Reset act_T to the level actually specified by the user
+        if hasattr(self,'act_T_orig'):
+            act_T = self.act_T_orig
+        else: # Or store it for the first time
+            self.act_T_orig = self.act_T
+            act_T = self.act_T
+            
+        # Find the long run distribution of Markov states
+        w, v = np.linalg.eig(np.transpose(self.MrkvArray))
+        idx = (np.abs(w-1.0)).argmin()
+        x = v[:,idx].astype(float)
+        LR_dstn = (x/np.sum(x))
+        
+        # Initialize the Markov history and set up transitions
+        MrkvNow_hist = np.zeros(self.act_T_orig,dtype=int)
+        cutoffs = np.cumsum(self.MrkvArray,axis=1)
+        loops = 0
+        go = True
+        MrkvNow = self.MrkvNow_init
+        t = 0
+        StateCount = self.MrkvArray.shape[0]
+        
+        # Add histories until each state has been visited at least state_T_min times
+        while go:
+            draws = drawUniform(N=self.act_T_orig,seed=loops)
+            for s in range(draws.size): # Add act_T_orig more periods
+                MrkvNow_hist[t] = MrkvNow
+                MrkvNow = np.searchsorted(cutoffs[MrkvNow,:],draws[s])
+                t += 1
+                
+            # Calculate the empirical distribution
+            state_T = np.zeros(StateCount)
+            for i in range(StateCount):
+                state_T[i] = np.sum(MrkvNow_hist==i)
+                
+            # Check whether each state has been visited state_T_min times
+            if np.all(state_T >= state_T_min):
+                go = False # If so, terminate the loop
+                continue
+            
+            # Choose an underrepresented state to "jump" to
+            if np.any(state_T == 0): # If any states have *never* been visited, randomly choose one of those
+                never_visited = np.where(np.array([state_T == 0]))[0]
+                MrkvNow = np.random.choice(never_visited)
+            else: # Otherwise, use logit choice probabilities to visit an underrepresented state
+                emp_dstn   = state_T/act_T
+                ratios     = LR_dstn/emp_dstn
+                ratios_adj = ratios - np.max(ratios)
+                ratios_exp = np.exp(ratios_adj/logit_scale)
+                ratios_sum = np.sum(ratios_exp)
+                jump_probs = ratios_exp/ratios_sum
+                cum_probs  = np.cumsum(jump_probs)
+                MrkvNow    = np.searchsorted(cum_probs,draws[-1])
+                
+            # Make the Markov state history longer by act_T_orig periods
+            MrkvNow_new = np.zeros(self.act_T_orig,dtype=int)
+            MrkvNow_hist = np.concatenate((MrkvNow_hist,MrkvNow_new))
+            act_T += self.act_T_orig
+            loops += 1
+            if loops >= loops_max:
+                go = False
+                print('makeMrkvHist reached maximum number of loops without generating a valid sequence!')
+                
+        # Store the results as attributes of self
+        self.MrkvNow_hist = MrkvNow_hist
+        self.act_T = act_T
+    
+        
     def millRule(self,aLvlNow,pLvlNow):
         '''
         Function to calculate the capital to labor ratio, interest factor, and
@@ -1454,11 +1545,11 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         # For each Markov state, regress A_t on M_t and update the saving rule
         AFunc_list = []
         rSq_list = []
-        colors = ['.r','.b']
+        #colors = ['.r','.b','.g','.m','.c']
         for i in range(self.MrkvArray.shape[0]):
             these = i == MrkvHist
             slope, intercept, r_value, p_value, std_err = stats.linregress(logMagg[these],logAagg[these])
-            plt.plot(logMagg[these],logAagg[these],colors[i])
+            plt.plot(logMagg[these],logAagg[these],'.')
         
             # Make a new aggregate savings rule by combining the new regression parameters
             # with the previous guess
@@ -1615,20 +1706,20 @@ if __name__ == '__main__':
         plt.plot(m_grid+mMin,c_at_this_M)
     plt.show()
     
-#    # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
-#    t_start = clock()
-#    EconomyExample.solve()
-#    t_end = clock()
-#    print('Solving the "macroeconomic" aggregate shocks model took ' + str(t_end - t_start) + ' seconds.')
-#    print('Aggregate savings as a function of aggregate market resources:')
-#    plotFuncs(EconomyExample.AFunc,0,2*EconomyExample.kSS)
-#    print('Consumption function at each aggregate market resources gridpoint (in general equilibrium):')
-#    AggShockExample.unpackcFunc()
-#    m_grid = np.linspace(0,10,200)
-#    AggShockExample.unpackcFunc()
-#    for M in AggShockExample.Mgrid.tolist():
-#        mMin = AggShockExample.solution[0].mNrmMin(M)
-#        c_at_this_M = AggShockExample.cFunc[0](m_grid+mMin,M*np.ones_like(m_grid))
-#        plt.plot(m_grid+mMin,c_at_this_M)
-#    plt.show()
+    # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
+    t_start = clock()
+    EconomyExample.solve()
+    t_end = clock()
+    print('Solving the "macroeconomic" aggregate shocks model took ' + str(t_end - t_start) + ' seconds.')
+    print('Aggregate savings as a function of aggregate market resources:')
+    plotFuncs(EconomyExample.AFunc,0,2*EconomyExample.kSS)
+    print('Consumption function at each aggregate market resources gridpoint (in general equilibrium):')
+    AggShockExample.unpackcFunc()
+    m_grid = np.linspace(0,10,200)
+    AggShockExample.unpackcFunc()
+    for M in AggShockExample.Mgrid.tolist():
+        mMin = AggShockExample.solution[0].mNrmMin(M)
+        c_at_this_M = AggShockExample.cFunc[0](m_grid+mMin,M*np.ones_like(m_grid))
+        plt.plot(m_grid+mMin,c_at_this_M)
+    plt.show()
     

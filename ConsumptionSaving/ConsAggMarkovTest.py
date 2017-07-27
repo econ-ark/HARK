@@ -14,9 +14,10 @@ from ConsAggShockModel import AggShockMarkovConsumerType, CobbDouglasMarkovEcono
 import ConsumerParameters as Params
 mystr = lambda number : "{:.4f}".format(number)
 
-solve_micro = True
-solve_market = True
-solve_KS = True
+solve_micro = False
+solve_market = False
+solve_KS = False
+solve_poly_state = True
 
 # Make an aggregate shocks consumer type
 AggShockMrkvExample = AggShockMarkovConsumerType(**Params.init_agg_mrkv_shocks)
@@ -80,3 +81,48 @@ if solve_KS:
     KSeconomy.solve()
     t_end = clock()
     print('Solving the Krusell-Smith model took ' + str(t_end - t_start) + ' seconds.')
+    
+    
+if solve_poly_state:
+    StateCount = 21    # Number of Markov states
+    GrowthWidth = 0.03 # PermGroFacAgg deviates from 1.0 in this range
+    Persistence = 0.9  # Probability of staying in the same Markov state
+    PermGroFacAgg = np.linspace(1.-GrowthWidth,1.+GrowthWidth,num=StateCount)
+    
+    # Make the Markov array with chosen states and persistence
+    PolyMrkvArray = np.zeros((StateCount,StateCount))
+    for i in range(StateCount):
+        for j in range(StateCount):
+            if i==j:
+                PolyMrkvArray[i,j] = Persistence
+            elif (i==(j-1)) or (i==(j+1)):
+                PolyMrkvArray[i,j] = 0.5*(1.0 - Persistence)
+    PolyMrkvArray[0,0] += 0.5*(1.0 - Persistence)
+    PolyMrkvArray[StateCount-1,StateCount-1] += 0.5*(1.0 - Persistence)
+    
+    # Make a consumer type to inhabit the economy
+    PolyStateExample = AggShockMarkovConsumerType(**Params.init_agg_mrkv_shocks)
+    PolyStateExample.MrkvArray = PolyMrkvArray
+    PolyStateExample.PermGroFacAgg = PermGroFacAgg
+    PolyStateExample.IncomeDstn[0] = StateCount*[PolyStateExample.IncomeDstn[0]]
+    PolyStateExample.cycles = 0
+    
+    # Make a Cobb-Douglas economy for the agents
+    PolyStateEconomy = CobbDouglasMarkovEconomy(agents = [PolyStateExample],**Params.init_mrkv_cobb_douglas)
+    PolyStateEconomy.MrkvArray = PolyMrkvArray
+    PolyStateEconomy.PermGroFacAgg = PermGroFacAgg
+    PolyStateEconomy.PermShkAggStd = StateCount*[0.006]
+    PolyStateEconomy.TranShkAggStd = StateCount*[0.003]
+    PolyStateEconomy.slope_prev = StateCount*[1.0]
+    PolyStateEconomy.intercept_prev = StateCount*[0.0]
+    PolyStateEconomy.update()
+    PolyStateEconomy.makeAggShkDstn()
+    PolyStateEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
+    PolyStateExample.getEconomyData(PolyStateEconomy) # Have the consumers inherit relevant objects from the economy
+    
+    # Solve the many state model
+    t_start = clock()
+    PolyStateEconomy.solve()
+    t_end = clock()
+    print('Solving a model with ' + str(StateCount) + ' states took ' + str(t_end - t_start) + ' seconds.')
+    
