@@ -1474,7 +1474,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             
             # Choose an underrepresented state to "jump" to
             if np.any(state_T == 0): # If any states have *never* been visited, randomly choose one of those
-                never_visited = np.where(np.array([state_T == 0]))[0]
+                never_visited = np.where(np.array(state_T == 0))[0]
                 MrkvNow = np.random.choice(never_visited)
             else: # Otherwise, use logit choice probabilities to visit an underrepresented state
                 emp_dstn   = state_T/act_T
@@ -1692,19 +1692,19 @@ if __name__ == '__main__':
     # Have the consumers inherit relevant objects from the economy
     AggShockExample.getEconomyData(EconomyExample)
     
-    # Solve the microeconomic model for the aggregate shocks example type (and display results)
-    t_start = clock()
-    AggShockExample.solve()
-    t_end = clock()
-    print('Solving an aggregate shocks consumer took ' + mystr(t_end-t_start) + ' seconds.')
-    print('Consumption function at each aggregate market resources-to-labor ratio gridpoint:')
-    m_grid = np.linspace(0,10,200)
-    AggShockExample.unpackcFunc()
-    for M in AggShockExample.Mgrid.tolist():
-        mMin = AggShockExample.solution[0].mNrmMin(M)
-        c_at_this_M = AggShockExample.cFunc[0](m_grid+mMin,M*np.ones_like(m_grid))
-        plt.plot(m_grid+mMin,c_at_this_M)
-    plt.show()
+#    # Solve the microeconomic model for the aggregate shocks example type (and display results)
+#    t_start = clock()
+#    AggShockExample.solve()
+#    t_end = clock()
+#    print('Solving an aggregate shocks consumer took ' + mystr(t_end-t_start) + ' seconds.')
+#    print('Consumption function at each aggregate market resources-to-labor ratio gridpoint:')
+#    m_grid = np.linspace(0,10,200)
+#    AggShockExample.unpackcFunc()
+#    for M in AggShockExample.Mgrid.tolist():
+#        mMin = AggShockExample.solution[0].mNrmMin(M)
+#        c_at_this_M = AggShockExample.cFunc[0](m_grid+mMin,M*np.ones_like(m_grid))
+#        plt.plot(m_grid+mMin,c_at_this_M)
+#    plt.show()
     
     # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
     t_start = clock()
