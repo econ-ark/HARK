@@ -19,15 +19,16 @@ solve_market = False
 solve_KS = False
 solve_poly_state = True
 
-# Make an aggregate shocks consumer type
-AggShockMrkvExample = AggShockMarkovConsumerType(**Params.init_agg_mrkv_shocks)
-AggShockMrkvExample.IncomeDstn[0] = 2*[AggShockMrkvExample.IncomeDstn[0]]
-AggShockMrkvExample.cycles = 0
-
-# Make a Cobb-Douglas economy for the agents
-EconomyExample = CobbDouglasMarkovEconomy(agents = [AggShockMrkvExample],**Params.init_mrkv_cobb_douglas)
-EconomyExample.makeAggShkHist() # Simulate a history of aggregate shocks
-AggShockMrkvExample.getEconomyData(EconomyExample) # Have the consumers inherit relevant objects from the economy
+if solve_micro or solve_market:
+    # Make an aggregate shocks consumer type
+    AggShockMrkvExample = AggShockMarkovConsumerType(**Params.init_agg_mrkv_shocks)
+    AggShockMrkvExample.IncomeDstn[0] = 2*[AggShockMrkvExample.IncomeDstn[0]]
+    AggShockMrkvExample.cycles = 0
+    
+    # Make a Cobb-Douglas economy for the agents
+    EconomyExample = CobbDouglasMarkovEconomy(agents = [AggShockMrkvExample],**Params.init_mrkv_cobb_douglas)
+    EconomyExample.makeAggShkHist() # Simulate a history of aggregate shocks
+    AggShockMrkvExample.getEconomyData(EconomyExample) # Have the consumers inherit relevant objects from the economy
 
 if solve_micro:
     # Solve the microeconomic model for the aggregate shocks example type (and display results)
@@ -84,10 +85,11 @@ if solve_KS:
     
     
 if solve_poly_state:
-    StateCount = 21    # Number of Markov states
-    GrowthWidth = 0.03 # PermGroFacAgg deviates from 1.0 in this range
-    Persistence = 0.9  # Probability of staying in the same Markov state
-    PermGroFacAgg = np.linspace(1.-GrowthWidth,1.+GrowthWidth,num=StateCount)
+    StateCount  = 5    # Number of Markov states
+    GrowthAvg   = 1.01 # Average permanent income growth factor 
+    GrowthWidth = 0.02 # PermGroFacAgg deviates from PermGroFacAgg in this range
+    Persistence = 0.95 # Probability of staying in the same Markov state
+    PermGroFacAgg = np.linspace(GrowthAvg-GrowthWidth,GrowthAvg+GrowthWidth,num=StateCount)
     
     # Make the Markov array with chosen states and persistence
     PolyMrkvArray = np.zeros((StateCount,StateCount))
