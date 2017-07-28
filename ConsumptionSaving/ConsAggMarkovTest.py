@@ -88,7 +88,7 @@ if solve_poly_state:
     StateCount  = 5    # Number of Markov states
     GrowthAvg   = 1.01 # Average permanent income growth factor 
     GrowthWidth = 0.02 # PermGroFacAgg deviates from PermGroFacAgg in this range
-    Persistence = 0.95 # Probability of staying in the same Markov state
+    Persistence = 0.90 # Probability of staying in the same Markov state
     PermGroFacAgg = np.linspace(GrowthAvg-GrowthWidth,GrowthAvg+GrowthWidth,num=StateCount)
     
     # Make the Markov array with chosen states and persistence
