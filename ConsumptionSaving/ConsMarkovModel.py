@@ -1090,6 +1090,7 @@ class MarkovSOEType(MarkovConsumerType, AggShockConsumerType):
         self.TranShkAggNow_init = Economy.TranShkAggNow_init
         self.aInit = Economy.aSS
         self.TranShkAggDstn = Economy.TranShkAggDstn
+        self.TranShkAggDstn = Economy.PermShkAggDstn
         self.aNrmInitMean = np.log(0.00000001)              # Initialize newborn assets to nearly zero
         
     def getShocks(self):
@@ -1120,7 +1121,7 @@ class MarkovSOEType(MarkovConsumerType, AggShockConsumerType):
                     Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
                     # Get random draws of income shocks from the discrete distribution
                     EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
-                    PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
+                    PermShkNow[these] = IncomeDstnNow[1][EventDraws]*self.PermShkAggNow*PermGroFacNow # permanent "shock" includes expected growth
                     TranShkNow[these] = IncomeDstnNow[2][EventDraws]*self.TranShkAggNow
         newborn = self.t_age == 0 
         PermShkNow[newborn] = 1.0
@@ -1168,7 +1169,7 @@ class MarkovSmallOpenEconomy(Market):
         None
         '''
         Market.__init__(self,agents=agents,
-                            sow_vars=['MktMrkvNow','TranShkAggNow'],
+                            sow_vars=['MktMrkvNow','TranShkAggNow','PermShkAggNow'],
                             reap_vars=[],
                             track_vars=[],
                             dyn_vars=[],
@@ -1230,6 +1231,13 @@ class MarkovSmallOpenEconomy(Market):
         TranShkAggHist = self.TranShkAggDstn[1][EventDraws]
         # Store the histories       
         self.TranShkAggHist = TranShkAggHist
+        #And make history of aggregate transitory shocks
+        Events      = np.arange(self.PermShkAggDstn[0].size) # just a list of integers
+        EventDraws  = drawDiscrete(N=sim_periods,P=self.PermShkAggDstn[0],X=Events,seed=2)
+        PermShkAggHist = self.PermShkAggDstn[1][EventDraws]
+        # Store the histories       
+        self.TranShkAggHist = TranShkAggHist
+        self.PermShkAggHist = PermShkAggHist
         
 
     def getMkvShock(self):
@@ -1248,11 +1256,13 @@ class MarkovSmallOpenEconomy(Market):
         # Get this period's aggregate shocks
         MktMrkvNow = self.MrkvShkHist[self.Shk_idx]
         TranShkAggNow = self.TranShkAggHist[self.Shk_idx]
+        PermShkAggNow = self.PermShkAggHist[self.Shk_idx]
         self.Shk_idx += 1
         self.MktMrkvNow = MktMrkvNow.astype(int)
         MkvShkReturn = HARKobject()
         MkvShkReturn.MktMrkvNow = MktMrkvNow
         MkvShkReturn.TranShkAggNow = TranShkAggNow
+        MkvShkReturn.PermShkAggNow = PermShkAggNow
         return MkvShkReturn
         
     def calcDynamics(self):

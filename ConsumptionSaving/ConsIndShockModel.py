@@ -1537,6 +1537,8 @@ class PerfForesightConsumerType(AgentType):
         N = np.sum(which_agents) # Number of new consumers to make
         self.aNrmNow[which_agents] = drawLognormal(N,mu=self.aNrmInitMean,sigma=self.aNrmInitStd,seed=self.RNG.randint(0,2**31-1))
         pLvlInitMeanNow = self.pLvlInitMean + np.log(self.PermGroFacAgg**self.t_sim) # Account for newer cohorts having higher permanent income
+#        if self.t_sim>1:
+#            pLvlInitMeanNow = np.log(np.mean(self.pLvlNow))
         self.pLvlNow[which_agents] = drawLognormal(N,mu=pLvlInitMeanNow,sigma=self.pLvlInitStd,seed=self.RNG.randint(0,2**31-1))
         self.t_age[which_agents]   = 0 # How many periods since each agent was born
         self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
