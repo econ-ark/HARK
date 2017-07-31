@@ -332,7 +332,7 @@ class ConsPerfForesightSolver(object):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
             
         Returns:
@@ -364,7 +364,7 @@ class ConsPerfForesightSolver(object):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
             
         Returns
@@ -508,7 +508,7 @@ def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
         Coefficient of relative risk aversion.
     Rfree : float
         Risk free interest factor on end-of-period assets.
-    PermGroGac : float
+    PermGroFac : float
         Expected permanent income growth factor at the end of this period.
         
     Returns
@@ -553,7 +553,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
@@ -601,7 +601,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
@@ -1190,7 +1190,7 @@ def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
         Coefficient of relative risk aversion.
     Rfree : float
         Risk free interest factor on end-of-period assets.
-    PermGroGac : float
+    PermGroFac : float
         Expected permanent income growth factor at the end of this period.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the
@@ -1269,7 +1269,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         Rsave: float
             Interest factor on assets between this period and the succeeding
             period when assets are positive.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
@@ -1396,7 +1396,7 @@ def solveConsKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
     Rsave: float
         Interest factor on assets between this period and the succeeding
         period when assets are positive.
-    PermGroGac : float
+    PermGroFac : float
         Expected permanent income growth factor at the end of this period.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the
@@ -1518,6 +1518,13 @@ class PerfForesightConsumerType(AgentType):
             self.cFunc.append(solution_t.cFunc)
         self.addToTimeVary('cFunc')
         
+    def initializeSim(self):
+        self.PlvlAggNow = 1.0
+        self.PermShkAggNow = self.PermGroFacAgg # This never changes during simulation
+        AgentType.initializeSim(self)
+        
+        
+        
     def simBirth(self,which_agents):
         '''
         Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
@@ -1536,7 +1543,7 @@ class PerfForesightConsumerType(AgentType):
         # Get and store states for newly born agents
         N = np.sum(which_agents) # Number of new consumers to make
         self.aNrmNow[which_agents] = drawLognormal(N,mu=self.aNrmInitMean,sigma=self.aNrmInitStd,seed=self.RNG.randint(0,2**31-1))
-        pLvlInitMeanNow = self.pLvlInitMean + np.log(self.PermGroFacAgg**self.t_sim) # Account for newer cohorts having higher permanent income
+        pLvlInitMeanNow = self.pLvlInitMean + np.log(self.PlvlAggNow) # Account for newer cohorts having higher permanent income
         self.pLvlNow[which_agents] = drawLognormal(N,mu=pLvlInitMeanNow,sigma=self.pLvlInitStd,seed=self.RNG.randint(0,2**31-1))
         self.t_age[which_agents]   = 0 # How many periods since each agent was born
         self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
@@ -1619,6 +1626,7 @@ class PerfForesightConsumerType(AgentType):
         
         # Calculate new states: normalized market resources and permanent income level
         self.pLvlNow = pLvlPrev*self.PermShkNow # Updated permanent income level
+        self.PlvlAggNow = self.PlvlAggNow*self.PermShkAggNow # Updated aggregate permanent productivity level
         ReffNow      = RfreeNow/self.PermShkNow # "Effective" interest factor on normalized assets
         self.bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
         self.mNrmNow = self.bNrmNow + self.TranShkNow # Market resources after income
@@ -1716,10 +1724,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.timeFwd()
         IncomeDstn, PermShkDstn, TranShkDstn = constructLognormalIncomeProcessUnemployment(self)
         self.IncomeDstn = IncomeDstn
-        if len(IncomeDstn) == 1:
-            self.PermShkDstn = PermShkDstn
-            self.TranShkDstn = TranShkDstn
-        self.addToTimeVary('IncomeDstn')
+        self.PermShkDstn = PermShkDstn
+        self.TranShkDstn = TranShkDstn
+        self.addToTimeVary('IncomeDstn','PermShkDstn','TranShkDstn')
         if not original_time:
             self.timeRev()
             
@@ -2101,10 +2108,16 @@ def constructLognormalIncomeProcessUnemployment(parameters):
 
     Returns
     -------
-    IncomeDstn:  [[np.array]]
+    IncomeDstn :  [[np.array]]
         A list with T_cycle elements, each of which is a list of three arrays
         representing a discrete approximation to the income process in a period.
         Order: probabilities, permanent shocks, transitory shocks.
+    PermShkDstn : [[np.array]]
+        A list with T_cycle elements, each of which is a list of two arrays
+        representing a discrete approximation to the permanent income shocks.
+    TranShkDstn : [[np.array]]
+        A list with T_cycle elements, each of which is a list of two arrays
+        representing a discrete approximation to the transitory income shocks.
     '''
     # Unpack the parameters from the input
     PermShkStd    = parameters.PermShkStd
@@ -2119,6 +2132,8 @@ def constructLognormalIncomeProcessUnemployment(parameters):
     IncUnempRet   = parameters.IncUnempRet
     
     IncomeDstn    = [] # Discrete approximations to income process in each period
+    PermShkDstn   = [] # Discrete approximations to permanent income shocks
+    TranShkDstn   = [] # Discrete approximations to transitory income shocks
 
     # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
     # in normal times; value 0.0 in "unemployment" times with small prob.
@@ -2140,13 +2155,17 @@ def constructLognormalIncomeProcessUnemployment(parameters):
         if T_retire > 0 and t >= T_retire:
             # Then we are in the "retirement period" and add a retirement income object.
             IncomeDstn.append(deepcopy(IncomeDstnRet))
+            PermShkDstn.append([np.array([1.0]),np.array([1.0])])
+            TranShkDstn.append([ShkPrbsRet,TranShkValsRet])
         else:
             # We are in the "working life" periods.
-            TranShkDstn     = approxMeanOneLognormal(N=TranShkCount, sigma=TranShkStd[t], tail_N=0)
+            TranShkDstn_t    = approxMeanOneLognormal(N=TranShkCount, sigma=TranShkStd[t], tail_N=0)
             if UnempPrb > 0:
-                TranShkDstn = addDiscreteOutcomeConstantMean(TranShkDstn, p=UnempPrb, x=IncUnemp)
-            PermShkDstn     = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=0)
-            IncomeDstn.append(combineIndepDstns(PermShkDstn,TranShkDstn)) # mix the independent distributions
+                TranShkDstn_t = addDiscreteOutcomeConstantMean(TranShkDstn_t, p=UnempPrb, x=IncUnemp)
+            PermShkDstn_t    = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=0)
+            IncomeDstn.append(combineIndepDstns(PermShkDstn_t,TranShkDstn_t)) # mix the independent distributions
+            PermShkDstn.append(PermShkDstn_t)
+            TranShkDstn.append(TranShkDstn_t)
     return IncomeDstn, PermShkDstn, TranShkDstn
     
 
