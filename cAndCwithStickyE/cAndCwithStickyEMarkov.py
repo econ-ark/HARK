@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import statsmodels.sandbox.regression.gmm as smsrg
 
-periods_to_sim = 3500
+periods_to_sim = 4000
 ignore_periods = 1000
 
 # Define parameters for the small open economy version of the model
@@ -47,7 +47,7 @@ init_MarkovSOE_consumer = { 'CRRA': 2.0,
                       'pLvlInitStd' : 0.0,
                       'PermGroFacAgg' : 1.0,#+0.015/4.0,
                       'UpdatePrb' : 0.25,
-                      'T_age' : None,
+                      'T_age' : 1000,   #kill agents when they get too old
                       'T_cycle' : 1,
                       'cycles' : 0,
                       'T_sim' : periods_to_sim,
@@ -57,23 +57,17 @@ init_MarkovSOE_consumer = { 'CRRA': 2.0,
                     
 TranShkAggStd = np.sqrt(0.00001)
 TranShkAggCount = 7
+PermShkAggStd = np.sqrt(0.0000025)
+PermShkAggCount = 3
 LivPrb = 0.995
 Rfree = 1.014189682528173
 
-##Markov Parameters follow an AR1
-#StateCount = 7
-#rho = 0.8
-#sigma = np.sqrt(0.00004*(1-rho**2))  #ergodic distribution has same standard deviation as in the rho=0 case
-#m=4
-#PermGroFac, MrkvArray = TauchenAR1(sigma, rho, StateCount, m)
-#PermGroFac = [PermGroFac+1.0]
-
 #Markov Parameters follow a random walk bounded above and below
-StateCount = 21
+StateCount = 5
 dont_move_prob = 0.0
 MrkvArray = linalg.toeplitz([dont_move_prob,(1.0-dont_move_prob)/2.0]+[0.0]*(StateCount-2), [dont_move_prob,(1.0-dont_move_prob)/2.0]+[0.0]*(StateCount-2))
-MrkvArray[0,1] = (1.0-dont_move_prob)
-MrkvArray[StateCount-1,StateCount-2] = (1.0-dont_move_prob)
+MrkvArray[0,0] = dont_move_prob+(1.0-dont_move_prob)/2.0
+MrkvArray[StateCount-1,StateCount-1] = dont_move_prob+(1.0-dont_move_prob)/2.0
 PermGroFac = [1.0+np.linspace(-0.015/4.0,0.015/4.0,StateCount)]
 
 ###############################################################################
@@ -88,6 +82,7 @@ init_MarkovSOE_consumer['PermGroFac'] = PermGroFac
 init_MarkovSOE_consumer['LivPrb'] = [np.array(StateCount*[LivPrb])]
                         
 TranShkAggDstn = approxMeanOneLognormal(sigma=TranShkAggStd,N=TranShkAggCount)   
+PermShkAggDstn = approxMeanOneLognormal(sigma=PermShkAggStd,N=PermShkAggCount)  
 init_MarkovSOE_market = {  
                      'Rfree': np.array(np.array(StateCount*[Rfree])),
                      'act_T': periods_to_sim,
@@ -96,7 +91,9 @@ init_MarkovSOE_market = {
                      'MktMrkvNow_init':StateCount/2,
                      'aSS':2.0,
                      'TranShkAggDstn':TranShkAggDstn,
-                     'TranShkAggNow_init':1.0
+                     'TranShkAggNow_init':1.0,
+                     'PermShkAggDstn':PermShkAggDstn,
+                     'PermShkAggNow_init':1.0
                      }
                      
 # Make a small open economy and the consumers who live in it
@@ -108,7 +105,7 @@ StickyMarkovSOEconomy.agents = [StickyMarkovSOEconsumers]
 StickyMarkovSOEconomy.makeMkvShkHist()
 StickyMarkovSOEconsumers.getEconomyData(StickyMarkovSOEconomy)
 StickyMarkovSOEconsumers.aNrmInitMean = np.log(1.0)  #Don't want newborns to have no assets and also be unemployed
-StickyMarkovSOEconsumers.track_vars = ['aLvlNow','mNrmNow','cNrmNow','pLvlNow','pLvlErrNow','MrkvNow','TranShkAggNow']
+StickyMarkovSOEconsumers.track_vars = ['aLvlNow','aNrmNow','mNrmNow','cNrmNow','pLvlNow','pLvlErrNow','MrkvNow','TranShkAggNow','PermShkAggNow']
 
 # Solve the model and display some output
 StickyMarkovSOEconomy.solve()
@@ -149,18 +146,18 @@ print('Standard deviation of log aggregate  income = ' + str(np.std(np.log(np.me
 # Do aggregate regressions
 LogY = np.log(np.mean(StickyMarkovSOEconsumers.TranShkAggNow_hist*StickyMarkovSOEconsumers.pLvlNow_hist/StickyMarkovSOEconsumers.pLvlErrNow_hist,axis=1))[ignore_periods:]
 DeltaLogY = LogY[1:] - LogY[0:-1]
-A = np.mean(StickyMarkovSOEconsumers.aLvlNow_hist,axis=1)[ignore_periods+1:]
+#A = np.mean(StickyMarkovSOEconsumers.aLvlNow_hist,axis=1)[ignore_periods+1:]
+A = np.mean(StickyMarkovSOEconsumers.aLvlNow_hist,axis=1)[ignore_periods+1:]/np.mean(StickyMarkovSOEconsumers.pLvlNow_hist,axis=1)[ignore_periods+1:]
+#Add measurement error to LogC
+sigma_me = np.std(DeltaLogC)/2.0
+np.random.seed(10)
+LogC_me = LogC + sigma_me*np.random.normal(0,1,len(LogC))
+DeltaLogC_me = LogC_me[1:] - LogC_me[0:-1]
 
 #OLS on log consumption (no measurement error)
 mod = sm.OLS(DeltaLogC[1:],sm.add_constant(DeltaLogC[0:-1]))
 res1 = mod.fit()
 print(res1.summary())
-
-#Add measurement error to LogC
-sigma_me = np.std(DeltaLogC)/1.5
-np.random.seed(10)
-LogC_me = LogC + sigma_me*np.random.normal(0,1,len(LogC))
-DeltaLogC_me = LogC_me[1:] - LogC_me[0:-1]
 
 #OLS on log consumption (with measurement error)
 mod = sm.OLS(DeltaLogC_me[1:],sm.add_constant(DeltaLogC_me[0:-1]))
@@ -168,6 +165,7 @@ res2 = mod.fit()
 print(res2.summary())
 
 instruments = sm.add_constant(np.transpose(np.array([DeltaLogC_me[1:-3],DeltaLogC_me[:-4],DeltaLogY[1:-3],DeltaLogY[:-4],A[1:-3],A[:-4]])))
+instruments = sm.add_constant(np.transpose(np.array([DeltaLogC_me[1:-3],DeltaLogC_me[:-4],DeltaLogY[1:-3],DeltaLogY[:-4]])))
 #IV on log consumption (with measurement error)
 mod = smsrg.IV2SLS(DeltaLogC_me[4:],sm.add_constant(DeltaLogC_me[3:-1]),instruments)
 res3 = mod.fit()

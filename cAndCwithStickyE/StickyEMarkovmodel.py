@@ -73,9 +73,8 @@ class StickyEMarkovSOEType(BaseAgentType):
         
         # For agents who don't update, the Markov state remains as before
         self.MrkvNow[dont] = MrkvPrev[dont]
-        #perm_growth_fac_belief = np.ones_like(self.PermGroFac[0][self.MrkvNow])
-        perm_growth_fac_belief = self.PermGroFac[0][self.MrkvNow]
-        perm_growth_fac_actual = self.PermGroFac[0][self.MktMrkvNow]
+        perm_growth_fac_belief = self.PermGroFac[0][self.MrkvNow]*(1.0 + (self.PermShkAggNow-1.0)*update)
+        perm_growth_fac_actual = self.PermGroFac[0][self.MktMrkvNow]*self.PermShkAggNow
         # Non-updaters misperception of their productivity gets worse, but updaters incorporate all the news they've missed
         self.PermShkNow = self.PermShkNow*perm_growth_fac_belief/perm_growth_fac_actual
         self.pLvlErrNow = self.pLvlErrNow*perm_growth_fac_belief/perm_growth_fac_actual
