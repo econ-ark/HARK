@@ -1215,7 +1215,7 @@ class MarkovSmallOpenEconomy(Market):
         None
         '''
         sim_periods = self.act_T
-        MrkvShkHist = np.zeros(sim_periods)
+        MrkvShkHist = np.zeros(sim_periods,dtype=int)
         base_draws = drawUniform(sim_periods,seed=2)
         Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
         MrkvShkHist[0] = np.searchsorted(Cutoffs,base_draws[0]).astype(int)
