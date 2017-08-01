@@ -1182,6 +1182,23 @@ class SmallOpenEconomy(Market):
         self.makeAggShkDstn()
         self.AFunc = ConstantFunction(1.0)
         
+    def makeAggShkDstn(self):
+        '''
+        Creates the attributes TranShkAggDstn, PermShkAggDstn, and AggShkDstn.
+        Draws on attributes TranShkAggStd, PermShkAddStd, TranShkAggCount, PermShkAggCount.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        self.TranShkAggDstn = approxMeanOneLognormal(sigma=self.TranShkAggStd,N=self.TranShkAggCount)
+        self.PermShkAggDstn = approxMeanOneLognormal(sigma=self.PermShkAggStd,N=self.PermShkAggCount)
+        self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn,self.TranShkAggDstn)
+        
     def millRule(self):
         '''
         No aggregation occurs for a small open economy, because the wage and interest rates are
