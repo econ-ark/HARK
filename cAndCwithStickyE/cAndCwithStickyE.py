@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
 #from copy import copy, deepcopy
+from RepAgentModel import RepAgentConsumerType
 from StickyEmodel import StickyEconsumerSOEType, StickyEconsumerDSGEType
 from ConsAggShockModel import SmallOpenEconomy, CobbDouglasEconomy
 from HARKutilities import plotFuncs
@@ -83,6 +84,41 @@ init_DSGE_consumer = { 'CRRA': 2.0,
                       'T_age' : None,
                       'T_cycle' : 1,
                       'cycles' : 0,
+                      'T_sim' : periods_to_sim
+                    }
+
+init_RA_consumer =  { 'CRRA': 2.0,
+                      'DiscFac': 1.0/1.0146501772118186,
+                      'LivPrb': [1.0],
+                      'PermGroFac': [1.0],
+                      'AgentCount': 1,
+                      'aXtraMin': 0.00001,
+                      'aXtraMax': 80.0,
+                      'aXtraNestFac': 3,
+                      'aXtraCount': 48,
+                      'aXtraExtra': [None],
+                      'PermShkStd': [np.sqrt(0.00004)],
+                      'PermShkCount': 7,
+                      'TranShkStd': [np.sqrt(0.00001)],
+                      'TranShkCount': 7,
+                      'UnempPrb': 0.0,
+                      'UnempPrbRet': 0.0,
+                      'IncUnemp': 0.0,
+                      'IncUnempRet': 0.0,
+                      'BoroCnstArt':0.0,
+                      'tax_rate':0.0,
+                      'T_retire':0,
+                      'aNrmInitMean' : np.log(0.00001),
+                      'aNrmInitStd' : 0.0,
+                      'pLvlInitMean' : 0.0,
+                      'pLvlInitStd' : 0.0,
+                      'PermGroFacAgg' : 1.0,
+                      'UpdatePrb' : 0.25,
+                      'CapShare' : 0.36,
+                      'DeprFac' : 1.0 - 0.94**(0.25),
+                      'SocPlannerBool' : False,
+                      'T_age' : None,
+                      'T_cycle' : 1,
                       'T_sim' : periods_to_sim
                     }
                     
@@ -161,26 +197,48 @@ DeltaLogc = Logc[1:,:] - Logc[0:-1,:]
 print('Standard deviation of change in log individual consumption = ' + str(np.mean(np.std(DeltaLogc,axis=1))))
 
 
-# Make a Cobb Douglas economy and the representative agent who lives in it
-StickyDSGEconsumer = StickyEconsumerDSGEType(**init_DSGE_consumer)
-StickyDSGEeconomy = CobbDouglasEconomy(**init_DSGE_market)
-StickyDSGEeconomy.agents = [StickyDSGEconsumer]
-StickyDSGEeconomy.makeAggShkHist()
-StickyDSGEconsumer.getEconomyData(StickyDSGEeconomy)
-StickyDSGEconsumer.track_vars = ['aLvlNow','mNrmNow','cNrmNow','pLvlNow','pLvlErrNow']
+# Make a representative agent consumer, then solve and simulate the model
+RAconsumer = RepAgentConsumerType(**init_RA_consumer)
+RAconsumer.solve()
+RAconsumer.track_vars = ['cNrmNow','aNrmNow','pLvlNow','yNrmNow']
+RAconsumer.initializeSim()
+RAconsumer.simulate()
 
-# Test the solution
-StickyDSGEeconomy.solve()
+plotFuncs(RAconsumer.solution[0].cFunc,0,20)
 
-m_grid = np.linspace(0,10,200)
-for M in StickyDSGEconsumer.Mgrid.tolist():
-    c_at_this_M = StickyDSGEconsumer.solution[0].cFunc(m_grid,M*np.ones_like(m_grid))
-    plt.plot(m_grid,c_at_this_M)
-plt.show()
-
-print('Average aggregate assets = ' + str(np.mean(StickyDSGEconsumer.aLvlNow_hist[ignore_periods:,:])))
-print('Average aggregate consumption = ' + str(np.mean(StickyDSGEconsumer.cNrmNow_hist[ignore_periods:,:]*StickyDSGEconsumer.pLvlNow_hist[ignore_periods:,:])))
-print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(StickyDSGEconsumer.aLvlNow_hist[ignore_periods:,:]))))
-LogC = np.log(np.mean(StickyDSGEconsumer.cNrmNow_hist*StickyDSGEconsumer.pLvlNow_hist,axis=1))[ignore_periods:]
+print('Average aggregate assets = ' + str(np.mean(RAconsumer.aNrmNow_hist[ignore_periods:,:])))
+print('Average aggregate consumption = ' + str(np.mean(RAconsumer.cNrmNow_hist[ignore_periods:,:])))
+print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(RAconsumer.aNrmNow_hist[ignore_periods:,:]))))
+LogC = np.log(np.mean(RAconsumer.cNrmNow_hist,axis=1))[ignore_periods:]
 DeltaLogC = LogC[1:] - LogC[0:-1]
 print('Standard deviation of change in log aggregate consumption = ' + str(np.std(DeltaLogC)))
+LogY = np.log(np.mean(RAconsumer.yNrmNow_hist,axis=1))[ignore_periods:]
+DeltaLogY = LogY[1:] - LogY[0:-1]
+print('Standard deviation of change in log aggregate output = ' + str(np.std(DeltaLogY)))
+
+
+
+
+## Make a Cobb Douglas economy and the representative agent who lives in it
+#StickyDSGEconsumer = StickyEconsumerDSGEType(**init_DSGE_consumer)
+#StickyDSGEeconomy = CobbDouglasEconomy(**init_DSGE_market)
+#StickyDSGEeconomy.agents = [StickyDSGEconsumer]
+#StickyDSGEeconomy.makeAggShkHist()
+#StickyDSGEconsumer.getEconomyData(StickyDSGEeconomy)
+#StickyDSGEconsumer.track_vars = ['aLvlNow','mNrmNow','cNrmNow','pLvlNow','pLvlErrNow']
+#
+## Test the solution
+#StickyDSGEeconomy.solve()
+#
+#m_grid = np.linspace(0,10,200)
+#for M in StickyDSGEconsumer.Mgrid.tolist():
+#    c_at_this_M = StickyDSGEconsumer.solution[0].cFunc(m_grid,M*np.ones_like(m_grid))
+#    plt.plot(m_grid,c_at_this_M)
+#plt.show()
+#
+#print('Average aggregate assets = ' + str(np.mean(StickyDSGEconsumer.aLvlNow_hist[ignore_periods:,:])))
+#print('Average aggregate consumption = ' + str(np.mean(StickyDSGEconsumer.cNrmNow_hist[ignore_periods:,:]*StickyDSGEconsumer.pLvlNow_hist[ignore_periods:,:])))
+#print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(StickyDSGEconsumer.aLvlNow_hist[ignore_periods:,:]))))
+#LogC = np.log(np.mean(StickyDSGEconsumer.cNrmNow_hist*StickyDSGEconsumer.pLvlNow_hist,axis=1))[ignore_periods:]
+#DeltaLogC = LogC[1:] - LogC[0:-1]
+#print('Standard deviation of change in log aggregate consumption = ' + str(np.std(DeltaLogC)))
