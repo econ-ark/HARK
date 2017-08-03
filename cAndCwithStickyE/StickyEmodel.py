@@ -11,19 +11,16 @@ sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
 from copy import copy, deepcopy
-from HARKcore import Market
-from ConsAggShockModel import CobbDouglasEconomy, AggShockConsumerType
-
-# Specify which subclass of AgentType the model should modify
-BaseAgentType = AggShockConsumerType
+from HARKsimulation import drawUniform
+from ConsAggShockModel import AggShockConsumerType
+from RepAgentModel import RepAgentConsumerType
 
 # Make an extension of the base type for the SOE
-class StickyEconsumerSOEType(BaseAgentType):
+class StickyEconsumerSOEType(AggShockConsumerType):
     '''
     A consumer who has sticky expectations about the macroeconomy because he does not observe
     aggregate variables every period; this version is for a small open economy.
-    '''
-    
+    ''' 
     def simBirth(self,which_agents):
         '''
         Makes new consumers for the given indices.  Slightly extends base method by also setting
@@ -38,7 +35,7 @@ class StickyEconsumerSOEType(BaseAgentType):
         -------
         None
         '''
-        BaseAgentType.simBirth(self,which_agents)
+        AggShockConsumerType.simBirth(self,which_agents)
         if hasattr(self,'pLvlErrNow'):
             self.pLvlErrNow[which_agents] = 1.0
         else:
@@ -58,19 +55,19 @@ class StickyEconsumerSOEType(BaseAgentType):
         -------
         None
         '''
-        BaseAgentType.getShocks(self) # Get permanent and transitory combined shocks
+        AggShockConsumerType.getShocks(self) # Get permanent and transitory combined shocks
         
         # Randomly draw which agents will update their beliefs 
         how_many_update = int(round(self.UpdatePrb*self.AgentCount))
         base_bool = np.zeros(self.AgentCount,dtype=bool)
         base_bool[0:how_many_update] = True
         update = self.RNG.permutation(base_bool)
-        dont = np.logical_not(update)
         
         # Non-updaters misperception of their productivity gets worse, but updaters incorporate all the news they've missed
-        self.PermShkNow = self.PermShkNow/self.PermShkAggNow
-        self.pLvlErrNow = self.pLvlErrNow/self.PermShkAggNow
-        self.PermShkNow[update] = self.PermShkNow[update]/self.pLvlErrNow[update]
+        pLvlErrNew = self.PermShkAggNow/self.PermGroFacAgg # new missed news
+        self.PermShkNow = self.PermShkNow/pLvlErrNew
+        self.pLvlErrNow = self.pLvlErrNow*pLvlErrNew # pLvlErrNow accumulates all of the missed news
+        self.PermShkNow[update] = self.PermShkNow[update]*self.pLvlErrNow[update]
         self.pLvlErrNow[update] = 1.0
         
     def getStates(self):
@@ -95,7 +92,7 @@ class StickyEconsumerSOEType(BaseAgentType):
         RfreeNow = self.getRfree()
         bLvlNow = RfreeNow*self.aLvlNow # This is the true level
         
-        yLvlTrueNow = self.pLvlNow/self.pLvlErrNow*self.TranShkNow
+        yLvlTrueNow = self.pLvlNow*self.pLvlErrNow*self.TranShkNow
         mLvlTrueNow = bLvlNow + yLvlTrueNow
         mNrmPcvdNow = mLvlTrueNow/self.pLvlNow
         self.mNrmNow = mNrmPcvdNow
@@ -114,19 +111,42 @@ class StickyEconsumerSOEType(BaseAgentType):
         -------
         None
         '''
-        BaseAgentType.getPostStates(self)
-        self.aLvlNow = self.mLvlTrueNow - self.cNrmNow*self.pLvlNow
-        
-class StickyEconsumerDSGEType(StickyEconsumerSOEType):
+        AggShockConsumerType.getPostStates(self)
+        self.cLvlNow = self.cNrmNow*self.pLvlNow
+        self.aLvlNow = self.mLvlTrueNow - self.cLvlNow
+        self.aNrmNow = self.aLvlNow/self.pLvlNow # This is perceived
+
+      
+class StickyEconsumerDSGEType(RepAgentConsumerType):
     '''
     A consumer who has sticky expectations about the macroeconomy because he does not observe
     aggregate variables every period; this version is for a Cobb Douglas economy with a rep agent.
     '''
-    def getStates(self):
+    def simBirth(self,which_agents):
         '''
-        Gets simulated consumers pLvl and mNrm for this period, but with the alteration that these
-        represent perceived rather than actual values.  Also calculates mLvlTrue, the true level of
-        market resources that the individual has on hand.
+        Makes new consumers for the given indices.  Slightly extends base method by also setting
+        pLvlErrNow = 1.0 for new agents, indicating that they correctly perceive their productivity.
+        
+        Parameters
+        ----------
+        which_agents : np.array(Bool)
+            Boolean array of size self.AgentCount indicating which agents should be "born".
+        
+        Returns
+        -------
+        None
+        '''
+        RepAgentConsumerType.simBirth(self,which_agents)
+        if hasattr(self,'pLvlErrNow'):
+            self.pLvlErrNow[which_agents] = 1.0
+        else:
+            self.pLvlErrNow = np.ones(self.AgentCount)
+            
+    def getShocks(self):
+        '''
+        Gets permanent and transitory shocks (combining idiosyncratic and aggregate shocks), but
+        only consumers who update their macroeconomic beliefs this period notice the aggregate
+        transitory shocks and incorporate all previously unnoticed aggregate permanent shocks.
         
         Parameters
         ----------
@@ -136,14 +156,61 @@ class StickyEconsumerDSGEType(StickyEconsumerSOEType):
         -------
         None
         '''
-        # Calculate what the consumers perceive their normalized market resources to be
-        KtoLnowPcvd = self.KtoLnow/self.pLvlErrNow
-        yNrmPcvdNow = KtoLnowPcvd**self.CapShare*self.TranShkNow**(1.0-self.CapShare) # This is only correct if individual updated this period
-        mNrmPcvdNow = KtoLnowPcvd + yNrmPcvdNow # Consumers' perception of their 
-        self.mNrmNow = mNrmPcvdNow
+        RepAgentConsumerType.getShocks(self) # Get permanent and transitory shocks
         
-        # And calculate consumers' true level of market resources
-        yNrmTrueNow = self.KtoLnow**self.CapShare*self.TranShkAggNow**(1.0-self.CapShare) # This is same as Pcvd if we updated
-        mLvlTrueNow = self.KtoLnow + yNrmTrueNow
-        self.mLvlTrueNow = mLvlTrueNow
+        # Randomly choose whether rep agent updates this period
+        draw = drawUniform(N=1, seed=self.RNG.randint(0,2**31-1))
+        if draw < self.UpdatePrb: # Updaters get all information they've missed
+            self.PermShkNow = self.PermShkNow*self.pLvlErrNow
+            self.pLvlErrNow[:] = 1.0
+        else: # Non-updaters misperception of their productivity gets worse
+            pLvlErrNew = self.PermShkNow/self.PermGroFac[0]
+            self.PermShkNow[:] = self.PermGroFac[0]
+            self.pLvlErrNow = self.pLvlErrNow*pLvlErrNew
+    
+        
+    def getStates(self):
+        '''
+        Calculates updated values of normalized market resources and permanent income level.
+        Uses pLvlNow, aNrmNow, PermShkNow, TranShkNow.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        RepAgentConsumerType.getStates(self) # Calculate perceived normalized market resources
+        
+        # Calculate actual market resource level
+        pLvlPrev = self.pLvlNow/self.PermShkNow
+        aNrmPrev = self.aNrmNow
+        pLvlTrue = pLvlPrev*(self.PermShkNow*self.pLvlErrNow) # Updated permanent income level
+        self.kNrmNow = aNrmPrev/(self.PermShkNow*self.pLvlErrNow)
+        self.yNrmNow = self.kNrmNow**self.CapShare*self.TranShkNow**(1.-self.CapShare)
+        self.Rfree = 1. + self.CapShare*self.kNrmNow**(self.CapShare-1.)*self.TranShkNow**(1.-self.CapShare) - self.DeprFac
+        self.wRte  = (1.-self.CapShare)*self.kNrmNow**self.CapShare*self.TranShkNow**(-self.CapShare)
+        mNrmNowTrue = self.Rfree*self.kNrmNow + self.wRte*self.TranShkNow
+        self.mLvlTrueNow = mNrmNowTrue*pLvlTrue
+        self.yLvlNow = self.yNrmNow*pLvlTrue
+        
+    def getPostStates(self):
+        '''
+        Slightly extends the base version of this method by recalculating aLvlNow to account for the
+        consumer's (potential) misperception about their productivity level.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        RepAgentConsumerType.getPostStates(self)
+        self.cLvlNow = self.cNrmNow*self.pLvlNow
+        self.aLvlNow = self.mLvlTrueNow - self.cLvlNow
+        self.aNrmNow = self.aLvlNow/self.pLvlNow # This is perceived
         
