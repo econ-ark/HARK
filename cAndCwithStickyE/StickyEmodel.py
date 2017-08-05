@@ -137,10 +137,8 @@ class StickyEconsumerDSGEType(RepAgentConsumerType):
         None
         '''
         RepAgentConsumerType.simBirth(self,which_agents)
-        if hasattr(self,'pLvlErrNow'):
-            self.pLvlErrNow[which_agents] = 1.0
-        else:
-            self.pLvlErrNow = np.ones(self.AgentCount)
+        self.pLvlTrue = np.ones(self.AgentCount)
+        self.aLvlNow = self.aNrmNow*self.pLvlTrue
             
     def getShocks(self):
         '''
@@ -156,19 +154,14 @@ class StickyEconsumerDSGEType(RepAgentConsumerType):
         -------
         None
         '''
-        RepAgentConsumerType.getShocks(self) # Get permanent and transitory shocks
+        RepAgentConsumerType.getShocks(self) # Get actual permanent and transitory shocks
         
-        # Randomly choose whether rep agent updates this period
-        draw = drawUniform(N=1, seed=self.RNG.randint(0,2**31-1))
-        if draw < self.UpdatePrb: # Updaters get all information they've missed
-            self.PermShkNow = self.PermShkNow*self.pLvlErrNow
-            self.pLvlErrNow[:] = 1.0
-        else: # Non-updaters misperception of their productivity gets worse
-            pLvlErrNew = self.PermShkNow/self.PermGroFac[0]
-            self.PermShkNow[:] = self.PermGroFac[0]
-            self.pLvlErrNow = self.pLvlErrNow*pLvlErrNew
-    
+        # Handle the perceived vs actual transitory shock
+        TranShkPcvd = self.UpdatePrb*self.TranShkNow + (1.0-self.UpdatePrb)*1.0
+        self.TranShkTrue = self.TranShkNow
+        self.TranShkNow = TranShkPcvd
         
+         
     def getStates(self):
         '''
         Calculates updated values of normalized market resources and permanent income level.
@@ -182,19 +175,28 @@ class StickyEconsumerDSGEType(RepAgentConsumerType):
         -------
         None
         '''
-        RepAgentConsumerType.getStates(self) # Calculate perceived normalized market resources
+        # Calculate perceived and true productivity level
+        pLvlPrev = self.pLvlNow
+        aLvlPrev = self.aLvlNow
+        pLvlTrue = self.pLvlTrue*self.PermShkNow
+        pLvlPcvd = self.UpdatePrb*pLvlTrue + (1.0-self.UpdatePrb)*(pLvlPrev*self.getExPermShk())
+        self.pLvlNow = pLvlPcvd
+        self.pLvlTrue = pLvlTrue
         
-        # Calculate actual market resource level
-        pLvlPrev = self.pLvlNow/self.PermShkNow
-        aNrmPrev = self.aNrmNow
-        pLvlTrue = pLvlPrev*(self.PermShkNow*self.pLvlErrNow) # Updated permanent income level
-        self.kNrmNow = aNrmPrev/(self.PermShkNow*self.pLvlErrNow)
-        self.yNrmNow = self.kNrmNow**self.CapShare*self.TranShkNow**(1.-self.CapShare)
+        # Calculate perceptions of normalized variables
+        self.kNrmNow = aLvlPrev/pLvlPcvd
+        self.yNrmNow = self.kNrmNow**self.CapShare*self.TranShkNow**(1.-self.CapShare) - self.kNrmNow*self.DeprFac
         self.Rfree = 1. + self.CapShare*self.kNrmNow**(self.CapShare-1.)*self.TranShkNow**(1.-self.CapShare) - self.DeprFac
         self.wRte  = (1.-self.CapShare)*self.kNrmNow**self.CapShare*self.TranShkNow**(-self.CapShare)
-        mNrmNowTrue = self.Rfree*self.kNrmNow + self.wRte*self.TranShkNow
-        self.mLvlTrueNow = mNrmNowTrue*pLvlTrue
-        self.yLvlNow = self.yNrmNow*pLvlTrue
+        self.mNrmNow = self.Rfree*self.kNrmNow + self.wRte*self.TranShkNow
+        
+        # Calculate true values of normalized variables
+        self.kNrmTrue = aLvlPrev/pLvlTrue
+        self.yNrmTrue = self.kNrmTrue**self.CapShare*self.TranShkTrue**(1.-self.CapShare) - self.kNrmTrue*self.DeprFac
+        self.Rfree = 1. + self.CapShare*self.kNrmTrue**(self.CapShare-1.)*self.TranShkTrue**(1.-self.CapShare) - self.DeprFac
+        self.wRte  = (1.-self.CapShare)*self.kNrmTrue**self.CapShare*self.TranShkTrue**(-self.CapShare)
+        self.mNrmTrue = self.Rfree*self.kNrmTrue + self.wRte*self.TranShkTrue
+        self.mLvlTrue = self.mNrmTrue*pLvlTrue
         
     def getPostStates(self):
         '''
@@ -210,7 +212,15 @@ class StickyEconsumerDSGEType(RepAgentConsumerType):
         None
         '''
         RepAgentConsumerType.getPostStates(self)
-        self.cLvlNow = self.cNrmNow*self.pLvlNow
-        self.aLvlNow = self.mLvlTrueNow - self.cLvlNow
-        self.aNrmNow = self.aLvlNow/self.pLvlNow # This is perceived
+        self.cLvlNow = self.cNrmNow*self.pLvlNow # This is true
+        self.aLvlNow = self.mLvlTrue - self.cLvlNow # This is true
+        self.aNrmNow = self.aLvlNow/self.pLvlTrue # This is true
+        
+    def getExPermShk(self):
+        '''
+        Returns the expected permanent income shock, including permanent growth factor.
+        In this model, that is simply the permanent growth factor for this period.
+        '''
+        t = self.t_cycle[0]
+        return self.PermGroFac[t-1]
         

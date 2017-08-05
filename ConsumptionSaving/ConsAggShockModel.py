@@ -1603,6 +1603,32 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             #plt.show()
                     
         return AggShocksDynamicRule(AFunc_list)
+    
+    
+class SmallOpenMarkovEconomy(CobbDouglasMarkovEconomy,SmallOpenEconomy):
+    '''
+    A class for representing a small open economy, where the wage rate and interest rate are
+    exogenously determined by some "global" rate.  However, the economy is still subject to
+    aggregate productivity shocks.  This version supports a discrete Markov state.  All
+    methods in this class inherit from the two parent classes.
+    '''
+    def __init__(self,agents=[],tolerance=0.0001,act_T=1000,**kwds):
+        CobbDouglasMarkovEconomy.__init__(self,agents=agents,tolerance=tolerance,act_T=act_T,**kwds)
+        
+    def update(self):
+        SmallOpenEconomy.update(self)
+        
+    def makeAggShkDstn(self):
+        CobbDouglasMarkovEconomy.makeAggShkDstn(self)
+        
+    def millRule(self):
+        return SmallOpenEconomy.getAggShocks(self)
+        
+    def calcDynamics(self,KtoLnow):
+        return HARKobject()
+        
+    def makeAggShkHist(self):
+        CobbDouglasMarkovEconomy.makeAggShkHist(self)
 
                
 class CobbDouglasAggVars(HARKobject):
