@@ -7,22 +7,22 @@ sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
-from StickyEmodel import StickyEconsumerSOEType, StickyEconsumerDSGEType
+from copy import deepcopy
+from StickyEmodel import StickyEconsumerType, StickyEmarkovConsumerType, StickyErepAgent
 import StickyEparams as Params
 from ConsAggShockModel import SmallOpenEconomy, SmallOpenMarkovEconomy, AggShockMarkovConsumerType
 from HARKutilities import plotFuncs
 import matplotlib.pyplot as plt
-
 ignore_periods = Params.ignore_periods
 
 # Make a small open economy and the consumers who live in it
-StickySOEconsumers     = StickyEconsumerSOEType(**Params.init_SOE_consumer)
+StickySOEconsumers     = StickyEconsumerType(**Params.init_SOE_consumer)
 StickySOEconomy        = SmallOpenEconomy(**Params.init_SOE_market)
 StickySOEconomy.agents = [StickySOEconsumers]
 StickySOEconomy.makeAggShkHist()
 StickySOEconsumers.getEconomyData(StickySOEconomy)
 StickySOEconsumers.aNrmInitMean = np.log(1.0)  #Don't want newborns to have no assets and also be unemployed
-StickySOEconsumers.track_vars = ['aLvlNow','aNrmNow','mNrmNow','cNrmNow','cLvlNow','mLvlTrueNow','pLvlNow','pLvlErrNow','TranShkAggNow']
+StickySOEconsumers.track_vars = ['aLvlNow','aNrmNow','mNrmNow','cNrmNow','cLvlNow','mLvlTrueNow','pLvlNow','t_age']
 
 # Solve the model and display some output
 StickySOEconomy.solveAgents()
@@ -32,8 +32,9 @@ StickySOEconomy.makeHistory()
 cFunc = lambda m : StickySOEconsumers.solution[0].cFunc(m,np.ones_like(m))
 plotFuncs(cFunc,0.0,20.0)
 
-print('Average aggregate assets = ' + str(np.mean(StickySOEconsumers.aLvlNow_hist[ignore_periods:,:])))
-print('Average aggregate consumption = ' + str(np.mean(StickySOEconsumers.cLvlNow_hist[ignore_periods:,:])))
+PlvlAgg_hist = np.cumprod(StickySOEconomy.PermShkAggHist)
+print('Average aggregate assets = ' + str(np.mean(np.mean(StickySOEconsumers.aLvlNow_hist[ignore_periods:,:],axis=1)/PlvlAgg_hist[ignore_periods:])))
+print('Average aggregate consumption = ' + str(np.mean(np.mean(StickySOEconsumers.cLvlNow_hist[ignore_periods:,:],axis=1)/PlvlAgg_hist[ignore_periods:])))
 print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(np.mean(StickySOEconsumers.aLvlNow_hist[ignore_periods:,:],axis=1)))))
 LogC = np.log(np.mean(StickySOEconsumers.cLvlNow_hist,axis=1))[ignore_periods:]
 DeltaLogC = LogC[1:] - LogC[0:-1]
@@ -44,9 +45,13 @@ print('Standard deviation of change in log aggregate consumption = ' + str(np.st
 print('Standard deviation of log individual assets = ' + str(np.mean(np.std(np.log(StickySOEconsumers.aLvlNow_hist[ignore_periods:,:]),axis=1))))
 print('Standard deviation of log individual consumption = ' + str(np.mean(np.std(np.log(StickySOEconsumers.cLvlNow_hist[ignore_periods:,:]),axis=1))))
 print('Standard deviation of log individual productivity = ' + str(np.mean(np.std(np.log(StickySOEconsumers.pLvlNow_hist[ignore_periods:,:]),axis=1))))
+not_newborns = (StickySOEconsumers.t_age_hist[(ignore_periods+1):,:] > 1).flatten()
+Logp = np.log(StickySOEconsumers.pLvlNow_hist)[ignore_periods:,:]
+DeltaLogp = (Logp[1:,:] - Logp[0:-1,:]).flatten()
+print('Standard deviation of change in log individual productivity = ' + str(np.std(DeltaLogp[not_newborns])))
 Logc = np.log(StickySOEconsumers.cLvlNow_hist)[ignore_periods:,:]
-DeltaLogc = Logc[1:,:] - Logc[0:-1,:]
-print('Standard deviation of change in log individual consumption = ' + str(np.std(DeltaLogc.flatten())))
+DeltaLogc = (Logc[1:,:] - Logc[0:-1,:]).flatten()
+print('Standard deviation of change in log individual consumption = ' + str(np.std(DeltaLogc[not_newborns])))
 
 
 
@@ -54,24 +59,24 @@ print('Standard deviation of change in log individual consumption = ' + str(np.s
 
 
 # Make a representative agent consumer, then solve and simulate the model
-RAconsumer = StickyEconsumerDSGEType(**Params.init_RA_consumer)
-RAconsumer.solve()
-RAconsumer.track_vars = ['cNrmNow','cLvlNow','aNrmNow','pLvlNow','yNrmTrue','aLvlNow','pLvlTrue','yNrmNow']
-RAconsumer.initializeSim()
-RAconsumer.simulate()
+StickyRAconsumer = StickyErepAgent(**Params.init_RA_consumer)
+StickyRAconsumer.solve()
+StickyRAconsumer.track_vars = ['cNrmNow','cLvlNow','aNrmNow','pLvlNow','yNrmTrue','aLvlNow','pLvlTrue','yNrmNow']
+StickyRAconsumer.initializeSim()
+StickyRAconsumer.simulate()
 
-plotFuncs(RAconsumer.solution[0].cFunc,0,20)
+plotFuncs(StickyRAconsumer.solution[0].cFunc,0,20)
 
-print('Average aggregate assets = ' + str(np.mean(RAconsumer.aLvlNow_hist[ignore_periods:,:])))
-print('Average aggregate consumption = ' + str(np.mean(RAconsumer.cLvlNow_hist[ignore_periods:,:])))
-print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(RAconsumer.aLvlNow_hist[ignore_periods:,:]))))
-LogA = np.log(np.mean(RAconsumer.aLvlNow_hist,axis=1))[ignore_periods:]
+print('Average aggregate assets = ' + str(np.mean(StickyRAconsumer.aLvlNow_hist[ignore_periods:,:])))
+print('Average aggregate consumption = ' + str(np.mean(StickyRAconsumer.cLvlNow_hist[ignore_periods:,:])))
+print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(StickyRAconsumer.aLvlNow_hist[ignore_periods:,:]))))
+LogA = np.log(np.mean(StickyRAconsumer.aLvlNow_hist,axis=1))[ignore_periods:]
 DeltaLogA = LogA[1:] - LogA[0:-1]
 print('Standard deviation of change in log aggregate assets = ' + str(np.std(DeltaLogA)))
-LogC = np.log(np.mean(RAconsumer.cLvlNow_hist,axis=1))[ignore_periods:]
+LogC = np.log(np.mean(StickyRAconsumer.cLvlNow_hist,axis=1))[ignore_periods:]
 DeltaLogC = LogC[1:] - LogC[0:-1]
 print('Standard deviation of change in log aggregate consumption = ' + str(np.std(DeltaLogC)))
-LogY = np.log(np.mean(RAconsumer.yNrmTrue_hist*RAconsumer.pLvlTrue_hist,axis=1))[ignore_periods:]
+LogY = np.log(np.mean(StickyRAconsumer.yNrmTrue_hist*StickyRAconsumer.pLvlTrue_hist,axis=1))[ignore_periods:]
 DeltaLogY = LogY[1:] - LogY[0:-1]
 print('Standard deviation of change in log aggregate output = ' + str(np.std(DeltaLogY)))
 
@@ -80,5 +85,71 @@ print('Standard deviation of change in log aggregate output = ' + str(np.std(Del
 
 ###############################################################################
 
-# Make a small open markov economy and the consumer who live in it
+# Define the set of aggregate permanent growth factors that can occur
 PermGroFacSet = np.linspace(Params.PermGroFacMin,Params.PermGroFacMax,num=Params.StateCount)
+
+# Make the Markov array with chosen states and persistence
+PolyMrkvArray = np.zeros((Params.StateCount,Params.StateCount))
+for i in range(Params.StateCount):
+    for j in range(Params.StateCount):
+        if i==j:
+            PolyMrkvArray[i,j] = Params.Persistence
+        elif (i==(j-1)) or (i==(j+1)):
+            PolyMrkvArray[i,j] = 0.5*(1.0 - Params.Persistence)
+PolyMrkvArray[0,0] += 0.5*(1.0 - Params.Persistence)
+PolyMrkvArray[Params.StateCount-1,Params.StateCount-1] += 0.5*(1.0 - Params.Persistence)
+
+# Make a consumer type to inhabit the economy
+StickySOEmarkovConsumers = StickyEmarkovConsumerType(**Params.init_SOE_markov_consumer)
+StickySOEmarkovConsumers.MrkvArray = PolyMrkvArray
+StickySOEmarkovConsumers.PermGroFacAgg = PermGroFacSet
+StickySOEmarkovConsumers.IncomeDstn[0] = Params.StateCount*[StickySOEmarkovConsumers.IncomeDstn[0]]
+StickySOEmarkovConsumers.track_vars = ['aLvlNow','aNrmNow','mNrmNow','cNrmNow','cLvlNow','mLvlTrueNow','pLvlNow','t_age']
+
+# Make a Cobb-Douglas economy for the agents
+StickySOmarkovEconomy = SmallOpenMarkovEconomy(agents = [StickySOEmarkovConsumers],**Params.init_SOE_mrkv_market)
+StickySOmarkovEconomy.loops_max = 1 # No need to make a history that covers all states
+StickySOmarkovEconomy.MrkvArray = PolyMrkvArray
+StickySOmarkovEconomy.PermGroFacAgg = PermGroFacSet
+StickySOmarkovEconomy.slope_prev = Params.StateCount*[1.0]
+StickySOmarkovEconomy.intercept_prev = Params.StateCount*[0.0]
+StickySOmarkovEconomy.PermShkAggStd = Params.StateCount*[StickySOmarkovEconomy.PermShkAggStd[0]]
+StickySOmarkovEconomy.TranShkAggStd = Params.StateCount*[StickySOmarkovEconomy.TranShkAggStd[0]]
+StickySOmarkovEconomy.update()
+StickySOmarkovEconomy.makeAggShkDstn()
+StickySOmarkovEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
+StickySOEmarkovConsumers.getEconomyData(StickySOmarkovEconomy) # Have the consumers inherit relevant objects from the economy
+
+# Solve the model and display some output
+StickySOmarkovEconomy.solveAgents()
+StickySOmarkovEconomy.makeHistory()
+
+# Plot some of the results
+m = np.linspace(0,20,500)
+M = np.ones_like(m)
+c = np.zeros((Params.StateCount,m.size))
+for i in range(Params.StateCount):
+    c[i,:] = StickySOEmarkovConsumers.solution[0].cFunc[i](m,M)
+    plt.plot(m,c[i,:])
+plt.show()
+
+PlvlAgg_hist = np.cumprod(StickySOmarkovEconomy.PermShkAggHist)
+print('Average aggregate assets = ' + str(np.mean(np.mean(StickySOEmarkovConsumers.aLvlNow_hist[ignore_periods:,:],axis=1)/PlvlAgg_hist[ignore_periods:])))
+print('Average aggregate consumption = ' + str(np.mean(np.mean(StickySOEmarkovConsumers.cLvlNow_hist[ignore_periods:,:],axis=1)/PlvlAgg_hist[ignore_periods:])))
+print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(np.mean(StickySOEmarkovConsumers.aLvlNow_hist[ignore_periods:,:],axis=1)))))
+LogC = np.log(np.mean(StickySOEmarkovConsumers.cLvlNow_hist,axis=1))[ignore_periods:]
+DeltaLogC = LogC[1:] - LogC[0:-1]
+LogA = np.log(np.mean(StickySOEmarkovConsumers.aLvlNow_hist,axis=1))[ignore_periods:]
+DeltaLogA = LogA[1:] - LogA[0:-1]
+print('Standard deviation of change in log aggregate assets = ' + str(np.std(DeltaLogA)))
+print('Standard deviation of change in log aggregate consumption = ' + str(np.std(DeltaLogC)))
+print('Standard deviation of log individual assets = ' + str(np.mean(np.std(np.log(StickySOEmarkovConsumers.aLvlNow_hist[ignore_periods:,:]),axis=1))))
+print('Standard deviation of log individual consumption = ' + str(np.mean(np.std(np.log(StickySOEmarkovConsumers.cLvlNow_hist[ignore_periods:,:]),axis=1))))
+print('Standard deviation of log individual productivity = ' + str(np.mean(np.std(np.log(StickySOEmarkovConsumers.pLvlNow_hist[ignore_periods:,:]),axis=1))))
+not_newborns = (StickySOEmarkovConsumers.t_age_hist[(ignore_periods+1):,:] > 1).flatten()
+Logp = np.log(StickySOEmarkovConsumers.pLvlNow_hist)[ignore_periods:,:]
+DeltaLogp = (Logp[1:,:] - Logp[0:-1,:]).flatten()
+print('Standard deviation of change in log individual productivity = ' + str(np.std(DeltaLogp[not_newborns])))
+Logc = np.log(StickySOEmarkovConsumers.cLvlNow_hist)[ignore_periods:,:]
+DeltaLogc = (Logc[1:,:] - Logc[0:-1,:]).flatten()
+print('Standard deviation of change in log individual consumption = ' + str(np.std(DeltaLogc[not_newborns])))

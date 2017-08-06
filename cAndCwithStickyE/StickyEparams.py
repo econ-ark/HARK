@@ -8,9 +8,10 @@ periods_to_sim = 3500
 ignore_periods = 1000
 UpdatePrb = 1.0
 
-StateCount = 5
-PermGroFacMin = 0.99
-PermGroFacMax = 1.01
+StateCount = 21
+PermGroFacMin = 0.995
+PermGroFacMax = 1.005
+Persistence = 0.9
 
 # Define parameters for the small open economy version of the model
 init_SOE_consumer = { 'CRRA': 2.0,
@@ -48,7 +49,7 @@ init_SOE_consumer = { 'CRRA': 2.0,
                     }
 
 init_SOE_markov_consumer = copy(init_SOE_consumer)
-init_SOE_markov_consumer['MrkvArray'] = np.array([[1.0]]) # dummy value, else breaks on init                   
+init_SOE_markov_consumer['MrkvArray'] = np.array([[1.0]]) # dummy value, else breaks on init   
 
 init_RA_consumer =  { 'CRRA': 2.0,
                       'DiscFac': 1.0/1.0146501772118186,
@@ -96,4 +97,19 @@ init_SOE_market = {  'PermShkAggCount': 3,
                      'Rfree': 1.014189682528173,
                      'wRte': 2.5895209258224536,
                      'act_T': periods_to_sim
+                     }
+
+
+init_SOE_mrkv_market = {  'PermShkAggCount': 3,
+                     'TranShkAggCount': 3,
+                     'PermShkAggStd': [np.sqrt(0.00004)],
+                     'TranShkAggStd': [np.sqrt(0.00001)],
+                     'MrkvArray' : np.array([1.0]),
+                     'PermGroFacAgg': 1.0,
+                     'DeprFac': 1.0 - 0.94**(0.25),
+                     'CapShare': 0.36,
+                     'Rfree': 1.014189682528173,
+                     'wRte': 2.5895209258224536,
+                     'act_T': periods_to_sim,
+                     'MrkvNow_init' : StateCount/2
                      }
