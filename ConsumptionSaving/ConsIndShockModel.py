@@ -1661,7 +1661,7 @@ class PerfForesightConsumerType(AgentType):
         self.aLvlNow = self.aNrmNow*self.pLvlNow   # Useful in some cases to precalculate asset level
         return None
 
-    def checkConditions(self,verbose):                      
+    def checkConditions(self,verbose=False):                      
         '''
         This method checks whether the instance's type satisfies the growth impatiance condition 
         (GIC), return impatiance condition (RIC), absolute impatiance condition (AIC), weak return 
@@ -1680,26 +1680,12 @@ class PerfForesightConsumerType(AgentType):
         
         Returns
         -------
-        feedback : in console
-            The feedback of whether the given type violates a sufficient condition for a nondegenerate 
-            solution is printed. 
+        None 
         '''       
-        if self.cycles!=0 or self.T_total > 1:
+        if self.cycles!=0 or self.T_cycle > 1:
             print('This method only checks for the conditions for infinite horizon models with a 1 period cycle')
-            return
+            return 
                         
-        #Some initial conditions
-        exp_psi_inv=0               
-        exp_psi_to_one_minus_rho=0
-        
-        #Get expected psi inverse
-        for i in range(len(self.PermShkDstn[1])):
-            exp_psi_inv=exp_psi_inv+(1.0/self.PermShkCount)*(self.PermShkDstn[1][i])**(-1)  
-            
-        #Get expected psi to the power one minus CRRA
-        for i in range(len(self.PermShkDstn[1])):
-            exp_psi_to_one_minus_rho=exp_psi_to_one_minus_rho+(1.0/self.PermShkCount)*(self.PermShkDstn[1][i])**(1-self.CRRA)  
-        
         #Evaluate and report on the return impatience condition        
         RIC=(self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
         if RIC<1:
@@ -1991,7 +1977,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PerfForesightConsumerType.preSolve(self)
         self.updateSolutionTerminal()
     
-    def checkConditions(self,verbose):                      
+    def checkConditions(self,verbose=False):                      
         '''
         This method checks whether the instance's type satisfies the growth impatiance condition 
         (GIC), return impatiance condition (RIC), absolute impatiance condition (AIC), weak return 
@@ -2010,13 +1996,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         Returns
         -------
-        feedback : in console
-            The feedback of whether the given type violates a sufficient condition for a nondegenerate 
-            solution is printed. 
+        None
         '''       
-        PerfForesightConsumerType.checkConditions(self,verbose)
+        PerfForesightConsumerType.checkConditions(self)
         
-        if self.cycles!=0 or self.T_total > 1:
+        if self.cycles!=0 or self.T_cycle > 1:
             return
                         
         #Some initial conditions
@@ -2183,7 +2167,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         RfreeNow[self.aNrmNow > 0] = self.Rsave
         return RfreeNow
         
-    def checkConditions(self,verbose):
+    def checkConditions(self,verbose=False):
         '''
         This method checks whether the instance's type satisfies the growth impatiance condition 
         (GIC), return impatiance condition (RIC), absolute impatiance condition (AIC), weak return 
@@ -2204,9 +2188,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         
         Returns
         -------
-        feedback : in console
-            The feedback of whether the given type violates a sufficient condition for a nondegenerate 
-            solution is printed. 
+        None 
         '''
         raise NotImplementedError()
         
