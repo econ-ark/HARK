@@ -13,7 +13,7 @@ import numpy as np
 from copy import copy, deepcopy
 from HARKsimulation import drawUniform
 from ConsAggShockModel import AggShockConsumerType, AggShockMarkovConsumerType
-from RepAgentModel import RepAgentConsumerType
+from RepAgentModel import RepAgentConsumerType, RepAgentMarkovConsumerType
 
 # Make an extension of the base type for the heterogeneous agents versions
 class StickyEconsumerType(AggShockConsumerType):
@@ -35,7 +35,7 @@ class StickyEconsumerType(AggShockConsumerType):
         -------
         None
         '''
-        AggShockConsumerType.simBirth(self,which_agents)
+        super(self.__class__,self).simBirth(self,which_agents)
         if hasattr(self,'pLvlErrNow'):
             self.pLvlErrNow[which_agents] = 1.0
         else:
@@ -96,17 +96,17 @@ class StickyEconsumerType(AggShockConsumerType):
         -------
         None
         '''
-        #AggShockConsumerType.getShocks(self) # Get permanent and transitory combined shocks
-        super(self.__class__,self).getShocks()
-        
-        # Randomly draw which agents will update their beliefs 
-        self.getUpdaters()
+        # The strange syntax here is so that both StickyEconsumerType and StickyEmarkovConsumerType
+        # run the getShocks method of their first superclass: AggShockConsumerType and
+        # AggShockMarkovConsumerType respectively.  This will be simplified in Python 3.
+        super(self.__class__,self).getShocks() # Get permanent and transitory combined shocks
+        self.getUpdaters() # Randomly draw which agents will update their beliefs 
         
         # Calculate innovation to the productivity level perception error
         pLvlErrNew = self.getpLvlError()
         self.pLvlErrNow *= pLvlErrNew # Perception error accumulation
         
-        # Calculate perceptions of the permanent shock
+        # Calculate (mis)perceptions of the permanent shock
         PermShkPcvd = self.PermShkNow/pLvlErrNew
         PermShkPcvd[self.update] *= self.pLvlErrNow[self.update] # Updaters see the true permanent shock and all missed news        
         self.pLvlErrNow[self.update] = 1.0
@@ -252,7 +252,7 @@ class StickyErepAgent(RepAgentConsumerType):
         -------
         None
         '''
-        RepAgentConsumerType.simBirth(self,which_agents)
+        super(self.__class__,self).simBirth(self,which_agents)
         self.pLvlTrue = np.ones(self.AgentCount)
         self.aLvlNow = self.aNrmNow*self.pLvlTrue
             
@@ -270,7 +270,7 @@ class StickyErepAgent(RepAgentConsumerType):
         -------
         None
         '''
-        RepAgentConsumerType.getShocks(self) # Get actual permanent and transitory shocks
+        super(self.__class__,self).getShocks() # Get actual permanent and transitory shocks
         
         # Handle the perceived vs actual transitory shock
         TranShkPcvd = self.UpdatePrb*self.TranShkNow + (1.0-self.UpdatePrb)*1.0
@@ -292,27 +292,25 @@ class StickyErepAgent(RepAgentConsumerType):
         None
         '''
         # Calculate perceived and true productivity level
-        pLvlPrev = self.pLvlNow
         aLvlPrev = self.aLvlNow
-        pLvlTrue = self.pLvlTrue*self.PermShkNow
-        pLvlPcvd = self.UpdatePrb*pLvlTrue + (1.0-self.UpdatePrb)*(pLvlPrev*self.getExPermShk())
+        self.pLvlTrue = self.pLvlTrue*self.PermShkNow
+        pLvlPcvd = self.getpLvlPcvd()
         self.pLvlNow = pLvlPcvd
-        self.pLvlTrue = pLvlTrue
         
         # Calculate perceptions of normalized variables
-        self.kNrmNow = aLvlPrev/pLvlPcvd
+        self.kNrmNow = aLvlPrev/self.pLvlNow
         self.yNrmNow = self.kNrmNow**self.CapShare*self.TranShkNow**(1.-self.CapShare) - self.kNrmNow*self.DeprFac
         self.Rfree = 1. + self.CapShare*self.kNrmNow**(self.CapShare-1.)*self.TranShkNow**(1.-self.CapShare) - self.DeprFac
         self.wRte  = (1.-self.CapShare)*self.kNrmNow**self.CapShare*self.TranShkNow**(-self.CapShare)
         self.mNrmNow = self.Rfree*self.kNrmNow + self.wRte*self.TranShkNow
         
         # Calculate true values of normalized variables
-        self.kNrmTrue = aLvlPrev/pLvlTrue
+        self.kNrmTrue = aLvlPrev/self.pLvlTrue
         self.yNrmTrue = self.kNrmTrue**self.CapShare*self.TranShkTrue**(1.-self.CapShare) - self.kNrmTrue*self.DeprFac
         self.Rfree = 1. + self.CapShare*self.kNrmTrue**(self.CapShare-1.)*self.TranShkTrue**(1.-self.CapShare) - self.DeprFac
         self.wRte  = (1.-self.CapShare)*self.kNrmTrue**self.CapShare*self.TranShkTrue**(-self.CapShare)
         self.mNrmTrue = self.Rfree*self.kNrmTrue + self.wRte*self.TranShkTrue
-        self.mLvlTrue = self.mNrmTrue*pLvlTrue
+        self.mLvlTrue = self.mNrmTrue*self.pLvlTrue
         
     def getPostStates(self):
         '''
@@ -332,11 +330,52 @@ class StickyErepAgent(RepAgentConsumerType):
         self.aLvlNow = self.mLvlTrue - self.cLvlNow # This is true
         self.aNrmNow = self.aLvlNow/self.pLvlTrue # This is true
         
-    def getExPermShk(self):
+    def getpLvlPcvd(self):
         '''
-        Returns the expected permanent income shock, including permanent growth factor.
-        In this model, that is simply the permanent growth factor for this period.
-        '''
-        t = self.t_cycle[0]
-        return self.PermGroFac[t-1]
+        Finds the representative agent's (average) perceived productivity level.
         
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        pLvlPcvd : np.array
+            Size 1 array with average perception of productivity level.
+        '''
+        pLvlPcvd = self.UpdatePrb*self.pLvlTrue + (1.0-self.UpdatePrb)*(self.pLvlNow*self.PermGroFac[self.t_cycle[0]-1])
+        return pLvlPcvd
+    
+    
+#class StickyEmarkovRepAgent(RepAgentMarkovConsumerType,StickyErepAgent):
+#    '''
+#    A representative consumer who has sticky expectations about the macroeconomy because
+#    he does not observe aggregate variables every period.  Agent lives in a Cobb-Douglas
+#    economy that has a discrete Markov state.
+#    '''
+#    def simBirth(self,which_agents):
+#        StickyErepAgent.simBirth(self,which_agents)
+#        
+#    def getShocks(self):
+#        StickyErepAgent.getShocks(self)
+#        
+#    def getStates(self):
+#        StickyErepAgent.getStates(self)
+#        
+#    def getPostStates(self):
+#        StickyErepAgent.getPostStates(self)
+#        
+#    def getpLvlPcvd(self):
+#        '''
+#        Finds the representative agent's (average) perceived productivity level.
+#        
+#        Parameters
+#        ----------
+#        None
+#        
+#        Returns
+#        -------
+#        pLvlPcvd : np.array
+#            Size 1 array with average perception of productivity level.
+#        '''
+#        
