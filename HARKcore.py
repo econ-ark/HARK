@@ -64,7 +64,7 @@ def distanceMetric(thing_A,thing_B):
         distance = 1000.0    
     return distance
         
-class HARKobject():
+class HARKobject(object):
     '''
     A superclass for object classes in HARK.  Comes with two useful methods:
     a generic/universal distance method and an attribute assignment method.

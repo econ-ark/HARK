@@ -16,9 +16,8 @@ import matplotlib.pyplot as plt
 ignore_periods = Params.ignore_periods
 
 # Make a small open economy and the consumers who live in it
-StickySOEconsumers     = StickyEconsumerType(**Params.init_SOE_consumer)
-StickySOEconomy        = SmallOpenEconomy(**Params.init_SOE_market)
-StickySOEconomy.agents = [StickySOEconsumers]
+StickySOEconsumers = StickyEconsumerType(**Params.init_SOE_consumer)
+StickySOEconomy = SmallOpenEconomy(agents=[StickySOEconsumers],**Params.init_SOE_market)
 StickySOEconomy.makeAggShkHist()
 StickySOEconsumers.getEconomyData(StickySOEconomy)
 StickySOEconsumers.aNrmInitMean = np.log(1.0)  #Don't want newborns to have no assets and also be unemployed
@@ -85,38 +84,14 @@ print('Standard deviation of change in log aggregate output = ' + str(np.std(Del
 
 ###############################################################################
 
-# Define the set of aggregate permanent growth factors that can occur
-PermGroFacSet = np.linspace(Params.PermGroFacMin,Params.PermGroFacMax,num=Params.StateCount)
 
-# Make the Markov array with chosen states and persistence
-PolyMrkvArray = np.zeros((Params.StateCount,Params.StateCount))
-for i in range(Params.StateCount):
-    for j in range(Params.StateCount):
-        if i==j:
-            PolyMrkvArray[i,j] = Params.Persistence
-        elif (i==(j-1)) or (i==(j+1)):
-            PolyMrkvArray[i,j] = 0.5*(1.0 - Params.Persistence)
-PolyMrkvArray[0,0] += 0.5*(1.0 - Params.Persistence)
-PolyMrkvArray[Params.StateCount-1,Params.StateCount-1] += 0.5*(1.0 - Params.Persistence)
-
-# Make a consumer type to inhabit the economy
+# Make a consumer type to inhabit the Markov economy
 StickySOEmarkovConsumers = StickyEmarkovConsumerType(**Params.init_SOE_markov_consumer)
-StickySOEmarkovConsumers.MrkvArray = PolyMrkvArray
-StickySOEmarkovConsumers.PermGroFacAgg = PermGroFacSet
 StickySOEmarkovConsumers.IncomeDstn[0] = Params.StateCount*[StickySOEmarkovConsumers.IncomeDstn[0]]
 StickySOEmarkovConsumers.track_vars = ['aLvlNow','aNrmNow','mNrmNow','cNrmNow','cLvlNow','mLvlTrueNow','pLvlNow','t_age']
 
 # Make a Cobb-Douglas economy for the agents
 StickySOmarkovEconomy = SmallOpenMarkovEconomy(agents = [StickySOEmarkovConsumers],**Params.init_SOE_mrkv_market)
-StickySOmarkovEconomy.loops_max = 1 # No need to make a history that covers all states
-StickySOmarkovEconomy.MrkvArray = PolyMrkvArray
-StickySOmarkovEconomy.PermGroFacAgg = PermGroFacSet
-StickySOmarkovEconomy.slope_prev = Params.StateCount*[1.0]
-StickySOmarkovEconomy.intercept_prev = Params.StateCount*[0.0]
-StickySOmarkovEconomy.PermShkAggStd = Params.StateCount*[StickySOmarkovEconomy.PermShkAggStd[0]]
-StickySOmarkovEconomy.TranShkAggStd = Params.StateCount*[StickySOmarkovEconomy.TranShkAggStd[0]]
-StickySOmarkovEconomy.update()
-StickySOmarkovEconomy.makeAggShkDstn()
 StickySOmarkovEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
 StickySOEmarkovConsumers.getEconomyData(StickySOmarkovEconomy) # Have the consumers inherit relevant objects from the economy
 
@@ -124,7 +99,7 @@ StickySOEmarkovConsumers.getEconomyData(StickySOmarkovEconomy) # Have the consum
 StickySOmarkovEconomy.solveAgents()
 StickySOmarkovEconomy.makeHistory()
 
-# Plot some of the results
+# Plot the consumption function in each Markov state
 m = np.linspace(0,20,500)
 M = np.ones_like(m)
 c = np.zeros((Params.StateCount,m.size))

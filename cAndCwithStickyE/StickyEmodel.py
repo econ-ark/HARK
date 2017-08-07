@@ -19,7 +19,7 @@ from RepAgentModel import RepAgentConsumerType
 class StickyEconsumerType(AggShockConsumerType):
     '''
     A class for representing consumers who have sticky expectations about the macroeconomy
-    because they does not observe aggregate variables every period.
+    because they do not observe aggregate variables every period.
     ''' 
     def simBirth(self,which_agents):
         '''
@@ -41,6 +41,47 @@ class StickyEconsumerType(AggShockConsumerType):
         else:
             self.pLvlErrNow = np.ones(self.AgentCount)
             
+    def getUpdaters(self):
+        '''
+        Determine which agents update this period vs which don't.  Fills in the
+        attributes updaters and dont as boolean arrays of size AgentCount.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        how_many_update = int(round(self.UpdatePrb*self.AgentCount))
+        base_bool = np.zeros(self.AgentCount,dtype=bool)
+        base_bool[0:how_many_update] = True
+        self.update = self.RNG.permutation(base_bool)
+        self.dont = np.logical_not(self.update)
+
+        
+    def getpLvlError(self):
+        '''
+        Calculates and returns the misperception of this period's shocks.  Updaters
+        have no misperception this period, while those who don't update don't see
+        the value of the aggregate permanent shock and assume it is 1.
+        
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        pLvlErr : np.array
+            Array of size AgentCount with this period's (new) misperception.
+        '''
+        pLvlErr = np.ones(self.AgentCount)
+        pLvlErr[self.dont] = self.PermShkAggNow/self.PermGroFacAgg
+        return pLvlErr
+        
+            
     def getShocks(self):
         '''
         Gets permanent and transitory shocks (combining idiosyncratic and aggregate shocks), but
@@ -55,20 +96,22 @@ class StickyEconsumerType(AggShockConsumerType):
         -------
         None
         '''
-        AggShockConsumerType.getShocks(self) # Get permanent and transitory combined shocks
+        #AggShockConsumerType.getShocks(self) # Get permanent and transitory combined shocks
+        super(self.__class__,self).getShocks()
         
         # Randomly draw which agents will update their beliefs 
-        how_many_update = int(round(self.UpdatePrb*self.AgentCount))
-        base_bool = np.zeros(self.AgentCount,dtype=bool)
-        base_bool[0:how_many_update] = True
-        update = self.RNG.permutation(base_bool)
+        self.getUpdaters()
         
-        # Non-updaters misperception of their productivity gets worse, but updaters incorporate all the news they've missed
-        pLvlErrNew = self.PermShkAggNow/self.PermGroFacAgg # new missed news
-        self.PermShkNow = self.PermShkNow/pLvlErrNew
-        self.pLvlErrNow = self.pLvlErrNow*pLvlErrNew # pLvlErrNow accumulates all of the missed news
-        self.PermShkNow[update] = self.PermShkNow[update]*self.pLvlErrNow[update]
-        self.pLvlErrNow[update] = 1.0
+        # Calculate innovation to the productivity level perception error
+        pLvlErrNew = self.getpLvlError()
+        self.pLvlErrNow *= pLvlErrNew # Perception error accumulation
+        
+        # Calculate perceptions of the permanent shock
+        PermShkPcvd = self.PermShkNow/pLvlErrNew
+        PermShkPcvd[self.update] *= self.pLvlErrNow[self.update] # Updaters see the true permanent shock and all missed news        
+        self.pLvlErrNow[self.update] = 1.0
+        self.PermShkNow = PermShkPcvd
+        
         
     def getStates(self):
         '''
@@ -131,6 +174,9 @@ class StickyEmarkovConsumerType(AggShockMarkovConsumerType,StickyEconsumerType):
     def simBirth(self,which_agents):
         StickyEconsumerType.simBirth(self,which_agents)
         
+    def getShocks(self):
+        StickyEconsumerType.getShocks(self)
+        
     def getStates(self):
         StickyEconsumerType.getStates(self)
         
@@ -143,12 +189,11 @@ class StickyEmarkovConsumerType(AggShockMarkovConsumerType,StickyEconsumerType):
     def getMrkvNow(self):
         return self.MrkvNowPcvd
     
-    def getShocks(self):
+    def getUpdaters(self):
         '''
-        Gets permanent and transitory shocks (combining idiosyncratic and aggregate shocks), but
-        only consumers who update their macroeconomic beliefs this period notice the aggregate
-        transitory shocks and incorporate all previously unnoticed aggregate permanent shocks.
-        Also handles perceptions of the macroeconomic Markov state.
+        Determine which agents update this period vs which don't.  Fills in the
+        attributes updaters and dont as boolean arrays of size AgentCount.  This
+        version also updates perceptions of the Markov state.
         
         Parameters
         ----------
@@ -158,34 +203,36 @@ class StickyEmarkovConsumerType(AggShockMarkovConsumerType,StickyEconsumerType):
         -------
         None
         '''
-        AggShockMarkovConsumerType.getShocks(self) # Get permanent and transitory combined shocks
-        
-        # Randomly draw which agents will update their beliefs 
-        how_many_update = int(round(self.UpdatePrb*self.AgentCount))
-        base_bool = np.zeros(self.AgentCount,dtype=bool)
-        base_bool[0:how_many_update] = True
-        update = self.RNG.permutation(base_bool)
-        dont = np.logical_not(update)
-        
+        StickyEconsumerType.getUpdaters(self)
         # Only updaters change their perception of the Markov state
         if hasattr(self,'MrkvNowPcvd'):
-            self.MrkvNowPcvd[update] = self.MrkvNow
+            self.MrkvNowPcvd[self.update] = self.MrkvNow
         else: # This only triggers in the first simulated period
             self.MrkvNowPcvd = np.ones(self.AgentCount,dtype=int)*self.MrkvNow
-            
-        # Calculate innovation to the productivity level perception error
-        pLvlErrNew = np.ones(self.AgentCount)
-        pLvlErrNew[dont] = self.PermShkAggNow/self.PermGroFacAgg[self.MrkvNowPcvd[dont]]
-        self.pLvlErrNow *= pLvlErrNew # Perception error accumulation
+       
+    def getpLvlError(self):
+        '''
+        Calculates and returns the misperception of this period's shocks.  Updaters
+        have no misperception this period, while those who don't update don't see
+        the value of the aggregate permanent shock and assume it is 1.  Moreover,
+        non-updaters base their belief about aggregate growth on the last Markov
+        state that they actually observed.
         
-        # Calculate perceptions of the permanent shock
-        PermShkPcvd = self.PermShkNow/pLvlErrNew
-        PermShkPcvd[update] *= self.pLvlErrNow[update] # Updaters see the true permanent shock and all missed news        
-        self.pLvlErrNow[update] = 1.0
-        self.PermShkNow = PermShkPcvd
+        Parameters
+        ----------
+        None
         
+        Returns
+        -------
+        pLvlErr : np.array
+            Array of size AgentCount with this period's (new) misperception.
+        '''
+        pLvlErr = np.ones(self.AgentCount)
+        pLvlErr[self.dont] = self.PermShkAggNow/self.PermGroFacAgg[self.MrkvNowPcvd[self.dont]]
+        return pLvlErr
+    
 
-      
+
 class StickyErepAgent(RepAgentConsumerType):
     '''
     A representative consumer who has sticky expectations about the macroeconomy because

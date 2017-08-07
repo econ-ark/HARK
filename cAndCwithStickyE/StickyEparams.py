@@ -6,12 +6,30 @@ from copy import copy
 
 periods_to_sim = 3500
 ignore_periods = 1000
-UpdatePrb = 1.0
+UpdatePrb = 0.25
 
+# Choose parameters for the Markov models
 StateCount = 21
-PermGroFacMin = 0.995
-PermGroFacMax = 1.005
+PermGroFacMin = 0.9925
+PermGroFacMax = 1.0075
 Persistence = 0.9
+RegimeChangePrb = 0.01
+
+# Make the Markov array with chosen states and persistence
+PolyMrkvArray = np.zeros((StateCount,StateCount))
+for i in range(StateCount):
+    for j in range(StateCount):
+        if i==j:
+            PolyMrkvArray[i,j] = Persistence
+        elif (i==(j-1)) or (i==(j+1)):
+            PolyMrkvArray[i,j] = 0.5*(1.0 - Persistence)
+PolyMrkvArray[0,0] += 0.5*(1.0 - Persistence)
+PolyMrkvArray[StateCount-1,StateCount-1] += 0.5*(1.0 - Persistence)
+PolyMrkvArray *= 1.0 - RegimeChangePrb
+PolyMrkvArray += RegimeChangePrb/StateCount
+
+# Define the set of aggregate permanent growth factors that can occur
+PermGroFacSet = np.linspace(PermGroFacMin,PermGroFacMax,num=StateCount)
 
 # Define parameters for the small open economy version of the model
 init_SOE_consumer = { 'CRRA': 2.0,
@@ -49,7 +67,7 @@ init_SOE_consumer = { 'CRRA': 2.0,
                     }
 
 init_SOE_markov_consumer = copy(init_SOE_consumer)
-init_SOE_markov_consumer['MrkvArray'] = np.array([[1.0]]) # dummy value, else breaks on init   
+init_SOE_markov_consumer['MrkvArray'] = PolyMrkvArray  
 
 init_RA_consumer =  { 'CRRA': 2.0,
                       'DiscFac': 1.0/1.0146501772118186,
@@ -102,14 +120,15 @@ init_SOE_market = {  'PermShkAggCount': 3,
 
 init_SOE_mrkv_market = {  'PermShkAggCount': 3,
                      'TranShkAggCount': 3,
-                     'PermShkAggStd': [np.sqrt(0.00004)],
-                     'TranShkAggStd': [np.sqrt(0.00001)],
-                     'MrkvArray' : np.array([1.0]),
-                     'PermGroFacAgg': 1.0,
+                     'PermShkAggStd': StateCount*[np.sqrt(0.00004)],
+                     'TranShkAggStd': StateCount*[np.sqrt(0.00001)],
+                     'MrkvArray' : PolyMrkvArray,
+                     'PermGroFacAgg': PermGroFacSet,
                      'DeprFac': 1.0 - 0.94**(0.25),
                      'CapShare': 0.36,
                      'Rfree': 1.014189682528173,
                      'wRte': 2.5895209258224536,
                      'act_T': periods_to_sim,
-                     'MrkvNow_init' : StateCount/2
+                     'MrkvNow_init' : StateCount/2,
+                     'loops_max' : 1
                      }
