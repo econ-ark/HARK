@@ -1,17 +1,12 @@
 '''
 A first attempt at the models described in cAndCwithStickyE.
 '''
-
-# Import the HARK library.  The assumption is that this code is in a folder
-# contained in the HARK folder. Also import ConsumptionSavingModel
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
-from copy import copy, deepcopy
-from HARKsimulation import drawUniform
 from ConsAggShockModel import AggShockConsumerType, AggShockMarkovConsumerType
 from RepAgentModel import RepAgentConsumerType, RepAgentMarkovConsumerType
 
@@ -35,7 +30,7 @@ class StickyEconsumerType(AggShockConsumerType):
         -------
         None
         '''
-        super(self.__class__,self).simBirth(self,which_agents)
+        AggShockConsumerType.simBirth(self,which_agents)
         if hasattr(self,'pLvlErrNow'):
             self.pLvlErrNow[which_agents] = 1.0
         else:
@@ -129,18 +124,20 @@ class StickyEconsumerType(AggShockConsumerType):
         '''
         # Update consumers' perception of their permanent income level
         pLvlPrev = self.pLvlNow
-        self.pLvlNow = pLvlPrev*self.PermShkNow # Updated permanent income level (only correct if macro state is observed this period)
+        self.pLvlNow = pLvlPrev*self.PermShkNow # Perceived permanent income level (only correct if macro state is observed this period)
         self.PlvlAggNow *= self.PermShkAggNow # Updated aggregate permanent productivity level
+        self.pLvlTrue = self.pLvlNow*self.pLvlErrNow
         
         # Calculate what the consumers perceive their normalized market resources to be
         RfreeNow = self.getRfree()
         bLvlNow = RfreeNow*self.aLvlNow # This is the true level
         
-        yLvlTrueNow = self.pLvlNow*self.pLvlErrNow*self.TranShkNow
-        mLvlTrueNow = bLvlNow + yLvlTrueNow
+        yLvlNow = self.pLvlTrue*self.TranShkNow # This is true income level
+        mLvlTrueNow = bLvlNow + yLvlNow # This is true market resource level
         mNrmPcvdNow = mLvlTrueNow/self.pLvlNow
         self.mNrmNow = mNrmPcvdNow
         self.mLvlTrueNow = mLvlTrueNow
+        self.yLvlNow = mLvlTrueNow - self.aLvlNow # Includes capital and labor income 
         
     def getMaggNow(self): # Agents know the true level of aggregate market resources, but
         MaggPcvdNow = self.MaggNow*self.pLvlErrNow # have erroneous perception of pLvlAgg.

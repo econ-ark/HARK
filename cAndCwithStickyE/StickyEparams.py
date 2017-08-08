@@ -6,7 +6,7 @@ from copy import copy
 
 periods_to_sim = 3500
 ignore_periods = 1000
-UpdatePrb = 0.25
+UpdatePrb = 1.00
 
 # Choose parameters for the Markov models
 StateCount = 21
@@ -116,11 +116,13 @@ init_RA_consumer =  { 'CRRA': 2.0,
                       'tolerance' : 1e-12
                     }
 
+# Define parameters for the Markov representative agent model
 init_RA_mrkv_consumer = copy(init_RA_consumer)
 init_RA_mrkv_consumer['MrkvArray'] = PolyMrkvArray
 init_RA_mrkv_consumer['MrkvNow'] = [StateCount/2]
 init_RA_mrkv_consumer['PermGroFac'] = [PermGroFacSet]
-                    
+
+# Define market parameters for the small open economy
 init_SOE_market = {  'PermShkAggCount': 3,
                      'TranShkAggCount': 3,
                      'PermShkAggStd': np.sqrt(0.00004),
@@ -133,6 +135,7 @@ init_SOE_market = {  'PermShkAggCount': 3,
                      'act_T': periods_to_sim
                      }
 
+# Define market parameters for the Cobb-Douglas economy
 init_DSGE_market = copy(init_SOE_market)
 init_DSGE_market.pop('Rfree')
 init_DSGE_market.pop('wRte')
@@ -141,6 +144,7 @@ init_DSGE_market['DiscFac'] = init_DSGE_consumer['DiscFac']
 init_DSGE_market['intercept_prev'] = 0.0
 init_DSGE_market['slope_prev'] = 1.0
 
+# Define market parameters for the small open Markov economy
 init_SOE_mrkv_market = {  'PermShkAggCount': 3,
                           'TranShkAggCount': 3,
                           'PermShkAggStd': StateCount*[np.sqrt(0.00004)],
@@ -156,6 +160,7 @@ init_SOE_mrkv_market = {  'PermShkAggCount': 3,
                           'loops_max' : 1
                           }
 
+# Define market parameters for the Cobb-Douglas Markov economy
 init_DSGE_mrkv_market = copy(init_SOE_mrkv_market)
 init_DSGE_mrkv_market.pop('Rfree')
 init_DSGE_mrkv_market.pop('wRte')
