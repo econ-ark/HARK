@@ -646,19 +646,69 @@ def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):
     bot = x_grid[sample_pos-1]
     top = x_grid[sample_pos]
     alpha = (sample-bot)/(top-bot)
+
+    # Keep the weights (alpha) in bounds    
+    alpha_clipped = np.clip(alpha,0.,1.)    
     
     # Loop through each x_grid point and add up the probability that each nearby
     # draw contributes to it (accounting for distance)
     for j in range(1,x_n):
         c = sample_pos == j
-        w_vec[j-1] = w_vec[j-1] + np.dot(f_weights[c],1.0-alpha[c])
-        w_vec[j] = w_vec[j] + np.dot(f_weights[c],alpha[c])
+        w_vec[j-1] = w_vec[j-1] + np.dot(f_weights[c],1.0-alpha_clipped[c])
+        w_vec[j] = w_vec[j] + np.dot(f_weights[c],alpha_clipped[c])
         
-    # Reweight the probabilities so they sum to 1, and return
+    # Reweight the probabilities so they sum to 1
     W = np.sum(w_vec)
     p_vec = w_vec/W
+
+    # Check for obvious errors, and return p_vec    
+    assert (np.all(p_vec>=0.)) and (np.all(p_vec<=1.)) and (np.isclose(np.sum(p_vec),1.))
     return p_vec
 
+def makeMarkovApproxToNormalByMonteCarlo(x_grid,mu,sigma,N_draws = 10000):
+    '''
+    Creates an approximation to a normal distribution with mean mu and standard
+    deviation sigma, by Monte Carlo.
+    Returns a stochastic vector called p_vec, corresponding
+    to values in x_grid.  If a RV is distributed x~N(mu,sigma), then the expectation
+    of a continuous function f() is E[f(x)] = numpy.dot(p_vec,f(x_grid)).
+    
+    Parameters
+    ----------
+    x_grid: numpy.array
+        A sorted 1D array of floats representing discrete values that a normally
+        distributed RV could take on.    
+    mu: float
+        Mean of the normal distribution to be approximated.
+    sigma: float
+        Standard deviation of the normal distribution to be approximated.
+    N_draws: int
+        Number of draws to use in Monte Carlo.
+        
+    Returns
+    -------
+    p_vec: numpy.array
+        A stochastic vector with probability weights for each x in x_grid.
+    '''
+    
+    # Take random draws from the desired normal distribution
+    random_draws = np.random.normal(loc = mu, scale = sigma, size = N_draws)
+
+    # Compute the distance between the draws and points in x_grid
+    distance = np.abs(x_grid[:,np.newaxis] - random_draws[np.newaxis,:])
+    
+    # Find the indices of the points in x_grid that are closest to the draws
+    distance_minimizing_index = np.argmin(distance,axis=0)
+
+    # For each point in x_grid, the approximate probability of that point is the number
+    # of Monte Carlo draws that are closest to that point
+    p_vec = np.zeros_like(x_grid)
+    for p_index,p in enumerate(p_vec):
+        p_vec[p_index] = np.sum(distance_minimizing_index==p_index) / N_draws
+
+    # Check for obvious errors, and return p_vec
+    assert (np.all(p_vec>=0.)) and (np.all(p_vec<=1.)) and (np.isclose(np.sum(p_vec)),1.)
+    return p_vec
 
 # ================================================================================
 # ==================== Functions for manipulating discrete distributions =========
