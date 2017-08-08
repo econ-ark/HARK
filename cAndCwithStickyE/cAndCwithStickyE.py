@@ -9,10 +9,12 @@ sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 import numpy as np
 from time import clock
 from StickyEmodel import StickyEconsumerType, StickyEmarkovConsumerType, StickyErepAgent, StickyEmarkovRepAgent
-import StickyEparams as Params
 from ConsAggShockModel import SmallOpenEconomy, SmallOpenMarkovEconomy, CobbDouglasEconomy,CobbDouglasMarkovEconomy
 from HARKutilities import plotFuncs
 import matplotlib.pyplot as plt
+import statsmodels.api as sm
+import statsmodels.sandbox.regression.gmm as smsrg
+import StickyEparams as Params
 ignore_periods = Params.ignore_periods
 
 # Choose which models to run
@@ -24,11 +26,11 @@ do_RA_simple   = False
 do_RA_markov   = False
 
 
-def makeDescriptiveStatistics(Economy):
+def makeStickyEresults(Economy):
     '''
-    Makes descriptive statistics for a model after it has been solved and simulated,
-    like the ones in Table 2 of the draft paper.  Behaves slightly differently for
-    heterogeneous agents vs representative agent models.
+    Makes descriptive statistics and regression results for a model after it has
+    been solved and simulated. Behaves slightly differently for heterogeneous agents
+    vs representative agent models.
     
     Parameters
     ----------
@@ -39,8 +41,8 @@ def makeDescriptiveStatistics(Economy):
         
     Returns
     -------
-    stat_string : str
-        Large string with descriptive statistics.
+    output_string : str
+        Large string with descriptive statistics and regression results.
     '''
     # Extract time series data from the economy
     if hasattr(Economy,'agents'): # If this is a heterogeneous agent specification...
@@ -71,38 +73,105 @@ def makeDescriptiveStatistics(Economy):
         Logy_trimmed[np.isinf(Logy)] = np.nan
         
     else: # If this is a representative agent specification...
-        PlvlAgg_hist = Economy.pLvlTrue_hist
-        ClvlAgg_hist = Economy.cLvlNow_hist
-        CnrmAgg_hist = ClvlAgg_hist/PlvlAgg_hist
-        YnrmAgg_hist = Economy.yNrmTrue_hist
-        YlvlAgg_hist = YnrmAgg_hist*PlvlAgg_hist
-        AlvlAgg_hist = Economy.aLvlNow_hist
-        AnrmAgg_hist = AlvlAgg_hist/PlvlAgg_hist
+        PlvlAgg_hist = Economy.pLvlTrue_hist.flatten()
+        ClvlAgg_hist = Economy.cLvlNow_hist.flatten()
+        CnrmAgg_hist = ClvlAgg_hist/PlvlAgg_hist.flatten()
+        YnrmAgg_hist = Economy.yNrmTrue_hist.flatten()
+        YlvlAgg_hist = YnrmAgg_hist*PlvlAgg_hist.flatten()
+        AlvlAgg_hist = Economy.aLvlNow_hist.flatten()
+        AnrmAgg_hist = AlvlAgg_hist/PlvlAgg_hist.flatten()
         
-    # Process aggregate data    
+    # Process aggregate data into forms used by regressions
     LogC = np.log(ClvlAgg_hist[ignore_periods:])
     LogA = np.log(AlvlAgg_hist[ignore_periods:])
     LogY = np.log(YlvlAgg_hist[ignore_periods:])
     DeltaLogC = LogC[1:] - LogC[0:-1]
     DeltaLogA = LogA[1:] - LogA[0:-1]
     DeltaLogY = LogY[1:] - LogY[0:-1]
+    A = AnrmAgg_hist[(ignore_periods+1):] # This is a relabeling for the regression code
     
-    # Make and return the output string
-    stat_string  = 'Average aggregate asset-to-productivity ratio = ' + str(np.mean(AnrmAgg_hist[ignore_periods:])) + '\n'
-    stat_string += 'Average aggregate consumption-to-productivity ratio = ' + str(np.mean(CnrmAgg_hist[ignore_periods:])) + '\n'
-    stat_string += 'Stdev of log aggregate asset-to-productivity ratio = ' + str(np.std(np.log(AnrmAgg_hist[ignore_periods:]))) + '\n'
-    stat_string += 'Stdev of change in log aggregate consumption level = ' + str(np.std(DeltaLogC)) + '\n'
-    stat_string += 'Stdev of change in log aggregate output level = ' + str(np.std(DeltaLogY)) + '\n'
-    stat_string += 'Stdev of change in log aggregate assets level = ' + str(np.std(DeltaLogA)) + '\n'
-    if hasattr(Economy,'agents'):
-        stat_string += 'Cross section stdev of log individual assets = ' + str(np.mean(np.std(Loga,axis=1))) + '\n'
-        stat_string += 'Cross section stdev of log individual consumption = ' + str(np.mean(np.std(Logc,axis=1))) + '\n'
-        stat_string += 'Cross section stdev of log individual productivity = ' + str(np.mean(np.std(Logp,axis=1))) + '\n'
-        stat_string += 'Cross section stdev of log individual non-zero income = ' + str(np.mean(np.std(Logy_trimmed,axis=1))) + '\n'
-        stat_string += 'Cross section stdev of change in log individual assets = ' + str(np.std(DeltaLoga_trimmed)) + '\n'
-        stat_string += 'Cross section stdev of change in log individual consumption = ' + str(np.std(DeltaLogc_trimmed)) + '\n'
-        stat_string += 'Cross section stdev of change in log individual productivity = ' + str(np.std(DeltaLogp_trimmed)) + '\n'
-    return stat_string
+    # Add measurement error to LogC
+    sigma_meas_err = np.std(DeltaLogC)/2.0
+    np.random.seed(10)
+    LogC_me = LogC + sigma_meas_err*np.random.normal(0.,1.,LogC.size)
+    DeltaLogC_me = LogC_me[1:] - LogC_me[0:-1]
+    
+    # Run OLS on log consumption (no measurement error)
+    mod = sm.OLS(DeltaLogC[1:],sm.add_constant(DeltaLogC[0:-1]))
+    res1 = mod.fit()
+    
+    # Run OLS on log consumption (with measurement error)
+    mod = sm.OLS(DeltaLogC_me[1:],sm.add_constant(DeltaLogC_me[0:-1]))
+    res2 = mod.fit()
+    
+    # Define instruments for IV regressions
+    temp = np.transpose(np.vstack([DeltaLogC_me[1:-3],DeltaLogC_me[:-4],DeltaLogY[1:-3],DeltaLogY[:-4],A[1:-3],A[:-4]]))
+    instruments = sm.add_constant(temp)
+    #instruments = sm.add_constant(np.transpose(np.array([DeltaLogC_me[1:-3],DeltaLogC_me[:-4],DeltaLogY[1:-3],DeltaLogY[:-4]])))
+    
+    # Run IV on log consumption (with measurement error)
+    mod = smsrg.IV2SLS(DeltaLogC_me[4:],sm.add_constant(DeltaLogC_me[3:-1]),instruments)
+    res3 = mod.fit()
+    
+    # Run IV on log income (with measurement error)
+    mod = smsrg.IV2SLS(DeltaLogC_me[4:],sm.add_constant(DeltaLogY[4:]),instruments)
+    res4 = mod.fit()
+    
+    # Run IV on assets (with measurement error)
+    mod = smsrg.IV2SLS(DeltaLogC_me[4:],sm.add_constant(A[3:-1]),instruments)
+    res5 = mod.fit()
+    
+    # Run horserace IV (with measurement error)
+    regressors = sm.add_constant(np.transpose(np.array([DeltaLogC_me[3:-1],DeltaLogY[4:],A[3:-1]])))
+    mod = smsrg.IV2SLS(DeltaLogC_me[4:],regressors,instruments)
+    res6 = mod.fit()
+    
+    # Also report frictionless results with no measurement error
+    temp2 = np.transpose(np.array([DeltaLogC[1:-3],DeltaLogC[:-4],DeltaLogY[1:-3],DeltaLogY[:-4],A[1:-3],A[:-4]]))
+    instruments2 = sm.add_constant(temp2)
+    
+    # Run IV on log income (no measurement error)
+    mod = smsrg.IV2SLS(DeltaLogC[4:],sm.add_constant(DeltaLogY[4:]),instruments2)
+    res7 = mod.fit()
+    
+    # Run IV on assets (no measurement error)
+    mod = smsrg.IV2SLS(DeltaLogC[4:],sm.add_constant(A[3:-1]),instruments2)
+    res8 = mod.fit()
+    
+    # Run horserace IV (with no measurement error)
+    regressors = sm.add_constant(np.transpose(np.array([DeltaLogC[3:-1],DeltaLogY[4:],A[3:-1]])))
+    mod = smsrg.IV2SLS(DeltaLogC[4:],regressors,instruments2)
+    res9 = mod.fit()
+    
+    # Make and return the output string, beginning with descriptive statistics
+    output_string  = 'Average aggregate asset-to-productivity ratio = ' + str(np.mean(AnrmAgg_hist[ignore_periods:])) + '\n'
+    output_string += 'Average aggregate consumption-to-productivity ratio = ' + str(np.mean(CnrmAgg_hist[ignore_periods:])) + '\n'
+    output_string += 'Stdev of log aggregate asset-to-productivity ratio = ' + str(np.std(np.log(AnrmAgg_hist[ignore_periods:]))) + '\n'
+    output_string += 'Stdev of change in log aggregate consumption level = ' + str(np.std(DeltaLogC)) + '\n'
+    output_string += 'Stdev of change in log aggregate output level = ' + str(np.std(DeltaLogY)) + '\n'
+    output_string += 'Stdev of change in log aggregate assets level = ' + str(np.std(DeltaLogA)) + '\n'
+    if hasattr(Economy,'agents'): # This block only runs for heterogeneous agents specifications
+        output_string += 'Cross section stdev of log individual assets = ' + str(np.mean(np.std(Loga,axis=1))) + '\n'
+        output_string += 'Cross section stdev of log individual consumption = ' + str(np.mean(np.std(Logc,axis=1))) + '\n'
+        output_string += 'Cross section stdev of log individual productivity = ' + str(np.mean(np.std(Logp,axis=1))) + '\n'
+        output_string += 'Cross section stdev of log individual non-zero income = ' + str(np.mean(np.std(Logy_trimmed,axis=1))) + '\n'
+        output_string += 'Cross section stdev of change in log individual assets = ' + str(np.std(DeltaLoga_trimmed)) + '\n'
+        output_string += 'Cross section stdev of change in log individual consumption = ' + str(np.std(DeltaLogc_trimmed)) + '\n'
+        output_string += 'Cross section stdev of change in log individual productivity = ' + str(np.std(DeltaLogp_trimmed)) + '\n'
+    output_string += '\n\n\n'    
+        
+    # Add regression results to the output string
+    output_string += str(res1.summary(yname='DeltaLogC_t',xname=['constant','DeltaLogC_tm1'],title='OLS on log consumption (no measurement error)')) + '\n\n\n'
+    output_string += str(res2.summary(yname='DeltaLogC_t',xname=['constant','DeltaLogC_tm1'],title='OLS on log consumption (with measurement error)')) + '\n\n\n'
+    output_string += str(res3.summary(yname='DeltaLogC_t',xname=['constant','DeltaLogC_tm1'],title='IV on log consumption (with measurement error)')) + '\n\n\n'
+    output_string += str(res4.summary(yname='DeltaLogC_t',xname=['constant','DeltaLogY_t'],title='IV on log income (with measurement error)')) + '\n\n\n'
+    output_string += str(res5.summary(yname='DeltaLogC_t',xname=['constant','A_tm1'],title='IV on asset ratio (with measurement error)')) + '\n\n\n'
+    output_string += str(res6.summary(yname='DeltaLogC_t',xname=['constant','DeltaLogC_tm1','DeltaLogY_t','A_tm1'],title='Horserace IV (with measurement error)')) + '\n\n\n'
+    output_string += str(res7.summary(yname='DeltaLogC_t',xname=['constant','DeltaLogY_t'],title='IV on log income (no measurement error)')) + '\n\n\n'
+    output_string += str(res8.summary(yname='DeltaLogC_t',xname=['constant','A_tm1'],title='IV on asset ratio (no measurement error)')) + '\n\n\n'
+    output_string += str(res9.summary(yname='DeltaLogC_t',xname=['constant','DeltaLogC_tm1','DeltaLogY_t','A_tm1'],title='Horserace IV (no measurement error)')) + '\n\n\n'
+     
+    return output_string # Return output string
 
 
 
@@ -128,8 +197,8 @@ if do_SOE_simple:
     cFunc = lambda m : StickySOEconsumers.solution[0].cFunc(m,np.ones_like(m))
     plotFuncs(cFunc,0.0,20.0)
     
-    print('Descriptive statistics for the small open economy:')
-    print(makeDescriptiveStatistics(StickySOEconomy))
+    print('Results for the small open economy:')
+    print(makeStickyEresults(StickySOEconomy))
 
 
 ###############################################################################
@@ -162,8 +231,8 @@ if do_SOE_markov:
         plt.plot(m,c[i,:])
     plt.show()
     
-    print('Descriptive statistics for the small open Markov economy:')
-    print(makeDescriptiveStatistics(StickySOmarkovEconomy))
+    print('Results for the small open Markov economy:')
+    print(makeStickyEresults(StickySOmarkovEconomy))
     
 
 ###############################################################################
@@ -190,8 +259,8 @@ if do_DSGE_simple:
         plt.plot(m,c)
     plt.show()
     
-    print('Descriptive statistics for the Cobb-Douglas economy:')
-    print(makeDescriptiveStatistics(StickyDSGEeconomy))
+    print('Results for the Cobb-Douglas economy:')
+    print(makeStickyEresults(StickyDSGEeconomy))
 
 ###############################################################################
 
@@ -213,8 +282,8 @@ if do_DSGE_markov:
     t_end = clock()
     print('Solving the Cobb-Douglas Markov economy took ' + str(t_end-t_start) + ' seconds.')
     
-    print('Descriptive statistics for the Cobb-Douglas Markov economy:')
-    print(makeDescriptiveStatistics(StickyDSGEmarkovEconomy))
+    print('Results for the Cobb-Douglas Markov economy:')
+    print(makeStickyEresults(StickyDSGEmarkovEconomy))
     
 
 ###############################################################################
@@ -234,8 +303,8 @@ if do_RA_simple:
     print('Consumption function for the representative agent:')
     plotFuncs(StickyRAconsumer.solution[0].cFunc,0,50)
     
-    print('Descriptive statistics for the representative agent economy:')
-    print(makeDescriptiveStatistics(StickyRAconsumer))
+    print('Results for the representative agent economy:')
+    print(makeStickyEresults(StickyRAconsumer))
     
 
 ###############################################################################
@@ -256,6 +325,6 @@ if do_RA_markov:
     print('Consumption functions for the Markov representative agent:')
     plotFuncs(StickyRAmarkovConsumer.solution[0].cFunc,0,50)
     
-    print('Descriptive statistics for the Markov representative agent economy:')
-    print(makeDescriptiveStatistics(StickyRAmarkovConsumer))
+    print('Results for the Markov representative agent economy:')
+    print(makeStickyEresults(StickyRAmarkovConsumer))
     
