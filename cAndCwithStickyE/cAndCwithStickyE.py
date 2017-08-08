@@ -9,9 +9,10 @@ sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 import numpy as np
 from copy import deepcopy
 from time import clock
-from StickyEmodel import StickyEconsumerType, StickyEmarkovConsumerType, StickyErepAgent
+from StickyEmodel import StickyEconsumerType, StickyEmarkovConsumerType, StickyErepAgent, StickyEmarkovRepAgent
 import StickyEparams as Params
 from ConsAggShockModel import SmallOpenEconomy, SmallOpenMarkovEconomy, CobbDouglasEconomy,CobbDouglasMarkovEconomy
+from RepAgentModel import RepAgentMarkovConsumerType
 from HARKutilities import plotFuncs
 import matplotlib.pyplot as plt
 ignore_periods = Params.ignore_periods
@@ -20,9 +21,9 @@ ignore_periods = Params.ignore_periods
 do_SOE_simple  = False
 do_SOE_markov  = False
 do_DSGE_simple = False
-do_DSGE_markov = True
+do_DSGE_markov = False
 do_RA_simple   = False
-do_RA_markov   = False
+do_RA_markov   = True
 
 ###############################################################################
 
@@ -232,15 +233,16 @@ if do_RA_simple:
     StickyRAconsumer.solve()
     StickyRAconsumer.simulate()
     t_end = clock()
-    print('Solving the representative economy took ' + str(t_end-t_start) + ' seconds.')
+    print('Solving the representative agent economy took ' + str(t_end-t_start) + ' seconds.')
     
     print('Consumption function for the representative agent:')
-    plotFuncs(StickyRAconsumer.solution[0].cFunc,0,20)
+    plotFuncs(StickyRAconsumer.solution[0].cFunc,0,50)
     
     print('Descriptive statistics for the representative agent economy:')
-    print('Average aggregate assets = ' + str(np.mean(StickyRAconsumer.aLvlNow_hist[ignore_periods:,:])))
-    print('Average aggregate consumption = ' + str(np.mean(StickyRAconsumer.cLvlNow_hist[ignore_periods:,:])))
-    print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(StickyRAconsumer.aLvlNow_hist[ignore_periods:,:]))))
+    PlvlAgg_hist = StickyRAconsumer.pLvlTrue_hist
+    print('Average aggregate assets = ' + str(np.mean(StickyRAconsumer.aLvlNow_hist[ignore_periods:,:]/PlvlAgg_hist[ignore_periods:,:])))
+    print('Average aggregate consumption = ' + str(np.mean(StickyRAconsumer.cLvlNow_hist[ignore_periods:,:]/PlvlAgg_hist[ignore_periods:,:])))
+    print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(StickyRAconsumer.aLvlNow_hist[ignore_periods:,:]/PlvlAgg_hist[ignore_periods:,:]))))
     LogA = np.log(np.mean(StickyRAconsumer.aLvlNow_hist,axis=1))[ignore_periods:]
     DeltaLogA = LogA[1:] - LogA[0:-1]
     print('Standard deviation of change in log aggregate assets = ' + str(np.std(DeltaLogA)))
@@ -252,4 +254,37 @@ if do_RA_simple:
     print('Standard deviation of change in log aggregate output = ' + str(np.std(DeltaLogY)))
 
 
+###############################################################################
 
+
+if do_RA_markov:
+    # Make a representative agent consumer, then solve and simulate the model
+    StickyRAmarkovConsumer = StickyEmarkovRepAgent(**Params.init_RA_mrkv_consumer)
+    StickyRAmarkovConsumer.IncomeDstn[0] = Params.StateCount*[StickyRAmarkovConsumer.IncomeDstn[0]]
+    StickyRAmarkovConsumer.track_vars = ['cLvlNow','aNrmNow','yNrmTrue','aLvlNow','pLvlTrue','MrkvNow']
+    StickyRAmarkovConsumer.initializeSim()
+    
+    t_start = clock()
+    StickyRAmarkovConsumer.solve()
+    StickyRAmarkovConsumer.simulate()
+    t_end = clock()
+    print('Solving the representative agent Markov economy took ' + str(t_end-t_start) + ' seconds.')
+    
+    print('Consumption functions for the Markov representative agent:')
+    plotFuncs(StickyRAmarkovConsumer.solution[0].cFunc,0,50)
+    
+    print('Descriptive statistics for the representative agent economy:')
+    PlvlAgg_hist = StickyRAmarkovConsumer.pLvlTrue_hist
+    print('Average aggregate assets = ' + str(np.mean(StickyRAmarkovConsumer.aLvlNow_hist[ignore_periods:,:]/PlvlAgg_hist[ignore_periods:,:])))
+    print('Average aggregate consumption = ' + str(np.mean(StickyRAmarkovConsumer.cLvlNow_hist[ignore_periods:,:]/PlvlAgg_hist[ignore_periods:,:])))
+    print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(StickyRAmarkovConsumer.aLvlNow_hist[ignore_periods:,:]/PlvlAgg_hist[ignore_periods:,:]))))
+    LogA = np.log(np.mean(StickyRAmarkovConsumer.aLvlNow_hist,axis=1))[ignore_periods:]
+    DeltaLogA = LogA[1:] - LogA[0:-1]
+    print('Standard deviation of change in log aggregate assets = ' + str(np.std(DeltaLogA)))
+    LogC = np.log(np.mean(StickyRAmarkovConsumer.cLvlNow_hist,axis=1))[ignore_periods:]
+    DeltaLogC = LogC[1:] - LogC[0:-1]
+    print('Standard deviation of change in log aggregate consumption = ' + str(np.std(DeltaLogC)))
+    LogY = np.log(np.mean(StickyRAmarkovConsumer.yNrmTrue_hist*StickyRAmarkovConsumer.pLvlTrue_hist,axis=1))[ignore_periods:]
+    DeltaLogY = LogY[1:] - LogY[0:-1]
+    print('Standard deviation of change in log aggregate output = ' + str(np.std(DeltaLogY)))
+    

@@ -241,7 +241,7 @@ class StickyErepAgent(RepAgentConsumerType):
     def simBirth(self,which_agents):
         '''
         Makes new consumers for the given indices.  Slightly extends base method by also setting
-        pLvlErrNow = 1.0 for new agents, indicating that they correctly perceive their productivity.
+        pLvlTrue = 1.0 for new agents, indicating that they correctly perceive their productivity.
         
         Parameters
         ----------
@@ -252,9 +252,10 @@ class StickyErepAgent(RepAgentConsumerType):
         -------
         None
         '''
-        super(self.__class__,self).simBirth(self,which_agents)
-        self.pLvlTrue = np.ones(self.AgentCount)
-        self.aLvlNow = self.aNrmNow*self.pLvlTrue
+        super(self.__class__,self).simBirth(which_agents)
+        if self.t_sim == 0:
+            self.pLvlTrue = np.ones(self.AgentCount)
+            self.aLvlNow = self.aNrmNow*self.pLvlTrue
             
     def getShocks(self):
         '''
@@ -294,8 +295,7 @@ class StickyErepAgent(RepAgentConsumerType):
         # Calculate perceived and true productivity level
         aLvlPrev = self.aLvlNow
         self.pLvlTrue = self.pLvlTrue*self.PermShkNow
-        pLvlPcvd = self.getpLvlPcvd()
-        self.pLvlNow = pLvlPcvd
+        self.pLvlNow = self.getpLvlPcvd()
         
         # Calculate perceptions of normalized variables
         self.kNrmNow = aLvlPrev/self.pLvlNow
@@ -312,6 +312,10 @@ class StickyErepAgent(RepAgentConsumerType):
         self.mNrmTrue = self.Rfree*self.kNrmTrue + self.wRte*self.TranShkTrue
         self.mLvlTrue = self.mNrmTrue*self.pLvlTrue
         
+    def getControls(self):
+        super(self.__class__,self).getControls()
+        self.cLvlNow = self.cNrmNow*self.pLvlNow # This is true
+        
     def getPostStates(self):
         '''
         Slightly extends the base version of this method by recalculating aLvlNow to account for the
@@ -326,7 +330,6 @@ class StickyErepAgent(RepAgentConsumerType):
         None
         '''
         RepAgentConsumerType.getPostStates(self)
-        self.cLvlNow = self.cNrmNow*self.pLvlNow # This is true
         self.aLvlNow = self.mLvlTrue - self.cLvlNow # This is true
         self.aNrmNow = self.aLvlNow/self.pLvlTrue # This is true
         
@@ -347,35 +350,83 @@ class StickyErepAgent(RepAgentConsumerType):
         return pLvlPcvd
     
     
-#class StickyEmarkovRepAgent(RepAgentMarkovConsumerType,StickyErepAgent):
-#    '''
-#    A representative consumer who has sticky expectations about the macroeconomy because
-#    he does not observe aggregate variables every period.  Agent lives in a Cobb-Douglas
-#    economy that has a discrete Markov state.
-#    '''
-#    def simBirth(self,which_agents):
-#        StickyErepAgent.simBirth(self,which_agents)
-#        
-#    def getShocks(self):
-#        StickyErepAgent.getShocks(self)
-#        
-#    def getStates(self):
-#        StickyErepAgent.getStates(self)
-#        
-#    def getPostStates(self):
-#        StickyErepAgent.getPostStates(self)
-#        
-#    def getpLvlPcvd(self):
-#        '''
-#        Finds the representative agent's (average) perceived productivity level.
-#        
-#        Parameters
-#        ----------
-#        None
-#        
-#        Returns
-#        -------
-#        pLvlPcvd : np.array
-#            Size 1 array with average perception of productivity level.
-#        '''
-#        
+class StickyEmarkovRepAgent(RepAgentMarkovConsumerType,StickyErepAgent):
+    '''
+    A representative consumer who has sticky expectations about the macroeconomy because
+    he does not observe aggregate variables every period.  Agent lives in a Cobb-Douglas
+    economy that has a discrete Markov state.
+    '''
+    def simBirth(self,which_agents):
+        RepAgentMarkovConsumerType.simBirth(self,which_agents)
+        if self.t_sim == 0: # Initialize perception distribution for Markov state
+            self.pLvlTrue = np.ones(self.AgentCount)
+            self.aLvlNow = self.aNrmNow*self.pLvlTrue
+            StateCount = self.MrkvArray.shape[0]
+            self.pLvlNow = np.ones(StateCount)
+            self.MrkvPcvd = np.zeros(StateCount)
+            self.MrkvPcvd[self.MrkvNow[0]] = 1.0
+        
+    def getShocks(self):
+        StickyErepAgent.getShocks(self)
+        
+    def getStates(self):
+        StickyErepAgent.getStates(self)
+        
+    def getPostStates(self):
+        StickyErepAgent.getPostStates(self)
+        
+    def getpLvlPcvd(self):
+        '''
+        Finds the representative agent's (average) perceived productivity level
+        for each Markov state, as well as the distribution of the representative
+        agent's perception of the Markov state.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        pLvlPcvd : np.array
+            Array with average perception of productivity level by Markov state.
+        '''
+        StateCount = self.MrkvArray.shape[0]
+        t = self.t_cycle[0]
+        i = self.MrkvNow[0]
+        
+        dont_mass = self.MrkvPcvd*(1.-self.UpdatePrb) # pmf of non-updaters
+        update_mass = np.zeros(StateCount)
+        update_mass[i] = self.UpdatePrb # pmf of updaters
+        
+        dont_pLvlPcvd = self.pLvlNow*self.PermGroFac[t-1] # those that don't update think pLvl grows at PermGroFac for last observed state
+        update_pLvlPcvd = np.zeros(StateCount)
+        update_pLvlPcvd[i] = self.pLvlTrue # those that update see the true pLvl
+        
+        # Combine updaters and non-updaters to get average pLvl perception by Markov state
+        self.MrkvPcvd = dont_mass + update_mass
+        pLvlPcvd = (dont_mass*dont_pLvlPcvd + update_mass*update_pLvlPcvd)/self.MrkvPcvd
+        pLvlPcvd[self.MrkvPcvd==0.] = 1.0 # fix division by zero problem when MrkvPcvd[i]=0
+        return pLvlPcvd
+        
+    def getControls(self):
+        '''
+        Calculates consumption for the representative agent using the consumption functions.
+        Takes the weighted average of cLvl across perceived Markov states.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        StateCount = self.MrkvArray.shape[0]
+        t = self.t_cycle[0]
+        
+        cNrmNow = np.zeros(StateCount)
+        for i in range(StateCount):
+            cNrmNow[i] = self.solution[t].cFunc[i](self.mNrmNow[i])
+        self.cNrmNow = cNrmNow
+        self.cLvlNow = np.dot(cNrmNow*self.pLvlNow,self.MrkvPcvd)
+        
