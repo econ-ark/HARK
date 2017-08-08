@@ -662,7 +662,7 @@ def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):
     p_vec = w_vec/W
 
     # Check for obvious errors, and return p_vec    
-    assert (np.all(p_vec>=0.)) and (np.all(p_vec<=1.)) and (np.isclose(np.sum(p_vec)),1.)
+    assert (np.all(p_vec>=0.)) and (np.all(p_vec<=1.)) and (np.isclose(np.sum(p_vec),1.))
     return p_vec
 
 def makeMarkovApproxToNormalByMonteCarlo(x_grid,mu,sigma,N_draws = 10000):
