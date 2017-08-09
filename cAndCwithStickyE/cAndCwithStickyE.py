@@ -1,6 +1,10 @@
 '''
-Runs the exercises and regressions for the cAndCwithStickyE paper.
+This module runs the exercises and regressions for the cAndCwithStickyE paper.
+User can choose which among the six model variations are actually run.  Descriptive
+statistics and regression results are both output to screen and saved in a log
+file in the ./results directory.  See StickyEparams for calibrated model parameters.
 '''
+
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../'))
@@ -16,17 +20,22 @@ import statsmodels.api as sm
 import statsmodels.sandbox.regression.gmm as smsrg
 import StickyEparams as Params
 ignore_periods = Params.ignore_periods
+mystr = lambda number : "{:.3f}".format(number)
 
 # Choose which models to run
-do_SOE_simple  = False
+do_SOE_simple  = True
 do_SOE_markov  = False
 do_DSGE_simple = False
 do_DSGE_markov = False
 do_RA_simple   = False
 do_RA_markov   = False
 
+# Define a string for log filename
+sticky_str = 'Frictionless'
+if Params.UpdatePrb < 1.0:
+    sticky_str = 'Sticky'
 
-def makeStickyEresults(Economy):
+def makeStickyEresults(Economy,description='',filename=None):
     '''
     Makes descriptive statistics and regression results for a model after it has
     been solved and simulated. Behaves slightly differently for heterogeneous agents
@@ -38,11 +47,16 @@ def makeStickyEresults(Economy):
         A representation of the model economy.  For heterogeneous agents specifications,
         this will be an instance of a subclass of Market.  For representative agent
         specifications, this will be an instance of an AgentType subclass.
+    description : str
+        Description of the economy that is prepended on the output string.
+    filename : str
+        Name of the output log file, if any; .txt will be appended automatically.
         
     Returns
     -------
     output_string : str
-        Large string with descriptive statistics and regression results.
+        Large string with descriptive statistics and regression results.  Also
+        saved to a logfile if filename is not None.
     '''
     # Extract time series data from the economy
     if hasattr(Economy,'agents'): # If this is a heterogeneous agent specification...
@@ -144,7 +158,8 @@ def makeStickyEresults(Economy):
     res9 = mod.fit()
     
     # Make and return the output string, beginning with descriptive statistics
-    output_string  = 'Average aggregate asset-to-productivity ratio = ' + str(np.mean(AnrmAgg_hist[ignore_periods:])) + '\n'
+    output_string = description + '\n\n\n'
+    output_string += 'Average aggregate asset-to-productivity ratio = ' + str(np.mean(AnrmAgg_hist[ignore_periods:])) + '\n'
     output_string += 'Average aggregate consumption-to-productivity ratio = ' + str(np.mean(CnrmAgg_hist[ignore_periods:])) + '\n'
     output_string += 'Stdev of log aggregate asset-to-productivity ratio = ' + str(np.std(np.log(AnrmAgg_hist[ignore_periods:]))) + '\n'
     output_string += 'Stdev of change in log aggregate consumption level = ' + str(np.std(DeltaLogC)) + '\n'
@@ -158,7 +173,7 @@ def makeStickyEresults(Economy):
         output_string += 'Cross section stdev of change in log individual assets = ' + str(np.std(DeltaLoga_trimmed)) + '\n'
         output_string += 'Cross section stdev of change in log individual consumption = ' + str(np.std(DeltaLogc_trimmed)) + '\n'
         output_string += 'Cross section stdev of change in log individual productivity = ' + str(np.std(DeltaLogp_trimmed)) + '\n'
-    output_string += '\n\n\n'    
+    output_string += '\n\n'    
         
     # Add regression results to the output string
     output_string += str(res1.summary(yname='DeltaLogC_t',xname=['constant','DeltaLogC_tm1'],title='OLS on log consumption (no measurement error)')) + '\n\n\n'
@@ -171,160 +186,192 @@ def makeStickyEresults(Economy):
     output_string += str(res8.summary(yname='DeltaLogC_t',xname=['constant','A_tm1'],title='IV on asset ratio (no measurement error)')) + '\n\n\n'
     output_string += str(res9.summary(yname='DeltaLogC_t',xname=['constant','DeltaLogC_tm1','DeltaLogY_t','A_tm1'],title='Horserace IV (no measurement error)')) + '\n\n\n'
      
+    # Save the results to a logfile if requested
+    if filename is not None:
+        with open('./Results/' + filename + '.txt','w') as f:
+            f.write(output_string)
+            f.close()
+    
     return output_string # Return output string
 
-
-
-###############################################################################
-
-if do_SOE_simple:
-    # Make a small open economy and the consumers who live in it
-    StickySOEconsumers = StickyEconsumerType(**Params.init_SOE_consumer)
-    StickySOEconomy = SmallOpenEconomy(agents=[StickySOEconsumers],**Params.init_SOE_market)
-    StickySOEconomy.makeAggShkHist()
-    StickySOEconsumers.getEconomyData(StickySOEconomy)
-    StickySOEconsumers.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+# Run models and save output if this module is called from main
+if __name__ == '__main__':
+    ###############################################################################
+    ################# SMALL OPEN ECONOMY ##########################################
+    ###############################################################################
     
-    # Solve the model and display some output
-    t_start = clock()
-    StickySOEconomy.solveAgents()
-    StickySOEconomy.makeHistory()
-    t_end = clock()
-    print('Solving the small open economy took ' + str(t_end-t_start) + ' seconds.')
+    if do_SOE_simple:
+        # Make a small open economy and the consumers who live in it
+        StickySOEconsumers = StickyEconsumerType(**Params.init_SOE_consumer)
+        StickySOEconomy = SmallOpenEconomy(agents=[StickySOEconsumers],**Params.init_SOE_market)
+        StickySOEconomy.makeAggShkHist()
+        StickySOEconsumers.getEconomyData(StickySOEconomy)
+        StickySOEconsumers.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+        
+        # Solve the model and display some output
+        t_start = clock()
+        StickySOEconomy.solveAgents()
+        StickySOEconomy.makeHistory()
+        t_end = clock()
+        print('Solving the small open economy took ' + str(t_end-t_start) + ' seconds.')
+        
+        # Plot the consumption function
+        print('Consumption function for the small open economy:')
+        cFunc = lambda m : StickySOEconsumers.solution[0].cFunc(m,np.ones_like(m))
+        plotFuncs(cFunc,0.0,20.0)
+        
+        # Make results for the small open economy
+        desc = 'Results for the small open economy with update probability ' + mystr(Params.UpdatePrb)
+        name = 'SOEsimple' + sticky_str + 'Results'
+        print(makeStickyEresults(StickySOEconomy,description=desc,filename=name))
     
-    # Plot the consumption function
-    print('Consumption function for the small open economy:')
-    cFunc = lambda m : StickySOEconsumers.solution[0].cFunc(m,np.ones_like(m))
-    plotFuncs(cFunc,0.0,20.0)
     
-    print('Results for the small open economy:')
-    print(makeStickyEresults(StickySOEconomy))
-
-
-###############################################################################
-
-if do_SOE_markov:
-    # Make a consumer type to inhabit the small open Markov economy
-    StickySOEmarkovConsumers = StickyEmarkovConsumerType(**Params.init_SOE_mrkv_consumer)
-    StickySOEmarkovConsumers.IncomeDstn[0] = Params.StateCount*[StickySOEmarkovConsumers.IncomeDstn[0]]
-    StickySOEmarkovConsumers.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+    ###############################################################################
+    ########## SMALL OPEN ECONOMY WITH MACROECONOMIC MARKOV STATE##################
+    ###############################################################################
     
-    # Make a Cobb-Douglas economy for the agents
-    StickySOmarkovEconomy = SmallOpenMarkovEconomy(agents = [StickySOEmarkovConsumers],**Params.init_SOE_mrkv_market)
-    StickySOmarkovEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
-    StickySOEmarkovConsumers.getEconomyData(StickySOmarkovEconomy) # Have the consumers inherit relevant objects from the economy
+    if do_SOE_markov:
+        # Make a consumer type to inhabit the small open Markov economy
+        StickySOEmarkovConsumers = StickyEmarkovConsumerType(**Params.init_SOE_mrkv_consumer)
+        StickySOEmarkovConsumers.IncomeDstn[0] = Params.StateCount*[StickySOEmarkovConsumers.IncomeDstn[0]]
+        StickySOEmarkovConsumers.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+        
+        # Make a Cobb-Douglas economy for the agents
+        StickySOmarkovEconomy = SmallOpenMarkovEconomy(agents = [StickySOEmarkovConsumers],**Params.init_SOE_mrkv_market)
+        StickySOmarkovEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
+        StickySOEmarkovConsumers.getEconomyData(StickySOmarkovEconomy) # Have the consumers inherit relevant objects from the economy
+        
+        # Solve the model
+        t_start = clock()
+        StickySOmarkovEconomy.solveAgents()
+        StickySOmarkovEconomy.makeHistory()
+        t_end = clock()
+        print('Solving the small open Markov economy took ' + str(t_end-t_start) + ' seconds.')
+        
+        # Plot the consumption function in each Markov state
+        print('Consumption function for the small open Markov economy:')
+        m = np.linspace(0,20,500)
+        M = np.ones_like(m)
+        c = np.zeros((Params.StateCount,m.size))
+        for i in range(Params.StateCount):
+            c[i,:] = StickySOEmarkovConsumers.solution[0].cFunc[i](m,M)
+            plt.plot(m,c[i,:])
+        plt.show()
+        
+        # Make results for the small open Markov economy
+        desc = 'Results for the small open Markov economy with update probability ' + mystr(Params.UpdatePrb)
+        name = 'SOEmarkov' + sticky_str + 'Results'
+        print(makeStickyEresults(StickySOmarkovEconomy,description=desc,filename=name))
+        
     
-    # Solve the model
-    t_start = clock()
-    StickySOmarkovEconomy.solveAgents()
-    StickySOmarkovEconomy.makeHistory()
-    t_end = clock()
-    print('Solving the small open Markov economy took ' + str(t_end-t_start) + ' seconds.')
+    ###############################################################################
+    ################# COBB-DOUGLAS ECONOMY ########################################
+    ###############################################################################
     
-    # Plot the consumption function in each Markov state
-    print('Consumption function for the small open Markov economy:')
-    m = np.linspace(0,20,500)
-    M = np.ones_like(m)
-    c = np.zeros((Params.StateCount,m.size))
-    for i in range(Params.StateCount):
-        c[i,:] = StickySOEmarkovConsumers.solution[0].cFunc[i](m,M)
-        plt.plot(m,c[i,:])
-    plt.show()
+    if do_DSGE_simple:
+        # Make a Cobb-Douglas economy and the consumers who live in it
+        StickyDSGEconsumers = StickyEconsumerType(**Params.init_DSGE_consumer)
+        StickyDSGEeconomy = CobbDouglasEconomy(agents=[StickyDSGEconsumers],**Params.init_DSGE_market)
+        StickyDSGEeconomy.makeAggShkHist()
+        StickyDSGEconsumers.getEconomyData(StickyDSGEeconomy)
+        StickyDSGEconsumers.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+        
+        # Solve the model
+        t_start = clock()
+        StickyDSGEeconomy.solve()
+        t_end = clock()
+        print('Solving the Cobb-Douglas economy took ' + str(t_end-t_start) + ' seconds.')
+        
+        # Plot the consumption function
+        print('Consumption function for the Cobb-Douglas economy:')
+        m = np.linspace(0.,20.,300)
+        for M in StickyDSGEconsumers.Mgrid:
+            c = StickyDSGEconsumers.solution[0].cFunc(m,M*np.ones_like(m))
+            plt.plot(m,c)
+        plt.show()
+        
+        # Make results for the Cobb-Douglas economy
+        desc = 'Results for the Cobb-Douglas economy with update probability ' + mystr(Params.UpdatePrb)
+        name = 'DSGEsimple' + sticky_str + 'Results'
+        print(makeStickyEresults(StickyDSGEeconomy,description=desc,filename=name))
     
-    print('Results for the small open Markov economy:')
-    print(makeStickyEresults(StickySOmarkovEconomy))
     
-
-###############################################################################
-
-if do_DSGE_simple:
-    # Make a Cobb-Douglas economy and the consumers who live in it
-    StickyDSGEconsumers = StickyEconsumerType(**Params.init_DSGE_consumer)
-    StickyDSGEeconomy = CobbDouglasEconomy(agents=[StickyDSGEconsumers],**Params.init_DSGE_market)
-    StickyDSGEeconomy.makeAggShkHist()
-    StickyDSGEconsumers.getEconomyData(StickyDSGEeconomy)
-    StickyDSGEconsumers.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+    ###############################################################################
+    ########## COBB-DOUGLAS ECONOMY WITH MACROECONOMIC MARKOV STATE ###############
+    ###############################################################################
     
-    # Solve the model
-    t_start = clock()
-    StickyDSGEeconomy.solve()
-    t_end = clock()
-    print('Solving the Cobb-Douglas economy took ' + str(t_end-t_start) + ' seconds.')
+    if do_DSGE_markov:
+        # Make a consumer type to inhabit the small open Markov economy
+        StickyDSGEmarkovConsumers = StickyEmarkovConsumerType(**Params.init_DSGE_mrkv_consumer)
+        StickyDSGEmarkovConsumers.IncomeDstn[0] = Params.StateCount*[StickyDSGEmarkovConsumers.IncomeDstn[0]]
+        StickyDSGEmarkovConsumers.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+        
+        # Make a Cobb-Douglas economy for the agents
+        StickyDSGEmarkovEconomy = CobbDouglasMarkovEconomy(agents = [StickyDSGEmarkovConsumers],**Params.init_DSGE_mrkv_market)
+        StickyDSGEmarkovEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
+        StickyDSGEmarkovConsumers.getEconomyData(StickyDSGEmarkovEconomy) # Have the consumers inherit relevant objects from the economy
+        
+        # Solve the model
+        t_start = clock()
+        StickyDSGEmarkovEconomy.solve()
+        t_end = clock()
+        print('Solving the Cobb-Douglas Markov economy took ' + str(t_end-t_start) + ' seconds.')
+        
+        print('Displaying the consumption functions for the Cobb-Douglas Markov economy would be too much.')
+        
+        # Make results for the Cobb-Douglas Markov economy
+        desc = 'Results for the Cobb-Douglas Markov economy with update probability ' + mystr(Params.UpdatePrb)
+        name = 'DSGEmarkov' + sticky_str + 'Results'
+        print(makeStickyEresults(StickyDSGEmarkovEconomy,description=desc,filename=name))
+        
     
-    # Plot the consumption function
-    print('Consumption function for the Cobb-Douglas economy:')
-    m = np.linspace(0.,20.,300)
-    for M in StickyDSGEconsumers.Mgrid:
-        c = StickyDSGEconsumers.solution[0].cFunc(m,M*np.ones_like(m))
-        plt.plot(m,c)
-    plt.show()
+    ###############################################################################
+    ################# REPRESENTATIVE AGENT ECONOMY ################################
+    ###############################################################################
     
-    print('Results for the Cobb-Douglas economy:')
-    print(makeStickyEresults(StickyDSGEeconomy))
-
-###############################################################################
-
-
-if do_DSGE_markov:
-    # Make a consumer type to inhabit the small open Markov economy
-    StickyDSGEmarkovConsumers = StickyEmarkovConsumerType(**Params.init_DSGE_mrkv_consumer)
-    StickyDSGEmarkovConsumers.IncomeDstn[0] = Params.StateCount*[StickyDSGEmarkovConsumers.IncomeDstn[0]]
-    StickyDSGEmarkovConsumers.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+    if do_RA_simple:
+        # Make a representative agent consumer, then solve and simulate the model
+        StickyRAconsumer = StickyErepAgent(**Params.init_RA_consumer)
+        StickyRAconsumer.track_vars = ['cLvlNow','yNrmTrue','aLvlNow','pLvlTrue']
+        StickyRAconsumer.initializeSim()
+        
+        t_start = clock()
+        StickyRAconsumer.solve()
+        StickyRAconsumer.simulate()
+        t_end = clock()
+        print('Solving the representative agent economy took ' + str(t_end-t_start) + ' seconds.')
+        
+        print('Consumption function for the representative agent:')
+        plotFuncs(StickyRAconsumer.solution[0].cFunc,0,50)
+        
+        # Make results for the representative agent economy
+        desc = 'Results for the representative agent economy with update probability ' + mystr(Params.UpdatePrb)
+        name = 'RAsimple' + sticky_str + 'Results'
+        print(makeStickyEresults(StickyRAconsumer,description=desc,filename=name))
+        
     
-    # Make a Cobb-Douglas economy for the agents
-    StickyDSGEmarkovEconomy = CobbDouglasMarkovEconomy(agents = [StickyDSGEmarkovConsumers],**Params.init_DSGE_mrkv_market)
-    StickyDSGEmarkovEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
-    StickyDSGEmarkovConsumers.getEconomyData(StickyDSGEmarkovEconomy) # Have the consumers inherit relevant objects from the economy
+    ###############################################################################
+    ########### REPRESENTATIVE AGENT ECONOMY WITH MARKOV STATE ####################
+    ###############################################################################
     
-    # Solve the model
-    t_start = clock()
-    StickyDSGEmarkovEconomy.solve()
-    t_end = clock()
-    print('Solving the Cobb-Douglas Markov economy took ' + str(t_end-t_start) + ' seconds.')
-    
-    print('Results for the Cobb-Douglas Markov economy:')
-    print(makeStickyEresults(StickyDSGEmarkovEconomy))
-    
-
-###############################################################################
-
-if do_RA_simple:
-    # Make a representative agent consumer, then solve and simulate the model
-    StickyRAconsumer = StickyErepAgent(**Params.init_RA_consumer)
-    StickyRAconsumer.track_vars = ['cLvlNow','yNrmTrue','aLvlNow','pLvlTrue']
-    StickyRAconsumer.initializeSim()
-    
-    t_start = clock()
-    StickyRAconsumer.solve()
-    StickyRAconsumer.simulate()
-    t_end = clock()
-    print('Solving the representative agent economy took ' + str(t_end-t_start) + ' seconds.')
-    
-    print('Consumption function for the representative agent:')
-    plotFuncs(StickyRAconsumer.solution[0].cFunc,0,50)
-    
-    print('Results for the representative agent economy:')
-    print(makeStickyEresults(StickyRAconsumer))
-    
-
-###############################################################################
-
-if do_RA_markov:
-    # Make a representative agent consumer, then solve and simulate the model
-    StickyRAmarkovConsumer = StickyEmarkovRepAgent(**Params.init_RA_mrkv_consumer)
-    StickyRAmarkovConsumer.IncomeDstn[0] = Params.StateCount*[StickyRAmarkovConsumer.IncomeDstn[0]]
-    StickyRAmarkovConsumer.track_vars = ['cLvlNow','yNrmTrue','aLvlNow','pLvlTrue']
-    StickyRAmarkovConsumer.initializeSim()
-    
-    t_start = clock()
-    StickyRAmarkovConsumer.solve()
-    StickyRAmarkovConsumer.simulate()
-    t_end = clock()
-    print('Solving the representative agent Markov economy took ' + str(t_end-t_start) + ' seconds.')
-    
-    print('Consumption functions for the Markov representative agent:')
-    plotFuncs(StickyRAmarkovConsumer.solution[0].cFunc,0,50)
-    
-    print('Results for the Markov representative agent economy:')
-    print(makeStickyEresults(StickyRAmarkovConsumer))
-    
+    if do_RA_markov:
+        # Make a representative agent consumer, then solve and simulate the model
+        StickyRAmarkovConsumer = StickyEmarkovRepAgent(**Params.init_RA_mrkv_consumer)
+        StickyRAmarkovConsumer.IncomeDstn[0] = Params.StateCount*[StickyRAmarkovConsumer.IncomeDstn[0]]
+        StickyRAmarkovConsumer.track_vars = ['cLvlNow','yNrmTrue','aLvlNow','pLvlTrue']
+        StickyRAmarkovConsumer.initializeSim()
+        
+        t_start = clock()
+        StickyRAmarkovConsumer.solve()
+        StickyRAmarkovConsumer.simulate()
+        t_end = clock()
+        print('Solving the representative agent Markov economy took ' + str(t_end-t_start) + ' seconds.')
+        
+        print('Consumption functions for the Markov representative agent:')
+        plotFuncs(StickyRAmarkovConsumer.solution[0].cFunc,0,50)
+        
+        # Make results for the Markov representative agent economy
+        desc = 'Results for the Markov representative agent economy with update probability ' + mystr(Params.UpdatePrb)
+        name = 'RAmarkov' + sticky_str + 'Results'
+        print(makeStickyEresults(StickyRAmarkovConsumer,description=desc,filename=name))
+        

@@ -1,6 +1,21 @@
 '''
-A first attempt at the models described in cAndCwithStickyE.
+Models for the cAndCwithStickyE paper, in the form of extensions to AgentType
+subclasses from the ../ConsumptionSaving folder.  This module defines for new
+AgentType subclasses for use in this project:
+    
+1) StickyEconsumerType: An extention of AggShockConsumerType that can be used in
+    the Cobb-Douglas or small open economy specifications.
+2) StickyEmarkovConsumerType: An extention of AggShockMarkovConsumerType that can
+    be used in the Cobb-Douglas Markov or small open Markov economy specifications.
+3) StickyErepAgent: An extention of RepAgentConsumerType that can be used in the
+    representative agent specifications.
+4) StickyEmarkovRepAgent: An extension of RepAgentMarkovConsumerType that can be
+    used in the Markov representative agent specifications.
+    
+All of these AgentTypes are imported by cAndCwithStickyE, the main file for this
+project.  Calibrated parameters for each type are found in StickyEparams.
 '''
+
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../'))
@@ -39,7 +54,7 @@ class StickyEconsumerType(AggShockConsumerType):
     def getUpdaters(self):
         '''
         Determine which agents update this period vs which don't.  Fills in the
-        attributes updaters and dont as boolean arrays of size AgentCount.
+        attributes update and dont as boolean arrays of size AgentCount.
         
         Parameters
         ----------
@@ -60,7 +75,8 @@ class StickyEconsumerType(AggShockConsumerType):
         '''
         Calculates and returns the misperception of this period's shocks.  Updaters
         have no misperception this period, while those who don't update don't see
-        the value of the aggregate permanent shock and assume it is 1.
+        the value of the aggregate permanent shock and assume aggregate growth
+        equals its expectation.
         
         
         Parameters
@@ -80,8 +96,10 @@ class StickyEconsumerType(AggShockConsumerType):
     def getShocks(self):
         '''
         Gets permanent and transitory shocks (combining idiosyncratic and aggregate shocks), but
-        only consumers who update their macroeconomic beliefs this period notice the aggregate
-        transitory shocks and incorporate all previously unnoticed aggregate permanent shocks.
+        only consumers who update their macroeconomic beliefs this period incorporate all pre-
+        viously unnoticed aggregate permanent shocks.  Agents correctly observe the level of all
+        real variables (market resources, consumption, assets, etc), but misperceive the aggregate
+        productivity level.
         
         Parameters
         ----------
@@ -157,39 +175,42 @@ class StickyEconsumerType(AggShockConsumerType):
         None
         '''
         AggShockConsumerType.getPostStates(self)
-        self.cLvlNow = self.cNrmNow*self.pLvlNow
-        self.aLvlNow = self.mLvlTrueNow - self.cLvlNow
+        self.cLvlNow = self.cNrmNow*self.pLvlNow # True consumption level
+        self.aLvlNow = self.mLvlTrueNow - self.cLvlNow # True asset level
         self.aNrmNow = self.aLvlNow/self.pLvlNow # This is perceived
         
         
 class StickyEmarkovConsumerType(AggShockMarkovConsumerType,StickyEconsumerType):
     '''
     A class for representing consumers who have sticky expectations about the macroeconomy
-    because they does not observe aggregate variables every period.  This version lives
-    in an economy subject to Markov shocks to the aggregate income process.
+    because they do not observe aggregate variables every period.  This version lives
+    in an economy subject to Markov shocks to the aggregate income process.  Agents don't
+    necessarily update their perception of the aggregate productivity level or the discrete
+    Markov state (governing aggregate growth) in every period.  Most of its methods are
+    directly inherited from one of its parent classes.
     '''
-    def simBirth(self,which_agents):
+    def simBirth(self,which_agents): # Inherit from StickyE rather than AggShock
         StickyEconsumerType.simBirth(self,which_agents)
         
-    def getShocks(self):
+    def getShocks(self): # Inherit from StickyE rather than AggShock
         StickyEconsumerType.getShocks(self)
         
-    def getStates(self):
+    def getStates(self): # Inherit from StickyE rather than AggShock
         StickyEconsumerType.getStates(self)
         
-    def getPostStates(self):
+    def getPostStates(self): # Inherit from StickyE rather than AggShock
         StickyEconsumerType.getPostStates(self)
         
-    def getMaggNow(self):
+    def getMaggNow(self): # Inherit from StickyE rather than AggShock
         return StickyEconsumerType.getMaggNow(self)
         
-    def getMrkvNow(self):
+    def getMrkvNow(self): # Agents choose control based on *perceived* Markov state
         return self.MrkvNowPcvd
     
     def getUpdaters(self):
         '''
         Determine which agents update this period vs which don't.  Fills in the
-        attributes updaters and dont as boolean arrays of size AgentCount.  This
+        attributes update and dont as boolean arrays of size AgentCount.  This
         version also updates perceptions of the Markov state.
         
         Parameters
@@ -211,9 +232,9 @@ class StickyEmarkovConsumerType(AggShockMarkovConsumerType,StickyEconsumerType):
         '''
         Calculates and returns the misperception of this period's shocks.  Updaters
         have no misperception this period, while those who don't update don't see
-        the value of the aggregate permanent shock and assume it is 1.  Moreover,
-        non-updaters base their belief about aggregate growth on the last Markov
-        state that they actually observed.
+        the value of the aggregate permanent shock and thus base their belief about
+        aggregate growth on the last Markov state that they actually observed,
+        which is stored in MrkvNowPcvd.
         
         Parameters
         ----------
@@ -238,7 +259,7 @@ class StickyErepAgent(RepAgentConsumerType):
     def simBirth(self,which_agents):
         '''
         Makes new consumers for the given indices.  Slightly extends base method by also setting
-        pLvlTrue = 1.0 for new agents, indicating that they correctly perceive their productivity.
+        pLvlTrue = 1.0 in the very first simulated period.
         
         Parameters
         ----------
@@ -256,9 +277,8 @@ class StickyErepAgent(RepAgentConsumerType):
             
     def getShocks(self):
         '''
-        Gets permanent and transitory shocks (combining idiosyncratic and aggregate shocks), but
-        only consumers who update their macroeconomic beliefs this period notice the aggregate
-        transitory shocks and incorporate all previously unnoticed aggregate permanent shocks.
+        Gets permanent and transitory shocks, but the representative consumer only
+        sees an UpdatePrb portion of the transitory shock.
         
         Parameters
         ----------
@@ -279,7 +299,8 @@ class StickyErepAgent(RepAgentConsumerType):
     def getStates(self):
         '''
         Calculates updated values of normalized market resources and permanent income level.
-        Uses pLvlNow, aNrmNow, PermShkNow, TranShkNow.
+        Makes both perceived and true values.  The representative consumer will act on the
+        basis of his *perceived* normalized market resources.
         
         Parameters
         ----------
@@ -333,6 +354,9 @@ class StickyErepAgent(RepAgentConsumerType):
     def getpLvlPcvd(self):
         '''
         Finds the representative agent's (average) perceived productivity level.
+        Average perception of productivity gets UpdatePrb weight on the true level,
+        for those that update, and (1-UpdatePrb) weight on the previous average
+        perception times expected aggregate growth, for those that don't update.
         
         Parameters
         ----------
@@ -351,25 +375,41 @@ class StickyEmarkovRepAgent(RepAgentMarkovConsumerType,StickyErepAgent):
     '''
     A representative consumer who has sticky expectations about the macroeconomy because
     he does not observe aggregate variables every period.  Agent lives in a Cobb-Douglas
-    economy that has a discrete Markov state.
+    economy that has a discrete Markov state.  If UpdatePrb < 1, the representative agent's
+    perception of the Markov state is distributed across the previous state visited.
     '''
     def simBirth(self,which_agents):
+        '''
+        Makes new consumers for the given indices.  Slightly extends base method by also setting
+        pLvlTrue = 1.0 in the very first simulated period, as well as initializing the perception
+        of aggregate productivity for each Markov state.  The representative agent begins with
+        the correct perception of the Markov state.
+        
+        Parameters
+        ----------
+        which_agents : np.array(Bool)
+            Boolean array of size self.AgentCount indicating which agents should be "born".
+        
+        Returns
+        -------
+        None
+        '''
         RepAgentMarkovConsumerType.simBirth(self,which_agents)
         if self.t_sim == 0: # Initialize perception distribution for Markov state
             self.pLvlTrue = np.ones(self.AgentCount)
             self.aLvlNow = self.aNrmNow*self.pLvlTrue
             StateCount = self.MrkvArray.shape[0]
-            self.pLvlNow = np.ones(StateCount)
-            self.MrkvPcvd = np.zeros(StateCount)
-            self.MrkvPcvd[self.MrkvNow[0]] = 1.0
+            self.pLvlNow = np.ones(StateCount) # Perceived productivity level by Markov state
+            self.MrkvPcvd = np.zeros(StateCount) # Distribution of perceived Markov state
+            self.MrkvPcvd[self.MrkvNow[0]] = 1.0 # Correct perception of state initially
         
-    def getShocks(self):
+    def getShocks(self): # Inherit from StickyE rather than RepresentativeAgent
         StickyErepAgent.getShocks(self)
         
-    def getStates(self):
+    def getStates(self): # Inherit from StickyE rather than RepresentativeAgent
         StickyErepAgent.getStates(self)
         
-    def getPostStates(self):
+    def getPostStates(self): # Inherit from StickyE rather than RepresentativeAgent
         StickyErepAgent.getPostStates(self)
         
     def getpLvlPcvd(self):
@@ -400,9 +440,9 @@ class StickyEmarkovRepAgent(RepAgentMarkovConsumerType,StickyErepAgent):
         update_pLvlPcvd[i] = self.pLvlTrue # those that update see the true pLvl
         
         # Combine updaters and non-updaters to get average pLvl perception by Markov state
-        self.MrkvPcvd = dont_mass + update_mass
+        self.MrkvPcvd = dont_mass + update_mass # Total mass of agent in each state
         pLvlPcvd = (dont_mass*dont_pLvlPcvd + update_mass*update_pLvlPcvd)/self.MrkvPcvd
-        pLvlPcvd[self.MrkvPcvd==0.] = 1.0 # fix division by zero problem when MrkvPcvd[i]=0
+        pLvlPcvd[self.MrkvPcvd==0.] = 1.0 # Fix division by zero problem when MrkvPcvd[i]=0
         return pLvlPcvd
         
     def getControls(self):
@@ -421,9 +461,9 @@ class StickyEmarkovRepAgent(RepAgentMarkovConsumerType,StickyErepAgent):
         StateCount = self.MrkvArray.shape[0]
         t = self.t_cycle[0]
         
-        cNrmNow = np.zeros(StateCount)
+        cNrmNow = np.zeros(StateCount) # Array of chosen cNrm by Markov state
         for i in range(StateCount):
             cNrmNow[i] = self.solution[t].cFunc[i](self.mNrmNow[i])
         self.cNrmNow = cNrmNow
-        self.cLvlNow = np.dot(cNrmNow*self.pLvlNow,self.MrkvPcvd)
+        self.cLvlNow = np.dot(cNrmNow*self.pLvlNow,self.MrkvPcvd) # Take average of cLvl across states
         
