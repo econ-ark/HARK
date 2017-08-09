@@ -14,11 +14,18 @@ the Market instance as well as the consumers themselves.  All parameters are qua
 '''
 import numpy as np
 from copy import copy
+from HARKutilities import approxUniform
 
 # Choose basic simulation parameters
 UpdatePrb = 1.00       # Probability that each agent observes the aggregate productivity state each period
 periods_to_sim = 3500  # Total number of periods to simulate; this might be increased by DSGEmarkov model
 ignore_periods = 1000  # Number of simulated periods to ignore (in order to ensure we are near steady state)
+AgentCount = 20000     # Total number of agents to simulate in the economy
+
+# Choose extent of discount factor heterogeneity (inapplicable to representative agent models)
+TypeCount = 1        # Number of heterogeneous discount factor types
+DiscFacMean = 0.969  # Central value of intertemporal discount factor
+DiscFacSpread = 0.01 # Half-width of intertemporal discount factor band, a la cstwMPC
 
 # Choose parameters for the Markov models
 StateCount = 21        # Number of discrete states in the Markov specifications
@@ -40,17 +47,20 @@ PolyMrkvArray[StateCount-1,StateCount-1] += 0.5*(1.0 - Persistence)
 PolyMrkvArray *= 1.0 - RegimeChangePrb
 PolyMrkvArray += RegimeChangePrb/StateCount
 
-# Define the set of aggregate permanent growth factors that can occur
+# Define the set of aggregate permanent growth factors that can occur (Markov specifications only)
 PermGroFacSet = np.linspace(PermGroFacMin,PermGroFacMax,num=StateCount)
+
+# Define the set of discount factors that agents have
+DiscFacSet = approxUniform(N=TypeCount,bot=DiscFacMean-DiscFacSpread,top=DiscFacMean+DiscFacSpread)[1]
 
 ###############################################################################
 
 # Define parameters for the small open economy version of the model
 init_SOE_consumer = { 'CRRA': 2.0,
-                      'DiscFac': 0.969,
+                      'DiscFac': DiscFacMean,
                       'LivPrb': [0.995],
                       'PermGroFac': [1.0],
-                      'AgentCount': 10000,
+                      'AgentCount': AgentCount/TypeCount, # Spread agents evenly among types
                       'aXtraMin': 0.00001,
                       'aXtraMax': 40.0,
                       'aXtraNestFac': 3,
@@ -118,7 +128,7 @@ init_SOE_mrkv_market = {  'PermShkAggCount': 3,
 
 # Define parameters for the Cobb-Douglas DSGE version of the model
 init_DSGE_consumer = copy(init_SOE_consumer)
-init_DSGE_consumer['DiscFac'] = 1.0/1.0146501772118186
+init_DSGE_consumer['DiscFac'] = DiscFacMean
 init_DSGE_consumer['aXtraMax'] = 80.0
 init_DSGE_consumer['MgridBase'] = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])
 

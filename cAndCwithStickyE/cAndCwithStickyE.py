@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
 from time import clock
+from copy import deepcopy
 from StickyEmodel import StickyEconsumerType, StickyEmarkovConsumerType, StickyErepAgent, StickyEmarkovRepAgent
 from ConsAggShockModel import SmallOpenEconomy, SmallOpenMarkovEconomy, CobbDouglasEconomy,CobbDouglasMarkovEconomy
 from HARKutilities import plotFuncs
@@ -23,7 +24,7 @@ ignore_periods = Params.ignore_periods
 mystr = lambda number : "{:.3f}".format(number)
 
 # Choose which models to run
-do_SOE_simple  = True
+do_SOE_simple  = False
 do_SOE_markov  = False
 do_DSGE_simple = False
 do_DSGE_markov = False
@@ -194,6 +195,7 @@ def makeStickyEresults(Economy,description='',filename=None):
     
     return output_string # Return output string
 
+
 # Run models and save output if this module is called from main
 if __name__ == '__main__':
     ###############################################################################
@@ -202,11 +204,17 @@ if __name__ == '__main__':
     
     if do_SOE_simple:
         # Make a small open economy and the consumers who live in it
-        StickySOEconsumers = StickyEconsumerType(**Params.init_SOE_consumer)
-        StickySOEconomy = SmallOpenEconomy(agents=[StickySOEconsumers],**Params.init_SOE_market)
+        StickySOEbaseType = StickyEconsumerType(**Params.init_SOE_consumer)
+        StickySOEbaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+        StickySOEconsumers = []
+        for n in range(Params.TypeCount):
+            StickySOEconsumers.append(deepcopy(StickySOEbaseType))
+            StickySOEconsumers[-1].seed = n
+            StickySOEconsumers[-1].DiscFac = Params.DiscFacSet[n]
+        StickySOEconomy = SmallOpenEconomy(agents=StickySOEconsumers, **Params.init_SOE_market)
         StickySOEconomy.makeAggShkHist()
-        StickySOEconsumers.getEconomyData(StickySOEconomy)
-        StickySOEconsumers.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+        for n in range(Params.TypeCount):
+            StickySOEconsumers[n].getEconomyData(StickySOEconomy)
         
         # Solve the model and display some output
         t_start = clock()
@@ -216,8 +224,8 @@ if __name__ == '__main__':
         print('Solving the small open economy took ' + str(t_end-t_start) + ' seconds.')
         
         # Plot the consumption function
-        print('Consumption function for the small open economy:')
-        cFunc = lambda m : StickySOEconsumers.solution[0].cFunc(m,np.ones_like(m))
+        print('Consumption function one type in the small open economy:')
+        cFunc = lambda m : StickySOEconsumers[0].solution[0].cFunc(m,np.ones_like(m))
         plotFuncs(cFunc,0.0,20.0)
         
         # Make results for the small open economy
@@ -231,15 +239,21 @@ if __name__ == '__main__':
     ###############################################################################
     
     if do_SOE_markov:
-        # Make a consumer type to inhabit the small open Markov economy
-        StickySOEmarkovConsumers = StickyEmarkovConsumerType(**Params.init_SOE_mrkv_consumer)
-        StickySOEmarkovConsumers.IncomeDstn[0] = Params.StateCount*[StickySOEmarkovConsumers.IncomeDstn[0]]
-        StickySOEmarkovConsumers.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+        # Make consumer types to inhabit the small open Markov economy
+        StickySOEmarkovBaseType = StickyEmarkovConsumerType(**Params.init_SOE_mrkv_consumer)
+        StickySOEmarkovBaseType.IncomeDstn[0] = Params.StateCount*[StickySOEmarkovBaseType.IncomeDstn[0]]
+        StickySOEmarkovBaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+        StickySOEmarkovConsumers = []
+        for n in range(Params.TypeCount):
+            StickySOEmarkovConsumers.append(deepcopy(StickySOEmarkovBaseType))
+            StickySOEmarkovConsumers[-1].seed = n
+            StickySOEmarkovConsumers[-1].DiscFac = Params.DiscFacSet[n]
         
         # Make a Cobb-Douglas economy for the agents
-        StickySOmarkovEconomy = SmallOpenMarkovEconomy(agents = [StickySOEmarkovConsumers],**Params.init_SOE_mrkv_market)
+        StickySOmarkovEconomy = SmallOpenMarkovEconomy(agents=StickySOEmarkovConsumers, **Params.init_SOE_mrkv_market)
         StickySOmarkovEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
-        StickySOEmarkovConsumers.getEconomyData(StickySOmarkovEconomy) # Have the consumers inherit relevant objects from the economy
+        for n in range(Params.TypeCount):
+            StickySOEmarkovConsumers[n].getEconomyData(StickySOmarkovEconomy) # Have the consumers inherit relevant objects from the economy
         
         # Solve the model
         t_start = clock()
@@ -249,12 +263,12 @@ if __name__ == '__main__':
         print('Solving the small open Markov economy took ' + str(t_end-t_start) + ' seconds.')
         
         # Plot the consumption function in each Markov state
-        print('Consumption function for the small open Markov economy:')
+        print('Consumption function for one type in the small open Markov economy:')
         m = np.linspace(0,20,500)
         M = np.ones_like(m)
         c = np.zeros((Params.StateCount,m.size))
         for i in range(Params.StateCount):
-            c[i,:] = StickySOEmarkovConsumers.solution[0].cFunc[i](m,M)
+            c[i,:] = StickySOEmarkovConsumers[0].solution[0].cFunc[i](m,M)
             plt.plot(m,c[i,:])
         plt.show()
         
@@ -269,12 +283,20 @@ if __name__ == '__main__':
     ###############################################################################
     
     if do_DSGE_simple:
-        # Make a Cobb-Douglas economy and the consumers who live in it
-        StickyDSGEconsumers = StickyEconsumerType(**Params.init_DSGE_consumer)
-        StickyDSGEeconomy = CobbDouglasEconomy(agents=[StickyDSGEconsumers],**Params.init_DSGE_market)
+        # Make consumers who will live in a Cobb-Douglas economy
+        StickyDSGEbaseType = StickyEconsumerType(**Params.init_DSGE_consumer)
+        StickyDSGEbaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+        StickyDSGEconsumers = []
+        for n in range(Params.TypeCount):
+            StickyDSGEconsumers.append(deepcopy(StickyDSGEbaseType))
+            StickyDSGEconsumers[-1].seed = n
+            StickyDSGEconsumers[-1].DiscFac = Params.DiscFacSet[n]
+            
+        # Make a Cobb-Douglas economy and put the agents in it
+        StickyDSGEeconomy = CobbDouglasEconomy(agents=StickyDSGEconsumers,**Params.init_DSGE_market)
         StickyDSGEeconomy.makeAggShkHist()
-        StickyDSGEconsumers.getEconomyData(StickyDSGEeconomy)
-        StickyDSGEconsumers.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+        for n in range(Params.TypeCount):
+            StickyDSGEconsumers[n].getEconomyData(StickyDSGEeconomy)        
         
         # Solve the model
         t_start = clock()
@@ -285,8 +307,8 @@ if __name__ == '__main__':
         # Plot the consumption function
         print('Consumption function for the Cobb-Douglas economy:')
         m = np.linspace(0.,20.,300)
-        for M in StickyDSGEconsumers.Mgrid:
-            c = StickyDSGEconsumers.solution[0].cFunc(m,M*np.ones_like(m))
+        for M in StickyDSGEconsumers[0].Mgrid:
+            c = StickyDSGEconsumers[0].solution[0].cFunc(m,M*np.ones_like(m))
             plt.plot(m,c)
         plt.show()
         
@@ -301,15 +323,21 @@ if __name__ == '__main__':
     ###############################################################################
     
     if do_DSGE_markov:
-        # Make a consumer type to inhabit the small open Markov economy
-        StickyDSGEmarkovConsumers = StickyEmarkovConsumerType(**Params.init_DSGE_mrkv_consumer)
-        StickyDSGEmarkovConsumers.IncomeDstn[0] = Params.StateCount*[StickyDSGEmarkovConsumers.IncomeDstn[0]]
-        StickyDSGEmarkovConsumers.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+        # Make consumers who will live in the Cobb-Douglas Markov economy
+        StickyDSGEmarkovBaseType = StickyEmarkovConsumerType(**Params.init_DSGE_mrkv_consumer)
+        StickyDSGEmarkovBaseType.IncomeDstn[0] = Params.StateCount*[StickyDSGEmarkovBaseType.IncomeDstn[0]]
+        StickyDSGEmarkovBaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+        StickyDSGEmarkovConsumers = []
+        for n in range(Params.TypeCount):
+            StickyDSGEmarkovConsumers.append(deepcopy(StickyDSGEmarkovBaseType))
+            StickyDSGEmarkovConsumers[-1].seed = n
+            StickyDSGEmarkovConsumers[-1].DiscFac = Params.DiscFacSet[n]
         
         # Make a Cobb-Douglas economy for the agents
-        StickyDSGEmarkovEconomy = CobbDouglasMarkovEconomy(agents = [StickyDSGEmarkovConsumers],**Params.init_DSGE_mrkv_market)
+        StickyDSGEmarkovEconomy = CobbDouglasMarkovEconomy(agents = StickyDSGEmarkovConsumers,**Params.init_DSGE_mrkv_market)
         StickyDSGEmarkovEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
-        StickyDSGEmarkovConsumers.getEconomyData(StickyDSGEmarkovEconomy) # Have the consumers inherit relevant objects from the economy
+        for n in range(Params.TypeCount):
+            StickyDSGEmarkovConsumers[n].getEconomyData(StickyDSGEmarkovEconomy) # Have the consumers inherit relevant objects from the economy
         
         # Solve the model
         t_start = clock()
