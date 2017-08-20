@@ -13,8 +13,8 @@ sys.path.insert(0, os.path.abspath('./'))
 from copy import deepcopy
 import numpy as np
 from HARKcore import HARKobject
-from HARKinterpolation import LowerEnvelope2D, BilinearInterp, LowerEnvelope, \
-                              LinearInterpOnInterp1D, LinearInterp, CubicInterp, VariableLowerBoundFunc2D
+from HARKinterpolation import LowerEnvelope2D, BilinearInterp, VariableLowerBoundFunc2D, \
+                              LinearInterpOnInterp1D, LinearInterp, CubicInterp, UpperEnvelope
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                           CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
                           getPercentiles
@@ -253,7 +253,7 @@ class PermIncFuncAR1(HARKobject):
         
 ###############################################################################
 
-class ConsGenerIncProcessSolver(ConsIndShockSetup):
+class ConsGenIncProcessSolver(ConsIndShockSetup):
     '''
     A class for solving one period problem of a consumer who experiences permanent and
     transitory shocks to his income.  Unlike in ConsIndShock, consumers do not
@@ -388,12 +388,13 @@ class ConsGenerIncProcessSolver(ConsIndShockSetup):
         '''
         # Run basic version of this method
         ConsIndShockSetup.setAndUpdateValues(self,solution_next,IncomeDstn,LivPrb,DiscFac)
+        self.mLvlMinNext = solution_next.mLvlMin
         
         # Replace normalized human wealth (scalar) with human wealth level as function of permanent income
         self.hNrmNow = 0.0
         pLvlCount    = self.pLvlGrid.size
         IncShkCount  = self.PermShkValsNext.size
-        PermIncNext  = np.tile(self.pLvlNext,(IncShkCount,1))*np.tile(self.PermShkValsNext,(pLvlCount,1)).transpose()
+        PermIncNext  = np.tile(self.PermIncNextFunc(self.pLvlGrid),(IncShkCount,1))*np.tile(self.PermShkValsNext,(pLvlCount,1)).transpose()
         hLvlGrid     = 1.0/self.Rfree*np.sum((np.tile(self.TranShkValsNext,(pLvlCount,1)).transpose()*PermIncNext + solution_next.hLvl(PermIncNext))*np.tile(self.ShkPrbsNext,(pLvlCount,1)).transpose(),axis=0)
         self.hLvlNow = LinearInterp(np.insert(self.pLvlGrid,0,0.0),np.insert(hLvlGrid,0,0.0))
         
@@ -429,7 +430,7 @@ class ConsGenerIncProcessSolver(ConsIndShockSetup):
         # Define the minimum allowable mLvl by pLvl as the greater of the natural and artificial borrowing constraints
         if self.BoroCnstArt is not None:
             self.BoroCnstArt = LinearInterp(np.array([0.0,1.0]),np.array([0.0,self.BoroCnstArt]))
-            self.mLvlMinNow = LowerEnvelope([self.BoroCnstArt,self.BoroCnstNat])
+            self.mLvlMinNow = UpperEnvelope(self.BoroCnstArt,self.BoroCnstNat)
         else:
             self.mLvlMinNow = self.BoroCnstNat
             
@@ -662,12 +663,13 @@ class ConsGenerIncProcessSolver(ConsIndShockSetup):
         # Add data at the lower bound of m
         mLvl_temp    = np.concatenate((np.reshape(self.mLvlMinNow(self.pLvlGrid),(1,pSize)),mLvl_temp),axis=0)
         vNvrs        = np.concatenate((np.zeros((1,pSize)),vNvrs),axis=0)
-        vNvrsP       = np.concatenate((self.MPCmaxEff**(-self.CRRA/(1.0-self.CRRA))*np.ones((1,pSize)),vNvrsP),axis=0)
+        vNvrsP       = np.concatenate((np.reshape(vNvrsP[0,:],(1,vNvrsP.shape[1])),vNvrsP),axis=0)
         
         # Add data at the lower bound of p
         MPCminNvrs   = self.MPCminNow**(-self.CRRA/(1.0-self.CRRA))
-        mLvl_temp    = np.concatenate((np.reshape(mLvl_temp[:,0],(mSize+1,1)),mLvl_temp),axis=1)
-        vNvrs        = np.concatenate((np.zeros((mSize+1,1)),vNvrs),axis=1)
+        m_temp = np.reshape(mLvl_temp[:,0],(mSize+1,1))
+        mLvl_temp    = np.concatenate((m_temp,mLvl_temp),axis=1)
+        vNvrs        = np.concatenate((MPCminNvrs*m_temp,vNvrs),axis=1)
         vNvrsP       = np.concatenate((MPCminNvrs*np.ones((mSize+1,1)),vNvrsP),axis=1)
         
         # Construct the pseudo-inverse value function
@@ -770,7 +772,7 @@ class ConsGenerIncProcessSolver(ConsIndShockSetup):
         EndOfPrdvPP = self.DiscFacEff*self.Rfree*self.Rfree*np.sum(self.vPPfuncNext(self.mLvlNext,self.pLvlNext)*self.ShkPrbs_temp,axis=0)    
         dcda        = EndOfPrdvPP/self.uPP(np.array(cLvl[1:,1:]))
         MPC         = dcda/(dcda+1.)
-        MPC         = np.concatenate((MPC[:,0],MPC),axis=1) # Stick an extra MPC value at bottom; MPCmax doesn't work
+        MPC         = np.concatenate((np.reshape(MPC[:,0],(MPC.shape[0],1)),MPC),axis=1) # Stick an extra MPC value at bottom; MPCmax doesn't work
         MPC         = np.concatenate((self.MPCminNow*np.ones((1,self.aXtraGrid.size+1)),MPC),axis=0)
 
         # Make cubic consumption function with respect to mLvl for each permanent income level
@@ -917,7 +919,7 @@ def solveConsGenIncProcess(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,Pe
             function (defined over market resources and permanent income), a
             marginal value function, bounding MPCs, and normalized human wealth.
     '''
-    solver = ConsGenerIncProcessSolver(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
+    solver = ConsGenIncProcessSolver(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
                             PermIncNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
     solver.prepareToSolve()       # Do some preparatory work
     solution_now = solver.solve() # Solve the period
@@ -1077,7 +1079,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
             pLvlNow = drawLognormal(self.AgentCount,mu=self.pLvlInitMean,sigma=self.pLvlInitStd,seed=31382)
             t_cycle = np.zeros(self.AgentCount,dtype=int)
             for t in range(T_long):
-                LivPrb = LivPrbAll[self.t_cycle] # Determine who dies and replace them with newborns
+                LivPrb = LivPrbAll[t_cycle] # Determine who dies and replace them with newborns
                 draws = drawUniform(self.AgentCount,seed=t)
                 who_dies = draws > LivPrb
                 pLvlNow[who_dies] = drawLognormal(np.sum(who_dies),mu=self.pLvlInitMean,sigma=self.pLvlInitStd,seed=t+92615)
@@ -1297,17 +1299,21 @@ if __name__ == '__main__':
         M_temp = M+ExplicitExample.solution[0].mLvlMin(p)
         C = ExplicitExample.solution[0].cFunc(M_temp,p*np.ones_like(M_temp))
         plt.plot(M_temp,C)
+    plt.xlabel('Market resource level mLvl')
+    plt.ylabel('Consumption level cLvl')
     plt.show()
     
     # Plot the value function at various permanent income levels
     if ExplicitExample.vFuncBool:
-        pGrid = np.linspace(0.1,3,24)
+        pGrid = np.linspace(0.1,3.0,24)
         M = np.linspace(0.001,5,300)
         for p in pGrid:
             M_temp = M+ExplicitExample.solution[0].mLvlMin(p)
             C = ExplicitExample.solution[0].vFunc(M_temp,p*np.ones_like(M_temp))
             plt.plot(M_temp,C)
         plt.ylim([-200,0])
+        plt.xlabel('Market resource level mLvl')
+        plt.ylabel('Value v')
         plt.show()
     
     # Simulate some data
@@ -1318,11 +1324,14 @@ if __name__ == '__main__':
         ExplicitExample.initializeSim()
         ExplicitExample.simulate()
         plt.plot(np.mean(ExplicitExample.mLvlNow_hist,axis=1))
+        plt.xlabel('Simulated time period')
+        plt.ylabel('Average market resources mLvl')
         plt.show()
+        
+###############################################################################
         
     # Make and solve an example "persistent idisyncratic shocks" consumer 
     PersistentExample = PersistentShockConsumerType(**Params.init_persistent_shocks)
-    #PersistentExample.cycles = 1
     t_start = clock()
     PersistentExample.solve()
     t_end = clock()
@@ -1335,17 +1344,21 @@ if __name__ == '__main__':
         M_temp = M + PersistentExample.solution[0].mLvlMin(p)
         C = PersistentExample.solution[0].cFunc(M_temp,p*np.ones_like(M_temp))
         plt.plot(M_temp,C)
+    plt.xlabel('Market resource level mLvl')
+    plt.ylabel('Consumption level cLvl')
     plt.show()
     
     # Plot the value function at various permanent income levels
     if PersistentExample.vFuncBool:
-        pGrid = np.linspace(0.1,3,24)
+        pGrid = np.linspace(0.1,3.0,24)
         M = np.linspace(0.001,5,300)
         for p in pGrid:
             M_temp = M+PersistentExample.solution[0].mLvlMin(p)
             C = PersistentExample.solution[0].vFunc(M_temp,p*np.ones_like(M_temp))
             plt.plot(M_temp,C)
         plt.ylim([-200,0])
+        plt.xlabel('Market resource level mLvl')
+        plt.ylabel('Value v')
         plt.show()
 
     # Simulate some data
@@ -1355,4 +1368,6 @@ if __name__ == '__main__':
         PersistentExample.initializeSim()
         PersistentExample.simulate()
         plt.plot(np.mean(PersistentExample.mLvlNow_hist,axis=1))
+        plt.xlabel('Simulated time period')
+        plt.ylabel('Average market resources mLvl')
         plt.show()
