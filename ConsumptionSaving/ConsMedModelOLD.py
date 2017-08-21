@@ -15,10 +15,10 @@ from ConsIndShockModel import ConsumerSolution
 from HARKinterpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, CubicInterp,\
                               LinearInterp, LowerEnvelope3D, UpperEnvelope, LinearInterpOnInterp1D,\
                               VariableLowerBoundFunc3D
-from ConsGenIncProcessModel import ConsGenIncProcessSolver, PersistentShockConsumerType,\
+from ConsPersistentShockModel import ConsPersistentShockSolver, PersistentShockConsumerType,\
                                      ValueFunc2D, MargValueFunc2D, MargMargValueFunc2D, \
                                      VariableLowerBoundFunc2D
-from copy import deepcopy
+from copy import copy, deepcopy
 
 utility_inv   = CRRAutility_inv
 utilityP_inv  = CRRAutilityP_inv
@@ -527,7 +527,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         '''      
-        PersistentShockConsumerType.__init__(self,cycles=cycles,**kwds)
+        PersistentShockConsumerType.__init__(self,**kwds)
         self.solveOnePeriod = solveConsMedShock # Choose correct solver
         self.addToTimeInv('CRRAmed')
         self.addToTimeVary('MedPrice')
@@ -547,7 +547,6 @@ class MedShockConsumerType(PersistentShockConsumerType):
         '''
         self.updateIncomeProcess()
         self.updateAssetsGrid()
-        self.updatePermIncNextFunc()
         self.updatePermIncGrid()
         self.updateMedShockProcess()
         self.updateSolutionTerminal()
@@ -754,14 +753,14 @@ class MedShockConsumerType(PersistentShockConsumerType):
         
 ###############################################################################
         
-class ConsMedShockSolver(ConsGenIncProcessSolver):
+class ConsMedShockSolver(ConsPersistentShockSolver):
     '''
     Class for solving the one period problem for the "medical shocks" model, in
     which consumers receive shocks to permanent and transitory income as well as
     shocks to "medical need"-- multiplicative utility shocks for a second good.
     '''
     def __init__(self,solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CRRAmed,Rfree,MedPrice,
-                 PermIncNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
+                 PermGroFac,PermIncCorr,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
         '''
         Constructor for a new solver for a one period problem with idiosyncratic
         shocks to permanent and transitory income and shocks to medical need.
@@ -791,8 +790,10 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             Risk free interest factor on end-of-period assets.
         MedPrice : float
             Price of unit of medical care relative to unit of consumption.
-        PermIncNextFunc : float
-            Expected permanent income next period as a function of current pLvl.
+        PermGroGac : float
+            Expected permanent income growth factor at the end of this period.
+        PermIncCorr : float
+            Correlation of permanent income from period to period.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
             period with.
@@ -812,8 +813,8 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         -------
         None
         '''
-        ConsGenIncProcessSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                 PermIncNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
+        ConsPersistentShockSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
+                 PermGroFac,PermIncCorr,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
         self.MedShkDstn = MedShkDstn
         self.MedPrice   = MedPrice
         self.CRRAmed    = CRRAmed
@@ -847,7 +848,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         None
         '''
         # Run basic version of this method
-        ConsGenIncProcessSolver.setAndUpdateValues(self,self.solution_next,self.IncomeDstn,
+        ConsPersistentShockSolver.setAndUpdateValues(self,self.solution_next,self.IncomeDstn,
                                                      self.LivPrb,self.DiscFac)
         
         # Also unpack the medical shock distribution
@@ -869,7 +870,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         -------
         none
         '''
-        ConsGenIncProcessSolver.defUtilityFuncs(self) # Do basic version
+        ConsPersistentShockSolver.defUtilityFuncs(self) # Do basic version
         self.uMedPinv = lambda Med : utilityP_inv(Med,gam=self.CRRAmed)
         self.uMed     = lambda Med : utility(Med,gam=self.CRRAmed)
         self.uMedPP   = lambda Med : utilityPP(Med,gam=self.CRRAmed)
@@ -892,7 +893,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         None
         '''
         # Find minimum allowable end-of-period assets at each permanent income level
-        PermIncMinNext = self.PermShkMinNext*self.PermIncNextFunc(self.pLvlGrid)
+        PermIncMinNext = self.PermGroFac*self.PermShkMinNext*self.pLvlGrid**self.PermIncCorr
         IncLvlMinNext  = PermIncMinNext*self.TranShkMinNext
         aLvlMin = (self.solution_next.mLvlMin(PermIncMinNext) - IncLvlMinNext)/self.Rfree
         
@@ -914,7 +915,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         self.xFuncNowCnst = VariableLowerBoundFunc3D(spendAllFunc,self.mLvlMinNow)
         
         self.mNrmMinNow = 0.0 # Needs to exist so as not to break when solution is created
-        self.MPCmaxEff  = 0.0 # Actually might vary by p, but no use formulating as a function
+        self.MPCmaxEff  = self.MPCmaxNow # Actually might vary by p, but no use formulating as a function
                
     def getPointsForInterpolation(self,EndOfPrdvP,aLvlNow):
         '''
@@ -1290,7 +1291,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         
         
 def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CRRAmed,Rfree,MedPrice,
-                 PermIncNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
+                 PermGroFac,PermIncCorr,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
     '''
     Solve the one period problem for a consumer with shocks to permanent and
     transitory income as well as medical need shocks (as multiplicative shifters
@@ -1321,8 +1322,8 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
         Risk free interest factor on end-of-period assets.
     MedPrice : float
         Price of unit of medical care relative to unit of consumption.
-    PermIncNextFunc : float
-        Expected permanent income next period as a function of current pLvl.
+    PermGroGac : float
+        Expected permanent income growth factor at the end of this period.
     PermIncCorr : float
         Correlation of permanent income from period to period.
     BoroCnstArt: float or None
@@ -1349,7 +1350,7 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
         on (mLvl,pLvl), with MedShk integrated out.
     '''
     solver = ConsMedShockSolver(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CRRAmed,Rfree,
-                MedPrice,PermIncNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
+                MedPrice,PermGroFac,PermIncCorr,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
     solver.prepareToSolve()       # Do some preparatory work
     solution_now = solver.solve() # Solve the period
     return solution_now
@@ -1368,6 +1369,7 @@ if __name__ == '__main__':
 
     # Make and solve an example medical shocks consumer type
     MedicalExample = MedShockConsumerType(**Params.init_medical_shocks)
+    MedicalExample.cycles = 0
     t_start = clock()
     MedicalExample.solve()
     t_end = clock()
