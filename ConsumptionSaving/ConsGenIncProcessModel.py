@@ -262,7 +262,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     period permanent income (subject to shocks).
     '''
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                      PermIncNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
+                      pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
         '''
         Constructor for a new solver for a one period problem with idiosyncratic
         shocks to permanent and transitory income, with permanent income tracked
@@ -286,7 +286,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermIncNextFunc : float
+        pLvlNextFunc : float
             Expected permanent income next period as a function of current pLvl.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
@@ -306,12 +306,12 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         -------
         None
         '''
-        self.assignParameters(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermIncNextFunc,
+        self.assignParameters(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,pLvlNextFunc,
                               BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
         self.defUtilityFuncs()
         
     def assignParameters(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                         PermIncNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
+                         pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
         '''
         Assigns period parameters as attributes of self for use by other methods
         
@@ -333,7 +333,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermIncNextFunc : float
+        pLvlNextFunc : float
             Expected permanent income next period as a function of current pLvl.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
@@ -355,7 +355,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         '''
         ConsIndShockSetup.assignParameters(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
                                 0.0,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool) # dummy value for PermGroFac
-        self.PermIncNextFunc = PermIncNextFunc
+        self.pLvlNextFunc = pLvlNextFunc
         self.pLvlGrid = pLvlGrid
         
     def setAndUpdateValues(self,solution_next,IncomeDstn,LivPrb,DiscFac):
@@ -394,7 +394,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         self.hNrmNow = 0.0
         pLvlCount    = self.pLvlGrid.size
         IncShkCount  = self.PermShkValsNext.size
-        PermIncNext  = np.tile(self.PermIncNextFunc(self.pLvlGrid),(IncShkCount,1))*np.tile(self.PermShkValsNext,(pLvlCount,1)).transpose()
+        PermIncNext  = np.tile(self.pLvlNextFunc(self.pLvlGrid),(IncShkCount,1))*np.tile(self.PermShkValsNext,(pLvlCount,1)).transpose()
         hLvlGrid     = 1.0/self.Rfree*np.sum((np.tile(self.TranShkValsNext,(pLvlCount,1)).transpose()*PermIncNext + solution_next.hLvl(PermIncNext))*np.tile(self.ShkPrbsNext,(pLvlCount,1)).transpose(),axis=0)
         self.hLvlNow = LinearInterp(np.insert(self.pLvlGrid,0,0.0),np.insert(hLvlGrid,0,0.0))
         
@@ -420,7 +420,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         pLvlCount = self.pLvlGrid.size
         PermShkVals_temp = np.tile(np.reshape(self.PermShkValsNext,(1,ShkCount)),(pLvlCount,1))
         TranShkVals_temp = np.tile(np.reshape(self.TranShkValsNext,(1,ShkCount)),(pLvlCount,1))
-        pLvlNext_temp = np.tile(np.reshape(self.PermIncNextFunc(self.pLvlGrid),(pLvlCount,1)),(1,ShkCount))*PermShkVals_temp
+        pLvlNext_temp = np.tile(np.reshape(self.pLvlNextFunc(self.pLvlGrid),(pLvlCount,1)),(1,ShkCount))*PermShkVals_temp
         
         # Find the natural borrowing constraint for each permanent income level
         aLvlMin_candidates = (self.mLvlMinNext(pLvlNext_temp) - TranShkVals_temp*pLvlNext_temp)/self.Rfree
@@ -474,7 +474,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         ShkPrbs_tiled     = np.transpose(np.tile(self.ShkPrbsNext,(aNrmCount,pLvlCount,1)),(2,1,0))
         
         # Get cash on hand next period
-        pLvlNext = self.PermIncNextFunc(pLvlNow_tiled)*PermShkVals_tiled
+        pLvlNext = self.pLvlNextFunc(pLvlNow_tiled)*PermShkVals_tiled
         mLvlNext = self.Rfree*aLvlNow_tiled + pLvlNext*TranShkVals_tiled
 
         # Store and report the results
@@ -869,7 +869,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         return solution
 
         
-def solveConsGenIncProcess(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermIncNextFunc,
+def solveConsGenIncProcess(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,pLvlNextFunc,
                                 BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
     '''
     Solves the one period problem of a consumer who experiences permanent and
@@ -896,7 +896,7 @@ def solveConsGenIncProcess(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,Pe
         Coefficient of relative risk aversion.
     Rfree : float
         Risk free interest factor on end-of-period assets.
-    PermIncNextFunc : float
+    pLvlNextFunc : float
         Expected permanent income next period as a function of current pLvl.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the
@@ -920,7 +920,7 @@ def solveConsGenIncProcess(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,Pe
             marginal value function, bounding MPCs, and normalized human wealth.
     '''
     solver = ConsGenIncProcessSolver(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                            PermIncNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
+                            pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
     solver.prepareToSolve()       # Do some preparatory work
     solution_now = solver.solve() # Solve the period
     return solution_now
@@ -975,7 +975,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         None
         '''
         IndShockConsumerType.update(self)
-        self.updatePermIncNextFunc()
+        self.updatepLvlNextFunc()
         self.updatePermIncGrid()
         
     def updateSolutionTerminal(self):
@@ -999,9 +999,9 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         self.solution_terminal.mLvlMin = lambda p : np.zeros_like(p) # And minimum allowable market resources by perm inc
         
         
-    def updatePermIncNextFunc(self):
+    def updatepLvlNextFunc(self):
         '''
-        A dummy method that creates a trivial PermIncNextFunc attribute that has
+        A dummy method that creates a trivial pLvlNextFunc attribute that has
         no permanent income dynamics.  This method should be overwritten by
         subclasses in order to make (e.g.) an AR1 income process.
         
@@ -1013,18 +1013,18 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        PermIncNextFuncBasic = LinearInterp(np.array([0.,1.]),np.array([0.,1.]))
-        self.PermIncNextFunc = self.T_cycle*[PermIncNextFuncBasic]
-        self.addToTimeVary('PermIncNextFunc')
+        pLvlNextFuncBasic = LinearInterp(np.array([0.,1.]),np.array([0.,1.]))
+        self.pLvlNextFunc = self.T_cycle*[pLvlNextFuncBasic]
+        self.addToTimeVary('pLvlNextFunc')
         
         
     def installRetirementFunc(self):
         '''
-        Installs a special PermIncNextFunc representing retirement in the correct
-        element of self.PermIncNextFunc.  Draws on the attributes T_retire and
-        PermIncNextFuncRet.  If T_retire is zero or PermIncNextFuncRet does not
+        Installs a special pLvlNextFunc representing retirement in the correct
+        element of self.pLvlNextFunc.  Draws on the attributes T_retire and
+        pLvlNextFuncRet.  If T_retire is zero or pLvlNextFuncRet does not
         exist, this method does nothing.  Should only be called from within the
-        method updatePermIncNextFunc, which ensures that time is flowing forward.
+        method updatepLvlNextFunc, which ensures that time is flowing forward.
         
         Parameters
         ----------
@@ -1034,10 +1034,10 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        if (not hasattr(self,'PermIncNextFuncRet')) or self.T_retire == 0:
+        if (not hasattr(self,'pLvlNextFuncRet')) or self.T_retire == 0:
             return        
         t = self.T_retire
-        self.PermIncNextFunc[t] = self.PermIncNextFuncRet
+        self.pLvlNextFunc[t] = self.pLvlNextFuncRet
         
         
     def updatePermIncGrid(self):
@@ -1048,7 +1048,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         income will be different within a period depending on how many cycles
         have elapsed.  This method uses a simulation approach to generate the
         pLvlGrid at each period of the cycle, drawing on the initial distribution
-        of permanent income, the PermIncNextFuncs, and the attribute pLvlPctiles.
+        of permanent income, the pLvlNextFuncs, and the attribute pLvlPctiles.
         
         Parameters
         ----------
@@ -1070,7 +1070,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
             for t in range(len(self.PermShkStd)):
                 if t > 0:
                     PermShkNow = drawDiscrete(N=self.AgentCount,P=self.PermShkDstn[t-1][0],X=self.PermShkDstn[t-1][1],exact_match=False,seed=t)
-                    pLvlNow = self.PermIncNextFunc[t-1](pLvlNow)*PermShkNow
+                    pLvlNow = self.pLvlNextFunc[t-1](pLvlNow)*PermShkNow
                 PermIncGrid.append(getPercentiles(pLvlNow,percentiles=self.pLvlPctiles))
                 
         # Calculate "stationary" distribution in infinite horizon (might vary across periods of cycle)
@@ -1087,7 +1087,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
                 for j in range(self.T_cycle): # Update permanent income
                     these = t_cycle == j
                     PermShkTemp = drawDiscrete(N=np.sum(these),P=self.PermShkDstn[j][0],X=self.PermShkDstn[j][1],exact_match=False,seed=t+13*j)
-                    pLvlNow[these] = self.PermIncNextFunc[j](pLvlNow[these])*PermShkTemp
+                    pLvlNow[these] = self.pLvlNextFunc[j](pLvlNow[these])*PermShkTemp
                 t_cycle = t_cycle + 1
                 t_cycle[t_cycle == self.T_cycle] = 0
             
@@ -1151,7 +1151,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         pLvlNow = np.zeros_like(aLvlPrev)
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            pLvlNow[these] = self.PermIncNextFunc[t-1](self.pLvlNow[these])*self.PermShkNow[these]
+            pLvlNow[these] = self.pLvlNextFunc[t-1](self.pLvlNow[these])*self.PermShkNow[these]
         self.pLvlNow = pLvlNow                  # Updated permanent income level
         self.bLvlNow = RfreeNow*aLvlPrev        # Bank balances before labor income
         self.mLvlNow = self.bLvlNow + self.TranShkNow*self.pLvlNow # Market resources after income
@@ -1204,9 +1204,9 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
     identical to a IndShockConsumerType but for explicitly tracking pLvl as a
     state variable during solution.  There is no real economic use for it.
     '''
-    def updatePermIncNextFunc(self):
+    def updatepLvlNextFunc(self):
         '''
-        A method that creates the PermIncNextFunc attribute as a sequence of
+        A method that creates the pLvlNextFunc attribute as a sequence of
         linear functions, indicating constant expected permanent income growth
         across permanent income levels.  Draws on the attribute PermGroFac, and
         installs a special retirement function when it exists.
@@ -1222,13 +1222,13 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
         orig_time = self.time_flow
         self.timeFwd()
         
-        PermIncNextFunc = []
+        pLvlNextFunc = []
         for t in range(self.T_cycle):
-            PermIncNextFunc.append(LinearInterp(np.array([0.,1.]),np.array([0.,self.PermGroFac[t]])))
+            pLvlNextFunc.append(LinearInterp(np.array([0.,1.]),np.array([0.,self.PermGroFac[t]])))
             
-        self.PermIncNextFunc = PermIncNextFunc
+        self.pLvlNextFunc = pLvlNextFunc
         self.installRetirementFunc()
-        self.addToTimeVary('PermIncNextFunc')
+        self.addToTimeVary('pLvlNextFunc')
         if not orig_time:
             self.timeRev()
     
@@ -1244,9 +1244,9 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
     period assets, an artificial borrowing constraint, and the correlation
     coefficient for (log) permanent income.
     '''
-    def updatePermIncNextFunc(self):
+    def updatepLvlNextFunc(self):
         '''
-        A method that creates the PermIncNextFunc attribute as a sequence of
+        A method that creates the pLvlNextFunc attribute as a sequence of
         AR1-style functions.  Draws on the attributes PermGroFac and PermIncCorr.
         If cycles=0, the product of PermGroFac across all periods must be 1.0,
         otherwise this method is invalid.
@@ -1262,15 +1262,15 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         orig_time = self.time_flow
         self.timeFwd()
         
-        PermIncNextFunc = []
+        pLvlNextFunc = []
         pLogMean = self.pLvlInitMean # Initial mean (log) permanent income
         
         for t in range(self.T_cycle):
-            PermIncNextFunc.append(PermIncFuncAR1(pLogMean,self.PermGroFac[t],self.PermIncCorr))
+            pLvlNextFunc.append(PermIncFuncAR1(pLogMean,self.PermGroFac[t],self.PermIncCorr))
             pLogMean += np.log(self.PermGroFac[t])
             
-        self.PermIncNextFunc = PermIncNextFunc
-        self.addToTimeVary('PermIncNextFunc')
+        self.pLvlNextFunc = pLvlNextFunc
+        self.addToTimeVary('pLvlNextFunc')
         if not orig_time:
             self.timeRev()
     
