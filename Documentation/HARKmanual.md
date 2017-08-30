@@ -842,6 +842,7 @@ calcFashionEvoFunc by regressing ![p
 the standard deviation of prediction errors.[21](HARKmanual21.html#fn21x0) The
 new fashion rule is an instance of the simple FashionEvoFunc class, whose only
 methods are inherited from HARKobject.
+<a name="ContributingToHARK"></a>
 
 When the solve method is run, the solver successively solves each agent's
 microeconomic problem, runs the makeHistory method to generate a 1000 period
@@ -849,8 +850,7 @@ history of ![pt  ](HARKmanual60x.png), and calculates a new punk evolution
 rule based on this history; the solver terminates when consecutive rules
 differ by less than 0.01 in any dimension.
 
-### 5  <a name="ContributingToHARK"></a>Contributing to HARK
-
+### 5  Contributing to HARK
 This section provides an overview of how users can contribute new code, what
 sort of contributions are most desired, and style conventions for the toolKit.
 Before attempting to extend HARK, we strongly recommend that you familiarize
