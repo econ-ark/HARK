@@ -849,7 +849,7 @@ history of ![pt  ](HARKmanual60x.png), and calculates a new punk evolution
 rule based on this history; the solver terminates when consecutive rules
 differ by less than 0.01 in any dimension.
 
-### 5  [Contributing to HARK](#ContributingToHARK)
+### 5  <a name="ContributingToHARK></a>Contributing to HARK
 
 This section provides an overview of how users can contribute new code, what
 sort of contributions are most desired, and style conventions for the toolKit.
