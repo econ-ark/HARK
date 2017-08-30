@@ -49,7 +49,7 @@ University of Delaware
  4.1 Down on the Farm  
  4.2 Attributes of a Market  
  4.3 Sample Model: FashionVictim  
-5 Contributing to HARK  
+5 [Contributing to HARK](#ContributingToHARK)  
  5.1 What Does HARK Want?  
  5.2 Git and GitHub  
  5.3 Submission Approval Process  
