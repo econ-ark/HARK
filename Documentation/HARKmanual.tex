@@ -6,7 +6,11 @@
 \usepackage{hyperref}
 \providecommand{\E}{\mathbb{E}}
 
+\newboolean{ContributingToHARKOnly}
+\setboolean{ContributingToHARKOnly}{false}
+
 \begin{document}
+\ifthenelse{\boolean{ContributingToHARKOnly}}{(This is an excerpt of the full manual, available at \url{http://econ-ark.org/HARK/Documentation/HARKmanual.pdf)}}{ % If ContributingToHARKOnly is true, do not include any text until that section
 \title{\LARGE A User's Guide for HARK: \\ Heterogeneous Agents Resources and toolKit}
 
 \date{\normalsize{\today}}
@@ -431,11 +435,12 @@ The \texttt{millRule} for this market is extremely simple: it flattens the list 
 
 When the \texttt{solve} method is run, the solver successively solves each agent's microeconomic problem, runs the \texttt{makeHistory} method to generate a 1000 period history of $p_t$, and calculates a new punk evolution rule based on this history; the solver terminates when consecutive rules differ by less than 0.01 in any dimension.
 
-
-\hypertarget{ContributingToHARK}{\section{Contributing to HARK}\label{sec:ContributingToHARK}}
+}
+% \hypertarget{ContributingToHARK}{\section{Contributing to HARK}\label{sec:ContributingToHARK}}
+\section{Contributing to HARK}\label{sec:ContributingToHARK}
 
 %After reading this far into the user guide, it is safe to assume that you are eager to contribute to HARK's development.  
-This section provides an overview of how users can contribute new code, what sort of contributions are most desired, and style conventions for the toolKit.  Before attempting to extend HARK, we strongly recommend that you familiarize yourself with its features and models by looking at the source code.
+This section provides an overview of how users can contribute new code to HARK, what sort of contributions are most desired, and style conventions for the toolKit.  Before attempting to extend HARK, we strongly recommend that you familiarize yourself with its features and models by looking at the source code.
 
 \subsection{What Does HARK Want?}\label{sec:WhatDoesHARKWant}
 
@@ -583,6 +588,7 @@ The HARK team wants the toolKit to be as accessible to users as possible; our gr
 
 Finally, if you write a new model module, the HARK team asks that you also provide a short mathematical writeup of the model as a PDF.  This document does not need to go into great detail about the solution method for the model or the functions and classes included in the module, merely specify the economic model and provide a summary of how it is solved.  See \texttt{/Documentation/ConsumptionSavingModels.pdf} for an example of this.
 
+\ifthenelse{\boolean{ContributingToHARKOnly}}{}{
 \section{Future of HARK}\label{sec:FutureOfHARK}
 
 HARK is in a state of perpetual incompleteness, always expanding to include more tools and more models.  As an open source project in the hands of many contributors around the world, the HARK team cannot fully predict future features of the toolKit.  This section provides an overview of what we would like to see in the near future, as well as potential mechanisms to encourage researchers to contribute their code to the project.
@@ -656,5 +662,5 @@ On one level, the Ark might serve as a warehouse for any and all quantitative mo
 On a different level, the Ark might also include cohesive toolkits like HARK, but geared toward purposes other than heterogeneous agents macroeconomics models.  For example, the previously mentioned modules for networks among agents (and other agent-based modeling), industrial organization and dynamic games, and traditional discrete choice models might become their own toolkits, with some interoperability with HARK.  In support of this, some of the tool modules currently in HARK might be ``promoted'' and become universally shared across all Econ-Ark toolkits.
 
 The dark secret of HARK is that it is named for heterogeneous agents macroeconomics, but designed and written by structural microeconomists.  The development team believes these subfields to have considerable overlap in terms of methods and techniques, and that HARK might not be noticed by half of its potential audience due to its name.  In a general sense, the Econ-Ark gives us cover to expand the scope of our efforts and/or rebrand the toolKit for an alternative audience.
-
+} % end \ifthenelse{\boolean{\ContributingToHARKOnly}}
 \end{document}

@@ -2,7 +2,7 @@
   "http://www.w3.org/TR/html4/loose.dtd">  
 <html > 
 <head> <meta name = "Author" content = "EconARK.org">  
-<meta name = "Description" content = "">  
+<meta name = "Description" content = """>  
 <"A Users Guide for HARK: Heterogeneous Agents Resources and toolKit"></"A Users Guide for HARK: Heterogeneous Agents Resources and toolKit">  
  <title>A User&#8217;s Guide for HARK:
 Heterogeneous Agents Resources and toolKit</title> 
@@ -14,11 +14,11 @@ Heterogeneous Agents Resources and toolKit</title>
 <link rel="stylesheet" type="text/css" href="HARKmanual.css"> 
 </head><body 
 >
-<!--l. 43--><p class="indent" >  <span class="footnote-mark"><sup class="textsuperscript"></sup></span>
+<!--l. 438--><p class="indent" >  <span class="footnote-mark"><sup class="textsuperscript"></sup></span>
   <div class="maketitle">
 <h2 class="titleHead">A User&#8217;s Guide for HARK:<br />
 Heterogeneous Agents Resources and toolKit</h2>
-<div class="date" > August 29, 2017</div>
+<div class="date" > August 30, 2017</div>
 <span 
 class="ecrm-0600">&#x00A0;</span>
                   <div class="author" >  <span 
@@ -46,14 +46,14 @@ class="ecrm-1095">University of Delaware </span></div><br />
 </div>
 <div class="center" 
 >
-<!--l. 49--><p class="noindent" >
-<!--l. 50--><p class="noindent" ><img 
+<!--l. 438--><p class="noindent" >
+<!--l. 438--><p class="noindent" ><img 
 src="HARKmanual0x.png" alt="PIC" class="graphics"><!--tex4ht:graphics  
 name="HARKmanual0x.png" src="UserGuidePic.pdf"  
 --></div>
-<!--l. 54--><p class="indent" >
+<!--l. 438--><p class="indent" >
       <sup class="textsuperscript"></sup>
-<!--l. 30--><p class="noindent" ><sup class="textsuperscript"><span 
+<!--l. 438--><p class="noindent" ><sup class="textsuperscript"><span 
 class="ecrm-0600">1</span></sup> <span 
 class="ecrm-1000">Carroll: </span><a 
 href="http://econ.jhu.edu/people/ccarroll/" class="url" ><span 
@@ -167,12 +167,12 @@ href="#x1-310006.3" id="QQ2-1-31">Bounty Hunting</a></span>
 <br />  &#x00A0;<span class="subsectionToc" >6.4 <a 
 href="#x1-320006.4" id="QQ2-1-32">All Aboard the Ark</a></span>
   </div>
-<!--l. 58--><p class="indent" >
+<!--l. 438--><p class="indent" >
                                                                                         
                                                                                         
   <h3 class="sectionHead"><span class="titlemark">1  </span> <a 
  id="x1-20001"></a>Introduction</h3>
-<!--l. 62--><p class="noindent" >If you are willing to risk some mild psychological trauma, conjure to mind your first experience of
+<!--l. 438--><p class="noindent" >If you are willing to risk some mild psychological trauma, conjure to mind your first experience of
 hand-coding a structural economic model. Your clunky effort probably built on legacy code
 provided by an adviser or colleague &#8211; which itself came from who-knows-what apocryphal
 sources. Efforts to combine elements from one model with those from another were likely
@@ -180,22 +180,22 @@ frustrated by the &#8220;Tower of Babel&#8221; problem: Code from one source cou
 from another without your own intermediation as a translator, possibly between two unfamiliar
 languages and aided only by oracular comments that, at best, made sense only in the context of
 other (now missing) code.
-<!--l. 64--><p class="indent" >  After months of effort, you may have had the character-improving experience of proudly
+<!--l. 438--><p class="indent" >  After months of effort, you may have had the character-improving experience of proudly
 explaining to your adviser that not only had you grafted two ideas together, you also found a
 trick that speeded the solution by an order of magnitude, only to be told that your breathtaking
 insight had been understood for many years, as reflected in an appendix to a 2008 paper; or,
 worse, your discovery was something that &#8220;everybody knows&#8221; but did not exist at all in published
 form!
-<!--l. 66--><p class="indent" >  Learning by doing has value, but only within limits. We do not require young drivers to design
+<!--l. 438--><p class="indent" >  Learning by doing has value, but only within limits. We do not require young drivers to design
 an internal combustion engine before driving a car, nor must graduate students write their own
 matrix inversion algorithms before running an OLS regression.
-<!--l. 68--><p class="indent" >  In recent years, considerable progress has been made in addressing these kinds of problems in
+<!--l. 438--><p class="indent" >  In recent years, considerable progress has been made in addressing these kinds of problems in
 many areas of economic modeling. Macroeconomists using representative agent models can send
 Dynare model files to each other; reduced form econometricians can choose from a host of
 econometric packages. But modelers whose questions require explicit structural modeling
 involving nontrivial kinds of heterogeneity (that is, heterogeneity that cannot simply be
 aggregated away) are mostly still stuck in the bad old days.
-<!--l. 70--><p class="indent" >  The ultimate goal of the HARK project is to fix these problems. Specifically, our aim is to
+<!--l. 438--><p class="indent" >  The ultimate goal of the HARK project is to fix these problems. Specifically, our aim is to
 produce an open source repository of highly modular, easily interoperable code for
 solving, simulating, and estimating dynamic economic models with heterogeneous
 agents.<span class="footnote-mark"><a 
@@ -205,7 +205,7 @@ Further, we seek to establish (with input from the community) standards for the 
 specification of objects like discrete approximations to continuous distributions and interpolated
 function approximations, so that numeric methods can be quickly swapped without ugly
 &#8220;patching.&#8221;
-<!--l. 72--><p class="indent" >  We hope that HARK will make it much easier and faster for researchers to develop solution
+<!--l. 438--><p class="indent" >  We hope that HARK will make it much easier and faster for researchers to develop solution
 and estimation methods for new models. The open source nature of HARK will make
 it easier for other researchers to audit and verify new models and methods, and to
 collaborate on correcting deficiencies when found. As HARK expands to include more
@@ -216,12 +216,12 @@ numerical minutiae and more time fretting about identification arguments and dat
 accuracy.
   <h4 class="subsectionHead"><span class="titlemark">1.1  </span> <a 
  id="x1-30001.1"></a>Getting Started</h4>
-<!--l. 76--><p class="noindent" >If you want to get started using HARK right away, this section provides a very easy quickstart
+<!--l. 438--><p class="noindent" >If you want to get started using HARK right away, this section provides a very easy quickstart
 guide for getting HARK up and running on your computer in just a few minutes. More
 information can be found in the <span 
 class="ectt-1200">README.md </span>file in the HARK repository (step 4), but here is a
 quick version for those who want to jump right in:
-<!--l. 78--><p class="indent" >
+<!--l. 438--><p class="indent" >
       <ol  class="enumerate1" >
       <li 
   class="enumerate" id="x1-3002x1"><span 
@@ -282,7 +282,7 @@ class="ectt-1200">/ConsumptionSaving/ConsIndShockModel.py</span>.
 class="ecbx-1200">Run the module: </span>Click on the green arrow &#8220;play&#8221; button toward the right side of
       the toolbar of icons at the top of the Spyder window (accept defaults if a dialogue
       box pops up). Congratulations! HARK is now up and running on your computer.</li></ol>
-<!--l. 96--><p class="indent" >  If you followed our recommendation to try <span 
+<!--l. 438--><p class="indent" >  If you followed our recommendation to try <span 
 class="ectt-1200">/ConsumptionSaving/ConsIndShockModel.py</span>,
 you should see graphical representations of the solution to a few consumption-saving
 models with idiosyncratic shocks to permanent and transitory income (see
@@ -293,10 +293,10 @@ estimation, a polite notification that this particular module doesn&#8217;t do m
 output at all. See the <span 
 class="ectt-1200">README.md </span>for a full list of modules from which you can expect non-trivial
 output.
-<!--l. 98--><p class="noindent" >
+<!--l. 438--><p class="noindent" >
   <h4 class="subsectionHead"><span class="titlemark">1.2  </span> <a 
  id="x1-40001.2"></a>Structure of HARK</h4>
-<!--l. 100--><p class="noindent" >HARK is written in Python, an object-oriented programming (OOP) language that has
+<!--l. 438--><p class="noindent" >HARK is written in Python, an object-oriented programming (OOP) language that has
 experienced increasing popularity in the scientific community in the past several years. A
 significant reason for the adoption of Python is the <span 
 class="ectt-1200">numpy </span>and <span 
@@ -306,12 +306,12 @@ use of these libraries. Python&#8217;s object-oriented nature allows models in H
 be easily extended: more complex models can inherit functions and methods from
 more fundamental &#8220;parent&#8221; models, eliminating the need to reproduce or repurpose
 code.
-<!--l. 102--><p class="indent" >  As implied in the previous section, we strongly encourage HARK users to use the Anaconda
+<!--l. 438--><p class="indent" >  As implied in the previous section, we strongly encourage HARK users to use the Anaconda
 distribution of Python, which includes all commonly used mathematical and scientific packages,
 an interactive development environment for iPython (Spyder), and a package manager that
 allows users to quickly install or update packages not included in the default distribution
 (conda).
-<!--l. 104--><p class="indent" >  For users unfamiliar with OOP, we strongly encourage you to review the background material
+<!--l. 438--><p class="indent" >  For users unfamiliar with OOP, we strongly encourage you to review the background material
 on OOP provided by the good people at <a 
 href="http://quant-econ.net/" >QuantEcon</a> (for more on them, see below) at this link:
 <a 
@@ -328,10 +328,10 @@ class="ectt-1200">.py </span>extension. Modules can be
                                                                                         
 accessed in Python via:<br 
 class="newline" />
-<!--l. 106--><p class="indent" >  <span 
+<!--l. 438--><p class="indent" >  <span 
 class="ectt-1200">import module_name as import_name </span><br 
 class="newline" />
-<!--l. 109--><p class="noindent" >This imports the module and gives it a local name of <span 
+<!--l. 438--><p class="noindent" >This imports the module and gives it a local name of <span 
 class="ectt-1200">import_name</span>. We can access a function
 within this module by simply typing: <span 
 class="ectt-1200">import_name.function_name()</span>. The following example
@@ -345,12 +345,12 @@ module <span
 class="ectt-1200">HARKutilities</span>. In order to calculate CRRA utility with a consumption of 1 and a
 coefficient of risk aversion of 2 we run:<br 
 class="newline" />
-<!--l. 112--><p class="indent" >  <span 
+<!--l. 438--><p class="indent" >  <span 
 class="ectt-1200">import HARKutilities as Hutil</span>
-<!--l. 114--><p class="indent" >  <span 
+<!--l. 438--><p class="indent" >  <span 
 class="ectt-1200">Hutil.CRRAutility(1,2)</span><br 
 class="newline" />
-<!--l. 116--><p class="indent" >  Python modules in HARK can generally be categorized into three types: tools, models, and
+<!--l. 438--><p class="indent" >  Python modules in HARK can generally be categorized into three types: tools, models, and
 applications. <span 
 class="ecbx-1200">Tool modules </span>contain functions and classes with general purpose tools that have
 no inherent &#8220;economic content&#8221;, but that can be used in many economic models as building
@@ -363,7 +363,7 @@ names like <span
 class="ectt-1200">HARKsimulation </span>and <span 
 class="ectt-1200">HARKinterpolation</span>; they do not necessarily do anything when
 run.
-<!--l. 118--><p class="indent" >  <span 
+<!--l. 438--><p class="indent" >  <span 
 class="ecbx-1200">Model modules </span>specify particular economic models, including classes to represent agents in
 the model (and the &#8220;market structure&#8221; in which they interact) and functions for solving the
 &#8220;one period problem&#8221; of those models. For example, <span 
@@ -385,7 +385,7 @@ Model modules generally have <span
 class="ectt-1200">Model </span>in their name.
                                                                                         
                                                                                         
-<!--l. 120--><p class="indent" >  <span 
+<!--l. 438--><p class="indent" >  <span 
 class="ecbx-1200">Application modules </span>use tool and model modules to solve, simulate, and/or estimate
 economic models <span 
 class="ecti-1200">for a particular purpose</span>. While tool modules have no particular economic
@@ -402,7 +402,7 @@ might have multiple modules associated with it, all of which generally reside in
 directory.
   <h4 class="subsectionHead"><span class="titlemark">1.3  </span> <a 
  id="x1-50001.3"></a>Other Resources</h4>
-<!--l. 124--><p class="noindent" >In the incredibly unlikely scenario in which this document does not fill all of the gaps in your
+<!--l. 438--><p class="noindent" >In the incredibly unlikely scenario in which this document does not fill all of the gaps in your
 knowledge and answer any questions you might have while reading it, here is a collection of
 potentially helpful other resources.
       <ul class="itemize1">
@@ -450,10 +450,10 @@ href="http://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/" >particular s
       <li class="itemize">A <a 
 href="http://www.econ2.jhu.edu/people/ccarroll/BufferStockTheory.pdf" >deep dive</a> into the theoretical foundations of buffer stock saving. Warning: dense.
       </li></ul>
-<!--l. 155--><p class="noindent" >
+<!--l. 438--><p class="noindent" >
   <h3 class="sectionHead"><span class="titlemark">2  </span> <a 
  id="x1-60002"></a>General Purpose Tools</h3>
-<!--l. 157--><p class="noindent" >HARK&#8217;s  root  directory  contains  six  tool
+<!--l. 438--><p class="noindent" >HARK&#8217;s  root  directory  contains  six  tool
 modules,<span class="footnote-mark"><a 
 href="HARKmanual5.html#fn5x0"><sup class="textsuperscript">5</sup></a></span><a 
  id="x1-6001f5"></a> 
@@ -469,12 +469,12 @@ href="HARKmanual6.html#fn6x0"><sup class="textsuperscript">6</sup></a></span><a
                                                                                         
   <h4 class="subsectionHead"><span class="titlemark">2.1  </span> <a 
  id="x1-70002.1"></a>HARKcore</h4>
-<!--l. 161--><p class="noindent" >A key goal of the project is to create modularity and interoperability between models, making
+<!--l. 438--><p class="noindent" >A key goal of the project is to create modularity and interoperability between models, making
 them easy to combine, adapt, and extend. To this end, the <span 
 class="ectt-1200">HARKcore </span>module specifies a
 framework for economic models in HARK, creating a common structure for them on two levels
 that can be called &#8220;microeconomic&#8221; and &#8220;macroeconomic&#8221;.
-<!--l. 163--><p class="indent" >  Microeconomic models in HARK use the <span 
+<!--l. 438--><p class="indent" >  Microeconomic models in HARK use the <span 
 class="ectt-1200">AgentType </span>class to represent agents with an
 intertemporal optimization problem. Each of these models specifies a subclass of <span 
 class="ectt-1200">AgentType</span>; an
@@ -494,7 +494,7 @@ from different models; the solver is intended to encompass any model that can be
 framed as a sequence of one period problems. For a complete description, see section
 <a 
 href="#x1-130003">3<!--tex4ht:ref: sec:Microeconomics --></a>.
-<!--l. 165--><p class="indent" >  Macroeconomic models in HARK use the <span 
+<!--l. 438--><p class="indent" >  Macroeconomic models in HARK use the <span 
 class="ectt-1200">Market </span>class to represent a market (or other
 aggregator) that combines the actions, states, and/or shocks (generally, outcomes) of individual
 agents in the model into aggregate outcomes that are &#8220;passed back&#8221; to the agents. For example,
@@ -513,7 +513,7 @@ act accordingly, then their collective actions generate a sequence of macroecono
 outcomes that justify the belief in that rule. For a more complete description, see section
 <a 
 href="#x1-180004">4<!--tex4ht:ref: sec:Macroeconomics --></a>.
-<!--l. 167--><p class="indent" >  Beyond the model frameworks, <span 
+<!--l. 438--><p class="indent" >  Beyond the model frameworks, <span 
 class="ectt-1200">HARKcore </span>also defines a &#8220;supersuperclass&#8221; called <span 
 class="ectt-1200">HARKobject</span>.
 When solving a dynamic microeconomic model with an infinite horizon (or searching for a
@@ -545,7 +545,7 @@ class="ectt-1200">ConsumerSolution</span>. See <a
 href="https://econ-ark.github.io/HARK/generated/HARKcore.html" >here</a> for online documentation.
   <h4 class="subsectionHead"><span class="titlemark">2.2  </span> <a 
  id="x1-80002.2"></a>HARKutilities</h4>
-<!--l. 171--><p class="noindent" >The <span 
+<!--l. 438--><p class="noindent" >The <span 
 class="ectt-1200">HARKutilities </span>module carries a double meaning in its name, as it contains both
 utility functions (and their derivatives, inverses, and combinations thereof) in the
 economic modeling sense as well as utilities in the sense of general tools. Utility functions
@@ -557,7 +557,7 @@ of different data), functions for constructing discrete state space grids, conve
 functions for retrieving information about functions, and basic plotting tools using
 <span 
 class="ectt-1200">matplotlib.pyplot</span>.
-<!--l. 173--><p class="indent" >  The module also includes functions for constructing discrete approximations to continuous
+<!--l. 438--><p class="indent" >  The module also includes functions for constructing discrete approximations to continuous
 distributions (e.g.&#x00A0;<span 
 class="ectt-1200">approxLognormal() </span>to approximate a log-normal distribution) as well as
 manipulating these representations (e.g.&#x00A0;appending one outcome to an existing distribution, or
@@ -573,10 +573,10 @@ integrals to simple dot products) and allows users to easily test whether their 
 discretization yields a sufficient approximation to the full distribution. See <a 
 href="https://econ-ark.github.io/HARK/generated/HARKutilities.html" >here</a> for online
 documentation.
-<!--l. 175--><p class="noindent" >
+<!--l. 438--><p class="noindent" >
   <h4 class="subsectionHead"><span class="titlemark">2.3  </span> <a 
  id="x1-90002.3"></a>HARKinterpolation</h4>
-<!--l. 177--><p class="noindent" >The <span 
+<!--l. 438--><p class="noindent" >The <span 
 class="ectt-1200">HARKinterpolation </span>module defines classes for representing interpolated function
                                                                                         
                                                                                         
@@ -605,7 +605,7 @@ arrays. In this way, subclasses of <span
 class="ectt-1200">HARKinterpolator1D </span>are easily interchangeable with each
 other, as all methods that the user interacts with are identical, varying only by &#8220;internal&#8221;
 methods.
-<!--l. 179--><p class="indent" >  When evaluating a stopping criterion for an infinite horizon problem, it is often necessary to
+<!--l. 438--><p class="indent" >  When evaluating a stopping criterion for an infinite horizon problem, it is often necessary to
 know the &#8220;distance&#8221; between functions generated by successive iterations of a solution procedure.
 To this end, each interpolator class in HARK must define a <span 
 class="ectt-1200">distance </span>method that takes as an
@@ -617,16 +617,16 @@ class="ectt-1200">HARKobject</span>, all interpolator classes have the default &
 simply list the names of the relevant attributes in the attribute <span 
 class="ectt-1200">distance_criteria </span>of the
 class.
-<!--l. 181--><p class="indent" >  Interpolation methods currently implemented in HARK include (multi)linear interpolation up
+<!--l. 438--><p class="indent" >  Interpolation methods currently implemented in HARK include (multi)linear interpolation up
 to 4D, 1D cubic spline interpolation, (multi)linear interpolation over 1D interpolations (up to 4D
 total), (multi)linear interpolation over 2D interpolations (up to 4D total), linear interpolation
 over 3D interpolations, 2D curvilinear interpolation over irregular grids, and a 1D &#8220;lower
 envelope&#8221; interpolator. See <a 
 href="https://econ-ark.github.io/HARK/generated/HARKinterpolation.html" >here</a> for online documentation.
-<!--l. 183--><p class="noindent" >
+<!--l. 438--><p class="noindent" >
   <h4 class="subsectionHead"><span class="titlemark">2.4  </span> <a 
  id="x1-100002.4"></a>HARKsimulation</h4>
-<!--l. 185--><p class="noindent" >The <span 
+<!--l. 438--><p class="noindent" >The <span 
 class="ectt-1200">HARKsimulation </span>module provides tools for generating simulated data or shocks for
 post-solution use of models. Currently implemented distributions include normal, lognormal,
 Weibull (including exponential), uniform, Bernoulli, and discrete. As an example of their use,
@@ -635,12 +635,12 @@ class="ectt-1200">ConsIndShockModel.py </span>to simulate
 permanent and transitory income shocks as well as unemployment events. See <a 
 href="https://econ-ark.github.io/HARK/generated/HARKsimulation.html" >here</a> for online
 documentation.
-<!--l. 187--><p class="noindent" >
+<!--l. 438--><p class="noindent" >
                                                                                         
                                                                                         
   <h4 class="subsectionHead"><span class="titlemark">2.5  </span> <a 
  id="x1-110002.5"></a>HARKestimation</h4>
-<!--l. 189--><p class="noindent" >Methods for optimizing an objective function for the purposes of estimating a model can be
+<!--l. 438--><p class="noindent" >Methods for optimizing an objective function for the purposes of estimating a model can be
 found in <span 
 class="ectt-1200">HARKestimation</span>. As of this writing, the implementation includes only minimization by
 the Nelder-Mead simplex method, minimization by a derivative-free Powell method
@@ -651,10 +651,10 @@ class="ectt-1200">scipy.optimize</span>. Future functionality will include more 
 genetic algorithms, simulated annealing, and differential evolution. See <a 
 href="https://econ-ark.github.io/HARK/generated/HARKestimation.html" >here</a> for full
 documentation.
-<!--l. 191--><p class="noindent" >
+<!--l. 438--><p class="noindent" >
   <h4 class="subsectionHead"><span class="titlemark">2.6  </span> <a 
  id="x1-120002.6"></a>HARKparallel</h4>
-<!--l. 193--><p class="noindent" >By default, processes in Python are single-threaded, using only a single CPU core. The <span 
+<!--l. 438--><p class="noindent" >By default, processes in Python are single-threaded, using only a single CPU core. The <span 
 class="ectt-1200">HARKparallel</span>
 module provides basic tools for using multiple CPU cores simultaneously, with minimal
 effort.<span class="footnote-mark"><a 
@@ -684,7 +684,7 @@ algorithm, as described in Wiswall and Lee (2011). See <a
 href="https://econ-ark.github.io/HARK/generated/HARKparallel.html" >here</a> for full documentation.
   <h3 class="sectionHead"><span class="titlemark">3  </span> <a 
  id="x1-130003"></a>Microeconomics: the AgentType Class</h3>
-<!--l. 197--><p class="noindent" >The core of our microeconomic dynamic optimization framework is a flexible object-oriented
+<!--l. 438--><p class="noindent" >The core of our microeconomic dynamic optimization framework is a flexible object-oriented
 representation of economic agents. The <span 
 class="ectt-1200">HARKcore </span>module defines a superclass called <span 
 class="ectt-1200">AgentType</span>;
@@ -702,7 +702,7 @@ href="HARKmanual10.html#fn10x0"><sup class="textsuperscript">10</sup></a></span>
  id="x1-13001f10"></a> 
   <h4 class="subsectionHead"><span class="titlemark">3.1  </span> <a 
  id="x1-140003.1"></a>Attributes of an AgentType</h4>
-<!--l. 201--><p class="noindent" >A discrete time model in our framework is characterized by a sequence of &#8220;periods&#8221; that the
+<!--l. 438--><p class="noindent" >A discrete time model in our framework is characterized by a sequence of &#8220;periods&#8221; that the
 agent will experience. A well-formed instance of <span 
 class="ectt-1200">AgentType </span>includes the following
 attributes:
@@ -777,16 +777,16 @@ class="ectt-1200">time_vary </span>are listed in ordinary chronological order,
       with index 0 being the first period; when <span 
 class="ectt-1200">False</span>, these lists are in reverse chronological
       order, with index 0 holding the last period.</li></ul>
-<!--l. 220--><p class="indent" >  An instance of <span 
+<!--l. 438--><p class="indent" >  An instance of <span 
 class="ectt-1200">AgentType </span>also has the attributes named in <span 
 class="ectt-1200">time_vary </span>and <span 
 class="ectt-1200">time_inv</span>, and
 may have other attributes that are not included in either (e.g.&#x00A0;values not used in the model
 solution, but instead to construct objects used in the solution).
-<!--l. 222--><p class="noindent" >
+<!--l. 438--><p class="noindent" >
   <h4 class="subsectionHead"><span class="titlemark">3.2  </span> <a 
  id="x1-150003.2"></a>A Universal Solver</h4>
-<!--l. 224--><p class="noindent" >When an instance of <span 
+<!--l. 438--><p class="noindent" >When an instance of <span 
 class="ectt-1200">AgentType </span>invokes its <span 
 class="ectt-1200">solve </span>method, the solution to the agent&#8217;s problem is
 stored in the attribute <span 
@@ -811,7 +811,7 @@ periods is solved until the solutions of successive cycles have a &#8220;distanc
 class="ectt-1200">tolerance</span>.
                                                                                         
                                                                                         
-<!--l. 226--><p class="indent" >  The output from a function in <span 
+<!--l. 438--><p class="indent" >  The output from a function in <span 
 class="ectt-1200">solveOnePeriod </span>is an instance of a model-specific solution
 class. The attributes of a solution to one period of a problem might include behavioral functions,
 (marginal) value functions, and other variables characterizing the result. Each solution class must
@@ -825,7 +825,7 @@ class="ectt-1200">HARKobject</span>, it automatically inherits the default
 class="ectt-1200">distance </span>method, so that the user must only list the relevant object attributes in
 <span 
 class="ectt-1200">distance_criteria</span>.
-<!--l. 228--><p class="indent" >  The <span 
+<!--l. 438--><p class="indent" >  The <span 
 class="ectt-1200">AgentType </span>also has methods named <span 
 class="ectt-1200">preSolve </span>and <span 
 class="ectt-1200">postSolve</span>, both of which take no
@@ -854,15 +854,15 @@ class="ectt-1200">TractableBufferStockModel </span>has a <span
 class="ectt-1200">postSolve </span>method that
 constructs an interpolated consumption function from the list of stable arm points found during
 solution.
-<!--l. 230--><p class="indent" >  Our universal solver is written in a very general way that should be applicable to any discrete
+<!--l. 438--><p class="indent" >  Our universal solver is written in a very general way that should be applicable to any discrete
 time optimization problem&#8211; because Python is so flexible in defining objects, the time-varying
 inputs for each period can take any form. Indeed, the solver does no &#8220;real work&#8221; itself, but merely
 provides a structure for describing models in the HARK framework, allowing interoperability
 among current and future modules.
-<!--l. 232--><p class="noindent" >
+<!--l. 438--><p class="noindent" >
   <h4 class="subsectionHead"><span class="titlemark">3.3  </span> <a 
  id="x1-160003.3"></a>The Flow of Time and Other Methods</h4>
-<!--l. 234--><p class="noindent" >Because dynamic optimization problems are solved recursively in our framework, it is natural to
+<!--l. 438--><p class="noindent" >Because dynamic optimization problems are solved recursively in our framework, it is natural to
 list time-varying values in reverse chronological order&#8211; the <span 
 class="ectt-1200">solve() </span>method loops over the
 values in each time-varying list in the same direction that a human would read them.
@@ -875,7 +875,7 @@ HARK framework includes functionality to easily change ordering of time-varying
                                                                                         
                                                                                         
 values.
-<!--l. 236--><p class="indent" >  The attribute <span 
+<!--l. 438--><p class="indent" >  The attribute <span 
 class="ectt-1200">time_flow </span>is <span 
 class="ectt-1200">True </span>if variables are listed in ordinary chronological
 order and <span 
@@ -898,7 +898,7 @@ class="ectt-1200">timeFwd()</span>: Sets the direction of time to ordinary chron
       </li>
       <li class="itemize"><span 
 class="ectt-1200">timeRev()</span>: Sets the direction of time to reverse chronological order.</li></ul>
-<!--l. 247--><p class="indent" >  These methods are invoked to more conveniently access time-varying objects. When a new
+<!--l. 438--><p class="indent" >  These methods are invoked to more conveniently access time-varying objects. When a new
 time-varying attribute is added, its name should be appended to <span 
 class="ectt-1200">time_vary</span>, particularly if its
 values are used in the solution of the model (or is part of the solution itself). For example, the
@@ -920,7 +920,7 @@ class does not have a <span
 class="ectt-1200">reverse() </span>method, these attributes should not be listed in
 <span 
 class="ectt-1200">time_vary</span>.
-<!--l. 249--><p class="indent" >  The base <span 
+<!--l. 438--><p class="indent" >  The base <span 
 class="ectt-1200">AgentType </span>is sparsely defined, as most &#8220;real&#8221; methods will be application-specific.
 Two final methods bear mentioning. First, the <span 
 class="ectt-1200">__call__ </span>method points to <span 
@@ -948,7 +948,7 @@ used for every simulation run when a model is solved or estimated.
                                                                                         
   <h4 class="subsectionHead"><span class="titlemark">3.4  </span> <a 
  id="x1-170003.4"></a>Sample Model: Perfect Foresight Consumption-Saving</h4>
-<!--l. 254--><p class="noindent" >To provide a concrete example of how the <span 
+<!--l. 438--><p class="noindent" >To provide a concrete example of how the <span 
 class="ectt-1200">AgentType </span>class works, consider the very simple case
 of a perfect foresight consumption-saving model. The agent has time-separable, additive CRRA
 preferences over consumption, discounting future utility at a constant rate; he receives a
@@ -976,7 +976,7 @@ src="HARKmanual9x.png" alt="&#x0393; t  "  class="math" > for <img
 src="HARKmanual10x.png" alt="t = 0,&#x22C5;&#x22C5;&#x22C5;,T  "  class="math" >. This
 problem has an analytical solution for both the value function and the consumption
 function.
-<!--l. 265--><p class="indent" >  The <span 
+<!--l. 438--><p class="indent" >  The <span 
 class="ectt-1200">ConsIndShockModel </span>module defines the class <span 
 class="ectt-1200">PerfForesightConsumerType</span>
 as a subclass of <span 
@@ -987,19 +987,19 @@ href="HARKmanual13.html#fn13x0"><sup class="textsuperscript">13</sup></a></span>
  id="x1-17001f13"></a> 
 A HARK user could specify and solve a ten period perfect foresight model with the following
 commands:
-<!--l. 269--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">MyConsumer = PerfForesightConsumerType(time_flow=True, cycles=1,</span>
-<!--l. 271--><p class="indent" >   <span 
+<!--l. 438--><p class="indent" >   <span 
 class="ectt-1200">CRRA = 2.7, Rfree = 1.03, DiscFac = 0.98,</span>
-<!--l. 273--><p class="indent" >   <span 
+<!--l. 438--><p class="indent" >   <span 
 class="ectt-1200">LivPrb = [0.99,0.98,0.97,0.96,0.95,0.94,0.93,0.92,0.91,0.90],</span>
-<!--l. 275--><p class="indent" >   <span 
+<!--l. 438--><p class="indent" >   <span 
 class="ectt-1200">PermGroFac = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02],</span>
-<!--l. 277--><p class="indent" >   <span 
+<!--l. 438--><p class="indent" >   <span 
 class="ectt-1200">Nagents=1000)</span>
-<!--l. 279--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">MyConsumer.solve()</span>
-<!--l. 283--><p class="indent" >  The first line makes a new instance of <span 
+<!--l. 438--><p class="indent" >  The first line makes a new instance of <span 
 class="ectt-1200">ConsumerType</span>, specifying that time is currently &#8220;flowing&#8221;
                                                                                         
                                                                                         
@@ -1057,31 +1057,31 @@ src="HARKmanual15x.png" alt="Yt  "  class="math" >.
       <li class="itemize"><span 
 class="ectt-1200">MPC</span>: The constant marginal propensity to consume (linear consumption function).
       </li></ul>
-<!--l. 297--><p class="indent" >  The following command generates the plot for the perfect foresight consumption
+<!--l. 438--><p class="indent" >  The following command generates the plot for the perfect foresight consumption
 function:
-<!--l. 301--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">mMin = MyConsumer.solution[0].mNrmMin</span>
-<!--l. 303--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">plotFuncs(MyConsumer.solution[0].cFunc, mMin, mMin+10)</span>
-<!--l. 307--><p class="indent" >  To solve a version of this problem in which the sequence of ten periods happens
+<!--l. 438--><p class="indent" >  To solve a version of this problem in which the sequence of ten periods happens
 three times (yielding a <span 
 class="ectt-1200">solution </span>attribute with thirty-one elements), the user can
 do:
                                                                                         
                                                                                         
-<!--l. 311--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">MyConsumer(cycles = 3)</span>
-<!--l. 313--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">MyConsumer.solve()</span>
-<!--l. 317--><p class="indent" >  To solve an infinite horizon problem in which the agent experiences the same one period
+<!--l. 438--><p class="indent" >  To solve an infinite horizon problem in which the agent experiences the same one period
 problem indefinitely, the user can do:
-<!--l. 321--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">OtherConsumer = PerfForesightConsumerType(cycles=0, CRRA=3.5, Rfree=1.02,</span>
-<!--l. 323--><p class="indent" >  <span 
+<!--l. 438--><p class="indent" >  <span 
 class="ectt-1200">DiscFac=0.95, LivPrb = [0.99], PermGroFac = [1.01], Nagents=1000)</span>
-<!--l. 325--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">OtherConsumer.solve()</span>
-<!--l. 329--><p class="indent" >  This instance is specified as being infinite horizon by setting <span 
+<!--l. 438--><p class="indent" >  This instance is specified as being infinite horizon by setting <span 
 class="ectt-1200">cycles=0</span>. Note that the
 time-varying inputs are still specified as (one element) lists, even though they take on the same
 value in every period; this is because an infinite horizon model might consist of a multi-period
@@ -1093,7 +1093,7 @@ class="ectt-1200">ConsumerSolution</span>, representing the
 solution to every period of the model.
   <h3 class="sectionHead"><span class="titlemark">4  </span> <a 
  id="x1-180004"></a>Macroeconomics: the Market Class</h3>
-<!--l. 333--><p class="noindent" >The modeling framework of <span 
+<!--l. 438--><p class="noindent" >The modeling framework of <span 
 class="ectt-1200">AgentType </span>is deemed &#8220;microeconomic&#8221; because it pertains only to
 the dynamic optimization problem of agents, treating all inputs of the problem as
 exogenously fixed. In what we label as &#8220;macroeconomic&#8221; models, some of the inputs
@@ -1102,7 +1102,7 @@ and controls of agents in the model. In a dynamic general equilibrium, there mus
 consistency between agents&#8217; beliefs about these macroeconomic objects, their individual
 behavior, and the realizations of the macroeconomic objects that result from individual
 choices.
-<!--l. 335--><p class="indent" >  The <span 
+<!--l. 438--><p class="indent" >  The <span 
 class="ectt-1200">Market </span>class in <span 
 class="ectt-1200">HARKcore </span>provides a framework for such macroeconomic models, with a
 <span 
@@ -1117,12 +1117,12 @@ conditioning their optimal policy functions on it. A dynamic general equilibrium
 dynamic rule: when agents act optimally while believing the equilibrium rule, their
 individual actions generate a macroeconomic history consistent with the equilibrium
 rule.
-<!--l. 337--><p class="noindent" >
+<!--l. 438--><p class="noindent" >
   <h4 class="subsectionHead"><span class="titlemark">4.1  </span> <a 
  id="x1-190004.1"></a>Down on the Farm</h4>
                                                                                         
                                                                                         
-<!--l. 339--><p class="noindent" >The <span 
+<!--l. 438--><p class="noindent" >The <span 
 class="ectt-1200">Market </span>class uses a farming metaphor to conceptualize the process for generating a
 history of macroeconomic outcomes in a model. Suppose all <span 
 class="ectt-1200">AgentTypes </span>in the economy
@@ -1133,7 +1133,7 @@ have each found the solution to their microeconomic model using their <span
 class="ectt-1200">solve </span>method.
 Further, the macroeconomic and microeconomic states have been reset to some initial
 orientation.
-<!--l. 341--><p class="indent" >  To generate a history of macroeconomic outcomes, the <span 
+<!--l. 438--><p class="indent" >  To generate a history of macroeconomic outcomes, the <span 
 class="ectt-1200">Market </span>repeatedly loops over the
 following steps a set number of times:
       <ol  class="enumerate1" >
@@ -1163,7 +1163,7 @@ class="ectt-1200">reap </span>is processed into new macroeconomic states accordi
       <li 
   class="enumerate" id="x1-19010x5"><span 
 class="ectt-1200">store</span>: Relevant macroeconomic states are added to a running history of outcomes.</li></ol>
-<!--l. 353--><p class="noindent" >This procedure is conducted by the <span 
+<!--l. 438--><p class="noindent" >This procedure is conducted by the <span 
 class="ectt-1200">makeHistory </span>method of <span 
 class="ectt-1200">Market </span>as a subroutine of its <span 
 class="ectt-1200">solve</span>
@@ -1176,10 +1176,10 @@ the agents solving their updated microeconomic models given the new dynamic rule
 class="ectt-1200">solve</span>
 loop continues until the &#8220;distance&#8221; between successive dynamic rules is sufficiently
 small.
-<!--l. 355--><p class="noindent" >
+<!--l. 438--><p class="noindent" >
   <h4 class="subsectionHead"><span class="titlemark">4.2  </span> <a 
  id="x1-200004.2"></a>Attributes of a Market</h4>
-<!--l. 357--><p class="noindent" >To specify a complete instance of <span 
+<!--l. 438--><p class="noindent" >To specify a complete instance of <span 
 class="ectt-1200">Market</span>, the user should give it the following
 attributes:<span class="footnote-mark"><a 
 href="HARKmanual16.html#fn16x0"><sup class="textsuperscript">16</sup></a></span><a 
@@ -1256,7 +1256,7 @@ class="ectt-1200">tolerance</span>: The minimum acceptable &#8220;distance&#8221
 class="ectt-1200">calcDynamics </span>to constitute a sufficiently converged solution.</li></ul>
                                                                                         
                                                                                         
-<!--l. 380--><p class="indent" >  Further, each <span 
+<!--l. 438--><p class="indent" >  Further, each <span 
 class="ectt-1200">AgentType </span>in <span 
 class="ectt-1200">agents </span>must have two methods not necessary for microeconomic
 models; neither takes any input (except <span 
@@ -1275,7 +1275,7 @@ class="ectt-1200">reap_vars</span>.
 class="ectt-1200">reset</span>:  Reset,  initialize,  or  prepare  for  a  new  &#8220;farming  loop&#8221;  to  generate  a
       macroeconomic history. Might reset its internal random number generator, set initial
       state varibles, clear personal histories, etc.</li></ul>
-<!--l. 387--><p class="indent" >  When solving macroeconomic models in HARK, the user should also define classes to represent
+<!--l. 438--><p class="indent" >  When solving macroeconomic models in HARK, the user should also define classes to represent
 the output from the aggregate market process in <span 
 class="ectt-1200">millRule </span>and for the model-specific
 dynamic rule. The latter should have a <span 
@@ -1286,7 +1286,7 @@ class="ectt-1200">HARKobject</span>, the user need only list relevant attributes
 class="ectt-1200">distance_criteria</span>.
   <h4 class="subsectionHead"><span class="titlemark">4.3  </span> <a 
  id="x1-210004.3"></a>Sample Model: FashionVictim</h4>
-<!--l. 391--><p class="noindent" >To illustrate the <span 
+<!--l. 438--><p class="noindent" >To illustrate the <span 
 class="ectt-1200">Market </span>class, consider a simple example in the emerging economic subfield of aesthemetrics, the
 <span 
 class="ectt-1200">FashionVictimModel</span>.<span class="footnote-mark"><a 
@@ -1320,8 +1320,8 @@ class="equation-star"><tr><td>
 src="HARKmanual21x.png" alt="u(s ;s   ,p) = s f(p )+ (1- s )f(1- p )+s  U + (1- s )U  - c s   (1- s )- c (1 - s  )s .
    t  t- 1  t    t   t        t       t    t p       t   j  pj t-1     t    jp     t-1  t
 " class="math-display" ></center></td></tr></table>
-<!--l. 394--><p class="nopar" >
-<!--l. 396--><p class="indent" >  Fashion victims are forward looking and discount future utility at a constant rate of
+<!--l. 438--><p class="nopar" >
+<!--l. 438--><p class="indent" >  Fashion victims are forward looking and discount future utility at a constant rate of
 <img 
 src="HARKmanual22x.png" alt="&#x03B2;  "  class="math" > per period. To simplify the analysis, we assume they believe that the population
 punk proportion in the next period is a linear function of the punk proportion in the
@@ -1343,7 +1343,7 @@ src="HARKmanual27x.png" alt="               [                                   
 
 V(st-1,pt) = E  smt&#x2208;a{x0,1}u (st;st-1,pt) + &#x03B7;st + &#x03B2;E [V (st,pt+1)] ,
 " class="math-display" ></center></td></tr></table>
-<!--l. 399--><p class="nopar" >
+<!--l. 438--><p class="nopar" >
   <table 
 class="equation-star"><tr><td>
   <center class="math-display" >
@@ -1352,8 +1352,8 @@ src="HARKmanual28x.png" alt="pt+1 =  apt + b + &#x03C0;t+1,    &#x03C0;t+1 ~  U[
                                                                                         
                                                                                         
 " class="math-display" ></center></td></tr></table>
-<!--l. 402--><p class="nopar" >
-<!--l. 404--><p class="indent" >  An instance of <span 
+<!--l. 438--><p class="nopar" >
+<!--l. 438--><p class="indent" >  An instance of <span 
 class="ectt-1200">FashionVictimType </span>is thus characterized by values of <img 
 src="HARKmanual29x.png" alt="Up  "  class="math" >, <img 
 src="HARKmanual30x.png" alt="Uj  "  class="math" >, <img 
@@ -1382,34 +1382,34 @@ triple of <img
 src="HARKmanual40x.png" alt="(a,b,w)  "  class="math" > such that when fashion victims believe in this &#8220;punk evolution rule&#8221; and act
 optimally, their collective fashion choices exhibit this same rule when the model is
 simulated.
-<!--l. 406--><p class="indent" >  The search for a dynamic general equilibrium is implemented in HARK&#8217;s <span 
+<!--l. 438--><p class="indent" >  The search for a dynamic general equilibrium is implemented in HARK&#8217;s <span 
 class="ectt-1200">Market </span>class with the
 following definitions:
-<!--l. 410--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">sow_vars = [&#8217;pNow&#8217;] </span>(macroeconomic outcome is <img 
 src="HARKmanual41x.png" alt="pt  "  class="math" >)
-<!--l. 412--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">reap_vars = [&#8217;sNow&#8217;] </span>(microeconomic outcomes are <img 
 src="HARKmanual42x.png" alt="st  "  class="math" > for many agents)
-<!--l. 414--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">track_vars = [&#8217;pNow&#8217;] </span>(must track history of <img 
 src="HARKmanual43x.png" alt="pt  "  class="math" >)
-<!--l. 416--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">dyn_vars = [&#8217;pNextSlope&#8217;,&#8217;pNextIntercept&#8217;,&#8217;pNextWidth&#8217;] </span>(dynamic rule <img 
 src="HARKmanual44x.png" alt="(a,b,w )  "  class="math" >)
-<!--l. 418--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">millRule = calcPunkProp </span>(aggregate process: average the style choices of all agents)
-<!--l. 420--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">calcDynamics = calcFashionEvoFunc </span>(calculate new <img 
 src="HARKmanual45x.png" alt="(a,b,w)  "  class="math" > with autoregression of
 <img 
 src="HARKmanual46x.png" alt="pt  "  class="math" >)
-<!--l. 422--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">act_T = 1000 </span>(simulate 1000 periods of the fashion market)
-<!--l. 424--><p class="noindent" ><span 
+<!--l. 438--><p class="noindent" ><span 
 class="ectt-1200">tolerance = 0.01 </span>(terminate solution when <img 
 src="HARKmanual47x.png" alt="(a,b,w )  "  class="math" > changes by less than 0.01)
-<!--l. 428--><p class="indent" >  The <span 
+<!--l. 438--><p class="indent" >  The <span 
 class="ectt-1200">agents </span>attribute has a list of 22 <span 
 class="ectt-1200">FashionVictimType</span>s, which vary in their values of <img 
 src="HARKmanual48x.png" alt="Up  "  class="math" >
@@ -1429,7 +1429,7 @@ and chooses which style to wear, storing it in the binary array <span
 class="ectt-1200">sNow</span>, an attribute of
 <span 
 class="ectt-1200">self</span>.
-<!--l. 430--><p class="indent" >  The <span 
+<!--l. 438--><p class="indent" >  The <span 
 class="ectt-1200">millRule </span>for this market is extremely simple: it flattens the list of binary arrays of
 individual style choices (gathered in the <span 
 class="ectt-1200">reap </span>step) and averages them into a new value
@@ -1456,26 +1456,23 @@ href="HARKmanual21.html#fn21x0"><sup class="textsuperscript">21</sup></a></span>
 The new fashion rule is an instance of the simple FashionEvoFunc class, whose only methods are
 inherited from <span 
 class="ectt-1200">HARKobject</span>.
-<!--l. 432--><p class="indent" >  When the <span 
+<!--l. 438--><p class="indent" >  When the <span 
 class="ectt-1200">solve </span>method is run, the solver successively solves each agent&#8217;s microeconomic
 problem, runs the <span 
 class="ectt-1200">makeHistory </span>method to generate a 1000 period history of <img 
 src="HARKmanual60x.png" alt="pt  "  class="math" >, and calculates
 a new punk evolution rule based on this history; the solver terminates when consecutive rules
 differ by less than 0.01 in any dimension.
-<!--l. 435--><p class="indent" >  <a 
- id="ContributingToHARK">
   <h3 class="sectionHead"><span class="titlemark">5  </span> <a 
  id="x1-220005"></a>Contributing to HARK</h3>
-<!--l. 435--><p class="noindent" ></a>
-<!--l. 438--><p class="indent" >  This section provides an overview of how users can contribute new code, what sort of
+<!--l. 443--><p class="noindent" >This section provides an overview of how users can contribute new code to HARK, what sort of
 contributions are most desired, and style conventions for the toolKit. Before attempting to
 extend HARK, we strongly recommend that you familiarize yourself with its features and models
 by looking at the source code.
-<!--l. 440--><p class="noindent" >
+<!--l. 445--><p class="noindent" >
   <h4 class="subsectionHead"><span class="titlemark">5.1  </span> <a 
  id="x1-230005.1"></a>What Does HARK Want?</h4>
-<!--l. 442--><p class="noindent" >The easiest and most straightforward way to contribute to HARK is by writing new general
+<!--l. 447--><p class="noindent" >The easiest and most straightforward way to contribute to HARK is by writing new general
 purpose tools for inclusion in one of the top-level modules. This might be a commonly
 known data analysis technique (e.g.&#x00A0;a kernel density estimator) for <span 
 class="ectt-1200">HARKutilities</span>, an
@@ -1491,11 +1488,11 @@ class="ecti-1200">it&#8217;s very useful</span>) but don&#8217;t, this is a good
 fill.<span class="footnote-mark"><a 
 href="HARKmanual22.html#fn22x0"><sup class="textsuperscript">22</sup></a></span><a 
  id="x1-23001f22"></a> 
-<!--l. 444--><p class="indent" >  Secondly, the development team wants to expand HARK to include more canonical models.
-                                                                                        
-                                                                                        
+<!--l. 449--><p class="indent" >  Secondly, the development team wants to expand HARK to include more canonical models.
 Most of the models available in the toolKit at the time of its public beta release concern agents
 with (geometrically discounted) CRRA utility over a unitary consumption good, who receive
+                                                                                        
+                                                                                        
 permanent and transitory shocks to income and have access to a single risk free asset. This is an
 important class of models, but that description has an awful lot of qualifiers. In short, there are
 many more common features of dynamic household models that are not yet in HARK, but would
@@ -1506,7 +1503,7 @@ greatest extent possible. For ideas of potential model extensions for HARK, see 
 href="#x1-300006.2">6.2<!--tex4ht:ref: sec:FutureModels --></a>.<span class="footnote-mark"><a 
 href="HARKmanual23.html#fn23x0"><sup class="textsuperscript">23</sup></a></span><a 
  id="x1-23002f23"></a> 
-<!--l. 446--><p class="indent" >  Finally, contributions to HARK are not restricted to entirely new functionality. While we have
+<!--l. 451--><p class="indent" >  Finally, contributions to HARK are not restricted to entirely new functionality. While we have
 done our best to provide flexible frameworks and useful tools, we have almost certainly
 overlooked an unexpected case that would not be (properly) handled by the toolKit as is.
 Moreover, there might even be flaws in our solution or simulation methods. If you find a mistake
@@ -1516,13 +1513,13 @@ even be in the code itself, but a deficiency in the documentation: a misnamed (o
 incorrectly typed) parameter or return variable in the docstring, an incorrect (or missing)
 comment, even a grammatical or spelling error. No matter how niggling, we want your
 fix.
-<!--l. 448--><p class="indent" >  For those who want to contribute to the HARK project without programming a new model or
+<!--l. 453--><p class="indent" >  For those who want to contribute to the HARK project without programming a new model or
 digging through the code for errors and omissions, consider reading through the Issues page on
 GitHub to see what other users have flagged for development. You might find several pieces of
 &#8220;low hanging fruit&#8221; for you to quickly fix.
   <h4 class="subsectionHead"><span class="titlemark">5.2  </span> <a 
  id="x1-240005.2"></a>Git and GitHub</h4>
-<!--l. 452--><p class="noindent" >Git is a distributed version control system that has gained increasing popularity in the decade
+<!--l. 457--><p class="noindent" >Git is a distributed version control system that has gained increasing popularity in the decade
 since its creation; it is designed to enable collaboration and &#8220;non-linear workflow&#8221; among a
 (potentially disperse) programming team. As HARK is to be developed by volunteer researchers
 all around the world, git is an excellent fit for the toolKit. Originally designed by Linus Torvalds
@@ -1531,15 +1528,15 @@ a user interface more friendly to those more familiar with GUIs. Foremost among
 these tools is GitHub.com, where the HARK project is hosted. This section provides a
 brief overview of how to use GitHub to interact with (and potentially contribute to)
 HARK.
-<!--l. 454--><p class="indent" >  To prepare to contribute to HARK, follow these simple steps:
+<!--l. 459--><p class="indent" >  To prepare to contribute to HARK, follow these simple steps:
       <ol  class="enumerate1" >
-                                                                                        
-                                                                                        
       <li 
   class="enumerate" id="x1-24002x1"><span 
 class="ecbx-1200">Make  a  GitHub  account:  </span>Go  to  <a 
 href="https://www.github.com" >github.com</a>;  the  homepage  should  prompt
       you  to  choose  a  username  and  password.  Signing  up  is  quick,  easy,  and
+                                                                                        
+                                                                                        
       free.<span class="footnote-mark"><a 
 href="HARKmanual24.html#fn24x0"><sup class="textsuperscript">24</sup></a></span><a 
  id="x1-24003f24"></a> 
@@ -1567,7 +1564,7 @@ src="HARKmanual61x.png" alt="+  "  class="math" > icon
 class="ectt-1200">yourusername/HARK</span>,
       click the Clone button at the bottom of the dialogue window, and choose a directory
       on your local machine.</li></ol>
-<!--l. 465--><p class="indent" >  You now control a &#8220;fork&#8221; of the main HARK repository, hosted by GitHub, and have a clone of
+<!--l. 470--><p class="indent" >  You now control a &#8220;fork&#8221; of the main HARK repository, hosted by GitHub, and have a clone of
 this fork on your local machine. You are free to edit your fork of HARK in any way you&#8217;d like;
 other GitHub users can view your fork (and fork it themselves), but they cannot make changes to
 your fork unless you give them permission by adding them as a contributor. Changes made
@@ -1594,7 +1591,7 @@ class="ecbx-1200">Push the commit: </span>Click on the Sync button near the uppe
       other contributors to your fork that were made since the last time you synced.</li></ol>
                                                                                         
                                                                                         
-<!--l. 474--><p class="indent" >  The left hand panel of the Changes tab has a summary of the files that have been changed,
+<!--l. 479--><p class="indent" >  The left hand panel of the Changes tab has a summary of the files that have been changed,
 added, or removed since your last commit; the right hand panel shows the specific
 changes made to each changed file. After step 2, a record of your changes has been
 stored locally by the git system, but is not yet reflected in the public remote copy on
@@ -1610,7 +1607,7 @@ href="HARKmanual26.html#fn26x0"><sup class="textsuperscript">26</sup></a></span>
  id="x1-24017f26"></a> 
 The History tab lists all previous commits, including the timestamp, contributor, and a record of
 changes made.
-<!--l. 476--><p class="indent" >  Suppose you have mucked about in your fork for a while and have made changes to HARK
+<!--l. 481--><p class="indent" >  Suppose you have mucked about in your fork for a while and have made changes to HARK
 that you think should be included in the main repository hosted by Econ-Ark. To make your
 dream a reality, follow these steps:
       <ol  class="enumerate1" >
@@ -1654,7 +1651,7 @@ href="#x1-250005.3">5.3<!--tex4ht:ref: sec:SubmissionApprovalProcess --></a>
       </li></ol>
   <h4 class="subsectionHead"><span class="titlemark">5.3  </span> <a 
  id="x1-250005.3"></a>Submission Approval Process</h4>
-<!--l. 488--><p class="noindent" >Before submitting to HARK, the development team would like you to make sure that
+<!--l. 493--><p class="noindent" >Before submitting to HARK, the development team would like you to make sure that
 your intended contribution is listed as an Issue on the GitHub page. If you are going
 to fix or address an Issue that is already posted, reply to that post with a note
 indicating that you are about to work on it and an estimate of when you will make a
@@ -1668,7 +1665,7 @@ potentially wasting time on it), and lets the development team know what&#8217;s
 you propose a contribution that is (a) already in HARK, (b) not in the spirit of HARK, or (c) a
 fix for something that&#8217;s not actually broken, this gives the team a chance to let you know not to
 spend effort on it.
-<!--l. 490--><p class="indent" >  After creating a pull request to submit your contribution, it will be evaluated by one or more
+<!--l. 495--><p class="indent" >  After creating a pull request to submit your contribution, it will be evaluated by one or more
 members of the HARK team. Criteria that the HARK team will consider when choosing whether
 to accept a submission include:
       <ol  class="enumerate1" >
@@ -1731,7 +1728,7 @@ class="ecbx-1200">Is this already in HARK? </span>If your contribution is alread
       almost certainly be rejected. Of course, if you submit a version that dominates the
       existing implementation (or even one that works better in a well described, non-trivial
       set of circumstances), it belongs in HARK.</li></ol>
-<!--l. 509--><p class="indent" >  The HARK team intends to release more specific guidelines in the near future, so that contributors
+<!--l. 514--><p class="indent" >  The HARK team intends to release more specific guidelines in the near future, so that contributors
 are better able to judge their submissions before issuing a pull request. We are in the process of
 recruiting &#8220;czars&#8221; to oversee particular aspects of HARK, providing their knowledge and
 expertise.<span class="footnote-mark"><a 
@@ -1744,7 +1741,7 @@ mean by &#8220;correct&#8221; or &#8220;well integrated&#8221;.
                                                                                         
   <h4 class="subsectionHead"><span class="titlemark">5.4  </span> <a 
  id="x1-260005.4"></a>Naming Conventions</h4>
-<!--l. 513--><p class="noindent" >Object naming conventions in HARK are fairly different than existing standards, and differ
+<!--l. 518--><p class="noindent" >Object naming conventions in HARK are fairly different than existing standards, and differ
 somewhat between tool modules vs model or application modules. The following conventions
 apply throughout HARK:
       <ul class="itemize1">
@@ -1765,7 +1762,7 @@ class="ecti-1200">should not </span>have a verb as their first word.
       moreover, a class name <span 
 class="ecti-1200">must include a noun</span>. E.g.&#x00A0;<span 
 class="ectt-1200">ConsPerfForesightSolver</span>.</li></ul>
-<!--l. 524--><p class="indent" >  When naming variables in model modules, the HARK team strongly discourages using single
+<!--l. 529--><p class="indent" >  When naming variables in model modules, the HARK team strongly discourages using single
 letter names, like <span 
 class="ectt-1200">c </span>for consumption. Instead, we encourage contributors to use longer, more
 descriptive variable names using additional words and common abbreviations to specify the
@@ -1778,7 +1775,7 @@ href="HARKmanual32.html#fn32x0"><sup class="textsuperscript">32</sup></a></span>
  id="x1-26002f32"></a> 
 The development team prefers this standard so that users can translate between Python code
 and LaTeX script with minimal work.
-<!--l. 526--><p class="indent" >  Conventions for naming variables in HARK&#8217;s tool modules are significantly closer to more
+<!--l. 531--><p class="indent" >  Conventions for naming variables in HARK&#8217;s tool modules are significantly closer to more
 commonly used standards. Variable names should be in all lower case, with underscores between
 words, e.g.&#x00A0;<span 
 class="ectt-1200">data_to_match</span>. The functions and classes in these modules are more general
@@ -1795,7 +1792,7 @@ modules.
                                                                                         
   <h4 class="subsectionHead"><span class="titlemark">5.5  </span> <a 
  id="x1-270005.5"></a>Documentation Conventions</h4>
-<!--l. 530--><p class="noindent" >The HARK team wants the toolKit to be as accessible to users as possible; our greatest
+<!--l. 535--><p class="noindent" >The HARK team wants the toolKit to be as accessible to users as possible; our greatest
 fear<span class="footnote-mark"><a 
 href="HARKmanual33.html#fn33x0"><sup class="textsuperscript">33</sup></a></span><a 
  id="x1-27001f33"></a>  is
@@ -1819,9 +1816,9 @@ rules.
       as:<span class="footnote-mark"><a 
 href="HARKmanual35.html#fn35x0"><sup class="textsuperscript">35</sup></a></span><a 
  id="x1-27003f35"></a> 
-      <!--l. 535--><p class="noindent" ><span 
+      <!--l. 540--><p class="noindent" ><span 
 class="ectt-1200">"""</span>
-      <!--l. 537--><p class="noindent" ><span 
+      <!--l. 542--><p class="noindent" ><span 
 class="ectt-1200">Specifies an economic model and provides methods for solving it. More</span>
       <span 
 class="ectt-1200">specific description of the key features of the model and variations</span>
@@ -1829,59 +1826,59 @@ class="ectt-1200">specific description of the key features of the model and vari
 class="ectt-1200">of it in this module. Maybe some comments about the solution method</span>
       <span 
 class="ectt-1200">or limitations of the model. Your bank account routing number.</span>
-      <!--l. 539--><p class="noindent" ><span 
+      <!--l. 544--><p class="noindent" ><span 
 class="ectt-1200">"""</span>
       </li>
       <li class="itemize">The line directly below the declaration of a function, method or class should begin a
       docstring describing that object. As with modules, the first sentence should concisely
       summarize the function or class, as it might be included in an index or summary. For
       functions and methods, the docstring should be formatted as:
-      <!--l. 543--><p class="noindent" ><span 
+      <!--l. 548--><p class="noindent" ><span 
 class="ectt-1200">def functionName(input1,input2):</span>
                                                                                         
                                                                                         
-      <!--l. 545--><p class="noindent" >&#x00A0;&#x00A0;       <span 
+      <!--l. 550--><p class="noindent" >&#x00A0;&#x00A0;       <span 
 class="ectt-1200">"""</span>
-      <!--l. 547--><p class="noindent" >&#x00A0;&#x00A0;       <span 
+      <!--l. 552--><p class="noindent" >&#x00A0;&#x00A0;       <span 
 class="ectt-1200">Concise description of the function. More details about what</span>
-      <!--l. 549--><p class="noindent" >&#x00A0;&#x00A0;       <span 
+      <!--l. 554--><p class="noindent" >&#x00A0;&#x00A0;       <span 
 class="ectt-1200">the function does, options or modes available, and maybe</span>
       <span 
 class="ectt-1200">mathematical</span>
-      <!--l. 551--><p class="noindent" >&#x00A0;&#x00A0;       <span 
+      <!--l. 556--><p class="noindent" >&#x00A0;&#x00A0;       <span 
 class="ectt-1200">methods used. Credit to a source if you poached their</span>
       <span 
 class="ectt-1200">algorithm.</span>
-      <!--l. 555--><p class="noindent" >&#x00A0;&#x00A0;       <span 
+      <!--l. 560--><p class="noindent" >&#x00A0;&#x00A0;       <span 
 class="ectt-1200">Parameters</span>
-      <!--l. 557--><p class="noindent" >&#x00A0;&#x00A0;       <span 
+      <!--l. 562--><p class="noindent" >&#x00A0;&#x00A0;       <span 
 class="ectt-1200">&#8211;&#8211;&#8211;&#8211;&#8211;&#8211;&#8211;&#8211;&#8211;&#8211;</span>
-      <!--l. 559--><p class="noindent" >&#x00A0;&#x00A0;       <span 
+      <!--l. 564--><p class="noindent" >&#x00A0;&#x00A0;       <span 
 class="ectt-1200">input1: type</span>
-      <!--l. 561--><p class="noindent" >&#x00A0;&#x00A0;&#x00A0;&#x00A0;             <span 
+      <!--l. 566--><p class="noindent" >&#x00A0;&#x00A0;&#x00A0;&#x00A0;             <span 
 class="ectt-1200">Description of what input1 represents.</span>
-      <!--l. 563--><p class="noindent" >&#x00A0;&#x00A0;       <span 
+      <!--l. 568--><p class="noindent" >&#x00A0;&#x00A0;       <span 
 class="ectt-1200">input2: type</span>
-      <!--l. 565--><p class="noindent" >&#x00A0;&#x00A0;&#x00A0;&#x00A0;             <span 
+      <!--l. 570--><p class="noindent" >&#x00A0;&#x00A0;&#x00A0;&#x00A0;             <span 
 class="ectt-1200">Description of what input2 represents.</span>
-      <!--l. 569--><p class="noindent" >&#x00A0;&#x00A0;       <span 
+      <!--l. 574--><p class="noindent" >&#x00A0;&#x00A0;       <span 
 class="ectt-1200">Returns</span>
-      <!--l. 571--><p class="noindent" >&#x00A0;&#x00A0;       <span 
+      <!--l. 576--><p class="noindent" >&#x00A0;&#x00A0;       <span 
 class="ectt-1200">&#8211;&#8211;&#8211;&#8211;&#8211;&#8211;&#8211;</span>
-      <!--l. 573--><p class="noindent" >&#x00A0;&#x00A0;       <span 
+      <!--l. 578--><p class="noindent" >&#x00A0;&#x00A0;       <span 
 class="ectt-1200">output_name: type</span>
-      <!--l. 575--><p class="noindent" >&#x00A0;&#x00A0;&#x00A0;&#x00A0;             <span 
+      <!--l. 580--><p class="noindent" >&#x00A0;&#x00A0;&#x00A0;&#x00A0;             <span 
 class="ectt-1200">Description of the output(s) of the function. Might have</span>
-      <!--l. 577--><p class="noindent" >&#x00A0;&#x00A0;&#x00A0;&#x00A0;             <span 
+      <!--l. 582--><p class="noindent" >&#x00A0;&#x00A0;&#x00A0;&#x00A0;             <span 
 class="ectt-1200">multiple entries. If no output, this is just "None".</span>
-      <!--l. 579--><p class="noindent" >&#x00A0;&#x00A0;       <span 
+      <!--l. 584--><p class="noindent" >&#x00A0;&#x00A0;       <span 
 class="ectt-1200">"""</span>
       </li>
       <li class="itemize">Provide ample comments within a function or method so that a relatively intelligent
       reader can follow along with your algorithm. Short comments can follow at the end
       of a line, longer comments (or descriptions of the step or task about to be performed)
       should precede a block of code on the line(s) above it.</li></ul>
-<!--l. 584--><p class="indent" >  Finally, if you write a new model module, the HARK team asks that you also provide a short
+<!--l. 589--><p class="indent" >  Finally, if you write a new model module, the HARK team asks that you also provide a short
 mathematical writeup of the model as a PDF. This document does not need to go into great
 detail about the solution method for the model or the functions and classes included in
 the module, merely specify the economic model and provide a summary of how it
@@ -1892,16 +1889,16 @@ this.
                                                                                         
   <h3 class="sectionHead"><span class="titlemark">6  </span> <a 
  id="x1-280006"></a>Future of HARK</h3>
-<!--l. 588--><p class="noindent" >HARK is in a state of perpetual incompleteness, always expanding to include more
+<!--l. 665--><p class="noindent" >HARK is in a state of perpetual incompleteness, always expanding to include more
 tools and more models. As an open source project in the hands of many contributors
 around the world, the HARK team cannot fully predict future features of the toolKit.
 This section provides an overview of what we would like to see in the near future, as
 well as potential mechanisms to encourage researchers to contribute their code to the
 project.
-<!--l. 590--><p class="noindent" >
+<!--l. 665--><p class="noindent" >
   <h4 class="subsectionHead"><span class="titlemark">6.1  </span> <a 
  id="x1-290006.1"></a>Future Tools</h4>
-<!--l. 592--><p class="noindent" >The current frameworks in <span 
+<!--l. 665--><p class="noindent" >The current frameworks in <span 
 class="ectt-1200">HARKcore </span>concern agents who have &#8220;isolated&#8221; dynamic
 problems or interact with each other only through aggregate outcomes to which they
 contribute atomically. We hope to eventually provide a framework for models in which
@@ -1912,7 +1909,7 @@ develop a framework more suited to industrial organization models and dynamic
 games.<span class="footnote-mark"><a 
 href="HARKmanual36.html#fn36x0"><sup class="textsuperscript">36</sup></a></span><a 
  id="x1-29001f36"></a> 
-<!--l. 594--><p class="indent" >  The <span 
+<!--l. 665--><p class="indent" >  The <span 
 class="ectt-1200">HARKestimation </span>module in particular is very sparsely populated, with its functions
 mostly serving as wrappers for &#8220;off the shelf&#8221; optimization methods from <span 
 class="ectt-1200">scipy.optimize</span>. There
@@ -1930,7 +1927,7 @@ mode of growth for future tools. There are some obvious holes that we believe wi
 filled quite quickly; for example, we provide a rudimentary non-parametric kernel
 regression function, but have not written a kernel density estimator to generate PDFs from
 data.
-<!--l. 596--><p class="indent" >  The classes currently in <span 
+<!--l. 665--><p class="indent" >  The classes currently in <span 
 class="ectt-1200">HARKinterpolation </span>are all variations on linear (or
 cubic) spline interpolation, and each is specifically written for a fixed number
 of dimensions. As these methods use full tensor grids, they are highly impractical
@@ -1945,7 +1942,7 @@ class="ectt-1200">HARKinterpolation </span>will soon include techniques more app
 high dimensional state spaces, including Smolnyak interpolation, other (adaptive) sparse grid
 methods, and regression-based interpolation. For lower-dimensional spaces, HARK will also soon
 provide Delaunay interpolation classes.
-<!--l. 598--><p class="indent" >  The <span 
+<!--l. 665--><p class="indent" >  The <span 
 class="ectt-1200">HARKparallel </span>module currently provides a simple interface for handling <span 
 class="ecti-1200">ex-ante</span>
 heterogeneity among agents. While useful for speeding up moderately-sized problems, the
@@ -1956,7 +1953,7 @@ will be able to easily scale up their computing resources and run HARK code on a
 session or other cluster.
   <h4 class="subsectionHead"><span class="titlemark">6.2  </span> <a 
  id="x1-300006.2"></a>Future Models</h4>
-<!--l. 602--><p class="noindent" >The economics models currently included in HARK mostly concern consumption-saving problems
+<!--l. 665--><p class="noindent" >The economics models currently included in HARK mostly concern consumption-saving problems
 with constant relative risk aversion consumers who experience fully permanent and fully
 transitory shocks to income. This is obviously a very small subset of all consumption-saving
 models (which are themselves a small subset of all dynamic models economists might be
@@ -1986,7 +1983,7 @@ in HARK, but could be in the future:
       <li class="itemize">Job search intensity as a control variable.
       </li>
       <li class="itemize">Endogenous health evolution and health investment.</li></ul>
-<!--l. 627--><p class="indent" >  The HARK team is currently developing a module for mixing discrete and continuous
+<!--l. 665--><p class="indent" >  The HARK team is currently developing a module for mixing discrete and continuous
 choice models, in the style of Jorgensen, Rust, Iskhakov, and Schjerning (2015). Among
 many other models, this framework will enable HARK users to easily develop features
 like:
@@ -2002,17 +1999,17 @@ like:
       <li class="itemize">Endogenous default on debt (with &#8220;macroeconomic&#8221; pricing of debt).
       </li>
       <li class="itemize">Household formation, dissolution, and reproduction.</li></ul>
-<!--l. 642--><p class="indent" >  Finally, we hope to provide a generic solver for any discrete choice model with T1EV shocks.
+<!--l. 665--><p class="indent" >  Finally, we hope to provide a generic solver for any discrete choice model with T1EV shocks.
 The scope of HARK is limited only by what users choose to put in it. We hope that
 within a year of its debut, HARK will include a significant number of canonical models,
 providing more building blocks for future researchers to create novel combinations and new
 extensions.
                                                                                         
                                                                                         
-<!--l. 644--><p class="noindent" >
+<!--l. 665--><p class="noindent" >
   <h4 class="subsectionHead"><span class="titlemark">6.3  </span> <a 
  id="x1-310006.3"></a>Bounty Hunting</h4>
-<!--l. 646--><p class="noindent" >While HARK users are free to write and contribute any tools and models that they believe could
+<!--l. 665--><p class="noindent" >While HARK users are free to write and contribute any tools and models that they believe could
 be helpful, building the toolKit in a &#8220;bottom up&#8221; style, the HARK team hopes to provide
 mechanisms for targeted &#8220;top down&#8221; development. The team is working to secure grant funding for
 HARK so as to offer &#8220;bounties&#8221; for particular models, tools, applications, or frameworks. Suppose
@@ -2024,7 +2021,7 @@ href="HARKmanual38.html#fn38x0"><sup class="textsuperscript">38</sup></a></span>
  id="x1-31001f38"></a> 
 The bounty would be announced as an Issue on HARK&#8217;s GitHub page, as well as in a potential
 electronic digest of HARK news.
-<!--l. 648--><p class="indent" >  Bounties might be placed on items as small as a single data analysis tool or as large as a
+<!--l. 665--><p class="indent" >  Bounties might be placed on items as small as a single data analysis tool or as large as a
 complex estimation of a large general equilibrium model, with prizes scaling accordingly. We
 hasten to emphasize that we cannot guarantee funding for HARK, so the bounties (like
 everything else in this section) are purely speculative. As economists, the HARK team
@@ -2036,7 +2033,7 @@ over leisure and consumption, and agree that Greed is a valid mechanism to expan
 HARK.
   <h4 class="subsectionHead"><span class="titlemark">6.4  </span> <a 
  id="x1-320006.4"></a>All Aboard the Ark</h4>
-<!--l. 652--><p class="noindent" >As observant readers may have noticed, the HARK repository is hosted by a GitHub account
+<!--l. 665--><p class="noindent" >As observant readers may have noticed, the HARK repository is hosted by a GitHub account
 named Econ-Ark, with no explanation as to what this might mean. Looking a few years into the
 future, the development team believes that HARK might be the first piece of a broader collection
 of computational economics resources. HARK is open source but somewhat akin to an
@@ -2044,7 +2041,7 @@ exclusive club: contributions are required to adhere to standards and norms so a
 modularity and interoperability among models and tools. Consistent with its namesake ship,
 the Econ-Ark has a significantly lower bar for admission, with a place on board for
 everything.
-<!--l. 654--><p class="indent" >  On one level, the Ark might serve as a warehouse for any and all quantitative models and
+<!--l. 665--><p class="indent" >  On one level, the Ark might serve as a warehouse for any and all quantitative models and
 tools, for any economic purpose, in any subfield, and written in any language. Through
 nearly unanimous feedback, the HARK team understands that many economists are
 willing to share code that they have already written, but are reluctant to expend the
@@ -2058,20 +2055,19 @@ incentivized to port the original code into Python and to meet HARK standards;
 direct access to the original source code will significantly expedite the translation
 process, and provide a suitable benchmark for testing and verifying the contribution to
 HARK.
-<!--l. 656--><p class="indent" >  On a different level, the Ark might also include cohesive toolkits like HARK, but geared
+<!--l. 665--><p class="indent" >  On a different level, the Ark might also include cohesive toolkits like HARK, but geared
 toward purposes other than heterogeneous agents macroeconomics models. For example, the
 previously mentioned modules for networks among agents (and other agent-based modeling),
 industrial organization and dynamic games, and traditional discrete choice models might become
 their own toolkits, with some interoperability with HARK. In support of this, some of the tool
 modules currently in HARK might be &#8220;promoted&#8221; and become universally shared across all
 Econ-Ark toolkits.
-<!--l. 658--><p class="indent" >  The dark secret of HARK is that it is named for heterogeneous agents macroeconomics, but
+<!--l. 665--><p class="indent" >  The dark secret of HARK is that it is named for heterogeneous agents macroeconomics, but
 designed and written by structural microeconomists. The development team believes these
 subfields to have considerable overlap in terms of methods and techniques, and that HARK
 might not be noticed by half of its potential audience due to its name. In a general sense, the
 Econ-Ark gives us cover to expand the scope of our efforts and/or rebrand the toolKit for an
-alternative audience.
-   
+alternative audience.   
 </body></html> 
 
                                                                                         
