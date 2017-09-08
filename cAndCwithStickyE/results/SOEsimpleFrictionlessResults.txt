@@ -22,7 +22,7 @@ Dep. Variable:            DeltaLogC_t   R-squared:                       0.001
 Model:                            OLS   Adj. R-squared:                  0.000
 Method:                 Least Squares   F-statistic:                     1.791
 Date:                Fri, 08 Sep 2017   Prob (F-statistic):              0.181
-Time:                        17:42:01   Log-Likelihood:                 9823.6
+Time:                        18:04:20   Log-Likelihood:                 9823.6
 No. Observations:                2498   AIC:                        -1.964e+04
 Df Residuals:                    2496   BIC:                        -1.963e+04
 Df Model:                           1                                         
@@ -49,7 +49,7 @@ Dep. Variable:            DeltaLogC_t   R-squared:                       0.021
 Model:                            OLS   Adj. R-squared:                  0.021
 Method:                 Least Squares   F-statistic:                     54.23
 Date:                Fri, 08 Sep 2017   Prob (F-statistic):           2.40e-13
-Time:                        17:42:01   Log-Likelihood:                 9339.6
+Time:                        18:04:20   Log-Likelihood:                 9339.6
 No. Observations:                2498   AIC:                        -1.868e+04
 Df Residuals:                    2496   BIC:                        -1.866e+04
 Df Model:                           1                                         
@@ -77,7 +77,7 @@ Model:                         IV2SLS   Adj. R-squared:                  0.021
 Method:                     Two Stage   F-statistic:                    0.1086
                         Least Squares   Prob (F-statistic):              0.742
 Date:                Fri, 08 Sep 2017                                         
-Time:                        17:42:01                                         
+Time:                        18:04:20                                         
 No. Observations:                2495                                         
 Df Residuals:                    2493                                         
 Df Model:                           1                                         
@@ -101,7 +101,7 @@ Model:                         IV2SLS   Adj. R-squared:                  0.264
 Method:                     Two Stage   F-statistic:                     1.487
                         Least Squares   Prob (F-statistic):              0.223
 Date:                Fri, 08 Sep 2017                                         
-Time:                        17:42:01                                         
+Time:                        18:04:20                                         
 No. Observations:                2495                                         
 Df Residuals:                    2493                                         
 Df Model:                           1                                         
@@ -125,7 +125,7 @@ Model:                         IV2SLS   Adj. R-squared:                  0.008
 Method:                     Two Stage   F-statistic:                    0.5606
                         Least Squares   Prob (F-statistic):              0.454
 Date:                Fri, 08 Sep 2017                                         
-Time:                        17:42:01                                         
+Time:                        18:04:20                                         
 No. Observations:                2495                                         
 Df Residuals:                    2493                                         
 Df Model:                           1                                         
@@ -149,7 +149,7 @@ Model:                         IV2SLS   Adj. R-squared:                  0.278
 Method:                     Two Stage   F-statistic:                    0.9169
                         Least Squares   Prob (F-statistic):              0.432
 Date:                Fri, 08 Sep 2017                                         
-Time:                        17:42:01                                         
+Time:                        18:04:20                                         
 No. Observations:                2495                                         
 Df Residuals:                    2491                                         
 Df Model:                           3                                         
@@ -175,7 +175,7 @@ Model:                         IV2SLS   Adj. R-squared:                  0.410
 Method:                     Two Stage   F-statistic:                     6.823
                         Least Squares   Prob (F-statistic):            0.00905
 Date:                Fri, 08 Sep 2017                                         
-Time:                        17:42:01                                         
+Time:                        18:04:20                                         
 No. Observations:                2495                                         
 Df Residuals:                    2493                                         
 Df Model:                           1                                         
@@ -199,7 +199,7 @@ Model:                         IV2SLS   Adj. R-squared:                  0.010
 Method:                     Two Stage   F-statistic:                    0.6953
                         Least Squares   Prob (F-statistic):              0.404
 Date:                Fri, 08 Sep 2017                                         
-Time:                        17:42:01                                         
+Time:                        18:04:20                                         
 No. Observations:                2495                                         
 Df Residuals:                    2493                                         
 Df Model:                           1                                         
@@ -223,7 +223,7 @@ Model:                         IV2SLS   Adj. R-squared:                  0.084
 Method:                     Two Stage   F-statistic:                     2.216
                         Least Squares   Prob (F-statistic):             0.0843
 Date:                Fri, 08 Sep 2017                                         
-Time:                        17:42:01                                         
+Time:                        18:04:21                                         
 No. Observations:                2495                                         
 Df Residuals:                    2491                                         
 Df Model:                           3                                         

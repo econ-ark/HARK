@@ -16,7 +16,7 @@ from time import clock
 from copy import deepcopy
 from StickyEmodel import StickyEconsumerType, StickyEmarkovConsumerType, StickyErepAgent, StickyEmarkovRepAgent
 from ConsAggShockModel import SmallOpenEconomy, SmallOpenMarkovEconomy, CobbDouglasEconomy,CobbDouglasMarkovEconomy
-from HARKutilities import plotFuncs
+from HARKutilities import plotFuncs, getLorenzShares
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import statsmodels.sandbox.regression.gmm as smsrg
@@ -27,7 +27,7 @@ mystr = lambda number : "{:.3f}".format(number)
 # Choose which models to run
 do_SOE_simple  = False
 do_SOE_markov  = False
-do_DSGE_simple = False
+do_DSGE_simple = True
 do_DSGE_markov = False
 do_RA_simple   = False
 do_RA_markov   = False
@@ -214,6 +214,33 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
                 f.close()
     
     return output_string # Return output string
+
+
+def evalLorenzDistance(Economy):
+    '''
+    Calculates the Lorenz distance and the wealth level difference bewtween a
+    given economy and some specified targets.
+    
+    Parameters
+    ----------
+    Economy : Market
+        Economy with one or more agent types (with simulated data).
+        
+    Returns
+    -------
+    wealth_difference : float
+        Difference between economy and target aggregate wealth level.
+    lorenz_distance : float
+        Distance between economy and targets in terms of Lorenz.
+    '''
+    target_wealth = 10.26
+    pctiles = [0.2,0.4,0.6,0.8]
+    target_lorenz = np.array([-0.002, 0.01, 0.053,0.171])
+    A = np.concatenate([Economy.agents[i].aLvlNow for i in range(len(Economy.agents))])
+    sim_lorenz = getLorenzShares(A,percentiles=pctiles)
+    lorenz_distance = np.sqrt(np.sum((sim_lorenz - target_lorenz)**2))
+    wealth_difference = Economy.KtoYnow - target_wealth
+    return wealth_difference, lorenz_distance
 
 
 # Run models and save output if this module is called from main
