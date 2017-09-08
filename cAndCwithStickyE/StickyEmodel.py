@@ -1,6 +1,6 @@
 '''
 Models for the cAndCwithStickyE paper, in the form of extensions to AgentType
-subclasses from the ../ConsumptionSaving folder.  This module defines for new
+subclasses from the ../ConsumptionSaving folder.  This module defines four new
 AgentType subclasses for use in this project:
     
 1) StickyEconsumerType: An extention of AggShockConsumerType that can be used in

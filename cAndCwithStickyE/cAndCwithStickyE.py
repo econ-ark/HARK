@@ -9,6 +9,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
+import csv
 
 import numpy as np
 from time import clock
@@ -31,12 +32,15 @@ do_DSGE_markov = False
 do_RA_simple   = False
 do_RA_markov   = False
 
+# Choose whether to save data for use in Stata (as a tab-delimited text file)
+save_data = False
+
 # Define a string for log filename
 sticky_str = 'Frictionless'
 if Params.UpdatePrb < 1.0:
     sticky_str = 'Sticky'
 
-def makeStickyEresults(Economy,description='',filename=None):
+def makeStickyEresults(Economy,description='',filename=None,save_data=False):
     '''
     Makes descriptive statistics and regression results for a model after it has
     been solved and simulated. Behaves slightly differently for heterogeneous agents
@@ -52,6 +56,8 @@ def makeStickyEresults(Economy,description='',filename=None):
         Description of the economy that is prepended on the output string.
     filename : str
         Name of the output log file, if any; .txt will be appended automatically.
+    save_data : bool
+        When True, save simulation data to filename + 'Data.txt' for use in Stata.
         
     Returns
     -------
@@ -192,6 +198,20 @@ def makeStickyEresults(Economy,description='',filename=None):
         with open('./Results/' + filename + '.txt','w') as f:
             f.write(output_string)
             f.close()
+            
+        if save_data:
+            DataArray = (np.vstack((np.arange(DeltaLogC.size),DeltaLogC_me,DeltaLogC,DeltaLogY,A))).transpose()
+            VarNames = ['time_period','DeltaLogC_me','DeltaLogC','DeltaLogY','A']
+            if hasattr(Economy,'MrkvNow'):
+                Mrkv_hist = Economy.MrkvNow_hist[ignore_periods+1:]
+                DataArray = np.hstack((DataArray,np.reshape(Mrkv_hist,(Mrkv_hist.size,1))))
+                VarNames.append('MrkvState')
+            with open('./Results/' + filename + 'Data.txt.','wb') as f:
+                my_writer = csv.writer(f, delimiter = '\t')
+                my_writer.writerow(VarNames)
+                for i in range(DataArray.shape[0]):
+                    my_writer.writerow(DataArray[i,:])
+                f.close()
     
     return output_string # Return output string
 
@@ -231,7 +251,7 @@ if __name__ == '__main__':
         # Make results for the small open economy
         desc = 'Results for the small open economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'SOEsimple' + sticky_str + 'Results'
-        print(makeStickyEresults(StickySOEconomy,description=desc,filename=name))
+        print(makeStickyEresults(StickySOEconomy,description=desc,filename=name,save_data=save_data))
     
     
     ###############################################################################
@@ -275,7 +295,7 @@ if __name__ == '__main__':
         # Make results for the small open Markov economy
         desc = 'Results for the small open Markov economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'SOEmarkov' + sticky_str + 'Results'
-        print(makeStickyEresults(StickySOmarkovEconomy,description=desc,filename=name))
+        print(makeStickyEresults(StickySOmarkovEconomy,description=desc,filename=name,save_data=save_data))
         
     
     ###############################################################################
@@ -315,7 +335,7 @@ if __name__ == '__main__':
         # Make results for the Cobb-Douglas economy
         desc = 'Results for the Cobb-Douglas economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'DSGEsimple' + sticky_str + 'Results'
-        print(makeStickyEresults(StickyDSGEeconomy,description=desc,filename=name))
+        print(makeStickyEresults(StickyDSGEeconomy,description=desc,filename=name,save_data=save_data))
     
     
     ###############################################################################
@@ -350,7 +370,7 @@ if __name__ == '__main__':
         # Make results for the Cobb-Douglas Markov economy
         desc = 'Results for the Cobb-Douglas Markov economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'DSGEmarkov' + sticky_str + 'Results'
-        print(makeStickyEresults(StickyDSGEmarkovEconomy,description=desc,filename=name))
+        print(makeStickyEresults(StickyDSGEmarkovEconomy,description=desc,filename=name,save_data=save_data))
         
     
     ###############################################################################
@@ -375,7 +395,7 @@ if __name__ == '__main__':
         # Make results for the representative agent economy
         desc = 'Results for the representative agent economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'RAsimple' + sticky_str + 'Results'
-        print(makeStickyEresults(StickyRAconsumer,description=desc,filename=name))
+        print(makeStickyEresults(StickyRAconsumer,description=desc,filename=name,save_data=save_data))
         
     
     ###############################################################################
@@ -401,5 +421,5 @@ if __name__ == '__main__':
         # Make results for the Markov representative agent economy
         desc = 'Results for the Markov representative agent economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'RAmarkov' + sticky_str + 'Results'
-        print(makeStickyEresults(StickyRAmarkovConsumer,description=desc,filename=name))
+        print(makeStickyEresults(StickyRAmarkovConsumer,description=desc,filename=name,save_data=save_data))
         

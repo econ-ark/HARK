@@ -1539,8 +1539,6 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
                 MrkvNow_hist = np.concatenate((MrkvNow_hist,MrkvNow_new))
                 act_T += self.act_T_orig
                 
-            
-                
         # Store the results as attributes of self
         self.MrkvNow_hist = MrkvNow_hist
         self.act_T = act_T
