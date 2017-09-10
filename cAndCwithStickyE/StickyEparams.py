@@ -25,7 +25,12 @@ AgentCount = 20000     # Total number of agents to simulate in the economy
 # Choose extent of discount factor heterogeneity (inapplicable to representative agent models)
 TypeCount = 1        # Number of heterogeneous discount factor types
 DiscFacMean = 0.969  # Central value of intertemporal discount factor
-DiscFacSpread = 0.01 # Half-width of intertemporal discount factor band, a la cstwMPC
+DiscFacSpread = 0.0  # Half-width of intertemporal discount factor band, a la cstwMPC
+
+# These parameters are for a rough "beta-dist" specification that fits the wealth distribution in DSGE simple
+#TypeCount = 7
+#DiscFacMean = 0.96738  
+#DiscFacSpread = 0.0227 
 
 # Choose parameters for the Markov models
 StateCount = 21        # Number of discrete states in the Markov specifications
