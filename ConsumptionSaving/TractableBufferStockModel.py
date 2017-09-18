@@ -22,6 +22,7 @@ in the HARK framework, as shown below.
 # contained in the HARK folder. 
 import sys
 import os
+import numpy as np
 sys.path.insert(0, os.path.abspath('../'))
 
 from HARKcore import AgentType, NullFunc, Solution
