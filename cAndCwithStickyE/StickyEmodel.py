@@ -155,7 +155,8 @@ class StickyEconsumerType(AggShockConsumerType):
         mNrmPcvdNow = mLvlTrueNow/self.pLvlNow
         self.mNrmNow = mNrmPcvdNow
         self.mLvlTrueNow = mLvlTrueNow
-        self.yLvlNow = mLvlTrueNow - self.aLvlNow # Includes capital and labor income 
+        #self.yLvlNow = mLvlTrueNow - self.aLvlNow # Includes capital and labor income 
+        self.yLvlNow = yLvlNow
         
     def getMaggNow(self): # Agents know the true level of aggregate market resources, but
         MaggPcvdNow = self.MaggNow*self.pLvlErrNow # have erroneous perception of pLvlAgg.

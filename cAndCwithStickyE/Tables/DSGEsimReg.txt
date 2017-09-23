@@ -1,0 +1,36 @@
+\begin{table}\caption{Aggregate Consumption Dynamics in HA-DSGE Economy}
+\begin{tabular}{cccccc}
+ \hline \hline\multicolumn{3}{c}{Expectations : Dep Var} & OLS &  2nd Stage & IV $F~p$-val 
+\\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
+\\ \hline \multicolumn{3}{c}{Frictionless : $\Delta \log \mathbf{C}_{t+1}$} & & & 
+\\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t} $} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$}& \multicolumn{1}{c}{$ A_{t}  $} & & & 
+\\ 0.040 & & & OLS & & 
+\\ (0.557) & & & & & 
+\\ & 0.163 & & IV &  & 
+\\ & (-0.030) & & & & 
+\\ & & -0.0002 & IV &  & 
+\\ & & (-0.0008) & & & 
+\\ 0.132 & 0.141 & -0.0002 & IV &  & 
+\\ (0.375) & (0.089) & (-0.0003) & & & 
+\\ \multicolumn{6}{c}{} 
+\\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \mathbf{C}_{t+1}$} %NotOnSlide 
+\\ \multicolumn{1}{c}{$\Delta \log {\mathbf{C}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} 
+\\  0.557 & & & OLS &  & %NotOnSlide 
+\\  (0.059) & & & & & %NotOnSlide 
+\\ \multicolumn{6}{c}{} 
+\\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \widetilde{\mathbf{C}}_{t} $}%NotOnSlide 
+\\ \multicolumn{1}{c}{$\Delta \log {\widetilde{\mathbf{C}}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} 
+\\ 0.213 & & & OLS &  & 
+\\ (0.069) & & & & & 
+\\ 0.370 & & & IV &  & 
+\\ (0.114) & & & & &
+\\ & -0.030 & & IV &  & 
+\\ & (0.116) & & & &
+\\ & & -0.0008 & IV &  & 
+\\ & & (0.0004) & & &
+\\ 0.375 & 0.089 & -0.0003 & IV &  & 
+\\ (0.183) & (0.151) & (0.0006) & & & 
+\\ \cline{1-6}  & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$,  $\Delta \log \mathbf{C}_{t+1} = \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ } & ??? 
+\\ \hline \hline 
+\end{tabular} 
+\end{table} 

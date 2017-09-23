@@ -17,9 +17,10 @@ from copy import copy
 from HARKutilities import approxUniform
 
 # Choose basic simulation parameters
-UpdatePrb = 1.00       # Probability that each agent observes the aggregate productivity state each period
+UpdatePrb = 0.25       # Probability that each agent observes the aggregate productivity state each period (in sticky version)
 periods_to_sim = 3500  # Total number of periods to simulate; this might be increased by DSGEmarkov model
 ignore_periods = 1000  # Number of simulated periods to ignore (in order to ensure we are near steady state)
+interval_size = 200    # Number of periods in each subsample interval
 AgentCount = 20000     # Total number of agents to simulate in the economy
 
 # Choose extent of discount factor heterogeneity (inapplicable to representative agent models)
@@ -33,11 +34,11 @@ DiscFacSpread = 0.0  # Half-width of intertemporal discount factor band, a la cs
 #DiscFacSpread = 0.0227 
 
 # Choose parameters for the Markov models
-StateCount = 21        # Number of discrete states in the Markov specifications
-PermGroFacMin = 0.9925 # Minimum value of aggregate permanent growth in Markov specifications
-PermGroFacMax = 1.0075 # Maximum value of aggregate permanent growth in Markov specifications
-Persistence = 0.9      # Base probability that macroeconomic Markov state stays the same; else moves up or down by 1
-RegimeChangePrb = 0.01 # Probability of "regime change", randomly jumping to any Markov state
+StateCount = 21         # Number of discrete states in the Markov specifications
+PermGroFacMin = 0.9925  # Minimum value of aggregate permanent growth in Markov specifications
+PermGroFacMax = 1.0075  # Maximum value of aggregate permanent growth in Markov specifications
+Persistence = 0.5       # Base probability that macroeconomic Markov state stays the same; else moves up or down by 1
+RegimeChangePrb = 0.0   # Probability of "regime change", randomly jumping to any Markov state
 
 # Make the Markov array with chosen states, persistence, and regime change probability
 PolyMrkvArray = np.zeros((StateCount,StateCount))
