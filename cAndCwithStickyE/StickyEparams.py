@@ -34,7 +34,7 @@ DiscFacSpread = 0.0  # Half-width of intertemporal discount factor band, a la cs
 #DiscFacSpread = 0.0227 
 
 # Choose parameters for the Markov models
-StateCount = 21         # Number of discrete states in the Markov specifications
+StateCount = 11         # Number of discrete states in the Markov specifications
 PermGroFacMin = 0.9925  # Minimum value of aggregate permanent growth in Markov specifications
 PermGroFacMax = 1.0075  # Maximum value of aggregate permanent growth in Markov specifications
 Persistence = 0.5       # Base probability that macroeconomic Markov state stays the same; else moves up or down by 1
@@ -115,20 +115,13 @@ init_SOE_mrkv_consumer = copy(init_SOE_consumer)
 init_SOE_mrkv_consumer['MrkvArray'] = PolyMrkvArray
 
 # Define market parameters for the small open Markov economy
-init_SOE_mrkv_market = {  'PermShkAggCount': 3,
-                          'TranShkAggCount': 3,
-                          'PermShkAggStd': StateCount*[np.sqrt(0.00004)],
-                          'TranShkAggStd': StateCount*[np.sqrt(0.00001)],
-                          'MrkvArray' : PolyMrkvArray,
-                          'PermGroFacAgg': PermGroFacSet,
-                          'DeprFac': 1.0 - 0.94**(0.25),
-                          'CapShare': 0.36,
-                          'Rfree': 1.014189682528173,
-                          'wRte': 2.5895209258224536,
-                          'act_T': periods_to_sim,
-                          'MrkvNow_init' : StateCount/2,
-                          'loops_max' : 1
-                          }
+init_SOE_mrkv_market = copy(init_SOE_market)
+init_SOE_mrkv_market['MrkvArray'] = PolyMrkvArray
+init_SOE_mrkv_market['PermShkAggStd'] = StateCount*[init_SOE_market['PermShkAggStd']]
+init_SOE_mrkv_market['TranShkAggStd'] = StateCount*[init_SOE_market['TranShkAggStd']]
+init_SOE_mrkv_market['PermGroFacAgg'] = PermGroFacSet
+init_SOE_mrkv_market['MrkvNow_init'] = StateCount/2
+init_SOE_mrkv_market['loops_max'] = 1
 
 ###############################################################################
 

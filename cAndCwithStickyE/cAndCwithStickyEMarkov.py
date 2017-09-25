@@ -55,20 +55,20 @@ init_MarkovSOE_consumer = { 'CRRA': 2.0,
                       'CubicBool' : False
                     }
                     
-TranShkAggStd = np.sqrt(0.00001)
+TranShkAggStd = np.sqrt(0.00004)
 TranShkAggCount = 7
-PermShkAggStd = np.sqrt(0.0000025)
+PermShkAggStd = np.sqrt(0.00001)
 PermShkAggCount = 3
 LivPrb = 0.995
 Rfree = 1.014189682528173
 
 #Markov Parameters follow a random walk bounded above and below
-StateCount = 5
+StateCount = 3
 dont_move_prob = 0.0
 MrkvArray = linalg.toeplitz([dont_move_prob,(1.0-dont_move_prob)/2.0]+[0.0]*(StateCount-2), [dont_move_prob,(1.0-dont_move_prob)/2.0]+[0.0]*(StateCount-2))
 MrkvArray[0,0] = dont_move_prob+(1.0-dont_move_prob)/2.0
 MrkvArray[StateCount-1,StateCount-1] = dont_move_prob+(1.0-dont_move_prob)/2.0
-PermGroFac = [1.0+np.linspace(-0.015/4.0,0.015/4.0,StateCount)]
+PermGroFac = [1.0+np.linspace(-0.00/4.0,0.00/4.0,StateCount)]
 
 ###############################################################################
 

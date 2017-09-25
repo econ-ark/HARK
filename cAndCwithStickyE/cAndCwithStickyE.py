@@ -28,20 +28,15 @@ interval_size = Params.interval_size   # Number of periods in each non-overlappi
 mystr = lambda number : "{:.3f}".format(number)
 
 # Choose which models to run
-do_SOE_simple  = False
-do_SOE_markov  = False
-do_DSGE_simple = False
+do_SOE_simple  = True
+do_SOE_markov  = True
+do_DSGE_simple = True
 do_DSGE_markov = True
-do_RA_simple   = False
-do_RA_markov   = False
+do_RA_simple   = True
+do_RA_markov   = True
 
 # Choose whether to save data for use in Stata (as a tab-delimited text file)
 save_data = False
-
-# Define a string for log filename
-sticky_str = 'Frictionless'
-if Params.UpdatePrb < 1.0:
-    sticky_str = 'Sticky'
 
 def makeStickyEresults(Economy,description='',filename=None,save_data=False):
     '''
@@ -95,7 +90,7 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
         Logy = np.log(yLvlAll_hist[ignore_periods:,:])
         Logy_trimmed = Logy
         Logy_trimmed[np.isinf(Logy)] = np.nan
-        
+        BigTheta_hist = Economy.TranShkAggHist
         UpdatePrb = Economy.agents[0].UpdatePrb
         
     else: # If this is a representative agent specification...
@@ -106,6 +101,7 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
         YlvlAgg_hist = YnrmAgg_hist*PlvlAgg_hist.flatten()
         AlvlAgg_hist = Economy.aLvlNow_hist.flatten()
         AnrmAgg_hist = AlvlAgg_hist/PlvlAgg_hist.flatten()
+        BigTheta_hist = Economy.TranShkNow_hist.flatten()
         UpdatePrb = Economy.UpdatePrb
         
     # Process aggregate data into forms used by regressions
@@ -116,9 +112,7 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
     DeltaLogA = LogA[1:] - LogA[0:-1]
     DeltaLogY = LogY[1:] - LogY[0:-1]
     A = AnrmAgg_hist[(ignore_periods+1):] # This is a relabeling for the regression code
-
-#    plt.plot(DeltaLogY,DeltaLogC,'.k')
-#    plt.show()
+    BigTheta = BigTheta_hist[(ignore_periods+1):]
     
     # Add measurement error to LogC
     sigma_meas_err = np.std(DeltaLogC)/2.0
@@ -140,6 +134,7 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
         DeltaLogC_me_n = DeltaLogC_me[start:end]
         DeltaLogY_n = DeltaLogY[start:end]
         A_n = A[start:end]
+        BigTheta_n = BigTheta[start:end]
         
         # Run OLS on log consumption (no measurement error)
         mod = sm.OLS(DeltaLogC_n[1:],sm.add_constant(DeltaLogC_n[0:-1]))
@@ -232,6 +227,10 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
     res4 = mod.fit()
     
 #    mod = sm.OLS(DeltaLogY[4:],instruments)
+#    res_temp = mod.fit()
+#    print(res_temp.summary())
+#    
+#    mod = sm.OLS(DeltaLogC[4:],instruments)
 #    res_temp = mod.fit()
 #    print(res_temp.summary())
 #    
@@ -377,19 +376,25 @@ if __name__ == '__main__':
         plotFuncs(cFunc,0.0,20.0)
         
         # Simulate the frictionless small open economy
+        t_start = clock()
         for agent in StickySOEconomy.agents:
             agent(UpdatePrb = 1.0)
         StickySOEconomy.makeHistory()
+        t_end = clock()
+        print('Simulating the frictionless small open economy took ' + mystr(t_end-t_start) + ' seconds.')
         
         # Make results for the frictionless small open economy
         desc = 'Results for the frictionless small open economy'
         name = 'SOEsimpleFrictionlessResults'
         ResultsStringF, CoeffsF, StdErrsF = makeStickyEresults(StickySOEconomy,description=desc,filename=name,save_data=save_data)
         
-        # Simulate the frictionless small open economy
+        # Simulate the sticky small open economy
+        t_start = clock()
         for agent in StickySOEconomy.agents:
             agent(UpdatePrb = Params.UpdatePrb)
         StickySOEconomy.makeHistory()
+        t_end = clock()
+        print('Simulating the sticky small open economy took ' + mystr(t_end-t_start) + ' seconds.')
         
         # Make results for the sticky small open economy
         desc = 'Results for the sticky small open economy with update probability ' + mystr(Params.UpdatePrb)
@@ -447,9 +452,12 @@ if __name__ == '__main__':
         plt.show()
         
         # Simulate the frictionless small open Markov economy
+        t_start = clock()
         for agent in StickySOmarkovEconomy.agents:
             agent(UpdatePrb = 1.0)
         StickySOmarkovEconomy.makeHistory()
+        t_end = clock()
+        print('Simulating the frictionless small open Markov economy took ' + mystr(t_end-t_start) + ' seconds.')
         
         # Make results for the frictionless small open Markov economy
         desc = 'Results for the frictionless small open Markov economy'
@@ -457,9 +465,12 @@ if __name__ == '__main__':
         ResultsStringF, CoeffsF, StdErrsF = makeStickyEresults(StickySOmarkovEconomy,description=desc,filename=name,save_data=save_data)
         
         # Simulate the frictionless small open Markov economy
+        t_start = clock()
         for agent in StickySOmarkovEconomy.agents:
             agent(UpdatePrb = Params.UpdatePrb)
         StickySOmarkovEconomy.makeHistory()
+        t_end = clock()
+        print('Simulating the sticky small open Markov economy took ' + mystr(t_end-t_start) + ' seconds.')
         
         # Make results for the sticky small open Markov economy
         desc = 'Results for the sticky small open Markov economy with update probability ' + mystr(Params.UpdatePrb)
@@ -476,7 +487,7 @@ if __name__ == '__main__':
         Rsq = np.zeros(10) + np.nan
         Pvals = np.zeros(10) + np.nan
         OID = np.zeros(10) + np.nan
-        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,'Aggregate Consumption Dynamics in Small Open Markov Economy (21 states)','SOEmrkvSimReg')
+        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,'Aggregate Consumption Dynamics in Small Open Markov Economy (' + str(Params.StateCount) + ' states)','SOEmrkvSimReg')
         
     
     ###############################################################################
@@ -600,7 +611,7 @@ if __name__ == '__main__':
         
         # Make results for the Cobb-Douglas Markov economy
         desc = 'Results for the sticky Cobb-Douglas Markov economy with update probability ' + mystr(Params.UpdatePrb)
-        name = 'DSGEmarkovStickylessResults'
+        name = 'DSGEmarkovStickyResults'
         ResultsStringS, CoeffsS, StdErrsS = makeStickyEresults(StickyDSGEmarkovEconomy,description=desc,filename=name,save_data=save_data)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
@@ -613,7 +624,7 @@ if __name__ == '__main__':
         Rsq = np.zeros(10) + np.nan
         Pvals = np.zeros(10) + np.nan
         OID = np.zeros(10) + np.nan
-        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,'Aggregate Consumption Dynamics in HA-DSGE Markov Economy (21 states)','DSGEmrkvSimReg')
+        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,'Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)','DSGEmrkvSimReg')
         
     
     ###############################################################################
@@ -623,7 +634,7 @@ if __name__ == '__main__':
     if do_RA_simple:
         # Make a representative agent consumer, then solve and simulate the model
         StickyRAconsumer = StickyErepAgent(**Params.init_RA_consumer)
-        StickyRAconsumer.track_vars = ['cLvlNow','yNrmTrue','aLvlNow','pLvlTrue']
+        StickyRAconsumer.track_vars = ['cLvlNow','yNrmTrue','aLvlNow','pLvlTrue','TranShkNow']
         
         # Solve the representative agent's problem        
         t_start = clock()
@@ -680,7 +691,7 @@ if __name__ == '__main__':
         # Make a representative agent consumer, then solve and simulate the model
         StickyRAmarkovConsumer = StickyEmarkovRepAgent(**Params.init_RA_mrkv_consumer)
         StickyRAmarkovConsumer.IncomeDstn[0] = Params.StateCount*[StickyRAmarkovConsumer.IncomeDstn[0]]
-        StickyRAmarkovConsumer.track_vars = ['cLvlNow','yNrmTrue','aLvlNow','pLvlTrue']
+        StickyRAmarkovConsumer.track_vars = ['cLvlNow','yNrmTrue','aLvlNow','pLvlTrue','TranShkNow']
         
         # Solve the representative agent Markov economy
         t_start = clock()
@@ -727,5 +738,5 @@ if __name__ == '__main__':
         Rsq = np.zeros(10) + np.nan
         Pvals = np.zeros(10) + np.nan
         OID = np.zeros(10) + np.nan
-        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,'Aggregate Consumption Dynamics in Rep Agent Markov Economy (21 states)','RepAgentMrkvSimReg')
+        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,'Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)','RepAgentMrkvSimReg')
         
