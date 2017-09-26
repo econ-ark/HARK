@@ -312,10 +312,17 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
                 for i in range(DataArray.shape[0]):
                     my_writer.writerow(DataArray[i,:])
                 f.close()
-                
-    print(np.mean(CoeffsArray/StdErrArray,axis=0))
     
-    return output_string, np.mean(CoeffsArray,axis=0), np.mean(StdErrArray,axis=0) # Return output string and subsample regression summaries
+    t_stat_array = CoeffsArray/StdErrArray
+    if UpdatePrb < 1.0:
+        C_successes_95 = np.sum(t_stat_array[:,5] > 1.96)
+        C_successes_90 = np.sum(t_stat_array[:,5] > 1.645)
+        N_out = [C_successes_95,C_successes_90,N]
+    else:
+        N_out = [0,0,0]
+    print(np.mean(t_stat_array,axis=0))
+    
+    return output_string, np.mean(CoeffsArray,axis=0), np.mean(StdErrArray,axis=0), N_out # Return output string and subsample regression summaries
 
 
 def evalLorenzDistance(Economy):
@@ -386,7 +393,7 @@ if __name__ == '__main__':
         # Make results for the frictionless small open economy
         desc = 'Results for the frictionless small open economy'
         name = 'SOEsimpleFrictionlessResults'
-        ResultsStringF, CoeffsF, StdErrsF = makeStickyEresults(StickySOEconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringF, CoeffsF, StdErrsF, trash = makeStickyEresults(StickySOEconomy,description=desc,filename=name,save_data=save_data)
         
         # Simulate the sticky small open economy
         t_start = clock()
@@ -399,7 +406,7 @@ if __name__ == '__main__':
         # Make results for the sticky small open economy
         desc = 'Results for the sticky small open economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'SOEsimpleStickyResults'
-        ResultsStringS, CoeffsS, StdErrsS = makeStickyEresults(StickySOEconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringS, CoeffsS, StdErrsS, Counts = makeStickyEresults(StickySOEconomy,description=desc,filename=name,save_data=save_data)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         Coeffs = np.zeros(14)
@@ -411,7 +418,7 @@ if __name__ == '__main__':
         Rsq = np.zeros(10) + np.nan
         Pvals = np.zeros(10) + np.nan
         OID = np.zeros(10) + np.nan
-        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,'Aggregate Consumption Dynamics in Small Open Economy','SOEsimReg')
+        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,'Aggregate Consumption Dynamics in Small Open Economy','SOEsimReg')
     
     
     ###############################################################################
@@ -462,7 +469,7 @@ if __name__ == '__main__':
         # Make results for the frictionless small open Markov economy
         desc = 'Results for the frictionless small open Markov economy'
         name = 'SOEmarkovFrictionlessResults'
-        ResultsStringF, CoeffsF, StdErrsF = makeStickyEresults(StickySOmarkovEconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringF, CoeffsF, StdErrsF, trash = makeStickyEresults(StickySOmarkovEconomy,description=desc,filename=name,save_data=save_data)
         
         # Simulate the frictionless small open Markov economy
         t_start = clock()
@@ -475,7 +482,7 @@ if __name__ == '__main__':
         # Make results for the sticky small open Markov economy
         desc = 'Results for the sticky small open Markov economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'SOEmarkovStickyResults'
-        ResultsStringS, CoeffsS, StdErrsS = makeStickyEresults(StickySOmarkovEconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringS, CoeffsS, StdErrsS, Counts = makeStickyEresults(StickySOmarkovEconomy,description=desc,filename=name,save_data=save_data)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         Coeffs = np.zeros(14)
@@ -487,7 +494,7 @@ if __name__ == '__main__':
         Rsq = np.zeros(10) + np.nan
         Pvals = np.zeros(10) + np.nan
         OID = np.zeros(10) + np.nan
-        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,'Aggregate Consumption Dynamics in Small Open Markov Economy (' + str(Params.StateCount) + ' states)','SOEmrkvSimReg')
+        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,'Aggregate Consumption Dynamics in Small Open Markov Economy (' + str(Params.StateCount) + ' states)','SOEmrkvSimReg')
         
     
     ###############################################################################
@@ -528,7 +535,7 @@ if __name__ == '__main__':
         # Make results for the frictionless Cobb-Douglas economy
         desc = 'Results for the frictionless Cobb-Douglas economy'
         name = 'DSGEsimpleFrictionlessResults'
-        ResultsStringF, CoeffsF, StdErrsF = makeStickyEresults(StickyDSGEeconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringF, CoeffsF, StdErrsF, trash = makeStickyEresults(StickyDSGEeconomy,description=desc,filename=name,save_data=save_data)
         
         # Solve the sticky HA-DSGE model
         for agent in StickyDSGEeconomy.agents:
@@ -549,7 +556,7 @@ if __name__ == '__main__':
         # Make results for the sticky Cobb-Douglas economy
         desc = 'Results for the sticky Cobb-Douglas economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'DSGEsimpleStickyResults'
-        ResultsStringS, CoeffsS, StdErrsS = makeStickyEresults(StickyDSGEeconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringS, CoeffsS, StdErrsS, Counts = makeStickyEresults(StickyDSGEeconomy,description=desc,filename=name,save_data=save_data)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         Coeffs = np.zeros(14)
@@ -561,7 +568,7 @@ if __name__ == '__main__':
         Rsq = np.zeros(10) + np.nan
         Pvals = np.zeros(10) + np.nan
         OID = np.zeros(10) + np.nan
-        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,'Aggregate Consumption Dynamics in HA-DSGE Economy','DSGEsimReg')
+        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,'Aggregate Consumption Dynamics in HA-DSGE Economy','DSGEsimReg')
     
     
     ###############################################################################
@@ -597,7 +604,7 @@ if __name__ == '__main__':
         # Make results for the Cobb-Douglas Markov economy
         desc = 'Results for the frictionless Cobb-Douglas Markov economy'
         name = 'DSGEmarkovFrictionlessResults'
-        ResultsStringF, CoeffsF, StdErrsF = makeStickyEresults(StickyDSGEmarkovEconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringF, CoeffsF, StdErrsF, trash = makeStickyEresults(StickyDSGEmarkovEconomy,description=desc,filename=name,save_data=save_data)
         
         # Solve the sticky heterogeneous agent DSGE model
         for agent in StickyDSGEmarkovEconomy.agents:
@@ -612,7 +619,7 @@ if __name__ == '__main__':
         # Make results for the Cobb-Douglas Markov economy
         desc = 'Results for the sticky Cobb-Douglas Markov economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'DSGEmarkovStickyResults'
-        ResultsStringS, CoeffsS, StdErrsS = makeStickyEresults(StickyDSGEmarkovEconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringS, CoeffsS, StdErrsS, Counts = makeStickyEresults(StickyDSGEmarkovEconomy,description=desc,filename=name,save_data=save_data)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         Coeffs = np.zeros(14)
@@ -624,7 +631,7 @@ if __name__ == '__main__':
         Rsq = np.zeros(10) + np.nan
         Pvals = np.zeros(10) + np.nan
         OID = np.zeros(10) + np.nan
-        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,'Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)','DSGEmrkvSimReg')
+        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,'Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)','DSGEmrkvSimReg')
         
     
     ###############################################################################
@@ -656,7 +663,7 @@ if __name__ == '__main__':
         # Make results for the frictionless representative agent economy
         desc = 'Results for the frictionless representative agent economy'
         name = 'RAsimpleFrictionlessResults'
-        ResultsStringF, CoeffsF, StdErrsF = makeStickyEresults(StickyRAconsumer,description=desc,filename=name,save_data=save_data)
+        ResultsStringF, CoeffsF, StdErrsF, trash = makeStickyEresults(StickyRAconsumer,description=desc,filename=name,save_data=save_data)
         
         # Simulate the representative agent with sticky expectations
         t_start = clock()
@@ -669,7 +676,7 @@ if __name__ == '__main__':
         # Make results for the sticky representative agent economy
         desc = 'Results for the sticky representative agent economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'RAsimpleStickyResults'
-        ResultsStringS, CoeffsS, StdErrsS = makeStickyEresults(StickyRAconsumer,description=desc,filename=name,save_data=save_data)
+        ResultsStringS, CoeffsS, StdErrsS, Counts = makeStickyEresults(StickyRAconsumer,description=desc,filename=name,save_data=save_data)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         Coeffs = np.zeros(14)
@@ -681,7 +688,7 @@ if __name__ == '__main__':
         Rsq = np.zeros(10) + np.nan
         Pvals = np.zeros(10) + np.nan
         OID = np.zeros(10) + np.nan
-        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,'Aggregate Consumption Dynamics in Rep Agent Economy','RepAgentSimReg')
+        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,'Aggregate Consumption Dynamics in Rep Agent Economy','RepAgentSimReg')
     
     ###############################################################################
     ########### REPRESENTATIVE AGENT ECONOMY WITH MARKOV STATE ####################
@@ -713,7 +720,7 @@ if __name__ == '__main__':
         # Make results for the frictionless Markov representative agent economy
         desc = 'Results for the frictionless Markov representative agent economy'
         name = 'RAmarkovFrictionlessResults'
-        ResultsStringF, CoeffsF, StdErrsF = makeStickyEresults(StickyRAmarkovConsumer,description=desc,filename=name,save_data=save_data)
+        ResultsStringF, CoeffsF, StdErrsF, trash = makeStickyEresults(StickyRAmarkovConsumer,description=desc,filename=name,save_data=save_data)
         
         # Simulate the sticky representative agent MarkovEconomy
         t_start = clock()
@@ -726,7 +733,7 @@ if __name__ == '__main__':
         # Make results for the sticky Markov representative agent economy
         desc = 'Results for the sticky Markov representative agent economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'RAmarkovStickyResults'
-        ResultsStringS, CoeffsS, StdErrsS = makeStickyEresults(StickyRAmarkovConsumer,description=desc,filename=name,save_data=save_data)
+        ResultsStringS, CoeffsS, StdErrsS, Counts = makeStickyEresults(StickyRAmarkovConsumer,description=desc,filename=name,save_data=save_data)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         Coeffs = np.zeros(14)
@@ -738,5 +745,5 @@ if __name__ == '__main__':
         Rsq = np.zeros(10) + np.nan
         Pvals = np.zeros(10) + np.nan
         OID = np.zeros(10) + np.nan
-        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,'Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)','RepAgentMrkvSimReg')
+        makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,'Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)','RepAgentMrkvSimReg')
         

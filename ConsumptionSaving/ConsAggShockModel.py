@@ -1097,7 +1097,7 @@ class CobbDouglasEconomy(Market):
         '''
         verbose = True
         discard_periods = 200 # Throw out the first T periods to allow the simulation to approach the SS
-        update_weight = 0.50  # Proportional weight to put on new function vs old function parameters
+        update_weight = 0.80  # Proportional weight to put on new function vs old function parameters
         total_periods = len(MaggNow)
         
         # Regress the log savings against log market resources

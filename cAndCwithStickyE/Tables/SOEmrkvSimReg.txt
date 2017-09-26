@@ -4,33 +4,35 @@
 \\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
 \\ \hline \multicolumn{3}{c}{Frictionless : $\Delta \log \mathbf{C}_{t+1}$} & & & 
 \\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t} $} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$}& \multicolumn{1}{c}{$ A_{t}  $} & & & 
-\\ 0.209 & & & OLS & & 
-\\ (0.818) & & & & & 
-\\ & 0.027 & & IV &  & 
-\\ & (1.397) & & & & 
-\\ & & 0.0000 & IV &  & 
-\\ & & (-0.0000) & & & 
-\\ -0.044 & -0.376 & 0.0000 & IV &  & 
-\\ (0.578) & (0.467) & (0.0000) & & & 
+\\ 0.385 & & & OLS & & 
+\\ (0.848) & & & & & 
+\\ & 0.432 & & IV &  & 
+\\ & (0.993) & & & & 
+\\ & & -0.0011 & IV &  & 
+\\ & & (-0.0016) & & & 
+\\ -0.128 & 0.226 & -0.0007 & IV &  & 
+\\ (0.618) & (0.343) & (0.0002) & & & 
 \\ \multicolumn{6}{c}{} 
 \\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \mathbf{C}_{t+1}$} %NotOnSlide 
 \\ \multicolumn{1}{c}{$\Delta \log {\mathbf{C}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} 
-\\  0.818 & & & OLS &  & %NotOnSlide 
-\\  (0.041) & & & & & %NotOnSlide 
+\\  0.848 & & & OLS &  & %NotOnSlide 
+\\  (0.037) & & & & & %NotOnSlide 
 \\ \multicolumn{6}{c}{} 
 \\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \widetilde{\mathbf{C}}_{t} $}%NotOnSlide 
 \\ \multicolumn{1}{c}{$\Delta \log {\widetilde{\mathbf{C}}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} 
-\\ 0.337 & & & OLS &  & 
+\\ 0.355 & & & OLS &  & 
 \\ (0.066) & & & & & 
-\\ 0.722 & & & IV &  & 
-\\ (0.117) & & & & &
-\\ & 1.397 & & IV &  & 
-\\ & (0.394) & & & &
-\\ & & -0.0000 & IV &  & 
-\\ & & (0.0000) & & &
-\\ 0.578 & 0.467 & 0.0000 & IV &  & 
-\\ (0.232) & (0.721) & (0.0001) & & & 
+\\ 0.778 & & & IV &  & 
+\\ (0.121) & & & & &
+\\ & 0.993 & & IV &  & 
+\\ & (0.252) & & & &
+\\ & & -0.0016 & IV &  & 
+\\ & & (0.0005) & & &
+\\ 0.618 & 0.343 & 0.0002 & IV &  & 
+\\ (0.248) & (0.455) & (0.0008) & & & 
 \\ \cline{1-6}  & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$,  $\Delta \log \mathbf{C}_{t+1} = \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ } & ??? 
+\\ \multicolumn{6}{c}{Horserace coefficient on $\Delta \log \widetilde{\mathbf{C}}_t$ significant at 95\% level for 10 of 12 subintervals.} 
+\\ \multicolumn{6}{c}{Horserace coefficient on $\Delta \log \widetilde{\mathbf{C}}_t$ significant at 90\% level for 10 of 12 subintervals.} 
 \\ \hline \hline 
 \end{tabular} 
 \end{table} 

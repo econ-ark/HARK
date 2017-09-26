@@ -19,7 +19,7 @@ def mystr2(number):
     return out
 
 
-def makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Caption,filename):
+def makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,Caption,filename):
     '''
     Make simulated results table function.
     '''
@@ -56,6 +56,8 @@ def makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Caption,filename):
     output += '\\\\ ' + mystr(Coeffs[11]) + ' & ' + mystr(Coeffs[12]) + ' & ' + mystr2(Coeffs[13]) + ' & IV & ' + mystr(Rsq[9]) + ' & \n'         
     output += '\\\\ (' + mystr(StdErrs[11]) + ') & (' + mystr(StdErrs[12]) + ') & (' + mystr2(StdErrs[13]) + ') & & & \n'
     output += '\\\\ \cline{1-6}  & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$,  $\Delta \log \mathbf{C}_{t+1} = \mathbf{Z}_{t} \zeta,~~\\bar{R}^{2}=$ } & ??? \n'
+    output += '\\\\ \multicolumn{6}{c}{Horserace coefficient on $\Delta \log \widetilde{\mathbf{C}}_t$ significant at 95\% level for ' + str(Counts[0]) + ' of ' + str(Counts[2]) + ' subintervals.} \n'
+    output += '\\\\ \multicolumn{6}{c}{Horserace coefficient on $\Delta \log \widetilde{\mathbf{C}}_t$ significant at 90\% level for ' + str(Counts[1]) + ' of ' + str(Counts[2]) + ' subintervals.} \n'
     output += '\\\\ \hline \hline \n'
     output += '\end{tabular} \n'
     output += '\end{table} \n'
