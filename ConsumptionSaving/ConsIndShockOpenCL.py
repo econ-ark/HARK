@@ -7,7 +7,7 @@ import sys
 import os
 import numpy as np
 import opencl4py as cl
-os.environ["PYOPENCL_CTX"] = "0:2" # This is where you choose a device number
+os.environ["PYOPENCL_CTX"] = "0:1" # This is where you choose a device number
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('./'))
 
@@ -667,10 +667,18 @@ if __name__ == '__main__':
     TestType.CubicBool = True
     T_sim = 1000
     TestType.T_sim = T_sim
+    TestType.initializeSim()
     
-    OtherType = deepcopy(TestType)
-    OtherType.CRRA += 1.0
-    TestOpenCL = IndShockConsumerTypesOpenCL([TestType])
+    TypeCount = 32
+    CRRAmin = 1.0
+    CRRAmax = 5.0
+    CRRAset = np.linspace(CRRAmin,CRRAmax,TypeCount)
+    TypeList = []
+    for j in range(TypeCount):
+        NewType = deepcopy(TestType)
+        NewType(CRRA = CRRAset[j])
+        TypeList.append(NewType)
+    TestOpenCL = IndShockConsumerTypesOpenCL(TypeList)
     
     TestOpenCL.prepareToSolve()
     t_start = clock()
@@ -680,12 +688,8 @@ if __name__ == '__main__':
     
     t_start = clock()
     TestType.solve()
-#    OtherType.solve()
     t_end = clock()
-    print('Solving took ' + str(t_end-t_start) + ' seconds with Python.')
-    
-    TestType.initializeSim()
-    OtherType.initializeSim()
+    print('Solving 1 type took ' + str(t_end-t_start) + ' seconds with Python.')
     
     TestOpenCL.loadSimulationKernels()
     TestOpenCL.writeSimVar('aNrmNow')
@@ -700,14 +704,13 @@ if __name__ == '__main__':
     TestOpenCL.readSimVar('cNrmNow')
     TestOpenCL.readSimVar('TestVar')
     
-    C_test = np.zeros(TestType.AgentCount)
-    for t in range(TestType.T_cycle+1):
-        these = TestType.TestVar == t
-        C_test[these] = TestType.solution[t].cFunc(TestType.mNrmNow[these])
-    plt.plot(C_test,TestType.cNrmNow,'.k')
-    plt.show()
+#    C_test = np.zeros(TestType.AgentCount)
+#    for t in range(TestType.T_cycle+1):
+#        these = TestType.TestVar == t
+#        C_test[these] = TestType.solution[t].cFunc(TestType.mNrmNow[these])
+#    plt.plot(C_test,TestType.cNrmNow,'.k')
+#    plt.show()
     
-    TestType.initializeSim()
     t_start = clock()
     TestType.simulate()
     t_end = clock()
