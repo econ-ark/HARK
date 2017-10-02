@@ -124,6 +124,10 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
     N = DeltaLogC.size/interval_size
     CoeffsArray = np.zeros((N,8)) # Order: DeltaLogC_OLS, DeltaLogC_me_OLS, DeltaLogC_me_IV, DeltaLogY_IV, A_OLS, DeltaLogC_HR, DeltaLogY_HR, A_HR
     StdErrArray = np.zeros((N,8)) # Same order as above
+    RsqArray = np.zeros((N,6))
+    PvalArray = np.zeros((N,6))
+    OIDarray = np.zeros((N,6))
+    InstrRsqVec = np.zeros(N)
     
     # Loop through subsample intervals, running various regressions
     for n in range(N):
@@ -140,14 +144,18 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
         mod = sm.OLS(DeltaLogC_n[1:],sm.add_constant(DeltaLogC_n[0:-1]))
         res = mod.fit()
         CoeffsArray[n,0] = res._results.params[1]
-        StdErrArray[n,0] = res._results.bse[1]
+        StdErrArray[n,0] = res._results.HC0_se[1]
+        RsqArray[n,0] = res._results.rsquared_adj
+        PvalArray[n,0] = res._results.f_pvalue
         
         # Run OLS on log consumption (with measurement error)
         if UpdatePrb < 1.0:
             mod = sm.OLS(DeltaLogC_me_n[1:],sm.add_constant(DeltaLogC_me_n[0:-1]))
             res = mod.fit()
             CoeffsArray[n,1] = res._results.params[1]
-            StdErrArray[n,1] = res._results.bse[1]
+            StdErrArray[n,1] = res._results.HC0_se[1]
+            RsqArray[n,1] = res._results.rsquared_adj
+            PvalArray[n,1] = res._results.f_pvalue
         else:
             CoeffsArray[n,1] = np.nan
             StdErrArray[n,1] = np.nan
@@ -158,51 +166,83 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
         temp2 = np.transpose(np.array([DeltaLogC_n[1:-3],DeltaLogC_n[:-4],DeltaLogY_n[1:-3],DeltaLogY_n[:-4],A_n[1:-3],A_n[:-4]]))
         instruments2 = sm.add_constant(temp2) # No measurement error
         
-        # Run IV on log consumption with measurement error (if sticky expectations)
+        # Run IV on log consumption (with measurement error if sticky expectations)
         if UpdatePrb < 1.0:
-            mod = smsrg.IV2SLS(DeltaLogC_me_n[4:],sm.add_constant(DeltaLogC_me_n[3:-1]),instruments)
+            mod = sm.OLS(DeltaLogC_me_n[3:-1],instruments)
+            res = mod.fit()
+            DeltaLogC_predict1 = res.predict()
+            mod = sm.OLS(DeltaLogC_me_n[4:],sm.add_constant(DeltaLogC_predict1))
             res = mod.fit()
             CoeffsArray[n,2] = res._results.params[1]
-            StdErrArray[n,2] = res._results.bse[1]
+            StdErrArray[n,2] = res._results.HC0_se[1]
+            RsqArray[n,2] = res._results.rsquared_adj
+            PvalArray[n,2] = res._results.f_pvalue
         else:
-            CoeffsArray[n,2] = np.nan
-            StdErrArray[n,2] = np.nan
+            mod = sm.OLS(DeltaLogC_n[3:-1],instruments2)
+            res = mod.fit()
+            DeltaLogC_predict2 = res.predict()
         
         # Run IV on log income (with measurement error if sticky expectations)
         if UpdatePrb < 1.0:
-            mod = smsrg.IV2SLS(DeltaLogC_me_n[4:],sm.add_constant(DeltaLogY_n[4:]),instruments)
+            mod = sm.OLS(DeltaLogY_n[4:],instruments)
+            res = mod.fit()
+            DeltaLogY_predict1 = res.predict()
+            mod = sm.OLS(DeltaLogC_me_n[4:],sm.add_constant(DeltaLogY_predict1))
             res = mod.fit()
         else:
-            mod = smsrg.IV2SLS(DeltaLogC_n[4:],sm.add_constant(DeltaLogY_n[4:]),instruments2)
+            mod = sm.OLS(DeltaLogY_n[4:],instruments2)
+            res = mod.fit()
+            DeltaLogY_predict2 = res.predict()
+            mod = sm.OLS(DeltaLogC_n[4:],sm.add_constant(DeltaLogY_predict2))
             res = mod.fit()
         CoeffsArray[n,3] = res._results.params[1]
-        StdErrArray[n,3] = res._results.bse[1]
+        StdErrArray[n,3] = res._results.HC0_se[1]
+        RsqArray[n,3] = res._results.rsquared_adj
+        PvalArray[n,3] = res._results.f_pvalue
         
         # Run IV on assets (with measurement error if sticky expectations)
         if UpdatePrb < 1.0:
-            mod = smsrg.IV2SLS(DeltaLogC_me_n[4:],sm.add_constant(A_n[3:-1]),instruments)
+            mod = sm.OLS(A_n[3:-1],instruments)
+            res = mod.fit()
+            A_predict1 = res.predict()
+            mod = sm.OLS(DeltaLogC_me_n[4:],sm.add_constant(A_predict1))
             res = mod.fit()
         else:
-            mod = smsrg.IV2SLS(DeltaLogC_n[4:],sm.add_constant(A_n[3:-1]),instruments2)
+            mod = sm.OLS(A_n[3:-1],instruments2)
+            res = mod.fit()
+            A_predict2 = res.predict()
+            mod = sm.OLS(DeltaLogC_n[4:],sm.add_constant(A_predict2))
             res = mod.fit()
         CoeffsArray[n,4] = res._results.params[1]
-        StdErrArray[n,4] = res._results.bse[1]
+        StdErrArray[n,4] = res._results.HC0_se[1]
+        RsqArray[n,4] = res._results.rsquared_adj
+        PvalArray[n,4] = res._results.f_pvalue
         
         # Run horserace IV (with measurement error if sticky expectations)
         if UpdatePrb < 1.0:
-            regressors = sm.add_constant(np.transpose(np.array([DeltaLogC_me_n[3:-1],DeltaLogY_n[4:],A_n[3:-1]])))
-            mod = smsrg.IV2SLS(DeltaLogC_me_n[4:],regressors,instruments)
+            regressors = sm.add_constant(np.transpose(np.array([DeltaLogC_predict1,DeltaLogY_predict1,A_predict1])))
+            mod = sm.OLS(DeltaLogC_me_n[4:],regressors)
             res = mod.fit()
         else:
-            regressors = sm.add_constant(np.transpose(np.array([DeltaLogC_n[3:-1],DeltaLogY_n[4:],A_n[3:-1]])))
-            mod = smsrg.IV2SLS(DeltaLogC_n[4:],regressors,instruments2)
+            regressors = sm.add_constant(np.transpose(np.array([DeltaLogC_predict2,DeltaLogY_predict2,A_predict2])))
+            mod = sm.OLS(DeltaLogC_n[4:],regressors)
             res = mod.fit()
         CoeffsArray[n,5] = res._results.params[1]
         CoeffsArray[n,6] = res._results.params[2]
         CoeffsArray[n,7] = res._results.params[3]
-        StdErrArray[n,5] = res._results.bse[1]
-        StdErrArray[n,6] = res._results.bse[2]
-        StdErrArray[n,7] = res._results.bse[3]
+        StdErrArray[n,5] = res._results.HC0_se[1]
+        StdErrArray[n,6] = res._results.HC0_se[2]
+        StdErrArray[n,7] = res._results.HC0_se[3]
+        RsqArray[n,5] = res._results.rsquared_adj
+        PvalArray[n,5] = res._results.f_pvalue
+        
+        # Regress Delta C_{t+1} on instruments
+        if UpdatePrb < 1.0:
+            mod = sm.OLS(DeltaLogC_me_n[4:],instruments)
+        else:
+            mod = sm.OLS(DeltaLogC_n[4:],instruments2)
+        res = mod.fit()
+        InstrRsqVec[n] = res._results.rsquared_adj
 
     # Now run regressions on entire dataset
     # Run OLS on log consumption (no measurement error)
@@ -225,18 +265,6 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
     # Run IV on log income (with measurement error)
     mod = smsrg.IV2SLS(DeltaLogC_me[4:],sm.add_constant(DeltaLogY[4:]),instruments)
     res4 = mod.fit()
-    
-#    mod = sm.OLS(DeltaLogY[4:],instruments)
-#    res_temp = mod.fit()
-#    print(res_temp.summary())
-#    
-#    mod = sm.OLS(DeltaLogC[4:],instruments)
-#    res_temp = mod.fit()
-#    print(res_temp.summary())
-#    
-#    mod = sm.OLS(DeltaLogC,sm.add_constant(DeltaLogY))
-#    res_temp = mod.fit()
-#    print(res_temp.summary())
     
     # Run IV on assets (with measurement error)
     mod = smsrg.IV2SLS(DeltaLogC_me[4:],sm.add_constant(A[3:-1]),instruments)
@@ -316,13 +344,13 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
     t_stat_array = CoeffsArray/StdErrArray
     if UpdatePrb < 1.0:
         C_successes_95 = np.sum(t_stat_array[:,5] > 1.96)
-        C_successes_90 = np.sum(t_stat_array[:,5] > 1.645)
-        N_out = [C_successes_95,C_successes_90,N]
+        Y_successes_95 = np.sum(t_stat_array[:,6] > 1.96)
+        N_out = [C_successes_95,Y_successes_95,N,np.mean(InstrRsqVec)]
     else:
-        N_out = [0,0,0]
-    print(np.mean(t_stat_array,axis=0))
+        N_out = [0,0,0,np.mean(InstrRsqVec)]
+    #print(np.mean(t_stat_array,axis=0))
     
-    return output_string, np.mean(CoeffsArray,axis=0), np.mean(StdErrArray,axis=0), N_out # Return output string and subsample regression summaries
+    return output_string, np.mean(CoeffsArray,axis=0), np.mean(StdErrArray,axis=0), np.mean(RsqArray,axis=0), np.mean(PvalArray,axis=0), N_out # Return output string and subsample regression summaries
 
 
 def evalLorenzDistance(Economy):
@@ -393,7 +421,7 @@ if __name__ == '__main__':
         # Make results for the frictionless small open economy
         desc = 'Results for the frictionless small open economy'
         name = 'SOEsimpleFrictionlessResults'
-        ResultsStringF, CoeffsF, StdErrsF, trash = makeStickyEresults(StickySOEconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringF, CoeffsF, StdErrsF, RsqF, PvalsF, trash = makeStickyEresults(StickySOEconomy,description=desc,filename=name,save_data=save_data)
         
         # Simulate the sticky small open economy
         t_start = clock()
@@ -406,18 +434,23 @@ if __name__ == '__main__':
         # Make results for the sticky small open economy
         desc = 'Results for the sticky small open economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'SOEsimpleStickyResults'
-        ResultsStringS, CoeffsS, StdErrsS, Counts = makeStickyEresults(StickySOEconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringS, CoeffsS, StdErrsS, RsqS, PvalsS, Counts = makeStickyEresults(StickySOEconomy,description=desc,filename=name,save_data=save_data)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         Coeffs = np.zeros(14)
         Coeffs[0:6] = CoeffsF[np.array([0,3,4,5,6,7])]
         Coeffs[6:14] = CoeffsS
         StdErrs = np.zeros(14)
-        StdErrs[0:6] = CoeffsS[np.array([0,3,4,5,6,7])]
+        StdErrs[0:6] = StdErrsF[np.array([0,3,4,5,6,7])]
         StdErrs[6:14] = StdErrsS
-        Rsq = np.zeros(10) + np.nan
-        Pvals = np.zeros(10) + np.nan
+        Rsq = np.zeros(10)
+        Rsq[0:4] = RsqF[np.array([0,3,4,5])]
+        Rsq[4:10] = RsqS
+        Pvals = np.zeros(10)
+        Pvals[0:4] = PvalsF[np.array([0,3,4,5])]
+        Pvals[4:10] = PvalsS
         OID = np.zeros(10) + np.nan
+        Counts.append(trash[3])
         makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,'Aggregate Consumption Dynamics in Small Open Economy','SOEsimReg')
     
     
@@ -469,7 +502,7 @@ if __name__ == '__main__':
         # Make results for the frictionless small open Markov economy
         desc = 'Results for the frictionless small open Markov economy'
         name = 'SOEmarkovFrictionlessResults'
-        ResultsStringF, CoeffsF, StdErrsF, trash = makeStickyEresults(StickySOmarkovEconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringF, CoeffsF, StdErrsF, RsqF, PvalsF, trash = makeStickyEresults(StickySOmarkovEconomy,description=desc,filename=name,save_data=save_data)
         
         # Simulate the frictionless small open Markov economy
         t_start = clock()
@@ -482,18 +515,23 @@ if __name__ == '__main__':
         # Make results for the sticky small open Markov economy
         desc = 'Results for the sticky small open Markov economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'SOEmarkovStickyResults'
-        ResultsStringS, CoeffsS, StdErrsS, Counts = makeStickyEresults(StickySOmarkovEconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringS, CoeffsS, StdErrsS, RsqS, PvalsS, Counts = makeStickyEresults(StickySOmarkovEconomy,description=desc,filename=name,save_data=save_data)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         Coeffs = np.zeros(14)
         Coeffs[0:6] = CoeffsF[np.array([0,3,4,5,6,7])]
         Coeffs[6:14] = CoeffsS
         StdErrs = np.zeros(14)
-        StdErrs[0:6] = CoeffsS[np.array([0,3,4,5,6,7])]
+        StdErrs[0:6] = StdErrsF[np.array([0,3,4,5,6,7])]
         StdErrs[6:14] = StdErrsS
-        Rsq = np.zeros(10) + np.nan
-        Pvals = np.zeros(10) + np.nan
+        Rsq = np.zeros(10)
+        Rsq[0:4] = RsqF[np.array([0,3,4,5])]
+        Rsq[4:10] = RsqS
+        Pvals = np.zeros(10)
+        Pvals[0:4] = PvalsF[np.array([0,3,4,5])]
+        Pvals[4:10] = PvalsS
         OID = np.zeros(10) + np.nan
+        Counts.append(trash[3])
         makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,'Aggregate Consumption Dynamics in Small Open Markov Economy (' + str(Params.StateCount) + ' states)','SOEmrkvSimReg')
         
     
@@ -535,7 +573,7 @@ if __name__ == '__main__':
         # Make results for the frictionless Cobb-Douglas economy
         desc = 'Results for the frictionless Cobb-Douglas economy'
         name = 'DSGEsimpleFrictionlessResults'
-        ResultsStringF, CoeffsF, StdErrsF, trash = makeStickyEresults(StickyDSGEeconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringF, CoeffsF, StdErrsF, RsqF, PvalsF, trash = makeStickyEresults(StickyDSGEeconomy,description=desc,filename=name,save_data=save_data)
         
         # Solve the sticky HA-DSGE model
         for agent in StickyDSGEeconomy.agents:
@@ -556,18 +594,23 @@ if __name__ == '__main__':
         # Make results for the sticky Cobb-Douglas economy
         desc = 'Results for the sticky Cobb-Douglas economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'DSGEsimpleStickyResults'
-        ResultsStringS, CoeffsS, StdErrsS, Counts = makeStickyEresults(StickyDSGEeconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringS, CoeffsS, StdErrsS, RsqS, PvalsS, Counts = makeStickyEresults(StickyDSGEeconomy,description=desc,filename=name,save_data=save_data)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         Coeffs = np.zeros(14)
         Coeffs[0:6] = CoeffsF[np.array([0,3,4,5,6,7])]
         Coeffs[6:14] = CoeffsS
         StdErrs = np.zeros(14)
-        StdErrs[0:6] = CoeffsS[np.array([0,3,4,5,6,7])]
+        StdErrs[0:6] = StdErrsF[np.array([0,3,4,5,6,7])]
         StdErrs[6:14] = StdErrsS
-        Rsq = np.zeros(10) + np.nan
-        Pvals = np.zeros(10) + np.nan
+        Rsq = np.zeros(10)
+        Rsq[0:4] = RsqF[np.array([0,3,4,5])]
+        Rsq[4:10] = RsqS
+        Pvals = np.zeros(10)
+        Pvals[0:4] = PvalsF[np.array([0,3,4,5])]
+        Pvals[4:10] = PvalsS
         OID = np.zeros(10) + np.nan
+        Counts.append(trash[3])
         makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,'Aggregate Consumption Dynamics in HA-DSGE Economy','DSGEsimReg')
     
     
@@ -604,7 +647,7 @@ if __name__ == '__main__':
         # Make results for the Cobb-Douglas Markov economy
         desc = 'Results for the frictionless Cobb-Douglas Markov economy'
         name = 'DSGEmarkovFrictionlessResults'
-        ResultsStringF, CoeffsF, StdErrsF, trash = makeStickyEresults(StickyDSGEmarkovEconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringF, CoeffsF, StdErrsF, RsqF, PvalsF, trash = makeStickyEresults(StickyDSGEmarkovEconomy,description=desc,filename=name,save_data=save_data)
         
         # Solve the sticky heterogeneous agent DSGE model
         for agent in StickyDSGEmarkovEconomy.agents:
@@ -619,18 +662,23 @@ if __name__ == '__main__':
         # Make results for the Cobb-Douglas Markov economy
         desc = 'Results for the sticky Cobb-Douglas Markov economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'DSGEmarkovStickyResults'
-        ResultsStringS, CoeffsS, StdErrsS, Counts = makeStickyEresults(StickyDSGEmarkovEconomy,description=desc,filename=name,save_data=save_data)
+        ResultsStringS, CoeffsS, StdErrsS, RsqS, PvalsS, Counts = makeStickyEresults(StickyDSGEmarkovEconomy,description=desc,filename=name,save_data=save_data)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         Coeffs = np.zeros(14)
         Coeffs[0:6] = CoeffsF[np.array([0,3,4,5,6,7])]
         Coeffs[6:14] = CoeffsS
         StdErrs = np.zeros(14)
-        StdErrs[0:6] = CoeffsS[np.array([0,3,4,5,6,7])]
+        StdErrs[0:6] = StdErrsF[np.array([0,3,4,5,6,7])]
         StdErrs[6:14] = StdErrsS
-        Rsq = np.zeros(10) + np.nan
-        Pvals = np.zeros(10) + np.nan
+        Rsq = np.zeros(10)
+        Rsq[0:4] = RsqF[np.array([0,3,4,5])]
+        Rsq[4:10] = RsqS
+        Pvals = np.zeros(10)
+        Pvals[0:4] = PvalsF[np.array([0,3,4,5])]
+        Pvals[4:10] = PvalsS
         OID = np.zeros(10) + np.nan
+        Counts.append(trash[3])
         makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,'Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)','DSGEmrkvSimReg')
         
     
@@ -663,7 +711,7 @@ if __name__ == '__main__':
         # Make results for the frictionless representative agent economy
         desc = 'Results for the frictionless representative agent economy'
         name = 'RAsimpleFrictionlessResults'
-        ResultsStringF, CoeffsF, StdErrsF, trash = makeStickyEresults(StickyRAconsumer,description=desc,filename=name,save_data=save_data)
+        ResultsStringF, CoeffsF, StdErrsF, RsqF, PvalsF, trash = makeStickyEresults(StickyRAconsumer,description=desc,filename=name,save_data=save_data)
         
         # Simulate the representative agent with sticky expectations
         t_start = clock()
@@ -676,18 +724,23 @@ if __name__ == '__main__':
         # Make results for the sticky representative agent economy
         desc = 'Results for the sticky representative agent economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'RAsimpleStickyResults'
-        ResultsStringS, CoeffsS, StdErrsS, Counts = makeStickyEresults(StickyRAconsumer,description=desc,filename=name,save_data=save_data)
+        ResultsStringS, CoeffsS, StdErrsS, RsqS, PvalsS, Counts = makeStickyEresults(StickyRAconsumer,description=desc,filename=name,save_data=save_data)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         Coeffs = np.zeros(14)
         Coeffs[0:6] = CoeffsF[np.array([0,3,4,5,6,7])]
         Coeffs[6:14] = CoeffsS
         StdErrs = np.zeros(14)
-        StdErrs[0:6] = CoeffsS[np.array([0,3,4,5,6,7])]
+        StdErrs[0:6] = StdErrsF[np.array([0,3,4,5,6,7])]
         StdErrs[6:14] = StdErrsS
-        Rsq = np.zeros(10) + np.nan
-        Pvals = np.zeros(10) + np.nan
+        Rsq = np.zeros(10)
+        Rsq[0:4] = RsqF[np.array([0,3,4,5])]
+        Rsq[4:10] = RsqS
+        Pvals = np.zeros(10)
+        Pvals[0:4] = PvalsF[np.array([0,3,4,5])]
+        Pvals[4:10] = PvalsS
         OID = np.zeros(10) + np.nan
+        Counts.append(trash[3])
         makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,'Aggregate Consumption Dynamics in Rep Agent Economy','RepAgentSimReg')
     
     ###############################################################################
@@ -720,7 +773,7 @@ if __name__ == '__main__':
         # Make results for the frictionless Markov representative agent economy
         desc = 'Results for the frictionless Markov representative agent economy'
         name = 'RAmarkovFrictionlessResults'
-        ResultsStringF, CoeffsF, StdErrsF, trash = makeStickyEresults(StickyRAmarkovConsumer,description=desc,filename=name,save_data=save_data)
+        ResultsStringF, CoeffsF, StdErrsF, RsqF, PvalsF, trash = makeStickyEresults(StickyRAmarkovConsumer,description=desc,filename=name,save_data=save_data)
         
         # Simulate the sticky representative agent MarkovEconomy
         t_start = clock()
@@ -733,17 +786,22 @@ if __name__ == '__main__':
         # Make results for the sticky Markov representative agent economy
         desc = 'Results for the sticky Markov representative agent economy with update probability ' + mystr(Params.UpdatePrb)
         name = 'RAmarkovStickyResults'
-        ResultsStringS, CoeffsS, StdErrsS, Counts = makeStickyEresults(StickyRAmarkovConsumer,description=desc,filename=name,save_data=save_data)
+        ResultsStringS, CoeffsS, StdErrsS, RsqS, PvalsS, Counts = makeStickyEresults(StickyRAmarkovConsumer,description=desc,filename=name,save_data=save_data)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         Coeffs = np.zeros(14)
         Coeffs[0:6] = CoeffsF[np.array([0,3,4,5,6,7])]
         Coeffs[6:14] = CoeffsS
         StdErrs = np.zeros(14)
-        StdErrs[0:6] = CoeffsS[np.array([0,3,4,5,6,7])]
+        StdErrs[0:6] = StdErrsF[np.array([0,3,4,5,6,7])]
         StdErrs[6:14] = StdErrsS
-        Rsq = np.zeros(10) + np.nan
-        Pvals = np.zeros(10) + np.nan
+        Rsq = np.zeros(10)
+        Rsq[0:4] = RsqF[np.array([0,3,4,5])]
+        Rsq[4:10] = RsqS
+        Pvals = np.zeros(10)
+        Pvals[0:4] = PvalsF[np.array([0,3,4,5])]
+        Pvals[4:10] = PvalsS
         OID = np.zeros(10) + np.nan
+        Counts.append(trash[3])
         makeResultsTable(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,'Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)','RepAgentMrkvSimReg')
         

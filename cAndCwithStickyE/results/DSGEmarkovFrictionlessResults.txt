@@ -1,42 +1,42 @@
 Results for the frictionless Cobb-Douglas Markov economy
 
 
-Average aggregate asset-to-productivity ratio = 23.5153920631
-Average aggregate consumption-to-productivity ratio = 2.6931113054
-Stdev of log aggregate asset-to-productivity ratio = 0.198091405769
-Stdev of change in log aggregate consumption level = 0.00689657198761
-Stdev of change in log aggregate output level = 0.00752461886448
-Stdev of change in log aggregate assets level = 0.00385655000984
-Cross section stdev of log individual assets = 0.946151603408
-Cross section stdev of log individual consumption = 0.683510565126
-Cross section stdev of log individual productivity = 0.936744333748
-Cross section stdev of log individual non-zero income = 0.814019108791
-Cross section stdev of change in log individual assets = 0.13245806157
-Cross section stdev of change in log individual consumption = 0.0595652744566
-Cross section stdev of change in log individual productivity = 0.061546565175
+Average aggregate asset-to-productivity ratio = 26.250402713
+Average aggregate consumption-to-productivity ratio = 2.82726330426
+Stdev of log aggregate asset-to-productivity ratio = 0.232540801712
+Stdev of change in log aggregate consumption level = 0.00722714741783
+Stdev of change in log aggregate output level = 0.00782335627825
+Stdev of change in log aggregate assets level = 0.00441972969806
+Cross section stdev of log individual assets = 0.956857352058
+Cross section stdev of log individual consumption = 0.679237838257
+Cross section stdev of log individual productivity = 0.935186566398
+Cross section stdev of log individual non-zero income = 0.818489592472
+Cross section stdev of change in log individual assets = 0.130692496378
+Cross section stdev of change in log individual consumption = 0.0589284270476
+Cross section stdev of change in log individual productivity = 0.0615947445065
 
 
                 OLS on log consumption (no measurement error)                 
 ==============================================================================
-Dep. Variable:            DeltaLogC_t   R-squared:                       0.207
-Model:                            OLS   Adj. R-squared:                  0.207
-Method:                 Least Squares   F-statistic:                     652.3
-Date:                Mon, 25 Sep 2017   Prob (F-statistic):          5.07e-128
-Time:                        20:23:02   Log-Likelihood:                 9176.9
-No. Observations:                2498   AIC:                        -1.835e+04
-Df Residuals:                    2496   BIC:                        -1.834e+04
+Dep. Variable:            DeltaLogC_t   R-squared:                       0.248
+Model:                            OLS   Adj. R-squared:                  0.248
+Method:                 Least Squares   F-statistic:                     1321.
+Date:                Sun, 01 Oct 2017   Prob (F-statistic):          2.87e-250
+Time:                        12:51:28   Log-Likelihood:                 14643.
+No. Observations:                4008   AIC:                        -2.928e+04
+Df Residuals:                    4006   BIC:                        -2.927e+04
 Df Model:                           1                                         
 Covariance Type:            nonrobust                                         
 =================================================================================
                     coef    std err          t      P>|t|      [0.025      0.975]
 ---------------------------------------------------------------------------------
-constant          0.0013      0.000     10.037      0.000       0.001       0.002
-DeltaLogC_tm1     0.4553      0.018     25.540      0.000       0.420       0.490
+constant          0.0002   9.93e-05      2.511      0.012    5.46e-05       0.000
+DeltaLogC_tm1     0.4981      0.014     36.348      0.000       0.471       0.525
 ==============================================================================
-Omnibus:                        9.253   Durbin-Watson:                   2.005
-Prob(Omnibus):                  0.010   Jarque-Bera (JB):                9.264
-Skew:                          -0.149   Prob(JB):                      0.00974
-Kurtosis:                       3.020   Cond. No.                         145.
+Omnibus:                        1.720   Durbin-Watson:                   2.041
+Prob(Omnibus):                  0.423   Jarque-Bera (JB):                1.686
+Skew:                          -0.049   Prob(JB):                        0.430
+Kurtosis:                       3.018   Cond. No.                         138.
 ==============================================================================
 
 Warnings:
@@ -45,25 +45,25 @@ Warnings:
 
                OLS on log consumption (with measurement error)                
 ==============================================================================
-Dep. Variable:            DeltaLogC_t   R-squared:                       0.027
-Model:                            OLS   Adj. R-squared:                  0.027
-Method:                 Least Squares   F-statistic:                     69.02
-Date:                Mon, 25 Sep 2017   Prob (F-statistic):           1.58e-16
-Time:                        20:23:02   Log-Likelihood:                 8438.6
-No. Observations:                2498   AIC:                        -1.687e+04
-Df Residuals:                    2496   BIC:                        -1.686e+04
+Dep. Variable:            DeltaLogC_t   R-squared:                       0.035
+Model:                            OLS   Adj. R-squared:                  0.035
+Method:                 Least Squares   F-statistic:                     147.3
+Date:                Sun, 01 Oct 2017   Prob (F-statistic):           2.60e-33
+Time:                        12:51:28   Log-Likelihood:                 13357.
+No. Observations:                4008   AIC:                        -2.671e+04
+Df Residuals:                    4006   BIC:                        -2.670e+04
 Df Model:                           1                                         
 Covariance Type:            nonrobust                                         
 =================================================================================
                     coef    std err          t      P>|t|      [0.025      0.975]
 ---------------------------------------------------------------------------------
-constant          0.0020      0.000     11.672      0.000       0.002       0.002
-DeltaLogC_tm1     0.1641      0.020      8.308      0.000       0.125       0.203
+constant          0.0004      0.000      2.940      0.003       0.000       0.001
+DeltaLogC_tm1     0.1885      0.016     12.136      0.000       0.158       0.219
 ==============================================================================
-Omnibus:                       12.809   Durbin-Watson:                   2.041
-Prob(Omnibus):                  0.002   Jarque-Bera (JB):               12.937
-Skew:                          -0.176   Prob(JB):                      0.00155
-Kurtosis:                       2.990   Cond. No.                         120.
+Omnibus:                        6.959   Durbin-Watson:                   2.058
+Prob(Omnibus):                  0.031   Jarque-Bera (JB):                6.838
+Skew:                          -0.083   Prob(JB):                       0.0327
+Kurtosis:                       2.884   Cond. No.                         114.
 ==============================================================================
 
 Warnings:
@@ -72,173 +72,173 @@ Warnings:
 
                 IV on log consumption (with measurement error)                
 ==============================================================================
-Dep. Variable:            DeltaLogC_t   R-squared:                      -0.042
-Model:                         IV2SLS   Adj. R-squared:                 -0.042
-Method:                     Two Stage   F-statistic:                     145.3
-                        Least Squares   Prob (F-statistic):           1.47e-32
-Date:                Mon, 25 Sep 2017                                         
-Time:                        20:23:02                                         
-No. Observations:                2495                                         
-Df Residuals:                    2493                                         
+Dep. Variable:            DeltaLogC_t   R-squared:                      -0.085
+Model:                         IV2SLS   Adj. R-squared:                 -0.085
+Method:                     Two Stage   F-statistic:                     364.3
+                        Least Squares   Prob (F-statistic):           8.53e-78
+Date:                Sun, 01 Oct 2017                                         
+Time:                        12:51:28                                         
+No. Observations:                4005                                         
+Df Residuals:                    4003                                         
 Df Model:                           1                                         
 =================================================================================
                     coef    std err          t      P>|t|      [0.025      0.975]
 ---------------------------------------------------------------------------------
-constant          0.0014      0.000      7.209      0.000       0.001       0.002
-DeltaLogC_tm1     0.4258      0.035     12.053      0.000       0.357       0.495
+constant          0.0002      0.000      1.560      0.119   -5.82e-05       0.001
+DeltaLogC_tm1     0.5352      0.028     19.086      0.000       0.480       0.590
 ==============================================================================
-Omnibus:                        5.973   Durbin-Watson:                   2.568
-Prob(Omnibus):                  0.050   Jarque-Bera (JB):                5.915
-Skew:                          -0.117   Prob(JB):                       0.0520
-Kurtosis:                       3.043   Cond. No.                         120.
+Omnibus:                        1.317   Durbin-Watson:                   2.723
+Prob(Omnibus):                  0.518   Jarque-Bera (JB):                1.352
+Skew:                          -0.042   Prob(JB):                        0.509
+Kurtosis:                       2.968   Cond. No.                         114.
 ==============================================================================
 
 
                   IV on log income (with measurement error)                   
 ==============================================================================
-Dep. Variable:            DeltaLogC_t   R-squared:                       0.039
-Model:                         IV2SLS   Adj. R-squared:                  0.038
-Method:                     Two Stage   F-statistic:                     314.9
-                        Least Squares   Prob (F-statistic):           1.90e-66
-Date:                Mon, 25 Sep 2017                                         
-Time:                        20:23:02                                         
-No. Observations:                2495                                         
-Df Residuals:                    2493                                         
+Dep. Variable:            DeltaLogC_t   R-squared:                       0.084
+Model:                         IV2SLS   Adj. R-squared:                  0.084
+Method:                     Two Stage   F-statistic:                     687.4
+                        Least Squares   Prob (F-statistic):          5.84e-140
+Date:                Sun, 01 Oct 2017                                         
+Time:                        12:51:28                                         
+No. Observations:                4005                                         
+Df Residuals:                    4003                                         
 Df Model:                           1                                         
 ===============================================================================
                   coef    std err          t      P>|t|      [0.025      0.975]
 -------------------------------------------------------------------------------
-constant        0.0004      0.000      2.136      0.033    3.47e-05       0.001
-DeltaLogY_t     0.8190      0.046     17.746      0.000       0.729       0.910
+constant     9.383e-05      0.000      0.700      0.484      -0.000       0.000
+DeltaLogY_t     0.8324      0.032     26.218      0.000       0.770       0.895
 ==============================================================================
-Omnibus:                        0.483   Durbin-Watson:                   2.674
-Prob(Omnibus):                  0.786   Jarque-Bera (JB):                0.506
-Skew:                          -0.033   Prob(JB):                        0.776
-Kurtosis:                       2.978   Cond. No.                         133.
+Omnibus:                        5.832   Durbin-Watson:                   2.689
+Prob(Omnibus):                  0.054   Jarque-Bera (JB):                5.768
+Skew:                          -0.077   Prob(JB):                       0.0559
+Kurtosis:                       2.894   Cond. No.                         128.
 ==============================================================================
 
 
                   IV on asset ratio (with measurement error)                  
 ==============================================================================
-Dep. Variable:            DeltaLogC_t   R-squared:                       0.153
-Model:                         IV2SLS   Adj. R-squared:                  0.153
-Method:                     Two Stage   F-statistic:                     396.2
-                        Least Squares   Prob (F-statistic):           6.10e-82
-Date:                Mon, 25 Sep 2017                                         
-Time:                        20:23:02                                         
-No. Observations:                2495                                         
-Df Residuals:                    2493                                         
+Dep. Variable:            DeltaLogC_t   R-squared:                       0.190
+Model:                         IV2SLS   Adj. R-squared:                  0.190
+Method:                     Two Stage   F-statistic:                     851.7
+                        Least Squares   Prob (F-statistic):          6.31e-170
+Date:                Sun, 01 Oct 2017                                         
+Time:                        12:51:28                                         
+No. Observations:                4005                                         
+Df Residuals:                    4003                                         
 Df Model:                           1                                         
 ==============================================================================
                  coef    std err          t      P>|t|      [0.025      0.975]
 ------------------------------------------------------------------------------
-constant       0.0168      0.001     22.722      0.000       0.015       0.018
-A_tm1         -0.0006   3.07e-05    -19.905      0.000      -0.001      -0.001
+constant       0.0159      0.001     29.313      0.000       0.015       0.017
+A_tm1         -0.0006   2.01e-05    -29.184      0.000      -0.001      -0.001
 ==============================================================================
-Omnibus:                        3.822   Durbin-Watson:                   1.967
-Prob(Omnibus):                  0.148   Jarque-Bera (JB):                3.877
-Skew:                          -0.091   Prob(JB):                        0.144
-Kurtosis:                       2.936   Cond. No.                         115.
+Omnibus:                        4.659   Durbin-Watson:                   1.997
+Prob(Omnibus):                  0.097   Jarque-Bera (JB):                4.415
+Skew:                          -0.047   Prob(JB):                        0.110
+Kurtosis:                       2.868   Cond. No.                         117.
 ==============================================================================
 
 
                     Horserace IV (with measurement error)                     
 ==============================================================================
-Dep. Variable:            DeltaLogC_t   R-squared:                       0.106
-Model:                         IV2SLS   Adj. R-squared:                  0.105
-Method:                     Two Stage   F-statistic:                     125.2
-                        Least Squares   Prob (F-statistic):           1.56e-75
-Date:                Mon, 25 Sep 2017                                         
-Time:                        20:23:02                                         
-No. Observations:                2495                                         
-Df Residuals:                    2491                                         
+Dep. Variable:            DeltaLogC_t   R-squared:                       0.177
+Model:                         IV2SLS   Adj. R-squared:                  0.176
+Method:                     Two Stage   F-statistic:                     279.3
+                        Least Squares   Prob (F-statistic):          1.37e-164
+Date:                Sun, 01 Oct 2017                                         
+Time:                        12:51:28                                         
+No. Observations:                4005                                         
+Df Residuals:                    4001                                         
 Df Model:                           3                                         
 =================================================================================
                     coef    std err          t      P>|t|      [0.025      0.975]
 ---------------------------------------------------------------------------------
-constant          0.0186      0.003      6.134      0.000       0.013       0.025
-DeltaLogC_tm1     0.0078      0.050      0.157      0.875      -0.090       0.105
-DeltaLogY_t      -0.1058      0.175     -0.604      0.546      -0.449       0.238
-A_tm1            -0.0007      0.000     -6.007      0.000      -0.001      -0.000
+constant          0.0160      0.002      8.381      0.000       0.012       0.020
+DeltaLogC_tm1     0.0307      0.046      0.668      0.504      -0.059       0.121
+DeltaLogY_t      -0.0340      0.126     -0.270      0.787      -0.281       0.213
+A_tm1            -0.0006   7.07e-05     -8.350      0.000      -0.001      -0.000
 ==============================================================================
-Omnibus:                        4.840   Durbin-Watson:                   1.910
-Prob(Omnibus):                  0.089   Jarque-Bera (JB):                4.892
-Skew:                          -0.106   Prob(JB):                       0.0866
-Kurtosis:                       2.952   Cond. No.                     3.64e+03
+Omnibus:                        4.126   Durbin-Watson:                   2.032
+Prob(Omnibus):                  0.127   Jarque-Bera (JB):                3.944
+Skew:                          -0.045   Prob(JB):                        0.139
+Kurtosis:                       2.875   Cond. No.                     4.09e+03
 ==============================================================================
 
 
                    IV on log income (no measurement error)                    
 ==============================================================================
-Dep. Variable:            DeltaLogC_t   R-squared:                       0.055
-Model:                         IV2SLS   Adj. R-squared:                  0.054
-Method:                     Two Stage   F-statistic:                     471.9
-                        Least Squares   Prob (F-statistic):           5.69e-96
-Date:                Mon, 25 Sep 2017                                         
-Time:                        20:23:02                                         
-No. Observations:                2495                                         
-Df Residuals:                    2493                                         
+Dep. Variable:            DeltaLogC_t   R-squared:                       0.111
+Model:                         IV2SLS   Adj. R-squared:                  0.111
+Method:                     Two Stage   F-statistic:                     1053.
+                        Least Squares   Prob (F-statistic):          2.57e-205
+Date:                Sun, 01 Oct 2017                                         
+Time:                        12:51:28                                         
+No. Observations:                4005                                         
+Df Residuals:                    4003                                         
 Df Model:                           1                                         
 ===============================================================================
                   coef    std err          t      P>|t|      [0.025      0.975]
 -------------------------------------------------------------------------------
-constant        0.0004      0.000      2.602      0.009       0.000       0.001
-DeltaLogY_t     0.8195      0.038     21.723      0.000       0.746       0.894
+constant     9.561e-05      0.000      0.881      0.378      -0.000       0.000
+DeltaLogY_t     0.8344      0.026     32.453      0.000       0.784       0.885
 ==============================================================================
-Omnibus:                        5.647   Durbin-Watson:                   2.550
-Prob(Omnibus):                  0.059   Jarque-Bera (JB):                5.975
-Skew:                          -0.072   Prob(JB):                       0.0504
-Kurtosis:                       3.192   Cond. No.                         133.
+Omnibus:                        3.411   Durbin-Watson:                   2.576
+Prob(Omnibus):                  0.182   Jarque-Bera (JB):                3.355
+Skew:                          -0.068   Prob(JB):                        0.187
+Kurtosis:                       3.038   Cond. No.                         128.
 ==============================================================================
 
 
                    IV on asset ratio (no measurement error)                   
 ==============================================================================
-Dep. Variable:            DeltaLogC_t   R-squared:                       0.225
-Model:                         IV2SLS   Adj. R-squared:                  0.225
-Method:                     Two Stage   F-statistic:                     636.6
-                        Least Squares   Prob (F-statistic):          2.75e-125
-Date:                Mon, 25 Sep 2017                                         
-Time:                        20:23:02                                         
-No. Observations:                2495                                         
-Df Residuals:                    2493                                         
+Dep. Variable:            DeltaLogC_t   R-squared:                       0.281
+Model:                         IV2SLS   Adj. R-squared:                  0.281
+Method:                     Two Stage   F-statistic:                     1420.
+                        Least Squares   Prob (F-statistic):          3.34e-266
+Date:                Sun, 01 Oct 2017                                         
+Time:                        12:51:28                                         
+No. Observations:                4005                                         
+Df Residuals:                    4003                                         
 Df Model:                           1                                         
 ==============================================================================
                  coef    std err          t      P>|t|      [0.025      0.975]
 ------------------------------------------------------------------------------
-constant       0.0168      0.001     28.801      0.000       0.016       0.018
-A_tm1         -0.0006   2.42e-05    -25.231      0.000      -0.001      -0.001
+constant       0.0159      0.000     37.854      0.000       0.015       0.017
+A_tm1         -0.0006   1.56e-05    -37.680      0.000      -0.001      -0.001
 ==============================================================================
-Omnibus:                       18.685   Durbin-Watson:                   1.396
-Prob(Omnibus):                  0.000   Jarque-Bera (JB):               16.129
-Skew:                          -0.138   Prob(JB):                     0.000314
-Kurtosis:                       2.719   Cond. No.                         115.
+Omnibus:                       16.463   Durbin-Watson:                   1.387
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):               13.622
+Skew:                          -0.071   Prob(JB):                      0.00110
+Kurtosis:                       2.752   Cond. No.                         117.
 ==============================================================================
 
 
                      Horserace IV (no measurement error)                      
 ==============================================================================
-Dep. Variable:            DeltaLogC_t   R-squared:                       0.196
-Model:                         IV2SLS   Adj. R-squared:                  0.195
-Method:                     Two Stage   F-statistic:                     205.0
-                        Least Squares   Prob (F-statistic):          7.45e-119
-Date:                Mon, 25 Sep 2017                                         
-Time:                        20:23:02                                         
-No. Observations:                2495                                         
-Df Residuals:                    2491                                         
+Dep. Variable:            DeltaLogC_t   R-squared:                       0.305
+Model:                         IV2SLS   Adj. R-squared:                  0.305
+Method:                     Two Stage   F-statistic:                     489.5
+                        Least Squares   Prob (F-statistic):          5.97e-271
+Date:                Sun, 01 Oct 2017                                         
+Time:                        12:51:28                                         
+No. Observations:                4005                                         
+Df Residuals:                    4001                                         
 Df Model:                           3                                         
 =================================================================================
                     coef    std err          t      P>|t|      [0.025      0.975]
 ---------------------------------------------------------------------------------
-constant          0.0178      0.002      7.562      0.000       0.013       0.022
-DeltaLogC_tm1    -0.0438      0.039     -1.134      0.257      -0.119       0.032
-DeltaLogY_t      -0.0128      0.135     -0.095      0.925      -0.278       0.252
-A_tm1            -0.0006   8.76e-05     -7.398      0.000      -0.001      -0.000
+constant          0.0149      0.001     10.402      0.000       0.012       0.018
+DeltaLogC_tm1    -0.0252      0.034     -0.742      0.458      -0.092       0.041
+DeltaLogY_t       0.0799      0.094      0.850      0.395      -0.104       0.264
+A_tm1            -0.0006   5.32e-05    -10.357      0.000      -0.001      -0.000
 ==============================================================================
-Omnibus:                       20.584   Durbin-Watson:                   1.318
-Prob(Omnibus):                  0.000   Jarque-Bera (JB):               17.861
-Skew:                          -0.150   Prob(JB):                     0.000132
-Kurtosis:                       2.713   Cond. No.                     4.00e+03
+Omnibus:                       15.764   Durbin-Watson:                   1.426
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):               13.202
+Skew:                          -0.072   Prob(JB):                      0.00136
+Kurtosis:                       2.759   Cond. No.                     4.50e+03
 ==============================================================================
 
 

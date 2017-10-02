@@ -1,36 +1,38 @@
 \begin{table}\caption{Aggregate Consumption Dynamics in HA-DSGE Markov Economy (11 states)}
 \begin{tabular}{cccccc}
- \hline \hline\multicolumn{3}{c}{Expectations : Dep Var} & OLS &  2nd Stage & IV $F~p$-val 
+ \hline \hline\multicolumn{6}{c}{$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon $ } 
+\\ \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  (2nd Stage) & $F~p$-val 
 \\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
 \\ \hline \multicolumn{3}{c}{Frictionless : $\Delta \log \mathbf{C}_{t+1}$} & & & 
 \\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t} $} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$}& \multicolumn{1}{c}{$ A_{t}  $} & & & 
-\\ 0.382 & & & OLS & & 
-\\ (0.786) & & & & & 
-\\ & 0.472 & & IV &  & 
-\\ & (0.981) & & & & 
-\\ & & -0.0003 & IV &  & 
-\\ & & (-0.0004) & & & 
-\\ -0.058 & 0.058 & -0.0003 & IV &  & 
-\\ (0.392) & (0.479) & (0.0001) & & & 
-\\ \multicolumn{6}{c}{} 
+\\ 0.378 & & & OLS & 0.148& 0.000
+\\ (0.063) & & & & & 
+\\ & 0.530 & & IV & 0.087 & 0.121
+\\ & (0.181) & & & & 
+\\ & & -0.0004 & IV & 0.091 & 0.101
+\\ & & (0.0001) & & & 
+\\ -0.051 & 0.210 & -0.0003 & IV & 0.095 & 0.131
+\\ (0.154) & (0.473) & (0.0003) & & & 
+\\ & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$,  $\Delta \log \mathbf{C}_{t+1} = \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ } 0.098 & 
 \\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \mathbf{C}_{t+1}$} %NotOnSlide 
 \\ \multicolumn{1}{c}{$\Delta \log {\mathbf{C}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} 
-\\  0.786 & & & OLS &  & %NotOnSlide 
+\\  0.788 & & & OLS & 0.623 & 0.000%NotOnSlide 
 \\  (0.043) & & & & & %NotOnSlide 
-\\ \multicolumn{6}{c}{} 
-\\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \widetilde{\mathbf{C}}_{t} $}%NotOnSlide 
+\\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \widetilde{\mathbf{C}}_{t+1} $}%NotOnSlide 
 \\ \multicolumn{1}{c}{$\Delta \log {\widetilde{\mathbf{C}}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} 
-\\ 0.286 & & & OLS &  & 
-\\ (0.068) & & & & & 
-\\ 0.682 & & & IV &  & 
-\\ (0.108) & & & & &
-\\ & 0.981 & & IV &  & 
-\\ & (0.240) & & & &
-\\ & & -0.0004 & IV &  & 
+\\ 0.225 & & & OLS & 0.061 & 0.114
+\\ (0.064) & & & & & 
+\\ 0.698 & & & IV & 0.220 & 0.000
+\\ (0.098) & & & & &
+\\ & 0.922 & & IV & 0.203 & 0.000
+\\ & (0.148) & & & &
+\\ & & -0.0005 & IV & 0.140 & 0.053
 \\ & & (0.0001) & & &
-\\ 0.392 & 0.479 & 0.0001 & IV &  & 
-\\ (0.339) & (0.784) & (0.0003) & & & 
-\\ \cline{1-6}  & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$,  $\Delta \log \mathbf{C}_{t+1} = \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ } & ??? 
+\\ 0.435 & 0.259 & -0.0001 & IV & 0.233 & 0.000
+\\ (0.221) & (0.405) & (0.0002) & & & 
+\\ & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$,  $\Delta \log \widetilde{\mathbf{C}}_{t+1} = \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ } 0.235 & 
+\\ \multicolumn{6}{c}{Horserace coefficient on $\Delta \log \widetilde{\mathbf{C}}_t$ significant at 95\% level for 14 of 20 subintervals.} 
+\\ \multicolumn{6}{c}{Horserace coefficient on $\mathbb{E}[\Delta \log \mathbf{Y}_{t+1}]$ significant at 95\% level for 1 of 20 subintervals.} 
 \\ \hline \hline 
 \end{tabular} 
 \end{table} 
