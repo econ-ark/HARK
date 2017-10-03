@@ -3,6 +3,8 @@ Heterogeneous Agents Resources and toolKit
 
 August 29, 2017
 
+Release 0.8.0.  Click the badge below for citation information.
+[![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
 
 
 Christopher D Carroll1  
