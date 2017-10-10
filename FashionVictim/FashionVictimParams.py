@@ -36,7 +36,7 @@ default_params={'DiscFac'      : DiscFac,
                'p_init'        : p_init
                }
                
-               
+# Explain that this file does not have an output               
 if __name__ == '__main__':
     print("Sorry, FashionVictimParams doesn't actually do anything on its own.")
     print("This module is imported by FashionVictimModel, providing example")
