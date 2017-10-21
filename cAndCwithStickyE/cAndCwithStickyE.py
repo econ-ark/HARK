@@ -14,8 +14,8 @@ import csv
 import numpy as np
 from time import clock
 from copy import deepcopy
-from StickyEmodel import StickyEconsumerType, StickyEmarkovConsumerType, StickyErepAgent, StickyEmarkovRepAgent
-from ConsAggShockModel import SmallOpenEconomy, SmallOpenMarkovEconomy, CobbDouglasEconomy,CobbDouglasMarkovEconomy
+from StickyEmodel import StickyEconsumerType, StickyEmarkovConsumerType, StickyErepAgent, StickyEmarkovRepAgent, StickyCobbDouglasEconomy, StickyCobbDouglasMarkovEconomy
+from ConsAggShockModel import SmallOpenEconomy, SmallOpenMarkovEconomy
 from HARKutilities import plotFuncs, getLorenzShares
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
@@ -28,15 +28,15 @@ interval_size = Params.interval_size   # Number of periods in each non-overlappi
 mystr = lambda number : "{:.3f}".format(number)
 
 # Choose which models to run
-do_SOE_simple  = True
-do_SOE_markov  = True
-do_DSGE_simple = True
+do_SOE_simple  = False
+do_SOE_markov  = False
+do_DSGE_simple = False
 do_DSGE_markov = True
-do_RA_simple   = True
-do_RA_markov   = True
+do_RA_simple   = False
+do_RA_markov   = False
 
 # Choose whether to save data for use in Stata (as a tab-delimited text file)
-save_data = False
+save_data = True
 
 def makeStickyEresults(Economy,description='',filename=None,save_data=False):
     '''
@@ -65,7 +65,8 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
     '''
     # Extract time series data from the economy
     if hasattr(Economy,'agents'): # If this is a heterogeneous agent specification...
-        PlvlAgg_hist = np.cumprod(Economy.PermShkAggHist)
+        #PermShkAggHist needs to be shifted one period forward
+        PlvlAgg_hist = np.cumprod(np.concatenate(([1.0],Economy.PermShkAggHist[:-1]),axis=0))
         pLvlAll_hist = np.concatenate([this_type.pLvlTrue_hist for this_type in Economy.agents],axis=1)
         aLvlAll_hist = np.concatenate([this_type.aLvlNow_hist for this_type in Economy.agents],axis=1)
         AlvlAgg_hist = np.mean(aLvlAll_hist,axis=1) # Level of aggregate assets
@@ -92,6 +93,12 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
         Logy_trimmed[np.isinf(Logy)] = np.nan
         BigTheta_hist = Economy.TranShkAggHist
         UpdatePrb = Economy.agents[0].UpdatePrb
+        if hasattr(Economy,'MrkvNow') & ~hasattr(Economy,'Rfree'): # If this is a markov DSGE specification...
+            Mrkv_hist = Economy.MrkvNow_hist
+            # Find the expected interest rate - approximate by assuming growth = expected growth
+            ExpectedGrowth_hist = Economy.PermGroFacAgg[Mrkv_hist]
+            ExpectedKLRatio_hist = AnrmAgg_hist/ExpectedGrowth_hist
+            ExpectedR_hist = Economy.Rfunc(ExpectedKLRatio_hist)
         
     else: # If this is a representative agent specification...
         PlvlAgg_hist = Economy.pLvlTrue_hist.flatten()
@@ -113,6 +120,9 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
     DeltaLogY = LogY[1:] - LogY[0:-1]
     A = AnrmAgg_hist[(ignore_periods+1):] # This is a relabeling for the regression code
     BigTheta = BigTheta_hist[(ignore_periods+1):]
+    if hasattr(Economy,'MrkvNow') & ~hasattr(Economy,'Rfree'): # If this is a markov DSGE specification...
+        Mrkv = Mrkv_hist[(ignore_periods+1):] # This is a relabeling for the regression code
+        R = ExpectedR_hist[(ignore_periods+1):]
     
     # Add measurement error to LogC
     sigma_meas_err = np.std(DeltaLogC)/2.0
@@ -290,8 +300,8 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
     # Run horserace IV (with no measurement error)
     regressors = sm.add_constant(np.transpose(np.array([DeltaLogC[3:-1],DeltaLogY[4:],A[3:-1]])))
     mod = smsrg.IV2SLS(DeltaLogC[4:],regressors,instruments2)
-    res9 = mod.fit()
-    
+    res9 = mod.fit()      
+
     # Make and return the output string, beginning with descriptive statistics
     output_string = description + '\n\n\n'
     output_string += 'Average aggregate asset-to-productivity ratio = ' + str(np.mean(AnrmAgg_hist[ignore_periods:])) + '\n'
@@ -334,6 +344,9 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
                 Mrkv_hist = Economy.MrkvNow_hist[ignore_periods+1:]
                 DataArray = np.hstack((DataArray,np.reshape(Mrkv_hist,(Mrkv_hist.size,1))))
                 VarNames.append('MrkvState')
+            if hasattr(Economy,'MrkvNow') & ~hasattr(Economy,'Rfree'):
+                DataArray = np.hstack((DataArray,np.reshape(R,(R.size,1))))
+                VarNames.append('R')
             with open('./Results/' + filename + 'Data.txt.','wb') as f:
                 my_writer = csv.writer(f, delimiter = '\t')
                 my_writer.writerow(VarNames)
@@ -542,7 +555,7 @@ if __name__ == '__main__':
     if do_DSGE_simple:
         # Make consumers who will live in a Cobb-Douglas economy
         StickyDSGEbaseType = StickyEconsumerType(**Params.init_DSGE_consumer)
-        StickyDSGEbaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+        StickyDSGEbaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','pLvlNow','t_age']
         StickyDSGEconsumers = []
         for n in range(Params.TypeCount):
             StickyDSGEconsumers.append(deepcopy(StickyDSGEbaseType))
@@ -550,7 +563,7 @@ if __name__ == '__main__':
             StickyDSGEconsumers[-1].DiscFac = Params.DiscFacSet[n]
             
         # Make a Cobb-Douglas economy and put the agents in it
-        StickyDSGEeconomy = CobbDouglasEconomy(agents=StickyDSGEconsumers,**Params.init_DSGE_market)
+        StickyDSGEeconomy = StickyCobbDouglasEconomy(agents=StickyDSGEconsumers,**Params.init_DSGE_market)
         StickyDSGEeconomy.makeAggShkHist()
         for n in range(Params.TypeCount):
             StickyDSGEconsumers[n].getEconomyData(StickyDSGEeconomy)
@@ -630,7 +643,7 @@ if __name__ == '__main__':
             StickyDSGEmarkovConsumers[-1].DiscFac = Params.DiscFacSet[n]
         
         # Make a Cobb-Douglas economy for the agents
-        StickyDSGEmarkovEconomy = CobbDouglasMarkovEconomy(agents = StickyDSGEmarkovConsumers,**Params.init_DSGE_mrkv_market)
+        StickyDSGEmarkovEconomy = StickyCobbDouglasMarkovEconomy(agents = StickyDSGEmarkovConsumers,**Params.init_DSGE_mrkv_market)
         StickyDSGEmarkovEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
         for n in range(Params.TypeCount):
             StickyDSGEmarkovConsumers[n].getEconomyData(StickyDSGEmarkovEconomy) # Have the consumers inherit relevant objects from the economy

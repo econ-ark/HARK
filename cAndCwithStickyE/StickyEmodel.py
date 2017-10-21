@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
-from ConsAggShockModel import AggShockConsumerType, AggShockMarkovConsumerType
+from ConsAggShockModel import AggShockConsumerType, AggShockMarkovConsumerType, CobbDouglasEconomy, CobbDouglasMarkovEconomy
 from RepAgentModel import RepAgentConsumerType, RepAgentMarkovConsumerType
 
 # Make an extension of the base type for the heterogeneous agents versions
@@ -468,3 +468,81 @@ class StickyEmarkovRepAgent(RepAgentMarkovConsumerType,StickyErepAgent):
         self.cNrmNow = cNrmNow
         self.cLvlNow = np.dot(cNrmNow*self.pLvlNow,self.MrkvPcvd) # Take average of cLvl across states
         
+        
+class StickyCobbDouglasEconomy(CobbDouglasEconomy):            
+    '''
+    This is almost identical to CobbDouglasEconomy, except it overrides the mill
+    rule to use pLvlTrue instead of pLvlNow
+    '''
+    def __init__(self,agents=[],tolerance=0.0001,act_T=1000,**kwds):
+        '''
+        Make a new instance of StickyCobbDouglasEconomy by filling in attributes
+        specific to this kind of market.
+        
+        Parameters
+        ----------
+        agents : [ConsumerType]
+            List of types of consumers that live in this economy.
+        tolerance: float
+            Minimum acceptable distance between "dynamic rules" to consider the
+            solution process converged.  Distance depends on intercept and slope
+            of the log-linear "next capital ratio" function.
+        act_T : int
+            Number of periods to simulate when making a history of of the market.
+            
+        Returns
+        -------
+        None
+        '''
+        CobbDouglasEconomy.__init__(self,agents=agents,tolerance=tolerance,act_T=act_T,**kwds)  
+    
+    def millRule(self,aLvlNow,pLvlTrue):
+        '''
+        Function to calculate the capital to labor ratio, interest factor, and
+        wage rate based on each agent's current state.  Just calls calcRandW().
+        
+        See documentation for calcRandW for more information.
+        '''
+        return self.calcRandW(aLvlNow,pLvlTrue)
+    
+class StickyCobbDouglasMarkovEconomy(CobbDouglasMarkovEconomy):            
+    '''
+    This is almost identical to StickyCobbDouglasEconomy, except it overrides the mill
+    rule to use pLvlTrue instead of pLvlNow
+    
+    '''
+    def __init__(self,agents=[],tolerance=0.0001,act_T=1000,**kwds):
+        '''
+        Make a new instance of StickyCobbDouglasMarkovEconomy by filling in attributes
+        specific to this kind of market.
+        
+        Parameters
+        ----------
+        agents : [ConsumerType]
+            List of types of consumers that live in this economy.
+        tolerance: float
+            Minimum acceptable distance between "dynamic rules" to consider the
+            solution process converged.  Distance depends on intercept and slope
+            of the log-linear "next capital ratio" function.
+        act_T : int
+            Number of periods to simulate when making a history of of the market.
+            
+        Returns
+        -------
+        None
+        '''
+        CobbDouglasMarkovEconomy.__init__(self,agents=agents,tolerance=tolerance,act_T=act_T,**kwds)
+        self.reap_vars = ['aLvlNow','pLvlTrue']
+        
+    def millRule(self,aLvlNow,pLvlTrue):
+        '''
+        Function to calculate the capital to labor ratio, interest factor, and
+        wage rate based on each agent's current state.  Just calls calcRandW()
+        and adds the Markov state index.
+        
+        See documentation for calcRandW for more information.
+        '''
+        MrkvNow = self.MrkvNow_hist[self.Shk_idx]
+        temp =  self.calcRandW(aLvlNow,pLvlTrue)
+        temp(MrkvNow = MrkvNow)
+        return temp
