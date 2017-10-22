@@ -200,7 +200,7 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
             res = mod.fit()
             DeltaLogY_predict1 = res.predict()
             mod_2ndStage = sm.OLS(DeltaLogC_me_n[4:],sm.add_constant(DeltaLogY_predict1))
-            res_2ndStage = mod.fit()
+            res_2ndStage = mod_2ndStage.fit()
             mod_IV = smsrg.IV2SLS(DeltaLogC_me_n[4:], sm.add_constant(DeltaLogY_n[3:-1]),instruments)
             res_IV = mod_IV.fit()
         else:
@@ -208,7 +208,7 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
             res = mod.fit()
             DeltaLogY_predict2 = res.predict()
             mod_2ndStage = sm.OLS(DeltaLogC_n[4:],sm.add_constant(DeltaLogY_predict2))
-            res_2ndStage = mod.fit()
+            res_2ndStage = mod_2ndStage.fit()
             mod_IV = smsrg.IV2SLS(DeltaLogC_n[4:], sm.add_constant(DeltaLogY_n[3:-1]),instruments2)
             res_IV = mod_IV.fit()
         CoeffsArray[n,3] = res_IV._results.params[1]
@@ -222,7 +222,7 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
             res = mod.fit()
             A_predict1 = res.predict()
             mod_2ndStage = sm.OLS(DeltaLogC_me_n[4:],sm.add_constant(A_predict1))
-            res_2ndStage = mod.fit()
+            res_2ndStage = mod_2ndStage.fit()
             mod_IV = smsrg.IV2SLS(DeltaLogC_me_n[4:], sm.add_constant(A_n[3:-1]),instruments)
             res_IV = mod_IV.fit()
         else:
@@ -230,7 +230,7 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
             res = mod.fit()
             A_predict2 = res.predict()
             mod_2ndStage = sm.OLS(DeltaLogC_n[4:],sm.add_constant(A_predict2))
-            res_2ndStage = mod.fit()
+            res_2ndStage = mod_2ndStage.fit()
             mod_IV = smsrg.IV2SLS(DeltaLogC_n[4:], sm.add_constant(A_n[3:-1]),instruments2)
             res_IV = mod_IV.fit()
         CoeffsArray[n,4] = res_IV._results.params[1]
@@ -242,14 +242,14 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
         if UpdatePrb < 1.0:
             regressors = sm.add_constant(np.transpose(np.array([DeltaLogC_predict1,DeltaLogY_predict1,A_predict1])))
             mod_2ndStage = sm.OLS(DeltaLogC_me_n[4:],regressors)
-            res_2ndStage = mod.fit()
+            res_2ndStage = mod_2ndStage.fit()
             mod_IV = smsrg.IV2SLS(DeltaLogC_me_n[4:], sm.add_constant(np.transpose(np.array([DeltaLogC_me_n[3:-1],DeltaLogY_n[4:],A_n[3:-1]]))),instruments)
             res_IV = mod_IV.fit()
         else:
             regressors = sm.add_constant(np.transpose(np.array([DeltaLogC_predict2,DeltaLogY_predict2,A_predict2])))
             mod_2ndStage = sm.OLS(DeltaLogC_n[4:],regressors)
-            res_2ndStage = mod.fit()
-            mod_IV = smsrg.IV2SLS(DeltaLogC_n[4:], , sm.add_constant(np.transpose(np.array([DeltaLogC_n[3:-1],DeltaLogY_n[4:],A_n[3:-1]]))),instruments2)
+            res_2ndStage = mod_2ndStage.fit()
+            mod_IV = smsrg.IV2SLS(DeltaLogC_n[4:], sm.add_constant(np.transpose(np.array([DeltaLogC_n[3:-1],DeltaLogY_n[4:],A_n[3:-1]]))),instruments2)
             res_IV = mod_IV.fit()
         CoeffsArray[n,5] = res_IV._results.params[1]
         CoeffsArray[n,6] = res_IV._results.params[2]
