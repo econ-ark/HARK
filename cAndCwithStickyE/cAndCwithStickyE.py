@@ -181,11 +181,13 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
             mod = sm.OLS(DeltaLogC_me_n[3:-1],instruments)
             res = mod.fit()
             DeltaLogC_predict1 = res.predict()
-            mod = sm.OLS(DeltaLogC_me_n[4:],sm.add_constant(DeltaLogC_predict1))
-            res = mod.fit()
-            CoeffsArray[n,2] = res._results.params[1]
-            StdErrArray[n,2] = res._results.HC0_se[1]
-            RsqArray[n,2] = res._results.rsquared_adj
+            mod_2ndStage = sm.OLS(DeltaLogC_me_n[4:],sm.add_constant(DeltaLogC_predict1))
+            res_2ndStage = mod_2ndStage.fit()
+            mod_IV = smsrg.IV2SLS(DeltaLogC_me_n[4:], sm.add_constant(DeltaLogC_me_n[3:-1]),instruments)
+            res_IV = mod_IV.fit()
+            CoeffsArray[n,2] = res_IV._results.params[1]
+            StdErrArray[n,2] = res_IV.bse[1]
+            RsqArray[n,2] = res_2ndStage._results.rsquared_adj
             PvalArray[n,2] = res._results.f_pvalue
         else:
             mod = sm.OLS(DeltaLogC_n[3:-1],instruments2)
@@ -197,17 +199,21 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
             mod = sm.OLS(DeltaLogY_n[4:],instruments)
             res = mod.fit()
             DeltaLogY_predict1 = res.predict()
-            mod = sm.OLS(DeltaLogC_me_n[4:],sm.add_constant(DeltaLogY_predict1))
-            res = mod.fit()
+            mod_2ndStage = sm.OLS(DeltaLogC_me_n[4:],sm.add_constant(DeltaLogY_predict1))
+            res_2ndStage = mod.fit()
+            mod_IV = smsrg.IV2SLS(DeltaLogC_me_n[4:], sm.add_constant(DeltaLogY_n[3:-1]),instruments)
+            res_IV = mod_IV.fit()
         else:
             mod = sm.OLS(DeltaLogY_n[4:],instruments2)
             res = mod.fit()
             DeltaLogY_predict2 = res.predict()
-            mod = sm.OLS(DeltaLogC_n[4:],sm.add_constant(DeltaLogY_predict2))
-            res = mod.fit()
-        CoeffsArray[n,3] = res._results.params[1]
-        StdErrArray[n,3] = res._results.HC0_se[1]
-        RsqArray[n,3] = res._results.rsquared_adj
+            mod_2ndStage = sm.OLS(DeltaLogC_n[4:],sm.add_constant(DeltaLogY_predict2))
+            res_2ndStage = mod.fit()
+            mod_IV = smsrg.IV2SLS(DeltaLogC_n[4:], sm.add_constant(DeltaLogY_n[3:-1]),instruments2)
+            res_IV = mod_IV.fit()
+        CoeffsArray[n,3] = res_IV._results.params[1]
+        StdErrArray[n,3] = res_IV.bse[1]
+        RsqArray[n,3] = res_2ndStage._results.rsquared_adj
         PvalArray[n,3] = res._results.f_pvalue
         
         # Run IV on assets (with measurement error if sticky expectations)
@@ -215,36 +221,44 @@ def makeStickyEresults(Economy,description='',filename=None,save_data=False):
             mod = sm.OLS(A_n[3:-1],instruments)
             res = mod.fit()
             A_predict1 = res.predict()
-            mod = sm.OLS(DeltaLogC_me_n[4:],sm.add_constant(A_predict1))
-            res = mod.fit()
+            mod_2ndStage = sm.OLS(DeltaLogC_me_n[4:],sm.add_constant(A_predict1))
+            res_2ndStage = mod.fit()
+            mod_IV = smsrg.IV2SLS(DeltaLogC_me_n[4:], sm.add_constant(A_n[3:-1]),instruments)
+            res_IV = mod_IV.fit()
         else:
             mod = sm.OLS(A_n[3:-1],instruments2)
             res = mod.fit()
             A_predict2 = res.predict()
-            mod = sm.OLS(DeltaLogC_n[4:],sm.add_constant(A_predict2))
-            res = mod.fit()
-        CoeffsArray[n,4] = res._results.params[1]
-        StdErrArray[n,4] = res._results.HC0_se[1]
-        RsqArray[n,4] = res._results.rsquared_adj
+            mod_2ndStage = sm.OLS(DeltaLogC_n[4:],sm.add_constant(A_predict2))
+            res_2ndStage = mod.fit()
+            mod_IV = smsrg.IV2SLS(DeltaLogC_n[4:], sm.add_constant(A_n[3:-1]),instruments2)
+            res_IV = mod_IV.fit()
+        CoeffsArray[n,4] = res_IV._results.params[1]
+        StdErrArray[n,4] = res_IV.bse[1]
+        RsqArray[n,4] = res_2ndStage._results.rsquared_adj
         PvalArray[n,4] = res._results.f_pvalue
         
         # Run horserace IV (with measurement error if sticky expectations)
         if UpdatePrb < 1.0:
             regressors = sm.add_constant(np.transpose(np.array([DeltaLogC_predict1,DeltaLogY_predict1,A_predict1])))
-            mod = sm.OLS(DeltaLogC_me_n[4:],regressors)
-            res = mod.fit()
+            mod_2ndStage = sm.OLS(DeltaLogC_me_n[4:],regressors)
+            res_2ndStage = mod.fit()
+            mod_IV = smsrg.IV2SLS(DeltaLogC_me_n[4:], sm.add_constant(np.transpose(np.array([DeltaLogC_me_n[3:-1],DeltaLogY_n[4:],A_n[3:-1]]))),instruments)
+            res_IV = mod_IV.fit()
         else:
             regressors = sm.add_constant(np.transpose(np.array([DeltaLogC_predict2,DeltaLogY_predict2,A_predict2])))
-            mod = sm.OLS(DeltaLogC_n[4:],regressors)
-            res = mod.fit()
-        CoeffsArray[n,5] = res._results.params[1]
-        CoeffsArray[n,6] = res._results.params[2]
-        CoeffsArray[n,7] = res._results.params[3]
-        StdErrArray[n,5] = res._results.HC0_se[1]
-        StdErrArray[n,6] = res._results.HC0_se[2]
-        StdErrArray[n,7] = res._results.HC0_se[3]
-        RsqArray[n,5] = res._results.rsquared_adj
-        PvalArray[n,5] = res._results.f_pvalue
+            mod_2ndStage = sm.OLS(DeltaLogC_n[4:],regressors)
+            res_2ndStage = mod.fit()
+            mod_IV = smsrg.IV2SLS(DeltaLogC_n[4:], , sm.add_constant(np.transpose(np.array([DeltaLogC_n[3:-1],DeltaLogY_n[4:],A_n[3:-1]]))),instruments2)
+            res_IV = mod_IV.fit()
+        CoeffsArray[n,5] = res_IV._results.params[1]
+        CoeffsArray[n,6] = res_IV._results.params[2]
+        CoeffsArray[n,7] = res_IV._results.params[3]
+        StdErrArray[n,5] = res_IV._results.bse[1]
+        StdErrArray[n,6] = res_IV.bse[2]
+        StdErrArray[n,7] = res_IV.bse[3]
+        RsqArray[n,5] = res_2ndStage._results.rsquared_adj
+        PvalArray[n,5] = 999    #Need to put in KP stat here, may have to do this in Stata
         
         # Regress Delta C_{t+1} on instruments
         if UpdatePrb < 1.0:
