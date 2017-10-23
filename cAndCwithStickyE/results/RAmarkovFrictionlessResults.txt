@@ -14,8 +14,8 @@ Stdev of change in log aggregate assets level = 0.00393861715532
 Dep. Variable:            DeltaLogC_t   R-squared:                       0.005
 Model:                            OLS   Adj. R-squared:                  0.005
 Method:                 Least Squares   F-statistic:                     108.4
-Date:                Wed, 04 Oct 2017   Prob (F-statistic):           2.54e-25
-Time:                        15:07:25   Log-Likelihood:                 63920.
+Date:                Mon, 23 Oct 2017   Prob (F-statistic):           2.54e-25
+Time:                        09:34:32   Log-Likelihood:                 63920.
 No. Observations:               20008   AIC:                        -1.278e+05
 Df Residuals:                   20006   BIC:                        -1.278e+05
 Df Model:                           1                                         
@@ -41,8 +41,8 @@ Warnings:
 Dep. Variable:            DeltaLogC_t   R-squared:                       0.014
 Model:                            OLS   Adj. R-squared:                  0.014
 Method:                 Least Squares   F-statistic:                     290.2
-Date:                Wed, 04 Oct 2017   Prob (F-statistic):           1.30e-64
-Time:                        15:07:25   Log-Likelihood:                 59955.
+Date:                Mon, 23 Oct 2017   Prob (F-statistic):           1.30e-64
+Time:                        09:34:32   Log-Likelihood:                 59955.
 No. Observations:               20008   AIC:                        -1.199e+05
 Df Residuals:                   20006   BIC:                        -1.199e+05
 Df Model:                           1                                         
@@ -69,8 +69,8 @@ Dep. Variable:            DeltaLogC_t   R-squared:                      -1.227
 Model:                         IV2SLS   Adj. R-squared:                 -1.227
 Method:                     Two Stage   F-statistic:                     456.6
                         Least Squares   Prob (F-statistic):          3.53e-100
-Date:                Wed, 04 Oct 2017                                         
-Time:                        15:07:25                                         
+Date:                Mon, 23 Oct 2017                                         
+Time:                        09:34:32                                         
 No. Observations:               20005                                         
 Df Residuals:                   20003                                         
 Df Model:                           1                                         
@@ -93,8 +93,8 @@ Dep. Variable:            DeltaLogC_t   R-squared:                       0.125
 Model:                         IV2SLS   Adj. R-squared:                  0.125
 Method:                     Two Stage   F-statistic:                     980.6
                         Least Squares   Prob (F-statistic):          3.39e-210
-Date:                Wed, 04 Oct 2017                                         
-Time:                        15:07:25                                         
+Date:                Mon, 23 Oct 2017                                         
+Time:                        09:34:32                                         
 No. Observations:               20005                                         
 Df Residuals:                   20003                                         
 Df Model:                           1                                         
@@ -117,8 +117,8 @@ Dep. Variable:            DeltaLogC_t   R-squared:                       0.051
 Model:                         IV2SLS   Adj. R-squared:                  0.051
 Method:                     Two Stage   F-statistic:                     1073.
                         Least Squares   Prob (F-statistic):          2.71e-229
-Date:                Wed, 04 Oct 2017                                         
-Time:                        15:07:25                                         
+Date:                Mon, 23 Oct 2017                                         
+Time:                        09:34:32                                         
 No. Observations:               20005                                         
 Df Residuals:                   20003                                         
 Df Model:                           1                                         
@@ -141,8 +141,8 @@ Dep. Variable:            DeltaLogC_t   R-squared:                      -0.498
 Model:                         IV2SLS   Adj. R-squared:                 -0.498
 Method:                     Two Stage   F-statistic:                     226.8
                         Least Squares   Prob (F-statistic):          1.04e-144
-Date:                Wed, 04 Oct 2017                                         
-Time:                        15:07:25                                         
+Date:                Mon, 23 Oct 2017                                         
+Time:                        09:34:32                                         
 No. Observations:               20005                                         
 Df Residuals:                   20001                                         
 Df Model:                           3                                         
@@ -167,8 +167,8 @@ Dep. Variable:            DeltaLogC_t   R-squared:                       0.182
 Model:                         IV2SLS   Adj. R-squared:                  0.182
 Method:                     Two Stage   F-statistic:                     1593.
                         Least Squares   Prob (F-statistic):               0.00
-Date:                Wed, 04 Oct 2017                                         
-Time:                        15:07:25                                         
+Date:                Mon, 23 Oct 2017                                         
+Time:                        09:34:32                                         
 No. Observations:               20005                                         
 Df Residuals:                   20003                                         
 Df Model:                           1                                         
@@ -191,8 +191,8 @@ Dep. Variable:            DeltaLogC_t   R-squared:                       0.077
 Model:                         IV2SLS   Adj. R-squared:                  0.077
 Method:                     Two Stage   F-statistic:                     1655.
                         Least Squares   Prob (F-statistic):               0.00
-Date:                Wed, 04 Oct 2017                                         
-Time:                        15:07:25                                         
+Date:                Mon, 23 Oct 2017                                         
+Time:                        09:34:32                                         
 No. Observations:               20005                                         
 Df Residuals:                   20003                                         
 Df Model:                           1                                         
@@ -215,8 +215,8 @@ Dep. Variable:            DeltaLogC_t   R-squared:                      -0.497
 Model:                         IV2SLS   Adj. R-squared:                 -0.498
 Method:                     Two Stage   F-statistic:                     341.0
                         Least Squares   Prob (F-statistic):          5.35e-216
-Date:                Wed, 04 Oct 2017                                         
-Time:                        15:07:25                                         
+Date:                Mon, 23 Oct 2017                                         
+Time:                        09:34:32                                         
 No. Observations:               20005                                         
 Df Residuals:                   20001                                         
 Df Model:                           3                                         

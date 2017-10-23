@@ -7,12 +7,12 @@
 \\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t} $} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$}& \multicolumn{1}{c}{$ A_{t}  $} & & & 
 \\ 0.358 & & & OLS & 0.129& 0.000
 \\ (0.064) & & & & & 
-\\ & 0.393 & & IV & 0.031 & 0.209
-\\ & (0.227) & & & & 
-\\ & & -0.0006 & IV & 0.029 & 0.230
+\\ & 0.432 & & IV & 0.031 & 0.056
+\\ & (0.223) & & & & 
+\\ & & -0.0006 & IV & 0.029 & 0.000
 \\ & & (0.0005) & & & 
-\\ -0.060 & 0.250 & -0.0003 & IV & 0.033 & 0.232
-\\ (0.232) & (0.479) & (0.0009) & & & 
+\\ 0.179 & 0.240 & -0.0001 & IV & 0.035 & 999.000
+\\ (0.643) & (0.480) & (0.0011) & & & 
 \\ & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$,  $\Delta \log \mathbf{C}_{t+1} = \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ } 0.035 & 
 \\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \mathbf{C}_{t+1}$} %NotOnSlide 
 \\ \multicolumn{1}{c}{$\Delta \log {\mathbf{C}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} 
@@ -22,17 +22,17 @@
 \\ \multicolumn{1}{c}{$\Delta \log {\widetilde{\mathbf{C}}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} 
 \\ 0.328 & & & OLS & 0.115 & 0.008
 \\ (0.063) & & & & & 
-\\ 0.780 & & & IV & 0.224 & 0.000
-\\ (0.103) & & & & &
-\\ & 0.990 & & IV & 0.188 & 0.001
-\\ & (0.154) & & & &
-\\ & & -0.0009 & IV & 0.058 & 0.155
+\\ 0.774 & & & IV & 0.187 & 0.000
+\\ (0.140) & & & & &
+\\ & 0.848 & & IV & 0.148 & 0.051
+\\ & (0.198) & & & &
+\\ & & -0.0008 & IV & 0.053 & 0.000
 \\ & & (0.0004) & & &
-\\ 0.597 & 0.277 & 0.0001 & IV & 0.229 & 0.000
-\\ (0.229) & (0.397) & (0.0006) & & & 
-\\ & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$,  $\Delta \log \widetilde{\mathbf{C}}_{t+1} = \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ } 0.232 & 
-\\ \multicolumn{6}{c}{Horserace coefficient on $\Delta \log \widetilde{\mathbf{C}}_t$ significant at 95\% level for 72 of 100 subintervals.} 
-\\ \multicolumn{6}{c}{Horserace coefficient on $\mathbb{E}[\Delta \log \mathbf{Y}_{t+1}]$ significant at 95\% level for 18 of 100 subintervals.} 
+\\ 0.615 & 0.221 & 0.0000 & IV & 0.192 & 999.000
+\\ (0.290) & (0.471) & (0.0007) & & & 
+\\ & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$,  $\Delta \log \widetilde{\mathbf{C}}_{t+1} = \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ } 0.195 & 
+\\ \multicolumn{6}{c}{Horserace coefficient on $\Delta \log \widetilde{\mathbf{C}}_t$ significant at 95\% level for 66 of 100 subintervals.} 
+\\ \multicolumn{6}{c}{Horserace coefficient on $\mathbb{E}[\Delta \log \mathbf{Y}_{t+1}]$ significant at 95\% level for 7 of 100 subintervals.} 
 \\ \hline \hline 
 \end{tabular} 
 \end{table} 

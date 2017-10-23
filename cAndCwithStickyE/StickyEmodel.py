@@ -494,7 +494,8 @@ class StickyCobbDouglasEconomy(CobbDouglasEconomy):
         -------
         None
         '''
-        CobbDouglasEconomy.__init__(self,agents=agents,tolerance=tolerance,act_T=act_T,**kwds)  
+        CobbDouglasEconomy.__init__(self,agents=agents,tolerance=tolerance,act_T=act_T,**kwds)
+        self.reap_vars = ['aLvlNow','pLvlTrue']
     
     def millRule(self,aLvlNow,pLvlTrue):
         '''
@@ -504,7 +505,8 @@ class StickyCobbDouglasEconomy(CobbDouglasEconomy):
         See documentation for calcRandW for more information.
         '''
         return self.calcRandW(aLvlNow,pLvlTrue)
-    
+
+   
 class StickyCobbDouglasMarkovEconomy(CobbDouglasMarkovEconomy):            
     '''
     This is almost identical to StickyCobbDouglasEconomy, except it overrides the mill
