@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import statsmodels.sandbox.regression.gmm as smsrg
 import StickyEparams as Params
-from MakeTable import makeResultsTable
+from MakeTable import makeResultsTable, makeResultsTableWithStataInput
 
 ignore_periods = Params.ignore_periods # Number of simulated periods to ignore as a "burn-in" phase
 interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
@@ -31,7 +31,7 @@ mystr = lambda number : "{:.3f}".format(number)
 do_SOE_simple  = False
 do_SOE_markov  = False
 do_DSGE_simple = False
-do_DSGE_markov = True
+do_DSGE_markov = False
 do_RA_simple   = False
 do_RA_markov   = False
 
