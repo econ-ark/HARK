@@ -3,36 +3,36 @@
  \hline \hline\multicolumn{6}{c}{$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon $ } 
 \\ \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  (2nd Stage) & $F~p$-val 
 \\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
-\\ \hline \multicolumn{3}{c}{Frictionless : $\Delta \log \mathbf{C}_{t+1}$} & & & 
-\\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t} $} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$}& \multicolumn{1}{c}{$ A_{t}  $} & & & 
-\\ 0.016 & & & OLS & -0.000& 0.493
-\\ (0.070) & & & & & 
-\\ & 0.058 & & IV & 0.016 & 0.506
-\\ & (0.280) & & & & 
-\\ & & 0.0001 & IV & -0.000 & 0.000
-\\ & & (0.0002) & & & 
-\\ 0.044 & 0.420 & -0.0000 & IV & 0.009 & 999.000
-\\ (0.475) & (0.265) & (0.0002) & & & 
-\\ & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$,  $\Delta \log \mathbf{C}_{t+1} = \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ } -0.001 & 
-\\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \mathbf{C}_{t+1}$} %NotOnSlide 
-\\ \multicolumn{1}{c}{$\Delta \log {\mathbf{C}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} 
-\\  0.802 & & & OLS & 0.642 & 0.000%NotOnSlide 
-\\  (0.042) & & & & & %NotOnSlide 
-\\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \widetilde{\mathbf{C}}_{t+1} $}%NotOnSlide 
+\\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \mathbf{C}_{t+1}$} 
 \\ \multicolumn{1}{c}{$\Delta \log {\widetilde{\mathbf{C}}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} 
-\\ 0.346 & & & OLS & 0.125 & 0.003
-\\ (0.064) & & & & & 
-\\ 0.686 & & & IV & 0.119 & 0.000
-\\ (0.151) & & & & &
-\\ & 0.073 & & IV & 0.013 & 0.526
-\\ & (0.163) & & & &
-\\ & & -0.0003 & IV & 0.042 & 0.000
+\\ 0.814 & & & OLS & 0.662 & 0.000
+\\ (0.040) & & & & & 
+\\ 0.768 & & & IV & 0.248 & 0.000
+\\ (0.066) & & & & &
+\\ & 0.184 & & IV & 0.031 & 0.479
+\\ & (0.155) & & & &
+\\ & & -0.0004 & IV & 0.075 & 0.000
 \\ & & (0.0001) & & &
-\\ 0.671 & 0.117 & -0.0000 & IV & 0.120 & 999.000
-\\ (0.226) & (0.184) & (0.0002) & & & 
-\\ & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$,  $\Delta \log \widetilde{\mathbf{C}}_{t+1} = \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ } 0.124 & 
-\\ \multicolumn{6}{c}{Horserace coefficient on $\Delta \log \widetilde{\mathbf{C}}_t$ significant at 95\% level for 89 of 100 subintervals.} 
-\\ \multicolumn{6}{c}{Horserace coefficient on $\mathbb{E}[\Delta \log \mathbf{Y}_{t+1}]$ significant at 95\% level for 9 of 100 subintervals.} 
+\\ 0.774 & 0.116 & 0.0000 & IV & 0.249 & 999.000
+\\ (0.080) & (0.092) & (0.0001) & & & 
+\\ & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ } 0.239 & 
+\\ \multicolumn{6}{c}{Horserace coefficient on $\Delta \log \mathbf{C}_{t+1}$ significant at 95\% level for 20 of 20 subintervals.} 
+\\ \multicolumn{6}{c}{Horserace coefficient on $\mathbb{E}[\Delta \log \mathbf{Y}_{t+1}]$ significant at 95\% level for 11 of 20 subintervals.} 
+\\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \widetilde{\mathbf{C}}_{t+1}$} 
+\\ \multicolumn{1}{c}{$\Delta \log {\widetilde{\mathbf{C}}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} 
+\\ 0.360 & & & OLS & 0.133 & 0.001
+\\ (0.064) & & & & & 
+\\ 0.705 & & & IV & 0.136 & 0.000
+\\ (0.141) & & & & &
+\\ & 0.119 & & IV & 0.014 & 0.515
+\\ & (0.146) & & & &
+\\ & & -0.0004 & IV & 0.046 & 0.000
+\\ & & (0.0001) & & &
+\\ 0.681 & 0.082 & -0.0000 & IV & 0.136 & 999.000
+\\ (0.211) & (0.191) & (0.0002) & & & 
+\\ & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ } 0.139 & 
+\\ \multicolumn{6}{c}{Horserace coefficient on $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ significant at 95\% level for 20 of 20 subintervals.} 
+\\ \multicolumn{6}{c}{Horserace coefficient on $\mathbb{E}[\Delta \log \mathbf{Y}_{t+1}]$ significant at 95\% level for 1 of 20 subintervals.} 
 \\ \hline \hline 
 \end{tabular} 
 \end{table} 
