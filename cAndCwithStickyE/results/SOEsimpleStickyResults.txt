@@ -1,18 +1,11 @@
 Results for the sticky small open economy with update probability 0.250
 
 
-Average aggregate asset-to-productivity ratio = 6.33601975407
-Average aggregate consumption-to-productivity ratio = 2.69563273473
-Stdev of log aggregate asset-to-productivity ratio = 0.0127028445355
-Stdev of change in log aggregate consumption level = 0.00245786340574
-Stdev of change in log aggregate output level = 0.00931077788471
-Stdev of change in log aggregate assets level = 0.00320345778179
-Cross section stdev of log individual assets = 1.02937074468
-Cross section stdev of log individual consumption = 0.928957307101
-Cross section stdev of log individual productivity = 0.940139739508
-Cross section stdev of log individual non-zero income = 1.2483274797
-Cross section stdev of change in log individual assets = 0.246200950242
-Cross section stdev of change in log individual consumption = 0.0907867565527
-Cross section stdev of change in log individual productivity = 0.0613930775474
+Average aggregate asset-to-productivity ratio = 6.31886773952
+Average aggregate consumption-to-productivity ratio = 2.68907813696
+Stdev of log aggregate asset-to-productivity ratio = 0.012893075601
+Stdev of change in log aggregate consumption level = 0.00251819297856
+Stdev of change in log aggregate output level = 0.00973323062824
+Stdev of change in log aggregate assets level = 0.00331474399288
 
 

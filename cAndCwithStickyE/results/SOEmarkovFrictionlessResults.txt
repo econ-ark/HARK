@@ -1,11 +1,11 @@
 Results for the frictionless small open Markov economy
 
 
-Average aggregate asset-to-productivity ratio = 7.3144531474
-Average aggregate consumption-to-productivity ratio = 2.69759279412
-Stdev of log aggregate asset-to-productivity ratio = 0.357649539628
-Stdev of change in log aggregate consumption level = 0.0101258647676
-Stdev of change in log aggregate output level = 0.00979147772234
-Stdev of change in log aggregate assets level = 0.0083239019548
+Average aggregate asset-to-productivity ratio = 7.73122082211
+Average aggregate consumption-to-productivity ratio = 2.70872401952
+Stdev of log aggregate asset-to-productivity ratio = 0.34172774636
+Stdev of change in log aggregate consumption level = 0.0104392002217
+Stdev of change in log aggregate output level = 0.00972291974564
+Stdev of change in log aggregate assets level = 0.00855797011263
 
 

@@ -1,11 +1,11 @@
 Results for the frictionless representative agent Markov economy
 
 
-Average aggregate asset-to-productivity ratio = 51.4897490565
-Average aggregate consumption-to-productivity ratio = 3.32952160607
-Stdev of log aggregate asset-to-productivity ratio = 0.285653934199
-Stdev of change in log aggregate consumption level = 0.00978332063616
-Stdev of change in log aggregate output level = 0.00710379461611
-Stdev of change in log aggregate assets level = 0.00392736742113
+Average aggregate asset-to-productivity ratio = 54.1042682908
+Average aggregate consumption-to-productivity ratio = 3.39668773841
+Stdev of log aggregate asset-to-productivity ratio = 0.289046640315
+Stdev of change in log aggregate consumption level = 0.00994220493547
+Stdev of change in log aggregate output level = 0.00717050260811
+Stdev of change in log aggregate assets level = 0.00393861715532
 
 

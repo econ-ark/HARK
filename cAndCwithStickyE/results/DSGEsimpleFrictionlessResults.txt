@@ -1,11 +1,11 @@
 Results for the frictionless Cobb-Douglas economy
 
 
-Average aggregate asset-to-productivity ratio = 26.2664647256
-Average aggregate consumption-to-productivity ratio = 2.8555775541
-Stdev of log aggregate asset-to-productivity ratio = 0.0268714956181
-Stdev of change in log aggregate consumption level = 0.0027557468719
-Stdev of change in log aggregate output level = 0.00700469533607
-Stdev of change in log aggregate assets level = 0.000818958356168
+Average aggregate asset-to-productivity ratio = 26.1733660811
+Average aggregate consumption-to-productivity ratio = 2.8471115832
+Stdev of log aggregate asset-to-productivity ratio = 0.0260643788815
+Stdev of change in log aggregate consumption level = 0.00279310847505
+Stdev of change in log aggregate output level = 0.00731769571341
+Stdev of change in log aggregate assets level = 0.000821227628998
 
 

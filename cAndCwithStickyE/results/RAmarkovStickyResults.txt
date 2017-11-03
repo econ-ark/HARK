@@ -1,11 +1,11 @@
 Results for the sticky representative agent Markov economy
 
 
-Average aggregate asset-to-productivity ratio = 51.4549169015
-Average aggregate consumption-to-productivity ratio = 3.32823513191
-Stdev of log aggregate asset-to-productivity ratio = 0.285293010224
-Stdev of change in log aggregate consumption level = 0.00468850926463
-Stdev of change in log aggregate output level = 0.00710797423216
-Stdev of change in log aggregate assets level = 0.0037811759863
+Average aggregate asset-to-productivity ratio = 54.0371043748
+Average aggregate consumption-to-productivity ratio = 3.39485278495
+Stdev of log aggregate asset-to-productivity ratio = 0.288387612077
+Stdev of change in log aggregate consumption level = 0.00481324849393
+Stdev of change in log aggregate output level = 0.00717683498828
+Stdev of change in log aggregate assets level = 0.00378671463308
 
 

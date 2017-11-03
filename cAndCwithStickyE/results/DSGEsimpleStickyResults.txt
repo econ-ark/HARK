@@ -1,11 +1,11 @@
 Results for the sticky Cobb-Douglas economy with update probability 0.250
 
 
-Average aggregate asset-to-productivity ratio = 26.2634949356
-Average aggregate consumption-to-productivity ratio = 2.85556486921
-Stdev of log aggregate asset-to-productivity ratio = 0.0245757712731
-Stdev of change in log aggregate consumption level = 0.00155496740081
-Stdev of change in log aggregate output level = 0.00700580286677
-Stdev of change in log aggregate assets level = 0.000914663026027
+Average aggregate asset-to-productivity ratio = 26.173933711
+Average aggregate consumption-to-productivity ratio = 2.84716188221
+Stdev of log aggregate asset-to-productivity ratio = 0.0237707413845
+Stdev of change in log aggregate consumption level = 0.00159115997979
+Stdev of change in log aggregate output level = 0.00731875575541
+Stdev of change in log aggregate assets level = 0.000920244989819
 
 

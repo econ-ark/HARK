@@ -124,6 +124,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
     np.random.seed(10)
     LogC_me = LogC + sigma_meas_err*np.random.normal(0.,1.,LogC.size)
     DeltaLogC_me = LogC_me[1:] - LogC_me[0:-1]
+    print('stdev DeltaLogC',np.std(DeltaLogC))
     
     # Make and return the output string, beginning with descriptive statistics
     output_string = description + '\n\n\n'
