@@ -48,6 +48,7 @@ class MargValueFunc2D(HARKobject):
             uP_inv(vPfunc(m,M)) = cFunc(m,M).
         CRRA : float
             Coefficient of relative risk aversion.
+        self : A reference to the return of the function
             
         Returns
         -------
