@@ -5,32 +5,32 @@
 \\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
 \\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \mathbf{C}_{t+1}$} 
 \\ $\Delta \log \mathbf{C}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
-\\ $0.802^{\bullet \bullet \bullet }$ & & & OLS & 0.642 & 
-\\ (0.042) & & & & & 
-\\ $0.771^{\bullet \bullet \bullet }$ & & & IV & 0.241 & 0.000
-\\ (0.070) & & & & &
-\\ & $0.181$ & & IV & 0.034 & 0.529
-\\ & (0.115) & & & &
-\\ & & $-0.0004^{\bullet \bullet \bullet }$ & IV & 0.071 & 0.000
-\\ & & (0.0001) & & &
-\\ $0.767^{\bullet \bullet \bullet }$ & $0.118^{\bullet \bullet \bullet }$ & $0.0000$ & IV & 0.244 & 
-\\ (0.063) & (0.043) & (0.0001) & & & 
-\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.227 }  
+\\ $0.820^{***}$ & & & OLS & 0.673 & 
+\\ (0.004) & & & & & 
+\\ $0.784^{***}$ & & & IV & 0.250 & 0.000
+\\ (0.006) & & & & &
+\\ & $3.519^{***}$ & & IV & 0.093 & 0.375
+\\ & (1.208) & & & &
+\\ & & $-3.80\text{e-4}^{***}$ & IV & 0.119 & 0.000
+\\ & & (0.07\text{e-4}) & & &
+\\ $0.748^{***}$ & $0.098^{***}$ & $-0.29\text{e-4}^{***}$ & IV & 0.250 & 
+\\ (0.006) & (0.035) & (0.04\text{e-4}) & & & 
+\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.250 }  
 \\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \widetilde{\mathbf{C}}_{t+1}$} 
 \\ $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
-\\ $0.497^{\bullet \bullet \bullet }$ & & & OLS & 0.250 & 
-\\ (0.060) & & & & & 
-\\ $0.727^{\bullet \bullet \bullet }$ & & & IV & 0.163 & 0.000
-\\ (0.121) & & & & &
-\\ & $0.134$ & & IV & 0.022 & 0.539
-\\ & (0.119) & & & &
-\\ & & $-0.0004^{\bullet \bullet \bullet }$ & IV & 0.053 & 0.000
-\\ & & (0.0001) & & &
-\\ $0.710^{\bullet \bullet \bullet }$ & $0.126$ & $-0.0000$ & IV & 0.166 & 
-\\ (0.158) & (0.109) & (0.0002) & & & 
-\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.160 }  
+\\ $0.531^{***}$ & & & OLS & 0.282 & 
+\\ (0.006) & & & & & 
+\\ $0.781^{***}$ & & & IV & 0.187 & 0.000
+\\ (0.011) & & & & &
+\\ & $2.919^{***}$ & & IV & 0.056 & 0.404
+\\ & (0.931) & & & &
+\\ & & $-3.79\text{e-4}^{***}$ & IV & 0.092 & 0.000
+\\ & & (0.08\text{e-4}) & & &
+\\ $0.743^{***}$ & $0.109$ & $-0.31\text{e-4}^{***}$ & IV & 0.188 & 
+\\ (0.014) & (0.085) & (0.09\text{e-4}) & & & 
+\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.188 }  
 \\ \hline 
- \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are the average values for 100 subsamples of 200 simulated quarters each.  Bullets indicate that the average subsample coefficient divided by average subsample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-1}, \Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{Y}_{t-1}, \Delta \log \mathbf{Y}_{t-2}, A_{t-1}, A_{t-2}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
+ \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are for a single simulation of 20000 quarters.  Stars indicate statistical significance at the 90\%, 95\%, and 99\% levels, respectively.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
  \\ \hline \hline 
 \end{tabular} 
 \end{table} 

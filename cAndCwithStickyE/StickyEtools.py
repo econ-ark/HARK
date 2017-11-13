@@ -19,7 +19,7 @@ def mystr(number):
 
 def mystr2(number):
     if not np.isnan(number):
-        out = "{:.4f}".format(number)
+        out = "{:1.2f}".format(number*10000) + '\\text{e-4}'
     else:
         out = ''
     return out
@@ -126,7 +126,11 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
     np.random.seed(10)
     LogC_me = LogC + sigma_meas_err*np.random.normal(0.,1.,LogC.size)
     DeltaLogC_me = LogC_me[1:] - LogC_me[0:-1]
-    #print('stdev DeltaLogC',np.std(DeltaLogC))
+    
+    # Apply measurement error to long delta LogC
+    LogC_long = np.log(ClvlAgg_hist)
+    LogC_long_me = LogC_long + sigma_meas_err*np.random.normal(0.,1.,LogC_long.size)
+    Delta8LogC_me = (LogC_long_me[8:] - LogC_long_me[:-8])[(ignore_periods-7):]
     
     # Make and return the output string, beginning with descriptive statistics
     output_string = description + '\n\n\n'
@@ -153,8 +157,8 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
             f.close()
             
         if save_data:
-            DataArray = (np.vstack((np.arange(DeltaLogC.size),DeltaLogC_me,DeltaLogC,DeltaLogY,A,BigTheta,Delta8LogC,Delta8LogY))).transpose()
-            VarNames = ['time_period','DeltaLogC_me','DeltaLogC','DeltaLogY','A','BigTheta','Delta8LogC','Delta8LogY']
+            DataArray = (np.vstack((np.arange(DeltaLogC.size),DeltaLogC_me,DeltaLogC,DeltaLogY,A,BigTheta,Delta8LogC,Delta8LogY,Delta8LogC_me))).transpose()
+            VarNames = ['time_period','DeltaLogC_me','DeltaLogC','DeltaLogY','A','BigTheta','Delta8LogC','Delta8LogY','Delta8LogC_me']
             if hasattr(Economy,'MrkvNow'):
                 DataArray = np.hstack((DataArray,np.reshape(Mrkv,(Mrkv.size,1))))
                 VarNames.append('MrkvState')
@@ -208,6 +212,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
     BigTheta = np.zeros(obs)
     Delta8LogC = np.zeros(obs)
     Delta8LogY = np.zeros(obs)
+    Delta8LogC_me = np.zeros(obs)
     Mrkv_hist = np.zeros(obs,dtype=int)
     R = np.zeros(obs)
     
@@ -222,10 +227,11 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
         BigTheta[i] = float(all_data[j][5])
         Delta8LogC[i] = float(all_data[j][6])
         Delta8LogY[i] = float(all_data[j][7])
+        Delta8LogC_me[i] = float(all_data[j][8])
         if has_mrkv:
-            Mrkv_hist[i] = int(float(all_data[j][8]))
+            Mrkv_hist[i] = int(float(all_data[j][9]))
         if has_R:
-            R[i] = float(all_data[j][9])
+            R[i] = float(all_data[j][10])
     
     # Determine how many subsample intervals to run (and initialize array of coefficients)
     N = DeltaLogC.size/interval_size
@@ -243,12 +249,13 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
         end = (n+1)*interval_size
         if meas_err:
             DeltaLogC_n = DeltaLogC_me[start:end]
+            Delta8LogC_n = Delta8LogC_me[start:end]
         else:
             DeltaLogC_n = DeltaLogC[start:end]
+            Delta8LogC_n = Delta8LogC[start:end]
         DeltaLogY_n = DeltaLogY[start:end]
         A_n = A[start:end]
         BigTheta_n = BigTheta[start:end]
-        Delta8LogC_n = Delta8LogC[start:end]
         Delta8LogY_n = Delta8LogY[start:end]
         
         # Run OLS on log consumption
@@ -468,7 +475,7 @@ def makeResultsTable(caption,panels,counts,filename):
     else:
         note += 'Reported statistics are for a single simulation of ' + str(counts[0]) + ' quarters.  '
         note += 'Stars indicate statistical significance at the 90\%, 95\%, and 99\% levels, respectively.  '
-    note += 'Instruments $\\textbf{Z}_t = \\{\Delta \log \mathbf{C}_{t-1}, \Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{Y}_{t-1}, \Delta \log \mathbf{Y}_{t-2}, A_{t-1}, A_{t-2}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \\}$.'
+    note += 'Instruments $\\textbf{Z}_t = \\{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \\}$.'
     note += '}'
         
     

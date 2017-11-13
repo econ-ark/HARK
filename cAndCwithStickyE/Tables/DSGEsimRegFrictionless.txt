@@ -5,19 +5,19 @@
 \\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
 \\ \hline \multicolumn{3}{c}{Frictionless : $\Delta \log \mathbf{C}_{t+1}$} 
 \\ $\Delta \log \mathbf{C}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
-\\ $0.012$ & & & OLS & -0.001 & 
-\\ (0.070) & & & & & 
-\\ $0.144$ & & & IV & 0.005 & 0.356
-\\ (0.376) & & & & &
-\\ & $0.044$ & & IV & 0.017 & 0.510
-\\ & (0.171) & & & &
-\\ & & $-0.0002$ & IV & 0.005 & 0.000
-\\ & & (0.0004) & & &
-\\ $-0.030$ & $0.226$ & $-0.0002$ & IV & 0.017 & 
-\\ (0.421) & (0.164) & (0.0005) & & & 
-\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.009 }  
+\\ $0.028^{***}$ & & & OLS & 0.001 & 
+\\ (0.007) & & & & & 
+\\ $0.937^{***}$ & & & IV & 0.014 & 0.000
+\\ (0.075) & & & & &
+\\ & $1.004^{***}$ & & IV & 0.010 & 0.013
+\\ & (0.213) & & & &
+\\ & & $-5.15\text{e-4}^{***}$ & IV & 0.014 & 0.000
+\\ & & (0.30\text{e-4}) & & &
+\\ $0.556^{**}$ & $0.116$ & $-1.84\text{e-4}$ & IV & 0.015 & 
+\\ (0.270) & (0.176) & (1.75\text{e-4}) & & & 
+\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.015 }  
 \\ \hline 
- \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are the average values for 100 subsamples of 200 simulated quarters each.  Bullets indicate that the average subsample coefficient divided by average subsample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-1}, \Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{Y}_{t-1}, \Delta \log \mathbf{Y}_{t-2}, A_{t-1}, A_{t-2}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
+ \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are for a single simulation of 20000 quarters.  Stars indicate statistical significance at the 90\%, 95\%, and 99\% levels, respectively.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
  \\ \hline \hline 
 \end{tabular} 
 \end{table} 
