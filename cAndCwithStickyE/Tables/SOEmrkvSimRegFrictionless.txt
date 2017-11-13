@@ -1,0 +1,23 @@
+\begin{table} \caption{Aggregate Consumption Dynamics in Small Open Markov Economy (11 states)}
+\centering \begin{tabular}{cccccc}
+ \hline \hline\multicolumn{6}{c}{$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon $ } 
+\\ \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  (2nd Stage) & $F~p$-val 
+\\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
+\\ \hline \multicolumn{3}{c}{Frictionless : $\Delta \log \mathbf{C}_{t+1}$} 
+\\ $\Delta \log \mathbf{C}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
+\\ $0.358^{\bullet \bullet \bullet }$ & & & OLS & 0.129 & 
+\\ (0.064) & & & & & 
+\\ $0.676^{\bullet \bullet }$ & & & IV & 0.045 & 0.236
+\\ (0.296) & & & & &
+\\ & $0.492^{\bullet \bullet }$ & & IV & 0.039 & 0.071
+\\ & (0.207) & & & &
+\\ & & $-0.0006$ & IV & 0.030 & 0.000
+\\ & & (0.0005) & & &
+\\ $0.432$ & $0.291$ & $0.0001$ & IV & 0.047 & 
+\\ (0.421) & (0.378) & (0.0009) & & & 
+\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.045 }  
+\\ \hline 
+ \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are the average values for 100 subsamples of 200 simulated quarters each.  Bullets indicate that the average subsample coefficient divided by average subsample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-1}, \Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{Y}_{t-1}, \Delta \log \mathbf{Y}_{t-2}, A_{t-1}, A_{t-2}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
+ \\ \hline \hline 
+\end{tabular} 
+\end{table} 

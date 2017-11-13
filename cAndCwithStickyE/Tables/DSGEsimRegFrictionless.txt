@@ -1,0 +1,23 @@
+\begin{table} \caption{Aggregate Consumption Dynamics in HA-DSGE Economy}
+\centering \begin{tabular}{cccccc}
+ \hline \hline\multicolumn{6}{c}{$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon $ } 
+\\ \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  (2nd Stage) & $F~p$-val 
+\\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
+\\ \hline \multicolumn{3}{c}{Frictionless : $\Delta \log \mathbf{C}_{t+1}$} 
+\\ $\Delta \log \mathbf{C}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
+\\ $0.012$ & & & OLS & -0.001 & 
+\\ (0.070) & & & & & 
+\\ $0.144$ & & & IV & 0.005 & 0.356
+\\ (0.376) & & & & &
+\\ & $0.044$ & & IV & 0.017 & 0.510
+\\ & (0.171) & & & &
+\\ & & $-0.0002$ & IV & 0.005 & 0.000
+\\ & & (0.0004) & & &
+\\ $-0.030$ & $0.226$ & $-0.0002$ & IV & 0.017 & 
+\\ (0.421) & (0.164) & (0.0005) & & & 
+\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.009 }  
+\\ \hline 
+ \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are the average values for 100 subsamples of 200 simulated quarters each.  Bullets indicate that the average subsample coefficient divided by average subsample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-1}, \Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{Y}_{t-1}, \Delta \log \mathbf{Y}_{t-2}, A_{t-1}, A_{t-2}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
+ \\ \hline \hline 
+\end{tabular} 
+\end{table} 

@@ -118,13 +118,15 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
         Mrkv = Mrkv_hist[(ignore_periods+1):] # This is a relabeling for the regression code
         if ~hasattr(Economy,'Rfree') and hasattr(Economy,'agents'): # If this is a markov DSGE specification...
             R = ExpectedR_hist[(ignore_periods+1):]
+    Delta8LogC = (np.log(ClvlAgg_hist[8:]) - np.log(ClvlAgg_hist[:-8]))[(ignore_periods-7):]
+    Delta8LogY = (np.log(YlvlAgg_hist[8:]) - np.log(YlvlAgg_hist[:-8]))[(ignore_periods-7):]
     
     # Add measurement error to LogC
-    sigma_meas_err = np.std(DeltaLogC)/2.0
+    sigma_meas_err = np.std(DeltaLogC)*0.375
     np.random.seed(10)
     LogC_me = LogC + sigma_meas_err*np.random.normal(0.,1.,LogC.size)
     DeltaLogC_me = LogC_me[1:] - LogC_me[0:-1]
-    print('stdev DeltaLogC',np.std(DeltaLogC))
+    #print('stdev DeltaLogC',np.std(DeltaLogC))
     
     # Make and return the output string, beginning with descriptive statistics
     output_string = description + '\n\n\n'
@@ -151,8 +153,8 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
             f.close()
             
         if save_data:
-            DataArray = (np.vstack((np.arange(DeltaLogC.size),DeltaLogC_me,DeltaLogC,DeltaLogY,A,BigTheta))).transpose()
-            VarNames = ['time_period','DeltaLogC_me','DeltaLogC','DeltaLogY','A','BigTheta']
+            DataArray = (np.vstack((np.arange(DeltaLogC.size),DeltaLogC_me,DeltaLogC,DeltaLogY,A,BigTheta,Delta8LogC,Delta8LogY))).transpose()
+            VarNames = ['time_period','DeltaLogC_me','DeltaLogC','DeltaLogY','A','BigTheta','Delta8LogC','Delta8LogY']
             if hasattr(Economy,'MrkvNow'):
                 DataArray = np.hstack((DataArray,np.reshape(Mrkv,(Mrkv.size,1))))
                 VarNames.append('MrkvState')
@@ -204,6 +206,8 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
     DeltaLogY = np.zeros(obs)
     A = np.zeros(obs)
     BigTheta = np.zeros(obs)
+    Delta8LogC = np.zeros(obs)
+    Delta8LogY = np.zeros(obs)
     Mrkv_hist = np.zeros(obs,dtype=int)
     R = np.zeros(obs)
     
@@ -216,10 +220,12 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
         DeltaLogY[i] = float(all_data[j][3])
         A[i] = float(all_data[j][4])
         BigTheta[i] = float(all_data[j][5])
+        Delta8LogC[i] = float(all_data[j][6])
+        Delta8LogY[i] = float(all_data[j][7])
         if has_mrkv:
-            Mrkv_hist[i] = int(float(all_data[j][6]))
+            Mrkv_hist[i] = int(float(all_data[j][8]))
         if has_R:
-            R[i] = float(all_data[j][7])
+            R[i] = float(all_data[j][9])
     
     # Determine how many subsample intervals to run (and initialize array of coefficients)
     N = DeltaLogC.size/interval_size
@@ -242,6 +248,8 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
         DeltaLogY_n = DeltaLogY[start:end]
         A_n = A[start:end]
         BigTheta_n = BigTheta[start:end]
+        Delta8LogC_n = Delta8LogC[start:end]
+        Delta8LogY_n = Delta8LogY[start:end]
         
         # Run OLS on log consumption
         mod = sm.OLS(DeltaLogC_n[1:],sm.add_constant(DeltaLogC_n[0:-1]))
@@ -252,7 +260,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
         PvalArray[n,0] = res._results.f_pvalue
         
         # Define instruments for IV regressions
-        temp = np.transpose(np.vstack([DeltaLogC_n[1:-3],DeltaLogC_n[:-4],DeltaLogY_n[1:-3],DeltaLogY_n[:-4],A_n[1:-3],A_n[:-4]]))
+        temp = np.transpose(np.vstack([DeltaLogC_n[1:-3],DeltaLogC_n[:-4],DeltaLogY_n[1:-3],DeltaLogY_n[:-4],A_n[1:-3],A_n[:-4],Delta8LogC_n[:-4],Delta8LogY_n[:-4]]))
         instruments = sm.add_constant(temp) # With measurement error
         
         # Run IV on log consumption
@@ -307,7 +315,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
         StdErrArray[n,5] = res_IV._results.bse[2]
         StdErrArray[n,6] = res_IV._results.bse[3]
         RsqArray[n,4] = res_2ndStage._results.rsquared_adj
-        PvalArray[n,4] = 999    #Need to put in KP stat here, may have to do this in Stata
+        PvalArray[n,4] = np.nan    #Need to put in KP stat here, may have to do this in Stata
         
         # Regress Delta C_{t+1} on instruments
         mod = sm.OLS(DeltaLogC_n[4:],instruments)
@@ -388,6 +396,7 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
     output : str
         Text string with one panel of LaTeX input.
     '''
+    # Define Delta log C text and expectations text
     if meas_err:
         DeltaLogC = '$\Delta \log \widetilde{\mathbf{C}}_{t+1}$'
     else:
@@ -396,29 +405,44 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
         Expectations = 'Sticky'
     else:
         Expectations = 'Frictionless'
+        
+    # Define significance symbols
+    if Counts[2] > 1:
+        sig_symb = '\\bullet '
+    else:
+        sig_symb = '*'
+    def sigFunc(coeff,stderr):
+        z_stat = np.abs(coeff/stderr)
+        cuts = np.array([1.645,1.96,2.576])
+        N = np.sum(z_stat > cuts)
+        if N > 0:
+            sig_text = '^{' + N*sig_symb + '}'
+        else:
+            sig_text = ''
+        return sig_text
 
     output = '\\\\ \hline \multicolumn{3}{c}{' + Expectations + ' : ' + DeltaLogC + '} \n'
-    output += '\\\\ \multicolumn{1}{c}{$\Delta \log {\widetilde{\mathbf{C}}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} \n'
-    output += '\\\\ ' + mystr(Coeffs[0]) + ' & & & OLS & ' + mystr(Rsq[0]) + ' & ' + mystr(Pvals[0]) + '\n'   
+    output += '\\\\ ' + DeltaLogC + ' & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ \n'
+    output += '\\\\ $' + mystr(Coeffs[0]) + sigFunc(Coeffs[0],StdErrs[0]) + '$ & & & OLS & ' + mystr(Rsq[0]) + ' & ' + mystr(np.nan) + '\n'   
     output += '\\\\ (' + mystr(StdErrs[0]) + ') & & & & & \n'   
-    output += '\\\\ ' + mystr(Coeffs[1]) + ' & & & IV & ' + mystr(Rsq[1]) + ' & ' + mystr(Pvals[1]) + '\n'   
+    output += '\\\\ $' + mystr(Coeffs[1]) + sigFunc(Coeffs[1],StdErrs[1]) + '$ & & & IV & ' + mystr(Rsq[1]) + ' & ' + mystr(Pvals[1]) + '\n'   
     output += '\\\\ (' + mystr(StdErrs[1]) + ') & & & & &' + mystr(OID[1]) + '\n'   
-    output += '\\\\ & ' + mystr(Coeffs[2]) + ' & & IV & ' + mystr(Rsq[2]) + ' & ' + mystr(Pvals[2]) + '\n'     
+    output += '\\\\ & $' + mystr(Coeffs[2]) + sigFunc(Coeffs[2],StdErrs[2]) + '$ & & IV & ' + mystr(Rsq[2]) + ' & ' + mystr(Pvals[2]) + '\n'     
     output += '\\\\ & (' + mystr(StdErrs[2]) + ') & & & &' + mystr(OID[2]) + '\n'    
-    output += '\\\\ & & ' + mystr2(Coeffs[3]) + ' & IV & ' + mystr(Rsq[3]) + ' & ' + mystr(Pvals[3]) + '\n'   
+    output += '\\\\ & & $' + mystr2(Coeffs[3]) + sigFunc(Coeffs[3],StdErrs[3]) + '$ & IV & ' + mystr(Rsq[3]) + ' & ' + mystr(Pvals[3]) + '\n'   
     output += '\\\\ & & (' + mystr2(StdErrs[3]) + ') & & &' + mystr(OID[3]) + '\n'    
-    output += '\\\\ ' + mystr(Coeffs[4]) + ' & ' + mystr(Coeffs[5]) + ' & ' + mystr2(Coeffs[6]) + ' & IV & ' + mystr(Rsq[4]) + ' & ' + mystr(Pvals[4]) + '\n'     
+    output += '\\\\ $' + mystr(Coeffs[4]) + sigFunc(Coeffs[4],StdErrs[4]) + '$ & $' + mystr(Coeffs[5]) + sigFunc(Coeffs[5],StdErrs[5]) + '$ & $' + mystr2(Coeffs[6]) + sigFunc(Coeffs[6],StdErrs[6]) + '$ & IV & ' + mystr(Rsq[4]) + ' & ' + mystr(Pvals[4]) + '\n'     
     output += '\\\\ (' + mystr(StdErrs[4]) + ') & (' + mystr(StdErrs[5]) + ') & (' + mystr2(StdErrs[6]) + ') & & & \n'
-    output += '\\\\ & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$, ' + DeltaLogC + ' $= \mathbf{Z}_{t} \zeta,~~\\bar{R}^{2}=$ } ' + mystr(Counts[3]) + ' & \n'
+    output += '\\\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, ' + DeltaLogC + ' $= \mathbf{Z}_{t} \zeta,~~\\bar{R}^{2}=$' + mystr(Counts[3]) +' }  \n'
     
-    if Counts[0] is not None:
+    if Counts[0] is not None and Counts[2] > 1 and False:
         output += '\\\\ \multicolumn{6}{c}{Horserace coefficient on ' + DeltaLogC + ' significant at 95\% level for ' + str(Counts[0]) + ' of ' + str(Counts[2]) + ' subintervals.} \n'
         output += '\\\\ \multicolumn{6}{c}{Horserace coefficient on $\mathbb{E}[\Delta \log \mathbf{Y}_{t+1}]$ significant at 95\% level for ' + str(Counts[1]) + ' of ' + str(Counts[2]) + ' subintervals.} \n'
     
     return output
         
         
-def makeResultsTable(caption,panels,filename):
+def makeResultsTable(caption,panels,counts,filename):
     '''
     Make a results table by piecing together one or more panels.
     
@@ -428,6 +452,8 @@ def makeResultsTable(caption,panels,filename):
         Text to apply at the start of the table as a title.
     panels : [str]
         List of strings with one or more panels, usually made by makeResultsPanel.
+    counts : int
+        List of two integers: [interval_length, interval_count]
     filename : str
         Name of the file in which to save output (in the ./Tables/ directory).
         
@@ -435,8 +461,19 @@ def makeResultsTable(caption,panels,filename):
     -------
     None
     '''
-    output = '\\begin{table}\caption{' + caption + '}\n'
-    output += '\\begin{tabular}{cccccc}\n \hline \hline'
+    note = '\\multicolumn{6}{p{0.8\\textwidth}}{\\footnotesize \\textbf{Notes:} '
+    if counts[1] > 1:
+        note += 'Reported statistics are the average values for ' + str(counts[1]) + ' subsamples of ' + str(counts[0]) + ' simulated quarters each.  '
+        note += 'Bullets indicate that the average subsample coefficient divided by average subsample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  '
+    else:
+        note += 'Reported statistics are for a single simulation of ' + str(counts[0]) + ' quarters.  '
+        note += 'Stars indicate statistical significance at the 90\%, 95\%, and 99\% levels, respectively.  '
+    note += 'Instruments $\\textbf{Z}_t = \\{\Delta \log \mathbf{C}_{t-1}, \Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{Y}_{t-1}, \Delta \log \mathbf{Y}_{t-2}, A_{t-1}, A_{t-2}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \\}$.'
+    note += '}'
+        
+    
+    output = '\\begin{table} \caption{' + caption + '}\n'
+    output += '\centering \\begin{tabular}{cccccc}\n \hline \hline'
     output += '\multicolumn{6}{c}{$ \Delta \log \mathbf{C}_{t+1} = \\varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \\alpha A_t + \epsilon $ } \n'
     output += '\\\\ \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  (2nd Stage) & $F~p$-val \n'
     output += '\\\\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \\bar{R}^{2} $ & IV OID \n'
@@ -444,7 +481,7 @@ def makeResultsTable(caption,panels,filename):
     for panel in panels:
         output += panel
         
-    output += '\\\\ \hline \hline \n'
+    output += '\\\\ \hline \n ' + note + ' \n \\\\ \hline \hline \n'
     output += '\end{tabular} \n'
     output += '\end{table} \n'
     

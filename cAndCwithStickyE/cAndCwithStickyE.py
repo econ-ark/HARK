@@ -22,6 +22,9 @@ from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResults
 
 ignore_periods = Params.ignore_periods # Number of simulated periods to ignore as a "burn-in" phase
 interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
+total_periods = Params.periods_to_sim  # Total number of periods in simulation
+interval_count = (total_periods-ignore_periods)/interval_size
+my_counts = [interval_size,interval_count]
 mystr = lambda number : "{:.3f}".format(number)
 
 # Choose which models to do work for
@@ -102,7 +105,8 @@ if __name__ == '__main__':
             frictionless_panel = runStickyEregressions('SOEsimpleFrictionlessData',interval_size,False,False)
             sticky_panel = runStickyEregressions('SOEsimpleStickyData',interval_size,False,True)
             sticky_me_panel = runStickyEregressions('SOEsimpleStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in Small Open Economy',[sticky_panel,sticky_me_panel],'SOEsimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in Small Open Economy',[frictionless_panel],my_counts,'SOEsimRegFrictionless')
+            makeResultsTable('Aggregate Consumption Dynamics in Small Open Economy',[sticky_panel,sticky_me_panel],my_counts,'SOEsimReg')
     
     
     ###############################################################################
@@ -175,7 +179,8 @@ if __name__ == '__main__':
             frictionless_panel = runStickyEregressions('SOEmarkovFrictionlessData',interval_size,False,False)
             sticky_panel = runStickyEregressions('SOEmarkovStickyData',interval_size,False,True)
             sticky_me_panel = runStickyEregressions('SOEmarkovStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in Small Open Markov Economy (' + str(Params.StateCount) + ' states)',[sticky_panel,sticky_me_panel],'SOEmrkvSimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in Small Open Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel],my_counts,'SOEmrkvSimRegFrictionless')
+            makeResultsTable('Aggregate Consumption Dynamics in Small Open Markov Economy (' + str(Params.StateCount) + ' states)',[sticky_panel,sticky_me_panel],my_counts,'SOEmrkvSimReg')
         
     
     ###############################################################################
@@ -246,7 +251,8 @@ if __name__ == '__main__':
             frictionless_panel = runStickyEregressions('DSGEsimpleFrictionlessData',interval_size,False,False)
             sticky_panel = runStickyEregressions('DSGEsimpleStickyData',interval_size,False,True)
             sticky_me_panel = runStickyEregressions('DSGEsimpleStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Economy',[sticky_panel,sticky_me_panel],'DSGEsimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Economy',[frictionless_panel],my_counts,'DSGEsimRegFrictionless')
+            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Economy',[sticky_panel,sticky_me_panel],my_counts,'DSGEsimReg')
     
     
     ###############################################################################
@@ -306,7 +312,8 @@ if __name__ == '__main__':
             frictionless_panel = runStickyEregressions('DSGEmarkovFrictionlessData',interval_size,False,False)
             sticky_panel = runStickyEregressions('DSGEmarkovStickyData',interval_size,False,True)
             sticky_me_panel = runStickyEregressions('DSGEmarkovStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)',[sticky_panel,sticky_me_panel],'DSGEmrkvSimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel],my_counts,'DSGEmrkvSimRegFrictionless')
+            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)',[sticky_panel,sticky_me_panel],my_counts,'DSGEmrkvSimReg')
         
     
     ###############################################################################
@@ -359,7 +366,8 @@ if __name__ == '__main__':
             frictionless_panel = runStickyEregressions('RAsimpleFrictionlessData',interval_size,False,False)
             sticky_panel = runStickyEregressions('RAsimpleStickyData',interval_size,False,True)
             sticky_me_panel = runStickyEregressions('RAsimpleStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Economy',[sticky_panel,sticky_me_panel],'RepAgentSimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Economy',[frictionless_panel],my_counts,'RepAgentSimRegFrictionless')
+            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Economy',[sticky_panel,sticky_me_panel],my_counts,'RepAgentSimReg')
     
     ###############################################################################
     ########### REPRESENTATIVE AGENT ECONOMY WITH MARKOV STATE ####################
@@ -412,7 +420,8 @@ if __name__ == '__main__':
             frictionless_panel = runStickyEregressions('RAsimpleFrictionlessData',interval_size,False,False)
             sticky_panel = runStickyEregressions('RAmarkovStickyData',interval_size,False,True)
             sticky_me_panel = runStickyEregressions('RAmarkovStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)',[sticky_panel,sticky_me_panel],'RepAgentMrkvSimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel],my_counts,'RepAgentMrkvSimRegFrictionless')
+            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)',[sticky_panel,sticky_me_panel],my_counts,'RepAgentMrkvSimReg')
         
 
         

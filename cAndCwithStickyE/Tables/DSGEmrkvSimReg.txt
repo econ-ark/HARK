@@ -1,38 +1,36 @@
-\begin{table}\caption{Aggregate Consumption Dynamics in HA-DSGE Markov Economy (11 states)}
-\begin{tabular}{cccccc}
+\begin{table} \caption{Aggregate Consumption Dynamics in HA-DSGE Markov Economy (11 states)}
+\centering \begin{tabular}{cccccc}
  \hline \hline\multicolumn{6}{c}{$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon $ } 
 \\ \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  (2nd Stage) & $F~p$-val 
 \\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
 \\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \mathbf{C}_{t+1}$} 
-\\ \multicolumn{1}{c}{$\Delta \log {\widetilde{\mathbf{C}}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} 
-\\ 0.859 & & & OLS & 0.738 & 0.000
+\\ $\Delta \log \mathbf{C}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
+\\ $0.859^{\bullet \bullet \bullet }$ & & & OLS & 0.738 & 
 \\ (0.036) & & & & & 
-\\ 0.836 & & & IV & 0.415 & 0.000
-\\ (0.049) & & & & &
-\\ & 0.853 & & IV & 0.326 & 0.037
-\\ & (0.150) & & & &
-\\ & & -0.0004 & IV & 0.193 & 0.000
+\\ $0.841^{\bullet \bullet \bullet }$ & & & IV & 0.430 & 0.000
+\\ (0.048) & & & & &
+\\ & $0.809^{\bullet \bullet \bullet }$ & & IV & 0.313 & 0.052
+\\ & (0.137) & & & &
+\\ & & $-0.0004^{\bullet \bullet \bullet }$ & IV & 0.193 & 0.000
 \\ & & (0.0001) & & &
-\\ 0.728 & 0.091 & -0.0000 & IV & 0.415 & 999.000
-\\ (0.119) & (0.178) & (0.0001) & & & 
-\\ & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ } 0.410 & 
-\\ \multicolumn{6}{c}{Horserace coefficient on $\Delta \log \mathbf{C}_{t+1}$ significant at 95\% level for 97 of 100 subintervals.} 
-\\ \multicolumn{6}{c}{Horserace coefficient on $\mathbb{E}[\Delta \log \mathbf{Y}_{t+1}]$ significant at 95\% level for 10 of 100 subintervals.} 
+\\ $0.734^{\bullet \bullet \bullet }$ & $0.097$ & $-0.0000$ & IV & 0.431 & 
+\\ (0.088) & (0.120) & (0.0001) & & & 
+\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.423 }  
 \\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \widetilde{\mathbf{C}}_{t+1}$} 
-\\ \multicolumn{1}{c}{$\Delta \log {\widetilde{\mathbf{C}}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} 
-\\ 0.259 & & & OLS & 0.076 & 0.033
-\\ (0.065) & & & & & 
-\\ 0.780 & & & IV & 0.200 & 0.000
-\\ (0.145) & & & & &
-\\ & 0.815 & & IV & 0.177 & 0.038
-\\ & (0.176) & & & &
-\\ & & -0.0004 & IV & 0.111 & 0.000
+\\ $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
+\\ $0.437^{\bullet \bullet \bullet }$ & & & OLS & 0.198 & 
+\\ (0.061) & & & & & 
+\\ $0.808^{\bullet \bullet \bullet }$ & & & IV & 0.270 & 0.000
+\\ (0.113) & & & & &
+\\ & $0.778^{\bullet \bullet \bullet }$ & & IV & 0.212 & 0.052
+\\ & (0.150) & & & &
+\\ & & $-0.0004^{\bullet \bullet \bullet }$ & IV & 0.136 & 0.000
 \\ & & (0.0001) & & &
-\\ 0.554 & 0.224 & -0.0001 & IV & 0.208 & 999.000
-\\ (0.343) & (0.516) & (0.0003) & & & 
-\\ & \multicolumn{4}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ } 0.212 & 
-\\ \multicolumn{6}{c}{Horserace coefficient on $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ significant at 95\% level for 53 of 100 subintervals.} 
-\\ \multicolumn{6}{c}{Horserace coefficient on $\mathbb{E}[\Delta \log \mathbf{Y}_{t+1}]$ significant at 95\% level for 6 of 100 subintervals.} 
-\\ \hline \hline 
+\\ $0.641^{\bullet \bullet \bullet }$ & $0.160$ & $-0.0000$ & IV & 0.274 & 
+\\ (0.210) & (0.288) & (0.0002) & & & 
+\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.273 }  
+\\ \hline 
+ \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are the average values for 100 subsamples of 200 simulated quarters each.  Bullets indicate that the average subsample coefficient divided by average subsample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-1}, \Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{Y}_{t-1}, \Delta \log \mathbf{Y}_{t-2}, A_{t-1}, A_{t-2}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
+ \\ \hline \hline 
 \end{tabular} 
 \end{table} 

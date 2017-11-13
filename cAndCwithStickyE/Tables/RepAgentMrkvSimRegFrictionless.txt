@@ -1,0 +1,23 @@
+\begin{table} \caption{Aggregate Consumption Dynamics in Rep Agent Markov Economy (11 states)}
+\centering \begin{tabular}{cccccc}
+ \hline \hline\multicolumn{6}{c}{$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon $ } 
+\\ \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  (2nd Stage) & $F~p$-val 
+\\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
+\\ \hline \multicolumn{3}{c}{Frictionless : $\Delta \log \mathbf{C}_{t+1}$} 
+\\ $\Delta \log \mathbf{C}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
+\\ $0.016$ & & & OLS & -0.000 & 
+\\ (0.070) & & & & & 
+\\ $0.238$ & & & IV & 0.001 & 0.494
+\\ (0.425) & & & & &
+\\ & $0.094$ & & IV & 0.025 & 0.519
+\\ & (0.233) & & & &
+\\ & & $0.0001$ & IV & -0.000 & 0.000
+\\ & & (0.0002) & & &
+\\ $0.083$ & $0.451^{\bullet \bullet \bullet }$ & $-0.0001$ & IV & 0.019 & 
+\\ (0.317) & (0.175) & (0.0002) & & & 
+\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.000 }  
+\\ \hline 
+ \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are the average values for 100 subsamples of 200 simulated quarters each.  Bullets indicate that the average subsample coefficient divided by average subsample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-1}, \Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{Y}_{t-1}, \Delta \log \mathbf{Y}_{t-2}, A_{t-1}, A_{t-2}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
+ \\ \hline \hline 
+\end{tabular} 
+\end{table} 
