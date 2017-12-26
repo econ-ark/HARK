@@ -38,7 +38,7 @@ do_RA_markov   = True
 # Choose what kind of work to do for each model
 run_models = False
 make_tables = True
-use_stata = False
+use_stata = True
 
 # Choose whether to save data for use in Stata (as a tab-delimited text file)
 save_data = True

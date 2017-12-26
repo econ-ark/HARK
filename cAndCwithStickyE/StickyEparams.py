@@ -20,7 +20,7 @@ from HARKutilities import approxUniform
 UpdatePrb = 0.25       # Probability that each agent observes the aggregate productivity state each period (in sticky version)
 periods_to_sim = 21010 # Total number of periods to simulate; this might be increased by DSGEmarkov model
 ignore_periods = 1000  # Number of simulated periods to ignore (in order to ensure we are near steady state)
-interval_size = 20000  # Number of periods in each subsample interval
+interval_size = 200  # Number of periods in each subsample interval
 AgentCount = 20000     # Total number of agents to simulate in the economy
 
 # Choose extent of discount factor heterogeneity (inapplicable to representative agent models)
