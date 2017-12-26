@@ -1,21 +1,21 @@
 \begin{table} \caption{Aggregate Consumption Dynamics in Rep Agent Markov Economy (11 states)}
-\centering \begin{tabular}{cccccc}
- \hline \hline\multicolumn{6}{c}{$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon $ } 
-\\ \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  (2nd Stage) & $F~p$-val 
-\\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
-\\ \hline \multicolumn{3}{c}{Frictionless : $\Delta \log \mathbf{C}_{t}$} 
-\\ $\Delta \log \mathbf{C}_{t}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
-\\ $0.030^{***}$ & & & OLS & 0.001 & 
+\centering 
+$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon $ \\  
+\begin{tabular}{d{4}d{4}d{5}cd{4}d{5}}
+ \toprule 
+\multicolumn{3}{c}{Expectations : Dep Var} & OLS &  \multicolumn{1}{c}{2${}^	ext{nd}$ Stage}  &  \multicolumn{1}{c}{KP $p$-val} 
+\\ \multicolumn{3}{c}{Independent Variables} & or IV & \multicolumn{1}{c}{$\bar{R}^{2} $} & \multicolumn{1}{c}{Hansen J $p$ val} 
+\\ \hline \multicolumn{6}{l}{Frictionless : $\Delta \log \mathbf{C}_{t+1}$} 
+\\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
+\\ 0.030^{***} & & & OLS & 0.001 & 
 \\ (0.007) & & & & & 
-\\ $0.896^{***}$ & & & IV & 0.004 & 0.000
-\\ (0.135) & & & & &
-\\ & $1.037^{***}$ & & IV & 0.002 & 0.325
+\\ & 1.037^{***} & & IV & 0.002 & 0.325
 \\ & (0.220) & & & &
-\\ & & $-1.49\text{e-4}^{***}$ & IV & 0.004 & 0.000
+\\ & & -1.49\text{e-4}^{***} & IV & 0.004 & 0.000
 \\ & & (0.16\text{e-4}) & & &
-\\ $0.056$ & $0.502^{***}$ & $-1.24\text{e-4}^{**}$ & IV & 0.005 & 
+\\ 0.056 & 0.502^{***} & -1.24\text{e-4}^{**} & IV & 0.005 & 
 \\ (0.372) & (0.157) & (0.61\text{e-4}) & & & 
-\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.004 }  
+\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.004 }  
 \\ \hline 
  \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are for a single simulation of 20000 quarters.  Stars indicate statistical significance at the 90\%, 95\%, and 99\% levels, respectively.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
  \\ \hline \hline 

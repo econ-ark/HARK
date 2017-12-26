@@ -111,8 +111,7 @@ if __name__ == '__main__':
                 frictionless_panel = runStickyEregressions('SOEsimpleFrictionlessData',interval_size,False,False)
                 sticky_panel = runStickyEregressions('SOEsimpleStickyData',interval_size,False,True)
                 sticky_me_panel = runStickyEregressions('SOEsimpleStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in Small Open Economy',[frictionless_panel],my_counts,'SOEsimRegFrictionless')
-            makeResultsTable('Aggregate Consumption Dynamics in Small Open Economy',[sticky_panel,sticky_me_panel],my_counts,'SOEsimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in PE/SOE Economy',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'SOEsimReg')
     
     
     ###############################################################################
@@ -190,9 +189,7 @@ if __name__ == '__main__':
                 frictionless_panel = runStickyEregressions('SOEmarkovFrictionlessData',interval_size,False,False)
                 sticky_panel = runStickyEregressions('SOEmarkovStickyData',interval_size,False,True)
                 sticky_me_panel = runStickyEregressions('SOEmarkovStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in Small Open Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel],my_counts,'SOEmrkvSimRegFrictionless')
-            makeResultsTable('Aggregate Consumption Dynamics in Small Open Markov Economy (' + str(Params.StateCount) + ' states)',[sticky_panel,sticky_me_panel],my_counts,'SOEmrkvSimReg')
-        
+            makeResultsTable('Aggregate Consumption Dynamics in PE/SOE Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'SOEmrkvSimReg')
     
     ###############################################################################
     ################# COBB-DOUGLAS ECONOMY ########################################
@@ -267,9 +264,7 @@ if __name__ == '__main__':
                 frictionless_panel = runStickyEregressions('DSGEsimpleFrictionlessData',interval_size,False,False)
                 sticky_panel = runStickyEregressions('DSGEsimpleStickyData',interval_size,False,True)
                 sticky_me_panel = runStickyEregressions('DSGEsimpleStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Economy',[frictionless_panel],my_counts,'DSGEsimRegFrictionless')
-            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Economy',[sticky_panel,sticky_me_panel],my_counts,'DSGEsimReg')
-    
+            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Economy',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'DSGEsimReg')
     
     ###############################################################################
     ########## COBB-DOUGLAS ECONOMY WITH MACROECONOMIC MARKOV STATE ###############
@@ -333,9 +328,8 @@ if __name__ == '__main__':
                 frictionless_panel = runStickyEregressions('DSGEmarkovFrictionlessData',interval_size,False,False)
                 sticky_panel = runStickyEregressions('DSGEmarkovStickyData',interval_size,False,True)
                 sticky_me_panel = runStickyEregressions('DSGEmarkovStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel],my_counts,'DSGEmrkvSimRegFrictionless')
-            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)',[sticky_panel,sticky_me_panel],my_counts,'DSGEmrkvSimReg')
-        
+            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'DSGEmrkvSimReg')
+       
     
     ###############################################################################
     ################# REPRESENTATIVE AGENT ECONOMY ################################
@@ -392,8 +386,7 @@ if __name__ == '__main__':
                 frictionless_panel = runStickyEregressions('RAsimpleFrictionlessData',interval_size,False,False)
                 sticky_panel = runStickyEregressions('RAsimpleStickyData',interval_size,False,True)
                 sticky_me_panel = runStickyEregressions('RAsimpleStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Economy',[frictionless_panel],my_counts,'RepAgentSimRegFrictionless')
-            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Economy',[sticky_panel,sticky_me_panel],my_counts,'RepAgentSimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Economy',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'RepAgentSimReg')
     
     ###############################################################################
     ########### REPRESENTATIVE AGENT ECONOMY WITH MARKOV STATE ####################
@@ -451,8 +444,7 @@ if __name__ == '__main__':
                 frictionless_panel = runStickyEregressions('RAsimpleFrictionlessData',interval_size,False,False)
                 sticky_panel = runStickyEregressions('RAmarkovStickyData',interval_size,False,True)
                 sticky_me_panel = runStickyEregressions('RAmarkovStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel],my_counts,'RepAgentMrkvSimRegFrictionless')
-            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)',[sticky_panel,sticky_me_panel],my_counts,'RepAgentMrkvSimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'RepAgentMrkvSimReg')
         
 
         

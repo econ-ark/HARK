@@ -1,34 +1,39 @@
 \begin{table} \caption{Aggregate Consumption Dynamics in HA-DSGE Markov Economy (11 states)}
-\centering \begin{tabular}{cccccc}
- \hline \hline\multicolumn{6}{c}{$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon $ } 
-\\ \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  (2nd Stage) & $F~p$-val 
-\\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
-\\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \mathbf{C}_{t}$} 
-\\ $\Delta \log \mathbf{C}_{t}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
-\\ $0.914^{***}$ & & & OLS & 0.834 & 
+\centering 
+$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon_{t+1} $ \\  
+\begin{tabular}{d{4}d{4}d{5}cd{4}d{5}}
+ \toprule 
+\multicolumn{3}{c}{Expectations : Dep Var} & OLS &  \multicolumn{1}{c}{2${}^{\text{nd}}$ Stage}  &  \multicolumn{1}{c}{KP $p$-val} 
+\\ \multicolumn{3}{c}{Independent Variables} & or IV & \multicolumn{1}{c}{$\bar{R}^{2} $} & \multicolumn{1}{c}{Hansen J $p$ val} 
+\\ \hline \multicolumn{6}{l}{Frictionless : $\Delta \log \mathbf{C}_{t+1}$} 
+\\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
+\\ 0.457^{***} & & & OLS & 0.209 & 
+\\ (0.006) & & & & & 
+\\ & 0.788^{***} & & IV & 0.180 & 0.000
+\\ & (0.013) & & & &
+\\ & & -5.63\text{e-4}^{***} & IV & 0.201 & 0.000
+\\ & & (0.08\text{e-4}) & & &
+\\ 0.543^{**} & 0.070^{**} & -2.14\text{e-4}^{*} & IV & 0.201 & 
+\\ (0.221) & (0.034) & (1.18\text{e-4}) & & & 
+\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.201 }  
+\\ \hline \multicolumn{6}{l}{Sticky : $\Delta \log \perc{\mathbf{C}}_{t+1}$ (no measurement error)} 
+\\ \multicolumn{1}{c}{$\Delta \log \perc{\mathbf{C}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \perc{\mathbf{Y}}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
+\\ 0.914^{***} & & & OLS & 0.834 & 
 \\ (0.003) & & & & & 
-\\ $0.920^{***}$ & & & IV & 0.616 & 0.000
-\\ (0.003) & & & & &
-\\ & $0.954^{***}$ & & IV & 0.578 & 0.000
-\\ & (0.011) & & & &
-\\ & & $-5.91\text{e-4}^{***}$ & IV & 0.463 & 0.000
-\\ & & (0.04\text{e-4}) & & &
-\\ $0.808^{***}$ & $-0.005$ & $-1.06\text{e-4}^{***}$ & IV & 0.621 & 
-\\ (0.011) & (0.017) & (0.06\text{e-4}) & & & 
-\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.621 }  
-\\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \widetilde{\mathbf{C}}_{t}$} 
-\\ $\Delta \log \widetilde{\mathbf{C}}_{t}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
-\\ $0.604^{***}$ & & & OLS & 0.364 & 
+\\ \hline \multicolumn{6}{l}{Sticky : $\Delta \log \perc{\mathbf{C}}_{t+1}^*$ (with measurement error); $\perc{\mathbf{C}}_{t+1}^* =\perc{\mathbf{C}}_{t+1}\times \xi_t$} 
+\\ \multicolumn{1}{c}{$\Delta \log \perc{\mathbf{C}}_{t}^*$} & \multicolumn{1}{c}{$\Delta \log \perc{\mathbf{Y}}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
+\\ 0.604^{***} & & & OLS & 0.364 & 
 \\ (0.005) & & & & & 
-\\ $0.920^{***}$ & & & IV & 0.466 & 0.000
+\\ 0.920^{***} & & & IV & 0.466 & 0.000
 \\ (0.008) & & & & &
-\\ & $0.949^{***}$ & & IV & 0.445 & 0.000
+\\ & 0.949^{***} & & IV & 0.445 & 0.000
 \\ & (0.012) & & & &
-\\ & & $-5.90\text{e-4}^{***}$ & IV & 0.361 & 0.000
+\\ & & -5.90\text{e-4}^{***} & IV & 0.361 & 0.000
 \\ & & (0.05\text{e-4}) & & &
-\\ $0.792^{***}$ & $0.004$ & $-1.09\text{e-4}^{***}$ & IV & 0.470 & 
+\\ 0.792^{***} & 0.004 & -1.09\text{e-4}^{***} & IV & 0.470 & 
 \\ (0.029) & (0.041) & (0.15\text{e-4}) & & & 
-\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.470 }  
+\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \perc{\mathbf{C}}_{t+1}^*$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.470 }  
+\\ \multicolumn{6}{l}{$\var(\xi_t)=$0.03\text{e-4}} 
 \\ \hline 
  \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are for a single simulation of 20000 quarters.  Stars indicate statistical significance at the 90\%, 95\%, and 99\% levels, respectively.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
  \\ \hline \hline 

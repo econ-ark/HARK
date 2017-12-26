@@ -5,7 +5,7 @@ clear
 global filename `1'
 global interval_size `2'
 global meas_err `3'
-global instruments = "L(3/4).deltalogc L4.delta8logc L(3/4).deltalogy L4.delta8logy L(3/4).a"
+global instruments = "L(3/4).deltalogc L3.delta8logc L(3/4).deltalogy L3.delta8logy L(3/4).a"
 
 *import data from file produced in Python
 import delimited $filename, clear
@@ -111,6 +111,11 @@ forvalues i = 1/$num_regressions {
 	matrix ExtraInfo[4,1] = ExtraInfo[4,1] + e(r2_a)/$num_regressions
 }
 matrix ExtraInfo[3,1] = $num_regressions
+
+*Hard code variance of measurement error - better to pass this in from the data file
+*Can replace this once new data files are produced
+qui sum deltalogc
+matrix ExtraInfo[5,1] =  r(sd)*0.375
 
 *Store results in a file
 clear

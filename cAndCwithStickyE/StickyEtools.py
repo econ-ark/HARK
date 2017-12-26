@@ -126,7 +126,8 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
     # Add measurement error to LogC
     sigma_meas_err = np.std(DeltaLogC)*0.375
     np.random.seed(10)
-    LogC_me = LogC + sigma_meas_err*np.random.normal(0.,1.,LogC.size)
+    Measurement_Error = sigma_meas_err*np.random.normal(0.,1.,LogC.size)
+    LogC_me = LogC + Measurement_Error
     DeltaLogC_me = LogC_me[1:] - LogC_me[0:-1]
     
     # Apply measurement error to long delta LogC
@@ -159,7 +160,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
             f.close()
             
         if save_data:
-            DataArray = (np.vstack((np.arange(DeltaLogC.size),DeltaLogC_me,DeltaLogC,DeltaLogY,A,BigTheta,Delta8LogC,Delta8LogY,Delta8LogC_me))).transpose()
+            DataArray = (np.vstack((np.arange(DeltaLogC.size),DeltaLogC_me,DeltaLogC,DeltaLogY,A,BigTheta,Delta8LogC,Delta8LogY,Delta8LogC_me,Measurement_Error))).transpose()
             VarNames = ['time_period','DeltaLogC_me','DeltaLogC','DeltaLogY','A','BigTheta','Delta8LogC','Delta8LogY','Delta8LogC_me']
             if hasattr(Economy,'MrkvNow'):
                 DataArray = np.hstack((DataArray,np.reshape(Mrkv,(Mrkv.size,1))))
@@ -335,7 +336,12 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
     t_stat_array = CoeffsArray/StdErrArray
     C_successes_95 = np.sum(t_stat_array[:,4] > 1.96)
     Y_successes_95 = np.sum(t_stat_array[:,5] > 1.96)
-    N_out = [C_successes_95,Y_successes_95,N,np.mean(InstrRsqVec)]
+    
+    #Hard code variance of measurement error - better to pass this in from the data file
+    #Can replace this once new data files are produced
+    sigma_meas_err = np.std(DeltaLogC)*0.375
+    
+    N_out = [C_successes_95,Y_successes_95,N,np.mean(InstrRsqVec),sigma_meas_err**2]
     
     # Make results table and return it
     panel_text = makeResultsPanel(Coeffs=np.mean(CoeffsArray,axis=0),
@@ -452,16 +458,29 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
         Text string with one panel of LaTeX input.
     '''
     # Define Delta log C text and expectations text
-    if meas_err:
-        DeltaLogC = '$\Delta \log \widetilde{\mathbf{C}}_{t}$'
-        DeltaLogC1 = '$\Delta \log \widetilde{\mathbf{C}}_{t+1}$'
+    if sticky & meas_err:
+        DeltaLogC = '$\Delta \log \perc{\mathbf{C}}_{t}^*$'
+        DeltaLogC1 = '$\Delta \log \perc{\mathbf{C}}_{t+1}^*$'
     else:
-        DeltaLogC = '$\Delta \log \mathbf{C}_{t}$'
-        DeltaLogC1 = '$\Delta \log \mathbf{C}_{t+1}$'
+        if sticky:
+            DeltaLogC = '$\Delta \log \perc{\mathbf{C}}_{t}$'
+            DeltaLogC1 = '$\Delta \log \perc{\mathbf{C}}_{t+1}$'
+        else:
+            DeltaLogC = '$\Delta \log \mathbf{C}_{t}$'
+            DeltaLogC1 = '$\Delta \log \mathbf{C}_{t+1}$'
     if sticky:
         Expectations = 'Sticky'
+        DeltaLogY1 = '$\Delta \log \perc{\mathbf{Y}}_{t+1}$'
     else:
         Expectations = 'Frictionless'
+        DeltaLogY1 = '$\Delta \log \mathbf{Y}_{t+1}$'
+    if sticky:
+        if meas_err:
+            MeasErr = ' (with measurement error); $\perc{\mathbf{C}}_{t+1}^* =\perc{\mathbf{C}}_{t+1}\\times \\xi_t$'
+        else:
+            MeasErr = ' (no measurement error)'
+    else:
+        MeasErr = ''
         
     # Define significance symbols
     if Counts[2] > 1:
@@ -478,20 +497,23 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
             sig_text = ''
         return sig_text
 
-    output = '\\\\ \hline \multicolumn{3}{c}{' + Expectations + ' : ' + DeltaLogC + '} \n'
-    output += '\\\\ ' + DeltaLogC + ' & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ \n'
-    output += '\\\\ $' + mystr1(Coeffs[0]) + sigFunc(Coeffs[0],StdErrs[0]) + '$ & & & OLS & ' + mystr1(Rsq[0]) + ' & ' + mystr1(np.nan) + '\n'   
+    output = '\\\\ \hline \multicolumn{6}{l}{' + Expectations + ' : ' + DeltaLogC1 + MeasErr + '} \n'
+    output += '\\\\ \multicolumn{1}{c}{' + DeltaLogC + '} & \multicolumn{1}{c}{' + DeltaLogY1 +'} & \multicolumn{1}{c}{$A_{t}$} & & & \n'
+    output += '\\\\ ' + mystr1(Coeffs[0]) + sigFunc(Coeffs[0],StdErrs[0]) + ' & & & OLS & ' + mystr1(Rsq[0]) + ' & ' + mystr1(np.nan) + '\n'   
     output += '\\\\ (' + mystr1(StdErrs[0]) + ') & & & & & \n'   
-    output += '\\\\ $' + mystr1(Coeffs[1]) + sigFunc(Coeffs[1],StdErrs[1]) + '$ & & & IV & ' + mystr1(Rsq[1]) + ' & ' + mystr1(Pvals[1]) + '\n'   
-    output += '\\\\ (' + mystr1(StdErrs[1]) + ') & & & & &' + mystr1(OID[1]) + '\n'   
-    output += '\\\\ & $' + mystr1(Coeffs[2]) + sigFunc(Coeffs[2],StdErrs[2]) + '$ & & IV & ' + mystr1(Rsq[2]) + ' & ' + mystr1(Pvals[2]) + '\n'     
-    output += '\\\\ & (' + mystr1(StdErrs[2]) + ') & & & &' + mystr1(OID[2]) + '\n'    
-    output += '\\\\ & & $' + mystr2(Coeffs[3]) + sigFunc(Coeffs[3],StdErrs[3]) + '$ & IV & ' + mystr1(Rsq[3]) + ' & ' + mystr1(Pvals[3]) + '\n'   
-    output += '\\\\ & & (' + mystr2(StdErrs[3]) + ') & & &' + mystr1(OID[3]) + '\n'    
-    output += '\\\\ $' + mystr1(Coeffs[4]) + sigFunc(Coeffs[4],StdErrs[4]) + '$ & $' + mystr1(Coeffs[5]) + sigFunc(Coeffs[5],StdErrs[5]) + '$ & $' + mystr2(Coeffs[6]) + sigFunc(Coeffs[6],StdErrs[6]) + '$ & IV & ' + mystr1(Rsq[4]) + ' & ' + mystr1(Pvals[4]) + '\n'     
-    output += '\\\\ (' + mystr1(StdErrs[4]) + ') & (' + mystr1(StdErrs[5]) + ') & (' + mystr2(StdErrs[6]) + ') & & & \n'
-    output += '\\\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, ' + DeltaLogC1 + ' $= \mathbf{Z}_{t} \zeta,~~\\bar{R}^{2}=$' + mystr1(Counts[3]) +' }  \n'
-    
+    if sticky & meas_err:
+        output += '\\\\ ' + mystr1(Coeffs[1]) + sigFunc(Coeffs[1],StdErrs[1]) + ' & & & IV & ' + mystr1(Rsq[1]) + ' & ' + mystr1(Pvals[1]) + '\n'   
+        output += '\\\\ (' + mystr1(StdErrs[1]) + ') & & & & &' + mystr1(OID[1]) + '\n'   
+    if (not sticky) or meas_err:
+        output += '\\\\ & ' + mystr1(Coeffs[2]) + sigFunc(Coeffs[2],StdErrs[2]) + ' & & IV & ' + mystr1(Rsq[2]) + ' & ' + mystr1(Pvals[2]) + '\n'     
+        output += '\\\\ & (' + mystr1(StdErrs[2]) + ') & & & &' + mystr1(OID[2]) + '\n'    
+        output += '\\\\ & & ' + mystr2(Coeffs[3]) + sigFunc(Coeffs[3],StdErrs[3]) + ' & IV & ' + mystr1(Rsq[3]) + ' & ' + mystr1(Pvals[3]) + '\n'   
+        output += '\\\\ & & (' + mystr2(StdErrs[3]) + ') & & &' + mystr1(OID[3]) + '\n'    
+        output += '\\\\ ' + mystr1(Coeffs[4]) + sigFunc(Coeffs[4],StdErrs[4]) + ' & ' + mystr1(Coeffs[5]) + sigFunc(Coeffs[5],StdErrs[5]) + ' & ' + mystr2(Coeffs[6]) + sigFunc(Coeffs[6],StdErrs[6]) + ' & IV & ' + mystr1(Rsq[4]) + ' & ' + mystr1(Pvals[4]) + '\n'     
+        output += '\\\\ (' + mystr1(StdErrs[4]) + ') & (' + mystr1(StdErrs[5]) + ') & (' + mystr2(StdErrs[6]) + ') & & & \n'
+        output += '\\\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, ' + DeltaLogC1 + ' $= \mathbf{Z}_{t} \zeta,~~\\bar{R}^{2}=$' + mystr1(Counts[3]) +' }  \n'
+    if meas_err & sticky:
+        output += '\\\\ \multicolumn{6}{l}{$\\var(\\xi_t)=$' + mystr2(Counts[4]) + '} \n'
     if Counts[0] is not None and Counts[2] > 1 and False:
         output += '\\\\ \multicolumn{6}{c}{Horserace coefficient on ' + DeltaLogC + ' significant at 95\% level for ' + str(Counts[0]) + ' of ' + str(Counts[2]) + ' subintervals.} \n'
         output += '\\\\ \multicolumn{6}{c}{Horserace coefficient on $\mathbb{E}[\Delta \log \mathbf{Y}_{t+1}]$ significant at 95\% level for ' + str(Counts[1]) + ' of ' + str(Counts[2]) + ' subintervals.} \n'
@@ -530,10 +552,11 @@ def makeResultsTable(caption,panels,counts,filename):
         
     
     output = '\\begin{table} \caption{' + caption + '}\n'
-    output += '\centering \\begin{tabular}{cccccc}\n \hline \hline'
-    output += '\multicolumn{6}{c}{$ \Delta \log \mathbf{C}_{t+1} = \\varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \\alpha A_t + \epsilon $ } \n'
-    output += '\\\\ \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  (2nd Stage) & $F~p$-val \n'
-    output += '\\\\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \\bar{R}^{2} $ & IV OID \n'
+    output += '\centering \n'
+    output += '$ \Delta \log \mathbf{C}_{t+1} = \\varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \\alpha A_t + \epsilon_{t+1} $ \\\\  \n'
+    output += '\\begin{tabular}{d{4}d{4}d{5}cd{4}d{5}}\n \\toprule \n'
+    output += '\multicolumn{3}{c}{Expectations : Dep Var} & OLS &  \multicolumn{1}{c}{2${}^{\\text{nd}}$ Stage}  &  \multicolumn{1}{c}{KP $p$-val} \n'
+    output += '\\\\ \multicolumn{3}{c}{Independent Variables} & or IV & \multicolumn{1}{c}{$\\bar{R}^{2} $} & \multicolumn{1}{c}{Hansen J $p$ val} \n'
     
     for panel in panels:
         output += panel
