@@ -8,13 +8,13 @@
 \\ $0.030^{***}$ & & & OLS & 0.001 & 
 \\ (0.007) & & & & & 
 \\ $0.893^{***}$ & & & IV & 0.004 & 0.000
-\\ (0.134) & & & & &
-\\ & $0.365$ & & IV & 0.002 & 0.340
-\\ & (0.226) & & & &
-\\ & & $-1.49\text{e-4}^{***}$ & IV & 0.004 & 0.000
-\\ & & (0.16\text{e-4}) & & &
-\\ $0.061$ & $0.502^{***}$ & $-1.23\text{e-4}^{**}$ & IV & 0.005 & 
-\\ (0.340) & (0.151) & (0.56\text{e-4}) & & & 
+\\ (0.134) & & & & &0.172
+\\ & $1.032^{***}$ & & IV & 0.002 & 0.329
+\\ & (0.218) & & & &0.000
+\\ & & $-1.48\text{e-4}^{***}$ & IV & 0.004 & 0.000
+\\ & & (0.16\text{e-4}) & & &0.473
+\\ $0.054$ & $0.501^{***}$ & $-1.24\text{e-4}^{**}$ & IV & 0.005 & 0.944
+\\ (0.371) & (0.156) & (0.60\text{e-4}) & & & 
 \\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.004 }  
 \\ \hline 
  \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are for a single simulation of 20000 quarters.  Stars indicate statistical significance at the 90\%, 95\%, and 99\% levels, respectively.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 

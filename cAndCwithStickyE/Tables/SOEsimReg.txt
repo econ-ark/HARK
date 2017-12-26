@@ -5,29 +5,29 @@
 \\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
 \\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \mathbf{C}_{t+1}$} 
 \\ $\Delta \log \mathbf{C}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
-\\ $0.580^{***}$ & & & OLS & 0.336 & 
+\\ $0.580^{***}$ & & & OLS & 0.337 & 
 \\ (0.009) & & & & & 
 \\ $0.719^{***}$ & & & IV & 0.113 & 0.000
-\\ (0.013) & & & & &
-\\ & $1.196^{***}$ & & IV & 0.001 & 0.655
-\\ & (0.364) & & & &
-\\ & & $-41.79\text{e-4}^{***}$ & IV & 0.015 & 0.000
-\\ & & (2.36\text{e-4}) & & &
-\\ $0.716^{***}$ & $0.148^{**}$ & $-2.76\text{e-4}$ & IV & 0.113 & 
-\\ (0.010) & (0.071) & (1.72\text{e-4}) & & & 
+\\ (0.013) & & & & &0.630
+\\ & $-0.581$ & & IV & 0.001 & 0.881
+\\ & (0.387) & & & &0.000
+\\ & & $-41.73\text{e-4}^{***}$ & IV & 0.015 & 0.000
+\\ & & (2.71\text{e-4}) & & &0.000
+\\ $0.718^{***}$ & $0.182^{*}$ & $-2.30\text{e-4}$ & IV & 0.113 & 0.845
+\\ (0.010) & (0.096) & (2.51\text{e-4}) & & & 
 \\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.113 }  
 \\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \widetilde{\mathbf{C}}_{t+1}$} 
 \\ $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
 \\ $0.345^{***}$ & & & OLS & 0.119 & 
 \\ (0.007) & & & & & 
-\\ $0.709^{***}$ & & & IV & 0.083 & 0.000
-\\ (0.017) & & & & &
-\\ & $2.198^{**}$ & & IV & 0.000 & 0.657
-\\ & (0.863) & & & &
-\\ & & $-42.56\text{e-4}^{***}$ & IV & 0.012 & 0.000
-\\ & & (2.69\text{e-4}) & & &
-\\ $0.706^{***}$ & $0.175$ & $-2.54\text{e-4}$ & IV & 0.084 & 
-\\ (0.017) & (0.121) & (2.94\text{e-4}) & & & 
+\\ $0.708^{***}$ & & & IV & 0.084 & 0.000
+\\ (0.017) & & & & &0.602
+\\ & $-0.508$ & & IV & 0.001 & 0.864
+\\ & (0.346) & & & &0.000
+\\ & & $-42.48\text{e-4}^{***}$ & IV & 0.012 & 0.000
+\\ & & (2.99\text{e-4}) & & &0.000
+\\ $0.705^{***}$ & $0.166$ & $-2.71\text{e-4}$ & IV & 0.084 & 0.828
+\\ (0.017) & (0.143) & (3.42\text{e-4}) & & & 
 \\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.083 }  
 \\ \hline 
  \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are for a single simulation of 20000 quarters.  Stars indicate statistical significance at the 90\%, 95\%, and 99\% levels, respectively.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 

@@ -3,18 +3,18 @@
  \hline \hline\multicolumn{6}{c}{$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon $ } 
 \\ \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  (2nd Stage) & $F~p$-val 
 \\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
-\\ \hline \multicolumn{3}{c}{Frictionless : $\Delta \log \mathbf{C}_{t+1}$} 
-\\ $\Delta \log \mathbf{C}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
+\\ \hline \multicolumn{3}{c}{Frictionless : $\Delta \log \mathbf{C}_{t}$} 
+\\ $\Delta \log \mathbf{C}_{t}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
 \\ $0.457^{***}$ & & & OLS & 0.209 & 
 \\ (0.006) & & & & & 
-\\ $0.999^{***}$ & & & IV & 0.201 & 0.000
+\\ $0.998^{***}$ & & & IV & 0.201 & 0.000
 \\ (0.016) & & & & &
-\\ & $0.778^{***}$ & & IV & 0.181 & 0.000
-\\ & (0.010) & & & &
-\\ & & $-5.64\text{e-4}^{***}$ & IV & 0.201 & 0.000
+\\ & $0.788^{***}$ & & IV & 0.180 & 0.000
+\\ & (0.013) & & & &
+\\ & & $-5.63\text{e-4}^{***}$ & IV & 0.201 & 0.000
 \\ & & (0.08\text{e-4}) & & &
-\\ $0.642^{***}$ & $0.075^{**}$ & $-1.55\text{e-4}$ & IV & 0.201 & 
-\\ (0.241) & (0.034) & (1.29\text{e-4}) & & & 
+\\ $0.543^{**}$ & $0.070^{**}$ & $-2.14\text{e-4}^{*}$ & IV & 0.201 & 
+\\ (0.221) & (0.034) & (1.18\text{e-4}) & & & 
 \\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.201 }  
 \\ \hline 
  \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are for a single simulation of 20000 quarters.  Stars indicate statistical significance at the 90\%, 95\%, and 99\% levels, respectively.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 

@@ -8,27 +8,27 @@
 \\ $0.542^{***}$ & & & OLS & 0.294 & 
 \\ (0.014) & & & & & 
 \\ $0.791^{***}$ & & & IV & 0.174 & 0.000
-\\ (0.012) & & & & &
-\\ & $1.830^{***}$ & & IV & 0.062 & 0.021
-\\ & (0.346) & & & &
+\\ (0.012) & & & & &0.000
+\\ & $1.930^{***}$ & & IV & 0.066 & 0.046
+\\ & (0.471) & & & &0.000
 \\ & & $-8.80\text{e-4}^{***}$ & IV & 0.107 & 0.000
-\\ & & (0.17\text{e-4}) & & &
-\\ $0.730^{***}$ & $0.096$ & $-0.93\text{e-4}^{***}$ & IV & 0.175 & 
-\\ (0.015) & (0.075) & (0.35\text{e-4}) & & & 
+\\ & & (0.17\text{e-4}) & & &0.000
+\\ $0.732^{***}$ & $0.141$ & $-0.76\text{e-4}$ & IV & 0.175 & 0.849
+\\ (0.017) & (0.113) & (0.47\text{e-4}) & & & 
 \\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.175 }  
 \\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \widetilde{\mathbf{C}}_{t+1}$} 
 \\ $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
 \\ $0.316^{***}$ & & & OLS & 0.100 & 
 \\ (0.010) & & & & & 
-\\ $0.784^{***}$ & & & IV & 0.132 & 0.000
-\\ (0.016) & & & & &
-\\ & $2.167^{***}$ & & IV & 0.050 & 0.021
-\\ & (0.446) & & & &
+\\ $0.783^{***}$ & & & IV & 0.132 & 0.000
+\\ (0.016) & & & & &0.003
+\\ & $1.932^{***}$ & & IV & 0.052 & 0.043
+\\ & (0.468) & & & &0.000
 \\ & & $-8.77\text{e-4}^{***}$ & IV & 0.083 & 0.000
-\\ & & (0.20\text{e-4}) & & &
-\\ $0.716^{***}$ & $0.084$ & $-1.07\text{e-4}^{**}$ & IV & 0.132 & 
-\\ (0.022) & (0.109) & (0.50\text{e-4}) & & & 
-\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.132 }  
+\\ & & (0.20\text{e-4}) & & &0.000
+\\ $0.714^{***}$ & $0.058$ & $-1.17\text{e-4}^{**}$ & IV & 0.133 & 0.824
+\\ (0.023) & (0.141) & (0.59\text{e-4}) & & & 
+\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.133 }  
 \\ \hline 
  \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are for a single simulation of 20000 quarters.  Stars indicate statistical significance at the 90\%, 95\%, and 99\% levels, respectively.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
  \\ \hline \hline 

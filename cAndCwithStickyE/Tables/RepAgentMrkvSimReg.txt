@@ -3,32 +3,32 @@
  \hline \hline\multicolumn{6}{c}{$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon $ } 
 \\ \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  (2nd Stage) & $F~p$-val 
 \\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
-\\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \mathbf{C}_{t+1}$} 
-\\ $\Delta \log \mathbf{C}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
+\\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \mathbf{C}_{t}$} 
+\\ $\Delta \log \mathbf{C}_{t}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
 \\ $0.863^{***}$ & & & OLS & 0.745 & 
 \\ (0.003) & & & & & 
 \\ $0.906^{***}$ & & & IV & 0.487 & 0.000
 \\ (0.005) & & & & &
-\\ & $0.841^{***}$ & & IV & 0.426 & 0.000
+\\ & $0.859^{***}$ & & IV & 0.428 & 0.000
 \\ & (0.010) & & & &
 \\ & & $-1.78\text{e-4}^{***}$ & IV & 0.335 & 0.000
 \\ & & (0.02\text{e-4}) & & &
-\\ $0.791^{***}$ & $0.007$ & $-0.34\text{e-4}^{***}$ & IV & 0.492 & 
-\\ (0.011) & (0.014) & (0.02\text{e-4}) & & & 
+\\ $0.793^{***}$ & $0.004$ & $-0.34\text{e-4}^{***}$ & IV & 0.492 & 
+\\ (0.011) & (0.015) & (0.02\text{e-4}) & & & 
 \\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.492 }  
-\\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \widetilde{\mathbf{C}}_{t+1}$} 
-\\ $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
+\\ \hline \multicolumn{3}{c}{Sticky : $\Delta \log \widetilde{\mathbf{C}}_{t}$} 
+\\ $\Delta \log \widetilde{\mathbf{C}}_{t}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
 \\ $0.565^{***}$ & & & OLS & 0.320 & 
 \\ (0.006) & & & & & 
-\\ $0.911^{***}$ & & & IV & 0.359 & 0.000
+\\ $0.911^{***}$ & & & IV & 0.360 & 0.000
 \\ (0.010) & & & & &
-\\ & $0.828^{***}$ & & IV & 0.321 & 0.000
+\\ & $0.847^{***}$ & & IV & 0.324 & 0.000
 \\ & (0.011) & & & &
 \\ & & $-1.78\text{e-4}^{***}$ & IV & 0.261 & 0.000
 \\ & & (0.02\text{e-4}) & & &
-\\ $0.792^{***}$ & $-0.002$ & $-0.35\text{e-4}^{***}$ & IV & 0.363 & 
-\\ (0.024) & (0.029) & (0.04\text{e-4}) & & & 
-\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.363 }  
+\\ $0.794^{***}$ & $-0.004$ & $-0.35\text{e-4}^{***}$ & IV & 0.364 & 
+\\ (0.024) & (0.030) & (0.04\text{e-4}) & & & 
+\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \widetilde{\mathbf{C}}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.364 }  
 \\ \hline 
  \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are for a single simulation of 20000 quarters.  Stars indicate statistical significance at the 90\%, 95\%, and 99\% levels, respectively.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
  \\ \hline \hline 

@@ -18,7 +18,7 @@ from ConsAggShockModel import SmallOpenEconomy, SmallOpenMarkovEconomy
 from HARKutilities import plotFuncs
 import matplotlib.pyplot as plt
 import StickyEparams as Params
-from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable
+from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable, runStickyEregressionsInStata
 
 ignore_periods = Params.ignore_periods # Number of simulated periods to ignore as a "burn-in" phase
 interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
@@ -28,16 +28,17 @@ my_counts = [interval_size,interval_count]
 mystr = lambda number : "{:.3f}".format(number)
 
 # Choose which models to do work for
-do_SOE_simple  = True
+do_SOE_simple  = False
 do_SOE_markov  = True
-do_DSGE_simple = True
+do_DSGE_simple = False
 do_DSGE_markov = True
-do_RA_simple   = True
+do_RA_simple   = False
 do_RA_markov   = True
 
 # Choose what kind of work to do for each model
 run_models = False
 make_tables = True
+use_stata = False
 
 # Choose whether to save data for use in Stata (as a tab-delimited text file)
 save_data = True
@@ -102,9 +103,14 @@ if __name__ == '__main__':
         
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
-            frictionless_panel = runStickyEregressions('SOEsimpleFrictionlessData',interval_size,False,False)
-            sticky_panel = runStickyEregressions('SOEsimpleStickyData',interval_size,False,True)
-            sticky_me_panel = runStickyEregressions('SOEsimpleStickyData',interval_size,True,True)
+            if use_stata:
+                frictionless_panel = runStickyEregressionsInStata('SOEsimpleFrictionlessData',interval_size,False,False)
+                sticky_panel = runStickyEregressionsInStata('SOEsimpleStickyData',interval_size,False,True)
+                sticky_me_panel = runStickyEregressionsInStata('SOEsimpleStickyData',interval_size,True,True)
+            else:
+                frictionless_panel = runStickyEregressions('SOEsimpleFrictionlessData',interval_size,False,False)
+                sticky_panel = runStickyEregressions('SOEsimpleStickyData',interval_size,False,True)
+                sticky_me_panel = runStickyEregressions('SOEsimpleStickyData',interval_size,True,True)
             makeResultsTable('Aggregate Consumption Dynamics in Small Open Economy',[frictionless_panel],my_counts,'SOEsimRegFrictionless')
             makeResultsTable('Aggregate Consumption Dynamics in Small Open Economy',[sticky_panel,sticky_me_panel],my_counts,'SOEsimReg')
     
@@ -176,9 +182,14 @@ if __name__ == '__main__':
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
-            frictionless_panel = runStickyEregressions('SOEmarkovFrictionlessData',interval_size,False,False)
-            sticky_panel = runStickyEregressions('SOEmarkovStickyData',interval_size,False,True)
-            sticky_me_panel = runStickyEregressions('SOEmarkovStickyData',interval_size,True,True)
+            if use_stata:
+                frictionless_panel = runStickyEregressionsInStata('SOEmarkovFrictionlessData',interval_size,False,False)
+                sticky_panel = runStickyEregressionsInStata('SOEmarkovStickyData',interval_size,False,True)
+                sticky_me_panel = runStickyEregressionsInStata('SOEmarkovStickyData',interval_size,True,True)
+            else:
+                frictionless_panel = runStickyEregressions('SOEmarkovFrictionlessData',interval_size,False,False)
+                sticky_panel = runStickyEregressions('SOEmarkovStickyData',interval_size,False,True)
+                sticky_me_panel = runStickyEregressions('SOEmarkovStickyData',interval_size,True,True)
             makeResultsTable('Aggregate Consumption Dynamics in Small Open Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel],my_counts,'SOEmrkvSimRegFrictionless')
             makeResultsTable('Aggregate Consumption Dynamics in Small Open Markov Economy (' + str(Params.StateCount) + ' states)',[sticky_panel,sticky_me_panel],my_counts,'SOEmrkvSimReg')
         
@@ -248,9 +259,14 @@ if __name__ == '__main__':
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
-            frictionless_panel = runStickyEregressions('DSGEsimpleFrictionlessData',interval_size,False,False)
-            sticky_panel = runStickyEregressions('DSGEsimpleStickyData',interval_size,False,True)
-            sticky_me_panel = runStickyEregressions('DSGEsimpleStickyData',interval_size,True,True)
+            if use_stata:
+                frictionless_panel = runStickyEregressionsInStata('DSGEsimpleFrictionlessData',interval_size,False,False)
+                sticky_panel = runStickyEregressionsInStata('DSGEsimpleStickyData',interval_size,False,True)
+                sticky_me_panel = runStickyEregressionsInStata('DSGEsimpleStickyData',interval_size,True,True)
+            else:
+                frictionless_panel = runStickyEregressions('DSGEsimpleFrictionlessData',interval_size,False,False)
+                sticky_panel = runStickyEregressions('DSGEsimpleStickyData',interval_size,False,True)
+                sticky_me_panel = runStickyEregressions('DSGEsimpleStickyData',interval_size,True,True)
             makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Economy',[frictionless_panel],my_counts,'DSGEsimRegFrictionless')
             makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Economy',[sticky_panel,sticky_me_panel],my_counts,'DSGEsimReg')
     
@@ -309,9 +325,14 @@ if __name__ == '__main__':
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
-            frictionless_panel = runStickyEregressions('DSGEmarkovFrictionlessData',interval_size,False,False)
-            sticky_panel = runStickyEregressions('DSGEmarkovStickyData',interval_size,False,True)
-            sticky_me_panel = runStickyEregressions('DSGEmarkovStickyData',interval_size,True,True)
+            if use_stata:
+                frictionless_panel = runStickyEregressionsInStata('DSGEmarkovFrictionlessData',interval_size,False,False)
+                sticky_panel = runStickyEregressionsInStata('DSGEmarkovStickyData',interval_size,False,True)
+                sticky_me_panel = runStickyEregressionsInStata('DSGEmarkovStickyData',interval_size,True,True)
+            else:
+                frictionless_panel = runStickyEregressions('DSGEmarkovFrictionlessData',interval_size,False,False)
+                sticky_panel = runStickyEregressions('DSGEmarkovStickyData',interval_size,False,True)
+                sticky_me_panel = runStickyEregressions('DSGEmarkovStickyData',interval_size,True,True)
             makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel],my_counts,'DSGEmrkvSimRegFrictionless')
             makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)',[sticky_panel,sticky_me_panel],my_counts,'DSGEmrkvSimReg')
         
@@ -363,9 +384,14 @@ if __name__ == '__main__':
         
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
-            frictionless_panel = runStickyEregressions('RAsimpleFrictionlessData',interval_size,False,False)
-            sticky_panel = runStickyEregressions('RAsimpleStickyData',interval_size,False,True)
-            sticky_me_panel = runStickyEregressions('RAsimpleStickyData',interval_size,True,True)
+            if use_stata:
+                frictionless_panel = runStickyEregressionsInStata('RAsimpleFrictionlessData',interval_size,False,False)
+                sticky_panel = runStickyEregressionsInStata('RAsimpleStickyData',interval_size,False,True)
+                sticky_me_panel = runStickyEregressionsInStata('RAsimpleStickyData',interval_size,True,True)
+            else:
+                frictionless_panel = runStickyEregressions('RAsimpleFrictionlessData',interval_size,False,False)
+                sticky_panel = runStickyEregressions('RAsimpleStickyData',interval_size,False,True)
+                sticky_me_panel = runStickyEregressions('RAsimpleStickyData',interval_size,True,True)
             makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Economy',[frictionless_panel],my_counts,'RepAgentSimRegFrictionless')
             makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Economy',[sticky_panel,sticky_me_panel],my_counts,'RepAgentSimReg')
     
@@ -417,9 +443,14 @@ if __name__ == '__main__':
         
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
-            frictionless_panel = runStickyEregressions('RAsimpleFrictionlessData',interval_size,False,False)
-            sticky_panel = runStickyEregressions('RAmarkovStickyData',interval_size,False,True)
-            sticky_me_panel = runStickyEregressions('RAmarkovStickyData',interval_size,True,True)
+            if use_stata:
+                frictionless_panel = runStickyEregressionsInStata('RAsimpleFrictionlessData',interval_size,False,False)
+                sticky_panel = runStickyEregressionsInStata('RAmarkovStickyData',interval_size,False,True)
+                sticky_me_panel = runStickyEregressionsInStata('RAmarkovStickyData',interval_size,True,True)
+            else:
+                frictionless_panel = runStickyEregressions('RAsimpleFrictionlessData',interval_size,False,False)
+                sticky_panel = runStickyEregressions('RAmarkovStickyData',interval_size,False,True)
+                sticky_me_panel = runStickyEregressions('RAmarkovStickyData',interval_size,True,True)
             makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel],my_counts,'RepAgentMrkvSimRegFrictionless')
             makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)',[sticky_panel,sticky_me_panel],my_counts,'RepAgentMrkvSimReg')
         
