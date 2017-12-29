@@ -18,7 +18,7 @@ from ConsAggShockModel import SmallOpenEconomy, SmallOpenMarkovEconomy
 from HARKutilities import plotFuncs
 import matplotlib.pyplot as plt
 import StickyEparams as Params
-from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable, runStickyEregressionsInStata
+from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable, runStickyEregressionsInStata, makeParameterTable, makeEquilibriumTable, makeMicroRegressionTable
 
 ignore_periods = Params.ignore_periods # Number of simulated periods to ignore as a "burn-in" phase
 interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
@@ -39,6 +39,7 @@ do_RA_markov   = True
 run_models = False
 make_tables = True
 use_stata = True
+calc_micro_stats = False
 
 # Choose whether to save data for use in Stata (as a tab-delimited text file)
 save_data = True
@@ -54,7 +55,7 @@ if __name__ == '__main__':
         if run_models:
             # Make a small open economy and the consumers who live in it
             StickySOEbaseType = StickyEconsumerType(**Params.init_SOE_consumer)
-            StickySOEbaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+            StickySOEbaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age','TranShkNow']
             StickySOEconsumers = []
             for n in range(Params.TypeCount):
                 StickySOEconsumers.append(deepcopy(StickySOEbaseType))
@@ -86,7 +87,7 @@ if __name__ == '__main__':
             # Make results for the frictionless representative agent economy
             desc = 'Results for the frictionless small open economy'
             name = 'SOEsimpleFrictionless'
-            makeStickyEdataFile(StickySOEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=False)
+            makeStickyEdataFile(StickySOEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             
             # Simulate the sticky small open economy
             t_start = clock()
@@ -99,14 +100,14 @@ if __name__ == '__main__':
             # Make results for the sticky small open economy
             desc = 'Results for the sticky small open economy with update probability ' + mystr(Params.UpdatePrb)
             name = 'SOEsimpleSticky'
-            makeStickyEdataFile(StickySOEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=False)
+            makeStickyEdataFile(StickySOEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
         
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
             if use_stata:
-                frictionless_panel = runStickyEregressionsInStata('SOEsimpleFrictionlessData',interval_size,False,False)
-                sticky_panel = runStickyEregressionsInStata('SOEsimpleStickyData',interval_size,False,True)
-                sticky_me_panel = runStickyEregressionsInStata('SOEsimpleStickyData',interval_size,True,True)
+                frictionless_panel = runStickyEregressionsInStata('SOEsimpleFrictionlessData',interval_size,False,False,Params.stata_exe)
+                sticky_panel = runStickyEregressionsInStata('SOEsimpleStickyData',interval_size,False,True,Params.stata_exe)
+                sticky_me_panel = runStickyEregressionsInStata('SOEsimpleStickyData',interval_size,True,True,Params.stata_exe)
             else:
                 frictionless_panel = runStickyEregressions('SOEsimpleFrictionlessData',interval_size,False,False)
                 sticky_panel = runStickyEregressions('SOEsimpleStickyData',interval_size,False,True)
@@ -123,7 +124,7 @@ if __name__ == '__main__':
             # Make consumer types to inhabit the small open Markov economy
             StickySOEmarkovBaseType = StickyEmarkovConsumerType(**Params.init_SOE_mrkv_consumer)
             StickySOEmarkovBaseType.IncomeDstn[0] = Params.StateCount*[StickySOEmarkovBaseType.IncomeDstn[0]]
-            StickySOEmarkovBaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+            StickySOEmarkovBaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age','TranShkNow']
             StickySOEmarkovConsumers = []
             for n in range(Params.TypeCount):
                 StickySOEmarkovConsumers.append(deepcopy(StickySOEmarkovBaseType))
@@ -163,8 +164,10 @@ if __name__ == '__main__':
             # Make results for the frictionless small open Markov economy
             desc = 'Results for the frictionless small open Markov economy'
             name = 'SOEmarkovFrictionless'
-            makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=False)
-        
+            makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+            #make a copy of the frictionless agent to pass to micro regression calculations
+            frictionless_SOE_agent = deepcopy(StickySOEmarkovConsumers[0])
+            
             # Simulate the frictionless small open Markov economy
             t_start = clock()
             for agent in StickySOmarkovEconomy.agents:
@@ -176,15 +179,17 @@ if __name__ == '__main__':
             # Make results for the sticky small open Markov economy
             desc = 'Results for the sticky small open Markov economy with update probability ' + mystr(Params.UpdatePrb)
             name = 'SOEmarkovSticky'
-            makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=False)
+            makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+            
+            makeMicroRegressionTable('SOEMicroRegressions.txt', [frictionless_SOE_agent,StickySOEmarkovConsumers[0]],ignore_periods)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
             if use_stata:
-                frictionless_panel = runStickyEregressionsInStata('SOEmarkovFrictionlessData',interval_size,False,False)
-                sticky_panel = runStickyEregressionsInStata('SOEmarkovStickyData',interval_size,False,True)
-                sticky_me_panel = runStickyEregressionsInStata('SOEmarkovStickyData',interval_size,True,True)
+                frictionless_panel = runStickyEregressionsInStata('SOEmarkovFrictionlessData',interval_size,False,False,Params.stata_exe)
+                sticky_panel = runStickyEregressionsInStata('SOEmarkovStickyData',interval_size,False,True,Params.stata_exe)
+                sticky_me_panel = runStickyEregressionsInStata('SOEmarkovStickyData',interval_size,True,True,Params.stata_exe)
             else:
                 frictionless_panel = runStickyEregressions('SOEmarkovFrictionlessData',interval_size,False,False)
                 sticky_panel = runStickyEregressions('SOEmarkovStickyData',interval_size,False,True)
@@ -199,7 +204,7 @@ if __name__ == '__main__':
         if run_models:
             # Make consumers who will live in a Cobb-Douglas economy
             StickyDSGEbaseType = StickyEconsumerType(**Params.init_DSGE_consumer)
-            StickyDSGEbaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','pLvlNow','t_age']
+            StickyDSGEbaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','pLvlNow','t_age','TranShkNow']
             StickyDSGEconsumers = []
             for n in range(Params.TypeCount):
                 StickyDSGEconsumers.append(deepcopy(StickyDSGEbaseType))
@@ -212,7 +217,7 @@ if __name__ == '__main__':
             for n in range(Params.TypeCount):
                 StickyDSGEconsumers[n].getEconomyData(StickyDSGEeconomy)
                 StickyDSGEconsumers[n](UpdatePrb = 1.0)
-            
+                
             # Solve the frictionless HA-DSGE model
             t_start = clock()
             StickyDSGEeconomy.solve()
@@ -230,7 +235,7 @@ if __name__ == '__main__':
             # Make results for the frictionless Cobb-Douglas economy
             desc = 'Results for the frictionless Cobb-Douglas economy'
             name = 'DSGEsimpleFrictionless'
-            makeStickyEdataFile(StickyDSGEeconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=False)
+            makeStickyEdataFile(StickyDSGEeconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             
             # Solve the sticky HA-DSGE model
             for agent in StickyDSGEeconomy.agents:
@@ -251,15 +256,15 @@ if __name__ == '__main__':
             # Make results for the sticky Cobb-Douglas economy
             desc = 'Results for the sticky Cobb-Douglas economy with update probability ' + mystr(Params.UpdatePrb)
             name = 'DSGEsimpleSticky'
-            makeStickyEdataFile(StickyDSGEeconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=False)
+            makeStickyEdataFile(StickyDSGEeconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
             if use_stata:
-                frictionless_panel = runStickyEregressionsInStata('DSGEsimpleFrictionlessData',interval_size,False,False)
-                sticky_panel = runStickyEregressionsInStata('DSGEsimpleStickyData',interval_size,False,True)
-                sticky_me_panel = runStickyEregressionsInStata('DSGEsimpleStickyData',interval_size,True,True)
+                frictionless_panel = runStickyEregressionsInStata('DSGEsimpleFrictionlessData',interval_size,False,False,Params.stata_exe)
+                sticky_panel = runStickyEregressionsInStata('DSGEsimpleStickyData',interval_size,False,True,Params.stata_exe)
+                sticky_me_panel = runStickyEregressionsInStata('DSGEsimpleStickyData',interval_size,True,True,Params.stata_exe)
             else:
                 frictionless_panel = runStickyEregressions('DSGEsimpleFrictionlessData',interval_size,False,False)
                 sticky_panel = runStickyEregressions('DSGEsimpleStickyData',interval_size,False,True)
@@ -275,7 +280,7 @@ if __name__ == '__main__':
             # Make consumers who will live in the Cobb-Douglas Markov economy
             StickyDSGEmarkovBaseType = StickyEmarkovConsumerType(**Params.init_DSGE_mrkv_consumer)
             StickyDSGEmarkovBaseType.IncomeDstn[0] = Params.StateCount*[StickyDSGEmarkovBaseType.IncomeDstn[0]]
-            StickyDSGEmarkovBaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age']
+            StickyDSGEmarkovBaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age','TranShkNow']
             StickyDSGEmarkovConsumers = []
             for n in range(Params.TypeCount):
                 StickyDSGEmarkovConsumers.append(deepcopy(StickyDSGEmarkovBaseType))
@@ -300,7 +305,7 @@ if __name__ == '__main__':
             # Make results for the Cobb-Douglas Markov economy
             desc = 'Results for the frictionless Cobb-Douglas Markov economy'
             name = 'DSGEmarkovFrictionless'
-            makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=False)
+            makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             
             # Solve the sticky heterogeneous agent DSGE model
             for agent in StickyDSGEmarkovEconomy.agents:
@@ -315,15 +320,15 @@ if __name__ == '__main__':
             # Make results for the Cobb-Douglas Markov economy
             desc = 'Results for the sticky Cobb-Douglas Markov economy with update probability ' + mystr(Params.UpdatePrb)
             name = 'DSGEmarkovSticky'
-            makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=False)
+            makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
             if use_stata:
-                frictionless_panel = runStickyEregressionsInStata('DSGEmarkovFrictionlessData',interval_size,False,False)
-                sticky_panel = runStickyEregressionsInStata('DSGEmarkovStickyData',interval_size,False,True)
-                sticky_me_panel = runStickyEregressionsInStata('DSGEmarkovStickyData',interval_size,True,True)
+                frictionless_panel = runStickyEregressionsInStata('DSGEmarkovFrictionlessData',interval_size,False,False,Params.stata_exe)
+                sticky_panel = runStickyEregressionsInStata('DSGEmarkovStickyData',interval_size,False,True,Params.stata_exe)
+                sticky_me_panel = runStickyEregressionsInStata('DSGEmarkovStickyData',interval_size,True,True,Params.stata_exe)
             else:
                 frictionless_panel = runStickyEregressions('DSGEmarkovFrictionlessData',interval_size,False,False)
                 sticky_panel = runStickyEregressions('DSGEmarkovStickyData',interval_size,False,True)
@@ -361,7 +366,7 @@ if __name__ == '__main__':
             # Make results for the frictionless representative agent economy
             desc = 'Results for the frictionless representative agent economy'
             name = 'RAsimpleFrictionless'
-            makeStickyEdataFile(StickyRAconsumer,ignore_periods,description=desc,filename=name,save_data=save_data)
+            makeStickyEdataFile(StickyRAconsumer,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             
             # Simulate the representative agent with sticky expectations
             t_start = clock()
@@ -374,14 +379,14 @@ if __name__ == '__main__':
             # Make results for the sticky representative agent economy
             desc = 'Results for the sticky representative agent economy with update probability ' + mystr(Params.UpdatePrb)
             name = 'RAsimpleSticky'
-            makeStickyEdataFile(StickyRAconsumer,ignore_periods,description=desc,filename=name,save_data=save_data)
+            makeStickyEdataFile(StickyRAconsumer,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
         
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
             if use_stata:
-                frictionless_panel = runStickyEregressionsInStata('RAsimpleFrictionlessData',interval_size,False,False)
-                sticky_panel = runStickyEregressionsInStata('RAsimpleStickyData',interval_size,False,True)
-                sticky_me_panel = runStickyEregressionsInStata('RAsimpleStickyData',interval_size,True,True)
+                frictionless_panel = runStickyEregressionsInStata('RAsimpleFrictionlessData',interval_size,False,False,Params.stata_exe)
+                sticky_panel = runStickyEregressionsInStata('RAsimpleStickyData',interval_size,False,True,Params.stata_exe)
+                sticky_me_panel = runStickyEregressionsInStata('RAsimpleStickyData',interval_size,True,True,Params.stata_exe)
             else:
                 frictionless_panel = runStickyEregressions('RAsimpleFrictionlessData',interval_size,False,False)
                 sticky_panel = runStickyEregressions('RAsimpleStickyData',interval_size,False,True)
@@ -419,7 +424,7 @@ if __name__ == '__main__':
             # Make results for the frictionless representative agent economy
             desc = 'Results for the frictionless representative agent Markov economy'
             name = 'RAmarkovFrictionless'
-            makeStickyEdataFile(StickyRAmarkovConsumer,ignore_periods,description=desc,filename=name,save_data=save_data)
+            makeStickyEdataFile(StickyRAmarkovConsumer,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             
             # Simulate the sticky representative agent MarkovEconomy
             t_start = clock()
@@ -432,19 +437,23 @@ if __name__ == '__main__':
             # Make results for the frictionless representative agent economy
             desc = 'Results for the sticky representative agent Markov economy'
             name = 'RAmarkovSticky'
-            makeStickyEdataFile(StickyRAmarkovConsumer,ignore_periods,description=desc,filename=name,save_data=save_data)
+            makeStickyEdataFile(StickyRAmarkovConsumer,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
         
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
             if use_stata:
-                frictionless_panel = runStickyEregressionsInStata('RAsimpleFrictionlessData',interval_size,False,False)
-                sticky_panel = runStickyEregressionsInStata('RAmarkovStickyData',interval_size,False,True)
-                sticky_me_panel = runStickyEregressionsInStata('RAmarkovStickyData',interval_size,True,True)
+                frictionless_panel = runStickyEregressionsInStata('RAmarkovFrictionlessData',interval_size,False,False,Params.stata_exe)
+                sticky_panel = runStickyEregressionsInStata('RAmarkovStickyData',interval_size,False,True,Params.stata_exe)
+                sticky_me_panel = runStickyEregressionsInStata('RAmarkovStickyData',interval_size,True,True,Params.stata_exe)
             else:
-                frictionless_panel = runStickyEregressions('RAsimpleFrictionlessData',interval_size,False,False)
+                frictionless_panel = runStickyEregressions('RAmarkovFrictionlessData',interval_size,False,False)
                 sticky_panel = runStickyEregressions('RAmarkovStickyData',interval_size,False,True)
                 sticky_me_panel = runStickyEregressions('RAmarkovStickyData',interval_size,True,True)
             makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'RepAgentMrkvSimReg')
         
-
-        
+    ###############################################################################
+    ########### CALCULATE TABLES                               ####################
+    ###############################################################################
+    if make_tables:
+        makeEquilibriumTable('EqmTable.txt', ['SOEmarkovFrictionlessResults','SOEmarkovStickyResults','DSGEmarkovFrictionlessResults','DSGEmarkovStickyResults'])
+        makeParameterTable('Calibration.txt', Params)

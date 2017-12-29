@@ -395,14 +395,15 @@ class StickyEmarkovRepAgent(RepAgentMarkovConsumerType,StickyErepAgent):
         -------
         None
         '''
-        RepAgentMarkovConsumerType.simBirth(self,which_agents)
-        if self.t_sim == 0: # Initialize perception distribution for Markov state
-            self.pLvlTrue = np.ones(self.AgentCount)
-            self.aLvlNow = self.aNrmNow*self.pLvlTrue
-            StateCount = self.MrkvArray.shape[0]
-            self.pLvlNow = np.ones(StateCount) # Perceived productivity level by Markov state
-            self.MrkvPcvd = np.zeros(StateCount) # Distribution of perceived Markov state
-            self.MrkvPcvd[self.MrkvNow[0]] = 1.0 # Correct perception of state initially
+        if which_agents==np.array([True]):
+            RepAgentMarkovConsumerType.simBirth(self,which_agents)
+            if self.t_sim == 0: # Initialize perception distribution for Markov state
+                self.pLvlTrue = np.ones(self.AgentCount)
+                self.aLvlNow = self.aNrmNow*self.pLvlTrue
+                StateCount = self.MrkvArray.shape[0]
+                self.pLvlNow = np.ones(StateCount) # Perceived productivity level by Markov state
+                self.MrkvPcvd = np.zeros(StateCount) # Distribution of perceived Markov state
+                self.MrkvPcvd[self.MrkvNow[0]] = 1.0 # Correct perception of state initially
         
     def getShocks(self): # Inherit from StickyE rather than RepresentativeAgent
         StickyErepAgent.getShocks(self)

@@ -35,7 +35,7 @@
             \newcommand{\N}{\mathbb{N}}
             \newcommand{\R}{\mathbb{R}}
             \newcommand{\E}{\mathbb{E}}
-            
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \usepackage{dcolumn}            
 \usepackage{booktabs}
@@ -43,6 +43,12 @@
 \newcommand{\var}{\ensuremath{\text{var}}}
 \providecommand{\perc}[1]{\widetilde{#1}}
 \newcolumntype{d}[1]{D{.}{.}{#1}}
+
+\usepackage{ifthen}    
+\provideboolean{StandAlone}
+\setboolean{StandAlone}{false}
+
+
 
 \begin{document}
 
@@ -53,5 +59,13 @@
 \newpage
 
 \input DSGEmrkvSimReg.txt
+\newpage
+
+
+\begin{table}
+	\input Calibration.txt
+\end{table}
+\newpage
+
 
 \end{document}

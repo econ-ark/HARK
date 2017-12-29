@@ -16,17 +16,21 @@ import numpy as np
 from copy import copy
 from HARKutilities import approxUniform
 
+stata_exe = "C:\Program Files (x86)\Stata14\stataMP-64"
+
 # Choose basic simulation parameters
 UpdatePrb = 0.25       # Probability that each agent observes the aggregate productivity state each period (in sticky version)
-periods_to_sim = 21010 # Total number of periods to simulate; this might be increased by DSGEmarkov model
+periods_to_sim = 3010 # Total number of periods to simulate; this might be increased by DSGEmarkov model
 ignore_periods = 1000  # Number of simulated periods to ignore (in order to ensure we are near steady state)
 interval_size = 200  # Number of periods in each subsample interval
-AgentCount = 20000     # Total number of agents to simulate in the economy
+AgentCount = 10000     # Total number of agents to simulate in the economy
 
 # Choose extent of discount factor heterogeneity (inapplicable to representative agent models)
 TypeCount = 1        # Number of heterogeneous discount factor types
 DiscFacMean = 0.969  # Central value of intertemporal discount factor
 DiscFacSpread = 0.0  # Half-width of intertemporal discount factor band, a la cstwMPC
+
+DiscFacMeanDSGE = 1.0/1.0146501772118186  # Central value of intertemporal discount factor
 
 # These parameters are for a rough "beta-dist" specification that fits the wealth distribution in DSGE simple
 #TypeCount = 7
@@ -127,7 +131,7 @@ init_SOE_mrkv_market['loops_max'] = 1
 
 # Define parameters for the Cobb-Douglas DSGE version of the model
 init_DSGE_consumer = copy(init_SOE_consumer)
-init_DSGE_consumer['DiscFac'] = DiscFacMean
+init_DSGE_consumer['DiscFac'] = DiscFacMeanDSGE
 init_DSGE_consumer['aXtraMax'] = 80.0
 init_DSGE_consumer['MgridBase'] = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])
 
@@ -160,7 +164,7 @@ init_DSGE_mrkv_market['loops_max'] = 10
 
 # Define parameters for the representative agent version of the model
 init_RA_consumer =  { 'CRRA': 2.0,
-                      'DiscFac': 1.0/1.0146501772118186,
+                      'DiscFac': DiscFacMeanDSGE,
                       'LivPrb': [1.0],
                       'PermGroFac': [1.0],
                       'AgentCount': 1,

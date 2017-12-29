@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 import statsmodels.sandbox.regression.gmm as smsrg
+from copy import deepcopy
 import subprocess
 from HARKutilities import getLorenzShares
 
@@ -143,6 +144,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
     output_string += 'Stdev of change in log aggregate consumption level = ' + str(np.std(DeltaLogC)) + '\n'
     output_string += 'Stdev of change in log aggregate output level = ' + str(np.std(DeltaLogY)) + '\n'
     output_string += 'Stdev of change in log aggregate assets level = ' + str(np.std(DeltaLogA)) + '\n'
+    csv_output_string = str(np.mean(AnrmAgg_hist[ignore_periods:])) +","+ str(np.mean(CnrmAgg_hist[ignore_periods:]))+ ","+str(np.std(np.log(AnrmAgg_hist[ignore_periods:])))+ ","+str(np.std(DeltaLogC))+ ","+str(np.std(DeltaLogY)) +","+ str(np.std(DeltaLogA))
     if hasattr(Economy,'agents') and calc_micro_stats: # This block only runs for heterogeneous agents specifications
         output_string += 'Cross section stdev of log individual assets = ' + str(np.mean(np.std(Loga,axis=1))) + '\n'
         output_string += 'Cross section stdev of log individual consumption = ' + str(np.mean(np.std(Logc,axis=1))) + '\n'
@@ -151,6 +153,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
         output_string += 'Cross section stdev of change in log individual assets = ' + str(np.std(DeltaLoga_trimmed)) + '\n'
         output_string += 'Cross section stdev of change in log individual consumption = ' + str(np.std(DeltaLogc_trimmed)) + '\n'
         output_string += 'Cross section stdev of change in log individual productivity = ' + str(np.std(DeltaLogp_trimmed)) + '\n'
+        csv_output_string += ","+str(np.mean(np.std(Loga,axis=1)))+ ","+str(np.mean(np.std(Logc,axis=1))) + ","+str(np.mean(np.std(Logp,axis=1))) +","+ str(np.mean(np.std(Logy_trimmed,axis=1))) +","+ str(np.std(DeltaLoga_trimmed))+","+ str(np.std(DeltaLogc_trimmed))+ ","+str(np.std(DeltaLogp_trimmed))
     output_string += '\n\n'    
      
     # Save the results to a logfile if requested
@@ -158,10 +161,13 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
         with open('./Results/' + filename + 'Results.txt','w') as f:
             f.write(output_string)
             f.close()
+        with open('./Results/' + filename + 'Results.csv','w') as f:
+            f.write(csv_output_string)
+            f.close()
             
         if save_data:
-            DataArray = (np.vstack((np.arange(DeltaLogC.size),DeltaLogC_me,DeltaLogC,DeltaLogY,A,BigTheta,Delta8LogC,Delta8LogY,Delta8LogC_me,Measurement_Error))).transpose()
-            VarNames = ['time_period','DeltaLogC_me','DeltaLogC','DeltaLogY','A','BigTheta','Delta8LogC','Delta8LogY','Delta8LogC_me']
+            DataArray = (np.vstack((np.arange(DeltaLogC.size),DeltaLogC_me,DeltaLogC,DeltaLogY,A,BigTheta,Delta8LogC,Delta8LogY,Delta8LogC_me,Measurement_Error[1:]))).transpose()
+            VarNames = ['time_period','DeltaLogC_me','DeltaLogC','DeltaLogY','A','BigTheta','Delta8LogC','Delta8LogY','Delta8LogC_me','Measurement_Error']
             if hasattr(Economy,'MrkvNow'):
                 DataArray = np.hstack((DataArray,np.reshape(Mrkv,(Mrkv.size,1))))
                 VarNames.append('MrkvState')
@@ -216,6 +222,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
     Delta8LogC = np.zeros(obs)
     Delta8LogY = np.zeros(obs)
     Delta8LogC_me = np.zeros(obs)
+    Measurement_Error = np.zeros(obs)
     Mrkv_hist = np.zeros(obs,dtype=int)
     R = np.zeros(obs)
     
@@ -231,10 +238,11 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
         Delta8LogC[i] = float(all_data[j][6])
         Delta8LogY[i] = float(all_data[j][7])
         Delta8LogC_me[i] = float(all_data[j][8])
+        Measurement_Error[i] = float(all_data[j][9])
         if has_mrkv:
-            Mrkv_hist[i] = int(float(all_data[j][9]))
+            Mrkv_hist[i] = int(float(all_data[j][10]))
         if has_R:
-            R[i] = float(all_data[j][10])
+            R[i] = float(all_data[j][11])
     
     # Determine how many subsample intervals to run (and initialize array of coefficients)
     N = DeltaLogC.size/interval_size
@@ -339,7 +347,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
     
     #Hard code variance of measurement error - better to pass this in from the data file
     #Can replace this once new data files are produced
-    sigma_meas_err = np.std(DeltaLogC)*0.375
+    sigma_meas_err = np.std(Measurement_Error)
     
     N_out = [C_successes_95,Y_successes_95,N,np.mean(InstrRsqVec),sigma_meas_err**2]
     
@@ -354,7 +362,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
                      sticky=sticky)
     return panel_text
 
-def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky):
+def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,stata_exe):
     '''
     Runs regressions for the main tables of the StickyC paper in Stata
     and produces a LaTeX table with results (one "panel" at a time).
@@ -471,9 +479,11 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
     if sticky:
         Expectations = 'Sticky'
         DeltaLogY1 = '$\Delta \log \perc{\mathbf{Y}}_{t+1}$'
+        A_t = '$\perc{\mathbf{A}}_{t}$'
     else:
         Expectations = 'Frictionless'
         DeltaLogY1 = '$\Delta \log \mathbf{Y}_{t+1}$'
+        A_t = '$A_{t}$'
     if sticky:
         if meas_err:
             MeasErr = ' (with measurement error); $\perc{\mathbf{C}}_{t+1}^* =\perc{\mathbf{C}}_{t+1}\\times \\xi_t$'
@@ -498,7 +508,7 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
         return sig_text
 
     output = '\\\\ \hline \multicolumn{6}{l}{' + Expectations + ' : ' + DeltaLogC1 + MeasErr + '} \n'
-    output += '\\\\ \multicolumn{1}{c}{' + DeltaLogC + '} & \multicolumn{1}{c}{' + DeltaLogY1 +'} & \multicolumn{1}{c}{$A_{t}$} & & & \n'
+    output += '\\\\ \multicolumn{1}{c}{' + DeltaLogC + '} & \multicolumn{1}{c}{' + DeltaLogY1 +'} & \multicolumn{1}{c}{'+A_t+'} & & & \n'
     output += '\\\\ ' + mystr1(Coeffs[0]) + sigFunc(Coeffs[0],StdErrs[0]) + ' & & & OLS & ' + mystr1(Rsq[0]) + ' & ' + mystr1(np.nan) + '\n'   
     output += '\\\\ (' + mystr1(StdErrs[0]) + ') & & & & & \n'   
     if sticky & meas_err:
@@ -569,4 +579,288 @@ def makeResultsTable(caption,panels,counts,filename):
         f.write(output)
         f.close()
         
- 
+def makeParameterTable(filename, params):   
+    '''
+    Make parameter table for the paper
+    
+    Parameters
+    ----------
+    
+    filename : str
+        Name of the file in which to save output (in the ./Tables/ directory).
+        
+    Returns
+    -------
+    None
+    '''
+    output = "\provideboolean{Slides} \setboolean{Slides}{false}  \n"
+    output += "\\begin{center}\label{table:calibration}  \n"
+    output += "\\begin{tabular}{lcd{5}l}  \n"
+    # First do DGSE params
+    output += " \\\\ \hline \multicolumn{4}{c}{DSGE Model}  \n"
+    output += "\\\\ \hline  \n"
+    output += "\multicolumn{3}{l}{Calibrated Parameters } \\\\  \n"
+    output += "\\\\ & $\\rho$ & "+ "{:.0f}".format(params.init_DSGE_mrkv_consumer["CRRA"]) +". & Coefficient of Relative Risk Aversion \n"
+    output += "\\\\ & $\daleth$ & "+ "{:.2f}".format((1-params.init_DSGE_mrkv_market["DeprFac"])**4) +"^{1/4} & Quarterly Depreciation Factor   \n"    
+    output += "\\\\ & $K/K^{\\varepsilon}$ & 12 & Perf Foresight SS Capital/Output Ratio  \n"    
+    output += "\\\\ & $\sigma_{\Theta}^{2}$ & "+ "{:.5f}".format(params.init_DSGE_mrkv_market["TranShkAggStd"][0]**2) +" & Variance Qtrly Tran Agg Pty Shocks \n"    
+    output += "\\\\ & $\sigma_{\Psi}^{2}$ & "+ "{:.5f}".format(params.init_DSGE_mrkv_market["PermShkAggStd"][0]**2) +" & Variance Qtrly Perm Agg Pty Shocks \n"    
+    output += "\\\\ \\\\ \multicolumn{4}{l}{Steady State Solution of Model With $\sigma_{\Psi}=\sigma_{\Theta}=0$} \\  \n"  
+    output += "\\\\ & $K=12^{1/(1-\\varepsilon)} $&\\approx 48.55& Steady State Quarterly $\mathbf{K}/\mathbf{P}$ Ratio  \n"  
+    output += "\\\\ & $M=K+K^{\\varepsilon} $&\\approx 52.6& Steady State Quarterly $\mathbf{M}/\mathbf{P}$ Ratio  \n"  
+    output += "\\\\ & $\W=(1-\\varepsilon)K^{\epsilon}$&\\approx 2.59 & Quarterly Wage Rate  \n"  
+    output += "\\\\ & $\RIn=1+\\varepsilon K^{\\varepsilon-1}$&=1.03 & Quarterly Gross Capital Income Factor  \n"  
+    output += "\\\\ & $\RBet= \mathcal{R}\ifDepr{\daleth}{}$&\\approx 1.014& Quarterly Between-Period Interest Factor  \n"  
+    output += "\\\\ & $\\beta= \RBet^{-1} $&\\approx 0.986 & Quarterly Time Preference Factor  \n"  
+    #Now to SOE params
+    output += "\ifthenelse{\\boolean{Slides}}{\\\\}{\\\\ } \\\\ \hline \multicolumn{4}{c}{Partial Equilibrium/Small Open Economy (PE/SOE) Model Parameters}  \n"  
+    output += "\\\\ \hline \n"  
+    output += "\multicolumn{4}{l}{Calibrated Parameters} \\ \n"  
+    output += "\\\\ & $\sigma_{\\vec{\psi}}^{2}$      & " + "{:.3f}".format(11.0/4.0*params.init_SOE_mrkv_consumer["PermShkStd"][0]**2) +"     & Variance Annual Perm Idiosyncratic Shocks (PSID) \n"  
+    output += "\\\\ & $\sigma_{\\vec{\\theta}}^{2}$      & " + "{:.2f}".format(0.25*params.init_SOE_mrkv_consumer["TranShkStd"][0]**2) +"     & Variance Annual Tran Idiosyncratic Shocks (PSID) \n"  
+    output += "\\\\ & $\wp$                    & " + "{:.2f}".format(params.init_SOE_mrkv_consumer["UnempPrb"]) +"  & Quarterly Probability of Unemployment Spell \n"  
+    output += "\\\\ & $\Pi$                    & " + "{:.2f}".format(params.init_SOE_mrkv_consumer["UpdatePrb"]) +"  & Quarterly Probability of Updating Expectations \n"  
+    output += "\\\\ & $(1-\Omega)$             & " + "{:.3f}".format(1.0-params.init_SOE_mrkv_consumer["LivPrb"][0]) +"  & Quarterly Probability of Mortality \n"  
+    output += "\\\\ \\\\ \multicolumn{4}{l}{Calculated Parameters} \\\\ \n"  
+    output += "\\\\ & $\\beta = 0.99 \Omega / E[(\pmb{\psi})^{-\\rho}]\RBet$ & " + "{:.3f}".format(params.init_SOE_mrkv_consumer["DiscFac"]) +" & Satisfies Impatience Condition: $\\beta < \Omega / E[(\Psi \psi)^{-\\rho}]\RBet$ \n"  
+    output += "\\\\ & $\sigma_{\psi}^{2}$      &" + "{:.3f}".format(params.init_SOE_mrkv_consumer["PermShkStd"][0]**2) +"      & Variance Qtrly Perm Idiosyncratic Shocks (=$\\frac{4}{11}\sigma_{\\vec{\psi}}$) \n"  
+    output += "\\\\ & $\sigma_{\\theta}^{2}$    & " + "{:.2f}".format(params.init_SOE_mrkv_consumer["TranShkStd"][0]**2) +"     & Variance Qtrly Tran Idiosyncratic Shocks (=$4 \sigma_{\\vec{\\theta}}$) \n"  
+
+    output += "\end{tabular}  \n"
+    output += "\end{center}  \n"
+    output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{}    \n"
+    
+    with open('./Tables/' + filename,'w') as f:
+        f.write(output)
+        f.close()
+
+
+def makeEquilibriumTable(out_filename, four_in_files):   
+    '''
+    Make parameter table for the paper
+    
+    Parameters
+    ----------
+    
+    out_filename : str
+        Name of the file in which to save output (in the ./Tables/ directory).
+    four_in_files: [str]
+        A list with four csv files. 0) SOE frictionless 1) SOE Sticky 2) DSGE frictionless 3) DSGE sticky
+        
+    Returns
+    -------
+    None
+    '''
+    #Read in data from the four files
+    SOEfrictionless = np.genfromtxt('./results/' +four_in_files[0] +'.csv', delimiter=',')
+    SOEsticky = np.genfromtxt('./results/' +four_in_files[1] +'.csv', delimiter=',')
+    DSGEfrictionless = np.genfromtxt('./results/' +four_in_files[2] +'.csv', delimiter=',')
+    DSGEsticky = np.genfromtxt('./results/' +four_in_files[3] +'.csv', delimiter=',')
+    
+    output = "\\begin{table}  \n"
+    output += "\caption{Equilibrium Statistics}  \n"
+    output += "\label{table:Eqbm}  \n"
+    output += "\\begin{center}  \n"
+    output += "\\newsavebox{\EqbmBox}  \n"
+    output += "\sbox{\EqbmBox}{  \n"
+    output += "\\newcommand{\EqDir}{\TablesDir/Eqbm}  \n"
+    output += "\\begin{tabular}{lllcccc}  \n"
+    output += "&&& \multicolumn{2}{c|}{PE/SOE Economy} & \multicolumn{2}{c}{DSGE Economy}   \n"
+    output += "\\\\ %\cline{4-5}   \n"
+    output += "   &&& \multicolumn{1}{c|}{Frictionless} & \multicolumn{1}{c|}{Sticky} & \multicolumn{1}{c|}{Frictionless} & \multicolumn{1}{c}{Sticky}  \n"
+    output += "\\\\ \hline   \n"
+    output += "  \multicolumn{3}{l}{Means}  \n"
+    output += "%\\\\  & & $M$  \n"
+    output += "%\\\\  & & $K$  \n"
+    output += "\\\\  & & $A$ & {:.2f}".format(SOEfrictionless[0]) +" &{:.2f}".format(SOEsticky[0]) +" & {:.2f}".format(DSGEfrictionless[0]) +" & {:.2f}".format(DSGEsticky[0]) +"   \n"
+    output += "\\\\  & & $C$ & {:.2f}".format(SOEfrictionless[1]) +" &{:.2f}".format(SOEsticky[1]) +" & {:.2f}".format(DSGEfrictionless[1]) +" & {:.2f}".format(DSGEsticky[1]) +"   \n"
+    output += "\\\\ \hline  \n"
+    output += "  \multicolumn{3}{l}{Standard Deviations}  \n"
+    output += "\\\\ &    \multicolumn{4}{l}{Aggregate Time Series (`Macro')}  \n"
+    output += "%\\  & & $\Delta \log \mathbf{M}$   \n"
+    output += "\\\\ & & $\log A $          &  {:.3f}".format(SOEfrictionless[2]) +" &{:.3f}".format(SOEsticky[2]) +" & {:.3f}".format(DSGEfrictionless[2]) +" & {:.3f}".format(DSGEsticky[2]) +" \n"
+    output += "\\\\ & & $\Delta \log C $   &  {:.3f}".format(SOEfrictionless[3]) +" &{:.3f}".format(SOEsticky[3]) +" & {:.3f}".format(DSGEfrictionless[3]) +" & {:.3f}".format(DSGEsticky[3]) +" \n"
+    output += "\\\\ & & $\Delta \log Y $   &  {:.3f}".format(SOEfrictionless[4]) +" &{:.3f}".format(SOEsticky[4]) +" & {:.3f}".format(DSGEfrictionless[4]) +" & {:.3f}".format(DSGEsticky[4]) +" \n"
+    output += "\\\\ &   \multicolumn{3}{l}{Individual Cross Sectional (`Micro')}  \n"  
+    output += "\\\\ & & $\log a $   &  {:.3f}".format(SOEfrictionless[6]) +" &{:.3f}".format(SOEsticky[6]) +" & {:.3f}".format(DSGEfrictionless[6]) +" & {:.3f}".format(DSGEsticky[6]) +" \n"
+    output += "\\\\ & & $\log c $   &  {:.3f}".format(SOEfrictionless[7]) +" &{:.3f}".format(SOEsticky[7]) +" & {:.3f}".format(DSGEfrictionless[7]) +" & {:.3f}".format(DSGEsticky[7]) +" \n"
+    output += "\\\\ & & $\log p $   &  {:.3f}".format(SOEfrictionless[8]) +" &{:.3f}".format(SOEsticky[8]) +" & {:.3f}".format(DSGEfrictionless[8]) +" & {:.3f}".format(DSGEsticky[8]) +" \n"
+    output += "\\\\ & & $\log y | y>0 $   &  {:.3f}".format(SOEfrictionless[9]) +" &{:.3f}".format(SOEsticky[9]) +" & {:.3f}".format(DSGEfrictionless[9]) +" & {:.3f}".format(DSGEsticky[9]) +" \n"
+    output += "\\\\ & & $\Delta \log c $   &  {:.3f}".format(SOEfrictionless[11]) +" &{:.3f}".format(SOEsticky[11]) +" & {:.3f}".format(DSGEfrictionless[11]) +" & {:.3f}".format(DSGEsticky[11]) +" \n"
+    output += "  \n"
+    output += "  \n"
+    output += "\\\\ \hline \multicolumn{3}{l}{Cost Of Stickiness}  \n"
+    output += " & \multicolumn{2}{c}{999999}  \n"
+    output += "  & \multicolumn{2}{c}{9999999} \n"
+    output += " \end{tabular} \\\\  \n"
+    output += "}  \n"
+    output += "\usebox{\EqbmBox}  \n"
+    output += "\ifthenelse{\\boolean{StandAlone}}{\\newlength\TableWidth}{}  \n"
+    output += "\settowidth\TableWidth{\usebox{\EqbmBox}} % Calculate width of table so notes will match  \n"
+    output += "\medskip\medskip \parbox{\TableWidth}{\small  \n"
+    output += "Notes: The cost of stickiness is calculated as the proportion by which the permanent income of a frictionless consumer would need to be reduced in order to achieve the same reduction of expected value associated with forcing them to become a sticky expectations consumer.  \n"
+    output += "}  \n"
+    output += "\end{center}  \n"
+    output += "\end{table}  \n"
+    output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{}  \n"
+    
+    with open('./Tables/' + out_filename,'w') as f:
+        f.write(output)
+        f.close()
+
+
+def makeMicroRegressionTable(out_filename, Agents,ignore_periods):   
+    '''
+    Make parameter table for the paper
+    
+    Parameters
+    ----------
+    
+    out_filename : str
+        Name of the file in which to save output (in the ./Tables/ directory).
+    Agents: [AgentType] (or derivative)
+        A list of 2 consumer types for whom the consumption history has already been calculated
+        The first is the frictionless agent, the second with sticky expectations
+        
+    Returns
+    -------
+    None
+    '''
+    coeffs = np.zeros((6,2)) + np.nan
+    stdevs = np.zeros((6,2)) +np.nan
+    r_sq = np.zeros((4,2)) +np.nan
+    obs = np.zeros((4,2)) +np.nan
+    for i in range(2):
+        c_matrix = deepcopy(Agents[i].cLvlNow_hist[(ignore_periods+1):,:])
+        y_matrix = deepcopy(Agents[i].yLvlNow_hist[(ignore_periods+1):,:])
+        trans_shk_matrix = deepcopy(Agents[i].TranShkNow_hist[(ignore_periods+1):,:])
+        a_matrix = deepcopy(Agents[i].aLvlNow_hist[(ignore_periods+1):,:])
+        age_matrix = deepcopy(Agents[i].t_age_hist[(ignore_periods+1):,:])
+        # Put nan's in so that we do not regress over periods where agents die
+        newborn = age_matrix == 1
+        c_matrix[newborn] = np.nan
+        c_matrix[0:0,:] = np.nan
+        y_matrix[newborn] = np.nan
+        y_matrix[0,0:] = np.nan
+        y_matrix[trans_shk_matrix==0.0] = np.nan
+        c_matrix[trans_shk_matrix==0.0] = np.nan
+        trans_shk_matrix[trans_shk_matrix==0.0] = np.nan
+    
+        top_assets = a_matrix > np.transpose(np.tile(np.percentile(a_matrix,99,axis=1),(np.shape(a_matrix)[1],1)))
+        logc_diff = np.log(c_matrix[1:,:])-np.log(c_matrix[:-1,:])
+        logy_diff = np.log(y_matrix[1:,:])-np.log(y_matrix[:-1,:])
+        logc_diff = logc_diff.flatten('F')
+        logy_diff = logy_diff.flatten('F')
+        log_trans_shk = np.log(trans_shk_matrix[1:,:].flatten('F'))
+        top_assets = top_assets[1:,:].flatten('F')
+        #put nan's in where they exist in logc_diff
+        log_trans_shk = log_trans_shk + logc_diff*0.0
+        top_assets = top_assets + logc_diff*0.0
+        nobs=80000
+    #OLS on log_y_diff confirms that the trans shock predicts income
+    #    mod = sm.OLS(logy_diff[1:],sm.add_constant(log_trans_shk[0:-1]), missing='drop')
+    #    res = mod.fit()
+    #    res.summary()
+        mod = sm.OLS(logc_diff[1:nobs+1],sm.add_constant(np.transpose(np.vstack([logc_diff[0:nobs]]))), missing='drop')
+        res = mod.fit()
+        coeffs[0,i] = res._results.params[1]
+        stdevs[0,i] = res._results.HC0_se[1]
+        r_sq[0,i] = res._results.rsquared_adj
+        obs[0,i] = res.nobs
+        
+        mod = sm.OLS(logc_diff[1:nobs+1],sm.add_constant(np.transpose(np.vstack([-log_trans_shk[0:nobs]]))), missing='drop')
+        res = mod.fit()
+        coeffs[1,i] = res._results.params[1]
+        stdevs[1,i] = res._results.HC0_se[1]
+        r_sq[1,i] = res._results.rsquared_adj
+        obs[1,i] = res.nobs
+        
+        mod = sm.OLS(logc_diff[1:nobs+1],sm.add_constant(np.transpose(np.vstack([top_assets[0:nobs]]))), missing='drop')
+        res = mod.fit()
+        coeffs[2,i] = res._results.params[1]
+        stdevs[2,i] = res._results.HC0_se[1]
+        r_sq[2,i] = res._results.rsquared_adj
+        obs[2,i] = res.nobs
+        
+        mod = sm.OLS(logc_diff[1:nobs+1],sm.add_constant(np.transpose(np.vstack([logc_diff[0:nobs],-log_trans_shk[0:nobs],top_assets[0:nobs]]))), missing='drop')
+        res = mod.fit()
+        coeffs[3,i] = res._results.params[1]
+        stdevs[3,i] = res._results.HC0_se[1]
+        coeffs[4,i] = res._results.params[2]
+        stdevs[4,i] = res._results.HC0_se[2]
+        coeffs[5,i] = res._results.params[3]
+        stdevs[5,i] = res._results.HC0_se[3]
+        r_sq[3,i] = res._results.rsquared_adj
+        obs[3,i] = res.nobs
+        
+    output = "\\begin{table}[t]  \n"
+    output += "\\caption{Typical Micro Consumption Estimation on Simulated Data} \n"
+    output += "\\label{table:CGrowCross} \n"
+    output += "\\begin{center} \n"
+    output += "\ifthenelse{\\boolean{StandAlone}}{\input \eq/CGrowCross.tex \n"
+    output += "}{} \n"
+    output += "\\begin{eqnarray} \n"
+    output += "\\CGrowCross    \\nonumber %\\\CGrowCrossBar \\nonumber \n"
+    output += "\end{eqnarray} \n"
+    output += "\\newsavebox{\crosssecond} \n"
+    output += "\sbox{\crosssecond}{ \n"
+    output += "\\begin{tabular}{c|d{4}d{4}d{5}|ccc}  \n"
+    output += "Model of     &                                &                                &                                 &                                       &                 & \\\\  \n"
+    output += "Expectations & \multicolumn{1}{c}{$ \chi $} & \multicolumn{1}{c}{$ \eta $} & \multicolumn{1}{c|}{$ \\alpha $} & \multicolumn{1}{c}{$\\bar{R}^{2}$} &                 & nobs   \n"
+    output += "\\\\ \hline \multicolumn{2}{l}{Frictionless}  \n"
+    output += "\\\\ &  {:.3f}".format(coeffs[0,0]) +"  &        &        & {:.3f}".format(r_sq[0,0]) +" & & {:.0f}".format(obs[0,0]) +" %NotOnSlide   \n"
+    output += "\\\\ & ({:.3f}".format(stdevs[0,0]) +") &      &      &  & &  %NotOnSlide   \n"
+    output += "\\\\ &    &    {:.3f}".format(coeffs[1,0]) +"    &        & {:.3f}".format(r_sq[1,0]) +" & & {:.0f}".format(obs[1,0]) +" %NotOnSlide   \n"
+    output += "\\\\ &  &   ({:.3f}".format(stdevs[1,0]) +")   &      &  & &  %NotOnSlide   \n"    
+    output += "\\\\ &    &        &     {:.3f}".format(coeffs[2,0]) +"   & {:.3f}".format(r_sq[2,0]) +" & & {:.0f}".format(obs[2,0]) +" %NotOnSlide   \n"
+    output += "\\\\ &  &    &    ({:.3f}".format(stdevs[2,0]) +")    &  & &  %NotOnSlide   \n"  
+    output += "\\\\ &  {:.3f}".format(coeffs[3,0]) +"  &    {:.3f}".format(coeffs[4,0]) +"    &     {:.3f}".format(coeffs[5,0]) +"   & {:.3f}".format(r_sq[3,0]) +" & & {:.0f}".format(obs[3,0]) +"   \n"
+    output += "\\\\ & ({:.3f}".format(stdevs[3,0]) +") &  ({:.3f}".format(stdevs[4,0]) +")  &    ({:.3f}".format(stdevs[5,0]) +")    &  & &    \n"  
+    output += "\\\\ \hline \multicolumn{2}{l}{Sticky}  \n"
+    output += "\\\\ &  {:.3f}".format(coeffs[0,1]) +"  &        &        & {:.3f}".format(r_sq[0,1]) +" & & {:.0f}".format(obs[0,1]) +" %NotOnSlide   \n"
+    output += "\\\\ & ({:.3f}".format(stdevs[0,1]) +") &      &      &  & &  %NotOnSlide   \n"
+    output += "\\\\ &    &    {:.3f}".format(coeffs[1,1]) +"    &        & {:.3f}".format(r_sq[1,1]) +" & & {:.0f}".format(obs[1,1]) +" %NotOnSlide   \n"
+    output += "\\\\ &  &   ({:.3f}".format(stdevs[1,1]) +")   &      &  & &  %NotOnSlide   \n"    
+    output += "\\\\ &    &        &     {:.3f}".format(coeffs[2,1]) +"   & {:.3f}".format(r_sq[2,1]) +" & & {:.0f}".format(obs[2,1]) +" %NotOnSlide   \n"
+    output += "\\\\ &  &    &    ({:.3f}".format(stdevs[2,1]) +")    &  & &  %NotOnSlide   \n"  
+    output += "\\\\ &  {:.3f}".format(coeffs[3,1]) +"  &    {:.3f}".format(coeffs[4,1]) +"    &     {:.3f}".format(coeffs[5,1]) +"   & {:.3f}".format(r_sq[3,1]) +" & & {:.0f}".format(obs[3,1]) +"   \n"
+    output += "\\\\ & ({:.3f}".format(stdevs[3,1]) +") &  ({:.3f}".format(stdevs[4,1]) +")  &    ({:.3f}".format(stdevs[5,1]) +")    &  & &    \n"  
+    output += "\end{tabular}  \n"
+    output += "} \n"
+    output += "\usebox{\crosssecond} \n"
+    output += "\ifthenelse{\\boolean{StandAlone}}{\\newlength\TableWidth}{} \n"
+    output += "\settowidth{\TableWidth}{\usebox{\crosssecond}} % Calculate width of table so notes will match \n"
+    output += "\medskip\medskip \parbox{\TableWidth}{\small Notes: $\mathbf{E}_{t,i}$ is the expectation from the perspective of person $i$ in period $t$; $\underline{a}$ is a dummy variable indicating that agent $i$ is in the top 99 percent of the $a$ distribution.  Heteroskedasticity-robust standard errors are in parentheses. Standard tests detect no serial correlation in the residuals.  Sample is restricted to households with positive income in period $t$.}  \n"
+    output += "\end{center} \n"
+    output += "\end{table} \n"
+    output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{} \n"
+
+    with open('./Tables/' + out_filename,'w') as f:
+        f.write(output)
+        f.close()
+
+  
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+    
+    
+    
+    
+    
+    
+    
+    

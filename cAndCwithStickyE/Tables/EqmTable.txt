@@ -1,0 +1,46 @@
+\begin{table}  
+\caption{Equilibrium Statistics}  
+\label{table:Eqbm}  
+\begin{center}  
+\newsavebox{\EqbmBox}  
+\sbox{\EqbmBox}{  
+\newcommand{\EqDir}{\TablesDir/Eqbm}  
+\begin{tabular}{lllcccc}  
+&&& \multicolumn{2}{c|}{PE/SOE Economy} & \multicolumn{2}{c}{DSGE Economy}   
+\\ %\cline{4-5}   
+   &&& \multicolumn{1}{c|}{Frictionless} & \multicolumn{1}{c|}{Sticky} & \multicolumn{1}{c|}{Frictionless} & \multicolumn{1}{c}{Sticky}  
+\\ \hline   
+  \multicolumn{3}{l}{Means}  
+%\\  & & $M$  
+%\\  & & $K$  
+\\  & & $A$ & 6.26 &6.25 & 23.62 & 23.57   
+\\  & & $C$ & 2.67 &2.67 & 2.70 & 2.70   
+\\ \hline  
+  \multicolumn{3}{l}{Standard Deviations}  
+\\ &    \multicolumn{4}{l}{Aggregate Time Series (`Macro')}  
+%\  & & $\Delta \log \mathbf{M}$   
+\\ & & $\log A $          &  0.298 &0.289 & 0.195 & 0.192 
+\\ & & $\Delta \log C $   &  0.010 &0.006 & 0.007 & 0.005 
+\\ & & $\Delta \log Y $   &  0.011 &0.011 & 0.008 & 0.008 
+\\ &   \multicolumn{3}{l}{Individual Cross Sectional (`Micro')}  
+\\ & & $\log a $   &  1.025 &1.026 & 0.931 & 0.930 
+\\ & & $\log c $   &  0.923 &0.923 & 0.702 & 0.701 
+\\ & & $\log p $   &  0.934 &0.934 & 0.934 & 0.934 
+\\ & & $\log y | y>0 $   &  1.251 &1.252 & 0.829 & 0.828 
+\\ & & $\Delta \log c $   &  0.099 &0.100 & 0.058 & 0.058 
+  
+  
+\\ \hline \multicolumn{3}{l}{Cost Of Stickiness}  
+ & \multicolumn{2}{c}{999999}  
+  & \multicolumn{2}{c}{9999999} 
+ \end{tabular} \\  
+}  
+\usebox{\EqbmBox}  
+\ifthenelse{\boolean{StandAlone}}{\newlength\TableWidth}{}  
+\settowidth\TableWidth{\usebox{\EqbmBox}} % Calculate width of table so notes will match  
+\medskip\medskip \parbox{\TableWidth}{\small  
+Notes: The cost of stickiness is calculated as the proportion by which the permanent income of a frictionless consumer would need to be reduced in order to achieve the same reduction of expected value associated with forcing them to become a sticky expectations consumer.  
+}  
+\end{center}  
+\end{table}  
+\ifthenelse{\boolean{StandAlone}}{\end{document}}{}  

@@ -114,8 +114,8 @@ matrix ExtraInfo[3,1] = $num_regressions
 
 *Hard code variance of measurement error - better to pass this in from the data file
 *Can replace this once new data files are produced
-qui sum deltalogc
-matrix ExtraInfo[5,1] =  (r(sd)*0.375)^2
+qui sum measurement_error
+matrix ExtraInfo[5,1] =  r(sd)^2
 
 *Store results in a file
 clear
