@@ -1,14 +1,16 @@
-
+* This do file runs the macroeconomic regressions for the StickyE project.
+* It is called by StickyEtools.runStickyEregressionsInStata().
 
 clear
 
-global filename `1'
-global interval_size `2'
-global meas_err `3'
+global infilename `1'
+global tempfilename `2'
+global interval_size `3'
+global meas_err `4'
 global instruments = "L(3/4).deltalogc L3.delta8logc L(3/4).deltalogy L3.delta8logy L(3/4).a"
 
 *import data from file produced in Python
-import delimited $filename, clear
+import delimited $infilename, clear
 tsset time_period
 global num_regressions = floor(_N/$interval_size)
 
@@ -133,7 +135,7 @@ rename PvalArray1 PvalArray
 rename OIDarray1 OIDarray
 rename ExtraInfo1 ExtraInfo
 
-export delimited "C:\Users\edmun\OneDrive\Documents\Research\HARK\cAndCwithStickyE\results\temp.txt", replace
+export delimited $tempfilename, replace
 
 exit, STATA clear
 

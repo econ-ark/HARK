@@ -1,41 +1,40 @@
 \begin{table} \caption{Aggregate Consumption Dynamics in HA-DSGE Markov Economy (11 states)}
-\centering 
+\centering \small 
 $ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon_{t+1} $ \\  
-\begin{tabular}{d{4}d{4}d{5}cd{4}d{5}}
+\begin{tabular}{d{4}d{4}d{5}cd{4}c}
  \toprule 
 \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  \multicolumn{1}{c}{2${}^{\text{nd}}$ Stage}  &  \multicolumn{1}{c}{KP $p$-val} 
-\\ \multicolumn{3}{c}{Independent Variables} & or IV & \multicolumn{1}{c}{$\bar{R}^{2} $} & \multicolumn{1}{c}{Hansen J $p$ val} 
+\\ \multicolumn{3}{c}{Independent Variables} & or IV & \multicolumn{1}{c}{$\bar{R}^{2} $} & \multicolumn{1}{c}{Hansen J $p$-val} 
 \\ \hline \multicolumn{6}{l}{Frictionless : $\Delta \log \mathbf{C}_{t+1}$} 
 \\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
-\\ 0.373^{\bullet \bullet \bullet } & & & OLS & 0.147 & 
-\\ (0.063) & & & & & 
-\\ & 0.534^{\bullet \bullet \bullet } & & IV & 0.091 & 0.110
-\\ & (0.197) & & & &0.326
-\\ & & -4.59\text{e-4}^{\bullet \bullet \bullet } & IV & 0.092 & 0.000
-\\ & & (1.68\text{e-4}) & & &0.337
-\\ 0.382 & 0.126 & -1.67\text{e-4} & IV & 0.108 & 0.491
-\\ (0.360) & (0.374) & (3.55\text{e-4}) & & & 
-\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.108 }  
-\\ \hline \multicolumn{6}{l}{Sticky : $\Delta \log \perc{\mathbf{C}}_{t+1}$ (no measurement error)} 
-\\ \multicolumn{1}{c}{$\Delta \log \perc{\mathbf{C}}_{t}$} & \multicolumn{1}{c}{$\Delta \log \perc{\mathbf{Y}}_{t+1}$} & \multicolumn{1}{c}{$\perc{\mathbf{A}}_{t}$} & & & 
-\\ 0.834^{\bullet \bullet \bullet } & & & OLS & 0.699 & 
-\\ (0.038) & & & & & 
-\\ \hline \multicolumn{6}{l}{Sticky : $\Delta \log \perc{\mathbf{C}}_{t+1}^*$ (with measurement error); $\perc{\mathbf{C}}_{t+1}^* =\perc{\mathbf{C}}_{t+1}\times \xi_t$} 
-\\ \multicolumn{1}{c}{$\Delta \log \perc{\mathbf{C}}_{t}^*$} & \multicolumn{1}{c}{$\Delta \log \perc{\mathbf{Y}}_{t+1}$} & \multicolumn{1}{c}{$\perc{\mathbf{A}}_{t}$} & & & 
-\\ 0.458^{\bullet \bullet \bullet } & & & OLS & 0.224 & 
+\\ 0.344^{\bullet \bullet \bullet } & & & OLS & 0.121 & 
+\\ (0.064) & & & & & 
+\\ & 0.472^{\bullet \bullet \bullet } & & IV & 0.063 & 0.053
+\\ & (0.178) & & & &0.400
+\\ & & -3.40\text{e-4}^{\bullet \bullet } & IV & 0.065 & 0.000
+\\ & & (1.52\text{e-4}) & & &0.423
+\\ 0.328 & 0.165 & -1.36\text{e-4} & IV & 0.067 & 0.551
+\\ (0.460) & (0.352) & (3.46\text{e-4}) & & & 
+\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.072 }  
+\\ \hline \multicolumn{6}{l}{Sticky : $\Delta \log \mathbf{C}_{t+1}$ (no measurement error)} 
+\\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
+\\ 0.859^{\bullet \bullet \bullet } & & & OLS & 0.739 & 
+\\ (0.036) & & & & & 
+\\ \hline \multicolumn{6}{l}{Sticky : $\Delta \log \mathbf{C}_{t+1}^*$ (with measurement error); $\mathbf{C}_{t}^* =\mathbf{C}_{t}\times \xi_t$} 
+\\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t}^*$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
+\\ 0.438^{\bullet \bullet \bullet } & & & OLS & 0.199 & 
 \\ (0.061) & & & & & 
-\\ 0.784^{\bullet \bullet \bullet } & & & IV & 0.283 & 0.000
-\\ (0.105) & & & & &0.563
-\\ & 0.730^{\bullet \bullet \bullet } & & IV & 0.218 & 0.091
-\\ & (0.164) & & & &0.274
-\\ & & -5.87\text{e-4}^{\bullet \bullet \bullet } & IV & 0.183 & 0.000
-\\ & & (1.18\text{e-4}) & & &0.034
-\\ 0.631^{\bullet \bullet \bullet } & 0.022 & -1.71\text{e-4} & IV & 0.263 & 0.489
-\\ (0.189) & (0.270) & (2.11\text{e-4}) & & & 
-\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \perc{\mathbf{C}}_{t+1}^*$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.284 }  
-\\ \multicolumn{6}{l}{$\var(\xi_t)=$0.03\text{e-4}} 
+\\ 0.810^{\bullet \bullet \bullet } & & & IV & 0.270 & 0.000
+\\ (0.110) & & & & &0.558
+\\ & 0.786^{\bullet \bullet \bullet } & & IV & 0.215 & 0.052
+\\ & (0.167) & & & &0.287
+\\ & & -4.37\text{e-4}^{\bullet \bullet \bullet } & IV & 0.137 & 0.000
+\\ & & (1.06\text{e-4}) & & &0.004
+\\ 0.641^{\bullet \bullet \bullet } & 0.158 & -0.44\text{e-4} & IV & 0.260 & 0.381
+\\ (0.209) & (0.279) & (1.73\text{e-4}) & & & 
+\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}^*$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.274,~~$\var(\xi_t)=$0.03\text{e-4} }  
 \\ \hline 
- \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are the average values for 10 subsamples of 200 simulated quarters each.  Bullets indicate that the average subsample coefficient divided by average subsample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
+ \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are the average values for 100 subsamples of 200 simulated quarters each.  Bullets indicate that the average subsample coefficient divided by average subsample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
  \\ \hline \hline 
 \end{tabular} 
 \end{table} 

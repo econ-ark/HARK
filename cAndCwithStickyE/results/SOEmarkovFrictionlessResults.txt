@@ -1,18 +1,18 @@
-Results for the frictionless small open Markov economy
+Results for the frictionless small open Markov economy (update probability 1.0)
 
 
-Average aggregate asset-to-productivity ratio = 6.2634148905
-Average aggregate consumption-to-productivity ratio = 2.6690763782
-Stdev of log aggregate asset-to-productivity ratio = 0.29775897585
-Stdev of change in log aggregate consumption level = 0.00962444449295
-Stdev of change in log aggregate output level = 0.0105660972179
-Stdev of change in log aggregate assets level = 0.00792223309676
-Cross section stdev of log individual assets = 1.02460470886
-Cross section stdev of log individual consumption = 0.922781411218
-Cross section stdev of log individual productivity = 0.934118894229
-Cross section stdev of log individual non-zero income = 1.2513907238
-Cross section stdev of change in log individual assets = 0.265515994389
-Cross section stdev of change in log individual consumption = 0.0994240075975
-Cross section stdev of change in log individual productivity = 0.061561612994
+Average aggregate asset-to-productivity ratio = 7.73122082211
+Average aggregate consumption-to-productivity ratio = 2.70872401952
+Stdev of log aggregate asset-to-productivity ratio = 0.34172774636
+Stdev of change in log aggregate consumption level = 0.0104392002217
+Stdev of change in log aggregate output level = 0.00972291974564
+Stdev of change in log aggregate assets level = 0.00855797011263
+Cross section stdev of log individual assets = 1.03050598481
+Cross section stdev of log individual consumption = 0.928750262012
+Cross section stdev of log individual productivity = 0.939908188359
+Cross section stdev of log individual non-zero income = 1.25585675295
+Cross section stdev of change in log individual assets = 0.265371700058
+Cross section stdev of change in log individual consumption = 0.0994855173726
+Cross section stdev of change in log individual productivity = 0.0615553098486
 
 

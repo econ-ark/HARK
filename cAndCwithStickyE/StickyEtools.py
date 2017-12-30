@@ -60,30 +60,38 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
     # Extract time series data from the economy
     if hasattr(Economy,'agents'): # If this is a heterogeneous agent specification...
         #PermShkAggHist needs to be shifted one period forward
+        if len(Economy.agents > 1):
+            pLvlAll_hist = np.concatenate([this_type.pLvlTrue_hist for this_type in Economy.agents],axis=1)
+            aLvlAll_hist = np.concatenate([this_type.aLvlNow_hist for this_type in Economy.agents],axis=1)
+            cLvlAll_hist = np.concatenate([this_type.cLvlNow_hist for this_type in Economy.agents],axis=1)
+            yLvlAll_hist = np.concatenate([this_type.yLvlNow_hist for this_type in Economy.agents],axis=1)
+        else: # Don't duplicate the data unless necessary (with one type, concatenating is useless)
+            pLvlAll_hist = Economy.agents[0].pLvlTrue_hist
+            aLvlAll_hist = Economy.agents[0].aLvlNow_hist
+            cLvlAll_hist = Economy.agents[0].cLvlNow_hist
+            yLvlAll_hist = Economy.agents[0].yLvlNow_hist
         PlvlAgg_hist = np.cumprod(np.concatenate(([1.0],Economy.PermShkAggHist[:-1]),axis=0))
-        pLvlAll_hist = np.concatenate([this_type.pLvlTrue_hist for this_type in Economy.agents],axis=1)
-        aLvlAll_hist = np.concatenate([this_type.aLvlNow_hist for this_type in Economy.agents],axis=1)
         AlvlAgg_hist = np.mean(aLvlAll_hist,axis=1) # Level of aggregate assets
         AnrmAgg_hist = AlvlAgg_hist/PlvlAgg_hist # Normalized level of aggregate assets
-        cLvlAll_hist = np.concatenate([this_type.cLvlNow_hist for this_type in Economy.agents],axis=1)
         ClvlAgg_hist = np.mean(cLvlAll_hist,axis=1) # Level of aggregate consumption
         CnrmAgg_hist = ClvlAgg_hist/PlvlAgg_hist # Normalized level of aggregate consumption
-        yLvlAll_hist = np.concatenate([this_type.yLvlNow_hist for this_type in Economy.agents],axis=1)
+        
         YlvlAgg_hist = np.mean(yLvlAll_hist,axis=1) # Level of aggregate income
         YnrmAgg_hist = YlvlAgg_hist/PlvlAgg_hist # Normalized level of aggregate income
         
         if calc_micro_stats: # Only calculate stats if requested.  This is a memory hog with many simulated periods
-            not_newborns = (np.concatenate([this_type.t_age_hist[(ignore_periods+1):,:] for this_type in Economy.agents],axis=1) > 1).flatten()
-            Logc = np.log(cLvlAll_hist[ignore_periods:,:])
+            micro_stat_periods = int((Economy.agents[0].T_sim-ignore_periods)*0.1)
+            not_newborns = (np.concatenate([this_type.t_age_hist[(ignore_periods+1):(ignore_periods+micro_stat_periods),:] for this_type in Economy.agents],axis=1) > 1).flatten()
+            Logc = np.log(cLvlAll_hist[ignore_periods:(ignore_periods+micro_stat_periods),:])
             DeltaLogc = (Logc[1:] - Logc[0:-1]).flatten()
             DeltaLogc_trimmed = DeltaLogc[not_newborns]
-            Loga = np.log(aLvlAll_hist[ignore_periods:,:])
+            Loga = np.log(aLvlAll_hist[ignore_periods:(ignore_periods+micro_stat_periods),:])
             DeltaLoga = (Loga[1:] - Loga[0:-1]).flatten()
             DeltaLoga_trimmed = DeltaLoga[not_newborns]
-            Logp = np.log(pLvlAll_hist[ignore_periods:,:])
+            Logp = np.log(pLvlAll_hist[ignore_periods:(ignore_periods+micro_stat_periods),:])
             DeltaLogp = (Logp[1:] - Logp[0:-1]).flatten()
             DeltaLogp_trimmed = DeltaLogp[not_newborns]
-            Logy = np.log(yLvlAll_hist[ignore_periods:,:])
+            Logy = np.log(yLvlAll_hist[ignore_periods:(ignore_periods+micro_stat_periods),:])
             Logy_trimmed = Logy
             Logy_trimmed[np.isinf(Logy)] = np.nan
         
@@ -362,11 +370,13 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
                      sticky=sticky)
     return panel_text
 
+
 def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,stata_exe):
     '''
     Runs regressions for the main tables of the StickyC paper in Stata
     and produces a LaTeX table with results (one "panel" at a time).
-    Running in Stata allows production of the KP-statistic
+    Running in Stata allows production of the KP-statistic, for which
+    there is currently no command in statsmodels.api.
     
     Parameters
     ----------
@@ -380,6 +390,9 @@ def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,stata
         Indicator for whether to add measurement error to DeltaLogC.
     sticky : bool
         Indicator for whether these results used sticky expectations.
+    stata_exe : str
+        Absolute location where the Stata executable can be found on the computer
+        running this code.  Usually set at the top of StickyEparams.py.
         
     Returns
     -------
@@ -388,15 +401,18 @@ def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,stata
     '''
     dofile = "StataRegressions.do"
     infile_name_full = os.path.abspath("results\\"+infile_name+".txt")
+    temp_name_full = os.path.abspath("results\\temp.txt")
     if meas_err:
         meas_err_stata = 1
     else:
         meas_err_stata = 0
-    #Is there are way to make a more robust call to Stata than this?
-    cmd = ["C:\Program Files (x86)\Stata14\stataMP-64", "do", dofile, infile_name_full,str(interval_size),str(meas_err_stata)]
-    ## Run do-file
+        
+    # Define the command that will run the 
+    cmd = [stata_exe, "do", dofile, infile_name_full, temp_name_full, str(interval_size), str(meas_err_stata)]
+    
+    # Run Stata do-file
     subprocess.call(cmd,shell = 'true') 
-    stata_output = pd.read_csv(os.path.abspath("results\\temp.txt"), sep=',',header=0)
+    stata_output = pd.read_csv(temp_name_full, sep=',',header=0)
     
     # Make results table and return it
     panel_text = makeResultsPanel(Coeffs=stata_output.CoeffsArray,
@@ -408,7 +424,8 @@ def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,stata
                      meas_err=meas_err,
                      sticky=sticky)
     return panel_text
-    
+
+
 def evalLorenzDistance(Economy):
     '''
     Calculates the Lorenz distance and the wealth level difference bewtween a
@@ -466,27 +483,27 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
         Text string with one panel of LaTeX input.
     '''
     # Define Delta log C text and expectations text
-    if sticky & meas_err:
-        DeltaLogC = '$\Delta \log \perc{\mathbf{C}}_{t}^*$'
-        DeltaLogC1 = '$\Delta \log \perc{\mathbf{C}}_{t+1}^*$'
+    if sticky and meas_err:
+        DeltaLogC = '$\Delta \log \mathbf{C}_{t}^*$'
+        DeltaLogC1 = '$\Delta \log \mathbf{C}_{t+1}^*$'
     else:
         if sticky:
-            DeltaLogC = '$\Delta \log \perc{\mathbf{C}}_{t}$'
-            DeltaLogC1 = '$\Delta \log \perc{\mathbf{C}}_{t+1}$'
+            DeltaLogC = '$\Delta \log \mathbf{C}_{t}$'
+            DeltaLogC1 = '$\Delta \log \mathbf{C}_{t+1}$'
         else:
             DeltaLogC = '$\Delta \log \mathbf{C}_{t}$'
             DeltaLogC1 = '$\Delta \log \mathbf{C}_{t+1}$'
     if sticky:
         Expectations = 'Sticky'
-        DeltaLogY1 = '$\Delta \log \perc{\mathbf{Y}}_{t+1}$'
-        A_t = '$\perc{\mathbf{A}}_{t}$'
+        DeltaLogY1 = '$\Delta \log \mathbf{Y}_{t+1}$'
+        A_t = '$A_{t}$'
     else:
         Expectations = 'Frictionless'
         DeltaLogY1 = '$\Delta \log \mathbf{Y}_{t+1}$'
         A_t = '$A_{t}$'
     if sticky:
         if meas_err:
-            MeasErr = ' (with measurement error); $\perc{\mathbf{C}}_{t+1}^* =\perc{\mathbf{C}}_{t+1}\\times \\xi_t$'
+            MeasErr = ' (with measurement error); $\mathbf{C}_{t}^* =\mathbf{C}_{t}\\times \\xi_t$'
         else:
             MeasErr = ' (no measurement error)'
     else:
@@ -506,12 +523,20 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
         else:
             sig_text = ''
         return sig_text
+    
+    memo = ''
+    if (not sticky) or meas_err:
+        memo += '\\\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, ' + DeltaLogC1 + ' $= \mathbf{Z}_{t} \zeta,~~\\bar{R}^{2}=$ ' + mystr1(Counts[3])
+    if meas_err and sticky:
+        memo += ',~~$\\var(\\xi_t)=$ ' + mystr2(Counts[4])    
+    if (not sticky) or meas_err:
+        memo += ' }  \n'
 
     output = '\\\\ \hline \multicolumn{6}{l}{' + Expectations + ' : ' + DeltaLogC1 + MeasErr + '} \n'
     output += '\\\\ \multicolumn{1}{c}{' + DeltaLogC + '} & \multicolumn{1}{c}{' + DeltaLogY1 +'} & \multicolumn{1}{c}{'+A_t+'} & & & \n'
     output += '\\\\ ' + mystr1(Coeffs[0]) + sigFunc(Coeffs[0],StdErrs[0]) + ' & & & OLS & ' + mystr1(Rsq[0]) + ' & ' + mystr1(np.nan) + '\n'   
     output += '\\\\ (' + mystr1(StdErrs[0]) + ') & & & & & \n'   
-    if sticky & meas_err:
+    if sticky and meas_err:
         output += '\\\\ ' + mystr1(Coeffs[1]) + sigFunc(Coeffs[1],StdErrs[1]) + ' & & & IV & ' + mystr1(Rsq[1]) + ' & ' + mystr1(Pvals[1]) + '\n'   
         output += '\\\\ (' + mystr1(StdErrs[1]) + ') & & & & &' + mystr1(OID[1]) + '\n'   
     if (not sticky) or meas_err:
@@ -521,9 +546,8 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
         output += '\\\\ & & (' + mystr2(StdErrs[3]) + ') & & &' + mystr1(OID[3]) + '\n'    
         output += '\\\\ ' + mystr1(Coeffs[4]) + sigFunc(Coeffs[4],StdErrs[4]) + ' & ' + mystr1(Coeffs[5]) + sigFunc(Coeffs[5],StdErrs[5]) + ' & ' + mystr2(Coeffs[6]) + sigFunc(Coeffs[6],StdErrs[6]) + ' & IV & ' + mystr1(Rsq[4]) + ' & ' + mystr1(Pvals[4]) + '\n'     
         output += '\\\\ (' + mystr1(StdErrs[4]) + ') & (' + mystr1(StdErrs[5]) + ') & (' + mystr2(StdErrs[6]) + ') & & & \n'
-        output += '\\\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, ' + DeltaLogC1 + ' $= \mathbf{Z}_{t} \zeta,~~\\bar{R}^{2}=$' + mystr1(Counts[3]) +' }  \n'
-    if meas_err & sticky:
-        output += '\\\\ \multicolumn{6}{l}{$\\var(\\xi_t)=$' + mystr2(Counts[4]) + '} \n'
+    output += memo
+    
     if Counts[0] is not None and Counts[2] > 1 and False:
         output += '\\\\ \multicolumn{6}{c}{Horserace coefficient on ' + DeltaLogC + ' significant at 95\% level for ' + str(Counts[0]) + ' of ' + str(Counts[2]) + ' subintervals.} \n'
         output += '\\\\ \multicolumn{6}{c}{Horserace coefficient on $\mathbb{E}[\Delta \log \mathbf{Y}_{t+1}]$ significant at 95\% level for ' + str(Counts[1]) + ' of ' + str(Counts[2]) + ' subintervals.} \n'
@@ -562,11 +586,11 @@ def makeResultsTable(caption,panels,counts,filename):
         
     
     output = '\\begin{table} \caption{' + caption + '}\n'
-    output += '\centering \n'
+    output += '\centering \small \n'
     output += '$ \Delta \log \mathbf{C}_{t+1} = \\varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \\alpha A_t + \epsilon_{t+1} $ \\\\  \n'
-    output += '\\begin{tabular}{d{4}d{4}d{5}cd{4}d{5}}\n \\toprule \n'
+    output += '\\begin{tabular}{d{4}d{4}d{5}cd{4}c}\n \\toprule \n'
     output += '\multicolumn{3}{c}{Expectations : Dep Var} & OLS &  \multicolumn{1}{c}{2${}^{\\text{nd}}$ Stage}  &  \multicolumn{1}{c}{KP $p$-val} \n'
-    output += '\\\\ \multicolumn{3}{c}{Independent Variables} & or IV & \multicolumn{1}{c}{$\\bar{R}^{2} $} & \multicolumn{1}{c}{Hansen J $p$ val} \n'
+    output += '\\\\ \multicolumn{3}{c}{Independent Variables} & or IV & \multicolumn{1}{c}{$\\bar{R}^{2} $} & \multicolumn{1}{c}{Hansen J $p$-val} \n'
     
     for panel in panels:
         output += panel
@@ -578,7 +602,8 @@ def makeResultsTable(caption,panels,counts,filename):
     with open('./Tables/' + filename + '.txt','w') as f:
         f.write(output)
         f.close()
-        
+
+       
 def makeParameterTable(filename, params):   
     '''
     Make parameter table for the paper
@@ -652,10 +677,10 @@ def makeEquilibriumTable(out_filename, four_in_files):
     None
     '''
     #Read in data from the four files
-    SOEfrictionless = np.genfromtxt('./results/' +four_in_files[0] +'.csv', delimiter=',')
-    SOEsticky = np.genfromtxt('./results/' +four_in_files[1] +'.csv', delimiter=',')
-    DSGEfrictionless = np.genfromtxt('./results/' +four_in_files[2] +'.csv', delimiter=',')
-    DSGEsticky = np.genfromtxt('./results/' +four_in_files[3] +'.csv', delimiter=',')
+    SOEfrictionless = np.genfromtxt('./results/' + four_in_files[0] + '.csv', delimiter=',')
+    SOEsticky = np.genfromtxt('./results/' + four_in_files[1] + '.csv', delimiter=',')
+    DSGEfrictionless = np.genfromtxt('./results/' + four_in_files[2] + '.csv', delimiter=',')
+    DSGEsticky = np.genfromtxt('./results/' + four_in_files[3] + '.csv', delimiter=',')
     
     output = "\\begin{table}  \n"
     output += "\caption{Equilibrium Statistics}  \n"
@@ -678,15 +703,15 @@ def makeEquilibriumTable(out_filename, four_in_files):
     output += "  \multicolumn{3}{l}{Standard Deviations}  \n"
     output += "\\\\ &    \multicolumn{4}{l}{Aggregate Time Series (`Macro')}  \n"
     output += "%\\  & & $\Delta \log \mathbf{M}$   \n"
-    output += "\\\\ & & $\log A $          &  {:.3f}".format(SOEfrictionless[2]) +" &{:.3f}".format(SOEsticky[2]) +" & {:.3f}".format(DSGEfrictionless[2]) +" & {:.3f}".format(DSGEsticky[2]) +" \n"
-    output += "\\\\ & & $\Delta \log C $   &  {:.3f}".format(SOEfrictionless[3]) +" &{:.3f}".format(SOEsticky[3]) +" & {:.3f}".format(DSGEfrictionless[3]) +" & {:.3f}".format(DSGEsticky[3]) +" \n"
-    output += "\\\\ & & $\Delta \log Y $   &  {:.3f}".format(SOEfrictionless[4]) +" &{:.3f}".format(SOEsticky[4]) +" & {:.3f}".format(DSGEfrictionless[4]) +" & {:.3f}".format(DSGEsticky[4]) +" \n"
+    output += "\\\\ & & $\log A $         & {:.3f}".format(SOEfrictionless[2]) +" & {:.3f}".format(SOEsticky[2]) +" & {:.3f}".format(DSGEfrictionless[2]) +" & {:.3f}".format(DSGEsticky[2]) +" \n"
+    output += "\\\\ & & $\Delta \log C $  & {:.3f}".format(SOEfrictionless[3]) +" & {:.3f}".format(SOEsticky[3]) +" & {:.3f}".format(DSGEfrictionless[3]) +" & {:.3f}".format(DSGEsticky[3]) +" \n"
+    output += "\\\\ & & $\Delta \log Y $  & {:.3f}".format(SOEfrictionless[4]) +" & {:.3f}".format(SOEsticky[4]) +" & {:.3f}".format(DSGEfrictionless[4]) +" & {:.3f}".format(DSGEsticky[4]) +" \n"
     output += "\\\\ &   \multicolumn{3}{l}{Individual Cross Sectional (`Micro')}  \n"  
-    output += "\\\\ & & $\log a $   &  {:.3f}".format(SOEfrictionless[6]) +" &{:.3f}".format(SOEsticky[6]) +" & {:.3f}".format(DSGEfrictionless[6]) +" & {:.3f}".format(DSGEsticky[6]) +" \n"
-    output += "\\\\ & & $\log c $   &  {:.3f}".format(SOEfrictionless[7]) +" &{:.3f}".format(SOEsticky[7]) +" & {:.3f}".format(DSGEfrictionless[7]) +" & {:.3f}".format(DSGEsticky[7]) +" \n"
-    output += "\\\\ & & $\log p $   &  {:.3f}".format(SOEfrictionless[8]) +" &{:.3f}".format(SOEsticky[8]) +" & {:.3f}".format(DSGEfrictionless[8]) +" & {:.3f}".format(DSGEsticky[8]) +" \n"
-    output += "\\\\ & & $\log y | y>0 $   &  {:.3f}".format(SOEfrictionless[9]) +" &{:.3f}".format(SOEsticky[9]) +" & {:.3f}".format(DSGEfrictionless[9]) +" & {:.3f}".format(DSGEsticky[9]) +" \n"
-    output += "\\\\ & & $\Delta \log c $   &  {:.3f}".format(SOEfrictionless[11]) +" &{:.3f}".format(SOEsticky[11]) +" & {:.3f}".format(DSGEfrictionless[11]) +" & {:.3f}".format(DSGEsticky[11]) +" \n"
+    output += "\\\\ & & $\log a $  & {:.3f}".format(SOEfrictionless[6]) +" & {:.3f}".format(SOEsticky[6]) +" & {:.3f}".format(DSGEfrictionless[6]) +" & {:.3f}".format(DSGEsticky[6]) +" \n"
+    output += "\\\\ & & $\log c $  & {:.3f}".format(SOEfrictionless[7]) +" & {:.3f}".format(SOEsticky[7]) +" & {:.3f}".format(DSGEfrictionless[7]) +" & {:.3f}".format(DSGEsticky[7]) +" \n"
+    output += "\\\\ & & $\log p $  & {:.3f}".format(SOEfrictionless[8]) +" & {:.3f}".format(SOEsticky[8]) +" & {:.3f}".format(DSGEfrictionless[8]) +" & {:.3f}".format(DSGEsticky[8]) +" \n"
+    output += "\\\\ & & $\log y | y>0 $  & {:.3f}".format(SOEfrictionless[9]) +" & {:.3f}".format(SOEsticky[9]) +" & {:.3f}".format(DSGEfrictionless[9]) +" & {:.3f}".format(DSGEsticky[9]) +" \n"
+    output += "\\\\ & & $\Delta \log c $  & {:.3f}".format(SOEfrictionless[11]) +" & {:.3f}".format(SOEsticky[11]) +" & {:.3f}".format(DSGEfrictionless[11]) +" & {:.3f}".format(DSGEsticky[11]) +" \n"
     output += "  \n"
     output += "  \n"
     output += "\\\\ \hline \multicolumn{3}{l}{Cost Of Stickiness}  \n"
@@ -719,8 +744,8 @@ def makeMicroRegressionTable(out_filename, Agents,ignore_periods):
     out_filename : str
         Name of the file in which to save output (in the ./Tables/ directory).
     Agents: [AgentType] (or derivative)
-        A list of 2 consumer types for whom the consumption history has already been calculated
-        The first is the frictionless agent, the second with sticky expectations
+        A list of 2 consumer types for whom the consumption history has already been calculated.
+        The first is the frictionless agent, the second with sticky expectations.
         
     Returns
     -------
@@ -838,29 +863,3 @@ def makeMicroRegressionTable(out_filename, Agents,ignore_periods):
     with open('./Tables/' + out_filename,'w') as f:
         f.write(output)
         f.close()
-
-  
-
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-    
-    
-    
-    
-    
-    
-    
-    

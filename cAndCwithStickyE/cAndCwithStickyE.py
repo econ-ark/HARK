@@ -36,10 +36,11 @@ do_RA_simple   = False
 do_RA_markov   = True
 
 # Choose what kind of work to do for each model
-run_models = False
-make_tables = True
-use_stata = True
-calc_micro_stats = False
+run_models = False       # Whether to solve models and generate new simulated data
+calc_micro_stats = True  # Whether to calculate microeconomic statistics (only matters when run_models is True)
+make_tables = True       # Whether to make LaTeX tables in the /Tables folder
+use_stata = True         # Whether to use Stata to run regressions
+
 
 # Choose whether to save data for use in Stata (as a tab-delimited text file)
 save_data = True
@@ -85,7 +86,7 @@ if __name__ == '__main__':
             print('Simulating the frictionless small open economy took ' + mystr(t_end-t_start) + ' seconds.')
             
             # Make results for the frictionless representative agent economy
-            desc = 'Results for the frictionless small open economy'
+            desc = 'Results for the frictionless small open economy (update probability 1.0)'
             name = 'SOEsimpleFrictionless'
             makeStickyEdataFile(StickySOEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             
@@ -162,11 +163,13 @@ if __name__ == '__main__':
             print('Simulating the frictionless small open Markov economy took ' + mystr(t_end-t_start) + ' seconds.')
             
             # Make results for the frictionless small open Markov economy
-            desc = 'Results for the frictionless small open Markov economy'
+            desc = 'Results for the frictionless small open Markov economy (update probability 1.0)'
             name = 'SOEmarkovFrictionless'
             makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
-            #make a copy of the frictionless agent to pass to micro regression calculations
-            frictionless_SOE_agent = deepcopy(StickySOEmarkovConsumers[0])
+            if calc_micro_stats:
+                pass
+                # Make a copy of the frictionless agent to pass to micro regression calculations
+                #frictionless_SOE_agent = deepcopy(StickySOEmarkovConsumers[0])
             
             # Simulate the frictionless small open Markov economy
             t_start = clock()
@@ -181,7 +184,9 @@ if __name__ == '__main__':
             name = 'SOEmarkovSticky'
             makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             
-            makeMicroRegressionTable('SOEMicroRegressions.txt', [frictionless_SOE_agent,StickySOEmarkovConsumers[0]],ignore_periods)
+            if calc_micro_stats:
+                pass
+                #makeMicroRegressionTable('SOEmicroRegressions.txt', [frictionless_SOE_agent,StickySOEmarkovConsumers[0]],ignore_periods)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
@@ -233,7 +238,7 @@ if __name__ == '__main__':
             plt.show()
             
             # Make results for the frictionless Cobb-Douglas economy
-            desc = 'Results for the frictionless Cobb-Douglas economy'
+            desc = 'Results for the frictionless Cobb-Douglas economy (update probability 1.0)'
             name = 'DSGEsimpleFrictionless'
             makeStickyEdataFile(StickyDSGEeconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             
@@ -303,7 +308,7 @@ if __name__ == '__main__':
             print('Displaying the consumption functions for the Cobb-Douglas Markov economy would be too much.')
             
             # Make results for the Cobb-Douglas Markov economy
-            desc = 'Results for the frictionless Cobb-Douglas Markov economy'
+            desc = 'Results for the frictionless Cobb-Douglas Markov economy (update probability 1.0)'
             name = 'DSGEmarkovFrictionless'
             makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             
@@ -364,7 +369,7 @@ if __name__ == '__main__':
             print('Simulating the frictionless representative agent economy took ' + str(t_end-t_start) + ' seconds.')
             
             # Make results for the frictionless representative agent economy
-            desc = 'Results for the frictionless representative agent economy'
+            desc = 'Results for the frictionless representative agent economy (update probability 1.0)'
             name = 'RAsimpleFrictionless'
             makeStickyEdataFile(StickyRAconsumer,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             
@@ -422,7 +427,7 @@ if __name__ == '__main__':
             print('Simulating the frictionless representative agent Markov economy took ' + str(t_end-t_start) + ' seconds.')
             
             # Make results for the frictionless representative agent economy
-            desc = 'Results for the frictionless representative agent Markov economy'
+            desc = 'Results for the frictionless representative agent Markov economy (update probability 1.0)'
             name = 'RAmarkovFrictionless'
             makeStickyEdataFile(StickyRAmarkovConsumer,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             

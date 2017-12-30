@@ -4,8 +4,8 @@ It defines dictionaries for the six types of models in cAndCwithStickyE:
     
 1) Small open economy
 2) Small open Markov economy
-3) Cobb-Douglas economy
-4) Cobb-Douglas Markov economy
+3) Cobb-Douglas closed economy
+4) Cobb-Douglas closed Markov economy
 5) Representative agent economy
 6) Markov representative agent economy
     
@@ -16,14 +16,29 @@ import numpy as np
 from copy import copy
 from HARKutilities import approxUniform
 
-stata_exe = "C:\Program Files (x86)\Stata14\stataMP-64"
+# Choose file where the Stata executable can be found.  This should point at the
+# exe file itself, but the string does not need to include '.exe'.  Two examples
+# are included (for locations on two authors' local computers).  This variable
+# is irrelevant when the use_stata boolean in cAndCwithStickyE.py is set to False.
+# Using Stata to run the regressions allows the tables to include the KP test
+# statistic; Python's statsmodels.api currently does not have this functionality.
+
+# NOTE: To successfully use_stata, you must have Baum, Schaffer, and Stillman's
+# ivreg2 Stata module installed, as well as Kleibergen and Schaffer's ranktest
+# module.  These modules are archived by RePEc IDEAS at:
+# https://ideas.repec.org/c/boc/bocode/s425401.html
+# https://ideas.repec.org/c/boc/bocode/s456865.html
+# You can also simply type "ssc install ivreg2" and "ssc install ranktest" in Stata.
+
+#stata_exe = "C:\Program Files (x86)\Stata14\stataMP-64"
+stata_exe = "C:\Program Files (x86)\Stata15\StataSE-64"
 
 # Choose basic simulation parameters
 UpdatePrb = 0.25       # Probability that each agent observes the aggregate productivity state each period (in sticky version)
-periods_to_sim = 3010 # Total number of periods to simulate; this might be increased by DSGEmarkov model
+periods_to_sim = 21010 # Total number of periods to simulate; this might be increased by DSGEmarkov model
 ignore_periods = 1000  # Number of simulated periods to ignore (in order to ensure we are near steady state)
-interval_size = 200  # Number of periods in each subsample interval
-AgentCount = 10000     # Total number of agents to simulate in the economy
+interval_size = 200    # Number of periods in each subsample interval
+AgentCount = 20000     # Total number of agents to simulate in the economy
 
 # Choose extent of discount factor heterogeneity (inapplicable to representative agent models)
 TypeCount = 1        # Number of heterogeneous discount factor types
