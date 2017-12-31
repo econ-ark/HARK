@@ -78,8 +78,9 @@ def solveConsRepAgent(solution_next,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,Per
         print('Social planner solution not yet implemented!')
     else: # For representative agent:
         # Calculate next period's market resources
-        RfreeNext = 1. + CapShare*kNrmNext**(CapShare-1.)*TranShkVals_tiled**(1.-CapShare) - DeprFac
-        wRteNext  = (1.-CapShare)*kNrmNext**CapShare**TranShkVals_tiled**(-CapShare)
+        KtoLnext  = kNrmNext/TranShkVals_tiled
+        RfreeNext = 1. - DeprFac + CapShare*KtoLnext**(CapShare-1.)
+        wRteNext  = (1.-CapShare)*KtoLnext**CapShare
         mNrmNext  = RfreeNext*kNrmNext + wRteNext*TranShkVals_tiled
         
         # Calculate end-of-period marginal value of assets for the RA
@@ -174,8 +175,9 @@ def solveConsRepAgentMarkov(solution_next,MrkvArray,DiscFac,CRRA,IncomeDstn,CapS
             print('Social planner solution not yet implemented!')
         else: # For representative agent:
             # Calculate next period's market resources
-            RfreeNext = 1. + CapShare*kNrmNext**(CapShare-1.)*TranShkVals_tiled**(1.-CapShare) - DeprFac
-            wRteNext  = (1.-CapShare)*kNrmNext**CapShare**TranShkVals_tiled**(-CapShare)
+            KtoLnext  = kNrmNext/TranShkVals_tiled
+            RfreeNext = 1. - DeprFac + CapShare*KtoLnext**(CapShare-1.)
+            wRteNext  = (1.-CapShare)*KtoLnext**CapShare
             mNrmNext  = RfreeNext*kNrmNext + wRteNext*TranShkVals_tiled
             
             # Calculate end-of-period marginal value of assets for the RA
