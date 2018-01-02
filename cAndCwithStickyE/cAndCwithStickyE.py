@@ -29,8 +29,8 @@ do_RA_simple   = False
 do_RA_markov   = True
 
 # Choose what kind of work to do for each model
-run_models = True        # Whether to solve models and generate new simulated data
-calc_micro_stats = True  # Whether to calculate microeconomic statistics (only matters when run_models is True)
+run_models = False        # Whether to solve models and generate new simulated data
+calc_micro_stats = False  # Whether to calculate microeconomic statistics (only matters when run_models is True)
 make_tables = True       # Whether to make LaTeX tables in the /Tables folder
 use_stata = True         # Whether to use Stata to run regressions
 
@@ -113,7 +113,7 @@ if __name__ == '__main__':
             frictionless_panel = runRegressions('SOEsimpleFrictionlessData',interval_size,False,False)
             sticky_panel = runRegressions('SOEsimpleStickyData',interval_size,False,True)
             sticky_me_panel = runRegressions('SOEsimpleStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in PE/SOE Economy',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'SOEsimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in PE/SOE Economy',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'SOEsimReg','tPESOEsim')
     
     
     ###############################################################################
@@ -186,7 +186,7 @@ if __name__ == '__main__':
             
             if calc_micro_stats:
                 pass
-                #makeMicroRegressionTable('SOEmicroRegressions.txt', [frictionless_SOE_agent,StickySOEmarkovConsumers[0]],ignore_periods)
+                #makeMicroRegressionTable('CGrowCross.tex', [frictionless_SOE_agent,StickySOEmarkovConsumers[0]],ignore_periods)
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
@@ -194,7 +194,7 @@ if __name__ == '__main__':
             frictionless_panel = runRegressions('SOEmarkovFrictionlessData',interval_size,False,False)
             sticky_panel = runRegressions('SOEmarkovStickyData',interval_size,False,True)
             sticky_me_panel = runRegressions('SOEmarkovStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in PE/SOE Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'SOEmrkvSimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in PE/SOE Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'SOEmrkvSimReg','tPESOEsim')
     
     ###############################################################################
     ################# COBB-DOUGLAS ECONOMY ########################################
@@ -264,7 +264,7 @@ if __name__ == '__main__':
             frictionless_panel = runRegressions('DSGEsimpleFrictionlessData',interval_size,False,False)
             sticky_panel = runRegressions('DSGEsimpleStickyData',interval_size,False,True)
             sticky_me_panel = runRegressions('DSGEsimpleStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Economy',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'DSGEsimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Economy',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'DSGEsimReg','tDSGEsim')
     
     ###############################################################################
     ########## COBB-DOUGLAS ECONOMY WITH MACROECONOMIC MARKOV STATE ###############
@@ -323,7 +323,7 @@ if __name__ == '__main__':
             frictionless_panel = runRegressions('DSGEmarkovFrictionlessData',interval_size,False,False)
             sticky_panel = runRegressions('DSGEmarkovStickyData',interval_size,False,True)
             sticky_me_panel = runRegressions('DSGEmarkovStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'DSGEmrkvSimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'DSGEmrkvSimReg','tDSGEsim')
        
     
     ###############################################################################
@@ -376,7 +376,7 @@ if __name__ == '__main__':
             frictionless_panel = runRegressions('RAsimpleFrictionlessData',interval_size,False,False)
             sticky_panel = runRegressions('RAsimpleStickyData',interval_size,False,True)
             sticky_me_panel = runRegressions('RAsimpleStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Economy',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'RepAgentSimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Economy',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'RepAgentSimReg','tRAsim')
     
     ###############################################################################
     ########### REPRESENTATIVE AGENT ECONOMY WITH MARKOV STATE ####################
@@ -429,11 +429,11 @@ if __name__ == '__main__':
             frictionless_panel = runRegressions('RAmarkovFrictionlessData',interval_size,False,False)
             sticky_panel = runRegressions('RAmarkovStickyData',interval_size,False,True)
             sticky_me_panel = runRegressions('RAmarkovStickyData',interval_size,True,True)
-            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'RepAgentMrkvSimReg')
+            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'RepAgentMrkvSimReg','tRAsim')
         
     ###############################################################################
     ########### MAKE OTHER TABLES #################################################
     ###############################################################################
     if make_tables:
-        makeEquilibriumTable('EqmTable.txt', ['SOEmarkovFrictionless','SOEmarkovSticky','DSGEmarkovFrictionless','DSGEmarkovSticky'],Params.init_SOE_consumer['CRRA'])
-        makeParameterTable('Calibration.txt', Params)
+        makeEquilibriumTable('Eqbm.tex', ['SOEmarkovFrictionless','SOEmarkovSticky','DSGEmarkovFrictionless','DSGEmarkovSticky'],Params.init_SOE_consumer['CRRA'])
+        makeParameterTable('Calibration.tex', Params)

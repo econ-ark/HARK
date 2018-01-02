@@ -359,8 +359,6 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
     C_successes_95 = np.sum(t_stat_array[:,4] > 1.96)
     Y_successes_95 = np.sum(t_stat_array[:,5] > 1.96)
     
-    #Hard code variance of measurement error - better to pass this in from the data file
-    #Can replace this once new data files are produced
     sigma_meas_err = np.std(Measurement_Error)
     
     N_out = [C_successes_95,Y_successes_95,N,np.mean(InstrRsqVec),sigma_meas_err**2]
@@ -628,7 +626,7 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
     return output
         
         
-def makeResultsTable(caption,panels,counts,filename):
+def makeResultsTable(caption,panels,counts,filename,label):
     '''
     Make a results table by piecing together one or more panels.
     
@@ -658,7 +656,8 @@ def makeResultsTable(caption,panels,counts,filename):
     note += '}'
         
     
-    output = '\\begin{table} \caption{' + caption + '}\n'
+    output = '\\begin{table} \caption{' + caption + '} \n'
+    output += '\\label{' + label + '} \n'
     output += '\centering \small \n'
     output += '$ \Delta \log \mathbf{C}_{t+1} = \\varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \\alpha A_t + \epsilon_{t+1} $ \\\\  \n'
     output += '\\begin{tabular}{d{4}d{4}d{5}cd{4}c}\n \\toprule \n'
@@ -672,7 +671,7 @@ def makeResultsTable(caption,panels,counts,filename):
     output += '\end{tabular} \n'
     output += '\end{table} \n'
     
-    with open('./Tables/' + filename + '.txt','w') as f:
+    with open('./Tables/' + filename + '.tex','w') as f:
         f.write(output)
         f.close()
 
