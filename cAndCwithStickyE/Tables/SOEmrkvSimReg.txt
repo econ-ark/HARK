@@ -9,13 +9,13 @@ $ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \et
 \\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
 \\ 0.358^{\bullet \bullet \bullet } & & & OLS & 0.129 & 
 \\ (0.064) & & & & & 
-\\ & 0.475^{\bullet \bullet } & & IV & 0.039 & 0.069
-\\ & (0.214) & & & &0.445
-\\ & & -6.38\text{e-4} & IV & 0.030 & 0.000
+\\ & 0.437^{\bullet \bullet } & & IV & 0.037 & 0.059
+\\ & (0.198) & & & &0.430
+\\ & & -6.39\text{e-4} & IV & 0.030 & 0.000
 \\ & & (5.24\text{e-4}) & & &0.363
-\\ 0.389 & 0.285 & 0.69\text{e-4} & IV & 0.034 & 0.555
-\\ (0.428) & (0.376) & (9.05\text{e-4}) & & & 
-\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.043 }  
+\\ 0.391 & 0.242 & 0.13\text{e-4} & IV & 0.034 & 0.534
+\\ (0.429) & (0.333) & (8.79\text{e-4}) & & & 
+\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ 0.043 }  
 \\ \hline \multicolumn{6}{l}{Sticky : $\Delta \log \mathbf{C}_{t+1}$ (no measurement error)} 
 \\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
 \\ 0.862^{\bullet \bullet \bullet } & & & OLS & 0.743 & 
@@ -24,15 +24,15 @@ $ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \et
 \\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t}^*$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
 \\ 0.497^{\bullet \bullet \bullet } & & & OLS & 0.253 & 
 \\ (0.059) & & & & & 
-\\ 0.802^{\bullet \bullet \bullet } & & & IV & 0.251 & 0.000
-\\ (0.106) & & & & &0.559
-\\ & 0.859^{\bullet \bullet \bullet } & & IV & 0.185 & 0.066
-\\ & (0.189) & & & &0.226
+\\ 0.802^{\bullet \bullet \bullet } & & & IV & 0.250 & 0.000
+\\ (0.106) & & & & &0.558
+\\ & 0.797^{\bullet \bullet \bullet } & & IV & 0.185 & 0.057
+\\ & (0.172) & & & &0.215
 \\ & & -7.68\text{e-4}^{\bullet \bullet } & IV & 0.066 & 0.000
 \\ & & (3.67\text{e-4}) & & &0.004
-\\ 0.661^{\bullet \bullet \bullet } & 0.199 & 0.62\text{e-4} & IV & 0.230 & 0.381
-\\ (0.189) & (0.287) & (4.84\text{e-4}) & & & 
-\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}^*$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.252,~~$\var(\xi_t)=$0.06\text{e-4} }  
+\\ 0.664^{\bullet \bullet \bullet } & 0.169 & 0.33\text{e-4} & IV & 0.229 & 0.335
+\\ (0.187) & (0.258) & (4.66\text{e-4}) & & & 
+\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}^*$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ 0.251,~~$\var(\xi_t)=$ 0.06\text{e-4} }  
 \\ \hline 
  \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are the average values for 100 subsamples of 200 simulated quarters each.  Bullets indicate that the average subsample coefficient divided by average subsample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
  \\ \hline \hline 

@@ -15,7 +15,7 @@ $ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \et
 \\ & & (1.05\text{e-4}) & & &0.471
 \\ 0.122 & 0.203 & 0.15\text{e-4} & IV & 0.020 & 0.532
 \\ (0.527) & (0.544) & (2.06\text{e-4}) & & & 
-\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.022 }  
+\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ 0.022 }  
 \\ \hline \multicolumn{6}{l}{Sticky : $\Delta \log \mathbf{C}_{t+1}$ (no measurement error)} 
 \\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
 \\ 0.801^{\bullet \bullet \bullet } & & & OLS & 0.642 & 
@@ -32,7 +32,7 @@ $ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \et
 \\ & & (0.50\text{e-4}) & & &0.023
 \\ 0.642^{\bullet \bullet \bullet } & 0.106 & 0.08\text{e-4} & IV & 0.179 & 0.325
 \\ (0.227) & (0.289) & (0.79\text{e-4}) & & & 
-\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}^*$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.195,~~$\var(\xi_t)=$0.03\text{e-4} }  
+\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}^*$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ 0.194,~~$\var(\xi_t)=$ 0.03\text{e-4} }  
 \\ \hline 
  \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are the average values for 100 subsamples of 200 simulated quarters each.  Bullets indicate that the average subsample coefficient divided by average subsample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
  \\ \hline \hline 

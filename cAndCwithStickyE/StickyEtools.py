@@ -10,7 +10,7 @@ import statsmodels.api as sm
 import statsmodels.sandbox.regression.gmm as smsrg
 from copy import deepcopy
 import subprocess
-from HARKutilities import getLorenzShares
+from HARKutilities import getLorenzShares, CRRAutility
 
 def mystr1(number):
     if not np.isnan(number):
@@ -59,8 +59,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
     '''
     # Extract time series data from the economy
     if hasattr(Economy,'agents'): # If this is a heterogeneous agent specification...
-        #PermShkAggHist needs to be shifted one period forward
-        if len(Economy.agents > 1):
+        if len(Economy.agents) > 1:
             pLvlAll_hist = np.concatenate([this_type.pLvlTrue_hist for this_type in Economy.agents],axis=1)
             aLvlAll_hist = np.concatenate([this_type.aLvlNow_hist for this_type in Economy.agents],axis=1)
             cLvlAll_hist = np.concatenate([this_type.cLvlNow_hist for this_type in Economy.agents],axis=1)
@@ -70,12 +69,12 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
             aLvlAll_hist = Economy.agents[0].aLvlNow_hist
             cLvlAll_hist = Economy.agents[0].cLvlNow_hist
             yLvlAll_hist = Economy.agents[0].yLvlNow_hist
+        # PermShkAggHist needs to be shifted one period forward
         PlvlAgg_hist = np.cumprod(np.concatenate(([1.0],Economy.PermShkAggHist[:-1]),axis=0))
         AlvlAgg_hist = np.mean(aLvlAll_hist,axis=1) # Level of aggregate assets
         AnrmAgg_hist = AlvlAgg_hist/PlvlAgg_hist # Normalized level of aggregate assets
         ClvlAgg_hist = np.mean(cLvlAll_hist,axis=1) # Level of aggregate consumption
         CnrmAgg_hist = ClvlAgg_hist/PlvlAgg_hist # Normalized level of aggregate consumption
-        
         YlvlAgg_hist = np.mean(yLvlAll_hist,axis=1) # Level of aggregate income
         YnrmAgg_hist = YlvlAgg_hist/PlvlAgg_hist # Normalized level of aggregate income
         
@@ -94,6 +93,8 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
             Logy = np.log(yLvlAll_hist[ignore_periods:(ignore_periods+micro_stat_periods),:])
             Logy_trimmed = Logy
             Logy_trimmed[np.isinf(Logy)] = np.nan
+            birth_events = np.concatenate([this_type.t_age_hist == 1 for this_type in Economy.agents],axis=1)
+            vBirth = calcValueAtBirth(cLvlAll_hist[ignore_periods:,:],birth_events[ignore_periods:,:],PlvlAgg_hist[ignore_periods:],Economy.MrkvNow_hist[ignore_periods:],Economy.agents[0].DiscFac,Economy.agents[0].CRRA)
         
         BigTheta_hist = Economy.TranShkAggHist
         if hasattr(Economy,'MrkvNow'):
@@ -157,11 +158,11 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
         output_string += 'Cross section stdev of log individual assets = ' + str(np.mean(np.std(Loga,axis=1))) + '\n'
         output_string += 'Cross section stdev of log individual consumption = ' + str(np.mean(np.std(Logc,axis=1))) + '\n'
         output_string += 'Cross section stdev of log individual productivity = ' + str(np.mean(np.std(Logp,axis=1))) + '\n'
-        output_string += 'Cross section stdev of log individual non-zero income = ' + str(np.mean(np.std(Logy_trimmed,axis=1))) + '\n'
+        output_string += 'Cross section stdev of log individual non-zero income = ' + str(np.mean(np.nanstd(Logy_trimmed,axis=1))) + '\n'
         output_string += 'Cross section stdev of change in log individual assets = ' + str(np.std(DeltaLoga_trimmed)) + '\n'
         output_string += 'Cross section stdev of change in log individual consumption = ' + str(np.std(DeltaLogc_trimmed)) + '\n'
         output_string += 'Cross section stdev of change in log individual productivity = ' + str(np.std(DeltaLogp_trimmed)) + '\n'
-        csv_output_string += ","+str(np.mean(np.std(Loga,axis=1)))+ ","+str(np.mean(np.std(Logc,axis=1))) + ","+str(np.mean(np.std(Logp,axis=1))) +","+ str(np.mean(np.std(Logy_trimmed,axis=1))) +","+ str(np.std(DeltaLoga_trimmed))+","+ str(np.std(DeltaLogc_trimmed))+ ","+str(np.std(DeltaLogp_trimmed))
+        csv_output_string += ","+str(np.mean(np.std(Loga,axis=1)))+ ","+str(np.mean(np.std(Logc,axis=1))) + ","+str(np.mean(np.std(Logp,axis=1))) +","+ str(np.mean(np.nanstd(Logy_trimmed,axis=1))) +","+ str(np.std(DeltaLoga_trimmed))+","+ str(np.std(DeltaLogc_trimmed))+ ","+str(np.std(DeltaLogp_trimmed))
     output_string += '\n\n'    
      
     # Save the results to a logfile if requested
@@ -172,6 +173,11 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
         with open('./Results/' + filename + 'Results.csv','w') as f:
             f.write(csv_output_string)
             f.close()
+        if calc_micro_stats and hasattr(Economy,'agents'):
+            with open('./Results/' + filename + 'BirthValue.csv','w') as f:
+                my_writer = csv.writer(f, delimiter = ',')
+                my_writer.writerow(vBirth)
+                f.close()
             
         if save_data:
             DataArray = (np.vstack((np.arange(DeltaLogC.size),DeltaLogC_me,DeltaLogC,DeltaLogY,A,BigTheta,Delta8LogC,Delta8LogY,Delta8LogC_me,Measurement_Error[1:]))).transpose()
@@ -426,6 +432,73 @@ def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,stata
     return panel_text
 
 
+def calcValueAtBirth(cLvlHist,BirthBool,PlvlHist,MrkvHist,DiscFac,CRRA):
+    '''
+    Calculate expected value of being born in each Markov state using the realizations
+    of consumption for a history of many consumers.  The histories should already be
+    trimmed of the "burn in" periods.
+    
+    Parameters
+    ----------
+    cLvlHist : np.array
+        TxN array of consumption level history for many agents across many periods.
+        Agents who die are replaced by newborms.
+    BirthBool : np.array
+        TxN boolean array indicating when agents are born, replacing one who died.
+    PlvlHist : np.array
+        T length vector of aggregate permanent productivity levels.
+    MrkvHist : np.array
+        T length vector of integers for the Markov index in each period.
+    DiscFac : float
+        Intertemporal discount factor.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    
+    Returns
+    -------
+    vAtBirth : np.array
+        J length vector of average lifetime value at birth by Markov state.
+    '''
+    J = np.max(MrkvHist) + 1 # Number of Markov states
+    T = MrkvHist.size        # Length of simulation
+    I = cLvlHist.shape[1]    # Number of agent indices in histories
+    u = lambda c : CRRAutility(c,gam=CRRA)
+    
+    # Initialize an array to hold each agent's lifetime utility
+    BirthsByPeriod = np.sum(BirthBool,axis=1)
+    BirthsByState = np.zeros(J,dtype=int)
+    for j in range(J):
+        these = MrkvHist == j
+        BirthsByState[j] = np.sum(BirthsByPeriod[these])
+    N = np.max(BirthsByState) # Array must hold this many agents per row at least
+    vArray = np.zeros((J,N)) + np.nan
+    n = np.zeros(J,dtype=int)
+    
+    # Loop through each agent index
+    DiscVec = DiscFac**np.arange(T)
+    for i in range(I):
+        birth_t = np.where(BirthBool[:,i])[0]
+        # Loop through each agent who lived and died in this index
+        for k in range(birth_t.size-1): # Last birth event has no death, so ignore
+            # Get lifespan of this agent and circumstances at birth
+            t0 = birth_t[k]
+            t1 = birth_t[k+1]
+            span = t1-t0
+            j = MrkvHist[t0]
+            # Calculate discounted flow of utility for this agent and store it
+            cVec = cLvlHist[t0:t1,i]/PlvlHist[t0]
+            uVec = u(cVec)
+            v = np.dot(DiscVec[:span],uVec)
+            vArray[j,n[j]] = v
+            n[j] += 1
+#        if np.mod(i+1,100) == 0:
+#            print('Calculated value for agent ' + str(i+1) + ' of ' + str(I))
+            
+    # Calculate expected value at birth by state and return it
+    vAtBirth = np.nanmean(vArray,axis=1)
+    return vAtBirth
+            
+
 def evalLorenzDistance(Economy):
     '''
     Calculates the Lorenz distance and the wealth level difference bewtween a
@@ -660,7 +733,7 @@ def makeParameterTable(filename, params):
         f.close()
 
 
-def makeEquilibriumTable(out_filename, four_in_files):   
+def makeEquilibriumTable(out_filename, four_in_files, CRRA):   
     '''
     Make parameter table for the paper
     
@@ -671,16 +744,28 @@ def makeEquilibriumTable(out_filename, four_in_files):
         Name of the file in which to save output (in the ./Tables/ directory).
     four_in_files: [str]
         A list with four csv files. 0) SOE frictionless 1) SOE Sticky 2) DSGE frictionless 3) DSGE sticky
+    CRRA : float
+        Coefficient of relative risk aversion
         
     Returns
     -------
     None
     '''
-    #Read in data from the four files
-    SOEfrictionless = np.genfromtxt('./results/' + four_in_files[0] + '.csv', delimiter=',')
-    SOEsticky = np.genfromtxt('./results/' + four_in_files[1] + '.csv', delimiter=',')
-    DSGEfrictionless = np.genfromtxt('./results/' + four_in_files[2] + '.csv', delimiter=',')
-    DSGEsticky = np.genfromtxt('./results/' + four_in_files[3] + '.csv', delimiter=',')
+    # Read in statistics from the four files
+    SOEfrictionless = np.genfromtxt('./results/' + four_in_files[0] + 'Results.csv', delimiter=',')
+    SOEsticky = np.genfromtxt('./results/' + four_in_files[1] + 'Results.csv', delimiter=',')
+    DSGEfrictionless = np.genfromtxt('./results/' + four_in_files[2] + 'Results.csv', delimiter=',')
+    DSGEsticky = np.genfromtxt('./results/' + four_in_files[3] + 'Results.csv', delimiter=',')
+    
+    # Read in value at birth from the four files
+    vBirth_SOE_F = np.genfromtxt('./results/' + four_in_files[0] + 'BirthValue.csv', delimiter=',')
+    vBirth_SOE_S = np.genfromtxt('./results/' + four_in_files[1] + 'BirthValue.csv', delimiter=',')
+    vBirth_DSGE_F = np.genfromtxt('./results/' + four_in_files[2] + 'BirthValue.csv', delimiter=',')
+    vBirth_DSGE_S = np.genfromtxt('./results/' + four_in_files[3] + 'BirthValue.csv', delimiter=',')
+    
+    # Calculate the cost of stickiness in the SOE and DSGE models
+    StickyCost_SOE = np.mean(1. - (vBirth_SOE_S/vBirth_SOE_F)**(1./(1.-CRRA)))
+    StickyCost_DSGE = np.mean(1. - (vBirth_DSGE_S/vBirth_DSGE_F)**(1./(1.-CRRA)))
     
     output = "\\begin{table}  \n"
     output += "\caption{Equilibrium Statistics}  \n"
@@ -715,8 +800,8 @@ def makeEquilibriumTable(out_filename, four_in_files):
     output += "  \n"
     output += "  \n"
     output += "\\\\ \hline \multicolumn{3}{l}{Cost Of Stickiness}  \n"
-    output += " & \multicolumn{2}{c}{999999}  \n"
-    output += "  & \multicolumn{2}{c}{9999999} \n"
+    output += " & \multicolumn{2}{c}{" + mystr2(StickyCost_SOE) + "}  \n"
+    output += " & \multicolumn{2}{c}{" + mystr2(StickyCost_DSGE) + "} \n"
     output += " \end{tabular}   \n"
     output += "}  \n"
     output += "\usebox{\EqbmBox}  \n"

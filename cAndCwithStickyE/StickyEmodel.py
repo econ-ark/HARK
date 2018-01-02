@@ -113,6 +113,8 @@ class StickyEconsumerType(AggShockConsumerType):
         # run the getShocks method of their first superclass: AggShockConsumerType and
         # AggShockMarkovConsumerType respectively.  This will be simplified in Python 3.
         super(self.__class__,self).getShocks() # Get permanent and transitory combined shocks
+        newborns = self.t_age == 0
+        self.TranShkNow[newborns] = self.TranShkAggNow*self.wRteNow # Turn off idiosyncratic shocks for newborns
         self.getUpdaters() # Randomly draw which agents will update their beliefs 
         
         # Calculate innovation to the productivity level perception error
@@ -155,12 +157,14 @@ class StickyEconsumerType(AggShockConsumerType):
         mNrmPcvdNow = mLvlTrueNow/self.pLvlNow
         self.mNrmNow = mNrmPcvdNow
         self.mLvlTrueNow = mLvlTrueNow
-        self.yLvlNow = mLvlTrueNow - self.aLvlNow # Includes capital and labor income 
-        #self.yLvlNow = yLvlNow
+        #self.yLvlNow = mLvlTrueNow - self.aLvlNow # Includes capital and labor income 
+        self.yLvlNow = yLvlNow # Only labor income
+
         
     def getMaggNow(self): # Agents know the true level of aggregate market resources, but
         MaggPcvdNow = self.MaggNow*self.pLvlErrNow # have erroneous perception of pLvlAgg.
         return MaggPcvdNow
+
         
     def getPostStates(self):
         '''

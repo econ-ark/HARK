@@ -26,14 +26,14 @@
 \\ & & $\log a $  & 1.031 & 1.032 & 0.931 & 0.931 
 \\ & & $\log c $  & 0.929 & 0.929 & 0.705 & 0.705 
 \\ & & $\log p $  & 0.940 & 0.940 & 0.940 & 0.940 
-\\ & & $\log y | y>0 $  & 1.256 & 1.256 & 0.832 & 0.832 
+\\ & & $\log y | y>0 $  & 0.997 & 0.997 & 0.997 & 0.997 
 \\ & & $\Delta \log c $  & 0.099 & 0.100 & 0.058 & 0.058 
   
   
 \\ \hline \multicolumn{3}{l}{Cost Of Stickiness}  
- & \multicolumn{2}{c}{999999}  
-  & \multicolumn{2}{c}{9999999} 
- \end{tabular}  
+ & \multicolumn{2}{c}{4.81\text{e-4}}  
+ & \multicolumn{2}{c}{8.44\text{e-4}} 
+ \end{tabular}   
 }  
 \usebox{\EqbmBox}  
 \ifthenelse{\boolean{StandAlone}}{\newlength\TableWidth}{}  
