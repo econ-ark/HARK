@@ -1,0 +1,11 @@
+Results for the frictionless small open economy
+
+
+Average aggregate asset-to-productivity ratio = 6.32737212547
+Average aggregate consumption-to-productivity ratio = 2.68920911789
+Stdev of log aggregate asset-to-productivity ratio = 0.0202977655455
+Stdev of change in log aggregate consumption level = 0.00480035396523
+Stdev of change in log aggregate output level = 0.0097323746611
+Stdev of change in log aggregate assets level = 0.00245847398386
+
+

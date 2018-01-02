@@ -1,0 +1,11 @@
+Results for the sticky small open economy with update probability 0.250
+
+
+Average aggregate asset-to-productivity ratio = 6.31886773952
+Average aggregate consumption-to-productivity ratio = 2.68907813696
+Stdev of log aggregate asset-to-productivity ratio = 0.012893075601
+Stdev of change in log aggregate consumption level = 0.00251819297856
+Stdev of change in log aggregate output level = 0.00973323062824
+Stdev of change in log aggregate assets level = 0.00331474399288
+
+

@@ -1,184 +1,439 @@
 '''
-Runs the exercises and regressions for the cAndCwithStickyE paper.
+This module runs the exercises and regressions for the cAndCwithStickyE paper.
+User can choose which among the six model variations are actually run.  Descriptive
+statistics and regression results are both output to screen and saved in a log
+file in the ./results directory.  See StickyEparams for calibrated model parameters.
 '''
+
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
-#from copy import copy, deepcopy
-from StickyEmodel import StickyEconsumerSOEType, StickyEconsumerDSGEType
-from ConsAggShockModel import SmallOpenEconomy, CobbDouglasEconomy
+from time import clock
+from copy import deepcopy
+from StickyEmodel import StickyEconsumerType, StickyEmarkovConsumerType, StickyErepAgent, StickyEmarkovRepAgent, StickyCobbDouglasEconomy, StickyCobbDouglasMarkovEconomy
+from ConsAggShockModel import SmallOpenEconomy, SmallOpenMarkovEconomy
 from HARKutilities import plotFuncs
 import matplotlib.pyplot as plt
+import StickyEparams as Params
+from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable, runStickyEregressionsInStata, makeParameterTable, makeEquilibriumTable, makeMicroRegressionTable
 
-periods_to_sim = 3500
-ignore_periods = 1000
+# Choose which models to do work for
+do_SOE_simple  = False
+do_SOE_markov  = True
+do_DSGE_simple = False
+do_DSGE_markov = True
+do_RA_simple   = False
+do_RA_markov   = True
 
-# Define parameters for the small open economy version of the model
-init_SOE_consumer = { 'CRRA': 2.0,
-                      'DiscFac': 0.969,
-                      'LivPrb': [0.995],
-                      'PermGroFac': [1.0],
-                      'AgentCount': 10000,
-                      'aXtraMin': 0.00001,
-                      'aXtraMax': 40.0,
-                      'aXtraNestFac': 3,
-                      'aXtraCount': 48,
-                      'aXtraExtra': [None],
-                      'PermShkStd': [np.sqrt(0.004)],
-                      'PermShkCount': 7,
-                      'TranShkStd': [np.sqrt(0.12)],
-                      'TranShkCount': 7,
-                      'UnempPrb': 0.05,
-                      'UnempPrbRet': 0.0,
-                      'IncUnemp': 0.0,
-                      'IncUnempRet': 0.0,
-                      'BoroCnstArt':0.0,
-                      'tax_rate':0.0,
-                      'T_retire':0,
-                      'MgridBase': np.array([0.5,1.5]),
-                      'aNrmInitMean' : np.log(0.00001),#gets overidden with much smaller number
-                      'aNrmInitStd' : 0.0,
-                      'pLvlInitMean' : 0.0,
-                      'pLvlInitStd' : 0.0,
-                      'PermGroFacAgg' : 1.0,
-                      'UpdatePrb' : 0.25,
-                      'T_age' : None,
-                      'T_cycle' : 1,
-                      'cycles' : 0,
-                      'T_sim' : periods_to_sim
-                    }
-                    
-init_DSGE_consumer = { 'CRRA': 2.0,
-                      'DiscFac': 1.0/1.014189682528173,
-                      'LivPrb': [1.0],
-                      'PermGroFac': [1.0],
-                      'AgentCount': 1,
-                      'aXtraMin': 0.00001,
-                      'aXtraMax': 40.0,
-                      'aXtraNestFac': 3,
-                      'aXtraCount': 48,
-                      'aXtraExtra': [None],
-                      'PermShkStd': [0.0],
-                      'PermShkCount': 1,
-                      'TranShkStd': [0.0],
-                      'TranShkCount': 1,
-                      'UnempPrb': 0.0,
-                      'UnempPrbRet': 0.0,
-                      'IncUnemp': 0.0,
-                      'IncUnempRet': 0.0,
-                      'BoroCnstArt':0.0,
-                      'tax_rate':0.0,
-                      'T_retire':0,
-                      'MgridBase': np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0]),
-                      'aNrmInitMean' : np.log(0.00001),
-                      'aNrmInitStd' : 0.0,
-                      'pLvlInitMean' : 0.0,
-                      'pLvlInitStd' : 0.0,
-                      'PermGroFacAgg' : 1.0,
-                      'UpdatePrb' : 0.25,
-                      'CapShare' : 0.36,
-                      'T_age' : None,
-                      'T_cycle' : 1,
-                      'cycles' : 0,
-                      'T_sim' : periods_to_sim
-                    }
-                    
-init_SOE_market = {  'PermShkAggCount': 3,
-                     'TranShkAggCount': 3,
-                     'PermShkAggStd': np.sqrt(0.00004),
-                     'TranShkAggStd': np.sqrt(0.00001),
-                     'DeprFac': 1.0 - 0.94**(0.25),
-                     'CapShare': 0.36,
-                     'Rfree': 1.014189682528173,
-                     'wRte': 2.5895209258224536,
-                     'act_T': periods_to_sim
-                     }
-                     
-init_DSGE_market = { 'PermShkAggCount': 7,
-                     'TranShkAggCount': 7,
-                     'PermShkAggStd': np.sqrt(0.00004),
-                     'TranShkAggStd': np.sqrt(0.00001),
-                     'DeprFac': 1.0 - 0.94**(0.25),
-                     'CapShare': 0.36,
-                     'CRRA': 2.0,
-                     'DiscFac': 1.0/1.014189682528173,
-                     'slope_prev': 1.0,
-                     'intercept_prev': 0.0,
-                     'kSS':12.0**(1.0/(1.0-0.36)),
-                     'AggregateL': 1.0,
-                     'ignore_periods':ignore_periods,
-                     'tolerance':0.0001,
-                     'act_T': periods_to_sim
-                     }
+# Choose what kind of work to do for each model
+run_models = True        # Whether to solve models and generate new simulated data
+calc_micro_stats = True  # Whether to calculate microeconomic statistics (only matters when run_models is True)
+make_tables = True       # Whether to make LaTeX tables in the /Tables folder
+use_stata = True         # Whether to use Stata to run regressions
+
+# Choose whether to save data for use in Stata (as a tab-delimited text file)
+save_data = True
+
+ignore_periods = Params.ignore_periods # Number of simulated periods to ignore as a "burn-in" phase
+interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
+total_periods = Params.periods_to_sim  # Total number of periods in simulation
+interval_count = (total_periods-ignore_periods)/interval_size # Number of intervals in the macro regressions
+my_counts = [interval_size,interval_count]
+mystr = lambda number : "{:.3f}".format(number)
+
+# Define the function to run macroeconomic regressions, depending on whether Stata is used
+if use_stata:
+    runRegressions = lambda a,b,c,d : runStickyEregressionsInStata(a,b,c,d,Params.stata_exe)
+else:
+    runRegressions = lambda a,b,c,d : runStickyEregressions(a,b,c,d)
 
 
-# Make a small open economy and the consumers who live in it
-StickySOEconsumers     = StickyEconsumerSOEType(**init_SOE_consumer)
-StickySOEconomy        = SmallOpenEconomy(**init_SOE_market)
-StickySOEconomy.agents = [StickySOEconsumers]
-StickySOEconomy.makeAggShkHist()
-StickySOEconsumers.getEconomyData(StickySOEconomy)
-StickySOEconsumers.aNrmInitMean = np.log(1.0)  #Don't want newborns to have no assets and also be unemployed
-StickySOEconsumers.track_vars = ['aLvlNow','aNrmNow','mNrmNow','cNrmNow','mLvlTrueNow','pLvlNow','pLvlErrNow','TranShkAggNow']
-
-# Solve the model and display some output
-StickySOEconomy.solveAgents()
-StickySOEconomy.makeHistory()
-
-# Plot some of the results
-cFunc = lambda m : StickySOEconsumers.solution[0].cFunc(m,np.ones_like(m))
-plotFuncs(cFunc,0.0,20.0)
-
-plt.plot(np.mean(StickySOEconsumers.aLvlNow_hist,axis=1))
-plt.show()
-
-plt.plot(np.mean(StickySOEconsumers.mNrmNow_hist*StickySOEconsumers.pLvlNow_hist,axis=1))
-plt.show()
-
-plt.plot(np.mean(StickySOEconsumers.cNrmNow_hist*StickySOEconsumers.pLvlNow_hist,axis=1))
-plt.show()
-
-plt.plot(np.mean(StickySOEconsumers.pLvlNow_hist,axis=1))
-plt.plot(np.mean(StickySOEconsumers.pLvlErrNow_hist,axis=1))
-plt.show()
-
-print('Average aggregate assets = ' + str(np.mean(StickySOEconsumers.aLvlNow_hist[ignore_periods:,:])))
-print('Average aggregate consumption = ' + str(np.mean(StickySOEconsumers.cNrmNow_hist[ignore_periods:,:]*StickySOEconsumers.pLvlNow_hist[ignore_periods:,:])))
-print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(np.mean(StickySOEconsumers.aLvlNow_hist[ignore_periods:,:],axis=1)))))
-LogC = np.log(np.mean(StickySOEconsumers.cNrmNow_hist*StickySOEconsumers.pLvlNow_hist,axis=1))[ignore_periods:]
-DeltaLogC = LogC[1:] - LogC[0:-1]
-print('Standard deviation of change in log aggregate consumption = ' + str(np.std(DeltaLogC)))
-print('Standard deviation of log individual assets = ' + str(np.mean(np.std(np.log(StickySOEconsumers.aLvlNow_hist[ignore_periods:,:]),axis=1))))
-print('Standard deviation of log individual consumption = ' + str(np.mean(np.std(np.log(StickySOEconsumers.cNrmNow_hist[ignore_periods:,:]*StickySOEconsumers.pLvlNow_hist[ignore_periods:,:]),axis=1))))
-print('Standard deviation of log individual productivity = ' + str(np.mean(np.std(np.log(StickySOEconsumers.pLvlNow_hist[ignore_periods:,:]),axis=1))))
-Logc = np.log(StickySOEconsumers.cNrmNow_hist*StickySOEconsumers.pLvlNow_hist)[ignore_periods:,:]
-DeltaLogc = Logc[1:,:] - Logc[0:-1,:]
-print('Standard deviation of change in log individual consumption = ' + str(np.mean(np.std(DeltaLogc,axis=1))))
-
-
-# Make a Cobb Douglas economy and the representative agent who lives in it
-StickyDSGEconsumer = StickyEconsumerDSGEType(**init_DSGE_consumer)
-StickyDSGEeconomy = CobbDouglasEconomy(**init_DSGE_market)
-StickyDSGEeconomy.agents = [StickyDSGEconsumer]
-StickyDSGEeconomy.makeAggShkHist()
-StickyDSGEconsumer.getEconomyData(StickyDSGEeconomy)
-StickyDSGEconsumer.track_vars = ['aLvlNow','mNrmNow','cNrmNow','pLvlNow','pLvlErrNow']
-
-# Test the solution
-StickyDSGEeconomy.solve()
-
-m_grid = np.linspace(0,10,200)
-for M in StickyDSGEconsumer.Mgrid.tolist():
-    c_at_this_M = StickyDSGEconsumer.solution[0].cFunc(m_grid,M*np.ones_like(m_grid))
-    plt.plot(m_grid,c_at_this_M)
-plt.show()
-
-print('Average aggregate assets = ' + str(np.mean(StickyDSGEconsumer.aLvlNow_hist[ignore_periods:,:])))
-print('Average aggregate consumption = ' + str(np.mean(StickyDSGEconsumer.cNrmNow_hist[ignore_periods:,:]*StickyDSGEconsumer.pLvlNow_hist[ignore_periods:,:])))
-print('Standard deviation of log aggregate assets = ' + str(np.std(np.log(StickyDSGEconsumer.aLvlNow_hist[ignore_periods:,:]))))
-LogC = np.log(np.mean(StickyDSGEconsumer.cNrmNow_hist*StickyDSGEconsumer.pLvlNow_hist,axis=1))[ignore_periods:]
-DeltaLogC = LogC[1:] - LogC[0:-1]
-print('Standard deviation of change in log aggregate consumption = ' + str(np.std(DeltaLogC)))
+# Run models and save output if this module is called from main
+if __name__ == '__main__':
+    ###############################################################################
+    ################# SMALL OPEN ECONOMY ##########################################
+    ###############################################################################
+    
+    if do_SOE_simple:
+        if run_models:
+            # Make a small open economy and the consumers who live in it
+            StickySOEbaseType = StickyEconsumerType(**Params.init_SOE_consumer)
+            StickySOEbaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age','TranShkNow']
+            StickySOEconsumers = []
+            for n in range(Params.TypeCount):
+                StickySOEconsumers.append(deepcopy(StickySOEbaseType))
+                StickySOEconsumers[-1].seed = n
+                StickySOEconsumers[-1].DiscFac = Params.DiscFacSet[n]
+            StickySOEconomy = SmallOpenEconomy(agents=StickySOEconsumers, **Params.init_SOE_market)
+            StickySOEconomy.makeAggShkHist()
+            for n in range(Params.TypeCount):
+                StickySOEconsumers[n].getEconomyData(StickySOEconomy)
+            
+            # Solve the small open economy and display some output
+            t_start = clock()
+            StickySOEconomy.solveAgents()
+            t_end = clock()
+            print('Solving the small open economy took ' + str(t_end-t_start) + ' seconds.')
+            
+            print('Consumption function for one type in the small open economy:')
+            cFunc = lambda m : StickySOEconsumers[0].solution[0].cFunc(m,np.ones_like(m))
+            plotFuncs(cFunc,0.0,20.0)
+            
+            # Simulate the frictionless small open economy
+            t_start = clock()
+            for agent in StickySOEconomy.agents:
+                agent(UpdatePrb = 1.0)
+            StickySOEconomy.makeHistory()
+            t_end = clock()
+            print('Simulating the frictionless small open economy took ' + mystr(t_end-t_start) + ' seconds.')
+            
+            # Make results for the frictionless representative agent economy
+            desc = 'Results for the frictionless small open economy (update probability 1.0)'
+            name = 'SOEsimpleFrictionless'
+            makeStickyEdataFile(StickySOEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+            
+            # Simulate the sticky small open economy
+            t_start = clock()
+            for agent in StickySOEconomy.agents:
+                agent(UpdatePrb = Params.UpdatePrb)
+            StickySOEconomy.makeHistory()
+            t_end = clock()
+            print('Simulating the sticky small open economy took ' + mystr(t_end-t_start) + ' seconds.')
+            
+            # Make results for the sticky small open economy
+            desc = 'Results for the sticky small open economy with update probability ' + mystr(Params.UpdatePrb)
+            name = 'SOEsimpleSticky'
+            makeStickyEdataFile(StickySOEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+        
+        if make_tables:
+            # Process the coefficients, standard errors, etc into a LaTeX table
+            frictionless_panel = runRegressions('SOEsimpleFrictionlessData',interval_size,False,False)
+            sticky_panel = runRegressions('SOEsimpleStickyData',interval_size,False,True)
+            sticky_me_panel = runRegressions('SOEsimpleStickyData',interval_size,True,True)
+            makeResultsTable('Aggregate Consumption Dynamics in PE/SOE Economy',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'SOEsimReg')
+    
+    
+    ###############################################################################
+    ########## SMALL OPEN ECONOMY WITH MACROECONOMIC MARKOV STATE##################
+    ###############################################################################
+    
+    if do_SOE_markov:
+        if run_models:
+            # Make consumer types to inhabit the small open Markov economy
+            StickySOEmarkovBaseType = StickyEmarkovConsumerType(**Params.init_SOE_mrkv_consumer)
+            StickySOEmarkovBaseType.IncomeDstn[0] = Params.StateCount*[StickySOEmarkovBaseType.IncomeDstn[0]]
+            StickySOEmarkovBaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age','TranShkNow']
+            StickySOEmarkovConsumers = []
+            for n in range(Params.TypeCount):
+                StickySOEmarkovConsumers.append(deepcopy(StickySOEmarkovBaseType))
+                StickySOEmarkovConsumers[-1].seed = n
+                StickySOEmarkovConsumers[-1].DiscFac = Params.DiscFacSet[n]
+            
+            # Make a small open economy for the agents
+            StickySOmarkovEconomy = SmallOpenMarkovEconomy(agents=StickySOEmarkovConsumers, **Params.init_SOE_mrkv_market)
+            StickySOmarkovEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
+            for n in range(Params.TypeCount):
+                StickySOEmarkovConsumers[n].getEconomyData(StickySOmarkovEconomy) # Have the consumers inherit relevant objects from the economy
+            
+            # Solve the small open Markov model
+            t_start = clock()
+            StickySOmarkovEconomy.solveAgents()
+            t_end = clock()
+            print('Solving the small open Markov economy took ' + str(t_end-t_start) + ' seconds.')
+            
+            # Plot the consumption function in each Markov state
+            print('Consumption function for one type in the small open Markov economy:')
+            m = np.linspace(0,20,500)
+            M = np.ones_like(m)
+            c = np.zeros((Params.StateCount,m.size))
+            for i in range(Params.StateCount):
+                c[i,:] = StickySOEmarkovConsumers[0].solution[0].cFunc[i](m,M)
+                plt.plot(m,c[i,:])
+            plt.show()
+            
+            # Simulate the frictionless small open Markov economy
+            t_start = clock()
+            for agent in StickySOmarkovEconomy.agents:
+                agent(UpdatePrb = 1.0)
+            StickySOmarkovEconomy.makeHistory()
+            t_end = clock()
+            print('Simulating the frictionless small open Markov economy took ' + mystr(t_end-t_start) + ' seconds.')
+            
+            # Make results for the frictionless small open Markov economy
+            desc = 'Results for the frictionless small open Markov economy (update probability 1.0)'
+            name = 'SOEmarkovFrictionless'
+            makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+            if calc_micro_stats:
+                pass
+                # Make a copy of the frictionless agent to pass to micro regression calculations
+                #frictionless_SOE_agent = deepcopy(StickySOEmarkovConsumers[0])
+            
+            # Simulate the frictionless small open Markov economy
+            t_start = clock()
+            for agent in StickySOmarkovEconomy.agents:
+                agent(UpdatePrb = Params.UpdatePrb)
+            StickySOmarkovEconomy.makeHistory()
+            t_end = clock()
+            print('Simulating the sticky small open Markov economy took ' + mystr(t_end-t_start) + ' seconds.')
+            
+            # Make results for the sticky small open Markov economy
+            desc = 'Results for the sticky small open Markov economy with update probability ' + mystr(Params.UpdatePrb)
+            name = 'SOEmarkovSticky'
+            makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+            
+            if calc_micro_stats:
+                pass
+                #makeMicroRegressionTable('SOEmicroRegressions.txt', [frictionless_SOE_agent,StickySOEmarkovConsumers[0]],ignore_periods)
+        
+        # Process the coefficients, standard errors, etc into a LaTeX table
+        if make_tables:
+            # Process the coefficients, standard errors, etc into a LaTeX table
+            frictionless_panel = runRegressions('SOEmarkovFrictionlessData',interval_size,False,False)
+            sticky_panel = runRegressions('SOEmarkovStickyData',interval_size,False,True)
+            sticky_me_panel = runRegressions('SOEmarkovStickyData',interval_size,True,True)
+            makeResultsTable('Aggregate Consumption Dynamics in PE/SOE Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'SOEmrkvSimReg')
+    
+    ###############################################################################
+    ################# COBB-DOUGLAS ECONOMY ########################################
+    ###############################################################################
+    
+    if do_DSGE_simple:
+        if run_models:
+            # Make consumers who will live in a Cobb-Douglas economy
+            StickyDSGEbaseType = StickyEconsumerType(**Params.init_DSGE_consumer)
+            StickyDSGEbaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','pLvlNow','t_age','TranShkNow']
+            StickyDSGEconsumers = []
+            for n in range(Params.TypeCount):
+                StickyDSGEconsumers.append(deepcopy(StickyDSGEbaseType))
+                StickyDSGEconsumers[-1].seed = n
+                StickyDSGEconsumers[-1].DiscFac = Params.DiscFacSet[n]
+                
+            # Make a Cobb-Douglas economy and put the agents in it
+            StickyDSGEeconomy = StickyCobbDouglasEconomy(agents=StickyDSGEconsumers,**Params.init_DSGE_market)
+            StickyDSGEeconomy.makeAggShkHist()
+            for n in range(Params.TypeCount):
+                StickyDSGEconsumers[n].getEconomyData(StickyDSGEeconomy)
+                StickyDSGEconsumers[n](UpdatePrb = 1.0)
+                
+            # Solve the frictionless HA-DSGE model
+            t_start = clock()
+            StickyDSGEeconomy.solve()
+            t_end = clock()
+            print('Solving the frictionless Cobb-Douglas economy took ' + str(t_end-t_start) + ' seconds.')
+            
+            # Plot the consumption function
+            print('Consumption function for the frictionless Cobb-Douglas economy:')
+            m = np.linspace(0.,20.,300)
+            for M in StickyDSGEconsumers[0].Mgrid:
+                c = StickyDSGEconsumers[0].solution[0].cFunc(m,M*np.ones_like(m))
+                plt.plot(m,c)
+            plt.show()
+            
+            # Make results for the frictionless Cobb-Douglas economy
+            desc = 'Results for the frictionless Cobb-Douglas economy (update probability 1.0)'
+            name = 'DSGEsimpleFrictionless'
+            makeStickyEdataFile(StickyDSGEeconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+            
+            # Solve the sticky HA-DSGE model
+            for agent in StickyDSGEeconomy.agents:
+                agent(UpdatePrb = Params.UpdatePrb)
+            t_start = clock()
+            StickyDSGEeconomy.solve()
+            t_end = clock()
+            print('Solving the sticky Cobb-Douglas economy took ' + str(t_end-t_start) + ' seconds.')
+            
+            # Plot the consumption function
+            print('Consumption function for the sticky Cobb-Douglas economy:')
+            m = np.linspace(0.,20.,300)
+            for M in StickyDSGEconsumers[0].Mgrid:
+                c = StickyDSGEconsumers[0].solution[0].cFunc(m,M*np.ones_like(m))
+                plt.plot(m,c)
+            plt.show()
+            
+            # Make results for the sticky Cobb-Douglas economy
+            desc = 'Results for the sticky Cobb-Douglas economy with update probability ' + mystr(Params.UpdatePrb)
+            name = 'DSGEsimpleSticky'
+            makeStickyEdataFile(StickyDSGEeconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+        
+        # Process the coefficients, standard errors, etc into a LaTeX table
+        if make_tables:
+            # Process the coefficients, standard errors, etc into a LaTeX table
+            frictionless_panel = runRegressions('DSGEsimpleFrictionlessData',interval_size,False,False)
+            sticky_panel = runRegressions('DSGEsimpleStickyData',interval_size,False,True)
+            sticky_me_panel = runRegressions('DSGEsimpleStickyData',interval_size,True,True)
+            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Economy',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'DSGEsimReg')
+    
+    ###############################################################################
+    ########## COBB-DOUGLAS ECONOMY WITH MACROECONOMIC MARKOV STATE ###############
+    ###############################################################################
+    
+    if do_DSGE_markov:
+        if run_models:
+            # Make consumers who will live in the Cobb-Douglas Markov economy
+            StickyDSGEmarkovBaseType = StickyEmarkovConsumerType(**Params.init_DSGE_mrkv_consumer)
+            StickyDSGEmarkovBaseType.IncomeDstn[0] = Params.StateCount*[StickyDSGEmarkovBaseType.IncomeDstn[0]]
+            StickyDSGEmarkovBaseType.track_vars = ['aLvlNow','cLvlNow','yLvlNow','pLvlTrue','t_age','TranShkNow']
+            StickyDSGEmarkovConsumers = []
+            for n in range(Params.TypeCount):
+                StickyDSGEmarkovConsumers.append(deepcopy(StickyDSGEmarkovBaseType))
+                StickyDSGEmarkovConsumers[-1].seed = n
+                StickyDSGEmarkovConsumers[-1].DiscFac = Params.DiscFacSet[n]
+            
+            # Make a Cobb-Douglas economy for the agents
+            StickyDSGEmarkovEconomy = StickyCobbDouglasMarkovEconomy(agents = StickyDSGEmarkovConsumers,**Params.init_DSGE_mrkv_market)
+            StickyDSGEmarkovEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
+            for n in range(Params.TypeCount):
+                StickyDSGEmarkovConsumers[n].getEconomyData(StickyDSGEmarkovEconomy) # Have the consumers inherit relevant objects from the economy
+                StickyDSGEmarkovConsumers[n](UpdatePrb = 1.0)
+            
+            # Solve the frictionless heterogeneous agent DSGE model
+            t_start = clock()
+            StickyDSGEmarkovEconomy.solve()
+            t_end = clock()
+            print('Solving the frictionless Cobb-Douglas Markov economy took ' + str(t_end-t_start) + ' seconds.')
+            
+            print('Displaying the consumption functions for the Cobb-Douglas Markov economy would be too much.')
+            
+            # Make results for the Cobb-Douglas Markov economy
+            desc = 'Results for the frictionless Cobb-Douglas Markov economy (update probability 1.0)'
+            name = 'DSGEmarkovFrictionless'
+            makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+            
+            # Solve the sticky heterogeneous agent DSGE model
+            for agent in StickyDSGEmarkovEconomy.agents:
+                agent(UpdatePrb = Params.UpdatePrb)
+            t_start = clock()
+            StickyDSGEmarkovEconomy.solve()
+            t_end = clock()
+            print('Solving the sticky Cobb-Douglas Markov economy took ' + str(t_end-t_start) + ' seconds.')
+            
+            print('Displaying the consumption functions for the Cobb-Douglas Markov economy would be too much.')
+            
+            # Make results for the Cobb-Douglas Markov economy
+            desc = 'Results for the sticky Cobb-Douglas Markov economy with update probability ' + mystr(Params.UpdatePrb)
+            name = 'DSGEmarkovSticky'
+            makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+        
+        # Process the coefficients, standard errors, etc into a LaTeX table
+        if make_tables:
+            # Process the coefficients, standard errors, etc into a LaTeX table
+            frictionless_panel = runRegressions('DSGEmarkovFrictionlessData',interval_size,False,False)
+            sticky_panel = runRegressions('DSGEmarkovStickyData',interval_size,False,True)
+            sticky_me_panel = runRegressions('DSGEmarkovStickyData',interval_size,True,True)
+            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'DSGEmrkvSimReg')
+       
+    
+    ###############################################################################
+    ################# REPRESENTATIVE AGENT ECONOMY ################################
+    ###############################################################################
+    
+    if do_RA_simple:
+        if run_models:
+            # Make a representative agent consumer, then solve and simulate the model
+            StickyRAconsumer = StickyErepAgent(**Params.init_RA_consumer)
+            StickyRAconsumer.track_vars = ['cLvlNow','yNrmTrue','aLvlNow','pLvlTrue','TranShkNow']
+            
+            # Solve the representative agent's problem        
+            t_start = clock()
+            StickyRAconsumer.solve()
+            t_end = clock()
+            print('Solving the representative agent economy took ' + str(t_end-t_start) + ' seconds.')
+            
+            print('Consumption function for the representative agent:')
+            plotFuncs(StickyRAconsumer.solution[0].cFunc,0,50)
+            
+            # Simulate the representative agent with frictionless expectations
+            t_start = clock()
+            StickyRAconsumer(UpdatePrb = 1.0)
+            StickyRAconsumer.initializeSim()
+            StickyRAconsumer.simulate()
+            t_end = clock()
+            print('Simulating the frictionless representative agent economy took ' + str(t_end-t_start) + ' seconds.')
+            
+            # Make results for the frictionless representative agent economy
+            desc = 'Results for the frictionless representative agent economy (update probability 1.0)'
+            name = 'RAsimpleFrictionless'
+            makeStickyEdataFile(StickyRAconsumer,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+            
+            # Simulate the representative agent with sticky expectations
+            t_start = clock()
+            StickyRAconsumer(UpdatePrb = Params.UpdatePrb)
+            StickyRAconsumer.initializeSim()
+            StickyRAconsumer.simulate()
+            t_end = clock()
+            print('Simulating the sticky representative agent economy took ' + str(t_end-t_start) + ' seconds.')
+            
+            # Make results for the sticky representative agent economy
+            desc = 'Results for the sticky representative agent economy with update probability ' + mystr(Params.UpdatePrb)
+            name = 'RAsimpleSticky'
+            makeStickyEdataFile(StickyRAconsumer,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+        
+        if make_tables:
+            # Process the coefficients, standard errors, etc into a LaTeX table
+            frictionless_panel = runRegressions('RAsimpleFrictionlessData',interval_size,False,False)
+            sticky_panel = runRegressions('RAsimpleStickyData',interval_size,False,True)
+            sticky_me_panel = runRegressions('RAsimpleStickyData',interval_size,True,True)
+            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Economy',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'RepAgentSimReg')
+    
+    ###############################################################################
+    ########### REPRESENTATIVE AGENT ECONOMY WITH MARKOV STATE ####################
+    ###############################################################################
+    
+    if do_RA_markov:
+        if run_models:
+            # Make a representative agent consumer, then solve and simulate the model
+            StickyRAmarkovConsumer = StickyEmarkovRepAgent(**Params.init_RA_mrkv_consumer)
+            StickyRAmarkovConsumer.IncomeDstn[0] = Params.StateCount*[StickyRAmarkovConsumer.IncomeDstn[0]]
+            StickyRAmarkovConsumer.track_vars = ['cLvlNow','yNrmTrue','aLvlNow','pLvlTrue','TranShkNow','MrkvNow']
+            
+            # Solve the representative agent Markov economy
+            t_start = clock()
+            StickyRAmarkovConsumer.solve()
+            t_end = clock()
+            print('Solving the representative agent Markov economy took ' + str(t_end-t_start) + ' seconds.')
+            
+            print('Consumption functions for the Markov representative agent:')
+            plotFuncs(StickyRAmarkovConsumer.solution[0].cFunc,0,50)
+            
+            # Simulate the frictionless representative agent MarkovEconomy
+            t_start = clock()
+            StickyRAmarkovConsumer(UpdatePrb = 1.0)
+            StickyRAmarkovConsumer.initializeSim()
+            StickyRAmarkovConsumer.simulate()
+            t_end = clock()
+            print('Simulating the frictionless representative agent Markov economy took ' + str(t_end-t_start) + ' seconds.')
+            
+            # Make results for the frictionless representative agent economy
+            desc = 'Results for the frictionless representative agent Markov economy (update probability 1.0)'
+            name = 'RAmarkovFrictionless'
+            makeStickyEdataFile(StickyRAmarkovConsumer,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+            
+            # Simulate the sticky representative agent MarkovEconomy
+            t_start = clock()
+            StickyRAmarkovConsumer(UpdatePrb = Params.UpdatePrb)
+            StickyRAmarkovConsumer.initializeSim()
+            StickyRAmarkovConsumer.simulate()
+            t_end = clock()
+            print('Simulating the sticky representative agent Markov economy took ' + str(t_end-t_start) + ' seconds.')
+            
+            # Make results for the frictionless representative agent economy
+            desc = 'Results for the sticky representative agent Markov economy'
+            name = 'RAmarkovSticky'
+            makeStickyEdataFile(StickyRAmarkovConsumer,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+        
+        if make_tables:
+            # Process the coefficients, standard errors, etc into a LaTeX table
+            frictionless_panel = runRegressions('RAmarkovFrictionlessData',interval_size,False,False)
+            sticky_panel = runRegressions('RAmarkovStickyData',interval_size,False,True)
+            sticky_me_panel = runRegressions('RAmarkovStickyData',interval_size,True,True)
+            makeResultsTable('Aggregate Consumption Dynamics in Rep Agent Markov Economy (' + str(Params.StateCount) + ' states)',[frictionless_panel,sticky_panel,sticky_me_panel],my_counts,'RepAgentMrkvSimReg')
+        
+    ###############################################################################
+    ########### MAKE OTHER TABLES #################################################
+    ###############################################################################
+    if make_tables:
+        makeEquilibriumTable('EqmTable.txt', ['SOEmarkovFrictionless','SOEmarkovSticky','DSGEmarkovFrictionless','DSGEmarkovSticky'],Params.init_SOE_consumer['CRRA'])
+        makeParameterTable('Calibration.txt', Params)

@@ -1,0 +1,71 @@
+% !TeX spellcheck = en_GB
+       \documentclass[12pt,pdftex,letterpaper]{article}
+%            \usepackage{setspace}
+            \usepackage[dvips,]{graphicx} %draft option suppresses graphics dvi display
+%            \usepackage{lscape}
+%            \usepackage{latexsym}
+%            \usepackage{endnotes}
+%            \usepackage{epsfig}
+%           \singlespace
+            \setlength{\textwidth}{6.5in}
+            \setlength{\textheight}{9in}
+            \addtolength{\topmargin}{-\topmargin} 
+            \setlength{\oddsidemargin}{0in}
+            \setlength{\evensidemargin}{0in}
+            \addtolength{\headsep}{-\headsep}
+            \addtolength{\topskip}{-\topskip}
+            \addtolength{\headheight}{-\headheight}
+            \setcounter{secnumdepth}{2}
+%            \renewcommand{\thesection}{\arabic{section}}
+            % \renewcommand{\footnote}{\endnote}
+            \newtheorem{proposition}{Proposition}
+            \newtheorem{definition}{Definition}
+            \newtheorem{lemma}{lemma}
+            \newtheorem{corollary}{Corollary}
+            \newtheorem{assumption}{Assumption}
+            \newcommand{\Prob}{\operatorname{Prob}}
+            \clubpenalty 5000
+            \widowpenalty 5000
+            \renewcommand{\baselinestretch}{1.25}
+            \usepackage{amsmath}
+            \usepackage{amsthm}
+            \usepackage{amsfonts}
+            \usepackage{amssymb}
+            \usepackage{bbm}
+            \newcommand{\N}{\mathbb{N}}
+            \newcommand{\R}{\mathbb{R}}
+            \newcommand{\E}{\mathbb{E}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{dcolumn}            
+\usepackage{booktabs}
+\newcommand{\Ex}{\mathbb{E}}
+\newcommand{\var}{\ensuremath{\text{var}}}
+\providecommand{\perc}[1]{\widetilde{#1}}
+\newcolumntype{d}[1]{D{.}{.}{#1}}
+
+\usepackage{ifthen}    
+\provideboolean{StandAlone}
+\setboolean{StandAlone}{false}
+
+
+
+\begin{document}
+
+\input RepAgentMrkvSimReg.txt
+\newpage
+
+\input SOEmrkvSimReg.txt
+\newpage
+
+\input DSGEmrkvSimReg.txt
+\newpage
+
+
+%\begin{table}
+%	\input Calibration.txt
+%\end{table}
+\newpage
+
+
+\end{document}

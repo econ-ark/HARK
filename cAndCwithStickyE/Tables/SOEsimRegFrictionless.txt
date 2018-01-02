@@ -1,0 +1,23 @@
+\begin{table} \caption{Aggregate Consumption Dynamics in Small Open Economy}
+\centering \begin{tabular}{cccccc}
+ \hline \hline\multicolumn{6}{c}{$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon $ } 
+\\ \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  (2nd Stage) & $F~p$-val 
+\\ \multicolumn{3}{c}{Independent Variables} & or IV & $ \bar{R}^{2} $ & IV OID 
+\\ \hline \multicolumn{3}{c}{Frictionless : $\Delta \log \mathbf{C}_{t+1}$} 
+\\ $\Delta \log \mathbf{C}_{t+1}$ & $\Delta \log \mathbf{Y}_{t+1}$ & $A_{t}$ 
+\\ $0.013^{*}$ & & & OLS & 0.000 & 
+\\ (0.007) & & & & & 
+\\ $0.810^{***}$ & & & IV & 0.001 & 0.000
+\\ (0.209) & & & & &0.732
+\\ & $0.609^{**}$ & & IV & 0.000 & 0.801
+\\ & (0.243) & & & &0.002
+\\ & & $-15.62\text{e-4}^{***}$ & IV & 0.001 & 0.000
+\\ & & (2.93\text{e-4}) & & &0.744
+\\ $0.215$ & $0.271$ & $-10.51\text{e-4}$ & IV & 0.001 & 0.743
+\\ (0.421) & (0.195) & (7.93\text{e-4}) & & & 
+\\ \multicolumn{6}{c}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$0.001 }  
+\\ \hline 
+ \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are for a single simulation of 20000 quarters.  Stars indicate statistical significance at the 90\%, 95\%, and 99\% levels, respectively.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.} 
+ \\ \hline \hline 
+\end{tabular} 
+\end{table} 

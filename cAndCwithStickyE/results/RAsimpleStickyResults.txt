@@ -1,0 +1,11 @@
+Results for the sticky representative agent economy with update probability 0.250
+
+
+Average aggregate asset-to-productivity ratio = 49.8681434125
+Average aggregate consumption-to-productivity ratio = 3.32119448452
+Stdev of log aggregate asset-to-productivity ratio = 0.0266822814446
+Stdev of change in log aggregate consumption level = 0.00139614186557
+Stdev of change in log aggregate output level = 0.00588353698669
+Stdev of change in log aggregate assets level = 0.000668097042722
+
+
