@@ -33,7 +33,7 @@
 \\ \hline \multicolumn{3}{l}{Cost Of Stickiness}  
  & \multicolumn{2}{c}{4.81\text{e-4}}  
  & \multicolumn{2}{c}{8.44\text{e-4}} 
- \end{tabular} \\  
+ \end{tabular}   
 }  
 \usebox{\EqbmBox}  
 \ifthenelse{\boolean{StandAlone}}{\newlength\TableWidth}{}  

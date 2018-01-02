@@ -802,7 +802,7 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     output += "\\\\ \hline \multicolumn{3}{l}{Cost Of Stickiness}  \n"
     output += " & \multicolumn{2}{c}{" + mystr2(StickyCost_SOE) + "}  \n"
     output += " & \multicolumn{2}{c}{" + mystr2(StickyCost_DSGE) + "} \n"
-    output += " \end{tabular} \\\\  \n"
+    output += " \end{tabular}   \n"
     output += "}  \n"
     output += "\usebox{\EqbmBox}  \n"
     output += "\ifthenelse{\\boolean{StandAlone}}{\\newlength\TableWidth}{}  \n"
