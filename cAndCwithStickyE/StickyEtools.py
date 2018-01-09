@@ -817,8 +817,64 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
         f.write(output)
         f.close()
 
+def extractSampleMicroData(Economy, num_periods, AgentCount, ignore_periods):   
+    '''
+    Extracts sample micro data to be used in micro regression
+    
+    Parameters
+    ----------
+    
+    Agent : Economy (or derivative)
+        An economy (with one agent) for for which history has already been calculated.
+    num_periods : int
+        Number of periods to be stored (should be less than the number of periods calculated)
+    AgentCouunt : int
+        Number of agent histories to be stored (should be less than the AgentCount property of the agent)
+    ignore_periods : int
+        Number of periods at the beginning of the history to be discarded
+        
+    Returns
+    -------
+    micro_data : np.array
+        Array with columns 1) logc_diff 2) log_trans_shk 3) top_assets 
+    '''
+    #first pull out economy common data
+    #note indexing on Economy tracked vars is one ahead of agent
+    agg_trans_shk_matrix = deepcopy(Economy.TranShkAggNow_hist[ignore_periods:ignore_periods+num_periods])
+    wRte_matrix = deepcopy(Economy.wRteNow_hist[ignore_periods:ignore_periods+num_periods])
+    #now pull out agent data
+    agent = Economy.agents[0]
+    c_matrix = deepcopy(agent.cLvlNow_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
+    y_matrix = deepcopy(agent.yLvlNow_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
+    total_trans_shk_matrix = deepcopy(agent.TranShkNow_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
+    trans_shk_matrix = total_trans_shk_matrix/(np.array(agg_trans_shk_matrix)*np.array(wRte_matrix))[:,None]
+    a_matrix = deepcopy(agent.aLvlNow_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
+    age_matrix = deepcopy(agent.t_age_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
+    # Put nan's in so that we do not regress over periods where agents die
+    newborn = age_matrix == 1
+    c_matrix[newborn] = np.nan
+    c_matrix[0:0,:] = np.nan
+    y_matrix[newborn] = np.nan
+    y_matrix[0,0:] = np.nan
+    y_matrix[trans_shk_matrix==0.0] = np.nan
+    c_matrix[trans_shk_matrix==0.0] = np.nan
+    trans_shk_matrix[trans_shk_matrix==0.0] = np.nan
 
-def makeMicroRegressionTable(out_filename, Agents,ignore_periods):   
+    top_assets = a_matrix > np.transpose(np.tile(np.percentile(a_matrix,99,axis=1),(np.shape(a_matrix)[1],1)))
+    logc_diff = np.log(c_matrix[1:,:])-np.log(c_matrix[:-1,:])
+    logy_diff = np.log(y_matrix[1:,:])-np.log(y_matrix[:-1,:])
+    logc_diff = logc_diff.flatten('F')
+    logy_diff = logy_diff.flatten('F')
+    log_trans_shk = np.log(trans_shk_matrix[1:,:].flatten('F'))
+    top_assets = top_assets[1:,:].flatten('F')
+    #put nan's in where they exist in logc_diff
+    log_trans_shk = log_trans_shk + logc_diff*0.0
+    top_assets = top_assets + logc_diff*0.0
+    
+    return np.stack((logc_diff,log_trans_shk,top_assets),1)
+    
+
+def makeMicroRegressionTable(out_filename, micro_data):   
     '''
     Make parameter table for the paper
     
@@ -827,9 +883,8 @@ def makeMicroRegressionTable(out_filename, Agents,ignore_periods):
     
     out_filename : str
         Name of the file in which to save output (in the ./Tables/ directory).
-    Agents: [AgentType] (or derivative)
-        A list of 2 consumer types for whom the consumption history has already been calculated.
-        The first is the frictionless agent, the second with sticky expectations.
+    micro_data : [np.array]
+        A list of two np.array's each containing micro data array as returned by extractSampleMicroData
         
     Returns
     -------
@@ -840,58 +895,37 @@ def makeMicroRegressionTable(out_filename, Agents,ignore_periods):
     r_sq = np.zeros((4,2)) +np.nan
     obs = np.zeros((4,2)) +np.nan
     for i in range(2):
-        c_matrix = deepcopy(Agents[i].cLvlNow_hist[(ignore_periods+1):,:])
-        y_matrix = deepcopy(Agents[i].yLvlNow_hist[(ignore_periods+1):,:])
-        trans_shk_matrix = deepcopy(Agents[i].TranShkNow_hist[(ignore_periods+1):,:])
-        a_matrix = deepcopy(Agents[i].aLvlNow_hist[(ignore_periods+1):,:])
-        age_matrix = deepcopy(Agents[i].t_age_hist[(ignore_periods+1):,:])
-        # Put nan's in so that we do not regress over periods where agents die
-        newborn = age_matrix == 1
-        c_matrix[newborn] = np.nan
-        c_matrix[0:0,:] = np.nan
-        y_matrix[newborn] = np.nan
-        y_matrix[0,0:] = np.nan
-        y_matrix[trans_shk_matrix==0.0] = np.nan
-        c_matrix[trans_shk_matrix==0.0] = np.nan
-        trans_shk_matrix[trans_shk_matrix==0.0] = np.nan
-    
-        top_assets = a_matrix > np.transpose(np.tile(np.percentile(a_matrix,99,axis=1),(np.shape(a_matrix)[1],1)))
-        logc_diff = np.log(c_matrix[1:,:])-np.log(c_matrix[:-1,:])
-        logy_diff = np.log(y_matrix[1:,:])-np.log(y_matrix[:-1,:])
-        logc_diff = logc_diff.flatten('F')
-        logy_diff = logy_diff.flatten('F')
-        log_trans_shk = np.log(trans_shk_matrix[1:,:].flatten('F'))
-        top_assets = top_assets[1:,:].flatten('F')
-        #put nan's in where they exist in logc_diff
-        log_trans_shk = log_trans_shk + logc_diff*0.0
-        top_assets = top_assets + logc_diff*0.0
-        nobs=80000
+        this_micro_data = micro_data[i]
+        logc_diff = this_micro_data[:,0]
+        log_trans_shk = this_micro_data[:,1]
+        top_assets = this_micro_data[:,2]
+        
     #OLS on log_y_diff confirms that the trans shock predicts income
     #    mod = sm.OLS(logy_diff[1:],sm.add_constant(log_trans_shk[0:-1]), missing='drop')
     #    res = mod.fit()
     #    res.summary()
-        mod = sm.OLS(logc_diff[1:nobs+1],sm.add_constant(np.transpose(np.vstack([logc_diff[0:nobs]]))), missing='drop')
+        mod = sm.OLS(logc_diff[1:],sm.add_constant(np.transpose(np.vstack([logc_diff[0:-1]]))), missing='drop')
         res = mod.fit()
         coeffs[0,i] = res._results.params[1]
         stdevs[0,i] = res._results.HC0_se[1]
         r_sq[0,i] = res._results.rsquared_adj
         obs[0,i] = res.nobs
         
-        mod = sm.OLS(logc_diff[1:nobs+1],sm.add_constant(np.transpose(np.vstack([-log_trans_shk[0:nobs]]))), missing='drop')
+        mod = sm.OLS(logc_diff[1:],sm.add_constant(np.transpose(np.vstack([-log_trans_shk[0:-1]]))), missing='drop')
         res = mod.fit()
         coeffs[1,i] = res._results.params[1]
         stdevs[1,i] = res._results.HC0_se[1]
         r_sq[1,i] = res._results.rsquared_adj
         obs[1,i] = res.nobs
         
-        mod = sm.OLS(logc_diff[1:nobs+1],sm.add_constant(np.transpose(np.vstack([top_assets[0:nobs]]))), missing='drop')
+        mod = sm.OLS(logc_diff[1:],sm.add_constant(np.transpose(np.vstack([top_assets[0:-1]]))), missing='drop')
         res = mod.fit()
         coeffs[2,i] = res._results.params[1]
         stdevs[2,i] = res._results.HC0_se[1]
         r_sq[2,i] = res._results.rsquared_adj
         obs[2,i] = res.nobs
         
-        mod = sm.OLS(logc_diff[1:nobs+1],sm.add_constant(np.transpose(np.vstack([logc_diff[0:nobs],-log_trans_shk[0:nobs],top_assets[0:nobs]]))), missing='drop')
+        mod = sm.OLS(logc_diff[1:],sm.add_constant(np.transpose(np.vstack([logc_diff[0:-1],-log_trans_shk[0:-1],top_assets[0:-1]]))), missing='drop')
         res = mod.fit()
         coeffs[3,i] = res._results.params[1]
         stdevs[3,i] = res._results.HC0_se[1]

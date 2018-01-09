@@ -167,9 +167,7 @@ if __name__ == '__main__':
             name = 'SOEmarkovFrictionless'
             makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             if calc_micro_stats:
-                pass
-                # Make a copy of the frictionless agent to pass to micro regression calculations
-                #frictionless_SOE_agent = deepcopy(StickySOEmarkovConsumers[0])
+                frictionless_SOEmarkov_micro_data = extractSampleMicroData(StickySOmarkovEconomy, np.minimum(StickySOmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickySOmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
             
             # Simulate the frictionless small open Markov economy
             t_start = clock()
@@ -185,8 +183,8 @@ if __name__ == '__main__':
             makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             
             if calc_micro_stats:
-                pass
-                #makeMicroRegressionTable('CGrowCross.tex', [frictionless_SOE_agent,StickySOEmarkovConsumers[0]],ignore_periods)
+                sticky_SOEmarkov_micro_data = extractSampleMicroData(StickySOmarkovEconomy, np.minimum(StickySOmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickySOmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
+                makeMicroRegressionTable('CGrowCross.tex', [frictionless_SOEmarkov_micro_data,sticky_SOEmarkov_micro_data])
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
@@ -301,6 +299,8 @@ if __name__ == '__main__':
             desc = 'Results for the frictionless Cobb-Douglas Markov economy (update probability 1.0)'
             name = 'DSGEmarkovFrictionless'
             makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+            if calc_micro_stats:
+                frictionless_DSGEmarkov_micro_data = extractSampleMicroData(StickyDSGEmarkovEconomy, np.minimum(StickyDSGEmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickyDSGEmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
             
             # Solve the sticky heterogeneous agent DSGE model
             for agent in StickyDSGEmarkovEconomy.agents:
@@ -316,6 +316,10 @@ if __name__ == '__main__':
             desc = 'Results for the sticky Cobb-Douglas Markov economy with update probability ' + mystr(Params.UpdatePrb)
             name = 'DSGEmarkovSticky'
             makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+        
+            if calc_micro_stats:
+                sticky_DSGEmarkov_micro_data = extractSampleMicroData(StickyDSGEmarkovEconomy, np.minimum(StickyDSGEmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickyDSGEmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
+                makeMicroRegressionTable('CGrowCrossDSGE.tex', [frictionless_DSGEmarkov_micro_data,sticky_DSGEmarkov_micro_data])
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
