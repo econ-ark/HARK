@@ -18,7 +18,7 @@ from ConsAggShockModel import SmallOpenEconomy, SmallOpenMarkovEconomy
 from HARKutilities import plotFuncs
 import matplotlib.pyplot as plt
 import StickyEparams as Params
-from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable, runStickyEregressionsInStata, makeParameterTable, makeEquilibriumTable, makeMicroRegressionTable
+from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable, runStickyEregressionsInStata, makeParameterTable, makeEquilibriumTable, makeMicroRegressionTable, extractSampleMicroData
 
 # Choose which models to do work for
 do_SOE_simple  = False
@@ -41,6 +41,8 @@ ignore_periods = Params.ignore_periods # Number of simulated periods to ignore a
 interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
 total_periods = Params.periods_to_sim  # Total number of periods in simulation
 interval_count = (total_periods-ignore_periods)/interval_size # Number of intervals in the macro regressions
+periods_to_sim_micro = Params.periods_to_sim_micro #To save memory, micro regressions are run on a smaller sample
+AgentCount_micro = Params.AgentCount_micro #To save memory, micro regressions are run on a smaller sample
 my_counts = [interval_size,interval_count]
 mystr = lambda number : "{:.3f}".format(number)
 
