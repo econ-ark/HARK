@@ -849,6 +849,10 @@ def extractSampleMicroData(Economy, num_periods, AgentCount, ignore_periods):
     total_trans_shk_matrix = deepcopy(agent.TranShkNow_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
     trans_shk_matrix = total_trans_shk_matrix/(np.array(agg_trans_shk_matrix)*np.array(wRte_matrix))[:,None]
     a_matrix = deepcopy(agent.aLvlNow_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
+    
+    pLvlTrue_matrix = deepcopy(agent.pLvlTrue_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
+    a_matrix_nrm = a_matrix/pLvlTrue_matrix
+    
     age_matrix = deepcopy(agent.t_age_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
     # Put nan's in so that we do not regress over periods where agents die
     newborn = age_matrix == 1
@@ -860,7 +864,7 @@ def extractSampleMicroData(Economy, num_periods, AgentCount, ignore_periods):
     c_matrix[trans_shk_matrix==0.0] = np.nan
     trans_shk_matrix[trans_shk_matrix==0.0] = np.nan
 
-    top_assets = a_matrix > np.transpose(np.tile(np.percentile(a_matrix,99,axis=1),(np.shape(a_matrix)[1],1)))
+    top_assets = a_matrix_nrm > np.transpose(np.tile(np.percentile(a_matrix_nrm,1,axis=1),(np.shape(a_matrix_nrm)[1],1)))
     logc_diff = np.log(c_matrix[1:,:])-np.log(c_matrix[:-1,:])
     logy_diff = np.log(y_matrix[1:,:])-np.log(y_matrix[:-1,:])
     logc_diff = logc_diff.flatten('F')
@@ -965,7 +969,7 @@ def makeMicroRegressionTable(out_filename, micro_data):
     output += "\usebox{\crosssecond} \n"
     output += "\ifthenelse{\\boolean{StandAlone}}{\\newlength\TableWidth}{} \n"
     output += "\settowidth{\TableWidth}{\usebox{\crosssecond}} % Calculate width of table so notes will match \n"
-    output += "\medskip\medskip \parbox{\TableWidth}{\small Notes: $\mathbf{E}_{t,i}$ is the expectation from the perspective of person $i$ in period $t$; $\underline{a}$ is a dummy variable indicating that agent $i$ is in the top 99 percent of the $a$ distribution.  Simulated sample size is large enough such that standard errors are effectively zero.  Sample is restricted to households with positive income in period $t$.}  \n"
+    output += "\medskip\medskip \parbox{\TableWidth}{\small Notes: $\mathbf{E}_{t,i}$ is the expectation from the perspective of person $i$ in period $t$; $\bar{a}$ is a dummy variable indicating that agent $i$ is in the top 99 percent of the $a$ distribution.  Simulated sample size is large enough such that standard errors are effectively zero.  Sample is restricted to households with positive income in period $t$.}  \n"
     output += "\end{center} \n"
     output += "\end{table} \n"
     output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{} \n"
