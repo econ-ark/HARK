@@ -106,6 +106,16 @@ forvalues i = 1/$num_regressions {
 	}
 	
 	*calc second stage R2
+	qui reg L.deltalogc ${instruments} if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+	cap drop first_stage_predict_c
+	quietly predict first_stage_predict_c
+	quietly reg deltalogy ${instruments} if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+	cap drop first_stage_predict_y
+	quietly predict first_stage_predict_y
+	quietly reg L.a ${instruments} if time_period >= ${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+	cap drop first_stage_predict_a
+	quietly predict first_stage_predict_a	
+	
 	quietly reg deltalogc first_stage_predict_c first_stage_predict_y first_stage_predict_a if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
 	matrix RsqArray[5,1] = RsqArray[5,1]+ e(r2_a)/$num_regressions
 	*calc R2 of deltalogc on instruments
