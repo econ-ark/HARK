@@ -18,19 +18,19 @@ from ConsAggShockModel import SmallOpenEconomy, SmallOpenMarkovEconomy
 from HARKutilities import plotFuncs
 import matplotlib.pyplot as plt
 import StickyEparams as Params
-from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable, runStickyEregressionsInStata, makeParameterTable, makeEquilibriumTable, makeMicroRegressionTable
+from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable, runStickyEregressionsInStata, makeParameterTable, makeEquilibriumTable, makeMicroRegressionTable, extractSampleMicroData
 
 # Choose which models to do work for
 do_SOE_simple  = False
-do_SOE_markov  = True
+do_SOE_markov  = False
 do_DSGE_simple = False
-do_DSGE_markov = True
+do_DSGE_markov = False
 do_RA_simple   = False
 do_RA_markov   = True
 
 # Choose what kind of work to do for each model
-run_models = False        # Whether to solve models and generate new simulated data
-calc_micro_stats = False  # Whether to calculate microeconomic statistics (only matters when run_models is True)
+run_models = True        # Whether to solve models and generate new simulated data
+calc_micro_stats = True  # Whether to calculate microeconomic statistics (only matters when run_models is True)
 make_tables = True       # Whether to make LaTeX tables in the /Tables folder
 use_stata = True         # Whether to use Stata to run regressions
 
@@ -41,6 +41,8 @@ ignore_periods = Params.ignore_periods # Number of simulated periods to ignore a
 interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
 total_periods = Params.periods_to_sim  # Total number of periods in simulation
 interval_count = (total_periods-ignore_periods)/interval_size # Number of intervals in the macro regressions
+periods_to_sim_micro = Params.periods_to_sim_micro #To save memory, micro regressions are run on a smaller sample
+AgentCount_micro = Params.AgentCount_micro #To save memory, micro regressions are run on a smaller sample
 my_counts = [interval_size,interval_count]
 mystr = lambda number : "{:.3f}".format(number)
 
@@ -167,9 +169,7 @@ if __name__ == '__main__':
             name = 'SOEmarkovFrictionless'
             makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             if calc_micro_stats:
-                pass
-                # Make a copy of the frictionless agent to pass to micro regression calculations
-                #frictionless_SOE_agent = deepcopy(StickySOEmarkovConsumers[0])
+                frictionless_SOEmarkov_micro_data = extractSampleMicroData(StickySOmarkovEconomy, np.minimum(StickySOmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickySOmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
             
             # Simulate the frictionless small open Markov economy
             t_start = clock()
@@ -185,8 +185,8 @@ if __name__ == '__main__':
             makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             
             if calc_micro_stats:
-                pass
-                #makeMicroRegressionTable('CGrowCross.tex', [frictionless_SOE_agent,StickySOEmarkovConsumers[0]],ignore_periods)
+                sticky_SOEmarkov_micro_data = extractSampleMicroData(StickySOmarkovEconomy, np.minimum(StickySOmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickySOmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
+                makeMicroRegressionTable('CGrowCross.tex', [frictionless_SOEmarkov_micro_data,sticky_SOEmarkov_micro_data])
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
@@ -301,6 +301,8 @@ if __name__ == '__main__':
             desc = 'Results for the frictionless Cobb-Douglas Markov economy (update probability 1.0)'
             name = 'DSGEmarkovFrictionless'
             makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+            if calc_micro_stats:
+                frictionless_DSGEmarkov_micro_data = extractSampleMicroData(StickyDSGEmarkovEconomy, np.minimum(StickyDSGEmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickyDSGEmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
             
             # Solve the sticky heterogeneous agent DSGE model
             for agent in StickyDSGEmarkovEconomy.agents:
@@ -316,6 +318,10 @@ if __name__ == '__main__':
             desc = 'Results for the sticky Cobb-Douglas Markov economy with update probability ' + mystr(Params.UpdatePrb)
             name = 'DSGEmarkovSticky'
             makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
+        
+            if calc_micro_stats:
+                sticky_DSGEmarkov_micro_data = extractSampleMicroData(StickyDSGEmarkovEconomy, np.minimum(StickyDSGEmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickyDSGEmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
+                makeMicroRegressionTable('CGrowCrossDSGE.tex', [frictionless_DSGEmarkov_micro_data,sticky_DSGEmarkov_micro_data])
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:

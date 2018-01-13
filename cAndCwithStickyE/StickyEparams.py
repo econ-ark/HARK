@@ -40,6 +40,10 @@ ignore_periods = 1000  # Number of simulated periods to ignore (in order to ensu
 interval_size = 200    # Number of periods in each subsample interval
 AgentCount = 20000     # Total number of agents to simulate in the economy
 
+# Use smaller sample for micro regression tables to save memory
+periods_to_sim_micro = 4000
+AgentCount_micro = 5000
+
 # Choose extent of discount factor heterogeneity (inapplicable to representative agent models)
 TypeCount = 1        # Number of heterogeneous discount factor types
 DiscFacMean = 0.969  # Central value of intertemporal discount factor
@@ -124,7 +128,8 @@ init_SOE_market = {  'PermShkAggCount': 3,
                      'CapShare': 0.36,
                      'Rfree': 1.014189682528173,
                      'wRte': 2.5895209258224536,
-                     'act_T': periods_to_sim
+                     'act_T': periods_to_sim,
+                     'track_vars': ['MaggNow','AaggNow','wRteNow','TranShkAggNow']
                      }
 
 ###############################################################################
