@@ -817,6 +817,7 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
         f.write(output)
         f.close()
 
+
 def extractSampleMicroData(Economy, num_periods, AgentCount, ignore_periods):   
     '''
     Extracts sample micro data to be used in micro regression

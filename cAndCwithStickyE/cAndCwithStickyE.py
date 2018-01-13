@@ -22,15 +22,15 @@ from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResults
 
 # Choose which models to do work for
 do_SOE_simple  = False
-do_SOE_markov  = True
+do_SOE_markov  = False
 do_DSGE_simple = False
-do_DSGE_markov = True
+do_DSGE_markov = False
 do_RA_simple   = False
 do_RA_markov   = True
 
 # Choose what kind of work to do for each model
-run_models = False        # Whether to solve models and generate new simulated data
-calc_micro_stats = False  # Whether to calculate microeconomic statistics (only matters when run_models is True)
+run_models = True        # Whether to solve models and generate new simulated data
+calc_micro_stats = True  # Whether to calculate microeconomic statistics (only matters when run_models is True)
 make_tables = True       # Whether to make LaTeX tables in the /Tables folder
 use_stata = True         # Whether to use Stata to run regressions
 
