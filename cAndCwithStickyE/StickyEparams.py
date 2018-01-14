@@ -45,15 +45,15 @@ periods_to_sim_micro = 4000
 AgentCount_micro = 5000
 
 # Choose extent of discount factor heterogeneity (inapplicable to representative agent models)
-TypeCount = 1        # Number of heterogeneous discount factor types
-DiscFacMean = 0.969  # Central value of intertemporal discount factor
-DiscFacSpread = 0.0  # Half-width of intertemporal discount factor band, a la cstwMPC
-
-DiscFacMeanDSGE = 1.0/1.0146501772118186  # Central value of intertemporal discount factor
+TypeCount = 1           # Number of heterogeneous discount factor types
+DiscFacMeanSOE  = 0.969 # Central value of intertemporal discount factor for SOE model
+DiscFacMeanDSGE = 1.0/1.0146501772118186  # ...for HA-DSGE and RA
+DiscFacSpread = 0.0     # Half-width of intertemporal discount factor band, a la cstwMPC
 
 # These parameters are for a rough "beta-dist" specification that fits the wealth distribution in DSGE simple
 #TypeCount = 7
-#DiscFacMean = 0.96738  
+#DiscFacMeanSOE = 0.96738
+#DiscFacMeanDSGE = 0.96738  
 #DiscFacSpread = 0.0227 
 
 # Choose parameters for the Markov models
@@ -77,16 +77,17 @@ PolyMrkvArray *= 1.0 - RegimeChangePrb
 PolyMrkvArray += RegimeChangePrb/StateCount
 
 # Define the set of aggregate permanent growth factors that can occur (Markov specifications only)
-PermGroFacSet = np.linspace(PermGroFacMin,PermGroFacMax,num=StateCount)
+PermGroFacSet = np.exp(np.linspace(np.log(PermGroFacMin),np.log(PermGroFacMax),num=StateCount))
 
-# Define the set of discount factors that agents have
-DiscFacSet = approxUniform(N=TypeCount,bot=DiscFacMean-DiscFacSpread,top=DiscFacMean+DiscFacSpread)[1]
+# Define the set of discount factors that agents have (for SOE and DSGE models)
+DiscFacSetSOE  = approxUniform(N=TypeCount,bot=DiscFacMeanSOE-DiscFacSpread,top=DiscFacMeanSOE+DiscFacSpread)[1]
+DiscFacSetDSGE = approxUniform(N=TypeCount,bot=DiscFacMeanDSGE-DiscFacSpread,top=DiscFacMeanDSGE+DiscFacSpread)[1]
 
 ###############################################################################
 
 # Define parameters for the small open economy version of the model
 init_SOE_consumer = { 'CRRA': 2.0,
-                      'DiscFac': DiscFacMean,
+                      'DiscFac': DiscFacMeanSOE,
                       'LivPrb': [0.995],
                       'PermGroFac': [1.0],
                       'AgentCount': AgentCount/TypeCount, # Spread agents evenly among types
@@ -119,8 +120,8 @@ init_SOE_consumer = { 'CRRA': 2.0,
                     }
 
 # Define market parameters for the small open economy
-init_SOE_market = {  'PermShkAggCount': 3,
-                     'TranShkAggCount': 3,
+init_SOE_market = {  'PermShkAggCount': 5,
+                     'TranShkAggCount': 5,
                      'PermShkAggStd': np.sqrt(0.00004),
                      'TranShkAggStd': np.sqrt(0.00001),
                      'PermGroFacAgg': 1.0,
@@ -152,8 +153,8 @@ init_SOE_mrkv_market['loops_max'] = 1
 # Define parameters for the Cobb-Douglas DSGE version of the model
 init_DSGE_consumer = copy(init_SOE_consumer)
 init_DSGE_consumer['DiscFac'] = DiscFacMeanDSGE
-init_DSGE_consumer['aXtraMax'] = 80.0
-init_DSGE_consumer['MgridBase'] = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])
+init_DSGE_consumer['aXtraMax'] = 120.0
+init_DSGE_consumer['MgridBase'] = np.array([0.1,0.3,0.5,0.6,0.7,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.3,1.4,1.5,1.6,2.0,3.0,5.0])
 
 # Define market parameters for the Cobb-Douglas economy
 init_DSGE_market = copy(init_SOE_market)
@@ -189,7 +190,7 @@ init_RA_consumer =  { 'CRRA': 2.0,
                       'PermGroFac': [1.0],
                       'AgentCount': 1,
                       'aXtraMin': 0.00001,
-                      'aXtraMax': 80.0,
+                      'aXtraMax': 120.0,
                       'aXtraNestFac': 3,
                       'aXtraCount': 48,
                       'aXtraExtra': [None],
@@ -216,7 +217,7 @@ init_RA_consumer =  { 'CRRA': 2.0,
                       'T_age' : None,
                       'T_cycle' : 1,
                       'T_sim' : periods_to_sim,
-                      'tolerance' : 1e-12
+                      'tolerance' : 1e-6
                     }
 
 ###############################################################################

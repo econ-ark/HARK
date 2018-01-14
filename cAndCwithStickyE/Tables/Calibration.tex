@@ -1,33 +1,33 @@
 \provideboolean{Slides} \setboolean{Slides}{false}  
 \begin{center}\label{table:calibration}  
-\begin{tabular}{lcd{5}l}  
- \\ \hline \multicolumn{4}{c}{DSGE Model}  
+\begin{tabular}{cd{5}l}  
 \\ \hline  
-\multicolumn{3}{l}{Calibrated Parameters } \\  
-\\ & $\rho$ & 2. & Coefficient of Relative Risk Aversion 
-\\ & $\daleth$ & 0.94^{1/4} & Quarterly Depreciation Factor   
-\\ & $K/K^{\varepsilon}$ & 12 & Perf Foresight SS Capital/Output Ratio  
-\\ & $\sigma_{\Theta}^{2}$ & 0.00001 & Variance Qtrly Tran Agg Pty Shocks 
-\\ & $\sigma_{\Psi}^{2}$ & 0.00004 & Variance Qtrly Perm Agg Pty Shocks 
-\\ \\ \multicolumn{4}{l}{Steady State Solution of Model With $\sigma_{\Psi}=\sigma_{\Theta}=0$} \  
-\\ & $K=12^{1/(1-\varepsilon)} $&\approx 48.55& Steady State Quarterly $\mathbf{K}/\mathbf{P}$ Ratio  
-\\ & $M=K+K^{\varepsilon} $&\approx 52.6& Steady State Quarterly $\mathbf{M}/\mathbf{P}$ Ratio  
-\\ & $\W=(1-\varepsilon)K^{\epsilon}$&\approx 2.59 & Quarterly Wage Rate  
-\\ & $\RIn=1+\varepsilon K^{\varepsilon-1}$&=1.03 & Quarterly Gross Capital Income Factor  
-\\ & $\RBet= \mathcal{R}\ifDepr{\daleth}{}$&\approx 1.014& Quarterly Between-Period Interest Factor  
-\\ & $\beta= \RBet^{-1} $&\approx 0.986 & Quarterly Time Preference Factor  
-\ifthenelse{\boolean{Slides}}{\\}{\\ } \\ \hline \multicolumn{4}{c}{Partial Equilibrium/Small Open Economy (PE/SOE) Model Parameters}  
-\\ \hline 
-\multicolumn{4}{l}{Calibrated Parameters} \ 
-\\ & $\sigma_{\vec{\psi}}^{2}$      & 0.011     & Variance Annual Perm Idiosyncratic Shocks (PSID) 
-\\ & $\sigma_{\vec{\theta}}^{2}$      & 0.03     & Variance Annual Tran Idiosyncratic Shocks (PSID) 
-\\ & $\wp$                    & 0.05  & Quarterly Probability of Unemployment Spell 
-\\ & $\Pi$                    & 0.25  & Quarterly Probability of Updating Expectations 
-\\ & $(1-\Omega)$             & 0.005  & Quarterly Probability of Mortality 
-\\ \\ \multicolumn{4}{l}{Calculated Parameters} \\ 
-\\ & $\beta = 0.99 \Omega / E[(\pmb{\psi})^{-\rho}]\RBet$ & 0.969 & Satisfies Impatience Condition: $\beta < \Omega / E[(\Psi \psi)^{-\rho}]\RBet$ 
-\\ & $\sigma_{\psi}^{2}$      &0.004      & Variance Qtrly Perm Idiosyncratic Shocks (=$\frac{4}{11}\sigma_{\vec{\psi}}$) 
-\\ & $\sigma_{\theta}^{2}$    & 0.12     & Variance Qtrly Tran Idiosyncratic Shocks (=$4 \sigma_{\vec{\theta}}$) 
+\multicolumn{3}{c}{\textbf{Macroeconomic Parameters} }  
+\\ $\varepsilon$ & 0.36 & Capital's Share of Income   
+\\ $\daleth$ & 0.94^{1/4} & Depreciation Factor   
+\\ $\sigma_{\Theta}^{2}$ & 0.00001 & Variance Aggregate Transitory Shocks 
+\\ $\sigma_{\Psi}^{2}$ & 0.00004 & Variance Aggregate Permanent Shocks 
+\\ \hline  
+\multicolumn{3}{c}{ \textbf{Steady State of Perfect Foresight DSGE Model} } \  
+\\ \multicolumn{3}{c}{ $(\sigma_{\Psi}=\sigma_{\Theta}=\sigma_{\psi}=\sigma_{\theta}=\wp=\PDies=0$, $\Phi_t = 1)$} \  
+\\ $\breve{K}/\breve{K}^{\varepsilon}$ & $12.$ & SS Capital to Output Ratio  
+\\ $\breve{K}$ &\approx 48.55& SS Capital to Labor Productivity Ratio ($=12^{1/(1-\varepsilon)}$) 
+\\ $\breve{\Wage}$ &\approx 2.59 & SS Wage Rate ($=(1-\varepsilon)\breve{K}^{\epsilon}$) 
+\\ $\breve{\mathsf{r}}$ &=0.03 & SS Interest Rate ($=\varepsilon \breve{K}^{\varepsilon-1}$) 
+\\ $\breve{\mathcal{R}}$ &\approx 1.014& SS Between-Period Return Factor ($=\daleth + \breve{\mathsf{r}}$) 
+\\ \hline  
+\multicolumn{3}{c}{ \textbf{Preference Parameters} }  
+\\ $\rho$ & 2. & Coefficient of Relative Risk Aversion 
+\\ $\beta_{SOE}$ & 0.969 & SOE Discount Factor ($=0.99 \cdot \PLives \breve{\mathcal{R}} / \Ex [\pmb{\psi}]^{-\CRRA}$)
+\\ $\beta_{DSGE}$ &\approx 0.986 & HA-DSGE Discount Factor ($=\breve{\mathcal{R}}^{-1}$) 
+\\ $\Pi$                    & 0.25  & Probability of Updating Expectations (if Sticky) 
+\\ \hline  
+\multicolumn{3}{c}{ \textbf{Idiosyncratic Shock Parameters} }  
+\\ $\sigma_{\psi}^{2}$      &0.004      & Variance Idiosyncratic Perm Shocks (=$\frac{4}{11} \times$ Annual) 
+\\ $\sigma_{\theta}^{2}$    & 0.12     & Variance Idiosyncratic Tran Shocks (=$4 \times$ Annual) 
+\\ $\wp$                    & 0.05  & Probability of Unemployment Spell 
+\\ $\PDies$             & 0.005  & Probability of Mortality 
+\\ \hline  
 \end{tabular}  
 \end{center}  
 \ifthenelse{\boolean{StandAlone}}{\end{document}}{}    

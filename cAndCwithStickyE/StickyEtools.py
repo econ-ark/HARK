@@ -19,13 +19,21 @@ def mystr1(number):
         out = ''
     return out
 
-
 def mystr2(number):
     if not np.isnan(number):
         out = "{:1.2f}".format(number*10000) + '\\text{e-4}'
     else:
         out = ''
     return out
+
+def mystr3(number):
+    if not np.isnan(number):
+        out = "{:1.2f}".format(number*1000000) + '\\text{e-6}'
+    else:
+        out = ''
+    return out
+
+
 
 
 def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save_data=False,calc_micro_stats=True):
@@ -572,13 +580,11 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
         Expectations = 'Frictionless'
         DeltaLogY1 = '$\Delta \log \mathbf{Y}_{t+1}$'
         A_t = '$A_{t}$'
-    if sticky:
-        if meas_err:
-            MeasErr = ' (with measurement error); $\mathbf{C}_{t}^* =\mathbf{C}_{t}\\times \\xi_t$'
-        else:
-            MeasErr = ' (no measurement error)'
+    if meas_err:
+        MeasErr = ' (with measurement error $\mathbf{C}_{t}^* =\mathbf{C}_{t}\\times \\xi_t$);'
     else:
-        MeasErr = ''
+        MeasErr = ' (no measurement error)'
+
         
     # Define significance symbols
     if Counts[2] > 1:
@@ -596,25 +602,31 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
         return sig_text
     
     memo = ''
-    if (not sticky) or meas_err:
+    if meas_err:
         memo += '\\\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, ' + DeltaLogC1 + ' $= \mathbf{Z}_{t} \zeta,~~\\bar{R}^{2}=$ ' + mystr1(Counts[3])
-    if meas_err and sticky:
-        memo += ',~~$\\var(\\xi_t)=$ ' + mystr2(Counts[4])    
-    if (not sticky) or meas_err:
-        memo += ' }  \n'
+        memo += ';~~$\\var(\\xi_t)=$ ' + mystr3(Counts[4]) + ' }  \n'
 
     output = '\\\\ \hline \multicolumn{6}{l}{' + Expectations + ' : ' + DeltaLogC1 + MeasErr + '} \n'
     output += '\\\\ \multicolumn{1}{c}{' + DeltaLogC + '} & \multicolumn{1}{c}{' + DeltaLogY1 +'} & \multicolumn{1}{c}{'+A_t+'} & & & \n'
+    
+    # OLS on just lagged consumption growth
     output += '\\\\ ' + mystr1(Coeffs[0]) + sigFunc(Coeffs[0],StdErrs[0]) + ' & & & OLS & ' + mystr1(Rsq[0]) + ' & ' + mystr1(np.nan) + '\n'   
     output += '\\\\ (' + mystr1(StdErrs[0]) + ') & & & & & \n'   
-    if sticky and meas_err:
+    
+    if meas_err:
+        # IV on lagged consumption growth
         output += '\\\\ ' + mystr1(Coeffs[1]) + sigFunc(Coeffs[1],StdErrs[1]) + ' & & & IV & ' + mystr1(Rsq[1]) + ' & ' + mystr1(Pvals[1]) + '\n'   
         output += '\\\\ (' + mystr1(StdErrs[1]) + ') & & & & &' + mystr1(OID[1]) + '\n'   
-    if (not sticky) or meas_err:
+        
+        # IV on expected income growth
         output += '\\\\ & ' + mystr1(Coeffs[2]) + sigFunc(Coeffs[2],StdErrs[2]) + ' & & IV & ' + mystr1(Rsq[2]) + ' & ' + mystr1(Pvals[2]) + '\n'     
-        output += '\\\\ & (' + mystr1(StdErrs[2]) + ') & & & &' + mystr1(OID[2]) + '\n'    
+        output += '\\\\ & (' + mystr1(StdErrs[2]) + ') & & & &' + mystr1(OID[2]) + '\n'
+        
+        # IV on aggregate assets
         output += '\\\\ & & ' + mystr2(Coeffs[3]) + sigFunc(Coeffs[3],StdErrs[3]) + ' & IV & ' + mystr1(Rsq[3]) + ' & ' + mystr1(Pvals[3]) + '\n'   
         output += '\\\\ & & (' + mystr2(StdErrs[3]) + ') & & &' + mystr1(OID[3]) + '\n'    
+        
+        # Horse race
         output += '\\\\ ' + mystr1(Coeffs[4]) + sigFunc(Coeffs[4],StdErrs[4]) + ' & ' + mystr1(Coeffs[5]) + sigFunc(Coeffs[5],StdErrs[5]) + ' & ' + mystr2(Coeffs[6]) + sigFunc(Coeffs[6],StdErrs[6]) + ' & IV & ' + mystr1(Rsq[4]) + ' & ' + mystr1(Pvals[4]) + '\n'     
         output += '\\\\ (' + mystr1(StdErrs[4]) + ') & (' + mystr1(StdErrs[5]) + ') & (' + mystr2(StdErrs[6]) + ') & & & ' + mystr1(OID[4]) + '\n'
     output += memo
@@ -647,8 +659,8 @@ def makeResultsTable(caption,panels,counts,filename,label):
     '''
     note = '\\multicolumn{6}{p{0.8\\textwidth}}{\\footnotesize \\textbf{Notes:} '
     if counts[1] > 1:
-        note += 'Reported statistics are the average values for ' + str(counts[1]) + ' subsamples of ' + str(counts[0]) + ' simulated quarters each.  '
-        note += 'Bullets indicate that the average subsample coefficient divided by average subsample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  '
+        note += 'Reported statistics are the average values for ' + str(counts[1]) + ' samples of ' + str(counts[0]) + ' simulated quarters each.  '
+        note += 'Bullets indicate that the average sample coefficient divided by average sample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  '
     else:
         note += 'Reported statistics are for a single simulation of ' + str(counts[0]) + ' quarters.  '
         note += 'Stars indicate statistical significance at the 90\%, 95\%, and 99\% levels, respectively.  '
@@ -667,7 +679,7 @@ def makeResultsTable(caption,panels,counts,filename,label):
     for panel in panels:
         output += panel
         
-    output += '\\\\ \hline \n ' + note + ' \n \\\\ \hline \hline \n'
+    output += '\\\\ \hline \n ' + note # + ' \n \\\\ \hline \hline \n'
     output += '\end{tabular} \n'
     output += '\end{table} \n'
     
@@ -692,37 +704,44 @@ def makeParameterTable(filename, params):
     '''
     output = "\provideboolean{Slides} \setboolean{Slides}{false}  \n"
     output += "\\begin{center}\label{table:calibration}  \n"
-    output += "\\begin{tabular}{lcd{5}l}  \n"
-    # First do DGSE params
-    output += " \\\\ \hline \multicolumn{4}{c}{DSGE Model}  \n"
+    output += "\\begin{tabular}{cd{5}l}  \n"
+    
+    # Calibrated macroeconomic parameters
     output += "\\\\ \hline  \n"
-    output += "\multicolumn{3}{l}{Calibrated Parameters } \\\\  \n"
-    output += "\\\\ & $\\rho$ & "+ "{:.0f}".format(params.init_DSGE_mrkv_consumer["CRRA"]) +". & Coefficient of Relative Risk Aversion \n"
-    output += "\\\\ & $\daleth$ & "+ "{:.2f}".format((1-params.init_DSGE_mrkv_market["DeprFac"])**4) +"^{1/4} & Quarterly Depreciation Factor   \n"    
-    output += "\\\\ & $K/K^{\\varepsilon}$ & 12 & Perf Foresight SS Capital/Output Ratio  \n"    
-    output += "\\\\ & $\sigma_{\Theta}^{2}$ & "+ "{:.5f}".format(params.init_DSGE_mrkv_market["TranShkAggStd"][0]**2) +" & Variance Qtrly Tran Agg Pty Shocks \n"    
-    output += "\\\\ & $\sigma_{\Psi}^{2}$ & "+ "{:.5f}".format(params.init_DSGE_mrkv_market["PermShkAggStd"][0]**2) +" & Variance Qtrly Perm Agg Pty Shocks \n"    
-    output += "\\\\ \\\\ \multicolumn{4}{l}{Steady State Solution of Model With $\sigma_{\Psi}=\sigma_{\Theta}=0$} \\  \n"  
-    output += "\\\\ & $K=12^{1/(1-\\varepsilon)} $&\\approx 48.55& Steady State Quarterly $\mathbf{K}/\mathbf{P}$ Ratio  \n"  
-    output += "\\\\ & $M=K+K^{\\varepsilon} $&\\approx 52.6& Steady State Quarterly $\mathbf{M}/\mathbf{P}$ Ratio  \n"  
-    output += "\\\\ & $\W=(1-\\varepsilon)K^{\epsilon}$&\\approx 2.59 & Quarterly Wage Rate  \n"  
-    output += "\\\\ & $\RIn=1+\\varepsilon K^{\\varepsilon-1}$&=1.03 & Quarterly Gross Capital Income Factor  \n"  
-    output += "\\\\ & $\RBet= \mathcal{R}\ifDepr{\daleth}{}$&\\approx 1.014& Quarterly Between-Period Interest Factor  \n"  
-    output += "\\\\ & $\\beta= \RBet^{-1} $&\\approx 0.986 & Quarterly Time Preference Factor  \n"  
-    #Now to SOE params
-    output += "\ifthenelse{\\boolean{Slides}}{\\\\}{\\\\ } \\\\ \hline \multicolumn{4}{c}{Partial Equilibrium/Small Open Economy (PE/SOE) Model Parameters}  \n"  
-    output += "\\\\ \hline \n"  
-    output += "\multicolumn{4}{l}{Calibrated Parameters} \\ \n"  
-    output += "\\\\ & $\sigma_{\\vec{\psi}}^{2}$      & " + "{:.3f}".format(11.0/4.0*params.init_SOE_mrkv_consumer["PermShkStd"][0]**2) +"     & Variance Annual Perm Idiosyncratic Shocks (PSID) \n"  
-    output += "\\\\ & $\sigma_{\\vec{\\theta}}^{2}$      & " + "{:.2f}".format(0.25*params.init_SOE_mrkv_consumer["TranShkStd"][0]**2) +"     & Variance Annual Tran Idiosyncratic Shocks (PSID) \n"  
-    output += "\\\\ & $\wp$                    & " + "{:.2f}".format(params.init_SOE_mrkv_consumer["UnempPrb"]) +"  & Quarterly Probability of Unemployment Spell \n"  
-    output += "\\\\ & $\Pi$                    & " + "{:.2f}".format(params.init_SOE_mrkv_consumer["UpdatePrb"]) +"  & Quarterly Probability of Updating Expectations \n"  
-    output += "\\\\ & $(1-\Omega)$             & " + "{:.3f}".format(1.0-params.init_SOE_mrkv_consumer["LivPrb"][0]) +"  & Quarterly Probability of Mortality \n"  
-    output += "\\\\ \\\\ \multicolumn{4}{l}{Calculated Parameters} \\\\ \n"  
-    output += "\\\\ & $\\beta = 0.99 \Omega / E[(\pmb{\psi})^{-\\rho}]\RBet$ & " + "{:.3f}".format(params.init_SOE_mrkv_consumer["DiscFac"]) +" & Satisfies Impatience Condition: $\\beta < \Omega / E[(\Psi \psi)^{-\\rho}]\RBet$ \n"  
-    output += "\\\\ & $\sigma_{\psi}^{2}$      &" + "{:.3f}".format(params.init_SOE_mrkv_consumer["PermShkStd"][0]**2) +"      & Variance Qtrly Perm Idiosyncratic Shocks (=$\\frac{4}{11}\sigma_{\\vec{\psi}}$) \n"  
-    output += "\\\\ & $\sigma_{\\theta}^{2}$    & " + "{:.2f}".format(params.init_SOE_mrkv_consumer["TranShkStd"][0]**2) +"     & Variance Qtrly Tran Idiosyncratic Shocks (=$4 \sigma_{\\vec{\\theta}}$) \n"  
-
+    output += "\multicolumn{3}{c}{\\textbf{Macroeconomic Parameters} }  \n"
+    output += "\\\\ $\\varepsilon$ & {:.2f}".format(params.init_DSGE_mrkv_market["CapShare"]) + " & Capital's Share of Income   \n"
+    output += "\\\\ $\\daleth$ & {:.2f}".format((1-params.init_DSGE_mrkv_market["DeprFac"])**4) +"^{1/4} & Depreciation Factor   \n" 
+    output += "\\\\ $\sigma_{\Theta}^{2}$ & "+ "{:.5f}".format(params.init_DSGE_mrkv_market["TranShkAggStd"][0]**2) +" & Variance Aggregate Transitory Shocks \n"    
+    output += "\\\\ $\sigma_{\Psi}^{2}$ & "+ "{:.5f}".format(params.init_DSGE_mrkv_market["PermShkAggStd"][0]**2) +" & Variance Aggregate Permanent Shocks \n"
+    
+    # Steady state values
+    output += "\\\\ \hline  \n"
+    output += "\multicolumn{3}{c}{ \\textbf{Steady State of Perfect Foresight DSGE Model} } \\  \n"  
+    output += "\\\\ \multicolumn{3}{c}{ $(\\sigma_{\\Psi}=\\sigma_{\\Theta}=\\sigma_{\\psi}=\\sigma_{\\theta}=\wp=\\PDies=0$, $\\Phi_t = 1)$} \\  \n"  
+    output += "\\\\ $\\breve{K}/\\breve{K}^{\\varepsilon}$ & $12.$ & SS Capital to Output Ratio  \n"
+    output += "\\\\ $\\breve{K}$ &\\approx 48.55& SS Capital to Labor Productivity Ratio ($=12^{1/(1-\\varepsilon)}$) \n"  
+#    output += "\\\\ $M=K+K^{\\varepsilon} $&\\approx 52.6& Steady State Quarterly $\mathbf{M}/\mathbf{P}$ Ratio  \n"  
+    output += "\\\\ $\\breve{\\Wage}$ &\\approx 2.59 & SS Wage Rate ($=(1-\\varepsilon)\\breve{K}^{\epsilon}$) \n"  
+    output += "\\\\ $\\breve{\\mathsf{r}}$ &=0.03 & SS Interest Rate ($=\\varepsilon \\breve{K}^{\\varepsilon-1}$) \n"  
+    output += "\\\\ $\\breve{\\mathcal{R}}$ &\\approx 1.014& SS Between-Period Return Factor ($=\\daleth + \\breve{\\mathsf{r}}$) \n"  
+    
+    # Calibrated preference parameters
+    output += "\\\\ \hline  \n"
+    output += "\multicolumn{3}{c}{ \\textbf{Preference Parameters} }  \n"
+    output += "\\\\ $\\rho$ & "+ "{:.0f}".format(params.init_DSGE_mrkv_consumer["CRRA"]) +". & Coefficient of Relative Risk Aversion \n"
+    output += "\\\\ $\\beta_{SOE}$ & " + "{:.3f}".format(params.init_SOE_mrkv_consumer["DiscFac"]) +" & SOE Discount Factor ($=0.99 \\cdot \\PLives \\breve{\\mathcal{R}} / \\Ex [\\pmb{\\psi}]^{-\CRRA}$)\n"
+    output += "\\\\ $\\beta_{DSGE}$ &\\approx 0.986 & HA-DSGE Discount Factor ($=\\breve{\\mathcal{R}}^{-1}$) \n"  
+    output += "\\\\ $\Pi$                    & " + "{:.2f}".format(params.init_SOE_mrkv_consumer["UpdatePrb"]) +"  & Probability of Updating Expectations (if Sticky) \n"  
+    
+    # Idiosyncratic shock parameters
+    output += "\\\\ \hline  \n"
+    output += "\multicolumn{3}{c}{ \\textbf{Idiosyncratic Shock Parameters} }  \n"
+    output += "\\\\ $\sigma_{\psi}^{2}$      &" + "{:.3f}".format(params.init_SOE_mrkv_consumer["PermShkStd"][0]**2) +"      & Variance Idiosyncratic Perm Shocks (=$\\frac{4}{11} \\times$ Annual) \n"  
+    output += "\\\\ $\sigma_{\\theta}^{2}$    & " + "{:.2f}".format(params.init_SOE_mrkv_consumer["TranShkStd"][0]**2) +"     & Variance Idiosyncratic Tran Shocks (=$4 \\times$ Annual) \n"  
+    output += "\\\\ $\wp$                    & " + "{:.2f}".format(params.init_SOE_mrkv_consumer["UnempPrb"]) +"  & Probability of Unemployment Spell \n"  
+    output += "\\\\ $\PDies$             & " + "{:.3f}".format(1.0-params.init_SOE_mrkv_consumer["LivPrb"][0]) +"  & Probability of Mortality \n"  
+    
+    output += "\\\\ \hline  \n"
     output += "\end{tabular}  \n"
     output += "\end{center}  \n"
     output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{}    \n"
@@ -774,9 +793,9 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     output += "\sbox{\EqbmBox}{  \n"
     output += "\\newcommand{\EqDir}{\TablesDir/Eqbm}  \n"
     output += "\\begin{tabular}{lllcccc}  \n"
-    output += "&&& \multicolumn{2}{c|}{PE/SOE Economy} & \multicolumn{2}{c}{DSGE Economy}   \n"
+    output += "&&& \multicolumn{2}{c}{SOE Model} & \multicolumn{2}{c}{HA-DSGE Model}   \n"
     output += "\\\\ %\cline{4-5}   \n"
-    output += "   &&& \multicolumn{1}{c|}{Frictionless} & \multicolumn{1}{c|}{Sticky} & \multicolumn{1}{c|}{Frictionless} & \multicolumn{1}{c}{Sticky}  \n"
+    output += "   &&& \multicolumn{1}{c}{Frictionless} & \multicolumn{1}{c}{Sticky} & \multicolumn{1}{c}{Frictionless} & \multicolumn{1}{c}{Sticky}  \n"
     output += "\\\\ \hline   \n"
     output += "  \multicolumn{3}{l}{Means}  \n"
     output += "%\\\\  & & $M$  \n"
@@ -788,26 +807,27 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     output += "\\\\ &    \multicolumn{4}{l}{Aggregate Time Series (`Macro')}  \n"
     output += "%\\  & & $\Delta \log \mathbf{M}$   \n"
     output += "\\\\ & & $\log A $         & {:.3f}".format(SOEfrictionless[2]) +" & {:.3f}".format(SOEsticky[2]) +" & {:.3f}".format(DSGEfrictionless[2]) +" & {:.3f}".format(DSGEsticky[2]) +" \n"
-    output += "\\\\ & & $\Delta \log C $  & {:.3f}".format(SOEfrictionless[3]) +" & {:.3f}".format(SOEsticky[3]) +" & {:.3f}".format(DSGEfrictionless[3]) +" & {:.3f}".format(DSGEsticky[3]) +" \n"
-    output += "\\\\ & & $\Delta \log Y $  & {:.3f}".format(SOEfrictionless[4]) +" & {:.3f}".format(SOEsticky[4]) +" & {:.3f}".format(DSGEfrictionless[4]) +" & {:.3f}".format(DSGEsticky[4]) +" \n"
+    output += "\\\\ & & $\Delta \log \\CLevBF $  & {:.3f}".format(SOEfrictionless[3]) +" & {:.3f}".format(SOEsticky[3]) +" & {:.3f}".format(DSGEfrictionless[3]) +" & {:.3f}".format(DSGEsticky[3]) +" \n"
+    output += "\\\\ & & $\Delta \log \\YLevBF $  & {:.3f}".format(SOEfrictionless[4]) +" & {:.3f}".format(SOEsticky[4]) +" & {:.3f}".format(DSGEfrictionless[4]) +" & {:.3f}".format(DSGEsticky[4]) +" \n"
     output += "\\\\ &   \multicolumn{3}{l}{Individual Cross Sectional (`Micro')}  \n"  
-    output += "\\\\ & & $\log a $  & {:.3f}".format(SOEfrictionless[6]) +" & {:.3f}".format(SOEsticky[6]) +" & {:.3f}".format(DSGEfrictionless[6]) +" & {:.3f}".format(DSGEsticky[6]) +" \n"
-    output += "\\\\ & & $\log c $  & {:.3f}".format(SOEfrictionless[7]) +" & {:.3f}".format(SOEsticky[7]) +" & {:.3f}".format(DSGEfrictionless[7]) +" & {:.3f}".format(DSGEsticky[7]) +" \n"
+    output += "\\\\ & & $\log \\aLevBF $  & {:.3f}".format(SOEfrictionless[6]) +" & {:.3f}".format(SOEsticky[6]) +" & {:.3f}".format(DSGEfrictionless[6]) +" & {:.3f}".format(DSGEsticky[6]) +" \n"
+    output += "\\\\ & & $\log \\cLevBF $  & {:.3f}".format(SOEfrictionless[7]) +" & {:.3f}".format(SOEsticky[7]) +" & {:.3f}".format(DSGEfrictionless[7]) +" & {:.3f}".format(DSGEsticky[7]) +" \n"
     output += "\\\\ & & $\log p $  & {:.3f}".format(SOEfrictionless[8]) +" & {:.3f}".format(SOEsticky[8]) +" & {:.3f}".format(DSGEfrictionless[8]) +" & {:.3f}".format(DSGEsticky[8]) +" \n"
-    output += "\\\\ & & $\log y | y>0 $  & {:.3f}".format(SOEfrictionless[9]) +" & {:.3f}".format(SOEsticky[9]) +" & {:.3f}".format(DSGEfrictionless[9]) +" & {:.3f}".format(DSGEsticky[9]) +" \n"
-    output += "\\\\ & & $\Delta \log c $  & {:.3f}".format(SOEfrictionless[11]) +" & {:.3f}".format(SOEsticky[11]) +" & {:.3f}".format(DSGEfrictionless[11]) +" & {:.3f}".format(DSGEsticky[11]) +" \n"
+    output += "\\\\ & & $\log \\yLevBF | \\yLevBF > 0 $  & {:.3f}".format(SOEfrictionless[9]) +" & {:.3f}".format(SOEsticky[9]) +" & {:.3f}".format(DSGEfrictionless[9]) +" & {:.3f}".format(DSGEsticky[9]) +" \n"
+    output += "\\\\ & & $\Delta \log \\cLevBF $  & {:.3f}".format(SOEfrictionless[11]) +" & {:.3f}".format(SOEsticky[11]) +" & {:.3f}".format(DSGEfrictionless[11]) +" & {:.3f}".format(DSGEsticky[11]) +" \n"
     output += "  \n"
     output += "  \n"
     output += "\\\\ \hline \multicolumn{3}{l}{Cost Of Stickiness}  \n"
     output += " & \multicolumn{2}{c}{" + mystr2(StickyCost_SOE) + "}  \n"
-    output += " & \multicolumn{2}{c}{" + mystr2(StickyCost_DSGE) + "} \n"
+    output += " & \multicolumn{2}{c}{" + mystr2(StickyCost_DSGE) + "}  \n"
+    output += "\\\\ \\hline  \n"
     output += " \end{tabular}   \n"
-    output += "}  \n"
+    output += " } \n "
     output += "\usebox{\EqbmBox}  \n"
     output += "\ifthenelse{\\boolean{StandAlone}}{\\newlength\TableWidth}{}  \n"
     output += "\settowidth\TableWidth{\usebox{\EqbmBox}} % Calculate width of table so notes will match  \n"
-    output += "\medskip\medskip \parbox{\TableWidth}{\small  \n"
-    output += "Notes: The cost of stickiness is calculated as the proportion by which the permanent income of a frictionless consumer would need to be reduced in order to achieve the same reduction of expected value associated with forcing them to become a sticky expectations consumer.  \n"
+    output += "\medskip\medskip \\vspace{0.0cm} \parbox{\TableWidth}{\small  \n"
+    output += "\\textbf{Notes}: The cost of stickiness is calculated as the proportion by which the permanent income of a newborn frictionless consumer would need to be reduced in order to achieve the same reduction of expected value associated with forcing them to become a sticky expectations consumer.  \n"
     output += "}  \n"
     output += "\end{center}  \n"
     output += "\end{table}  \n"
@@ -953,8 +973,9 @@ def makeMicroRegressionTable(out_filename, micro_data):
     output += "\\newsavebox{\crosssecond} \n"
     output += "\sbox{\crosssecond}{ \n"
     output += "\\begin{tabular}{cd{4}d{4}d{5}ccc}  \n"
+    output += "\hline  \n"
     output += "Model of     &                                &                                &                                 &                                       &                 \\\\  \n"
-    output += "Expectations & \multicolumn{1}{c}{$ \chi $} & \multicolumn{1}{c}{$ \eta $} & \multicolumn{1}{c|}{$ \\alpha $} & \multicolumn{1}{c}{$\\bar{R}^{2}$} &                   \n"
+    output += "Expectations & \multicolumn{1}{c}{$ \chi $} & \multicolumn{1}{c}{$ \eta $} & \multicolumn{1}{c}{$ \\alpha $} & \multicolumn{1}{c}{$\\bar{R}^{2}$} &                   \n"
     output += "\\\\ \hline \multicolumn{2}{l}{Frictionless}  \n"
     output += "\\\\ &  {:.3f}".format(coeffs[0,0]) +"  &        &        & {:.3f}".format(r_sq[0,0]) +" &  "+ " %NotOnSlide   \n"
     output += "\\\\ &    &    {:.3f}".format(coeffs[1,0]) +"    &        & {:.3f}".format(r_sq[1,0])  +" &  "+" %NotOnSlide   \n" 
@@ -965,12 +986,13 @@ def makeMicroRegressionTable(out_filename, micro_data):
     output += "\\\\ &    &    {:.3f}".format(coeffs[1,1]) +"    &        & {:.3f}".format(r_sq[1,1]) +" &   %NotOnSlide   \n"
     output += "\\\\ &    &        &     {:.3f}".format(coeffs[2,1]) +"   & {:.3f}".format(r_sq[2,1]) +" &   %NotOnSlide   \n"
     output += "\\\\ &  {:.3f}".format(coeffs[3,1]) +"  &    {:.3f}".format(coeffs[4,1]) +"    &     {:.3f}".format(coeffs[5,1]) +"   & {:.3f}".format(r_sq[3,1]) +" &    \n"
+    output += "\\\\ \hline  \n"
     output += "\end{tabular}  \n"
-    output += "} \n"
+    output += "}"
     output += "\usebox{\crosssecond} \n"
     output += "\ifthenelse{\\boolean{StandAlone}}{\\newlength\TableWidth}{} \n"
     output += "\settowidth{\TableWidth}{\usebox{\crosssecond}} % Calculate width of table so notes will match \n"
-    output += "\medskip\medskip \parbox{\TableWidth}{\small Notes: $\mathbf{E}_{t,i}$ is the expectation from the perspective of person $i$ in period $t$; $\\bar{a}$ is a dummy variable indicating that agent $i$ is in the top 99 percent of the normalized $a$ distribution.  Simulated sample size is large enough such that standard errors are effectively zero.  Sample is restricted to households with positive income in period $t$.}  \n"
+    output += "\medskip\medskip \parbox{\TableWidth}{\small Notes: $\\mathbb{E}_{t,i}$ is the expectation from the perspective of person $i$ in period $t$; $\\bar{a}$ is a dummy variable indicating that agent $i$ is in the top 99 percent of the normalized $a$ distribution.  Simulated sample size is large enough such that standard errors are effectively zero.  Sample is restricted to households with positive income in period $t$.}  \n"
     output += "\end{center} \n"
     output += "\end{table} \n"
     output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{} \n"

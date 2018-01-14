@@ -6,40 +6,41 @@
 \sbox{\EqbmBox}{  
 \newcommand{\EqDir}{\TablesDir/Eqbm}  
 \begin{tabular}{lllcccc}  
-&&& \multicolumn{2}{c|}{PE/SOE Economy} & \multicolumn{2}{c}{DSGE Economy}   
+&&& \multicolumn{2}{c}{SOE Model} & \multicolumn{2}{c}{HA-DSGE Model}   
 \\ %\cline{4-5}   
-   &&& \multicolumn{1}{c|}{Frictionless} & \multicolumn{1}{c|}{Sticky} & \multicolumn{1}{c|}{Frictionless} & \multicolumn{1}{c}{Sticky}  
+   &&& \multicolumn{1}{c}{Frictionless} & \multicolumn{1}{c}{Sticky} & \multicolumn{1}{c}{Frictionless} & \multicolumn{1}{c}{Sticky}  
 \\ \hline   
   \multicolumn{3}{l}{Means}  
 %\\  & & $M$  
 %\\  & & $K$  
-\\  & & $A$ & 7.73 &7.67 & 27.31 & 27.22   
-\\  & & $C$ & 2.71 &2.71 & 2.88 & 2.88   
+\\  & & $A$ & 7.76 &7.70 & 59.09 & 58.97   
+\\  & & $C$ & 2.71 &2.71 & 3.47 & 3.47   
 \\ \hline  
   \multicolumn{3}{l}{Standard Deviations}  
 \\ &    \multicolumn{4}{l}{Aggregate Time Series (`Macro')}  
 %\  & & $\Delta \log \mathbf{M}$   
-\\ & & $\log A $         & 0.342 & 0.332 & 0.213 & 0.210 
-\\ & & $\Delta \log C $  & 0.010 & 0.006 & 0.007 & 0.005 
-\\ & & $\Delta \log Y $  & 0.010 & 0.010 & 0.008 & 0.008 
+\\ & & $\log A $         & 0.344 & 0.333 & 0.273 & 0.270 
+\\ & & $\Delta \log \CLevBF $  & 0.011 & 0.007 & 0.010 & 0.005 
+\\ & & $\Delta \log \YLevBF $  & 0.011 & 0.011 & 0.008 & 0.008 
 \\ &   \multicolumn{3}{l}{Individual Cross Sectional (`Micro')}  
-\\ & & $\log a $  & 1.031 & 1.032 & 0.931 & 0.931 
-\\ & & $\log c $  & 0.929 & 0.929 & 0.705 & 0.705 
+\\ & & $\log \aLevBF $  & 1.030 & 1.032 & 1.006 & 1.005 
+\\ & & $\log \cLevBF $  & 0.929 & 0.929 & 0.696 & 0.697 
 \\ & & $\log p $  & 0.940 & 0.940 & 0.940 & 0.940 
-\\ & & $\log y | y>0 $  & 0.997 & 0.997 & 0.997 & 0.997 
-\\ & & $\Delta \log c $  & 0.099 & 0.100 & 0.058 & 0.058 
+\\ & & $\log \yLevBF | \yLevBF > 0 $  & 0.997 & 0.997 & 0.997 & 0.997 
+\\ & & $\Delta \log \cLevBF $  & 0.099 & 0.100 & 0.056 & 0.056 
   
   
 \\ \hline \multicolumn{3}{l}{Cost Of Stickiness}  
- & \multicolumn{2}{c}{4.81\text{e-4}}  
- & \multicolumn{2}{c}{8.44\text{e-4}} 
+ & \multicolumn{2}{c}{5.06\text{e-4}}  
+ & \multicolumn{2}{c}{6.59\text{e-4}}  
+\\ \hline  
  \end{tabular}   
-}  
-\usebox{\EqbmBox}  
+ } 
+ \usebox{\EqbmBox}  
 \ifthenelse{\boolean{StandAlone}}{\newlength\TableWidth}{}  
 \settowidth\TableWidth{\usebox{\EqbmBox}} % Calculate width of table so notes will match  
-\medskip\medskip \parbox{\TableWidth}{\small  
-Notes: The cost of stickiness is calculated as the proportion by which the permanent income of a frictionless consumer would need to be reduced in order to achieve the same reduction of expected value associated with forcing them to become a sticky expectations consumer.  
+\medskip\medskip \vspace{0.0cm} \parbox{\TableWidth}{\small  
+\textbf{Notes}: The cost of stickiness is calculated as the proportion by which the permanent income of a newborn frictionless consumer would need to be reduced in order to achieve the same reduction of expected value associated with forcing them to become a sticky expectations consumer.  
 }  
 \end{center}  
 \end{table}  

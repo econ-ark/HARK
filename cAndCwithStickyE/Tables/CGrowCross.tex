@@ -1,5 +1,5 @@
 \begin{table}[t]  
-\caption{Typical Micro Consumption Estimation on Simulated Data} 
+\caption{Micro Consumption Regression on Simulated Data} 
 \label{table:CGrowCross} 
 \begin{center} 
 \ifthenelse{\boolean{StandAlone}}{\input \eq/CGrowCross.tex 
@@ -9,33 +9,27 @@
 \end{eqnarray} 
 \newsavebox{\crosssecond} 
 \sbox{\crosssecond}{ 
-\begin{tabular}{c|d{4}d{4}d{5}|ccc}  
-Model of     &                                &                                &                                 &                                       &                 & \\  
-Expectations & \multicolumn{1}{c}{$ \chi $} & \multicolumn{1}{c}{$ \eta $} & \multicolumn{1}{c|}{$ \alpha $} & \multicolumn{1}{c}{$\bar{R}^{2}$} &                 & nobs   
+\begin{tabular}{cd{4}d{4}d{5}ccc}  
+\hline  
+Model of     &                                &                                &                                 &                                       &                 \\  
+Expectations & \multicolumn{1}{c}{$ \chi $} & \multicolumn{1}{c}{$ \eta $} & \multicolumn{1}{c}{$ \alpha $} & \multicolumn{1}{c}{$\bar{R}^{2}$} &                   
 \\ \hline \multicolumn{2}{l}{Frictionless}  
-\\ &  0.010  &        &        & 0.000 & & 8477951 %NotOnSlide   
-\\ & (0.000) &      &      &  & &  %NotOnSlide   
-\\ &    &    0.013    &        & 0.004 & & 8477951 %NotOnSlide   
-\\ &  &   (0.000)   &      &  & &  %NotOnSlide   
-\\ &    &        &     -0.006   & 0.000 & & 8477951 %NotOnSlide   
-\\ &  &    &    (0.000)    &  & &  %NotOnSlide   
-\\ &  0.050  &    0.017    &     -0.004   & 0.007 & & 8477951   
-\\ & (0.000) &  (0.000)  &    (0.000)    &  & &    
+\\ &  0.020  &        &        & 0.000 &   %NotOnSlide   
+\\ &    &    0.011    &        & 0.003 &   %NotOnSlide   
+\\ &    &        &     -0.187   & 0.009 &   %NotOnSlide   
+\\ &  0.052  &    0.014    &     -0.181   & 0.014 &    
 \\ \hline \multicolumn{2}{l}{Sticky}  
-\\ &  0.010  &        &        & 0.000 & & 8477951 %NotOnSlide   
-\\ & (0.000) &      &      &  & &  %NotOnSlide   
-\\ &    &    0.013    &        & 0.004 & & 8477951 %NotOnSlide   
-\\ &  &   (0.000)   &      &  & &  %NotOnSlide   
-\\ &    &        &     -0.006   & 0.000 & & 8477951 %NotOnSlide   
-\\ &  &    &    (0.000)    &  & &  %NotOnSlide   
-\\ &  0.050  &    0.017    &     -0.004   & 0.007 & & 8477951   
-\\ & (0.000) &  (0.000)  &    (0.000)    &  & &    
+\\ &  0.013  &        &        & 0.000 &   %NotOnSlide   
+\\ &    &    0.011    &        & 0.003 &   %NotOnSlide   
+\\ &    &        &     -0.188   & 0.009 &   %NotOnSlide   
+\\ &  0.043  &    0.013    &     -0.182   & 0.013 &    
+\\ \hline  
 \end{tabular}  
 } 
 \usebox{\crosssecond} 
 \ifthenelse{\boolean{StandAlone}}{\newlength\TableWidth}{} 
 \settowidth{\TableWidth}{\usebox{\crosssecond}} % Calculate width of table so notes will match 
-\medskip\medskip \parbox{\TableWidth}{\small Notes: $\mathbf{E}_{t,i}$ is the expectation from the perspective of person $i$ in period $t$; $\underline{a}$ is a dummy variable indicating that agent $i$ is in the top 99 percent of the $a$ distribution.  Heteroskedasticity-robust standard errors are in parentheses. Standard tests detect no serial correlation in the residuals.  Sample is restricted to households with positive income in period $t$.}  
+\medskip\medskip \parbox{\TableWidth}{\small Notes: $\mathbb{E}_{t,i}$ is the expectation from the perspective of person $i$ in period $t$; $\bar{a}$ is a dummy variable indicating that agent $i$ is in the top 99 percent of the normalized $a$ distribution.  Simulated sample size is large enough such that standard errors are effectively zero.  Sample is restricted to households with positive income in period $t$.}  
 \end{center} 
 \end{table} 
 \ifthenelse{\boolean{StandAlone}}{\end{document}}{} 
