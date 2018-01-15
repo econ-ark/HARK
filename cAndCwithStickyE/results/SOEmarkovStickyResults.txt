@@ -1,18 +1,18 @@
 Results for the sticky small open Markov economy with update probability 0.250
 
 
-Average aggregate asset-to-productivity ratio = 7.69769777974
-Average aggregate consumption-to-productivity ratio = 2.70752367216
-Stdev of log aggregate asset-to-productivity ratio = 0.332952759288
-Stdev of change in log aggregate consumption level = 0.00661757261292
-Stdev of change in log aggregate output level = 0.0105158749649
-Stdev of change in log aggregate assets level = 0.00755749408301
-Cross section stdev of log individual assets = 1.03190163904
-Cross section stdev of log individual consumption = 0.928912163407
-Cross section stdev of log individual productivity = 0.939908188359
-Cross section stdev of log individual non-zero income = 0.997440098099
-Cross section stdev of change in log individual assets = 0.265188410674
-Cross section stdev of change in log individual consumption = 0.0997655959404
+Average aggregate asset-to-productivity ratio = 7.6982345654
+Average aggregate consumption-to-productivity ratio = 2.70768079992
+Stdev of log aggregate asset-to-productivity ratio = 0.332949663086
+Stdev of change in log aggregate consumption level = 0.00661695357598
+Stdev of change in log aggregate output level = 0.0105106341602
+Stdev of change in log aggregate assets level = 0.00755700714842
+Cross section stdev of log individual assets = 1.02985645213
+Cross section stdev of log individual consumption = 0.926642441466
+Cross section stdev of log individual productivity = 0.937668215773
+Cross section stdev of log individual non-zero income = 0.995334658723
+Cross section stdev of change in log individual assets = 0.265186906152
+Cross section stdev of change in log individual consumption = 0.0997652182458
 Cross section stdev of change in log individual productivity = 0.0615894762509
 
 

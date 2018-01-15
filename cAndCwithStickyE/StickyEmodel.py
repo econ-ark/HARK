@@ -115,6 +115,7 @@ class StickyEconsumerType(AggShockConsumerType):
         super(self.__class__,self).getShocks() # Get permanent and transitory combined shocks
         newborns = self.t_age == 0
         self.TranShkNow[newborns] = self.TranShkAggNow*self.wRteNow # Turn off idiosyncratic shocks for newborns
+        self.PermShkNow[newborns] = self.PermShkAggNow
         self.getUpdaters() # Randomly draw which agents will update their beliefs 
         
         # Calculate innovation to the productivity level perception error

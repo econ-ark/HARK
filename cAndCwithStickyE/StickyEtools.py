@@ -36,7 +36,7 @@ def mystr3(number):
 
 
 
-def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save_data=False,calc_micro_stats=True):
+def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save_data=False,calc_micro_stats=True,meas_err_base=None):
     '''
     Makes descriptive statistics and macroeconomic data file. Behaves slightly
     differently for heterogeneous agents vs representative agent models.
@@ -58,6 +58,9 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
     calc_micro_stats : bool
         When True, calculate microeconomic statistics like in Table 2 of the
         paper draft.  This causes huge memory issues 
+    meas_err_base : float or None
+        Base value of measurement error standard deviation, which will be adjusted.
+        When None (default), value is calculated as stdev(DeltaLogC).
         
     Returns
     -------
@@ -142,7 +145,9 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
     Delta8LogY = (np.log(YlvlAgg_hist[8:]) - np.log(YlvlAgg_hist[:-8]))[(ignore_periods-7):]
     
     # Add measurement error to LogC
-    sigma_meas_err = np.std(DeltaLogC)*0.375
+    if meas_err_base is None:
+        meas_err_base = np.std(DeltaLogC)
+    sigma_meas_err = meas_err_base*0.375 # This approximately matches the change in IV vs OLS in U.S. empirical coefficients
     np.random.seed(10)
     Measurement_Error = sigma_meas_err*np.random.normal(0.,1.,LogC.size)
     LogC_me = LogC + Measurement_Error
