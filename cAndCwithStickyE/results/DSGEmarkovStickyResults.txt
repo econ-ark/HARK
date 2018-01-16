@@ -1,18 +1,18 @@
 Results for the sticky Cobb-Douglas Markov economy with update probability 0.250
 
 
-Average aggregate asset-to-productivity ratio = 58.9724097433
-Average aggregate consumption-to-productivity ratio = 3.46962789795
-Stdev of log aggregate asset-to-productivity ratio = 0.269547032756
-Stdev of change in log aggregate consumption level = 0.00545559265814
-Stdev of change in log aggregate output level = 0.008386220648
-Stdev of change in log aggregate assets level = 0.0037271723098
-Cross section stdev of log individual assets = 1.00541065695
-Cross section stdev of log individual consumption = 0.696895752222
-Cross section stdev of log individual productivity = 0.939908188359
-Cross section stdev of log individual non-zero income = 0.997440098099
-Cross section stdev of change in log individual assets = 0.118811731942
-Cross section stdev of change in log individual consumption = 0.0564243668185
+Average aggregate asset-to-productivity ratio = 59.8231487804
+Average aggregate consumption-to-productivity ratio = 3.47958091489
+Stdev of log aggregate asset-to-productivity ratio = 0.272670021204
+Stdev of change in log aggregate consumption level = 0.00548808402122
+Stdev of change in log aggregate output level = 0.00837754930551
+Stdev of change in log aggregate assets level = 0.00371983411125
+Cross section stdev of log individual assets = 1.0059404752
+Cross section stdev of log individual consumption = 0.687757152449
+Cross section stdev of log individual productivity = 0.937668215773
+Cross section stdev of log individual non-zero income = 0.995334658723
+Cross section stdev of change in log individual assets = 0.119103617794
+Cross section stdev of change in log individual consumption = 0.0566859567399
 Cross section stdev of change in log individual productivity = 0.0615894762509
 
 

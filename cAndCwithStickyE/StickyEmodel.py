@@ -553,4 +553,12 @@ class StickyCobbDouglasMarkovEconomy(CobbDouglasMarkovEconomy):
         MrkvNow = self.MrkvNow_hist[self.Shk_idx]
         temp =  self.calcRandW(aLvlNow,pLvlTrue)
         temp(MrkvNow = MrkvNow)
+        
+        # Overwrite MaggNow, wRteNow, and RfreeNow if requested
+        if self.overwrite_hist:
+            t = self.t_sim
+            temp(MaggNow=self.MaggNow_overwrite[t])
+            temp(wRteNow=self.wRteNow_overwrite[t])
+            temp(RfreeNow=self.RfreeNow_overwrite[t])
+        
         return temp

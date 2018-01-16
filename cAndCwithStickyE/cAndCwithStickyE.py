@@ -25,9 +25,9 @@ from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResults
 
 # Choose which models to do work for
 do_SOE_simple  = False
-do_SOE_markov  = True
+do_SOE_markov  = False
 do_DSGE_simple = False
-do_DSGE_markov = False
+do_DSGE_markov = True
 do_RA_simple   = False
 do_RA_markov   = False
 
@@ -298,6 +298,8 @@ if __name__ == '__main__':
             
             # Make a Cobb-Douglas economy for the agents
             StickyDSGEmarkovEconomy = StickyCobbDouglasMarkovEconomy(agents = StickyDSGEmarkovConsumers,**Params.init_DSGE_mrkv_market)
+            StickyDSGEmarkovEconomy.track_vars += ['wRteNow','RfreeNow']
+            StickyDSGEmarkovEconomy.overwrite_hist = False
             StickyDSGEmarkovEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
             for n in range(Params.TypeCount):
                 StickyDSGEmarkovConsumers[n].getEconomyData(StickyDSGEmarkovEconomy) # Have the consumers inherit relevant objects from the economy
@@ -315,13 +317,30 @@ if __name__ == '__main__':
             desc = 'Results for the sticky Cobb-Douglas Markov economy with update probability ' + mystr(Params.UpdatePrb)
             name = 'DSGEmarkovSticky'
             makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
-            DeltaLogC_stdev = np.genfromtxt('./results/SOEmarkovStickyResults.csv', delimiter=',')[3] # For use in frictionless spec
+            DeltaLogC_stdev = np.genfromtxt('./results/DSGEmarkovStickyResults.csv', delimiter=',')[3] # For use in frictionless spec
             if calc_micro_stats:
                 sticky_DSGEmarkov_micro_data = extractSampleMicroData(StickyDSGEmarkovEconomy, np.minimum(StickyDSGEmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickyDSGEmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
             
+            # Store the histories of MaggNow, wRteNow, and Rfree now in _overwrite attributes
+            StickyDSGEmarkovEconomy.MaggNow_overwrite = deepcopy(StickyDSGEmarkovEconomy.MaggNow_hist)
+            StickyDSGEmarkovEconomy.wRteNow_overwrite = deepcopy(StickyDSGEmarkovEconomy.wRteNow_hist)
+            StickyDSGEmarkovEconomy.RfreeNow_overwrite = deepcopy(StickyDSGEmarkovEconomy.RfreeNow_hist)
+            
+            # Calculate the lifetime value of being frictionless when all other agents are sticky
+            if calc_micro_stats:
+                StickyDSGEmarkovEconomy.overwrite_hist = True
+                for agent in StickyDSGEmarkovEconomy.agents:
+                    agent(UpdatePrb = 1.0)
+                StickyDSGEmarkovEconomy.makeHistory() # Simulate a history one more time
+                
+                # Save the birth value file in a temporary file and delete the other generated results files
+                makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name+'TEMP',save_data=False,calc_micro_stats=calc_micro_stats)
+                os.remove('./Results/' + name + 'TEMP' + 'Results.txt')
+                os.remove('./Results/' + name + 'TEMP' + 'Results.csv')
+                sticky_name = name
+            
             # Solve the frictionless heterogeneous agent DSGE model
-            for agent in StickyDSGEmarkovEconomy.agents:
-                agent(UpdatePrb = 1.0)
+            StickyDSGEmarkovEconomy.overwrite_hist = False
             t_start = clock()
             StickyDSGEmarkovEconomy.solve()
             t_end = clock()
@@ -334,6 +353,8 @@ if __name__ == '__main__':
             name = 'DSGEmarkovFrictionless'
             makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats,meas_err_base=DeltaLogC_stdev)
             if calc_micro_stats:
+                os.remove('./Results/' + name + 'BirthValue.csv') # Delete the frictionless birth value file
+                os.rename('./Results/' + sticky_name + 'TEMPBirthValue.csv','./Results/' + name + 'BirthValue.csv') # Replace just deleted file with "alternate" value calculation
                 frictionless_DSGEmarkov_micro_data = extractSampleMicroData(StickyDSGEmarkovEconomy, np.minimum(StickyDSGEmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickyDSGEmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
                 makeMicroRegressionTable('CGrowCrossDSGE.tex', [frictionless_DSGEmarkov_micro_data,sticky_DSGEmarkov_micro_data])
         
