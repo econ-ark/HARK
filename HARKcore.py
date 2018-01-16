@@ -1115,7 +1115,6 @@ class Market(HARKobject):
         '''        
         self.reset() # Initialize the state of the market
         for t in range(self.act_T):
-            self.t_sim = t
             self.sow()       # Distribute aggregated information/state to agents
             self.cultivate() # Agents take action
             self.reap()      # Collect individual data from agents
