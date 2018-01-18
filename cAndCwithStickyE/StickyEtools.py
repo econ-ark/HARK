@@ -416,7 +416,7 @@ def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,stata
     panel_text : str
         String with one panel's worth of LaTeX input.
     '''
-    dofile = "StataRegressions.do"
+    dofile = "StickyETimeSeries.do"
     infile_name_full = os.path.abspath("results\\"+infile_name+".txt")
     temp_name_full = os.path.abspath("results\\temp.txt")
     if meas_err:
