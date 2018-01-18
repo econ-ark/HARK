@@ -298,12 +298,14 @@ if __name__ == '__main__':
             
             # Make a Cobb-Douglas economy for the agents
             StickyDSGEmarkovEconomy = StickyCobbDouglasMarkovEconomy(agents = StickyDSGEmarkovConsumers,**Params.init_DSGE_mrkv_market)
-            StickyDSGEmarkovEconomy.track_vars += ['wRteNow','RfreeNow']
+            StickyDSGEmarkovEconomy.track_vars += ['RfreeNow','wRteNow','TranShkAggNow']
             StickyDSGEmarkovEconomy.overwrite_hist = False
             StickyDSGEmarkovEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
             for n in range(Params.TypeCount):
                 StickyDSGEmarkovConsumers[n].getEconomyData(StickyDSGEmarkovEconomy) # Have the consumers inherit relevant objects from the economy
                 StickyDSGEmarkovConsumers[n](UpdatePrb = Params.UpdatePrb)
+            
+            print(StickyDSGEmarkovEconomy.track_vars)
             
             # Solve the sticky heterogeneous agent DSGE model
             t_start = clock()
@@ -328,9 +330,9 @@ if __name__ == '__main__':
             
             # Calculate the lifetime value of being frictionless when all other agents are sticky
             if calc_micro_stats:
-                StickyDSGEmarkovEconomy.overwrite_hist = True
+                StickyDSGEmarkovEconomy.overwrite_hist = True # History will be overwritten by sticky outcomes
                 for agent in StickyDSGEmarkovEconomy.agents:
-                    agent(UpdatePrb = 1.0)
+                    agent(UpdatePrb = 1.0) # Make agents frictionless
                 StickyDSGEmarkovEconomy.makeHistory() # Simulate a history one more time
                 
                 # Save the birth value file in a temporary file and delete the other generated results files
@@ -341,6 +343,8 @@ if __name__ == '__main__':
             
             # Solve the frictionless heterogeneous agent DSGE model
             StickyDSGEmarkovEconomy.overwrite_hist = False
+            for agent in StickyDSGEmarkovEconomy.agents:
+                agent(UpdatePrb = 1.0)
             t_start = clock()
             StickyDSGEmarkovEconomy.solve()
             t_end = clock()
