@@ -2,7 +2,7 @@
 This module runs the exercises and regressions for the cAndCwithStickyE paper.
 User can choose which among the six model variations are actually run.  Descriptive
 statistics and regression results are both output to screen and saved in a log
-file in the ./results directory.  See StickyEparams for calibrated model parameters.
+file in the ./Results directory.  See StickyEparams for calibrated model parameters.
 '''
 
 import sys 
@@ -196,7 +196,6 @@ if __name__ == '__main__':
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
-            # Process the coefficients, standard errors, etc into a LaTeX table
             t_start = clock()
             frictionless_panel = runRegressions('SOEmarkovFrictionlessData',interval_size,False,False)
             frictionless_me_panel = runRegressions('SOEmarkovFrictionlessData',interval_size,True,False)
@@ -270,7 +269,6 @@ if __name__ == '__main__':
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
-            # Process the coefficients, standard errors, etc into a LaTeX table
             t_start = clock()
             frictionless_panel = runRegressions('DSGEsimpleFrictionlessData',interval_size,False,False)
             frictionless_me_panel = runRegressions('DSGEsimpleFrictionlessData',interval_size,True,False)
@@ -364,7 +362,6 @@ if __name__ == '__main__':
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
-            # Process the coefficients, standard errors, etc into a LaTeX table
             t_start = clock()
             frictionless_panel = runRegressions('DSGEmarkovFrictionlessData',interval_size,False,False)
             frictionless_me_panel = runRegressions('DSGEmarkovFrictionlessData',interval_size,True,False)
