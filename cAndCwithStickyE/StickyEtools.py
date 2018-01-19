@@ -34,8 +34,6 @@ def mystr3(number):
     return out
 
 
-
-
 def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save_data=False,calc_micro_stats=True,meas_err_base=None):
     '''
     Makes descriptive statistics and macroeconomic data file. Behaves slightly
@@ -416,7 +414,7 @@ def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,stata
     panel_text : str
         String with one panel's worth of LaTeX input.
     '''
-    dofile = "StataRegressions.do"
+    dofile = "StickyETimeSeries.do"
     infile_name_full = os.path.abspath("results\\"+infile_name+".txt")
     temp_name_full = os.path.abspath("results\\temp.txt")
     if meas_err:
@@ -424,11 +422,13 @@ def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,stata
     else:
         meas_err_stata = 0
         
-    # Define the command that will run the 
+    # Define the command to run the Stata do file
     cmd = [stata_exe, "do", dofile, infile_name_full, temp_name_full, str(interval_size), str(meas_err_stata)]
     
     # Run Stata do-file
-    subprocess.call(cmd,shell = 'true') 
+    stata_status = subprocess.call(cmd,shell = 'true') 
+    if stata_status!=0:
+        raise ValueError('Stata code could not run. Check the stata_exe in StickyEparams.py')
     stata_output = pd.read_csv(temp_name_full, sep=',',header=0)
     
     # Make results table and return it
@@ -509,34 +509,6 @@ def calcValueAtBirth(cLvlHist,BirthBool,PlvlHist,MrkvHist,DiscFac,CRRA):
     vAtBirth = np.nanmean(vArray,axis=1)
     return vAtBirth
             
-
-def evalLorenzDistance(Economy):
-    '''
-    Calculates the Lorenz distance and the wealth level difference bewtween a
-    given economy and some specified targets.
-    
-    Parameters
-    ----------
-    Economy : Market
-        Economy with one or more agent types (with simulated data).
-        
-    Returns
-    -------
-    wealth_difference : float
-        Difference between economy and target aggregate wealth level.
-    lorenz_distance : float
-        Distance between economy and targets in terms of Lorenz.
-    '''
-    target_wealth = 10.26
-    pctiles = [0.2,0.4,0.6,0.8]
-    target_lorenz = np.array([-0.002, 0.01, 0.053,0.171])
-    A = np.concatenate([Economy.agents[i].aLvlNow for i in range(len(Economy.agents))])
-    sim_lorenz = getLorenzShares(A,percentiles=pctiles)
-    lorenz_distance = np.sqrt(np.sum((sim_lorenz - target_lorenz)**2))
-    wealth_difference = Economy.KtoYnow - target_wealth
-    return wealth_difference, lorenz_distance
-
-
 def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
     '''
     Make one panel of simulated results table.  A panel has all results with/out
@@ -702,6 +674,8 @@ def makeParameterTable(filename, params):
     
     filename : str
         Name of the file in which to save output (in the ./Tables/ directory).
+    params :
+        Object containing the parameter values
         
     Returns
     -------
@@ -930,10 +904,7 @@ def makeMicroRegressionTable(out_filename, micro_data):
         log_trans_shk = this_micro_data[:,1]
         top_assets = this_micro_data[:,2]
         
-    #OLS on log_y_diff confirms that the trans shock predicts income
-    #    mod = sm.OLS(logy_diff[1:],sm.add_constant(log_trans_shk[0:-1]), missing='drop')
-    #    res = mod.fit()
-    #    res.summary()
+        #Lagged consumption regression
         mod = sm.OLS(logc_diff[1:],sm.add_constant(np.transpose(np.vstack([logc_diff[0:-1]]))), missing='drop')
         res = mod.fit()
         coeffs[0,i] = res._results.params[1]
@@ -941,6 +912,7 @@ def makeMicroRegressionTable(out_filename, micro_data):
         r_sq[0,i] = res._results.rsquared_adj
         obs[0,i] = res.nobs
         
+        #Expected income regression
         mod = sm.OLS(logc_diff[1:],sm.add_constant(np.transpose(np.vstack([-log_trans_shk[0:-1]]))), missing='drop')
         res = mod.fit()
         coeffs[1,i] = res._results.params[1]
@@ -948,6 +920,7 @@ def makeMicroRegressionTable(out_filename, micro_data):
         r_sq[1,i] = res._results.rsquared_adj
         obs[1,i] = res.nobs
         
+        #Assets regression
         mod = sm.OLS(logc_diff[1:],sm.add_constant(np.transpose(np.vstack([top_assets[0:-1]]))), missing='drop')
         res = mod.fit()
         coeffs[2,i] = res._results.params[1]
@@ -955,6 +928,7 @@ def makeMicroRegressionTable(out_filename, micro_data):
         r_sq[2,i] = res._results.rsquared_adj
         obs[2,i] = res.nobs
         
+        #Horeserace regression
         mod = sm.OLS(logc_diff[1:],sm.add_constant(np.transpose(np.vstack([logc_diff[0:-1],-log_trans_shk[0:-1],top_assets[0:-1]]))), missing='drop')
         res = mod.fit()
         coeffs[3,i] = res._results.params[1]

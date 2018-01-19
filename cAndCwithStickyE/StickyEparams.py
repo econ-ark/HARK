@@ -130,7 +130,6 @@ init_SOE_market = {  'PermShkAggCount': 5,
                      'Rfree': 1.014189682528173,
                      'wRte': 2.5895209258224536,
                      'act_T': periods_to_sim,
-                     'track_vars': ['MaggNow','AaggNow','wRteNow','TranShkAggNow']
                      }
 
 ###############################################################################
