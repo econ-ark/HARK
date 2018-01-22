@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 import statsmodels.sandbox.regression.gmm as smsrg
+import matplotlib.pyplot as plt
 from copy import deepcopy
 import subprocess
 from HARKutilities import getLorenzShares, CRRAutility
@@ -979,3 +980,31 @@ def makeMicroRegressionTable(out_filename, micro_data):
     with open('./Tables/' + out_filename,'w') as f:
         f.write(output)
         f.close()
+        
+        
+def makeuCostVsPiFig(uCost_filename):
+    '''
+    Make a figure that plots the cost of stickiness vs updating probability.
+
+    Parameters
+    ----------
+    uCost_filename : str
+        Name of data file, as a two line csv.  First line is UpdatePrb, second
+        line is uCost.
+        
+    Returns
+    -------
+    None
+    '''
+    data = np.genfromtxt('./Results/' + uCost_filename +'.csv',delimiter=',')
+    UpdatePrbVec = data[0,:]
+    uCostVec = data[1,:]
+    
+    plt.plot(UpdatePrbVec,uCostVec*10000)
+    plt.xlim([0.05,1.0])
+    plt.ylim([0.0,30.0])
+    plt.xlabel(r'Probability of updating information $\Pi$')
+    plt.ylabel('Cost of stickiness ($10^{-4}$)')
+    plt.savefig('./Results/uCostvsPi.pdf')
+    plt.show()
+    

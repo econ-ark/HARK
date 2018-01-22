@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
+import csv
 from time import clock
 from copy import deepcopy
 from StickyEmodel import StickyEconsumerType, StickyEmarkovConsumerType, StickyErepAgent,\
@@ -21,13 +22,13 @@ import matplotlib.pyplot as plt
 import StickyEparams as Params
 from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable,\
                   runStickyEregressionsInStata, makeParameterTable, makeEquilibriumTable,\
-                  makeMicroRegressionTable, extractSampleMicroData
+                  makeMicroRegressionTable, extractSampleMicroData, makeuCostVsPiFig
 
 # Choose which models to do work for
 do_SOE_simple  = False
 do_SOE_markov  = False
 do_DSGE_simple = False
-do_DSGE_markov = True
+do_DSGE_markov = False
 do_RA_simple   = False
 do_RA_markov   = False
 
@@ -37,13 +38,14 @@ calc_micro_stats = True  # Whether to calculate microeconomic statistics (only m
 make_tables = True       # Whether to make LaTeX tables in the /Tables folder
 use_stata = True         # Whether to use Stata to run regressions
 save_data = True         # Whether to save data for use in Stata (as a tab-delimited text file)
+run_ucost_vs_pi = False  # Whether to run an exercise that finds the cost of stickiness as it varies with update probability
 
 ignore_periods = Params.ignore_periods # Number of simulated periods to ignore as a "burn-in" phase
 interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
 total_periods = Params.periods_to_sim  # Total number of periods in simulation
 interval_count = (total_periods-ignore_periods)/interval_size # Number of intervals in the macro regressions
-periods_to_sim_micro = Params.periods_to_sim_micro #To save memory, micro regressions are run on a smaller sample
-AgentCount_micro = Params.AgentCount_micro #To save memory, micro regressions are run on a smaller sample
+periods_to_sim_micro = Params.periods_to_sim_micro # To save memory, micro regressions are run on a smaller sample
+AgentCount_micro = Params.AgentCount_micro # To save memory, micro regressions are run on a smaller sample
 my_counts = [interval_size,interval_count]
 mystr = lambda number : "{:.3f}".format(number)
 
@@ -142,6 +144,7 @@ if __name__ == '__main__':
             
             # Make a small open economy for the agents
             StickySOmarkovEconomy = SmallOpenMarkovEconomy(agents=StickySOEmarkovConsumers, **Params.init_SOE_mrkv_market)
+            StickySOmarkovEconomy.track_vars += ['TranShkAggNow','wRteNow']
             StickySOmarkovEconomy.makeAggShkHist() # Simulate a history of aggregate shocks
             for n in range(Params.TypeCount):
                 StickySOEmarkovConsumers[n].getEconomyData(StickySOmarkovEconomy) # Have the consumers inherit relevant objects from the economy
@@ -193,6 +196,30 @@ if __name__ == '__main__':
             if calc_micro_stats:
                 frictionless_SOEmarkov_micro_data = extractSampleMicroData(StickySOmarkovEconomy, np.minimum(StickySOmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickySOmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
                 makeMicroRegressionTable('CGrowCross.tex', [frictionless_SOEmarkov_micro_data,sticky_SOEmarkov_micro_data])
+            
+            if run_ucost_vs_pi:
+                # Find the cost of stickiness as it varies with updating probability
+                UpdatePrbVec = np.linspace(0.025,1.0,40)
+                CRRA = StickySOmarkovEconomy.agents[0].CRRA
+                vBirth_F = np.genfromtxt('./results/SOEmarkovFrictionlessBirthValue.csv', delimiter=',')
+                uCostVec = np.zeros_like(UpdatePrbVec)
+                for j in range(UpdatePrbVec.size):
+                    for agent in StickySOmarkovEconomy.agents:
+                        agent(UpdatePrb = UpdatePrbVec[j])
+                    StickySOmarkovEconomy.makeHistory()
+                    makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description='trash',filename='TEMP',save_data=False,calc_micro_stats=True)
+                    vBirth_S = np.genfromtxt('./results/TEMPBirthValue.csv', delimiter=',')
+                    uCost = np.mean(1. - (vBirth_S/vBirth_F)**(1./(1.-CRRA)))
+                    uCostVec[j] = uCost
+                    print('Found that uCost=' + str(uCost) + ' for Pi=' + str(UpdatePrbVec[j]))
+                with open('./Results/SOEuCostbyUpdatePrb.csv','w') as f:
+                    my_writer = csv.writer(f, delimiter = ',')
+                    my_writer.writerow(UpdatePrbVec)
+                    my_writer.writerow(uCostVec)
+                    f.close()
+                os.remove('./Results/TEMPResults.txt')
+                os.remove('./Results/TEMPResults.csv')
+                os.remove('./Results/TEMPBirthValue.csv')
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
@@ -493,3 +520,5 @@ if __name__ == '__main__':
     if make_tables:
         makeEquilibriumTable('Eqbm.tex', ['SOEmarkovFrictionless','SOEmarkovSticky','DSGEmarkovFrictionless','DSGEmarkovSticky'],Params.init_SOE_consumer['CRRA'])
         makeParameterTable('Calibration.tex', Params)
+        makeuCostVsPiFig('SOEuCostbyUpdatePrb')
+        
