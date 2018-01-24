@@ -38,7 +38,7 @@ calc_micro_stats = True  # Whether to calculate microeconomic statistics (only m
 make_tables = True       # Whether to make LaTeX tables in the /Tables folder
 use_stata = True         # Whether to use Stata to run regressions
 save_data = True         # Whether to save data for use in Stata (as a tab-delimited text file)
-run_ucost_vs_pi = False  # Whether to run an exercise that finds the cost of stickiness as it varies with update probability
+run_ucost_vs_pi = True   # Whether to run an exercise that finds the cost of stickiness as it varies with update probability
 
 ignore_periods = Params.ignore_periods # Number of simulated periods to ignore as a "burn-in" phase
 interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
@@ -520,5 +520,6 @@ if __name__ == '__main__':
     if make_tables:
         makeEquilibriumTable('Eqbm.tex', ['SOEmarkovFrictionless','SOEmarkovSticky','DSGEmarkovFrictionless','DSGEmarkovSticky'],Params.init_SOE_consumer['CRRA'])
         makeParameterTable('Calibration.tex', Params)
+    if run_ucost_vs_pi:
         makeuCostVsPiFig('SOEuCostbyUpdatePrb')
         

@@ -200,7 +200,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
             if hasattr(Economy,'MrkvNow') & ~hasattr(Economy,'Rfree') and hasattr(Economy,'agents'):
                 DataArray = np.hstack((DataArray,np.reshape(R,(R.size,1))))
                 VarNames.append('R')
-            with open('./Results/' + filename + 'Data.txt.','wb') as f:
+            with open('./Results/' + filename + 'Data.txt','wb') as f:
                 my_writer = csv.writer(f, delimiter = '\t')
                 my_writer.writerow(VarNames)
                 for i in range(DataArray.shape[0]):
@@ -1004,7 +1004,15 @@ def makeuCostVsPiFig(uCost_filename):
     plt.xlim([0.05,1.0])
     plt.ylim([0.0,30.0])
     plt.xlabel(r'Probability of updating information $\Pi$')
-    plt.ylabel('Cost of stickiness ($10^{-4}$)')
+    plt.ylabel('Cost of stickiness $\omega$ ($10^{-4}$)')
     plt.savefig('./Results/uCostvsPi.pdf')
+    plt.show()
+    
+    plt.plot(1./UpdatePrbVec,uCostVec*10000)
+    plt.xlim([1.0,16.0])
+    plt.ylim([0.0,35.0])
+    plt.xlabel(r'Expected periods between information updates $\Pi^{-1}$')
+    plt.ylabel('Cost of stickiness $\omega$ ($10^{-4}$)')
+    plt.savefig('./Results/uCostvsPiInv.pdf')
     plt.show()
     
