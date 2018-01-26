@@ -22,14 +22,14 @@ def mystr1(number):
 
 def mystr2(number):
     if not np.isnan(number):
-        out = "{:1.2f}".format(number*10000) + '\\text{e-4}'
+        out = "{:1.2f}".format(number*10000) + '\\text{e--4}'
     else:
         out = ''
     return out
 
 def mystr3(number):
     if not np.isnan(number):
-        out = "{:1.2f}".format(number*1000000) + '\\text{e-6}'
+        out = "{:1.2f}".format(number*1000000) + '\\text{e--6}'
     else:
         out = ''
     return out
@@ -210,7 +210,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
     return output_string # Return output string
 
 
-def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
+def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
     '''
     Runs regressions for the main tables of the StickyC paper and produces a LaTeX
     table with results (one "panel" at a time).
@@ -227,6 +227,9 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
         Indicator for whether to add measurement error to DeltaLogC.
     sticky : bool
         Indicator for whether these results used sticky expectations.
+    all_specs : bool
+        Indicator for whether this panel should include all specifications or
+        just the OLS on lagged consumption growth.
         
     Returns
     -------
@@ -383,11 +386,12 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky):
                      OID=np.mean(OIDarray,axis=0),
                      Counts=N_out,
                      meas_err=meas_err,
-                     sticky=sticky)
+                     sticky=sticky,
+                     all_specs=all_specs)
     return panel_text
 
 
-def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,stata_exe):
+def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,all_specs,stata_exe):
     '''
     Runs regressions for the main tables of the StickyC paper in Stata
     and produces a LaTeX table with results (one "panel" at a time).
@@ -406,9 +410,12 @@ def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,stata
         Indicator for whether to add measurement error to DeltaLogC.
     sticky : bool
         Indicator for whether these results used sticky expectations.
+    all_specs : bool
+        Indicator for whether this panel should include all specifications or
+        just the OLS on lagged consumption growth.
     stata_exe : str
         Absolute location where the Stata executable can be found on the computer
-        running this code.  Usually set at the top of StickyEparams.py.
+        running this code.  Usually set at the top of StickyEparams.py.   
         
     Returns
     -------
@@ -440,7 +447,8 @@ def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,stata
                      OID=stata_output.OIDarray,
                      Counts=stata_output.ExtraInfo,
                      meas_err=meas_err,
-                     sticky=sticky)
+                     sticky=sticky,
+                     all_specs=all_specs)
     return panel_text
 
 
@@ -509,8 +517,9 @@ def calcValueAtBirth(cLvlHist,BirthBool,PlvlHist,MrkvHist,DiscFac,CRRA):
     # Calculate expected value at birth by state and return it
     vAtBirth = np.nanmean(vArray,axis=1)
     return vAtBirth
-            
-def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
+
+
+def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky,all_specs):
     '''
     Make one panel of simulated results table.  A panel has all results with/out
     measurement error for the sticky or frictionless version
@@ -533,6 +542,9 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
         Indicator for whether this panel used measurement error.
     sticky : bool
         Indicator for whether this panel used sticky expectations.
+    all_specs : bool
+        Indicator for whether this panel should include all specifications or
+        just the OLS on lagged consumption growth.
         
     Returns
     -------
@@ -540,28 +552,22 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
         Text string with one panel of LaTeX input.
     '''
     # Define Delta log C text and expectations text
-    if sticky and meas_err:
+    if meas_err:
         DeltaLogC = '$\Delta \log \mathbf{C}_{t}^*$'
         DeltaLogC1 = '$\Delta \log \mathbf{C}_{t+1}^*$'
-    else:
-        if sticky:
-            DeltaLogC = '$\Delta \log \mathbf{C}_{t}$'
-            DeltaLogC1 = '$\Delta \log \mathbf{C}_{t+1}$'
-        else:
-            DeltaLogC = '$\Delta \log \mathbf{C}_{t}$'
-            DeltaLogC1 = '$\Delta \log \mathbf{C}_{t+1}$'
-    if sticky:
-        Expectations = 'Sticky'
-        DeltaLogY1 = '$\Delta \log \mathbf{Y}_{t+1}$'
-        A_t = '$A_{t}$'
-    else:
-        Expectations = 'Frictionless'
-        DeltaLogY1 = '$\Delta \log \mathbf{Y}_{t+1}$'
-        A_t = '$A_{t}$'
-    if meas_err:
         MeasErr = ' (with measurement error $\mathbf{C}_{t}^* =\mathbf{C}_{t}\\times \\xi_t$);'
     else:
+        DeltaLogC = '$\Delta \log \mathbf{C}_{t}$'
+        DeltaLogC1 = '$\Delta \log \mathbf{C}_{t+1}$'
         MeasErr = ' (no measurement error)'
+        
+    if sticky:
+        Expectations = 'Sticky'
+    else:
+        Expectations = 'Frictionless'
+    
+    DeltaLogY1 = '$\Delta \log \mathbf{Y}_{t+1}$'
+    A_t = '$A_{t}$'
 
         
     # Define significance symbols
@@ -580,18 +586,20 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky):
         return sig_text
     
     memo = ''
-    if meas_err:
+    if all_specs:
         memo += '\\\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, ' + DeltaLogC1 + ' $= \mathbf{Z}_{t} \zeta,~~\\bar{R}^{2}=$ ' + mystr1(Counts[3])
-        memo += ';~~$\\var(\\xi_t)=$ ' + mystr3(Counts[4]) + ' }  \n'
+        if meas_err:
+            memo += ';~~$\\var(\\xi_t)=$ ' + mystr3(Counts[4])
+        memo += ' }  \n'
 
-    output = '\\\\ \hline \multicolumn{6}{l}{' + Expectations + ' : ' + DeltaLogC1 + MeasErr + '} \n'
+    output = '\\\\ \\midrule \multicolumn{6}{l}{' + Expectations + ' : ' + DeltaLogC1 + MeasErr + '} \n'
     output += '\\\\ \multicolumn{1}{c}{' + DeltaLogC + '} & \multicolumn{1}{c}{' + DeltaLogY1 +'} & \multicolumn{1}{c}{'+A_t+'} & & & \n'
     
     # OLS on just lagged consumption growth
     output += '\\\\ ' + mystr1(Coeffs[0]) + sigFunc(Coeffs[0],StdErrs[0]) + ' & & & OLS & ' + mystr1(Rsq[0]) + ' & ' + mystr1(np.nan) + '\n'   
     output += '\\\\ (' + mystr1(StdErrs[0]) + ') & & & & & \n'   
     
-    if meas_err:
+    if all_specs:
         # IV on lagged consumption growth
         output += '\\\\ ' + mystr1(Coeffs[1]) + sigFunc(Coeffs[1],StdErrs[1]) + ' & & & IV & ' + mystr1(Rsq[1]) + ' & ' + mystr1(Pvals[1]) + '\n'   
         output += '\\\\ (' + mystr1(StdErrs[1]) + ') & & & & &' + mystr1(OID[1]) + '\n'   
@@ -657,7 +665,7 @@ def makeResultsTable(caption,panels,counts,filename,label):
     for panel in panels:
         output += panel
         
-    output += '\\\\ \hline \n ' + note # + ' \n \\\\ \hline \hline \n'
+    output += '\\\\ \\bottomrule \n ' + note # + ' \n \\\\ \hline \hline \n'
     output += '\end{tabular} \n'
     output += '\end{table} \n'
     
@@ -687,15 +695,15 @@ def makeParameterTable(filename, params):
     output += "\\begin{tabular}{cd{5}l}  \n"
     
     # Calibrated macroeconomic parameters
-    output += "\\\\ \hline  \n"
+    output += "\\\\ \\toprule  \n"
     output += "\multicolumn{3}{c}{\\textbf{Macroeconomic Parameters} }  \n"
-    output += "\\\\ $\\varepsilon$ & {:.2f}".format(params.init_DSGE_mrkv_market["CapShare"]) + " & Capital's Share of Income   \n"
+    output += "\\\\ $\\kapShare$ & {:.2f}".format(params.init_DSGE_mrkv_market["CapShare"]) + " & Capital's Share of Income   \n"
     output += "\\\\ $\\daleth$ & {:.2f}".format((1-params.init_DSGE_mrkv_market["DeprFac"])**4) +"^{1/4} & Depreciation Factor   \n" 
     output += "\\\\ $\sigma_{\Theta}^{2}$ & "+ "{:.5f}".format(params.init_DSGE_mrkv_market["TranShkAggStd"][0]**2) +" & Variance Aggregate Transitory Shocks \n"    
     output += "\\\\ $\sigma_{\Psi}^{2}$ & "+ "{:.5f}".format(params.init_DSGE_mrkv_market["PermShkAggStd"][0]**2) +" & Variance Aggregate Permanent Shocks \n"
     
     # Steady state values
-    output += "\\\\ \hline  \n"
+    output += "\\\\ \\midrule  \n"
     output += "\multicolumn{3}{c}{ \\textbf{Steady State of Perfect Foresight DSGE Model} } \\  \n"  
     output += "\\\\ \multicolumn{3}{c}{ $(\\sigma_{\\Psi}=\\sigma_{\\Theta}=\\sigma_{\\psi}=\\sigma_{\\theta}=\wp=\\PDies=0$, $\\Phi_t = 1)$} \\  \n"  
     output += "\\\\ $\\breve{K}/\\breve{K}^{\\varepsilon}$ & $12.$ & SS Capital to Output Ratio  \n"
@@ -706,7 +714,7 @@ def makeParameterTable(filename, params):
     output += "\\\\ $\\breve{\\mathcal{R}}$ &\\approx 1.014& SS Between-Period Return Factor ($=\\daleth + \\breve{\\mathsf{r}}$) \n"  
     
     # Calibrated preference parameters
-    output += "\\\\ \hline  \n"
+    output += "\\\\ \\midrule  \n"
     output += "\multicolumn{3}{c}{ \\textbf{Preference Parameters} }  \n"
     output += "\\\\ $\\rho$ & "+ "{:.0f}".format(params.init_DSGE_mrkv_consumer["CRRA"]) +". & Coefficient of Relative Risk Aversion \n"
     output += "\\\\ $\\beta_{SOE}$ & " + "{:.3f}".format(params.init_SOE_mrkv_consumer["DiscFac"]) +" & SOE Discount Factor ($=0.99 \\cdot \\PLives \\breve{\\mathcal{R}} / \\Ex [\\pmb{\\psi}]^{-\CRRA}$)\n"
@@ -714,14 +722,14 @@ def makeParameterTable(filename, params):
     output += "\\\\ $\Pi$                    & " + "{:.2f}".format(params.init_SOE_mrkv_consumer["UpdatePrb"]) +"  & Probability of Updating Expectations (if Sticky) \n"  
     
     # Idiosyncratic shock parameters
-    output += "\\\\ \hline  \n"
+    output += "\\\\ \\midrule  \n"
     output += "\multicolumn{3}{c}{ \\textbf{Idiosyncratic Shock Parameters} }  \n"
     output += "\\\\ $\sigma_{\psi}^{2}$      &" + "{:.3f}".format(params.init_SOE_mrkv_consumer["PermShkStd"][0]**2) +"      & Variance Idiosyncratic Perm Shocks (=$\\frac{4}{11} \\times$ Annual) \n"  
     output += "\\\\ $\sigma_{\\theta}^{2}$    & " + "{:.2f}".format(params.init_SOE_mrkv_consumer["TranShkStd"][0]**2) +"     & Variance Idiosyncratic Tran Shocks (=$4 \\times$ Annual) \n"  
     output += "\\\\ $\wp$                    & " + "{:.2f}".format(params.init_SOE_mrkv_consumer["UnempPrb"]) +"  & Probability of Unemployment Spell \n"  
     output += "\\\\ $\PDies$             & " + "{:.3f}".format(1.0-params.init_SOE_mrkv_consumer["LivPrb"][0]) +"  & Probability of Mortality \n"  
     
-    output += "\\\\ \hline  \n"
+    output += "\\\\ \\bottomrule  \n"
     output += "\end{tabular}  \n"
     output += "\end{center}  \n"
     output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{}    \n"
@@ -773,16 +781,17 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     output += "\sbox{\EqbmBox}{  \n"
     output += "\\newcommand{\EqDir}{\TablesDir/Eqbm}  \n"
     output += "\\begin{tabular}{lllcccc}  \n"
+    output += "\\toprule \n"
     output += "&&& \multicolumn{2}{c}{SOE Model} & \multicolumn{2}{c}{HA-DSGE Model}   \n"
     output += "\\\\ %\cline{4-5}   \n"
     output += "   &&& \multicolumn{1}{c}{Frictionless} & \multicolumn{1}{c}{Sticky} & \multicolumn{1}{c}{Frictionless} & \multicolumn{1}{c}{Sticky}  \n"
-    output += "\\\\ \hline   \n"
+    output += "\\\\ \\midrule   \n"
     output += "  \multicolumn{3}{l}{Means}  \n"
     output += "%\\\\  & & $M$  \n"
     output += "%\\\\  & & $K$  \n"
     output += "\\\\  & & $A$ & {:.2f}".format(SOEfrictionless[0]) +" &{:.2f}".format(SOEsticky[0]) +" & {:.2f}".format(DSGEfrictionless[0]) +" & {:.2f}".format(DSGEsticky[0]) +"   \n"
     output += "\\\\  & & $C$ & {:.2f}".format(SOEfrictionless[1]) +" &{:.2f}".format(SOEsticky[1]) +" & {:.2f}".format(DSGEfrictionless[1]) +" & {:.2f}".format(DSGEsticky[1]) +"   \n"
-    output += "\\\\ \hline  \n"
+    output += "\\\\ \\midrule  \n"
     output += "  \multicolumn{3}{l}{Standard Deviations}  \n"
     output += "\\\\ &    \multicolumn{4}{l}{Aggregate Time Series (`Macro')}  \n"
     output += "%\\  & & $\Delta \log \mathbf{M}$   \n"
@@ -797,10 +806,10 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     output += "\\\\ & & $\Delta \log \\cLevBF $  & {:.3f}".format(SOEfrictionless[11]) +" & {:.3f}".format(SOEsticky[11]) +" & {:.3f}".format(DSGEfrictionless[11]) +" & {:.3f}".format(DSGEsticky[11]) +" \n"
     output += "  \n"
     output += "  \n"
-    output += "\\\\ \hline \multicolumn{3}{l}{Cost Of Stickiness}  \n"
+    output += "\\\\ \\midrule \multicolumn{3}{l}{Cost of Stickiness}  \n"
     output += " & \multicolumn{2}{c}{" + mystr2(StickyCost_SOE) + "}  \n"
     output += " & \multicolumn{2}{c}{" + mystr2(StickyCost_DSGE) + "}  \n"
-    output += "\\\\ \\hline  \n"
+    output += "\\\\ \\bottomrule  \n"
     output += " \end{tabular}   \n"
     output += " } \n "
     output += "\usebox{\EqbmBox}  \n"
@@ -953,26 +962,34 @@ def makeMicroRegressionTable(out_filename, micro_data):
     output += "\\newsavebox{\crosssecond} \n"
     output += "\sbox{\crosssecond}{ \n"
     output += "\\begin{tabular}{cd{4}d{4}d{5}ccc}  \n"
-    output += "\hline  \n"
+    output += "\\toprule  \n"
     output += "Model of     &                                &                                &                                 &                                       &                 \\\\  \n"
     output += "Expectations & \multicolumn{1}{c}{$ \chi $} & \multicolumn{1}{c}{$ \eta $} & \multicolumn{1}{c}{$ \\alpha $} & \multicolumn{1}{c}{$\\bar{R}^{2}$} &                   \n"
-    output += "\\\\ \hline \multicolumn{2}{l}{Frictionless}  \n"
+    output += "\\\\ \\midrule \multicolumn{2}{l}{Frictionless}  \n"
     output += "\\\\ &  {:.3f}".format(coeffs[0,0]) +"  &        &        & {:.3f}".format(r_sq[0,0]) +" &  "+ " %NotOnSlide   \n"
+    output += "\\\\ &  \multicolumn{1}{c}{(--)}  &        &        &  &  "+ " %NotOnSlide   \n"
     output += "\\\\ &    &    {:.3f}".format(coeffs[1,0]) +"    &        & {:.3f}".format(r_sq[1,0])  +" &  "+" %NotOnSlide   \n" 
+    output += "\\\\ &    &  \multicolumn{1}{c}{(--)}  &        &  &  "+ " %NotOnSlide   \n"
     output += "\\\\ &    &        &     {:.3f}".format(coeffs[2,0]) +"   & {:.3f}".format(r_sq[2,0]) +" &  " +" %NotOnSlide   \n"
+    output += "\\\\ &    &       &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
     output += "\\\\ &  {:.3f}".format(coeffs[3,0]) +"  &    {:.3f}".format(coeffs[4,0]) +"    &     {:.3f}".format(coeffs[5,0]) +"   & {:.3f}".format(r_sq[3,0]) +" &    \n"
-    output += "\\\\ \hline \multicolumn{2}{l}{Sticky}  \n"
+    output += "\\\\ & \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
+    output += "\\\\ \\midrule \multicolumn{2}{l}{Sticky}  \n"
     output += "\\\\ &  {:.3f}".format(coeffs[0,1]) +"  &        &        & {:.3f}".format(r_sq[0,1]) +" &   %NotOnSlide   \n"
+    output += "\\\\ &  \multicolumn{1}{c}{(--)}  &        &        &  &  "+ " %NotOnSlide   \n"
     output += "\\\\ &    &    {:.3f}".format(coeffs[1,1]) +"    &        & {:.3f}".format(r_sq[1,1]) +" &   %NotOnSlide   \n"
+    output += "\\\\ &    &  \multicolumn{1}{c}{(--)}  &        &  &  "+ " %NotOnSlide   \n"
     output += "\\\\ &    &        &     {:.3f}".format(coeffs[2,1]) +"   & {:.3f}".format(r_sq[2,1]) +" &   %NotOnSlide   \n"
+    output += "\\\\ &    &       &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
     output += "\\\\ &  {:.3f}".format(coeffs[3,1]) +"  &    {:.3f}".format(coeffs[4,1]) +"    &     {:.3f}".format(coeffs[5,1]) +"   & {:.3f}".format(r_sq[3,1]) +" &    \n"
-    output += "\\\\ \hline  \n"
+    output += "\\\\ & \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
+    output += "\\\\ \\bottomrule  \n"
     output += "\end{tabular}  \n"
     output += "}"
     output += "\usebox{\crosssecond} \n"
     output += "\ifthenelse{\\boolean{StandAlone}}{\\newlength\TableWidth}{} \n"
     output += "\settowidth{\TableWidth}{\usebox{\crosssecond}} % Calculate width of table so notes will match \n"
-    output += "\medskip\medskip \parbox{\TableWidth}{\small Notes: $\\mathbb{E}_{t,i}$ is the expectation from the perspective of person $i$ in period $t$; $\\bar{a}$ is a dummy variable indicating that agent $i$ is in the top 99 percent of the normalized $a$ distribution.  Simulated sample size is large enough such that standard errors are effectively zero.  Sample is restricted to households with positive income in period $t$.}  \n"
+    output += "\medskip\medskip \parbox{\TableWidth}{\small Notes: $\\mathbb{E}_{t,i}$ is the expectation from the perspective of person $i$ in period $t$; $\\bar{a}$ is a dummy variable indicating that agent $i$ is in the top 99 percent of the normalized $a$ distribution.  Simulated sample size is large enough such that standard errors are effectively zero.  Sample is restricted to households with positive income in period $t$. The notation ``(---)'' indicates that standard errors are close to zero, given the very large simulated sample size.}  \n"
     output += "\end{center} \n"
     output += "\end{table} \n"
     output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{} \n"
