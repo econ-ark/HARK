@@ -11,7 +11,7 @@ import statsmodels.sandbox.regression.gmm as smsrg
 import matplotlib.pyplot as plt
 from copy import deepcopy
 import subprocess
-from HARKutilities import getLorenzShares, CRRAutility
+from HARKutilities import CRRAutility
 
 def mystr1(number):
     if not np.isnan(number):
@@ -56,16 +56,14 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
         When True, save simulation data to filename + 'Data.txt' for use in Stata.
     calc_micro_stats : bool
         When True, calculate microeconomic statistics like in Table 2 of the
-        paper draft.  This causes huge memory issues 
+        paper draft.
     meas_err_base : float or None
         Base value of measurement error standard deviation, which will be adjusted.
         When None (default), value is calculated as stdev(DeltaLogC).
         
     Returns
     -------
-    output_string : str
-        Large string with descriptive statistics. Also saved to a logfile if
-        filename is not None.
+    None
     '''
     # Extract time series data from the economy
     if hasattr(Economy,'agents'): # If this is a heterogeneous agent specification...
@@ -157,31 +155,13 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
     LogC_long_me = LogC_long + sigma_meas_err*np.random.normal(0.,1.,LogC_long.size)
     Delta8LogC_me = (LogC_long_me[8:] - LogC_long_me[:-8])[(ignore_periods-7):]
     
-    # Make and return the output string, beginning with descriptive statistics
-    output_string = description + '\n\n\n'
-    output_string += 'Average aggregate asset-to-productivity ratio = ' + str(np.mean(AnrmAgg_hist[ignore_periods:])) + '\n'
-    output_string += 'Average aggregate consumption-to-productivity ratio = ' + str(np.mean(CnrmAgg_hist[ignore_periods:])) + '\n'
-    output_string += 'Stdev of log aggregate asset-to-productivity ratio = ' + str(np.std(np.log(AnrmAgg_hist[ignore_periods:]))) + '\n'
-    output_string += 'Stdev of change in log aggregate consumption level = ' + str(np.std(DeltaLogC)) + '\n'
-    output_string += 'Stdev of change in log aggregate output level = ' + str(np.std(DeltaLogY)) + '\n'
-    output_string += 'Stdev of change in log aggregate assets level = ' + str(np.std(DeltaLogA)) + '\n'
+    # Make summary statistics for the results file
     csv_output_string = str(np.mean(AnrmAgg_hist[ignore_periods:])) +","+ str(np.mean(CnrmAgg_hist[ignore_periods:]))+ ","+str(np.std(np.log(AnrmAgg_hist[ignore_periods:])))+ ","+str(np.std(DeltaLogC))+ ","+str(np.std(DeltaLogY)) +","+ str(np.std(DeltaLogA))
     if hasattr(Economy,'agents') and calc_micro_stats: # This block only runs for heterogeneous agents specifications
-        output_string += 'Cross section stdev of log individual assets = ' + str(np.mean(np.std(Loga,axis=1))) + '\n'
-        output_string += 'Cross section stdev of log individual consumption = ' + str(np.mean(np.std(Logc,axis=1))) + '\n'
-        output_string += 'Cross section stdev of log individual productivity = ' + str(np.mean(np.std(Logp,axis=1))) + '\n'
-        output_string += 'Cross section stdev of log individual non-zero income = ' + str(np.mean(np.nanstd(Logy_trimmed,axis=1))) + '\n'
-        output_string += 'Cross section stdev of change in log individual assets = ' + str(np.std(DeltaLoga_trimmed)) + '\n'
-        output_string += 'Cross section stdev of change in log individual consumption = ' + str(np.std(DeltaLogc_trimmed)) + '\n'
-        output_string += 'Cross section stdev of change in log individual productivity = ' + str(np.std(DeltaLogp_trimmed)) + '\n'
-        csv_output_string += ","+str(np.mean(np.std(Loga,axis=1)))+ ","+str(np.mean(np.std(Logc,axis=1))) + ","+str(np.mean(np.std(Logp,axis=1))) +","+ str(np.mean(np.nanstd(Logy_trimmed,axis=1))) +","+ str(np.std(DeltaLoga_trimmed))+","+ str(np.std(DeltaLogc_trimmed))+ ","+str(np.std(DeltaLogp_trimmed))
-    output_string += '\n\n'    
+        csv_output_string += ","+str(np.mean(np.std(Loga,axis=1)))+ ","+str(np.mean(np.std(Logc,axis=1))) + ","+str(np.mean(np.std(Logp,axis=1))) +","+ str(np.mean(np.nanstd(Logy_trimmed,axis=1))) +","+ str(np.std(DeltaLoga_trimmed))+","+ str(np.std(DeltaLogc_trimmed))+ ","+str(np.std(DeltaLogp_trimmed))    
      
     # Save the results to a logfile if requested
     if filename is not None:
-        with open('./Results/' + filename + 'Results.txt','w') as f:
-            f.write(output_string)
-            f.close()
         with open('./Results/' + filename + 'Results.csv','w') as f:
             f.write(csv_output_string)
             f.close()
@@ -206,14 +186,12 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
                 for i in range(DataArray.shape[0]):
                     my_writer.writerow(DataArray[i,:])
                 f.close()
-    
-    return output_string # Return output string
 
 
 def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
     '''
     Runs regressions for the main tables of the StickyC paper and produces a LaTeX
-    table with results (one "panel" at a time).
+    table with results for one "panel".
     
     Parameters
     ----------
@@ -295,7 +273,6 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
             Delta8LogC_n = Delta8LogC[start:end]
         DeltaLogY_n = DeltaLogY[start:end]
         A_n = A[start:end]
-        BigTheta_n = BigTheta[start:end]
         Delta8LogY_n = Delta8LogY[start:end]
         
         # Run OLS on log consumption
@@ -393,10 +370,9 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
 
 def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,all_specs,stata_exe):
     '''
-    Runs regressions for the main tables of the StickyC paper in Stata
-    and produces a LaTeX table with results (one "panel" at a time).
-    Running in Stata allows production of the KP-statistic, for which
-    there is currently no command in statsmodels.api.
+    Runs regressions for the main tables of the StickyC paper in Stata and produces a
+    LaTeX table with results for one "panel". Running in Stata allows production of
+    the KP-statistic, for which there is currently no command in statsmodels.api.
     
     Parameters
     ----------
@@ -405,7 +381,7 @@ def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,all_s
         the directory ./Results/, and was almost surely generated by makeStickyEdataFile
         unless we resort to fabricating simulated data.  THAT'S A JOKE, FUTURE REFEREES.
     interval_size : int
-        Number of periods in each sub-interval.
+        Number of periods in each regression sample (or interval).
     meas_err : bool
         Indicator for whether to add measurement error to DeltaLogC.
     sticky : bool
@@ -511,8 +487,6 @@ def calcValueAtBirth(cLvlHist,BirthBool,PlvlHist,MrkvHist,DiscFac,CRRA):
             v = np.dot(DiscVec[:span],uVec)
             vArray[j,n[j]] = v
             n[j] += 1
-#        if np.mod(i+1,100) == 0:
-#            print('Calculated value for agent ' + str(i+1) + ' of ' + str(I))
             
     # Calculate expected value at birth by state and return it
     vAtBirth = np.nanmean(vArray,axis=1)
@@ -585,13 +559,15 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky,all_spe
             sig_text = ''
         return sig_text
     
+    # Make the memo text
     memo = ''
     if all_specs:
         memo += '\\\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, ' + DeltaLogC1 + ' $= \mathbf{Z}_{t} \zeta,~~\\bar{R}^{2}=$ ' + mystr1(Counts[3])
         if meas_err:
             memo += ';~~$\\var(\\xi_t)=$ ' + mystr3(Counts[4])
         memo += ' }  \n'
-
+    
+    # Make the top of the panel
     output = '\\\\ \\midrule \multicolumn{6}{l}{' + Expectations + ' : ' + DeltaLogC1 + MeasErr + '} \n'
     output += '\\\\ \multicolumn{1}{c}{' + DeltaLogC + '} & \multicolumn{1}{c}{' + DeltaLogY1 +'} & \multicolumn{1}{c}{'+A_t+'} & & & \n'
     
@@ -599,6 +575,7 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky,all_spe
     output += '\\\\ ' + mystr1(Coeffs[0]) + sigFunc(Coeffs[0],StdErrs[0]) + ' & & & OLS & ' + mystr1(Rsq[0]) + ' & ' + mystr1(np.nan) + '\n'   
     output += '\\\\ (' + mystr1(StdErrs[0]) + ') & & & & & \n'   
     
+    # Add the rest of the specifications if requested
     if all_specs:
         # IV on lagged consumption growth
         output += '\\\\ ' + mystr1(Coeffs[1]) + sigFunc(Coeffs[1],StdErrs[1]) + ' & & & IV & ' + mystr1(Rsq[1]) + ' & ' + mystr1(Pvals[1]) + '\n'   
@@ -626,7 +603,8 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky,all_spe
         
 def makeResultsTable(caption,panels,counts,filename,label):
     '''
-    Make a results table by piecing together one or more panels.
+    Make a time series regression results table by piecing together one or more panels.
+    Saves a tex file to disk in the ./Tables folder.
     
     Parameters
     ----------
@@ -638,6 +616,8 @@ def makeResultsTable(caption,panels,counts,filename,label):
         List of two integers: [interval_length, interval_count]
     filename : str
         Name of the file in which to save output (in the ./Tables/ directory).
+    label : str
+        LaTeX \label, for internal reference in the paper text.
         
     Returns
     -------
@@ -676,7 +656,7 @@ def makeResultsTable(caption,panels,counts,filename,label):
        
 def makeParameterTable(filename, params):   
     '''
-    Make parameter table for the paper
+    Makes the parameter table for the paper, saving it to a tex file in the ./Tables folder.
     
     Parameters
     ----------
@@ -684,7 +664,7 @@ def makeParameterTable(filename, params):
     filename : str
         Name of the file in which to save output (in the ./Tables/ directory).
     params :
-        Object containing the parameter values
+        Object containing the parameter values.
         
     Returns
     -------
@@ -741,7 +721,8 @@ def makeParameterTable(filename, params):
 
 def makeEquilibriumTable(out_filename, four_in_files, CRRA):   
     '''
-    Make parameter table for the paper
+    Make the equilibrium statistics table for the paper, saving it as a tex file
+    in the ./Tables folder.
     
     Parameters
     ----------
@@ -829,13 +810,13 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
 
 def extractSampleMicroData(Economy, num_periods, AgentCount, ignore_periods):   
     '''
-    Extracts sample micro data to be used in micro regression
+    Extracts sample micro data to be used in micro (cross section) regression.
     
     Parameters
     ----------
     
-    Agent : Economy (or derivative)
-        An economy (with one agent) for for which history has already been calculated.
+    Economy : Economy
+        An economy (with one AgentType) for for which history has already been calculated.
     num_periods : int
         Number of periods to be stored (should be less than the number of periods calculated)
     AgentCouunt : int
@@ -846,24 +827,24 @@ def extractSampleMicroData(Economy, num_periods, AgentCount, ignore_periods):
     Returns
     -------
     micro_data : np.array
-        Array with columns 1) logc_diff 2) log_trans_shk 3) top_assets 
+        Array with rows 1) logc_diff 2) log_trans_shk 3) top_assets 
     '''
-    #first pull out economy common data
-    #note indexing on Economy tracked vars is one ahead of agent
+    # First pull out economy common data.
+    # Note indexing on Economy tracked vars is one ahead of agent.
     agg_trans_shk_matrix = deepcopy(Economy.TranShkAggNow_hist[ignore_periods:ignore_periods+num_periods])
     wRte_matrix = deepcopy(Economy.wRteNow_hist[ignore_periods:ignore_periods+num_periods])
-    #now pull out agent data
+    
+    # Now pull out agent data
     agent = Economy.agents[0]
     c_matrix = deepcopy(agent.cLvlNow_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
     y_matrix = deepcopy(agent.yLvlNow_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
     total_trans_shk_matrix = deepcopy(agent.TranShkNow_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
     trans_shk_matrix = total_trans_shk_matrix/(np.array(agg_trans_shk_matrix)*np.array(wRte_matrix))[:,None]
     a_matrix = deepcopy(agent.aLvlNow_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
-    
     pLvlTrue_matrix = deepcopy(agent.pLvlTrue_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
     a_matrix_nrm = a_matrix/pLvlTrue_matrix
-    
     age_matrix = deepcopy(agent.t_age_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
+    
     # Put nan's in so that we do not regress over periods where agents die
     newborn = age_matrix == 1
     c_matrix[newborn] = np.nan
@@ -881,7 +862,8 @@ def extractSampleMicroData(Economy, num_periods, AgentCount, ignore_periods):
     logy_diff = logy_diff.flatten('F')
     log_trans_shk = np.log(trans_shk_matrix[1:,:].flatten('F'))
     top_assets = top_assets[1:,:].flatten('F')
-    #put nan's in where they exist in logc_diff
+    
+    # Put nan's in where they exist in logc_diff
     log_trans_shk = log_trans_shk + logc_diff*0.0
     top_assets = top_assets + logc_diff*0.0
     
@@ -890,7 +872,8 @@ def extractSampleMicroData(Economy, num_periods, AgentCount, ignore_periods):
 
 def makeMicroRegressionTable(out_filename, micro_data):   
     '''
-    Make parameter table for the paper
+    Make the micro regression or (cross section regression) table for the paper, saving
+    it to a tex file in the ./Tables folder.
     
     Parameters
     ----------
@@ -1001,7 +984,7 @@ def makeMicroRegressionTable(out_filename, micro_data):
         
 def makeuCostVsPiFig(uCost_filename):
     '''
-    Make a figure that plots the cost of stickiness vs updating probability.
+    Make two versions of a figure that plots the cost of stickiness vs updating probability.
 
     Parameters
     ----------
@@ -1017,6 +1000,7 @@ def makeuCostVsPiFig(uCost_filename):
     UpdatePrbVec = data[0,:]
     uCostVec = data[1,:]
     
+    # Plot uCost vs Pi
     plt.plot(UpdatePrbVec,uCostVec*10000)
     plt.xlim([0.05,1.0])
     plt.ylim([0.0,30.0])
@@ -1025,6 +1009,7 @@ def makeuCostVsPiFig(uCost_filename):
     plt.savefig('./Results/uCostvsPi.pdf')
     plt.show()
     
+    # Plot uCost vs 1/Pi
     plt.plot(1./UpdatePrbVec,uCostVec*10000)
     plt.xlim([1.0,16.0])
     plt.ylim([0.0,35.0])
