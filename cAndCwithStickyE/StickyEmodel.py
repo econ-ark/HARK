@@ -300,24 +300,7 @@ class StickyErepAgent(RepAgentConsumerType):
 
             
     def getShocks(self):
-        '''
-        Gets permanent and transitory shocks, but the representative consumer only
-        sees an UpdatePrb portion of the transitory shock.
-        
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        None
-        '''
         super(self.__class__,self).getShocks() # Get actual permanent and transitory shocks
-        
-        # Handle the perceived vs actual transitory shock
-        TranShkPcvd = self.UpdatePrb*self.TranShkNow + (1.0-self.UpdatePrb)*1.0
-        self.TranShkTrue = self.TranShkNow
-        self.TranShkNow = TranShkPcvd
         
          
     def getStates(self):
@@ -339,20 +322,16 @@ class StickyErepAgent(RepAgentConsumerType):
         self.pLvlTrue = self.pLvlTrue*self.PermShkNow
         self.pLvlNow = self.getpLvlPcvd()
         
-        # Calculate perceptions of normalized variables
-        self.kNrmNow = aLvlPrev/self.pLvlNow
-        self.yNrmNow = self.kNrmNow**self.CapShare*self.TranShkNow**(1.-self.CapShare) - self.kNrmNow*self.DeprFac
-        self.Rfree = 1. + self.CapShare*self.kNrmNow**(self.CapShare-1.)*self.TranShkNow**(1.-self.CapShare) - self.DeprFac
-        self.wRte  = (1.-self.CapShare)*self.kNrmNow**self.CapShare*self.TranShkNow**(-self.CapShare)
-        self.mNrmNow = self.Rfree*self.kNrmNow + self.wRte*self.TranShkNow
-        
-        # Calculate true values of normalized variables
+        # Calculate true values of variables
         self.kNrmTrue = aLvlPrev/self.pLvlTrue
-        self.yNrmTrue = self.kNrmTrue**self.CapShare*self.TranShkTrue**(1.-self.CapShare) - self.kNrmTrue*self.DeprFac
-        self.Rfree = 1. + self.CapShare*self.kNrmTrue**(self.CapShare-1.)*self.TranShkTrue**(1.-self.CapShare) - self.DeprFac
-        self.wRte  = (1.-self.CapShare)*self.kNrmTrue**self.CapShare*self.TranShkTrue**(-self.CapShare)
-        self.mNrmTrue = self.Rfree*self.kNrmTrue + self.wRte*self.TranShkTrue
+        self.yNrmTrue = self.kNrmTrue**self.CapShare*self.TranShkNow**(1.-self.CapShare) - self.kNrmTrue*self.DeprFac
+        self.Rfree = 1. + self.CapShare*self.kNrmTrue**(self.CapShare-1.)*self.TranShkNow**(1.-self.CapShare) - self.DeprFac
+        self.wRte  = (1.-self.CapShare)*self.kNrmTrue**self.CapShare*self.TranShkNow**(-self.CapShare)
+        self.mNrmTrue = self.Rfree*self.kNrmTrue + self.wRte*self.TranShkNow
         self.mLvlTrue = self.mNrmTrue*self.pLvlTrue
+        
+        # Calculate perception of normalized market resources
+        self.mNrmNow = self.mLvlTrue/self.pLvlNow
 
         
     def getControls(self):
