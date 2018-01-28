@@ -14,7 +14,7 @@ from HARKinterpolation import LinearInterp
 from HARKsimulation import drawUniform, drawDiscrete
 from ConsIndShockModel import IndShockConsumerType, ConsumerSolution, MargValueFunc
 
-def solveConsRepAgent(solution_next,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,PermGroFac,aXtraGrid,SocPlannerBool):
+def solveConsRepAgent(solution_next,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,PermGroFac,aXtraGrid):
     '''
     Solve one period of the simple representative agent consumption-saving model.
     
@@ -41,11 +41,6 @@ def solveConsRepAgent(solution_next,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,Per
         Array of "extra" end-of-period asset values-- assets above the
         absolute minimum acceptable level.  In this model, the minimum acceptable
         level is always zero.
-    SocPlannerBool : bool
-        Indicator for whether to solve as a representative agent or the social
-        planner.  The social planner (True) recognizes that saving more at the
-        end of the period will change the factor prices in the next period, but
-        the representative agent (False) does not.
         
     Returns
     -------
@@ -73,19 +68,15 @@ def solveConsRepAgent(solution_next,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,Per
     # of end-of-period assets and shock realization
     kNrmNext = aNrm_tiled/(PermGroFac*PermShkVals_tiled)
     
-    # Calculate end-of-period marginal value from perspective of social planner or rep agent
-    if SocPlannerBool: # For social planner:
-        print('Social planner solution not yet implemented!')
-    else: # For representative agent:
-        # Calculate next period's market resources
-        KtoLnext  = kNrmNext/TranShkVals_tiled
-        RfreeNext = 1. - DeprFac + CapShare*KtoLnext**(CapShare-1.)
-        wRteNext  = (1.-CapShare)*KtoLnext**CapShare
-        mNrmNext  = RfreeNext*kNrmNext + wRteNext*TranShkVals_tiled
-        
-        # Calculate end-of-period marginal value of assets for the RA
-        vPnext = vPfuncNext(mNrmNext)
-        EndOfPrdvP = DiscFac*np.sum(RfreeNext*(PermGroFac*PermShkVals_tiled)**(-CRRA)*vPnext*ShkPrbs_tiled,axis=1)
+    # Calculate next period's market resources
+    KtoLnext  = kNrmNext/TranShkVals_tiled
+    RfreeNext = 1. - DeprFac + CapShare*KtoLnext**(CapShare-1.)
+    wRteNext  = (1.-CapShare)*KtoLnext**CapShare
+    mNrmNext  = RfreeNext*kNrmNext + wRteNext*TranShkVals_tiled
+    
+    # Calculate end-of-period marginal value of assets for the RA
+    vPnext = vPfuncNext(mNrmNext)
+    EndOfPrdvP = DiscFac*np.sum(RfreeNext*(PermGroFac*PermShkVals_tiled)**(-CRRA)*vPnext*ShkPrbs_tiled,axis=1)
         
     # Invert the first order condition to get consumption, then find endogenous gridpoints
     cNrmNow = EndOfPrdvP**(-1./CRRA)
@@ -101,7 +92,7 @@ def solveConsRepAgent(solution_next,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,Per
 
 
 
-def solveConsRepAgentMarkov(solution_next,MrkvArray,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,PermGroFac,aXtraGrid,SocPlannerBool):
+def solveConsRepAgentMarkov(solution_next,MrkvArray,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,PermGroFac,aXtraGrid):
     '''
     Solve one period of the simple representative agent consumption-saving model.
     This version supports a discrete Markov process.
@@ -132,11 +123,6 @@ def solveConsRepAgentMarkov(solution_next,MrkvArray,DiscFac,CRRA,IncomeDstn,CapS
         Array of "extra" end-of-period asset values-- assets above the
         absolute minimum acceptable level.  In this model, the minimum acceptable
         level is always zero.
-    SocPlannerBool : bool
-        Indicator for whether to solve as a representative agent or the social
-        planner.  The social planner (True) recognizes that saving more at the
-        end of the period will change the factor prices in the next period, but
-        the representative agent (False) does not.
         
     Returns
     -------
@@ -170,20 +156,16 @@ def solveConsRepAgentMarkov(solution_next,MrkvArray,DiscFac,CRRA,IncomeDstn,CapS
         # of end-of-period assets and shock realization
         kNrmNext = aNrm_tiled/(PermGroFac[j]*PermShkVals_tiled)
         
-        # Calculate end-of-period marginal value from perspective of social planner or rep agent
-        if SocPlannerBool: # For social planner:
-            print('Social planner solution not yet implemented!')
-        else: # For representative agent:
-            # Calculate next period's market resources
-            KtoLnext  = kNrmNext/TranShkVals_tiled
-            RfreeNext = 1. - DeprFac + CapShare*KtoLnext**(CapShare-1.)
-            wRteNext  = (1.-CapShare)*KtoLnext**CapShare
-            mNrmNext  = RfreeNext*kNrmNext + wRteNext*TranShkVals_tiled
-            
-            # Calculate end-of-period marginal value of assets for the RA
-            vPnext = vPfuncNext(mNrmNext)
-            EndOfPrdvP_cond[j,:] = DiscFac*np.sum(RfreeNext*(PermGroFac[j]*PermShkVals_tiled)**(-CRRA)*vPnext*ShkPrbs_tiled,axis=1)
-    
+        # Calculate next period's market resources
+        KtoLnext  = kNrmNext/TranShkVals_tiled
+        RfreeNext = 1. - DeprFac + CapShare*KtoLnext**(CapShare-1.)
+        wRteNext  = (1.-CapShare)*KtoLnext**CapShare
+        mNrmNext  = RfreeNext*kNrmNext + wRteNext*TranShkVals_tiled
+        
+        # Calculate end-of-period marginal value of assets for the RA
+        vPnext = vPfuncNext(mNrmNext)
+        EndOfPrdvP_cond[j,:] = DiscFac*np.sum(RfreeNext*(PermGroFac[j]*PermShkVals_tiled)**(-CRRA)*vPnext*ShkPrbs_tiled,axis=1)
+
     # Apply the Markov transition matrix to get unconditional end-of-period marginal value
     EndOfPrdvP = np.dot(MrkvArray,EndOfPrdvP_cond)
     
@@ -209,7 +191,7 @@ class RepAgentConsumerType(IndShockConsumerType):
     '''
     A class for representing representative agents with inelastic labor supply.
     '''
-    time_inv_ = IndShockConsumerType.time_inv_ + ['CapShare','DeprFac','SocPlannerBool']
+    time_inv_ = IndShockConsumerType.time_inv_ + ['CapShare','DeprFac']
     
     def __init__(self,time_flow=True,**kwds):
         '''
@@ -359,7 +341,6 @@ if __name__ == '__main__':
     RA_params['CapShare'] = 0.36
     RA_params['UnempPrb'] = 0.0
     RA_params['LivPrb'] = [1.0]
-    RA_params['SocPlannerBool'] = False
     
     # Make and solve a rep agent model
     RAexample = RepAgentConsumerType(**RA_params)
