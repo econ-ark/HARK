@@ -33,6 +33,11 @@ from HARKutilities import approxUniform
 #stata_exe = "C:\Program Files (x86)\Stata14\stataMP-64"
 stata_exe = "C:\Program Files (x86)\Stata15\StataSE-64"
 
+# Choose directory paths relative to the StickyE files
+tables_dir = "./Tables/"   # Relative directory for saving tex tables
+results_dir = "./Results/" # Relative directory for saving output files
+figures_dir = "./Figures/" # Relative directory for saving figures
+
 # Choose basic simulation parameters
 UpdatePrb = 0.25       # Probability that each agent observes the aggregate productivity state each period (in sticky version)
 periods_to_sim = 21010 # Total number of periods to simulate; this might be increased by DSGEmarkov model

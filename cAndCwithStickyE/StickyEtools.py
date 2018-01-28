@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 import subprocess
 from HARKutilities import CRRAutility
+from StickyEparams import results_dir, tables_dir, figures_dir
 
 def mystr1(number):
     if not np.isnan(number):
@@ -162,11 +163,11 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
      
     # Save the results to a logfile if requested
     if filename is not None:
-        with open('./Results/' + filename + 'Results.csv','w') as f:
+        with open(results_dir + filename + 'Results.csv','w') as f:
             f.write(csv_output_string)
             f.close()
         if calc_micro_stats and hasattr(Economy,'agents'):
-            with open('./Results/' + filename + 'BirthValue.csv','w') as f:
+            with open(results_dir + filename + 'BirthValue.csv','w') as f:
                 my_writer = csv.writer(f, delimiter = ',')
                 my_writer.writerow(vBirth)
                 f.close()
@@ -180,7 +181,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
             if hasattr(Economy,'MrkvNow') & ~hasattr(Economy,'Rfree') and hasattr(Economy,'agents'):
                 DataArray = np.hstack((DataArray,np.reshape(R,(R.size,1))))
                 VarNames.append('R')
-            with open('./Results/' + filename + 'Data.txt','wb') as f:
+            with open(results_dir + filename + 'Data.txt','wb') as f:
                 my_writer = csv.writer(f, delimiter = '\t')
                 my_writer.writerow(VarNames)
                 for i in range(DataArray.shape[0]):
@@ -215,7 +216,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
         String with one panel's worth of LaTeX input.
     '''
     # Read in the data from the infile
-    with open('./Results/' + infile_name + '.txt') as f:
+    with open(results_dir + infile_name + '.txt') as f:
         my_reader = csv.reader(f, delimiter='\t')
         all_data = list(my_reader)
         
@@ -399,8 +400,8 @@ def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,all_s
         String with one panel's worth of LaTeX input.
     '''
     dofile = "StickyETimeSeries.do"
-    infile_name_full = os.path.abspath("results\\"+infile_name+".txt")
-    temp_name_full = os.path.abspath("results\\temp.txt")
+    infile_name_full = os.path.abspath(results_dir + infile_name + ".txt")
+    temp_name_full = os.path.abspath(results_dir + "temp.txt")
     if meas_err:
         meas_err_stata = 1
     else:
@@ -649,7 +650,7 @@ def makeResultsTable(caption,panels,counts,filename,label):
     output += '\end{tabular} \n'
     output += '\end{table} \n'
     
-    with open('./Tables/' + filename + '.tex','w') as f:
+    with open(tables_dir + filename + '.tex','w') as f:
         f.write(output)
         f.close()
 
@@ -714,7 +715,7 @@ def makeParameterTable(filename, params):
     output += "\end{center}  \n"
     output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{}    \n"
     
-    with open('./Tables/' + filename,'w') as f:
+    with open(tables_dir + filename,'w') as f:
         f.write(output)
         f.close()
 
@@ -739,16 +740,16 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     None
     '''
     # Read in statistics from the four files
-    SOEfrictionless = np.genfromtxt('./results/' + four_in_files[0] + 'Results.csv', delimiter=',')
-    SOEsticky = np.genfromtxt('./results/' + four_in_files[1] + 'Results.csv', delimiter=',')
-    DSGEfrictionless = np.genfromtxt('./results/' + four_in_files[2] + 'Results.csv', delimiter=',')
-    DSGEsticky = np.genfromtxt('./results/' + four_in_files[3] + 'Results.csv', delimiter=',')
+    SOEfrictionless = np.genfromtxt(results_dir + four_in_files[0] + 'Results.csv', delimiter=',')
+    SOEsticky = np.genfromtxt(results_dir + four_in_files[1] + 'Results.csv', delimiter=',')
+    DSGEfrictionless = np.genfromtxt(results_dir + four_in_files[2] + 'Results.csv', delimiter=',')
+    DSGEsticky = np.genfromtxt(results_dir + four_in_files[3] + 'Results.csv', delimiter=',')
     
     # Read in value at birth from the four files
-    vBirth_SOE_F = np.genfromtxt('./results/' + four_in_files[0] + 'BirthValue.csv', delimiter=',')
-    vBirth_SOE_S = np.genfromtxt('./results/' + four_in_files[1] + 'BirthValue.csv', delimiter=',')
-    vBirth_DSGE_F = np.genfromtxt('./results/' + four_in_files[2] + 'BirthValue.csv', delimiter=',')
-    vBirth_DSGE_S = np.genfromtxt('./results/' + four_in_files[3] + 'BirthValue.csv', delimiter=',')
+    vBirth_SOE_F = np.genfromtxt(results_dir + four_in_files[0] + 'BirthValue.csv', delimiter=',')
+    vBirth_SOE_S = np.genfromtxt(results_dir + four_in_files[1] + 'BirthValue.csv', delimiter=',')
+    vBirth_DSGE_F = np.genfromtxt(results_dir + four_in_files[2] + 'BirthValue.csv', delimiter=',')
+    vBirth_DSGE_S = np.genfromtxt(results_dir + four_in_files[3] + 'BirthValue.csv', delimiter=',')
     
     # Calculate the cost of stickiness in the SOE and DSGE models
     StickyCost_SOE = np.mean(1. - (vBirth_SOE_S/vBirth_SOE_F)**(1./(1.-CRRA)))
@@ -803,7 +804,7 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     output += "\end{table}  \n"
     output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{}  \n"
     
-    with open('./Tables/' + out_filename,'w') as f:
+    with open(tables_dir + out_filename,'w') as f:
         f.write(output)
         f.close()
 
@@ -977,7 +978,7 @@ def makeMicroRegressionTable(out_filename, micro_data):
     output += "\end{table} \n"
     output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{} \n"
 
-    with open('./Tables/' + out_filename,'w') as f:
+    with open(tables_dir + out_filename,'w') as f:
         f.write(output)
         f.close()
         
@@ -1006,7 +1007,7 @@ def makeuCostVsPiFig(uCost_filename):
     plt.ylim([0.0,30.0])
     plt.xlabel(r'Probability of updating information $\Pi$')
     plt.ylabel('Cost of stickiness $\omega$ ($10^{-4}$)')
-    plt.savefig('./Results/uCostvsPi.pdf')
+    plt.savefig(figures_dir + 'uCostvsPi.pdf')
     plt.show()
     
     # Plot uCost vs 1/Pi
@@ -1015,6 +1016,6 @@ def makeuCostVsPiFig(uCost_filename):
     plt.ylim([0.0,35.0])
     plt.xlabel(r'Expected periods between information updates $\Pi^{-1}$')
     plt.ylabel('Cost of stickiness $\omega$ ($10^{-4}$)')
-    plt.savefig('./Results/uCostvsPiInv.pdf')
+    plt.savefig(figures_dir + 'uCostvsPiInv.pdf')
     plt.show()
     

@@ -27,15 +27,15 @@ from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResults
 # Choose which models to do work for
 do_SOE  = False
 do_DSGE = False
-do_RA   = False
+do_RA   = True
 
 # Choose what kind of work to do for each model
 run_models = True        # Whether to solve models and generate new simulated data
 calc_micro_stats = False # Whether to calculate microeconomic statistics (only matters when run_models is True)
-make_tables = False      # Whether to make LaTeX tables in the /Tables folder
-use_stata = False        # Whether to use Stata to run regressions
-save_data = False        # Whether to save data for use in Stata (as a tab-delimited text file)
-run_ucost_vs_pi = False  # Whether to run an exercise that finds the cost of stickiness as it varies with update probability
+make_tables = True       # Whether to make LaTeX tables in the /Tables folder
+use_stata = True         # Whether to use Stata to run regressions
+save_data = True         # Whether to save data for use in Stata (as a tab-delimited text file)
+run_ucost_vs_pi = True   # Whether to run an exercise that finds the cost of stickiness as it varies with update probability
 
 ignore_periods = Params.ignore_periods # Number of simulated periods to ignore as a "burn-in" phase
 interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
@@ -45,6 +45,7 @@ periods_to_sim_micro = Params.periods_to_sim_micro # To save memory, micro regre
 AgentCount_micro = Params.AgentCount_micro # To save memory, micro regressions are run on a smaller sample
 my_counts = [interval_size,interval_count]
 mystr = lambda number : "{:.3f}".format(number)
+results_dir = Params.results_dir
 
 # Define the function to run macroeconomic regressions, depending on whether Stata is used
 if use_stata:
@@ -110,7 +111,7 @@ if __name__ == '__main__':
             makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
             if calc_micro_stats:
                 sticky_SOEmarkov_micro_data = extractSampleMicroData(StickySOmarkovEconomy, np.minimum(StickySOmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickySOmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
-            DeltaLogC_stdev = np.genfromtxt('./results/SOEmarkovStickyResults.csv', delimiter=',')[3] # For use in frictionless spec
+            DeltaLogC_stdev = np.genfromtxt(results_dir + 'SOEmarkovStickyResults.csv', delimiter=',')[3] # For use in frictionless spec
             
             # Simulate the frictionless small open Markov economy
             t_start = clock()
@@ -132,14 +133,14 @@ if __name__ == '__main__':
                 # Find the cost of stickiness as it varies with updating probability
                 UpdatePrbVec = np.linspace(0.025,1.0,40)
                 CRRA = StickySOmarkovEconomy.agents[0].CRRA
-                vBirth_F = np.genfromtxt('./results/SOEmarkovFrictionlessBirthValue.csv', delimiter=',')
+                vBirth_F = np.genfromtxt(results_dir + 'SOEmarkovFrictionlessBirthValue.csv', delimiter=',')
                 uCostVec = np.zeros_like(UpdatePrbVec)
                 for j in range(UpdatePrbVec.size):
                     for agent in StickySOmarkovEconomy.agents:
                         agent(UpdatePrb = UpdatePrbVec[j])
                     StickySOmarkovEconomy.makeHistory()
                     makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description='trash',filename='TEMP',save_data=False,calc_micro_stats=True)
-                    vBirth_S = np.genfromtxt('./results/TEMPBirthValue.csv', delimiter=',')
+                    vBirth_S = np.genfromtxt(results_dir + 'TEMPBirthValue.csv', delimiter=',')
                     uCost = np.mean(1. - (vBirth_S/vBirth_F)**(1./(1.-CRRA)))
                     uCostVec[j] = uCost
                     print('Found that uCost=' + str(uCost) + ' for Pi=' + str(UpdatePrbVec[j]))
@@ -202,7 +203,7 @@ if __name__ == '__main__':
             desc = 'Results for the sticky Cobb-Douglas Markov economy with update probability ' + mystr(Params.UpdatePrb)
             name = 'DSGEmarkovSticky'
             makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
-            DeltaLogC_stdev = np.genfromtxt('./results/DSGEmarkovStickyResults.csv', delimiter=',')[3] # For use in frictionless spec
+            DeltaLogC_stdev = np.genfromtxt(results_dir + 'DSGEmarkovStickyResults.csv', delimiter=',')[3] # For use in frictionless spec
             if calc_micro_stats:
                 sticky_DSGEmarkov_micro_data = extractSampleMicroData(StickyDSGEmarkovEconomy, np.minimum(StickyDSGEmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickyDSGEmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
             
@@ -291,7 +292,7 @@ if __name__ == '__main__':
             desc = 'Results for the sticky representative agent Markov economy'
             name = 'RAmarkovSticky'
             makeStickyEdataFile(StickyRAmarkovConsumer,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
-            DeltaLogC_stdev = np.genfromtxt('./results/RAmarkovStickyResults.csv', delimiter=',')[3] # For use in frictionless spec
+            DeltaLogC_stdev = np.genfromtxt(results_dir + 'RAmarkovStickyResults.csv', delimiter=',')[3] # For use in frictionless spec
                         
             # Simulate the frictionless representative agent Markov economy
             t_start = clock()
