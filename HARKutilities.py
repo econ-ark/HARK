@@ -710,6 +710,48 @@ def makeMarkovApproxToNormalByMonteCarlo(x_grid,mu,sigma,N_draws = 10000):
     assert (np.all(p_vec>=0.)) and (np.all(p_vec<=1.)) and (np.isclose(np.sum(p_vec)),1.)
     return p_vec
 
+
+def makeTauchenAR1(N, sigma=1.0, rho=0.9, bound=3.0):
+    '''
+    Function to return a discretized version of an AR1 process.
+    See http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
+
+    Parameters
+    ----------
+    N: int
+        Size of discretized grid
+    sigma: float
+        Standard deviation of the error term
+    rho: float
+        AR1 coefficient
+    bound: float
+        The highest (lowest) grid point will be bound (-bound) multiplied by the unconditional 
+        standard deviation of the process
+ 
+    Returns
+    -------
+    y: np.array
+        Grid points on which the discretized process takes values
+    trans_matrix: np.array
+        Markov transition array for the discretized process
+
+    Written by Edmund S. Crawley
+    Latest update: 27 October 2017
+    '''
+    yN = bound*sigma/((1-rho**2)**0.5)
+    y = np.linspace(-yN,yN,N)
+    d = y[1]-y[0]
+    trans_matrix = np.ones((N,N))
+    for j in range(N):
+        for k_1 in range(N-2):
+            k=k_1+1
+            trans_matrix[j,k] = stats.norm.cdf((y[k] + d/2.0 - rho*y[j])/sigma) - stats.norm.cdf((y[k] - d/2.0 - rho*y[j])/sigma)
+        trans_matrix[j,0] = stats.norm.cdf((y[0] + d/2.0 - rho*y[j])/sigma)
+        trans_matrix[j,N-1] = 1.0 - stats.norm.cdf((y[N-1] - d/2.0 - rho*y[j])/sigma)
+        
+    return y, trans_matrix
+
+
 # ================================================================================
 # ==================== Functions for manipulating discrete distributions =========
 # ================================================================================
