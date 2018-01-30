@@ -32,7 +32,7 @@ do_RA   = False
 # Choose what kind of work to do for each model
 run_models = False       # Whether to solve models and generate new simulated data
 calc_micro_stats = False # Whether to calculate microeconomic statistics (only matters when run_models is True)
-make_tables = True       # Whether to make LaTeX tables in the /Tables folder
+make_tables = False       # Whether to make LaTeX tables in the /Tables folder
 use_stata = False        # Whether to use Stata to run regressions
 save_data = False        # Whether to save data for use in Stata (as a tab-delimited text file)
 run_ucost_vs_pi = False  # Whether to run an exercise that finds the cost of stickiness as it varies with update probability
