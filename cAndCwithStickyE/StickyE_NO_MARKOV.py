@@ -29,17 +29,17 @@ from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResults
                   makeMicroRegressionTable, extractSampleMicroData, makeuCostVsPiFig
 
 # Choose which models to do work for
-do_SOE  = False
-do_DSGE = False
-do_RA   = False
+do_SOE  = True
+do_DSGE = True
+do_RA   = True
 
 # Choose what kind of work to do for each model
-run_models = False       # Whether to solve models and generate new simulated data
+run_models = True       # Whether to solve models and generate new simulated data
 calc_micro_stats = False # Whether to calculate microeconomic statistics (only matters when run_models is True)
-make_tables = False      # Whether to make LaTeX tables in the /Tables folder
+make_tables = True      # Whether to make LaTeX tables in the /Tables folder
 use_stata = False        # Whether to use Stata to run regressions
-save_data = False        # Whether to save data for use in Stata (as a tab-delimited text file)
-run_ucost_vs_pi = False  # Whether to run an exercise that finds the cost of stickiness as it varies with update probability
+save_data = True        # Whether to save data for use in Stata (as a tab-delimited text file)
+run_ucost_vs_pi = True  # Whether to run an exercise that finds the cost of stickiness as it varies with update probability
 
 ignore_periods = Params.ignore_periods # Number of simulated periods to ignore as a "burn-in" phase
 interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
@@ -118,10 +118,10 @@ if __name__ == '__main__':
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
             t_start = clock()
-            frictionless_panel = runRegressions('SOEsimpleFrictionlessData',interval_size,False,False)
-            frictionless_me_panel = runRegressions('SOEsimpleFrictionlessData',interval_size,True,False)
-            sticky_panel = runRegressions('SOEsimpleStickyData',interval_size,False,True)
-            sticky_me_panel = runRegressions('SOEsimpleStickyData',interval_size,True,True)
+            frictionless_panel = runRegressions('SOEsimpleFrictionlessData',interval_size,False,False,False)
+            frictionless_me_panel = runRegressions('SOEsimpleFrictionlessData',interval_size,True,False,False)
+            sticky_panel = runRegressions('SOEsimpleStickyData',interval_size,False,True,False)
+            sticky_me_panel = runRegressions('SOEsimpleStickyData',interval_size,True,True,False)
             makeResultsTable('Aggregate Consumption Dynamics in SOE Model',[frictionless_me_panel,sticky_panel,sticky_me_panel],my_counts,'SOEsimReg','tPESOEsim')
             t_end = clock()
             print('Running time series regressions for the small open economy took ' + mystr(t_end-t_start) + ' seconds.')
@@ -194,10 +194,10 @@ if __name__ == '__main__':
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
             t_start = clock()
-            frictionless_panel = runRegressions('DSGEsimpleFrictionlessData',interval_size,False,False)
-            frictionless_me_panel = runRegressions('DSGEsimpleFrictionlessData',interval_size,True,False)
-            sticky_panel = runRegressions('DSGEsimpleStickyData',interval_size,False,True)
-            sticky_me_panel = runRegressions('DSGEsimpleStickyData',interval_size,True,True)
+            frictionless_panel = runRegressions('DSGEsimpleFrictionlessData',interval_size,False,False,False)
+            frictionless_me_panel = runRegressions('DSGEsimpleFrictionlessData',interval_size,True,False,False)
+            sticky_panel = runRegressions('DSGEsimpleStickyData',interval_size,False,True,False)
+            sticky_me_panel = runRegressions('DSGEsimpleStickyData',interval_size,True,True,False)
             makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Model',[frictionless_me_panel,sticky_panel,sticky_me_panel],my_counts,'DSGEsimReg','tDSGEsim')
             t_end = clock()
             print('Running time series regressions for the Cobb-Douglas economy took ' + mystr(t_end-t_start) + ' seconds.')
@@ -252,10 +252,10 @@ if __name__ == '__main__':
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
             t_start = clock()
-            frictionless_panel = runRegressions('RAsimpleFrictionlessData',interval_size,False,False)
-            frictionless_me_panel = runRegressions('RAsimpleFrictionlessData',interval_size,True,False)
-            sticky_panel = runRegressions('RAsimpleStickyData',interval_size,False,True)
-            sticky_me_panel = runRegressions('RAsimpleStickyData',interval_size,True,True)
+            frictionless_panel = runRegressions('RAsimpleFrictionlessData',interval_size,False,False,False)
+            frictionless_me_panel = runRegressions('RAsimpleFrictionlessData',interval_size,True,False,False)
+            sticky_panel = runRegressions('RAsimpleStickyData',interval_size,False,True,False)
+            sticky_me_panel = runRegressions('RAsimpleStickyData',interval_size,True,True,False)
             makeResultsTable('Aggregate Consumption Dynamics in RA Model',[frictionless_me_panel,sticky_panel,sticky_me_panel],my_counts,'RepAgentSimReg','tRAsim')
             t_end = clock()
             print('Running time series regressions for the representative agent economy took ' + mystr(t_end-t_start) + ' seconds.')
