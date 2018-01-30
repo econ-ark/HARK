@@ -12,9 +12,12 @@ It defines dictionaries for the six types of models in cAndCwithStickyE:
 For the first four models (heterogeneous agents), it defines dictionaries for
 the Market instance as well as the consumers themselves.  All parameters are quarterly.
 '''
+import sys 
+import os
+sys.path.insert(0, os.path.abspath('../'))
 import numpy as np
 from copy import copy
-from HARKutilities import approxUniform
+from HARKutilities import approxUniform, approxMeanOneLognormal
 
 # Choose file where the Stata executable can be found.  This should point at the
 # exe file itself, but the string does not need to include '.exe'.  Two examples
@@ -34,12 +37,41 @@ from HARKutilities import approxUniform
 stata_exe = "C:\Program Files (x86)\Stata15\StataSE-64"
 
 # Choose directory paths relative to the StickyE files
+calibration_dir = "./Calibration/" # Relative directory for primitive parameter files
 tables_dir = "./Tables/"   # Relative directory for saving tex tables
 results_dir = "./Results/" # Relative directory for saving output files
 figures_dir = "./Figures/" # Relative directory for saving figures
 
+def importParam(param_name):
+    return np.max(np.genfromtxt(calibration_dir + param_name + '.txt'))
+
+# Import primitive parameters from calibrations folder
+CRRA = importParam('CRRA')             # Coefficient of relative risk aversion
+DeprFacAnn = importParam('DeprFacAnn') # Annual depreciation factor
+CapShare = importParam('CapShare')     # Capital's share in production function
+KYratioSS = importParam('KYratioSS')   # Steady state capital to output ratio (PF-DSGE)
+UpdatePrb = importParam('UpdatePrb')   # Probability that each agent observes the aggregate productivity state each period (in sticky version)
+UnempPrb = importParam('UnempPrb')     # Unemployment probability
+DiePrb = importParam('DiePrb')         # Quarterly mortality probability
+TranShkVarAnn = importParam('TranShkVarAnn')    # Annual variance of idiosyncratic transitory shocks
+PermShkVarAnn = importParam('PermShkVarAnn')    # Annual variance of idiosyncratic permanent shocks
+TranShkAggVar = importParam('TranShkAggVar') # Variance of aggregate transitory shocks
+PermShkAggVar = importParam('PermShkAggVar') # Variance of aggregate permanent shocks
+
+# Calculate parameters based on the primitive parameters
+DeprFac = 1. - DeprFacAnn**0.25                  # Quarterly depreciation rate
+KSS = KtYratioSS = KYratioSS**(1./(1.-CapShare)) # Steady state Capital to labor productivity
+wRteSS = (1.-CapShare)*KSS**CapShare             # Steady state wage rate
+rFreeSS = CapShare*KSS**(CapShare-1.)            # Steady state interest rate
+RfreeSS = 1. - DeprFac + rFreeSS                 # Steady state return factor
+LivPrb = 1. - DiePrb                             # Quarterly survival probability
+DiscFacDSGE = RfreeSS**(-1)                      # Discount factor, HA-DSGE and RA models
+TranShkVar = TranShkVarAnn*4.                    # Variance of idiosyncratic transitory shocks
+PermShkVar = PermShkVarAnn/4.                    # Variance of idiosyncratic permanent shocks
+TempDstn = approxMeanOneLognormal(N=7,sigma=np.sqrt(PermShkVar))
+DiscFacSOE = 0.99*LivPrb/(RfreeSS*np.dot(TempDstn[0],TempDstn[1]**(-CRRA))) # Discount factor, SOE model
+
 # Choose basic simulation parameters
-UpdatePrb = 0.25       # Probability that each agent observes the aggregate productivity state each period (in sticky version)
 periods_to_sim = 21010 # Total number of periods to simulate; this might be increased by DSGEmarkov model
 ignore_periods = 1000  # Number of simulated periods to ignore (in order to ensure we are near steady state)
 interval_size = 200    # Number of periods in each subsample interval
@@ -51,8 +83,8 @@ AgentCount_micro = 5000
 
 # Choose extent of discount factor heterogeneity (inapplicable to representative agent models)
 TypeCount = 1           # Number of heterogeneous discount factor types
-DiscFacMeanSOE  = 0.969 # Central value of intertemporal discount factor for SOE model
-DiscFacMeanDSGE = 1.0/1.0146501772118186  # ...for HA-DSGE and RA
+DiscFacMeanSOE  = DiscFacSOE # Central value of intertemporal discount factor for SOE model
+DiscFacMeanDSGE = DiscFacDSGE  # ...for HA-DSGE and RA
 DiscFacSpread = 0.0     # Half-width of intertemporal discount factor band, a la cstwMPC
 
 # These parameters are for a rough "beta-dist" specification that fits the wealth distribution in DSGE simple
@@ -91,9 +123,9 @@ DiscFacSetDSGE = approxUniform(N=TypeCount,bot=DiscFacMeanDSGE-DiscFacSpread,top
 ###############################################################################
 
 # Define parameters for the small open economy version of the model
-init_SOE_consumer = { 'CRRA': 2.0,
+init_SOE_consumer = { 'CRRA': CRRA,
                       'DiscFac': DiscFacMeanSOE,
-                      'LivPrb': [0.995],
+                      'LivPrb': [LivPrb],
                       'PermGroFac': [1.0],
                       'AgentCount': AgentCount/TypeCount, # Spread agents evenly among types
                       'aXtraMin': 0.00001,
@@ -101,11 +133,11 @@ init_SOE_consumer = { 'CRRA': 2.0,
                       'aXtraNestFac': 3,
                       'aXtraCount': 48,
                       'aXtraExtra': [None],
-                      'PermShkStd': [np.sqrt(0.004)],
+                      'PermShkStd': [np.sqrt(PermShkVar)],
                       'PermShkCount': 7,
-                      'TranShkStd': [np.sqrt(0.12)],
+                      'TranShkStd': [np.sqrt(TranShkVar)],
                       'TranShkCount': 7,
-                      'UnempPrb': 0.05,
+                      'UnempPrb': UnempPrb,
                       'UnempPrbRet': 0.0,
                       'IncUnemp': 0.0,
                       'IncUnempRet': 0.0,
@@ -113,7 +145,7 @@ init_SOE_consumer = { 'CRRA': 2.0,
                       'tax_rate':0.0,
                       'T_retire':0,
                       'MgridBase': np.array([0.5,1.5]),
-                      'aNrmInitMean' : np.log(0.00001),#gets overidden with much smaller number
+                      'aNrmInitMean' : np.log(0.00001),
                       'aNrmInitStd' : 0.0,
                       'pLvlInitMean' : 0.0,
                       'pLvlInitStd' : 0.0,
@@ -127,13 +159,13 @@ init_SOE_consumer = { 'CRRA': 2.0,
 # Define market parameters for the small open economy
 init_SOE_market = {  'PermShkAggCount': 5,
                      'TranShkAggCount': 5,
-                     'PermShkAggStd': np.sqrt(0.00004),
-                     'TranShkAggStd': np.sqrt(0.00001),
+                     'PermShkAggStd': np.sqrt(PermShkAggVar),
+                     'TranShkAggStd': np.sqrt(TranShkAggVar),
                      'PermGroFacAgg': 1.0,
-                     'DeprFac': 1.0 - 0.94**(0.25),
-                     'CapShare': 0.36,
-                     'Rfree': 1.014189682528173,
-                     'wRte': 2.5895209258224536,
+                     'DeprFac': DeprFac,
+                     'CapShare': CapShare,
+                     'Rfree': RfreeSS,
+                     'wRte': wRteSS,
                      'act_T': periods_to_sim,
                      }
 
@@ -164,8 +196,8 @@ init_DSGE_consumer['MgridBase'] = np.array([0.1,0.3,0.5,0.6,0.7,0.8,0.9,0.98,1.0
 init_DSGE_market = copy(init_SOE_market)
 init_DSGE_market.pop('Rfree')
 init_DSGE_market.pop('wRte')
-init_DSGE_market['CRRA'] = init_DSGE_consumer['CRRA']
-init_DSGE_market['DiscFac'] = init_DSGE_consumer['DiscFac']
+init_DSGE_market['CRRA'] = CRRA
+init_DSGE_market['DiscFac'] = DiscFacMeanDSGE
 init_DSGE_market['intercept_prev'] = 0.0
 init_DSGE_market['slope_prev'] = 1.0
 
@@ -188,7 +220,7 @@ init_DSGE_mrkv_market['loops_max'] = 10
 ###############################################################################
 
 # Define parameters for the representative agent version of the model
-init_RA_consumer =  { 'CRRA': 2.0,
+init_RA_consumer =  { 'CRRA': CRRA,
                       'DiscFac': DiscFacMeanDSGE,
                       'LivPrb': [1.0],
                       'PermGroFac': [1.0],
@@ -198,9 +230,9 @@ init_RA_consumer =  { 'CRRA': 2.0,
                       'aXtraNestFac': 3,
                       'aXtraCount': 48,
                       'aXtraExtra': [None],
-                      'PermShkStd': [np.sqrt(0.00004)],
+                      'PermShkStd': [np.sqrt(PermShkAggVar)],
                       'PermShkCount': 7,
-                      'TranShkStd': [np.sqrt(0.00001)],
+                      'TranShkStd': [np.sqrt(TranShkAggVar)],
                       'TranShkCount': 7,
                       'UnempPrb': 0.0,
                       'UnempPrbRet': 0.0,
@@ -215,8 +247,8 @@ init_RA_consumer =  { 'CRRA': 2.0,
                       'pLvlInitStd' : 0.0,
                       'PermGroFacAgg' : 1.0,
                       'UpdatePrb' : UpdatePrb,
-                      'CapShare' : 0.36,
-                      'DeprFac' : 1.0 - 0.94**(0.25),
+                      'CapShare' : CapShare,
+                      'DeprFac' : DeprFac,
                       'T_age' : None,
                       'T_cycle' : 1,
                       'T_sim' : periods_to_sim,
