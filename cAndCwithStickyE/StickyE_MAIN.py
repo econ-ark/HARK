@@ -2,8 +2,8 @@
 This module runs the exercises and regressions for the cAndCwithStickyE paper.
 User can choose which among the three models are actually run.  Descriptive
 statistics and regression results are both output to screen and saved in a log
-file in the ./Results directory.  TeX code for tables in the paper are saved in
-the ./Tables directory.  See StickyEparams for calibrated model parameters.
+file in the results directory.  TeX code for tables in the paper are saved in
+the tables directory.  See StickyEparams for calibrated model parameters.
 '''
 
 import sys 
@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 import StickyEparams as Params
 from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable,\
                   runStickyEregressionsInStata, makeParameterTable, makeEquilibriumTable,\
-                  makeMicroRegressionTable, extractSampleMicroData, makeuCostVsPiFig
+                  makeMicroRegressionTable, extractSampleMicroData, makeuCostVsPiFig, makeValueVsAggShkVarFig
 
 # Choose which models to do work for
 do_SOE  = False
@@ -32,10 +32,11 @@ do_RA   = False
 # Choose what kind of work to do for each model
 run_models = False       # Whether to solve models and generate new simulated data
 calc_micro_stats = False # Whether to calculate microeconomic statistics (only matters when run_models is True)
-make_tables = False       # Whether to make LaTeX tables in the /Tables folder
+make_tables = False      # Whether to make LaTeX tables in the /Tables folder
 use_stata = False        # Whether to use Stata to run regressions
 save_data = False        # Whether to save data for use in Stata (as a tab-delimited text file)
 run_ucost_vs_pi = False  # Whether to run an exercise that finds the cost of stickiness as it varies with update probability
+run_value_vs_aggvar = True # Whether to run an exercise to find value at birth vs variance of aggregate permanent shocks
 
 ignore_periods = Params.ignore_periods # Number of simulated periods to ignore as a "burn-in" phase
 interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
@@ -130,11 +131,12 @@ if __name__ == '__main__':
                 makeMicroRegressionTable('CGrowCross.tex', [frictionless_SOEmarkov_micro_data,sticky_SOEmarkov_micro_data])
             
             if run_ucost_vs_pi:
-                # Find the cost of stickiness as it varies with updating probability
+                # Find the birth value and cost of stickiness as it varies with updating probability
                 UpdatePrbVec = np.linspace(0.025,1.0,40)
                 CRRA = StickySOmarkovEconomy.agents[0].CRRA
                 vBirth_F = np.genfromtxt(results_dir + 'SOEmarkovFrictionlessBirthValue.csv', delimiter=',')
                 uCostVec = np.zeros_like(UpdatePrbVec)
+                vVec = np.zeros_like(UpdatePrbVec)
                 for j in range(UpdatePrbVec.size):
                     for agent in StickySOmarkovEconomy.agents:
                         agent(UpdatePrb = UpdatePrbVec[j])
@@ -143,15 +145,47 @@ if __name__ == '__main__':
                     vBirth_S = np.genfromtxt(results_dir + 'TEMPBirthValue.csv', delimiter=',')
                     uCost = np.mean(1. - (vBirth_S/vBirth_F)**(1./(1.-CRRA)))
                     uCostVec[j] = uCost
+                    vVec[j] = np.mean(vBirth_S)
                     print('Found that uCost=' + str(uCost) + ' for Pi=' + str(UpdatePrbVec[j]))
-                with open('./Results/SOEuCostbyUpdatePrb.csv','w') as f:
+                with open(results_dir + 'SOEuCostbyUpdatePrb.csv','w') as f:
                     my_writer = csv.writer(f, delimiter = ',')
                     my_writer.writerow(UpdatePrbVec)
                     my_writer.writerow(uCostVec)
                     f.close()
-                os.remove('./Results/TEMPResults.txt')
-                os.remove('./Results/TEMPResults.csv')
-                os.remove('./Results/TEMPBirthValue.csv')
+                with open(results_dir + 'SOEvVecByUpdatePrb.csv','w') as f:
+                    my_writer = csv.writer(f, delimiter = ',')
+                    my_writer.writerow(UpdatePrbVec)
+                    my_writer.writerow(vVec)
+                    f.close()
+                os.remove(results_dir + 'TEMPResults.csv')
+                os.remove(results_dir + 'TEMPBirthValue.csv')
+                
+            if run_value_vs_aggvar:
+                # Find value as it varies with updating probability
+                PermShkAggVarBase = np.linspace(0.5,1.5,40)
+                PermShkAggVarVec = PermShkAggVarBase*Params.PermShkAggVar
+                vVec = np.zeros_like(PermShkAggVarVec)
+                for j in range(1,PermShkAggVarVec.size):
+                    StickySOmarkovEconomy.PermShkAggStd = Params.StateCount*[np.sqrt(PermShkAggVarVec[j])]
+                    StickySOmarkovEconomy.makeAggShkDstn()
+                    StickySOmarkovEconomy.makeAggShkHist()
+                    for agent in StickySOmarkovEconomy.agents:
+                        agent(UpdatePrb = 1.0)
+                        agent.getEconomyData(StickySOmarkovEconomy)
+                    StickySOmarkovEconomy.solveAgents()
+                    StickySOmarkovEconomy.makeHistory()
+                    makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description='trash',filename='TEMP',save_data=False,calc_micro_stats=True)
+                    vBirth_S = np.genfromtxt(results_dir + 'TEMPBirthValue.csv', delimiter=',')
+                    v = np.mean(vBirth_S)
+                    vVec[j] = v
+                    print('Found that v=' + str(v) + ' for PermShkAggVar=' + str(PermShkAggVarVec[j]))
+                with open(results_dir + 'SOEvVecByPermShkAggVar.csv','w') as f:
+                    my_writer = csv.writer(f, delimiter = ',')
+                    my_writer.writerow(PermShkAggVarVec)
+                    my_writer.writerow(vVec)
+                    f.close()
+                os.remove(results_dir + 'TEMPResults.csv')
+                os.remove(results_dir + 'TEMPBirthValue.csv')
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
@@ -221,8 +255,7 @@ if __name__ == '__main__':
                 
                 # Save the birth value file in a temporary file and delete the other generated results files
                 makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name+'TEMP',save_data=False,calc_micro_stats=calc_micro_stats)
-                os.remove('./Results/' + name + 'TEMP' + 'Results.txt')
-                os.remove('./Results/' + name + 'TEMP' + 'Results.csv')
+                os.remove(results_dir + name + 'TEMP' + 'Results.csv')
                 sticky_name = name
             
             # Solve the frictionless heterogeneous agent DSGE model
@@ -241,8 +274,8 @@ if __name__ == '__main__':
             name = 'DSGEmarkovFrictionless'
             makeStickyEdataFile(StickyDSGEmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats,meas_err_base=DeltaLogC_stdev)
             if calc_micro_stats:
-                os.remove('./Results/' + name + 'BirthValue.csv') # Delete the frictionless birth value file
-                os.rename('./Results/' + sticky_name + 'TEMPBirthValue.csv','./Results/' + name + 'BirthValue.csv') # Replace just deleted file with "alternate" value calculation
+                os.remove(results_dir + name + 'BirthValue.csv') # Delete the frictionless birth value file
+                os.rename(results_dir + sticky_name + 'TEMPBirthValue.csv',results_dir + name + 'BirthValue.csv') # Replace just deleted file with "alternate" value calculation
                 frictionless_DSGEmarkov_micro_data = extractSampleMicroData(StickyDSGEmarkovEconomy, np.minimum(StickyDSGEmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickyDSGEmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
                 makeMicroRegressionTable('CGrowCrossDSGE.tex', [frictionless_DSGEmarkov_micro_data,sticky_DSGEmarkov_micro_data])
         
@@ -328,4 +361,6 @@ if __name__ == '__main__':
         makeParameterTable('Calibration.tex', Params)
     if run_ucost_vs_pi:
         makeuCostVsPiFig('SOEuCostbyUpdatePrb')
+    if run_value_vs_aggvar:
+        makeValueVsAggShkVarFig('SOEvVecByPermShkAggVar')
         

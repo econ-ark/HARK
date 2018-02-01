@@ -43,7 +43,7 @@ results_dir = "./Results/" # Relative directory for saving output files
 figures_dir = "./Figures/" # Relative directory for saving figures
 
 def importParam(param_name):
-    return np.max(np.genfromtxt(calibration_dir + param_name + '.txt'))
+    return float(np.max(np.genfromtxt(calibration_dir + param_name + '.txt')))
 
 # Import primitive parameters from calibrations folder
 CRRA = importParam('CRRA')             # Coefficient of relative risk aversion
@@ -57,6 +57,7 @@ TranShkVarAnn = importParam('TranShkVarAnn')    # Annual variance of idiosyncrat
 PermShkVarAnn = importParam('PermShkVarAnn')    # Annual variance of idiosyncratic permanent shocks
 TranShkAggVar = importParam('TranShkAggVar') # Variance of aggregate transitory shocks
 PermShkAggVar = importParam('PermShkAggVar') # Variance of aggregate permanent shocks
+DiscFacSOE = importParam('DiscFacSOE')       # # Discount factor, SOE model
 
 # Calculate parameters based on the primitive parameters
 DeprFac = 1. - DeprFacAnn**0.25                  # Quarterly depreciation rate
@@ -67,9 +68,9 @@ RfreeSS = 1. - DeprFac + rFreeSS                 # Steady state return factor
 LivPrb = 1. - DiePrb                             # Quarterly survival probability
 DiscFacDSGE = RfreeSS**(-1)                      # Discount factor, HA-DSGE and RA models
 TranShkVar = TranShkVarAnn*4.                    # Variance of idiosyncratic transitory shocks
-PermShkVar = PermShkVarAnn/4.                    # Variance of idiosyncratic permanent shocks
-TempDstn = approxMeanOneLognormal(N=7,sigma=np.sqrt(PermShkVar))
-DiscFacSOE = 0.99*LivPrb/(RfreeSS*np.dot(TempDstn[0],TempDstn[1]**(-CRRA))) # Discount factor, SOE model
+PermShkVar = PermShkVarAnn*4/11.                    # Variance of idiosyncratic permanent shocks
+TempDstn = approxMeanOneLognormal(N=5,sigma=np.sqrt(PermShkVar))
+#DiscFacSOE = 0.99*LivPrb/(RfreeSS*np.dot(TempDstn[0],TempDstn[1]**(-CRRA))) # Discount factor, SOE model
 
 # Choose basic simulation parameters
 periods_to_sim = 21010 # Total number of periods to simulate; this might be increased by DSGEmarkov model
@@ -83,7 +84,7 @@ AgentCount_micro = 5000
 
 # Choose extent of discount factor heterogeneity (inapplicable to representative agent models)
 TypeCount = 1           # Number of heterogeneous discount factor types
-DiscFacMeanSOE  = DiscFacSOE # Central value of intertemporal discount factor for SOE model
+DiscFacMeanSOE  = DiscFacSOE   # Central value of intertemporal discount factor for SOE model
 DiscFacMeanDSGE = DiscFacDSGE  # ...for HA-DSGE and RA
 DiscFacSpread = 0.0     # Half-width of intertemporal discount factor band, a la cstwMPC
 

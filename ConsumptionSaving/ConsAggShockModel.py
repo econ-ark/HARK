@@ -156,9 +156,7 @@ class AggShockConsumerType(IndShockConsumerType):
         
     def addAggShkDstn(self,AggShkDstn):
         '''
-        Updates attribute IncomeDstn by combining idiosyncratic shocks with
-        aggregate shocks.  Should not be run multiple times unless updateIncomeDstn
-        is called in between (done automatically in getEconomyData).
+        Updates attribute IncomeDstn by combining idiosyncratic shocks with aggregate shocks.
         
         Parameters
         ----------
