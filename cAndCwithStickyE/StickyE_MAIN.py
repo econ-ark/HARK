@@ -26,17 +26,17 @@ from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResults
 
 # Choose which models to do work for
 do_SOE  = False
-do_DSGE = False
+do_DSGE = True
 do_RA   = False
 
 # Choose what kind of work to do for each model
-run_models = False       # Whether to solve models and generate new simulated data
-calc_micro_stats = False # Whether to calculate microeconomic statistics (only matters when run_models is True)
-make_tables = False      # Whether to make LaTeX tables in the /Tables folder
+run_models = True        # Whether to solve models and generate new simulated data
+calc_micro_stats = True  # Whether to calculate microeconomic statistics (only matters when run_models is True)
+make_tables = True       # Whether to make LaTeX tables in the /Tables folder
 use_stata = False        # Whether to use Stata to run regressions
-save_data = False        # Whether to save data for use in Stata (as a tab-delimited text file)
+save_data = True         # Whether to save data for use in Stata (as a tab-delimited text file)
 run_ucost_vs_pi = False  # Whether to run an exercise that finds the cost of stickiness as it varies with update probability
-run_value_vs_aggvar = True # Whether to run an exercise to find value at birth vs variance of aggregate permanent shocks
+run_value_vs_aggvar = False # Whether to run an exercise to find value at birth vs variance of aggregate permanent shocks
 
 ignore_periods = Params.ignore_periods # Number of simulated periods to ignore as a "burn-in" phase
 interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
