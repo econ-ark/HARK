@@ -38,9 +38,10 @@ stata_exe = "C:\Program Files (x86)\Stata15\StataSE-64"
 
 # Choose directory paths relative to the StickyE files
 calibration_dir = "./Calibration/" # Relative directory for primitive parameter files
-tables_dir = "./Tables/"   # Relative directory for saving tex tables
-results_dir = "./Results/" # Relative directory for saving output files
-figures_dir = "./Figures/" # Relative directory for saving figures
+tables_dir = "./Tables/"           # Relative directory for saving tex tables
+results_dir = "./Results/"         # Relative directory for saving output files
+figures_dir = "./Figures/"         # Relative directory for saving figures
+empirical_dir = "./Empirical/"     # Relative directory with empirical files
 
 def importParam(param_name):
     return float(np.max(np.genfromtxt(calibration_dir + param_name + '.txt')))

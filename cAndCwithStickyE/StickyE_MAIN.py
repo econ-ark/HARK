@@ -15,6 +15,7 @@ import numpy as np
 import csv
 from time import clock
 from copy import deepcopy
+import subprocess
 from StickyEmodel import StickyEmarkovConsumerType, StickyEmarkovRepAgent, StickyCobbDouglasMarkovEconomy
 from ConsAggShockModel import SmallOpenMarkovEconomy
 from HARKutilities import plotFuncs
@@ -33,6 +34,8 @@ do_RA   = False
 run_models = False       # Whether to solve models and generate new simulated data
 calc_micro_stats = False # Whether to calculate microeconomic statistics (only matters when run_models is True)
 make_tables = False      # Whether to make LaTeX tables in the /Tables folder
+make_emp_table = False   # Whether to run regressions for the U.S. empirical table (automatically done in Stata)
+make_histogram = False   # Whether to construct the histogram of "habit" parameter estimates
 use_stata = False        # Whether to use Stata to run regressions
 save_data = False        # Whether to save data for use in Stata (as a tab-delimited text file)
 run_ucost_vs_pi = False  # Whether to run an exercise that finds the cost of stickiness as it varies with update probability
@@ -47,6 +50,7 @@ AgentCount_micro = Params.AgentCount_micro # To save memory, micro regressions a
 my_counts = [interval_size,interval_count]
 mystr = lambda number : "{:.3f}".format(number)
 results_dir = Params.results_dir
+empirical_dir = Params.empirical_dir
 
 # Define the function to run macroeconomic regressions, depending on whether Stata is used
 if use_stata:
@@ -354,13 +358,32 @@ if __name__ == '__main__':
             print('Running time series regressions for the representative agent Markov economy took ' + mystr(t_end-t_start) + ' seconds.')
         
     ###############################################################################
-    ########### MAKE OTHER TABLES #################################################
+    ########### MAKE OTHER TABLES AND FIGURES #####################################
     ###############################################################################
     if make_tables:
         makeEquilibriumTable('Eqbm.tex', ['SOEmarkovFrictionless','SOEmarkovSticky','DSGEmarkovFrictionless','DSGEmarkovSticky'],Params.init_SOE_consumer['CRRA'])
         makeParameterTable('Calibration.tex', Params)
+    
     if run_ucost_vs_pi:
         makeuCostVsPiFig('SOEuCostbyUpdatePrb')
+    
     if run_value_vs_aggvar:
         makeValueVsAggShkVarFig('SOEvVecByPermShkAggVar')
+        
+    if make_emp_table:
+        # Define the command to run the Stata do file
+        cmd = [Params.stata_exe, "do", empirical_dir + "_usConsDynEmp.do"]
+        # Run Stata do-file
+        stata_status = subprocess.call(cmd,shell = 'true') 
+        if stata_status!=0:
+            raise ValueError('Stata code could not run. Check the stata_exe in StickyEparams.py')
+    
+    if make_histogram:
+        # Define the command to run the Stata do file
+        cmd = [Params.stata_exe, "do", empirical_dir + "metaAnalysis/habitsHistogram.do"]
+        # Run Stata do-file
+        stata_status = subprocess.call(cmd,shell = 'true') 
+        if stata_status!=0:
+            raise ValueError('Stata code could not run. Check the stata_exe in StickyEparams.py')
+        
         
