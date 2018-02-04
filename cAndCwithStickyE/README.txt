@@ -15,8 +15,7 @@ package in Python.  The only difference is that the Stata code is able to produc
 KP statistic, but Python is not.  To successfully use this option, you must set the
 stata_exe variable in the parameters file to point to a valid Stata executable.
 
-StickyE project files are listed below.  Other Python files are part of the HARK
-toolkit, distributed by the Econ-ARK project.
+StickyE project files include:
 
 1) StickyE_MAIN.py
 This is the file to run to produce all the results and tables in the paper.
@@ -45,7 +44,20 @@ This is a Stata do file. The regressions are run in Stata in order to produce th
 An alternate version of the MAIN file, using versions of the models without the Markov growth
 process.  Results for these models do not appear in the paper.
 
-The subfolders include:
+All other Python files are part of the HARK toolkit, available at www.github.com/econ-ark/HARK:
+
+- HARKcore.py
+- HARKinterpolation.py
+- HARKestimation.py
+- HARKparallel.py
+- HARKsimulation.py
+- HARKutilities.py
+- ConsIndShockModel.py
+- ConsAggShockModel.py
+- RepAgentModel.py
+
+
+Referenced subfolders include:
 
 1) Results
 This folder contains saved data from the model simulations
