@@ -691,17 +691,17 @@ def makeParameterTable(filename, params):
     output += "\\\\ \\midrule  \n"
     output += "\multicolumn{3}{c}{ \\textbf{Steady State of Perfect Foresight DSGE Model} } \\  \n"  
     output += "\\\\ \multicolumn{3}{c}{ $(\\sigma_{\\Psi}=\\sigma_{\\Theta}=\\sigma_{\\psi}=\\sigma_{\\theta}=\wp=\\PDies=0$, $\\Phi_t = 1)$} \\  \n"  
-    output += "\\\\ $\\breve{K}/\\breve{K}^{\\varepsilon}$ & " + "{:.1f}".format(params.KYratioSS) + " & SS Capital to Output Ratio  \n"
-    output += "\\\\ $\\breve{K}$ & " + "{:.2f}".format(params.KSS) + " & SS Capital to Labor Productivity Ratio ($=12^{1/(1-\\varepsilon)}$) \n"  
-    output += "\\\\ $\\breve{\\Wage}$ &  " + "{:.2f}".format(params.wRteSS) + " & SS Wage Rate ($=(1-\\varepsilon)\\breve{K}^{\epsilon}$) \n"  
-    output += "\\\\ $\\breve{\\mathsf{r}}$ & " + "{:.2f}".format(params.rFreeSS) + " & SS Interest Rate ($=\\varepsilon \\breve{K}^{\\varepsilon-1}$) \n"  
+    output += "\\\\ $\\breve{K}/\\breve{K}^{\\kapShare}$ & " + "{:.1f}".format(params.KYratioSS) + " & SS Capital to Output Ratio  \n"
+    output += "\\\\ $\\breve{K}$ & " + "{:.2f}".format(params.KSS) + " & SS Capital to Labor Productivity Ratio ($=12^{1/(1-\\kapShare)}$) \n"  
+    output += "\\\\ $\\breve{\\Wage}$ &  " + "{:.2f}".format(params.wRteSS) + " & SS Wage Rate ($=(1-\\kapShare)\\breve{K}^{\\kapShare}$) \n"  
+    output += "\\\\ $\\breve{\\mathsf{r}}$ & " + "{:.2f}".format(params.rFreeSS) + " & SS Interest Rate ($=\\kapShare \\breve{K}^{\\kapShare-1}$) \n"  
     output += "\\\\ $\\breve{\\mathcal{R}}$ & " + "{:.3f}".format(params.RfreeSS) + "& SS Between-Period Return Factor ($=\\daleth + \\breve{\\mathsf{r}}$) \n"  
     
     # Calibrated preference parameters
     output += "\\\\ \\midrule  \n"
     output += "\multicolumn{3}{c}{ \\textbf{Preference Parameters} }  \n"
     output += "\\\\ $\\rho$ & "+ "{:.0f}".format(params.CRRA) +". & Coefficient of Relative Risk Aversion \n"
-    output += "\\\\ $\\beta_{SOE}$ &  " + "{:.3f}".format(params.DiscFacSOE) +" & SOE Discount Factor ($=0.99 \\cdot \\PLives / (\\breve{\\mathcal{R}} \\Ex [\\pmb{\\psi}^{-\CRRA}])$)\n"
+    output += "\\\\ $\\beta_{SOE}$ &  " + "{:.3f}".format(params.DiscFacSOE) +" & SOE Discount Factor \n" #($=0.99 \\cdot \\PLives / (\\breve{\\mathcal{R}} \\Ex [\\pmb{\\psi}^{-\CRRA}])$)\n"
     output += "\\\\ $\\beta_{DSGE}$ &  " + "{:.3f}".format(params.DiscFacDSGE) +" & HA-DSGE Discount Factor ($=\\breve{\\mathcal{R}}^{-1}$) \n"  
     output += "\\\\ $\Pi$                    & " + "{:.2f}".format(params.UpdatePrb) +"  & Probability of Updating Expectations (if Sticky) \n"  
     

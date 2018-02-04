@@ -53,11 +53,11 @@ KYratioSS = importParam('KYratioSS')   # Steady state capital to output ratio (P
 UpdatePrb = importParam('UpdatePrb')   # Probability that each agent observes the aggregate productivity state each period (in sticky version)
 UnempPrb = importParam('UnempPrb')     # Unemployment probability
 DiePrb = importParam('DiePrb')         # Quarterly mortality probability
-TranShkVarAnn = importParam('TranShkVarAnn')    # Annual variance of idiosyncratic transitory shocks
-PermShkVarAnn = importParam('PermShkVarAnn')    # Annual variance of idiosyncratic permanent shocks
+TranShkVarAnn = importParam('TranShkVarAnn') # Annual variance of idiosyncratic transitory shocks
+PermShkVarAnn = importParam('PermShkVarAnn') # Annual variance of idiosyncratic permanent shocks
 TranShkAggVar = importParam('TranShkAggVar') # Variance of aggregate transitory shocks
 PermShkAggVar = importParam('PermShkAggVar') # Variance of aggregate permanent shocks
-DiscFacSOE = importParam('DiscFacSOE')       # # Discount factor, SOE model
+DiscFacSOE = importParam('betaSOE')          # Discount factor, SOE model
 
 # Calculate parameters based on the primitive parameters
 DeprFac = 1. - DeprFacAnn**0.25                  # Quarterly depreciation rate
