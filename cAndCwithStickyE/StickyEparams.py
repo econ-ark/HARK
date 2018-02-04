@@ -68,8 +68,8 @@ RfreeSS = 1. - DeprFac + rFreeSS                 # Steady state return factor
 LivPrb = 1. - DiePrb                             # Quarterly survival probability
 DiscFacDSGE = RfreeSS**(-1)                      # Discount factor, HA-DSGE and RA models
 TranShkVar = TranShkVarAnn*4.                    # Variance of idiosyncratic transitory shocks
-PermShkVar = PermShkVarAnn*4/11.                    # Variance of idiosyncratic permanent shocks
-TempDstn = approxMeanOneLognormal(N=5,sigma=np.sqrt(PermShkVar))
+PermShkVar = PermShkVarAnn/4.                    # Variance of idiosyncratic permanent shocks
+#TempDstn = approxMeanOneLognormal(N=7,sigma=np.sqrt(PermShkVar))
 #DiscFacSOE = 0.99*LivPrb/(RfreeSS*np.dot(TempDstn[0],TempDstn[1]**(-CRRA))) # Discount factor, SOE model
 
 # Choose basic simulation parameters
