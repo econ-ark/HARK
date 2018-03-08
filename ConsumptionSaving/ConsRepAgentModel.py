@@ -1,8 +1,8 @@
 '''
 This module contains models for solving representative agent macroeconomic models.
 This stands in contrast to all other model modules in HARK, which (unsurprisingly)
-take a heterogeneous agents approach.  In these models, all attributes are either
-time invariant or exist on a short cycle.
+take a heterogeneous agents approach.  In RA models, all attributes are either
+time invariant or exist on a short cycle; models must be infinite horizon.
 '''
 import sys 
 import os
@@ -51,7 +51,7 @@ def solveConsRepAgent(solution_next,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,Per
     vPfuncNext      = solution_next.vPfunc
     ShkPrbsNext     = IncomeDstn[0]
     PermShkValsNext = IncomeDstn[1]
-    TranShKValsNext = IncomeDstn[2]
+    TranShkValsNext = IncomeDstn[2]
     
     # Make tiled versions of end-of-period assets, shocks, and probabilities
     aNrmNow     = aXtraGrid
@@ -61,7 +61,7 @@ def solveConsRepAgent(solution_next,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,Per
 
     # Tile arrays of the income shocks and put them into useful shapes
     PermShkVals_tiled = np.tile(np.reshape(PermShkValsNext,(1,ShkCount)),(aNrmCount,1))
-    TranShkVals_tiled = np.tile(np.reshape(TranShKValsNext,(1,ShkCount)),(aNrmCount,1))
+    TranShkVals_tiled = np.tile(np.reshape(TranShkValsNext,(1,ShkCount)),(aNrmCount,1))
     ShkPrbs_tiled     = np.tile(np.reshape(ShkPrbsNext,(1,ShkCount)),(aNrmCount,1))
     
     # Calculate next period's capital-to-permanent-labor ratio under each combination
@@ -141,7 +141,7 @@ def solveConsRepAgentMarkov(solution_next,MrkvArray,DiscFac,CRRA,IncomeDstn,CapS
         vPfuncNext  = solution_next.vPfunc[j]
         ShkPrbsNext     = IncomeDstn[j][0]
         PermShkValsNext = IncomeDstn[j][1]
-        TranShKValsNext = IncomeDstn[j][2]
+        TranShkValsNext = IncomeDstn[j][2]
         
         # Make tiled versions of end-of-period assets, shocks, and probabilities
         ShkCount    = ShkPrbsNext.size
@@ -149,7 +149,7 @@ def solveConsRepAgentMarkov(solution_next,MrkvArray,DiscFac,CRRA,IncomeDstn,CapS
     
         # Tile arrays of the income shocks and put them into useful shapes
         PermShkVals_tiled = np.tile(np.reshape(PermShkValsNext,(1,ShkCount)),(aNrmCount,1))
-        TranShkVals_tiled = np.tile(np.reshape(TranShKValsNext,(1,ShkCount)),(aNrmCount,1))
+        TranShkVals_tiled = np.tile(np.reshape(TranShkValsNext,(1,ShkCount)),(aNrmCount,1))
         ShkPrbs_tiled     = np.tile(np.reshape(ShkPrbsNext,(1,ShkCount)),(aNrmCount,1))
         
         # Calculate next period's capital-to-permanent-labor ratio under each combination
@@ -226,9 +226,9 @@ class RepAgentConsumerType(IndShockConsumerType):
         '''
         pLvlPrev = self.pLvlNow
         aNrmPrev = self.aNrmNow
-        
+                
         # Calculate new states: normalized market resources and permanent income level
-        self.pLvlNow = pLvlPrev*self.PermShkNow # Updated permanent income level
+        self.pLvlNow = pLvlPrev*self.PermShkNow # Same as in IndShockConsType
         self.kNrmNow = aNrmPrev/self.PermShkNow
         self.yNrmNow = self.kNrmNow**self.CapShare*self.TranShkNow**(1.-self.CapShare)
         self.Rfree = 1. + self.CapShare*self.kNrmNow**(self.CapShare-1.)*self.TranShkNow**(1.-self.CapShare) - self.DeprFac
