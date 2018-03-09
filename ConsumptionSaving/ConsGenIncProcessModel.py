@@ -1,8 +1,8 @@
 '''
 Classes to solve consumption-saving models with idiosyncratic shocks to income
 in which shocks are not necessarily fully transitory or fully permanent.  Extends
-ConsIndShockModel by explicitly tracking permanent income as a state variable,
-and allows (log) permanent income to follow an AR1 process rather than random walk.
+ConsIndShockModel by explicitly tracking persistent income as a state variable,
+and allows (log) persistent income to follow an AR1 process rather than random walk.
 '''
 
 import sys 
@@ -31,7 +31,7 @@ utilityP_invP = CRRAutilityP_invP
 
 class ValueFunc2D(HARKobject):
     '''
-    A class for representing a value function in a model where permanent income
+    A class for representing a value function in a model where persistent income
     is explicitly included as a state variable.  The underlying interpolation is
     in the space of (m,p) --> u_inv(v); this class "re-curves" to the value function.
     '''
@@ -45,7 +45,7 @@ class ValueFunc2D(HARKobject):
         ----------
         vFuncNvrs : function
             A real function representing the value function composed with the
-            inverse utility function, defined on market resources and permanent
+            inverse utility function, defined on market resources and persistent
             income: u_inv(vFunc(m,p))
         CRRA : float
             Coefficient of relative risk aversion.
@@ -60,7 +60,7 @@ class ValueFunc2D(HARKobject):
     def __call__(self,m,p):
         '''
         Evaluate the value function at given levels of market resources m and
-        permanent income p.
+        persistent income p.
         
         Parameters
         ----------
@@ -73,7 +73,7 @@ class ValueFunc2D(HARKobject):
         -------
         v : float or np.array
             Lifetime value of beginning this period with market resources m and
-            permanent income p; has same size as inputs m and p.
+            persistent income p; has same size as inputs m and p.
         '''
         return utility(self.func(m,p),gam=self.CRRA)
 
@@ -83,7 +83,7 @@ class MargValueFunc2D(HARKobject):
     A class for representing a marginal value function in models where the
     standard envelope condition of v'(m,p) = u'(c(m,p)) holds (with CRRA utility).
     This is copied from ConsAggShockModel, with the second state variable re-
-    labeled as permanent income p.    
+    labeled as persistent income p.    
     '''
     distance_criteria = ['cFunc','CRRA']
     
@@ -96,7 +96,7 @@ class MargValueFunc2D(HARKobject):
         cFunc : function
             A real function representing the marginal value function composed
             with the inverse marginal utility function, defined on market
-            resources and the level of permanent income: uP_inv(vPfunc(m,p)).
+            resources and the level of persistent income: uP_inv(vPfunc(m,p)).
             Called cFunc because when standard envelope condition applies,
             uP_inv(vPfunc(m,p)) = cFunc(m,p).
         CRRA : float
@@ -112,7 +112,7 @@ class MargValueFunc2D(HARKobject):
     def __call__(self,m,p):
         '''
         Evaluate the marginal value function at given levels of market resources
-        m and permanent income p.
+        m and persistent income p.
         
         Parameters
         ----------
@@ -125,7 +125,7 @@ class MargValueFunc2D(HARKobject):
         -------
         vP : float or np.array
             Marginal value of market resources when beginning this period with
-            market resources m and permanent income p; has same size as inputs
+            market resources m and persistent income p; has same size as inputs
             m and p.
         '''
         return utilityP(self.cFunc(m,p),gam=self.CRRA)
@@ -147,7 +147,7 @@ class MargValueFunc2D(HARKobject):
         -------
         vPP : float or np.array
             Marginal marginal value of market resources when beginning this period
-            with market resources m and permanent income p; has same size as inputs
+            with market resources m and persistent income p; has same size as inputs
             m and p.
         '''
         c = self.cFunc(m,p)
@@ -171,7 +171,7 @@ class MargMargValueFunc2D(HARKobject):
         cFunc : function
             A real function representing the marginal value function composed
             with the inverse marginal utility function, defined on market
-            resources and the level of permanent income: uP_inv(vPfunc(m,p)).
+            resources and the level of persistent income: uP_inv(vPfunc(m,p)).
             Called cFunc because when standard envelope condition applies,
             uP_inv(vPfunc(M,p)) = cFunc(m,p).
         CRRA : float
@@ -187,7 +187,7 @@ class MargMargValueFunc2D(HARKobject):
     def __call__(self,m,p):
         '''
         Evaluate the marginal marginal value function at given levels of market
-        resources m and permanent income p.
+        resources m and persistent income p.
         
         Parameters
         ----------
@@ -200,7 +200,7 @@ class MargMargValueFunc2D(HARKobject):
         -------
         vPP : float or np.array
             Marginal marginal value of beginning this period with market
-            resources m and permanent income p; has same size as inputs.
+            resources m and persistent income p; has same size as inputs.
         '''
         c = self.cFunc(m,p)
         MPC = self.cFunc.derivativeX(m,p)
@@ -209,7 +209,7 @@ class MargMargValueFunc2D(HARKobject):
     
 class PermIncFuncAR1(HARKobject):
     '''
-    A class for representing AR1-style permanent income growth functions.
+    A class for representing AR1-style persistent income growth functions.
     '''
     def __init__(self,pLogMean,PermGroFac,Corr):
         '''
@@ -218,7 +218,7 @@ class PermIncFuncAR1(HARKobject):
         Parameters
         ----------
         pLogMean : float
-            Log permanent income level toward which we are drawn.
+            Log persistent income level toward which we are drawn.
         PermGroFac : float
             Permanent income growth factor for someone at pLogMean.
         Corr : float
@@ -234,18 +234,18 @@ class PermIncFuncAR1(HARKobject):
         
     def __call__(self,pLvlNow):
         '''
-        Returns expected permanent income level next period as a function of
-        this period's permanent income level.
+        Returns expected persistent income level next period as a function of
+        this period's persistent income level.
         
         Parameters
         ----------
         pLvlNow : np.array
-            Array of current permanent income levels.
+            Array of current persistent income levels.
             
         Returns
         -------
         pLvlNext : np.array
-            Identically shaped array of next period permanent income levels.
+            Identically shaped array of next period persistent income levels.
         '''
         pLvlNext = np.exp(self.Corr*np.log(pLvlNow) + (1.-self.Corr)*self.pLogMean + self.LogGroFac)
         return pLvlNext
@@ -255,17 +255,18 @@ class PermIncFuncAR1(HARKobject):
 
 class ConsGenIncProcessSolver(ConsIndShockSetup):
     '''
-    A class for solving one period problem of a consumer who experiences permanent and
+    A class for solving one period problem of a consumer who experiences persistent and
     transitory shocks to his income.  Unlike in ConsIndShock, consumers do not
-    necessarily have a constant expected permanent income growth.  Instead, they
-    have a function that translates current permanent income into expected next
-    period permanent income (subject to shocks).
+    necessarily have the same predicted level of p next period as this period
+    (after controlling for growth).  Instead, they have  a function that translates
+    current persistent income into expected next period persistent income (subject
+    to shocks).
     '''
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
                       pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
         '''
         Constructor for a new solver for a one period problem with idiosyncratic
-        shocks to permanent and transitory income, with permanent income tracked
+        shocks to persistent and transitory income, with persistent income tracked
         as a state variable rather than normalized out.
         
         Parameters
@@ -276,7 +277,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             A list containing three arrays of floats, representing a discrete
             approximation to the income process between the period being solved
             and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
+            probabilities, persistent shocks, transitory shocks.
         LivPrb : float
             Survival probability; likelihood of being alive at the beginning of
             the succeeding period.    
@@ -287,7 +288,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         Rfree : float
             Risk free interest factor on end-of-period assets.
         pLvlNextFunc : float
-            Expected permanent income next period as a function of current pLvl.
+            Expected persistent income next period as a function of current pLvl.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
             period with.
@@ -295,7 +296,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             Array of "extra" end-of-period (normalized) asset values-- assets
             above the absolute minimum acceptable level.
         pLvlGrid: np.array
-            Array of permanent income levels at which to solve the problem.
+            Array of persistent income levels at which to solve the problem.
         vFuncBool: boolean
             An indicator for whether the value function should be computed and
             included in the reported solution.
@@ -323,7 +324,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             A list containing three arrays of floats, representing a discrete
             approximation to the income process between the period being solved
             and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
+            probabilities, persistent shocks, transitory shocks.
         LivPrb : float
             Survival probability; likelihood of being alive at the beginning of
             the succeeding period.    
@@ -334,7 +335,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         Rfree : float
             Risk free interest factor on end-of-period assets.
         pLvlNextFunc : float
-            Expected permanent income next period as a function of current pLvl.
+            Expected persistent income next period as a function of current pLvl.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
             period with.
@@ -342,7 +343,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             Array of "extra" end-of-period (normalized) asset values-- assets
             above the absolute minimum acceptable level.
         pLvlGrid: np.array
-            Array of permanent income levels at which to solve the problem.
+            Array of persistent income levels at which to solve the problem.
         vFuncBool: boolean
             An indicator for whether the value function should be computed and
             included in the reported solution.
@@ -365,7 +366,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         income shocks and probabilities, next period's marginal value function
         (etc), the probability of getting the worst income shock next period,
         the patience factor, human wealth, and the bounding MPCs.  Human wealth
-        is stored as a function of permanent income.
+        is stored as a function of persistent income.
         
         Parameters
         ----------
@@ -375,7 +376,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             A list containing three arrays of floats, representing a discrete
             approximation to the income process between the period being solved
             and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
+            probabilities, persistent shocks, transitory shocks.
         LivPrb : float
             Survival probability; likelihood of being alive at the beginning of
             the succeeding period.    
@@ -390,7 +391,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         ConsIndShockSetup.setAndUpdateValues(self,solution_next,IncomeDstn,LivPrb,DiscFac)
         self.mLvlMinNext = solution_next.mLvlMin
         
-        # Replace normalized human wealth (scalar) with human wealth level as function of permanent income
+        # Replace normalized human wealth (scalar) with human wealth level as function of persistent income
         self.hNrmNow = 0.0
         pLvlCount    = self.pLvlGrid.size
         IncShkCount  = self.PermShkValsNext.size
@@ -422,7 +423,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         TranShkVals_temp = np.tile(np.reshape(self.TranShkValsNext,(1,ShkCount)),(pLvlCount,1))
         pLvlNext_temp = np.tile(np.reshape(self.pLvlNextFunc(self.pLvlGrid),(pLvlCount,1)),(1,ShkCount))*PermShkVals_temp
         
-        # Find the natural borrowing constraint for each permanent income level
+        # Find the natural borrowing constraint for each persistent income level
         aLvlMin_candidates = (self.mLvlMinNext(pLvlNext_temp) - TranShkVals_temp*pLvlNext_temp)/self.Rfree
         aLvlMinNow = np.max(aLvlMin_candidates,axis=1)
         self.BoroCnstNat = LinearInterp(np.insert(self.pLvlGrid,0,0.0),np.insert(aLvlMinNow,0,0.0))
@@ -443,7 +444,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         '''
         Prepare to calculate end-of-period marginal value by creating an array
         of market resources that the agent could have next period, considering
-        the grid of end-of-period normalized assets, the grid of permanent income
+        the grid of end-of-period normalized assets, the grid of persistent income
         levels, and the distribution of shocks he might experience next period.
         
         Parameters
@@ -455,7 +456,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         aLvlNow : np.array
             2D array of end-of-period assets; also stored as attribute of self.
         pLvlNow : np.array
-            2D array of permanent income levels this period.
+            2D array of persistent income levels this period.
         '''
         ShkCount    = self.TranShkValsNext.size
         pLvlCount   = self.pLvlGrid.size
@@ -531,7 +532,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             EndOfPrdvNvrsP = np.concatenate((np.reshape(EndOfPrdvNvrsP[:,0],(self.pLvlGrid.size,1)),EndOfPrdvNvrsP),axis=1) # This is a very good approximation, vNvrsPP = 0 at the asset minimum
         aLvl_temp          = np.concatenate((np.reshape(self.BoroCnstNat(self.pLvlGrid),(self.pLvlGrid.size,1)),self.aLvlNow),axis=1)
         
-        # Make an end-of-period value function for each permanent income level in the grid
+        # Make an end-of-period value function for each persistent income level in the grid
         EndOfPrdvNvrsFunc_list = []
         for p in range(self.pLvlGrid.size):
             EndOfPrdvNvrsFunc_list.append(CubicInterp(aLvl_temp[p,:]-self.BoroCnstNat(self.pLvlGrid[p]),EndOfPrdvNvrs[p,:],EndOfPrdvNvrsP[p,:]))
@@ -586,7 +587,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         mLvl : np.array
             Corresponding market resource points for interpolation.
         pLvl : np.array
-            Corresponding permanent income level points for interpolation.
+            Corresponding persistent income level points for interpolation.
         interpolator : function
             A function that constructs and returns a consumption function.
             
@@ -617,7 +618,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         ----------
         cFunc : function
             Consumption function this period, defined over market resources and
-            permanent income level.
+            persistent income level.
         
         Returns
         -------
@@ -630,7 +631,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     def makevFunc(self,solution):
         '''
         Creates the value function for this period, defined over market resources
-        m and permanent income p.  self must have the attribute EndOfPrdvFunc in
+        m and persistent income p.  self must have the attribute EndOfPrdvFunc in
         order to execute.
         
         Parameters
@@ -643,7 +644,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         -------
         vFuncNow : ValueFunc
             A representation of the value function for this period, defined over
-            market resources m and permanent income p: v = vFuncNow(m,p).
+            market resources m and persistent income p: v = vFuncNow(m,p).
         '''
         mSize = self.aXtraGrid.size
         pSize = self.pLvlGrid.size
@@ -697,7 +698,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             Array of end-of-period asset values that yield the marginal values
             in EndOfPrdvP.
         pLvl : np.array
-            Array of permanent income levels that yield the marginal values
+            Array of persistent income levels that yield the marginal values
             in EndOfPrdvP (corresponding pointwise to aLvl).            
         interpolator : function
             A function that constructs and returns a consumption function.
@@ -775,7 +776,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         MPC         = np.concatenate((np.reshape(MPC[:,0],(MPC.shape[0],1)),MPC),axis=1) # Stick an extra MPC value at bottom; MPCmax doesn't work
         MPC         = np.concatenate((self.MPCminNow*np.ones((1,self.aXtraGrid.size+1)),MPC),axis=0)
 
-        # Make cubic consumption function with respect to mLvl for each permanent income level
+        # Make cubic consumption function with respect to mLvl for each persistent income level
         cFunc_by_pLvl_list = [] # list of consumption functions for each pLvl
         for j in range(pLvl.shape[0]):
             pLvl_j = pLvl[j,0]
@@ -837,7 +838,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     def solve(self):
         '''
         Solves a one period consumption saving problem with risky income, with
-        permanent income explicitly tracked as a state variable.
+        persistent income explicitly tracked as a state variable.
         
         Parameters
         ----------
@@ -847,9 +848,9 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         -------
         solution : ConsumerSolution
             The solution to the one period problem, including a consumption
-            function (defined over market resources and permanent income), a
+            function (defined over market resources and persistent income), a
             marginal value function, bounding MPCs, and human wealth as a func-
-            tion of permanent income.  Might also include a value function and
+            tion of persistent income.  Might also include a value function and
             marginal marginal value function, depending on options selected.
         '''
         aLvl,pLvl  = self.prepareToCalcEndOfPrdvP()           
@@ -872,11 +873,11 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
 def solveConsGenIncProcess(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,pLvlNextFunc,
                                 BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
     '''
-    Solves the one period problem of a consumer who experiences permanent and
+    Solves the one period problem of a consumer who experiences persistent and
     transitory shocks to his income.  Unlike in ConsIndShock, consumers do not
-    necessarily have a constant expected permanent income growth.  Instead, they
-    have a function that translates current permanent income into expected next
-    period permanent income (subject to shocks).
+    necessarily have expected persistent income growth that is constant with respect
+    to their current level of pLvl.  Instead, they have a function that translates
+    current pLvl into expected next period pLvl (subject to shocks).
     
     Parameters
     ----------
@@ -886,7 +887,7 @@ def solveConsGenIncProcess(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,pL
         A list containing three arrays of floats, representing a discrete
         approximation to the income process between the period being solved
         and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
+        probabilities, persistent shocks, transitory shocks.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.    
@@ -897,7 +898,7 @@ def solveConsGenIncProcess(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,pL
     Rfree : float
         Risk free interest factor on end-of-period assets.
     pLvlNextFunc : float
-        Expected permanent income next period as a function of current pLvl.
+        Expected persistent income next period as a function of current pLvl.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the
         period with.  Currently ignored, with BoroCnstArt=0 used implicitly.
@@ -905,7 +906,7 @@ def solveConsGenIncProcess(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,pL
         Array of "extra" end-of-period (normalized) asset values-- assets
         above the absolute minimum acceptable level.
     pLvlGrid: np.array
-        Array of permanent income levels at which to solve the problem.
+        Array of persistent income levels at which to solve the problem.
     vFuncBool: boolean
         An indicator for whether the value function should be computed and
         included in the reported solution.
@@ -916,7 +917,7 @@ def solveConsGenIncProcess(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,pL
     -------
     solution : ConsumerSolution
             The solution to the one period problem, including a consumption
-            function (defined over market resources and permanent income), a
+            function (defined over market resources and persistent income), a
             marginal value function, bounding MPCs, and normalized human wealth.
     '''
     solver = ConsGenIncProcessSolver(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
@@ -930,9 +931,9 @@ def solveConsGenIncProcess(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,pL
     
 class GenIncProcessConsumerType(IndShockConsumerType):
     '''
-    A consumer type with idiosyncratic shocks to permanent and transitory income.
+    A consumer type with idiosyncratic shocks to persistent and transitory income.
     His problem is defined by a sequence of income distributions, survival prob-
-    abilities, and permanent income growth functions, as well as time invariant
+    abilities, and persistent income growth functions, as well as time invariant
     values for risk aversion, discount factor, the interest rate, the grid of
     end-of-period assets, and an artificial borrowing constraint.
     '''
@@ -959,11 +960,11 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         '''       
         # Initialize a basic ConsumerType
         IndShockConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
-        self.solveOnePeriod = solveConsGenIncProcess # idiosyncratic shocks solver with explicit permanent income
+        self.solveOnePeriod = solveConsGenIncProcess # idiosyncratic shocks solver with explicit persistent income
         
     def update(self):
         '''
-        Update the income process, the assets grid, the permanent income grid,
+        Update the income process, the assets grid, the persistent income grid,
         and the terminal solution.
         
         Parameters
@@ -995,14 +996,14 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         self.solution_terminal.vPfunc = MargValueFunc2D(self.cFunc_terminal_,self.CRRA)
         self.solution_terminal.vPPfunc = MargMargValueFunc2D(self.cFunc_terminal_,self.CRRA)
         self.solution_terminal.hNrm = 0.0 # Don't track normalized human wealth
-        self.solution_terminal.hLvl = lambda p : np.zeros_like(p) # But do track absolute human wealth by permanent income
+        self.solution_terminal.hLvl = lambda p : np.zeros_like(p) # But do track absolute human wealth by persistent income
         self.solution_terminal.mLvlMin = lambda p : np.zeros_like(p) # And minimum allowable market resources by perm inc
         
         
     def updatepLvlNextFunc(self):
         '''
         A dummy method that creates a trivial pLvlNextFunc attribute that has
-        no permanent income dynamics.  This method should be overwritten by
+        no persistent income dynamics.  This method should be overwritten by
         subclasses in order to make (e.g.) an AR1 income process.
         
         Parameters
@@ -1042,13 +1043,13 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         
     def updatePermIncGrid(self):
         '''
-        Update the grid of permanent income levels.  Currently only works for
+        Update the grid of persistent income levels.  Currently only works for
         infinite horizon models (cycles=0) and lifecycle models (cycles=1).  Not
-        clear what to do about cycles>1 because the distribution of permanent
+        clear what to do about cycles>1 because the distribution of persistent
         income will be different within a period depending on how many cycles
         have elapsed.  This method uses a simulation approach to generate the
         pLvlGrid at each period of the cycle, drawing on the initial distribution
-        of permanent income, the pLvlNextFuncs, and the attribute pLvlPctiles.
+        of persistent income, the pLvlNextFuncs, and the attribute pLvlPctiles.
         
         Parameters
         ----------
@@ -1062,11 +1063,11 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         self.timeFwd()
         LivPrbAll = np.array(self.LivPrb)
         
-        # Simulate the distribution of permanent income levels by t_cycle in a lifecycle model
+        # Simulate the distribution of persistent income levels by t_cycle in a lifecycle model
         if self.cycles == 1: 
             pLvlNow = drawLognormal(self.AgentCount,mu=self.pLvlInitMean,sigma=self.pLvlInitStd,seed=31382)
-            PermIncGrid = [] # empty list of time-varying permanent income grids
-            # Calculate distribution of permanent income in each period of lifecycle
+            PermIncGrid = [] # empty list of time-varying persistent income grids
+            # Calculate distribution of persistent income in each period of lifecycle
             for t in range(len(self.PermShkStd)):
                 if t > 0:
                     PermShkNow = drawDiscrete(N=self.AgentCount,P=self.PermShkDstn[t-1][0],X=self.PermShkDstn[t-1][1],exact_match=False,seed=t)
@@ -1084,7 +1085,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
                 who_dies = draws > LivPrb
                 pLvlNow[who_dies] = drawLognormal(np.sum(who_dies),mu=self.pLvlInitMean,sigma=self.pLvlInitStd,seed=t+92615)
                 t_cycle[who_dies] = 0
-                for j in range(self.T_cycle): # Update permanent income
+                for j in range(self.T_cycle): # Update persistent income
                     these = t_cycle == j
                     PermShkTemp = drawDiscrete(N=np.sum(these),P=self.PermShkDstn[j][0],X=self.PermShkDstn[j][1],exact_match=False,seed=t+13*j)
                     pLvlNow[these] = self.pLvlNextFunc[j](pLvlNow[these])*PermShkTemp
@@ -1092,7 +1093,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
                 t_cycle[t_cycle == self.T_cycle] = 0
             
             # We now have a "long run stationary distribution", extract percentiles
-            PermIncGrid = [] # empty list of time-varying permanent income grids
+            PermIncGrid = [] # empty list of time-varying persistent income grids
             for t in range(self.T_cycle):
                 these = t_cycle == t
                 PermIncGrid.append(getPercentiles(pLvlNow[these],percentiles=self.pLvlPctiles))
@@ -1110,7 +1111,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     def simBirth(self,which_agents):
         '''
         Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
-        well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
+        well as time variables t_age and t_cycle.  Normalized assets and persistent income levels
         are drawn from lognormal distributions given by aNrmInitMean and aNrmInitStd (etc).
         
         Parameters
@@ -1133,7 +1134,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
                     
     def getStates(self):
         '''
-        Calculates updated values of normalized market resources and permanent income level for each
+        Calculates updated values of normalized market resources and persistent income level for each
         agent.  Uses pLvlNow, aLvlNow, PermShkNow, TranShkNow.
         
         Parameters
@@ -1147,12 +1148,12 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         aLvlPrev = self.aLvlNow
         RfreeNow = self.getRfree()
         
-        # Calculate new states: normalized market resources and permanent income level
+        # Calculate new states: normalized market resources and persistent income level
         pLvlNow = np.zeros_like(aLvlPrev)
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             pLvlNow[these] = self.pLvlNextFunc[t-1](self.pLvlNow[these])*self.PermShkNow[these]
-        self.pLvlNow = pLvlNow                  # Updated permanent income level
+        self.pLvlNow = pLvlNow                  # Updated persistent income level
         self.bLvlNow = RfreeNow*aLvlPrev        # Bank balances before labor income
         self.mLvlNow = self.bLvlNow + self.TranShkNow*self.pLvlNow # Market resources after income
 
@@ -1237,12 +1238,12 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
                         
 class PersistentShockConsumerType(GenIncProcessConsumerType):
     '''
-    A consumer type with idiosyncratic shocks to permanent and transitory income.
+    A consumer type with idiosyncratic shocks to persistent and transitory income.
     His problem is defined by a sequence of income distributions, survival prob-
-    abilities, and permanent income growth rates, as well as time invariant values
+    abilities, and persistent income growth rates, as well as time invariant values
     for risk aversion, discount factor, the interest rate, the grid of end-of-
     period assets, an artificial borrowing constraint, and the correlation
-    coefficient for (log) permanent income.
+    coefficient for (log) persistent income.
     '''
     def updatepLvlNextFunc(self):
         '''
@@ -1263,7 +1264,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         self.timeFwd()
         
         pLvlNextFunc = []
-        pLogMean = self.pLvlInitMean # Initial mean (log) permanent income
+        pLogMean = self.pLvlInitMean # Initial mean (log) persistent income
         
         for t in range(self.T_cycle):
             pLvlNextFunc.append(PermIncFuncAR1(pLogMean,self.PermGroFac[t],self.PermIncCorr))
@@ -1337,7 +1338,7 @@ if __name__ == '__main__':
     t_end = clock()
     print('Solving a persistent income shocks consumer took ' + mystr(t_end-t_start) + ' seconds.')
     
-    # Plot the consumption function at various permanent income levels
+    # Plot the consumption function at various persistent income levels
     pGrid = np.linspace(0.1,3,24)
     M = np.linspace(0,20,300)
     for p in pGrid:
@@ -1348,7 +1349,7 @@ if __name__ == '__main__':
     plt.ylabel('Consumption level cLvl')
     plt.show()
     
-    # Plot the value function at various permanent income levels
+    # Plot the value function at various persistent income levels
     if PersistentExample.vFuncBool:
         pGrid = np.linspace(0.1,3.0,24)
         M = np.linspace(0.001,5,300)
