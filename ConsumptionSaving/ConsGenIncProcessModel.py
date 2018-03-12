@@ -314,7 +314,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     def assignParameters(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
                          pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
         '''
-        Assigns period parameters as attributes of self for use by other methods
+        Assigns inputs as attributes of self for use by other methods
         
         Parameters
         ----------
@@ -650,7 +650,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         pSize = self.pLvlGrid.size
         
         # Compute expected value and marginal value on a grid of market resources
-        pLvl_temp   = np.tile(self.pLvlGrid,(mSize,1))
+        pLvl_temp   = np.tile(self.pLvlGrid,(mSize,1)) # Tile pLvl across m values
         mLvl_temp   = np.tile(self.mLvlMinNow(self.pLvlGrid),(mSize,1)) + np.tile(np.reshape(self.aXtraGrid,(mSize,1)),(1,pSize))*pLvl_temp
         cLvlNow     = solution.cFunc(mLvl_temp,pLvl_temp)
         aLvlNow     = mLvl_temp - cLvlNow
