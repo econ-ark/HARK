@@ -1,0 +1,33 @@
+\provideboolean{Slides} \setboolean{Slides}{false}  
+\begin{center}\label{table:calibration}  
+\begin{tabular}{cd{5}l}  
+\\ \toprule  
+\multicolumn{3}{c}{\textbf{Macroeconomic Parameters} }  
+\\ $\kapShare$ & 0.36 & Capital's Share of Income   
+\\ $\daleth$ & 0.94^{1/4} & Depreciation Factor   
+\\ $\sigma_{\Theta}^{2}$ & 0.00001 & Variance Aggregate Transitory Shocks 
+\\ $\sigma_{\Psi}^{2}$ & 0.00004 & Variance Aggregate Permanent Shocks 
+\\ \midrule  
+\multicolumn{3}{c}{ \textbf{Steady State of Perfect Foresight DSGE Model} } \  
+\\ \multicolumn{3}{c}{ $(\sigma_{\Psi}=\sigma_{\Theta}=\sigma_{\psi}=\sigma_{\theta}=\wp=\PDies=0$, $\Phi_t = 1)$} \  
+\\ $\breve{K}/\breve{K}^{\kapShare}$ & 12.0 & SS Capital to Output Ratio  
+\\ $\breve{K}$ & 48.55 & SS Capital to Labor Productivity Ratio ($=12^{1/(1-\kapShare)}$) 
+\\ $\breve{\Wage}$ &  2.59 & SS Wage Rate ($=(1-\kapShare)\breve{K}^{\kapShare}$) 
+\\ $\breve{\mathsf{r}}$ & 0.03 & SS Interest Rate ($=\kapShare \breve{K}^{\kapShare-1}$) 
+\\ $\breve{\mathcal{R}}$ & 1.015& SS Between-Period Return Factor ($=\daleth + \breve{\mathsf{r}}$) 
+\\ \midrule  
+\multicolumn{3}{c}{ \textbf{Preference Parameters} }  
+\\ $\rho$ & 2. & Coefficient of Relative Risk Aversion 
+\\ $\beta_{SOE}$ &  0.970 & SOE Discount Factor 
+\\ $\beta_{DSGE}$ &  0.986 & HA-DSGE Discount Factor ($=\breve{\mathcal{R}}^{-1}$) 
+\\ $\Pi$                    & 0.25  & Probability of Updating Expectations (if Sticky) 
+\\ \midrule  
+\multicolumn{3}{c}{ \textbf{Idiosyncratic Shock Parameters} }  
+\\ $\sigma_{\theta}^{2}$    & 0.120     & Variance Idiosyncratic Tran Shocks (=$4 \times$ Annual) 
+\\ $\sigma_{\psi}^{2}$      &0.003      & Variance Idiosyncratic Perm Shocks (=$\frac{1}{4} \times$ Annual) 
+\\ $\wp$                    & 0.050  & Probability of Unemployment Spell 
+\\ $\PDies$             & 0.005  & Probability of Mortality 
+\\ \bottomrule  
+\end{tabular}  
+\end{center}  
+\ifthenelse{\boolean{StandAlone}}{\end{document}}{}    
