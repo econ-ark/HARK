@@ -905,45 +905,6 @@ def combineIndepDstns(*distributions):
     assert np.isclose(np.sum(P_out),1),'Probabilities do not sum to 1!'
     return [P_out,] + X_out 
 
-def TauchenAR1(sigma, rho, N, m):
-    '''
-    Function to return a discretized version of an AR1 process.
-    See http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
-
-    Parameters
-    ----------
-    sigma: float
-        standard deviation of the error term
-    rho: float
-        AR1 coefficient
-    N: int
-        size of discretized grid
-    m: float
-        the largest grid point will be m multiplied by the unconditional 
-        standard deviation of the process
- 
-    Returns
-    -------
-    y: np.array
-        Grid points on which the discretized process takes values
-    trans_matrix: np.array
-        Markov transition array for the discretized process
-
-    '''
-    yN = m*sigma/((1-rho**2)**0.5)
-    y = np.linspace(-yN,yN,N)
-    d = y[1]-y[0]
-    trans_matrix = np.ones((N,N))
-    for j in range(N):
-        for k_1 in range(N-2):
-            k=k_1+1
-            trans_matrix[j,k] = norm.cdf((y[k] + d/2.0 - rho*y[j])/sigma) - norm.cdf((y[k] - d/2.0 - rho*y[j])/sigma)
-        trans_matrix[j,0] = norm.cdf((y[0] + d/2.0 - rho*y[j])/sigma)
-        trans_matrix[j,N-1] = 1.0 - norm.cdf((y[N-1] - d/2.0 - rho*y[j])/sigma)
-        
-    return y, trans_matrix
-
-
 # ==============================================================================
 # ============== Functions for generating state space grids  ===================
 # ==============================================================================
