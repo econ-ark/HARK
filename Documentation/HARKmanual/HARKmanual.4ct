@@ -1,0 +1,34 @@
+\expandafter\ifx\csname doTocEntry\endcsname\relax \expandafter\endinput\fi 
+\doTocEntry\toclikesection{}{\csname a:TocLink\endcsname{1}{x1-1000}{QQ2-1-1}{Contents}}{2}\relax 
+\doTocEntry\tocsection{1}{\csname a:TocLink\endcsname{1}{x1-20001}{QQ2-1-2}{Introduction}}{3}\relax 
+\doTocEntry\tocsubsection{1.1}{\csname a:TocLink\endcsname{1}{x1-30001.1}{QQ2-1-3}{Getting Started}}{4}\relax 
+\doTocEntry\tocsubsection{1.2}{\csname a:TocLink\endcsname{1}{x1-40001.2}{QQ2-1-4}{Structure of HARK}}{5}\relax 
+\doTocEntry\tocsubsection{1.3}{\csname a:TocLink\endcsname{1}{x1-50001.3}{QQ2-1-5}{Other Resources}}{7}\relax 
+\doTocEntry\tocsection{2}{\csname a:TocLink\endcsname{1}{x1-60002}{QQ2-1-6}{General Purpose Tools}}{8}\relax 
+\doTocEntry\tocsubsection{2.1}{\csname a:TocLink\endcsname{1}{x1-70002.1}{QQ2-1-7}{HARKcore}}{9}\relax 
+\doTocEntry\tocsubsection{2.2}{\csname a:TocLink\endcsname{1}{x1-80002.2}{QQ2-1-8}{HARKutilities}}{10}\relax 
+\doTocEntry\tocsubsection{2.3}{\csname a:TocLink\endcsname{1}{x1-90002.3}{QQ2-1-9}{HARKinterpolation}}{10}\relax 
+\doTocEntry\tocsubsection{2.4}{\csname a:TocLink\endcsname{1}{x1-100002.4}{QQ2-1-10}{HARKsimulation}}{11}\relax 
+\doTocEntry\tocsubsection{2.5}{\csname a:TocLink\endcsname{1}{x1-110002.5}{QQ2-1-11}{HARKestimation}}{12}\relax 
+\doTocEntry\tocsubsection{2.6}{\csname a:TocLink\endcsname{1}{x1-120002.6}{QQ2-1-12}{HARKparallel}}{12}\relax 
+\doTocEntry\tocsection{3}{\csname a:TocLink\endcsname{1}{x1-130003}{QQ2-1-13}{Microeconomics: the AgentType Class}}{12}\relax 
+\doTocEntry\tocsubsection{3.1}{\csname a:TocLink\endcsname{1}{x1-140003.1}{QQ2-1-14}{Attributes of an AgentType}}{13}\relax 
+\doTocEntry\tocsubsection{3.2}{\csname a:TocLink\endcsname{1}{x1-150003.2}{QQ2-1-15}{A Universal Solver}}{14}\relax 
+\doTocEntry\tocsubsection{3.3}{\csname a:TocLink\endcsname{1}{x1-160003.3}{QQ2-1-16}{The Flow of Time and Other Methods}}{15}\relax 
+\doTocEntry\tocsubsection{3.4}{\csname a:TocLink\endcsname{1}{x1-170003.4}{QQ2-1-17}{Sample Model: Perfect Foresight Consumption-Saving}}{17}\relax 
+\doTocEntry\tocsection{4}{\csname a:TocLink\endcsname{1}{x1-180004}{QQ2-1-18}{Macroeconomics: the Market Class}}{19}\relax 
+\doTocEntry\tocsubsection{4.1}{\csname a:TocLink\endcsname{1}{x1-190004.1}{QQ2-1-19}{Down on the Farm}}{19}\relax 
+\doTocEntry\tocsubsection{4.2}{\csname a:TocLink\endcsname{1}{x1-200004.2}{QQ2-1-20}{Attributes of a Market}}{20}\relax 
+\doTocEntry\tocsubsection{4.3}{\csname a:TocLink\endcsname{1}{x1-210004.3}{QQ2-1-21}{Sample Model: FashionVictim}}{22}\relax 
+\doTocEntry\tocsection{5}{\csname a:TocLink\endcsname{1}{x1-220005}{QQ2-1-22}{Contributing to HARK}}{25}\relax 
+\doTocEntry\tocsubsection{5.1}{\csname a:TocLink\endcsname{1}{x1-230005.1}{QQ2-1-23}{What Does HARK Want?}}{25}\relax 
+\doTocEntry\tocsubsection{5.2}{\csname a:TocLink\endcsname{1}{x1-240005.2}{QQ2-1-24}{Git and GitHub}}{26}\relax 
+\doTocEntry\tocsubsection{5.3}{\csname a:TocLink\endcsname{1}{x1-250005.3}{QQ2-1-25}{Submission Approval Process}}{29}\relax 
+\doTocEntry\tocsubsection{5.4}{\csname a:TocLink\endcsname{1}{x1-260005.4}{QQ2-1-26}{Naming Conventions}}{31}\relax 
+\doTocEntry\tocsubsection{5.5}{\csname a:TocLink\endcsname{1}{x1-270005.5}{QQ2-1-27}{Documentation Conventions}}{32}\relax 
+\doTocEntry\tocsection{6}{\csname a:TocLink\endcsname{1}{x1-280006}{QQ2-1-28}{Future of HARK}}{34}\relax 
+\doTocEntry\tocsubsection{6.1}{\csname a:TocLink\endcsname{1}{x1-290006.1}{QQ2-1-29}{Future Tools}}{34}\relax 
+\doTocEntry\tocsubsection{6.2}{\csname a:TocLink\endcsname{1}{x1-300006.2}{QQ2-1-30}{Future Models}}{35}\relax 
+\doTocEntry\tocsubsection{6.3}{\csname a:TocLink\endcsname{1}{x1-310006.3}{QQ2-1-31}{Bounty Hunting}}{37}\relax 
+\doTocEntry\tocsubsection{6.4}{\csname a:TocLink\endcsname{1}{x1-320006.4}{QQ2-1-32}{All Aboard the Ark}}{37}\relax 
+\par 
