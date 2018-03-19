@@ -139,7 +139,7 @@ class AggShockConsumerType(IndShockConsumerType):
             
         Returns
         -------
-        None =
+        None
         '''
         self.T_sim = Economy.act_T                          # Need to be able to track as many periods as economy runs
         self.kInit = Economy.kSS                            # Initialize simulation assets to steady state
