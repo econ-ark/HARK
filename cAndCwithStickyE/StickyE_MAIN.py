@@ -8,8 +8,8 @@ the tables directory.  See StickyEparams for calibrated model parameters.
 
 import sys 
 import os
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
+#sys.path.insert(0, os.path.abspath('../'))
+#sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
 import csv
@@ -23,7 +23,8 @@ import matplotlib.pyplot as plt
 import StickyEparams as Params
 from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable,\
                   runStickyEregressionsInStata, makeParameterTable, makeEquilibriumTable,\
-                  makeMicroRegressionTable, extractSampleMicroData, makeuCostVsPiFig, makeValueVsAggShkVarFig
+                  makeMicroRegressionTable, extractSampleMicroData, makeuCostVsPiFig, \
+                  makeValueVsAggShkVarFig, makeValueVsPiFig
 
 # Choose which models to do work for
 do_SOE  = False
@@ -34,9 +35,7 @@ do_RA   = False
 run_models = False       # Whether to solve models and generate new simulated data
 calc_micro_stats = False # Whether to calculate microeconomic statistics (only matters when run_models is True)
 make_tables = False      # Whether to make LaTeX tables in the /Tables folder
-make_emp_table = False   # Whether to run regressions for the U.S. empirical table (automatically done in Stata)
-make_histogram = False   # Whether to construct the histogram of "habit" parameter estimates
-use_stata = False        # Whether to use Stata to run regressions
+use_stata = False        # Whether to use Stata to run the simulated time series regressions
 save_data = False        # Whether to save data for use in Stata (as a tab-delimited text file)
 run_ucost_vs_pi = False  # Whether to run an exercise that finds the cost of stickiness as it varies with update probability
 run_value_vs_aggvar = False # Whether to run an exercise to find value at birth vs variance of aggregate permanent shocks
@@ -48,6 +47,7 @@ interval_count = (total_periods-ignore_periods)/interval_size # Number of interv
 periods_to_sim_micro = Params.periods_to_sim_micro # To save memory, micro regressions are run on a smaller sample
 AgentCount_micro = Params.AgentCount_micro # To save memory, micro regressions are run on a smaller sample
 my_counts = [interval_size,interval_count]
+alt_counts = [interval_size*interval_count,1]
 mystr = lambda number : "{:.3f}".format(number)
 results_dir = Params.results_dir
 empirical_dir = Params.empirical_dir
@@ -132,7 +132,7 @@ if __name__ == '__main__':
             makeStickyEdataFile(StickySOmarkovEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats,meas_err_base=DeltaLogC_stdev)
             if calc_micro_stats:
                 frictionless_SOEmarkov_micro_data = extractSampleMicroData(StickySOmarkovEconomy, np.minimum(StickySOmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickySOmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
-                makeMicroRegressionTable('CGrowCross.tex', [frictionless_SOEmarkov_micro_data,sticky_SOEmarkov_micro_data])
+                makeMicroRegressionTable('CGrowCross', [frictionless_SOEmarkov_micro_data,sticky_SOEmarkov_micro_data])
             
             if run_ucost_vs_pi:
                 # Find the birth value and cost of stickiness as it varies with updating probability
@@ -196,10 +196,15 @@ if __name__ == '__main__':
             t_start = clock()
             frictionless_panel = runRegressions('SOEmarkovFrictionlessData',interval_size,False,False,True)
             frictionless_me_panel = runRegressions('SOEmarkovFrictionlessData',interval_size,True,False,True)
+            frictionless_long_panel = runRegressions('SOEmarkovFrictionlessData',interval_size*interval_count,True,False,True)
             sticky_panel = runRegressions('SOEmarkovStickyData',interval_size,False,True,True)
             sticky_me_panel = runRegressions('SOEmarkovStickyData',interval_size,True,True,True)
+            sticky_long_panel = runRegressions('SOEmarkovStickyData',interval_size*interval_count,True,True,True)
             makeResultsTable('Aggregate Consumption Dynamics in SOE Model',[frictionless_me_panel,sticky_me_panel],my_counts,'SOEmrkvSimReg','tPESOEsim')
-            makeResultsTable('Aggregate Consumption Dynamics in SOE Model',[frictionless_panel,sticky_panel],my_counts,'SOEmrkvSimRegNoMeasErr','tPESOEsimX')
+            makeResultsTable('Aggregate Consumption Dynamics in SOE Model',[frictionless_panel,sticky_panel],my_counts,'SOEmrkvSimRegNoMeasErr','tPESOEsimNoMeasErr')
+            makeResultsTable('Aggregate Consumption Dynamics in SOE Model',[frictionless_long_panel,sticky_long_panel],alt_counts,'SOEmrkvSimRegLong','tSOEsimLong')
+            makeResultsTable(None,[frictionless_me_panel],my_counts,'SOEmrkvSimRegF','tPESOEsimF')
+            makeResultsTable(None,[sticky_me_panel],my_counts,'SOEmrkvSimRegS','tPESOEsimS')
             t_end = clock()
             print('Running time series regressions for the small open Markov economy took ' + mystr(t_end-t_start) + ' seconds.')
     
@@ -281,17 +286,22 @@ if __name__ == '__main__':
                 os.remove(results_dir + name + 'BirthValue.csv') # Delete the frictionless birth value file
                 os.rename(results_dir + sticky_name + 'TEMPBirthValue.csv',results_dir + name + 'BirthValue.csv') # Replace just deleted file with "alternate" value calculation
                 frictionless_DSGEmarkov_micro_data = extractSampleMicroData(StickyDSGEmarkovEconomy, np.minimum(StickyDSGEmarkovEconomy.act_T-ignore_periods-1,periods_to_sim_micro), np.minimum(StickyDSGEmarkovEconomy.agents[0].AgentCount,AgentCount_micro), ignore_periods)
-                makeMicroRegressionTable('CGrowCrossDSGE.tex', [frictionless_DSGEmarkov_micro_data,sticky_DSGEmarkov_micro_data])
+                makeMicroRegressionTable('CGrowCrossDSGE', [frictionless_DSGEmarkov_micro_data,sticky_DSGEmarkov_micro_data])
         
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
             t_start = clock()
             frictionless_panel = runRegressions('DSGEmarkovFrictionlessData',interval_size,False,False,True)
             frictionless_me_panel = runRegressions('DSGEmarkovFrictionlessData',interval_size,True,False,True)
+            frictionless_long_panel = runRegressions('DSGEmarkovFrictionlessData',interval_size*interval_count,True,False,True)
             sticky_panel = runRegressions('DSGEmarkovStickyData',interval_size,False,True,True)
             sticky_me_panel = runRegressions('DSGEmarkovStickyData',interval_size,True,True,True)
+            sticky_long_panel = runRegressions('DSGEmarkovStickyData',interval_size*interval_count,True,True,True)
             makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Model',[frictionless_me_panel,sticky_me_panel],my_counts,'DSGEmrkvSimReg','tDSGEsim')
-            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Model',[frictionless_panel,sticky_panel],my_counts,'DSGEmrkvSimRegNoMeasErr','tDSGEsimX')
+            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Model',[frictionless_panel,sticky_panel],my_counts,'DSGEmrkvSimRegNoMeasErr','tDSGEsimNoMeasErr')
+            makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Model',[frictionless_long_panel,sticky_long_panel],alt_counts,'DSGEmrkvSimRegLong','tDSGEsimLong')
+            makeResultsTable(None,[frictionless_me_panel],my_counts,'DSGEmrkvSimRegF','tDSGEsimF')
+            makeResultsTable(None,[sticky_me_panel],my_counts,'DSGEmrkvSimRegS','tDSGEsimS')
             t_end = clock()
             print('Running time series regressions for the Cobb-Douglas Markov economy took ' + mystr(t_end-t_start) + ' seconds.')
        
@@ -350,10 +360,13 @@ if __name__ == '__main__':
             t_start = clock()
             frictionless_panel = runRegressions('RAmarkovFrictionlessData',interval_size,False,False,True)
             frictionless_me_panel = runRegressions('RAmarkovFrictionlessData',interval_size,True,False,True)
+            frictionless_long_panel = runRegressions('RAmarkovFrictionlessData',interval_size*interval_count,True,False,True)
             sticky_panel = runRegressions('RAmarkovStickyData',interval_size,False,True,True)
             sticky_me_panel = runRegressions('RAmarkovStickyData',interval_size,True,True,True)
+            sticky_long_panel = runRegressions('RAmarkovStickyData',interval_size*interval_count,True,True,True)
             makeResultsTable('Aggregate Consumption Dynamics in RA Model',[frictionless_me_panel,sticky_me_panel],my_counts,'RepAgentMrkvSimReg','tRAsim')
-            makeResultsTable('Aggregate Consumption Dynamics in RA Model',[frictionless_panel,sticky_panel],my_counts,'RepAgentMrkvSimRegNoMeasErr','tRAsimX')
+            makeResultsTable('Aggregate Consumption Dynamics in RA Model',[frictionless_panel,sticky_panel],my_counts,'RepAgentMrkvSimRegNoMeasErr','tRAsimNoMeasErr')
+            makeResultsTable('Aggregate Consumption Dynamics in RA Model',[frictionless_long_panel,sticky_long_panel],alt_counts,'RepAgentMrkvSimRegLong','tRAsimLong')
             t_end = clock()
             print('Running time series regressions for the representative agent Markov economy took ' + mystr(t_end-t_start) + ' seconds.')
         
@@ -361,29 +374,15 @@ if __name__ == '__main__':
     ########### MAKE OTHER TABLES AND FIGURES #####################################
     ###############################################################################
     if make_tables:
-        makeEquilibriumTable('Eqbm.tex', ['SOEmarkovFrictionless','SOEmarkovSticky','DSGEmarkovFrictionless','DSGEmarkovSticky'],Params.init_SOE_consumer['CRRA'])
-        makeParameterTable('Calibration.tex', Params)
+        makeEquilibriumTable('Eqbm', ['SOEmarkovFrictionless','SOEmarkovSticky','DSGEmarkovFrictionless','DSGEmarkovSticky'],Params.init_SOE_consumer['CRRA'])
+        makeParameterTable('Calibration', Params)
     
     if run_ucost_vs_pi:
         makeuCostVsPiFig('SOEuCostbyUpdatePrb')
+        makeValueVsPiFig('SOEvVecByUpdatePrb')
     
     if run_value_vs_aggvar:
         makeValueVsAggShkVarFig('SOEvVecByPermShkAggVar')
-        
-    if make_emp_table:
-        # Define the command to run the Stata do file
-        cmd = [Params.stata_exe, "do", empirical_dir + "_usConsDynEmp.do"]
-        # Run Stata do-file
-        stata_status = subprocess.call(cmd,shell = 'true') 
-        if stata_status!=0:
-            raise ValueError('Stata code could not run. Check the stata_exe in StickyEparams.py')
     
-    if make_histogram:
-        # Define the command to run the Stata do file
-        cmd = [Params.stata_exe, "do", empirical_dir + "metaAnalysis/habitsHistogram.do"]
-        # Run Stata do-file
-        stata_status = subprocess.call(cmd,shell = 'true') 
-        if stata_status!=0:
-            raise ValueError('Stata code could not run. Check the stata_exe in StickyEparams.py')
-        
+       
         

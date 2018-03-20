@@ -30,64 +30,60 @@ matrix OIDarray = J(5,1,0)
 matrix ExtraInfo = J(5,1,0)
 
 
-*OLS on consumption 
 forvalues i = 1/$num_regressions {
-	quietly regress deltalogc L.deltalogc if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+    * Cut the dataset to just the observations for this interval
+	preserve
+	quietly keep if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i'
+
+    *OLS on consumption 
+	quietly regress deltalogc L.deltalogc, robust
 	matrix CoeffsArray[1,1] = CoeffsArray[1,1]+_b[L.deltalogc]/$num_regressions
 	matrix StdErrArray[1,1] = StdErrArray[1,1]+_se[L.deltalogc]/$num_regressions
 	matrix RsqArray[1,1] = RsqArray[1,1]+ e(r2_a)/$num_regressions
 	matrix PvalArray[1,1] = PvalArray[1,1]+ e(idp)/$num_regressions
 	matrix OIDarray[1,1] = OIDarray[1,1]+ e(jp)/$num_regressions
-}
 
-*IV on consumption 
-forvalues i = 1/$num_regressions {
-	quietly ivreg2 deltalogc (L.deltalogc = ${instruments}) if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+    *IV on consumption 
+	quietly ivreg2 deltalogc (L.deltalogc = ${instruments}), robust
 	matrix CoeffsArray[2,1] = CoeffsArray[2,1]+_b[L.deltalogc]/$num_regressions
 	matrix StdErrArray[2,1] = StdErrArray[2,1]+_se[L.deltalogc]/$num_regressions
 	matrix PvalArray[2,1] = PvalArray[2,1]+ e(idp)/$num_regressions
 	matrix OIDarray[2,1] = OIDarray[2,1]+ e(jp)/$num_regressions
 	*calc second stage R2
-	qui reg L.deltalogc ${instruments} if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+	qui reg L.deltalogc ${instruments}, robust
 	cap drop first_stage_predict_c
 	quietly predict first_stage_predict_c
-	quietly reg deltalogc first_stage_predict_c if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+	quietly reg deltalogc first_stage_predict_c, robust
 	matrix RsqArray[2,1] = RsqArray[2,1]+ e(r2_a)/$num_regressions
-}
 
-*IV on income 
-forvalues i = 1/$num_regressions {
-	quietly ivreg2 deltalogc (deltalogy = ${instruments}) if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+    *IV on income 
+	quietly ivreg2 deltalogc (deltalogy = ${instruments}), robust
 	matrix CoeffsArray[3,1] = CoeffsArray[3,1]+_b[deltalogy]/$num_regressions
 	matrix StdErrArray[3,1] = StdErrArray[3,1]+_se[deltalogy]/$num_regressions
 	matrix PvalArray[3,1] = PvalArray[3,1]+ e(idp)/$num_regressions
 	matrix OIDarray[3,1] = OIDarray[3,1]+ e(jp)/$num_regressions
 	*calc second stage R2
-	quietly reg deltalogy ${instruments} if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+	quietly reg deltalogy ${instruments}, robust
 	cap drop first_stage_predict_y
 	quietly predict first_stage_predict_y
-	quietly reg deltalogc first_stage_predict_y if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+	quietly reg deltalogc first_stage_predict_y, robust
 	matrix RsqArray[3,1] = RsqArray[3,1]+ e(r2_a)/$num_regressions
-}
 
-*IV on assets 
-forvalues i = 1/$num_regressions {
-	quietly ivreg2 deltalogc (L.a = ${instruments}) if time_period >= ${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+    *IV on assets 
+	quietly ivreg2 deltalogc (L.a = ${instruments}), robust
 	matrix CoeffsArray[4,1] = CoeffsArray[4,1]+_b[L.a]/$num_regressions
 	matrix StdErrArray[4,1] = StdErrArray[4,1]+_se[L.a]/$num_regressions
 	matrix PvalArray[4,1] = PvalArray[4,1]+ e(idp)/$num_regressions
 	matrix OIDarray[4,1] = OIDarray[4,1]+ e(jp)/$num_regressions
 	*calc second stage R2
-	quietly reg L.a ${instruments} if time_period >= ${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+	quietly reg L.a ${instruments}, robust
 	cap drop first_stage_predict_a
 	quietly predict first_stage_predict_a
-	quietly reg deltalogc first_stage_predict_a if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+	quietly reg deltalogc first_stage_predict_a, robust
 	matrix RsqArray[4,1] = RsqArray[4,1]+ e(r2_a)/$num_regressions
-}
 
-*IV Horeserace 
-forvalues i = 1/$num_regressions {
-	quietly ivreg2 deltalogc (L.deltalogc deltalogy L.a = ${instruments}) if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+    *IV Horeserace 
+	quietly ivreg2 deltalogc (L.deltalogc deltalogy L.a = ${instruments}), robust
 	matrix CoeffsArray[5,1] = CoeffsArray[5,1]+_b[L.deltalogc]/$num_regressions
 	matrix CoeffsArray[6,1] = CoeffsArray[6,1]+_b[deltalogy]/$num_regressions
 	matrix CoeffsArray[7,1] = CoeffsArray[7,1]+_b[L.a]/$num_regressions
@@ -106,21 +102,24 @@ forvalues i = 1/$num_regressions {
 	}
 	
 	*calc second stage R2
-	qui reg L.deltalogc ${instruments} if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+	qui reg L.deltalogc ${instruments}, robust
 	cap drop first_stage_predict_c
 	quietly predict first_stage_predict_c
-	quietly reg deltalogy ${instruments} if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+	quietly reg deltalogy ${instruments}, robust
 	cap drop first_stage_predict_y
 	quietly predict first_stage_predict_y
-	quietly reg L.a ${instruments} if time_period >= ${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+	quietly reg L.a ${instruments}, robust
 	cap drop first_stage_predict_a
 	quietly predict first_stage_predict_a	
 	
-	quietly reg deltalogc first_stage_predict_c first_stage_predict_y first_stage_predict_a if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+	quietly reg deltalogc first_stage_predict_c first_stage_predict_y first_stage_predict_a, robust
 	matrix RsqArray[5,1] = RsqArray[5,1]+ e(r2_a)/$num_regressions
 	*calc R2 of deltalogc on instruments
-	quietly reg deltalogc ${instruments}  if time_period >=${interval_size}*`i'-(${interval_size}-1) & time_period <=${interval_size}*`i', robust
+	quietly reg deltalogc ${instruments}, robust
 	matrix ExtraInfo[4,1] = ExtraInfo[4,1] + e(r2_a)/$num_regressions
+	
+	* Restore the entire dataset for the next subinterval
+	restore
 }
 matrix ExtraInfo[3,1] = $num_regressions
 

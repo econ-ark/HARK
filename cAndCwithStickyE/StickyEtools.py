@@ -567,9 +567,9 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky,all_spe
     # Make the memo text
     memo = ''
     if all_specs:
-        memo += '\\\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, ' + DeltaLogC1 + ' $= \mathbf{Z}_{t} \zeta,~~\\bar{R}^{2}=$ ' + mystr1(Counts[3])
+        memo += '\\\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, ' + DeltaLogC + ' $= \mathbf{Z}_{t} \zeta, ~\\bar{R}^{2}=$ ' + mystr1(Counts[3])
         if meas_err:
-            memo += ';~~$\\var(\\xi_t)=$ ' + mystr3(Counts[4])
+            memo += '; ~$\\var(\\log(\\xi_t))=$ ' + mystr3(Counts[4])
         memo += ' }  \n'
     
     # Make the top of the panel
@@ -613,8 +613,9 @@ def makeResultsTable(caption,panels,counts,filename,label):
     
     Parameters
     ----------
-    caption : str
-        Text to apply at the start of the table as a title.
+    caption : str or None
+        Text to apply at the start of the table as a title.  If None, the table
+        environment is not invoked and the output is formatted for slides.
     panels : [str]
         List of strings with one or more panels, usually made by makeResultsPanel.
     counts : int
@@ -628,7 +629,11 @@ def makeResultsTable(caption,panels,counts,filename,label):
     -------
     None
     '''
-    note = '\\multicolumn{6}{p{0.8\\textwidth}}{\\footnotesize \\textbf{Notes:} '
+    if caption is not None:
+        note_size = '\\footnotesize'
+    else:
+        note_size = '\\tiny'
+    note = '\\multicolumn{6}{p{0.95\\textwidth}}{' + note_size + ' \\textbf{Notes:} '
     if counts[1] > 1:
         note += 'Reported statistics are the average values for ' + str(counts[1]) + ' samples of ' + str(counts[0]) + ' simulated quarters each.  '
         note += 'Bullets indicate that the average sample coefficient divided by average sample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  '
@@ -638,11 +643,13 @@ def makeResultsTable(caption,panels,counts,filename,label):
     note += 'Instruments $\\textbf{Z}_t = \\{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \\}$.'
     note += '}'
         
-    
-    output = '\\begin{table} \caption{' + caption + '} \n'
-    output += '\\label{' + label + '} \n'
-    output += '\centering \small \n'
-    output += '$ \Delta \log \mathbf{C}_{t+1} = \\varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \\alpha A_t + \epsilon_{t+1} $ \\\\  \n'
+    if caption is not None:
+        output = '\\begin{minipage}{\\textwidth}\n'
+        output += '\\begin{table} \caption{' + caption + '} \\label{' + label + '} \n'
+        output += '  \\centerline{$ \Delta \log \mathbf{C}_{t+1} = \\varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \\alpha A_t + \epsilon_{t+1} $}\n'
+    else:
+        output = '\\begin{center} \n'
+        output += '$ \Delta \log \mathbf{C}_{t+1} = \\varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \\alpha A_t + \epsilon_{t+1} $ \\\\  \n'   
     output += '\\begin{tabular}{d{4}d{4}d{5}cd{4}c}\n \\toprule \n'
     output += '\multicolumn{3}{c}{Expectations : Dep Var} & OLS &  \multicolumn{1}{c}{2${}^{\\text{nd}}$ Stage}  &  \multicolumn{1}{c}{KP $p$-val} \n'
     output += '\\\\ \multicolumn{3}{c}{Independent Variables} & or IV & \multicolumn{1}{c}{$\\bar{R}^{2} $} & \multicolumn{1}{c}{Hansen J $p$-val} \n'
@@ -650,9 +657,14 @@ def makeResultsTable(caption,panels,counts,filename,label):
     for panel in panels:
         output += panel
         
-    output += '\\\\ \\bottomrule \n ' + note # + ' \n \\\\ \hline \hline \n'
-    output += '\end{tabular} \n'
-    output += '\end{table} \n'
+    output += '\\\\ \\bottomrule \n ' + note + '\n'
+    output += '\end{tabular}\n'
+    
+    if caption is not None:
+        output += '\end{table}\n'
+        output += '\end{minipage}\n'
+    else:
+        output += '\end{center}\n'
     
     with open(tables_dir + filename + '.tex','w') as f:
         f.write(output)
@@ -662,12 +674,14 @@ def makeResultsTable(caption,panels,counts,filename,label):
 def makeParameterTable(filename, params):   
     '''
     Makes the parameter table for the paper, saving it to a tex file in the tables folder.
+    Also makes two partial parameter tables for the slides.
     
     Parameters
     ----------
     
     filename : str
         Name of the file in which to save output (in the tables directory).
+        Suffix .tex is automatically added.
     params :
         Object containing the parameter values.
         
@@ -675,64 +689,101 @@ def makeParameterTable(filename, params):
     -------
     None
     '''
-    output = "\provideboolean{Slides} \setboolean{Slides}{false}  \n"
-    output += "\\begin{center}\label{table:calibration}  \n"
-    output += "\\begin{tabular}{cd{5}l}  \n"
-    
     # Calibrated macroeconomic parameters
-    output += "\\\\ \\toprule  \n"
-    output += "\multicolumn{3}{c}{\\textbf{Macroeconomic Parameters} }  \n"
-    output += "\\\\ $\\kapShare$ & " + "{:.2f}".format(params.CapShare) + " & Capital's Share of Income   \n"
-    output += "\\\\ $\\daleth$ & " + "{:.2f}".format(params.DeprFacAnn) + "^{1/4} & Depreciation Factor   \n" 
-    output += "\\\\ $\sigma_{\Theta}^{2}$ & "+ "{:.5f}".format(params.TranShkAggVar) +" & Variance Aggregate Transitory Shocks \n"    
-    output += "\\\\ $\sigma_{\Psi}^{2}$ & "+ "{:.5f}".format(params.PermShkAggVar) +" & Variance Aggregate Permanent Shocks \n"
+    macro_panel = "\multicolumn{3}{c}{\\textbf{Macroeconomic Parameters} }  \n"
+    macro_panel += "\\\\ $\\kapShare$ & " + "{:.2f}".format(params.CapShare) + " & Capital's Share of Income   \n"
+    macro_panel += "\\\\ $\\daleth$ & " + "{:.2f}".format(params.DeprFacAnn) + "^{1/4} & Depreciation Factor   \n" 
+    macro_panel += "\\\\ $\sigma_{\Theta}^{2}$ & "+ "{:.5f}".format(params.TranShkAggVar) +" & Variance Aggregate Transitory Shocks \n"    
+    macro_panel += "\\\\ $\sigma_{\Psi}^{2}$ & "+ "{:.5f}".format(params.PermShkAggVar) +" & Variance Aggregate Permanent Shocks \n"
     
     # Steady state values
-    output += "\\\\ \\midrule  \n"
-    output += "\multicolumn{3}{c}{ \\textbf{Steady State of Perfect Foresight DSGE Model} } \\  \n"  
-    output += "\\\\ \multicolumn{3}{c}{ $(\\sigma_{\\Psi}=\\sigma_{\\Theta}=\\sigma_{\\psi}=\\sigma_{\\theta}=\wp=\\PDies=0$, $\\Phi_t = 1)$} \\  \n"  
-    output += "\\\\ $\\breve{K}/\\breve{K}^{\\kapShare}$ & " + "{:.1f}".format(params.KYratioSS) + " & SS Capital to Output Ratio  \n"
-    output += "\\\\ $\\breve{K}$ & " + "{:.2f}".format(params.KSS) + " & SS Capital to Labor Productivity Ratio ($=12^{1/(1-\\kapShare)}$) \n"  
-    output += "\\\\ $\\breve{\\Wage}$ &  " + "{:.2f}".format(params.wRteSS) + " & SS Wage Rate ($=(1-\\kapShare)\\breve{K}^{\\kapShare}$) \n"  
-    output += "\\\\ $\\breve{\\mathsf{r}}$ & " + "{:.2f}".format(params.rFreeSS) + " & SS Interest Rate ($=\\kapShare \\breve{K}^{\\kapShare-1}$) \n"  
-    output += "\\\\ $\\breve{\\mathcal{R}}$ & " + "{:.3f}".format(params.RfreeSS) + "& SS Between-Period Return Factor ($=\\daleth + \\breve{\\mathsf{r}}$) \n"  
+    SS_panel = "\multicolumn{3}{c}{ \\textbf{Steady State of Perfect Foresight DSGE Model} } \\  \n"  
+    SS_panel += "\\\\ \multicolumn{3}{c}{ $(\\sigma_{\\Psi}=\\sigma_{\\Theta}=\\sigma_{\\psi}=\\sigma_{\\theta}=\wp=\\PDies=0$, $\\Phi_t = 1)$} \\  \n"  
+    SS_panel += "\\\\ $\\breve{K}/\\breve{K}^{\\kapShare}$ & " + "{:.1f}".format(params.KYratioSS) + " & SS Capital to Output Ratio  \n"
+    SS_panel += "\\\\ $\\breve{K}$ & " + "{:.2f}".format(params.KSS) + " & SS Capital to Labor Productivity Ratio ($=12^{1/(1-\\kapShare)}$) \n"  
+    SS_panel += "\\\\ $\\breve{\\Wage}$ &  " + "{:.2f}".format(params.wRteSS) + " & SS Wage Rate ($=(1-\\kapShare)\\breve{K}^{\\kapShare}$) \n"  
+    SS_panel += "\\\\ $\\breve{\\mathsf{r}}$ & " + "{:.2f}".format(params.rFreeSS) + " & SS Interest Rate ($=\\kapShare \\breve{K}^{\\kapShare-1}$) \n"  
+    SS_panel += "\\\\ $\\breve{\\Rprod}$ & " + "{:.3f}".format(params.RfreeSS) + "& SS Between-Period Return Factor ($=\\daleth + \\breve{\\mathsf{r}}$) \n"  
     
     # Calibrated preference parameters
-    output += "\\\\ \\midrule  \n"
-    output += "\multicolumn{3}{c}{ \\textbf{Preference Parameters} }  \n"
-    output += "\\\\ $\\rho$ & "+ "{:.0f}".format(params.CRRA) +". & Coefficient of Relative Risk Aversion \n"
-    output += "\\\\ $\\beta_{SOE}$ &  " + "{:.3f}".format(params.DiscFacSOE) +" & SOE Discount Factor \n" #($=0.99 \\cdot \\PLives / (\\breve{\\mathcal{R}} \\Ex [\\pmb{\\psi}^{-\CRRA}])$)\n"
-    output += "\\\\ $\\beta_{DSGE}$ &  " + "{:.3f}".format(params.DiscFacDSGE) +" & HA-DSGE Discount Factor ($=\\breve{\\mathcal{R}}^{-1}$) \n"  
-    output += "\\\\ $\Pi$                    & " + "{:.2f}".format(params.UpdatePrb) +"  & Probability of Updating Expectations (if Sticky) \n"  
+    pref_panel = "\multicolumn{3}{c}{ \\textbf{Preference Parameters} }  \n"
+    pref_panel += "\\\\ $\\rho$ & "+ "{:.0f}".format(params.CRRA) +". & Coefficient of Relative Risk Aversion \n"
+    pref_panel += "\\\\ $\\beta_{SOE}$ &  " + "{:.3f}".format(params.DiscFacSOE) +" & SOE Discount Factor \n" #($=0.99 \\cdot \\PLives / (\\breve{\\mathcal{R}} \\Ex [\\pmb{\\psi}^{-\CRRA}])$)\n"
+    pref_panel += "\\\\ $\\beta_{DSGE}$ &  " + "{:.3f}".format(params.DiscFacDSGE) +" & HA-DSGE Discount Factor ($=\\breve{\\Rprod}^{-1}$) \n"  
+    pref_panel += "\\\\ $\Pi$                    & " + "{:.2f}".format(params.UpdatePrb) +"  & Probability of Updating Expectations (if Sticky) \n"  
     
     # Idiosyncratic shock parameters
-    output += "\\\\ \\midrule  \n"
-    output += "\multicolumn{3}{c}{ \\textbf{Idiosyncratic Shock Parameters} }  \n"
-    output += "\\\\ $\sigma_{\\theta}^{2}$    & " + "{:.3f}".format(params.TranShkVar) +"     & Variance Idiosyncratic Tran Shocks (=$4 \\times$ Annual) \n"  
-    output += "\\\\ $\sigma_{\psi}^{2}$      &" + "{:.3f}".format(params.PermShkVar) +"      & Variance Idiosyncratic Perm Shocks (=$\\frac{1}{4} \\times$ Annual) \n"  
-    output += "\\\\ $\wp$                    & " + "{:.3f}".format(params.UnempPrb) +"  & Probability of Unemployment Spell \n"  
-    output += "\\\\ $\PDies$             & " + "{:.3f}".format(params.DiePrb) +"  & Probability of Mortality \n"  
+    idio_panel = "\multicolumn{3}{c}{ \\textbf{Idiosyncratic Shock Parameters} }  \n"
+    idio_panel += "\\\\ $\sigma_{\\theta}^{2}$    & " + "{:.3f}".format(params.TranShkVar) +"     & Variance Idiosyncratic Tran Shocks (=$4 \\times$ Annual) \n"  
+    idio_panel += "\\\\ $\sigma_{\psi}^{2}$      &" + "{:.3f}".format(params.PermShkVar) +"      & Variance Idiosyncratic Perm Shocks (=$\\frac{1}{4} \\times$ Annual) \n"  
+    idio_panel += "\\\\ $\wp$                    & " + "{:.3f}".format(params.UnempPrb) +"  & Probability of Unemployment Spell \n"  
+    idio_panel += "\\\\ $\PDies$             & " + "{:.3f}".format(params.DiePrb) +"  & Probability of Mortality \n"  
     
-    output += "\\\\ \\bottomrule  \n"
-    output += "\end{tabular}  \n"
-    output += "\end{center}  \n"
-    output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{}    \n"
+    # Make full parameter table for paper
+    paper_output = "\provideboolean{Slides} \setboolean{Slides}{false}  \n"
     
-    with open(tables_dir + filename,'w') as f:
-        f.write(output)
+    paper_output += "\\begin{minipage}{\\textwidth}\n"
+    paper_output += "  \\begin{table}\n"
+    paper_output += "    \\caption{Calibration}\label{table:calibration}\n"
+    
+    paper_output += "\\begin{tabular}{cd{5}l}  \n"
+    paper_output += "\\\\ \\toprule  \n"
+    paper_output += macro_panel
+    paper_output += "\\\\ \\midrule  \n"
+    paper_output += SS_panel
+    paper_output += "\\\\ \\midrule  \n"
+    paper_output += pref_panel
+    paper_output += "\\\\ \\midrule  \n"
+    paper_output += idio_panel
+    paper_output += "\\\\ \\bottomrule  \n"
+    paper_output += "\end{tabular}\n"
+    paper_output += "\end{table}\n"
+    paper_output += "\end{minipage}\n"
+    paper_output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{}    \n"
+    with open(tables_dir + filename + '.tex','w') as f:
+        f.write(paper_output)
+        f.close()
+        
+    # Make two partial parameter tables for the slides
+    slides1_output = "\\begin{center}\label{table:calibration1}  \n"
+    slides1_output += "\\begin{tabular}{cd{5}l}  \n"
+    slides1_output += "\\\\ \\toprule  \n"
+    slides1_output += macro_panel
+    slides1_output += "\\\\ \\midrule  \n"
+    slides1_output += SS_panel
+    slides1_output += "\\\\ \\bottomrule  \n"
+    slides1_output += "\end{tabular}  \n"
+    slides1_output += "\end{center}  \n"
+    with open(tables_dir + filename + '_1.tex','w') as f:
+        f.write(slides1_output)
+        f.close()
+        
+    slides2_output = "\\begin{center}\label{table:calibration2}  \n"
+    slides2_output += "\\begin{tabular}{cd{5}l}  \n"
+    slides2_output += "\\\\ \\toprule  \n"
+    slides2_output += pref_panel
+    slides2_output += "\\\\ \\midrule  \n"
+    slides2_output += idio_panel
+    slides2_output += "\\\\ \\bottomrule  \n"
+    slides2_output += "\end{tabular}  \n"
+    slides2_output += "\end{center}  \n"
+    with open(tables_dir + filename + '_2.tex','w') as f:
+        f.write(slides2_output)
         f.close()
 
 
 def makeEquilibriumTable(out_filename, four_in_files, CRRA):   
     '''
     Make the equilibrium statistics table for the paper, saving it as a tex file
-    in the tables folder.
+    in the tables folder.  Also makes a version for the slides that doesn't use
+    the table environment, nor include the note at bottom.
     
     Parameters
     ----------
     
     out_filename : str
-        Name of the file in which to save output (in the ./Tables/ directory).
+        Name of the file in which to save output (in the tables directory).
+        Suffix .tex appended automatically.
     four_in_files: [str]
         A list with four csv files. 0) SOE frictionless 1) SOE Sticky 2) DSGE frictionless 3) DSGE sticky
     CRRA : float
@@ -758,57 +809,68 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     StickyCost_SOE = np.mean(1. - (vBirth_SOE_S/vBirth_SOE_F)**(1./(1.-CRRA)))
     StickyCost_DSGE = np.mean(1. - (vBirth_DSGE_S/vBirth_DSGE_F)**(1./(1.-CRRA)))
     
-    output = "\\begin{table}  \n"
-    output += "\caption{Equilibrium Statistics}  \n"
-    output += "\label{table:Eqbm}  \n"
-    output += "\\begin{center}  \n"
-    output += "\\newsavebox{\EqbmBox}  \n"
-    output += "\sbox{\EqbmBox}{  \n"
-    output += "\\newcommand{\EqDir}{\TablesDir/Eqbm}  \n"
-    output += "\\begin{tabular}{lllcccc}  \n"
-    output += "\\toprule \n"
-    output += "&&& \multicolumn{2}{c}{SOE Model} & \multicolumn{2}{c}{HA-DSGE Model}   \n"
-    output += "\\\\ %\cline{4-5}   \n"
-    output += "   &&& \multicolumn{1}{c}{Frictionless} & \multicolumn{1}{c}{Sticky} & \multicolumn{1}{c}{Frictionless} & \multicolumn{1}{c}{Sticky}  \n"
-    output += "\\\\ \\midrule   \n"
-    output += "  \multicolumn{3}{l}{Means}  \n"
-    output += "%\\\\  & & $M$  \n"
-    output += "%\\\\  & & $K$  \n"
-    output += "\\\\  & & $A$ & {:.2f}".format(SOEfrictionless[0]) +" &{:.2f}".format(SOEsticky[0]) +" & {:.2f}".format(DSGEfrictionless[0]) +" & {:.2f}".format(DSGEsticky[0]) +"   \n"
-    output += "\\\\  & & $C$ & {:.2f}".format(SOEfrictionless[1]) +" &{:.2f}".format(SOEsticky[1]) +" & {:.2f}".format(DSGEfrictionless[1]) +" & {:.2f}".format(DSGEsticky[1]) +"   \n"
-    output += "\\\\ \\midrule  \n"
-    output += "  \multicolumn{3}{l}{Standard Deviations}  \n"
-    output += "\\\\ &    \multicolumn{4}{l}{Aggregate Time Series (`Macro')}  \n"
-    output += "%\\  & & $\Delta \log \mathbf{M}$   \n"
-    output += "\\\\ & & $\log A $         & {:.3f}".format(SOEfrictionless[2]) +" & {:.3f}".format(SOEsticky[2]) +" & {:.3f}".format(DSGEfrictionless[2]) +" & {:.3f}".format(DSGEsticky[2]) +" \n"
-    output += "\\\\ & & $\Delta \log \\CLevBF $  & {:.3f}".format(SOEfrictionless[3]) +" & {:.3f}".format(SOEsticky[3]) +" & {:.3f}".format(DSGEfrictionless[3]) +" & {:.3f}".format(DSGEsticky[3]) +" \n"
-    output += "\\\\ & & $\Delta \log \\YLevBF $  & {:.3f}".format(SOEfrictionless[4]) +" & {:.3f}".format(SOEsticky[4]) +" & {:.3f}".format(DSGEfrictionless[4]) +" & {:.3f}".format(DSGEsticky[4]) +" \n"
-    output += "\\\\ &   \multicolumn{3}{l}{Individual Cross Sectional (`Micro')}  \n"  
-    output += "\\\\ & & $\log \\aLevBF $  & {:.3f}".format(SOEfrictionless[6]) +" & {:.3f}".format(SOEsticky[6]) +" & {:.3f}".format(DSGEfrictionless[6]) +" & {:.3f}".format(DSGEsticky[6]) +" \n"
-    output += "\\\\ & & $\log \\cLevBF $  & {:.3f}".format(SOEfrictionless[7]) +" & {:.3f}".format(SOEsticky[7]) +" & {:.3f}".format(DSGEfrictionless[7]) +" & {:.3f}".format(DSGEsticky[7]) +" \n"
-    output += "\\\\ & & $\log p $  & {:.3f}".format(SOEfrictionless[8]) +" & {:.3f}".format(SOEsticky[8]) +" & {:.3f}".format(DSGEfrictionless[8]) +" & {:.3f}".format(DSGEsticky[8]) +" \n"
-    output += "\\\\ & & $\log \\yLevBF | \\yLevBF > 0 $  & {:.3f}".format(SOEfrictionless[9]) +" & {:.3f}".format(SOEsticky[9]) +" & {:.3f}".format(DSGEfrictionless[9]) +" & {:.3f}".format(DSGEsticky[9]) +" \n"
-    output += "\\\\ & & $\Delta \log \\cLevBF $  & {:.3f}".format(SOEfrictionless[11]) +" & {:.3f}".format(SOEsticky[11]) +" & {:.3f}".format(DSGEfrictionless[11]) +" & {:.3f}".format(DSGEsticky[11]) +" \n"
-    output += "  \n"
-    output += "  \n"
-    output += "\\\\ \\midrule \multicolumn{3}{l}{Cost of Stickiness}  \n"
-    output += " & \multicolumn{2}{c}{" + mystr2(StickyCost_SOE) + "}  \n"
-    output += " & \multicolumn{2}{c}{" + mystr2(StickyCost_DSGE) + "}  \n"
-    output += "\\\\ \\bottomrule  \n"
-    output += " \end{tabular}   \n"
-    output += " } \n "
-    output += "\usebox{\EqbmBox}  \n"
-    output += "\ifthenelse{\\boolean{StandAlone}}{\\newlength\TableWidth}{}  \n"
-    output += "\settowidth\TableWidth{\usebox{\EqbmBox}} % Calculate width of table so notes will match  \n"
-    output += "\medskip\medskip \\vspace{0.0cm} \parbox{\TableWidth}{\small  \n"
-    output += "\\textbf{Notes}: The cost of stickiness is calculated as the proportion by which the permanent income of a newborn frictionless consumer would need to be reduced in order to achieve the same reduction of expected value associated with forcing them to become a sticky expectations consumer.  \n"
-    output += "}  \n"
-    output += "\end{center}  \n"
-    output += "\end{table}  \n"
-    output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{}  \n"
+    paper_top = "\\begin{minipage}{\\textwidth}\n"
+    paper_top += "    \\begin{table}  \n"
+    paper_top += "\caption{Equilibrium Statistics}  \n"
+    paper_top += "\label{table:Eqbm}  \n"
+    paper_top += "\\newsavebox{\EqbmBox}  \n"
+    paper_top += "\sbox{\EqbmBox}{  \n"
+    paper_top += "\\newcommand{\EqDir}{\TablesDir/Eqbm}  \n"
     
-    with open(tables_dir + out_filename,'w') as f:
-        f.write(output)
+    slides_top = '\\begin{center} \n'
+    
+    main_table = "\\begin{tabular}{lllcccc}  \n"
+    main_table += "\\toprule \n"
+    main_table += "&&& \multicolumn{2}{c}{SOE Model} & \multicolumn{2}{c}{HA-DSGE Model}   \n"
+    main_table += "\\\\ %\cline{4-5}   \n"
+    main_table += "   &&& \multicolumn{1}{c}{Frictionless} & \multicolumn{1}{c}{Sticky} & \multicolumn{1}{c}{Frictionless} & \multicolumn{1}{c}{Sticky}  \n"
+    main_table += "\\\\ \\midrule   \n"
+    main_table += "  \multicolumn{3}{l}{Means}  \n"
+    main_table += "%\\\\  & & $M$  \n"
+    main_table += "%\\\\  & & $K$  \n"
+    main_table += "\\\\  & & $A$ & {:.2f}".format(SOEfrictionless[0]) +" &{:.2f}".format(SOEsticky[0]) +" & {:.2f}".format(DSGEfrictionless[0]) +" & {:.2f}".format(DSGEsticky[0]) +"   \n"
+    main_table += "\\\\  & & $C$ & {:.2f}".format(SOEfrictionless[1]) +" &{:.2f}".format(SOEsticky[1]) +" & {:.2f}".format(DSGEfrictionless[1]) +" & {:.2f}".format(DSGEsticky[1]) +"   \n"
+    main_table += "\\\\ \\midrule  \n"
+    main_table += "  \multicolumn{3}{l}{Standard Deviations}  \n"
+    main_table += "\\\\ &    \multicolumn{4}{l}{Aggregate Time Series (`Macro')}  \n"
+    main_table += "%\\  & & $\Delta \log \mathbf{M}$   \n"
+    main_table += "\\\\ & & $\log A $         & {:.3f}".format(SOEfrictionless[2]) +" & {:.3f}".format(SOEsticky[2]) +" & {:.3f}".format(DSGEfrictionless[2]) +" & {:.3f}".format(DSGEsticky[2]) +" \n"
+    main_table += "\\\\ & & $\Delta \log \\CLevBF $  & {:.3f}".format(SOEfrictionless[3]) +" & {:.3f}".format(SOEsticky[3]) +" & {:.3f}".format(DSGEfrictionless[3]) +" & {:.3f}".format(DSGEsticky[3]) +" \n"
+    main_table += "\\\\ & & $\Delta \log \\YLevBF $  & {:.3f}".format(SOEfrictionless[4]) +" & {:.3f}".format(SOEsticky[4]) +" & {:.3f}".format(DSGEfrictionless[4]) +" & {:.3f}".format(DSGEsticky[4]) +" \n"
+    main_table += "\\\\ &   \multicolumn{3}{l}{Individual Cross Sectional (`Micro')}  \n"  
+    main_table += "\\\\ & & $\log \\aLevBF $  & {:.3f}".format(SOEfrictionless[6]) +" & {:.3f}".format(SOEsticky[6]) +" & {:.3f}".format(DSGEfrictionless[6]) +" & {:.3f}".format(DSGEsticky[6]) +" \n"
+    main_table += "\\\\ & & $\log \\cLevBF $  & {:.3f}".format(SOEfrictionless[7]) +" & {:.3f}".format(SOEsticky[7]) +" & {:.3f}".format(DSGEfrictionless[7]) +" & {:.3f}".format(DSGEsticky[7]) +" \n"
+    main_table += "\\\\ & & $\log p $  & {:.3f}".format(SOEfrictionless[8]) +" & {:.3f}".format(SOEsticky[8]) +" & {:.3f}".format(DSGEfrictionless[8]) +" & {:.3f}".format(DSGEsticky[8]) +" \n"
+    main_table += "\\\\ & & $\log \\yLevBF | \\yLevBF > 0 $  & {:.3f}".format(SOEfrictionless[9]) +" & {:.3f}".format(SOEsticky[9]) +" & {:.3f}".format(DSGEfrictionless[9]) +" & {:.3f}".format(DSGEsticky[9]) +" \n"
+    main_table += "\\\\ & & $\Delta \log \\cLevBF $  & {:.3f}".format(SOEfrictionless[11]) +" & {:.3f}".format(SOEsticky[11]) +" & {:.3f}".format(DSGEfrictionless[11]) +" & {:.3f}".format(DSGEsticky[11]) +" \n"
+    main_table += "  \n"
+    main_table += "  \n"
+    main_table += "\\\\ \\midrule \multicolumn{3}{l}{Cost of Stickiness}  \n"
+    main_table += " & \multicolumn{2}{c}{" + mystr2(StickyCost_SOE) + "}  \n"
+    main_table += " & \multicolumn{2}{c}{" + mystr2(StickyCost_DSGE) + "}  \n"
+    main_table += "\\\\ \\bottomrule  \n"
+    main_table += " \end{tabular}   \n"
+    
+    paper_bot = " } \n "
+    paper_bot += "\usebox{\EqbmBox}  \n"
+    paper_bot += "\ifthenelse{\\boolean{StandAlone}}{\\newlength\TableWidth}{}  \n"
+    paper_bot += "\settowidth\TableWidth{\usebox{\EqbmBox}} % Calculate width of table so notes will match  \n"
+    paper_bot += "\medskip\medskip \\vspace{0.0cm} \parbox{\TableWidth}{\\footnotesize\n"
+    paper_bot += "\\textbf{Notes}: The cost of stickiness is calculated as the proportion by which the permanent income of a newborn frictionless consumer would need to be reduced in order to achieve the same reduction of expected value associated with forcing them to become a sticky expectations consumer.}  \n"
+    paper_bot += "\end{table}\n"
+    paper_bot += "\end{minipage}\n"
+    paper_bot += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{}  \n"
+    
+    slides_bot = '\\end{center} \n'
+    
+    paper_output = paper_top + main_table + paper_bot
+    with open(tables_dir + out_filename + '.tex','w') as f:
+        f.write(paper_output)
+        f.close()
+        
+    slides_output = slides_top + main_table + slides_bot
+    with open(tables_dir + out_filename + 'Slides.tex','w') as f:
+        f.write(slides_output)
         f.close()
 
 
@@ -877,13 +939,14 @@ def extractSampleMicroData(Economy, num_periods, AgentCount, ignore_periods):
 def makeMicroRegressionTable(out_filename, micro_data):   
     '''
     Make the micro regression or (cross section regression) table for the paper, saving
-    it to a tex file in the tables folder.
+    it to a tex file in the tables folder.  Also makes two partial tables for the slides.
     
     Parameters
     ----------
     
     out_filename : str
-        Name of the file in which to save output (in the ./Tables/ directory).
+        Name of the file in which to save output (in the tables directory).
+        The suffix .tex is automatically added.
     micro_data : [np.array]
         A list of two np.array's each containing micro data array as returned by extractSampleMicroData
         
@@ -937,52 +1000,66 @@ def makeMicroRegressionTable(out_filename, micro_data):
         r_sq[3,i] = res._results.rsquared_adj
         obs[3,i] = res.nobs
         
-    output = "\\begin{table}[t]  \n"
-    output += "\\caption{Micro Consumption Regression on Simulated Data} \n"
-    output += "\\label{table:CGrowCross} \n"
-    output += "\\begin{center} \n"
-    output += "\ifthenelse{\\boolean{StandAlone}}{\input \eq/CGrowCross.tex \n"
-    output += "}{} \n"
-    output += "\\begin{eqnarray} \n"
-    output += "\\CGrowCross    \\nonumber %\\\CGrowCrossBar \\nonumber \n"
-    output += "\end{eqnarray} \n"
-    output += "\\newsavebox{\crosssecond} \n"
-    output += "\sbox{\crosssecond}{ \n"
-    output += "\\begin{tabular}{cd{4}d{4}d{5}ccc}  \n"
-    output += "\\toprule  \n"
-    output += "Model of     &                                &                                &                                 &                                       &                 \\\\  \n"
-    output += "Expectations & \multicolumn{1}{c}{$ \chi $} & \multicolumn{1}{c}{$ \eta $} & \multicolumn{1}{c}{$ \\alpha $} & \multicolumn{1}{c}{$\\bar{R}^{2}$} &                   \n"
-    output += "\\\\ \\midrule \multicolumn{2}{l}{Frictionless}  \n"
-    output += "\\\\ &  {:.3f}".format(coeffs[0,0]) +"  &        &        & {:.3f}".format(r_sq[0,0]) +" &  "+ " %NotOnSlide   \n"
-    output += "\\\\ &  \multicolumn{1}{c}{(--)}  &        &        &  &  "+ " %NotOnSlide   \n"
-    output += "\\\\ &    &    {:.3f}".format(coeffs[1,0]) +"    &        & {:.3f}".format(r_sq[1,0])  +" &  "+" %NotOnSlide   \n" 
-    output += "\\\\ &    &  \multicolumn{1}{c}{(--)}  &        &  &  "+ " %NotOnSlide   \n"
-    output += "\\\\ &    &        &     {:.3f}".format(coeffs[2,0]) +"   & {:.3f}".format(r_sq[2,0]) +" &  " +" %NotOnSlide   \n"
-    output += "\\\\ &    &       &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
-    output += "\\\\ &  {:.3f}".format(coeffs[3,0]) +"  &    {:.3f}".format(coeffs[4,0]) +"    &     {:.3f}".format(coeffs[5,0]) +"   & {:.3f}".format(r_sq[3,0]) +" &    \n"
-    output += "\\\\ & \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
-    output += "\\\\ \\midrule \multicolumn{2}{l}{Sticky}  \n"
-    output += "\\\\ &  {:.3f}".format(coeffs[0,1]) +"  &        &        & {:.3f}".format(r_sq[0,1]) +" &   %NotOnSlide   \n"
-    output += "\\\\ &  \multicolumn{1}{c}{(--)}  &        &        &  &  "+ " %NotOnSlide   \n"
-    output += "\\\\ &    &    {:.3f}".format(coeffs[1,1]) +"    &        & {:.3f}".format(r_sq[1,1]) +" &   %NotOnSlide   \n"
-    output += "\\\\ &    &  \multicolumn{1}{c}{(--)}  &        &  &  "+ " %NotOnSlide   \n"
-    output += "\\\\ &    &        &     {:.3f}".format(coeffs[2,1]) +"   & {:.3f}".format(r_sq[2,1]) +" &   %NotOnSlide   \n"
-    output += "\\\\ &    &       &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
-    output += "\\\\ &  {:.3f}".format(coeffs[3,1]) +"  &    {:.3f}".format(coeffs[4,1]) +"    &     {:.3f}".format(coeffs[5,1]) +"   & {:.3f}".format(r_sq[3,1]) +" &    \n"
-    output += "\\\\ & \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
-    output += "\\\\ \\bottomrule  \n"
-    output += "\end{tabular}  \n"
-    output += "}"
-    output += "\usebox{\crosssecond} \n"
-    output += "\ifthenelse{\\boolean{StandAlone}}{\\newlength\TableWidth}{} \n"
-    output += "\settowidth{\TableWidth}{\usebox{\crosssecond}} % Calculate width of table so notes will match \n"
-    output += "\medskip\medskip \parbox{\TableWidth}{\small Notes: $\\mathbb{E}_{t,i}$ is the expectation from the perspective of person $i$ in period $t$; $\\bar{a}$ is a dummy variable indicating that agent $i$ is in the top 99 percent of the normalized $a$ distribution.  Simulated sample size is large enough such that standard errors are effectively zero.  Sample is restricted to households with positive income in period $t$. The notation ``(---)'' indicates that standard errors are close to zero, given the very large simulated sample size.}  \n"
-    output += "\end{center} \n"
-    output += "\end{table} \n"
-    output += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{} \n"
+    paper_top = "\\begin{minipage}{\TableWidth}\n"
+    paper_top += "  \\begin{table}\n"
+    paper_top += "    \\caption{Micro Consumption Regression on Simulated Data} \\label{table:CGrowCross}\n"
+    paper_top += "    \\begin{eqnarray} \n"
+    paper_top += "\\CGrowCross    \\nonumber %\\\CGrowCrossBar \\nonumber \n"
+    paper_top += "    \end{eqnarray}\n"
+    
+    slides_top = '\\begin{center} \n'
+    
+    header = "\\begin{tabular}{cd{4}d{4}d{5}ccc}  \n"
+    header += "\\toprule  \n"
+    header += "Model of     &                                &                                &                                 &                                       &                 \\\\  \n"
+    header += "Expectations & \multicolumn{1}{c}{$ \chi $} & \multicolumn{1}{c}{$ \eta $} & \multicolumn{1}{c}{$ \\alpha $} & \multicolumn{1}{c}{$\\bar{R}^{2}$} &                   \n"
+    
+    F_panel = "\\\\ \\midrule \n \multicolumn{2}{l}{Frictionless}  \n"
+    F_panel += "\\\\ &  {:.3f}".format(coeffs[0,0]) +"  &        &        & {:.3f}".format(r_sq[0,0]) +" &  "+ " %NotOnSlide   \n"
+    F_panel += "\\\\ &  \multicolumn{1}{c}{(--)}  &        &        &  &  "+ " %NotOnSlide   \n"
+    F_panel += "\\\\ &    &    {:.3f}".format(coeffs[1,0]) +"    &        & {:.3f}".format(r_sq[1,0])  +" &  "+" %NotOnSlide   \n" 
+    F_panel += "\\\\ &    &  \multicolumn{1}{c}{(--)}  &        &  &  "+ " %NotOnSlide   \n"
+    F_panel += "\\\\ &    &        &     {:.3f}".format(coeffs[2,0]) +"   & {:.3f}".format(r_sq[2,0]) +" &  " +" %NotOnSlide   \n"
+    F_panel += "\\\\ &    &       &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
+    F_panel += "\\\\ &  {:.3f}".format(coeffs[3,0]) +"  &    {:.3f}".format(coeffs[4,0]) +"    &     {:.3f}".format(coeffs[5,0]) +"   & {:.3f}".format(r_sq[3,0]) +" &    \n"
+    F_panel += "\\\\ & \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
+    
+    S_panel = "\\\\ \\midrule \n \multicolumn{2}{l}{Sticky}  \n"
+    S_panel += "\\\\ &  {:.3f}".format(coeffs[0,1]) +"  &        &        & {:.3f}".format(r_sq[0,1]) +" &   %NotOnSlide   \n"
+    S_panel += "\\\\ &  \multicolumn{1}{c}{(--)}  &        &        &  &  "+ " %NotOnSlide   \n"
+    S_panel += "\\\\ &    &    {:.3f}".format(coeffs[1,1]) +"    &        & {:.3f}".format(r_sq[1,1]) +" &   %NotOnSlide   \n"
+    S_panel += "\\\\ &    &  \multicolumn{1}{c}{(--)}  &        &  &  "+ " %NotOnSlide   \n"
+    S_panel += "\\\\ &    &        &     {:.3f}".format(coeffs[2,1]) +"   & {:.3f}".format(r_sq[2,1]) +" &   %NotOnSlide   \n"
+    S_panel += "\\\\ &    &       &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
+    S_panel += "\\\\ &  {:.3f}".format(coeffs[3,1]) +"  &    {:.3f}".format(coeffs[4,1]) +"    &     {:.3f}".format(coeffs[5,1]) +"   & {:.3f}".format(r_sq[3,1]) +" &    \n"
+    S_panel += "\\\\ & \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
+    
+    paper_bot = "  \\\\ \\bottomrule \\\\\n"
+    paper_bot += "  \multicolumn{5}{p{0.9\\textwidth}}{\\footnotesize \\textbf{Notes}: $\\mathbb{E}_{t,i}$ is the expectation from the perspective of person $i$ in period $t$; $\\bar{a}$ is a dummy variable indicating that agent $i$ is in the top 99 percent of the normalized $a$ distribution.  Simulated sample size is large enough such that standard errors are effectively zero.  Sample is restricted to households with positive income in period $t$. The notation ``(---)'' indicates that standard errors are close to zero, given the very large simulated sample size.}\n"
+    paper_bot += "\end{tabular}  \n"
+    paper_bot += "\end{table}\n"
+    paper_bot += "\end{minipage}\n"
+    paper_bot += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{} \n"
+    
+    slides_bot = "\\\\ \\bottomrule  \n"
+    slides_bot += "\end{tabular}  \n"
+    slides_bot += '\\end{center} \n'
 
-    with open(tables_dir + out_filename,'w') as f:
-        f.write(output)
+    # Make table for paper
+    paper_output = paper_top + header + F_panel + S_panel + paper_bot
+    with open(tables_dir + out_filename + '.tex','w') as f:
+        f.write(paper_output)
+        f.close()
+        
+    # Make tables for slides
+    slidesF_output = slides_top + header + F_panel + slides_bot
+    with open(tables_dir + out_filename + '_SlidesF.tex','w') as f:
+        f.write(slidesF_output)
+        f.close()
+        
+    slidesS_output = slides_top + header + S_panel + slides_bot
+    with open(tables_dir + out_filename + '_SlidesS.tex','w') as f:
+        f.write(slidesS_output)
         f.close()
         
         
@@ -1006,24 +1083,32 @@ def makeuCostVsPiFig(uCost_filename):
     
     # Plot uCost vs Pi
     f = LinearInterp(UpdatePrbVec,uCostVec*10000)
-    plt.plot(UpdatePrbVec,uCostVec*10000)
+    plt.plot(UpdatePrbVec,uCostVec*10000,color='#1f77b4')
     plt.plot([UpdatePrbBase,UpdatePrbBase],[0.,f(UpdatePrbBase)],'--k') # Add dashed line at Pi=0.25
     plt.xlim([0.05,1.0])
     plt.ylim([0.0,30.0])
     plt.xlabel(r'Probability of updating information $\Pi$')
     plt.ylabel('Cost of stickiness $\omega$ ($10^{-4}$)')
     plt.savefig(figures_dir + 'uCostvsPi.pdf')
+    plt.savefig(figures_dir + 'uCostvsPi.png')
+    plt.savefig(figures_dir + 'uCostvsPi.jpg')
+    plt.savefig(figures_dir + 'uCostvsPi.svg')
     plt.show()
+    plt.close()
     
     # Plot uCost vs 1/Pi
-    plt.plot(1./UpdatePrbVec,uCostVec*10000)
+    plt.plot(1./UpdatePrbVec,uCostVec*10000,color='#1f77b4')
     plt.plot([1./UpdatePrbBase,1./UpdatePrbBase],[0.,f(UpdatePrbBase)],'--k') # Add dashed line at Pi=0.25
     plt.xlim([1.0,16.0])
     plt.ylim([0.0,35.0])
     plt.xlabel('Expected periods between information updates $\Pi^{-1}$')
     plt.ylabel('Cost of stickiness $\omega$ ($10^{-4}$)')
     plt.savefig(figures_dir + 'uCostvsPiInv.pdf')
+    plt.savefig(figures_dir + 'uCostvsPiInv.png')
+    plt.savefig(figures_dir + 'uCostvsPiInv.jpg')
+    plt.savefig(figures_dir + 'uCostvsPiInv.svg')
     plt.show()
+    plt.close()
     
     
 def makeValueVsAggShkVarFig(value_filename):
@@ -1045,14 +1130,52 @@ def makeValueVsAggShkVarFig(value_filename):
     f = LinearInterp(PermShkAggVarVec*10**5,vVec)
     vBot = np.min(vVec)
     vTop = np.max(vVec)
-    plt.plot(PermShkAggVarVec*10**5,vVec)
+    plt.plot(PermShkAggVarVec*10**5,vVec,color='#1f77b4')
     plt.plot([PermShkAggVarBase*10**5,PermShkAggVarBase*10**5],[vBot,f(PermShkAggVarBase*10**5)],'--k')
     plt.ylim(vBot,vTop)
     plt.xlabel('Variance of aggregate permanent shocks $\sigma^2_\Psi$ ($10^{-5}$)')
     plt.ylabel('Expected value at birth $V(W,\cdot)$')
     plt.tight_layout()
     plt.savefig(figures_dir + 'ValueVsPermShkAggVar.pdf')
+    plt.savefig(figures_dir + 'ValueVsPermShkAggVar.png')
+    plt.savefig(figures_dir + 'ValueVsPermShkAggVar.jpg')
+    plt.savefig(figures_dir + 'ValueVsPermShkAggVar.svg')
     plt.show()
+    plt.close()
     
+
+def makeValueVsPiFig(value_filename):
+    '''
+    Parameters
+    ----------
+    value_filename : str
+        Name of data file, as a two line csv.  First line is UpdatePrb, second line is birth value.
+        
+    Returns
+    -------
+    None
+    '''
+    data = np.genfromtxt(results_dir + value_filename +'.csv',delimiter=',')
+    UpdatePrbVec = data[0,:]
+    vVec = data[1,:]
     
+    # Plot birth value vs 1/UpdatePrb
+    f = LinearInterp(UpdatePrbVec,vVec)
+    vBot = f(1./16)
+    vTop = np.max(vVec)
+    plt.plot(1./UpdatePrbVec,vVec,color='#1f77b4')
+    plt.plot([1./UpdatePrbBase,1./UpdatePrbBase],[vBot,f(UpdatePrbBase)],'--k')
+    plt.xlim([1.0,16.0])
+    plt.ylim(vBot,vTop)
+    plt.xlabel('Expected periods between information updates $\Pi^{-1}$')
+    plt.ylabel('Expected value at birth $V(W,\cdot)$')
+    plt.tight_layout()
+    plt.savefig(figures_dir + 'ValueVsPi.pdf')
+    plt.savefig(figures_dir + 'ValueVsPi.png')
+    plt.savefig(figures_dir + 'ValueVsPi.jpg')
+    plt.savefig(figures_dir + 'ValueVsPi.svg')
+    plt.show()
+    plt.close()
+    
+       
     

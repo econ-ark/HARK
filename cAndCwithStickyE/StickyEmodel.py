@@ -17,10 +17,10 @@ project.  Non-Markov AgentTypes are imported by StickyE_NO_MARKOV.
 Calibrated parameters for each type are found in StickyEparams.
 '''
 
-import sys 
-import os
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
+#import sys 
+#import os
+#sys.path.insert(0, os.path.abspath('../'))
+#sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
 from ConsAggShockModel import AggShockConsumerType, AggShockMarkovConsumerType, CobbDouglasEconomy, CobbDouglasMarkovEconomy
