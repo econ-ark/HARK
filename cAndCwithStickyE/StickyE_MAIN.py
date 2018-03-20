@@ -50,7 +50,6 @@ my_counts = [interval_size,interval_count]
 alt_counts = [interval_size*interval_count,1]
 mystr = lambda number : "{:.3f}".format(number)
 results_dir = Params.results_dir
-empirical_dir = Params.empirical_dir
 
 # Define the function to run macroeconomic regressions, depending on whether Stata is used
 if use_stata:

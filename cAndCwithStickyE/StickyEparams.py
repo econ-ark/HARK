@@ -38,7 +38,7 @@ from HARKutilities import approxUniform
 stata_exe = "C:\Program Files (x86)\Stata15\StataSE-64"
 
 # Choose directory paths relative to the StickyE files
-calibration_dir = "./Calibration/Parameters/" # Relative directory for primitive parameter files
+calibration_dir = "./Calibration/" # Relative directory for primitive parameter files
 tables_dir = "./Tables/"           # Relative directory for saving tex tables
 results_dir = "./Results/"         # Relative directory for saving output files
 figures_dir = "./Figures/"         # Relative directory for saving figures
