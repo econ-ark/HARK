@@ -1,37 +1,38 @@
-\begin{table} \caption{Aggregate Consumption Dynamics in HA-DSGE Model} 
-\label{tDSGEsim} 
-\centering \small 
-$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon_{t+1} $ \\  
+\begin{minipage}{\textwidth}
+\begin{table} \caption{Aggregate Consumption Dynamics in HA-DSGE Model} \label{tDSGEsim} 
+  \centerline{$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon_{t+1} $}
 \begin{tabular}{d{4}d{4}d{5}cd{4}c}
  \toprule 
 \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  \multicolumn{1}{c}{2${}^{\text{nd}}$ Stage}  &  \multicolumn{1}{c}{KP $p$-val} 
 \\ \multicolumn{3}{c}{Independent Variables} & or IV & \multicolumn{1}{c}{$\bar{R}^{2} $} & \multicolumn{1}{c}{Hansen J $p$-val} 
 \\ \midrule \multicolumn{6}{l}{Frictionless : $\Delta \log \mathbf{C}_{t+1}^*$ (with measurement error $\mathbf{C}_{t}^* =\mathbf{C}_{t}\times \xi_t$);} 
 \\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t}^*$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
-\\ 0.189^{\bullet \bullet \bullet } & & & OLS & 0.037 & 
+\\ 0.189^{\bullet \bullet \bullet } & & & OLS & 0.036 & 
 \\ (0.072) & & & & & 
-\\ 0.473 & & & IV & 0.019 & 0.314
-\\ (0.349) & & & & &0.558
-\\ & 0.363 & & IV & 0.017 & 0.104
-\\ & (0.316) & & & &0.459
-\\ & & -0.40\text{e--4} & IV & 0.016 & 0.000
-\\ & & (0.96\text{e--4}) & & &0.439
-\\ 0.275 & 0.189 & -0.10\text{e--4} & IV & 0.020 & 0.585
-\\ (0.469) & (0.600) & (1.88\text{e--4}) & & & 0.538
-\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}^*$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ 0.023;~~$\var(\xi_t)=$ 4.16\text{e--6} }  
+\\ 0.476 & & & IV & 0.020 & 0.318
+\\ (0.354) & & & & &0.556
+\\ & 0.368 & & IV & 0.017 & 0.107
+\\ & (0.321) & & & &0.457
+\\ & & -0.34\text{e--4} & IV & 0.015 & 0.000
+\\ & & (0.98\text{e--4}) & & &0.433
+\\ 0.289 & 0.214 & 0.01\text{e--4} & IV & 0.020 & 0.572
+\\ (0.463) & (0.583) & (1.87\text{e--4}) & & & 0.531
+\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t}^*$ $= \mathbf{Z}_{t} \zeta, ~\bar{R}^{2}=$ 0.023; ~$\var(\log(\xi_t))=$ 4.16\text{e--6} }  
 \\ \midrule \multicolumn{6}{l}{Sticky : $\Delta \log \mathbf{C}_{t+1}^*$ (with measurement error $\mathbf{C}_{t}^* =\mathbf{C}_{t}\times \xi_t$);} 
 \\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t}^*$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
-\\ 0.468^{\bullet \bullet \bullet } & & & OLS & 0.223 & 
+\\ 0.467^{\bullet \bullet \bullet } & & & OLS & 0.223 & 
 \\ (0.061) & & & & & 
-\\ 0.774^{\bullet \bullet \bullet } & & & IV & 0.231 & 0.000
-\\ (0.106) & & & & &0.541
-\\ & 0.906^{\bullet \bullet \bullet } & & IV & 0.146 & 0.100
-\\ & (0.240) & & & &0.175
-\\ & & -1.02\text{e--4}^{\bullet } & IV & 0.060 & 0.000
-\\ & & (0.54\text{e--4}) & & &0.001
-\\ 0.672^{\bullet \bullet \bullet } & 0.164 & 0.10\text{e--4} & IV & 0.233 & 0.464
-\\ (0.180) & (0.362) & (0.85\text{e--4}) & & & 0.553
-\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}^*$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ 0.234;~~$\var(\xi_t)=$ 4.16\text{e--6} }  
+\\ 0.773^{\bullet \bullet \bullet } & & & IV & 0.230 & 0.000
+\\ (0.108) & & & & &0.542
+\\ & 0.912^{\bullet \bullet \bullet } & & IV & 0.145 & 0.105
+\\ & (0.245) & & & &0.187
+\\ & & -0.97\text{e--4}^{\bullet } & IV & 0.059 & 0.000
+\\ & & (0.56\text{e--4}) & & &0.002
+\\ 0.670^{\bullet \bullet \bullet } & 0.171 & 0.12\text{e--4} & IV & 0.231 & 0.460
+\\ (0.181) & (0.363) & (0.86\text{e--4}) & & & 0.551
+\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t}^*$ $= \mathbf{Z}_{t} \zeta, ~\bar{R}^{2}=$ 0.232; ~$\var(\log(\xi_t))=$ 4.16\text{e--6} }  
 \\ \bottomrule 
- \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are the average values for 100 samples of 200 simulated quarters each.  Bullets indicate that the average sample coefficient divided by average sample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.}\end{tabular} 
-\end{table} 
+ \multicolumn{6}{p{0.95\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are the average values for 100 samples of 200 simulated quarters each.  Bullets indicate that the average sample coefficient divided by average sample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.}
+\end{tabular}
+\end{table}
+\end{minipage}

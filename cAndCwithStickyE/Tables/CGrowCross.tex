@@ -1,19 +1,17 @@
-\begin{table}[t]  
-\caption{Micro Consumption Regression on Simulated Data} 
-\label{table:CGrowCross} 
-\begin{center} 
-\ifthenelse{\boolean{StandAlone}}{\input \eq/CGrowCross.tex 
-}{} 
-\begin{eqnarray} 
+\begin{minipage}{\TableWidth}
+  \begin{table}
+    \caption{Micro Consumption Regression on Simulated Data} \label{table:CGrowCross}
+    \begin{eqnarray} 
 \CGrowCross    \nonumber %\\CGrowCrossBar \nonumber 
-\end{eqnarray} 
-\newsavebox{\crosssecond} 
-\sbox{\crosssecond}{ 
+    \end{eqnarray}
+    \\
+%    \begin{center}
 \begin{tabular}{cd{4}d{4}d{5}ccc}  
 \toprule  
 Model of     &                                &                                &                                 &                                       &                 \\  
 Expectations & \multicolumn{1}{c}{$ \chi $} & \multicolumn{1}{c}{$ \eta $} & \multicolumn{1}{c}{$ \alpha $} & \multicolumn{1}{c}{$\bar{R}^{2}$} &                   
-\\ \midrule \multicolumn{2}{l}{Frictionless}  
+\\ \midrule 
+ \multicolumn{2}{l}{Frictionless}  
 \\ &  0.019  &        &        & 0.000 &   %NotOnSlide   
 \\ &  \multicolumn{1}{c}{(--)}  &        &        &  &   %NotOnSlide   
 \\ &    &    0.011    &        & 0.004 &   %NotOnSlide   
@@ -22,7 +20,8 @@ Expectations & \multicolumn{1}{c}{$ \chi $} & \multicolumn{1}{c}{$ \eta $} & \mu
 \\ &    &       &  \multicolumn{1}{c}{(--)}  &  &   %NotOnSlide   
 \\ &  0.061  &    0.016    &     -0.183   & 0.017 &    
 \\ & \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)}  &  &   %NotOnSlide   
-\\ \midrule \multicolumn{2}{l}{Sticky}  
+\\ \midrule 
+ \multicolumn{2}{l}{Sticky}  
 \\ &  0.012  &        &        & 0.000 &   %NotOnSlide   
 \\ &  \multicolumn{1}{c}{(--)}  &        &        &  &   %NotOnSlide   
 \\ &    &    0.011    &        & 0.004 &   %NotOnSlide   
@@ -31,12 +30,10 @@ Expectations & \multicolumn{1}{c}{$ \chi $} & \multicolumn{1}{c}{$ \eta $} & \mu
 \\ &    &       &  \multicolumn{1}{c}{(--)}  &  &   %NotOnSlide   
 \\ &  0.051  &    0.015    &     -0.185   & 0.016 &    
 \\ & \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)}  &  &   %NotOnSlide   
-\\ \bottomrule  
+  \\ \bottomrule \\
+  \multicolumn{5}{p{0.9\textwidth}}{\footnotesize \textbf{Notes}: $\mathbb{E}_{t,i}$ is the expectation from the perspective of person $i$ in period $t$; $\bar{a}$ is a dummy variable indicating that agent $i$ is in the top 99 percent of the normalized $a$ distribution.  Simulated sample size is large enough such that standard errors are effectively zero.  Sample is restricted to households with positive income in period $t$. The notation ``(---)'' indicates that standard errors are close to zero, given the very large simulated sample size.}
+%\end{center}
 \end{tabular}  
-}\usebox{\crosssecond} 
-\ifthenelse{\boolean{StandAlone}}{\newlength\TableWidth}{} 
-\settowidth{\TableWidth}{\usebox{\crosssecond}} % Calculate width of table so notes will match 
-\medskip\medskip \parbox{\TableWidth}{\small Notes: $\mathbb{E}_{t,i}$ is the expectation from the perspective of person $i$ in period $t$; $\bar{a}$ is a dummy variable indicating that agent $i$ is in the top 99 percent of the normalized $a$ distribution.  Simulated sample size is large enough such that standard errors are effectively zero.  Sample is restricted to households with positive income in period $t$. The notation ``(---)'' indicates that standard errors are close to zero, given the very large simulated sample size.}  
-\end{center} 
-\end{table} 
+\end{table}
+\end{minipage}
 \ifthenelse{\boolean{StandAlone}}{\end{document}}{} 

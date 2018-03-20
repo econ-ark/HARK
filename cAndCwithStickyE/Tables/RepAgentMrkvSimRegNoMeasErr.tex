@@ -1,7 +1,6 @@
-\begin{table} \caption{Aggregate Consumption Dynamics in RA Model} 
-\label{tRAsimX} 
-\centering \small 
-$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon_{t+1} $ \\  
+\begin{minipage}{\textwidth}
+\begin{table} \caption{Aggregate Consumption Dynamics in RA Model} \label{tRAsimNoMeasErr} 
+  \centerline{$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon_{t+1} $}
 \begin{tabular}{d{4}d{4}d{5}cd{4}c}
  \toprule 
 \multicolumn{3}{c}{Expectations : Dep Var} & OLS &  \multicolumn{1}{c}{2${}^{\text{nd}}$ Stage}  &  \multicolumn{1}{c}{KP $p$-val} 
@@ -10,28 +9,30 @@ $ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \et
 \\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
 \\ 0.017 & & & OLS & 0.003 & 
 \\ (0.078) & & & & & 
-\\ 0.421 & & & IV & 0.017 & 0.339
-\\ (0.378) & & & & &0.569
-\\ & 0.378 & & IV & 0.018 & 0.077
-\\ & (0.294) & & & &0.453
-\\ & & -0.27\text{e--4} & IV & 0.018 & 0.000
-\\ & & (1.04\text{e--4}) & & &0.472
-\\ 0.126 & 0.202 & 0.20\text{e--4} & IV & 0.021 & 0.531
-\\ (0.525) & (0.555) & (2.04\text{e--4}) & & & 0.582
-\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ 0.020 }  
+\\ 0.400 & & & IV & 0.016 & 0.342
+\\ (0.376) & & & & &0.561
+\\ & 0.372 & & IV & 0.017 & 0.083
+\\ & (0.297) & & & &0.460
+\\ & & -0.27\text{e--4} & IV & 0.017 & 0.000
+\\ & & (1.08\text{e--4}) & & &0.479
+\\ 0.119 & 0.210 & 0.23\text{e--4} & IV & 0.021 & 0.522
+\\ (0.513) & (0.555) & (2.07\text{e--4}) & & & 0.586
+\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t}$ $= \mathbf{Z}_{t} \zeta, ~\bar{R}^{2}=$ 0.020 }  
 \\ \midrule \multicolumn{6}{l}{Sticky : $\Delta \log \mathbf{C}_{t+1}$ (no measurement error)} 
 \\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t}$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
 \\ 0.790^{\bullet \bullet \bullet } & & & OLS & 0.625 & 
 \\ (0.044) & & & & & 
-\\ 0.825^{\bullet \bullet \bullet } & & & IV & 0.306 & 0.000
-\\ (0.069) & & & & &0.401
-\\ & 0.684^{\bullet \bullet \bullet } & & IV & 0.195 & 0.068
-\\ & (0.147) & & & &0.106
-\\ & & -0.50\text{e--4} & IV & 0.107 & 0.000
-\\ & & (0.41\text{e--4}) & & &0.003
-\\ 0.725^{\bullet \bullet \bullet } & 0.078 & 0.15\text{e--4} & IV & 0.305 & 0.275
-\\ (0.112) & (0.142) & (0.40\text{e--4}) & & & 0.431
-\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t+1}$ $= \mathbf{Z}_{t} \zeta,~~\bar{R}^{2}=$ 0.298 }  
+\\ 0.826^{\bullet \bullet \bullet } & & & IV & 0.306 & 0.000
+\\ (0.070) & & & & &0.411
+\\ & 0.673^{\bullet \bullet \bullet } & & IV & 0.191 & 0.075
+\\ & (0.147) & & & &0.094
+\\ & & -0.47\text{e--4} & IV & 0.106 & 0.000
+\\ & & (0.42\text{e--4}) & & &0.003
+\\ 0.728^{\bullet \bullet \bullet } & 0.072 & 0.15\text{e--4} & IV & 0.305 & 0.277
+\\ (0.113) & (0.143) & (0.41\text{e--4}) & & & 0.437
+\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t}$ $= \mathbf{Z}_{t} \zeta, ~\bar{R}^{2}=$ 0.298 }  
 \\ \bottomrule 
- \multicolumn{6}{p{0.8\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are the average values for 100 samples of 200 simulated quarters each.  Bullets indicate that the average sample coefficient divided by average sample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.}\end{tabular} 
-\end{table} 
+ \multicolumn{6}{p{0.95\textwidth}}{\footnotesize \textbf{Notes:} Reported statistics are the average values for 100 samples of 200 simulated quarters each.  Bullets indicate that the average sample coefficient divided by average sample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.}
+\end{tabular}
+\end{table}
+\end{minipage}
