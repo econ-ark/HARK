@@ -66,19 +66,6 @@ equilibrium outcomes, etc.  It is a collection of functions that are called by S
 5) StickyETimeSeries.do
 This is a Stata do file. The regressions are run in Stata in order to produce the KP statistic.
 
-All other Python files are part of the HARK toolkit, available at www.github.com/econ-ark/HARK:
-
-- HARKcore.py
-- HARKinterpolation.py
-- HARKestimation.py
-- HARKparallel.py
-- HARKsimulation.py
-- HARKutilities.py
-- ConsIndShockModel.py
-- ConsAggShockModel.py
-- RepAgentModel.py
-
-
 Relative locations of other folders are defined near the top of StickyEparams.py.
 Referenced folders include:
 
