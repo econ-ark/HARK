@@ -9,7 +9,7 @@ sys.path.insert(0,'../')
 
 import numpy as np
 import scipy.stats as stats
-from HARKinterpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFunction,\
+from HARKinterpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFunction, IdentityFunction,\
                               VariableLowerBoundFunc2D, BilinearInterp, LowerEnvelope2D, UpperEnvelope
 from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                           CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
@@ -141,6 +141,7 @@ class AggShockConsumerType(IndShockConsumerType):
         -------
         None
         '''
+        self.T_sim = Economy.act_T                          # Need to be able to track as many periods as economy runs
         self.kInit = Economy.kSS                            # Initialize simulation assets to steady state
         self.aNrmInitMean = np.log(0.00000001)              # Initialize newborn assets to nearly zero
         self.Mgrid = Economy.MSS*self.MgridBase             # Aggregate market resources grid adjusted around SS capital ratio
@@ -155,9 +156,7 @@ class AggShockConsumerType(IndShockConsumerType):
         
     def addAggShkDstn(self,AggShkDstn):
         '''
-        Updates attribute IncomeDstn by combining idiosyncratic shocks with
-        aggregate shocks.  Should not be run multiple times unless updateIncomeDstn
-        is called in between (done automatically in getEconomyData).
+        Updates attribute IncomeDstn by combining idiosyncratic shocks with aggregate shocks.
         
         Parameters
         ----------
@@ -285,7 +284,7 @@ class AggShockConsumerType(IndShockConsumerType):
         '''
         cNrmNow = np.zeros(self.AgentCount) + np.nan
         MPCnow = np.zeros(self.AgentCount) + np.nan
-        MaggNow = self.MaggNow*np.ones(self.AgentCount)
+        MaggNow = self.getMaggNow()
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cNrmNow[these] = self.solution[t].cFunc(self.mNrmNow[these],MaggNow[these])
@@ -293,6 +292,9 @@ class AggShockConsumerType(IndShockConsumerType):
         self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow
         return None
+    
+    def getMaggNow(self): # This function exists to be overwritten in StickyE model
+        return self.MaggNow*np.ones(self.AgentCount)
                 
     def marketAction(self):
         '''
@@ -407,7 +409,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         
         # Make replicated terminal period solution
         StateCount = self.MrkvArray.shape[0]
-        self.solution_terminal.cFunc   = StateCount*[self.cFunc_terminal_]
+        self.solution_terminal.cFunc   = StateCount*[self.solution_terminal.cFunc]
         self.solution_terminal.vPfunc  = StateCount*[self.solution_terminal.vPfunc]
         self.solution_terminal.mNrmMin = StateCount*[self.solution_terminal.mNrmMin]
         
@@ -481,7 +483,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         '''
         cNrmNow = np.zeros(self.AgentCount) + np.nan
         MPCnow = np.zeros(self.AgentCount) + np.nan
-        MaggNow = self.MaggNow*np.ones(self.AgentCount)
+        MaggNow = self.getMaggNow()
         MrkvNow = self.getMrkvNow()
         
         StateCount = self.MrkvArray.shape[0]
@@ -499,7 +501,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         self.MPCnow = MPCnow
         return None
     
-    def getMrkvNow(self):
+    def getMrkvNow(self): # This function exists to be overwritten in StickyE model
         return self.MrkvNow*np.ones(self.AgentCount,dtype=int)
 
         
@@ -821,7 +823,8 @@ def solveConsAggMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,MrkvArray,
         EndOfPrdvP = np.zeros((Mcount,aCount))
         for j in range(StateCount):
             if MrkvArray[i,j] > 0.:
-                EndOfPrdvP += MrkvArray[i,j]*EndOfPrdvPfunc_cond[j](aNrmNow_tiled,AaggNow_tiled)
+                temp = EndOfPrdvPfunc_cond[j](aNrmNow_tiled,AaggNow_tiled)
+                EndOfPrdvP += MrkvArray[i,j]*temp        
                 
         # Calculate consumption and the endogenous mNrm gridpoints for this state
         cNrmNow = EndOfPrdvP**(-1./CRRA)
@@ -1182,6 +1185,23 @@ class SmallOpenEconomy(Market):
         self.makeAggShkDstn()
         self.AFunc = ConstantFunction(1.0)
         
+    def makeAggShkDstn(self):
+        '''
+        Creates the attributes TranShkAggDstn, PermShkAggDstn, and AggShkDstn.
+        Draws on attributes TranShkAggStd, PermShkAddStd, TranShkAggCount, PermShkAggCount.
+        
+        Parameters
+        ----------
+        None
+            
+        Returns
+        -------
+        None
+        '''
+        self.TranShkAggDstn = approxMeanOneLognormal(sigma=self.TranShkAggStd,N=self.TranShkAggCount)
+        self.PermShkAggDstn = approxMeanOneLognormal(sigma=self.PermShkAggStd,N=self.PermShkAggCount)
+        self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn,self.TranShkAggDstn)
+        
     def millRule(self):
         '''
         No aggregation occurs for a small open economy, because the wage and interest rates are
@@ -1444,7 +1464,11 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         -------
         None
         '''
-        loops_max   = 10 # Maximum number of loops; final act_T never exceeds act_T*loops_max
+        if hasattr(self,'loops_max'):
+            loops_max = self.loops_max
+        else: # Maximum number of loops; final act_T never exceeds act_T*loops_max
+            loops_max   = 10 
+            
         state_T_min = 50 # Choose minimum number of periods in each state for a valid Markov sequence
         logit_scale = 0.2 # Scaling factor on logit choice shocks when jumping to a new state
         # Values close to zero make the most underrepresented states very likely to visit, while
@@ -1503,15 +1527,16 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
                 jump_probs = ratios_exp/ratios_sum
                 cum_probs  = np.cumsum(jump_probs)
                 MrkvNow    = np.searchsorted(cum_probs,draws[-1])
-                
-            # Make the Markov state history longer by act_T_orig periods
-            MrkvNow_new = np.zeros(self.act_T_orig,dtype=int)
-            MrkvNow_hist = np.concatenate((MrkvNow_hist,MrkvNow_new))
-            act_T += self.act_T_orig
+            
             loops += 1
+            # Make the Markov state history longer by act_T_orig periods
             if loops >= loops_max:
                 go = False
                 print('makeMrkvHist reached maximum number of loops without generating a valid sequence!')
+            else:
+                MrkvNow_new = np.zeros(self.act_T_orig,dtype=int)
+                MrkvNow_hist = np.concatenate((MrkvNow_hist,MrkvNow_new))
+                act_T += self.act_T_orig
                 
         # Store the results as attributes of self
         self.MrkvNow_hist = MrkvNow_hist
@@ -1586,6 +1611,39 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             #plt.show()
                     
         return AggShocksDynamicRule(AFunc_list)
+    
+    
+class SmallOpenMarkovEconomy(CobbDouglasMarkovEconomy,SmallOpenEconomy):
+    '''
+    A class for representing a small open economy, where the wage rate and interest rate are
+    exogenously determined by some "global" rate.  However, the economy is still subject to
+    aggregate productivity shocks.  This version supports a discrete Markov state.  All
+    methods in this class inherit from the two parent classes.
+    '''
+    def __init__(self,agents=[],tolerance=0.0001,act_T=1000,**kwds):
+        CobbDouglasMarkovEconomy.__init__(self,agents=agents,tolerance=tolerance,act_T=act_T,**kwds)
+        self.reap_vars = []
+        self.dyn_vars = []
+        
+    def update(self):
+        SmallOpenEconomy.update(self)
+        StateCount = self.MrkvArray.shape[0]
+        self.AFunc = StateCount*[IdentityFunction()]
+        
+    def makeAggShkDstn(self):
+        CobbDouglasMarkovEconomy.makeAggShkDstn(self)
+        
+    def millRule(self):
+        MrkvNow = self.MrkvNow_hist[self.Shk_idx]
+        temp =  SmallOpenEconomy.getAggShocks(self)
+        temp(MrkvNow = MrkvNow)
+        return temp
+        
+    def calcDynamics(self,KtoLnow):
+        return HARKobject()
+        
+    def makeAggShkHist(self):
+        CobbDouglasMarkovEconomy.makeAggShkHist(self)
 
                
 class CobbDouglasAggVars(HARKobject):

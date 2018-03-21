@@ -1,17 +1,20 @@
-Heterogeneous Agents Resources and toolKit (HARK)
-beta release - June 25, 2016
+# Heterogeneous Agents Resources and toolKit (HARK)
+pre-release 0.8.0 - October 2, 2017
+
+Click the Badge for Citation Info.
+[![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
+
 
 Table of Contents:
 
-* I.   Introduction
-* II.  Quick start guide
-* III. List of files in repository
-* IV.  Warnings and disclaimers
-* V.   License Information
+* [I.   Introduction](#i-introduction)
+* [II.  Quick start guide](#ii-quick-start-guide)
+* [III. List of files in repository](#iii-list-of-files-in-repository)
+* [IV.  Warnings and disclaimers](#iv-warnings-and-disclaimers)
+* [V.   License Information](#v-license)
 
--------------------------------------------------------------------
 
-I. INTRODUCTION
+## I. INTRODUCTION
 
 Welcome to HARK!  We are tremendously excited you're here.  HARK is
 very much a work in progress, but we hope you find it valuable.  We 
@@ -34,9 +37,8 @@ Online documentation: https://econ-ark.github.io/HARK
 
 User guide: /Documentation/HARKmanual.pdf (in the repository)
 
--------------------------------------------------------------------
 
-II. QUICK START GUIDE
+## II. QUICK START GUIDE
 
 This is going to be easy, friend.  HARK is written in Python, specifically the
 Anaconda distribution of Python.  Follow these easy steps to get HARK going:
@@ -50,14 +52,14 @@ on your machine.
 
 3) To get HARK on your machine, you should know that HARK is managed with version 
 control software called "Git".  HARK is hosted on a website called "GitHub" devoted
-to hosting projects managed with Git.
-
-If you don't want to know more than that, you don't have to. Go to HARK's page
+to hosting projects managed with Git. 
+   
+   If you don't want to know more than that, you don't have to. Go to HARK's page
 on GitHub (https://github.com/econ-ark/HARK), click the "Clone or download" button
 in the upper right hand corner of the page, then click "Download ZIP". Unzip it
 into an empty directory. Maybe call that directory /HARK ?  The choice is yours.
-
-You can also clone HARK off GitHub using Git.  This is slightly more difficult,
+   
+   You can also clone HARK off GitHub using Git.  This is slightly more difficult,
 because it involves installing Git on your machine and learning a little about
 how to use Git.  We believe this is an investment worth making, but it is up to you.
 To learn more about Git, read the documentation at https://git-scm.com/documentation 
@@ -87,7 +89,7 @@ To change the default directory (the "global working directory"), see
 Tools-->Preferences-->Global working directory; you might need to restart
 Spyder for the change to take effect.
 
-8) Read the more complete documentation in HARKmanual.pdf.
+8) Read the more complete documentation in [HARKmanual.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/HARKmanual.pdf).
 
 9) OPTIONAL: If you want to use HARK's multithreading capabilities, you will
 need two Python packages that do not come automatically with Anaconda: joblib
@@ -106,25 +108,25 @@ Note: If you did not put joblib and dill in one of the paths in sys.path, you wi
 need to add the joblib and dill directories to sys.path.  The easiest way to do this
 is to open up Anaconda, and type:
 
+```python
 import sys
 sys.path.append('path_to_joblib_directory')
 sys.path.append('path_to_dill_directory')
+```
 
--------------------------------------------------------------------
-
-III. LIST OF FILES IN REPOSITORY
+## III. LIST OF FILES IN REPOSITORY
 
 This section contains descriptions of every file included in the HARK
 repository at the time of the beta release, categorized for convenience.
 
 Documentation files:
-* README.md: The file you are currently reading.
-* Documentation/HARKdoc.pdf: A mini-user guide produced for a December 2015 workshop on HARK, unofficially representing the alpha version.  Somewhat out of date.
-* Documentation/HARKmanual.pdf: A user guide for HARK, written for the beta release at CEF 2016 in Bordeaux.  Should contain 90% fewer lies relative to HARKdoc.pdf.
-* Documentation/HARKmanual.tex: LaTeX source for the user guide.  Open source code probably requires an open source manual as well.
-* Documentation/ConsumptionSavingModels.pdf: Mathematical descriptions of the various consumption-saving models in HARK and how they map into the code.
-* Documentation/ConsumptionSavingModels.tex: LaTeX source for the "models" writeup.
-* Documentation/NARK.pdf: Variable naming conventions for HARK, plus concordance with LaTeX variable definitions.  Still in development.   
+* [README.md](https://github.com/econ-ark/HARK/blob/master/README.md): The file you are currently reading.
+* [Documentation/HARKdoc.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/HARKdoc.pdf): A mini-user guide produced for a December 2015 workshop on HARK, unofficially representing the alpha version.  Somewhat out of date.
+* [Documentation/HARKmanual.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/HARKmanual.pdf): A user guide for HARK, written for the beta release at CEF 2016 in Bordeaux.  Should contain 90% fewer lies relative to HARKdoc.pdf.
+    * [Documentation/HARKmanual.tex](https://github.com/econ-ark/HARK/blob/master/Documentation/HARKmanual.tex): LaTeX source for the user guide.  Open source code probably requires an open source manual as well.
+* [Documentation/ConsumptionSavingModels.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/ConsumptionSavingModels.pdf): Mathematical descriptions of the various consumption-saving models in HARK and how they map into the code.
+    * [Documentation/ConsumptionSavingModels.tex](https://github.com/econ-ark/HARK/blob/master/Documentation/ConsumptionSavingModels.tex): LaTeX source for the "models" writeup.
+* [Documentation/NARK.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/NARK.pdf): Variable naming conventions for HARK, plus concordance with LaTeX variable definitions.  Still in development.   
 
 Tool modules:
 * HARKcore.py:
@@ -334,9 +336,7 @@ Other files that you don't need to worry about:
     function for the KinkyPref model.
 
 
--------------------------------------------------------------------
-
-IV. WARNINGS AND DISCLAIMERS
+## IV. WARNINGS AND DISCLAIMERS
 
 This is an early beta version of HARK.  The code has not been
 extensively tested as it should be.  We hope it is useful, but 
@@ -345,13 +345,10 @@ it works or will do what you want.  Use at your own risk.  And
 please, let us know if you find bugs by posting an issue to the
 GitHub page!
 
--------------------------------------------------------------------
 
-V. License
+## V. License
 
 All of HARK is licensed under the Apache License, Version 2.0 (ALv2). Please see 
 the LICENSE file for the text of the license. More information can be found at: 
 http://www.apache.org/dev/apply-license.html
-
--------------------------------------------------------------------
 

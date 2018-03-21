@@ -30,9 +30,11 @@ import os
 sys.path.insert(0, os.path.abspath('../')) #Path to ConsumptionSaving folder
 sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../../cstwMPC')) #Path to cstwMPC folder
+import numpy as np
+from copy import deepcopy
 
 # Now, bring in what we need from the cstwMPC parameters
-import SetupParamsCSTWnew as cstwParams
+import SetupParamsCSTW as cstwParams
 from HARKutilities import approxUniform
 
 ## Import the HARK ConsumerType we want 
@@ -53,7 +55,6 @@ Now, add in ex-ante heterogeneity in consumers' discount factors
 # The cstwMPC parameters do not define a discount factor, since there is ex-ante heterogeneity
 # in the discount factor.  To prepare to create this ex-ante heterogeneity, first create
 # the desired number of consumer types
-from copy import deepcopy
 num_consumer_types   = 7 # declare the number of types we want
 ConsumerTypes = [] # initialize an empty list
 
@@ -96,7 +97,6 @@ for ConsumerType in ConsumerTypes:
 Now, create functions to see how aggregate consumption changes after household income uncertainty 
 increases in various ways
 """
-import numpy as np
 
 # In order to see how consumption changes, we need to be able to calculate average consumption
 # in the last period.  Create a function do to that here.
@@ -105,23 +105,17 @@ def calcAvgC(ConsumerTypes):
     This function calculates average consumption in the economy in last simulated period,
     averaging across ConsumerTypes.
     """
-    AgentCount = np.sum([ThisType.AgentCount for ThisType in ConsumerTypes]) #total number of agents in the economy
-    cNrm = np.array([]) #initialize an array to hold consumption (normalized by permanent income)
-    pLvl = np.array([]) #initialize an array to hold the level of permanent income
-        
-    # Now loop through all the ConsumerTypes, appending their cNrm and pLvl to the appropriate arrays
-    for ConsumerType in ConsumerTypes:
-        # Note we take the information from the last period
-        cNrm = np.append(cNrm,ConsumerType.cNrmNow)     
-        pLvl = np.append(pLvl,ConsumerType.pLvlNow)
-
-    # Calculate and return average consumption it the economy
-    avgC = np.sum(cNrm*pLvl)/AgentCount 
+    # Make arrays with all types' (normalized) consumption and permanent income level
+    cNrm = np.concatenate([ThisType.cNrmNow for ThisType in ConsumerTypes])
+    pLvl = np.concatenate([ThisType.pLvlNow for ThisType in ConsumerTypes])
+    
+    # Calculate and return average consumption level in the economy
+    avgC = np.mean(cNrm*pLvl) 
     return avgC
         
 # Now create a function to run the experiment we want -- change income uncertainty, and see
 # how consumption changes
-def cChangeAfterUncertaintyChange(consumerTypes,newVals,paramToChange):
+def cChangeAfterUncertaintyChange(ConsumerTypes,newVals,paramToChange):
     """
     Function to calculate the change in average consumption after change(s) in income uncertainty
     Inputs:
@@ -134,25 +128,21 @@ def cChangeAfterUncertaintyChange(consumerTypes,newVals,paramToChange):
     changesInConsumption = []
     
     # Get average consumption before parameters change
-    oldAvgC = calcAvgC(consumerTypes)
+    oldAvgC = calcAvgC(ConsumerTypes)
 
     # Now loop through the new income parameter values to assign, first assigning them, and then
     # solving and simulating another period with those values
     for newVal in newVals:
+        if paramToChange in ["PermShkStd","TranShkStd"]: # These parameters are time-varying, and thus are contained in a list.
+            thisVal = [newVal] # We need to make sure that our updated values are *also* in a (one element) list.
+        else:
+            thisVal = newVal
 
         # Copy everything we have from the consumerTypes 
-        ConsumerTypesNew = deepcopy(consumerTypes)
+        ConsumerTypesNew = deepcopy(ConsumerTypes)
           
         for index,ConsumerTypeNew in enumerate(ConsumerTypesNew):
-            # Change what we want to change
-            if paramToChange == "PermShkStd":
-                ConsumerTypeNew.PermShkStd = [newVal]
-            elif paramToChange == "TranShkStd":
-                ConsumerTypeNew.TranShkStd = [newVal]
-            elif paramToChange == "UnempPrb":
-                ConsumerTypeNew.UnempPrb = newVal #note, unlike the others, not a list
-            else:
-                raise ValueError,'Invalid parameter to change!'            
+            setattr(ConsumerTypeNew,paramToChange,thisVal) # Set the changed value of the parameter        
 
             # Because we changed the income process, and the income process is created
             # during initialization, we need to be sure to update the income process
@@ -168,7 +158,7 @@ def cChangeAfterUncertaintyChange(consumerTypes,newVals,paramToChange):
             ConsumerTypeNew.pLvlNow = ConsumerTypes[index].pLvlNow # Set permanent income to stationary dstn
             
             # Simulate one more period, which changes the values in cNrm and pLvl for each agent type
-            ConsumerTypeNew.simOnePeriod() 
+            ConsumerTypeNew.simOnePeriod()
 
         # Calculate the percent change in consumption, for this value newVal for the given parameter
         newAvgC = calcAvgC(ConsumerTypesNew)

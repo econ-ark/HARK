@@ -40,7 +40,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         -------
         None
         '''      
-        IndShockConsumerType.__init__(self,**kwds)
+        IndShockConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
         self.solveOnePeriod = solveConsPrefShock # Choose correct solver
     
     def update(self):

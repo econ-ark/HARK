@@ -111,6 +111,11 @@ Thumbs.db
 *.brf
 *.run.xml
 
+## Files created by htlatex
+*.4tc
+*.tmp
+*.xref
+
 ## Build tool auxiliary files:
 *.fdb_latexmk
 *.synctex
