@@ -8,14 +8,13 @@ the tables directory.  See StickyEparams for calibrated model parameters.
 
 import sys 
 import os
-#sys.path.insert(0, os.path.abspath('../'))
-#sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
 import csv
 from time import clock
 from copy import deepcopy
-import subprocess
 from StickyEmodel import StickyEmarkovConsumerType, StickyEmarkovRepAgent, StickyCobbDouglasMarkovEconomy
 from ConsAggShockModel import SmallOpenMarkovEconomy
 from HARKutilities import plotFuncs
