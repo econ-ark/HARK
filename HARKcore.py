@@ -11,6 +11,7 @@ from HARKutilities import getArgNames, NullFunc
 from copy import copy, deepcopy
 import numpy as np
 from time import clock
+from HARKparallel import multiThreadCommands
   
 def distanceMetric(thing_A,thing_B):
     '''
@@ -64,7 +65,7 @@ def distanceMetric(thing_A,thing_B):
         distance = 1000.0    
     return distance
         
-class HARKobject():
+class HARKobject(object):
     '''
     A superclass for object classes in HARK.  Comes with two useful methods:
     a generic/universal distance method and an attribute assignment method.
@@ -936,8 +937,9 @@ class Market(HARKobject):
         -------
         None
         '''
-        for this_type in self.agents:
-            this_type.solve()  
+        #for this_type in self.agents:
+        #    this_type.solve()
+        multiThreadCommands(self.agents,['solve()'])
     
     def solve(self):
         '''
