@@ -457,7 +457,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
             TranShkNow[these] = IncomeDstnNow[2][EventDraws]
 #        PermShkNow[newborn] = 1.0
-        TranShkNow[newborn] = 1.0
+#        TranShkNow[newborn] = 1.0
               
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount,dtype=bool)
@@ -1468,6 +1468,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             loops_max = self.loops_max
         else: # Maximum number of loops; final act_T never exceeds act_T*loops_max
             loops_max   = 10 
+            
         state_T_min = 50 # Choose minimum number of periods in each state for a valid Markov sequence
         logit_scale = 0.2 # Scaling factor on logit choice shocks when jumping to a new state
         # Values close to zero make the most underrepresented states very likely to visit, while
