@@ -683,6 +683,9 @@ if __name__ == '__main__':
     TestOpenCL.prepareToSolve()
     t_start = clock()
     TestOpenCL.solve()
+    TestOpenCL.loadSimulationKernels()
+    TestOpenCL.writeSimVar('aNrmNow')
+    TestOpenCL.writeSimVar('pLvlNow')
     t_end = clock()
     print('Solving ' + str(TestOpenCL.TypeCount) + ' types took ' + str(t_end-t_start) + ' seconds with OpenCL.')
     
@@ -691,18 +694,13 @@ if __name__ == '__main__':
     t_end = clock()
     print('Solving 1 type took ' + str(t_end-t_start) + ' seconds with Python.')
     
-    TestOpenCL.loadSimulationKernels()
-    TestOpenCL.writeSimVar('aNrmNow')
-    TestOpenCL.writeSimVar('pLvlNow')
-    
     t_start = clock()
     TestOpenCL.simNperiods(T_sim)
-    t_end = clock()
-    print('Simulating ' + str(TestOpenCL.AgentCount) + ' consumers for ' + str(T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds on OpenCL.')
-    
     TestOpenCL.readSimVar('mNrmNow')
     TestOpenCL.readSimVar('cNrmNow')
     TestOpenCL.readSimVar('TestVar')
+    t_end = clock()
+    print('Simulating ' + str(TestOpenCL.AgentCount) + ' consumers for ' + str(T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds on OpenCL.')
     
 #    C_test = np.zeros(TestType.AgentCount)
 #    for t in range(TestType.T_cycle+1):

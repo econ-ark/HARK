@@ -5,7 +5,7 @@ Simple test for opencl4py, edited from the example distributed in that package.
 import os
 import opencl4py as cl
 import numpy
-os.environ["PYOPENCL_CTX"] = "0:2" # This is where you set which devices are in the context
+os.environ["PYOPENCL_CTX"] = "0:1" # This is where you set which devices are in the context
 from time import clock
 
 if __name__ == "__main__":
