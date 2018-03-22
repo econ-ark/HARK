@@ -67,7 +67,7 @@ class ValueFunc2D(HARKobject):
         m : float or np.array
             Market resources whose value is to be calcuated.
         p : float or np.array
-            Permanent income levels whose value is to be calculated.
+            Persistent income levels whose value is to be calculated.
             
         Returns
         -------
@@ -119,7 +119,7 @@ class MargValueFunc2D(HARKobject):
         m : float or np.array
             Market resources whose value is to be calcuated.
         p : float or np.array
-            Permanent income levels whose value is to be calculated.
+            Persistent income levels whose value is to be calculated.
             
         Returns
         -------
@@ -141,7 +141,7 @@ class MargValueFunc2D(HARKobject):
         m : float or np.array
             Market resources whose value is to be calcuated.
         p : float or np.array
-            Permanent income levels whose value is to be calculated.
+            Persistent income levels whose value is to be calculated.
             
         Returns
         -------
@@ -194,7 +194,7 @@ class MargMargValueFunc2D(HARKobject):
         m : float or np.array
             Market resources whose marginal marginal value is to be calculated.
         p : float or np.array
-            Permanent income levels whose marginal marginal value is to be calculated.
+            Persistent income levels whose marginal marginal value is to be calculated.
             
         Returns
         -------
@@ -207,20 +207,20 @@ class MargMargValueFunc2D(HARKobject):
         return MPC*utilityPP(c,gam=self.CRRA)
     
     
-class PermIncFuncAR1(HARKobject):
+class pLvlFuncAR1(HARKobject):
     '''
     A class for representing AR1-style persistent income growth functions.
     '''
     def __init__(self,pLogMean,PermGroFac,Corr):
         '''
-        Make a new PermIncFuncAR1 instance.
+        Make a new pLvlFuncAR1 instance.
         
         Parameters
         ----------
         pLogMean : float
             Log persistent income level toward which we are drawn.
         PermGroFac : float
-            Permanent income growth factor for someone at pLogMean.
+            Persistent income growth factor for someone at pLogMean.
         Corr : float
             Correlation coefficient on log income.
             
@@ -726,7 +726,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         mLvl : np.array
             Market resource points for interpolation.
         pLvl : np.array
-            Permanent income level points for interpolation.
+            Persistent income level points for interpolation.
         cLvl : np.array
             Consumption points for interpolation.
             
@@ -760,7 +760,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         mLvl : np.array
             Market resource points for interpolation.
         pLvl : np.array
-            Permanent income level points for interpolation.
+            Persistent income level points for interpolation.
         cLvl : np.array
             Consumption points for interpolation.
             
@@ -1267,7 +1267,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         pLogMean = self.pLvlInitMean # Initial mean (log) persistent income
         
         for t in range(self.T_cycle):
-            pLvlNextFunc.append(PermIncFuncAR1(pLogMean,self.PermGroFac[t],self.PermIncCorr))
+            pLvlNextFunc.append(pLvlFuncAR1(pLogMean,self.PermGroFac[t],self.PermIncCorr))
             pLogMean += np.log(self.PermGroFac[t])
             
         self.pLvlNextFunc = pLvlNextFunc
