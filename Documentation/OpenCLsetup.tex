@@ -27,7 +27,7 @@
             \newcommand{\Prob}{\operatorname{Prob}}
             \clubpenalty 5000
             \widowpenalty 5000
-            \renewcommand{\baselinestretch}{1.5}
+            \renewcommand{\baselinestretch}{1.4}
             \usepackage{amsmath}
             \usepackage{amsthm}
             \usepackage{amsfonts}
@@ -38,28 +38,30 @@
 						
 \begin{document}
 \begin{center}
-\textbf{Notes on Setting Up OpenCL for HARK (edited May 26, 2017)}
+\textbf{Notes on Setting Up OpenCL for HARK (edited March 22, 2018)}
 \end{center}
 
 The module \texttt{ConsIndShockOpenCL.py} ports the \texttt{ConsIndShock} model into OpenCL, a heterogeneous computing language that enables code to be run on a CPU or a graphics processing unit (GPU).  OpenCL is effectively a restricted subset of C.  This module will not run ``out of the box''; you must do a bit of extra setup first.  This document has instructions for getting OpenCL to work with HARK.
 
-First, you must install OpenCL on your computer.  Different versions (or implementations or ``platforms'') of OpenCL are required for different devices.  To run OpenCL code on a CPU (whether manufactured by Intel or AMD) or an AMD GPU, you should install the AMD APP SDK, which can be found \href{http://developer.amd.com/tools-and-sdks/opencl-zone/amd-accelerated-parallel-processing-app-sdk/}{here}.  You should read through the installation notes (linked on that page) before installing the SDK, but there isn't much to know.  The most important caveat is that you should update your graphics drivers before installing if you have an AMD GPU.  To run OpenCL on an nVidia GPU, you should install the nVidia CUDA Toolkit from \href{https://developer.nvidia.com/cuda-downloads}{here}.  There is also an Intel version of OpenCL that (I believe) only works on Intel CPUs; I don't think there are any advantages of this platform over the AMD SDK.
+First, you must install OpenCL on your computer.  Different versions (or implementations or ``platforms'') of OpenCL are required for different devices.  To run OpenCL code on a CPU (whether manufactured by Intel or AMD) or an AMD GPU, you should install the AMD APP SDK, which can be found \href{https://developer.amd.com/amd-accelerated-parallel-processing-app-sdk/}{here}.  You should read through the installation notes (linked on that page) before installing the SDK, but there isn't much to know.  The most important caveat is that you should update your graphics drivers before installing if you have an AMD GPU.  To run OpenCL on an nVidia GPU, you should install the nVidia CUDA Toolkit from \href{https://developer.nvidia.com/cuda-downloads}{here}.  There is also an Intel version of OpenCL that (I believe) only works on Intel CPUs; I don't think there are any advantages of this platform over the AMD SDK.
 
-Second, you must install the package \texttt{opencl4py} in your Python environment.  This package can be found \href{https://pypi.python.org/pypi/opencl4py/1.0.1}{here}, and \textit{might} have been written by someone at Samsung.  The easiest way to install the package is to copy the directory \texttt{src/opencl4py} into the same directory as all of your other packages; if you're using Anaconda, this is something like \texttt{.../Anaconda2/lib/site-packages/}.
+Second, you must install the package \texttt{opencl4py} in your Python environment.  The PyPi homepage for the package is \href{https://pypi.python.org/pypi/opencl4py/1.0.1}{here}, but it is probably easiest to simply download a zip of the package archive from the GitHub page \href{https://github.com/ajkxyz/opencl4py}{here}. It \textit{might} have been written by someone at Samsung.  The easiest way to install the package is to copy the directory \texttt{src/opencl4py} from the zip archive into the same directory as all of your other packages; if you're using Anaconda, this is something like \texttt{.../Anaconda2/lib/site-packages/}.
 
 This should be all you need to set up OpenCL, but there's a bit more to do to figure out how it will work on your system.  Because OpenCL can be run on a CPU or a GPU, the user needs to specify \textit{which device} will actually run the code; you need to figure out the menu of devices available to you in order to make this choice.  In Python, run the following lines:
+
+\texttt{import os}
+
+\texttt{os.environ["PYOPENCL\_CTX"] = "0:0"}
 
 \texttt{import opencl4py as cl}
 
 \texttt{platforms = cl.Platforms()}
 
-\texttt{print(platforms.dump\_devices)}
+\texttt{print(platforms.dump\_devices())}
 
-This will print to screen a list of OpenCL platforms and devices (for each platform).  This will likely include your CPU, and possibly one or more GPUs on your machine.  The naming of GPUs can be slightly cryptic, as the name often displays as the development codename of that particular model.  You might need to look on Wikipedia to translate the GPU names you see here into the name that you know the device by.
+The environment variable \texttt{PYOPENCL\_CTX} must be defined before importing \texttt{opencl4py}; the example value here (0:0) is guaranteed to work as long as an OpenCL interpreter exists on your system.  The final line will print to screen a list of OpenCL platforms and devices (for each platform).  This will likely include your CPU, and possibly one or more GPUs on your machine.  The naming of GPUs can be slightly cryptic, as the name often displays as the development codename of that particular model.  You might need to look on Wikipedia to translate the GPU names you see here into the name that you know the device by.
 
-You must now decide which devices should ever be used for OpenCL computing.  All code that calls \texttt{opencl4py} must specify the ``context'': which devices are to be used.  This is done with lines like:
-
-\texttt{import os}
+You must now decide which devices should be used for OpenCL computing.  All code that calls \texttt{opencl4py} must specify the ``context'': which devices are to be used.  This is done by setting the environment variable \textit{before} \texttt{opencl4py} is imported and a context is created:
 
 \texttt{os.environ["PYOPENCL\_CTX"] = "0:0,1,2"}\\
 This sets the environment variable \texttt{PYOPENCL\_CTX} to refer to devices 0, 1, and 2 on platform 0, as named by the \texttt{dump\_devices()} method.  As a default, include in the context all devices from the list (for one particular platform).  There are two main reasons to exclude a device from the context:

@@ -573,7 +573,6 @@ class IndShockConsumerTypesOpenCL():
             bot = top
             
             
-            
     def solve(self):
         '''
         Solve all agent types using the OpenCL kernel.  This overwrites AgentType.solve().
@@ -590,7 +589,6 @@ class IndShockConsumerTypesOpenCL():
         GlobalThreadCount = self.ThreadCountSoln
         queue.execute_kernel(self.solveConsIndShockKrn, [GlobalThreadCount], [WorkGroupSize])
         queue.read_buffer(self.IntegerInputs_buf,self.IntegerInputs)
-            
             
             
     def simOnePeriodOLD(self):
@@ -633,7 +631,6 @@ class IndShockConsumerTypesOpenCL():
         queue.write_buffer(self.IntegerInputs_buf,self.IntegerInputs)
         
         
-        
     def simNperiods(self,N):
         '''
         Simulates N periods of the consumption-saving model for all agents
@@ -652,24 +649,36 @@ class IndShockConsumerTypesOpenCL():
             self.simOnePeriodNEW()
             
             
+    def finish(self):
+        '''
+        Calls the finish() method of opencl4py.Queue, which causes Python to wait
+        for the queue to clear.
+        '''
+        queue.finish()
+            
+            
             
 if __name__ == '__main__':
     import ConsumerParameters as Params
     from ConsIndShockModel import IndShockConsumerType
     import matplotlib.pyplot as plt
-    from copy import copy, deepcopy
+    from copy import deepcopy
     from time import clock
-    from HARKinterpolation import CubicInterp
-    from HARKutilities import plotFuncs
+    from HARKparallel import multiThreadCommands, multiThreadCommandsFake
     
+    # Set up a baseline IndShockConsumerType, which will be replicated.
+    # In this case, we use a completely arbitrary 10 period lifecycle.
     TestType = IndShockConsumerType(**Params.init_lifecycle)
-    TestType.TestVar = np.empty(10000)
-    TestType.CubicBool = True
-    T_sim = 1000
-    TestType.T_sim = T_sim
-    TestType.initializeSim()
+    TestType.TestVar = np.empty(TestType.AgentCount) # This is for making an empty buffer for diagnostics
+    TestType.CubicBool = True # Cubic interpolation must be on, because that's what's used in OpenCL version
+    T_sim = 100 # Choose simulation length
+    AgentCount = 1000 # Chose number of agents in each type
+    TestType.T_sim = T_sim # Choose number of periods to simulate
+    TestType.AgentCount = AgentCount
+    TestType.initializeSim() # Set up some objects for simulation
     
-    TypeCount = 32
+    # Make a list with many copies of the baseline agent type, each with a different CRRA.
+    TypeCount = 3200
     CRRAmin = 1.0
     CRRAmax = 5.0
     CRRAset = np.linspace(CRRAmin,CRRAmax,TypeCount)
@@ -678,40 +687,41 @@ if __name__ == '__main__':
         NewType = deepcopy(TestType)
         NewType(CRRA = CRRAset[j])
         TypeList.append(NewType)
+        
+    # Construct an instance of IndShockConsumerTypesOpenCL by passing the type list to the constructor.
+    # Note the plural in the class name; each instance of this class represents *several* types.
     TestOpenCL = IndShockConsumerTypesOpenCL(TypeList)
     
-    TestOpenCL.prepareToSolve()
+    # Solve all of the types using OpenCL and time it.
     t_start = clock()
+    TestOpenCL.prepareToSolve()
     TestOpenCL.solve()
-    TestOpenCL.loadSimulationKernels()
-    TestOpenCL.writeSimVar('aNrmNow')
-    TestOpenCL.writeSimVar('pLvlNow')
+    TestOpenCL.finish() # Wait for the OpenCL queue to clear, so that timing is reported correctly
     t_end = clock()
     print('Solving ' + str(TestOpenCL.TypeCount) + ' types took ' + str(t_end-t_start) + ' seconds with OpenCL.')
     
+    # Solve all of the types using Python and time it.  You can choose whether to use a basic form
+    # of multithreading (joblib) by using multiThreadCommands or multiThreadCommandsFake.
     t_start = clock()
-    TestType.solve()
+    multiThreadCommands(TypeList,['solve()'])
     t_end = clock()
-    print('Solving 1 type took ' + str(t_end-t_start) + ' seconds with Python.')
+    print('Solving ' + str(len(TypeList)) + ' types took ' + str(t_end-t_start) + ' seconds with Python.')
     
+    # Simulate all of the types using OpenCL and time it.
     t_start = clock()
+    TestOpenCL.loadSimulationKernels()
+    TestOpenCL.writeSimVar('aNrmNow') # Writes current values in aNrmNow to a buffer
+    TestOpenCL.writeSimVar('pLvlNow') # Writes current values in pLvlNow to a buffer
     TestOpenCL.simNperiods(T_sim)
-    TestOpenCL.readSimVar('mNrmNow')
-    TestOpenCL.readSimVar('cNrmNow')
-    TestOpenCL.readSimVar('TestVar')
+    TestOpenCL.readSimVar('cNrmNow') # Reads current values in cNrmNow buffer to attribute of self
+    TestOpenCL.finish() # Wait for simulation to finish running
     t_end = clock()
     print('Simulating ' + str(TestOpenCL.AgentCount) + ' consumers for ' + str(T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds on OpenCL.')
     
-#    C_test = np.zeros(TestType.AgentCount)
-#    for t in range(TestType.T_cycle+1):
-#        these = TestType.TestVar == t
-#        C_test[these] = TestType.solution[t].cFunc(TestType.mNrmNow[these])
-#    plt.plot(C_test,TestType.cNrmNow,'.k')
-#    plt.show()
-    
+    # Simulate all of the types using Python and time it.
     t_start = clock()
-    TestType.simulate()
+    multiThreadCommands(TypeList,['simulate()'])
     t_end = clock()
-    print('Simulating ' + str(TestType.AgentCount) + ' consumers for ' + str(T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds on Python.')
+    print('Simulating ' + str(TestType.AgentCount*TypeCount) + ' consumers for ' + str(T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds on Python.')
     
   
