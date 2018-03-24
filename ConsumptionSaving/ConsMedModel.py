@@ -548,7 +548,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         self.updateIncomeProcess()
         self.updateAssetsGrid()
         self.updatepLvlNextFunc()
-        self.updatePermIncGrid()
+        self.updatepLvlGrid()
         self.updateMedShockProcess()
         self.updateSolutionTerminal()
         
@@ -665,7 +665,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         self.solution_terminal.mLvlMin = lambda p : np.zeros_like(p) # And minimum allowable market resources by perm inc
         
         
-    def updatePermIncGrid(self):
+    def updatepLvlGrid(self):
         '''
         Update the grid of permanent income levels.  Currently only works for
         infinite horizon models (cycles=0) and lifecycle models (cycles=1).  Not
@@ -682,7 +682,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         None
         '''
         # Run basic version of this method
-        PersistentShockConsumerType.updatePermIncGrid(self)
+        PersistentShockConsumerType.updatepLvlGrid(self)
         for j in range(len(self.pLvlGrid)): # Then add 0 to the bottom of each pLvlGrid
             this_grid = self.pLvlGrid[j]
             self.pLvlGrid[j] = np.insert(this_grid,0,0.0001)
@@ -1323,7 +1323,7 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
         Price of unit of medical care relative to unit of consumption.
     pLvlNextFunc : float
         Expected permanent income next period as a function of current pLvl.
-    PermIncCorr : float
+    PrstIncCorr : float
         Correlation of permanent income from period to period.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the

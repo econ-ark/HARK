@@ -216,7 +216,7 @@ PermIncCount = 12        # Number of permanent income gridpoints in "body"
 PermInc_tail_N = 4       # Number of permanent income gridpoints in each "tail"
 PermIncStdInit = 0.2     # Initial standard deviation of (log) permanent income (not used in example) 
 PermIncAvgInit = 1.0     # Initial average of permanent income (not used in example)
-PermIncCorr = 0.98       # Serial correlation coefficient for permanent income
+PrstIncCorr = 0.98       # Serial correlation coefficient for permanent income
 cycles = 0
 
 # Make a dictionary for the "explicit permanent income" idiosyncratic shocks model
@@ -233,7 +233,7 @@ init_explicit_perm_inc['aXtraExtra'] = [0.005,0.01]
 
 # Make a dictionary for the "persistent idiosyncratic shocks" model
 init_persistent_shocks = copy(init_explicit_perm_inc)
-init_persistent_shocks['PermIncCorr'] = PermIncCorr
+init_persistent_shocks['PrstIncCorr'] = PrstIncCorr
 
 # -----------------------------------------------------------------------------
 # ----- Define additional parameters for the medical shocks model -------------

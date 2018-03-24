@@ -220,7 +220,7 @@ class pLvlFuncAR1(HARKobject):
         pLogMean : float
             Log persistent income level toward which we are drawn.
         PermGroFac : float
-            Persistent income growth factor for someone at pLogMean.
+            Autonomous (e.g. life cycle) pLvl growth (does not AR1 decay).
         Corr : float
             Correlation coefficient on log income.
             
@@ -395,8 +395,8 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         self.hNrmNow = 0.0
         pLvlCount    = self.pLvlGrid.size
         IncShkCount  = self.PermShkValsNext.size
-        PermIncNext  = np.tile(self.pLvlNextFunc(self.pLvlGrid),(IncShkCount,1))*np.tile(self.PermShkValsNext,(pLvlCount,1)).transpose()
-        hLvlGrid     = 1.0/self.Rfree*np.sum((np.tile(self.TranShkValsNext,(pLvlCount,1)).transpose()*PermIncNext + solution_next.hLvl(PermIncNext))*np.tile(self.ShkPrbsNext,(pLvlCount,1)).transpose(),axis=0)
+        pLvlNext  = np.tile(self.pLvlNextFunc(self.pLvlGrid),(IncShkCount,1))*np.tile(self.PermShkValsNext,(pLvlCount,1)).transpose()
+        hLvlGrid     = 1.0/self.Rfree*np.sum((np.tile(self.TranShkValsNext,(pLvlCount,1)).transpose()*pLvlNext + solution_next.hLvl(pLvlNext))*np.tile(self.ShkPrbsNext,(pLvlCount,1)).transpose(),axis=0)
         self.hLvlNow = LinearInterp(np.insert(self.pLvlGrid,0,0.0),np.insert(hLvlGrid,0,0.0))
         
     def defBoroCnst(self,BoroCnstArt):
@@ -977,7 +977,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         '''
         IndShockConsumerType.update(self)
         self.updatepLvlNextFunc()
-        self.updatePermIncGrid()
+        self.updatepLvlGrid()
         
     def updateSolutionTerminal(self):
         '''
@@ -1041,7 +1041,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         self.pLvlNextFunc[t] = self.pLvlNextFuncRet
         
         
-    def updatePermIncGrid(self):
+    def updatepLvlGrid(self):
         '''
         Update the grid of persistent income levels.  Currently only works for
         infinite horizon models (cycles=0) and lifecycle models (cycles=1).  Not
@@ -1066,13 +1066,13 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         # Simulate the distribution of persistent income levels by t_cycle in a lifecycle model
         if self.cycles == 1: 
             pLvlNow = drawLognormal(self.AgentCount,mu=self.pLvlInitMean,sigma=self.pLvlInitStd,seed=31382)
-            PermIncGrid = [] # empty list of time-varying persistent income grids
+            pLvlGrid = [] # empty list of time-varying persistent income grids
             # Calculate distribution of persistent income in each period of lifecycle
             for t in range(len(self.PermShkStd)):
                 if t > 0:
                     PermShkNow = drawDiscrete(N=self.AgentCount,P=self.PermShkDstn[t-1][0],X=self.PermShkDstn[t-1][1],exact_match=False,seed=t)
                     pLvlNow = self.pLvlNextFunc[t-1](pLvlNow)*PermShkNow
-                PermIncGrid.append(getPercentiles(pLvlNow,percentiles=self.pLvlPctiles))
+                pLvlGrid.append(getPercentiles(pLvlNow,percentiles=self.pLvlPctiles))
                 
         # Calculate "stationary" distribution in infinite horizon (might vary across periods of cycle)
         elif self.cycles == 0:
@@ -1093,17 +1093,17 @@ class GenIncProcessConsumerType(IndShockConsumerType):
                 t_cycle[t_cycle == self.T_cycle] = 0
             
             # We now have a "long run stationary distribution", extract percentiles
-            PermIncGrid = [] # empty list of time-varying persistent income grids
+            pLvlGrid = [] # empty list of time-varying persistent income grids
             for t in range(self.T_cycle):
                 these = t_cycle == t
-                PermIncGrid.append(getPercentiles(pLvlNow[these],percentiles=self.pLvlPctiles))
+                pLvlGrid.append(getPercentiles(pLvlNow[these],percentiles=self.pLvlPctiles))
                 
         # Throw an error if cycles>1
         else:
             assert False, "Can only handle cycles=0 or cycles=1!"
             
         # Store the result and add attribute to time_vary
-        self.pLvlGrid = PermIncGrid
+        self.pLvlGrid = pLvlGrid
         self.addToTimeVary('pLvlGrid')
         if not orig_time:
             self.timeRev()
@@ -1202,7 +1202,7 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
     abilities, and permanent income growth rates, as well as time invariant values
     for risk aversion, discount factor, the interest rate, the grid of end-of-
     period assets, and an artificial borrowing constraint.  This agent type is
-    identical to a IndShockConsumerType but for explicitly tracking pLvl as a
+    identical to an IndShockConsumerType but for explicitly tracking pLvl as a
     state variable during solution.  There is no real economic use for it.
     '''
     def updatepLvlNextFunc(self):
@@ -1228,7 +1228,6 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
             pLvlNextFunc.append(LinearInterp(np.array([0.,1.]),np.array([0.,self.PermGroFac[t]])))
             
         self.pLvlNextFunc = pLvlNextFunc
-        self.installRetirementFunc()
         self.addToTimeVary('pLvlNextFunc')
         if not orig_time:
             self.timeRev()
@@ -1248,7 +1247,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
     def updatepLvlNextFunc(self):
         '''
         A method that creates the pLvlNextFunc attribute as a sequence of
-        AR1-style functions.  Draws on the attributes PermGroFac and PermIncCorr.
+        AR1-style functions.  Draws on the attributes PermGroFac and PrstIncCorr.
         If cycles=0, the product of PermGroFac across all periods must be 1.0,
         otherwise this method is invalid.
         
@@ -1267,7 +1266,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         pLogMean = self.pLvlInitMean # Initial mean (log) persistent income
         
         for t in range(self.T_cycle):
-            pLvlNextFunc.append(pLvlFuncAR1(pLogMean,self.PermGroFac[t],self.PermIncCorr))
+            pLvlNextFunc.append(pLvlFuncAR1(pLogMean,self.PermGroFac[t],self.PrstIncCorr))
             pLogMean += np.log(self.PermGroFac[t])
             
         self.pLvlNextFunc = pLvlNextFunc
