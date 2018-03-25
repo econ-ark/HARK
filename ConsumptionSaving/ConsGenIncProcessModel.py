@@ -1279,11 +1279,12 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 
 if __name__ == '__main__':
     import ConsumerParameters as Params
+    from HARKutilities import plotFuncs
     from time import clock
     import matplotlib.pyplot as plt
     mystr = lambda number : "{:.4f}".format(number)
     
-    do_simulation = True
+    do_simulation = False
     
     # Make and solve an example "explicit permanent income" consumer with idiosyncratic shocks
     ExplicitExample = IndShockExplicitPermIncConsumerType(**Params.init_explicit_perm_inc)
@@ -1293,15 +1294,40 @@ if __name__ == '__main__':
     print('Solving an explicit permanent income consumer took ' + mystr(t_end-t_start) + ' seconds.')
     
     # Plot the consumption function at various permanent income levels
-    pGrid = np.linspace(0,3,24)
-    M = np.linspace(0,20,300)
-    for p in pGrid:
-        M_temp = M+ExplicitExample.solution[0].mLvlMin(p)
+    print('Consumption function by pLvl for explicit permanent income consumer:')
+    pLvlGrid = ExplicitExample.pLvlGrid[0]
+    mLvlGrid = np.linspace(0,20,300)
+    for p in pLvlGrid:
+        M_temp = mLvlGrid + ExplicitExample.solution[0].mLvlMin(p)
         C = ExplicitExample.solution[0].cFunc(M_temp,p*np.ones_like(M_temp))
         plt.plot(M_temp,C)
     plt.xlabel('Market resource level mLvl')
     plt.ylabel('Consumption level cLvl')
     plt.show()
+    
+    # Now solve the *exact same* problem, but with the permanent income normalization
+    NormalizedExample = IndShockConsumerType(**Params.init_explicit_perm_inc)
+    t_start = clock()
+    NormalizedExample.solve()
+    t_end = clock()
+    print('Solving the same problem with permanent income normalized out took ' + mystr(t_end-t_start) + ' seconds.')
+    
+    # Show that the normalized consumption function for the "explicit permanent income" consumer
+    # is the *same* for every permanent income level (and the same as the normalized problem's cFunc)
+    print('Normalized consumption function by pLvl for explicit permanent income consumer:')
+    pLvlGrid = ExplicitExample.pLvlGrid[0]
+    mNrmGrid = np.linspace(0,20,300)
+    for p in pLvlGrid:
+        M_temp = mNrmGrid*p + ExplicitExample.solution[0].mLvlMin(p)
+        C = ExplicitExample.solution[0].cFunc(M_temp,p*np.ones_like(M_temp))
+        plt.plot(M_temp/p,C/p)
+    plt.xlim(0.,20.)
+    plt.xlabel('Normalized market resources mNrm')
+    plt.ylabel('Normalized consumption cNrm')
+    plt.show()
+    print('Consumption function for normalized problem (without explicit permanent income):')
+    mNrmMin = NormalizedExample.solution[0].mNrmMin
+    plotFuncs(NormalizedExample.solution[0].cFunc,mNrmMin,mNrmMin+20.)
     
     # Plot the value function at various permanent income levels
     if ExplicitExample.vFuncBool:
@@ -1338,19 +1364,32 @@ if __name__ == '__main__':
     print('Solving a persistent income shocks consumer took ' + mystr(t_end-t_start) + ' seconds.')
     
     # Plot the consumption function at various persistent income levels
-    pGrid = np.linspace(0.1,3,24)
-    M = np.linspace(0,20,300)
-    for p in pGrid:
-        M_temp = M + PersistentExample.solution[0].mLvlMin(p)
+    print('Consumption function by pLvl for persistent income shocks consumer:')
+    pLvlGrid = PersistentExample.pLvlGrid[0]
+    mLvlGrid = np.linspace(0,20,300)
+    for p in pLvlGrid:
+        M_temp = mLvlGrid + PersistentExample.solution[0].mLvlMin(p)
         C = PersistentExample.solution[0].cFunc(M_temp,p*np.ones_like(M_temp))
         plt.plot(M_temp,C)
     plt.xlabel('Market resource level mLvl')
     plt.ylabel('Consumption level cLvl')
     plt.show()
     
+    print('Normalized consumption function by pLvl for persistent income shocks consumer:')
+    pLvlGrid = PersistentExample.pLvlGrid[0]
+    mNrmGrid = np.linspace(0,20,300)
+    for p in pLvlGrid:
+        M_temp = mNrmGrid*p + PersistentExample.solution[0].mLvlMin(p)
+        C = PersistentExample.solution[0].cFunc(M_temp,p*np.ones_like(M_temp))
+        plt.plot(M_temp/p,C/p)
+    plt.xlim(0.,20.)
+    plt.xlabel('Normalized market resources mNrm')
+    plt.ylabel('Normalized consumption cNrm')
+    plt.show()
+    
     # Plot the value function at various persistent income levels
     if PersistentExample.vFuncBool:
-        pGrid = np.linspace(0.1,3.0,24)
+        pGrid = PersistentExample.pLvlGrid[0]
         M = np.linspace(0.001,5,300)
         for p in pGrid:
             M_temp = M+PersistentExample.solution[0].mLvlMin(p)

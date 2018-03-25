@@ -66,7 +66,7 @@ T_retire = 0                        # Period of retirement (0 --> no retirement)
 # A few other parameters
 BoroCnstArt = 0.0                  # Artificial borrowing constraint; imposed minimum level of end-of period assets
 CubicBool = False                  # Use cubic spline interpolation when True, linear interpolation when False
-vFuncBool = True                   # Whether to calculate the value function during solution
+vFuncBool = False                  # Whether to calculate the value function during solution
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
 init_idiosyncratic_shocks = { 'CRRA': CRRA,
@@ -174,8 +174,6 @@ TranShkAggStd = 0.0031        # Standard deviation of log aggregate transitory s
 DeprFac = 0.025               # Capital depreciation rate
 CapShare = 0.36               # Capital's share of income
 DiscFacPF = DiscFac           # Discount factor of perfect foresight calibration
-#intercept_prev = -0.305568464142        # Intercept of AFunc function
-#slope_prev = 1.06154769008               # Slope of AFunc function
 intercept_prev = 0.0         # Intercept of aggregate savings function
 slope_prev = 1.0             # Slope of aggregate savings function
 
@@ -187,8 +185,6 @@ del init_agg_shocks['vFuncBool']    # Not supported yet for agg shocks model
 init_agg_shocks['PermGroFac'] = [1.0] # Not yet correctly handled for agg shocks model, set to 1
 init_agg_shocks['MgridBase'] = MgridBase
 init_agg_shocks['aXtraCount'] = 24
-#init_agg_shocks['aXtraMax'] = 80.0
-#init_agg_shocks['aXtraExtra'] = [1000.0]
 init_agg_shocks['aNrmInitStd'] = 0.0
 init_agg_shocks['LivPrb'] = LivPrb
 
