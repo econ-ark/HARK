@@ -208,20 +208,12 @@ init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
 # -----------------------------------------------------------------------------
 
 pLvlPctiles = np.concatenate(([0.001, 0.005, 0.01, 0.03], np.linspace(0.05, 0.95, num=19),[0.97, 0.99, 0.995, 0.999]))
-PermIncCount = 12        # Number of permanent income gridpoints in "body"
-PermInc_tail_N = 4       # Number of permanent income gridpoints in each "tail"
-PermIncStdInit = 0.2     # Initial standard deviation of (log) permanent income (not used in example) 
-PermIncAvgInit = 1.0     # Initial average of permanent income (not used in example)
 PrstIncCorr = 0.98       # Serial correlation coefficient for permanent income
 cycles = 0
 
 # Make a dictionary for the "explicit permanent income" idiosyncratic shocks model
 init_explicit_perm_inc = copy(init_idiosyncratic_shocks)
 init_explicit_perm_inc['pLvlPctiles'] = pLvlPctiles
-init_explicit_perm_inc['PermIncCount'] = PermIncCount
-init_explicit_perm_inc['PermInc_tail_N'] = PermInc_tail_N
-init_explicit_perm_inc['PermIncAvgInit'] = PermIncAvgInit # these mistakenly duplicate pLvlInitMean and pLvlInitStd
-init_explicit_perm_inc['PermIncStdInit'] = PermIncStdInit
 init_explicit_perm_inc['PermGroFac'] = [1.0] # long run permanent income growth doesn't work yet
 init_explicit_perm_inc['cycles'] = cycles
 init_explicit_perm_inc['aXtraMax'] = 30
