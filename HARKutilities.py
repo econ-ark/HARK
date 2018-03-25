@@ -13,6 +13,7 @@ import pylab as plt                 # Python's plotting library
 import scipy.stats as stats         # Python's statistics library
 from scipy.interpolate import interp1d
 from scipy.special import erf, erfc
+from scipy.stats import norm
 
 def _warning(message,category = UserWarning,filename = '',lineno = -1):
     '''
@@ -710,6 +711,48 @@ def makeMarkovApproxToNormalByMonteCarlo(x_grid,mu,sigma,N_draws = 10000):
     assert (np.all(p_vec>=0.)) and (np.all(p_vec<=1.)) and (np.isclose(np.sum(p_vec)),1.)
     return p_vec
 
+
+def makeTauchenAR1(N, sigma=1.0, rho=0.9, bound=3.0):
+    '''
+    Function to return a discretized version of an AR1 process.
+    See http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
+
+    Parameters
+    ----------
+    N: int
+        Size of discretized grid
+    sigma: float
+        Standard deviation of the error term
+    rho: float
+        AR1 coefficient
+    bound: float
+        The highest (lowest) grid point will be bound (-bound) multiplied by the unconditional 
+        standard deviation of the process
+ 
+    Returns
+    -------
+    y: np.array
+        Grid points on which the discretized process takes values
+    trans_matrix: np.array
+        Markov transition array for the discretized process
+
+    Written by Edmund S. Crawley
+    Latest update: 27 October 2017
+    '''
+    yN = bound*sigma/((1-rho**2)**0.5)
+    y = np.linspace(-yN,yN,N)
+    d = y[1]-y[0]
+    trans_matrix = np.ones((N,N))
+    for j in range(N):
+        for k_1 in range(N-2):
+            k=k_1+1
+            trans_matrix[j,k] = stats.norm.cdf((y[k] + d/2.0 - rho*y[j])/sigma) - stats.norm.cdf((y[k] - d/2.0 - rho*y[j])/sigma)
+        trans_matrix[j,0] = stats.norm.cdf((y[0] + d/2.0 - rho*y[j])/sigma)
+        trans_matrix[j,N-1] = 1.0 - stats.norm.cdf((y[N-1] - d/2.0 - rho*y[j])/sigma)
+        
+    return y, trans_matrix
+
+
 # ================================================================================
 # ==================== Functions for manipulating discrete distributions =========
 # ================================================================================
@@ -789,14 +832,16 @@ def combineIndepDstns(*distributions):
     '''
     Given n lists (or tuples) whose elements represent n independent, discrete
     probability spaces (probabilities and values), construct a joint pmf over
-    all combinations of these independent points.
+    all combinations of these independent points.  Can take multivariate discrete
+    distributions as inputs.
 
     Parameters
     ----------
     distributions : [np.array]
         Arbitrary number of distributions (pmfs).  Each pmf is a list or tuple.
-        For each pmf, the first vector is probabilities and the second is values.
-        For each pmf, this should be true: len(X_pmf[0]) = len(X_pmf[1])
+        For each pmf, the first vector is probabilities and all subsequent vectors
+        are values.  For each pmf, this should be true:
+        len(X_pmf[0]) == len(X_pmf[j]) for j in range(1,len(distributions))
  
     Returns
     -------
@@ -809,7 +854,7 @@ def combineIndepDstns(*distributions):
         Discrete points for the joint discrete probability mass function.
 
     Written by Nathan Palmer 
-    Latest update: 31 August 2015 by David Low
+    Latest update: 5 July August 2017 by Matthew N White
     '''
     # Very quick and incomplete parameter check:
     for dist in distributions:
@@ -817,8 +862,10 @@ def combineIndepDstns(*distributions):
 
     # Get information on the distributions
     dist_lengths = ()
+    dist_dims = ()
     for dist in distributions:
         dist_lengths += (len(dist[0]),)
+        dist_dims += (len(dist)-1,)
     number_of_distributions = len(distributions)
 
     # Initialize lists we will use
@@ -838,27 +885,25 @@ def combineIndepDstns(*distributions):
         # Now we are ready to tile.
         # We don't use the np.meshgrid commands, because they do not
         # easily support non-symmetric grids.
-        Xmesh  = np.tile(dist[1].reshape(dist_newshape),dist_tiles)
-        Pmesh  = np.tile(dist[0].reshape(dist_newshape),dist_tiles)
-
-        # Now flatten the tiled arrays.
-        flatX  = Xmesh.ravel()
-        flatP  = Pmesh.ravel()
         
-        # Add the flattened arrays to the output lists.
-        X_out  += [flatX,]
-        P_temp += [flatP,]
-
+        # First deal with probabilities
+        Pmesh  = np.tile(dist[0].reshape(dist_newshape),dist_tiles) # Tiling
+        flatP  = Pmesh.ravel() # Flatten the tiled arrays
+        P_temp += [flatP,] #Add the flattened arrays to the output lists
+        
+        # Then loop through each value variable
+        for n in range(1,dist_dims[dd]+1):
+            Xmesh  = np.tile(dist[n].reshape(dist_newshape),dist_tiles)
+            flatX  = Xmesh.ravel()
+            X_out  += [flatX,]
+        
     # We're done getting the flattened X_out arrays we wanted.
     # However, we have a bunch of flattened P_temp arrays, and just want one 
     # probability array. So get the probability array, P_out, here.
-    P_out = np.ones_like(X_out[0])
-    for pp in P_temp:
-        P_out *= pp
+    P_out = np.prod(np.array(P_temp),axis=0)
 
     assert np.isclose(np.sum(P_out),1),'Probabilities do not sum to 1!'
     return [P_out,] + X_out 
-
 
 # ==============================================================================
 # ============== Functions for generating state space grids  ===================

@@ -332,7 +332,7 @@ class ConsPerfForesightSolver(object):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
             
         Returns:
@@ -364,7 +364,7 @@ class ConsPerfForesightSolver(object):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
             
         Returns
@@ -508,7 +508,7 @@ def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
         Coefficient of relative risk aversion.
     Rfree : float
         Risk free interest factor on end-of-period assets.
-    PermGroGac : float
+    PermGroFac : float
         Expected permanent income growth factor at the end of this period.
         
     Returns
@@ -553,7 +553,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
@@ -601,7 +601,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
             Coefficient of relative risk aversion.
         Rfree : float
             Risk free interest factor on end-of-period assets.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
@@ -1190,7 +1190,7 @@ def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
         Coefficient of relative risk aversion.
     Rfree : float
         Risk free interest factor on end-of-period assets.
-    PermGroGac : float
+    PermGroFac : float
         Expected permanent income growth factor at the end of this period.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the
@@ -1269,7 +1269,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         Rsave: float
             Interest factor on assets between this period and the succeeding
             period when assets are positive.
-        PermGroGac : float
+        PermGroFac : float
             Expected permanent income growth factor at the end of this period.
         BoroCnstArt: float or None
             Borrowing constraint for the minimum allowable assets to end the
@@ -1396,7 +1396,7 @@ def solveConsKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
     Rsave: float
         Interest factor on assets between this period and the succeeding
         period when assets are positive.
-    PermGroGac : float
+    PermGroFac : float
         Expected permanent income growth factor at the end of this period.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the
@@ -1518,6 +1518,13 @@ class PerfForesightConsumerType(AgentType):
             self.cFunc.append(solution_t.cFunc)
         self.addToTimeVary('cFunc')
         
+    def initializeSim(self):
+        self.PlvlAggNow = 1.0
+        self.PermShkAggNow = self.PermGroFacAgg # This never changes during simulation
+        AgentType.initializeSim(self)
+        
+        
+        
     def simBirth(self,which_agents):
         '''
         Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
@@ -1536,7 +1543,7 @@ class PerfForesightConsumerType(AgentType):
         # Get and store states for newly born agents
         N = np.sum(which_agents) # Number of new consumers to make
         self.aNrmNow[which_agents] = drawLognormal(N,mu=self.aNrmInitMean,sigma=self.aNrmInitStd,seed=self.RNG.randint(0,2**31-1))
-        pLvlInitMeanNow = self.pLvlInitMean + np.log(self.PermGroFacAgg**self.t_sim) # Account for newer cohorts having higher permanent income
+        pLvlInitMeanNow = self.pLvlInitMean + np.log(self.PlvlAggNow) # Account for newer cohorts having higher permanent income
         self.pLvlNow[which_agents] = drawLognormal(N,mu=pLvlInitMeanNow,sigma=self.pLvlInitStd,seed=self.RNG.randint(0,2**31-1))
         self.t_age[which_agents]   = 0 # How many periods since each agent was born
         self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
@@ -1619,6 +1626,7 @@ class PerfForesightConsumerType(AgentType):
         
         # Calculate new states: normalized market resources and permanent income level
         self.pLvlNow = pLvlPrev*self.PermShkNow # Updated permanent income level
+        self.PlvlAggNow = self.PlvlAggNow*self.PermShkAggNow # Updated aggregate permanent productivity level
         ReffNow      = RfreeNow/self.PermShkNow # "Effective" interest factor on normalized assets
         self.bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
         self.mNrmNow = self.bNrmNow + self.TranShkNow # Market resources after income
@@ -1830,7 +1838,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 PermGroFacNow    = self.PermGroFac[t-1] # and permanent growth factor
                 Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
                 # Get random draws of income shocks from the discrete distribution
-                EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=True,seed=self.RNG.randint(0,2**31-1))
+                EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
                 PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
                 TranShkNow[these] = IncomeDstnNow[2][EventDraws]
         
@@ -1847,7 +1855,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
             TranShkNow[these] = IncomeDstnNow[2][EventDraws]
 #        PermShkNow[newborn] = 1.0
-#        TranShkNow[newborn] = 1.0
+        TranShkNow[newborn] = 1.0
               
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount,dtype=bool)

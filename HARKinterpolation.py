@@ -535,6 +535,103 @@ class HARKinterpolator4D(HARKobject):
         raise NotImplementedError()
         
         
+class IdentityFunction(HARKobject):
+    '''
+    A fairly trivial interpolator that simply returns one of its arguments.  Useful for avoiding
+    numeric error in extreme cases.
+    '''
+    distance_criteria = ['i_dim']
+
+    def __init__(self,i_dim=0,n_dims=1):
+        '''
+        Constructor for a new IdentityFunction.
+        
+        Parameters
+        ----------
+        i_dim : int
+            Index of the dimension on which the identity is defined.  f(*x) = x[i]
+        n_dims : int
+            Total number of input dimensions for this function.
+        
+        Returns
+        -------
+        None
+        '''
+        self.i_dim = i_dim
+        self.n_dims = n_dims
+        
+    def __call__(self,*args):
+        '''
+        Evaluate the identity function.
+        '''
+        return args[self.i_dim]
+
+    def derivative(self,*args):
+        '''
+        Returns the derivative of the function with respect to the first dimension.
+        '''
+        if self.i_dim == 0:
+            return np.ones_like(*args[0])
+        else:
+            return np.zeros_like(*args[0])
+            
+    def derivativeX(self,*args):
+        '''
+        Returns the derivative of the function with respect to the X dimension.
+        This is the first input whenever n_dims < 4 and the second input otherwise.
+        '''
+        if self.n_dims >= 4:
+            j = 1
+        else:
+            j = 0
+        if self.i_dim == j:
+            return np.ones_like(*args[0])
+        else:
+            return np.zeros_like(*args[0])
+            
+    def derivativeY(self,*args):
+        '''
+        Returns the derivative of the function with respect to the Y dimension.
+        This is the second input whenever n_dims < 4 and the third input otherwise.
+        '''
+        if self.n_dims >= 4:
+            j = 2
+        else:
+            j = 1
+        if self.i_dim == j:
+            return np.ones_like(*args[0])
+        else:
+            return np.zeros_like(*args[0])
+            
+    def derivativeZ(self,*args):
+        '''
+        Returns the derivative of the function with respect to the Z dimension.
+        This is the third input whenever n_dims < 4 and the fourth input otherwise.
+        '''
+        if self.n_dims >= 4:
+            j = 3
+        else:
+            j = 2
+        if self.i_dim == j:
+            return np.ones_like(*args[0])
+        else:
+            return np.zeros_like(*args[0])
+            
+    def derivativeW(self,*args):
+        '''
+        Returns the derivative of the function with respect to the W dimension.
+        This should only exist when n_dims >= 4.
+        '''
+        if self.n_dims >= 4:
+            j = 0
+        else:
+            assert False, "Derivative with respect to W can't be called when n_dims < 4!"
+        if self.i_dim == j:
+            return np.ones_like(*args[0])
+        else:
+            return np.zeros_like(*args[0])
+        
+        
 class ConstantFunction(HARKobject):
     '''
     A class for representing trivial functions that return the same real output for any input.  This

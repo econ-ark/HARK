@@ -1,0 +1,23 @@
+\begin{center} 
+$ \Delta \log \mathbf{C}_{t+1} = \varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \alpha A_t + \epsilon_{t+1} $ \\  
+\begin{tabular}{d{4}d{4}d{5}cd{4}c}
+ \toprule 
+\multicolumn{3}{c}{Expectations : Dep Var} & OLS &  \multicolumn{1}{c}{2${}^{\text{nd}}$ Stage}  &  \multicolumn{1}{c}{KP $p$-val} 
+\\ \multicolumn{3}{c}{Independent Variables} & or IV & \multicolumn{1}{c}{$\bar{R}^{2} $} & \multicolumn{1}{c}{Hansen J $p$-val} 
+\\ \midrule \multicolumn{6}{l}{Frictionless : $\Delta \log \mathbf{C}_{t+1}^*$ (with measurement error $\mathbf{C}_{t}^* =\mathbf{C}_{t}\times \xi_t$);} 
+\\ \multicolumn{1}{c}{$\Delta \log \mathbf{C}_{t}^*$} & \multicolumn{1}{c}{$\Delta \log \mathbf{Y}_{t+1}$} & \multicolumn{1}{c}{$A_{t}$} & & & 
+\\ 0.295^{\bullet \bullet \bullet } & & & OLS & 0.087 & 
+\\ (0.066) & & & & & 
+\\ 0.660^{\bullet \bullet } & & & IV & 0.040 & 0.237
+\\ (0.309) & & & & &0.600
+\\ & 0.457^{\bullet \bullet } & & IV & 0.035 & 0.059
+\\ & (0.209) & & & &0.421
+\\ & & -6.92\text{e--4} & IV & 0.026 & 0.000
+\\ & & (5.87\text{e--4}) & & &0.365
+\\ 0.420 & 0.258 & 0.45\text{e--4} & IV & 0.041 & 0.516
+\\ (0.428) & (0.365) & (9.51\text{e--4}) & & & 0.529
+\\ \multicolumn{6}{l}{Memo: For instruments $\mathbf{Z}_{t}$, $\Delta \log \mathbf{C}_{t}^*$ $= \mathbf{Z}_{t} \zeta, ~\bar{R}^{2}=$ 0.039; ~$\var(\log(\xi_t))=$ 5.99\text{e--6} }  
+\\ \bottomrule 
+ \multicolumn{6}{p{0.95\textwidth}}{\tiny \textbf{Notes:} Reported statistics are the average values for 100 samples of 200 simulated quarters each.  Bullets indicate that the average sample coefficient divided by average sample standard error is outside of the inner 90\%, 95\%, and 99\% of the standard normal distribution.  Instruments $\textbf{Z}_t = \{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \}$.}
+\end{tabular}
+\end{center}
