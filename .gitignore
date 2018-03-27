@@ -265,3 +265,7 @@ eq
 
 # Particular user scratchwork directories
 nate-notes/
+
+# Ignore junk _region_ files
+
+_region_.*
