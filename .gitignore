@@ -270,3 +270,5 @@ eq
 
 # Particular user scratchwork directories
 nate-notes/
+
+*_region_*.*
