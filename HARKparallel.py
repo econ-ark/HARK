@@ -64,8 +64,12 @@ def multiThreadCommands(agent_list,command_list,num_jobs=None):
         
     Returns
     -------
-    none
+    None
     '''
+    if len(agent_list) == 1:
+        multiThreadCommandsFake(agent_list,command_list)
+        return None
+        
     # Default umber of parallel jobs is the smaller of number of AgentTypes in
     # the input and the number of available cores.
     if num_jobs is None:
