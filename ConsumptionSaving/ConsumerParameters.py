@@ -66,7 +66,7 @@ T_retire = 0                        # Period of retirement (0 --> no retirement)
 # A few other parameters
 BoroCnstArt = 0.0                  # Artificial borrowing constraint; imposed minimum level of end-of period assets
 CubicBool = False                  # Use cubic spline interpolation when True, linear interpolation when False
-vFuncBool = True                   # Whether to calculate the value function during solution
+vFuncBool = False                  # Whether to calculate the value function during solution
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
 init_idiosyncratic_shocks = { 'CRRA': CRRA,
@@ -176,10 +176,8 @@ DeprFac = 0.025               # Capital depreciation rate
 CapShare = 0.36               # Capital's share of income
 DiscFacPF = DiscFac           # Discount factor of perfect foresight calibration
 CRRAPF = CRRA                 # Coefficient of relative risk aversion of perfect foresight calibration
-#intercept_prev = -0.305568464142        # Intercept of AFunc function
-#slope_prev = 1.06154769008               # Slope of AFunc function
-intercept_prev = 0.0         # Intercept of aggregate savings function
-slope_prev = 1.0             # Slope of aggregate savings function
+intercept_prev = 0.0          # Intercept of aggregate savings function
+slope_prev = 1.0              # Slope of aggregate savings function
 
 # Make a dictionary to specify an aggregate shocks consumer
 init_agg_shocks = copy(init_idiosyncratic_shocks)
@@ -189,8 +187,6 @@ del init_agg_shocks['vFuncBool']    # Not supported yet for agg shocks model
 init_agg_shocks['PermGroFac'] = [1.0]
 init_agg_shocks['MgridBase'] = MgridBase
 init_agg_shocks['aXtraCount'] = 24
-#init_agg_shocks['aXtraMax'] = 80.0
-#init_agg_shocks['aXtraExtra'] = [1000.0]
 init_agg_shocks['aNrmInitStd'] = 0.0
 init_agg_shocks['LivPrb'] = LivPrb
 
@@ -239,19 +235,13 @@ init_mrkv_cobb_douglas['intercept_prev'] = 2*[intercept_prev]
 # ----- Define additional parameters for the persistent shocks model ----------
 # -----------------------------------------------------------------------------
 
-PermIncCount = 12        # Number of permanent income gridpoints in "body"
-PermInc_tail_N = 4       # Number of permanent income gridpoints in each "tail"
-PermIncStdInit = 0.4     # Initial standard deviation of (log) permanent income (not used in example)
-PermIncAvgInit = 1.0     # Initial average of permanent income (not used in example)
-PermIncCorr = 0.98       # Serial correlation coefficient for permanent income
+pLvlPctiles = np.concatenate(([0.001, 0.005, 0.01, 0.03], np.linspace(0.05, 0.95, num=19),[0.97, 0.99, 0.995, 0.999]))
+PrstIncCorr = 0.98       # Serial correlation coefficient for permanent income
 cycles = 0
 
 # Make a dictionary for the "explicit permanent income" idiosyncratic shocks model
 init_explicit_perm_inc = copy(init_idiosyncratic_shocks)
-init_explicit_perm_inc['PermIncCount'] = PermIncCount
-init_explicit_perm_inc['PermInc_tail_N'] = PermInc_tail_N
-init_explicit_perm_inc['PermIncAvgInit'] = PermIncAvgInit
-init_explicit_perm_inc['PermIncStdInit'] = PermIncStdInit
+init_explicit_perm_inc['pLvlPctiles'] = pLvlPctiles
 init_explicit_perm_inc['PermGroFac'] = [1.0] # long run permanent income growth doesn't work yet
 init_explicit_perm_inc['cycles'] = cycles
 init_explicit_perm_inc['aXtraMax'] = 30
@@ -259,7 +249,7 @@ init_explicit_perm_inc['aXtraExtra'] = [0.005,0.01]
 
 # Make a dictionary for the "persistent idiosyncratic shocks" model
 init_persistent_shocks = copy(init_explicit_perm_inc)
-init_persistent_shocks['PermIncCorr'] = PermIncCorr
+init_persistent_shocks['PrstIncCorr'] = PrstIncCorr
 
 # -----------------------------------------------------------------------------
 # ----- Define additional parameters for the medical shocks model -------------
