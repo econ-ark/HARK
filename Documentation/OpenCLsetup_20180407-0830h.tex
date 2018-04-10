@@ -1,0 +1,190 @@
+% !TeX spellcheck = en_GB
+% Authors: MNW, CDC, EC
+\documentclass[12pt,pdftex,letterpaper]{article}
+\usepackage{listings}
+\usepackage{color}
+%            \usepackage{setspace}
+            \usepackage[dvips,]{graphicx} %draft option suppresses graphics dvi display
+%            \usepackage{lscape}
+%            \usepackage{latexsym}
+%            \usepackage{endnotes}
+%            \usepackage{epsfig}
+            \usepackage[colorlinks]{hyperref}
+%           \singlespace
+            \setlength{\textwidth}{6.5in}
+            \setlength{\textheight}{9in}
+            \addtolength{\topmargin}{-\topmargin} 
+            \setlength{\oddsidemargin}{0in}
+            \setlength{\evensidemargin}{0in}
+            \addtolength{\headsep}{-\headsep}
+            \addtolength{\topskip}{-\topskip}
+            \addtolength{\headheight}{-\headheight}
+            \setcounter{secnumdepth}{2}
+%            \renewcommand{\thesection}{\arabic{section}}
+            % \renewcommand{\footnote}{\endnote}
+            \newtheorem{proposition}{Proposition}
+            \newtheorem{definition}{Definition}
+            \newtheorem{lemma}{lemma}
+            \newtheorem{corollary}{Corollary}
+            \newtheorem{assumption}{Assumption}
+            \newcommand{\Prob}{\operatorname{Prob}}
+            \clubpenalty 5000
+            \widowpenalty 5000
+            \renewcommand{\baselinestretch}{1.4}
+            \usepackage{amsmath}
+            \usepackage{amsthm}
+            \usepackage{amsfonts}
+            \usepackage{amssymb}
+            \usepackage{bbm}
+            \newcommand{\N}{\mathbb{N}}
+			\newcommand{\R}{\mathbb{R}}
+
+% Default fixed font does not support bold face
+\DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{12} % for bold
+\DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{12}  % for normal
+
+% Custom colors
+\usepackage{color}
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+
+\usepackage{listings}
+
+% Python style for highlighting
+\newcommand\pythonstyle{\lstset{
+language=Python,
+basicstyle=\ttm,
+otherkeywords={self},             % Add keywords here
+keywordstyle=\ttb\color{deepblue},
+emph={MyClass,__init__},          % Custom highlighting
+emphstyle=\ttb\color{deepred},    % Custom highlighting style
+stringstyle=\color{deepgreen},
+frame=tb,                         % Any extra options here
+showstringspaces=false            % 
+}}
+
+\newcommand{\now}{2018-03-24}
+
+% Python environment
+\lstnewenvironment{python}[1][]
+{
+\pythonstyle
+\lstset{#1}
+}
+{}
+
+% Python for external files
+\newcommand\pythonexternal[2][]{{
+\pythonstyle
+\lstinputlisting[#1]{#2}}}
+
+% Python for inline
+\newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
+
+\begin{document}
+\centerline{\LARGE \bf Notes on Setting Up OpenCL for HARK} \medskip\medskip
+
+
+
+\newcommand{\CISOCL}{\texttt{ConsIndShockOpenCL.py}~}
+\newcommand{\oclpy}{\texttt{opencl4py}}
+%\newcommand{\OCL}{\href{https://en.wikipedia.org/wiki/OpenCL}{OpenCL}}
+  
+The module \CISOCL rewrites the \texttt{ConsIndShock} model to use \oclpy, a \href{https://en.wikipedia.org/wiki/Heterogeneous_computing}{`heterogeneous computing'} toolkit that enables code to choose which available computational resources to use.  You can choose either to use a restricted set of the resources of your own CPU, or computational resources on a graphics processing unit (GPU) available to your computer.  (You might want to do this because GPU's can massively accellerate the solution of \href{https://scicomp.stackexchange.com/questions/943/what-kinds-of-problems-lend-themselves-well-to-gpu-computing}{certain problems}; you might want to use CPU cores rather than GPUs either for convenient debugging, or because the capabilities of GPU cores are more limited).  
+
+OpenCL is effectively a restricted subset of C.  (The restrictions are part of the reason that not all problems are suited to solution using OpenCL).
+
+\CISOCL will not run ``out of the box''-- you must do a bit of extra setup first.  The setup has two parts:
+\begin{enumerate}
+\item Install {\oclpy}, which is a python `wrapper' to interact with OpenCL
+\item For the specific machine you are on, configure {\oclpy} so that it knows exactly which compuing resources (CPUs, GPUs) you want to use for your particular project. 
+  \begin{itemize}
+  \item This reflects an important limitation on the use of OpenCL:  By default, OpenCL code is not platform independent, because it requires specific configuration to cater to the particular machine on which it is running, and its particular computational resources
+  \end{itemize}
+\end{enumerate}
+
+\section{Install OpenCL for Your Computer}
+Different versions (or implementations or ``platforms'') of OpenCL are required for different devices.
+
+%Intel and AMD are the main manufacturers of the `compute cores' which are the building blocks of heterogeneous computing toolkits.  
+
+\subsection{OpenCL for MacOS}
+
+\href{https://support.apple.com/en-us/HT202823}{All recent} MacOS machines, with recent versions of the OS, include OpenCL installed and properly configured as \href{file:////System/Library/Frameworks/OpenCL.framework/OpenCL}{part of the OS}.\footnote{In order to write your own programs directly in OpenCL, you need also to install the \href{https://developer.apple.com/xcode/downloads/}{Xcode SDK} which is free from Apple but requires registration as a developer.} So, you don't need to install it.
+
+\subsection{OpenCL for Windows or Linux}
+
+AMD makes a \href{https://developer.amd.com/amd-accelerated-parallel-processing-app-sdk/}{Software Development Kit (SDK)} which will work for either AMD or Intel cores.\footnote{There is also an Intel version of OpenCL that seems to work only on Intel CPUs; we do not kow of any advantages of this platform over the AMD SDK.}  You should read through the installation notes (linked on that page) before installing the SDK, but there isn't much to know.  The most important caveat is that, if you have an AMD GPU, you should update your graphics drivers before installing.  To run OpenCL on an nVidia GPU, you should install the nVidia CUDA Toolkit from \href{https://developer.nvidia.com/cuda-downloads}{here}.
+
+\section{Install \oclpy}
+
+As of this writing,\footnote{\now} the  \href{https://pypi.python.org/pypi/opencl4py/1.0.1}{version} of the \oclpy package at its PyPi homepage (which is the version that will be installed via `pip install opencl4py') is outdated {\bf and does not work for MacOS}. The safest way to install {\oclpy} is by retrieving it from its \href{https://github.com/ajkxyz/opencl4py}{GitHub page}. The easiest way to install the package is to copy the directory \texttt{src/opencl4py} from the zip archive into the same directory as all of your other packages; if you're using Anaconda, this is something like \texttt{.../Anaconda2/lib/site-packages/}.
+
+If you are using anaconda's virtual environments (you {\it should} be using virtual environments), you need to make sure the package is visible in the virtual environment you are using for the Econ-ARK/HARK tools.\footnote{Test this with \texttt{pip show opencl4py} at the command line.}
+
+This should be all you need to set up OpenCL, but there's a bit more to do to figure out how it will work on your system.
+
+\section{Configuring \oclpy}
+
+Because OpenCL's {\it raison d'etre} is to let the user choose the devices (CPU; GPU's) on which code runs, the user needs to specify \textit{which device(s)} will actually run the code; in order to make this choice, you need to figure out the menu of devices available.  In Python:
+\begin{quote}
+\begin{python}
+import os
+os.environ["PYOPENCL_CTX"] = "0:0"
+import opencl4py as cl
+platforms = cl.Platforms()
+print(platforms.dump_devices())
+\end{python}
+\end{quote}
+
+The environment variable \texttt{PYOPENCL\_CTX} must be defined before importing \texttt{opencl4py}; the example value here \texttt{(0:0)} is guaranteed to work as long as an OpenCL interpreter exists on your system.  The final line will print to screen a list of OpenCL platforms, and devices for each platform.  This will likely include your CPU, and possibly one or more GPUs on your machine.  (The naming of GPUs can be cryptic, as the name often displays as the development codename of that particular model.  You might need to look on Wikipedia to translate the GPU names you see here into the name that you know the device by.)
+
+All code that calls \texttt{opencl4py} must specify the ``context'': which devices are to be used.  This is done by setting an environment variable \textit{before} \texttt{opencl4py} is imported and a context is created:
+\begin{quote}
+\begin{python}
+  os.environ["PYOPENCL_CTX"] = "0:0,1,2"
+  \end{python}
+  \end{quote}
+This sets \texttt{PYOPENCL\_CTX} to refer to devices 0, 1, and 2 on platform 0, as named by the \texttt{dump\_devices()} method.  You can include in the context any or all devices from the list (for one particular platform).  There are two main reasons to exclude a device from the context:
+\begin{enumerate}
+\item The device (GPU) is being used for displaying graphics to a monitor(s).  Running OpenCL code on a GPU that's displaying graphics doesn't necessarily result in a crash, but it often does.\footnote{Some machines, even some laptops -- Mac Retina laptops in particular -- have more than one GPU built in, and you can tell the OS to exclusively use one of the GPUs for display purposes, freeing the other GPU for computing.}
+
+\item The device does not have support for double precision floating point operations, and you want to run code that uses double precision.  Older or low end GPUs (often chips that are hardwired to micro-ATX form motherboards) do not have native double precision capabilities; this is also possible for \textit{very} old CPUs (486 and lower). 
+\end{enumerate}
+To determine whether a device has double precision capability in OpenCL, run:
+\begin{quote}
+\begin{python}
+ctx = platforms.create_some_context()
+ctx.devices[n].extensions
+\end{python}
+\end{quote}
+Do this for each device number \pythoninline{n} for this platform (e.g.\ 0, 1, and 2).  If a device has double precision capabilities, its list of extensions should include \pythoninline{cl\_khr\_fp64} and/or \pythoninline{cl\_amd\_fp64}.  The vast majority of GPUs manufactured since 2011 should have double precision capability; you very likely want to use DP, which requires you to remove any single precision device from the \texttt{PYOPENCL\_CTX} environment variable.
+
+To run a very simple test kernel, open up the module \pythoninline{OpenCLtest.py} in the \texttt{/Testing/} directory of HARK.  Set the context to include the appropriate devices, and then run the module.  It should display the device list, then give timings for adding two vectors and multiplying by a constant.  The structure of how to run a function (or ``kernel'') using \texttt{opencl4py} is as follows:
+
+\begin{enumerate}
+\item Make an OpenCL \textit{context} as above with \pythoninline{create\_some\_context()}.
+
+\item Make a \textit{queue} for one of the devices in the context by doing (e.g.)\\ \pythoninline{queue = ctx.create\_queue(ctx.devices[0])}.  Note that the device number here does not necessarily correspond to the numbering from \pythoninline{cl.dump\_devices}.  If not all devices were included in this context, then the excluded devices are excluded from the numbering.  See \pythoninline{ctx.devices} for the appropriate numbering.
+
+\item Load in a \textit{program} as a \pythoninline{string} with \pythoninline{prg = ctx.create\_program(my\_code)}.  In the test file, we explicitly define the code as a \pythoninline{string}, typed out.  In most applications, your OpenCL code will be stored in a separate file which can then be read in to Python as a \pythoninline{string}; see for example \CISOCL and \texttt{ConsIndShockModel.cl}.
+
+\item Define a \textit{kernel} from your program with \pythoninline{krn = prg.get\_kernel("test")}.  In the test file, the name \texttt{test} refers to the name of the kernel in \texttt{my\_code}.
+
+\item Define memory \textit{buffers} that the kernel will use with the \pythoninline{create\_buffer} method.  This method must be passed appropriate flags to indicate whether the memory is read-only, write-only, or read-write (these distinctions only matter within a kernel); and for whether the buffer should copy data from a \texttt{numpy} array or merely allocate memory space of a given number of bytes.
+
+\item Set the arguments of the kernel to point to the appropriate buffers with \pythoninline{krn.set\_args()}.  The number of buffers passed to \pythoninline{set\_args} should equal the number of inputs listed for that kernel, as in its code.
+
+\item Put the kernel in the queue to be executed with \pythoninline{queue.execute\_kernel}.  The second argument for this method is the \textit{global work size}, or total number of work items.  The third argument is the \textit{work group size}, which can be set to a default with \pythoninline{None}.  Setting work group size to something other than a factor of 16 on a GPU can result in extreme slowdowns.
+
+\item Read the buffer back into a \pythoninline{numpy.array} with \pythoninline{queue.read\_buffer}.
+\end{enumerate}
+
+The command queue works exactly as you expect it would, holding a list of operations to perform.  If you write a loop that executes a kernel 100 times, then after that loop you read the buffer, the resulting \pythoninline{array} will be the result after all 100 kernel executions.  If you want to edit the contents of a buffer after creating it, you can use \pythoninline{queue.write\_buffer}.
+
+In the test module, we have provided two different kernels: a single precision version and a double precision version.  You can choose which version is used with the \pythoninline{use\_DP} variable near the top of the file.  Note that this boolean both sets \pythoninline{my\_code} and \pythoninline{my\_type}.  When passing \pythoninline{arrays} to OpenCL buffers, you must take care that the \pythoninline{dtype} of the \pythoninline{array} corresponds to the data type used in the kernel.  If you make a buffer using a double precision array (\pythoninline{float64}, the default in \pythoninline{numpy}), but then use that buffer in a kernel that expects \pythoninline{float}, a 32-bit floating point number, your code will run... but it will generate nonsense.  When the kernel executes, it will try to interpret the data in the buffer \textit{as if} it were made up of \pythoninline{float}s, reading in 32 bits per number.  These bits actually correspond to \textit{half} the bits of some 64-bit floating point number (the first half or second half) and thus have no relation to the number you actually want to represent!
+
+The module \CISOCL provides a non-trivial application of OpenCL.  This module defines the class \pythoninline{IndShockConsumerTypesOpenCL}, which is constructed by passing a list of \pythoninline{IndShockConsumerTypes} instances.  Data that defines the problem of each instance type will be loaded into OpenCL buffers on the chosen device.  If the user wants to manually move existing model solutions (found in HARK) into OpenCL for simulation, this can be done with the method \pythoninline{makeSolutionBuffers()}.  A user who wants solution to be performed by OpenCL, should then run the method \pythoninline{prepareToSolve()}, which makes buffers that will hold the solution, as well as additional objects needed to solve the model.  All types can then be solved using \pythoninline{solve()}, filling in the solution buffers.  As of {\now}, OpenCL can only solve lifecycle models (\pythoninline{cycles=1}), but we anticipate that this will be improved in the near future.  Whether the solution is loaded from Python or solved in OpenCL, the model can be simulated using \pythoninline{simNperiods()} (which will be renamed).  Simulation variables (like \pythoninline{cNrmNow}) can be extracted from OpenCL buffers into attributes of each agent type with the \pythoninline{readSimVar()} method; \pythoninline{writeSimVar()} moves simulation data in the opposite direction, into a buffer.
+\end{document}
+
