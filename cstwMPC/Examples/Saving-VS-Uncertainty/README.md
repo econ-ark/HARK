@@ -14,7 +14,10 @@ Further Detail:
 (1)SetupParamsCSTWUncert.py includes parameters for both infinite horizon model 
 and life-cycle model. For this example, we only use the parameters for infinite 
 horizon model. 
-(2) "Rfree" passed over to the agent type from the SetupParamsCSTWUncert.py is the 
+(2) In order to use the parameter value in SetupParamsCSTWUncert.py, you need to 
+open cstwMPC.py inside HARK/cstwMPC folder, change line 20:
+"import SetupParamsCSTW as Params" to be "import SetupParamsCSTWUncert as Params"
+(3) "Rfree" passed over to the agent type from the SetupParamsCSTWUncert.py is the 
 effective interest rate. In this example, it is 1.01/LivPrb_i[0]
 
 2. PermShocksAggSaving.py

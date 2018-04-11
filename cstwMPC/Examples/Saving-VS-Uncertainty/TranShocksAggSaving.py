@@ -7,9 +7,10 @@ Based on code from Derin Aksit
 """
 import sys 
 import os
-sys.path.insert(0, os.path.abspath('../')) #Path to ConsumptionSaving folder
-sys.path.insert(0, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('../../cstwMPC')) #Path to cstwMPC folder
+sys.path.insert(0, os.path.abspath('../../')) #Path to ConsumptionSaving folder
+sys.path.insert(0, os.path.abspath('../../../'))
+sys.path.insert(0, os.path.abspath('../../../cstwMPC')) #Path to cstwMPC folder
+sys.path.insert(0, os.path.abspath('../../../ConsumptionSaving'))
 
 import SetupParamsCSTWUncert as Params
 from copy import deepcopy
@@ -164,9 +165,18 @@ for k in np.arange(0.005,0.021,0.001):
     EstimationEconomy.showManyStats(Params.spec_name)
     
     # Calculate and print variables of interest
-    C=np.sum(np.hstack(EstimationEconomy.pLvlNow)*np.hstack(EstimationEconomy.cNrmNow)) # Aggregate Consumption Level
-    A=np.sum(np.hstack(EstimationEconomy.pLvlNow)*np.hstack(EstimationEconomy.aNrmNow)) # Aggregate Assets
-    M=np.sum(np.hstack(EstimationEconomy.pLvlNow)*np.hstack(EstimationEconomy.mNrmNow)) # Aggregate Market Resources
+    C_NrmNow=[]
+    A_NrmNow=[]
+    M_NrmNow=[]
+    for j in range (len(EstimationAgentList)):
+        C_NrmNow=np.hstack((C_NrmNow,EstimationEconomy.agents[j].cNrmNow))
+    for j in range (len(EstimationAgentList)):
+        A_NrmNow=np.hstack((A_NrmNow,EstimationEconomy.agents[j].aNrmNow))
+    for j in range (len(EstimationAgentList)):
+        M_NrmNow=np.hstack((M_NrmNow,EstimationEconomy.agents[j].mNrmNow))
+    C=np.sum(np.hstack(EstimationEconomy.pLvlNow)*C_NrmNow) # Aggregate Consumption Level
+    A=np.sum(np.hstack(EstimationEconomy.pLvlNow)*A_NrmNow) # Aggregate Assets
+    M=np.sum(np.hstack(EstimationEconomy.pLvlNow)*M_NrmNow) # Aggregate Market Resources
     Y=np.sum(np.hstack(EstimationEconomy.pLvlNow)*np.hstack(EstimationEconomy.TranShkNow)) # Aggregate Labor Income
     B=M-Y 
     I=(BaselineType.Rfree-1)*B+Y # Aggregate Income

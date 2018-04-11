@@ -7,12 +7,12 @@ from copy import  deepcopy
 import os
 
 # Choose percentiles of the data to match and which estimation to run
-spec_name = 'BetaDistPY'
+spec_name = None
 param_name = 'DiscFac'        # Which parameter to introduce heterogeneity in
 dist_type = 'uniform'         # Which type of distribution to use
 do_lifecycle = False          # Use lifecycle model if True, perpetual youth if False
 do_param_dist = True         # Do param-dist version if True, param-point if False
-run_estimation = True         # Runs the estimation if True
+run_estimation = False         # Runs the estimation if True
 find_beta_vs_KY = False       # Computes K/Y ratio for a wide range of beta; should have do_beta_dist = False
 do_sensitivity = [False, False, False, False, False, False, False, False] # Choose which sensitivity analyses to run: rho, xi_sigma, psi_sigma, mu, urate, mortality, g, R
 do_liquid = False             # Matches liquid assets data when True, net worth data when False
@@ -110,7 +110,7 @@ intercept_prev = 0.0               # Initial intercept of kNextFunc (aggregate s
 
 # Import survival probabilities from SSA data
 data_location = os.path.dirname(os.path.abspath(__file__))
-f = open(data_location + '/' + 'USactuarial.txt','r')
+f = open(data_location + '/../../' + 'USactuarial.txt','r')
 actuarial_reader = csv.reader(f,delimiter='\t')
 raw_actuarial = list(actuarial_reader)
 base_death_probs = []
@@ -119,7 +119,7 @@ for j in range(len(raw_actuarial)):
 f.close
 
 # Import adjustments for education and apply them to the base mortality rates
-f = open(data_location + '/' + 'EducMortAdj.txt','r')
+f = open(data_location + '/../../' + 'EducMortAdj.txt','r')
 adjustment_reader = csv.reader(f,delimiter=' ')
 raw_adjustments = list(adjustment_reader)
 d_death_probs = []
@@ -166,7 +166,7 @@ PermGroFac_h[working_T-1] = 1 + PermGroFac_h_retire
 PermGroFac_c[working_T-1] = 1 + PermGroFac_c_retire
 
 # Import the SCF wealth data
-f = open(data_location + '/' + SCF_data_file,'r')
+f = open(data_location + '/../../' + SCF_data_file,'r')
 SCF_reader = csv.reader(f,delimiter='\t')
 SCF_raw = list(SCF_reader)
 SCF_wealth = np.zeros(len(SCF_raw)) + np.nan
