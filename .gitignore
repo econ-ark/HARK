@@ -267,3 +267,6 @@ eq
 nate-notes/
 
 gn/gspread-oauth-2017.json
+.Rproj.user
+
+reticulate/.Rhistory

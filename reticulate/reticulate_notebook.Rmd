@@ -1,0 +1,39 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+Sys.setenv(RETICULATE_PYTHON = "//anaconda/bin/python") #in future, would like to move this to the .Rprofile, but I haven't been able to figure out how to do this yet. 
+library(reticulate)
+use_condaenv("anaconda")
+# use_python("//anaconda/bin/python") #switch to anacondaSys.getenv("R_TEST")
+```
+
+
+```{r}
+plot(cars)
+```
+
+
+## R Markdown
+
+```{python}
+import pandas
+flights = pandas.read_csv("flights.csv")
+flights = flights[flights['dest'] == "ORD"]
+flights = flights[['carrier', 'arr_delay', 'dep_delay']]
+#print(flights.head())
+```
+
+```{r}
+library(ggplot2)
+ggplot(py$flights, aes(carrier, arr_delay)) + geom_point()
+```
+

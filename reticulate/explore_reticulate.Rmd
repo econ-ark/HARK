@@ -1,0 +1,28 @@
+---
+title: "Explore reticulate"
+author: "Peter Ganong"
+date: "4/24/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(reticulate)
+#use_condaenv("base")
+use_python("//anaconda/bin/python") #switch to anaconda
+```
+
+## R Markdown
+
+```{python}
+import pandas
+flpy = pandas.read_csv("flights.csv")
+flpy = flpy[flpy['dest'] == "ORD"]
+print(flpy.head())
+```
+
+```{r}
+library(ggplot2)
+ggplot(py$flpy, aes(carrier, arr_delay)) + geom_point()
+```
+
