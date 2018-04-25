@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Sys.setenv(RETICULATE_PYTHON = "//anaconda/bin/python") #in future, would like to move this to the .Rprofile, but I haven't been able to figure out how to do this yet. 
 library(reticulate)
 use_condaenv("anaconda")
+library(tidyverse)
 # use_python("//anaconda/bin/python") #switch to anacondaSys.getenv("R_TEST")
 ```
 
@@ -37,3 +38,9 @@ library(ggplot2)
 ggplot(py$flights, aes(carrier, arr_delay)) + geom_point()
 ```
 
+```{r}
+x_range <- seq(45.001,75,1)
+df_plot <- tibble(x = x_range, 
+                  y = py$boro_cnst_post_pra(x_range))
+ggplot(df_plot, aes(x = x, y = y)) + geom_point() + geom_line() 
+```
