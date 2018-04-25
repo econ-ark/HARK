@@ -5,12 +5,12 @@ Created on Mon Jun 20 15:55:59 2016
 @author: ganong
 """
 import os
-os.environ["R_HOME"] = "/Library/Frameworks/R.framework/Resources"
-if getpass.getuser() == 'peterganong':
-    os.chdir("/Users/peterganong/repo/HARK/gn") 
-    out_path = "~/dropbox/hampra/out_test/"
-elif getpass.getuser() == 'pascalnoel':
-    os.chdir("/Users/Pascal/repo/HARK/gn") 
+#os.environ["R_HOME"] = "/Library/Frameworks/R.framework/Resources"
+#if getpass.getuser() == 'peterganong':
+os.chdir("/Users/peterganong/repo/HARK/gn") 
+out_path = "~/dropbox/hampra/out_arch/out_test3/"
+#elif getpass.getuser() == 'pascalnoel':
+#    os.chdir("/Users/Pascal/repo/HARK/gn") 
 import settings
 import sys 
 sys.path.insert(0,'../')
@@ -30,10 +30,10 @@ from operator import sub, add
 import pdb
 import pandas as pd
 #this line errors out sometimes. Driven by issues with the Canopy_64bit path
-from rpy2 import robjects
-import rpy2.robjects.lib.ggplot2 as gg
-from rpy2.robjects import pandas2ri
-import make_plots as mp
+#from rpy2 import robjects
+#import rpy2.robjects.lib.ggplot2 as gg
+#from rpy2.robjects import pandas2ri
+#import make_plots as mp
 import pickle
 #read in HAMP parameters from google docs
 import gspread
@@ -83,45 +83,45 @@ settings.min_age, settings.max_age = 60, 65
 #plotting functions 
 ###########################################################################
 #xx I tried to move to make_plots.py but failed. Not sure why.
-import uuid     #enable plotting inside of iPython notebook (default rpy2 pushes to a semi-broken R plot-viewer)
-from rpy2.robjects.packages import importr
-from IPython.core.display import Image
-grdevices = importr('grDevices')
-def ggplot_notebook(gg, width = 800, height = 600):
-    fn = 'tmp/{uuid}.png'.format(uuid = uuid.uuid4())
-    grdevices.png(fn, width = width, height = height)
-    gg.plot()
-    grdevices.dev_off()
-    return Image(filename=fn)
-    
-    
-loc = robjects.r('c(1,0)')
-def gg_funcs(functions,bottom,top,N=1000,labels = [],
-             title = "Consumption and Cash-on-Hand", ylab = "y", xlab="x", 
-             loc = loc, ltitle = 'Variable',
-             file_name = None):
-    if type(functions)==list:
-        function_list = functions
-    else:
-        function_list = [functions]       
-    step = (top-bottom)/N
-    x = np.arange(bottom,top,step)
-    fig = pd.DataFrame({'x': x})
-    i = 0
-    for function in function_list:
-        if i > len(labels)-1:
-            labels.append("func" + str(i))
-        fig[labels[i]] = function(x)
-        i=i+1
-    fig = pd.melt(fig, id_vars=['x'])  
-    g = gg.ggplot(fig) + \
-        mp.base_plot + mp.line + mp.point +  \
-        mp.theme_bw(base_size=9) + mp.fte_theme + \
-        gg.labs(title=title,y=ylab,x=xlab) + mp.legend_f(loc) + mp.legend_t_c(ltitle) + mp.colors #+ mp.legend_t_s(ltitle) 
-    if file_name is not None:
-        mp.ggsave(file_name,g)
-    return(g)
-    
+#import uuid     #enable plotting inside of iPython notebook (default rpy2 pushes to a semi-broken R plot-viewer)
+#from rpy2.robjects.packages import importr
+#from IPython.core.display import Image
+#grdevices = importr('grDevices')
+#def ggplot_notebook(gg, width = 800, height = 600):
+#    fn = 'tmp/{uuid}.png'.format(uuid = uuid.uuid4())
+#    grdevices.png(fn, width = width, height = height)
+#    gg.plot()
+#    grdevices.dev_off()
+#    return Image(filename=fn)
+#    
+#    
+#loc = robjects.r('c(1,0)')
+#def gg_funcs(functions,bottom,top,N=1000,labels = [],
+#             title = "Consumption and Cash-on-Hand", ylab = "y", xlab="x", 
+#             loc = loc, ltitle = 'Variable',
+#             file_name = None):
+#    if type(functions)==list:
+#        function_list = functions
+#    else:
+#        function_list = [functions]       
+#    step = (top-bottom)/N
+#    x = np.arange(bottom,top,step)
+#    fig = pd.DataFrame({'x': x})
+#    i = 0
+#    for function in function_list:
+#        if i > len(labels)-1:
+#            labels.append("func" + str(i))
+#        fig[labels[i]] = function(x)
+#        i=i+1
+#    fig = pd.melt(fig, id_vars=['x'])  
+#    g = gg.ggplot(fig) + \
+#        mp.base_plot + mp.line + mp.point +  \
+#        mp.theme_bw(base_size=9) + mp.fte_theme + \
+#        gg.labs(title=title,y=ylab,x=xlab) + mp.legend_f(loc) + mp.legend_t_c(ltitle) + mp.colors #+ mp.legend_t_s(ltitle) 
+#    if file_name is not None:
+#        mp.ggsave(file_name,g)
+#    return(g)
+#    
     
 
 ###########################################################################
@@ -242,10 +242,11 @@ def pra_pmt(annual_hp_growth, collateral_constraint, baseline_debt, initial_pric
     r, e, L, d_prin_red = hsg_wealth(initial_debt =  hamp_params['baseline_debt'] - forgive, age_at_mod = age, hsg_pmt_wk_own = hsg_pmt_wk_own, hsg_pmt_ret_y = hsg_pmt_ret_y, **hamp_params)
     pra_pmt = d_prin_red[:age-26] + d_hamp[age-26:age-21] + d_prin_red[age-21:]
     return pra_pmt
-#pra_pmt(age = 45, forgive = 1, **hamp_params)[20:40]
+
 
 #reload(Params)  
 baseline_params = Params.init_consumer_objects
+#pra_pmt(age = 45, forgive = 1, **hamp_params)[20:40]
 #hsg_wealth(initial_debt =  hamp_params['baseline_debt'], **hamp_params)
 #hamp_params['maint'] = 0.
 #hsg_wealth(initial_debt =  hamp_params['baseline_debt'], **hamp_params)
@@ -266,18 +267,18 @@ labels = ["Payment Reduction", "Payment & Principal Reduction"]
 def neg(x): return -1*x
 boro_cnst_pre_pra = LinearInterp(np.arange(26,91),list(map(neg, uw_house_params['BoroCnstArt'])))
 boro_cnst_post_pra = LinearInterp(np.arange(26,91),list(map(neg, pra_params['BoroCnstArt'])))
-g = gg_funcs([boro_cnst_pre_pra,boro_cnst_post_pra],
-              45.001,75, N=round(75-45.001), loc=robjects.r('c(0,0.5)'),
-        title = "Borrowing Limits \n Receive Treatment at Age 45",
-        labels = labels,
-        ylab = "Borrowing Limit (Years of Income)", xlab = "Age", file_name = "borrowing_limits_and_pra_diag")
+#g = gg_funcs([boro_cnst_pre_pra,boro_cnst_post_pra],
+#              45.001,75, N=round(75-45.001), loc=robjects.r('c(0,0.5)'),
+#        title = "Borrowing Limits \n Receive Treatment at Age 45",
+#        labels = labels,
+#        ylab = "Borrowing Limit (Years of Income)", xlab = "Age", file_name = "borrowing_limits_and_pra_diag")
 #ggplot_notebook(g, height=300,width=400)
-g = gg_funcs([boro_cnst_pre_pra,boro_cnst_post_pra],
-              45.001,64, N=round(64-45.001), loc=robjects.r('c(0,0.5)'),
-        title = "Borrowing Limits \n Receive Treatment at Age 45",
-        labels = labels,
-        ylab = "Borrowing Limit (Years of Income)", xlab = "Age", file_name = "borrowing_limits_and_pra")
-ggplot_notebook(g, height=300,width=400)
+#g = gg_funcs([boro_cnst_pre_pra,boro_cnst_post_pra],
+#              45.001,64, N=round(64-45.001), loc=robjects.r('c(0,0.5)'),
+#        title = "Borrowing Limits \n Receive Treatment at Age 45",
+#        labels = labels,
+#        ylab = "Borrowing Limit (Years of Income)", xlab = "Age", file_name = "borrowing_limits_and_pra")
+#ggplot_notebook(g, height=300,width=400)
 
 x_min = 45.001
 #slide 4 -- housing payments 
