@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('./Luetticke_code/'))
 from HARKcore import AgentType, Market
+from HARKsimulation import drawDiscrete
 from SteadyStateOneAssetIOUs import SteadyStateOneAssetIOU
 from FluctuationsOneAssetIOUs import FluctuationsOneAssetIOUs, SGU_solver
 from copy import copy, deepcopy
@@ -20,7 +21,7 @@ class LuettickeAgent(AgentType):
     '''
     poststate_vars_ = ['aNow','incStateNow']
     
-    def __init__(self,AgentCount):
+    def __init__(self,AgentCount,seed=0):
         '''
         Instantiate a new LuettickeType with solution from Luetticke_code.
 
@@ -36,6 +37,8 @@ class LuettickeAgent(AgentType):
         
         self.poststate_vars = deepcopy(self.poststate_vars_)
         self.track_vars     = []
+        self.seed               = seed
+        self.resetRNG()
         
     def simBirth(self,which_agents):
         '''
@@ -55,11 +58,18 @@ class LuettickeAgent(AgentType):
         '''
         # Get and store states for newly born agents
         N = np.sum(which_agents) # Number of new consumers to make
-        
-        
-        self.aNrmNow[which_agents] = drawLognormal(N,mu=self.aNrmInitMean,sigma=self.aNrmInitStd,seed=self.RNG.randint(0,2**31-1))
-        pLvlInitMeanNow = self.pLvlInitMean + np.log(self.PlvlAggNow) # Account for newer cohorts having higher permanent income
-        self.pLvlNow[which_agents] = drawLognormal(N,mu=pLvlInitMeanNow,sigma=self.pLvlInitStd,seed=self.RNG.randint(0,2**31-1))
+        # Agents are given productivity and asset levels from the steady state
+        #distribution
+        joint_distr = self.SR['joint_distr']
+        mgrid = self.mgrid
+        col_indicies = np.repeat([range(joint_distr.shape[1])],joint_distr.shape[0],0).flatten()
+        row_indicies = np.transpose(np.repeat([range(joint_distr.shape[0])],joint_distr.shape[1],0)).flatten()
+        draws = drawDiscrete(N,np.array(joint_distr).flatten(),range(joint_distr.size),seed=self.RNG.randint(0,2**31-1))
+        draws_rows = row_indicies[draws]
+        draws_cols = col_indicies[draws]
+        #steady state consumption function is in terms of end of period savings and income state
+        self.bNow[which_agents] = mgrid[draws_rows]       
+        self.incStateNow[which_agents] = draws_cols        
         self.t_age[which_agents]   = 0 # How many periods since each agent was born
         self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
         return None
@@ -77,8 +87,21 @@ class LuettickeAgent(AgentType):
         -------
         None
         '''
+        self.FluctuationsOneAssetIOU = Economy.FluctuationsOneAssetIOU
         self.SR = Economy.SR
         self.SGUresult = Economy.SGUresult
+        self.T_sim = Economy.act_T
+        self.mgrid = self.SR['grid']['m']
+        self.c_policy = self.FluctuationsOneAssetIOU.c_policy
+        self.m_policy = self.FluctuationsOneAssetIOU.m_policy
+        self.numIncStates = self.FluctuationsOneAssetIOU.mpar['nh']
+        self.assetGridsize = self.FluctuationsOneAssetIOU.mpar['nm']
+        #Build steady state consumption function
+        SSConsumptionFunc = []
+        for j in range(self.numIncStates):
+            SSConsumptionFunc_j = interp1d(self.m_policy[:,j], self.c_policy[:,j], fill_value='extrapolate')
+            SSConsumptionFunc.append(SSConsumptionFunc_j)
+        self.SSConsumptionFunc = SSConsumptionFunc
 
 class LuettickeEconomy(Market):
     '''
