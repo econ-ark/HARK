@@ -143,8 +143,7 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=[
-                      'numpy',
+    install_requires=['numpy',
                       'matplotlib',
                       'scipy',
                       'Sphinx',
@@ -172,9 +171,10 @@ setup(
     #
     # If using Python 2.6 or earlier, then these have to be included in
     # MANIFEST.in as well.
-    # package_data={  # Optional
-    #     'sample': ['package_data.dat'],
-    # },
+    include_package_data=True,
+    package_data={  # Optional
+         'SolvingMicroDSOPs': ['SolvingMicroDSOPs/SCFdata.csv'],
+    },
 
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:
