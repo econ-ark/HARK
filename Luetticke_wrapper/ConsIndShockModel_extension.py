@@ -150,6 +150,13 @@ class IndShockConsumerType_extend(IndShockConsumerType):
         return probGrid.flatten()
     
     def CalcErgodicDist(self):
+        '''
+        Calculates the egodic distribution across normalized market resources and
+        permanent income as the eigenvector associated with the eigenvalue 1.
+        The distribution is reshaped as an array with the ij'th element representing
+        the probability of being at the i'th point on the mGrid and the j'th
+        point on the pGrid.
+        ''' 
         eigen, ergodic_distr = sp.linalg.eigs(self.TranMatrix, k=1, which='LM')
         ergodic_distr = ergodic_distr.real/np.sum(ergodic_distr.real)
         self.ergodic_distr = ergodic_distr.reshape((len(self.Dist_mGrid),len(self.Dist_pGrid)))
