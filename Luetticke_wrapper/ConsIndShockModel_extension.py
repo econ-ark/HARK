@@ -177,10 +177,7 @@ if __name__ == '__main__':
     end_time = clock()
     print('Solving a consumer with idiosyncratic shocks took ' + mystr(end_time-start_time) + ' seconds.')
     
-    IndShock_extendExample.DefineDistributionGrid()
-    
-    IndShock_extendExample.JumpToGrid(np.ones(1),np.ones(1),np.ones(1))
-    
+    IndShock_extendExample.DefineDistributionGrid()   
     start_time = clock()
     IndShock_extendExample.CalcTransitionMatrix()
     end_time = clock()
