@@ -283,7 +283,7 @@ def CRRAutility_invP(u, gam):
     else:
         return( ((1.0-gam)*u)**(gam/(1.0-gam)) )
     
-def CRRAutilityP_invP(u, gam):
+def CRRAutilityP_invP(uP, gam):
     '''
     Evaluates the derivative of the inverse of the CRRA marginal utility function
     (with risk aversion parameter gam) at a given marginal utility level uP.
@@ -300,7 +300,7 @@ def CRRAutilityP_invP(u, gam):
     (unnamed) : float
         Marginal consumption corresponding to given marginal utility value
     '''
-    return( (-1.0/gam)*u**(-1.0/gam-1.0) )
+    return( (-1.0/gam)*uP**(-1.0/gam-1.0) )
     
         
 def CARAutility(c, alpha):
@@ -501,19 +501,25 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
         cutoffs        = [0] + temp_cutoffs + [np.inf]
         CDF_vals       = np.array(CDF_vals)
     
-        # Construct the discrete approximation by finding the average value within each segment
-        K              = CDF_vals.size-1 # number of points in approximation
-        pmf            = CDF_vals[1:(K+1)] - CDF_vals[0:K]
-        X              = np.zeros(K)
-        for i in range(K):
-            zBot  = cutoffs[i]
-            zTop = cutoffs[i+1]
-            tempBot = (mu+sigma**2-np.log(zBot))/(np.sqrt(2)*sigma)
-            tempTop = (mu+sigma**2-np.log(zTop))/(np.sqrt(2)*sigma)
-            if tempBot <= 4:
-                X[i] = -0.5*np.exp(mu+(sigma**2)*0.5)*(erf(tempTop) - erf(tempBot))/pmf[i]
-            else:
-                X[i] = -0.5*np.exp(mu+(sigma**2)*0.5)*(erfc(tempBot) - erfc(tempTop))/pmf[i]
+        # Construct the discrete approximation by finding the average value within each segment.
+        # This codeblock ignores warnings because it throws a "divide by zero encountered in log"
+        # warning due to computing erf(infty) at the tail boundary.  This is irrelevant and
+        # apparently freaks new users out.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            K              = CDF_vals.size-1 # number of points in approximation
+            pmf            = CDF_vals[1:(K+1)] - CDF_vals[0:K]
+            X              = np.zeros(K) 
+            for i in range(K):
+                zBot  = cutoffs[i]
+                zTop = cutoffs[i+1]
+                tempBot = (mu+sigma**2-np.log(zBot))/(np.sqrt(2)*sigma)
+                tempTop = (mu+sigma**2-np.log(zTop))/(np.sqrt(2)*sigma)
+                if tempBot <= 4:
+                    X[i] = -0.5*np.exp(mu+(sigma**2)*0.5)*(erf(tempTop) - erf(tempBot))/pmf[i]
+                else:
+                    X[i] = -0.5*np.exp(mu+(sigma**2)*0.5)*(erfc(tempBot) - erfc(tempTop))/pmf[i]
+                        
     else:
         pmf = np.ones(N)/N
         X   = np.exp(mu)*np.ones(N)
