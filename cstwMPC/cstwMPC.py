@@ -494,119 +494,122 @@ def calcStationaryAgeDstn(LivPrb,terminal_period):
     AgeDstn = (x/np.sum(x))
     return AgeDstn
     
-
-# Set targets for K/Y and the Lorenz curve based on the data
-if Params.do_liquid:
-    lorenz_target = np.array([0.0, 0.004, 0.025,0.117])
-    KY_target = 6.60
-else: # This is hacky until I can find the liquid wealth data and import it
-    lorenz_target = getLorenzShares(Params.SCF_wealth,weights=Params.SCF_weights,percentiles=Params.percentiles_to_match)
-    lorenz_long_data = np.hstack((np.array(0.0),getLorenzShares(Params.SCF_wealth,weights=Params.SCF_weights,percentiles=np.arange(0.01,1.0,0.01).tolist()),np.array(1.0)))
-    #lorenz_target = np.array([-0.002, 0.01, 0.053,0.171])
-    KY_target = 10.26
-
-# Make AgentTypes for estimation
-if Params.do_lifecycle:
-    DropoutType = cstwMPCagent(**Params.init_dropout)
-    DropoutType.AgeDstn = calcStationaryAgeDstn(DropoutType.LivPrb,True)
-    HighschoolType = deepcopy(DropoutType)
-    HighschoolType(**Params.adj_highschool)
-    HighschoolType.AgeDstn = calcStationaryAgeDstn(HighschoolType.LivPrb,True)
-    CollegeType = deepcopy(DropoutType)
-    CollegeType(**Params.adj_college)
-    CollegeType.AgeDstn = calcStationaryAgeDstn(CollegeType.LivPrb,True)
-    DropoutType.update()
-    HighschoolType.update()
-    CollegeType.update()
-    EstimationAgentList = []
-    for n in range(Params.pref_type_count):
-        EstimationAgentList.append(deepcopy(DropoutType))
-        EstimationAgentList.append(deepcopy(HighschoolType))
-        EstimationAgentList.append(deepcopy(CollegeType))
-else:
+####################################################################################################     
+    
+if __name__ == '__main__':
+    
+    # Set targets for K/Y and the Lorenz curve based on the data
+    if Params.do_liquid:
+        lorenz_target = np.array([0.0, 0.004, 0.025,0.117])
+        KY_target = 6.60
+    else: # This is hacky until I can find the liquid wealth data and import it
+        lorenz_target = getLorenzShares(Params.SCF_wealth,weights=Params.SCF_weights,percentiles=Params.percentiles_to_match)
+        lorenz_long_data = np.hstack((np.array(0.0),getLorenzShares(Params.SCF_wealth,weights=Params.SCF_weights,percentiles=np.arange(0.01,1.0,0.01).tolist()),np.array(1.0)))
+        #lorenz_target = np.array([-0.002, 0.01, 0.053,0.171])
+        KY_target = 10.26
+    
+    # Make AgentTypes for estimation
+    if Params.do_lifecycle:
+        DropoutType = cstwMPCagent(**Params.init_dropout)
+        DropoutType.AgeDstn = calcStationaryAgeDstn(DropoutType.LivPrb,True)
+        HighschoolType = deepcopy(DropoutType)
+        HighschoolType(**Params.adj_highschool)
+        HighschoolType.AgeDstn = calcStationaryAgeDstn(HighschoolType.LivPrb,True)
+        CollegeType = deepcopy(DropoutType)
+        CollegeType(**Params.adj_college)
+        CollegeType.AgeDstn = calcStationaryAgeDstn(CollegeType.LivPrb,True)
+        DropoutType.update()
+        HighschoolType.update()
+        CollegeType.update()
+        EstimationAgentList = []
+        for n in range(Params.pref_type_count):
+            EstimationAgentList.append(deepcopy(DropoutType))
+            EstimationAgentList.append(deepcopy(HighschoolType))
+            EstimationAgentList.append(deepcopy(CollegeType))
+    else:
+        if Params.do_agg_shocks:
+            PerpetualYouthType = cstwMPCagent(**Params.init_agg_shocks)
+        else:
+            PerpetualYouthType = cstwMPCagent(**Params.init_infinite)
+        PerpetualYouthType.AgeDstn = np.array(1.0)
+        EstimationAgentList = []
+        for n in range(Params.pref_type_count):
+            EstimationAgentList.append(deepcopy(PerpetualYouthType))
+            
+    # Give all the AgentTypes different seeds
+    for j in range(len(EstimationAgentList)):
+        EstimationAgentList[j].seed = j
+        
+    # Make an economy for the consumers to live in
+    EstimationEconomy = cstwMPCmarket(**Params.init_market)
+    EstimationEconomy.agents = EstimationAgentList
+    EstimationEconomy.KYratioTarget = KY_target
+    EstimationEconomy.LorenzTarget = lorenz_target
+    EstimationEconomy.LorenzData = lorenz_long_data
+    if Params.do_lifecycle:
+        EstimationEconomy.PopGroFac = Params.PopGroFac
+        EstimationEconomy.TypeWeight = Params.TypeWeight_lifecycle
+        EstimationEconomy.T_retire = Params.working_T-1
+        EstimationEconomy.act_T = Params.T_sim_LC
+        EstimationEconomy.ignore_periods = Params.ignore_periods_LC
+    else:
+        EstimationEconomy.PopGroFac = 1.0
+        EstimationEconomy.TypeWeight = [1.0]
+        EstimationEconomy.act_T = Params.T_sim_PY
+        EstimationEconomy.ignore_periods = Params.ignore_periods_PY
     if Params.do_agg_shocks:
-        PerpetualYouthType = cstwMPCagent(**Params.init_agg_shocks)
-    else:
-        PerpetualYouthType = cstwMPCagent(**Params.init_infinite)
-    PerpetualYouthType.AgeDstn = np.array(1.0)
-    EstimationAgentList = []
-    for n in range(Params.pref_type_count):
-        EstimationAgentList.append(deepcopy(PerpetualYouthType))
+        EstimationEconomy(**Params.aggregate_params)
+        EstimationEconomy.update()
+        EstimationEconomy.makeAggShkHist()
         
-# Give all the AgentTypes different seeds
-for j in range(len(EstimationAgentList)):
-    EstimationAgentList[j].seed = j
-    
-# Make an economy for the consumers to live in
-EstimationEconomy = cstwMPCmarket(**Params.init_market)
-EstimationEconomy.agents = EstimationAgentList
-EstimationEconomy.KYratioTarget = KY_target
-EstimationEconomy.LorenzTarget = lorenz_target
-EstimationEconomy.LorenzData = lorenz_long_data
-if Params.do_lifecycle:
-    EstimationEconomy.PopGroFac = Params.PopGroFac
-    EstimationEconomy.TypeWeight = Params.TypeWeight_lifecycle
-    EstimationEconomy.T_retire = Params.working_T-1
-    EstimationEconomy.act_T = Params.T_sim_LC
-    EstimationEconomy.ignore_periods = Params.ignore_periods_LC
-else:
-    EstimationEconomy.PopGroFac = 1.0
-    EstimationEconomy.TypeWeight = [1.0]
-    EstimationEconomy.act_T = Params.T_sim_PY
-    EstimationEconomy.ignore_periods = Params.ignore_periods_PY
-if Params.do_agg_shocks:
-    EstimationEconomy(**Params.aggregate_params)
-    EstimationEconomy.update()
-    EstimationEconomy.makeAggShkHist()
-    
-# Estimate the model as requested
-if Params.run_estimation:
-    # Choose the bounding region for the parameter search
-    if Params.param_name == 'CRRA':
-        param_range = [0.2,70.0]
-        spread_range = [0.00001,1.0]
-    elif Params.param_name == 'DiscFac':
-        param_range = [0.95,0.995]
-        spread_range = [0.006,0.008]
-    else:
-        print('Parameter range for ' + Params.param_name + ' has not been defined!')
-    
-    if Params.do_param_dist:
-        # Run the param-dist estimation
-        paramDistObjective = lambda spread : findLorenzDistanceAtTargetKY(
-                                                        Economy = EstimationEconomy,
-                                                        param_name = Params.param_name,
-                                                        param_count = Params.pref_type_count,
-                                                        center_range = param_range,
-                                                        spread = spread,
-                                                        dist_type = Params.dist_type)
-        t_start = clock()
-        spread_estimate = golden(paramDistObjective,brack=spread_range,tol=1e-4)
-        center_estimate = EstimationEconomy.center_save
-        t_end = clock()
-    else:
-        # Run the param-point estimation only
-        paramPointObjective = lambda center : getKYratioDifference(Economy = EstimationEconomy,
-                                             param_name = Params.param_name,
-                                             param_count = Params.pref_type_count,
-                                             center = center,
-                                             spread = 0.0,
-                                             dist_type = Params.dist_type)
-        t_start = clock()
-        center_estimate = brentq(paramPointObjective,param_range[0],param_range[1],xtol=1e-6)
-        spread_estimate = 0.0
-        t_end = clock()
+    # Estimate the model as requested
+    if Params.run_estimation:
+        # Choose the bounding region for the parameter search
+        if Params.param_name == 'CRRA':
+            param_range = [0.2,70.0]
+            spread_range = [0.00001,1.0]
+        elif Params.param_name == 'DiscFac':
+            param_range = [0.95,0.995]
+            spread_range = [0.006,0.008]
+        else:
+            print('Parameter range for ' + Params.param_name + ' has not been defined!')
         
-    # Display statistics about the estimated model
-    #center_estimate = 0.986609223266
-    #spread_estimate = 0.00853886395698
-    EstimationEconomy.LorenzBool = True
-    EstimationEconomy.ManyStatsBool = True
-    EstimationEconomy.distributeParams(Params.param_name,Params.pref_type_count,center_estimate,spread_estimate,Params.dist_type)
-    EstimationEconomy.solve()
-    EstimationEconomy.calcLorenzDistance()
-    print('Estimate is center=' + str(center_estimate) + ', spread=' + str(spread_estimate) + ', took ' + str(t_end-t_start) + ' seconds.')
-    EstimationEconomy.center_estimate = center_estimate
-    EstimationEconomy.spread_estimate = spread_estimate
-    EstimationEconomy.showManyStats(Params.spec_name)
-        
+        if Params.do_param_dist:
+            # Run the param-dist estimation
+            paramDistObjective = lambda spread : findLorenzDistanceAtTargetKY(
+                                                            Economy = EstimationEconomy,
+                                                            param_name = Params.param_name,
+                                                            param_count = Params.pref_type_count,
+                                                            center_range = param_range,
+                                                            spread = spread,
+                                                            dist_type = Params.dist_type)
+            t_start = clock()
+            spread_estimate = golden(paramDistObjective,brack=spread_range,tol=1e-4)
+            center_estimate = EstimationEconomy.center_save
+            t_end = clock()
+        else:
+            # Run the param-point estimation only
+            paramPointObjective = lambda center : getKYratioDifference(Economy = EstimationEconomy,
+                                                 param_name = Params.param_name,
+                                                 param_count = Params.pref_type_count,
+                                                 center = center,
+                                                 spread = 0.0,
+                                                 dist_type = Params.dist_type)
+            t_start = clock()
+            center_estimate = brentq(paramPointObjective,param_range[0],param_range[1],xtol=1e-6)
+            spread_estimate = 0.0
+            t_end = clock()
+            
+        # Display statistics about the estimated model
+        #center_estimate = 0.986609223266
+        #spread_estimate = 0.00853886395698
+        EstimationEconomy.LorenzBool = True
+        EstimationEconomy.ManyStatsBool = True
+        EstimationEconomy.distributeParams(Params.param_name,Params.pref_type_count,center_estimate,spread_estimate,Params.dist_type)
+        EstimationEconomy.solve()
+        EstimationEconomy.calcLorenzDistance()
+        print('Estimate is center=' + str(center_estimate) + ', spread=' + str(spread_estimate) + ', took ' + str(t_end-t_start) + ' seconds.')
+        EstimationEconomy.center_estimate = center_estimate
+        EstimationEconomy.spread_estimate = spread_estimate
+        EstimationEconomy.showManyStats(Params.spec_name)
+            
