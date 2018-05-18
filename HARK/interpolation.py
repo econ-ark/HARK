@@ -2,13 +2,13 @@
 Custom interpolation methods for representing approximations to functions.
 It also includes wrapper classes to enforce standard methods across classes.
 Each interpolation class must have a distance() method that compares itself to
-another instance; this is used in HARKcore's solve() method to check for solution
+another instance; this is used in HARK.core's solve() method to check for solution
 convergence.  The interpolator classes currently in this module inherit their
 distance method from HARKobject.
 '''
 
 import numpy as np
-from HARKcore import HARKobject
+from core import HARKobject
 from copy import deepcopy
 
 def _isscalar(x):

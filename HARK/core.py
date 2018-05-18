@@ -1154,7 +1154,7 @@ class Market(HARKobject):
         return dynamics
 
 if __name__ == '__main__':
-    print("Sorry, HARKcore doesn't actually do anything on its own.")
+    print("Sorry, HARK.core doesn't actually do anything on its own.")
     print("To see some examples of its frameworks in action, try running a model module.")
     print("Several interesting model modules can be found in /ConsumptionSavingModel.")
     print('For an extraordinarily simple model that demonstrates the "microeconomic" and')

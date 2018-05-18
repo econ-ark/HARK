@@ -7,7 +7,7 @@ sys.path.insert(0, '../../')
 
 import numpy as np
 from scipy.optimize import brentq
-from HARKcore import HARKobject
+from HARK.core import HARKobject
 from HARK.utilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv,\
                            CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP,\
                            makeGridExpMult, NullFunc

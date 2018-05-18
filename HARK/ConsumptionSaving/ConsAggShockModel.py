@@ -17,7 +17,7 @@ from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutility
                            approxMeanOneLognormal
 from HARK.simulation import drawDiscrete, drawUniform
 from ConsIndShockModel import ConsumerSolution, IndShockConsumerType
-from HARKcore import HARKobject, Market, AgentType
+from HARK.core import HARKobject, Market, AgentType
 from copy import deepcopy
 import matplotlib.pyplot as plt
 
@@ -865,7 +865,7 @@ def solveConsAggMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,MrkvArray,
 class CobbDouglasEconomy(Market):
     '''
     A class to represent an economy with a Cobb-Douglas aggregate production
-    function over labor and capital, extending HARKcore.Market.  The "aggregate
+    function over labor and capital, extending HARK.core.Market.  The "aggregate
     market process" for this market combines all individuals' asset holdings
     into aggregate capital, yielding the interest factor on assets and the wage
     rate for the upcoming period.
@@ -1297,7 +1297,7 @@ class SmallOpenEconomy(Market):
 class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
     '''
     A class to represent an economy with a Cobb-Douglas aggregate production
-    function over labor and capital, extending HARKcore.Market.  The "aggregate
+    function over labor and capital, extending HARK.core.Market.  The "aggregate
     market process" for this market combines all individuals' asset holdings
     into aggregate capital, yielding the interest factor on assets and the wage
     rate for the upcoming period.  This small extension incorporates a Markov

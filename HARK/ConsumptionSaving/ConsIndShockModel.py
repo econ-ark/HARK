@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
-from HARKcore import AgentType, Solution, NullFunc, HARKobject
+from HARK.core import AgentType, Solution, NullFunc, HARKobject
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.simulation import drawDiscrete, drawBernoulli, drawLognormal, drawUniform
