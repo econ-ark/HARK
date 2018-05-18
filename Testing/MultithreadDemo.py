@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.abspath('./'))
 
 import ConsumerParameters as Params       # Parameters for a consumer type
 import ConsIndShockModel as Model         # Consumption-saving model with idiosyncratic shocks
-from HARKutilities import plotFuncs, plotFuncsDer # Basic plotting tools
+from HARK.utilities import plotFuncs, plotFuncsDer # Basic plotting tools
 from time import clock                         # Timing utility
 from copy import deepcopy                      # "Deep" copying for complex objects
 from HARK.parallel import multiThreadCommandsFake, multiThreadCommands # Parallel processing

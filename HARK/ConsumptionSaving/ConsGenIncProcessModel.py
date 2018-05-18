@@ -8,16 +8,16 @@ and allows (log) persistent income to follow an AR1 process rather than random w
 import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('./'))
+sys.path.insert(0, os.path.abspath('../../'))
 
 from copy import deepcopy
 import numpy as np
 from HARKcore import HARKobject
 from HARKinterpolation import LowerEnvelope2D, BilinearInterp, VariableLowerBoundFunc2D, \
                               LinearInterpOnInterp1D, LinearInterp, CubicInterp, UpperEnvelope
-from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
-                          CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
-                          getPercentiles
+from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
+                           CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
+                           getPercentiles
 from HARKsimulation import drawLognormal, drawDiscrete, drawUniform
 from ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
 
@@ -1279,7 +1279,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 
 if __name__ == '__main__':
     import ConsumerParameters as Params
-    from HARKutilities import plotFuncs
+    from HARK.utilities import plotFuncs
     from time import clock
     import matplotlib.pyplot as plt
     mystr = lambda number : "{:.4f}".format(number)

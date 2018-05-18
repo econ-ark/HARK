@@ -7,7 +7,7 @@ time invariant or exist on a short cycle; models must be infinite horizon.
 import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('./'))
+sys.path.insert(0, os.path.abspath('../../'))
 
 import numpy as np
 from HARKinterpolation import LinearInterp
@@ -331,7 +331,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
 if __name__ == '__main__':
     from copy import deepcopy
     from time import clock
-    from HARKutilities import plotFuncs
+    from HARK.utilities import plotFuncs
     import ConsumerParameters as Params
 
     # Make a quick example dictionary

@@ -2,14 +2,15 @@
 Consumption-saving models that also include medical spending.
 '''
 import sys
-sys.path.insert(0,'../')
+sys.path.insert(0, '../')
+sys.path.insert(0, '../../')
 
 import numpy as np
 from scipy.optimize import brentq
 from HARKcore import HARKobject
-from HARKutilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv,\
-                          CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP,\
-                          makeGridExpMult, NullFunc
+from HARK.utilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv,\
+                           CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP,\
+                           makeGridExpMult, NullFunc
 from HARKsimulation import drawLognormal
 from ConsIndShockModel import ConsumerSolution
 from HARKinterpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, CubicInterp,\
@@ -1359,7 +1360,7 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
 
 if __name__ == '__main__':
     import ConsumerParameters as Params
-    from HARKutilities import CRRAutility_inv
+    from HARK.utilities import CRRAutility_inv
     from time import clock
     import matplotlib.pyplot as plt
     mystr = lambda number : "{:.4f}".format(number)

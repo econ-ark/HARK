@@ -29,13 +29,14 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath('../')) #Path to ConsumptionSaving folder
 sys.path.insert(0, os.path.abspath('../../'))
+sys.path.insert(0, os.path.abspath('../../../'))
 sys.path.insert(0, os.path.abspath('../../cstwMPC')) #Path to cstwMPC folder
 import numpy as np
 from copy import deepcopy
 
 # Now, bring in what we need from the cstwMPC parameters
 import SetupParamsCSTW as cstwParams
-from HARKutilities import approxUniform
+from HARK.utilities import approxUniform
 
 ## Import the HARK ConsumerType we want
 ## Here, we bring in an agent making a consumption/savings decision every period, subject
@@ -182,8 +183,8 @@ def cChangeAfterUnempPrbChange(newVals):
 
 ## Now, plot the functions we want
 
-# Import a useful plotting function from HARKutilities
-from HARKutilities import plotFuncs
+# Import a useful plotting function from HARK.utilities
+from HARK.utilities import plotFuncs
 import matplotlib.pyplot as plt # We need this module to change the y-axis on the graphs
 
 ratio_min = 1. # minimum number to multiply income parameter by

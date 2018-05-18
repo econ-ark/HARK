@@ -5,18 +5,19 @@ include a Markov state; the interest factor, permanent growth factor, and income
 distribution can vary with the discrete state.
 '''
 import sys
-sys.path.insert(0,'../')
+sys.path.insert(0, '../')
+sys.path.insert(0, '../../')
 
 from copy import deepcopy
 import numpy as np
 from ConsIndShockModel import ConsIndShockSolver, ValueFunc, MargValueFunc, ConsumerSolution, IndShockConsumerType
 from ConsAggShockModel import AggShockConsumerType
-from HARKutilities import combineIndepDstns, warnings  # Because of "patch" to warnings modules
+from HARK.utilities import combineIndepDstns, warnings  # Because of "patch" to warnings modules
 from HARKcore import Market, HARKobject
 from HARKsimulation import drawDiscrete, drawUniform
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
-from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
-                          CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP
+from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
+                           CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP
 
 utility       = CRRAutility
 utilityP      = CRRAutilityP
@@ -1311,7 +1312,7 @@ class MarkovSmallOpenEconomy(Market):
 if __name__ == '__main__':
 
     import ConsumerParameters as Params
-    from HARKutilities import plotFuncs
+    from HARK.utilities import plotFuncs
     from time import clock
     from copy import copy
     mystr = lambda number : "{:.4f}".format(number)

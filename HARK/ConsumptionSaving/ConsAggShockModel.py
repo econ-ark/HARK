@@ -6,14 +6,15 @@ used for solving "macroeconomic" models with aggregate shocks.
 '''
 import sys
 sys.path.insert(0,'../')
+sys.path.insert(0, '../../')
 
 import numpy as np
 import scipy.stats as stats
 from HARKinterpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFunction, IdentityFunction,\
                               VariableLowerBoundFunc2D, BilinearInterp, LowerEnvelope2D, UpperEnvelope
-from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
-                          CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
-                          approxMeanOneLognormal
+from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
+                           CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
+                           approxMeanOneLognormal
 from HARKsimulation import drawDiscrete, drawUniform
 from ConsIndShockModel import ConsumerSolution, IndShockConsumerType
 from HARKcore import HARKobject, Market, AgentType
@@ -1754,7 +1755,7 @@ class AggShocksDynamicRule(HARKobject):
 if __name__ == '__main__':
     import ConsumerParameters as Params
     from time import clock
-    from HARKutilities import plotFuncs
+    from HARK.utilities import plotFuncs
     mystr = lambda number : "{:.4f}".format(number)
 
     solve_agg_shocks_micro = False # Solve an AggShockConsumerType's microeconomic problem

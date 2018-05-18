@@ -15,19 +15,19 @@ See HARK documentation for mathematical descriptions of the models being solved.
 import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('./'))
+sys.path.insert(0, os.path.abspath('../../'))
 
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
 from HARKcore import AgentType, Solution, NullFunc, HARKobject
-from HARKutilities import warnings  # Because of "patch" to warnings modules
+from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARKsimulation import drawDiscrete, drawBernoulli, drawLognormal, drawUniform
-from HARKutilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
-                          combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
-                          CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
-                          CRRAutilityP_invP
+from HARK.utilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
+                           combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
+                           CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
+                           CRRAutilityP_invP
 
 utility       = CRRAutility
 utilityP      = CRRAutilityP
@@ -2402,7 +2402,7 @@ def constructAssetsGrid(parameters):
 
 if __name__ == '__main__':
     import ConsumerParameters as Params
-    from HARKutilities import plotFuncsDer, plotFuncs
+    from HARK.utilities import plotFuncsDer, plotFuncs
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
 

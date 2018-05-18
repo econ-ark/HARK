@@ -41,6 +41,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath('../')) #Path to ConsumptionSaving folder
 sys.path.insert(0, os.path.abspath('../../'))
+sys.path.insert(0, os.path.abspath('../../../'))
 sys.path.insert(0, os.path.abspath('../../cstwMPC')) #Path to cstwMPC folder
 
 
@@ -112,7 +113,7 @@ for nn in range(num_consumer_types):
 ## each with their own discount factor
 
 # First, decide the discount factors to assign
-from HARKutilities import approxUniform
+from HARK.utilities import approxUniform
 
 bottomDiscFac = 0.9800
 topDiscFac    = 0.9934

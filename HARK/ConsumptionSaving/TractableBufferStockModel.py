@@ -24,10 +24,11 @@ import sys
 import os
 import numpy as np
 sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../../'))
 
 from HARKcore import AgentType, NullFunc, Solution
-from HARKutilities import warnings  # Because of "patch" to warnings modules
-from HARKutilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityPPP, CRRAutilityPPPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
+from HARK.utilities import warnings  # Because of "patch" to warnings modules
+from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityPPP, CRRAutilityPPPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
 from HARKinterpolation import CubicInterp
 from HARKsimulation import drawLognormal, drawBernoulli
 from copy import copy
@@ -469,7 +470,7 @@ if __name__ == '__main__':
     # Import the HARK library.  The assumption is that this code is in a folder
     # contained in the HARK folder.  Also import the ConsumptionSavingModel
     import numpy as np                   # numeric Python
-    from HARKutilities import plotFuncs  # basic plotting tools
+    from HARK.utilities import plotFuncs  # basic plotting tools
     from ConsMarkovModel import MarkovConsumerType # An alternative, much longer way to solve the TBS model
     from time import clock               # timing utility
 

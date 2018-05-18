@@ -7,13 +7,14 @@ A second stab / complete do-over of cstwMPC.  Steals some bits from old version.
 import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
 from copy import copy, deepcopy
 from time import clock
-from HARKutilities import approxMeanOneLognormal, combineIndepDstns, approxUniform, \
-                          getPercentiles, getLorenzShares, calcSubpopAvg, approxLognormal
+from HARK.utilities import approxMeanOneLognormal, combineIndepDstns, approxUniform, \
+                           getPercentiles, getLorenzShares, calcSubpopAvg, approxLognormal
 from HARKsimulation import drawDiscrete
 from HARKcore import Market
 import SetupParamsCSTW as Params

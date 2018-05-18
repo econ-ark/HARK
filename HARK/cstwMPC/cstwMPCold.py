@@ -17,8 +17,8 @@ sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 import numpy as np
 from copy import deepcopy
 from time import time
-from HARKutilities import approxMeanOneLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, \
-                          getPercentiles, getLorenzShares, calcSubpopAvg
+from HARK.utilities import approxMeanOneLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, \
+                           getPercentiles, getLorenzShares, calcSubpopAvg
 from HARKsimulation import drawDiscrete, drawMeanOneLognormal
 from HARKcore import AgentType
 from HARK.parallel import multiThreadCommandsFake

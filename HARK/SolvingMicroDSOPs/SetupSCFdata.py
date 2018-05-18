@@ -8,6 +8,7 @@ from __future__ import division      # Use new division function
 import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../../'))
 
 
 # The following libraries are part of the standard python distribution
@@ -16,7 +17,7 @@ import csv                           # Comma-separated variable reader
 from EstimationParameters import initial_age, empirical_cohort_age_groups
 
 # Libraries below are part of HARK's module system and must be in this directory
-from HARKutilities import warnings
+from HARK.utilities import warnings
 
 # Set the path to the empirical data:
 scf_data_path = data_location = os.path.dirname(os.path.abspath(__file__))  # os.path.abspath('./')   #'./'

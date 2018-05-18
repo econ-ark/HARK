@@ -1260,7 +1260,7 @@ def plotFuncsDer(functions,bottom,top,N=1000,legend_kwds = None):
 
 
 if __name__ == '__main__':
-    print("Sorry, HARKutilities doesn't actually do anything on its own.")
+    print("Sorry, HARK.utilities doesn't actually do anything on its own.")
     print("To see some examples of its functions in action, look at any")
     print("of the model modules in /ConsumptionSavingModel.  As these functions")
     print("are the basic building blocks of HARK, you'll find them used")

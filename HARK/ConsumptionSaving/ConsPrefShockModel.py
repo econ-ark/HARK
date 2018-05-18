@@ -7,10 +7,11 @@ It currently only two models:
    by inheriting from multiple classes.
 '''
 import sys
-sys.path.insert(0,'../')
+sys.path.insert(0, '../')
+sys.path.insert(0, '../../')
 
 import numpy as np
-from HARKutilities import approxMeanOneLognormal
+from HARK.utilities import approxMeanOneLognormal
 from ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
                                    ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver
 from HARKinterpolation import LinearInterpOnInterp1D, LinearInterp, CubicInterp, LowerEnvelope
@@ -595,7 +596,7 @@ def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,
 if __name__ == '__main__':
     import ConsumerParameters as Params
     import matplotlib.pyplot as plt
-    from HARKutilities import plotFuncs
+    from HARK.utilities import plotFuncs
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
 

@@ -13,9 +13,13 @@ For the first four models (heterogeneous agents), it defines dictionaries for
 the Market instance as well as the consumers themselves.  All parameters are quarterly.
 '''
 
+import sys
+import os
+sys.path.insert(0, os.path.abspath('../../'))
+
 import numpy as np
 from copy import copy
-from HARKutilities import approxUniform
+from HARK.utilities import approxUniform
 
 # Choose file where the Stata executable can be found.  This should point at the
 # exe file itself, but the string does not need to include '.exe'.  Two examples

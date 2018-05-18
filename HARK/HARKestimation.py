@@ -9,7 +9,7 @@ import numpy as np                                      # Numerical Python
 from time import time                                   # Used to time execution
 from copy import deepcopy                               # For replicating complex objects
 from scipy.optimize import fmin, fmin_powell            # Minimizers
-from HARKutilities import warnings                      # Import modified "warnings" library
+from utilities import warnings                          # Import modified "warnings" library
 
 def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwargs):
     '''

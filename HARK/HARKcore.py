@@ -7,7 +7,7 @@ model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 '''
 
-from HARKutilities import getArgNames, NullFunc
+from utilities import getArgNames, NullFunc
 from copy import copy, deepcopy
 import numpy as np
 from time import clock
