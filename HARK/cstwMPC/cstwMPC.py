@@ -16,7 +16,6 @@ from HARKutilities import approxMeanOneLognormal, combineIndepDstns, approxUnifo
                           getPercentiles, getLorenzShares, calcSubpopAvg, approxLognormal
 from HARKsimulation import drawDiscrete
 from HARKcore import Market
-#from HARKparallel import multiThreadCommandsFake
 import SetupParamsCSTW as Params
 import ConsIndShockModel as Model
 from ConsAggShockModel import CobbDouglasEconomy, AggShockConsumerType

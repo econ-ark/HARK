@@ -1,9 +1,9 @@
 '''
-A demonstration of parallel processing in HARK using HARKparallel.
+A demonstration of parallel processing in HARK using HARK.parallel.
 A benchmark consumption-saving model is solved for individuals whose CRRA varies
 between 1 and 8.  The infinite horizon model is solved serially and then in
-parallel.  Note that HARKparallel will not work "out of the box", as Anaconda
-does not include two packages needed for it; see HARKparallel.py.  When given a
+parallel.  Note that HARK.parallel will not work "out of the box", as Anaconda
+does not include two packages needed for it; see HARK/parallel.py.  When given a
 sufficiently large amount of work for each thread to do, the maximum speedup
 factor seems to be around P/2, where P is the number of processors.
 '''
@@ -18,7 +18,7 @@ import ConsIndShockModel as Model         # Consumption-saving model with idiosy
 from HARKutilities import plotFuncs, plotFuncsDer # Basic plotting tools
 from time import clock                         # Timing utility
 from copy import deepcopy                      # "Deep" copying for complex objects
-from HARKparallel import multiThreadCommandsFake, multiThreadCommands # Parallel processing
+from HARK.parallel import multiThreadCommandsFake, multiThreadCommands # Parallel processing
 mystr = lambda number : "{:.4f}".format(number)# Format numbers as strings
 import numpy as np                             # Numeric Python
 

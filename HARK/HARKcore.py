@@ -11,7 +11,7 @@ from HARKutilities import getArgNames, NullFunc
 from copy import copy, deepcopy
 import numpy as np
 from time import clock
-from HARKparallel import multiThreadCommands
+from parallel import multiThreadCommands
 
 def distanceMetric(thing_A,thing_B):
     '''

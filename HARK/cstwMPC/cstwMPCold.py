@@ -11,6 +11,7 @@ for parameters and execution options.
 import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
@@ -20,7 +21,7 @@ from HARKutilities import approxMeanOneLognormal, combineIndepDstns, approxUnifo
                           getPercentiles, getLorenzShares, calcSubpopAvg
 from HARKsimulation import drawDiscrete, drawMeanOneLognormal
 from HARKcore import AgentType
-from HARKparallel import multiThreadCommandsFake
+from HARK.parallel import multiThreadCommandsFake
 import SetupParamsCSTW as Params
 import ConsIndShockModel as Model
 from ConsAggShockModel import CobbDouglasEconomy, AggShockConsumerType
