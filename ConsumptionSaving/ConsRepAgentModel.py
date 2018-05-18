@@ -333,7 +333,6 @@ if __name__ == '__main__':
     from time import clock
     from HARKutilities import plotFuncs
     import ConsumerParameters as Params
-    import matplotlib.pyplot as plt
 
     # Make a quick example dictionary
     RA_params = deepcopy(Params.init_idiosyncratic_shocks)
