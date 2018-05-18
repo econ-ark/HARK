@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 import subprocess
 from HARK.utilities import CRRAutility
-from HARKinterpolation import LinearInterp
+from HARK.interpolation import LinearInterp
 from StickyEparams import results_dir, tables_dir, figures_dir, UpdatePrb, PermShkAggVar
 UpdatePrbBase = UpdatePrb
 PermShkAggVarBase = PermShkAggVar

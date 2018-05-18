@@ -15,7 +15,7 @@ from ConsAggShockModel import AggShockConsumerType
 from HARK.utilities import combineIndepDstns, warnings  # Because of "patch" to warnings modules
 from HARKcore import Market, HARKobject
 from HARK.simulation import drawDiscrete, drawUniform
-from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
+from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP
 
@@ -511,7 +511,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
 
         Returns
         -------
-        cFuncUnc: an instance of HARKinterpolation.LinearInterp
+        cFuncUnc: an instance of HARK.interpolation.LinearInterp
         '''
         cFuncUnc = LinearInterp(mNrm,cNrm,self.MPCminNow_j*self.hNrmNow_j,self.MPCminNow_j)
         return cFuncUnc
@@ -531,7 +531,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
 
         Returns
         -------
-        cFuncUnc: an instance of HARKinterpolation.CubicInterp
+        cFuncUnc: an instance of HARK.interpolation.CubicInterp
         '''
         cFuncUnc = CubicInterp(mNrm,cNrm,self.MPC_temp_j,self.MPCminNow_j*self.hNrmNow_j,
                                self.MPCminNow_j)

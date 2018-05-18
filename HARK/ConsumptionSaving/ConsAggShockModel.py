@@ -10,8 +10,8 @@ sys.path.insert(0, '../../')
 
 import numpy as np
 import scipy.stats as stats
-from HARKinterpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFunction, IdentityFunction,\
-                              VariableLowerBoundFunc2D, BilinearInterp, LowerEnvelope2D, UpperEnvelope
+from HARK.interpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFunction, IdentityFunction,\
+                               VariableLowerBoundFunc2D, BilinearInterp, LowerEnvelope2D, UpperEnvelope
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                            CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
                            approxMeanOneLognormal

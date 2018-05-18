@@ -13,9 +13,9 @@ from HARK.utilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRA
                            makeGridExpMult, NullFunc
 from HARK.simulation import drawLognormal
 from ConsIndShockModel import ConsumerSolution
-from HARKinterpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, CubicInterp,\
-                              LinearInterp, LowerEnvelope3D, UpperEnvelope, LinearInterpOnInterp1D,\
-                              VariableLowerBoundFunc3D
+from HARK.interpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, CubicInterp,\
+                               LinearInterp, LowerEnvelope3D, UpperEnvelope, LinearInterpOnInterp1D,\
+                               VariableLowerBoundFunc3D
 from ConsGenIncProcessModel import ConsGenIncProcessSolver, PersistentShockConsumerType,\
                                      ValueFunc2D, MargValueFunc2D, MargMargValueFunc2D, \
                                      VariableLowerBoundFunc2D

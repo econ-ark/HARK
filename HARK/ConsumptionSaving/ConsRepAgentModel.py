@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../../'))
 
 import numpy as np
-from HARKinterpolation import LinearInterp
+from HARK.interpolation import LinearInterp
 from HARK.simulation import drawUniform, drawDiscrete
 from ConsIndShockModel import IndShockConsumerType, ConsumerSolution, MargValueFunc
 

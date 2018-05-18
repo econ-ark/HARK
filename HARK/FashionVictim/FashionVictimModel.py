@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../../'))
 
 from HARKcore import AgentType, Solution, NullFunc
-from HARKinterpolation import LinearInterp
+from HARK.interpolation import LinearInterp
 from HARK.utilities import approxUniform, plotFuncs
 import numpy as np
 import scipy.stats as stats

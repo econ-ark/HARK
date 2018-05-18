@@ -14,7 +14,7 @@ import numpy as np
 from HARK.utilities import approxMeanOneLognormal
 from ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
                                    ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver
-from HARKinterpolation import LinearInterpOnInterp1D, LinearInterp, CubicInterp, LowerEnvelope
+from HARK.interpolation import LinearInterpOnInterp1D, LinearInterp, CubicInterp, LowerEnvelope
 
 class PrefShockConsumerType(IndShockConsumerType):
     '''
