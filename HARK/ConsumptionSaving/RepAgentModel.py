@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 
 import numpy as np
 from HARKinterpolation import LinearInterp
-from HARKsimulation import drawUniform, drawDiscrete
+from HARK.simulation import drawUniform, drawDiscrete
 from ConsIndShockModel import IndShockConsumerType, ConsumerSolution, MargValueFunc
 
 def solveConsRepAgent(solution_next,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,PermGroFac,aXtraGrid):

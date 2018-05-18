@@ -23,7 +23,7 @@ from scipy.optimize import newton
 from HARKcore import AgentType, Solution, NullFunc, HARKobject
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
-from HARKsimulation import drawDiscrete, drawBernoulli, drawLognormal, drawUniform
+from HARK.simulation import drawDiscrete, drawBernoulli, drawLognormal, drawUniform
 from HARK.utilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
                            combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
                            CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \

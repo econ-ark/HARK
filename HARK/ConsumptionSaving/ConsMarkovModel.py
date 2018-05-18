@@ -14,7 +14,7 @@ from ConsIndShockModel import ConsIndShockSolver, ValueFunc, MargValueFunc, Cons
 from ConsAggShockModel import AggShockConsumerType
 from HARK.utilities import combineIndepDstns, warnings  # Because of "patch" to warnings modules
 from HARKcore import Market, HARKobject
-from HARKsimulation import drawDiscrete, drawUniform
+from HARK.simulation import drawDiscrete, drawUniform
 from HARKinterpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP

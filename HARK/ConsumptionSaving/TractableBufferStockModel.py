@@ -30,7 +30,7 @@ from HARKcore import AgentType, NullFunc, Solution
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityPPP, CRRAutilityPPPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
 from HARKinterpolation import CubicInterp
-from HARKsimulation import drawLognormal, drawBernoulli
+from HARK.simulation import drawLognormal, drawBernoulli
 from copy import copy
 from scipy.optimize import newton, brentq
 

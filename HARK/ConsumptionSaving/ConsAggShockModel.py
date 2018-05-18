@@ -15,7 +15,7 @@ from HARKinterpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFunc
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                            CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
                            approxMeanOneLognormal
-from HARKsimulation import drawDiscrete, drawUniform
+from HARK.simulation import drawDiscrete, drawUniform
 from ConsIndShockModel import ConsumerSolution, IndShockConsumerType
 from HARKcore import HARKobject, Market, AgentType
 from copy import deepcopy

@@ -18,7 +18,7 @@ from HARKinterpolation import LowerEnvelope2D, BilinearInterp, VariableLowerBoun
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
                            getPercentiles
-from HARKsimulation import drawLognormal, drawDiscrete, drawUniform
+from HARK.simulation import drawLognormal, drawDiscrete, drawUniform
 from ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
 
 utility       = CRRAutility

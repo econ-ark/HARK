@@ -13,12 +13,13 @@ income as defined in ConsIndShockModel.
 import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import EstimationParameters as Params           # Parameters for the consumer type and the estimation
 import ConsIndShockModel as Model               # The consumption-saving micro model
 import SetupSCFdata as Data                     # SCF 2004 data on household wealth
-from HARKsimulation import drawDiscrete         # Method for sampling from a discrete distribution
+from HARK.simulation import drawDiscrete         # Method for sampling from a discrete distribution
 from HARKestimation import minimizeNelderMead, bootstrapSampleFromData # Estimation methods
 import numpy as np                              # Numeric Python
 import pylab                                    # Python reproductions of some Matlab functions

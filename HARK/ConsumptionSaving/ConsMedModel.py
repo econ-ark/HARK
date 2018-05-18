@@ -11,7 +11,7 @@ from HARKcore import HARKobject
 from HARK.utilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv,\
                            CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP,\
                            makeGridExpMult, NullFunc
-from HARKsimulation import drawLognormal
+from HARK.simulation import drawLognormal
 from ConsIndShockModel import ConsumerSolution
 from HARKinterpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, CubicInterp,\
                               LinearInterp, LowerEnvelope3D, UpperEnvelope, LinearInterpOnInterp1D,\
