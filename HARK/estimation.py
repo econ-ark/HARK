@@ -143,6 +143,6 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
 
 
 if __name__ == '__main__':
-    print("Sorry, HARKestimation doesn't actually do anything on its own.")
+    print("Sorry, HARK.estimation doesn't actually do anything on its own.")
     print("To see some examples of its functions in actions, check out an application")
     print("like /SolvingMicroDSOPs/StructEstimation or /cstwMPC/cstwMPC.")

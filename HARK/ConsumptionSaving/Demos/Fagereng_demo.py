@@ -45,7 +45,7 @@ from copy import deepcopy
 
 from HARK.utilities import approxUniform, getPercentiles
 from HARK.parallel import multiThreadCommands
-from HARKestimation import minimizeNelderMead
+from HARK.estimation import minimizeNelderMead
 from ConsIndShockModel import IndShockConsumerType
 from SetupParamsCSTW import init_infinite # dictionary with most ConsumerType parameters
 

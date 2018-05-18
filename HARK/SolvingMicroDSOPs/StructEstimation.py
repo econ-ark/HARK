@@ -20,7 +20,7 @@ import EstimationParameters as Params           # Parameters for the consumer ty
 import ConsIndShockModel as Model               # The consumption-saving micro model
 import SetupSCFdata as Data                     # SCF 2004 data on household wealth
 from HARK.simulation import drawDiscrete         # Method for sampling from a discrete distribution
-from HARKestimation import minimizeNelderMead, bootstrapSampleFromData # Estimation methods
+from HARK.estimation import minimizeNelderMead, bootstrapSampleFromData # Estimation methods
 import numpy as np                              # Numeric Python
 import pylab                                    # Python reproductions of some Matlab functions
 from time import time                           # Timing utility
