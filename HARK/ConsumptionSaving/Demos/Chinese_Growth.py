@@ -36,18 +36,8 @@ prepare the parameters to create that ConsumerType, and then create it.
 
 ### First bring in default parameter values from cstwPMC.  We will change these as necessary.
 
-# The first step is to be able to bring things in from different directories
-import sys
-import os
-sys.path.insert(0, os.path.abspath('../')) #Path to ConsumptionSaving folder
-sys.path.insert(0, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('../../../'))
-sys.path.insert(0, os.path.abspath('../../cstwMPC')) #Path to cstwMPC folder
-
-
 # Now, bring in what we need from the cstwMPC parameters
-import SetupParamsCSTW as cstwParams
-
+import HARK.cstwMPC.SetupParamsCSTW as cstwParams
 
 # Initialize the cstwMPC parameters
 from copy import deepcopy
@@ -77,7 +67,7 @@ init_China_parameters['AgentCount']   = 10000
 ### Import and initialize the HARK ConsumerType we want
 ### Here, we bring in an agent making a consumption/savings decision every period, subject
 ### to transitory and permanent income shocks, AND a Markov shock
-from ConsMarkovModel import MarkovConsumerType
+from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 ChinaExample = MarkovConsumerType(**init_China_parameters)
 
 # Currently, Markov states can differ in their interest factor, permanent growth factor,
@@ -137,8 +127,8 @@ the appropriate income process.
 """
 
 # First create the income distribution in the low-growth state, which we will not change
-from ConsIndShockModel import constructLognormalIncomeProcessUnemployment
-import ConsumerParameters as IncomeParams
+from HARK.ConsumptionSaving.ConsIndShockModel import constructLognormalIncomeProcessUnemployment
+import HARK.ConsumptionSaving.ConsumerParameters as IncomeParams
 
 LowGrowthIncomeDstn  = constructLognormalIncomeProcessUnemployment(IncomeParams)[0][0]
 

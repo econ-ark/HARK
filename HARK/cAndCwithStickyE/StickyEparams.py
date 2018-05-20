@@ -13,10 +13,6 @@ For the first four models (heterogeneous agents), it defines dictionaries for
 the Market instance as well as the consumers themselves.  All parameters are quarterly.
 '''
 
-import sys
-import os
-sys.path.insert(0, os.path.abspath('../../'))
-
 import numpy as np
 from copy import copy
 from HARK.utilities import approxUniform

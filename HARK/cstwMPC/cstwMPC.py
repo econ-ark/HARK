@@ -2,14 +2,6 @@
 A second stab / complete do-over of cstwMPC.  Steals some bits from old version.
 '''
 
-# Import the HARK library.  The assumption is that this code is in a folder
-# contained in the HARK folder. Also import ConsumptionSavingModel
-import sys
-import os
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
-
 import numpy as np
 from copy import copy, deepcopy
 from time import clock
@@ -18,8 +10,8 @@ from HARK.utilities import approxMeanOneLognormal, combineIndepDstns, approxUnif
 from HARK.simulation import drawDiscrete
 from HARK.core import Market
 import SetupParamsCSTW as Params
-import ConsIndShockModel as Model
-from ConsAggShockModel import CobbDouglasEconomy, AggShockConsumerType
+import HARK.ConsumptionSaving.ConsIndShockModel as Model
+from HARK.ConsumptionSaving.ConsAggShockModel import CobbDouglasEconomy, AggShockConsumerType
 from scipy.optimize import golden, brentq
 import matplotlib.pyplot as plt
 #import csv

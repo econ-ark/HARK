@@ -2,11 +2,6 @@
 This file implements unit tests to check HARK/utilities.py
 """
 
-
-# First, bring in the files we want to test
-import sys
-import os
-sys.path.insert(0, os.path.abspath('../'))
 import HARK.utilities
 
 # Bring in modules we need

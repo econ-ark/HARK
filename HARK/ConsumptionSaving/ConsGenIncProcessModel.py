@@ -5,11 +5,6 @@ ConsIndShockModel by explicitly tracking persistent income as a state variable,
 and allows (log) persistent income to follow an AR1 process rather than random walk.
 '''
 
-import sys
-import os
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../../'))
-
 from copy import deepcopy
 import numpy as np
 from HARK.core import HARKobject

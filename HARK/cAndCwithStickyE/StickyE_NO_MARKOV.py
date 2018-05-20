@@ -10,17 +10,11 @@ file in the ./Results directory.  TeX code for tables in the paper are saved in
 the ./Tables directory.  See StickyEparams for calibrated model parameters.
 '''
 
-import sys
-import os
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
-
 import numpy as np
 from time import clock
 from copy import deepcopy
 from StickyEmodel import StickyEconsumerType, StickyErepAgent, StickyCobbDouglasEconomy
-from ConsAggShockModel import SmallOpenEconomy
+from HARK.ConsumptionSaving.ConsAggShockModel import SmallOpenEconomy
 from HARK.utilities import plotFuncs
 import matplotlib.pyplot as plt
 import StickyEparams as Params

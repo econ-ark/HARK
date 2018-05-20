@@ -1,9 +1,6 @@
 '''
 Consumption-saving models that also include medical spending.
 '''
-import sys
-sys.path.insert(0, '../')
-sys.path.insert(0, '../../')
 
 import numpy as np
 from scipy.optimize import brentq

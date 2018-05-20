@@ -20,11 +20,7 @@ in the HARK framework, as shown below.
 '''
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder.
-import sys
-import os
 import numpy as np
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../../'))
 
 from HARK.core import AgentType, NullFunc, Solution
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
@@ -34,10 +30,9 @@ from HARK.simulation import drawLognormal, drawBernoulli
 from copy import copy
 from scipy.optimize import newton, brentq
 
-# If you want to run the "tractable" version of cstwMPC, uncomment the two lines below
+# If you want to run the "tractable" version of cstwMPC, uncomment the line below
 # and have TractableConsumerType inherit from cstwMPCagent rather than AgentType
-#sys.path.insert(0, os.path.abspath('../cstwMPC/'))
-#from cstwMPC import cstwMPCagent
+#from HARK.cstwMPC.cstwMPC import cstwMPCagent
 
 # Define utility function and its derivatives (plus inverses)
 utility = CRRAutility

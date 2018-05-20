@@ -5,11 +5,6 @@ based on the proportion of the population with the same style (as well as direct
 preferences each style), and pay switching costs if they change.
 '''
 
-import sys
-import os
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../../'))
-
 from HARK.core import AgentType, Solution, NullFunc
 from HARK.interpolation import LinearInterp
 from HARK.utilities import approxUniform, plotFuncs

@@ -2,14 +2,7 @@
 Sets up the SCF data for use in the SolvingMicroDSOPs estimation.
 '''
 from __future__ import division      # Use new division function
-
-# Import the HARK library.  The assumption is that this code is in a folder
-# contained in the HARK folder.
-import sys
 import os
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../../'))
-
 
 # The following libraries are part of the standard python distribution
 import numpy as np                   # Numerical Python

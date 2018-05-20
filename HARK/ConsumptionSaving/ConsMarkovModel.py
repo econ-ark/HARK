@@ -4,9 +4,6 @@ stochastic Markov state.  The only solver here extends ConsIndShockModel to
 include a Markov state; the interest factor, permanent growth factor, and income
 distribution can vary with the discrete state.
 '''
-import sys
-sys.path.insert(0, '../')
-sys.path.insert(0, '../../')
 
 from copy import deepcopy
 import numpy as np

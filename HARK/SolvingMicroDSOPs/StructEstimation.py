@@ -8,16 +8,9 @@ factor for an age-varying sequence of discount factors.  The estimation uses a
 consumption-saving model with idiosyncratic shocks to permanent and transitory
 income as defined in ConsIndShockModel.
 '''
-# Import the HARK library.  The assumption is that this code is in a folder
-# contained in the HARK folder.
-import sys
-import os
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import EstimationParameters as Params           # Parameters for the consumer type and the estimation
-import ConsIndShockModel as Model               # The consumption-saving micro model
+import HARK.ConsumptionSaving.ConsIndShockModel as Model # The consumption-saving micro model
 import SetupSCFdata as Data                     # SCF 2004 data on household wealth
 from HARK.simulation import drawDiscrete         # Method for sampling from a discrete distribution
 from HARK.estimation import minimizeNelderMead, bootstrapSampleFromData # Estimation methods

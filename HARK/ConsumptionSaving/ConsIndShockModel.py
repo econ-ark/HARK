@@ -12,10 +12,6 @@ It currently solves three types of models:
 See NARK for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 '''
-import sys
-import os
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../../'))
 
 from copy import copy, deepcopy
 import numpy as np

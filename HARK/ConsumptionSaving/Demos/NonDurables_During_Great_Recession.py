@@ -24,24 +24,17 @@ So we need to prepare the parameters to create that ConsumerType, and then creat
 
 ## Import some things from cstwMPC
 
-# The first step is to be able to bring things in from different directories
-import sys
-import os
-sys.path.insert(0, os.path.abspath('../')) #Path to ConsumptionSaving folder
-sys.path.insert(0, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('../../../'))
-sys.path.insert(0, os.path.abspath('../../cstwMPC')) #Path to cstwMPC folder
 import numpy as np
 from copy import deepcopy
 
 # Now, bring in what we need from the cstwMPC parameters
-import SetupParamsCSTW as cstwParams
+import HARK.cstwMPC.SetupParamsCSTW as cstwParams
 from HARK.utilities import approxUniform
 
 ## Import the HARK ConsumerType we want
 ## Here, we bring in an agent making a consumption/savings decision every period, subject
 ## to transitory and permanent income shocks.
-from ConsIndShockModel import IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 
 # Now initialize a baseline consumer type, using default parameters from infinite horizon cstwMPC
 BaselineType = IndShockConsumerType(**cstwParams.init_infinite)

@@ -7,14 +7,9 @@ does not include two packages needed for it; see HARK/parallel.py.  When given a
 sufficiently large amount of work for each thread to do, the maximum speedup
 factor seems to be around P/2, where P is the number of processors.
 '''
-import sys
-import os
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
-sys.path.insert(0, os.path.abspath('./'))
 
-import ConsumerParameters as Params       # Parameters for a consumer type
-import ConsIndShockModel as Model         # Consumption-saving model with idiosyncratic shocks
+import HARK.ConsumptionSaving.ConsumerParameters as Params # Parameters for a consumer type
+import HARK.ConsumptionSaving.ConsIndShockModel as Model # Consumption-saving model with idiosyncratic shocks
 from HARK.utilities import plotFuncs, plotFuncsDer # Basic plotting tools
 from time import clock                         # Timing utility
 from copy import deepcopy                      # "Deep" copying for complex objects

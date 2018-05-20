@@ -4,22 +4,16 @@ Created on Thu Nov  9 09:40:49 2017
 
 @author: ccarroll@llorracc.org
 """
-import sys
-import os
 import pylab # the plotting tools
-
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../..'))
-sys.path.insert(0, os.path.abspath('../../..'))
 
 xPoints=100  # number of points at which to sample a function when plotting it using pylab
 mMinVal = 0. # minimum value of the consumer's cash-on-hand to show in plots
 mMaxVal = 5. # maximum value of the consumer's cash-on-hand to show in plots
 
-import ConsumerParameters as Params # Read in the database of parameters
+import HARK.ConsumptionSaving.ConsumerParameters as Params # Read in the database of parameters
 my_dictionary = Params.init_idiosyncratic_shocks # Create a dictionary containing the default values of the parameters
 import numpy as np # Get the suite of tools for doing numerical computation in python
-from ConsIndShockModel import IndShockConsumerType # Set up the tools for solving a consumer's problem
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType # Set up the tools for solving a consumer's problem
 
 # define a function that generates the plot
 def perturbParameterToGetcPlotList(base_dictionary,param_name,param_min,param_max,N=20,time_vary=False):

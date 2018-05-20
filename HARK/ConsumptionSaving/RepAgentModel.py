@@ -4,10 +4,6 @@ This stands in contrast to all other model modules in HARK, which (unsurprisingl
 take a heterogeneous agents approach.  In these models, all attributes are either
 time invariant or exist on a short cycle.
 '''
-import sys
-import os
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../../'))
 
 import numpy as np
 from HARK.interpolation import LinearInterp
