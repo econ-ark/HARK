@@ -223,28 +223,29 @@ Css: div.pmatrix {text-align:center;}
 Css: table.pmatrix {width:100%;}
 Css: span.bar-css {text-decoration:overline;}
 Css: img.cdots{vertical-align:middle;}
-Css: .partToc a, .partToc, .likepartToc a, .likepartToc {line-height: 200%; font-weight:bold; font-size:110%;}
-Css: .index-item, .index-subitem, .index-subsubitem {display:block}
-Css: div.caption {text-indent:-2em; margin-left:3em; margin-right:1em; text-align:left;}
-Css: div.caption span.id{font-weight: bold; white-space: nowrap; }
-Css: h1.partHead{text-align: center}
-Css: p.bibitem { text-indent: -2em; margin-left: 2em; margin-top:0.6em; margin-bottom:0.6em; }
-Css: p.bibitem-p { text-indent: 0em; margin-left: 2em; margin-top:0.6em; margin-bottom:0.6em; }
-Css: .paragraphHead, .likeparagraphHead { margin-top:2em; font-weight: bold;}
-Css: .subparagraphHead, .likesubparagraphHead { font-weight: bold;}
-Css: .quote {margin-bottom:0.25em; margin-top:0.25em; margin-left:1em; margin-right:1em; text-align:justify;}
-Css: .verse{white-space:nowrap; margin-left:2em}
-Css: div.maketitle {text-align:center;}
 Css: h2.titleHead{text-align:center;}
-Css: div.maketitle{ margin-bottom: 2em; }
+Css: div.maketitle{ margin-bottom: 2em; text-align:center; }
 Css: div.author, div.date {text-align:center;}
 Css: div.thanks{text-align:left; margin-left:10%; font-size:85%; font-style:italic; }
-Css: div.author{white-space: nowrap;}
+Css: div.dedication {text-align:center;}
+Css: p.bibitem { text-indent: -2em; margin-left: 2em; margin-top:0.6em; margin-bottom:0.6em; }
+Css: p.bibitem-p { text-indent: 0em; margin-left: 2em; margin-top:0.6em; margin-bottom:0.6em; }
+Css: h1.partHead{text-align: center}
+Css: .quote {margin-bottom:0.25em; margin-top:0.25em; margin-left:1em; margin-right:1em; text-align:justify;}
+Css: .index-item, .index-subitem, .index-subsubitem {display:block}
+Css: .caption td.id{font-weight: bold; white-space: nowrap; }
+Css: div.cation {text-align:center;}
+Css: .verse{white-space:nowrap; margin-left:2em}
 Font_Size: 12
 Css: .quotation {margin-bottom:0.25em; margin-top:0.25em; margin-left:1em; }
+Css: h1.partHead{text-align: center}
 Css: .abstract p {margin-left:5%; margin-right:5%;}
-Css: div.abstract {width:100%;}
+Css: table.abstract {width:100%;}
 Css: span.footnote-mark sup.textsuperscript, span.footnote-mark a sup.textsuperscript{ font-size:80%; }
+Css: .partToc a, .partToc, .likepartToc a, .likepartToc {line-height: 200%; font-weight:bold; font-size:110%;}
+Css: .chapterToc a, .chapterToc, .likechapterToc a, .likechapterToc, .appendixToc a, .appendixToc, .addchapToc a {line-height: 200%; font-weight:bold;}
+Css: .paragraphHead, .likeparagraphHead { margin-top:2em; font-weight: bold;}
+Css: .subparagraphHead, .likesubparagraphHead { font-weight: bold;}
 Css: div.verbatiminput {font-family: monospace; white-space: nowrap; }
 Css: .equation td{text-align:center; }
 Css: .equation-star td{text-align:center; }

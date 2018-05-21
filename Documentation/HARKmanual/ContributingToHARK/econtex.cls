@@ -10,13 +10,13 @@
 %%% Further information is available at
 %%% http://www.uni-kiel.de/agrarpol/ahenningsen/latex-bibtex.html
 %%%
-%%% This document class is based on the "scrartcl" class
+%%% This document class is based on the "scrreprt" class
 %%% from the KOMA script bundle.  For documentation, Google KOMA-Script Documentation
 %%%
 %%% The corresponding BibTeX style file "econtex.bst" should be used
 %%% for the bibliography: \bibliographystyle{econtex}
 %%%
-%%% In addition to the options for scrartcl, this package includes an additional option
+%%% In addition to the options for scrreprt, this package includes an additional option
 %%% titlepage = include a title page (with command "\maketitle", or "\maketitleWithForcedDate{}")
 %%%
 %%% If an abstract is defined by \begin{abstract}\end{abstract} before \maketitle is invoked,
@@ -47,10 +47,10 @@
 \setcounter{IncludeTitlePage}{0}
 \DeclareOption{titlepage}{\setcounter{IncludeTitlePage}{1}}
 
-% pass any options on to the scrartcl class and load this class with some options
-\DeclareOption*{\PassOptionsToClass{\CurrentOption}{scrartcl}}
+% pass any options on to the scrreprt class and load this class with some options
+\DeclareOption*{\PassOptionsToClass{\CurrentOption}{scrreprt}}
 \ProcessOptions\relax
-\LoadClass[fontsize=12pt,english,numbers=noenddot,captions=tableheading,captions=nooneline]{scrartcl}
+\LoadClass[fontsize=12pt,english,numbers=noenddot,captions=tableheading,captions=nooneline]{scrreprt}
 % pointlessnumbers = do not add final dot after ordinary section numbers
 % tablecaptionabove = use \captionabove for captions above rather than below tables
 % noonelinecaption = do not treat one-line captions differently
