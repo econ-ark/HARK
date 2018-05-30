@@ -9,8 +9,8 @@ sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('./Luetticke_code/'))
 from HARKcore import AgentType, Market
 from HARKsimulation import drawDiscrete
-from SteadyStateOneAssetIOUs import SteadyStateOneAssetIOU
-from FluctuationsOneAssetIOUs import FluctuationsOneAssetIOUs, SGU_solver
+from SteadyStateOneAssetIOUsBond import SteadyStateOneAssetIOUsBond
+from FluctuationsOneAssetIOUsBond import FluctuationsOneAssetIOUs, SGU_solver
 from copy import copy, deepcopy
 import numpy as np
 import scipy as sc
@@ -168,14 +168,15 @@ class LuettickeAgent(AgentType):
         bPrev = self.bNow
         #For the moment we are only calculating in the steady state - take fixed steady state values below
         par = self.FluctuationsOneAssetIOU.par
+        targets = self.FluctuationsOneAssetIOU.targets
         RB = par['RB']
         borrwedge = par['borrwedge']
         PI = par['PI']
         RR = (RB+(bPrev.copy()<0.)*borrwedge)/PI
-        W = par['W']
-        N = par['N']
+        W = targets['W']
+        N = targets['N']
         H = par['H']
-        Profits = par['PROFITS']
+        Profits = targets['PROFITS']
         profitshare = par['profitshare']
         hgrid = self.FluctuationsOneAssetIOU.grid['h']
 
@@ -268,7 +269,7 @@ class LuettickeEconomy(Market):
 ###############################################################################
 
 if __name__ == '__main__':
-    import defineSSParameters as Params
+    import defineSSParametersIOUsBond as Params
     from copy import copy
     import pickle
     import pylab as plt
@@ -278,14 +279,14 @@ if __name__ == '__main__':
 
     #First calculate the steady state
     if solve_ss:
-        EX1param = copy(Params.parm_one_asset_IOU)
-        EX1 = SteadyStateOneAssetIOU(**EX1param)
-        EX1SS = EX1.SolveSteadyState()
-        pickle.dump(EX1SS, open("Luetticke_code/EX1SS.p", "wb"))
+        EX2param = copy(Params.parm_one_asset_IOUsBond)
+        EX2 = SteadyStateOneAssetIOUsBond(**EX2param)
+        #EX2SS = EX2.SolveSteadyState()
+        pickle.dump(EX2SS, open("Luetticke_code/EX2SS.p", "wb"))
     else:
-        EX1SS=pickle.load(open("Luetticke_code/EX1SS.p", "rb"))
+        EX2SS=pickle.load(open("Luetticke_code/EX2SS.p", "rb"))
     #Build Luetticke's object
-    FluctuationsOneAssetIOU=FluctuationsOneAssetIOUs(**EX1SS)
+    FluctuationsOneAssetIOU=FluctuationsOneAssetIOUs(**EX2SS)
         
     #Create agent object
     LuettickeExampleAgent = LuettickeAgent(AgentCount=10000)
