@@ -28,7 +28,7 @@ except:
     pickle   = raiseImportError('dill')
 
 
-def multiThreadCommandsFake(agent_list,command_list):
+def multiThreadCommandsFake(agent_list,command_list,num_jobs=None):
     '''
     Executes the list of commands in command_list for each AgentType in agent_list
     in an ordinary, single-threaded loop.  Each command should be a method of
@@ -41,6 +41,8 @@ def multiThreadCommandsFake(agent_list,command_list):
         A list of instances of AgentType on which the commands will be run.
     command_list : [string]
         A list of commands to run for each AgentType.
+    num_jobs : None
+        Dummy input to match syntax of multiThreadCommands.  Does nothing.
         
     Returns
     -------

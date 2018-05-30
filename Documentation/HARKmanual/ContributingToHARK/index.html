@@ -2,8 +2,8 @@
   "http://www.w3.org/TR/html4/loose.dtd">  
 <html > 
 <head> <meta name = "Author" content = "EconARK.org">  
-<meta name = "Description" content = """>  
-<"Contributing To HARK"></"Contributing To HARK">  
+<meta name = "Description" content = "">  
+<title></title>  
  <title></title> 
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"> 
 <meta name="generator" content="TeX4ht (http://www.tug.org/tex4ht/)"> 
@@ -14,23 +14,23 @@
 </head><body 
 >
 <!--l. 438--><p class="noindent" >(This is an excerpt of the full manual, available at <a 
-href="http://econ-ark.org/HARK/Documentation/HARKmanual.pdf" class="url" ><span 
-class="ectt-1200">http://econ-ark.org/HARK/Documentation/HARKmanual.pdf</span></a>
-  <h3 class="sectionHead"><span class="titlemark">1  </span> <a 
- id="x1-10001"></a>Contributing to HARK</h3>
+href="http://econ-ark.org/HARK/Documentation/HARKmanual.pdf)" class="url" ><span 
+class="ectt-1200">http://econ-ark.org/HARK/Documentation/HARKmanual.pdf)</span></a>
+  <h3 class="sectionHead"><span class="titlemark">0.1</span>&#x00A0;&#x00A0;<a 
+ id="x1-10000.1"></a>Contributing to HARK</h3>
 <!--l. 443--><p class="noindent" >This section provides an overview of how users can contribute new code to HARK, what sort of
 contributions are most desired, and style conventions for the toolKit. Before attempting to
 extend HARK, we strongly recommend that you familiarize yourself with its features and models
 by looking at the source code.
 <!--l. 445--><p class="noindent" >
-  <h4 class="subsectionHead"><span class="titlemark">1.1  </span> <a 
- id="x1-20001.1"></a>What Does HARK Want?</h4>
+  <h4 class="subsectionHead"><span class="titlemark">0.1.1</span>&#x00A0;&#x00A0;<a 
+ id="x1-20000.1.1"></a>What Does HARK Want?</h4>
 <!--l. 447--><p class="noindent" >The easiest and most straightforward way to contribute to HARK is by writing new general
 purpose tools for inclusion in one of the top-level modules. This might be a commonly
 known data analysis technique (e.g.&#x00A0;a kernel density estimator) for <span 
-class="ectt-1200">HARKutilities</span>, an
+class="ectt-1200">HARK.utilities</span>, an
 optimization method (local or global) for <span 
-class="ectt-1200">HARKestimation</span>, an interpolation method for
+class="ectt-1200">HARK.estimation</span>, an interpolation method for
 <span 
 class="ectt-1200">HARKinterpolation</span>, etc. If you&#8217;ve found a technique useful in your own research and
 believe it could be of use to others on entirely different projects, then it probably
@@ -70,8 +70,8 @@ fix.
 digging through the code for errors and omissions, consider reading through the Issues page on
 GitHub to see what other users have flagged for development. You might find several pieces of
 &#8220;low hanging fruit&#8221; for you to quickly fix.
-  <h4 class="subsectionHead"><span class="titlemark">1.2  </span> <a 
- id="x1-30001.2"></a>Git and GitHub</h4>
+  <h4 class="subsectionHead"><span class="titlemark">0.1.2</span>&#x00A0;&#x00A0;<a 
+ id="x1-30000.1.2"></a>Git and GitHub</h4>
 <!--l. 457--><p class="noindent" >Git is a distributed version control system that has gained increasing popularity in the decade
 since its creation; it is designed to enable collaboration and &#8220;non-linear workflow&#8221; among a
 (potentially disperse) programming team. As HARK is to be developed by volunteer researchers
@@ -197,13 +197,13 @@ class="ectt-1200">master </span>as the base, your fork as the head fork, and the
   class="enumerate" id="x1-3024x3"><span 
 class="ecbx-1200">Be patient: </span>Someone from the development team will look at your contribution and
       either merge it into the main repository or return it with comments. See section <a 
-href="#x1-40001.3">1.3<!--tex4ht:ref: sec:SubmissionApprovalProcess --></a>
+href="#x1-40000.1.3">0.1.3<!--tex4ht:ref: sec:SubmissionApprovalProcess --></a>
       for procedures followed by the HARK team when evaluating outside contributions.
       </li></ol>
                                                                                         
                                                                                         
-  <h4 class="subsectionHead"><span class="titlemark">1.3  </span> <a 
- id="x1-40001.3"></a>Submission Approval Process</h4>
+  <h4 class="subsectionHead"><span class="titlemark">0.1.3</span>&#x00A0;&#x00A0;<a 
+ id="x1-40000.1.3"></a>Submission Approval Process</h4>
 <!--l. 493--><p class="noindent" >Before submitting to HARK, the development team would like you to make sure that
 your intended contribution is listed as an Issue on the GitHub page. If you are going
 to fix or address an Issue that is already posted, reply to that post with a note
@@ -233,7 +233,7 @@ class="ecbx-1200">Does the contribution break previous code? </span>If you chang
   class="enumerate" id="x1-4005x2"><span 
 class="ecbx-1200">Is the code well documented? </span>Code submissions should have properly formatted
       docstrings for each new function, class, method, and module (see section <a 
-href="#x1-60001.5">1.5<!--tex4ht:ref: sec:DocumentationConventions --></a>) and
+href="#x1-60000.1.5">0.1.5<!--tex4ht:ref: sec:DocumentationConventions --></a>) and
       enough comments for a reader to follow the algorithm.
       </li>
       <li 
@@ -262,7 +262,7 @@ class="ecbx-1200">Is the code correct? </span>Your code should actually do what 
   class="enumerate" id="x1-4014x6"><span 
 class="ecbx-1200">Does the code use HARK conventions? </span>To the best of your ability, contributions
       to  HARK  should  follow  the  style  guidelines  in  section  <a 
-href="#x1-50001.4">1.4<!--tex4ht:ref: sec:NamingConventions --></a>.  We  don&#8217;t  demand
+href="#x1-50000.1.4">0.1.4<!--tex4ht:ref: sec:NamingConventions --></a>.  We  don&#8217;t  demand
       perfection, as these are guidelines rather than rules.
       </li>
       <li 
@@ -290,8 +290,8 @@ href="ContributingToHARK10.html#fn9x0"><sup class="textsuperscript">9</sup></a><
 While czars might directly evaluate submissions as a HARK team member, their more important
 role is to help establish these guidelines for their domain, more specifically nailing down what we
 mean by &#8220;correct&#8221; or &#8220;well integrated&#8221;.
-  <h4 class="subsectionHead"><span class="titlemark">1.4  </span> <a 
- id="x1-50001.4"></a>Naming Conventions</h4>
+  <h4 class="subsectionHead"><span class="titlemark">0.1.4</span>&#x00A0;&#x00A0;<a 
+ id="x1-50000.1.4"></a>Naming Conventions</h4>
 <!--l. 518--><p class="noindent" >Object naming conventions in HARK are fairly different than existing standards, and differ
 somewhat between tool modules vs model or application modules. The following conventions
 apply throughout HARK:
@@ -341,8 +341,8 @@ and model files, as appropriate for each variable. That is, variables that are d
 related to &#8220;economic variables&#8221; in model modules should follow those conventions, while
 objects created solely for data manipulation or reporting should use the style of tool
 modules.
-  <h4 class="subsectionHead"><span class="titlemark">1.5  </span> <a 
- id="x1-60001.5"></a>Documentation Conventions</h4>
+  <h4 class="subsectionHead"><span class="titlemark">0.1.5</span>&#x00A0;&#x00A0;<a 
+ id="x1-60000.1.5"></a>Documentation Conventions</h4>
                                                                                         
                                                                                         
 <!--l. 535--><p class="noindent" >The HARK team wants the toolKit to be as accessible to users as possible; our greatest
