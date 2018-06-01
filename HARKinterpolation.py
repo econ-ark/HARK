@@ -673,7 +673,7 @@ class ConstantFunction(HARKobject):
         else: # Otherwise, return a single instance of the constant value
             return self.value
         
-    def derivative(self,*args):
+    def _der(self,*args):
         '''
         Evaluate the derivative of the function.  The first input must exist and should be an array.
         Returns an array of identical shape to args[0] (if it exists).  This is an array of zeros.
@@ -688,6 +688,7 @@ class ConstantFunction(HARKobject):
             return 0.0
         
     # All other derivatives are also zero everywhere, so these methods just point to derivative    
+    derivative = _der
     derivativeX = derivative
     derivativeY = derivative
     derivativeZ = derivative
