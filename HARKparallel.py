@@ -17,7 +17,7 @@ except:
     # If we can't import joblib and dill, define the functions we tried to import
     # such that they will raise useful errors if called.
     def raiseImportError(moduleStr):
-        def defineImportError(*args):
+        def defineImportError(*args, **kwargs):
             raise ImportError,moduleStr + ' could not be imported, and is required for this'+\
             ' function.  See HARK documentation for more information on how to install the ' \
             + moduleStr + ' module.'
