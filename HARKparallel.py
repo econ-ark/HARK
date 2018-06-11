@@ -17,10 +17,10 @@ except:
     # If we can't import joblib and dill, define the functions we tried to import
     # such that they will raise useful errors if called.
     def raiseImportError(moduleStr):
-        def defineImportError(*args):
-            raise ImportError,moduleStr + ' could not be imported, and is required for this'+\
+        def defineImportError(*args, **kwargs):
+            raise ImportError(moduleStr + ' could not be imported, and is required for this'+\
             ' function.  See HARK documentation for more information on how to install the ' \
-            + moduleStr + ' module.'
+            + moduleStr + ' module.')
         return defineImportError
 
     Parallel = raiseImportError('joblib')
@@ -328,7 +328,7 @@ def saveNelderMeadData(name, simplex, fvals, iters, evals):
     -------
     none
     '''
-    f = open(name + '.txt','wb')
+    f = open(name + '.txt','w')
     my_writer = csv.writer(f,delimiter=' ')
     my_writer.writerow(simplex.shape)
     my_writer.writerow([iters, evals])

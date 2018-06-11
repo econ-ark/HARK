@@ -881,7 +881,7 @@ class CubicInterp(HARKinterpolator1D):
             self.coeffs = [[np.nan,np.nan,np.nan,np.nan]]
 
         # Calculate interpolation coefficients on segments mapped to [0,1]
-        for i in xrange(self.n-1):
+        for i in range(self.n-1):
            x0 = x_list[i]
            y0 = y_list[i]
            x1 = x_list[i+1]

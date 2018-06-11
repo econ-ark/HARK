@@ -23,9 +23,13 @@ from HARKutilities import warnings
 scf_data_path = data_location = os.path.dirname(os.path.abspath(__file__))  # os.path.abspath('./')   #'./'
 
 # Open the file handle and create a reader object and a csv header
-infile = open(scf_data_path + '/SCFdata.csv', 'rb')  
+infile = open(scf_data_path + '/SCFdata.csv', 'r')  
 csv_reader = csv.reader(infile)
-data_csv_header = csv_reader.next()
+try:
+    data_csv_header = next(csv_reader)
+except:
+    print("Caution: looks like you are using Python 2. HARK is transitionling to Python 3.")
+    data_csv_header = csv_reader.next()
 
 # Pull the column index from the data_csv_header
 data_column_index = data_csv_header.index('wealth_income_ratio') # scf_w_col

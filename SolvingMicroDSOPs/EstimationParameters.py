@@ -4,6 +4,22 @@ model.  The empirical data is stored in a separate csv file and is loaded in Set
 '''
 
 # ---------------------------------------------------------------------------------
+# Debugging flags
+# ---------------------------------------------------------------------------------
+
+show_PermGroFacAgg_error = False  
+# Error Notes:
+# This sets a "quick fix" to the error, AttributeError: 'TempConsumerType' object has no attribute 'PermGroFacAgg'
+# If you set this flag to "True" you will see the error. A more thorough fix is to
+# fix the place where this error was introduced (Set to "True" and it will appear;  
+# this was almost certainly introduced when the code was extended to be used in the 
+# GE setting). An even more thorough solution, which moves beyond the scope of 
+# fixing this error, is adding unit tests to ID when changes to some code will 
+# break things elsewhere. 
+# Note: alternatively, decide that the "init_consumer_objects['PermGroFacAgg'] = 1.0"
+# line below fixes it properly ('feature not a bug') and remove all this text. 
+
+# ---------------------------------------------------------------------------------
 # - Define all of the model parameters for SolvingMicroDSOPs and ConsumerExamples -
 # ---------------------------------------------------------------------------------
 
@@ -141,6 +157,12 @@ init_consumer_objects = {"CRRA":CRRA_start,
                         'vFuncBool':vFuncBool,
                         'CubicBool':CubicBool
                         }
+
+if show_PermGroFacAgg_error:
+    pass # do nothing
+else:
+    print("***NOTE: using a 'quick fix' for an attribute error. See 'Error Notes' in EstimationParameter.py for further discussion.***")
+    init_consumer_objects['PermGroFacAgg'] = 1.0
 
 
 if __name__ == '__main__':

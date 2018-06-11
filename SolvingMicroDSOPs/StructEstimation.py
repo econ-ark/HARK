@@ -259,7 +259,7 @@ if __name__ == '__main__':
     # Estimate the model using Nelder-Mead
     if estimate_model:
         initial_guess = [Params.DiscFacAdj_start,Params.CRRA_start]
-        print('Now estimating the model using Nelder-Mead from an initial guess of' + str(initial_guess) + '...')
+        print('Now estimating the model using Nelder-Mead from an initial guess of ' + str(initial_guess) + '...')
         model_estimate = minimizeNelderMead(smmObjectiveFxnReduced,initial_guess,verbose=True)
         print('Estimated values: DiscFacAdj=' + str(model_estimate[0]) + ', CRRA=' + str(model_estimate[1]))
     
