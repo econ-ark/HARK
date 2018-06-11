@@ -191,7 +191,7 @@ targetChangeInC = -6.32 # Source: FRED
 num_points = 10 #number of parameter values to plot in graphs
 
 ## First change the variance of the permanent income shock
-perm_ratio_max = ??? # Put whatever value in you want!  maximum number to multiply std of perm income shock by
+perm_ratio_max = 5.0 #??? # Put whatever value in you want!  maximum number to multiply std of perm income shock by
 
 perm_min = BaselineType.PermShkStd[0] * ratio_min
 perm_max = BaselineType.PermShkStd[0] * perm_ratio_max
