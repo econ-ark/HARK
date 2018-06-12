@@ -2203,7 +2203,7 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
             y_pos[y_pos < 1] = 1
             f = np.zeros(m) + np.nan
             if y.size > 0:
-                for i in xrange(1,self.y_n):
+                for i in range(1,self.y_n):
                     c = y_pos == i
                     if np.any(c):
                         alpha = (y[c] - self.y_list[i-1])/(self.y_list[i] - self.y_list[i-1])
@@ -2226,7 +2226,7 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
             y_pos[y_pos < 1] = 1
             dfdx = np.zeros(m) + np.nan
             if y.size > 0:
-                for i in xrange(1,self.y_n):
+                for i in range(1,self.y_n):
                     c = y_pos == i
                     if np.any(c):
                         alpha = (y[c] - self.y_list[i-1])/(self.y_list[i] - self.y_list[i-1])
@@ -2248,7 +2248,7 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
             y_pos[y_pos < 1] = 1
             dfdy = np.zeros(m) + np.nan
             if y.size > 0:
-                for i in xrange(1,self.y_n):
+                for i in range(1,self.y_n):
                     c = y_pos == i
                     if np.any(c):
                         dfdy[c] = (self.xInterpolators[i](x[c]) - self.xInterpolators[i-1](x[c]))/(self.y_list[i] - self.y_list[i-1])
@@ -2311,8 +2311,8 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
             z_pos[z_pos > self.z_n-1] = self.z_n-1
             z_pos[z_pos < 1] = 1
             f = np.zeros(m) + np.nan
-            for i in xrange(1,self.y_n):
-                for j in xrange(1,self.z_n):
+            for i in range(1,self.y_n):
+                for j in range(1,self.z_n):
                     c = np.logical_and(i == y_pos, j == z_pos)
                     if np.any(c):
                         alpha = (y[c] - self.y_list[i-1])/(self.y_list[i] - self.y_list[i-1])
@@ -2347,8 +2347,8 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
             z_pos[z_pos > self.z_n-1] = self.z_n-1
             z_pos[z_pos < 1] = 1
             dfdx = np.zeros(m) + np.nan
-            for i in xrange(1,self.y_n):
-                for j in xrange(1,self.z_n):
+            for i in range(1,self.y_n):
+                for j in range(1,self.z_n):
                     c = np.logical_and(i == y_pos, j == z_pos)
                     if np.any(c):
                         alpha = (y[c] - self.y_list[i-1])/(self.y_list[i] - self.y_list[i-1])
@@ -2380,8 +2380,8 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
             z_pos[z_pos > self.z_n-1] = self.z_n-1
             z_pos[z_pos < 1] = 1
             dfdy = np.zeros(m) + np.nan
-            for i in xrange(1,self.y_n):
-                for j in xrange(1,self.z_n):
+            for i in range(1,self.y_n):
+                for j in range(1,self.z_n):
                     c = np.logical_and(i == y_pos, j == z_pos)
                     if np.any(c):
                         beta = (z[c] - self.z_list[j-1])/(self.z_list[j] - self.z_list[j-1])
@@ -2409,8 +2409,8 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
             z_pos[z_pos > self.z_n-1] = self.z_n-1
             z_pos[z_pos < 1] = 1
             dfdz = np.zeros(m) + np.nan
-            for i in xrange(1,self.y_n):
-                for j in xrange(1,self.z_n):
+            for i in range(1,self.y_n):
+                for j in range(1,self.z_n):
                     c = np.logical_and(i == y_pos, j == z_pos)
                     if np.any(c):
                         alpha = (y[c] - self.y_list[i-1])/(self.y_list[i] - self.y_list[i-1])
@@ -2488,9 +2488,9 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
             z_pos[z_pos > self.z_n-1] = self.z_n-1
             z_pos[z_pos < 1] = 1
             f = np.zeros(m) + np.nan
-            for i in xrange(1,self.x_n):
-                for j in xrange(1,self.y_n):
-                    for k in xrange(1,self.z_n):
+            for i in range(1,self.x_n):
+                for j in range(1,self.y_n):
+                    for k in range(1,self.z_n):
                         c = np.logical_and(np.logical_and(i == x_pos, j == y_pos),k == z_pos)
                         if np.any(c):
                             alpha = (x[c] - self.x_list[i-1])/(self.x_list[i] - self.x_list[i-1])
@@ -2539,9 +2539,9 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
             z_pos[z_pos > self.z_n-1] = self.z_n-1
             z_pos[z_pos < 1] = 1
             dfdw = np.zeros(m) + np.nan
-            for i in xrange(1,self.x_n):
-                for j in xrange(1,self.y_n):
-                    for k in xrange(1,self.z_n):
+            for i in range(1,self.x_n):
+                for j in range(1,self.y_n):
+                    for k in range(1,self.z_n):
                         c = np.logical_and(np.logical_and(i == x_pos, j == y_pos),k == z_pos)
                         if np.any(c):
                             alpha = (x[c] - self.x_list[i-1])/(self.x_list[i] - self.x_list[i-1])
@@ -2589,9 +2589,9 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
             z_pos[z_pos > self.z_n-1] = self.z_n-1
             z_pos[z_pos < 1] = 1
             dfdx = np.zeros(m) + np.nan
-            for i in xrange(1,self.x_n):
-                for j in xrange(1,self.y_n):
-                    for k in xrange(1,self.z_n):
+            for i in range(1,self.x_n):
+                for j in range(1,self.y_n):
+                    for k in range(1,self.z_n):
                         c = np.logical_and(np.logical_and(i == x_pos, j == y_pos),k == z_pos)
                         if np.any(c):
                             beta = (y[c] - self.y_list[j-1])/(self.y_list[j] - self.y_list[j-1])
@@ -2638,9 +2638,9 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
             z_pos[z_pos > self.z_n-1] = self.z_n-1
             z_pos[z_pos < 1] = 1
             dfdy = np.zeros(m) + np.nan
-            for i in xrange(1,self.x_n):
-                for j in xrange(1,self.y_n):
-                    for k in xrange(1,self.z_n):
+            for i in range(1,self.x_n):
+                for j in range(1,self.y_n):
+                    for k in range(1,self.z_n):
                         c = np.logical_and(np.logical_and(i == x_pos, j == y_pos),k == z_pos)
                         if np.any(c):
                             alpha = (x[c] - self.x_list[i-1])/(self.x_list[i] - self.x_list[i-1])
@@ -2687,9 +2687,9 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
             z_pos[z_pos > self.z_n-1] = self.z_n-1
             z_pos[z_pos < 1] = 1
             dfdz = np.zeros(m) + np.nan
-            for i in xrange(1,self.x_n):
-                for j in xrange(1,self.y_n):
-                    for k in xrange(1,self.z_n):
+            for i in range(1,self.x_n):
+                for j in range(1,self.y_n):
+                    for k in range(1,self.z_n):
                         c = np.logical_and(np.logical_and(i == x_pos, j == y_pos),k == z_pos)
                         if np.any(c):
                             alpha = (x[c] - self.x_list[i-1])/(self.x_list[i] - self.x_list[i-1])
@@ -2754,7 +2754,7 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
             z_pos[z_pos < 1] = 1
             f = np.zeros(m) + np.nan
             if x.size > 0:
-                for i in xrange(1,self.z_n):
+                for i in range(1,self.z_n):
                     c = z_pos == i
                     if np.any(c):
                         alpha = (z[c] - self.z_list[i-1])/(self.z_list[i] - self.z_list[i-1])
@@ -2777,7 +2777,7 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
             z_pos[z_pos < 1] = 1
             dfdx = np.zeros(m) + np.nan
             if x.size > 0:
-                for i in xrange(1,self.z_n):
+                for i in range(1,self.z_n):
                     c = z_pos == i
                     if np.any(c):
                         alpha = (z[c] - self.z_list[i-1])/(self.z_list[i] - self.z_list[i-1])
@@ -2800,7 +2800,7 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
             z_pos[z_pos < 1] = 1
             dfdy = np.zeros(m) + np.nan
             if x.size > 0:
-                for i in xrange(1,self.z_n):
+                for i in range(1,self.z_n):
                     c = z_pos == i
                     if np.any(c):
                         alpha = (z[c] - self.z_list[i-1])/(self.z_list[i] - self.z_list[i-1])
@@ -2822,7 +2822,7 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
             z_pos[z_pos < 1] = 1
             dfdz = np.zeros(m) + np.nan
             if x.size > 0:
-                for i in xrange(1,self.z_n):
+                for i in range(1,self.z_n):
                     c = z_pos == i
                     if np.any(c):
                         dfdz[c] = (self.xyInterpolators[i](x[c],y[c]) - self.xyInterpolators[i-1](x[c],y[c]))/(self.z_list[i] - self.z_list[i-1])
@@ -2888,8 +2888,8 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
             z_pos[z_pos > self.z_n-1] = self.z_n-1
             z_pos[z_pos < 1] = 1
             f = np.zeros(m) + np.nan
-            for i in xrange(1,self.y_n):
-                for j in xrange(1,self.z_n):
+            for i in range(1,self.y_n):
+                for j in range(1,self.z_n):
                     c = np.logical_and(i == y_pos, j == z_pos)
                     if np.any(c):
                         alpha = (y[c] - self.y_list[i-1])/(self.y_list[i] - self.y_list[i-1])
@@ -2928,8 +2928,8 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
             z_pos[z_pos > self.z_n-1] = self.z_n-1
             z_pos[z_pos < 1] = 1
             dfdw = np.zeros(m) + np.nan
-            for i in xrange(1,self.y_n):
-                for j in xrange(1,self.z_n):
+            for i in range(1,self.y_n):
+                for j in range(1,self.z_n):
                     c = np.logical_and(i == y_pos, j == z_pos)
                     if np.any(c):
                         alpha = (y[c] - self.y_list[i-1])/(self.y_list[i] - self.y_list[i-1])
@@ -2968,8 +2968,8 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
             z_pos[z_pos > self.z_n-1] = self.z_n-1
             z_pos[z_pos < 1] = 1
             dfdx = np.zeros(m) + np.nan
-            for i in xrange(1,self.y_n):
-                for j in xrange(1,self.z_n):
+            for i in range(1,self.y_n):
+                for j in range(1,self.z_n):
                     c = np.logical_and(i == y_pos, j == z_pos)
                     if np.any(c):
                         alpha = (y[c] - self.y_list[i-1])/(self.y_list[i] - self.y_list[i-1])
@@ -3001,8 +3001,8 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
             z_pos[z_pos > self.z_n-1] = self.z_n-1
             z_pos[z_pos < 1] = 1
             dfdy = np.zeros(m) + np.nan
-            for i in xrange(1,self.y_n):
-                for j in xrange(1,self.z_n):
+            for i in range(1,self.y_n):
+                for j in range(1,self.z_n):
                     c = np.logical_and(i == y_pos, j == z_pos)
                     if np.any(c):
                         beta = (z[c] - self.z_list[j-1])/(self.z_list[j] - self.z_list[j-1])
@@ -3030,8 +3030,8 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
             z_pos[z_pos > self.z_n-1] = self.z_n-1
             z_pos[z_pos < 1] = 1
             dfdz = np.zeros(m) + np.nan
-            for i in xrange(1,self.y_n):
-                for j in xrange(1,self.z_n):
+            for i in range(1,self.y_n):
+                for j in range(1,self.z_n):
                     c = np.logical_and(i == y_pos, j == z_pos)
                     if np.any(c):
                         alpha = (y[c] - self.y_list[i-1])/(self.y_list[i] - self.y_list[i-1])

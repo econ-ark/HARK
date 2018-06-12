@@ -270,5 +270,6 @@ eq
 
 # Particular user scratchwork directories
 nate-notes/
+./ConsumptionSaving/demo-part-of-ConsIndShockModel.py
 
 *_region_*.*

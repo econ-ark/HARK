@@ -15,17 +15,17 @@ from scipy.interpolate import interp1d
 from scipy.special import erf, erfc
 from scipy.stats import norm
 
-def _warning(message,category = UserWarning,filename = '',lineno = -1):
-    '''
-    A "monkeypatch" to warnings, to print pretty-looking warnings. The
-    default behavior of the "warnings" module is to print some extra, unusual-
-    looking things when the user calls a warning. A common "fix" for this is
-    to "monkeypatch" the warnings module. See:
-    http://stackoverflow.com/questions/2187269/python-print-only-the-message-on-warnings
-    I implement this fix directly below, for all simulation and solution utilities.
-    '''
-    print(message)
-warnings.showwarning = _warning
+#def _warning(message,category = UserWarning,filename = '',lineno = -1):
+#    '''
+#    A "monkeypatch" to warnings, to print pretty-looking warnings. The
+#    default behavior of the "warnings" module is to print some extra, unusual-
+#    looking things when the user calls a warning. A common "fix" for this is
+#    to "monkeypatch" the warnings module. See:
+#    http://stackoverflow.com/questions/2187269/python-print-only-the-message-on-warnings
+#    I implement this fix directly below, for all simulation and solution utilities.
+#    '''
+#    print(message)
+#warnings.showwarning = _warning
 
 def memoize(obj):
    '''

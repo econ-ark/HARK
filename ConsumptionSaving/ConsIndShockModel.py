@@ -726,7 +726,15 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # Calculate the minimum allowable value of money resources in this period
         self.BoroCnstNat = (self.solution_next.mNrmMin - self.TranShkMinNext)*\
                            (self.PermGroFac*self.PermShkMinNext)/self.Rfree
-        self.mNrmMinNow = np.max([self.BoroCnstNat,BoroCnstArt])
+                           
+        # Note: need to be sure to handle BoroCnstArt==None appropriately. 
+        # In Py2, Tthis would evaluate to 5.0:  np.max([None, 5.0]).
+        # However in Py3, this raises a TypeError. Thus here we need to directly 
+        # address the situation in which BoroCnstArt == None:
+        if BoroCnstArt is None:
+            self.mNrmMinNow = self.BoroCnstNat
+        else:
+            self.mNrmMinNow = np.max([self.BoroCnstNat,BoroCnstArt])
         if self.BoroCnstNat < self.mNrmMinNow: 
             self.MPCmaxEff = 1.0 # If actually constrained, MPC near limit is 1
         else:
