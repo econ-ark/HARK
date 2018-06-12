@@ -8,24 +8,30 @@ import numpy as np
 from time import clock
 import csv
 
-try:
-    # Try to import joblib and dill
-    from joblib import Parallel, delayed
-    import dill as pickle
-except:
-    # We want to be able to import this module even if joblib and dill are not installed.
-    # If we can't import joblib and dill, define the functions we tried to import
-    # such that they will raise useful errors if called.
-    def raiseImportError(moduleStr):
-        def defineImportError(*args, **kwargs):
-            raise ImportError(moduleStr + ' could not be imported, and is required for this'+\
-            ' function.  See HARK documentation for more information on how to install the ' \
-            + moduleStr + ' module.')
-        return defineImportError
 
+# We want to be able to import this module even if joblib and dill are not installed.
+# If we can't import joblib and dill, define the functions we tried to import
+# such that they will raise useful errors if called.
+def raiseImportError(moduleStr):
+    def defineImportError(*args, **kwargs):
+        raise ImportError(moduleStr + ' could not be imported, and is required for this'+\
+        ' function.  See HARK documentation for more information on how to install the ' \
+        + moduleStr + ' module.')
+    return defineImportError
+
+try:
+    # Try to import joblib
+    from joblib import Parallel, delayed
+except:
     Parallel = raiseImportError('joblib')
     delayed  = raiseImportError('joblib')
+
+try:
+    # Try to import dill
+    import dill as pickle
+except:
     pickle   = raiseImportError('dill')
+
 
 
 def multiThreadCommandsFake(agent_list,command_list,num_jobs=None):
