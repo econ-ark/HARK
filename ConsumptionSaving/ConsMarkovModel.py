@@ -200,7 +200,12 @@ class ConsMarkovSolver(ConsIndShockSolver):
         for i in range(self.StateCount):
             possible_next_states         = self.MrkvArray[i,:] > 0
             self.BoroCnstNat_list[i]     = np.max(self.BoroCnstNatAll[possible_next_states])
-            self.mNrmMin_list[i]         = np.max([self.BoroCnstNat_list[i],self.BoroCnstArt])
+
+            # Explicitly handle the "None" case:            
+            if self.BoroCnstArt is None:
+                self.mNrmMin_list[i]         = self.BoroCnstNat_list[i]
+            else:
+                self.mNrmMin_list[i]         = np.max([self.BoroCnstNat_list[i],self.BoroCnstArt])
             self.BoroCnstDependency[i,:] = self.BoroCnstNat_list[i] == self.BoroCnstNatAll
         # Also creates a Boolean array indicating whether the natural borrowing
         # constraint *could* be hit when transitioning from i to j.

@@ -89,7 +89,7 @@ class MedShockPolicyFunc(HARKobject):
         # Construct the consumption function and medical care function
         if xLvlCubicBool:
             if MedShkCubicBool:
-                raise NotImplementedError(), 'Bicubic interpolation not yet implemented'
+                raise NotImplementedError('Bicubic interpolation not yet implemented')
             else:
                 xLvlGrid_tiled   = np.tile(np.reshape(xLvlGrid,(xLvlGrid.size,1)),
                                            (1,MedShkGrid.size))
