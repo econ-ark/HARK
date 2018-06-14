@@ -6,7 +6,6 @@ from __future__ import division      # Use new division function
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder.
 import sys
-#sys.path.insert(0,'../')
 import os
 sys.path.insert(0, os.path.abspath('../'))
 
