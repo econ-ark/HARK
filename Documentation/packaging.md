@@ -13,21 +13,20 @@ The current approach for packaging draws from these tutorials:
 
 You will need to make a pypi.org account and a test.pypi.org account,
 and go through email verification for both sites, and make an
-anaconda.org account. Let @brainwane know when you have done so, so
-she can give you credentials for the relevant projects on Test PyPI,
-PyPI, and Anaconda.org.
+anaconda.org account. Let @brainwane or @jasonaowen know when you have
+done so, so they can give you credentials for the relevant projects on
+Test PyPI, PyPI, and Anaconda.org.
 
 
-## Switch to installable branch
+## Ensure you're working on master
 
-Use @brainwane's GitHub fork as a remote:
+Switch to the `master` branch of HARK:
 
-> git remote add brainwane git@github.com:brainwane/HARK.git
+> git checkout master
 
-Switch to the `installability` [branch](https://github.com/brainwane/HARK/tree/installability):
+Update your local checkout of the repository, e.g.,
 
-> git fetch brainwane
-> git checkout installability
+> git pull origin master
 
 ## Make source distribution
 
@@ -82,4 +81,4 @@ Follow [the "Uploading packages to Anaconda.org" instructions](https://conda.io/
 
 Go to your anaconda.org dashboard. Verify that the packages uploaded.
 
-Go to https://anaconda.org/sumanah-changeset/econ-ark and work with @brainwane to get your new packages onto the currently recommended channel.
+Go to https://anaconda.org/sumanah-changeset/econ-ark and work with @brainwane or @jasonaowen to get your new packages onto the currently recommended channel.
