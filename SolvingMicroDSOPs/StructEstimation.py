@@ -8,8 +8,11 @@ factor for an age-varying sequence of discount factors.  The estimation uses a
 consumption-saving model with idiosyncratic shocks to permanent and transitory
 income as defined in ConsIndShockModel.
 '''
+from __future__ import print_function
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder. 
+from builtins import str
+from builtins import range
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../'))

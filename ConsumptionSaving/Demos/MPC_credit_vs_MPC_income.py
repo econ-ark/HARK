@@ -12,16 +12,15 @@ and understand.
 There are many ways to use HARK, and this demo cannot show them all.  
 This demo demonstrates one great way to use HARK: import and solve a model for different parameter
 values, to see how parameters affect the solution.
-"""
-
 
 ####################################################################################################
 ####################################################################################################
-"""
+
 The first step is to create the ConsumerType we want to solve the model for.
 """
 
 # The first step is to be able to bring things in from different directories
+from __future__ import division, print_function
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../')) #Path to ConsumptionSaving folder

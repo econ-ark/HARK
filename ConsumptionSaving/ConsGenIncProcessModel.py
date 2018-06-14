@@ -4,7 +4,9 @@ in which shocks are not necessarily fully transitory or fully permanent.  Extend
 ConsIndShockModel by explicitly tracking persistent income as a state variable,
 and allows (log) persistent income to follow an AR1 process rather than random walk.
 '''
-
+from __future__ import division, print_function
+from builtins import str
+from builtins import range
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../'))

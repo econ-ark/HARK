@@ -5,6 +5,8 @@ and bootstrapping tools.
 
 # The following libraries are part of the standard python distribution
 from __future__ import division                         # Use new division function
+from __future__ import print_function
+from builtins import str
 import numpy as np                                      # Numerical Python
 from time import time                                   # Used to time execution
 from copy import deepcopy                               # For replicating complex objects

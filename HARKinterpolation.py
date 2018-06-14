@@ -6,7 +6,8 @@ another instance; this is used in HARKcore's solve() method to check for solutio
 convergence.  The interpolator classes currently in this module inherit their
 distance method from HARKobject.
 '''
-
+from __future__ import division, print_function
+from builtins import range
 import warnings
 import numpy as np
 from scipy.interpolate import UnivariateSpline

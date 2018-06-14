@@ -4,6 +4,9 @@ This stands in contrast to all other model modules in HARK, which (unsurprisingl
 take a heterogeneous agents approach.  In RA models, all attributes are either
 time invariant or exist on a short cycle; models must be infinite horizon.
 '''
+from __future__ import division, print_function
+from builtins import str
+from builtins import range
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../'))

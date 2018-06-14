@@ -9,13 +9,10 @@ limits to the phenomena that can be explained by invoking uncertainty.
  
 It asks "what beliefs about uncertainty would Chinese consumers need to hold in order to generate a
 saving rate of 25%, given the rapid pace of Chinese growth"?
-"""
-
-
 
 ####################################################################################################
 ####################################################################################################
-"""
+
 The first step is to create the ConsumerType we want to solve the model for.
 
 Model set up:
@@ -33,6 +30,9 @@ temporary.
 HARK's MarkovConsumerType will be a very convient way to run this experiment.  So we need to
 prepare the parameters to create that ConsumerType, and then create it.
 """
+from __future__ import division
+from builtins import str
+from builtins import range
 
 ### First bring in default parameter values from cstwPMC.  We will change these as necessary.
 
@@ -58,7 +58,7 @@ import numpy as np
 # For a Markov model, we need a Markov transition array.  Create that array.
 # Remember, for this simple example, we just have a low-growth state, and a high-growth state
 StateCount                      = 2 #number of Markov states
-ProbGrowthEnds                  = (1./160.) #probability agents assign to the high-growth state ending
+ProbGrowthEnds                  = 1. / 160. #probability agents assign to the high-growth state ending
 MrkvArray                       = np.array([[1.,0.],[ProbGrowthEnds,1.-ProbGrowthEnds]]) #Markov array
 init_China_parameters['MrkvArray'] = [MrkvArray] #assign the Markov array as a parameter
 
@@ -254,7 +254,7 @@ def calcNatlSavingRate(PrmShkVar_multiplier,RNG_seed = 0):
         
     # After looping through all the ConsumerTypes, calculate and return the path of the national 
     # saving rate
-    NatlSavingRate = (NatlIncome - NatlCons)/NatlIncome
+    NatlSavingRate = (NatlIncome - NatlCons) / NatlIncome
 
     return NatlSavingRate
 

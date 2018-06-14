@@ -5,7 +5,7 @@ These tests compare the output of different models in specific cases in which th
 should yield the same output.  The code will pass these tests if and only if the output is close
 "enough".
 """
-
+from __future__ import division
 
 
 # First, tell Python what directories we will be using

@@ -6,11 +6,10 @@ to protect future consumption against bad income shocks.  How large of an increa
 deviation of (log) permanent income shocks would be necessary to see an 6.32% drop in consumption in
 one quarter?  What about transitory income shocks?  How high would the perceived unemployment 
 probability have to be?
-"""
 
 ####################################################################################################
 ####################################################################################################
-"""
+
 The first step is to create the ConsumerType we want to solve the model for.
 
 Model set up:
@@ -25,6 +24,9 @@ So we need to prepare the parameters to create that ConsumerType, and then creat
 ## Import some things from cstwMPC
 
 # The first step is to be able to bring things in from different directories
+from __future__ import division, print_function
+from builtins import str
+from builtins import range
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../')) #Path to ConsumptionSaving folder

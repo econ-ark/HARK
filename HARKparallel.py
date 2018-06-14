@@ -3,6 +3,11 @@ Early version of multithreading in HARK. To use most of this module, you should 
 and joblib.  Packages can be installed by typing "conda install dill" (etc) at
 a command prompt.
 '''
+from __future__ import division, print_function
+from builtins import next
+from builtins import zip
+from builtins import str
+from builtins import range
 import multiprocessing
 import numpy as np
 from time import clock
@@ -23,6 +28,7 @@ try:
     # Try to import joblib
     from joblib import Parallel, delayed
 except:
+    print("Warning: Could not import joblib.")
     Parallel = raiseImportError('joblib')
     delayed  = raiseImportError('joblib')
 
@@ -30,6 +36,7 @@ try:
     # Try to import dill
     import dill as pickle
 except:
+    print("Warning: Could not import dill.")
     pickle   = raiseImportError('dill')
 
 
@@ -233,7 +240,7 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
             print('Resuming search after ' + str(iters) + ' iterations and ' + str(evals) + ' function evaluations.')
     
     # Initialize some inputs for the multithreader
-    j_list = range(N-P,N)
+    j_list = list(range(N-P,N))
     opt_params= [r_param,c_param,e_param]
     
     # Run the Nelder-Mead algorithm until a terminal condition is met    
@@ -366,15 +373,15 @@ def loadNelderMeadData(name):
     '''
     f = open(name + '.txt','rb')
     my_reader = csv.reader(f,delimiter=' ')
-    my_shape_txt = my_reader.next()
+    my_shape_txt = next(my_reader)
     shape0 = int(my_shape_txt[0])
     shape1 = int(my_shape_txt[1])
-    my_nums_txt = my_reader.next()
+    my_nums_txt = next(my_reader)
     iters = int(my_nums_txt[0])
     evals = int(my_nums_txt[1])
-    simplex_flat = np.array(my_reader.next(),dtype=float)
+    simplex_flat = np.array(next(my_reader),dtype=float)
     simplex = np.reshape(simplex_flat,(shape0,shape1))
-    fvals = np.array(my_reader.next(),dtype=float)
+    fvals = np.array(next(my_reader),dtype=float)
     f.close()
     
     return simplex, fvals, iters, evals

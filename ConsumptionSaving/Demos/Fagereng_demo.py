@@ -32,7 +32,9 @@ drop_corner : Boolean for whether to include target MPC in the top left corner,
               from a transitory shock *could* exceed 1.  Option is included here
               because this target tends to push the estimate around a bit.
 '''
-
+from __future__ import division, print_function
+from builtins import str
+from builtins import range
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../'))

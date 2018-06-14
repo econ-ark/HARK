@@ -1,7 +1,8 @@
 """
 This file implements unit tests to check HARKutilities.py
 """
-
+from __future__ import division
+from __future__ import print_function
 
 # First, bring in the files we want to test
 import sys

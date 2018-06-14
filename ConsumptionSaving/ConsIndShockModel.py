@@ -12,6 +12,10 @@ It currently solves three types of models:
 See NARK for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 '''
+from __future__ import division, print_function
+from builtins import str
+from builtins import range
+from builtins import object
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../'))

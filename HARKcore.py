@@ -6,13 +6,19 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 '''
+from __future__ import print_function
 
+import sys
+from builtins import str
+from builtins import range
+from builtins import object
 from HARKutilities import getArgNames, NullFunc
 from copy import copy, deepcopy
 import numpy as np
 from time import clock
-from HARKparallel import multiThreadCommands
-  
+from HARKparallel import multiThreadCommands, multiThreadCommandsFake
+
+
 def distanceMetric(thing_A,thing_B):
     '''
     A "universal distance" metric that can be used as a default in many settings.
@@ -925,6 +931,11 @@ class Market(HARKobject):
         self.tolerance = tolerance
         self.max_loops = 1000
         
+        self.print_parallel_error_once = True  
+            # Print the error associated with calling the parallel method 
+            # "solveAgents" one time. If set to false, the error will never
+            # print. See "solveAgents" for why this prints once or never.
+        
     def solveAgents(self):
         '''
         Solves the microeconomic problem for all AgentTypes in this market.
@@ -939,8 +950,16 @@ class Market(HARKobject):
         '''
         #for this_type in self.agents:
         #    this_type.solve()
-        multiThreadCommands(self.agents,['solve()'])
-    
+        try:
+            multiThreadCommands(self.agents,['solve()'])
+        except Exception as err:
+            if self.print_parallel_error_once:
+                # Set flag to False so this is only printed once. 
+                self.print_parallel_error_once = False
+                print("**** WARNING: could not execute multiThreadCommands in HARKcore.Market.solveAgents(), so using the serial version instead. This will likely be slower. The multiTreadCommands() functions failed with the following error:", '\n    ', sys.exc_info()[0], ':', err) #sys.exc_info()[0])
+            multiThreadCommandsFake(self.agents,['solve()'])
+
+
     def solve(self):
         '''
         "Solves" the market by finding a "dynamic rule" that governs the aggregate

@@ -4,6 +4,8 @@ stochastic Markov state.  The only solver here extends ConsIndShockModel to
 include a Markov state; the interest factor, permanent growth factor, and income
 distribution can vary with the discrete state.
 '''
+from __future__ import division, print_function
+from builtins import range
 import sys 
 sys.path.insert(0,'../')
 

@@ -4,7 +4,12 @@ jock and punk. Forward-looking agents receive utility from the style they choose
 based on the proportion of the population with the same style (as well as direct
 preferences each style), and pay switching costs if they change.
 '''
+from __future__ import division
+from __future__ import print_function
 
+from builtins import str
+from builtins import range
+from builtins import object
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../'))
@@ -16,6 +21,7 @@ import numpy as np
 import scipy.stats as stats
 import FashionVictimParams as Params
 from copy import copy
+import dill as pickle
 
 class FashionSolution(Solution):
     '''
@@ -89,7 +95,7 @@ class FashionEvoFunc(Solution):
         self.distance_criteria = ['pNextSlope','pNextWidth','pNextIntercept']
         
         
-class FashionMarketInfo():
+class FashionMarketInfo(object):
     '''
     A class for representing the current distribution of styles in the population.
     '''

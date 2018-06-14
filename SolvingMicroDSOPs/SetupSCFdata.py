@@ -2,6 +2,10 @@
 Sets up the SCF data for use in the SolvingMicroDSOPs estimation.
 '''
 from __future__ import division      # Use new division function
+from __future__ import print_function
+from builtins import zip
+from builtins import str
+from builtins import range
 
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder. 
@@ -25,11 +29,7 @@ scf_data_path = data_location = os.path.dirname(os.path.abspath(__file__))  # os
 # Open the file handle and create a reader object and a csv header
 infile = open(scf_data_path + '/SCFdata.csv', 'r')  
 csv_reader = csv.reader(infile)
-try:
-    data_csv_header = next(csv_reader)
-except:
-    print("Caution: looks like you are using Python 2. HARK is transitionling to Python 3.")
-    data_csv_header = csv_reader.next()
+data_csv_header = next(csv_reader)
 
 # Pull the column index from the data_csv_header
 data_column_index = data_csv_header.index('wealth_income_ratio') # scf_w_col

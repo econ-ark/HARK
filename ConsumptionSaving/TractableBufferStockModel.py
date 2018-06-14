@@ -20,6 +20,8 @@ in the HARK framework, as shown below.
 '''
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder. 
+from __future__ import division, print_function
+from builtins import str
 import sys
 import os
 import numpy as np

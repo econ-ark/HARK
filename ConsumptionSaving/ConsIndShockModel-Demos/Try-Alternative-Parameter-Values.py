@@ -4,6 +4,8 @@ Created on Thu Nov  9 09:40:49 2017
 
 @author: ccarroll@llorracc.org
 """
+from builtins import str
+from builtins import range
 import sys   
 import os    
 import pylab # the plotting tools

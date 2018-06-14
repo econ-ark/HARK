@@ -7,6 +7,9 @@ does not include two packages needed for it; see HARKparallel.py.  When given a
 sufficiently large amount of work for each thread to do, the maximum speedup
 factor seems to be around P/2, where P is the number of processors.
 '''
+from __future__ import print_function
+from builtins import str
+from builtins import range
 import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
