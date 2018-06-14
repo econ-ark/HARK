@@ -12,18 +12,18 @@ from copy import copy, deepcopy
 import numpy as np
 from time import clock
 from HARKparallel import multiThreadCommands
-  
+
 def distanceMetric(thing_A,thing_B):
     '''
     A "universal distance" metric that can be used as a default in many settings.
-    
+
     Parameters
     ----------
     thing_A : object
-        A generic object.        
+        A generic object.
     thing_B : object
         Another generic object.
-        
+
     Returns:
     ------------
     distance : float
@@ -32,7 +32,7 @@ def distanceMetric(thing_A,thing_B):
     # Get the types of the two inputs
     typeA = type(thing_A)
     typeB = type(thing_B)
-            
+
     if typeA is list and typeB is list:
         lenA = len(thing_A) # If both inputs are lists, then the distance between
         lenB = len(thing_B) # them is the maximum distance between corresponding
@@ -43,14 +43,14 @@ def distanceMetric(thing_A,thing_B):
             distance = max(distance_temp)
         else:
             distance = float(abs(lenA - lenB))
-    # If both inputs are numbers, return their difference        
+    # If both inputs are numbers, return their difference
     elif (typeA is int or typeB is float) and (typeB is int or typeB is float):
-        distance = float(abs(thing_A - thing_B)) 
+        distance = float(abs(thing_A - thing_B))
     # If both inputs are array-like, return the maximum absolute difference b/w
     # corresponding elements (if same shape); return largest difference in dimensions
     # if shapes do not align.
     elif hasattr(thing_A,'shape') and hasattr(thing_B,'shape'):
-        if thing_A.shape == thing_B.shape: 
+        if thing_A.shape == thing_B.shape:
             distance = np.max(abs(thing_A - thing_B))
         else:
             distance = np.max(abs(thing_A.shape - thing_B.shape))
@@ -62,9 +62,9 @@ def distanceMetric(thing_A,thing_B):
         else:
             distance = thing_A.distance(thing_B)
     else: # Failsafe: the inputs are very far apart
-        distance = 1000.0    
+        distance = 1000.0
     return distance
-        
+
 class HARKobject(object):
     '''
     A superclass for object classes in HARK.  Comes with two useful methods:
@@ -75,12 +75,12 @@ class HARKobject(object):
         A generic distance method, which requires the existence of an attribute
         called distance_criteria, giving a list of strings naming the attributes
         to be considered by the distance metric.
-        
+
         Parameters
         ----------
         other : object
             Another object to compare this instance to.
-            
+
         Returns
         -------
         (unnamed) : float
@@ -96,41 +96,41 @@ class HARKobject(object):
             except:
                 distance_list.append(1000.0) # if either object lacks attribute, they are not the same
         return max(distance_list)
-        
+
     def assignParameters(self,**kwds):
         '''
         Assign an arbitrary number of attributes to this agent.
-        
+
         Parameters
         ----------
         **kwds : keyword arguments
             Any number of keyword arguments of the form key=value.  Each value
             will be assigned to the attribute named in self.
-            
+
         Returns
         -------
         none
         '''
         for key in kwds:
             setattr(self,key,kwds[key])
-            
+
     def __call__(self,**kwds):
         '''
         Assign an arbitrary number of attributes to this agent, as a convenience.
         See assignParameters.
         '''
         self.assignParameters(**kwds)
-        
+
     def getAvg(self,varname,**kwds):
         '''
         Calculates the average of an attribute of this instance.  Returns NaN if no such attribute.
-        
+
         Parameters
         ----------
         varname : string
             The name of the attribute whose average is to be calculated.  This attribute must be an
             np.array or other class compatible with np.mean.
-                       
+
         Returns
         -------
         avg : float or np.array
@@ -140,16 +140,16 @@ class HARKobject(object):
             return np.mean(getattr(self,varname),**kwds)
         else:
             return np.nan
-        
+
 class Solution(HARKobject):
     '''
     A superclass for representing the "solution" to a single period problem in a
     dynamic microeconomic model.
-    
+
     NOTE: This can be deprecated now that HARKobject exists, but this requires
     replacing each instance of Solution with HARKobject in the other modules.
-    '''    
-    
+    '''
+
 class AgentType(HARKobject):
     '''
     A superclass for economic agents in the HARK framework.  Each model should
@@ -161,12 +161,12 @@ class AgentType(HARKobject):
     a field in AgentSubType that is constant over time in the model. The string
     'solveOnePeriod' should appear in exactly one of these lists, depending on
     whether the same solution method is used in all periods of the model.
-    '''    
+    '''
     def __init__(self,solution_terminal=None,cycles=1,time_flow=False,pseudo_terminal=True,
                  tolerance=0.000001,seed=0,**kwds):
         '''
         Initialize an instance of AgentType by setting attributes.
-        
+
         Parameters
         ----------
         solution_terminal : Solution
@@ -196,7 +196,7 @@ class AgentType(HARKobject):
             when cycles>0.
         seed : int
             A seed for this instance's random number generator.
-            
+
         Returns
         -------
         None
@@ -220,11 +220,11 @@ class AgentType(HARKobject):
         '''
         Report to the user the direction that time is currently "flowing" for
         this instance.  Only exists as a reminder of how time_flow works.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -237,11 +237,11 @@ class AgentType(HARKobject):
     def timeFlip(self):
         '''
         Reverse the flow of time for this instance.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -253,11 +253,11 @@ class AgentType(HARKobject):
     def timeFwd(self):
         '''
         Make time flow forward for this instance.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -268,27 +268,27 @@ class AgentType(HARKobject):
     def timeRev(self):
         '''
         Make time flow backward for this instance.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
         '''
         if self.time_flow:
             self.timeFlip()
-            
+
     def addToTimeVary(self,*params):
         '''
         Adds any number of parameters to time_vary for this instance.
-        
+
         Parameters
         ----------
         params : string
             Any number of strings naming attributes to be added to time_vary
-        
+
         Returns
         -------
         None
@@ -296,16 +296,16 @@ class AgentType(HARKobject):
         for param in params:
             if param not in self.time_vary:
                 self.time_vary.append(param)
-                
+
     def addToTimeInv(self,*params):
         '''
         Adds any number of parameters to time_inv for this instance.
-        
+
         Parameters
         ----------
         params : string
             Any number of strings naming attributes to be added to time_inv
-        
+
         Returns
         -------
         None
@@ -313,16 +313,16 @@ class AgentType(HARKobject):
         for param in params:
             if param not in self.time_inv:
                 self.time_inv.append(param)
-                
+
     def delFromTimeVary(self,*params):
         '''
         Removes any number of parameters from time_vary for this instance.
-        
+
         Parameters
         ----------
         params : string
             Any number of strings naming attributes to be removed from time_vary
-        
+
         Returns
         -------
         None
@@ -330,16 +330,16 @@ class AgentType(HARKobject):
         for param in params:
             if param in self.time_vary:
                 self.time_vary.remove(param)
-                
+
     def delFromTimeInv(self,*params):
         '''
         Removes any number of parameters from time_inv for this instance.
-        
+
         Parameters
         ----------
         params : string
             Any number of strings naming attributes to be removed from time_inv
-        
+
         Returns
         -------
         None
@@ -353,12 +353,12 @@ class AgentType(HARKobject):
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period problems, passing the solution
         from period t+1 to the problem for period t.
-        
+
         Parameters
         ----------
         verbose : boolean
             If True, solution progress is printed to screen.
-        
+
         Returns
         -------
         none
@@ -370,21 +370,21 @@ class AgentType(HARKobject):
             self.solution.reverse()
         self.addToTimeVary('solution') # Add solution to the list of time-varying attributes
         self.postSolve() # Do post-solution stuff
-        
+
     def resetRNG(self):
         '''
         Reset the random number generator for this type.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
         '''
         self.RNG = np.random.RandomState(self.seed)
-            
+
     def checkElementsOfTimeVaryAreLists(self):
         """
         A method to check that elements of time_vary are lists.
@@ -393,47 +393,47 @@ class AgentType(HARKobject):
             assert type(getattr(self,param))==list,param + ' is not a list, but should be' + \
                                                    ' because it is in time_vary'
 
-        
+
     def preSolve(self):
         '''
         A method that is run immediately before the model is solved, to check inputs or to prepare
-        the terminal solution, perhaps.  
-        
+        the terminal solution, perhaps.
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
         '''
         self.checkElementsOfTimeVaryAreLists()
         return None
-        
+
     def postSolve(self):
         '''
         A method that is run immediately after the model is solved, to finalize
         the solution in some way.  Does nothing here.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
         '''
         return None
-        
+
     def initializeSim(self):
         '''
         Prepares this AgentType for a new simulation.  Resets the internal random number generator,
         makes initial states for all agents (using simBirth), clears histories of tracked variables.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -449,18 +449,18 @@ class AgentType(HARKobject):
         self.simBirth(all_agents)
         self.clearHistory()
         return None
-        
+
     def simOnePeriod(self):
         '''
         Simulates one period for this type.  Calls the methods getMortality(), getShocks() or
         readShocks, getStates(), getControls(), and getPostStates().  These should be defined for
         AgentType subclasses, except getMortality (define its components simDeath and simBirth
         instead) and readShocks.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -473,12 +473,12 @@ class AgentType(HARKobject):
         self.getStates()     # Determine each agent's state at decision time
         self.getControls()   # Determine each agent's choice or control variables based on states
         self.getPostStates() # Determine each agent's post-decision / end-of-period states using states and controls
-        
+
         # Advance time for all agents
         self.t_age = self.t_age + 1 # Age all consumers by one period
         self.t_cycle = self.t_cycle + 1 # Age all consumers within their cycle
         self.t_cycle[self.t_cycle == self.T_cycle] = 0 # Resetting to zero for those who have reached the end
-        
+
     def makeShockHistory(self):
         '''
         Makes a pre-specified history of shocks for the simulation.  Shock variables should be named
@@ -487,11 +487,11 @@ class AgentType(HARKobject):
         in shock_vars is stored in a T_sim x AgentCount array in an attribute of self named X_hist.
         Automatically sets self.read_shocks to True so that these pre-specified shocks are used for
         all subsequent calls to simulate().
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -500,11 +500,11 @@ class AgentType(HARKobject):
         orig_time = self.time_flow
         self.timeFwd()
         self.initializeSim()
-        
+
         # Make blank history arrays for each shock variable
         for var_name in self.shock_vars:
             setattr(self,var_name+'_hist',np.zeros((self.T_sim,self.AgentCount))+np.nan)
-        
+
         # Make and store the history of shocks for each period
         for t in range(self.T_sim):
             self.getMortality()
@@ -515,12 +515,12 @@ class AgentType(HARKobject):
             self.t_age = self.t_age + 1 # Age all consumers by one period
             self.t_cycle = self.t_cycle + 1 # Age all consumers within their cycle
             self.t_cycle[self.t_cycle == self.T_cycle] = 0 # Resetting to zero for those who have reached the end
-        
+
         # Restore the flow of time and flag that shocks can be read rather than simulated
         self.read_shocks = True
         if not orig_time:
             self.timeRev()
-        
+
     def getMortality(self):
         '''
         Simulates mortality or agent turnover according to some model-specific rules named simDeath
@@ -528,11 +528,11 @@ class AgentType(HARKobject):
         a Boolean array of size AgentCount, indicating which agents of this type have "died" and
         must be replaced.  simBirth takes such a Boolean array as an argument and generates initial
         post-decision states for those agent indices.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -540,18 +540,18 @@ class AgentType(HARKobject):
         who_dies = self.simDeath()
         self.simBirth(who_dies)
         return None
-        
+
     def simDeath(self):
         '''
         Determines which agents in the current population "die" or should be replaced.  Takes no
         inputs, returns a Boolean array of size self.AgentCount, which has True for agents who die
         and False for those that survive. Returns all False by default, must be overwritten by a
         subclass to have replacement events.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         who_dies : np.array
@@ -560,114 +560,114 @@ class AgentType(HARKobject):
         print('AgentType subclass must define method simDeath!')
         who_dies = np.ones(self.AgentCount,dtype=bool)
         return who_dies
-        
+
     def simBirth(self,which_agents):
         '''
         Makes new agents for the simulation.  Takes a boolean array as an input, indicating which
         agent indices are to be "born".  Does nothing by default, must be overwritten by a subclass.
-        
+
         Parameters
         ----------
         which_agents : np.array(Bool)
             Boolean array of size self.AgentCount indicating which agents should be "born".
-        
+
         Returns
         -------
         None
         '''
         print('AgentType subclass must define method simBirth!')
         return None
-        
+
     def getShocks(self):
         '''
         Gets values of shock variables for the current period.  Does nothing by default, but can
         be overwritten by subclasses of AgentType.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
         '''
         return None
-        
+
     def readShocks(self):
         '''
         Reads values of shock variables for the current period from history arrays.  For each var-
         iable X named in self.shock_vars, this attribute of self is set to self.X_hist[self.t_sim,:].
-        
+
         This method is only ever called if self.read_shocks is True.  This can be achieved by using
         the method makeShockHistory() (or manually after storing a "handcrafted" shock history).
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
         '''
         for var_name in self.shock_vars:
             setattr(self,var_name,getattr(self,var_name+'_hist')[self.t_sim,:])
-        
+
     def getStates(self):
         '''
         Gets values of state variables for the current period, probably by using post-decision states
         from last period, current period shocks, and maybe market-level events.  Does nothing by
         default, but can be overwritten by subclasses of AgentType.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
         '''
         return None
-        
+
     def getControls(self):
         '''
         Gets values of control variables for the current period, probably by using current states.
         Does nothing by default, but can be overwritten by subclasses of AgentType.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
         '''
         return None
-        
+
     def getPostStates(self):
         '''
         Gets values of post-decision state variables for the current period, probably by current
         states and controls and maybe market-level events or shock variables.  Does nothing by
         default, but can be overwritten by subclasses of AgentType.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
         '''
         return None
-        
+
     def simulate(self,sim_periods=None):
         '''
         Simulates this agent type for a given number of periods (defaults to self.T_sim if no input).
         Records histories of attributes named in self.track_vars in attributes named varname_hist.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -676,45 +676,45 @@ class AgentType(HARKobject):
         self.timeFwd()
         if sim_periods is None:
             sim_periods = self.T_sim
-            
+
         for t in range(sim_periods):
             self.simOnePeriod()
             for var_name in self.track_vars:
                 exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
             self.t_sim += 1
-            
+
         if not orig_time:
             self.timeRev()
-            
+
     def clearHistory(self):
         '''
         Clears the histories of the attributes named in self.track_vars.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
         '''
         for var_name in self.track_vars:
             exec('self.' + var_name + '_hist = np.zeros((self.T_sim,self.AgentCount)) + np.nan')
-        
+
 
 def solveAgent(agent,verbose):
     '''
     Solve the dynamic model for one agent type.  This function iterates on "cycles"
     of an agent's model either a given number of times or until solution convergence
     if an infinite horizon model is used (with agent.cycles = 0).
-    
+
     Parameters
     ----------
     agent : AgentType
         The microeconomic AgentType whose dynamic problem is to be solved.
     verbose : boolean
         If True, solution progress is printed to screen (when cycles != 1).
-        
+
     Returns
     -------
     solution : [Solution]
@@ -728,7 +728,7 @@ def solveAgent(agent,verbose):
     # Check to see whether this is an (in)finite horizon problem
     cycles_left      = agent.cycles
     infinite_horizon = cycles_left == 0
-    
+
     # Initialize the solution, which includes the terminal solution if it's not a pseudo-terminal period
     solution = []
     if not agent.pseudo_terminal:
@@ -747,7 +747,7 @@ def solveAgent(agent,verbose):
         if not infinite_horizon:
             solution += solution_cycle
 
-        # Check for termination: identical solutions across cycle iterations or run out of cycles     
+        # Check for termination: identical solutions across cycle iterations or run out of cycles
         solution_now = solution_cycle[-1]
         if infinite_horizon:
             if completed_cycles > 0:
@@ -763,7 +763,7 @@ def solveAgent(agent,verbose):
         # Update the "last period solution"
         solution_last = solution_now
         completed_cycles += 1
-        
+
         # Display progress if requested
         if verbose:
             t_now = clock()
@@ -790,7 +790,7 @@ def solveOneCycle(agent,solution_last):
     Solve one "cycle" of the dynamic model for one agent type.  This function
     iterates over the periods within an agent's cycle, updating the time-varying
     parameters and passing them to the single period solver(s).
-    
+
     Parameters
     ----------
     agent : AgentType
@@ -800,7 +800,7 @@ def solveOneCycle(agent,solution_last):
         end of the sequence of one period problems.  This might be the term-
         inal period solution, a "pseudo terminal" solution, or simply the
         solution to the earliest period from the succeeding cycle.
-    
+
     Returns
     -------
     solution_cycle : [Solution]
@@ -843,7 +843,7 @@ def solveOneCycle(agent,solution_last):
             if name in these_args:
                 solve_dict[name] = eval('agent.' + name + '[t]')
         solve_dict['solution_next'] = solution_next
-        
+
         # Make a temporary dictionary for this period
         temp_dict = {name: solve_dict[name] for name in these_args}
 
@@ -857,56 +857,56 @@ def solveOneCycle(agent,solution_last):
 
 
 #========================================================================
-#========================================================================    
-      
+#========================================================================
+
 class Market(HARKobject):
     '''
     A superclass to represent a central clearinghouse of information.  Used for
     dynamic general equilibrium models to solve the "macroeconomic" model as a
     layer on top of the "microeconomic" models of one or more AgentTypes.
-    '''   
+    '''
     def __init__(self,agents=[],sow_vars=[],reap_vars=[],const_vars=[],track_vars=[],dyn_vars=[],
                  millRule=None,calcDynamics=None,act_T=1000,tolerance=0.000001):
         '''
         Make a new instance of the Market class.
-        
+
         Parameters
-        ----------    
+        ----------
         agents : [AgentType]
-            A list of all the AgentTypes in this market.    
+            A list of all the AgentTypes in this market.
         sow_vars : [string]
             Names of variables generated by the "aggregate market process" that should
-            be "sown" to the agents in the market.  Aggregate state, etc.        
+            be "sown" to the agents in the market.  Aggregate state, etc.
         reap_vars : [string]
             Names of variables to be collected ("reaped") from agents in the market
-            to be used in the "aggregate market process".        
+            to be used in the "aggregate market process".
         const_vars : [string]
             Names of attributes of the Market instance that are used in the "aggregate
             market process" but do not come from agents-- they are constant or simply
-            parameters inherent to the process.        
+            parameters inherent to the process.
         track_vars : [string]
             Names of variables generated by the "aggregate market process" that should
             be tracked as a "history" so that a new dynamic rule can be calculated.
-            This is often a subset of sow_vars.        
+            This is often a subset of sow_vars.
         dyn_vars : [string]
-            Names of variables that constitute a "dynamic rule".        
+            Names of variables that constitute a "dynamic rule".
         millRule : function
             A function that takes inputs named in reap_vars and returns an object
             with attributes named in sow_vars.  The "aggregate market process" that
             transforms individual agent actions/states/data into aggregate data to
-            be sent back to agents.        
+            be sent back to agents.
         calcDynamics : function
             A function that takes inputs named in track_vars and returns an object
             with attributes named in dyn_vars.  Looks at histories of aggregate
             variables and generates a new "dynamic rule" for agents to believe and
-            act on.       
+            act on.
         act_T : int
             The number of times that the "aggregate market process" should be run
-            in order to generate a history of aggregate variables.        
+            in order to generate a history of aggregate variables.
         tolerance: float
             Minimum acceptable distance between "dynamic rules" to consider the
             Market solution process converged.  Distance is a user-defined metric.
-            
+
         Returns
         -------
         None
@@ -924,15 +924,15 @@ class Market(HARKobject):
         self.act_T = act_T
         self.tolerance = tolerance
         self.max_loops = 1000
-        
+
     def solveAgents(self):
         '''
         Solves the microeconomic problem for all AgentTypes in this market.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -940,17 +940,17 @@ class Market(HARKobject):
         #for this_type in self.agents:
         #    this_type.solve()
         multiThreadCommands(self.agents,['solve()'])
-    
+
     def solve(self):
         '''
         "Solves" the market by finding a "dynamic rule" that governs the aggregate
         market state such that when agents believe in these dynamics, their actions
         collectively generate the same dynamic rule.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -964,29 +964,29 @@ class Market(HARKobject):
             self.solveAgents()     # Solve each AgentType's micro problem
             self.makeHistory()     # "Run" the model while tracking aggregate variables
             new_dynamics = self.updateDynamics() # Find a new aggregate dynamic rule
-            
+
             # Check to see if the dynamic rule has converged (if this is not the first loop)
             if completed_loops > 0:
                 distance = new_dynamics.distance(old_dynamics)
             else:
                 distance = 1000000.0
-            
+
             # Move to the next loop if the terminal conditions are not met
             old_dynamics     = new_dynamics
             completed_loops += 1
             go               = distance >= self.tolerance and completed_loops < max_loops
-            
+
         self.dynamics = new_dynamics # Store the final dynamic rule in self
-            
+
     def reap(self):
         '''
         Collects attributes named in reap_vars from each AgentType in the market,
         storing them in respectively named attributes of self.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -996,16 +996,16 @@ class Market(HARKobject):
             for this_type in self.agents:
                 harvest.append(getattr(this_type,var_name))
             setattr(self,var_name,harvest)
-            
+
     def sow(self):
         '''
         Distributes attrributes named in sow_vars from self to each AgentType
         in the market, storing them in respectively named attributes.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -1014,16 +1014,16 @@ class Market(HARKobject):
             this_seed = getattr(self,var_name)
             for this_type in self.agents:
                 setattr(this_type,var_name,this_seed)
-                    
+
     def mill(self):
         '''
         Processes the variables collected from agents using the function millRule,
         storing the results in attributes named in aggr_sow.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -1036,41 +1036,41 @@ class Market(HARKobject):
         for name in self.const_vars:
             const_vars_string += ' \'' + name + '\' : self.' + name + ','
         mill_dict = eval('{' + reap_vars_string + const_vars_string + '}')
-        
+
         # Run the millRule and store its output in self
         product = self.millRule(**mill_dict)
         for j in range(len(self.sow_vars)):
             this_var = self.sow_vars[j]
             this_product = getattr(product,this_var)
             setattr(self,this_var,this_product)
-        
+
     def cultivate(self):
         '''
         Has each AgentType in agents perform their marketAction method, using
         variables sown from the market (and maybe also "private" variables).
         The marketAction method should store new results in attributes named in
         reap_vars to be reaped later.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
         '''
         for this_type in self.agents:
             this_type.marketAction()
-            
+
     def reset(self):
         '''
         Reset the state of the market (attributes in sow_vars, etc) to some
         user-defined initial state, and erase the histories of tracked variables.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -1082,16 +1082,16 @@ class Market(HARKobject):
             setattr(self,var_name,initial_val)
         for this_type in self.agents: # Reset each AgentType in the market
             this_type.reset()
-            
+
     def store(self):
         '''
         Record the current value of each variable X named in track_vars in an
         attribute named X_hist.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -1099,20 +1099,20 @@ class Market(HARKobject):
         for var_name in self.track_vars:
             value_now = getattr(self,var_name)
             getattr(self,var_name + '_hist').append(value_now)
-        
+
     def makeHistory(self):
         '''
         Runs a loop of sow-->cultivate-->reap-->mill act_T times, tracking the
         evolution of variables X named in track_vars in attributes named X_hist.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
-        '''        
+        '''
         self.reset() # Initialize the state of the market
         for t in range(self.act_T):
             self.sow()       # Distribute aggregated information/state to agents
@@ -1120,21 +1120,21 @@ class Market(HARKobject):
             self.reap()      # Collect individual data from agents
             self.mill()      # Process individual data into aggregate data
             self.store()     # Record variables of interest
-            
+
     def updateDynamics(self):
         '''
         Calculates a new "aggregate dynamic rule" using the history of variables
         named in track_vars, and distributes this rule to AgentTypes in agents.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         dynamics : instance
             The new "aggregate dynamic rule" that agents believe in and act on.
-            Should have attributes named in dyn_vars.  
+            Should have attributes named in dyn_vars.
         '''
         # Make a dictionary of inputs for the dynamics calculator
         history_vars_string = ''
@@ -1144,7 +1144,7 @@ class Market(HARKobject):
         for name in arg_names:
             history_vars_string += ' \'' + name + '\' : self.' + name + '_hist,'
         update_dict = eval('{' + history_vars_string + '}')
-        
+
         # Calculate a new dynamic rule and distribute it to the agents in agent_list
         dynamics = self.calcDynamics(**update_dict) # User-defined dynamics calculator
         for var_name in self.dyn_vars:
@@ -1152,7 +1152,7 @@ class Market(HARKobject):
             for this_type in self.agents:
                 setattr(this_type,var_name,this_obj)
         return dynamics
-        
+
 if __name__ == '__main__':
     print("Sorry, HARKcore doesn't actually do anything on its own.")
     print("To see some examples of its frameworks in action, try running a model module.")

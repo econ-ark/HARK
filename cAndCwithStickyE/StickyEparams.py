@@ -1,19 +1,19 @@
 '''
 This module holds calibrated parameter dictionaries for the cAndCwithStickyE paper.
 It defines dictionaries for the six types of models in cAndCwithStickyE:
-    
+
 1) Small open economy
 2) Small open Markov economy
 3) Cobb-Douglas closed economy
 4) Cobb-Douglas closed Markov economy
 5) Representative agent economy
 6) Markov representative agent economy
-    
+
 For the first four models (heterogeneous agents), it defines dictionaries for
 the Market instance as well as the consumers themselves.  All parameters are quarterly.
 '''
 
-#import sys 
+#import sys
 #import os
 #sys.path.insert(0, os.path.abspath('../'))
 import numpy as np
@@ -92,8 +92,8 @@ DiscFacSpread = 0.0     # Half-width of intertemporal discount factor band, a la
 # These parameters are for a rough "beta-dist" specification that fits the wealth distribution in DSGE simple
 #TypeCount = 7
 #DiscFacMeanSOE = 0.96738
-#DiscFacMeanDSGE = 0.96738  
-#DiscFacSpread = 0.0227 
+#DiscFacMeanDSGE = 0.96738
+#DiscFacSpread = 0.0227
 
 # Choose parameters for the Markov models
 StateCount = 11         # Number of discrete states in the Markov specifications
@@ -207,7 +207,7 @@ init_DSGE_market['slope_prev'] = 1.0
 
 # Define parameters for the Cobb-Douglas Markov DSGE version of the model
 init_DSGE_mrkv_consumer = copy(init_DSGE_consumer)
-init_DSGE_mrkv_consumer['MrkvArray'] = PolyMrkvArray  
+init_DSGE_mrkv_consumer['MrkvArray'] = PolyMrkvArray
 
 # Define market parameters for the Cobb-Douglas Markov economy
 init_DSGE_mrkv_market = copy(init_SOE_mrkv_market)

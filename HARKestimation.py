@@ -15,7 +15,7 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwar
     '''
     Minimizes the objective function using the Nelder-Mead simplex algorithm,
     starting from an initial parameter guess.
-    
+
     Parameters
     ----------
     objectiveFunction : function
@@ -26,7 +26,7 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwar
         input for objectiveFunction.
     verbose : boolean
         A flag for the amount of output to print.
-        
+
     Returns
     -------
     xopt : [float]
@@ -48,7 +48,7 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwar
                             #   2 : Maximum number of iterations reached.
     # Check that optimization succeeded:
     if warnflag != 0:
-        warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) + 
+        warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) +
                       ', optiter=' + str(optiter) +', funcalls=' + str(funcalls) +
                       ', warnflag=' + str(warnflag))
 
@@ -56,13 +56,13 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwar
     if verbose:
         print("Time to estimate is " + str(t1-t0) +  " seconds.")
     return xopt
-    
-    
+
+
 def minimizePowell(objectiveFunction, parameter_guess, verbose=False):
     '''
     Minimizes the objective function using a derivative-free Powell algorithm,
     starting from an initial parameter guess.
-    
+
     Parameters
     ----------
     objectiveFunction : function
@@ -73,7 +73,7 @@ def minimizePowell(objectiveFunction, parameter_guess, verbose=False):
         input for objectiveFunction.
     verbose : boolean
         A flag for the amount of output to print.
-        
+
     Returns
     -------
     xopt : [float]
@@ -109,7 +109,7 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
     Samples rows from the input array of data, generating a new data array with
     an equal number of rows (records).  Rows are drawn with equal probability
     by default, but probabilities can be specified with weights (must sum to 1).
-    
+
     Parameters
     ----------
     data : np.array
@@ -118,30 +118,30 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
         A weighting array with length equal to data.shape[0].
     seed : int
         A seed for the random number generator.
-        
+
     Returns
     -------
     new_data : np.array
         A resampled version of input data.
-    '''   
+    '''
     # Set up the random number generator
     RNG = np.random.RandomState(seed)
     N = data.shape[0]
-    
+
     # Set up weights
     if weights is not None:
         cutoffs = np.cumsum(weights)
     else:
         cutoffs = np.linspace(0,1,N)
-    
+
     # Draw random indices
     indices = np.searchsorted(cutoffs,RNG.uniform(size=N))
-    
+
     # Create a bootstrapped sample
     new_data = deepcopy(data[indices,])
     return new_data
-    
-    
+
+
 if __name__ == '__main__':
     print("Sorry, HARKestimation doesn't actually do anything on its own.")
     print("To see some examples of its functions in actions, check out an application")

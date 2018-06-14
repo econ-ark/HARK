@@ -4,8 +4,8 @@ Created on Thu Nov  9 09:40:49 2017
 
 @author: ccarroll@llorracc.org
 """
-import sys   
-import os    
+import sys
+import os
 import pylab # the plotting tools
 
 sys.path.insert(0, os.path.abspath('../'))
@@ -28,7 +28,7 @@ def perturbParameterToGetcPlotList(base_dictionary,param_name,param_min,param_ma
     thisConsumer = IndShockConsumerType(**my_dictionary) # create an instance of the consumer type
     thisConsumer.cycles = 0 # Make this type have an infinite horizon
     x = np.linspace(mMinVal,mMaxVal,xPoints,endpoint=True) # Define a vector of x values that span the range from the minimum to the maximum values of m
-    
+
     for j in range(N): # loop from the first to the last values of the parameter
         if time_vary: # Some parameters are time-varying; others are not
             setattr(thisConsumer,param_name,[param_vec[j]])
@@ -38,7 +38,7 @@ def perturbParameterToGetcPlotList(base_dictionary,param_name,param_min,param_ma
         thisConsumer.solve()  # solve the problem
         y = thisConsumer.solution[0].cFunc(x) # Get the values of the consumption function at the points in the vector of x points
         pylab.plot(x,y,label=str(round(param_vec[j],3))) # plot it and generate a label indicating the rounded value of the parameter
-        pylab.legend(loc='upper right') # put the legend in the upper right 
+        pylab.legend(loc='upper right') # put the legend in the upper right
     return pylab # return the figure
 
 cPlot_by_DiscFac = perturbParameterToGetcPlotList(my_dictionary,'DiscFac',0.899,0.999,5,False) # create the figure

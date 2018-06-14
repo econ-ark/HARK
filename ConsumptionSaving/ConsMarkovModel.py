@@ -4,7 +4,7 @@ stochastic Markov state.  The only solver here extends ConsIndShockModel to
 include a Markov state; the interest factor, permanent growth factor, and income
 distribution can vary with the discrete state.
 '''
-import sys 
+import sys
 sys.path.insert(0,'../')
 
 from copy import deepcopy
@@ -43,7 +43,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         Constructor for a new solver for a one period problem with risky income
         and transitions between discrete Markov states.  In the descriptions below,
         N is the number of discrete states.
-        
+
         Parameters
         ----------
         solution_next : ConsumerSolution
@@ -56,9 +56,9 @@ class ConsMarkovSolver(ConsIndShockSolver):
             permanent shocks, transitory shocks.
         LivPrb : np.array
             Survival probability; likelihood of being alive at the beginning of
-            the succeeding period for each Markov state.   
+            the succeeding period for each Markov state.
         DiscFac : float
-            Intertemporal discount factor for future utility.        
+            Intertemporal discount factor for future utility.
         CRRA : float
             Coefficient of relative risk aversion.
         Rfree_list : np.array
@@ -85,7 +85,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         CubicBool: boolean
             An indicator for whether the solver should use cubic or linear inter-
             polation.
-                        
+
         Returns
         -------
         None
@@ -94,7 +94,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         ConsIndShockSolver.assignParameters(self,solution_next,np.nan,LivPrb,DiscFac,CRRA,np.nan,
                                             np.nan,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
         self.defUtilityFuncs()
-        
+
         # Set additional attributes specific to the Markov model
         self.IncomeDstn_list      = IncomeDstn_list
         self.Rfree_list           = Rfree_list
@@ -105,11 +105,11 @@ class ConsMarkovSolver(ConsIndShockSolver):
     def solve(self):
         '''
         Solve the one period problem of the consumption-saving model with a Markov state.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         solution : ConsumerSolution
@@ -125,7 +125,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         '''
         # Find the natural borrowing constraint in each current state
         self.defBoundary()
-        
+
         # Initialize end-of-period (marginal) value functions
         self.EndOfPrdvFunc_list  = []
         self.EndOfPrdvPfunc_list = []
@@ -139,46 +139,46 @@ class ConsMarkovSolver(ConsIndShockSolver):
             self.conditionOnState(j)
             self.ExIncNextAll[j]   = np.dot(self.ShkPrbsNext,self.PermShkValsNext*self.TranShkValsNext)
             self.WorstIncPrbAll[j] = self.WorstIncPrb
-            
+
             # Construct the end-of-period marginal value function conditional
             # on next period's state and add it to the list of value functions
             EndOfPrdvPfunc_cond = self.makeEndOfPrdvPfuncCond()
             self.EndOfPrdvPfunc_list.append(EndOfPrdvPfunc_cond)
-            
+
             # Construct the end-of-period value functional conditional on next
             # period's state and add it to the list of value functions
             if self.vFuncBool:
                 EndOfPrdvFunc_cond = self.makeEndOfPrdvFuncCond()
                 self.EndOfPrdvFunc_list.append(EndOfPrdvFunc_cond)
-                        
+
         # EndOfPrdvP_cond is EndOfPrdvP conditional on *next* period's state.
         # Take expectations to get EndOfPrdvP conditional on *this* period's state.
         self.calcEndOfPrdvP()
-                
+
         # Calculate the bounding MPCs and PDV of human wealth for each state
         self.calcHumWealthAndBoundingMPCs()
-        
+
         # Find consumption and market resources corresponding to each end-of-period
         # assets point for each state (and add an additional point at the lower bound)
         aNrm = np.asarray(self.aXtraGrid)[np.newaxis,:] + np.array(self.BoroCnstNat_list)[:,np.newaxis]
         self.getPointsForInterpolation(self.EndOfPrdvP,aNrm)
         cNrm = np.hstack((np.zeros((self.StateCount,1)),self.cNrmNow))
         mNrm = np.hstack((np.reshape(self.mNrmMin_list,(self.StateCount,1)),self.mNrmNow))
-        
+
         # Package and return the solution for this period
         self.BoroCnstNat = self.BoroCnstNat_list
         solution = self.makeSolution(cNrm,mNrm)
         return solution
-        
+
     def defBoundary(self):
         '''
         Find the borrowing constraint for each current state and save it as an
         attribute of self for use by other methods.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -204,19 +204,19 @@ class ConsMarkovSolver(ConsIndShockSolver):
             self.BoroCnstDependency[i,:] = self.BoroCnstNat_list[i] == self.BoroCnstNatAll
         # Also creates a Boolean array indicating whether the natural borrowing
         # constraint *could* be hit when transitioning from i to j.
-     
+
     def conditionOnState(self,state_index):
         '''
         Temporarily assume that a particular Markov state will occur in the
         succeeding period, and condition solver attributes on this assumption.
         Allows the solver to construct the future-state-conditional marginal
         value function (etc) for that future state.
-        
+
         Parameters
         ----------
         state_index : int
             Index of the future Markov state to condition on.
-        
+
         Returns
         -------
         none
@@ -227,9 +227,9 @@ class ConsMarkovSolver(ConsIndShockSolver):
         self.PermGroFac     = self.PermGroFac_list[state_index]
         self.vPfuncNext     = self.solution_next.vPfunc[state_index]
         self.mNrmMinNow     = self.mNrmMin_list[state_index]
-        self.BoroCnstNat    = self.BoroCnstNatAll[state_index]        
+        self.BoroCnstNat    = self.BoroCnstNatAll[state_index]
         self.setAndUpdateValues(self.solution_next,self.IncomeDstn,self.LivPrb,self.DiscFac)
-        self.DiscFacEff     = self.DiscFac # survival probability LivPrb represents probability from 
+        self.DiscFacEff     = self.DiscFac # survival probability LivPrb represents probability from
                                            # *current* state, so DiscFacEff is just DiscFac for now
 
         # These lines have to come after setAndUpdateValues to override the definitions there
@@ -238,16 +238,16 @@ class ConsMarkovSolver(ConsIndShockSolver):
             self.vPPfuncNext= self.solution_next.vPPfunc[state_index]
         if self.vFuncBool:
             self.vFuncNext  = self.solution_next.vFunc[state_index]
-        
+
     def calcEndOfPrdvPP(self):
         '''
         Calculates end-of-period marginal marginal value using a pre-defined
         array of next period market resources in self.mNrmNext.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         EndOfPrdvPP : np.array
@@ -258,23 +258,23 @@ class ConsMarkovSolver(ConsIndShockSolver):
                       np.sum(self.PermShkVals_temp**(-self.CRRA-1.0)*self.vPPfuncNext(self.mNrmNext)
                       *self.ShkPrbs_temp,axis=0)
         return EndOfPrdvPP
-            
+
     def makeEndOfPrdvFuncCond(self):
         '''
         Construct the end-of-period value function conditional on next period's
         state.  NOTE: It might be possible to eliminate this method and replace
         it with ConsIndShockSolver.makeEndOfPrdvFunc, but the self.X_cond
         variables must be renamed.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         EndofPrdvFunc_cond : ValueFunc
             The end-of-period value function conditional on a particular state
-            occuring in the next period.            
+            occuring in the next period.
         '''
         VLvlNext               = (self.PermShkVals_temp**(1.0-self.CRRA)*
                                   self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
@@ -285,19 +285,19 @@ class ConsMarkovSolver(ConsIndShockSolver):
         EndOfPrdvNvrsP_cond    = np.insert(EndOfPrdvNvrsP_cond,0,EndOfPrdvNvrsP_cond[0])
         aNrm_temp              = np.insert(self.aNrm_cond,0,self.BoroCnstNat)
         EndOfPrdvNvrsFunc_cond = CubicInterp(aNrm_temp,EndOfPrdvNvrs_cond,EndOfPrdvNvrsP_cond)
-        EndofPrdvFunc_cond     = ValueFunc(EndOfPrdvNvrsFunc_cond,self.CRRA)        
+        EndofPrdvFunc_cond     = ValueFunc(EndOfPrdvNvrsFunc_cond,self.CRRA)
         return EndofPrdvFunc_cond
-        
-    
+
+
     def calcEndOfPrdvPcond(self):
         '''
         Calculate end-of-period marginal value of assets at each point in aNrmNow
         conditional on a particular state occuring in the next period.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         EndOfPrdvP : np.array
@@ -305,52 +305,52 @@ class ConsMarkovSolver(ConsIndShockSolver):
         '''
         EndOfPrdvPcond = ConsIndShockSolver.calcEndOfPrdvP(self)
         return EndOfPrdvPcond
-        
-            
+
+
     def makeEndOfPrdvPfuncCond(self):
         '''
         Construct the end-of-period marginal value function conditional on next
         period's state.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         EndofPrdvPfunc_cond : MargValueFunc
             The end-of-period marginal value function conditional on a particular
             state occuring in the succeeding period.
         '''
-        # Get data to construct the end-of-period marginal value function (conditional on next state) 
-        self.aNrm_cond      = self.prepareToCalcEndOfPrdvP()  
+        # Get data to construct the end-of-period marginal value function (conditional on next state)
+        self.aNrm_cond      = self.prepareToCalcEndOfPrdvP()
         self.EndOfPrdvP_cond= self.calcEndOfPrdvPcond()
         EndOfPrdvPnvrs_cond = self.uPinv(self.EndOfPrdvP_cond) # "decurved" marginal value
         if self.CubicBool:
             EndOfPrdvPP_cond = self.calcEndOfPrdvPP()
             EndOfPrdvPnvrsP_cond = EndOfPrdvPP_cond*self.uPinvP(self.EndOfPrdvP_cond) # "decurved" marginal marginal value
-        
+
         # Construct the end-of-period marginal value function conditional on the next state.
         if self.CubicBool:
             EndOfPrdvPnvrsFunc_cond = CubicInterp(self.aNrm_cond,EndOfPrdvPnvrs_cond,
                                                   EndOfPrdvPnvrsP_cond,lower_extrap=True)
         else:
             EndOfPrdvPnvrsFunc_cond = LinearInterp(self.aNrm_cond,EndOfPrdvPnvrs_cond,
-                                                   lower_extrap=True)            
+                                                   lower_extrap=True)
         EndofPrdvPfunc_cond = MargValueFunc(EndOfPrdvPnvrsFunc_cond,self.CRRA) # "recurve" the interpolated marginal value function
         return EndofPrdvPfunc_cond
-            
+
     def calcEndOfPrdvP(self):
         '''
         Calculates end of period marginal value (and marginal marginal) value
         at each aXtra gridpoint for each current state, unconditional on the
         future Markov state (i.e. weighting conditional end-of-period marginal
         value by transition probabilities).
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -359,7 +359,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         # current period states for which they apply).
         aNrmMin_unique, state_inverse = np.unique(self.BoroCnstNat_list,return_inverse=True)
         self.possible_transitions     = self.MrkvArray > 0
-        
+
         # Calculate end-of-period marginal value (and marg marg value) at each
         # asset gridpoint for each current period state
         EndOfPrdvP                    = np.zeros((self.StateCount,self.aXtraGrid.size))
@@ -382,22 +382,22 @@ class ConsMarkovSolver(ConsIndShockSolver):
             if self.CubicBool:
                 EndOfPrdvPP_temp = np.dot(self.MrkvArray,EndOfPrdvPP_all)
                 EndOfPrdvPP[which_states,:] = EndOfPrdvPP_temp[which_states,:]
-                
+
         # Store the results as attributes of self, scaling end of period marginal value by survival probability from each current state
         LivPrb_tiled = np.tile(np.reshape(self.LivPrb,(self.StateCount,1)),(1,self.aXtraGrid.size))
         self.EndOfPrdvP = LivPrb_tiled*EndOfPrdvP
         if self.CubicBool:
             self.EndOfPrdvPP = LivPrb_tiled*EndOfPrdvPP
-            
+
     def calcHumWealthAndBoundingMPCs(self):
         '''
         Calculates human wealth and the maximum and minimum MPC for each current
         period state, then stores them as attributes of self for use by other methods.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -427,7 +427,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
     def makeSolution(self,cNrm,mNrm):
         '''
         Construct an object representing the solution to this period's problem.
-        
+
         Parameters
         ----------
         cNrm : np.array
@@ -436,7 +436,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         mNrm : np.array
             Array of normalized market resource values for interpolation.  Each
             row corresponds to a Markov state for this period.
-        
+
         Returns
         -------
         solution : ConsumerSolution
@@ -455,11 +455,11 @@ class ConsMarkovSolver(ConsIndShockSolver):
         if self.CubicBool:
             dcda          = self.EndOfPrdvPP/self.uPP(np.array(self.cNrmNow))
             MPC           = dcda/(dcda+1.0)
-            self.MPC_temp = np.hstack((np.reshape(self.MPCmaxNow,(self.StateCount,1)),MPC))  
-            interpfunc    = self.makeCubiccFunc            
+            self.MPC_temp = np.hstack((np.reshape(self.MPCmaxNow,(self.StateCount,1)),MPC))
+            interpfunc    = self.makeCubiccFunc
         else:
             interpfunc    = self.makeLinearcFunc
-        
+
         # Loop through each current period state and add its solution to the overall solution
         for i in range(self.StateCount):
             # Set current-period-conditional human wealth and MPC bounds
@@ -467,7 +467,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             self.MPCminNow_j = self.MPCminNow[i]
             if self.CubicBool:
                 self.MPC_temp_j  = self.MPC_temp[i,:]
-                
+
             # Construct the consumption function by combining the constrained and unconstrained portions
             self.cFuncNowCnst = LinearInterp([self.mNrmMin_list[i], self.mNrmMin_list[i]+1.0],
                                              [0.0,1.0])
@@ -476,14 +476,14 @@ class ConsMarkovSolver(ConsIndShockSolver):
 
             # Make the marginal value function and pack up the current-state-conditional solution
             vPfuncNow     = MargValueFunc(cFuncNow,self.CRRA)
-            solution_cond = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, 
+            solution_cond = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow,
                                              mNrmMin=self.mNrmMinNow)
-            if self.CubicBool: # Add the state-conditional marginal marginal value function (if desired)    
+            if self.CubicBool: # Add the state-conditional marginal marginal value function (if desired)
                 solution_cond = self.addvPPfunc(solution_cond)
 
             # Add the current-state-conditional solution to the overall period solution
             solution.appendSolution(solution_cond)
-        
+
         # Add the lower bounds of market resources, MPC limits, human resources,
         # and the value functions to the overall solution
         solution.mNrmMin = self.mNrmMin_list
@@ -491,23 +491,23 @@ class ConsMarkovSolver(ConsIndShockSolver):
         if self.vFuncBool:
             vFuncNow = self.makevFunc(solution)
             solution.vFunc = vFuncNow
-        
+
         # Return the overall solution to this period
         return solution
-        
-    
+
+
     def makeLinearcFunc(self,mNrm,cNrm):
         '''
         Make a linear interpolation to represent the (unconstrained) consumption
         function conditional on the current period state.
-        
+
         Parameters
         ----------
         mNrm : np.array
             Array of normalized market resource values for interpolation.
         cNrm : np.array
             Array of normalized consumption values for interpolation.
-                
+
         Returns
         -------
         cFuncUnc: an instance of HARKinterpolation.LinearInterp
@@ -520,14 +520,14 @@ class ConsMarkovSolver(ConsIndShockSolver):
         '''
         Make a cubic interpolation to represent the (unconstrained) consumption
         function conditional on the current period state.
-        
+
         Parameters
         ----------
         mNrm : np.array
             Array of normalized market resource values for interpolation.
         cNrm : np.array
             Array of normalized consumption values for interpolation.
-                
+
         Returns
         -------
         cFuncUnc: an instance of HARKinterpolation.CubicInterp
@@ -535,11 +535,11 @@ class ConsMarkovSolver(ConsIndShockSolver):
         cFuncUnc = CubicInterp(mNrm,cNrm,self.MPC_temp_j,self.MPCminNow_j*self.hNrmNow_j,
                                self.MPCminNow_j)
         return cFuncUnc
-        
+
     def makevFunc(self,solution):
         '''
         Construct the value function for each current state.
-        
+
         Parameters
         ----------
         solution : ConsumerSolution
@@ -548,7 +548,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             a list with elements corresponding to the current Markov state.  E.g.
             solution.cFunc[0] is the consumption function when in the i=0 Markov
             state this period.
-            
+
         Returns
         -------
         vFuncNow : [ValueFunc]
@@ -563,18 +563,18 @@ class ConsMarkovSolver(ConsIndShockSolver):
             mGrid         = mNrmMin + self.aXtraGrid
             cGrid         = solution.cFunc[i](mGrid)
             aGrid         = mGrid - cGrid
-            
+
             # Calculate end-of-period value at each gridpoint
             EndOfPrdv_all   = np.zeros((self.StateCount,self.aXtraGrid.size))
             for j in range(self.StateCount):
                 if self.possible_transitions[i,j]:
                     EndOfPrdv_all[j,:] = self.EndOfPrdvFunc_list[j](aGrid)
             EndOfPrdv     = np.dot(self.MrkvArray[i,:],EndOfPrdv_all)
-            
+
             # Calculate (normalized) value and marginal value at each gridpoint
             vNrmNow       = self.u(cGrid) + EndOfPrdv
             vPnow         = self.uP(cGrid)
-            
+
             # Make a "decurved" value function with the inverse utility function
             vNvrs        = self.uinv(vNrmNow) # value transformed through inverse utility
             vNvrsP       = vPnow*self.uinvP(vNrmNow)
@@ -583,7 +583,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             vNvrsP       = np.insert(vNvrsP,0,self.MPCmaxEff[i]**(-self.CRRA/(1.0-self.CRRA)))
             MPCminNvrs   = self.MPCminNow[i]**(-self.CRRA/(1.0-self.CRRA))
             vNvrsFunc_i  = CubicInterp(mNrm_temp,vNvrs,vNvrsP,MPCminNvrs*self.hNrmNow[i],MPCminNvrs)
-            
+
             # "Recurve" the decurved value function and add it to the list
             vFunc_i     = ValueFunc(vNvrsFunc_i,self.CRRA)
             vFuncNow.append(vFunc_i)
@@ -595,12 +595,12 @@ def solveConsMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFa
     '''
     Solves a single period consumption-saving problem with risky income and
     stochastic transitions between discrete states, in a Markov fashion.  Has
-    identical inputs as solveConsIndShock, except for a discrete 
-    Markov transitionrule MrkvArray.  Markov states can differ in their interest 
+    identical inputs as solveConsIndShock, except for a discrete
+    Markov transitionrule MrkvArray.  Markov states can differ in their interest
     factor, permanent growth factor, and income distribution, so the inputs Rfree,
     PermGroFac, and IncomeDstn are arrays or lists specifying those values in each
     (succeeding) Markov state.
-    
+
     Parameters
     ----------
     solution_next : ConsumerSolution
@@ -613,9 +613,9 @@ def solveConsMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFa
         permanent shocks, transitory shocks.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.    
+        the succeeding period.
     DiscFac : float
-        Intertemporal discount factor for future utility.        
+        Intertemporal discount factor for future utility.
     CRRA : float
         Coefficient of relative risk aversion.
     Rfree_list : np.array
@@ -642,7 +642,7 @@ def solveConsMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFa
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
         polation.
-        
+
     Returns
     -------
     solution : ConsumerSolution
@@ -655,11 +655,11 @@ def solveConsMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFa
         are lists or arrays, with elements corresponding to the current
         Markov state.  E.g. solution.cFunc[0] is the consumption function
         when in the i=0 Markov state this period.
-    '''                                       
+    '''
     solver = ConsMarkovSolver(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                              PermGroFac,MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)              
+                              PermGroFac,MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
     solution_now = solver.solve()
-    return solution_now             
+    return solution_now
 
 
 
@@ -675,14 +675,14 @@ class MarkovConsumerType(IndShockConsumerType):
     '''
     time_vary_ = IndShockConsumerType.time_vary_ + ['MrkvArray']
     shock_vars_ = IndShockConsumerType.shock_vars_ + ['MrkvNow']
-    
+
     def __init__(self,cycles=1,time_flow=True,**kwds):
         IndShockConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
         self.solveOnePeriod = solveConsMarkov
         self.poststate_vars += ['MrkvNow']
         if not hasattr(self, 'global_markov'):
             self.global_markov = False
-        
+
     def checkMarkovInputs(self):
         '''
         Many parameters used by MarkovConsumerType are arrays.  Make sure those arrays are the
@@ -691,16 +691,16 @@ class MarkovConsumerType(IndShockConsumerType):
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
         '''
         StateCount = self.MrkvArray[0].shape[0]
-        
+
         # Check that arrays are the right shape
         assert self.Rfree.shape      == (StateCount,),'Rfree not the right shape!'
-        
+
         # Check that arrays in lists are the right shape
         for MrkvArray_t in self.MrkvArray:
             assert MrkvArray_t.shape  == (StateCount,StateCount),'MrkvArray not the right shape!'
@@ -712,12 +712,12 @@ class MarkovConsumerType(IndShockConsumerType):
         # Now check the income distribution.
         # Note IncomeDstn is (potentially) time-varying, so it is in time_vary.
         # Therefore it is a list, and each element of that list responds to the income distribution
-        # at a particular point in time.  Each income distribution at a point in time should itself 
+        # at a particular point in time.  Each income distribution at a point in time should itself
         # be a list, with each element corresponding to the income distribution
-        # conditional on a particular Markov state. 
+        # conditional on a particular Markov state.
         for IncomeDstn_t in self.IncomeDstn:
             assert len(IncomeDstn_t) == StateCount,'List in IncomeDstn is not the right length!'
-            
+
     def preSolve(self):
         """
         Do preSolve stuff inherited from IndShockConsumerType, then check to make sure that the
@@ -727,7 +727,7 @@ class MarkovConsumerType(IndShockConsumerType):
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -739,17 +739,17 @@ class MarkovConsumerType(IndShockConsumerType):
         '''
         Update the terminal period solution.  This method should be run when a
         new AgentType is created or when CRRA changes.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
         '''
         IndShockConsumerType.updateSolutionTerminal(self)
-        
+
         # Make replicated terminal period solution: consume all resources, no human wealth, minimum m is 0
         StateCount = self.MrkvArray[0].shape[0]
         self.solution_terminal.cFunc   = StateCount*[self.cFunc_terminal_]
@@ -760,7 +760,7 @@ class MarkovConsumerType(IndShockConsumerType):
         self.solution_terminal.hRto    = np.zeros(StateCount)
         self.solution_terminal.MPCmax  = np.ones(StateCount)
         self.solution_terminal.MPCmin  = np.ones(StateCount)
-        
+
     def initializeSim(self):
         IndShockConsumerType.initializeSim(self)
         if self.global_markov:  #Need to initialize markov state to be the same for all agents
@@ -768,16 +768,16 @@ class MarkovConsumerType(IndShockConsumerType):
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.MrkvNow = np.ones(self.AgentCount)*np.searchsorted(Cutoffs,base_draw).astype(int)
         self.MrkvNow = self.MrkvNow.astype(int)
-        
+
     def simDeath(self):
         '''
         Determines which agents die this period and must be replaced.  Uses the sequence in LivPrb
         to determine survival probabilities for each agent.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         which_agents : np.array(bool)
@@ -792,17 +792,17 @@ class MarkovConsumerType(IndShockConsumerType):
             too_old = self.t_age >= self.T_age
             which_agents = np.logical_or(which_agents,too_old)
         return which_agents
-        
+
     def simBirth(self,which_agents):
         '''
         Makes new Markov consumer by drawing initial normalized assets, permanent income levels, and
         discrete states. Calls IndShockConsumerType.simBirth, then draws from initial Markov distribution.
-        
+
         Parameters
         ----------
         which_agents : np.array(Bool)
             Boolean array of size self.AgentCount indicating which agents should be "born".
-        
+
         Returns
         -------
         None
@@ -813,16 +813,16 @@ class MarkovConsumerType(IndShockConsumerType):
             base_draws = drawUniform(N,seed=self.RNG.randint(0,2**31-1))
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.MrkvNow[which_agents] = np.searchsorted(Cutoffs,base_draws).astype(int)
-        
+
     def getShocks(self):
         '''
         Gets new Markov states and permanent and transitory income shocks for this period.  Samples
         from IncomeDstn for each period-state in the cycle.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -842,8 +842,8 @@ class MarkovConsumerType(IndShockConsumerType):
                 MrkvNow[these] = np.searchsorted(Cutoffs[j,:],base_draws[these]).astype(int)
         if not self.global_markov:
                 MrkvNow[newborn] = MrkvPrev[newborn]
-        self.MrkvNow = MrkvNow.astype(int)        
-        
+        self.MrkvNow = MrkvNow.astype(int)
+
         # Now get income shocks for each consumer, by cycle-time and discrete state
         PermShkNow = np.zeros(self.AgentCount) # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
@@ -859,35 +859,35 @@ class MarkovConsumerType(IndShockConsumerType):
                     EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
                     PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
                     TranShkNow[these] = IncomeDstnNow[2][EventDraws]
-        newborn = self.t_age == 0 
+        newborn = self.t_age == 0
         PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0
         self.PermShkNow = PermShkNow
         self.TranShkNow = TranShkNow
-        
+
     def readShocks(self):
         '''
         A slight modification of AgentType.readShocks that makes sure that MrkvNow is int, not float.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
         '''
         IndShockConsumerType.readShocks(self)
         self.MrkvNow = self.MrkvNow.astype(int)
-                
+
     def getRfree(self):
         '''
         Returns an array of size self.AgentCount with interest factor that varies with discrete state.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         RfreeNow : np.array
@@ -895,15 +895,15 @@ class MarkovConsumerType(IndShockConsumerType):
         '''
         RfreeNow = self.Rfree[self.MrkvNow]
         return RfreeNow
-           
+
     def getControls(self):
         '''
         Calculates consumption for each consumer of this type using the consumption functions.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -915,7 +915,7 @@ class MarkovConsumerType(IndShockConsumerType):
                 cNrmNow[these] = self.solution[t].cFunc[j](self.mNrmNow[these])
         self.cNrmNow = cNrmNow
         return None
-        
+
     def calcBoundingValues(self):
         '''
         Calculate human wealth plus minimum and maximum MPC in an infinite
@@ -925,19 +925,19 @@ class MarkovConsumerType(IndShockConsumerType):
         ality.  The maximum MPC is the limit of the MPC as m --> mNrmMin.  The
         minimum MPC is the limit of the MPC as m --> infty.  Results are all
         np.array with elements corresponding to each Markov state.
-        
+
         NOT YET IMPLEMENTED FOR THIS CLASS
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
         '''
         raise NotImplementedError()
-        
+
     def makeEulerErrorFunc(self,mMax=100,approx_inc_dstn=True):
         '''
         Creates a "normalized Euler error" function for this instance, mapping
@@ -945,9 +945,9 @@ class MarkovConsumerType(IndShockConsumerType):
         Stores result in attribute eulerErrorFunc as an interpolated function.
         Has option to use approximate income distribution stored in self.IncomeDstn
         or to use a (temporary) very dense approximation.
-        
+
         NOT YET IMPLEMENTED FOR THIS CLASS
-        
+
         Parameters
         ----------
         mMax : float
@@ -957,21 +957,21 @@ class MarkovConsumerType(IndShockConsumerType):
             bution stored in self.IncomeDstn[0], or to use a very accurate
             discrete approximation instead.  When True, uses approximation in
             IncomeDstn; when False, makes and uses a very dense approximation.
-        
+
         Returns
         -------
         None
         '''
         raise NotImplementedError()
-            
+
 def solveSOEMarkov(solution_next,IncomeDstn,TranShkAggDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
                                  MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
     '''
-    See solveConsMarkov. The difference is the global transitory shocks. In a 
+    See solveConsMarkov. The difference is the global transitory shocks. In a
     small open economy setting, the global nature of the shocks does not change
-    the agent's problem, but the IncomeDstn needs to be changed to merge 
+    the agent's problem, but the IncomeDstn needs to be changed to merge
     idiosyncratic and global transitory shocks into one
-    
+
     Parameters
     ----------
     See solveConsMarkov  except:
@@ -988,35 +988,35 @@ def solveSOEMarkov(solution_next,IncomeDstn,TranShkAggDstn,LivPrb,DiscFac,CRRA,R
         this_mergedIncomeDstn = combineIndepDstns([this_IncomeDstn[0],this_IncomeDstn[1]],TranShkAggDstn)
         this_mergedIncomeDstn2 = combineIndepDstns([this_IncomeDstn[0],this_IncomeDstn[2]],TranShkAggDstn)
         this_mergedIncomeDstn[2] = this_mergedIncomeDstn[2]*this_mergedIncomeDstn2[1] #multiply idiosyncratic and aggregate transitive shocks together
-        merged_IncomeDstn.append(this_mergedIncomeDstn)   
+        merged_IncomeDstn.append(this_mergedIncomeDstn)
     Rfree_eff = Rfree/LivPrb[0] #To account for the division of assets of those who die
     solution_now = solveConsMarkov(solution_next,merged_IncomeDstn,LivPrb,DiscFac,CRRA,Rfree_eff,PermGroFac,MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
     return solution_now
-        
+
 class MarkovSOEType(MarkovConsumerType, AggShockConsumerType):
     '''
-    A class to represent consumers who face idiosyncratic transitory and 
+    A class to represent consumers who face idiosyncratic transitory and
     permanent shocks to income, but their Markov state variable is exogenously
     set by the market.
     '''
-    time_vary_ = MarkovConsumerType.time_vary_ 
+    time_vary_ = MarkovConsumerType.time_vary_
     time_inv_ = MarkovConsumerType.time_inv_  + ['TranShkAggDstn']
-    shock_vars_ = MarkovConsumerType.shock_vars_ 
-    
+    shock_vars_ = MarkovConsumerType.shock_vars_
+
     def __init__(self,cycles=1,time_flow=True,**kwds):
         MarkovConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
         self.solveOnePeriod = solveSOEMarkov
         self.poststate_vars += ['MrkvNow']
         self.global_markov = True
-        
+
     def reset(self):
         '''
         Initialize this type for a new simulated history of K/L ratio.
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         None
@@ -1024,29 +1024,29 @@ class MarkovSOEType(MarkovConsumerType, AggShockConsumerType):
         self.initializeSim()
         self.aLvlNow = self.aInit*np.ones(self.AgentCount) # Start simulation near SS
         self.aNrmNow = self.aLvlNow/self.pLvlNow
-        
+
     def simBirth(self,which_agents):
-        '''    
+        '''
         Parameters
         ----------
         which_agents : np.array(Bool)
             Boolean array of size self.AgentCount indicating which agents should be "born".
-        
+
         Returns
         -------
         None
         '''
         AggShockConsumerType.simBirth(self,which_agents)
-        
+
     def simDeath(self):
         '''
         Determines which agents die this period and must be replaced.  Uses the sequence in LivPrb
         to determine survival probabilities for each agent.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         which_agents : np.array(bool)
@@ -1060,7 +1060,7 @@ class MarkovSOEType(MarkovConsumerType, AggShockConsumerType):
         if self.T_age is not None: # Kill agents that have lived for too many periods
             too_old = self.t_age >= self.T_age
             which_agents = np.logical_or(which_agents,too_old)
-            
+
         # Divide up the wealth of those who die, giving it to those who survive
         who_lives = np.logical_not(which_agents)
         wealth_living = np.sum(self.aLvlNow[who_lives])
@@ -1074,11 +1074,11 @@ class MarkovSOEType(MarkovConsumerType, AggShockConsumerType):
     def getEconomyData(self,Economy):
         '''
         Imports economy-determined objects into self from a Market.
-        
+
         Parameters
         ----------
         Economy : Market
-            The "macroeconomy" in which this instance "lives".              
+            The "macroeconomy" in which this instance "lives".
         Returns
         -------
         None
@@ -1092,16 +1092,16 @@ class MarkovSOEType(MarkovConsumerType, AggShockConsumerType):
         self.TranShkAggDstn = Economy.TranShkAggDstn
         self.TranShkAggDstn = Economy.PermShkAggDstn
         self.aNrmInitMean = np.log(0.00000001)              # Initialize newborn assets to nearly zero
-        
+
     def getShocks(self):
         '''
         Finds the effective permanent and transitory shocks this period based on
         the markov state of the economy
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -1123,36 +1123,36 @@ class MarkovSOEType(MarkovConsumerType, AggShockConsumerType):
                     EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
                     PermShkNow[these] = IncomeDstnNow[1][EventDraws]*self.PermShkAggNow*PermGroFacNow # permanent "shock" includes expected growth
                     TranShkNow[these] = IncomeDstnNow[2][EventDraws]*self.TranShkAggNow
-        newborn = self.t_age == 0 
+        newborn = self.t_age == 0
         PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0*self.TranShkAggNow
         self.PermShkNow = PermShkNow
         self.TranShkNow = TranShkNow
-        
+
     def marketAction(self):
         '''
         The "market action" is to simulate one
         period of receiving income and choosing how much to consume.
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         None
         '''
         self.simulate(1)
-        
+
 class MarkovSmallOpenEconomy(Market):
     '''
-    A class for representing a small open economy, where the Markov state is 
+    A class for representing a small open economy, where the Markov state is
     exogenously set but there is no feedback from agent's actions
     '''
     def __init__(self,agents=[],tolerance=0.0001,act_T=1000,**kwds):
         '''
         Make a new instance of MarkovSmallOpenEconomy
-        
+
         Parameters
         ----------
         agents : [ConsumerType]
@@ -1163,7 +1163,7 @@ class MarkovSmallOpenEconomy(Market):
             of the log-linear "next capital ratio" function.
         act_T : int
             Number of periods to simulate when making a history of of the market.
-            
+
         Returns
         -------
         None
@@ -1176,40 +1176,40 @@ class MarkovSmallOpenEconomy(Market):
                             tolerance=tolerance,
                             act_T=act_T)
         self.assignParameters(**kwds)
-        
+
     def millRule(self):
         '''
         No aggregation occurs for a small open economy.
 
         '''
         return self.getMkvShock()
-        
+
     def reset(self):
         '''
         Reset the economy to prepare for a new simulation.  Sets the time index of aggregate shocks
         to zero and runs Market.reset().  This replicates the reset method for CobbDouglasEconomy;
         future version should create parent class of that class and this one.
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         None
         '''
         self.Shk_idx = 0
         Market.reset(self)
-        
+
     def makeMkvShkHist(self):
         '''
         Make simulated historie Markov state. Histories are of
-        length self.act_T, for use in the general equilibrium simulation.  
-        
+        length self.act_T, for use in the general equilibrium simulation.
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         None
@@ -1220,35 +1220,35 @@ class MarkovSmallOpenEconomy(Market):
         Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
         MrkvShkHist[0] = np.searchsorted(Cutoffs,base_draws[0]).astype(int)
 
-        Cutoffs = np.cumsum(self.MrkvArray[0],axis=1)       
+        Cutoffs = np.cumsum(self.MrkvArray[0],axis=1)
         for t in range(sim_periods-1):
             MrkvShkHist[t+1] = np.searchsorted(Cutoffs[MrkvShkHist[t],:],base_draws[t+1]).astype(int)
-        # Store the histories       
+        # Store the histories
         self.MrkvShkHist = MrkvShkHist
         #Also make history of aggregate transitory shocks
         Events      = np.arange(self.TranShkAggDstn[0].size) # just a list of integers
         EventDraws  = drawDiscrete(N=sim_periods,P=self.TranShkAggDstn[0],X=Events,seed=1)
         TranShkAggHist = self.TranShkAggDstn[1][EventDraws]
-        # Store the histories       
+        # Store the histories
         self.TranShkAggHist = TranShkAggHist
         #And make history of aggregate transitory shocks
         Events      = np.arange(self.PermShkAggDstn[0].size) # just a list of integers
         EventDraws  = drawDiscrete(N=sim_periods,P=self.PermShkAggDstn[0],X=Events,seed=2)
         PermShkAggHist = self.PermShkAggDstn[1][EventDraws]
-        # Store the histories       
+        # Store the histories
         self.TranShkAggHist = TranShkAggHist
         self.PermShkAggHist = PermShkAggHist
-        
+
 
     def getMkvShock(self):
         '''
         Returns Markov state variables and shocks for this period.  Markov states
         are assigned from a prespecified history.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -1264,52 +1264,52 @@ class MarkovSmallOpenEconomy(Market):
         MkvShkReturn.TranShkAggNow = TranShkAggNow
         MkvShkReturn.PermShkAggNow = PermShkAggNow
         return MkvShkReturn
-        
+
     def calcDynamics(self):
         '''
         Calculates a new dynamic rule for the economy, which is just an empty object.
         There is no "dynamic rule" for a small open economy.
         '''
         return HARKobject()
-        
+
     def updateDynamics(self):
         '''
         Calculates a new dynamic rule for the economy, which is just an empty object.
         There is no "dynamic rule" for a small open economy.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         dynamics : instance
         '''
         return HARKobject()
-        
+
     def solve(self):
         '''
         "Solves" the market by finding a "dynamic rule" that governs the aggregate
         market state.
         Nothing to be done for a small open economy.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
-        '''     
+        '''
         self.solveAgents()     # Solve each AgentType's micro problem
         self.makeHistory()     # "Run" the model while tracking aggregate variables
-        self.dynamics = HARKobject() 
-        
-        
+        self.dynamics = HARKobject()
+
+
 ###############################################################################
 
 if __name__ == '__main__':
-    
+
     import ConsumerParameters as Params
     from HARKutilities import plotFuncs
     from time import clock
@@ -1336,7 +1336,7 @@ if __name__ == '__main__':
                            (1-p_unemploy_bad)*(1-boom_prob),p_unemploy_bad*(1-boom_prob)],
                           [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,
                            p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
-                           
+
     # Make a consumer with serially correlated unemployment, subject to boom and bust cycles
     init_serial_unemployment = copy(Params.init_idiosyncratic_shocks)
     init_serial_unemployment['MrkvArray'] = [MrkvArray]
@@ -1345,18 +1345,18 @@ if __name__ == '__main__':
     SerialUnemploymentExample = MarkovConsumerType(**init_serial_unemployment)
     SerialUnemploymentExample.cycles = 0
     SerialUnemploymentExample.vFuncBool = False # for easy toggling here
-    
+
     # Replace the default (lognormal) income distribution with a custom one
     employed_income_dist   = [np.ones(1),np.ones(1),np.ones(1)] # Definitely get income
     unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)] # Definitely don't
     SerialUnemploymentExample.IncomeDstn = [[employed_income_dist,unemployed_income_dist,employed_income_dist,
                               unemployed_income_dist]]
-    
+
     # Interest factor, permanent growth rates, and survival probabilities are constant arrays
     SerialUnemploymentExample.Rfree = np.array(4*[SerialUnemploymentExample.Rfree])
     SerialUnemploymentExample.PermGroFac = [np.array(4*SerialUnemploymentExample.PermGroFac)]
     SerialUnemploymentExample.LivPrb = [SerialUnemploymentExample.LivPrb*np.ones(4)]
-    
+
     # Solve the serial unemployment consumer's problem and display solution
     SerialUnemploymentExample.timeFwd()
     start_time = clock()
@@ -1368,7 +1368,7 @@ if __name__ == '__main__':
     if SerialUnemploymentExample.vFuncBool:
         print('Value functions for each discrete state:')
         plotFuncs(SerialUnemploymentExample.solution[0].vFunc,5,50)
-    
+
     # Simulate some data; results stored in cHist, mNrmNow_hist, cNrmNow_hist, and MrkvNow_hist
     if do_simulation:
         SerialUnemploymentExample.T_sim = 120
@@ -1377,19 +1377,19 @@ if __name__ == '__main__':
         SerialUnemploymentExample.makeShockHistory() # This is optional
         SerialUnemploymentExample.initializeSim()
         SerialUnemploymentExample.simulate()
-        
+
 ###############################################################################
 
     # Make a consumer who occasionally gets "unemployment immunity" for a fixed period
     UnempPrb    = 0.05  # Probability of becoming unemployed each period
     ImmunityPrb = 0.01  # Probability of becoming "immune" to unemployment
     ImmunityT   = 6     # Number of periods of immunity
-    
+
     StateCount = ImmunityT+1   # Total number of Markov states
     IncomeDstnReg = [np.array([1-UnempPrb,UnempPrb]), np.array([1.0,1.0]), np.array([1.0/(1.0-UnempPrb),0.0])] # Ordinary income distribution
     IncomeDstnImm = [np.array([1.0]), np.array([1.0]), np.array([1.0])] # Income distribution when unemployed
     IncomeDstn = [IncomeDstnReg] + ImmunityT*[IncomeDstnImm] # Income distribution for each Markov state, in a list
-    
+
     # Make the Markov transition array.  MrkvArray[i,j] is the probability of transitioning
     # to state j in period t+1 from state i in period t.
     MrkvArray = np.zeros((StateCount,StateCount))
@@ -1397,7 +1397,7 @@ if __name__ == '__main__':
     MrkvArray[0,ImmunityT] = ImmunityPrb # Probability of becoming immune in ordinary state: begin immunity periods
     for j in range(ImmunityT):
         MrkvArray[j+1,j] = 1.0  # When immune, have 100% chance of transition to state with one fewer immunity periods remaining
-    
+
     init_unemployment_immunity = copy(Params.init_idiosyncratic_shocks)
     init_unemployment_immunity['MrkvArray'] = [MrkvArray]
     ImmunityExample = MarkovConsumerType(**init_unemployment_immunity)
@@ -1407,7 +1407,7 @@ if __name__ == '__main__':
                                   BoroCnstArt = None,                            # No artificial borrowing constraint
                                   cycles = 0)                                    # Infinite horizon
     ImmunityExample.IncomeDstn = [IncomeDstn]
-    
+
     # Solve the unemployment immunity problem and display the consumption functions
     start_time = clock()
     ImmunityExample.solve()
@@ -1416,20 +1416,20 @@ if __name__ == '__main__':
     print('Consumption functions for each discrete state:')
     mNrmMin = np.min([ImmunityExample.solution[0].mNrmMin[j] for j in range(StateCount)])
     plotFuncs(ImmunityExample.solution[0].cFunc,mNrmMin,10)
-     
+
 ###############################################################################
-    
+
     # Make a consumer with serially correlated permanent income growth
     UnempPrb = 0.05    # Unemployment probability
     StateCount = 5     # Number of permanent income growth rates
     Persistence = 0.5  # Probability of getting the same permanent income growth rate next period
-    
+
     IncomeDstnReg = [np.array([1-UnempPrb,UnempPrb]), np.array([1.0,1.0]), np.array([1.0,0.0])]
     IncomeDstn = StateCount*[IncomeDstnReg] # Same simple income distribution in each state
-    
+
     # Make the state transition array for this type: Persistence probability of remaining in the same state, equiprobable otherwise
     MrkvArray = Persistence*np.eye(StateCount) + (1.0/StateCount)*(1.0-Persistence)*np.ones((StateCount,StateCount))
-    
+
     init_serial_growth = copy(Params.init_idiosyncratic_shocks)
     init_serial_growth['MrkvArray'] = [MrkvArray]
     SerialGroExample = MarkovConsumerType(**init_serial_growth)
@@ -1437,8 +1437,8 @@ if __name__ == '__main__':
                                    PermGroFac = [np.array([0.97,0.99,1.01,1.03,1.05])], # Different permanent growth factor in each Markov state
                                    LivPrb = [np.array(StateCount*[0.98])],              # Same survival probability in all states
                                    cycles = 0)
-    SerialGroExample.IncomeDstn = [IncomeDstn]         
-    
+    SerialGroExample.IncomeDstn = [IncomeDstn]
+
     # Solve the serially correlated permanent growth shock problem and display the consumption functions
     start_time = clock()
     SerialGroExample.solve()
@@ -1446,7 +1446,7 @@ if __name__ == '__main__':
     print('Solving a serially correlated growth consumer took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
     plotFuncs(SerialGroExample.solution[0].cFunc,0,10)
-    
+
     # Put serially correlated permanent income growth consumers in a MarkovSmallOpenEconomy
     TranShkAggDstn = [np.array([0.2,0.6,0.2]),np.array([0.99,1.0,1.01])]
     init_markov_soe = {'act_T':1200,
@@ -1463,27 +1463,27 @@ if __name__ == '__main__':
                                    PermGroFac = [np.array([0.97,0.99,1.01,1.03,1.05])], # Different permanent growth factor in each Markov state
                                    LivPrb = [np.array(StateCount*[0.98])],              # Same survival probability in all states
                                    cycles = 0)
-    SerialGroExample2.IncomeDstn = [IncomeDstn]  
+    SerialGroExample2.IncomeDstn = [IncomeDstn]
     MarkovEconomy = MarkovSmallOpenEconomy(agents = [SerialGroExample2],**init_markov_soe)
     MarkovEconomy.makeMkvShkHist() # Simulate a history of markov shocks
-    
+
     # Have the consumers inherit relevant objects from the economy
     SerialGroExample2.getEconomyData(MarkovEconomy)
-    
+
     # Solve the microeconomic model for the aggregate shocks example type (and display results)
     t_start = clock()
     MarkovEconomy.solve()
     t_end = clock()
-    
-    
-    
+
+
+
 ###############################################################################
-    
+
     # Make a consumer with serially correlated interest factors
     SerialRExample = deepcopy(SerialGroExample) # Same as the last problem...
     SerialRExample.assignParameters(PermGroFac = [np.array(StateCount*[1.01])],   # ...but now the permanent growth factor is constant...
                                  Rfree = np.array([1.01,1.02,1.03,1.04,1.05])) # ...and the interest factor is what varies across states
-    
+
     # Solve the serially correlated interest rate problem and display the consumption functions
     start_time = clock()
     SerialRExample.solve()

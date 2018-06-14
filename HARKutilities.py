@@ -39,9 +39,9 @@ warnings.showwarning = _warning
 def memoize(obj):
    '''
    A decorator to (potentially) make functions more efficient.
-   
-   With this decorator, functions will "remember" if they have been evaluated with given inputs 
-   before.  If they have, they will "remember" the outputs that have already been calculated 
+
+   With this decorator, functions will "remember" if they have been evaluated with given inputs
+   before.  If they have, they will "remember" the outputs that have already been calculated
    for those inputs, rather than calculating them again.
    '''
    cache = obj._cache = {}
@@ -61,12 +61,12 @@ def memoize(obj):
 def getArgNames(function):
     '''
     Returns a list of strings naming all of the arguments for the passed function.
-    
+
     Parameters
     ----------
     function : function
         A function whose argument names are wanted.
-    
+
     Returns
     -------
     argNames : [string]
@@ -95,25 +95,25 @@ class NullFunc():
                 return np.zeros_like(arg) + np.nan
             else:
                 return np.nan
-            
+
     def distance(self,other):
         '''
         Trivial distance metric that only cares whether the other object is also
         an instance of NullFunc.  Intentionally does not inherit from HARKobject
         as this might create dependency problems.
-        
+
         Parameters
         ----------
         other : any
             Any object for comparison to this instance of NullFunc.
-            
+
         Returns
         -------
         (unnamed) : float
             The distance between self and other.  Returns 0 if other is also a
             NullFunc; otherwise returns an arbitrary high number.
         '''
-        try:            
+        try:
             if other.__class__ is self.__class__:
                 return 0.0
             else:
@@ -190,7 +190,7 @@ def CRRAutilityPP(c, gam):
         Marginal marginal utility
     '''
     return( -gam*c**(-gam-1.0) )
-    
+
 def CRRAutilityPPP(c, gam):
     '''
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
@@ -209,7 +209,7 @@ def CRRAutilityPPP(c, gam):
         Marginal marginal marginal utility
     '''
     return( (gam+1.0)*gam*c**(-gam-2.0) )
-    
+
 def CRRAutilityPPPP(c, gam):
     '''
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
@@ -269,7 +269,7 @@ def CRRAutilityP_inv(uP, gam):
         Consumption corresponding to given marginal utility value.
     '''
     return( uP**(-1.0/gam) )
-    
+
 def CRRAutility_invP(u, gam):
     '''
     Evaluates the derivative of the inverse of the CRRA utility function (with
@@ -291,7 +291,7 @@ def CRRAutility_invP(u, gam):
         return np.exp(u)
     else:
         return( ((1.0-gam)*u)**(gam/(1.0-gam)) )
-    
+
 def CRRAutilityP_invP(uP, gam):
     '''
     Evaluates the derivative of the inverse of the CRRA marginal utility function
@@ -310,8 +310,8 @@ def CRRAutilityP_invP(uP, gam):
         Marginal consumption corresponding to given marginal utility value
     '''
     return( (-1.0/gam)*uP**(-1.0/gam-1.0) )
-    
-        
+
+
 def CARAutility(c, alpha):
     '''
     Evaluates constant absolute risk aversion (CARA) utility of consumption c
@@ -368,7 +368,7 @@ def CARAutilityPP(c, alpha):
         Marginal marginal utility
     '''
     return( -alpha*np.exp(-alpha*c) )
-    
+
 def CARAutilityPPP(c, alpha):
     '''
     Evaluates constant absolute risk aversion (CARA) marginal marginal marginal
@@ -425,7 +425,7 @@ def CARAutilityP_inv(u, alpha):
         Consumption value corresponding to uP
     '''
     return( -1.0/alpha*np.log(u) )
-    
+
 def CARAutility_invP(u, alpha):
     '''
     Evaluates the derivative of inverse of constant absolute risk aversion (CARA)
@@ -452,7 +452,7 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
     normal distribution N(mu,sigma).  Makes an equiprobable distribution by
     default, but user can optionally request augmented tails with exponentially
     sized point masses.  This can improve solution accuracy in some models.
-    
+
     Parameters
     ----------
     N: int
@@ -470,14 +470,14 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
     tail_order: float
         Factor by which consecutive point masses in a "tail part" differ in
         probability.  Should be >= 1 for sensible spacing.
-        
+
     Returns
     -------
     pmf: np.ndarray
         Probabilities for discrete probability mass function.
     X: np.ndarray
         Discrete values in probability mass function.
-        
+
     Written by Luca Gerotto
     Based on Matab function "setup_workspace.m," from Chris Carroll's
       [Solution Methods for Microeconomic Dynamic Optimization Problems]
@@ -485,7 +485,7 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
     Latest update: 11 February 2017 by Matthew N. White
     '''
     # Find the CDF boundaries of each segment
-    if sigma > 0.0:        
+    if sigma > 0.0:
         if tail_N > 0:
             lo_cut     = tail_bound[0]
             hi_cut     = tail_bound[1]
@@ -509,7 +509,7 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
         temp_cutoffs   = list(stats.lognorm.ppf(CDF_vals[1:-1], s=sigma, loc=0, scale=np.exp(mu)))
         cutoffs        = [0] + temp_cutoffs + [np.inf]
         CDF_vals       = np.array(CDF_vals)
-    
+
         # Construct the discrete approximation by finding the average value within each segment.
         # This codeblock ignores warnings because it throws a "divide by zero encountered in log"
         # warning due to computing erf(infty) at the tail boundary.  This is irrelevant and
@@ -518,7 +518,7 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
             warnings.simplefilter("ignore")
             K              = CDF_vals.size-1 # number of points in approximation
             pmf            = CDF_vals[1:(K+1)] - CDF_vals[0:K]
-            X              = np.zeros(K) 
+            X              = np.zeros(K)
             for i in range(K):
                 zBot  = cutoffs[i]
                 zTop = cutoffs[i+1]
@@ -528,7 +528,7 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
                     X[i] = -0.5*np.exp(mu+(sigma**2)*0.5)*(erf(tempTop) - erf(tempBot))/pmf[i]
                 else:
                     X[i] = -0.5*np.exp(mu+(sigma**2)*0.5)*(erfc(tempBot) - erfc(tempTop))/pmf[i]
-                        
+
     else:
         pmf = np.ones(N)/N
         X   = np.exp(mu)*np.ones(N)
@@ -564,13 +564,13 @@ def approxMeanOneLognormal(N, sigma=1.0, **kwargs):
     mu_adj = - 0.5*sigma**2;
     pmf,X = approxLognormal(N=N, mu=mu_adj, sigma=sigma, **kwargs)
     return [pmf,X]
-            
+
 def approxBeta(N,a=1.0,b=1.0):
     '''
     Calculate a discrete approximation to the beta distribution.  May be quite
     slow, as it uses a rudimentary numeric integration method to generate the
     discrete approximation.
-    
+
     Parameters
     ----------
     N : int
@@ -592,12 +592,12 @@ def approxBeta(N,a=1.0,b=1.0):
     X    = np.mean(vals,axis=1)
     pmf  = np.ones(N)/float(N)
     return( [pmf, X] )
-        
+
 def approxUniform(N,bot=0.0,top=1.0):
     '''
     Makes a discrete approximation to a uniform distribution, given its bottom
     and top limits and number of points.
-    
+
     Parameters
     ----------
     N : int
@@ -606,7 +606,7 @@ def approxUniform(N,bot=0.0,top=1.0):
         The bottom of the uniform distribution
     top : float
         The top of the uniform distribution
-     
+
     Returns
     -------
     (unnamed) : np.array
@@ -625,12 +625,12 @@ def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):
     deviation sigma, returning a stochastic vector called p_vec, corresponding
     to values in x_grid.  If a RV is distributed x~N(mu,sigma), then the expectation
     of a continuous function f() is E[f(x)] = numpy.dot(p_vec,f(x_grid)).
-    
+
     Parameters
     ----------
     x_grid: numpy.array
         A sorted 1D array of floats representing discrete values that a normally
-        distributed RV could take on.    
+        distributed RV could take on.
     mu: float
         Mean of the normal distribution to be approximated.
     sigma: float
@@ -639,7 +639,7 @@ def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):
         Number of points in the normal distribution to sample.
     bound: float
         Truncation bound of the normal distribution, as +/- bound*sigma.
-        
+
     Returns
     -------
     p_vec: numpy.array
@@ -652,32 +652,32 @@ def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):
     f_weights = stats.norm.pdf(raw_sample) # Relative probability of each draw
     sample = mu + sigma*raw_sample # Adjusted bounds, given mean and stdev
     w_vec = np.zeros(x_n) # A vector of outcome weights
-    
+
     # Find the relative position of each of the draws
     sample_pos = np.searchsorted(x_grid,sample)
     sample_pos[sample_pos < 1] = 1
     sample_pos[sample_pos > x_n-1] = x_n-1
-    
+
     # Make arrays of the x_grid point directly above and below each draw
     bot = x_grid[sample_pos-1]
     top = x_grid[sample_pos]
     alpha = (sample-bot)/(top-bot)
 
-    # Keep the weights (alpha) in bounds    
-    alpha_clipped = np.clip(alpha,0.,1.)    
-    
+    # Keep the weights (alpha) in bounds
+    alpha_clipped = np.clip(alpha,0.,1.)
+
     # Loop through each x_grid point and add up the probability that each nearby
     # draw contributes to it (accounting for distance)
     for j in range(1,x_n):
         c = sample_pos == j
         w_vec[j-1] = w_vec[j-1] + np.dot(f_weights[c],1.0-alpha_clipped[c])
         w_vec[j] = w_vec[j] + np.dot(f_weights[c],alpha_clipped[c])
-        
+
     # Reweight the probabilities so they sum to 1
     W = np.sum(w_vec)
     p_vec = w_vec/W
 
-    # Check for obvious errors, and return p_vec    
+    # Check for obvious errors, and return p_vec
     assert (np.all(p_vec>=0.)) and (np.all(p_vec<=1.)) and (np.isclose(np.sum(p_vec),1.))
     return p_vec
 
@@ -688,31 +688,31 @@ def makeMarkovApproxToNormalByMonteCarlo(x_grid,mu,sigma,N_draws = 10000):
     Returns a stochastic vector called p_vec, corresponding
     to values in x_grid.  If a RV is distributed x~N(mu,sigma), then the expectation
     of a continuous function f() is E[f(x)] = numpy.dot(p_vec,f(x_grid)).
-    
+
     Parameters
     ----------
     x_grid: numpy.array
         A sorted 1D array of floats representing discrete values that a normally
-        distributed RV could take on.    
+        distributed RV could take on.
     mu: float
         Mean of the normal distribution to be approximated.
     sigma: float
         Standard deviation of the normal distribution to be approximated.
     N_draws: int
         Number of draws to use in Monte Carlo.
-        
+
     Returns
     -------
     p_vec: numpy.array
         A stochastic vector with probability weights for each x in x_grid.
     '''
-    
+
     # Take random draws from the desired normal distribution
     random_draws = np.random.normal(loc = mu, scale = sigma, size = N_draws)
 
     # Compute the distance between the draws and points in x_grid
     distance = np.abs(x_grid[:,np.newaxis] - random_draws[np.newaxis,:])
-    
+
     # Find the indices of the points in x_grid that are closest to the draws
     distance_minimizing_index = np.argmin(distance,axis=0)
 
@@ -741,9 +741,9 @@ def makeTauchenAR1(N, sigma=1.0, rho=0.9, bound=3.0):
     rho: float
         AR1 coefficient
     bound: float
-        The highest (lowest) grid point will be bound (-bound) multiplied by the unconditional 
+        The highest (lowest) grid point will be bound (-bound) multiplied by the unconditional
         standard deviation of the process
- 
+
     Returns
     -------
     y: np.array
@@ -764,7 +764,7 @@ def makeTauchenAR1(N, sigma=1.0, rho=0.9, bound=3.0):
             trans_matrix[j,k] = stats.norm.cdf((y[k] + d/2.0 - rho*y[j])/sigma) - stats.norm.cdf((y[k] - d/2.0 - rho*y[j])/sigma)
         trans_matrix[j,0] = stats.norm.cdf((y[0] + d/2.0 - rho*y[j])/sigma)
         trans_matrix[j,N-1] = 1.0 - stats.norm.cdf((y[N-1] - d/2.0 - rho*y[j])/sigma)
-        
+
     return y, trans_matrix
 
 
@@ -776,7 +776,7 @@ def addDiscreteOutcomeConstantMean(distribution, x, p, sort = False):
     '''
     Adds a discrete outcome of x with probability p to an existing distribution,
     holding constant the relative probabilities of other outcomes and overall mean.
-   
+
     Parameters
     ----------
     distribution : [np.array]
@@ -787,32 +787,32 @@ def addDiscreteOutcomeConstantMean(distribution, x, p, sort = False):
         The probability of the discrete outcome x occuring.
     sort: bool
         Whether or not to sort X before returning it
- 
+
     Returns
     -------
     X : np.array
         Discrete points for discrete probability mass function.
     pmf : np.array
         Probability associated with each point in X.
-        
+
     Written by Matthew N. White
     Latest update: 08 December 2015 by David Low
-    '''  
+    '''
     X   = np.append(x,distribution[1]*(1-p*x)/(1-p))
     pmf = np.append(p,distribution[0]*(1-p))
- 
+
     if sort:
         indices = np.argsort(X)
         X       = X[indices]
         pmf     = pmf[indices]
 
     return([pmf,X])
-        
+
 def addDiscreteOutcome(distribution, x, p, sort = False):
     '''
     Adds a discrete outcome of x with probability p to an existing distribution,
     holding constant the relative probabilities of other outcomes.
-    
+
     Parameters
     ----------
     distribution : [np.array]
@@ -832,17 +832,17 @@ def addDiscreteOutcome(distribution, x, p, sort = False):
     Written by Matthew N. White
     Latest update: 11 December 2015
     '''
-    
+
     X   = np.append(x,distribution[1])
     pmf = np.append(p,distribution[0]*(1-p))
-    
+
     if sort:
         indices = np.argsort(X)
         X       = X[indices]
         pmf     = pmf[indices]
 
     return([pmf,X])
-    
+
 def combineIndepDstns(*distributions):
     '''
     Given n lists (or tuples) whose elements represent n independent, discrete
@@ -857,18 +857,18 @@ def combineIndepDstns(*distributions):
         For each pmf, the first vector is probabilities and all subsequent vectors
         are values.  For each pmf, this should be true:
         len(X_pmf[0]) == len(X_pmf[j]) for j in range(1,len(distributions))
- 
+
     Returns
     -------
     List of arrays, consisting of:
-    
+
     P_out: np.array
         Probability associated with each point in X_out.
-    
+
     X_out: np.array (as many as in *distributions)
         Discrete points for the joint discrete probability mass function.
 
-    Written by Nathan Palmer 
+    Written by Nathan Palmer
     Latest update: 5 July August 2017 by Matthew N White
     '''
     # Very quick and incomplete parameter check:
@@ -884,7 +884,7 @@ def combineIndepDstns(*distributions):
     number_of_distributions = len(distributions)
 
     # Initialize lists we will use
-    X_out  = [] 
+    X_out  = []
     P_temp = []
 
     # Now loop through the distributions, tiling and flattening as necessary.
@@ -893,32 +893,32 @@ def combineIndepDstns(*distributions):
         # The shape we want before we tile
         dist_newshape = (1,) * dd + (len(dist[0]),) + \
                         (1,) * (number_of_distributions - dd)
-        
+
         # The tiling we want to do
         dist_tiles    = dist_lengths[:dd] + (1,) + dist_lengths[dd+1:]
 
         # Now we are ready to tile.
         # We don't use the np.meshgrid commands, because they do not
         # easily support non-symmetric grids.
-        
+
         # First deal with probabilities
         Pmesh  = np.tile(dist[0].reshape(dist_newshape),dist_tiles) # Tiling
         flatP  = Pmesh.ravel() # Flatten the tiled arrays
         P_temp += [flatP,] #Add the flattened arrays to the output lists
-        
+
         # Then loop through each value variable
         for n in range(1,dist_dims[dd]+1):
             Xmesh  = np.tile(dist[n].reshape(dist_newshape),dist_tiles)
             flatX  = Xmesh.ravel()
             X_out  += [flatX,]
-        
+
     # We're done getting the flattened X_out arrays we wanted.
-    # However, we have a bunch of flattened P_temp arrays, and just want one 
+    # However, we have a bunch of flattened P_temp arrays, and just want one
     # probability array. So get the probability array, P_out, here.
     P_out = np.prod(np.array(P_temp),axis=0)
 
     assert np.isclose(np.sum(P_out),1),'Probabilities do not sum to 1!'
-    return [P_out,] + X_out 
+    return [P_out,] + X_out
 
 # ==============================================================================
 # ============== Functions for generating state space grids  ===================
@@ -974,27 +974,27 @@ def calcWeightedAvg(data,weights):
     '''
     Generates a weighted average of simulated data.  The Nth row of data is averaged
     and then weighted by the Nth element of weights in an aggregate average.
-    
+
     Parameters
     ----------
     data : numpy.array
         An array of data with N rows of J floats
     weights : numpy.array
         A length N array of weights for the N rows of data.
-        
+
     Returns
     -------
     weighted_sum : float
         The weighted sum of the data.
-    '''    
+    '''
     data_avg = np.mean(data,axis=1)
     weighted_sum = np.dot(data_avg,weights)
     return weighted_sum
-    
+
 def getPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
     '''
     Calculates the requested percentiles of (weighted) data.  Median by default.
-    
+
     Parameters
     ----------
     data : numpy.array
@@ -1006,7 +1006,7 @@ def getPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
         be in (0,1).
     presorted : boolean
         Indicator for whether data has already been sorted.
-        
+
     Returns
     -------
     pctl_out : numpy.array
@@ -1014,7 +1014,7 @@ def getPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
     '''
     if weights is None: # Set equiprobable weights if none were passed
         weights = np.ones(data.size)/float(data.size)
-    
+
     if presorted: # Sort the data if it is not already
         data_sorted = data
         weights_sorted = weights
@@ -1022,20 +1022,20 @@ def getPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
         order = np.argsort(data)
         data_sorted = data[order]
         weights_sorted = weights[order]
-        
+
     cum_dist = np.cumsum(weights_sorted)/np.sum(weights_sorted) # cumulative probability distribution
-    
+
     # Calculate the requested percentiles by interpolating the data over the
     # cumulative distribution, then evaluating at the percentile values
     inv_CDF = interp1d(cum_dist,data_sorted,bounds_error=False,assume_sorted=True)
     pctl_out = inv_CDF(percentiles)
     return pctl_out
-    
+
 def getLorenzShares(data,weights=None,percentiles=[0.5],presorted=False):
     '''
     Calculates the Lorenz curve at the requested percentiles of (weighted) data.
     Median by default.
-    
+
     Parameters
     ----------
     data : numpy.array
@@ -1047,7 +1047,7 @@ def getLorenzShares(data,weights=None,percentiles=[0.5],presorted=False):
         be in (0,1).
     presorted : boolean
         Indicator for whether data has already been sorted.
-        
+
     Returns
     -------
     lorenz_out : numpy.array
@@ -1055,7 +1055,7 @@ def getLorenzShares(data,weights=None,percentiles=[0.5],presorted=False):
     '''
     if weights is None: # Set equiprobable weights if none were given
         weights = np.ones(data.size)
-    
+
     if presorted: # Sort the data if it is not already
         data_sorted = data
         weights_sorted = weights
@@ -1063,22 +1063,22 @@ def getLorenzShares(data,weights=None,percentiles=[0.5],presorted=False):
         order = np.argsort(data)
         data_sorted = data[order]
         weights_sorted = weights[order]
-    
+
     cum_dist = np.cumsum(weights_sorted)/np.sum(weights_sorted) # cumulative probability distribution
     temp = data_sorted*weights_sorted
     cum_data = np.cumsum(temp)/sum(temp) # cumulative ownership shares
-    
+
     # Calculate the requested Lorenz shares by interpolating the cumulative ownership
     # shares over the cumulative distribution, then evaluating at requested points
     lorenzFunc = interp1d(cum_dist,cum_data,bounds_error=False,assume_sorted=True)
     lorenz_out = lorenzFunc(percentiles)
     return lorenz_out
-    
+
 def calcSubpopAvg(data,reference,cutoffs,weights=None):
     '''
     Calculates the average of (weighted) data between cutoff percentiles of a
     reference variable.
-    
+
     Parameters
     ----------
     data : numpy.array
@@ -1090,23 +1090,23 @@ def calcSubpopAvg(data,reference,cutoffs,weights=None):
         in [0,1]).
     weights : numpy.array
         A weighting vector for the data.
-        
+
     Returns
     -------
     slice_avg
         The (weighted) average of data that falls within the cutoff percentiles
         of reference.
-    
+
     '''
     if weights is None: # Set equiprobable weights if none were given
         weights = np.ones(data.size)
-    
+
     # Sort the data and generate a cumulative distribution
     order = np.argsort(reference)
     data_sorted = data[order]
     weights_sorted = weights[order]
     cum_dist = np.cumsum(weights_sorted)/np.sum(weights_sorted)
-    
+
     # For each set of cutoffs, calculate the average of data that falls within
     # the cutoff percentiles of reference
     slice_avg = []
@@ -1116,12 +1116,12 @@ def calcSubpopAvg(data,reference,cutoffs,weights=None):
         slice_avg.append(np.sum(data_sorted[bot:top]*weights_sorted[bot:top])/
                          np.sum(weights_sorted[bot:top]))
     return slice_avg
-     
+
 def kernelRegression(x,y,bot=None,top=None,N=500,h=None):
     '''
     Performs a non-parametric Nadaraya-Watson 1D kernel regression on given data
     with optionally specified range, number of points, and kernel bandwidth.
-    
+
     Parameters
     ----------
     x : np.array
@@ -1136,7 +1136,7 @@ def kernelRegression(x,y,bot=None,top=None,N=500,h=None):
         Number of points to compute.
     h : float
         The bandwidth of the (Epanechnikov) kernel. To-do: GENERALIZE.
-        
+
     Returns
     -------
     regression : LinearInterp
@@ -1149,7 +1149,7 @@ def kernelRegression(x,y,bot=None,top=None,N=500,h=None):
         top = np.max(x)
     if h is None:
         h = 2.0*(top - bot)/float(N) # This is an arbitrary default
-        
+
     # Construct a local linear approximation
     x_vec = np.linspace(bot,top,num=N)
     y_vec = np.zeros_like(x_vec) + np.nan
@@ -1159,11 +1159,11 @@ def kernelRegression(x,y,bot=None,top=None,N=500,h=None):
         y_vec[j] = np.dot(weights,y)/np.sum(weights)
     regression = interp1d(x_vec,y_vec,bounds_error=False,assume_sorted=True)
     return regression
-       
+
 def epanechnikovKernel(x,ref_x,h=1.0):
     '''
     The Epanechnikov kernel.
-    
+
     Parameters
     ----------
     x : np.array
@@ -1172,7 +1172,7 @@ def epanechnikovKernel(x,ref_x,h=1.0):
         The reference point
     h : float
         Kernel bandwidth
-    
+
     Returns
     -------
     out : np.array
@@ -1192,7 +1192,7 @@ def epanechnikovKernel(x,ref_x,h=1.0):
 def plotFuncs(functions,bottom,top,N=1000,legend_kwds = None):
     '''
     Plots 1D function(s) over a given range.
-    
+
     Parameters
     ----------
     functions : [function] or function
@@ -1214,7 +1214,7 @@ def plotFuncs(functions,bottom,top,N=1000,legend_kwds = None):
         function_list = functions
     else:
         function_list = [functions]
-       
+
     for function in function_list:
         x = np.linspace(bottom,top,N,endpoint=True)
         y = function(x)
@@ -1227,7 +1227,7 @@ def plotFuncs(functions,bottom,top,N=1000,legend_kwds = None):
 def plotFuncsDer(functions,bottom,top,N=1000,legend_kwds = None):
     '''
     Plots the first derivative of 1D function(s) over a given range.
-    
+
     Parameters
     ----------
     function : function
@@ -1240,7 +1240,7 @@ def plotFuncsDer(functions,bottom,top,N=1000,legend_kwds = None):
         Number of points in the domain to evaluate.
     legend_kwds: None, or dictionary
         If not None, the keyword dictionary to pass to plt.legend
-        
+
     Returns
     -------
     none
@@ -1249,7 +1249,7 @@ def plotFuncsDer(functions,bottom,top,N=1000,legend_kwds = None):
         function_list = functions
     else:
         function_list = [functions]
-       
+
     step = (top-bottom)/N
     for function in function_list:
         x = np.arange(bottom,top,step)
@@ -1261,7 +1261,7 @@ def plotFuncsDer(functions,bottom,top,N=1000,legend_kwds = None):
     plt.show()
 
 
-if __name__ == '__main__':       
+if __name__ == '__main__':
     print("Sorry, HARKutilities doesn't actually do anything on its own.")
     print("To see some examples of its functions in action, look at any")
     print("of the model modules in /ConsumptionSavingModel.  As these functions")

@@ -32,7 +32,7 @@ Rfree = 1.04**(0.25)          # Quarterly interest factor
 working_T = 41*4              # Number of working periods
 retired_T = 55*4              # Number of retired periods
 T_cycle = working_T+retired_T # Total number of periods
-CRRA = 1.0                    # Coefficient of relative risk aversion   
+CRRA = 1.0                    # Coefficient of relative risk aversion
 DiscFac_guess = 0.99          # Initial starting point for discount factor
 UnempPrb = 0.07               # Probability of unemployment while working
 UnempPrbRet = 0.0005          # Probabulity of "unemployment" while retired
@@ -201,7 +201,7 @@ init_dropout = {"CRRA":CRRA,
                 "aXtraNestFac":aXtraNestFac,
                 "LivPrb":LivPrb_d,
                 "DiscFac":DiscFac_guess, # dummy value, will be overwritten
-                'AgentCount': 0, # this is overwritten by parameter distributor 
+                'AgentCount': 0, # this is overwritten by parameter distributor
                 'T_sim':T_sim_LC,
                 'T_age':T_age,
                 'aNrmInitMean':aNrmInitMean,
@@ -247,7 +247,7 @@ init_infinite = {"CRRA":CRRA,
                 'pLvlInitStd':0.0,
                 'AgentCount':0, # will be overwritten by parameter distributor
                 }
-                
+
 # Make a base dictionary for the cstwMPCmarket
 init_market = {'LorenzBool': False,
                'ManyStatsBool': False,
@@ -263,13 +263,13 @@ init_market = {'LorenzBool': False,
                'AggShockBool':do_agg_shocks
                }
 
-                
+
 # Make a dictionary for the aggregate shocks type
 init_agg_shocks = deepcopy(init_infinite)
 init_agg_shocks['T_sim'] = T_sim_agg_shocks
 init_agg_shocks['tolerance'] = 0.0001
 init_agg_shocks['MgridBase'] = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])
-                        
+
 # Make a dictionary for the aggrege shocks market
 aggregate_params = {'PermShkAggCount': PermShkAggCount,
                     'TranShkAggCount': TranShkAggCount,

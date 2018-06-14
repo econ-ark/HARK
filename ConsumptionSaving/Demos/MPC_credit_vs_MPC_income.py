@@ -1,5 +1,5 @@
 """
-This is a HARK demo.  
+This is a HARK demo.
 
 The application here is to examine the Marginal Propensity to Consume (MPC) out of an increase in
 a credit limit, and to compare it to the MPC out of temporary income.
@@ -9,7 +9,7 @@ It also does things, like import modules in the body of the code rather than at 
 are typically deprecated by Python programmers.  This is all to make the code easier to read
 and understand.
 
-There are many ways to use HARK, and this demo cannot show them all.  
+There are many ways to use HARK, and this demo cannot show them all.
 This demo demonstrates one great way to use HARK: import and solve a model for different parameter
 values, to see how parameters affect the solution.
 """
@@ -22,12 +22,12 @@ The first step is to create the ConsumerType we want to solve the model for.
 """
 
 # The first step is to be able to bring things in from different directories
-import sys 
+import sys
 import os
 sys.path.insert(0, os.path.abspath('../')) #Path to ConsumptionSaving folder
 sys.path.insert(0, os.path.abspath('../../'))
 
-## Import the HARK ConsumerType we want 
+## Import the HARK ConsumerType we want
 ## Here, we bring in an agent making a consumption/savings decision every period, subject
 ## to transitory and permanent income shocks.
 from ConsIndShockModel import IndShockConsumerType
@@ -42,7 +42,7 @@ BaselineExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
 
 ## Note: we've created an instance of a very standard consumer type, and many assumptions go
 ## into making this kind of consumer.  As with any structural model, these assumptions matter.
-## For example, this consumer pays the same interest rate on 
+## For example, this consumer pays the same interest rate on
 ## debt as she earns on savings.  If instead we wanted to solve the problem of a consumer
 ## who pays a higher interest rate on debt than she earns on savings, this would be really easy,
 ## since this is a model that is also solved in HARK.  All we would have to do is import that model
@@ -66,7 +66,7 @@ Parameter values are stored as attributes of the ConsumerType the values are use
 For example, the risk-free interest rate Rfree is stored as BaselineExample.Rfree.
 Because we created BaselineExample using the default parameters values.
 at the moment BaselineExample.Rfree is set to the default value of Rfree (which, at the time
-this demo was written, was 1.03).  Therefore, to change the risk-free interest rate used in 
+this demo was written, was 1.03).  Therefore, to change the risk-free interest rate used in
 BaselineExample to (say) 1.02, all we need to do is:
 
 BaselineExample.Rfree = 1.02
@@ -91,10 +91,10 @@ BaselineExample.DiscFac     = .5   #chosen so that target debt-to-permanent-inco
 ## to tell HARK that we are solving the model for an infinite horizon consumer.
 
 
-## Note that another complication with the cycles attribute is that it does not come from 
-## Params.init_idiosyncratic_shocks.  Instead it is a keyword argument to the  __init__() method of 
+## Note that another complication with the cycles attribute is that it does not come from
+## Params.init_idiosyncratic_shocks.  Instead it is a keyword argument to the  __init__() method of
 ## IndShockConsumerType.
-BaselineExample.cycles      = 0  
+BaselineExample.cycles      = 0
 
 
 ####################################################################################################
@@ -117,7 +117,7 @@ XtraCreditExample = deepcopy(BaselineExample)
 # Declare how much we want to increase credit by
 credit_change =  .001
 
-# Now increase the consumer's credit limit.  
+# Now increase the consumer's credit limit.
 # We do this by decreasing the artificial borrowing constraint.
 XtraCreditExample.BoroCnstArt = BaselineExample.BoroCnstArt - credit_change
 
@@ -165,15 +165,15 @@ def FirstDiffMPC_Income(x):
     income_change = credit_change
 
     # Now, calculate the approximate MPC out of income
-    return (BaselineExample.solution[0].cFunc(x + income_change) - 
+    return (BaselineExample.solution[0].cFunc(x + income_change) -
             BaselineExample.solution[0].cFunc(x)) / income_change
 
 
 def FirstDiffMPC_Credit(x):
     # Approximate the MPC out of credit by plotting how much more of the increased credit the agent
     # with higher credit spends
-    return (XtraCreditExample.solution[0].cFunc(x) - 
-            BaselineExample.solution[0].cFunc(x)) / credit_change 
+    return (XtraCreditExample.solution[0].cFunc(x) -
+            BaselineExample.solution[0].cFunc(x)) / credit_change
 
 
 
@@ -188,7 +188,7 @@ import pylab as plt # We need this module to change the y-axis on the graphs
 x_max = 10.
 
 
-# Note that plotFuncs takes four arguments: (1) a list of the arguments to plot, 
+# Note that plotFuncs takes four arguments: (1) a list of the arguments to plot,
 # (2) the lower bound for the plots, (3) the upper bound for the plots, and (4) keywords to pass
 # to the legend for the plot.
 

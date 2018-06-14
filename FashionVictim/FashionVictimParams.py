@@ -35,8 +35,8 @@ default_params={'DiscFac'      : DiscFac,
                'pop_size'      : pop_size,
                'p_init'        : p_init
                }
-               
-               
+
+
 if __name__ == '__main__':
     print("Sorry, FashionVictimParams doesn't actually do anything on its own.")
     print("This module is imported by FashionVictimModel, providing example")

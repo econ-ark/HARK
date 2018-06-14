@@ -10,7 +10,7 @@ file in the ./Results directory.  TeX code for tables in the paper are saved in
 the ./Tables directory.  See StickyEparams for calibrated model parameters.
 '''
 
-import sys 
+import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     ###############################################################################
     ################# SMALL OPEN ECONOMY ##########################################
     ###############################################################################
-    
+
     if do_SOE:
         if run_models:
             # Make a small open economy and the consumers who live in it
@@ -78,17 +78,17 @@ if __name__ == '__main__':
             StickySOEconomy.makeAggShkHist()
             for n in range(Params.TypeCount):
                 StickySOEconsumers[n].getEconomyData(StickySOEconomy)
-            
+
             # Solve the small open economy and display some output
             t_start = clock()
             StickySOEconomy.solveAgents()
             t_end = clock()
             print('Solving the small open economy took ' + str(t_end-t_start) + ' seconds.')
-            
+
             print('Consumption function for one type in the small open economy:')
             cFunc = lambda m : StickySOEconsumers[0].solution[0].cFunc(m,np.ones_like(m))
             plotFuncs(cFunc,0.0,20.0)
-            
+
             # Simulate the frictionless small open economy
             t_start = clock()
             for agent in StickySOEconomy.agents:
@@ -96,12 +96,12 @@ if __name__ == '__main__':
             StickySOEconomy.makeHistory()
             t_end = clock()
             print('Simulating the frictionless small open economy took ' + mystr(t_end-t_start) + ' seconds.')
-            
+
             # Make results for the frictionless representative agent economy
             desc = 'Results for the frictionless small open economy (update probability 1.0)'
             name = 'SOEsimpleFrictionless'
             makeStickyEdataFile(StickySOEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
-            
+
             # Simulate the sticky small open economy
             t_start = clock()
             for agent in StickySOEconomy.agents:
@@ -109,12 +109,12 @@ if __name__ == '__main__':
             StickySOEconomy.makeHistory()
             t_end = clock()
             print('Simulating the sticky small open economy took ' + mystr(t_end-t_start) + ' seconds.')
-            
+
             # Make results for the sticky small open economy
             desc = 'Results for the sticky small open economy with update probability ' + mystr(Params.UpdatePrb)
             name = 'SOEsimpleSticky'
             makeStickyEdataFile(StickySOEconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
-        
+
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
             t_start = clock()
@@ -125,14 +125,14 @@ if __name__ == '__main__':
             makeResultsTable('Aggregate Consumption Dynamics in SOE Model',[frictionless_me_panel,sticky_panel,sticky_me_panel],my_counts,'SOEsimReg','tPESOEsim')
             t_end = clock()
             print('Running time series regressions for the small open economy took ' + mystr(t_end-t_start) + ' seconds.')
-    
-    
-    
-    
+
+
+
+
     ###############################################################################
     ################# COBB-DOUGLAS ECONOMY ########################################
     ###############################################################################
-    
+
     if do_DSGE:
         if run_models:
             # Make consumers who will live in a Cobb-Douglas economy
@@ -143,20 +143,20 @@ if __name__ == '__main__':
                 StickyDSGEconsumers.append(deepcopy(StickyDSGEbaseType))
                 StickyDSGEconsumers[-1].seed = n
                 StickyDSGEconsumers[-1].DiscFac = Params.DiscFacSetDSGE[n]
-                
+
             # Make a Cobb-Douglas economy and put the agents in it
             StickyDSGEeconomy = StickyCobbDouglasEconomy(agents=StickyDSGEconsumers,**Params.init_DSGE_market)
             StickyDSGEeconomy.makeAggShkHist()
             for n in range(Params.TypeCount):
                 StickyDSGEconsumers[n].getEconomyData(StickyDSGEeconomy)
                 StickyDSGEconsumers[n](UpdatePrb = 1.0)
-                
+
             # Solve the frictionless HA-DSGE model
             t_start = clock()
             StickyDSGEeconomy.solve()
             t_end = clock()
             print('Solving the frictionless Cobb-Douglas economy took ' + mystr(t_end-t_start) + ' seconds.')
-            
+
             # Plot the consumption function
             print('Consumption function for the frictionless Cobb-Douglas economy:')
             m = np.linspace(0.,20.,300)
@@ -164,12 +164,12 @@ if __name__ == '__main__':
                 c = StickyDSGEconsumers[0].solution[0].cFunc(m,M*np.ones_like(m))
                 plt.plot(m,c)
             plt.show()
-            
+
             # Make results for the frictionless Cobb-Douglas economy
             desc = 'Results for the frictionless Cobb-Douglas economy (update probability 1.0)'
             name = 'DSGEsimpleFrictionless'
             makeStickyEdataFile(StickyDSGEeconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
-            
+
             # Solve the sticky HA-DSGE model
             for agent in StickyDSGEeconomy.agents:
                 agent(UpdatePrb = Params.UpdatePrb)
@@ -177,7 +177,7 @@ if __name__ == '__main__':
             StickyDSGEeconomy.solve()
             t_end = clock()
             print('Solving the sticky Cobb-Douglas economy took ' + mystr(t_end-t_start) + ' seconds.')
-            
+
             # Plot the consumption function
             print('Consumption function for the sticky Cobb-Douglas economy:')
             m = np.linspace(0.,20.,300)
@@ -185,12 +185,12 @@ if __name__ == '__main__':
                 c = StickyDSGEconsumers[0].solution[0].cFunc(m,M*np.ones_like(m))
                 plt.plot(m,c)
             plt.show()
-            
+
             # Make results for the sticky Cobb-Douglas economy
             desc = 'Results for the sticky Cobb-Douglas economy with update probability ' + mystr(Params.UpdatePrb)
             name = 'DSGEsimpleSticky'
             makeStickyEdataFile(StickyDSGEeconomy,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
-        
+
         # Process the coefficients, standard errors, etc into a LaTeX table
         if make_tables:
             t_start = clock()
@@ -201,28 +201,28 @@ if __name__ == '__main__':
             makeResultsTable('Aggregate Consumption Dynamics in HA-DSGE Model',[frictionless_me_panel,sticky_panel,sticky_me_panel],my_counts,'DSGEsimReg','tDSGEsim')
             t_end = clock()
             print('Running time series regressions for the Cobb-Douglas economy took ' + mystr(t_end-t_start) + ' seconds.')
-    
-    
-    
+
+
+
     ###############################################################################
     ################# REPRESENTATIVE AGENT ECONOMY ################################
     ###############################################################################
-    
+
     if do_RA:
         if run_models:
             # Make a representative agent consumer, then solve and simulate the model
             StickyRAconsumer = StickyErepAgent(**Params.init_RA_consumer)
             StickyRAconsumer.track_vars = ['cLvlNow','yNrmTrue','aLvlNow','pLvlTrue','TranShkNow']
-            
-            # Solve the representative agent's problem        
+
+            # Solve the representative agent's problem
             t_start = clock()
             StickyRAconsumer.solve()
             t_end = clock()
             print('Solving the representative agent economy took ' + mystr(t_end-t_start) + ' seconds.')
-            
+
             print('Consumption function for the representative agent:')
             plotFuncs(StickyRAconsumer.solution[0].cFunc,0,50)
-            
+
             # Simulate the representative agent with frictionless expectations
             t_start = clock()
             StickyRAconsumer(UpdatePrb = 1.0)
@@ -230,12 +230,12 @@ if __name__ == '__main__':
             StickyRAconsumer.simulate()
             t_end = clock()
             print('Simulating the frictionless representative agent economy took ' + mystr(t_end-t_start) + ' seconds.')
-            
+
             # Make results for the frictionless representative agent economy
             desc = 'Results for the frictionless representative agent economy (update probability 1.0)'
             name = 'RAsimpleFrictionless'
             makeStickyEdataFile(StickyRAconsumer,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
-            
+
             # Simulate the representative agent with sticky expectations
             t_start = clock()
             StickyRAconsumer(UpdatePrb = Params.UpdatePrb)
@@ -243,12 +243,12 @@ if __name__ == '__main__':
             StickyRAconsumer.simulate()
             t_end = clock()
             print('Simulating the sticky representative agent economy took ' + mystr(t_end-t_start) + ' seconds.')
-            
+
             # Make results for the sticky representative agent economy
             desc = 'Results for the sticky representative agent economy with update probability ' + mystr(Params.UpdatePrb)
             name = 'RAsimpleSticky'
             makeStickyEdataFile(StickyRAconsumer,ignore_periods,description=desc,filename=name,save_data=save_data,calc_micro_stats=calc_micro_stats)
-        
+
         if make_tables:
             # Process the coefficients, standard errors, etc into a LaTeX table
             t_start = clock()
@@ -259,4 +259,3 @@ if __name__ == '__main__':
             makeResultsTable('Aggregate Consumption Dynamics in RA Model',[frictionless_me_panel,sticky_panel,sticky_me_panel],my_counts,'RepAgentSimReg','tRAsim')
             t_end = clock()
             print('Running time series regressions for the representative agent economy took ' + mystr(t_end-t_start) + ' seconds.')
-    
