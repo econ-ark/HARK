@@ -6,7 +6,6 @@ derivatives), manipulation of discrete distributions, and basic plotting tools.
 
 from __future__ import division     # Import Python 3.x division function
 import functools
-import re                           # Regular expression, for string cleaning
 import warnings
 import numpy as np                  # Python's numeric library, abbreviated "np"
 try:
@@ -22,7 +21,6 @@ except ImportError:
 import scipy.stats as stats         # Python's statistics library
 from scipy.interpolate import interp1d
 from scipy.special import erf, erfc
-from scipy.stats import norm
 
 def _warning(message,category = UserWarning,filename = '',lineno = -1):
     '''

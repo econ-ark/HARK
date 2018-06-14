@@ -19,7 +19,6 @@ mMaxVal = 5. # maximum value of the consumer's cash-on-hand to show in plots
 import ConsumerParameters as Params # Read in the database of parameters
 my_dictionary = Params.init_idiosyncratic_shocks # Create a dictionary containing the default values of the parameters
 import numpy as np # Get the suite of tools for doing numerical computation in python
-from HARKutilities import plotFuncs # Get some tools developed for plotting HARK functions
 from ConsIndShockModel import IndShockConsumerType # Set up the tools for solving a consumer's problem
 
 # define a function that generates the plot

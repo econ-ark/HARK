@@ -16,7 +16,6 @@ sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
 
 import numpy as np
-import csv
 from time import clock
 from copy import deepcopy
 from StickyEmodel import StickyEconsumerType, StickyErepAgent, StickyCobbDouglasEconomy

@@ -41,7 +41,6 @@ sys.path.insert(0, os.path.abspath('../../cstwMPC'))
 
 import numpy as np
 from copy import deepcopy
-from time import clock
 
 from HARKutilities import approxUniform, getPercentiles
 from HARKparallel import multiThreadCommands
