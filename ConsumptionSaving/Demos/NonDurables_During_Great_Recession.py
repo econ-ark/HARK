@@ -1,10 +1,10 @@
 """
-At the onset of the Great Recession, there was a large drop (6.32%, according to FRED) in consumer 
-spending on non-durables.  Some economists have proffered that this could be attributed to precautionary 
+At the onset of the Great Recession, there was a large drop (6.32%, according to FRED) in consumer
+spending on non-durables.  Some economists have proffered that this could be attributed to precautionary
 motives-- a perceived increase in household income uncertainty induces more saving (less consumption)
 to protect future consumption against bad income shocks.  How large of an increase in the standard
 deviation of (log) permanent income shocks would be necessary to see an 6.32% drop in consumption in
-one quarter?  What about transitory income shocks?  How high would the perceived unemployment 
+one quarter?  What about transitory income shocks?  How high would the perceived unemployment
 probability have to be?
 """
 
@@ -14,18 +14,18 @@ probability have to be?
 The first step is to create the ConsumerType we want to solve the model for.
 
 Model set up:
-    * "Standard" infinite horizon consumption/savings model, with mortality and 
+    * "Standard" infinite horizon consumption/savings model, with mortality and
       permanent and temporary shocks to income
     * Ex-ante heterogeneity in consumers' discount factors
-    
+
 With this basic setup, HARK's IndShockConsumerType is the appropriate ConsumerType.
-So we need to prepare the parameters to create that ConsumerType, and then create it.    
+So we need to prepare the parameters to create that ConsumerType, and then create it.
 """
 
 ## Import some things from cstwMPC
 
 # The first step is to be able to bring things in from different directories
-import sys 
+import sys
 import os
 sys.path.insert(0, os.path.abspath('../')) #Path to ConsumptionSaving folder
 sys.path.insert(0, os.path.abspath('../../'))
@@ -37,7 +37,7 @@ from copy import deepcopy
 import SetupParamsCSTW as cstwParams
 from HARKutilities import approxUniform
 
-## Import the HARK ConsumerType we want 
+## Import the HARK ConsumerType we want
 ## Here, we bring in an agent making a consumption/savings decision every period, subject
 ## to transitory and permanent income shocks.
 from ConsIndShockModel import IndShockConsumerType
@@ -60,7 +60,7 @@ ConsumerTypes = [] # initialize an empty list
 
 for nn in range(num_consumer_types):
     # Now create the types, and append them to the list ConsumerTypes
-    newType = deepcopy(BaselineType)    
+    newType = deepcopy(BaselineType)
     ConsumerTypes.append(newType)
     ConsumerTypes[-1].seed = nn # give each consumer type a different RNG seed
 
@@ -69,7 +69,7 @@ for nn in range(num_consumer_types):
 
 # First, decide the discount factors to assign
 bottomDiscFac  = 0.9800
-topDiscFac     = 0.9934 
+topDiscFac     = 0.9934
 DiscFac_list   = approxUniform(N=num_consumer_types,bot=bottomDiscFac,top=topDiscFac)[1]
 
 # Now, assign the discount factors we want
@@ -85,7 +85,7 @@ Now, solve and simulate the model for each consumer type
 for ConsumerType in ConsumerTypes:
     ### First solve the problem for this ConsumerType.
     ConsumerType.solve()
-    
+
     ### Now simulate many periods to get to the stationary distribution
     ConsumerType.T_sim = 1000
     ConsumerType.initializeSim()
@@ -94,7 +94,7 @@ for ConsumerType in ConsumerTypes:
 #####################################################################################################
 #####################################################################################################
 """
-Now, create functions to see how aggregate consumption changes after household income uncertainty 
+Now, create functions to see how aggregate consumption changes after household income uncertainty
 increases in various ways
 """
 
@@ -108,11 +108,11 @@ def calcAvgC(ConsumerTypes):
     # Make arrays with all types' (normalized) consumption and permanent income level
     cNrm = np.concatenate([ThisType.cNrmNow for ThisType in ConsumerTypes])
     pLvl = np.concatenate([ThisType.pLvlNow for ThisType in ConsumerTypes])
-    
+
     # Calculate and return average consumption level in the economy
-    avgC = np.mean(cNrm*pLvl) 
+    avgC = np.mean(cNrm*pLvl)
     return avgC
-        
+
 # Now create a function to run the experiment we want -- change income uncertainty, and see
 # how consumption changes
 def cChangeAfterUncertaintyChange(ConsumerTypes,newVals,paramToChange):
@@ -126,7 +126,7 @@ def cChangeAfterUncertaintyChange(ConsumerTypes,newVals,paramToChange):
 
     # Initialize an empty list to hold the changes in consumption that happen after parameters change.
     changesInConsumption = []
-    
+
     # Get average consumption before parameters change
     oldAvgC = calcAvgC(ConsumerTypes)
 
@@ -138,11 +138,11 @@ def cChangeAfterUncertaintyChange(ConsumerTypes,newVals,paramToChange):
         else:
             thisVal = newVal
 
-        # Copy everything we have from the consumerTypes 
+        # Copy everything we have from the consumerTypes
         ConsumerTypesNew = deepcopy(ConsumerTypes)
-          
+
         for index,ConsumerTypeNew in enumerate(ConsumerTypesNew):
-            setattr(ConsumerTypeNew,paramToChange,thisVal) # Set the changed value of the parameter        
+            setattr(ConsumerTypeNew,paramToChange,thisVal) # Set the changed value of the parameter
 
             # Because we changed the income process, and the income process is created
             # during initialization, we need to be sure to update the income process
@@ -150,13 +150,13 @@ def cChangeAfterUncertaintyChange(ConsumerTypes,newVals,paramToChange):
 
             # Solve the new problem
             ConsumerTypeNew.solve()
-            
+
             # Initialize the new consumer type to have the same distribution of assets and permanent
             # income as the stationary distribution we simulated above
             ConsumerTypeNew.initializeSim() # Reset the tracked history
             ConsumerTypeNew.aNrmNow = ConsumerTypes[index].aNrmNow # Set assets to stationary distribution
             ConsumerTypeNew.pLvlNow = ConsumerTypes[index].pLvlNow # Set permanent income to stationary dstn
-            
+
             # Simulate one more period, which changes the values in cNrm and pLvl for each agent type
             ConsumerTypeNew.simOnePeriod()
 

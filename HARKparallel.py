@@ -34,7 +34,7 @@ def multiThreadCommandsFake(agent_list,command_list,num_jobs=None):
     in an ordinary, single-threaded loop.  Each command should be a method of
     that AgentType subclass.  This function exists so as to easily disable
     multithreading, as it uses the same syntax as multithreadCommands.
-        
+
     Parameters
     ----------
     agent_list : [AgentType]
@@ -43,7 +43,7 @@ def multiThreadCommandsFake(agent_list,command_list,num_jobs=None):
         A list of commands to run for each AgentType.
     num_jobs : None
         Dummy input to match syntax of multiThreadCommands.  Does nothing.
-        
+
     Returns
     -------
     none
@@ -51,19 +51,19 @@ def multiThreadCommandsFake(agent_list,command_list,num_jobs=None):
     for agent in agent_list:
         for command in command_list:
             exec('agent.' + command)
-       
+
 def multiThreadCommands(agent_list,command_list,num_jobs=None):
     '''
     Executes the list of commands in command_list for each AgentType in agent_list
     using a multithreaded system. Each command should be a method of that AgentType subclass.
-    
+
     Parameters
     ----------
     agent_list : [AgentType]
         A list of instances of AgentType on which the commands will be run.
     command_list : [string]
         A list of commands to run for each AgentType in agent_list.
-        
+
     Returns
     -------
     None
@@ -71,31 +71,31 @@ def multiThreadCommands(agent_list,command_list,num_jobs=None):
     if len(agent_list) == 1:
         multiThreadCommandsFake(agent_list,command_list)
         return None
-        
+
     # Default umber of parallel jobs is the smaller of number of AgentTypes in
     # the input and the number of available cores.
     if num_jobs is None:
         num_jobs = min(len(agent_list),multiprocessing.cpu_count())
-        
+
     # Send each command in command_list to each of the types in agent_list to be run
     agent_list_out = Parallel(n_jobs=num_jobs)(delayed(runCommands)(*args) for args in zip(agent_list, len(agent_list)*[command_list]))
-    
+
     # Replace the original types with the output from the parallel call
     for j in range(len(agent_list)):
         agent_list[j] = agent_list_out[j]
-   
+
 def runCommands(agent,command_list):
     '''
     Executes each command in command_list on a given AgentType.  The commands
     should be methods of that AgentType's subclass.
-    
+
     Parameters
     ----------
     agent : AgentType
         An instance of AgentType on which the commands will be run.
     command_list : [string]
         A list of commands that the agent should run, as methods.
-        
+
     Returns
     -------
     agent : AgentType
@@ -104,18 +104,18 @@ def runCommands(agent,command_list):
     for command in command_list:
         exec('agent.' + command)
     return agent
-    
-    
+
+
 #=============================================================
 # ========  Define a parallel Nelder-Mead algorithm ==========
 #=============================================================
-    
+
 def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000001,maxiter=np.inf,maxeval=np.inf,r_param=1.0,e_param=1.0,c_param=0.5,s_param=0.5,maxcores=None,name=None,resume=False,savefreq=None,verbose=1):
     '''
     A parallel implementation of the Nelder-Mead minimization algorithm, as
     described in Lee and Wiswall.  For long optimization procedures, it can
     save progress between iterations and resume later.
-    
+
     Parameters
     ----------
     objFunc : function
@@ -170,7 +170,7 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
     verbose : int
         Indicator for the verbosity of the optimization routine.  Higher values
         generate more text output; verbose=0 produces no text output.
-        
+
     Returns
     -------
     min_point : np.array
@@ -184,8 +184,8 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
         dim_count = fvals.size - 1
         N = dim_count+1 # Number of points in simplex
         K = simplex.shape[1] # Total number of parameters
-    # Otherwise, construct the initial simplex and array of function values    
-    else: 
+    # Otherwise, construct the initial simplex and array of function values
+    else:
         if perturb is None: # Default: perturb each parameter by 10%
             perturb = 0.1*guess
             guess[guess == 0] = 0.1
@@ -196,20 +196,20 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
         simplex = np.tile(guess,(N,1))
         for j in range(dim_count): # Perturb each parameter to optimize by the specified distance
             simplex[j+1,params_to_opt[j]] = simplex[j+1,params_to_opt[j]] + perturb[params_to_opt[j]]
-        # Initialize a few 
+        # Initialize a few
         fvals = np.zeros(dim_count+1) + np.nan
         iters = 0
         evals = 0
-        
+
     # Create the pool of worker processes
     cpu_cores = multiprocessing.cpu_count() # Total number of available CPU cores
     cores_to_use = min(cpu_cores,dim_count)
     if maxcores is not None: # Cap the number of cores if desired
         cores_to_use = min(cores_to_use,maxcores)
-    parallel = Parallel(n_jobs=cores_to_use)  
-        
+    parallel = Parallel(n_jobs=cores_to_use)
+
     # Begin a new Nelder-Mead search
-    if not resume: 
+    if not resume:
         temp_simplex = list(simplex) # Evaluate the initial simplex
         fvals = np.array(parallel(delayed(objFunc)(params) for params in temp_simplex))
         evals += N
@@ -225,20 +225,20 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
     else: # Resume an existing search that was cut short
         if verbose > 0:
             print('Resuming search after ' + str(iters) + ' iterations and ' + str(evals) + ' function evaluations.')
-    
+
     # Initialize some inputs for the multithreader
     j_list = range(N-P,N)
     opt_params= [r_param,c_param,e_param]
-    
-    # Run the Nelder-Mead algorithm until a terminal condition is met    
+
+    # Run the Nelder-Mead algorithm until a terminal condition is met
     go = True
     while go:
         t_start = clock()
         iters += 1
         if verbose > 0:
             print('Beginning iteration #' + str(iters) + ' now.')
-        
-        # Update the P worst points of the simplex            
+
+        # Update the P worst points of the simplex
         output = parallel(delayed(parallelNelderMeadWorker)(objFunc,simplex,fvals,j,P,opt_params) for j in j_list)
         new_subsimplex = np.zeros((P,K)) + np.nan
         new_vals = np.zeros(P) + np.nan
@@ -248,7 +248,7 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
             new_vals[i] = output[i][1]
             new_evals += output[i][2]
         evals += new_evals
-        
+
         # Check whether any updates actually happened
         old_subsimplex = simplex[(N-P):N,:]
         if np.max(np.abs(new_subsimplex - old_subsimplex)) == 0:
@@ -266,7 +266,7 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
             # Otherwise, update the simplex with the new results
             simplex[(N-P):N,:] = new_subsimplex
             fvals[(N-P):N] = new_vals
-            
+
         # Reorder the simplex from best to worst
         order = np.argsort(fvals)
         fvals = fvals[order]
@@ -277,9 +277,9 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
         t_end = clock()
         if verbose > 0:
             t_iter = t_end - t_start
-            print('Finished iteration #' + str(iters) +' with ' + str(new_evals) + ' evaluations (' + str(evals) + ' cumulative) in ' + str(t_iter) + ' seconds.') 
+            print('Finished iteration #' + str(iters) +' with ' + str(new_evals) + ' evaluations (' + str(evals) + ' cumulative) in ' + str(t_iter) + ' seconds.')
             print('Simplex status: fmin=' + str(fmin) + ', f_dist=' + str(f_dist) + ', x_dist=' + str(x_dist))
-            
+
         # Check for terminal conditions
         if iters >= maxiter:
             go = False
@@ -293,24 +293,24 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
         if x_dist < xtol:
             go = False
             print('Parameter tolerance reached, terminating successfully.')
-        
+
         # Save the progress of the estimation if desired
         if savefreq is not None:
             if (iters % savefreq) == 0:
                  saveNelderMeadData(name, simplex, fvals, iters, evals)
                  if verbose > 0:
                      print('Saved search progress in ' + name + '.txt')
-                     
+
     # Return the results
     xopt = simplex[0,:]
     return xopt, fmin
-        
-        
+
+
 def saveNelderMeadData(name, simplex, fvals, iters, evals):
     '''
     Stores the progress of a parallel Nelder-Mead search in a text file so that
     it can be resumed later (after manual termination or a crash).
-    
+
     Parameters
     ----------
     name : string
@@ -323,7 +323,7 @@ def saveNelderMeadData(name, simplex, fvals, iters, evals):
         The number of completed Nelder-Mead iterations.
     evals : int
         The cumulative number of function evaluations in the search process.
-        
+
     Returns
     -------
     none
@@ -335,18 +335,18 @@ def saveNelderMeadData(name, simplex, fvals, iters, evals):
     my_writer.writerow(simplex.flatten())
     my_writer.writerow(fvals)
     f.close()
-    
-    
+
+
 def loadNelderMeadData(name):
     '''
     Reads the progress of a parallel Nelder-Mead search from a text file, as
     created by saveNelderMeadData().
-    
+
     Parameters
     ----------
     name : string
         Name of the txt file from which to read search progress.
-        
+
     Returns
     -------
     simplex : np.array
@@ -370,16 +370,16 @@ def loadNelderMeadData(name):
     simplex = np.reshape(simplex_flat,(shape0,shape1))
     fvals = np.array(my_reader.next(),dtype=float)
     f.close()
-    
+
     return simplex, fvals, iters, evals
-        
-        
+
+
 def parallelNelderMeadWorker(objFunc,simplex,f_vals,j,P,opt_params):
     '''
     A worker process for the parallel Nelder-Mead algorithm.  Updates one point
     in the simplex, returning its function value as well.  Should basically
     never be called directly, only by parallelNelderMead().
-    
+
     Parameters
     ----------
     objFunc : function
@@ -395,7 +395,7 @@ def parallelNelderMeadWorker(objFunc,simplex,f_vals,j,P,opt_params):
         Degree of parallelization of the algorithm.
     opt_params : numpy.array
         Three element array with parameters for reflection, contraction, expansion.
-        
+
     Returns
     -------
     new_point : numpy.array
@@ -414,18 +414,18 @@ def parallelNelderMeadWorker(objFunc,simplex,f_vals,j,P,opt_params):
     best_val = f_vals[0] # best value in the vertex
     next_val = f_vals[j-1] # next best point in the simplex
     evals = 0
-    
+
     # Calculate the centroid of the "good" simplex points
     N = simplex.shape[0] # number of points in simplex
     centroid = np.mean(simplex[0:(N-P),:],axis=0)
-    
+
     # Calculate the reflection point and its function value
     r_point = centroid + alpha*(centroid - my_point)
     r_val = objFunc(r_point)
     evals += 1
-    
+
     # Case 1: the reflection point is better than best point
-    if r_val < best_val: 
+    if r_val < best_val:
         e_point = r_point + gamma*(r_point - centroid)
         e_val = objFunc(e_point) # Calculate expansion point
         evals += 1
@@ -456,27 +456,26 @@ def parallelNelderMeadWorker(objFunc,simplex,f_vals,j,P,opt_params):
         else:
             new_point = temp_point
             new_val = temp_val
-            
+
     # Return the outputs
     return new_point, new_val, evals
-    
+
 #=============================================================================
-#=============================================================================    
- 
-  
+#=============================================================================
+
+
 if __name__ == "__main__":
     print("Sorry, HARKparallel doesn't actually do much on its own.")
     print("To see an example of multithreading in HARK, see /Testing/MultithreadDemo.")
     print('To ensure full compatibility "out of the box", multithreading is not')
     print('used in our models and applications; users can turn it on by modifying')
     print('the source code slightly.')
-    
+
     K = 36
     P = 24
     my_guess = np.random.rand(K) - 0.5
     def testFunc1(x):
         return np.sum(x**2.0)/x.size
-        
+
     xopt, fmin = parallelNelderMead(testFunc1,my_guess,P=P,maxiter=300,savefreq=100,name='testfile',resume=False)
     xopt2, fmin2 = parallelNelderMead(testFunc1,xopt,P=P)
-        

@@ -17,7 +17,7 @@ thorn = 1.0025*0.99325/(1.01)
 mTargFunc = lambda x : (1 - thorn)*x + thorn
 
 mystr = lambda number : "{:.3f}".format(number)
-mystrx = lambda number : "{:.0f}".format(number) 
+mystrx = lambda number : "{:.0f}".format(number)
 
 def epaKernel(X):
     K = 0.75*(1.0 - X**2.0)
@@ -28,10 +28,10 @@ def doCforBetaEquals(beta,m):
     InfiniteType(beta=beta);
     InfiniteType.solve();
     InfiniteType.unpack_cFunc()
-    
+
     c = InfiniteType.cFunc[0](m)
     InfiniteType.beta = Params.beta_guess
-    
+
     InfiniteType.simulateCSTWc()
     m_hist = InfiniteType.m_history
     m_temp = np.reshape(m_hist[100:Params.sim_periods,:],((Params.sim_periods-100)*Params.sim_pop_size,1))
@@ -41,16 +41,16 @@ def doCforBetaEquals(beta,m):
     for j in range(m.size):
         x = (m_temp - m[j])/h
         m_dist[j] = np.sum(epaKernel(x))/(n*h)
-    
+
     print('did beta= ' + str(beta))
     return c, m_dist
-    
+
 c_array = np.zeros((17,points)) + np.nan
 pdf_array = np.zeros((17,points)) + np.nan
 for b in range(17):
     beta = 0.978 + b*0.001
     c_array[b,], pdf_array[b,] = doCforBetaEquals(beta,m)
-    
+
 for b in range(17):
     beta = 0.978 + b*0.001
     highest = np.max(pdf_array[b,])

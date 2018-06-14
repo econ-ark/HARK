@@ -29,7 +29,7 @@ Rfree = 1.04**(0.25)          # Quarterly interest factor
 working_T = 41*4              # Number of working periods
 retired_T = 55*4              # Number of retired periods
 total_T = working_T+retired_T # Total number of periods
-CRRA = 1.0                    # Coefficient of relative risk aversion   
+CRRA = 1.0                    # Coefficient of relative risk aversion
 DiscFac_guess = 0.99          # Initial starting point for discount factor
 UnempPrb = 0.07               # Probability of unemployment while working
 UnempPrbRet = 0.0005          # Probabulity of "unemployment" while retired
@@ -126,7 +126,7 @@ P0_d = 5                       # average initial permanent income, dropouts
 P0_h = 7.5                     # average initial permanent income, HS grads
 P0_c = 12                      # average initial permanent income, college grads
 a0_values = [0.17, 0.5, 0.83]  # initial wealth/income ratio values
-a0_probs = [1.0/3.0, 1.0/3.0, 1.0/3.0] # ...and probabilities 
+a0_probs = [1.0/3.0, 1.0/3.0, 1.0/3.0] # ...and probabilities
 
 # Calculate the social security tax rate for the economy
 d_income = np.concatenate((np.array([1]),np.cumprod(PermGroFac_d)))*P0_d
@@ -166,13 +166,13 @@ sim_periods = 1000           # Number of periods to simulate (idiosyncratic shoc
 sim_periods_agg_shocks = 3000# Number of periods to simulate (aggregate shocks model)
 Nagents_agg_shocks = 4800    # Number of agents to simulate (aggregate shocks model)
 age_weight_i = LivPrb_i**np.arange(0,sim_periods,dtype=float) # Weight on each cohort, from youngest to oldest
-total_pop_size_i = np.sum(age_weight_i) 
+total_pop_size_i = np.sum(age_weight_i)
 age_weight_i = age_weight_i/total_pop_size_i # *Normalized* weight on each cohort
 if not do_lifecycle:
     age_weight_all = age_weight_i
     age_weight_short = age_weight_i[0:sim_periods]
     total_output = l_bar
-    
+
 # Set aggregate parameters for the infinite horizon model
 PermShkAggCount = 3                # Number of discrete permanent aggregate shocks
 TranShkAggCount = 3                # Number of discrete transitory aggregate shocks
@@ -263,14 +263,14 @@ init_infinite = {"CRRA":CRRA,
                 'Nagents':sim_pop_size,
                 'l_bar':l_bar,
                 }
-                
+
 # Make a dictionary for the aggregate shocks type
 init_agg_shocks = deepcopy(init_infinite)
 init_agg_shocks['Nagents'] = Nagents_agg_shocks
 init_agg_shocks['sim_periods'] = sim_periods_agg_shocks
 init_agg_shocks['tolerance'] = 0.0001
 init_agg_shocks['kGridBase'] = np.array([0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6])
-                        
+
 # Make a dictionary for the aggrege shocks market
 aggregate_params = {'PermShkAggCount': PermShkAggCount,
                     'TranShkAggCount': TranShkAggCount,

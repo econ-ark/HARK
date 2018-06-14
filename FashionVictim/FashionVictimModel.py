@@ -5,7 +5,7 @@ based on the proportion of the population with the same style (as well as direct
 preferences each style), and pay switching costs if they change.
 '''
 
-import sys 
+import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
 
@@ -24,7 +24,7 @@ class FashionSolution(Solution):
     def __init__(self,VfuncJock=None,VfuncPunk=None,switchFuncJock=None,switchFuncPunk=None):
         '''
         Make a new instance of FashionSolution.
-        
+
         Parameters
         ----------
         VfuncJock : function
@@ -39,12 +39,12 @@ class FashionSolution(Solution):
         switchFuncPunk : function
             Probability of switching styles (to jock) when entering the period
             as a punkk, as a function of the population punk proportion.
-            
+
         Returns
         -------
         new instance of FashionSolution
         '''
-        # Fill in missing function inputs with trivial defaults        
+        # Fill in missing function inputs with trivial defaults
         if VfuncJock is None:
             VfuncJock = NullFunc()
         if VfuncPunk is None:
@@ -58,8 +58,8 @@ class FashionSolution(Solution):
         self.switchFuncJock = switchFuncJock
         self.switchFuncPunk = switchFuncPunk
         self.distance_criteria = ['VfuncJock','VfuncPunk']
-        
-        
+
+
 class FashionEvoFunc(Solution):
     '''
     A class for representing a dynamic fashion rule in the FashionVictim model.
@@ -69,7 +69,7 @@ class FashionEvoFunc(Solution):
     def __init__(self,pNextIntercept=None,pNextSlope=None,pNextWidth=None):
         '''
         Make a new instance of FashionEvoFunc.
-        
+
         Parameters
         ----------
         pNextIntercept : float
@@ -78,7 +78,7 @@ class FashionEvoFunc(Solution):
             Slope of the linear evolution rule.
         pNextWidth : float
             Width of the uniform distribution around the linear function.
-        
+
         Returns
         -------
         new instance of FashionEvoFunc
@@ -87,8 +87,8 @@ class FashionEvoFunc(Solution):
         self.pNextSlope        = pNextSlope
         self.pNextWidth        = pNextWidth
         self.distance_criteria = ['pNextSlope','pNextWidth','pNextIntercept']
-        
-        
+
+
 class FashionMarketInfo():
     '''
     A class for representing the current distribution of styles in the population.
@@ -96,12 +96,12 @@ class FashionMarketInfo():
     def __init__(self,pNow):
         '''
         Make a new instance of FashionMarketInfo.
-        
+
         Parameters
         ----------
         pNow : float
             The current proportion of the population that is punk.
-        
+
         Returns
         -------
         new instance of FashionMarketInfo
@@ -120,30 +120,30 @@ class FashionVictimType(AgentType):
                                          VfuncPunk=LinearInterp(np.array([0.0, 1.0]),np.array([0.0,0.0])),
                                          switchFuncJock=NullFunc(),
                                          switchFuncPunk=NullFunc())
-    
+
     def __init__(self,**kwds):
         '''
         Instantiate a new FashionVictim with given data.
-        
+
         Parameters
         ----------
         **kwds : keyword arguments
             Any number of keyword arguments key=value; each value will be assigned
             to the attribute key in the new instance.
-        
+
         Returns
         -------
         new instance of FashionVictimType
-        '''      
+        '''
         # Initialize a basic AgentType
         AgentType.__init__(self,solution_terminal=FashionVictimType._solution_terminal,cycles=0,time_flow=True,pseudo_terminal=True,**kwds)
-        
+
         # Add class-specific features
         self.time_inv = ['DiscFac','conformUtilityFunc','punk_utility','jock_utility','switchcost_J2P','switchcost_P2J','pGrid','pEvolution','pref_shock_mag']
         self.time_vary = []
         self.solveOnePeriod = solveFashion
         self.update()
-        
+
     def updateEvolution(self):
         '''
         Updates the "population punk proportion" evolution array.  Fasion victims
@@ -153,11 +153,11 @@ class FashionVictimType(AgentType):
         pNextWidth, and pGrid, this method generates a new array for the attri-
         bute pEvolution, representing a discrete approximation of next period
         states for each current period state in pGrid.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -168,7 +168,7 @@ class FashionVictimType(AgentType):
             pNextMean = self.pNextIntercept + self.pNextSlope*pNow
             dist = approxUniform(N=self.pNextCount,bot=pNextMean-self.pNextWidth,top=pNextMean+self.pNextWidth)[1]
             self.pEvolution[j,:] = dist
-        
+
     def update(self):
         '''
         Updates the non-primitive objects needed for solution, using primitive
@@ -176,11 +176,11 @@ class FashionVictimType(AgentType):
         conformUtilityFunc, a grid of population punk proportions, and an array
         of future punk proportions (for each value in the grid).  Results are
         stored as attributes of self.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -188,7 +188,7 @@ class FashionVictimType(AgentType):
         self.conformUtilityFunc = lambda x : stats.beta.pdf(x,self.uParamA,self.uParamB)
         self.pGrid = np.linspace(0.0001,0.9999,self.pCount)
         self.updateEvolution()
-            
+
     def reset(self):
         '''
         Resets this agent type to prepare it for a new simulation run.  This
@@ -200,15 +200,15 @@ class FashionVictimType(AgentType):
         Shk  = self.RNG.rand(self.pop_size)
         sNow[Shk < self.p_init] = 1
         self.sNow = sNow
-        
+
     def preSolve(self):
         '''
         Updates the punk proportion evolution array by calling self.updateEvolution().
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -217,15 +217,15 @@ class FashionVictimType(AgentType):
         # new evolution rule is calculated after each simulation run, but only
         # the sufficient statistics describing it are sent back to agents.
         self.updateEvolution()
-            
+
     def postSolve(self):
         '''
         Unpack the behavioral and value functions for more parsimonious access.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -234,17 +234,17 @@ class FashionVictimType(AgentType):
         self.switchFuncJock = self.solution[0].switchFuncJock
         self.VfuncPunk      = self.solution[0].VfuncPunk
         self.VfuncJock      = self.solution[0].VfuncJock
-        
+
     def simOnePrd(self):
         '''
         Simulate one period of the fashion victom model for this type.  Each
         agent receives an idiosyncratic preference shock and chooses whether to
         change styles (using the optimal decision rule).
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -260,27 +260,27 @@ class FashionVictimType(AgentType):
         sNow[J2P] = 1
         sNow[P2J] = 0
         self.sNow = sNow
-        
+
     def marketAction(self):
         '''
         The "market action" for a FashionType in the general equilibrium setting.
         Simulates a single period using self.simOnePrd().
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
         '''
         self.simOnePrd()
-        
-        
+
+
 def solveFashion(solution_next,DiscFac,conformUtilityFunc,punk_utility,jock_utility,switchcost_J2P,switchcost_P2J,pGrid,pEvolution,pref_shock_mag):
     '''
     Solves a single period of the fashion victim model.
-    
+
     Parameters
     ----------
     solution_next: FashionSolution
@@ -307,7 +307,7 @@ def solveFashion(solution_next,DiscFac,conformUtilityFunc,punk_utility,jock_util
         period if p = pGrid[i] today.
     pref_shock_mag: float
         Standard deviation of T1EV preference shocks over style.
-           
+
     Returns
     -------
     solution_now: FashionSolution
@@ -316,21 +316,21 @@ def solveFashion(solution_next,DiscFac,conformUtilityFunc,punk_utility,jock_util
     # Unpack next period's solution
     VfuncPunkNext = solution_next.VfuncPunk
     VfuncJockNext = solution_next.VfuncJock
-    
+
     # Calculate end-of-period expected value for each style at points on the pGrid
     EndOfPrdVpunk = DiscFac*np.mean(VfuncPunkNext(pEvolution),axis=1)
     EndOfPrdVjock = DiscFac*np.mean(VfuncJockNext(pEvolution),axis=1)
-    
+
     # Get current period utility flow from each style (without switching cost)
     Upunk = punk_utility + conformUtilityFunc(pGrid)
     Ujock = jock_utility + conformUtilityFunc(1.0 - pGrid)
-    
+
     # Calculate choice-conditional value for each combination of current and next styles (at each)
     V_J2J = Ujock                  + EndOfPrdVjock
     V_J2P = Upunk - switchcost_J2P + EndOfPrdVpunk
     V_P2J = Ujock - switchcost_P2J + EndOfPrdVjock
     V_P2P = Upunk                  + EndOfPrdVpunk
-    
+
     # Calculate the beginning-of-period expected value of each p-state when punk
     Vboth_P = np.vstack((V_P2J,V_P2P))
     Vbest_P = np.max(Vboth_P,axis=0)
@@ -339,7 +339,7 @@ def solveFashion(solution_next,DiscFac,conformUtilityFunc,punk_utility,jock_util
     SumExpVnorm_P = np.sum(ExpVnorm_P,axis=0)
     V_P = np.log(SumExpVnorm_P)*pref_shock_mag + Vbest_P
     switch_P = ExpVnorm_P[0,:]/SumExpVnorm_P
-    
+
     # Calculate the beginning-of-period expected value of each p-state when jock
     Vboth_J = np.vstack((V_J2J,V_J2P))
     Vbest_J = np.max(Vboth_J,axis=0)
@@ -348,25 +348,25 @@ def solveFashion(solution_next,DiscFac,conformUtilityFunc,punk_utility,jock_util
     SumExpVnorm_J = np.sum(ExpVnorm_J,axis=0)
     V_J = np.log(SumExpVnorm_J)*pref_shock_mag + Vbest_J
     switch_J = ExpVnorm_J[1,:]/SumExpVnorm_J
-    
+
     # Make value and policy functions for each style
     VfuncPunkNow = LinearInterp(pGrid,V_P)
     VfuncJockNow = LinearInterp(pGrid,V_J)
     switchFuncPunkNow = LinearInterp(pGrid,switch_P)
     switchFuncJockNow = LinearInterp(pGrid,switch_J)
-    
+
     # Make and return this period's solution
     solution_now = FashionSolution(VfuncJock=VfuncJockNow,
                                    VfuncPunk=VfuncPunkNow,
                                    switchFuncJock=switchFuncJockNow,
                                    switchFuncPunk=switchFuncPunkNow)
     return solution_now
-    
-   
+
+
 def calcPunkProp(sNow):
     '''
     Calculates the proportion of punks in the population, given data from each type.
-    
+
     Parameters
     ----------
     pNow : [np.array]
@@ -378,18 +378,18 @@ def calcPunkProp(sNow):
     sNowX = np.asarray(sNow).flatten()
     pNow  = np.mean(sNowX)
     return FashionMarketInfo(pNow)
-    
-    
+
+
 def calcFashionEvoFunc(pNow):
     '''
     Calculates a new approximate dynamic rule for the evolution of the proportion
     of punks as a linear function and a "shock width".
-    
+
     Parameters
     ----------
     pNow : [float]
         List describing the history of the proportion of punks in the population.
-        
+
     Returns
     -------
     (unnamed) : FashionEvoFunc
@@ -406,7 +406,7 @@ def calcFashionEvoFunc(pNow):
     pNextStd  = np.sqrt(np.mean(pPopErrSq))
     print(str(pNextIntercept) + ', ' + str(pNextSlope) + ', ' + str(pNextStd))
     return FashionEvoFunc(pNextIntercept,pNextSlope,2*pNextStd)
-    
+
 
 ###############################################################################
 ###############################################################################
@@ -416,19 +416,19 @@ if __name__ == '__main__':
     mystr = lambda number : "{:.4f}".format(number)
     import matplotlib.pyplot as plt
     from copy import deepcopy
-    
+
     do_many_types = True
-    
+
     # Make a test case and solve the micro model
     TestType = FashionVictimType(**Params.default_params)
     print('Utility function:')
     plotFuncs(TestType.conformUtilityFunc,0,1)
-    
+
     t_start = clock()
     TestType.solve()
     t_end = clock()
     print('Solving a fashion victim micro model took ' + mystr(t_end-t_start) + ' seconds.')
-    
+
     print('Jock value function:')
     plotFuncs(TestType.VfuncJock,0,1)
     print('Punk value function:')
@@ -437,7 +437,7 @@ if __name__ == '__main__':
     plotFuncs(TestType.switchFuncJock,0,1)
     print('Punk switch probability:')
     plotFuncs(TestType.switchFuncPunk,0,1)
-        
+
     # Make a list of different types
     AltType = deepcopy(TestType)
     AltType(uParamA = Params.uParamB, uParamB = Params.uParamA, seed=20)
@@ -464,8 +464,8 @@ if __name__ == '__main__':
             ThisType(jock_utility=u_vec[j])
             ThisType.solve()
             type_list.append(ThisType)
-    
-    # Now run the simulation inside a Market 
+
+    # Now run the simulation inside a Market
     TestMarket = Market(agents        = type_list,
                         sow_vars      = ['pNow'],
                         reap_vars     = ['sNow'],
@@ -476,7 +476,7 @@ if __name__ == '__main__':
                         act_T         = 1000,
                         tolerance     = 0.01)
     TestMarket.pNow_init = 0.5
-        
+
     TestMarket.solve()
     plt.plot(TestMarket.pNow_hist)
     plt.show()

@@ -39,14 +39,14 @@ init_perfect_foresight = { 'CRRA': CRRA,
                            'T_age' : T_age,
                            'T_cycle' : T_cycle
                           }
-                                                   
+
 # -----------------------------------------------------------------------------
 # --- Define additional parameters for the idiosyncratic shocks model ---------
 # -----------------------------------------------------------------------------
 
 # Parameters for constructing the "assets above minimum" grid
 aXtraMin = 0.001                    # Minimum end-of-period "assets above minimum" value
-aXtraMax = 20                       # Maximum end-of-period "assets above minimum" value               
+aXtraMax = 20                       # Maximum end-of-period "assets above minimum" value
 aXtraExtra = None                   # Some other value of "assets above minimum" to add to the grid, not used
 aXtraNestFac = 3                    # Exponential nesting factor when constructing "assets above minimum" grid
 aXtraCount = 48                     # Number of points in the grid of "assets above minimum"
@@ -101,7 +101,7 @@ init_idiosyncratic_shocks = { 'CRRA': CRRA,
                               'T_age' : T_age,
                               'T_cycle' : T_cycle
                              }
-                             
+
 # Make a dictionary to specify a lifecycle consumer with a finite horizon
 init_lifecycle = copy(init_idiosyncratic_shocks)
 init_lifecycle['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
@@ -229,8 +229,8 @@ init_mrkv_cobb_douglas['MrkvArray'] = MrkvArray
 init_mrkv_cobb_douglas['MrkvNow_init'] = 0
 init_mrkv_cobb_douglas['slope_prev'] = 2*[slope_prev]
 init_mrkv_cobb_douglas['intercept_prev'] = 2*[intercept_prev]
-                     
-                     
+
+
 # -----------------------------------------------------------------------------
 # ----- Define additional parameters for the persistent shocks model ----------
 # -----------------------------------------------------------------------------

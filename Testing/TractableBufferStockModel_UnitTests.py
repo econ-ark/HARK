@@ -14,7 +14,7 @@ import TractableBufferStockModel as Model
 import unittest
 
 class FuncTest(unittest.TestCase):
-    
+
     def setUp(self):
         base_primitives = {'UnempPrb' : .015,
                            'DiscFac' : 0.9,
@@ -52,11 +52,11 @@ class FuncTest(unittest.TestCase):
                   1.4722358408529614,
                   1.5307746658958221]
         return test_model.solution[0].cNrm_list,cNrm_list
-                  
+
     def test1(self):
         results = self.setUp()
         self.assertEqual(results[0],results[1])
-        
-     
+
+
 if __name__ == '__main__':
     unittest.main()

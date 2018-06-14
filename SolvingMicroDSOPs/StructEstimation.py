@@ -9,8 +9,8 @@ consumption-saving model with idiosyncratic shocks to permanent and transitory
 income as defined in ConsIndShockModel.
 '''
 # Import the HARK library.  The assumption is that this code is in a folder
-# contained in the HARK folder. 
-import sys 
+# contained in the HARK folder.
+import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
@@ -41,33 +41,33 @@ class TempConsumerType(Model.IndShockConsumerType):
     def __init__(self,cycles=1,time_flow=True,**kwds):
         '''
         Make a new consumer type.
-        
+
         Parameters
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
         time_flow : boolean
             Whether time is currently "flowing" forward for this instance.
-        
+
         Returns
         -------
         None
-        '''       
+        '''
         # Initialize a basic AgentType
         Model.IndShockConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
         self.addToTimeVary('DiscFac') # This estimation uses age-varying discount factors as
         self.delFromTimeInv('DiscFac')# estimated by Cagetti (2003), so switch from time_inv to time_vary
-        
+
     def simBirth(self,which_agents):
         '''
         Alternate method for simulating initial states for simulated agents, drawing from a finite
         distribution.  Used to overwrite IndShockConsumerType.simBirth, which uses lognormal distributions.
-        
+
         Parameters
         ----------
         which_agents : np.array(Bool)
             Boolean array of size self.AgentCount indicating which agents should be "born".
-        
+
         Returns
         -------
         None
@@ -86,7 +86,7 @@ EstimationAgent(T_sim = EstimationAgent.T_cycle+1)                   # Set the n
 EstimationAgent.track_vars = ['bNrmNow']                             # Choose to track bank balances as wealth
 EstimationAgent.aNrmInit = drawDiscrete(N=Params.num_agents,
                                       P=Params.initial_wealth_income_ratio_probs,
-                                      X=Params.initial_wealth_income_ratio_vals,                                      
+                                      X=Params.initial_wealth_income_ratio_vals,
                                       seed=Params.seed)              # Draw initial assets for each consumer
 EstimationAgent.makeShockHistory()
 
@@ -111,7 +111,7 @@ def smmObjectiveFxn(DiscFacAdj, CRRA,
         b) simulate wealth holdings for many consumers over time
         c) sum distances between empirical data and simulated medians within
             seven age groupings
-            
+
     Parameters
     ----------
     DiscFacAdj : float
@@ -138,25 +138,25 @@ def smmObjectiveFxn(DiscFacAdj, CRRA,
         List of arrays of "simulation ages" for each age grouping.  E.g. if the
         0th element is [1,2,3,4,5], then these time indices from the simulation
         correspond to the 0th empirical age group.
-        
+
     Returns
     -------
     distance_sum : float
         Sum of distances between empirical data observations and the corresponding
         median wealth-to-permanent-income ratio in the simulation.
-    '''   
+    '''
     original_time_flow = agent.time_flow
     agent.timeFwd() # Make sure time is flowing forward for the agent
-    
+
     # A quick check to make sure that the parameter values are within bounds.
-    # Far flung falues of DiscFacAdj or CRRA might cause an error during solution or 
+    # Far flung falues of DiscFacAdj or CRRA might cause an error during solution or
     # simulation, so the objective function doesn't even bother with them.
     if DiscFacAdj < DiscFacAdj_bound[0] or DiscFacAdj > DiscFacAdj_bound[1] or CRRA < CRRA_bound[0] or CRRA > CRRA_bound[1]:
         return 1e30
-        
+
     # Update the agent with a new path of DiscFac based on this DiscFacAdj (and a new CRRA)
     agent(DiscFac = [b*DiscFacAdj for b in Params.DiscFac_timevary], CRRA = CRRA)
-    
+
     # Solve the model for these parameters, then simulate wealth data
     agent.solve()        # Solve the microeconomic model
     agent.unpackcFunc() # "Unpack" the consumption function for convenient access
@@ -164,7 +164,7 @@ def smmObjectiveFxn(DiscFacAdj, CRRA,
     agent.initializeSim()                     # Initialize the simulation by clearing histories, resetting initial values
     agent.simulate(max_sim_age)               # Simulate histories of consumption and wealth
     sim_w_history = agent.bNrmNow_hist        # Take "wealth" to mean bank balances before receiving labor income
-    
+
     # Find the distance between empirical data and simulated medians for each age group
     group_count = len(map_simulated_to_empirical_cohorts)
     distance_sum = 0
@@ -173,12 +173,12 @@ def smmObjectiveFxn(DiscFacAdj, CRRA,
         sim_median = np.median(sim_w_history[cohort_indices,]) # The median of simulated wealth-to-income for this age group
         group_indices = empirical_groups == (g+1) # groups are numbered from 1
         distance_sum += np.dot(np.abs(empirical_data[group_indices] - sim_median),empirical_weights[group_indices]) # Weighted distance from each empirical observation to the simulated median for this age group
-    
+
     # Restore time to its original direction and report the result
     if not original_time_flow:
-        agent.timeRev()  
+        agent.timeRev()
     return distance_sum
-    
+
 # Make a single-input lambda function for use in the optimizer
 smmObjectiveFxnReduced = lambda parameters_to_estimate : smmObjectiveFxn(DiscFacAdj=parameters_to_estimate[0],CRRA=parameters_to_estimate[1])
 '''
@@ -192,7 +192,7 @@ def calculateStandardErrorsByBootstrap(initial_estimate,N,seed=0,verbose=False):
     '''
     Calculates standard errors by repeatedly re-estimating the model with datasets
     resampled from the actual data.
-   
+
     Parameters
     ----------
     initial_estimate : [float,float]
@@ -204,50 +204,50 @@ def calculateStandardErrorsByBootstrap(initial_estimate,N,seed=0,verbose=False):
         Seed for the random number generator.
     verbose : boolean
         Indicator for whether extra output should be printed for the user.
-        
+
     Returns
     -------
     standard_errors : [float,float]
         Standard errors calculated by bootstrap: [DiscFacAdj_std_error, CRRA_std_error].
-    '''    
-    t_0 = time()    
-    
+    '''
+    t_0 = time()
+
     # Generate a list of seeds for generating bootstrap samples
     RNG = np.random.RandomState(seed)
-    seed_list = RNG.randint(2**31-1,size=N)    
-    
+    seed_list = RNG.randint(2**31-1,size=N)
+
     # Estimate the model N times, recording each set of estimated parameters
     estimate_list = []
     for n in range(N):
         t_start = time()
-        
+
         # Bootstrap a new dataset by resampling from the original data
         bootstrap_data = (bootstrapSampleFromData(Data.scf_data_array,seed=seed_list[n])).T
         w_to_y_data_bootstrap = bootstrap_data[0,]
         empirical_groups_bootstrap = bootstrap_data[1,]
         empirical_weights_bootstrap = bootstrap_data[2,]
-        
+
         # Make a temporary function for use in this estimation run
         smmObjectiveFxnBootstrap = lambda parameters_to_estimate : smmObjectiveFxn(DiscFacAdj=parameters_to_estimate[0],
                                                                                    CRRA=parameters_to_estimate[1],
                                                                                    empirical_data = w_to_y_data_bootstrap,
                                                                                    empirical_weights = empirical_weights_bootstrap,
                                                                                    empirical_groups = empirical_groups_bootstrap)
-                                                                                   
+
         # Estimate the model with the bootstrap data and add to list of estimates
         this_estimate = minimizeNelderMead(smmObjectiveFxnBootstrap,initial_estimate)
         estimate_list.append(this_estimate)
-        t_now = time()  
-        
+        t_now = time()
+
         # Report progress of the bootstrap
         if verbose:
             print('Finished bootstrap estimation #' + str(n+1) + ' of ' + str(N) + ' in ' + str(t_now-t_start) + ' seconds (' + str(t_now-t_0) + ' cumulative)')
-        
+
     # Calculate the standard errors for each parameter
     estimate_array = (np.array(estimate_list)).T
     DiscFacAdj_std_error = np.std(estimate_array[0])
     CRRA_std_error = np.std(estimate_array[1])
-    
+
     return [DiscFacAdj_std_error, CRRA_std_error]
 
 
@@ -262,12 +262,12 @@ if __name__ == '__main__':
         print('Now estimating the model using Nelder-Mead from an initial guess of' + str(initial_guess) + '...')
         model_estimate = minimizeNelderMead(smmObjectiveFxnReduced,initial_guess,verbose=True)
         print('Estimated values: DiscFacAdj=' + str(model_estimate[0]) + ', CRRA=' + str(model_estimate[1]))
-    
+
     # Compute standard errors by bootstrap
     if compute_standard_errors:
         std_errors = calculateStandardErrorsByBootstrap(model_estimate,N=Params.bootstrap_size,seed=Params.seed,verbose=True)
         print('Standard errors: DiscFacAdj--> ' + str(std_errors[0]) + ', CRRA--> ' + str(std_errors[1]))
-    
+
     # Make a contour plot of the objective function
     if make_contour_plot:
         grid_density = 20   # Number of parameter values in each dimension
@@ -280,7 +280,7 @@ if __name__ == '__main__':
             DiscFacAdj = DiscFacAdj_list[j]
             for k in range(grid_density):
                 CRRA = CRRA_list[k]
-                smm_obj_levels[j,k] = smmObjectiveFxn(DiscFacAdj,CRRA)    
+                smm_obj_levels[j,k] = smmObjectiveFxn(DiscFacAdj,CRRA)
         smm_contour = pylab.contourf(CRRA_mesh,DiscFacAdj_mesh,smm_obj_levels,level_count)
         pylab.colorbar(smm_contour)
         pylab.plot(model_estimate[1],model_estimate[0],'*r',ms=15)

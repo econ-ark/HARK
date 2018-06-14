@@ -1,5 +1,5 @@
 '''
-This module runs a quick and dirty structural estimation based on Table 9 of 
+This module runs a quick and dirty structural estimation based on Table 9 of
 "MPC Heterogeneity and Household Balance Sheets" by Fagereng, Holm, and Natvik.
 Authors use Norweigian administrative data on income, household assets, and lottery
 winnings to examine the MPC from transitory income shocks (lottery prizes).  In
@@ -10,7 +10,7 @@ to minimize the sum of squared differences between simulated and estimated MPCs
 by changing the (uniform) distribution of discount factors.  Can their results
 be rationalized by a simple one-asset consumption-saving model?  This module
 includes several options for estimating different specifications:
-    
+
 TypeCount : Integer number of discount factors in discrete distribution; can be
             set to 1 to turn off ex ante heterogeneity.
 AdjFactor : Scaling factor for the target MPCs; user can try to fit estimated
@@ -33,7 +33,7 @@ drop_corner : Boolean for whether to include target MPC in the top left corner,
               because this target tends to push the estimate around a bit.
 '''
 
-import sys 
+import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../..'))
@@ -83,14 +83,14 @@ EstTypeList = []
 for j in range(TypeCount):
     EstTypeList.append(deepcopy(BaseType))
     EstTypeList[-1](seed = j)
-    
+
 # Define the objective function
 def FagerengObjFunc(center,spread,verbose=False):
     '''
     Objective function for the quick and dirty structural estimation to fit
     Fagereng, Holm, and Natvik's Table 9 results with a basic infinite horizon
     consumption-saving model (with permanent and transitory income shocks).
-    
+
     Parameters
     ----------
     center : float
@@ -100,7 +100,7 @@ def FagerengObjFunc(center,spread,verbose=False):
     verbose : bool
         When True, print to screen MPC table for these parameters.  When False,
         print (center, spread, distance).
-        
+
     Returns
     -------
     distance : float
@@ -110,11 +110,11 @@ def FagerengObjFunc(center,spread,verbose=False):
     beta_set = approxUniform(N=TypeCount,bot=center-spread,top=center+spread)[1]
     for j in range(TypeCount):
         EstTypeList[j](DiscFac = beta_set[j])
-        
+
     # Solve and simulate all consumer types, then gather their wealth levels
     multiThreadCommands(EstTypeList,['solve()','initializeSim()','simulate()','unpackcFunc()'])
     WealthNow = np.concatenate([ThisType.aLvlNow for ThisType in EstTypeList])
-    
+
     # Get wealth quartile cutoffs and distribute them to each consumer type
     quartile_cuts = getPercentiles(WealthNow,percentiles=[0.25,0.50,0.75])
     for ThisType in EstTypeList:
@@ -122,13 +122,13 @@ def FagerengObjFunc(center,spread,verbose=False):
         for n in range(3):
             WealthQ[ThisType.aLvlNow > quartile_cuts[n]] += 1
         ThisType(WealthQ = WealthQ)
-        
+
     # Keep track of MPC sets in lists of lists of arrays
     MPC_set_list = [ [[],[],[],[]],
                      [[],[],[],[]],
                      [[],[],[],[]],
                      [[],[],[],[]] ]
-    
+
     # Calculate the MPC for each of the four lottery sizes for all agents
     for ThisType in EstTypeList:
         ThisType.simulate(1)
@@ -145,20 +145,20 @@ def FagerengObjFunc(center,spread,verbose=False):
             else:
                 mAdj = ThisType.mNrmNow + Lnrm
                 MPC_this_type[:,k] = cAdj = ThisType.cFunc[0].derivative(mAdj)
-                        
+
         # Sort the MPCs into the proper MPC sets
         for q in range(4):
             these = ThisType.WealthQ == q
             for k in range(4):
                 MPC_set_list[k][q].append(MPC_this_type[these,k])
-                
+
     # Calculate average within each MPC set
     simulated_MPC_means = np.zeros((4,4))
     for k in range(4):
         for q in range(4):
             MPC_array = np.concatenate(MPC_set_list[k][q])
             simulated_MPC_means[k,q] = np.mean(MPC_array)
-            
+
     # Calculate Euclidean distance between simulated MPC averages and Table 9 targets
     diff = simulated_MPC_means - MPC_target
     if drop_corner:
@@ -172,7 +172,7 @@ def FagerengObjFunc(center,spread,verbose=False):
 
 
 if __name__ == '__main__':
-    
+
     guess = [0.92,0.03]
     f_temp = lambda x : FagerengObjFunc(x[0],x[1])
     opt_params = minimizeNelderMead(f_temp, guess, verbose=True)
@@ -180,10 +180,9 @@ if __name__ == '__main__':
     print('Optimal (beta,nabla) is ' + str(opt_params) + ', simulated MPCs are:')
     dist = FagerengObjFunc(opt_params[0],opt_params[1],True)
     print('Distance from Fagereng et al Table 9 is ' + str(dist))
-    
+
 #    t_start = clock()
 #    X = FagerengObjFunc(0.814,0.122)
 #    t_end = clock()
 #    print('That took ' + str(t_end - t_start) + ' seconds.')
 #    print(X)
-    

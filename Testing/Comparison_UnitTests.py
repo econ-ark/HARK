@@ -30,19 +30,19 @@ from TractableBufferStockModel import TractableConsumerType
 class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
     """
     Class to compare output of the perfect foresight and infinite horizon models.
-    
+
     When income uncertainty is removed from the infinite horizon model, it reduces in theory to
     the perfect foresight model.  This class implements tests to make sure it reduces in practice
     to the perfect foresight model as well.
     """
-    
+
     def setUp(self):
         """
         Prepare to compare the models by initializing and solving them
         """
         # Set up and solve infinite type
         import ConsumerParameters as Params
-        
+
         InfiniteType = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
         InfiniteType.assignParameters(LivPrb      = [1.],
                                       DiscFac     = 0.955,
@@ -52,16 +52,16 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
                                       T_total = 1, T_retire = 0, BoroCnstArt = None, UnempPrb = 0.,
                                       cycles = 0) # This is what makes the type infinite horizon
 
-        InfiniteType.updateIncomeProcess()        
+        InfiniteType.updateIncomeProcess()
         InfiniteType.solve()
         InfiniteType.timeFwd()
         InfiniteType.unpackcFunc()
 
 
         # Make and solve a perfect foresight consumer type with the same parameters
-        PerfectForesightType = deepcopy(InfiniteType)    
+        PerfectForesightType = deepcopy(InfiniteType)
         PerfectForesightType.solveOnePeriod = solvePerfForesight
-        
+
         PerfectForesightType.solve()
         PerfectForesightType.unpackcFunc()
         PerfectForesightType.timeFwd()
@@ -87,8 +87,8 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
 class Compare_TBS_and_Markov(unittest.TestCase):
     """
     Class to compare output of the Tractable Buffer Stock and Markov models.
-    
-    The only uncertainty in the TBS model is over when the agent will enter an absorbing state 
+
+    The only uncertainty in the TBS model is over when the agent will enter an absorbing state
     with 0 income.  With the right transition arrays and income processes, this is just a special
     case of the Markov model.  So with the right inputs, we should be able to solve the two
     different models and get the same outputs.
@@ -100,11 +100,11 @@ class Compare_TBS_and_Markov(unittest.TestCase):
                            'Rfree' : 1.1,
                            'PermGroFac' : 1.05,
                            'CRRA' : .95}
-                           
+
 
         TBSType = TractableConsumerType(**base_primitives)
         TBSType.solve()
- 
+
         # Set up and solve Markov
         MrkvArray = np.array([[1.0-base_primitives['UnempPrb'],base_primitives['UnempPrb']],
                               [0.0,1.0]])
@@ -139,16 +139,16 @@ class Compare_TBS_and_Markov(unittest.TestCase):
                             'CubicBool':True,
                             'MrkvArray':MrkvArray
                             }
-                
-        MarkovType             = MarkovConsumerType(**Markov_primitives)                           
+
+        MarkovType             = MarkovConsumerType(**Markov_primitives)
         MarkovType.cycles      = 0
         employed_income_dist   = [np.ones(1),np.ones(1),np.ones(1)]
         unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)]
         MarkovType.IncomeDstn  = [[employed_income_dist,unemployed_income_dist]]
-        
+
         MarkovType.solve()
         MarkovType.unpackcFunc()
- 
+
         self.TBSType    = TBSType
         self.MarkovType = MarkovType
 
@@ -161,7 +161,7 @@ class Compare_TBS_and_Markov(unittest.TestCase):
         max_difference = np.max(np.abs(difference))
 
         self.assertLess(max_difference,0.01)
-        
+
 if __name__ == '__main__':
-    # Run all the tests    
+    # Run all the tests
     unittest.main()

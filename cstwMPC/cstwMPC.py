@@ -4,7 +4,7 @@ A second stab / complete do-over of cstwMPC.  Steals some bits from old version.
 
 # Import the HARK library.  The assumption is that this code is in a folder
 # contained in the HARK folder. Also import ConsumptionSavingModel
-import sys 
+import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
@@ -44,20 +44,20 @@ class cstwMPCagent(EstimationAgentClass):
         if hasattr(self,'kGrid'):
             self.aLvlNow = self.kInit*np.ones(self.AgentCount) # Start simulation near SS
             self.aNrmNow = self.aLvlNow/self.pLvlNow
-        
+
     def marketAction(self):
         if hasattr(self,'kGrid'):
             self.pLvl = self.pLvlNow/np.mean(self.pLvlNow)
         self.simulate(1)
-        
+
     def updateIncomeProcess(self):
         '''
         An alternative method for constructing the income process in the infinite horizon model.
-        
+
         Parameters
         ----------
         none
-            
+
         Returns
         -------
         none
@@ -84,7 +84,7 @@ class cstwMPCmarket(EstimationMarketClass):
     const_vars = ['LorenzBool','ManyStatsBool']
     track_vars = ['MaggNow','AaggNow','KtoYnow','Lorenz','LorenzLong','MPCall','MPCretired','MPCemployed','MPCunemployed','MPCbyIncome','MPCbyWealthRatio','HandToMouthPct']
     dyn_vars = [] # No dynamics in the idiosyncratic shocks version
-    
+
     def __init__(self,**kwds):
         '''
         Make a new instance of cstwMPCmarket.
@@ -94,7 +94,7 @@ class cstwMPCmarket(EstimationMarketClass):
             self.sow_vars=['MaggNow','AaggNow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow','KtoLnow']
             self.dyn_vars=['AFunc']
             self.max_loops = 20
-        
+
     def solve(self):
         '''
         Solves the cstwMPCmarket.
@@ -106,7 +106,7 @@ class cstwMPCmarket(EstimationMarketClass):
         else:
             self.solveAgents()
             self.makeHistory()
-        
+
     def millRule(self,aLvlNow,pLvlNow,MPCnow,TranShkNow,EmpNow,t_age,LorenzBool,ManyStatsBool):
         '''
         The millRule for this class simply calls the method calcStats.
@@ -117,11 +117,11 @@ class cstwMPCmarket(EstimationMarketClass):
         else: # These variables are tracked but not created in no-agg-shocks specifications
             self.MaggNow = 0.0
             self.AaggNow = 0.0
-        
+
     def calcStats(self,aLvlNow,pLvlNow,MPCnow,TranShkNow,EmpNow,t_age,LorenzBool,ManyStatsBool):
         '''
         Calculate various statistics about the current population in the economy.
-        
+
         Parameters
         ----------
         aLvlNow : [np.array]
@@ -142,7 +142,7 @@ class cstwMPCmarket(EstimationMarketClass):
         ManyStatsBool: bool
             Indicator for whether a lot of statistics for tables should be calculated. Usually False,
             only True when parameters have been estimated and we want values for tables.
-            
+
         Returns
         -------
         None
@@ -153,14 +153,14 @@ class cstwMPCmarket(EstimationMarketClass):
         age  = np.hstack(t_age)
         TranShk = np.hstack(TranShkNow)
         Emp = np.hstack(EmpNow)
-        
+
         # Calculate the capital to income ratio in the economy
         CohortWeight = self.PopGroFac**(-age)
         CapAgg = np.sum(aLvl*CohortWeight)
         IncAgg = np.sum(pLvl*TranShk*CohortWeight)
         KtoYnow = CapAgg/IncAgg
         self.KtoYnow = KtoYnow
-        
+
         # Store Lorenz data if requested
         self.LorenzLong = np.nan
         if LorenzBool:
@@ -170,15 +170,15 @@ class cstwMPCmarket(EstimationMarketClass):
             wealth_shares = getLorenzShares(aLvl,weights=CohortWeight,percentiles=self.LorenzPercentiles,presorted=True)
             self.Lorenz = wealth_shares
             if ManyStatsBool:
-                self.LorenzLong = getLorenzShares(aLvl,weights=CohortWeight,percentiles=np.arange(0.01,1.0,0.01),presorted=True)                
+                self.LorenzLong = getLorenzShares(aLvl,weights=CohortWeight,percentiles=np.arange(0.01,1.0,0.01),presorted=True)
         else:
             self.Lorenz = np.nan # Store nothing if we don't want Lorenz data
-            
+
         # Calculate a whole bunch of statistics if requested
         if ManyStatsBool:
             # Reshape other inputs
             MPC  = np.hstack(MPCnow)
-            
+
             # Sort other data items if aLvl and CohortWeight were sorted
             if LorenzBool:
                 pLvl = pLvl[order]
@@ -188,7 +188,7 @@ class cstwMPCmarket(EstimationMarketClass):
                 Emp = Emp[order]
             aNrm = aLvl/pLvl # Normalized assets (wealth ratio)
             IncLvl = TranShk*pLvl # Labor income this period
-                
+
             # Calculate overall population MPC and by subpopulations
             MPCannual = 1.0 - (1.0 - MPC)**4
             self.MPCall = np.sum(MPCannual*CohortWeight)/np.sum(CohortWeight)
@@ -205,7 +205,7 @@ class cstwMPCmarket(EstimationMarketClass):
             self.MPCretired    = np.sum(MPCannual[retired]*CohortWeight[retired])/np.sum(CohortWeight[retired])
             self.MPCbyWealthRatio = calcSubpopAvg(MPCannual,aNrm,self.cutoffs,CohortWeight)
             self.MPCbyIncome      = calcSubpopAvg(MPCannual,IncLvl,self.cutoffs,CohortWeight)
-            
+
             # Calculate the wealth quintile distribution of "hand to mouth" consumers
             quintile_cuts = getPercentiles(aLvl,weights=CohortWeight,percentiles=[0.2, 0.4, 0.6, 0.8])
             wealth_quintiles = np.ones(aLvl.size,dtype=int)
@@ -222,7 +222,7 @@ class cstwMPCmarket(EstimationMarketClass):
             for q in range(1,6):
                 hand_to_mouth_pct.append(np.sum(temp_weights[in_top_third_MPC == q])/hand_to_mouth_total)
             self.HandToMouthPct = np.array(hand_to_mouth_pct)
-            
+
         else: # If we don't want these stats, just put empty values in history
             self.MPCall = np.nan
             self.MPCunemployed = np.nan
@@ -231,11 +231,11 @@ class cstwMPCmarket(EstimationMarketClass):
             self.MPCbyWealthRatio = np.nan
             self.MPCbyIncome = np.nan
             self.HandToMouthPct = np.nan
-        
+
     def distributeParams(self,param_name,param_count,center,spread,dist_type):
         '''
         Distributes heterogeneous values of one parameter to the AgentTypes in self.agents.
-        
+
         Parameters
         ----------
         param_name : string
@@ -248,7 +248,7 @@ class cstwMPCmarket(EstimationMarketClass):
             A measure of spread or diffusion for the distribution of the parameter.
         dist_type : string
             The type of distribution to be used.  Can be "lognormal" or "uniform" (can expand).
-            
+
         Returns
         -------
         None
@@ -261,7 +261,7 @@ class cstwMPCmarket(EstimationMarketClass):
             # If lognormal, center is the mean and spread is the standard deviation (in log)
             tail_N = 3
             param_dist = approxLognormal(N=param_count-tail_N,mu=np.log(center)-0.5*spread**2,sigma=spread,tail_N=tail_N,tail_bound=[0.0,0.9], tail_order=np.e)
-            
+
         # Distribute the parameters to the various types, assigning consecutive types the same
         # value if there are more types than values
         replication_factor = len(self.agents)/param_count
@@ -273,16 +273,16 @@ class cstwMPCmarket(EstimationMarketClass):
                 exec('self.agents[j](' + param_name + '= param_dist[1][b])')
                 j += 1
             b += 1
-            
+
     def calcKYratioDifference(self):
         '''
         Returns the difference between the simulated capital to income ratio and the target ratio.
         Can only be run after solving all AgentTypes and running makeHistory.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         diff : float
@@ -292,15 +292,15 @@ class cstwMPCmarket(EstimationMarketClass):
         KYratioSim = np.mean(np.array(self.KtoYnow_hist)[self.ignore_periods:])
         diff = KYratioSim - self.KYratioTarget
         return diff
-        
+
     def calcLorenzDistance(self):
         '''
         Returns the sum of squared differences between simulated and target Lorenz points.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         dist : float
@@ -308,19 +308,19 @@ class cstwMPCmarket(EstimationMarketClass):
         '''
         LorenzSim = np.mean(np.array(self.Lorenz_hist)[self.ignore_periods:,:],axis=0)
         dist = np.sqrt(np.sum((100*(LorenzSim - self.LorenzTarget))**2))
-        self.LorenzDistance = dist        
+        self.LorenzDistance = dist
         return dist
-        
+
     def showManyStats(self,spec_name=None):
         '''
         Calculates the "many statistics" by averaging histories across simulated periods.  Displays
         the results as text and saves them to files if spec_name is not None.
-        
+
         Parameters
         ----------
         spec_name : string
             A name or label for the current specification.
-            
+
         Returns
         -------
         None
@@ -333,7 +333,7 @@ class cstwMPCmarket(EstimationMarketClass):
         MPCbyIncome = np.mean(np.array(self.MPCbyIncome_hist)[self.ignore_periods:,:],axis=0)
         MPCbyWealthRatio = np.mean(np.array(self.MPCbyWealthRatio_hist)[self.ignore_periods:,:],axis=0)
         HandToMouthPct = np.mean(np.array(self.HandToMouthPct_hist)[self.ignore_periods:,:],axis=0)
-        
+
         LorenzSim = np.hstack((np.array(0.0),np.mean(np.array(self.LorenzLong_hist)[self.ignore_periods:,:],axis=0),np.array(1.0)))
         LorenzAxis = np.arange(101,dtype=float)
         plt.plot(LorenzAxis,self.LorenzData,'-k',linewidth=1.5)
@@ -342,7 +342,7 @@ class cstwMPCmarket(EstimationMarketClass):
         plt.ylabel('Cumulative wealth share',fontsize=12)
         plt.ylim([-0.02,1.0])
         plt.show()
-        
+
         # Make a string of results to display
         results_string = 'Estimate is center=' + str(self.center_estimate) + ', spread=' + str(self.spread_estimate) + '\n'
         results_string += 'Lorenz distance is ' + str(self.LorenzDistance) + '\n'
@@ -371,18 +371,18 @@ class cstwMPCmarket(EstimationMarketClass):
         results_string += mystr(HandToMouthPct[3]*100) + '% are in the fourth wealth quintile,' + '\n'
         results_string += 'and ' + mystr(HandToMouthPct[4]*100) + '% are in the top wealth quintile.' + '\n'
         print(results_string)
-        
+
         # Save results to disk
         if spec_name is not None:
             with open('./Results/' + spec_name + 'Results.txt','w') as f:
                 f.write(results_string)
                 f.close()
-        
+
 def getKYratioDifference(Economy,param_name,param_count,center,spread,dist_type):
     '''
     Finds the difference between simulated and target capital to income ratio in an economy when
     a given parameter has heterogeneity according to some distribution.
-    
+
     Parameters
     ----------
     Economy : cstwMPCmarket
@@ -397,7 +397,7 @@ def getKYratioDifference(Economy,param_name,param_count,center,spread,dist_type)
         A measure of spread or diffusion for the distribution of the parameter of interest.
     dist_type : string
         The type of distribution to be used.  Can be "lognormal" or "uniform" (can expand).
-        
+
     Returns
     -------
     diff : float
@@ -409,15 +409,15 @@ def getKYratioDifference(Economy,param_name,param_count,center,spread,dist_type)
     diff = Economy.calcKYratioDifference()
     print('getKYratioDifference tried center = ' + str(center) + ' and got ' + str(diff))
     return diff
-    
-    
+
+
 def findLorenzDistanceAtTargetKY(Economy,param_name,param_count,center_range,spread,dist_type):
     '''
     Finds the sum of squared distances between simulated and target Lorenz points in an economy when
     a given parameter has heterogeneity according to some distribution.  The class of distribution
     and a measure of spread are given as inputs, but the measure of centrality such that the capital
     to income ratio matches the target ratio must be found.
-    
+
     Parameters
     ----------
     Economy : cstwMPCmarket
@@ -432,7 +432,7 @@ def findLorenzDistanceAtTargetKY(Economy,param_name,param_count,center_range,spr
         A measure of spread or diffusion for the distribution of the parameter of interest.
     dist_type : string
         The type of distribution to be used.  Can be "lognormal" or "uniform" (can expand).
-        
+
     Returns
     -------
     dist : float
@@ -447,7 +447,7 @@ def findLorenzDistanceAtTargetKY(Economy,param_name,param_count,center_range,spr
                                                                  dist_type = dist_type)
     optimal_center = brentq(intermediateObjective,center_range[0],center_range[1],xtol=10**(-6))
     Economy.center_save = optimal_center
-    
+
     # Get the sum of squared Lorenz distances given the correct distribution of the parameter
     Economy(LorenzBool = True) # Make sure we actually calculate simulated Lorenz points
     Economy.distributeParams(param_name,param_count,optimal_center,spread,dist_type) # Distribute parameters
@@ -457,19 +457,19 @@ def findLorenzDistanceAtTargetKY(Economy,param_name,param_count,center_range,spr
     Economy(LorenzBool = False)
     print ('findLorenzDistanceAtTargetKY tried spread = ' + str(spread) + ' and got ' + str(dist))
     return dist
-    
+
 def calcStationaryAgeDstn(LivPrb,terminal_period):
     '''
     Calculates the steady state proportions of each age given survival probability sequence LivPrb.
     Assumes that agents who die are replaced by a newborn agent with t_age=0.
-    
+
     Parameters
     ----------
     LivPrb : [float]
         Sequence of survival probabilities in ordinary chronological order.  Has length T_cycle.
     terminal_period : bool
         Indicator for whether a terminal period follows the last period in the cycle (with LivPrb=0).
-        
+
     Returns
     -------
     AgeDstn : np.array
@@ -482,22 +482,22 @@ def calcStationaryAgeDstn(LivPrb,terminal_period):
     else:
         MrkvArray = np.zeros((T,T))
         top = T-1
-        
+
     for t in range(top):
         MrkvArray[t,0] = 1.0 - LivPrb[t]
         MrkvArray[t,t+1] = LivPrb[t]
     MrkvArray[t+1,0] = 1.0
-    
+
     w, v = np.linalg.eig(np.transpose(MrkvArray))
     idx = (np.abs(w-1.0)).argmin()
     x = v[:,idx].astype(float)
     AgeDstn = (x/np.sum(x))
     return AgeDstn
-    
-####################################################################################################     
-    
+
+####################################################################################################
+
 if __name__ == '__main__':
-    
+
     # Set targets for K/Y and the Lorenz curve based on the data
     if Params.do_liquid:
         lorenz_target = np.array([0.0, 0.004, 0.025,0.117])
@@ -507,7 +507,7 @@ if __name__ == '__main__':
         lorenz_long_data = np.hstack((np.array(0.0),getLorenzShares(Params.SCF_wealth,weights=Params.SCF_weights,percentiles=np.arange(0.01,1.0,0.01).tolist()),np.array(1.0)))
         #lorenz_target = np.array([-0.002, 0.01, 0.053,0.171])
         KY_target = 10.26
-    
+
     # Make AgentTypes for estimation
     if Params.do_lifecycle:
         DropoutType = cstwMPCagent(**Params.init_dropout)
@@ -535,11 +535,11 @@ if __name__ == '__main__':
         EstimationAgentList = []
         for n in range(Params.pref_type_count):
             EstimationAgentList.append(deepcopy(PerpetualYouthType))
-            
+
     # Give all the AgentTypes different seeds
     for j in range(len(EstimationAgentList)):
         EstimationAgentList[j].seed = j
-        
+
     # Make an economy for the consumers to live in
     EstimationEconomy = cstwMPCmarket(**Params.init_market)
     EstimationEconomy.agents = EstimationAgentList
@@ -561,7 +561,7 @@ if __name__ == '__main__':
         EstimationEconomy(**Params.aggregate_params)
         EstimationEconomy.update()
         EstimationEconomy.makeAggShkHist()
-        
+
     # Estimate the model as requested
     if Params.run_estimation:
         # Choose the bounding region for the parameter search
@@ -573,7 +573,7 @@ if __name__ == '__main__':
             spread_range = [0.006,0.008]
         else:
             print('Parameter range for ' + Params.param_name + ' has not been defined!')
-        
+
         if Params.do_param_dist:
             # Run the param-dist estimation
             paramDistObjective = lambda spread : findLorenzDistanceAtTargetKY(
@@ -599,7 +599,7 @@ if __name__ == '__main__':
             center_estimate = brentq(paramPointObjective,param_range[0],param_range[1],xtol=1e-6)
             spread_estimate = 0.0
             t_end = clock()
-            
+
         # Display statistics about the estimated model
         #center_estimate = 0.986609223266
         #spread_estimate = 0.00853886395698
@@ -612,4 +612,4 @@ if __name__ == '__main__':
         EstimationEconomy.center_estimate = center_estimate
         EstimationEconomy.spread_estimate = spread_estimate
         EstimationEconomy.showManyStats(Params.spec_name)
-            
+

@@ -43,7 +43,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
     '''
     Makes descriptive statistics and macroeconomic data file. Behaves slightly
     differently for heterogeneous agents vs representative agent models.
-    
+
     Parameters
     ----------
     Economy : Market or AgentType
@@ -64,7 +64,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
     meas_err_base : float or None
         Base value of measurement error standard deviation, which will be adjusted.
         When None (default), value is calculated as stdev(DeltaLogC).
-        
+
     Returns
     -------
     None
@@ -89,7 +89,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
         CnrmAgg_hist = ClvlAgg_hist/PlvlAgg_hist # Normalized level of aggregate consumption
         YlvlAgg_hist = np.mean(yLvlAll_hist,axis=1) # Level of aggregate income
         YnrmAgg_hist = YlvlAgg_hist/PlvlAgg_hist # Normalized level of aggregate income
-        
+
         if calc_micro_stats: # Only calculate stats if requested.  This is a memory hog with many simulated periods
             micro_stat_periods = int((Economy.agents[0].T_sim-ignore_periods)*0.1)
             not_newborns = (np.concatenate([this_type.t_age_hist[(ignore_periods+1):(ignore_periods+micro_stat_periods),:] for this_type in Economy.agents],axis=1) > 1).flatten()
@@ -107,7 +107,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
             Logy_trimmed[np.isinf(Logy)] = np.nan
             birth_events = np.concatenate([this_type.t_age_hist == 1 for this_type in Economy.agents],axis=1)
             vBirth = calcValueAtBirth(cLvlAll_hist[ignore_periods:,:],birth_events[ignore_periods:,:],PlvlAgg_hist[ignore_periods:],Economy.MrkvNow_hist[ignore_periods:],Economy.agents[0].DiscFac,Economy.agents[0].CRRA)
-        
+
         BigTheta_hist = Economy.TranShkAggHist
         if hasattr(Economy,'MrkvNow'):
             Mrkv_hist = Economy.MrkvNow_hist
@@ -116,7 +116,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
                 ExpectedGrowth_hist = Economy.PermGroFacAgg[Mrkv_hist]
                 ExpectedKLRatio_hist = AnrmAgg_hist/ExpectedGrowth_hist
                 ExpectedR_hist = Economy.Rfunc(ExpectedKLRatio_hist)
-        
+
     else: # If this is a representative agent specification...
         PlvlAgg_hist = Economy.pLvlTrue_hist.flatten()
         ClvlAgg_hist = Economy.cLvlNow_hist.flatten()
@@ -128,7 +128,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
         BigTheta_hist = Economy.TranShkNow_hist.flatten()
         if hasattr(Economy,'MrkvNow'):
             Mrkv_hist = Economy.MrkvNow_hist
-        
+
     # Process aggregate data into forms used by regressions
     LogC = np.log(ClvlAgg_hist[ignore_periods:])
     LogA = np.log(AlvlAgg_hist[ignore_periods:])
@@ -144,7 +144,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
             R = ExpectedR_hist[(ignore_periods+1):]
     Delta8LogC = (np.log(ClvlAgg_hist[8:]) - np.log(ClvlAgg_hist[:-8]))[(ignore_periods-7):]
     Delta8LogY = (np.log(YlvlAgg_hist[8:]) - np.log(YlvlAgg_hist[:-8]))[(ignore_periods-7):]
-    
+
     # Add measurement error to LogC
     if meas_err_base is None:
         meas_err_base = np.std(DeltaLogC)
@@ -153,17 +153,17 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
     Measurement_Error = sigma_meas_err*np.random.normal(0.,1.,LogC.size)
     LogC_me = LogC + Measurement_Error
     DeltaLogC_me = LogC_me[1:] - LogC_me[0:-1]
-    
+
     # Apply measurement error to long delta LogC
     LogC_long = np.log(ClvlAgg_hist)
     LogC_long_me = LogC_long + sigma_meas_err*np.random.normal(0.,1.,LogC_long.size)
     Delta8LogC_me = (LogC_long_me[8:] - LogC_long_me[:-8])[(ignore_periods-7):]
-    
+
     # Make summary statistics for the results file
     csv_output_string = str(np.mean(AnrmAgg_hist[ignore_periods:])) +","+ str(np.mean(CnrmAgg_hist[ignore_periods:]))+ ","+str(np.std(np.log(AnrmAgg_hist[ignore_periods:])))+ ","+str(np.std(DeltaLogC))+ ","+str(np.std(DeltaLogY)) +","+ str(np.std(DeltaLogA))
     if hasattr(Economy,'agents') and calc_micro_stats: # This block only runs for heterogeneous agents specifications
-        csv_output_string += ","+str(np.mean(np.std(Loga,axis=1)))+ ","+str(np.mean(np.std(Logc,axis=1))) + ","+str(np.mean(np.std(Logp,axis=1))) +","+ str(np.mean(np.nanstd(Logy_trimmed,axis=1))) +","+ str(np.std(DeltaLoga_trimmed))+","+ str(np.std(DeltaLogc_trimmed))+ ","+str(np.std(DeltaLogp_trimmed))    
-     
+        csv_output_string += ","+str(np.mean(np.std(Loga,axis=1)))+ ","+str(np.mean(np.std(Logc,axis=1))) + ","+str(np.mean(np.std(Logp,axis=1))) +","+ str(np.mean(np.nanstd(Logy_trimmed,axis=1))) +","+ str(np.std(DeltaLoga_trimmed))+","+ str(np.std(DeltaLogc_trimmed))+ ","+str(np.std(DeltaLogp_trimmed))
+
     # Save the results to a logfile if requested
     if filename is not None:
         with open(results_dir + filename + 'Results.csv','w') as f:
@@ -174,7 +174,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
                 my_writer = csv.writer(f, delimiter = ',')
                 my_writer.writerow(vBirth)
                 f.close()
-            
+
         if save_data:
             DataArray = (np.vstack((np.arange(DeltaLogC.size),DeltaLogC_me,DeltaLogC,DeltaLogY,A,BigTheta,Delta8LogC,Delta8LogY,Delta8LogC_me,Measurement_Error[1:]))).transpose()
             VarNames = ['time_period','DeltaLogC_me','DeltaLogC','DeltaLogY','A','BigTheta','Delta8LogC','Delta8LogY','Delta8LogC_me','Measurement_Error']
@@ -196,7 +196,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
     '''
     Runs regressions for the main tables of the StickyC paper and produces a LaTeX
     table with results for one "panel".
-    
+
     Parameters
     ----------
     infile_name : str
@@ -212,7 +212,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
     all_specs : bool
         Indicator for whether this panel should include all specifications or
         just the OLS on lagged consumption growth.
-        
+
     Returns
     -------
     panel_text : str
@@ -222,7 +222,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
     with open(results_dir + infile_name + '.txt') as f:
         my_reader = csv.reader(f, delimiter='\t')
         all_data = list(my_reader)
-        
+
     # Unpack the data into numpy arrays
     obs = len(all_data) - 1
     DeltaLogC_me = np.zeros(obs)
@@ -236,7 +236,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
     Measurement_Error = np.zeros(obs)
     Mrkv_hist = np.zeros(obs,dtype=int)
     R = np.zeros(obs)
-    
+
     has_mrkv = 'MrkvState' in all_data[0]
     has_R = 'R' in all_data[0]
     for i in range(obs):
@@ -254,7 +254,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
             Mrkv_hist[i] = int(float(all_data[j][10]))
         if has_R:
             R[i] = float(all_data[j][11])
-    
+
     # Determine how many subsample intervals to run (and initialize array of coefficients)
     N = DeltaLogC.size/interval_size
     CoeffsArray = np.zeros((N,7)) # Order: DeltaLogC_OLS, DeltaLogC_IV, DeltaLogY_IV, A_OLS, DeltaLogC_HR, DeltaLogY_HR, A_HR
@@ -263,7 +263,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
     PvalArray = np.zeros((N,5))
     OIDarray = np.zeros((N,5)) + np.nan
     InstrRsqVec = np.zeros(N)
-    
+
     # Loop through subsample intervals, running various regressions
     for n in range(N):
         # Select the data subsample
@@ -278,7 +278,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
         DeltaLogY_n = DeltaLogY[start:end]
         A_n = A[start:end]
         Delta8LogY_n = Delta8LogY[start:end]
-        
+
         # Run OLS on log consumption
         mod = sm.OLS(DeltaLogC_n[1:],sm.add_constant(DeltaLogC_n[0:-1]))
         res = mod.fit()
@@ -286,11 +286,11 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
         StdErrArray[n,0] = res._results.HC0_se[1]
         RsqArray[n,0] = res._results.rsquared_adj
         PvalArray[n,0] = res._results.f_pvalue
-        
+
         # Define instruments for IV regressions
         temp = np.transpose(np.vstack([DeltaLogC_n[1:-3],DeltaLogC_n[:-4],DeltaLogY_n[1:-3],DeltaLogY_n[:-4],A_n[1:-3],A_n[:-4],Delta8LogC_n[1:-3],Delta8LogY_n[1:-3]]))
         instruments = sm.add_constant(temp) # With measurement error
-        
+
         # Run IV on log consumption
         mod = sm.OLS(DeltaLogC_n[3:-1],instruments)
         res = mod.fit()
@@ -303,7 +303,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
         StdErrArray[n,1] = res_IV.bse[1]
         RsqArray[n,1] = res_2ndStage._results.rsquared_adj
         PvalArray[n,1] = res._results.f_pvalue
-        
+
         # Run IV on log income
         mod = sm.OLS(DeltaLogY_n[4:],instruments)
         res = mod.fit()
@@ -316,7 +316,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
         StdErrArray[n,2] = res_IV.bse[1]
         RsqArray[n,2] = res_2ndStage._results.rsquared_adj
         PvalArray[n,2] = res._results.f_pvalue
-        
+
         # Run IV on assets
         mod = sm.OLS(A_n[3:-1],instruments)
         res = mod.fit()
@@ -329,7 +329,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
         StdErrArray[n,3] = res_IV.bse[1]
         RsqArray[n,3] = res_2ndStage._results.rsquared_adj
         PvalArray[n,3] = res._results.f_pvalue
-        
+
         # Run horserace IV
         regressors = sm.add_constant(np.transpose(np.array([DeltaLogC_predict,DeltaLogY_predict,A_predict])))
         mod_2ndStage = sm.OLS(DeltaLogC_n[4:],regressors)
@@ -344,21 +344,21 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
         StdErrArray[n,6] = res_IV._results.bse[3]
         RsqArray[n,4] = res_2ndStage._results.rsquared_adj
         PvalArray[n,4] = np.nan    #Need to put in KP stat here, may have to do this in Stata
-        
+
         # Regress Delta C_{t+1} on instruments
         mod = sm.OLS(DeltaLogC_n[4:],instruments)
         res = mod.fit()
-        InstrRsqVec[n] = res._results.rsquared_adj      
-    
+        InstrRsqVec[n] = res._results.rsquared_adj
+
     # Count the number of times we reach significance in each variable
     t_stat_array = CoeffsArray/StdErrArray
     C_successes_95 = np.sum(t_stat_array[:,4] > 1.96)
     Y_successes_95 = np.sum(t_stat_array[:,5] > 1.96)
-    
+
     sigma_meas_err = np.std(Measurement_Error)
-    
+
     N_out = [C_successes_95,Y_successes_95,N,np.mean(InstrRsqVec),sigma_meas_err**2]
-    
+
     # Make results table and return it
     panel_text = makeResultsPanel(Coeffs=np.mean(CoeffsArray,axis=0),
                      StdErrs=np.mean(StdErrArray,axis=0),
@@ -377,7 +377,7 @@ def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,all_s
     Runs regressions for the main tables of the StickyC paper in Stata and produces a
     LaTeX table with results for one "panel". Running in Stata allows production of
     the KP-statistic, for which there is currently no command in statsmodels.api.
-    
+
     Parameters
     ----------
     infile_name : str
@@ -395,8 +395,8 @@ def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,all_s
         just the OLS on lagged consumption growth.
     stata_exe : str
         Absolute location where the Stata executable can be found on the computer
-        running this code.  Usually set at the top of StickyEparams.py.   
-        
+        running this code.  Usually set at the top of StickyEparams.py.
+
     Returns
     -------
     panel_text : str
@@ -409,16 +409,16 @@ def runStickyEregressionsInStata(infile_name,interval_size,meas_err,sticky,all_s
         meas_err_stata = 1
     else:
         meas_err_stata = 0
-        
+
     # Define the command to run the Stata do file
     cmd = [stata_exe, "do", dofile, infile_name_full, temp_name_full, str(interval_size), str(meas_err_stata)]
-    
+
     # Run Stata do-file
-    stata_status = subprocess.call(cmd,shell = 'true') 
+    stata_status = subprocess.call(cmd,shell = 'true')
     if stata_status!=0:
         raise ValueError('Stata code could not run. Check the stata_exe in StickyEparams.py')
     stata_output = pd.read_csv(temp_name_full, sep=',',header=0)
-    
+
     # Make results table and return it
     panel_text = makeResultsPanel(Coeffs=stata_output.CoeffsArray,
                      StdErrs=stata_output.StdErrArray,
@@ -437,7 +437,7 @@ def calcValueAtBirth(cLvlHist,BirthBool,PlvlHist,MrkvHist,DiscFac,CRRA):
     Calculate expected value of being born in each Markov state using the realizations
     of consumption for a history of many consumers.  The histories should already be
     trimmed of the "burn in" periods.
-    
+
     Parameters
     ----------
     cLvlHist : np.array
@@ -453,7 +453,7 @@ def calcValueAtBirth(cLvlHist,BirthBool,PlvlHist,MrkvHist,DiscFac,CRRA):
         Intertemporal discount factor.
     CRRA : float
         Coefficient of relative risk aversion.
-    
+
     Returns
     -------
     vAtBirth : np.array
@@ -463,7 +463,7 @@ def calcValueAtBirth(cLvlHist,BirthBool,PlvlHist,MrkvHist,DiscFac,CRRA):
     T = MrkvHist.size        # Length of simulation
     I = cLvlHist.shape[1]    # Number of agent indices in histories
     u = lambda c : CRRAutility(c,gam=CRRA)
-    
+
     # Initialize an array to hold each agent's lifetime utility
     BirthsByPeriod = np.sum(BirthBool,axis=1)
     BirthsByState = np.zeros(J,dtype=int)
@@ -473,7 +473,7 @@ def calcValueAtBirth(cLvlHist,BirthBool,PlvlHist,MrkvHist,DiscFac,CRRA):
     N = np.max(BirthsByState) # Array must hold this many agents per row at least
     vArray = np.zeros((J,N)) + np.nan
     n = np.zeros(J,dtype=int)
-    
+
     # Loop through each agent index
     DiscVec = DiscFac**np.arange(T)
     for i in range(I):
@@ -491,7 +491,7 @@ def calcValueAtBirth(cLvlHist,BirthBool,PlvlHist,MrkvHist,DiscFac,CRRA):
             v = np.dot(DiscVec[:span],uVec)
             vArray[j,n[j]] = v
             n[j] += 1
-            
+
     # Calculate expected value at birth by state and return it
     vAtBirth = np.nanmean(vArray,axis=1)
     return vAtBirth
@@ -502,7 +502,7 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky,all_spe
     Make one panel of simulated results table.  A panel has all results with/out
     measurement error for the sticky or frictionless version, and might have only
     one specification (OLS on lagged consumption growth) or many specifications.
-    
+
     Parameters
     ----------
     Coeffs : np.array
@@ -524,7 +524,7 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky,all_spe
     all_specs : bool
         Indicator for whether this panel should include all specifications or
         just the OLS on lagged consumption growth.
-        
+
     Returns
     -------
     output : str
@@ -539,16 +539,16 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky,all_spe
         DeltaLogC = '$\Delta \log \mathbf{C}_{t}$'
         DeltaLogC1 = '$\Delta \log \mathbf{C}_{t+1}$'
         MeasErr = ' (no measurement error)'
-        
+
     if sticky:
         Expectations = 'Sticky'
     else:
         Expectations = 'Frictionless'
-    
+
     DeltaLogY1 = '$\Delta \log \mathbf{Y}_{t+1}$'
     A_t = '$A_{t}$'
 
-        
+
     # Define significance symbols
     if Counts[2] > 1:
         sig_symb = '\\bullet '
@@ -563,7 +563,7 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky,all_spe
         else:
             sig_text = ''
         return sig_text
-    
+
     # Make the memo text
     memo = ''
     if all_specs:
@@ -571,46 +571,46 @@ def makeResultsPanel(Coeffs,StdErrs,Rsq,Pvals,OID,Counts,meas_err,sticky,all_spe
         if meas_err:
             memo += '; ~$\\var(\\log(\\xi_t))=$ ' + mystr3(Counts[4])
         memo += ' }  \n'
-    
+
     # Make the top of the panel
     output = '\\\\ \\midrule \multicolumn{6}{l}{' + Expectations + ' : ' + DeltaLogC1 + MeasErr + '} \n'
     output += '\\\\ \multicolumn{1}{c}{' + DeltaLogC + '} & \multicolumn{1}{c}{' + DeltaLogY1 +'} & \multicolumn{1}{c}{'+A_t+'} & & & \n'
-    
+
     # OLS on just lagged consumption growth
-    output += '\\\\ ' + mystr1(Coeffs[0]) + sigFunc(Coeffs[0],StdErrs[0]) + ' & & & OLS & ' + mystr1(Rsq[0]) + ' & ' + mystr1(np.nan) + '\n'   
-    output += '\\\\ (' + mystr1(StdErrs[0]) + ') & & & & & \n'   
-    
+    output += '\\\\ ' + mystr1(Coeffs[0]) + sigFunc(Coeffs[0],StdErrs[0]) + ' & & & OLS & ' + mystr1(Rsq[0]) + ' & ' + mystr1(np.nan) + '\n'
+    output += '\\\\ (' + mystr1(StdErrs[0]) + ') & & & & & \n'
+
     # Add the rest of the specifications if requested
     if all_specs:
         # IV on lagged consumption growth
-        output += '\\\\ ' + mystr1(Coeffs[1]) + sigFunc(Coeffs[1],StdErrs[1]) + ' & & & IV & ' + mystr1(Rsq[1]) + ' & ' + mystr1(Pvals[1]) + '\n'   
-        output += '\\\\ (' + mystr1(StdErrs[1]) + ') & & & & &' + mystr1(OID[1]) + '\n'   
-        
+        output += '\\\\ ' + mystr1(Coeffs[1]) + sigFunc(Coeffs[1],StdErrs[1]) + ' & & & IV & ' + mystr1(Rsq[1]) + ' & ' + mystr1(Pvals[1]) + '\n'
+        output += '\\\\ (' + mystr1(StdErrs[1]) + ') & & & & &' + mystr1(OID[1]) + '\n'
+
         # IV on expected income growth
-        output += '\\\\ & ' + mystr1(Coeffs[2]) + sigFunc(Coeffs[2],StdErrs[2]) + ' & & IV & ' + mystr1(Rsq[2]) + ' & ' + mystr1(Pvals[2]) + '\n'     
+        output += '\\\\ & ' + mystr1(Coeffs[2]) + sigFunc(Coeffs[2],StdErrs[2]) + ' & & IV & ' + mystr1(Rsq[2]) + ' & ' + mystr1(Pvals[2]) + '\n'
         output += '\\\\ & (' + mystr1(StdErrs[2]) + ') & & & &' + mystr1(OID[2]) + '\n'
-        
+
         # IV on aggregate assets
-        output += '\\\\ & & ' + mystr2(Coeffs[3]) + sigFunc(Coeffs[3],StdErrs[3]) + ' & IV & ' + mystr1(Rsq[3]) + ' & ' + mystr1(Pvals[3]) + '\n'   
-        output += '\\\\ & & (' + mystr2(StdErrs[3]) + ') & & &' + mystr1(OID[3]) + '\n'    
-        
+        output += '\\\\ & & ' + mystr2(Coeffs[3]) + sigFunc(Coeffs[3],StdErrs[3]) + ' & IV & ' + mystr1(Rsq[3]) + ' & ' + mystr1(Pvals[3]) + '\n'
+        output += '\\\\ & & (' + mystr2(StdErrs[3]) + ') & & &' + mystr1(OID[3]) + '\n'
+
         # Horse race
-        output += '\\\\ ' + mystr1(Coeffs[4]) + sigFunc(Coeffs[4],StdErrs[4]) + ' & ' + mystr1(Coeffs[5]) + sigFunc(Coeffs[5],StdErrs[5]) + ' & ' + mystr2(Coeffs[6]) + sigFunc(Coeffs[6],StdErrs[6]) + ' & IV & ' + mystr1(Rsq[4]) + ' & ' + mystr1(Pvals[4]) + '\n'     
+        output += '\\\\ ' + mystr1(Coeffs[4]) + sigFunc(Coeffs[4],StdErrs[4]) + ' & ' + mystr1(Coeffs[5]) + sigFunc(Coeffs[5],StdErrs[5]) + ' & ' + mystr2(Coeffs[6]) + sigFunc(Coeffs[6],StdErrs[6]) + ' & IV & ' + mystr1(Rsq[4]) + ' & ' + mystr1(Pvals[4]) + '\n'
         output += '\\\\ (' + mystr1(StdErrs[4]) + ') & (' + mystr1(StdErrs[5]) + ') & (' + mystr2(StdErrs[6]) + ') & & & ' + mystr1(OID[4]) + '\n'
     output += memo
-    
+
     if Counts[0] is not None and Counts[2] > 1 and False:
         output += '\\\\ \multicolumn{6}{c}{Horserace coefficient on ' + DeltaLogC + ' significant at 95\% level for ' + str(Counts[0]) + ' of ' + str(Counts[2]) + ' subintervals.} \n'
         output += '\\\\ \multicolumn{6}{c}{Horserace coefficient on $\mathbb{E}[\Delta \log \mathbf{Y}_{t+1}]$ significant at 95\% level for ' + str(Counts[1]) + ' of ' + str(Counts[2]) + ' subintervals.} \n'
-    
+
     return output
-        
-        
+
+
 def makeResultsTable(caption,panels,counts,filename,label):
     '''
     Make a time series regression results table by piecing together one or more panels.
     Saves a tex file to disk in the tables directory.
-    
+
     Parameters
     ----------
     caption : str or None
@@ -624,7 +624,7 @@ def makeResultsTable(caption,panels,counts,filename,label):
         Name of the file in which to save output (in the ./Tables/ directory).
     label : str
         LaTeX \label, for internal reference in the paper text.
-        
+
     Returns
     -------
     None
@@ -642,49 +642,49 @@ def makeResultsTable(caption,panels,counts,filename,label):
         note += 'Stars indicate statistical significance at the 90\%, 95\%, and 99\% levels, respectively.  '
     note += 'Instruments $\\textbf{Z}_t = \\{\Delta \log \mathbf{C}_{t-2}, \Delta \log \mathbf{C}_{t-3}, \Delta \log \mathbf{Y}_{t-2}, \Delta \log \mathbf{Y}_{t-3}, A_{t-2}, A_{t-3}, \Delta_8 \log \mathbf{C}_{t-2}, \Delta_8 \log \mathbf{Y}_{t-2}   \\}$.'
     note += '}'
-        
+
     if caption is not None:
         output = '\\begin{minipage}{\\textwidth}\n'
         output += '\\begin{table} \caption{' + caption + '} \\label{' + label + '} \n'
         output += '  \\centerline{$ \Delta \log \mathbf{C}_{t+1} = \\varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \\alpha A_t + \epsilon_{t+1} $}\n'
     else:
         output = '\\begin{center} \n'
-        output += '$ \Delta \log \mathbf{C}_{t+1} = \\varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \\alpha A_t + \epsilon_{t+1} $ \\\\  \n'   
+        output += '$ \Delta \log \mathbf{C}_{t+1} = \\varsigma + \chi \Delta \log \mathbf{C}_t + \eta \mathbb{E}_t[\Delta \log \mathbf{Y}_{t+1}] + \\alpha A_t + \epsilon_{t+1} $ \\\\  \n'
     output += '\\begin{tabular}{d{4}d{4}d{5}cd{4}c}\n \\toprule \n'
     output += '\multicolumn{3}{c}{Expectations : Dep Var} & OLS &  \multicolumn{1}{c}{2${}^{\\text{nd}}$ Stage}  &  \multicolumn{1}{c}{KP $p$-val} \n'
     output += '\\\\ \multicolumn{3}{c}{Independent Variables} & or IV & \multicolumn{1}{c}{$\\bar{R}^{2} $} & \multicolumn{1}{c}{Hansen J $p$-val} \n'
-    
+
     for panel in panels:
         output += panel
-        
+
     output += '\\\\ \\bottomrule \n ' + note + '\n'
     output += '\end{tabular}\n'
-    
+
     if caption is not None:
         output += '\end{table}\n'
         output += '\end{minipage}\n'
     else:
         output += '\end{center}\n'
-    
+
     with open(tables_dir + filename + '.tex','w') as f:
         f.write(output)
         f.close()
 
-       
-def makeParameterTable(filename, params):   
+
+def makeParameterTable(filename, params):
     '''
     Makes the parameter table for the paper, saving it to a tex file in the tables folder.
     Also makes two partial parameter tables for the slides.
-    
+
     Parameters
     ----------
-    
+
     filename : str
         Name of the file in which to save output (in the tables directory).
         Suffix .tex is automatically added.
     params :
         Object containing the parameter values.
-        
+
     Returns
     -------
     None
@@ -692,40 +692,40 @@ def makeParameterTable(filename, params):
     # Calibrated macroeconomic parameters
     macro_panel = "\multicolumn{3}{c}{\\textbf{Macroeconomic Parameters} }  \n"
     macro_panel += "\\\\ $\\kapShare$ & " + "{:.2f}".format(params.CapShare) + " & Capital's Share of Income   \n"
-    macro_panel += "\\\\ $\\daleth$ & " + "{:.2f}".format(params.DeprFacAnn) + "^{1/4} & Depreciation Factor   \n" 
-    macro_panel += "\\\\ $\sigma_{\Theta}^{2}$ & "+ "{:.5f}".format(params.TranShkAggVar) +" & Variance Aggregate Transitory Shocks \n"    
+    macro_panel += "\\\\ $\\daleth$ & " + "{:.2f}".format(params.DeprFacAnn) + "^{1/4} & Depreciation Factor   \n"
+    macro_panel += "\\\\ $\sigma_{\Theta}^{2}$ & "+ "{:.5f}".format(params.TranShkAggVar) +" & Variance Aggregate Transitory Shocks \n"
     macro_panel += "\\\\ $\sigma_{\Psi}^{2}$ & "+ "{:.5f}".format(params.PermShkAggVar) +" & Variance Aggregate Permanent Shocks \n"
-    
+
     # Steady state values
-    SS_panel = "\multicolumn{3}{c}{ \\textbf{Steady State of Perfect Foresight DSGE Model} } \\  \n"  
-    SS_panel += "\\\\ \multicolumn{3}{c}{ $(\\sigma_{\\Psi}=\\sigma_{\\Theta}=\\sigma_{\\psi}=\\sigma_{\\theta}=\wp=\\PDies=0$, $\\Phi_t = 1)$} \\  \n"  
+    SS_panel = "\multicolumn{3}{c}{ \\textbf{Steady State of Perfect Foresight DSGE Model} } \\  \n"
+    SS_panel += "\\\\ \multicolumn{3}{c}{ $(\\sigma_{\\Psi}=\\sigma_{\\Theta}=\\sigma_{\\psi}=\\sigma_{\\theta}=\wp=\\PDies=0$, $\\Phi_t = 1)$} \\  \n"
     SS_panel += "\\\\ $\\breve{K}/\\breve{K}^{\\kapShare}$ & " + "{:.1f}".format(params.KYratioSS) + " & SS Capital to Output Ratio  \n"
-    SS_panel += "\\\\ $\\breve{K}$ & " + "{:.2f}".format(params.KSS) + " & SS Capital to Labor Productivity Ratio ($=12^{1/(1-\\kapShare)}$) \n"  
-    SS_panel += "\\\\ $\\breve{\\Wage}$ &  " + "{:.2f}".format(params.wRteSS) + " & SS Wage Rate ($=(1-\\kapShare)\\breve{K}^{\\kapShare}$) \n"  
-    SS_panel += "\\\\ $\\breve{\\mathsf{r}}$ & " + "{:.2f}".format(params.rFreeSS) + " & SS Interest Rate ($=\\kapShare \\breve{K}^{\\kapShare-1}$) \n"  
-    SS_panel += "\\\\ $\\breve{\\Rprod}$ & " + "{:.3f}".format(params.RfreeSS) + "& SS Between-Period Return Factor ($=\\daleth + \\breve{\\mathsf{r}}$) \n"  
-    
+    SS_panel += "\\\\ $\\breve{K}$ & " + "{:.2f}".format(params.KSS) + " & SS Capital to Labor Productivity Ratio ($=12^{1/(1-\\kapShare)}$) \n"
+    SS_panel += "\\\\ $\\breve{\\Wage}$ &  " + "{:.2f}".format(params.wRteSS) + " & SS Wage Rate ($=(1-\\kapShare)\\breve{K}^{\\kapShare}$) \n"
+    SS_panel += "\\\\ $\\breve{\\mathsf{r}}$ & " + "{:.2f}".format(params.rFreeSS) + " & SS Interest Rate ($=\\kapShare \\breve{K}^{\\kapShare-1}$) \n"
+    SS_panel += "\\\\ $\\breve{\\Rprod}$ & " + "{:.3f}".format(params.RfreeSS) + "& SS Between-Period Return Factor ($=\\daleth + \\breve{\\mathsf{r}}$) \n"
+
     # Calibrated preference parameters
     pref_panel = "\multicolumn{3}{c}{ \\textbf{Preference Parameters} }  \n"
     pref_panel += "\\\\ $\\rho$ & "+ "{:.0f}".format(params.CRRA) +". & Coefficient of Relative Risk Aversion \n"
     pref_panel += "\\\\ $\\beta_{SOE}$ &  " + "{:.3f}".format(params.DiscFacSOE) +" & SOE Discount Factor \n" #($=0.99 \\cdot \\PLives / (\\breve{\\mathcal{R}} \\Ex [\\pmb{\\psi}^{-\CRRA}])$)\n"
-    pref_panel += "\\\\ $\\beta_{DSGE}$ &  " + "{:.3f}".format(params.DiscFacDSGE) +" & HA-DSGE Discount Factor ($=\\breve{\\Rprod}^{-1}$) \n"  
-    pref_panel += "\\\\ $\Pi$                    & " + "{:.2f}".format(params.UpdatePrb) +"  & Probability of Updating Expectations (if Sticky) \n"  
-    
+    pref_panel += "\\\\ $\\beta_{DSGE}$ &  " + "{:.3f}".format(params.DiscFacDSGE) +" & HA-DSGE Discount Factor ($=\\breve{\\Rprod}^{-1}$) \n"
+    pref_panel += "\\\\ $\Pi$                    & " + "{:.2f}".format(params.UpdatePrb) +"  & Probability of Updating Expectations (if Sticky) \n"
+
     # Idiosyncratic shock parameters
     idio_panel = "\multicolumn{3}{c}{ \\textbf{Idiosyncratic Shock Parameters} }  \n"
-    idio_panel += "\\\\ $\sigma_{\\theta}^{2}$    & " + "{:.3f}".format(params.TranShkVar) +"     & Variance Idiosyncratic Tran Shocks (=$4 \\times$ Annual) \n"  
-    idio_panel += "\\\\ $\sigma_{\psi}^{2}$      &" + "{:.3f}".format(params.PermShkVar) +"      & Variance Idiosyncratic Perm Shocks (=$\\frac{1}{4} \\times$ Annual) \n"  
-    idio_panel += "\\\\ $\wp$                    & " + "{:.3f}".format(params.UnempPrb) +"  & Probability of Unemployment Spell \n"  
-    idio_panel += "\\\\ $\PDies$             & " + "{:.3f}".format(params.DiePrb) +"  & Probability of Mortality \n"  
-    
+    idio_panel += "\\\\ $\sigma_{\\theta}^{2}$    & " + "{:.3f}".format(params.TranShkVar) +"     & Variance Idiosyncratic Tran Shocks (=$4 \\times$ Annual) \n"
+    idio_panel += "\\\\ $\sigma_{\psi}^{2}$      &" + "{:.3f}".format(params.PermShkVar) +"      & Variance Idiosyncratic Perm Shocks (=$\\frac{1}{4} \\times$ Annual) \n"
+    idio_panel += "\\\\ $\wp$                    & " + "{:.3f}".format(params.UnempPrb) +"  & Probability of Unemployment Spell \n"
+    idio_panel += "\\\\ $\PDies$             & " + "{:.3f}".format(params.DiePrb) +"  & Probability of Mortality \n"
+
     # Make full parameter table for paper
     paper_output = "\provideboolean{Slides} \setboolean{Slides}{false}  \n"
-    
+
     paper_output += "\\begin{minipage}{\\textwidth}\n"
     paper_output += "  \\begin{table}\n"
     paper_output += "    \\caption{Calibration}\label{table:calibration}\n"
-    
+
     paper_output += "\\begin{tabular}{cd{5}l}  \n"
     paper_output += "\\\\ \\toprule  \n"
     paper_output += macro_panel
@@ -743,7 +743,7 @@ def makeParameterTable(filename, params):
     with open(tables_dir + filename + '.tex','w') as f:
         f.write(paper_output)
         f.close()
-        
+
     # Make two partial parameter tables for the slides
     slides1_output = "\\begin{center}\label{table:calibration1}  \n"
     slides1_output += "\\begin{tabular}{cd{5}l}  \n"
@@ -757,7 +757,7 @@ def makeParameterTable(filename, params):
     with open(tables_dir + filename + '_1.tex','w') as f:
         f.write(slides1_output)
         f.close()
-        
+
     slides2_output = "\\begin{center}\label{table:calibration2}  \n"
     slides2_output += "\\begin{tabular}{cd{5}l}  \n"
     slides2_output += "\\\\ \\toprule  \n"
@@ -772,15 +772,15 @@ def makeParameterTable(filename, params):
         f.close()
 
 
-def makeEquilibriumTable(out_filename, four_in_files, CRRA):   
+def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     '''
     Make the equilibrium statistics table for the paper, saving it as a tex file
     in the tables folder.  Also makes a version for the slides that doesn't use
     the table environment, nor include the note at bottom.
-    
+
     Parameters
     ----------
-    
+
     out_filename : str
         Name of the file in which to save output (in the tables directory).
         Suffix .tex appended automatically.
@@ -788,7 +788,7 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
         A list with four csv files. 0) SOE frictionless 1) SOE Sticky 2) DSGE frictionless 3) DSGE sticky
     CRRA : float
         Coefficient of relative risk aversion
-        
+
     Returns
     -------
     None
@@ -798,17 +798,17 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     SOEsticky = np.genfromtxt(results_dir + four_in_files[1] + 'Results.csv', delimiter=',')
     DSGEfrictionless = np.genfromtxt(results_dir + four_in_files[2] + 'Results.csv', delimiter=',')
     DSGEsticky = np.genfromtxt(results_dir + four_in_files[3] + 'Results.csv', delimiter=',')
-    
+
     # Read in value at birth from the four files
     vBirth_SOE_F = np.genfromtxt(results_dir + four_in_files[0] + 'BirthValue.csv', delimiter=',')
     vBirth_SOE_S = np.genfromtxt(results_dir + four_in_files[1] + 'BirthValue.csv', delimiter=',')
     vBirth_DSGE_F = np.genfromtxt(results_dir + four_in_files[2] + 'BirthValue.csv', delimiter=',')
     vBirth_DSGE_S = np.genfromtxt(results_dir + four_in_files[3] + 'BirthValue.csv', delimiter=',')
-    
+
     # Calculate the cost of stickiness in the SOE and DSGE models
     StickyCost_SOE = np.mean(1. - (vBirth_SOE_S/vBirth_SOE_F)**(1./(1.-CRRA)))
     StickyCost_DSGE = np.mean(1. - (vBirth_DSGE_S/vBirth_DSGE_F)**(1./(1.-CRRA)))
-    
+
     paper_top = "\\begin{minipage}{\\textwidth}\n"
     paper_top += "    \\begin{table}  \n"
     paper_top += "\caption{Equilibrium Statistics}  \n"
@@ -816,9 +816,9 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     paper_top += "\\newsavebox{\EqbmBox}  \n"
     paper_top += "\sbox{\EqbmBox}{  \n"
     paper_top += "\\newcommand{\EqDir}{\TablesDir/Eqbm}  \n"
-    
+
     slides_top = '\\begin{center} \n'
-    
+
     main_table = "\\begin{tabular}{lllcccc}  \n"
     main_table += "\\toprule \n"
     main_table += "&&& \multicolumn{2}{c}{SOE Model} & \multicolumn{2}{c}{HA-DSGE Model}   \n"
@@ -837,7 +837,7 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     main_table += "\\\\ & & $\log A $         & {:.3f}".format(SOEfrictionless[2]) +" & {:.3f}".format(SOEsticky[2]) +" & {:.3f}".format(DSGEfrictionless[2]) +" & {:.3f}".format(DSGEsticky[2]) +" \n"
     main_table += "\\\\ & & $\Delta \log \\CLevBF $  & {:.3f}".format(SOEfrictionless[3]) +" & {:.3f}".format(SOEsticky[3]) +" & {:.3f}".format(DSGEfrictionless[3]) +" & {:.3f}".format(DSGEsticky[3]) +" \n"
     main_table += "\\\\ & & $\Delta \log \\YLevBF $  & {:.3f}".format(SOEfrictionless[4]) +" & {:.3f}".format(SOEsticky[4]) +" & {:.3f}".format(DSGEfrictionless[4]) +" & {:.3f}".format(DSGEsticky[4]) +" \n"
-    main_table += "\\\\ &   \multicolumn{3}{l}{Individual Cross Sectional (`Micro')}  \n"  
+    main_table += "\\\\ &   \multicolumn{3}{l}{Individual Cross Sectional (`Micro')}  \n"
     main_table += "\\\\ & & $\log \\aLevBF $  & {:.3f}".format(SOEfrictionless[6]) +" & {:.3f}".format(SOEsticky[6]) +" & {:.3f}".format(DSGEfrictionless[6]) +" & {:.3f}".format(DSGEsticky[6]) +" \n"
     main_table += "\\\\ & & $\log \\cLevBF $  & {:.3f}".format(SOEfrictionless[7]) +" & {:.3f}".format(SOEsticky[7]) +" & {:.3f}".format(DSGEfrictionless[7]) +" & {:.3f}".format(DSGEsticky[7]) +" \n"
     main_table += "\\\\ & & $\log p $  & {:.3f}".format(SOEfrictionless[8]) +" & {:.3f}".format(SOEsticky[8]) +" & {:.3f}".format(DSGEfrictionless[8]) +" & {:.3f}".format(DSGEsticky[8]) +" \n"
@@ -850,7 +850,7 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     main_table += " & \multicolumn{2}{c}{" + mystr2(StickyCost_DSGE) + "}  \n"
     main_table += "\\\\ \\bottomrule  \n"
     main_table += " \end{tabular}   \n"
-    
+
     paper_bot = " } \n "
     paper_bot += "\usebox{\EqbmBox}  \n"
     paper_bot += "\ifthenelse{\\boolean{StandAlone}}{\\newlength\TableWidth}{}  \n"
@@ -860,27 +860,27 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     paper_bot += "\end{table}\n"
     paper_bot += "\end{minipage}\n"
     paper_bot += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{}  \n"
-    
+
     slides_bot = '\\end{center} \n'
-    
+
     paper_output = paper_top + main_table + paper_bot
     with open(tables_dir + out_filename + '.tex','w') as f:
         f.write(paper_output)
         f.close()
-        
+
     slides_output = slides_top + main_table + slides_bot
     with open(tables_dir + out_filename + 'Slides.tex','w') as f:
         f.write(slides_output)
         f.close()
 
 
-def extractSampleMicroData(Economy, num_periods, AgentCount, ignore_periods):   
+def extractSampleMicroData(Economy, num_periods, AgentCount, ignore_periods):
     '''
     Extracts sample micro data to be used in micro (cross section) regression.
-    
+
     Parameters
     ----------
-    
+
     Economy : Economy
         An economy (with one AgentType) for for which history has already been calculated.
     num_periods : int
@@ -889,17 +889,17 @@ def extractSampleMicroData(Economy, num_periods, AgentCount, ignore_periods):
         Number of agent histories to be stored (should be less than the AgentCount property of the agent)
     ignore_periods : int
         Number of periods at the beginning of the history to be discarded
-        
+
     Returns
     -------
     micro_data : np.array
-        Array with rows 1) logc_diff 2) log_trans_shk 3) top_assets 
+        Array with rows 1) logc_diff 2) log_trans_shk 3) top_assets
     '''
     # First pull out economy common data.
     # Note indexing on Economy tracked vars is one ahead of agent.
     agg_trans_shk_matrix = deepcopy(Economy.TranShkAggNow_hist[ignore_periods:ignore_periods+num_periods])
     wRte_matrix = deepcopy(Economy.wRteNow_hist[ignore_periods:ignore_periods+num_periods])
-    
+
     # Now pull out agent data
     agent = Economy.agents[0]
     c_matrix = deepcopy(agent.cLvlNow_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
@@ -910,7 +910,7 @@ def extractSampleMicroData(Economy, num_periods, AgentCount, ignore_periods):
     pLvlTrue_matrix = deepcopy(agent.pLvlTrue_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
     a_matrix_nrm = a_matrix/pLvlTrue_matrix
     age_matrix = deepcopy(agent.t_age_hist[(ignore_periods+1):ignore_periods+num_periods+1,0:AgentCount])
-    
+
     # Put nan's in so that we do not regress over periods where agents die
     newborn = age_matrix == 1
     c_matrix[newborn] = np.nan
@@ -928,28 +928,28 @@ def extractSampleMicroData(Economy, num_periods, AgentCount, ignore_periods):
     logy_diff = logy_diff.flatten('F')
     log_trans_shk = np.log(trans_shk_matrix[1:,:].flatten('F'))
     top_assets = top_assets[1:,:].flatten('F')
-    
+
     # Put nan's in where they exist in logc_diff
     log_trans_shk = log_trans_shk + logc_diff*0.0
     top_assets = top_assets + logc_diff*0.0
-    
-    return np.stack((logc_diff,log_trans_shk,top_assets),1)
-    
 
-def makeMicroRegressionTable(out_filename, micro_data):   
+    return np.stack((logc_diff,log_trans_shk,top_assets),1)
+
+
+def makeMicroRegressionTable(out_filename, micro_data):
     '''
     Make the micro regression or (cross section regression) table for the paper, saving
     it to a tex file in the tables folder.  Also makes two partial tables for the slides.
-    
+
     Parameters
     ----------
-    
+
     out_filename : str
         Name of the file in which to save output (in the tables directory).
         The suffix .tex is automatically added.
     micro_data : [np.array]
         A list of two np.array's each containing micro data array as returned by extractSampleMicroData
-        
+
     Returns
     -------
     None
@@ -963,7 +963,7 @@ def makeMicroRegressionTable(out_filename, micro_data):
         logc_diff = this_micro_data[:,0]
         log_trans_shk = this_micro_data[:,1]
         top_assets = this_micro_data[:,2]
-        
+
         #Lagged consumption regression
         mod = sm.OLS(logc_diff[1:],sm.add_constant(np.transpose(np.vstack([logc_diff[0:-1]]))), missing='drop')
         res = mod.fit()
@@ -971,7 +971,7 @@ def makeMicroRegressionTable(out_filename, micro_data):
         stdevs[0,i] = res._results.HC0_se[1]
         r_sq[0,i] = res._results.rsquared_adj
         obs[0,i] = res.nobs
-        
+
         #Expected income regression
         mod = sm.OLS(logc_diff[1:],sm.add_constant(np.transpose(np.vstack([-log_trans_shk[0:-1]]))), missing='drop')
         res = mod.fit()
@@ -979,7 +979,7 @@ def makeMicroRegressionTable(out_filename, micro_data):
         stdevs[1,i] = res._results.HC0_se[1]
         r_sq[1,i] = res._results.rsquared_adj
         obs[1,i] = res.nobs
-        
+
         #Assets regression
         mod = sm.OLS(logc_diff[1:],sm.add_constant(np.transpose(np.vstack([top_assets[0:-1]]))), missing='drop')
         res = mod.fit()
@@ -987,7 +987,7 @@ def makeMicroRegressionTable(out_filename, micro_data):
         stdevs[2,i] = res._results.HC0_se[1]
         r_sq[2,i] = res._results.rsquared_adj
         obs[2,i] = res.nobs
-        
+
         #Horeserace regression
         mod = sm.OLS(logc_diff[1:],sm.add_constant(np.transpose(np.vstack([logc_diff[0:-1],-log_trans_shk[0:-1],top_assets[0:-1]]))), missing='drop')
         res = mod.fit()
@@ -999,31 +999,31 @@ def makeMicroRegressionTable(out_filename, micro_data):
         stdevs[5,i] = res._results.HC0_se[3]
         r_sq[3,i] = res._results.rsquared_adj
         obs[3,i] = res.nobs
-        
+
     paper_top = "\\begin{minipage}{\TableWidth}\n"
     paper_top += "  \\begin{table}\n"
     paper_top += "    \\caption{Micro Consumption Regression on Simulated Data} \\label{table:CGrowCross}\n"
     paper_top += "    \\begin{eqnarray} \n"
     paper_top += "\\CGrowCross    \\nonumber %\\\CGrowCrossBar \\nonumber \n"
     paper_top += "    \end{eqnarray}\n"
-    
+
     slides_top = '\\begin{center} \n'
-    
+
     header = "\\begin{tabular}{cd{4}d{4}d{5}ccc}  \n"
     header += "\\toprule  \n"
     header += "Model of     &                                &                                &                                 &                                       &                 \\\\  \n"
     header += "Expectations & \multicolumn{1}{c}{$ \chi $} & \multicolumn{1}{c}{$ \eta $} & \multicolumn{1}{c}{$ \\alpha $} & \multicolumn{1}{c}{$\\bar{R}^{2}$} &                   \n"
-    
+
     F_panel = "\\\\ \\midrule \n \multicolumn{2}{l}{Frictionless}  \n"
     F_panel += "\\\\ &  {:.3f}".format(coeffs[0,0]) +"  &        &        & {:.3f}".format(r_sq[0,0]) +" &  "+ " %NotOnSlide   \n"
     F_panel += "\\\\ &  \multicolumn{1}{c}{(--)}  &        &        &  &  "+ " %NotOnSlide   \n"
-    F_panel += "\\\\ &    &    {:.3f}".format(coeffs[1,0]) +"    &        & {:.3f}".format(r_sq[1,0])  +" &  "+" %NotOnSlide   \n" 
+    F_panel += "\\\\ &    &    {:.3f}".format(coeffs[1,0]) +"    &        & {:.3f}".format(r_sq[1,0])  +" &  "+" %NotOnSlide   \n"
     F_panel += "\\\\ &    &  \multicolumn{1}{c}{(--)}  &        &  &  "+ " %NotOnSlide   \n"
     F_panel += "\\\\ &    &        &     {:.3f}".format(coeffs[2,0]) +"   & {:.3f}".format(r_sq[2,0]) +" &  " +" %NotOnSlide   \n"
     F_panel += "\\\\ &    &       &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
     F_panel += "\\\\ &  {:.3f}".format(coeffs[3,0]) +"  &    {:.3f}".format(coeffs[4,0]) +"    &     {:.3f}".format(coeffs[5,0]) +"   & {:.3f}".format(r_sq[3,0]) +" &    \n"
     F_panel += "\\\\ & \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
-    
+
     S_panel = "\\\\ \\midrule \n \multicolumn{2}{l}{Sticky}  \n"
     S_panel += "\\\\ &  {:.3f}".format(coeffs[0,1]) +"  &        &        & {:.3f}".format(r_sq[0,1]) +" &   %NotOnSlide   \n"
     S_panel += "\\\\ &  \multicolumn{1}{c}{(--)}  &        &        &  &  "+ " %NotOnSlide   \n"
@@ -1033,14 +1033,14 @@ def makeMicroRegressionTable(out_filename, micro_data):
     S_panel += "\\\\ &    &       &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
     S_panel += "\\\\ &  {:.3f}".format(coeffs[3,1]) +"  &    {:.3f}".format(coeffs[4,1]) +"    &     {:.3f}".format(coeffs[5,1]) +"   & {:.3f}".format(r_sq[3,1]) +" &    \n"
     S_panel += "\\\\ & \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)} &  \multicolumn{1}{c}{(--)}  &  &  "+ " %NotOnSlide   \n"
-    
+
     paper_bot = "  \\\\ \\bottomrule \\\\\n"
     paper_bot += "  \multicolumn{5}{p{0.9\\textwidth}}{\\footnotesize \\textbf{Notes}: $\\mathbb{E}_{t,i}$ is the expectation from the perspective of person $i$ in period $t$; $\\bar{a}$ is a dummy variable indicating that agent $i$ is in the top 99 percent of the normalized $a$ distribution.  Simulated sample size is large enough such that standard errors are effectively zero.  Sample is restricted to households with positive income in period $t$. The notation ``(---)'' indicates that standard errors are close to zero, given the very large simulated sample size.}\n"
     paper_bot += "\end{tabular}  \n"
     paper_bot += "\end{table}\n"
     paper_bot += "\end{minipage}\n"
     paper_bot += "\ifthenelse{\\boolean{StandAlone}}{\end{document}}{} \n"
-    
+
     slides_bot = "\\\\ \\bottomrule  \n"
     slides_bot += "\end{tabular}  \n"
     slides_bot += '\\end{center} \n'
@@ -1050,19 +1050,19 @@ def makeMicroRegressionTable(out_filename, micro_data):
     with open(tables_dir + out_filename + '.tex','w') as f:
         f.write(paper_output)
         f.close()
-        
+
     # Make tables for slides
     slidesF_output = slides_top + header + F_panel + slides_bot
     with open(tables_dir + out_filename + '_SlidesF.tex','w') as f:
         f.write(slidesF_output)
         f.close()
-        
+
     slidesS_output = slides_top + header + S_panel + slides_bot
     with open(tables_dir + out_filename + '_SlidesS.tex','w') as f:
         f.write(slidesS_output)
         f.close()
-        
-        
+
+
 def makeuCostVsPiFig(uCost_filename):
     '''
     Make two versions of a figure that plots the cost of stickiness vs updating probability.
@@ -1072,7 +1072,7 @@ def makeuCostVsPiFig(uCost_filename):
     ----------
     uCost_filename : str
         Name of data file, as a two line csv.  First line is UpdatePrb, second line is uCost.
-        
+
     Returns
     -------
     None
@@ -1080,7 +1080,7 @@ def makeuCostVsPiFig(uCost_filename):
     data = np.genfromtxt(results_dir + uCost_filename +'.csv',delimiter=',')
     UpdatePrbVec = data[0,:]
     uCostVec = data[1,:]
-    
+
     # Plot uCost vs Pi
     f = LinearInterp(UpdatePrbVec,uCostVec*10000)
     plt.plot(UpdatePrbVec,uCostVec*10000,color='#1f77b4')
@@ -1095,7 +1095,7 @@ def makeuCostVsPiFig(uCost_filename):
     plt.savefig(figures_dir + 'uCostvsPi.svg')
     plt.show()
     plt.close()
-    
+
     # Plot uCost vs 1/Pi
     plt.plot(1./UpdatePrbVec,uCostVec*10000,color='#1f77b4')
     plt.plot([1./UpdatePrbBase,1./UpdatePrbBase],[0.,f(UpdatePrbBase)],'--k') # Add dashed line at Pi=0.25
@@ -1109,15 +1109,15 @@ def makeuCostVsPiFig(uCost_filename):
     plt.savefig(figures_dir + 'uCostvsPiInv.svg')
     plt.show()
     plt.close()
-    
-    
+
+
 def makeValueVsAggShkVarFig(value_filename):
     '''
     Parameters
     ----------
     value_filename : str
         Name of data file, as a two line csv.  First line is PermShkAggVar, second line is birth value.
-        
+
     Returns
     -------
     None
@@ -1125,7 +1125,7 @@ def makeValueVsAggShkVarFig(value_filename):
     data = np.genfromtxt(results_dir + value_filename +'.csv',delimiter=',')
     PermShkAggVarVec = data[0,:]
     vVec = data[1,:]
-    
+
     # Plot birth value vs PermShkAggVar
     f = LinearInterp(PermShkAggVarVec*10**5,vVec)
     vBot = np.min(vVec)
@@ -1142,7 +1142,7 @@ def makeValueVsAggShkVarFig(value_filename):
     plt.savefig(figures_dir + 'ValueVsPermShkAggVar.svg')
     plt.show()
     plt.close()
-    
+
 
 def makeValueVsPiFig(value_filename):
     '''
@@ -1150,7 +1150,7 @@ def makeValueVsPiFig(value_filename):
     ----------
     value_filename : str
         Name of data file, as a two line csv.  First line is UpdatePrb, second line is birth value.
-        
+
     Returns
     -------
     None
@@ -1158,7 +1158,7 @@ def makeValueVsPiFig(value_filename):
     data = np.genfromtxt(results_dir + value_filename +'.csv',delimiter=',')
     UpdatePrbVec = data[0,:]
     vVec = data[1,:]
-    
+
     # Plot birth value vs 1/UpdatePrb
     f = LinearInterp(UpdatePrbVec,vVec)
     vBot = f(1./16)
@@ -1176,6 +1176,6 @@ def makeValueVsPiFig(value_filename):
     plt.savefig(figures_dir + 'ValueVsPi.svg')
     plt.show()
     plt.close()
-    
-       
-    
+
+
+

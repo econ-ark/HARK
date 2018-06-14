@@ -19,7 +19,7 @@ Despite the non-standard solution method, the iterative process can be embedded
 in the HARK framework, as shown below.
 '''
 # Import the HARK library.  The assumption is that this code is in a folder
-# contained in the HARK folder. 
+# contained in the HARK folder.
 import sys
 import os
 import numpy as np
@@ -55,11 +55,11 @@ class TractableConsumerSolution(Solution):
     cNrm_list, a list of MPCs MPC_list, a perfect foresight consumption function
     while employed, and a perfect foresight consumption function while unemployed.
     The solution includes a consumption function constructed from the lists.
-    '''    
+    '''
     def __init__(self, mNrm_list=[], cNrm_list=[], MPC_list=[], cFunc_U=NullFunc, cFunc=NullFunc):
         '''
         The constructor for a new TractableConsumerSolution object.
-        
+
         Parameters
         ----------
         mNrm_list : [float]
@@ -73,7 +73,7 @@ class TractableConsumerSolution(Solution):
             The (linear) consumption function when permanently unemployed.
         cFunc : function
             The consumption function when employed.
-            
+
         Returns
         -------
         new instance of TractableConsumerSolution
@@ -87,13 +87,13 @@ class TractableConsumerSolution(Solution):
         # The distance between two solutions is the difference in the number of
         # stable arm points in each.  This is a very crude measure of distance
         # that captures the notion that the process is over when no points are added.
-        
+
 def findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNext,MPCnext,PFMPC):
     '''
     Calculates what consumption, market resources, and the marginal propensity
     to consume must have been in the previous period given model parameters and
     values of market resources, consumption, and MPC today.
-    
+
     Parameters
     ----------
     DiscFac : float
@@ -117,7 +117,7 @@ def findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNex
         The marginal propensity to consume in the succeeding period.
     PFMPC : float
         The perfect foresight MPC; also the MPC when permanently unemployed.
-        
+
     Returns
     -------
     mNow : float
@@ -134,7 +134,7 @@ def findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNex
     natural = Beth*Rnrm*(1.0/uPP(cNow))*((1.0-UnempPrb)*uPP(cNext)*MPCnext + UnempPrb*uPP(cUNext)*PFMPC)
     MPCnow = natural / (natural + 1)
     return mNow, cNow, MPCnow
-        
+
 
 def addToStableArmPoints(solution_next,DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,PFMPC,Rnrm,Beth,mLowerBnd,mUpperBnd):
     '''
@@ -142,7 +142,7 @@ def addToStableArmPoints(solution_next,DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb
     the bounding levels of mLowerBnd (lower) and mUpperBnd (upper) have not yet
     been met by a stable arm point in mNrm_list.  This acts as the "one period
     solver" / solveOnePeriod in the tractable buffer stock model.
-    
+
     Parameters
     ----------
     solution_next : TractableConsumerSolution
@@ -170,72 +170,72 @@ def addToStableArmPoints(solution_next,DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb
         min(solution_next.mNrm_list) < mLowerBnd, no new bottom point is found.
     mUpperBnd : float
         Upper bound on market resources for the backshooting process.  If
-        max(solution_next.mNrm_list) > mUpperBnd, no new top point is found. 
-        
+        max(solution_next.mNrm_list) > mUpperBnd, no new top point is found.
+
     Returns:
     ---------
     solution_now : TractableConsumerSolution
         A new solution object with new points added to the top and bottom.  If
         no new points were added, then the backshooting process is about to end.
-    '''     
+    '''
     # Unpack the lists of Euler points
     mNrm_list = copy(solution_next.mNrm_list)
     cNrm_list = copy(solution_next.cNrm_list)
     MPC_list = copy(solution_next.MPC_list)
-    
+
     # Check whether to add a stable arm point to the top
     mNext = mNrm_list[-1]
     if mNext < mUpperBnd:
         # Get the rest of the data for the previous top point
         cNext = solution_next.cNrm_list[-1]
         MPCNext = solution_next.MPC_list[-1]
-        
+
         # Calculate employed levels of c, m, and MPC from next period's values
         mNow, cNow, MPCnow = findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNext,MPCNext,PFMPC)
-        
+
         # Add this point to the top of the stable arm list
         mNrm_list.append(mNow)
         cNrm_list.append(cNow)
         MPC_list.append(MPCnow)
-    
+
     # Check whether to add a stable arm point to the bottom
     mNext = mNrm_list[0]
     if mNext > mLowerBnd:
         # Get the rest of the data for the previous bottom point
         cNext = solution_next.cNrm_list[0]
         MPCNext = solution_next.MPC_list[0]
-        
+
         # Calculate employed levels of c, m, and MPC from next period's values
         mNow, cNow, MPCnow = findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNext,MPCNext,PFMPC)
-        
+
         # Add this point to the top of the stable arm list
         mNrm_list.insert(0,mNow)
         cNrm_list.insert(0,cNow)
         MPC_list.insert(0,MPCnow)
-        
+
     # Construct and return this period's solution
     solution_now = TractableConsumerSolution(mNrm_list=mNrm_list, cNrm_list=cNrm_list, MPC_list=MPC_list)
     solution_now.PointCount = len(mNrm_list)
     return solution_now
-    
+
 
 class TractableConsumerType(AgentType):
 
     def __init__(self,cycles=0,time_flow=False,**kwds):
         '''
         Instantiate a new TractableConsumerType with given data.
-        
+
         Parameters
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
         time_flow : boolean
             Whether time is currently "flowing" forward for this instance.
-        
+
         Returns:
         -----------
         New instance of TractableConsumerType.
-        '''            
+        '''
         # Initialize a basic AgentType
         AgentType.__init__(self,cycles=cycles,time_flow=time_flow,pseudo_terminal=True,**kwds)
 
@@ -245,18 +245,18 @@ class TractableConsumerType(AgentType):
         self.shock_vars = ['eStateNow']
         self.poststate_vars = ['aLvlNow','eStateNow'] # For simulation
         self.solveOnePeriod = addToStableArmPoints # set correct solver
-        
+
     def preSolve(self):
         '''
         Calculates all of the solution objects that can be obtained before con-
         ducting the backshooting routine, including the target levels, the per-
         fect foresight solution, (marginal) consumption at m=0, and the small
         perturbations around the steady state.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -265,21 +265,21 @@ class TractableConsumerType(AgentType):
         uPP = lambda x : utilityPP(x,gam=self.CRRA)
         uPPP = lambda x : utilityPPP(x,gam=self.CRRA)
         uPPPP = lambda x : utilityPPPP(x,gam=self.CRRA)
-        
+
         # Define some useful constants from model primitives
         self.PermGroFacCmp = self.PermGroFac/(1.0-self.UnempPrb) #"uncertainty compensated" wage growth factor
         self.Rnrm = self.Rfree/self.PermGroFacCmp # net interest factor (Rfree normalized by wage growth)
         self.PFMPC= 1.0-(self.Rfree**(-1.0))*(self.Rfree*self.DiscFac)**(1.0/self.CRRA) # MPC for a perfect forsight consumer
         self.Beth = self.Rnrm*self.DiscFac*self.PermGroFacCmp**(1.0-self.CRRA)
-        
+
         # Verify that this consumer is impatient
-        PatFacGrowth = (self.Rfree*self.DiscFac)**(1.0/self.CRRA)/self.PermGroFacCmp 
+        PatFacGrowth = (self.Rfree*self.DiscFac)**(1.0/self.CRRA)/self.PermGroFacCmp
         PatFacReturn = (self.Rfree*self.DiscFac)**(1.0/self.CRRA)/self.Rfree
         if PatFacReturn >= 1.0:
             raise Exception("Employed consumer not return impatient, cannot solve!")
         if PatFacGrowth >= 1.0:
             raise Exception("Employed consumer not growth impatient, cannot solve!")
-            
+
         # Find target money and consumption
         Pi = (1+(PatFacGrowth**(-self.CRRA)-1.0)/self.UnempPrb)**(1/self.CRRA)
         self.h = (1.0/(1.0-self.PermGroFac/self.Rfree))
@@ -289,7 +289,7 @@ class TractableConsumerType(AgentType):
         mTargU = (self.mTarg - self.cTarg)*self.Rnrm
         cTargU = mTargU*self.PFMPC
         self.SSperturbance = self.mTarg*0.1
-        
+
         # Find the MPC, MMPC, and MMMPC at the target
         mpcTargFixedPointFunc = lambda k : k*uPP(self.cTarg) - self.Beth*((1.0-self.UnempPrb)*(1.0-k)*k*self.Rnrm*uPP(self.cTarg)+self.PFMPC*self.UnempPrb*(1.0-k)*self.Rnrm*uPP(cTargU))
         self.MPCtarg = newton(mpcTargFixedPointFunc,0)
@@ -297,13 +297,13 @@ class TractableConsumerType(AgentType):
         self.MMPCtarg = newton(mmpcTargFixedPointFunc,0)
         mmmpcTargFixedPointFunc = lambda kkk : kkk * uPP(self.cTarg) + 3 * self.MPCtarg * self.MMPCtarg * uPPP(self.cTarg) + self.MPCtarg**3 * uPPPP(self.cTarg) - self.Beth * (-(1 - self.UnempPrb) * self.MPCtarg * kkk * self.Rnrm * uPP(self.cTarg) - 3 * (1 - self.UnempPrb) * (1 - self.MPCtarg) * self.MMPCtarg**2 * self.Rnrm**2 * uPP(self.cTarg) + (1 - self.UnempPrb) * (1 - self.MPCtarg)**3 * kkk * self.Rnrm**3 * uPP(self.cTarg) - self.PFMPC * self.UnempPrb * kkk * self.Rnrm * uPP(cTargU) - 3 * (1 - self.UnempPrb) * (1 - self.MPCtarg) * self.MPCtarg**2 * self.MMPCtarg * self.Rnrm**2 * uPPP(self.cTarg) + 3 * (1 - self.UnempPrb) * (1 - self.MPCtarg)**3 * self.MPCtarg * self.MMPCtarg * self.Rnrm**3 * uPPP(self.cTarg) - 3 * self.PFMPC**2 * self.UnempPrb * (1 - self.MPCtarg) * self.MMPCtarg * self.Rnrm**2 * uPPP(cTargU) + (1 - self.UnempPrb) * (1 - self.MPCtarg)**3 * self.MPCtarg**3 * self.Rnrm**3 * uPPPP(self.cTarg) + self.PFMPC**3 * self.UnempPrb * (1 - self.MPCtarg)**3 * self.Rnrm**3 * uPPPP(cTargU))
         self.MMMPCtarg = newton(mmmpcTargFixedPointFunc,0)
-        
+
         # Find the MPC at m=0
         f_temp = lambda k : self.Beth*self.Rnrm*self.UnempPrb*(self.PFMPC*self.Rnrm*((1.0-k)/k))**(-self.CRRA-1.0)*self.PFMPC
         mpcAtZeroFixedPointFunc = lambda k : k - f_temp(k)/(1 + f_temp(k))
         #self.MPCmax = newton(mpcAtZeroFixedPointFunc,0.5)
         self.MPCmax = brentq(mpcAtZeroFixedPointFunc,self.PFMPC,0.99,xtol=0.00000001,rtol=0.00000001)
-        
+
         # Make the initial list of Euler points: target and perturbation to either side
         mNrm_list = [self.mTarg-self.SSperturbance, self.mTarg, self.mTarg+self.SSperturbance]
         c_perturb_lo = self.cTarg - self.SSperturbance*self.MPCtarg + 0.5*self.SSperturbance**2.0*self.MMPCtarg - (1.0/6.0)*self.SSperturbance**3.0*self.MMMPCtarg
@@ -312,29 +312,29 @@ class TractableConsumerType(AgentType):
         MPC_perturb_lo = self.MPCtarg - self.SSperturbance*self.MMPCtarg + 0.5*self.SSperturbance**2.0*self.MMMPCtarg
         MPC_perturb_hi = self.MPCtarg + self.SSperturbance*self.MMPCtarg + 0.5*self.SSperturbance**2.0*self.MMMPCtarg
         MPC_list = [MPC_perturb_lo, self.MPCtarg, MPC_perturb_hi]
-        
+
         # Set bounds for money (stable arm construction stops when these are exceeded)
         self.mLowerBnd = 1.0
         self.mUpperBnd = 2.0*self.mTarg
-        
+
         # Make the terminal period solution
         solution_terminal = TractableConsumerSolution(mNrm_list=mNrm_list,cNrm_list=cNrm_list,MPC_list=MPC_list)
         self.solution_terminal = solution_terminal
-        
+
         # Make two linear steady state functions
         self.cSSfunc = lambda m : m*((self.Rnrm*self.PFMPC*Pi)/(1.0+self.Rnrm*self.PFMPC*Pi))
         self.mSSfunc = lambda m : (self.PermGroFacCmp/self.Rfree)+(1.0-self.PermGroFacCmp/self.Rfree)*m
-                
+
     def postSolve(self):
         '''
         This method adds consumption at m=0 to the list of stable arm points,
         then constructs the consumption function as a cubic interpolation over
         those points.  Should be run after the backshooting routine is complete.
-        
+
         Parameters
         ----------
         none
-        
+
         Returns
         -------
         none
@@ -343,49 +343,49 @@ class TractableConsumerType(AgentType):
         self.solution[0].mNrm_list.insert(0,0.0)
         self.solution[0].cNrm_list.insert(0,0.0)
         self.solution[0].MPC_list.insert(0,self.MPCmax)
-        
+
         # Construct an interpolation of the consumption function from the stable arm points
         self.solution[0].cFunc = CubicInterp(self.solution[0].mNrm_list,self.solution[0].cNrm_list,self.solution[0].MPC_list,self.PFMPC*(self.h-1.0),self.PFMPC)
         self.solution[0].cFunc_U = lambda m : self.PFMPC*m
-        
+
     def update():
         '''
         This method does absolutely nothing, but should remain here for compati-
         bility with cstwMPC when doing the "tractable" version.
         '''
         return None
-        
+
     def simBirth(self,which_agents):
         '''
         Makes new consumers for the given indices.  Initialized variables include aNrm, as
         well as time variables t_age and t_cycle.  Normalized assets are drawn from a lognormal
         distributions given by aLvlInitMean and aLvlInitStd.
-        
+
         Parameters
         ----------
         which_agents : np.array(Bool)
             Boolean array of size self.AgentCount indicating which agents should be "born".
-        
+
         Returns
         -------
         None
         '''
         # Get and store states for newly born agents
-        N = np.sum(which_agents) # Number of new consumers to make      
+        N = np.sum(which_agents) # Number of new consumers to make
         self.aLvlNow[which_agents] = drawLognormal(N,mu=self.aLvlInitMean,sigma=self.aLvlInitStd,seed=self.RNG.randint(0,2**31-1))
         self.eStateNow[which_agents] = 1.0 # Agents are born employed
         self.t_age[which_agents]   = 0 # How many periods since each agent was born
         self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
         return None
-        
+
     def simDeath(self):
         '''
         Trivial function that returns boolean array of all False, as there is no death.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         which_agents : np.array(bool)
@@ -394,16 +394,16 @@ class TractableConsumerType(AgentType):
         # Nobody dies in this model
         which_agents = np.zeros(self.AgentCount,dtype=bool)
         return which_agents
-        
+
     def getShocks(self):
         '''
         Determine which agents switch from employment to unemployment.  All unemployed agents remain
         unemployed until death.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -412,30 +412,30 @@ class TractableConsumerType(AgentType):
         N = int(np.sum(employed))
         newly_unemployed = drawBernoulli(N,p=self.UnempPrb,seed=self.RNG.randint(0,2**31-1))
         self.eStateNow[employed] = 1.0 - newly_unemployed
-        
+
     def getStates(self):
         '''
         Calculate market resources for all agents this period.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
         '''
         self.bLvlNow = self.Rfree*self.aLvlNow
         self.mLvlNow = self.bLvlNow + self.eStateNow
-        
+
     def getControls(self):
         '''
         Calculate consumption for each agent this period.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -446,70 +446,70 @@ class TractableConsumerType(AgentType):
         cLvlNow[employed] = self.solution[0].cFunc(self.mLvlNow[employed])
         cLvlNow[unemployed] = self.solution[0].cFunc_U(self.mLvlNow[unemployed])
         self.cLvlNow = cLvlNow
-        
+
     def getPostStates(self):
         '''
         Calculates end-of-period assets for each consumer of this type.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
         '''
         self.aLvlNow = self.mLvlNow - self.cLvlNow
         return None
-        
+
 
 ###############################################################################
 
 if __name__ == '__main__':
     # Import the HARK library.  The assumption is that this code is in a folder
-    # contained in the HARK folder.  Also import the ConsumptionSavingModel    
+    # contained in the HARK folder.  Also import the ConsumptionSavingModel
     import numpy as np                   # numeric Python
     from HARKutilities import plotFuncs  # basic plotting tools
     from ConsMarkovModel import MarkovConsumerType # An alternative, much longer way to solve the TBS model
     from time import clock               # timing utility
-    
+
     do_simulation = True
-    
+
     # Define the model primitives
     base_primitives = {'UnempPrb' : .00625,    # Probability of becoming unemployed
                        'DiscFac' : 0.975,      # Intertemporal discount factor
                        'Rfree' : 1.01,         # Risk-free interest factor on assets
                        'PermGroFac' : 1.0025,  # Permanent income growth factor (uncompensated)
                        'CRRA' : 1.0}           # Coefficient of relative risk aversion
-                       
+
     # Define a dictionary to be used in case of simulation
-    simulation_values = {'aLvlInitMean' : 0.0,  # Mean of log initial assets for new agents 
+    simulation_values = {'aLvlInitMean' : 0.0,  # Mean of log initial assets for new agents
                          'aLvlInitStd' : 1.0,   # Stdev of log initial assets for new agents
                          'AgentCount' : 10000,  # Number of agents to simulate
                          'T_sim' : 120,         # Number of periods to simulate
                          'T_cycle' : 1}         # Number of periods in the cycle
-                                                
+
     # Make and solve a tractable consumer type
     ExampleType = TractableConsumerType(**base_primitives)
     t_start = clock()
     ExampleType.solve()
     t_end = clock()
     print('Solving a tractable consumption-savings model took ' + str(t_end-t_start) + ' seconds.')
-    
+
     # Plot the consumption function and whatnot
     m_upper = 1.5*ExampleType.mTarg
     conFunc_PF = lambda m: ExampleType.h*ExampleType.PFMPC + ExampleType.PFMPC*m
     #plotFuncs([ExampleType.solution[0].cFunc,ExampleType.mSSfunc,ExampleType.cSSfunc],0,m_upper)
     plotFuncs([ExampleType.solution[0].cFunc,ExampleType.solution[0].cFunc_U],0,m_upper)
-    
+
     if do_simulation:
         ExampleType(**simulation_values) # Set attributes needed for simulation
         ExampleType.track_vars = ['mLvlNow']
         ExampleType.makeShockHistory()
         ExampleType.initializeSim()
         ExampleType.simulate()
-        
-    
+
+
     # Now solve the same model using backward induction rather than the analytic method of TBS.
     # The TBS model is equivalent to a Markov model with two states, one of them absorbing (permanent unemployment).
     MrkvArray = np.array([[1.0-base_primitives['UnempPrb'],base_primitives['UnempPrb']],[0.0,1.0]]) # Define the two state, absorbing unemployment Markov array
@@ -545,17 +545,17 @@ if __name__ == '__main__':
     unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)] # Income distribution when permanently unemployed
     MarkovType.IncomeDstn = [[employed_income_dist,unemployed_income_dist]]  # set the income distribution in each state
     MarkovType.cycles = 0
-    
+
     # Solve the "Markov TBS" model
     t_start = clock()
     MarkovType.solve()
     t_end = clock()
     MarkovType.unpackcFunc()
-    
+
     print('Solving the same model "the long way" took ' + str(t_end-t_start) + ' seconds.')
     #plotFuncs([ExampleType.solution[0].cFunc,ExampleType.solution[0].cFunc_U],0,m_upper)
     plotFuncs(MarkovType.cFunc[0],0,m_upper)
     diffFunc = lambda m : ExampleType.solution[0].cFunc(m) - MarkovType.cFunc[0][0](m)
     print('Difference between the (employed) consumption functions:')
     plotFuncs(diffFunc,0,m_upper)
-           
+

@@ -9,7 +9,7 @@ model.  The empirical data is stored in a separate csv file and is loaded in Set
 
 exp_nest = 3                        # Number of times to "exponentially nest" when constructing a_grid
 aXtraMin = 0.001                    # Minimum end-of-period "assets above minimum" value
-aXtraMax = 20                       # Maximum end-of-period "assets above minimum" value               
+aXtraMax = 20                       # Maximum end-of-period "assets above minimum" value
 aXtraHuge = None                    # A very large value of assets to add to the grid, not used
 aXtraExtra = None                   # Some other value of assets to add to the grid, not used
 aXtraCount = 8                      # Number of points in the grid of "assets above minimum"
@@ -76,7 +76,7 @@ LivPrb = [ 1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
            0.96207901,  0.96207901,  0.96207901,  0.96207901,  0.96207901,
            0.93721595,  0.93721595,  0.93721595,  0.93721595,  0.93721595,
            0.63095734,  0.63095734,  0.63095734,  0.63095734,  0.63095734]
-        
+
 
 # Standard deviations of permanent income shocks by age, starting from age 25
 PermShkStd = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
