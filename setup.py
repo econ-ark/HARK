@@ -173,7 +173,12 @@ setup(
     # MANIFEST.in as well.
     include_package_data=True,
     package_data={  # Optional
-         'SolvingMicroDSOPs': ['SolvingMicroDSOPs/SCFdata.csv'],
+        'HARK.SolvingMicroDSOPs': ['SCFdata.csv'],
+        'HARK.cstwMPC': [
+             'EducMortAdj.txt',
+             'SCFwealthDataReduced.txt',
+             'USactuarial.txt'
+        ],
     },
 
     # Although 'package_data' is the preferred approach, in some case you may
