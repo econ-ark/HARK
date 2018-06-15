@@ -4,7 +4,7 @@ Consumption-saving models that also include medical spending.
 
 import numpy as np
 from scipy.optimize import brentq
-from HARK.core import HARKobject
+from HARK import HARKobject
 from HARK.utilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv,\
                            CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP,\
                            makeGridExpMult, NullFunc

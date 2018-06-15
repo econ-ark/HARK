@@ -5,7 +5,7 @@ based on the proportion of the population with the same style (as well as direct
 preferences each style), and pay switching costs if they change.
 '''
 
-from HARK.core import AgentType, Solution, NullFunc
+from HARK import AgentType, Solution, NullFunc
 from HARK.interpolation import LinearInterp
 from HARK.utilities import approxUniform, plotFuncs
 import numpy as np
@@ -408,7 +408,7 @@ def calcFashionEvoFunc(pNow):
 ###############################################################################
 if __name__ == '__main__':
     from time import clock
-    from HARK.core import Market
+    from HARK import Market
     mystr = lambda number : "{:.4f}".format(number)
     import matplotlib.pyplot as plt
     from copy import deepcopy

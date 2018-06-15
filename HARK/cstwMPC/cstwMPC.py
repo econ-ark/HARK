@@ -8,7 +8,7 @@ from time import clock
 from HARK.utilities import approxMeanOneLognormal, combineIndepDstns, approxUniform, \
                            getPercentiles, getLorenzShares, calcSubpopAvg, approxLognormal
 from HARK.simulation import drawDiscrete
-from HARK.core import Market
+from HARK import Market
 import SetupParamsCSTW as Params
 import HARK.ConsumptionSaving.ConsIndShockModel as Model
 from HARK.ConsumptionSaving.ConsAggShockModel import CobbDouglasEconomy, AggShockConsumerType

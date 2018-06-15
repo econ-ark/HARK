@@ -16,7 +16,7 @@ See HARK documentation for mathematical descriptions of the models being solved.
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
-from HARK.core import AgentType, Solution, NullFunc, HARKobject
+from HARK import AgentType, Solution, NullFunc, HARKobject
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.simulation import drawDiscrete, drawBernoulli, drawLognormal, drawUniform

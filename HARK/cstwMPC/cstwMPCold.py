@@ -12,7 +12,7 @@ from time import time
 from HARK.utilities import approxMeanOneLognormal, combineIndepDstns, approxUniform, calcWeightedAvg, \
                            getPercentiles, getLorenzShares, calcSubpopAvg
 from HARK.simulation import drawDiscrete, drawMeanOneLognormal
-from HARK.core import AgentType
+from HARK import AgentType
 from HARK.parallel import multiThreadCommandsFake
 import SetupParamsCSTW as Params
 import HARK.ConsumptionSaving.ConsIndShockModel as Model

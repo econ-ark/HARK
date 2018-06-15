@@ -22,7 +22,7 @@ in the HARK framework, as shown below.
 # contained in the HARK folder.
 import numpy as np
 
-from HARK.core import AgentType, NullFunc, Solution
+from HARK import AgentType, NullFunc, Solution
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityPPP, CRRAutilityPPPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
 from HARK.interpolation import CubicInterp

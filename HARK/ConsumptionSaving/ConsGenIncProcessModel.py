@@ -7,7 +7,7 @@ and allows (log) persistent income to follow an AR1 process rather than random w
 
 from copy import deepcopy
 import numpy as np
-from HARK.core import HARKobject
+from HARK import HARKobject
 from HARK.interpolation import LowerEnvelope2D, BilinearInterp, VariableLowerBoundFunc2D, \
                                LinearInterpOnInterp1D, LinearInterp, CubicInterp, UpperEnvelope
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
