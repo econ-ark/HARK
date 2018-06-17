@@ -1182,7 +1182,73 @@ def epanechnikovKernel(x,ref_x,h=1.0):
     out[these] = 0.75*(1.0-u[these]**2.0) # Evaluate kernel
     return out
 
+@memoize
+def gaussHermite(n):
+    '''
+    This function computes the integration points/abscissae/x-values and their
+    associated weights for a Gauss-Hermite quadrature rule. The i-th integration
+    point is the i-th root of the Hermite polynomial of order-n.
 
+    Gauss-Hermite quadrature approximates the integrals of the form
+    int ( e^(-x^2) f(x) ) dx over the interval [-Inf,Inf]
+
+    Parameters
+    ----------
+    n : int
+        the number of integration points
+        must be greater than or equal to 2
+
+    Returns
+    -------
+    x : np.array
+        array of integration points (abscissae)
+    w : np.array
+        array of weights assigned to each integration point
+    
+    Written by Cory Cutsail
+    Based on MATLAB function "GaussHermite_2.m," written by Geert Van Damme, 
+    here: https://www.mathworks.com/matlabcentral/fileexchange/26737-legendre-laguerre-and-hermite-gauss-quadrature?focused=5147547&tab=function
+    Algorithm due to Golub and Welsch (1969), Calculation of Gauss Quadrature Rules
+    Latest update: 6/16/18
+    '''
+    # catch any non-integer inputs
+    try:
+        n = int(n)
+        
+        # require n >= 2
+        #   n = 0, Hermite polynomial has no roots
+        #   n = 1, x = 0, w = sqrt(pi)
+        #   n negative doesn't make sense
+        if n <= 1:
+            print(f"Error: input must be greater than or equal to 2. '{n}' is not a valid input.")
+            return
+        
+        # if n an integer >= 2, calculate integration points, weights
+        else:
+            # i = 1, . . ., n - 1 (n integration points)
+            i = np.linspace(1,n-1,n-1)
+            # a = sqrt(1/2), 1, sqrt(3/2), . . ., sqrt(n/2)
+            a = np.sqrt(i/2)    
+            # construct the tridiagonal companion matrix with a as the
+            # values in the first diagonals above and below the main diagonal
+            companionMatrix = np.diag(a,1) + np.diag(a,-1)
+            # retrieve the eigenvalues (roots of Hermite polynomial->integration points)
+            # and eigenvectors from the companion matrix
+            eigenvalues,eigenvectors = np.linalg.eig(companionMatrix)
+            ind = np.argsort(eigenvalues)
+            # sort the eigenvalues so that our integration points range from 
+            # smalles to largest
+            x = eigenvalues[ind]
+            # np.eig outputs unit eigenvectors, so we use the squared first value
+            # of each eigenvector to characterize weights
+            eigenvectors = np.transpose(eigenvectors[:,ind])
+            w = np.sqrt(np.pi) * np.multiply(eigenvectors[:,0],eigenvectors[:,0])
+            return (x,w)
+    
+    # throw error when int cast fails
+    except ValueError:
+        print(f"Error: Failed to cast input '{n}' to type: integer.")
+        return
 # ==============================================================================
 # ============== Some basic plotting tools  ====================================
 # ==============================================================================
