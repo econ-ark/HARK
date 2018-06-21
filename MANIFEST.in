@@ -1,0 +1,30 @@
+# Include the README
+include *.md
+
+# Include the license file
+include LICENSE
+
+# include everything in the root
+include HARK
+include requirements.txt
+include setup.py
+include MANIFEST.in
+include setup.cfg
+
+# Include most files
+# recursive-include ConsumptionSaving *
+recursive-include Demos *
+# recursive-include dist *
+# recursive-include FashionVictim *
+# recursive-include SolvingMicroDSOPs *
+
+# We plan to store the full archive of a paper implemented in Econ-ARK
+# separately from the codebase that reproduces the paper's results.
+
+# At present we have not separated these things out for either the
+# cAndCwithStickyE paper or the cstwMPC paper.
+# Therefore those papers are left out in the current version.
+
+# except build files
+global-exclude *.pyc
+global-exclude *.*~

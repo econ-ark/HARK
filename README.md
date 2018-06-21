@@ -1,5 +1,5 @@
 # Heterogeneous Agents Resources and toolKit (HARK)
-pre-release 0.8.0 - October 2, 2017
+pre-release 0.8.0.dev7 - 4 June, 2018
 
 Click the Badge for Citation Info.
 [![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
@@ -351,4 +351,3 @@ GitHub page!
 All of HARK is licensed under the Apache License, Version 2.0 (ALv2). Please see
 the LICENSE file for the text of the license. More information can be found at:
 http://www.apache.org/dev/apply-license.html
-

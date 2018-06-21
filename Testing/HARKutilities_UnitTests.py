@@ -1,13 +1,8 @@
 """
-This file implements unit tests to check HARKutilities.py
+This file implements unit tests to check HARK/utilities.py
 """
 
-
-# First, bring in the files we want to test
-import sys
-import os
-sys.path.insert(0, os.path.abspath('../'))
-import HARKutilities
+import HARK.utilities
 
 # Bring in modules we need
 import unittest
@@ -47,19 +42,19 @@ class testsForHARKutilities(unittest.TestCase):
 
     def test_CRRAutilityP(self):
         # Test the first derivative of the utility function
-        self.derivative_func_comparison(HARKutilities.CRRAutilityP,HARKutilities.CRRAutility)
+        self.derivative_func_comparison(HARK.utilities.CRRAutilityP,HARK.utilities.CRRAutility)
 
     def test_CRRAutilityPP(self):
         # Test the second derivative of the utility function
-        self.derivative_func_comparison(HARKutilities.CRRAutilityPP,HARKutilities.CRRAutilityP)
+        self.derivative_func_comparison(HARK.utilities.CRRAutilityPP,HARK.utilities.CRRAutilityP)
 
     def test_CRRAutilityPPP(self):
         # Test the third derivative of the utility function
-        self.derivative_func_comparison(HARKutilities.CRRAutilityPPP,HARKutilities.CRRAutilityPP)
+        self.derivative_func_comparison(HARK.utilities.CRRAutilityPPP,HARK.utilities.CRRAutilityPP)
 
     def test_CRRAutilityPPPP(self):
         # Test the fourth derivative of the utility function
-        self.derivative_func_comparison(HARKutilities.CRRAutilityPPPP,HARKutilities.CRRAutilityPPP)
+        self.derivative_func_comparison(HARK.utilities.CRRAutilityPPPP,HARK.utilities.CRRAutilityPPP)
 
 if __name__ == '__main__':
     print('testing Harkutilities.py')

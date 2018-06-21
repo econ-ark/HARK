@@ -6,15 +6,6 @@ should yield the same output.  The code will pass these tests if and only if the
 "enough".
 """
 
-
-
-# First, tell Python what directories we will be using
-import sys
-import os
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../ConsumptionSaving'))
-sys.path.insert(0, os.path.abspath('./'))
-
 # Bring in modules we need
 import unittest
 from copy import deepcopy
@@ -22,9 +13,9 @@ import numpy as np
 
 
 # Bring in the HARK models we want to test
-from ConsIndShockModel import solvePerfForesight, IndShockConsumerType
-from ConsMarkovModel import MarkovConsumerType
-from TractableBufferStockModel import TractableConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import solvePerfForesight, IndShockConsumerType
+from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerType
 
 
 class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
@@ -41,7 +32,7 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
         Prepare to compare the models by initializing and solving them
         """
         # Set up and solve infinite type
-        import ConsumerParameters as Params
+        import HARK.ConsumptionSaving.ConsumerParameters as Params
 
         InfiniteType = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
         InfiniteType.assignParameters(LivPrb      = [1.],
