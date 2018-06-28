@@ -1,5 +1,5 @@
 # Heterogeneous Agents Resources and toolKit (HARK)
-pre-release 0.8.0.dev7 - 4 June, 2018
+pre-release 0.9.0 - 28 June, 2018
 
 Click the Badge for Citation Info.
 [![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
