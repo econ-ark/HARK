@@ -126,7 +126,7 @@ Here are useful elements to add to the conf.py file. I include the previous line
         'sphinx.ext.todo',
         'sphinx.ext.coverage',
         'sphinx.ext.mathjax',
-        'numpydoc',                
+        'numpydoc',
     ]
     # **Be sure** to add the numpydoc file!
 

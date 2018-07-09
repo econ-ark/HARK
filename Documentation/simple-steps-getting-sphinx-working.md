@@ -41,7 +41,7 @@ Basic steps to get Sphinx running:
             'numpydoc',
             ]
         autodoc_default_flags = ['members']  # must add outside ']' bracket
-        autosummary_generate = True          
+        autosummary_generate = True
 
     - Change theme to your favorite; more here: /home/npalmer/workspace/HARK-DOCS/HARK-docs-versions/doc-v2.0/conf.py
         html_theme = 'classic' # 'alabaster' is default
@@ -134,22 +134,22 @@ Indices and tables
     - Add the location of the module to the top of conf.py: sys.path.insert(0, os.path.abspath('../ConsumptionSavingModel/'))
     - Add individual modules to the index.rst: "ConsIndShockModel" etc.
     - Be sure to include the correct relative locations for each file: "sys.path.insert(0, os.path.abspath('../'))"
-    - and be sure that file names locally (for file import) referenced using 
+    - and be sure that file names locally (for file import) referenced using
 
 
 
-14. Update: creating of these docs for the website was accomplished following this tutorial: https://daler.github.io/sphinxdoc-test/includeme.html  This approach is nice because it allows one to maintain the code physically in one location (simplifying creation of the docs) and the html output in another location. When all is done in the same physical directory, there is extensive switching between branches to accomplish the docs update. 
+14. Update: creating of these docs for the website was accomplished following this tutorial: https://daler.github.io/sphinxdoc-test/includeme.html  This approach is nice because it allows one to maintain the code physically in one location (simplifying creation of the docs) and the html output in another location. When all is done in the same physical directory, there is extensive switching between branches to accomplish the docs update.
 Important steps include:
     - in Makefile, appropriately changing the relative path to BUILDDIR
-        - NOTE: this may be particularly important for changing the "windows make file" as well, however I do not have a windows machine to test this on. 
-    - Note: I did not use any of the "pdf manual" options. 
+        - NOTE: this may be particularly important for changing the "windows make file" as well, however I do not have a windows machine to test this on.
+    - Note: I did not use any of the "pdf manual" options.
     - adding the .nojekyll file to the appropriate place
 
 
 
 15. Steps to update docs and post:
     $ sphinx-apidoc -f -o ./ ../Module-name-to-document  # recall, also need to insert in index.rst
-    $ make html 
+    $ make html
     $ cd ../../HARK-docs
     $ git branch           # confirm on gh-pages branch
     $ git push origin master
