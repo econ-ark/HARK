@@ -7,8 +7,8 @@ import os
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('./Luetticke_code/'))
-from HARKcore import AgentType, Market
-from HARKsimulation import drawDiscrete
+from core import AgentType, Market
+from simulation import drawDiscrete
 from SteadyStateOneAssetIOUs import SteadyStateOneAssetIOU
 from FluctuationsOneAssetIOUs import FluctuationsOneAssetIOUs, SGU_solver
 from copy import copy, deepcopy
