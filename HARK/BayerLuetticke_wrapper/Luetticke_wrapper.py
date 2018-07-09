@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('./'))
-sys.path.insert(0, os.path.abspath('./Luetticke_code/'))
+sys.path.insert(0, os.path.abspath('./BayerLuetticke_code/'))
 from core import AgentType, Market
 from simulation import drawDiscrete
 from SteadyStateOneAssetIOUs import SteadyStateOneAssetIOU
@@ -16,16 +16,16 @@ import numpy as np
 import scipy as sc
 from scipy.interpolate import interp1d
 
-class LuettickeAgent(AgentType):
+class BayerLuettickeAgent(AgentType):
     '''
-    An agent who lives in a LuettickeMarket. This agent has no solve method,
-    but instead inherits it from the Luetticke code.
+    An agent who lives in a BayerLuettickeMarket. This agent has no solve method,
+    but instead inherits it from the BayerLuetticke code.
     '''
     poststate_vars_ = ['bNow','incStateNow']
     
     def __init__(self,AgentCount,seed=0):
         '''
-        Instantiate a new LuettickeType with solution from Luetticke_code.
+        Instantiate a new BayerLuettickeType with solution from BayerLuetticke_code.
 
         Parameters
         ----------
@@ -83,7 +83,7 @@ class LuettickeAgent(AgentType):
     
     def simDeath(self):
         '''
-        No one dies in Luetticke's model - this function does that.
+        No one dies in BayerLuetticke's model - this function does that.
         
         Parameters
         ----------
@@ -196,7 +196,7 @@ class LuettickeAgent(AgentType):
         
         Parameters
         ----------
-        Economy : LuettickeEconomy
+        Economy : BayerLuettickeEconomy
             The "macroeconomy" in which this instance "lives".             
         Returns
         -------
@@ -219,19 +219,19 @@ class LuettickeAgent(AgentType):
             SSConsumptionFunc.append(SSConsumptionFunc_j)
         self.SSConsumptionFunc = SSConsumptionFunc
 
-class LuettickeEconomy(Market):
+class BayerLuettickeEconomy(Market):
     '''
-    A class to wrap the solution of Luetticke's code for a simple HANK model.
+    A class to wrap the solution of BayerLuetticke's code for a simple HANK model.
     '''
     def __init__(self,FluctuationsOneAssetIOU,agents=[],act_T=1000):
         '''
-        Make a new instance of LuettickeEconomy by filling in attributes
+        Make a new instance of BayerLuettickeEconomy by filling in attributes
         specific to this kind of market.
         
         Parameters
         ----------
         FluctuationsOneAssetIOU : FluctuationsOneAssetIOUs
-            Class from Luetticke_code that solves the model
+            Class from BayerLuetticke_code that solves the model
         agents : [ConsumerType]
             List of types of consumers that live in this economy.
         act_T : int
@@ -252,7 +252,7 @@ class LuettickeEconomy(Market):
     
     def solve(self):
         '''
-        Sovles the model using Luetticke's code
+        Sovles the model using BayerLuetticke's code
         '''
         # First do state reduction
         SR = self.FluctuationsOneAssetIOU.StateReduc()
@@ -274,47 +274,47 @@ if __name__ == '__main__':
     import pylab as plt
     
     simulate = True
-    solve_ss = False
+    solve_ss = True
 
     #First calculate the steady state
     if solve_ss:
         EX1param = copy(Params.parm_one_asset_IOU)
         EX1 = SteadyStateOneAssetIOU(**EX1param)
         EX1SS = EX1.SolveSteadyState()
-        pickle.dump(EX1SS, open("Luetticke_code/EX1SS.p", "wb"))
+        pickle.dump(EX1SS, open("BayerLuetticke_code/EX1SS.p", "wb"))
     else:
-        EX1SS=pickle.load(open("Luetticke_code/EX1SS.p", "rb"))
-    #Build Luetticke's object
+        EX1SS=pickle.load(open("BayerLuetticke_code/EX1SS.p", "rb"))
+    #Build BayerLuetticke's object
     FluctuationsOneAssetIOU=FluctuationsOneAssetIOUs(**EX1SS)
         
     #Create agent object
-    LuettickeExampleAgent = LuettickeAgent(AgentCount=10000)
+    BayerLuettickeExampleAgent = BayerLuettickeAgent(AgentCount=10000)
     #Create Market object
-    LuettickeExampleEconomy = LuettickeEconomy(FluctuationsOneAssetIOU,agents=[LuettickeExampleAgent])
+    BayerLuettickeExampleEconomy = BayerLuettickeEconomy(FluctuationsOneAssetIOU,agents=[BayerLuettickeExampleAgent])
     #Solve the market
-    LuettickeExampleEconomy.solve()
+    BayerLuettickeExampleEconomy.solve()
     
     #Simulate
     if simulate:
-        LuettickeExampleAgent.T_sim = 1000
-        LuettickeExampleAgent.track_vars = ['bNow','cNow','mNow','incStateNow']
-        LuettickeExampleAgent.initializeSim()
-        LuettickeExampleAgent.simulate()
+        BayerLuettickeExampleAgent.T_sim = 1000
+        BayerLuettickeExampleAgent.track_vars = ['bNow','cNow','mNow','incStateNow']
+        BayerLuettickeExampleAgent.initializeSim()
+        BayerLuettickeExampleAgent.simulate()
         
         
         ###########################################################
         # Test code to be removed later
-        meanbNow0 = np.zeros(LuettickeExampleAgent.T_sim)
-        meanbNow1 = np.zeros(LuettickeExampleAgent.T_sim)
-        meanbNow2 = np.zeros(LuettickeExampleAgent.T_sim)
-        meanbNow3 = np.zeros(LuettickeExampleAgent.T_sim)
-        meanbNow = np.zeros(LuettickeExampleAgent.T_sim)
-        for t in range(LuettickeExampleAgent.T_sim):
-            meanbNow0[t] = np.mean(LuettickeExampleAgent.bNow_hist[t,:][LuettickeExampleAgent.incStateNow_hist[t,:]==0])
-            meanbNow1[t] = np.mean(LuettickeExampleAgent.bNow_hist[t,:][LuettickeExampleAgent.incStateNow_hist[t,:]==1])
-            meanbNow2[t] = np.mean(LuettickeExampleAgent.bNow_hist[t,:][LuettickeExampleAgent.incStateNow_hist[t,:]==2])
-            meanbNow3[t] = np.mean(LuettickeExampleAgent.bNow_hist[t,:][LuettickeExampleAgent.incStateNow_hist[t,:]==3])
-            meanbNow[t] = np.mean(LuettickeExampleAgent.bNow_hist[t,:])
+        meanbNow0 = np.zeros(BayerLuettickeExampleAgent.T_sim)
+        meanbNow1 = np.zeros(BayerLuettickeExampleAgent.T_sim)
+        meanbNow2 = np.zeros(BayerLuettickeExampleAgent.T_sim)
+        meanbNow3 = np.zeros(BayerLuettickeExampleAgent.T_sim)
+        meanbNow = np.zeros(BayerLuettickeExampleAgent.T_sim)
+        for t in range(BayerLuettickeExampleAgent.T_sim):
+            meanbNow0[t] = np.mean(BayerLuettickeExampleAgent.bNow_hist[t,:][BayerLuettickeExampleAgent.incStateNow_hist[t,:]==0])
+            meanbNow1[t] = np.mean(BayerLuettickeExampleAgent.bNow_hist[t,:][BayerLuettickeExampleAgent.incStateNow_hist[t,:]==1])
+            meanbNow2[t] = np.mean(BayerLuettickeExampleAgent.bNow_hist[t,:][BayerLuettickeExampleAgent.incStateNow_hist[t,:]==2])
+            meanbNow3[t] = np.mean(BayerLuettickeExampleAgent.bNow_hist[t,:][BayerLuettickeExampleAgent.incStateNow_hist[t,:]==3])
+            meanbNow[t] = np.mean(BayerLuettickeExampleAgent.bNow_hist[t,:])
         plt.plot(meanbNow0)
         plt.plot(meanbNow1)
         plt.plot(meanbNow2)
