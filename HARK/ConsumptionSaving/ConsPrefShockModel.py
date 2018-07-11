@@ -6,10 +6,13 @@ It currently only two models:
 2) A combination of (1) and ConsKinkedR, demonstrating how to construct a new model
    by inheriting from multiple classes.
 '''
-
+from __future__ import division, print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import range
 import numpy as np
 from HARK.utilities import approxMeanOneLognormal
-from ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
+from .ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
                                    ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver
 from HARK.interpolation import LinearInterpOnInterp1D, LinearInterp, CubicInterp, LowerEnvelope
 
@@ -590,8 +593,8 @@ def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,
 
 ###############################################################################
 
-if __name__ == '__main__':
-    import ConsumerParameters as Params
+def main():
+    from . import ConsumerParameters as Params
     import matplotlib.pyplot as plt
     from HARK.utilities import plotFuncs
     from time import clock
@@ -673,3 +676,7 @@ if __name__ == '__main__':
         KinkyPrefExample.track_vars = ['cNrmNow','PrefShkNow']
         KinkyPrefExample.initializeSim()
         KinkyPrefExample.simulate()
+
+
+if __name__ == '__main__':
+    main()

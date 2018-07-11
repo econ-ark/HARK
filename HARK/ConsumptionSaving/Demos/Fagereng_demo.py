@@ -32,7 +32,9 @@ drop_corner : Boolean for whether to include target MPC in the top left corner,
               from a transitory shock *could* exceed 1.  Option is included here
               because this target tends to push the estimate around a bit.
 '''
-
+from __future__ import division, print_function
+from builtins import str
+from builtins import range
 import numpy as np
 from copy import deepcopy
 
@@ -164,8 +166,7 @@ def FagerengObjFunc(center,spread,verbose=False):
     return distance
 
 
-if __name__ == '__main__':
-
+def main():
     guess = [0.92,0.03]
     f_temp = lambda x : FagerengObjFunc(x[0],x[1])
     opt_params = minimizeNelderMead(f_temp, guess, verbose=True)
@@ -179,3 +180,9 @@ if __name__ == '__main__':
 #    t_end = clock()
 #    print('That took ' + str(t_end - t_start) + ' seconds.')
 #    print(X)
+
+
+if __name__ == '__main__':
+    main()
+
+

@@ -1,6 +1,7 @@
 '''
 Defines some default parameters for the fashion victim model.
 '''
+from __future__ import print_function, division
 
 DiscFac          = 0.95   # Intertemporal discount factor
 uParamA          = 1.0    # Parameter A in the utility function (pdf of the beta distribution)

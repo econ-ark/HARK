@@ -1,7 +1,10 @@
 '''
 Consumption-saving models that also include medical spending.
 '''
-
+from __future__ import division, print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import range
 import numpy as np
 from scipy.optimize import brentq
 from HARK import HARKobject
@@ -9,11 +12,11 @@ from HARK.utilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRA
                            CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP,\
                            makeGridExpMult, NullFunc
 from HARK.simulation import drawLognormal
-from ConsIndShockModel import ConsumerSolution
+from .ConsIndShockModel import ConsumerSolution
 from HARK.interpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, CubicInterp,\
                                LinearInterp, LowerEnvelope3D, UpperEnvelope, LinearInterpOnInterp1D,\
                                VariableLowerBoundFunc3D
-from ConsGenIncProcessModel import ConsGenIncProcessSolver, PersistentShockConsumerType,\
+from .ConsGenIncProcessModel import ConsGenIncProcessSolver, PersistentShockConsumerType,\
                                      ValueFunc2D, MargValueFunc2D, MargMargValueFunc2D, \
                                      VariableLowerBoundFunc2D
 from copy import deepcopy
@@ -87,7 +90,7 @@ class MedShockPolicyFunc(HARKobject):
         # Construct the consumption function and medical care function
         if xLvlCubicBool:
             if MedShkCubicBool:
-                raise NotImplementedError(), 'Bicubic interpolation not yet implemented'
+                raise NotImplementedError()('Bicubic interpolation not yet implemented')
             else:
                 xLvlGrid_tiled   = np.tile(np.reshape(xLvlGrid,(xLvlGrid.size,1)),
                                            (1,MedShkGrid.size))
@@ -1355,8 +1358,8 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
 
 ###############################################################################
 
-if __name__ == '__main__':
-    import ConsumerParameters as Params
+def main():
+    from . import ConsumerParameters as Params
     from HARK.utilities import CRRAutility_inv
     from time import clock
     import matplotlib.pyplot as plt
@@ -1433,3 +1436,7 @@ if __name__ == '__main__':
         MedicalExample.simulate()
         t_end = clock()
         print('Simulating ' + str(MedicalExample.AgentCount) + ' agents for ' + str(MedicalExample.T_sim) + ' periods took ' + mystr(t_end-t_start) + ' seconds.')
+
+if __name__ == '__main__':
+    main()
+

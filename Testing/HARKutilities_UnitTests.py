@@ -1,6 +1,13 @@
 """
 This file implements unit tests to check HARK/utilities.py
 """
+from __future__ import print_function, division
+from __future__ import absolute_import
+
+from builtins import str
+from builtins import zip
+from builtins import range
+from builtins import object
 
 import HARK.utilities
 

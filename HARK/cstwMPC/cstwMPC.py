@@ -1,6 +1,13 @@
 '''
 A second stab / complete do-over of cstwMPC.  Steals some bits from old version.
 '''
+from __future__ import division, print_function
+from __future__ import absolute_import
+
+from builtins import str
+from builtins import range
+
+import os
 
 import numpy as np
 from copy import copy, deepcopy
@@ -9,7 +16,7 @@ from HARK.utilities import approxMeanOneLognormal, combineIndepDstns, approxUnif
                            getPercentiles, getLorenzShares, calcSubpopAvg, approxLognormal
 from HARK.simulation import drawDiscrete
 from HARK import Market
-import SetupParamsCSTW as Params
+import HARK.cstwMPC.SetupParamsCSTW as Params
 import HARK.ConsumptionSaving.ConsIndShockModel as Model
 from HARK.ConsumptionSaving.ConsAggShockModel import CobbDouglasEconomy, AggShockConsumerType
 from scipy.optimize import golden, brentq
@@ -86,7 +93,11 @@ class cstwMPCmarket(EstimationMarketClass):
             self.sow_vars=['MaggNow','AaggNow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow','KtoLnow']
             self.dyn_vars=['AFunc']
             self.max_loops = 20
+        
+        # Save the current file's directory location for writing output:
+        self.my_file_path = os.path.dirname(os.path.abspath(__file__))
 
+        
     def solve(self):
         '''
         Solves the cstwMPCmarket.
@@ -256,7 +267,8 @@ class cstwMPCmarket(EstimationMarketClass):
 
         # Distribute the parameters to the various types, assigning consecutive types the same
         # value if there are more types than values
-        replication_factor = len(self.agents)/param_count
+        replication_factor = len(self.agents) // param_count 
+            # Note: the double division is intenger division in Python 3 and 2.7, this makes it explicit
         j = 0
         b = 0
         while j < len(self.agents):
@@ -366,9 +378,10 @@ class cstwMPCmarket(EstimationMarketClass):
 
         # Save results to disk
         if spec_name is not None:
-            with open('./Results/' + spec_name + 'Results.txt','w') as f:
+            with open(self.my_file_path  + '/Results/' + spec_name + 'Results.txt','w') as f:
                 f.write(results_string)
                 f.close()
+
 
 def getKYratioDifference(Economy,param_name,param_count,center,spread,dist_type):
     '''
@@ -488,7 +501,7 @@ def calcStationaryAgeDstn(LivPrb,terminal_period):
 
 ####################################################################################################
 
-if __name__ == '__main__':
+def main():
 
     # Set targets for K/Y and the Lorenz curve based on the data
     if Params.do_liquid:
@@ -604,4 +617,7 @@ if __name__ == '__main__':
         EstimationEconomy.center_estimate = center_estimate
         EstimationEconomy.spread_estimate = spread_estimate
         EstimationEconomy.showManyStats(Params.spec_name)
+
+if __name__ == '__main__':
+    main()
 

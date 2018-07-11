@@ -3,9 +3,18 @@ This module / script makes some fairly simple figures used in a version of the s
 All Booleans at the top of SetupParamsCSTW should be set to False, as this module
 imports cstwMPC; there's no need to actually do anything but load the model.
 '''
+from __future__ import division, print_function
+from __future__ import absolute_import
 
-from cstwMPC import *
+from builtins import str
+from builtins import range
+from .cstwMPC import *
 import matplotlib.pyplot as plt
+import os
+
+# Save the current file's directory location for writing output:
+my_file_path = os.path.dirname(os.path.abspath(__file__))
+
 
 plot_range = (0.0,30.0)
 points = 200
@@ -64,7 +73,7 @@ for b in range(17):
     plt.text(10,2.2,r'$\beta=$' + str(beta),fontsize=20)
     plt.xlabel(r'Cash on hand $m_t$',fontsize=14)
     plt.ylabel(r'Consumption $c_t$',fontsize=14)
-    plt.savefig('./Figures/mDistBeta0' + mystrx(1000*beta) + '.pdf')
+    plt.savefig(my_file_path + '/Figures/mDistBeta0' + mystrx(1000*beta) + '.pdf')
     plt.show()
 
 
@@ -73,12 +82,12 @@ plt.ylim(0,1.25)
 plt.xlim(0,15)
 plt.xlabel(r'Cash on hand $m_t$',fontsize=14)
 plt.ylabel(r'Consumption $c_t$',fontsize=14)
-plt.savefig('./Figures/ConFunc.pdf')
+plt.savefig(my_file_path + '/Figures/ConFunc.pdf')
 plt.plot(m,mTargFunc(m),'-r')
 plt.plot(np.array([9.95,9.95]),np.array([0,1.5]),'--k')
-plt.savefig('./Figures/mTargBase.pdf')
+plt.savefig(my_file_path + '/Figures/mTargBase.pdf')
 plt.fill_between(m,np.zeros(m.shape),scale*2*pdf_array[12,],facecolor='c',alpha=0.5)
-plt.savefig('./Figures/mDistBase.pdf')
+plt.savefig(my_file_path + '/Figures/mDistBase.pdf')
 plt.show()
 
 InfiniteType(beta=0.99);
@@ -92,10 +101,10 @@ plt.xlim(0,15)
 plt.ylim(0,1.02)
 plt.xlabel(r'Cash on hand $m_t$',fontsize=14)
 plt.ylabel(r'Marginal consumption $\kappa_t$',fontsize=14)
-plt.savefig('./Figures/kappaFuncBase.pdf')
+plt.savefig(my_file_path + '/Figures/kappaFuncBase.pdf')
 plt.plot(np.array([9.95,9.95]),np.array([0,1.5]),'--k')
 plt.fill_between(m,np.zeros(m.shape),scale*2*pdf_array[12,],facecolor='c',alpha=0.5)
-plt.savefig('./Figures/mDistVsKappa.pdf')
+plt.savefig(my_file_path + '/Figures/mDistVsKappa.pdf')
 plt.show()
 
 plt.plot(m,mTargFunc(m),'-r')
@@ -109,7 +118,7 @@ for b in range(17):
 plt.plot(m,mTargFunc(m),'-r')
 plt.xlabel(r'Cash on hand $m_t$',fontsize=14)
 plt.ylabel(r'Consumption $c_t$',fontsize=14)
-plt.savefig('./Figures/ManycFuncs.pdf')
+plt.savefig(my_file_path + '/Figures/ManycFuncs.pdf')
 plt.show()
 
 InfiniteType(beta=0.98);
@@ -123,7 +132,7 @@ plt.xlim(0,15)
 plt.ylim(0,1.02)
 plt.xlabel(r'Cash on hand $m_t$',fontsize=14)
 plt.ylabel(r'Marginal consumption $\kappa_t$',fontsize=14)
-plt.savefig('./Figures/kappaFuncLowBeta.pdf')
+plt.savefig(my_file_path + '/Figures/kappaFuncLowBeta.pdf')
 plt.fill_between(m,np.zeros(m.shape),scale*0.33*pdf_array[2,],facecolor='c',alpha=0.5)
-plt.savefig('./Figures/mDistVsKappaLowBeta.pdf')
+plt.savefig(my_file_path + '/Figures/mDistVsKappaLowBeta.pdf')
 plt.show()

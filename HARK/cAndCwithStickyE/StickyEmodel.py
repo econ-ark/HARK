@@ -16,10 +16,15 @@ The Markov-based AgentTypes are imported by StickyE_MAIN, the main file for this
 project.  Non-Markov AgentTypes are imported by StickyE_NO_MARKOV.
 Calibrated parameters for each type are found in StickyEparams.
 '''
+from __future__ import division, print_function
+from __future__ import absolute_import
+
+from builtins import str
+from builtins import range
 
 import numpy as np
-from ConsAggShockModel import AggShockConsumerType, AggShockMarkovConsumerType, CobbDouglasEconomy, CobbDouglasMarkovEconomy
-from RepAgentModel import RepAgentConsumerType, RepAgentMarkovConsumerType
+from HARK.ConsumptionSaving.ConsAggShockModel import AggShockConsumerType, AggShockMarkovConsumerType, CobbDouglasEconomy, CobbDouglasMarkovEconomy
+from HARK.ConsumptionSaving.RepAgentModel import RepAgentConsumerType, RepAgentMarkovConsumerType
 
 # Make an extension of the base type for the heterogeneous agents versions
 class StickyEconsumerType(AggShockConsumerType):

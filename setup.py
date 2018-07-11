@@ -149,7 +149,8 @@ setup(
                       'Sphinx',
                       'numpydoc',
                       'dill',
-                      'joblib',],  # Optional
+                      'joblib',
+                      'future'],  # Optional
 
     python_requires='>=2.7, !=3.*',
 

@@ -8,10 +8,14 @@ factor for an age-varying sequence of discount factors.  The estimation uses a
 consumption-saving model with idiosyncratic shocks to permanent and transitory
 income as defined in ConsIndShockModel.
 '''
+from __future__ import print_function
+from __future__ import absolute_import
 
-import EstimationParameters as Params           # Parameters for the consumer type and the estimation
+from builtins import str
+from builtins import range
+from . import EstimationParameters as Params           # Parameters for the consumer type and the estimation
 import HARK.ConsumptionSaving.ConsIndShockModel as Model # The consumption-saving micro model
-import SetupSCFdata as Data                     # SCF 2004 data on household wealth
+from . import SetupSCFdata as Data                     # SCF 2004 data on household wealth
 from HARK.simulation import drawDiscrete         # Method for sampling from a discrete distribution
 from HARK.estimation import minimizeNelderMead, bootstrapSampleFromData # Estimation methods
 import numpy as np                              # Numeric Python
@@ -249,11 +253,11 @@ def calculateStandardErrorsByBootstrap(initial_estimate,N,seed=0,verbose=False):
 # Done defining objects and functions.  Now run them (if desired).
 #=================================================================
 
-if __name__ == '__main__':
+def main():
     # Estimate the model using Nelder-Mead
     if estimate_model:
         initial_guess = [Params.DiscFacAdj_start,Params.CRRA_start]
-        print('Now estimating the model using Nelder-Mead from an initial guess of' + str(initial_guess) + '...')
+        print('Now estimating the model using Nelder-Mead from an initial guess of ' + str(initial_guess) + '...')
         model_estimate = minimizeNelderMead(smmObjectiveFxnReduced,initial_guess,verbose=True)
         print('Estimated values: DiscFacAdj=' + str(model_estimate[0]) + ', CRRA=' + str(model_estimate[1]))
 
@@ -283,3 +287,7 @@ if __name__ == '__main__':
         pylab.savefig('SMMcontour.pdf')
         pylab.savefig('SMMcontour.png')
         pylab.show()
+
+if __name__ == '__main__':
+    main()
+

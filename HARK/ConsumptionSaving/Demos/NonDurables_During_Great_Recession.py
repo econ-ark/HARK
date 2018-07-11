@@ -6,11 +6,10 @@ to protect future consumption against bad income shocks.  How large of an increa
 deviation of (log) permanent income shocks would be necessary to see an 6.32% drop in consumption in
 one quarter?  What about transitory income shocks?  How high would the perceived unemployment
 probability have to be?
-"""
 
 ####################################################################################################
 ####################################################################################################
-"""
+
 The first step is to create the ConsumerType we want to solve the model for.
 
 Model set up:
@@ -23,7 +22,9 @@ So we need to prepare the parameters to create that ConsumerType, and then creat
 """
 
 ## Import some things from cstwMPC
-
+from __future__ import division, print_function
+from builtins import str
+from builtins import range
 import numpy as np
 from copy import deepcopy
 
@@ -185,7 +186,7 @@ targetChangeInC = -6.32 # Source: FRED
 num_points = 10 #number of parameter values to plot in graphs
 
 ## First change the variance of the permanent income shock
-perm_ratio_max = ??? # Put whatever value in you want!  maximum number to multiply std of perm income shock by
+perm_ratio_max = 5.0 #??? # Put whatever value in you want!  maximum number to multiply std of perm income shock by
 
 perm_min = BaselineType.PermShkStd[0] * ratio_min
 perm_max = BaselineType.PermShkStd[0] * perm_ratio_max

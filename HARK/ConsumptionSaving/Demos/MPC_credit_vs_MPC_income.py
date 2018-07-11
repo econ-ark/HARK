@@ -12,14 +12,13 @@ and understand.
 There are many ways to use HARK, and this demo cannot show them all.
 This demo demonstrates one great way to use HARK: import and solve a model for different parameter
 values, to see how parameters affect the solution.
-"""
-
 
 ####################################################################################################
 ####################################################################################################
-"""
+
 The first step is to create the ConsumerType we want to solve the model for.
 """
+from __future__ import division, print_function
 
 ## Import the HARK ConsumerType we want
 ## Here, we bring in an agent making a consumption/savings decision every period, subject
