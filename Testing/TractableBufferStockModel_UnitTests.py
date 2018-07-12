@@ -4,6 +4,13 @@ Created on Thu Mar 24 11:01:50 2016
 
 @author: kaufmana
 """
+from __future__ import print_function, division
+from __future__ import absolute_import
+
+from builtins import str
+from builtins import zip
+from builtins import range
+from builtins import object
 
 import HARK.ConsumptionSaving.TractableBufferStockModel as Model
 import unittest

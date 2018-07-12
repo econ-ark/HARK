@@ -1,7 +1,11 @@
 """
 This module holds some data tools used in the cAndCwithStickyE project.
 """
+from __future__ import division, unicode_literals
+from __future__ import absolute_import
 
+from builtins import str
+from builtins import range
 import os
 import csv
 import numpy as np
@@ -13,7 +17,7 @@ from copy import deepcopy
 import subprocess
 from HARK.utilities import CRRAutility
 from HARK.interpolation import LinearInterp
-from StickyEparams import results_dir, tables_dir, figures_dir, UpdatePrb, PermShkAggVar
+from .StickyEparams import results_dir, tables_dir, figures_dir, UpdatePrb, PermShkAggVar
 UpdatePrbBase = UpdatePrb
 PermShkAggVarBase = PermShkAggVar
 
@@ -184,7 +188,7 @@ def makeStickyEdataFile(Economy,ignore_periods,description='',filename=None,save
             if hasattr(Economy,'MrkvNow') & ~hasattr(Economy,'Rfree') and hasattr(Economy,'agents'):
                 DataArray = np.hstack((DataArray,np.reshape(R,(R.size,1))))
                 VarNames.append('R')
-            with open(results_dir + filename + 'Data.txt','wb') as f:
+            with open(results_dir + filename + 'Data.txt','w') as f:
                 my_writer = csv.writer(f, delimiter = '\t')
                 my_writer.writerow(VarNames)
                 for i in range(DataArray.shape[0]):
@@ -256,7 +260,7 @@ def runStickyEregressions(infile_name,interval_size,meas_err,sticky,all_specs):
             R[i] = float(all_data[j][11])
 
     # Determine how many subsample intervals to run (and initialize array of coefficients)
-    N = DeltaLogC.size/interval_size
+    N = DeltaLogC.size // interval_size
     CoeffsArray = np.zeros((N,7)) # Order: DeltaLogC_OLS, DeltaLogC_IV, DeltaLogY_IV, A_OLS, DeltaLogC_HR, DeltaLogY_HR, A_HR
     StdErrArray = np.zeros((N,7)) # Same order as above
     RsqArray = np.zeros((N,5))
@@ -852,9 +856,9 @@ def makeEquilibriumTable(out_filename, four_in_files, CRRA):
     main_table += " \end{tabular}   \n"
 
     paper_bot = " } \n "
-    paper_bot += "\usebox{\EqbmBox}  \n"
+    paper_bot += "\\usebox{\EqbmBox}  \n"
     paper_bot += "\ifthenelse{\\boolean{StandAlone}}{\\newlength\TableWidth}{}  \n"
-    paper_bot += "\settowidth\TableWidth{\usebox{\EqbmBox}} % Calculate width of table so notes will match  \n"
+    paper_bot += "\settowidth\TableWidth{\\usebox{\EqbmBox}} % Calculate width of table so notes will match  \n"
     paper_bot += "\medskip\medskip \\vspace{0.0cm} \parbox{\TableWidth}{\\footnotesize\n"
     paper_bot += "\\textbf{Notes}: The cost of stickiness is calculated as the proportion by which the permanent income of a newborn frictionless consumer would need to be reduced in order to achieve the same reduction of expected value associated with forcing them to become a sticky expectations consumer.}  \n"
     paper_bot += "\end{table}\n"

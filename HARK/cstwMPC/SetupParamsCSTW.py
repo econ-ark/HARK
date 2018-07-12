@@ -1,6 +1,10 @@
 '''
 Loads parameters used in the cstwMPC estimations.
 '''
+
+from __future__ import division, print_function
+
+from builtins import range
 import numpy as np
 import csv
 from copy import  deepcopy
@@ -288,8 +292,12 @@ aggregate_params = {'PermShkAggCount': PermShkAggCount,
                     'tolerance':0.0001
                     }
 
-if __name__ == '__main__':
+def main():
     print("Sorry, SetupParamsCSTWnew doesn't actually do anything on its own.")
     print("This module is imported by cstwMPCnew, providing data and calibrated")
     print("parameters for the various estimations.  Please see that module if")
     print("you want more interesting output.")
+
+if __name__ == '__main__':
+    main()
+

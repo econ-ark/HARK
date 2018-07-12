@@ -12,7 +12,12 @@ It currently solves three types of models:
 See NARK for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 '''
-
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import range
+from builtins import object
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
@@ -722,8 +727,16 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # Calculate the minimum allowable value of money resources in this period
         self.BoroCnstNat = (self.solution_next.mNrmMin - self.TranShkMinNext)*\
                            (self.PermGroFac*self.PermShkMinNext)/self.Rfree
-        self.mNrmMinNow = np.max([self.BoroCnstNat,BoroCnstArt])
-        if self.BoroCnstNat < self.mNrmMinNow:
+                           
+        # Note: need to be sure to handle BoroCnstArt==None appropriately. 
+        # In Py2, this would evaluate to 5.0:  np.max([None, 5.0]).
+        # However in Py3, this raises a TypeError. Thus here we need to directly 
+        # address the situation in which BoroCnstArt == None:
+        if BoroCnstArt is None:
+            self.mNrmMinNow = self.BoroCnstNat
+        else:
+            self.mNrmMinNow = np.max([self.BoroCnstNat,BoroCnstArt])
+        if self.BoroCnstNat < self.mNrmMinNow: 
             self.MPCmaxEff = 1.0 # If actually constrained, MPC near limit is 1
         else:
             self.MPCmaxEff = self.MPCmaxNow
@@ -1693,29 +1706,29 @@ class PerfForesightConsumerType(AgentType):
         #Evaluate and report on the return impatience condition
         RIC=(self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
         if RIC<1:
-            print 'The return impatiance factor value for the supplied parameter values satisfies the return impatiance condition.'
+            print('The return impatiance factor value for the supplied parameter values satisfies the return impatiance condition.')
         else:
-            print 'The given type violates the return impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.'
+            print('The given type violates the return impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
         if verbose:
-            print 'The return impatiance factor value for the supplied parameter values is ' + str(RIC)
+            print('The return impatiance factor value for the supplied parameter values is ' + str(RIC))
 
         #Evaluate and report on the absolute impatience condition
         AIC=self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA)
         if AIC<1:
-            print 'The absolute impatiance factor value for the supplied parameter values satisfies the absolute impatiance condition.'
+            print('The absolute impatiance factor value for the supplied parameter values satisfies the absolute impatiance condition.')
         else:
-            print 'The given type violates the absolute impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.'
+            print('The given type violates the absolute impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
         if verbose:
-            print 'The absolute impatiance factor value for the supplied parameter values is ' + str(AIC)
+            print('The absolute impatiance factor value for the supplied parameter values is ' + str(AIC))
 
         #Evaluate and report on the finite human wealth condition
         FHWC=self.PermGroFac[0]/self.Rfree
         if FHWC<1:
-            print 'The finite human wealth factor value for the supplied parameter values satisfies the finite human wealth condition.'
+            print('The finite human wealth factor value for the supplied parameter values satisfies the finite human wealth condition.')
         else:
-            print 'The given type violates the finite human wealth condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.'
+            print('The given type violates the finite human wealth condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
         if verbose:
-            print 'The finite human wealth factor value for the supplied parameter values is ' + str(FHWC)
+            print('The finite human wealth factor value for the supplied parameter values is ' + str(FHWC))
 
 
 class IndShockConsumerType(PerfForesightConsumerType):
@@ -2021,29 +2034,29 @@ class IndShockConsumerType(PerfForesightConsumerType):
         #Evaluate and report on the growth impatience condition
         GIC=(self.LivPrb[0]*exp_psi_inv*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.PermGroFac[0]
         if GIC<1:
-            print 'The growth impatiance factor value for the supplied parameter values satisfies the growth impatiance condition.'
+            print('The growth impatiance factor value for the supplied parameter values satisfies the growth impatiance condition.')
         else:
-            print 'The given type violates the growth impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.'
+            print('The given type violates the growth impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
         if verbose:
-            print 'The growth impatiance factor value for the supplied parameter values is ' + str(GIC)
+            print('The growth impatiance factor value for the supplied parameter values is ' + str(GIC))
 
         #Evaluate and report on the weak return impatience condition
         WRIC=(self.LivPrb[0]*(self.UnempPrb**(1/self.CRRA))*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
         if WRIC<1:
-            print 'The weak return impatiance factor value for the supplied parameter values satisfies the weak return impatiance condition.'
+            print('The weak return impatiance factor value for the supplied parameter values satisfies the weak return impatiance condition.')
         else:
-            print 'The given type violates the weak return impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.'
+            print('The given type violates the weak return impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
         if verbose:
-            print 'The weak return impatiance factor value for the supplied parameter values is ' + str(WRIC)
+            print('The weak return impatiance factor value for the supplied parameter values is ' + str(WRIC))
 
         #Evaluate and report on the finite value of autarky condition
         FVAC=self.LivPrb[0]*self.DiscFac*exp_psi_to_one_minus_rho*(self.PermGroFac[0]**(1-self.CRRA))
         if FVAC<1:
-            print 'The finite value of autarky factor value for the supplied parameter values satisfies the finite value of autarky condition.'
+            print('The finite value of autarky factor value for the supplied parameter values satisfies the finite value of autarky condition.')
         else:
-            print 'The given type violates the finite value of autarky condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.'
+            print('The given type violates the finite value of autarky condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
         if verbose:
-            print 'The finite value of autarky factor value for the supplied parameter values is ' + str(FVAC)
+            print('The finite value of autarky factor value for the supplied parameter values is ' + str(FVAC))
 
 class KinkedRconsumerType(IndShockConsumerType):
     '''
@@ -2382,8 +2395,8 @@ def constructAssetsGrid(parameters):
     elif grid_type == "exp_mult":
         aXtraGrid = makeGridExpMult(ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=exp_nest)
     else:
-        raise Exception, "grid_type not recognized in __init__." + \
-                         "Please ensure grid_type is 'linear' or 'exp_mult'"
+        raise Exception("grid_type not recognized in __init__." + \
+                         "Please ensure grid_type is 'linear' or 'exp_mult'")
 
     # Add in additional points for the grid:
     for a in aXtraExtra:
@@ -2396,8 +2409,8 @@ def constructAssetsGrid(parameters):
 
 ####################################################################################################
 
-if __name__ == '__main__':
-    import ConsumerParameters as Params
+def main():
+    from . import ConsumerParameters as Params
     from HARK.utilities import plotFuncsDer, plotFuncs
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
@@ -2540,3 +2553,8 @@ if __name__ == '__main__':
         KinkyExample.track_vars = ['mNrmNow','cNrmNow','pLvlNow']
         KinkyExample.initializeSim()
         KinkyExample.simulate()
+
+
+if __name__ == '__main__':
+    main()
+

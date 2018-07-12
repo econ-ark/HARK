@@ -18,10 +18,12 @@ bounds are exceeded.
 Despite the non-standard solution method, the iterative process can be embedded
 in the HARK framework, as shown below.
 '''
-# Import the HARK library.  The assumption is that this code is in a folder
-# contained in the HARK folder.
+from __future__ import division, print_function
+from __future__ import absolute_import
+from builtins import str
 import numpy as np
 
+# Import the HARK library.
 from HARK import AgentType, NullFunc, Solution
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityPPP, CRRAutilityPPPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
@@ -461,12 +463,12 @@ class TractableConsumerType(AgentType):
 
 ###############################################################################
 
-if __name__ == '__main__':
+def main():
     # Import the HARK library.  The assumption is that this code is in a folder
     # contained in the HARK folder.  Also import the ConsumptionSavingModel
     import numpy as np                   # numeric Python
     from HARK.utilities import plotFuncs  # basic plotting tools
-    from ConsMarkovModel import MarkovConsumerType # An alternative, much longer way to solve the TBS model
+    from .ConsMarkovModel import MarkovConsumerType # An alternative, much longer way to solve the TBS model
     from time import clock               # timing utility
 
     do_simulation = True
@@ -554,4 +556,7 @@ if __name__ == '__main__':
     diffFunc = lambda m : ExampleType.solution[0].cFunc(m) - MarkovType.cFunc[0][0](m)
     print('Difference between the (employed) consumption functions:')
     plotFuncs(diffFunc,0,m_upper)
+
+if __name__ == '__main__':
+    main()
 

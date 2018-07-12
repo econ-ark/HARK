@@ -2,12 +2,18 @@
 Sets up the SCF data for use in the SolvingMicroDSOPs estimation.
 '''
 from __future__ import division      # Use new division function
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import zip
+from builtins import str
+from builtins import range
+
 import os
 
 # The following libraries are part of the standard python distribution
 import numpy as np                   # Numerical Python
 import csv                           # Comma-separated variable reader
-from EstimationParameters import initial_age, empirical_cohort_age_groups
+from .EstimationParameters import initial_age, empirical_cohort_age_groups
 
 # Libraries below are part of HARK's module system and must be in this directory
 from HARK.utilities import warnings
@@ -16,9 +22,9 @@ from HARK.utilities import warnings
 scf_data_path = data_location = os.path.dirname(os.path.abspath(__file__))  # os.path.abspath('./')   #'./'
 
 # Open the file handle and create a reader object and a csv header
-infile = open(scf_data_path + '/SCFdata.csv', 'rb')
+infile = open(scf_data_path + '/SCFdata.csv', 'r')
 csv_reader = csv.reader(infile)
-data_csv_header = csv_reader.next()
+data_csv_header = next(csv_reader)
 
 # Pull the column index from the data_csv_header
 data_column_index = data_csv_header.index('wealth_income_ratio') # scf_w_col

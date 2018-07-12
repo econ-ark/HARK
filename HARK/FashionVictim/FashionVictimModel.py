@@ -4,13 +4,18 @@ jock and punk. Forward-looking agents receive utility from the style they choose
 based on the proportion of the population with the same style (as well as direct
 preferences each style), and pay switching costs if they change.
 '''
+from __future__ import print_function, division
+from __future__ import absolute_import
 
+from builtins import str
+from builtins import range
+from builtins import object
 from HARK import AgentType, Solution, NullFunc
 from HARK.interpolation import LinearInterp
 from HARK.utilities import approxUniform, plotFuncs
 import numpy as np
 import scipy.stats as stats
-import FashionVictimParams as Params
+from . import FashionVictimParams as Params
 from copy import copy
 
 class FashionSolution(Solution):
@@ -85,7 +90,7 @@ class FashionEvoFunc(Solution):
         self.distance_criteria = ['pNextSlope','pNextWidth','pNextIntercept']
 
 
-class FashionMarketInfo():
+class FashionMarketInfo(object):
     '''
     A class for representing the current distribution of styles in the population.
     '''
@@ -406,7 +411,7 @@ def calcFashionEvoFunc(pNow):
 
 ###############################################################################
 ###############################################################################
-if __name__ == '__main__':
+def main():
     from time import clock
     from HARK import Market
     mystr = lambda number : "{:.4f}".format(number)
@@ -476,3 +481,8 @@ if __name__ == '__main__':
     TestMarket.solve()
     plt.plot(TestMarket.pNow_hist)
     plt.show()
+
+
+if __name__ == '__main__':
+    main()
+

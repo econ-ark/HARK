@@ -4,7 +4,10 @@ cratic income shocks.  Currently only contains one microeconomic model with a
 basic solver.  Also includes a subclass of Market called CobbDouglas economy,
 used for solving "macroeconomic" models with aggregate shocks.
 '''
-
+from __future__ import division, print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import range
 import numpy as np
 import scipy.stats as stats
 from HARK.interpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFunction, IdentityFunction,\
@@ -13,7 +16,7 @@ from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutility
                            CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
                            approxMeanOneLognormal
 from HARK.simulation import drawDiscrete, drawUniform
-from ConsIndShockModel import ConsumerSolution, IndShockConsumerType
+from .ConsIndShockModel import ConsumerSolution, IndShockConsumerType
 from HARK import HARKobject, Market, AgentType
 from copy import deepcopy
 import matplotlib.pyplot as plt
@@ -1749,8 +1752,8 @@ class AggShocksDynamicRule(HARKobject):
 
 ###############################################################################
 
-if __name__ == '__main__':
-    import ConsumerParameters as Params
+def main():
+    from . import ConsumerParameters as Params
     from time import clock
     from HARK.utilities import plotFuncs
     mystr = lambda number : "{:.4f}".format(number)
@@ -1759,9 +1762,9 @@ if __name__ == '__main__':
     solve_agg_shocks_market = True # Solve for the equilibrium aggregate saving rule in a CobbDouglasEconomy
 
     solve_markov_micro = False # Solve an AggShockMarkovConsumerType's microeconomic problem
-    solve_markov_market = True # Solve for the equilibrium aggregate saving rule in a CobbDouglasMarkovEconomy
+    solve_markov_market = False # Solve for the equilibrium aggregate saving rule in a CobbDouglasMarkovEconomy
     solve_krusell_smith = True # Solve a simple Krusell-Smith-style two state, two shock model
-    solve_poly_state = True # Solve a CobbDouglasEconomy with many states, potentially utilizing the "state jumper"
+    solve_poly_state = False   # Solve a CobbDouglasEconomy with many states, potentially utilizing the "state jumper"
 
     ################ EXAMPLE IMPLEMENTATIONS OF AggShockConsumerType ##########
 
@@ -1928,4 +1931,7 @@ if __name__ == '__main__':
         PolyStateEconomy.solve()
         t_end = clock()
         print('Solving a model with ' + str(StateCount) + ' states took ' + str(t_end - t_start) + ' seconds.')
+
+if __name__ == '__main__':
+    main()
 

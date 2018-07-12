@@ -5,11 +5,12 @@ and bootstrapping tools.
 
 # The following libraries are part of the standard python distribution
 from __future__ import division                         # Use new division function
+from __future__ import print_function
+from builtins import str
 import numpy as np                                      # Numerical Python
 from time import time                                   # Used to time execution
 from copy import deepcopy                               # For replicating complex objects
 from scipy.optimize import fmin, fmin_powell            # Minimizers
-from utilities import warnings                          # Import modified "warnings" library
 
 def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, **kwargs):
     '''
@@ -142,7 +143,10 @@ def bootstrapSampleFromData(data,weights=None,seed=0):
     return new_data
 
 
-if __name__ == '__main__':
+def main():
     print("Sorry, HARK.estimation doesn't actually do anything on its own.")
     print("To see some examples of its functions in actions, check out an application")
     print("like /SolvingMicroDSOPs/StructEstimation or /cstwMPC/cstwMPC.")
+
+if __name__ == '__main__':
+    main()

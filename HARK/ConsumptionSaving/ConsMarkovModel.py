@@ -4,11 +4,13 @@ stochastic Markov state.  The only solver here extends ConsIndShockModel to
 include a Markov state; the interest factor, permanent growth factor, and income
 distribution can vary with the discrete state.
 '''
-
+from __future__ import division, print_function
+from __future__ import absolute_import
+from builtins import range
 from copy import deepcopy
 import numpy as np
-from ConsIndShockModel import ConsIndShockSolver, ValueFunc, MargValueFunc, ConsumerSolution, IndShockConsumerType
-from ConsAggShockModel import AggShockConsumerType
+from .ConsIndShockModel import ConsIndShockSolver, ValueFunc, MargValueFunc, ConsumerSolution, IndShockConsumerType
+from .ConsAggShockModel import AggShockConsumerType
 from HARK.utilities import combineIndepDstns, warnings  # Because of "patch" to warnings modules
 from HARK import Market, HARKobject
 from HARK.simulation import drawDiscrete, drawUniform
@@ -198,7 +200,12 @@ class ConsMarkovSolver(ConsIndShockSolver):
         for i in range(self.StateCount):
             possible_next_states         = self.MrkvArray[i,:] > 0
             self.BoroCnstNat_list[i]     = np.max(self.BoroCnstNatAll[possible_next_states])
-            self.mNrmMin_list[i]         = np.max([self.BoroCnstNat_list[i],self.BoroCnstArt])
+
+            # Explicitly handle the "None" case:            
+            if self.BoroCnstArt is None:
+                self.mNrmMin_list[i]         = self.BoroCnstNat_list[i]
+            else:
+                self.mNrmMin_list[i]         = np.max([self.BoroCnstNat_list[i],self.BoroCnstArt])
             self.BoroCnstDependency[i,:] = self.BoroCnstNat_list[i] == self.BoroCnstNatAll
         # Also creates a Boolean array indicating whether the natural borrowing
         # constraint *could* be hit when transitioning from i to j.
@@ -966,9 +973,8 @@ class MarkovConsumerType(IndShockConsumerType):
 
 ###############################################################################
 
-if __name__ == '__main__':
-
-    import ConsumerParameters as Params
+def main():
+    from . import ConsumerParameters as Params
     from HARK.utilities import plotFuncs
     from time import clock
     from copy import copy
@@ -1097,6 +1103,7 @@ if __name__ == '__main__':
                                    cycles = 0)
     SerialGroExample.IncomeDstn = [IncomeDstn]
 
+
     # Solve the serially correlated permanent growth shock problem and display the consumption functions
     start_time = clock()
     SerialGroExample.solve()
@@ -1119,3 +1126,8 @@ if __name__ == '__main__':
     print('Solving a serially correlated interest consumer took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
     plotFuncs(SerialRExample.solution[0].cFunc,0,10)
+
+
+if __name__ == '__main__':
+    main()
+

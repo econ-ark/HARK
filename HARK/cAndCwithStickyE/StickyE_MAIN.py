@@ -5,29 +5,33 @@ statistics and regression results are both output to screen and saved in a log
 file in the results directory.  TeX code for tables in the paper are saved in
 the tables directory.  See StickyEparams for calibrated model parameters.
 '''
-
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import range
 import os
 import numpy as np
 import csv
 from time import clock
 from copy import deepcopy
-from StickyEmodel import StickyEmarkovConsumerType, StickyEmarkovRepAgent, StickyCobbDouglasMarkovEconomy
+from .StickyEmodel import StickyEmarkovConsumerType, StickyEmarkovRepAgent, StickyCobbDouglasMarkovEconomy
 from HARK.ConsumptionSaving.ConsAggShockModel import SmallOpenMarkovEconomy
 from HARK.utilities import plotFuncs
 import matplotlib.pyplot as plt
-import StickyEparams as Params
-from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable,\
+from . import StickyEparams as Params
+from .StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable,\
                   runStickyEregressionsInStata, makeParameterTable, makeEquilibriumTable,\
                   makeMicroRegressionTable, extractSampleMicroData, makeuCostVsPiFig, \
                   makeValueVsAggShkVarFig, makeValueVsPiFig
 
 # Choose which models to do work for
 do_SOE  = False
-do_DSGE = False
+do_DSGE = True
 do_RA   = False
 
 # Choose what kind of work to do for each model
-run_models = False       # Whether to solve models and generate new simulated data
+run_models = True       # Whether to solve models and generate new simulated data
 calc_micro_stats = False # Whether to calculate microeconomic statistics (only matters when run_models is True)
 make_tables = False      # Whether to make LaTeX tables in the /Tables folder
 use_stata = False        # Whether to use Stata to run the simulated time series regressions
@@ -38,7 +42,7 @@ run_value_vs_aggvar = False # Whether to run an exercise to find value at birth 
 ignore_periods = Params.ignore_periods # Number of simulated periods to ignore as a "burn-in" phase
 interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
 total_periods = Params.periods_to_sim  # Total number of periods in simulation
-interval_count = (total_periods-ignore_periods)/interval_size # Number of intervals in the macro regressions
+interval_count = (total_periods-ignore_periods) // interval_size # Number of intervals in the macro regressions
 periods_to_sim_micro = Params.periods_to_sim_micro # To save memory, micro regressions are run on a smaller sample
 AgentCount_micro = Params.AgentCount_micro # To save memory, micro regressions are run on a smaller sample
 my_counts = [interval_size,interval_count]
@@ -55,7 +59,7 @@ else:
 
 
 # Run models and save output if this module is called from main
-if __name__ == '__main__':
+def main():
 
     ###############################################################################
     ########## SMALL OPEN ECONOMY WITH MACROECONOMIC MARKOV STATE##################
@@ -378,4 +382,6 @@ if __name__ == '__main__':
     if run_value_vs_aggvar:
         makeValueVsAggShkVarFig('SOEvVecByPermShkAggVar')
 
+if __name__ == '__main__':
+    main()
 
