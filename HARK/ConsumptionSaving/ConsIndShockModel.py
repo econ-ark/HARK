@@ -305,8 +305,6 @@ class MargMargValueFunc(HARKobject):
         return MPC*utilityPP(c,gam=self.CRRA)
 
 
-
-
 # =====================================================================
 # === Classes and functions that solve consumption-saving models ===
 # =====================================================================
@@ -1681,7 +1679,7 @@ class PerfForesightConsumerType(AgentType):
     def checkConditions(self,verbose=False):
         '''
         This method checks whether the instance's type satisfies the growth impatience condition
-        <        (GIC), return impatience condition (RIC), absolute impatience condition (AIC), weak return
+        (GIC), return impatience condition (RIC), absolute impatience condition (AIC), weak return
         impatience condition (WRIC), finite human wealth condition (FHWC) and finite value of
         autarky condition (FVAC). These are the conditions that are sufficient for nondegenerate
         solutions under infinite horizon with a 1 period cycle. Depending on the model at hand, a
@@ -1704,31 +1702,32 @@ class PerfForesightConsumerType(AgentType):
             return
 
         #Evaluate and report on the return impatience condition
-        RIC=(self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
-        if RIC<1:
+        RIF=(self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
+        if RIF<1:
             print('The return impatience factor value for the supplied parameter values satisfies the return impatience condition.')
         else:
-            print('The given type violates the return impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
-        if verbose:
-            print('The return impatience factor value for the supplied parameter values is ' + str(RIC))
+            print('The given type violates the Return Impatience Condition with the supplied parameter values; the factor is %1.5f ' % (RIF))
+            if verbose:
+                print('    For more, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
         #Evaluate and report on the absolute impatience condition
-        AIC=self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA)
-        if AIC<1:
+        AIF=(self.LivPrb[0]*self.Rfree*self.DiscFac)**(1/self.CRRA)
+        if AIF<1:
             print('The absolute impatience factor value for the supplied parameter values satisfies the absolute impatience condition.')
         else:
-            print('The given type violates the absolute impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
-        if verbose:
-            print('The absolute impatience factor value for the supplied parameter values is ' + str(AIC))
+            print('The given type violates the absolute impatience condition with the supplied parameter values; the AIF is %1.5f ' % (AIF))
+            if verbose:
+                print('    Therefore, the absolute amount of consumption is expected to grow over time')
+                print('    For more, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
         #Evaluate and report on the finite human wealth condition
-        FHWC=self.PermGroFac[0]/self.Rfree
-        if FHWC<1:
+        FHWF=self.PermGroFac[0]/self.Rfree
+        if FHWF<1:
             print('The finite human wealth factor value for the supplied parameter values satisfies the finite human wealth condition.')
         else:
-            print('The given type violates the finite human wealth condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
-        if verbose:
-            print('The finite human wealth factor value for the supplied parameter values is ' + str(FHWC))
+            print('The given type violates the finite human wealth condition; the finite human wealth factor value %2.5f ' % (FHWF))
+            if verbose:
+                print('    For more, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
 
 class IndShockConsumerType(PerfForesightConsumerType):
@@ -2006,57 +2005,56 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Parameters
         ----------
         verbose : boolean
-            Specifies different levels of verbosity of feedback. When false, it only reports whether the
-            instance's type fails to satisfy a particular condition. When true, it reports all results, i.e.
+            Specifies different levels of verbosity of feedback. When False, it only reports whether the
+            instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
             the factor values for all conditions.
 
         Returns
         -------
         None
         '''
-        PerfForesightConsumerType.checkConditions(self)
+        PerfForesightConsumerType.checkConditions(self,verbose)
 
         if self.cycles!=0 or self.T_cycle > 1:
             return
 
-        AIC=self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA)
-        RIC=(self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
+        AIF=self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA)
+        RIF=(self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
         EPermShkInv=np.dot(self.PermShkDstn[0][0],1/self.PermShkDstn[0][1])
+        EPermShkValFunc=np.dot(self.PermShkDstn[0][0],self.PermShkDstn[0][1]**(1-self.CRRA))
         PermGroFacAdj=self.PermGroFac[0]*EPermShkInv
         Thorn=self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA)
-        GIC=Thorn/PermGroFacAdj
+        GIF=Thorn/PermGroFacAdj
 
         #Evaluate and report on the growth impatience condition
-        if GIC<1:
+        if GIF<1:
             print('The growth impatience factor value for the supplied parameter values satisfies the growth impatience condition.')
         else:
-            print('The given parameter values the growth impatience condition for this consumer type; the GIC is: %2.4f' % (GIC))
-            print('Therefore, a target level of wealth does not exist.')
-            print('See Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
-        if verbose:
-            print('The growth impatience factor value for the supplied parameter values is ' + str(GIC))
+            print('The given parameter values violate the growth impatience condition for this consumer type; the GIF is: %2.4f' % (GIF))
+            if verbose:
+                print('    Therefore, a target level of wealth does not exist.')
+                print('    For more, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
         #Evaluate and report on the weak return impatience condition
-        WRIC=(self.LivPrb[0]*(self.UnempPrb**(1/self.CRRA))*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
-        if WRIC<1:
+        WRIF=(self.LivPrb[0]*(self.UnempPrb**(1/self.CRRA))*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
+        if WRIF<1:
             print('The weak return impatience factor value for the supplied parameter values satisfies the weak return impatience condition.')
         else:
-            print('The given type violates the weak return impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available.')
-            print('See Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
-            
-        if verbose:
-            print('The weak return impatience factor value for the supplied parameter values is ' + str(WRIC))
+            print('The given type violates the weak return impatience condition with the supplied parameter values.  The WRIF is: %2.4f' % (WRIF))
+            if verbose:
+                print('    Therefore, a nondegenerate solution is not available.')
+                print('    For more, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
         #Evaluate and report on the finite value of autarky condition
-        FVAC=self.LivPrb[0]*self.DiscFac*exp_psi_to_one_minus_rho*(self.PermGroFac[0]**(1-self.CRRA))
+        FVAC=self.LivPrb[0]*self.DiscFac*EPermShkValFunc*(self.PermGroFac[0]**(1-self.CRRA))
+
         if FVAC<1:
             print('The finite value of autarky factor value for the supplied parameter values satisfies the finite value of autarky condition.')
         else:
-            print('The given type violates the finite value of autarky condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available.')
-            print('See Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
-
-        if verbose:
-            print('The finite value of autarky factor value for the supplied parameter values is ' + str(FVAC))
+            print('The given type violates the finite value of autarky condition with the supplied parameter values. The FVAC is %2.4f' %(FVAC))
+            if verbose:
+                print('    Therefore, a nondegenerate solution is not available.')
+                print('    For more, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
 class KinkedRconsumerType(IndShockConsumerType):
     '''
@@ -2193,7 +2191,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         different combination of these conditions must be satisfied. To check which conditions are
         relevant to the model at hand, a reference to the relevant theoretical literature is made.
 
-        NOT YET IMPLEMENTED FOR THIS CLASS
+        SHOULD BE INHERITED FROM ConsIndShockModel
 
         Parameters
         ----------
