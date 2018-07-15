@@ -1,5 +1,5 @@
 # Heterogeneous Agents Resources and toolKit (HARK)
-pre-release 0.9.0 - 28 June, 2018
+pre-release 0.9.1 - 13 July, 2018
 
 Click the Badge for Citation Info.
 [![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
@@ -44,7 +44,7 @@ This is going to be easy, friend.  HARK is written in Python, specifically the
 Anaconda distribution of Python.  Follow these easy steps to get HARK going:
 
 1) Go to https://www.continuum.io/downloads and download Anaconda for your
-operating system; be sure to get the version for Python 2.7
+operating system
 
 2) Install Anaconda, using the instructions provided on that page.  Now you have
 installed everything you need to run most of HARK.  But you still need to get HARK
