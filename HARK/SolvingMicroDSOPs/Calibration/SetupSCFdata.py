@@ -8,15 +8,37 @@ from builtins import zip
 from builtins import str
 from builtins import range
 
-import os
+import os, sys
+
+# Find pathname to this file:
+my_file_path = os.path.dirname(os.path.abspath(__file__))
+
+# Pathnames to the other files:
+calibration_dir = os.path.join(my_file_path, "../Calibration/") # Relative directory for primitive parameter files
+tables_dir = os.path.join(my_file_path, "../Tables/") # Relative directory for primitive parameter files
+figures_dir = os.path.join(my_file_path, "../Figures/") # Relative directory for primitive parameter files
+code_dir = os.path.join(my_file_path, "../Code/") # Relative directory for primitive parameter files
+
+
+# Import modules from local repository. If local repository is part of HARK, 
+# this will import from HARK. Otherwise manual pathname specification is in 
+# order.
+try: 
+    # Import from core HARK code first:
+    from HARK.SolvingMicroDSOPs.Calibration.EstimationParameters import initial_age, empirical_cohort_age_groups
+
+except:
+    # Need to rely on the manual insertion of pathnames to all files in do_all.py
+    # NOTE sys.path.insert(0, os.path.abspath(tables_dir)), etc. may need to be 
+    # copied from do_all.py to here
+
+    # Import files first:
+    from EstimationParameters import initial_age, empirical_cohort_age_groups
+
 
 # The following libraries are part of the standard python distribution
 import numpy as np                   # Numerical Python
 import csv                           # Comma-separated variable reader
-from .EstimationParameters import initial_age, empirical_cohort_age_groups
-
-# Libraries below are part of HARK's module system and must be in this directory
-from HARK.utilities import warnings
 
 # Set the path to the empirical data:
 scf_data_path = data_location = os.path.dirname(os.path.abspath(__file__))  # os.path.abspath('./')   #'./'
