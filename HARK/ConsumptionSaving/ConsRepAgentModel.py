@@ -4,11 +4,14 @@ This stands in contrast to all other model modules in HARK, which (unsurprisingl
 take a heterogeneous agents approach.  In RA models, all attributes are either
 time invariant or exist on a short cycle; models must be infinite horizon.
 '''
-
+from __future__ import division, print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import range
 import numpy as np
 from HARK.interpolation import LinearInterp
 from HARK.simulation import drawUniform, drawDiscrete
-from ConsIndShockModel import IndShockConsumerType, ConsumerSolution, MargValueFunc
+from .ConsIndShockModel import IndShockConsumerType, ConsumerSolution, MargValueFunc
 
 def solveConsRepAgent(solution_next,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,PermGroFac,aXtraGrid):
     '''
@@ -324,11 +327,11 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
 
 
 ###############################################################################
-if __name__ == '__main__':
+def main():
     from copy import deepcopy
     from time import clock
     from HARK.utilities import plotFuncs
-    import ConsumerParameters as Params
+    from . import ConsumerParameters as Params
 
     # Make a quick example dictionary
     RA_params = deepcopy(Params.init_idiosyncratic_shocks)
@@ -375,3 +378,7 @@ if __name__ == '__main__':
     RAmarkovExample.simulate()
     t_end = clock()
     print('Simulating a two state representative agent for ' + str(RAexample.T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds.')
+
+if __name__ == '__main__':
+    main()
+

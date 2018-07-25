@@ -7,6 +7,14 @@ does not include two packages needed for it; see HARK/parallel.py.  When given a
 sufficiently large amount of work for each thread to do, the maximum speedup
 factor seems to be around P/2, where P is the number of processors.
 '''
+from __future__ import print_function, division
+from __future__ import absolute_import
+
+from builtins import str
+from builtins import zip
+from builtins import range
+from builtins import object
+
 
 import HARK.ConsumptionSaving.ConsumerParameters as Params # Parameters for a consumer type
 import HARK.ConsumptionSaving.ConsIndShockModel as Model # Consumption-saving model with idiosyncratic shocks

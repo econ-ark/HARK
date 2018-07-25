@@ -9,13 +9,10 @@ limits to the phenomena that can be explained by invoking uncertainty.
 
 It asks "what beliefs about uncertainty would Chinese consumers need to hold in order to generate a
 saving rate of 25%, given the rapid pace of Chinese growth"?
-"""
-
-
 
 ####################################################################################################
 ####################################################################################################
-"""
+
 The first step is to create the ConsumerType we want to solve the model for.
 
 Model set up:
@@ -33,10 +30,12 @@ temporary.
 HARK's MarkovConsumerType will be a very convient way to run this experiment.  So we need to
 prepare the parameters to create that ConsumerType, and then create it.
 """
-
+from __future__ import division, print_function
 ### First bring in default parameter values from cstwPMC.  We will change these as necessary.
 
 # Now, bring in what we need from the cstwMPC parameters
+from builtins import str
+from builtins import range
 import HARK.cstwMPC.SetupParamsCSTW as cstwParams
 
 # Initialize the cstwMPC parameters
@@ -245,7 +244,7 @@ def calcNatlSavingRate(PrmShkVar_multiplier,RNG_seed = 0):
 
     # After looping through all the ConsumerTypes, calculate and return the path of the national
     # saving rate
-    NatlSavingRate = (NatlIncome - NatlCons)/NatlIncome
+    NatlSavingRate = (NatlIncome - NatlCons) / NatlIncome
 
     return NatlSavingRate
 
@@ -294,4 +293,5 @@ plt.plot(quarters_to_plot,NatlSavingsRates[3],label=str(PermShkVarMultipliers[3]
 plt.plot(quarters_to_plot,NatlSavingsRates[4],label=str(PermShkVarMultipliers[4]) + ' x variance')
 plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
            ncol=2, mode="expand", borderaxespad=0.) #put the legend on top
+plt.show()
 

@@ -5,6 +5,13 @@ These tests compare the output of different models in specific cases in which th
 should yield the same output.  The code will pass these tests if and only if the output is close
 "enough".
 """
+from __future__ import print_function, division
+from __future__ import absolute_import
+
+from builtins import str
+from builtins import zip
+from builtins import range
+from builtins import object
 
 # Bring in modules we need
 import unittest

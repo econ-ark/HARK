@@ -5,6 +5,10 @@ derivatives), manipulation of discrete distributions, and basic plotting tools.
 '''
 
 from __future__ import division     # Import Python 3.x division function
+from __future__ import print_function
+from builtins import str
+from builtins import range
+from builtins import object
 import functools
 import warnings
 import numpy as np                  # Python's numeric library, abbreviated "np"
@@ -13,26 +17,10 @@ try:
 except ImportError:
     import sys
     exception_type, value, traceback = sys.exc_info()
-    raise ImportError, (
-                'HARK must be used in a graphical environment.',
-                exception_type,
-                value
-        ), traceback
+    raise ImportError('HARK must be used in a graphical environment.', exception_type, value, traceback)
 import scipy.stats as stats         # Python's statistics library
 from scipy.interpolate import interp1d
 from scipy.special import erf, erfc
-
-def _warning(message,category = UserWarning,filename = '',lineno = -1):
-    '''
-    A "monkeypatch" to warnings, to print pretty-looking warnings. The
-    default behavior of the "warnings" module is to print some extra, unusual-
-    looking things when the user calls a warning. A common "fix" for this is
-    to "monkeypatch" the warnings module. See:
-    http://stackoverflow.com/questions/2187269/python-print-only-the-message-on-warnings
-    I implement this fix directly below, for all simulation and solution utilities.
-    '''
-    print(message)
-warnings.showwarning = _warning
 
 def memoize(obj):
    '''
@@ -75,7 +63,7 @@ def getArgNames(function):
     return argNames
 
 
-class NullFunc():
+class NullFunc(object):
     '''
     A trivial class that acts as a placeholder "do nothing" function.
     '''
@@ -1259,10 +1247,13 @@ def plotFuncsDer(functions,bottom,top,N=1000,legend_kwds = None):
     plt.show()
 
 
-if __name__ == '__main__':
+def main():
     print("Sorry, HARK.utilities doesn't actually do anything on its own.")
     print("To see some examples of its functions in action, look at any")
     print("of the model modules in /ConsumptionSavingModel.  As these functions")
     print("are the basic building blocks of HARK, you'll find them used")
     print("everywhere! In the future, this module will show examples of each")
     print("function in the module.")
+
+if __name__ == '__main__':
+    main()

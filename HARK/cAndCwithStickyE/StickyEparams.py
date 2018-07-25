@@ -12,10 +12,12 @@ It defines dictionaries for the six types of models in cAndCwithStickyE:
 For the first four models (heterogeneous agents), it defines dictionaries for
 the Market instance as well as the consumers themselves.  All parameters are quarterly.
 '''
-
+from __future__ import division
+from builtins import range
 import numpy as np
 from copy import copy
 from HARK.utilities import approxUniform
+import os
 
 # Choose file where the Stata executable can be found.  This should point at the
 # exe file itself, but the string does not need to include '.exe'.  Two examples
@@ -35,10 +37,11 @@ from HARK.utilities import approxUniform
 stata_exe = "C:\Program Files (x86)\Stata15\StataSE-64"
 
 # Choose directory paths relative to the StickyE files
-calibration_dir = "./Calibration/" # Relative directory for primitive parameter files
-tables_dir = "./Tables/"           # Relative directory for saving tex tables
-results_dir = "./Results/"         # Relative directory for saving output files
-figures_dir = "./Figures/"         # Relative directory for saving figures
+my_file_path = os.path.dirname(os.path.abspath(__file__))
+calibration_dir = my_file_path + "/Calibration/" # Absolute directory for primitive parameter files
+tables_dir = my_file_path + "/Tables/"           # Absolute directory for saving tex tables
+results_dir = my_file_path + "/Results/"         # Absolute directory for saving output files
+figures_dir = my_file_path + "/Figures/"         # Absolute directory for saving figures
 
 def importParam(param_name):
     return float(np.max(np.genfromtxt(calibration_dir + param_name + '.txt')))
@@ -126,7 +129,7 @@ init_SOE_consumer = { 'CRRA': CRRA,
                       'DiscFac': DiscFacMeanSOE,
                       'LivPrb': [LivPrb],
                       'PermGroFac': [1.0],
-                      'AgentCount': AgentCount/TypeCount, # Spread agents evenly among types
+                      'AgentCount': AgentCount // TypeCount, # Spread agents evenly among types
                       'aXtraMin': 0.00001,
                       'aXtraMax': 40.0,
                       'aXtraNestFac': 3,
@@ -180,7 +183,7 @@ init_SOE_mrkv_market['MrkvArray'] = PolyMrkvArray
 init_SOE_mrkv_market['PermShkAggStd'] = StateCount*[init_SOE_market['PermShkAggStd']]
 init_SOE_mrkv_market['TranShkAggStd'] = StateCount*[init_SOE_market['TranShkAggStd']]
 init_SOE_mrkv_market['PermGroFacAgg'] = PermGroFacSet
-init_SOE_mrkv_market['MrkvNow_init'] = StateCount/2
+init_SOE_mrkv_market['MrkvNow_init'] = StateCount // 2
 init_SOE_mrkv_market['loops_max'] = 1
 
 ###############################################################################
@@ -259,5 +262,5 @@ init_RA_consumer =  { 'CRRA': CRRA,
 # Define parameters for the Markov representative agent model
 init_RA_mrkv_consumer = copy(init_RA_consumer)
 init_RA_mrkv_consumer['MrkvArray'] = PolyMrkvArray
-init_RA_mrkv_consumer['MrkvNow'] = [StateCount/2]
+init_RA_mrkv_consumer['MrkvNow'] = [StateCount // 2]
 init_RA_mrkv_consumer['PermGroFac'] = [PermGroFacSet]

@@ -4,7 +4,10 @@ in which shocks are not necessarily fully transitory or fully permanent.  Extend
 ConsIndShockModel by explicitly tracking persistent income as a state variable,
 and allows (log) persistent income to follow an AR1 process rather than random walk.
 '''
-
+from __future__ import division, print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import range
 from copy import deepcopy
 import numpy as np
 from HARK import HARKobject
@@ -14,7 +17,7 @@ from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutility
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
                            getPercentiles
 from HARK.simulation import drawLognormal, drawDiscrete, drawUniform
-from ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
+from .ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
 
 utility       = CRRAutility
 utilityP      = CRRAutilityP
@@ -1272,8 +1275,8 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 
 ###############################################################################
 
-if __name__ == '__main__':
-    import ConsumerParameters as Params
+def main():
+    from . import ConsumerParameters as Params
     from HARK.utilities import plotFuncs
     from time import clock
     import matplotlib.pyplot as plt
@@ -1406,3 +1409,7 @@ if __name__ == '__main__':
         plt.xlabel('Simulated time period')
         plt.ylabel('Average market resources mLvl')
         plt.show()
+
+if __name__ == '__main__':
+    main()
+

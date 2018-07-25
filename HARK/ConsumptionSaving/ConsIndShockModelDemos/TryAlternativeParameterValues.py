@@ -4,6 +4,9 @@ Created on Thu Nov  9 09:40:49 2017
 
 @author: ccarroll@llorracc.org
 """
+from __future__ import division, print_function
+from builtins import str
+from builtins import range
 import pylab # the plotting tools
 
 xPoints=100  # number of points at which to sample a function when plotting it using pylab

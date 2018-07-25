@@ -9,16 +9,21 @@ statistics and regression results are both output to screen and saved in a log
 file in the ./Results directory.  TeX code for tables in the paper are saved in
 the ./Tables directory.  See StickyEparams for calibrated model parameters.
 '''
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
+from builtins import str
+from builtins import range
 import numpy as np
 from time import clock
 from copy import deepcopy
-from StickyEmodel import StickyEconsumerType, StickyErepAgent, StickyCobbDouglasEconomy
+from .StickyEmodel import StickyEconsumerType, StickyErepAgent, StickyCobbDouglasEconomy
 from HARK.ConsumptionSaving.ConsAggShockModel import SmallOpenEconomy
 from HARK.utilities import plotFuncs
 import matplotlib.pyplot as plt
-import StickyEparams as Params
-from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable,\
+from . import StickyEparams as Params
+from .StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable,\
                   runStickyEregressionsInStata, makeParameterTable, makeEquilibriumTable,\
                   makeMicroRegressionTable, extractSampleMicroData, makeuCostVsPiFig
 
@@ -38,7 +43,7 @@ run_ucost_vs_pi = True  # Whether to run an exercise that finds the cost of stic
 ignore_periods = Params.ignore_periods # Number of simulated periods to ignore as a "burn-in" phase
 interval_size = Params.interval_size   # Number of periods in each non-overlapping subsample
 total_periods = Params.periods_to_sim  # Total number of periods in simulation
-interval_count = (total_periods-ignore_periods)/interval_size # Number of intervals in the macro regressions
+interval_count = (total_periods-ignore_periods) // interval_size # Number of intervals in the macro regressions
 periods_to_sim_micro = Params.periods_to_sim_micro # To save memory, micro regressions are run on a smaller sample
 AgentCount_micro = Params.AgentCount_micro # To save memory, micro regressions are run on a smaller sample
 my_counts = [interval_size,interval_count]
@@ -53,7 +58,7 @@ else:
 
 
 # Run models and save output if this module is called from main
-if __name__ == '__main__':
+def main():
     ###############################################################################
     ################# SMALL OPEN ECONOMY ##########################################
     ###############################################################################
@@ -253,3 +258,7 @@ if __name__ == '__main__':
             makeResultsTable('Aggregate Consumption Dynamics in RA Model',[frictionless_me_panel,sticky_panel,sticky_me_panel],my_counts,'RepAgentSimReg','tRAsim')
             t_end = clock()
             print('Running time series regressions for the representative agent economy took ' + mystr(t_end-t_start) + ' seconds.')
+
+if __name__ == '__main__':
+    main()
+
