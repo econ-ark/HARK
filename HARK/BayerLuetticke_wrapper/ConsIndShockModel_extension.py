@@ -5,16 +5,12 @@ state distribution
 '''
 import sys 
 import os
-sys.path.insert(0, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving/'))
-
 from copy import copy, deepcopy
 import numpy as np
 import scipy as sc
 from scipy import sparse as sp
-from ConsIndShockModel import IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 from HARK.utilities import makeGridExpMult
 
 

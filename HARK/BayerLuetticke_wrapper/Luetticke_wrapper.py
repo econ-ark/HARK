@@ -4,12 +4,9 @@ Seungcheol Lee.
 '''
 import sys 
 import os
-sys.path.insert(0, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('./BayerLuetticke_code/'))
 from HARK.core import AgentType, Market
-from simulation import drawDiscrete
+from HARK.simulation import drawDiscrete
 from SteadyStateOneAssetIOUs import SteadyStateOneAssetIOU
 from FluctuationsOneAssetIOUs import FluctuationsOneAssetIOUs, SGU_solver
 from copy import copy, deepcopy
