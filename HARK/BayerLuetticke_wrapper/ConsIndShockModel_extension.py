@@ -5,6 +5,7 @@ state distribution
 '''
 import sys 
 import os
+sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving/'))
@@ -12,8 +13,9 @@ sys.path.insert(0, os.path.abspath('../ConsumptionSaving/'))
 from copy import copy, deepcopy
 import numpy as np
 import scipy as sc
+from scipy import sparse as sp
 from ConsIndShockModel import IndShockConsumerType
-from HARKutilities import makeGridExpMult
+from HARK.utilities import makeGridExpMult
 
 
 class IndShockConsumerType_extend(IndShockConsumerType):
@@ -163,7 +165,7 @@ class IndShockConsumerType_extend(IndShockConsumerType):
         
 if __name__ == '__main__':
     import ConsumerParameters as Params
-    from HARKutilities import plotFuncsDer, plotFuncs
+    from HARK.utilities import plotFuncsDer, plotFuncs
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
     
