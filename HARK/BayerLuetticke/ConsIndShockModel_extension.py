@@ -3,6 +3,7 @@ Extends the IndShockConsumerType agent to store a distribution of agents and
 calculates a transition matrix for this distribution, along with the steady
 state distribution
 '''
+from __future__ import print_function
 import sys 
 import os
 sys.path.insert(0, os.path.abspath('../ConsumptionSaving/'))

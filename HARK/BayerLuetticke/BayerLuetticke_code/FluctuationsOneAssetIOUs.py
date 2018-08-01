@@ -2,6 +2,7 @@
 '''
 State Reduction, SGU_solver, Plot
 '''
+from __future__ import print_function
 import sys 
 sys.path.insert(0,'../')
 
@@ -142,7 +143,7 @@ def SGU_solver(Xss,Yss,Gamma_state,Gamma_control,InvGamma,Copula,par,mpar,grid,t
     start_time = time.clock() 
     result_F = F(State,State_m,Contr,Contr_m)
     end_time   = time.clock()
-    print 'Elapsed time is ', (end_time-start_time), ' seconds.'
+    print('Elapsed time is ', (end_time-start_time), ' seconds.')
     Fb=result_F['Difference']
         
     pool=cpu_count()/2-1
@@ -152,9 +153,9 @@ def SGU_solver(Xss,Yss,Gamma_state,Gamma_control,InvGamma,Copula,par,mpar,grid,t
     F3=np.zeros((mpar['numstates'] + mpar['numcontrols'], mpar['numstates']))
     F4=np.asmatrix(np.vstack((np.zeros((mpar['numstates'], mpar['numcontrols'])), np.eye(mpar['numcontrols'],mpar['numcontrols']) )))
         
-    print 'Use Schmitt Grohe Uribe Algorithm'
-    print ' A *E[xprime uprime] =B*[x u]'
-    print ' A = (dF/dxprimek dF/duprime), B =-(dF/dx dF/du)'
+    print('Use Schmitt Grohe Uribe Algorithm')
+    print(' A *E[xprime uprime] =B*[x u]')
+    print(' A = (dF/dxprimek dF/duprime), B =-(dF/dx dF/du)')
         
     numscale=1
     pnum=pool
@@ -165,8 +166,8 @@ def SGU_solver(Xss,Yss,Gamma_state,Gamma_control,InvGamma,Copula,par,mpar,grid,t
     par['scaleval2'] = 1e-4
         
     start_time = time.clock()
-    print 'Computing Jacobian F1=DF/DXprime F3 =DF/DX'
-    print 'Total number of parallel blocks: ', str(blocks), '.'
+    print('Computing Jacobian F1=DF/DXprime F3 =DF/DX')
+    print('Total number of parallel blocks: ', str(blocks), '.')
         
     FF1=[]
     FF3=[]
@@ -205,7 +206,7 @@ def SGU_solver(Xss,Yss,Gamma_state,Gamma_control,InvGamma,Copula,par,mpar,grid,t
             DF1[:,Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
         FF1.append(DF1.copy())
         FF3.append(DF3.copy())
-        print 'Block number: ', str(bl),' done.'
+        print('Block number: ', str(bl),' done.')
 
     for i in range(0,int(ceil(mpar['numstates'] / float(packagesize)) )):
         range_= range(i*packagesize, min(packagesize*(i+1),mpar['numstates']))
@@ -213,13 +214,13 @@ def SGU_solver(Xss,Yss,Gamma_state,Gamma_control,InvGamma,Copula,par,mpar,grid,t
         F3[:,range_]=FF3[i]
 
     end_time   = time.clock()
-    print 'Elapsed time is ', (end_time-start_time), ' seconds.'
+    print('Elapsed time is ', (end_time-start_time), ' seconds.')
 
     # jacobian wrt Y'
     packagesize=int(ceil(mpar['numcontrols'] / (3.0*pnum)))
     blocks=int(ceil(mpar['numcontrols'] / float(packagesize)))
-    print 'Computing Jacobian F2 - DF/DYprime'
-    print 'Total number of parallel blocks: ', str(blocks),'.'
+    print('Computing Jacobian F2 - DF/DYprime')
+    print('Total number of parallel blocks: ', str(blocks),'.')
 
     FF=[]
         
@@ -237,7 +238,7 @@ def SGU_solver(Xss,Yss,Gamma_state,Gamma_control,InvGamma,Copula,par,mpar,grid,t
             Fx=F(ss,ss,Y,cc)
             DF2[:,Yct - bl*packagesize]=(Fx['Difference'] - Fb) / h
         FF.append(DF2.copy())
-        print 'Block number: ',str(bl),' done.'
+        print('Block number: ',str(bl),' done.')
 
         
     for i in range(0,int(ceil(mpar['numcontrols'] / float(packagesize) ))):
@@ -245,7 +246,7 @@ def SGU_solver(Xss,Yss,Gamma_state,Gamma_control,InvGamma,Copula,par,mpar,grid,t
         F2[:,range_]=FF[i]
         
     end_time = time.clock()
-    print 'Elapsed time is ', (end_time-start_time), ' seconds.'
+    print('Elapsed time is ', (end_time-start_time), ' seconds.')
         
         
     FF=[]
@@ -273,19 +274,19 @@ def SGU_solver(Xss,Yss,Gamma_state,Gamma_control,InvGamma,Copula,par,mpar,grid,t
         
     if nk > mpar['numstates']:
        if mpar['overrideEigen']:
-          print 'Warning: The Equilibrium is Locally Indeterminate, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']])
+          print('Warning: The Equilibrium is Locally Indeterminate, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
           slt=relev > ll[-1 - mpar['numstates']]
           nk=sum(slt)
        else:
-          print 'No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']])
+          print('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
         
     elif nk < mpar['numstates']:
        if mpar.overrideEigen:
-          print 'Warning: No Local Equilibrium Exists, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']])
+          print('Warning: No Local Equilibrium Exists, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
           slt=relev > ll[-1 - mpar['numstates']]
           nk=sum(slt)
        else:
-          print 'No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']])
+          print('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
 
     s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort='ouc', output='complex')
         
@@ -296,7 +297,7 @@ def SGU_solver(Xss,Yss,Gamma_state,Gamma_control,InvGamma,Copula,par,mpar,grid,t
     t11=t_ord[0:nk,0:nk]
     
     if matrix_rank(z11) < nk:
-       print 'Warning: invertibility condition violated'
+       print('Warning: invertibility condition violated')
               
 #    z11i=linalg.solve(z11,np.eye(nk)) # A\B, Ax=B
 #    gx_= np.dot(z21,z11i)
@@ -722,7 +723,7 @@ def EGM_policyupdate(EVm,PIminus,RBminus,inc,meshes,grid,par,mpar):
     # Interpolate grid['m'] and c_n_aux defined on m_n_aux over grid['m']
     # Check monotonicity of m_n_aux
     if np.sum(np.abs(np.diff(np.sign(np.diff(m_n_aux.copy(),axis=0)),axis=0)),axis=1).max() != 0:
-       print ' Warning: non monotone future liquid asset choice encountered '
+       print(' Warning: non monotone future liquid asset choice encountered ')
        
     c_star = np.zeros((mpar['nm'],mpar['nh']))
     m_star = np.zeros((mpar['nm'],mpar['nh']))
