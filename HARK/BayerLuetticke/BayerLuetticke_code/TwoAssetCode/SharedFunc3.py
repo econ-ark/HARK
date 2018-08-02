@@ -311,11 +311,11 @@ def Fastroot(xgrid, fx):
         # stripped down version of interp1 that accepts multiple inputs (max 3)
         # that are interpolated over the same grids x & xi
     xgrid = xgrid.flatten(order='F')
-    fx = np.reshape( fx, (np.size(xgrid), np.size(fx)/np.size(xgrid)), order='F' )
+    fx = np.reshape( fx, (np.size(xgrid), np.size(fx)//np.size(xgrid)), order='F' )
 
     dxgrid = np.diff(xgrid)
     dfx = np.diff(fx,axis=0)
-    idx = np.zeros((1, np.size(fx)/np.size(xgrid))).T
+    idx = np.zeros((1, np.size(fx)//np.size(xgrid))).T
 
         # Make use of the fact that the difference equation is monotonically
         # increasing in m
@@ -327,8 +327,8 @@ def Fastroot(xgrid, fx):
     idx[index] = np.asmatrix(np.argmax(np.diff(np.sign(fx[:,index]),axis=0),axis=0)).T
     
         
-    aux_index = np.asmatrix(np.arange(0, np.size(fx)/np.size(xgrid), 1)*np.size(xgrid)).T # aux for linear indexes
-    aux_index2 = np.arange(0, np.size(fx)/np.size(xgrid), 1)*(np.size(xgrid)-1)
+    aux_index = np.asmatrix(np.arange(0, np.size(fx)//np.size(xgrid), 1)*np.size(xgrid)).T # aux for linear indexes
+    aux_index2 = np.arange(0, np.size(fx)//np.size(xgrid), 1)*(np.size(xgrid)-1)
     fx=fx.flatten(order='F')    
     fxx = fx[idx.astype(int)+aux_index].T
     xl = xgrid[idx.astype(int)].T

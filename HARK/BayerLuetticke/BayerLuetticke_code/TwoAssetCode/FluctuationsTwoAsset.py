@@ -1088,7 +1088,7 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     for p1 in procs1:
         p1.join()
     
-    for i in range(0,int(ceil(mpar['numstates'] / float(packagesize)) )):
+    for i in range(0,int(ceil(mpar['numstates'] // float(packagesize)) )):
         range_= range(i*packagesize, min(packagesize*(i+1),mpar['numstates']))
         F1[:,range_]=FF1[order_bl.index(i)].copy()
         F3[:,range_]=FF3[order_bl.index(i)].copy()    
@@ -1097,8 +1097,8 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     print('Elapsed time is ', (end_time-start_time), ' seconds.')
     
     # jacobian wrt Y'
-    packagesize=int(ceil(mpar['numcontrols'] / (3.0*pnum)))
-    blocks=int(ceil(mpar['numcontrols'] / float(packagesize)))
+    packagesize=int(ceil(mpar['numcontrols'] // (3.0*pnum)))
+    blocks=int(ceil(mpar['numcontrols'] // float(packagesize)))
     print('Computing Jacobian F2 - DF/DYprime')
     print('Total number of parallel blocks: ', str(blocks),'.')
         
@@ -1131,7 +1131,7 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     for p2 in procs2:
         p2.join()
 
-    for i in range(0,int(ceil(mpar['numcontrols'] / float(packagesize) ))):
+    for i in range(0,int(ceil(mpar['numcontrols'] // float(packagesize) ))):
         range_=range(i*packagesize, min(packagesize*(i+1),mpar['numcontrols']))
         
         F2[:,range_]=FF[order_bl2.index(i)]
@@ -1225,7 +1225,7 @@ if __name__ == '__main__':
     from time import clock
     import pickle
     
-    EX3SS=pickle.load(open("EX3SS_30.p", "rb"))
+    EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
     
     start_time0 = time.clock()        
     
