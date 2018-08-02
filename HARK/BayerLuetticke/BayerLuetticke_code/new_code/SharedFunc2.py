@@ -2,6 +2,7 @@
 '''
 Shared function for HANK
 '''
+from __future__ import print_function
 
 import numpy as np
 import scipy as sc
@@ -185,7 +186,7 @@ def Tauchen(rho, N, sigma, mue, types):
        types = types
     else:
        types = 'importance'
-       print 'Warning: TAUCHEN:NoOpt','No valid type set. Importance sampling used instead'
+       print('Warning: TAUCHEN:NoOpt','No valid type set. Importance sampling used instead')
        
     if types == 'importance': # Importance sampling
            

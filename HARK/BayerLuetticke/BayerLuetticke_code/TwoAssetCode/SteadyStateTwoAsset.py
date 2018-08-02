@@ -2,6 +2,7 @@
 '''
 Classes to solve the steady state of liquid and illiquid assets model
 '''
+from __future__ import print_function
 
 
 import sys 
@@ -544,8 +545,8 @@ class SteadyStateTwoAsset:
            
         #distPOL=(distC_n, distC_a, distPSI)
         distPOL=np.array((distC_n.copy(), distC_a.copy(), distPSI.copy()))
-        print max(distC_n, distC_a, distPSI)
-        print count
+        print(max(distC_n, distC_a, distPSI))
+        print(count)
         return {'c_n_guess':c_n_new, 
                 'm_n_star':m_n_star,
                 'c_a_guess':c_a_new,
@@ -993,7 +994,7 @@ class SteadyStateTwoAsset:
         
         while iter<maxiter :
             iter += 1
-            print iter
+            print(iter)
             
             if fb*fc>0:
               c = a
@@ -1124,7 +1125,7 @@ class SteadyStateTwoAsset:
         print(distPOL)
         
         end_time = time.clock()
-        print 'Elapsed time is ',  (end_time-start_time), ' seconds.'
+        print('Elapsed time is ',  (end_time-start_time), ' seconds.')
         
         print('Calc Joint Distr')
         start_time = time.clock()
@@ -1133,7 +1134,7 @@ class SteadyStateTwoAsset:
         print(jd_ek_result['distJD'])
         
         end_time = time.clock()
-        print 'Elapsed time is ',  (end_time-start_time), ' seconds.'
+        print('Elapsed time is ',  (end_time-start_time), ' seconds.')
         
         AggregateCapitalDemand = np.sum(grid['k']*np.sum(np.sum(joint_distr.copy(),axis = 0),axis=1))
         excess = grid['K']-AggregateCapitalDemand
@@ -1159,7 +1160,7 @@ if __name__ == '__main__':
     EX3SS = EX3.SolveSteadyState()
     
     end_time0 = time.clock()
-    print 'Elapsed time is ',  (end_time0-start_time0), ' seconds.'
+    print('Elapsed time is ',  (end_time0-start_time0), ' seconds.')
     
     pickle.dump(EX3SS, open("EX3SS_20.p", "wb"))
     

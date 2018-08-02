@@ -2,6 +2,7 @@
 '''
 Classes to solve the steady state of One asset IOUs model
 '''
+from __future__ import print_function
 
 
 import sys 
@@ -93,7 +94,7 @@ class SteadyStateOneAssetIOUsBond:
             
             meshesm, meshesh =  np.meshgrid(grid['m'],grid['h'],indexing='ij')
             meshes = {'m': meshesm, 'h': meshesh}
-            print -inc['labor'][0,0]/(r+par['borrwedge'])
+            print(-inc['labor'][0,0]/(r+par['borrwedge']))
             
             resultFactReturn = self.FactorReturns(meshes, grid, par, self.mpar)
            
@@ -109,9 +110,9 @@ class SteadyStateOneAssetIOUsBond:
             inc = resultPolGuess['inc'].copy()
             count += 1
            
-            print count
+            print(count)
             # Solve policies and Joint distribution
-            print 'Solving household problem by EGM'
+            print('Solving household problem by EGM')
             start_time = time.clock()
            
             resultPolicySS = self.PoliciesSS(c_guess, grid, inc, RBRB, P_H, self.mpar, par)
@@ -120,10 +121,10 @@ class SteadyStateOneAssetIOUsBond:
             distPOL = resultPolicySS['distPOL']
             
             end_time = time.clock()
-            print 'Elapsed time is ',  (end_time-start_time), ' seconds.'
+            print('Elapsed time is ',  (end_time-start_time), ' seconds.')
            
-            print distPOL
-            print 'Calc Joint Distr'
+            print(distPOL)
+            print('Calc Joint Distr')
             joint_distr = self.JDiteration(m_star, P_H, self.mpar, grid)
             
             joint_distr = np.reshape(joint_distr.copy(),(self.mpar['nm'],self.mpar['nh']),order='F')
@@ -136,11 +137,11 @@ class SteadyStateOneAssetIOUsBond:
             else: rmin = (r+rmin)/2.
             
             init = rmax -rmin
-            print 'Starting Iteration for r. Difference remaining:                      '
-            print init
+            print('Starting Iteration for r. Difference remaining:                      ')
+            print(init)
             r= (rmax+rmin)/2.
             par['RB']=1.+r
-            print r,  ExcessA
+            print(r,  ExcessA)
             
          
         ## SS_stats

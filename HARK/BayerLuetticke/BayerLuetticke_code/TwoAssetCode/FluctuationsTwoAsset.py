@@ -3,6 +3,7 @@
 '''
 State Reduction, SGU_solver, Plot
 '''
+from __future__ import print_function
 import sys 
 sys.path.insert(0,'../')
 
@@ -612,7 +613,7 @@ def EGM_policyupdate(EVm,EVk, Qminus, PIminus, RBminus, inc, meshes,grid,par,mpa
     # Interpolate grid['m'] and c_n_aux defined on m_n_aux over grid['m']
     # Check monotonicity of m_n_aux
     if np.sum(np.abs(np.diff(np.sign(np.diff(m_star_n.copy(),axis=0)),axis=0)),axis=1).max() != 0.:
-       print ' Warning: non monotone future liquid asset choice encountered '
+       print(' Warning: non monotone future liquid asset choice encountered ')
        
     c_update = np.zeros((mpar['nm'],mpar['nk']*mpar['nh']))
     m_update = np.zeros((mpar['nm'],mpar['nk']*mpar['nh']))
@@ -640,7 +641,7 @@ def EGM_policyupdate(EVm,EVk, Qminus, PIminus, RBminus, inc, meshes,grid,par,mpa
     
     # Check quasi-monotonicity of E_return_diff
     if np.sum(np.abs(np.diff(np.sign(E_return_diff),axis=0)),axis = 0).max() > 2.:
-       print ' Warning: multiple roots of portfolio choic encountered'
+       print(' Warning: multiple roots of portfolio choic encountered')
        
     # Find an m_a for given ' taht solves the difference equation
     m_a_aux = Fastroot(grid['m'],E_return_diff)
@@ -732,7 +733,7 @@ def EGM_policyupdate(EVm,EVk, Qminus, PIminus, RBminus, inc, meshes,grid,par,mpa
       # Check monotonicity of resources
       
       if np.sum(np.abs(np.diff(np.sign(np.diff(res_list[j])))),axis = 0).max() != 0. :
-         print 'warning(non monotone resource list encountered)'
+         print('warning(non monotone resource list encountered)')
       cons = interp1d(np.squeeze(np.asarray(res_list_1[j].copy())), np.squeeze(np.asarray(cons_list_1[j].copy())),fill_value='extrapolate')
       c_a_star[:,j] = cons(Resource_grid[:,j].copy())
       mon = interp1d(np.squeeze(np.asarray(res_list_1[j].copy())), np.squeeze(np.asarray(mon_list_1[j].copy())),fill_value='extrapolate')
@@ -1032,7 +1033,7 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     start_time = time.clock() 
     result_F = F(State,State_m,Contr.copy(),Contr_m.copy())
     end_time   = time.clock()
-    print 'Elapsed time is ', (end_time-start_time), ' seconds.'
+    print('Elapsed time is ', (end_time-start_time), ' seconds.')
     Fb=result_F['Difference'].copy()
         
     pool=cpu_count()/2
@@ -1042,9 +1043,9 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     F3=np.zeros((mpar['numstates'] + mpar['numcontrols'], mpar['numstates']))
     F4=np.asmatrix(np.vstack((np.zeros((mpar['numstates'], mpar['numcontrols'])), np.eye(mpar['numcontrols'],mpar['numcontrols']) )))
         
-    print 'Use Schmitt Grohe Uribe Algorithm'
-    print ' A *E[xprime uprime] =B*[x u]'
-    print ' A = (dF/dxprimek dF/duprime), B =-(dF/dx dF/du)'
+    print('Use Schmitt Grohe Uribe Algorithm')
+    print(' A *E[xprime uprime] =B*[x u]')
+    print(' A = (dF/dxprimek dF/duprime), B =-(dF/dx dF/du)')
         
     #numscale=1
     pnum=pool
@@ -1055,8 +1056,8 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     par['scaleval2'] = 1e-5
         
     start_time = time.clock()
-    print 'Computing Jacobian F1=DF/DXprime F3 =DF/DX'
-    print 'Total number of parallel blocks: ', str(blocks), '.'
+    print('Computing Jacobian F1=DF/DXprime F3 =DF/DX')
+    print('Total number of parallel blocks: ', str(blocks), '.')
     procs1=[]
     for bl in range(0,blocks):
         range_= range(bl*packagesize, min(packagesize*(bl+1),mpar['numstates']))
@@ -1069,7 +1070,7 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
         procs1.append(p1)
         p1.start()
         
-        print 'Block number: ', str(bl)    
+        print('Block number: ', str(bl))    
         
     FF1 = []    
     FF3 = []
@@ -1081,8 +1082,8 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
         order_bl.append(out_bl.get())
         
     
-    print 'bl order'
-    print order_bl
+    print('bl order')
+    print(order_bl)
     
     for p1 in procs1:
         p1.join()
@@ -1093,13 +1094,13 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
         F3[:,range_]=FF3[order_bl.index(i)].copy()    
     
     end_time   = time.clock()        
-    print 'Elapsed time is ', (end_time-start_time), ' seconds.'
+    print('Elapsed time is ', (end_time-start_time), ' seconds.')
     
     # jacobian wrt Y'
     packagesize=int(ceil(mpar['numcontrols'] / (3.0*pnum)))
     blocks=int(ceil(mpar['numcontrols'] / float(packagesize)))
-    print 'Computing Jacobian F2 - DF/DYprime'
-    print 'Total number of parallel blocks: ', str(blocks),'.'
+    print('Computing Jacobian F2 - DF/DYprime')
+    print('Total number of parallel blocks: ', str(blocks),'.')
         
     start_time = time.clock()
     
@@ -1114,7 +1115,7 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
                                          out_DF2, out_bl2))
         procs2.append(p2)
         p2.start()
-        print 'Block number: ', str(bl)
+        print('Block number: ', str(bl))
         
     FF=[]
     order_bl2 = []
@@ -1123,8 +1124,8 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
         FF.append(out_DF2.get())
         order_bl2.append(out_bl2.get()) 
     
-    print 'bl2 order'
-    print order_bl2
+    print('bl2 order')
+    print(order_bl2)
     
     
     for p2 in procs2:
@@ -1136,7 +1137,7 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
         F2[:,range_]=FF[order_bl2.index(i)]
 
     end_time = time.clock()
-    print 'Elapsed time is ', (end_time-start_time), ' seconds.'
+    print('Elapsed time is ', (end_time-start_time), ' seconds.')
           
     FF=[]
     FF1=[]
@@ -1180,23 +1181,23 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     
     if nk > mpar['numstates']:
        if mpar['overrideEigen']:
-          print 'Warning: The Equilibrium is Locally Indeterminate, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']])
+          print('Warning: The Equilibrium is Locally Indeterminate, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
           slt=relev > ll[-1 - mpar['numstates']]
           nk=sum(slt)
           s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort=sortOverridEigen, output='complex')
           
        else:
-          print 'No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']])
+          print('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
         
     elif nk < mpar['numstates']:
        if mpar['overrideEigen']:
-          print 'Warning: No Local Equilibrium Exists, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']])
+          print('Warning: No Local Equilibrium Exists, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
           slt=relev > ll[-1 - mpar['numstates']]
           nk=sum(slt)
           s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort=sortOverridEigen, output='complex')
           
        else:
-          print 'No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']])
+          print('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
 
 
         
@@ -1207,7 +1208,7 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     t11=t_ord[0:nk,0:nk]
     
     if matrix_rank(z11) < nk:
-       print 'Warning: invertibility condition violated'
+       print('Warning: invertibility condition violated')
               
     z11i  = np.dot(np.linalg.inv(z11), np.eye(nk)) # compute the solution
 
@@ -1249,14 +1250,14 @@ if __name__ == '__main__':
 
     SR=EX3SR.StateReduc()
 
-    print 'SGU_solver'
+    print('SGU_solver')
     SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['indexMUdct'],SR['indexVKdct'],SR['par'],
                          SR['mpar'],SR['grid'],SR['targets'],SR['Copula'],SR['P_H'],SR['aggrshock'])
-    print 'plot_IRF'
+    print('plot_IRF')
     plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
              SR['Gamma_state'],SR['grid'],SR['targets'],SR['Output'])
     
     end_time0 = time.clock()
-    print 'Elapsed time is ',  (end_time0-start_time0), ' seconds.'
+    print('Elapsed time is ',  (end_time0-start_time0), ' seconds.')
     
     
