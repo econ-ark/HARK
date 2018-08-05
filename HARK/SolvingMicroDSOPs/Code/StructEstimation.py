@@ -13,19 +13,50 @@ from __future__ import absolute_import
 
 from builtins import str
 from builtins import range
-from . import EstimationParameters as Params           # Parameters for the consumer type and the estimation
-import HARK.ConsumptionSaving.ConsIndShockModel as Model # The consumption-saving micro model
-from . import SetupSCFdata as Data                     # SCF 2004 data on household wealth
-from HARK.simulation import drawDiscrete         # Method for sampling from a discrete distribution
-from HARK.estimation import minimizeNelderMead, bootstrapSampleFromData # Estimation methods
+
+import os
+import sys 
+import csv
 import numpy as np                              # Numeric Python
 import pylab                                    # Python reproductions of some Matlab functions
-from time import time                           # Timing utility
+from time import time, clock                    # Timing utility
+
+# Import modules from core HARK libraries:
+import HARK.ConsumptionSaving.ConsIndShockModel as Model # The consumption-saving micro model
+from HARK.simulation import drawDiscrete         # Method for sampling from a discrete distribution
+from HARK.estimation import minimizeNelderMead, bootstrapSampleFromData # Estimation methods
+
+# Find pathname to this file:
+my_file_path = os.path.dirname(os.path.abspath(__file__))
+
+# Pathnames to the other files:
+calibration_dir = os.path.join(my_file_path, "../Calibration/") # Relative directory for primitive parameter files
+tables_dir = os.path.join(my_file_path, "../Tables/") # Relative directory for primitive parameter files
+figures_dir = os.path.join(my_file_path, "../Figures/") # Relative directory for primitive parameter files
+code_dir = os.path.join(my_file_path, "../Code/") # Relative directory for primitive parameter files
+
+
+# Import modules from local repository. If local repository is part of HARK, 
+# this will import from HARK. Otherwise manual pathname specification is in 
+# order.
+try: 
+    # Import from core HARK code first:
+    from HARK.SolvingMicroDSOPs.Calibration import EstimationParameters as Params           # Parameters for the consumer type and the estimation
+    from HARK.SolvingMicroDSOPs.Calibration import SetupSCFdata as Data                     # SCF 2004 data on household wealth
+
+except:
+    # Need to rely on the manual insertion of pathnames to all files in do_all.py
+    # NOTE sys.path.insert(0, os.path.abspath(tables_dir)), etc. may need to be 
+    # copied from do_all.py to here
+    import EstimationParameters as Params           # Parameters for the consumer type and the estimation
+    import SetupSCFdata as Data                     # SCF 2004 data on household wealth
+
+
 
 # Set booleans to determine which tasks should be done
-estimate_model = True             # Whether to estimate the model
-compute_standard_errors = False   # Whether to get standard errors via bootstrap
-make_contour_plot = False         # Whether to make a contour map of the objective function
+local_estimate_model = True             # Whether to estimate the model
+local_compute_standard_errors = False   # Whether to get standard errors via bootstrap
+local_make_contour_plot = True         # Whether to make a contour map of the objective function
 
 #=====================================================
 # Define objects and functions used for the estimation
@@ -253,21 +284,84 @@ def calculateStandardErrorsByBootstrap(initial_estimate,N,seed=0,verbose=False):
 # Done defining objects and functions.  Now run them (if desired).
 #=================================================================
 
-def main():
+def main(estimate_model=local_estimate_model, compute_standard_errors=local_compute_standard_errors, make_contour_plot=local_make_contour_plot):
+    """
+    Run the main estimation procedure for SolvingMicroDSOP.
+    
+    Parameters
+    ----------
+    estimate_model : bool
+        Whether to estimate the model using Nelder-Mead. When True, this is a low-time, low-memory operation.
+    
+    compute_standard_errors : bool
+        Whether to compute standard errors on the estiamtion of the model.
+    
+    make_contour_plot : bool
+        Whether to make the contour plot associate with the estiamte. 
+    
+    Returns
+    -------
+    None
+    """
+    
+    
     # Estimate the model using Nelder-Mead
     if estimate_model:
         initial_guess = [Params.DiscFacAdj_start,Params.CRRA_start]
+        print('--------------------------------------------------------------------------------')
         print('Now estimating the model using Nelder-Mead from an initial guess of ' + str(initial_guess) + '...')
+        print('--------------------------------------------------------------------------------')            
+        t_start_estimate = clock()
         model_estimate = minimizeNelderMead(smmObjectiveFxnReduced,initial_guess,verbose=True)
+        t_end_estimate = clock()
+        time_to_estimate = t_end_estimate-t_start_estimate
+        print('Time to execute all:', round(time_to_estimate/60.,2), 'min,', time_to_estimate, 'sec')
         print('Estimated values: DiscFacAdj=' + str(model_estimate[0]) + ', CRRA=' + str(model_estimate[1]))
 
+        # Create the simple estimate table
+        estimate_results_file = os.path.join(tables_dir, 'estimate_results.csv')
+        with open(estimate_results_file, 'wt') as f:
+            writer = csv.writer(f)
+            writer.writerow(['DiscFacAdj', 'CRRA'])
+            writer.writerow([model_estimate[0], model_estimate[1]])
+
+
+    if compute_standard_errors and not estimate_model:
+        print("To run the bootstrap you must first estimate the model by setting estimate_model = True.")
+        
     # Compute standard errors by bootstrap
-    if compute_standard_errors:
+    if compute_standard_errors and estimate_model:
+            
+
+        # Estimate the model:
+        print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+        print("Computing standard errors using",Params.bootstrap_size,"bootstrap replications.")
+        print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+        try:
+            t_bootstrap_guess = time_to_estimate * Params.bootstrap_size
+            print("This will take approximately", round(t_bootstrap_guess/60.,2), "min, ", t_bootstrap_guess, "sec")
+        except:
+            pass
+        t_start_bootstrap = clock()
         std_errors = calculateStandardErrorsByBootstrap(model_estimate,N=Params.bootstrap_size,seed=Params.seed,verbose=True)
+        t_end_bootstrap = clock()
+        time_to_bootstrap = t_end_bootstrap-t_start_bootstrap
+        print('Time to execute all:', round(time_to_bootstrap/60.,2), 'min,', time_to_bootstrap, 'sec')
         print('Standard errors: DiscFacAdj--> ' + str(std_errors[0]) + ', CRRA--> ' + str(std_errors[1]))
+
+        # Create the simple bootstrap table
+        bootstrap_results_file = os.path.join(tables_dir, 'bootstrap_results.csv')
+        with open(bootstrap_results_file, 'wt') as f:
+            writer = csv.writer(f)
+            writer.writerow(['DiscFacAdj', 'DiscFacAdj_standard_error', 'CRRA', 'CRRA_standard_error'])
+            writer.writerow([model_estimate[0], std_errors[0], model_estimate[1], std_errors[1]])
 
     # Make a contour plot of the objective function
     if make_contour_plot:
+        print('````````````````````````````````````````````````````````````````````````````````')
+        print("Creating the contour plot.")
+        print('````````````````````````````````````````````````````````````````````````````````')
+        t_start_contour = clock()
         grid_density = 20   # Number of parameter values in each dimension
         level_count = 100   # Number of contour levels to plot
         DiscFacAdj_list = np.linspace(0.85,1.05,grid_density)
@@ -280,13 +374,18 @@ def main():
                 CRRA = CRRA_list[k]
                 smm_obj_levels[j,k] = smmObjectiveFxn(DiscFacAdj,CRRA)
         smm_contour = pylab.contourf(CRRA_mesh,DiscFacAdj_mesh,smm_obj_levels,level_count)
+        t_end_contour = clock()
+        time_to_contour = t_end_contour-t_start_contour
+        print('Time to execute all:', round(time_to_contour/60.,2), 'min,', time_to_contour, 'sec')
         pylab.colorbar(smm_contour)
         pylab.plot(model_estimate[1],model_estimate[0],'*r',ms=15)
         pylab.xlabel(r'coefficient of relative risk aversion $\rho$',fontsize=14)
         pylab.ylabel(r'discount factor adjustment $\beth$',fontsize=14)
-        pylab.savefig('SMMcontour.pdf')
-        pylab.savefig('SMMcontour.png')
+        pylab.savefig(os.path.join(figures_dir, 'SMMcontour.pdf'))
+        pylab.savefig(os.path.join(figures_dir, 'SMMcontour.png'))
         pylab.show()
+
+
 
 if __name__ == '__main__':
     main()
