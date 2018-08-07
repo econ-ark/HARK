@@ -1,5 +1,7 @@
 '''
-Defines and solves the Tractable Buffer Stock model described in CDC's notes.
+Defines and solves the Tractable Buffer Stock model described in lecture notes 
+for "A Tractable Model of Buffer Stock Saving" (henceforth, TBS) available at
+http://econ.jhu.edu/people/ccarroll/public/lecturenotes/consumption/TractableBufferStock
 The model concerns an agent with constant relative risk aversion utility making
 decisions over consumption and saving.  He is subject to only a very particular
 sort of risk: the possibility that he will become permanently unemployed until
@@ -106,7 +108,9 @@ def findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNex
     Rnrm : float
         Interest factor normalized by compensated permanent income growth factor.
     Beth : float
-        Damned if I know.
+        Composite effective discount factor for reverse shooting solution; defined 
+        in appendix "Numerical Solution/The Consumption Function" in TBS 
+        lecture notes
     cNext : float
         Normalized consumption in the succeeding period.
     mNext : float
@@ -129,7 +133,8 @@ def findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNex
     cNow = PermGroFacCmp*(DiscFac*Rfree)**(-1.0/CRRA)*cNext*(1 + UnempPrb*((cNext/(PFMPC*(mNext-1.0)))**CRRA-1.0))**(-1.0/CRRA)
     mNow = (PermGroFacCmp/Rfree)*(mNext - 1.0) + cNow
     cUNext = PFMPC*(mNow-cNow)*Rnrm
-    natural = Beth*Rnrm*(1.0/uPP(cNow))*((1.0-UnempPrb)*uPP(cNext)*MPCnext + UnempPrb*uPP(cUNext)*PFMPC)
+    # See TBS Appendix "E.1 The Consumption Function" 
+    natural = Beth*Rnrm*(1.0/uPP(cNow))*((1.0-UnempPrb)*uPP(cNext)*MPCnext + UnempPrb*uPP(cUNext)*PFMPC) # Convenience variable
     MPCnow = natural / (natural + 1)
     return mNow, cNow, MPCnow
 
@@ -279,9 +284,10 @@ class TractableConsumerType(AgentType):
             raise Exception("Employed consumer not growth impatient, cannot solve!")
 
         # Find target money and consumption
+        # See TBS Appendix "B.2 A Target Always Exists When Human Wealth Is Infinite"
         Pi = (1+(PatFacGrowth**(-self.CRRA)-1.0)/self.UnempPrb)**(1/self.CRRA)
         self.h = (1.0/(1.0-self.PermGroFac/self.Rfree))
-        zeta = self.Rnrm*self.PFMPC*Pi
+        zeta = self.Rnrm*self.PFMPC*Pi # See TBS Appendix "C The Exact Formula for target m"
         self.mTarg = 1.0+(self.Rfree/(self.PermGroFacCmp+zeta*self.PermGroFacCmp-self.Rfree))
         self.cTarg = (1.0-self.Rnrm**(-1.0))*self.mTarg+self.Rnrm**(-1.0)
         mTargU = (self.mTarg - self.cTarg)*self.Rnrm
