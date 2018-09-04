@@ -542,6 +542,7 @@ def main():
                             'tax_rate':0.0,       # Tax rate on labor income (irrelevant)
                             'vFuncBool':False,    # Whether to calculate the value function
                             'CubicBool':True,     # Whether to use cubic splines (False --> linear splines)
+                            'NanBool': True,      # Whether to excludes NA's when calculating the lower envelope
                             'MrkvArray':[MrkvArray] # State transition probabilities
                             }
     MarkovType = MarkovConsumerType(**init_consumer_objects)   # Make a basic consumer type

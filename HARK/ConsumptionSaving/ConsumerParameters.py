@@ -68,6 +68,7 @@ T_retire = 0                        # Period of retirement (0 --> no retirement)
 BoroCnstArt = 0.0                  # Artificial borrowing constraint; imposed minimum level of end-of period assets
 CubicBool = False                  # Use cubic spline interpolation when True, linear interpolation when False
 vFuncBool = False                  # Whether to calculate the value function during solution
+NanBool = True                     # Whether to exclude NA's when calculating lower envelope   
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
 init_idiosyncratic_shocks = { 'CRRA': CRRA,
@@ -93,6 +94,7 @@ init_idiosyncratic_shocks = { 'CRRA': CRRA,
                               'tax_rate':0.0,
                               'vFuncBool':vFuncBool,
                               'CubicBool':CubicBool,
+                              'NanBool':NanBool,
                               'T_retire':T_retire,
                               'aNrmInitMean' : aNrmInitMean,
                               'aNrmInitStd' : aNrmInitStd,
@@ -185,6 +187,7 @@ init_agg_shocks = copy(init_idiosyncratic_shocks)
 del init_agg_shocks['Rfree']        # Interest factor is endogenous in agg shocks model
 del init_agg_shocks['CubicBool']    # Not supported yet for agg shocks model
 del init_agg_shocks['vFuncBool']    # Not supported yet for agg shocks model
+del init_agg_shocks['NanBool']      # Not supported yet for agg shocks model
 init_agg_shocks['PermGroFac'] = [1.0]
 init_agg_shocks['MgridBase'] = MgridBase
 init_agg_shocks['aXtraCount'] = 24

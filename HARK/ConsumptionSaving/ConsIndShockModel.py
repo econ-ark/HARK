@@ -531,7 +531,8 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     to income.  Has methods to set up but not solve the one period problem.
     '''
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                      PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+                      PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,
+                      NanBool):
         '''
         Constructor for a new solver-setup for problems with income subject to
         permanent and transitory shocks.
@@ -570,17 +571,22 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         CubicBool: boolean
             An indicator for whether the solver should use cubic or linear inter-
             polation.
+        NanBool: boolean
+            An indicator for whether the solver should exclude NA's when forming
+            the lower envelope.
 
         Returns
         -------
         None
         '''
         self.assignParameters(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,
+                                NanBool)
         self.defUtilityFuncs()
 
     def assignParameters(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,
+                                NanBool):
         '''
         Assigns period parameters as attributes of self for use by other methods
 
@@ -618,6 +624,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         CubicBool: boolean
             An indicator for whether the solver should use cubic or linear inter-
             polation.
+        NanBool: boolean
+            An indicator for whether the solver should exclude NA's when forming
+            the lower envelope.
 
         Returns
         -------
@@ -630,6 +639,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         self.aXtraGrid      = aXtraGrid
         self.vFuncBool      = vFuncBool
         self.CubicBool      = CubicBool
+        self.NanBool        = NanBool
 
 
     def defUtilityFuncs(self):
@@ -893,7 +903,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cFuncNowUnc = interpolator(mNrm,cNrm)
 
         # Combine the constrained and unconstrained functions into the true consumption function
-        cFuncNow = LowerEnvelope(cFuncNowUnc,self.cFuncNowCnst)
+        cFuncNow = LowerEnvelope(cFuncNowUnc, self.cFuncNowCnst,
+                                 NanBool = self.NanBool)
 
         # Make the marginal value function and the marginal marginal value function
         vPfuncNow = MargValueFunc(cFuncNow,self.CRRA)
@@ -1175,7 +1186,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
 
 
 def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
-                                BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+                                BoroCnstArt,aXtraGrid,vFuncBool,CubicBool, NanBool):
     '''
     Solves a single period consumption-saving problem with CRRA utility and risky
     income (subject to permanent and transitory shocks).  Can generate a value
@@ -1214,6 +1225,10 @@ def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
         included in the reported solution.
     CubicBool: boolean
         Indicator for whether the solver should use cubic or linear interpolation.
+    NanBool: boolean
+        An indicator for whether the solver should exclude NA's when forming
+        the lower envelope.
+    
 
     Returns
     -------
@@ -1229,10 +1244,10 @@ def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
     if (not CubicBool) and (not vFuncBool):
         solver = ConsIndShockSolverBasic(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                                                   Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,
-                                                  CubicBool)
+                                                  CubicBool, NanBool)
     else: # Use the "advanced" solver if either is requested
         solver = ConsIndShockSolver(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                             PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+                                             PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool, NanBool)
     solver.prepareToSolve()       # Do some preparatory work
     solution_now = solver.solve() # Solve the period
     return solution_now
@@ -1251,7 +1266,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
     it terminates immediately if Rboro < Rsave, as this has a different solution.
     '''
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
-                      Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+                      Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool, NanBool):
         '''
         Constructor for a new solver for problems with risky income and a different
         interest rate on borrowing and saving.
@@ -1294,6 +1309,9 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         CubicBool: boolean
             An indicator for whether the solver should use cubic or linear inter-
             polation.
+        NanBool: boolean
+            An indicator for whether the solver should exclude NA's when forming
+            the lower envelope.
 
         Returns
         -------
@@ -1305,7 +1323,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # Initialize the solver.  Most of the steps are exactly the same as in
         # the non-kinked-R basic case, so start with that.
         ConsIndShockSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,
-                                    PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+                                    PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,NanBool)
 
         # Assign the interest rates as class attributes, to use them later.
         self.Rboro   = Rboro
@@ -1375,7 +1393,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
 
 
 def solveConsKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
-                                   PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+                                   PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,NanBool):
     '''
     Solves a single period consumption-saving problem with CRRA utility and risky
     income (subject to permanent and transitory shocks), and different interest
@@ -1420,6 +1438,9 @@ def solveConsKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
         included in the reported solution.
     CubicBool: boolean
         Indicator for whether the solver should use cubic or linear interpolation.
+    NanBool: boolean
+        An indicator for whether the solver should exclude NA's when forming
+        the lower envelope.
 
     Returns
     -------
@@ -1433,7 +1454,7 @@ def solveConsKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
 
     solver = ConsKinkedRsolver(solution_next,IncomeDstn,LivPrb,
                                             DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
-                                            aXtraGrid,vFuncBool,CubicBool)
+                                            aXtraGrid,vFuncBool,CubicBool,NanBool)
     solver.prepareToSolve()
     solution = solver.solve()
 
@@ -1739,7 +1760,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     for risk aversion, discount factor, the interest rate, the grid of end-of-
     period assets, and an artificial borrowing constraint.
     '''
-    time_inv_ = PerfForesightConsumerType.time_inv_ + ['BoroCnstArt','vFuncBool','CubicBool']
+    time_inv_ = PerfForesightConsumerType.time_inv_ + ['BoroCnstArt','vFuncBool','CubicBool', 'NanBool']
     shock_vars_ = ['PermShkNow','TranShkNow']
 
     def __init__(self,cycles=1,time_flow=True,**kwds):

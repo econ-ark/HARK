@@ -220,7 +220,8 @@ class ConsPrefShockSolver(ConsIndShockSolver):
     each period.
     '''
     def __init__(self,solution_next,IncomeDstn,PrefShkDstn,LivPrb,DiscFac,CRRA,
-                      Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+                      Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,
+                      NanBool):
         '''
         Constructor for a new solver for problems with risky income, a different
         interest rate on borrowing and saving, and multiplicative shocks to utility.
@@ -262,13 +263,16 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         CubicBool: boolean
             An indicator for whether the solver should use cubic or linear inter-
             polation.
+        NanBool: boolean
+            An indicator for whether the solver should exclude NA's when forming
+            the lower envelope.
 
         Returns
         -------
         None
         '''
         ConsIndShockSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
-                      Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+                      Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,NanBool)
         self.PrefShkPrbs = PrefShkDstn[0]
         self.PrefShkVals = PrefShkDstn[1]
 
@@ -332,7 +336,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
             MPCmin_j         = self.MPCminNow*self.PrefShkVals[j]**(1.0/self.CRRA)
             cFunc_this_shock = LowerEnvelope(LinearInterp(mNrm[j,:],cNrm[j,:],
                                              intercept_limit=self.hNrmNow*MPCmin_j,
-                                             slope_limit=MPCmin_j),self.cFuncNowCnst)
+                                             slope_limit=MPCmin_j),self.cFuncNowCnst,NanBool=self.NanBool)
             cFunc_list.append(cFunc_this_shock)
 
         # Combine the list of consumption functions into a single interpolation
@@ -394,7 +398,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
 
 def solveConsPrefShock(solution_next,IncomeDstn,PrefShkDstn,
                        LivPrb,DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,
-                       aXtraGrid,vFuncBool,CubicBool):
+                       aXtraGrid,vFuncBool,CubicBool,NanBool):
     '''
     Solves a single period of a consumption-saving model with preference shocks
     to marginal utility.  Problem is solved using the method of endogenous gridpoints.
@@ -436,6 +440,9 @@ def solveConsPrefShock(solution_next,IncomeDstn,PrefShkDstn,
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
         polation.
+    NanBool: boolean
+        An indicator for whether the solver should exclude NA's when forming
+        the lower envelope.
 
     Returns
     -------
@@ -451,7 +458,7 @@ def solveConsPrefShock(solution_next,IncomeDstn,PrefShkDstn,
     '''
     solver = ConsPrefShockSolver(solution_next,IncomeDstn,PrefShkDstn,LivPrb,
                              DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraGrid,
-                             vFuncBool,CubicBool)
+                             vFuncBool,CubicBool,NanBool)
     solver.prepareToSolve()
     solution = solver.solve()
     return solution
@@ -465,7 +472,8 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver,ConsKinkedRsolver):
     each period, and a different interest rate on saving vs borrowing.
     '''
     def __init__(self,solution_next,IncomeDstn,PrefShkDstn,LivPrb,DiscFac,CRRA,
-                      Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+                      Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,
+                      NanBool):
         '''
         Constructor for a new solver for problems with risky income, a different
         interest rate on borrowing and saving, and multiplicative shocks to utility.
@@ -511,20 +519,24 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver,ConsKinkedRsolver):
         CubicBool: boolean
             An indicator for whether the solver should use cubic or linear inter-
             polation.
+        NanBool: boolean
+            An indicator for whether the solver should exclude NA's when forming
+            the lower envelope.
 
         Returns
         -------
         None
         '''
         ConsKinkedRsolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
-                      Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+                      Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,
+                      NanBool)
         self.PrefShkPrbs = PrefShkDstn[0]
         self.PrefShkVals = PrefShkDstn[1]
 
 
 def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,
                        LivPrb,DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
-                       aXtraGrid,vFuncBool,CubicBool):
+                       aXtraGrid,vFuncBool,CubicBool,NanBool):
     '''
     Solves a single period of a consumption-saving model with preference shocks
     to marginal utility and a different interest rate on saving vs borrowing.
@@ -571,6 +583,9 @@ def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
         polation.
+    NanBool: boolean
+        An indicator for whether the solver should exclude NA's when forming
+        the lower envelope.
 
     Returns
     -------
@@ -586,7 +601,7 @@ def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,
     '''
     solver = ConsKinkyPrefSolver(solution_next,IncomeDstn,PrefShkDstn,LivPrb,
                              DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
-                             aXtraGrid,vFuncBool,CubicBool)
+                             aXtraGrid,vFuncBool,CubicBool,NanBool)
     solver.prepareToSolve()
     solution = solver.solve()
     return solution

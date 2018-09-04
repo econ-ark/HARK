@@ -1642,7 +1642,7 @@ class LowerEnvelope(HARKinterpolator1D):
     '''
     distance_criteria = ['functions']
 
-    def __init__(self,*functions):
+    def __init__(self, *functions, NanBool = True):
         '''
         Constructor to make a new lower envelope iterpolation.
 
@@ -1650,11 +1650,14 @@ class LowerEnvelope(HARKinterpolator1D):
         ----------
         *functions : function
             Any number of real functions; often instances of HARKinterpolator1D
-
+        NanBool : boolean
+            An indicator for whether the solver should exclude NA's when forming
+            the lower envelope.
         Returns
         -------
         new instance of LowerEnvelope
         '''
+        self.NanBool = NanBool
         self.functions = []
         for function in functions:
             self.functions.append(function)
@@ -1665,14 +1668,25 @@ class LowerEnvelope(HARKinterpolator1D):
         Returns the level of the function at each value in x as the minimum among
         all of the functions.  Only called internally by HARKinterpolator1D.__call__.
         '''
-        if _isscalar(x):
-            y = np.nanmin([f(x) for f in self.functions])
+        
+        if self.NanBool == True:
+            if _isscalar(x):
+                y = np.nanmin([f(x) for f in self.functions])
+            else:
+                m = len(x)
+                fx = np.zeros((m,self.funcCount))
+                for j in range(self.funcCount):
+                    fx[:,j] = self.functions[j](x)
+                y = np.nanmin(fx,axis=1)
         else:
-            m = len(x)
-            fx = np.zeros((m,self.funcCount))
-            for j in range(self.funcCount):
-                fx[:,j] = self.functions[j](x)
-            y = np.nanmin(fx,axis=1)
+            if _isscalar(x):
+                y = np.min([f(x) for f in self.functions])
+            else:
+                m = len(x)
+                fx = np.zeros((m,self.funcCount))
+                for j in range(self.funcCount):
+                    fx[:,j] = self.functions[j](x)
+                y = np.min(fx,axis=1)
         return y
 
     def _der(self,x):
@@ -1701,7 +1715,6 @@ class LowerEnvelope(HARKinterpolator1D):
             dydx[c] = self.functions[j].derivative(x[c])
         return y,dydx
 
-
 class UpperEnvelope(HARKinterpolator1D):
     '''
     The upper envelope of a finite set of 1D functions, each of which can be of
@@ -1710,7 +1723,7 @@ class UpperEnvelope(HARKinterpolator1D):
     '''
     distance_criteria = ['functions']
 
-    def __init__(self,*functions):
+    def __init__(self,*functions, NanBool=True):
         '''
         Constructor to make a new upper envelope iterpolation.
 
@@ -1718,11 +1731,15 @@ class UpperEnvelope(HARKinterpolator1D):
         ----------
         *functions : function
             Any number of real functions; often instances of HARKinterpolator1D
+        NanBool : boolean
+            An indicator for whether the solver should exclude NA's when forming
+            the lower envelope.
 
         Returns
         -------
         new instance of UpperEnvelope
         '''
+        self.NanBool = NanBool
         self.functions = []
         for function in functions:
             self.functions.append(function)
@@ -1733,14 +1750,24 @@ class UpperEnvelope(HARKinterpolator1D):
         Returns the level of the function at each value in x as the maximum among
         all of the functions.  Only called internally by HARKinterpolator1D.__call__.
         '''
-        if _isscalar(x):
-            y = np.nanmax([f(x) for f in self.functions])
+        if self.NanBool == True:
+            if _isscalar(x):
+                y = np.nanmax([f(x) for f in self.functions])
+            else:
+                m = len(x)
+                fx = np.zeros((m,self.funcCount))
+                for j in range(self.funcCount):
+                    fx[:,j] = self.functions[j](x)
+                y = np.nanmax(fx,axis=1)
         else:
-            m = len(x)
-            fx = np.zeros((m,self.funcCount))
-            for j in range(self.funcCount):
-                fx[:,j] = self.functions[j](x)
-            y = np.nanmax(fx,axis=1)
+            if _isscalar(x):
+                y = np.max([f(x) for f in self.functions])
+            else:
+                m = len(x)
+                fx = np.zeros((m,self.funcCount))
+                for j in range(self.funcCount):
+                    fx[:,j] = self.functions[j](x)
+                y = np.max(fx,axis=1)
         return y
 
     def _der(self,x):
@@ -1778,7 +1805,7 @@ class LowerEnvelope2D(HARKinterpolator2D):
     '''
     distance_criteria = ['functions']
 
-    def __init__(self,*functions):
+    def __init__(self,*functions, NanBool = True):
         '''
         Constructor to make a new lower envelope iterpolation.
 
@@ -1786,11 +1813,15 @@ class LowerEnvelope2D(HARKinterpolator2D):
         ----------
         *functions : function
             Any number of real functions; often instances of HARKinterpolator2D
+         NanBool : boolean
+            An indicator for whether the solver should exclude NA's when forming
+            the lower envelope.
 
         Returns
         -------
         new instance of LowerEnvelope2D
         '''
+        self.NanBool = NanBool
         self.functions = []
         for function in functions:
             self.functions.append(function)
@@ -1802,14 +1833,25 @@ class LowerEnvelope2D(HARKinterpolator2D):
         among all of the functions.  Only called internally by
         HARKinterpolator2D.__call__.
         '''
-        if _isscalar(x):
-            f = np.nanmin([f(x,y) for f in self.functions])
+        
+        if self.NanBool == True:
+            if _isscalar(x):
+                f = np.nanmin([f(x,y) for f in self.functions])
+            else:
+                m = len(x)
+                temp = np.zeros((m,self.funcCount))
+                for j in range(self.funcCount):
+                    temp[:,j] = self.functions[j](x,y)
+                f = np.nanmin(temp,axis=1)
         else:
-            m = len(x)
-            temp = np.zeros((m,self.funcCount))
-            for j in range(self.funcCount):
-                temp[:,j] = self.functions[j](x,y)
-            f = np.nanmin(temp,axis=1)
+            if _isscalar(x):
+                f = np.min([f(x,y) for f in self.functions])
+            else:
+                m = len(x)
+                temp = np.zeros((m,self.funcCount))
+                for j in range(self.funcCount):
+                    temp[:,j] = self.functions[j](x,y)
+                f = np.min(temp,axis=1)
         return f
 
     def _derX(self,x,y):
@@ -1856,7 +1898,7 @@ class LowerEnvelope3D(HARKinterpolator3D):
     '''
     distance_criteria = ['functions']
 
-    def __init__(self,*functions):
+    def __init__(self,*functions, NanBool = True):
         '''
         Constructor to make a new lower envelope iterpolation.
 
@@ -1864,11 +1906,15 @@ class LowerEnvelope3D(HARKinterpolator3D):
         ----------
         *functions : function
             Any number of real functions; often instances of HARKinterpolator3D
+        NanBool : boolean
+            An indicator for whether the solver should exclude NA's when forming
+            the lower envelope.
 
         Returns
         -------
         None
         '''
+        self.NanBool = NanBool
         self.functions = []
         for function in functions:
             self.functions.append(function)
@@ -1880,14 +1926,25 @@ class LowerEnvelope3D(HARKinterpolator3D):
         among all of the functions.  Only called internally by
         HARKinterpolator3D.__call__.
         '''
-        if _isscalar(x):
-            f = np.nanmin([f(x,y,z) for f in self.functions])
+        
+        if self.NanBool == True:
+            if _isscalar(x):
+                f = np.nanmin([f(x,y,z) for f in self.functions])
+            else:
+                m = len(x)
+                temp = np.zeros((m,self.funcCount))
+                for j in range(self.funcCount):
+                    temp[:,j] = self.functions[j](x,y,z)
+                f = np.nanmin(temp,axis=1)
         else:
-            m = len(x)
-            temp = np.zeros((m,self.funcCount))
-            for j in range(self.funcCount):
-                temp[:,j] = self.functions[j](x,y,z)
-            f = np.nanmin(temp,axis=1)
+            if _isscalar(x):
+                f = np.min([f(x,y,z) for f in self.functions])
+            else:
+                m = len(x)
+                temp = np.zeros((m,self.funcCount))
+                for j in range(self.funcCount):
+                    temp[:,j] = self.functions[j](x,y,z)
+                f = np.min(temp,axis=1)
         return f
 
     def _derX(self,x,y,z):

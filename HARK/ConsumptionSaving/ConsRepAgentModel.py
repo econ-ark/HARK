@@ -208,7 +208,7 @@ class RepAgentConsumerType(IndShockConsumerType):
         IndShockConsumerType.__init__(self,cycles=0,time_flow=time_flow,**kwds)
         self.AgentCount = 1 # Hardcoded, because this is rep agent
         self.solveOnePeriod = solveConsRepAgent
-        self.delFromTimeInv('Rfree','BoroCnstArt','vFuncBool','CubicBool')
+        self.delFromTimeInv('Rfree','BoroCnstArt','vFuncBool','CubicBool','NanBool')
 
     def getStates(self):
         '''
