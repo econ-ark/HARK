@@ -1216,7 +1216,6 @@ def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
     CubicBool: boolean
         Indicator for whether the solver should use cubic or linear interpolation.
     
-
     Returns
     -------
     solution_now : ConsumerSolution
@@ -2412,7 +2411,7 @@ def constructAssetsGrid(parameters):
 ####################################################################################################
 
 def main():
-    import ConsumerParameters as Params
+    from . import ConsumerParameters as Params
     from HARK.utilities import plotFuncsDer, plotFuncs
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)

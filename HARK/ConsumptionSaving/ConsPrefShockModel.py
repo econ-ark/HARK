@@ -436,7 +436,7 @@ def solveConsPrefShock(solution_next,IncomeDstn,PrefShkDstn,
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
         polation.
-    
+
     Returns
     -------
     solution: ConsumerSolution

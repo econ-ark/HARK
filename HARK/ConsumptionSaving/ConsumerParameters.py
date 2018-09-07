@@ -67,7 +67,7 @@ T_retire = 0                        # Period of retirement (0 --> no retirement)
 # A few other parameters
 BoroCnstArt = 0.0                  # Artificial borrowing constraint; imposed minimum level of end-of period assets
 CubicBool = False                  # Use cubic spline interpolation when True, linear interpolation when False
-vFuncBool = False                  # Whether to calculate the value function during solution 
+vFuncBool = False                  # Whether to calculate the value function during solution
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
 init_idiosyncratic_shocks = { 'CRRA': CRRA,
