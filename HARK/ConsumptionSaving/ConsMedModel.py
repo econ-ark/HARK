@@ -762,7 +762,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
     shocks to "medical need"-- multiplicative utility shocks for a second good.
     '''
     def __init__(self,solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CRRAmed,Rfree,MedPrice,
-                 pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool,NanBool):
+                 pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
         '''
         Constructor for a new solver for a one period problem with idiosyncratic
         shocks to permanent and transitory income and shocks to medical need.
@@ -808,16 +808,13 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         CubicBool: boolean
             An indicator for whether the solver should use cubic or linear inter-
             polation.
-        NanBool: boolean
-            An indicator for whether the solver should exclude NA's when forming
-            the lower envelope.
-
+        
         Returns
         -------
         None
         '''
         ConsGenIncProcessSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                 pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool,NanBool)
+                 pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
         self.MedShkDstn = MedShkDstn
         self.MedPrice   = MedPrice
         self.CRRAmed    = CRRAmed
@@ -1000,7 +997,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         # Construct the unconstrained total expenditure function
         xFuncNowUnc = interpolator(mLvl,pLvl,MedShk,xLvl)
         xFuncNowCnst = self.xFuncNowCnst
-        xFuncNow = LowerEnvelope3D(xFuncNowUnc,xFuncNowCnst,NanBool=self.NanBool)
+        xFuncNow = LowerEnvelope3D(xFuncNowUnc,xFuncNowCnst)
 
         # Transform the expenditure function into policy functions for consumption and medical care
         aug_factor = 2
@@ -1294,7 +1291,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
 
 
 def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CRRAmed,Rfree,MedPrice,
-                 pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool,NanBool):
+                 pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
     '''
     Solve the one period problem for a consumer with shocks to permanent and
     transitory income as well as medical need shocks (as multiplicative shifters
@@ -1343,9 +1340,6 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
         polation.
-    NanBool: boolean
-        An indicator for whether the solver should exclude NA's when forming
-        the lower envelope.
 
     Returns
     -------
@@ -1356,7 +1350,7 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
         on (mLvl,pLvl), with MedShk integrated out.
     '''
     solver = ConsMedShockSolver(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CRRAmed,Rfree,
-                MedPrice,pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool,NanBool)
+                MedPrice,pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
     solver.prepareToSolve()       # Do some preparatory work
     solution_now = solver.solve() # Solve the period
     return solution_now

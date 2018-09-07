@@ -83,7 +83,7 @@ class AggShockConsumerType(IndShockConsumerType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(IndShockConsumerType.time_vary_)
         self.time_inv = deepcopy(IndShockConsumerType.time_inv_)
-        self.delFromTimeInv('Rfree','vFuncBool','CubicBool','NanBool')
+        self.delFromTimeInv('Rfree','vFuncBool','CubicBool')
         self.poststate_vars = IndShockConsumerType.poststate_vars_
         self.solveOnePeriod = solveConsAggShock
         self.update()

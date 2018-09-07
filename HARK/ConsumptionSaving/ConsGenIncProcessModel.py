@@ -261,8 +261,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
     to shocks).
     '''
     def __init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                      pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool,
-                      NanBool):
+                      pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
         '''
         Constructor for a new solver for a one period problem with idiosyncratic
         shocks to persistent and transitory income, with persistent income tracked
@@ -301,20 +300,17 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             included in the reported solution.
         CubicBool: boolean
             An indicator for whether the solver should use cubic or linear interpolation.
-         NanBool: boolean
-            An indicator for whether the solver should exclude NA's when forming
-            the lower envelope.
 
         Returns
         -------
         None
         '''
         self.assignParameters(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,pLvlNextFunc,
-                              BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool, NanBool)
+                              BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
         self.defUtilityFuncs()
 
     def assignParameters(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                         pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool,NanBool):
+                         pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
         '''
         Assigns inputs as attributes of self for use by other methods
 
@@ -351,16 +347,13 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             included in the reported solution.
         CubicBool: boolean
             An indicator for whether the solver should use cubic or linear interpolation.
-         NanBool: boolean
-            An indicator for whether the solver should exclude NA's when forming
-            the lower envelope.
 
         Returns
         -------
         none
         '''
         ConsIndShockSetup.assignParameters(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                0.0,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,NanBool) # dummy value for PermGroFac
+                                0.0,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool) # dummy value for PermGroFac
         self.pLvlNextFunc = pLvlNextFunc
         self.pLvlGrid = pLvlGrid
 
@@ -606,8 +599,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         cFuncNowUnc = interpolator(mLvl,pLvl,cLvl)
 
         # Combine the constrained and unconstrained functions into the true consumption function
-        cFuncNow = LowerEnvelope2D(cFuncNowUnc,self.cFuncNowCnst,
-                                   NanBool=self.NanBool)
+        cFuncNow = LowerEnvelope2D(cFuncNowUnc,self.cFuncNowCnst)
 
         # Make the marginal value function
         vPfuncNow = self.makevPfunc(cFuncNow)
@@ -877,7 +869,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
 
 
 def solveConsGenIncProcess(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,pLvlNextFunc,
-                                BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool,NanBool):
+                                BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
     '''
     Solves the one period problem of a consumer who experiences persistent and
     transitory shocks to his income.  Unlike in ConsIndShock, consumers do not
@@ -918,9 +910,6 @@ def solveConsGenIncProcess(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,pL
         included in the reported solution.
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear interpolation.
-     NanBool: boolean
-         An indicator for whether the solver should exclude NA's when forming
-         the lower envelope.
 
     Returns
     -------
@@ -930,8 +919,7 @@ def solveConsGenIncProcess(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,pL
             marginal value function, bounding MPCs, and normalized human wealth.
     '''
     solver = ConsGenIncProcessSolver(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                            pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool,
-                            NanBool)
+                            pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
     solver.prepareToSolve()       # Do some preparatory work
     solution_now = solver.solve() # Solve the period
     return solution_now

@@ -38,7 +38,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
     '''
     def __init__(self,solution_next,IncomeDstn_list,LivPrb,DiscFac,
                       CRRA,Rfree_list,PermGroFac_list,MrkvArray,BoroCnstArt,
-                      aXtraGrid,vFuncBool,CubicBool,NanBool):
+                      aXtraGrid,vFuncBool,CubicBool):
         '''
         Constructor for a new solver for a one period problem with risky income
         and transitions between discrete Markov states.  In the descriptions below,
@@ -85,9 +85,6 @@ class ConsMarkovSolver(ConsIndShockSolver):
         CubicBool: boolean
             An indicator for whether the solver should use cubic or linear inter-
             polation.
-        NanBool: boolean
-            An indicator for whether the solver should exclude NA's when forming
-            the lower envelope.
 
         Returns
         -------
@@ -95,7 +92,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         '''
         # Set basic attributes of the problem
         ConsIndShockSolver.assignParameters(self,solution_next,np.nan,LivPrb,DiscFac,CRRA,np.nan,
-                                            np.nan,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,NanBool)
+                                            np.nan,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
         self.defUtilityFuncs()
 
         # Set additional attributes specific to the Markov model
@@ -480,8 +477,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             self.cFuncNowCnst = LinearInterp([self.mNrmMin_list[i], self.mNrmMin_list[i]+1.0],
                                              [0.0,1.0])
             cFuncNowUnc       = interpfunc(mNrm[i,:],cNrm[i,:])
-            cFuncNow          = LowerEnvelope(cFuncNowUnc,self.cFuncNowCnst,
-                                              NanBool=self.NanBool)
+            cFuncNow          = LowerEnvelope(cFuncNowUnc,self.cFuncNowCnst)
 
             # Make the marginal value function and pack up the current-state-conditional solution
             vPfuncNow     = MargValueFunc(cFuncNow,self.CRRA)
@@ -600,7 +596,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
 
 
 def solveConsMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
-                                 MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,NanBool):
+                                 MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
     '''
     Solves a single period consumption-saving problem with risky income and
     stochastic transitions between discrete states, in a Markov fashion.  Has
@@ -651,9 +647,6 @@ def solveConsMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFa
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear inter-
         polation.
-    NanBool: boolean
-        An indicator for whether the solver should exclude NA's when forming
-        the lower envelope.
 
     Returns
     -------
@@ -669,8 +662,7 @@ def solveConsMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFa
         when in the i=0 Markov state this period.
     '''
     solver = ConsMarkovSolver(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                              PermGroFac,MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,
-                              NanBool)
+                              PermGroFac,MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
     solution_now = solver.solve()
     return solution_now
 
