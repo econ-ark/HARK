@@ -1134,8 +1134,8 @@ class BilinearInterp(HARKinterpolator2D):
         dfdy = (
               ((1-alpha)*self.f_values[x_pos-1,y_pos]
             +  alpha*self.f_values[x_pos,y_pos]) -
-              ((1-alpha)*self.f_values[x_pos-1,y_pos]
-            +  alpha*self.f_values[x_pos-1,y_pos-1]))/(self.y_list[y_pos] - self.y_list[y_pos-1])
+              ((1-alpha)*self.f_values[x_pos-1,y_pos-1]
+            +  alpha*self.f_values[x_pos,y_pos-1]))/(self.y_list[y_pos] - self.y_list[y_pos-1])
         return dfdy
 
 
