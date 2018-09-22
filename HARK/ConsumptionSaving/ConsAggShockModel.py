@@ -1753,7 +1753,7 @@ class AggShocksDynamicRule(HARKobject):
 ###############################################################################
 
 def main():
-    from . import ConsumerParameters as Params
+    import ConsumerParameters as Params
     from time import clock
     from HARK.utilities import plotFuncs
     mystr = lambda number : "{:.4f}".format(number)

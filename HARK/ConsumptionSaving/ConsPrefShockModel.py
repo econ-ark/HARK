@@ -594,7 +594,7 @@ def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,
 ###############################################################################
 
 def main():
-    from . import ConsumerParameters as Params
+    import ConsumerParameters as Params
     import matplotlib.pyplot as plt
     from HARK.utilities import plotFuncs
     from time import clock

@@ -474,7 +474,7 @@ def main():
     # contained in the HARK folder.  Also import the ConsumptionSavingModel
     import numpy as np                   # numeric Python
     from HARK.utilities import plotFuncs  # basic plotting tools
-    from .ConsMarkovModel import MarkovConsumerType # An alternative, much longer way to solve the TBS model
+    from ConsMarkovModel import MarkovConsumerType # An alternative, much longer way to solve the TBS model
     from time import clock               # timing utility
 
     do_simulation = True

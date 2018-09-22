@@ -2410,7 +2410,7 @@ def constructAssetsGrid(parameters):
 ####################################################################################################
 
 def main():
-    from . import ConsumerParameters as Params
+    import ConsumerParameters as Params
     from HARK.utilities import plotFuncsDer, plotFuncs
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
