@@ -13,7 +13,7 @@ import scipy as sc
 from scipy.stats import norm 
 from scipy.interpolate import interp1d, interp2d, griddata, RegularGridInterpolator, interpn
 import multiprocessing as mp
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, Process
 from math import ceil
 import math as mt
 from scipy import sparse as sp
@@ -974,6 +974,8 @@ def FF_1_3(range_, Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targe
         h=par['scaleval2']
         X[Xct]=h
         Fx=F(X,ss.copy(),cc.copy(),cc.copy())
+        DF3[:,Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
+        Fx=F(X,ss.copy(),cc.copy(),cc.copy())
         DF1[:,Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
     if sum(range_ == mpar['numstates'] - 1) == 1:
         Xct=mpar['numstates'] - 1
@@ -984,7 +986,6 @@ def FF_1_3(range_, Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targe
         DF3[:,Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
         Fx=F(X,ss.copy(),cc.copy(),cc.copy())
         DF1[:,Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
-    
     
     out_DF3.put(DF3)
     out_DF1.put(DF1)
@@ -1012,19 +1013,220 @@ def FF_2(range_, Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets
     out_bl2.put(bl)
     
 
-def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,Copula,P_H,aggrshock):
-    
-    out_DF1 = mp.Queue()
-    out_DF3 = mp.Queue()
-    out_DF2 = mp.Queue()
-    out_bl = mp.Queue()
-    out_bl2 = mp.Queue()
-    
+### This is the old parallel code that does not work in Python 3
+### We should fix this, potentially by using joblib Parallel instead of multiprocess
+#def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,Copula,P_H,aggrshock):
+#    
+#    out_DF1 = mp.Queue()
+#    out_DF3 = mp.Queue()
+#    out_DF2 = mp.Queue()
+#    out_bl = mp.Queue()
+#    out_bl2 = mp.Queue()
+#    
+#    State       = np.zeros((mpar['numstates'],1))
+#    State_m     = State.copy()
+#    Contr       = np.zeros((mpar['numcontrols'],1))
+#    Contr_m     = Contr.copy()
+#        
+#    F = lambda S, S_m, C, C_m : Fsys(S, S_m, C, C_m,
+#                                     Xss,Yss,Gamma_state,indexMUdct,indexVKdct,
+#                                     par,mpar,grid,targets,Copula,P_H,aggrshock)
+#        
+#      
+#    start_time = time.clock() 
+#    result_F = F(State,State_m,Contr.copy(),Contr_m.copy())
+#    end_time   = time.clock()
+#    print('Elapsed time is ', (end_time-start_time), ' seconds.')
+#    Fb=result_F['Difference'].copy()
+#        
+#    pool=cpu_count()/2
+#
+#    F1=np.zeros((mpar['numstates'] + mpar['numcontrols'], mpar['numstates']))
+#    F2=np.zeros((mpar['numstates'] + mpar['numcontrols'], mpar['numcontrols']))
+#    F3=np.zeros((mpar['numstates'] + mpar['numcontrols'], mpar['numstates']))
+#    F4=np.asmatrix(np.vstack((np.zeros((mpar['numstates'], mpar['numcontrols'])), np.eye(mpar['numcontrols'],mpar['numcontrols']) )))
+#        
+#    print('Use Schmitt Grohe Uribe Algorithm')
+#    print(' A *E[xprime uprime] =B*[x u]')
+#    print(' A = (dF/dxprimek dF/duprime), B =-(dF/dx dF/du)')
+#        
+#    #numscale=1
+#    pnum=pool
+#    packagesize=int(ceil(mpar['numstates'] / float(3.0*pnum)))
+#    blocks=int(ceil(mpar['numstates'] / float(packagesize) ))
+#
+#    par['scaleval1'] = 1e-5
+#    par['scaleval2'] = 1e-5
+#        
+#    start_time = time.clock()
+#    print('Computing Jacobian F1=DF/DXprime F3 =DF/DX')
+#    print('Total number of parallel blocks: ', str(blocks), '.')
+#    procs1=[]
+#    for bl in range(0,blocks):
+#        range_= range(bl*packagesize, min(packagesize*(bl+1),mpar['numstates']))
+#
+#        cc=np.zeros((mpar['numcontrols'],1))
+#        ss=np.zeros((mpar['numstates'],1))
+#        p1=Process(target=FF_1_3, args=(range_, Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,
+#                                           grid,targets,Copula,P_H,aggrshock,Fb,packagesize, bl,ss,cc,
+#                                           out_DF1,out_DF3, out_bl))
+#        procs1.append(p1)
+#        p1.start()
+#        
+#        print('Block number: ', str(bl))    
+#        
+#    FF1 = []    
+#    FF3 = []
+#    order_bl = []
+#       
+#    for i in range(blocks):
+#        FF1.append(out_DF1.get())
+#        FF3.append(out_DF3.get())
+#        order_bl.append(out_bl.get())
+#        
+#    
+#    print('bl order')
+#    print(order_bl)
+#    
+#    for p1 in procs1:
+#        p1.join()
+#    
+#    for i in range(0,int(ceil(mpar['numstates'] / float(packagesize)) )):
+#        range_= range(i*packagesize, min(packagesize*(i+1),mpar['numstates']))
+#        F1[:,range_]=FF1[order_bl.index(i)].copy()
+#        F3[:,range_]=FF3[order_bl.index(i)].copy()    
+#    
+#    end_time   = time.clock()        
+#    print('Elapsed time is ', (end_time-start_time), ' seconds.')
+#    
+#    # jacobian wrt Y'
+#    packagesize=int(ceil(mpar['numcontrols'] / (3.0*pnum)))
+#    blocks=int(ceil(mpar['numcontrols'] / float(packagesize)))
+#    print('Computing Jacobian F2 - DF/DYprime')
+#    print('Total number of parallel blocks: ', str(blocks),'.')
+#        
+#    start_time = time.clock()
+#    
+#    procs2=[]
+#    for bl in range(0,blocks):
+#        range_= range(bl*packagesize,min(packagesize*(bl+1),mpar['numcontrols']))
+#
+#        cc=np.zeros((mpar['numcontrols'],1))
+#        ss=np.zeros((mpar['numstates'],1))
+#        p2=Process(target=FF_2, args=(range_, Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,
+#                                         grid,targets,Copula,P_H,aggrshock,Fb,packagesize, bl,ss,cc,
+#                                         out_DF2, out_bl2))
+#        procs2.append(p2)
+#        p2.start()
+#        print('Block number: ', str(bl))
+#        
+#    FF=[]
+#    order_bl2 = []
+#    
+#    for i in range(blocks):
+#        FF.append(out_DF2.get())
+#        order_bl2.append(out_bl2.get()) 
+#    
+#    print('bl2 order')
+#    print(order_bl2)
+#    
+#    
+#    for p2 in procs2:
+#        p2.join()
+#
+#    for i in range(0,int( ceil(mpar['numcontrols'] / float(packagesize)) ) ):
+#        range_=range(i*packagesize, min(packagesize*(i+1),mpar['numcontrols']))
+#        
+#        F2[:,range_]=FF[order_bl2.index(i)]
+#
+#    end_time = time.clock()
+#    print('Elapsed time is ', (end_time-start_time), ' seconds.')
+#          
+#    FF=[]
+#    FF1=[]
+#    FF3=[]
+#        
+#    cc=np.zeros((mpar['numcontrols'],1))
+#    ss=np.zeros((mpar['numstates'],1))
+#    
+#    for Yct in range(0, mpar['oc']):
+#        Y=np.zeros((mpar['numcontrols'],1))
+#        h=par['scaleval2']
+#        Y[-1-Yct]=h
+#        Fx=F(ss.copy(),ss.copy(),cc.copy(),Y)
+#        F4[:,-1 - Yct]=(Fx['Difference'] - Fb) / h
+#        
+#    F2[mpar['nm']+mpar['nk']-3:mpar['numstates']-2,:] = 0
+#
+#    s,t,Q,Z=linalg.qz(np.hstack((F1,F2)), -np.hstack((F3,F4)), output='complex')
+#    abst = abs(np.diag(t))*(abs(np.diag(t))!=0.)+  (abs(np.diag(t))==0.)*10**(-11)
+#    #relev=np.divide(abs(np.diag(s)), abs(np.diag(t)))
+#    relev=np.divide(abs(np.diag(s)), abst)    
+#    
+#    ll=sorted(relev)
+#    slt=relev >= 1
+#    nk=sum(slt)
+#    slt=1*slt
+#    
+#
+#    s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort='ouc', output='complex')
+#    
+#    def sortOverridEigen(x, y):
+#        out = np.empty_like(x, dtype=bool)
+#        xzero = (x == 0)
+#        yzero = (y == 0)
+#        out[xzero & yzero] = False
+#        out[~xzero & yzero] = True
+#        out[~yzero] = (abs(x[~yzero]/y[~yzero]) > ll[-1 - mpar['numstates']])
+#        return out        
+#    
+#    if nk > mpar['numstates']:
+#       if mpar['overrideEigen']:
+#          print('Warning: The Equilibrium is Locally Indeterminate, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
+#          slt=relev > ll[-1 - mpar['numstates']]
+#          nk=sum(slt)
+#          s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort=sortOverridEigen, output='complex')
+#          
+#       else:
+#          print('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
+#        
+#    elif nk < mpar['numstates']:
+#       if mpar['overrideEigen']:
+#          print('Warning: No Local Equilibrium Exists, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
+#          slt=relev > ll[-1 - mpar['numstates']]
+#          nk=sum(slt)
+#          s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort=sortOverridEigen, output='complex')
+#          
+#       else:
+#          print('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
+#
+#
+#        
+#        
+#    z21=Z_ord[nk:,0:nk]
+#    z11=Z_ord[0:nk,0:nk]
+#    s11=s_ord[0:nk,0:nk]
+#    t11=t_ord[0:nk,0:nk]
+#    
+#    if matrix_rank(z11) < nk:
+#       print ('Warning: invertibility condition violated')
+#              
+#    z11i  = np.dot(np.linalg.inv(z11), np.eye(nk)) # compute the solution
+#
+#    gx = np.real(np.dot(z21,z11i))
+#    hx = np.real(np.dot(z11,np.dot(np.dot(np.linalg.inv(s11),t11),z11i)))
+#         
+#    return{'hx': hx, 'gx': gx, 'F1': F1, 'F2': F2, 'F3': F3, 'F4': F4, 'par': par }
+#    return{'F1': F1, 'F2': F2, 'F3': F3, 'F4': F4, 'par': par }
+
+def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,Copula,P_H,aggrshock): #
+
     State       = np.zeros((mpar['numstates'],1))
     State_m     = State.copy()
     Contr       = np.zeros((mpar['numcontrols'],1))
     Contr_m     = Contr.copy()
         
+
     F = lambda S, S_m, C, C_m : Fsys(S, S_m, C, C_m,
                                          Xss,Yss,Gamma_state,indexMUdct,indexVKdct,
                                          par,mpar,grid,targets,Copula,P_H,aggrshock)
@@ -1033,7 +1235,7 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     start_time = time.clock() 
     result_F = F(State,State_m,Contr.copy(),Contr_m.copy())
     end_time   = time.clock()
-    print('Elapsed time is ', (end_time-start_time), ' seconds.')
+    print ('Elapsed time is ', (end_time-start_time), ' seconds.')
     Fb=result_F['Difference'].copy()
         
     pool=cpu_count()/2
@@ -1043,102 +1245,102 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     F3=np.zeros((mpar['numstates'] + mpar['numcontrols'], mpar['numstates']))
     F4=np.asmatrix(np.vstack((np.zeros((mpar['numstates'], mpar['numcontrols'])), np.eye(mpar['numcontrols'],mpar['numcontrols']) )))
         
-    print('Use Schmitt Grohe Uribe Algorithm')
-    print(' A *E[xprime uprime] =B*[x u]')
-    print(' A = (dF/dxprimek dF/duprime), B =-(dF/dx dF/du)')
+    print ('Use Schmitt Grohe Uribe Algorithm')
+    print (' A *E[xprime uprime] =B*[x u]')
+    print (' A = (dF/dxprimek dF/duprime), B =-(dF/dx dF/du)')
         
     #numscale=1
     pnum=pool
-    packagesize=int(ceil(mpar['numstates'] / float(3.0*pnum)))
+    packagesize=int(ceil(mpar['numstates'] / float(3*pnum)))
     blocks=int(ceil(mpar['numstates'] / float(packagesize) ))
 
     par['scaleval1'] = 1e-5
     par['scaleval2'] = 1e-5
         
     start_time = time.clock()
-    print('Computing Jacobian F1=DF/DXprime F3 =DF/DX')
-    print('Total number of parallel blocks: ', str(blocks), '.')
-    procs1=[]
+    print ('Computing Jacobian F1=DF/DXprime F3 =DF/DX')
+    print ('Total number of parallel blocks: ', str(blocks), '.')
+        
+    FF1=[]
+    FF3=[]
+        
     for bl in range(0,blocks):
         range_= range(bl*packagesize, min(packagesize*(bl+1),mpar['numstates']))
-
+        DF1=np.asmatrix( np.zeros((len(Fb),len(range_))) )
+        DF3=np.asmatrix( np.zeros((len(Fb),len(range_))) )
         cc=np.zeros((mpar['numcontrols'],1))
         ss=np.zeros((mpar['numstates'],1))
-        p1=mp.Process(target=FF_1_3, args=(range_, Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,
-                                           grid,targets,Copula,P_H,aggrshock,Fb,packagesize, bl,ss,cc,
-                                           out_DF1,out_DF3, out_bl))
-        procs1.append(p1)
-        p1.start()
-        
-        print('Block number: ', str(bl))    
-        
-    FF1 = []    
-    FF3 = []
-    order_bl = []
-       
-    for i in range(blocks):
-        FF1.append(out_DF1.get())
-        FF3.append(out_DF3.get())
-        order_bl.append(out_bl.get())
-        
-    
-    print('bl order')
-    print(order_bl)
-    
-    for p1 in procs1:
-        p1.join()
-    
-    for i in range(0,int(ceil(mpar['numstates'] // float(packagesize)) )):
+        for Xct in range_:
+            X=np.zeros((mpar['numstates'],1))
+            h=par['scaleval1']
+            X[Xct]=h
+            Fx=F(ss.copy(),X,cc.copy(),cc.copy())
+            DF3[:, Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
+            Fx=F(X,ss.copy(),cc.copy(),cc.copy())
+            DF1[:, Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
+        if sum(range_ == mpar['numstates'] - 2) == 1:
+            Xct=mpar['numstates'] - 2
+            X=np.zeros((mpar['numstates'],1))
+            h=par['scaleval2']
+            X[Xct]=h
+            Fx=F(ss.copy(),X,cc.copy(),cc.copy())
+            DF3[:,Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
+            Fx=F(X,ss.copy(),cc.copy(),cc.copy())
+            DF1[:,Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
+        if sum(range_ == mpar['numstates'] - 1) == 1:
+            Xct=mpar['numstates'] - 1
+            X=np.zeros((mpar['numstates'],1))
+            h=par['scaleval2']
+            X[Xct]=h
+            Fx=F(ss.copy(),X,cc.copy(),cc.copy())
+            DF3[:,Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
+            Fx=F(X,ss.copy(),cc.copy(),cc.copy())
+            DF1[:,Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
+        FF1.append(DF1.copy())
+        FF3.append(DF3.copy())
+        print ('Block number: ', str(bl),' done.')
+
+    for i in range(0,int(ceil(mpar['numstates'] / float(packagesize)) )):
         range_= range(i*packagesize, min(packagesize*(i+1),mpar['numstates']))
-        F1[:,range_]=FF1[order_bl.index(i)].copy()
-        F3[:,range_]=FF3[order_bl.index(i)].copy()    
-    
-    end_time   = time.clock()        
-    print('Elapsed time is ', (end_time-start_time), ' seconds.')
-    
+        F1[:,range_]=FF1[i]
+        F3[:,range_]=FF3[i]
+
+    end_time   = time.clock()
+    print ('Elapsed time is ', (end_time-start_time), ' seconds.')
+
     # jacobian wrt Y'
-    packagesize=int(ceil(mpar['numcontrols'] // (3.0*pnum)))
-    blocks=int(ceil(mpar['numcontrols'] // float(packagesize)))
-    print('Computing Jacobian F2 - DF/DYprime')
-    print('Total number of parallel blocks: ', str(blocks),'.')
+    packagesize=int(ceil(mpar['numcontrols'] / (3.0*pnum)))
+    blocks=int(ceil(mpar['numcontrols'] / float(packagesize)))
+    print ('Computing Jacobian F2 - DF/DYprime')
+    print ('Total number of parallel blocks: ', str(blocks),'.')
+
+    FF=[]
         
     start_time = time.clock()
-    
-    procs2=[]
+        
     for bl in range(0,blocks):
         range_= range(bl*packagesize,min(packagesize*(bl+1),mpar['numcontrols']))
-
+        DF2=np.asmatrix(np.zeros((len(Fb),len(range_))))
         cc=np.zeros((mpar['numcontrols'],1))
         ss=np.zeros((mpar['numstates'],1))
-        p2=mp.Process(target=FF_2, args=(range_, Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,
-                                         grid,targets,Copula,P_H,aggrshock,Fb,packagesize, bl,ss,cc,
-                                         out_DF2, out_bl2))
-        procs2.append(p2)
-        p2.start()
-        print('Block number: ', str(bl))
-        
-    FF=[]
-    order_bl2 = []
-    
-    for i in range(blocks):
-        FF.append(out_DF2.get())
-        order_bl2.append(out_bl2.get()) 
-    
-    print('bl2 order')
-    print(order_bl2)
-    
-    
-    for p2 in procs2:
-        p2.join()
+        for Yct in range_:
+            Y=np.zeros((mpar['numcontrols'],1))
+            h=par['scaleval2']
+            Y[Yct]=h
+            Fx=F(ss.copy(),ss.copy(),Y,cc.copy())
+            DF2[:,Yct - bl*packagesize]=(Fx['Difference'] - Fb) / h
+        FF.append(DF2.copy())
+        print ('Block number: ',str(bl),' done.')
 
-    for i in range(0,int(ceil(mpar['numcontrols'] // float(packagesize) ))):
+        
+    for i in range(0,int(ceil(mpar['numcontrols'] / float(packagesize) ))):
         range_=range(i*packagesize, min(packagesize*(i+1),mpar['numcontrols']))
+        F2[:,range_]=FF[i]
         
-        F2[:,range_]=FF[order_bl2.index(i)]
-
     end_time = time.clock()
-    print('Elapsed time is ', (end_time-start_time), ' seconds.')
-          
+    print ('Elapsed time is ', (end_time-start_time), ' seconds.')
+        
+        
     FF=[]
     FF1=[]
     FF3=[]
@@ -1154,9 +1356,7 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
         F4[:,-1 - Yct]=(Fx['Difference'] - Fb) / h
         
     F2[mpar['nm']+mpar['nk']-3:mpar['numstates']-2,:] = 0
-
-        
-   
+    
     s,t,Q,Z=linalg.qz(np.hstack((F1,F2)), -np.hstack((F3,F4)), output='complex')
     abst = abs(np.diag(t))*(abs(np.diag(t))!=0.)+  (abs(np.diag(t))==0.)*10**(-11)
     #relev=np.divide(abs(np.diag(s)), abs(np.diag(t)))
@@ -1181,23 +1381,23 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     
     if nk > mpar['numstates']:
        if mpar['overrideEigen']:
-          print('Warning: The Equilibrium is Locally Indeterminate, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
+          print ('Warning: The Equilibrium is Locally Indeterminate, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
           slt=relev > ll[-1 - mpar['numstates']]
           nk=sum(slt)
           s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort=sortOverridEigen, output='complex')
           
        else:
-          print('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
+          print ('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
         
     elif nk < mpar['numstates']:
        if mpar['overrideEigen']:
-          print('Warning: No Local Equilibrium Exists, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
+          print ('Warning: No Local Equilibrium Exists, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
           slt=relev > ll[-1 - mpar['numstates']]
           nk=sum(slt)
           s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort=sortOverridEigen, output='complex')
           
        else:
-          print('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
+          print ('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
 
 
         
@@ -1208,8 +1408,8 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     t11=t_ord[0:nk,0:nk]
     
     if matrix_rank(z11) < nk:
-       print('Warning: invertibility condition violated')
-              
+       print ('Warning: invertibility condition violated')   
+
     z11i  = np.dot(np.linalg.inv(z11), np.eye(nk)) # compute the solution
 
     gx = np.real(np.dot(z21,z11i))
@@ -1217,11 +1417,11 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
          
     return{'hx': hx, 'gx': gx, 'F1': F1, 'F2': F2, 'F3': F3, 'F4': F4, 'par': par }
 
-
 ###############################################################################
 
 if __name__ == '__main__':
-    
+    __spec__ = None
+#    __spec__ = __spec__
     from time import clock
     import pickle
     
@@ -1251,13 +1451,12 @@ if __name__ == '__main__':
     SR=EX3SR.StateReduc()
 
     print('SGU_solver')
-    SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['indexMUdct'],SR['indexVKdct'],SR['par'],
-                         SR['mpar'],SR['grid'],SR['targets'],SR['Copula'],SR['P_H'],SR['aggrshock'])
+    SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['indexMUdct'],SR['indexVKdct'],SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['Copula'],SR['P_H'],SR['aggrshock'])
     print('plot_IRF')
     plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
              SR['Gamma_state'],SR['grid'],SR['targets'],SR['Output'])
     
     end_time0 = time.clock()
     print('Elapsed time is ',  (end_time0-start_time0), ' seconds.')
-    
+#    
     

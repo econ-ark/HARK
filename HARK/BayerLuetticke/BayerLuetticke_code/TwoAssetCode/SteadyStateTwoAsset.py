@@ -1163,7 +1163,6 @@ if __name__ == '__main__':
     print('Elapsed time is ',  (end_time0-start_time0), ' seconds.')
     
     pickle.dump(EX3SS, open("EX3SS_20.p", "wb"))
-    open("EX3SS_20.p", "wb").close
     
     
     #EX3SS=pickle.load(open("EX3SS_ag.p", "rb"))
