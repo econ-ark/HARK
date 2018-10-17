@@ -663,22 +663,22 @@ class MCNAB(AgentType):
 
         cGrid = self.grids.mGrid
 
-        c1d = LinearInterp(mGrid, cGrid)
-        c = lambda m, n: c1d(m + n)
+        c1DFunc = LinearInterp(mGrid, cGrid)
+        cFunc = lambda m, n: c1DFunc(m + n)
 
         # Create interpolant for choice specific value function at T
         vMesh = self.utility.u(cGrid)
-        v1d = self.stablevalue(mGrid, vMesh)
-        v = lambda m, n: v1d(m+n)
+        v1DFunc = self.stablevalue(mGrid, vMesh)
+        vFunc = lambda m, n: v1DFunc(m+n)
 
         # In the retired state and in last period, the derivative
         # of the value function is simply the marginal utility.
-        vPm1d = self.stablevalue(mGrid, self.utility.P(cGrid))
-        vPm = lambda m, n: vPm1d(m+n)
-        vPn = vPm
+        vPm1DFunc = self.stablevalue(mGrid, self.utility.P(cGrid))
+        vPmFunc = lambda m, n: vPm1DFunc(m+n)
+        vPnFunc = vPmFunc
 
         # Collect retirement relevant solution
-        rs = RetirementSolution(c1d, c, v1d, v, vPm, vPn)
+        rs = RetirementSolution(c1DFunc, cFunc, v1DFunc, vFunc, vPmFunc, vPnFunc)
         return rs
 
     def updateLastWorking(self):
@@ -955,18 +955,18 @@ def solve_period_working(solution_next, w, wPa, wPb, par, grids, stablevalue, ut
 
     # value at endogenous grids
     vMesh_acon = utility.u(cMesh_acon) - par.alpha + par.DiscFac*w(aMesh_acon, bMesh_acon)
-    #
+
     cleanSegment((cMesh_acon, dMesh_acon, mMesh_acon, nMesh_acon), vMesh_acon)
-    #
+
     # # an indicator array that says if segment is optimal at
     # # common grid points
     bestSegment_acon = numpy.zeros(grid_shape, dtype = bool)
 #    segmentUpperEnvelope(mGrid, nGrid, cMesh, dMesh, vMesh, mMesh_acon, nMesh_acon, cMesh_acon, dMesh_acon, vMesh_acon, bestSegment_acon)
     vacon = numpy.copy(vMesh)
 
-    c = stablevalue2d(mGrid, nGrid, cMesh)
-    d = stablevalue2d(mGrid, nGrid, dMesh)
-    v = stablevalue2d(mGrid, nGrid, vMesh)
+    cFunc = stablevalue2d(mGrid, nGrid, cMesh)
+    dFunc = stablevalue2d(mGrid, nGrid, dMesh)
+    vFunc = stablevalue2d(mGrid, nGrid, vMesh)
 
 
     #
@@ -983,17 +983,17 @@ def solve_period_working(solution_next, w, wPa, wPb, par, grids, stablevalue, ut
     vPmMesh = utility.P(cMesh)
     vPnMesh = par.DiscFac*wPb(A_acon, B_acon)
 
-    vPm = stablevalue2d(mGrid, nGrid, vPmMesh)
-    vPn = stablevalue2d(mGrid, nGrid, vPnMesh)
+    vPmFunc = stablevalue2d(mGrid, nGrid, vPmMesh)
+    vPnFunc = stablevalue2d(mGrid, nGrid, vPnMesh)
 
     return WorkingSolution(aMesh, bMesh,
                            mMesh, nMesh,
                            cMesh, dMesh,
                            vMesh,
                            vPmMesh, vPnMesh,
-                           c,   d,
-                           v,
-                           vPm, vPn,
+                           cFunc, dFunc,
+                           vFunc,
+                           vPmFunc, vPnFunc,
                            # notice that these should only be conditionally saved once all of the acon stuff gets sorted out
                            #    0           1            2           3          4          5        6         7               8     9     10
                            (cMesh_ucon, dMesh_ucon, vMesh_ucon, mMesh_ucon, nMesh_ucon, wPaMesh, wPbMesh, bestSegment_ucon, vucon),
@@ -1040,20 +1040,20 @@ def solve_period_retirement(rs_tp1, par, grids, utility, stablevalue):
     # ======================= #
     # - policy interpolants - #
     # ======================= #
-    c1d = LinearInterp(m, cGrid)
-    c = lambda m, n: c1d(m + n)
+    c1DFunc = LinearInterp(m, cGrid)
+    cFunc = lambda m, n: c1DFunc(m + n)
 
     # ========================================== #
     # - value (incl. derivatives) interpolants - #
     # ========================================== #
     vGrid = utility.u(cGrid) + par.DiscFac*v_tp1(a*par.Ra+par.y, a*0)
     # level
-    v1d = stablevalue(m, vGrid)
-    v = lambda m, n: v1d(m+n)
+    v1DFunc = stablevalue(m, vGrid)
+    vFunc = lambda m, n: v1DFunc(m+n)
 
     # derivatives
-    vPm1d = stablevalue(m, utility.P(cGrid))
-    vPm = lambda m, n: vPm1d(m+n)
-    vPn = vPm
+    vPm1DFunc = stablevalue(m, utility.P(cGrid))
+    vPmFunc = lambda m, n: vPm1DFunc(m+n)
+    vPnFunc = vPmFunc
 
-    return RetirementSolution(c1d, c, v1d, v, vPm, vPn)
+    return RetirementSolution(c1DFunc, cFunc, v1DFunc, vFunc, vPmFunc, vPnFunc)
