@@ -211,7 +211,7 @@ def discreteEnvelope(Vs, sigma):
 
 
 @njit(error_model="numpy")
-def segmentUpperEnvelope(mGrid, nGrid, cG, dG, vG, mSegment, nSegment, cSegment, dSegment, vSegment, bestSegment):
+def segmentUpperEnvelope(grids, cG, dG, vG, mSegment, nSegment, cSegment, dSegment, vSegment, bestSegment):
     """
     segmentUpperEnvelope calculates the upper envelope to a segment while
     re-interpolating it down to a common grid spanned by mGrid and nGrid.
@@ -220,6 +220,7 @@ def segmentUpperEnvelope(mGrid, nGrid, cG, dG, vG, mSegment, nSegment, cSegment,
     # of four points i0, i1, i2, i3 that together makes up
     # two simpleces forming a square (since it's 2D)
 
+    mGrid, nGrid = grids.mGrid, grids.nGrid
 
     # there are nm rows in mSegment, representing the nm different values
     # of mGrid, and there are nn columns representing nGrid.
@@ -485,8 +486,8 @@ class MCNAB(AgentType):
         # Initialize a basic AgentType
         AgentType.__init__(self, **kwds)
 
-        self.time_inv = ['par', 'grids', 'stablevalue', 'utility',
-                         'discreteEnvelope', 'stablevalue2d', 'verbose']
+        self.time_inv = ['par', 'grids', 'utility', 'discreteEnvelope',
+                         'stablevalue',  'stablevalue2d', 'verbose']
         self.time_vary = ['age']
 
         self.age = list(range(T-1))
@@ -661,19 +662,19 @@ class MCNAB(AgentType):
         # Grab grids from grid-holder
         mGrid = self.grids.mGrid
 
-        cGrid = self.grids.mGrid
+        CGrid = self.grids.mGrid
 
-        c1DFunc = LinearInterp(mGrid, cGrid)
+        c1DFunc = LinearInterp(mGrid, CGrid)
         cFunc = lambda m, n: c1DFunc(m + n)
 
         # Create interpolant for choice specific value function at T
-        vMesh = self.utility.u(cGrid)
+        vMesh = self.utility.u(CGrid)
         v1DFunc = self.stablevalue(mGrid, vMesh)
         vFunc = lambda m, n: v1DFunc(m+n)
 
         # In the retired state and in last period, the derivative
         # of the value function is simply the marginal utility.
-        vPm1DFunc = self.stablevalue(mGrid, self.utility.P(cGrid))
+        vPm1DFunc = self.stablevalue(mGrid, self.utility.P(CGrid))
         vPmFunc = lambda m, n: vPm1DFunc(m+n)
         vPnFunc = vPmFunc
 
@@ -715,17 +716,11 @@ class MCNAB(AgentType):
         return WorkingSolution(0, 0, self.grids.mMesh, self.grids.nMesh, cMesh, dMesh, vMesh, vPmMesh, vPnMesh, c, d, v, vPm, vPn, (1), (1), (1), (1))
 
 
-def solve_period(solution_next, par, grids, utility, stablevalue, discreteEnvelope, stablevalue2d, verbose):
+def solve_period(solution_next, par, grids, utility, discreteEnvelope,  stablevalue,  stablevalue2d, verbose):
     # =============================
     # - unpack from solution_next -
     # =============================
     rs_tp1 = solution_next.rs # next period retired solution
-
-    # w and derivatives
-    # -----------------
-    w_tp1   = solution_next.w
-    wPa_tp1 = solution_next.wPa
-    wPb_tp1 = solution_next.wPb
 
     # grids
     mGrid, nGrid = grids.mGrid, grids.nGrid
@@ -742,7 +737,7 @@ def solve_period(solution_next, par, grids, utility, stablevalue, discreteEnvelo
     # ===========
     if verbose:
         print("Solving working persons sub-problem")
-    ws = solve_period_working(solution_next, w_tp1, wPa_tp1, wPb_tp1, par, grids, stablevalue, utility, stablevalue2d, verbose)
+    ws = solve_period_working(solution_next, par, grids, utility, stablevalue, stablevalue2d, verbose)
 
     # =====================================
     # - construct discrete upper envelope -
@@ -756,16 +751,6 @@ def solve_period(solution_next, par, grids, utility, stablevalue, discreteEnvelo
 
     vInterp, Pr_1 = discreteEnvelope(numpy.array([vInterpRet, vInterpWork]))
 
-    # Pr_0 = (1 - Pr_1)
-    #
-    # c = (Pr_0*rs.c(M.flatten(), N.flatten()).reshape(M.shape) +
-    #      Pr_1*ws.c(mGrid, nGrid))
-    #
-    # d = (Pr_0*rs.d(M.flatten(), N.flatten()).reshape(M.shape) +
-    #      Pr_1*ws.d(mGrid, nGrid))
-
-    Pr_0 = (1 - Pr_1)
-
     v = stablevalue2d(mGrid, nGrid, vInterp)
 
     # ==========================
@@ -778,26 +763,50 @@ def solve_period(solution_next, par, grids, utility, stablevalue, discreteEnvelo
                          w, wPa, wPb)
 
 
-def solve_period_working(solution_next, w, wPa, wPb, par, grids, stablevalue, utility, stablevalue2d, verbose):
+def solve_period_working(solution_next, par, grids, utility, stablevalue, stablevalue2d, verbose):
+    """
+    Solves a period of the retirement model using EGM.
+
+    Parameters
+    ----------
+    rs_tp1 : RetirementSolution
+        holds the retirement solution for the next period
+    par : MCNABParameters
+        object that holds parameters relevant to utility and transitions
+    grids : Grids
+        holds all the grids and meshes for (m, n) and (a, b) space
+    utility : Utility
+        holds utility functions, inverses, derivatives, ...
+    stablevalue : StableValue1D
+        is used to create a stable interpolant of value functions
+
+    Returns
+    -------
+    rs : RetirementSolution
+        holds the retirement solution for the current period
+    """
+
     if verbose:
         print("... solving working problem")
+
+    # =================================
+    # - next period w and derivatives -
+    #==================================
+    w_tp1 = solution_next.w
+    wPa_tp1 = solution_next.wPa
+    wPb_tp1 = solution_next.wPb
+
     # ====================
     # - grids and meshes -
     # ====================
-    mGrid = grids.mGrid
-    nGrid = grids.nGrid
+    mGrid, nGrid = grids.mGrid, grids.nGrid
+    mMesh, nMesh = grids.mMesh, grids.nMesh
 
-    aGrid = grids.aGrid
-    bGrid = grids.bGrid
-
-    aMesh = grids.aMesh
-    bMesh = grids.bMesh
-
-    mMesh = grids.mMesh
-    nMesh = grids.nMesh
+    aMesh, bMesh = grids.aMesh, grids.bMesh
 
     # shape of common grid
     grid_shape = (len(mGrid), len(nGrid))
+
     # solution arrays for ...
     # ... consumption levels
     cMesh = numpy.zeros(grid_shape)
@@ -811,14 +820,59 @@ def solve_period_working(solution_next, w, wPa, wPb, par, grids, stablevalue, ut
     # ================
     # wPaMesh = wPa(aGrid, bGrid)
     # wPbMesh = wPb(aGrid, bGrid)
-    wPaMesh = wPa(aMesh, bMesh)
-    wPbMesh = wPb(aMesh, bMesh)
+    wPaMesh = wPa_tp1(aMesh, bMesh)
+    wPbMesh = wPb_tp1(aMesh, bMesh)
 
-    # ==============
-    # -    ucon    -
-    # ==============
+    ucon_vars = solve_ucon(cMesh, dMesh, vMesh, w_tp1, utility, par, wPaMesh, wPbMesh, grids, verbose)
+    con_vars = solve_con(cMesh, dMesh, vMesh, w_tp1, utility, grids, par, verbose)
+    dcon_vars = solve_dcon(cMesh, dMesh, vMesh, w_tp1,  wPaMesh, wPbMesh, utility, grids, par, verbose)
+    acon_vars = solve_acon(cMesh, dMesh, vMesh, w_tp1, wPb_tp1, utility, grids, par, verbose)
+
+    # Post-decision grids
+
+    A_acon = mMesh - cMesh - dMesh
+    B_acon = nMesh + dMesh + utility.g(dMesh)
+
+    # Policy functions on common grid
+    cFunc = stablevalue2d(mGrid, nGrid, cMesh)
+    dFunc = stablevalue2d(mGrid, nGrid, dMesh)
+
+    # Value function on common grid
+    vFunc = stablevalue2d(mGrid, nGrid, vMesh)
+
+    # Value function derivatives on common grid
+    vPmMesh = utility.P(cMesh)
+    vPnMesh = par.DiscFac*wPb_tp1(A_acon, B_acon)
+
+    vPmFunc = stablevalue2d(mGrid, nGrid, vPmMesh)
+    vPnFunc = stablevalue2d(mGrid, nGrid, vPnMesh)
+
+    return WorkingSolution(aMesh, bMesh,
+                           mMesh, nMesh,
+                           cMesh, dMesh,
+                           vMesh,
+                           vPmMesh, vPnMesh,
+                           cFunc, dFunc,
+                           vFunc,
+                           vPmFunc, vPnFunc,
+                           # notice that these should only be conditionally saved once all of the acon stuff gets sorted out
+                           ucon_vars, con_vars,
+                           dcon_vars, acon_vars)
+
+def solve_ucon(C, D, V, w_tp1, utility, par, wPaMesh, wPbMesh, grids, verbose):
     if verbose:
         print("... solving unconstrained segment")
+
+    # ====================
+    # - grids and meshes -
+    # ====================
+    mGrid, nGrid = grids.mGrid, grids.nGrid
+
+    aGrid, bGrid = grids.aGrid, grids.bGrid
+    aMesh, bMesh = grids.aMesh, grids.bMesh
+
+    # shape of common grid
+    grid_shape = (len(mGrid), len(nGrid))
 
     # FOCs
     cMesh_ucon = utility.P_inv(par.DiscFac*wPaMesh)
@@ -829,17 +883,19 @@ def solve_period_working(solution_next, w, wPa, wPb, par, grids, stablevalue, ut
     nMesh_ucon = bMesh - dMesh_ucon + utility.g(dMesh_ucon)
 
     # Value at endogenous grids
-    vMesh_ucon = utility.u(cMesh_ucon) - par.alpha + par.DiscFac*w(aGrid, bGrid)
+    vMesh_ucon = utility.u(cMesh_ucon) - par.alpha + par.DiscFac*w_tp1(aGrid, bGrid)
 
     cleanSegment((cMesh_ucon, dMesh_ucon, mMesh_ucon, nMesh_ucon), vMesh_ucon)
 
     # an indicator array that says if segment is optimal at
     # common grid points
     bestSegment_ucon = numpy.zeros(grid_shape, dtype = bool)
-    segmentUpperEnvelope(mGrid, nGrid, cMesh, dMesh, vMesh, mMesh_ucon, nMesh_ucon, cMesh_ucon, dMesh_ucon, vMesh_ucon, bestSegment_ucon)
-    vucon = numpy.copy(vMesh)
+    segmentUpperEnvelope(grids, C, D, V, mMesh_ucon, nMesh_ucon, cMesh_ucon, dMesh_ucon, vMesh_ucon, bestSegment_ucon)
+    vucon = numpy.copy(V)
 
+    return (cMesh_ucon, dMesh_ucon, vMesh_ucon, mMesh_ucon, nMesh_ucon, bestSegment_ucon, vucon)
 
+def solve_con(C, D, V, w_tp1, utility, grids, par, verbose):
     # ==============
     # -    con     -
     # ==============
@@ -847,6 +903,9 @@ def solve_period_working(solution_next, w, wPa, wPb, par, grids, stablevalue, ut
     # we basically control (m, n) so we can just directly check it on the grid!
     if verbose:
         print("... solving fully constrained segment")
+
+    # shape of common grid
+    grid_shape = (len(grids.mGrid), len(grids.nGrid))
 
     # No FOCs, fully constrained -> consume what you have and doposit nothing
     cMesh_con = grids.mMesh   # this is fully constrained => m = c + a + b    = c
@@ -864,24 +923,29 @@ def solve_period_working(solution_next, w, wPa, wPb, par, grids, stablevalue, ut
     bMesh_con = nGrid_con # d = 0
     # Value at endogenous grids
     # vMesh_con = utility.u(cMesh_con) - alpha + DiscFac*w(aGrid_con, bGrid_con)
-    vMesh_con = utility.u(cMesh_con) - par.alpha + par.DiscFac*w(aMesh_con, bMesh_con)
+    vMesh_con = utility.u(cMesh_con) - par.alpha + par.DiscFac*w_tp1(aMesh_con, bMesh_con)
 
     # an indicator array that says if segment is optimal at
     # common grid points
     bestSegment_con = numpy.zeros(grid_shape, dtype = bool)
-    segmentUpperEnvelope(mGrid, nGrid,
-                         cMesh, dMesh, vMesh,
+    segmentUpperEnvelope(grids,
+                         C, D, V,
                          mMesh_con, nMesh_con,
                          cMesh_con, dMesh_con,
                          vMesh_con,
                          bestSegment_con)
-    vcon = numpy.copy(vMesh)
+    v_con = numpy.copy(V)
+    return (cMesh_con, dMesh_con, vMesh_con, mMesh_con, nMesh_con, bestSegment_con, v_con)
 
-    # ==============
-    # -    dcon    -
-    # ==============
+def solve_dcon(C, D, V, w_tp1, wPaMesh, wPbMesh, utility, grids, par, verbose):
     if verbose:
         print("... solving deposit constrained segment")
+
+
+    aMesh, bMesh = grids.aMesh, grids.bMesh
+
+    # shape of common grid
+    grid_shape = (len(grids.mGrid), len(grids.nGrid))
 
     # FOC for c, d constrained
     # ------------------------
@@ -895,30 +959,35 @@ def solve_period_working(solution_next, w, wPa, wPb, par, grids, stablevalue, ut
     nMesh_dcon = bMesh
 
     # Value at endogenous grids
-    # -------------------------
-    vMesh_dcon = utility.u(cMesh_dcon) - par.alpha + par.DiscFac*w(aMesh, bMesh)
-
+    vMesh_dcon = utility.u(cMesh_dcon) - par.alpha + par.DiscFac*w_tp1(aMesh, bMesh)
 
     cleanSegment((cMesh_dcon, dMesh_dcon, mMesh_dcon, nMesh_dcon), vMesh_dcon)
 
     # an indicator array that says if segment is optimal at
     # common grid points
     bestSegment_dcon = numpy.zeros(grid_shape, dtype=bool)
-    segmentUpperEnvelope(mGrid, nGrid,
-                         cMesh, dMesh, vMesh,
+    segmentUpperEnvelope(grids,
+                         C, D, V,
                          mMesh_dcon, nMesh_dcon,
                          cMesh_dcon, dMesh_dcon, vMesh_dcon,
                          bestSegment_dcon)
-    vdcon = numpy.copy(vMesh)
-    # ==============
-    # -    acon    -
-    # ==============
+    v_dcon = numpy.copy(V)
+
+    return (cMesh_dcon, dMesh_dcon, vMesh_dcon, mMesh_dcon, nMesh_dcon, bestSegment_dcon, v_dcon)
+
+def solve_acon(C, D, V, w_tp1, wPb_tp1, utility, grids, par, verbose):
+
     if verbose:
         print("... solving post-decision cash-on-hand constrained segment")
 
-    Na_acon = len(aGrid)*2
-    # aGrid_acon = bGrid*0 #numpy.zeros(Na_acon)
-    # bGrid_acon = bGrid # nonlinspace(0, bGrid.max(), Na_acon)
+    # shape of common grid
+    grid_shape = (len(grids.mGrid), len(grids.nGrid))
+
+    mGrid = grids.mGrid
+    bGrid = grids.bGrid
+
+    Na_acon = len(grids.aGrid)*2
+
     aGrid_acon = numpy.zeros(Na_acon)
     bGrid_acon = nonlinspace(0, bGrid.max(), Na_acon)
     aMesh_acon, bMesh_acon = numpy.meshgrid(aGrid_acon, bGrid_acon, indexing='ij')
@@ -926,8 +995,8 @@ def solve_period_working(solution_next, w, wPa, wPb, par, grids, stablevalue, ut
     # --------------------------------------------------------------
     # We don't want wPbGrd_acon[0] to be a row, we want it to be the first
     # element, so we ravel
-    wPbGrid_acon = wPb(aGrid_acon, bGrid_acon)
-    wPbMesh_acon = wPb(aMesh_acon, bMesh_acon)
+    wPbGrid_acon = wPb_tp1(aGrid_acon, bGrid_acon)
+    wPbMesh_acon = wPb_tp1(aMesh_acon, bMesh_acon)
 
     # No FOC for c; fix at some "interesting" values
     # the approach requires b to be fixed. I'm not 100% I'm following the paper's
@@ -938,75 +1007,56 @@ def solve_period_working(solution_next, w, wPa, wPb, par, grids, stablevalue, ut
     # b-grid, and substituting in a very large d (so 1+d in the denominator makes
     # fraction vanish) or a very small d (d=0) such that the fraction becomes chi/1
 
-    cmin = utility.P_inv(par.DiscFac*wPbGrid_acon*(1 + par.chi))
-    cmax = utility.P_inv(par.DiscFac*wPbGrid_acon*(1 + par.chi/(1+mGrid.max())))
+    CMin = utility.P_inv(par.DiscFac*wPbGrid_acon*(1 + par.chi))
+    CMax = utility.P_inv(par.DiscFac*wPbGrid_acon*(1 + par.chi/(1+mGrid.max())))
     # [RFC] can this be done in a better way?
 
-    cMesh_acon = numpy.array([nonlinspace(cmin[bi], cmax[bi], Na_acon) for bi in range(len(bGrid_acon))])
+    C_acon = numpy.array([nonlinspace(CMin[bi], CMax[bi], Na_acon) for bi in range(len(bGrid_acon))])
     # FOC for d constrained
     # the d's that fullfil FOC at the bottom of p. 93 follow from gPd(d) = chi/(1+d)
     # 0 = uPc(c)+DiscFac*wPb(a,b)(1+chi/(1+d))
-    dMesh_acon = par.chi/(utility.P(cMesh_acon)/(par.DiscFac*wPbMesh_acon) - 1) - 1
+    D_acon = par.chi/(utility.P(C_acon)/(par.DiscFac*wPbMesh_acon) - 1) - 1
 
     # Endogenous grids
-    mMesh_acon = aMesh_acon + cMesh_acon + dMesh_acon
-    nMesh_acon = bMesh_acon - dMesh_acon - utility.g(dMesh_acon)
+    M_acon = aMesh_acon + C_acon + D_acon
+    N_acon = bMesh_acon - D_acon - utility.g(D_acon)
 
 
     # value at endogenous grids
-    vMesh_acon = utility.u(cMesh_acon) - par.alpha + par.DiscFac*w(aMesh_acon, bMesh_acon)
+    V_acon = utility.u(C_acon) - par.alpha + par.DiscFac*w_tp1(aMesh_acon, bMesh_acon)
 
-    cleanSegment((cMesh_acon, dMesh_acon, mMesh_acon, nMesh_acon), vMesh_acon)
+    cleanSegment((C_acon, D_acon, M_acon, N_acon), V_acon)
 
     # # an indicator array that says if segment is optimal at
     # # common grid points
     bestSegment_acon = numpy.zeros(grid_shape, dtype = bool)
-#    segmentUpperEnvelope(mGrid, nGrid, cMesh, dMesh, vMesh, mMesh_acon, nMesh_acon, cMesh_acon, dMesh_acon, vMesh_acon, bestSegment_acon)
-    vacon = numpy.copy(vMesh)
+    segmentUpperEnvelope(grids, C, D, V, M_acon, N_acon, C_acon, D_acon, V_acon, bestSegment_acon)
+    VCopy = numpy.copy(V)
 
-    cFunc = stablevalue2d(mGrid, nGrid, cMesh)
-    dFunc = stablevalue2d(mGrid, nGrid, dMesh)
-    vFunc = stablevalue2d(mGrid, nGrid, vMesh)
-
-
-    #
-    A_acon = mMesh - cMesh - dMesh
-    B_acon = nMesh + dMesh + utility.g(dMesh)
-
-#    wPbMinv = utility.inv(wPbM)
-
-    # AB = numpy.zeros((numpy.prod(A.size), 2))
-    # AB[:, 0] = A.flatten()
-    # AB[:, 1] = B.flatten()
-    # wPbMAB = utility.u(interp(aGrid, bGrid, wPbMu, AB).reshape(A.shape))
-
-    vPmMesh = utility.P(cMesh)
-    vPnMesh = par.DiscFac*wPb(A_acon, B_acon)
-
-    vPmFunc = stablevalue2d(mGrid, nGrid, vPmMesh)
-    vPnFunc = stablevalue2d(mGrid, nGrid, vPnMesh)
-
-    return WorkingSolution(aMesh, bMesh,
-                           mMesh, nMesh,
-                           cMesh, dMesh,
-                           vMesh,
-                           vPmMesh, vPnMesh,
-                           cFunc, dFunc,
-                           vFunc,
-                           vPmFunc, vPnFunc,
-                           # notice that these should only be conditionally saved once all of the acon stuff gets sorted out
-                           #    0           1            2           3          4          5        6         7               8     9     10
-                           (cMesh_ucon, dMesh_ucon, vMesh_ucon, mMesh_ucon, nMesh_ucon, wPaMesh, wPbMesh, bestSegment_ucon, vucon),
-                           (cMesh_con,  dMesh_con,  vMesh_con,  mMesh_con,  nMesh_con,  wPaMesh, wPbMesh, bestSegment_con,  vcon),
-                           (cMesh_dcon, dMesh_dcon, vMesh_dcon, mMesh_dcon, nMesh_dcon, wPaMesh, wPbMesh, bestSegment_dcon, vdcon),
-                           (cMesh_acon, dMesh_acon, vMesh_acon, mMesh_acon, nMesh_acon, wPaMesh, wPbMesh, bestSegment_acon, vacon, cmin, cmax))
-
+    return (C_acon, D_acon, V_acon, M_acon, N_acon, bestSegment_acon, VCopy, CMin, CMax)
 
 def solve_period_retirement(rs_tp1, par, grids, utility, stablevalue):
-    # ========== #
-    # - unpack - #
-    # ========== #
+    """
+    Solves a period of the retirement model using EGM.
 
+    Parameters
+    ----------
+    rs_tp1 : RetirementSolution
+        holds the retirement solution for the next period
+    par : MCNABParameters
+        object that holds parameters relevant to utility and transitions
+    grids : Grids
+        holds all the grids and meshes for (m, n) and (a, b) space
+    utility : Utility
+        holds utility functions, inverses, derivatives, ...
+    stablevalue : StableValue1D
+        is used to create a stable interpolant of value functions
+
+    Returns
+    -------
+    rs : RetirementSolution
+        holds the retirement solution for the current period
+    """
     # next period policy for retired agents
     c1d_tp1 = rs_tp1.c1d
     # next period value function for retired agents
@@ -1019,40 +1069,40 @@ def solve_period_retirement(rs_tp1, par, grids, utility, stablevalue):
     # - interior solutions - #
     # ====================== #
     m_tp1 = par.Ra*aGrid + par.y
-    cGrid_tp1 = c1d_tp1(m_tp1)
-    cP_tp1 = utility.P(cGrid_tp1)
-    cGridInterior = utility.P_inv(par.DiscFac*par.Ra*cP_tp1)
+    CGrid_tp1 = c1d_tp1(m_tp1)
+    cP_tp1 = utility.P(CGrid_tp1)
+    CGridInterior = utility.P_inv(par.DiscFac*par.Ra*cP_tp1)
 
     # ======================================== #
     # - corner solution (consume everything) - #
     # ======================================== #
     nInterior = math.ceil(len(aGrid)*0.2)
-    mCorner = nonlinspace(1e-6, cGridInterior[0], nInterior)
+    mCorner = nonlinspace(1e-6, CGridInterior[0], nInterior)
     cCorner = numpy.copy(mCorner)
 
     # ===================== #
     # - combine solutions - #
     # ===================== #
-    cGrid = numpy.concatenate((cCorner, cGridInterior))
-    m = numpy.concatenate((mCorner, aGrid + cGridInterior))
+    CGrid = numpy.concatenate((cCorner, CGridInterior))
+    m = numpy.concatenate((mCorner, aGrid + CGridInterior))
     a = numpy.concatenate((numpy.full((nInterior,), 0.0), aGrid))
 
     # ======================= #
     # - policy interpolants - #
     # ======================= #
-    c1DFunc = LinearInterp(m, cGrid)
+    c1DFunc = LinearInterp(m, CGrid)
     cFunc = lambda m, n: c1DFunc(m + n)
 
     # ========================================== #
     # - value (incl. derivatives) interpolants - #
     # ========================================== #
-    vGrid = utility.u(cGrid) + par.DiscFac*v_tp1(a*par.Ra+par.y, a*0)
+    vGrid = utility.u(CGrid) + par.DiscFac*v_tp1(a*par.Ra+par.y, a*0)
     # level
     v1DFunc = stablevalue(m, vGrid)
     vFunc = lambda m, n: v1DFunc(m+n)
 
     # derivatives
-    vPm1DFunc = stablevalue(m, utility.P(cGrid))
+    vPm1DFunc = stablevalue(m, utility.P(CGrid))
     vPmFunc = lambda m, n: vPm1DFunc(m+n)
     vPnFunc = vPmFunc
 
