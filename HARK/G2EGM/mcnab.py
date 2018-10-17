@@ -211,7 +211,7 @@ def discreteEnvelope(Vs, sigma):
 
 
 @njit(error_model="numpy")
-def segmentUpperEnvelope(grids, cG, dG, vG, mSegment, nSegment, cSegment, dSegment, vSegment, bestSegment):
+def segmentUpperEnvelope(grids, cG, dG, vG, mSegment, nSegment, cSegment, dSegment, vSegment, best):
     """
     segmentUpperEnvelope calculates the upper envelope to a segment while
     re-interpolating it down to a common grid spanned by mGrid and nGrid.
@@ -221,21 +221,14 @@ def segmentUpperEnvelope(grids, cG, dG, vG, mSegment, nSegment, cSegment, dSegme
     # two simpleces forming a square (since it's 2D)
 
     mGrid, nGrid = grids.mGrid, grids.nGrid
-
-    # there are nm rows in mSegment, representing the nm different values
-    # of mGrid, and there are nn columns representing nGrid.
     nm, nn = mSegment.shape
-
-    # We use x to represent the current vector in the common grid that we're interpolating
-    # down to from a given simplex.
-    x = numpy.zeros(2)
 
     # These are the policies and values at the verteces of the current simplex. C is
     # the first control D is the second and V is the value.
     C, D, V = numpy.zeros(3), numpy.zeros(3), numpy.zeros(3)
 
     # it is the current simplex in matrix form (each row is a vertex)
-    it = numpy.zeros((3, 2))
+    simplex = numpy.zeros((3, 2))
 
     # Loop over all the segment m and n's. We loop for i_m's in [0, nm-1] because we
     # add one to the i_m indeces when building the simpleces. Likewise for nn
@@ -251,10 +244,10 @@ def segmentUpperEnvelope(grids, cG, dG, vG, mSegment, nSegment, cSegment, dSegme
                 m1, n1 = mSegment[i1], nSegment[i1]
                 m2, n2 = mSegment[i2], nSegment[i2]
 
-                # construct the two simpleces
-                it[0] = m0, n0
-                it[1] = m1, n1
-                it[2] = m2, n2
+                # construct the simplex, each row is a vertex
+                simplex[0] = m0, n0
+                simplex[1] = m1, n1
+                simplex[2] = m2, n2
 
                 m_min, n_min = min(m0, m1, m2), min(n0, n1, n2)
                 m_max, n_max = max(m0, m1, m2), max(n0, n1, n2)
@@ -262,11 +255,11 @@ def segmentUpperEnvelope(grids, cG, dG, vG, mSegment, nSegment, cSegment, dSegme
                 ms = numpy.searchsorted(mGrid, numpy.array([m_min, m_max]))
                 ns = numpy.searchsorted(nGrid, numpy.array([n_min, n_max]))
 
-                lm, ln = len(mGrid), len(nGrid)
+                len_m, len_n = len(mGrid), len(nGrid)
 
                 # inverse of denominator for barycentric weights
-                den = ((n1 - n2)*(m0 - m2) + (m2 - m1)*(n0 - n2))
-                invDenominator = 1.0/den
+                denominator = ((n1 - n2)*(m0 - m2) + (m2 - m1)*(n0 - n2))
+                inv_denominator = 1.0/denominator
 
                 d12 = n1 - n2
                 d21 = m2 - m1
@@ -278,24 +271,20 @@ def segmentUpperEnvelope(grids, cG, dG, vG, mSegment, nSegment, cSegment, dSegme
                 V[:] = vSegment[i0], vSegment[i1], vSegment[i2]
 
 
-                for i_mg in range(ms[0], min(ms[1]+1, lm)):
-                    # x[0] is m in the common grid
-                    x[0] = mGrid[i_mg]
-                    for i_ng in range(ns[0], min(ns[1]+1, ln)):
-                        # x[1] is n in the common grid
-                        x[1] = nGrid[i_ng]
-
+                for i_mg in range(ms[0], min(ms[1]+1, len_m)):
+                    m_i = mGrid[i_mg]
+                    for i_ng in range(ns[0], min(ns[1]+1, len_n)):
                         # (m, n) is the common grid point in R^2
-                        m, n = x[0], x[1]
+                        n_i = nGrid[i_ng]
 
-                        wA = (d12*(m - m2) + d21*(n - n2))*invDenominator
-                        wB = (d20*(m - m2) + d02*(n - n2))*invDenominator
+                        weight_A = (d12*(m_i - m2) + d21*(n_i - n2))*inv_denominator
+                        weight_B = (d20*(m_i - m2) + d02*(n_i - n2))*inv_denominator
 
                         # Is an array the best thing to do here? It makes
                         # JITting easy, but it seems wasteful
-                        Weights = numpy.array([wA, wB, 1.0 - wA - wB])
+                        weights = numpy.array([weight_A, weight_B, 1.0 - weight_A - weight_B])
 
-                        updateSegment(i_mg, i_ng, Weights, C, D, V, cG, dG, vG, bestSegment)
+                        updateSegment(i_mg, i_ng, weights, C, D, V, cG, dG, vG, best)
 
 # @njit # something is not numba
 # can't use boolean slicesin numba
@@ -327,15 +316,16 @@ def cleanSegment(T, V):
     V[isinfeasible] = numpy.nan
 
 @njit
-def updateSegment(i_mg, i_ng, Weights, C, D, V, CG, DG, VG, bestSegment):
+def updateSegment(i_mg, i_ng, Weights, C, D, V, CG, DG, VG, best):
     """
     vBest is currently best at x (wehere weights are calculated)
     """
-    tol = 0.1
     # if weights are within the cutoff, go ahead and interpolate, and update
-    Wsum = Weights.sum()
 
+    Wsum = Weights.sum()
+    tol = 0.1
     if (Wsum < (1.0 + tol)) & (Wsum > (1.0 - tol)):
+#    if numpy.any(Weights < -0.25):
         # interpolate
         c = numpy.dot(Weights, C)
         d = numpy.dot(Weights, D)
@@ -349,7 +339,7 @@ def updateSegment(i_mg, i_ng, Weights, C, D, V, CG, DG, VG, bestSegment):
             CG[i_mg, i_ng] = c
             DG[i_mg, i_ng] = d
             VG[i_mg, i_ng] = v
-            bestSegment[i_mg, i_ng] = True
+            best[i_mg, i_ng] = True
 
 
 
@@ -829,7 +819,6 @@ def solve_period_working(solution_next, par, grids, utility, stablevalue, stable
     acon_vars = solve_acon(cMesh, dMesh, vMesh, w_tp1, wPb_tp1, utility, grids, par, verbose)
 
     # Post-decision grids
-
     A_acon = mMesh - cMesh - dMesh
     B_acon = nMesh + dMesh + utility.g(dMesh)
 
@@ -889,11 +878,11 @@ def solve_ucon(C, D, V, w_tp1, utility, par, wPaMesh, wPbMesh, grids, verbose):
 
     # an indicator array that says if segment is optimal at
     # common grid points
-    bestSegment_ucon = numpy.zeros(grid_shape, dtype = bool)
-    segmentUpperEnvelope(grids, C, D, V, mMesh_ucon, nMesh_ucon, cMesh_ucon, dMesh_ucon, vMesh_ucon, bestSegment_ucon)
+    best_ucon = numpy.zeros(grid_shape, dtype = bool)
+    segmentUpperEnvelope(grids, C, D, V, mMesh_ucon, nMesh_ucon, cMesh_ucon, dMesh_ucon, vMesh_ucon, best_ucon)
     vucon = numpy.copy(V)
 
-    return (cMesh_ucon, dMesh_ucon, vMesh_ucon, mMesh_ucon, nMesh_ucon, bestSegment_ucon, vucon)
+    return (cMesh_ucon, dMesh_ucon, vMesh_ucon, mMesh_ucon, nMesh_ucon, best_ucon, vucon)
 
 def solve_con(C, D, V, w_tp1, utility, grids, par, verbose):
     # ==============
@@ -927,15 +916,15 @@ def solve_con(C, D, V, w_tp1, utility, grids, par, verbose):
 
     # an indicator array that says if segment is optimal at
     # common grid points
-    bestSegment_con = numpy.zeros(grid_shape, dtype = bool)
+    best_con = numpy.zeros(grid_shape, dtype = bool)
     segmentUpperEnvelope(grids,
                          C, D, V,
                          mMesh_con, nMesh_con,
                          cMesh_con, dMesh_con,
                          vMesh_con,
-                         bestSegment_con)
+                         best_con)
     v_con = numpy.copy(V)
-    return (cMesh_con, dMesh_con, vMesh_con, mMesh_con, nMesh_con, bestSegment_con, v_con)
+    return (cMesh_con, dMesh_con, vMesh_con, mMesh_con, nMesh_con, best_con, v_con)
 
 def solve_dcon(C, D, V, w_tp1, wPaMesh, wPbMesh, utility, grids, par, verbose):
     if verbose:
@@ -965,18 +954,17 @@ def solve_dcon(C, D, V, w_tp1, wPaMesh, wPbMesh, utility, grids, par, verbose):
 
     # an indicator array that says if segment is optimal at
     # common grid points
-    bestSegment_dcon = numpy.zeros(grid_shape, dtype=bool)
+    best_dcon = numpy.zeros(grid_shape, dtype=bool)
     segmentUpperEnvelope(grids,
                          C, D, V,
                          mMesh_dcon, nMesh_dcon,
                          cMesh_dcon, dMesh_dcon, vMesh_dcon,
-                         bestSegment_dcon)
+                         best_dcon)
     v_dcon = numpy.copy(V)
 
-    return (cMesh_dcon, dMesh_dcon, vMesh_dcon, mMesh_dcon, nMesh_dcon, bestSegment_dcon, v_dcon)
+    return (cMesh_dcon, dMesh_dcon, vMesh_dcon, mMesh_dcon, nMesh_dcon, best_dcon, v_dcon)
 
 def solve_acon(C, D, V, w_tp1, wPb_tp1, utility, grids, par, verbose):
-
     if verbose:
         print("... solving post-decision cash-on-hand constrained segment")
 
@@ -986,11 +974,12 @@ def solve_acon(C, D, V, w_tp1, wPb_tp1, utility, grids, par, verbose):
     mGrid = grids.mGrid
     bGrid = grids.bGrid
 
-    Na_acon = len(grids.aGrid)*2
+    Na_acon = len(grids.aGrid)*4
 
     aGrid_acon = numpy.zeros(Na_acon)
     bGrid_acon = nonlinspace(0, bGrid.max(), Na_acon)
     aMesh_acon, bMesh_acon = numpy.meshgrid(aGrid_acon, bGrid_acon, indexing='ij')
+
     # Separate evaluation of wPb for acon due to constrained a = 0.0
     # --------------------------------------------------------------
     # We don't want wPbGrd_acon[0] to be a row, we want it to be the first
@@ -1007,11 +996,11 @@ def solve_acon(C, D, V, w_tp1, wPb_tp1, utility, grids, par, verbose):
     # b-grid, and substituting in a very large d (so 1+d in the denominator makes
     # fraction vanish) or a very small d (d=0) such that the fraction becomes chi/1
 
+    # [RFC] can this be done in a better way?
     CMin = utility.P_inv(par.DiscFac*wPbGrid_acon*(1 + par.chi))
     CMax = utility.P_inv(par.DiscFac*wPbGrid_acon*(1 + par.chi/(1+mGrid.max())))
-    # [RFC] can this be done in a better way?
-
     C_acon = numpy.array([nonlinspace(CMin[bi], CMax[bi], Na_acon) for bi in range(len(bGrid_acon))])
+
     # FOC for d constrained
     # the d's that fullfil FOC at the bottom of p. 93 follow from gPd(d) = chi/(1+d)
     # 0 = uPc(c)+DiscFac*wPb(a,b)(1+chi/(1+d))
@@ -1021,7 +1010,6 @@ def solve_acon(C, D, V, w_tp1, wPb_tp1, utility, grids, par, verbose):
     M_acon = aMesh_acon + C_acon + D_acon
     N_acon = bMesh_acon - D_acon - utility.g(D_acon)
 
-
     # value at endogenous grids
     V_acon = utility.u(C_acon) - par.alpha + par.DiscFac*w_tp1(aMesh_acon, bMesh_acon)
 
@@ -1029,11 +1017,11 @@ def solve_acon(C, D, V, w_tp1, wPb_tp1, utility, grids, par, verbose):
 
     # # an indicator array that says if segment is optimal at
     # # common grid points
-    bestSegment_acon = numpy.zeros(grid_shape, dtype = bool)
-    segmentUpperEnvelope(grids, C, D, V, M_acon, N_acon, C_acon, D_acon, V_acon, bestSegment_acon)
+    best_acon = numpy.zeros(grid_shape, dtype = bool)
+    segmentUpperEnvelope(grids, C, D, V, M_acon, N_acon, C_acon, D_acon, V_acon, best_acon)
     VCopy = numpy.copy(V)
 
-    return (C_acon, D_acon, V_acon, M_acon, N_acon, bestSegment_acon, VCopy, CMin, CMax)
+    return (C_acon, D_acon, V_acon, M_acon, N_acon, best_acon, VCopy, CMin, CMax)
 
 def solve_period_retirement(rs_tp1, par, grids, utility, stablevalue):
     """
