@@ -1,11 +1,12 @@
+# TODO make w not be tp1 as it is techinally a period t thing
+import math
+import numpy
+from numba import njit
+
 from collections import namedtuple
 from HARK.utilities import CRRAutility, CRRAutility_inv, CRRAutilityP, CRRAutilityP_inv
 from HARK.interpolation import LinearInterp, BilinearInterp
 from HARK import Solution, AgentType
-#from g2egm import segmentUpperEnvelope, discreteEnvelope, StableValue1D, StableValue2D, nonlinspace, w_and_wP, cleanSegment
-import numpy
-from numba import njit
-import math
 #################################
 # - stable value interpolants - #
 #################################
@@ -96,7 +97,7 @@ def nonlinspace(low, high, n, phi = 1.1):
 
     return x
 
-def w_and_wP(rs, ws, grids, par, discreteEnvelope, stablevalue2d):
+def w_and_wP(rs, ws, grids, par, stablevalue2d):
     '''
     Construct undiscounted post-decision value function and derivatives wrt the
     two post decision states.
@@ -109,9 +110,6 @@ def w_and_wP(rs, ws, grids, par, discreteEnvelope, stablevalue2d):
         a named tuple with grids and meshes
     par : MCNABParameters
         an object with utility parameters
-    discreteEnvelope : function
-        function to calculate the discrete choices given choice specific value
-        functions and the associated over all value
     stablevalue2d : StableValue2D
         a function to construct an interpolant that is stable in some sense (see
         docstring for StableValue2D for more precise information)
@@ -149,7 +147,7 @@ def w_and_wP(rs, ws, grids, par, discreteEnvelope, stablevalue2d):
     # ===================================== #
     # - discrete envelope at interp grids - #
     # ===================================== #
-    wInterp, Pr_1 = discreteEnvelope(numpy.array([vInterpRet, vInterpWork]))
+    wInterp, Pr_1 = discreteEnvelope(numpy.array([vInterpRet, vInterpWork]), par.sigma)
 
     # ===================================== #
     # - post decision value function      - #
@@ -173,10 +171,6 @@ def w_and_wP(rs, ws, grids, par, discreteEnvelope, stablevalue2d):
     wPb = stablevalue2d(aInterp, bInterp, wPbInterp)
 
     return w, wPa, wPb
-
-# =========================== #
-# - barycentric interpolant - #
-# =========================== #
 
 def discreteEnvelope(Vs, sigma):
     '''
@@ -305,7 +299,7 @@ def cleanSegment(T, V):
     Nothing
     """
 
-    threshold = 0.0
+    threshold = -0.20
     isinfeasible = T[0] < threshold
     for i in range(1, len(T)):
         isinfeasible = numpy.logical_or(isinfeasible, (T[i] < threshold))
@@ -448,85 +442,99 @@ class MCNABParameters(object):
 
 Utility = namedtuple('Utility', 'u inv P P_inv g')
 
+# RFC this might be better in a class according to some definition of better,
+# but it seems overkill to make a class just for the init. There will be no
+# public methods that I can think of in such a class? namedtuples has the
+# advantage of being numba compatible, so they can be passed directly to jitted
+# functions
+def mcnab_grids(mlims, mlen,
+               mlims_ret, mlen_ret,
+               nlims, nlen,
+               alims, alen,
+               alims_ret, alen_ret,
+               blims, blen,
+               alims_post, alen_post,
+               blims_post, blen_post,):
+    mGrid = nonlinspace(mlims[0], mlims[1], mlen)
+    mGrid_ret = nonlinspace(mlims_ret[0], mlims_ret[1], mlen_ret)
+    nGrid = nonlinspace(nlims[0], nlims[1], nlen)
+    mAdd_con = 3
+    nAdd_con = 3
+    mGrid_con = nonlinspace(mlims[0], mlims[1] + mAdd_con, mlen)
+    nGrid_con = nonlinspace(nlims[0], nlims[1] + nAdd_con, nlen)
+
+    # (a, b) grids
+    aGrid = nonlinspace(alims[0], alims[1], alen)
+    bGrid = nonlinspace(blims[0], blims[1], blen)
+    aGrid_ret = nonlinspace(alims_ret[0], alims_ret[1], alen_ret)
+
+    aMesh,     bMesh     = numpy.meshgrid(aGrid, bGrid, indexing = 'ij')
+
+    # Store a few mesh grids for future use
+    mMesh, nMesh = numpy.meshgrid(mGrid, nGrid, indexing = 'ij')
+    mMesh_con, nMesh_con = numpy.meshgrid(mGrid_con, nGrid_con, indexing = 'ij')
+
+    aGridPost = nonlinspace(alims_post[0], alims_post[1], alen_post)
+    bGridPost = nonlinspace(blims_post[0], blims_post[1], blen_post)
+
+    # pack grids
+    return Grids(aGrid, bGrid,
+                 aGrid_ret,
+                 aGridPost, bGridPost,
+                 mGrid, nGrid, mGrid_ret,
+                 aMesh, bMesh,
+                 mMesh, nMesh,
+                 mGrid_con, nGrid_con,
+                 mMesh_con, nMesh_con)
+
+
 
 class MCNAB(AgentType):
-    def __init__(self, T = 20,
-                 Ra = 1.02, Rb = 1.04, # interest rates
-                 m_min = 1e-6, n_min = 1e-6,
-                 m_max = 10.0, n_max = 12.0,
-                 m_max_ret = 70,
+    def __init__(self, T=20,
+                 # interest factors
+                 Ra=1.02, Rb=1.04, # liquid, illiquid
+                 # common regular grid
+                 mlims=(1e-6, 10.0), Nm=500, # m grid
+                 nlims=(1e-6, 12.0), Nn=500, # n grid
+                 # post decision grid
+                 alims=(1e-6, 18.0), Na=400, # a grid
+                 blims=(1e-6, 18.0), Nb=400, # b grid
+                 # retirement grids
+                 mlims_ret=(1e-6, 70.0), Nm_ret=500, # m grid when retired (last period)
+                 alims_ret=(1e-6, 50.0), Na_ret=500, # a grid when retired
+                 # interpolation grids
+                 Na_w=400, Nb_w=400, # grid points for interpolation
 
-                 a_min = 1e-6, b_min = 1e-6,
-                 a_max = 18.0, b_max = 18.0,
-
-                 a_min_ret = 1e-6, a_max_ret = 50.0,
-
-                 Na = 250, Nb = 250,
-                 Na_w = 250, Nb_w = 250,
-
-                 Nm = 500, Nn = 500,
-
-                 Nm_ret = 500, Na_ret = 500,
-                 y = 0.5, eta = 1.0,
-                 CRRA = 2.0, alpha = 0.25, chi = 0.1,
-                 DiscFac = 0.98,
-                 sigma = 0.0, verbose = True,
+                 # income levels
+                 y=0.5, eta=1.0, # retired, working
+                 # utility parameters
+                 CRRA=2.0, alpha=0.25, chi=0.1,
+                 # discount factor
+                 DiscFac=0.98,
+                 # taste shock / smoothing
+                 sigma=0.0,
+                 # print information
+                 verbose=True,
                  **kwds):
 
         # Initialize a basic AgentType
         AgentType.__init__(self, **kwds)
 
-        self.time_inv = ['par', 'grids', 'utility', 'discreteEnvelope',
-                         'stablevalue',  'stablevalue2d', 'verbose']
+        self.time_inv = ['par', 'grids', 'utility',
+                         'stablevalue', 'stablevalue2d', 'verbose']
         self.time_vary = ['age']
 
         self.age = list(range(T-1))
         self.solveOnePeriod = solve_period
 
-        # Terminal period is T
-        self.T = T
-
-        # Common grid
-        self.m_max = m_max
-        self.n_max = n_max
-        self.Nm = Nm
-        self.Nn = Nn
-
-        mGrid = nonlinspace(m_min, m_max, Nm)
-        mGrid_ret = nonlinspace(m_min, m_max_ret, Nm_ret)
-        nGrid = nonlinspace(n_min, n_max, Nn)
-        mAdd_con = 3
-        nAdd_con = 3
-        mGrid_con = nonlinspace(m_min, m_max+mAdd_con, Nm)
-        nGrid_con = nonlinspace(n_min, n_max+nAdd_con, Nn)
-
-        # (a, b) grids
-        aGrid = nonlinspace(a_min, a_max, Na)
-        bGrid = nonlinspace(b_min, b_max, Nb)
-        aGrid_ret = nonlinspace(a_min_ret, a_max_ret, Na_ret)
-
-        aMesh,     bMesh     = numpy.meshgrid(aGrid, bGrid, indexing = 'ij')
-
-        # Store a few mesh grids for future use
-        mMesh, nMesh = numpy.meshgrid(mGrid, nGrid, indexing = 'ij')
-        mMesh_con, nMesh_con = numpy.meshgrid(mGrid_con, nGrid_con, indexing = 'ij')
-
-        aGridPost = nonlinspace(a_min, a_max, Na_w)
-        bGridPost = nonlinspace(b_min, b_max, Nb_w)
-
-        # pack grids
-        self.grids = Grids(aGrid, bGrid,
-                           aGrid_ret,
-                           aGridPost, bGridPost,
-                           mGrid, nGrid, mGrid_ret,
-                           aMesh, bMesh,
-                           mMesh, nMesh,
-                           mGrid_con, nGrid_con,
-                           mMesh_con, nMesh_con)
-
-        # ============== #
-        # - parameters - #
-        #=============== #
+        self.grids = mcnab_grids(mlims, Nm,
+                                 mlims_ret, Nm_ret,
+                                 nlims, Nn,
+                                 alims, Na,
+                                 alims_ret, Na_ret,
+                                 blims, Nb,
+                                 alims, Na_w,
+                                 blims, Nb_w,)
 
         # Ra is returns to liquid asset, Rb is returns to illiquid asset,
         # CRRA is the CRRA parameter in the utility function , chi is the
@@ -547,22 +555,6 @@ class MCNAB(AgentType):
 
         # set verbosity to True by default
         self.verbose = verbose
-
-    def discreteEnvelope(self, Vs):
-        '''
-        Calculate the discrete upper envelope given model parameters.
-
-        Parameters
-        ----------
-        Vs : numpy.array
-            array of choice specific values stored in last dimension
-
-        Returns
-        -------
-        (V, P) : (numpy.array, numpy.array)
-            tuple of integrated value function and policy matrix
-        '''
-        return discreteEnvelope(Vs, self.par.sigma)
 
     def updateLast(self):
         '''
@@ -598,14 +590,6 @@ class MCNAB(AgentType):
         # Solve the working sub-problem (orthogonal to the retirement problem)
         ws = self.updateLastWorking()
 
-        #### Find optimal choices and values
-        # Note that discrete choices will currently be degenerate as we
-        # don't have a taste shock implemented as a choice in the AgentType.
-
-        # Unpack post-decision state grids
-        aGridPost = self.grids.aGridPost
-        bGridPost = self.grids.bGridPost
-
         # We need an upper envelope of the two values prior to the discrete choice
         m, n = self.grids.mGrid, self.grids.nGrid
         M, N = self.grids.mMesh, self.grids.nMesh
@@ -618,10 +602,10 @@ class MCNAB(AgentType):
         wv_envelope = ws.v(M, N)
         vs = numpy.array([rv_envelope, wv_envelope]) # fixme preallocate
 
-        vMesh, Pr_1 = self.discreteEnvelope(vs)
+        vMesh, Pr_1 = discreteEnvelope(vs, par.sigma)
         v = self.stablevalue2d(m, n, vMesh)
 
-        w, wPa, wPb = w_and_wP(rs, ws, self.grids, self.par, self.discreteEnvelope, self.stablevalue2d)
+        w, wPa, wPb = w_and_wP(rs, ws, self.grids, self.par, self.stablevalue2d)
 
         # Store solution in solution_terminal
         self.solution_terminal = MCNABSolution(rs, ws, # solution objects
@@ -706,7 +690,7 @@ class MCNAB(AgentType):
         return WorkingSolution(0, 0, self.grids.mMesh, self.grids.nMesh, cMesh, dMesh, vMesh, vPmMesh, vPnMesh, c, d, v, vPm, vPn, (1), (1), (1), (1))
 
 
-def solve_period(solution_next, par, grids, utility, discreteEnvelope,  stablevalue,  stablevalue2d, verbose):
+def solve_period(solution_next, par, grids, utility, stablevalue, stablevalue2d, verbose):
     # =============================
     # - unpack from solution_next -
     # =============================
@@ -739,14 +723,14 @@ def solve_period(solution_next, par, grids, utility, discreteEnvelope,  stableva
     vInterpRet = rs.v(M, N)
     vInterpWork = ws.v(M, N)
 
-    vInterp, Pr_1 = discreteEnvelope(numpy.array([vInterpRet, vInterpWork]))
+    vInterp, Pr_1 = discreteEnvelope(numpy.array([vInterpRet, vInterpWork]), par.sigma)
 
     v = stablevalue2d(mGrid, nGrid, vInterp)
 
     # ==========================
     # - make w and derivatives -
     # ==========================
-    w, wPa, wPb = w_and_wP(rs, ws, grids, par, discreteEnvelope, stablevalue2d)
+    w, wPa, wPb = w_and_wP(rs, ws, grids, par, stablevalue2d)
 
     return MCNABSolution(rs, ws,
                          Pr_1, vInterp, v,
@@ -852,24 +836,19 @@ def solve_ucon(C, D, V, w_tp1, utility, par, wPaMesh, wPbMesh, grids, verbose):
     if verbose:
         print("... solving unconstrained segment")
 
-    # ====================
-    # - grids and meshes -
-    # ====================
-    mGrid, nGrid = grids.mGrid, grids.nGrid
-
     aGrid, bGrid = grids.aGrid, grids.bGrid
-    aMesh, bMesh = grids.aMesh, grids.bMesh
+    Aij, Bij = grids.aMesh, grids.bMesh
 
     # shape of common grid
-    grid_shape = (len(mGrid), len(nGrid))
+    grid_shape = grids.mMesh.shape
 
     # FOCs
     cMesh_ucon = utility.P_inv(par.DiscFac*wPaMesh)
     dMesh_ucon = (par.chi*wPbMesh)/(wPaMesh-wPbMesh) - 1
 
     # Endogenous grids
-    mMesh_ucon = aMesh + cMesh_ucon + dMesh_ucon
-    nMesh_ucon = bMesh - dMesh_ucon + utility.g(dMesh_ucon)
+    mMesh_ucon = Aij + cMesh_ucon + dMesh_ucon
+    nMesh_ucon = Bij - dMesh_ucon + utility.g(dMesh_ucon)
 
     # Value at endogenous grids
     vMesh_ucon = utility.u(cMesh_ucon) - par.alpha + par.DiscFac*w_tp1(aGrid, bGrid)
@@ -901,8 +880,8 @@ def solve_con(C, D, V, w_tp1, utility, grids, par, verbose):
     dMesh_con = 0.0*cMesh_con # this is fully constraied  => n = b - d - g(d) = b
 
     # Endogenous grids (well, exogenous...)
-    mMesh_con = grids.mMesh
-    nMesh_con = grids.nMesh
+    Mij_con = grids.mMesh
+    Nij_con = grids.nMesh
     mGrid_con = grids.mGrid
     nGrid_con = grids.nGrid
 
@@ -919,19 +898,19 @@ def solve_con(C, D, V, w_tp1, utility, grids, par, verbose):
     best_con = numpy.zeros(grid_shape, dtype = bool)
     segmentUpperEnvelope(grids,
                          C, D, V,
-                         mMesh_con, nMesh_con,
+                         Mij_con, Nij_con,
                          cMesh_con, dMesh_con,
                          vMesh_con,
                          best_con)
     v_con = numpy.copy(V)
-    return (cMesh_con, dMesh_con, vMesh_con, mMesh_con, nMesh_con, best_con, v_con)
+    return (cMesh_con, dMesh_con, vMesh_con, Mij_con, Nij_con, best_con, v_con)
 
 def solve_dcon(C, D, V, w_tp1, wPaMesh, wPbMesh, utility, grids, par, verbose):
     if verbose:
         print("... solving deposit constrained segment")
 
 
-    aMesh, bMesh = grids.aMesh, grids.bMesh
+    Aij, Bij = grids.aMesh, grids.bMesh
 
     # shape of common grid
     grid_shape = (len(grids.mGrid), len(grids.nGrid))
@@ -944,11 +923,11 @@ def solve_dcon(C, D, V, w_tp1, wPaMesh, wPbMesh, utility, grids, par, verbose):
 
     # Endogenous grids (n-grid is exogenous)
     # --------------------------------------
-    mMesh_dcon = aMesh + cMesh_dcon # + dMesh_dcon which is 0
-    nMesh_dcon = bMesh
+    mMesh_dcon = Aij + cMesh_dcon # + dMesh_dcon which is 0
+    nMesh_dcon = Bij
 
     # Value at endogenous grids
-    vMesh_dcon = utility.u(cMesh_dcon) - par.alpha + par.DiscFac*w_tp1(aMesh, bMesh)
+    vMesh_dcon = utility.u(cMesh_dcon) - par.alpha + par.DiscFac*w_tp1(Aij, Bij)
 
     cleanSegment((cMesh_dcon, dMesh_dcon, mMesh_dcon, nMesh_dcon), vMesh_dcon)
 
@@ -974,10 +953,10 @@ def solve_acon(C, D, V, w_tp1, wPb_tp1, utility, grids, par, verbose):
     mGrid = grids.mGrid
     bGrid = grids.bGrid
 
-    Na_acon = len(grids.aGrid)*4
+    Na_acon = len(grids.aGrid)
 
     aGrid_acon = numpy.zeros(Na_acon)
-    bGrid_acon = nonlinspace(0, bGrid.max(), Na_acon)
+    bGrid_acon = nonlinspace(0, bGrid.max(), Na_acon, phi = 1.3)
     aMesh_acon, bMesh_acon = numpy.meshgrid(aGrid_acon, bGrid_acon, indexing='ij')
 
     # Separate evaluation of wPb for acon due to constrained a = 0.0
@@ -1014,7 +993,7 @@ def solve_acon(C, D, V, w_tp1, wPb_tp1, utility, grids, par, verbose):
     V_acon = utility.u(C_acon) - par.alpha + par.DiscFac*w_tp1(aMesh_acon, bMesh_acon)
 
     cleanSegment((C_acon, D_acon, M_acon, N_acon), V_acon)
-
+    deviate_acon(C_acon, D_acon, M_acon, N_acon, V_acon, w_tp1, utility, par)
     # # an indicator array that says if segment is optimal at
     # # common grid points
     best_acon = numpy.zeros(grid_shape, dtype = bool)
@@ -1022,6 +1001,17 @@ def solve_acon(C, D, V, w_tp1, wPb_tp1, utility, grids, par, verbose):
     VCopy = numpy.copy(V)
 
     return (C_acon, D_acon, V_acon, M_acon, N_acon, best_acon, VCopy, CMin, CMax)
+
+def deviate_acon(C, D, M, N, V, w_tp1, utility, par):
+    eps_deviate = 1e-5
+    C_deviated = C - eps_deviate
+    M_deviated = M
+    A_deviated = M_deviated - C_deviated
+    N_deviated = N + eps_deviate
+    B_deviated = N_deviated + utility.g(eps_deviate)
+    V_deviated = utility.u(C_deviated) + par.DiscFac*w_tp1(A_deviated, B_deviated)
+    invalid = V_deviated > V
+    V[invalid] = numpy.nan
 
 def solve_period_retirement(rs_tp1, par, grids, utility, stablevalue):
     """
