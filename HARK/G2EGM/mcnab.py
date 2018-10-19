@@ -766,9 +766,9 @@ def solve_period_working(solution_next, par, grids, utility, stablevalue, stable
     # =================================
     # - next period w and derivatives -
     #==================================
-    w_tp1 = solution_next.w
-    wPa_tp1 = solution_next.wPa
-    wPb_tp1 = solution_next.wPb
+    w_t = solution_next.w
+    wPa_t = solution_next.wPa
+    wPb_t = solution_next.wPb
 
     # ====================
     # - grids and meshes -
@@ -794,13 +794,13 @@ def solve_period_working(solution_next, par, grids, utility, stablevalue, stable
     # ================
     # wPaMesh = wPa(aGrid, bGrid)
     # wPbMesh = wPb(aGrid, bGrid)
-    wPaMesh = wPa_tp1(aMesh, bMesh)
-    wPbMesh = wPb_tp1(aMesh, bMesh)
+    wPaMesh = wPa_t(aMesh, bMesh)
+    wPbMesh = wPb_t(aMesh, bMesh)
 
-    ucon_vars = solve_ucon(cMesh, dMesh, vMesh, w_tp1, utility, par, wPaMesh, wPbMesh, grids, verbose)
-    con_vars = solve_con(cMesh, dMesh, vMesh, w_tp1, utility, grids, par, verbose)
-    dcon_vars = solve_dcon(cMesh, dMesh, vMesh, w_tp1,  wPaMesh, wPbMesh, utility, grids, par, verbose)
-    acon_vars = solve_acon(cMesh, dMesh, vMesh, w_tp1, wPb_tp1, utility, grids, par, verbose)
+    ucon_vars = solve_ucon(cMesh, dMesh, vMesh, w_t, utility, par, wPaMesh, wPbMesh, grids, verbose)
+    con_vars = solve_con(cMesh, dMesh, vMesh, w_t, utility, grids, par, verbose)
+    dcon_vars = solve_dcon(cMesh, dMesh, vMesh, w_t,  wPaMesh, wPbMesh, utility, grids, par, verbose)
+    acon_vars = solve_acon(cMesh, dMesh, vMesh, w_t, wPb_t, utility, grids, par, verbose)
 
     # Post-decision grids
     A_acon = mMesh - cMesh - dMesh
@@ -815,7 +815,7 @@ def solve_period_working(solution_next, par, grids, utility, stablevalue, stable
 
     # Value function derivatives on common grid
     vPmMesh = utility.P(cMesh)
-    vPnMesh = par.DiscFac*wPb_tp1(A_acon, B_acon)
+    vPnMesh = par.DiscFac*wPb_t(A_acon, B_acon)
 
     vPmFunc = stablevalue2d(mGrid, nGrid, vPmMesh)
     vPnFunc = stablevalue2d(mGrid, nGrid, vPnMesh)
@@ -832,7 +832,7 @@ def solve_period_working(solution_next, par, grids, utility, stablevalue, stable
                            ucon_vars, con_vars,
                            dcon_vars, acon_vars)
 
-def solve_ucon(C, D, V, w_tp1, utility, par, wPaMesh, wPbMesh, grids, verbose):
+def solve_ucon(C, D, V, w_t, utility, par, wPaMesh, wPbMesh, grids, verbose):
     if verbose:
         print("... solving unconstrained segment")
 
@@ -851,7 +851,7 @@ def solve_ucon(C, D, V, w_tp1, utility, par, wPaMesh, wPbMesh, grids, verbose):
     nMesh_ucon = Bij - dMesh_ucon + utility.g(dMesh_ucon)
 
     # Value at endogenous grids
-    vMesh_ucon = utility.u(cMesh_ucon) - par.alpha + par.DiscFac*w_tp1(aGrid, bGrid)
+    vMesh_ucon = utility.u(cMesh_ucon) - par.alpha + par.DiscFac*w_t(aGrid, bGrid)
 
     cleanSegment((cMesh_ucon, dMesh_ucon, mMesh_ucon, nMesh_ucon), vMesh_ucon)
 
@@ -863,7 +863,7 @@ def solve_ucon(C, D, V, w_tp1, utility, par, wPaMesh, wPbMesh, grids, verbose):
 
     return (cMesh_ucon, dMesh_ucon, vMesh_ucon, mMesh_ucon, nMesh_ucon, best_ucon, vucon)
 
-def solve_con(C, D, V, w_tp1, utility, grids, par, verbose):
+def solve_con(C, D, V, w_t, utility, grids, par, verbose):
     # ==============
     # -    con     -
     # ==============
@@ -891,7 +891,7 @@ def solve_con(C, D, V, w_tp1, utility, grids, par, verbose):
     bMesh_con = nGrid_con # d = 0
     # Value at endogenous grids
     # vMesh_con = utility.u(cMesh_con) - alpha + DiscFac*w(aGrid_con, bGrid_con)
-    vMesh_con = utility.u(cMesh_con) - par.alpha + par.DiscFac*w_tp1(aMesh_con, bMesh_con)
+    vMesh_con = utility.u(cMesh_con) - par.alpha + par.DiscFac*w_t(aMesh_con, bMesh_con)
 
     # an indicator array that says if segment is optimal at
     # common grid points
@@ -905,7 +905,7 @@ def solve_con(C, D, V, w_tp1, utility, grids, par, verbose):
     v_con = numpy.copy(V)
     return (cMesh_con, dMesh_con, vMesh_con, Mij_con, Nij_con, best_con, v_con)
 
-def solve_dcon(C, D, V, w_tp1, wPaMesh, wPbMesh, utility, grids, par, verbose):
+def solve_dcon(C, D, V, w_t, wPaMesh, wPbMesh, utility, grids, par, verbose):
     if verbose:
         print("... solving deposit constrained segment")
 
@@ -917,33 +917,34 @@ def solve_dcon(C, D, V, w_tp1, wPaMesh, wPbMesh, utility, grids, par, verbose):
 
     # FOC for c, d constrained
     # ------------------------
-    cMesh_dcon =  utility.P_inv(par.DiscFac*wPaMesh) # save as ucon
+    C_dcon =  utility.P_inv(par.DiscFac*wPaMesh) # save as ucon
     # This preserves nans from cMesh
-    dMesh_dcon = 0.0*cMesh_dcon
+    D_dcon = 0.0*C_dcon
 
     # Endogenous grids (n-grid is exogenous)
     # --------------------------------------
-    mMesh_dcon = Aij + cMesh_dcon # + dMesh_dcon which is 0
-    nMesh_dcon = Bij
+    M_dcon = Aij + C_dcon # + D_dcon which is 0
+    N_dcon = Bij
 
     # Value at endogenous grids
-    vMesh_dcon = utility.u(cMesh_dcon) - par.alpha + par.DiscFac*w_tp1(Aij, Bij)
+    V_dcon = utility.u(C_dcon) - par.alpha + par.DiscFac*w_t(Aij, Bij)
 
-    cleanSegment((cMesh_dcon, dMesh_dcon, mMesh_dcon, nMesh_dcon), vMesh_dcon)
+    cleanSegment((C_dcon, D_dcon, M_dcon, N_dcon), V_dcon)
+    #deviate_dcon(C_dcon, D_dcon, M_dcon, N_dcon, V_dcon, w_t, utility, par)
 
     # an indicator array that says if segment is optimal at
     # common grid points
     best_dcon = numpy.zeros(grid_shape, dtype=bool)
     segmentUpperEnvelope(grids,
                          C, D, V,
-                         mMesh_dcon, nMesh_dcon,
-                         cMesh_dcon, dMesh_dcon, vMesh_dcon,
+                         M_dcon, M_dcon,
+                         C_dcon, D_dcon, V_dcon,
                          best_dcon)
     v_dcon = numpy.copy(V)
 
-    return (cMesh_dcon, dMesh_dcon, vMesh_dcon, mMesh_dcon, nMesh_dcon, best_dcon, v_dcon)
+    return (C_dcon, D_dcon, V_dcon, M_dcon, N_dcon, best_dcon, v_dcon)
 
-def solve_acon(C, D, V, w_tp1, wPb_tp1, utility, grids, par, verbose):
+def solve_acon(C, D, V, w_t, wPb_t, utility, grids, par, verbose):
     if verbose:
         print("... solving post-decision cash-on-hand constrained segment")
 
@@ -963,8 +964,8 @@ def solve_acon(C, D, V, w_tp1, wPb_tp1, utility, grids, par, verbose):
     # --------------------------------------------------------------
     # We don't want wPbGrd_acon[0] to be a row, we want it to be the first
     # element, so we ravel
-    wPbGrid_acon = wPb_tp1(aGrid_acon, bGrid_acon)
-    wPbMesh_acon = wPb_tp1(aMesh_acon, bMesh_acon)
+    wPbGrid_acon = wPb_t(aGrid_acon, bGrid_acon)
+    wPbMesh_acon = wPb_t(aMesh_acon, bMesh_acon)
 
     # No FOC for c; fix at some "interesting" values
     # the approach requires b to be fixed. I'm not 100% I'm following the paper's
@@ -990,10 +991,10 @@ def solve_acon(C, D, V, w_tp1, wPb_tp1, utility, grids, par, verbose):
     N_acon = bMesh_acon - D_acon - utility.g(D_acon)
 
     # value at endogenous grids
-    V_acon = utility.u(C_acon) - par.alpha + par.DiscFac*w_tp1(aMesh_acon, bMesh_acon)
+    V_acon = utility.u(C_acon) - par.alpha + par.DiscFac*w_t(aMesh_acon, bMesh_acon)
 
     cleanSegment((C_acon, D_acon, M_acon, N_acon), V_acon)
-    deviate_acon(C_acon, D_acon, M_acon, N_acon, V_acon, w_tp1, utility, par)
+    deviate_acon(C_acon, D_acon, M_acon, N_acon, V_acon, w_t, utility, par)
     # # an indicator array that says if segment is optimal at
     # # common grid points
     best_acon = numpy.zeros(grid_shape, dtype = bool)
@@ -1002,14 +1003,15 @@ def solve_acon(C, D, V, w_tp1, wPb_tp1, utility, grids, par, verbose):
 
     return (C_acon, D_acon, V_acon, M_acon, N_acon, best_acon, VCopy, CMin, CMax)
 
-def deviate_acon(C, D, M, N, V, w_tp1, utility, par):
+
+def deviate_acon(C, D, M, N, V, w_t, utility, par):
     eps_deviate = 1e-5
     C_deviated = C - eps_deviate
     M_deviated = M
     A_deviated = M_deviated - C_deviated
     N_deviated = N + eps_deviate
     B_deviated = N_deviated + utility.g(eps_deviate)
-    V_deviated = utility.u(C_deviated) + par.DiscFac*w_tp1(A_deviated, B_deviated)
+    V_deviated = utility.u(C_deviated) + par.DiscFac*w_t(A_deviated, B_deviated)
     invalid = V_deviated > V
     V[invalid] = numpy.nan
 
@@ -1037,8 +1039,9 @@ def solve_period_retirement(rs_tp1, par, grids, utility, stablevalue):
     """
     # next period policy for retired agents
     c1d_tp1 = rs_tp1.c1d
-    # next period value function for retired agents
-    v_tp1 = rs_tp1.v
+    # next
+    # Notice the v_tp1 here and not w_t ! We would need period value function for retired agents
+    v1D_tp1 = rs_tp1.v1d
 
     # grids (for solution)
     aGrid = grids.aGrid_ret
@@ -1074,7 +1077,8 @@ def solve_period_retirement(rs_tp1, par, grids, utility, stablevalue):
     # ========================================== #
     # - value (incl. derivatives) interpolants - #
     # ========================================== #
-    vGrid = utility.u(CGrid) + par.DiscFac*v_tp1(a*par.Ra+par.y, a*0)
+    # Notice the v_tp1 here and not w_t ! We would need
+    vGrid = utility.u(CGrid) + par.DiscFac*v1D_tp1(a*par.Ra+par.y)
     # level
     v1DFunc = stablevalue(m, vGrid)
     vFunc = lambda m, n: v1DFunc(m+n)
