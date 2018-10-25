@@ -12,7 +12,7 @@ class RustSolution(Solution):
     '''
     # distance_criteria are set to both V and P here since P is often the
     # object of interest ultimately
-    distance_criteria = ['V', 'P']
+    distance_criteria = ['V']
 
     def __init__(self, V, P):
         '''
@@ -46,9 +46,6 @@ class RustAgent(AgentType):
     replaced.
     '''
 
-    # Infinite horizon
-    cycles = 0
-
     def __init__(self,
                  # number of discrete states
                  Nm=175,
@@ -57,7 +54,7 @@ class RustAgent(AgentType):
                  # The estimated parameters for Nm = 175
                  Fp=numpy.array([0.2, 0.3, 0.4, 0.1]),
                  # Discount factor
-                 DiscFac=0.99,
+                 DiscFac=0.9,
                  # Initial guess; is this unharky?
                  V0=None,
                  # Replacement cost (so negative)
@@ -67,6 +64,8 @@ class RustAgent(AgentType):
                  sigma=1.0,
                  # Method, can be 'Newton' or 'VFI'
                  method='Newton',
+                 tolerance = 1e-12,
+                 cycles=0,
                  **kwds):
         '''
         Instantiate a new RustAgent object with model parameters and solution
@@ -91,6 +90,10 @@ class RustAgent(AgentType):
             maintenance cost paramter
         sigma : number
             scale parameter for additive extreme value type I shock to utility
+        cycles : integer
+
+        tolerance : number
+
         method : string
             switch to toggle solution by value function iteration ('VFI') or
             a simple Newton's method ('Newton')
@@ -100,7 +103,7 @@ class RustAgent(AgentType):
         new instance of RustAgent
         '''
         # Initialize a basic AgentType
-        AgentType.__init__(self, **kwds)
+        AgentType.__init__(self, tolerance=tolerance, cycles=cycles, **kwds)
 
 
         self.time_inv = ['states', 'costFunc', 'DiscFac', 'F', 'Vs', 'method',
@@ -174,8 +177,7 @@ def solve_rust_period(solution_next, states, costFunc, DiscFac, F, Vs, method, s
 
 
 def vfi(V, states, costFunc, DiscFac, F, Vs, sigma):
-    for i in range(Vs.shape[0]):
-        Vs[i] = costFunc(states, i+1) + DiscFac*numpy.dot(F[i,:,:], V)
+    updateVs(Vs, states, costFunc, DiscFac, F, V)
     V, P = discreteEnvelope(Vs, sigma)
     return V, P
 
@@ -225,12 +227,15 @@ def discreteEnvelope(Vs, sigma):
     '''
     if sigma == 0.0:
         # Is there a way to fuse these?
-        P = numpy.argmax(Vs, axis=0)
+        Pflat = numpy.argmax(Vs, axis=0)
+        P = numpy.zeros(Vs.shape)
+        for i in range(Vs.shape[0]):
+            P[i][Pflat==i] = 1
         V = numpy.amax(Vs, axis=0)
         return V, P
 
     maxV = Vs.max()
-    P = numpy.divide(numpy.exp(Vs/sigma), numpy.sum(numpy.exp(Vs/sigma), axis=0))
+    P = numpy.divide(numpy.exp((Vs-Vs[0])/sigma), numpy.sum(numpy.exp((Vs-Vs[0])/sigma), axis=0))
     # GUARD THIS USING numpy error level whatever
     sumexp = numpy.sum(numpy.exp((Vs-maxV)/sigma), axis=0)
     V = numpy.log(sumexp)
