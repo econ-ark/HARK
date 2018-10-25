@@ -35,7 +35,28 @@ class RustSolution(Solution):
         self.P = P
 
 def rustUtility(m, d, RC, c):
-    return RC*(d-1) + c*m*(2-d)
+    """
+    Calculate the instantaneous costs of the superintendent conditional on current
+    milage, the decision, the replacement cost and the maintenance cost.
+
+    Parameters
+    ----------
+    m : numpy.ndarray
+        milage state values
+    d : integer
+        decision (1 is keep and 2 is replace)
+    RC : float
+        replacement cost
+    c : float
+        maintenance cost parameter
+
+    Returns
+    -------
+    cost : numpy.ndarray
+        the cost given actions and states
+    """
+    cost = RC*(d-1) + c*m*(2-d)
+    return cost
 
 class RustAgent(AgentType):
     '''
@@ -169,12 +190,40 @@ class RustAgent(AgentType):
         self.solution_terminal = RustSolution(V, P)
 
 def solve_rust_period(solution_next, states, costFunc, DiscFac, F, Vs, method, sigma):
+    """
+    Solve a period of the RustAgent discrete choice model and return a RustSolution
+    to be used in next iteration.
+
+    Parameters
+    ----------
+    solution_next : RustSolution
+
+    states : numpy.ndarray
+
+    costFunc : function
+
+    DiscFac : float
+
+    F : numpy.ndarray
+
+    VS : numpy.ndarray
+
+    method : string
+
+    sigma : float
+
+    Returns
+    -------
+    solution : RustSolution
+
+    """
     if method == 'VFI':
         V, P = vfi(solution_next.V, states, costFunc, DiscFac, F, Vs, sigma)
     elif method == 'Newton':
         V, P = newton(solution_next, states, costFunc, DiscFac, F, Vs, sigma)
 
-    return RustSolution(V, P)
+    solution = RustSolution(V, P)
+    return solution
 
 
 def vfi(V, states, costFunc, DiscFac, F, Vs, sigma):
