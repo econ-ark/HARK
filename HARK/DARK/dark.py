@@ -105,7 +105,8 @@ class RustAgent(AgentType):
         # Initialize a basic AgentType
         AgentType.__init__(self, tolerance=tolerance, cycles=cycles, **kwds)
 
-
+        self.c = c
+        self.RC = RC
         self.time_inv = ['states', 'costFunc', 'DiscFac', 'F', 'Vs', 'method',
                          'sigma']
         self.time_vary = []

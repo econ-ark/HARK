@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ---
 # jupyter:
 #   jupytext:
@@ -23,12 +24,12 @@
 # ---
 
 # ### Setup
-# import the Rust module called dark, as well as plotting
+# Import the Rust module called dark, as well as plotting
 # functionality from matplotlib
 
-import dark
 import matplotlib.pyplot as plt
-
+import numpy # for argmax
+import dark
 # ### Specify models
 # The `AgentType` called `RustAgent` can be used to setup and solve the
 # capital replacement model in [1]. It is possible to specify a model
@@ -69,20 +70,67 @@ for model in models:
 
 p = plt.figure()
 for model in models:
-    plt.plot(model.states, model.solution[0].V)
+    plt.plot(model.states, model.solution[0].V, label = "σ = %f" % model.sigma)
+plt.legend();
 
 # To look closer at the point of non-differentiability, we look at the policies.
 # Again, the docstring will inform you that this is stored in the field `P`.
 
 p = plt.figure()
 for model in models:
-    plt.plot(model.states, model.solution[0].P[0])
+    plt.plot(model.states, model.solution[0].P[0], label = "σ = %f" % model.sigma)
+plt.legend();
 
 # We clearly see, since the plots should align nicely in the browser, that the
 # point of non-differentiability comes from the behavior of the policy around
 # a threshold. This threshold represents the exact milage where it is no longer
 # optimal to do maintenance on the engine. Instead, the superintendent should
 # buy or build a new engine, so essentially regenerate the stochastic process.
+# The *conditional choice probabilities* in the smoothed model has the same
+# overall look.
+
+# ### Maintenance cost
+#
+# Of course we can do more than change the scale parameter of the taste shock.
+# We could try to analyze the effect of the maintenance cost parameter `c`.
+
+model_lowCost_zeroScale = dark.RustAgent(sigma = 0.0, c = -0.0025, method = 'VFI')
+model_highCost_zeroScale = dark.RustAgent(sigma = 0.0, c = -0.0050, method = 'VFI')
+costModels = (model_lowCost_zeroScale, model_highCost_zeroScale)
+
+# we solve the model instances
+
+for model in costModels:
+    model.solve()
+
+# and then we plot as before
+
+model.c
+
+fig = plt.figure()
+for model in costModels:
+    plt.plot(model.states, model.solution[0].V, label = "c = %f" % model.c)
+plt.legend();
+
+p = plt.figure()
+for model in costModels:
+    plt.plot(model.states, model.solution[0].P[0], label = "c = %f" % model.c)
+plt.legend();
+
+# we see that the threshold milage is lower with the higher cost. The obvious
+# question is: what is this value of milage and what's the maintenance cost
+# right at the threshold?
+
+i_lowCost = numpy.argmax(model_lowCost_zeroScale.solution[0].P < 1)
+i_highCost = numpy.argmax(model_highCost_zeroScale.solution[0].P < 1)
+threshLow = model_lowCost_zeroScale.states[i_lowCost-1]
+threshHigh = model_highCost_zeroScale.states[i_highCost-1]
+print("The threshold milage with low cost is %f" % threshLow)
+print("The threshold milage with high cost is %f" % threshHigh)
+threshCostLow = model_lowCost_zeroScale.c*threshLow
+threshCostHigh = model_highCost_zeroScale.c*threshHigh
+print("The maintenance cost, at threshold, with low cost is %f" % threshCostLow)
+print("The maintenance cost, at threshold, with high cost is %f" % threshCostHigh)
 
 # ### References
 # [1] Rust, John. "Optimal replacement of GMC bus engines: An empirical model of Harold Zurcher." Econometrica: Journal of the Econometric Society (1987): 999-1033.
