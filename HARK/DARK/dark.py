@@ -58,9 +58,9 @@ class RustAgent(AgentType):
                  # Initial guess; is this unharky?
                  V0=None,
                  # Replacement cost (so negative)
-                 RC=-10.0,
+                 RC=-6.0,
                  # Maintenance cost/miles driven (so negative)
-                 c=-0.0025,
+                 c=-0.005,
                  sigma=1.0,
                  # Method, can be 'Newton' or 'VFI'
                  method='Newton',
