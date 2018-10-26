@@ -29,7 +29,7 @@
 
 import matplotlib.pyplot as plt
 import numpy # for argmax
-import dark
+import rust
 # ### Specify models
 # The `AgentType` called `RustAgent` can be used to setup and solve the
 # capital replacement model in [1]. It is possible to specify a model
@@ -49,9 +49,9 @@ import dark
 # First, we construct three different `RustAgent` instances, and collect them
 # in a `tuple` to simplify repeated operations on the objects.
 
-dmodel = dark.RustAgent(sigma = 0.00, DiscFac = 0.95, method = 'VFI')
-dmodel_smooth1 = dark.RustAgent(sigma = 0.15, DiscFac = 0.95, method = 'VFI')
-dmodel_smooth2 = dark.RustAgent(sigma = 0.55, DiscFac = 0.95, method = 'VFI')
+dmodel = rust.RustAgent(sigma = 0.00, DiscFac = 0.95, method = 'VFI')
+dmodel_smooth1 = rust.RustAgent(sigma = 0.15, DiscFac = 0.95, method = 'VFI')
+dmodel_smooth2 = rust.RustAgent(sigma = 0.55, DiscFac = 0.95, method = 'VFI')
 models = (dmodel, dmodel_smooth1, dmodel_smooth2)
 
 # We can then iterate over this tuple, and call the `solve()` method that is
@@ -65,12 +65,12 @@ for model in models:
 # non-differentiable point is abvious. The level is also different between specifications.
 # Notice, that we extract the model solution from element `0` as this is an infinite
 # horizon version of the model, and that the value function (represented on the)
-# discrete set of states) is stored in a field named `V`. As a user, you could have
+# discrete set of milage) is stored in a field named `V`. As a user, you could have
 # obtained this information by looking at the docstring to the `RustSolution` object.
 
 p = plt.figure()
 for model in models:
-    plt.plot(model.states, model.solution[0].V, label = "σ = %f" % model.sigma)
+    plt.plot(model.milage, model.solution[0].V, label = "σ = %f" % model.sigma)
 plt.legend();
 
 # To look closer at the point of non-differentiability, we look at the policies.
@@ -78,7 +78,7 @@ plt.legend();
 
 p = plt.figure()
 for model in models:
-    plt.plot(model.states, model.solution[0].P[0], label = "σ = %f" % model.sigma)
+    plt.plot(model.milage, model.solution[0].P[0], label = "σ = %f" % model.sigma)
 plt.legend();
 
 # We clearly see, since the plots should align nicely in the browser, that the
@@ -94,8 +94,8 @@ plt.legend();
 # Of course we can do more than change the scale parameter of the taste shock.
 # We could try to analyze the effect of the maintenance cost parameter `c`.
 
-model_lowCost_zeroScale = dark.RustAgent(sigma = 0.0, c = -0.0025, method = 'VFI')
-model_highCost_zeroScale = dark.RustAgent(sigma = 0.0, c = -0.0050, method = 'VFI')
+model_lowCost_zeroScale = rust.RustAgent(sigma = 0.0, c = -0.0025, method = 'VFI')
+model_highCost_zeroScale = rust.RustAgent(sigma = 0.0, c = -0.0050, method = 'VFI')
 costModels = (model_lowCost_zeroScale, model_highCost_zeroScale)
 
 # we solve the model instances
@@ -109,12 +109,12 @@ model.c
 
 fig = plt.figure()
 for model in costModels:
-    plt.plot(model.states, model.solution[0].V, label = "c = %f" % model.c)
+    plt.plot(model.milage, model.solution[0].V, label = "c = %f" % model.c)
 plt.legend();
 
 p = plt.figure()
 for model in costModels:
-    plt.plot(model.states, model.solution[0].P[0], label = "c = %f" % model.c)
+    plt.plot(model.milage, model.solution[0].P[0], label = "c = %f" % model.c)
 plt.legend();
 
 # we see that the threshold milage is lower with the higher cost. The obvious
@@ -123,8 +123,8 @@ plt.legend();
 
 i_lowCost = numpy.argmax(model_lowCost_zeroScale.solution[0].P < 1)
 i_highCost = numpy.argmax(model_highCost_zeroScale.solution[0].P < 1)
-threshLow = model_lowCost_zeroScale.states[i_lowCost-1]
-threshHigh = model_highCost_zeroScale.states[i_highCost-1]
+threshLow = model_lowCost_zeroScale.milage[i_lowCost-1]
+threshHigh = model_highCost_zeroScale.milage[i_highCost-1]
 print("The threshold milage with low cost is %f" % threshLow)
 print("The threshold milage with high cost is %f" % threshHigh)
 threshCostLow = model_lowCost_zeroScale.c*threshLow

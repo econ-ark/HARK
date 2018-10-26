@@ -3,6 +3,8 @@ from collections import namedtuple
 
 from HARK import Solution, AgentType
 
+RustParameters = namedtuple('RustParameters', 'DiscFac c RC sigma')
+
 class RustSolution(Solution):
     '''
     A class representing the solution of a single period of a discrete choice
@@ -21,7 +23,7 @@ class RustSolution(Solution):
         Parameters
         ----------
         V : integer
-            The number of states in the model.
+            The number of milage in the model.
         P :
             Vector of transition probabilities
         utility :
@@ -34,14 +36,14 @@ class RustSolution(Solution):
         self.V = V
         self.P = P
 
-def rustUtility(m, d, RC, c):
+def rustUtility(milage, d, par):
     """
     Calculate the instantaneous costs of the superintendent conditional on current
     milage, the decision, the replacement cost and the maintenance cost.
 
     Parameters
     ----------
-    m : numpy.ndarray
+    milage : numpy.ndarray
         milage state values
     d : integer
         decision (1 is keep and 2 is replace)
@@ -53,9 +55,9 @@ def rustUtility(m, d, RC, c):
     Returns
     -------
     cost : numpy.ndarray
-        the cost given actions and states
+        the cost given actions and milage
     """
-    cost = RC*(d-1) + c*m*(2-d)
+    cost = par.RC*(d-1) + par.c*milage*(2-d)
     return cost
 
 class RustAgent(AgentType):
@@ -68,7 +70,7 @@ class RustAgent(AgentType):
     '''
 
     def __init__(self,
-                 # number of discrete states
+                 # number of discrete milage
                  Nm=175,
                  # Rust's preferred linear specification
                  costFunc=rustUtility,
@@ -95,7 +97,7 @@ class RustAgent(AgentType):
         Parameters
         ----------
         Nm : integer
-            number of discrete states in the milage process
+            number of discrete milage in the milage process
         costFunc : function
             cost function as function of milage, replacement decision and
             parameters
@@ -126,10 +128,11 @@ class RustAgent(AgentType):
         # Initialize a basic AgentType
         AgentType.__init__(self, tolerance=tolerance, cycles=cycles, **kwds)
 
+        self.costFunc = costFunc
+
         self.c = c
         self.RC = RC
-        self.time_inv = ['states', 'costFunc', 'DiscFac', 'F', 'Vs', 'method',
-                         'sigma']
+        self.time_inv = ['milage', 'costFunc', 'F', 'Vs', 'method', 'par']
         self.time_vary = []
 
         self.method = method
@@ -138,13 +141,11 @@ class RustAgent(AgentType):
         # Choice specific value functions in rows
         self.Vs = numpy.zeros((2, Nm))
 
-        # Cost function as state and decisions only
-        self.costFunc = lambda m, d: costFunc(m, d, RC, c)
         # Discount factor
         self.DiscFac = DiscFac
 
-        # Linearly spaced discrete states from 0 to 450 thousand miles
-        self.states = numpy.linspace(0, 450, Nm)
+        # Linearly spaced discrete milage from 0 to 450 thousand miles
+        self.milage = numpy.linspace(0, 450, Nm)
 
         # Handle no initial guess for integrated value function
         if V0 is None:
@@ -180,16 +181,21 @@ class RustAgent(AgentType):
         Parameters
         ----------
         none
+
         Returns
         -------
         none
         '''
-        updateVs(self.Vs, self.states, self.costFunc,
-                 self.DiscFac, self.F, self.V0)
-        V, P = discreteEnvelope(self.Vs, self.sigma)
+
+        # update utility specification
+        self.par = RustParameters(self.DiscFac, self.c, self.RC, self.sigma)
+
+        updateVs(self.Vs, self.milage, self.costFunc,
+                 self.F, self.V0, self.par)
+        V, P = discreteEnvelope(self.Vs, self.par.sigma)
         self.solution_terminal = RustSolution(V, P)
 
-def solve_rust_period(solution_next, states, costFunc, DiscFac, F, Vs, method, sigma):
+def solve_rust_period(solution_next, milage, costFunc, F, Vs, method, par):
     """
     Solve a period of the RustAgent discrete choice model and return a RustSolution
     to be used in next iteration.
@@ -198,11 +204,9 @@ def solve_rust_period(solution_next, states, costFunc, DiscFac, F, Vs, method, s
     ----------
     solution_next : RustSolution
 
-    states : numpy.ndarray
+    milage : numpy.ndarray
 
     costFunc : function
-
-    DiscFac : float
 
     F : numpy.ndarray
 
@@ -210,7 +214,7 @@ def solve_rust_period(solution_next, states, costFunc, DiscFac, F, Vs, method, s
 
     method : string
 
-    sigma : float
+    par : RustParamters
 
     Returns
     -------
@@ -218,35 +222,45 @@ def solve_rust_period(solution_next, states, costFunc, DiscFac, F, Vs, method, s
 
     """
     if method == 'VFI':
-        V, P = vfi(solution_next.V, states, costFunc, DiscFac, F, Vs, sigma)
+        V, P = vfi(solution_next.V, milage, costFunc, F, Vs, par)
     elif method == 'Newton':
-        V, P = newton(solution_next, states, costFunc, DiscFac, F, Vs, sigma)
+        V, P = newton(solution_next, milage, costFunc, F, Vs, par)
 
     solution = RustSolution(V, P)
     return solution
 
 
-def vfi(V, states, costFunc, DiscFac, F, Vs, sigma):
-    updateVs(Vs, states, costFunc, DiscFac, F, V)
-    V, P = discreteEnvelope(Vs, sigma)
+def vfi(V, milage, costFunc, F, Vs, par):
+    """
+    Applies the Bellman-operator once to update the current guess for the value
+    function. Also calculates polices.
+
+    Parameters
+    ----------
+    V : numpy.ndarray
+        current value function guess
+
+    """
+    updateVs(Vs, milage, costFunc, F, V, par)
+    V, P = discreteEnvelope(Vs, par.sigma)
     return V, P
 
-def newton(solution_next, states, costFunc, DiscFac, F, Vs, sigma):
+def newton(solution_next, milage, costFunc, F, Vs, par):
     Vold = solution_next.V
-    V, P = vfi(Vold, states, costFunc, DiscFac, F, Vs, sigma)
+    V, P = vfi(Vold, milage, costFunc, F, Vs, par)
 
     # G = (I-B)(V) where B is the Bellman-operator
     Gderiv = numpy.eye(len(V))
     for i in range(Vs.shape[0]):
-        Gderiv = Gderiv - (DiscFac*P[i])*F[i,:,:]
+        Gderiv = Gderiv - (par.DiscFac*P[i])*F[i,:,:]
 
     V = Vold - numpy.linalg.solve(Gderiv, Vold-V)
-    V, P = vfi(V, states, costFunc, DiscFac, F, Vs, sigma)
+    V, P = vfi(V, milage, costFunc, F, Vs, par)
     return V, P
 
-def updateVs(Vs, states, costFunc, DiscFac, F, V):
+def updateVs(Vs, milage, costFunc, F, V, par):
     for i in range(Vs.shape[0]):
-        Vs[i] = costFunc(states, i+1) + DiscFac*numpy.dot(F[i,:,:], V)
+        Vs[i] = costFunc(milage, i+1, par) + par.DiscFac*numpy.dot(F[i,:,:], V)
 
 def conditionalChoiceProbabilities(Vs, sigma):
     if sigma == 0.0:
@@ -254,8 +268,7 @@ def conditionalChoiceProbabilities(Vs, sigma):
         P = numpy.argmax(Vs, axis=0)
         return P
 
-    maxV = Vs.max()
-    P = numpy.divide(numpy.exp(Vs/sigma), numpy.sum(numpy.exp(Vs/sigma), axis=0))
+    P = numpy.divide(numpy.exp((Vs-Vs[0])/sigma), numpy.sum(numpy.exp((Vs-Vs[0])/sigma), axis=0))
     return P
 
 def discreteEnvelope(Vs, sigma):
