@@ -30,6 +30,7 @@
 import matplotlib.pyplot as plt
 import numpy # for argmax
 import rust
+
 # ### Specify models
 # The `AgentType` called `RustAgent` can be used to setup and solve the
 # capital replacement model in [1]. It is possible to specify a model
@@ -131,6 +132,42 @@ threshCostLow = model_lowCost_zeroScale.c*threshLow
 threshCostHigh = model_highCost_zeroScale.c*threshHigh
 print("The maintenance cost, at threshold, with low cost is %f" % threshCostLow)
 print("The maintenance cost, at threshold, with high cost is %f" % threshCostHigh)
+
+# +
+# ### Newton's method
+
+dmodel_vfi = rust.RustAgent(sigma = 0.55, DiscFac = 0.95, method = 'VFI')
+dmodel_newton = rust.RustAgent(sigma = 0.55, DiscFac = 0.95, method = 'Newton')
+
+fig = plt.figure()
+for model in (dmodel_vfi, dmodel_newton):
+    model.solve()
+    plt.plot(model.milage, model.solution[0].V, label = "method = %s" % model.method)
+plt.legend();
+# -
+
+# Notice, that we can only used Newton's method with positive sigma. Let's look
+# at the performance using a naïve benchmark
+
+bmodel_vfi = rust.RustAgent(sigma = 0.55, DiscFac = 0.95, method = 'VFI')
+bmodel_newton = rust.RustAgent(sigma = 0.55, DiscFac = 0.95, method = 'Newton')
+
+bmodel_newton.solve()
+
+print('Benchmarking VFI...')
+# %timeit bmodel_vfi.solve()
+print('Benchmarking Newton...')
+# %timeit bmodel_newton.solve()
+
+# We see that Newton's method is significantly faster here. We can of course make Newton's method lose this battle by increasing the dimensinality of the problem dramatically to make solving a linear system dominate the full run time.
+
+bmodel_vfi_big = rust.RustAgent(sigma = 0.55, DiscFac = 0.95, method = 'VFI', Nm = 2000)
+bmodel_newton_big = rust.RustAgent(sigma = 0.55, DiscFac = 0.95, method = 'Newton', Nm = 2000)
+
+print('Benchmarking VFI...')
+# %timeit bmodel_vfi_big.solve()
+print('Benchmarking Newton...')
+# %timeit bmodel_newton_big.solve()
 
 # ### References
 # [1] Rust, John. "Optimal replacement of GMC bus engines: An empirical model of Harold Zurcher." Econometrica: Journal of the Econometric Society (1987): 999-1033.

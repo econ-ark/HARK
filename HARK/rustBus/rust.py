@@ -14,9 +14,9 @@ class RustSolution(Solution):
     '''
     # distance_criteria are set to both V and P here since P is often the
     # object of interest ultimately
-    distance_criteria = ['V']
+    distance_criteria = ['H']
 
-    def __init__(self, V, P):
+    def __init__(self, H, V, P):
         '''
         The constructor for a new RustSolution object.
 
@@ -32,7 +32,7 @@ class RustSolution(Solution):
         -------
         None
         '''
-
+        self.H = H
         self.V = V
         self.P = P
 
@@ -132,7 +132,7 @@ class RustAgent(AgentType):
 
         self.c = c
         self.RC = RC
-        self.time_inv = ['milage', 'costFunc', 'F', 'Vs', 'method', 'par']
+        self.time_inv = ['Vs', 'milage', 'costFunc', 'F', 'method', 'par']
         self.time_vary = []
 
         self.method = method
@@ -190,12 +190,12 @@ class RustAgent(AgentType):
         # update utility specification
         self.par = RustParameters(self.DiscFac, self.c, self.RC, self.sigma)
 
-        updateVs(self.Vs, self.milage, self.costFunc,
-                 self.F, self.V0, self.par)
+        updateVs(self.V0, self.Vs, self.milage, self.costFunc,
+                 self.F, self.par)
         V, P = discreteEnvelope(self.Vs, self.par.sigma)
-        self.solution_terminal = RustSolution(V, P)
+        self.solution_terminal = RustSolution(self.V0-V, V, P)
 
-def solve_rust_period(solution_next, milage, costFunc, F, Vs, method, par):
+def solve_rust_period(solution_next, Vs, milage, costFunc, F, method, par):
     """
     Solve a period of the RustAgent discrete choice model and return a RustSolution
     to be used in next iteration.
@@ -222,15 +222,87 @@ def solve_rust_period(solution_next, milage, costFunc, F, Vs, method, par):
 
     """
     if method == 'VFI':
-        V, P = vfi(solution_next.V, milage, costFunc, F, Vs, par)
+        V, P = vfi(solution_next.V, Vs, milage, costFunc, F, par)
     elif method == 'Newton':
-        V, P = newton(solution_next, milage, costFunc, F, Vs, par)
+        V, P = newton(solution_next.V, Vs, milage, costFunc, F, par)
 
-    solution = RustSolution(V, P)
+    solution = RustSolution(solution_next.V-V, V, P)
     return solution
 
 
-def vfi(V, milage, costFunc, F, Vs, par):
+def vfi(Vold, Vs, milage, costFunc, F, par):
+    """
+    Applies the Bellman-operator once to update the current guess for the value
+    function. Also calculates polices.
+
+    Parameters
+    ----------
+    Vold : numpy.ndarray
+        current value function guess
+    Vs : numpy.ndarray
+        matrix of choice specific value functions
+    milage : numpy.ndarray
+        the discrete set of milage readings
+    costFunc : function
+        the instantaneous cost as function of milage and the decision
+    F : numpy.ndarray
+        transition matrices
+    par : RustParamters
+        parameters of the model
+
+    Returns
+    -------
+    V : numpy.ndarray
+        updated value function guess
+    P : numpy.ndarray
+        updated policies (conditional choice probabilites)
+    """
+    updateVs(Vold, Vs, milage, costFunc, F, par)
+    V, P = discreteEnvelope(Vs, par.sigma)
+    return V, P
+
+def newton(Vold, Vs, milage, costFunc, F, par):
+    """
+    Performs a simple Newton on the fixed point equations implied by the Bellman
+    equations. Also calculates polices.
+
+    Parameters
+    ----------
+    Vold : numpy.ndarray
+        current value function guess
+    Vs : numpy.ndarray
+        matrix of choice specific value functions
+    milage : numpy.ndarray
+        the discrete set of milage readings
+    costFunc : function
+        the instantaneous cost as function of milage and the decision
+    F : numpy.ndarray
+        transition matrices
+
+    par : RustParamters
+        parameters of the model
+
+    Returns
+    -------
+    V : numpy.ndarray
+        updated value function guess
+    P : numpy.ndarray
+        updated policies (conditional choice probabilites)
+    """
+
+    V, P = vfi(Vold, Vs, milage, costFunc, F, par)
+
+    # G = (I-B)(V) where B is the Bellman-operator
+    Gderiv = numpy.eye(len(V))
+    for i in range(Vs.shape[0]):
+        Gderiv = Gderiv - (par.DiscFac*P[i])*F[i,:,:]
+
+    Vnewton = Vold - numpy.linalg.solve(Gderiv, Vold-V)
+    V, P = vfi(Vnewton, Vs, milage, costFunc, F, par)
+    
+    return V, P
+
+def updateVs(V, Vs, milage, costFunc, F, par):
     """
     Applies the Bellman-operator once to update the current guess for the value
     function. Also calculates polices.
@@ -239,37 +311,26 @@ def vfi(V, milage, costFunc, F, Vs, par):
     ----------
     V : numpy.ndarray
         current value function guess
+    Vs : numpy.ndarray
+        matrix of choice specific value functions
+    milage : numpy.ndarray
+        the discrete set of milage readings
+    costFunc : function
+        the instantaneous cost as function of milage and the decision
+    F : numpy.ndarray
+        transition matrices
+    par : RustParamters
+        parameters of the model
 
+    Returns
+    -------
+    V : numpy.ndarray
+        updated value function guess
+    P : numpy.ndarray
+        updated policies (conditional choice probabilites)
     """
-    updateVs(Vs, milage, costFunc, F, V, par)
-    V, P = discreteEnvelope(Vs, par.sigma)
-    return V, P
-
-def newton(solution_next, milage, costFunc, F, Vs, par):
-    Vold = solution_next.V
-    V, P = vfi(Vold, milage, costFunc, F, Vs, par)
-
-    # G = (I-B)(V) where B is the Bellman-operator
-    Gderiv = numpy.eye(len(V))
-    for i in range(Vs.shape[0]):
-        Gderiv = Gderiv - (par.DiscFac*P[i])*F[i,:,:]
-
-    V = Vold - numpy.linalg.solve(Gderiv, Vold-V)
-    V, P = vfi(V, milage, costFunc, F, Vs, par)
-    return V, P
-
-def updateVs(Vs, milage, costFunc, F, V, par):
     for i in range(Vs.shape[0]):
         Vs[i] = costFunc(milage, i+1, par) + par.DiscFac*numpy.dot(F[i,:,:], V)
-
-def conditionalChoiceProbabilities(Vs, sigma):
-    if sigma == 0.0:
-        # Is there a way to fuse these?
-        P = numpy.argmax(Vs, axis=0)
-        return P
-
-    P = numpy.divide(numpy.exp((Vs-Vs[0])/sigma), numpy.sum(numpy.exp((Vs-Vs[0])/sigma), axis=0))
-    return P
 
 def discreteEnvelope(Vs, sigma):
     '''
