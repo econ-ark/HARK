@@ -55,6 +55,7 @@ plt.plot(model.solution[t].rs.M, numpy.divide(-1.0,model.solution[t].rs.V_T), la
 plt.plot(model.solution[t].ws.M, numpy.divide(-1.0,model.solution[t].ws.V_T), label = "working")
 plt.legend()
 plt.ylim((-30, 0))
+plt.title("Choice specific value functions at t=%i" % (model.T-t-1))
 # -
 
 t=0
@@ -64,7 +65,7 @@ plt.plot(model.solution[t].ws.M, model.solution[t].ws.C, label = "working (t=18)
 t=4
 plt.plot(model.solution[t].ws.M, model.solution[t].ws.C, label = "working (t=15)")
 plt.legend()
-plt.title("Consumption function at period t = %i" % (model.T-t+1))
+plt.title("Consumption functions for workers")
 plt.xlim((0,200))
 plt.ylim((0,150))
 plt.xlabel("m")
