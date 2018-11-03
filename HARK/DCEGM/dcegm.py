@@ -2,6 +2,7 @@
 # interpolating on common grid
 
 import numpy
+import matplotlib.pyplot as plt
 from collections import namedtuple
 from HARK import Solution, AgentType
 from HARK.interpolation import LinearInterp
@@ -26,7 +27,7 @@ def DCEGM(M, C, V):
     return None
 
 RetiringDeatonParameters = namedtuple('RetiringDeatonParamters',
-                                      'DiscFac CRRA LeisureUtil Rfree y eta sigma')
+                                      'DiscFac CRRA DisUtil Rfree y eta sigma')
 
 
 def nonlinspace(low, high, n, phi = 1.1):
@@ -78,16 +79,18 @@ class WorkingDeatonSolution(Solution):
         self.V_T = V_T
 
 class RetiringDeaton(AgentType):
-    def __init__(self, DiscFac=0.98, Rfree=1.00, LeisureUtil=1.0, DisUtil=0.0,
+    def __init__(self, DiscFac=0.95, Rfree=1.05, DisUtil=1.0,
                  shiftPoints=False, T=20, CRRA=1.0, sigma=0.0,
-                 eta=20.0,
+                 eta=40.0,
                  y=0.0, # normalized relative to work
                  Nm=2000,
                  aLims=(1e-6, 500), Na=1800,
+                 saveCommon=False,
                  **kwds):
 
         AgentType.__init__(self, **kwds)
         self.T = T
+        self.saveCommon = saveCommon
         # check conditions for analytic solution
         if not CRRA == 1.0:
             # err
@@ -97,25 +100,26 @@ class RetiringDeaton(AgentType):
             # err
             return None
 
-        self.time_inv = ['aGrid', 'mGrid', 'EGMVector', 'par', 'Util', 'UtilP', 'UtilP_inv']
+        self.time_inv = ['aGrid', 'mGrid', 'EGMVector', 'par', 'Util', 'UtilP',
+                         'UtilP_inv', 'saveCommon']
         self.time_vary = ['age']
 
         self.age = list(range(T-1))
 
-        self.par = RetiringDeatonParameters(DiscFac, CRRA, LeisureUtil, Rfree, y, eta, sigma)
+        self.par = RetiringDeatonParameters(DiscFac, CRRA, DisUtil, Rfree, y, eta, sigma)
         self.aLims = aLims
         self.Na = Na
         self.Nm = Nm
         # d == 2 is working
         # - 10.0 moves curve down to improve lienar interpolation
-        self.Util = lambda c, d: numpy.log(c) + self.par.LeisureUtil*(2-d) - 10.0
+        self.Util = lambda c, d: numpy.log(c) + self.par.DisUtil*(2-d) - 10.0
         self.UtilP = lambda c, d: c**(-self.par.CRRA) # we require CRRA 1.0 for now...
         self.UtilP_inv = lambda u, d: u**(-1.0/self.par.CRRA) # ... so ...
 
-        self.updateLast = self.solveLast
+        self.preSolve = self.updateLast
         self.solveOnePeriod = solveRetiringDeaton
 
-    def solveLast(self):
+    def updateLast(self):
         """
         Updates grids and functions according to the given model parameters, and
         solves the last period.
@@ -185,9 +189,56 @@ class RetiringDeaton(AgentType):
         V_T = -1.0/self.Util(self.mGrid, choice)
         return WorkingDeatonSolution(M, C, V_T)
 
+    def plotV(self, t, d, plot_range = None):
+
+        if t == self.T:
+            sol = self.solution_terminal
+        else:
+            sol = self.solution[self.T-1-t]
+
+        if d == 1:
+            sol = sol.rs
+            choice_str = "retired"
+        elif d == 2:
+            sol = sol.ws
+            choice_str = "working"
+
+        if plot_range == None:
+            plot_range = range(len(sol.M))
+        else:
+            plot_range = range(plot_range[0], plot_range[1])
+        plt.plot(sol.M[plot_range], numpy.divide(-1.0, sol.V_T[plot_range]), label="{} (t = {})".format(choice_str, t))
+        plt.legend()
+        plt.xlabel("M")
+        plt.ylabel("C(M)")
+        plt.title('Choice specific value functions')
 
 
-def solveRetiringDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP, UtilP_inv, age):
+    def plotC(self, t, d, plot_range = None, **kwds):
+
+        if t == self.T:
+            sol = self.solution_terminal
+        else:
+            sol = self.solution[self.T-1-t]
+
+        if d == 1:
+            sol = sol.rs
+            choice_str = "retired"
+        elif d == 2:
+            sol = sol.ws
+            choice_str = "working"
+
+        if plot_range == None:
+            plot_range = range(len(sol.M))
+        else:
+            plot_range = range(plot_range[0], plot_range[1])
+        plt.plot(sol.M[plot_range], sol.C[plot_range], label="{} (t = {})".format(choice_str, t), **kwds)
+        plt.legend()
+        plt.xlabel("M")
+        plt.ylabel("C(M)")
+        plt.title('Choice specific consumption functions')
+
+def solveRetiringDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP, UtilP_inv, age, saveCommon):
     """
     Solves a period of problem defined by the RetiringDeaton AgentType. It uses
     DCEGM to solve the mixed choice problem.
@@ -203,9 +254,27 @@ def solveRetiringDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP
     ws = solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP, UtilP_inv)
 
     # this is not on the same grid
-#    V, P = discreteEnvelope(numpy.array([-1.0/rs.V_T, (-1.0/ws.V_T)]), par.sigma)
 
-    return RetiringDeatonSolution(rs, ws, 0,0,0,0)#-1.0/V, P) #0,0 is m and c
+    if saveCommon:
+        # There should be another conditional branch that determines if ws should
+        # be interpolated conditional on whether points were added to the grid
+        # in the computations or not (else they're already on mGrid!)
+        # of common grid C and V_T
+        Crs = LinearInterp(rs.M, rs.C)(mGrid)
+        Cws = ws.C
+#        Cws = LinearInterp(rs.M, rs.C)(mGrid)
+
+        V_Trs = LinearInterp(rs.M, rs.V_T)(mGrid)
+        V_Tws = ws.V_T
+
+        V_T, P = discreteEnvelope(numpy.array([V_Trs, V_Tws]), par.sigma)
+
+        C = P[0, :]*Crs + P[1, :]*Cws
+    else:
+        C, V_T, P = None, None, None
+
+
+    return RetiringDeatonSolution(rs, ws, mGrid, C, V_T, P)#-1.0/V, P) #0,0 is m and c
 
 def solveRetiredDeaton(solution_next, aGrid, EGMVector, par, Util, UtilP, UtilP_inv):
     choice = 1
@@ -225,8 +294,8 @@ def solveRetiredDeaton(solution_next, aGrid, EGMVector, par, Util, UtilP, UtilP_
     augM = numpy.insert(rs_tp1.M, 0, 0.0)
     augC = numpy.insert(rs_tp1.C, 0, 0.0)
     augV_T = numpy.insert(rs_tp1.V_T, 0, 0.0)
-    C_tp1 = LinearInterp(augM, augC)(M_tp1)
-    V_T_tp1 = LinearInterp(augM, augV_T)(M_tp1)     #interpvtp1
+    C_tp1 = LinearInterp(augM, augC, lower_extrap=True)(M_tp1)
+    V_T_tp1 = LinearInterp(augM, augV_T, lower_extrap=True)(M_tp1)     #interpvtp1
     V_tp1 = numpy.divide(-1.0, V_T_tp1)
 
 
@@ -270,10 +339,10 @@ def solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP,
     ws_augC = numpy.insert(ws_tp1.C, 0, 0.0)
     ws_augV_T = numpy.insert(ws_tp1.V_T, 0, 0.0)
 
-    Cr_tp1 = LinearInterp(rs_augM, rs_augC)(M_tp1)
-    Cw_tp1 = LinearInterp(ws_augM, ws_augC)(M_tp1)
-    Vr_T = LinearInterp(rs_augM, rs_augV_T)(M_tp1)
-    Vw_T = LinearInterp(ws_augM, ws_augV_T)(M_tp1)
+    Cr_tp1 = LinearInterp(rs_augM, rs_augC, lower_extrap=True)(M_tp1)
+    Cw_tp1 = LinearInterp(ws_augM, ws_augC, lower_extrap=True)(M_tp1)
+    Vr_T = LinearInterp(rs_augM, rs_augV_T, lower_extrap=True)(M_tp1)
+    Vw_T = LinearInterp(ws_augM, ws_augV_T, lower_extrap=True)(M_tp1)
 
     # Due to the transformation on V being monotonic increasing, we can just as
     # well use the transformed values to do this discrete envelope step.
@@ -438,8 +507,8 @@ def multilineEnvelope(M, C, V_T, mGrid):
         idxs = range(rise[j], fall[j]+1)
         m_idx_j = M[idxs]
         m_eval = mGrid[in_range]
-        mV_T[in_range,j] = LinearInterp(m_idx_j, V_T[idxs])(m_eval)
-        mC[in_range,j]  = LinearInterp(m_idx_j, C[idxs])(m_eval) # Interpolat econsumption also. May not be nesserary
+        mV_T[in_range,j] = LinearInterp(m_idx_j, V_T[idxs], lower_extrap=True)(m_eval)
+        mC[in_range,j]  = LinearInterp(m_idx_j, C[idxs], lower_extrap=True)(m_eval) # Interpolat econsumption also. May not be nesserary
     is_all_nan = numpy.array([numpy.all(numpy.isnan(mvrow)) for mvrow in mV_T])
     # Now take the max of all these functions. Since the mV_T
     # is either NaN or very low number outside the range of the actual line-segment this works "globally"
@@ -460,8 +529,8 @@ def multilineEnvelope(M, C, V_T, mGrid):
     # Extrapolate if NaNs are introduced due to the common grid
     # going outside all the sub-line segments
     IsNaN = numpy.isnan(upperV_T)
-    upperV_T[IsNaN] = LinearInterp(upperM[IsNaN == False], upperV_T[IsNaN == False])(upperM[IsNaN])
-    upperV_T[IsNaN] = LinearInterp(upperM[IsNaN == False], upperV_T[IsNaN == False])(upperM[IsNaN])
+    upperV_T[IsNaN] = LinearInterp(upperM[IsNaN == False], upperV_T[IsNaN == False], lower_extrap=True)(upperM[IsNaN])
+    upperV_T[IsNaN] = LinearInterp(upperM[IsNaN == False], upperV_T[IsNaN == False], lower_extrap=True)(upperM[IsNaN])
     LastBeforeNaN = numpy.append(numpy.diff(IsNaN)>0, 0)
     LastId = LastBeforeNaN*idx_max # Find last id-number
     idx_max[IsNaN] = LastId[IsNaN]
