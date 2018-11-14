@@ -2,6 +2,7 @@
 import math
 import numpy
 from numba import njit
+import time
 
 from collections import namedtuple
 from HARK.utilities import CRRAutility, CRRAutility_inv, CRRAutilityP, CRRAutilityP_inv
@@ -66,7 +67,7 @@ class StableValue2D(StableValue):
         return lambda m, n: self.utility(transformed_V(m, n))
         #return lambda m, n: self.utility_inv(interp(M, N, transformed_V, m, n))
 
-def nonlinspace(low, high, n, phi = 1.1):
+def nonlinspace(low, high, n, phi=1.1):
     '''
     Recursively constructs a non-linearly spaces grid that starts at low, ends at high, has n
     elements, and has smaller step lengths towards low if phi > 1 and smaller
@@ -97,7 +98,7 @@ def nonlinspace(low, high, n, phi = 1.1):
 
     return x
 
-def w_and_wP(rs, ws, grids, par, stablevalue2d):
+def postdecision_values(rs, ws, grids, par, stablevalue2d):
     '''
     Construct undiscounted post-decision value function and derivatives wrt the
     two post decision states.
@@ -204,19 +205,22 @@ def discreteEnvelope(Vs, sigma):
     return V, P
 
 
-@njit(error_model="numpy")
-def segmentUpperEnvelope(grids, cG, dG, vG, mSegment, nSegment, cSegment, dSegment, vSegment, best):
+@njit#(error_model="numpy")
+def segment_upper_envelope(grids, cG, dG, vG, M_seg, N_seg, C_seg, D_seg, V_seg):
     """
-    segmentUpperEnvelope calculates the upper envelope to a segment while
+    segment_upper_envelope calculates the upper envelope to a segment while
     re-interpolating it down to a common grid spanned by mGrid and nGrid.
     """
     # the approach here is to construct a moving window made
-    # of four points i0, i1, i2, i3 that together makes up
+    # of four points i0, i1, i2, i3 that together make up
     # two simpleces forming a square (since it's 2D)
 
     mGrid, nGrid = grids.mGrid, grids.nGrid
-    nm, nn = mSegment.shape
+    nm, nn = M_seg.shape
 
+    # an indicator array that says if segment is optimal at
+    # common grid points
+    best = numpy.copy(grids.MN_bool)
     # These are the policies and values at the verteces of the current simplex. C is
     # the first control D is the second and V is the value.
     C, D, V = numpy.zeros(3), numpy.zeros(3), numpy.zeros(3)
@@ -234,9 +238,9 @@ def segmentUpperEnvelope(grids, cG, dG, vG, mSegment, nSegment, cSegment, dSegme
                 i0 = (i_m + i_s, i_n + i_s) # either i_s is either 0 or 1
                 i1 = (i_m + 1, i_n)
                 i2 = (i_m, i_n + 1)
-                m0, n0 = mSegment[i0], nSegment[i0]
-                m1, n1 = mSegment[i1], nSegment[i1]
-                m2, n2 = mSegment[i2], nSegment[i2]
+                m0, n0 = M_seg[i0], N_seg[i0]
+                m1, n1 = M_seg[i1], N_seg[i1]
+                m2, n2 = M_seg[i2], N_seg[i2]
 
                 # construct the simplex, each row is a vertex
                 simplex[0] = m0, n0
@@ -253,6 +257,8 @@ def segmentUpperEnvelope(grids, cG, dG, vG, mSegment, nSegment, cSegment, dSegme
 
                 # inverse of denominator for barycentric weights
                 denominator = ((n1 - n2)*(m0 - m2) + (m2 - m1)*(n0 - n2))
+                if numpy.isnan(denominator) or abs(denominator)<1e-8:
+                    continue
                 inv_denominator = 1.0/denominator
 
                 d12 = n1 - n2
@@ -260,9 +266,9 @@ def segmentUpperEnvelope(grids, cG, dG, vG, mSegment, nSegment, cSegment, dSegme
                 d20 = n2 - n0
                 d02 = m0 - m2
 
-                C[:] = cSegment[i0], cSegment[i1], cSegment[i2]
-                D[:] = dSegment[i0], dSegment[i1], dSegment[i2]
-                V[:] = vSegment[i0], vSegment[i1], vSegment[i2]
+                C[:] = C_seg[i0], C_seg[i1], C_seg[i2]
+                D[:] = D_seg[i0], D_seg[i1], D_seg[i2]
+                V[:] = V_seg[i0], V_seg[i1], V_seg[i2]
 
 
                 for i_mg in range(ms[0], min(ms[1]+1, len_m)):
@@ -280,46 +286,14 @@ def segmentUpperEnvelope(grids, cG, dG, vG, mSegment, nSegment, cSegment, dSegme
 
                         updateSegment(i_mg, i_ng, weights, C, D, V, cG, dG, vG, best)
 
-# @njit # something is not numba
-# can't use boolean slicesin numba
-def cleanSegment(T, V):
-    """
-    cleanSegment uses the elements of T to create indeces of invalid entries in
-    t in T and in V. Used to rule out infeasible policies.
-
-    Parameters
-    ----------
-    T : tuple of numpy.array
-        tuple of arrays used to invalidate
-    V : numpy.array
-        the value associated
-
-    Returns
-    -------
-    Nothing
-    """
-
-    threshold = -0.20
-    isinfeasible = T[0] < threshold
-    for i in range(1, len(T)):
-        isinfeasible = numpy.logical_or(isinfeasible, (T[i] < threshold))
-
-    for t in T:
-        t[isinfeasible] = numpy.nan
-
-    V[isinfeasible] = numpy.nan
-
+    return best, numpy.copy(vG)
 @njit
 def updateSegment(i_mg, i_ng, Weights, C, D, V, CG, DG, VG, best):
     """
     vBest is currently best at x (wehere weights are calculated)
     """
     # if weights are within the cutoff, go ahead and interpolate, and update
-
-    Wsum = Weights.sum()
-    tol = 0.1
-    if (Wsum < (1.0 + tol)) & (Wsum > (1.0 - tol)):
-#    if numpy.any(Weights < -0.25):
+    if not numpy.any(Weights < -0.25):
         # interpolate
         c = numpy.dot(Weights, C)
         d = numpy.dot(Weights, D)
@@ -335,6 +309,37 @@ def updateSegment(i_mg, i_ng, Weights, C, D, V, CG, DG, VG, best):
             VG[i_mg, i_ng] = v
             best[i_mg, i_ng] = True
 
+
+
+# @njit # something is not numba
+# can't use boolean slicesin numba
+def clean_segment(T, V):
+    """
+    clean_segment uses the elements of T to create indeces of invalid entries in
+    t in T and in V. Used to rule out infeasible policies.
+
+    Parameters
+    ----------
+    T : tuple of numpy.array
+        tuple of arrays used to invalidate
+    V : numpy.array
+        the value associated
+
+    Returns
+    -------
+    Nothing
+    """
+
+    threshold = -0.50
+    isinfeasible = T[0] < threshold
+    for i in range(1, len(T)):
+        isinfeasible = numpy.logical_or(isinfeasible, (T[i] < threshold))
+
+    for t in T:
+        t[isinfeasible] = numpy.nan
+
+    V[isinfeasible] = numpy.nan
+    return isinfeasible
 
 
 def g(d, chi = 0.1):
@@ -356,7 +361,7 @@ def g(d, chi = 0.1):
     return chi*numpy.log(1 + d)
 
 # A named tuple to holds grids - simply for easier passing around
-Grids = namedtuple('Grids', 'aGrid bGrid aGrid_ret aGridPost bGridPost mGrid nGrid mGrid_ret aMesh bMesh mMesh nMesh mGrid_con nGrid_con mMesh_con nMesh_con')
+Grids = namedtuple('Grids', 'aGrid bGrid aGrid_ret aGridPost bGridPost mGrid nGrid mGrid_ret aMesh bMesh M N m_con n_con a_acon b_acon MN_bool')
 
 class RetirementSolution(Solution):
     """
@@ -380,19 +385,19 @@ class RetirementSolution(Solution):
 
 class WorkingSolution(Solution):
     def __init__(self, aMesh, bMesh,
-                 mMesh, nMesh,
+                 M, N,
                  cMesh, dMesh, vMesh,
-                 vPmMesh, vPnMesh,
+                 vPM, vPN,
                  c, d, v, vPm, vPn, ucon, con, dcon, acon):
         self.aMesh = aMesh
         self.bMesh = bMesh
-        self.mMesh = mMesh
-        self.nMesh = nMesh
+        self.M = M
+        self.N = N
         self.cMesh = cMesh
         self.dMesh = dMesh
         self.vMesh = vMesh
-        self.vPmMesh = vPmMesh
-        self.vPnMesh = vPnMesh
+        self.vPM = vPM
+        self.vPN = vPN
         self.c = c
         self.d = d
         self.v = v
@@ -426,20 +431,6 @@ class MCNABParameters(object):
         self.eta = eta
         self.sigma = sigma
 
-# class Utility(object):
-#     def __init__(self, Ra, Rb, CRRA, chi, alpha, DiscFac, y, eta, sigma):
-#         self.Ra = Ra
-#         self.Rb = Rb
-#         self.CRRA = CRRA
-#         self.chi = chi
-#         self.alpha = alpha
-#         self.DiscFac = DiscFac
-#         self.y = y
-#         self.eta = eta
-#         self.sigma = sigma
-#
-
-
 Utility = namedtuple('Utility', 'u inv P P_inv g')
 
 # RFC this might be better in a class according to some definition of better,
@@ -449,7 +440,7 @@ Utility = namedtuple('Utility', 'u inv P P_inv g')
 # functions
 def mcnab_grids(mlims, mlen,
                 mlims_ret, mlen_ret,
-                nlims, nlen,
+                nlims, nlen, n_phi,
                 alims, alen,
                 alims_ret, alen_ret,
                 blims, blen,
@@ -457,22 +448,25 @@ def mcnab_grids(mlims, mlen,
                 blims_post, blen_post,):
     mGrid = nonlinspace(mlims[0], mlims[1], mlen)
     mGrid_ret = nonlinspace(mlims_ret[0], mlims_ret[1], mlen_ret)
-    nGrid = nonlinspace(nlims[0], nlims[1], nlen)
-    mAdd_con = 3
-    nAdd_con = 3
-    mGrid_con = nonlinspace(mlims[0], mlims[1] + mAdd_con, mlen)
-    nGrid_con = nonlinspace(nlims[0], nlims[1] + nAdd_con, nlen)
+    nGrid = nonlinspace(nlims[0], nlims[1], nlen, n_phi)
+    m_con = nonlinspace(mlims[0], mlims[1], mlen)
+    n_con = nonlinspace(nlims[0], nlims[1], nlen, n_phi)
 
     # (a, b) grids
     aGrid = nonlinspace(alims[0], alims[1], alen)
-    bGrid = nonlinspace(blims[0], blims[1], blen)
+    bGrid = nonlinspace(blims[0], blims[1], blen, n_phi)
+
+    acon_len = alen
+    a_acon = numpy.zeros(acon_len)
+    b_acon = nonlinspace(0, bGrid.max(), acon_len, n_phi)
+
     aGrid_ret = nonlinspace(alims_ret[0], alims_ret[1], alen_ret)
 
-    aMesh,     bMesh     = numpy.meshgrid(aGrid, bGrid, indexing = 'ij')
+    aMesh, bMesh = numpy.meshgrid(aGrid, bGrid, indexing = 'ij')
 
     # Store a few mesh grids for future use
-    mMesh, nMesh = numpy.meshgrid(mGrid, nGrid, indexing = 'ij')
-    mMesh_con, nMesh_con = numpy.meshgrid(mGrid_con, nGrid_con, indexing = 'ij')
+    M, N = numpy.meshgrid(mGrid, nGrid, indexing = 'ij')
+    MN_bool = numpy.zeros((mlen, nlen), dtype=bool)
 
     aGridPost = nonlinspace(alims_post[0], alims_post[1], alen_post)
     bGridPost = nonlinspace(blims_post[0], blims_post[1], blen_post)
@@ -483,9 +477,10 @@ def mcnab_grids(mlims, mlen,
                  aGridPost, bGridPost,
                  mGrid, nGrid, mGrid_ret,
                  aMesh, bMesh,
-                 mMesh, nMesh,
-                 mGrid_con, nGrid_con,
-                 mMesh_con, nMesh_con)
+                 M, N,
+                 m_con, n_con,
+                 a_acon, b_acon,
+                 MN_bool)
 
 
 
@@ -494,17 +489,18 @@ class MCNAB(AgentType):
                  # interest factors
                  Ra=1.02, Rb=1.04, # liquid, illiquid
                  # common regular grid
-                 mlims=(1e-6, 10.0), Nm=200, # m grid
-                 nlims=(1e-6, 12.0), Nn=200, # n grid
+                 mlims=(1e-6, 10.0), Nm=100, # m grid
+                 nlims=(1e-6, 12.0), Nn=100, # n grid
+                 n_phi=1.25,
                  # post decision grid
-                 alims=(1e-6, 10.0), Na=200, # a grid
-                 blims=(1e-6, 14.0), Nb=200, # b grid
+                 alims=(1e-6, 8.0), # a grid
+                 blims=(1e-6, 14.0), # b grid
+                 posdec_factor=2,
                  # retirement grids
                  mlims_ret=(1e-6, 50.0), Nm_ret=500, # m grid when retired (last period)
                  alims_ret=(1e-6, 25.0), Na_ret=500, # a grid when retired
-                 # interpolation grids
-                 Na_w=500, Nb_w=500, # grid points for interpolation
-
+                 # interpolation
+                 interp_factor=2,
                  # income levels
                  y=0.5, eta=1.0, # retired, working
                  # utility parameters
@@ -517,6 +513,14 @@ class MCNAB(AgentType):
                  verbose=True,
                  **kwds):
 
+
+        # post-decision grids
+        Na = posdec_factor*Nm
+        Nb = posdec_factor*Nn
+
+        # interpolation grids
+        Na_w=interp_factor*Na
+        Nb_w=interp_factor*Nb
         # Initialize a basic AgentType
         AgentType.__init__(self, **kwds)
 
@@ -529,7 +533,7 @@ class MCNAB(AgentType):
 
         self.grids = mcnab_grids(mlims, Nm,
                                  mlims_ret, Nm_ret,
-                                 nlims, Nn,
+                                 nlims, Nn, n_phi,
                                  alims, Na,
                                  alims_ret, Na_ret,
                                  blims, Nb,
@@ -592,7 +596,7 @@ class MCNAB(AgentType):
 
         # We need an upper envelope of the two values prior to the discrete choice
         m, n = self.grids.mGrid, self.grids.nGrid
-        M, N = self.grids.mMesh, self.grids.nMesh
+        M, N = self.grids.M, self.grids.N
 
         # retirement y for this period is not paid until end of the life and
         # there is no bequest motive
@@ -605,7 +609,7 @@ class MCNAB(AgentType):
         vMesh, Pr_1 = discreteEnvelope(vs, par.sigma)
         v = self.stablevalue2d(m, n, vMesh)
 
-        w, wPa, wPb = w_and_wP(rs, ws, self.grids, self.par, self.stablevalue2d)
+        w, wPa, wPb = postdecision_values(rs, ws, self.grids, self.par, self.stablevalue2d)
 
         # Store solution in solution_terminal
         self.solution_terminal = MCNABSolution(rs, ws, # solution objects
@@ -668,7 +672,7 @@ class MCNAB(AgentType):
         mGrid = self.grids.mGrid
         nGrid = self.grids.nGrid
 
-        cMesh = self.grids.mMesh + self.grids.nMesh
+        cMesh = self.grids.M + self.grids.N
         dMesh = numpy.zeros(cMesh.shape)
 
         c = self.stablevalue2d(mGrid, nGrid, cMesh)
@@ -681,16 +685,17 @@ class MCNAB(AgentType):
 
         v = self.stablevalue2d(mGrid, nGrid, vMesh)
 
-        vPmMesh = self.utility.P(cMesh)
-        vPnMesh = numpy.copy(vPmMesh)
+        vPM = self.utility.P(cMesh)
+        vPN = numpy.copy(vPM)
 
-        vPm = self.stablevalue2d(mGrid, nGrid, vPmMesh)
-        vPn = self.stablevalue2d(mGrid, nGrid, vPnMesh)
+        vPm = self.stablevalue2d(mGrid, nGrid, vPM)
+        vPn = self.stablevalue2d(mGrid, nGrid, vPN)
 
-        return WorkingSolution(0, 0, self.grids.mMesh, self.grids.nMesh, cMesh, dMesh, vMesh, vPmMesh, vPnMesh, c, d, v, vPm, vPn, (1), (1), (1), (1))
+        return WorkingSolution(0, 0, self.grids.M, self.grids.N, cMesh, dMesh, vMesh, vPM, vPN, c, d, v, vPm, vPn, (1), (1), (1), (1))
 
 
 def solve_period(solution_next, par, grids, utility, stablevalue, stablevalue2d, verbose):
+    t = time.time()
     # =============================
     # - unpack from solution_next -
     # =============================
@@ -703,7 +708,7 @@ def solve_period(solution_next, par, grids, utility, stablevalue, stablevalue2d,
     # - retired -
     # ===========
     if verbose:
-        print("Solving retired persons sub-problem")
+        print("\nSolving retired persons sub-problem")
     rs = solve_period_retirement(rs_tp1, par, grids, utility, stablevalue)
 
     # ===========
@@ -716,8 +721,8 @@ def solve_period(solution_next, par, grids, utility, stablevalue, stablevalue2d,
     # =====================================
     # - construct discrete upper envelope -
     # =====================================
-    M = grids.mMesh
-    N = grids.nMesh
+    M = grids.M
+    N = grids.N
     # rs_v_interp = rs.v(M.flatten(), N.flatten()).reshape(M.shape)
     # ws_v_interp = ws.v(mGrid, nGrid)
     vInterpRet = rs.v(M, N)
@@ -730,8 +735,9 @@ def solve_period(solution_next, par, grids, utility, stablevalue, stablevalue2d,
     # ==========================
     # - make w and derivatives -
     # ==========================
-    w, wPa, wPb = w_and_wP(rs, ws, grids, par, stablevalue2d)
-
+    w, wPa, wPb = postdecision_values(rs, ws, grids, par, stablevalue2d)
+    elapsed = time.time() - t
+    print("Period solved in %f seconds" % elapsed)
     return MCNABSolution(rs, ws,
                          Pr_1, vInterp, v,
                          w, wPa, wPb)
@@ -774,7 +780,7 @@ def solve_period_working(solution_next, par, grids, utility, stablevalue, stable
     # - grids and meshes -
     # ====================
     mGrid, nGrid = grids.mGrid, grids.nGrid
-    mMesh, nMesh = grids.mMesh, grids.nMesh
+    M, N = grids.M, grids.N
 
     aMesh, bMesh = grids.aMesh, grids.bMesh
 
@@ -797,14 +803,28 @@ def solve_period_working(solution_next, par, grids, utility, stablevalue, stable
     wPaMesh = wPa_t(aMesh, bMesh)
     wPbMesh = wPb_t(aMesh, bMesh)
 
+    t_ucon = time.time()
     ucon_vars = solve_ucon(cMesh, dMesh, vMesh, w_t, utility, par, wPaMesh, wPbMesh, grids, verbose)
+    elapsed_ucon = time.time() - t_ucon
+    print("ucon segment time: %f" % elapsed_ucon)
+    t_con = time.time()
     con_vars = solve_con(cMesh, dMesh, vMesh, w_t, utility, grids, par, verbose)
+    elapsed_con = time.time() - t_con
+    print("con segment time: %f" % elapsed_con)
+
+    t_dcon = time.time()
     dcon_vars = solve_dcon(cMesh, dMesh, vMesh, w_t,  wPaMesh, wPbMesh, utility, grids, par, verbose)
+    elapsed_dcon = time.time() - t_dcon
+    print("dcon segment time: %f" % elapsed_dcon)
+
+    t_acon = time.time()
     acon_vars = solve_acon(cMesh, dMesh, vMesh, w_t, wPb_t, utility, grids, par, verbose)
+    elapsed_acon = time.time() - t_acon
+    print("acon segment time: %f" % elapsed_acon)
 
     # Post-decision grids
-    A_acon = mMesh - cMesh - dMesh
-    B_acon = nMesh + dMesh + utility.g(dMesh)
+    A = M - cMesh - dMesh
+    B = N + dMesh + utility.g(dMesh)
 
     # Policy functions on common grid
     cFunc = stablevalue2d(mGrid, nGrid, cMesh)
@@ -814,17 +834,17 @@ def solve_period_working(solution_next, par, grids, utility, stablevalue, stable
     vFunc = stablevalue2d(mGrid, nGrid, vMesh)
 
     # Value function derivatives on common grid
-    vPmMesh = utility.P(cMesh)
-    vPnMesh = par.DiscFac*wPb_t(A_acon, B_acon)
+    vPM = utility.P(cMesh)
+    vPN = par.DiscFac*wPb_t(A, B)
 
-    vPmFunc = stablevalue2d(mGrid, nGrid, vPmMesh)
-    vPnFunc = stablevalue2d(mGrid, nGrid, vPnMesh)
+    vPmFunc = stablevalue2d(mGrid, nGrid, vPM)
+    vPnFunc = stablevalue2d(mGrid, nGrid, vPN)
 
     return WorkingSolution(aMesh, bMesh,
-                           mMesh, nMesh,
+                           M, N,
                            cMesh, dMesh,
                            vMesh,
-                           vPmMesh, vPnMesh,
+                           vPM, vPN,
                            cFunc, dFunc,
                            vFunc,
                            vPmFunc, vPnFunc,
@@ -840,28 +860,26 @@ def solve_ucon(C, D, V, w_t, utility, par, wPaMesh, wPbMesh, grids, verbose):
     Aij, Bij = grids.aMesh, grids.bMesh
 
     # shape of common grid
-    grid_shape = grids.mMesh.shape
+    grid_shape = grids.M.shape
 
     # FOCs
     cMesh_ucon = utility.P_inv(par.DiscFac*wPaMesh)
     dMesh_ucon = (par.chi*wPbMesh)/(wPaMesh-wPbMesh) - 1
 
     # Endogenous grids
-    mMesh_ucon = Aij + cMesh_ucon + dMesh_ucon
-    nMesh_ucon = Bij - dMesh_ucon + utility.g(dMesh_ucon)
+    M_ucon = Aij + cMesh_ucon + dMesh_ucon
+    N_ucon = Bij - dMesh_ucon + utility.g(dMesh_ucon)
 
     # Value at endogenous grids
-    vMesh_ucon = utility.u(cMesh_ucon) - par.alpha + par.DiscFac*w_t(aGrid, bGrid)
+    V_ucon = utility.u(cMesh_ucon) - par.alpha + par.DiscFac*w_t(aGrid, bGrid)
 
-    cleanSegment((cMesh_ucon, dMesh_ucon, mMesh_ucon, nMesh_ucon), vMesh_ucon)
+    isinfeasible_ucon = clean_segment((cMesh_ucon, dMesh_ucon, M_ucon, N_ucon), V_ucon)
 
     # an indicator array that says if segment is optimal at
     # common grid points
-    best_ucon = numpy.zeros(grid_shape, dtype = bool)
-    segmentUpperEnvelope(grids, C, D, V, mMesh_ucon, nMesh_ucon, cMesh_ucon, dMesh_ucon, vMesh_ucon, best_ucon)
-    vucon = numpy.copy(V)
+    best_ucon, V_copy = segment_upper_envelope(grids, C, D, V, M_ucon, N_ucon, cMesh_ucon, dMesh_ucon, V_ucon)
 
-    return (cMesh_ucon, dMesh_ucon, vMesh_ucon, mMesh_ucon, nMesh_ucon, best_ucon, vucon)
+    return (cMesh_ucon, dMesh_ucon, V_ucon, M_ucon, N_ucon, best_ucon, V_copy)
 
 def solve_con(C, D, V, w_t, utility, grids, par, verbose):
     # ==============
@@ -872,38 +890,34 @@ def solve_con(C, D, V, w_t, utility, grids, par, verbose):
     if verbose:
         print("... solving fully constrained segment")
 
-    # shape of common grid
-    grid_shape = (len(grids.mGrid), len(grids.nGrid))
-
     # No FOCs, fully constrained -> consume what you have and doposit nothing
-    cMesh_con = grids.mMesh   # this is fully constrained => m = c + a + b    = c
-    dMesh_con = 0.0*cMesh_con # this is fully constraied  => n = b - d - g(d) = b
+    C_con = grids.M   # this is fully constrained => m = c + a + b    = c
+    D_con = 0.0*C_con # this is fully constraied  => n = b - d - g(d) = b
 
     # Endogenous grids (well, exogenous...)
-    Mij_con = grids.mMesh
-    Nij_con = grids.nMesh
-    mGrid_con = grids.mGrid
-    nGrid_con = grids.nGrid
+    Mij_con, Nij_con = grids.M, grids.N
 
-    # aGrid_con = mGrid_con*0 # just zeros of the right shape
-    # bGrid_con = nGrid_con # d = 0
-    aMesh_con = mGrid_con*0 # just zeros of the right shape
-    bMesh_con = nGrid_con # d = 0
+    Aij = Mij_con*0 # just zeros of the right shape
+    Bij = Nij_con # d = 0
     # Value at endogenous grids
-    # vMesh_con = utility.u(cMesh_con) - alpha + DiscFac*w(aGrid_con, bGrid_con)
-    vMesh_con = utility.u(cMesh_con) - par.alpha + par.DiscFac*w_t(aMesh_con, bMesh_con)
+    V_con = utility.u(C_con) - par.alpha + par.DiscFac*w_t(Aij, Bij)
 
-    # an indicator array that says if segment is optimal at
-    # common grid points
-    best_con = numpy.zeros(grid_shape, dtype = bool)
-    segmentUpperEnvelope(grids,
-                         C, D, V,
-                         Mij_con, Nij_con,
-                         cMesh_con, dMesh_con,
-                         vMesh_con,
-                         best_con)
-    v_con = numpy.copy(V)
-    return (cMesh_con, dMesh_con, vMesh_con, Mij_con, Nij_con, best_con, v_con)
+    isinfeasible_con = clean_segment((C_con, D_con, Mij_con, Nij_con), V_con)
+
+    best_con, V_copy = ongrid_upper_envelope(C, D, V, C_con, D_con, V_con, isinfeasible_con, numpy.copy(grids.MN_bool))
+
+    return (C_con, D_con, V_con, Mij_con, Nij_con, best_con, V_copy)
+
+#@njit
+def ongrid_upper_envelope(C, D, V, C_con, D_con, V_con, isinfeasible, best):
+    idx_flat = numpy.flatnonzero(numpy.logical_not(isinfeasible))
+    for idx in idx_flat:
+        idx_unraveled = numpy.unravel_index(idx, V.shape)
+        if V[idx_unraveled] < V_con[idx_unraveled]:
+            C[idx_unraveled] = C_con[idx_unraveled]
+            D[idx_unraveled] = D_con[idx_unraveled]
+            V[idx_unraveled] = V_con[idx_unraveled]
+    return best, numpy.copy(V)
 
 def solve_dcon(C, D, V, w_t, wPaMesh, wPbMesh, utility, grids, par, verbose):
     if verbose:
@@ -929,43 +943,33 @@ def solve_dcon(C, D, V, w_t, wPaMesh, wPbMesh, utility, grids, par, verbose):
     # Value at endogenous grids
     V_dcon = utility.u(C_dcon) - par.alpha + par.DiscFac*w_t(Aij, Bij)
 
-    cleanSegment((C_dcon, D_dcon, M_dcon, N_dcon), V_dcon)
-    deviate_dcon(C_dcon, D_dcon, M_dcon, N_dcon, V_dcon, w_t, utility, par)
+    isinfeasible_dcon = clean_segment((C_dcon, D_dcon, M_dcon, N_dcon), V_dcon)
+    deviate_dcon(C_dcon, V_dcon, Aij, N_dcon, w_t, utility, par)
 
     # an indicator array that says if segment is optimal at
     # common grid points
-    best_dcon = numpy.zeros(grid_shape, dtype=bool)
-    segmentUpperEnvelope(grids,
+    best_dcon, V_copy = segment_upper_envelope(grids,
                          C, D, V,
                          M_dcon, M_dcon,
-                         C_dcon, D_dcon, V_dcon,
-                         best_dcon)
-    v_dcon = numpy.copy(V)
+                         C_dcon, D_dcon, V_dcon)
 
-    return (C_dcon, D_dcon, V_dcon, M_dcon, N_dcon, best_dcon, v_dcon)
+    return (C_dcon, D_dcon, V_dcon, M_dcon, N_dcon, best_dcon, V_copy)
 
 def solve_acon(C, D, V, w_t, wPb_t, utility, grids, par, verbose):
     if verbose:
         print("... solving post-decision cash-on-hand constrained segment")
+    t = time.time()
 
-    # shape of common grid
-    grid_shape = (len(grids.mGrid), len(grids.nGrid))
+    Na_acon = len(grids.a_acon)
 
-    mGrid = grids.mGrid
-    bGrid = grids.bGrid
-
-    Na_acon = len(grids.aGrid)
-
-    aGrid_acon = numpy.zeros(Na_acon)
-    bGrid_acon = nonlinspace(0, bGrid.max(), Na_acon, phi = 1.3)
-    aMesh_acon, bMesh_acon = numpy.meshgrid(aGrid_acon, bGrid_acon, indexing='ij')
+    A_acon, bMesh_acon = numpy.meshgrid(grids.a_acon, grids.b_acon, indexing='ij')
 
     # Separate evaluation of wPb for acon due to constrained a = 0.0
     # --------------------------------------------------------------
     # We don't want wPbGrd_acon[0] to be a row, we want it to be the first
     # element, so we ravel
-    wPbGrid_acon = wPb_t(aGrid_acon, bGrid_acon)
-    wPbMesh_acon = wPb_t(aMesh_acon, bMesh_acon)
+    wPbGrid_acon = wPb_t(grids.a_acon, grids.b_acon)
+    wPbMesh_acon = wPb_t(A_acon, bMesh_acon)
 
     # No FOC for c; fix at some "interesting" values
     # the approach requires b to be fixed. I'm not 100% I'm following the paper's
@@ -977,9 +981,12 @@ def solve_acon(C, D, V, w_t, wPb_t, utility, grids, par, verbose):
     # fraction vanish) or a very small d (d=0) such that the fraction becomes chi/1
 
     # [RFC] can this be done in a better way?
-    CMin = utility.P_inv(par.DiscFac*wPbGrid_acon*(1 + par.chi))
-    CMax = utility.P_inv(par.DiscFac*wPbGrid_acon*(1 + par.chi/(1+mGrid.max())))
-    C_acon = numpy.array([nonlinspace(CMin[bi], CMax[bi], Na_acon) for bi in range(len(bGrid_acon))])
+    c_min = utility.P_inv(par.DiscFac*wPbGrid_acon*(1 + par.chi))
+    c_max = utility.P_inv(par.DiscFac*wPbGrid_acon)
+    # Could it make sense to use the grid's upper bound explicitly?
+    # c_max = utility.P_inv(par.DiscFac*wPbGrid_acon*(1 + par.chi/(1+grids.mGrid.max())))
+
+    C_acon = numpy.array([nonlinspace(c_min[bi], c_max[bi], Na_acon) for bi in range(len(grids.b_acon))])
 
     # FOC for d constrained
     # the d's that fullfil FOC at the bottom of p. 93 follow from gPd(d) = chi/(1+d)
@@ -987,43 +994,38 @@ def solve_acon(C, D, V, w_t, wPb_t, utility, grids, par, verbose):
     D_acon = par.chi/(utility.P(C_acon)/(par.DiscFac*wPbMesh_acon) - 1) - 1
 
     # Endogenous grids
-    M_acon = aMesh_acon + C_acon + D_acon
+    M_acon = A_acon + C_acon + D_acon
     N_acon = bMesh_acon - D_acon - utility.g(D_acon)
 
     # value at endogenous grids
-    V_acon = utility.u(C_acon) - par.alpha + par.DiscFac*w_t(aMesh_acon, bMesh_acon)
+    V_acon = utility.u(C_acon) - par.alpha + par.DiscFac*w_t(A_acon, bMesh_acon)
 
-    cleanSegment((C_acon, D_acon, M_acon, N_acon), V_acon)
-    deviate_acon(C_acon, D_acon, M_acon, N_acon, V_acon, w_t, utility, par)
+    isinfeasible_acon = clean_segment((C_acon, D_acon, M_acon, N_acon), V_acon)
+    #print(numpy.sum(isinfeasible_acon))
+    #deviate_acon(C_acon, V_acon, M_acon, A_acon, w_t, utility, par)
     # # an indicator array that says if segment is optimal at
     # # common grid points
-    best_acon = numpy.zeros(grid_shape, dtype = bool)
-    segmentUpperEnvelope(grids, C, D, V, M_acon, N_acon, C_acon, D_acon, V_acon, best_acon)
-    VCopy = numpy.copy(V)
+    best_acon, V_copy = segment_upper_envelope(grids, C, D, V, M_acon, N_acon, C_acon, D_acon, V_acon)
+    print("Time after segmentUpper: %f" % (time.time()-t))
 
-    return (C_acon, D_acon, V_acon, M_acon, N_acon, best_acon, VCopy, CMin, CMax)
-
+    return (C_acon, D_acon, V_acon, M_acon, N_acon, best_acon, V_copy, c_min, c_max)
 
 
-def deviate_dcon(C, D, M, N, V, w_t, utility, par):
-    eps_deviate = 1e-5
-    C_deviated = C - eps_deviate
-    M_deviated = M
-    A_deviated = M_deviated - C_deviated
-    N_deviated = N + eps_deviate
-    B_deviated = N_deviated + utility.g(eps_deviate)
-    V_deviated = utility.u(C_deviated) + par.DiscFac*w_t(A_deviated, B_deviated)
+
+def deviate_dcon(C, V, A, N, w_t, utility, par):
+    eps_deviate = 1e-4
+    C_deviated = C*(1 - eps_deviate)
+    D_deviated = C*eps_deviate
+    B_deviated = N + D_deviated + utility.g(eps_deviate)
+    V_deviated = utility.u(C_deviated) - par.alpha + par.DiscFac*w_t(A, B_deviated)
     invalid = V_deviated > V
     V[invalid] = numpy.nan
 
-def deviate_acon(C, D, M, N, V, w_t, utility, par):
-    eps_deviate = 1e-5
-    C_deviated = C - eps_deviate
-    M_deviated = M
-    A_deviated = M_deviated - C_deviated
-    N_deviated = N + eps_deviate
-    B_deviated = N_deviated + utility.g(eps_deviate)
-    V_deviated = utility.u(C_deviated) + par.DiscFac*w_t(A_deviated, B_deviated)
+def deviate_acon(C, V, M, B, w_t, utility, par):
+    eps_deviate = 1e-4
+    C_deviated = C*(1 - eps_deviate)
+    A_deviated = M - C_deviated
+    V_deviated = utility.u(C_deviated) - par.alpha + par.DiscFac*w_t(A_deviated, B)
     invalid = V_deviated > V
     V[invalid] = numpy.nan
 
