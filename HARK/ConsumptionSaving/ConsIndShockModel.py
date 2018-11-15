@@ -1704,7 +1704,7 @@ class PerfForesightConsumerType(AgentType):
             return
 
         #Evaluate and report on the return impatience condition
-        RIF=(self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
+        RIF = (self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
         if RIF<1:
             print('The return impatiance factor value for the supplied parameter values satisfies the return impatiance condition.')
         else:
@@ -1713,7 +1713,7 @@ class PerfForesightConsumerType(AgentType):
                 print('    For more, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
         #Evaluate and report on the absolute impatience condition
-        AIF=self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA)
+        AIF = self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA)
         if AIF<1:
             print('The absolute impatiance factor value for the supplied parameter values satisfies the absolute impatiance condition.')
         else:
@@ -1723,7 +1723,7 @@ class PerfForesightConsumerType(AgentType):
                 print('    For more, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
         #Evaluate and report on the finite human wealth condition
-        FHWF=self.PermGroFac[0]/self.Rfree
+        FHWF = self.PermGroFac[0]/self.Rfree
         if FHWF<1:
             print('The finite human wealth factor value for the supplied parameter values satisfies the finite human wealth condition.')
         else:
@@ -2020,19 +2020,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if self.cycles!=0 or self.T_cycle > 1:
             return
 
-        #Some initial conditions
-        exp_psi_inv=0
-        exp_psi_to_one_minus_rho=0
-        #Get expected psi inverse
-        for i in range(len(self.PermShkDstn[1])):
-            exp_psi_inv=exp_psi_inv+(1.0/self.PermShkCount)*(self.PermShkDstn[1][i])**(-1)
-
-        #Get expected psi to the power one minus CRRA
-        for i in range(len(self.PermShkDstn[1])):
-            exp_psi_to_one_minus_rho=exp_psi_to_one_minus_rho+(1.0/self.PermShkCount)*(self.PermShkDstn[1][i])**(1-self.CRRA)
+        EPermShkInv=np.dot(self.PermShkDstn[0][0],1/self.PermShkDstn[0][1])
+        PermGroFacAdj=self.PermGroFac[0]*EPermShkInv
+        Thorn=self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA)
+        GIF=Thorn/PermGroFacAdj
 
         #Evaluate and report on the growth impatience condition
-        GIF=(self.LivPrb[0]*exp_psi_inv*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.PermGroFac[0]
         if GIF<1:
             print('The growth impatiance factor value for the supplied parameter values satisfies the growth impatiance condition.')
         else:
