@@ -2048,11 +2048,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         #Evaluate and report on the finite value of autarky condition
         EPermShkValFunc=np.dot(self.PermShkDstn[0][0],self.PermShkDstn[0][1]**(1-self.CRRA))
-        FVAC=self.LivPrb[0]*self.DiscFac*EPermShkValFunc*(self.PermGroFac[0]**(1-self.CRRA))
-        if FVAC<1:
+        FVAF=self.LivPrb[0]*self.DiscFac*EPermShkValFunc*(self.PermGroFac[0]**(1-self.CRRA))
+        if FVAF<1:
             print('The finite value of autarky factor value for the supplied parameter values satisfies the finite value of autarky condition.')
         else:
-            print('The given type violates the finite value of autarky condition with the supplied parameter values. The FVAC is %2.4f' %(FVAC))
+            print('The given type violates the finite value of autarky condition with the supplied parameter values. The FVAF is %2.4f' %(FVAF))
             violated = True
             if verbose:
                 print('    Therefore, a nondegenerate solution is not available.')
