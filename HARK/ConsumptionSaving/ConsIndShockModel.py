@@ -1678,7 +1678,7 @@ class PerfForesightConsumerType(AgentType):
         self.aLvlNow = self.aNrmNow*self.pLvlNow   # Useful in some cases to precalculate asset level
         return None
 
-    def checkConditions(self,verbose=False):
+    def checkConditions(self,verbose=False,verbose_reference=False):
         '''
         This method checks whether the instance's type satisfies the growth impatience condition
         (GIC), return impatience condition (RIC), absolute impatience condition (AIC), weak return
@@ -1731,7 +1731,7 @@ class PerfForesightConsumerType(AgentType):
             print('The given type violates the finite human wealth condition; the finite human wealth factor value %2.5f ' % (FHWF))
             violated = True
 
-        if verbose and violated:
+        if verbose and violated and verbose_reference:
             print('[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
 class IndShockConsumerType(PerfForesightConsumerType):
@@ -1996,7 +1996,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PerfForesightConsumerType.preSolve(self)
         self.updateSolutionTerminal()
 
-    def checkConditions(self,verbose=False):
+    def checkConditions(self,verbose=False,verbose_reference=True):
         '''
         This method checks whether the instance's type satisfies the growth impatience condition
         (GIC), return impatience condition (RIC), absolute impatience condition (AIC), weak return
@@ -2017,7 +2017,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         '''
-        PerfForesightConsumerType.checkConditions(self, verbose)
+        PerfForesightConsumerType.checkConditions(self, verbose, verbose_reference=False)
 
         if self.cycles!=0 or self.T_cycle > 1:
             return
@@ -2057,8 +2057,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if verbose:
                 print('    Therefore, a nondegenerate solution is not available.')
 
-        if verbose and violated:
-            print('[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
+        if verbose and violated and verbose_reference:
+            print('\n[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
 
 class KinkedRconsumerType(IndShockConsumerType):
