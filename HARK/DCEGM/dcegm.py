@@ -139,25 +139,31 @@ class RetiringDeaton(AgentType):
         rs = self.solveLastRetired()
         ws = self.solveLastWorking()
 
+        commonM = ws.M
 
         if self.saveCommon:
             # To save the pre-disrete choice expected consumption and value function,
             # we need to interpolate onto the same grid between the two. We know that
             # ws.C and ws.V_T are on the ws.M grid, so we use that to interpolate.
-            Crs = LinearInterp(rs.M, rs.C)(ws.M)
+            Crs = LinearInterp(rs.M, rs.C)(commonM)
             Cws = ws.C
     #        Cws = LinearInterp(rs.M, rs.C)(mGrid)
 
-            V_Trs = LinearInterp(rs.M, rs.V_T)(ws.M)
+            V_Trs = LinearInterp(rs.M, rs.V_T)(commonM)
             V_Tws = ws.V_T
 
-            V_T, P = discreteEnvelope(numpy.array([V_Trs, V_Tws]), self.par.sigma)
+            # use vstack to stack the choice specific value functions by
+            # value of cash-on-hand
+            V_T, P = discreteEnvelope(numpy.vstack((V_Trs, V_Tws)), self.par.sigma)
 
-            C = P[0, :]*Crs + P[1, :]*Cws
+            # find the expected consumption prior to discrete choice by element-
+            # wise multiplication between choice distribution and choice specific
+            # consumption functions
+            C = (P*numpy.vstack((Crs, Cws))).sum(axis=0)
         else:
             C, V_T, P = None, None, None
 
-        self.solution_terminal = RetiringDeatonSolution(rs, ws, ws.M, C, V_T, P)#M, C, -1.0/V, P)
+        self.solution_terminal = RetiringDeatonSolution(rs, ws, commonM, C, V_T, P)#M, C, -1.0/V, P)
 
     def solveLastRetired(self):
         """
@@ -274,12 +280,11 @@ def solveRetiringDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP
         V_Trs = LinearInterp(rs.M, rs.V_T)(ws.M)
         V_Tws = ws.V_T
 
-        V_T, P = discreteEnvelope(numpy.array([V_Trs, V_Tws]), par.sigma)
+        V_T, P = discreteEnvelope(numpy.vstack((V_Trs, V_Tws)), par.sigma)
 
-        C = P[0, :]*Crs + P[1, :]*Cws
+        C = (P*numpy.vstack((Crs, Cws))).sum(axis=0)
     else:
         C, V_T, P = None, None, None
-
 
     return RetiringDeatonSolution(rs, ws, mGrid, C, V_T, P)#-1.0/V, P) #0,0 is m and c
 
@@ -353,7 +358,7 @@ def solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP,
 
     # Due to the transformation on V being monotonic increasing, we can just as
     # well use the transformed values to do this discrete envelope step.
-    V_T, P_tp1 = discreteEnvelope(numpy.array([Vr_T, Vw_T]), par.sigma)
+    V_T, P_tp1 = discreteEnvelope(numpy.vstack((Vr_T, Vw_T)), par.sigma)
     # Calculate the expected marginal utility and expected value function
     Eu[conLen:] = par.Rfree*(P_tp1[0, :]*UtilP(Cr_tp1, 1) + P_tp1[1, :]*UtilP(Cw_tp1, 2))
     Ev[conLen:] = numpy.divide(-1.0, V_T)

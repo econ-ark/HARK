@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 # ---
 # jupyter:
+#   '@webio':
+#     lastCommId: 7428b8ea85604d8fb8a8b382df9427fe
+#     lastKernelId: e5abca2c-854d-42ca-8156-4ad942ef9f8c
 #   jupytext:
 #     text_representation:
 #       extension: .py
@@ -20,7 +23,7 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.6.4
+#     version: 3.6.5
 # ---
 
 # # A Gentle Introduction to DCEGM
@@ -244,7 +247,4 @@ plt.scatter(x[rise], y[rise], color="green")
 plt.scatter(x[fall], y[fall], color="red")
 
 # -
-
-
-
 
