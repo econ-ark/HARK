@@ -124,7 +124,7 @@ class RetiringDeaton(AgentType):
         Updates grids and functions according to the given model parameters, and
         solves the last period.
 
-        Paramters
+        Parameters
         ---------
         None
 
@@ -140,14 +140,24 @@ class RetiringDeaton(AgentType):
         ws = self.solveLastWorking()
 
 
-#        M = self.mGrid
-#        cFunc = lambda m: m
+        if self.saveCommon:
+            # To save the pre-disrete choice expected consumption and value function,
+            # we need to interpolate onto the same grid between the two. We know that
+            # ws.C and ws.V_T are on the ws.M grid, so we use that to interpolate.
+            Crs = LinearInterp(rs.M, rs.C)(ws.M)
+            Cws = ws.C
+    #        Cws = LinearInterp(rs.M, rs.C)(mGrid)
 
-        #V, P = discreteEnvelope(numpy.array([-1.0/rs.V_T, (-1.0/ws.V_T)]), self.par.sigma)
+            V_Trs = LinearInterp(rs.M, rs.V_T)(ws.M)
+            V_Tws = ws.V_T
 
-        #C = P[0, :]*rs.C + P[1, :]*ws.C
+            V_T, P = discreteEnvelope(numpy.array([V_Trs, V_Tws]), self.par.sigma)
 
-        self.solution_terminal = RetiringDeatonSolution(rs, ws, 0,0,0,0)#M, C, -1.0/V, P)
+            C = P[0, :]*Crs + P[1, :]*Cws
+        else:
+            C, V_T, P = None, None, None
+
+        self.solution_terminal = RetiringDeatonSolution(rs, ws, ws.M, C, V_T, P)#M, C, -1.0/V, P)
 
     def solveLastRetired(self):
         """
@@ -253,18 +263,15 @@ def solveRetiringDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP
     rs = solveRetiredDeaton(solution_next, aGrid, EGMVector, par, Util, UtilP, UtilP_inv)
     ws = solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP, UtilP_inv)
 
-    # this is not on the same grid
-
     if saveCommon:
-        # There should be another conditional branch that determines if ws should
-        # be interpolated conditional on whether points were added to the grid
-        # in the computations or not (else they're already on mGrid!)
-        # of common grid C and V_T
-        Crs = LinearInterp(rs.M, rs.C)(mGrid)
+        # To save the pre-disrete choice expected consumption and value function,
+        # we need to interpolate onto the same grid between the two. We know that
+        # ws.C and ws.V_T are on the ws.M grid, so we use that to interpolate.
+        Crs = LinearInterp(rs.M, rs.C)(ws.M)
         Cws = ws.C
 #        Cws = LinearInterp(rs.M, rs.C)(mGrid)
 
-        V_Trs = LinearInterp(rs.M, rs.V_T)(mGrid)
+        V_Trs = LinearInterp(rs.M, rs.V_T)(ws.M)
         V_Tws = ws.V_T
 
         V_T, P = discreteEnvelope(numpy.array([V_Trs, V_Tws]), par.sigma)
