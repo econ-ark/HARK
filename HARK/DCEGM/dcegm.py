@@ -71,6 +71,7 @@ class RetiringDeaton(AgentType):
                  shiftPoints=False, T=20, CRRA=1.0, sigma=0.0,
                  eta=20.0,
                  IncVar = 0.0,
+                 NInc = 1,
                  y=0.0, # normalized relative to work
                  Nm=2000,
                  aLims=(1e-6, 700), Na=1800,
@@ -90,6 +91,7 @@ class RetiringDeaton(AgentType):
             return None
 
         self.IncVar = IncVar
+        self.NInc = NInc
 
         self.time_inv = ['aGrid', 'mGrid', 'EGMVector', 'par', 'Util', 'UtilP',
                          'UtilP_inv', 'saveCommon', 'IncShk', 'IncShkWeights']
@@ -126,13 +128,13 @@ class RetiringDeaton(AgentType):
         self.aGrid = nonlinspace(self.aLims[0], self.aLims[1], self.Na)
         self.mGrid = nonlinspace(self.aLims[0], self.aLims[1]*1.5, self.Na)
         self.EGMVector = numpy.zeros(self.Nm)
-        NInc = 100
-        if NInc == 1:
-            self.IncShk = numpy.ones(NInc)
-            self.IncShkWeights = numpy.ones(NInc)
-        elif NInc > 1:
-            self.IncShk = drawMeanOneLognormal(N=NInc, sigma=self.IncVar)
-            self.IncShkWeights = numpy.ones(NInc)/NInc
+
+        if self.NInc == 0:
+            self.IncShk = numpy.ones(1)
+            self.IncShkWeights = numpy.ones(1)
+        elif self.NInc >= 1:
+            self.IncShk = drawMeanOneLognormal(N=self.NInc, sigma=self.IncVar)
+            self.IncShkWeights = numpy.ones(self.NInc)/self.NInc
 
         rs = self.solveLastRetired()
         ws = self.solveLastWorking()
