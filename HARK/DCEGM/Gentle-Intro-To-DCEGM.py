@@ -2,8 +2,8 @@
 # ---
 # jupyter:
 #   '@webio':
-#     lastCommId: 5505b729c62043688cc331978fa4d74b
-#     lastKernelId: e5abca2c-854d-42ca-8156-4ad942ef9f8c
+#     lastCommId: 4153887b125d46289e31dad0e4c91014
+#     lastKernelId: 2e2b0335-6121-41fe-9269-feba62afe456
 #   jupytext:
 #     text_representation:
 #       extension: .py
@@ -23,7 +23,7 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.6.5
+#     version: 3.6.4
 # ---
 
 # # A Gentle Introduction to DCEGM
@@ -146,7 +146,8 @@ t=18
 plt.subplot(1,2,1)
 model.plotC(t, 1)
 model.plotC(t, 2)
-
+plt.xlim((0,200))
+plt.ylim((0,100))
 plt.subplot(1,2,2)
 model.plotV(t, 1)
 model.plotV(t, 2)
@@ -156,7 +157,7 @@ model.plotV(t, 2)
 # function and kinks in the choice specific value functions for the workers!
 # This is *not* the discontinuity from the retirement threshold in period $t=18$,
 # but from the "future" discontinuity in $t=19$. We'll first look at the final
-# consumption function $C_18(M)$, and then we'll return to these to these.
+# consumption function $C_{18}(M)$, and then we'll return to these to these.
 
 # +
 t = 18
@@ -247,4 +248,13 @@ plt.scatter(x[rise], y[rise], color="green")
 plt.scatter(x[fall], y[fall], color="red")
 
 # -
+model.IncShk
+
+v=numpy.zeros((430,5))
+
+numpy.stack((v,v)).shape
+
+v=numpy.zeros(300)
+numpy.stack((v,v)).shape
+
 

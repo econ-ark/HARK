@@ -7,6 +7,7 @@ from collections import namedtuple
 from HARK import Solution, AgentType
 from HARK.interpolation import LinearInterp
 from HARK.utilities import CRRAutility, CRRAutility_inv, CRRAutilityP, CRRAutilityP_inv
+from HARK.simulation import drawMeanOneLognormal
 # might as well alias them utility, as we need CRRA
 # should use these instead of hardcoded log (CRRA=1)
 utility       = CRRAutility
@@ -14,21 +15,8 @@ utilityP      = CRRAutilityP
 utilityP_inv  = CRRAutilityP_inv
 utility_inv   = CRRAutility_inv
 
-def dcegmUpperEnvelope(M, C, V):
-
-    return None
-
-def dcegmEGM(M, C, V):
-
-    return None
-
-def DCEGM(M, C, V):
-
-    return None
-
 RetiringDeatonParameters = namedtuple('RetiringDeatonParamters',
                                       'DiscFac CRRA DisUtil Rfree y eta sigma')
-
 
 def nonlinspace(low, high, n, phi = 1.1):
     '''
@@ -79,12 +67,13 @@ class WorkingDeatonSolution(Solution):
         self.V_T = V_T
 
 class RetiringDeaton(AgentType):
-    def __init__(self, DiscFac=0.95, Rfree=1.05, DisUtil=1.0,
+    def __init__(self, DiscFac=0.98, Rfree=1.02, DisUtil=-1.0,
                  shiftPoints=False, T=20, CRRA=1.0, sigma=0.0,
-                 eta=40.0,
+                 eta=20.0,
+                 IncVar = 0.0,
                  y=0.0, # normalized relative to work
                  Nm=2000,
-                 aLims=(1e-6, 500), Na=1800,
+                 aLims=(1e-6, 700), Na=1800,
                  saveCommon=False,
                  **kwds):
 
@@ -96,12 +85,14 @@ class RetiringDeaton(AgentType):
             # err
             return None
             # Todo the DisUtil is wrong below, look up in paper
-        if DiscFac*Rfree > 1.0 or DisUtil > (1+DiscFac)*numpy.log(1+DiscFac):
+        if DiscFac*Rfree >= 1.0 or -DisUtil > (1+DiscFac)*numpy.log(1+DiscFac):
             # err
             return None
 
+        self.IncVar = IncVar
+
         self.time_inv = ['aGrid', 'mGrid', 'EGMVector', 'par', 'Util', 'UtilP',
-                         'UtilP_inv', 'saveCommon']
+                         'UtilP_inv', 'saveCommon', 'IncShk', 'IncShkWeights']
         self.time_vary = ['age']
 
         self.age = list(range(T-1))
@@ -112,7 +103,7 @@ class RetiringDeaton(AgentType):
         self.Nm = Nm
         # d == 2 is working
         # - 10.0 moves curve down to improve lienar interpolation
-        self.Util = lambda c, d: utility(c, CRRA) + self.par.DisUtil*(2-d) - 10.0
+        self.Util = lambda c, d: utility(c, CRRA) - self.par.DisUtil*(2-d) - 10.0
         self.UtilP = lambda c, d: utilityP(c, CRRA) # we require CRRA 1.0 for now...
         self.UtilP_inv = lambda u, d: utilityP_inv(u, CRRA) # ... so ...
 
@@ -135,6 +126,13 @@ class RetiringDeaton(AgentType):
         self.aGrid = nonlinspace(self.aLims[0], self.aLims[1], self.Na)
         self.mGrid = nonlinspace(self.aLims[0], self.aLims[1]*1.5, self.Na)
         self.EGMVector = numpy.zeros(self.Nm)
+        NInc = 100
+        if NInc == 1:
+            self.IncShk = numpy.ones(NInc)
+            self.IncShkWeights = numpy.ones(NInc)
+        elif NInc > 1:
+            self.IncShk = drawMeanOneLognormal(N=NInc, sigma=self.IncVar)
+            self.IncShkWeights = numpy.ones(NInc)/NInc
 
         rs = self.solveLastRetired()
         ws = self.solveLastWorking()
@@ -154,12 +152,12 @@ class RetiringDeaton(AgentType):
 
             # use vstack to stack the choice specific value functions by
             # value of cash-on-hand
-            V_T, P = discreteEnvelope(numpy.vstack((V_Trs, V_Tws)), self.par.sigma)
+            V_T, P = discreteEnvelope(numpy.stack((V_Trs, V_Tws)), self.par.sigma)
 
             # find the expected consumption prior to discrete choice by element-
             # wise multiplication between choice distribution and choice specific
             # consumption functions
-            C = (P*numpy.vstack((Crs, Cws))).sum(axis=0)
+            C = (P*numpy.stack((Crs, Cws))).sum(axis=0)
         else:
             C, V_T, P = None, None, None
 
@@ -254,7 +252,7 @@ class RetiringDeaton(AgentType):
         plt.ylabel("C(M)")
         plt.title('Choice specific consumption functions')
 
-def solveRetiringDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP, UtilP_inv, age, saveCommon):
+def solveRetiringDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP, UtilP_inv, age, saveCommon, IncShk, IncShkWeights):
     """
     Solves a period of problem defined by the RetiringDeaton AgentType. It uses
     DCEGM to solve the mixed choice problem.
@@ -267,7 +265,7 @@ def solveRetiringDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP
 
     """
     rs = solveRetiredDeaton(solution_next, aGrid, EGMVector, par, Util, UtilP, UtilP_inv)
-    ws = solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP, UtilP_inv)
+    ws = solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP, UtilP_inv, IncShk, IncShkWeights)
 
     if saveCommon:
         # To save the pre-disrete choice expected consumption and value function,
@@ -280,9 +278,9 @@ def solveRetiringDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP
         V_Trs = LinearInterp(rs.M, rs.V_T)(ws.M)
         V_Tws = ws.V_T
 
-        V_T, P = discreteEnvelope(numpy.vstack((V_Trs, V_Tws)), par.sigma)
+        V_T, P = discreteEnvelope(numpy.stack((V_Trs, V_Tws)), par.sigma)
 
-        C = (P*numpy.vstack((Crs, Cws))).sum(axis=0)
+        C = (P*numpy.stack((Crs, Cws))).sum(axis=0)
     else:
         C, V_T, P = None, None, None
 
@@ -330,7 +328,7 @@ def solveRetiredDeaton(solution_next, aGrid, EGMVector, par, Util, UtilP, UtilP_
 
     return RetiredDeatonSolution(C, M, V_T)
 
-def solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP, UtilP_inv):
+def solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP, UtilP_inv, IncShk, IncShkWeights):
     choice = 2
     rs_tp1 = solution_next.rs
     ws_tp1 = solution_next.ws
@@ -342,7 +340,8 @@ def solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP,
     aLen = len(aGrid)
     conLen = len(M)-aLen
     # Next-period initial wealth given exogenous aGrid
-    M_tp1 = par.Rfree*aGrid + par.eta
+    Mrs_tp1 = par.Rfree*numpy.expand_dims(aGrid, axis=1) + par.y*IncShk.T
+    Mws_tp1 = par.Rfree*numpy.expand_dims(aGrid, axis=1) + par.eta*IncShk.T
     # Prepare variables for EGM step
     rs_augM = numpy.insert(rs_tp1.M, 0, 0.0)
     rs_augC = numpy.insert(rs_tp1.C, 0, 0.0)
@@ -351,18 +350,17 @@ def solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP,
     ws_augC = numpy.insert(ws_tp1.C, 0, 0.0)
     ws_augV_T = numpy.insert(ws_tp1.V_T, 0, 0.0)
 
-    Cr_tp1 = LinearInterp(rs_augM, rs_augC, lower_extrap=True)(M_tp1)
-    Cw_tp1 = LinearInterp(ws_augM, ws_augC, lower_extrap=True)(M_tp1)
-    Vr_T = LinearInterp(rs_augM, rs_augV_T, lower_extrap=True)(M_tp1)
-    Vw_T = LinearInterp(ws_augM, ws_augV_T, lower_extrap=True)(M_tp1)
-
+    Cr_tp1 = LinearInterp(rs_augM, rs_augC, lower_extrap=True)(Mrs_tp1)
+    Cw_tp1 = LinearInterp(ws_augM, ws_augC, lower_extrap=True)(Mws_tp1)
+    Vr_T = LinearInterp(rs_augM, rs_augV_T, lower_extrap=True)(Mrs_tp1)
+    Vw_T = LinearInterp(ws_augM, ws_augV_T, lower_extrap=True)(Mws_tp1)
     # Due to the transformation on V being monotonic increasing, we can just as
     # well use the transformed values to do this discrete envelope step.
-    V_T, P_tp1 = discreteEnvelope(numpy.vstack((Vr_T, Vw_T)), par.sigma)
+    V_T, P_tp1 = discreteEnvelope(numpy.stack((Vr_T, Vw_T)), par.sigma)
     # Calculate the expected marginal utility and expected value function
-    Eu[conLen:] = par.Rfree*(P_tp1[0, :]*UtilP(Cr_tp1, 1) + P_tp1[1, :]*UtilP(Cw_tp1, 2))
-    Ev[conLen:] = numpy.divide(-1.0, V_T)
-
+    P_tp1 = numpy.reshape(P_tp1, (2, 1800, len(IncShk)))
+    Eu[conLen:] =  par.Rfree*numpy.dot((P_tp1[0, :]*UtilP(Cr_tp1, 1) + P_tp1[1, :]*UtilP(Cw_tp1, 2)),IncShkWeights.T)
+    Ev[conLen:] = numpy.squeeze(numpy.divide(-1.0, numpy.dot(numpy.expand_dims(V_T, axis=1), IncShkWeights.T)))
     # EGM step
     C[conLen:] = UtilP_inv(par.DiscFac*Eu[conLen:], choice)
     M[conLen:] = aGrid + C[conLen:]
