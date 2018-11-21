@@ -2,7 +2,7 @@
 # ---
 # jupyter:
 #   '@webio':
-#     lastCommId: 4153887b125d46289e31dad0e4c91014
+#     lastCommId: 0b4881f87f004e348b6ffafbfc3dc0d9
 #     lastKernelId: 2e2b0335-6121-41fe-9269-feba62afe456
 #   jupytext:
 #     text_representation:
@@ -256,5 +256,9 @@ numpy.stack((v,v)).shape
 
 v=numpy.zeros(300)
 numpy.stack((v,v)).shape
+
+model.IncShkWeights
+
+numpy.dot(model.IncShk, model.IncShkWeights)
 
 

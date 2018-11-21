@@ -8,6 +8,7 @@ from HARK import Solution, AgentType
 from HARK.interpolation import LinearInterp
 from HARK.utilities import CRRAutility, CRRAutility_inv, CRRAutilityP, CRRAutilityP_inv
 from HARK.simulation import drawMeanOneLognormal
+from math import sqrt
 # might as well alias them utility, as we need CRRA
 # should use these instead of hardcoded log (CRRA=1)
 utility       = CRRAutility
@@ -70,8 +71,8 @@ class RetiringDeaton(AgentType):
     def __init__(self, DiscFac=0.98, Rfree=1.02, DisUtil=-1.0,
                  shiftPoints=False, T=20, CRRA=1.0, sigma=0.0,
                  eta=20.0,
-                 IncVar = 0.0,
-                 NInc = 1,
+                 IncVar = 0.005,
+                 NInc = 0,
                  y=0.0, # normalized relative to work
                  Nm=2000,
                  aLims=(1e-6, 700), Na=1800,
@@ -133,8 +134,13 @@ class RetiringDeaton(AgentType):
             self.IncShk = numpy.ones(1)
             self.IncShkWeights = numpy.ones(1)
         elif self.NInc >= 1:
-            self.IncShk = drawMeanOneLognormal(N=self.NInc, sigma=self.IncVar)
-            self.IncShkWeights = numpy.ones(self.NInc)/self.NInc
+            self.IncShk, self.IncShkWeights = numpy.polynomial.hermite.hermgauss(self.NInc)
+            self.IncShk = numpy.exp(-self.IncVar/2.0 + sqrt(2)*sqrt(self.IncVar)*self.IncShk)
+            self.IncShkWeights = self.IncShkWeights/sqrt(numpy.pi)
+            # self.IncShk = numpy.exp(-self.IncVar/2.0 + sqrt(2)*sqrt(self.IncVar)*self.IncShk)
+        # else: # monte carlo
+        #     self.IncShk = drawMeanOneLognormal(N=self.NInc, sigma=self.IncVar)
+        #     self.IncShkWeights = numpy.ones(self.NInc)/self.NInc
 
         rs = self.solveLastRetired()
         ws = self.solveLastWorking()
