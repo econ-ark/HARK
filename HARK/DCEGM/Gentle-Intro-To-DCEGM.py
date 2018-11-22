@@ -2,13 +2,8 @@
 # ---
 # jupyter:
 #   '@webio':
-<<<<<<< Updated upstream
-#     lastCommId: 0b4881f87f004e348b6ffafbfc3dc0d9
-#     lastKernelId: 2e2b0335-6121-41fe-9269-feba62afe456
-=======
 #     lastCommId: b907a183a5e7492794ec258d5c61b859
 #     lastKernelId: 4d76298d-4856-4a5e-a87a-11d75d6c9dbf
->>>>>>> Stashed changes
 #   jupytext:
 #     text_representation:
 #       extension: .py
@@ -30,6 +25,7 @@
 #     pygments_lexer: ipython3
 #     version: 3.6.4
 # ---
+# -
 
 # # A Gentle Introduction to DCEGM
 # This notebook introduces the DCEGM method introduced in [1]. The paper generalizes
@@ -57,15 +53,15 @@ import dcegm
 # works. Then, $\delta$ can be interpreted as the disutility of work, and we
 # see that we have the limiting utility function of a CRRA with $\gamma \downarrow 1$.
 #
-# We some the problem under a no-borrowing constraint, so $c_t\leq M_t$ where $M_t$
+# We some the problem under a no-borrowing constraint, so $c_t\leq Coh_t$ where $Coh_t$
 # is the ressources at the beginning of each period that can be consumed or saved
-# for next period. The ressource state $M_t$ is given by
+# for next period. The ressource state $Coh_t$ is given by
 #
 # $$
-# M_t = R(M_{t-1}-c_{t-1}) + y\cdot d_{t-1}
+# Coh_t = Rfree(Coh_{t-1}-c_{t-1}) + Y\cdot d_{t-1}
 # $$
 #
-# where $R$ is a fixed interest factor and $y$ is (possibly stochastic) labour income.
+# where $Rfree$ is a fixed interest factor and $y$ is (possibly stochastic) labour income.
 # We follow standard timing such that at the very start of period $t$ last period's
 # labour income is transferred to the agent, then the agent makes their choices,
 # and just as the period is about to end, interest is paid on whatever ressources
@@ -94,6 +90,8 @@ t=19
 plt.subplot(1,2,1)
 model.plotC(t, 1)
 model.plotC(t, 2)
+plt.xlim((0, 200))
+plt.ylim((0, 100))
 
 plt.subplot(1,2,2)
 model.plotV(t, 1)
@@ -113,19 +111,22 @@ model.plotV(t, 2)
 #
 # Since we chose to set the `saveCommon` keyword to `True`, the `solveOnePeriod`
 # method will also save the consumption function and value function on the common
-# grid (`model.mGrid`). We can plot this
+# grid (`model.CohGrid`). We can plot this
 
 # +
 f, axs = plt.subplots(2,2,figsize=(10,5))
 plt.subplots_adjust(wspace=0.6)
 
 plt.subplot(1,2,1)
-plt.plot(model.mGrid, model.solution[0].C)
-plt.xlabel("M")
-plt.ylabel("C(M)")
+plt.plot(model.CohGrid, model.solution[0].C)
+plt.xlabel("Coh")
+plt.ylabel("C(Coh)")
+plt.xlim((0, 200))
+plt.ylim((0, 100))
+
 plt.subplot(1,2,2)
-plt.plot(model.mGrid, numpy.divide(-1.0, model.solution[0].V_T))
-plt.xlabel("M")
+plt.plot(model.CohGrid, numpy.divide(-1.0, model.solution[0].V_T))
+plt.xlabel("Coh")
 plt.ylabel("V(M)")
 plt.ylim((-20, -5))
 # -
@@ -170,12 +171,15 @@ f, axs = plt.subplots(1,2,figsize=(10,5))
 plt.subplots_adjust(wspace=0.6)
 
 plt.subplot(1,2,1)
-plt.plot(model.mGrid, model.solution[model.T-1-t].C)
-plt.xlabel("M")
-plt.ylabel("C(M)")
+plt.plot(model.CohGrid, model.solution[model.T-1-t].C)
+plt.xlabel("Coh")
+plt.ylabel("C(Coh)")
+plt.xlim((0, 200))
+plt.ylim((0, 100))
+
 plt.subplot(1,2,2)
-plt.plot(model.mGrid, numpy.divide(-1.0, model.solution[model.T-1-t].V_T))
-plt.xlabel("M")
+plt.plot(model.CohGrid, numpy.divide(-1.0, model.solution[model.T-1-t].V_T))
+plt.xlabel("Coh")
 plt.ylabel("V(M)")
 plt.ylim((-40, -8))
 # -
@@ -194,6 +198,8 @@ t=1
 plt.subplot(1,2,1)
 model.plotC(t, 1)
 model.plotC(t, 2)
+plt.xlim((0, 500))
+plt.ylim((0, 60))
 
 plt.subplot(1,2,2)
 model.plotV(t, 1)
@@ -208,15 +214,75 @@ f, axs = plt.subplots(1,2,figsize=(10,5))
 plt.subplots_adjust(wspace=0.6)
 
 plt.subplot(1,2,1)
-plt.plot(model.mGrid, model.solution[model.T-1-t].C)
-plt.xlabel("M")
-plt.ylabel("C(M)")
+plt.plot(model.CohGrid, model.solution[model.T-1-t].C)
+plt.xlabel("Coh")
+plt.ylabel("C(Coh)")
+plt.xlim((0, 500))
+plt.ylim((0, 60))
+
 plt.subplot(1,2,2)
-plt.plot(model.mGrid, numpy.divide(-1.0, model.solution[model.T-1-t].V_T))
-plt.xlabel("M")
+plt.plot(model.CohGrid, numpy.divide(-1.0, model.solution[model.T-1-t].V_T))
+plt.xlabel("Coh")
 plt.ylabel("V(M)")
 #plt.ylim((-120, -50))
 # -
+
+# # Income uncertainty
+# Above we saw that the optimal consumption is very jagged: individuals can completely predict their future income given the current and future choices, so they can precisely time their optimal retirement already from "birth". We will now see how adding income uncertainty can smooth out some of these discontinuities: Note, the behavior is certainly rational and optimal, the model just doesn't represent many realistic scenarios we have in mind.
+#
+# Instead of simply having a constant income given the lagged work/retire decision, we introduce a transitory income shock that is lognormally distributed, and has mean 1. As such, the mean income, conditional on last period's labor decision, is the same in the two model specifications.
+#
+# ..math..
+#
+# To set a positive variance we specify $\sigma^2$ and the number of nodes used to do quadrature.
+
+modelTranInc = dcegm.RetiringDeaton(saveCommon = True, TranIncNodes = 20, TranIncVar = 0.005)
+
+modelTranInc.solve()
+
+# +
+t = 1
+f, axs = plt.subplots(1,2,figsize=(10,5))
+plt.subplots_adjust(wspace=0.6)
+
+plt.subplot(1,2,1)
+plt.plot(modelTranInc.CohGrid, modelTranInc.solution[modelTranInc.T-1-t].C)
+plt.xlabel("Coh")
+plt.ylabel("C(Coh)")
+plt.xlim((0, 500))
+plt.ylim((0, 40))
+
+plt.subplot(1,2,2)
+plt.plot(modelTranInc.CohGrid, numpy.divide(-1.0, modelTranInc.solution[modelTranInc.T-1-t].V_T))
+plt.xlabel("Coh")
+plt.ylabel("V(M)")
+#plt.ylim((-120, -50))
+# -
+
+# We see that way back in period 1, the consumption function is now almost flat. We can control the level of smoothing by increasing or decreasing the variance. Below is an example with a middle ground between the previous two model specifications.
+
+# +
+modelTranIncLight = dcegm.RetiringDeaton(saveCommon = True, TranIncNodes = 20, TranIncVar = 0.001)
+modelTranIncLight.solve()
+t = 1
+f, axs = plt.subplots(1,2,figsize=(10,5))
+plt.subplots_adjust(wspace=0.6)
+
+plt.subplot(1,2,1)
+plt.plot(modelTranIncLight.CohGrid, modelTranIncLight.solution[modelTranIncLight.T-1-t].C)
+plt.xlabel("Coh")
+plt.ylabel("C(Coh)")
+plt.xlim((0, 500))
+plt.ylim((0, 40))
+
+plt.subplot(1,2,2)
+plt.plot(modelTranIncLight.CohGrid, numpy.divide(-1.0, modelTranIncLight.solution[modelTranIncLight.T-1-t].V_T))
+plt.xlabel("Coh")
+plt.ylabel("V(M)")
+#plt.ylim((-120, -50))
+# -
+
+# We see it's the secondary kinks from retirement decisions in the near future that gets smoothed out, but the primary kink is obviously still present as it comes from retirement in the current period. The smoothing of secondary kinks from the near future comes from the fact that the consumer does quite know what the income is tomorrow, so the posibility of exact timing of retirement is no longer present.
 
 # # References
 # [1] Iskhakov, F. , Jørgensen, T. H., Rust, J. and Schjerning, B. (2017), The endogenous grid method for discrete‐continuous dynamic choice models with (or without) taste shocks. Quantitative Economics, 8: 317-365. doi:10.3982/QE643
@@ -251,19 +317,3 @@ import matplotlib.pyplot as plt
 plt.plot(x, y)
 plt.scatter(x[rise], y[rise], color="green")
 plt.scatter(x[fall], y[fall], color="red")
-
-# -
-model.IncShk
-
-v=numpy.zeros((430,5))
-
-numpy.stack((v,v)).shape
-
-v=numpy.zeros(300)
-numpy.stack((v,v)).shape
-
-model.IncShkWeights
-
-numpy.dot(model.IncShk, model.IncShkWeights)
-
-

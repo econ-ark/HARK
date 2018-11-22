@@ -71,10 +71,10 @@ class RetiringDeaton(AgentType):
     def __init__(self, DiscFac=0.98, Rfree=1.02, DisUtil=-1.0,
                  shiftPoints=False, T=20, CRRA=1.0, sigma=0.0,
                  YWork=20.0,
-                 IncVar = 0.005,
-                 NInc = 0,
                  YRet=0.0, # normalized relative to work
-                 Nm=2000,
+                 TranIncVar = 0.005,
+                 TranIncNodes = 0,
+                 CohNodes=2000,
                  aLims=(1e-6, 700), Na=1800,
                  saveCommon=False,
                  **kwds):
@@ -91,11 +91,11 @@ class RetiringDeaton(AgentType):
             # err
             return None
 
-        self.IncVar = IncVar
-        self.NInc = NInc
+        self.TranIncVar = TranIncVar
+        self.TranIncNodes = TranIncNodes
 
-        self.time_inv = ['aGrid', 'mGrid', 'EGMVector', 'par', 'Util', 'UtilP',
-                         'UtilP_inv', 'saveCommon', 'IncShk', 'IncShkWeights']
+        self.time_inv = ['aGrid', 'CohGrid', 'EGMVector', 'par', 'Util', 'UtilP',
+                         'UtilP_inv', 'saveCommon', 'TranInc', 'TranIncWeights']
         self.time_vary = ['age']
 
         self.age = list(range(T-1))
@@ -103,7 +103,7 @@ class RetiringDeaton(AgentType):
         self.par = RetiringDeatonParameters(DiscFac, CRRA, DisUtil, Rfree, YRet, YWork, sigma)
         self.aLims = aLims
         self.Na = Na
-        self.Nm = Nm
+        self.CohNodes = CohNodes
         # d == 2 is working
         # - 10.0 moves curve down to improve lienar interpolation
         self.Util = lambda c, d: utility(c, CRRA) - self.par.DisUtil*(2-d) - 10.0
@@ -127,20 +127,20 @@ class RetiringDeaton(AgentType):
         None
         """
         self.aGrid = nonlinspace(self.aLims[0], self.aLims[1], self.Na)
-        self.mGrid = nonlinspace(self.aLims[0], self.aLims[1]*1.5, self.Na)
-        self.EGMVector = numpy.zeros(self.Nm)
+        self.CohGrid = nonlinspace(self.aLims[0], self.aLims[1]*1.5, self.Na)
+        self.EGMVector = numpy.zeros(self.CohNodes)
 
-        if self.NInc == 0:
-            self.IncShk = numpy.ones(1)
-            self.IncShkWeights = numpy.ones(1)
-        elif self.NInc >= 1:
-            self.IncShk, self.IncShkWeights = numpy.polynomial.hermite.hermgauss(self.NInc)
-            self.IncShk = numpy.exp(-self.IncVar/2.0 + sqrt(2)*sqrt(self.IncVar)*self.IncShk)
-            self.IncShkWeights = self.IncShkWeights/sqrt(numpy.pi)
-            # self.IncShk = numpy.exp(-self.IncVar/2.0 + sqrt(2)*sqrt(self.IncVar)*self.IncShk)
+        if self.TranIncNodes == 0:
+            self.TranInc = numpy.ones(1)
+            self.TranIncWeights = numpy.ones(1)
+        elif self.TranIncNodes >= 1:
+            self.TranInc, self.TranIncWeights = numpy.polynomial.hermite.hermgauss(self.TranIncNodes)
+            self.TranInc = numpy.exp(-self.TranIncVar/2.0 + sqrt(2)*sqrt(self.TranIncVar)*self.TranInc)
+            self.TranIncWeights = self.TranIncWeights/sqrt(numpy.pi)
+            # self.TranInc = numpy.exp(-self.TranIncVar/2.0 + sqrt(2)*sqrt(self.TranIncVar)*self.TranInc)
         # else: # monte carlo
-        #     self.IncShk = drawMeanOneLognormal(N=self.NInc, sigma=self.IncVar)
-        #     self.IncShkWeights = numpy.ones(self.NInc)/self.NInc
+        #     self.TranInc = drawMeanOneLognormal(N=self.TranIncNodes, sigma=self.TranIncVar)
+        #     self.TranIncWeights = numpy.ones(self.TranIncNodes)/self.TranIncNodes
 
         rs = self.solveLastRetired()
         ws = self.solveLastWorking()
@@ -153,7 +153,7 @@ class RetiringDeaton(AgentType):
             # ws.C and ws.V_T are on the ws.M grid, so we use that to interpolate.
             Crs = LinearInterp(rs.M, rs.C)(commonM)
             Cws = ws.C
-    #        Cws = LinearInterp(rs.M, rs.C)(mGrid)
+    #        Cws = LinearInterp(rs.M, rs.C)(CohGrid)
 
             V_Trs = LinearInterp(rs.M, rs.V_T)(commonM)
             V_Tws = ws.V_T
@@ -184,11 +184,11 @@ class RetiringDeaton(AgentType):
         none
         """
         choice = 1
-        C = self.mGrid # consume everything
-        M = self.mGrid # everywhere
+        C = self.CohGrid # consume everything
+        M = self.CohGrid # everywhere
         # this transformation is different than in our G2EGM, we
         # need to figure out which is better
-        V_T = -1.0/self.Util(self.mGrid, choice)
+        V_T = -1.0/self.Util(self.CohGrid, choice)
         return RetiredDeatonSolution(C, M, V_T)
 
     def solveLastWorking(self):
@@ -204,11 +204,11 @@ class RetiringDeaton(AgentType):
         none
         """
         choice = 2
-        C = self.mGrid # consume everything
-        M = self.mGrid # everywhere
+        C = self.CohGrid # consume everything
+        M = self.CohGrid # everywhere
         # this transformation is different than in our G2EGM, we
         # need to figure out which is better
-        V_T = -1.0/self.Util(self.mGrid, choice)
+        V_T = -1.0/self.Util(self.CohGrid, choice)
         return WorkingDeatonSolution(M, C, V_T)
 
     def plotV(self, t, d, plot_range = None):
@@ -260,7 +260,7 @@ class RetiringDeaton(AgentType):
         plt.ylabel("C(M)")
         plt.title('Choice specific consumption functions')
 
-def solveRetiringDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP, UtilP_inv, age, saveCommon, IncShk, IncShkWeights):
+def solveRetiringDeaton(solution_next, aGrid, CohGrid, EGMVector, par, Util, UtilP, UtilP_inv, age, saveCommon, TranInc, TranIncWeights):
     """
     Solves a period of problem defined by the RetiringDeaton AgentType. It uses
     DCEGM to solve the mixed choice problem.
@@ -273,7 +273,7 @@ def solveRetiringDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP
 
     """
     rs = solveRetiredDeaton(solution_next, aGrid, EGMVector, par, Util, UtilP, UtilP_inv)
-    ws = solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP, UtilP_inv, IncShk, IncShkWeights)
+    ws = solveWorkingDeaton(solution_next, aGrid, CohGrid, EGMVector, par, Util, UtilP, UtilP_inv, TranInc, TranIncWeights)
 
     if saveCommon:
         # To save the pre-disrete choice expected consumption and value function,
@@ -281,7 +281,7 @@ def solveRetiringDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP
         # ws.C and ws.V_T are on the ws.M grid, so we use that to interpolate.
         Crs = LinearInterp(rs.M, rs.C)(ws.M)
         Cws = ws.C
-#        Cws = LinearInterp(rs.M, rs.C)(mGrid)
+#        Cws = LinearInterp(rs.M, rs.C)(CohGrid)
 
         V_Trs = LinearInterp(rs.M, rs.V_T)(ws.M)
         V_Tws = ws.V_T
@@ -292,7 +292,7 @@ def solveRetiringDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP
     else:
         C, V_T, P = None, None, None
 
-    return RetiringDeatonSolution(rs, ws, mGrid, C, V_T, P)#-1.0/V, P) #0,0 is m and c
+    return RetiringDeatonSolution(rs, ws, CohGrid, C, V_T, P)#-1.0/V, P) #0,0 is m and c
 
 def solveRetiredDeaton(solution_next, aGrid, EGMVector, par, Util, UtilP, UtilP_inv):
     choice = 1
@@ -336,7 +336,7 @@ def solveRetiredDeaton(solution_next, aGrid, EGMVector, par, Util, UtilP, UtilP_
 
     return RetiredDeatonSolution(C, M, V_T)
 
-def solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP, UtilP_inv, IncShk, IncShkWeights):
+def solveWorkingDeaton(solution_next, aGrid, CohGrid, EGMVector, par, Util, UtilP, UtilP_inv, TranInc, TranIncWeights):
     choice = 2
     rs_tp1 = solution_next.rs
     ws_tp1 = solution_next.ws
@@ -348,8 +348,8 @@ def solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP,
     aLen = len(aGrid)
     conLen = len(M)-aLen
     # Next-period initial wealth given exogenous aGrid
-    Mrs_tp1 = par.Rfree*numpy.expand_dims(aGrid, axis=1) + par.YRet*IncShk.T
-    Mws_tp1 = par.Rfree*numpy.expand_dims(aGrid, axis=1) + par.YWork*IncShk.T
+    Mrs_tp1 = par.Rfree*numpy.expand_dims(aGrid, axis=1) + par.YRet*TranInc.T
+    Mws_tp1 = par.Rfree*numpy.expand_dims(aGrid, axis=1) + par.YWork*TranInc.T
     # Prepare variables for EGM step
     rs_augM = numpy.insert(rs_tp1.M, 0, 0.0)
     rs_augC = numpy.insert(rs_tp1.C, 0, 0.0)
@@ -366,9 +366,9 @@ def solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP,
     # well use the transformed values to do this discrete envelope step.
     V_T, P_tp1 = discreteEnvelope(numpy.stack((Vr_T, Vw_T)), par.sigma)
     # Calculate the expected marginal utility and expected value function
-    P_tp1 = numpy.reshape(P_tp1, (2, 1800, len(IncShk)))
-    Eu[conLen:] =  par.Rfree*numpy.dot((P_tp1[0, :]*UtilP(Cr_tp1, 1) + P_tp1[1, :]*UtilP(Cw_tp1, 2)),IncShkWeights.T)
-    Ev[conLen:] = numpy.squeeze(numpy.divide(-1.0, numpy.dot(numpy.expand_dims(V_T, axis=1), IncShkWeights.T)))
+    P_tp1 = numpy.reshape(P_tp1, (2, 1800, len(TranInc)))
+    Eu[conLen:] =  par.Rfree*numpy.dot((P_tp1[0, :]*UtilP(Cr_tp1, 1) + P_tp1[1, :]*UtilP(Cw_tp1, 2)),TranIncWeights.T)
+    Ev[conLen:] = numpy.squeeze(numpy.divide(-1.0, numpy.dot(numpy.expand_dims(V_T, axis=1), TranIncWeights.T)))
     # EGM step
     C[conLen:] = UtilP_inv(par.DiscFac*Eu[conLen:], choice)
     M[conLen:] = aGrid + C[conLen:]
@@ -383,7 +383,7 @@ def solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP,
     V_T = numpy.divide(-1.0, Util(C, choice) + par.DiscFac*Ev)
     # We do the envelope step in transformed value space for accuracy. The values
     # keep their monotonicity under our transformation.
-    M, C, V_T = multilineEnvelope(M, C, V_T, mGrid)
+    M, C, V_T = multilineEnvelope(M, C, V_T, CohGrid)
 
     return WorkingDeatonSolution(M, C, V_T)
 
@@ -490,7 +490,7 @@ def rise_and_fall(x, v):
 
 # think! nanargmax makes everythign super ugly because numpy changed the wraning
 # in all nan slices to a valueerror...it's nans, aaarghgghg
-def multilineEnvelope(M, C, V_T, mGrid):
+def multilineEnvelope(M, C, V_T, CohGrid):
     """
     Do the envelope step of DCEGM.
 
@@ -502,7 +502,7 @@ def multilineEnvelope(M, C, V_T, mGrid):
 
 
     """
-    m_len = len(mGrid)
+    m_len = len(CohGrid)
     rise, fall = rise_and_fall(M, V_T)
 
 
@@ -519,26 +519,26 @@ def multilineEnvelope(M, C, V_T, mGrid):
     # understand this : # TAKE THE FIRST ONE BY HAND: prevent all the NaN-stuff..
     for j in range(num_kinks):
         # Find all common grid
-        below = M[rise[j]] >= mGrid
-        above = M[fall[j]] <= mGrid
+        below = M[rise[j]] >= CohGrid
+        above = M[fall[j]] <= CohGrid
         in_range = below + above == 0 # neither above nor below
         idxs = range(rise[j], fall[j]+1)
         m_idx_j = M[idxs]
-        m_eval = mGrid[in_range]
+        m_eval = CohGrid[in_range]
         mV_T[in_range,j] = LinearInterp(m_idx_j, V_T[idxs], lower_extrap=True)(m_eval)
         mC[in_range,j]  = LinearInterp(m_idx_j, C[idxs], lower_extrap=True)(m_eval) # Interpolat econsumption also. May not be nesserary
     is_all_nan = numpy.array([numpy.all(numpy.isnan(mvrow)) for mvrow in mV_T])
     # Now take the max of all these functions. Since the mV_T
     # is either NaN or very low number outside the range of the actual line-segment this works "globally"
-    idx_max = numpy.zeros(mGrid.size, dtype = int) # this one might be wrong if is_all_nan[0] == True
+    idx_max = numpy.zeros(CohGrid.size, dtype = int) # this one might be wrong if is_all_nan[0] == True
     idx_max[is_all_nan == False] = numpy.nanargmax(mV_T[is_all_nan == False], axis=1)
 
     # prefix with upper for variable that are "upper enveloped"
-    upperV_T = numpy.zeros(mGrid.size)
+    upperV_T = numpy.zeros(CohGrid.size)
     upperV_T[:] = numpy.nan
 
     upperV_T[is_all_nan == False] = numpy.nanmax(mV_T[is_all_nan == False, :], axis=1)
-    upperM = numpy.copy(mGrid)
+    upperM = numpy.copy(CohGrid)
     # Ad the zero point in the bottom
     if numpy.isnan(upperV_T[0]):
         upperV_T[0] = 0 # Since M=0 here
@@ -555,7 +555,7 @@ def multilineEnvelope(M, C, V_T, mGrid):
 
     # Linear index used to get optimal consumption based on "id"  from max
     ncols = mC.shape[1]
-    rowidx = numpy.cumsum(ncols*numpy.ones(len(mGrid), dtype=int))-ncols
+    rowidx = numpy.cumsum(ncols*numpy.ones(len(CohGrid), dtype=int))-ncols
     idx_linear = numpy.unravel_index(rowidx+idx_max, mC.shape)
     upperC = mC[idx_linear]
     upperC[IsNaN] = LinearInterp(upperM[IsNaN==0], upperC[IsNaN==0])(upperM[IsNaN])
