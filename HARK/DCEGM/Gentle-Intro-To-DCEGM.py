@@ -2,8 +2,13 @@
 # ---
 # jupyter:
 #   '@webio':
+<<<<<<< Updated upstream
 #     lastCommId: 0b4881f87f004e348b6ffafbfc3dc0d9
 #     lastKernelId: 2e2b0335-6121-41fe-9269-feba62afe456
+=======
+#     lastCommId: b907a183a5e7492794ec258d5c61b859
+#     lastKernelId: 4d76298d-4856-4a5e-a87a-11d75d6c9dbf
+>>>>>>> Stashed changes
 #   jupytext:
 #     text_representation:
 #       extension: .py

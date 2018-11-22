@@ -17,7 +17,7 @@ utilityP_inv  = CRRAutilityP_inv
 utility_inv   = CRRAutility_inv
 
 RetiringDeatonParameters = namedtuple('RetiringDeatonParamters',
-                                      'DiscFac CRRA DisUtil Rfree y eta sigma')
+                                      'DiscFac CRRA DisUtil Rfree YRet YWork sigma')
 
 def nonlinspace(low, high, n, phi = 1.1):
     '''
@@ -70,10 +70,10 @@ class WorkingDeatonSolution(Solution):
 class RetiringDeaton(AgentType):
     def __init__(self, DiscFac=0.98, Rfree=1.02, DisUtil=-1.0,
                  shiftPoints=False, T=20, CRRA=1.0, sigma=0.0,
-                 eta=20.0,
+                 YWork=20.0,
                  IncVar = 0.005,
                  NInc = 0,
-                 y=0.0, # normalized relative to work
+                 YRet=0.0, # normalized relative to work
                  Nm=2000,
                  aLims=(1e-6, 700), Na=1800,
                  saveCommon=False,
@@ -100,7 +100,7 @@ class RetiringDeaton(AgentType):
 
         self.age = list(range(T-1))
 
-        self.par = RetiringDeatonParameters(DiscFac, CRRA, DisUtil, Rfree, y, eta, sigma)
+        self.par = RetiringDeatonParameters(DiscFac, CRRA, DisUtil, Rfree, YRet, YWork, sigma)
         self.aLims = aLims
         self.Na = Na
         self.Nm = Nm
@@ -305,7 +305,7 @@ def solveRetiredDeaton(solution_next, aGrid, EGMVector, par, Util, UtilP, UtilP_
     aLen = len(aGrid)
     conLen = len(M)-aLen
     # Next-period initial wealth given exogenous aGrid
-    M_tp1 = par.Rfree*aGrid + par.y
+    M_tp1 = par.Rfree*aGrid + par.YRet
 
     # Prepare variables for EGM step
     # Augmented M
@@ -348,8 +348,8 @@ def solveWorkingDeaton(solution_next, aGrid, mGrid, EGMVector, par, Util, UtilP,
     aLen = len(aGrid)
     conLen = len(M)-aLen
     # Next-period initial wealth given exogenous aGrid
-    Mrs_tp1 = par.Rfree*numpy.expand_dims(aGrid, axis=1) + par.y*IncShk.T
-    Mws_tp1 = par.Rfree*numpy.expand_dims(aGrid, axis=1) + par.eta*IncShk.T
+    Mrs_tp1 = par.Rfree*numpy.expand_dims(aGrid, axis=1) + par.YRet*IncShk.T
+    Mws_tp1 = par.Rfree*numpy.expand_dims(aGrid, axis=1) + par.YWork*IncShk.T
     # Prepare variables for EGM step
     rs_augM = numpy.insert(rs_tp1.M, 0, 0.0)
     rs_augC = numpy.insert(rs_tp1.C, 0, 0.0)
