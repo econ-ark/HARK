@@ -508,7 +508,7 @@ def multilineEnvelope(M, C, V_T, CohGrid):
 
     # Add the last point to the vector for convenience below
     fall = numpy.append(fall, m_len)
-    # The numbre of kinds are the number of time the grid falls
+    # The number of kinks are the number of time the grid falls
     num_kinks = len(fall)
 
     # Use these segments to sequentially find upper envelopes
