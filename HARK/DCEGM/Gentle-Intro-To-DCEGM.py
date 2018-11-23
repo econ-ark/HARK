@@ -2,8 +2,8 @@
 # ---
 # jupyter:
 #   '@webio':
-#     lastCommId: b907a183a5e7492794ec258d5c61b859
-#     lastKernelId: 4d76298d-4856-4a5e-a87a-11d75d6c9dbf
+#     lastCommId: ee2abf5fa55042f786616b345bb5b822
+#     lastKernelId: a15470c3-697d-4645-8ff1-81041554fbec
 #   jupytext:
 #     text_representation:
 #       extension: .py
@@ -23,8 +23,9 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.6.4
+#     version: 3.6.5
 # ---
+
 # -
 
 # # A Gentle Introduction to DCEGM
@@ -261,6 +262,25 @@ plt.ylabel("V(M)")
 
 # We see that way back in period 1, the consumption function is now almost flat. We can control the level of smoothing by increasing or decreasing the variance. Below is an example with a middle ground between the previous two model specifications.
 
+model.CohGrid
+
+model.solution[18].ws.Coh
+
+model.solution[18].ws.C
+
+plt.plot(model.solution[1].ws.Coh, model.solution[1].ws.VFunc(model.solution[1].ws.Coh))
+
+model.solution[1].ws.Coh
+
+model.solution[1].ws.C
+
+from HARK.interpolation import LinearInterp
+
+CFunc = LinearInterp(model.solution[1].ws.Coh, model.solution[1].ws.C, lower_extrap=True)
+CFunc(model.solution[1].ws.Coh)
+
+model.solution[1].ws.CFunc(model.solution[1].ws.Coh)
+
 # +
 modelTranIncLight = dcegm.RetiringDeaton(saveCommon = True, TranIncNodes = 20, TranIncVar = 0.001)
 modelTranIncLight.solve()
@@ -284,6 +304,23 @@ plt.ylabel("V(M)")
 
 # We see it's the secondary kinks from retirement decisions in the near future that gets smoothed out, but the primary kink is obviously still present as it comes from retirement in the current period. The smoothing of secondary kinks from the near future comes from the fact that the consumer does quite know what the income is tomorrow, so the posibility of exact timing of retirement is no longer present.
 
+modelTranIncLight.simulate()
+
+
+numpy.stack((numpy.ones((3)),numpy.ones((3))))
+
+modelTranIncLight.CohData
+
+plt.plot(modelTranIncLight.CData[1, :])
+
+model.simulate()
+
+plt.plot(model.CData[1, :])
+
+modelTranIncLight.IncData
+
+numpy.cumsum(modelTranIncLight.solution[6].P,axis=0)
+
 # # References
 # [1] Iskhakov, F. , Jørgensen, T. H., Rust, J. and Schjerning, B. (2017), The endogenous grid method for discrete‐continuous dynamic choice models with (or without) taste shocks. Quantitative Economics, 8: 317-365. doi:10.3982/QE643
 #
@@ -304,7 +341,7 @@ plt.plot(x, y)
 plt.scatter(x[rise], y[rise], color="green")
 plt.scatter(x[fall], y[fall], color="red")
 
-
+ss
 
 rise
 
