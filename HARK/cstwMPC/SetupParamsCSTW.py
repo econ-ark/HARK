@@ -112,9 +112,24 @@ DiscFacPF = 0.99                   # Discount factor in perfect foresight calibr
 slope_prev = 1.0                   # Initial slope of kNextFunc (aggregate shocks model)
 intercept_prev = 0.0               # Initial intercept of kNextFunc (aggregate shocks model)
 
+from pathlib import Path
+
 # Import survival probabilities from SSA data
-data_location = os.path.dirname(os.path.abspath(__file__))
-f = open(data_location + '/' + 'USactuarial.txt','r')
+# The default is US SSA data from year 2010 in USactuarial.txt, but should the users wish to use data from other years
+# or other countries, they could do so by naming the alternative data file "alternativedata.txt" and save this in the "/home/users/Downloads/" folder
+
+
+README = Path("/home/users/Downloads/alternativedata.txt")
+if README.is_file():
+    print ("File does exist")
+    data_location = os.path.dirname(os.path.abspath(__file__))
+    f = open(data_location + '/' + 'alternativedata.txt','r')
+
+else:
+    print ("File does not exist")
+    data_location = os.path.dirname(os.path.abspath(__file__))
+    f = open(data_location + '/' + 'USactuarial.txt','r')
+
 actuarial_reader = csv.reader(f,delimiter='\t')
 raw_actuarial = list(actuarial_reader)
 base_death_probs = []

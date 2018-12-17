@@ -1,0 +1,7 @@
+Instructions on modifying the mortality assumptions used in Section 5 of Carroll et al. (2017)
+
+The default data used in the life cycle specifications in Carroll et al. (2017) are US 2010 actuarial life table data from the Social Security Administration.
+
+To run the model using alternative data (from other years or other countries), users can name the alternative data file "alternativedata.txt", and save this in the "home/users/Downloads/" folder.
+
+Actuarial life tables for Japan are provided in the same folder as this file's location as an example. 
