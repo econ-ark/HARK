@@ -41,7 +41,12 @@ import numpy as np                   # Numerical Python
 import csv                           # Comma-separated variable reader
 
 # Set the path to the empirical data:
-scf_data_path = data_location = os.path.dirname(os.path.abspath(__file__))  # os.path.abspath('./')   #'./'
+exist=os.path.isdir('../../../Download')
+if exist:
+    scf_data_path = data_location = '../../../Download'
+    print ("Modified Data Is Used")
+else:
+    scf_data_path = data_location = os.path.dirname(os.path.abspath(__file__))  # os.path.abspath('./')   #'./'
 
 # Open the file handle and create a reader object and a csv header
 infile = open(scf_data_path + '/SCFdata.csv', 'r')
