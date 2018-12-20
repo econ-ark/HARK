@@ -316,7 +316,7 @@ class ConsPerfForesightSolver(object):
     A class for solving a one period perfect foresight consumption-saving problem.
     An instance of this class is created by the function solvePerfForesight in each period.
     '''
-    def __init__(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
+    def __init__(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,Hyperbolic_beta):
         '''
         Constructor for a new ConsPerfForesightSolver.
 
@@ -335,7 +335,9 @@ class ConsPerfForesightSolver(object):
             Risk free interest factor on end-of-period assets.
         PermGroFac : float
             Expected permanent income growth factor at the end of this period.
-
+        Hyperbolic_beta: float
+            Quasi hyperbolic impatience factor in "beta-delta" preferences.
+            
         Returns:
         ----------
         None
@@ -346,9 +348,9 @@ class ConsPerfForesightSolver(object):
         self.notation = {'a': 'assets after all actions',
                          'm': 'market resources at decision time',
                          'c': 'consumption'}
-        self.assignParameters(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac)
+        self.assignParameters(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,Hyperbolic_beta)
 
-    def assignParameters(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
+    def assignParameters(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,Hyperbolic_beta):
         '''
         Saves necessary parameters as attributes of self for use by other methods.
 
@@ -367,6 +369,8 @@ class ConsPerfForesightSolver(object):
             Risk free interest factor on end-of-period assets.
         PermGroFac : float
             Expected permanent income growth factor at the end of this period.
+        Hyperbolic_beta: float
+            Quasi hyperbolic impatience factor in "beta-delta" preferences.
 
         Returns
         -------
@@ -378,6 +382,7 @@ class ConsPerfForesightSolver(object):
         self.CRRA           = CRRA
         self.Rfree          = Rfree
         self.PermGroFac     = PermGroFac
+        self.Hyperbolic_beta     = Hyperbolic_beta
 
     def defUtilityFuncs(self):
         '''
@@ -482,7 +487,7 @@ class ConsPerfForesightSolver(object):
             The solution to this period's problem.
         '''
         self.defUtilityFuncs()
-        self.DiscFacEff = self.DiscFac*self.LivPrb
+        self.DiscFacEff = self.DiscFac*self.LivPrb*self.Hyperbolic_beta
         self.makePFcFunc()
         self.defValueFuncs()
         solution = ConsumerSolution(cFunc=self.cFunc, vFunc=self.vFunc, vPfunc=self.vPfunc,
@@ -492,7 +497,7 @@ class ConsPerfForesightSolver(object):
         return solution
 
 
-def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
+def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,Hyperbolic_beta):
     '''
     Solves a single period consumption-saving problem for a consumer with perfect foresight.
 
@@ -511,13 +516,15 @@ def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
         Risk free interest factor on end-of-period assets.
     PermGroFac : float
         Expected permanent income growth factor at the end of this period.
+    Hyperbolic_beta: float
+        Quasi hyperbolic impatience factor in "beta-delta" preferences.
 
     Returns
     -------
     solution : ConsumerSolution
             The solution to this period's problem.
     '''
-    solver = ConsPerfForesightSolver(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac)
+    solver = ConsPerfForesightSolver(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,Hyperbolic_beta)
     solution = solver.solve()
     return solution
 
@@ -1457,7 +1464,7 @@ class PerfForesightConsumerType(AgentType):
                                             vFunc = vFunc_terminal_, mNrmMin=0.0, hNrm=0.0,
                                             MPCmin=1.0, MPCmax=1.0)
     time_vary_ = ['LivPrb','PermGroFac']
-    time_inv_  = ['CRRA','Rfree','DiscFac']
+    time_inv_  = ['CRRA','Rfree','DiscFac', 'Hyperbolic_beta', 'geometric_solution']
     poststate_vars_ = ['aNrmNow','pLvlNow']
     shock_vars_ = []
 
@@ -1505,6 +1512,53 @@ class PerfForesightConsumerType(AgentType):
         self.solution_terminal.vFunc   = ValueFunc(self.cFunc_terminal_,self.CRRA)
         self.solution_terminal.vPfunc  = MargValueFunc(self.cFunc_terminal_,self.CRRA)
         self.solution_terminal.vPPfunc = MargMargValueFunc(self.cFunc_terminal_,self.CRRA)
+        
+        
+    def preSolve(self):     
+        
+        '''
+        If agent has a hyperbolic factor different from 1, calculates the needed
+        geometric solution first.
+        
+        Parameters
+        ----------
+        none
+
+        Returns
+        -------
+        none
+        
+        '''
+        
+        if self.Hyperbolic_beta != 1 and hasattr(self,'geometric_solution')==False:
+            geom_solution = deepcopy(self.findGeometricSol())
+            self.geometric_solution = geom_solution
+            
+    def findGeometricSol(self):
+        
+        '''
+        Temporarily sets hyperbolic factor to 1 and finds geometric 
+        solution. 
+        
+        Parameters
+        ----------
+        none
+        
+        Returns
+        -------
+        geom_solution: Consumer solution
+            Solution for agent with the same parameters and Hyperbolic_beta=1
+        
+        '''
+        
+        initial_hyperbolic = deepcopy(self.Hyperbolic_beta)
+        self.Hyperbolic_beta = 1
+        self.solve()
+        geom_solution = deepcopy(self.solution)
+        
+        self.Hyperbolic_beta = initial_hyperbolic
+
+        return geom_solution
 
     def unpackcFunc(self):
         '''
@@ -2438,7 +2492,8 @@ def main():
         PFexample.track_vars = ['mNrmNow']
         PFexample.initializeSim()
         PFexample.simulate()
-
+    
+     
 ###############################################################################
 
     # Make and solve an example consumer with idiosyncratic income shocks
