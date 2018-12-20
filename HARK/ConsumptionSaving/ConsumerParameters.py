@@ -24,6 +24,8 @@ pLvlInitStd  = 0.0                  # Standard deviation of log initial permanen
 PermGroFacAgg = 1.0                 # Aggregate permanent income growth factor (only matters for simulation)
 T_age = None                        # Age after which simulated agents are automatically killed
 T_cycle = 1                         # Number of periods in the cycle for this agent type
+Hyperbolic_beta = 1                 # Naive hyperbolic discount factor
+
 
 # Make a dictionary to specify a perfect foresight consumer type
 init_perfect_foresight = { 'CRRA': CRRA,
@@ -38,7 +40,8 @@ init_perfect_foresight = { 'CRRA': CRRA,
                            'pLvlInitStd' : pLvlInitStd,
                            'PermGroFacAgg' : PermGroFacAgg,
                            'T_age' : T_age,
-                           'T_cycle' : T_cycle
+                           'T_cycle' : T_cycle,
+                           'Hyperbolic_beta' : Hyperbolic_beta
                           }
 
 # -----------------------------------------------------------------------------
