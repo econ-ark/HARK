@@ -1512,53 +1512,6 @@ class PerfForesightConsumerType(AgentType):
         self.solution_terminal.vFunc   = ValueFunc(self.cFunc_terminal_,self.CRRA)
         self.solution_terminal.vPfunc  = MargValueFunc(self.cFunc_terminal_,self.CRRA)
         self.solution_terminal.vPPfunc = MargMargValueFunc(self.cFunc_terminal_,self.CRRA)
-        
-        
-    def preSolve(self):     
-        
-        '''
-        If agent has a hyperbolic factor different from 1, calculates the needed
-        geometric solution first.
-        
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        
-        '''
-        
-        if self.Hyperbolic_beta != 1 and hasattr(self,'geometric_solution')==False:
-            geom_solution = deepcopy(self.findGeometricSol())
-            self.geometric_solution = geom_solution
-            
-    def findGeometricSol(self):
-        
-        '''
-        Temporarily sets hyperbolic factor to 1 and finds geometric 
-        solution. 
-        
-        Parameters
-        ----------
-        none
-        
-        Returns
-        -------
-        geom_solution: Consumer solution
-            Solution for agent with the same parameters and Hyperbolic_beta=1
-        
-        '''
-        
-        initial_hyperbolic = deepcopy(self.Hyperbolic_beta)
-        self.Hyperbolic_beta = 1
-        self.solve()
-        geom_solution = deepcopy(self.solution)
-        
-        self.Hyperbolic_beta = initial_hyperbolic
-
-        return geom_solution
 
     def unpackcFunc(self):
         '''
