@@ -115,12 +115,10 @@ intercept_prev = 0.0               # Initial intercept of kNextFunc (aggregate s
 from pathlib import Path
 
 # Import survival probabilities from SSA data
-# The default is US SSA data from year 2010 in USactuarial.txt, but should the users wish to use data from other years
-# or other countries, they could do so by naming the alternative data file "alternativedata.txt" and save this in the "/home/users/Downloads/" folder
+# The default is US SSA data from year 2010 in USactuarial.txt
 
-
-README = Path("/home/users/Downloads/alternativedata.txt")
-if README.is_file():
+YOURPATH = Path("/home/users/Documents/alternativedata.txt")
+if YOURPATH.is_file():
     print ("File does exist")
     data_location = os.path.dirname(os.path.abspath(__file__))
     f = open(data_location + '/' + 'alternativedata.txt','r')

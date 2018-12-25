@@ -1,0 +1,6 @@
+Instructions on modifying the mortality assumptions used in Section 5 of Carroll et al. (2017)
+
+The default data used in the life cycle specifications in Carroll et al. (2017) are US 2010 actuarial life table data from the Social Security Administration.
+
+To run the model using alternative data (from other years or other countries), users can name the alternative data file "alternativedata.txt", and save this in the "home/users/Documents/" folder. 
+The data format that the code expects is: tab-delimited text, death probabilities in columns 1 and 4 for male and female, numbers of survivors in columns 2 and 5 for male and female, and life expectancies in columns 3 and 6. The age starts at 0 and ends at 119.
