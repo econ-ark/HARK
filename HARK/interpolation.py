@@ -3367,6 +3367,87 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         dfdy = y_alpha*dfda + y_beta*dfdb
         return dfdy
 
+def calcLogSumChoiceProbs(Vals, sigma):
+    '''
+    Returns the final optimal value and choice probabilities given the choice
+    specific value functions `Vals`. Probabilities are degenerate if sigma == 0.0.
+    Parameters
+    ----------
+    Vals : [numpy.array]
+        A numpy.array that holds choice specific values at common grid points.
+    sigma : float
+        A number that controls the variance of the taste shocks
+    Returns
+    -------
+    V : [numpy.array]
+        A numpy.array that holds the integrated value function.
+    P : [numpy.array]
+        A numpy.array that holds the discrete choice probabilities
+    '''
+
+    return calcLogSum(Vals, sigma), calcChoiceProbs(Vals, sigma)
+
+def calcChoiceProbs(Vals, sigma):
+    '''
+    Returns the choice probabilities given the choice specific value functions
+    `Vals`. Probabilities are degenerate if sigma == 0.0.
+
+    Parameters
+    ----------
+    Vals : [numpy.array]
+        A numpy.array that holds choice specific values at common grid points.
+    sigma : float
+        A number that controls the variance of the taste shocks
+    Returns
+    -------
+    Probs : [numpy.array]
+        A numpy.array that holds the discrete choice probabilities
+    '''
+
+    # Assumes that NaNs have been replaced by -numpy.inf or similar
+    if sigma == 0.0:
+        # We could construct a linear index here and use unravel_index.
+        Pflat = np.argmax(Vals, axis=0)
+        Probs = np.zeros(Vals.shape)
+        for i in range(Vals.shape[0]):
+            Probs[i][Pflat==i] = 1
+        return Probs
+
+    Probs = np.divide(np.exp((Vals-Vals[0])/sigma), np.sum(np.exp((Vals-Vals[0])/sigma), axis=0))
+    return Probs
+
+
+def calcLogSum(Vals, sigma):
+    '''
+    Returns the optimal value given the choice specific value functions Vals.
+
+    Parameters
+    ----------
+    Vals : [numpy.array]
+        A numpy.array that holds choice specific values at common grid points.
+    sigma : float
+        A number that controls the variance of the taste shocks
+    Returns
+    -------
+    V : [numpy.array]
+        A numpy.array that holds the integrated value function.
+    '''
+
+    # Assumes that NaNs have been replaced by -numpy.inf or similar
+    if sigma == 0.0:
+        # We could construct a linear index here and use unravel_index.
+        V = np.amax(Vals, axis=0)
+        return V
+
+    # else we have a taste shock
+    maxV = Vals.max()
+
+    # calculate maxV+sigma*log(sum_i=1^J exp((V[i]-maxV))/sigma)
+    sumexp = np.sum(np.exp((Vals-maxV)/sigma), axis=0)
+    V = np.log(sumexp)
+    V = maxV + sigma*V
+    return V
+
 def main():
     print("Sorry, HARK.interpolation doesn't actually do much on its own.")
     print("To see some examples of its interpolation methods in action, look at any")
