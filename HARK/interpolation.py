@@ -3313,8 +3313,6 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         det = alpha_x*beta_y - beta_x*alpha_y
         x_alpha = beta_y/det
         x_beta  = -alpha_y/det
-        #y_alpha = -beta_x/det
-        #y_beta  = alpha_x/det
 
         # Calculate the derivative of f w.r.t. alpha and beta
         dfda = (1-beta)*(fB-fA) + beta*(fD-fC)
@@ -3354,8 +3352,6 @@ class Curvilinear2DInterp(HARKinterpolator2D):
 
         # Invert the delta translation matrix into x,y --> alpha,beta
         det = alpha_x*beta_y - beta_x*alpha_y
-        #x_alpha = beta_y/det
-        #x_beta  = -alpha_y/det
         y_alpha = -beta_x/det
         y_beta  = alpha_x/det
 
@@ -3366,6 +3362,10 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         # Calculate the derivative with respect to x (and return it)
         dfdy = y_alpha*dfda + y_beta*dfdb
         return dfdy
+    
+###############################################################################
+## Functions used in discrete choice models with T1EV taste shocks ############
+###############################################################################
 
 def calcLogSumChoiceProbs(Vals, sigma):
     '''
