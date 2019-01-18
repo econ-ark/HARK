@@ -18,7 +18,9 @@ class testsForDiscreteChoice(unittest.TestCase):
         self.Vref2D = np.array([1.0, 1.0, 1.0])
         self.Pref2D = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
 
-        # self.Vs3D = np.array([[0.0, 1.0, 4.0], [1.0, 2.0, 0.0], [3.0, 0.0, 2.0]])
+        self.Vs3D = np.array([[0.0, 1.0, 4.0], [1.0, 2.0, 0.0], [3.0, 0.0, 2.0]])
+        self.Vref3D = np.array([[3.0, 2.0, 4.0]])
+        self.Pref3D = np.array([[0, 0, 1], [0, 1, 0], [1, 0, 0]])
         # maxV = self.Vs3D.max()
         # self.Vref3D = maxV + np.log(np.sum(np.exp(self.Vs3D-maxV),axis=0))
         # self.Pref3D = np.log(np.sum(np.exp(self.Vs3D-maxV),axis=0))
@@ -44,3 +46,25 @@ class testsForDiscreteChoice(unittest.TestCase):
         P = interpolation.calcChoiceProbs(self.Vs2D, sigma)
         self.assertTrue((V == self.Vref2D).all())
         self.assertTrue((P == self.Pref2D).all())
+
+    def test_noShock3DBothEqualValue(self):
+        # Test the value functions and policies of the 3D case
+        sigma = 0.0
+        V, P = interpolation.calcLogSumChoiceProbs(self.Vs3D, sigma)
+        self.assertTrue((V == self.Vref3D).all)
+        self.assertTrue((P == self.Pref3D).all)
+
+    def test_noShock3DBoth(self):
+        # Test the value functions and policies of the 3D case
+        sigma = 0.0
+        V, P = interpolation.calcLogSumChoiceProbs(self.Vs3D, sigma)
+        self.assertTrue((V == self.Vref3D).all)
+        self.assertTrue((P == self.Pref3D).all)
+
+    def test_noShock3DIndividual(self):
+        # Test the value functions and policies of the 3D case
+        sigma = 0.0
+        V = interpolation.calcLogSum(self.Vs3D, sigma)
+        P = interpolation.calcChoiceProbs(self.Vs3D, sigma)
+        self.assertTrue((V == self.Vref3D).all())
+        self.assertTrue((P == self.Pref3D).all())
