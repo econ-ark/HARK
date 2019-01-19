@@ -15,7 +15,7 @@ from HARK.interpolation import LinearInterp
 from HARK.utilities import approxUniform, plotFuncs
 import numpy as np
 import scipy.stats as stats
-from . import FashionVictimParams as Params
+from HARK.FashionVictim import FashionVictimParams as Params
 from copy import copy
 
 class FashionSolution(Solution):
