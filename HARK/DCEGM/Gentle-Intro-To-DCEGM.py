@@ -2,8 +2,8 @@
 # ---
 # jupyter:
 #   '@webio':
-#     lastCommId: ee2abf5fa55042f786616b345bb5b822
-#     lastKernelId: a15470c3-697d-4645-8ff1-81041554fbec
+#     lastCommId: 56f8edfe9e7e4b239b6564ab579d495e
+#     lastKernelId: 23d3023c-c357-4073-93c8-1d379efdff98
 #   jupytext:
 #     text_representation:
 #       extension: .py
@@ -23,7 +23,7 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.6.5
+#     version: 3.6.4
 # ---
 
 # -
@@ -36,6 +36,12 @@
 # introduce the discrete choice, the FOCs can be shown to only be necessecary.
 # The generalization consists for a practical method to weed out solutions to
 # the FOCs actual solutions to the optimization problem.
+
+import sys, os
+
+sys.path.insert(0, "/home/pkofod/HARK/HARK")
+
+sys.path
 
 # import some libraries to be used below
 import matplotlib.pyplot as plt
@@ -97,7 +103,8 @@ plt.ylim((0, 100))
 plt.subplot(1,2,2)
 model.plotV(t, 1)
 model.plotV(t, 2)
-
+plt.xlim((0, 200))
+plt.ylim((-20, -5))
 # -
 
 # We immidiately notice two things: the two grids over $M_t$ are different as
@@ -158,6 +165,8 @@ plt.ylim((0,100))
 plt.subplot(1,2,2)
 model.plotV(t, 1)
 model.plotV(t, 2)
+plt.xlim((0,200))
+plt.ylim((-30,-10))
 # -
 
 # This time we see a discontinuity already in the choice specific consumption
@@ -268,7 +277,7 @@ model.solution[18].ws.Coh
 
 model.solution[18].ws.C
 
-plt.plot(model.solution[1].ws.Coh, model.solution[1].ws.VFunc(model.solution[1].ws.Coh))
+plt.plot(model.solution[1].ws.Coh, model.solution[1].ws.V_TFunc(model.solution[1].ws.Coh))
 
 model.solution[1].ws.Coh
 
@@ -341,9 +350,9 @@ plt.plot(x, y)
 plt.scatter(x[rise], y[rise], color="green")
 plt.scatter(x[fall], y[fall], color="red")
 
-ss
-
 rise
+
+from HARK.utilities import CRRAutility_inv
 
 # +
 x = numpy.array([0.1, 0.2, 0.3, 0.27, 0.24, 0.3, 0.5, 0.6, 0.5, 0.4, 0.3, 0.5, 0.7])
@@ -354,3 +363,16 @@ import matplotlib.pyplot as plt
 plt.plot(x, y)
 plt.scatter(x[rise], y[rise], color="green")
 plt.scatter(x[fall], y[fall], color="red")
+# -
+
+CRRAutility_inv(0.0, 2.0)
+
+
+
+
+
+
+
+
+
+
