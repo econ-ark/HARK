@@ -534,7 +534,7 @@ def multilineEnvelope(M, C, V_T, CohGrid):
 
 
     # Add the last point to the vector for convenience below
-    fall = numpy.append(fall, m_len)
+    fall = numpy.append(fall, len(M)-1)
     # The number of kinks are the number of time the grid falls
     num_kinks = len(fall)
 
@@ -544,7 +544,7 @@ def multilineEnvelope(M, C, V_T, CohGrid):
     mC = numpy.empty((m_len, num_kinks))
     mC[:] = numpy.nan
 
-    # understand this : # TAKE THE FIRST ONE BY HAND: prevent all the PdCohNodesN-stuff..
+    # understand this : # TAKE THE FIRST ONE BY HAND: prevent all the NaN-stuff..
     for j in range(num_kinks):
         # Find all common grid
         below = M[rise[j]] >= CohGrid
@@ -558,7 +558,7 @@ def multilineEnvelope(M, C, V_T, CohGrid):
 
     is_all_nan = numpy.array([numpy.all(numpy.isnan(mvrow)) for mvrow in mV_T])
     # Now take the max of all these functions. Since the mV_T
-    # is either PdCohNodesN or very low number outside the range of the actual line-segment this works "globally"
+    # is either NaN or very low number outside the range of the actual line-segment this works "globally"
     idx_max = numpy.zeros(CohGrid.size, dtype = int) # this one might be wrong if is_all_nan[0] == True
     idx_max[is_all_nan == False] = numpy.nanargmax(mV_T[is_all_nan == False], axis=1)
 
@@ -573,21 +573,21 @@ def multilineEnvelope(M, C, V_T, CohGrid):
         upperV_T[0] = 0 # Since M=0 here
         mC[0,0]  = upperM[1]
 
-    # Extrapolate if PdCohNodesNs are introduced due to the common grid
+    # Extrapolate if NaNs are introduced due to the common grid
     # going outside all the sub-line segments
-    IsPdCohNodesN = numpy.isnan(upperV_T)
-    upperV_T[IsPdCohNodesN] = LinearInterp(upperM[IsPdCohNodesN == False], upperV_T[IsPdCohNodesN == False], lower_extrap=True)(upperM[IsPdCohNodesN])
-    upperV_T[IsPdCohNodesN] = LinearInterp(upperM[IsPdCohNodesN == False], upperV_T[IsPdCohNodesN == False], lower_extrap=True)(upperM[IsPdCohNodesN])
-    LastBeforePdCohNodesN = numpy.append(numpy.diff(IsPdCohNodesN)>0, 0)
-    LastId = LastBeforePdCohNodesN*idx_max # Find last id-number
-    idx_max[IsPdCohNodesN] = LastId[IsPdCohNodesN]
+    IsNaN = numpy.isnan(upperV_T)
+    upperV_T[IsNaN] = LinearInterp(upperM[IsNaN == False], upperV_T[IsNaN == False], lower_extrap=True)(upperM[IsNaN])
+    upperV_T[IsNaN] = LinearInterp(upperM[IsNaN == False], upperV_T[IsNaN == False], lower_extrap=True)(upperM[IsNaN])
+    LastBeforeNaN = numpy.append(numpy.diff(IsNaN)>0, 0)
+    LastId = LastBeforeNaN*idx_max # Find last id-number
+    idx_max[IsNaN] = LastId[IsNaN]
 
     # Linear index used to get optimal consumption based on "id"  from max
     ncols = mC.shape[1]
     rowidx = numpy.cumsum(ncols*numpy.ones(len(CohGrid), dtype=int))-ncols
     idx_linear = numpy.unravel_index(rowidx+idx_max, mC.shape)
     upperC = mC[idx_linear]
-    upperC[IsPdCohNodesN] = LinearInterp(upperM[IsPdCohNodesN==0], upperC[IsPdCohNodesN==0])(upperM[IsPdCohNodesN])
+    upperC[IsNaN] = LinearInterp(upperM[IsNaN==0], upperC[IsNaN==0])(upperM[IsNaN])
 
     # TODO calculate cross points of line segments to get the true vertical drops
 
