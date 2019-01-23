@@ -577,7 +577,6 @@ def multilineEnvelope(M, C, V_T, CohGrid):
     # going outside all the sub-line segments
     IsNaN = numpy.isnan(upperV_T)
     upperV_T[IsNaN] = LinearInterp(upperM[IsNaN == False], upperV_T[IsNaN == False], lower_extrap=True)(upperM[IsNaN])
-    upperV_T[IsNaN] = LinearInterp(upperM[IsNaN == False], upperV_T[IsNaN == False], lower_extrap=True)(upperM[IsNaN])
     LastBeforeNaN = numpy.append(numpy.diff(IsNaN)>0, 0)
     LastId = LastBeforeNaN*idx_max # Find last id-number
     idx_max[IsNaN] = LastId[IsNaN]
