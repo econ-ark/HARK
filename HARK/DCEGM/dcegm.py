@@ -568,10 +568,10 @@ def multilineEnvelope(M, C, V_T, CohGrid):
 
     upperV_T[is_all_nan == False] = numpy.nanmax(mV_T[is_all_nan == False, :], axis=1)
     upperM = numpy.copy(CohGrid)
-    # Ad the zero point in the bottom
+    # Add the zero point in the bottom
     if numpy.isnan(upperV_T[0]):
         upperV_T[0] = 0 # Since M=0 here
-        mC[0,0]  = upperM[1]
+        mC[0]  = upperM[1]
 
     # Extrapolate if NaNs are introduced due to the common grid
     # going outside all the sub-line segments
