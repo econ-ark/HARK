@@ -78,8 +78,8 @@ class RetiringDeaton(AgentType):
                  YRet=0.0, # normalized relative to work
                  TranIncVar = 0.005,
                  TranIncNodes = 0,
-                 CohNodes=1900,
-                 PdCohLims=(1e-6, 700), PdCohNodes=1800,
+                 CohNodes=1000,
+                 PdCohLims=(1e-6, 700), PdCohNodes=800,
                  saveCommon=False,
                  **kwds):
 
