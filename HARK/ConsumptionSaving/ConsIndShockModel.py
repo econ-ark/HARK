@@ -1708,6 +1708,7 @@ class PerfForesightConsumerType(AgentType):
         violated = False
 
         #Evaluate and report on the return impatience condition
+
         RIF = (self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
         if RIF<1:
             if public_call:
@@ -1735,7 +1736,6 @@ class PerfForesightConsumerType(AgentType):
         else:
             print('The given type violates the finite human wealth condition; the finite human wealth factor value %2.5f ' % (FHWF))
             violated = True
-
         if verbose and violated and verbose_reference:
             print('[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
@@ -2015,8 +2015,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         impatience condition (WRIC), finite human wealth condition (FHWC) and finite value of
         autarky condition (FVAC). These are the conditions that are sufficient for nondegenerate
         solutions under infinite horizon with a 1 period cycle. Depending on the model at hand, a
-        different combination of these conditions must be satisfied. To check which conditions are
-        relevant to the model at hand, a reference to the relevant theoretical literature is made.
+        different combination of these conditions must be satisfied. (For an exposition of the 
+        conditions, see http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/)
 
         Parameters
         ----------
@@ -2073,7 +2073,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         if verbose and violated:
             print('\n[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
-
 
 class KinkedRconsumerType(IndShockConsumerType):
     '''
@@ -2206,11 +2205,11 @@ class KinkedRconsumerType(IndShockConsumerType):
         (GIC), return impatience condition (RIC), absolute impatience condition (AIC), weak return
         impatience condition (WRIC), finite human wealth condition (FHWC) and finite value of
         autarky condition (FVAC). These are the conditions that are sufficient for nondegenerate
-        solutions under infinite horizon with a 1 period cycle. Depending on the model at hand, a
+        infinite horizon solutions with a 1 period cycle. Depending on the model at hand, a
         different combination of these conditions must be satisfied. To check which conditions are
         relevant to the model at hand, a reference to the relevant theoretical literature is made.
 
-        NOT YET IMPLEMENTED FOR THIS CLASS
+        SHOULD BE INHERITED FROM ConsIndShockModel
 
         Parameters
         ----------
