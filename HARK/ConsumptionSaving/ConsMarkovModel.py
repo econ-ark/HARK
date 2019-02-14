@@ -9,10 +9,8 @@ from __future__ import absolute_import
 from builtins import range
 from copy import deepcopy
 import numpy as np
-from .ConsIndShockModel import ConsIndShockSolver, ValueFunc, MargValueFunc, ConsumerSolution, IndShockConsumerType
-from .ConsAggShockModel import AggShockConsumerType
-from HARK.utilities import combineIndepDstns, warnings  # Because of "patch" to warnings modules
-from HARK import Market, HARKobject
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver, ValueFunc, \
+                             MargValueFunc, ConsumerSolution, IndShockConsumerType
 from HARK.simulation import drawDiscrete, drawUniform
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
@@ -974,7 +972,7 @@ class MarkovConsumerType(IndShockConsumerType):
 ###############################################################################
 
 def main():
-    from . import ConsumerParameters as Params
+    import ConsumerParameters as Params
     from HARK.utilities import plotFuncs
     from time import clock
     from copy import copy
@@ -1026,7 +1024,7 @@ def main():
     start_time = clock()
     SerialUnemploymentExample.solve()
     end_time = clock()
-    print('Solving a Markov consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    print('Solving a Markov consumer with serially correlated unemployment took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
     plotFuncs(SerialUnemploymentExample.solution[0].cFunc,0,50)
     if SerialUnemploymentExample.vFuncBool:
