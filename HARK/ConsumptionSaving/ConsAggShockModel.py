@@ -16,7 +16,7 @@ from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutility
                            CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
                            approxMeanOneLognormal
 from HARK.simulation import drawDiscrete, drawUniform
-from .ConsIndShockModel import ConsumerSolution, IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockConsumerType
 from HARK import HARKobject, Market, AgentType
 from copy import deepcopy
 import matplotlib.pyplot as plt
@@ -1753,7 +1753,7 @@ class AggShocksDynamicRule(HARKobject):
 ###############################################################################
 
 def main():
-    from . import ConsumerParameters as Params
+    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from time import clock
     from HARK.utilities import plotFuncs
     mystr = lambda number : "{:.4f}".format(number)
@@ -1793,6 +1793,7 @@ def main():
             mMin = AggShockExample.solution[0].mNrmMin(M)
             c_at_this_M = AggShockExample.cFunc[0](m_grid+mMin,M*np.ones_like(m_grid))
             plt.plot(m_grid+mMin,c_at_this_M)
+        plt.ylim(0.,None)
         plt.show()
 
     if solve_agg_shocks_market:
@@ -1813,6 +1814,7 @@ def main():
             mMin = AggShockExample.solution[0].mNrmMin(M)
             c_at_this_M = AggShockExample.cFunc[0](m_grid+mMin,M*np.ones_like(m_grid))
             plt.plot(m_grid+mMin,c_at_this_M)
+        plt.ylim(0.,None)
         plt.show()
 
     ######### EXAMPLE IMPLEMENTATIONS OF AggShockMarkovConsumerType ###########
@@ -1843,6 +1845,7 @@ def main():
                 mMin = AggShockMrkvExample.solution[0].mNrmMin[i](M)
                 c_at_this_M = AggShockMrkvExample.cFunc[0][i](m_grid+mMin,M*np.ones_like(m_grid))
                 plt.plot(m_grid+mMin,c_at_this_M)
+            plt.ylim(0.,None)
             plt.show()
 
     if solve_markov_market:
@@ -1861,6 +1864,7 @@ def main():
                 mMin = AggShockMrkvExample.solution[0].mNrmMin[i](M)
                 c_at_this_M = AggShockMrkvExample.cFunc[0][i](m_grid+mMin,M*np.ones_like(m_grid))
                 plt.plot(m_grid+mMin,c_at_this_M)
+            plt.ylim(0.,None)
             plt.show()
 
     if solve_krusell_smith:
