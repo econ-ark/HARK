@@ -1358,7 +1358,7 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
 ###############################################################################
 
 def main():
-    import ConsumerParameters as Params
+    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import CRRAutility_inv
     from time import clock
     import matplotlib.pyplot as plt

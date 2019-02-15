@@ -972,7 +972,7 @@ class MarkovConsumerType(IndShockConsumerType):
 ###############################################################################
 
 def main():
-    import ConsumerParameters as Params
+    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import plotFuncs
     from time import clock
     from copy import copy

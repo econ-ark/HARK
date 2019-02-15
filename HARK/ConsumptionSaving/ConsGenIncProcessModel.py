@@ -1276,7 +1276,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 ###############################################################################
 
 def main():
-    import ConsumerParameters as Params
+    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import plotFuncs
     from time import clock
     import matplotlib.pyplot as plt

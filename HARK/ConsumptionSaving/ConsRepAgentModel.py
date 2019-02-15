@@ -331,7 +331,7 @@ def main():
     from copy import deepcopy
     from time import clock
     from HARK.utilities import plotFuncs
-    import ConsumerParameters as Params
+    import HARK.ConsumptionSaving.ConsumerParameters as Params
 
     # Make a quick example dictionary
     RA_params = deepcopy(Params.init_idiosyncratic_shocks)
