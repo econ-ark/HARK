@@ -23,7 +23,7 @@ class testsForDCEGM(unittest.TestCase):
         # Calculate the crossing by hand
         slope_1 = (1.5 - 1.0)/(3.0 - 2.0)
         slope_2 = (3.5 - 0.5)/(4.0 - 2.0)
-        m_cross = (0.5 - 1.0)/(slope_1 - slope_2)
+        m_cross = 2.0 + (0.5 - 1.0)/(slope_1 - slope_2)
 
         m_out, c_out, v_out = discontools.calcMultilineEnvelope(self.m_in, self.c_in, self.v_in, self.commonM)
 
