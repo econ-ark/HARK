@@ -70,6 +70,11 @@ def dcegmSegments(x, v):
             i = k
 
         i = i + 1
+
+    # Add the last index for convenience (then all segments are complete, as
+    # len(fall) == len(rise), and we can form them by range(rise[j], fall[j]+1).
+    fall = np.append(fall, len(v)-1)
+
     return rise, fall
 # think! nanargmax makes everythign super ugly because numpy changed the wraning
 # in all nan slices to a valueerror...it's nans, aaarghgghg
@@ -99,8 +104,6 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
     m_len = len(commonM)
     rise, fall = dcegmSegments(M, V_T)
 
-    # Add the last point to the vector for convenience below
-    fall = np.append(fall, len(M)-1)
     num_kinks = len(fall) # number of kinks / falling EGM grids
 
     # Use these segments to sequentially find upper envelopes. commonVARNAME
