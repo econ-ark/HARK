@@ -175,7 +175,9 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
 
     # TODO calculate cross points of line segments to get the true vertical drops
 
-    return upperC, upperV_T
+    upperM = commonM.copy() # anticipate this TODO
+
+    return upperM, upperC, upperV_T
 
 def main():
     print("Sorry, HARK.discontools doesn't actually do anything on its own.")
