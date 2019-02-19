@@ -1,7 +1,7 @@
 import numpy as np
 from HARK.interpolation import LinearInterp
 
-def dcegmIntervals(x, v):
+def dcegmSegments(x, v):
     """
     Find index vectors `rise` and `fall` such that `rise` holds the indeces `i`
     such that x[i+1]>x[i] and `fall` holds indeces `j` such that either
@@ -97,7 +97,7 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
 
     """
     m_len = len(commonM)
-    rise, fall = dcegmIntervals(M, V_T)
+    rise, fall = dcegmSegments(M, V_T)
 
     # Add the last point to the vector for convenience below
     fall = np.append(fall, len(M)-1)
@@ -105,7 +105,7 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
 
     # Use these segments to sequentially find upper envelopes. commonVARNAME
     # means the VARNAME evaluated on the common grid with a cloumn for each kink
-    # discovered in dcegmIntervals. This means that commonVARNAME is a matrix
+    # discovered in dcegmSegments. This means that commonVARNAME is a matrix
     # common grid length-by-number of segments to consider. In the end, we'll
     # use nanargmax over the columns to pick out the best (transformed) values.
     # This is why we fill the arrays with np.nan's.
