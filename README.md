@@ -37,6 +37,10 @@ Online documentation: https://econ-ark.github.io/HARK
 
 User guide: /Documentation/HARKmanual.pdf (in the repository)
 
+Demonstrations of HARK functionality: [DemARK](https://github.com/econ-ark/DemARK/)
+
+Replications and Explorations Made using the ARK : [REMARK](https://github.com/econ-ark/REMARK/)
+
 
 ## II. QUICK START GUIDE
 
