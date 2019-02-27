@@ -1783,9 +1783,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def updateIncomeProcess(self):
         '''
-        Updates this agent's income process based on his own attributes.  The
-        function that generates the discrete income process can be swapped out
-        for a different process.
+        Updates this agent's income process based on his own attributes.
 
         Parameters
         ----------
