@@ -1052,7 +1052,6 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         EndOfPrdvNvrsFunc   = CubicInterp(aNrm_temp,EndOfPrdvNvrs,EndOfPrdvNvrsP)
         self.EndOfPrdvFunc  = ValueFunc(EndOfPrdvNvrsFunc,self.CRRA)
 
-
     def addvFunc(self,solution,EndOfPrdvP):
         '''
         Creates the value function for this period and adds it to the solution.
@@ -1797,10 +1796,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         '''
         original_time = self.time_flow
         self.timeFwd()
-        IncomeDstn, PermShkDstn, TranShkDstn = constructLognormalIncomeProcessUnemployment(self)
+        IncomeDstn, PermShkDstn, TranShkDstn, RriskDstn = constructLognormalIncomeProcessUnemployment(self)
         self.IncomeDstn = IncomeDstn
         self.PermShkDstn = PermShkDstn
         self.TranShkDstn = TranShkDstn
+        self.RriskDstn = RriskDstn
+
         self.addToTimeVary('IncomeDstn','PermShkDstn','TranShkDstn')
         if not original_time:
             self.timeRev()
@@ -2015,7 +2016,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         impatience condition (WRIC), finite human wealth condition (FHWC) and finite value of
         autarky condition (FVAC). These are the conditions that are sufficient for nondegenerate
         solutions under infinite horizon with a 1 period cycle. Depending on the model at hand, a
-        different combination of these conditions must be satisfied. (For an exposition of the 
+        different combination of these conditions must be satisfied. (For an exposition of the
         conditions, see http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/)
 
         Parameters
@@ -2299,20 +2300,23 @@ def constructLognormalIncomeProcessUnemployment(parameters):
     IncomeDstn    = [] # Discrete approximations to income process in each period
     PermShkDstn   = [] # Discrete approximations to permanent income shocks
     TranShkDstn   = [] # Discrete approximations to transitory income shocks
+    RriskShkDstn   = [] # Discrete approximations to risky income returns
 
     # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
     # in normal times; value 0.0 in "unemployment" times with small prob.
     if T_retire > 0:
         if UnempPrbRet > 0:
-            PermShkValsRet  = np.array([1.0, 1.0])    # Permanent income is deterministic in retirement (2 states for temp income shocks)
+            PermShkValsRetDstn  = [np.array([1.0]), np.array([1.0])] # Permanent income is deterministic in retirement (2 states for temp income shocks)
             TranShkValsRet  = np.array([IncUnempRet,
                                         (1.0-UnempPrbRet*IncUnempRet)/(1.0-UnempPrbRet)])
-            ShkPrbsRet      = np.array([UnempPrbRet, 1.0-UnempPrbRet])
+            TranShkPrbsRet = np.array([UnempPrbRet, 1.0-UnempPrbRet])
+            TranShkDstnRet = [TranShkPrbsRet, TranShkValsRet]
         else:
             PermShkValsRet  = np.array([1.0])
             TranShkValsRet  = np.array([1.0])
-            ShkPrbsRet      = np.array([1.0])
-        IncomeDstnRet = [ShkPrbsRet,PermShkValsRet,TranShkValsRet]
+
+        RriskShkDstnRet = 0.05*(approxMeanOneLognormal(N=1, sigma=0.1, tail_N=0)-1.0)  # Risky investments give un
+        IncomeDstnRet = combineIndepDstns(PermShkValsRetDstn, TranShkDstnRet, RriskShkDstnRet)
 
     # Loop to fill in the list of IncomeDstn random variables.
     for t in range(T_cycle): # Iterate over all periods, counting forward
@@ -2320,18 +2324,22 @@ def constructLognormalIncomeProcessUnemployment(parameters):
         if T_retire > 0 and t >= T_retire:
             # Then we are in the "retirement period" and add a retirement income object.
             IncomeDstn.append(deepcopy(IncomeDstnRet))
-            PermShkDstn.append([np.array([1.0]),np.array([1.0])])
-            TranShkDstn.append([ShkPrbsRet,TranShkValsRet])
+            PermShkDstn.append(deepcopy(PermShkValsRetDstn))
+            TranShkDstn.append(deepcopy(TranShkDstnRet))
+            RriskShkDstn.append(deepcopy(RriskShkDstnRet))
         else:
             # We are in the "working life" periods.
             TranShkDstn_t    = approxMeanOneLognormal(N=TranShkCount, sigma=TranShkStd[t], tail_N=0)
             if UnempPrb > 0:
                 TranShkDstn_t = addDiscreteOutcomeConstantMean(TranShkDstn_t, p=UnempPrb, x=IncUnemp)
             PermShkDstn_t    = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=0)
-            IncomeDstn.append(combineIndepDstns(PermShkDstn_t,TranShkDstn_t)) # mix the independent distributions
+            RriskShkDstn_t = 0.05*(approxMeanOneLognormal(N=1, sigma=0.1, tail_N=0)-1.0) # Risky investments give un
+
+            IncomeDstn.append(combineIndepDstns(PermShkDstn_t,TranShkDstn_t, RriskShkDstn_t)) # mix the independent distributions
             PermShkDstn.append(PermShkDstn_t)
             TranShkDstn.append(TranShkDstn_t)
-    return IncomeDstn, PermShkDstn, TranShkDstn
+            RriskShkDstn.append(RriskShkDstn_t)
+    return IncomeDstn, PermShkDstn, TranShkDstn, RriskShkDstn
 
 
 def applyFlatIncomeTax(IncomeDstn,tax_rate,T_retire,unemployed_indices=[],transitory_index=2):
