@@ -830,9 +830,15 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             A 1D array of end-of-period marginal value of assets
         '''
 
+        if self.TradesStocks:
+            vPNext = self.VPNextPortfolio()
+        else:
+            vPNext = self.vPfuncNext(self.mNrmNext)
+
         EndOfPrdvP  = self.DiscFacEff*self.Rfree*self.PermGroFac**(-self.CRRA)*np.sum(
                       self.PermShkVals_temp**(-self.CRRA)*
-                      self.vPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)
+                      vPNext*self.ShkPrbs_temp,axis=0)
+
         return EndOfPrdvP
 
 
@@ -928,6 +934,18 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cNrm,mNrm    = self.getPointsForInterpolation(EndOfPrdvP,aNrm)
         solution_now = self.usePointsForInterpolation(cNrm,mNrm,interpolator)
         return solution_now
+
+
+
+    def vPNextFromPortfolioSubproblem(self):
+        for a in self.aNrmNow:
+            portfolioObjective = lambda StockRatio: (self.Rfree*(1-StockRatio) +
+                                                 self.RriskShkDstn[1]*StockRatio)*
+
+            optRes = scipy.optimize(portfolioObjective, 0, 1)
+
+            # grab best policy and value and append it
+
 
     def addMPCandHumanWealth(self,solution):
         '''
@@ -1772,6 +1790,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,
                                            verbose=verbose,quiet=quiet, **kwds)
 
+        self.TradesStocks = True
+        self.vFuncBool = True
+
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
         self.update() # Make assets grid, income process, terminal solution
@@ -2315,7 +2336,8 @@ def constructLognormalIncomeProcessUnemployment(parameters):
             PermShkValsRet  = np.array([1.0])
             TranShkValsRet  = np.array([1.0])
 
-        RriskShkDstnRet = 0.05*(approxMeanOneLognormal(N=1, sigma=0.1, tail_N=0)-1.0)  # Risky investments give un
+        RriskShkDstnRet = approxMeanOneLognormal(N=1, sigma=0.1, tail_N=0)  # Risky investments give un
+        RriskShkDstnRet[1] = 0.05+RriskShkDstnRet[1]  # adjust shock distribution
         IncomeDstnRet = combineIndepDstns(PermShkValsRetDstn, TranShkDstnRet, RriskShkDstnRet)
 
     # Loop to fill in the list of IncomeDstn random variables.
@@ -2332,8 +2354,9 @@ def constructLognormalIncomeProcessUnemployment(parameters):
             TranShkDstn_t    = approxMeanOneLognormal(N=TranShkCount, sigma=TranShkStd[t], tail_N=0)
             if UnempPrb > 0:
                 TranShkDstn_t = addDiscreteOutcomeConstantMean(TranShkDstn_t, p=UnempPrb, x=IncUnemp)
-            PermShkDstn_t    = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=0)
-            RriskShkDstn_t = 0.05*(approxMeanOneLognormal(N=1, sigma=0.1, tail_N=0)-1.0) # Risky investments give un
+            PermShkDstn_t  = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=0)
+            RriskShkDstn_t = approxMeanOneLognormal(N=6, sigma=0.1, tail_N=0) # Risky investments give un
+            RriskShkDstn_t[1] = 0.05+RriskShkDstn_t[1]  # adjust shock distribution
 
             IncomeDstn.append(combineIndepDstns(PermShkDstn_t,TranShkDstn_t, RriskShkDstn_t)) # mix the independent distributions
             PermShkDstn.append(PermShkDstn_t)
