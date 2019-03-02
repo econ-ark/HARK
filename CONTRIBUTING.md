@@ -13,8 +13,8 @@ We're open to all kinds of contributions, from bug reports to help with our docs
 While we're thrilled to receive all kinds of contributions, there are a few key areas we'd especially like help with:
 
 * porting existing heterogenous agent/agent based models into HARK
-* collecting projects which use Econ-ARK (which we store in the [remark](https://github.com/econ-ark/REMARK) repository)
-* creating demonstrations of how to use Econ-ARK (which we store in the [demark](https://github.com/econ-ark/DemARK) repository)
+* curating and expanding the collection of projects which use Econ-ARK (which we store in the [remark](https://github.com/econ-ark/REMARK) repository)
+* creating demonstrations of how to use Econ-ARK (which we store in the [DemARK](https://github.com/econ-ark/DemARK) repository)
 * expanding test coverage of our existing code
 
 If you'd like to help with those or any other kind of contribution, reach out to us and we'll help you do so.  
