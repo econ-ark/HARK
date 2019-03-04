@@ -1210,6 +1210,280 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             solution = self.addvPPfunc(solution)
         return solution
 
+class ConsIndShockPortfolioSolver(ConsIndShockSolver):
+    '''
+    This class solves a single sub-period of a portfolio share choice in an other-
+    wise standard consumption-saving problem. It inherits from ConsIndShockSolver,
+    as it needs the value function to perform the optimization step. It sets up a
+    new value function to be used by the EGM step of a normal ConsIndShockSolver.
+    '''
+
+    def solve(self):
+        '''
+        Solves the single period consumption-saving problem using the method of
+        endogenous gridpoints.  Solution includes a consumption function cFunc
+        (using cubic or linear splines), a marginal value function vPfunc, a min-
+        imum acceptable level of normalized market resources mNrmMin, normalized
+        human wealth hNrm, and bounding MPCs MPCmin and MPCmax.  It might also
+        have a value function vFunc and marginal marginal value function vPPfunc.
+
+        Parameters
+        ----------
+        none
+
+        Returns
+        -------
+        solution : ConsumerSolution
+            The solution to the single period consumption-saving problem.
+        '''
+        # Make arrays of end-of-period assets and end-of-period marginal value
+        aNrm         = self.prepareToCalcEndOfPrdvP()
+        EndOfPrdvP   = self.calcEndOfPrdvP()
+
+        # Construct a basic solution for this period
+        if self.CubicBool:
+            solution   = self.makeBasicSolution(EndOfPrdvP,aNrm,interpolator=self.makeCubiccFunc)
+        else:
+            solution   = self.makeBasicSolution(EndOfPrdvP,aNrm,interpolator=self.makeLinearcFunc)
+
+        # Add the value function if requested, as well as the marginal marginal
+        # value function if cubic splines were used (to prepare for next period)
+        if self.vFuncBool:
+            solution = self.addvFunc(solution,EndOfPrdvP)
+        if self.CubicBool:
+            solution = self.addvPPfunc(solution)
+        return solution
+
+    def makeEndOfPrdvFunc(self,EndOfPrdvP):
+        '''
+        Construct the end-of-period value function for this period, storing it
+        as an attribute of self for use by other methods.
+
+        Parameters
+        ----------
+        EndOfPrdvP : np.array
+            Array of end-of-period marginal value of assets corresponding to the
+            asset values in self.aNrmNow.
+
+        Returns
+        -------
+        none
+        '''
+        VLvlNext            = (self.PermShkVals_temp**(1.0-self.CRRA)*\
+                               self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
+        EndOfPrdv           = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
+        EndOfPrdvNvrs       = self.uinv(EndOfPrdv) # value transformed through inverse utility
+        EndOfPrdvNvrsP      = EndOfPrdvP*self.uinvP(EndOfPrdv)
+        EndOfPrdvNvrs       = np.insert(EndOfPrdvNvrs,0,0.0)
+        EndOfPrdvNvrsP      = np.insert(EndOfPrdvNvrsP,0,EndOfPrdvNvrsP[0]) # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+        aNrm_temp           = np.insert(self.aNrmNow,0,self.BoroCnstNat)
+        EndOfPrdvNvrsFunc   = CubicInterp(aNrm_temp,EndOfPrdvNvrs,EndOfPrdvNvrsP)
+        self.EndOfPrdvFunc  = ValueFunc(EndOfPrdvNvrsFunc,self.CRRA)
+
+    # This could be an extension to the basic solver, but it seems that there's
+    # going to be a complete overhaul. Keeping it here for now.
+    def calcEndOfPrdvP(self):
+        '''
+        Calculate end-of-period marginal value of assets at each point in aNrmNow.
+        Does so by taking a weighted sum of next period marginal values across
+        income shocks (in a preconstructed grid self.mNrmNext).
+
+        Parameters
+        ----------
+        none
+
+        Returns
+        -------
+        EndOfPrdvP : np.array
+            A 1D array of end-of-period marginal value of assets
+        '''
+
+        # Solve portfolio problem in a stage of its own.
+        self.vOptFunc, self.shareOptFunc = NextvOptFuncNextFromPortfolioSubproblem
+        # use them to construct a vPNext
+        vPNext = self.vOptFunc(self.aNrmNow)
+
+        EndOfPrdvP  = self.DiscFacEff*self.Rfree*self.PermGroFac**(-self.CRRA)*np.sum(
+                      self.PermShkVals_temp**(-self.CRRA)*
+                      vPNext*self.ShkPrbs_temp,axis=0)
+
+        return EndOfPrdvP
+
+
+    def makeBasicSolution(self,EndOfPrdvP,aNrm,interpolator):
+        '''
+        Given end of period assets and end of period marginal value, construct
+        the basic solution for this period.
+
+        Parameters
+        ----------
+        EndOfPrdvP : np.array
+            Array of end-of-period marginal values.
+        aNrm : np.array
+            Array of end-of-period asset values that yield the marginal values
+            in EndOfPrdvP.
+
+        interpolator : function
+            A function that constructs and returns a consumption function.
+
+        Returns
+        -------
+        solution_now : ConsumerSolution
+            The solution to this period's consumption-saving problem, with a
+            consumption function, marginal value function, and minimum m.
+        '''
+        share,cNrm,mNrm    = self.getPointsForInterpolation(EndOfPrdvP,aNrm)
+        solution_now = self.usePointsForInterpolation(cNrm,mNrm,interpolator)
+        return solution_now
+
+    def getPointsForInterpolation(self,EndOfPrdvP,aNrmNow):
+        '''
+        Finds interpolation points (c,m) for the consumption function.
+
+        Parameters
+        ----------
+        EndOfPrdvP : np.array
+            Array of end-of-period marginal values.
+        aNrmNow : np.array
+            Array of end-of-period asset values that yield the marginal values
+            in EndOfPrdvP.
+
+        Returns
+        -------
+        c_for_interpolation : np.array
+            Consumption points for interpolation.
+        m_for_interpolation : np.array
+            Corresponding market resource points for interpolation.
+        '''
+        cNrmNow = self.uPinv(EndOfPrdvP)
+        mNrmNow = cNrmNow + aNrmNow
+
+        # Limiting consumption is zero as m approaches mNrmMin
+        c_for_interpolation = np.insert(cNrmNow,0,0.,axis=-1)
+        m_for_interpolation = np.insert(mNrmNow,0,self.BoroCnstNat,axis=-1)
+
+        # Store these for calcvFunc
+        self.cNrmNow = cNrmNow
+        self.mNrmNow = mNrmNow
+
+        return c_for_interpolation,m_for_interpolation
+
+
+    def usePointsForInterpolation(self,cNrm,mNrm,interpolator):
+        '''
+        Constructs a basic solution for this period, including the consumption
+        function and marginal value function.
+
+        Parameters
+        ----------
+        cNrm : np.array
+            (Normalized) consumption points for interpolation.
+        mNrm : np.array
+            (Normalized) corresponding market resource points for interpolation.
+        interpolator : function
+            A function that constructs and returns a consumption function.
+
+        Returns
+        -------
+        solution_now : ConsumerSolution
+            The solution to this period's consumption-saving problem, with a
+            consumption function, marginal value function, and minimum m.
+        '''
+        # Construct the unconstrained consumption function
+        cFuncNowUnc = interpolator(mNrm,cNrm)
+        cFuncNowUnc = interpolator(mNrm,cNrm)
+
+        # Combine the constrained and unconstrained functions into the true consumption function
+        cFuncNow = LowerEnvelope(cFuncNowUnc,self.cFuncNowCnst)
+
+        # Make the marginal value function and the marginal marginal value function
+        vPfuncNow = MargValueFunc(cFuncNow,self.CRRA)
+
+        # Pack up the solution and return it
+        solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow)
+        return solution_now
+
+
+    def addvFunc(self,solution,EndOfPrdvP):
+        '''
+        Creates the value function for this period and adds it to the solution.
+
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            The solution to this single period problem, likely including the
+            consumption function, marginal value function, etc.
+        EndOfPrdvP : np.array
+            Array of end-of-period marginal value of assets corresponding to the
+            asset values in self.aNrmNow.
+
+        Returns
+        -------
+        solution : ConsumerSolution
+            The single period solution passed as an input, but now with the
+            value function (defined over market resources m) as an attribute.
+        '''
+        self.makeEndOfPrdvFunc(EndOfPrdvP)
+        solution.vFunc = self.makevFunc(solution)
+        return solution
+
+
+    def makevFunc(self,solution):
+        '''
+        Creates the value function for this period, defined over market resources m.
+        self must have the attribute EndOfPrdvFunc in order to execute.
+
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            The solution to this single period problem, which must include the
+            consumption function.
+
+        Returns
+        -------
+        vFuncNow : ValueFunc
+            A representation of the value function for this period, defined over
+            normalized market resources m: v = vFuncNow(m).
+        '''
+        # Compute expected value and marginal value on a grid of market resources
+        mNrm_temp   = self.mNrmMinNow + self.aXtraGrid
+        cNrmNow     = solution.cFunc(mNrm_temp)
+        aNrmNow     = mNrm_temp - cNrmNow
+        vNrmNow     = self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
+        vPnow       = self.uP(cNrmNow)
+
+        # Construct the beginning-of-period value function
+        vNvrs        = self.uinv(vNrmNow) # value transformed through inverse utility
+        vNvrsP       = vPnow*self.uinvP(vNrmNow)
+        mNrm_temp    = np.insert(mNrm_temp,0,self.mNrmMinNow)
+        vNvrs        = np.insert(vNvrs,0,0.0)
+        vNvrsP       = np.insert(vNvrsP,0,self.MPCmaxEff**(-self.CRRA/(1.0-self.CRRA)))
+        MPCminNvrs   = self.MPCminNow**(-self.CRRA/(1.0-self.CRRA))
+        vNvrsFuncNow = CubicInterp(mNrm_temp,vNvrs,vNvrsP,MPCminNvrs*self.hNrmNow,MPCminNvrs)
+        vFuncNow     = ValueFunc(vNvrsFuncNow,self.CRRA)
+        return vFuncNow
+
+
+    def addvPPfunc(self,solution):
+        '''
+        Adds the marginal marginal value function to an existing solution, so
+        that the next solver can evaluate vPP and thus use cubic interpolation.
+
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            The solution to this single period problem, which must include the
+            consumption function.
+
+        Returns
+        -------
+        solution : ConsumerSolution
+            The same solution passed as input, but with the marginal marginal
+            value function for this period added as the attribute vPPfunc.
+        '''
+        vPPfuncNow        = MargMargValueFunc(solution.cFunc,self.CRRA)
+        solution.vPPfunc  = vPPfuncNow
+        return solution
 
 def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
                                 BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
