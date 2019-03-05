@@ -832,13 +832,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             A 1D array of end-of-period marginal value of assets
         '''
 
-        if self.TradesStocks:
-            self.vOptFunc, self.shareOptFunc = NextvOptFuncNextFromPortfolioSubproblem
-            vOptPNext(self.a)
-            # use them to construct a vPNext
-            vPNext = self.vPfuncNext(self.mNrmNext)
-        else:
-            vPNext = self.vPfuncNext(self.mNrmNext)
+        vPNext = self.vPfuncNext(self.mNrmNext)
 
         EndOfPrdvP  = self.DiscFacEff*self.Rfree*self.PermGroFac**(-self.CRRA)*np.sum(
                       self.PermShkVals_temp**(-self.CRRA)*
@@ -1222,6 +1216,27 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
     new value function to be used by the EGM step of a normal ConsIndShockSolver.
     '''
 
+    # The solution method here is slightly different that ConsIndShockSolver
+    # because we first need to handle the portfolio choice. From the next period
+    # we receive a vFunc defined on next period's resources. This means that in
+    # order to find the optimal portfolio we simply need to find the best port-
+    # folio choice *after* consumption, such that we have as much expected value
+    # tomorrow. Of course, this can be quite different from maximizing resources.
+    #
+    # As a time line, the model is ordered as:
+    #
+    # ----------------------------- 1 time period ------------------------------
+    # t start -> chose best c -> find best investment strategy for a_t -> t stop
+    #
+    # But just as the whole modeled is solved recursively, a time period is also
+    # solved recursively over the two sub-periods.
+    #
+    # First, we fix a in the A grid. Second, we maximize, given a, the expected
+    # utility as a function of the stock share. Third, we construct an interpolant
+    # that is defined on A, such that the we can calculate the endogenous grid
+    # and consumption by inverting the Euler equation given the value of contin-
+    # uing into the Portfolio sub-section.
+
     def solve(self):
         '''
         Solves the single period consumption-saving problem using the method of
@@ -1241,17 +1256,19 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
             The solution to the single period consumption-saving problem.
         '''
 
-        # Update the premium of risky assets over risk free assets
+        # Update the premium of risky assets over risk free assets. The risk
+        # premium is simply the unconditional expected difference in stocks
+        # and bonds.
         self.updateRpremium()
+
         # Make arrays of end-of-period assets and end-of-period marginal value
-        aNrm         = self.prepareToCalcEndOfPrdvP()
-
-        # now we can in principle calculate an mNrmNow based on the optimal
-        # portfolio at an aNrmNow, so mNrmNow(a, stock_share(a))
-
-        self.mNrmNext = self.mNrmNextOptFunc(aNrm)
+        aNrm = self.prepareToCalcEndOfPrdvP()
 
         EndOfPrdvP   = self.calcEndOfPrdvP()
+
+        # now we can in calculate an mNrmNow based on the optimal
+        # portfolio at an aNrmNow, so mNrmNow(a, stock_share(a))
+        self.mNrmNext = self.mNrmNextOptFunc(aNrm)
 
         # Construct a basic solution for this period
         if self.CubicBool:
@@ -1273,13 +1290,36 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
     def Rbold(self, StockShare):
         return self.Rfree + self.Rpremium*StockShare
 
-    def PortfolioObjective(self, StockShare):
-        mNrm = mNrmNextFunc(StockShare)
-        VLvlNext            = (self.PermShkVals_temp**(1.0-self.CRRA)*\
-                               self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
-        EndOfPrdv           = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
+    def vOptFuncNextFromPortfolioSubproblem(self):
+        shareOpt = np.array([])
+        vOpt = np.array([])
+        vOptPa = np.array([])
+        for a in self.aNrm_temp:
+            self.aPortfolio = a
+            optRes = minimize_scalar(self.PortfolioObjective, bounds=(0, 1), method='bounded')
+            shareOpt.append(optRes.x)
+            vOpt.append(-self.PortfolioObjective(optRes.x))
+            mNrmOpt = self.mNrmNextFunc(optRes.x)
+            # This is supposed to be v^a(a, share(a))
+            vOptPa_single = self.DiscFacEff*self.Rbold(self, optRes.x)/(self.PermGroFac*self.PermShkVals_temp)*self.uPinv(self.solution_next.cFunc(mNrmOpt))*ShkPrbs_temp
+            vOptPa.append(vOptPa)
+            # grab best policy and value and append it
 
-        return -np.sum(self.vFuncNext(self.aPortfolio*self.Rbold(StockShare) + self.IncomeDstn[2])*self.IncomeDstn[0])
+        self.shareOptFunc = LinearInterp(self.aNrm_temp, shareOpt)
+        self.vOptFuncNext = LinearInterp(self.aNrm_temp, vOpt)
+        self.vOptPaFuncNext = LinearInterp(self.aNrm_temp, vOptPa)
+
+        return self.vOptFuncNext, self.shareOptFunc
+
+    def PortfolioObjective(self, StockShare):
+        # The portfolio objective is the expected value of interering tomorrow
+        # with the market resources implied by the investment strategy and the
+        # particular realizations of the stock price evolution.
+        mNrm = self.mNrmNextFunc(StockShare)
+        VLvlNext = self.DiscFacEff*(self.PermShkVals_temp**(1.0-self.CRRA)*\
+                               self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
+
+        return -np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
 
     def prepareToCalcEndOfPrdvP(self):
         '''
@@ -1312,6 +1352,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         self.ShkPrbs_temp      = ShkPrbs_temp
         # self.mNrmNext          = mNrmNext # this is not possible to say yet!
         #                                   # we need to solve the portfolio first
+        self.aNrm_temp           = aNrmNow
         self.aNrmNow           = aNrmNow
         return aNrmNow
 
@@ -1364,109 +1405,12 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         '''
 
         # Solve portfolio problem in a stage of its own.
-        self.vOptFunc, self.shareOptFunc = NextvOptFuncNextFromPortfolioSubproblem
+        self.vOptFunc, self.shareOptFunc = self.vOptFuncNextFromPortfolioSubproblem()
         # use them to construct a vPNext
         vPNext = self.vOptFunc(self.aNrmNow)
 
-        EndOfPrdvP  = self.DiscFacEff*self.Rfree*self.PermGroFac**(-self.CRRA)*np.sum(
-                      self.PermShkVals_temp**(-self.CRRA)*
-                      vPNext*self.ShkPrbs_temp,axis=0)
-
+        EndOfPrdvP  = self.DiscFacEff*vPNext
         return EndOfPrdvP
-
-
-    def makeBasicSolution(self,EndOfPrdvP,aNrm,interpolator):
-        '''
-        Given end of period assets and end of period marginal value, construct
-        the basic solution for this period.
-
-        Parameters
-        ----------
-        EndOfPrdvP : np.array
-            Array of end-of-period marginal values.
-        aNrm : np.array
-            Array of end-of-period asset values that yield the marginal values
-            in EndOfPrdvP.
-
-        interpolator : function
-            A function that constructs and returns a consumption function.
-
-        Returns
-        -------
-        solution_now : ConsumerSolution
-            The solution to this period's consumption-saving problem, with a
-            consumption function, marginal value function, and minimum m.
-        '''
-        share,cNrm,mNrm    = self.getPointsForInterpolation(EndOfPrdvP,aNrm)
-        solution_now = self.usePointsForInterpolation(cNrm,mNrm,interpolator)
-        return solution_now
-
-    def getPointsForInterpolation(self,EndOfPrdvP,aNrmNow):
-        '''
-        Finds interpolation points (c,m) for the consumption function.
-
-        Parameters
-        ----------
-        EndOfPrdvP : np.array
-            Array of end-of-period marginal values.
-        aNrmNow : np.array
-            Array of end-of-period asset values that yield the marginal values
-            in EndOfPrdvP.
-
-        Returns
-        -------
-        c_for_interpolation : np.array
-            Consumption points for interpolation.
-        m_for_interpolation : np.array
-            Corresponding market resource points for interpolation.
-        '''
-        cNrmNow = self.uPinv(EndOfPrdvP)
-        mNrmNow = cNrmNow + aNrmNow
-
-        # Limiting consumption is zero as m approaches mNrmMin
-        c_for_interpolation = np.insert(cNrmNow,0,0.,axis=-1)
-        m_for_interpolation = np.insert(mNrmNow,0,self.BoroCnstNat,axis=-1)
-
-        # Store these for calcvFunc
-        self.cNrmNow = cNrmNow
-        self.mNrmNow = mNrmNow
-
-        return c_for_interpolation,m_for_interpolation
-
-
-    def usePointsForInterpolation(self,cNrm,mNrm,interpolator):
-        '''
-        Constructs a basic solution for this period, including the consumption
-        function and marginal value function.
-
-        Parameters
-        ----------
-        cNrm : np.array
-            (Normalized) consumption points for interpolation.
-        mNrm : np.array
-            (Normalized) corresponding market resource points for interpolation.
-        interpolator : function
-            A function that constructs and returns a consumption function.
-
-        Returns
-        -------
-        solution_now : ConsumerSolution
-            The solution to this period's consumption-saving problem, with a
-            consumption function, marginal value function, and minimum m.
-        '''
-        # Construct the unconstrained consumption function
-        cFuncNowUnc = interpolator(mNrm,cNrm)
-        cFuncNowUnc = interpolator(mNrm,cNrm)
-
-        # Combine the constrained and unconstrained functions into the true consumption function
-        cFuncNow = LowerEnvelope(cFuncNowUnc,self.cFuncNowCnst)
-
-        # Make the marginal value function and the marginal marginal value function
-        vPfuncNow = MargValueFunc(cFuncNow,self.CRRA)
-
-        # Pack up the solution and return it
-        solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow)
-        return solution_now
 
 
     def addvFunc(self,solution,EndOfPrdvP):
@@ -1551,7 +1495,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         return solution
 
 def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
-                                BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+                                BoroCnstArt,aXtraGrid,vFuncBool,CubicBool, TradesStocks):
     '''
     Solves a single period consumption-saving problem with CRRA utility and risky
     income (subject to permanent and transitory shocks).  Can generate a value
@@ -1606,14 +1550,16 @@ def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
         solver = ConsIndShockSolverBasic(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                                                   Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,
                                                   CubicBool)
-    else: # Use the "advanced" solver if either is requested
+    elif TradesStocks == False: # Use the "advanced" solver if either is requested
         solver = ConsIndShockSolver(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
                                              PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+    elif TradesStocks == True:
+        solver = ConsIndShockPortfolioSolver(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
+                                     PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
 
     solver.prepareToSolve()       # Do some preparatory work
     solution_now = solver.solve() # Solve the period
-    solver.updateRpremium()
-    print(solver.vOptFuncNextFromPortfolioSubproblem())
+
     return solution_now
 
 
@@ -2128,7 +2074,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     for risk aversion, discount factor, the interest rate, the grid of end-of-
     period assets, and an artificial borrowing constraint.
     '''
-    time_inv_ = PerfForesightConsumerType.time_inv_ + ['BoroCnstArt','vFuncBool','CubicBool']
+    time_inv_ = PerfForesightConsumerType.time_inv_ + ['BoroCnstArt','vFuncBool','CubicBool','TradesStocks']
     shock_vars_ = ['PermShkNow','TranShkNow']
 
     def __init__(self,cycles=1,time_flow=True,verbose=False,quiet=False,**kwds):
