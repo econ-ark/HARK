@@ -947,6 +947,10 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         return self.Rfree + self.Rpremium*StockShare
 
     def PortfolioObjective(self, StockShare):
+        VLvlNext            = (self.PermShkVals_temp**(1.0-self.CRRA)*\
+                               self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
+        EndOfPrdv           = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
+
         return -np.sum(self.vFuncNext(self.aPortfolio*self.Rbold(StockShare) + self.IncomeDstn[2])*self.IncomeDstn[0])
 
     def vOptFuncNextFromPortfolioSubproblem(self):
@@ -1236,8 +1240,17 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         solution : ConsumerSolution
             The solution to the single period consumption-saving problem.
         '''
+
+        # Update the premium of risky assets over risk free assets
+        self.updateRpremium()
         # Make arrays of end-of-period assets and end-of-period marginal value
         aNrm         = self.prepareToCalcEndOfPrdvP()
+
+        # now we can in principle calculate an mNrmNow based on the optimal
+        # portfolio at an aNrmNow, so mNrmNow(a, stock_share(a))
+
+        self.mNrmNext = self.mNrmNextOptFunc(aNrm)
+
         EndOfPrdvP   = self.calcEndOfPrdvP()
 
         # Construct a basic solution for this period
@@ -1254,6 +1267,59 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
             solution = self.addvPPfunc(solution)
         return solution
 
+    def updateRpremium(self):
+        self.Rpremium = self.IncomeDstn[3] - self.Rfree
+
+    def Rbold(self, StockShare):
+        return self.Rfree + self.Rpremium*StockShare
+
+    def PortfolioObjective(self, StockShare):
+        mNrm = mNrmNextFunc(StockShare)
+        VLvlNext            = (self.PermShkVals_temp**(1.0-self.CRRA)*\
+                               self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
+        EndOfPrdv           = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
+
+        return -np.sum(self.vFuncNext(self.aPortfolio*self.Rbold(StockShare) + self.IncomeDstn[2])*self.IncomeDstn[0])
+
+    def prepareToCalcEndOfPrdvP(self):
+        '''
+        Prepare to calculate end-of-period marginal value by creating an array
+        of market resources that the agent could have next period, considering
+        the grid of end-of-period assets and the distribution of shocks he might
+        experience next period.
+
+        Parameters
+        ----------
+        none
+
+        Returns
+        -------
+        aNrmNow : np.array
+            A 1D array of end-of-period assets; also stored as attribute of self.
+        '''
+        aNrmNow     = np.asarray(self.aXtraGrid) + self.BoroCnstNat
+        ShkCount    = self.TranShkValsNext.size
+        aNrm_temp   = np.tile(aNrmNow,(ShkCount,1))
+
+        # Tile arrays of the income shocks and put them into useful shapes
+        aNrmCount         = aNrmNow.shape[0]
+        PermShkVals_temp  = (np.tile(self.PermShkValsNext,(aNrmCount,1))).transpose()
+        TranShkVals_temp  = (np.tile(self.TranShkValsNext,(aNrmCount,1))).transpose()
+        ShkPrbs_temp      = (np.tile(self.ShkPrbsNext,(aNrmCount,1))).transpose()
+
+        # Store and report the results
+        self.PermShkVals_temp  = PermShkVals_temp
+        self.ShkPrbs_temp      = ShkPrbs_temp
+        # self.mNrmNext          = mNrmNext # this is not possible to say yet!
+        #                                   # we need to solve the portfolio first
+        self.aNrmNow           = aNrmNow
+        return aNrmNow
+
+    def mNrmNextFunc(self, StockShare):
+        # Get cash on hand next period
+        mNrmNext = self.Rbold(StockShare)/(self.PermGroFac*self.PermShkVals_temp)*self.aNrm_temp + self.TranShkVals_temp
+        return mNrmNext
+
     def makeEndOfPrdvFunc(self,EndOfPrdvP):
         '''
         Construct the end-of-period value function for this period, storing it
@@ -1269,9 +1335,8 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         -------
         none
         '''
-        VLvlNext            = (self.PermShkVals_temp**(1.0-self.CRRA)*\
-                               self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
-        EndOfPrdv           = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
+        VLvlNext            = self.vOptFuncNext(self.aNrmNow)
+        EndOfPrdv           = self.DiscFacEff*VLvlNext
         EndOfPrdvNvrs       = self.uinv(EndOfPrdv) # value transformed through inverse utility
         EndOfPrdvNvrsP      = EndOfPrdvP*self.uinvP(EndOfPrdv)
         EndOfPrdvNvrs       = np.insert(EndOfPrdvNvrs,0,0.0)
