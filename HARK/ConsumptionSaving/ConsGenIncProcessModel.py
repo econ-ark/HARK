@@ -1169,10 +1169,13 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         None
         '''
         cLvlNow = np.zeros(self.AgentCount) + np.nan
+        MPCnow = np.zeros(self.AgentCount) + np.nan
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cLvlNow[these] = self.solution[t].cFunc(self.mLvlNow[these],self.pLvlNow[these])
+            MPCnow[these]  = self.solution[t].cFunc.derivativeX(self.mLvlNow[these],self.pLvlNow[these])
         self.cLvlNow = cLvlNow
+        self.MPCnow  = MPCnow
 
 
     def getPostStates(self):
