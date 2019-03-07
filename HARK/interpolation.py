@@ -1642,7 +1642,7 @@ class LowerEnvelope(HARKinterpolator1D):
     '''
     distance_criteria = ['functions']
 
-    def __init__(self, *functions, nan_bool = True):
+    def __init__(self, nan_bool=True, *functions):
         '''
         Constructor to make a new lower envelope iterpolation.
 
@@ -1720,7 +1720,7 @@ class UpperEnvelope(HARKinterpolator1D):
     '''
     distance_criteria = ['functions']
 
-    def __init__(self,*functions, nan_bool=True):
+    def __init__(self, nan_bool=True, *functions):
         '''
         Constructor to make a new upper envelope iterpolation.
 
@@ -1798,7 +1798,7 @@ class LowerEnvelope2D(HARKinterpolator2D):
     '''
     distance_criteria = ['functions']
 
-    def __init__(self,*functions, nan_bool = True):
+    def __init__(self, nan_bool = True, *functions):
         '''
         Constructor to make a new lower envelope iterpolation.
 
@@ -1886,7 +1886,7 @@ class LowerEnvelope3D(HARKinterpolator3D):
     '''
     distance_criteria = ['functions']
 
-    def __init__(self,*functions, nan_bool = True):
+    def __init__(self, nan_bool = True, *functions):
         '''
         Constructor to make a new lower envelope iterpolation.
 
