@@ -893,7 +893,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cFuncNowUnc = interpolator(mNrm,cNrm)
 
         # Combine the constrained and unconstrained functions into the true consumption function
-        cFuncNow = LowerEnvelope(cFuncNowUnc, self.cFuncNowCnst, nan_bool = False)
+        cFuncNow = LowerEnvelope(cFuncNowUnc,self.cFuncNowCnst)
 
         # Make the marginal value function and the marginal marginal value function
         vPfuncNow = MargValueFunc(cFuncNow,self.CRRA)
@@ -1214,7 +1214,7 @@ def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
         included in the reported solution.
     CubicBool: boolean
         Indicator for whether the solver should use cubic or linear interpolation.
-    
+
     Returns
     -------
     solution_now : ConsumerSolution
