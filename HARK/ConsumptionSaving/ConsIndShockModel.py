@@ -834,8 +834,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         EndOfPrdvP : np.array
             A 1D array of end-of-period marginal value of assets
         '''
-
-        EndOfPrdvP  = self.DiscFacEff*self.Rfree*self.PermGroFac**(-self.CRRA)*np.sum(
+        Rbold = self.Rfree
+        EndOfPrdvP  = self.DiscFacEff*Rbold*self.PermGroFac**(-self.CRRA)*np.sum(
                       self.PermShkVals_temp**(-self.CRRA)*
                       self.vPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)
         return EndOfPrdvP
@@ -1105,15 +1105,15 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         aNrmNow     = mNrm_temp - cNrmNow
         vNrmNow     = self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
         vPnow       = self.uP(cNrmNow)
-        print(cNrmNow)
         # Construct the beginning-of-period value function
         vNvrs        = self.uinv(vNrmNow) # value transformed through inverse utility
         vNvrsP       = vPnow*self.uinvP(vNrmNow)
         mNrm_temp    = np.insert(mNrm_temp,0,self.mNrmMinNow)
         vNvrs        = np.insert(vNvrs,0,0.0)
         vNvrsP       = np.insert(vNvrsP,0,self.MPCmaxEff**(-self.CRRA/(1.0-self.CRRA)))
-        MPCminNvrs   = self.MPCminNow**(-self.CRRA/(1.0-self.CRRA))
-        vNvrsFuncNow = CubicInterp(mNrm_temp,vNvrs,vNvrsP,MPCminNvrs*self.hNrmNow,MPCminNvrs)
+    #    MPCminNvrs   = self.MPCminNow**(-self.CRRA/(1.0-self.CRRA))
+#        vNvrsFuncNow = CubicInterp(mNrm_temp,vNvrs,vNvrsP,MPCminNvrs*self.hNrmNow,MPCminNvrs)
+        vNvrsFuncNow = LinearInterp(mNrm_temp,vNvrs)
         vFuncNow     = ValueFunc(vNvrsFuncNow,self.CRRA)
         return vFuncNow
 
@@ -1229,26 +1229,38 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         vOptPa = np.array([])
         for a in self.aNrmNow:
             self.aPortfolio = a
-            print()
-            print()
-            print()
-            print("is it constant?")
-            print(self.PortfolioObjective(0.0))
-            print(self.PortfolioObjective(0.1))
-            print(self.PortfolioObjective(0.8))
-            print(self.PortfolioObjective(1.0))
+            # once RriskShkCount > 1 re-check this! and std > 0.0
+            # print()
+            # print()
+            # print()
+            # print("is it constant?")
+            # print(self.PortfolioObjective(0.0))
+            # print(self.PortfolioObjective(0.1))
+            # print(self.PortfolioObjective(0.8))
+            # print(self.PortfolioObjective(1.0))
             optRes = minimize_scalar(self.PortfolioObjective, bounds=(0, 1), method='bounded')
             shareOpt = np.append(shareOpt, optRes.x)
             vOpt = np.append(vOpt, -self.PortfolioObjective(optRes.x))
             mNrmOpt = self.mNrmNextAta(optRes.x)
             # This is supposed to be v^a(a, share(a))
-            vOptPa_single = self.DiscFacEff*(self.Rbold(optRes.x)/(self.PermGroFac*self.IncomeDstn[1])*self.uPinv(self.solution_next.cFunc(mNrmOpt)))*self.IncomeDstn[0]
+            vPNext = self.uP(self.solution_next.cFunc(mNrmOpt))
+            Rbold = self.Rbold(optRes.x)
+            vOptPa_single = self.DiscFacEff*Rbold*self.PermGroFac**(-self.CRRA)*sum(
+            self.IncomeDstn[1]**(-self.CRRA)*
+            vPNext*self.IncomeDstn[0])
             vOptPa = np.append(vOptPa, np.sum(vOptPa_single))
             # grab best policy and value and append it
         self.shareOptFunc = LinearInterp(self.aNrmNow, shareOpt)
-        self.vOptFuncNext = LinearInterp(self.aNrmNow, vOpt)
-        print("vOpt")
-        print(vOpt)
+
+
+
+
+        vOptNvrs  = self.uinv(vOpt) # value transformed through inverse utility
+        vOptNvrs  = np.insert(vOptNvrs,0,0.0)
+        aNrm_temp = np.insert(self.aNrmNow,0,self.BoroCnstNat)
+        vOptNvrsFuncNext = LinearInterp(self.aNrmNow, vOptNvrs)
+        self.vOptFuncNext  = ValueFunc(vOptNvrsFuncNext,self.CRRA)
+
         self.vOptPaFuncNext = LinearInterp(self.aNrmNow, vOptPa)
 
         return self.vOptFuncNext, self.shareOptFunc
@@ -1278,13 +1290,11 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         print(EndOfPrdv)
 
         EndOfPrdvNvrs       = self.uinv(EndOfPrdv) # value transformed through inverse utility
-        EndOfPrdvNvrsP      = EndOfPrdvP*self.uinvP(EndOfPrdv)
         EndOfPrdvNvrs       = np.insert(EndOfPrdvNvrs,0,0.0)
-        EndOfPrdvNvrsP      = np.insert(EndOfPrdvNvrsP,0,EndOfPrdvNvrsP[0]) # This is a very good approximation, vNvrsPP = 0 at the asset minimum
         aNrm_temp           = np.insert(self.aNrmNow,0,self.BoroCnstNat)
         EndOfPrdvNvrsFunc   = LinearInterp(aNrm_temp,EndOfPrdvNvrs)
-        # EndOfPrdvNvrsFunc   = CubicInterp(aNrm_temp,EndOfPrdvNvrs,EndOfPrdvNvrsP)
         self.EndOfPrdvFunc  = ValueFunc(EndOfPrdvNvrsFunc,self.CRRA)
+
     # This could be an extension to the basic solver, but it seems that there's
     # going to be a complete overhaul. Keeping it here for now.
     def calcEndOfPrdvP(self):
@@ -1305,10 +1315,10 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
 
         # Solve portfolio problem in a stage of its own.
         self.vOptFunc, self.shareOptFunc = self.vOptFuncNextFromPortfolioSubproblem()
-        # use them to construct a vPNext
-        vPNext = self.vOptPaFuncNext(self.aNrmNow)
 
-        EndOfPrdvP  = self.DiscFacEff*vPNext
+        # use them to construct a vPNext
+        EndOfPrdvP  = self.vOptPaFuncNext(self.aNrmNow)
+
         return EndOfPrdvP
 
 
@@ -1941,8 +1951,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,
                                            verbose=verbose,quiet=quiet, **kwds)
 
-        self.TradesStocks = False
         self.TradesStocks = True
+        self.TradesStocks = False
         self.vFuncBool = True
 
         # Add consumer-type specific objects, copying to create independent versions
@@ -2473,7 +2483,7 @@ def constructLognormalIncomeProcessUnemployment(parameters):
     TranShkDstn   = [] # Discrete approximations to transitory income shocks
     RriskShkDstn   = [] # Discrete approximations to risky income returns
 
-    parameters.RiskPremium = 0.00
+    parameters.RiskPremium = 0.1
 
     # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
     # in normal times; value 0.0 in "unemployment" times with small prob.
@@ -2488,7 +2498,7 @@ def constructLognormalIncomeProcessUnemployment(parameters):
             PermShkDstnRet  = [np.array([1.0]), np.array([1.0])]
             TranShkDstnRet  = [np.array([1.0]), np.array([1.0])]
 
-        RriskShkDstnRet = approxMeanOneLognormal(N=1, sigma=0.00, tail_N=0)  # Risky investments give un
+        RriskShkDstnRet = approxMeanOneLognormal(N=1, sigma=0.1, tail_N=0)  # Risky investments give un
         RriskShkDstnRet = (deepcopy(RriskShkDstnRet[0]), parameters.Rfree-1.0+deepcopy(RriskShkDstnRet[1])+parameters.RiskPremium)
 #        RriskShkDstnRet[1] = parameters.Rfree-1.0+parameters.RiskPremium+RriskShkDstnRet[1]  # adjust shock distribution
         IncomeDstnRet = combineIndepDstns(PermShkDstnRet, TranShkDstnRet, RriskShkDstnRet)
@@ -2512,10 +2522,10 @@ def constructLognormalIncomeProcessUnemployment(parameters):
             # This is sort of weird, but I couldn't get it to work by updating RriskShkDstn_t[1]
             RriskShkDstn_t = (deepcopy(RriskShkDstn_t[0]), parameters.Rfree-1.0+deepcopy(RriskShkDstn_t[1])+parameters.RiskPremium)
             #RriskShkDstn_t[1] = parameters.Rfree-1.0+parameters.RiskPremium+RriskShkDstn_t[1]  # adjust shock distribution
-            print(parameters.Rfree)
-            print(parameters.RiskPremium)
-            print(RriskShkDstn_t[1])
-            print(RriskShkDstn_t)
+        #    print(parameters.Rfree)
+        #    print(parameters.RiskPremium)
+        #    print(RriskShkDstn_t[1])
+        #    print(RriskShkDstn_t)
             # import time
             # time.sleep(5.5)
             IncomeDstn.append(combineIndepDstns(PermShkDstn_t, TranShkDstn_t, RriskShkDstn_t)) # mix the independent distributions
