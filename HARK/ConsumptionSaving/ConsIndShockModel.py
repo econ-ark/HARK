@@ -1049,7 +1049,6 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         VLvlNext            = (self.PermShkVals_temp**(1.0-self.CRRA)*\
                                self.PermGroFac**(1.0-self.CRRA))*self.vFuncNext(self.mNrmNext)
         EndOfPrdv           = self.DiscFacEff*np.sum(VLvlNext*self.ShkPrbs_temp,axis=0)
-        print(EndOfPrdv)
         EndOfPrdvNvrs       = self.uinv(EndOfPrdv) # value transformed through inverse utility
         EndOfPrdvNvrsP      = EndOfPrdvP*self.uinvP(EndOfPrdv)
         EndOfPrdvNvrs       = np.insert(EndOfPrdvNvrs,0,0.0)
@@ -1229,20 +1228,12 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         vOptPa = np.array([])
         for a in self.aNrmNow:
             self.aPortfolio = a
-            # once RriskShkCount > 1 re-check this! and std > 0.0
-            # print()
-            # print()
-            # print()
-            # print("is it constant?")
-            # print(self.PortfolioObjective(0.0))
-            # print(self.PortfolioObjective(0.1))
-            # print(self.PortfolioObjective(0.8))
-            # print(self.PortfolioObjective(1.0))
             optRes = minimize_scalar(self.PortfolioObjective, bounds=(0, 1), method='bounded')
             shareOpt = np.append(shareOpt, optRes.x)
             vOpt = np.append(vOpt, -self.PortfolioObjective(optRes.x))
             mNrmOpt = self.mNrmNextAta(optRes.x)
-            # This is supposed to be v^a(a, share(a))
+
+            # This is v^a(a, share(a))
             vPNext = self.uP(self.solution_next.cFunc(mNrmOpt))
             Rbold = self.Rbold(optRes.x)
             vOptPa_single = self.DiscFacEff*Rbold*self.PermGroFac**(-self.CRRA)*sum(
@@ -1346,7 +1337,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         return solution
 
 def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
-                                BoroCnstArt,aXtraGrid,vFuncBool,CubicBool, TradesStocks):
+                                BoroCnstArt,aXtraGrid,vFuncBool,CubicBool,TradesStocks):
     '''
     Solves a single period consumption-saving problem with CRRA utility and risky
     income (subject to permanent and transitory shocks).  Can generate a value
@@ -1951,9 +1942,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,
                                            verbose=verbose,quiet=quiet, **kwds)
 
-        self.TradesStocks = True
-        self.TradesStocks = False
-        self.vFuncBool = True
+        if self.TradesStocks:
+            self.vFuncBool = True
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
@@ -2483,8 +2473,6 @@ def constructLognormalIncomeProcessUnemployment(parameters):
     TranShkDstn   = [] # Discrete approximations to transitory income shocks
     RriskShkDstn   = [] # Discrete approximations to risky income returns
 
-    parameters.RiskPremium = 0.1
-
     # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
     # in normal times; value 0.0 in "unemployment" times with small prob.
     if T_retire > 0:
@@ -2508,6 +2496,7 @@ def constructLognormalIncomeProcessUnemployment(parameters):
 
         if T_retire > 0 and t >= T_retire:
             # Then we are in the "retirement period" and add a retirement income object.
+            # We copy the Dstns from above.
             IncomeDstn.append(deepcopy(IncomeDstnRet))
             PermShkDstn.append(deepcopy(PermShkDstnRet))
             TranShkDstn.append(deepcopy(TranShkDstnRet))
@@ -2521,13 +2510,6 @@ def constructLognormalIncomeProcessUnemployment(parameters):
             RriskShkDstn_t = approxMeanOneLognormal(N=1, sigma=0.00, tail_N=0) # Risky investments give un
             # This is sort of weird, but I couldn't get it to work by updating RriskShkDstn_t[1]
             RriskShkDstn_t = (deepcopy(RriskShkDstn_t[0]), parameters.Rfree-1.0+deepcopy(RriskShkDstn_t[1])+parameters.RiskPremium)
-            #RriskShkDstn_t[1] = parameters.Rfree-1.0+parameters.RiskPremium+RriskShkDstn_t[1]  # adjust shock distribution
-        #    print(parameters.Rfree)
-        #    print(parameters.RiskPremium)
-        #    print(RriskShkDstn_t[1])
-        #    print(RriskShkDstn_t)
-            # import time
-            # time.sleep(5.5)
             IncomeDstn.append(combineIndepDstns(PermShkDstn_t, TranShkDstn_t, RriskShkDstn_t)) # mix the independent distributions
             PermShkDstn.append(PermShkDstn_t)
             TranShkDstn.append(TranShkDstn_t)

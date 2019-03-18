@@ -14,7 +14,6 @@ pLvlInitStd  = 0.0                  # Standard deviation of log initial permanen
 PermGroFacAgg = 1.0                 # Aggregate permanent income growth factor (only matters for simulation)
 T_age = None                        # Age after which simulated agents are automatically killed
 T_cycle = 1                         # Number of periods in the cycle for this agent type
-
 # Make a dictionary to specify a perfect foresight consumer type
 init_perfect_foresight = { 'CRRA': CRRA,
                            'Rfree': Rfree,
@@ -32,6 +31,7 @@ init_perfect_foresight = { 'CRRA': CRRA,
                           }
 
 
+RiskPremium = 0.1
 # Parameters for constructing the "assets above minimum" grid
 aXtraMin = 0.001                    # Minimum end-of-period "assets above minimum" value
 aXtraMax = 20                       # Maximum end-of-period "assets above minimum" value
@@ -88,11 +88,12 @@ init_idiosyncratic_shocks = { 'CRRA': CRRA,
                               'PermGroFacAgg' : PermGroFacAgg,
                               'T_age' : T_age,
                               'T_cycle' : T_cycle,
-                              'TradesShocks' : False,
+                              'RiskPremium' : RiskPremium,
+                              'TradesStocks' : True,
 }
 
 init_lifecycle = copy(init_idiosyncratic_shocks)
-init_lifecycle['CRRA'] = 2.0
+init_lifecycle['CRRA'] = 6.0
 init_lifecycle['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
 init_lifecycle['PermShkStd'] = [0,0,0,0,0,0,0,0,0,0]
 init_lifecycle['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,0,0,0]
@@ -105,6 +106,21 @@ LifecycleExample = IndShockConsumerType(**init_lifecycle)
 
 LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods -- a lifetime -- exactly once
 LifecycleExample.solve()
+
+import numpy as np
+import matplotlib.pyplot as plt
+grid = np.linspace(0,10,140)
+cons = LifecycleExample.solution[0].cFunc(grid)
+plt.plot(grid, cons)
+cons = LifecycleExample.solution[1].cFunc(grid)
+plt.plot(grid, cons)
+cons = LifecycleExample.solution[2].cFunc(grid)
+plt.plot(grid, cons)
+cons = LifecycleExample.solution[3].cFunc(grid)
+plt.plot(grid, cons)
+plt.show()
+
+
 
 import numpy as np
 import matplotlib.pyplot as plt
