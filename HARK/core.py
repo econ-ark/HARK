@@ -372,12 +372,16 @@ class AgentType(HARKobject):
         none
         '''
 
-        self.preSolve() # Do pre-solution stuff
-        self.solution = solveAgent(self,verbose) # Solve the model by backward induction
-        if self.time_flow: # Put the solution in chronological order if this instance's time flow runs that way
-            self.solution.reverse()
-        self.addToTimeVary('solution') # Add solution to the list of time-varying attributes
-        self.postSolve() # Do post-solution stuff
+        # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
+        # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
+        # -np.inf, np.inf/np.inf is np.nan and so on.
+        with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
+            self.preSolve() # Do pre-solution stuff
+            self.solution = solveAgent(self,verbose) # Solve the model by backward induction
+            if self.time_flow: # Put the solution in chronological order if this instance's time flow runs that way
+                self.solution.reverse()
+            self.addToTimeVary('solution') # Add solution to the list of time-varying attributes
+            self.postSolve() # Do post-solution stuff
 
     def resetRNG(self):
         '''
@@ -680,19 +684,23 @@ class AgentType(HARKobject):
         -------
         None
         '''
-        orig_time = self.time_flow
-        self.timeFwd()
-        if sim_periods is None:
-            sim_periods = self.T_sim
+        # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
+        # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
+        # -np.inf, np.inf/np.inf is np.nan and so on.
+        with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
+            orig_time = self.time_flow
+            self.timeFwd()
+            if sim_periods is None:
+                sim_periods = self.T_sim
 
-        for t in range(sim_periods):
-            self.simOnePeriod()
-            for var_name in self.track_vars:
-                exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
-            self.t_sim += 1
+            for t in range(sim_periods):
+                self.simOnePeriod()
+                for var_name in self.track_vars:
+                    exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
+                self.t_sim += 1
 
-        if not orig_time:
-            self.timeRev()
+            if not orig_time:
+                self.timeRev()
 
     def clearHistory(self):
         '''
@@ -932,12 +940,12 @@ class Market(HARKobject):
         self.act_T = act_T
         self.tolerance = tolerance
         self.max_loops = 1000
-        
-        self.print_parallel_error_once = True  
-            # Print the error associated with calling the parallel method 
+
+        self.print_parallel_error_once = True
+            # Print the error associated with calling the parallel method
             # "solveAgents" one time. If set to false, the error will never
             # print. See "solveAgents" for why this prints once or never.
-        
+
     def solveAgents(self):
         '''
         Solves the microeconomic problem for all AgentTypes in this market.
@@ -956,7 +964,7 @@ class Market(HARKobject):
             multiThreadCommands(self.agents,['solve()'])
         except Exception as err:
             if self.print_parallel_error_once:
-                # Set flag to False so this is only printed once. 
+                # Set flag to False so this is only printed once.
                 self.print_parallel_error_once = False
                 print("**** WARNING: could not execute multiThreadCommands in HARK.core.Market.solveAgents(), so using the serial version instead. This will likely be slower. The multiTreadCommands() functions failed with the following error:", '\n    ', sys.exc_info()[0], ':', err) #sys.exc_info()[0])
             multiThreadCommandsFake(self.agents,['solve()'])
@@ -1182,21 +1190,21 @@ class Market(HARKobject):
 #  Define a function to run the copying:
 def copy_module(target_path, my_directory_full_path, my_module):
     '''
-    Helper function for copy_module_to_local(). Provides the actual copy 
-    functionality, with highly cautious safeguards against copying over 
-    important things. 
-    
+    Helper function for copy_module_to_local(). Provides the actual copy
+    functionality, with highly cautious safeguards against copying over
+    important things.
+
     Parameters
     ----------
     target_path : string
         String, file path to target location
-        
+
     my_directory_full_path: string
         String, full pathname to this file's directory
-        
+
     my_module : string
         String, name of the module to copy
-    
+
     Returns
     -------
     none
@@ -1222,19 +1230,19 @@ def copy_module(target_path, my_directory_full_path, my_module):
             return
 
 def print_helper():
-    
+
     my_directory_full_path = os.path.dirname(os.path.realpath(__file__))
-    
+
     print(my_directory_full_path)
 
 def copy_module_to_local(full_module_name):
     '''
-    This function contains simple code to copy a submodule to a location on 
-    your hard drive, as specified by you. The purpose of this code is to provide 
-    users with a simple way to access a *copy* of code that usually sits deep in 
-    the Econ-ARK package structure, for purposes of tinkering and experimenting 
-    directly. This is meant to be a simple way to explore HARK code. To interact 
-    with the codebase under active development, please refer to the documentation 
+    This function contains simple code to copy a submodule to a location on
+    your hard drive, as specified by you. The purpose of this code is to provide
+    users with a simple way to access a *copy* of code that usually sits deep in
+    the Econ-ARK package structure, for purposes of tinkering and experimenting
+    directly. This is meant to be a simple way to explore HARK code. To interact
+    with the codebase under active development, please refer to the documentation
     under github.com/econ-ark/HARK/
 
     To execute, do the following on the Python command line:
@@ -1242,7 +1250,7 @@ def copy_module_to_local(full_module_name):
         from HARK.core import copy_module_to_local
         copy_module_to_local("FULL-HARK-MODULE-NAME-HERE")
 
-    For example, if you want SolvingMicroDSOPs you would enter 
+    For example, if you want SolvingMicroDSOPs you would enter
 
         from HARK.core import copy_module_to_local
         copy_module_to_local("HARK.SolvingMicroDSOPs")
@@ -1257,7 +1265,7 @@ def copy_module_to_local(full_module_name):
     #my_directory_full_path = os.path.dirname(os.path.realpath(__file__))
     hark_core_directory_full_path = os.path.dirname(os.path.realpath(__file__))
     # From https://stackoverflow.com/a/5137509
-    # Important note from that answer: 
+    # Important note from that answer:
     #   (Note that the incantation above won't work if you've already used os.chdir() to change your current working directory, since the value of the __file__ constant is relative to the current working directory and is not changed by an os.chdir() call.)
     #
     # NOTE: for this specific file that I am testing, the path should be:
@@ -1278,7 +1286,7 @@ def copy_module_to_local(full_module_name):
     head_path, my_module = os.path.split(my_directory_full_path)
 
     home_directory_with_module = os.path.join(home_directory_RAW, my_module)
-    
+
     print("\n\n\nmy_directory_full_path:",my_directory_full_path,'\n\n\n')
 
     # Interact with the user:
@@ -1289,39 +1297,39 @@ def copy_module_to_local(full_module_name):
     #     - If not, just copy there
     #     - Quit
 
-    target_path = input("""You have invoked the 'replicate' process for the current module:\n    """ + 
+    target_path = input("""You have invoked the 'replicate' process for the current module:\n    """ +
                         my_module + """\nThe default copy location is your home directory:\n    """+
-                        home_directory_with_module +"""\nPlease enter one of the three options in single quotes below, excluding the quotes: 
-                        
+                        home_directory_with_module +"""\nPlease enter one of the three options in single quotes below, excluding the quotes:
+
         'q' or return/enter to quit the process
         'y' to accept the default home directory: """+home_directory_with_module+"""
         'n' to specify your own pathname\n\n""")
 
-    
+
     if target_path == 'n' or target_path == 'N':
         target_path = input("""Please enter the full pathname to your target directory location: """)
-        
+
         # Clean up:
         target_path = os.path.expanduser(target_path)
         target_path = os.path.expandvars(target_path)
         target_path = os.path.normpath(target_path)
-        
+
         # Check to see if they included the module name; if not add it here:
         temp_head, temp_tail = os.path.split(target_path)
         if temp_tail != my_module:
             target_path = os.path.join(target_path, my_module)
-        
+
     elif target_path == 'y' or target_path == 'Y':
         # Just using the default path:
         target_path = home_directory_with_module
     else:
         # Assume "quit"
-        return 
-    
-    if target_path != 'q' and target_path != 'Q' or target_path == '':   
+        return
+
+    if target_path != 'q' and target_path != 'Q' or target_path == '':
         # Run the copy command:
-        copy_module(target_path, my_directory_full_path, my_module)   
-    
+        copy_module(target_path, my_directory_full_path, my_module)
+
     return
 
 
