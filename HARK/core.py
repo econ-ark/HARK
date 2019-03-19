@@ -21,11 +21,6 @@ import numpy as np
 from time import clock
 from .parallel import multiThreadCommands, multiThreadCommandsFake
 
-# Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
-# tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
-# -np.inf, np.inf/np.inf is np.nan and so on.  
-np.seterr(all='ignore')
-
 def distanceMetric(thing_A,thing_B):
     '''
     A "universal distance" metric that can be used as a default in many settings.
@@ -377,12 +372,16 @@ class AgentType(HARKobject):
         none
         '''
 
-        self.preSolve() # Do pre-solution stuff
-        self.solution = solveAgent(self,verbose) # Solve the model by backward induction
-        if self.time_flow: # Put the solution in chronological order if this instance's time flow runs that way
-            self.solution.reverse()
-        self.addToTimeVary('solution') # Add solution to the list of time-varying attributes
-        self.postSolve() # Do post-solution stuff
+        # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
+        # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
+        # -np.inf, np.inf/np.inf is np.nan and so on.
+        with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
+            self.preSolve() # Do pre-solution stuff
+            self.solution = solveAgent(self,verbose) # Solve the model by backward induction
+            if self.time_flow: # Put the solution in chronological order if this instance's time flow runs that way
+                self.solution.reverse()
+            self.addToTimeVary('solution') # Add solution to the list of time-varying attributes
+            self.postSolve() # Do post-solution stuff
 
     def resetRNG(self):
         '''
@@ -685,19 +684,23 @@ class AgentType(HARKobject):
         -------
         None
         '''
-        orig_time = self.time_flow
-        self.timeFwd()
-        if sim_periods is None:
-            sim_periods = self.T_sim
+        # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
+        # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
+        # -np.inf, np.inf/np.inf is np.nan and so on.
+        with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
+            orig_time = self.time_flow
+            self.timeFwd()
+            if sim_periods is None:
+                sim_periods = self.T_sim
 
-        for t in range(sim_periods):
-            self.simOnePeriod()
-            for var_name in self.track_vars:
-                exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
-            self.t_sim += 1
+            for t in range(sim_periods):
+                self.simOnePeriod()
+                for var_name in self.track_vars:
+                    exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
+                self.t_sim += 1
 
-        if not orig_time:
-            self.timeRev()
+            if not orig_time:
+                self.timeRev()
 
     def clearHistory(self):
         '''
