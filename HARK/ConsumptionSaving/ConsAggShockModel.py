@@ -901,9 +901,20 @@ class CobbDouglasEconomy(Market):
                             tolerance=tolerance,
                             act_T=act_T)
         self.assignParameters(**kwds)
-        self.max_loops = 20
         self.update()
-
+        
+        # Use previously hardcoded values for AFunc updating if not passed
+        # as part of initialization dictionary.  This is to prevent a last
+        # minute update to HARK before a release from having a breaking change.
+        if not hasattr(self,'DampingFac'):
+            self.DampingFac = 0.5
+        if not hasattr(self,'max_loops'):
+            self.max_loops = 20
+        if not hasattr(self,'T_discard'):
+            self.T_discard = 200
+        if not hasattr(self,'verbose'):
+            self.verbose = True
+        
 
     def millRule(self,aLvlNow,pLvlNow):
         '''
@@ -998,11 +1009,11 @@ class CobbDouglasEconomy(Market):
 
         Parameters
         ----------
-        none
+        None
 
         Returns
         -------
-        none
+        None
         '''
         self.Shk_idx = 0
         Market.reset(self)
@@ -1015,11 +1026,11 @@ class CobbDouglasEconomy(Market):
 
         Parameters
         ----------
-        none
+        None
 
         Returns
         -------
-        none
+        None
         '''
         sim_periods = self.act_T
         Events      = np.arange(self.AggShkDstn[0].size) # just a list of integers
@@ -1085,18 +1096,18 @@ class CobbDouglasEconomy(Market):
         Parameters
         ----------
         MaggNow : [float]
-            List of the history of the simulated  aggregate market resources for an economy.
+            List of the history of the simulated aggregate market resources for an economy.
         AaggNow : [float]
-            List of the history of the simulated  aggregate savings for an economy.
+            List of the history of the simulated aggregate savings for an economy.
 
         Returns
         -------
         (unnamed) : CapDynamicRule
             Object containing a new savings rule
         '''
-        verbose = True
-        discard_periods = 200 # Throw out the first T periods to allow the simulation to approach the SS
-        update_weight = 0.80  # Proportional weight to put on new function vs old function parameters
+        verbose = self.verbose
+        discard_periods = self.T_discard # Throw out the first T periods to allow the simulation to approach the SS
+        update_weight = 1. - self.DampingFac  # Proportional weight to put on new function vs old function parameters
         total_periods = len(MaggNow)
 
         # Regress the log savings against log market resources
