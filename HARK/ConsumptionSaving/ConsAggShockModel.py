@@ -1587,9 +1587,9 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         (unnamed) : CapDynamicRule
             Object containing new saving rules for each Markov state.
         '''
-        verbose = True
-        discard_periods = 200 # Throw out the first T periods to allow the simulation to approach the SS
-        update_weight = 0.8   # Proportional weight to put on new function vs old function parameters
+        verbose = self.verbose
+        discard_periods = self.T_discard # Throw out the first T periods to allow the simulation to approach the SS
+        update_weight = 1. - self.DampingFac  # Proportional weight to put on new function vs old function parameters
         total_periods = len(MaggNow)
 
         # Trim the histories of M_t and A_t and convert them to logs
@@ -1773,7 +1773,7 @@ def main():
     solve_agg_shocks_market = True # Solve for the equilibrium aggregate saving rule in a CobbDouglasEconomy
 
     solve_markov_micro = False # Solve an AggShockMarkovConsumerType's microeconomic problem
-    solve_markov_market = False # Solve for the equilibrium aggregate saving rule in a CobbDouglasMarkovEconomy
+    solve_markov_market = True # Solve for the equilibrium aggregate saving rule in a CobbDouglasMarkovEconomy
     solve_krusell_smith = True # Solve a simple Krusell-Smith-style two state, two shock model
     solve_poly_state = False   # Solve a CobbDouglasEconomy with many states, potentially utilizing the "state jumper"
 
@@ -1838,6 +1838,7 @@ def main():
 
         # Make a Cobb-Douglas economy for the agents
         MrkvEconomyExample = CobbDouglasMarkovEconomy(agents = [AggShockMrkvExample],**Params.init_mrkv_cobb_douglas)
+        MrkvEconomyExample.DampingFac = 0.2 # Turn down damping
         MrkvEconomyExample.makeAggShkHist() # Simulate a history of aggregate shocks
         AggShockMrkvExample.getEconomyData(MrkvEconomyExample) # Have the consumers inherit relevant objects from the economy
 
@@ -1867,7 +1868,7 @@ def main():
         t_end = clock()
         print('Solving the "macroeconomic" aggregate shocks model took ' + str(t_end - t_start) + ' seconds.')
 
-        print('Aggregate savings as a function of aggregate market resources (for each macro state):')
+        print('Consumption function at each aggregate market resources-to-labor ratio gridpoint (for each macro state):')
         m_grid = np.linspace(0,10,200)
         AggShockMrkvExample.unpackcFunc()
         for i in range(2):
