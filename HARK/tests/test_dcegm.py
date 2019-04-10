@@ -1,7 +1,7 @@
 """
 This file implements unit tests to check discrete choice functions
 """
-from HARK import discontools
+from HARK import dcegm
 
 # Bring in modules we need
 import unittest
