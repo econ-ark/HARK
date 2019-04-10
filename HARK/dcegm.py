@@ -1,7 +1,10 @@
+"""
+Functions for working with the DCEGM algorithm.
+"""
 import numpy as np
 from HARK.interpolation import LinearInterp
 
-def dcegmSegments(x, v):
+def calcSegments(x, v):
     """
     Find index vectors `rise` and `fall` such that `rise` holds the indeces `i`
     such that x[i+1]>x[i] and `fall` holds indeces `j` such that either
@@ -102,13 +105,13 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
 
     """
     m_len = len(commonM)
-    rise, fall = dcegmSegments(M, V_T)
+    rise, fall = calcSegments(M, V_T)
 
     num_kinks = len(fall) # number of kinks / falling EGM grids
 
     # Use these segments to sequentially find upper envelopes. commonVARNAME
     # means the VARNAME evaluated on the common grid with a cloumn for each kink
-    # discovered in dcegmSegments. This means that commonVARNAME is a matrix
+    # discovered in calcSegments. This means that commonVARNAME is a matrix
     # common grid length-by-number of segments to consider. In the end, we'll
     # use nanargmax over the columns to pick out the best (transformed) values.
     # This is why we fill the arrays with np.nan's.
