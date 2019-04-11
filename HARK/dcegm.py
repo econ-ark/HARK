@@ -1,5 +1,8 @@
 """
-Functions for working with the DCEGM algorithm.
+Functions for working with the discrete-continuous EGM (DCEGM) algorithm as
+described in "The endogenous grid method for discrete‐continuous dynamic
+choice models with (or without) taste shocks" by Iskhakov et al. (2016)
+[https://doi.org/10.3982/QE643 and ijrsDCEGM2017 in our Zotero]
 """
 import numpy as np
 from HARK.interpolation import LinearInterp
@@ -186,7 +189,7 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
     return upperM, upperC, upperV_T
 
 def main():
-    print("Sorry, HARK.discontools doesn't actually do anything on its own.")
+    print("Sorry, HARK.dcegm doesn't actually do anything on its own.")
 
 if __name__ == '__main__':
     main()
