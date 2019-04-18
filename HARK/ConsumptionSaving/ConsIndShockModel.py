@@ -1702,7 +1702,7 @@ class PerfForesightConsumerType(AgentType):
         None
         '''
         if self.cycles!=0 or self.T_cycle > 1:
-            if verbose = True: 
+            if verbose == True: 
                 print('This method only checks for the conditions for infinite horizon models with a 1 period cycle')
             return
         
