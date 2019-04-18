@@ -1,14 +1,30 @@
 HARK  
-Version 0.10.0.dev1  
+Version 0.10.0.dev2  
 Release Notes  
 
 # Introduction
 
-This document contains the release notes for the 0.10.dev1 version of HARK. HARK aims to produce an open source repository of highly modular, easily interoperable code for solving, simulating, and estimating dynamic economic models with heterogeneous agents.
+This document contains the release notes for the 0.10.0.dev2 version of HARK. HARK aims to produce an open source repository of highly modular, easily interoperable code for solving, simulating, and estimating dynamic economic models with heterogeneous agents.
 
 For more information on HARK, see [our Github organization](https://github.com/econ-ark).
 
 ## Changes
+
+### 0.10.0.dev2
+
+Release Date: 04-18-2019
+
+#### Major Changes
+
+None
+
+#### Minor Changes
+
+* Fix verbosity check in ConsIndShockModel. ([250](https://github.com/econ-ark/HARK/pull/250))
+
+#### Other Changes
+
+None
 
 ### 0.10.0.dev1
 
