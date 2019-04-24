@@ -50,4 +50,4 @@ class FuncTest(unittest.TestCase):
 
     def test_equalityOfSolutions(self):
         results = self.setUp()
-        self.assertEqual(results[0],results[1])
+        self.assertAlmostEqual(results[0],results[1])
