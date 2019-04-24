@@ -4,13 +4,6 @@ Created on Thu Mar 24 11:01:50 2016
 
 @author: kaufmana
 """
-from __future__ import print_function, division
-from __future__ import absolute_import
-
-from builtins import str
-from builtins import zip
-from builtins import range
-from builtins import object
 
 import HARK.ConsumptionSaving.TractableBufferStockModel as Model
 import unittest
@@ -55,10 +48,6 @@ class FuncTest(unittest.TestCase):
                   1.5307746658958221]
         return test_model.solution[0].cNrm_list,cNrm_list
 
-    def test1(self):
+    def test_equalityOfSolutions(self):
         results = self.setUp()
         self.assertEqual(results[0],results[1])
-
-
-if __name__ == '__main__':
-    unittest.main()

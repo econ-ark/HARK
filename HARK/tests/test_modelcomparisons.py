@@ -5,13 +5,6 @@ These tests compare the output of different models in specific cases in which th
 should yield the same output.  The code will pass these tests if and only if the output is close
 "enough".
 """
-from __future__ import print_function, division
-from __future__ import absolute_import
-
-from builtins import str
-from builtins import zip
-from builtins import range
-from builtins import object
 
 # Bring in modules we need
 import unittest
@@ -159,7 +152,3 @@ class Compare_TBS_and_Markov(unittest.TestCase):
         max_difference = np.max(np.abs(difference))
 
         self.assertLess(max_difference,0.01)
-
-if __name__ == '__main__':
-    # Run all the tests
-    unittest.main()
