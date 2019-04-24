@@ -97,8 +97,8 @@ class Compare_TBS_and_Markov(unittest.TestCase):
         TBSType.solve()
 
         # Set up and solve Markov
-        MrkvArray = np.array([[1.0-base_primitives['UnempPrb'],base_primitives['UnempPrb']],
-                              [0.0,1.0]])
+        MrkvArray = [np.array([[1.0-base_primitives['UnempPrb'],base_primitives['UnempPrb']],
+                              [0.0,1.0]])]
         Markov_primitives = {"CRRA":base_primitives['CRRA'],
                             "Rfree":np.array(2*[base_primitives['Rfree']]),
                             "PermGroFac":[np.array(2*[base_primitives['PermGroFac']/
@@ -119,7 +119,7 @@ class Compare_TBS_and_Markov(unittest.TestCase):
                             "aXtraCount":48,
                             "aXtraExtra":[None],
                             "aXtraNestFac":3,
-                            "LivPrb":[1.0],
+                            "LivPrb":[np.array([1.0,1.0]),],
                             "DiscFac":base_primitives['DiscFac'],
                             'Nagents':1,
                             'psi_seed':0,
@@ -128,7 +128,8 @@ class Compare_TBS_and_Markov(unittest.TestCase):
                             'tax_rate':0.0,
                             'vFuncBool':False,
                             'CubicBool':True,
-                            'MrkvArray':MrkvArray
+                            'MrkvArray':MrkvArray,
+                            'T_cycle':1
                             }
 
         MarkovType             = MarkovConsumerType(**Markov_primitives)
