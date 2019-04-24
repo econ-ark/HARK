@@ -5,6 +5,7 @@ Created on Thu Mar 24 11:01:50 2016
 @author: kaufmana
 """
 
+import numpy as np
 import HARK.ConsumptionSaving.TractableBufferStockModel as Model
 import unittest
 
