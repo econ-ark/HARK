@@ -44,51 +44,76 @@ Replications and Explorations Made using the ARK : [REMARK](https://github.com/e
 
 ## II. QUICK START GUIDE
 
-ARK is written in Python, specifically the Anaconda distribution of Python.  
+HARK is an open source project written in Python.  It's compatible with both Python
+2 and 3, and with the Anaconda distribution of Python.  
 
-If you have a working version of python on your computer (preferably python3), and
-you have the "pip" tool installed (which you almost certainly do), then just 
-go to your command line and type:
+The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installing/).  We recommend using pip within a Python 3 virtual environment such as [virtualenv]((https://virtualenv.pypa.io/en/latest/)), but it should still work without a virtual environment and/or using Python 2.   
 
-	`pip install econ-ark`
+To install HARK with pip, type `pip install econ-ark`.
 
-If you want to try out HARK without permanently installing it on your computer,
-you can instead follow these easy steps to get HARK going:
+### Using HARK with Anaconda
 
-1) Go to https://www.continuum.io/distribution and download Anaconda for your
-operating system
+Simply installing HARK with pip does not give you easy access to HARK's many graphical capabilities.  One way to access these capabilities is by using Anaconda.
 
-2) Install Anaconda, using the instructions provided on that page.  Now you have
-installed everything you need to run most of HARK.  But you still need to get HARK
-on your machine.
+1) Download Anaconda for your operating system and follow the installation instructions [at Anaconda.com](https://www.anaconda.com/distribution/#download-section).
 
-3) HARK is managed control software called "Git".  HARK is hosted on a website called "GitHub" devoted to hosting projects managed with Git.
+2) Open Spyder, an interactive development environment (IDE) for Python (specifically, iPython).  You may be able to do this through Anaconda's graphical interface, or you can do so from the command line/prompt.  To do so, simply open a command line/prompt and type "spyder". 
 
-   If you don't want to know more than that, you don't have to. Go to HARK's page
-on GitHub (https://github.com/econ-ark/HARK), click the "Clone or download" button
-in the upper right hand corner of the page, then click "Download ZIP". Unzip it
-into an empty directory. Maybe call that directory /HARK ?  The choice is yours.
+3) Install HARK.  First, try typing "pip install econ-ark" into the iPython shell within Spyder.  
 
-   You can also clone HARK off GitHub using Git.  This is slightly more difficult,
-because it involves installing Git on your machine and learning a little about
-how to use Git.  We believe this is an investment worth making, but it is up to you.
-To learn more about Git, read the documentation at https://git-scm.com/documentation
-or visit many other great Git resources on the internet.
+If that doesn't work for you, you will need to manually add HARK to your Spyder environment.  To do this, you'll need to get the code from Github and import it into Spyder.
+To get the code from Github, you can either clone it or download a zipped file.  
 
-Now that you have HARK installed, you can begin programming with it.
+To clone the file, type `git clone git@github.com:econ-ark/HARK.git` in your chosen repository ([more details here](https://git-scm.com/documentation)).  
 
-* Open Spyder, an interactive development environment (IDE) for Python
-(specifically, iPython).  On Windows, open a command prompt and type "spyder".
-On Linux, open the command line and type "spyder".  On Mac, open the command
-line and type "spyder".
+To download the zipped file, go to [the HARK repository on GitHub](https://github.com/econ-ark/HARK).  In the upper righthand corner is a button that says "clone or download".  Click the "Download Zip" option and then unzip the contents into your chosen directory.
 
-* Navigate to the directory where you put the HARK files.  This can be done
-within Spyder by doing "import os" and then using os.chdir() to change directories.
-chdir works just like cd at a command prompt on most operating systems, except that
-it takes a string as input: os.chdir('Music') moves to the Music subdirectory
-of the current working directory.
+Once you've got a copy of HARK in a directory, return to Spyder and navigate to that directorywhere you put HARK.  This can be done within Spyder by doing "import os" and then using os.chdi() to change directories.  chdir works just like cd at a command prompt on most operating systems, except that it takes a string as input: os.chdir('Music') moves to the Music subdirectory of the current working directory.
 
-8) Read the more complete documentation in [HARKmanual.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/HARKmanual.pdf).
+6) Run one of HARK's modules.  You can either type "run MODULENAME" after navigating to the correct directory (see step 5), or click the green arrow "run" button in Spyder's toolbar after opening the module in the editor.  Every module should do *something* when run, but that something might not be very interesting in some cases.  For starters, check out /ConsumptionSavingModel/ConsIndShockModel.py See section III below for a full list of modules that produce non-trivial output.
+
+7) OPTIONAL: If you want to use HARK's multithreading capabilities, you will need two Python packages that do not come automatically with Anaconda: joblib and dill.  Assuming you have the necessary permissions on your machine, the easiest way to do this is through Anaconda.  Go to the command line, and type "conda install joblib" and then "conda install dill" (accept defaults if prompted). If this doesn't work, but you have Git, you can just clone the packages directly off GitHub.  Go to the command line and navigate to the directory you want to put these packages in.  Then type `git clone https://github.com/joblib/joblib.git` and then `git clone https://github.com/uqfoundation/dill`.  Joblib should work after this, but there is one more step to get dill working.  Navigate to dill's directory in the command line, and then type "python setup.py build".  Then you should have joblib and dill working on your machine.
+
+Note: If you did not put joblib and dill in one of the paths in sys.path, you will need to add the joblib and dill directories to sys.path.  The easiest way to do this is to open up Anaconda, and type:
+
+```python
+import sys
+sys.path.append('path_to_joblib_directory')
+sys.path.append('path_to_dill_directory')
+```
+
+### Making changes to HARK
+
+If you want to make changes to HARK, you'll need to have access to the source files.  Installing HARK via pip (either at the command line, or inside Spyder) makes it hard to access those files, so you'll need to download HARK again using git clone.
+
+1.  Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/documentation)).
+
+2.  Then, create and activate a [virtual environment]([virtualenv]((https://virtualenv.pypa.io/en/latest/))).  Install virtualenv if you need to and then type:
+
+`virtualenv venv
+source venv/bin/activate`
+
+Once the virtualenv is activated, you should see `(venv)` in your command prompt.
+
+3.  Finally, you can install HARK's requirements into the virtual environment with `pip install -r requirements.txt'.
+
+4.  To check that everything has been set up correctly, run HARK's tests with `python -m unittest`. 
+
+### Trouble with installation?
+
+We've done our best to give correct, thorough instructions on how to install HARK but we know this information may be inaccurate or incomplete.  Please let us know if you run into trouble so we can update this guide!  Here's a list of platforms and versions this guide has been verified for:
+
+| Installation Type | Platform      | Python Version |  Date Tested  |  Tested By |
+| ------------- |:-------------:| -----:| -----:|-----:|
+| basic pip install | Linux (16.04) | 3 | 04-24-2019 | @shaunagm |
+| anaconda | Linux (16.04) | 3 | 04-24-2019 | @shaunagm |
+
+### Next steps
+
+To learn more about how to use HARK, check out our [user manual](https://github.com/econ-ark/HARK/blob/master/Documentation/HARKmanual.pdf).
+
+For help making changes to HARK, check out our [contributing guide](https://github.com/econ-ark/HARK/blob/Partial-Fix-to-Installation-README/CONTRIBUTING.md).
+
 
 ## III. LIST OF FILES IN REPOSITORY
 
