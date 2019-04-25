@@ -61,26 +61,25 @@ Simply installing HARK with pip does not give you easy access to HARK's many gra
 
 3) Install HARK.  First, try typing "pip install econ-ark" into the iPython shell within Spyder.  
 
-If that doesn't work for you, you will need to manually add HARK to your Spyder environment.  To do this, you'll need to get the code from Github and import it into Spyder.
-To get the code from Github, you can either clone it or download a zipped file.  
+    If that doesn't work for you, you will need to manually add HARK to your Spyder environment.  To do this, you'll need to get the code from Github and import it into Spyder.  To get the code from Github, you can either clone it or download a zipped file.  
 
-To clone the file, type `git clone git@github.com:econ-ark/HARK.git` in your chosen repository ([more details here](https://git-scm.com/documentation)).  
+    To clone the file, type `git clone git@github.com:econ-ark/HARK.git` in your chosen repository ([more details here](https://git-scm.com/documentation)).  
 
-To download the zipped file, go to [the HARK repository on GitHub](https://github.com/econ-ark/HARK).  In the upper righthand corner is a button that says "clone or download".  Click the "Download Zip" option and then unzip the contents into your chosen directory.
+    To download the zipped file, go to [the HARK repository on GitHub](https://github.com/econ-ark/HARK).  In the upper righthand corner is a button that says "clone or download".  Click the "Download Zip" option and then unzip the contents into your chosen directory.
 
-Once you've got a copy of HARK in a directory, return to Spyder and navigate to that directorywhere you put HARK.  This can be done within Spyder by doing "import os" and then using os.chdi() to change directories.  chdir works just like cd at a command prompt on most operating systems, except that it takes a string as input: os.chdir('Music') moves to the Music subdirectory of the current working directory.
+    Once you've got a copy of HARK in a directory, return to Spyder and navigate to that directorywhere you put HARK.  This can be done within Spyder by doing "import os" and then using os.chdi() to change directories.  chdir works just like cd at a command prompt on most operating systems, except that it takes a string as input: os.chdir('Music') moves to the Music subdirectory of the current working directory.
 
 6) Run one of HARK's modules.  You can either type "run MODULENAME" after navigating to the correct directory (see step 5), or click the green arrow "run" button in Spyder's toolbar after opening the module in the editor.  Every module should do *something* when run, but that something might not be very interesting in some cases.  For starters, check out /ConsumptionSavingModel/ConsIndShockModel.py See section III below for a full list of modules that produce non-trivial output.
 
 7) OPTIONAL: If you want to use HARK's multithreading capabilities, you will need two Python packages that do not come automatically with Anaconda: joblib and dill.  Assuming you have the necessary permissions on your machine, the easiest way to do this is through Anaconda.  Go to the command line, and type "conda install joblib" and then "conda install dill" (accept defaults if prompted). If this doesn't work, but you have Git, you can just clone the packages directly off GitHub.  Go to the command line and navigate to the directory you want to put these packages in.  Then type `git clone https://github.com/joblib/joblib.git` and then `git clone https://github.com/uqfoundation/dill`.  Joblib should work after this, but there is one more step to get dill working.  Navigate to dill's directory in the command line, and then type "python setup.py build".  Then you should have joblib and dill working on your machine.
 
-Note: If you did not put joblib and dill in one of the paths in sys.path, you will need to add the joblib and dill directories to sys.path.  The easiest way to do this is to open up Anaconda, and type:
+    Note: If you did not put joblib and dill in one of the paths in sys.path, you will need to add the joblib and dill directories to sys.path.  The easiest way to do this is to open up Anaconda, and type:
 
-```python
-import sys
-sys.path.append('path_to_joblib_directory')
-sys.path.append('path_to_dill_directory')
-```
+    ```python
+    import sys
+    sys.path.append('path_to_joblib_directory')
+   sys.path.append('path_to_dill_directory')
+    ```
 
 ### Making changes to HARK
 
@@ -90,10 +89,10 @@ If you want to make changes to HARK, you'll need to have access to the source fi
 
 2.  Then, create and activate a [virtual environment]([virtualenv]((https://virtualenv.pypa.io/en/latest/))).  Install virtualenv if you need to and then type:
 
-`virtualenv venv
-source venv/bin/activate`
+    `virtualenv venv
+    source venv/bin/activate`
 
-Once the virtualenv is activated, you should see `(venv)` in your command prompt.
+    Once the virtualenv is activated, you should see `(venv)` in your command prompt.
 
 3.  Finally, you can install HARK's requirements into the virtual environment with `pip install -r requirements.txt'.
 
