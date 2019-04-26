@@ -47,7 +47,7 @@ Replications and Explorations Made using the ARK : [REMARK](https://github.com/e
 HARK is an open source project written in Python.  It's compatible with both Python
 2 and 3, and with the Anaconda distribution of Python.  
 
-The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installing/).  We recommend using a virtual environment such as [virtualenv]((https://virtualenv.pypa.io/en/latest/)), and using Python 3 rather than Python 2, but it should still work without a virtual environment and/or using Python 2.   
+The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installing/).  We recommend using a virtual environment such as [virtualenv](https://virtualenv.pypa.io/en/latest/), and using Python 3 rather than Python 2, but it should still work without a virtual environment and/or using Python 2.   
 
 To install HARK with pip, type `pip install econ-ark`.
 
