@@ -562,8 +562,7 @@ def approxNormal(N, mu=0.0, sigma=1.0):
 
 def approxLognormalGaussHermite(N, mu=0.0, sigma=1.0, parametersAs='normal'):
     if parametersAs == 'normal':
-        mu = mu
-        sigma = sigma
+        mu, sigma = mu, sigma
     elif parametersAs == 'lognormal':
         mu, sigma = calcNormalStyleParsFromLognormalPars(mu, sigma)
     else:
