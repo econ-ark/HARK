@@ -1,5 +1,5 @@
 # Heterogeneous Agents Resources and toolKit (HARK)
-pre-release 0.9.1 - 13 July, 2018
+pre-release 0.10.0.dev2 
 
 Click the Badge for Citation Info.
 [![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
@@ -44,84 +44,79 @@ Replications and Explorations Made using the ARK : [REMARK](https://github.com/e
 
 ## II. QUICK START GUIDE
 
-This is going to be easy, friend.  HARK is written in Python, specifically the
-Anaconda distribution of Python.  Follow these easy steps to get HARK going:
+HARK is an open source project written in Python.  It's compatible with both Python
+2 and 3, and with the Anaconda distribution of Python.  
 
-1) Go to https://www.continuum.io/downloads and download Anaconda for your
-operating system
+The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installing/).  We recommend using a virtual environment such as [virtualenv]((https://virtualenv.pypa.io/en/latest/)), and using Python 3 rather than Python 2, but it should still work without a virtual environment and/or using Python 2.   
 
-2) Install Anaconda, using the instructions provided on that page.  Now you have
-installed everything you need to run most of HARK.  But you still need to get HARK
-on your machine.
+To install HARK with pip, type `pip install econ-ark`.
 
-3) To get HARK on your machine, you should know that HARK is managed with version
-control software called "Git".  HARK is hosted on a website called "GitHub" devoted
-to hosting projects managed with Git.
+### Using HARK with Anaconda
 
-   If you don't want to know more than that, you don't have to. Go to HARK's page
-on GitHub (https://github.com/econ-ark/HARK), click the "Clone or download" button
-in the upper right hand corner of the page, then click "Download ZIP". Unzip it
-into an empty directory. Maybe call that directory /HARK ?  The choice is yours.
+Simply installing HARK with pip does not give you easy access to HARK's many graphical capabilities.  One way to access these capabilities is by using Anaconda.
 
-   You can also clone HARK off GitHub using Git.  This is slightly more difficult,
-because it involves installing Git on your machine and learning a little about
-how to use Git.  We believe this is an investment worth making, but it is up to you.
-To learn more about Git, read the documentation at https://git-scm.com/documentation
-or visit many other great Git resources on the internet.
+1) Download Anaconda for your operating system and follow the installation instructions [at Anaconda.com](https://www.anaconda.com/distribution/#download-section).
 
-4) Open Spyder, an interactive development environment (IDE) for Python
-(specifically, iPython).  On Windows, open a command prompt and type "spyder".
-On Linux, open the command line and type "spyder".  On Mac, open the command
-line and type "spyder".
+2) Open Spyder, an interactive development environment (IDE) for Python (specifically, iPython).  You may be able to do this through Anaconda's graphical interface, or you can do so from the command line/prompt.  To do so, simply open a command line/prompt and type `spyder`. 
 
-5) Navigate to the directory where you put the HARK files.  This can be done
-within Spyder by doing "import os" and then using os.chdir() to change directories.
-chdir works just like cd at a command prompt on most operating systems, except that
-it takes a string as input: os.chdir('Music') moves to the Music subdirectory
-of the current working directory.
+3) Now it's time to install HARK.  First, try typing `pip install econ-ark` into the iPython shell within Spyder.  
 
-6) Run one of HARK's modules.  You can either type "run MODULENAME" after navigating
-to the correct directory (see step 5), or click the green arrow "run" button in
-Spyder's toolbar after opening the module in the editor.  Every module should
-do *something* when run, but that something might not be very interesting in
-some cases.  For starters, check out /ConsumptionSavingModel/ConsIndShockModel.py
-See section III below for a full list of modules that produce non-trivial output.
+    If that doesn't work for you, you will need to manually add HARK to your Spyder environment.  To do this, you'll need to get the code from Github and import it into Spyder.  To get the code from Github, you can either clone it or download a zipped file.  
 
-7) The Python environment can be cleared or reset with ctrl+.  Note that
-this will also change the current working directory back to its default.
-To change the default directory (the "global working directory"), see
-Tools-->Preferences-->Global working directory; you might need to restart
-Spyder for the change to take effect.
+    To clone the file, type `git clone git@github.com:econ-ark/HARK.git` in your chosen repository ([more details here](https://git-scm.com/documentation)).  
 
-8) Read the more complete documentation in [HARKmanual.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/HARKmanual.pdf).
+    To download the zipped file, go to [the HARK repository on GitHub](https://github.com/econ-ark/HARK).  In the upper righthand corner is a button that says "clone or download".  Click the "Download Zip" option and then unzip the contents into your chosen directory.
 
-9) OPTIONAL: If you want to use HARK's multithreading capabilities, you will
-need two Python packages that do not come automatically with Anaconda: joblib
-and dill.  Assuming you have the necessary permissions on your machine, the
-easiest way to do this is through Anaconda.  Go to the command line, and type
-"conda install joblib" and then "conda install dill" (accept defaults if prompted).
-If this doesn't work, but you have Git, you can just clone the packages directly
-off GitHub.  Go to the command line and navigate to the directory you want to put
-these packages in.  Then type "git clone https://github.com/joblib/joblib.git"
-and then "git clone https://github.com/uqfoundation/dill".  Joblib should work
-after this, but there is one more step to get dill working.  Navigate to dill's
-directory in the command line, and then type "python setup.py build".  Then you
-should have joblib and dill working on your machine.
+    Once you've got a copy of HARK in a directory, return to Spyder and navigate to that directorywhere you put HARK.  This can be done within Spyder by doing `import os` and then using `os.chdi()` to change directories.  chdir works just like cd at a command prompt on most operating systems, except that it takes a string as input: `os.chdir('Music')` moves to the Music subdirectory of the current working directory.
 
-Note: If you did not put joblib and dill in one of the paths in sys.path, you will
-need to add the joblib and dill directories to sys.path.  The easiest way to do this
-is to open up Anaconda, and type:
+6) Run one of HARK's modules.  You can either type `run MODULENAME` after navigating to the correct directory (see step 5), or click the green arrow "run" button in Spyder's toolbar after opening the module in the editor.  Every module should do *something* when run, but that something might not be very interesting in some cases.  For starters, check out `/ConsumptionSavingModel/ConsIndShockModel.py`. See section III below for a full list of modules that produce non-trivial output.
 
-```python
-import sys
-sys.path.append('path_to_joblib_directory')
-sys.path.append('path_to_dill_directory')
-```
+7) OPTIONAL: If you want to use HARK's multithreading capabilities, you will need two Python packages that do not come automatically with Anaconda: joblib and dill.  Assuming you have the necessary permissions on your machine, the easiest way to do this is through Anaconda.  Go to the command line, and type `conda install joblib` and `conda install dill` (accept defaults if prompted). If this doesn't work, but you have Git, you can just clone the packages directly off GitHub.  Go to the command line and navigate to the directory you want to put these packages in.  Then type `git clone https://github.com/joblib/joblib.git` and then `git clone https://github.com/uqfoundation/dill`.  Joblib should work after this, but there is one more step to get dill working.  Navigate to dill's directory in the command line, and then type `python setup.py build`.  Then you should have joblib and dill working on your machine.
+
+    Note: If you did not put joblib and dill in one of the paths in sys.path, you will need to add the joblib and dill directories to sys.path.  The easiest way to do this is to open up Anaconda, and type:
+
+    ```python
+    import sys
+    sys.path.append('path_to_joblib_directory')
+   sys.path.append('path_to_dill_directory')
+    ```
+
+### Making changes to HARK
+
+If you want to make changes to HARK, you'll need to have access to the source files.  Installing HARK via pip (either at the command line, or inside Spyder) makes it hard to access those files, so you'll need to download HARK again using git clone.
+
+1.  Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/documentation)).
+
+2.  Then, create and activate a [virtual environment]([virtualenv]((https://virtualenv.pypa.io/en/latest/))).  Install virtualenv if you need to and then type:
+
+    `virtualenv venv
+    source venv/bin/activate`
+
+    Once the virtualenv is activated, you should see `(venv)` in your command prompt.
+
+3.  Finally, you can install HARK's requirements into the virtual environment with `pip install -r requirements.txt'.
+
+4.  To check that everything has been set up correctly, run HARK's tests with `python -m unittest`. 
+
+### Trouble with installation?
+
+We've done our best to give correct, thorough instructions on how to install HARK but we know this information may be inaccurate or incomplete.  Please let us know if you run into trouble so we can update this guide!  Here's a list of platforms and versions this guide has been verified for:
+
+| Installation Type | Platform      | Python Version |  Date Tested  |  Tested By |
+| ------------- |:-------------:| -----:| -----:|-----:|
+| basic pip install | Linux (16.04) | 3 | 04-24-2019 | @shaunagm |
+| anaconda | Linux (16.04) | 3 | 04-24-2019 | @shaunagm |
+
+### Next steps
+
+To learn more about how to use HARK, check out our [user manual](https://github.com/econ-ark/HARK/blob/master/Documentation/HARKmanual.pdf).
+
+For help making changes to HARK, check out our [contributing guide](https://github.com/econ-ark/HARK/blob/Partial-Fix-to-Installation-README/CONTRIBUTING.md).
+
 
 ## III. LIST OF FILES IN REPOSITORY
 
-This section contains descriptions of every file included in the HARK
-repository at the time of the beta release, categorized for convenience.
+This section contains descriptions of the main files in the repo.
 
 Documentation files:
 * [README.md](https://github.com/econ-ark/HARK/blob/master/README.md): The file you are currently reading.
@@ -133,29 +128,29 @@ Documentation files:
 * [Documentation/NARK.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/NARK.pdf): Variable naming conventions for HARK, plus concordance with LaTeX variable definitions.  Still in development.
 
 Tool modules:
-* HARKcore.py:
+* HARK/core.py:
     Frameworks for "microeconomic" and "macroeconomic" models in HARK.
     We somewhat abuse those terms as shorthand; see the user guide for a
     description of what we mean.  Every model in HARK extends the classes
     AgentType and Market in this module.  Does nothing when run.
-* HARKutilities.py:
+* HARK/utilities.py:
     General purpose tools and utilities.  Contains literal utility functions
     (in the economic sense), functions for making discrete approximations
     to continuous distributions, basic plotting functions for convenience,
     and a few unclassifiable things.  Does nothing when run.
-* HARKestimation.py:
+* HARK/estimation.py:
     Functions for estimating models.  As is, it only has a few wrapper
     functions for scipy.optimize optimization routines.  Will be expanded
     in the future with more interesting things.  Does nothing when run.
-* HARKsimulation.py:
+* HARK/simulation.py:
     Functions for generating simulated data.  Functions in this module have
     names like drawUniform, generating (lists of) arrays of draws from
     various distributions.  Does nothing when run.
-* HARKinterpolation.py:
+* HARK/interpolation.py:
     Classes for representing interpolated function approximations.  Has
     1D-4D interpolation methods, mostly based on linear or cubic spline
     interpolation.  Will have ND methods in the future.  Does nothing when run.
-* HARKparallel.py:
+* HARK/parallel.py:
     Early version of parallel processing in HARK.  Works with instances of
     the AgentType class (or subclasses of it), distributing commands (as
     methods) to be run on a list of AgentTypes.  Only works with local CPU.
