@@ -557,7 +557,7 @@ def approxNormal(N, mu=0.0, sigma=1.0):
     # normalize w
     pmf = w*np.pi**-0.5
     # correct x
-    X = 2.0**0.5*sigma*x + mu
+    X = math.sqrt(2.0)*sigma*x + mu
     return [pmf, X]
 
 def approxLognormalGaussHermite(N, mu=0.0, sigma=1.0, parametersAs='normal'):
@@ -571,15 +571,19 @@ def approxLognormalGaussHermite(N, mu=0.0, sigma=1.0, parametersAs='normal'):
     pmf, X = approxNormal(N, mu, sigma)
     return pmf, np.exp(X)
 
-def calcNormalStyleParsFromLognormalPars(avgLognormal, varLognormal):
+def calcNormalStyleParsFromLognormalPars(avgLognormal, stdLognormal):
+    varLognormal = stdLognormal**2
     avgNormal = math.log(avgLognormal/math.sqrt(1+varLognormal/avgLognormal**2))
     varNormal = math.sqrt(math.log(1+varLognormal/avgLognormal**2))
-    return avgNormal, varNormal
+    stdNormal = math.sqrt(varNormal)
+    return avgNormal, stdNormal
 
-def calcLognormalStyleParsFromNormalPars(muNormal, varNormal):
+def calcLognormalStyleParsFromNormalPars(muNormal, stdNormal):
+    varNormal = stdNormal**2
     avgLognormal = math.exp(muNormal+varNormal*0.5)
     varLognormal = (math.exp(varNormal)-1)*math.exp(2*muNormal+varNormal)
-    return avgLognormal, varLognormal
+    stdLognormal = math.sqrt(varLognormal)
+    return avgLognormal, stdLognormal
 
 def approxBeta(N,a=1.0,b=1.0):
     '''
