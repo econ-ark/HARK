@@ -560,8 +560,16 @@ def approxNormal(N, mu=0.0, sigma=1.0):
     X = 2.0**0.5*sigma*x + mu
     return [pmf, X]
 
-def approxLogNormalGaussHermite(N, mu=0.0, sigma=1.0):
-    pmf, X = approxNormal(N)
+def approxLognormalGaussHermite(N, mu=0.0, sigma=1.0, parametersAs='normal'):
+    if parametersAs == 'normal':
+        mu = mu
+        sigma = sigma
+    elif parametersAs == 'lognormal':
+        mu, sigma = calcNormalStyleParsFromLognormalPars(mu, sigma)
+    else:
+        # throw an error
+        return False
+    pmf, X = approxNormal(N, mu, sigma)
     return pmf, np.exp(X)
 
 def calcNormalStyleParsFromLognormalPars(avgLognormal, varLognormal):
