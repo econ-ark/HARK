@@ -569,9 +569,10 @@ def calcNormalStyleParsFromLognormal(avgLognormal, varLognormal):
     varNormal = math.sqrt(math.log(1+varLognormal/avgLognormal**2))
     return avgNormal, varNormal
 
-def calcLognormalStyleParsFromNormal(mu, sigma):
-
-
+def calcLognormalStyleParsFromNormal(muNormal, varNormal):
+    avgLognormal = math.exp(muNormal+varNormal*0.5)
+    varLognormal = (math.exp(varNormal)-1)*math.exp(2*muNormal+varNormal)
+    return avgLognormal, varLognormal
 
 def approxBeta(N,a=1.0,b=1.0):
     '''
