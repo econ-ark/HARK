@@ -564,12 +564,12 @@ def approxLogNormalGaussHermite(N, mu=0.0, sigma=1.0):
     pmf, X = approxNormal(N)
     return pmf, np.exp(X)
 
-def calcNormalStyleParsFromLognormal(avgLognormal, varLognormal):
+def calcNormalStyleParsFromLognormalPars(avgLognormal, varLognormal):
     avgNormal = math.log(avgLognormal/math.sqrt(1+varLognormal/avgLognormal**2))
     varNormal = math.sqrt(math.log(1+varLognormal/avgLognormal**2))
     return avgNormal, varNormal
 
-def calcLognormalStyleParsFromNormal(muNormal, varNormal):
+def calcLognormalStyleParsFromNormalPars(muNormal, varNormal):
     avgLognormal = math.exp(muNormal+varNormal*0.5)
     varLognormal = (math.exp(varNormal)-1)*math.exp(2*muNormal+varNormal)
     return avgLognormal, varLognormal
