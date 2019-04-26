@@ -20,7 +20,7 @@ class testsForDCEGM(unittest.TestCase):
                 self.assertTrue(sum(w*x)-muNormal<1e-12)
 
     def test_mu_lognormal_from_normal(self):
-        for muNormal in muNormals:
-            for stdNormal in stdNormals:
+        for muNormal in self.muNormals:
+            for stdNormal in self.stdNormals:
                 w, x = util.approxLognormalGaussHermite(40, muNormal, stdNormal)
                 self.assertTrue(abs(sum(w*x)-util.calcLognormalStyleParsFromNormalPars(muNormal, stdNormal)[0])<1e-12)
