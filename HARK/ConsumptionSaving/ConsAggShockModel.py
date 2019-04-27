@@ -16,7 +16,7 @@ from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutility
                            CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
                            approxMeanOneLognormal
 from HARK.simulation import drawDiscrete, drawUniform
-from .ConsIndShockModel import ConsumerSolution, IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockConsumerType
 from HARK import HARKobject, Market, AgentType
 from copy import deepcopy
 import matplotlib.pyplot as plt
@@ -901,9 +901,20 @@ class CobbDouglasEconomy(Market):
                             tolerance=tolerance,
                             act_T=act_T)
         self.assignParameters(**kwds)
-        self.max_loops = 20
         self.update()
-
+        
+        # Use previously hardcoded values for AFunc updating if not passed
+        # as part of initialization dictionary.  This is to prevent a last
+        # minute update to HARK before a release from having a breaking change.
+        if not hasattr(self,'DampingFac'):
+            self.DampingFac = 0.5
+        if not hasattr(self,'max_loops'):
+            self.max_loops = 20
+        if not hasattr(self,'T_discard'):
+            self.T_discard = 200
+        if not hasattr(self,'verbose'):
+            self.verbose = True
+        
 
     def millRule(self,aLvlNow,pLvlNow):
         '''
@@ -998,11 +1009,11 @@ class CobbDouglasEconomy(Market):
 
         Parameters
         ----------
-        none
+        None
 
         Returns
         -------
-        none
+        None
         '''
         self.Shk_idx = 0
         Market.reset(self)
@@ -1015,11 +1026,11 @@ class CobbDouglasEconomy(Market):
 
         Parameters
         ----------
-        none
+        None
 
         Returns
         -------
-        none
+        None
         '''
         sim_periods = self.act_T
         Events      = np.arange(self.AggShkDstn[0].size) # just a list of integers
@@ -1085,18 +1096,18 @@ class CobbDouglasEconomy(Market):
         Parameters
         ----------
         MaggNow : [float]
-            List of the history of the simulated  aggregate market resources for an economy.
+            List of the history of the simulated aggregate market resources for an economy.
         AaggNow : [float]
-            List of the history of the simulated  aggregate savings for an economy.
+            List of the history of the simulated aggregate savings for an economy.
 
         Returns
         -------
         (unnamed) : CapDynamicRule
             Object containing a new savings rule
         '''
-        verbose = True
-        discard_periods = 200 # Throw out the first T periods to allow the simulation to approach the SS
-        update_weight = 0.80  # Proportional weight to put on new function vs old function parameters
+        verbose = self.verbose
+        discard_periods = self.T_discard # Throw out the first T periods to allow the simulation to approach the SS
+        update_weight = 1. - self.DampingFac  # Proportional weight to put on new function vs old function parameters
         total_periods = len(MaggNow)
 
         # Regress the log savings against log market resources
@@ -1576,9 +1587,9 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         (unnamed) : CapDynamicRule
             Object containing new saving rules for each Markov state.
         '''
-        verbose = True
-        discard_periods = 200 # Throw out the first T periods to allow the simulation to approach the SS
-        update_weight = 0.8   # Proportional weight to put on new function vs old function parameters
+        verbose = self.verbose
+        discard_periods = self.T_discard # Throw out the first T periods to allow the simulation to approach the SS
+        update_weight = 1. - self.DampingFac  # Proportional weight to put on new function vs old function parameters
         total_periods = len(MaggNow)
 
         # Trim the histories of M_t and A_t and convert them to logs
@@ -1753,7 +1764,7 @@ class AggShocksDynamicRule(HARKobject):
 ###############################################################################
 
 def main():
-    from . import ConsumerParameters as Params
+    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from time import clock
     from HARK.utilities import plotFuncs
     mystr = lambda number : "{:.4f}".format(number)
@@ -1762,7 +1773,7 @@ def main():
     solve_agg_shocks_market = True # Solve for the equilibrium aggregate saving rule in a CobbDouglasEconomy
 
     solve_markov_micro = False # Solve an AggShockMarkovConsumerType's microeconomic problem
-    solve_markov_market = False # Solve for the equilibrium aggregate saving rule in a CobbDouglasMarkovEconomy
+    solve_markov_market = True # Solve for the equilibrium aggregate saving rule in a CobbDouglasMarkovEconomy
     solve_krusell_smith = True # Solve a simple Krusell-Smith-style two state, two shock model
     solve_poly_state = False   # Solve a CobbDouglasEconomy with many states, potentially utilizing the "state jumper"
 
@@ -1793,6 +1804,7 @@ def main():
             mMin = AggShockExample.solution[0].mNrmMin(M)
             c_at_this_M = AggShockExample.cFunc[0](m_grid+mMin,M*np.ones_like(m_grid))
             plt.plot(m_grid+mMin,c_at_this_M)
+        plt.ylim(0.,None)
         plt.show()
 
     if solve_agg_shocks_market:
@@ -1813,6 +1825,7 @@ def main():
             mMin = AggShockExample.solution[0].mNrmMin(M)
             c_at_this_M = AggShockExample.cFunc[0](m_grid+mMin,M*np.ones_like(m_grid))
             plt.plot(m_grid+mMin,c_at_this_M)
+        plt.ylim(0.,None)
         plt.show()
 
     ######### EXAMPLE IMPLEMENTATIONS OF AggShockMarkovConsumerType ###########
@@ -1825,6 +1838,7 @@ def main():
 
         # Make a Cobb-Douglas economy for the agents
         MrkvEconomyExample = CobbDouglasMarkovEconomy(agents = [AggShockMrkvExample],**Params.init_mrkv_cobb_douglas)
+        MrkvEconomyExample.DampingFac = 0.2 # Turn down damping
         MrkvEconomyExample.makeAggShkHist() # Simulate a history of aggregate shocks
         AggShockMrkvExample.getEconomyData(MrkvEconomyExample) # Have the consumers inherit relevant objects from the economy
 
@@ -1843,6 +1857,7 @@ def main():
                 mMin = AggShockMrkvExample.solution[0].mNrmMin[i](M)
                 c_at_this_M = AggShockMrkvExample.cFunc[0][i](m_grid+mMin,M*np.ones_like(m_grid))
                 plt.plot(m_grid+mMin,c_at_this_M)
+            plt.ylim(0.,None)
             plt.show()
 
     if solve_markov_market:
@@ -1853,7 +1868,7 @@ def main():
         t_end = clock()
         print('Solving the "macroeconomic" aggregate shocks model took ' + str(t_end - t_start) + ' seconds.')
 
-        print('Aggregate savings as a function of aggregate market resources (for each macro state):')
+        print('Consumption function at each aggregate market resources-to-labor ratio gridpoint (for each macro state):')
         m_grid = np.linspace(0,10,200)
         AggShockMrkvExample.unpackcFunc()
         for i in range(2):
@@ -1861,6 +1876,7 @@ def main():
                 mMin = AggShockMrkvExample.solution[0].mNrmMin[i](M)
                 c_at_this_M = AggShockMrkvExample.cFunc[0][i](m_grid+mMin,M*np.ones_like(m_grid))
                 plt.plot(m_grid+mMin,c_at_this_M)
+            plt.ylim(0.,None)
             plt.show()
 
     if solve_krusell_smith:

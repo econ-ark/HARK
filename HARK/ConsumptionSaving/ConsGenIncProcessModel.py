@@ -17,7 +17,7 @@ from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutility
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
                            getPercentiles
 from HARK.simulation import drawLognormal, drawDiscrete, drawUniform
-from .ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
 
 utility       = CRRAutility
 utilityP      = CRRAutilityP
@@ -1169,10 +1169,13 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         None
         '''
         cLvlNow = np.zeros(self.AgentCount) + np.nan
+        MPCnow = np.zeros(self.AgentCount) + np.nan
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cLvlNow[these] = self.solution[t].cFunc(self.mLvlNow[these],self.pLvlNow[these])
+            MPCnow[these]  = self.solution[t].cFunc.derivativeX(self.mLvlNow[these],self.pLvlNow[these])
         self.cLvlNow = cLvlNow
+        self.MPCnow  = MPCnow
 
 
     def getPostStates(self):
@@ -1276,7 +1279,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 ###############################################################################
 
 def main():
-    from . import ConsumerParameters as Params
+    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import plotFuncs
     from time import clock
     import matplotlib.pyplot as plt
@@ -1306,6 +1309,7 @@ def main():
         C = ExplicitExample.solution[0].cFunc(M_temp,p*np.ones_like(M_temp))
         plt.plot(M_temp,C)
     plt.xlim(0.,20.)
+    plt.ylim(0.,None)
     plt.xlabel('Market resource level mLvl')
     plt.ylabel('Consumption level cLvl')
     plt.show()
@@ -1328,6 +1332,7 @@ def main():
         C = ExplicitExample.solution[0].cFunc(M_temp,p*np.ones_like(M_temp))
         plt.plot(M_temp/p,C/p)
     plt.xlim(0.,20.)
+    plt.ylim(0.,None)
     plt.xlabel('Normalized market resources mNrm')
     plt.ylabel('Normalized consumption cNrm')
     plt.show()
@@ -1382,6 +1387,7 @@ def main():
         C = PersistentExample.solution[0].cFunc(M_temp,p*np.ones_like(M_temp))
         plt.plot(M_temp,C)
     plt.xlim(0.,20.)
+    plt.ylim(0.,None)
     plt.xlabel('Market resource level mLvl')
     plt.ylabel('Consumption level cLvl')
     plt.show()

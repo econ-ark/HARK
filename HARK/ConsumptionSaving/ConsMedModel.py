@@ -11,14 +11,13 @@ from HARK import HARKobject
 from HARK.utilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv,\
                            CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP,\
                            makeGridExpMult, NullFunc
-from HARK.simulation import drawLognormal
-from .ConsIndShockModel import ConsumerSolution
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
 from HARK.interpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, CubicInterp,\
                                LinearInterp, LowerEnvelope3D, UpperEnvelope, LinearInterpOnInterp1D,\
                                VariableLowerBoundFunc3D
-from .ConsGenIncProcessModel import ConsGenIncProcessSolver, PersistentShockConsumerType,\
-                                     ValueFunc2D, MargValueFunc2D, MargMargValueFunc2D, \
-                                     VariableLowerBoundFunc2D
+from HARK.ConsumptionSaving.ConsGenIncProcessModel import ConsGenIncProcessSolver,\
+                            PersistentShockConsumerType, ValueFunc2D, MargValueFunc2D,\
+                            MargMargValueFunc2D, VariableLowerBoundFunc2D
 from copy import deepcopy
 
 utility_inv   = CRRAutility_inv
@@ -1359,7 +1358,7 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
 ###############################################################################
 
 def main():
-    from . import ConsumerParameters as Params
+    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import CRRAutility_inv
     from time import clock
     import matplotlib.pyplot as plt

@@ -179,6 +179,10 @@ DiscFacPF = DiscFac           # Discount factor of perfect foresight calibration
 CRRAPF = CRRA                 # Coefficient of relative risk aversion of perfect foresight calibration
 intercept_prev = 0.0          # Intercept of aggregate savings function
 slope_prev = 1.0              # Slope of aggregate savings function
+verbose_cobb_douglas = True   # Whether to print solution progress to screen while solving
+T_discard = 200               # Number of simulated "burn in" periods to discard when updating AFunc
+DampingFac = 0.5              # Damping factor when updating AFunc; puts DampingFac weight on old params, rest on new
+max_loops = 20                # Maximum number of AFunc updating loops to allow
 
 # Make a dictionary to specify an aggregate shocks consumer
 init_agg_shocks = copy(init_idiosyncratic_shocks)
@@ -205,7 +209,11 @@ init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
                      'AggregateL':1.0,
                      'act_T':1200,
                      'intercept_prev': intercept_prev,
-                     'slope_prev': slope_prev
+                     'slope_prev': slope_prev,
+                     'verbose': verbose_cobb_douglas,
+                     'T_discard': T_discard,
+                     'DampingFac': DampingFac,
+                     'max_loops': max_loops
                      }
 
 # -----------------------------------------------------------------------------
