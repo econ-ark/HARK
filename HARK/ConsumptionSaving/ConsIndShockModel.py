@@ -793,6 +793,12 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         aNrmNow : np.array
             A 1D array of end-of-period assets; also stored as attribute of self.
         '''
+
+        # We define aNrmNow all the way from BoroCnstNat up to max(self.aXtraGrid)
+        # even if BoroCnstNat < BoroCnstArt, so we can construct the consumption
+        # function as the lower envelope of the (by the artificial borrowing con-
+        # straint) uconstrained consumption function, and the artificially con-
+        # strained consumption function.
         aNrmNow     = np.asarray(self.aXtraGrid) + self.BoroCnstNat
         ShkCount    = self.TranShkValsNext.size
         aNrm_temp   = np.tile(aNrmNow,(ShkCount,1))
