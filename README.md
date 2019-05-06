@@ -17,10 +17,10 @@ Table of Contents:
 ## I. INTRODUCTION
 
 Welcome to HARK!  This document will tell you how to get HARK up and
-running on your machine, and what you will find in HARK once you do.  
+running on your machine, and what you will find in HARK once you do.
 
 If you have any comments on the code or documentation, or (even better) if you want to
-contribute new content to HARK, we'd love to hear from you!  
+contribute new content to HARK, we'd love to hear from you!
 Our email addresses are:
 
 * Chris Carroll: ccarroll@llorracc.org
@@ -45,7 +45,7 @@ using python 3; eventually support for python 2 will end.
 
 ### Installing HARK with pip
 
-The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installing/).  
+The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installing/).
 
 To install HARK with pip, at a command line type `pip install econ-ark`.
 
@@ -76,9 +76,9 @@ source activate econ-ark
 
 1. To verify that spyder has access to HARK try typing `pip install econ-ark` into the iPython shell within Spyder.  If you have successfully installed HARK as above, you should see a lot of messages saying 'Requirement satisfied'.
 
-    * If that doesn't work, you will need to manually add HARK to your Spyder environment.  To do this, you'll need to get the code from Github and import it into Spyder.  To get the code from Github, you can either clone it or download a zipped file.  
+    * If that doesn't work, you will need to manually add HARK to your Spyder environment.  To do this, you'll need to get the code from Github and import it into Spyder.  To get the code from Github, you can either clone it or download a zipped file.
 
-    * If you have `git` installed on the command line, type `git clone git@github.com:econ-ark/HARK.git` in your chosen directory ([more details here](https://git-scm.com/documentation)).  
+    * If you have `git` installed on the command line, type `git clone git@github.com:econ-ark/HARK.git` in your chosen directory ([more details here](https://git-scm.com/documentation)).
 
 		* If you do not have `git` available on your computer, you can download the [GitHub Desktop app](https://desktop.github.com/) and use it to make a local clone
 
@@ -107,18 +107,27 @@ and from there you can open the notebooks and execute them.
 
 If you want to make changes or contributions (yay!) to HARK, you'll need to have access to the source files.  Installing HARK via pip (either at the command line, or inside Spyder) makes it hard to access those files (and it's a bad idea to mess with the original code anyway because you'll likely forget what changes you made).  If you are adept at GitHub, you can [fork](https://help.github.com/en/articles/fork-a-repo) the repo.  If you are less experienced, you should download a personal copy of HARK again using `git clone` (see above) or the GitHub Desktop app.
 
-1.  Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/documentation)).
+1.  Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/documentation)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: 'git clone https://github.com/econ-ark/HARK.git'.
 
-2.  Then, create and activate a [virtual environment]([virtualenv]((https://virtualenv.pypa.io/en/latest/))).  Install virtualenv if you need to and then type:
+2.  Then, create and activate a [virtual environment]([virtualenv]((https://virtualenv.pypa.io/en/latest/))).
+
+For Mac or Linux:
+
+Install virtualenv if you need to and then type:
 
 ```
 virtualenv econ-ark
 source econ-ark/bin/activate
 ```
+For Windows:
+```
+virtualenv econ-ark
+econ-ark\\Scripts\\activate.bat
+```
 
 3. Once the virtualenv is activated, you may see `(econ-ark)` in your command prompt (depending on how your machine is configured)
 
-3.  Finally, you can install HARK's requirements into the virtual environment with `pip install -r requirements.txt`.
+3.  Make sure to change to HARK directory, and install HARK's requirements into the virtual environment with `pip install -r requirements.txt`.
 
 4.  To check that everything has been set up correctly, run HARK's tests with `python -m unittest`.
 
