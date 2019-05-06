@@ -11,6 +11,5 @@ install:
   - pip install -r requirements.txt
 script:
   - pytest HARK/tests
-  - pytest --nbval-lax DemARK/notebooks
-  - pytest --nbval-lax REMARK/REMARKs
+  - bash ci/nbval-tests.sh
   # - flake8 HARK
