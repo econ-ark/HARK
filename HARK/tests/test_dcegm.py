@@ -7,10 +7,11 @@ from HARK import dcegm
 import unittest
 import numpy as np
 
+
 class testsForDCEGM(unittest.TestCase):
 
     def setUp(self):
-        self.commonM = np.linspace(0,10.0,30)
+        self.commonM = np.linspace(0, 10.0, 30)
         self.m_in = np.array([1.0, 2.0, 3.0, 2.5, 2.0, 4.0, 5.0, 6.0])
         self.c_in = np.array([1.0, 2.0, 3.0, 2.5, 2.0, 4.0, 5.0, 6.0])
         self.v_in = np.array([0.5, 1.0, 1.5, 0.75, 0.5, 3.5, 5.0, 7.0])
