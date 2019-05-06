@@ -4,7 +4,13 @@ python:
   - 3.6
 cache: pip
 install:
+  - git clone https://github.com/econ-ark/DemARK.git
+  - pip install -r DemARK/binder/requirements.txt
+  - git clone https://github.com/econ-ark/REMARK.git
+  - pip install -r REMARK/binder/requirements.txt
   - pip install -r requirements.txt
 script:
   - pytest HARK/tests
+  - pytest --nbval-lax DemARK/notebooks
+  - pytest --nbval-lax REMARK/REMARKs
   # - flake8 HARK

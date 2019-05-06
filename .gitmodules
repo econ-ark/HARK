@@ -1,0 +1,8 @@
+[submodule "REMARK"]
+	path = REMARK
+	url = https://github.com/econ-ark/REMARK.git
+	branch = master
+[submodule "DemARK"]
+	path = DemARK
+	url = https://github.com/econ-ark/DemARK.git
+	branch = master
