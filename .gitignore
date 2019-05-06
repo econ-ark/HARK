@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Virtual Environments
+venv/
+econ-arc/
+
 # C extensions
 *.so
 
@@ -275,3 +279,6 @@ eq
 nate-notes/
 
 *_region_*.*
+
+# VSCode 
+settings.json
