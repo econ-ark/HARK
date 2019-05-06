@@ -12,6 +12,7 @@ from builtins import range
 import numpy as np
 from .core import HARKobject
 from copy import deepcopy
+import warnings
 
 def _isscalar(x):
     '''
@@ -28,6 +29,33 @@ def _isscalar(x):
         True if the input is a scalar, False otherwise.
     '''
     return np.isscalar(x) or hasattr(x, 'shape') and x.shape == ()
+
+
+def _check_grid_dimensions(dimension, *args):
+    if dimension == 1:
+        if len(args[0]) != len(args[1]):
+            raise ValueError("Grid dimensions of x and f(x) do not match")
+    elif dimension == 2:
+        if args[0].shape != (args[1].size, args[2].size):
+            raise ValueError("Grid dimensions of x, y and f(x, y) do not match")
+    elif dimension == 3:
+        if args[0].shape != (args[1].size, args[2].size, args[3].size):
+            raise ValueError("Grid dimensions of x, y, z and f(x, y, z) do not match")
+    elif dimension == 4:
+        if args[0].shape != (args[1].size, args[2].size, args[3].size, args[4].size):
+            raise ValueError("Grid dimensions of x, y, z and f(x, y, z) do not match")
+    else:
+        raise ValueError("Dimension should be between 1 and 4 inclusive.")
+
+
+def _check_flatten(dimension, *args):
+    if dimension == 1:
+        if args[0].shape != args[0].flatten().shape:
+            warnings.warn("input not of the size (n, ), attempting to flatten")
+            return False
+        else:
+            return True
+
 
 
 class HARKinterpolator1D(HARKobject):
@@ -729,8 +757,9 @@ class LinearInterp(HARKinterpolator1D):
         extrapolation is used above the highest gridpoint.
         '''
         # Make the basic linear spline interpolation
-        self.x_list = np.array(x_list)
-        self.y_list = np.array(y_list)
+        self.x_list = np.array(x_list) if _check_flatten(1, x_list) else np.array(x_list).flatten()
+        self.y_list = np.array(y_list) if _check_flatten(1, y_list) else np.array(y_list).flatten()
+        _check_grid_dimensions(1, self.y_list, self.x_list)
         self.lower_extrap = lower_extrap
         self.x_n = self.x_list.size
 
@@ -870,9 +899,12 @@ class CubicInterp(HARKinterpolator1D):
         NOTE: When no input is given for the limiting linear function, linear
         extrapolation is used above the highest gridpoint.
         '''
-        self.x_list = np.asarray(x_list)
-        self.y_list = np.asarray(y_list)
-        self.dydx_list = np.asarray(dydx_list)
+        self.x_list = np.asarray(x_list) if _check_flatten(1, x_list) else np.array(x_list).flatten()
+        self.y_list = np.asarray(y_list) if _check_flatten(1, y_list) else np.array(y_list).flatten()
+        self.dydx_list = np.asarray(dydx_list) if _check_flatten(1, dydx_list) else np.array(dydx_list).flatten()
+        _check_grid_dimensions(1, self.y_list, self.x_list)
+        _check_grid_dimensions(1, self.dydx_list, self.x_list)
+
         self.n = len(x_list)
 
         # Define lower extrapolation as linear function (or just NaN)
@@ -1057,8 +1089,9 @@ class BilinearInterp(HARKinterpolator2D):
         new instance of BilinearInterp
         '''
         self.f_values = f_values
-        self.x_list = x_list
-        self.y_list = y_list
+        self.x_list = np.array(x_list) if _check_flatten(1, x_list) else np.array(x_list).flatten()
+        self.y_list = np.array(y_list) if _check_flatten(1, y_list) else np.array(y_list).flatten()
+        _check_grid_dimensions(2, self.f_values, self.x_list, self.y_list)
         self.x_n = x_list.size
         self.y_n = y_list.size
         if xSearchFunc is None:
@@ -1175,9 +1208,10 @@ class TrilinearInterp(HARKinterpolator3D):
         new instance of TrilinearInterp
         '''
         self.f_values = f_values
-        self.x_list = x_list
-        self.y_list = y_list
-        self.z_list = z_list
+        self.x_list = np.array(x_list) if _check_flatten(1, x_list) else np.array(x_list).flatten()
+        self.y_list = np.array(y_list) if _check_flatten(1, y_list) else np.array(y_list).flatten()
+        self.z_list = np.array(z_list) if _check_flatten(1, z_list) else np.array(z_list).flatten()
+        _check_grid_dimensions(3, self.f_values, self.x_list, self.y_list, self.z_list)
         self.x_n = x_list.size
         self.y_n = y_list.size
         self.z_n = z_list.size
@@ -1362,10 +1396,11 @@ class QuadlinearInterp(HARKinterpolator4D):
         new instance of QuadlinearInterp
         '''
         self.f_values = f_values
-        self.w_list = w_list
-        self.x_list = x_list
-        self.y_list = y_list
-        self.z_list = z_list
+        self.w_list = np.array(w_list) if _check_flatten(1, w_list) else np.array(w_list).flatten()
+        self.x_list = np.array(x_list) if _check_flatten(1, x_list) else np.array(x_list).flatten()
+        self.y_list = np.array(y_list) if _check_flatten(1, y_list) else np.array(y_list).flatten()
+        self.z_list = np.array(z_list) if _check_flatten(1, z_list) else np.array(z_list).flatten()
+        _check_grid_dimensions(4, self.f_values, self.w_list, self.x_list, self.y_list, self.z_list)
         self.w_n = w_list.size
         self.x_n = x_list.size
         self.y_n = y_list.size
