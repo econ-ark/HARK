@@ -152,7 +152,8 @@ setup(
                       'numpydoc',
                       'dill',
                       'joblib',
-                      'future'],  # Optional
+                      'future',  # Optional
+                      'funcsigs'],
 
     python_requires='>=2.7',
 
