@@ -1708,10 +1708,10 @@ class PerfForesightConsumerType(AgentType):
         None
         '''
         if self.cycles!=0 or self.T_cycle > 1:
-            if verbose == True: 
+            if verbose == True:
                 print('This method only checks for the conditions for infinite horizon models with a 1 period cycle')
             return
-        
+
         violated = False
 
         #Evaluate and report on the return impatience condition
@@ -2020,7 +2020,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         impatience condition (WRIC), finite human wealth condition (FHWC) and finite value of
         autarky condition (FVAC). These are the conditions that are sufficient for nondegenerate
         solutions under infinite horizon with a 1 period cycle. Depending on the model at hand, a
-        different combination of these conditions must be satisfied. (For an exposition of the 
+        different combination of these conditions must be satisfied. (For an exposition of the
         conditions, see http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/)
 
         Parameters
