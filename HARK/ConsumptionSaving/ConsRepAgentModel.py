@@ -209,6 +209,9 @@ class RepAgentConsumerType(IndShockConsumerType):
         self.AgentCount = 1 # Hardcoded, because this is rep agent
         self.solveOnePeriod = solveConsRepAgent
         self.delFromTimeInv('Rfree','BoroCnstArt','vFuncBool','CubicBool')
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def getStates(self):
         '''
@@ -257,6 +260,9 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         '''
         RepAgentConsumerType.__init__(self,time_flow=time_flow,**kwds)
         self.solveOnePeriod = solveConsRepAgentMarkov
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def updateSolutionTerminal(self):
         '''
