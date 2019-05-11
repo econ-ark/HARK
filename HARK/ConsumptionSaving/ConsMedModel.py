@@ -531,6 +531,9 @@ class MedShockConsumerType(PersistentShockConsumerType):
         self.solveOnePeriod = solveConsMedShock # Choose correct solver
         self.addToTimeInv('CRRAmed')
         self.addToTimeVary('MedPrice')
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def update(self):
         '''
