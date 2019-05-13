@@ -112,8 +112,8 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
             i_s = 0
             for s in RshareGrid:
                 Rtilde = self.RiskyShkValsNext - self.Rfree
-                Rbold = self.Rfree + Rtilde*s
-                mNext = a*Rbold/(self.PermGroFac*self.PermShkValsNext) + self.TranShkValsNext
+                Reff = self.Rfree + Rtilde*s
+                mNext = a*Reff/(self.PermGroFac*self.PermShkValsNext) + self.TranShkValsNext
                 vHatP_a_s = Rtilde*self.PermShkValsNext**(-self.CRRA)*self.vPfuncNext(mNext)
                 vHatP[i_a, i_s] = np.dot(vHatP_a_s, self.ShkPrbsNext)
                 i_s += 1
@@ -181,8 +181,8 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         # Get cash on hand next period
 
         Rtilde = RiskyShkVals_temp - self.Rfree
-        self.Rbold = (self.Rfree + Rtilde*sAt_aNrm)
-        mNrmPreTran = self.Rbold/(self.PermGroFac*PermShkVals_temp)*aNrm_temp
+        self.Reff = (self.Rfree + Rtilde*sAt_aNrm)
+        mNrmPreTran = self.Reff/(self.PermGroFac*PermShkVals_temp)*aNrm_temp
         mNrmNext = mNrmPreTran + TranShkVals_temp
 
         # Store and report the results
@@ -208,7 +208,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
             A 1D array of end-of-period marginal value of assets
         '''
 
-        EndOfPrdvP  = np.sum(self.DiscFacEff*self.Rbold*self.PermGroFac**(-self.CRRA)*
+        EndOfPrdvP  = np.sum(self.DiscFacEff*self.Reff*self.PermGroFac**(-self.CRRA)*
                       self.PermShkVals_temp**(-self.CRRA)*
                       self.vPfuncNext(self.mNrmNext)*self.ShkPrbs_temp,axis=0)
         return EndOfPrdvP
