@@ -1,6 +1,9 @@
 import math
+import scipy.optimize as sciopt
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType,solveConsIndShock, ConsIndShockSolver
 from HARK.utilities import approxLognormal, combineIndepDstns
+from HARK.interpolation import LinearInterp
+
 from copy import deepcopy
 import numpy as np
 #
@@ -50,7 +53,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
     def prepareToCalcRshare(self):
         # Hard restriction on a
         aXtraGridPos = self.aXtraGrid[self.aXtraGrid >= 0]
-
+        self.aXtraGridPos = aXtraGridPos
         RshareGrid = self.makeRshareGrid()
         self.RshareNow = np.array([])
         vHatP = np.zeros((len(aXtraGridPos), len(RshareGrid)))
@@ -70,13 +73,34 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
             i_s = 0
             for s in RshareGrid:
                 Rtilde = RiskyVal - self.Rfree
-                mNext = (self.Rfree*(1-s) + RiskyVal*s)/(self.PermGroFac*PermVal) + TransVal
+                Rbold = self.Rfree + Rtilde*s
+                mNext = a*Rbold/(self.PermGroFac*PermVal) + TransVal
                 vHatP_a_s = Rtilde*PermVal**(-self.CRRA)*self.vPfuncNext(mNext)
                 vHatP[i_a, i_s] = np.dot(vHatP_a_s, Probs)
                 i_s += 1
             i_a += 1
 
         return vHatP
+
+    def calcRshare(self):
+        aGrid = np.array([0.0,])
+        Rshare = np.array([1.0,])
+
+        i_a = 0
+        for a in self.aXtraGridPos:
+            aGrid = np.append(aGrid, a)
+            if self.vHatP[i_a, -1] >= 0.0:
+                Rshare = np.append(Rshare, 1.0)
+            else:
+                residual = LinearInterp(self.RshareGrid, self.vHatP[i_a, :])
+                zero  = sciopt.fsolve(residual, 1.0)
+                Rshare = np.append(Rshare, zero)
+            i_a += 1
+
+        print(aGrid)
+        print(Rshare)
+
+        return Rshare
 
     def solve(self):
         '''
@@ -93,6 +117,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
             The solution to the one period problem.
         '''
         self.vHatP = self.prepareToCalcRshare()
+        self.Rshare = self.calcRshare()
         # aNrm       = self.prepareToCalcEndOfPrdvP()
         # EndOfPrdvP = self.calcEndOfPrdvP()
         # solution   = self.makeBasicSolution(EndOfPrdvP,aNrm,self.makeLinearcFunc)
@@ -106,7 +131,6 @@ def solveConsPortfolioChoice(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
     solver = ConsIndShockPortfolioSolver(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree,
                       PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool, CubicBool, RiskyDstn, RiskyAvg, RshareCount)
     solver.solve()
-    print(solver.vHatP)
     return solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
                                     BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
 
