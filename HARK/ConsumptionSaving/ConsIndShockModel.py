@@ -811,7 +811,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         # Get cash on hand next period
         mNrmNext          = self.Rfree/(self.PermGroFac*PermShkVals_temp)*aNrm_temp + TranShkVals_temp
-
+        print(mNrmNext.shape)
         # Store and report the results
         self.PermShkVals_temp  = PermShkVals_temp
         self.ShkPrbs_temp      = ShkPrbs_temp
