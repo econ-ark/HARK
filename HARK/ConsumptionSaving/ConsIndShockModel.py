@@ -706,6 +706,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         self.MPCmaxNow    = 1.0/(1.0 + (self.WorstIncPrb**(1.0/self.CRRA))*
                                         self.PatFac/solution_next.MPCmax)
 
+        self.cFuncLimitIntercept = self.MPCminNow*self.hNrmNow
+        self.cFuncLimitSlope = self.MPCminNow
+
 
     def defBoroCnst(self,BoroCnstArt):
         '''
@@ -811,7 +814,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         # Get cash on hand next period
         mNrmNext          = self.Rfree/(self.PermGroFac*PermShkVals_temp)*aNrm_temp + TranShkVals_temp
-        print(mNrmNext.shape)
+
         # Store and report the results
         self.PermShkVals_temp  = PermShkVals_temp
         self.ShkPrbs_temp      = ShkPrbs_temp
@@ -971,7 +974,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cFuncUnc : LinearInterp
             The unconstrained consumption function for this period.
         '''
-        cFuncUnc = LinearInterp(mNrm,cNrm,self.MPCminNow*self.hNrmNow,self.MPCminNow)
+        cFuncUnc = LinearInterp(mNrm, cNrm, self.cFuncLimitIntercept, self.cFuncLimitSlope)
         return cFuncUnc
 
     def solve(self):
