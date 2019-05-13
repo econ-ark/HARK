@@ -137,8 +137,8 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
                 zero  = sciopt.fsolve(residual, 0.5)
                 Rshare = np.append(Rshare, zero)
             i_a += 1
-        RshareFunc = LinearInterp(aGrid, Rshare)
-        return RshareFunc
+        RiskyShareFunc = LinearInterp(aGrid, Rshare)
+        return RiskyShareFunc
 
     def prepareToCalcEndOfPrdvP(self):
         '''
@@ -177,7 +177,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
 
 
         # sAtA
-        sAt_aNrm = self.RshareFunc(aNrmNow)
+        sAt_aNrm = self.RiskyShareFunc(aNrmNow)
         # Get cash on hand next period
 
         Rtilde = RiskyShkVals_temp - self.Rfree
@@ -322,8 +322,12 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         solution : ConsumerSolution
             The solution to the one period problem.
         '''
+
+        # First, solve the first sub-problem: the portfolio choice
         self.vHatP = self.prepareToCalcRiskyShare()
-        self.RshareFunc = self.calcRiskyShare()
+        self.RiskyShareFunc = self.calcRiskyShare()
+
+        # Then solve the consumption choice given optimal portfolio choice
         aNrm       = self.prepareToCalcEndOfPrdvP()
         EndOfPrdvP = self.calcEndOfPrdvP()
 
@@ -336,7 +340,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         # solution   = self.addMPCandHumanWealth(solution)
         solution = PortfolioConsumerSolution(cFunc=cs_solution.cFunc,
                                              vPfunc=cs_solution.vPfunc,
-                                             RiskyShareFunc=self.RshareFunc)
+                                             RiskyShareFunc=self.RiskyShareFunc)
         return solution
 
 def solveConsPortfolioChoice(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
