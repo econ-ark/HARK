@@ -723,9 +723,8 @@ class MarkovConsumerType(IndShockConsumerType):
 
     def preSolve(self):
         """
-        Do preSolve stuff inherited from IndShockConsumerType, then check to make sure that the
-        inputs that are specific to MarkovConsumerType are of the right shape (if arrays) or length
-        (if lists).
+        Check to make sure that the inputs that are specific to MarkovConsumerType
+        are of the right shape (if arrays) or length (if lists).
 
         Parameters
         ----------
@@ -735,7 +734,7 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.preSolve(self)
+        self.updateSolutionTerminal()
         self.checkMarkovInputs()
 
     def updateSolutionTerminal(self):

@@ -6,3 +6,4 @@ future
 joblib
 dill
 scipy
+flake8
