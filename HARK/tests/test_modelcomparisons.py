@@ -89,8 +89,8 @@ class Compare_TBS_and_Markov(unittest.TestCase):
         TBSType.solve()
 
         # Set up and solve Markov
-        MrkvArray = np.array([[1.0-base_primitives['UnempPrb'], base_primitives['UnempPrb']],
-                              [0.0, 1.0]])
+        MrkvArray = [[1.0-base_primitives['UnempPrb'], base_primitives['UnempPrb']],
+                              [0.0, 1.0]]
         Markov_primitives = {"CRRA": base_primitives['CRRA'],
                              "Rfree": np.array(2*[base_primitives['Rfree']]),
                              "PermGroFac": [np.array(2*[base_primitives['PermGroFac'] /
