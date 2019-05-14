@@ -885,7 +885,7 @@ class Market(HARKobject):
     dynamic general equilibrium models to solve the "macroeconomic" model as a
     layer on top of the "microeconomic" models of one or more AgentTypes.
     '''
-    def __init__(self, agents=[], sow_vars=[], reap_vars=[], const_vars=[], rack_vars=[], dyn_vars=[],
+    def __init__(self, agents=[], sow_vars=[], reap_vars=[], const_vars=[], track_vars=[], dyn_vars=[],
                  millRule=None, calcDynamics=None, act_T=1000, tolerance=0.000001):
         '''
         Make a new instance of the Market class.
