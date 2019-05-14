@@ -7,6 +7,7 @@ choice models with (or without) taste shocks" by Iskhakov et al. (2016)
 import numpy as np
 from HARK.interpolation import LinearInterp
 
+
 def calcSegments(x, v):
     """
     Find index vectors `rise` and `fall` such that `rise` holds the indeces `i`
@@ -43,22 +44,22 @@ def calcSegments(x, v):
     #
     # `fall` is a vector of indeces that represent the first elements in all
     # of the falling segments (the curve can potentially fold several times)
-    fall = np.empty(0, dtype=int) # initialize with empty and then add the last point below while-loop
+    fall = np.empty(0, dtype=int)  # initialize with empty and then add the last point below while-loop
 
-    rise = np.array([0]) # Initialize such thatthe lowest point is the first grid point
-    i = 1 # Initialize
+    rise = np.array([0])  # Initialize such thatthe lowest point is the first grid point
+    i = 1  # Initialize
     while i <= len(x) - 2:
         # Check if the next (`ip1` stands for i plus 1) grid point is below the
         # current one, such that the line is folding back.
-        ip1_falls = x[i+1] < x[i] # true if grid decreases on index increment
-        i_rose = x[i] > x[i-1] # true if grid decreases on index decrement
-        val_fell = v[i] < v[i-1] # true if value rises on index decrement
+        ip1_falls = x[i+1] < x[i]  # true if grid decreases on index increment
+        i_rose = x[i] > x[i-1]  # true if grid decreases on index decrement
+        val_fell = v[i] < v[i-1]  # true if value rises on index decrement
 
         if (ip1_falls and i_rose) or (val_fell and i_rose):
 
             # we are in a region where the endogenous grid is decreasing or
             # the value function rises by stepping back in the grid.
-            fall = np.append(fall, i) # add the index to the vector
+            fall = np.append(fall, i)  # add the index to the vector
 
             # We now iterate from the current index onwards until we find point
             # where resources rises again. Unfortunately, we need to check
@@ -84,6 +85,8 @@ def calcSegments(x, v):
     return rise, fall
 # think! nanargmax makes everythign super ugly because numpy changed the wraning
 # in all nan slices to a valueerror...it's nans, aaarghgghg
+
+
 def calcMultilineEnvelope(M, C, V_T, commonM):
     """
     Do the envelope step of the DCEGM algorithm. Takes in market ressources,
@@ -110,7 +113,7 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
     m_len = len(commonM)
     rise, fall = calcSegments(M, V_T)
 
-    num_kinks = len(fall) # number of kinks / falling EGM grids
+    num_kinks = len(fall)  # number of kinks / falling EGM grids
 
     # Use these segments to sequentially find upper envelopes. commonVARNAME
     # means the VARNAME evaluated on the common grid with a cloumn for each kink
@@ -128,9 +131,9 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
     for j in range(num_kinks):
         # Find points in the common grid that are in the range of the points in
         # the interval defined by (rise[j], fall[j]).
-        below = M[rise[j]] >= commonM # boolean array of bad indeces below
-        above = M[fall[j]] <= commonM # boolen array of bad indeces above
-        in_range = below + above == 0 # pick out elements that are neither
+        below = M[rise[j]] >= commonM  # boolean array of bad indeces below
+        above = M[fall[j]] <= commonM  # boolen array of bad indeces above
+        in_range = below + above == 0  # pick out elements that are neither
 
         # create range of indeces in the input arrays
         idxs = range(rise[j], fall[j]+1)
@@ -141,14 +144,14 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
         m_eval = commonM[in_range]
 
         # re-interpolate to common grid
-        commonV_T[in_range,j] = LinearInterp(m_idx_j, V_T[idxs], lower_extrap=True)(m_eval)
-        commonC[in_range,j]  = LinearInterp(m_idx_j, C[idxs], lower_extrap=True)(m_eval) # Interpolat econsumption also. May not be nesserary
+        commonV_T[in_range, j] = LinearInterp(m_idx_j, V_T[idxs], lower_extrap=True)(m_eval) # NOQA
+        commonC[in_range, j]   = LinearInterp(m_idx_j, C[idxs], lower_extrap=True)(m_eval) # NOQA Interpolat econsumption also. May not be nesserary
     # for each row in the commonV_T matrix, see if all entries are np.nan. This
     # would mean that we have no valid value here, so we want to use this boolean
     # vector to filter out irrelevant entries of commonV_T.
     row_all_nan = np.array([np.all(np.isnan(row)) for row in commonV_T])
     # Now take the max of all these line segments.
-    idx_max = np.zeros(commonM.size, dtype = int)
+    idx_max = np.zeros(commonM.size, dtype=int)
     idx_max[row_all_nan == False] = np.nanargmax(commonV_T[row_all_nan == False], axis=1)
 
     # prefix with upper for variable that are "upper enveloped"
@@ -164,32 +167,32 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
         # in transformed space space, utility of zero-consumption (-inf) is 0.0
         upperV_T[0] = 0.0
         # commonM[0] is typically 0, so this is safe, but maybe it should be 0.0
-        commonC[0]  = commonM[0]
+        commonC[0] = commonM[0]
 
     # Extrapolate if NaNs are introduced due to the common grid
     # going outside all the sub-line segments
     IsNaN = np.isnan(upperV_T)
     upperV_T[IsNaN] = LinearInterp(commonM[IsNaN == False], upperV_T[IsNaN == False])(commonM[IsNaN])
-
-
-    LastBeforeNaN = np.append(np.diff(IsNaN)>0, 0)
-    LastId = LastBeforeNaN*idx_max # Find last id-number
+    LastBeforeNaN = np.append(np.diff(IsNaN) > 0, 0)
+    LastId = LastBeforeNaN*idx_max  # Find last id-number
     idx_max[IsNaN] = LastId[IsNaN]
     # Linear index used to get optimal consumption based on "id"  from max
     ncols = commonC.shape[1]
     rowidx = np.cumsum(ncols*np.ones(len(commonM), dtype=int))-ncols
     idx_linear = np.unravel_index(rowidx+idx_max, commonC.shape)
     upperC = commonC[idx_linear]
-    upperC[IsNaN] = LinearInterp(commonM[IsNaN==0], upperC[IsNaN==0])(commonM[IsNaN])
+    upperC[IsNaN] = LinearInterp(commonM[IsNaN == 0], upperC[IsNaN == 0])(commonM[IsNaN])
 
     # TODO calculate cross points of line segments to get the true vertical drops
 
-    upperM = commonM.copy() # anticipate this TODO
+    upperM = commonM.copy()  # anticipate this TODO
 
     return upperM, upperC, upperV_T
 
+
 def main():
     print("Sorry, HARK.dcegm doesn't actually do anything on its own.")
+
 
 if __name__ == '__main__':
     main()
