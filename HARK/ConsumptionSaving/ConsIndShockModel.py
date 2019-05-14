@@ -1499,6 +1499,10 @@ class PerfForesightConsumerType(AgentType):
         self.verbose        = verbose
         self.quiet          = quiet
         self.solveOnePeriod = solvePerfForesight # solver for perfect foresight model
+        
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def updateSolutionTerminal(self):
         '''
@@ -1542,7 +1546,6 @@ class PerfForesightConsumerType(AgentType):
         self.PlvlAggNow = 1.0
         self.PermShkAggNow = self.PermGroFacAgg # This never changes during simulation
         AgentType.initializeSim(self)
-
 
 
     def simBirth(self,which_agents):
@@ -1751,6 +1754,7 @@ class PerfForesightConsumerType(AgentType):
 
         return violated
 
+
 class IndShockConsumerType(PerfForesightConsumerType):
     '''
     A consumer type with idiosyncratic shocks to permanent and transitory income.
@@ -1787,9 +1791,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
         self.update() # Make assets grid, income process, terminal solution
 
-        if not self.quiet:
-            self.checkConditions(verbose=self.verbose,
-                                 public_call=False)
 
     def updateIncomeProcess(self):
         '''
@@ -2013,8 +2014,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
 
     def preSolve(self):
-        PerfForesightConsumerType.preSolve(self)
         self.updateSolutionTerminal()
+        if not self.quiet:
+            self.checkConditions(verbose=self.verbose,public_call=False)
 
     def checkConditions(self,verbose=False,public_call=True):
         '''
@@ -2082,6 +2084,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if verbose and violated:
             print('\n[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
+
 class KinkedRconsumerType(IndShockConsumerType):
     '''
     A consumer type that faces idiosyncratic shocks to income and has a different
@@ -2116,6 +2119,9 @@ class KinkedRconsumerType(IndShockConsumerType):
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsKinkedR # kinked R solver
         self.update() # Make assets grid, income process, terminal solution
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def calcBoundingValues(self):
         '''
