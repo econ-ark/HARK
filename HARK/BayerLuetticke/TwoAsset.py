@@ -1,6 +1,84 @@
-# -*- coding: utf-8 -*-
 # ---
 # jupyter:
+#   cite2c:
+#     citations:
+#       6202365/L5GBWHBM:
+#         author:
+#         - family: Reiter
+#           given: Michael
+#         container-title: Journal of Economic Dynamics and Control
+#         id: undefined
+#         issue: '1'
+#         issued:
+#           month: 1
+#           year: 2010
+#         note: 'Citation Key: reiterBackward'
+#         page: 28-35
+#         page-first: '28'
+#         title: Solving the Incomplete Markets Model with Aggregate Uncertainty by
+#           Backward Induction
+#         type: article-journal
+#         volume: '34'
+#       6202365/UKUXJHCN:
+#         author:
+#         - family: Reiter
+#           given: Michael
+#         id: 6202365/UKUXJHCN
+#         note: "Citation Key: reiter2002recursive \nbibtex*[publisher=Citeseer]"
+#         title: Recursive computation of heterogeneous agent models
+#         type: article-journal
+#       6202365/VPUXICUR:
+#         author:
+#         - family: Krusell
+#           given: Per
+#         - family: Smith
+#           given: Anthony A.
+#         container-title: Journal of Political Economy
+#         id: 6202365/VPUXICUR
+#         issue: '5'
+#         issued:
+#           year: 1998
+#         page: "867\u2013896"
+#         page-first: '867'
+#         title: Income and Wealth Heterogeneity in the Macroeconomy
+#         type: article-journal
+#         volume: '106'
+#       6202365/WN76AW6Q:
+#         author:
+#         - family: SeHyoun Ahn, Greg Kaplan, Benjamin Moll, Thomas Winberry
+#           given: ''
+#         - family: Wolf
+#           given: Christian
+#         editor:
+#         - family: Parker
+#           given: Jonathan
+#         - family: Martin S. Eichenbaum
+#           given: Organizers
+#         id: 6202365/WN76AW6Q
+#         issued:
+#           year: 2017
+#         note: "Citation Key: akmwwInequality \nbibtex*[booktitle=NBER Macroeconomics\
+#           \ Annual;publisher=MIT Press;location=Cambridge, MA]"
+#         title: When Inequality Matters for Macro and Macro Matters for Inequality
+#         type: article-journal
+#         volume: '32'
+#       undefined:
+#         author:
+#         - family: Reiter
+#           given: Michael
+#         container-title: Journal of Economic Dynamics and Control
+#         id: undefined
+#         issue: '1'
+#         issued:
+#           month: 1
+#           year: 2010
+#         note: 'Citation Key: reiterBackward'
+#         page: 28-35
+#         page-first: '28'
+#         title: Solving the Incomplete Markets Model with Aggregate Uncertainty by
+#           Backward Induction
+#         type: article-journal
+#         volume: '34'
 #   jupytext:
 #     formats: ipynb,py:light
 #     text_representation:
@@ -21,7 +99,7 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.6.6
+#     version: 3.6.7
 #   varInspector:
 #     cols:
 #       lenName: 16
@@ -54,84 +132,116 @@
 
 # # [Bayer and Luetticke (2018)](https://cepr.org/active/publications/discussion_papers/dp.php?dpno=13071)
 #
-# - Original slides by Christian Bayer and Ralph Luetticke 
+# - Adapted from original slides by Christian Bayer and Ralph Luetticke 
 # - Jupyter notebook by Seungcheol Lee 
-# - Further edits by Chris Carroll
+# - Further edits by Chris Carroll, Tao Wang, Edmund Crawley
 
 # ### Overview
-# Bayer-Luetticke depart from the Reiter (2002, 2009) perturbation method and prodvide an accessible algorithm that can deal with high-dimensional heterogeneity.
+#
+# Bayer and Luetticke propose a method for solving Heterogeneous Agent DSGE models that uses fast tools originally employed for image and video compression to speed up a variant of the solution methods proposed by Michael Reiter. <cite data-cite="undefined"></cite>  
 #
 # The Bayer-Luetticke method has the following broad features:
-#    * Reduce dimensionality after the stationary equilibrium (StE), but before linearization
-#    * Extract from the StE the important basis functions to represent individual policies (akin to image compression)
-#    * Perturb only those basis functions but use the StE as “reference frame” for the policies (akin to video compression)
-#    * Similarly for distributions
+#    * The model is formulated and solved in discrete time (in contrast with some other recent approaches <cite data-cite="6202365/WN76AW6Q"></cite>)
+#    * Solution begins by calculation of the steady-state equilibrium (StE) with no aggregate shocks
+#    * Dimensionality reduction is performed immediately after calculation of the StE
+#       * This involves finding a representation of the individual policy function using a particular class of basis functions
+#    * The method captures the business-cycle-induced _deviations_ of the individual policy functions from those that characterize the riskless StE
+#       * This is done using the same basis functions originally optimized to match the StE individual policy function (akin to image compression)
+#    * The method of capturing dynamic deviations from a reference frame is akin to video compression
+#    * Similar methods are used for capturing dynamics of distributions
 
 # ### Setup 
 #
-# #### Recursive Dynamic Planning Problem
+# #### The Recursive Dynamic Planning Problem
+#
+# The problem is described in a generic way; as we go, we will illustrate the meaning of the notation using the familiar example of the Krusell-Smith model, henceforth KS.  <cite data-cite="6202365/VPUXICUR"></cite>
 #
 # Consider a household problem in presence of aggregate and idiosyncratic risk
-#    * $S_t$ is an (exogenous) aggregate state
-#    * $s_{it}$ is a partly endogenous idiosyncratic state
-#    * $\mu_t$ is the distribution over s
-#    * Bellman equation:
-#      \begin{equation}
-#         v(s_{it},S_t,\mu_t) = \max\limits_{x \in \Gamma(s_{it},P_t)} u(s_{it},x) + \beta E v(s_{it+1}(x,s_{it}),S_{t+1},\mu_{t+1})
-#      \end{equation}
-#    * Euler equation
-#      \begin{equation}
-#         u'[x(s_{it},S_t,\mu_t)] = \beta R(S_t,\mu_t) E u'[x(s_{it+1},S_{t+1},\mu_{t+1})]
-#      \end{equation}
+#    * $S_t$ is an (exogenous) aggregate state (e.g., levels of productivity and unemployment)
+#    * $s_{it}$ is a partly endogenous idiosyncratic state (e.g., wealth)
+#    * $\mu_t$ is the distribution over $s$ at date $t$ (e.g., the wealth distribution)
+#    * $P_{t}$ is the pricing kernel 
+#       * It captures the info about the aggregate state that the consumer needs to know in order to behave optimally
+#       * e.g., KS showed that for their problem, a good _approximation_ to $P_{t}$ could be constructed using only $S_{t}$ and the aggregate capital stock $K_{t}$
+#    * $\Gamma$ defines the budget set
+#       * This delimits the set of feasible choices $x$ that the agent can make
+#       
+# The Bellman equation is:
 #
+# \begin{equation}
+#         v(s_{it},S_t,\mu_t) = \max\limits_{x \in \Gamma(s_{it},P_t)} u(s_{it},x) + \beta \mathbb{E}_{t} v(s_{it+1}(x,s_{it}),S_{t+1},\mu_{t+1})
+# \end{equation}
+#
+# which, for many types of problems, implies an Euler equation: <!-- Q: Why isn't R a t+1 dated variable (and inside the expectations operator? -->
+#      \begin{equation}
+#         u^{\prime}\left(x(s_{it},S_t,\mu_t)\right) = \beta R(S_t,\mu_t) \mathbb{E}_{t} u^{\prime}\left(x(s_{it+1},S_{t+1},\mu_{t+1})\right)
+#      \end{equation}
+#      
 
-# #### No aggregate risk
-# Recall how to solve for a StE
-#    * Discretize the state space (vectorized)
-#    * Optimal policy $h(s_{it};P)$ induces flow utility $\bar{u}_{\bar{h}}$ and transition probability matrix $\Pi_{\bar{h}}$
-#    * Discretized Bellman equation
+# #### Solving for the StE 
+#
+# The steady-state equilibrium is the one that will come about if there are no aggregate risks (and consumers know this)
+#
+# The first step is to solve for the steady-state:
+#    * Discretize the state space
+#       * Representing the nodes of the discretization in a set of vectors
+#       * These vectors will be represented by an overbar
+#    * The optimal policy $h(s_{it};P)$ induces flow utility $u_{h}$ whose discretization is a vector $\bar{u}_{\bar{h}}$
+#    * Idiosyncratic dynamics are captured by a transition probability matrix $\Pi_{\bar{h}}$
+#        * $\Pi$ is like an expectations operator
+#        * It depends on the vectorization of the policy function $\bar{h}$
+#    * $P$ is constant because in StE aggregate prices are constant
+#        * e.g., in the KS problem, $P$ would contain the (constant) wage and interest rates
+#    * In StE, the discretized Bellman equation
 #      \begin{equation}
 #         \bar{v} = \bar{u} + \beta \Pi_{\bar{h}}\bar{v}
 #       \end{equation}
-#      holds for optimal policy (assuming a linear interpolant for the continuation value)
-#    * and for the law of motion for the distribution (histograms)     
-#      \begin{equation}
-#         d\bar{\mu} = d\bar{\mu} \Pi_{\bar{h}}
-#      \end{equation}
-#      
-# Equilibrium requires    
-#    * $\bar{h}$ is the optimal policy given P and $v$ (being a linear interpolant)
-#    * $\bar{v}$ and $d\bar{\mu}$ solve the law of motion for the distribution
-#    * Markets clear (some joint requirement on $\bar{h}$, $\mu$, and P denoted as $\Phi(\bar{h}, \mu, P) = 0$)
+#      holds for the optimal policy
+#      * A linear interpolant is used for the value function
+#    * For the distribution, which (by the definition of steady state) is constant:   
 #
-# This can be solved for efficiently
-#    * Finding $d\bar{\mu}$ as the unit-eigenvalue of $\Pi_{\bar{h}}$
-#    * Using fast solution techniques for the DP, e.g. EGM
-#    * Using a root-finder to solve for P
+# \begin{eqnarray}
+#         \bar{\mu} & = & \bar{\mu} \Pi_{\bar{h}} \\
+#         d\bar{\mu} & = & d\bar{\mu} \Pi_{\bar{h}}
+# \end{eqnarray}
+#      where we differentiate in the second line because we will be representing the distribution as a histogram, which counts the _extra_ population obtained by moving up
+#      
+# We will define an approximate equilibrium in which:    
+#    * $\bar{h}$ is the vector that defines a linear interpolating policy function
+#        * given $P$ and $v$
+#        * $v$ is a linear interpolation of $\bar{v}$
+#        * $\bar{v}$ is value at the discretized nodes
+#    * $\bar{v}$ and $d\bar{\mu}$ solve the approximated Bellman equation
+#        * subject to the steady-state constraint
+#    * Markets clear ($\exists$ joint requirement on $\bar{h}$, $\mu$, and $P$; denoted as $\Phi(\bar{h}, \mu, P) = 0$)
+#
+# This can be solved by (jointly):
+#    1. Finding $d\bar{\mu}$ as the unit-eigenvalue of $\Pi_{\bar{h}}$
+#    2. Using fast solution techniques for the decision problem, e.g. EGM
+#    3. Using a root-finder to solve for $P$
 
 # ####  Introducing aggregate risk
 #
 # With aggregate risk
-#    * Prices and distribution change over time
+#    * Prices and the distribution change over time
 #
 # Yet, for the household:
 #    * Only prices and continuation values matter
-#    * Distribution do not influence the decisions directly
+#    * The distribution does not influence decisions directly
 
-# #### Redefining equilibrium (Reiter, 2002)
-# A sequential equilibrium with recursive individual planning
-#    * A sequence of discretized Bellman equation, such that
+# #### Redefining equilibrium (Reiter, 2002) 
+# A sequential equilibrium with recursive individual planning  <cite data-cite="6202365/UKUXJHCN"></cite> is:
+#    * A sequence of discretized Bellman equations, such that
 #      \begin{equation}
 #         v_t = \bar{u}_{P_t} + \beta \Pi_{h_t} v_{t+1}
 #      \end{equation}
-#      holds for optimal policy $h_t$ (which results from $v_{t+1}$ and $P_t$)
-#    * and a sequence of histogram, such that
+#      holds for policy $h_t$ which optimizes with respect to $v_{t+1}$ and $P_t$
+#    * and a sequence of histograms, such that
 #      \begin{equation}
 #         d\mu_{t+1} = d\mu_t \Pi_{h_t}
 #      \end{equation}
-#      holds given the optimal policy
-#    * (Policy functions, $h_t$, that are optimal given $P_t$, $v_{t+1}$)  
-#    * Prices, distribution, and policies lead to market clearing.
+#      holds given the policy $h_{t}$, that is optimal given $P_t$, $v_{t+1}$
+#    * Prices, distribution, and policies lead to market clearing
 
 # + {"code_folding": [0, 6, 17]}
 # Setup stuff
@@ -171,7 +281,7 @@ code_dir = os.path.join(my_file_path, "BayerLuetticke_code/TwoAssetCode")
 sys.path.insert(0, code_dir)
 sys.path.insert(0, my_file_path)
 
-# + {"code_folding": []}
+# + {"code_folding": [0]}
 ## Change working folder and load Stationary equilibrium (StE)
 
 import pickle
@@ -182,9 +292,11 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 # -
 
 # #### Compact notation (Schmitt-Grohe and Uribe, 2004)
-# The equilibrium conditions as a non-linear difference equation
-#    * Controls: $Y_t = [v_t \ P_t \ Z_t^Y]$ and States: $X_t=[\mu_t \ S_t \ Z_t^X]$ where $Z_t$ are purely aggregates states/controls
-#    * Define
+#
+# The equilibrium conditions can be represented as a non-linear difference equation
+#    * Controls: $Y_t = [v_t \ P_t \ Z_t^Y]$ and States: $X_t=[\mu_t \ S_t \ Z_t^X]$
+#       * where $Z_t$ are purely aggregate states/controls
+#    * Define <!-- Q: What is $\epsilon$ here? Why is it not encompassed in S_{t+1}? -->
 #      \begin{align}
 #       F(d\mu_t, S_t, d\mu_{t+1}, S_{t+1}, v_t, P_t, v_{t+1}, P_{t+1}, \epsilon_{t+1})
 #       &= \begin{bmatrix}
@@ -195,36 +307,41 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #            \epsilon_{t+1}
 #            \end{bmatrix}
 #      \end{align}
-#      s.t.
+#      s.t. <!-- Q: Why are S_{t+1} and \epsilon_{t+1} not arguments of v_{t+1} below? -->
 #      \begin{equation}
-#      h_t(s) = arg \max\limits_{x \in \Gamma(s,P_t)} u(s,x) + \beta \mathop{\mathbb{E}} v_{t+1}(s')
+#      h_t(s_{t}) = \arg \max\limits_{x \in \Gamma(s,P_t)} u(s,x) + \beta \mathop{\mathbb{E}_{t}} v_{t+1}(s_{t+1})
 #      \end{equation}
-#    * Function-valued difference equation
-#      $\mathop{\mathbb{E}}F(X_t,X_{t+1},Y_t,Y_{t+1},\epsilon_{t+1}) = 0$
-#    * turns real-valued when we replace the functions by their discretized counterparts
-#    * Standard techniques to solve linearized version
+#    * The solution is a function-valued difference equation:
+# \begin{equation}   
+#      \mathop{\mathbb{E}_{t}}F(X_t,X_{t+1},Y_t,Y_{t+1},\epsilon_{t+1}) = 0
+# \end{equation}    
+#      where $\mathop{\mathbb{E}}$ is the expectation over aggregate states
+#    * It becomes real-valued when we replace the functions by their discretized counterparts
+#    * Standard techniques can solve the discretized version
 
 # #### So, is all solved?
 # The dimensionality of the system F is still an issue
 #    * With high dimensional idiosyncratic states, discretized value functions and distributions become large objects
 #    * For example:
-#      4 income states (grid points) $\times$ 100 illiquid capital states $\times$ 100 liquid capital states
-#      $\Longrightarrow$ $\geq$ 40,000 control variables in F
+#       * 4 income states $\times$ 100 illiquid capital states $\times$ 100 liquid capital states $\rightarrow$ $\geq$ 40,000 variables in $F$
 #    * Same number of state variables  
 
 # ### Bayer-Luetticke method
-# #### idea
-# 1) Apply compression techniques as in video encoding
-#    * Apply a discrete cosine transformation (DCT) to all value/policy function (Chebychev polynomials on roots grid)
-#    * Define a reference "frame": the stationary equilibrium (StE)
-#    * Write fluctuations as differences from this reference frame
-#    * Assume all coefficients of the DCT from the StE close to zero do not change after shock
+# #### Idea:
+# 1. Use compression techniques as in video encoding
+#    * Apply a discrete cosine transformation (DCT) to all value/policy functions
+#       * Use Chebychev polynomials on roots grid
+#    * Define a reference "frame": the steady-state equilibrium (StE)
+#    * Represent fluctuations as differences from this reference frame
+#    * Assume all coefficients of the DCT from the StE that are close to zero do not change when there is an aggregate shock (small things stay small and unchanged)
 #    
-# 2) Neglect changes in the rank correlation structure of $\mu$   
+# 2. Assume no changes in the rank correlation structure of $\mu$   
 #    * Calculate the Copula, $\bar{C}$ of $\mu$ in the StE
 #    * Perturb only the marginal distributions
 #    * Use fixed Copula to calculate an approximate joint distribution from marginals
-#    * Idea follows Krusell and Smith (1998) in that some moments of the distribution do not matter for aggregate dynamics
+#
+#
+# The approach follows the insight of KS in that it uses the fact that some moments of the distribution do not matter for aggregate dynamics
 
 # + {"code_folding": [0]}
 ## Import necessary libraries
@@ -254,7 +371,7 @@ import scipy.fftpack as sf
 # -
 
 # #### Details
-# 1) Apply compression techniques in video encoding
+# 1) Apply compression techniques from video encoding
 #    * Let $\bar{\Theta} = dct(\bar{v})$ be the coefficients obtained from the DCT of the value function in StE
 #    * Define an index set $\mathop{I}$ that contains the x percent largest (i.e. most important) elements from $\bar{\Theta}$
 #    * Let $\theta$ be a sparse vector with non-zero entries only for elements $i \in \mathop{I}$
@@ -267,78 +384,113 @@ import scipy.fftpack as sf
 #       \end{array}\right.
 #    \end{equation}
 
-# + {"code_folding": [0]}
+# + {"code_folding": []}
 ## State reduction and Discrete cosine transformation
 
 class StateReduc_Dct:
     
-    def __init__(self, par, mpar, grid, Output, targets, Vm, Vk, joint_distr, Copula, c_n_guess, c_a_guess, psi_guess, m_n_star, m_a_star, cap_a_star, mutil_c_n, mutil_c_a,mutil_c, P_H):
+    def __init__(self, par, mpar, grid, Output, targets, Vm, Vk, 
+                 joint_distr, Copula, c_n_guess, c_a_guess, psi_guess,
+                 m_n_star, m_a_star, cap_a_star, mutil_c_n, mutil_c_a,mutil_c, P_H):
          
-        self.par = par
-        self.mpar = mpar
-        self.grid = grid
-        self.Output = Output
-        self.targets = targets
-        self.Vm = Vm
-        self.Vk = Vk
-        self.joint_distr = joint_distr
-        self.Copula = Copula
-        self.mutil_c = mutil_c
-        self.P_H = P_H
+        self.par = par         # Parameters of the theoretical model
+        self.mpar = mpar       # Parameters of the numerical representation
+        self.grid = grid       # Discrete grid
+        self.Output = Output   # Results of the calculations
+        self.targets = targets # Like, debt-to-GDP ratio or other desiderata
+        self.Vm = Vm           # Marginal value from liquid cash-on-hand
+        self.Vk = Vk           # Marginal value of capital
+        self.joint_distr = joint_distr # Multidimensional histogram
+        self.Copula = Copula   # Encodes rank correlation structure of distribution
+        self.mutil_c = mutil_c # Marginal utility of consumption
+        self.P_H = P_H         # Transition matrix for macro states (not including distribution)
         
         
     def StateReduc(self):
-        invutil = lambda x : ((1-self.par['xi'])*x)**(1./(1-self.par['xi']))
-        invmutil = lambda x : (1./x)**(1./self.par['xi'])
-                       
+        # Inverse of CRRA on x for utility and marginal utility
+        invutil = lambda x : ((1-self.par['xi'])*x)**(1./(1-self.par['xi'])) 
+        invmutil = lambda x : (1./x)**(1./self.par['xi'])                    
+            
+        # X=States
+        # Marg dist of liquid assets summing over pty and illiquid assets k
+        Xss=np.asmatrix(np.concatenate((np.sum(np.sum(self.joint_distr.copy(),axis=1),axis =1),  
+                       np.transpose(np.sum(np.sum(self.joint_distr.copy(),axis=0),axis=1)),# marg dist k
+                       np.sum(np.sum(self.joint_distr.copy(),axis=1),axis=0), # marg dist pty (\approx income)
+                       [np.log(self.par['RB'])],[ 0.]))).T # Given the constant interest rate
         
-        Xss=np.asmatrix(np.concatenate((np.sum(np.sum(self.joint_distr.copy(),axis=1),axis =1),  # marginal distribution liquid asset
-                       np.transpose(np.sum(np.sum(self.joint_distr.copy(),axis=0),axis=1)),  # marginal distribution illiquid asset
-                       np.sum(np.sum(self.joint_distr.copy(),axis=1),axis=0), # marginal distribution productivity
-                       [np.log(self.par['RB'])],[ 0.]))).T
-        
-        
-        Yss=np.asmatrix(np.concatenate((invmutil(self.mutil_c.copy().flatten(order = 'F')),invmutil(self.Vk.copy().flatten(order = 'F')),
-                      [np.log(self.par['Q'])],[ np.log(self.par['PI'])],[np.log(self.Output)],
-                      [np.log(self.par['G'])],[np.log(self.par['W'])],[np.log(self.par['R'])],[np.log(self.par['PROFITS'])],
-                      [np.log(self.par['N'])],[np.log(self.targets['T'])],[np.log(self.grid['K'])],
-                      [np.log(self.targets['B'])]))).T
+        # Y="controls" (according to this literature's odd terminology)
+        # c = invmarg(marg(c)), so first bit gets consumption policy function
+        Yss=np.asmatrix(np.concatenate((invmutil(self.mutil_c.copy().flatten(order = 'F')),\
+                                        invmutil(self.Vk.copy().flatten(order = 'F')),
+                      [np.log(self.par['Q'])], # Price of the illiquid asset (Q: right?)
+                                        [ np.log(self.par['PI'])], # Inflation
+                                        [ np.log(self.Output)],    
+                      [np.log(self.par['G'])], # Gov spending
+                                        [np.log(self.par['W'])], # Wage
+                                        [np.log(self.par['R'])], # Nominal R
+                                        [np.log(self.par['PROFITS'])], 
+                      [np.log(self.par['N'])], # Hours worked
+                                        [np.log(self.targets['T'])], # Taxes
+                                        [np.log(self.grid['K'])],    # Kapital
+                      [np.log(self.targets['B'])]))).T # Government debt
         
         # Mapping for Histogram
+        # Gamma_state matrix reduced set of states
+        #   nm = number of gridpoints for liquid assets
+        #   nk = number of gridpoints for illiquid assets
+        #   nh = number of gridpoints for human capital (pty)
+        Gamma_state = np.zeros( # Create zero matrix of size [nm + nk + nh,nm + nk + nh - 4]
+            (self.mpar['nm']+self.mpar['nk']+self.mpar['nh'],
+             self.mpar['nm']+self.mpar['nk']+self.mpar['nh'] - 4)) # Q: Why 4?
 
-        Gamma_state = np.zeros((self.mpar['nm']+self.mpar['nk']+self.mpar['nh'], self.mpar['nm']+self.mpar['nk']+self.mpar['nh'] - 4))
-        for j in range(self.mpar['nm']-1):
+        # Impose adding-up conditions: 
+        # In each of the block matrices, probabilities must add to 1
+        
+        for j in range(self.mpar['nm']-1): # np.squeeze reduces one-dimensional matrix to vector
             Gamma_state[0:self.mpar['nm'],j] = -np.squeeze(Xss[0:self.mpar['nm']])
-            Gamma_state[j,j]=1. - Xss[j]
+            Gamma_state[j,j]=1. - Xss[j]   #   
             Gamma_state[j,j]=Gamma_state[j,j] - np.sum(Gamma_state[0:self.mpar['nm'],j])
-        bb = self.mpar['nm']
+        bb = self.mpar['nm'] # Q: bb='bottom base'? because bb shorter to type than self.mpar['nm'] everywhere
 
         for j in range(self.mpar['nk']-1):
             Gamma_state[bb+np.arange(0,self.mpar['nk'],1), bb+j-1] = -np.squeeze(Xss[bb+np.arange(0,self.mpar['nk'],1)])
-            Gamma_state[bb+j,bb-1+j] = 1. - Xss[bb+j]
-            Gamma_state[bb+j,bb-1+j] = Gamma_state[bb+j,bb-1+j] - np.sum(Gamma_state[bb+np.arange(0,self.mpar['nk']),bb-1+j])
+            Gamma_state[bb+j,bb-1+j] = 1. - Xss[bb+j] 
+            Gamma_state[bb+j,bb-1+j] = Gamma_state[bb+j,bb-1+j] - 
+                np.sum(Gamma_state[bb+np.arange(0,self.mpar['nk']),bb-1+j])
         bb = self.mpar['nm'] + self.mpar['nk']
 
-        for j in range(self.mpar['nh']-2):
+        for j in range(self.mpar['nh']-2): # Q: Why -2?  Some other symmetry/adding-up condition?
             Gamma_state[bb+np.arange(0,self.mpar['nh']-1,1), bb+j-2] = -np.squeeze(Xss[bb+np.arange(0,self.mpar['nh']-1,1)])
             Gamma_state[bb+j,bb-2+j] = 1. - Xss[bb+j]
             Gamma_state[bb+j,bb-2+j] = Gamma_state[bb+j,bb-2+j] - np.sum(Gamma_state[bb+np.arange(0,self.mpar['nh']-1,1),bb-2+j])
 
-
+        # Number of other state variables not including the gridded -- here, just the interest rate 
         self.mpar['os'] = len(Xss) - (self.mpar['nm']+self.mpar['nk']+self.mpar['nh'])
+        # For each gridpoint there are two "regular" controls: consumption and illiquid saving
+        # Counts the number of "other" controls (PROFITS, Q, etc)
         self.mpar['oc'] = len(Yss) - 2*(self.mpar['nm']*self.mpar['nk']*self.mpar['nh'])
         
         aggrshock = self.par['aggrshock']
         accuracy = self.par['accuracy']
        
-        indexMUdct = self.do_dct(invmutil(self.mutil_c.copy().flatten(order='F')),self.mpar,accuracy)
-               
+        # Do the dct on the steady state marginal utility
+        # Returns a binary matrix of 1's and zeros for the used and unused basis vectors
+        indexMUdct = self.do_dct(invmutil(self.mutil_c.copy().flatten(order='F')),
+                                 self.mpar,accuracy)
+
+        # Do the dct on the steady state marginal value of capital
+        # Returns a binary matrix of 1's and zeros for the used and unused basis vectors
         indexVKdct = self.do_dct(invmutil(self.Vk.copy()),self.mpar,accuracy)
                 
+        # Calculate the numbers of states and controls
         aux = np.shape(Gamma_state)
         self.mpar['numstates'] = np.int64(aux[1] + self.mpar['os'])
-        self.mpar['numcontrols'] = np.int64(len(indexMUdct) + len(indexVKdct) + self.mpar['oc'])
+        self.mpar['numcontrols'] = np.int64(len(indexMUdct) + 
+                                            len(indexVKdct) + 
+                                            self.mpar['oc'])
         
+        # Size of the reduced matrices to be used in the Fsys
+        # Set to zero because in steady state they are zero
         State = np.zeros((self.mpar['numstates'],1))
         State_m = State
         Contr = np.zeros((self.mpar['numcontrols'],1))
@@ -350,6 +502,8 @@ class StateReduc_Dct:
                 'joint_distr': self.joint_distr, 'Output': self.Output, 'indexMUdct':indexMUdct, 'indexVKdct':indexVKdct,
                 'State':State, 'State_m':State_m, 'Contr':Contr, 'Contr_m':Contr_m}
 
+    # Discrete cosine transformation magic happens here
+    # sf is scipy.fftpack tool
     def do_dct(self, obj, mpar, level):
 
         obj = np.reshape(obj.copy(),(mpar['nm'],mpar['nk'],mpar['nh']),order='F')
@@ -357,28 +511,32 @@ class StateReduc_Dct:
         X2 = sf.dct(X1.copy(),norm='ortho',axis=1)
         X3 = sf.dct(X2.copy(),norm='ortho',axis=2)
 
-        
+        # Pick the coefficients that are big
         XX = X3.flatten(order='F')
         ind = np.argsort(abs(XX.copy()))[::-1]
-        i = 1   
+        #  i will 
+        i = 1    
+        # Sort from smallest (=best) to biggest (=worst)
+        # and count how many are 'good enough to keep'
         while linalg.norm(XX[ind[:i]].copy())/linalg.norm(XX) < level:
               i += 1    
         
-        needed = i
+        needed = i # Q:Isn't this counting the ones that are NOT needed?
         
-        index_reduced = np.sort(ind[:i])
-        
+        index_reduced = np.sort(ind[:i]) # Retrieve the good 
         
         return index_reduced
 # -
 
 # 2) Decoding
-#    * Now we reconstruct $v_t=v(\theta_t)=idct(\tilde{\Theta}(\theta_i))$
-#    * This means that in the StE the reduction step adds no addtional approximation error as $v(0)=\bar{v}$ by construction
+#    * Now we reconstruct $\tilde{v}_t=\tilde{v}(\theta_t)=dct^{-1}(\tilde{\Theta}(\theta_i))$
+#       * idct is the inverse dct that goes from the $\theta$ vector to the corresponding values
+#    * This means that in the StE the reduction step adds no addtional approximation error:
+#        * Remember that $\tilde{v}(0)=\bar{v}$ by construction
 #    * Yet, it allows to reduce the number of derivatives that need to be calculated from the outset.
 #    
-# 3) Analogously for the histogram
-#    * $\mu_t$ as $\bar{C}(\bar{\mu_t}^1,...,\bar{\mu_t}^n)$ for n being the dimensionality of the idiosyncratic states
+# 3) The histogram is recovered the same way
+#    * $\mu_t$ is approximated as $\bar{C}(\bar{\mu_t}^1,...,\bar{\mu_t}^n)$, where $n$ is the dimensionality of the idiosyncratic states
 #    * The StE distribution is obtained when $\mu = \bar{C}(\bar{\mu}^1,...,\bar{\mu}^n)$
 #    * Typically prices are only influenced through the marginal distributions
 #    * The approach ensures that changes in the mass of one, say wealth, state are distributed in a sensible way across the other dimension
@@ -396,15 +554,15 @@ class StateReduc_Dct:
 #            \end{bmatrix}
 #      \end{align}
 #      has too many equations
-#    * Use only difference in marginals and the differences on $\mathop{I}$ 
+#    * Uses only difference in marginals and the differences on $\mathop{I}$ 
 
-# + {"code_folding": [1]}
-## Construct the system of equations (including decoding): The system in 4)
+# + {"code_folding": []}
+## Construct the system of equations (including decoding): The F system
 def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, ControlSS, 
          Gamma_state, indexMUdct, indexVKdct, par, mpar, grid, targets, Copula, P, aggrshock):
     
     '''
-    System of equations written in Schmitt-GrohÃ©-Uribe generic form with states and controls
+    System of eqns in Schmitt-Grohe/Uribe form with states and controls
     
     Parameters
     ----------
@@ -418,19 +576,24 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     Controlminus_sparse: ndarray
         Vector of state variables t (only coefficients of sparse polynomial)
     StateSS and ControlSS: matrix or ndarray
-        Value of the state and control variables in steady state. For the Value functions these are at full grids.
+        Value of the state and control variables in steady state. 
+        For the Value functions these are at full grids.
     Gamma_state: coo_matrix
-        Mapping such that perturbationof marginals are still distributions (sum to 1).
-    Gamma_control: ndarray
-        Values of the polynomial base at all nodes to map sparse coefficient changes to full grid
+        Mapping such that perturbation of marginals are still distributions (sum to 1).
+    indexMUdct: ndarray
+        Index of which basis functions are chosen to map sparse coefficient changes 
+        to full grid of values of marginal utility    
+    indexVKdct: ndarray
+        Index of which basis functions are chosen to map sparse coefficient changes 
+        to full grid of values of marginal value of capital    
     InvGamma: coo_matrix
-        Projection of Value functions etc. to Coeffeicent space for sparse polynomials.
-    par, moar: dict
-        Model and numerical parameters (structure)
+        Projection of Value functions etc. to coefficient space for sparse polynomials.
+    par, mpar: dict
+        Theory and numerical parameters (structure)
     Grid: dict
-        Liquid, illiquid and productivity grid
+        Liquid, illiquid, and productivity grid
     Targets: dict
-        Stores targets for government policy
+        Targets for government policy
    Copula : dict
         points for interpolation of joint distribution
     P: ndarray
@@ -441,12 +604,12 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     '''
     
     ## Initialization
+    ## Lambda functions for marginal utility and inverse
     mutil = lambda x : 1./np.power(x,par['xi'])
 #    invmutil = lambda x : (1./x)**(1./par['xi'])
     invmutil = lambda x : np.power(1./x,1./par['xi'])
     
-    # Generate meshes for b,k,h
-
+    # Generate meshes for m,k,h # Q:m not b?
     
     # number of states, controls
     nx = mpar['numstates'] # number of states
@@ -464,6 +627,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     mutil_cind = np.array(range(len(indexMUdct)))
     Vkind = len(indexMUdct) + np.array(range(len(indexVKdct)))
     
+    # Where each thing lives
     Qind = Ny
     PIind = Ny+1
     Yind = Ny+2
@@ -477,38 +641,44 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     Bind = Ny+10
     
     # Indexes for states
-    #distr_ind = np.arange(mpar['nm']*mpar['nh']-mpar['nh']-1)
+    # distr_ind = np.arange(mpar['nm']*mpar['nh']-mpar['nh']-1)
     marginal_mind = range(mpar['nm']-1)
-    marginal_kind = range(mpar['nm']-1,mpar['nm']+mpar['nk']-2)
-    marginal_hind = range(mpar['nm']+mpar['nk']-2,mpar['nm']+mpar['nk']+mpar['nh']-4)
+    marginal_kind = range(mpar['nm']-1,mpar['nm']+mpar['nk']-2) # probs add to 1
+    marginal_hind = range(mpar['nm']+mpar['nk']-2,
+                          mpar['nm']+mpar['nk']+mpar['nh']-4) # Q: Why 4?
     
-    RBind = NxNx
+    # Where is the interest rate
+    RBind = NxNx 
+    
+    # Where is the shock to the aggregate state
     Sind = NxNx+1
     
-    ## Control variables
-    
+    ## Get the control variables    
     Control = Control_sparse.copy()
     Controlminus = Controlminus_sparse.copy()
            
+    # Getting steady state plus the sparse estimate of the deviation from steady state
     Control[-mpar['oc']:] = ControlSS[-mpar['oc']:].copy() + Control_sparse[-mpar['oc']:,:].copy()
     Controlminus[-mpar['oc']:] = ControlSS[-mpar['oc']:].copy() + Controlminus_sparse[-mpar['oc']:,:].copy()
     
     ## State variables
     # read out marginal histogram in t+1, t
+    # Dist = steady-state dist + deviations from the steady state
     Distribution = StateSS[:-2].copy() + Gamma_state.copy().dot(State[:NxNx].copy())
     Distributionminus = StateSS[:-2].copy() + Gamma_state.copy().dot(Stateminus[:NxNx].copy())
 
     # Aggregate Endogenous States
-    RB = StateSS[-2] + State[-2]
+    RB = StateSS[-2] + State[-2] # Q: Why is this not StateSS[RBind] etc?
     RBminus = StateSS[-2] + Stateminus[-2]
     
     # Aggregate Exogenous States
-    S = StateSS[-1] + State[-1]
+    S = StateSS[-1] + State[-1] # Q: Why is this not StateSS[Sind]?
     Sminus = StateSS[-1] + Stateminus[-1]
     
     ## Split the control vector into items with names
     # Controls
 
+    # Do the inverse discrete transform (to recover the original kinds that mean something)
     XX = np.zeros((NN,1))
     XX[indexMUdct] = Control[mutil_cind]
     
@@ -517,8 +687,10 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     aux = sf.idct(aux.copy(),norm='ortho',axis=1)
     aux = sf.idct(aux.copy(),norm='ortho',axis=2)
     
+    # Deviations from the steady state
     mutil_c_dev = aux.copy()
-    
+
+    # Steady state plus deviations
     mutil_c = mutil(mutil_c_dev.copy().flatten(order='F') + np.squeeze(np.asarray(ControlSS[np.array(range(NN))])))
     
     XX = np.zeros((NN,1))
@@ -529,10 +701,10 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     aux = sf.idct(aux.copy(),norm='ortho',axis=1)
     aux = sf.idct(aux.copy(),norm='ortho',axis=2)
     
-
+    # Vk deviations from the steady state plus steady state
     Vk_dev = aux.copy()
-    Vk = mutil(Vk_dev.copy().flatten(order='F')+np.squeeze(np.asarray(ControlSS[np.array(range(NN))+NN])))
-    
+    Vk = mutil(Vk_dev.copy().flatten(order='F')+
+               np.squeeze(np.asarray(ControlSS[np.array(range(NN))+NN])))
     
     # Aggregate Controls (t+1)
     PI = np.exp(Control[PIind])
@@ -540,7 +712,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     K = np.exp(Control[Kind])
     B = np.exp(Control[Bind])
     
-    # Aggregate Controls (t)
+    # Aggregate Controls (t) Q: Why are there more here than for t+1?
     PIminus = np.exp(Controlminus[PIind])
     Qminus = np.exp(Controlminus[Qind])
     Yminus = np.exp(Controlminus[Yind])
@@ -554,7 +726,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     Bminus = np.exp(Controlminus[Bind])
     
     
-    ## Write LHS values
+    ## Write LHS values of F
     # Controls
     LHS[nx+Vkind] = Controlminus[Vkind]
     LHS[nx+mutil_cind] = Controlminus[mutil_cind]
@@ -585,35 +757,44 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     RBminus = np.exp(RBminus) 
     
     ## Set of differences for exogenous process
+    # Serially correlated shock with correlation rhoS
     RHS[Sind] = par['rhoS']*Sminus
     
+    # Monetary policy
     if aggrshock == 'MP':
         EPS_TAYLOR = Sminus
         TFP = 1.0
-    elif aggrshock == 'TFP':
+    elif aggrshock == 'TFP': # Aggregate productivity
         TFP = np.exp(Sminus)
         EPS_TAYLOR = 0
-    elif aggrshock == 'Uncertainty':
+    elif aggrshock == 'Uncertainty': 
         TFP = 1.0
         EPS_TAYLOR = 0
    
         #Tauchen style for probability distribution next period
         P = ExTransitions(np.exp(Sminus), grid, mpar, par)['P_H']
-        
     
+    # Marginal distributions of states
     marginal_mminus = np.transpose(Distributionminus[:mpar['nm']].copy())
     marginal_kminus = np.transpose(Distributionminus[mpar['nm']:mpar['nm']+mpar['nk']].copy())
     marginal_hminus = np.transpose(Distributionminus[mpar['nm']+mpar['nk']:mpar['nm']+mpar['nk']+mpar['nh']].copy())
     
+    # Aggregate productivity and liquid assets are the sum of idiosyncratic ones
     Hminus = np.sum(np.multiply(grid['h'][:-1],marginal_hminus[:,:-1]))
     Lminus = np.sum(np.multiply(grid['m'],marginal_mminus))
     
+    # nx is size of grid, so location of liquid assets is same as of liquid assets
     RHS[nx+Bind] = Lminus
+    
+    # illiquid assets (capital)
     RHS[nx+Kind] = np.sum(grid['k']*np.asarray(marginal_kminus))
     
-    # Calculate joint distributions
+    # Calculate joint distributions 
+    # Using the marginals and the copula
     cumdist = np.zeros((mpar['nm']+1,mpar['nk']+1,mpar['nh']+1))
-    cm,ck,ch = np.meshgrid(np.asarray(np.cumsum(marginal_mminus)), np.asarray(np.cumsum(marginal_kminus)), np.asarray(np.cumsum(marginal_hminus)), indexing = 'ij')
+    cm,ck,ch = np.meshgrid(np.asarray(np.cumsum(marginal_mminus)), 
+                           np.asarray(np.cumsum(marginal_kminus)), 
+                           np.asarray(np.cumsum(marginal_hminus)), indexing = 'ij')
     
     # griddata does not support extrapolation for 3D
     #cumdist[1:,1:,1:] = np.reshape(Copula((cm.flatten(order='F').copy(),ck.flatten(order='F').copy(),ch.flatten(order='F').copy())),(mpar['nm'],mpar['nk'],mpar['nh']), order='F')
@@ -622,30 +803,40 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     Copula_aux[np.isnan(Copula_aux.copy())] = Copula_bounds[np.isnan(Copula_aux.copy())].copy()
     
     cumdist[1:,1:,1:] = np.reshape(Copula_aux,(mpar['nm'],mpar['nk'],mpar['nh']), order='F')
+    
+    # Joint distribution last period
     JDminus = np.diff(np.diff(np.diff(cumdist,axis=0),axis=1),axis=2)
     
+    # Meshes of m, k, and h ()
     meshes={}
-    meshes['m'], meshes['k'], meshes['h'] = np.meshgrid(grid['m'],grid['k'],grid['h'], indexing = 'ij')
-    
+    meshes['m'], meshes['k'], meshes['h'] = np.meshgrid(grid['m'],
+                                                        grid['k'],
+                                                        grid['h'], 
+                                                        indexing = 'ij')
     ## Aggregate Output
+    
+    ### Q: mc=Marginal cost? (kappa is coefficient in Rotemberg price adjustment)
     mc = par['mu'] - (par['beta']* np.log(PI)*Y/Yminus - np.log(PIminus))/par['kappa']
     
+    # Aggregate hours worked
     RHS[nx+Nind] = np.power(par['tau']*TFP*par['alpha']*np.power(Kminus,(1.-par['alpha']))*mc,1./(1.-par['alpha']+par['gamma']))
+    # Aggregate output (Cobb-Douglas)   
     RHS[nx+Yind] = (TFP*np.power(Nminus,par['alpha'])*np.power(Kminus,1.-par['alpha']))
     ## Prices that are not a part of control vector
-    # Wage Rate
+    # Wage Rate depends on the production function and the markup (Q: or marginal cost?)
     RHS[nx+Wind] = TFP * par['alpha'] * mc *np.power((Kminus/Nminus),1.-par['alpha'])
     # Return on Capital
     RHS[nx+Rind] = TFP * (1.-par['alpha']) * mc *np.power((Nminus/Kminus),par['alpha']) - par['delta']
     # Profits for Enterpreneurs
+    # When you are an entrepreneur youg earn profits
     RHS[nx+Profitind] = (1.-mc)*Yminus - Yminus*(1./(1.-par['mu']))/par['kappa']/2.*np.log(PIminus)**2 + 1./2.*par['phi']*((K-Kminus)**2)/Kminus
     
-       
     ## Wages net of leisure services
+    ## Uses GHH preferences
     WW = (par['gamma']/(1.+par['gamma'])*(Nminus/Hminus)*Wminus).item()*np.ones((mpar['nm'],mpar['nk'],mpar['nh']))
     WW[:,:,-1] = Profitminus.item()*par['profitshare']*np.ones((mpar['nm'],mpar['nk']))
     
-    ## Incomes (grids)
+    ## called "inc" but it is actually the notional value of your spendable resources
     inc ={}
     inc['labor'] = par['tau']*WW.copy()*meshes['h'].copy()
     inc['rent'] = meshes['k']*Rminus.item()
@@ -653,41 +844,65 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     inc['money'] = meshes['m'].copy()*(RBminus.item()/PIminus.item()+(meshes['m']<0)*par['borrwedge']/PIminus.item())
     
     
-    ## Update policies
-    EVk = np.reshape(np.asarray(np.reshape(Vk.copy(),(mpar['nm']*mpar['nk'], mpar['nh']),order = 'F').dot(P.copy().T)),(mpar['nm'],mpar['nk'],mpar['nh']),order = 'F')
+    ## Update policies using endogenous gridpoints
+    # Expected marginal value of capital
+    EVk = np.reshape(np.asarray(np.reshape(Vk.copy(),
+                                           (mpar['nm']*mpar['nk'], 
+                                            mpar['nh']),order = 'F').dot(P.copy().T)),
+                     (mpar['nm'],mpar['nk'],mpar['nh']),order = 'F')
+    
+    # Interest rate you will pay
     RBaux = (RB.item()+(meshes['m']<0).copy()*par['borrwedge'])/PI.item()
-    EVm = np.reshape(np.asarray(np.reshape(np.multiply(RBaux.flatten(order='F').T.copy(),mutil_c.flatten(order='F').copy()),(mpar['nm']*mpar['nk'],mpar['nh']),order='F').dot(np.transpose(P.copy()))),(mpar['nm'],mpar['nk'],mpar['nh']),order='F')
     
+    # Marginal value of liquid assets
+    EVm = np.reshape(np.asarray(np.reshape(np.multiply(RBaux.flatten(order='F').T.copy(),
+                                                       mutil_c.flatten(order='F').copy()),
+                                           (mpar['nm']*mpar['nk'],mpar['nh']),
+                                           order='F').dot(np.transpose(P.copy()))),
+                     (mpar['nm'],mpar['nk'],mpar['nh']),order='F')
     
-    result_EGM_policyupdate = EGM_policyupdate(EVm,EVk,Qminus.item(),PIminus.item(),RBminus.item(),inc,meshes,grid,par,mpar)
+    # Update policies using endogenous gridpoints method for out of steady state stuff
+    result_EGM_policyupdate = EGM_policyupdate(EVm,
+                                               EVk,
+                                               Qminus.item(),
+                                               PIminus.item(),
+                                               RBminus.item(),inc,meshes,grid,par,mpar)
+    # Star means the optimal value
     c_a_star = result_EGM_policyupdate['c_a_star']
     m_a_star = result_EGM_policyupdate['m_a_star']
     k_a_star = result_EGM_policyupdate['k_a_star']
     c_n_star = result_EGM_policyupdate['c_n_star']
     m_n_star = result_EGM_policyupdate['m_n_star']
     
+    # Q: Is this max value of ind pty?
     meshaux = meshes.copy()
     meshaux['h'][:,:,-1] = 1000.
     
     ## Update Marginal Value of Bonds
+    # Q: Marginal utility is weighted average of mu from c and from leisure
     mutil_c_n = mutil(c_n_star.copy())
     mutil_c_a = mutil(c_a_star.copy())
     mutil_c_aux = par['nu']*mutil_c_a + (1-par['nu'])*mutil_c_n
-    aux = invmutil(mutil_c_aux.copy().flatten(order='F'))-np.squeeze(np.asarray(ControlSS[np.array(range(NN))]))
+    aux = invmutil(mutil_c_aux.copy().flatten(order='F'))-np.squeeze(
+        np.asarray(ControlSS[np.array(range(NN))]))
     aux = np.reshape(aux,(mpar['nm'],mpar['nk'],mpar['nh']),order='F')
+    
+    # Do the dct
     aux = sf.dct(aux.copy(),norm='ortho',axis=0)
     aux = sf.dct(aux.copy(),norm='ortho',axis=1)
     aux = sf.dct(aux.copy(),norm='ortho',axis=2)
 
-    
+    # Code it up into a Discrete Cosine object in transformed space
     DC = np.asmatrix(aux.copy().flatten(order='F')).T
     
+    # Set liquid assets policy function to computed optimal one
     RHS[nx+mutil_cind] = DC[indexMUdct]
-    
     
     ## Update Marginal Value of capital
     EVk = np.reshape(Vk,(mpar['nm']*mpar['nk'],mpar['nh']),order='F').dot(P.copy().T)
             
+    # Set illiquid saving choice to optimal choice
+    ## Parallels what was done above for mu
     Vpoints = np.concatenate(( [meshaux['m'].flatten(order='F')],[meshaux['k'].flatten(order='F')],[meshaux['h'].flatten(order='F')]),axis=0).T
     # griddata does not support extrapolation for 3D   
     Vk_next = griddata(Vpoints,np.asarray(EVk).flatten(order='F').copy(),(m_n_star.copy().flatten(order='F'),meshaux['k'].copy().flatten(order='F'),meshaux['h'].copy().flatten(order='F')),method='linear')
@@ -707,7 +922,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
         
     RHS[nx+Vkind] = DC[indexVKdct]
     
-    ## Differences for distriutions
+    ## Differences for distributions
     # find next smallest on-grid value for money choices
     weight11 = np.empty((mpar['nm']*mpar['nk'],mpar['nh'],mpar['nh']))
     weight12 = np.empty((mpar['nm']*mpar['nk'],mpar['nh'],mpar['nh']))
@@ -1047,7 +1262,7 @@ EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
 ## Choose an accuracy of approximation with DCT
 EX3SS['par']['accuracy'] = 0.99999 
 
-# + {"code_folding": [0]}
+# + {"code_folding": []}
 ## Implement state reduction and DCT
 EX3SR=StateReduc_Dct(**EX3SS)
 SR=EX3SR.StateReduc()
@@ -1245,7 +1460,7 @@ def plot_IRF(mpar,par,gx,hx,joint_distr,Gamma_state,grid,targets,Output):
     f_N.show()
 
 
-# + {"code_folding": [0, 2]}
+# + {"code_folding": [2]}
 ## Obtain numerical derivatives (F1~F4) using Fsys and calculate linear policy or transition functions by SGU (04) 
 
 def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,Copula,P_H,aggrshock): #
