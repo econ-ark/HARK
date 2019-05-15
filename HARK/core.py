@@ -21,8 +21,7 @@ import numpy as np
 from time import clock
 from .parallel import multiThreadCommands, multiThreadCommandsFake
 
-
-def distanceMetric(thing_A, thing_B):
+def distanceMetric(thing_A,thing_B):
     '''
     A "universal distance" metric that can be used as a default in many settings.
 
@@ -43,12 +42,12 @@ def distanceMetric(thing_A, thing_B):
     typeB = type(thing_B)
 
     if typeA is list and typeB is list:
-        lenA = len(thing_A)  # If both inputs are lists, then the distance between
-        lenB = len(thing_B)  # them is the maximum distance between corresponding
-        if lenA == lenB:  # elements in the lists.  If they differ in length,
-            distance_temp = []  # the distance is the difference in lengths.
+        lenA = len(thing_A) # If both inputs are lists, then the distance between
+        lenB = len(thing_B) # them is the maximum distance between corresponding
+        if lenA == lenB:    # elements in the lists.  If they differ in length,
+            distance_temp = [] # the distance is the difference in lengths.
             for n in range(lenA):
-                distance_temp.append(distanceMetric(thing_A[n], thing_B[n]))
+                distance_temp.append(distanceMetric(thing_A[n],thing_B[n]))
             distance = max(distance_temp)
         else:
             distance = float(abs(lenA - lenB))
@@ -58,7 +57,7 @@ def distanceMetric(thing_A, thing_B):
     # If both inputs are array-like, return the maximum absolute difference b/w
     # corresponding elements (if same shape); return largest difference in dimensions
     # if shapes do not align.
-    elif hasattr(thing_A, 'shape') and hasattr(thing_B, 'shape'):
+    elif hasattr(thing_A,'shape') and hasattr(thing_B,'shape'):
         if thing_A.shape == thing_B.shape:
             distance = np.max(abs(thing_A - thing_B))
         else:
@@ -70,17 +69,16 @@ def distanceMetric(thing_A, thing_B):
             distance = 0.0
         else:
             distance = thing_A.distance(thing_B)
-    else:  # Failsafe: the inputs are very far apart
+    else: # Failsafe: the inputs are very far apart
         distance = 1000.0
     return distance
-
 
 class HARKobject(object):
     '''
     A superclass for object classes in HARK.  Comes with two useful methods:
     a generic/universal distance method and an attribute assignment method.
     '''
-    def distance(self, other):
+    def distance(self,other):
         '''
         A generic distance method, which requires the existence of an attribute
         called distance_criteria, giving a list of strings naming the attributes
@@ -100,14 +98,14 @@ class HARKobject(object):
         distance_list = [0.0]
         for attr_name in self.distance_criteria:
             try:
-                obj_A = getattr(self, attr_name)
-                obj_B = getattr(other, attr_name)
-                distance_list.append(distanceMetric(obj_A, obj_B))
-            except AttributeError:
-                distance_list.append(1000.0)  # if either object lacks attribute, they are not the same
+                obj_A = getattr(self,attr_name)
+                obj_B = getattr(other,attr_name)
+                distance_list.append(distanceMetric(obj_A,obj_B))
+            except:
+                distance_list.append(1000.0) # if either object lacks attribute, they are not the same
         return max(distance_list)
 
-    def assignParameters(self, **kwds):
+    def assignParameters(self,**kwds):
         '''
         Assign an arbitrary number of attributes to this agent.
 
@@ -122,16 +120,16 @@ class HARKobject(object):
         none
         '''
         for key in kwds:
-            setattr(self, key, kwds[key])
+            setattr(self,key,kwds[key])
 
-    def __call__(self, **kwds):
+    def __call__(self,**kwds):
         '''
         Assign an arbitrary number of attributes to this agent, as a convenience.
         See assignParameters.
         '''
         self.assignParameters(**kwds)
 
-    def getAvg(self, varname, **kwds):
+    def getAvg(self,varname,**kwds):
         '''
         Calculates the average of an attribute of this instance.  Returns NaN if no such attribute.
 
@@ -146,11 +144,10 @@ class HARKobject(object):
         avg : float or np.array
             The average of this attribute.  Might be an array if the axis keyword is passed.
         '''
-        if hasattr(self, varname):
-            return np.mean(getattr(self, varname), **kwds)
+        if hasattr(self,varname):
+            return np.mean(getattr(self,varname),**kwds)
         else:
             return np.nan
-
 
 class Solution(HARKobject):
     '''
@@ -160,7 +157,6 @@ class Solution(HARKobject):
     NOTE: This can be deprecated now that HARKobject exists, but this requires
     replacing each instance of Solution with HARKobject in the other modules.
     '''
-
 
 class AgentType(HARKobject):
     '''
@@ -174,8 +170,8 @@ class AgentType(HARKobject):
     'solveOnePeriod' should appear in exactly one of these lists, depending on
     whether the same solution method is used in all periods of the model.
     '''
-    def __init__(self, solution_terminal=None, cycles=1, time_flow=False, pseudo_terminal=True,
-                 tolerance=0.000001, seed=0, **kwds):
+    def __init__(self,solution_terminal=None,cycles=1,time_flow=False,pseudo_terminal=True,
+                 tolerance=0.000001,seed=0,**kwds):
         '''
         Initialize an instance of AgentType by setting attributes.
 
@@ -215,18 +211,18 @@ class AgentType(HARKobject):
         '''
         if solution_terminal is None:
             solution_terminal = NullFunc()
-        self.solution_terminal  = solution_terminal # NOQA
-        self.cycles             = cycles # NOQA
-        self.time_flow          = time_flow # NOQA
-        self.pseudo_terminal    = pseudo_terminal # NOQA
-        self.solveOnePeriod     = NullFunc() # NOQA
-        self.tolerance          = tolerance # NOQA
-        self.seed               = seed # NOQA
-        self.track_vars         = [] # NOQA
-        self.poststate_vars     = [] # NOQA
-        self.read_shocks        = False # NOQA
-        self.assignParameters(**kwds) # NOQA
-        self.resetRNG() # NOQA
+        self.solution_terminal  = solution_terminal
+        self.cycles             = cycles
+        self.time_flow          = time_flow
+        self.pseudo_terminal    = pseudo_terminal
+        self.solveOnePeriod     = NullFunc()
+        self.tolerance          = tolerance
+        self.seed               = seed
+        self.track_vars         = []
+        self.poststate_vars     = []
+        self.read_shocks        = False
+        self.assignParameters(**kwds)
+        self.resetRNG()
 
     def timeReport(self):
         '''
@@ -292,7 +288,7 @@ class AgentType(HARKobject):
         if self.time_flow:
             self.timeFlip()
 
-    def addToTimeVary(self, *params):
+    def addToTimeVary(self,*params):
         '''
         Adds any number of parameters to time_vary for this instance.
 
@@ -309,7 +305,7 @@ class AgentType(HARKobject):
             if param not in self.time_vary:
                 self.time_vary.append(param)
 
-    def addToTimeInv(self, *params):
+    def addToTimeInv(self,*params):
         '''
         Adds any number of parameters to time_inv for this instance.
 
@@ -326,7 +322,7 @@ class AgentType(HARKobject):
             if param not in self.time_inv:
                 self.time_inv.append(param)
 
-    def delFromTimeVary(self, *params):
+    def delFromTimeVary(self,*params):
         '''
         Removes any number of parameters from time_vary for this instance.
 
@@ -343,7 +339,7 @@ class AgentType(HARKobject):
             if param in self.time_vary:
                 self.time_vary.remove(param)
 
-    def delFromTimeInv(self, *params):
+    def delFromTimeInv(self,*params):
         '''
         Removes any number of parameters from time_inv for this instance.
 
@@ -360,7 +356,7 @@ class AgentType(HARKobject):
             if param in self.time_inv:
                 self.time_inv.remove(param)
 
-    def solve(self, verbose=False):
+    def solve(self,verbose=False):
         '''
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period problems, passing the solution
@@ -376,16 +372,12 @@ class AgentType(HARKobject):
         none
         '''
 
-        # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
-        # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
-        # -np.inf, np.inf/np.inf is np.nan and so on.
-        with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
-            self.preSolve()  # Do pre-solution stuff
-            self.solution = solveAgent(self, verbose)  # Solve the model by backward induction
-            if self.time_flow:  # Put the solution in chronological order if this instance's time flow runs that way
-                self.solution.reverse()
-            self.addToTimeVary('solution')  # Add solution to the list of time-varying attributes
-            self.postSolve()  # Do post-solution stuff
+        self.preSolve() # Do pre-solution stuff
+        self.solution = solveAgent(self,verbose) # Solve the model by backward induction
+        if self.time_flow: # Put the solution in chronological order if this instance's time flow runs that way
+            self.solution.reverse()
+        self.addToTimeVary('solution') # Add solution to the list of time-varying attributes
+        self.postSolve() # Do post-solution stuff
 
     def resetRNG(self):
         '''
@@ -406,8 +398,9 @@ class AgentType(HARKobject):
         A method to check that elements of time_vary are lists.
         """
         for param in self.time_vary:
-            assert type(getattr(self, param)) == list, param + ' is not a list, but should be' + \
+            assert type(getattr(self,param))==list,param + ' is not a list, but should be' + \
                                                    ' because it is in time_vary'
+
 
     def preSolve(self):
         '''
@@ -455,13 +448,12 @@ class AgentType(HARKobject):
         '''
         self.resetRNG()
         self.t_sim = 0
-        all_agents = np.ones(self.AgentCount, dtype=bool)
+        all_agents = np.ones(self.AgentCount,dtype=bool)
         blank_array = np.zeros(self.AgentCount)
         for var_name in self.poststate_vars:
-            setattr(self, var_name, copy(blank_array))
-            # exec('self.' + var_name + ' = copy(blank_array)')
-        self.t_age = np.zeros(self.AgentCount, dtype=int)   # Number of periods since agent entry
-        self.t_cycle = np.zeros(self.AgentCount, dtype=int)  # Which cycle period each agent is on
+            exec('self.' + var_name + ' = copy(blank_array)')
+        self.t_age = np.zeros(self.AgentCount,dtype=int)   # Number of periods since agent entry
+        self.t_cycle = np.zeros(self.AgentCount,dtype=int) # Which cycle period each agent is on
         self.simBirth(all_agents)
         self.clearHistory()
         return None
@@ -482,18 +474,18 @@ class AgentType(HARKobject):
         None
         '''
         self.getMortality()  # Replace some agents with "newborns"
-        if self.read_shocks:  # If shock histories have been pre-specified, use those
+        if self.read_shocks: # If shock histories have been pre-specified, use those
             self.readShocks()
         else:                # Otherwise, draw shocks as usual according to subclass-specific method
             self.getShocks()
-        self.getStates()  # Determine each agent's state at decision time
+        self.getStates()     # Determine each agent's state at decision time
         self.getControls()   # Determine each agent's choice or control variables based on states
-        self.getPostStates()  # Determine each agent's post-decision / end-of-period states using states and controls
+        self.getPostStates() # Determine each agent's post-decision / end-of-period states using states and controls
 
         # Advance time for all agents
-        self.t_age = self.t_age + 1  # Age all consumers by one period
-        self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        self.t_cycle[self.t_cycle == self.T_cycle] = 0  # Resetting to zero for those who have reached the end
+        self.t_age = self.t_age + 1 # Age all consumers by one period
+        self.t_cycle = self.t_cycle + 1 # Age all consumers within their cycle
+        self.t_cycle[self.t_cycle == self.T_cycle] = 0 # Resetting to zero for those who have reached the end
 
     def makeShockHistory(self):
         '''
@@ -519,7 +511,7 @@ class AgentType(HARKobject):
 
         # Make blank history arrays for each shock variable
         for var_name in self.shock_vars:
-            setattr(self, var_name+'_hist', np.zeros((self.T_sim, self.AgentCount)) + np.nan)
+            setattr(self,var_name+'_hist',np.zeros((self.T_sim,self.AgentCount))+np.nan)
 
         # Make and store the history of shocks for each period
         for t in range(self.T_sim):
@@ -528,9 +520,9 @@ class AgentType(HARKobject):
             for var_name in self.shock_vars:
                 exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
             self.t_sim += 1
-            self.t_age = self.t_age + 1  # Age all consumers by one period
-            self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-            self.t_cycle[self.t_cycle == self.T_cycle] = 0  # Resetting to zero for those who have reached the end
+            self.t_age = self.t_age + 1 # Age all consumers by one period
+            self.t_cycle = self.t_cycle + 1 # Age all consumers within their cycle
+            self.t_cycle[self.t_cycle == self.T_cycle] = 0 # Resetting to zero for those who have reached the end
 
         # Restore the flow of time and flag that shocks can be read rather than simulated
         self.read_shocks = True
@@ -574,10 +566,10 @@ class AgentType(HARKobject):
             Boolean array of size self.AgentCount indicating which agents die and are replaced.
         '''
         print('AgentType subclass must define method simDeath!')
-        who_dies = np.ones(self.AgentCount, dtype=bool)
+        who_dies = np.ones(self.AgentCount,dtype=bool)
         return who_dies
 
-    def simBirth(self, which_agents):
+    def simBirth(self,which_agents):
         '''
         Makes new agents for the simulation.  Takes a boolean array as an input, indicating which
         agent indices are to be "born".  Does nothing by default, must be overwritten by a subclass.
@@ -626,7 +618,7 @@ class AgentType(HARKobject):
         None
         '''
         for var_name in self.shock_vars:
-            setattr(self, var_name, getattr(self, var_name + '_hist')[self.t_sim, :])
+            setattr(self,var_name,getattr(self,var_name+'_hist')[self.t_sim,:])
 
     def getStates(self):
         '''
@@ -675,7 +667,7 @@ class AgentType(HARKobject):
         '''
         return None
 
-    def simulate(self, sim_periods=None):
+    def simulate(self,sim_periods=None):
         '''
         Simulates this agent type for a given number of periods (defaults to self.T_sim if no input).
         Records histories of attributes named in self.track_vars in attributes named varname_hist.
@@ -688,23 +680,19 @@ class AgentType(HARKobject):
         -------
         None
         '''
-        # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
-        # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
-        # -np.inf, np.inf/np.inf is np.nan and so on.
-        with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
-            orig_time = self.time_flow
-            self.timeFwd()
-            if sim_periods is None:
-                sim_periods = self.T_sim
+        orig_time = self.time_flow
+        self.timeFwd()
+        if sim_periods is None:
+            sim_periods = self.T_sim
 
-            for t in range(sim_periods):
-                self.simOnePeriod()
-                for var_name in self.track_vars:
-                    exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
-                self.t_sim += 1
+        for t in range(sim_periods):
+            self.simOnePeriod()
+            for var_name in self.track_vars:
+                exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
+            self.t_sim += 1
 
-            if not orig_time:
-                self.timeRev()
+        if not orig_time:
+            self.timeRev()
 
     def clearHistory(self):
         '''
@@ -722,7 +710,7 @@ class AgentType(HARKobject):
             exec('self.' + var_name + '_hist = np.zeros((self.T_sim,self.AgentCount)) + np.nan')
 
 
-def solveAgent(agent, verbose):
+def solveAgent(agent,verbose):
     '''
     Solve the dynamic model for one agent type.  This function iterates on "cycles"
     of an agent's model either a given number of times or until solution convergence
@@ -746,8 +734,8 @@ def solveAgent(agent, verbose):
     agent.timeRev()
 
     # Check to see whether this is an (in)finite horizon problem
-    cycles_left      = agent.cycles # NOQA
-    infinite_horizon = cycles_left == 0 # NOQA
+    cycles_left      = agent.cycles
+    infinite_horizon = cycles_left == 0
 
     # Initialize the solution, which includes the terminal solution if it's not a pseudo-terminal period
     solution = []
@@ -755,15 +743,15 @@ def solveAgent(agent, verbose):
         solution.append(deepcopy(agent.solution_terminal))
 
     # Initialize the process, then loop over cycles
-    solution_last    = agent.solution_terminal # NOQA
-    go               = True # NOQA
-    completed_cycles = 0 # NOQA
-    max_cycles       = 5000 # NOQA  - escape clause
+    solution_last    = agent.solution_terminal
+    go               = True
+    completed_cycles = 0
+    max_cycles       = 5000 # escape clause
     if verbose:
         t_last = clock()
     while go:
         # Solve a cycle of the model, recording it if horizon is finite
-        solution_cycle = solveOneCycle(agent, solution_last)
+        solution_cycle = solveOneCycle(agent,solution_last)
         if not infinite_horizon:
             solution += solution_cycle
 
@@ -773,7 +761,7 @@ def solveAgent(agent, verbose):
             if completed_cycles > 0:
                 solution_distance = solution_now.distance(solution_last)
                 go = (solution_distance > agent.tolerance and completed_cycles < max_cycles)
-            else:  # Assume solution does not converge after only one cycle
+            else: # Assume solution does not converge after only one cycle
                 solution_distance = 100.0
                 go = True
         else:
@@ -788,16 +776,16 @@ def solveAgent(agent, verbose):
         if verbose:
             t_now = clock()
             if infinite_horizon:
-                print('Finished cycle #' + str(completed_cycles) + ' in ' + str(t_now-t_last) +
-                      ' seconds, solution distance = ' + str(solution_distance))
+                print('Finished cycle #' + str(completed_cycles) + ' in ' + str(t_now-t_last) +\
+                ' seconds, solution distance = ' + str(solution_distance))
             else:
-                print('Finished cycle #' + str(completed_cycles) + ' of ' + str(agent.cycles) +
-                      ' in ' + str(t_now-t_last) + ' seconds.')
+                print('Finished cycle #' + str(completed_cycles) + ' of ' + str(agent.cycles) +\
+                ' in ' + str(t_now-t_last) + ' seconds.')
             t_last = t_now
 
     # Record the last cycle if horizon is infinite (solution is still empty!)
     if infinite_horizon:
-        solution = solution_cycle  # PseudoTerminal=False impossible for infinite horizon
+        solution = solution_cycle # PseudoTerminal=False impossible for infinite horizon
 
     # Restore the direction of time to its original orientation, then return the solution
     if original_time_flow:
@@ -805,7 +793,7 @@ def solveAgent(agent, verbose):
     return solution
 
 
-def solveOneCycle(agent, solution_last):
+def solveOneCycle(agent,solution_last):
     '''
     Solve one "cycle" of the dynamic model for one agent type.  This function
     iterates over the periods within an agent's cycle, updating the time-varying
@@ -830,7 +818,7 @@ def solveOneCycle(agent, solution_last):
     # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
     if len(agent.time_vary) > 0:
         name = agent.time_vary[0]
-        T = len(eval('agent.' + name))
+        T    = len(eval('agent.' + name))
     else:
         T = 1
 
@@ -838,12 +826,12 @@ def solveOneCycle(agent, solution_last):
     always_same_solver = 'solveOnePeriod' not in agent.time_vary
     if always_same_solver:
         solveOnePeriod = agent.solveOnePeriod
-        these_args = getArgNames(solveOnePeriod)
+        these_args     = getArgNames(solveOnePeriod)
 
     # Construct a dictionary to be passed to the solver
     time_inv_string = ''
     for name in agent.time_inv:
-        time_inv_string += ' \'' + name + '\' : agent.' + name + ','
+        time_inv_string += ' \'' + name + '\' : agent.' +name + ','
     time_vary_string = ''
     for name in agent.time_vary:
         time_vary_string += ' \'' + name + '\' : None,'
@@ -851,7 +839,7 @@ def solveOneCycle(agent, solution_last):
 
     # Initialize the solution for this cycle, then iterate on periods
     solution_cycle = []
-    solution_next = solution_last
+    solution_next  = solution_last
     for t in range(T):
         # Update which single period solver to use (if it depends on time)
         if not always_same_solver:
@@ -876,8 +864,8 @@ def solveOneCycle(agent, solution_last):
     return solution_cycle
 
 
-# ========================================================================
-# ========================================================================
+#========================================================================
+#========================================================================
 
 class Market(HARKobject):
     '''
@@ -885,8 +873,8 @@ class Market(HARKobject):
     dynamic general equilibrium models to solve the "macroeconomic" model as a
     layer on top of the "microeconomic" models of one or more AgentTypes.
     '''
-    def __init__(self, agents=[], sow_vars=[], reap_vars=[], const_vars=[], track_vars=[], dyn_vars=[],
-                 millRule=None, calcDynamics=None, act_T=1000, tolerance=0.000001):
+    def __init__(self,agents=[],sow_vars=[],reap_vars=[],const_vars=[],track_vars=[],dyn_vars=[],
+                 millRule=None,calcDynamics=None,act_T=1000,tolerance=0.000001):
         '''
         Make a new instance of the Market class.
 
@@ -931,25 +919,25 @@ class Market(HARKobject):
         -------
         None
     '''
-        self.agents     = agents # NOQA
-        self.reap_vars  = reap_vars # NOQA
-        self.sow_vars   = sow_vars # NOQA
-        self.const_vars = const_vars # NOQA
-        self.track_vars = track_vars # NOQA
-        self.dyn_vars   = dyn_vars # NOQA
-        if millRule is not None:  # To prevent overwriting of method-based millRules
+        self.agents     = agents
+        self.reap_vars  = reap_vars
+        self.sow_vars   = sow_vars
+        self.const_vars = const_vars
+        self.track_vars = track_vars
+        self.dyn_vars   = dyn_vars
+        if millRule is not None: # To prevent overwriting of method-based millRules
             self.millRule = millRule
-        if calcDynamics is not None:  # Ditto for calcDynamics
+        if calcDynamics is not None: # Ditto for calcDynamics
             self.calcDynamics = calcDynamics
-        self.act_T     = act_T # NOQA
-        self.tolerance = tolerance # NOQA
-        self.max_loops = 1000 # NOQA
-
-        self.print_parallel_error_once = True
-        # Print the error associated with calling the parallel method
-        # "solveAgents" one time. If set to false, the error will never
-        # print. See "solveAgents" for why this prints once or never.
-
+        self.act_T = act_T
+        self.tolerance = tolerance
+        self.max_loops = 1000
+        
+        self.print_parallel_error_once = True  
+            # Print the error associated with calling the parallel method 
+            # "solveAgents" one time. If set to false, the error will never
+            # print. See "solveAgents" for why this prints once or never.
+        
     def solveAgents(self):
         '''
         Solves the microeconomic problem for all AgentTypes in this market.
@@ -962,19 +950,21 @@ class Market(HARKobject):
         -------
         None
         '''
-        # for this_type in self.agents:
-        # this_type.solve()
+        #for this_type in self.agents:
+        #    this_type.solve()
         try:
-            multiThreadCommands(self.agents, ['solve()'])
+            multiThreadCommands(self.agents,['solve()'])
         except Exception as err:
+            # import pdb; pdb.set_trace()
             if self.print_parallel_error_once:
-                # Set flag to False so this is only printed once.
+                # Set flag to False so this is only printed once. 
                 self.print_parallel_error_once = False
-                print("**** WARNING: could not execute multiThreadCommands in HARK.core.Market.solveAgents() ",
-                      "so using the serial version instead. This will likely be slower. "
-                      "The multiTreadCommands() functions failed with the following error:", '\n',
-                      sys.exc_info()[0], ':', err)  # sys.exc_info()[0])
-            multiThreadCommandsFake(self.agents, ['solve()'])
+                print("**** WARNING: could not execute multiThreadCommands in HARK.core.Market.solveAgents(), so using the serial version instead." + 
+                      "This will likely be slower. " + 
+                      "The multiTreadCommands() functions failed with the following error:",
+                      '\n    ', sys.exc_info()[0], ':', err) #sys.exc_info()[0])
+            multiThreadCommandsFake(self.agents,['solve()'])
+
 
     def solve(self):
         '''
@@ -990,15 +980,15 @@ class Market(HARKobject):
         -------
         None
         '''
-        go = True
-        max_loops = self.max_loops  # Failsafe against infinite solution loop
+        go              = True
+        max_loops       = self.max_loops # Failsafe against infinite solution loop
         completed_loops = 0
-        old_dynamics = None
+        old_dynamics    = None
 
-        while go:  # Loop until the dynamic process converges or we hit the loop cap
-            self.solveAgents()  # Solve each AgentType's micro problem
-            self.makeHistory()  # "Run" the model while tracking aggregate variables
-            new_dynamics = self.updateDynamics()  # Find a new aggregate dynamic rule
+        while go: # Loop until the dynamic process converges or we hit the loop cap
+            self.solveAgents()     # Solve each AgentType's micro problem
+            self.makeHistory()     # "Run" the model while tracking aggregate variables
+            new_dynamics = self.updateDynamics() # Find a new aggregate dynamic rule
 
             # Check to see if the dynamic rule has converged (if this is not the first loop)
             if completed_loops > 0:
@@ -1007,11 +997,11 @@ class Market(HARKobject):
                 distance = 1000000.0
 
             # Move to the next loop if the terminal conditions are not met
-            old_dynamics = new_dynamics
+            old_dynamics     = new_dynamics
             completed_loops += 1
-            go = distance >= self.tolerance and completed_loops < max_loops
+            go               = distance >= self.tolerance and completed_loops < max_loops
 
-        self.dynamics = new_dynamics  # Store the final dynamic rule in self
+        self.dynamics = new_dynamics # Store the final dynamic rule in self
 
     def reap(self):
         '''
@@ -1029,8 +1019,8 @@ class Market(HARKobject):
         for var_name in self.reap_vars:
             harvest = []
             for this_type in self.agents:
-                harvest.append(getattr(this_type, var_name))
-            setattr(self, var_name, harvest)
+                harvest.append(getattr(this_type,var_name))
+            setattr(self,var_name,harvest)
 
     def sow(self):
         '''
@@ -1046,9 +1036,9 @@ class Market(HARKobject):
         none
         '''
         for var_name in self.sow_vars:
-            this_seed = getattr(self, var_name)
+            this_seed = getattr(self,var_name)
             for this_type in self.agents:
-                setattr(this_type, var_name, this_seed)
+                setattr(this_type,var_name,this_seed)
 
     def mill(self):
         '''
@@ -1076,8 +1066,8 @@ class Market(HARKobject):
         product = self.millRule(**mill_dict)
         for j in range(len(self.sow_vars)):
             this_var = self.sow_vars[j]
-            this_product = getattr(product, this_var)
-            setattr(self, this_var, this_product)
+            this_product = getattr(product,this_var)
+            setattr(self,this_var,this_product)
 
     def cultivate(self):
         '''
@@ -1110,12 +1100,12 @@ class Market(HARKobject):
         -------
         none
         '''
-        for var_name in self.track_vars:  # Reset the history of tracked variables
-            setattr(self, var_name + '_hist', [])
-        for var_name in self.sow_vars:  # Set the sow variables to their initial levels
-            initial_val = getattr(self, var_name + '_init')
-            setattr(self, var_name, initial_val)
-        for this_type in self.agents:  # Reset each AgentType in the market
+        for var_name in self.track_vars: # Reset the history of tracked variables
+            setattr(self,var_name + '_hist',[])
+        for var_name in self.sow_vars: # Set the sow variables to their initial levels
+            initial_val = getattr(self,var_name + '_init')
+            setattr(self,var_name,initial_val)
+        for this_type in self.agents: # Reset each AgentType in the market
             this_type.reset()
 
     def store(self):
@@ -1132,8 +1122,8 @@ class Market(HARKobject):
         none
         '''
         for var_name in self.track_vars:
-            value_now = getattr(self, var_name)
-            getattr(self, var_name + '_hist').append(value_now)
+            value_now = getattr(self,var_name)
+            getattr(self,var_name + '_hist').append(value_now)
 
     def makeHistory(self):
         '''
@@ -1148,13 +1138,13 @@ class Market(HARKobject):
         -------
         none
         '''
-        self.reset()  # Initialize the state of the market
+        self.reset() # Initialize the state of the market
         for t in range(self.act_T):
-            self.sow()  # Distribute aggregated information/state to agents
-            self.cultivate()  # Agents take action
-            self.reap()  # Collect individual data from agents
-            self.mill()  # Process individual data into aggregate data
-            self.store()  # Record variables of interest
+            self.sow()       # Distribute aggregated information/state to agents
+            self.cultivate() # Agents take action
+            self.reap()      # Collect individual data from agents
+            self.mill()      # Process individual data into aggregate data
+            self.store()     # Record variables of interest
 
     def updateDynamics(self):
         '''
@@ -1181,11 +1171,11 @@ class Market(HARKobject):
         update_dict = eval('{' + history_vars_string + '}')
 
         # Calculate a new dynamic rule and distribute it to the agents in agent_list
-        dynamics = self.calcDynamics(**update_dict)  # User-defined dynamics calculator
+        dynamics = self.calcDynamics(**update_dict) # User-defined dynamics calculator
         for var_name in self.dyn_vars:
-            this_obj = getattr(dynamics, var_name)
+            this_obj = getattr(dynamics,var_name)
             for this_type in self.agents:
-                setattr(this_type, var_name, this_obj)
+                setattr(this_type,var_name,this_obj)
         return dynamics
 
 
@@ -1196,21 +1186,21 @@ class Market(HARKobject):
 #  Define a function to run the copying:
 def copy_module(target_path, my_directory_full_path, my_module):
     '''
-    Helper function for copy_module_to_local(). Provides the actual copy
-    functionality, with highly cautious safeguards against copying over
-    important things.
-
+    Helper function for copy_module_to_local(). Provides the actual copy 
+    functionality, with highly cautious safeguards against copying over 
+    important things. 
+    
     Parameters
     ----------
     target_path : string
         String, file path to target location
-
+        
     my_directory_full_path: string
         String, full pathname to this file's directory
-
+        
     my_module : string
         String, name of the module to copy
-
+    
     Returns
     -------
     none
@@ -1220,42 +1210,35 @@ def copy_module(target_path, my_directory_full_path, my_module):
         print("Goodbye!")
         return
     elif target_path == os.path.expanduser("~") or os.path.normpath(target_path) == os.path.expanduser("~"):
-        print("You have indicated that the target location is " + target_path +
-              " -- that is, you want to wipe out your home directory with the contents of " + my_module +
-              ". My programming does not allow me to do that.\n\nGoodbye!")
+        print("You have indicated that the target location is "+target_path+" -- that is, you want to wipe out your home directory with the contents of "+my_module+". My programming does not allow me to do that.\n\nGoodbye!")
         return
     elif os.path.exists(target_path):
-        print("There is already a file or directory at the location " + target_path +
-              ". For safety reasons this code does not overwrite existing files.\n Please remove the file at "
-              + target_path +
-              " and try again.")
+        print("There is already a file or directory at the location "+target_path+". For safety reasons this code does not overwrite existing files.\nPlease remove the file at "+target_path+" and try again.")
         return
     else:
-        user_input = input("""You have indicated you want to copy module:\n    """ + my_module
-                           + """\nto:\n    """ + target_path + """\nIs that correct? Please indicate: y / [n]\n\n""")
+        user_input = input("""You have indicated you want to copy module:\n    """+ my_module
+                           + """\nto:\n    """+ target_path +"""\nIs that correct? Please indicate: y / [n]\n\n""")
         if user_input == 'y' or user_input == 'Y':
-            # print("copy_tree(",my_directory_full_path,",", target_path,")")
+            #print("copy_tree(",my_directory_full_path,",", target_path,")")
             copy_tree(my_directory_full_path, target_path)
         else:
             print("Goodbye!")
             return
 
-
 def print_helper():
-
+    
     my_directory_full_path = os.path.dirname(os.path.realpath(__file__))
-
+    
     print(my_directory_full_path)
-
 
 def copy_module_to_local(full_module_name):
     '''
-    This function contains simple code to copy a submodule to a location on
-    your hard drive, as specified by you. The purpose of this code is to provide
-    users with a simple way to access a *copy* of code that usually sits deep in
-    the Econ-ARK package structure, for purposes of tinkering and experimenting
-    directly. This is meant to be a simple way to explore HARK code. To interact
-    with the codebase under active development, please refer to the documentation
+    This function contains simple code to copy a submodule to a location on 
+    your hard drive, as specified by you. The purpose of this code is to provide 
+    users with a simple way to access a *copy* of code that usually sits deep in 
+    the Econ-ARK package structure, for purposes of tinkering and experimenting 
+    directly. This is meant to be a simple way to explore HARK code. To interact 
+    with the codebase under active development, please refer to the documentation 
     under github.com/econ-ark/HARK/
 
     To execute, do the following on the Python command line:
@@ -1263,7 +1246,7 @@ def copy_module_to_local(full_module_name):
         from HARK.core import copy_module_to_local
         copy_module_to_local("FULL-HARK-MODULE-NAME-HERE")
 
-    For example, if you want SolvingMicroDSOPs you would enter
+    For example, if you want SolvingMicroDSOPs you would enter 
 
         from HARK.core import copy_module_to_local
         copy_module_to_local("HARK.SolvingMicroDSOPs")
@@ -1272,17 +1255,14 @@ def copy_module_to_local(full_module_name):
 
     # Find a default directory -- user home directory:
     home_directory_RAW = os.path.expanduser("~")
-    # Thanks to https://stackoverflow.com/a/4028943
+        # Thanks to https://stackoverflow.com/a/4028943
 
     # Find the directory of the HARK.core module:
-    # my_directory_full_path = os.path.dirname(os.path.realpath(__file__))
+    #my_directory_full_path = os.path.dirname(os.path.realpath(__file__))
     hark_core_directory_full_path = os.path.dirname(os.path.realpath(__file__))
     # From https://stackoverflow.com/a/5137509
-    # Important note from that answer:
-    # (Note that the incantation above won't work if you've already used os.chdir()
-    # to change your current working directory,
-    # since the value of the __file__ constant is relative to the current working directory and is not changed by an
-    #  os.chdir() call.)
+    # Important note from that answer: 
+    #   (Note that the incantation above won't work if you've already used os.chdir() to change your current working directory, since the value of the __file__ constant is relative to the current working directory and is not changed by an os.chdir() call.)
     #
     # NOTE: for this specific file that I am testing, the path should be:
     # '/home/npalmer/anaconda3/envs/py3fresh/lib/python3.6/site-packages/HARK/SolvingMicroDSOPs/---example-file---
@@ -1290,9 +1270,7 @@ def copy_module_to_local(full_module_name):
     # Split out the name of the module. Break if proper format is not followed:
     all_module_names_list = full_module_name.split('.')  # Assume put in at correct format
     if all_module_names_list[0] != "HARK":
-        print("\nWarning: the module name does not start with 'HARK'. Instead it is: '"
-              + all_module_names_list[0]+"' --please format the full namespace of the module you want. \n"
-              "For example, 'HARK.SolvingMicroDSOPs'")
+        print("\nWarning: the module name does not start with 'HARK'. Instead it is: '"+all_module_names_list[0]+"' -- please format the full namespace of the module you want. For example, 'HARK.SolvingMicroDSOPs'")
         print("\nGoodbye!")
         return
 
@@ -1304,8 +1282,8 @@ def copy_module_to_local(full_module_name):
     head_path, my_module = os.path.split(my_directory_full_path)
 
     home_directory_with_module = os.path.join(home_directory_RAW, my_module)
-
-    print("\n\n\nmy_directory_full_path:", my_directory_full_path, '\n\n\n')
+    
+    print("\n\n\nmy_directory_full_path:",my_directory_full_path,'\n\n\n')
 
     # Interact with the user:
     #     - Ask the user for the target place to copy the directory
@@ -1315,39 +1293,42 @@ def copy_module_to_local(full_module_name):
     #     - If not, just copy there
     #     - Quit
 
-    target_path = input("""You have invoked the 'replicate' process for the current module:\n    """ +
-                        my_module + """\nThe default copy location is your home directory:\n    """ +
-                        home_directory_with_module + """\nPlease enter one of the three options in single quotes below, excluding the quotes:
-
+    target_path = input("""You have invoked the 'replicate' process for the current module:\n    """ + 
+                        my_module + """\nThe default copy location is your home directory:\n    """+
+                        home_directory_with_module +"""\nPlease enter one of the three options in single quotes below, excluding the quotes: 
+                        
         'q' or return/enter to quit the process
         'y' to accept the default home directory: """+home_directory_with_module+"""
         'n' to specify your own pathname\n\n""")
 
+    
     if target_path == 'n' or target_path == 'N':
         target_path = input("""Please enter the full pathname to your target directory location: """)
-
+        
         # Clean up:
         target_path = os.path.expanduser(target_path)
         target_path = os.path.expandvars(target_path)
         target_path = os.path.normpath(target_path)
-
+        
         # Check to see if they included the module name; if not add it here:
         temp_head, temp_tail = os.path.split(target_path)
         if temp_tail != my_module:
             target_path = os.path.join(target_path, my_module)
-
+        
     elif target_path == 'y' or target_path == 'Y':
         # Just using the default path:
         target_path = home_directory_with_module
     else:
         # Assume "quit"
-        return
-
-    if target_path != 'q' and target_path != 'Q' or target_path == '':
+        return 
+    
+    if target_path != 'q' and target_path != 'Q' or target_path == '':   
         # Run the copy command:
-        copy_module(target_path, my_directory_full_path, my_module)
-
+        copy_module(target_path, my_directory_full_path, my_module)   
+    
     return
+
+
 
 
 def main():
