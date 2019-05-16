@@ -9,7 +9,7 @@ from HARK.interpolation import LinearInterp, LowerEnvelope
 from copy import deepcopy
 import numpy as np
 
-class PortfolioConsumerSolution(Solution):
+class PortfolioSolution(Solution):
     distance_criteria = ['vPfunc']
 
     def __init__(self, cFunc=None, vFunc=None,
@@ -36,13 +36,13 @@ class PortfolioConsumerSolution(Solution):
         # self.MPCmin       = MPCmin
         # self.MPCmax       = MPCmax
 
-class PortfolioChoiceConsumerType(IndShockConsumerType):
+class PortfolioConsumerType(IndShockConsumerType):
 
     time_inv_ = IndShockConsumerType.time_inv_ + ['RiskyDstn', 'RiskyShareCount']
     cFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,1.0]) # c=m in terminal period
     vFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,0.0]) # This is overwritten
     RiskyShareFunc_terminal_ = LinearInterp([0.0, 1.0],[0.0,0.0]) # c=m in terminal period
-    solution_terminal_   = PortfolioConsumerSolution(cFunc = cFunc_terminal_, RiskyShareFunc = RiskyShareFunc_terminal_,
+    solution_terminal_   = PortfolioSolution(cFunc = cFunc_terminal_, RiskyShareFunc = RiskyShareFunc_terminal_,
                                             vFunc = vFunc_terminal_, mNrmMin=0.0, hNrm=None,
                                             MPCmin=None, MPCmax=None)
 
@@ -52,11 +52,11 @@ class PortfolioChoiceConsumerType(IndShockConsumerType):
                                       verbose=verbose, quiet=quiet, **kwds)
 
         if self.BoroCnstArt is not 0.0:
-            print("Setting BoroCnstArt to 0.0 as this is required by PortfolioChoiceConsumerType.")
+            print("Setting BoroCnstArt to 0.0 as this is required by PortfolioConsumerType.")
             self.BoroCnstArt = 0.0
 
         # Chose specialized solver for Portfolio choice model
-        self.solveOnePeriod = solveConsPortfolioChoice
+        self.solveOnePeriod = solveConsPortfolio
 
         # Update this *once* as it's time invariant
         self.updateRiskyDstn()
@@ -338,12 +338,12 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         cs_solution   = self.makeBasicSolution(EndOfPrdvP,aNrm,self.makeLinearcFunc)
         cs_solution.vPfunc(0.3)
         # solution   = self.addMPCandHumanWealth(solution)
-        solution = PortfolioConsumerSolution(cFunc=cs_solution.cFunc,
+        solution = PortfolioSolution(cFunc=cs_solution.cFunc,
                                              vPfunc=cs_solution.vPfunc,
                                              RiskyShareFunc=self.RiskyShareFunc)
         return solution
 
-def solveConsPortfolioChoice(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
+def solveConsPortfolio(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
                                 BoroCnstArt,aXtraGrid,vFuncBool,CubicBool, RiskyDstn, RiskyShareCount):
 
     solver = ConsIndShockPortfolioSolver(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree,
