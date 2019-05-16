@@ -105,6 +105,9 @@ class AggShockConsumerType(IndShockConsumerType):
         self.initializeSim()
         self.aLvlNow = self.kInit*np.ones(self.AgentCount)  # Start simulation near SS
         self.aNrmNow = self.aLvlNow/self.pLvlNow
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def updateSolutionTerminal(self):
         '''
@@ -1773,8 +1776,7 @@ def main():
     from time import clock
     from HARK.utilities import plotFuncs
 
-    def mystr(number):
-        "{:.4f}".format(number)
+    def mystr(number): return "{:.4f}".format(number)
 
     solve_agg_shocks_micro = False  # Solve an AggShockConsumerType's microeconomic problem
     solve_agg_shocks_market = True  # Solve for the equilibrium aggregate saving rule in a CobbDouglasEconomy
