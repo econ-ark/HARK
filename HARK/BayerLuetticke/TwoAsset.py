@@ -567,8 +567,9 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     Parameters
     ----------
    
-    State : ndarray
-        Vector of state variables t+1 (only marginal distributions for histogram)
+    State: ndarray
+        Vector of state variables t+1 (only marginal distributions for histogram) 
+        Copula generates joint from marginal distributions
     Stateminus: ndarray
         Vector of state variables t (only marginal distributions for histogram)
     Control_sparse: ndarray
@@ -577,29 +578,38 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
         Vector of state variables t (only coefficients of sparse polynomial)
     StateSS and ControlSS: matrix or ndarray
         Value of the state and control variables in steady state. 
-        For the Value functions these are at full grids.
+        Histograms are only the marginal distributions
+        For the Value functions these are at full n times m times h
     Gamma_state: coo_matrix
         Mapping such that perturbation of marginals are still distributions (sum to 1).
+        The coo_matrix is a sparse matrix in coordinate format
     indexMUdct: ndarray
         Index of which basis functions are chosen to map sparse coefficient changes 
-        to full grid of values of marginal utility    
+        to full grid of values of marginal utility (only those bases that are used)
     indexVKdct: ndarray
         Index of which basis functions are chosen to map sparse coefficient changes 
-        to full grid of values of marginal value of capital    
-    InvGamma: coo_matrix
+        to full grid of values of marginal value of capital  
+    InvGamma: coo_matrix 
+        (seems to be unused -- the indexes above indexMUdct and indexVKdct are used instead)
         Projection of Value functions etc. to coefficient space for sparse polynomials.
     par, mpar: dict
-        Theory and numerical parameters (structure)
+        Theory (structural) and numerical (approximation) parameters 
     Grid: dict
-        Liquid, illiquid, and productivity grid
+        Liquid assets, illiquid, and productivity grid in order
     Targets: dict
-        Targets for government policy
-   Copula : dict
-        points for interpolation of joint distribution
+        Targets for government policy (debt B, taxes T, gov spending G)
+    Copula: dict
+        Has a grid and values at each grid point
+        If two variables indexed by i and j
+        Gridpoint i,j: Are you leq than ith percentile and jth percentile
+        Interacts with the marginal dists to generate the joint dist
     P: ndarray
-        steady state transition matrix
+        steady state idiosyncratic state transition matrix for pty
     aggrshock: str 
-        sets wether the Aggregate shock is TFP or uncertainty
+        sets whether the aggregate shock is TFP or uncertainty
+        aggrshock = 'MP' for Monetary Policy
+        aggrshock = 'TFP' for productivity shock
+        aggrshock = 'Uncertainty' for uncertainty shock
     
     '''
     
@@ -611,34 +621,34 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     
     # Generate meshes for m,k,h # Q:m not b?
     
-    # number of states, controls
-    nx = mpar['numstates'] # number of states
-    ny = mpar['numcontrols'] # number of controls
-    NxNx= nx - mpar['os'] # number of states w/o aggregates
-    Ny = len(indexMUdct) + len(indexVKdct)
-    NN = mpar['nm']*mpar['nh']*mpar['nk'] # number of points in the full grid
+    # number of states, controls in reduced system
+    nx  = mpar['numstates']   # number of states 
+    ny  = mpar['numcontrols'] # number of controls 
+    NxNx= nx - mpar['os']     # states excluding aggregates (like wage; 'other states')
+    Ny  = len(indexMUdct) + len(indexVKdct) # num pts in sparse grid
+    NN  = mpar['nm']*mpar['nh']*mpar['nk']  # num pts in full grid
     
-    # Initialize LHS and RHS
+    # Initialize LHS and RHS for full system
     LHS = np.zeros((nx+Ny+mpar['oc'],1))
     RHS = np.zeros((nx+Ny+mpar['oc'],1))
     
-    ## Indexes for LHS/RHS
-    # Indexes for controls
-    mutil_cind = np.array(range(len(indexMUdct)))
-    Vkind = len(indexMUdct) + np.array(range(len(indexVKdct)))
+    # Indexes for LHS/RHS
+    ## Indexes for controls, which will be stacked
+    mutil_cind = np.array(range(len(indexMUdct)))              # consumption
+    Vkind = len(indexMUdct) + np.array(range(len(indexVKdct))) # capital stacks after consumption
     
-    # Where each thing lives
-    Qind = Ny
+    ## Where each thing lives in the system (its index number)
+    Qind  = Ny
     PIind = Ny+1
-    Yind = Ny+2
-    Gind = Ny+3
-    Wind = Ny+4
-    Rind = Ny+5
+    Yind  = Ny+2
+    Gind  = Ny+3
+    Wind  = Ny+4
+    Rind  = Ny+5
     Profitind = Ny+6
-    Nind = Ny+7
-    Tind = Ny+8
-    Kind = Ny+9
-    Bind = Ny+10
+    Nind  = Ny+7
+    Tind  = Ny+8
+    Kind  = Ny+9
+    Bind  = Ny+10
     
     # Indexes for states
     # distr_ind = np.arange(mpar['nm']*mpar['nh']-mpar['nh']-1)
@@ -647,36 +657,37 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     marginal_hind = range(mpar['nm']+mpar['nk']-2,
                           mpar['nm']+mpar['nk']+mpar['nh']-4) # Q: Why 4?
     
-    # Where is the interest rate
+    # index for the interest rate on government bonds = liquid assets
     RBind = NxNx 
     
-    # Where is the shock to the aggregate state
+    # Index for the shock to the aggregate state S
     Sind = NxNx+1
     
     ## Get the control variables    
     Control = Control_sparse.copy()
     Controlminus = Controlminus_sparse.copy()
            
-    # Getting steady state plus the sparse estimate of the deviation from steady state
+    # Get steady state plus the sparse estimate of the deviation from steady state
     Control[-mpar['oc']:] = ControlSS[-mpar['oc']:].copy() + Control_sparse[-mpar['oc']:,:].copy()
     Controlminus[-mpar['oc']:] = ControlSS[-mpar['oc']:].copy() + Controlminus_sparse[-mpar['oc']:,:].copy()
     
     ## State variables
     # read out marginal histogram in t+1, t
     # Dist = steady-state dist + deviations from the steady state
+    # Q: Why -2?  Shouldn't this be mpar['os'] or something?
     Distribution = StateSS[:-2].copy() + Gamma_state.copy().dot(State[:NxNx].copy())
     Distributionminus = StateSS[:-2].copy() + Gamma_state.copy().dot(Stateminus[:NxNx].copy())
 
     # Aggregate Endogenous States
-    RB = StateSS[-2] + State[-2] # Q: Why is this not StateSS[RBind] etc?
-    RBminus = StateSS[-2] + Stateminus[-2]
+    RB = StateSS[-2] + State[-2] # Q: Why is this not StateSS['(index for RB)'] etc?
+    RBminus = StateSS[-2] + Stateminus[-2] # Same Q as above
     
     # Aggregate Exogenous States
-    S = StateSS[-1] + State[-1] # Q: Why is this not StateSS[Sind]?
+    S      = StateSS[-1] + State[-1] # Q: Why is this not StateSS['(index for S)']?
     Sminus = StateSS[-1] + Stateminus[-1]
     
-    ## Split the control vector into items with names
-    # Controls
+    # Split the control vector into items with names
+    ## Controls
 
     # Do the inverse discrete transform (to recover the original kinds that mean something)
     XX = np.zeros((NN,1))
@@ -690,9 +701,11 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     # Deviations from the steady state
     mutil_c_dev = aux.copy()
 
-    # Steady state plus deviations
-    mutil_c = mutil(mutil_c_dev.copy().flatten(order='F') + np.squeeze(np.asarray(ControlSS[np.array(range(NN))])))
+    # deviations (dev) plus steady-state for marginal utility at every full gridpoint
+    mutil_c = mutil(mutil_c_dev.copy().flatten(order='F') 
+                    + np.squeeze(np.asarray(ControlSS[np.array(range(NN))])))
     
+    # Do the DCT (repeat of the code above, but for k rather than c)
     XX = np.zeros((NN,1))
     XX[indexVKdct] = Control[Vkind]
     
@@ -726,8 +739,8 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     Bminus = np.exp(Controlminus[Bind])
     
     
-    ## Write LHS values of F
-    # Controls
+    # Write LHS values of F
+    ## Controls
     LHS[nx+Vkind] = Controlminus[Vkind]
     LHS[nx+mutil_cind] = Controlminus[mutil_cind]
     LHS[nx+Qind] = Qminus
@@ -742,72 +755,89 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     LHS[nx+Bind] = Bminus
     
     
-    # States
-    # Marginal Distributions (Marginal histograms)
-    #LHS[distr_ind] = Distribution[:mpar['nm']*mpar['nh']-1-mpar['nh']].copy()
+    ## States
+    ## Marginal Distributions (Marginal histograms)
+    #LHS[distr_ind] = Distribution[:mpar['nm']*mpar['nh']-1-mpar['nh']].copy() Q: Why commented out
     LHS[marginal_mind] = Distribution[:mpar['nm']-1]
-    LHS[marginal_kind] = Distribution[mpar['nm']:mpar['nm']+mpar['nk']-1]
-    LHS[marginal_hind] = Distribution[mpar['nm']+mpar['nk']:mpar['nm']+mpar['nk']+mpar['nh']-2]
+    LHS[marginal_kind] = Distribution[mpar['nm']:mpar['nm']
+                                      +mpar['nk']-1]
+    LHS[marginal_hind] = Distribution[mpar['nm']
+                                      +mpar['nk']:mpar['nm']
+                                      +mpar['nk']
+                                      +mpar['nh']-2]
     
     LHS[RBind] = RB
-    LHS[Sind] = S
+    LHS[Sind]  = S
     
     # take into account that RB is in logs
     RB = np.exp(RB.copy())
     RBminus = np.exp(RBminus) 
     
     ## Set of differences for exogenous process
-    # Serially correlated shock with correlation rhoS
-    RHS[Sind] = par['rhoS']*Sminus
+    ## State S is Serially correlated shock with correlation rhoS
+    RHS[Sind] = par['rhoS']*Sminus # Tomorrow's exogenous process
     
-    # Monetary policy
+    ## Three different kinds of shocks can be put into the 
     if aggrshock == 'MP':
-        EPS_TAYLOR = Sminus
-        TFP = 1.0
+        EPS_TAYLOR = Sminus  # epsilon shock to Taylor rule
+        TFP = 1.0            # No shock to TFP
     elif aggrshock == 'TFP': # Aggregate productivity
-        TFP = np.exp(Sminus)
-        EPS_TAYLOR = 0
+        TFP = np.exp(Sminus) # Today's value of agg state is part of Stateminus input
+        EPS_TAYLOR = 0       # No shock to monetary policy
     elif aggrshock == 'Uncertainty': 
-        TFP = 1.0
-        EPS_TAYLOR = 0
-   
+        TFP = 1.0            # No shock to TFP
+        EPS_TAYLOR = 0       # No shock to monetary policy
         #Tauchen style for probability distribution next period
+        # P is ind pty transition matrix when you have shocked variance of ind pty by exp(Sminus)
+        # ExTransitions is dict containing trans matrix for pty - is imported above
         P = ExTransitions(np.exp(Sminus), grid, mpar, par)['P_H']
     
-    # Marginal distributions of states
+    # Marginal distributions of states 
     marginal_mminus = np.transpose(Distributionminus[:mpar['nm']].copy())
-    marginal_kminus = np.transpose(Distributionminus[mpar['nm']:mpar['nm']+mpar['nk']].copy())
-    marginal_hminus = np.transpose(Distributionminus[mpar['nm']+mpar['nk']:mpar['nm']+mpar['nk']+mpar['nh']].copy())
+    marginal_kminus = np.transpose(Distributionminus[mpar['nm']:mpar['nm']
+                                                     +mpar['nk']].copy())
+    marginal_hminus = np.transpose(Distributionminus[mpar['nm']
+                                                     +mpar['nk']:mpar['nm']
+                                                     +mpar['nk']+mpar['nh']].copy())
     
-    # Aggregate productivity and liquid assets are the sum of idiosyncratic ones
-    Hminus = np.sum(np.multiply(grid['h'][:-1],marginal_hminus[:,:-1]))
-    Lminus = np.sum(np.multiply(grid['m'],marginal_mminus))
+    # Aggregated ind pty and liquid assets are the sum of idiosyncratic ones
+    Hminus = np.sum(np.multiply(grid['h'][:-1],marginal_hminus[:,:-1])) # Constant 
+    Lminus = np.sum(np.multiply(grid['m'],marginal_mminus))             # Agg liq assets
     
     # nx is size of grid, so location of liquid assets is same as of liquid assets
-    RHS[nx+Bind] = Lminus
+    RHS[nx+Bind] = Lminus # LHS[nx+Bind] was Bminus because liquid assets are gov debt
     
-    # illiquid assets (capital)
+    # Aggregate illiquid assets (kapital) is sum of ind kapitals
     RHS[nx+Kind] = np.sum(grid['k']*np.asarray(marginal_kminus))
     
     # Calculate joint distributions 
-    # Using the marginals and the copula
+    # Marginals and the Copula interact to generate full joint distribution
     cumdist = np.zeros((mpar['nm']+1,mpar['nk']+1,mpar['nh']+1))
     cm,ck,ch = np.meshgrid(np.asarray(np.cumsum(marginal_mminus)), 
                            np.asarray(np.cumsum(marginal_kminus)), 
                            np.asarray(np.cumsum(marginal_hminus)), indexing = 'ij')
     
-    # griddata does not support extrapolation for 3D
+    # griddata interpolates but does not support extrapolation for 3D
     #cumdist[1:,1:,1:] = np.reshape(Copula((cm.flatten(order='F').copy(),ck.flatten(order='F').copy(),ch.flatten(order='F').copy())),(mpar['nm'],mpar['nk'],mpar['nh']), order='F')
-    Copula_aux = griddata(Copula['grid'],Copula['value'],(cm.flatten(order='F').copy(),ck.flatten(order='F').copy(),ch.flatten(order='F').copy()))
-    Copula_bounds = griddata(Copula['grid'],Copula['value'],(cm.flatten(order='F').copy(),ck.flatten(order='F').copy(),ch.flatten(order='F').copy()),method='nearest')
+    # Copula_aux is CDF internal to the original state space; gives NAN if evaluated outside
+    Copula_aux    = griddata(Copula['grid'],Copula['value'],(cm.flatten(order='F').copy()
+                                                             ,ck.flatten(order='F').copy()
+                                                             ,ch.flatten(order='F').copy()))
+    # Copula_bounds gives flat result outside orig grid because nearest is going to be max 
+    Copula_bounds = griddata(Copula['grid'],Copula['value'],(cm.flatten(order='F').copy()
+                                                             ,ck.flatten(order='F').copy()
+                                                             ,ch.flatten(order='F').copy())
+                             ,method='nearest') # Nearest point in the grid
+    # Replacing NAN's with the nearest ones
     Copula_aux[np.isnan(Copula_aux.copy())] = Copula_bounds[np.isnan(Copula_aux.copy())].copy()
     
+    # Reshape it into a proper CDF
     cumdist[1:,1:,1:] = np.reshape(Copula_aux,(mpar['nm'],mpar['nk'],mpar['nh']), order='F')
     
     # Joint distribution last period
     JDminus = np.diff(np.diff(np.diff(cumdist,axis=0),axis=1),axis=2)
     
-    # Meshes of m, k, and h ()
+    # Meshes of m, k, and h () (repeat each across the other dimensions)
     meshes={}
     meshes['m'], meshes['k'], meshes['h'] = np.meshgrid(grid['m'],
                                                         grid['k'],
@@ -815,7 +845,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
                                                         indexing = 'ij')
     ## Aggregate Output
     
-    ### Q: mc=Marginal cost? (kappa is coefficient in Rotemberg price adjustment)
+    ### Q: mc=Marginal cost? (kappa is coefficient in Rotemberg partial price adjustment)
     mc = par['mu'] - (par['beta']* np.log(PI)*Y/Yminus - np.log(PIminus))/par['kappa']
     
     # Aggregate hours worked
@@ -837,12 +867,16 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     WW[:,:,-1] = Profitminus.item()*par['profitshare']*np.ones((mpar['nm'],mpar['nk']))
     
     ## called "inc" but it is actually the notional value of your spendable resources
+    ## like, if you have 2 million in your 401k it would be included as 2 million
+    ## even though you have to pay a transaction cost to get at it
     inc ={}
     inc['labor'] = par['tau']*WW.copy()*meshes['h'].copy()
     inc['rent'] = meshes['k']*Rminus.item()
     inc['capital'] = meshes['k']*Qminus.item()
-    inc['money'] = meshes['m'].copy()*(RBminus.item()/PIminus.item()+(meshes['m']<0)*par['borrwedge']/PIminus.item())
-    
+    # Money is 
+    inc['money'] = meshes['m'].copy()*(RBminus.item()/PIminus.item() # Real = RBminus/PIminus 
+                                       +(meshes['m']<0)*par['borrwedge'] # Borrowing rate > saving
+                                       /PIminus.item())
     
     ## Update policies using endogenous gridpoints
     # Expected marginal value of capital
@@ -874,12 +908,12 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     c_n_star = result_EGM_policyupdate['c_n_star']
     m_n_star = result_EGM_policyupdate['m_n_star']
     
-    # Q: Is this max value of ind pty?
+    # Q: Is this max value of ind pty?  Why needed?
     meshaux = meshes.copy()
     meshaux['h'][:,:,-1] = 1000.
     
     ## Update Marginal Value of Bonds
-    # Q: Marginal utility is weighted average of mu from c and from leisure
+    # Q: Marginal utility is weighted average of u' from c and u' from leisure?
     mutil_c_n = mutil(c_n_star.copy())
     mutil_c_a = mutil(c_a_star.copy())
     mutil_c_aux = par['nu']*mutil_c_a + (1-par['nu'])*mutil_c_n
@@ -887,7 +921,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
         np.asarray(ControlSS[np.array(range(NN))]))
     aux = np.reshape(aux,(mpar['nm'],mpar['nk'],mpar['nh']),order='F')
     
-    # Do the dct
+    # Make the dct
     aux = sf.dct(aux.copy(),norm='ortho',axis=0)
     aux = sf.dct(aux.copy(),norm='ortho',axis=1)
     aux = sf.dct(aux.copy(),norm='ortho',axis=2)
@@ -911,45 +945,65 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
        
     Vk_aux = par['nu']*(Rminus.item()+Qminus.item())*mutil_c_a + (1-par['nu'])*Rminus.item()*mutil_c_n +par['beta']*(1-par['nu'])*np.reshape(Vk_next,(mpar['nm'],mpar['nk'],mpar['nh']),order='F')
     
-    aux = invmutil(Vk_aux.copy().flatten(order='F')) - np.squeeze(np.asarray(ControlSS[np.array(range(NN))+NN]))
-    aux = np.reshape(aux.copy(),(mpar['nm'],mpar['nk'],mpar['nh']),order='F')
+    aux = invmutil(Vk_aux.copy().flatten(order='F'))-np.squeeze(np.asarray(ControlSS[np.array(range(NN))+NN]))
+    aux = np.reshape(aux.copy(),(mpar['nm'],
+                                 mpar['nk'],
+                                 mpar['nh']),order='F')
     aux = sf.dct(aux.copy(),norm='ortho',axis=0)
     aux = sf.dct(aux.copy(),norm='ortho',axis=1)
     aux = sf.dct(aux.copy(),norm='ortho',axis=2)    
     
-    
+    # Discrete cosine transform
     DC = np.asmatrix(aux.copy().flatten(order='F')).T
-        
+    
+    # Construct RHS for Vk
     RHS[nx+Vkind] = DC[indexVKdct]
     
     ## Differences for distributions
     # find next smallest on-grid value for money choices
+    # Get marginal distributions back for full original grid
+    
+    ## Make empty matrices of size nm \times nk by nh by nh
     weight11 = np.empty((mpar['nm']*mpar['nk'],mpar['nh'],mpar['nh']))
     weight12 = np.empty((mpar['nm']*mpar['nk'],mpar['nh'],mpar['nh']))
     weight21 = np.empty((mpar['nm']*mpar['nk'],mpar['nh'],mpar['nh']))
     weight22 = np.empty((mpar['nm']*mpar['nk'],mpar['nh'],mpar['nh']))
-    
     weightn1 = np.empty((mpar['nm']*mpar['nk'],mpar['nh'],mpar['nh']))
     weightn2 = np.empty((mpar['nm']*mpar['nk'],mpar['nh'],mpar['nh']))
     
+    # *_star are generated by EGM
+    # Weights: for every point in m_a_star, figure out how much of the weight to put 
+    # into the exogenous grids (distribute people back into bins correctly)
+    
+    # Some people adjust their capital m_a
+    ## Liquid assets of the k-adjusters
     ra_genweight = GenWeight(m_a_star,grid['m'])
     Dist_m_a = ra_genweight['weight'].copy()
-    idm_a = ra_genweight['index'].copy()
+    idm_a = ra_genweight['index'].copy() # idm_a is index of original exogenous m grid (Q?)
     
+    ## Liquid assets of the k-nonadjusters
     rn_genweight = GenWeight(m_n_star,grid['m'])
     Dist_m_n = rn_genweight['weight'].copy()
     idm_n = rn_genweight['index'].copy()
     
+    ## kapital of the adjusters
     rk_genweight = GenWeight(k_a_star,grid['k'])
     Dist_k = rk_genweight['weight'].copy()
-    idk_a = rk_genweight['index'].copy()
+    idk_a  = rk_genweight['index'].copy()
     
-    idk_n = np.reshape(np.tile(np.outer(np.ones((mpar['nm'])),np.array(range(mpar['nk']))),(1,1,mpar['nh'])),(mpar['nm'],mpar['nk'],mpar['nh']),order = 'F')
+    ## kapital of the nonadjusters
+    idk_n = np.reshape(np.tile(np.outer(np.ones((mpar['nm']))
+                                        ,np.array(range(mpar['nk'])))
+                               ,(1,1,mpar['nh']))
+                       ,(mpar['nm'],mpar['nk'],mpar['nh']),order = 'F')
         
-    # Transition matrix for adjustment case
+    # Transition matrix for adjusters 
+    ## Tile creates an array from the indexes
     idm_a = np.tile(np.asmatrix(idm_a.copy().flatten('F')).T,(1,mpar['nh']))
     idk_a = np.tile(np.asmatrix(idk_a.copy().flatten('F')).T,(1,mpar['nh']))
-    idh = np.kron(np.array(range(mpar['nh'])),np.ones((1,mpar['nm']*mpar['nk']*mpar['nh'])))
+    
+    idh = np.kron(np.array(range(mpar['nh']))
+                  ,np.ones((1,mpar['nm']*mpar['nk']*mpar['nh'])))
     
     idm_a = idm_a.copy().astype(int)
     idk_a = idk_a.copy().astype(int)
@@ -1002,26 +1056,42 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     
     rowindex = np.tile(range(mpar['nm']*mpar['nk']*mpar['nh']),(1,4*mpar['nh']))
     
-    H_a = sp.coo_matrix((np.hstack((weight11.flatten(order='F'),weight21.flatten(order='F'),weight12.flatten(order='F'),weight22.flatten(order='F'))), 
-                   (np.squeeze(rowindex), np.hstack((np.squeeze(np.asarray(index11)),np.squeeze(np.asarray(index21)),np.squeeze(np.asarray(index12)),np.squeeze(np.asarray(index22)))) )), 
-                    shape=(mpar['nm']*mpar['nk']*mpar['nh'],mpar['nm']*mpar['nk']*mpar['nh']) )
+    # Result of all the weighting and projecting is a sparse matrix for adjusters
+    H_a = sp.coo_matrix((np.hstack((weight11.flatten(order='F')
+                                    ,weight21.flatten(order='F')
+                                    ,weight12.flatten(order='F')
+                                    ,weight22.flatten(order='F'))), 
+                   (np.squeeze(rowindex)
+                    ,np.hstack((np.squeeze(np.asarray(index11))
+                                ,np.squeeze(np.asarray(index21))
+                                ,np.squeeze(np.asarray(index12))
+                                ,np.squeeze(np.asarray(index22)))) )), 
+                    shape=(mpar['nm']*mpar['nk']*mpar['nh']
+                           ,mpar['nm']*mpar['nk']*mpar['nh']) )
 
     weightn1= np.ndarray.transpose(weightn1.copy(),(0,2,1))       
     weightn2= np.ndarray.transpose(weightn2.copy(),(0,2,1))       
     
     rowindex = np.tile(range(mpar['nm']*mpar['nk']*mpar['nh']),(1,2*mpar['nh']))
     
-    H_n = sp.coo_matrix((np.hstack((weightn1.flatten(order='F'),weightn2.flatten(order='F'))), 
-                   (np.squeeze(rowindex), np.hstack((np.squeeze(np.asarray(indexn1)),np.squeeze(np.asarray(indexn2)))) )), 
-                    shape=(mpar['nm']*mpar['nk']*mpar['nh'],mpar['nm']*mpar['nk']*mpar['nh']) )
+    H_n = sp.coo_matrix((np.hstack((weightn1.flatten(order='F')
+                                    ,weightn2.flatten(order='F'))), 
+                   (np.squeeze(rowindex)
+                    , np.hstack((np.squeeze(np.asarray(indexn1))
+                                 ,np.squeeze(np.asarray(indexn2)))) )), 
+                    shape=(mpar['nm']*mpar['nk']*mpar['nh']
+                           ,mpar['nm']*mpar['nk']*mpar['nh']) )
     
     # Joint transition matrix and transitions
     H = par['nu']*H_a.copy() +(1-par['nu'])*H_n.copy()    
-        
-    JD_new = JDminus.flatten(order='F').copy().dot(H.todense())
-    JD_new = np.reshape(np.asarray(JD_new.copy()),(mpar['nm'],mpar['nk'],mpar['nh']),order='F')
     
-    # Next period marginal histograms
+    # Take old joint distribution and apply transition matrix H to get new distribution
+    JD_new = JDminus.flatten(order='F').copy().dot(H.todense()) # dot product because sparse
+    JD_new = np.reshape(np.asarray(JD_new.copy()),(mpar['nm']
+                                                   ,mpar['nk']
+                                                   ,mpar['nh']),order='F')
+    
+    # Next period marginal histograms (sum over each dimension to get marginals)
     # liquid assets
     aux_m = np.sum(np.sum(JD_new.copy(),axis=1),axis=1)
     RHS[marginal_mind] = np.asmatrix(aux_m[:-1].copy()).T
@@ -1033,43 +1103,49 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     # human capital
     aux_h = np.sum(np.sum(JD_new.copy(),axis=0),axis=0)
     RHS[marginal_hind] = np.asmatrix(aux_h[:-2].copy()).T
+
     
-    ## Third Set: Government Budget constraint
+    ## Third Set of conditions in F: Government Budget constraint
     # Return on bonds (Taylor Rule)
     RHS[RBind] = np.log(par['RB'])+par['rho_R']*np.log(RBminus/par['RB']) + np.log(PIminus/par['PI'])*((1.-par['rho_R'])*par['theta_pi'])+EPS_TAYLOR
     
-    # Inflation jumps to equilibrate real bond supply and demand
+    # Inflation equilibrates real bond supply and demand
     
-    if par['tau'] < 1:
-       
-       taxrevenue = (1-par['tau'])*Wminus*Nminus + (1-par['tau'])*Profitminus
-       RHS[nx+PIind] = par['rho_B']*np.log(Bminus/targets['B'])+par['rho_B']*np.log(RBminus/par['RB']) - (par['rho_B']+par['gamma_pi'])*np.log(PIminus/par['PI']) - par['gamma_T'] *np.log(Tminus/targets['T'])
+    if par['tau'] < 1: # 1 minus tax rate
+        taxrevenue = ( (1-par['tau'])*Wminus*Nminus 
+                     +(1-par['tau'])*Profitminus) # tax wages & profits
+
+        # Fiscal policy rule: Gov tries to get back to target B via AR(1)
+        RHS[nx+PIind] = (par['rho_B']*np.log(Bminus/targets['B'])
+                        + par['rho_B']*np.log(RBminus/par['RB'])
+                        - (par['rho_B']+par['gamma_pi'])*np.log(PIminus/par['PI'])
+                        - par['gamma_T'] *np.log(Tminus/targets['T']))
                        
-       LHS[nx+PIind] = np.log(B/targets['B'])
-       
-       # Government expenditure
-       RHS[nx+Gind] = B - Bminus*RBminus/PIminus +Tminus
-       RHS[nx+Tind] = taxrevenue
-       
-       # Resulting price of capital
-       RHS[nx+Qind] = (par['phi']*(K/Kminus-1)+1) - par['ABS']
+        # Calculate the necessary inflation    
+        LHS[nx+PIind] = np.log(B/targets['B']) 
+
+        # Government expenditure
+        RHS[nx+Gind] = B - Bminus*RBminus/PIminus + Tminus
+        RHS[nx+Tind] = taxrevenue
+        
+        # Resulting price of capital (given Q model adjustment costs)
+        RHS[nx+Qind] = (par['phi']*(K/Kminus-1)+1) - par['ABS'] # ABS is loan to value max
        
     else:
-       RHS[nx+PIind] = targets['B']
-       LHS[nx+PIind] = B
+        RHS[nx+PIind] = targets['B']
+        LHS[nx+PIind] = B
+        
+        RHS[nx+Gind] = targets['G']
+        RHS[nx+Tind] = 0.
+        
+        RHS[nx+Qind] = (par['phi']*(K/Kminus-1)+1) - par['ABS']
        
-       RHS[nx+Gind] = targets['G'] 
-       RHS[nx+Tind] = 0.
-    
-       RHS[nx+Qind] = (par['phi']*(K/Kminus-1)+1) - par['ABS']
-       
-    ## Difference
+    ## Difference which we want to be zero
     Difference = (LHS-RHS)
-    
-          
     
     return {'Difference':Difference, 'LHS':LHS, 'RHS':RHS, 'JD_new': JD_new, 'c_a_star':c_a_star, 'm_a_star':m_a_star,
             'k_a_star':k_a_star,'c_n_star':c_n_star,'m_n_star':m_n_star,'P':P}
+
 
 # + {"code_folding": [0]}
 ## Update policy in transition (found in Fsys)
@@ -1197,11 +1273,10 @@ def EGM_policyupdate(EVm,EVk, Qminus, PIminus, RBminus, inc, meshes,grid,par,mpa
     cap_list_1=[]
     
     for j in range(mpar['nh']):
-   
-      cons_list_1.append( np.vstack((np.asmatrix(cons_list[j]).T, np.asmatrix(c_a_aux[:,j]).T)) )
-      res_list_1.append( np.vstack((np.asmatrix(res_list[j]).T, np.asmatrix(Resource[:,j]).T)) )
-      mon_list_1.append( np.vstack((np.asmatrix(mon_list[j]).T, np.asmatrix(m_a_aux[:,j]).T)) )
-      cap_list_1.append( np.vstack((np.asmatrix(cap_list[j].copy()).T, np.asmatrix(grid['k']).T)) )
+        cons_list_1.append( np.vstack((np.asmatrix(cons_list[j]).T, np.asmatrix(c_a_aux[:,j]).T)) )
+        res_list_1.append( np.vstack((np.asmatrix(res_list[j]).T, np.asmatrix(Resource[:,j]).T)) )
+        mon_list_1.append( np.vstack((np.asmatrix(mon_list[j]).T, np.asmatrix(m_a_aux[:,j]).T)) )
+        cap_list_1.append( np.vstack((np.asmatrix(cap_list[j].copy()).T, np.asmatrix(grid['k']).T)) )
     
     ## EGM step 4: Interpolate back to fixed grid
     c_a_star = np.zeros((mpar['nm']*mpar['nk'], mpar['nh']),order = 'F')
@@ -1258,17 +1333,20 @@ EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
 #EX3SS['par']['rhoS']    = 0.84    # Persistence of variance
 #EX3SS['par']['sigmaS']  = 0.54    # STD of variance shocks
 
-# + {"code_folding": [0]}
+# + {"code_folding": []}
 ## Choose an accuracy of approximation with DCT
+### Determines number of basis functions chosen -- enough to match this accuracy
+### EX3SS is precomputed steady-state pulled in above
 EX3SS['par']['accuracy'] = 0.99999 
 
 # + {"code_folding": []}
 ## Implement state reduction and DCT
+### Do state reduction on steady state
 EX3SR=StateReduc_Dct(**EX3SS)
 SR=EX3SR.StateReduc()
 
 # + {"code_folding": [0]}
-## plot Impulse Response Functions
+## declare function to plot Impulse Response Functions
 
 def plot_IRF(mpar,par,gx,hx,joint_distr,Gamma_state,grid,targets,Output):
         
@@ -1460,16 +1538,17 @@ def plot_IRF(mpar,par,gx,hx,joint_distr,Gamma_state,grid,targets,Output):
     f_N.show()
 
 
-# + {"code_folding": [2]}
+# + {"code_folding": []}
 ## Obtain numerical derivatives (F1~F4) using Fsys and calculate linear policy or transition functions by SGU (04) 
 
+### Schmidt-Grohe-Uribe system solver 
+### Solves using perturbation method 
 def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,Copula,P_H,aggrshock): #
 
     State       = np.zeros((mpar['numstates'],1))
     State_m     = State.copy()
     Contr       = np.zeros((mpar['numcontrols'],1))
-    Contr_m     = Contr.copy()
-        
+    Contr_m     = Contr.copy()   
 
     F = lambda S, S_m, C, C_m : Fsys(S, S_m, C, C_m,
                                          Xss,Yss,Gamma_state,indexMUdct,indexVKdct,
@@ -1481,20 +1560,39 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     end_time   = time.clock()
     print ('Elapsed time is ', (end_time-start_time), ' seconds.')
     Fb=result_F['Difference'].copy()
-        
+    
+    # Prepare for parallelization
     pool=cpu_count()/2
 
+    # F(X,Xprime,Y,Yprime) = 0 is the full system
+    
+    # F1 = DF/DXprime (Xprime is tomorrow's X)
     F1=np.zeros((mpar['numstates'] + mpar['numcontrols'], mpar['numstates']))
+
+    # F2 = DF/DYprime (Yprime is tomorrow's Y)
     F2=np.zeros((mpar['numstates'] + mpar['numcontrols'], mpar['numcontrols']))
+    
+    # F3 = DF/DX (derivative wrt current state )
     F3=np.zeros((mpar['numstates'] + mpar['numcontrols'], mpar['numstates']))
-    F4=np.asmatrix(np.vstack((np.zeros((mpar['numstates'], mpar['numcontrols'])), np.eye(mpar['numcontrols'],mpar['numcontrols']) )))
-        
+    
+    # F4 = DF/DY = identity matrix (deriv wrt today's controls) because of Envelope thm
+    F4=np.asmatrix(np.vstack((
+        np.zeros((mpar['numstates'],mpar['numcontrols']))
+        , np.eye(mpar['numcontrols'],mpar['numcontrols']) )) # identity matrix
+                  ) 
+
     print ('Use Schmitt Grohe Uribe Algorithm')
     print (' A *E[xprime uprime] =B*[x u]')
     print (' A = (dF/dxprimek dF/duprime), B =-(dF/dx dF/du)')
         
-    #numscale=1
-    pnum=pool
+    # Divide the problem up and send to different packages
+    
+    # numscale=1 # Q: Is this about parallelization?
+    pnum=pool # pool is number of CPUs divided by 2
+    
+    # Prepare to break the problem up into independent chunks
+    ## split into blocks each of which can be sent to a different processor
+    ## packagesize is number of derivatives you'll take in each block
     packagesize=int(ceil(mpar['numstates'] / float(3*pnum)))
     blocks=int(ceil(mpar['numstates'] / float(packagesize) ))
 
@@ -1504,24 +1602,30 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     start_time = time.clock()
     print ('Computing Jacobian F1=DF/DXprime F3 =DF/DX')
     print ('Total number of parallel blocks: ', str(blocks), '.')
-        
+    
+    # FF1 is F1 split up into blocks 
+    # FF3 is F3 split up into blocks 
     FF1=[]
     FF3=[]
         
+    # Calculating the derivatives 
     for bl in range(0,blocks):
         range_= range(bl*packagesize, min(packagesize*(bl+1),mpar['numstates']))
         DF1=np.asmatrix( np.zeros((len(Fb),len(range_))) )
         DF3=np.asmatrix( np.zeros((len(Fb),len(range_))) )
         cc=np.zeros((mpar['numcontrols'],1))
         ss=np.zeros((mpar['numstates'],1))
+        # Calculate derivatives
         for Xct in range_:
             X=np.zeros((mpar['numstates'],1))
             h=par['scaleval1']
-            X[Xct]=h
-            Fx=F(ss.copy(),X,cc.copy(),cc.copy())
-            DF3[:, Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
+            X[Xct]=h # h is the little deviation (dev)
+            Fx=F(ss.copy(),X,cc.copy(),cc.copy()) # Calc partial deriv wrt Xprime
+            # Fb is difference in steady state which should be zero but might not quite be
+            DF3[:, Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h # Deriv divided by dev
             Fx=F(X,ss.copy(),cc.copy(),cc.copy())
-            DF1[:, Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
+            DF1[:, Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h # Deriv / dev
+        # When you get to the first of aggregate states, use different size of deriv
         if sum(range_ == mpar['numstates'] - 2) == 1:
             Xct=mpar['numstates'] - 2
             X=np.zeros((mpar['numstates'],1))
@@ -1531,6 +1635,7 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
             DF3[:,Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
             Fx=F(X,ss.copy(),cc.copy(),cc.copy())
             DF1[:,Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
+        # When you get to second of aggregate states, use its own scale (same as for first)
         if sum(range_ == mpar['numstates'] - 1) == 1:
             Xct=mpar['numstates'] - 1
             X=np.zeros((mpar['numstates'],1))
@@ -1540,10 +1645,12 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
             DF3[:,Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
             Fx=F(X,ss.copy(),cc.copy(),cc.copy())
             DF1[:,Xct - bl*packagesize]=(Fx['Difference'] - Fb) / h
+        # Append the derivatives
         FF1.append(DF1.copy())
         FF3.append(DF3.copy())
         print ('Block number: ', str(bl),' done.')
 
+    # Q:Reorder if things came back from parallelization in the wrong order?
     for i in range(0,int(ceil(mpar['numstates'] / float(packagesize)) )):
         range_= range(i*packagesize, min(packagesize*(i+1),mpar['numstates']))
         F1[:,range_]=FF1[i]
@@ -1552,7 +1659,10 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     end_time   = time.clock()
     print ('Elapsed time is ', (end_time-start_time), ' seconds.')
 
-    # jacobian wrt Y'
+    # Have done X and Xprime
+    # Now do Y then Yprime
+    
+    # jacobian wrt Yprime
     packagesize=int(ceil(mpar['numcontrols'] / (3.0*pnum)))
     blocks=int(ceil(mpar['numcontrols'] / float(packagesize)))
     print ('Computing Jacobian F2 - DF/DYprime')
@@ -1601,7 +1711,9 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
         
     F2[mpar['nm']+mpar['nk']-3:mpar['numstates']-2,:] = 0
     
-    s,t,Q,Z=linalg.qz(np.hstack((F1,F2)), -np.hstack((F3,F4)), output='complex')
+    # Once you know the derivatives, you can calculate QZ decomposition 
+    # (per Schmidt-Grohe-Uribe)
+    s,t,Q,Z=linalg.qz(np.hstack((F1,F2)),-np.hstack((F3,F4)), output='complex')
     abst = abs(np.diag(t))*(abs(np.diag(t))!=0.)+  (abs(np.diag(t))==0.)*10**(-11)
     #relev=np.divide(abs(np.diag(s)), abs(np.diag(t)))
     relev=np.divide(abs(np.diag(s)), abst)    
@@ -1611,8 +1723,9 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
     nk=sum(slt)
     slt=1*slt
     
-
-    s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort='ouc', output='complex')
+    s_ord,t_ord,__,__,__,Z_ord=(linalg.ordqz(np.hstack((F1,F2)),
+                                             -np.hstack((F3,F4)),
+                                             sort='ouc', output='complex'))
     
     def sortOverridEigen(x, y):
         out = np.empty_like(x, dtype=bool)
@@ -1624,28 +1737,28 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
         return out        
     
     if nk > mpar['numstates']:
-       if mpar['overrideEigen']:
-          print ('Warning: The Equilibrium is Locally Indeterminate, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
-          slt=relev > ll[-1 - mpar['numstates']]
-          nk=sum(slt)
-          s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort=sortOverridEigen, output='complex')
-          
-       else:
-          print ('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
+        if mpar['overrideEigen']:
+            print ('Warning: The Equilibrium is Locally Indeterminate, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
+            slt=relev > ll[-1 - mpar['numstates']]
+            nk=sum(slt)
+            s_ord,t_ord,__,__,__,Z_ord=(linalg.ordqz(np.hstack((F1,F2)), 
+                                                   -np.hstack((F3,F4)),
+                                                   sort=sortOverridEigen, output='complex'))          
+    else:
+          print ('No Local Equilibrium Exists, last eigenvalue: ',
+                 str(ll[-1 - mpar['numstates']]))
         
     elif nk < mpar['numstates']:
-       if mpar['overrideEigen']:
-          print ('Warning: No Local Equilibrium Exists, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
-          slt=relev > ll[-1 - mpar['numstates']]
-          nk=sum(slt)
-          s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort=sortOverridEigen, output='complex')
-          
+        if mpar['overrideEigen']:
+            print ('Warning: No Local Equilibrium Exists, critical eigenvalue shifted to: ',
+                   slt=relev > ll[-1 - mpar['numstates']]
+                   nk=sum(slt)
+                   s_ord,t_ord,__,__,__,Z_ord=(linalg.ordqz(np.hstack((F1,F2)),
+                                                   -np.hstack((F3,F4)), 
+                                                   sort=sortOverridEigen, output='complex'))                  
        else:
           print ('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
 
-
-        
-        
     z21=Z_ord[nk:,0:nk]
     z11=Z_ord[0:nk,0:nk]
     s11=s_ord[0:nk,0:nk]
@@ -1658,7 +1771,13 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
 
     gx = np.real(np.dot(z21,z11i))
     hx = np.real(np.dot(z11,np.dot(np.dot(np.linalg.inv(s11),t11),z11i)))
-         
+
+                   
+                   
+    # h and g are the important things
+    # h is transition matrix for states
+    # g is policy functions  (all in reduced state form)
+                   
     return{'hx': hx, 'gx': gx, 'F1': F1, 'F2': F2, 'F3': F3, 'F4': F4, 'par': par }
 
 # + {"code_folding": [0]}
