@@ -21,7 +21,7 @@ Release Date: 05-18-2019
 
 #### Minor Changes
 - Adds method decorator which validates that arguments passed in are not empty. ([282](https://github.com/econ-ark/HARK/pull/282)
-- Lints a variety of files.  These PRs include some additional/related minor changes, like replacing an `exec` function, removing some lambdas, adding some files to .gitignore, etc. ([274](https://github.com/econ-ark/HARK/pull/274), [276](https://github.com/econ-ark/HARK/pull/276), [277](https://github.com/econ-ark/HARK/pull/277), [278](https://github.com/econ-ark/HARK/pull/278), [281](https://github.com/econ-ark/HARK/pull/281))
+- Lints a variety of files.  These PRs include some additional/related minor changes, like replacing an exec function, removing some lambdas, adding some files to .gitignore, etc. ([274](https://github.com/econ-ark/HARK/pull/274), [276](https://github.com/econ-ark/HARK/pull/276), [277](https://github.com/econ-ark/HARK/pull/277), [278](https://github.com/econ-ark/HARK/pull/278), [281](https://github.com/econ-ark/HARK/pull/281))
 - Adds vim swp files to gitignore. ([269](https://github.com/econ-ark/HARK/pull/269))
 - Adds version dunder in init. ([265](https://github.com/econ-ark/HARK/pull/265))
 - Adds flake8 to requirements.txt and config. ([261](https://github.com/econ-ark/HARK/pull/261))
