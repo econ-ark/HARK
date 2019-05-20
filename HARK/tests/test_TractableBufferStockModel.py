@@ -4,9 +4,8 @@ Created on Thu Mar 24 11:01:50 2016
 
 @author: kaufmana
 """
-from __future__ import print_function, division
-from __future__ import absolute_import
 
+import numpy as np
 import HARK.ConsumptionSaving.TractableBufferStockModel as Model
 import unittest
 
@@ -21,7 +20,7 @@ class FuncTest(unittest.TestCase):
                            'CRRA': .95}
         test_model = Model.TractableConsumerType(**base_primitives)
         test_model.solve()
-        cNrm_list = [0.0,
+        cNrm_list = np.array([0.0,
                      0.6170411710160961,
                      0.7512931350607787,
                      0.8242071925443384,
@@ -48,12 +47,12 @@ class FuncTest(unittest.TestCase):
                      1.372224689976677,
                      1.4195156568037894,
                      1.4722358408529614,
-                     1.5307746658958221]
-        return test_model.solution[0].cNrm_list, cNrm_list
+                     1.5307746658958221])
+        return np.array(test_model.solution[0].cNrm_list), cNrm_list
 
-    def test1(self):
+    def test_equalityOfSolutions(self):
         results = self.setUp()
-        self.assertEqual(results[0], results[1])
+        self.assertTrue(np.allclose(results[0], results[1], atol=1e-08))
 
 
 if __name__ == '__main__':
