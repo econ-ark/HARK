@@ -46,12 +46,13 @@ def PerfForesightDiscretePortfolioShare(obj):
 # are used, or it can be continuous in which case bounds and a pdf has to be supplied.
 
 def PerfForesightLogNormalPortfolioIntegrand(share, R0, RiskyAvg, rho, sigma):
-   r0 = np.log(R0)
-   phi = np.log(RiskyAvg)-r0
-   mu = r0+phi-(sigma**2)/2
-
+   #r0 = np.log(R0)
+   #phi = np.log(RiskyAvg)-r0
+   #mu = r0+phi-(sigma**2)/2
+   muNorm = np.log(RiskyAvg/np.sqrt(1+sigma**2/RiskyAvg**2))
+   sigmaNorm = np.sqrt(np.log(1+sigma**2/RiskyAvg**2))
    sharedobjective = lambda r: (R0+share*(r-R0))**(1-rho)
-   pdf = lambda r: scipy.stats.lognorm.pdf(r, s=sigma, scale=np.exp(mu))
+   pdf = lambda r: scipy.stats.lognorm.pdf(r, s=sigmaNorm, scale=np.exp(muNorm))
 
    integrand = lambda r: sharedobjective(r)*pdf(r)
    return integrand
@@ -69,6 +70,7 @@ def PerfForesightDiscretePortfolioObjective(share, R0, RiskyDstn, rho):
    weights = RiskyDstn[0]
 
    return -((1-rho)**-1)*np.dot(vals, weights)
+
 
 
 class PortfolioSolution(Solution):
@@ -203,7 +205,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
                 zero  = sciopt.fsolve(residual, 0.5)
                 Rshare = np.append(Rshare, zero)
             i_a += 1
-        RiskyShareFunc = LinearInterp(aGrid, Rshare,intercept_limit=self.RiskyShareLimit, slope_limit=0.0)
+        RiskyShareFunc = LinearInterp(aGrid, Rshare,intercept_limit=self.RiskyShareLimit)
         return RiskyShareFunc
 
     def prepareToCalcEndOfPrdvP(self):
