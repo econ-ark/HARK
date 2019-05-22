@@ -10,17 +10,42 @@ from HARK.interpolation import LinearInterp, LowerEnvelope
 
 from copy import deepcopy
 import numpy as np
+#
+# def CambellVicApprox()
+#
+#         # We assume fixed distribution of risky shocks throughout, so we can
+#         # calculate the limiting solution once and for all.
+#         phi = math.log(self.RiskyAvg/self.Rfree)
+#         RiskyAvgSqrd = self.RiskyAvg**2
+#         RiskyVar = self.RiskyStd**2
+# #
+# # mu = math.log(self.RiskyAvg/(math.sqrt(1+RiskyVar/RiskyAvgSqrd)))
+# # sigma = math.sqrt(math.log(1+RiskyVar/RiskyAvgSqrd))
+# #
+# # RiskyShareLimit = phi/(self.CRRA*sigma**2)
 
-def PerfForesightPortfolioShare(self):
-   PortfolioObjective = lambda share: PerfForesightPortfolioObjective(share,
-                                                                      self.Rfree,
-                                                                      self.RiskyAvg,
-                                                                      rho=self.CRRA,
-                                                                      sigma=self.RiskyStd)
-   return sciopt.minimize_scalar(PortfolioObjective, bounds=(0.0, np.inf), method='bounded')
+
+def PerfForesightLogNormalPortfolioShare(obj):
+   PortfolioObjective = lambda share: PerfForesightLogNormalPortfolioObjective(share,
+                                                                      obj.Rfree,
+                                                                      obj.RiskyAvg,
+                                                                      obj.CRRA,
+                                                                      obj.RiskyStd)
+   return sciopt.minimize_scalar(PortfolioObjective, bounds=(0.0, 1.0), method='bounded').x
+
+def PerfForesightDiscretePortfolioShare(obj):
+   PortfolioObjective = lambda share: PerfForesightDiscretePortfolioObjective(share,
+                                                                      obj.Rfree,
+                                                                      obj.RiskyDstn,
+                                                                      obj.CRRA)
+   return sciopt.minimize_scalar(PortfolioObjective, bounds=(0.0, 1.0), method='bounded').x
 
 
-def PerfForesightPortfolioIntegrand(share, R0, RiskyAvg, rho=4.0, sigma=0.15):
+# Switch here based on knowledge about risky.
+# It can either be "discrete" in which case it is only the number of draws that
+# are used, or it can be continuous in which case bounds and a pdf has to be supplied.
+
+def PerfForesightLogNormalPortfolioIntegrand(share, R0, RiskyAvg, rho, sigma):
    r0 = np.log(R0)
    phi = np.log(RiskyAvg)-r0
    mu = r0+phi-(sigma**2)/2
@@ -31,11 +56,19 @@ def PerfForesightPortfolioIntegrand(share, R0, RiskyAvg, rho=4.0, sigma=0.15):
    integrand = lambda r: sharedobjective(r)*pdf(r)
    return integrand
 
-def PerfForesightPortfolioObjective(share, R0, RiskyAvg, rho=4.0, sigma=0.15):
-   integrand = PerfForesightPortfolioIntegrand(share, R0, RiskyAvg, rho, sigma)
+def PerfForesightLogNormalPortfolioObjective(share, R0, RiskyAvg, rho, sigma):
+   integrand = PerfForesightLogNormalPortfolioIntegrand(share, R0, RiskyAvg, rho, sigma)
    a = 0.0
-   b = np.inf
-   return ((1-rho)**-1)*scipy.integrate.quad(integrand, a, b)[0]
+   b = 5.0
+   return -((1-rho)**-1)*scipy.integrate.quad(integrand, a, b)[0]
+
+
+def PerfForesightDiscretePortfolioObjective(share, R0, RiskyDstn, rho):
+
+   vals = (R0+share*(RiskyDstn[1]-R0))**(1-rho)
+   weights = RiskyDstn[0]
+
+   return -((1-rho)**-1)*np.dot(vals, weights)
 
 
 class PortfolioSolution(Solution):
@@ -67,7 +100,7 @@ class PortfolioSolution(Solution):
 
 class PortfolioConsumerType(IndShockConsumerType):
 
-    time_inv_ = IndShockConsumerType.time_inv_ + ['RiskyDstn', 'RiskyShareCount']
+    time_inv_ = IndShockConsumerType.time_inv_ + ['RiskyDstn', 'RiskyShareCount', 'RiskyShareLimit']
     cFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,1.0]) # c=m in terminal period
     vFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,0.0]) # This is overwritten
     RiskyShareFunc_terminal_ = LinearInterp([0.0, 1.0],[0.0,0.0]) # c=m in terminal period
@@ -84,11 +117,14 @@ class PortfolioConsumerType(IndShockConsumerType):
             print("Setting BoroCnstArt to 0.0 as this is required by PortfolioConsumerType.")
             self.BoroCnstArt = 0.0
 
+
         # Chose specialized solver for Portfolio choice model
         self.solveOnePeriod = solveConsPortfolio
 
         # Update this *once* as it's time invariant
         self.updateRiskyDstn()
+
+        self.RiskyShareLimit = PerfForesightDiscretePortfolioShare(self)
 
     def updateRiskyDstn(self):
         # Note, we expect the thing in self.approxRiskyDstn to be a funtion of
@@ -98,7 +134,7 @@ class PortfolioConsumerType(IndShockConsumerType):
 
 class ConsIndShockPortfolioSolver(ConsIndShockSolver):
     def __init__(self, solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree,
-                      PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool, CubicBool, RiskyDstn, RiskyShareCount):
+                      PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool, CubicBool, RiskyDstn, RiskyShareCount, RiskyShareLimit):
 
 
         ConsIndShockSolver.__init__(self, solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree,
@@ -106,6 +142,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
 
         # Store the Risky asset shock distribution
         self.RiskyDstn = RiskyDstn
+        self.RiskyShareLimit = RiskyShareLimit
         # Store the number of grid points used approximate the FOC in the port-
         # folio sub-problem.
         self.RiskyShareCount = RiskyShareCount
@@ -166,7 +203,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
                 zero  = sciopt.fsolve(residual, 0.5)
                 Rshare = np.append(Rshare, zero)
             i_a += 1
-        RiskyShareFunc = LinearInterp(aGrid, Rshare)
+        RiskyShareFunc = LinearInterp(aGrid, Rshare,intercept_limit=self.RiskyShareLimit, slope_limit=0.0)
         return RiskyShareFunc
 
     def prepareToCalcEndOfPrdvP(self):
@@ -373,10 +410,10 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         return solution
 
 def solveConsPortfolio(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
-                                BoroCnstArt,aXtraGrid,vFuncBool,CubicBool, RiskyDstn, RiskyShareCount):
+                                BoroCnstArt,aXtraGrid,vFuncBool,CubicBool, RiskyDstn, RiskyShareCount, RiskyShareLimit):
 
     solver = ConsIndShockPortfolioSolver(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree,
-    PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool, CubicBool, RiskyDstn, RiskyShareCount)
+    PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool, CubicBool, RiskyDstn, RiskyShareCount, RiskyShareLimit)
 
     solver.prepareToSolve()       # Do some preparatory work
 
@@ -395,6 +432,33 @@ def RiskyDstnFactory(RiskyAvg=1.0, RiskyStd=0.0):
 
     return lambda RiskyCount: approxLognormal(RiskyCount, mu=mu, sigma=sigma)
 
+class LogNormalPortfolioConsumerType(PortfolioConsumerType):
+
+    time_inv_ = IndShockConsumerType.time_inv_ + ['RiskyDstn', 'RiskyShareCount', 'RiskyShareLimit']
+    cFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,1.0]) # c=m in terminal period
+    vFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,0.0]) # This is overwritten
+    RiskyShareFunc_terminal_ = LinearInterp([0.0, 1.0],[0.0,0.0]) # c=m in terminal period
+    solution_terminal_   = PortfolioSolution(cFunc = cFunc_terminal_, RiskyShareFunc = RiskyShareFunc_terminal_,
+                                            vFunc = vFunc_terminal_, mNrmMin=0.0, hNrm=None,
+                                            MPCmin=None, MPCmax=None)
+
+    def __init__(self,cycles=1,time_flow=True,verbose=False,quiet=False,**kwds):
+
+        PortfolioConsumerType.__init__(self,cycles=cycles, time_flow=time_flow,
+                                      verbose=verbose, quiet=quiet, **kwds)
+
+        self.approxRiskyDstn = RiskyDstnFactory(RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd)
+
+        # Update this *once* as it's time invariant
+        self.updateRiskyDstn()
+
+
+        self.RiskyShareLimit = PerfForesightLogNormalPortfolioShare(self)
+
+    def updateRiskyDstn(self):
+        # Note, we expect the thing in self.approxRiskyDstn to be a funtion of
+        # the number of nodes only!
+        self.RiskyDstn = self.approxRiskyDstn(self.RiskyCount)
 
 
 
