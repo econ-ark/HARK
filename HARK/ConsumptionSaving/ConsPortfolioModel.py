@@ -1,6 +1,8 @@
 # NOTE Need to decide on Rshare vs RiskyShare
 import math
 import scipy.optimize as sciopt
+import scipy.integrate
+import scipy.stats
 from HARK import Solution, NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType,solveConsIndShock, ConsIndShockSolver, MargValueFunc, ConsumerSolution
 from HARK.utilities import approxLognormal, combineIndepDstns
@@ -8,6 +10,33 @@ from HARK.interpolation import LinearInterp, LowerEnvelope
 
 from copy import deepcopy
 import numpy as np
+
+def PerfForesightPortfolioShare(self):
+   PortfolioObjective = lambda share: PerfForesightPortfolioObjective(share,
+                                                                      self.Rfree,
+                                                                      self.RiskyAvg,
+                                                                      rho=self.CRRA,
+                                                                      sigma=self.RiskyStd)
+   return sciopt.minimize_scalar(PortfolioObjective, bounds=(0.0, np.inf), method='bounded')
+
+
+def PerfForesightPortfolioIntegrand(share, R0, RiskyAvg, rho=4.0, sigma=0.15):
+   r0 = np.log(R0)
+   phi = np.log(RiskyAvg)-r0
+   mu = r0+phi-(sigma**2)/2
+
+   sharedobjective = lambda r: (R0+share*(r-R0))**(1-rho)
+   pdf = lambda r: scipy.stats.lognorm.pdf(r, s=sigma, scale=np.exp(mu))
+
+   integrand = lambda r: sharedobjective(r)*pdf(r)
+   return integrand
+
+def PerfForesightPortfolioObjective(share, R0, RiskyAvg, rho=4.0, sigma=0.15):
+   integrand = PerfForesightPortfolioIntegrand(share, R0, RiskyAvg, rho, sigma)
+   a = 0.0
+   b = np.inf
+   return ((1-rho)**-1)*scipy.integrate.quad(integrand, a, b)[0]
+
 
 class PortfolioSolution(Solution):
     distance_criteria = ['vPfunc']
