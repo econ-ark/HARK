@@ -132,6 +132,8 @@
 
 # # [Bayer and Luetticke (2018)](https://cepr.org/active/publications/discussion_papers/dp.php?dpno=13071)
 #
+# [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/econ-ark/HARK/BayerLuetticke?filepath=notebooks%2FHARK%2FBayerLuetticke%2FTwoAsset.ipynb)
+#
 # - Adapted from original slides by Christian Bayer and Ralph Luetticke 
 # - Jupyter notebook by Seungcheol Lee 
 # - Further edits by Chris Carroll, Tao Wang, Edmund Crawley
@@ -422,7 +424,7 @@ class StateReduc_Dct:
         # c = invmarg(marg(c)), so first bit gets consumption policy function
         Yss=np.asmatrix(np.concatenate((invmutil(self.mutil_c.copy().flatten(order = 'F')),\
                                         invmutil(self.Vk.copy().flatten(order = 'F')),
-                      [np.log(self.par['Q'])], # Price of the illiquid asset (Q: right?)
+                      [np.log(self.par['Q'])], # Question: Price of the illiquid asset, right?
                                         [ np.log(self.par['PI'])], # Inflation
                                         [ np.log(self.Output)],    
                       [np.log(self.par['G'])], # Gov spending
@@ -441,7 +443,7 @@ class StateReduc_Dct:
         #   nh = number of gridpoints for human capital (pty)
         Gamma_state = np.zeros( # Create zero matrix of size [nm + nk + nh,nm + nk + nh - 4]
             (self.mpar['nm']+self.mpar['nk']+self.mpar['nh'],
-             self.mpar['nm']+self.mpar['nk']+self.mpar['nh'] - 4)) # Q: Why 4?
+             self.mpar['nm']+self.mpar['nk']+self.mpar['nh'] - 4)) # Question: Why 4?
 
         # Impose adding-up conditions: 
         # In each of the block matrices, probabilities must add to 1
@@ -450,7 +452,7 @@ class StateReduc_Dct:
             Gamma_state[0:self.mpar['nm'],j] = -np.squeeze(Xss[0:self.mpar['nm']])
             Gamma_state[j,j]=1. - Xss[j]   #   
             Gamma_state[j,j]=Gamma_state[j,j] - np.sum(Gamma_state[0:self.mpar['nm'],j])
-        bb = self.mpar['nm'] # Q: bb='bottom base'? because bb shorter to type than self.mpar['nm'] everywhere
+        bb = self.mpar['nm'] # Question: bb='bottom base'? because bb shorter to type than self.mpar['nm'] everywhere
 
         for j in range(self.mpar['nk']-1):
             Gamma_state[bb+np.arange(0,self.mpar['nk'],1), bb+j-1] = -np.squeeze(Xss[bb+np.arange(0,self.mpar['nk'],1)])
@@ -459,7 +461,7 @@ class StateReduc_Dct:
                 np.sum(Gamma_state[bb+np.arange(0,self.mpar['nk']),bb-1+j])
         bb = self.mpar['nm'] + self.mpar['nk']
 
-        for j in range(self.mpar['nh']-2): # Q: Why -2?  Some other symmetry/adding-up condition?
+        for j in range(self.mpar['nh']-2): # Question: Why -2?  Some other symmetry/adding-up condition?
             Gamma_state[bb+np.arange(0,self.mpar['nh']-1,1), bb+j-2] = -np.squeeze(Xss[bb+np.arange(0,self.mpar['nh']-1,1)])
             Gamma_state[bb+j,bb-2+j] = 1. - Xss[bb+j]
             Gamma_state[bb+j,bb-2+j] = Gamma_state[bb+j,bb-2+j] - np.sum(Gamma_state[bb+np.arange(0,self.mpar['nh']-1,1),bb-2+j])
@@ -521,7 +523,7 @@ class StateReduc_Dct:
         while linalg.norm(XX[ind[:i]].copy())/linalg.norm(XX) < level:
               i += 1    
         
-        needed = i # Q:Isn't this counting the ones that are NOT needed?
+        needed = i # Question:Isn't this counting the ones that are NOT needed?
         
         index_reduced = np.sort(ind[:i]) # Retrieve the good 
         
@@ -555,6 +557,59 @@ class StateReduc_Dct:
 #      \end{align}
 #      has too many equations
 #    * Uses only difference in marginals and the differences on $\mathop{I}$ 
+
+# ### The two-asset HANK model
+#
+# We illustrate the algorithm in a two-asset HANK model described as below 
+#
+#
+# #### Households 
+# - Maximizing discounted felicity
+#    - Consumption $c$ 
+#       - CRRA coefficent: $\xi$
+#       - EOS of CES consumption bundle: $\eta$
+#    - Disutility from work in GHH form: 
+#      - Frisch elasticity $\gamma$
+# - Two assets:
+#    - Liquid nominal bonds $b$, greater than lower bound $\underline b$
+#       - Borrowing constraint due to a wedge between borrowing and saving rate:  $R^b(b<0)=R^B(b>0)+\bar R$  
+#    - Illiquid assets capital $k$ nonnegative
+#       - Trading of illiquid assets is subject to a friction governed by $v$, the fraction of agents who can trade
+#       - If nontrading, receive divident $r$ and depreciates by $\tau$
+# - Idiosyncratic labor productivity $h$: 
+#    - $h = 0$ for entreprener, only receive profits $\Pi$
+#    - $h = 1$ for labor, evolves according to an autoregression process, 
+#      - $\rho_h$ persistence parameter
+#      - $\epsilon^h$: idiosyncratic risk 
+#
+# #### Production 
+# - Intermediate good producer 
+#     - CRS production with TFP $Z$
+#     - Wage $W$
+#     - Cost of capital $r+\delta$
+# - Reseller 
+#     - Rotemberg price setting: quadratic adjustment cost scalled by $\frac{\eta}{2\kappa}$
+#     - Constant discount factor $\beta$
+#     - Investment subject to Tobin-Q adjustment cost $\phi$ 
+# - Aggregate risks $\Omega$ include 
+#    - TFP $Z$, AR(1) process with persistence of $\rho^Z$ and shock $\epsilon^Z$  
+#    - Uncertainty 
+#    - Monetary policy
+# - Central bank
+#    - Taylor rule on nominal saving rate $R^B$: reacting deviation of inflation from target by $\theta_R$ 
+#    - $\rho_R$: policy innertia
+#    - $\epsilon^R$: monetary policy shocks
+# - Government 
+#    - Government spending $G$ 
+#    - Tax $T$ 
+#    - $\rho_G$: intensity of repaying government debt: $\rho_G=1$ implies roll-over 
+#
+# #### Taking stock
+#
+# - Individual state variables: $b$, $k$ and $h$, the joint distribution of individual states $\Theta$
+# - Individual control variables: $c$, $n$, $b'$, $k'$ 
+# - Optimal policy for adjust and non-adjust cases are $c^*_a$, $n^*_a$ $k^*_a$ and $b^*_a$ and  $c^*_n$, $n^*_n$ and $b^*_n$, respetively 
+#
 
 # + {"code_folding": []}
 ## Construct the system of equations (including decoding): The F system
@@ -619,7 +674,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
 #    invmutil = lambda x : (1./x)**(1./par['xi'])
     invmutil = lambda x : np.power(1./x,1./par['xi'])
     
-    # Generate meshes for m,k,h # Q:m not b?
+    # Generate meshes for m,k,h # Question: m not b?
     
     # number of states, controls in reduced system
     nx  = mpar['numstates']   # number of states 
@@ -655,7 +710,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     marginal_mind = range(mpar['nm']-1)
     marginal_kind = range(mpar['nm']-1,mpar['nm']+mpar['nk']-2) # probs add to 1
     marginal_hind = range(mpar['nm']+mpar['nk']-2,
-                          mpar['nm']+mpar['nk']+mpar['nh']-4) # Q: Why 4?
+                          mpar['nm']+mpar['nk']+mpar['nh']-4) # Question: Why 4?
     
     # index for the interest rate on government bonds = liquid assets
     RBind = NxNx 
@@ -674,16 +729,16 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     ## State variables
     # read out marginal histogram in t+1, t
     # Dist = steady-state dist + deviations from the steady state
-    # Q: Why -2?  Shouldn't this be mpar['os'] or something?
+    # Question: Why -2?  Shouldn't this be mpar['os'] or something?
     Distribution = StateSS[:-2].copy() + Gamma_state.copy().dot(State[:NxNx].copy())
     Distributionminus = StateSS[:-2].copy() + Gamma_state.copy().dot(Stateminus[:NxNx].copy())
 
     # Aggregate Endogenous States
-    RB = StateSS[-2] + State[-2] # Q: Why is this not StateSS['(index for RB)'] etc?
-    RBminus = StateSS[-2] + Stateminus[-2] # Same Q as above
+    RB = StateSS[-2] + State[-2] # Question: Why is this not StateSS['(index for RB)'] etc?
+    RBminus = StateSS[-2] + Stateminus[-2] # Same # Question as above
     
     # Aggregate Exogenous States
-    S      = StateSS[-1] + State[-1] # Q: Why is this not StateSS['(index for S)']?
+    S      = StateSS[-1] + State[-1] # Question: Why is this not StateSS['(index for S)']?
     Sminus = StateSS[-1] + Stateminus[-1]
     
     # Split the control vector into items with names
@@ -725,7 +780,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     K = np.exp(Control[Kind])
     B = np.exp(Control[Bind])
     
-    # Aggregate Controls (t) Q: Why are there more here than for t+1?
+    # Aggregate Controls (t) # Question: Why are there more here than for t+1?
     PIminus = np.exp(Controlminus[PIind])
     Qminus = np.exp(Controlminus[Qind])
     Yminus = np.exp(Controlminus[Yind])
@@ -757,7 +812,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     
     ## States
     ## Marginal Distributions (Marginal histograms)
-    #LHS[distr_ind] = Distribution[:mpar['nm']*mpar['nh']-1-mpar['nh']].copy() Q: Why commented out
+    #LHS[distr_ind] = Distribution[:mpar['nm']*mpar['nh']-1-mpar['nh']].copy() Question: Why commented out
     LHS[marginal_mind] = Distribution[:mpar['nm']-1]
     LHS[marginal_kind] = Distribution[mpar['nm']:mpar['nm']
                                       +mpar['nk']-1]
@@ -845,7 +900,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
                                                         indexing = 'ij')
     ## Aggregate Output
     
-    ### Q: mc=Marginal cost? (kappa is coefficient in Rotemberg partial price adjustment)
+    ### Question: mc=Marginal cost? (kappa is coefficient in Rotemberg partial price adjustment)
     mc = par['mu'] - (par['beta']* np.log(PI)*Y/Yminus - np.log(PIminus))/par['kappa']
     
     # Aggregate hours worked
@@ -853,7 +908,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     # Aggregate output (Cobb-Douglas)   
     RHS[nx+Yind] = (TFP*np.power(Nminus,par['alpha'])*np.power(Kminus,1.-par['alpha']))
     ## Prices that are not a part of control vector
-    # Wage Rate depends on the production function and the markup (Q: or marginal cost?)
+    # Wage Rate depends on the production function and the markup (# Question: or marginal cost?)
     RHS[nx+Wind] = TFP * par['alpha'] * mc *np.power((Kminus/Nminus),1.-par['alpha'])
     # Return on Capital
     RHS[nx+Rind] = TFP * (1.-par['alpha']) * mc *np.power((Nminus/Kminus),par['alpha']) - par['delta']
@@ -908,12 +963,12 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     c_n_star = result_EGM_policyupdate['c_n_star']
     m_n_star = result_EGM_policyupdate['m_n_star']
     
-    # Q: Is this max value of ind pty?  Why needed?
+    # Question: Is this max value of ind pty?  Why needed?
     meshaux = meshes.copy()
     meshaux['h'][:,:,-1] = 1000.
     
     ## Update Marginal Value of Bonds
-    # Q: Marginal utility is weighted average of u' from c and u' from leisure?
+    # Question: Marginal utility is weighted average of u' from c and u' from leisure?
     mutil_c_n = mutil(c_n_star.copy())
     mutil_c_a = mutil(c_a_star.copy())
     mutil_c_aux = par['nu']*mutil_c_a + (1-par['nu'])*mutil_c_n
@@ -979,7 +1034,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     ## Liquid assets of the k-adjusters
     ra_genweight = GenWeight(m_a_star,grid['m'])
     Dist_m_a = ra_genweight['weight'].copy()
-    idm_a = ra_genweight['index'].copy() # idm_a is index of original exogenous m grid (Q?)
+    idm_a = ra_genweight['index'].copy() # Question: idm_a is index of original exogenous m grid 
     
     ## Liquid assets of the k-nonadjusters
     rn_genweight = GenWeight(m_n_star,grid['m'])
