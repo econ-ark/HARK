@@ -3362,10 +3362,11 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         # Calculate the derivative with respect to x (and return it)
         dfdy = y_alpha*dfda + y_beta*dfdb
         return dfdy
-    
+
 ###############################################################################
 ## Functions used in discrete choice models with T1EV taste shocks ############
 ###############################################################################
+
 
 def calcLogSumChoiceProbs(Vals, sigma):
     '''
@@ -3384,14 +3385,34 @@ def calcLogSumChoiceProbs(Vals, sigma):
     P : [numpy.array]
         A numpy.array that holds the discrete choice probabilities
     '''
+    # Assumes that NaNs have been replaced by -numpy.inf or similar
+    if sigma == 0.0:
+        # We could construct a linear index here and use unravel_index.
+        Pflat = np.argmax(Vals, axis=0)
 
-    return calcLogSum(Vals, sigma), calcChoiceProbs(Vals, sigma)
+        V = np.zeros(Vals[0].shape)
+        Probs = np.zeros(Vals.shape)
+        for i in range(Vals.shape[0]):
+            optimalIndices = Pflat == i
+            V[optimalIndices] = Vals[i][optimalIndices]
+            Probs[i][optimalIndices] = 1
+        return V, Probs
+
+    # else we have a taste shock
+    maxV = np.max(Vals, axis=0)
+
+    # calculate maxV+sigma*log(sum_i=1^J exp((V[i]-maxV))/sigma)
+    sumexp = np.sum(np.exp((Vals-maxV)/sigma), axis=0)
+    LogSumV = np.log(sumexp)
+    LogSumV = maxV + sigma*LogSumV
+
+    Probs = np.exp((Vals-LogSumV)/sigma)
+    return LogSumV, Probs
 
 def calcChoiceProbs(Vals, sigma):
     '''
     Returns the choice probabilities given the choice specific value functions
     `Vals`. Probabilities are degenerate if sigma == 0.0.
-
     Parameters
     ----------
     Vals : [numpy.array]
@@ -3413,14 +3434,14 @@ def calcChoiceProbs(Vals, sigma):
             Probs[i][Pflat==i] = 1
         return Probs
 
-    Probs = np.divide(np.exp((Vals-Vals[0])/sigma), np.sum(np.exp((Vals-Vals[0])/sigma), axis=0))
+    maxV = np.max(Vals, axis=0)
+    Probs = np.divide(np.exp((Vals-maxV)/sigma), np.sum(np.exp((Vals-maxV)/sigma), axis=0))
     return Probs
 
 
 def calcLogSum(Vals, sigma):
     '''
     Returns the optimal value given the choice specific value functions Vals.
-
     Parameters
     ----------
     Vals : [numpy.array]
@@ -3440,13 +3461,13 @@ def calcLogSum(Vals, sigma):
         return V
 
     # else we have a taste shock
-    maxV = Vals.max()
+    maxV = np.max(Vals, axis=0)
 
     # calculate maxV+sigma*log(sum_i=1^J exp((V[i]-maxV))/sigma)
     sumexp = np.sum(np.exp((Vals-maxV)/sigma), axis=0)
-    V = np.log(sumexp)
-    V = maxV + sigma*V
-    return V
+    LogSumV = np.log(sumexp)
+    LogSumV = maxV + sigma*LogSumV
+    return LogSumV
 
 def main():
     print("Sorry, HARK.interpolation doesn't actually do much on its own.")

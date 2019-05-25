@@ -727,16 +727,16 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # Calculate the minimum allowable value of money resources in this period
         self.BoroCnstNat = (self.solution_next.mNrmMin - self.TranShkMinNext)*\
                            (self.PermGroFac*self.PermShkMinNext)/self.Rfree
-                           
-        # Note: need to be sure to handle BoroCnstArt==None appropriately. 
+
+        # Note: need to be sure to handle BoroCnstArt==None appropriately.
         # In Py2, this would evaluate to 5.0:  np.max([None, 5.0]).
-        # However in Py3, this raises a TypeError. Thus here we need to directly 
+        # However in Py3, this raises a TypeError. Thus here we need to directly
         # address the situation in which BoroCnstArt == None:
         if BoroCnstArt is None:
             self.mNrmMinNow = self.BoroCnstNat
         else:
             self.mNrmMinNow = np.max([self.BoroCnstNat,BoroCnstArt])
-        if self.BoroCnstNat < self.mNrmMinNow: 
+        if self.BoroCnstNat < self.mNrmMinNow:
             self.MPCmaxEff = 1.0 # If actually constrained, MPC near limit is 1
         else:
             self.MPCmaxEff = self.MPCmaxNow
@@ -793,6 +793,12 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         aNrmNow : np.array
             A 1D array of end-of-period assets; also stored as attribute of self.
         '''
+
+        # We define aNrmNow all the way from BoroCnstNat up to max(self.aXtraGrid)
+        # even if BoroCnstNat < BoroCnstArt, so we can construct the consumption
+        # function as the lower envelope of the (by the artificial borrowing con-
+        # straint) uconstrained consumption function, and the artificially con-
+        # strained consumption function.
         aNrmNow     = np.asarray(self.aXtraGrid) + self.BoroCnstNat
         ShkCount    = self.TranShkValsNext.size
         aNrm_temp   = np.tile(aNrmNow,(ShkCount,1))
@@ -1461,7 +1467,7 @@ class PerfForesightConsumerType(AgentType):
     poststate_vars_ = ['aNrmNow','pLvlNow']
     shock_vars_ = []
 
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,cycles=1, time_flow=True,verbose=False,quiet=False, **kwds):
         '''
         Instantiate a new consumer type with given data.
         See ConsumerParameters.init_perfect_foresight for a dictionary of
@@ -1487,7 +1493,13 @@ class PerfForesightConsumerType(AgentType):
         self.time_inv       = deepcopy(self.time_inv_)
         self.poststate_vars = deepcopy(self.poststate_vars_)
         self.shock_vars     = deepcopy(self.shock_vars_)
+        self.verbose        = verbose
+        self.quiet          = quiet
         self.solveOnePeriod = solvePerfForesight # solver for perfect foresight model
+        
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def updateSolutionTerminal(self):
         '''
@@ -1531,7 +1543,6 @@ class PerfForesightConsumerType(AgentType):
         self.PlvlAggNow = 1.0
         self.PermShkAggNow = self.PermGroFacAgg # This never changes during simulation
         AgentType.initializeSim(self)
-
 
 
     def simBirth(self,which_agents):
@@ -1678,11 +1689,11 @@ class PerfForesightConsumerType(AgentType):
         self.aLvlNow = self.aNrmNow*self.pLvlNow   # Useful in some cases to precalculate asset level
         return None
 
-    def checkConditions(self,verbose=False):
+    def checkConditions(self,verbose=False,verbose_reference=False,public_call=False):
         '''
-        This method checks whether the instance's type satisfies the growth impatiance condition
-        (GIC), return impatiance condition (RIC), absolute impatiance condition (AIC), weak return
-        impatiance condition (WRIC), finite human wealth condition (FHWC) and finite value of
+        This method checks whether the instance's type satisfies the growth impatience condition
+        (GIC), return impatience condition (RIC), absolute impatience condition (AIC), weak return
+        impatience condition (WRIC), finite human wealth condition (FHWC) and finite value of
         autarky condition (FVAC). These are the conditions that are sufficient for nondegenerate
         solutions under infinite horizon with a 1 period cycle. Depending on the model at hand, a
         different combination of these conditions must be satisfied. To check which conditions are
@@ -1691,8 +1702,8 @@ class PerfForesightConsumerType(AgentType):
         Parameters
         ----------
         verbose : boolean
-            Specifies different levels of verbosity of feedback. When false, it only reports whether the
-            instance's type fails to satisfy a particular condition. When true, it reports all results, i.e.
+            Specifies different levels of verbosity of feedback. When False, it only reports whether the
+            instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
             the factor values for all conditions.
 
         Returns
@@ -1700,35 +1711,45 @@ class PerfForesightConsumerType(AgentType):
         None
         '''
         if self.cycles!=0 or self.T_cycle > 1:
-            print('This method only checks for the conditions for infinite horizon models with a 1 period cycle')
+            if verbose == True: 
+                print('This method only checks for the conditions for infinite horizon models with a 1 period cycle')
             return
+        
+        violated = False
 
         #Evaluate and report on the return impatience condition
-        RIC=(self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
-        if RIC<1:
-            print('The return impatiance factor value for the supplied parameter values satisfies the return impatiance condition.')
+
+        RIF = (self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
+        if RIF<1:
+            if public_call:
+                print('The return impatience factor value for the supplied parameter values satisfies the return impatience condition.')
         else:
-            print('The given type violates the return impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
-        if verbose:
-            print('The return impatiance factor value for the supplied parameter values is ' + str(RIC))
+            violated = True
+            print('The given type violates the Return Impatience Condition with the supplied parameter values; the factor is %1.5f ' % (RIF))
 
         #Evaluate and report on the absolute impatience condition
-        AIC=self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA)
-        if AIC<1:
-            print('The absolute impatiance factor value for the supplied parameter values satisfies the absolute impatiance condition.')
+        AIF = self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA)
+        if AIF<1:
+            if public_call:
+                print('The absolute impatience factor value for the supplied parameter values satisfies the absolute impatience condition.')
         else:
-            print('The given type violates the absolute impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
-        if verbose:
-            print('The absolute impatiance factor value for the supplied parameter values is ' + str(AIC))
+            print('The given type violates the absolute impatience condition with the supplied parameter values; the AIF is %1.5f ' % (AIF))
+            if verbose:
+                violated = True
+                print('    Therefore, the absolute amount of consumption is expected to grow over time')
 
         #Evaluate and report on the finite human wealth condition
-        FHWC=self.PermGroFac[0]/self.Rfree
-        if FHWC<1:
-            print('The finite human wealth factor value for the supplied parameter values satisfies the finite human wealth condition.')
+        FHWF = self.PermGroFac[0]/self.Rfree
+        if FHWF<1:
+            if public_call:
+                print('The finite human wealth factor value for the supplied parameter values satisfies the finite human wealth condition.')
         else:
-            print('The given type violates the finite human wealth condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
-        if verbose:
-            print('The finite human wealth factor value for the supplied parameter values is ' + str(FHWC))
+            print('The given type violates the finite human wealth condition; the finite human wealth factor value %2.5f ' % (FHWF))
+            violated = True
+        if verbose and violated and verbose_reference:
+            print('[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
+
+        return violated
 
 
 class IndShockConsumerType(PerfForesightConsumerType):
@@ -1742,7 +1763,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     time_inv_ = PerfForesightConsumerType.time_inv_ + ['BoroCnstArt','vFuncBool','CubicBool']
     shock_vars_ = ['PermShkNow','TranShkNow']
 
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,cycles=1,time_flow=True,verbose=False,quiet=False,**kwds):
         '''
         Instantiate a new ConsumerType with given data.
         See ConsumerParameters.init_idiosyncratic_shocks for a dictionary of
@@ -1760,17 +1781,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
         None
         '''
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
+        PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,
+                                           verbose=verbose,quiet=quiet, **kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
         self.update() # Make assets grid, income process, terminal solution
 
+
     def updateIncomeProcess(self):
         '''
-        Updates this agent's income process based on his own attributes.  The
-        function that generates the discrete income process can be swapped out
-        for a different process.
+        Updates this agent's income process based on his own attributes.
 
         Parameters
         ----------
@@ -1990,73 +2011,76 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
 
     def preSolve(self):
-        PerfForesightConsumerType.preSolve(self)
         self.updateSolutionTerminal()
+        if not self.quiet:
+            self.checkConditions(verbose=self.verbose,public_call=False)
 
-    def checkConditions(self,verbose=False):
+    def checkConditions(self,verbose=False,public_call=True):
         '''
-        This method checks whether the instance's type satisfies the growth impatiance condition
-        (GIC), return impatiance condition (RIC), absolute impatiance condition (AIC), weak return
-        impatiance condition (WRIC), finite human wealth condition (FHWC) and finite value of
+        This method checks whether the instance's type satisfies the growth impatience condition
+        (GIC), return impatience condition (RIC), absolute impatience condition (AIC), weak return
+        impatience condition (WRIC), finite human wealth condition (FHWC) and finite value of
         autarky condition (FVAC). These are the conditions that are sufficient for nondegenerate
         solutions under infinite horizon with a 1 period cycle. Depending on the model at hand, a
-        different combination of these conditions must be satisfied. To check which conditions are
-        relevant to the model at hand, a reference to the relevant theoretical literature is made.
+        different combination of these conditions must be satisfied. (For an exposition of the 
+        conditions, see http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/)
 
         Parameters
         ----------
         verbose : boolean
-            Specifies different levels of verbosity of feedback. When false, it only reports whether the
-            instance's type fails to satisfy a particular condition. When true, it reports all results, i.e.
+            Specifies different levels of verbosity of feedback. When False, it only reports whether the
+            instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
             the factor values for all conditions.
 
         Returns
         -------
         None
         '''
-        PerfForesightConsumerType.checkConditions(self)
+        violated = PerfForesightConsumerType.checkConditions(self, verbose=verbose, verbose_reference=False)
 
         if self.cycles!=0 or self.T_cycle > 1:
             return
 
-        #Some initial conditions
-        exp_psi_inv=0
-        exp_psi_to_one_minus_rho=0
-
-        #Get expected psi inverse
-        for i in range(len(self.PermShkDstn[1])):
-            exp_psi_inv=exp_psi_inv+(1.0/self.PermShkCount)*(self.PermShkDstn[1][i])**(-1)
-
-        #Get expected psi to the power one minus CRRA
-        for i in range(len(self.PermShkDstn[1])):
-            exp_psi_to_one_minus_rho=exp_psi_to_one_minus_rho+(1.0/self.PermShkCount)*(self.PermShkDstn[1][i])**(1-self.CRRA)
-
+        EPermShkInv=np.dot(self.PermShkDstn[0][0],1/self.PermShkDstn[0][1])
+        PermGroFacAdj=self.PermGroFac[0]*EPermShkInv
+        Thorn=self.LivPrb[0]*(self.Rfree*self.DiscFac)**(1/self.CRRA)
+        GIF=Thorn/PermGroFacAdj
         #Evaluate and report on the growth impatience condition
-        GIC=(self.LivPrb[0]*exp_psi_inv*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.PermGroFac[0]
-        if GIC<1:
-            print('The growth impatiance factor value for the supplied parameter values satisfies the growth impatiance condition.')
+        if GIF<1:
+            if public_call:
+                print('The growth impatience factor value for the supplied parameter values satisfies the growth impatience condition.')
         else:
-            print('The given type violates the growth impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
-        if verbose:
-            print('The growth impatiance factor value for the supplied parameter values is ' + str(GIC))
+            violated = True
+            print('The given parameter values violate the growth impatience condition for this consumer type; the GIF is: %2.4f' % (GIF))
+            if verbose:
+                print('    Therefore, a target level of wealth does not exist.')
 
         #Evaluate and report on the weak return impatience condition
-        WRIC=(self.LivPrb[0]*(self.UnempPrb**(1/self.CRRA))*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
-        if WRIC<1:
-            print('The weak return impatiance factor value for the supplied parameter values satisfies the weak return impatiance condition.')
+        WRIF=(self.LivPrb[0]*(self.UnempPrb**(1/self.CRRA))*(self.Rfree*self.DiscFac)**(1/self.CRRA))/self.Rfree
+        if WRIF<1:
+            if public_call:
+                print('The weak return impatience factor value for the supplied parameter values satisfies the weak return impatience condition.')
         else:
-            print('The given type violates the weak return impatience condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
-        if verbose:
-            print('The weak return impatiance factor value for the supplied parameter values is ' + str(WRIC))
+            violated = True
+            print('The given type violates the weak return impatience condition with the supplied parameter values.  The WRIF is: %2.4f' % (WRIF))
+            if verbose:
+                print('    Therefore, a nondegenerate solution is not available.')
 
         #Evaluate and report on the finite value of autarky condition
-        FVAC=self.LivPrb[0]*self.DiscFac*exp_psi_to_one_minus_rho*(self.PermGroFac[0]**(1-self.CRRA))
-        if FVAC<1:
-            print('The finite value of autarky factor value for the supplied parameter values satisfies the finite value of autarky condition.')
+        EPermShkValFunc=np.dot(self.PermShkDstn[0][0],self.PermShkDstn[0][1]**(1-self.CRRA))
+        FVAF=self.LivPrb[0]*self.DiscFac*EPermShkValFunc*(self.PermGroFac[0]**(1-self.CRRA))
+        if FVAF<1:
+            if public_call:
+                print('The finite value of autarky factor value for the supplied parameter values satisfies the finite value of autarky condition.')
         else:
-            print('The given type violates the finite value of autarky condition with the supplied parameter values. Therefore, a nondegenerate solution may not be available. See Table 3 in "Theoretical Foundations of Buffer Stock Saving" (Carroll, 2011) to check which conditions are sufficient for a nondegenerate solution.')
-        if verbose:
-            print('The finite value of autarky factor value for the supplied parameter values is ' + str(FVAC))
+            print('The given type violates the finite value of autarky condition with the supplied parameter values. The FVAF is %2.4f' %(FVAF))
+            violated = True
+            if verbose:
+                print('    Therefore, a nondegenerate solution is not available.')
+
+        if verbose and violated:
+            print('\n[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
+
 
 class KinkedRconsumerType(IndShockConsumerType):
     '''
@@ -2092,6 +2116,9 @@ class KinkedRconsumerType(IndShockConsumerType):
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsKinkedR # kinked R solver
         self.update() # Make assets grid, income process, terminal solution
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def calcBoundingValues(self):
         '''
@@ -2147,7 +2174,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         Has option to use approximate income distribution stored in self.IncomeDstn
         or to use a (temporary) very dense approximation.
 
-        NOT YET IMPLEMENTED FOR THIS CLASS
+        SHOULD BE INHERITED FROM ConsIndShockModel
 
         Parameters
         ----------
@@ -2185,21 +2212,21 @@ class KinkedRconsumerType(IndShockConsumerType):
 
     def checkConditions(self,verbose=False):
         '''
-        This method checks whether the instance's type satisfies the growth impatiance condition
-        (GIC), return impatiance condition (RIC), absolute impatiance condition (AIC), weak return
-        impatiance condition (WRIC), finite human wealth condition (FHWC) and finite value of
+        This method checks whether the instance's type satisfies the growth impatience condition
+        (GIC), return impatience condition (RIC), absolute impatience condition (AIC), weak return
+        impatience condition (WRIC), finite human wealth condition (FHWC) and finite value of
         autarky condition (FVAC). These are the conditions that are sufficient for nondegenerate
-        solutions under infinite horizon with a 1 period cycle. Depending on the model at hand, a
+        infinite horizon solutions with a 1 period cycle. Depending on the model at hand, a
         different combination of these conditions must be satisfied. To check which conditions are
         relevant to the model at hand, a reference to the relevant theoretical literature is made.
 
-        NOT YET IMPLEMENTED FOR THIS CLASS
+        SHOULD BE INHERITED FROM ConsIndShockModel
 
         Parameters
         ----------
         verbose : boolean
-            Specifies different levels of verbosity of feedback. When false, it only reports whether the
-            instance's type fails to satisfy a particular condition. When true, it reports all results, i.e.
+            Specifies different levels of verbosity of feedback. When False, it only reports whether the
+            instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
             the factor values for all conditions.
 
         Returns
@@ -2410,7 +2437,7 @@ def constructAssetsGrid(parameters):
 ####################################################################################################
 
 def main():
-    from . import ConsumerParameters as Params
+    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import plotFuncsDer, plotFuncs
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
@@ -2557,4 +2584,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

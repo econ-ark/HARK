@@ -12,6 +12,7 @@ from builtins import object
 import functools
 import warnings
 import numpy as np                  # Python's numeric library, abbreviated "np"
+import math
 try:
     import matplotlib.pyplot as plt                 # Python's plotting library
 except ImportError:
@@ -550,6 +551,32 @@ def approxMeanOneLognormal(N, sigma=1.0, **kwargs):
     mu_adj = - 0.5*sigma**2;
     pmf,X = approxLognormal(N=N, mu=mu_adj, sigma=sigma, **kwargs)
     return [pmf,X]
+
+def approxNormal(N, mu=0.0, sigma=1.0):
+    x, w = np.polynomial.hermite.hermgauss(N)
+    # normalize w
+    pmf = w*np.pi**-0.5
+    # correct x
+    X = math.sqrt(2.0)*sigma*x + mu
+    return [pmf, X]
+
+def approxLognormalGaussHermite(N, mu=0.0, sigma=1.0):
+    pmf, X = approxNormal(N, mu, sigma)
+    return pmf, np.exp(X)
+
+def calcNormalStyleParsFromLognormalPars(avgLognormal, stdLognormal):
+    varLognormal = stdLognormal**2
+    avgNormal = math.log(avgLognormal/math.sqrt(1+varLognormal/avgLognormal**2))
+    varNormal = math.sqrt(math.log(1+varLognormal/avgLognormal**2))
+    stdNormal = math.sqrt(varNormal)
+    return avgNormal, stdNormal
+
+def calcLognormalStyleParsFromNormalPars(muNormal, stdNormal):
+    varNormal = stdNormal**2
+    avgLognormal = math.exp(muNormal+varNormal*0.5)
+    varLognormal = (math.exp(varNormal)-1)*math.exp(2*muNormal+varNormal)
+    stdLognormal = math.sqrt(varLognormal)
+    return avgLognormal, stdLognormal
 
 def approxBeta(N,a=1.0,b=1.0):
     '''
