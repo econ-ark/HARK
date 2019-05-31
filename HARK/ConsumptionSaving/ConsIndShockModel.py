@@ -441,6 +441,12 @@ class ConsPerfForesightSolver(object):
         -------
         None
         '''
+        # Use a local value of BoroCnstArt to prevent comparing None and float below.
+        if self.BoroCnstArt is None:
+            BoroCnstArt = -np.inf
+        else:
+            BoroCnstArt = self.BoroCnstArt
+        
         # Calculate human wealth this period
         self.hNrmNow = (self.PermGroFac/self.Rfree)*(self.solution_next.hNrm + 1.0)
         
@@ -467,9 +473,9 @@ class ConsPerfForesightSolver(object):
         
         # If the artificial borrowing constraint binds, combine the constrained and
         # unconstrained consumption functions.
-        if self.BoroCnstArt > mNrmNow[0]:
+        if BoroCnstArt > mNrmNow[0]:
             # Find the highest index where constraint binds
-            cNrmCnst = mNrmNow - self.BoroCnstArt
+            cNrmCnst = mNrmNow - BoroCnstArt
             CnstBinds = cNrmCnst < cNrmNow
             idx = np.where(CnstBinds)[0][-1]
             
@@ -484,8 +490,8 @@ class ConsPerfForesightSolver(object):
                 mCrit = m0 + alpha*(m1 - m0)
                 
                 # Adjust the grids of mNrm and cNrm to account for the borrowing constraint.
-                cCrit = mCrit - self.BoroCnstArt
-                mNrmNow = np.concatenate(([self.BoroCnstArt, mCrit], mNrmNow[(idx+1):]))
+                cCrit = mCrit - BoroCnstArt
+                mNrmNow = np.concatenate(([BoroCnstArt, mCrit], mNrmNow[(idx+1):]))
                 cNrmNow = np.concatenate(([0., cCrit], cNrmNow[(idx+1):]))
                 
             else:
@@ -494,8 +500,8 @@ class ConsPerfForesightSolver(object):
                 # constraint, the constraint kink, and the extrapolation point.
                 mXtra = cNrmNow[-1] - cNrmCnst[-1]/(1.0 - self.MPCmin)
                 mCrit = mNrmNow[-1] + mXtra
-                cCrit = mCrit - self.BoroCnstArt
-                mNrmNow = np.array([self.BoroCnstArt, mCrit, mCrit + 1.0])
+                cCrit = mCrit - BoroCnstArt
+                mNrmNow = np.array([BoroCnstArt, mCrit, mCrit + 1.0])
                 cNrmNow = np.array([0., cCrit, cCrit + self.MPCmin])
                 
         # If the mNrm and cNrm grids have become too large, throw out the last
