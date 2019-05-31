@@ -423,7 +423,7 @@ class ConsPerfForesightSolver(object):
         '''
         if self.BoroCnstArt is None:
             MPCnvrs      = self.MPCmin**(-self.CRRA/(1.0-self.CRRA))
-            vFuncNvrs    = LinearInterp(np.array([self.mNrmMin, self.mNrmMin+1.0]),np.array([0.0, MPCnvrs]))
+            vFuncNvrs    = LinearInterp(np.array([self.mNrmMinNow, self.mNrmMinNow+1.0]),np.array([0.0, MPCnvrs]))
             self.vFunc   = ValueFunc(vFuncNvrs,self.CRRA)
         else: # TODO: Add value function for constrained version; it's not trivial.
             self.vFunc = NullFunc()
