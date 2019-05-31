@@ -62,7 +62,7 @@ def distanceMetric(thing_A, thing_B):
         if thing_A.shape == thing_B.shape:
             distance = np.max(abs(thing_A - thing_B))
         else:
-            distance = np.max(abs(thing_A.shape - thing_B.shape))
+            distance = np.max(abs(np.array(thing_A.shape) - np.array(thing_B.shape)))
     # If none of the above cases, but the objects are of the same class, call
     # the distance method of one on the other
     elif thing_A.__class__.__name__ == thing_B.__class__.__name__:
