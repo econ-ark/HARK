@@ -74,7 +74,7 @@ Installing HARK with pip does not give you full access to HARK's many graphical 
 1. Anaconda includes its own virtual environment system called `conda` which stores environments in a preset location (so you don't have to choose). So in order to create and activate an econ-ark virtual environment:
 ```
 conda create -n econ-ark anaconda
-source activate econ-ark
+conda activate econ-ark
 ```
 1. Open Spyder, an interactive development environment (IDE) for Python (specifically, iPython).  You may be able to do this through Anaconda's graphical interface, or you can do so from the command line/prompt.  To do so, simply open a command line/prompt and type `spyder`.
 
