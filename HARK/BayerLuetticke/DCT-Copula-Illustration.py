@@ -455,75 +455,136 @@ kgrid_fix = EX3SS['mpar']['nk']//11
 hgrid_fix = EX3SS['mpar']['nh']//2
 
 
-mut_StE = EX3SS['mutil_c']
+xi = EX3SS['par']['xi']
+
+invmutil = lambda x : (1./x)**(1./xi)  
+
+### convert marginal utilities back to consumption function
+mut_StE  =  EX3SS['mutil_c']
+mut_n_StE = EX3SS['mutil_c_n']    # marginal utility of non-adjusters
+mut_a_StE = EX3SS['mutil_c_a']   # marginal utility of adjusters 
+
+c_StE = invmutil(mut_StE)
+cn_StE = invmutil(mut_n_StE)
+ca_StE = invmutil(mut_a_StE)
+
+
+### grid values 
 dim_StE = mut_StE.shape
 mgrid = EX3SS['grid']['m']
 kgrid = EX3SS['grid']['k']
 hgrid = EX3SS['grid']['h']
 
+## indexMUdct is one dimension, needs to be unraveled to 3 dimensions
+
 mut_rdc_idx = np.unravel_index(SR['indexMUdct'],dim_StE,order='F')
+
+## these are filtered indices for the fixed grids of other two states 
 
 mgrid_rdc = mut_rdc_idx[0][(mut_rdc_idx[1]==kgrid_fix) & (mut_rdc_idx[2]==hgrid_fix)]
 kgrid_rdc = mut_rdc_idx[1][(mut_rdc_idx[0]==mgrid_fix) & (mut_rdc_idx[2]==hgrid_fix)]
 hgrid_rdc = mut_rdc_idx[2][(mut_rdc_idx[0]==mgrid_fix) & (mut_rdc_idx[1]==kgrid_fix)]
 
-## compare marginal utility before and after dct 
-plt.figure(figsize=(15,5))
-plt.title('Marginal utility of consumption at grid points of states')
-
-plt.subplot(1,3,1)
-plt.plot(mgrid,mut_StE[:,kgrid_fix,hgrid_fix],'x',label='StE(before dct)')
-plt.plot(mgrid[mgrid_rdc],mut_StE[mgrid_rdc,kgrid_fix,hgrid_fix],'r*',label='StE(after dct)')
-
-plt.xlabel('m',size=15)
-plt.ylabel(r'$u_c^\prime$',size=15)
-plt.legend()
-
-plt.subplot(1,3,2)
-plt.plot(kgrid,mut_StE[mgrid_fix,:,hgrid_fix],'x',label='StE(before dct)')
-plt.plot(kgrid[kgrid_rdc],mut_StE[mgrid_fix,kgrid_rdc,hgrid_fix],'r*',label='StE(after dct)')
-plt.xlabel('k',size=15)
-plt.ylabel(r'$u_c^\prime$',size=15)
-plt.legend()
-
-plt.subplot(1,3,3)
-plt.plot(hgrid,mut_StE[mgrid_fix,kgrid_fix,:],'x',label='StE(before dct)')
-plt.plot(hgrid[hgrid_rdc],mut_StE[mgrid_fix,kgrid_fix,hgrid_rdc],'r*',label='StE(after dct)')
-plt.xlabel('h',size=15)
-plt.ylabel(r'$u_c^\prime$',size=15)
-plt.legend()
-
 # %% {"code_folding": [0]}
-## 3D scatter plots of all grids and grids after dct
+## 2D graph: compare consumption function before and after dct 
+fig=plt.figure(figsize=(15,8))
+fig.suptitle('Consumption at grid points of states')
+
+## for non-adjusters 
+
+#c_n(m)
+plt.subplot(2,3,1)
+plt.plot(mgrid,cn_StE[:,kgrid_fix,hgrid_fix],'x',label='StE(before dct)')
+plt.plot(mgrid[mgrid_rdc],cn_StE[mgrid_rdc,kgrid_fix,hgrid_fix],'r*',label='StE(after dct)')
+plt.xlabel('m',size=15)
+plt.ylabel(r'$c_n(m)$',size=15)
+plt.legend()
+
+## c_n(k)
+plt.subplot(2,3,2)
+plt.plot(kgrid,cn_StE[mgrid_fix,:,hgrid_fix],'x',label='StE(before dct)')
+plt.plot(kgrid[kgrid_rdc],cn_StE[mgrid_fix,kgrid_rdc,hgrid_fix],'r*',label='StE(after dct)')
+plt.xlabel('k',size=15)
+plt.ylabel(r'$c_n(k)$',size=15)
+plt.legend()
+
+## c_n(h)
+
+plt.subplot(2,3,3)
+plt.plot(hgrid,cn_StE[mgrid_fix,kgrid_fix,:],'x',label='StE(before dct)')
+plt.plot(hgrid[hgrid_rdc],cn_StE[mgrid_fix,kgrid_fix,hgrid_rdc],'r*',label='StE(after dct)')
+plt.xlabel('h',size=15)
+plt.ylabel(r'$c_n(h)$',size=15)
+plt.legend()
+
+
+### for adjusters 
+## c_a(m)
+plt.subplot(2,3,4)
+plt.plot(mgrid,ca_StE[:,kgrid_fix,hgrid_fix],'x',label='StE(before dct)')
+plt.plot(mgrid[mgrid_rdc],ca_StE[mgrid_rdc,kgrid_fix,hgrid_fix],'r*',label='StE(after dct)')
+plt.xlabel('m',size=15)
+plt.ylabel(r'$c_a(m)$',size=15)
+plt.legend()
+
+## c_a(k)
+plt.subplot(2,3,5)
+plt.plot(kgrid,ca_StE[mgrid_fix,:,hgrid_fix],'x',label='StE(before dct)')
+plt.plot(kgrid[kgrid_rdc],ca_StE[mgrid_fix,kgrid_rdc,hgrid_fix],'r*',label='StE(after dct)')
+plt.xlabel('k',size=15)
+plt.ylabel(r'$c_a(k)$',size=15)
+plt.legend()
+
+
+## c_a(h)
+plt.subplot(2,3,6)
+plt.plot(hgrid,ca_StE[mgrid_fix,kgrid_fix,:],'x',label='StE(before dct)')
+plt.plot(hgrid[hgrid_rdc],ca_StE[mgrid_fix,kgrid_fix,hgrid_rdc],'r*',label='StE(after dct)')
+plt.xlabel('h',size=15)
+plt.ylabel(r'$c_a(h)$',size=15)
+plt.legend()
+
+# %% {"code_folding": []}
+## 3D scatter plots of consumption function 
+##    at all grids and grids after dct for both adjusters and non-adjusters
 
 ## full grids 
 mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
 
-## rdc grids 
+## reduced grids 
 
-fig = plt.figure(figsize=(10,10))
-fig.suptitle('Marginal utility at grid points of m and k(for different h)',fontsize=(13))
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Consumption at grid points of m and k(for different h)',
+             fontsize=(13))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the grids 
     hgrid_fix=hgrid_id
     fix_bool = mut_rdc_idx[2]==hgrid_fix  # for a fixed h grid value 
-    rdc_id = (mut_rdc_idx[0][fix_bool], mut_rdc_idx[1][fix_bool],mut_rdc_idx[2][fix_bool])
+    rdc_id = (mut_rdc_idx[0][fix_bool], 
+              mut_rdc_idx[1][fix_bool],
+              mut_rdc_idx[2][fix_bool])
     mmgrid_rdc = mmgrid[rdc_id[0]].T[0]
     kkgrid_rdc = kkgrid[rdc_id[1]].T[0]
-    mut_rdc= mut_StE[rdc_id]
+    mut_n_rdc= mut_n_StE[rdc_id]
+    c_n_rdc = cn_StE[rdc_id]
+    c_a_rdc = ca_StE[rdc_id]
     
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.scatter(mmgrid,kkgrid,mut_StE[:,:,hgrid_fix],label='StE(before dct)')
-    ax.scatter(mmgrid_rdc,kkgrid_rdc,mut_rdc,c='red',label='StE(after dct)')
-    ax.set_xlabel('m')
-    ax.set_ylabel('k')
-    ax.set_zlabel(r'$u^\prime_c$')
+    ax.scatter(mmgrid_rdc,kkgrid_rdc,c_n_rdc,c='red',marker='o',
+               label='StE(after dct):non-adjuster')
+    ax.scatter(mmgrid_rdc,kkgrid_rdc,c_a_rdc,c='blue',marker='*',
+               label='StE(after dct):adjuster')
+    ax.scatter(mmgrid,kkgrid,cn_StE[:,:,hgrid_fix],c='gray',marker='.',
+               label='StE(before dct): non-adjuster')
+    ax.scatter(mmgrid,kkgrid,ca_StE[:,:,hgrid_fix],c='yellow',marker='.',
+               label='StE(before dct): adjuster')
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel('k',fontsize=13)
+    ax.set_zlabel(r'$c(m,k)$',fontsize=13)
     ax.set_title(r'$h({})$'.format(hgrid_fix))
-    #ax.set_xlim(0, 200)
-    #ax.set_ylim(0, 400)
-    ax.view_init(40, 160)
-    ax.legend(loc=10)
+    ax.view_init(20, 240)
+ax.legend(loc=7)
 
 # %% [markdown]
 # #### Observation
