@@ -1,133 +1,16 @@
 # ---
 # jupyter:
-#   cite2c:
-#     citations:
-#       6202365/L5GBWHBM:
-#         author:
-#         - family: Reiter
-#           given: Michael
-#         container-title: Journal of Economic Dynamics and Control
-#         id: undefined
-#         issue: '1'
-#         issued:
-#           month: 1
-#           year: 2010
-#         note: 'Citation Key: reiterBackward'
-#         page: 28-35
-#         page-first: '28'
-#         title: Solving the Incomplete Markets Model with Aggregate Uncertainty by
-#           Backward Induction
-#         type: article-journal
-#         volume: '34'
-#       6202365/UKUXJHCN:
-#         author:
-#         - family: Reiter
-#           given: Michael
-#         id: 6202365/UKUXJHCN
-#         note: "Citation Key: reiter2002recursive \nbibtex*[publisher=Citeseer]"
-#         title: Recursive computation of heterogeneous agent models
-#         type: article-journal
-#       6202365/VPUXICUR:
-#         author:
-#         - family: Krusell
-#           given: Per
-#         - family: Smith
-#           given: Anthony A.
-#         container-title: Journal of Political Economy
-#         id: 6202365/VPUXICUR
-#         issue: '5'
-#         issued:
-#           year: 1998
-#         page: "867\u2013896"
-#         page-first: '867'
-#         title: Income and Wealth Heterogeneity in the Macroeconomy
-#         type: article-journal
-#         volume: '106'
-#       6202365/WN76AW6Q:
-#         author:
-#         - family: SeHyoun Ahn, Greg Kaplan, Benjamin Moll, Thomas Winberry
-#           given: ''
-#         - family: Wolf
-#           given: Christian
-#         editor:
-#         - family: Parker
-#           given: Jonathan
-#         - family: Martin S. Eichenbaum
-#           given: Organizers
-#         id: 6202365/WN76AW6Q
-#         issued:
-#           year: 2017
-#         note: "Citation Key: akmwwInequality \nbibtex*[booktitle=NBER Macroeconomics\
-#           \ Annual;publisher=MIT Press;location=Cambridge, MA]"
-#         title: When Inequality Matters for Macro and Macro Matters for Inequality
-#         type: article-journal
-#         volume: '32'
-#       undefined:
-#         author:
-#         - family: Reiter
-#           given: Michael
-#         container-title: Journal of Economic Dynamics and Control
-#         id: undefined
-#         issue: '1'
-#         issued:
-#           month: 1
-#           year: 2010
-#         note: 'Citation Key: reiterBackward'
-#         page: 28-35
-#         page-first: '28'
-#         title: Solving the Incomplete Markets Model with Aggregate Uncertainty by
-#           Backward Induction
-#         type: article-journal
-#         volume: '34'
 #   jupytext:
 #     formats: ipynb,py:light
 #     text_representation:
 #       extension: .py
 #       format_name: light
-#       format_version: '1.3'
-#       jupytext_version: 0.8.3
+#       format_version: '1.4'
+#       jupytext_version: 1.1.3
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
 #     name: python3
-#   language_info:
-#     codemirror_mode:
-#       name: ipython
-#       version: 3
-#     file_extension: .py
-#     mimetype: text/x-python
-#     name: python
-#     nbconvert_exporter: python
-#     pygments_lexer: ipython3
-#     version: 3.6.7
-#   varInspector:
-#     cols:
-#       lenName: 16
-#       lenType: 16
-#       lenVar: 40
-#     kernels_config:
-#       python:
-#         delete_cmd_postfix: ''
-#         delete_cmd_prefix: 'del '
-#         library: var_list.py
-#         varRefreshCmd: print(var_dic_list())
-#       r:
-#         delete_cmd_postfix: ') '
-#         delete_cmd_prefix: rm(
-#         library: var_list.r
-#         varRefreshCmd: 'cat(var_dic_list()) '
-#     types_to_exclude:
-#     - module
-#     - function
-#     - builtin_function_or_method
-#     - instance
-#     - _Feature
-#     window_display: false
-#   widgets:
-#     application/vnd.jupyter.widget-state+json:
-#       state: {}
-#       version_major: 2
-#       version_minor: 0
 # ---
 
 # # [Bayer and Luetticke (2018)](https://cepr.org/active/publications/discussion_papers/dp.php?dpno=13071)

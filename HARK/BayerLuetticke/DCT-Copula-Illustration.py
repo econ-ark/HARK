@@ -18,13 +18,15 @@
 #
 # [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/econ-ark/HARK/BayerLuetticke?filepath=notebooks%2FHARK%2FBayerLuetticke%2FTwoAsset.ipynb)
 #
+#
+# This is an accompany to the [main notebook](TwoAsset.ipynb) illustrating dimension reduction in Bayer/Luetticke algorithm.
+#
 # - Based on original slides by Christian Bayer and Ralph Luetticke 
 # - Original Jupyter notebook by Seungcheol Lee 
 # - Further edits by Chris Carroll, Tao Wang 
 #
-# This is an accompany to the [main notebook](TwoAsset.ipynb) illustrating dimension reduction in Bayer/Luetticke algorithm.
 
-# %% {"code_folding": [6, 17]}
+# %% {"code_folding": [0, 6, 17, 21]}
 # Setup stuff
 
 # This is a jupytext paired notebook that autogenerates a corresponding .py file
@@ -74,9 +76,6 @@ os.chdir(code_dir) # Go to the directory with pickled code
 
 EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 
-# %%
-
-
 # %% [markdown]
 # ### Dimension Reduction via discrete cosine transformation and a fixed copula
 #
@@ -104,7 +103,7 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #    * In principle, distributions need not be computed at the same gridpoints used to represent the value and policy functions
 #    * In practice, the same grids are used
 
-# %%
+# %% {"code_folding": [0]}
 # Recover dimensions of the marginal value and consumption functions
 
 print('c_n is of dimension: ' + str(EX3SS['mutil_c_n'].shape))
@@ -129,40 +128,24 @@ print(str(EX3SS['mpar']['nm'])+
 # %% [markdown]
 # #### Intuitively, how does the reduction work?
 #
+# ##### Reducing the dimension of policy/value functions
 # - The first step is to find an efficient "compressed" representation of the function (e.g., the consumption function).  The analogy to image compression is that nearby pixels are likely to have identical or very similar colors, so we need only to find an efficient way to represent the way in which the colors change from one pixel to another.  Similarly, consumption at a given point is likely to be close to consumption at a nearby point, so a function that captures that similarity efficiently can preserve most of the information without keeping all of the points.
 #
-# - We will be using the discrete consine transformation (DCT), which is commonly used in image compression. See [here](https://en.wikipedia.org/wiki/Discrete_cosine_transform) for the Wikipedia page on DCT. 
+# - We will be using the discrete cosine transformation (DCT), which is commonly used in image compression. See [here](https://en.wikipedia.org/wiki/Discrete_cosine_transform) for the Wikipedia page on DCT. 
+#
+# ##### Reducing the dimension of joint distribution
 #
 # - The other tool we use is the "copula," which allows us to represent the distribution of people across idiosyncratic states efficiently
-#    * The crucial assumption behind the copula is that what aggregate shocks do is to squeeze or distort the steady state distribution, but leave the rank structure of the distribution the same. Think of representing a balloon by a set of points on its surface; the copula assumption is effectively that when something happens to the balloon (more air is put in it, or it is squeezed on one side, say), we can represent what happens by thinking about how the relationship between points is distorted, rather than having to reconstruct the shape of the balloon with a completely independent set of new points.  Which points are close to which other points does not change, but the distances between them can change.  If the distances between them change in a particularly simple way, you can represent what has happened with a small amount of information.  For example, if the balloon is perfectly spherical, then adding a given amount of air might increase the distances between adjacent points by 5 percent.  (See the video illustration here)
+#    * In general, a multivariate joint distribution is not uniquely determined by marginal distributions only. A copula, to put it simply, characterizes the correlation across variables and it combined with marginal distributions  determine the unique joint distribution.  
+#    * The crucial assumption of fixed copula is that what aggregate shocks do is to squeeze or distort the steady state distribution, but leave the rank structure of the distribution the same. Think of representing a balloon by a set of points on its surface; the copula assumption is effectively that when something happens to the balloon (more air is put in it, or it is squeezed on one side, say), we can represent what happens by thinking about how the relationship between points is distorted, rather than having to reconstruct the shape of the balloon with a completely independent set of new points.  Which points are close to which other points does not change, but the distances between them can change.  If the distances between them change in a particularly simple way, you can represent what has happened with a small amount of information.  For example, if the balloon is perfectly spherical, then adding a given amount of air might increase the distances between adjacent points by 5 percent.  (See the video illustration here)
 #
 # - In the context of this model, the assumption is that the rank order correlation (e.g. the correlation of where you are in the distribution of liquid assets and illiquid assets) remains the same after the aggregate shocks are introduced to StE
 #
 # - In this case we just need to represent how the marginal distributions of each state change, instead of the full joint distributions. 
 #
-# - This reduces 3600 $\times$ 3 to 30+30+4=64. See [here](https://en.wikipedia.org/wiki/Copula_(probability_theory)) for the Wikipedia page on copula.
-#
-# (Eliminate or rewrite intuitively the stuff below)
-#
-# #### More accurately, how?
-# 1. Use compression techniques as in video encoding
-#    * Apply a discrete cosine transformation (DCT) to all value/policy functions
-#       * Use Chebychev polynomials on roots grid 
-#    * Define a reference "frame": the steady-state equilibrium (StE)
-#    * Represent fluctuations as differences from this reference frame
-#    * Assume all coefficients of the DCT from the StE that are close to zero do not change when there is an aggregate shock (small things stay small and unchanged)
-#    
-# 2. Assume no changes in the rank correlation structure of $\mu$   
-#    * Calculate the Copula, $\bar{C}$ of $\mu$ in the StE
-#    * Perturb only the marginal distributions
-#    * Use fixed Copula to calculate an approximate joint distribution from marginals
-#
-#
-# The approach follows the insight of KS in that it uses the fact that some moments of the distribution do not matter for aggregate dynamics
-#
-# The copula is computed from the joint distribution of states in StE and will be used to transform the marginals back to joint distributions.
+# - This reduces 3600 to 30+30+4=64. See [here](https://en.wikipedia.org/wiki/Copula_(probability_theory)) for the Wikipedia page on copula. The copula is computed from the joint distribution of states in StE and will be used to transform the marginals back to joint distributions.
 
-# %%
+# %% {"code_folding": [0]}
 # Get some specs about the copula, which is precomputed in the EX3SS object
 
 print('The copula consists of two parts: gridpoints and values at those gridpoints:'+ \
@@ -199,53 +182,11 @@ import matplotlib.patches as mpatches
 import scipy.io #scipy input and output
 import scipy.fftpack as sf  # scipy discrete fourier transforms
 
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
-# %% [markdown]
-# #### Details
-# 1) Apply compression techniques from video encoding
-#    * Let $\bar{\Theta} = dct(\bar{v})$ be the coefficients obtained from the DCT of the value function in StE
-#    * Define an index set $\mathop{I}$ that contains the x percent largest (i.e. most important) elements from $\bar{\Theta}$
-#    * Let $\theta$ be a sparse vector with non-zero entries only for elements $i \in \mathop{I}$
-#    * Define 
-#    \begin{equation}
-#     \tilde{\Theta}(\theta_t)=\left\{
-#       \begin{array}{@{}ll@{}}
-#          \bar{\Theta}(i)+\theta_t(i), & i \in \mathop{I} \\
-#          \bar{\Theta}(i), & \text{else}
-#       \end{array}\right.
-#    \end{equation}
-#    
 
-# %% [markdown]
-# 2) Decoding
-#    * Now we reconstruct $\tilde{v}_t=\tilde{v}(\theta_t)=dct^{-1}(\tilde{\Theta}(\theta_i))$
-#       * idct is the inverse dct that goes from the $\theta$ vector to the corresponding values
-#    * This means that in the StE the reduction step adds no addtional approximation error:
-#        * Remember that $\tilde{v}(0)=\bar{v}$ by construction
-#    * Yet, it allows to reduce the number of derivatives that need to be calculated from the outset.
-#    
-# 3) The histogram is recovered the same way
-#    * $\mu_t$ is approximated as $\bar{C}(\bar{\mu_t}^1,...,\bar{\mu_t}^n)$, where $n$ is the dimensionality of the idiosyncratic states
-#    * The StE distribution is obtained when $\mu = \bar{C}(\bar{\mu}^1,...,\bar{\mu}^n)$
-#    * Typically prices are only influenced through the marginal distributions
-#    * The approach ensures that changes in the mass of one, say wealth, state are distributed in a sensible way across the other dimension
-#    * The implied distributions look "similar" to the StE one (different in (Reiter, 2009))
-#
-# 4) Too many equations
-#    * The system
-#      \begin{align}
-#       F(\{d\mu_t^1,...,d\mu_t^n\}, S_t, \{d\mu_{t+1}^1,...,d\mu_{t+1}^n\}, S_{t+1}, \theta_t, P_t, \theta_{t+1}, P_{t+1})
-#       &= \begin{bmatrix}
-#            d\bar{C}(\bar{\mu}_t^1,...,\bar{\mu}_t^n) - d\bar{C}(\bar{\mu}_t^1,...,\bar{\mu}_t^n)\Pi_{h_t} \\
-#            dct[idct(\tilde{\Theta(\theta_t)}) - (\bar{u}_{h_t} + \beta \Pi_{h_t}idct(\tilde{\Theta(\theta_{t+1})}] \\
-#            S_{t+1} - H(S_t,d\mu_t) \\
-#            \Phi(h_t,d\mu_t,P_t,S_t) \\
-#            \end{bmatrix}
-#      \end{align}
-#      has too many equations
-#    * Uses only difference in marginals and the differences on $\mathop{I}$ 
-
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## State reduction and discrete cosine transformation
 
 class StateReduc_Dct:
@@ -290,7 +231,7 @@ class StateReduc_Dct:
         Contr:  ndarray, dimension equal to reduced controls
         Contr_m: ndarray, dimension equal to reduced controls
         
-        Passed down from the model
+        Passed down from the input
         ==========================
         Copula: dict, grids and values
         joint_distr: ndarray, nk x nm x nh
@@ -451,21 +392,21 @@ EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
 #EX3SS['par']['rhoS']    = 0.84    # Persistence of variance
 #EX3SS['par']['sigmaS']  = 0.54    # STD of variance shocks
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Choose an accuracy of approximation with DCT
 ### Determines number of basis functions chosen -- enough to match this accuracy
 ### EX3SS is precomputed steady-state pulled in above
 EX3SS['par']['accuracy'] = 0.99999 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Implement state reduction and DCT
 ### Do state reduction on steady state
 EX3SR=StateReduc_Dct(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
 SR=EX3SR.StateReduc()           # StateReduc is operated 
 
-# %%
+# %% {"code_folding": [5, 7, 9, 12, 14, 18]}
 print('What are the results from the state reduction?')
-print('Newly added attributes after the operation include \n'+str(set(SR.keys())-set(EX3SS.keys())))
+#print('Newly added attributes after the operation include \n'+str(set(SR.keys())-set(EX3SS.keys())))
 
 print('\n')
 
@@ -487,7 +428,114 @@ print('The total number of state variables is '+str(SR['State'].shape[0]) + '='+
 
 
 # %% [markdown]
-# #### Summary: what do we achieve after the transformation?
+# ### Graphical Illustration
+#
+# #### Policy/value functions
+#
+# - Taking marginal utility as an example, one can plot its values at different grid points in both 2-dimensional and 3-dimensional spaces before and after dimension reduction.   
+#   -  2-dimensional graph: marginal utility at different grid points of a state variable fixing the values of other two state variables. 
+#      - For example, how the reduction works for liquid assets for given level of illiquid assets holding and productivity. 
+#
+#   -  3-dimensional graph: marginal utility at different grids points at grid points of liquid and illiquid assets with only value of productivity fixed. 
+#      - There is limitations at 1-dimensional graph, as we do not know ex ante at what grid points the dimension is reduced. So the 3-dimensional graph gives us a more complete picture. 
+#      - In this context, as we only have 4 grid points for productivity, we can fix an arbitrary one of the 4 grids and focus on how the number of grids is reduced for liquid and illiquid assets.
+#      
+# #### Marginal distributions
+#
+# -  We can also graphically show marginal distributions versus joint distribution. 
+
+# %% {"code_folding": [0]}
+## Graphical illustration
+
+###   In 2D, we can look at how the number of grid points of 
+###     one state is redcued at given grid values of other states. 
+
+mgrid_fix = EX3SS['mpar']['nm']//11   # "//" is for floor division unambiguously 
+kgrid_fix = EX3SS['mpar']['nk']//11
+hgrid_fix = EX3SS['mpar']['nh']//2
+
+
+mut_StE = EX3SS['mutil_c']
+dim_StE = mut_StE.shape
+mgrid = EX3SS['grid']['m']
+kgrid = EX3SS['grid']['k']
+hgrid = EX3SS['grid']['h']
+
+mut_rdc_idx = np.unravel_index(SR['indexMUdct'],dim_StE,order='F')
+
+mgrid_rdc = mut_rdc_idx[0][(mut_rdc_idx[1]==kgrid_fix) & (mut_rdc_idx[2]==hgrid_fix)]
+kgrid_rdc = mut_rdc_idx[1][(mut_rdc_idx[0]==mgrid_fix) & (mut_rdc_idx[2]==hgrid_fix)]
+hgrid_rdc = mut_rdc_idx[2][(mut_rdc_idx[0]==mgrid_fix) & (mut_rdc_idx[1]==kgrid_fix)]
+
+## compare marginal utility before and after dct 
+plt.figure(figsize=(15,5))
+plt.title('Marginal utility of consumption at grid points of states')
+
+plt.subplot(1,3,1)
+plt.plot(mgrid,mut_StE[:,kgrid_fix,hgrid_fix],'x',label='StE(before dct)')
+plt.plot(mgrid[mgrid_rdc],mut_StE[mgrid_rdc,kgrid_fix,hgrid_fix],'r*',label='StE(after dct)')
+
+plt.xlabel('m',size=15)
+plt.ylabel(r'$u_c^\prime$',size=15)
+plt.legend()
+
+plt.subplot(1,3,2)
+plt.plot(kgrid,mut_StE[mgrid_fix,:,hgrid_fix],'x',label='StE(before dct)')
+plt.plot(kgrid[kgrid_rdc],mut_StE[mgrid_fix,kgrid_rdc,hgrid_fix],'r*',label='StE(after dct)')
+plt.xlabel('k',size=15)
+plt.ylabel(r'$u_c^\prime$',size=15)
+plt.legend()
+
+plt.subplot(1,3,3)
+plt.plot(hgrid,mut_StE[mgrid_fix,kgrid_fix,:],'x',label='StE(before dct)')
+plt.plot(hgrid[hgrid_rdc],mut_StE[mgrid_fix,kgrid_fix,hgrid_rdc],'r*',label='StE(after dct)')
+plt.xlabel('h',size=15)
+plt.ylabel(r'$u_c^\prime$',size=15)
+plt.legend()
+
+# %% {"code_folding": [0]}
+## 3D scatter plots of all grids and grids after dct
+
+## full grids 
+mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
+
+## rdc grids 
+
+fig = plt.figure(figsize=(10,10))
+fig.suptitle('Marginal utility at grid points of m and k(for different h)',fontsize=(13))
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    ## prepare the grids 
+    hgrid_fix=hgrid_id
+    fix_bool = mut_rdc_idx[2]==hgrid_fix  # for a fixed h grid value 
+    rdc_id = (mut_rdc_idx[0][fix_bool], mut_rdc_idx[1][fix_bool],mut_rdc_idx[2][fix_bool])
+    mmgrid_rdc = mmgrid[rdc_id[0]].T[0]
+    kkgrid_rdc = kkgrid[rdc_id[1]].T[0]
+    mut_rdc= mut_StE[rdc_id]
+    
+    ## plots 
+    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
+    ax.scatter(mmgrid,kkgrid,mut_StE[:,:,hgrid_fix],label='StE(before dct)')
+    ax.scatter(mmgrid_rdc,kkgrid_rdc,mut_rdc,c='red',label='StE(after dct)')
+    ax.set_xlabel('m')
+    ax.set_ylabel('k')
+    ax.set_zlabel(r'$u^\prime_c$')
+    ax.set_title(r'$h({})$'.format(hgrid_fix))
+    #ax.set_xlim(0, 200)
+    #ax.set_ylim(0, 400)
+    ax.view_init(40, 160)
+    ax.legend(loc=10)
+
+# %% [markdown]
+# #### Observation
+#
+# - For a given grid value of productivity, the remaining grid points after DCT to represent the whole m-k surface concentrate on low values of k and m. The reason, to put it simply, is that the slopes of the surface of marginal utility are very steep around this area. 
+# - For different grid values of productivity(4 sub plots), the numbers of grid points operation differ. From the lowest to highest values of productivity, there are 78, 33, 25 and 18 grid points, respectively. They add up to the total number of grids 154 after DCT operation, as we print out above for marginal utility function. 
+
+# %% [markdown]
+# ### Summary: what do we achieve after the transformation?
 #
 # - Via DCT, the dimension of policy function and value functions are reduced both from 3600 to 154 and 94, respectively.
-# - Via fixed copula operation and marginalizing the joint-distribution, the dimension of gamma_state is 64 now, (excluding exogeous states like interest rate).
+# - Via marginalizing the joint distribution with the fixed copula assumption, the marginal distribution is of dimension 64 compared to its joint distribution of a dimension of 3600.
+#
+#
+#
