@@ -432,17 +432,13 @@ print('The total number of state variables is '+str(SR['State'].shape[0]) + '='+
 #
 # #### Policy/value functions
 #
-# - Taking marginal utility as an example, one can plot its values at different grid points in both 2-dimensional and 3-dimensional spaces before and after dimension reduction.   
-#   -  2-dimensional graph: marginal utility at different grid points of a state variable fixing the values of other two state variables. 
-#      - For example, how the reduction works for liquid assets for given level of illiquid assets holding and productivity. 
+# - Taking consumption function as an example, let us plot consumptions by adjusters and non-adjusters at different grid points before and after dimension reduction.   
+#   -  2-dimensional graph: consumption at different grid points of a state variable fixing the values of other two state variables. 
+#      - For example, consumption at each grid of liquid assets given fixed level of illiquid assets holding and productivity. 
 #
-#   -  3-dimensional graph: marginal utility at different grids points at grid points of liquid and illiquid assets with only value of productivity fixed. 
-#      - There is limitations at 1-dimensional graph, as we do not know ex ante at what grid points the dimension is reduced. So the 3-dimensional graph gives us a more complete picture. 
-#      - In this context, as we only have 4 grid points for productivity, we can fix an arbitrary one of the 4 grids and focus on how the number of grids is reduced for liquid and illiquid assets.
-#      
-# #### Marginal distributions
-#
-# -  We can also graphically show marginal distributions versus joint distribution. 
+#   -  3-dimensional graph: consumption at different grids points of liquid and illiquid assets with only value of productivity fixed. 
+#      - There is limitations at 1-dimensional graph, as we do not know ex ante at what grid points the dimension is reduced the most. So the 3-dimensional graph gives us a more straightforward picture. 
+#      - In this context, as we only have 4 grid points for productivity, we can fix grid of productivity and focus on how the number of grids is reduced for liquid and illiquid assets.
 
 # %% {"code_folding": [0]}
 ## Graphical illustration
@@ -450,9 +446,9 @@ print('The total number of state variables is '+str(SR['State'].shape[0]) + '='+
 ###   In 2D, we can look at how the number of grid points of 
 ###     one state is redcued at given grid values of other states. 
 
-mgrid_fix = EX3SS['mpar']['nm']//11   # "//" is for floor division unambiguously 
-kgrid_fix = EX3SS['mpar']['nk']//11
-hgrid_fix = EX3SS['mpar']['nh']//2
+mgrid_fix = 0    ## these are or arbitrary grid points.
+kgrid_fix = 0
+hgrid_fix = 2
 
 
 xi = EX3SS['par']['xi']
@@ -487,6 +483,8 @@ hgrid_rdc = mut_rdc_idx[2][(mut_rdc_idx[0]==mgrid_fix) & (mut_rdc_idx[1]==kgrid_
 
 # %% {"code_folding": [0]}
 ## 2D graph: compare consumption function before and after dct 
+
+
 fig=plt.figure(figsize=(15,8))
 fig.suptitle('Consumption at grid points of states')
 
@@ -535,7 +533,6 @@ plt.xlabel('k',size=15)
 plt.ylabel(r'$c_a(k)$',size=15)
 plt.legend()
 
-
 ## c_a(h)
 plt.subplot(2,3,6)
 plt.plot(hgrid,ca_StE[mgrid_fix,kgrid_fix,:],'x',label='StE(before dct)')
@@ -544,20 +541,20 @@ plt.xlabel('h',size=15)
 plt.ylabel(r'$c_a(h)$',size=15)
 plt.legend()
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## 3D scatter plots of consumption function 
 ##    at all grids and grids after dct for both adjusters and non-adjusters
 
 ## full grids 
 mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
 
-## reduced grids 
 
+### for adjusters 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption at grid points of m and k(for different h)',
+fig.suptitle('Consumption of non-adjusters at grid points of m and k(for different h)',
              fontsize=(13))
 for hgrid_id in range(EX3SS['mpar']['nh']):
-    ## prepare the grids 
+    ## prepare the reduced grids 
     hgrid_fix=hgrid_id
     fix_bool = mut_rdc_idx[2]==hgrid_fix  # for a fixed h grid value 
     rdc_id = (mut_rdc_idx[0][fix_bool], 
@@ -571,25 +568,89 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
+    ax.scatter(mmgrid,kkgrid,cn_StE[:,:,hgrid_fix],marker='.',
+               label='StE(before dct): non-adjuster')
+    ax.scatter(mmgrid_rdc,kkgrid_rdc,c_n_rdc,c='red',marker='o',
+               label='StE(after dct):non-adjuster')
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel('k',fontsize=13)
+    ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
+    ax.set_title(r'$h({})$'.format(hgrid_fix))
+    ax.view_init(20, 240)
+ax.legend(loc=9)
+
+# %% {"code_folding": [0]}
+### for adjusters 
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Consumption of adjusters at grid points of m and k(for different h)',
+             fontsize=(13))
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    ## prepare the reduced grids 
+    hgrid_fix=hgrid_id
+    fix_bool = mut_rdc_idx[2]==hgrid_fix  # for a fixed h grid value 
+    rdc_id = (mut_rdc_idx[0][fix_bool], 
+              mut_rdc_idx[1][fix_bool],
+              mut_rdc_idx[2][fix_bool])
+    mmgrid_rdc = mmgrid[rdc_id[0]].T[0]
+    kkgrid_rdc = kkgrid[rdc_id[1]].T[0]
+    mut_n_rdc= mut_n_StE[rdc_id]
+    c_n_rdc = cn_StE[rdc_id]
+    c_a_rdc = ca_StE[rdc_id]
+    
+    ## plots 
+    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
+    ax.scatter(mmgrid,kkgrid,ca_StE[:,:,hgrid_fix],c='yellow',marker='.',
+               label='StE(before dct): adjuster')
+    ax.scatter(mmgrid_rdc,kkgrid_rdc,c_a_rdc,c='blue',marker='*',
+               label='StE(after dct):adjuster')
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel('k',fontsize=13)
+    ax.set_zlabel(r'$c_n(m,k)$',fontsize=13)
+    ax.set_title(r'$h({})$'.format(hgrid_fix))
+    ax.view_init(20, 240)
+ax.legend(loc=9)
+
+# %% {"code_folding": [0]}
+### compare adjusters and non-adjusters after DCT
+
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Consumption of adjusters/non-adjusters at grid points of m and k(for different h)',
+             fontsize=(13))
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    ## prepare the reduced grids 
+    hgrid_fix=hgrid_id
+    fix_bool = mut_rdc_idx[2]==hgrid_fix  # for a fixed h grid value 
+    rdc_id = (mut_rdc_idx[0][fix_bool], 
+              mut_rdc_idx[1][fix_bool],
+              mut_rdc_idx[2][fix_bool])
+    mmgrid_rdc = mmgrid[rdc_id[0]].T[0]
+    kkgrid_rdc = kkgrid[rdc_id[1]].T[0]
+    mut_n_rdc= mut_n_StE[rdc_id]
+    c_n_rdc = cn_StE[rdc_id]
+    c_a_rdc = ca_StE[rdc_id]
+    
+    ## plots 
+    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
+    #ax.scatter(mmgrid,kkgrid,cn_StE[:,:,hgrid_fix],marker='.',
+    #           label='StE(before dct): non-adjuster')
+    #ax.scatter(mmgrid,kkgrid,ca_StE[:,:,hgrid_fix],c='yellow',marker='.',
+    #           label='StE(before dct): adjuster')
     ax.scatter(mmgrid_rdc,kkgrid_rdc,c_n_rdc,c='red',marker='o',
                label='StE(after dct):non-adjuster')
     ax.scatter(mmgrid_rdc,kkgrid_rdc,c_a_rdc,c='blue',marker='*',
                label='StE(after dct):adjuster')
-    ax.scatter(mmgrid,kkgrid,cn_StE[:,:,hgrid_fix],c='gray',marker='.',
-               label='StE(before dct): non-adjuster')
-    ax.scatter(mmgrid,kkgrid,ca_StE[:,:,hgrid_fix],c='yellow',marker='.',
-               label='StE(before dct): adjuster')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel(r'$c(m,k)$',fontsize=13)
+    ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
     ax.set_title(r'$h({})$'.format(hgrid_fix))
+    ax.set_xlim(0,400)
     ax.view_init(20, 240)
-ax.legend(loc=7)
+ax.legend(loc=9)
 
 # %% [markdown]
 # #### Observation
 #
-# - For a given grid value of productivity, the remaining grid points after DCT to represent the whole m-k surface concentrate on low values of k and m. The reason, to put it simply, is that the slopes of the surface of marginal utility are very steep around this area. 
+# - For a given grid value of productivity, the remaining grid points after DCT to represent the whole m-k surface are concentrated in low values of k and m. The reason, to put it simply, is that the slopes of the surface of marginal utility are very steep around this area. 
 # - For different grid values of productivity(4 sub plots), the numbers of grid points operation differ. From the lowest to highest values of productivity, there are 78, 33, 25 and 18 grid points, respectively. They add up to the total number of grids 154 after DCT operation, as we print out above for marginal utility function. 
 
 # %% [markdown]
