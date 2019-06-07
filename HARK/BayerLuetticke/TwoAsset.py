@@ -28,12 +28,14 @@
 # The Bayer-Luetticke method has the following broad features:
 #    * The model is formulated and solved in discrete time (in contrast with some other recent approaches <cite data-cite="6202365/WN76AW6Q"></cite>)
 #    * Solution begins by calculation of the steady-state equilibrium (StE) with no aggregate shocks
-#    * Dimensionality reduction is performed immediately after calculation of the StE
-#       * This involves finding a representation of the individual policy function using a particular class of basis functions
-#    * The method captures the business-cycle-induced _deviations_ of the individual policy functions from those that characterize the riskless StE
-#       * This is done using the same basis functions originally optimized to match the StE individual policy function (akin to image compression)
-#    * The method of capturing dynamic deviations from a reference frame is akin to video compression
-#    * Similar methods are used for capturing dynamics of distributions
+#    * "Dimensionality reduction" of the consumer's decision problem is performed before any further analysis is done
+#       * "Dimensionality reduction" is just a particularly efficient method of approximating a function
+#       * It involves finding a representation of the function using some class of basis functions
+#    * Dimensionality reduction of the joint distribution is accomplished using a "copula"
+#       * See the companion notebook for description of the copula
+#    * The method approximates the business-cycle-induced _deviations_ of the individual policy functions from those that characterize the riskless StE
+#       * This is done using the same basis functions originally optimized to match the StE individual policy function
+#       * The method of capturing dynamic deviations from a reference frame is akin to video compression
 
 # ### Setup 
 #
@@ -82,7 +84,7 @@
 #         \bar{v} = \bar{u} + \beta \Pi_{\bar{h}}\bar{v}
 #       \end{equation}
 #      holds for the optimal policy
-#      * A linear interpolant is used for the value function
+#      * A linear interpolator is used to represent the value function
 #    * For the distribution, which (by the definition of steady state) is constant:   
 #
 # \begin{eqnarray}
@@ -102,8 +104,10 @@
 #
 # This can be solved by (jointly):
 #    1. Finding $d\bar{\mu}$ as the unit-eigenvalue of $\Pi_{\bar{h}}$
-#    2. Using fast solution techniques for the decision problem, e.g. EGM
+#    2. Using standard solution techniques for the micro decision problem given $P$
+#       * Like wage and interest rate
 #    3. Using a root-finder to solve for $P$
+#       * This basically iterates the other two steps until it finds values where they are consistent
 
 # ####  Introducing aggregate risk
 #
@@ -121,7 +125,7 @@
 #         v_t = \bar{u}_{P_t} + \beta \Pi_{h_t} v_{t+1}
 #      \end{equation}
 #      holds for policy $h_t$ which optimizes with respect to $v_{t+1}$ and $P_t$
-#    * and a sequence of histograms, such that
+#    * and a sequence of "histograms" (discretized distributions), such that
 #      \begin{equation}
 #         d\mu_{t+1} = d\mu_t \Pi_{h_t}
 #      \end{equation}
@@ -166,8 +170,8 @@ code_dir = os.path.join(my_file_path, "BayerLuetticke_code/TwoAssetCode")
 sys.path.insert(0, code_dir)
 sys.path.insert(0, my_file_path)
 
-# + {"code_folding": [0]}
-## Change working folder and load Stationary equilibrium (StE)
+# + {"code_folding": []}
+## Load Stationary equilibrium (StE) object EX3SS_20
 
 import pickle
 os.chdir(code_dir) # Go to the directory with pickled code
@@ -205,10 +209,10 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #    * Standard techniques can solve the discretized version
 
 # #### So, is all solved?
-# The dimensionality of the system F is still an issue
+# The dimensionality of the system F is a big problem 
 #    * With high dimensional idiosyncratic states, discretized value functions and distributions become large objects
 #    * For example:
-#       * 4 income states $\times$ 100 illiquid capital states $\times$ 100 liquid capital states $\rightarrow$ $\geq$ 40,000 variables in $F$
+#       * 4 income states $\times$ 100 illiquid capital states $\times$ 100 liquid capital states $\rightarrow$ $\geq$ 40,000 values in $F$
 #    * Same number of state variables  
 
 # ### Bayer-Luetticke method
@@ -218,7 +222,9 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #       * Use Chebychev polynomials on roots grid
 #    * Define a reference "frame": the steady-state equilibrium (StE)
 #    * Represent fluctuations as differences from this reference frame
-#    * Assume all coefficients of the DCT from the StE that are close to zero do not change when there is an aggregate shock (small things stay small and unchanged)
+#    * Assume all coefficients of the DCT from the StE that are close to zero do not change when there is an aggregate shock (small things stay small)
+#       * When would this be problematic?
+#       * In video, 
 #    
 # 2. Assume no changes in the rank correlation structure of $\mu$   
 #    * Calculate the Copula, $\bar{C}$ of $\mu$ in the StE
@@ -269,7 +275,7 @@ import scipy.fftpack as sf
 #       \end{array}\right.
 #    \end{equation}
 
-# + {"code_folding": []}
+# + {"code_folding": [0]}
 ## State reduction and Discrete cosine transformation
 
 class StateReduc_Dct:
@@ -414,32 +420,31 @@ class StateReduc_Dct:
 # -
 
 # 2) Decoding
-#    * Now we reconstruct $\tilde{v}_t=\tilde{v}(\theta_t)=dct^{-1}(\tilde{\Theta}(\theta_i))$
-#       * idct is the inverse dct that goes from the $\theta$ vector to the corresponding values
+#    * Now we reconstruct $\tilde{v}_t=\tilde{v}(\theta_t)=dct^{-1}(\tilde{\Theta}(\theta_{t}))$
+#       * idct=$dct^{-1}$ is the inverse dct that goes from the $\theta$ vector to the corresponding values
 #    * This means that in the StE the reduction step adds no addtional approximation error:
 #        * Remember that $\tilde{v}(0)=\bar{v}$ by construction
-#    * Yet, it allows to reduce the number of derivatives that need to be calculated from the outset.
+#    * But it allows us to reduce the number of derivatives that need to be calculated from the outset.
+#        * We only calculate derivatives for those basis functions that make an important contribution to the representation of the policy or value functions
 #    
 # 3) The histogram is recovered the same way
 #    * $\mu_t$ is approximated as $\bar{C}(\bar{\mu_t}^1,...,\bar{\mu_t}^n)$, where $n$ is the dimensionality of the idiosyncratic states
 #    * The StE distribution is obtained when $\mu = \bar{C}(\bar{\mu}^1,...,\bar{\mu}^n)$
 #    * Typically prices are only influenced through the marginal distributions
-#    * The approach ensures that changes in the mass of one, say wealth, state are distributed in a sensible way across the other dimension
+#    * The approach ensures that changes in the mass of one state (say, wealth) are distributed in a sensible way across the other dimensions
 #    * The implied distributions look "similar" to the StE one (different in (Reiter, 2009))
 #
-# 4) Too many equations
-#    * The system
+# 4) The large system above is now transformed into a much smaller system:
 #      \begin{align}
 #       F(\{d\mu_t^1,...,d\mu_t^n\}, S_t, \{d\mu_{t+1}^1,...,d\mu_{t+1}^n\}, S_{t+1}, \theta_t, P_t, \theta_{t+1}, P_{t+1})
 #       &= \begin{bmatrix}
 #            d\bar{C}(\bar{\mu}_t^1,...,\bar{\mu}_t^n) - d\bar{C}(\bar{\mu}_t^1,...,\bar{\mu}_t^n)\Pi_{h_t} \\
-#            dct[idct(\tilde{\Theta(\theta_t)}) - (\bar{u}_{h_t} + \beta \Pi_{h_t}idct(\tilde{\Theta(\theta_{t+1})}] \\
+#            dct\left[idct(\tilde{\Theta}(\theta_t) - (\bar{u}_{h_t} + \beta \Pi_{h_t}idct(\tilde{\Theta}(\theta_{t+1})))\right] \\
 #            S_{t+1} - H(S_t,d\mu_t) \\
 #            \Phi(h_t,d\mu_t,P_t,S_t) \\
 #            \end{bmatrix}
 #      \end{align}
-#      has too many equations
-#    * Uses only difference in marginals and the differences on $\mathop{I}$ 
+#      
 
 # ### The two-asset HANK model
 #
@@ -491,10 +496,10 @@ class StateReduc_Dct:
 #
 # - Individual state variables: $b$, $k$ and $h$, the joint distribution of individual states $\Theta$
 # - Individual control variables: $c$, $n$, $b'$, $k'$ 
-# - Optimal policy for adjust and non-adjust cases are $c^*_a$, $n^*_a$ $k^*_a$ and $b^*_a$ and  $c^*_n$, $n^*_n$ and $b^*_n$, respetively 
+# - Optimal policy for adjusters and nonadjusters are $c^*_a$, $n^*_a$ $k^*_a$ and $b^*_a$ and  $c^*_n$, $n^*_n$ and $b^*_n$, respectively 
 #
 
-# + {"code_folding": []}
+# + {"code_folding": [0]}
 ## Construct the system of equations (including decoding): The F system
 def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, ControlSS, 
          Gamma_state, indexMUdct, indexVKdct, par, mpar, grid, targets, Copula, P, aggrshock):
