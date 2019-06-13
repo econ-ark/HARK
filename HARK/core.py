@@ -561,7 +561,7 @@ class AgentType(HARKobject):
         '''
         Determines which agents in the current population "die" or should be replaced.  Takes no
         inputs, returns a Boolean array of size self.AgentCount, which has True for agents who die
-        and False for those that survive. Returns all True by default, must be overwritten by a
+        and False for those that survive. Returns all False by default, must be overwritten by a
         subclass to have replacement events.
 
         Parameters
@@ -573,8 +573,7 @@ class AgentType(HARKobject):
         who_dies : np.array
             Boolean array of size self.AgentCount indicating which agents die and are replaced.
         '''
-        print('AgentType subclass must define method simDeath!')
-        who_dies = np.ones(self.AgentCount, dtype=bool)
+        who_dies = np.zeros(self.AgentCount, dtype=bool)
         return who_dies
 
     def simBirth(self, which_agents):
