@@ -1591,7 +1591,20 @@ class PerfForesightConsumerType(AgentType):
         
         
     def preSolve(self):
-        self.updateSolutionTerminal()
+        self.updateSolutionTerminal() # Solve the terminal period problem
+        
+        # Fill in BoroCnstArt and MaxKinks if they're not specified or are irrelevant.
+        if not hasattr(self,'BoroCnstArt'): # If no borrowing constraint specified...
+            self.BoroCnstArt = None       # ...assume the user wanted none
+        if not hasattr(self,'MaxKinks'):
+            if self.cycles > 0: # If it's not an infinite horizon model...
+                self.MaxKinks = np.inf  # ...there's no need to set MaxKinks
+            elif self.BoroCnstArt is None: # If there's no borrowing constraint...
+                self.MaxKinks = np.inf # ...there's no need to set MaxKinks
+            else:
+                raise(AttributeError('PerfForesightConsumerType requires the attribute MaxKinks to be specified when BoroCnstArt is not None and cycles == 0.'))
+
+            
 
     def updateSolutionTerminal(self):
         '''
@@ -2532,7 +2545,7 @@ def constructAssetsGrid(parameters):
 def main():
     import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import plotFuncsDer, plotFuncs
-    from time import clock
+    from time import time
     mystr = lambda number : "{:.4f}".format(number)
 
     do_simulation           = True
@@ -2541,15 +2554,15 @@ def main():
     PFexample = PerfForesightConsumerType(**Params.init_perfect_foresight)
     PFexample.cycles = 0 # Make this type have an infinite horizon
 
-    start_time = clock()
+    start_time = time()
     PFexample.solve()
-    end_time = clock()
+    end_time = time()
     print('Solving a perfect foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
     PFexample.unpackcFunc()
     PFexample.timeFwd()
 
     # Plot the perfect foresight consumption function
-    print('Linear consumption function:')
+    print('Perfect foresight consumption function:')
     mMin = PFexample.solution[0].mNrmMin
     plotFuncs(PFexample.cFunc[0],mMin,mMin+10)
 
@@ -2565,9 +2578,9 @@ def main():
     IndShockExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
     IndShockExample.cycles = 0 # Make this type have an infinite horizon
 
-    start_time = clock()
+    start_time = time()
     IndShockExample.solve()
-    end_time = clock()
+    end_time = time()
     print('Solving a consumer with idiosyncratic shocks took ' + mystr(end_time-start_time) + ' seconds.')
     IndShockExample.unpackcFunc()
     IndShockExample.timeFwd()
@@ -2603,9 +2616,9 @@ def main():
     LifecycleExample = IndShockConsumerType(**Params.init_lifecycle)
     LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
 
-    start_time = clock()
+    start_time = time()
     LifecycleExample.solve()
-    end_time = clock()
+    end_time = time()
     print('Solving a lifecycle consumer took ' + mystr(end_time-start_time) + ' seconds.')
     LifecycleExample.unpackcFunc()
     LifecycleExample.timeFwd()
@@ -2634,9 +2647,9 @@ def main():
     CyclicalExample = IndShockConsumerType(**Params.init_cyclical)
     CyclicalExample.cycles = 0
 
-    start_time = clock()
+    start_time = time()
     CyclicalExample.solve()
-    end_time = clock()
+    end_time = time()
     print('Solving a cyclical consumer took ' + mystr(end_time-start_time) + ' seconds.')
     CyclicalExample.unpackcFunc()
     CyclicalExample.timeFwd()
@@ -2659,9 +2672,9 @@ def main():
     KinkyExample = KinkedRconsumerType(**Params.init_kinked_R)
     KinkyExample.cycles = 0 # Make the Example infinite horizon
 
-    start_time = clock()
+    start_time = time()
     KinkyExample.solve()
-    end_time = clock()
+    end_time = time()
     print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
     KinkyExample.unpackcFunc()
     print('Kinky consumption function:')

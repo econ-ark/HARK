@@ -16,7 +16,7 @@ Rfree = 1.03                        # Interest factor on assets
 DiscFac = 0.96                      # Intertemporal discount factor
 LivPrb = [0.98]                     # Survival probability
 PermGroFac = [1.01]                 # Permanent income growth factor
-BoroCnstArt = False                 # Artificial borrowing constraint
+BoroCnstArt = None                  # Artificial borrowing constraint
 MaxKinks = 400                      # Maximum number of grid points to allow in cFunc (should be large)
 AgentCount = 10000                  # Number of agents of this type (only matters for simulation)
 aNrmInitMean = 0.0                  # Mean of log initial assets (only matters for simulation)
@@ -34,7 +34,7 @@ init_perfect_foresight = { 'CRRA': CRRA,
                            'LivPrb': LivPrb,
                            'PermGroFac': PermGroFac,
                            'BoroCnstArt': BoroCnstArt,
-                           'MaxKinks': MaxKinks,
+                           #'MaxKinks': MaxKinks,
                            'AgentCount': AgentCount,
                            'aNrmInitMean' : aNrmInitMean,
                            'aNrmInitStd' : aNrmInitStd,
