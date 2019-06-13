@@ -316,7 +316,7 @@ class ConsPerfForesightSolver(object):
     A class for solving a one period perfect foresight consumption-saving problem.
     An instance of this class is created by the function solvePerfForesight in each period.
     '''
-    def __init__(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraCount):
+    def __init__(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks):
         '''
         Constructor for a new ConsPerfForesightSolver.
 
@@ -338,9 +338,10 @@ class ConsPerfForesightSolver(object):
         BoroCnstArt : float or None
             Artificial borrowing constraint, as a multiple of permanent income.
             Can be None, indicating no artificial constraint.
-        aXtraCount : int
+        MaxKinks : int
             Maximum number of kink points to allow in the consumption function;
-            additional points will be thrown out.
+            additional points will be thrown out.  Only relevant in infinite
+            horizon model with artificial borrowing constraint.
 
         Returns:
         ----------
@@ -351,9 +352,9 @@ class ConsPerfForesightSolver(object):
         self.notation = {'a': 'assets after all actions',
                          'm': 'market resources at decision time',
                          'c': 'consumption'}
-        self.assignParameters(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraCount)
+        self.assignParameters(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks)
 
-    def assignParameters(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraCount):
+    def assignParameters(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks):
         '''
         Saves necessary parameters as attributes of self for use by other methods.
 
@@ -375,7 +376,7 @@ class ConsPerfForesightSolver(object):
         BoroCnstArt : float or None
             Artificial borrowing constraint, as a multiple of permanent income.
             Can be None, indicating no artificial constraint.
-        aXtraCount : int
+        MaxKinks : int
             Maximum number of kink points to allow in the consumption function;
             additional points will be thrown out.
 
@@ -389,7 +390,7 @@ class ConsPerfForesightSolver(object):
         self.CRRA           = CRRA
         self.Rfree          = Rfree
         self.PermGroFac     = PermGroFac
-        self.aXtraCount     = aXtraCount
+        self.MaxKinks       = MaxKinks
         self.BoroCnstArt    = BoroCnstArt
 
     def defUtilityFuncs(self):
@@ -506,7 +507,7 @@ class ConsPerfForesightSolver(object):
                 
         # If the mNrm and cNrm grids have become too large, throw out the last
         # kink point, being sure to adjust the extrapolation.
-        if mNrmNow.size > self.aXtraCount:
+        if mNrmNow.size > self.MaxKinks:
             mNrmNow = np.concatenate((mNrmNow[:-2], [mNrmNow[-3] + 1.0]))
             cNrmNow = np.concatenate((cNrmNow[:-2], [cNrmNow[-3] + self.MPCmin]))
         
@@ -576,7 +577,7 @@ class ConsPerfForesightSolver(object):
         return solution
 
 
-def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraCount):
+def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks):
     '''
     Solves a single period consumption-saving problem for a consumer with perfect foresight.
 
@@ -598,9 +599,10 @@ def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCn
     BoroCnstArt : float or None
         Artificial borrowing constraint, as a multiple of permanent income.
         Can be None, indicating no artificial constraint.
-    aXtraCount : int
+    MaxKinks : int
         Maximum number of kink points to allow in the consumption function;
-        additional points will be thrown out.
+        additional points will be thrown out.  Only relevant in infinite horizon
+        models with artificial borrowing constraint.
 
     Returns
     -------
@@ -608,7 +610,7 @@ def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCn
         The solution to this period's problem.
     '''
     
-    solver = ConsPerfForesightSolver(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraCount)
+    solver = ConsPerfForesightSolver(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks)
     solution_now = solver.solve()
     return solution_now
 
@@ -1553,7 +1555,7 @@ class PerfForesightConsumerType(AgentType):
                                             vFunc = vFunc_terminal_, mNrmMin=0.0, hNrm=0.0,
                                             MPCmin=1.0, MPCmax=1.0)
     time_vary_ = ['LivPrb','PermGroFac']
-    time_inv_  = ['CRRA','Rfree','DiscFac','aXtraCount','BoroCnstArt']
+    time_inv_  = ['CRRA','Rfree','DiscFac','MaxKinks','BoroCnstArt']
     poststate_vars_ = ['aNrmNow','pLvlNow']
     shock_vars_ = []
 
@@ -1851,6 +1853,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     period assets, and an artificial borrowing constraint.
     '''
     time_inv_ = PerfForesightConsumerType.time_inv_ + ['BoroCnstArt','vFuncBool','CubicBool']
+    time_inv_.remove('MaxKinks') # This is in the PerfForesight model but not ConsIndShock
     shock_vars_ = ['PermShkNow','TranShkNow']
 
     def __init__(self,cycles=1,time_flow=True,verbose=False,quiet=False,**kwds):
