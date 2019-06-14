@@ -36,10 +36,7 @@
 #     * $c_a(s)$ - adjusters
 #
 # The usual envelope theorem applies here, so marginal value wrt the liquid asset equals marginal utility with respect to consumption:
-# \[
-# \frac{d v}{d m} = \frac{d u}{d c}
-# \]
-#
+# $[\frac{d v}{d m} = \frac{d u}{d c}]$.
 # In practice, the authors solve the problem using the marginal value of money $\texttt{Vm} = dv/dm$, but because the marginal utility function is invertible it is trivial to recover $\texttt{c}$ from $(u^{\prime})^{-1}(\texttt{Vm} )$.  The consumption function is therefore computed from the $\texttt{Vm}$ function
 
 # %% {"code_folding": [0, 6, 17, 21]}
@@ -123,7 +120,7 @@ print(str(EX3SS['mpar']['nm'])+
       ' * '+str(EX3SS['mpar']['nk'])+
       ' * '+str(EX3SS['mpar']['nh'])+
       ' = '+ str(EX3SS['mpar']['nm']*EX3SS['mpar']['nk']*EX3SS['mpar']['nh']))
-      
+
 
 # %% [markdown]
 # ### Dimension Reduction
@@ -175,7 +172,7 @@ print('The copula consists of two parts: gridpoints and values at those gridpoin
       '\n state variables are below the corresponding point.')
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Import necessary libraries
 
 from __future__ import print_function
@@ -203,6 +200,8 @@ import scipy.fftpack as sf  # scipy discrete fourier transforms
 
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
+
+import seaborn as sns
 
 
 # %% {"code_folding": [0]}
@@ -411,7 +410,7 @@ EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
 #EX3SS['par']['rhoS']    = 0.84    # Persistence of variance
 #EX3SS['par']['sigmaS']  = 0.54    # STD of variance shocks
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Choose an accuracy of approximation with DCT
 ### Determines number of basis functions chosen -- enough to match this accuracy
 ### EX3SS is precomputed steady-state pulled in above
@@ -425,7 +424,7 @@ EX3SS['par']['accuracy'] = 0.99999
 EX3SR=StateReduc_Dct(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
 SR=EX3SR.StateReduc()           # StateReduc is operated 
 
-# %% {"code_folding": [10, 12]}
+# %% {"code_folding": [7, 10, 12]}
 print('What are the results from the state reduction?')
 #print('Newly added attributes after the operation include \n'+str(set(SR.keys())-set(EX3SS.keys())))
 
@@ -502,66 +501,6 @@ mgrid_rdc = mut_rdc_idx[0][(mut_rdc_idx[1]==kgrid_fix) & (mut_rdc_idx[2]==hgrid_
 kgrid_rdc = mut_rdc_idx[1][(mut_rdc_idx[0]==mgrid_fix) & (mut_rdc_idx[2]==hgrid_fix)]
 hgrid_rdc = mut_rdc_idx[2][(mut_rdc_idx[0]==mgrid_fix) & (mut_rdc_idx[1]==kgrid_fix)]
 
-# %% {"code_folding": [0]}
-## 2D graph: compare consumption function before and after dct 
-
-
-fig=plt.figure(figsize=(15,8))
-fig.suptitle('Consumption at grid points of states')
-
-## for non-adjusters 
-
-#c_n(m)
-plt.subplot(2,3,1)
-plt.plot(mgrid,cn_StE[:,kgrid_fix,hgrid_fix],'x',label='StE(before dct)')
-plt.plot(mgrid[mgrid_rdc],cn_StE[mgrid_rdc,kgrid_fix,hgrid_fix],'r*',label='StE(after dct)')
-plt.xlabel('m',size=15)
-plt.ylabel(r'$c_n(m)$',size=15)
-plt.legend()
-
-## c_n(k)
-plt.subplot(2,3,2)
-plt.plot(kgrid,cn_StE[mgrid_fix,:,hgrid_fix],'x',label='StE(before dct)')
-plt.plot(kgrid[kgrid_rdc],cn_StE[mgrid_fix,kgrid_rdc,hgrid_fix],'r*',label='StE(after dct)')
-plt.xlabel('k',size=15)
-plt.ylabel(r'$c_n(k)$',size=15)
-plt.legend()
-
-## c_n(h)
-
-plt.subplot(2,3,3)
-plt.plot(hgrid,cn_StE[mgrid_fix,kgrid_fix,:],'x',label='StE(before dct)')
-plt.plot(hgrid[hgrid_rdc],cn_StE[mgrid_fix,kgrid_fix,hgrid_rdc],'r*',label='StE(after dct)')
-plt.xlabel('h',size=15)
-plt.ylabel(r'$c_n(h)$',size=15)
-plt.legend()
-
-
-### for adjusters 
-## c_a(m)
-plt.subplot(2,3,4)
-plt.plot(mgrid,ca_StE[:,kgrid_fix,hgrid_fix],'x',label='StE(before dct)')
-plt.plot(mgrid[mgrid_rdc],ca_StE[mgrid_rdc,kgrid_fix,hgrid_fix],'r*',label='StE(after dct)')
-plt.xlabel('m',size=15)
-plt.ylabel(r'$c_a(m)$',size=15)
-plt.legend()
-
-## c_a(k)
-plt.subplot(2,3,5)
-plt.plot(kgrid,ca_StE[mgrid_fix,:,hgrid_fix],'x',label='StE(before dct)')
-plt.plot(kgrid[kgrid_rdc],ca_StE[mgrid_fix,kgrid_rdc,hgrid_fix],'r*',label='StE(after dct)')
-plt.xlabel('k',size=15)
-plt.ylabel(r'$c_a(k)$',size=15)
-plt.legend()
-
-## c_a(h)
-plt.subplot(2,3,6)
-plt.plot(hgrid,ca_StE[mgrid_fix,kgrid_fix,:],'x',label='StE(before dct)')
-plt.plot(hgrid[hgrid_rdc],ca_StE[mgrid_fix,kgrid_fix,hgrid_rdc],'r*',label='StE(after dct)')
-plt.xlabel('h',size=15)
-plt.ylabel(r'$c_a(h)$',size=15)
-plt.legend()
-
 # %% {"code_folding": []}
 ## 3D scatter plots of consumption function 
 ##    at all grids and grids after dct for both adjusters and non-adjusters
@@ -586,6 +525,8 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     mut_n_rdc= mut_n_StE[rdc_id]
     c_n_rdc = cn_StE[rdc_id]
     c_a_rdc = ca_StE[rdc_id]
+    mmax = mmgrid_rdc.max()
+    kmax = kkgrid_rdc.max()
     
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
@@ -596,6 +537,9 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
+    
+    ax.set_xlim([0,mmax*1.1])
+    ax.set_ylim([0,kmax*1.2])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 240)
 ax.legend(loc=9)
@@ -617,16 +561,20 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     mut_n_rdc= mut_n_StE[rdc_id]
     c_n_rdc = cn_StE[rdc_id]
     c_a_rdc = ca_StE[rdc_id]
+    mmax = mmgrid_rdc.max()
+    kmax = kkgrid_rdc.max()
     
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.scatter(mmgrid,kkgrid,ca_StE[:,:,hgrid_fix],c='yellow',marker='.',
+    ax.scatter(mmgrid,kkgrid,ca_StE[:,:,hgrid_fix],marker='.',
                label='StE(before dct): adjuster')
-    ax.scatter(mmgrid_rdc,kkgrid_rdc,c_a_rdc,c='blue',marker='*',
+    ax.scatter(mmgrid_rdc,kkgrid_rdc,c_a_rdc,c='red',marker='*',
                label='StE(after dct):adjuster')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_n(m,k)$',fontsize=13)
+    ax.set_xlim([0,mmax*1.1])
+    ax.set_ylim([0,kmax*1.2])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 240)
 ax.legend(loc=9)
@@ -669,10 +617,83 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 ax.legend(loc=9)
 
 # %% [markdown]
-# #### Observation
+# ##### Observation
 #
 # - For a given grid value of productivity, the remaining grid points after DCT to represent the whole consumption function are concentrated in low values of $k$ and $m$. This is because the slopes of the surfaces of marginal utility are changing the most in these regions.  For larger values of $k$ and $m$ the functions become smooth and only slightly concave, so they can be represented by many fewer points
 # - For different grid values of productivity (2 sub plots), the numbers of grid points in the DCT operation differ. From the lowest to highest values of productivity, there are 78, 33, 25 and 18 grid points, respectively. They add up to the total number of gridpoints of 154 after DCT operation, as we noted above for marginal utility function. 
+
+# %% [markdown]
+# #### Distribution of states 
+#
+# - We first plot the distribution of $k$ fixing $m$ and $h$. Next, we plot the joint distribution of $m$ and $k$ only fixing $h$ in 3-dimenstional space.  
+# - The joint-distribution can be represented by marginal distributions of $m$, $k$ and $h$ and a copula that describes the correlation between the three states. The former is straightfoward. We plot the copula only. Copula is essentially a multivariate cummulative distribution function where each marginal is uniform. 
+#
+
+# %% {"code_folding": [0]}
+### Marginalize along h grids
+
+joint_distr =  EX3SS['joint_distr']
+joint_distr_km = EX3SS['joint_distr'].sum(axis=2)
+
+### Plot distributions in 2 dimensional graph 
+
+fig = plt.figure(figsize=(10,10))
+plt.suptitle('Marginal distribution of k at different m')
+
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    ax = plt.subplot(2,2,hgrid_id+1)
+    ax.set_title(r'$h({})$'.format(hgrid_fix))
+    ax.set_xlabel('k',size=12)
+    for id in range(EX3SS['mpar']['nm']):   
+        ax.plot(kgrid,joint_distr[id,:,hgrid_id])
+
+# %% {"code_folding": [0]}
+## Plot joint distribution of k and m in 3d graph
+
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Joint distribution of m and k(for different h)',
+             fontsize=(13))
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    ## plots 
+    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
+    ax.plot_surface(mmgrid,kkgrid,joint_distr[:,:,hgrid_fix], rstride=1, cstride=1,
+                    cmap='viridis', edgecolor='none')
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel('k',fontsize=13)
+    #ax.set_zlabel(r'$p(m,k)$',fontsize=10)
+    ax.set_title(r'$h({})$'.format(hgrid_fix))
+    ax.set_xlim(0,400)
+    ax.view_init(20, 40)
+
+# %%
+copula_value =  EX3SS['Copula']['value']
+fig=plt.plot(copula_value)
+plt.title("Commulative probability distribution function in StE")
+
+# %% [markdown]
+# Notice the cdfs in StE copula have 4 modes, corresponding to the number of $h$ grids. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
+
+# %% {"code_folding": []}
+## plot copula 
+
+cdf=EX3SS['Copula']['value'].reshape(4,30,30)   # important: 4,30,30 not 30,30,4? 
+
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Copula of m and k(for different h)',
+             fontsize=(13))
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    ## plots 
+    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
+    ax.plot_surface(mmgrid,kkgrid,cdf[hgrid_fix,:,:], rstride=1, cstride=1,
+                    cmap='viridis', edgecolor='None')
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel('k',fontsize=13)
+    ax.set_title(r'$h({})$'.format(hgrid_fix))
+    ax.set_xlim(0,400)
+    ax.view_init(30, 45)
+
+# %% [markdown]
+# Given the assumption that the copula remains the same after aggregate risk is introduced, we can use the same copula and the marginal distributions to recover the full joint-distribution of the states.  
 
 # %% [markdown]
 # ### Summary: what do we achieve after the transformation?
