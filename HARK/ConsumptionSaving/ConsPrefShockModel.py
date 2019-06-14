@@ -12,7 +12,7 @@ from builtins import str
 from builtins import range
 import numpy as np
 from HARK.utilities import approxMeanOneLognormal
-from .ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
                                    ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver
 from HARK.interpolation import LinearInterpOnInterp1D, LinearInterp, CubicInterp, LowerEnvelope
 
@@ -43,6 +43,9 @@ class PrefShockConsumerType(IndShockConsumerType):
         '''
         IndShockConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
         self.solveOnePeriod = solveConsPrefShock # Choose correct solver
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def update(self):
         '''
@@ -207,6 +210,9 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         self.solveOnePeriod = solveConsKinkyPref # Choose correct solver
         self.addToTimeInv('Rboro','Rsave')
         self.delFromTimeInv('Rfree')
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def getRfree(self): # Specify which getRfree to use
         return KinkedRconsumerType.getRfree(self)
@@ -594,7 +600,7 @@ def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,
 ###############################################################################
 
 def main():
-    from . import ConsumerParameters as Params
+    import HARK.ConsumptionSaving.ConsumerParameters as Params
     import matplotlib.pyplot as plt
     from HARK.utilities import plotFuncs
     from time import clock
@@ -618,6 +624,8 @@ def main():
         PrefShk = PrefShockExample.PrefShkDstn[0][1][j]
         c = PrefShockExample.solution[0].cFunc(m,PrefShk*np.ones_like(m))
         plt.plot(m,c)
+    plt.xlim([0.,None])
+    plt.ylim([0.,None])
     plt.show()
 
     print('Consumption function (and MPC) when shock=1:')
@@ -625,6 +633,8 @@ def main():
     k = PrefShockExample.solution[0].cFunc.derivativeX(m,np.ones_like(m))
     plt.plot(m,c)
     plt.plot(m,k)
+    plt.xlim([0.,None])
+    plt.ylim([0.,None])
     plt.show()
 
     if PrefShockExample.vFuncBool:
@@ -657,6 +667,7 @@ def main():
         PrefShk = KinkyPrefExample.PrefShkDstn[0][1][j]
         c = KinkyPrefExample.solution[0].cFunc(m,PrefShk*np.ones_like(m))
         plt.plot(m,c)
+    plt.ylim([0.,None])
     plt.show()
 
     print('Consumption function (and MPC) when shock=1:')
@@ -664,6 +675,7 @@ def main():
     k = KinkyPrefExample.solution[0].cFunc.derivativeX(m,np.ones_like(m))
     plt.plot(m,c)
     plt.plot(m,k)
+    plt.ylim([0.,None])
     plt.show()
 
     if KinkyPrefExample.vFuncBool:
