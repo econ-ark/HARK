@@ -178,6 +178,8 @@ os.chdir(code_dir) # Go to the directory with pickled code
 
 ## EX3SS_20.p is the information in the stationary equilibrium (20: the number of illiquid and liquid weath grids )
 EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
+
+
 # -
 
 # #### Compact notation (Schmitt-Grohe and Uribe, 2004)
@@ -234,7 +236,7 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #
 # The approach follows the insight of KS in that it uses the fact that some moments of the distribution do not matter for aggregate dynamics
 
-# + {"code_folding": [0]}
+# + {"code_folding": []}
 ## Import necessary libraries
 
 from __future__ import print_function
@@ -499,7 +501,7 @@ class StateReduc_Dct:
 # - Optimal policy for adjusters and nonadjusters are $c^*_a$, $n^*_a$ $k^*_a$ and $b^*_a$ and  $c^*_n$, $n^*_n$ and $b^*_n$, respectively 
 #
 
-# + {"code_folding": [0]}
+# + {"code_folding": []}
 ## Construct the system of equations (including decoding): The F system
 def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, ControlSS, 
          Gamma_state, indexMUdct, indexVKdct, par, mpar, grid, targets, Copula, P, aggrshock):
@@ -562,7 +564,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
 #    invmutil = lambda x : (1./x)**(1./par['xi'])
     invmutil = lambda x : np.power(1./x,1./par['xi'])
     
-    # Generate meshes for m,k,h # Question: m not b?
+    # Generate meshes for m,k,h
     
     # number of states, controls in reduced system
     nx  = mpar['numstates']   # number of states 
@@ -598,7 +600,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     marginal_mind = range(mpar['nm']-1)
     marginal_kind = range(mpar['nm']-1,mpar['nm']+mpar['nk']-2) # probs add to 1
     marginal_hind = range(mpar['nm']+mpar['nk']-2,
-                          mpar['nm']+mpar['nk']+mpar['nh']-4) # Question: Why 4?
+                          mpar['nm']+mpar['nk']+mpar['nh']-4) # Question: Why 4?  Awesome guy not perturbed
     
     # index for the interest rate on government bonds = liquid assets
     RBind = NxNx 
@@ -669,6 +671,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     B = np.exp(Control[Bind])
     
     # Aggregate Controls (t) # Question: Why are there more here than for t+1?
+    # Only include t+1's that show up in eqbm conditions (Envelope thm)
     PIminus = np.exp(Controlminus[PIind])
     Qminus = np.exp(Controlminus[Qind])
     Yminus = np.exp(Controlminus[Yind])
@@ -700,7 +703,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     
     ## States
     ## Marginal Distributions (Marginal histograms)
-    #LHS[distr_ind] = Distribution[:mpar['nm']*mpar['nh']-1-mpar['nh']].copy() Question: Why commented out
+
     LHS[marginal_mind] = Distribution[:mpar['nm']-1]
     LHS[marginal_kind] = Distribution[mpar['nm']:mpar['nm']
                                       +mpar['nk']-1]
@@ -851,12 +854,15 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     c_n_star = result_EGM_policyupdate['c_n_star']
     m_n_star = result_EGM_policyupdate['m_n_star']
     
-    # Question: Is this max value of ind pty?  Why needed?
+    # Question: Is this max value of ind pty?  Why needed?  Victor "Awesome" state
     meshaux = meshes.copy()
     meshaux['h'][:,:,-1] = 1000.
     
     ## Update Marginal Value of Bonds
     # Question: Marginal utility is weighted average of u' from c and u' from leisure?
+    # GHH preferences (can write optimization problem for the composite good)
+    # Just to make everybody have the same labor supply (it's about eqbm prices)
+    # easier to do the steady state
     mutil_c_n = mutil(c_n_star.copy())
     mutil_c_a = mutil(c_a_star.copy())
     mutil_c_aux = par['nu']*mutil_c_a + (1-par['nu'])*mutil_c_n
@@ -922,7 +928,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     ## Liquid assets of the k-adjusters
     ra_genweight = GenWeight(m_a_star,grid['m'])
     Dist_m_a = ra_genweight['weight'].copy()
-    idm_a = ra_genweight['index'].copy() # Question: idm_a is index of original exogenous m grid 
+    idm_a = ra_genweight['index'].copy() # idm_a is index of original exogenous m grid 
     
     ## Liquid assets of the k-nonadjusters
     rn_genweight = GenWeight(m_n_star,grid['m'])
@@ -1090,7 +1096,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
             'k_a_star':k_a_star,'c_n_star':c_n_star,'m_n_star':m_n_star,'P':P}
 
 
-# + {"code_folding": [0]}
+# + {"code_folding": []}
 ## Update policy in transition (found in Fsys)
 
 def EGM_policyupdate(EVm,EVk, Qminus, PIminus, RBminus, inc, meshes,grid,par,mpar):
