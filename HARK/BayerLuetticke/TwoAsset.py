@@ -15,7 +15,7 @@
 
 # # [Bayer and Luetticke (2018)](https://cepr.org/active/publications/discussion_papers/dp.php?dpno=13071)
 #
-# [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/econ-ark/HARK/BayerLuetticke?filepath=notebooks%2FHARK%2FBayerLuetticke%2FTwoAsset.ipynb)
+# [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/econ-ark/HARK/BayerLuetticke?filepath=HARK%2FBayerLuetticke%2FTwoAsset.ipynb)
 #
 # - Adapted from original slides by Christian Bayer and Ralph Luetticke 
 # - Jupyter notebook by Seungcheol Lee 
@@ -1739,3 +1739,4 @@ print('plot_IRF')
 plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],SR['Gamma_state'],SR['grid'],SR['targets'],SR['Output'])
 end_time0 = time.clock()
 print('Elapsed time is ',  (end_time0-start_time0), ' seconds.')
+                   

@@ -14,12 +14,11 @@
 # ---
 
 # %% [markdown]
-# # Dimension Reduction in [Bayer and Luetticke (2018)](https://cepr.org/active/publications/discussion_papers/dp.php?dpno=13071)
+# # Dimensionality Reduction in [Bayer and Luetticke (2018)](https://cepr.org/active/publications/discussion_papers/dp.php?dpno=13071)
 #
-# [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/econ-ark/HARK/BayerLuetticke?filepath=notebooks%2FHARK%2FBayerLuetticke%2FTwoAsset.ipynb)
+# [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/econ-ark/HARK/BayerLuetticke?filepath=HARK%2FBayerLuetticke%2FDCT-Copula-Illustration.ipynb)
 #
-#
-# This companion to the [main notebook](TwoAsset.ipynb) explains in more detail how they reduce the dimensionality of the problem
+# This companion to the [main notebook](TwoAsset.ipynb) explains in more detail how the authors reduce the dimensionality of their problem
 #
 # - Based on original slides by Christian Bayer and Ralph Luetticke 
 # - Original Jupyter notebook by Seungcheol Lee 
@@ -94,7 +93,7 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #
 # The imported StE solution to the problem represents the functions at a set of gridpoints of
 #    * liquid assets ($n_m$ points), illiquid assets ($n_k$), and human capital ($n_h$)
-#    * (In the code these are $\{\texttt{nm ,nk ,nh}\}$)
+#    * (In the code these are $\{\texttt{nm,nk,nh}\}$)
 #
 # So even if the grids are fairly sparse for each state variable, the total number of combinations of the idiosyncratic state variables is large: $n = n_m \times n_k \times n_h$.  So, e.g., $\bar{c}$ is a set of size $n$ containing the level of consumption at each possible combination of gridpoints.
 #
@@ -132,7 +131,7 @@ print(str(EX3SS['mpar']['nm'])+
 #
 # The idea is to find an efficient "compressed" representation of our functions (e.g., the consumption function).  The analogy to image compression is that nearby pixels are likely to have identical or very similar colors, so we need only to find an efficient way to represent the way in which the colors change from one pixel to another.  Similarly, consumption at a given point $s_{i}$ is likely to be close to consumption point another point $s_{j}$ that is "close" in the state space (similar wealth, income, etc), so a function that captures that similarity efficiently can preserve most of the information without keeping all of the points.
 #
-# Like linear interpolation, the [DCT transformation](https://en.wikipedia.org/wiki/Discrete_cosine_transform) is a method of representing a continuous function using a finite set of numbers. It uses a set of independent basis functions to do this.
+# Like linear interpolation, the [DCT transformation](https://en.wikipedia.org/wiki/Discrete_cosine_transform) is a method of representing a continuous function using a finite set of numbers. It uses a set of independent [basis functions](https://en.wikipedia.org/wiki/Basis_function) to do this.
 #
 # But it turns out that some of those basis functions are much more important than others in representing the steady-state functions. Dimension reduction is accomplished by basically ignoring all basis functions that make small contributions to the steady state distribution.  
 #
@@ -167,7 +166,7 @@ print('The copula consists of two parts: gridpoints and values at those gridpoin
       '\n gridpoints have dimensionality of '+str(EX3SS['Copula']['grid'].shape) + \
       '\n where the first element is total number of gridpoints' + \
       '\n and the second element is number of state variables' + \
-     ',\n whose values also are of dimension of '+str(EX3SS['Copula']['value'].shape[0]) + \
+      '\n whose values also are of dimension of '+str(EX3SS['Copula']['value'].shape[0]) + \
       '\n each entry of which is the probability that all three of the'
       '\n state variables are below the corresponding point.')
 
@@ -425,6 +424,8 @@ EX3SR=StateReduc_Dct(**EX3SS)   # Takes StE result as input and get ready to inv
 SR=EX3SR.StateReduc()           # StateReduc is operated 
 
 # %% {"code_folding": [7, 10, 12]}
+# Measuring the effectiveness of the state reduction
+
 print('What are the results from the state reduction?')
 #print('Newly added attributes after the operation include \n'+str(set(SR.keys())-set(EX3SS.keys())))
 
@@ -544,7 +545,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.view_init(20, 240)
 ax.legend(loc=9)
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ### for adjusters 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Consumption of adjusters at grid points of m and k(for different h)',
@@ -626,10 +627,10 @@ ax.legend(loc=9)
 # #### Distribution of states 
 #
 # - We first plot the distribution of $k$ fixing $m$ and $h$. Next, we plot the joint distribution of $m$ and $k$ only fixing $h$ in 3-dimenstional space.  
-# - The joint-distribution can be represented by marginal distributions of $m$, $k$ and $h$ and a copula that describes the correlation between the three states. The former is straightfoward. We plot the copula only. Copula is essentially a multivariate cummulative distribution function where each marginal is uniform. 
+# - The joint-distribution can be represented by marginal distributions of $m$, $k$ and $h$ and a copula that describes the correlation between the three states. The former is straightfoward. We plot the copula only. The copula is essentially a multivariate cummulative distribution function where each marginal is uniform. (Translation from the uniform to the appropriate nonuniform distribution is handled at a separate stage).
 #
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ### Marginalize along h grids
 
 joint_distr =  EX3SS['joint_distr']
@@ -642,12 +643,12 @@ plt.suptitle('Marginal distribution of k at different m')
 
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ax = plt.subplot(2,2,hgrid_id+1)
-    ax.set_title(r'$h({})$'.format(hgrid_fix))
+    ax.set_title(r'$h({})$'.format(hgrid_id))
     ax.set_xlabel('k',size=12)
     for id in range(EX3SS['mpar']['nm']):   
         ax.plot(kgrid,joint_distr[id,:,hgrid_id])
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Plot joint distribution of k and m in 3d graph
 
 fig = plt.figure(figsize=(14,14))
@@ -661,20 +662,23 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     #ax.set_zlabel(r'$p(m,k)$',fontsize=10)
-    ax.set_title(r'$h({})$'.format(hgrid_fix))
+    ax.set_title(r'$h({})$'.format(hgrid_id))
     ax.set_xlim(0,400)
     ax.view_init(20, 40)
 
 # %%
+# CDC20190614: I don't think this is very useful.  
+# Either explain how they are basically representing a 30x30x4 matrix using a 3600 unit long vector, or omit this entirely
+
 copula_value =  EX3SS['Copula']['value']
 fig=plt.plot(copula_value)
-plt.title("Commulative probability distribution function in StE")
+plt.title("Cumulative probability distribution function in vector form (stacked by h) in StE")
 
 # %% [markdown]
-# Notice the cdfs in StE copula have 4 modes, corresponding to the number of $h$ grids. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
+# Notice the CDFs in StE copula have 4 modes, corresponding to the number of $h$ gridpoints. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
 
 # %% {"code_folding": []}
-## plot copula 
+## Plot the copula 
 
 cdf=EX3SS['Copula']['value'].reshape(4,30,30)   # important: 4,30,30 not 30,30,4? 
 
@@ -688,7 +692,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
                     cmap='viridis', edgecolor='None')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
-    ax.set_title(r'$h({})$'.format(hgrid_fix))
+    ax.set_title(r'$h({})$'.format(hgrid_id))
     ax.set_xlim(0,400)
     ax.view_init(30, 45)
 
@@ -698,7 +702,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 # %% [markdown]
 # ### Summary: what do we achieve after the transformation?
 #
-# - Using the DCT, the dimension of policy function and value functions are reduced both from 3600 to 154 and 94, respectively.
+# - Using the DCT, the dimension of the policy and value functions are reduced from 3600 to 154 and 94, respectively.
 # - By marginalizing the joint distribution with the fixed copula assumption, the marginal distribution is of dimension 64 compared to its joint distribution of a dimension of 3600.
 #
 #
