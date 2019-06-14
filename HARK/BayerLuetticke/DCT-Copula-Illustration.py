@@ -125,12 +125,12 @@ print(str(EX3SS['mpar']['nm'])+
 # %% [markdown]
 # ### Dimension Reduction
 #
-# The authors use different reduction methods for the consumer's problem and the distribution
+# The authors use different dimensionality reduction methods for the consumer's problem and the distribution across idiosyncratic states
 
 # %% [markdown]
-# #### The consumer's problem: Discrete Cosine Transformation
+# #### The consumer's problem: Basis Functions
 #
-# The idea is to find an efficient "compressed" representation of our functions (e.g., the consumption function).  The analogy to image compression is that nearby pixels are likely to have identical or very similar colors, so we need only to find an efficient way to represent the way in which the colors change from one pixel to another.  The analogy is that consumption at a given point $s_{i}$ is likely to be close to consumption point another point $s_{j}$ that is "close" in the state space (similar wealth, income, etc), so a function that captures that similarity efficiently can preserve most of the information without keeping all of the points.
+# The idea is to find an efficient "compressed" representation of our functions (e.g., the consumption function).  The analogy to image compression is that nearby pixels are likely to have identical or very similar colors, so we need only to find an efficient way to represent the way in which the colors change from one pixel to another.  Similarly, consumption at a given point $s_{i}$ is likely to be close to consumption point another point $s_{j}$ that is "close" in the state space (similar wealth, income, etc), so a function that captures that similarity efficiently can preserve most of the information without keeping all of the points.
 #
 # Like linear interpolation, the [DCT transformation](https://en.wikipedia.org/wiki/Discrete_cosine_transform) is a method of representing a continuous function using a finite set of numbers. It uses a set of independent basis functions to do this.
 #
