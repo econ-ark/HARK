@@ -11,7 +11,7 @@ from builtins import range
 import numpy as np
 from HARK.interpolation import LinearInterp
 from HARK.simulation import drawUniform, drawDiscrete
-from .ConsIndShockModel import IndShockConsumerType, ConsumerSolution, MargValueFunc
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, ConsumerSolution, MargValueFunc
 
 def solveConsRepAgent(solution_next,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,PermGroFac,aXtraGrid):
     '''
@@ -209,6 +209,9 @@ class RepAgentConsumerType(IndShockConsumerType):
         self.AgentCount = 1 # Hardcoded, because this is rep agent
         self.solveOnePeriod = solveConsRepAgent
         self.delFromTimeInv('Rfree','BoroCnstArt','vFuncBool','CubicBool')
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def getStates(self):
         '''
@@ -257,6 +260,9 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         '''
         RepAgentConsumerType.__init__(self,time_flow=time_flow,**kwds)
         self.solveOnePeriod = solveConsRepAgentMarkov
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def updateSolutionTerminal(self):
         '''
@@ -331,7 +337,7 @@ def main():
     from copy import deepcopy
     from time import clock
     from HARK.utilities import plotFuncs
-    from . import ConsumerParameters as Params
+    import HARK.ConsumptionSaving.ConsumerParameters as Params
 
     # Make a quick example dictionary
     RA_params = deepcopy(Params.init_idiosyncratic_shocks)

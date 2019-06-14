@@ -1,133 +1,16 @@
 # ---
 # jupyter:
-#   cite2c:
-#     citations:
-#       6202365/L5GBWHBM:
-#         author:
-#         - family: Reiter
-#           given: Michael
-#         container-title: Journal of Economic Dynamics and Control
-#         id: undefined
-#         issue: '1'
-#         issued:
-#           month: 1
-#           year: 2010
-#         note: 'Citation Key: reiterBackward'
-#         page: 28-35
-#         page-first: '28'
-#         title: Solving the Incomplete Markets Model with Aggregate Uncertainty by
-#           Backward Induction
-#         type: article-journal
-#         volume: '34'
-#       6202365/UKUXJHCN:
-#         author:
-#         - family: Reiter
-#           given: Michael
-#         id: 6202365/UKUXJHCN
-#         note: "Citation Key: reiter2002recursive \nbibtex*[publisher=Citeseer]"
-#         title: Recursive computation of heterogeneous agent models
-#         type: article-journal
-#       6202365/VPUXICUR:
-#         author:
-#         - family: Krusell
-#           given: Per
-#         - family: Smith
-#           given: Anthony A.
-#         container-title: Journal of Political Economy
-#         id: 6202365/VPUXICUR
-#         issue: '5'
-#         issued:
-#           year: 1998
-#         page: "867\u2013896"
-#         page-first: '867'
-#         title: Income and Wealth Heterogeneity in the Macroeconomy
-#         type: article-journal
-#         volume: '106'
-#       6202365/WN76AW6Q:
-#         author:
-#         - family: SeHyoun Ahn, Greg Kaplan, Benjamin Moll, Thomas Winberry
-#           given: ''
-#         - family: Wolf
-#           given: Christian
-#         editor:
-#         - family: Parker
-#           given: Jonathan
-#         - family: Martin S. Eichenbaum
-#           given: Organizers
-#         id: 6202365/WN76AW6Q
-#         issued:
-#           year: 2017
-#         note: "Citation Key: akmwwInequality \nbibtex*[booktitle=NBER Macroeconomics\
-#           \ Annual;publisher=MIT Press;location=Cambridge, MA]"
-#         title: When Inequality Matters for Macro and Macro Matters for Inequality
-#         type: article-journal
-#         volume: '32'
-#       undefined:
-#         author:
-#         - family: Reiter
-#           given: Michael
-#         container-title: Journal of Economic Dynamics and Control
-#         id: undefined
-#         issue: '1'
-#         issued:
-#           month: 1
-#           year: 2010
-#         note: 'Citation Key: reiterBackward'
-#         page: 28-35
-#         page-first: '28'
-#         title: Solving the Incomplete Markets Model with Aggregate Uncertainty by
-#           Backward Induction
-#         type: article-journal
-#         volume: '34'
 #   jupytext:
 #     formats: ipynb,py:light
 #     text_representation:
 #       extension: .py
 #       format_name: light
-#       format_version: '1.3'
-#       jupytext_version: 0.8.3
+#       format_version: '1.4'
+#       jupytext_version: 1.1.3
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
 #     name: python3
-#   language_info:
-#     codemirror_mode:
-#       name: ipython
-#       version: 3
-#     file_extension: .py
-#     mimetype: text/x-python
-#     name: python
-#     nbconvert_exporter: python
-#     pygments_lexer: ipython3
-#     version: 3.6.7
-#   varInspector:
-#     cols:
-#       lenName: 16
-#       lenType: 16
-#       lenVar: 40
-#     kernels_config:
-#       python:
-#         delete_cmd_postfix: ''
-#         delete_cmd_prefix: 'del '
-#         library: var_list.py
-#         varRefreshCmd: print(var_dic_list())
-#       r:
-#         delete_cmd_postfix: ') '
-#         delete_cmd_prefix: rm(
-#         library: var_list.r
-#         varRefreshCmd: 'cat(var_dic_list()) '
-#     types_to_exclude:
-#     - module
-#     - function
-#     - builtin_function_or_method
-#     - instance
-#     - _Feature
-#     window_display: false
-#   widgets:
-#     application/vnd.jupyter.widget-state+json:
-#       state: {}
-#       version_major: 2
-#       version_minor: 0
 # ---
 
 # # [Bayer and Luetticke (2018)](https://cepr.org/active/publications/discussion_papers/dp.php?dpno=13071)
@@ -145,12 +28,14 @@
 # The Bayer-Luetticke method has the following broad features:
 #    * The model is formulated and solved in discrete time (in contrast with some other recent approaches <cite data-cite="6202365/WN76AW6Q"></cite>)
 #    * Solution begins by calculation of the steady-state equilibrium (StE) with no aggregate shocks
-#    * Dimensionality reduction is performed immediately after calculation of the StE
-#       * This involves finding a representation of the individual policy function using a particular class of basis functions
-#    * The method captures the business-cycle-induced _deviations_ of the individual policy functions from those that characterize the riskless StE
-#       * This is done using the same basis functions originally optimized to match the StE individual policy function (akin to image compression)
-#    * The method of capturing dynamic deviations from a reference frame is akin to video compression
-#    * Similar methods are used for capturing dynamics of distributions
+#    * "Dimensionality reduction" of the consumer's decision problem is performed before any further analysis is done
+#       * "Dimensionality reduction" is just a particularly efficient method of approximating a function
+#       * It involves finding a representation of the function using some class of basis functions
+#    * Dimensionality reduction of the joint distribution is accomplished using a "copula"
+#       * See the companion notebook for description of the copula
+#    * The method approximates the business-cycle-induced _deviations_ of the individual policy functions from those that characterize the riskless StE
+#       * This is done using the same basis functions originally optimized to match the StE individual policy function
+#       * The method of capturing dynamic deviations from a reference frame is akin to video compression
 
 # ### Setup 
 #
@@ -199,7 +84,7 @@
 #         \bar{v} = \bar{u} + \beta \Pi_{\bar{h}}\bar{v}
 #       \end{equation}
 #      holds for the optimal policy
-#      * A linear interpolant is used for the value function
+#      * A linear interpolator is used to represent the value function
 #    * For the distribution, which (by the definition of steady state) is constant:   
 #
 # \begin{eqnarray}
@@ -219,8 +104,10 @@
 #
 # This can be solved by (jointly):
 #    1. Finding $d\bar{\mu}$ as the unit-eigenvalue of $\Pi_{\bar{h}}$
-#    2. Using fast solution techniques for the decision problem, e.g. EGM
+#    2. Using standard solution techniques for the micro decision problem given $P$
+#       * Like wage and interest rate
 #    3. Using a root-finder to solve for $P$
+#       * This basically iterates the other two steps until it finds values where they are consistent
 
 # ####  Introducing aggregate risk
 #
@@ -238,7 +125,7 @@
 #         v_t = \bar{u}_{P_t} + \beta \Pi_{h_t} v_{t+1}
 #      \end{equation}
 #      holds for policy $h_t$ which optimizes with respect to $v_{t+1}$ and $P_t$
-#    * and a sequence of histograms, such that
+#    * and a sequence of "histograms" (discretized distributions), such that
 #      \begin{equation}
 #         d\mu_{t+1} = d\mu_t \Pi_{h_t}
 #      \end{equation}
@@ -283,14 +170,16 @@ code_dir = os.path.join(my_file_path, "BayerLuetticke_code/TwoAssetCode")
 sys.path.insert(0, code_dir)
 sys.path.insert(0, my_file_path)
 
-# + {"code_folding": [0]}
-## Change working folder and load Stationary equilibrium (StE)
+# + {"code_folding": []}
+## Load Stationary equilibrium (StE) object EX3SS_20
 
 import pickle
 os.chdir(code_dir) # Go to the directory with pickled code
 
 ## EX3SS_20.p is the information in the stationary equilibrium (20: the number of illiquid and liquid weath grids )
 EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
+
+
 # -
 
 # #### Compact notation (Schmitt-Grohe and Uribe, 2004)
@@ -322,10 +211,10 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #    * Standard techniques can solve the discretized version
 
 # #### So, is all solved?
-# The dimensionality of the system F is still an issue
+# The dimensionality of the system F is a big problem 
 #    * With high dimensional idiosyncratic states, discretized value functions and distributions become large objects
 #    * For example:
-#       * 4 income states $\times$ 100 illiquid capital states $\times$ 100 liquid capital states $\rightarrow$ $\geq$ 40,000 variables in $F$
+#       * 4 income states $\times$ 100 illiquid capital states $\times$ 100 liquid capital states $\rightarrow$ $\geq$ 40,000 values in $F$
 #    * Same number of state variables  
 
 # ### Bayer-Luetticke method
@@ -335,7 +224,9 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #       * Use Chebychev polynomials on roots grid
 #    * Define a reference "frame": the steady-state equilibrium (StE)
 #    * Represent fluctuations as differences from this reference frame
-#    * Assume all coefficients of the DCT from the StE that are close to zero do not change when there is an aggregate shock (small things stay small and unchanged)
+#    * Assume all coefficients of the DCT from the StE that are close to zero do not change when there is an aggregate shock (small things stay small)
+#       * When would this be problematic?
+#       * In video, 
 #    
 # 2. Assume no changes in the rank correlation structure of $\mu$   
 #    * Calculate the Copula, $\bar{C}$ of $\mu$ in the StE
@@ -345,7 +236,7 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #
 # The approach follows the insight of KS in that it uses the fact that some moments of the distribution do not matter for aggregate dynamics
 
-# + {"code_folding": [0]}
+# + {"code_folding": []}
 ## Import necessary libraries
 
 from __future__ import print_function
@@ -386,7 +277,7 @@ import scipy.fftpack as sf
 #       \end{array}\right.
 #    \end{equation}
 
-# + {"code_folding": []}
+# + {"code_folding": [0]}
 ## State reduction and Discrete cosine transformation
 
 class StateReduc_Dct:
@@ -531,32 +422,31 @@ class StateReduc_Dct:
 # -
 
 # 2) Decoding
-#    * Now we reconstruct $\tilde{v}_t=\tilde{v}(\theta_t)=dct^{-1}(\tilde{\Theta}(\theta_i))$
-#       * idct is the inverse dct that goes from the $\theta$ vector to the corresponding values
+#    * Now we reconstruct $\tilde{v}_t=\tilde{v}(\theta_t)=dct^{-1}(\tilde{\Theta}(\theta_{t}))$
+#       * idct=$dct^{-1}$ is the inverse dct that goes from the $\theta$ vector to the corresponding values
 #    * This means that in the StE the reduction step adds no addtional approximation error:
 #        * Remember that $\tilde{v}(0)=\bar{v}$ by construction
-#    * Yet, it allows to reduce the number of derivatives that need to be calculated from the outset.
+#    * But it allows us to reduce the number of derivatives that need to be calculated from the outset.
+#        * We only calculate derivatives for those basis functions that make an important contribution to the representation of the policy or value functions
 #    
 # 3) The histogram is recovered the same way
 #    * $\mu_t$ is approximated as $\bar{C}(\bar{\mu_t}^1,...,\bar{\mu_t}^n)$, where $n$ is the dimensionality of the idiosyncratic states
 #    * The StE distribution is obtained when $\mu = \bar{C}(\bar{\mu}^1,...,\bar{\mu}^n)$
 #    * Typically prices are only influenced through the marginal distributions
-#    * The approach ensures that changes in the mass of one, say wealth, state are distributed in a sensible way across the other dimension
+#    * The approach ensures that changes in the mass of one state (say, wealth) are distributed in a sensible way across the other dimensions
 #    * The implied distributions look "similar" to the StE one (different in (Reiter, 2009))
 #
-# 4) Too many equations
-#    * The system
+# 4) The large system above is now transformed into a much smaller system:
 #      \begin{align}
 #       F(\{d\mu_t^1,...,d\mu_t^n\}, S_t, \{d\mu_{t+1}^1,...,d\mu_{t+1}^n\}, S_{t+1}, \theta_t, P_t, \theta_{t+1}, P_{t+1})
 #       &= \begin{bmatrix}
 #            d\bar{C}(\bar{\mu}_t^1,...,\bar{\mu}_t^n) - d\bar{C}(\bar{\mu}_t^1,...,\bar{\mu}_t^n)\Pi_{h_t} \\
-#            dct[idct(\tilde{\Theta(\theta_t)}) - (\bar{u}_{h_t} + \beta \Pi_{h_t}idct(\tilde{\Theta(\theta_{t+1})}] \\
+#            dct\left[idct(\tilde{\Theta}(\theta_t) - (\bar{u}_{h_t} + \beta \Pi_{h_t}idct(\tilde{\Theta}(\theta_{t+1})))\right] \\
 #            S_{t+1} - H(S_t,d\mu_t) \\
 #            \Phi(h_t,d\mu_t,P_t,S_t) \\
 #            \end{bmatrix}
 #      \end{align}
-#      has too many equations
-#    * Uses only difference in marginals and the differences on $\mathop{I}$ 
+#      
 
 # ### The two-asset HANK model
 #
@@ -608,7 +498,7 @@ class StateReduc_Dct:
 #
 # - Individual state variables: $b$, $k$ and $h$, the joint distribution of individual states $\Theta$
 # - Individual control variables: $c$, $n$, $b'$, $k'$ 
-# - Optimal policy for adjust and non-adjust cases are $c^*_a$, $n^*_a$ $k^*_a$ and $b^*_a$ and  $c^*_n$, $n^*_n$ and $b^*_n$, respetively 
+# - Optimal policy for adjusters and nonadjusters are $c^*_a$, $n^*_a$ $k^*_a$ and $b^*_a$ and  $c^*_n$, $n^*_n$ and $b^*_n$, respectively 
 #
 
 # + {"code_folding": []}
@@ -674,7 +564,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
 #    invmutil = lambda x : (1./x)**(1./par['xi'])
     invmutil = lambda x : np.power(1./x,1./par['xi'])
     
-    # Generate meshes for m,k,h # Question: m not b?
+    # Generate meshes for m,k,h
     
     # number of states, controls in reduced system
     nx  = mpar['numstates']   # number of states 
@@ -710,7 +600,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     marginal_mind = range(mpar['nm']-1)
     marginal_kind = range(mpar['nm']-1,mpar['nm']+mpar['nk']-2) # probs add to 1
     marginal_hind = range(mpar['nm']+mpar['nk']-2,
-                          mpar['nm']+mpar['nk']+mpar['nh']-4) # Question: Why 4?
+                          mpar['nm']+mpar['nk']+mpar['nh']-4) # Question: Why 4?  Awesome guy not perturbed
     
     # index for the interest rate on government bonds = liquid assets
     RBind = NxNx 
@@ -781,6 +671,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     B = np.exp(Control[Bind])
     
     # Aggregate Controls (t) # Question: Why are there more here than for t+1?
+    # Only include t+1's that show up in eqbm conditions (Envelope thm)
     PIminus = np.exp(Controlminus[PIind])
     Qminus = np.exp(Controlminus[Qind])
     Yminus = np.exp(Controlminus[Yind])
@@ -812,7 +703,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     
     ## States
     ## Marginal Distributions (Marginal histograms)
-    #LHS[distr_ind] = Distribution[:mpar['nm']*mpar['nh']-1-mpar['nh']].copy() Question: Why commented out
+
     LHS[marginal_mind] = Distribution[:mpar['nm']-1]
     LHS[marginal_kind] = Distribution[mpar['nm']:mpar['nm']
                                       +mpar['nk']-1]
@@ -963,12 +854,15 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     c_n_star = result_EGM_policyupdate['c_n_star']
     m_n_star = result_EGM_policyupdate['m_n_star']
     
-    # Question: Is this max value of ind pty?  Why needed?
+    # Question: Is this max value of ind pty?  Why needed?  Victor "Awesome" state
     meshaux = meshes.copy()
     meshaux['h'][:,:,-1] = 1000.
     
     ## Update Marginal Value of Bonds
     # Question: Marginal utility is weighted average of u' from c and u' from leisure?
+    # GHH preferences (can write optimization problem for the composite good)
+    # Just to make everybody have the same labor supply (it's about eqbm prices)
+    # easier to do the steady state
     mutil_c_n = mutil(c_n_star.copy())
     mutil_c_a = mutil(c_a_star.copy())
     mutil_c_aux = par['nu']*mutil_c_a + (1-par['nu'])*mutil_c_n
@@ -1034,7 +928,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     ## Liquid assets of the k-adjusters
     ra_genweight = GenWeight(m_a_star,grid['m'])
     Dist_m_a = ra_genweight['weight'].copy()
-    idm_a = ra_genweight['index'].copy() # Question: idm_a is index of original exogenous m grid 
+    idm_a = ra_genweight['index'].copy() # idm_a is index of original exogenous m grid 
     
     ## Liquid assets of the k-nonadjusters
     rn_genweight = GenWeight(m_n_star,grid['m'])
@@ -1202,7 +1096,7 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
             'k_a_star':k_a_star,'c_n_star':c_n_star,'m_n_star':m_n_star,'P':P}
 
 
-# + {"code_folding": [0]}
+# + {"code_folding": []}
 ## Update policy in transition (found in Fsys)
 
 def EGM_policyupdate(EVm,EVk, Qminus, PIminus, RBminus, inc, meshes,grid,par,mpar):
