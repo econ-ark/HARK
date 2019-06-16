@@ -19,4 +19,5 @@ class testsForIndShk(unittest.TestCase):
         model.t_cycle = 0
         model.t_age=18
         # But forget to solve, and go straight to simulate
-        self.assertRaises(Exception, model.simulate())
+        with self.assertRaises(Exception):
+            model.simulate()
