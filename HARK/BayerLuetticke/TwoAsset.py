@@ -179,6 +179,8 @@ os.chdir(code_dir) # Go to the directory with pickled code
 ## EX3SS_20.p is the information in the stationary equilibrium (20: the number of illiquid and liquid weath grids )
 EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 
+## WangTao: Find the code that generates this
+
 
 # -
 
@@ -277,7 +279,7 @@ import scipy.fftpack as sf
 #       \end{array}\right.
 #    \end{equation}
 
-# + {"code_folding": [0]}
+# + {"code_folding": []}
 ## State reduction and Discrete cosine transformation
 
 class StateReduc_Dct:
@@ -315,7 +317,7 @@ class StateReduc_Dct:
         # c = invmarg(marg(c)), so first bit gets consumption policy function
         Yss=np.asmatrix(np.concatenate((invmutil(self.mutil_c.copy().flatten(order = 'F')),\
                                         invmutil(self.Vk.copy().flatten(order = 'F')),
-                      [np.log(self.par['Q'])], # Question: Price of the illiquid asset, right?
+                      [np.log(self.par['Q'])], # Price of the illiquid asset
                                         [ np.log(self.par['PI'])], # Inflation
                                         [ np.log(self.Output)],    
                       [np.log(self.par['G'])], # Gov spending
@@ -334,7 +336,7 @@ class StateReduc_Dct:
         #   nh = number of gridpoints for human capital (pty)
         Gamma_state = np.zeros( # Create zero matrix of size [nm + nk + nh,nm + nk + nh - 4]
             (self.mpar['nm']+self.mpar['nk']+self.mpar['nh'],
-             self.mpar['nm']+self.mpar['nk']+self.mpar['nh'] - 4)) # Question: Why 4?
+             self.mpar['nm']+self.mpar['nk']+self.mpar['nh'] - 4)) # Question: Why 4?  WangTao: Find SC's answer
 
         # Impose adding-up conditions: 
         # In each of the block matrices, probabilities must add to 1
@@ -345,6 +347,7 @@ class StateReduc_Dct:
             Gamma_state[j,j]=Gamma_state[j,j] - np.sum(Gamma_state[0:self.mpar['nm'],j])
         bb = self.mpar['nm'] # Question: bb='bottom base'? because bb shorter to type than self.mpar['nm'] everywhere
 
+        # WangTao: Replace magic numbers or obscure variables with more self-explanatory names
         for j in range(self.mpar['nk']-1):
             Gamma_state[bb+np.arange(0,self.mpar['nk'],1), bb+j-1] = -np.squeeze(Xss[bb+np.arange(0,self.mpar['nk'],1)])
             Gamma_state[bb+j,bb-1+j] = 1. - Xss[bb+j] 
@@ -414,9 +417,9 @@ class StateReduc_Dct:
         while linalg.norm(XX[ind[:i]].copy())/linalg.norm(XX) < level:
               i += 1    
         
-        needed = i # Question:Isn't this counting the ones that are NOT needed?
+        needed = i # The points that are kept
         
-        index_reduced = np.sort(ind[:i]) # Retrieve the good 
+        index_reduced = np.sort(ind[:i]) # Retrieve the good ones
         
         return index_reduced
 # -
