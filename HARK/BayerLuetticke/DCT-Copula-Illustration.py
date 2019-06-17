@@ -666,14 +666,6 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_xlim(0,400)
     ax.view_init(20, 40)
 
-# %%
-# CDC20190614: I don't think this is very useful.  
-# Either explain how they are basically representing a 30x30x4 matrix using a 3600 unit long vector, or omit this entirely
-
-copula_value =  EX3SS['Copula']['value']
-fig=plt.plot(copula_value)
-plt.title("Cumulative probability distribution function in vector form (stacked by h) in StE")
-
 # %% [markdown]
 # Notice the CDFs in StE copula have 4 modes, corresponding to the number of $h$ gridpoints. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
 
