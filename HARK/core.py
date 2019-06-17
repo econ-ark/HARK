@@ -576,8 +576,7 @@ class AgentType(HARKobject):
         who_dies : np.array
             Boolean array of size self.AgentCount indicating which agents die and are replaced.
         '''
-        print('AgentType subclass must define method simDeath!')
-        who_dies = np.ones(self.AgentCount, dtype=bool)
+        who_dies = np.zeros(self.AgentCount, dtype=bool)
         return who_dies
 
     def simBirth(self, which_agents):
