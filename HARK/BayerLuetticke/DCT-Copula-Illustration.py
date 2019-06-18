@@ -505,13 +505,12 @@ hgrid_rdc = mut_rdc_idx[2][(mut_rdc_idx[0]==mgrid_fix) & (mut_rdc_idx[1]==kgrid_
 
 ## get the 95 percent or other percentile of the distribution
 
-
 joint_distr =  EX3SS['joint_distr']
 marginal_mk =  EX3SS['joint_distr'].sum(axis=2)
 
-mass_pct = 0.1
+mass_pct = 0.95
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## 3D scatter plots of consumption function 
 ##    at all grids and grids after dct for both adjusters and non-adjusters
 
@@ -535,14 +534,15 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     mut_n_rdc= mut_n_StE[rdc_id]
     c_n_rdc = cn_StE[rdc_id]
     c_a_rdc = ca_StE[rdc_id]
+    
+    ## for each h grid, take the 95% mass of m and k as the maximum of the m and k axis 
+    
     marginal_mk = joint_distr[:,:,hgrid_fix]
     marginal_m = marginal_mk.sum(axis=0)
-    print(marginal_m)
     marginal_k = marginal_mk.sum(axis=1)
-    mmax = mgrid[(np.abs(marginal_m-mass_pct)).argmin()]
-    kmax = kgrid[(np.abs(marginal_k-mass_pct)).argmin()]
-    
-    print(mmax)
+    mmax = mgrid[(np.abs(marginal_m.cumsum()-mass_pct*marginal_m.cumsum().max())).argmin()]
+    kmax = kgrid[(np.abs(marginal_k.cumsum()-mass_pct*marginal_k.cumsum().max())).argmin()]
+
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
     ax.scatter(mmgrid,kkgrid,cn_StE[:,:,hgrid_fix],marker='.',
@@ -576,8 +576,14 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     mut_n_rdc= mut_n_StE[rdc_id]
     c_n_rdc = cn_StE[rdc_id]
     c_a_rdc = ca_StE[rdc_id]
-    mmax = mmgrid_rdc.max()
-    kmax = kkgrid_rdc.max()
+    
+    ## for each h grid, take the 95% mass of m and k as the maximum of the m and k axis 
+    
+    marginal_mk = joint_distr[:,:,hgrid_fix]
+    marginal_m = marginal_mk.sum(axis=0)
+    marginal_k = marginal_mk.sum(axis=1)
+    mmax = mgrid[(np.abs(marginal_m.cumsum()-mass_pct*marginal_m.cumsum().max())).argmin()]
+    kmax = kgrid[(np.abs(marginal_k.cumsum()-mass_pct*marginal_k.cumsum().max())).argmin()]
     
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
@@ -613,6 +619,14 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     c_n_rdc = cn_StE[rdc_id]
     c_a_rdc = ca_StE[rdc_id]
     
+    ## for each h grid, take the 95% mass of m and k as the maximum of the m and k axis 
+    
+    marginal_mk = joint_distr[:,:,hgrid_fix]
+    marginal_m = marginal_mk.sum(axis=0)
+    marginal_k = marginal_mk.sum(axis=1)
+    mmax = mgrid[(np.abs(marginal_m.cumsum()-mass_pct*marginal_m.cumsum().max())).argmin()]
+    kmax = kgrid[(np.abs(marginal_k.cumsum()-mass_pct*marginal_k.cumsum().max())).argmin()]
+    
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
     #ax.scatter(mmgrid,kkgrid,cn_StE[:,:,hgrid_fix],marker='.',
@@ -627,7 +641,8 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
     ax.set_title(r'$h({})$'.format(hgrid_fix))
-    ax.set_xlim(0,400)
+    ax.set_xlim(0,mmax)
+    ax.set_ylim(0,kmax)
     ax.view_init(20, 240)
 ax.legend(loc=9)
 
@@ -683,7 +698,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 # %% [markdown]
 # Notice the CDFs in StE copula have 4 modes, corresponding to the number of $h$ gridpoints. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Plot the copula 
 
 cdf=EX3SS['Copula']['value'].reshape(4,30,30)   # important: 4,30,30 not 30,30,4? 
@@ -694,13 +709,23 @@ fig.suptitle('Copula of m and k(for different h)',
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.plot_surface(mmgrid,kkgrid,cdf[hgrid_fix,:,:], rstride=1, cstride=1,
+    ax.plot_surface(mmgrid,kkgrid,cdf[hgrid_id,:,:], rstride=1, cstride=1,
                     cmap='viridis', edgecolor='None')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_title(r'$h({})$'.format(hgrid_id))
-    ax.set_xlim(0,400)
-    ax.view_init(30, 45)
+    
+    ## for each h grid, take the 95% mass of m and k as the maximum of the m and k axis 
+    
+    marginal_mk = joint_distr[:,:,hgrid_id]
+    marginal_m = marginal_mk.sum(axis=0)
+    marginal_k = marginal_mk.sum(axis=1)
+    mmax = mgrid[(np.abs(marginal_m.cumsum()-mass_pct*marginal_m.cumsum().max())).argmin()]
+    kmax = kgrid[(np.abs(marginal_k.cumsum()-mass_pct*marginal_k.cumsum().max())).argmin()]
+    
+    #ax.set_xlim(0,mmax)
+    #ax.set_ylim(0,kmax)
+    ax.view_init(30, 30)
 
 # %% [markdown]
 # Given the assumption that the copula remains the same after aggregate risk is introduced, we can use the same copula and the marginal distributions to recover the full joint-distribution of the states.  
