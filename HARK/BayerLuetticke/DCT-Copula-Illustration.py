@@ -157,9 +157,9 @@ print(str(EX3SS['mpar']['nm'])+
 #
 # - In this case we just need to represent how the marginal distributions of each state change, instead of the full joint distributions
 #
-# - This reduces the number of points for which we need to track transitions from $3600 = 30 \times 30 \times 4$ to $64 = 30+30+4$.  Or the total number of points we need to contemplate goes from $3600^2 \approx 13 million$ to $64^2=4096.  
+# - This reduces the number of points for which we need to track transitions from $3600 = 30 \times 30 \times 4$ to $64 = 30+30+4$.  Or the total number of points we need to contemplate goes from $3600^2 \approx 13 million$ to $64^2=4096$.  
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Get some specs about the copula, which is precomputed in the EX3SS object
 
 print('The copula consists of two parts: gridpoints and values at those gridpoints:'+ \
@@ -171,7 +171,7 @@ print('The copula consists of two parts: gridpoints and values at those gridpoin
       '\n state variables are below the corresponding point.')
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Import necessary libraries
 
 from __future__ import print_function
@@ -423,7 +423,7 @@ EX3SS['par']['accuracy'] = 0.99999
 EX3SR=StateReduc_Dct(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
 SR=EX3SR.StateReduc()           # StateReduc is operated 
 
-# %% {"code_folding": [7, 10, 12]}
+# %% {"code_folding": [0, 12]}
 # Measuring the effectiveness of the state reduction
 
 print('What are the results from the state reduction?')
@@ -502,7 +502,16 @@ mgrid_rdc = mut_rdc_idx[0][(mut_rdc_idx[1]==kgrid_fix) & (mut_rdc_idx[2]==hgrid_
 kgrid_rdc = mut_rdc_idx[1][(mut_rdc_idx[0]==mgrid_fix) & (mut_rdc_idx[2]==hgrid_fix)]
 hgrid_rdc = mut_rdc_idx[2][(mut_rdc_idx[0]==mgrid_fix) & (mut_rdc_idx[1]==kgrid_fix)]
 
-# %% {"code_folding": []}
+
+## get the 95 percent or other percentile of the distribution
+
+
+joint_distr =  EX3SS['joint_distr']
+marginal_mk =  EX3SS['joint_distr'].sum(axis=2)
+
+mass_pct = 0.1
+
+# %% {"code_folding": [0]}
 ## 3D scatter plots of consumption function 
 ##    at all grids and grids after dct for both adjusters and non-adjusters
 
@@ -526,9 +535,14 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     mut_n_rdc= mut_n_StE[rdc_id]
     c_n_rdc = cn_StE[rdc_id]
     c_a_rdc = ca_StE[rdc_id]
-    mmax = mmgrid_rdc.max()
-    kmax = kkgrid_rdc.max()
+    marginal_mk = joint_distr[:,:,hgrid_fix]
+    marginal_m = marginal_mk.sum(axis=0)
+    print(marginal_m)
+    marginal_k = marginal_mk.sum(axis=1)
+    mmax = mgrid[(np.abs(marginal_m-mass_pct)).argmin()]
+    kmax = kgrid[(np.abs(marginal_k-mass_pct)).argmin()]
     
+    print(mmax)
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
     ax.scatter(mmgrid,kkgrid,cn_StE[:,:,hgrid_fix],marker='.',
@@ -539,13 +553,13 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
     
-    ax.set_xlim([0,mmax*1.1])
-    ax.set_ylim([0,kmax*1.2])
+    ax.set_xlim([0,mmax])
+    ax.set_ylim([0,kmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 240)
 ax.legend(loc=9)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ### for adjusters 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Consumption of adjusters at grid points of m and k(for different h)',
@@ -648,7 +662,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     for id in range(EX3SS['mpar']['nm']):   
         ax.plot(kgrid,joint_distr[id,:,hgrid_id])
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Plot joint distribution of k and m in 3d graph
 
 fig = plt.figure(figsize=(14,14))
@@ -669,7 +683,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 # %% [markdown]
 # Notice the CDFs in StE copula have 4 modes, corresponding to the number of $h$ gridpoints. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Plot the copula 
 
 cdf=EX3SS['Copula']['value'].reshape(4,30,30)   # important: 4,30,30 not 30,30,4? 
