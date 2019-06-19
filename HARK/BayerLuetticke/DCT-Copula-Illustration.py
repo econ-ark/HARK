@@ -203,7 +203,7 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import seaborn as sns
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## State reduction and discrete cosine transformation
 
 class StateReduc_Dct:
