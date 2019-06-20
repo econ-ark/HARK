@@ -199,7 +199,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
             possible_next_states         = self.MrkvArray[i,:] > 0
             self.BoroCnstNat_list[i]     = np.max(self.BoroCnstNatAll[possible_next_states])
 
-            # Explicitly handle the "None" case:            
+            # Explicitly handle the "None" case:
             if self.BoroCnstArt is None:
                 self.mNrmMin_list[i]         = self.BoroCnstNat_list[i]
             else:
@@ -734,7 +734,7 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.updateSolutionTerminal()
+        AgentType.preSolve()
         self.checkMarkovInputs()
 
     def updateSolutionTerminal(self):
@@ -1127,4 +1127,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

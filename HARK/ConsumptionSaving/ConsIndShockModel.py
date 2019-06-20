@@ -1498,8 +1498,14 @@ class PerfForesightConsumerType(AgentType):
         self.solveOnePeriod = solvePerfForesight # solver for perfect foresight model
 
 
-    def preSolve(self):
-        self.updateSolutionTerminal()
+    def checkRestrictions(self):
+        """
+        A method to check that various restrictions are met for the model class.
+        """
+        if self.DiscFac < 0:
+            raise Exception('DiscFac is below zero with value: ' + str(self.DiscFac))
+
+        return
 
     def updateSolutionTerminal(self):
         '''
@@ -2011,7 +2017,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
 
     def preSolve(self):
-        self.updateSolutionTerminal()
+        AgentType.preSolve(self)
         if not self.quiet:
             self.checkConditions(verbose=self.verbose,public_call=False)
 
@@ -2118,6 +2124,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         self.update() # Make assets grid, income process, terminal solution
 
     def preSolve(self):
+        AgentType.preSolve(self)
         self.updateSolutionTerminal()
 
     def calcBoundingValues(self):
