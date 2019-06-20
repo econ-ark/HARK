@@ -9,7 +9,7 @@ from __future__ import absolute_import
 from builtins import range
 from copy import deepcopy
 import numpy as np
-from HARK.core import AgentType
+from HARK import AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver, ValueFunc, \
                              MargValueFunc, ConsumerSolution, IndShockConsumerType
 from HARK.simulation import drawDiscrete, drawUniform
@@ -735,7 +735,7 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         """
-        AgentType.preSolve()
+        AgentType.preSolve(self)
         self.checkMarkovInputs()
 
     def updateSolutionTerminal(self):
