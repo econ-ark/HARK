@@ -199,11 +199,12 @@ import scipy.fftpack as sf  # scipy discrete fourier transforms
 
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
+from matplotlib import cm
 
 import seaborn as sns
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## State reduction and discrete cosine transformation
 
 class StateReduc_Dct:
@@ -464,16 +465,7 @@ print('The total number of state variables is '+str(SR['State'].shape[0]) + '='+
 # %% {"code_folding": [0]}
 ## Graphical illustration
 
-###   In 2D, we can look at how the number of grid points of 
-###     one state is redcued at given grid values of other states. 
-
-mgrid_fix = 0    ## these are or arbitrary grid points.
-kgrid_fix = 0
-hgrid_fix = 2
-
-
 xi = EX3SS['par']['xi']
-
 invmutil = lambda x : (1./x)**(1./xi)  
 
 ### convert marginal utilities back to consumption function
@@ -495,12 +487,12 @@ hgrid = EX3SS['grid']['h']
 ## indexMUdct is one dimension, needs to be unraveled to 3 dimensions
 
 mut_rdc_idx = np.unravel_index(SR['indexMUdct'],dim_StE,order='F')
-
-## these are filtered indices for the fixed grids of other two states 
-
-mgrid_rdc = mut_rdc_idx[0][(mut_rdc_idx[1]==kgrid_fix) & (mut_rdc_idx[2]==hgrid_fix)]
-kgrid_rdc = mut_rdc_idx[1][(mut_rdc_idx[0]==mgrid_fix) & (mut_rdc_idx[2]==hgrid_fix)]
-hgrid_rdc = mut_rdc_idx[2][(mut_rdc_idx[0]==mgrid_fix) & (mut_rdc_idx[1]==kgrid_fix)]
+nb_dct = len(mut_StE.flatten()) 
+mut_rdc_bool = np.zeros(nb_dct)     # boolean array of 30 x 30 x 4  
+for i in range(nb_dct):
+    mut_rdc_bool[i]=i in list(SR['indexMUdct'])
+mut_rdc_bool_3d = (mut_rdc_bool==1).reshape(dim_StE)
+mut_rdc_mask_3d = (mut_rdc_bool).reshape(dim_StE)
 
 
 ## get the 95 percent or other percentile of the distribution
@@ -514,9 +506,11 @@ mass_pct = 0.95
 ## 3D scatter plots of consumption function 
 ##    at all grids and grids after dct for both adjusters and non-adjusters
 
+
+## for non-adjusters
+
 ## full grids 
 mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
-
 
 ### for adjusters 
 fig = plt.figure(figsize=(14,14))
@@ -525,15 +519,11 @@ fig.suptitle('Consumption of non-adjusters at grid points of m and k(for differe
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
     hgrid_fix=hgrid_id
-    fix_bool = mut_rdc_idx[2]==hgrid_fix  # for a fixed h grid value 
-    rdc_id = (mut_rdc_idx[0][fix_bool], 
-              mut_rdc_idx[1][fix_bool],
-              mut_rdc_idx[2][fix_bool])
-    mmgrid_rdc = mmgrid[rdc_id[0]].T[0]
-    kkgrid_rdc = kkgrid[rdc_id[1]].T[0]
-    mut_n_rdc= mut_n_StE[rdc_id]
-    c_n_rdc = cn_StE[rdc_id]
-    c_a_rdc = ca_StE[rdc_id]
+    c_n_rdc = (cn_StE*mut_rdc_mask_3d)[:,:,hgrid_fix]
+    c_a_rdc = (ca_StE*mut_rdc_mask_3d)[:,:,hgrid_fix]
+    
+    ## filter non-dct grid points
+    
     
     ## for each h grid, take the 95% mass of m and k as the maximum of the m and k axis 
     
@@ -545,21 +535,63 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.scatter(mmgrid,kkgrid,cn_StE[:,:,hgrid_fix],marker='.',
+    ax.plot_surface(mmgrid,kkgrid,c_n_rdc,rstride=1, cstride=1,
+                    cmap='viridis', edgecolor='None',
+                    label='StE(after dct):non-adjuster')
+    ax.scatter(mmgrid,kkgrid,cn_StE[:,:,hgrid_fix],marker='v',color='red',
                label='StE(before dct): non-adjuster')
-    ax.scatter(mmgrid_rdc,kkgrid_rdc,c_n_rdc,c='red',marker='o',
-               label='StE(after dct):non-adjuster')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
-    
-    ax.set_xlim([0,mmax])
-    ax.set_ylim([0,kmax])
+    #ax.set_xlim([0,mmax])
+    #ax.set_ylim([0,kmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
-    ax.view_init(20, 240)
-ax.legend(loc=9)
+    ax.view_init(10, 60)
 
 # %% {"code_folding": [0]}
+## Image plots of consumption function 
+##    at all grids and grids after dct for both adjusters and non-adjusters
+
+
+## for non-adjusters
+
+## full grids 
+mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
+
+### for adjusters 
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Consumption of non-adjusters at grid points of m and k(for different h)',
+             fontsize=(13))
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    ## prepare the reduced grids 
+    hgrid_fix=hgrid_id
+    c_n_rdc = (cn_StE*mut_rdc_bool_3d)[:,:,hgrid_fix]
+    c_a_rdc = (ca_StE*mut_rdc_bool_3d)[:,:,hgrid_fix]
+    
+    ## filter non-dct grid points
+    
+    
+    ## for each h grid, take the 95% mass of m and k as the maximum of the m and k axis 
+    
+    marginal_mk = joint_distr[:,:,hgrid_fix]
+    marginal_m = marginal_mk.sum(axis=0)
+    marginal_k = marginal_mk.sum(axis=1)
+    mmax = mgrid[(np.abs(marginal_m.cumsum()-mass_pct*marginal_m.cumsum().max())).argmin()]
+    kmax = kgrid[(np.abs(marginal_k.cumsum()-mass_pct*marginal_k.cumsum().max())).argmin()]
+
+    ## plots 
+    ax = fig.add_subplot(2,2,hgrid_id+1)
+    ax.imshow(np.hstack((cn_StE[:,:,hgrid_fix],c_n_rdc)))
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel('k',fontsize=13)
+    ax.set_title(r'$h({})$'.format(hgrid_fix))
+
+# %% {"code_folding": [0]}
+# for adjusters 
+
+## full grids 
+mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
+
 ### for adjusters 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Consumption of adjusters at grid points of m and k(for different h)',
@@ -567,15 +599,11 @@ fig.suptitle('Consumption of adjusters at grid points of m and k(for different h
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
     hgrid_fix=hgrid_id
-    fix_bool = mut_rdc_idx[2]==hgrid_fix  # for a fixed h grid value 
-    rdc_id = (mut_rdc_idx[0][fix_bool], 
-              mut_rdc_idx[1][fix_bool],
-              mut_rdc_idx[2][fix_bool])
-    mmgrid_rdc = mmgrid[rdc_id[0]].T[0]
-    kkgrid_rdc = kkgrid[rdc_id[1]].T[0]
-    mut_n_rdc= mut_n_StE[rdc_id]
-    c_n_rdc = cn_StE[rdc_id]
-    c_a_rdc = ca_StE[rdc_id]
+    c_n_rdc = (cn_StE*mut_rdc_mask_3d)[:,:,hgrid_fix]
+    c_a_rdc = (ca_StE*mut_rdc_mask_3d)[:,:,hgrid_fix]
+    
+    ## filter non-dct grid points
+    
     
     ## for each h grid, take the 95% mass of m and k as the maximum of the m and k axis 
     
@@ -584,21 +612,21 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     marginal_k = marginal_mk.sum(axis=1)
     mmax = mgrid[(np.abs(marginal_m.cumsum()-mass_pct*marginal_m.cumsum().max())).argmin()]
     kmax = kgrid[(np.abs(marginal_k.cumsum()-mass_pct*marginal_k.cumsum().max())).argmin()]
-    
+
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.scatter(mmgrid,kkgrid,ca_StE[:,:,hgrid_fix],marker='.',
+    ax.plot_surface(mmgrid,kkgrid,c_a_rdc,rstride=1, cstride=1,
+                    cmap='viridis', edgecolor='None',
+                    label='StE(after dct):adjuster')
+    ax.scatter(mmgrid,kkgrid,cn_StE[:,:,hgrid_fix],marker='v',color='red',
                label='StE(before dct): adjuster')
-    ax.scatter(mmgrid_rdc,kkgrid_rdc,c_a_rdc,c='red',marker='*',
-               label='StE(after dct):adjuster')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel(r'$c_n(m,k)$',fontsize=13)
-    ax.set_xlim([0,mmax*1.1])
-    ax.set_ylim([0,kmax*1.2])
+    ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
+    #ax.set_xlim([0,mmax])
+    #ax.set_ylim([0,kmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
-    ax.view_init(20, 240)
-ax.legend(loc=9)
+    ax.view_init(10, 60)
 
 # %% {"code_folding": [0]}
 ### compare adjusters and non-adjusters after DCT
@@ -609,15 +637,9 @@ fig.suptitle('Consumption of adjusters/non-adjusters at grid points of m and k(f
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
     hgrid_fix=hgrid_id
-    fix_bool = mut_rdc_idx[2]==hgrid_fix  # for a fixed h grid value 
-    rdc_id = (mut_rdc_idx[0][fix_bool], 
-              mut_rdc_idx[1][fix_bool],
-              mut_rdc_idx[2][fix_bool])
-    mmgrid_rdc = mmgrid[rdc_id[0]].T[0]
-    kkgrid_rdc = kkgrid[rdc_id[1]].T[0]
-    mut_n_rdc= mut_n_StE[rdc_id]
-    c_n_rdc = cn_StE[rdc_id]
-    c_a_rdc = ca_StE[rdc_id]
+    hgrid_fix=hgrid_id
+    c_n_rdc = (cn_StE*mut_rdc_bool_3d)[:,:,hgrid_fix]
+    c_a_rdc = (ca_StE*mut_rdc_bool_3d)[:,:,hgrid_fix]
     
     ## for each h grid, take the 95% mass of m and k as the maximum of the m and k axis 
     
@@ -629,22 +651,17 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    #ax.scatter(mmgrid,kkgrid,cn_StE[:,:,hgrid_fix],marker='.',
-    #           label='StE(before dct): non-adjuster')
-    #ax.scatter(mmgrid,kkgrid,ca_StE[:,:,hgrid_fix],c='yellow',marker='.',
-    #           label='StE(before dct): adjuster')
-    ax.scatter(mmgrid_rdc,kkgrid_rdc,c_n_rdc,c='red',marker='o',
+    ax.scatter(mmgrid,kkgrid,c_n_rdc,c='red',marker='*',
                label='StE(after dct):non-adjuster')
-    ax.scatter(mmgrid_rdc,kkgrid_rdc,c_a_rdc,c='blue',marker='*',
+    ax.plot_surface(mmgrid,kkgrid,c_a_rdc,
                label='StE(after dct):adjuster')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
     ax.set_title(r'$h({})$'.format(hgrid_fix))
-    ax.set_xlim(0,mmax)
-    ax.set_ylim(0,kmax)
-    ax.view_init(20, 240)
-ax.legend(loc=9)
+    #ax.set_xlim(0,mmax)
+    #ax.set_ylim(0,kmax)
+    ax.view_init(40, 130)
 
 # %% [markdown]
 # ##### Observation
@@ -677,7 +694,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     for id in range(EX3SS['mpar']['nm']):   
         ax.plot(kgrid,joint_distr[id,:,hgrid_id])
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Plot joint distribution of k and m in 3d graph
 
 fig = plt.figure(figsize=(14,14))
