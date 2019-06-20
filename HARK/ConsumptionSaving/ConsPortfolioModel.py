@@ -7,6 +7,7 @@ from HARK import Solution, NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType,solveConsIndShock, ConsIndShockSolver, MargValueFunc, ConsumerSolution
 from HARK.utilities import approxLognormal, combineIndepDstns
 from HARK.interpolation import LinearInterp, LowerEnvelope
+from HARK.simulation import drawLognormal
 
 from copy import deepcopy
 import numpy as np
@@ -102,6 +103,8 @@ class PortfolioSolution(Solution):
 
 class PortfolioConsumerType(IndShockConsumerType):
 
+
+    poststate_vars_ = ['aNrmNow','pLvlNow','RiskyShareNow']
     time_inv_ = IndShockConsumerType.time_inv_ + ['RiskyDstn', 'RiskyShareCount', 'RiskyShareLimit']
     cFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,1.0]) # c=m in terminal period
     vFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,0.0]) # This is overwritten
@@ -116,7 +119,8 @@ class PortfolioConsumerType(IndShockConsumerType):
                                       verbose=verbose, quiet=quiet, **kwds)
 
         if self.BoroCnstArt is not 0.0:
-            print("Setting BoroCnstArt to 0.0 as this is required by PortfolioConsumerType.")
+            if self.verbose:
+                print("Setting BoroCnstArt to 0.0 as this is required by PortfolioConsumerType.")
             self.BoroCnstArt = 0.0
 
 
@@ -205,7 +209,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
                 zero  = sciopt.fsolve(residual, 0.5)
                 Rshare = np.append(Rshare, zero)
             i_a += 1
-        RiskyShareFunc = LinearInterp(aGrid, Rshare,intercept_limit=self.RiskyShareLimit)
+        RiskyShareFunc = LinearInterp(aGrid, Rshare,intercept_limit=self.RiskyShareLimit, slope_limit=0) # HAVE to specify the slope limit
         return RiskyShareFunc
 
     def prepareToCalcEndOfPrdvP(self):
@@ -411,6 +415,9 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
                                              RiskyShareFunc=self.RiskyShareFunc)
         return solution
 
+
+
+
 def solveConsPortfolio(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
                                 BoroCnstArt,aXtraGrid,vFuncBool,CubicBool, RiskyDstn, RiskyShareCount, RiskyShareLimit):
 
@@ -434,6 +441,16 @@ def RiskyDstnFactory(RiskyAvg=1.0, RiskyStd=0.0):
 
     return lambda RiskyCount: approxLognormal(RiskyCount, mu=mu, sigma=sigma)
 
+
+def RiskyDstnDraw(RiskyAvg=1.0, RiskyStd=0.0):
+    RiskyAvgSqrd = RiskyAvg**2
+    RiskyVar = RiskyStd**2
+
+    mu = math.log(RiskyAvg/(math.sqrt(1+RiskyVar/RiskyAvgSqrd)))
+    sigma = math.sqrt(math.log(1+RiskyVar/RiskyAvgSqrd))
+
+    return drawLognormal(1, mu=mu, sigma=sigma)
+
 class LogNormalPortfolioConsumerType(PortfolioConsumerType):
 
     time_inv_ = IndShockConsumerType.time_inv_ + ['RiskyDstn', 'RiskyShareCount', 'RiskyShareLimit']
@@ -446,6 +463,8 @@ class LogNormalPortfolioConsumerType(PortfolioConsumerType):
 
     def __init__(self,cycles=1,time_flow=True,verbose=False,quiet=False,**kwds):
 
+        self.approxRiskyDstn = RiskyDstnFactory()
+        self.RiskyCount=0
         PortfolioConsumerType.__init__(self,cycles=cycles, time_flow=time_flow,
                                       verbose=verbose, quiet=quiet, **kwds)
 
@@ -454,7 +473,6 @@ class LogNormalPortfolioConsumerType(PortfolioConsumerType):
         # Update this *once* as it's time invariant
         self.updateRiskyDstn()
 
-
         self.RiskyShareLimit = PerfForesightLogNormalPortfolioShare(self)
 
     def updateRiskyDstn(self):
@@ -462,7 +480,105 @@ class LogNormalPortfolioConsumerType(PortfolioConsumerType):
         # the number of nodes only!
         self.RiskyDstn = self.approxRiskyDstn(self.RiskyCount)
 
+    def getRisky(self):
+        return RiskyDstnDraw(RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd)
 
+    ## Simulation methods
+    def getStates(self):
+        '''
+        Calculates updated values of normalized market resources and permanent income level for each
+        agent.  Uses pLvlNow, aNrmNow, PermShkNow, TranShkNow.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        RiskySharePrev = self.RiskyShareNow
+        pLvlPrev = self.pLvlNow
+        aNrmPrev = self.aNrmNow
+        # Get also risky!
+        RfreeNow = self.getRfree()
+        RiskyNow = self.getRisky() # it's quite important that this is not individual
+        RportNow = RfreeNow + RiskySharePrev*(RiskyNow-RfreeNow)
+        # Calculate new states: normalized market resources and permanent income level
+        self.pLvlNow = pLvlPrev*self.PermShkNow # Updated permanent income level
+        self.PlvlAggNow = self.PlvlAggNow*self.PermShkAggNow # Updated aggregate permanent productivity level
+        ReffNow      = RportNow/self.PermShkNow # "Effective" interest factor on normalized assets
+        self.bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
+        self.mNrmNow = self.bNrmNow + self.TranShkNow # Market resources after income
+        return None
+
+    def simBirth(self,which_agents):
+        '''
+        Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
+        well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
+        are drawn from lognormal distributions given by aNrmInitMean and aNrmInitStd (etc).
+
+        Parameters
+        ----------
+        which_agents : np.array(Bool)
+            Boolean array of size self.AgentCount indicating which agents should be "born".
+
+        Returns
+        -------
+        None
+        '''
+        # Get and store states for newly born agents
+        N = np.sum(which_agents) # Number of new consumers to make
+        self.aNrmNow[which_agents] = drawLognormal(N,mu=self.aNrmInitMean,sigma=self.aNrmInitStd,seed=self.RNG.randint(0,2**31-1))
+        pLvlInitMeanNow = self.pLvlInitMean + np.log(self.PlvlAggNow) # Account for newer cohorts having higher permanent income
+        self.pLvlNow[which_agents] = drawLognormal(N,mu=pLvlInitMeanNow,sigma=self.pLvlInitStd,seed=self.RNG.randint(0,2**31-1))
+
+        self.t_age[which_agents]   = 0 # How many periods since each agent was born
+        self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
+        return None
+
+    def getControls(self):
+        '''
+        Calculates consumption for each consumer of this type using the consumption functions.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        cNrmNow = np.zeros(self.AgentCount) + np.nan
+        MPCnow  = np.zeros(self.AgentCount) + np.nan
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            cNrmNow[these], MPCnow[these] = self.solution[t].cFunc.eval_with_derivative(self.mNrmNow[these])
+        self.cNrmNow = cNrmNow
+        self.MPCnow = MPCnow
+        return None
+
+    def getPostStates(self):
+        '''
+        Calculates end-of-period assets for each consumer of this type.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        self.aNrmNow = self.mNrmNow - self.cNrmNow
+        self.aLvlNow = self.aNrmNow*self.pLvlNow   # Useful in some cases to precalculate asset level
+
+        RiskyShareNow = np.zeros(self.AgentCount) + np.nan
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            RiskyShareNow[these] = self.solution[t].RiskyShareFunc(self.aNrmNow[these]) # should be redefined on mNrm in solve and calculated in getControls
+        self.RiskyShareNow = RiskyShareNow
+        return None
 
 
 # def ConsIndShockPortfolioSolver(ConsIndShockSolver):
