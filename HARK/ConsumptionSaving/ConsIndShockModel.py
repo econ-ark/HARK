@@ -1884,8 +1884,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
             EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
             PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
             TranShkNow[these] = IncomeDstnNow[2][EventDraws]
-#        PermShkNow[newborn] = 1.0
-        TranShkNow[newborn] = 1.0
 
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount,dtype=bool)
