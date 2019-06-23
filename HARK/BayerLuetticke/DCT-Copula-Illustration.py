@@ -28,7 +28,7 @@
 # %% [markdown]
 # ### Preliminaries
 #
-# In StE in the model, in any given period, a consumer in state $s$ (which comprises liquid assets $m$, illiquid assets $k$, and human capital $\newcommand{hLev}{p}\hLev$) has two key choices:
+# In Steady-state Equilibrium (StE) in the model, in any given period, a consumer in state $s$ (which comprises liquid assets $m$, illiquid assets $k$, and human capital $\newcommand{hLev}{h}\hLev$) has two key choices:
 # 1. To adjust ('a') or not adjust ('n') their holdings of illiquid assets $k$
 # 1. Contingent on that choice, decide the level of consumption, yielding consumption functions:
 #     * $c_n(s)$ - nonadjusters
@@ -36,7 +36,7 @@
 #
 # The usual envelope theorem applies here, so marginal value wrt the liquid asset equals marginal utility with respect to consumption:
 # $[\frac{d v}{d m} = \frac{d u}{d c}]$.
-# In practice, the authors solve the problem using the marginal value of money $\texttt{Vm} = dv/dm$, but because the marginal utility function is invertible it is trivial to recover $\texttt{c}$ from $(u^{\prime})^{-1}(\texttt{Vm} )$.  The consumption function is therefore computed from the $\texttt{Vm}$ function
+# In practice, the authors solve their problem using the marginal value of money $\texttt{Vm} = dv/dm$, but because the marginal utility function is invertible it is trivial to recover $\texttt{c}$ from $(u^{\prime})^{-1}(\texttt{Vm} )$.  The consumption function is therefore computed from the $\texttt{Vm}$ function
 
 # %% {"code_folding": [0, 6, 17, 21]}
 # Setup stuff
@@ -93,11 +93,11 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #
 # The imported StE solution to the problem represents the functions at a set of gridpoints of
 #    * liquid assets ($n_m$ points), illiquid assets ($n_k$), and human capital ($n_h$)
-#    * (In the code these are $\{\texttt{nm,nk,nh}\}$)
+#       * In the code these are $\{\texttt{nm,nk,nh}\}$
 #
-# So even if the grids are fairly sparse for each state variable, the total number of combinations of the idiosyncratic state variables is large: $n = n_m \times n_k \times n_h$.  So, e.g., $\bar{c}$ is a set of size $n$ containing the level of consumption at each possible combination of gridpoints.
+# So even if the grids are fairly sparse for each state variable, the total number of combinations of the idiosyncratic state gridpoints is large: $n = n_m \times n_k \times n_h$.  So, e.g., $\bar{c}$ is a set of size $n$ containing the level of consumption at each possible _combination_ of gridpoints.
 #
-# In the "real" micro problem, it would almost never happen that a continuous variable like $m$ would end up being exactly equal to one of the prespecified gridpoints. But the functions need to be evaluated at such points.  This is addressed by linear interpolation.  That is, if, say, the grid had $m_{8} = 40$ and $m_{9} = 50$ then and a consumer ended up with $m = 45$ then the approximation is that $\tilde{c}(45) = 0.5 \bar{c}_{8} + 0.5 \bar{c}_{9}$.
+# In the "real" micro problem, it would almost never happen that a continuous variable like $m$ would end up being exactly equal to one of the prespecified gridpoints. But the functions need to be evaluated at such non-grid points.  This is addressed by linear interpolation.  That is, if, say, the grid had $m_{8} = 40$ and $m_{9} = 50$ then and a consumer ended up with $m = 45$ then the approximation is that $\tilde{c}(45) = 0.5 \bar{c}_{8} + 0.5 \bar{c}_{9}$.
 #
 
 # %% {"code_folding": [0]}
@@ -127,13 +127,13 @@ print(str(EX3SS['mpar']['nm'])+
 # The authors use different dimensionality reduction methods for the consumer's problem and the distribution across idiosyncratic states
 
 # %% [markdown]
-# #### The consumer's problem: Basis Functions
+# #### Representing the consumer's problem with Basis Functions
 #
-# The idea is to find an efficient "compressed" representation of our functions (e.g., the consumption function).  The analogy to image compression is that nearby pixels are likely to have identical or very similar colors, so we need only to find an efficient way to represent the way in which the colors change from one pixel to another.  Similarly, consumption at a given point $s_{i}$ is likely to be close to consumption point another point $s_{j}$ that is "close" in the state space (similar wealth, income, etc), so a function that captures that similarity efficiently can preserve most of the information without keeping all of the points.
+# The idea is to find an efficient "compressed" representation of our functions (e.g., the consumption function), which BL do using tools originally developed for image compression.  The analogy to image compression is that nearby pixels are likely to have identical or very similar colors, so we need only to find an efficient way to represent how the colors _change_ from one pixel to nearby ones.  Similarly, consumption at a given point $s_{i}$ is likely to be close to consumption point at another point $s_{j}$ that is "close" in the state space (similar wealth, income, etc), so a function that captures that similarity efficiently can preserve most of the information without keeping all of the points.
 #
 # Like linear interpolation, the [DCT transformation](https://en.wikipedia.org/wiki/Discrete_cosine_transform) is a method of representing a continuous function using a finite set of numbers. It uses a set of independent [basis functions](https://en.wikipedia.org/wiki/Basis_function) to do this.
 #
-# But it turns out that some of those basis functions are much more important than others in representing the steady-state functions. Dimension reduction is accomplished by basically ignoring all basis functions that make small contributions to the steady state distribution.  
+# But it turns out that some of those basis functions are much more important than others in representing the steady-state functions. Dimension reduction is accomplished by basically ignoring all basis functions that make "small enough" contributions to the representation of the function.  
 #
 # ##### When might this go wrong?
 #
@@ -146,18 +146,18 @@ print(str(EX3SS['mpar']['nm'])+
 # %% [markdown]
 # #### For the distribution of agents across states: Copula
 #
-# The other tool the authors use is the ["copula,"](https://en.wikipedia.org/wiki/Copula_(probability_theory)) which allows us to represent the distribution of people across idiosyncratic states efficiently
+# The other tool the authors use is the ["copula"](https://en.wikipedia.org/wiki/Copula_(probability_theory)), which allows us to represent the distribution of people across idiosyncratic states efficiently
 #
-# The copula is computed from the joint distribution of states in StE and will be used to transform the marginal distributions back to joint distributions.
+# The copula is computed from the joint distribution of states in StE and will be used to transform the [marginal distributions](https://en.wikipedia.org/wiki/Marginal_distribution) back to joint distributions.  (For an illustration of how the assumptions used when modeling asset price distributions using copulas can fail see [Salmon](https://www.wired.com/2009/02/wp-quant/))
 #
-#    * In general, a multivariate joint distribution is not uniquely determined by marginal distributions only. A copula, to put it simply, is a compressed representation of the joint distribution of the rank order of points; together with the marginal distributions this expands to a complete representation of the joint distribution
-#    * The crucial assumption of a fixed copula is that what aggregate shocks do is to squeeze or distort the steady state distribution, but leave the rank structure of the distribution the same. Think of representing a balloon by a set of points on its surface; the copula assumption is effectively that when something happens to the balloon (more air is put in it, or it is squeezed on one side, say), we can represent what happens to the points by thinking about how the relationship between points is distorted, rather than having to reconstruct the shape of the balloon with a completely independent set of new points.  Which points are close to which other points does not change, but the distances between them can change.  If the distances between them change in a particularly simple way, you can represent what has happened with a small amount of information.  For example, if the balloon is perfectly spherical, then adding a given amount of air might increase the distances between adjacent points by 5 percent.  (See the video illustration here)
+#    * A copula is a representation of the joint distribution expressed using a mapping between the uniform joint CDF and the marginal distributions of the variables
 #    
-# - In the context of this model, the assumption that allows us to use a copula is that the rank order correlation (e.g. the correlation of where you rank in the distribution of liquid assets and illiquid assets) remains the same after the aggregate shocks are introduced to StE. That is, the fact that you are richer than me, and Bill Gates is richer than you, does not change in a recession.  _How much_ richer you are than me, and Gates than you, can change, but the rank order does not.
+#    * The crucial assumption is that what aggregate shocks do is to squeeze or distort the steady state distribution, but leave the rank structure of the distribution the same
+#       * An example of when this might not hold is the following.  Suppose that in expansions, the people at the top of the distribution of illiquid assets (the top 1 percent, say) are also at the top 1 percent of liquid assets. But in recessions the bottom 99 percent get angry at the top 1 percent of illiquid asset holders and confiscate part of their liquid assets (the illiquid assets can't be confiscated quickly because they are illiquid). Now the people in the top 99 percent of illiquid assets might be in the _bottom_ 1 percent of liquid assets.
+#    
+# - In this case we just need to represent how the mapping from ranks into levels of assets
 #
-# - In this case we just need to represent how the marginal distributions of each state change, instead of the full joint distributions
-#
-# - This reduces the number of points for which we need to track transitions from $3600 = 30 \times 30 \times 4$ to $64 = 30+30+4$.  Or the total number of points we need to contemplate goes from $3600^2 \approx 13 million$ to $64^2=4096$.  
+# - This reduces the number of points for which we need to track transitions from $3600 = 30 \times 30 \times 4$ to $64 = 30+30+4$.  Or the total number of points we need to contemplate goes from $3600^2 \approx 13 $million to $64^2=4096$.  
 
 # %% {"code_folding": [0]}
 # Get some specs about the copula, which is precomputed in the EX3SS object
@@ -165,7 +165,7 @@ print(str(EX3SS['mpar']['nm'])+
 print('The copula consists of two parts: gridpoints and values at those gridpoints:'+ \
       '\n gridpoints have dimensionality of '+str(EX3SS['Copula']['grid'].shape) + \
       '\n where the first element is total number of gridpoints' + \
-      '\n and the second element is number of state variables' + \
+      '\n and the second element is number of idiosyncratic state variables' + \
       '\n whose values also are of dimension of '+str(EX3SS['Copula']['value'].shape[0]) + \
       '\n each entry of which is the probability that all three of the'
       '\n state variables are below the corresponding point.')
@@ -502,7 +502,7 @@ marginal_mk =  EX3SS['joint_distr'].sum(axis=2)
 
 mass_pct = 0.95
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## 3D scatter plots of consumption function 
 ##    at all grids and grids after dct for both adjusters and non-adjusters
 

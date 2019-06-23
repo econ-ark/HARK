@@ -113,6 +113,7 @@ class FluctuationsOneAssetIOUs:
 
                  
         aggrshock           = 'MP'
+        aggrshock           = 'Uncertainty'
         self.par['rhoS']    = 0.0      # Persistence of variance
         self.par['sigmaS']  = 0.001    # STD of variance shocks
 

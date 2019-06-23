@@ -1396,8 +1396,8 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
           nk=sum(slt)
           s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort=sortOverridEigen, output='complex')
           
-       else:
-          print ('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
+    else:
+        print ('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
 
 
         
