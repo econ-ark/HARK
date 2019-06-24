@@ -153,7 +153,8 @@ setup(
                       'dill',
                       'joblib',
                       'future',  # Optional
-                      'funcsigs'],
+                      'funcsigs',
+                      'jupyter'],
 
     python_requires='>=2.7',
 
