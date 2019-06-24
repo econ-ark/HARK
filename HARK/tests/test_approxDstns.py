@@ -1,5 +1,5 @@
 """
-This file implements unit tests apprixomate distributions.
+This file implements unit tests approximate distributions.
 """
 
 # Bring in modules we need
