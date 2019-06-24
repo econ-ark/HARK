@@ -114,8 +114,8 @@ class FluctuationsOneAssetIOUs:
                  
         aggrshock           = 'MP'
         aggrshock           = 'Uncertainty'
-        self.par['rhoS']    = 0.0      # Persistence of variance
-        self.par['sigmaS']  = 0.001    # STD of variance shocks
+        self.par['rhoS']    = 0.84      # Persistence of variance
+        self.par['sigmaS']  = 0.54    # STD of variance shocks
 
         
         return {'Xss': Xss, 'Yss':Yss, 'Gamma_state': Gamma_state, 
@@ -751,7 +751,7 @@ if __name__ == '__main__':
     from time import clock
     import pickle
     
-    EX1SS=pickle.load(open("EX1SS.p", "rb"))
+    EX1SS=pickle.load(open("EX1SS_nm50.p", "rb"))
 
     EX1SR=FluctuationsOneAssetIOUs(**EX1SS)
 

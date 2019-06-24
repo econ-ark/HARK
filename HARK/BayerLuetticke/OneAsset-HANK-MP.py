@@ -866,27 +866,27 @@ EX2SR=FluctuationsOneAssetIOUs(**EX2SS)
 SR=EX2SR.StateReduc()
 
 
-# %% {"code_folding": [0]}
-# # Monetary Policy Shock
+# %% {"code_folding": []}
+# Monetary Policy Shock
 
-# EX2SS['par']['aggrshock']           = 'MP'
-# EX2SS['par']['rhoS']    = 0.0      # Persistence of variance
-# EX2SS['par']['sigmaS']  = 0.001    # STD of variance shocks
+EX2SS['par']['aggrshock']           = 'MP'
+EX2SS['par']['rhoS']    = 0.0      # Persistence of variance
+EX2SS['par']['sigmaS']  = 0.001    # STD of variance shocks
 
-# #EX2SS['par']['aggrshock']           = 'TFP'
-# #EX2SS['par']['rhoS']    = 0.95
-# #EX2SS['par']['sigmaS']  = 0.0075
+#EX2SS['par']['aggrshock']           = 'TFP'
+#EX2SS['par']['rhoS']    = 0.95
+#EX2SS['par']['sigmaS']  = 0.0075
     
-# #EX2SS['par']['aggrshock']           = 'Uncertainty'
-# #EX2SS['par']['rhoS']    = 0.84    # Persistence of variance
-# #EX2SS['par']['sigmaS']  = 0.54    # STD of variance shocks
+#EX2SS['par']['aggrshock']           = 'Uncertainty'
+#EX2SS['par']['rhoS']    = 0.84    # Persistence of variance
+#EX2SS['par']['sigmaS']  = 0.54    # STD of variance shocks
 
 
-# SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['Gamma_control'],SR['InvGamma'],SR['Copula'],
-#                          SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['P_H'],SR['aggrshock'],SR['oc'])
+SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['Gamma_control'],SR['InvGamma'],SR['Copula'],
+                         SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['P_H'],SR['aggrshock'],SR['oc'])
 
-# plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
-#              SR['Gamma_state'],SR['grid'],SR['targets'],SR['os'],SR['oc'],SR['Output'])
+plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
+             SR['Gamma_state'],SR['grid'],SR['targets'],SR['os'],SR['oc'],SR['Output'])
 
 # %% {"code_folding": []}
 # # Productivity Shock
@@ -912,29 +912,29 @@ SR=EX2SR.StateReduc()
 #              SR['Gamma_state'],SR['grid'],SR['targets'],SR['os'],SR['oc'],SR['Output'])
 
 # %% {"code_folding": []}
-# Uncertainty Shock
+# # Uncertainty Shock
 
 
-## EX2SS.p is the information in the stationary equilibrium (20: the number of illiquid and liquid weath grids )
-EX2SS=pickle.load(open("EX2SS.p", "rb"))
+# ## EX2SS.p is the information in the stationary equilibrium (20: the number of illiquid and liquid weath grids )
+# EX2SS=pickle.load(open("EX2SS.p", "rb"))
 
-#EX2SS['par']['aggrshock']           = 'MP'
-#EX2SS['par']['rhoS']    = 0.0      # Persistence of variance
-#EX2SS['par']['sigmaS']  = 0.001    # STD of variance shocks
+# #EX2SS['par']['aggrshock']           = 'MP'
+# #EX2SS['par']['rhoS']    = 0.0      # Persistence of variance
+# #EX2SS['par']['sigmaS']  = 0.001    # STD of variance shocks
 
-#EX2SS['par']['aggrshock']           = 'TFP'
-#EX2SS['par']['rhoS']    = 0.95
-#EX2SS['par']['sigmaS']  = 0.0075
+# #EX2SS['par']['aggrshock']           = 'TFP'
+# #EX2SS['par']['rhoS']    = 0.95
+# #EX2SS['par']['sigmaS']  = 0.0075
     
-EX2SS['par']['aggrshock']           = 'Uncertainty'
-EX2SS['par']['rhoS']    = 0.84    # Persistence of variance
-EX2SS['par']['sigmaS']  = 0.54    # STD of variance shocks
+# EX2SS['par']['aggrshock']           = 'Uncertainty'
+# EX2SS['par']['rhoS']    = 0.84    # Persistence of variance
+# EX2SS['par']['sigmaS']  = 0.54    # STD of variance shocks
 
-SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['Gamma_control'],SR['InvGamma'],SR['Copula'],
-                         SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['P_H'],SR['aggrshock'],SR['oc'])
+# SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['Gamma_control'],SR['InvGamma'],SR['Copula'],
+#                          SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['P_H'],SR['aggrshock'],SR['oc'])
 
-plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
-             SR['Gamma_state'],SR['grid'],SR['targets'],SR['os'],SR['oc'],SR['Output'])
+# plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
+#              SR['Gamma_state'],SR['grid'],SR['targets'],SR['os'],SR['oc'],SR['Output'])
 
 # %% [markdown]
 # ### References

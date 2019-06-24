@@ -439,8 +439,9 @@ class SteadyStateOneAssetIOU:
                'money': incmoney.copy(),
                'profits': incprofits}
     
-        c_guess = inc['labor'].copy()+np.maximum(inc['money'],0.) + inc['profits']
-    
+#       c_guess = inc['labor'].copy()+np.maximum(inc['money'],0.) + inc['profits']
+        c_guess = inc['labor'].copy()+np.maximum(inc['money'].all(),0.) + inc['profits']
+
         return {'c_guess':c_guess, 'inc': inc}       
          
     def FactorReturns(self, meshes, grid, par, mpar):
@@ -558,5 +559,5 @@ if __name__ == '__main__':
     #print(EX1.par)
     EX1SS = EX1.SolveSteadyState()
     
-    pickle.dump(EX1SS, open("EX1SS.p", "wb"))
-    
+#   pickle.dump(EX1SS, open("EX1SS.p", "wb"))
+    pickle.dump(EX1SS, open("EX1SS_nm50.p", "wb"))

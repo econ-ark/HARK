@@ -888,7 +888,7 @@ SR=EX2SR.StateReduc()
 # plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
 #              SR['Gamma_state'],SR['grid'],SR['targets'],SR['os'],SR['oc'],SR['Output'])
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # # Productivity Shock
 
 # #EX2SS['par']['aggrshock']           = 'MP'
@@ -927,8 +927,8 @@ EX2SS=pickle.load(open("EX2SS.p", "rb"))
 #EX2SS['par']['sigmaS']  = 0.0075
     
 EX2SS['par']['aggrshock']           = 'Uncertainty'
-EX2SS['par']['rhoS']    = 0.84    # Persistence of variance
-EX2SS['par']['sigmaS']  = 0.54    # STD of variance shocks
+EX2SS['par']['rhoS']    = 0.84
+EX2SS['par']['sigmaS']  = 0.54
 
 SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['Gamma_control'],SR['InvGamma'],SR['Copula'],
                          SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['P_H'],SR['aggrshock'],SR['oc'])
