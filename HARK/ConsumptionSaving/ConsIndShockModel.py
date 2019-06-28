@@ -1588,8 +1588,8 @@ class PerfForesightConsumerType(AgentType):
         self.verbose        = verbose
         self.quiet          = quiet
         self.solveOnePeriod = solvePerfForesight # solver for perfect foresight model
-        
-        
+
+
     def preSolve(self):
         self.updateSolutionTerminal() # Solve the terminal period problem
         
@@ -1815,11 +1815,11 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         '''
+        # This method only checks for the conditions for infinite horizon models
+        # with a 1 period cycle. If these conditions are not met, we exit early.
         if self.cycles!=0 or self.T_cycle > 1:
-            if verbose == True: 
-                print('This method only checks for the conditions for infinite horizon models with a 1 period cycle')
             return
-        
+
         violated = False
 
         #Evaluate and report on the return impatience condition
@@ -2117,6 +2117,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
 
     def preSolve(self):
+        # Update all income process variables to match any attributes that might
+        # have been changed since `__init__` or `solve()` was last called.
+        self.updateIncomeProcess()
         self.updateSolutionTerminal()
         if not self.quiet:
             self.checkConditions(verbose=self.verbose,public_call=False)
@@ -2128,7 +2131,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         impatience condition (WRIC), finite human wealth condition (FHWC) and finite value of
         autarky condition (FVAC). These are the conditions that are sufficient for nondegenerate
         solutions under infinite horizon with a 1 period cycle. Depending on the model at hand, a
-        different combination of these conditions must be satisfied. (For an exposition of the 
+        different combination of these conditions must be satisfied. (For an exposition of the
         conditions, see http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/)
 
         Parameters
@@ -2222,7 +2225,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsKinkedR # kinked R solver
         self.update() # Make assets grid, income process, terminal solution
-        
+
     def preSolve(self):
         self.updateSolutionTerminal()
 

@@ -349,8 +349,7 @@ Data files:
     cstwMPC.py when running a lifecycle specification.
 * [cstwMPC/EducMortAdj.txt](HARK/cstwMPC/EducMortAdj.txt):
     * Mortality adjusters by education and age (columns by sex and race), for use
-    by cstwMPC.py when running a lifecycle specification.  Taken from an
-    appendix of PAPER.
+    by cstwMPC.py when running a lifecycle specification.  Taken from [Brown et al. (2002)](https://www.nber.org/chapters/c9757).
 
 Other files that you don't need to worry about:
 * /index.py:
