@@ -866,7 +866,7 @@ EX2SR=FluctuationsOneAssetIOUs(**EX2SS)
 SR=EX2SR.StateReduc()
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Monetary Policy Shock
 
 EX2SS['par']['aggrshock']           = 'MP'

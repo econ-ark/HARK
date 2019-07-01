@@ -911,7 +911,7 @@ SR=EX2SR.StateReduc()
 # plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
 #              SR['Gamma_state'],SR['grid'],SR['targets'],SR['os'],SR['oc'],SR['Output'])
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Uncertainty Shock
 
 
