@@ -51,11 +51,7 @@ def PerfForesightDiscretePortfolioShare(Rfree, RiskyDstn, CRRA):
 # Switch here based on knowledge about risky.
 # It can either be "discrete" in which case it is only the number of draws that
 # are used, or it can be continuous in which case bounds and a pdf has to be supplied.
-
 def PerfForesightLogNormalPortfolioIntegrand(share, R0, RiskyAvg, sigma, rho):
-   #r0 = np.log(R0)
-   #phi = np.log(RiskyAvg)-r0
-   #mu = r0+phi-(sigma**2)/2
    muNorm = np.log(RiskyAvg/np.sqrt(1+sigma**2/RiskyAvg**2))
    sigmaNorm = np.sqrt(np.log(1+sigma**2/RiskyAvg**2))
    sharedobjective = lambda r: (R0+share*(r-R0))**(1-rho)
@@ -66,8 +62,8 @@ def PerfForesightLogNormalPortfolioIntegrand(share, R0, RiskyAvg, sigma, rho):
 
 def PerfForesightLogNormalPortfolioObjective(share, R0, RiskyAvg, sigma, rho):
    integrand = PerfForesightLogNormalPortfolioIntegrand(share, R0, RiskyAvg, rho, sigma)
-   a = 0.0
-   b = 5.0
+   a = 0.0 # Cannot be negative
+   b = 5.0 # This is just an upper bound. pdf should be 0 here.
    return -((1-rho)**-1)*scipy.integrate.quad(integrand, a, b)[0]
 
 
@@ -105,6 +101,9 @@ class PortfolioSolution(Solution):
         # self.MPCmin       = MPCmin
         # self.MPCmax       = MPCmax
 
+
+# These domains are convenient for switching to relavent code paths internally.
+# It might be simpler to just pass in vectors instead of DiscreteDomain.
 class ContinuousDomain(object):
     def __init__(self, lower, upper, points = [np.nan]):
         if lower > upper:
@@ -126,7 +125,6 @@ class DiscreteDomain(object):
         self.lower = np.amin(points)
         self.upper = np.amax(points)
 
-
     def len(self):
         return len(self.points)
 
@@ -139,7 +137,10 @@ class PortfolioConsumerType(IndShockConsumerType):
     # CantAdjust over CanAdjust, because this allows us to index into the
     # "CanAdjust = 1- CantAdjust" at all times (it's the 0th offset).
     poststate_vars_ = ['aNrmNow', 'pLvlNow', 'RiskyShareNow', 'CantAdjust']
-    time_inv_ = IndShockConsumerType.time_inv_ + ['approxRiskyDstn', 'RiskyCount', 'RiskyShareCount', 'RiskyShareLimitFunc', 'PortfolioPrb', 'PortfolioGrid', 'PortfolioActionCount']
+    time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
+    time_inv_ = time_inv_ + ['approxRiskyDstn', 'RiskyCount', 'RiskyShareCount']
+    time_inv_ = time_inv_ + ['RiskyShareLimitFunc']
+    time_inv_ = time_inv_ + ['AdjustPrb', 'PortfolioGrid', 'AdjustActionCount']
 
     def __init__(self,cycles=1,time_flow=True,verbose=False,quiet=False,**kwds):
 
@@ -147,26 +148,27 @@ class PortfolioConsumerType(IndShockConsumerType):
         PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,
         verbose=verbose,quiet=quiet, **kwds)
 
-        if not hasattr(self, 'PortfolioPrb'):
-            self.PortfolioPrb = 1.0
-            self.PortfolioActionCount = 1
-        elif self.PortfolioPrb == 1.0:
-            self.PortfolioActionCount = 1
+        # Check that an adjustment probability is set. If not, default to always.
+        if not hasattr(self, 'AdjustPrb'):
+            self.AdjustPrb = 1.0
+            self.AdjustActionCount = 1
+        elif self.AdjustPrb == 1.0:
+            # Always adjust, so there's just one possibility
+            self.AdjustActionCount = 1
         else:
-            # If PortfolioPrb was set and was below 1.0, there's a chance that
-            # the consumer cannot adjust ina given period.
-            self.PortfolioActionCount = 2
+            # If AdjustPrb was set and was below 1.0, there's a chance that
+            # the consumer cannot adjust in a given period.
+            self.AdjustActionCount = 2
 
         if not hasattr(self, 'PortfolioDomain'):
-            if self.PortfolioPrb < 1.0:
-                raise Exception("Please supply a PortfolioDomain when setting PortfolioPrb < 1.0.")
+            if self.AdjustPrb < 1.0:
+                raise Exception("Please supply a PortfolioDomain when setting AdjustPrb < 1.0.")
             else:
                 self.PortfolioDomain = ContinuousDomain(0,1)
 
         # Now we can set up the PortfolioGrid! This is the portfolio values
         # you can enter the period with. It's exact for discrete , for continuous
         # domain it's the interpolation points.
-
         self.PortfolioGrid = self.PortfolioDomain.getPoints()
 
         if self.BoroCnstArt is not 0.0:
@@ -205,23 +207,23 @@ class PortfolioConsumerType(IndShockConsumerType):
         RiskyShareFunc_terminal = LinearInterp([0.0, 1.0], [0.0,0.0]) # c=m in terminal period
 
         if isinstance(self.PortfolioDomain, DiscreteDomain):
-            PortfolioGridCount = len(self.PortfolioDomain.points)
+            PortfolioDomainCount = len(self.PortfolioDomain.points)
         else:
-            # This should be "PortfolioGridCount" that was set earlier,
-            PortfolioGridCount = 1
+            # This should be "PortfolioDomainCount" that was set earlier,
+            PortfolioDomainCount = 1
 
-        cFunc_terminal = PortfolioGridCount*[cFunc_terminal]
-        RiskyShareFunc_terminal = PortfolioGridCount*[RiskyShareFunc_terminal]
+        cFunc_terminal = PortfolioDomainCount*[cFunc_terminal]
+        RiskyShareFunc_terminal = PortfolioDomainCount*[RiskyShareFunc_terminal]
 
-        vFunc_terminal   = PortfolioGridCount*[ValueFunc(self.cFunc_terminal_,self.CRRA)]
-        vPfunc_terminal  = PortfolioGridCount*[MargValueFunc(self.cFunc_terminal_,self.CRRA)]
+        vFunc_terminal   = PortfolioDomainCount*[ValueFunc(self.cFunc_terminal_,self.CRRA)]
+        vPfunc_terminal  = PortfolioDomainCount*[MargValueFunc(self.cFunc_terminal_,self.CRRA)]
 
         # repeat according to number of portfolio adjustment situations
-        cFunc_terminal = self.PortfolioActionCount*[cFunc_terminal]
-        RiskyShareFunc_terminal = self.PortfolioActionCount*[RiskyShareFunc_terminal]
+        cFunc_terminal = self.AdjustActionCount*[cFunc_terminal]
+        RiskyShareFunc_terminal = self.AdjustActionCount*[RiskyShareFunc_terminal]
 
-        vFunc_terminal   = self.PortfolioActionCount*[vFunc_terminal]
-        vPfunc_terminal  = self.PortfolioActionCount*[vPfunc_terminal]
+        vFunc_terminal   = self.AdjustActionCount*[vFunc_terminal]
+        vPfunc_terminal  = self.AdjustActionCount*[vPfunc_terminal]
 
         self.solution_terminal = PortfolioSolution(cFunc = cFunc_terminal,
                                                    RiskyShareFunc = RiskyShareFunc_terminal,
@@ -253,7 +255,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         RiskyShareNow = np.zeros(self.AgentCount) + np.nan
 
 
-        PortfolioGridCount = len(self.PortfolioGrid)
+        PortfolioDomainCount = len(self.PortfolioGrid)
 
         for t in range(self.T_cycle):
             # We need to take into account whether they have drawn a portfolio
@@ -262,9 +264,9 @@ class PortfolioConsumerType(IndShockConsumerType):
             these_t = t == self.t_cycle
             these_pre_portfolio = np.logical_and(these_adjust, these_t)
             for portfolio_index, portfolio_value in enumerate(self.PortfolioGrid):
-                if self.PortfolioPrb == 1.0:
-                    # We're in the PortfolioPrb = 1,  case, so there is just one
-                    # of each solution function
+                if self.AdjustPrb == 1.0:
+                    # We're in the AdjustPrb = 1,  case, so there is just one
+                    # of each solution function, set all these_portfolio to 0
                     these_portfolio = 0*these_t
                     these = these_t
                 else:
@@ -321,7 +323,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         self.mNrmNow = self.bNrmNow + self.TranShkNow # Market resources after income
 
         # Figure out who can adjust their portfolio this period.
-        self.CantAdjust = stats.bernoulli.rvs(1-self.PortfolioPrb, size=self.AgentCount)
+        self.CantAdjust = stats.bernoulli.rvs(1-self.AdjustPrb, size=self.AgentCount)
 
         # New agents are always allowed to optimize their portfolio, because they
         # have no past portfolio to "keep".
@@ -369,14 +371,14 @@ class PortfolioConsumerType(IndShockConsumerType):
         cNrmNow = np.zeros(self.AgentCount) + np.nan
         MPCnow  = np.zeros(self.AgentCount) + np.nan
 
-        PortfolioGridCount = len(self.PortfolioGrid)
+        PortfolioDomainCount = len(self.PortfolioGrid)
         these_cant_adjust = self.CantAdjust == 1
 
         for t in range(self.T_cycle):
             these_t = t == self.t_cycle
             for portfolio_index, portfolio_value in enumerate(self.PortfolioGrid):
-                if self.PortfolioPrb == 1.0:
-                    # We're in the PortfolioPrb = 1,  case, so there is just one
+                if self.AdjustPrb == 1.0:
+                    # We're in the AdjustPrb = 1,  case, so there is just one
                     # of each solution function
 
                     these_portfolio = these_t*0
@@ -397,14 +399,14 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
     def __init__(self, solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree,
                       PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool, CubicBool,
                       approxRiskyDstn, RiskyCount, RiskyShareCount, RiskyShareLimitFunc,
-                      PortfolioPrb, PortfolioGrid, PortfolioActionCount):
+                      AdjustPrb, PortfolioGrid, AdjustActionCount):
 
         ConsIndShockSolver.__init__(self, solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree,
                           PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool, CubicBool)
 
-        self.PortfolioPrb = PortfolioPrb
+        self.AdjustPrb = AdjustPrb
         self.PortfolioGrid = PortfolioGrid
-        self.PortfolioActionCount = PortfolioActionCount
+        self.AdjustActionCount = AdjustActionCount
 
         # Store the Risky asset shock distribution
         self.RiskyDstn = approxRiskyDstn(RiskyCount)
@@ -662,19 +664,19 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
             The solution to the one period problem.
         '''
 
-        PortfolioGridCount = len(self.PortfolioGrid)
+        PortfolioDomainCount = len(self.PortfolioGrid)
 
-        cFuncs = self.PortfolioActionCount*[[]]
-        vPfuncs = self.PortfolioActionCount*[[]]
-        RiskyShareFuncs = self.PortfolioActionCount*[[]]
+        cFuncs = self.AdjustActionCount*[[]]
+        vPfuncs = self.AdjustActionCount*[[]]
+        RiskyShareFuncs = self.AdjustActionCount*[[]]
 
-        for adjusterState in range(self.PortfolioActionCount): # stupid name, should be related to adjusting
+        for adjusterState in range(self.AdjustActionCount): # stupid name, should be related to adjusting
             if adjusterState == 1:
                 adjuster = False
             else:
                 adjuster = True
 
-            for PortfolioGridIdx in range(PortfolioGridCount):
+            for PortfolioGridIdx in range(PortfolioDomainCount):
                 self.vPfuncNext = self.vPfuncsNext[adjusterState][PortfolioGridIdx]
                 self.PortfolioGridIdx = PortfolioGridIdx
 
@@ -713,7 +715,7 @@ def solveConsPortfolio(solution_next, IncomeDstn, LivPrb, DiscFac,
                        CRRA, Rfree, PermGroFac, BoroCnstArt,
                        aXtraGrid, vFuncBool, CubicBool, approxRiskyDstn,
                        RiskyCount, RiskyShareCount, RiskyShareLimitFunc,
-                       PortfolioPrb, PortfolioGrid, PortfolioActionCount):
+                       AdjustPrb, PortfolioGrid, AdjustActionCount):
 
 
     # construct solver instance
@@ -722,7 +724,7 @@ def solveConsPortfolio(solution_next, IncomeDstn, LivPrb, DiscFac,
                                          BoroCnstArt, aXtraGrid, vFuncBool,
                                          CubicBool, approxRiskyDstn, RiskyCount,
                                          RiskyShareCount, RiskyShareLimitFunc,
-                                         PortfolioPrb, PortfolioGrid, PortfolioActionCount)
+                                         AdjustPrb, PortfolioGrid, AdjustActionCount)
 
     # Do some preparatory work
     solver.prepareToSolve()
@@ -761,7 +763,7 @@ def LogNormalRiskyDstnDraw(RiskyAvg=1.0, RiskyStd=0.0):
 
 class LogNormalPortfolioConsumerType(PortfolioConsumerType):
 
-#    time_inv_ = PortfolioConsumerType.time_inv_ + ['approxRiskyDstn', 'RiskyCount', 'RiskyShareCount', 'RiskyShareLimitFunc', 'PortfolioPrb', 'PortfolioGrid']
+#    time_inv_ = PortfolioConsumerType.time_inv_ + ['approxRiskyDstn', 'RiskyCount', 'RiskyShareCount', 'RiskyShareLimitFunc', 'AdjustPrb', 'PortfolioGrid']
 
     def __init__(self,cycles=1,time_flow=True,verbose=False,quiet=False,**kwds):
 
