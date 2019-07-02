@@ -139,8 +139,8 @@ class PortfolioConsumerType(IndShockConsumerType):
     poststate_vars_ = ['aNrmNow', 'pLvlNow', 'RiskyShareNow', 'CantAdjust']
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
     time_inv_ = time_inv_ + ['approxRiskyDstn', 'RiskyCount', 'RiskyShareCount']
-    time_inv_ = time_inv_ + ['RiskyShareLimitFunc']
-    time_inv_ = time_inv_ + ['AdjustPrb', 'PortfolioGrid', 'AdjustActionCount']
+    time_inv_ = time_inv_ + ['RiskyShareLimitFunc', 'PortfolioDomain']
+    time_inv_ = time_inv_ + ['AdjustPrb', 'PortfolioGrid', 'AdjustCount']
 
     def __init__(self,cycles=1,time_flow=True,verbose=False,quiet=False,**kwds):
 
@@ -151,20 +151,25 @@ class PortfolioConsumerType(IndShockConsumerType):
         # Check that an adjustment probability is set. If not, default to always.
         if not hasattr(self, 'AdjustPrb'):
             self.AdjustPrb = 1.0
-            self.AdjustActionCount = 1
+            self.AdjustCount = 1
         elif self.AdjustPrb == 1.0:
             # Always adjust, so there's just one possibility
-            self.AdjustActionCount = 1
+            self.AdjustCount = 1
         else:
             # If AdjustPrb was set and was below 1.0, there's a chance that
             # the consumer cannot adjust in a given period.
-            self.AdjustActionCount = 2
+            self.AdjustCount = 2
 
         if not hasattr(self, 'PortfolioDomain'):
             if self.AdjustPrb < 1.0:
                 raise Exception("Please supply a PortfolioDomain when setting AdjustPrb < 1.0.")
             else:
                 self.PortfolioDomain = ContinuousDomain(0,1)
+
+        if isinstance(self.PortfolioDomain, DiscreteDomain):
+            if self.vFuncBool == False and self.verbose:
+                print("Setting vFuncBool to True to accomodate dicrete portfolio optimization.")
+            self.vFuncBool = True
 
         # Now we can set up the PortfolioGrid! This is the portfolio values
         # you can enter the period with. It's exact for discrete , for continuous
@@ -219,11 +224,11 @@ class PortfolioConsumerType(IndShockConsumerType):
         vPfunc_terminal  = PortfolioDomainCount*[MargValueFunc(self.cFunc_terminal_,self.CRRA)]
 
         # repeat according to number of portfolio adjustment situations
-        cFunc_terminal = self.AdjustActionCount*[cFunc_terminal]
-        RiskyShareFunc_terminal = self.AdjustActionCount*[RiskyShareFunc_terminal]
+        cFunc_terminal = self.AdjustCount*[cFunc_terminal]
+        RiskyShareFunc_terminal = self.AdjustCount*[RiskyShareFunc_terminal]
 
-        vFunc_terminal   = self.AdjustActionCount*[vFunc_terminal]
-        vPfunc_terminal  = self.AdjustActionCount*[vPfunc_terminal]
+        vFunc_terminal   = self.AdjustCount*[vFunc_terminal]
+        vPfunc_terminal  = self.AdjustCount*[vPfunc_terminal]
 
         self.solution_terminal = PortfolioSolution(cFunc = cFunc_terminal,
                                                    RiskyShareFunc = RiskyShareFunc_terminal,
@@ -399,14 +404,15 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
     def __init__(self, solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree,
                       PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool, CubicBool,
                       approxRiskyDstn, RiskyCount, RiskyShareCount, RiskyShareLimitFunc,
-                      AdjustPrb, PortfolioGrid, AdjustActionCount):
+                      AdjustPrb, PortfolioGrid, AdjustCount, PortfolioDomain):
 
         ConsIndShockSolver.__init__(self, solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree,
                           PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool, CubicBool)
 
         self.AdjustPrb = AdjustPrb
         self.PortfolioGrid = PortfolioGrid
-        self.AdjustActionCount = AdjustActionCount
+        self.PortfolioDomain = PortfolioDomain
+        self.AdjustCount = AdjustCount
 
         # Store the Risky asset shock distribution
         self.RiskyDstn = approxRiskyDstn(RiskyCount)
@@ -416,6 +422,12 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         # folio sub-problem.
         self.RiskyShareCount = RiskyShareCount
         self.vPfuncsNext = solution_next.vPfunc
+
+        if isinstance(self.PortfolioDomain, DiscreteDomain):
+            self.DiscreteCase = True
+        else:
+            self.DiscreteCase = False
+
         self.updateShockDstn()
         self.makeRshareGrid()
 
@@ -423,8 +435,12 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         self.ShockDstn = combineIndepDstns(self.IncomeDstn, self.RiskyDstn)
 
     def makeRshareGrid(self):
-        self.RshareGrid = np.linspace(0, 1, self.RiskyShareCount)
-        return self.RshareGrid
+        # We set this up such that attempts to use RshareGrid will fail hard
+        # if we're in the discrete case
+        if not self.DiscreteCase:
+            self.RshareGrid = np.linspace(0, 1, self.RiskyShareCount)
+            return self.RshareGrid
+        return []
 
     def prepareToCalcRiskyShare(self):
         # Hard restriction on aNrm. We'd need to define more elaborate model
@@ -456,10 +472,39 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         return vHatP
 
     def calcRiskyShare(self):
+        if self.DiscreteCase:
+            RiskyShareFunc = self.calcRiskyShareContinuous()
+        else:
+            RiskyShareFunc = self.calcRiskyShareDiscrete()
+
+        return RiskyShareFunc
+
+
+    def calcRiskyShareContinuous(self):
         aGrid = np.array([0.0,])
         Rshare = np.array([1.0,])
 
         i_a = 0
+        for a in self.aNrmPort:
+            aGrid = np.append(aGrid, a)
+            if self.vHatP[i_a, -1] >= 0.0:
+                Rshare = np.append(Rshare, 1.0)
+            elif self.vHatP[i_a, 0] < 0.0:
+                Rshare = np.append(Rshare, 0.0)
+            else:
+                residual = LinearInterp(self.RshareGrid, self.vHatP[i_a, :])
+                zero  = sciopt.fsolve(residual, 0.5)
+                Rshare = np.append(Rshare, zero)
+            i_a += 1
+        RiskyShareFunc = LinearInterp(aGrid, Rshare,intercept_limit=self.RiskyShareLimit, slope_limit=0) # HAVE to specify the slope limit
+        return RiskyShareFunc
+
+    def calcRiskyShareDiscrete(self):
+        aGrid = np.array([0.0,])
+        Rshare = np.array([1.0,])
+
+        i_a = 0
+        # For all positive aNrms
         for a in self.aNrmPort:
             aGrid = np.append(aGrid, a)
             if self.vHatP[i_a, -1] >= 0.0:
@@ -666,11 +711,11 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
 
         PortfolioDomainCount = len(self.PortfolioGrid)
 
-        cFuncs = self.AdjustActionCount*[[]]
-        vPfuncs = self.AdjustActionCount*[[]]
-        RiskyShareFuncs = self.AdjustActionCount*[[]]
+        cFuncs = self.AdjustCount*[[]]
+        vPfuncs = self.AdjustCount*[[]]
+        RiskyShareFuncs = self.AdjustCount*[[]]
 
-        for adjusterState in range(self.AdjustActionCount): # stupid name, should be related to adjusting
+        for adjusterState in range(self.AdjustCount): # stupid name, should be related to adjusting
             if adjusterState == 1:
                 adjuster = False
             else:
@@ -715,7 +760,7 @@ def solveConsPortfolio(solution_next, IncomeDstn, LivPrb, DiscFac,
                        CRRA, Rfree, PermGroFac, BoroCnstArt,
                        aXtraGrid, vFuncBool, CubicBool, approxRiskyDstn,
                        RiskyCount, RiskyShareCount, RiskyShareLimitFunc,
-                       AdjustPrb, PortfolioGrid, AdjustActionCount):
+                       AdjustPrb, PortfolioGrid, AdjustCount, PortfolioDomain):
 
 
     # construct solver instance
@@ -724,7 +769,8 @@ def solveConsPortfolio(solution_next, IncomeDstn, LivPrb, DiscFac,
                                          BoroCnstArt, aXtraGrid, vFuncBool,
                                          CubicBool, approxRiskyDstn, RiskyCount,
                                          RiskyShareCount, RiskyShareLimitFunc,
-                                         AdjustPrb, PortfolioGrid, AdjustActionCount)
+                                         AdjustPrb, PortfolioGrid, AdjustCount,
+                                         PortfolioDomain)
 
     # Do some preparatory work
     solver.prepareToSolve()
