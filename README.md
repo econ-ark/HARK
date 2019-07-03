@@ -1,5 +1,5 @@
 # Heterogeneous Agents Resources and toolKit (HARK)
-pre-release 0.10.0.dev2
+pre-release 0.10.1
 
 Click the Badge for Citation Info.
 [![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
@@ -9,6 +9,8 @@ Table of Contents:
 
 * [1.   Introduction](#i-introduction)
 * [2.  Quick start guide](#ii-quick-start-guide)
+    * [Installing](#Installing-HARK)
+    * [Learning HARK](#Learning-HARK)
 * [3. List of files in repository](#iii-list-of-files-in-repository)
 * [4.  Warnings and disclaimers](#iv-warnings-and-disclaimers)
 * [5.   License Information](#v-license)
@@ -17,7 +19,8 @@ Table of Contents:
 ## I. INTRODUCTION
 
 Welcome to HARK!  This document will tell you how to get HARK up and
-running on your machine, and what you will find in HARK once you do.
+running on your machine, how to get started using it, and give you an
+overview of the main elements of the toolkit.
 
 If you have any comments on the code or documentation, or (even better) if you want to
 contribute new content to HARK, we'd love to hear from you!
@@ -39,11 +42,12 @@ Replications and Explorations Made using the ARK : [REMARK](https://github.com/e
 
 ## II. QUICK START GUIDE
 
+### Installing HARK
 HARK is an open source project written in Python.  It's compatible with both Python
 2 and 3, and with the Anaconda distributions of python 2 and 3. But we recommend
 using python 3; eventually support for python 2 will end.
 
-### Installing HARK with pip
+#### Installing HARK with pip
 
 The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installing/).
 
@@ -61,7 +65,7 @@ source activate econ-ark
 ```
 
 ----
-### Using HARK with Anaconda
+#### Using HARK with Anaconda
 
 Installing HARK with pip does not give you full access to HARK's many graphical capabilities.  One way to access these capabilities is by using [Anaconda](https://anaconda.com/why-anaconda), which is a distribution of python along with many packages that are frequently used in scientific computing..
 
@@ -70,7 +74,7 @@ Installing HARK with pip does not give you full access to HARK's many graphical 
 1. Anaconda includes its own virtual environment system called `conda` which stores environments in a preset location (so you don't have to choose). So in order to create and activate an econ-ark virtual environment:
 ```
 conda create -n econ-ark anaconda
-source activate econ-ark
+conda activate econ-ark
 ```
 1. Open Spyder, an interactive development environment (IDE) for Python (specifically, iPython).  You may be able to do this through Anaconda's graphical interface, or you can do so from the command line/prompt.  To do so, simply open a command line/prompt and type `spyder`.
 
@@ -102,6 +106,35 @@ jupyter notebook app from the command line with the command:
 jupyter notebook
 ```
 and from there you can open the notebooks and execute them.
+
+#### Learning HARK
+
+We have a set of 30-second [Elevator Spiels](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#capsule-summaries-of-what-the-econ-ark-project-is) describing the project, tailored to people with several different kinds of background.  
+
+The most broadly applicable advice is to go to [Econ-ARK](https://econ-ark.org) and click on "Notebooks", and choose [A Gentle Introduction to HARK](https://github.com/econ-ark/DemARK/blob/master/notebooks/Gentle-Intro-To-HARK.ipynb) which will launch as a [jupyter notebook](https://jupyter.org/).  
+
+##### [For people with a technical/scientific/computing background but little economics background](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-people-with-a-technicalscientificcomputing-background-but-no-economics-background)
+
+* [A Gentle Introduction to HARK](https://github.com/econ-ark/DemARK/blob/master/notebooks/Gentle-Intro-To-HARK.ipynb)
+
+##### [For economists who have done some structural modeling](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-economists-who-have-done-some-structural-modeling)
+
+* A full replication of the [Iskhakov, Jørgensen, Rust, and Schjerning](https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643) paper for solving the discrete-continuous retirement saving problem
+   * An informal discussion of the issues involved is [here](https://github.com/econ-ark/DemARK/blob/master/notebooks/DCEGM-Upper-Envelope.ipynb) (part of the [DemARK](https://github.com/econ-ark/DemARK) repo)
+
+* [Structural-Estimates-From-Empirical-MPCs](https://github.com/econ-ark/DemARK/blob/master/notebooks/Structural-Estimates-From-Empirical-MPCs-Fagereng-et-al.ipynb) is an example of the use of the toolkit in a discussion of a well known paper.  (Yes, it is easy enough to use that you can estimate a structural model on somebody else's data in the limited time available for writing a discussion)
+
+##### [For economists who have not yet done any structural modeling but might be persuadable to start](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-economists-who-have-not-yet-done-any-structural-modeling-but-might-be-persuadable-to-start)
+
+* Start with [A Gentle Introduction to HARK](https://github.com/econ-ark/DemARK/blob/master/notebooks/Gentle-Intro-To-HARK.ipynb) to get your feet wet
+
+* A simple indirect inference/simulated method of moments structural estimation along the lines of Gourinchas and Parker's 2002 Econometrica paper or Cagetti's 2003 paper is performed by the [SolvingMicroDSOPs](https://github.com/econ-ark/REMARK/tree/master/REMARKs/SolvingMicroDSOPs) [REMARK](https://github.com/econ-ark/REMARK); this code implements the solution methods described in the corresponding section of [these lecture notes](http://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/)
+
+##### [For Other Developers of Software for Computational Economics](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-other-developers-of-software-for-computational-economics)
+
+
+* Our workhorse module is [ConsIndShockModel.py](https://github.com/econ-ark/HARK/blob/master/HARK/ConsumptionSaving/ConsIndShockModel.py)
+   * which is explored and explained (a bit) in [this jupyter notebook](https://github.com/econ-ark/DemARK/blob/master/notebooks/ConsIndShockModel.ipynb)
 
 ### Making changes to HARK
 
@@ -201,7 +234,7 @@ Model modules:
     Instead, it uses a "backshooting" routine that has been shoehorned into
     the AgentType.solve framework.  Solves an example of the model when run,
     then solves the same model again using MarkovConsumerType.
-* [ConsumptionSaving/ConsIndShockModel.py](HARK/ConsumptionSaving/ConsIndShockModel.py): 
+* [ConsumptionSaving/ConsIndShockModel.py](HARK/ConsumptionSaving/ConsIndShockModel.py):
     * Consumption-saving models with idiosyncratic shocks to income.  Shocks
     are fully transitory or fully permanent.  Solves perfect foresight model,
     a model with idiosyncratic income shocks, and a model with idiosyncratic
@@ -316,8 +349,7 @@ Data files:
     cstwMPC.py when running a lifecycle specification.
 * [cstwMPC/EducMortAdj.txt](HARK/cstwMPC/EducMortAdj.txt):
     * Mortality adjusters by education and age (columns by sex and race), for use
-    by cstwMPC.py when running a lifecycle specification.  Taken from an
-    appendix of PAPER.
+    by cstwMPC.py when running a lifecycle specification.  Taken from [Brown et al. (2002)](https://www.nber.org/chapters/c9757).
 
 Other files that you don't need to worry about:
 * /index.py:

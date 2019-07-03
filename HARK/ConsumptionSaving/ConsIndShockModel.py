@@ -1497,6 +1497,10 @@ class PerfForesightConsumerType(AgentType):
         self.quiet          = quiet
         self.solveOnePeriod = solvePerfForesight # solver for perfect foresight model
 
+
+    def preSolve(self):
+        self.updateSolutionTerminal()
+
     def updateSolutionTerminal(self):
         '''
         Update the terminal period solution.  This method should be run when a
@@ -1539,7 +1543,6 @@ class PerfForesightConsumerType(AgentType):
         self.PlvlAggNow = 1.0
         self.PermShkAggNow = self.PermGroFacAgg # This never changes during simulation
         AgentType.initializeSim(self)
-
 
 
     def simBirth(self,which_agents):
@@ -1707,11 +1710,11 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         '''
+        # This method only checks for the conditions for infinite horizon models
+        # with a 1 period cycle. If these conditions are not met, we exit early.
         if self.cycles!=0 or self.T_cycle > 1:
-            if verbose == True: 
-                print('This method only checks for the conditions for infinite horizon models with a 1 period cycle')
             return
-        
+
         violated = False
 
         #Evaluate and report on the return impatience condition
@@ -1747,6 +1750,7 @@ class PerfForesightConsumerType(AgentType):
             print('[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
         return violated
+
 
 class IndShockConsumerType(PerfForesightConsumerType):
     '''
@@ -1784,9 +1788,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
         self.update() # Make assets grid, income process, terminal solution
 
-        if not self.quiet:
-            self.checkConditions(verbose=self.verbose,
-                                 public_call=False)
 
     def updateIncomeProcess(self):
         '''
@@ -2010,8 +2011,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
 
     def preSolve(self):
-        PerfForesightConsumerType.preSolve(self)
+        # Update all income process variables to match any attributes that might
+        # have been changed since `__init__` or `solve()` was last called.
+        self.updateIncomeProcess()
         self.updateSolutionTerminal()
+        if not self.quiet:
+            self.checkConditions(verbose=self.verbose,public_call=False)
 
     def checkConditions(self,verbose=False,public_call=True):
         '''
@@ -2020,7 +2025,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         impatience condition (WRIC), finite human wealth condition (FHWC) and finite value of
         autarky condition (FVAC). These are the conditions that are sufficient for nondegenerate
         solutions under infinite horizon with a 1 period cycle. Depending on the model at hand, a
-        different combination of these conditions must be satisfied. (For an exposition of the 
+        different combination of these conditions must be satisfied. (For an exposition of the
         conditions, see http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/)
 
         Parameters
@@ -2079,6 +2084,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if verbose and violated:
             print('\n[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
+
 class KinkedRconsumerType(IndShockConsumerType):
     '''
     A consumer type that faces idiosyncratic shocks to income and has a different
@@ -2113,6 +2119,9 @@ class KinkedRconsumerType(IndShockConsumerType):
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsKinkedR # kinked R solver
         self.update() # Make assets grid, income process, terminal solution
+
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def calcBoundingValues(self):
         '''

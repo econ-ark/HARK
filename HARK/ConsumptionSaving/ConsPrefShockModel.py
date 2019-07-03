@@ -43,6 +43,9 @@ class PrefShockConsumerType(IndShockConsumerType):
         '''
         IndShockConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
         self.solveOnePeriod = solveConsPrefShock # Choose correct solver
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def update(self):
         '''
@@ -207,6 +210,9 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         self.solveOnePeriod = solveConsKinkyPref # Choose correct solver
         self.addToTimeInv('Rboro','Rsave')
         self.delFromTimeInv('Rfree')
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def getRfree(self): # Specify which getRfree to use
         return KinkedRconsumerType.getRfree(self)
