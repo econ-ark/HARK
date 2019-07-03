@@ -409,6 +409,12 @@ class AgentType(HARKobject):
             assert type(getattr(self, param)) == list, param + ' is not a list, but should be' + \
                                                    ' because it is in time_vary'
 
+    def checkRestrictions(self):
+        """
+        A method to check that various restrictions are met for the model class.
+        """
+        return
+
     def preSolve(self):
         '''
         A method that is run immediately before the model is solved, to check inputs or to prepare
@@ -422,6 +428,7 @@ class AgentType(HARKobject):
         -------
         none
         '''
+        self.checkRestrictions()
         self.checkElementsOfTimeVaryAreLists()
         return None
 
