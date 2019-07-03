@@ -2018,6 +2018,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def preSolve(self):
         AgentType.preSolve(self)
+        # Update all income process variables to match any attributes that might
+        # have been changed since `__init__` or `solve()` was last called.
+        self.updateIncomeProcess()
+        self.updateSolutionTerminal()
         if not self.quiet:
             self.checkConditions(verbose=self.verbose,public_call=False)
 
