@@ -153,7 +153,8 @@ setup(
                       'dill',
                       'joblib',
                       'future',  # Optional
-                      'funcsigs'],
+                      'funcsigs',
+                      'jupyter'],
 
     python_requires='>=2.7',
 
@@ -175,9 +176,8 @@ setup(
     #
     # If using Python 2.6 or earlier, then these have to be included in
     # MANIFEST.in as well.
-    include_package_data=True,
     package_data={  # Optional
-        'HARK.SolvingMicroDSOPs': ['SCFdata.csv'],
+        'HARK.SolvingMicroDSOPs.Calibration': ['SCFdata.csv'],
         'HARK.cstwMPC': [
              'EducMortAdj.txt',
              'SCFwealthDataReduced.txt',
