@@ -50,7 +50,7 @@ def _check_grid_dimensions(dimension, *args):
 
 def _check_flatten(dimension, *args):
     if dimension == 1:
-        if args[0].shape != args[0].flatten().shape:
+        if isinstance(args[0], np.ndarray) and args[0].shape != args[0].flatten().shape:
             warnings.warn("input not of the size (n, ), attempting to flatten")
             return False
         else:
