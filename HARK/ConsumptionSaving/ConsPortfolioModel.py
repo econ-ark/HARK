@@ -6,10 +6,11 @@ import math
 import scipy.optimize as sciopt
 import scipy.integrate
 import scipy.stats as stats
+import copy
 
 from HARK import Solution, NullFunc, AgentType
 
-from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType, IndShockConsumerType, solveConsIndShock, ConsIndShockSolver, ValueFunc, MargValueFunc, ConsumerSolution
+from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType, IndShockConsumerType, solveConsIndShock, ConsIndShockSolver, ValueFunc, MargValueFunc, ConsumerSolution, utility_inv
 from HARK.utilities import approxLognormal, combineIndepDstns
 from HARK.interpolation import LinearInterp, LowerEnvelope
 from HARK.simulation import drawLognormal
@@ -77,7 +78,7 @@ def PerfForesightDiscretePortfolioObjective(share, R0, RiskyDstn, rho):
 class PortfolioSolution(Solution):
     distance_criteria = ['cFunc']
 
-    def __init__(self, cFunc=None, vFunc=None,
+    def __init__(self, cFunc=None, vFunc=None, wFunc=None,
                        vPfunc=None, RiskyShareFunc=None, vPPfunc=None,
                        mNrmMin=None, hNrm=None, MPCmin=None, MPCmax=None):
         # Change any missing function inputs to NullFunc
@@ -95,6 +96,7 @@ class PortfolioSolution(Solution):
         self.vFunc        = vFunc
         self.vPfunc       = vPfunc
         self.RiskyShareFunc = RiskyShareFunc
+        self.wFunc       = wFunc
         # self.vPPfunc      = vPPfunc
         # self.mNrmMin      = mNrmMin
         # self.hNrm         = hNrm
@@ -131,6 +133,29 @@ class DiscreteDomain(object):
     def getPoints(self):
         return self.points
 
+
+def calcwFunc(AdjustPrb, AdjustCount, ShareNowCount, vFunc, CRRA):
+    # AdjustCount cna be inferred from AdjustPrb...
+    wFunc  = []
+    if AdjustCount == 1:
+        # Just take the adjuster
+        for ShareIndex in range(ShareNowCount[0]):
+            wFunc.append(vFunc[0][ShareIndex])
+    else:
+        # Calculate stuff
+        for ShareIndex in range(ShareNowCount[1]):
+            # TODO FIXME better grid
+            evalgrid = np.linspace(0, 100, 200)
+            evVals = AdjustPrb*vFunc[0][ShareIndex](evalgrid) + (1-AdjustPrb)*vFunc[1][ShareIndex](evalgrid)
+            with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
+                evValsNvrs = utility_inv(evVals,gam=CRRA)
+            evVals = np.insert(evVals, 0, 0.0)
+            evValsNvrs = np.insert(evVals, 0, 0.0)
+
+            wFunc.append(ValueFunc(LinearInterp(evVals, evValsNvrs), CRRA))
+
+    return wFunc
+
 class PortfolioConsumerType(IndShockConsumerType):
 
     # We add CantAdjust to the standard set of poststate_vars_ here. We call it
@@ -165,13 +190,17 @@ class PortfolioConsumerType(IndShockConsumerType):
                 raise Exception('Please supply a PortfolioDomain when setting AdjustPrb < 1.0.')
             else:
                 self.PortfolioDomain = ContinuousDomain(0,1)
+
+
         if isinstance(self.PortfolioDomain, DiscreteDomain):
+            self.DiscreteCase = True
             if self.vFuncBool == False:
                 if self.verbose:
                     print('Setting vFuncBool to True to accomodate dicrete portfolio optimization.')
 
                 self.vFuncBool = True
         else:
+            self.DiscreteCase = False
             if self.AdjustPrb < 1.0:
                 raise Exception('Occational inability to re-optimize portfolio (AdjustPrb < 1.0) is currently not possible with continuous choice of the portfolio share.')
 
@@ -185,7 +214,10 @@ class PortfolioConsumerType(IndShockConsumerType):
                 print("Setting BoroCnstArt to 0.0 as this is required by PortfolioConsumerType.")
             self.BoroCnstArt = 0.0
 
-
+        self.ShareNowCount = [1]
+        if self.DiscreteCase and self.AdjustCount > 1:
+            self.ShareNow = self.PortfolioDomain.getPoints()
+            self.ShareNowCount.append(len(self.PortfolioDomain.getPoints()))
 
         # Chose specialized solver for Portfolio choice model
         self.solveOnePeriod = solveConsPortfolio
@@ -211,6 +243,9 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         '''
+
+        # repeat according to number of portfolio adjustment situations
+        # TODO FIXME this is technically incorrect, too many in [0]
         cFunc_terminal = LinearInterp([0.0, 1.0], [0.0,1.0]) # c=m in terminal period
         vFunc_terminal = LinearInterp([0.0, 1.0], [0.0,0.0]) # This is overwritten
         RiskyShareFunc_terminal = LinearInterp([0.0, 1.0], [0.0,0.0]) # c=m in terminal period
@@ -221,23 +256,24 @@ class PortfolioConsumerType(IndShockConsumerType):
             # This should be "PortfolioGridCount" that was set earlier,
             PortfolioGridCount = 1
 
+        vFunc_terminal   = PortfolioGridCount*[ValueFunc(cFunc_terminal, self.CRRA)]
+        vFunc_terminal   = self.AdjustCount*[vFunc_terminal]
+
+        vPfunc_terminal  = PortfolioGridCount*[MargValueFunc(cFunc_terminal, self.CRRA)]
+        vPfunc_terminal  = self.AdjustCount*[vPfunc_terminal]
+
         cFunc_terminal = PortfolioGridCount*[cFunc_terminal]
-        RiskyShareFunc_terminal = PortfolioGridCount*[RiskyShareFunc_terminal]
-
-        vFunc_terminal   = PortfolioGridCount*[ValueFunc(self.cFunc_terminal_,self.CRRA)]
-        vPfunc_terminal  = PortfolioGridCount*[MargValueFunc(self.cFunc_terminal_,self.CRRA)]
-
-        # repeat according to number of portfolio adjustment situations
-        # TODO FIXME this is technically incorrect, too many in [0]
         cFunc_terminal = self.AdjustCount*[cFunc_terminal]
+
+        RiskyShareFunc_terminal = PortfolioGridCount*[RiskyShareFunc_terminal]
         RiskyShareFunc_terminal = self.AdjustCount*[RiskyShareFunc_terminal]
 
-        vFunc_terminal   = self.AdjustCount*[vFunc_terminal]
-        vPfunc_terminal  = self.AdjustCount*[vPfunc_terminal]
+        wFunc_terminal = calcwFunc(self.AdjustPrb, self.AdjustCount, self.ShareNowCount, vFunc_terminal, self.CRRA)
 
         self.solution_terminal = PortfolioSolution(cFunc = cFunc_terminal,
                                                    RiskyShareFunc = RiskyShareFunc_terminal,
                                                    vFunc = vFunc_terminal,
+                                                   wFunc = wFunc_terminal,
                                                    vPfunc = vPfunc_terminal,
                                                    mNrmMin=0.0, hNrm=None,
                                                    MPCmin=None, MPCmax=None)
@@ -377,7 +413,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             cNrmNow[these], MPCnow[these] = self.solution[t].cFunc[0][0].eval_with_derivative(self.mNrmNow[these])
 
             if any(these_cant_adjust):
-                for portfolio_index, portfolio_value in enumerate(self.ShareNow[AdjustIndex]):
+                for portfolio_index, portfolio_value in enumerate(self.ShareNow):
                     these_portfolio = np.equal(portfolio_value, self.RiskySharePrev)
                     these = np.logical_and(these_t, these_portfolio)
 
@@ -690,7 +726,11 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         RiskyShkVals_temp  = (np.tile(self.RiskyShkValsNext,(aNrmCount,1))).transpose()
         ShkPrbs_temp      = (np.tile(self.ShkPrbsNext,(aNrmCount,1))).transpose()
 
-        mNrmNext = self.AdjustCount*[[]]
+        if self.AdjustCount == 1:
+            mNrmNext = [[]]
+        else:
+            mNrmNext = [[], []]
+
         for AdjustIndex in range(self.AdjustCount):
             for ShareIndex in range(self.ShareNowCount[AdjustIndex]):
             # Calculate share at current aNrm. If non-adjusting, it's just
@@ -790,7 +830,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
             self.vPPfuncNext  = solution_next.vPPfunc
 
         if self.vFuncBool:
-            self.vFuncNext    = solution_next.vFunc
+            self.vFuncNext    = solution_next.wFunc
 
         # Update the bounding MPCs and PDV of human wealth:
         # self.PatFac       = ((self.Rfree*self.DiscFacEff)**(1.0/self.CRRA))/self.Rfree
@@ -860,9 +900,15 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         # and implicit looping such as in prepareToCalcEndOfPrdvP. I think it would
         # be best to simply have a major loop here, and keep the methods atomic.
 
-        cFuncs = self.AdjustCount*[[]]
-        vPfuncs = self.AdjustCount*[[]]
-        RiskyShareFuncs = self.AdjustCount*[[]]
+        if self.AdjustCount == 1:
+            cFuncs = [[]]
+            vPfuncs = [[]]
+            RiskyShareFuncs = [[]]
+        else:
+            cFuncs = [[], []]
+            vPfuncs = [[], []]
+            RiskyShareFuncs = [[], []]
+
 
         for AdjustIndex in range(self.AdjustCount):
             for PortfolioGridIdx in range(self.ShareNowCount[AdjustIndex]):
@@ -878,7 +924,8 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
                     self.prepareToCalcRiskyShare()
                     self.RiskyShareFunc = self.calcRiskyShare()
                 else:
-                    self.RiskyShareFunc = lambda a: PortfolioGrid[PortfolioGridIdx]
+                    val = self.PortfolioGrid[PortfolioGridIdx]
+                    self.RiskyShareFunc = scipy.interpolate.interp1d(np.array([0.0,1.0]), np.repeat(val, 2), kind='zero',bounds_error=False, fill_value=val)
 
                 RiskyShareFuncs[AdjustIndex].append(self.RiskyShareFunc)
 
@@ -909,6 +956,8 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
 
         if self.vFuncBool:
             solution = self.addvFunc(solution)
+            solution.wFunc = calcwFunc(self.AdjustPrb, self.AdjustCount, self.ShareNowCount, solution.vFunc, self.CRRA)
+
 
         return solution
 
