@@ -1499,8 +1499,8 @@ class PerfForesightConsumerType(AgentType):
         self.verbose        = verbose
         self.quiet          = quiet
         self.solveOnePeriod = solvePerfForesight # solver for perfect foresight model
-        
-        
+
+
     def preSolve(self):
         self.updateSolutionTerminal()
 
@@ -2119,7 +2119,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsKinkedR # kinked R solver
         self.update() # Make assets grid, income process, terminal solution
-        
+
     def preSolve(self):
         self.updateSolutionTerminal()
 
