@@ -14,20 +14,37 @@
 # ---
 
 # %% [markdown]
+# # Dimensionality Reduction in [Bayer and Luetticke (2018)](https://cepr.org/active/publications/discussion_papers/dp.php?dpno=13071)
 #
-# # A One Asset HANK Model 
+# [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/econ-ark/HARK/BayerLuetticke?filepath=HARK%2FBayerLuetticke%2FDCT-Copula-Illustration.ipynb)
 #
-# This notebook solves a New Keynesian model in which there is only a single liquid asset.  This is the second model described in <cite data-cite="6202365/ECL3ZAR7"></cite>.  For a detailed description of their solution method, see the companion two-asset HANK model notebook.
+# This companion to the [main notebook](TwoAsset.ipynb) explains in more detail how the authors reduce the dimensionality of their problem
+#
+# - Based on original slides by Christian Bayer and Ralph Luetticke 
+# - Original Jupyter notebook by Seungcheol Lee 
+# - Further edits by Chris Carroll, Tao Wang 
+#
 
-# %% {"code_folding": []}
-# Setup
-from __future__ import print_function
+# %% [markdown]
+# ### Preliminaries
+#
+# In Steady-state Equilibrium (StE) in the model, in any given period, a consumer in state $s$ (which comprises liquid assets $m$, illiquid assets $k$, and human capital $\newcommand{hLev}{h}\hLev$) has two key choices:
+# 1. To adjust ('a') or not adjust ('n') their holdings of illiquid assets $k$
+# 1. Contingent on that choice, decide the level of consumption, yielding consumption functions:
+#     * $c_n(s)$ - nonadjusters
+#     * $c_a(s)$ - adjusters
+#
+# The usual envelope theorem applies here, so marginal value wrt the liquid asset equals marginal utility with respect to consumption:
+# $[\frac{d v}{d m} = \frac{d u}{d c}]$.
+# In practice, the authors solve their problem using the marginal value of money $\texttt{Vm} = dv/dm$, but because the marginal utility function is invertible it is trivial to recover $\texttt{c}$ from $(u^{\prime})^{-1}(\texttt{Vm} )$.  The consumption function is therefore computed from the $\texttt{Vm}$ function
+
+# %% {"code_folding": [0, 6, 17, 21]}
+# Setup stuff
 
 # This is a jupytext paired notebook that autogenerates a corresponding .py file
 # which can be executed from a terminal command line via "ipython [name].py"
 # But a terminal does not permit inline figures, so we need to test jupyter vs terminal
 # Google "how can I check if code is executed in the ipython notebook"
-
 def in_ipynb():
     try:
         if str(type(get_ipython())) == "<class 'ipykernel.zmqshell.ZMQInteractiveShell'>":
@@ -51,7 +68,7 @@ import sys
 import os
 
 # Find pathname to this file:
-my_file_path = os.path.dirname(os.path.abspath("OneAssetHANK.ipynb"))
+my_file_path = os.path.dirname(os.path.abspath("TwoAsset.ipynb"))
 
 # Relative directory for pickled code
 code_dir = os.path.join(my_file_path, "BayerLuetticke_code/OneAssetCode-HANK") 
@@ -60,31 +77,136 @@ sys.path.insert(0, code_dir)
 sys.path.insert(0, my_file_path)
 
 # %% {"code_folding": []}
-# Import external libraries
+# Load precalculated Stationary Equilibrium (StE) object EX3SS
+
+import pickle
+os.chdir(code_dir) # Go to the directory with pickled code
+
+EX2SS=pickle.load(open("EX2SS.p", "rb"))
+
+
+# %%
+EX2SS.keys()
+
+# %% [markdown]
+# ### Dimensions
+#
+# The imported StE solution to the problem represents the functions at a set of gridpoints of
+#    * liquid assets ($n_m$ points), illiquid assets ($n_k$), and human capital ($n_h$)
+#       * In the code these are $\{\texttt{nm,nk,nh}\}$
+#
+# So even if the grids are fairly sparse for each state variable, the total number of combinations of the idiosyncratic state gridpoints is large: $n = n_m \times n_k \times n_h$.  So, e.g., $\bar{c}$ is a set of size $n$ containing the level of consumption at each possible _combination_ of gridpoints.
+#
+# In the "real" micro problem, it would almost never happen that a continuous variable like $m$ would end up being exactly equal to one of the prespecified gridpoints. But the functions need to be evaluated at such non-grid points.  This is addressed by linear interpolation.  That is, if, say, the grid had $m_{8} = 40$ and $m_{9} = 50$ then and a consumer ended up with $m = 45$ then the approximation is that $\tilde{c}(45) = 0.5 \bar{c}_{8} + 0.5 \bar{c}_{9}$.
+#
+
+# %% {"code_folding": []}
+# Show dimensions of the consumer's problem (state space)
+
+print('c is of dimension: ' + str(EX2SS['mutil_c'].shape))
+
+
+print('Vm is of dimension:' + str(EX2SS['Vm'].shape))
+
+print('For convenience, these are all constructed from the same exogenous grids:')
+print(str(len(EX2SS['grid']['m']))+' gridpoints for liquid assets;')
+print(str(len(EX2SS['grid']['h']))+' gridpoints for individual productivity.')
+print('')
+print('Therefore, the joint distribution is of size: ')
+print(str(EX2SS['mpar']['nm'])+
+    ' * '+str(EX2SS['mpar']['nh'])+
+   ' = '+ str(EX2SS['mpar']['nm']*EX2SS['mpar']['nh']))
+
+
+# %% [markdown]
+# ### Dimension Reduction
+#
+# The authors use different dimensionality reduction methods for the consumer's problem and the distribution across idiosyncratic states
+
+# %% [markdown]
+# #### Representing the consumer's problem with Basis Functions
+#
+# The idea is to find an efficient "compressed" representation of our functions (e.g., the consumption function), which BL do using tools originally developed for image compression.  The analogy to image compression is that nearby pixels are likely to have identical or very similar colors, so we need only to find an efficient way to represent how the colors _change_ from one pixel to nearby ones.  Similarly, consumption at a given point $s_{i}$ is likely to be close to consumption point at another point $s_{j}$ that is "close" in the state space (similar wealth, income, etc), so a function that captures that similarity efficiently can preserve most of the information without keeping all of the points.
+#
+# Like linear interpolation, the [DCT transformation](https://en.wikipedia.org/wiki/Discrete_cosine_transform) is a method of representing a continuous function using a finite set of numbers. It uses a set of independent [basis functions](https://en.wikipedia.org/wiki/Basis_function) to do this.
+#
+# But it turns out that some of those basis functions are much more important than others in representing the steady-state functions. Dimension reduction is accomplished by basically ignoring all basis functions that make "small enough" contributions to the representation of the function.  
+#
+# ##### When might this go wrong?
+#
+# Suppose the consumption function changes in a recession in ways that change behavior radically at some states.  Like, suppose unemployment almost never happens in steady state, but it can happen in temporary recessions.  Suppose further that, even for employed people, in a recession, _worries_ about unemployment cause many of them to prudently withdraw some of their illiquid assets -- behavior opposite of what people in the same state would be doing during expansions.  In that case, the basis functions that represented the steady state function would have had no incentive to be able to represent well the part of the space that is never seen in steady state, so any functions that might help do so might well have been dropped in the dimension reduction stage.
+#
+# On the whole, it seems unlikely that this kind of thing is a major problem, because the vast majority of the variation that people experience is idiosyncratic.  There is always unemployment, for example; it just moves up and down a bit with aggregate shocks, but since the experience of unemployment is in fact well represented in the steady state the method should have no trouble capturing it.
+#
+# Where the method might have more trouble is in representing economies in which there are multiple equilibria in which behavior is quite different.
+
+# %% [markdown]
+# #### For the distribution of agents across states: Copula
+#
+# The other tool the authors use is the ["copula"](https://en.wikipedia.org/wiki/Copula_(probability_theory)), which allows us to represent the distribution of people across idiosyncratic states efficiently
+#
+# The copula is computed from the joint distribution of states in StE and will be used to transform the [marginal distributions](https://en.wikipedia.org/wiki/Marginal_distribution) back to joint distributions.  (For an illustration of how the assumptions used when modeling asset price distributions using copulas can fail see [Salmon](https://www.wired.com/2009/02/wp-quant/))
+#
+#    * A copula is a representation of the joint distribution expressed using a mapping between the uniform joint CDF and the marginal distributions of the variables
+#    
+#    * The crucial assumption is that what aggregate shocks do is to squeeze or distort the steady state distribution, but leave the rank structure of the distribution the same
+#       * An example of when this might not hold is the following.  Suppose that in expansions, the people at the top of the distribution of illiquid assets (the top 1 percent, say) are also at the top 1 percent of liquid assets. But in recessions the bottom 99 percent get angry at the top 1 percent of illiquid asset holders and confiscate part of their liquid assets (the illiquid assets can't be confiscated quickly because they are illiquid). Now the people in the top 99 percent of illiquid assets might be in the _bottom_ 1 percent of liquid assets.
+#    
+# - In this case we just need to represent how the mapping from ranks into levels of assets
+#
+# - This reduces the number of points for which we need to track transitions from $3600 = 30 \times 30 \times 4$ to $64 = 30+30+4$.  Or the total number of points we need to contemplate goes from $3600^2 \approx 13 $million to $64^2=4096$.  
+
+# %%
+dir(EX2SS['Copula'])
+
+# %% {"code_folding": []}
+# Get some specs about the copula, which is precomputed in the EX3SS object
+
+#print('The copula consists of two parts: gridpoints and values at those gridpoints:'+ \
+#      '\n gridpoints have dimensionality of '+str(EX2SS['Copula']['grid'].shape) + \
+#      '\n where the first element is total number of gridpoints' + \
+#      '\n and the second element is number of idiosyncratic state variables' + \
+#      '\n whose values also are of dimension of '+str(EX2SS['Copula']['value'].shape[0]) + \
+#      '\n each entry of which is the probability that all three of the'
+#      '\n state variables are below the corresponding point.')
+
+
+# %% {"code_folding": [0]}
+## Import necessary libraries
+
+from __future__ import print_function
+import sys 
+sys.path.insert(0,'../')
 
 import numpy as np
 from numpy.linalg import matrix_rank
 import scipy as sc
 from scipy.stats import norm 
-from scipy.interpolate import interp1d, interp2d
-import multiprocessing as Mp
-from multiprocessing import Pool, cpu_count
+from scipy.interpolate import interp1d, interp2d, griddata, RegularGridInterpolator, interpn
+import multiprocessing as mp
+from multiprocessing import Pool, cpu_count, Process
 from math import ceil
 import math as mt
-from scipy import sparse as sp
-from scipy import linalg
-from math import log, cos, pi
+from scipy import sparse as sp  # used to work with sparse matrices
+from scipy import linalg   #linear algebra 
+from math import log, cos, pi, sqrt
 import time
-from SharedFunc2 import Transition, ExTransitions, GenWeight, MakeGrid2, Tauchen
+from SharedFunc2 import Transition, ExTransitions, GenWeight, Tauchen  # two functions in 2-asset cases 
+                                                                       # are not available for 1 asset
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import scipy.io
-from copy import copy
-from time import clock
+import scipy.io #scipy input and output
+import scipy.fftpack as sf  # scipy discrete fourier transforms
 
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.ticker import LinearLocator, FormatStrFormatter
+from matplotlib import cm
 
-# %% {"code_folding": []}
-# Bayer-Luetticke Code
+import seaborn as sns
+
+# %% {"code_folding": [0, 105, 309, 432, 720]}
+## Wrapping one-asset codes from BayerLuetticke. Super long. No need to unfold for most purposes in this notebook
+
 
 class FluctuationsOneAssetIOUs:
     
@@ -849,94 +971,238 @@ def EGM_policyupdate(EVm,PIminus,RBminus,inc,meshes,grid,par,mpar):
 
 
 
-# %% {"code_folding": []}
-# Load Stationary equilibrium (StE) object EX2SS
-
-import pickle
-os.chdir(code_dir) # Go to the directory with pickled code
-
-## EX2SS.p is the information in the stationary equilibrium (20: the number of illiquid and liquid weath grids )
-EX2SS=pickle.load(open("EX2SS.p", "rb"))
-
-# %% {"code_folding": []}
-# Dimensionality Reduction
+# %% {"code_folding": [0]}
+# Implement Dimensionality Reduction
 
 EX2SR=FluctuationsOneAssetIOUs(**EX2SS)
 
+## Choose an accuracy of approximation with DCT
+#EX2SS['par']['accuracy'] = 0.99999 does not have accuracy here, not sure why?
+
+# Do state reduction 
 SR=EX2SR.StateReduc()
 
-
-# %% {"code_folding": []}
-# # Monetary Policy Shock
-
-# EX2SS['par']['aggrshock']           = 'MP'
-# EX2SS['par']['rhoS']    = 0.0      # Persistence of variance
-# EX2SS['par']['sigmaS']  = 0.001    # STD of variance shocks
-
-# #EX2SS['par']['aggrshock']           = 'TFP'
-# #EX2SS['par']['rhoS']    = 0.95
-# #EX2SS['par']['sigmaS']  = 0.0075
-    
-# #EX2SS['par']['aggrshock']           = 'Uncertainty'
-# #EX2SS['par']['rhoS']    = 0.84    # Persistence of variance
-# #EX2SS['par']['sigmaS']  = 0.54    # STD of variance shocks
-
-
-# SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['Gamma_control'],SR['InvGamma'],SR['Copula'],
-#                          SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['P_H'],SR['aggrshock'],SR['oc'])
-
-# plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
-#              SR['Gamma_state'],SR['grid'],SR['targets'],SR['os'],SR['oc'],SR['Output'])
-
-# %% {"code_folding": []}
-# # Productivity Shock
-
-# #EX2SS['par']['aggrshock']           = 'MP'
-# #EX2SS['par']['rhoS']    = 0.0      # Persistence of variance
-# #EX2SS['par']['sigmaS']  = 0.001    # STD of variance shocks
-
-# EX2SS['par']['aggrshock']           = 'TFP'
-# EX2SS['par']['rhoS']    = 0.95
-# EX2SS['par']['sigmaS']  = 0.0075
-    
-# #EX2SS['par']['aggrshock']           = 'Uncertainty'
-# #EX2SS['par']['rhoS']    = 0.84    # Persistence of variance
-# #EX2SS['par']['sigmaS']  = 0.54    # STD of variance shocks
-
-
-
-# SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['Gamma_control'],SR['InvGamma'],SR['Copula'],
-#                          SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['P_H'],SR['aggrshock'],SR['oc'])
-
-# plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
-#              SR['Gamma_state'],SR['grid'],SR['targets'],SR['os'],SR['oc'],SR['Output'])
-
 # %% {"code_folding": [0]}
-# Uncertainty Shock
-
-
-## EX2SS.p is the information in the stationary equilibrium (20: the number of illiquid and liquid weath grids )
-EX2SS=pickle.load(open("EX2SS.p", "rb"))
+## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
 
 #EX2SS['par']['aggrshock']           = 'MP'
 #EX2SS['par']['rhoS']    = 0.0      # Persistence of variance
 #EX2SS['par']['sigmaS']  = 0.001    # STD of variance shocks
 
-#EX2SS['par']['aggrshock']           = 'TFP'
-#EX2SS['par']['rhoS']    = 0.95
-#EX2SS['par']['sigmaS']  = 0.0075
+#EX3SS['par']['aggrshock']           = 'TFP'
+#EX3SS['par']['rhoS']    = 0.95
+#EX3SS['par']['sigmaS']  = 0.0075
     
-EX2SS['par']['aggrshock']           = 'Uncertainty'
-EX2SS['par']['rhoS']    = 0.84    # Persistence of variance
-EX2SS['par']['sigmaS']  = 0.54    # STD of variance shocks
+#EX3SS['par']['aggrshock']           = 'Uncertainty'
+#EX3SS['par']['rhoS']    = 0.84    # Persistence of variance
+#EX3SS['par']['sigmaS']  = 0.54    # STD of variance shocks
 
-SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['Gamma_control'],SR['InvGamma'],SR['Copula'],
-                         SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['P_H'],SR['aggrshock'],SR['oc'])
+# %% {"code_folding": [0]}
+# Measuring the effectiveness of the state reduction
 
-plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
-             SR['Gamma_state'],SR['grid'],SR['targets'],SR['os'],SR['oc'],SR['Output'])
+print('What are the results from the state reduction?')
+#print('Newly added attributes after the operation include \n'+str(set(SR.keys())-set(EX3SS.keys())))
+
+print('\n')
+
+#print('To achieve an accuracy of '+str(EX2SS['par']['accuracy'])+'\n') 
+
+#print('The dimension of the policy functions is reduced to '+str(SR['indexMUdct'].shape[0]) \
+#      +' from '+str(EX2SS['mpar']['nm']*EX2SS['mpar']['nh'])
+#      )
+#print('The dimension of the marginal value functions is reduced to '+str(SR['indexVKdct'].shape[0]) \
+#      + ' from ' + str(EX3SS['Vk'].shape))
+#print('The total number of control variables is '+str(SR['Contr'].shape[0])+'='+str(SR['indexMUdct'].shape[0]) + \
+#      '+'+str(SR['indexVKdct'].shape[0])+'+ # of other macro controls')
+print('\n')
+print('The copula represents the joint distribution with a vector of size '+str(SR['Gamma_state'].shape) )
+print('The dimension of states including exogenous state, is ' +str(SR['Xss'].shape[0]))
+
+print('It simply stacks all grids of different\
+      \n state variables regardless of their joint distributions.\
+      \n This is due to the assumption that the rank order remains the same.')
+#print('The total number of state variables is '+str(SR['State'].shape[0]) + '='+\
+#     str(SR['Gamma_state'].shape[1])+'+ the number of macro states (like the interest rate)')
+
 
 # %% [markdown]
-# ### References
+# ### Graphical Illustration
 #
-# <div class="cite2c-biblio"></div>
+# #### Policy/value functions
+#
+# Taking the consumption function as an example, we plot consumption by adjusters and non-adjusters over a range of $k$ and $m$ that encompasses x percent of the mass of the distribution function.  
+#
+# We plot the functions for the top and bottom values of the wage $h$ distribution
+#
+
+# %% {"code_folding": [0]}
+## Graphical illustration
+
+xi = EX2SS['par']['xi']
+invmutil = lambda x : (1./x)**(1./xi)  
+
+### convert marginal utilities back to consumption function
+mut_StE  =  EX2SS['mutil_c']
+
+
+c_StE = invmutil(mut_StE)
+
+
+### grid values 
+dim_StE = mut_StE.shape
+mgrid = EX2SS['grid']['m']
+hgrid = EX2SS['grid']['h']
+
+## indexMUdct is one dimension, needs to be unraveled to 3 dimensions
+
+#mut_rdc_idx = np.unravel_index(SR['indexMUdct'],dim_StE,order='F')
+#nb_dct = len(mut_StE.flatten()) 
+#mut_rdc_bool = np.zeros(nb_dct)     # boolean array of 30 x 30 x 4  
+#for i in range(nb_dct):
+#    mut_rdc_bool[i]=i in list(SR['indexMUdct'])
+#mut_rdc_bool_3d = (mut_rdc_bool==1).reshape(dim_StE)
+#mut_rdc_mask_3d = (mut_rdc_bool).reshape(dim_StE)
+
+
+## get the 95 percent or other percentile of the distribution
+
+joint_distr =  EX2SS['joint_distr']
+#marginal_mk =  EX2SS['joint_distr'].sum(axis=2)
+
+# %% {"code_folding": [0]}
+## 3D scatter plots of consumption function 
+##    at all grids and grids after dct for both adjusters and non-adjusters
+
+
+## for non-adjusters
+
+## full grids 
+mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
+
+### for adjusters 
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Consumption of non-adjusters at grid points of m and k(for different h)',
+             fontsize=(13))
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    ## prepare the reduced grids 
+    hgrid_fix=hgrid_id
+    c_n_rdc = (cn_StE*mut_rdc_mask_3d)[:,:,hgrid_fix]
+    c_a_rdc = (ca_StE*mut_rdc_mask_3d)[:,:,hgrid_fix]
+    
+    ## filter non-dct grid points
+    
+    
+    ## for each h grid, take the 95% mass of m and k as the maximum of the m and k axis 
+    
+    marginal_mk = joint_distr[:,:,hgrid_fix]
+    marginal_m = marginal_mk.sum(axis=0)
+    marginal_k = marginal_mk.sum(axis=1)
+    mmax = mgrid[(np.abs(marginal_m.cumsum()-mass_pct*marginal_m.cumsum().max())).argmin()]
+    kmax = kgrid[(np.abs(marginal_k.cumsum()-mass_pct*marginal_k.cumsum().max())).argmin()]
+
+    ## plots 
+    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
+    ax.plot_surface(mmgrid,kkgrid,c_n_rdc,cmap='Blues',
+                    label='StE(after dct):non-adjuster')
+    ax.scatter(mmgrid,kkgrid,cn_StE[:,:,hgrid_fix],marker='v',color='red',
+               label='StE(before dct): non-adjuster')
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel('k',fontsize=13)
+    ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
+    #ax.set_xlim([0,mmax])
+    #ax.set_ylim([0,kmax])
+    ax.set_title(r'$h({})$'.format(hgrid_fix))
+    ax.view_init(20, 60)
+
+# %% [markdown]
+# ##### Observation
+#
+# - For a given grid value of productivity, the remaining grid points after DCT to represent the whole consumption function are concentrated in low values of $k$ and $m$. This is because the slopes of the surfaces of marginal utility are changing the most in these regions.  For larger values of $k$ and $m$ the functions become smooth and only slightly concave, so they can be represented by many fewer points
+# - For different grid values of productivity (2 sub plots), the numbers of grid points in the DCT operation differ. From the lowest to highest values of productivity, there are 78, 33, 25 and 18 grid points, respectively. They add up to the total number of gridpoints of 154 after DCT operation, as we noted above for marginal utility function. 
+
+# %% [markdown]
+# #### Distribution of states 
+#
+# - We first plot the distribution of $k$ fixing $m$ and $h$. Next, we plot the joint distribution of $m$ and $k$ only fixing $h$ in 3-dimenstional space.  
+# - The joint-distribution can be represented by marginal distributions of $m$, $k$ and $h$ and a copula that describes the correlation between the three states. The former is straightfoward. We plot the copula only. The copula is essentially a multivariate cummulative distribution function where each marginal is uniform. (Translation from the uniform to the appropriate nonuniform distribution is handled at a separate stage).
+#
+
+# %% {"code_folding": []}
+### Marginalize along h grids
+
+joint_distr =  EX3SS['joint_distr']
+joint_distr_km = EX3SS['joint_distr'].sum(axis=2)
+
+### Plot distributions in 2 dimensional graph 
+
+fig = plt.figure(figsize=(10,10))
+plt.suptitle('Marginal distribution of k at different m')
+
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    ax = plt.subplot(2,2,hgrid_id+1)
+    ax.set_title(r'$h({})$'.format(hgrid_id))
+    ax.set_xlabel('k',size=12)
+    for id in range(EX3SS['mpar']['nm']):   
+        ax.plot(kgrid,joint_distr[id,:,hgrid_id])
+
+# %% {"code_folding": []}
+## Plot joint distribution of k and m in 3d graph
+
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Joint distribution of m and k(for different h)',
+             fontsize=(13))
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    ## plots 
+    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
+    ax.plot_surface(mmgrid,kkgrid,joint_distr[:,:,hgrid_fix], rstride=1, cstride=1,
+                    cmap='viridis', edgecolor='none')
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel('k',fontsize=13)
+    #ax.set_zlabel(r'$p(m,k)$',fontsize=10)
+    ax.set_title(r'$h({})$'.format(hgrid_id))
+    ax.set_xlim(0,400)
+    ax.view_init(20, 40)
+
+# %% [markdown]
+# Notice the CDFs in StE copula have 4 modes, corresponding to the number of $h$ gridpoints. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
+
+# %% {"code_folding": []}
+## Plot the copula 
+
+cdf=EX3SS['Copula']['value'].reshape(4,30,30)   # important: 4,30,30 not 30,30,4? 
+
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Copula of m and k(for different h)',
+             fontsize=(13))
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    ## plots 
+    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
+    ax.plot_surface(mmgrid,kkgrid,cdf[hgrid_id,:,:], rstride=1, cstride=1,
+                    cmap='viridis', edgecolor='None')
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel('k',fontsize=13)
+    ax.set_title(r'$h({})$'.format(hgrid_id))
+    
+    ## for each h grid, take the 95% mass of m and k as the maximum of the m and k axis 
+    
+    marginal_mk = joint_distr[:,:,hgrid_id]
+    marginal_m = marginal_mk.sum(axis=0)
+    marginal_k = marginal_mk.sum(axis=1)
+    mmax = mgrid[(np.abs(marginal_m.cumsum()-mass_pct*marginal_m.cumsum().max())).argmin()]
+    kmax = kgrid[(np.abs(marginal_k.cumsum()-mass_pct*marginal_k.cumsum().max())).argmin()]
+    
+    #ax.set_xlim(0,mmax)
+    #ax.set_ylim(0,kmax)
+    ax.view_init(30, 30)
+
+# %% [markdown]
+# Given the assumption that the copula remains the same after aggregate risk is introduced, we can use the same copula and the marginal distributions to recover the full joint-distribution of the states.  
+
+# %% [markdown]
+# ### Summary: what do we achieve after the transformation?
+#
+# - Using the DCT, the dimension of the policy and value functions are reduced from 3600 to 154 and 94, respectively.
+# - By marginalizing the joint distribution with the fixed copula assumption, the marginal distribution is of dimension 64 compared to its joint distribution of a dimension of 3600.
+#
+#
+#
