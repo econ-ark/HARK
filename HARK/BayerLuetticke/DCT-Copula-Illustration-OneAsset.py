@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ---
 # jupyter:
 #   jupytext:
@@ -100,7 +101,7 @@ EX2SS.keys()
 # In the "real" micro problem, it would almost never happen that a continuous variable like $m$ would end up being exactly equal to one of the prespecified gridpoints. But the functions need to be evaluated at such non-grid points.  This is addressed by linear interpolation.  That is, if, say, the grid had $m_{8} = 40$ and $m_{9} = 50$ then and a consumer ended up with $m = 45$ then the approximation is that $\tilde{c}(45) = 0.5 \bar{c}_{8} + 0.5 \bar{c}_{9}$.
 #
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Show dimensions of the consumer's problem (state space)
 
 print('c is of dimension: ' + str(EX2SS['mutil_c'].shape))
@@ -159,7 +160,7 @@ print(str(EX2SS['mpar']['nm'])+
 # %%
 dir(EX2SS['Copula'])
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Get some specs about the copula, which is precomputed in the EX3SS object
 
 #print('The copula consists of two parts: gridpoints and values at those gridpoints:'+ \
@@ -171,7 +172,7 @@ dir(EX2SS['Copula'])
 #      '\n state variables are below the corresponding point.')
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Import necessary libraries
 
 from __future__ import print_function
@@ -204,8 +205,8 @@ from matplotlib import cm
 
 import seaborn as sns
 
-# %% {"code_folding": [0, 105, 309, 432, 720]}
-## Wrapping one-asset codes from BayerLuetticke. Super long. No need to unfold for most purposes in this notebook
+# %% {"code_folding": [105, 309, 432, 720]}
+## Wrapping one-asset codes from BayerLuetticke. Super long. No need to unfold for most purposes of this notebook
 
 
 class FluctuationsOneAssetIOUs:
@@ -306,7 +307,7 @@ class FluctuationsOneAssetIOUs:
                 'Gamma_control': Gamma_control, 'InvGamma':InvGamma, 
                 'par':self.par, 'mpar':self.mpar, 'aggrshock':aggrshock, 'oc':oc,
                 'Copula':self.Copula,'grid':self.grid,'targets':self.targets,'P_H':self.P_H, 
-                'joint_distr': self.joint_distr, 'os':os, 'Output': self.Output}
+                'joint_distr': self.joint_distr, 'os':os, 'Output': self.Output}ß
         
 
 
@@ -977,7 +978,7 @@ def EGM_policyupdate(EVm,PIminus,RBminus,inc,meshes,grid,par,mpar):
 EX2SR=FluctuationsOneAssetIOUs(**EX2SS)
 
 ## Choose an accuracy of approximation with DCT
-#EX2SS['par']['accuracy'] = 0.99999 does not have accuracy here, not sure why?
+#EX2SS['par']['accuracy'] = 0.99999 ## TW: does not have accuracy here, not sure why?
 
 # Do state reduction 
 SR=EX2SR.StateReduc()
@@ -1001,7 +1002,7 @@ SR=EX2SR.StateReduc()
 # Measuring the effectiveness of the state reduction
 
 print('What are the results from the state reduction?')
-#print('Newly added attributes after the operation include \n'+str(set(SR.keys())-set(EX3SS.keys())))
+#print('Newly added attributes after the operation include \n'+str(set(SR.keys())-set(EX2SS.keys())))
 
 print('\n')
 
@@ -1035,7 +1036,7 @@ print('It simply stacks all grids of different\
 # We plot the functions for the top and bottom values of the wage $h$ distribution
 #
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Graphical illustration
 
 xi = EX2SS['par']['xi']
@@ -1069,7 +1070,35 @@ hgrid = EX2SS['grid']['h']
 joint_distr =  EX2SS['joint_distr']
 #marginal_mk =  EX2SS['joint_distr'].sum(axis=2)
 
+# %% {"code_folding": [0, 2, 7, 12]}
+## define some functions to be used next
+
+def dct2d(x):
+    x0=sf.dct(x.copy(),axis=0,norm='ortho')
+    x1=sf.dct(x0.copy(),axis=1,norm='ortho')
+    return x1
+
+def idct2d(x):
+    x1 = sf.idct(x.copy(),axis=1,norm='ortho')
+    x0 = sf.idct(x1.copy(),axis=0,norm='ortho')
+    return x0
+
+def DCTApprox(fullgrids,dct_index):
+    dim=fullgrids.shape
+    dctcoefs = dct2d(fullgrids)
+    dctcoefs_rdc = np.zeros(dim)
+    dctcoefs_rdc[dct_index]=dctcoefs[dct_index]
+    approxgrids = idct2d(dctcoefs_rdc)
+    return approxgrids
+
+
 # %% {"code_folding": [0]}
+## get dct compressed c functions at all grids 
+
+c_n_approx = DCTApprox(cn_StE,mut_rdc_idx)
+c_a_approx = DCTApprox(ca_StE,mut_rdc_idx)
+
+# %% {"code_folding": []}
 ## 3D scatter plots of consumption function 
 ##    at all grids and grids after dct for both adjusters and non-adjusters
 
@@ -1077,7 +1106,7 @@ joint_distr =  EX2SS['joint_distr']
 ## for non-adjusters
 
 ## full grids 
-mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
+#mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
 
 ### for adjusters 
 fig = plt.figure(figsize=(14,14))
@@ -1086,10 +1115,6 @@ fig.suptitle('Consumption of non-adjusters at grid points of m and k(for differe
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
     hgrid_fix=hgrid_id
-    c_n_rdc = (cn_StE*mut_rdc_mask_3d)[:,:,hgrid_fix]
-    c_a_rdc = (ca_StE*mut_rdc_mask_3d)[:,:,hgrid_fix]
-    
-    ## filter non-dct grid points
     
     
     ## for each h grid, take the 95% mass of m and k as the maximum of the m and k axis 

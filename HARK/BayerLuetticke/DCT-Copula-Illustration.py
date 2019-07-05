@@ -203,6 +203,8 @@ from matplotlib import cm
 
 import seaborn as sns
 
+import copy as cp
+
 
 # %% {"code_folding": [0]}
 ## State reduction and discrete cosine transformation
@@ -416,8 +418,6 @@ EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
 ### EX3SS is precomputed steady-state pulled in above
 EX3SS['par']['accuracy'] = 0.99999 
 
-## 20190607: CDC to TW: Please try to figure out what this is
-
 # %% {"code_folding": []}
 ## Implement state reduction and DCT
 ### Do state reduction on steady state
@@ -462,7 +462,7 @@ print('The total number of state variables is '+str(SR['State'].shape[0]) + '='+
 # We plot the functions for the top and bottom values of the wage $h$ distribution
 #
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Graphical illustration
 
 xi = EX3SS['par']['xi']
@@ -483,26 +483,6 @@ dim_StE = mut_StE.shape
 mgrid = EX3SS['grid']['m']
 kgrid = EX3SS['grid']['k']
 hgrid = EX3SS['grid']['h']
-
-
-## indexMUdct is one dimension, needs to be unraveled to 3 dimensions
-mut_rdc_idx_flt = SR['indexMUdct']
-mut_rdc_idx = np.unravel_index(mut_rdc_idx_flt,dim_StE,order='F')
-
-nb_dct = len(mut_StE.flatten()) 
-mut_rdc_bool = np.zeros(nb_dct)     # boolean array of 30 x 30 x 4  
-for i in range(nb_dct):
-    mut_rdc_bool[i]=i in list(SR['indexMUdct'])
-mut_rdc_bool_3d = (mut_rdc_bool==1).reshape(dim_StE)
-mut_rdc_mask_3d = (mut_rdc_bool).reshape(dim_StE)
-
-
-## get the 95 percent or other percentile of the distribution
-
-joint_distr =  EX3SS['joint_distr']
-marginal_mk =  EX3SS['joint_distr'].sum(axis=2)
-
-mass_pct = 0.95
 
 
 # %% {"code_folding": [0]}
@@ -528,15 +508,114 @@ def DCTApprox(fullgrids,dct_index):
     approxgrids = idct3d(dctcoefs_rdc)
     return approxgrids
 
+# %% {"code_folding": []}
+## 2D graph of consumption function: c(m) fixing k and h
 
-# %% {"code_folding": [0]}
+
+## list of accuracy levels 
+
+acc_lst = np.array([0.99999,0.999,0.99,0.9])
+
+## c(m) fixing k and h
+fig = plt.figure(figsize=(8,8))
+fig.suptitle('c at full grids and c approximated by DCT in different accuracy levels' 
+             '\n non-adjusters, fixing k and h',
+             fontsize=(13))
+fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.3)
+
+for idx in range(len(acc_lst)):
+    EX3SS_cp =cp.deepcopy(EX3SS) 
+    EX3SS_cp['par']['accuracy'] = acc_lst[idx]
+    EX3SR_cp=StateReduc_Dct(**EX3SS_cp)   # Takes StE result as input and get ready to invoke state reduction operation
+    SR_cp=EX3SR_cp.StateReduc()
+    mut_rdc_idx_flt_cp = SR_cp['indexMUdct']
+    mut_rdc_idx_cp = np.unravel_index(mut_rdc_idx_flt_cp,dim_StE,order='F')
+    nb_bf_cp = len(mut_rdc_idx_cp[0])
+    print(str(nb_bf_cp) +" basis functions used.")
+    c_n_approx_cp = DCTApprox(cn_StE,mut_rdc_idx_cp)
+    c_a_approx_cp = DCTApprox(ca_StE,mut_rdc_idx_cp)
+    cn_diff_cp = c_n_approx_cp-cn_StE
+    
+    hgrid_fix=1  # fix level of h as an example 
+    kgrid_fix=10  # fix level of k as an example
+    
+    ## plots 
+    ax = fig.add_subplot(2,2,idx+1)
+    ax.plot(mgrid,c_n_approx_cp[:,kgrid_fix,hgrid_fix],label='c approximated by DCT')
+    ax.plot(mgrid,cn_StE[:,kgrid_fix,hgrid_fix],'--',label='c at full grids')
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel(r'$c(m)$',fontsize=13)
+    ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
+    ax.legend(loc=0)
+
+# %% {"code_folding": []}
+## 2D graph of consumption function: c(k) fixing m and h
+
+fig = plt.figure(figsize=(8,8))
+fig.suptitle('c at full grids and c approximated by DCT in different accuracy levels' 
+             '\n non-adjusters, fixing m and h',
+             fontsize=(13))
+fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.3)
+
+for idx in range(len(acc_lst)):
+    EX3SS_cp =cp.deepcopy(EX3SS)
+    EX3SS_cp['par']['accuracy'] = acc_lst[idx]
+    EX3SR_cp=StateReduc_Dct(**EX3SS_cp)   # Takes StE result as input and get ready to invoke state reduction operation
+    SR_cp=EX3SR_cp.StateReduc()
+    mut_rdc_idx_flt_cp= SR_cp['indexMUdct']
+    mut_rdc_idx_cp = np.unravel_index(mut_rdc_idx_flt_cp,dim_StE,order='F')
+    nb_bf_cp = len(mut_rdc_idx_cp[0])
+    print(str(nb_bf_cp) +" basis functions used.")
+    c_n_approx_cp = DCTApprox(cn_StE,mut_rdc_idx_cp)
+    c_a_approx_cp = DCTApprox(ca_StE,mut_rdc_idx_cp)
+    cn_diff_cp = c_n_approx_cp-cn_StE
+    
+    hgrid_fix=1  # fix level of h as an example 
+    mgrid_fix=10  # fix level of k as an example
+    
+    ## plots 
+    ax = fig.add_subplot(2,2,idx+1)
+    ax.plot(mgrid,c_n_approx_cp[mgrid_fix,:,hgrid_fix],label='c approximated by DCT')
+    ax.plot(mgrid,cn_StE[mgrid_fix,:,hgrid_fix],'--',label='c at full grids')
+    ax.set_xlabel('k',fontsize=13)
+    ax.set_ylabel(r'$c(k)$',fontsize=13)
+    ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
+    ax.legend(loc=0)
+
+# %%
+## redo DCT for accuracy level 0.99999
+
+EX3SS['par']['accuracy'] = 0.99999 
+EX3SR=StateReduc_Dct(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
+SR=EX3SR.StateReduc()           # StateReduc is operated 
+
+
+## indexMUdct is one dimension, needs to be unraveled to 3 dimensions
+mut_rdc_idx_flt = SR['indexMUdct']
+mut_rdc_idx = np.unravel_index(mut_rdc_idx_flt,dim_StE,order='F')
+
+nb_dct = len(mut_StE.flatten()) 
+mut_rdc_bool = np.zeros(nb_dct)     # boolean array of 30 x 30 x 4  
+for i in range(nb_dct):
+    mut_rdc_bool[i]=i in list(SR['indexMUdct'])
+mut_rdc_bool_3d = (mut_rdc_bool==1).reshape(dim_StE)
+mut_rdc_mask_3d = (mut_rdc_bool).reshape(dim_StE)
+
+## get the 95 percent or other percentile of the distribution
+
+joint_distr =  EX3SS['joint_distr']
+marginal_mk =  EX3SS['joint_distr'].sum(axis=2)
+
+mass_pct = 0.95
+
+# %%
 ## get dct compressed c functions at all grids 
 
 c_n_approx = DCTApprox(cn_StE,mut_rdc_idx)
 c_a_approx = DCTApprox(ca_StE,mut_rdc_idx)
 
-# %% {"code_folding": [0]}
-## 3D scatter plots of consumption function 
+# %% {"code_folding": []}
+## 3D surface plots of consumption function at full grids and approximated by DCT
 ##    at all grids and grids after dct for both adjusters and non-adjusters
 
 ## for non-adjusters
@@ -567,7 +646,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.view_init(20, 150)
 
 # %% {"code_folding": [0]}
-## Same thing in a different way: image plots of c functions at full grids and c approximated by dct
+## Same thing in a different way: image plots of c functions at full grids and c approximated by DCT
 
 
 ## for non-adjusters
@@ -620,32 +699,33 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 30)
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Difference of full-grid c and DCT compressed c for difference levels of accuracy
 
-acc_lst = np.array([0.999,0.99,0.9,0.5])
+acc_lst = np.array([0.99999,0.999,0.99,0.9])
 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Differences of c at full grids and c approximated by DCT in different accuracy levels(non-adjusters)',
              fontsize=(13))
 
 for idx in range(len(acc_lst)):
-    EX3SS_cp =EX3SS.copy() 
+    EX3SS_cp =cp.deepcopy(EX3SS)
     EX3SS_cp['par']['accuracy'] = acc_lst[idx]
     EX3SR_cp=StateReduc_Dct(**EX3SS_cp)   # Takes StE result as input and get ready to invoke state reduction operation
     SR_cp=EX3SR_cp.StateReduc()
-    mut_rdc_idx_flt = SR_cp['indexMUdct']
-    mut_rdc_idx = np.unravel_index(mut_rdc_idx_flt,dim_StE,order='F')
-    nb_bf = len(mut_rdc_idx[0])
-    print(str(nb_bf) +" basis functions used.")
-    c_n_approx = DCTApprox(cn_StE,mut_rdc_idx)
-    c_a_approx = DCTApprox(ca_StE,mut_rdc_idx)
-    cn_diff = c_n_approx-cn_StE
+    mut_rdc_idx_flt_cp = SR_cp['indexMUdct']
+    mut_rdc_idx_cp = np.unravel_index(mut_rdc_idx_flt_cp,dim_StE,order='F')
+    nb_bf_cp = len(mut_rdc_idx_cp[0])
+    print(str(nb_bf_cp) +" basis functions used.")
+    c_n_approx_cp = DCTApprox(cn_StE,mut_rdc_idx_cp)
+    c_a_approx_cp = DCTApprox(ca_StE,mut_rdc_idx_cp)
+    cn_diff_cp = c_n_approx_cp-cn_StE
     
     hgrid_fix=1  # fix level of h as an example 
+    
     ## plots 
     ax = fig.add_subplot(2,2,idx+1, projection='3d')
-    ax.plot_surface(mmgrid,kkgrid,cn_diff[:,:,hgrid_fix], rstride=1, 
+    ax.plot_surface(mmgrid,kkgrid,cn_diff_cp[:,:,hgrid_fix], rstride=1, 
                     cstride=1,cmap=cm.coolwarm, edgecolor='none',
                     label='Difference of full-grid and approximated consumption functions')
     ax.set_xlabel('m',fontsize=13)
@@ -656,7 +736,7 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.view_init(20, 390)
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # for adjusters 
 
 fig = plt.figure(figsize=(14,14))
@@ -759,7 +839,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     for id in range(EX3SS['mpar']['nm']):   
         ax.plot(kgrid,joint_distr[id,:,hgrid_id])
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Plot joint distribution of k and m in 3d graph
 
 fig = plt.figure(figsize=(14,14))
