@@ -508,6 +508,9 @@ def DCTApprox(fullgrids,dct_index):
     approxgrids = idct3d(dctcoefs_rdc)
     return approxgrids
 
+# %% [markdown]
+# Depending on the accuracy level, the DCT operation choses the necessary number of basis functions used to approximate consumption function at the full grids. This is illustrated in the p31-p34 in this [slides](https://www.dropbox.com/s/46fdxh0aphazm71/presentation_method.pdf?dl=0). We show this for both 1-dimensional (m or k) or 2-dimenstional grids (m and k) in the following. 
+
 # %% {"code_folding": []}
 ## 2D graph of consumption function: c(m) fixing k and h
 
@@ -536,6 +539,7 @@ for idx in range(len(acc_lst)):
     c_a_approx_cp = DCTApprox(ca_StE,mut_rdc_idx_cp)
     cn_diff_cp = c_n_approx_cp-cn_StE
     
+    # choose the fix grid of h and k
     hgrid_fix=1  # fix level of h as an example 
     kgrid_fix=10  # fix level of k as an example
     
@@ -570,6 +574,7 @@ for idx in range(len(acc_lst)):
     c_a_approx_cp = DCTApprox(ca_StE,mut_rdc_idx_cp)
     cn_diff_cp = c_n_approx_cp-cn_StE
     
+    # choose the fix grid of h and m 
     hgrid_fix=1  # fix level of h as an example 
     mgrid_fix=10  # fix level of k as an example
     
@@ -582,7 +587,7 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.legend(loc=0)
 
-# %%
+# %% {"code_folding": [0]}
 ## redo DCT for accuracy level 0.99999
 
 EX3SS['par']['accuracy'] = 0.99999 
@@ -609,12 +614,12 @@ marginal_mk =  EX3SS['joint_distr'].sum(axis=2)
 mass_pct = 0.95
 
 # %%
-## get dct compressed c functions at all grids 
+## Again, for 0.99999 accuracy level, get dct compressed c functions at all grids 
 
 c_n_approx = DCTApprox(cn_StE,mut_rdc_idx)
 c_a_approx = DCTApprox(ca_StE,mut_rdc_idx)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## 3D surface plots of consumption function at full grids and approximated by DCT
 ##    at all grids and grids after dct for both adjusters and non-adjusters
 
