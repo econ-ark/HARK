@@ -19,10 +19,9 @@ from scipy import sparse as sp
 from scipy import linalg
 from math import log, cos, pi
 import time
-from SharedFunc2 import Transition, ExTransitions, GenWeight, MakeGrid2, Tauchen
+from .SharedFunc import Transition, ExTransitions, GenWeight, MakeGrid, Tauchen
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import scipy.io
 
 class FluctuationsOneAssetIOUs:
     
@@ -46,8 +45,8 @@ class FluctuationsOneAssetIOUs:
         invutil = lambda x : ((1-self.par['xi'])*x)**(1./(1-self.par['xi']))
         invmutil = lambda x : (1./x)**(1./self.par['xi'])
 
-        Xss=np.vstack((np.sum(self.joint_distr.copy(),axis=1), np.transpose(np.sum(self.joint_distr.copy(),axis=0)),np.log(self.par['RB']),0))
-        Yss=np.vstack((invmutil(np.reshape(self.mutil_c.copy(),(np.product(self.mutil_c.shape),1),order='F')),np.log(self.par['PI']),np.log(self.targets['Y']),np.log(self.targets['W']),np.log(self.targets['PROFITS']),np.log(self.targets['N']),self.targets['B'],self.targets['G']))
+        Xss=np.vstack((np.sum(self.joint_distr.copy(),axis=1), np.transpose(np.sum(self.joint_distr.copy(),axis=0)),log(self.par['RB']),0))
+        Yss=np.vstack((invmutil(np.reshape(self.mutil_c.copy(),(np.product(self.mutil_c.shape),1),order='F')),log(self.par['PI']),log(self.Output),log(self.par['W']),log(self.par['PROFITS']),log(self.par['N']),self.targets['B']))
         ## Construct Chebyshev Polynomials to describe deviations of policy from SS
         Poly=[]
         maxlevel=max(self.mpar['nm'],self.mpar['nh'])
@@ -114,8 +113,9 @@ class FluctuationsOneAssetIOUs:
 
                  
         aggrshock           = 'MP'
-        self.par['rhoS']    = 0.0      # Persistence of variance
-        self.par['sigmaS']  = 0.001    # STD of variance shocks
+        aggrshock           = 'Uncertainty'
+        self.par['rhoS']    = 0.84      # Persistence of variance
+        self.par['sigmaS']  = 0.54    # STD of variance shocks
 
         
         return {'Xss': Xss, 'Yss':Yss, 'Gamma_state': Gamma_state, 
@@ -133,7 +133,9 @@ def SGU_solver(Xss,Yss,Gamma_state,Gamma_control,InvGamma,Copula,par,mpar,grid,t
     Contr       = np.zeros((mpar['numcontrols'],1))
     Contr_m     = Contr.copy()
         
-
+#        F = lambda S, S_m, C, C_m : Fsys(S, S_m, C, C_m,
+#                                         Xss,Yss,Gamma_state,Gamma_control,InvGamma,
+#                                         self.Copula,self.par,self.mpar,self.grid,self.targets,self.P_H,aggrshock,oc)
     F = lambda S, S_m, C, C_m : Fsys(S, S_m, C, C_m,
                                          Xss,Yss,Gamma_state,Gamma_control,InvGamma,
                                          Copula,par,mpar,grid,targets,P_H,aggrshock,oc)
@@ -162,7 +164,7 @@ def SGU_solver(Xss,Yss,Gamma_state,Gamma_control,InvGamma,Copula,par,mpar,grid,t
     blocks=int(ceil(mpar['numstates'] / float(packagesize) ))
 
     par['scaleval1'] = 1e-9
-    par['scaleval2'] = 1e-6
+    par['scaleval2'] = 1e-4
         
     start_time = time.clock()
     print('Computing Jacobian F1=DF/DXprime F3 =DF/DX')
@@ -261,51 +263,33 @@ def SGU_solver(Xss,Yss,Gamma_state,Gamma_control,InvGamma,Copula,par,mpar,grid,t
         Y[-1-Yct]=h
         Fx=F(ss,ss,cc,Y)
         F4[:,-1 - Yct]=(Fx['Difference'] - Fb) / h
-        
-   
+      
     s,t,Q,Z=linalg.qz(np.hstack((F1,F2)), -np.hstack((F3,F4)), output='complex')
-    abst = abs(np.diag(t))*(abs(np.diag(t))!=0.)+  (abs(np.diag(t))==0.)*10**(-11)
-    #relev=np.divide(abs(np.diag(s)), abs(np.diag(t)))
-    relev=np.divide(abs(np.diag(s)), abst)    
-    
+        
+    relev=np.divide(abs(np.diag(s)), abs(np.diag(t)))
     ll=sorted(relev)
     slt=relev >= 1
     nk=sum(slt)
     slt=1*slt
     mpar['overrideEigen']=1
-
-    s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort='ouc', output='complex')
-    
-    def sortOverridEigen(x, y):
-        out = np.empty_like(x, dtype=bool)
-        xzero = (x == 0)
-        yzero = (y == 0)
-        out[xzero & yzero] = False
-        out[~xzero & yzero] = True
-        out[~yzero] = (abs(x[~yzero]/y[~yzero]) > ll[-1 - mpar['numstates']])
-        return out        
-    
+        
     if nk > mpar['numstates']:
        if mpar['overrideEigen']:
           print('Warning: The Equilibrium is Locally Indeterminate, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
           slt=relev > ll[-1 - mpar['numstates']]
           nk=sum(slt)
-          s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort=sortOverridEigen, output='complex')
-          
        else:
           print('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
         
     elif nk < mpar['numstates']:
-       if mpar['overrideEigen']:
+       if mpar.overrideEigen:
           print('Warning: No Local Equilibrium Exists, critical eigenvalue shifted to: ', str(ll[-1 - mpar['numstates']]))
           slt=relev > ll[-1 - mpar['numstates']]
           nk=sum(slt)
-          s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort=sortOverridEigen, output='complex')
-          
        else:
           print('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
 
-
+    s_ord,t_ord,__,__,__,Z_ord=linalg.ordqz(np.hstack((F1,F2)), -np.hstack((F3,F4)), sort='ouc', output='complex')
         
         
     z21=Z_ord[nk:,0:nk]
@@ -361,13 +345,9 @@ def plot_IRF(mpar,par,gx,hx,joint_distr,Gamma_state,grid,targets,os,oc,Output):
     IRF_RB = 100*IRF_state_sparse[mpar['numstates']-os,1:]
     IRF_S=100*IRF_state_sparse[mpar['numstates']-os+1,:-1]
         
-    Y=targets['Y']*(1+IRF_state_sparse[-1-oc+2, :-1])
-    G=targets['G']*(1+IRF_state_sparse[-1-oc+7, :-1])
-    C=Y-G;
-    
-    IRF_C=100*np.log(C/(targets['Y']-targets['G']))
+    Y=Output*(1+IRF_state_sparse[-1-oc+2, :-1])
     IRF_Y=100*IRF_state_sparse[-1-oc+2, :-1]
-    IRF_G=100*IRF_state_sparse[-1-oc+7, :-1]
+    IRF_C=IRF_Y
     IRF_N=100*IRF_state_sparse[-1-oc+5, :-1]
     IRF_PI=100*100*IRF_state_sparse[-1-oc+1, :-1]
         
@@ -444,14 +424,7 @@ def plot_IRF(mpar,par,gx,hx,joint_distr,Gamma_state,grid,targets,os,oc,Output):
     plt.xlabel('Quarter')
     plt.ylabel('Percent') 
     f_N.show()
-
-    f_G = plt.figure(9)
-    line1,=plt.plot(range(1,mpar['maxlag']),np.squeeze(np.asarray(IRF_G)), label='IRF_G')
-    plt.legend(handles=[line1])
-    plt.plot(range(0,mpar['maxlag']-1),np.zeros((mpar['maxlag']-1)),'k--' )
-    plt.xlabel('Quarter')
-    plt.ylabel('Percent') 
-    f_G.show()        
+        
         
 def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, ControlSS, 
          Gamma_state, Gamma_control, InvGamma, Copula, par, mpar, grid, targets, P, aggrshock, oc):
@@ -518,11 +491,10 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     Nind = 1*NN+4
     #Tind = 1*NN+6
     Bind = 1*NN+5
-    Gind = 1*NN+6
     
     # Initialize LHS and RHS
-    LHS = np.zeros((nx+Gind+1,1))
-    RHS = np.zeros((nx+Gind+1,1))
+    LHS = np.zeros((nx+Bind+1,1))
+    RHS = np.zeros((nx+Bind+1,1))
     
     # Indexes for states
     #distr_ind = np.arange(mpar['nm']*mpar['nh']-mpar['nh']-1)
@@ -574,18 +546,17 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     Nminus = np.exp(Controlminus[Nind])
     #Tminus = np.exp(Controlminus[Tind])
     Bminus = Controlminus[Bind]
-    Gminus = Controlminus[Gind]
     
     ## Write LHS values
     # Controls
     LHS[nx+mutil_cind.copy()] = invmutil(mutil_cminus.copy())
     LHS[nx+Yind] = Yminus
+    #LHS[nx+Gind] = Gminus
     LHS[nx+Wind] = Wminus
     LHS[nx+Profitind] = Profitminus
     LHS[nx+Nind] = Nminus
     #LHS[nx+Tind] = Tminus
     LHS[nx+Bind] = Bminus
-    LHS[nx+Gind] = Gminus
     
     # States
     # Marginal Distributions (Marginal histograms)
@@ -634,10 +605,10 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     mc = par['mu'] - (par['beta']* np.log(PI)*Y/Yminus - np.log(PIminus))/par['kappa']
     
     RHS[nx+Nind] = (par['tau']*TFP*par['alpha']*grid['K']**(1-par['alpha'])*np.asarray(mc))**(1/(1-par['alpha']+par['gamma']))
-    RHS[nx+Yind] = (TFP*np.asarray(Nminus)**par['alpha']*grid['K']**(1-par['alpha']))
+    RHS[nx+Yind] = (0.25*TFP*np.asarray(Nminus)**par['alpha']*grid['K']**(1-par['alpha']))
     
     # Wage Rate
-    RHS[nx+Wind] = TFP * par['alpha'] * mc *(grid['K']/np.asarray(Nminus))**(1-par['alpha'])
+    RHS[nx+Wind] = (0.25)*TFP * par['alpha'] * mc *(grid['K']/np.asarray(Nminus))**(1-par['alpha'])
     
     # Profits for Enterpreneurs
     RHS[nx+Profitind] = (1-mc)*Yminus - Yminus*(1/(1-par['mu']))/par['kappa']/2*np.log(PIminus)**2
@@ -717,20 +688,9 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     # Return on bonds (Taylor Rule)
     RHS[RBind] = np.log(par['RB'])+par['rho_R']*np.log(RBminus/par['RB']) + np.log(PIminus/par['PI'])*((1.-par['rho_R'])*par['theta_pi'])+EPS_TAYLOR
     
-    
-    # Fiscal rule
-    
     # Inflation jumps to equilibrate real bond supply and demand
-    
-    if par['tau'] < 1:
-       RHS[nx+Gind] = targets['G']*np.exp(-par['gamma_b']*np.log(Bminus/targets['B']) - par['gamma_pi']*np.log(PIminus/par['PI'])) 
-       tax = (1-par['tau'])*Wminus*Nminus + (1-par['tau'])*Profitminus
-       RHS[nx+PIind] = (Bminus*RBminus/PIminus + Gminus - tax)
-       LHS[nx+PIind] = B
-    else:
-       RHS[nx+Gind] = targets['G'] 
-       RHS[nx+PIind] = targets['B']
-       LHS[nx+PIind] = B
+    RHS[nx+PIind] = targets['B']
+    LHS[nx+PIind] = B
     
     
     ## Difference
@@ -790,14 +750,13 @@ if __name__ == '__main__':
     from copy import copy
     from time import clock
     import pickle
-    import scipy.io
     
-    EX2SS=pickle.load(open("EX2SS.p", "rb"))
+    EX1SS=pickle.load(open("EX1SS_nm50.p", "rb"))
 
-    EX2SR=FluctuationsOneAssetIOUs(**EX2SS)
+    EX1SR=FluctuationsOneAssetIOUs(**EX1SS)
 
-    SR=EX2SR.StateReduc()
-    
+    SR=EX1SR.StateReduc()
+        
     SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['Gamma_control'],SR['InvGamma'],SR['Copula'],
                          SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['P_H'],SR['aggrshock'],SR['oc'])
 
