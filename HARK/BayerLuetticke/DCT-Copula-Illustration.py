@@ -544,12 +544,12 @@ for idx in range(len(acc_lst)):
     kgrid_fix=10  # fix level of k as an example
     
     # get the corresponding c function approximated by dct
-    cVec = c_n_approx_cp[:,kgrid_fix,hgrid_fix]
+    cVec = c_a_approx_cp[:,kgrid_fix,hgrid_fix]
     
     ## plots 
     ax = fig.add_subplot(2,2,idx+1)
     ax.plot(mgrid,cVec,label='c approximated by DCT')
-    ax.plot(mgrid,cn_StE[:,kgrid_fix,hgrid_fix],'--',label='c at full grids')
+    ax.plot(mgrid,ca_StE[:,kgrid_fix,hgrid_fix],'--',label='c at full grids')
     ax.plot(mgrid,cVec,'r*')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel(r'$c(m)$',fontsize=13)
@@ -652,12 +652,12 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
                label='StE(before dct): non-adjuster')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
+    ax.set_zlabel(r'$c_n(m,k)$',fontsize=13)
     plt.gca().invert_yaxis()
     #ax.set_xlim([0,mmax])
     #ax.set_ylim([0,kmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
-    ax.view_init(20, 150)
+    ax.view_init(20, 100)
 
 # %% {"code_folding": []}
 ## Same thing in a different way: image plots of c functions at full grids and c approximated by DCT
@@ -742,11 +742,11 @@ for idx in range(len(acc_lst)):
     ## plots 
     ax = fig.add_subplot(2,2,idx+1, projection='3d')
     ax.plot_surface(mmgrid,kkgrid,cn_diff_cp[:,:,hgrid_fix], rstride=1, 
-                    cstride=1,cmap=cm.coolwarm, edgecolor='none',
+                    cstride=1,cmap=cm.summer, edgecolor='none',
                     label='Difference of full-grid and approximated consumption functions')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
+    ax.set_zlabel('Difference of c functions',fontsize=13)
     plt.gca().invert_yaxis()
     plt.gca().invert_xaxis()
     #ax.set_xlim([0,mmax])
@@ -792,9 +792,9 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.plot_surface(mmgrid,kkgrid,c_n_approx[:,:,hgrid_fix],cmap='OrRd',
+    ax.plot_surface(mmgrid,kkgrid,c_n_approx[:,:,hgrid_fix],cmap=cm.winter,
                label='StE(after dct):non-adjuster')
-    ax.plot_surface(mmgrid,kkgrid,c_a_approx[:,:,hgrid_fix],cmap='Blues',
+    ax.plot_surface(mmgrid,kkgrid,c_a_approx[:,:,hgrid_fix],cmap=cm.autumn,
                label='StE(after dct):adjuster')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
@@ -824,7 +824,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
                label='StE(after dct):difference of non-adjuster and adjusters')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
+    ax.set_zlabel(r'$c_n(m,k)-c_a(m,k)$',fontsize=12)
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     plt.gca().invert_yaxis()
     plt.gca().invert_xaxis()
