@@ -19,7 +19,7 @@
 #
 # This notebook solves a New Keynesian model in which there is only a single liquid asset.  This is the second model described in <cite data-cite="6202365/ECL3ZAR7"></cite>.  For a detailed description of their solution method, see the companion two-asset HANK model notebook.
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Setup
 from __future__ import print_function
 
@@ -59,7 +59,7 @@ code_dir = os.path.join(my_file_path, "BayerLuetticke_code/OneAssetCode-HANK")
 sys.path.insert(0, code_dir)
 sys.path.insert(0, my_file_path)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Import external libraries
 
 import numpy as np
@@ -83,7 +83,7 @@ from copy import copy
 from time import clock
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Bayer-Luetticke Code
 
 class FluctuationsOneAssetIOUs:
@@ -849,7 +849,7 @@ def EGM_policyupdate(EVm,PIminus,RBminus,inc,meshes,grid,par,mpar):
 
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Load Stationary equilibrium (StE) object EX2SS
 
 import pickle
@@ -858,7 +858,7 @@ os.chdir(code_dir) # Go to the directory with pickled code
 ## EX2SS.p is the information in the stationary equilibrium (20: the number of illiquid and liquid weath grids )
 EX2SS=pickle.load(open("EX2SS.p", "rb"))
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Dimensionality Reduction
 
 EX2SR=FluctuationsOneAssetIOUs(**EX2SS)
@@ -866,7 +866,7 @@ EX2SR=FluctuationsOneAssetIOUs(**EX2SS)
 SR=EX2SR.StateReduc()
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # # Monetary Policy Shock
 
 # EX2SS['par']['aggrshock']           = 'MP'
@@ -911,7 +911,7 @@ SR=EX2SR.StateReduc()
 # plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
 #              SR['Gamma_state'],SR['grid'],SR['targets'],SR['os'],SR['oc'],SR['Output'])
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Uncertainty Shock
 
 
