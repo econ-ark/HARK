@@ -172,7 +172,7 @@ dir(EX2SS['Copula'])
 #      '\n state variables are below the corresponding point.')
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Import necessary libraries
 
 from __future__ import print_function
@@ -205,7 +205,7 @@ from matplotlib import cm
 
 import seaborn as sns
 
-# %% {"code_folding": [105, 309, 432, 720]}
+# %% {"code_folding": [0, 105, 309, 432, 720]}
 ## Wrapping one-asset codes from BayerLuetticke. Super long. No need to unfold for most purposes of this notebook
 
 

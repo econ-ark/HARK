@@ -462,7 +462,7 @@ print('The total number of state variables is '+str(SR['State'].shape[0]) + '='+
 # We plot the functions for the top and bottom values of the wage $h$ distribution
 #
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Graphical illustration
 
 xi = EX3SS['par']['xi']
@@ -540,13 +540,17 @@ for idx in range(len(acc_lst)):
     cn_diff_cp = c_n_approx_cp-cn_StE
     
     # choose the fix grid of h and k
-    hgrid_fix=1  # fix level of h as an example 
+    hgrid_fix=2  # fix level of h as an example 
     kgrid_fix=10  # fix level of k as an example
+    
+    # get the corresponding c function approximated by dct
+    cVec = c_n_approx_cp[:,kgrid_fix,hgrid_fix]
     
     ## plots 
     ax = fig.add_subplot(2,2,idx+1)
-    ax.plot(mgrid,c_n_approx_cp[:,kgrid_fix,hgrid_fix],label='c approximated by DCT')
+    ax.plot(mgrid,cVec,label='c approximated by DCT')
     ax.plot(mgrid,cn_StE[:,kgrid_fix,hgrid_fix],'--',label='c at full grids')
+    ax.plot(mgrid,cVec,'r*')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel(r'$c(m)$',fontsize=13)
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
@@ -575,13 +579,17 @@ for idx in range(len(acc_lst)):
     cn_diff_cp = c_n_approx_cp-cn_StE
     
     # choose the fix grid of h and m 
-    hgrid_fix=1  # fix level of h as an example 
+    hgrid_fix=2  # fix level of h as an example 
     mgrid_fix=10  # fix level of k as an example
     
+    # get the corresponding c function approximated by dct
+    cVec = c_n_approx_cp[mgrid_fix,:,hgrid_fix]
+
     ## plots 
     ax = fig.add_subplot(2,2,idx+1)
-    ax.plot(mgrid,c_n_approx_cp[mgrid_fix,:,hgrid_fix],label='c approximated by DCT')
-    ax.plot(mgrid,cn_StE[mgrid_fix,:,hgrid_fix],'--',label='c at full grids')
+    ax.plot(kgrid,cVec,label='c approximated by DCT')
+    ax.plot(kgrid,cn_StE[mgrid_fix,:,hgrid_fix],'--',label='c at full grids')
+    ax.plot(kgrid,cVec,'r*')
     ax.set_xlabel('k',fontsize=13)
     ax.set_ylabel(r'$c(k)$',fontsize=13)
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
@@ -619,7 +627,7 @@ mass_pct = 0.95
 c_n_approx = DCTApprox(cn_StE,mut_rdc_idx)
 c_a_approx = DCTApprox(ca_StE,mut_rdc_idx)
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## 3D surface plots of consumption function at full grids and approximated by DCT
 ##    at all grids and grids after dct for both adjusters and non-adjusters
 
@@ -645,12 +653,13 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
+    plt.gca().invert_yaxis()
     #ax.set_xlim([0,mmax])
     #ax.set_ylim([0,kmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 150)
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Same thing in a different way: image plots of c functions at full grids and c approximated by DCT
 
 
@@ -674,7 +683,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_ylabel('k',fontsize=13)
     ax.set_title(r'$h({})$'.format(hgrid_fix))
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## 3D scatter plots of the difference of full-grid c and approximated c
 
 ## for non-adjusters
@@ -699,10 +708,12 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
+    plt.gca().invert_yaxis()
+    plt.gca().invert_xaxis()
     #ax.set_xlim([0,mmax])
     #ax.set_ylim([0,kmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
-    ax.view_init(20, 30)
+    ax.view_init(20, 40)
 
 # %% {"code_folding": []}
 # Difference of full-grid c and DCT compressed c for difference levels of accuracy
@@ -736,10 +747,12 @@ for idx in range(len(acc_lst)):
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
+    plt.gca().invert_yaxis()
+    plt.gca().invert_xaxis()
     #ax.set_xlim([0,mmax])
     #ax.set_ylim([0,kmax])
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
-    ax.view_init(20, 390)
+    ax.view_init(20, 60)
 
 # %% {"code_folding": []}
 # for adjusters 
@@ -760,12 +773,13 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
+    plt.gca().invert_yaxis()
     #ax.set_xlim([0,mmax])
     #ax.set_ylim([0,kmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 150)
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ### compare consumption functions of adjusters and non-adjusters approximated by DCT
 
 fig = plt.figure(figsize=(14,14))
@@ -785,11 +799,13 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
     ax.set_title(r'$h({})$'.format(hgrid_fix))
+    plt.gca().invert_yaxis()
+    plt.gca().invert_xaxis()    
     #ax.set_xlim(0,mmax)
     #ax.set_ylim(0,kmax)
     ax.view_init(20, 60)
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## the differences of consumption functions of adjusters and non-adjusters approximated by DCT.
 
 c_diff_approx=c_n_approx-c_a_approx
@@ -809,9 +825,11 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
     ax.set_title(r'$h({})$'.format(hgrid_fix))
+    plt.gca().invert_yaxis()
+    plt.gca().invert_xaxis()
     #ax.set_xlim(0,mmax)
     #ax.set_ylim(0,kmax)
-    ax.view_init(20, 30)
+    ax.view_init(20, 80)
 
 # %% [markdown]
 # ##### Observation
@@ -844,12 +862,14 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     for id in range(EX3SS['mpar']['nm']):   
         ax.plot(kgrid,joint_distr[id,:,hgrid_id])
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Plot joint distribution of k and m in 3d graph
 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Joint distribution of m and k(for different h)',
              fontsize=(13))
+
+
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
@@ -857,10 +877,13 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
                     cmap='viridis', edgecolor='none')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
+    plt.gca().invert_yaxis()
     #ax.set_zlabel(r'$p(m,k)$',fontsize=10)
     ax.set_title(r'$h({})$'.format(hgrid_id))
     ax.set_xlim(0,400)
     ax.view_init(20, 40)
+    
+
 
 # %% [markdown]
 # Notice the CDFs in StE copula have 4 modes, corresponding to the number of $h$ gridpoints. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
@@ -889,10 +912,11 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     marginal_k = marginal_mk.sum(axis=1)
     mmax = mgrid[(np.abs(marginal_m.cumsum()-mass_pct*marginal_m.cumsum().max())).argmin()]
     kmax = kgrid[(np.abs(marginal_k.cumsum()-mass_pct*marginal_k.cumsum().max())).argmin()]
-    
+    plt.gca().invert_yaxis()
+    plt.gca().invert_xaxis()
     #ax.set_xlim(0,mmax)
     #ax.set_ylim(0,kmax)
-    ax.view_init(30, 30)
+    ax.view_init(30, 60)
 
 # %% [markdown]
 # Given the assumption that the copula remains the same after aggregate risk is introduced, we can use the same copula and the marginal distributions to recover the full joint-distribution of the states.  
