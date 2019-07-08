@@ -751,8 +751,9 @@ for idx in range(len(acc_lst)):
     plt.gca().invert_xaxis()
     #ax.set_xlim([0,mmax])
     #ax.set_ylim([0,kmax])
+    ax.set_zlim([-8,2])
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
-    ax.view_init(20, 60)
+    ax.view_init(10, 60)
 
 # %% {"code_folding": []}
 # for adjusters 
