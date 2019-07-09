@@ -7,7 +7,7 @@ import sys
 import os
 import numpy as np
 import opencl4py as cl
-os.environ["PYOPENCL_CTX"] = "0:1" # This is where you choose a device number
+os.environ["PYOPENCL_CTX"] = "0:0"  # This is where you choose a device number
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('./'))
 
@@ -19,45 +19,46 @@ platforms = cl.Platforms()
 ctx = platforms.create_some_context()
 queue = ctx.create_queue(ctx.devices[0])
 
+
 class IndShockConsumerTypesOpenCL():
     '''
     A class for representing one or more instances of IndShockConsumerType using
     OpenCL, possibly on a Graphics Processing Unit (GPU).
     '''
-    def __init__(self,agents):
+
+    def __init__(self, agents):
         '''
         Make a new instance by passing a list of agent types.
-        
+
         Parameters
         ----------
         agents : [IndShockConsumerType]
             List of agent types to be represented in OpenCL.
-            
+
         Returns
         -------
         None
         '''
         self.agents = agents
         self.TypeCount = len(agents)
-        self.IntegerInputs = np.zeros(8,dtype=int)
+        self.IntegerInputs = np.zeros(8, dtype=int)
         self.IntegerInputs[1] = self.TypeCount
-        self.IntegerInputs_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,self.IntegerInputs)
-        
+        self.IntegerInputs_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR, self.IntegerInputs)
+
         self.makeParameterBuffers()  # Make buffers with primitive and constructed parameters
-        self.makeSimulationBuffers() # Make buffers for holding current simulated variables
+        self.makeSimulationBuffers()  # Make buffers for holding current simulated variables
         self.program = ctx.create_program(program_code)
-        
-        
-        
+
     def loadSimulationKernels(self):
         '''
         Loads simulation kernels into memory, with buffers slotted into each
         input as appropriate.  Should only be run after running makeSolutionBuffers.
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         None
@@ -77,7 +78,7 @@ class IndShockConsumerTypesOpenCL():
                                       self.pLvlInitStd_buf,
                                       self.aNrmNow_buf,
                                       self.pLvlNow_buf)
-        
+
         self.getShocksKrn = self.program.get_kernel("getShocks")
         self.getShocksKrn.set_args(self.IntegerInputs_buf,
                                    self.TypeNow_buf,
@@ -91,7 +92,7 @@ class IndShockConsumerTypesOpenCL():
                                    self.IncUnemp_buf,
                                    self.PermShkNow_buf,
                                    self.TranShkNow_buf)
-        
+
         self.getStatesKrn = self.program.get_kernel("getStates")
         self.getStatesKrn.set_args(self.IntegerInputs_buf,
                                    self.TypeNow_buf,
@@ -104,7 +105,7 @@ class IndShockConsumerTypesOpenCL():
                                    self.TranShkNow_buf,
                                    self.mNrmNow_buf,
                                    self.pLvlNow_buf)
-        
+
         self.getControlsKrn = self.program.get_kernel("getControls")
         self.getControlsKrn.set_args(self.IntegerInputs_buf,
                                      self.TypeNow_buf,
@@ -121,7 +122,7 @@ class IndShockConsumerTypesOpenCL():
                                      self.mNrmNow_buf,
                                      self.cNrmNow_buf,
                                      self.MPCnow_buf)
-        
+
         self.getPostStatesKrn = self.program.get_kernel("getPostStates")
         self.getPostStatesKrn.set_args(self.IntegerInputs_buf,
                                        self.TypeNow_buf,
@@ -133,7 +134,7 @@ class IndShockConsumerTypesOpenCL():
                                        self.pLvlNow_buf,
                                        self.aNrmNow_buf,
                                        self.aLvlNow_buf)
-        
+
         self.simOnePeriodKrn = self.program.get_kernel("simOnePeriod")
         self.simOnePeriodKrn.set_args(self.IntegerInputs_buf,
                                       self.TypeNow_buf,
@@ -170,9 +171,7 @@ class IndShockConsumerTypesOpenCL():
                                       self.MPCnow_buf,
                                       self.aLvlNow_buf,
                                       self.TestVar_buf)
-        
-        
-        
+
     def prepareToSolve(self):
         '''
         Makes buffers to hold data that will be used by the OpenCL solver kernel,
@@ -180,11 +179,11 @@ class IndShockConsumerTypesOpenCL():
         attributes of self with the _buf suffix.  Needs primitive parameters to be
         defined, and the update() method to have run (so that IncomeDstn exists).
         This method only works for cycles != 0.
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         None
@@ -193,67 +192,88 @@ class IndShockConsumerTypesOpenCL():
         CRRA_vec = np.array([agent.CRRA for agent in self.agents])
         DiscFac_vec = np.array([agent.DiscFac for agent in self.agents])
         BoroCnst_vec = np.array([agent.BoroCnstArt for agent in self.agents])
-        self.CRRA_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,CRRA_vec)
-        self.DiscFac_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,DiscFac_vec)
-        self.BoroCnst_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,BoroCnst_vec)
-        
+        self.CRRA_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR, CRRA_vec)
+        self.DiscFac_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR, DiscFac_vec)
+        self.BoroCnst_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR, BoroCnst_vec)
+
         # Make buffer for the aXtraGrid
         aXtraGrid_vec = np.concatenate([agent.aXtraGrid for agent in self.agents])
-        self.aXtraGrid_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,aXtraGrid_vec)
-        
+        self.aXtraGrid_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR, aXtraGrid_vec)
+
         # Prepare to make buffers for income distributions
         T_total_vec = self.T_total_vec
         IncomePrbs_list = []
         PermShks_list = []
         TranShks_list = []
-        IncDstnAddress_vec = np.zeros(np.sum(T_total_vec)+1,dtype=int)
+        IncDstnAddress_vec = np.zeros(np.sum(T_total_vec)+1, dtype=int)
         WorstIncPrb_vec = np.zeros(np.sum(T_total_vec)+1)
         idx = 0
         loc = 0
         for j in range(len(self.agents)):
             this_agent = self.agents[j]
-            lengths = this_agent.cycles*[this_agent.IncomeDstn[t][0].size for t in range(this_agent.T_cycle)]
+            lengths = this_agent.cycles*[this_agent.IncomeDstn[t]
+                                         [0].size for t in range(this_agent.T_cycle)]
             lengths.append(0)
             IncDstnAddress_vec[(idx+1):(idx+T_total_vec[j]+1)] = loc + np.cumsum(lengths)
             loc += np.sum(lengths)
-            IncomePrbs_temp = np.concatenate([this_agent.IncomeDstn[t][0] for t in range(this_agent.T_cycle)])
-            IncomePrbs_list.append(np.tile(IncomePrbs_temp,this_agent.cycles))
-            PermShks_temp = np.concatenate([this_agent.IncomeDstn[t][1] for t in range(this_agent.T_cycle)])
-            PermShks_list.append(np.tile(PermShks_temp,this_agent.cycles))
-            TranShks_temp = np.concatenate([this_agent.IncomeDstn[t][2] for t in range(this_agent.T_cycle)])
-            TranShks_list.append(np.tile(TranShks_temp,this_agent.cycles))
-            
+            IncomePrbs_temp = np.concatenate([this_agent.IncomeDstn[t][0]
+                                              for t in range(this_agent.T_cycle)])
+            IncomePrbs_list.append(np.tile(IncomePrbs_temp, this_agent.cycles))
+            PermShks_temp = np.concatenate([this_agent.IncomeDstn[t][1]
+                                            for t in range(this_agent.T_cycle)])
+            PermShks_list.append(np.tile(PermShks_temp, this_agent.cycles))
+            TranShks_temp = np.concatenate([this_agent.IncomeDstn[t][2]
+                                            for t in range(this_agent.T_cycle)])
+            TranShks_list.append(np.tile(TranShks_temp, this_agent.cycles))
+
             # Get the worst income probability by t for this agent type
             PermShkMin = [np.min(agent.IncomeDstn[t][1]) for t in range(agent.T_cycle)]
             TranShkMin = [np.min(agent.IncomeDstn[t][2]) for t in range(agent.T_cycle)]
-            WorstIncPrb = [np.sum(agent.IncomeDstn[t][0]*(agent.IncomeDstn[t][1]==PermShkMin[t])*(agent.IncomeDstn[t][2]==TranShkMin[t])) for t in range(agent.T_cycle)]
+            WorstIncPrb = [np.sum(agent.IncomeDstn[t][0]*(agent.IncomeDstn[t][1] == PermShkMin[t])
+                                  * (agent.IncomeDstn[t][2] == TranShkMin[t])) for t in range(agent.T_cycle)]
             WorstIncPrb_adj = agent.cycles*WorstIncPrb + [0.0]
             WorstIncPrb_vec[idx:(idx+T_total_vec[j])] = WorstIncPrb_adj
             idx += T_total_vec[j]
-        
-        # Make buffers for income distributions                
+
+        # Make buffers for income distributions
         IncomePrbs_vec = np.concatenate(IncomePrbs_list)
         PermShks_vec = np.concatenate(PermShks_list)
         TranShks_vec = np.concatenate(TranShks_list)
-        self.IncomePrbs_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,IncomePrbs_vec)
-        self.PermShks_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,PermShks_vec)
-        self.TranShks_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,TranShks_vec)
-        self.WorstIncPrb_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,WorstIncPrb_vec)
-        self.IncDstnAddress_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,IncDstnAddress_vec[:-1])
-        #print(IncDstnAddress_vec)
-        
+        self.IncomePrbs_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR, IncomePrbs_vec)
+        self.PermShks_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR, PermShks_vec)
+        self.TranShks_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR, TranShks_vec)
+        self.WorstIncPrb_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR, WorstIncPrb_vec)
+        self.IncDstnAddress_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR, IncDstnAddress_vec[:-1])
+        # print(IncDstnAddress_vec)
+
         # Make buffers to hold the solution
-        mGridSize = np.sum((T_total_vec-1)*np.array([(agent.aXtraCount+1) for agent in self.agents])) # this assumes a terminal period
+        # this assumes a terminal period
+        mGridSize = np.sum(
+            (T_total_vec-1)*np.array([(agent.aXtraCount+1) for agent in self.agents]))
         empty_soln_vec = np.zeros(mGridSize)
-        self.mGrid_buf   = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,empty_soln_vec)
-        self.Coeffs0_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,empty_soln_vec)
-        self.Coeffs1_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,empty_soln_vec)
-        self.Coeffs2_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,empty_soln_vec)
-        self.Coeffs3_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,empty_soln_vec)
-        self.mLowerBound_buf = ctx.create_buffer(cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR,np.zeros(np.sum(T_total_vec)))
-        CoeffsAddress_vec = np.zeros(np.sum(T_total_vec),dtype=int)
+        self.mGrid_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR, empty_soln_vec)
+        self.Coeffs0_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR, empty_soln_vec)
+        self.Coeffs1_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR, empty_soln_vec)
+        self.Coeffs2_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR, empty_soln_vec)
+        self.Coeffs3_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR, empty_soln_vec)
+        self.mLowerBound_buf = ctx.create_buffer(
+            cl.CL_MEM_READ_WRITE | cl.CL_MEM_COPY_HOST_PTR, np.zeros(np.sum(T_total_vec)))
+        CoeffsAddress_vec = np.zeros(np.sum(T_total_vec), dtype=int)
         j = 0
-        idx = 0 # This is a really lazy way to do this
+        idx = 0  # This is a really lazy way to do this
         for k in range(len(self.agents)):
             this_agent = self.agents[k]
             for t in range(T_total_vec[k]):
@@ -261,8 +281,6 @@ class IndShockConsumerTypesOpenCL():
                 idx += count
                 CoeffsAddress_vec[j] = idx
                 j += 1
-        CoeffsAddress_vec = np.insert(CoeffsAddress_vec[:-1],0,0.0)
-        self.CoeffsAddress_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,CoeffsAddress_vec)
         self.SolnSize = mGridSize
         #print(CoeffsAddress_vec)
         
@@ -333,9 +351,11 @@ class IndShockConsumerTypesOpenCL():
         self.TypeAgeCount = np.sum(T_total_vec)
         self.TypeAddress = np.cumsum(np.insert(T_total_vec,0,0))[0:-1]
         self.T_total_vec = T_total_vec
+        self.CoeffsAddress = np.cumsum(np.insert(T_total_vec,0,0))[0:-1]
 
         # Make buffers for type parameters
         self.TypeAddress_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,self.TypeAddress)
+        self.CoeffsAddress_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,self.CoeffsAddress)
         self.T_total_buf = ctx.create_buffer(cl.CL_MEM_READ_ONLY | cl.CL_MEM_COPY_HOST_PTR,T_total_vec)
         Rfree_vec = np.array([agent.Rfree for agent in self.agents],dtype=np.float64)
         aNrmInitMean_vec = np.array([agent.aNrmInitMean for agent in self.agents],dtype=np.float64)
