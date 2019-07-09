@@ -100,7 +100,7 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 # In the "real" micro problem, it would almost never happen that a continuous variable like $m$ would end up being exactly equal to one of the prespecified gridpoints. But the functions need to be evaluated at such non-grid points.  This is addressed by linear interpolation.  That is, if, say, the grid had $m_{8} = 40$ and $m_{9} = 50$ then and a consumer ended up with $m = 45$ then the approximation is that $\tilde{c}(45) = 0.5 \bar{c}_{8} + 0.5 \bar{c}_{9}$.
 #
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Show dimensions of the consumer's problem (state space)
 
 print('c_n is of dimension: ' + str(EX3SS['mutil_c_n'].shape))
@@ -159,7 +159,7 @@ print(str(EX3SS['mpar']['nm'])+
 #
 # - This reduces the number of points for which we need to track transitions from $3600 = 30 \times 30 \times 4$ to $64 = 30+30+4$.  Or the total number of points we need to contemplate goes from $3600^2 \approx 13 $million to $64^2=4096$.  
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Get some specs about the copula, which is precomputed in the EX3SS object
 
 print('The copula consists of two parts: gridpoints and values at those gridpoints:'+ \
@@ -171,7 +171,7 @@ print('The copula consists of two parts: gridpoints and values at those gridpoin
       '\n state variables are below the corresponding point.')
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Import necessary libraries
 
 from __future__ import print_function
@@ -206,7 +206,7 @@ import seaborn as sns
 import copy as cp
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## State reduction and discrete cosine transformation
 
 class StateReduc_Dct:
@@ -397,7 +397,7 @@ class StateReduc_Dct:
         
         return index_reduced
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
 
 EX3SS['par']['aggrshock']           = 'MP'
@@ -412,13 +412,13 @@ EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
 #EX3SS['par']['rhoS']    = 0.84    # Persistence of variance
 #EX3SS['par']['sigmaS']  = 0.54    # STD of variance shocks
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Choose an accuracy of approximation with DCT
 ### Determines number of basis functions chosen -- enough to match this accuracy
 ### EX3SS is precomputed steady-state pulled in above
 EX3SS['par']['accuracy'] = 0.99999 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Implement state reduction and DCT
 ### Do state reduction on steady state
 EX3SR=StateReduc_Dct(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
@@ -462,7 +462,7 @@ print('The total number of state variables is '+str(SR['State'].shape[0]) + '='+
 # We plot the functions for the top and bottom values of the wage $h$ distribution
 #
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Graphical illustration
 
 xi = EX3SS['par']['xi']
@@ -485,7 +485,7 @@ kgrid = EX3SS['grid']['k']
 hgrid = EX3SS['grid']['h']
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## define some functions to be used next
 
 def dct3d(x):
@@ -511,7 +511,7 @@ def DCTApprox(fullgrids,dct_index):
 # %% [markdown]
 # Depending on the accuracy level, the DCT operation choses the necessary number of basis functions used to approximate consumption function at the full grids. This is illustrated in the p31-p34 in this [slides](https://www.dropbox.com/s/46fdxh0aphazm71/presentation_method.pdf?dl=0). We show this for both 1-dimensional (m or k) or 2-dimenstional grids (m and k) in the following. 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## 2D graph of consumption function: c(m) fixing k and h
 
 
@@ -560,7 +560,7 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.legend(loc=0)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## 2D graph of consumption function: c(k) fixing m and h
 
 fig = plt.figure(figsize=(8,8))
@@ -599,7 +599,7 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.legend(loc=0)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Restore the solution corresponding to the original BL accuracy
 
 EX3SS['par']['accuracy'] = Accuracy_BL 
@@ -632,20 +632,16 @@ mass_pct = 0.9
 c_n_approx = DCTApprox(cn_StE,mut_rdc_idx)
 c_a_approx = DCTApprox(ca_StE,mut_rdc_idx)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # 3D surface plots of consumption function at full grids and approximated by DCT
 ##    at all grids and grids after dct first for non-adjusters and then for adjusters
 
 ## for non-adjusters
 
-## full grids now 
-## WangTao: 
-## After plotting for the entire set of gridpoints, next plot only for the bottom mass_pct of the distributions
-
 mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of non-adjusters at grid points of m and k (for each h)',
+fig.suptitle('Consumption of non-adjusters at grid points of m and k \n (for each h)',
              fontsize=(13))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
@@ -666,31 +662,83 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 100)
 
-# %% {"code_folding": []}
-## Same thing in a different way: image plots of c functions at full grids and c approximated by DCT
 
+# %% {"code_folding": [0, 2]}
+## functions used to plot trimmed data 
+
+def WhereToTrim2d(joint_distr,mass_pct):
+    """
+    parameters
+    -----------
+    marginal1: marginal pdf in the 1st dimension
+    marginal2: marginal pdf in the 2nd dimension
+    mass_pct: bottom percentile to keep 
+    
+    returns
+    ----------
+    trim1_idx: idx for trimming in the 1s dimension
+    trim2_idx: idx for trimming in the 1s dimension
+    """
+    
+    marginal1 = joint_distr.sum(axis=0)
+    marginal2 = joint_distr.sum(axis=1)
+    ## this can handle cases where the joint_distr itself is a marginal distr from 3d, 
+    ##   i.e. marginal.cumsum().max() =\= 1 
+    trim1_idx = (np.abs(marginal1.cumsum()-mass_pct*marginal1.cumsum().max())).argmin() 
+    trim2_idx = (np.abs(marginal2.cumsum()-mass_pct*marginal2.cumsum().max())).argmin()
+    return trim1_idx,trim2_idx
+
+def TrimMesh2d(grids1,grids2,trim1_idx,trim2_idx):
+    grids_trim1 = grids1.copy()
+    grids_trim2 = grids2.copy()
+    grids_trim1[trim1_idx:]=np.nan
+    grids_trim2[trim2_idx:]=np.nan
+    grids1_trimmesh, grids2_trimmesh = np.meshgrid(grids_trim1,grids_trim2)
+    return grids1_trimmesh,grids2_trimmesh
+
+
+# %% {"code_folding": [0]}
+# same plot as above for only bottom mass_pct of distributions only 
 
 ## for non-adjusters
 
-## full grids 
-mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
-
-### for adjusters 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of non-adjusters at grid points of m and k(for different h)',
+fig.suptitle('Consumption of non-adjusters at grid points of m and k \n where 90% of the agents are distributed \n (for each h)',
              fontsize=(13))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
-    hgrid_fix=hgrid_id
-  
+    hgrid_fix = hgrid_id    
+    
+    ## additions to the above cell
+    ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
+    mk_marginal = joint_distr[:,:,hgrid_fix]
+    mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
+    mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
+    mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
+    c_n_approx_trim = c_n_approx[:,:,hgrid_fix].copy()
+    c_n_approx_trim[mmax_idx:,kmax_idx:] = np.nan
+    cn_StE_trim = cn_StE[:,:,hgrid_fix].copy()
+    cn_StE_trim[mmax_idx:,kmax_idx:] = np.nan
+    zmax = np.nanmax(c_n_approx_trim)
+    
     ## plots 
-    ax = fig.add_subplot(2,2,hgrid_id+1)
-    ax.imshow(np.hstack((cn_StE[:,:,hgrid_fix],c_n_approx[:,:,hgrid_fix])))
+    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
+    ax.scatter(mmgrid_trim,kkgrid_trim,c_n_approx_trim,marker='v',color='red',
+                   label='StE(after dct):non-adjuster')
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,cn_StE_trim, cmap='Blues',
+               label='StE(before dct): non-adjuster')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
+    ax.set_zlabel(r'$c_n(m,k)$',fontsize=13)
+    plt.gca().invert_yaxis()
+    plt.gca().invert_xaxis()
+    #ax.set_xlim([0,70])
+    #ax.set_ylim([0,100])
+    ax.set_zlim([0,zmax*0.8])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
+    ax.view_init(20, 60)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## 3D scatter plots of the difference of full-grid c and approximated c
 
 ## for non-adjusters
@@ -700,7 +748,7 @@ mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
 
 ### for adjusters 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of non-adjusters at grid points of m and k (for each h)',
+fig.suptitle('Approximation errors of non-adjusters at grid points of m and k \n (for each h)',
              fontsize=(13))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
@@ -722,11 +770,51 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 40)
 
-# %% {"code_folding": []}
-# Difference of full-grid c and DCT compressed c for difference levels of accuracy
+# %% {"code_folding": [0]}
+# same plot as above for only bottom 90% of distributions only 
+
+
+## full grids 
+mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
+
+### for adjusters 
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Approximation errors of non-adjusters at grid points of m and k \n where 90% of agents are distributed \n (for each h)',
+             fontsize=(13))
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    ## prepare the reduced grids 
+    hgrid_fix=hgrid_id    
+    cn_diff = c_n_approx-cn_StE
+    
+    ## additions to the above cell
+    ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
+    mk_marginal = joint_distr[:,:,hgrid_fix]
+    mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
+    mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
+    mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
+    c_n_diff_trim = cn_diff[:,:,hgrid_fix].copy()
+    c_n_diff_trim[mmax_idx:,kmax_idx:] = np.nan
+
+    ## plots 
+    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_n_diff_trim, rstride=1, 
+                    cstride=1,cmap=cm.coolwarm, edgecolor='none',
+                    label='Difference of full-grid and approximated consumption function')
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel('k',fontsize=13)
+    ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
+    plt.gca().invert_yaxis()
+    plt.gca().invert_xaxis()
+    #ax.set_xlim([0,mmax])
+    #ax.set_ylim([0,kmax])
+    ax.set_title(r'$h({})$'.format(hgrid_fix))
+    ax.view_init(20, 40)
+
+# %% {"code_folding": [0]}
+# Difference of full-grid c and DCT compressed c for each level of accuracy
 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Differences of c at full grids and c approximated by DCT in different accuracy levels(non-adjusters)',
+fig.suptitle('Approximation errors in different levels of accuracy \n (non-adjusters)',
              fontsize=(13))
 
 for idx in range(len(acc_lst)):
@@ -739,8 +827,9 @@ for idx in range(len(acc_lst)):
     nb_bf_cp = len(mut_rdc_idx_cp[0])
     print(str(nb_bf_cp) +" basis functions used.")
     c_n_approx_cp = DCTApprox(cn_StE,mut_rdc_idx_cp)
-    c_a_approx_cp = DCTApprox(ca_StE,mut_rdc_idx_cp)
+    #c_a_approx_cp = DCTApprox(ca_StE,mut_rdc_idx_cp)
     cn_diff_cp = c_n_approx_cp-cn_StE
+    #ca_diff_cp = c_a_approx_cp-ca_StE
     
     hgrid_fix=1  # fix level of h as an example 
     
@@ -760,11 +849,151 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.view_init(10, 60)
 
-# %% {"code_folding": []}
-# for adjusters 
+# %% {"code_folding": [0]}
+# same plot as above for only bottom 90% of distributions only 
+
 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of adjusters at grid points of m and k(for different h)',
+fig.suptitle('Approximation errors in different levels of accuracy \n where 90% of agents are distributed \n (non-adjusters)',
+             fontsize=(13))
+
+for idx in range(len(acc_lst)):
+    EX3SS_cp =cp.deepcopy(EX3SS)
+    EX3SS_cp['par']['accuracy'] = acc_lst[idx]
+    EX3SR_cp=StateReduc_Dct(**EX3SS_cp)   # Takes StE result as input and get ready to invoke state reduction operation
+    SR_cp=EX3SR_cp.StateReduc()
+    mut_rdc_idx_flt_cp = SR_cp['indexMUdct']
+    mut_rdc_idx_cp = np.unravel_index(mut_rdc_idx_flt_cp,dim_StE,order='F')
+    nb_bf_cp = len(mut_rdc_idx_cp[0])
+    print(str(nb_bf_cp) +" basis functions used.")
+    c_n_approx_cp = DCTApprox(cn_StE,mut_rdc_idx_cp)
+    #c_a_approx_cp = DCTApprox(ca_StE,mut_rdc_idx_cp)
+    cn_diff_cp = c_n_approx_cp-cn_StE
+    #ca_diff_cp = c_a_approx_cp-ca_StE
+    
+    hgrid_fix=1  # fix level of h as an example 
+    
+    ## additions to the above cell
+    ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
+    mk_marginal = joint_distr[:,:,hgrid_fix]
+    mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
+    mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
+    mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
+    c_n_diff_cp_trim = cn_diff_cp[:,:,hgrid_fix].copy()
+    c_n_diff_cp_trim[mmax_idx:,kmax_idx:] = np.nan
+ 
+    
+    ## plots 
+    ax = fig.add_subplot(2,2,idx+1, projection='3d')
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_n_diff_cp_trim, rstride=1, 
+                    cstride=1,cmap=cm.summer, edgecolor='none',
+                    label='Difference of full-grid and approximated consumption functions')
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel('k',fontsize=13)
+    ax.set_zlabel('Difference of c functions',fontsize=13)
+    plt.gca().invert_yaxis()
+    plt.gca().invert_xaxis()
+    #ax.set_xlim([0,mmax])
+    #ax.set_ylim([0,kmax])
+    ax.set_zlim([-8,2])
+    ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
+    ax.view_init(10, 60)
+
+# %% {"code_folding": [0]}
+# Difference of full-grid c and DCT compressed c for difference levels of accuracy
+
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Differences of approximation errors between adjusters/non-adjusters \n in different accuracy levels',
+             fontsize=(13))
+
+for idx in range(len(acc_lst)):
+    EX3SS_cp =cp.deepcopy(EX3SS)
+    EX3SS_cp['par']['accuracy'] = acc_lst[idx]
+    EX3SR_cp=StateReduc_Dct(**EX3SS_cp)   # Takes StE result as input and get ready to invoke state reduction operation
+    SR_cp=EX3SR_cp.StateReduc()
+    mut_rdc_idx_flt_cp = SR_cp['indexMUdct']
+    mut_rdc_idx_cp = np.unravel_index(mut_rdc_idx_flt_cp,dim_StE,order='F')
+    nb_bf_cp = len(mut_rdc_idx_cp[0])
+    print(str(nb_bf_cp) +" basis functions used.")
+    c_n_approx_cp = DCTApprox(cn_StE,mut_rdc_idx_cp)
+    c_a_approx_cp = DCTApprox(ca_StE,mut_rdc_idx_cp)
+    cn_diff_cp = c_n_approx_cp-cn_StE
+    ca_diff_cp = c_a_approx_cp-ca_StE
+    c_diff_cp_apx_error = ca_diff_cp-cn_diff_cp
+    
+    hgrid_fix=1  # fix level of h as an example 
+    
+    ## plots 
+    ax = fig.add_subplot(2,2,idx+1, projection='3d')
+    ax.plot_surface(mmgrid,kkgrid,c_diff_cp_apx_error[:,:,hgrid_fix], rstride=1, 
+                    cstride=1,cmap=cm.autumn, edgecolor='none',
+                    label='Difference of full-grid and approximated consumption functions')
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel('k',fontsize=13)
+    ax.set_zlabel('Difference of approximation errors',fontsize=13)
+    plt.gca().invert_yaxis()
+    plt.gca().invert_xaxis()
+    #ax.set_xlim([0,mmax])
+    #ax.set_ylim([0,kmax])
+    ax.set_zlim([-8,2])
+    ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
+    ax.view_init(10, 60)
+
+# %% {"code_folding": []}
+# same plot as above for only bottom 90% of distributions only 
+
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Differences of approximation errors between adjusters/non-adjusters \n in different accuracy levels',
+             fontsize=(13))
+
+for idx in range(len(acc_lst)):
+    EX3SS_cp =cp.deepcopy(EX3SS)
+    EX3SS_cp['par']['accuracy'] = acc_lst[idx]
+    EX3SR_cp=StateReduc_Dct(**EX3SS_cp)   # Takes StE result as input and get ready to invoke state reduction operation
+    SR_cp=EX3SR_cp.StateReduc()
+    mut_rdc_idx_flt_cp = SR_cp['indexMUdct']
+    mut_rdc_idx_cp = np.unravel_index(mut_rdc_idx_flt_cp,dim_StE,order='F')
+    nb_bf_cp = len(mut_rdc_idx_cp[0])
+    print(str(nb_bf_cp) +" basis functions used.")
+    c_n_approx_cp = DCTApprox(cn_StE,mut_rdc_idx_cp)
+    c_a_approx_cp = DCTApprox(ca_StE,mut_rdc_idx_cp)
+    cn_diff_cp = c_n_approx_cp-cn_StE
+    ca_diff_cp = c_a_approx_cp-ca_StE
+    c_diff_cp_apx_error = ca_diff_cp-cn_diff_cp
+    
+    hgrid_fix=1  # fix level of h as an example 
+    
+    ## additions to the above cell
+    ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
+    mk_marginal = joint_distr[:,:,hgrid_fix]
+    mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
+    mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
+    mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
+    c_diff_cp_apx_error_trim = cn_diff_cp[:,:,hgrid_fix].copy()
+    c_diff_cp_apx_error_trim[mmax_idx:,kmax_idx:] = np.nan
+    
+    
+    ## plots 
+    ax = fig.add_subplot(2,2,idx+1, projection='3d')
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_diff_cp_apx_error_trim, rstride=1, 
+                    cstride=1,cmap=cm.autumn, edgecolor='none',
+                    label='Difference of full-grid and approximated consumption functions')
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel('k',fontsize=13)
+    ax.set_zlabel('Difference of approximation errors',fontsize=13)
+    plt.gca().invert_yaxis()
+    plt.gca().invert_xaxis()
+    #ax.set_xlim([0,mmax])
+    #ax.set_ylim([0,kmax])
+    ax.set_zlim([-8,2])
+    ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
+    ax.view_init(10, 60)
+
+# %% {"code_folding": []}
+# for adjusters: 3D surface plots of consumption function at full grids and approximated by DCT 
+
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Consumption of adjusters at grid points of m and k \n (for each h)',
              fontsize=(13))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
@@ -785,57 +1014,53 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 150)
 
-# %% {"code_folding": []}
-# Compare consumption functions of adjusters and non-adjusters approximated by DCT
+# %%
+# same plot as above for only bottom 90% of distributions only 
+
 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of adjusters (yellow)/non-adjusters (blue) at grid points of m and k (for each h)',
+fig.suptitle('Consumption of adjusters at grid points of m and k \n (for each h)',
              fontsize=(13))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
     hgrid_fix=hgrid_id    
     
+    
+    
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Consumption of adjusters at grid points of m and k \n (for each h)',
+             fontsize=(13))
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    ## prepare the reduced grids 
+    hgrid_fix=hgrid_id    
+    
+    ## additions to the above cell
+    ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
+    mk_marginal = joint_distr[:,:,hgrid_fix]
+    mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
+    mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
+    mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
+    c_a_approx_trim = c_a_approx[:,:,hgrid_fix].copy()
+    c_a_approx_trim[mmax_idx:,kmax_idx:] = np.nan
+    ca_StE_trim = ca_StE[:,:,hgrid_fix].copy()
+    ca_StE_trim[mmax_idx:,kmax_idx:] = np.nan
+    zmax = np.nanmax(c_a_approx_trim)
+    
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.plot_surface(mmgrid,kkgrid,c_n_approx[:,:,hgrid_fix],cmap=cm.winter,
-               label='StE(after dct):non-adjuster')
-    ax.plot_surface(mmgrid,kkgrid,c_a_approx[:,:,hgrid_fix],cmap=cm.autumn,
-               label='StE(after dct):adjuster')
+    ax.scatter(mmgrid_trim,kkgrid_trim,ca_StE_trim,marker='v',color='red',
+                    label='StE(after dct):adjuster')
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,ca_StE[:,:,hgrid_fix],cmap='Blues',
+               label='StE(before dct): adjuster')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
-    ax.set_title(r'$h({})$'.format(hgrid_fix))
     plt.gca().invert_yaxis()
-    plt.gca().invert_xaxis()    
-    #ax.set_xlim(0,mmax)
-    #ax.set_ylim(0,kmax)
-    ax.view_init(20, 60)
-
-# %% {"code_folding": []}
-## the differences of c functions of adjusters and non-adjusters approximated by DCT.
-
-c_diff_approx=c_n_approx-c_a_approx
-
-fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of adjusters/non-adjusters at grid points of m and k(for different h)',
-             fontsize=(13))
-for hgrid_id in range(EX3SS['mpar']['nh']):
-    ## prepare the reduced grids 
-    hgrid_fix=hgrid_id    
-    
-    ## plots 
-    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.plot_surface(mmgrid,kkgrid,c_diff_approx[:,:,hgrid_fix],cmap=cm.coolwarm,
-               label='StE(after dct):difference of non-adjuster and adjusters')
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel(r'$c_n(m,k)-c_a(m,k)$',fontsize=12)
+    #ax.set_xlim([0,mmax])
+    #ax.set_ylim([0,kmax])
+    ax.set_zlim([0,zmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
-    plt.gca().invert_yaxis()
-    plt.gca().invert_xaxis()
-    #ax.set_xlim(0,mmax)
-    #ax.set_ylim(0,kmax)
-    ax.view_init(20, 80)
+    ax.view_init(20, 150)
 
 # %% [markdown]
 # ##### Observation
@@ -850,7 +1075,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 # - The joint-distribution can be represented by marginal distributions of $m$, $k$ and $h$ and a copula that describes the correlation between the three states. The former is straightfoward. We plot the copula only. The copula is essentially a multivariate cummulative distribution function where each marginal is uniform. (Translation from the uniform to the appropriate nonuniform distribution is handled at a separate stage).
 #
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ### Marginalize along h grids
 
 joint_distr =  EX3SS['joint_distr']
@@ -859,7 +1084,7 @@ joint_distr_km = EX3SS['joint_distr'].sum(axis=2)
 ### Plot distributions in 2 dimensional graph 
 
 fig = plt.figure(figsize=(10,10))
-plt.suptitle('Marginal distribution of k at different m')
+plt.suptitle('Marginal distribution of k at different m \n(for each h)')
 
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ax = plt.subplot(2,2,hgrid_id+1)
@@ -868,7 +1093,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     for id in range(EX3SS['mpar']['nm']):   
         ax.plot(kgrid,joint_distr[id,:,hgrid_id])
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Plot joint distribution of k and m in 3d graph
 
 fig = plt.figure(figsize=(14,14))
@@ -894,7 +1119,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 # %% [markdown]
 # Notice the CDFs in StE copula have 4 modes, corresponding to the number of $h$ gridpoints. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Plot the copula 
 
 cdf=EX3SS['Copula']['value'].reshape(4,30,30)   # important: 4,30,30 not 30,30,4? 
@@ -927,11 +1152,8 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 # %% [markdown]
 # # To Do:
 #
-# 1. Plot the _difference_ in the _approximation errors_ for adjusters and nonadjusters
 # 1. Make color or transparency be determined by the population density from the copula
 # 1. Make extra versions of the figures where the color is determined by the population density at that location (given by the copula)
-# 1. Differences _between_ adjusters and nonadjusters in consumption are not interesting and should be deleted
-# 1. Eliminate "magic numbers"
 # 1. Improve comments so a new reader can understand what is being done
 
 # %% [markdown]
