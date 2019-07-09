@@ -688,19 +688,25 @@ def WhereToTrim2d(joint_distr,mass_pct):
     trim2_idx = (np.abs(marginal2.cumsum()-mass_pct*marginal2.cumsum().max())).argmin()
     return trim1_idx,trim2_idx
 
-def TrimMesh2d(grids1,grids2,trim1_idx,trim2_idx):
-    grids_trim1 = grids1.copy()
-    grids_trim2 = grids2.copy()
-    grids_trim1[trim1_idx:]=np.nan
-    grids_trim2[trim2_idx:]=np.nan
-    grids1_trimmesh, grids2_trimmesh = np.meshgrid(grids_trim1,grids_trim2)
+def TrimMesh2d(grids1,grids2,trim1_idx,trim2_idx,drop=True):
+    if drop ==True:
+        grids_trim1 = grids1.copy()
+        grids_trim2 = grids2.copy()
+        grids_trim1=grids_trim1[:trim1_idx]
+        grids_trim2=grids_trim2[:trim2_idx]
+        grids1_trimmesh, grids2_trimmesh = np.meshgrid(grids_trim1,grids_trim2)
+    else:
+        grids_trim1 = grids1.copy()
+        grids_trim2 = grids2.copy()
+        grids_trim1[trim1_idx:]=np.nan
+        grids_trim2[trim2_idx:]=np.nan
+        grids1_trimmesh, grids2_trimmesh = np.meshgrid(grids_trim1,grids_trim2)
+        
     return grids1_trimmesh,grids2_trimmesh
-
 
 # %% {"code_folding": [0]}
 # same plot as above for only bottom mass_pct of distributions only 
 
-## for non-adjusters
 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Consumption of non-adjusters at grid points of m and k \n where 90% of the agents are distributed \n (for each h)',
@@ -715,28 +721,30 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
     mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
     mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
+    
     c_n_approx_trim = c_n_approx[:,:,hgrid_fix].copy()
-    c_n_approx_trim[mmax_idx:,kmax_idx:] = np.nan
+    c_n_approx_trim = c_n_approx_trim[:kmax_idx:,:mmax_idx]  # the dimension is transposed for meshgrid.
+
     cn_StE_trim = cn_StE[:,:,hgrid_fix].copy()
-    cn_StE_trim[mmax_idx:,kmax_idx:] = np.nan
+    cn_StE_trim = cn_StE_trim[:kmax_idx,:mmax_idx]  
+    
+    ## find the maximum z 
     zmax = np.nanmax(c_n_approx_trim)
     
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
     ax.scatter(mmgrid_trim,kkgrid_trim,c_n_approx_trim,marker='v',color='red',
                    label='StE(after dct):non-adjuster')
-    ax.plot_surface(mmgrid_trim,kkgrid_trim,cn_StE_trim, cmap='Blues',
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,cn_StE_trim,cmap='Blues',
                label='StE(before dct): non-adjuster')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_n(m,k)$',fontsize=13)
     plt.gca().invert_yaxis()
     plt.gca().invert_xaxis()
-    #ax.set_xlim([0,70])
-    #ax.set_ylim([0,100])
-    ax.set_zlim([0,zmax*0.8])
+    ax.set_zlim([0,zmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
-    ax.view_init(20, 60)
+    ax.view_init(20, 20)
 
 # %% {"code_folding": [0]}
 ## 3D scatter plots of the difference of full-grid c and approximated c
@@ -793,7 +801,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
     mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
     c_n_diff_trim = cn_diff[:,:,hgrid_fix].copy()
-    c_n_diff_trim[mmax_idx:,kmax_idx:] = np.nan
+    c_n_diff_trim = c_n_diff_trim[:kmax_idx,:mmax_idx]  # first k and then m because c is is nk x nm 
 
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
@@ -880,7 +888,7 @@ for idx in range(len(acc_lst)):
     mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
     mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
     c_n_diff_cp_trim = cn_diff_cp[:,:,hgrid_fix].copy()
-    c_n_diff_cp_trim[mmax_idx:,kmax_idx:] = np.nan
+    c_n_diff_cp_trim = c_n_diff_cp_trim[:kmax_idx:,:mmax_idx]
  
     
     ## plots 
@@ -939,11 +947,11 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.view_init(10, 60)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # same plot as above for only bottom 90% of distributions only 
 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Differences of approximation errors between adjusters/non-adjusters \n in different accuracy levels',
+fig.suptitle('Differences of approximation errors between adjusters/non-adjusters \n where 90% of agents are distributed \n in different accuracy levels',
              fontsize=(13))
 
 for idx in range(len(acc_lst)):
@@ -969,8 +977,8 @@ for idx in range(len(acc_lst)):
     mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
     mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
     mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
-    c_diff_cp_apx_error_trim = cn_diff_cp[:,:,hgrid_fix].copy()
-    c_diff_cp_apx_error_trim[mmax_idx:,kmax_idx:] = np.nan
+    c_diff_cp_apx_error_trim = c_diff_cp_apx_error[:,:,hgrid_fix].copy()
+    c_diff_cp_apx_error_trim = c_diff_cp_apx_error_trim[:kmax_idx,:mmax_idx]
     
     
     ## plots 
@@ -989,11 +997,11 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.view_init(10, 60)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # for adjusters: 3D surface plots of consumption function at full grids and approximated by DCT 
 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of adjusters at grid points of m and k \n (for each h)',
+fig.suptitle('Consumption of adjusters at grid points of m and k \n where 90% of agents are distributed \n (for each h)',
              fontsize=(13))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
@@ -1014,7 +1022,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 150)
 
-# %%
+# %% {"code_folding": [0]}
 # same plot as above for only bottom 90% of distributions only 
 
 
@@ -1041,16 +1049,18 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
     mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
     c_a_approx_trim = c_a_approx[:,:,hgrid_fix].copy()
-    c_a_approx_trim[mmax_idx:,kmax_idx:] = np.nan
+    c_a_approx_trim  = c_a_approx_trim[:kmax_idx,:mmax_idx]
     ca_StE_trim = ca_StE[:,:,hgrid_fix].copy()
-    ca_StE_trim[mmax_idx:,kmax_idx:] = np.nan
+    ca_StE_trim = ca_StE_trim[:kmax_idx,:mmax_idx]
+    
+    # get the maximum z
     zmax = np.nanmax(c_a_approx_trim)
     
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
     ax.scatter(mmgrid_trim,kkgrid_trim,ca_StE_trim,marker='v',color='red',
                     label='StE(after dct):adjuster')
-    ax.plot_surface(mmgrid_trim,kkgrid_trim,ca_StE[:,:,hgrid_fix],cmap='Blues',
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,ca_StE_trim,cmap='Blues',
                label='StE(before dct): adjuster')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
