@@ -457,9 +457,9 @@ print('The total number of state variables is '+str(SR['State'].shape[0]) + '='+
 #
 # #### Policy/value functions
 #
-# Taking the consumption function as an example, we plot consumption by adjusters and non-adjusters over a range of $k$ and $m$ that encompasses x percent of the mass of the distribution function.  
+# Taking the consumption function as an example, we plot consumption by adjusters and non-adjusters over a range of $k$ and $m$ that encompasses 100 as well 90 percent of the mass of the distribution function,respectively.  
 #
-# We plot the functions for the top and bottom values of the wage $h$ distribution
+# We plot the functions for the each of the 4 values of the wage $h$.
 #
 
 # %% {"code_folding": [0]}
@@ -606,39 +606,41 @@ EX3SS['par']['accuracy'] = Accuracy_BL
 EX3SR=StateReduc_Dct(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
 SR=EX3SR.StateReduc()           # StateReduc is operated 
 
+## meshgrids for plots
+
+mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
 
 ## indexMUdct is one dimension, needs to be unraveled to 3 dimensions
 mut_rdc_idx_flt = SR['indexMUdct']
 mut_rdc_idx = np.unravel_index(mut_rdc_idx_flt,dim_StE,order='F')
 
-nb_dct = len(mut_StE.flatten()) 
-mut_rdc_bool = np.zeros(nb_dct)     # boolean array of 30 x 30 x 4  
-for i in range(nb_dct):
-    mut_rdc_bool[i]=i in list(SR['indexMUdct'])
-mut_rdc_bool_3d = (mut_rdc_bool==1).reshape(dim_StE)
-mut_rdc_mask_3d = (mut_rdc_bool).reshape(dim_StE)
+## Note: the following chunk of codes can be used to recover the indices of grids selected by DCT. not used here.
+#nb_dct = len(mut_StE.flatten()) 
+#mut_rdc_bool = np.zeros(nb_dct)     # boolean array of 30 x 30 x 4  
+#for i in range(nb_dct):
+#    mut_rdc_bool[i]=i in list(SR['indexMUdct'])
+#mut_rdc_bool_3d = (mut_rdc_bool==1).reshape(dim_StE)
+#mut_rdc_mask_3d = (mut_rdc_bool).reshape(dim_StE)
+
+## For BL accuracy level, get dct compressed c functions at all grids 
+
+c_n_approx = DCTApprox(cn_StE,mut_rdc_idx)
+c_a_approx = DCTApprox(ca_StE,mut_rdc_idx)
+
 
 # Get the joint distribution calculated elsewhere
 
 joint_distr =  EX3SS['joint_distr']
-marginal_mk =  EX3SS['joint_distr'].sum(axis=2)
 
 # Location at which to cut off the topmost part of the distributions
 
 mass_pct = 0.9
 
-## Again, for BL accuracy level, get dct compressed c functions at all grids 
-
-c_n_approx = DCTApprox(cn_StE,mut_rdc_idx)
-c_a_approx = DCTApprox(ca_StE,mut_rdc_idx)
-
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # 3D surface plots of consumption function at full grids and approximated by DCT
 ##    at all grids and grids after dct first for non-adjusters and then for adjusters
 
 ## for non-adjusters
-
-mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Consumption of non-adjusters at grid points of m and k \n (for each h)',
@@ -664,7 +666,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 
 
 # %% {"code_folding": [0, 2]}
-## functions used to plot trimmed data 
+## functions used to plot consumption functions at the trimmed grids
 
 def WhereToTrim2d(joint_distr,mass_pct):
     """
@@ -705,7 +707,7 @@ def TrimMesh2d(grids1,grids2,trim1_idx,trim2_idx,drop=True):
     return grids1_trimmesh,grids2_trimmesh
 
 # %% {"code_folding": [0]}
-# same plot as above for only bottom mass_pct of distributions only 
+# same plot as above for only 90 percent of the distributions 
 
 
 fig = plt.figure(figsize=(14,14))
@@ -750,11 +752,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 ## 3D scatter plots of the difference of full-grid c and approximated c
 
 ## for non-adjusters
-
-## full grids 
-mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
-
-### for adjusters 
+ 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Approximation errors of non-adjusters at grid points of m and k \n (for each h)',
              fontsize=(13))
@@ -779,13 +777,10 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.view_init(20, 40)
 
 # %% {"code_folding": [0]}
-# same plot as above for only bottom 90% of distributions only 
+# same plot as above for only 90 percent of the distributions 
 
+### for non-adjusters 
 
-## full grids 
-mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
-
-### for adjusters 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Approximation errors of non-adjusters at grid points of m and k \n where 90% of agents are distributed \n (for each h)',
              fontsize=(13))
@@ -858,7 +853,7 @@ for idx in range(len(acc_lst)):
     ax.view_init(10, 60)
 
 # %% {"code_folding": [0]}
-# same plot as above for only bottom 90% of distributions only 
+# same plot as above for only 90 percent of the distributions 
 
 
 fig = plt.figure(figsize=(14,14))
@@ -948,7 +943,7 @@ for idx in range(len(acc_lst)):
     ax.view_init(10, 60)
 
 # %% {"code_folding": [0]}
-# same plot as above for only bottom 90% of distributions only 
+# same plot as above for only 90 percent of the distributions 
 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Differences of approximation errors between adjusters/non-adjusters \n where 90% of agents are distributed \n in different accuracy levels',
@@ -1001,7 +996,7 @@ for idx in range(len(acc_lst)):
 # for adjusters: 3D surface plots of consumption function at full grids and approximated by DCT 
 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of adjusters at grid points of m and k \n where 90% of agents are distributed \n (for each h)',
+fig.suptitle('Consumption of adjusters at grid points of m and k \n (for each h)',
              fontsize=(13))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
@@ -1020,23 +1015,14 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     #ax.set_xlim([0,mmax])
     #ax.set_ylim([0,kmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
-    ax.view_init(20, 150)
+    ax.view_init(20, 110)
 
 # %% {"code_folding": [0]}
-# same plot as above for only bottom 90% of distributions only 
+# same plot as above for only 90 percent of the distributions 
 
-
-fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of adjusters at grid points of m and k \n (for each h)',
-             fontsize=(13))
-for hgrid_id in range(EX3SS['mpar']['nh']):
-    ## prepare the reduced grids 
-    hgrid_fix=hgrid_id    
-    
-    
     
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of adjusters at grid points of m and k \n (for each h)',
+fig.suptitle('Consumption of adjusters at grid points of m and k \n where 90% of agents are distributed  \n (for each h)',
              fontsize=(13))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
@@ -1070,7 +1056,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     #ax.set_ylim([0,kmax])
     ax.set_zlim([0,zmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
-    ax.view_init(20, 150)
+    ax.view_init(20, 110)
 
 # %% [markdown]
 # ##### Observation
@@ -1163,7 +1149,6 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 # # To Do:
 #
 # 1. Make color or transparency be determined by the population density from the copula
-# 1. Make extra versions of the figures where the color is determined by the population density at that location (given by the copula)
 # 1. Improve comments so a new reader can understand what is being done
 
 # %% [markdown]
