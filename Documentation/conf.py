@@ -47,6 +47,8 @@ extensions = [
 # This is currently not working
 nbsphinx_execute = 'never'
 
+# Extend theme width
+html_css_files = ['theme_overrides.css']
 
 autodoc_default_flags = ['members']  # must add outside ']' bracket
 autosummary_generate = True
