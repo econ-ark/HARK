@@ -1,5 +1,5 @@
 # Heterogeneous Agents Resources and toolKit (HARK)
-pre-release 0.10.1
+pre-release 0.10.1 [![Build Status](https://travis-ci.com/econ-ark/HARK.svg?branch=master)](https://travis-ci.com/econ-ark/HARK) [![Build Status](https://dev.azure.com/econ-ark/HARK/_apis/build/status/econ-ark.HARK?branchName=master)](https://dev.azure.com/econ-ark/HARK/_build/latest?definitionId=1&branchName=master)
 
 Click the Badge for Citation Info.
 [![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)

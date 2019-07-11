@@ -1,0 +1,33 @@
+# https://aka.ms/yaml
+jobs:
+- job: 'Test'
+  pool:
+    vmImage: 'vs2017-win2016'
+  strategy:
+    matrix:
+      Python27:
+        python.version: '2.7'
+      Python35:
+        python.version: '3.5'
+      Python36:
+        python.version: '3.6'
+      Python37:
+        python.version: '3.7'
+
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+
+  # Add additional tasks to run using each Python version in the matrix above
+
+  - script: python -m pip install --upgrade pip setuptools wheel
+    displayName: 'Install tools'
+
+  - script: pip install -r requirements.txt
+    displayName: 'Install requirements'
+
+  - script: |
+      pip install pytest
+      pytest .
+    displayName: 'Run pytest'
