@@ -40,11 +40,12 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.autosummary',
     'numpydoc',
+    'nbsphinx',
     'recommonmark',
-    # 'autoapi.extension',
 ]
 
-autoapi_dirs = ['../HARK']
+# This is currently not working
+nbsphinx_execute = 'never'
 
 
 autodoc_default_flags = ['members']  # must add outside ']' bracket
