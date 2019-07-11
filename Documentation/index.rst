@@ -11,25 +11,21 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   includeme
+   readme
 
 .. autosummary::
    :toctree: generated
 
-   HARKutilities
-   HARKsimulation
-   HARKparallel
-   HARKinterpolation
-   HARKestimation
-   HARKcore
-
-   ConsIndShockModel
-   ConsPrefShockModel
-   ConsMarkovModel
-   ConsAggShockModel
-   TractableBufferStockModel
-
-   FashionVictimModel
+   HARK.core
+   HARK.dcegm
+   HARK.estimation
+   HARK.interpolation
+   HARK.parallel
+   HARK.simulation
+   HARK.utilities
+   HARK.validators
+   HARK.ConsumptionSaving.ConsAggShockModel
+   HARK.FashionVictim.FashionVictimModel
 
 
 
