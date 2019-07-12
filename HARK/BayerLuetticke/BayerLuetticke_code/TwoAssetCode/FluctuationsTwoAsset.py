@@ -1385,9 +1385,6 @@ def SGU_solver(Xss,Yss,Gamma_state,indexMUdct,indexVKdct,par,mpar,grid,targets,C
 #        else:
 #           print ('No Local Equilibrium Exists, last eigenvalue: ', str(ll[-1 - mpar['numstates']]))
 
-
-
-
 #     z21=Z_ord[nk:,0:nk]
 #     z11=Z_ord[0:nk,0:nk]
 #     s11=s_ord[0:nk,0:nk]

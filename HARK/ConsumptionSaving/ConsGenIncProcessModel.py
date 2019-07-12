@@ -10,7 +10,7 @@ from builtins import str
 from builtins import range
 from copy import deepcopy
 import numpy as np
-from HARK import HARKobject
+from HARK import AgentType, HARKobject
 from HARK.interpolation import LowerEnvelope2D, BilinearInterp, VariableLowerBoundFunc2D, \
                                LinearInterpOnInterp1D, LinearInterp, CubicInterp, UpperEnvelope
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
@@ -985,8 +985,9 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         # Initialize a basic ConsumerType
         IndShockConsumerType.__init__(self, cycles=cycles, time_flow=time_flow, **kwds)
         self.solveOnePeriod = solveConsGenIncProcess  # idiosyncratic shocks solver with explicit persistent income
-        
+
     def preSolve(self):
+        AgentType.preSolve()
         self.updateSolutionTerminal()
 
     def update(self):

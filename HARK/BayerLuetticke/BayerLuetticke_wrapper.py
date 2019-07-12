@@ -272,7 +272,7 @@ if __name__ == '__main__':
     import pylab as plt
     
     simulate = True
-    solve_ss = True
+    solve_ss = False
 
     #First calculate the steady state
     if solve_ss:

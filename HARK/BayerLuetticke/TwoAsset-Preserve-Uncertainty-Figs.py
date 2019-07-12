@@ -13,22 +13,22 @@
 #     name: python3
 # ---
 
-# # Two Asset HANK Model [<cite data-cite="6202365/ECL3ZAR7"></cite>](https://cepr.org/active/publications/discussion_papers/dp.php?dpno=13071) 
+# # [Bayer and Luetticke (2018)](https://cepr.org/active/publications/discussion_papers/dp.php?dpno=13071) 
 #
 # [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/econ-ark/HARK/BayerLuetticke?filepath=HARK%2FBayerLuetticke%2FTwoAsset.ipynb)
 #
-# - Adapted from original slides by Christian Bayer and Ralph Luetticke (Henceforth, 'BL')
-# - Jupyter notebook originally by Seungcheol Lee 
+# - Adapted from original slides by Christian Bayer and Ralph Luetticke 
+# - Jupyter notebook by Seungcheol Lee 
 # - Further edits by Chris Carroll, Tao Wang, Edmund Crawley
 
 # ### Overview
 #
-# BL propose a method for solving Heterogeneous Agent DSGE models that uses fast tools originally employed for image and video compression to speed up a variant of the solution methods proposed by Michael Reiter. <cite data-cite="undefined"></cite>  
+# Bayer and Luetticke propose a method for solving Heterogeneous Agent DSGE models that uses fast tools originally employed for image and video compression to speed up a variant of the solution methods proposed by Michael Reiter. <cite data-cite="undefined"></cite>  
 #
 # The Bayer-Luetticke method has the following broad features:
 #    * The model is formulated and solved in discrete time (in contrast with some other recent approaches <cite data-cite="6202365/WN76AW6Q"></cite>)
 #    * Solution begins by calculation of the steady-state equilibrium (StE) with no aggregate shocks
-#    * Both the representation of the consumer's problem and the desciption of the distribution are subjected to a form of "dimensionality reduction"
+#    * Both the representation of the consumer's problem are subjected to "dimensionality reduction"
 #       * This means finding a way to represent them efficiently using fewer points
 #    * "Dimensionality reduction" of the consumer's decision problem is performed before any further analysis is done
 #       * This involves finding a representation of the policy functions using some class of basis functions
@@ -42,7 +42,7 @@
 #
 # #### The Recursive Dynamic Planning Problem
 #
-# BL describe their problem a generic way; here, we will illustrate the meaning of their derivations and notation using the familiar example of the Krusell-Smith model, henceforth KS.  <cite data-cite="6202365/VPUXICUR"></cite>
+# The problem is described in a generic way; as we go, we will illustrate the meaning of the notation using the familiar example of the Krusell-Smith model, henceforth KS.  <cite data-cite="6202365/VPUXICUR"></cite>
 #
 # Consider a household problem in presence of aggregate and idiosyncratic risk
 #    * $S_t$ is an (exogenous) aggregate state (e.g., levels of productivity and unemployment)
@@ -286,7 +286,7 @@ import scipy.fftpack as sf
 #    \end{equation}
 #    * This assumes that the basis functions with least contribution to representation of the function in levels, make no contribution at all to its changes over time
 
-# + {"code_folding": []}
+# + {"code_folding": [0]}
 ## State reduction and Discrete cosine transformation
 
 class StateReduc_Dct:
