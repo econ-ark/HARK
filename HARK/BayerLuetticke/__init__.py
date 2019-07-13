@@ -1,7 +1,6 @@
-from HARK.BayerLuetticke.TwoAssetCode.FluctuationsTwoAsset import *
-from HARK.BayerLuetticke.TwoAssetCode.SteadyStateTwoAsset import *
-from HARK.BayerLuetticke.OneAssetCode_HANK.SteadyStateOneAssetIOUsBond import *
-from HARK.BayerLuetticke.OneAssetCode_HANK.FluctuationsOneAssetIOUsBond import *
-from HARK.BayerLuetticke.OneAssetCode_KS.FluctuationsOneAssetIOUs import *
-from HARK.BayerLuetticke.OneAssetCode_KS.SteadyStateOneAssetIOUs import *
-
+from HARK.BayerLuetticke.Assets.One.FluctuationsOneAssetIOUs import *
+from HARK.BayerLuetticke.Assets.One.SteadyStateOneAssetIOUs import *
+from HARK.BayerLuetticke.Assets.One.FluctuationsOneAssetIOUsBond import *
+from HARK.BayerLuetticke.Assets.One.SteadyStateOneAssetIOUsBond import *
+from HARK.BayerLuetticke.Assets.Two.SteadyStateTwoAsset import *
+from HARK.BayerLuetticke.Assets.Two.FluctuationsTwoAsset import *
