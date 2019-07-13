@@ -16,7 +16,7 @@ class ValidatorsTests(unittest.TestCase):
             foo([1], [])
         except Exception:
             self.fail()
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             TypeError,
             'Expected non-empty argument for parameter list_a',
         ):
@@ -26,12 +26,12 @@ class ValidatorsTests(unittest.TestCase):
         def foo(list_a, list_b):
             pass
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             TypeError,
             'Expected non-empty argument for parameter list_b',
         ):
             foo([1], [])
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             TypeError,
             'Expected non-empty argument for parameter list_a',
         ):
