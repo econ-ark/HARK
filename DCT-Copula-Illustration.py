@@ -38,7 +38,7 @@
 # $[\frac{d v}{d m} = \frac{d u}{d c}]$.
 # In practice, the authors solve their problem using the marginal value of money $\texttt{Vm} = dv/dm$, but because the marginal utility function is invertible it is trivial to recover $\texttt{c}$ from $(u^{\prime})^{-1}(\texttt{Vm} )$.  The consumption function is therefore computed from the $\texttt{Vm}$ function
 
-# %% {"code_folding": [0, 6, 17, 21]}
+# %% {"code_folding": [0]}
 # Setup stuff
 
 # This is a jupytext paired notebook that autogenerates a corresponding .py file
@@ -76,7 +76,7 @@ code_dir = os.path.join(my_file_path, "BayerLuetticke_code/TwoAssetCode")
 sys.path.insert(0, code_dir)
 sys.path.insert(0, my_file_path)
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Load precalculated Stationary Equilibrium (StE) object EX3SS
 
 import pickle
@@ -100,7 +100,7 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 # In the "real" micro problem, it would almost never happen that a continuous variable like $m$ would end up being exactly equal to one of the prespecified gridpoints. But the functions need to be evaluated at such non-grid points.  This is addressed by linear interpolation.  That is, if, say, the grid had $m_{8} = 40$ and $m_{9} = 50$ then and a consumer ended up with $m = 45$ then the approximation is that $\tilde{c}(45) = 0.5 \bar{c}_{8} + 0.5 \bar{c}_{9}$.
 #
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Show dimensions of the consumer's problem (state space)
 
 print('c_n is of dimension: ' + str(EX3SS['mutil_c_n'].shape))
@@ -159,7 +159,7 @@ print(str(EX3SS['mpar']['nm'])+
 #
 # - This reduces the number of points for which we need to track transitions from $3600 = 30 \times 30 \times 4$ to $64 = 30+30+4$.  Or the total number of points we need to contemplate goes from $3600^2 \approx 13 $million to $64^2=4096$.  
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Get some specs about the copula, which is precomputed in the EX3SS object
 
 print('The copula consists of two parts: gridpoints and values at those gridpoints:'+ \
@@ -171,7 +171,7 @@ print('The copula consists of two parts: gridpoints and values at those gridpoin
       '\n state variables are below the corresponding point.')
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Import necessary libraries
 
 from __future__ import print_function
@@ -206,7 +206,7 @@ import seaborn as sns
 import copy as cp
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## State reduction and discrete cosine transformation
 
 class StateReduc_Dct:
@@ -397,7 +397,7 @@ class StateReduc_Dct:
         
         return index_reduced
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
 
 EX3SS['par']['aggrshock']           = 'MP'
@@ -424,7 +424,7 @@ EX3SS['par']['accuracy'] = 0.99999
 EX3SR=StateReduc_Dct(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
 SR=EX3SR.StateReduc()           # StateReduc is operated 
 
-# %% {"code_folding": [0, 12]}
+# %% {"code_folding": [0]}
 # Measuring the effectiveness of the state reduction
 
 print('What are the results from the state reduction?')
@@ -462,7 +462,7 @@ print('The total number of state variables is '+str(SR['State'].shape[0]) + '='+
 # We plot the functions for the top and bottom values of the wage $h$ distribution
 #
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Graphical illustration
 
 xi = EX3SS['par']['xi']
@@ -485,7 +485,7 @@ kgrid = EX3SS['grid']['k']
 hgrid = EX3SS['grid']['h']
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## define some functions to be used next
 
 def dct3d(x):
@@ -515,9 +515,13 @@ def DCTApprox(fullgrids,dct_index):
 ## 2D graph of consumption function: c(m) fixing k and h
 
 
-## list of accuracy levels 
+## list of accuracy levels  
+Accuracy_BL    = 0.99999 # From BL
+Accuracy_Less0 = 0.999
+Accuracy_Less1 = 0.99
+Accuracy_Less2 = 0.95
 
-acc_lst = np.array([0.99999,0.999,0.99,0.9])
+acc_lst = np.array([Accuracy_BL,Accuracy_Less0,Accuracy_Less1,Accuracy_Less2])
 
 ## c(m) fixing k and h
 fig = plt.figure(figsize=(8,8))
@@ -595,10 +599,10 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.legend(loc=0)
 
-# %% {"code_folding": [0]}
-## redo DCT for accuracy level 0.99999
+# %% {"code_folding": []}
+# Restore the solution corresponding to the original BL accuracy
 
-EX3SS['par']['accuracy'] = 0.99999 
+EX3SS['par']['accuracy'] = Accuracy_BL 
 EX3SR=StateReduc_Dct(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
 SR=EX3SR.StateReduc()           # StateReduc is operated 
 
@@ -614,31 +618,34 @@ for i in range(nb_dct):
 mut_rdc_bool_3d = (mut_rdc_bool==1).reshape(dim_StE)
 mut_rdc_mask_3d = (mut_rdc_bool).reshape(dim_StE)
 
-## get the 95 percent or other percentile of the distribution
+# Get the joint distribution calculated elsewhere
 
 joint_distr =  EX3SS['joint_distr']
 marginal_mk =  EX3SS['joint_distr'].sum(axis=2)
 
-mass_pct = 0.95
+# Location at which to cut off the topmost part of the distributions
 
-# %%
-## Again, for 0.99999 accuracy level, get dct compressed c functions at all grids 
+mass_pct = 0.9
+
+## Again, for BL accuracy level, get dct compressed c functions at all grids 
 
 c_n_approx = DCTApprox(cn_StE,mut_rdc_idx)
 c_a_approx = DCTApprox(ca_StE,mut_rdc_idx)
 
 # %% {"code_folding": []}
-## 3D surface plots of consumption function at full grids and approximated by DCT
-##    at all grids and grids after dct for both adjusters and non-adjusters
+# 3D surface plots of consumption function at full grids and approximated by DCT
+##    at all grids and grids after dct first for non-adjusters and then for adjusters
 
 ## for non-adjusters
 
-## full grids 
+## full grids now 
+## WangTao: 
+## After plotting for the entire set of gridpoints, next plot only for the bottom mass_pct of the distributions
+
 mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
 
-### for adjusters 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of non-adjusters at grid points of m and k(for different h)',
+fig.suptitle('Consumption of non-adjusters at grid points of m and k (for each h)',
              fontsize=(13))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
@@ -693,7 +700,7 @@ mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
 
 ### for adjusters 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of non-adjusters at grid points of m and k(for different h)',
+fig.suptitle('Consumption of non-adjusters at grid points of m and k (for each h)',
              fontsize=(13))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
@@ -717,8 +724,6 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 
 # %% {"code_folding": []}
 # Difference of full-grid c and DCT compressed c for difference levels of accuracy
-
-acc_lst = np.array([0.99999,0.999,0.99,0.9])
 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Differences of c at full grids and c approximated by DCT in different accuracy levels(non-adjusters)',
@@ -781,10 +786,10 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.view_init(20, 150)
 
 # %% {"code_folding": []}
-### compare consumption functions of adjusters and non-adjusters approximated by DCT
+# Compare consumption functions of adjusters and non-adjusters approximated by DCT
 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of adjusters/non-adjusters at grid points of m and k(for different h)',
+fig.suptitle('Consumption of adjusters (yellow)/non-adjusters (blue) at grid points of m and k (for each h)',
              fontsize=(13))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ## prepare the reduced grids 
@@ -807,7 +812,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.view_init(20, 60)
 
 # %% {"code_folding": []}
-## the differences of consumption functions of adjusters and non-adjusters approximated by DCT.
+## the differences of c functions of adjusters and non-adjusters approximated by DCT.
 
 c_diff_approx=c_n_approx-c_a_approx
 
@@ -845,7 +850,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 # - The joint-distribution can be represented by marginal distributions of $m$, $k$ and $h$ and a copula that describes the correlation between the three states. The former is straightfoward. We plot the copula only. The copula is essentially a multivariate cummulative distribution function where each marginal is uniform. (Translation from the uniform to the appropriate nonuniform distribution is handled at a separate stage).
 #
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ### Marginalize along h grids
 
 joint_distr =  EX3SS['joint_distr']
@@ -918,6 +923,16 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     #ax.set_xlim(0,mmax)
     #ax.set_ylim(0,kmax)
     ax.view_init(30, 60)
+
+# %% [markdown]
+# # To Do:
+#
+# 1. Plot the _difference_ in the _approximation errors_ for adjusters and nonadjusters
+# 1. Make color or transparency be determined by the population density from the copula
+# 1. Make extra versions of the figures where the color is determined by the population density at that location (given by the copula)
+# 1. Differences _between_ adjusters and nonadjusters in consumption are not interesting and should be deleted
+# 1. Eliminate "magic numbers"
+# 1. Improve comments so a new reader can understand what is being done
 
 # %% [markdown]
 # Given the assumption that the copula remains the same after aggregate risk is introduced, we can use the same copula and the marginal distributions to recover the full joint-distribution of the states.  
