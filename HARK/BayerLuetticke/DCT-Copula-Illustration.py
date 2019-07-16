@@ -171,7 +171,7 @@ print('The copula consists of two parts: gridpoints and values at those gridpoin
       '\n state variables are below the corresponding point.')
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Import necessary libraries
 
 from __future__ import print_function
@@ -200,6 +200,7 @@ import scipy.fftpack as sf  # scipy discrete fourier transforms
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from matplotlib import cm
+from matplotlib import lines
 
 import seaborn as sns
 
@@ -686,7 +687,7 @@ print('Input: plot the graph for bottom x (0-1) of the distribution.')
 mass_pct = float(input())
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # 3D surface plots of consumption function at full grids and approximated by DCT
 ##    at all grids and grids after dct first for non-adjusters and then for adjusters
 
@@ -722,18 +723,36 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.scatter(mmgrid_trim,kkgrid_trim,cn_StE_trim,marker='v',color='red',
-                   label='full-grid c: non-adjuster')
-    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_n_approx_trim,cmap='Blues',
-               label='approximated c: non-adjuster')
-    dst_contour = ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, zdir='z',offset=np.min(distr_fix_trim),cmap=cm.YlOrRd)
+    scatter = ax.scatter(mmgrid_trim,kkgrid_trim,cn_StE_trim,
+               marker='v',
+               color='red')
+    surface = ax.plot_surface(mmgrid_trim,kkgrid_trim,c_n_approx_trim,
+                    cmap='Blues')
+    fake2Dline = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='b',
+                              marker='o') # fake line for making the legend for surface
+    
+    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, 
+                              zdir='z',
+                              offset=np.min(distr_fix_trim),
+                              cmap=cm.YlOrRd)
+    fake2Dline2 = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='orange',
+                              marker='o') # fakeline for making the legend for surface
+    
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_n(m,k)$',fontsize=13)
     plt.gca().invert_yaxis()
+    plt.gca().invert_xaxis()
     ax.set_zlim([0,zmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
-    ax.view_init(20, 110)
+    ax.view_init(20, 70)
+    ax.legend([scatter,fake2Dline,fake2Dline2], 
+              ['Full-grid c by non-adjuster','Approximated c by non-adjuster','Joint distribution'],
+              loc=0)
 
 # %% {"code_folding": [0]}
 ## 3D scatter plots of the difference of full-grid c and approximated c for non-adjusters
@@ -747,7 +766,9 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     hgrid_fix = hgrid_id    
     cn_diff = c_n_approx-cn_StE
     cn_diff_fix = cn_diff[:,:,hgrid_fix]
-    
+    distr_fix = joint_distr[:,:,hgrid_fix]
+
+
     ## additions to the above cell
     ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
     mk_marginal = joint_distr[:,:,hgrid_fix]
@@ -756,12 +777,34 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
     c_n_diff_trim = cn_diff_fix.copy()
     c_n_diff_trim = c_n_diff_trim[:kmax_idx,:mmax_idx]  # first k and then m because c is is nk x nm 
+    distr_fix_trim = distr_fix.copy()
+    distr_fix_trim = distr_fix_trim[:kmax_idx,:mmax_idx]
+
 
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_n_diff_trim, rstride=1, 
-                    cstride=1,cmap=cm.coolwarm, edgecolor='none',
-                    label='Difference of full-grid and approximated consumption function')
+    
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_n_diff_trim, 
+                    rstride=1, 
+                    cstride=1,
+                    cmap=cm.coolwarm, 
+                    edgecolor='none')
+    fake2Dline_pos = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='r',
+                              marker='o') # fakeline for making the legend for surface
+    fake2Dline_neg = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='b',
+                              marker='o') # fakeline for making the legend for surface
+    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, 
+                              zdir='z',
+                              offset=np.min(c_n_diff_trim),
+                              cmap=cm.YlOrRd)
+    fake2Dline2 = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='orange',
+                              marker='o') # fakeline for making the legend for contour
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
@@ -771,6 +814,9 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     #ax.set_ylim([0,kmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 40)
+    ax.legend([fake2Dline_pos,fake2Dline_neg,fake2Dline2], 
+              ['Positive approx errors','Negative approx errors','Joint distribution'],
+              loc=0)
 
 # %% {"code_folding": [0]}
 # Difference of full-grid c and DCT compressed c for each level of accuracy
@@ -794,8 +840,8 @@ for idx in range(len(acc_lst)):
     
     hgrid_fix=1  # fix level of h as an example 
     c_n_diff_cp_fix = cn_diff_cp[:,:,hgrid_fix]
+    distr_fix = joint_distr[:,:,hgrid_fix]
     
-    ## additions to the above cell
     ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
     mk_marginal = joint_distr[:,:,hgrid_fix]
     mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
@@ -803,13 +849,32 @@ for idx in range(len(acc_lst)):
     mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
     c_n_diff_cp_trim = c_n_diff_cp_fix.copy()
     c_n_diff_cp_trim = c_n_diff_cp_trim[:kmax_idx:,:mmax_idx]
- 
+    distr_fix_trim = distr_fix.copy()
+    distr_fix_trim = distr_fix_trim[:kmax_idx,:mmax_idx]
     
     ## plots 
     ax = fig.add_subplot(2,2,idx+1, projection='3d')
-    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_n_diff_cp_trim, rstride=1, 
-                    cstride=1,cmap=cm.summer, edgecolor='none',
-                    label='Difference of full-grid and approximated consumption functions')
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_n_diff_cp_trim, 
+                    rstride=1, 
+                    cstride=1,
+                    cmap=cm.coolwarm, 
+                    edgecolor='none')
+    fake2Dline_pos = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='r',
+                              marker='o') # fakeline for making the legend for surface
+    fake2Dline_neg = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='b',
+                              marker='o') # fakeline for making the legend for surface
+    dst_contour = ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, 
+                              zdir='z',
+                              offset=np.min(-2),
+                              cmap=cm.YlOrRd)
+    fake2Dline2 = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='orange',
+                              marker='o') # fakeline for making the legend for contour
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel('Difference of c functions',fontsize=13)
@@ -817,9 +882,12 @@ for idx in range(len(acc_lst)):
     plt.gca().invert_xaxis()
     #ax.set_xlim([0,mmax])
     #ax.set_ylim([0,kmax])
-    ax.set_zlim([-8,2])
+    ax.set_zlim([-2,2])  # these are magic numbers. need to fix
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.view_init(10, 60)
+    ax.legend([fake2Dline_pos,fake2Dline_neg,fake2Dline2], 
+              ['Positive approx errors','Negative approx errors','Joint distribution'],
+              loc=0)
 
 # %% {"code_folding": [0]}
 # Difference of full-grid c and DCT compressed c for difference levels of accuracy
@@ -841,10 +909,12 @@ for idx in range(len(acc_lst)):
     c_a_approx_cp = DCTApprox(ca_StE,mut_rdc_idx_cp)
     cn_diff_cp = c_n_approx_cp-cn_StE
     ca_diff_cp = c_a_approx_cp-ca_StE
-    c_diff_cp_apx_error = ca_diff_cp-cn_diff_cp
+    c_diff_cp_apx_error = ca_diff_cp - cn_diff_cp
     
     hgrid_fix=1  # fix level of h as an example 
     c_diff_cp_apx_error_fix = c_diff_cp_apx_error[:,:,hgrid_fix]
+    distr_fix = joint_distr[:,:,hgrid_fix]
+
 
     ## additions to the above cell
     ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
@@ -854,13 +924,33 @@ for idx in range(len(acc_lst)):
     mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
     c_diff_cp_apx_error_trim = c_diff_cp_apx_error_fix.copy()
     c_diff_cp_apx_error_trim = c_diff_cp_apx_error_trim[:kmax_idx,:mmax_idx]
-    
+    distr_fix_trim = distr_fix.copy()
+    distr_fix_trim = distr_fix_trim[:kmax_idx,:mmax_idx]
     
     ## plots 
     ax = fig.add_subplot(2,2,idx+1, projection='3d')
-    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_diff_cp_apx_error_trim, rstride=1, 
-                    cstride=1,cmap=cm.autumn, edgecolor='none',
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_diff_cp_apx_error_trim, 
+                    rstride=1, 
+                    cstride=1,
+                    cmap=cm.coolwarm, 
+                    edgecolor='none',
                     label='Difference of full-grid and approximated consumption functions')
+    fake2Dline_pos = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='r',
+                              marker='o') # fakeline for making the legend for surface
+    fake2Dline_neg = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='b',
+                              marker='o') # fakeline for making the legend for surface
+    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, 
+                              zdir='z',
+                              offset=np.min(-2),
+                              cmap=cm.YlOrRd)
+    fake2Dline2 = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='orange',
+                              marker='o') # fakeline for making the legend for contour
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel('Difference of approximation errors',fontsize=13)
@@ -868,9 +958,12 @@ for idx in range(len(acc_lst)):
     plt.gca().invert_xaxis()
     #ax.set_xlim([0,mmax])
     #ax.set_ylim([0,kmax])
-    ax.set_zlim([-8,2])
+    ax.set_zlim([-2,2]) # these are magic numbers. need to fix
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.view_init(10, 60)
+    ax.legend([fake2Dline_pos,fake2Dline_neg,fake2Dline2],
+              ['Positive diff','Negative diff','Joint distribution'],
+              loc=0)
 
 # %% {"code_folding": [0]}
 # For adjusters: 3D surface plots of consumption function at full grids and approximated by DCT 
@@ -910,16 +1003,28 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
                     label='full-grid c:adjuster')
     ax.plot_surface(mmgrid_trim,kkgrid_trim,c_a_approx_trim,cmap='Blues',
                label='approximated c: adjuster')
-    dst_contour = ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, zdir='z',offset=np.min(distr_fix_trim),cmap=cm.YlOrRd)
+    fake2Dline = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='b',
+                              marker='o') # fake line for making the legend for surface
+    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, zdir='z',offset=np.min(distr_fix_trim),cmap=cm.YlOrRd)
+    fake2Dline2 = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='orange',
+                              marker='o') # fakeline for making the legend for surface
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
     plt.gca().invert_yaxis()
+    plt.gca().invert_xaxis()
     #ax.set_xlim([0,mmax])
     #ax.set_ylim([0,kmax])
     ax.set_zlim([0,zmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
-    ax.view_init(20, 110)
+    ax.view_init(20, 70)
+    ax.legend([scatter,fake2Dline,fake2Dline2], 
+              ['Full-grid c by adjuster','Approx c by adjuster','Joint distribution'],
+              loc=0)
 
 # %% [markdown]
 # ##### Observation
@@ -952,7 +1057,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     for id in range(EX3SS['mpar']['nm']):   
         ax.plot(kgrid,joint_distr[id,:,hgrid_id])
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Plot joint distribution of k and m in 3d graph
 #for only 90 percent of the distributions 
 
@@ -982,6 +1087,10 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
     ax.plot_surface(mmgrid_trim,kkgrid_trim,joint_km_trim, rstride=1, cstride=1,
                     cmap=cm.YlOrRd, edgecolor='none')
+    fake2Dline = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='orange',
+                              marker='o') # fakeline for making the legend for contour
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel('Probability')
@@ -993,11 +1102,14 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     #ax.set_xlim([0,mmax])
     #ax.set_ylim([0,kmax])
     ax.view_init(20, 60)
+    ax.legend([fake2Dline], 
+              ['joint distribution'],
+              loc=0)
 
 # %% [markdown]
 # Notice the CDFs in StE copula have 4 modes, corresponding to the number of $h$ gridpoints. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Plot the copula 
 # same plot as above for only 90 percent of the distributions 
 
@@ -1025,6 +1137,10 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
     ax.plot_surface(mmgrid_trim,kkgrid_trim,cdf_fix_trim, rstride=1, cstride=1,
                     cmap =cm.Greens, edgecolor='None')
+    fake2Dline = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='green',
+                              marker='o')
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_title(r'$h({})$'.format(hgrid_id))
@@ -1041,16 +1157,14 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     #ax.set_xlim(0,mmax)
     #ax.set_ylim(0,kmax)
     ax.view_init(30, 60)
+    ax.legend([fake2Dline], 
+              ['Marginal distribution of fixed copula'],
+              loc=0)
 
 # %% [markdown]
 # ## More to do:
 #
 # 1. Figure out median value of h and normalize c, m, and k by it
-# 1. Figure out some way to show the density along with the levels of functions 
-#    * Topo on the bottom plane is probably simplest 
-#    * Color reflecting the density might be better
-#       * Though maybe not -- might be ugly or hard to interpret
-# 1. Dots should be the "true" value, surfaces should be the idct(dct) values
 
 # %% [markdown]
 # Given the assumption that the copula remains the same after aggregate risk is introduced, we can use the same copula and the marginal distributions to recover the full joint-distribution of the states.  
