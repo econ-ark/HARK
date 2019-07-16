@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ---
 # jupyter:
 #   jupytext:
@@ -15,6 +14,9 @@
 # ---
 
 # %% [markdown]
+# This notebook seems to have been abandoned partway through.  It should either be finished or deleted
+
+# %% [markdown]
 # # Dimensionality Reduction in [Bayer and Luetticke (2018)](https://cepr.org/active/publications/discussion_papers/dp.php?dpno=13071)
 #
 # [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/econ-ark/HARK/BayerLuetticke?filepath=HARK%2FBayerLuetticke%2FDCT-Copula-Illustration.ipynb)
@@ -29,7 +31,7 @@
 # %% [markdown]
 # ### Preliminaries
 #
-# In Steady-state Equilibrium (StE) in the model, in any given period, a consumer in state $s$ (which comprises liquid assets $m$, illiquid assets $k$, and human capital $\newcommand{hLev}{h}\hLev$) has two key choices:
+# In Steady-state Equilibrium (StE), in any given period, a consumer in state $s$ (which comprises liquid assets $m$, illiquid assets $k$, and human capital $\newcommand{hLev}{h}\hLev$) has two key choices:
 # 1. To adjust ('a') or not adjust ('n') their holdings of illiquid assets $k$
 # 1. Contingent on that choice, decide the level of consumption, yielding consumption functions:
 #     * $c_n(s)$ - nonadjusters
@@ -39,7 +41,7 @@
 # $[\frac{d v}{d m} = \frac{d u}{d c}]$.
 # In practice, the authors solve their problem using the marginal value of money $\texttt{Vm} = dv/dm$, but because the marginal utility function is invertible it is trivial to recover $\texttt{c}$ from $(u^{\prime})^{-1}(\texttt{Vm} )$.  The consumption function is therefore computed from the $\texttt{Vm}$ function
 
-# %% {"code_folding": [0, 6, 17, 21]}
+# %% {"code_folding": []}
 # Setup stuff
 
 # This is a jupytext paired notebook that autogenerates a corresponding .py file
@@ -69,10 +71,10 @@ import sys
 import os
 
 # Find pathname to this file:
-my_file_path = os.path.dirname(os.path.abspath("TwoAsset.ipynb"))
+my_file_path = os.path.dirname(os.path.abspath("DCT-Copula-Illustration-OneAsset.ipynb"))
 
 # Relative directory for pickled code
-code_dir = os.path.join(my_file_path, "BayerLuetticke_code/OneAssetCode-HANK") 
+code_dir = os.path.join(my_file_path, "Assets/One") 
 
 sys.path.insert(0, code_dir)
 sys.path.insert(0, my_file_path)
@@ -85,6 +87,12 @@ os.chdir(code_dir) # Go to the directory with pickled code
 
 EX2SS=pickle.load(open("EX2SS.p", "rb"))
 
+
+# %%
+code_dir
+
+# %%
+my_file_path
 
 # %%
 EX2SS.keys()
@@ -101,12 +109,10 @@ EX2SS.keys()
 # In the "real" micro problem, it would almost never happen that a continuous variable like $m$ would end up being exactly equal to one of the prespecified gridpoints. But the functions need to be evaluated at such non-grid points.  This is addressed by linear interpolation.  That is, if, say, the grid had $m_{8} = 40$ and $m_{9} = 50$ then and a consumer ended up with $m = 45$ then the approximation is that $\tilde{c}(45) = 0.5 \bar{c}_{8} + 0.5 \bar{c}_{9}$.
 #
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Show dimensions of the consumer's problem (state space)
 
 print('c is of dimension: ' + str(EX2SS['mutil_c'].shape))
-
-
 print('Vm is of dimension:' + str(EX2SS['Vm'].shape))
 
 print('For convenience, these are all constructed from the same exogenous grids:')
@@ -160,7 +166,7 @@ print(str(EX2SS['mpar']['nm'])+
 # %%
 dir(EX2SS['Copula'])
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Get some specs about the copula, which is precomputed in the EX3SS object
 
 #print('The copula consists of two parts: gridpoints and values at those gridpoints:'+ \
@@ -172,7 +178,7 @@ dir(EX2SS['Copula'])
 #      '\n state variables are below the corresponding point.')
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Import necessary libraries
 
 from __future__ import print_function
@@ -205,7 +211,7 @@ from matplotlib import cm
 
 import seaborn as sns
 
-# %% {"code_folding": [0, 105, 309, 432, 720]}
+# %% {"code_folding": []}
 ## Wrapping one-asset codes from BayerLuetticke. Super long. No need to unfold for most purposes of this notebook
 
 
@@ -307,7 +313,7 @@ class FluctuationsOneAssetIOUs:
                 'Gamma_control': Gamma_control, 'InvGamma':InvGamma, 
                 'par':self.par, 'mpar':self.mpar, 'aggrshock':aggrshock, 'oc':oc,
                 'Copula':self.Copula,'grid':self.grid,'targets':self.targets,'P_H':self.P_H, 
-                'joint_distr': self.joint_distr, 'os':os, 'Output': self.Output}ß
+                'joint_distr': self.joint_distr, 'os':os, 'Output': self.Output}
         
 
 
@@ -972,7 +978,7 @@ def EGM_policyupdate(EVm,PIminus,RBminus,inc,meshes,grid,par,mpar):
 
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Implement Dimensionality Reduction
 
 EX2SR=FluctuationsOneAssetIOUs(**EX2SS)
@@ -983,7 +989,7 @@ EX2SR=FluctuationsOneAssetIOUs(**EX2SS)
 # Do state reduction 
 SR=EX2SR.StateReduc()
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
 
 #EX2SS['par']['aggrshock']           = 'MP'
@@ -998,7 +1004,7 @@ SR=EX2SR.StateReduc()
 #EX3SS['par']['rhoS']    = 0.84    # Persistence of variance
 #EX3SS['par']['sigmaS']  = 0.54    # STD of variance shocks
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Measuring the effectiveness of the state reduction
 
 print('What are the results from the state reduction?')
@@ -1070,7 +1076,7 @@ hgrid = EX2SS['grid']['h']
 joint_distr =  EX2SS['joint_distr']
 #marginal_mk =  EX2SS['joint_distr'].sum(axis=2)
 
-# %% {"code_folding": [0, 2, 7, 12]}
+# %% {"code_folding": []}
 ## define some functions to be used next
 
 def dct2d(x):
@@ -1092,7 +1098,7 @@ def DCTApprox(fullgrids,dct_index):
     return approxgrids
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## get dct compressed c functions at all grids 
 
 c_n_approx = DCTApprox(cn_StE,mut_rdc_idx)
