@@ -54,7 +54,7 @@ import os
 my_file_path = os.path.dirname(os.path.abspath("OneAssetHANK.ipynb"))
 
 # Relative directory for pickled code
-code_dir = os.path.join(my_file_path, "BayerLuetticke_code/OneAssetCode-HANK") 
+code_dir = os.path.join(my_file_path, "../Assets/One") 
 
 sys.path.insert(0, code_dir)
 sys.path.insert(0, my_file_path)
@@ -83,7 +83,7 @@ from copy import copy
 from time import clock
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": [2, 104, 308]}
 # Bayer-Luetticke Code
 
 class FluctuationsOneAssetIOUs:
@@ -849,7 +849,7 @@ def EGM_policyupdate(EVm,PIminus,RBminus,inc,meshes,grid,par,mpar):
 
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Load Stationary equilibrium (StE) object EX2SS
 
 import pickle
@@ -858,7 +858,7 @@ os.chdir(code_dir) # Go to the directory with pickled code
 ## EX2SS.p is the information in the stationary equilibrium (20: the number of illiquid and liquid weath grids )
 EX2SS=pickle.load(open("EX2SS.p", "rb"))
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Dimensionality Reduction
 
 EX2SR=FluctuationsOneAssetIOUs(**EX2SS)
@@ -866,7 +866,7 @@ EX2SR=FluctuationsOneAssetIOUs(**EX2SS)
 SR=EX2SR.StateReduc()
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # # Monetary Policy Shock
 
 # EX2SS['par']['aggrshock']           = 'MP'
@@ -930,6 +930,7 @@ EX2SS['par']['aggrshock']           = 'Uncertainty'
 EX2SS['par']['rhoS']    = 0.84    # Persistence of variance
 EX2SS['par']['sigmaS']  = 0.54    # STD of variance shocks
 
+# %% {"code_folding": []}
 SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['Gamma_control'],SR['InvGamma'],SR['Copula'],
                          SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['P_H'],SR['aggrshock'],SR['oc'])
 
