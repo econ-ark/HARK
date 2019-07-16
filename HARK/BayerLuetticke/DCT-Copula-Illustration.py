@@ -680,12 +680,19 @@ def TrimMesh2d(grids1,grids2,trim1_idx,trim2_idx,drop=True):
     return grids1_trimmesh,grids2_trimmesh
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## set the population density for plotting graphs 
 
 print('Input: plot the graph for bottom x (0-1) of the distribution.')
 mass_pct = float(input())
 
+
+# %%
+## other configurations for plotting 
+
+distr_min = 0
+distr_max = np.nanmax(joint_distr)
+fontsize_lg = 13 
 
 # %% {"code_folding": []}
 # 3D surface plots of consumption function at full grids and approximated by DCT
@@ -734,9 +741,11 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
                               marker='o') # fake line for making the legend for surface
     
     ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, 
-                              zdir='z',
-                              offset=np.min(distr_fix_trim),
-                              cmap=cm.YlOrRd)
+                zdir='z',
+                offset=np.min(distr_fix_trim),
+                cmap=cm.YlOrRd,
+                vmin=distr_min, 
+                vmax=distr_max)
     fake2Dline2 = lines.Line2D([0],[0], 
                               linestyle="none", 
                               c='orange',
@@ -754,7 +763,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
               ['Full-grid c','Approximated c','Joint distribution'],
               loc=0)
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## 3D scatter plots of the difference of full-grid c and approximated c for non-adjusters
 
 fig = plt.figure(figsize=(14,14))
@@ -797,10 +806,12 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
                               linestyle="none", 
                               c='b',
                               marker='o') # fakeline for making the legend for surface
-    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, 
-                              zdir='z',
-                              offset=np.min(c_n_diff_trim),
-                              cmap=cm.YlOrRd)
+    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim,
+                zdir='z',
+                offset=np.min(c_n_diff_trim),
+                cmap=cm.YlOrRd,
+                vmin=distr_min,
+                vmax=distr_max)
     fake2Dline2 = lines.Line2D([0],[0], 
                               linestyle="none", 
                               c='orange',
@@ -870,7 +881,9 @@ for idx in range(len(acc_lst)):
     dst_contour = ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, 
                               zdir='z',
                               offset=np.min(-2),
-                              cmap=cm.YlOrRd)
+                              cmap=cm.YlOrRd,
+                              vmin=distr_min, 
+                              vmax=distr_max)
     fake2Dline2 = lines.Line2D([0],[0], 
                               linestyle="none", 
                               c='orange',
@@ -889,7 +902,7 @@ for idx in range(len(acc_lst)):
               ['+ approx errors','- approx errors','Joint distribution'],
               loc=0)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Difference of full-grid c and DCT compressed c for difference levels of accuracy
 
 fig = plt.figure(figsize=(14,14))
@@ -943,10 +956,12 @@ for idx in range(len(acc_lst)):
                               linestyle="none", 
                               c='b',
                               marker='o') # fakeline for making the legend for surface
-    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, 
-                              zdir='z',
-                              offset=np.min(-2),
-                              cmap=cm.YlOrRd)
+    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim,
+                zdir='z',
+                offset=np.min(-2),
+                cmap=cm.YlOrRd,
+                vmin=distr_min, 
+                vmax=distr_max)
     fake2Dline2 = lines.Line2D([0],[0], 
                               linestyle="none", 
                               c='orange',
@@ -965,7 +980,7 @@ for idx in range(len(acc_lst)):
               ['+ diff','- diff','Joint distribution'],
               loc=0)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # For adjusters: 3D surface plots of consumption function at full grids and approximated by DCT 
 
     
@@ -1007,7 +1022,12 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
                               linestyle="none", 
                               c='b',
                               marker='o') # fake line for making the legend for surface
-    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, zdir='z',offset=np.min(distr_fix_trim),cmap=cm.YlOrRd)
+    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, 
+                zdir='z',
+                offset=np.min(distr_fix_trim),
+                cmap=cm.YlOrRd,
+                vmin=distr_min,
+                vmax=distr_max)
     fake2Dline2 = lines.Line2D([0],[0], 
                               linestyle="none", 
                               c='orange',
@@ -1057,7 +1077,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     for id in range(EX3SS['mpar']['nm']):   
         ax.plot(kgrid,joint_distr[id,:,hgrid_id])
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Plot joint distribution of k and m in 3d graph
 #for only 90 percent of the distributions 
 
@@ -1085,8 +1105,13 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.plot_surface(mmgrid_trim,kkgrid_trim,joint_km_trim, rstride=1, cstride=1,
-                    cmap=cm.YlOrRd, edgecolor='none')
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,joint_km_trim, 
+                    rstride=1, 
+                    cstride=1,
+                    cmap=cm.YlOrRd, 
+                    edgecolor='none',
+                    vmin=distr_min, 
+                    vmax=distr_max)
     fake2Dline = lines.Line2D([0],[0], 
                               linestyle="none", 
                               c='orange',
@@ -1109,7 +1134,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 # %% [markdown]
 # Notice the CDFs in StE copula have 4 modes, corresponding to the number of $h$ gridpoints. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Plot the copula 
 # same plot as above for only 90 percent of the distributions 
 
@@ -1135,8 +1160,11 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.plot_surface(mmgrid_trim,kkgrid_trim,cdf_fix_trim, rstride=1, cstride=1,
-                    cmap =cm.Greens, edgecolor='None')
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,cdf_fix_trim, 
+                    rstride=1, 
+                    cstride=1,
+                    cmap =cm.Greens, 
+                    edgecolor='None')
     fake2Dline = lines.Line2D([0],[0], 
                               linestyle="none", 
                               c='green',
