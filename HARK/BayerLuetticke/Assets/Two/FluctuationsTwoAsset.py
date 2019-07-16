@@ -20,7 +20,7 @@ from scipy import sparse as sp
 from scipy import linalg
 from math import log, cos, pi, sqrt
 import time
-from SharedFunc3 import Transition, ExTransitions, GenWeight, MakeGridkm, Tauchen, Fastroot
+from .SharedFunc3 import Transition, ExTransitions, GenWeight, MakeGridkm, Tauchen, Fastroot
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import scipy.io
