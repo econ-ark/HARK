@@ -1,66 +1,10 @@
-# ---
-# jupyter:
-#   jupytext:
-#     formats: ipynb,py:percent
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.2'
-#       jupytext_version: 1.1.3
-#   kernelspec:
-#     display_name: Python 3
-#     language: python
-#     name: python3
-# ---
-
-# %% [markdown]
-#
-# # A One Asset HANK Model 
-#
-# This notebook solves a New Keynesian model in which there is only a single liquid asset.  This is the second model described in <cite data-cite="6202365/ECL3ZAR7"></cite>.  For a detailed description of their solution method, see the companion two-asset HANK model notebook.
-
-# %% {"code_folding": [0]}
-# Setup
+# -*- coding: utf-8 -*-
+'''
+State Reduction, SGU_solver, Plot
+'''
 from __future__ import print_function
-
-# This is a jupytext paired notebook that autogenerates a corresponding .py file
-# which can be executed from a terminal command line via "ipython [name].py"
-# But a terminal does not permit inline figures, so we need to test jupyter vs terminal
-# Google "how can I check if code is executed in the ipython notebook"
-
-def in_ipynb():
-    try:
-        if str(type(get_ipython())) == "<class 'ipykernel.zmqshell.ZMQInteractiveShell'>":
-            return True
-        else:
-            return False
-    except NameError:
-        return False
-
-# Determine whether to make the figures inline (for spyder or jupyter)
-# vs whatever is the automatic setting that will apply if run from the terminal
-if in_ipynb():
-    # %matplotlib inline generates a syntax error when run from the shell
-    # so do this instead
-    get_ipython().run_line_magic('matplotlib', 'inline') 
-else:
-    get_ipython().run_line_magic('matplotlib', 'auto') 
-    
-# The tools for navigating the filesystem
-import sys
-import os
-
-# Find pathname to this file:
-my_file_path = os.path.dirname(os.path.abspath("OneAssetHANK.ipynb"))
-
-# Relative directory for pickled code
-code_dir = os.path.join(my_file_path, "BayerLuetticke_code/OneAssetCode-HANK") 
-
-sys.path.insert(0, code_dir)
-sys.path.insert(0, my_file_path)
-
-# %% {"code_folding": [0]}
-# Import external libraries
+import sys 
+sys.path.insert(0,'../')
 
 import numpy as np
 from numpy.linalg import matrix_rank
@@ -75,16 +19,10 @@ from scipy import sparse as sp
 from scipy import linalg
 from math import log, cos, pi
 import time
-from SharedFunc2 import Transition, ExTransitions, GenWeight, MakeGrid2, Tauchen
+from .SharedFunc2 import Transition, ExTransitions, GenWeight, MakeGrid2, Tauchen
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import scipy.io
-from copy import copy
-from time import clock
-
-
-# %% {"code_folding": [0]}
-# Bayer-Luetticke Code
 
 class FluctuationsOneAssetIOUs:
     
@@ -446,7 +384,7 @@ def plot_IRF(mpar,par,gx,hx,joint_distr,Gamma_state,grid,targets,os,oc,Output):
     plt.legend(handles=[line1])
     plt.xlabel('Quarter')
     plt.ylabel('Percent') 
-#    f_Y.show()
+    f_Y.show()
 #        
     f_C = plt.figure(2)
     line1,=plt.plot(range(1,mpar['maxlag']),np.squeeze(np.asarray(IRF_C)),label='IRF_C')
@@ -454,7 +392,7 @@ def plot_IRF(mpar,par,gx,hx,joint_distr,Gamma_state,grid,targets,os,oc,Output):
     plt.legend(handles=[line1])
     plt.xlabel('Quarter')
     plt.ylabel('Percent') 
-#    f_C.show()
+    f_C.show()
         
     f_M = plt.figure(3)
     line1,=plt.plot(range(1,mpar['maxlag']),np.squeeze(np.asarray(IRF_M)), label='IRF_M')
@@ -463,7 +401,7 @@ def plot_IRF(mpar,par,gx,hx,joint_distr,Gamma_state,grid,targets,os,oc,Output):
     plt.legend(handles=[line1])
     plt.xlabel('Quarter')
     plt.ylabel('Percent') 
-#    f_M.show()
+    f_M.show()
 
     f_H = plt.figure(4)
     line1,=plt.plot(range(1,mpar['maxlag']),np.squeeze(np.asarray(IRF_H)), label='IRF_H')
@@ -472,7 +410,7 @@ def plot_IRF(mpar,par,gx,hx,joint_distr,Gamma_state,grid,targets,os,oc,Output):
     plt.legend(handles=[line1])
     plt.xlabel('Quarter')
     plt.ylabel('Percent') 
-#    f_H.show()
+    f_H.show()
         
     f_S = plt.figure(5)
     line1,=plt.plot(range(1,mpar['maxlag']),np.squeeze(np.asarray(IRF_S)), label='IRF_S')
@@ -480,7 +418,7 @@ def plot_IRF(mpar,par,gx,hx,joint_distr,Gamma_state,grid,targets,os,oc,Output):
     plt.legend(handles=[line1])
     plt.xlabel('Quarter')
     plt.ylabel('Percent') 
-#    f_S.show()        
+    f_S.show()        
         
     f_RBPI = plt.figure(6)
     line1,=plt.plot(range(1,mpar['maxlag']),np.squeeze(np.asarray(IRF_RB)), label='nominal', color='blue', linestyle='--')
@@ -489,7 +427,7 @@ def plot_IRF(mpar,par,gx,hx,joint_distr,Gamma_state,grid,targets,os,oc,Output):
     plt.plot(range(0,mpar['maxlag']-1),np.zeros((mpar['maxlag']-1)),'k--' )
     plt.xlabel('Quarter')
     plt.ylabel('Basis point') 
-#    f_RBPI.show()
+    f_RBPI.show()
         
     f_PI = plt.figure(7)
     line1,=plt.plot(range(1,mpar['maxlag']),np.squeeze(np.asarray(IRF_PI)), label='IRF_PI')
@@ -497,7 +435,7 @@ def plot_IRF(mpar,par,gx,hx,joint_distr,Gamma_state,grid,targets,os,oc,Output):
     plt.plot(range(0,mpar['maxlag']-1),np.zeros((mpar['maxlag']-1)),'k--' )
     plt.xlabel('Quarter')
     plt.ylabel('Basis point') 
-#    f_PI.show()
+    f_PI.show()
         
     f_N = plt.figure(8)
     line1,=plt.plot(range(1,mpar['maxlag']),np.squeeze(np.asarray(IRF_N)), label='IRF_N')
@@ -505,7 +443,7 @@ def plot_IRF(mpar,par,gx,hx,joint_distr,Gamma_state,grid,targets,os,oc,Output):
     plt.plot(range(0,mpar['maxlag']-1),np.zeros((mpar['maxlag']-1)),'k--' )
     plt.xlabel('Quarter')
     plt.ylabel('Percent') 
-#    f_N.show()
+    f_N.show()
 
     f_G = plt.figure(9)
     line1,=plt.plot(range(1,mpar['maxlag']),np.squeeze(np.asarray(IRF_G)), label='IRF_G')
@@ -513,7 +451,7 @@ def plot_IRF(mpar,par,gx,hx,joint_distr,Gamma_state,grid,targets,os,oc,Output):
     plt.plot(range(0,mpar['maxlag']-1),np.zeros((mpar['maxlag']-1)),'k--' )
     plt.xlabel('Quarter')
     plt.ylabel('Percent') 
-#    f_G.show()        
+    f_G.show()        
         
 def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, ControlSS, 
          Gamma_state, Gamma_control, InvGamma, Copula, par, mpar, grid, targets, P, aggrshock, oc):
@@ -847,96 +785,21 @@ def EGM_policyupdate(EVm,PIminus,RBminus,inc,meshes,grid,par,mpar):
         
 ###############################################################################
 
-
-
-# %% {"code_folding": [0]}
-# Load Stationary equilibrium (StE) object EX2SS
-
-import pickle
-os.chdir(code_dir) # Go to the directory with pickled code
-
-## EX2SS.p is the information in the stationary equilibrium (20: the number of illiquid and liquid weath grids )
-EX2SS=pickle.load(open("EX2SS.p", "rb"))
-
-# %% {"code_folding": [0]}
-# Dimensionality Reduction
-
-EX2SR=FluctuationsOneAssetIOUs(**EX2SS)
-
-SR=EX2SR.StateReduc()
-
-
-# %% {"code_folding": [0]}
-# # Monetary Policy Shock
-
-# EX2SS['par']['aggrshock']           = 'MP'
-# EX2SS['par']['rhoS']    = 0.0      # Persistence of variance
-# EX2SS['par']['sigmaS']  = 0.001    # STD of variance shocks
-
-# #EX2SS['par']['aggrshock']           = 'TFP'
-# #EX2SS['par']['rhoS']    = 0.95
-# #EX2SS['par']['sigmaS']  = 0.0075
+if __name__ == '__main__':
     
-# #EX2SS['par']['aggrshock']           = 'Uncertainty'
-# #EX2SS['par']['rhoS']    = 0.84    # Persistence of variance
-# #EX2SS['par']['sigmaS']  = 0.54    # STD of variance shocks
-
-
-# SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['Gamma_control'],SR['InvGamma'],SR['Copula'],
-#                          SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['P_H'],SR['aggrshock'],SR['oc'])
-
-# plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
-#              SR['Gamma_state'],SR['grid'],SR['targets'],SR['os'],SR['oc'],SR['Output'])
-
-# %% {"code_folding": []}
-# # Productivity Shock
-
-# #EX2SS['par']['aggrshock']           = 'MP'
-# #EX2SS['par']['rhoS']    = 0.0      # Persistence of variance
-# #EX2SS['par']['sigmaS']  = 0.001    # STD of variance shocks
-
-# EX2SS['par']['aggrshock']           = 'TFP'
-# EX2SS['par']['rhoS']    = 0.95
-# EX2SS['par']['sigmaS']  = 0.0075
+    from copy import copy
+    from time import clock
+    import pickle
+    import scipy.io
     
-# #EX2SS['par']['aggrshock']           = 'Uncertainty'
-# #EX2SS['par']['rhoS']    = 0.84    # Persistence of variance
-# #EX2SS['par']['sigmaS']  = 0.54    # STD of variance shocks
+    EX2SS=pickle.load(open("EX2SS.p", "rb"))
 
+    EX2SR=FluctuationsOneAssetIOUs(**EX2SS)
 
-
-# SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['Gamma_control'],SR['InvGamma'],SR['Copula'],
-#                          SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['P_H'],SR['aggrshock'],SR['oc'])
-
-# plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
-#              SR['Gamma_state'],SR['grid'],SR['targets'],SR['os'],SR['oc'],SR['Output'])
-
-# %% {"code_folding": []}
-# Uncertainty Shock
-
-
-## EX2SS.p is the information in the stationary equilibrium (20: the number of illiquid and liquid weath grids )
-EX2SS=pickle.load(open("EX2SS.p", "rb"))
-
-#EX2SS['par']['aggrshock']           = 'MP'
-#EX2SS['par']['rhoS']    = 0.0      # Persistence of variance
-#EX2SS['par']['sigmaS']  = 0.001    # STD of variance shocks
-
-#EX2SS['par']['aggrshock']           = 'TFP'
-#EX2SS['par']['rhoS']    = 0.95
-#EX2SS['par']['sigmaS']  = 0.0075
+    SR=EX2SR.StateReduc()
     
-EX2SS['par']['aggrshock']           = 'Uncertainty'
-EX2SS['par']['rhoS']    = 0.84    # Persistence of variance
-EX2SS['par']['sigmaS']  = 0.54    # STD of variance shocks
-
-SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['Gamma_control'],SR['InvGamma'],SR['Copula'],
+    SGUresult=SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['Gamma_control'],SR['InvGamma'],SR['Copula'],
                          SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['P_H'],SR['aggrshock'],SR['oc'])
 
-plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
+    plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
              SR['Gamma_state'],SR['grid'],SR['targets'],SR['os'],SR['oc'],SR['Output'])
-
-# %% [markdown]
-# ### References
-#
-# <div class="cite2c-biblio"></div>
