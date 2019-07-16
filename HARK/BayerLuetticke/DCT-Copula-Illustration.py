@@ -171,7 +171,7 @@ print('The copula consists of two parts: gridpoints and values at those gridpoin
       '\n state variables are below the corresponding point.')
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Import necessary libraries
 
 from __future__ import print_function
@@ -687,7 +687,7 @@ print('Input: plot the graph for bottom x (0-1) of the distribution.')
 mass_pct = float(input())
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # 3D surface plots of consumption function at full grids and approximated by DCT
 ##    at all grids and grids after dct first for non-adjusters and then for adjusters
 
@@ -751,7 +751,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 70)
     ax.legend([scatter,fake2Dline,fake2Dline2], 
-              ['Full-grid c by non-adjuster','Approximated c by non-adjuster','Joint distribution'],
+              ['Full-grid c','Approximated c','Joint distribution'],
               loc=0)
 
 # %% {"code_folding": [0]}
@@ -818,7 +818,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
               ['Positive approx errors','Negative approx errors','Joint distribution'],
               loc=0)
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Difference of full-grid c and DCT compressed c for each level of accuracy
 
 
@@ -886,10 +886,10 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.view_init(10, 60)
     ax.legend([fake2Dline_pos,fake2Dline_neg,fake2Dline2], 
-              ['Positive approx errors','Negative approx errors','Joint distribution'],
+              ['+ approx errors','- approx errors','Joint distribution'],
               loc=0)
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Difference of full-grid c and DCT compressed c for difference levels of accuracy
 
 fig = plt.figure(figsize=(14,14))
@@ -962,10 +962,10 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.view_init(10, 60)
     ax.legend([fake2Dline_pos,fake2Dline_neg,fake2Dline2],
-              ['Positive diff','Negative diff','Joint distribution'],
+              ['+ diff','- diff','Joint distribution'],
               loc=0)
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # For adjusters: 3D surface plots of consumption function at full grids and approximated by DCT 
 
     
@@ -1023,7 +1023,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 70)
     ax.legend([scatter,fake2Dline,fake2Dline2], 
-              ['Full-grid c by adjuster','Approx c by adjuster','Joint distribution'],
+              ['Full-grid c','Approx c','Joint distribution'],
               loc=0)
 
 # %% [markdown]
@@ -1057,7 +1057,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     for id in range(EX3SS['mpar']['nm']):   
         ax.plot(kgrid,joint_distr[id,:,hgrid_id])
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Plot joint distribution of k and m in 3d graph
 #for only 90 percent of the distributions 
 
@@ -1158,7 +1158,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     #ax.set_ylim(0,kmax)
     ax.view_init(30, 60)
     ax.legend([fake2Dline], 
-              ['Marginal distribution of fixed copula'],
+              ['Marginal cdf of the copula'],
               loc=0)
 
 # %% [markdown]
