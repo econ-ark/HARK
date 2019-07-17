@@ -262,8 +262,7 @@ def SGU_solver(Xss,Yss,Gamma_state,Gamma_control,InvGamma,Copula,par,mpar,grid,t
         Y[-1-Yct]=h
         Fx=F(ss,ss,cc,Y)
         F4[:,-1 - Yct]=(Fx['Difference'] - Fb) / h
-        
-   
+      
     s,t,Q,Z=linalg.qz(np.hstack((F1,F2)), -np.hstack((F3,F4)), output='complex')
     abst = abs(np.diag(t))*(abs(np.diag(t))!=0.)+  (abs(np.diag(t))==0.)*10**(-11)
     #relev=np.divide(abs(np.diag(s)), abs(np.diag(t)))

@@ -22,6 +22,7 @@ import time
 from .SharedFunc import Transition, ExTransitions, GenWeight, MakeGrid, Tauchen
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import scipy.io
 
 class FluctuationsOneAssetIOUs:
     
@@ -39,6 +40,7 @@ class FluctuationsOneAssetIOUs:
         self.m_policy = m_policy
         self.mutil_c = mutil_c
         self.P_H = P_H
+        self.aggrshock = self.par['aggrshock']
         
         
     def StateReduc(self):
@@ -111,16 +113,16 @@ class FluctuationsOneAssetIOUs:
         self.mpar['numcontrols'] = n1[1] + oc
 
 
-                 
-        aggrshock           = 'MP'
-        aggrshock           = 'Uncertainty'
-        self.par['rhoS']    = 0.84      # Persistence of variance
-        self.par['sigmaS']  = 0.54    # STD of variance shocks
+                         
+#        aggrshock           = 'MP'
+#        aggrshock           = 'Uncertainty'
+#        self.par['rhoS']    = 0.84      # Persistence of variance
+#        self.par['sigmaS']  = 0.54    # STD of variance shocks
 
         
         return {'Xss': Xss, 'Yss':Yss, 'Gamma_state': Gamma_state, 
                 'Gamma_control': Gamma_control, 'InvGamma':InvGamma, 
-                'par':self.par, 'mpar':self.mpar, 'aggrshock':aggrshock, 'oc':oc,
+                'par':self.par, 'mpar':self.mpar, 'aggrshock':self.aggrshock, 'oc':oc,
                 'Copula':self.Copula,'grid':self.grid,'targets':self.targets,'P_H':self.P_H, 
                 'joint_distr': self.joint_distr, 'os':os, 'Output': self.Output}
         
@@ -133,9 +135,7 @@ def SGU_solver(Xss,Yss,Gamma_state,Gamma_control,InvGamma,Copula,par,mpar,grid,t
     Contr       = np.zeros((mpar['numcontrols'],1))
     Contr_m     = Contr.copy()
         
-#        F = lambda S, S_m, C, C_m : Fsys(S, S_m, C, C_m,
-#                                         Xss,Yss,Gamma_state,Gamma_control,InvGamma,
-#                                         self.Copula,self.par,self.mpar,self.grid,self.targets,self.P_H,aggrshock,oc)
+
     F = lambda S, S_m, C, C_m : Fsys(S, S_m, C, C_m,
                                          Xss,Yss,Gamma_state,Gamma_control,InvGamma,
                                          Copula,par,mpar,grid,targets,P_H,aggrshock,oc)
@@ -750,6 +750,7 @@ if __name__ == '__main__':
     from copy import copy
     from time import clock
     import pickle
+    import scipy.io
     
     EX1SS=pickle.load(open("EX1SS_nm50.p", "rb"))
 
