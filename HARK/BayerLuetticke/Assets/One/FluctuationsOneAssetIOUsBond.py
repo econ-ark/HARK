@@ -40,6 +40,7 @@ class FluctuationsOneAssetIOUs:
         self.m_policy = m_policy
         self.mutil_c = mutil_c
         self.P_H = P_H
+        self.aggrshock = self.par['aggrshock']
         
         
     def StateReduc(self):
@@ -112,15 +113,15 @@ class FluctuationsOneAssetIOUs:
         self.mpar['numcontrols'] = n1[1] + oc
 
 
-                 
-        aggrshock           = 'MP'
-        self.par['rhoS']    = 0.0      # Persistence of variance
-        self.par['sigmaS']  = 0.001    # STD of variance shocks
+                         
+#        aggrshock           = 'MP'
+#        self.par['rhoS']    = 0.0      # Persistence of variance
+#        self.par['sigmaS']  = 0.001    # STD of variance shocks
 
         
         return {'Xss': Xss, 'Yss':Yss, 'Gamma_state': Gamma_state, 
                 'Gamma_control': Gamma_control, 'InvGamma':InvGamma, 
-                'par':self.par, 'mpar':self.mpar, 'aggrshock':aggrshock, 'oc':oc,
+                'par':self.par, 'mpar':self.mpar, 'aggrshock':self.aggrshock, 'oc':oc,
                 'Copula':self.Copula,'grid':self.grid,'targets':self.targets,'P_H':self.P_H, 
                 'joint_distr': self.joint_distr, 'os':os, 'Output': self.Output}
         
@@ -552,8 +553,8 @@ def Fsys(State, Stateminus, Control_sparse, Controlminus_sparse, StateSS, Contro
     RBminus = StateSS[-2] + Stateminus[-2]
     
     # Aggregate Exogenous States
-    S = StateSS[-1] + State[-1]
-    Sminus = StateSS[-1] + Stateminus[-1]
+    S      = np.asarray(StateSS[-1] + State[-1])
+    Sminus = np.asarray(StateSS[-1] + Stateminus[-1])
     
     ## Split the control vector into items with names
     # Controls
