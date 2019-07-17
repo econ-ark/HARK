@@ -100,7 +100,7 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 # In the "real" micro problem, it would almost never happen that a continuous variable like $m$ would end up being exactly equal to one of the prespecified gridpoints. But the functions need to be evaluated at such non-grid points.  This is addressed by linear interpolation.  That is, if, say, the grid had $m_{8} = 40$ and $m_{9} = 50$ then and a consumer ended up with $m = 45$ then the approximation is that $\tilde{c}(45) = 0.5 \bar{c}_{8} + 0.5 \bar{c}_{9}$.
 #
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Show dimensions of the consumer's problem (state space)
 
 print('c_n is of dimension: ' + str(EX3SS['mutil_c_n'].shape))
@@ -159,7 +159,7 @@ print(str(EX3SS['mpar']['nm'])+
 #
 # - This reduces the number of points for which we need to track transitions from $3600 = 30 \times 30 \times 4$ to $64 = 30+30+4$.  Or the total number of points we need to contemplate goes from $3600^2 \approx 13 $million to $64^2=4096$.  
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Get some specs about the copula, which is precomputed in the EX3SS object
 
 print('The copula consists of two parts: gridpoints and values at those gridpoints:'+ \
@@ -171,7 +171,7 @@ print('The copula consists of two parts: gridpoints and values at those gridpoin
       '\n state variables are below the corresponding point.')
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Import necessary libraries
 
 from __future__ import print_function
@@ -207,7 +207,7 @@ import seaborn as sns
 import copy as cp
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## State reduction and discrete cosine transformation
 
 class StateReduc_Dct:
@@ -398,7 +398,7 @@ class StateReduc_Dct:
         
         return index_reduced
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
 
 EX3SS['par']['aggrshock']           = 'MP'
@@ -413,19 +413,19 @@ EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
 #EX3SS['par']['rhoS']    = 0.84    # Persistence of variance
 #EX3SS['par']['sigmaS']  = 0.54    # STD of variance shocks
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Choose an accuracy of approximation with DCT
 ### Determines number of basis functions chosen -- enough to match this accuracy
 ### EX3SS is precomputed steady-state pulled in above
 EX3SS['par']['accuracy'] = 0.99999 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Implement state reduction and DCT
 ### Do state reduction on steady state
 EX3SR=StateReduc_Dct(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
 SR=EX3SR.StateReduc()           # StateReduc is operated 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Measuring the effectiveness of the state reduction
 
 print('What are the results from the state reduction?')
@@ -463,7 +463,7 @@ print('The total number of state variables is '+str(SR['State'].shape[0]) + '='+
 # We plot the functions for the each of the 4 values of the wage $h$.
 #
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Graphical illustration
 
 xi = EX3SS['par']['xi']
@@ -486,8 +486,8 @@ kgrid = EX3SS['grid']['k']
 hgrid = EX3SS['grid']['h']
 
 
-# %% {"code_folding": []}
-## define some functions to be used next
+# %% {"code_folding": [0]}
+## Define some functions to be used next
 
 def dct3d(x):
     x0=sf.dct(x.copy(),axis=0,norm='ortho')
@@ -512,7 +512,7 @@ def DCTApprox(fullgrids,dct_index):
 # %% [markdown]
 # Depending on the accuracy level, the DCT operation choses the necessary number of basis functions used to approximate consumption function at the full grids. This is illustrated in the p31-p34 in this [slides](https://www.dropbox.com/s/46fdxh0aphazm71/presentation_method.pdf?dl=0). We show this for both 1-dimensional (m or k) or 2-dimenstional grids (m and k) in the following. 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## 2D graph of consumption function: c(m) fixing k and h
 
 
@@ -561,7 +561,7 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.legend(loc=0)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## 2D graph of consumption function: c(k) fixing m and h
 
 fig = plt.figure(figsize=(8,8))
@@ -600,10 +600,19 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.legend(loc=0)
 
-# %% {"code_folding": []}
+# %%
+## Set the population density for plotting graphs 
+
+print('Input: plot the graph for bottom x (0-1) of the distribution.')
+mass_pct = float(input())
+
+print('Input:choose the accuracy level for DCT, i.e. 0.99999 in the basline of Bayer and Luetticke')
+Accuracy_BS = float(input()) ## baseline accuracy level 
+
+# %% {"code_folding": [0]}
 # Restore the solution corresponding to the original BL accuracy
 
-EX3SS['par']['accuracy'] = Accuracy_BL 
+EX3SS['par']['accuracy'] = Accuracy_BS
 EX3SR=StateReduc_Dct(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
 SR=EX3SR.StateReduc()           # StateReduc is operated 
 
@@ -633,13 +642,9 @@ c_a_approx = DCTApprox(ca_StE,mut_rdc_idx)
 
 joint_distr =  EX3SS['joint_distr']
 
-# Location at which to cut off the topmost part of the distributions
 
-mass_pct = 0.9
-
-
-# %% {"code_folding": []}
-## functions used to plot consumption functions at the trimmed grids
+# %% {"code_folding": [0]}
+## Functions used to plot consumption functions at the trimmed grids
 
 def WhereToTrim2d(joint_distr,mass_pct):
     """
@@ -662,7 +667,7 @@ def WhereToTrim2d(joint_distr,mass_pct):
     trim1_idx = (np.abs(marginal1.cumsum()-mass_pct*marginal1.cumsum().max())).argmin() 
     trim2_idx = (np.abs(marginal2.cumsum()-mass_pct*marginal2.cumsum().max())).argmin()
     return trim1_idx,trim2_idx
-d
+
 def TrimMesh2d(grids1,grids2,trim1_idx,trim2_idx,drop=True):
     if drop ==True:
         grids_trim1 = grids1.copy()
@@ -681,29 +686,20 @@ def TrimMesh2d(grids1,grids2,trim1_idx,trim2_idx,drop=True):
 
 
 # %% {"code_folding": []}
-## set the population density for plotting graphs 
-
-print('Input: plot the graph for bottom x (0-1) of the distribution.')
-mass_pct = float(input())
-
-### WT: Input accuracy level as well
-
-
-# %%
-## other configurations for plotting 
+## Other configurations for plotting 
 
 distr_min = 0
 distr_max = np.nanmax(joint_distr)
 fontsize_lg = 13 
 
 # %% {"code_folding": []}
-# 3D surface plots of consumption function at full grids and approximated by DCT
+# For non-adjusters: 3D surface plots of consumption function at full grids and approximated by DCT
 ##    at all grids and grids after dct first for non-adjusters and then for adjusters
 
 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Consumption of non-adjusters at grid points of m and k \n where ' +str(int(mass_pct*100))+ ' % of the agents are distributed \n (for each h)',
-             fontsize=(13))
+             fontsize=(fontsize_lg))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     
     ## get the grids and distr for fixed h
@@ -753,9 +749,9 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
                               c='orange',
                               marker='o') # fakeline for making the legend for surface
     
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel(r'$c_n(m,k)$',fontsize=13)
+    ax.set_xlabel('m',fontsize=fontsize_lg)
+    ax.set_ylabel('k',fontsize=fontsize_lg)
+    ax.set_zlabel(r'$c_n(m,k)$',fontsize=fontsize_lg)
     plt.gca().invert_yaxis()
     plt.gca().invert_xaxis()
     ax.set_zlim([0,zmax])
@@ -765,14 +761,79 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
               ['Full-grid c','Approximated c','Joint distribution'],
               loc=0)
 
-### WT: Check why axes are same for h(0)-h(2) 
+
+# %% {"code_folding": []}
+# For adjusters: 3D surface plots of consumption function at full grids and approximated by DCT 
+
+    
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Consumption of adjusters at grid points of m and k \n where ' +str(int(mass_pct*100))+ '% of agents are distributed  \n (for each h)',
+             fontsize=(fontsize_lg))
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    
+    ## get the grids and distr for fixed h
+    hgrid_fix=hgrid_id
+    c_a_StE_fix = ca_StE[:,:,hgrid_fix]
+    c_a_approx_fix = c_a_approx[:,:,hgrid_fix]
+    distr_fix = joint_distr[:,:,hgrid_fix]
+    
+    ## additions to the above cell
+    ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
+    mk_marginal = joint_distr[:,:,hgrid_fix]
+    mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
+    mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
+    mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
+    c_a_approx_trim =c_a_approx_fix.copy()
+    c_a_approx_trim  = c_a_approx_trim[:kmax_idx,:mmax_idx]
+    distr_fix_trim = distr_fix.copy()
+    ca_StE_trim =c_a_StE_fix.copy()
+    ca_StE_trim = ca_StE_trim[:kmax_idx,:mmax_idx]    
+    distr_fix_trim = distr_fix_trim[:kmax_idx,:mmax_idx]
+
+    
+    # get the maximum z
+    zmax = np.nanmax(c_a_approx_trim)
+    
+    ## plots 
+    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
+    ax.scatter(mmgrid_trim,kkgrid_trim,ca_StE_trim,marker='v',color='red',
+                    label='full-grid c:adjuster')
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_a_approx_trim,cmap='Blues',
+               label='approximated c: adjuster')
+    fake2Dline = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='b',
+                              marker='o') # fake line for making the legend for surface
+    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, 
+                zdir='z',
+                offset=np.min(distr_fix_trim),
+                cmap=cm.YlOrRd,
+                vmin=distr_min,
+                vmax=distr_max)
+    fake2Dline2 = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='orange',
+                              marker='o') # fakeline for making the legend for surface
+    ax.set_xlabel('m',fontsize=fontsize_lg)
+    ax.set_ylabel('k',fontsize=fontsize_lg)
+    ax.set_zlabel(r'$c_a(m,k)$',fontsize=fontsize_lg)
+    plt.gca().invert_yaxis()
+    plt.gca().invert_xaxis()
+    #ax.set_xlim([0,mmax])
+    #ax.set_ylim([0,kmax])
+    ax.set_zlim([0,zmax])
+    ax.set_title(r'$h({})$'.format(hgrid_fix))
+    ax.view_init(20, 70)
+    ax.legend([scatter,fake2Dline,fake2Dline2], 
+              ['Full-grid c','Approx c','Joint distribution'],
+              loc=0)
 
 # %% {"code_folding": []}
 ## 3D scatter plots of the difference of full-grid c and approximated c for non-adjusters
 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Approximation errors of non-adjusters at grid points of m and k \n where ' +str(int(mass_pct*100))+ '% of agents are distributed \n (for each h)',
-             fontsize=(13))
+             fontsize=(fontsize_lg))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     
     ## get the grids and distr for fixed h
@@ -820,9 +881,9 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
                               linestyle="none", 
                               c='orange',
                               marker='o') # fakeline for making the legend for contour
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
+    ax.set_xlabel('m',fontsize=fontsize_lg)
+    ax.set_ylabel('k',fontsize=fontsize_lg)
+    ax.set_zlabel(r'$c_a(m,k)$',fontsize=fontsize_lg)
     plt.gca().invert_yaxis()
     plt.gca().invert_xaxis()
     #ax.set_xlim([0,mmax])
@@ -833,13 +894,13 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
               ['Positive approx errors','Negative approx errors','Joint distribution'],
               loc=0)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Difference of full-grid c and DCT compressed c for each level of accuracy
 
 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Approximation errors in different levels of accuracy \n where ' +str(int(mass_pct*100))+ '% of agents are distributed \n (non-adjusters)',
-             fontsize=(13))
+             fontsize=(fontsize_lg))
 
 for idx in range(len(acc_lst)):
     EX3SS_cp =cp.deepcopy(EX3SS)
@@ -906,12 +967,12 @@ for idx in range(len(acc_lst)):
               ['+ approx errors','- approx errors','Joint distribution'],
               loc=0)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Difference of full-grid c and DCT compressed c for difference levels of accuracy
 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Differences of approximation errors between adjusters/non-adjusters \n where ' +str(int(mass_pct*100))+ '% of agents are distributed \n in different accuracy levels',
-             fontsize=(13))
+             fontsize=(fontsize_lg))
 
 for idx in range(len(acc_lst)):
     EX3SS_cp =cp.deepcopy(EX3SS)
@@ -944,6 +1005,10 @@ for idx in range(len(acc_lst)):
     distr_fix_trim = distr_fix.copy()
     distr_fix_trim = distr_fix_trim[:kmax_idx,:mmax_idx]
     
+    ## get the scale 
+    zmin = np.nanmin(c_diff_cp_apx_error)
+    zmax = np.nanmax(c_diff_cp_apx_error)
+    
     ## plots 
     ax = fig.add_subplot(2,2,idx+1, projection='3d')
     ax.plot_surface(mmgrid_trim,kkgrid_trim,c_diff_cp_apx_error_trim, 
@@ -962,7 +1027,7 @@ for idx in range(len(acc_lst)):
                               marker='o') # fakeline for making the legend for surface
     ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim,
                 zdir='z',
-                offset=np.min(-2),
+                offset=np.min(-0.2),
                 cmap=cm.YlOrRd,
                 vmin=distr_min, 
                 vmax=distr_max)
@@ -970,87 +1035,20 @@ for idx in range(len(acc_lst)):
                               linestyle="none", 
                               c='orange',
                               marker='o') # fakeline for making the legend for contour
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel('Difference of approximation errors',fontsize=13)
+    ax.set_xlabel('m',fontsize=fontsize_lg)
+    ax.set_ylabel('k',fontsize=fontsize_lg)
+    ax.set_zlabel('Difference of approximation errors',fontsize=fontsize_lg)
     plt.gca().invert_yaxis()
     plt.gca().invert_xaxis()
     #ax.set_xlim([0,mmax])
     #ax.set_ylim([0,kmax])
-    ax.set_zlim([-2,2]) # these are magic numbers. need to fix
+    ax.set_zlim([-0.2,0.2]) # these are magic numbers. need to fix
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.view_init(10, 60)
     ax.legend([fake2Dline_pos,fake2Dline_neg,fake2Dline2],
               ['+ diff','- diff','Joint distribution'],
               loc=0)
 
-### WT: Reset the scale to be between say the smallest and the largest diff across all combos of m,k,h 
-
-# %% {"code_folding": []}
-# For adjusters: 3D surface plots of consumption function at full grids and approximated by DCT 
-
-    
-fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of adjusters at grid points of m and k \n where ' +str(int(mass_pct*100))+ '% of agents are distributed  \n (for each h)',
-             fontsize=(13))
-for hgrid_id in range(EX3SS['mpar']['nh']):
-    
-    ## get the grids and distr for fixed h
-    hgrid_fix=hgrid_id
-    c_a_StE_fix = ca_StE[:,:,hgrid_fix]
-    c_a_approx_fix = c_a_approx[:,:,hgrid_fix]
-    distr_fix = joint_distr[:,:,hgrid_fix]
-    
-    ## additions to the above cell
-    ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
-    mk_marginal = joint_distr[:,:,hgrid_fix]
-    mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
-    mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
-    mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
-    c_a_approx_trim =c_a_approx_fix.copy()
-    c_a_approx_trim  = c_a_approx_trim[:kmax_idx,:mmax_idx]
-    distr_fix_trim = distr_fix.copy()
-    ca_StE_trim =c_a_StE_fix.copy()
-    ca_StE_trim = ca_StE_trim[:kmax_idx,:mmax_idx]    
-    distr_fix_trim = distr_fix_trim[:kmax_idx,:mmax_idx]
-
-    
-    # get the maximum z
-    zmax = np.nanmax(c_a_approx_trim)
-    
-    ## plots 
-    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.scatter(mmgrid_trim,kkgrid_trim,ca_StE_trim,marker='v',color='red',
-                    label='full-grid c:adjuster')
-    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_a_approx_trim,cmap='Blues',
-               label='approximated c: adjuster')
-    fake2Dline = lines.Line2D([0],[0], 
-                              linestyle="none", 
-                              c='b',
-                              marker='o') # fake line for making the legend for surface
-    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, 
-                zdir='z',
-                offset=np.min(distr_fix_trim),
-                cmap=cm.YlOrRd,
-                vmin=distr_min,
-                vmax=distr_max)
-    fake2Dline2 = lines.Line2D([0],[0], 
-                              linestyle="none", 
-                              c='orange',
-                              marker='o') # fakeline for making the legend for surface
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
-    plt.gca().invert_yaxis()
-    plt.gca().invert_xaxis()
-    #ax.set_xlim([0,mmax])
-    #ax.set_ylim([0,kmax])
-    ax.set_zlim([0,zmax])
-    ax.set_title(r'$h({})$'.format(hgrid_fix))
-    ax.view_init(20, 70)
-    ax.legend([scatter,fake2Dline,fake2Dline2], 
-              ['Full-grid c','Approx c','Joint distribution'],
-              loc=0)
 
 # %% [markdown]
 # ##### Observation
@@ -1079,17 +1077,17 @@ plt.suptitle('Marginal distribution of k at different m \n(for each h)')
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ax = plt.subplot(2,2,hgrid_id+1)
     ax.set_title(r'$h({})$'.format(hgrid_id))
-    ax.set_xlabel('k',size=12)
+    ax.set_xlabel('k',size=fontsize_lg)
     for id in range(EX3SS['mpar']['nm']):   
         ax.plot(kgrid,joint_distr[id,:,hgrid_id])
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Plot joint distribution of k and m in 3d graph
 #for only 90 percent of the distributions 
 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Joint distribution of m and k \n where ' +str(int(mass_pct*100))+ '% agents are distributed \n(for each h)',
-             fontsize=(13))
+             fontsize=(fontsize_lg))
 
 for hgrid_id in range(EX3SS['mpar']['nh']):
     
@@ -1122,12 +1120,11 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
                               linestyle="none", 
                               c='orange',
                               marker='o') # fakeline for making the legend for contour
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel('Probability')
+    ax.set_xlabel('m',fontsize=fontsize_lg)
+    ax.set_ylabel('k',fontsize=fontsize_lg)
+    ax.set_zlabel('Probability',fontsize=fontsize_lg)
     plt.gca().invert_xaxis()
     plt.gca().invert_yaxis()
-    ax.set_zlabel(r'$p(m,k)$',fontsize=10)
     ax.set_title(r'$h({})$'.format(hgrid_id))
     ax.set_zlim([0,zmax])
     #ax.set_xlim([0,mmax])
@@ -1140,7 +1137,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 # %% [markdown]
 # Notice the CDFs in StE copula have 4 modes, corresponding to the number of $h$ gridpoints. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Plot the copula 
 # same plot as above for only 90 percent of the distributions 
 
@@ -1149,7 +1146,7 @@ cdf=EX3SS['Copula']['value'].reshape(4,30,30)   # important: 4,30,30 not 30,30,4
 
 fig = plt.figure(figsize=(14,14))
 fig.suptitle('Copula of m and k \n where ' +str(int(mass_pct*100))+ '% agents are distributed \n(for each h)',
-             fontsize=(13))
+             fontsize=(fontsize_lg))
 for hgrid_id in range(EX3SS['mpar']['nh']):
     
     hgrid_fix = hgrid_id    
@@ -1175,8 +1172,8 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
                               linestyle="none", 
                               c='green',
                               marker='o')
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
+    ax.set_xlabel('m',fontsize=fontsize_lg)
+    ax.set_ylabel('k',fontsize=fontsize_lg)
     ax.set_title(r'$h({})$'.format(hgrid_id))
     
     ## for each h grid, take the 95% mass of m and k as the maximum of the m and k axis 
