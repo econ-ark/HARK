@@ -307,7 +307,7 @@ class FluctuationsOneAssetIOUs:
                 'Gamma_control': Gamma_control, 'InvGamma':InvGamma, 
                 'par':self.par, 'mpar':self.mpar, 'aggrshock':aggrshock, 'oc':oc,
                 'Copula':self.Copula,'grid':self.grid,'targets':self.targets,'P_H':self.P_H, 
-                'joint_distr': self.joint_distr, 'os':os, 'Output': self.Output}ß
+                'joint_distr': self.joint_distr, 'os':os, 'Output': self.Output}
         
 
 
