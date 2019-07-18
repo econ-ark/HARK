@@ -14,7 +14,7 @@ from scipy.stats import norm
 from scipy.interpolate import interp1d, interp2d, griddata, RegularGridInterpolator
 from scipy import sparse as sp
 import time
-from SharedFunc3 import Transition, ExTransitions, GenWeight, MakeGridkm, Tauchen, Fastroot
+from .SharedFunc3 import Transition, ExTransitions, GenWeight, MakeGridkm, Tauchen, Fastroot
 
 
 class SteadyStateTwoAsset:
