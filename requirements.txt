@@ -10,3 +10,5 @@ flake8
 jupyter
 funcsigs
 jupyter
+sphinx-rtd-theme
+nbsphinx
