@@ -171,7 +171,7 @@ print('The copula consists of two parts: gridpoints and values at those gridpoin
       '\n state variables are below the corresponding point.')
 
 
-# %%
+# %% {"code_folding": [0]}
 ## Import BL codes
 
 import sys 
@@ -198,26 +198,28 @@ import seaborn as sns
 import copy as cp
 from scipy import linalg   #linear algebra 
 
-# %% {"code_folding": [0]}
+# %%
 ## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
 
-EX3SS['par']['aggrshock']           = 'MP'
-EX3SS['par']['rhoS']    = 0.0      # Persistence of variance
-EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
+# EX3SS['par']['aggrshock']           = 'MP'
+# EX3SS['par']['rhoS']    = 0.0      # Persistence of variance
+# EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
 
 #EX3SS['par']['aggrshock']           = 'TFP'
 #EX3SS['par']['rhoS']    = 0.95
 #EX3SS['par']['sigmaS']  = 0.0075
     
-#EX3SS['par']['aggrshock']           = 'Uncertainty'
-#EX3SS['par']['rhoS']    = 0.84    # Persistence of variance
-#EX3SS['par']['sigmaS']  = 0.54    # STD of variance shocks
+EX3SS['par']['aggrshock'] = 'Uncertainty'
+EX3SS['par']['rhoS'] = 0.84    # Persistence of variance
+EX3SS['par']['sigmaS'] = 0.54    # STD of variance shocks
 
-# %% {"code_folding": [0]}
+
+
+# %% {"code_folding": []}
 ## Choose an accuracy of approximation with DCT
 ### Determines number of basis functions chosen -- enough to match this accuracy
 ### EX3SS is precomputed steady-state pulled in above
-EX3SS['par']['accuracy'] = 0.99999 
+EX3SS['par']['accuracy'] = 0.99999
 
 # %% {"code_folding": []}
 ## Implement state reduction and DCT
@@ -485,14 +487,18 @@ def TrimMesh2d(grids1,grids2,trim1_idx,trim2_idx,drop=True):
     return grids1_trimmesh,grids2_trimmesh
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Other configurations for plotting 
 
 distr_min = 0
 distr_max = np.nanmax(joint_distr)
 fontsize_lg = 13 
 
-# %% {"code_folding": [0]}
+## lower bound for grid 
+mmin = np.nanmin(mgrid)
+kmin = np.nanmin(kgrid)
+
+# %% {"code_folding": []}
 # For non-adjusters: 3D surface plots of consumption function at full grids and approximated by DCT
 ##    at all grids and grids after dct first for non-adjusters and then for adjusters
 
@@ -526,6 +532,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ## find the maximum z 
     zmax = np.nanmax(c_n_approx_trim)
     
+    
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
     scatter = ax.scatter(mmgrid_trim,kkgrid_trim,cn_StE_trim,
@@ -552,10 +559,12 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_xlabel('m',fontsize=fontsize_lg)
     ax.set_ylabel('k',fontsize=fontsize_lg)
     ax.set_zlabel(r'$c_n(m,k)$',fontsize=fontsize_lg)
-    plt.gca().invert_yaxis()
-    plt.gca().invert_xaxis()
+    #ax.set_xlim([mmin,mmax])
+    ax.set_ylim([kmax,kmin])
     ax.set_zlim([0,zmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
+    plt.gca().invert_xaxis()
+    #plt.gca().invert_yaxis()
     ax.view_init(20, 70)
     ax.legend([scatter,fake2Dline,fake2Dline2], 
               ['Full-grid c','Approximated c','Joint distribution'],
@@ -617,10 +626,10 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_xlabel('m',fontsize=fontsize_lg)
     ax.set_ylabel('k',fontsize=fontsize_lg)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=fontsize_lg)
-    plt.gca().invert_yaxis()
+    #ax.set_xlim([mmin,mmax])
+    ax.set_ylim([kmax,kmin])
     plt.gca().invert_xaxis()
-    #ax.set_xlim([0,mmax])
-    #ax.set_ylim([0,kmax])
+    #plt.gca().invert_yaxis()
     ax.set_zlim([0,zmax])
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 70)
@@ -684,10 +693,10 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_xlabel('m',fontsize=fontsize_lg)
     ax.set_ylabel('k',fontsize=fontsize_lg)
     ax.set_zlabel(r'$c_a(m,k)$',fontsize=fontsize_lg)
-    plt.gca().invert_yaxis()
+    #ax.set_xlim([mmin,mmax])
+    ax.set_ylim([kmax,kmin])
     plt.gca().invert_xaxis()
-    #ax.set_xlim([0,mmax])
-    #ax.set_ylim([0,kmax])
+    #plt.gca().invert_yaxis()
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 40)
     ax.legend([fake2Dline_pos,fake2Dline_neg,fake2Dline2], 
@@ -756,10 +765,10 @@ for idx in range(len(acc_lst)):
     ax.set_xlabel('m',fontsize=13)
     ax.set_ylabel('k',fontsize=13)
     ax.set_zlabel('Difference of c functions',fontsize=13)
-    plt.gca().invert_yaxis()
+    #ax.set_xlim([mmin,mmax])
+    ax.set_ylim([kmax,kmin])
     plt.gca().invert_xaxis()
-    #ax.set_xlim([0,mmax])
-    #ax.set_ylim([0,kmax])
+    #plt.gca().invert_yaxis()
     ax.set_zlim([-2,2])  # these are magic numbers. need to fix
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.view_init(10, 60)
@@ -838,10 +847,10 @@ for idx in range(len(acc_lst)):
     ax.set_xlabel('m',fontsize=fontsize_lg)
     ax.set_ylabel('k',fontsize=fontsize_lg)
     ax.set_zlabel('Difference of approximation errors',fontsize=fontsize_lg)
-    plt.gca().invert_yaxis()
+    #ax.set_xlim([mmin,mmax])
+    ax.set_ylim([kmax,kmin])
     plt.gca().invert_xaxis()
-    #ax.set_xlim([0,mmax])
-    #ax.set_ylim([0,kmax])
+    #plt.gca().invert_yaxis()
     ax.set_zlim([-0.2,0.2]) # these are magic numbers. need to fix
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.view_init(10, 60)
@@ -863,7 +872,7 @@ for idx in range(len(acc_lst)):
 # - The joint-distribution can be represented by marginal distributions of $m$, $k$ and $h$ and a copula that describes the correlation between the three states. The former is straightfoward. We plot the copula only. The copula is essentially a multivariate cummulative distribution function where each marginal is uniform. (Translation from the uniform to the appropriate nonuniform distribution is handled at a separate stage).
 #
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ### Marginalize along h grids
 
 joint_distr =  EX3SS['joint_distr']
@@ -923,12 +932,12 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     ax.set_xlabel('m',fontsize=fontsize_lg)
     ax.set_ylabel('k',fontsize=fontsize_lg)
     ax.set_zlabel('Probability',fontsize=fontsize_lg)
-    plt.gca().invert_xaxis()
-    plt.gca().invert_yaxis()
     ax.set_title(r'$h({})$'.format(hgrid_id))
+    #ax.set_xlim([mmin,mmax])
+    ax.set_ylim([kmax,kmin])
     ax.set_zlim([0,zmax])
-    #ax.set_xlim([0,mmax])
-    #ax.set_ylim([0,kmax])
+    plt.gca().invert_xaxis()
+    #plt.gca().invert_yaxis()
     ax.view_init(20, 60)
     ax.legend([fake2Dline], 
               ['joint distribution'],
@@ -937,7 +946,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 # %% [markdown]
 # Notice the CDFs in StE copula have 4 modes, corresponding to the number of $h$ gridpoints. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Plot the copula 
 # same plot as above for only 90 percent of the distributions 
 
@@ -983,10 +992,10 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     marginal_k = marginal_mk.sum(axis=1)
     mmax = mgrid[(np.abs(marginal_m.cumsum()-mass_pct*marginal_m.cumsum().max())).argmin()]
     kmax = kgrid[(np.abs(marginal_k.cumsum()-mass_pct*marginal_k.cumsum().max())).argmin()]
-    plt.gca().invert_yaxis()
+    #ax.set_xlim([mmin,mmax])
+    ax.set_ylim([kmax,kmin])
     plt.gca().invert_xaxis()
-    #ax.set_xlim(0,mmax)
-    #ax.set_ylim(0,kmax)
+    #plt.gca().invert_yaxis()
     ax.view_init(30, 60)
     ax.legend([fake2Dline], 
               ['Marginal cdf of the copula'],
