@@ -136,7 +136,14 @@
 #    * Prices, distribution, and policies lead to market clearing
 
 # + {"code_folding": [0, 6, 17]}
+# Setup
+
 from __future__ import print_function
+
+import time
+from HARK.BayerLuetticke.Assets.Two.FluctuationsTwoAsset import FluctuationsTwoAsset, SGU_solver, plot_IRF
+
+start_time_all = time.perf_counter() 
 
 # This is a jupytext paired notebook that autogenerates a corresponding .py file
 # which can be executed from a terminal command line via "ipython [name].py"
@@ -348,23 +355,24 @@ start_time = time.perf_counter()
 
 ## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
 
-EX3SS['par']['aggrshock']           = 'MP'
-EX3SS['par']['rhoS']    = 0.0      # Persistence of variance
-EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
+#EX3SS['par']['aggrshock']           = 'MP'
+#EX3SS['par']['rhoS']    = 0.0      # Persistence of variance
+#EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
 
 #EX3SS['par']['aggrshock']           = 'TFP'
 #EX3SS['par']['rhoS']    = 0.95
 #EX3SS['par']['sigmaS']  = 0.0075
     
-#EX3SS['par']['aggrshock'] = 'Uncertainty'
-#EX3SS['par']['rhoS'] = 0.84    # Persistence of variance
-#EX3SS['par']['sigmaS'] = 0.54    # STD of variance shocks
+EX3SS['par']['aggrshock'] = 'Uncertainty'
+EX3SS['par']['rhoS'] = 0.84    # Persistence of variance
+EX3SS['par']['sigmaS'] = 0.54    # STD of variance shocks
 
 
 ## Choose an accuracy of approximation with DCT
 ### Determines number of basis functions chosen -- enough to match this accuracy
 ### EX3SS is precomputed steady-state pulled in above
-EX3SS['par']['accuracy'] = 0.9999999 
+EX3SS['par']['accuracy'] = 0.999999  # Fails
+EX3SS['par']['accuracy'] = 0.9999999 # Works
 
 ## Implement state reduction and DCT
 ### Do state reduction on steady state
@@ -405,7 +413,9 @@ EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
 ## Choose an accuracy of approximation with DCT
 ### Determines number of basis functions chosen -- enough to match this accuracy
 ### EX3SS is precomputed steady-state pulled in above
-EX3SS['par']['accuracy'] = 0.999 
+EX3SS['par']['accuracy'] = 0.99 
+# EX3SS['par']['accuracy'] = 0.999 # Works
+
 
 ## Implement state reduction and DCT
 ### Do state reduction on steady state
@@ -421,3 +431,238 @@ plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
 
 end_time = time.perf_counter()
 print('Elapsed time is ',  (end_time-start_time), ' seconds.')
+
+# +
+import time
+from HARK.BayerLuetticke.Assets.Two.FluctuationsTwoAsset import FluctuationsTwoAsset, SGU_solver, plot_IRF
+
+start_time = time.perf_counter() 
+
+## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
+
+EX3SS['par']['aggrshock']           = 'MP'
+EX3SS['par']['rhoS']    = 0.0      # Persistence of variance
+EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
+
+# EX3SS['par']['aggrshock']           = 'TFP'
+# EX3SS['par']['rhoS']    = 0.95
+# EX3SS['par']['sigmaS']  = 0.0075
+    
+#EX3SS['par']['aggrshock'] = 'Uncertainty'
+#EX3SS['par']['rhoS'] = 0.84    # Persistence of variance
+#EX3SS['par']['sigmaS'] = 0.54    # STD of variance shocks
+
+
+## Choose an accuracy of approximation with DCT
+### Determines number of basis functions chosen -- enough to match this accuracy
+### EX3SS is precomputed steady-state pulled in above
+EX3SS['par']['accuracy'] = 0.99 
+# EX3SS['par']['accuracy'] = 0.999 # Works
+EX3SS['par']['accuracy'] = 0.9999
+
+
+## Implement state reduction and DCT
+### Do state reduction on steady state
+
+EX3SR = FluctuationsTwoAsset(**EX3SS)
+SR = EX3SR.StateReduc()
+
+print('SGU_solver')
+SGUresult = SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['indexMUdct'],SR['indexVKdct'],SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['Copula'],SR['P_H'],SR['aggrshock'])
+print('plot_IRF')
+plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
+         SR['Gamma_state'],SR['grid'],SR['targets'],SR['Output'])
+
+end_time = time.perf_counter()
+print('Elapsed time is ',  (end_time-start_time), ' seconds.')
+
+# +
+import time
+from HARK.BayerLuetticke.Assets.Two.FluctuationsTwoAsset import FluctuationsTwoAsset, SGU_solver, plot_IRF
+
+start_time = time.perf_counter() 
+
+## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
+
+EX3SS['par']['aggrshock']           = 'MP'
+EX3SS['par']['rhoS']    = 0.0      # Persistence of variance
+EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
+
+# EX3SS['par']['aggrshock']           = 'TFP'
+# EX3SS['par']['rhoS']    = 0.95
+# EX3SS['par']['sigmaS']  = 0.0075
+    
+#EX3SS['par']['aggrshock'] = 'Uncertainty'
+#EX3SS['par']['rhoS'] = 0.84    # Persistence of variance
+#EX3SS['par']['sigmaS'] = 0.54    # STD of variance shocks
+
+
+## Choose an accuracy of approximation with DCT
+### Determines number of basis functions chosen -- enough to match this accuracy
+### EX3SS is precomputed steady-state pulled in above
+EX3SS['par']['accuracy'] = 0.99 
+# EX3SS['par']['accuracy'] = 0.999 # Works
+EX3SS['par']['accuracy'] = 0.9999
+EX3SS['par']['accuracy'] = 0.999999
+
+
+## Implement state reduction and DCT
+### Do state reduction on steady state
+
+EX3SR = FluctuationsTwoAsset(**EX3SS)
+SR = EX3SR.StateReduc()
+
+print('SGU_solver')
+SGUresult = SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['indexMUdct'],SR['indexVKdct'],SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['Copula'],SR['P_H'],SR['aggrshock'])
+print('plot_IRF')
+plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
+         SR['Gamma_state'],SR['grid'],SR['targets'],SR['Output'])
+
+end_time = time.perf_counter()
+print('Elapsed time is ',  (end_time-start_time), ' seconds.')
+
+# +
+import time
+from HARK.BayerLuetticke.Assets.Two.FluctuationsTwoAsset import FluctuationsTwoAsset, SGU_solver, plot_IRF
+
+start_time = time.perf_counter() 
+
+## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
+
+EX3SS['par']['aggrshock']           = 'MP'
+EX3SS['par']['rhoS']    = 0.0      # Persistence of variance
+EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
+
+# EX3SS['par']['aggrshock']           = 'TFP'
+# EX3SS['par']['rhoS']    = 0.95
+# EX3SS['par']['sigmaS']  = 0.0075
+    
+#EX3SS['par']['aggrshock'] = 'Uncertainty'
+#EX3SS['par']['rhoS'] = 0.84    # Persistence of variance
+#EX3SS['par']['sigmaS'] = 0.54    # STD of variance shocks
+
+
+## Choose an accuracy of approximation with DCT
+### Determines number of basis functions chosen -- enough to match this accuracy
+### EX3SS is precomputed steady-state pulled in above
+# EX3SS['par']['accuracy'] = 0.99 
+#EX3SS['par']['accuracy'] = 0.999    # Solves, \Delta Y is about -0.005
+EX3SS['par']['accuracy'] = 0.9999 # Solves, \Delta Y is about -0.175, 79 sec
+#EX3SS['par']['accuracy'] = 0.99999   # Solves, \Delta Y is -0.175, 109 sec
+#EX3SS['par']['accuracy'] = 0.999999   # LinAlg Error
+#EX3SS['par']['accuracy'] = 0.9999999  # Solves, \Delta Y is about -0.175, 270 sec
+#EX3SS['par']['accuracy'] = 0.99999999 # LinAlg Error
+#EX3SS['par']['accuracy'] = 0.999999999# LinAlg Error
+
+
+## Implement state reduction and DCT
+### Do state reduction on steady state
+
+EX3SR = FluctuationsTwoAsset(**EX3SS)
+SR = EX3SR.StateReduc()
+
+print('SGU_solver')
+SGUresult = SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['indexMUdct'],SR['indexVKdct'],SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['Copula'],SR['P_H'],SR['aggrshock'])
+print('plot_IRF')
+plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
+         SR['Gamma_state'],SR['grid'],SR['targets'],SR['Output'])
+
+end_time = time.perf_counter()
+print('Elapsed time is ',  (end_time-start_time), ' seconds.')
+
+# +
+import time
+from HARK.BayerLuetticke.Assets.Two.FluctuationsTwoAsset import FluctuationsTwoAsset, SGU_solver, plot_IRF
+
+start_time = time.perf_counter() 
+
+## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
+
+#EX3SS['par']['aggrshock']           = 'MP'
+#EX3SS['par']['rhoS']    = 0.0      # Persistence of variance
+#EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
+
+EX3SS['par']['aggrshock']           = 'TFP'
+EX3SS['par']['rhoS']    = 0.95
+EX3SS['par']['sigmaS']  = 0.0075
+    
+#EX3SS['par']['aggrshock'] = 'Uncertainty'
+#EX3SS['par']['rhoS'] = 0.84    # Persistence of variance
+#EX3SS['par']['sigmaS'] = 0.54    # STD of variance shocks
+
+
+## Choose an accuracy of approximation with DCT
+### Determines number of basis functions chosen -- enough to match this accuracy
+### EX3SS is precomputed steady-state pulled in above
+EX3SS['par']['accuracy'] = 0.999      # Problematic (does not crash but jagged results)
+EX3SS['par']['accuracy'] = 0.9999     # Solves, Delta Y \approx -2.0, 79 sec
+EX3SS['par']['accuracy'] = 0.99995    # Solves, Delta Y \approx -2.0, 79 sec
+# EX3SS['par']['accuracy'] = 0.99999    # Solves, Delta Y \approx -3.0, 113 sec
+# EX3SS['par']['accuracy'] = 0.999999   # Solves, Delta Y \approx -1.0, 170 sec
+# EX3SS['par']['accuracy'] = 0.9999999  # Solves, Delta Y \approx  -0.4, 273 sec
+# EX3SS['par']['accuracy'] = 0.99999999 # Solves, Delta Y \approx +1.0 465 sec
+
+## Implement state reduction and DCT
+### Do state reduction on steady state
+
+EX3SR = FluctuationsTwoAsset(**EX3SS)
+SR = EX3SR.StateReduc()
+
+print('SGU_solver')
+SGUresult = SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['indexMUdct'],SR['indexVKdct'],SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['Copula'],SR['P_H'],SR['aggrshock'])
+print('plot_IRF')
+plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
+         SR['Gamma_state'],SR['grid'],SR['targets'],SR['Output'])
+
+end_time = time.perf_counter()
+print('Elapsed time is ',  (end_time-start_time), ' seconds.')
+
+# +
+import time
+from HARK.BayerLuetticke.Assets.Two.FluctuationsTwoAsset import FluctuationsTwoAsset, SGU_solver, plot_IRF
+
+start_time = time.perf_counter() 
+
+## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
+
+#EX3SS['par']['aggrshock']           = 'MP'
+#EX3SS['par']['rhoS']    = 0.0      # Persistence of variance
+#EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
+
+EX3SS['par']['aggrshock']           = 'TFP'
+EX3SS['par']['rhoS']    = 0.5     # Changed from BL default
+EX3SS['par']['sigmaS']  = 0.0075
+    
+#EX3SS['par']['aggrshock'] = 'Uncertainty'
+#EX3SS['par']['rhoS'] = 0.84    # Persistence of variance
+#EX3SS['par']['sigmaS'] = 0.54    # STD of variance shocks
+
+
+## Choose an accuracy of approximation with DCT
+### Determines number of basis functions chosen -- enough to match this accuracy
+### EX3SS is precomputed steady-state pulled in above
+EX3SS['par']['accuracy'] = 0.999 # Problematic (does not crash but jagged results)
+EX3SS['par']['accuracy'] = 0.9999 # Solves, Delta Y \approx  sec
+EX3SS['par']['accuracy'] = 0.99999 # Solves, Delta Y \approx  sec
+#EX3SS['par']['accuracy'] = 0.999999 # Singular matrix error
+#EX3SS['par']['accuracy'] = 0.9999999 # Solves, Delta Y \approx -3.25 sec
+#EX3SS['par']['accuracy'] = 0.99999999 # Solves, but results make no sense (impact is big increase in Y), takes \approx 519 sec
+
+## Implement state reduction and DCT
+### Do state reduction on steady state
+
+EX3SR = FluctuationsTwoAsset(**EX3SS)
+SR = EX3SR.StateReduc()
+
+print('SGU_solver')
+SGUresult = SGU_solver(SR['Xss'],SR['Yss'],SR['Gamma_state'],SR['indexMUdct'],SR['indexVKdct'],SR['par'],SR['mpar'],SR['grid'],SR['targets'],SR['Copula'],SR['P_H'],SR['aggrshock'])
+print('plot_IRF')
+plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
+         SR['Gamma_state'],SR['grid'],SR['targets'],SR['Output'])
+
+end_time = time.perf_counter()
+print('Elapsed time is ',  (end_time-start_time), ' seconds.')
+# -
+
+end_time_all = time.perf_counter()
+print('Elapsed time is ',  (end_time-start_time_all), ' seconds.')
