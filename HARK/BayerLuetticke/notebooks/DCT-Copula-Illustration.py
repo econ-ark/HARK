@@ -38,7 +38,7 @@
 # $[\frac{d v}{d m} = \frac{d u}{d c}]$.
 # In practice, the authors solve their problem using the marginal value of money $\texttt{Vm} = dv/dm$, but because the marginal utility function is invertible it is trivial to recover $\texttt{c}$ from $(u^{\prime})^{-1}(\texttt{Vm} )$.  The consumption function is therefore computed from the $\texttt{Vm}$ function
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Setup stuff
 
 # This is a jupytext paired notebook that autogenerates a corresponding .py file
@@ -68,7 +68,7 @@ import sys
 import os
 
 # Find pathname to this file:
-my_file_path = os.path.dirname(os.path.abspath("TwoAsset.ipynb"))
+my_file_path = os.path.dirname(os.path.abspath("DCT-Copula-Illustration.ipynb"))
 
 # Relative directory for pickled code
 code_dir = os.path.join(my_file_path, "../Assets/Two") 
@@ -171,29 +171,23 @@ print('The copula consists of two parts: gridpoints and values at those gridpoin
       '\n state variables are below the corresponding point.')
 
 
-# %% {"code_folding": []}
-## Import necessary libraries
+# %%
+## Import BL codes
 
-#import sys 
-#sys.path.insert(0,'../')
+import sys 
 
-#import numpy as np
+# Relative directory for BL codes 
+sys.path.insert(0,'../../../..')  # comment by TW: this is not the same as in TwoAsset.ipynb. 
+from HARK.BayerLuetticke.Assets.Two.FluctuationsTwoAsset import FluctuationsTwoAsset
+
+# %% {"code_folding": [0]}
+## Import other necessary libraries
+
+import numpy as np
 #from numpy.linalg import matrix_rank
-#import scipy as sc
-#from scipy.stats import norm 
-#from scipy.interpolate import interp1d, interp2d, griddata, RegularGridInterpolator, interpn
-#import multiprocessing as mp
-#from multiprocessing import Pool, cpu_count, Process
-#from math import ceil
-#import math as mt
-#from scipy import sparse as sp  # used to work with sparse matrices
-#from math import log, cos, pi, sqrt
-#from SharedFunc3 import Transition, ExTransitions, GenWeight, MakeGridkm, Tauchen, Fastroot
-#import matplotlib.pyplot as plt
-#import matplotlib.patches as mpatches
-#import scipy.io #scipy input and output
+import scipy as sc
+import matplotlib.pyplot as plt
 
-#from __future__ import print_function
 import time
 import scipy.fftpack as sf  # scipy discrete fourier transforms
 from mpl_toolkits.mplot3d import Axes3D
@@ -203,200 +197,6 @@ from matplotlib import lines
 import seaborn as sns
 import copy as cp
 from scipy import linalg   #linear algebra 
-
-from HARK.BayerLuetticke.Assets.Two.FluctuationsTwoAsset import FluctuationsTwoAsset
-
-
-# %% {"code_folding": [0]}
-## State reduction and discrete cosine transformation
-
-class StateReduc_Dct:
-    
-    def __init__(self, par, mpar, grid, Output, targets, Vm, Vk, 
-                 joint_distr, Copula, c_n_guess, c_a_guess, psi_guess,
-                 m_n_star, m_a_star, cap_a_star, mutil_c_n, mutil_c_a,mutil_c, P_H):
-         
-        self.par = par         # Parameters of the theoretical model
-        self.mpar = mpar       # Parameters of the numerical representation
-        self.grid = grid       # Discrete grid
-        self.Output = Output   # Results of the calculations
-        self.targets = targets # Like, debt-to-GDP ratio or other desiderata
-        self.Vm = Vm           # Marginal value from liquid cash-on-hand
-        self.Vk = Vk           # Marginal value of capital
-        self.joint_distr = joint_distr # Multidimensional histogram
-        self.Copula = Copula   # Encodes rank marginal correlation of joint distribution
-        self.mutil_c = mutil_c # Marginal utility of consumption
-        self.P_H = P_H         # Transition matrix for macro states (not including distribution)
-        
-        
-    def StateReduc(self):
-        """
-        input
-        -----
-        self: dict, stored results from a StE 
-        
-        output
-        ------
-        Newly generated
-        ===============
-        X_ss: ndarray, stacked states, including  
-        Y_ss:  ndarray, controls 
-        Gamma_state: ndarray, marginal distributions of individual states 
-        grid: ndarray, discrete grids
-        targets: ndarray, debt-to-GDP ratio or other desiderata
-        P_H: transition probability of
-        indexMUdct: ndarray, indices selected after dct operation on marginal utility of consumption
-        indexVKdct: ndarray, indices selected after dct operation on marginal value of capital
-        State: ndarray, dimension equal to reduced states
-        State_m: ndarray, dimension equal to reduced states
-        Contr:  ndarray, dimension equal to reduced controls
-        Contr_m: ndarray, dimension equal to reduced controls
-        
-        Passed down from the input
-        ==========================
-        Copula: dict, grids and values
-        joint_distr: ndarray, nk x nm x nh
-        Output: dict, outputs from the model 
-        par: dict, parameters of the theoretical model
-        mpar:dict, parameters of the numerical representation
-        aggrshock: string, type of aggregate shock used to purturb the StE 
-        """
-        
-        # Inverse of CRRA on x for utility and marginal utility
-        invutil = lambda x : ((1-self.par['xi'])*x)**(1./(1-self.par['xi'])) 
-        invmutil = lambda x : (1./x)**(1./self.par['xi'])                    
-            
-        # X=States
-        # Marg dist of liquid assets summing over pty and illiquid assets k
-        Xss=np.asmatrix(np.concatenate((np.sum(np.sum(self.joint_distr.copy(),axis=1),axis =1),  
-                       np.transpose(np.sum(np.sum(self.joint_distr.copy(),axis=0),axis=1)),# marg dist k
-                       np.sum(np.sum(self.joint_distr.copy(),axis=1),axis=0), # marg dist pty (\approx income)
-                       [np.log(self.par['RB'])],[ 0.]))).T # Given the constant interest rate
-        
-        # Y="controls" (according to this literature's odd terminology)
-        # c = invmarg(marg(c)), so first bit gets consumption policy function
-        Yss=np.asmatrix(np.concatenate((invmutil(self.mutil_c.copy().flatten(order = 'F')),\
-                                        invmutil(self.Vk.copy().flatten(order = 'F')),
-                      [np.log(self.par['Q'])], # Question: Price of the illiquid asset, right?
-                                        [ np.log(self.par['PI'])], # Inflation
-                                        [ np.log(self.Output)],    
-                      [np.log(self.par['G'])], # Gov spending
-                                        [np.log(self.par['W'])], # Wage
-                                        [np.log(self.par['R'])], # Nominal R
-                                        [np.log(self.par['PROFITS'])], 
-                      [np.log(self.par['N'])], # Hours worked
-                                        [np.log(self.targets['T'])], # Taxes
-                                        [np.log(self.grid['K'])],    # Kapital
-                      [np.log(self.targets['B'])]))).T # Government debt
-        
-        # Mapping for Histogram
-        # Gamma_state matrix reduced set of states
-        #   nm = number of gridpoints for liquid assets
-        #   nk = number of gridpoints for illiquid assets
-        #   nh = number of gridpoints for human capital (pty)
-        Gamma_state = np.zeros( # Create zero matrix of size [nm + nk + nh,nm + nk + nh - 4]
-            (self.mpar['nm']+self.mpar['nk']+self.mpar['nh'],
-             self.mpar['nm']+self.mpar['nk']+self.mpar['nh'] - 4)) 
-            # Question: Why 4? 4 = 3+1, 3: sum to 1 for m, k, h and 1: for entrepreneurs 
-
-        # Impose adding-up conditions: 
-        # In each of the block matrices, probabilities must add to 1
-        
-        for j in range(self.mpar['nm']-1): # np.squeeze reduces one-dimensional matrix to vector
-            Gamma_state[0:self.mpar['nm'],j] = -np.squeeze(Xss[0:self.mpar['nm']])
-            Gamma_state[j,j]=1. - Xss[j]   #   
-            Gamma_state[j,j]=Gamma_state[j,j] - np.sum(Gamma_state[0:self.mpar['nm'],j])
-        bb = self.mpar['nm'] # Question: bb='bottom base'? because bb shorter to type than self.mpar['nm'] everywhere
-
-        for j in range(self.mpar['nk']-1):
-            Gamma_state[bb+np.arange(0,self.mpar['nk'],1), bb+j-1] = -np.squeeze(Xss[bb+np.arange(0,self.mpar['nk'],1)])
-            Gamma_state[bb+j,bb-1+j] = 1. - Xss[bb+j] 
-            Gamma_state[bb+j,bb-1+j] = (Gamma_state[bb+j,bb-1+j] - 
-                                        np.sum(Gamma_state[bb+np.arange(0,self.mpar['nk']),bb-1+j]))
-        bb = self.mpar['nm'] + self.mpar['nk']
-
-        for j in range(self.mpar['nh']-2): 
-            # Question: Why -2?  1 for h sum to 1 and 1 for entrepreneur  Some other symmetry/adding-up condition.
-            Gamma_state[bb+np.arange(0,self.mpar['nh']-1,1), bb+j-2] = -np.squeeze(Xss[bb+np.arange(0,self.mpar['nh']-1,1)])
-            Gamma_state[bb+j,bb-2+j] = 1. - Xss[bb+j]
-            Gamma_state[bb+j,bb-2+j] = Gamma_state[bb+j,bb-2+j] - np.sum(Gamma_state[bb+np.arange(0,self.mpar['nh']-1,1),bb-2+j])
-
-        # Number of other state variables not including the gridded -- here, just the interest rate 
-        self.mpar['os'] = len(Xss) - (self.mpar['nm']+self.mpar['nk']+self.mpar['nh'])
-        # For each gridpoint there are two "regular" controls: consumption and illiquid saving
-        # Counts the number of "other" controls (PROFITS, Q, etc)
-        self.mpar['oc'] = len(Yss) - 2*(self.mpar['nm']*self.mpar['nk']*self.mpar['nh'])
-        
-        aggrshock = self.par['aggrshock']
-        accuracy = self.par['accuracy']
-       
-        # Do the dct on the steady state marginal utility
-        # Returns an array of indices for the used basis vectors
-        indexMUdct = self.do_dct(invmutil(self.mutil_c.copy().flatten(order='F')),
-                                 self.mpar,accuracy)
-
-        # Do the dct on the steady state marginal value of capital
-        # Returns an array of indices for the used basis vectors
-        indexVKdct = self.do_dct(invmutil(self.Vk.copy()),self.mpar,accuracy)
-                
-        # Calculate the numbers of states and controls
-        aux = np.shape(Gamma_state)
-        self.mpar['numstates'] = np.int64(aux[1] + self.mpar['os'])
-        self.mpar['numcontrols'] = np.int64(len(indexMUdct) + 
-                                            len(indexVKdct) + 
-                                            self.mpar['oc'])
-        
-        # Size of the reduced matrices to be used in the Fsys
-        # Set to zero because in steady state they are zero
-        State = np.zeros((self.mpar['numstates'],1))
-        State_m = State
-        Contr = np.zeros((self.mpar['numcontrols'],1))
-        Contr_m = Contr
-        
-        return {'Xss': Xss, 'Yss':Yss, 'Gamma_state': Gamma_state, 
-                'par':self.par, 'mpar':self.mpar, 'aggrshock':aggrshock,
-                'Copula':self.Copula,'grid':self.grid,'targets':self.targets,'P_H':self.P_H, 
-                'joint_distr': self.joint_distr, 'Output': self.Output, 'indexMUdct':indexMUdct, 'indexVKdct':indexVKdct,
-                'State':State, 'State_m':State_m, 'Contr':Contr, 'Contr_m':Contr_m}
-
-    # Discrete cosine transformation magic happens here
-    # sf is scipy.fftpack tool
-    def do_dct(self, obj, mpar, level):
-        """
-        input
-        -----
-        obj: ndarray nm x nk x nh  
-             dimension of states before dct 
-        mpar: dict
-            parameters in the numerical representaion of the model, e.g. nm, nk and nh
-        level: float 
-               accuracy level for dct 
-        output
-        ------
-        index_reduced: ndarray n_dct x 1 
-                       an array of indices that select the needed grids after dct
-                   
-        """
-        obj = np.reshape(obj.copy(),(mpar['nm'],mpar['nk'],mpar['nh']),order='F')
-        X1 = sf.dct(obj,norm='ortho',axis=0)    # dct is operated along three dimensions axis=0/1/2
-        X2 = sf.dct(X1.copy(),norm='ortho',axis=1)
-        X3 = sf.dct(X2.copy(),norm='ortho',axis=2)
-
-        # Pick the coefficients that are big
-        XX = X3.flatten(order='F') 
-        ind = np.argsort(abs(XX.copy()))[::-1]
-        #  i will 
-        i = 1    
-        # Sort from smallest (=best) to biggest (=worst)
-        # and count how many are 'good enough to keep'
-        while linalg.norm(XX[ind[:i]].copy())/linalg.norm(XX) < level:
-              i += 1    
-        
-        needed = i # Question:Isn't this counting the ones that are NOT needed?
-        
-        index_reduced = np.sort(ind[:i]) # Retrieve the good 
-        
-        return index_reduced
 
 # %% {"code_folding": [0]}
 ## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
@@ -512,7 +312,7 @@ def DCTApprox(fullgrids,dct_index):
 # %% [markdown]
 # Depending on the accuracy level, the DCT operation choses the necessary number of basis functions used to approximate consumption function at the full grids. This is illustrated in the p31-p34 in this [slides](https://www.dropbox.com/s/46fdxh0aphazm71/presentation_method.pdf?dl=0). We show this for both 1-dimensional (m or k) or 2-dimenstional grids (m and k) in the following. 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## 2D graph of consumption function: c(m) fixing k and h
 
 
@@ -561,7 +361,7 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.legend(loc=0)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## 2D graph of consumption function: c(k) fixing m and h
 
 fig = plt.figure(figsize=(8,8))
@@ -613,7 +413,7 @@ Accuracy_BS = float(input()) ## baseline accuracy level
 # Restore the solution corresponding to the original BL accuracy
 
 EX3SS['par']['accuracy'] = Accuracy_BS
-EX3SR=StateReduc_Dct(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
+EX3SR=FluctuationsTwoAsset(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
 SR=EX3SR.StateReduc()           # StateReduc is operated 
 
 ## meshgrids for plots
@@ -685,14 +485,14 @@ def TrimMesh2d(grids1,grids2,trim1_idx,trim2_idx,drop=True):
     return grids1_trimmesh,grids2_trimmesh
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Other configurations for plotting 
 
 distr_min = 0
 distr_max = np.nanmax(joint_distr)
 fontsize_lg = 13 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # For non-adjusters: 3D surface plots of consumption function at full grids and approximated by DCT
 ##    at all grids and grids after dct first for non-adjusters and then for adjusters
 
