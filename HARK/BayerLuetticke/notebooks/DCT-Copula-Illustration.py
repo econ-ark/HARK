@@ -38,7 +38,7 @@
 # $[\frac{d v}{d m} = \frac{d u}{d c}]$.
 # In practice, the authors solve their problem using the marginal value of money $\texttt{Vm} = dv/dm$, but because the marginal utility function is invertible it is trivial to recover $\texttt{c}$ from $(u^{\prime})^{-1}(\texttt{Vm} )$.  The consumption function is therefore computed from the $\texttt{Vm}$ function
 
-# %% {"code_folding": [0, 6, 17, 21]}
+# %% {"code_folding": []}
 # Setup stuff
 
 # This is a jupytext paired notebook that autogenerates a corresponding .py file
@@ -68,15 +68,15 @@ import sys
 import os
 
 # Find pathname to this file:
-my_file_path = os.path.dirname(os.path.abspath("TwoAsset.ipynb"))
+my_file_path = os.path.dirname(os.path.abspath("DCT-Copula-Illustration.ipynb"))
 
 # Relative directory for pickled code
-code_dir = os.path.join(my_file_path, "BayerLuetticke_code/TwoAssetCode") 
+code_dir = os.path.join(my_file_path, "../Assets/Two") 
 
 sys.path.insert(0, code_dir)
 sys.path.insert(0, my_file_path)
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Load precalculated Stationary Equilibrium (StE) object EX3SS
 
 import pickle
@@ -172,259 +172,63 @@ print('The copula consists of two parts: gridpoints and values at those gridpoin
 
 
 # %% {"code_folding": [0]}
-## Import necessary libraries
+## Import BL codes
 
-from __future__ import print_function
 import sys 
-sys.path.insert(0,'../')
+
+# Relative directory for BL codes 
+sys.path.insert(0,'../../../..')  # comment by TW: this is not the same as in TwoAsset.ipynb. 
+from HARK.BayerLuetticke.Assets.Two.FluctuationsTwoAsset import FluctuationsTwoAsset
+
+# %% {"code_folding": [0]}
+## Import other necessary libraries
 
 import numpy as np
-from numpy.linalg import matrix_rank
+#from numpy.linalg import matrix_rank
 import scipy as sc
-from scipy.stats import norm 
-from scipy.interpolate import interp1d, interp2d, griddata, RegularGridInterpolator, interpn
-import multiprocessing as mp
-from multiprocessing import Pool, cpu_count, Process
-from math import ceil
-import math as mt
-from scipy import sparse as sp  # used to work with sparse matrices
-from scipy import linalg   #linear algebra 
-from math import log, cos, pi, sqrt
-import time
-from SharedFunc3 import Transition, ExTransitions, GenWeight, MakeGridkm, Tauchen, Fastroot
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import scipy.io #scipy input and output
-import scipy.fftpack as sf  # scipy discrete fourier transforms
 
+import time
+import scipy.fftpack as sf  # scipy discrete fourier transforms
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from matplotlib import cm
-
+from matplotlib import lines
 import seaborn as sns
-
 import copy as cp
-
-
-# %% {"code_folding": [0]}
-## State reduction and discrete cosine transformation
-
-class StateReduc_Dct:
-    
-    def __init__(self, par, mpar, grid, Output, targets, Vm, Vk, 
-                 joint_distr, Copula, c_n_guess, c_a_guess, psi_guess,
-                 m_n_star, m_a_star, cap_a_star, mutil_c_n, mutil_c_a,mutil_c, P_H):
-         
-        self.par = par         # Parameters of the theoretical model
-        self.mpar = mpar       # Parameters of the numerical representation
-        self.grid = grid       # Discrete grid
-        self.Output = Output   # Results of the calculations
-        self.targets = targets # Like, debt-to-GDP ratio or other desiderata
-        self.Vm = Vm           # Marginal value from liquid cash-on-hand
-        self.Vk = Vk           # Marginal value of capital
-        self.joint_distr = joint_distr # Multidimensional histogram
-        self.Copula = Copula   # Encodes rank marginal correlation of joint distribution
-        self.mutil_c = mutil_c # Marginal utility of consumption
-        self.P_H = P_H         # Transition matrix for macro states (not including distribution)
-        
-        
-    def StateReduc(self):
-        """
-        input
-        -----
-        self: dict, stored results from a StE 
-        
-        output
-        ------
-        Newly generated
-        ===============
-        X_ss: ndarray, stacked states, including  
-        Y_ss:  ndarray, controls 
-        Gamma_state: ndarray, marginal distributions of individual states 
-        grid: ndarray, discrete grids
-        targets: ndarray, debt-to-GDP ratio or other desiderata
-        P_H: transition probability of
-        indexMUdct: ndarray, indices selected after dct operation on marginal utility of consumption
-        indexVKdct: ndarray, indices selected after dct operation on marginal value of capital
-        State: ndarray, dimension equal to reduced states
-        State_m: ndarray, dimension equal to reduced states
-        Contr:  ndarray, dimension equal to reduced controls
-        Contr_m: ndarray, dimension equal to reduced controls
-        
-        Passed down from the input
-        ==========================
-        Copula: dict, grids and values
-        joint_distr: ndarray, nk x nm x nh
-        Output: dict, outputs from the model 
-        par: dict, parameters of the theoretical model
-        mpar:dict, parameters of the numerical representation
-        aggrshock: string, type of aggregate shock used to purturb the StE 
-        """
-        
-        # Inverse of CRRA on x for utility and marginal utility
-        invutil = lambda x : ((1-self.par['xi'])*x)**(1./(1-self.par['xi'])) 
-        invmutil = lambda x : (1./x)**(1./self.par['xi'])                    
-            
-        # X=States
-        # Marg dist of liquid assets summing over pty and illiquid assets k
-        Xss=np.asmatrix(np.concatenate((np.sum(np.sum(self.joint_distr.copy(),axis=1),axis =1),  
-                       np.transpose(np.sum(np.sum(self.joint_distr.copy(),axis=0),axis=1)),# marg dist k
-                       np.sum(np.sum(self.joint_distr.copy(),axis=1),axis=0), # marg dist pty (\approx income)
-                       [np.log(self.par['RB'])],[ 0.]))).T # Given the constant interest rate
-        
-        # Y="controls" (according to this literature's odd terminology)
-        # c = invmarg(marg(c)), so first bit gets consumption policy function
-        Yss=np.asmatrix(np.concatenate((invmutil(self.mutil_c.copy().flatten(order = 'F')),\
-                                        invmutil(self.Vk.copy().flatten(order = 'F')),
-                      [np.log(self.par['Q'])], # Question: Price of the illiquid asset, right?
-                                        [ np.log(self.par['PI'])], # Inflation
-                                        [ np.log(self.Output)],    
-                      [np.log(self.par['G'])], # Gov spending
-                                        [np.log(self.par['W'])], # Wage
-                                        [np.log(self.par['R'])], # Nominal R
-                                        [np.log(self.par['PROFITS'])], 
-                      [np.log(self.par['N'])], # Hours worked
-                                        [np.log(self.targets['T'])], # Taxes
-                                        [np.log(self.grid['K'])],    # Kapital
-                      [np.log(self.targets['B'])]))).T # Government debt
-        
-        # Mapping for Histogram
-        # Gamma_state matrix reduced set of states
-        #   nm = number of gridpoints for liquid assets
-        #   nk = number of gridpoints for illiquid assets
-        #   nh = number of gridpoints for human capital (pty)
-        Gamma_state = np.zeros( # Create zero matrix of size [nm + nk + nh,nm + nk + nh - 4]
-            (self.mpar['nm']+self.mpar['nk']+self.mpar['nh'],
-             self.mpar['nm']+self.mpar['nk']+self.mpar['nh'] - 4)) 
-            # Question: Why 4? 4 = 3+1, 3: sum to 1 for m, k, h and 1: for entrepreneurs 
-
-        # Impose adding-up conditions: 
-        # In each of the block matrices, probabilities must add to 1
-        
-        for j in range(self.mpar['nm']-1): # np.squeeze reduces one-dimensional matrix to vector
-            Gamma_state[0:self.mpar['nm'],j] = -np.squeeze(Xss[0:self.mpar['nm']])
-            Gamma_state[j,j]=1. - Xss[j]   #   
-            Gamma_state[j,j]=Gamma_state[j,j] - np.sum(Gamma_state[0:self.mpar['nm'],j])
-        bb = self.mpar['nm'] # Question: bb='bottom base'? because bb shorter to type than self.mpar['nm'] everywhere
-
-        for j in range(self.mpar['nk']-1):
-            Gamma_state[bb+np.arange(0,self.mpar['nk'],1), bb+j-1] = -np.squeeze(Xss[bb+np.arange(0,self.mpar['nk'],1)])
-            Gamma_state[bb+j,bb-1+j] = 1. - Xss[bb+j] 
-            Gamma_state[bb+j,bb-1+j] = (Gamma_state[bb+j,bb-1+j] - 
-                                        np.sum(Gamma_state[bb+np.arange(0,self.mpar['nk']),bb-1+j]))
-        bb = self.mpar['nm'] + self.mpar['nk']
-
-        for j in range(self.mpar['nh']-2): 
-            # Question: Why -2?  1 for h sum to 1 and 1 for entrepreneur  Some other symmetry/adding-up condition.
-            Gamma_state[bb+np.arange(0,self.mpar['nh']-1,1), bb+j-2] = -np.squeeze(Xss[bb+np.arange(0,self.mpar['nh']-1,1)])
-            Gamma_state[bb+j,bb-2+j] = 1. - Xss[bb+j]
-            Gamma_state[bb+j,bb-2+j] = Gamma_state[bb+j,bb-2+j] - np.sum(Gamma_state[bb+np.arange(0,self.mpar['nh']-1,1),bb-2+j])
-
-        # Number of other state variables not including the gridded -- here, just the interest rate 
-        self.mpar['os'] = len(Xss) - (self.mpar['nm']+self.mpar['nk']+self.mpar['nh'])
-        # For each gridpoint there are two "regular" controls: consumption and illiquid saving
-        # Counts the number of "other" controls (PROFITS, Q, etc)
-        self.mpar['oc'] = len(Yss) - 2*(self.mpar['nm']*self.mpar['nk']*self.mpar['nh'])
-        
-        aggrshock = self.par['aggrshock']
-        accuracy = self.par['accuracy']
-       
-        # Do the dct on the steady state marginal utility
-        # Returns an array of indices for the used basis vectors
-        indexMUdct = self.do_dct(invmutil(self.mutil_c.copy().flatten(order='F')),
-                                 self.mpar,accuracy)
-
-        # Do the dct on the steady state marginal value of capital
-        # Returns an array of indices for the used basis vectors
-        indexVKdct = self.do_dct(invmutil(self.Vk.copy()),self.mpar,accuracy)
-                
-        # Calculate the numbers of states and controls
-        aux = np.shape(Gamma_state)
-        self.mpar['numstates'] = np.int64(aux[1] + self.mpar['os'])
-        self.mpar['numcontrols'] = np.int64(len(indexMUdct) + 
-                                            len(indexVKdct) + 
-                                            self.mpar['oc'])
-        
-        # Size of the reduced matrices to be used in the Fsys
-        # Set to zero because in steady state they are zero
-        State = np.zeros((self.mpar['numstates'],1))
-        State_m = State
-        Contr = np.zeros((self.mpar['numcontrols'],1))
-        Contr_m = Contr
-        
-        return {'Xss': Xss, 'Yss':Yss, 'Gamma_state': Gamma_state, 
-                'par':self.par, 'mpar':self.mpar, 'aggrshock':aggrshock,
-                'Copula':self.Copula,'grid':self.grid,'targets':self.targets,'P_H':self.P_H, 
-                'joint_distr': self.joint_distr, 'Output': self.Output, 'indexMUdct':indexMUdct, 'indexVKdct':indexVKdct,
-                'State':State, 'State_m':State_m, 'Contr':Contr, 'Contr_m':Contr_m}
-
-    # Discrete cosine transformation magic happens here
-    # sf is scipy.fftpack tool
-    def do_dct(self, obj, mpar, level):
-        """
-        input
-        -----
-        obj: ndarray nm x nk x nh  
-             dimension of states before dct 
-        mpar: dict
-            parameters in the numerical representaion of the model, e.g. nm, nk and nh
-        level: float 
-               accuracy level for dct 
-        output
-        ------
-        index_reduced: ndarray n_dct x 1 
-                       an array of indices that select the needed grids after dct
-                   
-        """
-        obj = np.reshape(obj.copy(),(mpar['nm'],mpar['nk'],mpar['nh']),order='F')
-        X1 = sf.dct(obj,norm='ortho',axis=0)    # dct is operated along three dimensions axis=0/1/2
-        X2 = sf.dct(X1.copy(),norm='ortho',axis=1)
-        X3 = sf.dct(X2.copy(),norm='ortho',axis=2)
-
-        # Pick the coefficients that are big
-        XX = X3.flatten(order='F') 
-        ind = np.argsort(abs(XX.copy()))[::-1]
-        #  i will 
-        i = 1    
-        # Sort from smallest (=best) to biggest (=worst)
-        # and count how many are 'good enough to keep'
-        while linalg.norm(XX[ind[:i]].copy())/linalg.norm(XX) < level:
-              i += 1    
-        
-        needed = i # Question:Isn't this counting the ones that are NOT needed?
-        
-        index_reduced = np.sort(ind[:i]) # Retrieve the good 
-        
-        return index_reduced
+from scipy import linalg   #linear algebra 
 
 # %% {"code_folding": [0]}
 ## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
 
-EX3SS['par']['aggrshock']           = 'MP'
-EX3SS['par']['rhoS']    = 0.0      # Persistence of variance
-EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
+# EX3SS['par']['aggrshock']           = 'MP'
+# EX3SS['par']['rhoS']    = 0.0      # Persistence of variance
+# EX3SS['par']['sigmaS']  = 0.001    # STD of variance shocks
 
 #EX3SS['par']['aggrshock']           = 'TFP'
 #EX3SS['par']['rhoS']    = 0.95
 #EX3SS['par']['sigmaS']  = 0.0075
     
-#EX3SS['par']['aggrshock']           = 'Uncertainty'
-#EX3SS['par']['rhoS']    = 0.84    # Persistence of variance
-#EX3SS['par']['sigmaS']  = 0.54    # STD of variance shocks
+EX3SS['par']['aggrshock'] = 'Uncertainty'
+EX3SS['par']['rhoS'] = 0.84    # Persistence of variance
+EX3SS['par']['sigmaS'] = 0.54    # STD of variance shocks
 
-# %% {"code_folding": []}
+
+
+# %% {"code_folding": [0]}
 ## Choose an accuracy of approximation with DCT
+
 ### Determines number of basis functions chosen -- enough to match this accuracy
 ### EX3SS is precomputed steady-state pulled in above
-EX3SS['par']['accuracy'] = 0.99999 
+EX3SS['par']['accuracy'] = 0.99999
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Implement state reduction and DCT
 ### Do state reduction on steady state
-EX3SR=StateReduc_Dct(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
+EX3SR=FluctuationsTwoAsset(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
 SR=EX3SR.StateReduc()           # StateReduc is operated 
 
-# %% {"code_folding": [0, 12]}
+# %% {"code_folding": [0]}
 # Measuring the effectiveness of the state reduction
 
 print('What are the results from the state reduction?')
@@ -457,9 +261,9 @@ print('The total number of state variables is '+str(SR['State'].shape[0]) + '='+
 #
 # #### Policy/value functions
 #
-# Taking the consumption function as an example, we plot consumption by adjusters and non-adjusters over a range of $k$ and $m$ that encompasses x percent of the mass of the distribution function.  
+# Taking the consumption function as an example, we plot consumption by adjusters and non-adjusters over a range of $k$ and $m$ that encompasses 100 as well 90 percent of the mass of the distribution function,respectively.  
 #
-# We plot the functions for the top and bottom values of the wage $h$ distribution
+# We plot the functions for the each of the 4 values of the wage $h$.
 #
 
 # %% {"code_folding": [0]}
@@ -486,7 +290,7 @@ hgrid = EX3SS['grid']['h']
 
 
 # %% {"code_folding": [0]}
-## define some functions to be used next
+## Define some functions to be used next
 
 def dct3d(x):
     x0=sf.dct(x.copy(),axis=0,norm='ortho')
@@ -511,13 +315,17 @@ def DCTApprox(fullgrids,dct_index):
 # %% [markdown]
 # Depending on the accuracy level, the DCT operation choses the necessary number of basis functions used to approximate consumption function at the full grids. This is illustrated in the p31-p34 in this [slides](https://www.dropbox.com/s/46fdxh0aphazm71/presentation_method.pdf?dl=0). We show this for both 1-dimensional (m or k) or 2-dimenstional grids (m and k) in the following. 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## 2D graph of consumption function: c(m) fixing k and h
 
 
-## list of accuracy levels 
+## list of accuracy levels  
+Accuracy_BL    = 0.99999 # From BL
+Accuracy_Less0 = 0.999
+Accuracy_Less1 = 0.99
+Accuracy_Less2 = 0.95
 
-acc_lst = np.array([0.99999,0.999,0.99,0.9])
+acc_lst = np.array([Accuracy_BL,Accuracy_Less0,Accuracy_Less1,Accuracy_Less2])
 
 ## c(m) fixing k and h
 fig = plt.figure(figsize=(8,8))
@@ -529,7 +337,7 @@ fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, h
 for idx in range(len(acc_lst)):
     EX3SS_cp =cp.deepcopy(EX3SS) 
     EX3SS_cp['par']['accuracy'] = acc_lst[idx]
-    EX3SR_cp=StateReduc_Dct(**EX3SS_cp)   # Takes StE result as input and get ready to invoke state reduction operation
+    EX3SR_cp=FluctuationsTwoAsset(**EX3SS_cp)   # Takes StE result as input and get ready to invoke state reduction operation
     SR_cp=EX3SR_cp.StateReduc()
     mut_rdc_idx_flt_cp = SR_cp['indexMUdct']
     mut_rdc_idx_cp = np.unravel_index(mut_rdc_idx_flt_cp,dim_StE,order='F')
@@ -556,7 +364,7 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.legend(loc=0)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## 2D graph of consumption function: c(k) fixing m and h
 
 fig = plt.figure(figsize=(8,8))
@@ -568,7 +376,7 @@ fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, h
 for idx in range(len(acc_lst)):
     EX3SS_cp =cp.deepcopy(EX3SS)
     EX3SS_cp['par']['accuracy'] = acc_lst[idx]
-    EX3SR_cp=StateReduc_Dct(**EX3SS_cp)   # Takes StE result as input and get ready to invoke state reduction operation
+    EX3SR_cp=FluctuationsTwoAsset(**EX3SS_cp)   # Takes StE result as input and get ready to invoke state reduction operation
     SR_cp=EX3SR_cp.StateReduc()
     mut_rdc_idx_flt_cp= SR_cp['indexMUdct']
     mut_rdc_idx_cp = np.unravel_index(mut_rdc_idx_flt_cp,dim_StE,order='F')
@@ -596,138 +404,390 @@ for idx in range(len(acc_lst)):
     ax.legend(loc=0)
 
 # %% {"code_folding": [0]}
-## redo DCT for accuracy level 0.99999
+## Set the population density for plotting graphs 
 
-EX3SS['par']['accuracy'] = 0.99999 
-EX3SR=StateReduc_Dct(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
+print('Input: plot the graph for bottom x (0-1) of the distribution.')
+mass_pct = float(input())
+
+print('Input:choose the accuracy level for DCT, i.e. 0.99999 in the basline of Bayer and Luetticke')
+Accuracy_BS = float(input()) ## baseline accuracy level 
+
+# %% {"code_folding": [0]}
+# Restore the solution corresponding to the original BL accuracy
+
+EX3SS['par']['accuracy'] = Accuracy_BS
+EX3SR=FluctuationsTwoAsset(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
 SR=EX3SR.StateReduc()           # StateReduc is operated 
 
+## meshgrids for plots
+
+mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
 
 ## indexMUdct is one dimension, needs to be unraveled to 3 dimensions
 mut_rdc_idx_flt = SR['indexMUdct']
 mut_rdc_idx = np.unravel_index(mut_rdc_idx_flt,dim_StE,order='F')
 
-nb_dct = len(mut_StE.flatten()) 
-mut_rdc_bool = np.zeros(nb_dct)     # boolean array of 30 x 30 x 4  
-for i in range(nb_dct):
-    mut_rdc_bool[i]=i in list(SR['indexMUdct'])
-mut_rdc_bool_3d = (mut_rdc_bool==1).reshape(dim_StE)
-mut_rdc_mask_3d = (mut_rdc_bool).reshape(dim_StE)
+## Note: the following chunk of codes can be used to recover the indices of grids selected by DCT. not used here.
+#nb_dct = len(mut_StE.flatten()) 
+#mut_rdc_bool = np.zeros(nb_dct)     # boolean array of 30 x 30 x 4  
+#for i in range(nb_dct):
+#    mut_rdc_bool[i]=i in list(SR['indexMUdct'])
+#mut_rdc_bool_3d = (mut_rdc_bool==1).reshape(dim_StE)
+#mut_rdc_mask_3d = (mut_rdc_bool).reshape(dim_StE)
 
-## get the 95 percent or other percentile of the distribution
-
-joint_distr =  EX3SS['joint_distr']
-marginal_mk =  EX3SS['joint_distr'].sum(axis=2)
-
-mass_pct = 0.95
-
-# %%
-## Again, for 0.99999 accuracy level, get dct compressed c functions at all grids 
+## For BL accuracy level, get dct compressed c functions at all grids 
 
 c_n_approx = DCTApprox(cn_StE,mut_rdc_idx)
 c_a_approx = DCTApprox(ca_StE,mut_rdc_idx)
 
-# %% {"code_folding": []}
-## 3D surface plots of consumption function at full grids and approximated by DCT
-##    at all grids and grids after dct for both adjusters and non-adjusters
 
-## for non-adjusters
+# Get the joint distribution calculated elsewhere
 
-## full grids 
-mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
+joint_distr =  EX3SS['joint_distr']
 
-### for adjusters 
+
+# %% {"code_folding": [0]}
+## Functions used to plot consumption functions at the trimmed grids
+
+def WhereToTrim2d(joint_distr,mass_pct):
+    """
+    parameters
+    -----------
+    marginal1: marginal pdf in the 1st dimension
+    marginal2: marginal pdf in the 2nd dimension
+    mass_pct: bottom percentile to keep 
+    
+    returns
+    ----------
+    trim1_idx: idx for trimming in the 1s dimension
+    trim2_idx: idx for trimming in the 1s dimension
+    """
+    
+    marginal1 = joint_distr.sum(axis=0)
+    marginal2 = joint_distr.sum(axis=1)
+    ## this can handle cases where the joint_distr itself is a marginal distr from 3d, 
+    ##   i.e. marginal.cumsum().max() =\= 1 
+    trim1_idx = (np.abs(marginal1.cumsum()-mass_pct*marginal1.cumsum().max())).argmin() 
+    trim2_idx = (np.abs(marginal2.cumsum()-mass_pct*marginal2.cumsum().max())).argmin()
+    return trim1_idx,trim2_idx
+
+def TrimMesh2d(grids1,grids2,trim1_idx,trim2_idx,drop=True):
+    if drop ==True:
+        grids_trim1 = grids1.copy()
+        grids_trim2 = grids2.copy()
+        grids_trim1=grids_trim1[:trim1_idx]
+        grids_trim2=grids_trim2[:trim2_idx]
+        grids1_trimmesh, grids2_trimmesh = np.meshgrid(grids_trim1,grids_trim2)
+    else:
+        grids_trim1 = grids1.copy()
+        grids_trim2 = grids2.copy()
+        grids_trim1[trim1_idx:]=np.nan
+        grids_trim2[trim2_idx:]=np.nan
+        grids1_trimmesh, grids2_trimmesh = np.meshgrid(grids_trim1,grids_trim2)
+        
+    return grids1_trimmesh,grids2_trimmesh
+
+
+# %% {"code_folding": [0]}
+## Other configurations for plotting 
+
+distr_min = 0
+distr_max = np.nanmax(joint_distr)
+fontsize_lg = 13 
+
+## lower bound for grid 
+mmin = np.nanmin(mgrid)
+kmin = np.nanmin(kgrid)
+
+# %% {"code_folding": [0]}
+# For non-adjusters: 3D surface plots of consumption function at full grids and approximated by DCT
+##    at all grids and grids after dct first for non-adjusters and then for adjusters
+
+
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of non-adjusters at grid points of m and k(for different h)',
-             fontsize=(13))
+fig.suptitle('Consumption of non-adjusters at grid points of m and k \n where ' +str(int(mass_pct*100))+ ' % of the agents are distributed \n (for each h)',
+             fontsize=(fontsize_lg))
 for hgrid_id in range(EX3SS['mpar']['nh']):
-    ## prepare the reduced grids 
-    hgrid_fix=hgrid_id    
+    
+    ## get the grids and distr for fixed h
+    hgrid_fix = hgrid_id    
+    distr_fix = joint_distr[:,:,hgrid_fix]
+    c_n_approx_fix = c_n_approx[:,:,hgrid_fix]
+    c_n_StE_fix = cn_StE[:,:,hgrid_fix]
+    
+    ## additions to the above cell
+    ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
+    mk_marginal = joint_distr[:,:,hgrid_fix]
+    mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
+    mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
+    mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
+    
+    c_n_approx_trim = c_n_approx_fix.copy()
+    c_n_approx_trim = c_n_approx_trim[:kmax_idx:,:mmax_idx]  # the dimension is transposed for meshgrid.
+    distr_fix_trim = distr_fix.copy()
+
+    cn_StE_trim = c_n_StE_fix.copy()
+    cn_StE_trim = cn_StE_trim[:kmax_idx,:mmax_idx]  
+    distr_fix_trim = distr_fix_trim[:kmax_idx,:mmax_idx]
+    
+    ## find the maximum z 
+    zmax = np.nanmax(c_n_approx_trim)
+    
     
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.scatter(mmgrid,kkgrid,c_n_approx[:,:,hgrid_fix],marker='v',color='red',
-                    label='StE(after dct):non-adjuster')
-    ax.plot_surface(mmgrid,kkgrid,cn_StE[:,:,hgrid_fix],cmap='Blues',
-               label='StE(before dct): non-adjuster')
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel(r'$c_n(m,k)$',fontsize=13)
-    plt.gca().invert_yaxis()
-    #ax.set_xlim([0,mmax])
-    #ax.set_ylim([0,kmax])
-    ax.set_title(r'$h({})$'.format(hgrid_fix))
-    ax.view_init(20, 100)
-
-# %% {"code_folding": []}
-## Same thing in a different way: image plots of c functions at full grids and c approximated by DCT
-
-
-## for non-adjusters
-
-## full grids 
-mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
-
-### for adjusters 
-fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of non-adjusters at grid points of m and k(for different h)',
-             fontsize=(13))
-for hgrid_id in range(EX3SS['mpar']['nh']):
-    ## prepare the reduced grids 
-    hgrid_fix=hgrid_id
-  
-    ## plots 
-    ax = fig.add_subplot(2,2,hgrid_id+1)
-    ax.imshow(np.hstack((cn_StE[:,:,hgrid_fix],c_n_approx[:,:,hgrid_fix])))
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
-    ax.set_title(r'$h({})$'.format(hgrid_fix))
-
-# %% {"code_folding": []}
-## 3D scatter plots of the difference of full-grid c and approximated c
-
-## for non-adjusters
-
-## full grids 
-mmgrid,kkgrid = np.meshgrid(mgrid,kgrid)
-
-### for adjusters 
-fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of non-adjusters at grid points of m and k(for different h)',
-             fontsize=(13))
-for hgrid_id in range(EX3SS['mpar']['nh']):
-    ## prepare the reduced grids 
-    hgrid_fix=hgrid_id    
-    cn_diff = c_n_approx-cn_StE
+    scatter = ax.scatter(mmgrid_trim,kkgrid_trim,cn_StE_trim,
+               marker='v',
+               color='red')
+    surface = ax.plot_surface(mmgrid_trim,kkgrid_trim,c_n_approx_trim,
+                    cmap='Blues')
+    fake2Dline = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='b',
+                              marker='o') # fake line for making the legend for surface
     
-    ## plots 
-    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.plot_surface(mmgrid,kkgrid,cn_diff[:,:,hgrid_fix], rstride=1, 
-                    cstride=1,cmap=cm.coolwarm, edgecolor='none',
-                    label='Difference of full-grid and approximated consumption function')
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
-    plt.gca().invert_yaxis()
+    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, 
+                zdir='z',
+                offset=np.min(distr_fix_trim),
+                cmap=cm.YlOrRd,
+                vmin=distr_min, 
+                vmax=distr_max)
+    fake2Dline2 = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='orange',
+                              marker='o') # fakeline for making the legend for surface
+    
+    ax.set_xlabel('m',fontsize=fontsize_lg)
+    ax.set_ylabel('k',fontsize=fontsize_lg)
+    ax.set_zlabel(r'$c_n(m,k)$',fontsize=fontsize_lg)
+    #ax.set_xlim([mmin,mmax])
+    ax.set_ylim([kmax,kmin])
+    ax.set_zlim([0,zmax])
+    ax.set_title(r'$h({})$'.format(hgrid_fix))
     plt.gca().invert_xaxis()
-    #ax.set_xlim([0,mmax])
-    #ax.set_ylim([0,kmax])
+    #plt.gca().invert_yaxis()
+    ax.view_init(20, 70)
+    ax.legend([scatter,fake2Dline,fake2Dline2], 
+              ['Full-grid c','Approximated c','Joint distribution'],
+              loc=0)
+
+
+# %% {"code_folding": [0]}
+# For adjusters: 3D surface plots of consumption function at full grids and approximated by DCT 
+
+    
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Consumption of adjusters at grid points of m and k \n where ' +str(int(mass_pct*100))+ '% of agents are distributed  \n (for each h)',
+             fontsize=(fontsize_lg))
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    
+    ## get the grids and distr for fixed h
+    hgrid_fix=hgrid_id
+    c_a_StE_fix = ca_StE[:,:,hgrid_fix]
+    c_a_approx_fix = c_a_approx[:,:,hgrid_fix]
+    distr_fix = joint_distr[:,:,hgrid_fix]
+    
+    ## additions to the above cell
+    ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
+    mk_marginal = joint_distr[:,:,hgrid_fix]
+    mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
+    mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
+    mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
+    c_a_approx_trim =c_a_approx_fix.copy()
+    c_a_approx_trim  = c_a_approx_trim[:kmax_idx,:mmax_idx]
+    distr_fix_trim = distr_fix.copy()
+    ca_StE_trim =c_a_StE_fix.copy()
+    ca_StE_trim = ca_StE_trim[:kmax_idx,:mmax_idx]    
+    distr_fix_trim = distr_fix_trim[:kmax_idx,:mmax_idx]
+
+    
+    # get the maximum z
+    zmax = np.nanmax(c_a_approx_trim)
+    
+    ## plots 
+    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
+    ax.scatter(mmgrid_trim,kkgrid_trim,ca_StE_trim,marker='v',color='red',
+                    label='full-grid c:adjuster')
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_a_approx_trim,cmap='Blues',
+               label='approximated c: adjuster')
+    fake2Dline = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='b',
+                              marker='o') # fake line for making the legend for surface
+    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, 
+                zdir='z',
+                offset=np.min(distr_fix_trim),
+                cmap=cm.YlOrRd,
+                vmin=distr_min,
+                vmax=distr_max)
+    fake2Dline2 = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='orange',
+                              marker='o') # fakeline for making the legend for surface
+    ax.set_xlabel('m',fontsize=fontsize_lg)
+    ax.set_ylabel('k',fontsize=fontsize_lg)
+    ax.set_zlabel(r'$c_a(m,k)$',fontsize=fontsize_lg)
+    #ax.set_xlim([mmin,mmax])
+    ax.set_ylim([kmax,kmin])
+    plt.gca().invert_xaxis()
+    #plt.gca().invert_yaxis()
+    ax.set_zlim([0,zmax])
+    ax.set_title(r'$h({})$'.format(hgrid_fix))
+    ax.view_init(20, 70)
+    ax.legend([scatter,fake2Dline,fake2Dline2], 
+              ['Full-grid c','Approx c','Joint distribution'],
+              loc=0)
+
+# %% {"code_folding": [0]}
+## 3D scatter plots of the difference of full-grid c and approximated c for non-adjusters
+
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Approximation errors of non-adjusters at grid points of m and k \n where ' +str(int(mass_pct*100))+ '% of agents are distributed \n (for each h)',
+             fontsize=(fontsize_lg))
+for hgrid_id in range(EX3SS['mpar']['nh']):
+    
+    ## get the grids and distr for fixed h
+    hgrid_fix = hgrid_id    
+    cn_diff = c_n_approx-cn_StE
+    cn_diff_fix = cn_diff[:,:,hgrid_fix]
+    distr_fix = joint_distr[:,:,hgrid_fix]
+
+
+    ## additions to the above cell
+    ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
+    mk_marginal = joint_distr[:,:,hgrid_fix]
+    mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
+    mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
+    mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
+    c_n_diff_trim = cn_diff_fix.copy()
+    c_n_diff_trim = c_n_diff_trim[:kmax_idx,:mmax_idx]  # first k and then m because c is is nk x nm 
+    distr_fix_trim = distr_fix.copy()
+    distr_fix_trim = distr_fix_trim[:kmax_idx,:mmax_idx]
+
+
+    ## plots 
+    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
+    
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_n_diff_trim, 
+                    rstride=1, 
+                    cstride=1,
+                    cmap=cm.coolwarm, 
+                    edgecolor='none')
+    fake2Dline_pos = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='r',
+                              marker='o') # fakeline for making the legend for surface
+    fake2Dline_neg = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='b',
+                              marker='o') # fakeline for making the legend for surface
+    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim,
+                zdir='z',
+                offset=np.min(c_n_diff_trim),
+                cmap=cm.YlOrRd,
+                vmin=distr_min,
+                vmax=distr_max)
+    fake2Dline2 = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='orange',
+                              marker='o') # fakeline for making the legend for contour
+    ax.set_xlabel('m',fontsize=fontsize_lg)
+    ax.set_ylabel('k',fontsize=fontsize_lg)
+    ax.set_zlabel(r'$c_a(m,k)$',fontsize=fontsize_lg)
+    #ax.set_xlim([mmin,mmax])
+    ax.set_ylim([kmax,kmin])
+    plt.gca().invert_xaxis()
+    #plt.gca().invert_yaxis()
     ax.set_title(r'$h({})$'.format(hgrid_fix))
     ax.view_init(20, 40)
+    ax.legend([fake2Dline_pos,fake2Dline_neg,fake2Dline2], 
+              ['Positive approx errors','Negative approx errors','Joint distribution'],
+              loc=0)
 
-# %% {"code_folding": []}
-# Difference of full-grid c and DCT compressed c for difference levels of accuracy
+# %% {"code_folding": [0]}
+# Difference of full-grid c and DCT compressed c for each level of accuracy
 
-acc_lst = np.array([0.99999,0.999,0.99,0.9])
 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Differences of c at full grids and c approximated by DCT in different accuracy levels(non-adjusters)',
-             fontsize=(13))
+fig.suptitle('Approximation errors in different levels of accuracy \n where ' +str(int(mass_pct*100))+ '% of agents are distributed \n (non-adjusters)',
+             fontsize=(fontsize_lg))
 
 for idx in range(len(acc_lst)):
     EX3SS_cp =cp.deepcopy(EX3SS)
     EX3SS_cp['par']['accuracy'] = acc_lst[idx]
-    EX3SR_cp=StateReduc_Dct(**EX3SS_cp)   # Takes StE result as input and get ready to invoke state reduction operation
+    EX3SR_cp=FluctuationsTwoAsset(**EX3SS_cp)   # Takes StE result as input and get ready to invoke state reduction operation
+    SR_cp=EX3SR_cp.StateReduc()
+    mut_rdc_idx_flt_cp = SR_cp['indexMUdct']
+    mut_rdc_idx_cp = np.unravel_index(mut_rdc_idx_flt_cp,dim_StE,order='F')
+    nb_bf_cp = len(mut_rdc_idx_cp[0])
+    print(str(nb_bf_cp) +" basis functions used.")
+    c_n_approx_cp = DCTApprox(cn_StE,mut_rdc_idx_cp)
+    cn_diff_cp = c_n_approx_cp-cn_StE
+    
+    hgrid_fix=1  # fix level of h as an example 
+    c_n_diff_cp_fix = cn_diff_cp[:,:,hgrid_fix]
+    distr_fix = joint_distr[:,:,hgrid_fix]
+    
+    ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
+    mk_marginal = joint_distr[:,:,hgrid_fix]
+    mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
+    mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
+    mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
+    c_n_diff_cp_trim = c_n_diff_cp_fix.copy()
+    c_n_diff_cp_trim = c_n_diff_cp_trim[:kmax_idx:,:mmax_idx]
+    distr_fix_trim = distr_fix.copy()
+    distr_fix_trim = distr_fix_trim[:kmax_idx,:mmax_idx]
+    
+    ## plots 
+    ax = fig.add_subplot(2,2,idx+1, projection='3d')
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_n_diff_cp_trim, 
+                    rstride=1, 
+                    cstride=1,
+                    cmap=cm.coolwarm, 
+                    edgecolor='none')
+    fake2Dline_pos = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='r',
+                              marker='o') # fakeline for making the legend for surface
+    fake2Dline_neg = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='b',
+                              marker='o') # fakeline for making the legend for surface
+    dst_contour = ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim, 
+                              zdir='z',
+                              offset=np.min(-2),
+                              cmap=cm.YlOrRd,
+                              vmin=distr_min, 
+                              vmax=distr_max)
+    fake2Dline2 = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='orange',
+                              marker='o') # fakeline for making the legend for contour
+    ax.set_xlabel('m',fontsize=13)
+    ax.set_ylabel('k',fontsize=13)
+    ax.set_zlabel('Difference of c functions',fontsize=13)
+    #ax.set_xlim([mmin,mmax])
+    ax.set_ylim([kmax,kmin])
+    plt.gca().invert_xaxis()
+    #plt.gca().invert_yaxis()
+    ax.set_zlim([-2,2])  # these are magic numbers. need to fix
+    ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
+    ax.view_init(10, 60)
+    ax.legend([fake2Dline_pos,fake2Dline_neg,fake2Dline2], 
+              ['+ approx errors','- approx errors','Joint distribution'],
+              loc=0)
+
+# %% {"code_folding": [0]}
+# Difference of full-grid c and DCT compressed c for difference levels of accuracy
+
+fig = plt.figure(figsize=(14,14))
+fig.suptitle('Differences of approximation errors between adjusters/non-adjusters \n where ' +str(int(mass_pct*100))+ '% of agents are distributed \n in different accuracy levels',
+             fontsize=(fontsize_lg))
+
+for idx in range(len(acc_lst)):
+    EX3SS_cp =cp.deepcopy(EX3SS)
+    EX3SS_cp['par']['accuracy'] = acc_lst[idx]
+    EX3SR_cp=FluctuationsTwoAsset(**EX3SS_cp)   # Takes StE result as input and get ready to invoke state reduction operation
     SR_cp=EX3SR_cp.StateReduc()
     mut_rdc_idx_flt_cp = SR_cp['indexMUdct']
     mut_rdc_idx_cp = np.unravel_index(mut_rdc_idx_flt_cp,dim_StE,order='F')
@@ -736,101 +796,69 @@ for idx in range(len(acc_lst)):
     c_n_approx_cp = DCTApprox(cn_StE,mut_rdc_idx_cp)
     c_a_approx_cp = DCTApprox(ca_StE,mut_rdc_idx_cp)
     cn_diff_cp = c_n_approx_cp-cn_StE
+    ca_diff_cp = c_a_approx_cp-ca_StE
+    c_diff_cp_apx_error = ca_diff_cp - cn_diff_cp
     
     hgrid_fix=1  # fix level of h as an example 
+    c_diff_cp_apx_error_fix = c_diff_cp_apx_error[:,:,hgrid_fix]
+    distr_fix = joint_distr[:,:,hgrid_fix]
+
+
+    ## additions to the above cell
+    ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
+    mk_marginal = joint_distr[:,:,hgrid_fix]
+    mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
+    mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
+    mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
+    c_diff_cp_apx_error_trim = c_diff_cp_apx_error_fix.copy()
+    c_diff_cp_apx_error_trim = c_diff_cp_apx_error_trim[:kmax_idx,:mmax_idx]
+    distr_fix_trim = distr_fix.copy()
+    distr_fix_trim = distr_fix_trim[:kmax_idx,:mmax_idx]
+    
+    ## get the scale 
+    zmin = np.nanmin(c_diff_cp_apx_error)
+    zmax = np.nanmax(c_diff_cp_apx_error)
     
     ## plots 
     ax = fig.add_subplot(2,2,idx+1, projection='3d')
-    ax.plot_surface(mmgrid,kkgrid,cn_diff_cp[:,:,hgrid_fix], rstride=1, 
-                    cstride=1,cmap=cm.summer, edgecolor='none',
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,c_diff_cp_apx_error_trim, 
+                    rstride=1, 
+                    cstride=1,
+                    cmap=cm.coolwarm, 
+                    edgecolor='none',
                     label='Difference of full-grid and approximated consumption functions')
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel('Difference of c functions',fontsize=13)
-    plt.gca().invert_yaxis()
+    fake2Dline_pos = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='r',
+                              marker='o') # fakeline for making the legend for surface
+    fake2Dline_neg = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='b',
+                              marker='o') # fakeline for making the legend for surface
+    ax.contourf(mmgrid_trim,kkgrid_trim,distr_fix_trim,
+                zdir='z',
+                offset=np.min(-0.2),
+                cmap=cm.YlOrRd,
+                vmin=distr_min, 
+                vmax=distr_max)
+    fake2Dline2 = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='orange',
+                              marker='o') # fakeline for making the legend for contour
+    ax.set_xlabel('m',fontsize=fontsize_lg)
+    ax.set_ylabel('k',fontsize=fontsize_lg)
+    ax.set_zlabel('Difference of approximation errors',fontsize=fontsize_lg)
+    #ax.set_xlim([mmin,mmax])
+    ax.set_ylim([kmax,kmin])
     plt.gca().invert_xaxis()
-    #ax.set_xlim([0,mmax])
-    #ax.set_ylim([0,kmax])
-    ax.set_zlim([-8,2])
+    #plt.gca().invert_yaxis()
+    ax.set_zlim([-0.2,0.2]) # these are magic numbers. need to fix
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.view_init(10, 60)
+    ax.legend([fake2Dline_pos,fake2Dline_neg,fake2Dline2],
+              ['+ diff','- diff','Joint distribution'],
+              loc=0)
 
-# %% {"code_folding": []}
-# for adjusters 
-
-fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of adjusters at grid points of m and k(for different h)',
-             fontsize=(13))
-for hgrid_id in range(EX3SS['mpar']['nh']):
-    ## prepare the reduced grids 
-    hgrid_fix=hgrid_id    
-    
-    ## plots 
-    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.scatter(mmgrid,kkgrid,c_a_approx[:,:,hgrid_fix],marker='v',color='red',
-                    label='StE(after dct):adjuster')
-    ax.plot_surface(mmgrid,kkgrid,ca_StE[:,:,hgrid_fix],cmap='Blues',
-               label='StE(before dct): adjuster')
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
-    plt.gca().invert_yaxis()
-    #ax.set_xlim([0,mmax])
-    #ax.set_ylim([0,kmax])
-    ax.set_title(r'$h({})$'.format(hgrid_fix))
-    ax.view_init(20, 150)
-
-# %% {"code_folding": []}
-### compare consumption functions of adjusters and non-adjusters approximated by DCT
-
-fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of adjusters/non-adjusters at grid points of m and k(for different h)',
-             fontsize=(13))
-for hgrid_id in range(EX3SS['mpar']['nh']):
-    ## prepare the reduced grids 
-    hgrid_fix=hgrid_id    
-    
-    ## plots 
-    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.plot_surface(mmgrid,kkgrid,c_n_approx[:,:,hgrid_fix],cmap=cm.winter,
-               label='StE(after dct):non-adjuster')
-    ax.plot_surface(mmgrid,kkgrid,c_a_approx[:,:,hgrid_fix],cmap=cm.autumn,
-               label='StE(after dct):adjuster')
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel(r'$c_a(m,k)$',fontsize=13)
-    ax.set_title(r'$h({})$'.format(hgrid_fix))
-    plt.gca().invert_yaxis()
-    plt.gca().invert_xaxis()    
-    #ax.set_xlim(0,mmax)
-    #ax.set_ylim(0,kmax)
-    ax.view_init(20, 60)
-
-# %% {"code_folding": []}
-## the differences of consumption functions of adjusters and non-adjusters approximated by DCT.
-
-c_diff_approx=c_n_approx-c_a_approx
-
-fig = plt.figure(figsize=(14,14))
-fig.suptitle('Consumption of adjusters/non-adjusters at grid points of m and k(for different h)',
-             fontsize=(13))
-for hgrid_id in range(EX3SS['mpar']['nh']):
-    ## prepare the reduced grids 
-    hgrid_fix=hgrid_id    
-    
-    ## plots 
-    ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.plot_surface(mmgrid,kkgrid,c_diff_approx[:,:,hgrid_fix],cmap=cm.coolwarm,
-               label='StE(after dct):difference of non-adjuster and adjusters')
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
-    ax.set_zlabel(r'$c_n(m,k)-c_a(m,k)$',fontsize=12)
-    ax.set_title(r'$h({})$'.format(hgrid_fix))
-    plt.gca().invert_yaxis()
-    plt.gca().invert_xaxis()
-    #ax.set_xlim(0,mmax)
-    #ax.set_ylim(0,kmax)
-    ax.view_init(20, 80)
 
 # %% [markdown]
 # ##### Observation
@@ -854,56 +882,108 @@ joint_distr_km = EX3SS['joint_distr'].sum(axis=2)
 ### Plot distributions in 2 dimensional graph 
 
 fig = plt.figure(figsize=(10,10))
-plt.suptitle('Marginal distribution of k at different m')
+plt.suptitle('Marginal distribution of k at different m \n(for each h)')
 
 for hgrid_id in range(EX3SS['mpar']['nh']):
     ax = plt.subplot(2,2,hgrid_id+1)
     ax.set_title(r'$h({})$'.format(hgrid_id))
-    ax.set_xlabel('k',size=12)
+    ax.set_xlabel('k',size=fontsize_lg)
     for id in range(EX3SS['mpar']['nm']):   
         ax.plot(kgrid,joint_distr[id,:,hgrid_id])
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Plot joint distribution of k and m in 3d graph
+#for only 90 percent of the distributions 
 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Joint distribution of m and k(for different h)',
-             fontsize=(13))
-
+fig.suptitle('Joint distribution of m and k \n where ' +str(int(mass_pct*100))+ '% agents are distributed \n(for each h)',
+             fontsize=(fontsize_lg))
 
 for hgrid_id in range(EX3SS['mpar']['nh']):
+    
+    ## get the distr for fixed h
+    hgrid_fix = hgrid_id  
+    joint_km = joint_distr[:,:,hgrid_fix]
+    
+    ## additions to the above cell
+    ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
+    mk_marginal = joint_distr[:,:,hgrid_fix]
+    mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
+    mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
+    mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
+    joint_km_trim = joint_km.copy()
+    joint_km_trim  = joint_km_trim[:kmax_idx,:mmax_idx]
+    
+    # get the maximum z
+    zmax = np.nanmax(joint_distr)
+    
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.plot_surface(mmgrid,kkgrid,joint_distr[:,:,hgrid_fix], rstride=1, cstride=1,
-                    cmap='viridis', edgecolor='none')
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
-    plt.gca().invert_yaxis()
-    #ax.set_zlabel(r'$p(m,k)$',fontsize=10)
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,joint_km_trim, 
+                    rstride=1, 
+                    cstride=1,
+                    cmap=cm.YlOrRd, 
+                    edgecolor='none',
+                    vmin=distr_min, 
+                    vmax=distr_max)
+    fake2Dline = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='orange',
+                              marker='o') # fakeline for making the legend for contour
+    ax.set_xlabel('m',fontsize=fontsize_lg)
+    ax.set_ylabel('k',fontsize=fontsize_lg)
+    ax.set_zlabel('Probability',fontsize=fontsize_lg)
     ax.set_title(r'$h({})$'.format(hgrid_id))
-    ax.set_xlim(0,400)
-    ax.view_init(20, 40)
-    
-
+    #ax.set_xlim([mmin,mmax])
+    ax.set_ylim([kmax,kmin])
+    ax.set_zlim([0,zmax])
+    plt.gca().invert_xaxis()
+    #plt.gca().invert_yaxis()
+    ax.view_init(20, 60)
+    ax.legend([fake2Dline], 
+              ['joint distribution'],
+              loc=0)
 
 # %% [markdown]
 # Notice the CDFs in StE copula have 4 modes, corresponding to the number of $h$ gridpoints. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Plot the copula 
+# same plot as above for only 90 percent of the distributions 
+
 
 cdf=EX3SS['Copula']['value'].reshape(4,30,30)   # important: 4,30,30 not 30,30,4? 
 
 fig = plt.figure(figsize=(14,14))
-fig.suptitle('Copula of m and k(for different h)',
-             fontsize=(13))
+fig.suptitle('Copula of m and k \n where ' +str(int(mass_pct*100))+ '% agents are distributed \n(for each h)',
+             fontsize=(fontsize_lg))
 for hgrid_id in range(EX3SS['mpar']['nh']):
+    
+    hgrid_fix = hgrid_id    
+    cdf_fix  = cdf[hgrid_fix,:,:]
+    
+    ## additions to the above cell
+    ## for each h grid, take the 90% mass of m and k as the maximum of the m and k axis 
+    mk_marginal = joint_distr[:,:,hgrid_fix]
+    mmax_idx, kmax_idx = WhereToTrim2d(mk_marginal,mass_pct)
+    mmax, kmax = mgrid[mmax_idx],kgrid[kmax_idx]
+    mmgrid_trim,kkgrid_trim = TrimMesh2d(mgrid,kgrid,mmax_idx,kmax_idx)
+    cdf_fix_trim = cdf_fix.copy()
+    cdf_fix_trim  = cdf_fix_trim[:kmax_idx,:mmax_idx]
+    
     ## plots 
     ax = fig.add_subplot(2,2,hgrid_id+1, projection='3d')
-    ax.plot_surface(mmgrid,kkgrid,cdf[hgrid_id,:,:], rstride=1, cstride=1,
-                    cmap='viridis', edgecolor='None')
-    ax.set_xlabel('m',fontsize=13)
-    ax.set_ylabel('k',fontsize=13)
+    ax.plot_surface(mmgrid_trim,kkgrid_trim,cdf_fix_trim, 
+                    rstride=1, 
+                    cstride=1,
+                    cmap =cm.Greens, 
+                    edgecolor='None')
+    fake2Dline = lines.Line2D([0],[0], 
+                              linestyle="none", 
+                              c='green',
+                              marker='o')
+    ax.set_xlabel('m',fontsize=fontsize_lg)
+    ax.set_ylabel('k',fontsize=fontsize_lg)
     ax.set_title(r'$h({})$'.format(hgrid_id))
     
     ## for each h grid, take the 95% mass of m and k as the maximum of the m and k axis 
@@ -913,11 +993,19 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
     marginal_k = marginal_mk.sum(axis=1)
     mmax = mgrid[(np.abs(marginal_m.cumsum()-mass_pct*marginal_m.cumsum().max())).argmin()]
     kmax = kgrid[(np.abs(marginal_k.cumsum()-mass_pct*marginal_k.cumsum().max())).argmin()]
-    plt.gca().invert_yaxis()
+    #ax.set_xlim([mmin,mmax])
+    ax.set_ylim([kmax,kmin])
     plt.gca().invert_xaxis()
-    #ax.set_xlim(0,mmax)
-    #ax.set_ylim(0,kmax)
+    #plt.gca().invert_yaxis()
     ax.view_init(30, 60)
+    ax.legend([fake2Dline], 
+              ['Marginal cdf of the copula'],
+              loc=0)
+
+# %% [markdown]
+# ## More to do:
+#
+# 1. Figure out median value of h and normalize c, m, and k by it
 
 # %% [markdown]
 # Given the assumption that the copula remains the same after aggregate risk is introduced, we can use the same copula and the marginal distributions to recover the full joint-distribution of the states.  
