@@ -198,7 +198,7 @@ import seaborn as sns
 import copy as cp
 from scipy import linalg   #linear algebra 
 
-# %%
+# %% {"code_folding": [0]}
 ## Choose an aggregate shock to perturb(one of three shocks: MP, TFP, Uncertainty)
 
 # EX3SS['par']['aggrshock']           = 'MP'
@@ -215,13 +215,14 @@ EX3SS['par']['sigmaS'] = 0.54    # STD of variance shocks
 
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Choose an accuracy of approximation with DCT
+
 ### Determines number of basis functions chosen -- enough to match this accuracy
 ### EX3SS is precomputed steady-state pulled in above
 EX3SS['par']['accuracy'] = 0.99999
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Implement state reduction and DCT
 ### Do state reduction on steady state
 EX3SR=FluctuationsTwoAsset(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
@@ -402,7 +403,7 @@ for idx in range(len(acc_lst)):
     ax.set_title(r'accuracy=${}$'.format(acc_lst[idx]))
     ax.legend(loc=0)
 
-# %%
+# %% {"code_folding": [0]}
 ## Set the population density for plotting graphs 
 
 print('Input: plot the graph for bottom x (0-1) of the distribution.')
@@ -487,7 +488,7 @@ def TrimMesh2d(grids1,grids2,trim1_idx,trim2_idx,drop=True):
     return grids1_trimmesh,grids2_trimmesh
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Other configurations for plotting 
 
 distr_min = 0
@@ -498,7 +499,7 @@ fontsize_lg = 13
 mmin = np.nanmin(mgrid)
 kmin = np.nanmin(kgrid)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # For non-adjusters: 3D surface plots of consumption function at full grids and approximated by DCT
 ##    at all grids and grids after dct first for non-adjusters and then for adjusters
 
@@ -571,7 +572,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
               loc=0)
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # For adjusters: 3D surface plots of consumption function at full grids and approximated by DCT 
 
     
@@ -637,7 +638,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
               ['Full-grid c','Approx c','Joint distribution'],
               loc=0)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## 3D scatter plots of the difference of full-grid c and approximated c for non-adjusters
 
 fig = plt.figure(figsize=(14,14))
@@ -703,7 +704,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
               ['Positive approx errors','Negative approx errors','Joint distribution'],
               loc=0)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Difference of full-grid c and DCT compressed c for each level of accuracy
 
 
@@ -776,7 +777,7 @@ for idx in range(len(acc_lst)):
               ['+ approx errors','- approx errors','Joint distribution'],
               loc=0)
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Difference of full-grid c and DCT compressed c for difference levels of accuracy
 
 fig = plt.figure(figsize=(14,14))
@@ -946,7 +947,7 @@ for hgrid_id in range(EX3SS['mpar']['nh']):
 # %% [markdown]
 # Notice the CDFs in StE copula have 4 modes, corresponding to the number of $h$ gridpoints. Each of the four parts of the cdf is a joint-distribution of $m$ and $k$.  It can be presented in 3-dimensional graph as below.  
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Plot the copula 
 # same plot as above for only 90 percent of the distributions 
 
