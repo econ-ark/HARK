@@ -43,6 +43,8 @@ The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/i
 
 To install HARK with pip, at a command line type `pip install econ-ark`.
 
+(If you want to install a release that is not the default stable release, for instance if you want to install a development release, you'll need to use a "pinned" release number: `pip install econ-ark==0.10.1.dev1`, substituting "0.10.1.dev1" for your desired release number.)
+
 If you are installing via pip, we recommend using a virtual environment such as [virtualenv](https://virtualenv.pypa.io/en/latest/). Creation of a virtual environment isolates the installation of `econ-ark` from the installations of any other python tools and packages.
 
 To install `virtualenv`, then to create an environment named `econ-ark`, and finally to activate that environment:
@@ -51,7 +53,7 @@ To install `virtualenv`, then to create an environment named `econ-ark`, and fin
 cd [directory where you want to store the econ-ark virtual environment]
 pip install virtualenv
 virtualenv econ-ark
-source activate econ-ark
+source econ-ark/bin/activate
 ```
 
 ----
