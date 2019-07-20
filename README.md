@@ -1,5 +1,5 @@
 # Heterogeneous Agents Resources and toolKit (HARK)
-pre-release 0.10.1
+pre-release 0.10.1.dev1
 
 Click the Badge for Citation Info.
 [![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
@@ -10,6 +10,7 @@ Table of Contents:
 * [1.   Introduction](#i-introduction)
 * [2.  Quick start guide](#ii-quick-start-guide)
     * [Installing](#Installing-HARK)
+    * [Installing Anaconda](#Using-HARK-with-Anaconda)
     * [Learning HARK](#Learning-HARK)
 * [3. List of files in repository](#iii-list-of-files-in-repository)
 * [4.  Warnings and disclaimers](#iv-warnings-and-disclaimers)
@@ -18,33 +19,22 @@ Table of Contents:
 
 ## I. INTRODUCTION
 
-Welcome to HARK!  This document will tell you how to get HARK up and
+This document will tell you how to get HARK up and
 running on your machine, how to get started using it, and give you an
 overview of the main elements of the toolkit.
 
-If you have any comments on the code or documentation, or (even better) if you want to
-contribute new content to HARK, we'd love to hear from you!
-Our email addresses are:
-
-* Chris Carroll: ccarroll@llorracc.org
-* Matthew White: mnwhite@gmail.com
-
-GitHub repository:    https://github.com/econ-ark/HARK
-
-Online documentation: https://econ-ark.github.io/HARK
-
-User guide: [Documentation/HARKmanual.pdf](Documentation/HARKmanual.pdf) (in the [HARK repository](https://github.com/econ-ark/HARK))
-
-Demonstrations of HARK functionality: [DemARK](https://github.com/econ-ark/DemARK/)
-
-Replications and Explorations Made using the ARK : [REMARK](https://github.com/econ-ark/REMARK/)
-
+Other useful resources are:
+   * Documentation: [Sphinx/ReadTheDocs](https://econ-ark.github.io/HARK) 
+   * User guide: [Documentation/HARKmanual.pdf](Documentation/HARKmanual.pdf) 
+      * In the [HARK repository](https://github.com/econ-ark/HARK)
+   * Demonstrations of HARK functionality: [DemARK](https://github.com/econ-ark/DemARK/)
+   * Replications and Explorations Made using the ARK : [REMARK](https://github.com/econ-ark/REMARK/)
 
 ## II. QUICK START GUIDE
 
 ### Installing HARK
-HARK is an open source project written in Python.  It's compatible with both Python
-2 and 3, and with the Anaconda distributions of python 2 and 3. But we recommend
+
+HARK is an open source project that is compatible with both python 2 and 3. But we recommend
 using python 3; eventually support for python 2 will end.
 
 #### Installing HARK with pip
@@ -67,7 +57,7 @@ source activate econ-ark
 ----
 #### Using HARK with Anaconda
 
-Installing HARK with pip does not give you full access to HARK's many graphical capabilities.  One way to access these capabilities is by using [Anaconda](https://anaconda.com/why-anaconda), which is a distribution of python along with many packages that are frequently used in scientific computing..
+If you intend ever to use the toolkit for anything other than running the precooked material we have provided, you should probably install [Anaconda](https://anaconda.com/why-anaconda), which will install python along with many packages that are frequently used in scientific computing.
 
 1. Download Anaconda for your operating system and follow the installation instructions [at Anaconda.com](https://www.anaconda.com/distribution/#download-section).
 
@@ -75,6 +65,7 @@ Installing HARK with pip does not give you full access to HARK's many graphical 
 ```
 conda create -n econ-ark anaconda
 conda activate econ-ark
+conda install -c conda-forge econ-ark
 ```
 1. Open Spyder, an interactive development environment (IDE) for Python (specifically, iPython).  You may be able to do this through Anaconda's graphical interface, or you can do so from the command line/prompt.  To do so, simply open a command line/prompt and type `spyder`.
 
