@@ -14,10 +14,10 @@ from scipy.stats import norm
 from scipy.interpolate import interp1d, interp2d
 from scipy import sparse as sp
 import time
-from SharedFunc import Transition, ExTransitions, GenWeight, MakeGrid, Tauchen
+from .SharedFunc2 import Transition, ExTransitions, GenWeight, MakeGrid2, Tauchen
 
 
-class SteadyStateOneAssetIOU:
+class SteadyStateOneAssetIOUsBond:
 
     '''
     Classes to solve the steady state of One asset IOUs model
@@ -63,8 +63,8 @@ class SteadyStateOneAssetIOU:
         
         '''
        
-        ## Set grids
-        grid = MakeGrid(self.mpar, self.grid)
+        ## Set grid h
+        grid = self.grid
         resultStVar=self.StochasticsVariance(self.par, self.mpar, grid)
        
         P_H = resultStVar['P_H'].copy()
@@ -79,11 +79,23 @@ class SteadyStateOneAssetIOU:
         par['RB'] = 1+r
         init = 999. 
        
-        meshesm, meshesh =  np.meshgrid(grid['m'],grid['h'],indexing='ij')
-        meshes = {'m': meshesm, 'h': meshesh}
         count =0
-        
+        inc = {'labor': 0.9*np.ones((self.mpar['nm'],self.mpar['nh'])) } # initial labor income for natural borrowing const
+                
         while np.abs(init) > self.mpar['crit']:
+            
+            # set grid m to satisfy the natural borrowing constraint
+            if r+par['borrwedge']>0 and -inc['labor'][0,0]/(r+par['borrwedge'])>grid['m_min']:
+               regrid = MakeGrid2(self.mpar, grid, -inc['labor'][0,0]/(r+par['borrwedge'])+10**(-11), grid['m_max'])
+            else:
+               regrid = MakeGrid2(self.mpar, grid, grid['m_min'], grid['m_max'])
+               
+            grid['m'] = regrid['m'].copy()
+            
+            meshesm, meshesh =  np.meshgrid(grid['m'],grid['h'],indexing='ij')
+            meshes = {'m': meshesm, 'h': meshesh}
+            print(-inc['labor'][0,0]/(r+par['borrwedge']))
+            
             resultFactReturn = self.FactorReturns(meshes, grid, par, self.mpar)
            
             N = resultFactReturn['N']
@@ -107,7 +119,7 @@ class SteadyStateOneAssetIOU:
             c_guess = resultPolicySS['c_new'].copy()
             m_star = resultPolicySS['m_star'].copy()
             distPOL = resultPolicySS['distPOL']
-           
+            
             end_time = time.clock()
             print('Elapsed time is ',  (end_time-start_time), ' seconds.')
            
@@ -117,7 +129,7 @@ class SteadyStateOneAssetIOU:
             
             joint_distr = np.reshape(joint_distr.copy(),(self.mpar['nm'],self.mpar['nh']),order='F')
             AggregateSavings = m_star.flatten('F').transpose().dot(joint_distr.flatten('F').transpose())
-            ExcessA = AggregateSavings
+            ExcessA = AggregateSavings-self.par['BtoY']*Output
             
             # Use Bisection to update r
             if ExcessA >0:
@@ -129,9 +141,9 @@ class SteadyStateOneAssetIOU:
             print(init)
             r= (rmax+rmin)/2.
             par['RB']=1.+r
-                        
+            print(r,  ExcessA)
             
-        print(par['RB'])        
+         
         ## SS_stats
         tgSB = np.sum((grid['m']<0)*np.sum(joint_distr.copy(),1))
         tgB = grid['m'].copy().dot(np.sum(joint_distr.copy(),1))
@@ -140,14 +152,25 @@ class SteadyStateOneAssetIOU:
         tgm_bc = BCaux_M[0,:]
         tgm_0 = BCaux_M[grid['m']==0]
         
-        labortax = (1.-par['tau'])*W_fc*N +(1.-par['tau'])*Profits_fc
-        par['gamma1']=tgB*(1.-par['RB'])+labortax
+        tax = (1.-par['tau'])*W_fc*N +(1.-par['tau'])*Profits_fc
+        tgG=tgB*(1-par['RB'])+tax
+        tgW=W_fc
+        tgPROFITS=Profits_fc
+        tgN = N
+        tgGtoY = tgG/Output
+        tgT = tax
         
-        par['W']=W_fc
-        par['PROFITS'] = Profits_fc
-        par['N'] = N
-        tgGtoY = par['gamma1']/Output
-        tgT = labortax
+              
+        # Net wealth Gini
+        Ginipdf = np.array(np.sum(joint_distr.copy(),1).transpose())
+        Ginicdf = np.array(np.cumsum(joint_distr.copy(),axis=0))
+        
+        grid_m_aux = abs(min(grid['m'].copy()))+grid['m'].copy()+0.1                
+        #GiniS_aux0 = np.cumsum(Ginipdf.copy()*grid['m'].copy())
+        GiniS_aux = np.cumsum(Ginipdf.copy()*grid_m_aux.copy())       
+        
+        GiniS = np.concatenate((np.array([0.]),GiniS_aux.copy()),axis=0)
+        tgGini = 1.-np.sum(Ginipdf*(GiniS.copy()[:-1]+GiniS.copy()[1:]))/GiniS.copy()[-1]
         
         targets = {'ShareBorrower' : tgSB,
                    'B': tgB,
@@ -155,8 +178,14 @@ class SteadyStateOneAssetIOU:
                    'Y': Output,
                    'm_bc': tgm_bc,
                    'm_0': tgm_0,
+                   'G': tgG,
+                   'W': tgW,
+                   'PROFITS': tgPROFITS,
+                   'N': tgN,
                    'GtoY': tgGtoY,
-                   'T': tgT}   
+                   'T': tgT,
+                   'Gini': tgGini}   
+        
         
         ## Prepare state and controls        
         grid['B'] = np.sum(grid['m']*np.sum(joint_distr,1))
@@ -321,7 +350,7 @@ class SteadyStateOneAssetIOU:
             count = count+1
         
             ## update policies
-            mutil_c = 1./(c_guess.copy()**par['xi'])
+            mutil_c = 1./(c_guess.copy()**par['xi']) # marginal utility at consumption policy
         
             aux = np.reshape(np.ndarray.transpose(mutil_c.copy(),(1,0)),(mpar['nh'],mpar['nm']) )
         
@@ -393,9 +422,9 @@ class SteadyStateOneAssetIOU:
         ## Next step : interpolate on grid
         c_update = np.zeros((mpar['nm'],mpar['nh']))
         m_update = np.zeros((mpar['nm'],mpar['nh']))
-    
-        for hh in range(mpar['nh']):
         
+        for hh in range(mpar['nh']):
+            
             Savings = interp1d(m_star[:,hh].copy(), grid['m'], fill_value='extrapolate')
             m_update[:,hh] = Savings(grid['m'])
             Consumption = interp1d(m_star[:,hh].copy(), c_aux[:,hh], fill_value='extrapolate')
@@ -403,7 +432,7 @@ class SteadyStateOneAssetIOU:
         
         c_update[binding_constraints] = Resource[binding_constraints]-grid['m'][0]
         m_update[binding_constraints] = np.min((grid['m']))    
-    
+        
     
         return {'c_update': c_update, 'm_update': m_update}
        
@@ -433,15 +462,14 @@ class SteadyStateOneAssetIOU:
         '''
         inclabor = par['tau']*WW*meshes['h'].copy()
         incmoney = RBRB*meshes['m'].copy()
-        incprofits = 0.
+        incprofits = 0. # lumpsum profits
     
         inc = {'labor': inclabor.copy(),
                'money': incmoney.copy(),
                'profits': incprofits}
     
-#       c_guess = inc['labor'].copy()+np.maximum(inc['money'],0.) + inc['profits']
-        c_guess = inc['labor'].copy()+np.maximum(inc['money'].all(),0.) + inc['profits']
-
+        c_guess = inc['labor'].copy()+np.maximum(inc['money'],0.) + inc['profits']
+    
         return {'c_guess':c_guess, 'inc': inc}       
          
     def FactorReturns(self, meshes, grid, par, mpar):
@@ -476,9 +504,9 @@ class SteadyStateOneAssetIOU:
     
         mc = par['mu'] # in SS
         N = (par['tau']*par['alpha']*grid['K']**(1-par['alpha'])*mc)**(1/(1-par['alpha']+par['gamma']))
-        w = 1./4. * par['alpha'] *mc * (grid['K']/N) **(1-par['alpha'])
+        w =  par['alpha'] *mc * (grid['K']/N) **(1-par['alpha'])
     
-        Y = 0.25*N**par['alpha']*grid['K']**(1-par['alpha'])
+        Y = N**par['alpha']*grid['K']**(1-par['alpha'])
         Profits_fc = (1-mc)*Y
     
         NW = par['gamma']/(1.+par['gamma'])*N/par['H'] *w
@@ -549,15 +577,16 @@ class SteadyStateOneAssetIOU:
 
 if __name__ == '__main__':
     
-    import defineSSParameters as Params
+    import defineSSParametersIOUsBond as Params
     from copy import copy
     import pickle
     
-    EX1param = copy(Params.parm_one_asset_IOU)
+    EX2param = copy(Params.parm_one_asset_IOUsBond)
             
-    EX1 = SteadyStateOneAssetIOU(**EX1param)
-    #print(EX1.par)
-    EX1SS = EX1.SolveSteadyState()
+    EX2 = SteadyStateOneAssetIOUsBond(**EX2param)
     
-#   pickle.dump(EX1SS, open("EX1SS.p", "wb"))
-    pickle.dump(EX1SS, open("EX1SS_nm50.p", "wb"))
+    EX2SS = EX2.SolveSteadyState()
+    
+    pickle.dump(EX2SS, open("EX2SS.p", "wb"))
+    
+    EX2SS=pickle.load(open("EX2SS.p", "rb"))
