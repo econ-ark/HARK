@@ -1,5 +1,5 @@
 HARK  
-Version 0.10.1
+Version 0.10.1.dev1
 Release Notes  
 
 # Introduction
@@ -9,6 +9,33 @@ This document contains the release notes for the 0.10.1 version of HARK. HARK ai
 For more information on HARK, see [our Github organization](https://github.com/econ-ark).
 
 ## Changes
+
+### 0.10.1.dev1
+
+Release Date: 07-20-2019
+
+#### Breaking Changes
+- See #302 under minor changes.
+
+#### Major Changes
+- Adds BayerLuetticke notebooks and functionality. ([#328](https://github.com/econ-ark/HARK/pull/328))
+
+#### Minor Changes
+- Fixes one-asset HANK models for endowment economy (had MP wired in as the shock). ([#355](https://github.com/econ-ark/HARK/pull/355))
+- Removes jupytext *.py files. ([#354](https://github.com/econ-ark/HARK/pull/354))
+- Reorganizes documentation and configures it to work with Read the Docs. ([#353](https://github.com/econ-ark/HARK/pull/353))
+- Adds notebook illustrating dimensionality reduction in Bayer and Luetticke. ([#345](https://github.com/econ-ark/HARK/pull/345))
+- Adds notebook illustrating how the Bayer & Luetticke invoke the discrete cosine transformation(DCT) and fixed copula to reduce dimensions of the problem.([#344](https://github.com/econ-ark/HARK/pull/344))
+- Makes BayerLuetticke HANK tools importable as a module. ([#342](https://github.com/econ-ark/HARK/pull/342))
+- Restores functionality of SGU_solver. ([#341](https://github.com/econ-ark/HARK/pull/341))
+- Fixes datafile packaging issue. ([#332](https://github.com/econ-ark/HARK/pull/332))
+- Deletes .py file from Bayer-Luetticke folder. ([#329](https://github.com/econ-ark/HARK/pull/329))
+- Add an empty method for preSolve called checkRestrictions that can be overwritten in classes inheriting from AgentType to check for illegal parameter values. ([#324](https://github.com/econ-ark/HARK/pull/324))
+- Adds a call to updateIncomeProcess() in preSolve() to avoid solutions being based on wrong income process specifications if some parameters change between two solve() calls. ([#323](https://github.com/econ-ark/HARK/pull/323))
+- Makes checkConditions() less verbose when the checks are not actually performed by converting a print statement to an inline comment. ([#321](https://github.com/econ-ark/HARK/pull/321))
+- Raises more readable exception when simultate() is called without solving first. ([#315](https://github.com/econ-ark/HARK/pull/315)) 
+- Removes testing folder (part of ongoing test restructuring). ([#304](https://github.com/econ-ark/HARK/pull/304))
+- Fixes unintended behavior in default simDeath(). Previously, all agents would die off in the first period, but they were meant to always survive. ([#302](https://github.com/econ-ark/HARK/pull/302)) __Warning__: Potentially breaking change.
 
 ### 0.10.1
 
