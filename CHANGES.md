@@ -1,5 +1,5 @@
 HARK  
-Version 0.10.1.dev1
+Version 0.10.1.dev2
 Release Notes  
 
 # Introduction
@@ -9,6 +9,13 @@ This document contains the release notes for the 0.10.1 version of HARK. HARK ai
 For more information on HARK, see [our Github organization](https://github.com/econ-ark).
 
 ## Changes
+
+### 0.10.1.dev2
+
+Release Date: 07-22-2019
+
+#### Minor Changes
+- Revert pre-solve commit due to bug.  ([#363](https://github.com/econ-ark/HARK/pull/363))
 
 ### 0.10.1.dev1
 
