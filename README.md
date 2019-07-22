@@ -1,5 +1,5 @@
 # Heterogeneous Agents Resources and toolKit (HARK)
-pre-release 0.10.1.dev1
+pre-release 0.10.1.dev2
 
 Click the Badge for Citation Info.
 [![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
@@ -24,7 +24,7 @@ running on your machine, how to get started using it, and give you an
 overview of the main elements of the toolkit.
 
 Other useful resources are:
-   * Documentation: [Sphinx/ReadTheDocs](https://hark.readthedocs.io/en/eh-sphinx-updates) 
+   * Documentation: [ReadTheDocs](https://hark.readthedocs.io/) 
    * User guide: [Documentation/HARKmanual.pdf](Documentation/HARKmanual.pdf) 
       * In the [HARK repository](https://github.com/econ-ark/HARK)
    * Demonstrations of HARK functionality: [DemARK](https://github.com/econ-ark/DemARK/)
