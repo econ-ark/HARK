@@ -24,7 +24,7 @@ running on your machine, how to get started using it, and give you an
 overview of the main elements of the toolkit.
 
 Other useful resources are:
-   * Documentation: [Sphinx/ReadTheDocs](https://hark.readthedocs.io/en/eh-sphinx-updates) 
+   * Documentation: [Sphinx/ReadTheDocs](https://hark.readthedocs.io/en/latest/) 
    * User guide: [Documentation/HARKmanual.pdf](Documentation/HARKmanual.pdf) 
       * In the [HARK repository](https://github.com/econ-ark/HARK)
    * Demonstrations of HARK functionality: [DemARK](https://github.com/econ-ark/DemARK/)
