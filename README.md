@@ -24,6 +24,7 @@ running on your machine, how to get started using it, and give you an
 overview of the main elements of the toolkit.
 
 Other useful resources are:
+
    * Documentation: [ReadTheDocs](https://hark.readthedocs.io/) 
    * User guide: [Documentation/HARKmanual.pdf](Documentation/HARKmanual.pdf) 
       * In the [HARK repository](https://github.com/econ-ark/HARK)
