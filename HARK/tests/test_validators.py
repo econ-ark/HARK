@@ -34,13 +34,25 @@ class ValidatorsTests(unittest.TestCase):
         def foo(list_a, list_b):
             pass
 
-        with self.assertRaisesRegex(
-            TypeError,
-            'Expected non-empty argument for parameter list_b',
-        ):
-            foo([1], [])
-        with self.assertRaisesRegex(
-            TypeError,
-            'Expected non-empty argument for parameter list_a',
-        ):
-            foo([], [1])
+        if sys.version[0] == '2':
+            with self.assertRaisesRegexp(
+                TypeError,
+                'Expected non-empty argument for parameter list_b',
+            ):
+                foo([1], [])
+            with self.assertRaisesRegexp(
+                TypeError,
+                'Expected non-empty argument for parameter list_a',
+            ):
+                foo([], [1])
+        else:   
+            with self.assertRaisesRegex(
+                TypeError,
+                'Expected non-empty argument for parameter list_b',
+            ):
+                foo([1], [])
+            with self.assertRaisesRegex(
+                TypeError,
+                'Expected non-empty argument for parameter list_a',
+            ):
+                foo([], [1])
