@@ -489,7 +489,8 @@ class AgentType(HARKobject):
         None
         '''
         if not hasattr(self, 'solution'):
-            raise Exception('Model instance does not have a solution stored. To simulate, it is necessary to run the `solve()` method of the class first.')
+            raise Exception('Model instance does not have a solution stored. To simulate, it is necessary'
+                            ' to run the `solve()` method of the class first.')
 
         self.getMortality()  # Replace some agents with "newborns"
         if self.read_shocks:  # If shock histories have been pre-specified, use those
@@ -1331,7 +1332,6 @@ def copy_module_to_local(full_module_name):
         'q' or return/enter to quit the process
         'y' to accept the default home directory: """+home_directory_with_module+"""
         'n' to specify your own pathname\n\n""")
-
 
     if target_path == 'n' or target_path == 'N':
         target_path = input("""Please enter the full pathname to your target directory location: """)
