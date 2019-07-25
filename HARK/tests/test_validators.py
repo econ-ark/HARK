@@ -1,4 +1,4 @@
-import unittest
+import unittest, sys
 
 from HARK.validators import non_empty
 
