@@ -17,7 +17,7 @@ class ValidatorsTests(unittest.TestCase):
         except Exception:
             self.fail()
             
-        if sys.version[0] == 2:
+        if sys.version[0] == '2':
             with self.assertRaisesRegexp(
                 TypeError,
                 'Expected non-empty argument for parameter list_a',
