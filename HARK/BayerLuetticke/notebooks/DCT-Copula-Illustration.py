@@ -38,7 +38,7 @@
 # $[\frac{d v}{d m} = \frac{d u}{d c}]$.
 # In practice, the authors solve their problem using the marginal value of money $\texttt{Vm} = dv/dm$, but because the marginal utility function is invertible it is trivial to recover $\texttt{c}$ from $(u^{\prime})^{-1}(\texttt{Vm} )$.  The consumption function is therefore computed from the $\texttt{Vm}$ function
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 # Setup stuff
 
 # This is a jupytext paired notebook that autogenerates a corresponding .py file
@@ -215,14 +215,14 @@ EX3SS['par']['sigmaS'] = 0.54    # STD of variance shocks
 
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Choose an accuracy of approximation with DCT
 
 ### Determines number of basis functions chosen -- enough to match this accuracy
 ### EX3SS is precomputed steady-state pulled in above
 EX3SS['par']['accuracy'] = 0.99999
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Implement state reduction and DCT
 ### Do state reduction on steady state
 EX3SR=FluctuationsTwoAsset(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
@@ -315,7 +315,7 @@ def DCTApprox(fullgrids,dct_index):
 # %% [markdown]
 # Depending on the accuracy level, the DCT operation choses the necessary number of basis functions used to approximate consumption function at the full grids. This is illustrated in the p31-p34 in this [slides](https://www.dropbox.com/s/46fdxh0aphazm71/presentation_method.pdf?dl=0). We show this for both 1-dimensional (m or k) or 2-dimenstional grids (m and k) in the following. 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## 2D graph of consumption function: c(m) fixing k and h
 
 
