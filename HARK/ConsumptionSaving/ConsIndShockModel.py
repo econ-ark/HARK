@@ -2017,10 +2017,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
 
     def preSolve(self):
-        AgentType.preSolve(self)
+#        AgentType.preSolve(self)
         # Update all income process variables to match any attributes that might
         # have been changed since `__init__` or `solve()` was last called.
-        self.updateIncomeProcess()
+#        self.updateIncomeProcess()
         self.updateSolutionTerminal()
         if not self.quiet:
             self.checkConditions(verbose=self.verbose,public_call=False)
@@ -2128,7 +2128,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         self.update() # Make assets grid, income process, terminal solution
 
     def preSolve(self):
-        AgentType.preSolve(self)
+#        AgentType.preSolve(self)
         self.updateSolutionTerminal()
 
     def calcBoundingValues(self):

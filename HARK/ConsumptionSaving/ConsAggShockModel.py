@@ -107,7 +107,7 @@ class AggShockConsumerType(IndShockConsumerType):
         self.aNrmNow = self.aLvlNow/self.pLvlNow
 
     def preSolve(self):
-        AgentType.preSolve()
+#        AgentType.preSolve()
         self.updateSolutionTerminal()
 
     def updateSolutionTerminal(self):
