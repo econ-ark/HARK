@@ -39,6 +39,7 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.autosummary',
+    'sphinx.ext.imgconverter',
     'numpydoc',
     'nbsphinx',
     'recommonmark',

@@ -14,6 +14,7 @@ Welcome to HARK's documentation!
    notebooks/Gentle-Intro-To-HARK
    notebooks/DCT-Copula-Illustration
    notebooks/Journeys_into_HARK	
+   notebooks/Journeys_1	
     		
 .. toctree::
    :maxdepth: 2
