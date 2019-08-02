@@ -14,8 +14,14 @@ Welcome to HARK's documentation!
    notebooks/Gentle-Intro-To-HARK
    notebooks/DCT-Copula-Illustration
    notebooks/Journeys_into_HARK	
-   notebooks/Journeys_1	
+   	
     		
+.. toctree::
+   :maxdepth: 3
+   :caption: Journeys into HARK  
+   
+   notebooks/Journey_1_PhD
+     		
 .. toctree::
    :maxdepth: 2
    :caption: Python API

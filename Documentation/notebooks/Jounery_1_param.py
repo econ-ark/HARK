@@ -1,7 +1,5 @@
 '''
-Specifies examples of the full set of parameters required to solve various
-consumption-saving models.  These models can be found in ConsIndShockModel,
-ConsAggShockModel, ConsPrefShockModel, and ConsMarkovModel.
+Set if parameters for the first journey
 '''
 from __future__ import division, print_function
 from copy import copy
@@ -112,8 +110,8 @@ MgridBase = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])  #
 
 # Parameters for a Cobb-Douglas economy
 PermGroFacAgg = 1.00          # Aggregate permanent income growth factor
-PermShkAggCount = 3           # Number of points in discrete approximation to aggregate permanent shock dist
-TranShkAggCount = 3           # Number of points in discrete approximation to aggregate transitory shock dist
+PermShkAggCount = 1           # Number of points in discrete approximation to aggregate permanent shock dist
+TranShkAggCount = 1           # Number of points in discrete approximation to aggregate transitory shock dist
 PermShkAggStd = 0.00        # Standard deviation of log aggregate permanent shocks
 TranShkAggStd = 0.00        # Standard deviation of log aggregate transitory shocks
 DeprFac = 0.025               # Capital depreciation rate
