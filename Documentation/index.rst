@@ -17,8 +17,8 @@ Welcome to HARK's documentation!
    	
     		
 .. toctree::
-   :maxdepth: 3
-   :caption: Journeys into HARK  
+   :maxdepth: 3   
+   :caption: Journeys into HARK
    
    notebooks/Journey_1_PhD
      		
