@@ -46,7 +46,7 @@ init_perfect_foresight = { 'CRRA': CRRA,
 # Parameters for constructing the "assets above minimum" grid
 aXtraMin = 0.001                    # Minimum end-of-period "assets above minimum" value
 aXtraMax = 20                       # Maximum end-of-period "assets above minimum" value
-aXtraExtra = None                   # Some other value of "assets above minimum" to add to the grid, not used
+aXtraExtra = [None]                   # Some other value of "assets above minimum" to add to the grid, not used
 aXtraNestFac = 3                    # Exponential nesting factor when constructing "assets above minimum" grid
 aXtraCount = 48                     # Number of points in the grid of "assets above minimum"
 
@@ -54,7 +54,7 @@ aXtraCount = 48                     # Number of points in the grid of "assets ab
 PermShkCount = 7                    # Number of points in discrete approximation to permanent income shocks
 TranShkCount = 7                    # Number of points in discrete approximation to transitory income shocks
 PermShkStd = [0.1]                  # Standard deviation of log permanent income shocks
-TranShkStd = [0.1]                  # Standard deviation of log transitory income shocks
+TranShkStd = [0.2]                  # Standard deviation of log transitory income shocks
 UnempPrb = 0.005                     # Probability of unemployment while working
 UnempPrbRet = 0.005                 # Probability of "unemployment" while retired
 IncUnemp = 0.3                      # Unemployment benefits replacement rate
@@ -64,7 +64,7 @@ T_retire = 0                        # Period of retirement (0 --> no retirement)
 
 # A few other parameters
 BoroCnstArt = 0.0                  # Artificial borrowing constraint; imposed minimum level of end-of period assets
-CubicBool = False                  # Use cubic spline interpolation when True, linear interpolation when False
+CubicBool = True                  # Use cubic spline interpolation when True, linear interpolation when False
 vFuncBool = False                  # Whether to calculate the value function during solution
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
