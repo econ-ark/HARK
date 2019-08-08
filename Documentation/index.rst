@@ -12,7 +12,7 @@ Welcome to HARK's documentation!
    :caption: Notebooks
 
    notebooks/Gentle-Intro-To-HARK
-   notebooks/DCT-Copula-Illustration
+   submodules/DemARK/notebooks/KinkedRconsumerType
 
 .. toctree::
    :maxdepth: 2
