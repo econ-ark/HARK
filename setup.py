@@ -42,7 +42,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.10.1',  # Required
+    version='0.10.1.dev3',  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
@@ -153,7 +153,8 @@ setup(
                       'dill',
                       'joblib',
                       'future',  # Optional
-                      'funcsigs'],
+                      'funcsigs',
+                      'jupyter'],
 
     python_requires='>=2.7',
 
@@ -175,9 +176,8 @@ setup(
     #
     # If using Python 2.6 or earlier, then these have to be included in
     # MANIFEST.in as well.
-    include_package_data=True,
     package_data={  # Optional
-        'HARK.SolvingMicroDSOPs': ['SCFdata.csv'],
+        'HARK.SolvingMicroDSOPs.Calibration': ['SCFdata.csv'],
         'HARK.cstwMPC': [
              'EducMortAdj.txt',
              'SCFwealthDataReduced.txt',

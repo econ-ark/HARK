@@ -1504,6 +1504,15 @@ class PerfForesightConsumerType(AgentType):
     def preSolve(self):
         self.updateSolutionTerminal()
 
+    def checkRestrictions(self):
+        """
+        A method to check that various restrictions are met for the model class.
+        """
+        if self.DiscFac < 0:
+            raise Exception('DiscFac is below zero with value: ' + str(self.DiscFac))
+
+        return
+
     def updateSolutionTerminal(self):
         '''
         Update the terminal period solution.  This method should be run when a
@@ -1713,9 +1722,9 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         '''
+        # This method only checks for the conditions for infinite horizon models
+        # with a 1 period cycle. If these conditions are not met, we exit early.
         if self.cycles!=0 or self.T_cycle > 1:
-            if verbose == True:
-                print('This method only checks for the conditions for infinite horizon models with a 1 period cycle')
             return
 
         violated = False
@@ -2014,6 +2023,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
 
     def preSolve(self):
+#        AgentType.preSolve(self)
+        # Update all income process variables to match any attributes that might
+        # have been changed since `__init__` or `solve()` was last called.
+#        self.updateIncomeProcess()
         self.updateSolutionTerminal()
         if not self.quiet:
             self.checkConditions(verbose=self.verbose,public_call=False)
@@ -2121,6 +2134,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         self.update() # Make assets grid, income process, terminal solution
 
     def preSolve(self):
+#        AgentType.preSolve(self)
         self.updateSolutionTerminal()
 
     def calcBoundingValues(self):
