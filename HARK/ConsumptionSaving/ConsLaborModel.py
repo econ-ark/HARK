@@ -128,18 +128,18 @@ def solveConsLaborIntMarg(solution_next,PermShkDstn,TranShkDstn,LivPrb,DiscFac,C
             productivity shock), a labor function LbrFunc and a marginal value 
             function vPfunc.
     '''
+    # Make sure the inputs for this period are valid: CRRA > LbrCost/(1+LbrCost)
+    # and CubicBool = False.  CRRA condition is met automatically when CRRA >= 1.
     frac = 1./(1.+LbrCost)
-
     if CRRA <= frac*LbrCost:
-        print ' Error: make sure CRRA coefficient is strictly greater than alpha/(1+alpha).' 
-#        return None 
+        print('Error: make sure CRRA coefficient is strictly greater than alpha/(1+alpha).')
         sys.exit()     
     if BoroCnstArt is not None:
-        print ' Error: Model that cannot handle artificial borrowing constraint yet. '
-        return None
+        print('Error: Model cannot handle artificial borrowing constraint yet. ')
+        sys.exit()
     if vFuncBool or CubicBool is True:
-        print ' Error: Model that cannot handle Cubic interpolation yet.'
-        return None
+        print('Error: Model cannot handle cubic interpolation yet.')
+        sys.exit()
 
     # Unpack next period's solution and the productivity shock distribution, and define the inverse (marginal) utilty function
     vPfunc_next = solution_next.vPfunc
@@ -152,99 +152,98 @@ def solveConsLaborIntMarg(solution_next,PermShkDstn,TranShkDstn,LivPrb,DiscFac,C
     uPinv = lambda X : CRRAutilityP_inv(X,gam=CRRA)
 
     # Make tiled versions of the grid of a_t values and the components of the shock distribution
-    aXtraCount = aXtraGrid.size    # = 200 
-    bNrmGrid_rep = np.tile(np.reshape(aXtraGrid,(aXtraCount,1)),(1,TranShkCount)) # Replicated axtraGrid of b_t values (bNowGrid) for each transitory (productivity) shock
-    TranShkVals_rep = np.tile(np.reshape(TranShkVals,(1,TranShkCount)),(aXtraCount,1)) # Replicated transitory shock values for each b_t state
-    TranShkPrbs_rep = np.tile(np.reshape(TranShkPrbs,(1,TranShkCount)),(aXtraCount,1)) # Replicated transitory shock probabilities for each b_t state
+    aXtraCount = aXtraGrid.size
+    bNrmGrid = aXtraGrid # Next period's bank balances before labor income
+    bNrmGrid_rep = np.tile(np.reshape(bNrmGrid,(aXtraCount,1)),(1,TranShkCount)) # Replicated axtraGrid of b_t values (bNowGrid) for each transitory (productivity) shock
+    TranShkVals_rep = np.tile(np.reshape(TranShkVals,(1,TranShkCount)),(aXtraCount,1)) # Replicated transitory shock values for each a_t state
+    TranShkPrbs_rep = np.tile(np.reshape(TranShkPrbs,(1,TranShkCount)),(aXtraCount,1)) # Replicated transitory shock probabilities for each a_t state
     
-    # Calculate marginal value next period for each gridpoint and each transitory shock    
-    bNext = Rfree * bNrmGrid_rep  # Next period's bank balances. (200,16)    
-    vPNext = vPfunc_next(bNext, TranShkVals_rep) # Derive the Next period's marginal value at every transitory shock and every bank balances gridpoint           
-    vPbarNext = np.sum(vPNext*TranShkPrbs_rep, axis = 1) # Integrate out the transitory shocks (in TranShkVals direction)
-    vPbarNvrsNext = uPinv(vPbarNext) # Marginal value transformed through the inverse marginal utility function
-    vPbarNvrsFuncNext = LinearInterp(np.insert(bNext[:,0],0,0.0),np.insert(vPbarNvrsNext,0,0.0)) # Linear interpolation over the b_t. Add a point at b_t = 0. 
-    vPbarFuncNext = MargValueFunc(vPbarNvrsFuncNext,CRRA)   # Take the marginal utility function to inverse back and get the optimal values for consumption
+    # Construct a function that gives marginal value of next period's bank balances *just before* the transitory shock arrives
+    vPNext = vPfunc_next(bNrmGrid_rep, TranShkVals_rep) # Next period's marginal value at every transitory shock and every bank balances gridpoint           
+    vPbarNext = np.sum(vPNext*TranShkPrbs_rep, axis = 1) # Integrate out the transitory shocks (in TranShkVals direction) to get expected vP just before the transitory shock
+    vPbarNvrsNext = uPinv(vPbarNext) # Transformed marginal value through the inverse marginal utility function to "decurve" it
+    vPbarNvrsFuncNext = LinearInterp(np.insert(bNrmGrid,0,0.0),np.insert(vPbarNvrsNext,0,0.0)) # Linear interpolation over b_{t+1}, adding a point at minimal value of b = 0. 
+    vPbarFuncNext = MargValueFunc(vPbarNvrsFuncNext,CRRA) # "Recurve" the intermediate marginal value function through the marginal utility function
 
-    # Get the next period's bank balances at each permanent shock
-    aNrmGrid_rep = np.tile(np.reshape(aXtraGrid,(aXtraCount,1)),(1,PermShkCount)) # Replicated axtraGrid of b_t values (bNowGrid) for each permanent (productivity) shock. (200,16)   
-    PermShkVals_rep = np.tile(np.reshape(PermShkVals,(1,PermShkCount)),(aXtraCount,1)) # Replicated permanent shock values for each b_t state   
-    PermShkPrbs_rep = np.tile(np.reshape(PermShkPrbs,(1,PermShkCount)),(aXtraCount,1)) # Replicated permanent shock probabilities for each b_t state
-    bNextPerm = (Rfree/(PermGroFac*PermShkVals_rep))*aNrmGrid_rep     # (200,16)
+    # Get next period's bank balances at each permanent shock from each end-of-period asset values
+    aNrmGrid_rep = np.tile(np.reshape(aXtraGrid,(aXtraCount,1)),(1,PermShkCount)) # Replicated grid of a_t values for each permanent (productivity) shock  
+    PermShkVals_rep = np.tile(np.reshape(PermShkVals,(1,PermShkCount)),(aXtraCount,1)) # Replicated permanent shock values for each a_t value   
+    PermShkPrbs_rep = np.tile(np.reshape(PermShkPrbs,(1,PermShkCount)),(aXtraCount,1)) # Replicated permanent shock probabilities for each a_t value
+    bNrmNext = (Rfree/(PermGroFac*PermShkVals_rep))*aNrmGrid_rep
 
-    ''' 3/ '''
-    # Construct the marginal value of end-of-period assets  
-    EndOfPrdvP_temp = DiscFac*Rfree*LivPrb*np.sum((PermGroFac*PermShkVals_rep)**(-CRRA)*vPbarFuncNext(bNextPerm)*PermShkPrbs_rep,axis=1) # sum in the TranShkVals ~ TranShkGrid direction
-    EndOfPrdvP = EndOfPrdvP_temp.reshape((aXtraCount,1))   # ---- Convert it to a (row? Notes) column vector of size (200,1)  
-    TranShkScaleFac_temp = frac*(WageRte*TranShkGrid)**(LbrCost*frac)*(LbrCost**(-LbrCost*frac)+LbrCost**(frac))   
-    TranShkScaleFac = TranShkScaleFac_temp.reshape((1,TranShkGrid.size))   # --- Convert it to a row (column?) vector of size (1,16)
+    # Calculate marginal value of end-of-period assets at each a_t gridpoint  
+    vPbarNext = (PermGroFac*PermShkVals_rep)**(-CRRA)*vPbarFuncNext(bNrmNext) # Get marginal value of bank balances next period at each shock
+    EndOfPrdvP = DiscFac*Rfree*LivPrb*np.sum(vPbarNext*PermShkPrbs_rep, axis=1, keepdims=True) # Take expectation across permanent income shocks
+    
+    # Compute scaling factor for each transitory shock
+    TranShkScaleFac_temp = frac*(WageRte*TranShkGrid)**(LbrCost*frac)*(LbrCost**(-LbrCost*frac)+LbrCost**(frac))  
+    TranShkScaleFac = np.reshape(TranShkScaleFac_temp,(1,TranShkGrid.size)) # Flip it to be a row vector
    
-    ''' 4/ ''' 
-    xNowArray = (np.dot(EndOfPrdvP,TranShkScaleFac))**(-1./(CRRA-LbrCost*frac))    #(200,16) Get an array of x_t values corresponding to (a_t,theta_t) values   
+    # Use the first order condition to compute an array of "composite good" x_t values corresponding to (a_t,theta_t) values 
+    xNow = (np.dot(EndOfPrdvP,TranShkScaleFac))**(-1./(CRRA-LbrCost*frac))      
     
-    ''' 5/: Error raising xNowArray to a non-integer power, frac, 1/ (1+0.36) Or NAN array'''
+    # Transform the composite good x_t values into consumption c_t and leisure z_t values
     TranShkGrid_rep = np.tile(np.reshape(TranShkGrid,(1,TranShkGrid.size)),(aXtraCount,1))
-    xNowPowered = xNowArray**frac
-    cNrmNow = (((WageRte*TranShkGrid_rep)/LbrCost)**(LbrCost*frac))*xNowPowered # Find optimal consumption using the solution to the effective consumption pb
-    LsrNow = (LbrCost/(WageRte*TranShkGrid_rep))**frac*xNowPowered # Find optimal leisure amount using the solution to the effective consumption pb
-    cNrmNow[:,0] = uPinv(EndOfPrdvP_temp)
+    xNowPow = xNow**frac # Will use this object multiple times in math below
+    cNrmNow = (((WageRte*TranShkGrid_rep)/LbrCost)**(LbrCost*frac))*xNowPow # Find optimal consumption from optimal composite good
+    LsrNow = (LbrCost/(WageRte*TranShkGrid_rep))**frac*xNowPow # Find optimal leisure from optimal composite good
+    
+    # The zero-th transitory shock is TranShk=0, and the solution is to not work: Lsr = 1, Lbr = 0.
+    cNrmNow[:,0] = uPinv(EndOfPrdvP.flatten())
     LsrNow[:,0] = 1.0
 
-    # Check the Labor Constraint using violatesLbrCnst: boolean array. An indicator for whether 
-    # the labor constraint is violated or not. The Agent cannot choose to work a negative amount of time. Labor = 1 - Leisure
-    violates_labor_constraint = LsrNow > 1.
+    # Agent cannot choose to work a negative amount of time. When this occurs, set
+    # leisure to one and recompute consumption using simplified first order condition.
+    violates_labor_constraint = LsrNow > 1. # Find where labor would be negative if unconstrained
     EndOfPrdvP_temp = np.tile(np.reshape(EndOfPrdvP,(aXtraCount,1)),(1,TranShkCount))
     cNrmNow[violates_labor_constraint] = uPinv(EndOfPrdvP_temp[violates_labor_constraint])
-    LsrNow[violates_labor_constraint] = 1.   # Set up z =1, upper limit
+    LsrNow[violates_labor_constraint] = 1. # Set up z =1, upper limit
 
-    '''6/'''
+    # Calculate the endogenous bNrm states by inverting the within-period transition
     aNrmNow_rep = np.tile(np.reshape(aXtraGrid,(aXtraCount,1)),(1,TranShkGrid.size))
     bNrmNow = aNrmNow_rep - WageRte*TranShkGrid_rep + cNrmNow + WageRte*TranShkGrid_rep*LsrNow
-    bNowExtra = np.reshape(-WageRte*TranShkGrid,(1,TranShkGrid.size))   # bank balances when c_t = 0 and z_t=0, column vector of (16,)    
-    bNowArray = np.concatenate((bNowExtra, bNrmNow),axis=0)    # ***-- Combine the two pieces of the b_t grid (when c_t=0, z_t=0 and following grid) 
     
-    cNowArray = np.concatenate((np.zeros((1,TranShkGrid.size)),cNrmNow),axis=0) # ----
-    LsrNowArray = np.concatenate((np.zeros((1,TranShkGrid.size)),LsrNow),axis=0)
+    # Add an extra gridpoint at the absolute minimal valid value for b_t for each TranShk;
+    # this corresponds to working 100% of the time and consuming nothing.
+    bNowArray = np.concatenate((np.reshape(-WageRte*TranShkGrid,(1,TranShkGrid.size)), bNrmNow),axis=0)
+    cNowArray = np.concatenate((np.zeros((1,TranShkGrid.size)),cNrmNow),axis=0) # Consume nothing
+    LsrNowArray = np.concatenate((np.zeros((1,TranShkGrid.size)),LsrNow),axis=0) # And no leisure!
     LsrNowArray[0,0] = 1.0 # Don't work at all if TranShk=0, even if bNrm=0
-    LbrNowArray = 1. - LsrNowArray # Labor is the complement of leisure
+    LbrNowArray = 1.0 - LsrNowArray # Labor is the complement of leisure
     
-    '''7'''
-    # Get the (pseudo-inverse) marginal value using end of period marginal value
-    vPnvrsNow = uPinv(EndOfPrdvP_temp) # a column vector (200,) or (200,1) with EndOfPrdvP
-    vPnvrsNowArray = np.concatenate((np.zeros((1,TranShkGrid.size)), vPnvrsNow)) # Concatenate a column vector of zeros on the left edge
+    # Get (pseudo-inverse) marginal value of bank balances using end of period
+    # marginal value of assets (envelope condition), adding a column of zeros
+    # zeros on the left edge, representing the limit at the minimum value of b_t.
+    vPnvrsNowArray = np.concatenate((np.zeros((1,TranShkGrid.size)), uPinv(EndOfPrdvP_temp))) # Concatenate 
 
     # Construct consumption and marginal value functions for this period
-    '''8/ '''
     bNrmMinNow = LinearInterp(TranShkGrid,bNowArray[0,:])
 
-    ''' 9/ '''
-    # Loop over each transitory shock and make a linear interpolation to get lists of optimal consumption, labor and (pseudo-inverse) marginal value
-    cFuncNow_list = []    # Initialize the empty list of 1D function
+    # Loop over each transitory shock and make a linear interpolation to get lists
+    # of optimal consumption, labor and (pseudo-inverse) marginal value by TranShk
+    cFuncNow_list = []
     LbrFuncNow_list = []
     vPnvrsFuncNow_list = []
     for j in range(TranShkGrid.size):                   
-        # Adjust bNrmNow for this transitory shock
-        bNrmNow_temp = bNowArray[:,j] - bNowArray[0,j]
+        bNrmNow_temp = bNowArray[:,j] - bNowArray[0,j] # Adjust bNrmNow for this transitory shock, so bNrmNow_temp[0] = 0
         cFuncNow_list.append(LinearInterp(bNrmNow_temp,cNowArray[:,j])) # Make consumption function for this transitory shock
         LbrFuncNow_list.append(LinearInterp(bNrmNow_temp,LbrNowArray[:,j])) # Make labor function for this transitory shock
         vPnvrsFuncNow_list.append(LinearInterp(bNrmNow_temp,vPnvrsNowArray[:,j])) # Make pseudo-inverse marginal value function for this transitory shock
 
-    '''10'''
     # Make linear interpolation by combining the lists of consumption, labor and marginal value functions
     cFuncNowBase = LinearInterpOnInterp1D(cFuncNow_list,TranShkGrid)
     LbrFuncNowBase = LinearInterpOnInterp1D(LbrFuncNow_list,TranShkGrid)
     vPnvrsFuncNowBase = LinearInterpOnInterp1D(vPnvrsFuncNow_list,TranShkGrid)
     
-    '''11'''
-    # Construct consumption, labor, marginal value functions with bNrmMinNow as the lower bound
+    # Construct consumption, labor, pseudo-inverse marginal value functions with
+    # bNrmMinNow as the lower bound.  This removes the adjustment in the loop above.
     cFuncNow = VariableLowerBoundFunc2D(cFuncNowBase,bNrmMinNow)
     LbrFuncNow = VariableLowerBoundFunc2D(LbrFuncNowBase,bNrmMinNow)
     vPnvrsFuncNow = VariableLowerBoundFunc2D(vPnvrsFuncNowBase,bNrmMinNow)
      
-    '''12'''
-    # Construct the marginal value function using the envelope condition
+    # Construct the marginal value function by "recurving" its pseudo-inverse
     vPfuncNow = MargValueFunc2D(vPnvrsFuncNow,CRRA)  
 
-    '''13'''
     # Make a solution object for this period and return it
     solution = ConsumerLaborSolution(cFunc=cFuncNow,LbrFunc=LbrFuncNow,vPfunc=vPfuncNow,bNrmMin=bNrmMinNow)
     return solution

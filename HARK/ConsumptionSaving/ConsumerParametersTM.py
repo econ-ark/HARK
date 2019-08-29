@@ -260,7 +260,7 @@ init_medical_shocks['aXtraCount'] = 32
 # -----------------------------------------------------------------------------
 
 LbrDisutilCoeffs = [-1.5,0.1,0.05] # Constant, linear, and quadratic coefficients
-                                  # on transformed labor disutility factor
+                                   # on transformed labor disutility factor by age
                                   
 # Make a dictionary for "baby labor" model
 init_baby_labor = copy(init_lifecycle)
@@ -301,7 +301,7 @@ init_labor_intensive = copy(init_lifecycle)
 init_labor_intensive['TranShkStd'] = [0.1]*init_lifecycle['T_cycle']
 init_labor_intensive['PermShkStd'] = [0.1]*init_lifecycle['T_cycle']
 init_labor_intensive['IncUnemp'] = 0.0
-init_labor_intensive['UnempPrb'] = 0.05 # Turn off unemployment
+init_labor_intensive['UnempPrb'] = 0.05
 init_labor_intensive['UnempPrbRet'] = 0.0
 init_labor_intensive['TranShkCount'] = 15 # Crank up permanent shock count - Number of points in discrete approximation to transitory income shocks
 init_labor_intensive['PermShkCount'] = 16 # Crank up permanent shock count
@@ -310,7 +310,7 @@ init_labor_intensive['CubicBool'] = CubicBool
 init_labor_intensive['vFuncBool'] = vFuncBool                    
 init_labor_intensive ['T_retire'] = 0 # Turn off retirement
 init_labor_intensive ['aXtraCount'] = 200 # May be important to have a larger number of gridpoints (than 48 initially)
-init_labor_intensive ['aXtraMax'] = 20.
+init_labor_intensive ['aXtraMax'] = 80.
 init_labor_intensive ['LbrCost'] = LbrCost
 init_labor_intensive ['WageRte'] = WageRte
 init_labor_intensive ['LivPrb'] = LivPrb
