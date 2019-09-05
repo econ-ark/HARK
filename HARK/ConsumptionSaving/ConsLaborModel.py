@@ -1,27 +1,14 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
 """
-Consumption-Saving model with Endogenous Labor Supply Model - Intensive Margin
-using the endogenous grid method to invert the first order condition.
+Subclasses of AgentType representing consumers who make decisions about how much
+labor to supply, as well as a consumption-saving decision.
 
-To solve this agent's problem, we normalized the problem by p_t, the permanent
-productivity level, which helps us to eliminate a state variable (p_t).
-We can then transform the agent's problem into a cost minimization problem for 
-which we solve the effective consumption purchased, x_t= z_t^alpha * c_t
-It allows us to solve only one FOC with respect to x_t, instead of 2.
-
-We can then solve the FOC using the Endogenous Gridpoint Method, EGM. 
-Faster solution method than the classic rootfinding method but we should keep 
-in mind that the EGM solution is not well behaved outside the range of 
-gridpoints selected. 
-
-@author: Tiphanie Magne
-University of Delaware
+It currently only has
+one model: labor supply on the intensive margin (unit interval) with CRRA utility
+from a composite good (of consumption and leisure), with transitory and permanent
+productivity shocks.  Agents choose their quantities of labor and consumption after
+observing both of these shocks, so the transitory shock is a state variable.
 """
 import sys 
-import os
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('./'))
 
 from copy import copy
 import numpy as np
@@ -37,53 +24,59 @@ class ConsumerLaborSolution(Solution):
     '''
     distance_criteria = ['cFunc','LbrFunc']
     
-    def __init__(self,cFunc=None,LbrFunc=None,vFunc=None,vPfunc=None,bNrmMin = None):
+    def __init__(self, cFunc=None, LbrFunc=None, vFunc=None, vPfunc=None, bNrmMin=None):
         '''
         The constructor for a new ConsumerSolution object.
         
         Parameters
         ----------
         cFunc : function
-            The consumption function for this period, defined over bank balances: c = cFunc(b).
+            The consumption function for this period, defined over normalized
+            bank balances and the transitory productivity shock: cNrm = cFunc(bNrm,TranShk).
         LbrFunc : function
-            The labor function for this period, defined over bank balances: l = LbrFunc(b).
+            The labor supply function for this period, defined over normalized
+            bank balances 0.751784276198: Lbr = LbrFunc(bNrm,TranShk).
         vFunc : function
-            The beginning-of-period marginal value function for this period, defined over
-            bank balances: v = vPfunc(b).
+            The beginning-of-period value function for this period, defined over
+            normalized bank balances 0.751784276198: v = vFunc(bNrm,TranShk).
         vPfunc : function
-            The beginning-of-period marginal value function for this period, defined over
-            bank balances: v = vPfunc(b).
+            The beginning-of-period marginal value (of bank balances) function for
+            this period, defined over normalized bank balances 0.751784276198: vP = vPfunc(bNrm,TranShk).
         bNrmMin: float
-            The minimum allowable bank balances for this period. Consumption function,
-            labor function etc. are undefined for b < bNrmMin.
-            
+            The minimum allowable bank balances for this period, as a function of
+            the transitory shock. cFunc, LbrFunc, etc are undefined for bNrm < bNrmMin(TranShk).
+        
+        Returns
+        -------
+        None
         '''
         if cFunc is not None:
-            setattr(self,'cFunc',cFunc)
+            self.cFunc = cFunc
         if LbrFunc is not None:
-            setattr(self,'LbrFunc',LbrFunc)
+            self.LbrFunc = LbrFunc
         if vFunc is not None:
-            setattr(self,'vFunc',vFunc)
+            self.vFunc = vFunc
         if vPfunc is not None:
-            setattr(self,'vPfunc',vPfunc)
+            self.vPfunc = vPfunc
         if bNrmMin is not None:
-            setattr(self,'bNrmMin',bNrmMin)
+            self.bNrmMin = bNrmMin
 
 
 def solveConsLaborIntMarg(solution_next,PermShkDstn,TranShkDstn,LivPrb,DiscFac,CRRA,
                           Rfree,PermGroFac,BoroCnstArt,aXtraGrid,TranShkGrid,vFuncBool,
                           CubicBool,WageRte,LbrCost):
     '''
-    Solves one period of the consumption-saving model with endogenous labor supply on the intensive margin
-    by using the endogenous grid method to invert the first order condition, obviating any search.
+    Solves one period of the consumption-saving model with endogenous labor supply
+    on the intensive margin by using the endogenous grid method to invert the first
+    order conditions for optimal composite consumption and between consumption and
+    leisure, obviating any search for optimal controls.
     
     Parameters 
     ----------
     solution_next : ConsumerLaborSolution
-        The solution to the next period's problem; should have the attributes
-        vPfunc, cFunc and LbrFunc representing the marginal value, consumption 
-        and labor functions.
- 
+        The solution to the next period's problem; must have the attributes
+        vPfunc and bNrmMinFunc representing marginal value of bank balances and
+        minimum (normalized) bank balances as a function of the transitory shock.
     PermShkDstn: [np.array]
         Discrete distribution of permanent productivity shocks. 
     TranShkDstn: [np.array]
@@ -94,39 +87,39 @@ def solveConsLaborIntMarg(solution_next,PermShkDstn,TranShkDstn,LivPrb,DiscFac,C
     DiscFac : float
         Intertemporal discount factor.
     CRRA : float
-        Coefficient of relative risk aversion.  
+        Coefficient of relative risk aversion over the composite good.  
     Rfree : float
         Risk free interest rate on assets retained at the end of the period.
     PermGroFac : float                                                         
         Expected permanent income growth factor for next period.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the
-        period with.  If it is less than the natural borrowing constraint,
-        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-        rowing constraint.
-    aXtraGrid: [np.array]
+        period with.  Currently not handled, must be None.
+    aXtraGrid: np.array
         Array of "extra" end-of-period asset values-- assets above the
         absolute minimum acceptable level.
-    TranShkGrid: [np.array]
-            Array of transitory shock values.
+    TranShkGrid: np.array
+        Grid of transitory shock values to use as a state grid for interpolation.
     vFuncBool: boolean
         An indicator for whether the value function should be computed and
-        included in the reported solution.
+        included in the reported solution.  Not yet handled, must be False.
     CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear inter-
-        polation.
+        An indicator for whether the solver should use cubic or linear interpolation.
+        Cubic interpolation is not yet handled, must be False.
     WageRte: float
-        Wage rate. To be specified by the user.
+        Wage rate per unit of labor supplied.
     LbrCost: float
-        alpha parameter indicating labor cost.
+        Cost parameter for supplying labor: u_t = U(x_t), x_t = c_t*z_t^LbrCost,
+        where z_t is leisure = 1 - Lbr_t.
         
     Returns
     -------
     solution_now : ConsumerLaborSolution
-        The solution to this period's problem, including a consumption
-            function cFunc (defined over the bank balances and the transitory 
-            productivity shock), a labor function LbrFunc and a marginal value 
-            function vPfunc.
+        The solution to this period's problem, including a consumption function
+        cFunc, a labor supply function LbrFunc, and a marginal value function vPfunc;
+        each are defined over normalized bank balances and transitory prod shock.
+        Also includes bNrmMinNow, the minimum permissible bank balances as a function
+        of the transitory productivity shock.
     '''
     # Make sure the inputs for this period are valid: CRRA > LbrCost/(1+LbrCost)
     # and CubicBool = False.  CRRA condition is met automatically when CRRA >= 1.
@@ -252,21 +245,10 @@ def solveConsLaborIntMarg(solution_next,PermShkDstn,TranShkDstn,LivPrb,DiscFac,C
 class LaborIntMargConsumerType(IndShockConsumerType):
     
     '''        
-    A class for representing an ex ante homogeneous type of consumer in the
-    consumption-saving model.  These consumers have CRRA utility over current
-    consumption and discount future utility exponentially.  Their future income
-    is subject to transitory  and permanent shocks, and they can earn gross interest
-    on retained assets at a risk free interest factor.  
-    
-    The solution is represented in a normalized way, with all variables divided 
-    by permanent income (raised to the appropriate power). 
-    
-    This model is homothetic in permanent income.
-    
-    IndShockConsumerType:  A consumer type with idiosyncratic shocks to permanent and transitory income.
-    His problem is defined by a sequence of income distributions, survival probabilities, 
-    and permanent income growth rates, as well as time invariant values for risk aversion, 
-    discount factor, the interest rate, the grid of end-of-period assets, and an artificial borrowing constraint.
+    A class representing agents who make a decision each period about how much
+    to consume vs save and how much labor to supply (as a fraction of their time).
+    They get CRRA utility from a composite good x_t = c_t*z_t^alpha, and discount
+    future utility flows at a constant factor. 
     '''
     time_vary_ = copy(IndShockConsumerType.time_vary_)
     time_vary_ += ['LbrCost','WageRte']
@@ -294,7 +276,6 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         self.solveOnePeriod = solveConsLaborIntMarg
         self.update()
     
-    
     def update(self):
         '''
         Update the income process, the assets grid, and the terminal solution.
@@ -310,8 +291,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         self.updateIncomeProcess()
         self.updateAssetsGrid()
         self.updateTranShkGrid()
-        
- 
+         
     def calcBoundingValues(self):      
         '''
         Calculate human wealth plus minimum and maximum MPC in an infinite
@@ -361,15 +341,19 @@ class LaborIntMargConsumerType(IndShockConsumerType):
 
 
     def updateTranShkGrid(self):
-        ''' Create a list of values for TranShkGrid using TranShkVals, index 1 of TranShkDstn
+        '''
+        Create a time-varying list of arrays for TranShkGrid using TranShkDstn,
+        which is created by the method updateIncomeProcess().  Simply takes the
+        transitory shock values and uses them as a state grid; can be improved.
+        Creates the attribute TranShkGrid.
         
         Parameters
         ----------
-        none
+        None
         
         Returns
         -------
-        none
+        None
         '''
         time_orig=self.time_flow
         self.timeFwd()
@@ -386,8 +370,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
      
     def updateSolutionTerminal(self):
         ''' 
-        Updates the terminal period solution and solves for optimal consumption and labor when there is no future.
-        
+        Updates the terminal period solution and solves for optimal consumption
+        and labor when there is no future.
         
         Parameters
         ----------
@@ -397,7 +381,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         -------
         None
         '''   
-        if self.time_flow:   # To make sure we pick the last element of the list, depending on the direction time is flowing
+        if self.time_flow: # To make sure we pick the last element of the list, depending on the direction time is flowing
             t=-1
         else:
             t=0
