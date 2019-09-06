@@ -1305,7 +1305,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         -------
         None
         '''
-        assert CubicBool==False,'KinkedR will only work with linear interpolation (for now)'
+#        assert CubicBool==False,'KinkedR will only work with linear interpolation (for now)'
         assert Rboro>=Rsave, 'Interest factor on debt less than interest factor on savings!'
 
         # Initialize the solver.  Most of the steps are exactly the same as in
@@ -1316,7 +1316,44 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # Assign the interest rates as class attributes, to use them later.
         self.Rboro   = Rboro
         self.Rsave   = Rsave
+                  
+    def makeCubiccFunc(self,mNrm,cNrm):
+        '''
+        Makes a cubic spline interpolation which contains the kink of the unconstrained 
+        consumption function for this period.
 
+        Parameters
+        ----------
+        mNrm : np.array
+            Corresponding market resource points for interpolation.
+        cNrm : np.array
+            Consumption points for interpolation.
+
+        Returns
+        -------
+        cFuncUnc : CubicInterp
+            The unconstrained consumption function for this period.
+        '''
+        # call the makeCubiccFunc from ConsIndShockSolver
+        cFuncNowUncKink = super().makeCubiccFunc(mNrm, cNrm)
+        
+        # identify the kinks
+        aKinkIndex = []
+        for i in range(len(self.aNrmNow)):
+            if abs(self.aNrmNow[i] - 0) < 1e-6:
+                aKinkIndex.append(i)
+        aKinkIndex = np.array(aKinkIndex)
+        print(aKinkIndex)
+        print(mNrm[aKinkIndex], cNrm[aKinkIndex])
+        
+        print(cFuncNowUncKink.coeffs[21])
+        
+        # change the coeffients at the kinked points
+        for i in aKinkIndex:
+            cFuncNowUncKink.coeffs[i+1] = [cNrm[i+1] - mNrm[i+1], mNrm[i+2] - mNrm[i+1], 0, 0]
+            
+        return cFuncNowUncKink
+    
     def prepareToCalcEndOfPrdvP(self):
         '''
         Prepare to calculate end-of-period marginal value by creating an array
@@ -2584,7 +2621,8 @@ def main():
     KinkyExample.unpackcFunc()
     print('Kinky consumption function:')
     KinkyExample.timeFwd()
-    plotFuncs(KinkyExample.cFunc[0],KinkyExample.solution[0].mNrmMin,5)
+    plotFuncs(KinkyExample.cFunc[0],0.8,1)
+#    plotFuncs(KinkyExample.cFunc[0],KinkyExample.solution[0].mNrmMin,5)
 
     if do_simulation:
         KinkyExample.T_sim = 120

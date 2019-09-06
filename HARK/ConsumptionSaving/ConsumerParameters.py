@@ -135,7 +135,7 @@ del init_kinked_R['Rfree'] # get rid of constant interest factor
 init_kinked_R['Rboro'] = Rboro
 init_kinked_R['Rsave'] = Rsave
 init_kinked_R['BoroCnstArt'] = None # kinked R is a bit silly if borrowing not allowed
-init_kinked_R['CubicBool'] = False # kinked R currently only compatible with linear cFunc
+init_kinked_R['CubicBool'] = True # kinked R currently only compatible with linear cFunc
 init_kinked_R['aXtraCount'] = 48   # ...so need lots of extra gridpoints to make up for it
 
 
