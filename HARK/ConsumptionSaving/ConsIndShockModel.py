@@ -1337,21 +1337,9 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # call the makeCubiccFunc from ConsIndShockSolver
         cFuncNowUncKink = super().makeCubiccFunc(mNrm, cNrm)
         
-        # identify the kinks
-        aKinkIndex = []
-        for i in range(len(self.aNrmNow)):
-            if abs(self.aNrmNow[i] - 0) < 1e-6:
-                aKinkIndex.append(i)
-        aKinkIndex = np.array(aKinkIndex)
-        print(aKinkIndex)
-        print(mNrm[aKinkIndex], cNrm[aKinkIndex])
-        
-        print(cFuncNowUncKink.coeffs[21])
-        
         # change the coeffients at the kinked points
-        for i in aKinkIndex:
-            cFuncNowUncKink.coeffs[i+1] = [cNrm[i+1] - mNrm[i+1], mNrm[i+2] - mNrm[i+1], 0, 0]
-            
+        cFuncNowUncKink.coeffs[self.i_kink + 1] = [cNrm[self.i_kink], mNrm[self.i_kink + 1] - mNrm[self.i_kink], 0, 0]
+
         return cFuncNowUncKink
     
     def prepareToCalcEndOfPrdvP(self):
@@ -1393,7 +1381,8 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # Make a 1D array of the interest factor at each asset gridpoint
         Rfree_vec         = self.Rsave*np.ones(aXtraCount)
         if KinkBool:
-            Rfree_vec[0:(np.sum(aNrmNow<=0)-1)] = self.Rboro
+            self.i_kink = np.sum(aNrmNow<=0)-1 # save the index of the kink point as an attribute
+            Rfree_vec[0:self.i_kink] = self.Rboro
         self.Rfree        = Rfree_vec
         Rfree_temp        = np.tile(Rfree_vec,(ShkCount,1))
 
