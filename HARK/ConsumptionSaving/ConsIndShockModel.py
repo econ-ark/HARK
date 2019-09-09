@@ -1305,7 +1305,6 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         -------
         None
         '''
-#        assert CubicBool==False,'KinkedR will only work with linear interpolation (for now)'
         assert Rboro>=Rsave, 'Interest factor on debt less than interest factor on savings!'
 
         # Initialize the solver.  Most of the steps are exactly the same as in
@@ -1381,7 +1380,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # Make a 1D array of the interest factor at each asset gridpoint
         Rfree_vec         = self.Rsave*np.ones(aXtraCount)
         if KinkBool:
-            self.i_kink = np.sum(aNrmNow<=0)-1 # save the index of the kink point as an attribute
+            self.i_kink   = np.sum(aNrmNow<=0)-1 # save the index of the kink point as an attribute
             Rfree_vec[0:self.i_kink] = self.Rboro
         self.Rfree        = Rfree_vec
         Rfree_temp        = np.tile(Rfree_vec,(ShkCount,1))
@@ -2610,8 +2609,7 @@ def main():
     KinkyExample.unpackcFunc()
     print('Kinky consumption function:')
     KinkyExample.timeFwd()
-    plotFuncs(KinkyExample.cFunc[0],0.8,1)
-#    plotFuncs(KinkyExample.cFunc[0],KinkyExample.solution[0].mNrmMin,5)
+    plotFuncs(KinkyExample.cFunc[0],KinkyExample.solution[0].mNrmMin,5)
 
     if do_simulation:
         KinkyExample.T_sim = 120
