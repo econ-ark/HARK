@@ -280,3 +280,67 @@ init_medical_shocks['MedShkCount'] = MedShkCount
 init_medical_shocks['MedShkCountTail'] = MedShkCountTail
 init_medical_shocks['MedPrice'] = MedPrice
 init_medical_shocks['aXtraCount'] = 32
+
+# -----------------------------------------------------------------------------
+# -------- Define additional parameters for the baby labor model --------------
+# -----------------------------------------------------------------------------
+
+LbrDisutilCoeffs = [-1.5,0.1,0.05] # Constant, linear, and quadratic coefficients
+                                   # on transformed labor disutility factor by age
+                                  
+# Make a dictionary for "baby labor" model
+init_baby_labor = copy(init_lifecycle)
+init_baby_labor['LbrDisutilCoeffs'] = LbrDisutilCoeffs
+init_baby_labor['TranShkCount'] = 1 # No transitory shocks in baby labor model
+init_baby_labor['TranShkStd'] = [0.0]*init_lifecycle['T_cycle']
+init_baby_labor['T_retire'] = 0 # turn off retirement
+init_baby_labor['PermShkStd'] = [0.1]*init_lifecycle['T_cycle']
+init_baby_labor['UnempPrb'] = 0.0 # turn off unemployment
+init_baby_labor['UnempPrbRet'] = 0.0
+init_baby_labor['PermShkCount'] = 25 # Crank up permanent shock count
+init_baby_labor['aXtraCount'] = 200 # Might be important to have many gridpoints
+
+               
+# -----------------------------------------------------------------------------
+# ----Define additional parameters for the Endogenous Labor Supply model-------
+# -----------------------------------------------------------------------------
+
+LivPrb = [0.99]                    # Survival probability
+PermGroFac = [1.02]                # Permanent income growth factor
+LbrCost = [0.36]                   # Labor cost list of one element
+WageRte = [1.0]                    # Wage Rate
+
+BoroCnstArt = None
+CubicBool = False                  # Use cubic spline interpolation when True, linear interpolation when False
+vFuncBool = False                  # Whether to calculate the value function during solution
+
+StateMin = 0.001
+StateMax = 20.0
+StateCount = 15
+ExponentialGrid = True
+
+# Make a dictionary for Endogenous Labor supply model - intensive margin
+init_labor_intensive = copy(init_lifecycle)
+init_labor_intensive['TranShkStd'] = [0.1]*init_lifecycle['T_cycle']
+init_labor_intensive['PermShkStd'] = [0.1]*init_lifecycle['T_cycle']
+init_labor_intensive['IncUnemp'] = 0.0
+init_labor_intensive['UnempPrb'] = 0.05
+init_labor_intensive['UnempPrbRet'] = 0.0
+init_labor_intensive['TranShkCount'] = 15 # Crank up permanent shock count - Number of points in discrete approximation to transitory income shocks
+init_labor_intensive['PermShkCount'] = 16 # Crank up permanent shock count
+init_labor_intensive['BoroCnstArt'] = BoroCnstArt  
+init_labor_intensive['CubicBool'] = CubicBool
+init_labor_intensive['vFuncBool'] = vFuncBool                    
+init_labor_intensive ['T_retire'] = 0 # Turn off retirement
+init_labor_intensive ['aXtraCount'] = 200 # May be important to have a larger number of gridpoints (than 48 initially)
+init_labor_intensive ['aXtraMax'] = 80.
+init_labor_intensive ['LbrCost'] = LbrCost
+init_labor_intensive ['WageRte'] = WageRte
+init_labor_intensive ['LivPrb'] = LivPrb
+init_labor_intensive ['PermGroFac'] = PermGroFac
+init_labor_intensive ['StateMin'] = StateMin
+init_labor_intensive ['StateMax'] = StateMax
+init_labor_intensive ['StateCount'] = StateCount
+init_labor_intensive ['ExponentialGrid'] = ExponentialGrid
+
+init_labor_intensive ['T_cycle'] = 1

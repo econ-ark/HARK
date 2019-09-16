@@ -338,6 +338,43 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         None
         '''
         raise NotImplementedError()
+        
+    def getControls(self):
+        '''
+        Calculates consumption for each consumer of this type using the consumption functions.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        cNrmNow = np.zeros(self.AgentCount) + np.nan
+        MPCnow  = np.zeros(self.AgentCount) + np.nan
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            cNrmNow[these]  = self.solution[t].cFunc(self.bNrmNow[these], self.TranShkNow[these])
+            MPCnow[these] = self.solution[t].cFunc.derivativeX(self.bNrmNow[these], self.TranShkNow[these])
+        self.cNrmNow = cNrmNow
+        self.MPCnow = MPCnow
+        return None
+        
+    def getPostStates(self):
+        '''
+        Calculates end-of-period assets for each consumer of this type.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        self.mNrmNow = self.bNrmNow + LaborIntMargExample.solution[t].LbrFunc(self.bNrmNow, self.TranShkNow)*self.TranShkNow 
+        return None
 
 
     def updateTranShkGrid(self):
@@ -472,10 +509,44 @@ class LaborIntMargConsumerType(IndShockConsumerType):
 ###############################################################################
           
 if __name__ == '__main__':
-    import ConsumerParametersTM as Params    # Parameters for a consumer type
+    import HARK.ConsumptionSaving.ConsumerParameters as Params    # Parameters for a consumer type
+    from HARK.utilities import plotFuncsDer, plotFuncs
     import matplotlib.pyplot as plt
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)     # Format numbers as strings
+    
+    do_simulation           = True
+    
+###############################################################################
+
+    # Make and solve an idiosyncratic shocks consumer with a finite lifecycle
+    LifecycleExample = IndShockConsumerType(**Params.init_lifecycle)
+    LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
+
+    start_time = clock()
+    LifecycleExample.solve()
+    end_time = clock()
+    print('Solving a lifecycle consumer took ' + mystr(end_time-start_time) + ' seconds.')
+    LifecycleExample.unpackcFunc()
+    LifecycleExample.timeFwd()
+
+    # Plot the consumption functions during working life
+    print('Consumption functions while working:')
+    mMin = min([LifecycleExample.solution[t].mNrmMin for t in range(LifecycleExample.T_cycle)])
+    plotFuncs(LifecycleExample.cFunc[:LifecycleExample.T_retire],mMin,5)
+
+    # Plot the consumption functions during retirement
+    print('Consumption functions while retired:')
+    plotFuncs(LifecycleExample.cFunc[LifecycleExample.T_retire:],0,5)
+    LifecycleExample.timeRev()
+    
+    if do_simulation:
+        LifecycleExample.T_sim = 120
+        LifecycleExample.track_vars = ['mNrmNow','cNrmNow','pLvlNow','t_age']
+        LifecycleExample.initializeSim()
+        LifecycleExample.simulate()
+        
+###############################################################################
     
     # Make and solve a labor intensive margin consumer i.e. a consumer with utility for leisure
     LaborIntMargExample = LaborIntMargConsumerType(**Params.init_labor_intensive)
@@ -539,4 +610,10 @@ if __name__ == '__main__':
     else:
         plt.ylabel('Marginal value')
     plt.show()
+    
+    if do_simulation:
+        LaborIntMargExample.T_sim = 120 # Set number of simulation periods
+        LaborIntMargExample.track_vars = ['bNrmNow', 'cNrmNow']
+        LaborIntMargExample.initializeSim()
+        LaborIntMargExample.simulate()
     
