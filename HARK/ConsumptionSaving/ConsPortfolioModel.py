@@ -2,23 +2,42 @@
 # Rfree and Risky-parameters. This should be possible by creating a list of
 # functions instead.
 
-import math
-import scipy.optimize as sciopt
-import scipy.integrate
-import scipy.stats as stats
-import copy
+import math # we're using math for log and exp, might want to just use numpy?
+import scipy.optimize as sciopt # we're using scipy optimize to optimize and fsolve
+import scipy.integrate # used to calculate the expectation over returns
+import scipy.stats as stats # for densities related to the returns distributions
+from copy import deepcopy # it's convenient to copy things some times instead of re-creating them
 
+# Solution is inherited from in the PortfolioSolution class, NullFunc is used
+# throughout HARK when no input is given and AgentType is used for .preSolve
 from HARK import Solution, NullFunc, AgentType
 
-from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType, IndShockConsumerType, solveConsIndShock, ConsIndShockSolver, ValueFunc, MargValueFunc, ConsumerSolution, utility_inv
-from HARK.utilities import approxLognormal, combineIndepDstns
-from HARK.interpolation import LinearInterp, LowerEnvelope
-from HARK.simulation import drawLognormal
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    PerfForesightConsumerType, # for .__init__
+    IndShockConsumerType, # PortfolioConsumerType inherits from it
+    ConsIndShockSolver,   # ConsIndShockPortfolioSolver inherits from it
+    ValueFunc,     # to do the re-curving of value functions for interpolation
+    MargValueFunc, # same as above, but for marginal value functions
+    utility_inv,   # inverse CRRA
+    )
 
-from copy import deepcopy
-import numpy as np
+from HARK.utilities import (
+    approxLognormal,   # for approximating the lognormal returns factor
+    combineIndepDstns, # for combining the existing
+    )
 
-#
+from HARK.simulation import drawLognormal # random draws for simulating agents
+
+from HARK.interpolation import (
+    LinearInterp,  # piece-wise linear interpolation
+    LowerEnvelope, # lower envelope for consumption function around borrowing constraint
+    )
+
+
+import numpy as np # for array operations
+
+# REMARK: The Campbell and Viceira (2002) approximation can be calculated from
+# the code below. TODO clean up
 # def CambellVicApprox()
 #
 #         # We assume fixed distribution of risky shocks throughout, so we can
@@ -33,47 +52,233 @@ import numpy as np
 # # RiskyShareLimit = phi/(self.CRRA*sigma**2)
 
 
-def PerfForesightLogNormalPortfolioShare(Rfree, RiskyAvg, RiskyStd, CRRA):
-   PortfolioObjective = lambda share: PerfForesightLogNormalPortfolioObjective(share,
-                                                                      Rfree,
-                                                                      RiskyAvg,
-                                                                      RiskyStd,
-                                                                      CRRA)
-   return sciopt.minimize_scalar(PortfolioObjective, bounds=(0.0, 1.0), method='bounded').x
+def _PerfForesightLogNormalPortfolioShare(Rfree, RiskyAvg, RiskyStd, CRRA):
+    '''
+    Calculate the optimal portfolio share in the perfect foresight model. This
+    does not depend on resources today or the time period.
 
-def PerfForesightDiscretePortfolioShare(Rfree, RiskyDstn, CRRA):
-   PortfolioObjective = lambda share: PerfForesightDiscretePortfolioObjective(share,
+    Parameters
+    ----------
+    Rfree : Number
+        The risk free interest factor
+    RiskyAvg : Number
+        The average risk factor
+    RiskyStd : Number
+        The standard deviation of the risk factor
+    CRRA : Number
+        The CRRA utility parameter
+
+    Returns
+    -------
+    optShare : Number
+        The optimal portfolio share in the perfect foresight portofolio model.
+    '''
+    PortfolioObjective = lambda share: _PerfForesightLogNormalPortfolioObjective(share,
+                                                                                Rfree,
+                                                                                RiskyAvg,
+                                                                                RiskyStd,
+                                                                                CRRA)
+    optShare = sciopt.minimize_scalar(PortfolioObjective, bounds=(0.0, 1.0), method='bounded').x
+    return optShare
+
+def _PerfForesightDiscretePortfolioShare(Rfree, RiskyDstn, CRRA):
+    '''
+    Calculate the optimal portfolio share in the perfect foresight model. This
+    Does not depend on resources today or the time period. This version assumes
+    that the return factor distribution is characterized by a discrete distribution
+    or can be approximated using the input values.
+
+    Parameters
+    ----------
+    Rfree : Number
+        The risk free interest factor
+    RiskyDstn : numpy.array
+        A numpy array with first element being a probability vector and the
+        second element being the values of the returns factor associated with
+        the probabilities
+    CRRA : Number
+        The CRRA utility parameter
+
+    Returns
+    -------
+    optShare : Number
+        The optimal portfolio share in the perfect foresight portofolio model.
+    '''
+    PortfolioObjective = lambda share: _PerfForesightDiscretePortfolioObjective(share,
                                                                       Rfree,
                                                                       RiskyDstn,
                                                                       CRRA)
-   return sciopt.minimize_scalar(PortfolioObjective, bounds=(0.0, 1.0), method='bounded').x
+    optShare = sciopt.minimize_scalar(PortfolioObjective, bounds=(0.0, 1.0), method='bounded').x
+    return optShare
 
 
 # Switch here based on knowledge about risky.
 # It can either be "discrete" in which case it is only the number of draws that
 # are used, or it can be continuous in which case bounds and a pdf has to be supplied.
-def PerfForesightLogNormalPortfolioIntegrand(share, R0, RiskyAvg, sigma, rho):
-   muNorm = np.log(RiskyAvg/np.sqrt(1+sigma**2/RiskyAvg**2))
-   sigmaNorm = np.sqrt(np.log(1+sigma**2/RiskyAvg**2))
-   sharedobjective = lambda r: (R0+share*(r-R0))**(1-rho)
-   pdf = lambda r: stats.lognorm.pdf(r, s=sigmaNorm, scale=np.exp(muNorm))
+def _PerfForesightLogNormalPortfolioIntegrand(share, Rfree, RiskyAvg, RiskyStd, CRRA):
+    '''
+    Returns a function to evaluate the integrand for calculating the expectation
+    in the perfect foresight porfolio problem with lognormal return factors.
 
-   integrand = lambda r: sharedobjective(r)*pdf(r)
-   return integrand
+    Parameters
+    ----------
+    Rfree : Number
+        The risk free interest factor
+    RiskyAvg : Number
+        The average risk factor
+    RiskyStd : Number
+        The standard deviation of the risk factor
+    CRRA : Number
+        The CRRA utility parameter
 
-def PerfForesightLogNormalPortfolioObjective(share, R0, RiskyAvg, sigma, rho):
-   integrand = PerfForesightLogNormalPortfolioIntegrand(share, R0, RiskyAvg, rho, sigma)
-   a = 0.0 # Cannot be negative
-   b = 5.0 # This is just an upper bound. pdf should be 0 here.
-   return -((1-rho)**-1)*scipy.integrate.quad(integrand, a, b)[0]
+    Returns
+    -------
+    integrand : function (lambda)
+        Can be used to evaluate the integrand and the sent to a quadrature procedure.
+    '''
+    muNorm = np.log(RiskyAvg/np.sqrt(1+RiskyStd**2/RiskyAvg**2))
+    sigmaNorm = np.sqrt(np.log(1+RiskyStd**2/RiskyAvg**2))
+    sharedobjective = lambda r: (Rfree+share*(r-Rfree))**(1-CRRA)
+    pdf = lambda r: stats.lognorm.pdf(r, s=sigmaNorm, scale=np.exp(muNorm))
+
+    integrand = lambda r: sharedobjective(r)*pdf(r)
+    return integrand
+
+def _PerfForesightLogNormalPortfolioObjective(share, Rfree, RiskyAvg, RiskyStd, CRRA):
+    '''
+    Returns the integral used in the perfect foresight portoflio choice problem
+    with lognormal return factors evaluated at share.
+
+    Parameters
+    ----------
+    Rfree : Number
+        The risk free interest factor
+    RiskyAvg : Number
+        The average risk factor
+    RiskyStd : Number
+        The standard deviation of the risk factor
+    CRRA : Number
+        The CRRA utility parameter
+
+    Returns
+    -------
+    integrand : function (lambda)
+        Can be used to evaluate the integrand and the sent to a quadrature procedure.
+    '''
+    integrand = _PerfForesightLogNormalPortfolioIntegrand(share, Rfree, RiskyAvg, RiskyStd, CRRA)
+    a = 0.0 # Cannot be negative
+    b = 5.0 # This is just an upper bound. pdf should be 0 here.
+    return -((1-CRRA)**-1)*scipy.integrate.quad(integrand, a, b)[0]
 
 
-def PerfForesightDiscretePortfolioObjective(share, R0, RiskyDstn, rho):
+def _PerfForesightDiscretePortfolioObjective(share, Rfree, RiskyDstn, CRRA):
+    '''
+    Returns the integral used in the perfect foresight portoflio choice problem
+    with discretely distributed return factors  evaluated at share.
 
-   vals = (R0+share*(RiskyDstn[1]-R0))**(1-rho)
-   weights = RiskyDstn[0]
+    Parameters
+    ----------
+    Rfree : Number
+        The risk free interest factor
+    RiskyDstn : numpy.array
+        A numpy array with first element being a probability vector and the
+        second element being the values of the returns factor associated with
+        the probabilities
+    CRRA : Number
+        The CRRA utility parameter
 
-   return -((1-rho)**-1)*np.dot(vals, weights)
+    Returns
+    -------
+    integrand : function (lambda)
+        Can be used to evaluate the integrand and the sent to a quadrature procedure.
+    '''
+    vals = (Rfree+share*(RiskyDstn[1]-Rfree))**(1-CRRA)
+    weights = RiskyDstn[0]
+
+    return -((1-CRRA)**-1)*np.dot(vals, weights)
+
+def _calcwFunc(AdjustPrb, AdjustCount, ShareNowCount, vFunc_adj, CRRA):
+    '''
+    Set up the value function at the point of consumption, but before portofolio
+    choice. Depends on the probability of getting the porfolio choice this period,
+    the possible shares today (if AdjustPrb is not 1) and the value function
+    given portfolio choice (so at next sub-period).
+
+    Parameters
+    ----------
+    AdjustPrb : number
+        The probability of adjusting the portfolio this period
+    AdjustCount : integer
+        The number of adjustment states the agent can be in from the set of
+        possible states = (adjuster, nonadjuster)
+    ShareNowCount : integer
+        The number of current portfolio share. Only relevant if nonadjustment is
+        possible.
+    vFunc_adj : list of lists
+        The values of being in first index state (0 is adjuster, 1 is non-adjuster)
+        and possibly second index state (indicating the current portfolio share).
+        The latter is relevant for non-adjusters only.
+    CRRA : Number
+        The CRRA utility parameter
+
+    Returns
+    -------
+    integrand : function (lambda)
+        Can be used to evaluate the integrand and the sent to a quadrature procedure.
+    '''
+    # AdjustCount could in principle just be inferred from AdjustPrb instead of
+    # cartying it arround FIXME / TODO
+    wFunc  = []
+    if AdjustCount == 1:
+        # Just take the adjuster
+        for ShareIndex in range(ShareNowCount[0]):
+            wFunc.append(vFunc_adj[0][ShareIndex])
+    else:
+        # Calculate stuff
+        for ShareIndex in range(ShareNowCount[1]):
+            # TODO FIXME better grid
+            evalgrid = np.linspace(0, 100, 200)
+            evVals = AdjustPrb*vFunc_adj[0][ShareIndex](evalgrid) + (1-AdjustPrb)*vFunc_adj[1][ShareIndex](evalgrid)
+            with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
+                evValsNvrs = utility_inv(evVals,gam=CRRA)
+            evVals = np.insert(evVals, 0, 0.0)
+            evValsNvrs = np.insert(evVals, 0, 0.0)
+
+            wFunc.append(ValueFunc(LinearInterp(evVals, evValsNvrs), CRRA))
+
+    return wFunc
+
+
+def RiskyDstnFactory(RiskyAvg=1.0, RiskyStd=0.0):
+    """
+    A class for generating functions that generate nodes and weights for a log-
+    normal distribution as parameterized by the input `RiskyAvg` and `RiskyStd`
+    values. The returned function takes a number of points to request and returns
+    a list of lists where the first list contains the weights (probabilities) and
+    the second list contains the values.
+    """
+    RiskyAvgSqrd = RiskyAvg**2
+    RiskyVar = RiskyStd**2
+
+    mu = math.log(RiskyAvg/(math.sqrt(1+RiskyVar/RiskyAvgSqrd)))
+    sigma = math.sqrt(math.log(1+RiskyVar/RiskyAvgSqrd))
+
+    return lambda RiskyCount: approxLognormal(RiskyCount, mu=mu, sigma=sigma)
+
+def LogNormalRiskyDstnDraw(RiskyAvg=1.0, RiskyStd=0.0):
+    """
+    A class for generating functions that draw random values from a log-normal
+    distribution as parameterized by the input `RiskyAvg` and `RiskyStd`
+    values. The returned function takes no argument and returns a value.
+    """
+    RiskyAvgSqrd = RiskyAvg**2
+    RiskyVar = RiskyStd**2
+
+    mu = math.log(RiskyAvg/(math.sqrt(1+RiskyVar/RiskyAvgSqrd)))
+    sigma = math.sqrt(math.log(1+RiskyVar/RiskyAvgSqrd))
+
+    return lambda: drawLognormal(1, mu=mu, sigma=sigma)
+
 
 class PortfolioSolution(Solution):
     distance_criteria = ['cFunc']
@@ -132,29 +337,6 @@ class DiscreteDomain(object):
 
     def getPoints(self):
         return self.points
-
-
-def calcwFunc(AdjustPrb, AdjustCount, ShareNowCount, vFunc, CRRA):
-    # AdjustCount cna be inferred from AdjustPrb...
-    wFunc  = []
-    if AdjustCount == 1:
-        # Just take the adjuster
-        for ShareIndex in range(ShareNowCount[0]):
-            wFunc.append(vFunc[0][ShareIndex])
-    else:
-        # Calculate stuff
-        for ShareIndex in range(ShareNowCount[1]):
-            # TODO FIXME better grid
-            evalgrid = np.linspace(0, 100, 200)
-            evVals = AdjustPrb*vFunc[0][ShareIndex](evalgrid) + (1-AdjustPrb)*vFunc[1][ShareIndex](evalgrid)
-            with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
-                evValsNvrs = utility_inv(evVals,gam=CRRA)
-            evVals = np.insert(evVals, 0, 0.0)
-            evValsNvrs = np.insert(evVals, 0, 0.0)
-
-            wFunc.append(ValueFunc(LinearInterp(evVals, evValsNvrs), CRRA))
-
-    return wFunc
 
 class PortfolioConsumerType(IndShockConsumerType):
 
@@ -224,7 +406,7 @@ class PortfolioConsumerType(IndShockConsumerType):
 
         self.update()
 
-        self.RiskyShareLimitFunc = lambda RiskyDstn: PerfForesightDiscretePortfolioShare(self.Rfree, RiskyDstn, self.CRRA)
+        self.RiskyShareLimitFunc = lambda RiskyDstn: _PerfForesightDiscretePortfolioShare(self.Rfree, RiskyDstn, self.CRRA)
 
     def preSolve(self):
         AgentType.preSolve(self)
@@ -268,7 +450,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         RiskyShareFunc_terminal = PortfolioGridCount*[RiskyShareFunc_terminal]
         RiskyShareFunc_terminal = self.AdjustCount*[RiskyShareFunc_terminal]
 
-        wFunc_terminal = calcwFunc(self.AdjustPrb, self.AdjustCount, self.ShareNowCount, vFunc_terminal, self.CRRA)
+        wFunc_terminal = _calcwFunc(self.AdjustPrb, self.AdjustCount, self.ShareNowCount, vFunc_terminal, self.CRRA)
 
         self.solution_terminal = PortfolioSolution(cFunc = cFunc_terminal,
                                                    RiskyShareFunc = RiskyShareFunc_terminal,
@@ -427,6 +609,10 @@ class PortfolioConsumerType(IndShockConsumerType):
         return self.drawRiskyFunc()
 
 class ConsIndShockPortfolioSolver(ConsIndShockSolver):
+    '''
+    A class for solving a one period consumption-saving problem with portfolio choice.
+    An instance of this class is created by the function solveConsPortfolio in each period.
+    '''
     def __init__(self, solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree,
                       PermGroFac, BoroCnstArt, aXtraGrid, vFuncBool, CubicBool,
                       approxRiskyDstn, RiskyCount, RiskyShareCount, RiskyShareLimitFunc,
@@ -573,6 +759,10 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         return []
 
     def prepareToCalcRiskyShare(self):
+        """
+        Prepare variables used to find optimal portfolio shares. Branches to either
+        the discrete or continuous portfolio choice set.
+        """
         if self.DiscreteCase:
             self.prepareToCalcRiskyShareDiscrete()
         else:
@@ -814,6 +1004,12 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         -------
         None
         '''
+
+        # TODO: this does not yet
+        #   calc sUnderbar -> mertonsammuelson
+        #   calc MPC kappaUnderbar
+        #   calc human wealth
+
         self.DiscFacEff       = DiscFac*LivPrb # "effective" discount factor
         self.ShkPrbsNext  = self.ShockDstn[0] # but ConsumtionSolver doesn't store the risky shocks
         self.PermShkValsNext  = self.ShockDstn[1] # but ConsumtionSolver doesn't store the risky shocks
@@ -956,7 +1152,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
 
         if self.vFuncBool:
             solution = self.addvFunc(solution)
-            solution.wFunc = calcwFunc(self.AdjustPrb, self.AdjustCount, self.ShareNowCount, solution.vFunc, self.CRRA)
+            solution.wFunc = _calcwFunc(self.AdjustPrb, self.AdjustCount, self.ShareNowCount, solution.vFunc, self.CRRA)
 
 
         return solution
@@ -988,35 +1184,14 @@ def solveConsPortfolio(solution_next, IncomeDstn, LivPrb, DiscFac,
 
     return portsolution
 
-def RiskyDstnFactory(RiskyAvg=1.0, RiskyStd=0.0):
-    RiskyAvgSqrd = RiskyAvg**2
-    RiskyVar = RiskyStd**2
-
-    mu = math.log(RiskyAvg/(math.sqrt(1+RiskyVar/RiskyAvgSqrd)))
-    sigma = math.sqrt(math.log(1+RiskyVar/RiskyAvgSqrd))
-
-    return lambda RiskyCount: approxLognormal(RiskyCount, mu=mu, sigma=sigma)
-
-def RiskyDrawFactory(RiskyAvg=1.0, RiskyStd=0.0):
-    RiskyAvgSqrd = RiskyAvg**2
-    RiskyVar = RiskyStd**2
-
-    mu = math.log(RiskyAvg/(math.sqrt(1+RiskyVar/RiskyAvgSqrd)))
-    sigma = math.sqrt(math.log(1+RiskyVar/RiskyAvgSqrd))
-
-    return lambda: drawLognormal(1, mu=mu, sigma=sigma)
-
-def LogNormalRiskyDstnDraw(RiskyAvg=1.0, RiskyStd=0.0):
-    RiskyAvgSqrd = RiskyAvg**2
-    RiskyVar = RiskyStd**2
-
-    mu = math.log(RiskyAvg/(math.sqrt(1+RiskyVar/RiskyAvgSqrd)))
-    sigma = math.sqrt(math.log(1+RiskyVar/RiskyAvgSqrd))
-
-    return drawLognormal(1, mu=mu, sigma=sigma)
-
 class LogNormalPortfolioConsumerType(PortfolioConsumerType):
-
+    '''
+    A consumer type with a portfolio choice. This agent type has log-normal return
+    factors. Their problem is defined by a coefficient of relative risk aversion,
+    intertemporal discount factor, interest factor, and time sequences of the
+    permanent income growth rate, survival probability, and return factor averages
+    and standard deviations.
+    '''
 #    time_inv_ = PortfolioConsumerType.time_inv_ + ['approxRiskyDstn', 'RiskyCount', 'RiskyShareCount', 'RiskyShareLimitFunc', 'AdjustPrb', 'PortfolioGrid']
 
     def __init__(self,cycles=1,time_flow=True,verbose=False,quiet=False,**kwds):
@@ -1029,34 +1204,7 @@ class LogNormalPortfolioConsumerType(PortfolioConsumerType):
         # Needed to simulate. Is a function that given 0 inputs it returns a draw
         # from the risky asset distribution. Only one is needed, because everyone
         # draws the same shock.
-        self.drawRiskyFunc = RiskyDrawFactory(RiskyAvg=self.RiskyAvg,
+        self.drawRiskyFunc = LogNormalRiskyDstnDraw(RiskyAvg=self.RiskyAvg,
                                                  RiskyStd=self.RiskyStd)
 
-        self.RiskyShareLimitFunc = lambda _: PerfForesightLogNormalPortfolioShare(self.Rfree, self.RiskyAvg, self.RiskyStd, self.CRRA)
-
-def matchPortfolio(portType, moments):
-    """
-    Match a portfolio model to a set of moments. Requires that the simulations
-    produce `RiskyShareNow`.
-    """
-    return portType
-#    optimize...
-
-
-
-
-# def ConsIndShockPortfolioSolver(ConsIndShockSolver):
-#
-# #    def setAndUpdateValues(self):
-#         # great but wait
-#         #   calc sUnderbar -> mertonsammuelson
-#         #   calc MPC kappaUnderbar
-#         #   calc human wealth
-#
-
-####################
-####################
-####################
-####################
-
-###
+        self.RiskyShareLimitFunc = lambda _: _PerfForesightLogNormalPortfolioShare(self.Rfree, self.RiskyAvg, self.RiskyStd, self.CRRA)
