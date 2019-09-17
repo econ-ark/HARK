@@ -545,6 +545,8 @@ if __name__ == '__main__':
         LifecycleExample.track_vars = ['mNrmNow','cNrmNow','pLvlNow','t_age']
         LifecycleExample.initializeSim()
         LifecycleExample.simulate()
+#        plt.plot(np.linspace(0, 5, 10000), LifecycleExample.cNrmNow_hist[30])
+#        plt.show()
         
 ###############################################################################
     
@@ -616,4 +618,6 @@ if __name__ == '__main__':
         LaborIntMargExample.track_vars = ['bNrmNow', 'cNrmNow']
         LaborIntMargExample.initializeSim()
         LaborIntMargExample.simulate()
+#        plt.plot(np.linspace(0,100,10000), LaborIntMargExample.cNrmNow_hist[30])
+#        plt.show()
     
