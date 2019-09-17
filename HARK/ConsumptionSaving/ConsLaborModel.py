@@ -355,8 +355,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         MPCnow  = np.zeros(self.AgentCount) + np.nan
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            cNrmNow[these]  = self.solution[t].cFunc(self.bNrmNow[these], self.TranShkNow[these])
-            MPCnow[these] = self.solution[t].cFunc.derivativeX(self.bNrmNow[these], self.TranShkNow[these])
+            cNrmNow[these] = self.solution[t].cFunc(self.bNrmNow[these], self.TranShkNow[these]) # assign consumtion values
+            MPCnow[these] = self.solution[t].cFunc.derivativeX(self.bNrmNow[these], self.TranShkNow[these]) # assign Marginal propensity to consume values (derivative)
         self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow
         return None
