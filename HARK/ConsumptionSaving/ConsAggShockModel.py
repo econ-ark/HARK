@@ -105,8 +105,9 @@ class AggShockConsumerType(IndShockConsumerType):
         self.initializeSim()
         self.aLvlNow = self.kInit*np.ones(self.AgentCount)  # Start simulation near SS
         self.aNrmNow = self.aLvlNow/self.pLvlNow
-        
+
     def preSolve(self):
+#        AgentType.preSolve()
         self.updateSolutionTerminal()
 
     def updateSolutionTerminal(self):
