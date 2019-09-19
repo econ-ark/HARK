@@ -90,7 +90,7 @@ def multiThreadCommands(agent_list,command_list,num_jobs=None):
         num_jobs = min(len(agent_list),multiprocessing.cpu_count())
 
     # Send each command in command_list to each of the types in agent_list to be run
-    agent_list_out = Parallel(backend='multiprocessing',n_jobs=num_jobs)(delayed(runCommands)(*args) for args in zip(agent_list, len(agent_list)*[command_list]))
+    agent_list_out = Parallel(n_jobs=num_jobs)(delayed(runCommands)(*args) for args in zip(agent_list, len(agent_list)*[command_list]))
 
     # Replace the original types with the output from the parallel call
     for j in range(len(agent_list)):
