@@ -1318,7 +1318,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
                   
     def makeCubiccFunc(self,mNrm,cNrm):
         '''
-        Makes a cubic spline interpolation which contains the kink of the unconstrained 
+        Makes a cubic spline interpolation that contains the kink of the unconstrained 
         consumption function for this period.
 
         Parameters
@@ -1333,10 +1333,10 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         cFuncUnc : CubicInterp
             The unconstrained consumption function for this period.
         '''
-        # call the makeCubiccFunc from ConsIndShockSolver
+        # Call the makeCubiccFunc from ConsIndShockSolver.
         cFuncNowUncKink = super().makeCubiccFunc(mNrm, cNrm)
         
-        # change the coeffients at the kinked points
+        # Change the coeffients at the kinked points.
         cFuncNowUncKink.coeffs[self.i_kink + 1] = [cNrm[self.i_kink], mNrm[self.i_kink + 1] - mNrm[self.i_kink], 0, 0]
 
         return cFuncNowUncKink
@@ -1380,7 +1380,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # Make a 1D array of the interest factor at each asset gridpoint
         Rfree_vec         = self.Rsave*np.ones(aXtraCount)
         if KinkBool:
-            self.i_kink   = np.sum(aNrmNow<=0)-1 # save the index of the kink point as an attribute
+            self.i_kink   = np.sum(aNrmNow<=0)-1 # Save the index of the kink point as an attribute
             Rfree_vec[0:self.i_kink] = self.Rboro
         self.Rfree        = Rfree_vec
         Rfree_temp        = np.tile(Rfree_vec,(ShkCount,1))
