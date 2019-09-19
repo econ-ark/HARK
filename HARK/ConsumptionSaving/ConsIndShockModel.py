@@ -1316,7 +1316,6 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         -------
         None
         '''
-        assert CubicBool==False,'KinkedR will only work with linear interpolation (for now)'
         assert Rboro>=Rsave, 'Interest factor on debt less than interest factor on savings!'
 
         # Initialize the solver.  Most of the steps are exactly the same as in
@@ -1327,7 +1326,32 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # Assign the interest rates as class attributes, to use them later.
         self.Rboro   = Rboro
         self.Rsave   = Rsave
+                  
+    def makeCubiccFunc(self,mNrm,cNrm):
+        '''
+        Makes a cubic spline interpolation that contains the kink of the unconstrained 
+        consumption function for this period.
 
+        Parameters
+        ----------
+        mNrm : np.array
+            Corresponding market resource points for interpolation.
+        cNrm : np.array
+            Consumption points for interpolation.
+
+        Returns
+        -------
+        cFuncUnc : CubicInterp
+            The unconstrained consumption function for this period.
+        '''
+        # Call the makeCubiccFunc from ConsIndShockSolver.
+        cFuncNowUncKink = super().makeCubiccFunc(mNrm, cNrm)
+        
+        # Change the coeffients at the kinked points.
+        cFuncNowUncKink.coeffs[self.i_kink + 1] = [cNrm[self.i_kink], mNrm[self.i_kink + 1] - mNrm[self.i_kink], 0, 0]
+
+        return cFuncNowUncKink
+    
     def prepareToCalcEndOfPrdvP(self):
         '''
         Prepare to calculate end-of-period marginal value by creating an array
@@ -1367,7 +1391,8 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # Make a 1D array of the interest factor at each asset gridpoint
         Rfree_vec         = self.Rsave*np.ones(aXtraCount)
         if KinkBool:
-            Rfree_vec[0:(np.sum(aNrmNow<=0)-1)] = self.Rboro
+            self.i_kink   = np.sum(aNrmNow<=0)-1 # Save the index of the kink point as an attribute
+            Rfree_vec[0:self.i_kink] = self.Rboro
         self.Rfree        = Rfree_vec
         Rfree_temp        = np.tile(Rfree_vec,(ShkCount,1))
 
