@@ -987,7 +987,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         self.solveOnePeriod = solveConsGenIncProcess  # idiosyncratic shocks solver with explicit persistent income
 
     def preSolve(self):
-        AgentType.preSolve()
+#        AgentType.preSolve()
         self.updateSolutionTerminal()
 
     def update(self):
