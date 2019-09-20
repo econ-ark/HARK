@@ -771,6 +771,7 @@ class LinearInterp(HARKinterpolator1D):
 
 
         i      = np.maximum(np.searchsorted(self.x_list[:-1],x),1)
+#        print(len(self.x_list)) # To check x_list
         alpha  = (x-self.x_list[i-1])/(self.x_list[i]-self.x_list[i-1])
 
         if _eval:

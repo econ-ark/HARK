@@ -152,6 +152,7 @@ def solveConsLaborIntMarg(solution_next,PermShkDstn,TranShkDstn,LivPrb,DiscFac,C
     TranShkPrbs_rep = np.tile(np.reshape(TranShkPrbs,(1,TranShkCount)),(aXtraCount,1)) # Replicated transitory shock probabilities for each a_t state
     
     # Construct a function that gives marginal value of next period's bank balances *just before* the transitory shock arrives
+#    print(len(bNrmGrid_rep)) # to check bNrmGrid_rep that is passed into _eval0rder as x_list
     vPNext = vPfunc_next(bNrmGrid_rep, TranShkVals_rep) # Next period's marginal value at every transitory shock and every bank balances gridpoint           
     vPbarNext = np.sum(vPNext*TranShkPrbs_rep, axis = 1) # Integrate out the transitory shocks (in TranShkVals direction) to get expected vP just before the transitory shock
     vPbarNvrsNext = uPinv(vPbarNext) # Transformed marginal value through the inverse marginal utility function to "decurve" it
@@ -355,8 +356,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         MPCnow  = np.zeros(self.AgentCount) + np.nan
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            cNrmNow[these] = self.solution[t].cFunc(self.bNrmNow[these], self.TranShkNow[these]) # assign consumtion values
-            MPCnow[these] = self.solution[t].cFunc.derivativeX(self.bNrmNow[these], self.TranShkNow[these]) # assign Marginal propensity to consume values (derivative)
+            cNrmNow[these] = self.solution[t].cFunc(self.bNrmNow[these], self.TranShkNow[these]) # Assign consumtion values
+            MPCnow[these] = self.solution[t].cFunc.derivativeX(self.bNrmNow[these], self.TranShkNow[these]) # Assign Marginal propensity to consume values (derivative)
         self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow
         return None
@@ -517,37 +518,7 @@ if __name__ == '__main__':
     
     do_simulation           = True
     
-###############################################################################
 
-    # Make and solve an idiosyncratic shocks consumer with a finite lifecycle
-    LifecycleExample = IndShockConsumerType(**Params.init_lifecycle)
-    LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
-
-    start_time = clock()
-    LifecycleExample.solve()
-    end_time = clock()
-    print('Solving a lifecycle consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    LifecycleExample.unpackcFunc()
-    LifecycleExample.timeFwd()
-
-    # Plot the consumption functions during working life
-    print('Consumption functions while working:')
-    mMin = min([LifecycleExample.solution[t].mNrmMin for t in range(LifecycleExample.T_cycle)])
-    plotFuncs(LifecycleExample.cFunc[:LifecycleExample.T_retire],mMin,5)
-
-    # Plot the consumption functions during retirement
-    print('Consumption functions while retired:')
-    plotFuncs(LifecycleExample.cFunc[LifecycleExample.T_retire:],0,5)
-    LifecycleExample.timeRev()
-    
-    if do_simulation:
-        LifecycleExample.T_sim = 120
-        LifecycleExample.track_vars = ['mNrmNow','cNrmNow','pLvlNow','t_age']
-        LifecycleExample.initializeSim()
-        LifecycleExample.simulate()
-#        plt.plot(np.linspace(0, 5, 10000), LifecycleExample.cNrmNow_hist[30])
-#        plt.show()
-        
 ###############################################################################
     
     # Make and solve a labor intensive margin consumer i.e. a consumer with utility for leisure
@@ -620,4 +591,70 @@ if __name__ == '__main__':
         LaborIntMargExample.simulate()
 #        plt.plot(np.linspace(0,100,10000), LaborIntMargExample.cNrmNow_hist[30])
 #        plt.show()
+
+###############################################################################
+
+    # Make and solve a labor intensive margin consumer with a finite lifecycle
+    LifecycleExample = LaborIntMargConsumerType(**Params.init_labor_lifecycle)
+    LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
+
+    start_time = clock()
+    LifecycleExample.solve()
+    end_time = clock()
+    print('Solving a lifecycle labor intensive margin consumer took ' + str(end_time-start_time) + ' seconds.')
+    LifecycleExample.unpackcFunc()
+    LifecycleExample.timeFwd()
+
+    t = 0
+    bMax = 100.
     
+    # Plot the consumption function at various transitory productivity shocks
+    TranShkSet = LifecycleExample.TranShkGrid[t]
+    B = np.linspace(0.,bMax,300)
+    for Shk in TranShkSet:
+        B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
+        C = LifecycleExample.solution[t].cFunc(B_temp,Shk*np.ones_like(B_temp))
+        plt.plot(B_temp,C)
+    plt.xlabel('Beginning of period bank balances')
+    plt.ylabel('Normalized consumption level')
+    plt.show()
+    
+    # Plot the marginal consumption function at various transitory productivity shocks
+    TranShkSet = LifecycleExample.TranShkGrid[t]
+    B = np.linspace(0.,bMax,300)
+    for Shk in TranShkSet:
+        B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
+        C = LifecycleExample.solution[t].cFunc.derivativeX(B_temp,Shk*np.ones_like(B_temp))
+        plt.plot(B_temp,C)
+    plt.xlabel('Beginning of period bank balances')
+    plt.ylabel('Marginal propensity to consume')
+    plt.show()
+    
+    # Plot the labor function at various transitory productivity shocks
+    TranShkSet = LifecycleExample.TranShkGrid[t]
+    B = np.linspace(0.,bMax,300)
+    for Shk in TranShkSet:
+        B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
+        Lbr = LifecycleExample.solution[t].LbrFunc(B_temp,Shk*np.ones_like(B_temp))
+        plt.plot(B_temp,Lbr)
+    plt.xlabel('Beginning of period bank balances')
+    plt.ylabel('Labor supply')
+    plt.show()
+    
+    # Plot the marginal value function at various transitory productivity shocks
+    pseudo_inverse = True
+    TranShkSet = LifecycleExample.TranShkGrid[t]
+    B = np.linspace(0.,bMax,300)
+    for Shk in TranShkSet:
+        B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
+        if pseudo_inverse:
+            vP = LifecycleExample.solution[t].vPfunc.cFunc(B_temp,Shk*np.ones_like(B_temp))
+        else:
+            vP = LifecycleExample.solution[t].vPfunc(B_temp,Shk*np.ones_like(B_temp))
+        plt.plot(B_temp,vP)
+    plt.xlabel('Beginning of period bank balances')
+    if pseudo_inverse:
+        plt.ylabel('Pseudo inverse marginal value')
+    else:
+        plt.ylabel('Marginal value')
+    plt.show()
