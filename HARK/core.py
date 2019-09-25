@@ -53,7 +53,7 @@ def distanceMetric(thing_A, thing_B):
         else:
             distance = float(abs(lenA - lenB))
     # If both inputs are numbers, return their difference
-    elif (typeA is int or typeB is float) and (typeB is int or typeB is float):
+    elif isinstance(thing_A, (int, float)) and isinstance(thing_B, (int, float)):
         distance = float(abs(thing_A - thing_B))
     # If both inputs are array-like, return the maximum absolute difference b/w
     # corresponding elements (if same shape); return largest difference in dimensions
