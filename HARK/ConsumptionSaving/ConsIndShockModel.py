@@ -717,6 +717,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         self.MPCmaxNow    = 1.0/(1.0 + (self.WorstIncPrb**(1.0/self.CRRA))*
                                         self.PatFac/solution_next.MPCmax)
 
+        self.cFuncLimitIntercept = self.MPCminNow*self.hNrmNow
+        self.cFuncLimitSlope = self.MPCminNow
+
 
     def defBoroCnst(self,BoroCnstArt):
         '''
@@ -982,7 +985,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cFuncUnc : LinearInterp
             The unconstrained consumption function for this period.
         '''
-        cFuncUnc = LinearInterp(mNrm,cNrm,self.MPCminNow*self.hNrmNow,self.MPCminNow)
+        cFuncUnc = LinearInterp(mNrm, cNrm, self.cFuncLimitIntercept, self.cFuncLimitSlope)
         return cFuncUnc
 
     def solve(self):
@@ -1533,6 +1536,9 @@ class PerfForesightConsumerType(AgentType):
         self.quiet          = quiet
         self.solveOnePeriod = solvePerfForesight # solver for perfect foresight model
 
+
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def checkRestrictions(self):
         """

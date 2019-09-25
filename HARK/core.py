@@ -758,11 +758,11 @@ def solveAgent(agent, verbose):
     # Check to see whether this is an (in)finite horizon problem
     cycles_left      = agent.cycles # NOQA
     infinite_horizon = cycles_left == 0 # NOQA
-
     # Initialize the solution, which includes the terminal solution if it's not a pseudo-terminal period
     solution = []
     if not agent.pseudo_terminal:
         solution.append(deepcopy(agent.solution_terminal))
+
 
     # Initialize the process, then loop over cycles
     solution_last    = agent.solution_terminal # NOQA
