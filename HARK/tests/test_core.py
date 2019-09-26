@@ -73,22 +73,22 @@ class testHARKobject(unittest.TestCase):
         self.obj_b.var_1, self.obj_b.var_2, self.obj_b.var_3 = [1.8], [0, 0, 0.1], [1.1]
         self.assertEqual(self.obj_a.distance(self.obj_b), 1.7)
         # sanity check
-        self.assertEqual(self.obj_b.distance(self.obj_a), 0.0)
+        self.assertEqual(self.obj_b.distance(self.obj_b), 0.0)
 
 
-# class testAgentType(unittest.TestCase):
-#     def setUp(self):
-#         self.agent = AgentType()
+class testAgentType(unittest.TestCase):
+    def setUp(self):
+        self.agent = AgentType()
 
-#     def test_time(self):
-#         self.agent.time_vary = ['var_1', 'var_2']
-#         self.agent.var_1 = [4.3, 2, 1]
-#         self.agent.var_2 = [1, 2, 3, 4, 5]
-#         self.agent.timeFlip()
-#         self.assertEqual(self.agent.var_1, [1, 2, 4.3])
-#         self.assertEqual(self.agent.var_2, [5, 4, 3, 2, 1])
-#         self.assertEqual(self.agent.time_flow, True)
-#         self.agent.timeFlip()
-#         self.assertEqual(self.agent.var_1, [4.3, 2, 1])
-#         self.assertEqual(self.agent.var_2, [1, 2, 3, 4, 5])
-#         self.assertEqual(self.agent.time_flow, False)
+    def test_time(self):
+        self.agent.time_vary = ['var_1', 'var_2']
+        self.agent.var_1 = [4.3, 2, 1]
+        self.agent.var_2 = [1, 2, 3, 4, 5]
+        self.agent.timeFlip()
+        self.assertEqual(self.agent.var_1, [1, 2, 4.3])
+        self.assertEqual(self.agent.var_2, [5, 4, 3, 2, 1])
+        self.assertEqual(self.agent.time_flow, False)
+        self.agent.timeFlip()
+        self.assertEqual(self.agent.var_1, [4.3, 2, 1])
+        self.assertEqual(self.agent.var_2, [1, 2, 3, 4, 5])
+        self.assertEqual(self.agent.time_flow, True)

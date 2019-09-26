@@ -839,8 +839,9 @@ def solveOneCycle(agent, solution_last):
     '''
     # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
     if len(agent.time_vary) > 0:
-        name = agent.time_vary[0]
-        T = len(eval('agent.' + name))
+        # name = agent.time_vary[0]
+        # T = len(eval('agent.' + name))
+        T = len(agent.__dict__[agent.time_vary[0]])
     else:
         T = 1
 
