@@ -260,7 +260,7 @@ class AgentType(HARKobject):
         none
         '''
         for name in self.time_vary:
-            exec('self.' + name + '.reverse()')
+            self.__dict__[name].reverse()
         self.time_flow = not self.time_flow
 
     def timeFwd(self):
