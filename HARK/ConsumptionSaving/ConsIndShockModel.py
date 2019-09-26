@@ -1730,6 +1730,22 @@ class PerfForesightConsumerType(AgentType):
         self.aNrmNow = self.mNrmNow - self.cNrmNow
         self.aLvlNow = self.aNrmNow*self.pLvlNow   # Useful in some cases to precalculate asset level
         return None
+    
+    def preSolve(self):
+        '''
+        A method that is run immediately before the model is solved, to check inputs or to prepare
+        the terminal solution, perhaps.
+
+        Parameters
+        ----------
+        none
+
+        Returns
+        -------
+        none
+        '''
+        self.updateSolutionTerminal()
+        self.checkConditions(verbose=self.verbose,public_call=False)
 
     def checkConditions(self,verbose=False,verbose_reference=False,public_call=False):
         '''
@@ -1841,7 +1857,7 @@ class PerfForesightConsumerType(AgentType):
             violated = True
             if verbose:
                 print('Therefore, the limiting consumption function is c(m)=Infinity for all m')
-            priont()
+            print()
         if verbose and violated and verbose_reference:
             print('[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
