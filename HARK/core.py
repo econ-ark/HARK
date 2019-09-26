@@ -175,7 +175,7 @@ class AgentType(HARKobject):
     'solveOnePeriod' should appear in exactly one of these lists, depending on
     whether the same solution method is used in all periods of the model.
     '''
-    def __init__(self, solution_terminal=None, cycles=1, time_flow=False, pseudo_terminal=True,
+    def __init__(self, solution_terminal=None, cycles=1, time_flow=True, pseudo_terminal=True,
                  tolerance=0.000001, seed=0, **kwds):
         '''
         Initialize an instance of AgentType by setting attributes.
@@ -193,7 +193,7 @@ class AgentType(HARKobject):
             once before terminating.  cycles=0 corresponds to an infinite horizon
             model, with a sequence of one period problems repeating indefinitely.
         time_flow : boolean
-            Whether time is currently "flowing" forward or backward for this
+            Whether time is currently "flowing" forward(True) or backward(False) for this
             instance.  Used to flip between solving (using backward iteration)
             and simulating (etc).
         pseudo_terminal : boolean
