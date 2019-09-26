@@ -1539,6 +1539,7 @@ class PerfForesightConsumerType(AgentType):
 
     def preSolve(self):
         self.updateSolutionTerminal()
+        self.checkConditions(verbose=self.verbose,public_call=False)
 
     def checkRestrictions(self):
         """
@@ -1736,22 +1737,6 @@ class PerfForesightConsumerType(AgentType):
         self.aNrmNow = self.mNrmNow - self.cNrmNow
         self.aLvlNow = self.aNrmNow*self.pLvlNow   # Useful in some cases to precalculate asset level
         return None
-    
-    def preSolve(self):
-        '''
-        A method that is run immediately before the model is solved, to check inputs or to prepare
-        the terminal solution, perhaps.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        '''
-        self.updateSolutionTerminal()
-        self.checkConditions(verbose=self.verbose,public_call=False)
 
     def checkConditions(self,verbose=False,verbose_reference=False,public_call=False):
         '''
