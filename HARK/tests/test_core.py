@@ -55,14 +55,26 @@ class testdistanceMetric(unittest.TestCase):
         self.assertEqual(distanceMetric(self.obj_a, self.obj_a), 0.0)
 
 
-# class testHARKobject(unittest.TestCase):
-#     def setUp(self):
-#         self.obj_a = HARKobject()
-#         self.obj_b = HARKobject()
-#         self.obj_c = HARKobject()
+class testHARKobject(unittest.TestCase):
+    def setUp(self):
+        # similar test to distanceMetric
+        self.obj_a = HARKobject()
+        self.obj_b = HARKobject()
+        self.obj_c = HARKobject()
 
-#     def test_distance(self):
-#         self.assertRaises(AttributeError, self.obj_a.distance(self.obj_b))
+    def test_distance(self):
+        self.obj_a.distance_criteria = ["var_1", "var_2", "var_3"]
+        self.obj_b.distance_criteria = ["var_1", "var_2", "var_3"]
+        self.obj_c.distance_criteria = ["var_5"]
+        self.obj_a.var_1, self.obj_a.var_2, self.obj_a.var_3 = [0.1], [1, 2], [2.1]
+        self.obj_b.var_1, self.obj_b.var_2, self.obj_b.var_3 = [1.8], [0, 0.1], [1.1]
+        self.assertEqual(self.obj_a.distance(self.obj_b), 1.9)
+        # change the length of a attribute list
+        self.obj_b.var_1, self.obj_b.var_2, self.obj_b.var_3 = [1.8], [0, 0, 0.1], [1.1]
+        self.assertEqual(self.obj_a.distance(self.obj_b), 1.7)
+        # sanity check
+        self.assertEqual(self.obj_b.distance(self.obj_a), 0.0)
+
 
 # class testAgentType(unittest.TestCase):
 #     def setUp(self):
