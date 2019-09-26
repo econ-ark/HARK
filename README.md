@@ -130,11 +130,11 @@ You can retrieve the solution's consumption function from the `.cFunc` attribute
 PFexample.solution[0].cFunc
 ```
 
-Or you can retrieve the solved value for human wealth normalized by permanent income from the solution's `.hNm` attribute:
+Or you can retrieve the solved value for human wealth normalized by permanent income from the solution's `.hNrm` attribute:
 
 ```python
 # Retrieve the solved value for human wealth normalized by permanent income 
-PFexample.solution[0].hNm
+PFexample.solution[0].hNrm
 ```
 For a detailed explanation of the above example please see the demo notebook [*A Gentle Introduction to HARK*](https://mybinder.org/v2/gh/econ-ark/demos/master?filepath=notebooks%2FA+Gentle+Introduction+to+HARK.ipynb).
 
