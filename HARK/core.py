@@ -852,13 +852,16 @@ def solveOneCycle(agent, solution_last):
         these_args = getArgNames(solveOnePeriod)
 
     # Construct a dictionary to be passed to the solver
-    time_inv_string = ''
-    for name in agent.time_inv:
-        time_inv_string += ' \'' + name + '\' : agent.' + name + ','
-    time_vary_string = ''
-    for name in agent.time_vary:
-        time_vary_string += ' \'' + name + '\' : None,'
-    solve_dict = eval('{' + time_inv_string + time_vary_string + '}')
+    # time_inv_string = ''
+    # for name in agent.time_inv:
+    #     time_inv_string += ' \'' + name + '\' : agent.' + name + ','
+    # time_vary_string = ''
+    # for name in agent.time_vary:
+    #     time_vary_string += ' \'' + name + '\' : None,'
+    # solve_dict = eval('{' + time_inv_string + time_vary_string + '}')
+    time_inv_dict = {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
+    time_vary_dict = {parameter: None for parameter in agent.time_vary}
+    solve_dict = {**time_inv_dict, **time_vary_dict}
 
     # Initialize the solution for this cycle, then iterate on periods
     solution_cycle = []
