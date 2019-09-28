@@ -92,3 +92,19 @@ class testAgentType(unittest.TestCase):
         self.assertEqual(self.agent.var_1, [4.3, 2, 1])
         self.assertEqual(self.agent.var_2, [1, 2, 3, 4, 5])
         self.assertEqual(self.agent.time_flow, True)
+        self.agent.timeRev()
+        self.assertEqual(self.agent.time_flow, False)
+        self.agent.timeFwd()
+        self.assertEqual(self.agent.time_flow, True)
+
+    def test_solve(self):
+        self.agent.time_vary = ['vary_1']
+        self.agent.time_inv = ['inv_1']
+        self.agent.vary_1 = [1.1, 1.2, 1.3, 1.4]
+        self.agent.inv_1 = 1.05
+        # to test the superclass we create a dummy solveOnePeriod function
+        # for our agent, which doesn't do anything, instead of using a NullFunc
+        self.agent.solveOnePeriod = lambda vary_1: HARKobject()
+        self.agent.solve()
+        self.assertEqual(len(self.agent.solution), 4)
+        self.assertTrue(isinstance(self.agent.solution[0], HARKobject))
