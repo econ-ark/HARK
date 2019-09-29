@@ -1,5 +1,5 @@
 HARK  
-Version 0.10.1.dev3
+Version 0.10.1.dev5
 Release Notes  
 
 # Introduction
@@ -9,6 +9,22 @@ This document contains the release notes for the 0.10.1 version of HARK. HARK ai
 For more information on HARK, see [our Github organization](https://github.com/econ-ark).
 
 ## Changes
+
+### 0.10.1.dev5
+
+Release Date: 09-25-2019
+
+#### Minor Changes
+- Added portfolio choice between risky and safe assets (ConsPortfolioModel). ([#241](https://github.com/econ-ark/HARK/pull/241))
+
+### 0.10.1.dev4
+
+Release Date: 09-19-2019
+
+#### Minor Changes
+- Fixes cubic interpolation in KinkedRSolver. ([#386](https://github.com/econ-ark/HARK/pull/386))
+- Documentes the procedure for constructing value function inverses and fixes bug in which survival rate was not included in absolute patience factor. ([#383](https://github.com/econ-ark/HARK/pull/383))
+- Fixes problems that sometimes prevented multiprocessing from working. ([#377](https://github.com/econ-ark/HARK/pull/377))
 
 ### 0.10.1.dev3
 
