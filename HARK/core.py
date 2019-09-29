@@ -859,9 +859,8 @@ def solveOneCycle(agent, solution_last):
     # for name in agent.time_vary:
     #     time_vary_string += ' \'' + name + '\' : None,'
     # solve_dict = eval('{' + time_inv_string + time_vary_string + '}')
-    time_inv_dict = {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
-    time_vary_dict = {parameter: None for parameter in agent.time_vary}
-    solve_dict = {**time_inv_dict, **time_vary_dict}
+    solve_dict = {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
+    solve_dict.update({parameter: None for parameter in agent.time_vary})
 
     # Initialize the solution for this cycle, then iterate on periods
     solution_cycle = []
