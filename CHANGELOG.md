@@ -1,5 +1,5 @@
 HARK  
-Version 0.10.1.dev5
+Version 0.10.2
 Release Notes  
 
 # Introduction
@@ -9,6 +9,14 @@ This document contains the release notes for the 0.10.1 version of HARK. HARK ai
 For more information on HARK, see [our Github organization](https://github.com/econ-ark).
 
 ## Changes
+
+### 0.10.2
+
+Release Date: 10-03-2019
+
+#### Minor Changes
+- Add some bugfixes and unit tests to HARK.core. ([#401](https://github.com/econ-ark/HARK/pull/401))
+- Fix error in discrete portfolio choice's AdjustPrb. ([#391](https://github.com/econ-ark/HARK/pull/391))
 
 ### 0.10.1.dev5
 
