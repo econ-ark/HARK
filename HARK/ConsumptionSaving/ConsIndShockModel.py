@@ -434,8 +434,8 @@ class ConsPerfForesightSolver(object):
         '''
 
         # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
-        vFuncNvrsSlope = self.MPC**(-self.CRRA/(1.0-self.CRRA)) 
-        vFuncNvrs      = LinearInterp(np.array([self.mNrmMin, self.mNrmMin+1.0]),np.array([0.0, vFuncNvrsSlope]))
+        vFuncNvrsSlope = self.MPCmin**(-self.CRRA/(1.0-self.CRRA)) 
+        vFuncNvrs      = LinearInterp(np.array([self.mNrmMinNow, self.mNrmMinNow+1.0]),np.array([0.0, vFuncNvrsSlope]))
         self.vFunc     = ValueFunc(vFuncNvrs,self.CRRA)
         self.vPfunc    = MargValueFunc(self.cFunc,self.CRRA)
 
