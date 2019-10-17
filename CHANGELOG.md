@@ -1,5 +1,5 @@
 HARK  
-Version 0.10.1.dev1
+Version 0.10.2
 Release Notes  
 
 # Introduction
@@ -9,6 +9,44 @@ This document contains the release notes for the 0.10.1 version of HARK. HARK ai
 For more information on HARK, see [our Github organization](https://github.com/econ-ark).
 
 ## Changes
+
+### 0.10.2
+
+Release Date: 10-03-2019
+
+#### Minor Changes
+- Add some bugfixes and unit tests to HARK.core. ([#401](https://github.com/econ-ark/HARK/pull/401))
+- Fix error in discrete portfolio choice's AdjustPrb. ([#391](https://github.com/econ-ark/HARK/pull/391))
+
+### 0.10.1.dev5
+
+Release Date: 09-25-2019
+
+#### Minor Changes
+- Added portfolio choice between risky and safe assets (ConsPortfolioModel). ([#241](https://github.com/econ-ark/HARK/pull/241))
+
+### 0.10.1.dev4
+
+Release Date: 09-19-2019
+
+#### Minor Changes
+- Fixes cubic interpolation in KinkedRSolver. ([#386](https://github.com/econ-ark/HARK/pull/386))
+- Documentes the procedure for constructing value function inverses and fixes bug in which survival rate was not included in absolute patience factor. ([#383](https://github.com/econ-ark/HARK/pull/383))
+- Fixes problems that sometimes prevented multiprocessing from working. ([#377](https://github.com/econ-ark/HARK/pull/377))
+
+### 0.10.1.dev3
+
+Release Date: 07-23-2019
+
+#### Minor Changes
+- Missed pre-solve fix (see [#363](https://github.com/econ-ark/HARK/pull/363) for more context). ([#367](https://github.com/econ-ark/HARK/pull/367))
+
+### 0.10.1.dev2
+
+Release Date: 07-22-2019
+
+#### Minor Changes
+- Revert pre-solve commit due to bug.  ([#363](https://github.com/econ-ark/HARK/pull/363))
 
 ### 0.10.1.dev1
 
