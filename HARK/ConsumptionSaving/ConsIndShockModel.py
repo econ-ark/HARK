@@ -1847,7 +1847,7 @@ class PerfForesightConsumerType(AgentType):
             violated = True
             if verbose:
                 print('Therefore, the limiting consumption function is c(m)=Infinity for all m')
-            priont()
+            print()
         if verbose and violated and verbose_reference:
             print('[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
