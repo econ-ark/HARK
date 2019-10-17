@@ -21,7 +21,6 @@ import HARK.ConsumptionSaving.ConsIndShockModel as Model
 from HARK.ConsumptionSaving.ConsAggShockModel import CobbDouglasEconomy, AggShockConsumerType
 from scipy.optimize import golden, brentq
 import matplotlib.pyplot as plt
-#import csv
 
 mystr = lambda number : "{:.3f}".format(number)
 
@@ -88,6 +87,9 @@ class cstwMPCmarket(EstimationMarketClass):
         '''
         Make a new instance of cstwMPCmarket.
         '''
+        super().__init__(sow_vars=self.sow_vars, reap_vars=self.reap_vars,
+                    const_vars=self.const_vars, track_vars=self.track_vars,
+                    dyn_vars=self.dyn_vars)
         self.assignParameters(**kwds)
         if self.AggShockBool:
             self.sow_vars=['MaggNow','AaggNow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow','KtoLnow']
@@ -380,7 +382,6 @@ class cstwMPCmarket(EstimationMarketClass):
         if spec_name is not None:
             with open(self.my_file_path  + '/Results/' + spec_name + 'Results.txt','w') as f:
                 f.write(results_string)
-                f.close()
 
 
 def getKYratioDifference(Economy,param_name,param_count,center,spread,dist_type):
