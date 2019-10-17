@@ -717,6 +717,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         self.MPCmaxNow    = 1.0/(1.0 + (self.WorstIncPrb**(1.0/self.CRRA))*
                                         self.PatFac/solution_next.MPCmax)
 
+        self.cFuncLimitIntercept = self.MPCminNow*self.hNrmNow
+        self.cFuncLimitSlope = self.MPCminNow
+
 
     def defBoroCnst(self,BoroCnstArt):
         '''
@@ -982,7 +985,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cFuncUnc : LinearInterp
             The unconstrained consumption function for this period.
         '''
-        cFuncUnc = LinearInterp(mNrm,cNrm,self.MPCminNow*self.hNrmNow,self.MPCminNow)
+        cFuncUnc = LinearInterp(mNrm, cNrm, self.cFuncLimitIntercept, self.cFuncLimitSlope)
         return cFuncUnc
 
     def solve(self):
@@ -1534,6 +1537,9 @@ class PerfForesightConsumerType(AgentType):
         self.solveOnePeriod = solvePerfForesight # solver for perfect foresight model
 
 
+    def preSolve(self):
+        self.updateSolutionTerminal()
+
     def checkRestrictions(self):
         """
         A method to check that various restrictions are met for the model class.
@@ -1841,7 +1847,7 @@ class PerfForesightConsumerType(AgentType):
             violated = True
             if verbose:
                 print('Therefore, the limiting consumption function is c(m)=Infinity for all m')
-            priont()
+            print()
         if verbose and violated and verbose_reference:
             print('[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 

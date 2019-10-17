@@ -53,7 +53,7 @@ def distanceMetric(thing_A, thing_B):
         else:
             distance = float(abs(lenA - lenB))
     # If both inputs are numbers, return their difference
-    elif (typeA is int or typeB is float) and (typeB is int or typeB is float):
+    elif isinstance(thing_A, (int, float)) and isinstance(thing_B, (int, float)):
         distance = float(abs(thing_A - thing_B))
     # If both inputs are array-like, return the maximum absolute difference b/w
     # corresponding elements (if same shape); return largest difference in dimensions
@@ -62,7 +62,8 @@ def distanceMetric(thing_A, thing_B):
         if thing_A.shape == thing_B.shape:
             distance = np.max(abs(thing_A - thing_B))
         else:
-            distance = np.max(abs(thing_A.shape - thing_B.shape))
+            # Flatten arrays so there are in the same dimensions
+            distance = np.max(abs(thing_A.flatten().shape[0] - thing_B.flatten().shape[0]))
     # If none of the above cases, but the objects are of the same class, call
     # the distance method of one on the other
     elif thing_A.__class__.__name__ == thing_B.__class__.__name__:
@@ -174,7 +175,7 @@ class AgentType(HARKobject):
     'solveOnePeriod' should appear in exactly one of these lists, depending on
     whether the same solution method is used in all periods of the model.
     '''
-    def __init__(self, solution_terminal=None, cycles=1, time_flow=False, pseudo_terminal=True,
+    def __init__(self, solution_terminal=None, cycles=1, time_flow=True, pseudo_terminal=True,
                  tolerance=0.000001, seed=0, **kwds):
         '''
         Initialize an instance of AgentType by setting attributes.
@@ -192,7 +193,7 @@ class AgentType(HARKobject):
             once before terminating.  cycles=0 corresponds to an infinite horizon
             model, with a sequence of one period problems repeating indefinitely.
         time_flow : boolean
-            Whether time is currently "flowing" forward or backward for this
+            Whether time is currently "flowing" forward(True) or backward(False) for this
             instance.  Used to flip between solving (using backward iteration)
             and simulating (etc).
         pseudo_terminal : boolean
@@ -259,7 +260,7 @@ class AgentType(HARKobject):
         none
         '''
         for name in self.time_vary:
-            exec('self.' + name + '.reverse()')
+            self.__dict__[name].reverse()
         self.time_flow = not self.time_flow
 
     def timeFwd(self):
@@ -497,7 +498,8 @@ class AgentType(HARKobject):
         None
         '''
         if not hasattr(self, 'solution'):
-            raise Exception('Model instance does not have a solution stored. To simulate, it is necessary to run the `solve()` method of the class first.')
+            raise Exception('Model instance does not have a solution stored. To simulate, it is necessary'
+                            ' to run the `solve()` method of the class first.')
 
         self.getMortality()  # Replace some agents with "newborns"
         if self.read_shocks:  # If shock histories have been pre-specified, use those
@@ -780,11 +782,11 @@ def solveAgent(agent, verbose):
     # Check to see whether this is an (in)finite horizon problem
     cycles_left      = agent.cycles # NOQA
     infinite_horizon = cycles_left == 0 # NOQA
-
     # Initialize the solution, which includes the terminal solution if it's not a pseudo-terminal period
     solution = []
     if not agent.pseudo_terminal:
         solution.append(deepcopy(agent.solution_terminal))
+
 
     # Initialize the process, then loop over cycles
     solution_last    = agent.solution_terminal # NOQA
@@ -861,8 +863,9 @@ def solveOneCycle(agent, solution_last):
     '''
     # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
     if len(agent.time_vary) > 0:
-        name = agent.time_vary[0]
-        T = len(eval('agent.' + name))
+        # name = agent.time_vary[0]
+        # T = len(eval('agent.' + name))
+        T = len(agent.__dict__[agent.time_vary[0]])
     else:
         T = 1
 
@@ -873,13 +876,15 @@ def solveOneCycle(agent, solution_last):
         these_args = getArgNames(solveOnePeriod)
 
     # Construct a dictionary to be passed to the solver
-    time_inv_string = ''
-    for name in agent.time_inv:
-        time_inv_string += ' \'' + name + '\' : agent.' + name + ','
-    time_vary_string = ''
-    for name in agent.time_vary:
-        time_vary_string += ' \'' + name + '\' : None,'
-    solve_dict = eval('{' + time_inv_string + time_vary_string + '}')
+    # time_inv_string = ''
+    # for name in agent.time_inv:
+    #     time_inv_string += ' \'' + name + '\' : agent.' + name + ','
+    # time_vary_string = ''
+    # for name in agent.time_vary:
+    #     time_vary_string += ' \'' + name + '\' : None,'
+    # solve_dict = eval('{' + time_inv_string + time_vary_string + '}')
+    solve_dict = {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
+    solve_dict.update({parameter: None for parameter in agent.time_vary})
 
     # Initialize the solution for this cycle, then iterate on periods
     solution_cycle = []
@@ -893,7 +898,8 @@ def solveOneCycle(agent, solution_last):
         # Update time-varying single period inputs
         for name in agent.time_vary:
             if name in these_args:
-                solve_dict[name] = eval('agent.' + name + '[t]')
+                # solve_dict[name] = eval('agent.' + name + '[t]')
+                solve_dict[name] = agent.__dict__[name][t]
         solve_dict['solution_next'] = solution_next
 
         # Make a temporary dictionary for this period
@@ -1354,7 +1360,6 @@ def copy_module_to_local(full_module_name):
         'q' or return/enter to quit the process
         'y' to accept the default home directory: """+home_directory_with_module+"""
         'n' to specify your own pathname\n\n""")
-
 
     if target_path == 'n' or target_path == 'N':
         target_path = input("""Please enter the full pathname to your target directory location: """)
