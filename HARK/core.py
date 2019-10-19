@@ -62,7 +62,7 @@ def distanceMetric(thing_A, thing_B):
         if thing_A.shape == thing_B.shape:
             distance = np.max(abs(thing_A - thing_B))
         else:
-            # Flatten arrays so there are in the same dimensions
+            # Flatten arrays so they have the same dimensions
             distance = np.max(abs(thing_A.flatten().shape[0] - thing_B.flatten().shape[0]))
     # If none of the above cases, but the objects are of the same class, call
     # the distance method of one on the other
