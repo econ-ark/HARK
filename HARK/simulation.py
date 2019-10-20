@@ -39,7 +39,7 @@ def drawMeanOneLognormal(N, sigma=1.0, seed=0):
 
 def drawLognormal(N,mu=0.0,sigma=1.0,seed=0):
     '''
-    Generate arrays of mean one lognormal draws. The sigma input can be a number
+    Generate arrays of lognormal draws. The sigma input can be a number
     or list-like.  If a number, output is a length N array of draws from the
     lognormal distribution with standard deviation sigma. If a list, output is
     a length T list whose t-th entry is a length N array of draws from the
