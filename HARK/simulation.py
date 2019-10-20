@@ -33,15 +33,9 @@ def drawMeanOneLognormal(N, sigma=1.0, seed=0):
     # Set up the RNG
     RNG = np.random.RandomState(seed)
 
-    if isinstance(sigma,float): # Return a single array of length N
-        mu = -0.5*sigma**2
-        draws = RNG.lognormal(mean=mu, sigma=sigma, size=N)
-    else: # Set up empty list to populate, then loop and populate list with draws
-        draws=[]
-        for sig in sigma:
-            mu = -0.5*(sig**2)
-            draws.append(RNG.lognormal(mean=mu, sigma=sig, size=N))
-    return draws
+    mu = -0.5*sigma**2
+
+    return drawLognormal(N,mu=mu,sigma=sigma,seed=seed)
 
 def drawLognormal(N,mu=0.0,sigma=1.0,seed=0):
     '''
