@@ -30,9 +30,6 @@ def drawMeanOneLognormal(N, sigma=1.0, seed=0):
         T-length list of arrays of mean one lognormal draws each of size N, or
         a single array of size N (if sigma is a scalar).
     '''
-    # Set up the RNG
-    RNG = np.random.RandomState(seed)
-
     mu = -0.5*sigma**2
 
     return drawLognormal(N,mu=mu,sigma=sigma,seed=seed)
