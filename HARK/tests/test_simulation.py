@@ -1,10 +1,11 @@
-import unittest, sys
+import unittest
 
 import HARK.simulation as simulation
 
 class SimulationTests(unittest.TestCase):
     '''
-    Tests for ....
+    Tests for simulation.py sampling distributions
+    with default seed.
     '''
 
     def test_drawMeanOneLognormal(self):
