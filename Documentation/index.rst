@@ -40,11 +40,6 @@ Welcome to HARK's documentation!
    HARK.BayerLuetticke.Assets.Two.defineSSParametersTwoAsset
    HARK.BayerLuetticke.BayerLuetticke_wrapper
    HARK.BayerLuetticke.ConsIndShockModel_extension
-   HARK.BayerLuetticke.notebooks.DCT-Copula-Illustration.ipynb
-   HARK.BayerLuetticke.notebooks.DCT-Copula-Illustration
-   HARK.BayerLuetticke.notebooks.DCT.ipynb
-   HARK.BayerLuetticke.notebooks.OneAsset-HANK.ipynb
-   HARK.BayerLuetticke.notebooks.TwoAsset.ipynb
    HARK.ConsumptionSaving.ConsAggShockModel
    HARK.ConsumptionSaving.ConsGenIncProcessModel
    HARK.ConsumptionSaving.ConsIndShockModel
