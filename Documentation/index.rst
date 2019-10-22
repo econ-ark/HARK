@@ -25,15 +25,12 @@ Welcome to HARK's documentation!
 
    HARK.BayerLuetticke.Assets.One.FluctuationsOneAssetIOUs
    HARK.BayerLuetticke.Assets.One.FluctuationsOneAssetIOUsBond
-   HARK.BayerLuetticke.Assets.One.Luetticke_wrapper
    HARK.BayerLuetticke.Assets.One.SharedFunc
    HARK.BayerLuetticke.Assets.One.SharedFunc2
    HARK.BayerLuetticke.Assets.One.SteadyStateOneAssetIOUs
    HARK.BayerLuetticke.Assets.One.SteadyStateOneAssetIOUsBond
    HARK.BayerLuetticke.Assets.One.defineSSParameters
    HARK.BayerLuetticke.Assets.One.defineSSParametersIOUsBond
-   HARK.BayerLuetticke.Assets.Two.EX3SS_20_python2.p
-   HARK.BayerLuetticke.Assets.Two.EX3SS_20_python3.p
    HARK.BayerLuetticke.Assets.Two.FluctuationsTwoAsset
    HARK.BayerLuetticke.Assets.Two.SharedFunc3
    HARK.BayerLuetticke.Assets.Two.SteadyStateTwoAsset
@@ -56,8 +53,6 @@ Welcome to HARK's documentation!
    HARK.SolvingMicroDSOPs.Calibration.SetupSCFdata
    HARK.SolvingMicroDSOPs.Code.StructEstimation
    HARK.SolvingMicroDSOPs.do_all
-   HARK.cAndCwithStickyE.StickyE_MAIN
-   HARK.cAndCwithStickyE.StickyE_NO_MARKOV
    HARK.cAndCwithStickyE.StickyEmodel
    HARK.cAndCwithStickyE.StickyEparams
    HARK.cAndCwithStickyE.StickyEtools
