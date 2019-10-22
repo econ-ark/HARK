@@ -62,10 +62,6 @@ Welcome to HARK's documentation!
    HARK.cAndCwithStickyE.StickyEparams
    HARK.cAndCwithStickyE.StickyEtools
    HARK.core
-   HARK.cstwMPC.MakeCSTWfigs
-   HARK.cstwMPC.MakeCSTWfigsForSlides
-   HARK.cstwMPC.Results.BetaDistPYResults_py3.txt
-   HARK.cstwMPC.SetupParamsCSTW
    HARK.cstwMPC.cstwMPC
    HARK.dcegm
    HARK.estimation
