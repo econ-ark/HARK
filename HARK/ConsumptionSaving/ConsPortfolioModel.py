@@ -285,11 +285,12 @@ class PortfolioSolution(Solution):
                        vPfunc=None, RiskyShareFunc=None, vPPfunc=None,
                        mNrmMin=None, hNrm=None, MPCmin=None, MPCmax=None):
         """We implement three different ways to allow portfolio choice.
-           The agent can choose
-              * any portfolio share ('continuous choice')
-              * only a specified set of portfolio shares ('discrete choice')
-                * With probability 1 (agent always gets to choose)
-                * With probability 0 < p < 1 (stochastic chance to choose)
+           The agent can choose:
+
+           * any portfolio share ('continuous choice')
+           * only a specified set of portfolio shares ('discrete shares'):
+             * With probability 1 (agent always gets to choose)
+             * With probability 0 < p < 1 (stochastic chance to choose)
 
            We allow two choices for the description of the
            distribution of the stochastic variable:
@@ -298,13 +299,13 @@ class PortfolioSolution(Solution):
            2. A true lognormal distribution
               * The mean return and the standard deviation are specified
 
-           In the discrete portfolio shares case, the user also must
-           input a function that *draws* from the distribution in drawRiskyFunc
+           In the discrete shares case, the user also must input a function that draws
+           from the distribution in drawRiskyFunc
 
            Other assumptions:
-              * distributions are time constant
-              * probability of being allowed to reoptimize is time constant
-                 * If p < 1, you must specify the PortfolioSet discretely
+           * distributions are time constant
+           * probability of being allowed to reoptimize is time constant
+              * If p < 1, you must specify the PortfolioSet discretely
         """
         # Change any missing function inputs to NullFunc
         if cFunc is None:
