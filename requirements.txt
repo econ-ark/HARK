@@ -12,3 +12,4 @@ funcsigs
 jupyter
 sphinx-rtd-theme
 nbsphinx
+recommonmark
