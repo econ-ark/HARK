@@ -154,7 +154,10 @@ setup(
                       'joblib',
                       'future',  # Optional
                       'funcsigs',
-                      'jupyter'],
+                      'jupyter',
+                      'nbsphinx',
+                      'recommonmark'
+    ],
 
     python_requires='>=2.7',
 
