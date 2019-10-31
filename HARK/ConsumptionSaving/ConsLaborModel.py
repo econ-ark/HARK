@@ -338,6 +338,43 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         None
         '''
         raise NotImplementedError()
+        
+    def getControls(self):
+        '''
+        Calculates consumption for each consumer of this type using the consumption functions.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        cNrmNow = np.zeros(self.AgentCount) + np.nan
+        MPCnow  = np.zeros(self.AgentCount) + np.nan
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            cNrmNow[these] = self.solution[t].cFunc(self.bNrmNow[these], self.TranShkNow[these]) # Assign consumtion values
+            MPCnow[these] = self.solution[t].cFunc.derivativeX(self.bNrmNow[these], self.TranShkNow[these]) # Assign Marginal propensity to consume values (derivative)
+        self.cNrmNow = cNrmNow
+        self.MPCnow = MPCnow
+        return None
+        
+    def getPostStates(self):
+        '''
+        Calculates end-of-period assets for each consumer of this type.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        self.mNrmNow = self.bNrmNow + LaborIntMargExample.solution[t].LbrFunc(self.bNrmNow, self.TranShkNow)*self.TranShkNow 
+        return None
 
 
     def updateTranShkGrid(self):
@@ -472,10 +509,16 @@ class LaborIntMargConsumerType(IndShockConsumerType):
 ###############################################################################
           
 if __name__ == '__main__':
-    import ConsumerParametersTM as Params    # Parameters for a consumer type
+    import HARK.ConsumptionSaving.ConsumerParameters as Params    # Parameters for a consumer type
+    from HARK.utilities import plotFuncsDer, plotFuncs
     import matplotlib.pyplot as plt
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)     # Format numbers as strings
+    
+    do_simulation           = True
+    
+
+###############################################################################
     
     # Make and solve a labor intensive margin consumer i.e. a consumer with utility for leisure
     LaborIntMargExample = LaborIntMargConsumerType(**Params.init_labor_intensive)
@@ -538,5 +581,112 @@ if __name__ == '__main__':
         plt.ylabel('Pseudo inverse marginal value')
     else:
         plt.ylabel('Marginal value')
+    plt.show()
+    
+    if do_simulation:
+        LaborIntMargExample.T_sim = 120 # Set number of simulation periods
+        LaborIntMargExample.track_vars = ['bNrmNow', 'cNrmNow']
+        LaborIntMargExample.initializeSim()
+        LaborIntMargExample.simulate()
+#        plt.plot(np.linspace(0,100,10000), LaborIntMargExample.cNrmNow_hist[30])
+#        plt.show()
+
+###############################################################################
+
+    # Make and solve a labor intensive margin consumer with a finite lifecycle
+    LifecycleExample = LaborIntMargConsumerType(**Params.init_labor_lifecycle)
+    LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
+
+    start_time = clock()
+    LifecycleExample.solve()
+    end_time = clock()
+    print('Solving a lifecycle labor intensive margin consumer took ' + str(end_time-start_time) + ' seconds.')
+    LifecycleExample.unpackcFunc()
+    LifecycleExample.timeFwd()
+
+    bMax = 20.
+    
+    # Plot the consumption function in each period of the lifecycle, using median shock
+    B = np.linspace(0.,bMax,300)
+    b_min = np.inf
+    b_max = -np.inf
+    for t in range(LifecycleExample.T_cycle):
+        TranShkSet = LifecycleExample.TranShkGrid[t]
+        Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
+        B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
+        C = LifecycleExample.solution[t].cFunc(B_temp,Shk*np.ones_like(B_temp))
+        plt.plot(B_temp, C)
+        b_min = np.minimum(b_min, B_temp[0])
+        b_max = np.maximum(b_min, B_temp[-1])
+    plt.title('Consumption function across periods of the lifecycle')
+    plt.xlabel('Beginning of period bank balances')
+    plt.ylabel('Normalized consumption level')
+    plt.xlim(b_min, b_max)
+    plt.ylim(0., None)
+    plt.show()
+    
+    # Plot the marginal consumption function in each period of the lifecycle, using median shock
+    B = np.linspace(0.,bMax,300)
+    b_min = np.inf
+    b_max = -np.inf
+    for t in range(LifecycleExample.T_cycle):
+        TranShkSet = LifecycleExample.TranShkGrid[t]
+        Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
+        B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
+        MPC = LifecycleExample.solution[t].cFunc.derivativeX(B_temp,Shk*np.ones_like(B_temp))
+        plt.plot(B_temp, MPC)
+        b_min = np.minimum(b_min, B_temp[0])
+        b_max = np.maximum(b_min, B_temp[-1])
+    plt.title('Marginal consumption function across periods of the lifecycle')
+    plt.xlabel('Beginning of period bank balances')
+    plt.ylabel('Marginal propensity to consume')
+    plt.xlim(b_min, b_max)
+    plt.ylim(0., 1.)
+    plt.show()
+    
+    # Plot the labor supply function in each period of the lifecycle, using median shock
+    B = np.linspace(0.,bMax,300)
+    b_min = np.inf
+    b_max = -np.inf
+    for t in range(LifecycleExample.T_cycle):
+        TranShkSet = LifecycleExample.TranShkGrid[t]
+        Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
+        B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
+        L = LifecycleExample.solution[t].LbrFunc(B_temp,Shk*np.ones_like(B_temp))
+        plt.plot(B_temp, L)
+        b_min = np.minimum(b_min, B_temp[0])
+        b_max = np.maximum(b_min, B_temp[-1])
+    plt.title('Labor supply function across periods of the lifecycle')
+    plt.xlabel('Beginning of period bank balances')
+    plt.ylabel('Labor supply')
+    plt.xlim(b_min, b_max)
+    plt.ylim(0., 1.01)
+    plt.show()
+    
+    # Plot the marginal value function at various transitory productivity shocks
+    pseudo_inverse = True
+    TranShkSet = LifecycleExample.TranShkGrid[t]
+    B = np.linspace(0.,bMax,300)
+    b_min = np.inf
+    b_max = -np.inf
+    for t in range(LifecycleExample.T_cycle):
+        TranShkSet = LifecycleExample.TranShkGrid[t]
+        Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
+        B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
+        if pseudo_inverse:
+            vP = LifecycleExample.solution[t].vPfunc.cFunc(B_temp,Shk*np.ones_like(B_temp))
+        else:
+            vP = LifecycleExample.solution[t].vPfunc(B_temp,Shk*np.ones_like(B_temp))
+        plt.plot(B_temp,vP)
+        b_min = np.minimum(b_min, B_temp[0])
+        b_max = np.maximum(b_min, B_temp[-1])
+    plt.xlabel('Beginning of period bank balances')
+    if pseudo_inverse:
+        plt.ylabel('Pseudo inverse marginal value')
+    else:
+        plt.ylabel('Marginal value')
+    plt.title('Marginal value across periods of the lifecycle')
+    plt.xlim(b_min, b_max)
+    plt.ylim(0., None)
     plt.show()
     
