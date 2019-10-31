@@ -1,3 +1,3 @@
-# HARK Project Governance
+# Econ-ARK Project Governance
 
-This document is not yet drafted. Please contact the [TSC](./README.md#tsc-technical-steering-committee) if you have any questions.
+Econ-ARK project governance is still being drafted. Please refer to the [**Technical Steering Commitee**]() for questions.
