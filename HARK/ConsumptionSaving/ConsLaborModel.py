@@ -604,56 +604,89 @@ if __name__ == '__main__':
     LifecycleExample.unpackcFunc()
     LifecycleExample.timeFwd()
 
-    t = 0
-    bMax = 100.
+    bMax = 20.
     
-    # Plot the consumption function at various transitory productivity shocks
-    TranShkSet = LifecycleExample.TranShkGrid[t]
+    # Plot the consumption function in each period of the lifecycle, using median shock
     B = np.linspace(0.,bMax,300)
-    for Shk in TranShkSet:
+    b_min = np.inf
+    b_max = -np.inf
+    for t in range(LifecycleExample.T_cycle):
+        TranShkSet = LifecycleExample.TranShkGrid[t]
+        Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
         B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
         C = LifecycleExample.solution[t].cFunc(B_temp,Shk*np.ones_like(B_temp))
-        plt.plot(B_temp,C)
+        plt.plot(B_temp, C)
+        b_min = np.minimum(b_min, B_temp[0])
+        b_max = np.maximum(b_min, B_temp[-1])
+    plt.title('Consumption function across periods of the lifecycle')
     plt.xlabel('Beginning of period bank balances')
     plt.ylabel('Normalized consumption level')
+    plt.xlim(b_min, b_max)
+    plt.ylim(0., None)
     plt.show()
     
-    # Plot the marginal consumption function at various transitory productivity shocks
-    TranShkSet = LifecycleExample.TranShkGrid[t]
+    # Plot the marginal consumption function in each period of the lifecycle, using median shock
     B = np.linspace(0.,bMax,300)
-    for Shk in TranShkSet:
+    b_min = np.inf
+    b_max = -np.inf
+    for t in range(LifecycleExample.T_cycle):
+        TranShkSet = LifecycleExample.TranShkGrid[t]
+        Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
         B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
-        C = LifecycleExample.solution[t].cFunc.derivativeX(B_temp,Shk*np.ones_like(B_temp))
-        plt.plot(B_temp,C)
+        MPC = LifecycleExample.solution[t].cFunc.derivativeX(B_temp,Shk*np.ones_like(B_temp))
+        plt.plot(B_temp, MPC)
+        b_min = np.minimum(b_min, B_temp[0])
+        b_max = np.maximum(b_min, B_temp[-1])
+    plt.title('Marginal consumption function across periods of the lifecycle')
     plt.xlabel('Beginning of period bank balances')
     plt.ylabel('Marginal propensity to consume')
+    plt.xlim(b_min, b_max)
+    plt.ylim(0., 1.)
     plt.show()
     
-    # Plot the labor function at various transitory productivity shocks
-    TranShkSet = LifecycleExample.TranShkGrid[t]
+    # Plot the labor supply function in each period of the lifecycle, using median shock
     B = np.linspace(0.,bMax,300)
-    for Shk in TranShkSet:
+    b_min = np.inf
+    b_max = -np.inf
+    for t in range(LifecycleExample.T_cycle):
+        TranShkSet = LifecycleExample.TranShkGrid[t]
+        Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
         B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
-        Lbr = LifecycleExample.solution[t].LbrFunc(B_temp,Shk*np.ones_like(B_temp))
-        plt.plot(B_temp,Lbr)
+        L = LifecycleExample.solution[t].LbrFunc(B_temp,Shk*np.ones_like(B_temp))
+        plt.plot(B_temp, L)
+        b_min = np.minimum(b_min, B_temp[0])
+        b_max = np.maximum(b_min, B_temp[-1])
+    plt.title('Labor supply function across periods of the lifecycle')
     plt.xlabel('Beginning of period bank balances')
     plt.ylabel('Labor supply')
+    plt.xlim(b_min, b_max)
+    plt.ylim(0., 1.01)
     plt.show()
     
     # Plot the marginal value function at various transitory productivity shocks
     pseudo_inverse = True
     TranShkSet = LifecycleExample.TranShkGrid[t]
     B = np.linspace(0.,bMax,300)
-    for Shk in TranShkSet:
+    b_min = np.inf
+    b_max = -np.inf
+    for t in range(LifecycleExample.T_cycle):
+        TranShkSet = LifecycleExample.TranShkGrid[t]
+        Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
         B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
         if pseudo_inverse:
             vP = LifecycleExample.solution[t].vPfunc.cFunc(B_temp,Shk*np.ones_like(B_temp))
         else:
             vP = LifecycleExample.solution[t].vPfunc(B_temp,Shk*np.ones_like(B_temp))
         plt.plot(B_temp,vP)
+        b_min = np.minimum(b_min, B_temp[0])
+        b_max = np.maximum(b_min, B_temp[-1])
     plt.xlabel('Beginning of period bank balances')
     if pseudo_inverse:
         plt.ylabel('Pseudo inverse marginal value')
     else:
         plt.ylabel('Marginal value')
+    plt.title('Marginal value across periods of the lifecycle')
+    plt.xlim(b_min, b_max)
+    plt.ylim(0., None)
     plt.show()
+    
