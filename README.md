@@ -232,7 +232,7 @@ If you are worried or don’t know how to start, you can always reach out to the
 
 **After your first contribution please let us know and we will add you to the Contributors list below!**
 
-To install for development see the [Quickstart Guide](./Documentation/readme.md#ii-quick-start-guide).
+To install for development see the [Quickstart Guide](./Documentation/quick-start).
 
 For more information on contributing to HARK please see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
