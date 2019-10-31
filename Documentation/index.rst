@@ -22,6 +22,7 @@ you might want to look at the `DemARK
    list-of-files
    license
    warnings-and-behaviors
+   CONTRIBUTING
 
 .. toctree::
    :maxdepth: 2
