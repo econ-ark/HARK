@@ -148,18 +148,19 @@ setup(
     install_requires=['numpy',
                       'matplotlib',
                       'scipy',
-                      'numpydoc',
                       'dill',
                       'joblib',
                       'funcsigs',
                       'jupyter'
     ],
-    extra_requires=[
-        'future',  # Optional
-        'Sphinx<=1.6.7',
-        'nbsphinx',
-        'recommonmark'
-    ],
+    extras_requires={
+        'dev': [
+            'future',  # Optional
+            'Sphinx<=1.6.7',
+            'nbsphinx',
+            'numpydoc',
+            'recommonmark'
+    ]},
 
     python_requires='>=2.7',
 
