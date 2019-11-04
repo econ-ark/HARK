@@ -1,5 +1,17 @@
-Welcome to HARK's documentation!
+HARK Documentation
 ================================
+
+Heterogenous Agents Resources & toolKit (HARK) is a toolkit for the structural modeling of economic choices of optimizing and non-optimizing heterogeneous agents.
+
+HARK is software written in Python.
+This is the documentation for that software.
+It is aimed at computational researchers and other
+software developers who are building new models with HARK,
+or are contributing to the core software.
+
+If you are a student trying to learn economics concepts,
+you might want to look at the `DemARK
+<https://github.com/econ-ark/DemARK/>`_ project.
 
 .. toctree::
    :maxdepth: 2
@@ -11,74 +23,14 @@ Welcome to HARK's documentation!
    :maxdepth: 2
    :caption: Notebooks
 
-   notebooks/Gentle-Intro-To-HARK
+   submodules/DemARK/notebooks/Gentle-Intro-To-HARK
    submodules/DemARK/notebooks/KinkedRconsumerType
 
 .. toctree::
    :maxdepth: 2
    :caption: Python API
 
-   Placeholder <https://example.com>
-
-.. autosummary::
-   :toctree: generated
-
-   HARK.BayerLuetticke.Assets.One.FluctuationsOneAssetIOUs
-   HARK.BayerLuetticke.Assets.One.FluctuationsOneAssetIOUsBond
-   HARK.BayerLuetticke.Assets.One.Luetticke_wrapper
-   HARK.BayerLuetticke.Assets.One.SharedFunc
-   HARK.BayerLuetticke.Assets.One.SharedFunc2
-   HARK.BayerLuetticke.Assets.One.SteadyStateOneAssetIOUs
-   HARK.BayerLuetticke.Assets.One.SteadyStateOneAssetIOUsBond
-   HARK.BayerLuetticke.Assets.One.defineSSParameters
-   HARK.BayerLuetticke.Assets.One.defineSSParametersIOUsBond
-   HARK.BayerLuetticke.Assets.Two.EX3SS_20_python2.p
-   HARK.BayerLuetticke.Assets.Two.EX3SS_20_python3.p
-   HARK.BayerLuetticke.Assets.Two.FluctuationsTwoAsset
-   HARK.BayerLuetticke.Assets.Two.SharedFunc3
-   HARK.BayerLuetticke.Assets.Two.SteadyStateTwoAsset
-   HARK.BayerLuetticke.Assets.Two.defineSSParametersTwoAsset
-   HARK.BayerLuetticke.BayerLuetticke_wrapper
-   HARK.BayerLuetticke.ConsIndShockModel_extension
-   HARK.BayerLuetticke.notebooks.DCT-Copula-Illustration.ipynb
-   HARK.BayerLuetticke.notebooks.DCT-Copula-Illustration
-   HARK.BayerLuetticke.notebooks.DCT.ipynb
-   HARK.BayerLuetticke.notebooks.OneAsset-HANK.ipynb
-   HARK.BayerLuetticke.notebooks.TwoAsset.ipynb
-   HARK.ConsumptionSaving.ConsAggShockModel
-   HARK.ConsumptionSaving.ConsGenIncProcessModel
-   HARK.ConsumptionSaving.ConsIndShockModel
-   HARK.ConsumptionSaving.ConsMarkovModel
-   HARK.ConsumptionSaving.ConsMedModel
-   HARK.ConsumptionSaving.ConsPrefShockModel
-   HARK.ConsumptionSaving.ConsRepAgentModel
-   HARK.ConsumptionSaving.ConsumerParameters
-   HARK.ConsumptionSaving.RepAgentModel
-   HARK.ConsumptionSaving.TractableBufferStockModel
-   HARK.FashionVictim.FashionVictimModel
-   HARK.FashionVictim.FashionVictimParams
-   HARK.SolvingMicroDSOPs.Calibration.EstimationParameters
-   HARK.SolvingMicroDSOPs.Calibration.SetupSCFdata
-   HARK.SolvingMicroDSOPs.Code.StructEstimation
-   HARK.SolvingMicroDSOPs.do_all
-   HARK.cAndCwithStickyE.StickyE_MAIN
-   HARK.cAndCwithStickyE.StickyE_NO_MARKOV
-   HARK.cAndCwithStickyE.StickyEmodel
-   HARK.cAndCwithStickyE.StickyEparams
-   HARK.cAndCwithStickyE.StickyEtools
-   HARK.core
-   HARK.cstwMPC.MakeCSTWfigs
-   HARK.cstwMPC.MakeCSTWfigsForSlides
-   HARK.cstwMPC.Results.BetaDistPYResults_py3.txt
-   HARK.cstwMPC.SetupParamsCSTW
-   HARK.cstwMPC.cstwMPC
-   HARK.dcegm
-   HARK.estimation
-   HARK.interpolation
-   HARK.parallel
-   HARK.simulation
-   HARK.utilities
-   HARK.validators
+   api
 
 Indices and tables
 ==================

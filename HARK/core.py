@@ -62,7 +62,7 @@ def distanceMetric(thing_A, thing_B):
         if thing_A.shape == thing_B.shape:
             distance = np.max(abs(thing_A - thing_B))
         else:
-            # Flatten arrays so there are in the same dimensions
+            # Flatten arrays so they have the same dimensions
             distance = np.max(abs(thing_A.flatten().shape[0] - thing_B.flatten().shape[0]))
     # If none of the above cases, but the objects are of the same class, call
     # the distance method of one on the other
@@ -461,6 +461,14 @@ class AgentType(HARKobject):
         -------
         None
         '''
+        if not hasattr(self, 'T_sim'):
+            raise Exception('To initialize simulation variables it is necessary to first ' +
+                            'set the attribute T_sim to the largest number of observations ' +
+                            'you plan to simulate for each agent including re-births.')
+        elif self.T_sim <= 0:
+            raise Exception('T_sim represents the largest number of observations ' +
+                            'that can be simulated for an agent, and must be a positive number.')
+
         self.resetRNG()
         self.t_sim = 0
         all_agents = np.ones(self.AgentCount, dtype=bool)
@@ -688,7 +696,7 @@ class AgentType(HARKobject):
 
     def simulate(self, sim_periods=None):
         '''
-        Simulates this agent type for a given number of periods (defaults to self.T_sim if no input).
+        Simulates this agent type for a given number of periods. Defaults to self.T_sim if no input.
         Records histories of attributes named in self.track_vars in attributes named varname_hist.
 
         Parameters
@@ -699,6 +707,21 @@ class AgentType(HARKobject):
         -------
         None
         '''
+        if not hasattr(self, 't_sim'):
+            raise Exception('It seems that the simulation variables were not initialize before calling ' +
+                            'simulate(). Call initializeSim() to initialize the variables before calling simulate() again.')
+
+        if not hasattr(self, 'T_sim'):
+            raise Exception('This agent type instance must have the attribute T_sim set to a positive integer.' +
+                             'Set T_sim to match the largest dataset you might simulate, and run this agent\'s' +
+                             'initalizeSim() method before running simulate() again.')
+
+        if sim_periods is not None and self.T_sim < sim_periods:
+            raise Exception('To simulate, sim_periods has to be larger than the maximum data set size ' +
+                             'T_sim. Either increase the attribute T_sim of this agent type instance ' +
+                             'and call the initializeSim() method again, or set sim_periods <= T_sim.')
+
+
         # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
         # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
         # -np.inf, np.inf/np.inf is np.nan and so on.

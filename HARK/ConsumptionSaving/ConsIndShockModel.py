@@ -24,7 +24,7 @@ from scipy.optimize import newton
 from HARK import AgentType, Solution, NullFunc, HARKobject
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
-from HARK.simulation import drawDiscrete, drawBernoulli, drawLognormal, drawUniform
+from HARK.simulation import drawDiscrete, drawLognormal, drawUniform
 from HARK.utilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
                            combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
                            CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
@@ -316,7 +316,7 @@ class ConsPerfForesightSolver(object):
     A class for solving a one period perfect foresight consumption-saving problem.
     An instance of this class is created by the function solvePerfForesight in each period.
     '''
-    def __init__(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
+    def __init__(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks):
         '''
         Constructor for a new ConsPerfForesightSolver.
 
@@ -335,20 +335,26 @@ class ConsPerfForesightSolver(object):
             Risk free interest factor on end-of-period assets.
         PermGroFac : float
             Expected permanent income growth factor at the end of this period.
+        BoroCnstArt : float or None
+            Artificial borrowing constraint, as a multiple of permanent income.
+            Can be None, indicating no artificial constraint.
+        MaxKinks : int
+            Maximum number of kink points to allow in the consumption function;
+            additional points will be thrown out.  Only relevant in infinite
+            horizon model with artificial borrowing constraint.
 
         Returns:
         ----------
         None
         '''
         # We ask that HARK users define single-letter variables they use in a dictionary
-        # attribute called notation.
-        # Do that first.
+        # attribute called notation. Do that first.
         self.notation = {'a': 'assets after all actions',
                          'm': 'market resources at decision time',
                          'c': 'consumption'}
-        self.assignParameters(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac)
+        self.assignParameters(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks)
 
-    def assignParameters(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
+    def assignParameters(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks):
         '''
         Saves necessary parameters as attributes of self for use by other methods.
 
@@ -367,10 +373,16 @@ class ConsPerfForesightSolver(object):
             Risk free interest factor on end-of-period assets.
         PermGroFac : float
             Expected permanent income growth factor at the end of this period.
+        BoroCnstArt : float or None
+            Artificial borrowing constraint, as a multiple of permanent income.
+            Can be None, indicating no artificial constraint.
+        MaxKinks : int
+            Maximum number of kink points to allow in the consumption function;
+            additional points will be thrown out.
 
         Returns
         -------
-        none
+        None
         '''
         self.solution_next  = solution_next
         self.DiscFac        = DiscFac
@@ -378,6 +390,8 @@ class ConsPerfForesightSolver(object):
         self.CRRA           = CRRA
         self.Rfree          = Rfree
         self.PermGroFac     = PermGroFac
+        self.MaxKinks       = MaxKinks
+        self.BoroCnstArt    = BoroCnstArt
 
     def defUtilityFuncs(self):
         '''
@@ -386,11 +400,11 @@ class ConsPerfForesightSolver(object):
 
         Parameters
         ----------
-        none
+        None
 
         Returns
         -------
-        none
+        None
         '''
         self.u   = lambda c : utility(c,gam=self.CRRA)  # utility function
         self.uP  = lambda c : utilityP(c,gam=self.CRRA) # marginal utility function
@@ -412,15 +426,16 @@ class ConsPerfForesightSolver(object):
 
         Parameters
         ----------
-        none
+        None
 
         Returns
         -------
-        none
+        None
         '''
+
         # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
-        vFuncNvrsSlope = self.MPC**(-self.CRRA/(1.0-self.CRRA)) 
-        vFuncNvrs      = LinearInterp(np.array([self.mNrmMin, self.mNrmMin+1.0]),np.array([0.0, vFuncNvrsSlope]))
+        vFuncNvrsSlope = self.MPCmin**(-self.CRRA/(1.0-self.CRRA)) 
+        vFuncNvrs      = LinearInterp(np.array([self.mNrmMinNow, self.mNrmMinNow+1.0]),np.array([0.0, vFuncNvrsSlope]))
         self.vFunc     = ValueFunc(vFuncNvrs,self.CRRA)
         self.vPfunc    = MargValueFunc(self.cFunc,self.CRRA)
 
@@ -430,24 +445,92 @@ class ConsPerfForesightSolver(object):
 
         Parameters
         ----------
-        none
+        None
 
         Returns
         -------
-        none
+        None
         '''
-        # Calculate human wealth this period (and lower bound of m)
+        # Use a local value of BoroCnstArt to prevent comparing None and float below.
+        if self.BoroCnstArt is None:
+            BoroCnstArt = -np.inf
+        else:
+            BoroCnstArt = self.BoroCnstArt
+        
+        # Calculate human wealth this period
         self.hNrmNow = (self.PermGroFac/self.Rfree)*(self.solution_next.hNrm + 1.0)
-        self.mNrmMin = -self.hNrmNow
-        # Calculate the (constant) marginal propensity to consume
+        
+        # Calculate the lower bound of the marginal propensity to consume
         PatFac       = ((self.Rfree*self.DiscFacEff)**(1.0/self.CRRA))/self.Rfree
-        self.MPC     = 1.0/(1.0 + PatFac/self.solution_next.MPCmin)
-        # Construct the consumption function
-        self.cFunc   = LinearInterp([self.mNrmMin, self.mNrmMin+1.0],[0.0, self.MPC])
-        # Add two attributes to enable calculation of steady state market resources
+        self.MPCmin  = 1.0/(1.0 + PatFac/self.solution_next.MPCmin)
+        
+        # Extract the discrete kink points in next period's consumption function;
+        # don't take the last one, as it only defines the extrapolation and is not a kink.
+        mNrmNext = self.solution_next.cFunc.x_list[:-1]
+        cNrmNext = self.solution_next.cFunc.y_list[:-1]
+        
+        # Calculate the end-of-period asset values that would reach those kink points
+        # next period, then invert the first order condition to get consumption. Then
+        # find the endogenous gridpoint (kink point) today that corresponds to each kink
+        aNrmNow = (self.PermGroFac/self.Rfree)*(mNrmNext-1.0)
+        cNrmNow = (self.DiscFacEff*self.Rfree)**(-1./self.CRRA)*(self.PermGroFac*cNrmNext)
+        mNrmNow = aNrmNow + cNrmNow
+        
+        # Add an additional point to the list of gridpoints for the extrapolation,
+        # using the new value of the lower bound of the MPC.
+        mNrmNow = np.append(mNrmNow, mNrmNow[-1] + 1.0)
+        cNrmNow = np.append(cNrmNow, cNrmNow[-1] + self.MPCmin)
+        
+        # If the artificial borrowing constraint binds, combine the constrained and
+        # unconstrained consumption functions.
+        if BoroCnstArt > mNrmNow[0]:
+            # Find the highest index where constraint binds
+            cNrmCnst = mNrmNow - BoroCnstArt
+            CnstBinds = cNrmCnst < cNrmNow
+            idx = np.where(CnstBinds)[0][-1]
+            
+            if idx < (mNrmNow.size-1):
+                # If it is not the *very last* index, find the the critical level
+                # of mNrm where the artificial borrowing contraint begins to bind.
+                d0 = cNrmNow[idx] - cNrmCnst[idx]
+                d1 = cNrmCnst[idx+1] - cNrmNow[idx+1]
+                m0 = mNrmNow[idx]
+                m1 = mNrmNow[idx+1]
+                alpha = d0/(d0 + d1)
+                mCrit = m0 + alpha*(m1 - m0)
+                
+                # Adjust the grids of mNrm and cNrm to account for the borrowing constraint.
+                cCrit = mCrit - BoroCnstArt
+                mNrmNow = np.concatenate(([BoroCnstArt, mCrit], mNrmNow[(idx+1):]))
+                cNrmNow = np.concatenate(([0., cCrit], cNrmNow[(idx+1):]))
+                
+            else:
+                # If it *is* the very last index, then there are only three points
+                # that characterize the consumption function: the artificial borrowing
+                # constraint, the constraint kink, and the extrapolation point.
+                mXtra = cNrmNow[-1] - cNrmCnst[-1]/(1.0 - self.MPCmin)
+                mCrit = mNrmNow[-1] + mXtra
+                cCrit = mCrit - BoroCnstArt
+                mNrmNow = np.array([BoroCnstArt, mCrit, mCrit + 1.0])
+                cNrmNow = np.array([0., cCrit, cCrit + self.MPCmin])
+                
+        # If the mNrm and cNrm grids have become too large, throw out the last
+        # kink point, being sure to adjust the extrapolation.
+        if mNrmNow.size > self.MaxKinks:
+            mNrmNow = np.concatenate((mNrmNow[:-2], [mNrmNow[-3] + 1.0]))
+            cNrmNow = np.concatenate((cNrmNow[:-2], [cNrmNow[-3] + self.MPCmin]))
+        
+        # Construct the consumption function as a linear interpolation.
+        self.cFunc = LinearInterp(mNrmNow, cNrmNow)
+        
+        # Calculate the upper bound of the MPC as the slope of the bottom segment.
+        self.MPCmax = (cNrmNow[1] - cNrmNow[0]) / (mNrmNow[1] - mNrmNow[0])
+        
+        # Add two attributes to enable calculation of steady state market resources.
         self.ExIncNext = 1.0 # Perfect foresight income of 1
-        self.mNrmMinNow = self.mNrmMin # Relabeling for compatibility with addSSmNrm
-
+        self.mNrmMinNow = mNrmNow[0] # Relabeling for compatibility with addSSmNrm
+        
+        
     def addSSmNrm(self,solution):
         '''
         Finds steady state (normalized) market resources and adds it to the
@@ -485,7 +568,7 @@ class ConsPerfForesightSolver(object):
 
         Parameters
         ----------
-        none
+        None
 
         Returns
         -------
@@ -497,13 +580,13 @@ class ConsPerfForesightSolver(object):
         self.makePFcFunc()
         self.defValueFuncs()
         solution = ConsumerSolution(cFunc=self.cFunc, vFunc=self.vFunc, vPfunc=self.vPfunc,
-                                    mNrmMin=self.mNrmMin, hNrm=self.hNrmNow,
-                                    MPCmin=self.MPC, MPCmax=self.MPC)
-        #solution = self.addSSmNrm(solution)
+                                    mNrmMin=self.mNrmMinNow, hNrm=self.hNrmNow,
+                                    MPCmin=self.MPCmin, MPCmax=self.MPCmax)
+        solution = self.addSSmNrm(solution)
         return solution
 
 
-def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
+def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks):
     '''
     Solves a single period consumption-saving problem for a consumer with perfect foresight.
 
@@ -522,15 +605,23 @@ def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac):
         Risk free interest factor on end-of-period assets.
     PermGroFac : float
         Expected permanent income growth factor at the end of this period.
+    BoroCnstArt : float or None
+        Artificial borrowing constraint, as a multiple of permanent income.
+        Can be None, indicating no artificial constraint.
+    MaxKinks : int
+        Maximum number of kink points to allow in the consumption function;
+        additional points will be thrown out.  Only relevant in infinite horizon
+        models with artificial borrowing constraint.
 
     Returns
     -------
-    solution : ConsumerSolution
-            The solution to this period's problem.
+    solution_now : ConsumerSolution
+        The solution to this period's problem.
     '''
-    solver = ConsPerfForesightSolver(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac)
-    solution = solver.solve()
-    return solution
+    
+    solver = ConsPerfForesightSolver(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks)
+    solution_now = solver.solve()
+    return solution_now
 
 
 ###############################################################################
@@ -635,10 +726,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         none
         '''
         ConsPerfForesightSolver.assignParameters(self,solution_next,DiscFac,LivPrb,
-                                                CRRA,Rfree,PermGroFac)
-        self.BoroCnstArt    = BoroCnstArt
-        self.IncomeDstn     = IncomeDstn
+                                                CRRA,Rfree,PermGroFac,BoroCnstArt,None)
         self.aXtraGrid      = aXtraGrid
+        self.IncomeDstn     = IncomeDstn
         self.vFuncBool      = vFuncBool
         self.CubicBool      = CubicBool
 
@@ -1492,8 +1582,8 @@ class PerfForesightConsumerType(AgentType):
     '''
     A perfect foresight consumer type who has no uncertainty other than mortality.
     His problem is defined by a coefficient of relative risk aversion, intertemporal
-    discount factor, interest factor, and time sequences of the permanent income
-    growth rate and survival probability.
+    discount factor, interest factor, an artificial borrowing constraint (maybe)
+    and time sequences of the permanent income growth rate and survival probability.
     '''
     # Define some universal values for all consumer types
     cFunc_terminal_      = LinearInterp([0.0, 1.0],[0.0,1.0]) # c=m in terminal period
@@ -1502,7 +1592,7 @@ class PerfForesightConsumerType(AgentType):
                                             vFunc = vFunc_terminal_, mNrmMin=0.0, hNrm=0.0,
                                             MPCmin=1.0, MPCmax=1.0)
     time_vary_ = ['LivPrb','PermGroFac']
-    time_inv_  = ['CRRA','Rfree','DiscFac']
+    time_inv_  = ['CRRA','Rfree','DiscFac','MaxKinks','BoroCnstArt']
     poststate_vars_ = ['aNrmNow','pLvlNow']
     shock_vars_ = []
 
@@ -1538,8 +1628,25 @@ class PerfForesightConsumerType(AgentType):
 
 
     def preSolve(self):
+<<<<<<< HEAD
         self.updateSolutionTerminal()
         self.checkConditions(verbose=self.verbose,public_call=False)
+=======
+        self.updateSolutionTerminal() # Solve the terminal period problem
+        
+        # Fill in BoroCnstArt and MaxKinks if they're not specified or are irrelevant.
+        if not hasattr(self,'BoroCnstArt'): # If no borrowing constraint specified...
+            self.BoroCnstArt = None       # ...assume the user wanted none
+        if not hasattr(self,'MaxKinks'):
+            if self.cycles > 0: # If it's not an infinite horizon model...
+                self.MaxKinks = np.inf  # ...there's no need to set MaxKinks
+            elif self.BoroCnstArt is None: # If there's no borrowing constraint...
+                self.MaxKinks = np.inf # ...there's no need to set MaxKinks
+            else:
+                raise(AttributeError('PerfForesightConsumerType requires the attribute MaxKinks to be specified when BoroCnstArt is not None and cycles == 0.'))
+
+            
+>>>>>>> 98bdacd0ac2b1b5b73f97c1112d0d206b6027658
 
     def checkRestrictions(self):
         """
@@ -1864,6 +1971,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     period assets, and an artificial borrowing constraint.
     '''
     time_inv_ = PerfForesightConsumerType.time_inv_ + ['BoroCnstArt','vFuncBool','CubicBool']
+    time_inv_.remove('MaxKinks') # This is in the PerfForesight model but not ConsIndShock
     shock_vars_ = ['PermShkNow','TranShkNow']
 
     def __init__(self,cycles=1,time_flow=True,verbose=False,quiet=False,**kwds):
@@ -2568,7 +2676,7 @@ def constructAssetsGrid(parameters):
 def main():
     import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import plotFuncsDer, plotFuncs
-    from time import clock
+    from time import time
     mystr = lambda number : "{:.4f}".format(number)
 
     do_simulation           = True
@@ -2577,15 +2685,15 @@ def main():
     PFexample = PerfForesightConsumerType(**Params.init_perfect_foresight)
     PFexample.cycles = 0 # Make this type have an infinite horizon
 
-    start_time = clock()
+    start_time = time()
     PFexample.solve()
-    end_time = clock()
+    end_time = time()
     print('Solving a perfect foresight consumer took ' + mystr(end_time-start_time) + ' seconds.')
     PFexample.unpackcFunc()
     PFexample.timeFwd()
 
     # Plot the perfect foresight consumption function
-    print('Linear consumption function:')
+    print('Perfect foresight consumption function:')
     mMin = PFexample.solution[0].mNrmMin
     plotFuncs(PFexample.cFunc[0],mMin,mMin+10)
 
@@ -2601,9 +2709,9 @@ def main():
     IndShockExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
     IndShockExample.cycles = 0 # Make this type have an infinite horizon
 
-    start_time = clock()
+    start_time = time()
     IndShockExample.solve()
-    end_time = clock()
+    end_time = time()
     print('Solving a consumer with idiosyncratic shocks took ' + mystr(end_time-start_time) + ' seconds.')
     IndShockExample.unpackcFunc()
     IndShockExample.timeFwd()
@@ -2639,9 +2747,9 @@ def main():
     LifecycleExample = IndShockConsumerType(**Params.init_lifecycle)
     LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
 
-    start_time = clock()
+    start_time = time()
     LifecycleExample.solve()
-    end_time = clock()
+    end_time = time()
     print('Solving a lifecycle consumer took ' + mystr(end_time-start_time) + ' seconds.')
     LifecycleExample.unpackcFunc()
     LifecycleExample.timeFwd()
@@ -2670,9 +2778,9 @@ def main():
     CyclicalExample = IndShockConsumerType(**Params.init_cyclical)
     CyclicalExample.cycles = 0
 
-    start_time = clock()
+    start_time = time()
     CyclicalExample.solve()
-    end_time = clock()
+    end_time = time()
     print('Solving a cyclical consumer took ' + mystr(end_time-start_time) + ' seconds.')
     CyclicalExample.unpackcFunc()
     CyclicalExample.timeFwd()
@@ -2695,9 +2803,9 @@ def main():
     KinkyExample = KinkedRconsumerType(**Params.init_kinked_R)
     KinkyExample.cycles = 0 # Make the Example infinite horizon
 
-    start_time = clock()
+    start_time = time()
     KinkyExample.solve()
-    end_time = clock()
+    end_time = time()
     print('Solving a kinky consumer took ' + mystr(end_time-start_time) + ' seconds.')
     KinkyExample.unpackcFunc()
     print('Kinky consumption function:')
@@ -2710,6 +2818,9 @@ def main():
         KinkyExample.initializeSim()
         KinkyExample.simulate()
 
+    return PFexample
 
 if __name__ == '__main__':
-    main()
+    PFexample = main()
+    
+    

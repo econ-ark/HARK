@@ -1,6 +1,6 @@
 numpy
 matplotlib
-Sphinx
+sphinx==1.6.7
 numpydoc
 future
 joblib
@@ -12,3 +12,4 @@ funcsigs
 jupyter
 sphinx-rtd-theme
 nbsphinx
+recommonmark
