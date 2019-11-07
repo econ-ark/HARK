@@ -68,7 +68,7 @@ The Econ-ARK project uses an [open governance model](./GOVERNANCE.md) and is fis
 
 Install from [Anaconda Cloud](https://docs.anaconda.com/anaconda/install/) by running:
 
-`conda install econ-ark`
+`conda install -c conda-forge econ-ark`
 
 Install from [PyPi](https://pypi.org/) by running:
 
