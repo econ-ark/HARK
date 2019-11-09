@@ -275,7 +275,7 @@ def LogNormalRiskyDstnDraw(RiskyAvg=1.0, RiskyStd=0.0):
     mu = math.log(RiskyAvg/(math.sqrt(1+RiskyVar/RiskyAvgSqrd)))
     sigma = math.sqrt(math.log(1+RiskyVar/RiskyAvgSqrd))
 
-    return lambda RNG: drawLognormal(1, mu=mu, sigma=sigma, seed=RNG)
+    return lambda rngSeed: drawLognormal(1, mu=mu, sigma=sigma, seed=rngSeed)
 
 
 class PortfolioSolution(Solution):
