@@ -627,7 +627,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         return None
 
     def getRisky(self):
-        return self.drawRiskyFunc(self.RNG)
+        return self.drawRiskyFunc(self.RNG.randint(0,2**31-1))
 
 class ConsIndShockPortfolioSolver(ConsIndShockSolver):
     '''
