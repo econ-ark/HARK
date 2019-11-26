@@ -4,11 +4,11 @@ Seungcheol Lee.
 '''
 import sys 
 import os
-sys.path.insert(0, os.path.abspath('./BayerLuetticke_code/'))
+
 from HARK.core import AgentType, Market
 from HARK.simulation import drawDiscrete
-from SteadyStateOneAssetIOUs import SteadyStateOneAssetIOU
-from FluctuationsOneAssetIOUs import FluctuationsOneAssetIOUs, SGU_solver
+from Assets.One.SteadyStateOneAssetIOUs import SteadyStateOneAssetIOU
+from Assets.One.FluctuationsOneAssetIOUs import FluctuationsOneAssetIOUs, SGU_solver
 from copy import copy, deepcopy
 import numpy as np
 import scipy as sc
@@ -266,7 +266,7 @@ class BayerLuettickeEconomy(Market):
 ###############################################################################
 
 if __name__ == '__main__':
-    import defineSSParameters as Params
+    import Assets.One.defineSSParameters as Params
     from copy import copy
     import pickle
     import pylab as plt
@@ -279,9 +279,9 @@ if __name__ == '__main__':
         EX1param = copy(Params.parm_one_asset_IOU)
         EX1 = SteadyStateOneAssetIOU(**EX1param)
         EX1SS = EX1.SolveSteadyState()
-        pickle.dump(EX1SS, open("BayerLuetticke_code/EX1SS.p", "wb"))
+        pickle.dump(EX1SS, open("Assets/One/EX1SS.p", "wb"))
     else:
-        EX1SS=pickle.load(open("BayerLuetticke_code/EX1SS.p", "rb"))
+        EX1SS=pickle.load(open("Assets/One/EX1SS.p", "rb"))
     #Build BayerLuetticke's object
     FluctuationsOneAssetIOU=FluctuationsOneAssetIOUs(**EX1SS)
         
