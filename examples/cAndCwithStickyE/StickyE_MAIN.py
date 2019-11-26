@@ -15,12 +15,12 @@ import numpy as np
 import csv
 from time import clock
 from copy import deepcopy
-from .StickyEmodel import StickyEmarkovConsumerType, StickyEmarkovRepAgent, StickyCobbDouglasMarkovEconomy
+from StickyEmodel import StickyEmarkovConsumerType, StickyEmarkovRepAgent, StickyCobbDouglasMarkovEconomy
 from HARK.ConsumptionSaving.ConsAggShockModel import SmallOpenMarkovEconomy
 from HARK.utilities import plotFuncs
 import matplotlib.pyplot as plt
-from . import StickyEparams as Params
-from .StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable,\
+import StickyEparams as Params
+from StickyEtools import makeStickyEdataFile, runStickyEregressions, makeResultsTable,\
                   runStickyEregressionsInStata, makeParameterTable, makeEquilibriumTable,\
                   makeMicroRegressionTable, extractSampleMicroData, makeuCostVsPiFig, \
                   makeValueVsAggShkVarFig, makeValueVsPiFig
