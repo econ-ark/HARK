@@ -8,9 +8,9 @@ The paper solves three models, represented here in three places:
 
 A Krusell-Smith model with a single asset, [OneAsset-KS](https://github.com/econ-ark/HARK/blob/master/HARK/BayerLuetticke/OneAssetCode-KS), which can be run by executing _SteadyStateOneAssetIOUs.py_ then _FluctuationsOneAssetIOUs.py_..
 
-A HANK model with a single asset, [OneAsset-HANK](https://github.com/econ-ark/HARK/blob/master/HARK/BayerLuetticke/OneAsset-HANK.ipynb), which can be launched on MyBinder using [this url]([https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath=HARK%2FBayerLuetticke%2FOneAsset-HANK.ipynb](https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath=HARK%2FBayerLuetticke%2FOneAsset-HANK.ipynb)
+A HANK model with a single asset, [OneAsset-HANK](https://github.com/econ-ark/HARK/blob/master/HARK/BayerLuetticke/OneAsset-HANK.ipynb), which can be launched on MyBinder using [this url]([https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath=examples%2FBayerLuetticke%2FOneAsset-HANK.ipynb](https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath=examples%2FBayerLuetticke%2FOneAsset-HANK.ipynb)
 
-A HANK model with a liquid and an illiquid asset, [TwoAsset-HANK](https://github.com/econ-ark/HARK/blob/master/HARK/BayerLuetticke/OneAsset-HANK.ipynb), which can be launched on MyBinder using [this url]([https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath=HARK%2FBayerLuetticke%2FTwoAsset.ipynb](https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath=HARK%2FBayerLuetticke%2FTwoAsset.ipynb)
+A HANK model with a liquid and an illiquid asset, [TwoAsset-HANK](https://github.com/econ-ark/HARK/blob/master/HARK/BayerLuetticke/OneAsset-HANK.ipynb), which can be launched on MyBinder using [this url]([https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath=examples%2FBayerLuetticke%2FTwoAsset.ipynb](https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath=examples%2FBayerLuetticke%2FTwoAsset.ipynb)
 
 
 Other content:
