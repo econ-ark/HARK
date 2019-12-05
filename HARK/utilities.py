@@ -1025,6 +1025,9 @@ def getPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
     pctl_out : numpy.array
         The requested percentiles of the data.
     '''
+    if data.size < 2:
+        return np.zeros(np.array(percentiles).shape) + np.nan
+    
     if weights is None: # Set equiprobable weights if none were passed
         weights = np.ones(data.size)/float(data.size)
 
