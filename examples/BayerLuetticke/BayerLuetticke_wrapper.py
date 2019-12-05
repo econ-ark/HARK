@@ -5,6 +5,9 @@ Seungcheol Lee.
 import sys 
 import os
 
+sys.path.append("Assets/One")
+sys.path.append("Assets/Two")
+
 from HARK.core import AgentType, Market
 from HARK.simulation import drawDiscrete
 from Assets.One.SteadyStateOneAssetIOUs import SteadyStateOneAssetIOU
