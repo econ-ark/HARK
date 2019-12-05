@@ -6,7 +6,6 @@ state distribution
 from __future__ import print_function
 import sys 
 import os
-sys.path.insert(0, os.path.abspath('../ConsumptionSaving/'))
 from copy import copy, deepcopy
 import numpy as np
 import scipy as sc
@@ -161,7 +160,7 @@ class IndShockConsumerType_extend(IndShockConsumerType):
         self.ergodic_distr = ergodic_distr.reshape((len(self.Dist_mGrid),len(self.Dist_pGrid)))
         
 if __name__ == '__main__':
-    import ConsumerParameters as Params
+    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import plotFuncsDer, plotFuncs
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
