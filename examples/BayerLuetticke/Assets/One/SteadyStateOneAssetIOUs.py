@@ -14,7 +14,7 @@ from scipy.stats import norm
 from scipy.interpolate import interp1d, interp2d
 from scipy import sparse as sp
 import time
-from .SharedFunc import Transition, ExTransitions, GenWeight, MakeGrid, Tauchen
+from SharedFunc import Transition, ExTransitions, GenWeight, MakeGrid, Tauchen
 
 
 class SteadyStateOneAssetIOU:
