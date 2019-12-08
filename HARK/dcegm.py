@@ -3,6 +3,8 @@ Functions for working with the discrete-continuous EGM (DCEGM) algorithm as
 described in "The endogenous grid method for discrete-continuous dynamic
 choice models with (or without) taste shocks" by Iskhakov et al. (2016)
 [https://doi.org/10.3982/QE643 and ijrsDCEGM2017 in our Zotero]
+
+Example can be found in https://github.com/econ-ark/DemARK/blob/master/notebooks/DCEGM-Upper-Envelope.ipynb
 """
 import numpy as np
 from HARK.interpolation import LinearInterp

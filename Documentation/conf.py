@@ -41,7 +41,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'numpydoc',
     'nbsphinx',
-    'recommonmark',
+    'recommonmark'
 ]
 
 # This is currently not working
