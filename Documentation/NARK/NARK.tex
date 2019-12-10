@@ -126,7 +126,7 @@ Name & - & Description
  \\  \texttt{Dgd}    & - & Stock of durable good
  \\  \texttt{Dvd}    & - & Dividends 
  \\  \texttt{Hse}    & - & Quantity of housing (\textit{not} value, which is quantity $\times$ price)
- \\  \texttt{Ilq}    & - & Quantity of illiquid asset (\textit{not} value, which is quantity $\times$ price)
+ \\  \texttt{Nlq}    & - & Quantity that is \textbf{N}ot \textbf{l}i\textbf{q}uid (e.g., $\mathtt{aNlq}$ is illiquid financial)
  \\  \texttt{Lbr}    & - & Quantity of labor
  \\  \texttt{Pop}    & - & Size of population
  \\  \texttt{Tax} & - & Tax -- should be modified by \texttt{Rte} or \texttt{Amt} articulated below
@@ -220,14 +220,18 @@ document and \texttt{CRRA} in a software module.
   \\ \verb|\tranShkInd|  & $\tranShkInd$ & Transitory shock (individual) &  $\Ex_{t}[\tranShkInd_{t+n}]=1$ if $\tranShkInd$ iid
   \\ \verb|\PermShkAgg|  & $\PermShkAgg$ & Permanent shock (aggregate) & $\Ex_{t}[\PermShkAgg_{t+n}]=1$ if $\PermShkAgg$ iid
   \\ \verb|\permShkInd|  & $\permShkInd$ & Permanent shock (individual) & $\Ex_{t}[\permShkInd_{t+n}]=1$ if $\permShkInd$ iid
-  \\ \verb|\PopGro|  & $\PopGro$ & Population Growth Factor & $\texttt{Pop}_{t+1} = \PopGro \texttt{Pop}_{t}$
+  \\ \verb|\PopGro|  & $\PopGro$ & Population Growth Factor & $\mathtt{Pop}_{t+1} = \PopGro \mathtt{Pop}_{t}$
   \\ \verb|\popGro|  & $\popGro$ & Population Growth rate & $\PopGro = 1 + \popGro$
   \\ \verb|\PtyGro|  & $\PtyGro$ & Productivity Growth Factor & $\GLev = \PtyGro \PopGro$
   \\ \verb|\ptyGro|  & $\ptyGro$ & Productivity Growth rate & $\PtyGro = (1+\ptyGro)$
   \\ \verb|\leiShare|  & $\leiShare$ & Leisure share, Cobb-Douglas utility & $\uFunc(c,z)=(1-\CRRA)^{-1}(c^{1-\leiShare}z^{\leiShare})^{1-\CRRA}$
   \\ \verb|\MPC|  & $\MPC$ & Marginal Propensity to Consume & $\cFunc^{\prime}(\mRat)=\partial c/\partial m$
   \\ \verb|\Pat|  & $\Pat$ & Absolute Patience Factor (\texttt{Thorn}) & $\Pat = (\Rfree \DiscFac)^{1/\CRRA} $
+  \\ \verb|\PatPGro| & $\PatPGro$ & Growth Patience Factor (\texttt{Thorn}) & $\Pat = (\Rfree \DiscFac)^{1/\CRRA}/\PtyGro $
+  \\ \verb|\PatR| & $\PatR$ & Return Patience Factor (\texttt{Thorn}) & $\Pat = (\Rfree \DiscFac)^{1/\CRRA}/\Rfree $ 
   \\ \verb|\pat|  & $\pat$ & Absolute Patience rate (\texttt{thorn}) & $\pat = (\Rfree \DiscFac)^{1/\CRRA}-1 \approx \CRRA^{-1}(\rfree-\discRte) $
+  \\ \verb|\patpGro| & $\patpGro$ & Growth Patience rate (\texttt{thorn}) & $\patpGro = \pat -\ptyGro $
+  \\ \verb|\patr| & $\patr$ & Return Patience rate (\texttt{thorn}) & $\patr =\pat -\rfree $
   \\ \verb|\riskyshare|  & $\riskyshare$ & Portfolio share in risky assets & $\Rport_{t+1}=(1-\riskyshare)\Rfree+\riskyshare\Risky_{t+1}$
   \\	\hline
 	\end{tabular}
