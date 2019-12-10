@@ -806,6 +806,8 @@ def solveAgent(agent, verbose):
         if infinite_horizon:
             if completed_cycles > 0:
                 solution_distance = solution_now.distance(solution_last)
+                agent.solution_distance = solution_distance  # Add these attributes so users can 
+                agent.completed_cycles  = completed_cycles   # query them to see if solution is ready
                 go = (solution_distance > agent.tolerance and completed_cycles < max_cycles)
             else:  # Assume solution does not converge after only one cycle
                 solution_distance = 100.0
