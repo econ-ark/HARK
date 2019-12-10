@@ -275,7 +275,7 @@ def LogNormalRiskyDstnDraw(RiskyAvg=1.0, RiskyStd=0.0):
     mu = math.log(RiskyAvg/(math.sqrt(1+RiskyVar/RiskyAvgSqrd)))
     sigma = math.sqrt(math.log(1+RiskyVar/RiskyAvgSqrd))
 
-    return lambda: drawLognormal(1, mu=mu, sigma=sigma)
+    return lambda rngSeed: drawLognormal(1, mu=mu, sigma=sigma, seed=rngSeed)
 
 
 class PortfolioSolution(Solution):
@@ -627,7 +627,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         return None
 
     def getRisky(self):
-        return self.drawRiskyFunc()
+        return self.drawRiskyFunc(self.RNG.randint(0,2**31-1))
 
 class ConsIndShockPortfolioSolver(ConsIndShockSolver):
     '''
