@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.1.3
+#       jupytext_version: 1.2.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -38,7 +38,7 @@
 # $[\frac{d v}{d m} = \frac{d u}{d c}]$.
 # In practice, the authors solve their problem using the marginal value of money $\texttt{Vm} = dv/dm$, but because the marginal utility function is invertible it is trivial to recover $\texttt{c}$ from $(u^{\prime})^{-1}(\texttt{Vm} )$.  The consumption function is therefore computed from the $\texttt{Vm}$ function
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Setup stuff
 
 # This is a jupytext paired notebook that autogenerates a corresponding .py file
@@ -171,14 +171,14 @@ print('The copula consists of two parts: gridpoints and values at those gridpoin
       '\n state variables are below the corresponding point.')
 
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 ## Import BL codes
 
 import sys 
 
 # Relative directory for BL codes 
 sys.path.insert(0,'../../../..')  # comment by TW: this is not the same as in TwoAsset.ipynb. 
-from HARK.BayerLuetticke.Assets.Two.FluctuationsTwoAsset import FluctuationsTwoAsset
+from FluctuationsTwoAsset import FluctuationsTwoAsset
 
 # %% {"code_folding": [0]}
 ## Import other necessary libraries
@@ -215,14 +215,14 @@ EX3SS['par']['sigmaS'] = 0.54    # STD of variance shocks
 
 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Choose an accuracy of approximation with DCT
 
 ### Determines number of basis functions chosen -- enough to match this accuracy
 ### EX3SS is precomputed steady-state pulled in above
 EX3SS['par']['accuracy'] = 0.99999
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## Implement state reduction and DCT
 ### Do state reduction on steady state
 EX3SR=FluctuationsTwoAsset(**EX3SS)   # Takes StE result as input and get ready to invoke state reduction operation
@@ -315,7 +315,7 @@ def DCTApprox(fullgrids,dct_index):
 # %% [markdown]
 # Depending on the accuracy level, the DCT operation choses the necessary number of basis functions used to approximate consumption function at the full grids. This is illustrated in the p31-p34 in this [slides](https://www.dropbox.com/s/46fdxh0aphazm71/presentation_method.pdf?dl=0). We show this for both 1-dimensional (m or k) or 2-dimenstional grids (m and k) in the following. 
 
-# %% {"code_folding": []}
+# %% {"code_folding": [0]}
 ## 2D graph of consumption function: c(m) fixing k and h
 
 

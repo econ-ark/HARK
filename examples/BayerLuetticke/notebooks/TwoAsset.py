@@ -1,18 +1,19 @@
 # ---
 # jupyter:
 #   jupytext:
-#     formats: ipynb,py:light
+#     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
-#       format_name: light
-#       format_version: '1.4'
-#       jupytext_version: 1.1.3
+#       format_name: percent
+#       format_version: '1.2'
+#       jupytext_version: 1.2.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
 #     name: python3
 # ---
 
+# %% [markdown]
 # # Two Asset HANK Model [<cite data-cite="6202365/ECL3ZAR7"></cite>](https://cepr.org/active/publications/discussion_papers/dp.php?dpno=13071) 
 #
 # [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/econ-ark/HARK/BayerLuetticke/notebooks?filepath=HARK%2FBayerLuetticke%2FTwoAsset.ipynb)
@@ -21,28 +22,30 @@
 # - Jupyter notebook originally by Seungcheol Lee 
 # - Further edits by Chris Carroll, Tao Wang, Edmund Crawley
 
+# %% [markdown]
 # ### Overview
 #
 # BL propose a method for solving Heterogeneous Agent DSGE models that uses fast tools originally employed for image and video compression to speed up a variant of the solution methods proposed by Michael Reiter. <cite data-cite="undefined"></cite>  
 #
 # The Bayer-Luetticke method has the following broad features:
-#    * The model is formulated and solved in discrete time (in contrast with some other recent approaches <cite data-cite="6202365/WN76AW6Q"></cite>) like that in "When Inequality Matters for Macro and Macro Matters for Inequality" -- henceforth, the '5guys' paper
+#    * The model is formulated and solved in discrete time (in contrast with some other recent approaches <cite data-cite="6202365/WN76AW6Q"></cite>)
 #    * Solution begins by calculation of the steady-state equilibrium (StE) with no aggregate shocks
 #    * Both the representation of the consumer's problem and the desciption of the distribution are subjected to a form of "dimensionality reduction"
 #       * This means finding a way to represent them efficiently using fewer points
-#    * In contrast with 5guys, "Dimensionality reduction" of the consumer's decision problem is performed before any further analysis is done
+#    * "Dimensionality reduction" of the consumer's decision problem is performed before any further analysis is done
 #       * This involves finding a representation of the policy functions using some class of basis functions
 #    * Dimensionality reduction of the joint distribution is accomplished using a "copula"
 #       * See the companion notebook for description of the copula
-#    * The method approximates the business-cycle-induced _deviations_ of the individual policy functions and distributions from those that characterize the riskless StE
+#    * The method approximates the business-cycle-induced _deviations_ of the individual policy functions from those that characterize the riskless StE
 #       * This is done using the same basis functions originally optimized to match the StE individual policy function
 #       * The method of capturing dynamic deviations from a reference frame is akin to video compression
 
+# %% [markdown]
 # ### Setup 
 #
 # #### The Recursive Dynamic Planning Problem
 #
-# BL describe their problem in a generic way; here, we will illustrate the meaning of their derivations and notation using the familiar example of the Krusell-Smith model, henceforth KS.  <cite data-cite="6202365/VPUXICUR"></cite>
+# BL describe their problem a generic way; here, we will illustrate the meaning of their derivations and notation using the familiar example of the Krusell-Smith model, henceforth KS.  <cite data-cite="6202365/VPUXICUR"></cite>
 #
 # Consider a household problem in presence of aggregate and idiosyncratic risk
 #    * $S_t$ is an (exogenous) aggregate state (e.g., levels of productivity and unemployment)
@@ -66,6 +69,7 @@
 #      \end{equation}
 #      
 
+# %% [markdown]
 # #### Solving for the StE 
 #
 # The steady-state equilibrium is the one that will come about if there are no aggregate risks (and consumers know this)
@@ -75,21 +79,22 @@
 #       * Representing the nodes of the discretization in a set of vectors
 #       * Such vectors will be represented by an overbar
 #          * e.g. $\bar{m}$ is the nodes of cash-on-hand $m$
-#    * The optimal policy $\newcommand{\policy}{c}\newcommand{\Policy}{C}\policy(s_{i};P)$ induces flow utility $u_{\policy}$ whose discretization is a vector $\bar{u}_{\bar{\policy}}$
+#    * The optimal policy $\newcommand{\policy}{c}\newcommand{\Policy}{C}\policy(s_{it};P)$ induces flow utility $u_{\policy}$ whose discretization is a vector $\bar{u}_{\bar{\policy}}$
 #    * Idiosyncratic dynamics are captured by a transition probability matrix $\Pi_{\bar{\policy}}$
 #        * $\Pi$ is like an expectations operator
-#        * It depends on the vectorization of the policy function $\bar{u}_{\bar{\policy}}$
+#        * It depends on the vectorization of the policy function $\bar{\policy}$
 #    * $P$ is constant because in StE aggregate prices are constant
 #        * e.g., in the KS problem, $P$ would contain the (constant) wage and interest rates
 #    * In StE, the discretized Bellman equation implies
 #      \begin{equation}
-#         \bar{v} = \bar{u}_{\bar{\policy}} + \beta \Pi_{\bar{\policy}}\bar{v}
+#         \bar{v} = \bar{u} + \beta \Pi_{\bar{\policy}}\bar{v}
 #       \end{equation}
 #      holds for the optimal policy
 #      * A linear interpolator is used to represent the value function
 #    * For the distribution, which (by the definition of steady state) is constant:   
 #
 # \begin{eqnarray}
+#         \bar{\mu} & = & \bar{\mu} \Pi_{\bar{\policy}} \\
 #         d\bar{\mu} & = & d\bar{\mu} \Pi_{\bar{\policy}}
 # \end{eqnarray}
 #      where we differentiate in the second line because we will be representing the distribution as a histogram, which counts the _extra_ population obtained by moving up <!-- Is this right?  $\mu$ vs $d \mu$ is a bit confusing.  The d is wrt the state, not time, right? -->
@@ -107,10 +112,11 @@
 #    1. Given $P$, 
 #        1. Finding $d\bar{\mu}$ as the unit-eigenvalue of $\Pi_{\bar{\policy}}$
 #        2. Using standard solution techniques to solve the micro decision problem
-#           * For the constant $P$ (e.g., wage and interest rate)
+#           * Like wage and interest rate
 #    2. Using a root-finder to solve for $P$
 #       * This basically iterates the other two steps until it finds values where they are consistent
 
+# %% [markdown]
 # ####  Introducing aggregate risk
 #
 # With aggregate risk
@@ -120,6 +126,7 @@
 #    * Only prices and continuation values matter
 #    * The distribution does not influence decisions directly
 
+# %% [markdown]
 # #### Redefining equilibrium (Reiter, 2002) 
 # A sequential equilibrium with recursive individual planning  <cite data-cite="6202365/UKUXJHCN"></cite> is:
 #    * A sequence of discretized Bellman equations, such that
@@ -134,8 +141,7 @@
 #      holds given the policy $h_{t}$, that is optimal given $P_t$, $v_{t+1}$
 #    * Prices, distribution, and policies lead to market clearing
 
-# + {"code_folding": []}
-# Do some generic setup stuff
+# %% {"code_folding": [0, 6, 17]}
 from __future__ import print_function
 
 # This is a jupytext paired notebook that autogenerates a corresponding .py file
@@ -174,9 +180,7 @@ code_dir = os.path.join(my_file_path, "../Assets/Two")
 sys.path.insert(0, code_dir)
 sys.path.insert(0, my_file_path)
 
-import time
-
-# + {"code_folding": [0]}
+# %% {"code_folding": [0]}
 ## Load Stationary equilibrium (StE) object EX3SS_20
 
 import pickle
@@ -187,9 +191,7 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 
 ## WangTao: Find the code that generates this
 
-
-# -
-
+# %% [markdown]
 # #### Compact notation
 #
 # It will be convenient to rewrite the problem using a compact notation proposed by Schmidt-Grohe and Uribe (2004)
@@ -212,7 +214,6 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #      \begin{equation}
 #      \policy_t(s_{t}) = \arg \max\limits_{x \in \Gamma(s,P_t)} u(s,x) + \beta \mathop{\mathbb{E}_{t}} v_{t+1}(s_{t+1})
 #      \end{equation}
-#      where $C$ is the transition process for $S$
 #    * The solution is a function-valued difference equation:
 # \begin{equation}   
 #      \mathop{\mathbb{E}_{t}}F(X_t,X_{t+1},Y_t,Y_{t+1},\epsilon_{t+1}) = 0
@@ -221,12 +222,14 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #    * It becomes real-valued when we replace the functions by their discretized counterparts
 #    * Standard techniques can solve the discretized version
 
+# %% [markdown]
 # #### So, is all solved?
 # The dimensionality of the system F is a big problem 
 #    * With high dimensional idiosyncratic states, discretized value functions and distributions become large objects
 #    * For example:
-#       * 4 income states $\times$ 100 illiquid capital states $\times$ 100 liquid asset states $\rightarrow$ $\geq$ 40,000 values in $F$
+#       * 4 income states $\times$ 100 illiquid capital states $\times$ 100 liquid capital states $\rightarrow$ $\geq$ 40,000 values in $F$
 
+# %% [markdown]
 # ### Bayer-Luetticke method
 # #### Idea:
 # 1. Use compression techniques as in video encoding
@@ -246,6 +249,7 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #
 # The approach follows the insight of KS in that it uses the fact that some moments of the distribution do not matter for aggregate dynamics
 
+# %% [markdown]
 # #### Details
 # 1) Compression techniques from video encoding
 #    * Let $\bar{\Theta} = dct(\bar{v})$ be the coefficients obtained from the DCT of the value function in StE
@@ -259,8 +263,9 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #          \bar{\Theta}(i), & \text{else}
 #       \end{array}\right.
 #    \end{equation}
-#    * This assumes that the basis functions with least contribution to representation of the StE policy function in levels, make no contribution at all to its changes over time
+#    * This assumes that the basis functions with least contribution to representation of the function in levels, make no contribution at all to its changes over time
 
+# %% [markdown]
 # 2) Decoding
 #    * Now we reconstruct $\tilde{v}(\theta_t)=dct^{-1}(\tilde{\Theta}(\theta_{t}))$
 #       * idct=$dct^{-1}$ is the inverse dct that goes from the $\theta$ vector to the corresponding values
@@ -280,18 +285,17 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #
 # 4) The large system above is now transformed into a much smaller system:
 #      \begin{align}
-#       F(\{d\mu_t^1,...,d\mu_t^n\}, S_t, \{d\mu_{t+1}^1,...,d\mu_{t+1}^n\}, S_{t+1}, \theta_t, P_t, \theta_{t+1}, P_{t+1}) &= \phantom{~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~} \notag
-#      \end{align}
-#      \begin{align}
-#      \phantom{F~~~~~~~~~} & \begin{bmatrix}
+#       F(\{d\mu_t^1,...,d\mu_t^n\}, S_t, \{d\mu_{t+1}^1,...,d\mu_{t+1}^n\}, S_{t+1}, \theta_t, P_t, \theta_{t+1}, P_{t+1})
+#       &= \begin{bmatrix}
 #            d\bar{C}(\bar{\mu}_t^1,...,\bar{\mu}_t^n) - d\bar{C}(\bar{\mu}_t^1,...,\bar{\mu}_t^n)\Pi_{\policy_t} \\
 #            dct\left[idct\left(\tilde{\Theta}(\theta_t) - (\bar{u}_{\policy_t} + \beta \Pi_{\policy_t}idct(\tilde{\Theta}(\theta_{t+1}))\right)\right] \\
 #            S_{t+1} - \Policy(S_t,d\mu_t) \\
 #            \Phi(\policy_t,d\mu_t,P_t,S_t) \\
 #            \end{bmatrix}
 #      \end{align}
-# 5) NOW we use standard techniques to solve this (much reduced system)
+#      
 
+# %% [markdown]
 # ### The two-asset HANK model
 #
 # We illustrate the algorithm in a two-asset HANK model described as below 
@@ -301,7 +305,7 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 # - Maximizing discounted felicity
 #    - Consumption $c$ 
 #       - CRRA coefficent: $\xi$
-#       - Elasticity of substitution in CES consumption bundle: $\eta$
+#       - EOS of CES consumption bundle: $\eta$
 #    - Disutility from work in GHH form: 
 #      - Frisch elasticity $\gamma$
 # - Two assets:
@@ -327,13 +331,11 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 #     - Investment subject to Tobin's q adjustment cost $\phi$ 
 # - Aggregate risks $\Omega$ include 
 #    - TFP $Z$, AR(1) process with persistence of $\rho^Z$ and shock $\epsilon^Z$  
-#    - Uncertainty
-#       * The $\sigma^{2}$ of the idiosyncratic policy shocks follows an AR(1)
-#       * A "shock" is a temporary (mean-reverting) increase in the magnitude of the idiosyncratic shocks
+#    - Uncertainty 
 #    - Monetary policy
 # - Central bank
 #    - Taylor rule on nominal saving rate $R^B$: reacts to deviation of inflation from target by $\theta_R$ 
-#    - $\rho_R$: policy inertia
+#    - $\rho_R$: policy innertia
 #    - $\epsilon^R$: monetary policy shocks
 # - Government (fiscal rule)
 #    - Government spending $G$ 
@@ -347,8 +349,9 @@ EX3SS=pickle.load(open("EX3SS_20.p", "rb"))
 # - Optimal policy for adjusters and nonadjusters are $c^*_a$, $n^*_a$ $k^*_a$ and $\liquid^*_a$ and  $c^*_n$, $n^*_n$ and $\liquid^*_n$, respectively 
 #
 
-# +
-from HARK.BayerLuetticke.Assets.Two.FluctuationsTwoAsset import FluctuationsTwoAsset, SGU_solver, plot_IRF
+# %%
+import time
+from FluctuationsTwoAsset import FluctuationsTwoAsset, SGU_solver, plot_IRF
 
 start_time = time.perf_counter() 
 
@@ -370,7 +373,7 @@ EX3SS['par']['sigmaS'] = 0.54    # STD of variance shocks
 ## Choose an accuracy of approximation with DCT
 ### Determines number of basis functions chosen -- enough to match this accuracy
 ### EX3SS is precomputed steady-state pulled in above
-EX3SS['par']['accuracy'] = 0.9999999 
+EX3SS['par']['accuracy'] = 0.99999 
 
 ## Implement state reduction and DCT
 ### Do state reduction on steady state
@@ -386,6 +389,5 @@ plot_IRF(SR['mpar'],SR['par'],SGUresult['gx'],SGUresult['hx'],SR['joint_distr'],
 
 end_time = time.perf_counter()
 print('Elapsed time is ',  (end_time-start_time), ' seconds.')
-# -
 
-# <div class="cite2c-biblio"></div>
+# %%

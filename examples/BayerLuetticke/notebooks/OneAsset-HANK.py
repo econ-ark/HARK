@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.1.3
+#       jupytext_version: 1.2.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -19,7 +19,7 @@
 #
 # This notebook solves a New Keynesian model in which there is only a single liquid asset.  This is the second model described in <cite data-cite="6202365/ECL3ZAR7"></cite>.  For a detailed description of their solution method, see the companion two-asset HANK model notebook.
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Setup
 from __future__ import print_function
 
@@ -59,7 +59,7 @@ code_dir = os.path.join(my_file_path, "../Assets/One/")
 sys.path.insert(0, code_dir)
 sys.path.insert(0, my_file_path)
 
-# %% {"code_folding": [0]}
+# %% {"code_folding": []}
 # Ignore system warnings while running the notebook
 import warnings
 warnings.filterwarnings('ignore')
@@ -73,7 +73,7 @@ os.chdir(code_dir) # Go to the directory with pickled code
 EX2SS=pickle.load(open("EX2SS.p", "rb"))
 
 # %%
-from HARK.BayerLuetticke.Assets.One.FluctuationsOneAssetIOUsBond import FluctuationsOneAssetIOUs, SGU_solver, plot_IRF
+from FluctuationsOneAssetIOUsBond import FluctuationsOneAssetIOUs, SGU_solver, plot_IRF
 
 # %% {"code_folding": []}
 # Uncertainty Shock
