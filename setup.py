@@ -151,6 +151,7 @@ setup(
                       'dill',
                       'joblib',
                       'funcsigs',
+                      'seaborn',
                       'jupyter'
     ],
     extras_requires={
