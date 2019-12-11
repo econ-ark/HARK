@@ -159,8 +159,7 @@ setup(
             'Sphinx<=1.6.7',
             'nbsphinx',
             'numpydoc',
-            'recommonmark',
-            'seaborn'
+            'recommonmark'
     ]},
 
     python_requires='>=2.7',
