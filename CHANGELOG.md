@@ -20,6 +20,7 @@ Release Date: 12-12-2019
 
 #### Minor Changes
 
+- Fixed slicing error in minimizeNelderMead. ([#460](https://github.com/econ-ark/HARK/pull/460))
 - Fixed matplotlib GUI error. ([#444](https://github.com/econ-ark/HARK/pull/444))
 - Pinned sphinx dependency. ([#436](https://github.com/econ-ark/HARK/pull/436))
 - Fixed bug in ConsPortfolioModel in which the same risky rate of return would be drawn over and over. ([#433](https://github.com/econ-ark/HARK/pull/433))
