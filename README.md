@@ -9,7 +9,7 @@
 [![PyPi](https://img.shields.io/pypi/v/econ-ark.png?style=flat)](https://pypi.org/project/econ-ark/)
 [![Documentation Status](https://readthedocs.org/projects/hark/badge/?style=flat&version=latest)](https://hark.readthedocs.io/en/latest/?badge=latest)
 [![GitHub Good First Issues](https://img.shields.io/github/issues/econ-ark/HARK/good%20first%20issue.svg)](https://github.com/econ-ark/HARK/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/econ-ark/demos/master)
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/econ-ark/DemARK/master)
 [![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org/)
@@ -68,7 +68,7 @@ The Econ-ARK project uses an [open governance model](./GOVERNANCE.md) and is fis
 
 Install from [Anaconda Cloud](https://docs.anaconda.com/anaconda/install/) by running:
 
-`conda install econ-ark`
+`conda install -c conda-forge econ-ark`
 
 Install from [PyPi](https://pypi.org/) by running:
 
@@ -130,15 +130,15 @@ You can retrieve the solution's consumption function from the `.cFunc` attribute
 PFexample.solution[0].cFunc
 ```
 
-Or you can retrieve the solved value for human wealth normalized by permanent income from the solution's `.hNm` attribute:
+Or you can retrieve the solved value for human wealth normalized by permanent income from the solution's `.hNrm` attribute:
 
 ```python
 # Retrieve the solved value for human wealth normalized by permanent income 
-PFexample.solution[0].hNm
+PFexample.solution[0].hNrm
 ```
-For a detailed explanation of the above example please see the demo notebook [*A Gentle Introduction to HARK*](https://mybinder.org/v2/gh/econ-ark/demos/master?filepath=notebooks%2FA+Gentle+Introduction+to+HARK.ipynb).
+For a detailed explanation of the above example please see the demo notebook [*A Gentle Introduction to HARK*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK.ipynb).
 
-For more examples please visit the [econ-ark/demos](https://github.com/econ-ark/demos) repository.
+For more examples please visit the [econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
 
 ## Citation
 
@@ -190,7 +190,7 @@ Most of what economists have done so far with 'big data' has been like what Kepl
 
 An alternative approach called 'structural modeling' aims to do, for economic data, what Newton did for astronomical data: Provide a deep and rigorous mathematical (or computational) framework that distills the essence of the underlying behavior that produces the 'big data.'
 
-The notebook [*A Gentle Introduction to HARK*](https://mybinder.org/v2/gh/econ-ark/demos/master?filepath=notebooks%2FA+Gentle+Introduction+to+HARK.ipynb) details how you can easily utilize our toolkit for structural modeling. Starting with a simple [Perfect Foresight Model](https://en.wikipedia.org/wiki/Rational_expectations) we solve an agent problem, then experiment with adding [income shocks](https://en.wikipedia.org/wiki/Shock_(economics)) and changing constructed attributes.
+The notebook [*A Gentle Introduction to HARK*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK.ipynb) details how you can easily utilize our toolkit for structural modeling. Starting with a simple [Perfect Foresight Model](https://en.wikipedia.org/wiki/Rational_expectations) we solve an agent problem, then experiment with adding [income shocks](https://en.wikipedia.org/wiki/Shock_(economics)) and changing constructed attributes.
 
 ### For Economists: Structural Modeling with HARK
 
@@ -200,9 +200,9 @@ The same kinds of modeling techniques are also gaining popularity among microeco
 
 HARK provides a robust, well-designed, open-source toolkit for building such models much more efficiently than has been possible in the past.
 
-Our [*DCEGM Upper Envelope*](https://mybinder.org/v2/gh/econ-ark/demos/master?filepath=notebooks%2FDCEGM+Upper+Envelope.ipynb) notebook illustrates using HARK to replicate the [Iskhakov, Jørgensen, Rust, and Schjerning paper](https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643) for solving the discrete-continuous retirement saving problem. 
+Our [*DCEGM Upper Envelope*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks%2FDCEGM-Upper-Envelope.ipynb) notebook illustrates using HARK to replicate the [Iskhakov, Jørgensen, Rust, and Schjerning paper](https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643) for solving the discrete-continuous retirement saving problem. 
 
-The notebook [*Making Structural Estimates From Empirical Results*](https://mybinder.org/v2/gh/econ-ark/demos/master?filepath=notebooks%2FMaking+Structural+Estimates+From+Empirical+Results.ipynb) is another demonstration of using HARK to conduct a quick structural estimation based on Table 9 of [*MPC Heterogeneity and Household Balance Sheets* by Fagereng, Holm, and Natvik](https://www.ssb.no/en/forskning/discussion-papers/_attachment/286054?_ts=158af859c98).
+The notebook [*Making Structural Estimates From Empirical Results*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks%2FStructural-Estimates-From-Empirical-MPCs-Fagereng-et-al.ipynb) is another demonstration of using HARK to conduct a quick structural estimation based on Table 9 of [*MPC Heterogeneity and Household Balance Sheets* by Fagereng, Holm, and Natvik](https://www.ssb.no/en/forskning/discussion-papers/_attachment/286054?_ts=158af859c98).
 
 ### For Computational Economics Developers
 
@@ -232,7 +232,7 @@ If you are worried or don’t know how to start, you can always reach out to the
 
 **After your first contribution please let us know and we will add you to the Contributors list below!**
 
-To install for development see the [Quickstart Guide](./Documentation/readme.md#ii-quick-start-guide).
+To install for development see the [Quickstart Guide](./Documentation/quick-start).
 
 For more information on contributing to HARK please see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
