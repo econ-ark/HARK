@@ -14,3 +14,4 @@ sphinx-rtd-theme
 nbsphinx==0.4.3
 seaborn
 recommonmark
+pyyaml

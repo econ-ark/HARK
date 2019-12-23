@@ -152,7 +152,8 @@ setup(
                       'joblib',
                       'funcsigs',
                       'seaborn',
-                      'jupyter'
+                      'jupyter',
+                      'pyyaml'
     ],
     extras_requires={
         'dev': [

@@ -6,3 +6,4 @@ jupyter_contrib_nbextensions
 cite2c
 econ-ark==0.10.1
 seaborn
+pyyaml
