@@ -46,7 +46,8 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, which_
         params_full[which_vars] = params
         out = objectiveFunction(params_full)
         return out
-    parameter_guess_mod = parameter_guess[which_vars]
+    # convert parameter guess to np array to slice it with boolean array
+    parameter_guess_mod = np.array(parameter_guess)[which_vars]
 
     # Execute the minimization, starting from the given parameter guess
     t0 = time() # Time the process
