@@ -5,9 +5,12 @@ ConsAggShockModel, ConsPrefShockModel, and ConsMarkovModel.
 '''
 
 import copy
+import os
 import yaml
 
-config_path = "ConsumptionSaving/ConsumerParameters.yaml"
+config_path = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "ConsumerParameters.yaml")
 
 config = yaml.load(open(config_path).read())
 
