@@ -1,14 +1,34 @@
 HARK  
-Version 0.10.2
+Version 0.10.3
 Release Notes  
 
 # Introduction
 
-This document contains the release notes for the 0.10.1 version of HARK. HARK aims to produce an open source repository of highly modular, easily interoperable code for solving, simulating, and estimating dynamic economic models with heterogeneous agents.
+This document contains the release notes for the 0.10.3 version of HARK. HARK aims to produce an open source repository of highly modular, easily interoperable code for solving, simulating, and estimating dynamic economic models with heterogeneous agents.
 
 For more information on HARK, see [our Github organization](https://github.com/econ-ark).
 
 ## Changes
+
+### 0.10.3
+
+Release Date: 12-12-2019
+
+#### Major Changes
+
+- Added constrained perfect foresight model solution. ([#299](https://github.com/econ-ark/HARK/pull/299)
+
+#### Minor Changes
+
+- Fixed slicing error in minimizeNelderMead. ([#460](https://github.com/econ-ark/HARK/pull/460))
+- Fixed matplotlib GUI error. ([#444](https://github.com/econ-ark/HARK/pull/444))
+- Pinned sphinx dependency. ([#436](https://github.com/econ-ark/HARK/pull/436))
+- Fixed bug in ConsPortfolioModel in which the same risky rate of return would be drawn over and over. ([#433](https://github.com/econ-ark/HARK/pull/433))
+- Fixed sphinx dependency errors. ([#411](https://github.com/econ-ark/HARK/pull/411))
+- Refactored simultation.py. ([#408](https://github.com/econ-ark/HARK/pull/408))
+- AgentType.simulate() now throws informative errors if
+attributes required for simulation do not exist, or initializeSim() has
+never been called. ([#320](https://github.com/econ-ark/HARK/pull/320))
 
 ### 0.10.2
 
