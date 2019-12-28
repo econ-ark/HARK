@@ -1312,7 +1312,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 def main():
     import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import plotFuncs
-    from time import clock
+    from time import perf_counter
     import matplotlib.pyplot as plt
     def mystr(number): return "{:.4f}".format(number)
 
@@ -1327,9 +1327,9 @@ def main():
 
     # Make and solve an example "explicit permanent income" consumer with idiosyncratic shocks
     ExplicitExample = IndShockExplicitPermIncConsumerType(**Params.init_explicit_perm_inc)
-    t_start = clock()
+    t_start = perf_counter()
     ExplicitExample.solve()
-    t_end = clock()
+    t_end = perf_counter()
     print('Solving an explicit permanent income consumer took ' + mystr(t_end-t_start) + ' seconds.')
 
     # Plot the consumption function at various permanent income levels
@@ -1348,9 +1348,9 @@ def main():
 
     # Now solve the *exact same* problem, but with the permanent income normalization
     NormalizedExample = IndShockConsumerType(**Params.init_explicit_perm_inc)
-    t_start = clock()
+    t_start = perf_counter()
     NormalizedExample.solve()
-    t_end = clock()
+    t_end = perf_counter()
     print('Solving the equivalent problem with permanent income normalized out took ' +
           mystr(t_end-t_start) + ' seconds.')
 
@@ -1406,9 +1406,9 @@ def main():
 
     # Make and solve an example "persistent idisyncratic shocks" consumer
     PersistentExample = PersistentShockConsumerType(**Params.init_persistent_shocks)
-    t_start = clock()
+    t_start = perf_counter()
     PersistentExample.solve()
-    t_end = clock()
+    t_end = perf_counter()
     print('Solving a persistent income shocks consumer took ' + mystr(t_end-t_start) + ' seconds.')
 
     # Plot the consumption function at various levels of persistent income pLvl

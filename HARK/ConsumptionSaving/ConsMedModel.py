@@ -1363,7 +1363,7 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
 def main():
     import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import CRRAutility_inv
-    from time import clock
+    from time import perf_counter
     import matplotlib.pyplot as plt
     mystr = lambda number : "{:.4f}".format(number)
 
@@ -1371,9 +1371,9 @@ def main():
 
     # Make and solve an example medical shocks consumer type
     MedicalExample = MedShockConsumerType(**Params.init_medical_shocks)
-    t_start = clock()
+    t_start = perf_counter()
     MedicalExample.solve()
-    t_end = clock()
+    t_end = perf_counter()
     print('Solving a medical shocks consumer took ' + mystr(t_end-t_start) + ' seconds.')
 
     # Plot the consumption function
@@ -1430,13 +1430,13 @@ def main():
         plt.show()
 
     if do_simulation:
-        t_start = clock()
+        t_start = perf_counter()
         MedicalExample.T_sim = 100
         MedicalExample.track_vars = ['mLvlNow','cLvlNow','MedNow']
         MedicalExample.makeShockHistory()
         MedicalExample.initializeSim()
         MedicalExample.simulate()
-        t_end = clock()
+        t_end = perf_counter()
         print('Simulating ' + str(MedicalExample.AgentCount) + ' agents for ' + str(MedicalExample.T_sim) + ' periods took ' + mystr(t_end-t_start) + ' seconds.')
 
 if __name__ == '__main__':

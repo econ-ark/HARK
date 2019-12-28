@@ -475,7 +475,7 @@ def main():
     import numpy as np                   # numeric Python
     from HARK.utilities import plotFuncs  # basic plotting tools
     from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType # An alternative, much longer way to solve the TBS model
-    from time import clock               # timing utility
+    from time import perf_counter               # timing utility
 
     do_simulation = True
 
@@ -495,9 +495,9 @@ def main():
 
     # Make and solve a tractable consumer type
     ExampleType = TractableConsumerType(**base_primitives)
-    t_start = clock()
+    t_start = perf_counter()
     ExampleType.solve()
-    t_end = clock()
+    t_end = perf_counter()
     print('Solving a tractable consumption-savings model took ' + str(t_end-t_start) + ' seconds.')
 
     # Plot the consumption function and whatnot
@@ -551,9 +551,9 @@ def main():
     MarkovType.cycles = 0
 
     # Solve the "Markov TBS" model
-    t_start = clock()
+    t_start = perf_counter()
     MarkovType.solve()
-    t_end = clock()
+    t_end = perf_counter()
     MarkovType.unpackcFunc()
 
     print('Solving the same model "the long way" took ' + str(t_end-t_start) + ' seconds.')

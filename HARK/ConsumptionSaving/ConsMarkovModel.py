@@ -974,7 +974,7 @@ class MarkovConsumerType(IndShockConsumerType):
 def main():
     import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import plotFuncs
-    from time import clock
+    from time import perf_counter
     from copy import copy
     mystr = lambda number : "{:.4f}".format(number)
 
@@ -1021,9 +1021,9 @@ def main():
 
     # Solve the serial unemployment consumer's problem and display solution
     SerialUnemploymentExample.timeFwd()
-    start_time = clock()
+    start_time = perf_counter()
     SerialUnemploymentExample.solve()
-    end_time = clock()
+    end_time = perf_counter()
     print('Solving a Markov consumer with serially correlated unemployment took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
     plotFuncs(SerialUnemploymentExample.solution[0].cFunc,0,50)
@@ -1071,9 +1071,9 @@ def main():
     ImmunityExample.IncomeDstn = [IncomeDstn]
 
     # Solve the unemployment immunity problem and display the consumption functions
-    start_time = clock()
+    start_time = perf_counter()
     ImmunityExample.solve()
-    end_time = clock()
+    end_time = perf_counter()
     print('Solving an "unemployment immunity" consumer took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
     mNrmMin = np.min([ImmunityExample.solution[0].mNrmMin[j] for j in range(StateCount)])
@@ -1103,9 +1103,9 @@ def main():
 
 
     # Solve the serially correlated permanent growth shock problem and display the consumption functions
-    start_time = clock()
+    start_time = perf_counter()
     SerialGroExample.solve()
-    end_time = clock()
+    end_time = perf_counter()
     print('Solving a serially correlated growth consumer took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
     plotFuncs(SerialGroExample.solution[0].cFunc,0,10)
@@ -1118,9 +1118,9 @@ def main():
                                  Rfree = np.array([1.01,1.02,1.03,1.04,1.05])) # ...and the interest factor is what varies across states
 
     # Solve the serially correlated interest rate problem and display the consumption functions
-    start_time = clock()
+    start_time = perf_counter()
     SerialRExample.solve()
-    end_time = clock()
+    end_time = perf_counter()
     print('Solving a serially correlated interest consumer took ' + mystr(end_time-start_time) + ' seconds.')
     print('Consumption functions for each discrete state:')
     plotFuncs(SerialRExample.solution[0].cFunc,0,10)

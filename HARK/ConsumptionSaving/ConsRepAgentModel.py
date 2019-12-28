@@ -335,7 +335,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
 ###############################################################################
 def main():
     from copy import deepcopy
-    from time import clock
+    from time import perf_counter
     from HARK.utilities import plotFuncs
     import HARK.ConsumptionSaving.ConsumerParameters as Params
 
@@ -348,9 +348,9 @@ def main():
 
     # Make and solve a rep agent model
     RAexample = RepAgentConsumerType(**RA_params)
-    t_start = clock()
+    t_start = perf_counter()
     RAexample.solve()
-    t_end = clock()
+    t_end = perf_counter()
     print('Solving a representative agent problem took ' + str(t_end-t_start) + ' seconds.')
     plotFuncs(RAexample.solution[0].cFunc,0,20)
 
@@ -358,9 +358,9 @@ def main():
     RAexample.T_sim = 2000
     RAexample.track_vars = ['cNrmNow','mNrmNow','Rfree','wRte']
     RAexample.initializeSim()
-    t_start = clock()
+    t_start = perf_counter()
     RAexample.simulate()
-    t_end = clock()
+    t_end = perf_counter()
     print('Simulating a representative agent for ' + str(RAexample.T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds.')
 
     # Make and solve a Markov representative agent
@@ -370,9 +370,9 @@ def main():
     RA_markov_params['MrkvNow'] = 0
     RAmarkovExample = RepAgentMarkovConsumerType(**RA_markov_params)
     RAmarkovExample.IncomeDstn[0] = 2*[RAmarkovExample.IncomeDstn[0]]
-    t_start = clock()
+    t_start = perf_counter()
     RAmarkovExample.solve()
-    t_end = clock()
+    t_end = perf_counter()
     print('Solving a two state representative agent problem took ' + str(t_end-t_start) + ' seconds.')
     plotFuncs(RAmarkovExample.solution[0].cFunc,0,10)
 
@@ -380,9 +380,9 @@ def main():
     RAmarkovExample.T_sim = 2000
     RAmarkovExample.track_vars = ['cNrmNow','mNrmNow','Rfree','wRte','MrkvNow']
     RAmarkovExample.initializeSim()
-    t_start = clock()
+    t_start = perf_counter()
     RAmarkovExample.simulate()
-    t_end = clock()
+    t_end = perf_counter()
     print('Simulating a two state representative agent for ' + str(RAexample.T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds.')
 
 if __name__ == '__main__':

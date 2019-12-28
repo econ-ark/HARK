@@ -1774,7 +1774,7 @@ class AggShocksDynamicRule(HARKobject):
 
 def main():
     import HARK.ConsumptionSaving.ConsumerParameters as Params
-    from time import clock
+    from time import perf_counter
     from HARK.utilities import plotFuncs
 
     def mystr(number): return "{:.4f}".format(number)
@@ -1803,9 +1803,9 @@ def main():
 
     if solve_agg_shocks_micro:
         # Solve the microeconomic model for the aggregate shocks example type (and display results)
-        t_start = clock()
+        t_start = perf_counter()
         AggShockExample.solve()
-        t_end = clock()
+        t_end = perf_counter()
         print('Solving an aggregate shocks consumer took ' + mystr(t_end-t_start) + ' seconds.')
         print('Consumption function at each aggregate market resources-to-labor ratio gridpoint:')
         m_grid = np.linspace(0, 10, 200)
@@ -1819,10 +1819,10 @@ def main():
 
     if solve_agg_shocks_market:
         # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
-        t_start = clock()
+        t_start = perf_counter()
         print('Now solving for the equilibrium of a Cobb-Douglas economy.  This might take a few minutes...')
         EconomyExample.solve()
-        t_end = clock()
+        t_end = perf_counter()
         print('Solving the "macroeconomic" aggregate shocks model took ' + str(t_end - t_start) + ' seconds.')
 
         print('Aggregate savings as a function of aggregate market resources:')
@@ -1855,9 +1855,9 @@ def main():
 
     if solve_markov_micro:
         # Solve the microeconomic model for the Markov aggregate shocks example type (and display results)
-        t_start = clock()
+        t_start = perf_counter()
         AggShockMrkvExample.solve()
-        t_end = clock()
+        t_end = perf_counter()
         print('Solving an aggregate shocks Markov consumer took ' + mystr(t_end-t_start) + ' seconds.')
 
         print('Consumption function at each aggregate market \
@@ -1874,10 +1874,10 @@ def main():
 
     if solve_markov_market:
         # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
-        t_start = clock()
+        t_start = perf_counter()
         print('Now solving a two-state Markov economy.  This should take a few minutes...')
         MrkvEconomyExample.solve()
-        t_end = clock()
+        t_end = perf_counter()
         print('Solving the "macroeconomic" aggregate shocks model took ' + str(t_end - t_start) + ' seconds.')
 
         print('Consumption function at each aggregate market \
@@ -1909,10 +1909,10 @@ def main():
         KSeconomy.makeAggShkHist()
 
         # Solve the K-S model
-        t_start = clock()
+        t_start = perf_counter()
         print('Now solving a Krusell-Smith-style economy.  This should take about a minute...')
         KSeconomy.solve()
-        t_end = clock()
+        t_end = perf_counter()
         print('Solving the Krusell-Smith model took ' + str(t_end - t_start) + ' seconds.')
 
     if solve_poly_state:
@@ -1955,10 +1955,10 @@ def main():
             PolyStateEconomy)  # Have the consumers inherit relevant objects from the economy
 
         # Solve the many state model
-        t_start = clock()
+        t_start = perf_counter()
         print('Now solving an economy with ' + str(StateCount) + ' Markov states.  This might take a while...')
         PolyStateEconomy.solve()
-        t_end = clock()
+        t_end = perf_counter()
         print('Solving a model with ' + str(StateCount) + ' states took ' + str(t_end - t_start) + ' seconds.')
 
 

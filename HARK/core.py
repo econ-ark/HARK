@@ -18,7 +18,7 @@ from distutils.dir_util import copy_tree
 from .utilities import getArgNames, NullFunc
 from copy import copy, deepcopy
 import numpy as np
-from time import clock
+from time import perf_counter
 from .parallel import multiThreadCommands, multiThreadCommandsFake
 
 
@@ -794,7 +794,7 @@ def solveAgent(agent, verbose):
     completed_cycles = 0 # NOQA
     max_cycles       = 5000 # NOQA  - escape clause
     if verbose:
-        t_last = clock()
+        t_last = perf_counter()
     while go:
         # Solve a cycle of the model, recording it if horizon is finite
         solution_cycle = solveOneCycle(agent, solution_last)
@@ -822,7 +822,7 @@ def solveAgent(agent, verbose):
 
         # Display progress if requested
         if verbose:
-            t_now = clock()
+            t_now = perf_counter()
             if infinite_horizon:
                 print('Finished cycle #' + str(completed_cycles) + ' in ' + str(t_now-t_last) +
                       ' seconds, solution distance = ' + str(solution_distance))

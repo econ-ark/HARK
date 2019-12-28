@@ -603,7 +603,7 @@ def main():
     import HARK.ConsumptionSaving.ConsumerParameters as Params
     import matplotlib.pyplot as plt
     from HARK.utilities import plotFuncs
-    from time import clock
+    from time import perf_counter
     mystr = lambda number : "{:.4f}".format(number)
 
     do_simulation = True
@@ -612,9 +612,9 @@ def main():
     PrefShockExample = PrefShockConsumerType(**Params.init_preference_shocks)
     PrefShockExample.cycles = 0 # Infinite horizon
 
-    t_start = clock()
+    t_start = perf_counter()
     PrefShockExample.solve()
-    t_end = clock()
+    t_end = perf_counter()
     print('Solving a preference shock consumer took ' + str(t_end-t_start) + ' seconds.')
 
     # Plot the consumption function at each discrete shock
@@ -655,9 +655,9 @@ def main():
     KinkyPrefExample = KinkyPrefConsumerType(**Params.init_kinky_pref)
     KinkyPrefExample.cycles = 0 # Infinite horizon
 
-    t_start = clock()
+    t_start = perf_counter()
     KinkyPrefExample.solve()
-    t_end = clock()
+    t_end = perf_counter()
     print('Solving a kinky preference consumer took ' + str(t_end-t_start) + ' seconds.')
 
     # Plot the consumption function at each discrete shock
