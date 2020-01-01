@@ -422,13 +422,12 @@ def saveNelderMeadData(name, simplex, fvals, iters, evals):
     -------
     none
     """
-    f = open(name + ".txt", "w")
-    my_writer = csv.writer(f, delimiter=" ")
-    my_writer.writerow(simplex.shape)
-    my_writer.writerow([iters, evals])
-    my_writer.writerow(simplex.flatten())
-    my_writer.writerow(fvals)
-    f.close()
+    with open(name + ".txt", "w") as f:
+        my_writer = csv.writer(f, delimiter=" ")
+        my_writer.writerow(simplex.shape)
+        my_writer.writerow([iters, evals])
+        my_writer.writerow(simplex.flatten())
+        my_writer.writerow(fvals)
 
 
 def loadNelderMeadData(name):
@@ -452,8 +451,8 @@ def loadNelderMeadData(name):
     evals : int
         The cumulative number of function evaluations in the search process.
     """
-    f = open(name + ".txt", "rb")
-    my_reader = csv.reader(f, delimiter=" ")
+    with open(name + ".txt", "rb") as f:
+        my_reader = csv.reader(f, delimiter=" ")
     my_shape_txt = next(my_reader)
     shape0 = int(my_shape_txt[0])
     shape1 = int(my_shape_txt[1])
@@ -463,7 +462,6 @@ def loadNelderMeadData(name):
     simplex_flat = np.array(next(my_reader), dtype=float)
     simplex = np.reshape(simplex_flat, (shape0, shape1))
     fvals = np.array(next(my_reader), dtype=float)
-    f.close()
 
     return simplex, fvals, iters, evals
 
