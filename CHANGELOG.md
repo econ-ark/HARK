@@ -1,14 +1,99 @@
 HARK  
-Version 0.10.1
+Version 0.10.3
 Release Notes  
 
 # Introduction
 
-This document contains the release notes for the 0.10.1 version of HARK. HARK aims to produce an open source repository of highly modular, easily interoperable code for solving, simulating, and estimating dynamic economic models with heterogeneous agents.
+This document contains the release notes for the 0.10.3 version of HARK. HARK aims to produce an open source repository of highly modular, easily interoperable code for solving, simulating, and estimating dynamic economic models with heterogeneous agents.
 
 For more information on HARK, see [our Github organization](https://github.com/econ-ark).
 
 ## Changes
+
+### 0.10.3
+
+Release Date: 12-12-2019
+
+#### Major Changes
+
+- Added constrained perfect foresight model solution. ([#299](https://github.com/econ-ark/HARK/pull/299)
+
+#### Minor Changes
+
+- Fixed slicing error in minimizeNelderMead. ([#460](https://github.com/econ-ark/HARK/pull/460))
+- Fixed matplotlib GUI error. ([#444](https://github.com/econ-ark/HARK/pull/444))
+- Pinned sphinx dependency. ([#436](https://github.com/econ-ark/HARK/pull/436))
+- Fixed bug in ConsPortfolioModel in which the same risky rate of return would be drawn over and over. ([#433](https://github.com/econ-ark/HARK/pull/433))
+- Fixed sphinx dependency errors. ([#411](https://github.com/econ-ark/HARK/pull/411))
+- Refactored simultation.py. ([#408](https://github.com/econ-ark/HARK/pull/408))
+- AgentType.simulate() now throws informative errors if
+attributes required for simulation do not exist, or initializeSim() has
+never been called. ([#320](https://github.com/econ-ark/HARK/pull/320))
+
+### 0.10.2
+
+Release Date: 10-03-2019
+
+#### Minor Changes
+- Add some bugfixes and unit tests to HARK.core. ([#401](https://github.com/econ-ark/HARK/pull/401))
+- Fix error in discrete portfolio choice's AdjustPrb. ([#391](https://github.com/econ-ark/HARK/pull/391))
+
+### 0.10.1.dev5
+
+Release Date: 09-25-2019
+
+#### Minor Changes
+- Added portfolio choice between risky and safe assets (ConsPortfolioModel). ([#241](https://github.com/econ-ark/HARK/pull/241))
+
+### 0.10.1.dev4
+
+Release Date: 09-19-2019
+
+#### Minor Changes
+- Fixes cubic interpolation in KinkedRSolver. ([#386](https://github.com/econ-ark/HARK/pull/386))
+- Documentes the procedure for constructing value function inverses and fixes bug in which survival rate was not included in absolute patience factor. ([#383](https://github.com/econ-ark/HARK/pull/383))
+- Fixes problems that sometimes prevented multiprocessing from working. ([#377](https://github.com/econ-ark/HARK/pull/377))
+
+### 0.10.1.dev3
+
+Release Date: 07-23-2019
+
+#### Minor Changes
+- Missed pre-solve fix (see [#363](https://github.com/econ-ark/HARK/pull/363) for more context). ([#367](https://github.com/econ-ark/HARK/pull/367))
+
+### 0.10.1.dev2
+
+Release Date: 07-22-2019
+
+#### Minor Changes
+- Revert pre-solve commit due to bug.  ([#363](https://github.com/econ-ark/HARK/pull/363))
+
+### 0.10.1.dev1
+
+Release Date: 07-20-2019
+
+#### Breaking Changes
+- See #302 under minor changes.
+
+#### Major Changes
+- Adds BayerLuetticke notebooks and functionality. ([#328](https://github.com/econ-ark/HARK/pull/328))
+
+#### Minor Changes
+- Fixes one-asset HANK models for endowment economy (had MP wired in as the shock). ([#355](https://github.com/econ-ark/HARK/pull/355))
+- Removes jupytext *.py files. ([#354](https://github.com/econ-ark/HARK/pull/354))
+- Reorganizes documentation and configures it to work with Read the Docs. ([#353](https://github.com/econ-ark/HARK/pull/353))
+- Adds notebook illustrating dimensionality reduction in Bayer and Luetticke. ([#345](https://github.com/econ-ark/HARK/pull/345))
+- Adds notebook illustrating how the Bayer & Luetticke invoke the discrete cosine transformation(DCT) and fixed copula to reduce dimensions of the problem.([#344](https://github.com/econ-ark/HARK/pull/344))
+- Makes BayerLuetticke HANK tools importable as a module. ([#342](https://github.com/econ-ark/HARK/pull/342))
+- Restores functionality of SGU_solver. ([#341](https://github.com/econ-ark/HARK/pull/341))
+- Fixes datafile packaging issue. ([#332](https://github.com/econ-ark/HARK/pull/332))
+- Deletes .py file from Bayer-Luetticke folder. ([#329](https://github.com/econ-ark/HARK/pull/329))
+- Add an empty method for preSolve called checkRestrictions that can be overwritten in classes inheriting from AgentType to check for illegal parameter values. ([#324](https://github.com/econ-ark/HARK/pull/324))
+- Adds a call to updateIncomeProcess() in preSolve() to avoid solutions being based on wrong income process specifications if some parameters change between two solve() calls. ([#323](https://github.com/econ-ark/HARK/pull/323))
+- Makes checkConditions() less verbose when the checks are not actually performed by converting a print statement to an inline comment. ([#321](https://github.com/econ-ark/HARK/pull/321))
+- Raises more readable exception when simultate() is called without solving first. ([#315](https://github.com/econ-ark/HARK/pull/315)) 
+- Removes testing folder (part of ongoing test restructuring). ([#304](https://github.com/econ-ark/HARK/pull/304))
+- Fixes unintended behavior in default simDeath(). Previously, all agents would die off in the first period, but they were meant to always survive. ([#302](https://github.com/econ-ark/HARK/pull/302)) __Warning__: Potentially breaking change.
 
 ### 0.10.1
 

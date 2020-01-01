@@ -16,6 +16,8 @@ Rfree = 1.03                        # Interest factor on assets
 DiscFac = 0.96                      # Intertemporal discount factor
 LivPrb = [0.98]                     # Survival probability
 PermGroFac = [1.01]                 # Permanent income growth factor
+BoroCnstArt = None                  # Artificial borrowing constraint
+MaxKinks = 400                      # Maximum number of grid points to allow in cFunc (should be large)
 AgentCount = 10000                  # Number of agents of this type (only matters for simulation)
 aNrmInitMean = 0.0                  # Mean of log initial assets (only matters for simulation)
 aNrmInitStd  = 1.0                  # Standard deviation of log initial assets (only for simulation)
@@ -31,6 +33,8 @@ init_perfect_foresight = { 'CRRA': CRRA,
                            'DiscFac': DiscFac,
                            'LivPrb': LivPrb,
                            'PermGroFac': PermGroFac,
+                           'BoroCnstArt': BoroCnstArt,
+                           #'MaxKinks': MaxKinks,
                            'AgentCount': AgentCount,
                            'aNrmInitMean' : aNrmInitMean,
                            'aNrmInitStd' : aNrmInitStd,
@@ -135,7 +139,7 @@ del init_kinked_R['Rfree'] # get rid of constant interest factor
 init_kinked_R['Rboro'] = Rboro
 init_kinked_R['Rsave'] = Rsave
 init_kinked_R['BoroCnstArt'] = None # kinked R is a bit silly if borrowing not allowed
-init_kinked_R['CubicBool'] = False # kinked R currently only compatible with linear cFunc
+init_kinked_R['CubicBool'] = True # kinked R is now compatible with linear cFunc and cubic cFunc
 init_kinked_R['aXtraCount'] = 48   # ...so need lots of extra gridpoints to make up for it
 
 

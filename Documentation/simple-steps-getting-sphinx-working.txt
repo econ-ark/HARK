@@ -1,3 +1,5 @@
+# Getting sphinx working
+
 Basic steps to get Sphinx running:
 
 1. Download and install Sphinx, numpydoc:
