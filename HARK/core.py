@@ -461,6 +461,14 @@ class AgentType(HARKobject):
         -------
         None
         '''
+        if not hasattr(self, 'T_sim'):
+            raise Exception('To initialize simulation variables it is necessary to first ' +
+                            'set the attribute T_sim to the largest number of observations ' +
+                            'you plan to simulate for each agent including re-births.')
+        elif self.T_sim <= 0:
+            raise Exception('T_sim represents the largest number of observations ' +
+                            'that can be simulated for an agent, and must be a positive number.')
+
         self.resetRNG()
         self.t_sim = 0
         all_agents = np.ones(self.AgentCount, dtype=bool)
@@ -688,7 +696,7 @@ class AgentType(HARKobject):
 
     def simulate(self, sim_periods=None):
         '''
-        Simulates this agent type for a given number of periods (defaults to self.T_sim if no input).
+        Simulates this agent type for a given number of periods. Defaults to self.T_sim if no input.
         Records histories of attributes named in self.track_vars in attributes named varname_hist.
 
         Parameters
@@ -699,6 +707,21 @@ class AgentType(HARKobject):
         -------
         None
         '''
+        if not hasattr(self, 't_sim'):
+            raise Exception('It seems that the simulation variables were not initialize before calling ' +
+                            'simulate(). Call initializeSim() to initialize the variables before calling simulate() again.')
+
+        if not hasattr(self, 'T_sim'):
+            raise Exception('This agent type instance must have the attribute T_sim set to a positive integer.' +
+                             'Set T_sim to match the largest dataset you might simulate, and run this agent\'s' +
+                             'initalizeSim() method before running simulate() again.')
+
+        if sim_periods is not None and self.T_sim < sim_periods:
+            raise Exception('To simulate, sim_periods has to be larger than the maximum data set size ' +
+                             'T_sim. Either increase the attribute T_sim of this agent type instance ' +
+                             'and call the initializeSim() method again, or set sim_periods <= T_sim.')
+
+
         # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
         # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
         # -np.inf, np.inf/np.inf is np.nan and so on.
@@ -783,6 +806,8 @@ def solveAgent(agent, verbose):
         if infinite_horizon:
             if completed_cycles > 0:
                 solution_distance = solution_now.distance(solution_last)
+                agent.solution_distance = solution_distance  # Add these attributes so users can 
+                agent.completed_cycles  = completed_cycles   # query them to see if solution is ready
                 go = (solution_distance > agent.tolerance and completed_cycles < max_cycles)
             else:  # Assume solution does not converge after only one cycle
                 solution_distance = 100.0

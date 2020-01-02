@@ -11,5 +11,6 @@ jupyter
 funcsigs
 jupyter
 sphinx-rtd-theme
-nbsphinx
+nbsphinx==0.4.3
+seaborn
 recommonmark

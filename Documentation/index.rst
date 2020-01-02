@@ -17,7 +17,12 @@ you might want to look at the `DemARK
    :maxdepth: 2
    :caption: User Guide
 
-   readme
+   introduction
+   quick-start
+   list-of-files
+   license
+   warnings-and-behaviors
+   CONTRIBUTING
 
 .. toctree::
    :maxdepth: 2
