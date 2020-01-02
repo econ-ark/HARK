@@ -42,7 +42,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.10.1.dev4',  # Required
+    version='0.10.3',  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
@@ -148,13 +148,20 @@ setup(
     install_requires=['numpy',
                       'matplotlib',
                       'scipy',
-                      'Sphinx',
-                      'numpydoc',
                       'dill',
                       'joblib',
-                      'future',  # Optional
                       'funcsigs',
-                      'jupyter'],
+                      'seaborn',
+                      'jupyter'
+    ],
+    extras_requires={
+        'dev': [
+            'future',  # Optional
+            'Sphinx<=1.6.7',
+            'nbsphinx',
+            'numpydoc',
+            'recommonmark'
+    ]},
 
     python_requires='>=2.7',
 

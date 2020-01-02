@@ -226,8 +226,6 @@ def _calcwFunc(AdjustPrb, AdjustCount, ShareNowCount, vFunc_adj, CRRA):
     integrand : function (lambda)
         Can be used to evaluate the integrand and the sent to a quadrature procedure.
     '''
-    if AdjustPrb < 1:
-        raise Exception('The code allowing probabilities of adjustment less than 1 is not working yet; release notes will indicate when we have a release where it work')
 
     # AdjustCount could in principle just be inferred from AdjustPrb instead of
     # cartying it arround FIXME / TODO
@@ -244,9 +242,6 @@ def _calcwFunc(AdjustPrb, AdjustCount, ShareNowCount, vFunc_adj, CRRA):
             evVals = AdjustPrb*vFunc_adj[0][ShareIndex](evalgrid) + (1-AdjustPrb)*vFunc_adj[1][ShareIndex](evalgrid)
             with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
                 evValsNvrs = utility_inv(evVals,gam=CRRA)
-            evVals = np.insert(evVals, 0, 0.0)
-            evValsNvrs = np.insert(evVals, 0, 0.0)
-
             wFunc.append(ValueFunc(LinearInterp(evVals, evValsNvrs), CRRA))
 
     return wFunc
@@ -280,7 +275,7 @@ def LogNormalRiskyDstnDraw(RiskyAvg=1.0, RiskyStd=0.0):
     mu = math.log(RiskyAvg/(math.sqrt(1+RiskyVar/RiskyAvgSqrd)))
     sigma = math.sqrt(math.log(1+RiskyVar/RiskyAvgSqrd))
 
-    return lambda: drawLognormal(1, mu=mu, sigma=sigma)
+    return lambda rngSeed: drawLognormal(1, mu=mu, sigma=sigma, seed=rngSeed)
 
 
 class PortfolioSolution(Solution):
@@ -290,26 +285,27 @@ class PortfolioSolution(Solution):
                        vPfunc=None, RiskyShareFunc=None, vPPfunc=None,
                        mNrmMin=None, hNrm=None, MPCmin=None, MPCmax=None):
         """We implement three different ways to allow portfolio choice.
-           The agent can choose 
-              * any portfolio share ('continuous choice')
-              * only a specified set of portfolio shares ('discrete choice')
-                * With probability 1 (agent always gets to choose)
-                * With probability 0 < p < 1 (stochastic chance to choose)
-        
-           We allow two choices for the description of the 
+           The agent can choose:
+
+           * any portfolio share ('continuous choice')
+           * only a specified set of portfolio shares ('discrete shares'):
+             * With probability 1 (agent always gets to choose)
+             * With probability 0 < p < 1 (stochastic chance to choose)
+
+           We allow two choices for the description of the
            distribution of the stochastic variable:
            1. A generic discrete probability distribution
               * Nodes and their probabilities are specified
            2. A true lognormal distribution
               * The mean return and the standard deviation are specified
-        
-           In the discrete portfolio shares case, the user also must
-           input a function that *draws* from the distribution in drawRiskyFunc
 
-           Other assumptions: 
-              * distributions are time constant
-              * probability of being allowed to reoptimize is time constant
-                 * If p < 1, you must specify the PortfolioSet discretely
+           In the discrete shares case, the user also must input a function that draws
+           from the distribution in drawRiskyFunc
+
+           Other assumptions:
+           * distributions are time constant
+           * probability of being allowed to reoptimize is time constant
+              * If p < 1, you must specify the PortfolioSet discretely
         """
         # Change any missing function inputs to NullFunc
         if cFunc is None:
@@ -631,7 +627,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         return None
 
     def getRisky(self):
-        return self.drawRiskyFunc()
+        return self.drawRiskyFunc(self.RNG.randint(0,2**31-1))
 
 class ConsIndShockPortfolioSolver(ConsIndShockSolver):
     '''
