@@ -137,7 +137,7 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
                        maxiter=np.inf,maxeval=np.inf,r_param=1.0,e_param=1.0,
                        c_param=0.5,s_param=0.5,maxthreads=None,name=None,resume=False,
                        savefreq=None,verbose=1):
-    '''
+    """
 
     A parallel implementation of the Nelder-Mead minimization algorithm, as
     described in Lee and Wiswall.  For long optimization procedures, it can
@@ -374,7 +374,7 @@ def saveNelderMeadData(name, simplex, fvals, iters, evals):
     Returns
     -------
     None
-    '''
+    """
     N = simplex.shape[0] # Number of points in simplex
     K = simplex.shape[1] # Total number of parameters
     
@@ -407,7 +407,7 @@ def loadNelderMeadData(name):
         The number of completed Nelder-Mead iterations.
     evals : int
         The cumulative number of function evaluations in the search process.
-    '''
+    """
     # Open the Nelder-Mead progress file
     with open(name + '.txt','rb') as f:
         my_reader = csv.reader(f, delimiter=',')
@@ -434,7 +434,7 @@ def loadNelderMeadData(name):
         
         
 def parallelNelderMeadWorker(objFunc,simplex,f_vals,j,P,opt_params):
-    '''
+    """
     A worker process for the parallel Nelder-Mead algorithm.  Updates one point
     in the simplex, returning its function value as well.  Should basically
     never be called directly, only by parallelNelderMead().
