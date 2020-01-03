@@ -22,6 +22,7 @@ from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
 from HARK import AgentType, Solution, NullFunc, HARKobject
+import HARK.ConsumptionSaving.ConsumerParameters as Params
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.simulation import drawDiscrete, drawLognormal, drawUniform
@@ -1596,7 +1597,12 @@ class PerfForesightConsumerType(AgentType):
     poststate_vars_ = ['aNrmNow','pLvlNow']
     shock_vars_ = []
 
-    def __init__(self,cycles=1, time_flow=True,verbose=False,quiet=False, **kwds):
+    def __init__(self,
+                 cycles=1,
+                 time_flow=True,
+                 verbose=False,
+                 quiet=False,
+                 **kwds):
         '''
         Instantiate a new consumer type with given data.
         See ConsumerParameters.init_perfect_foresight for a dictionary of
@@ -1613,6 +1619,11 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         '''
+
+        params = Params.init_perfect_foresight.copy()
+        params.update(kwds)
+        kwds = params
+
         # Initialize a basic AgentType
         AgentType.__init__(self,solution_terminal=deepcopy(self.solution_terminal_),
                            cycles=cycles,time_flow=time_flow,pseudo_terminal=False,**kwds)
@@ -2669,7 +2680,6 @@ def constructAssetsGrid(parameters):
 ####################################################################################################
 
 def main():
-    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import plotFuncsDer, plotFuncs
     from time import time
     mystr = lambda number : "{:.4f}".format(number)
@@ -2677,7 +2687,7 @@ def main():
     do_simulation           = True
 
     # Make and solve an example perfect foresight consumer
-    PFexample = PerfForesightConsumerType(**Params.init_perfect_foresight)
+    PFexample = PerfForesightConsumerType()
     PFexample.cycles = 0 # Make this type have an infinite horizon
 
     start_time = time()
