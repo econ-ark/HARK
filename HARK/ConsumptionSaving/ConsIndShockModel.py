@@ -1980,7 +1980,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
     time_inv_.remove('MaxKinks') # This is in the PerfForesight model but not ConsIndShock
     shock_vars_ = ['PermShkNow','TranShkNow']
 
-    def __init__(self,cycles=1,time_flow=True,verbose=False,quiet=False,**kwds):
+    def __init__(self,
+                 cycles=1,
+                 time_flow=True,
+                 verbose=False,
+                 quiet=False,
+                 **kwds):
         '''
         Instantiate a new ConsumerType with given data.
         See ConsumerParameters.init_idiosyncratic_shocks for a dictionary of
@@ -1997,9 +2002,18 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         '''
+
+        params = Params.init_idiosyncratic_shocks.copy()
+        params.update(kwds)
+        kwds = params
+
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,
-                                           verbose=verbose,quiet=quiet, **kwds)
+        PerfForesightConsumerType.__init__(self,
+                                           cycles=cycles,
+                                           time_flow=time_flow,
+                                           verbose=verbose,
+                                           quiet=quiet,
+                                           **kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
@@ -2711,7 +2725,7 @@ def main():
 ###############################################################################
 
     # Make and solve an example consumer with idiosyncratic income shocks
-    IndShockExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
+    IndShockExample = IndShockConsumerType()
     IndShockExample.cycles = 0 # Make this type have an infinite horizon
 
     start_time = time()
