@@ -2349,7 +2349,10 @@ class KinkedRconsumerType(IndShockConsumerType):
     time_inv_.remove('Rfree')
     time_inv_ += ['Rboro', 'Rsave']
 
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,
+                 cycles=1,
+                 time_flow=True,
+                 **kwds):
         '''
         Instantiate a new ConsumerType with given data.
         See ConsumerParameters.init_kinked_R for a dictionary of
@@ -2366,6 +2369,10 @@ class KinkedRconsumerType(IndShockConsumerType):
         -------
         None
         '''
+        params = Params.init_kinked_R.copy()
+        params.update(kwds)
+        kwds = params
+
         # Initialize a basic AgentType
         PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
 
@@ -2819,7 +2826,7 @@ def main():
 ###############################################################################
 
     # Make and solve an agent with a kinky interest rate
-    KinkyExample = KinkedRconsumerType(**Params.init_kinked_R)
+    KinkyExample = KinkedRconsumerType()
     KinkyExample.cycles = 0 # Make the Example infinite horizon
 
     start_time = time()
