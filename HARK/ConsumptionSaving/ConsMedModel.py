@@ -18,6 +18,7 @@ from HARK.interpolation import BilinearInterpOnInterp1D, TrilinearInterp, Biline
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import ConsGenIncProcessSolver,\
                             PersistentShockConsumerType, ValueFunc2D, MargValueFunc2D,\
                             MargMargValueFunc2D, VariableLowerBoundFunc2D
+import HARK.ConsumptionSaving.ConsumerParameters as Params
 from copy import deepcopy
 
 utility_inv   = CRRAutility_inv
@@ -527,6 +528,10 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         '''
+        params = Params.init_medical_shocks.copy()
+        params.update(kwds)
+        kwds = params
+
         PersistentShockConsumerType.__init__(self,cycles=cycles,**kwds)
         self.solveOnePeriod = solveConsMedShock # Choose correct solver
         self.addToTimeInv('CRRAmed')
@@ -1361,7 +1366,6 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
 ###############################################################################
 
 def main():
-    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import CRRAutility_inv
     from time import clock
     import matplotlib.pyplot as plt
@@ -1370,7 +1374,7 @@ def main():
     do_simulation = True
 
     # Make and solve an example medical shocks consumer type
-    MedicalExample = MedShockConsumerType(**Params.init_medical_shocks)
+    MedicalExample = MedShockConsumerType()
     t_start = clock()
     MedicalExample.solve()
     t_end = clock()

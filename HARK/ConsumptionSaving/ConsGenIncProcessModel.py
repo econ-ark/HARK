@@ -18,6 +18,7 @@ from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutility
                            getPercentiles
 from HARK.simulation import drawLognormal, drawDiscrete, drawUniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
+import HARK.ConsumptionSaving.ConsumerParameters as Params
 
 utility = CRRAutility
 utilityP = CRRAutilityP
@@ -982,6 +983,10 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         '''
+        params = Params.init_explicit_perm_inc.copy()
+        params.update(kwds)
+        kwds = params
+
         # Initialize a basic ConsumerType
         IndShockConsumerType.__init__(self, cycles=cycles, time_flow=time_flow, **kwds)
         self.solveOnePeriod = solveConsGenIncProcess  # idiosyncratic shocks solver with explicit persistent income
@@ -1310,7 +1315,6 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 ###############################################################################
 
 def main():
-    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import plotFuncs
     from time import clock
     import matplotlib.pyplot as plt
@@ -1326,7 +1330,7 @@ def main():
     print('percentile is ' + str(Params.init_explicit_perm_inc['pLvlPctiles'][-1]*100) + '.\n')
 
     # Make and solve an example "explicit permanent income" consumer with idiosyncratic shocks
-    ExplicitExample = IndShockExplicitPermIncConsumerType(**Params.init_explicit_perm_inc)
+    ExplicitExample = IndShockExplicitPermIncConsumerType()
     t_start = clock()
     ExplicitExample.solve()
     t_end = clock()
