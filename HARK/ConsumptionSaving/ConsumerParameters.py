@@ -249,13 +249,11 @@ init_mrkv_cobb_douglas['intercept_prev'] = 2*[intercept_prev]
 
 pLvlPctiles = np.concatenate(([0.001, 0.005, 0.01, 0.03], np.linspace(0.05, 0.95, num=19),[0.97, 0.99, 0.995, 0.999]))
 PrstIncCorr = 0.98       # Serial correlation coefficient for permanent income
-cycles = 0
 
 # Make a dictionary for the "explicit permanent income" idiosyncratic shocks model
 init_explicit_perm_inc = copy(init_idiosyncratic_shocks)
 init_explicit_perm_inc['pLvlPctiles'] = pLvlPctiles
 init_explicit_perm_inc['PermGroFac'] = [1.0] # long run permanent income growth doesn't work yet
-init_explicit_perm_inc['cycles'] = cycles
 init_explicit_perm_inc['aXtraMax'] = 30
 init_explicit_perm_inc['aXtraExtra'] = [0.005,0.01]
 

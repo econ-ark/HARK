@@ -510,7 +510,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
     '''
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ['MedShkNow']
 
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,cycles=0,time_flow=True,**kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
         to be used during solution (income distribution, assets grid, etc).
