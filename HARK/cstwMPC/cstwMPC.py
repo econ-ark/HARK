@@ -16,7 +16,7 @@ from HARK.utilities import approxMeanOneLognormal, combineIndepDstns, approxUnif
                            getPercentiles, getLorenzShares, calcSubpopAvg, approxLognormal
 from HARK.simulation import drawDiscrete
 from HARK import Market
-import SetupParamsCSTW as Params
+import HARK.cstwMPC.SetupParamsCSTW as Params
 import HARK.ConsumptionSaving.ConsIndShockModel as Model
 from HARK.ConsumptionSaving.ConsAggShockModel import CobbDouglasEconomy, AggShockConsumerType
 from scipy.optimize import golden, brentq
