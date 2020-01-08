@@ -12,4 +12,13 @@ API Documentation
    HARK.simulation
    HARK.utilities
    HARK.validators
+   HARK.ConsumptionSaving.ConsAggShockModel
+   HARK.ConsumptionSaving.ConsGenIncProcessModel 
+   HARK.ConsumptionSaving.ConsIndShockModel
+   HARK.ConsumptionSaving.ConsMarkovModel
+   HARK.ConsumptionSaving.ConsMedModel
    HARK.ConsumptionSaving.ConsPortfolioModel
+   HARK.ConsumptionSaving.ConsPrefShockModel
+   HARK.ConsumptionSaving.ConsRepAgentModel
+   HARK.ConsumptionSaving.TractableBufferStockModel
+   
