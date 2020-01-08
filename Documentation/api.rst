@@ -12,3 +12,4 @@ API Documentation
    HARK.simulation
    HARK.utilities
    HARK.validators
+   HARK.ConsumptionSaving.ConsPortfolioModel
