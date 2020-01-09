@@ -22,6 +22,7 @@ from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
 from HARK import AgentType, Solution, NullFunc, HARKobject
+import HARK.ConsumptionSaving.ConsumerParameters as Params
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.simulation import drawDiscrete, drawLognormal, drawUniform
@@ -1596,7 +1597,12 @@ class PerfForesightConsumerType(AgentType):
     poststate_vars_ = ['aNrmNow','pLvlNow']
     shock_vars_ = []
 
-    def __init__(self,cycles=1, time_flow=True,verbose=False,quiet=False, **kwds):
+    def __init__(self,
+                 cycles=1,
+                 time_flow=True,
+                 verbose=False,
+                 quiet=False,
+                 **kwds):
         '''
         Instantiate a new consumer type with given data.
         See ConsumerParameters.init_perfect_foresight for a dictionary of
@@ -1613,6 +1619,11 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         '''
+
+        params = Params.init_perfect_foresight.copy()
+        params.update(kwds)
+        kwds = params
+
         # Initialize a basic AgentType
         AgentType.__init__(self,solution_terminal=deepcopy(self.solution_terminal_),
                            cycles=cycles,time_flow=time_flow,pseudo_terminal=False,**kwds)
@@ -1969,7 +1980,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
     time_inv_.remove('MaxKinks') # This is in the PerfForesight model but not ConsIndShock
     shock_vars_ = ['PermShkNow','TranShkNow']
 
-    def __init__(self,cycles=1,time_flow=True,verbose=False,quiet=False,**kwds):
+    def __init__(self,
+                 cycles=1,
+                 time_flow=True,
+                 verbose=False,
+                 quiet=False,
+                 **kwds):
         '''
         Instantiate a new ConsumerType with given data.
         See ConsumerParameters.init_idiosyncratic_shocks for a dictionary of
@@ -1986,9 +2002,18 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         '''
+
+        params = Params.init_idiosyncratic_shocks.copy()
+        params.update(kwds)
+        kwds = params
+
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,
-                                           verbose=verbose,quiet=quiet, **kwds)
+        PerfForesightConsumerType.__init__(self,
+                                           cycles=cycles,
+                                           time_flow=time_flow,
+                                           verbose=verbose,
+                                           quiet=quiet,
+                                           **kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
@@ -2324,7 +2349,10 @@ class KinkedRconsumerType(IndShockConsumerType):
     time_inv_.remove('Rfree')
     time_inv_ += ['Rboro', 'Rsave']
 
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,
+                 cycles=1,
+                 time_flow=True,
+                 **kwds):
         '''
         Instantiate a new ConsumerType with given data.
         See ConsumerParameters.init_kinked_R for a dictionary of
@@ -2341,6 +2369,10 @@ class KinkedRconsumerType(IndShockConsumerType):
         -------
         None
         '''
+        params = Params.init_kinked_R.copy()
+        params.update(kwds)
+        kwds = params
+
         # Initialize a basic AgentType
         PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
 
@@ -2669,7 +2701,6 @@ def constructAssetsGrid(parameters):
 ####################################################################################################
 
 def main():
-    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import plotFuncsDer, plotFuncs
     from time import time
     mystr = lambda number : "{:.4f}".format(number)
@@ -2677,7 +2708,7 @@ def main():
     do_simulation           = True
 
     # Make and solve an example perfect foresight consumer
-    PFexample = PerfForesightConsumerType(**Params.init_perfect_foresight)
+    PFexample = PerfForesightConsumerType()
     PFexample.cycles = 0 # Make this type have an infinite horizon
 
     start_time = time()
@@ -2701,7 +2732,7 @@ def main():
 ###############################################################################
 
     # Make and solve an example consumer with idiosyncratic income shocks
-    IndShockExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
+    IndShockExample = IndShockConsumerType()
     IndShockExample.cycles = 0 # Make this type have an infinite horizon
 
     start_time = time()
@@ -2795,7 +2826,7 @@ def main():
 ###############################################################################
 
     # Make and solve an agent with a kinky interest rate
-    KinkyExample = KinkedRconsumerType(**Params.init_kinked_R)
+    KinkyExample = KinkedRconsumerType()
     KinkyExample.cycles = 0 # Make the Example infinite horizon
 
     start_time = time()

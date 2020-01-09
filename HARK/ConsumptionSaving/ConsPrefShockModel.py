@@ -15,6 +15,7 @@ from HARK.utilities import approxMeanOneLognormal
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
                                    ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver
 from HARK.interpolation import LinearInterpOnInterp1D, LinearInterp, CubicInterp, LowerEnvelope
+import HARK.ConsumptionSaving.ConsumerParameters as Params
 
 class PrefShockConsumerType(IndShockConsumerType):
     '''
@@ -23,7 +24,10 @@ class PrefShockConsumerType(IndShockConsumerType):
     '''
     shock_vars_ = IndShockConsumerType.shock_vars_ + ['PrefShkNow']
 
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,
+                 cycles=1,
+                 time_flow=True,
+                 **kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
         to be used during solution (income distribution, assets grid, etc).
@@ -41,7 +45,14 @@ class PrefShockConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        IndShockConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
+        params = Params.init_preference_shocks.copy()
+        params.update(kwds)
+        kwds = params
+
+        IndShockConsumerType.__init__(self,
+                                      cycles=cycles,
+                                      time_flow=time_flow,
+                                      **kwds)
         self.solveOnePeriod = solveConsPrefShock # Choose correct solver
         
     def preSolve(self):
@@ -206,6 +217,9 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         -------
         None
         '''
+        params = Params.init_kinky_pref.copy()
+        params.update(kwds)
+        kwds = params
         IndShockConsumerType.__init__(self,**kwds)
         self.solveOnePeriod = solveConsKinkyPref # Choose correct solver
         self.addToTimeInv('Rboro','Rsave')
@@ -600,7 +614,6 @@ def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,
 ###############################################################################
 
 def main():
-    import HARK.ConsumptionSaving.ConsumerParameters as Params
     import matplotlib.pyplot as plt
     from HARK.utilities import plotFuncs
     from time import clock
@@ -609,7 +622,7 @@ def main():
     do_simulation = True
 
     # Make and solve a preference shock consumer
-    PrefShockExample = PrefShockConsumerType(**Params.init_preference_shocks)
+    PrefShockExample = PrefShockConsumerType()
     PrefShockExample.cycles = 0 # Infinite horizon
 
     t_start = clock()
@@ -652,7 +665,7 @@ def main():
     ###########################################################################
 
     # Make and solve a "kinky preferece" consumer, whose model combines KinkedR and PrefShock
-    KinkyPrefExample = KinkyPrefConsumerType(**Params.init_kinky_pref)
+    KinkyPrefExample = KinkyPrefConsumerType()
     KinkyPrefExample.cycles = 0 # Infinite horizon
 
     t_start = clock()
