@@ -1,29 +1,14 @@
 HARK.ConsumptionSaving
 ===================
 
-.. automodule:: HARK.ConsumptionSaving.ConsAggShockModel
-   :members:
-   
-.. automodule:: HARK.ConsumptionSaving.ConsGenIncProcessModel 
-   :members:
-   
-.. automodule:: HARK.ConsumptionSaving.ConsIndShockModel
-   :members:
-   
-.. automodule:: HARK.ConsumptionSaving.ConsMarkovModel
-   :members:
-   
-.. automodule:: HARK.ConsumptionSaving.ConsMedModel
-   :members:
-   
-.. automodule:: HARK.ConsumptionSaving.ConsPortfolioModel
-   :members:
+.. toctree::
+   :maxdepth: 2
 
-.. automodule:: HARK.ConsumptionSaving.ConsPrefShockModel
-   :members:
-   
-.. automodule:: HARK.ConsumptionSaving.ConsRepAgentModel
-   :members:
-   
-.. automodule:: HARK.ConsumptionSaving.TractableBufferStockModel
-   :members:
+   api-cs-ConsAggShockModel
+   api-cs-ConsGenIncProcessModel
+   api-cs-ConsIndShockModel
+   api-cs-ConsMarkovModel
+   api-cs-ConsPortfolioModel           
+   api-cs-ConsPrefShochModel
+   api-cs-ConsRepAgentModel
+   api-cs-TractableBufferStockModel           
