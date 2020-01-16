@@ -37,13 +37,11 @@ solve_poly_state = (
 
 if solve_agg_shocks_micro or solve_agg_shocks_market:
     # Make an aggregate shocks consumer type
-    AggShockExample = AggShockConsumerType(**Params.init_agg_shocks)
+    AggShockExample = AggShockConsumerType()
     AggShockExample.cycles = 0
 
     # Make a Cobb-Douglas economy for the agents
-    EconomyExample = CobbDouglasEconomy(
-        agents=[AggShockExample], **Params.init_cobb_douglas
-    )
+    EconomyExample = CobbDouglasEconomy(agents=[AggShockExample])
     EconomyExample.makeAggShkHist()  # Simulate a history of aggregate shocks
 
     # Have the consumers inherit relevant objects from the economy
@@ -104,14 +102,12 @@ if solve_agg_shocks_market:
 
 if solve_markov_micro or solve_markov_market or solve_krusell_smith:
     # Make a Markov aggregate shocks consumer type
-    AggShockMrkvExample = AggShockMarkovConsumerType(**Params.init_agg_mrkv_shocks)
+    AggShockMrkvExample = AggShockMarkovConsumerType()
     AggShockMrkvExample.IncomeDstn[0] = 2 * [AggShockMrkvExample.IncomeDstn[0]]
     AggShockMrkvExample.cycles = 0
 
     # Make a Cobb-Douglas economy for the agents
-    MrkvEconomyExample = CobbDouglasMarkovEconomy(
-        agents=[AggShockMrkvExample], **Params.init_mrkv_cobb_douglas
-    )
+    MrkvEconomyExample = CobbDouglasMarkovEconomy(agents=[AggShockMrkvExample])
     MrkvEconomyExample.DampingFac = 0.2  # Turn down damping
     MrkvEconomyExample.makeAggShkHist()  # Simulate a history of aggregate shocks
     AggShockMrkvExample.getEconomyData(
@@ -223,16 +219,14 @@ if solve_poly_state:
     PolyMrkvArray[StateCount - 1, StateCount - 1] += 0.5 * (1.0 - Persistence)
 
     # Make a consumer type to inhabit the economy
-    PolyStateExample = AggShockMarkovConsumerType(**Params.init_agg_mrkv_shocks)
+    PolyStateExample = AggShockMarkovConsumerType()
     PolyStateExample.MrkvArray = PolyMrkvArray
     PolyStateExample.PermGroFacAgg = PermGroFacAgg
     PolyStateExample.IncomeDstn[0] = StateCount * [PolyStateExample.IncomeDstn[0]]
     PolyStateExample.cycles = 0
 
     # Make a Cobb-Douglas economy for the agents
-    PolyStateEconomy = CobbDouglasMarkovEconomy(
-        agents=[PolyStateExample], **Params.init_mrkv_cobb_douglas
-    )
+    PolyStateEconomy = CobbDouglasMarkovEconomy(agents=[PolyStateExample])
     PolyStateEconomy.MrkvArray = PolyMrkvArray
     PolyStateEconomy.PermGroFacAgg = PermGroFacAgg
     PolyStateEconomy.PermShkAggStd = StateCount * [0.006]

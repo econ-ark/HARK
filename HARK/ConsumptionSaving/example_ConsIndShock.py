@@ -9,7 +9,7 @@ mystr = lambda number : "{:.4f}".format(number)
 do_simulation           = True
 
 # Make and solve an example perfect foresight consumer
-PFexample = PerfForesightConsumerType(**Params.init_perfect_foresight)
+PFexample = PerfForesightConsumerType()
 PFexample.cycles = 0 # Make this type have an infinite horizon
 
 start_time = time()
@@ -32,7 +32,7 @@ if do_simulation:
 
 ""
 # Make and solve an example consumer with idiosyncratic income shocks
-IndShockExample = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
+IndShockExample = IndShockConsumerType()
 IndShockExample.cycles = 0 # Make this type have an infinite horizon
 
 start_time = time()
@@ -124,7 +124,7 @@ if do_simulation:
 
 ""
 # Make and solve an agent with a kinky interest rate
-KinkyExample = KinkedRconsumerType(**Params.init_kinked_R)
+KinkyExample = KinkedRconsumerType()
 KinkyExample.cycles = 0 # Make the Example infinite horizon
 
 start_time = time()

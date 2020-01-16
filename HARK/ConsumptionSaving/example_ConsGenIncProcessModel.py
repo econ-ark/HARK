@@ -35,7 +35,7 @@ print(
 )
 
 # Make and solve an example "explicit permanent income" consumer with idiosyncratic shocks
-ExplicitExample = IndShockExplicitPermIncConsumerType(**Params.init_explicit_perm_inc)
+ExplicitExample = IndShockExplicitPermIncConsumerType()
 t_start = process_time()
 ExplicitExample.solve()
 t_end = process_time()

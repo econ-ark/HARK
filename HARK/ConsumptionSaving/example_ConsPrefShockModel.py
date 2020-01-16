@@ -13,7 +13,7 @@ mystr = lambda number: "{:.4f}".format(number)
 do_simulation = True
 
 # Make and solve a preference shock consumer
-PrefShockExample = PrefShockConsumerType(**Params.init_preference_shocks)
+PrefShockExample = PrefShockConsumerType()
 PrefShockExample.cycles = 0  # Infinite horizon
 
 t_start = process_time()
@@ -60,7 +60,7 @@ if do_simulation:
 ###########################################################################
 
 # Make and solve a "kinky preferece" consumer, whose model combines KinkedR and PrefShock
-KinkyPrefExample = KinkyPrefConsumerType(**Params.init_kinky_pref)
+KinkyPrefExample = KinkyPrefConsumerType()
 KinkyPrefExample.cycles = 0  # Infinite horizon
 
 t_start = process_time()

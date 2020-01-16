@@ -10,7 +10,7 @@ mystr = lambda number: "{:.4f}".format(number)
 do_simulation = True
 
 # Make and solve an example medical shocks consumer type
-MedicalExample = MedShockConsumerType(**Params.init_medical_shocks)
+MedicalExample = MedShockConsumerType()
 t_start = process_time()
 MedicalExample.solve()
 t_end = process_time()
