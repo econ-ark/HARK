@@ -20,6 +20,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockC
 from HARK import HARKobject, Market, AgentType
 from copy import deepcopy
 import matplotlib.pyplot as plt
+import HARK.ConsumptionSaving.ConsumerParameters as Params
+
 
 utility = CRRAutility
 utilityP = CRRAutilityP
@@ -79,6 +81,9 @@ class AggShockConsumerType(IndShockConsumerType):
         Make a new instance of AggShockConsumerType, an extension of
         IndShockConsumerType.  Sets appropriate solver and input lists.
         '''
+        params = Params.init_agg_shocks.copy()
+        params.update(kwds)
+        kwds = params
         AgentType.__init__(self, solution_terminal=deepcopy(IndShockConsumerType.solution_terminal_),
                            time_flow=time_flow, pseudo_terminal=False, **kwds)
 
@@ -107,7 +112,7 @@ class AggShockConsumerType(IndShockConsumerType):
         self.aNrmNow = self.aLvlNow/self.pLvlNow
 
     def preSolve(self):
-        AgentType.preSolve()
+#        AgentType.preSolve()
         self.updateSolutionTerminal()
 
     def updateSolutionTerminal(self):
@@ -375,6 +380,9 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
     state is subject to Markov-style discrete state evolution.
     '''
     def __init__(self, **kwds):
+        params = Params.init_agg_mrkv_shocks.copy()
+        params.update(kwds)
+        kwds = params
         AggShockConsumerType.__init__(self, **kwds)
         self.addToTimeInv('MrkvArray')
         self.solveOnePeriod = solveConsAggMarkov
@@ -886,7 +894,11 @@ class CobbDouglasEconomy(Market):
     Note: The current implementation assumes a constant labor supply, but
     this will be generalized in the future.
     '''
-    def __init__(self, agents=[], tolerance=0.0001, act_T=1000, **kwds):
+    def __init__(self,
+                 agents=[],
+                 tolerance=0.0001,
+                 act_T=1200,
+                 **kwds):
         '''
         Make a new instance of CobbDouglasEconomy by filling in attributes
         specific to this kind of market.
@@ -906,6 +918,9 @@ class CobbDouglasEconomy(Market):
         -------
         None
         '''
+        params = Params.init_cobb_douglas.copy()
+        params.update(kwds)
+        kwds = params
         Market.__init__(self, agents=agents,
                         sow_vars=['MaggNow', 'AaggNow', 'RfreeNow',
                                   'wRteNow', 'PermShkAggNow', 'TranShkAggNow', 'KtoLnow'],
@@ -1330,7 +1345,11 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
     productivity growth factor can vary over time.
 
     '''
-    def __init__(self, agents=[], tolerance=0.0001, act_T=1000, **kwds):
+    def __init__(self,
+                 agents=[],
+                 tolerance=0.0001,
+                 act_T=1200,
+                 **kwds):
         '''
         Make a new instance of CobbDouglasMarkovEconomy by filling in attributes
         specific to this kind of market.
@@ -1350,6 +1369,9 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         -------
         None
         '''
+        params = Params.init_mrkv_cobb_douglas.copy()
+        params.update(kwds)
+        kwds = params
         CobbDouglasEconomy.__init__(self, agents=agents, tolerance=tolerance, act_T=act_T, **kwds)
         self.sow_vars.append('MrkvNow')
 
@@ -1773,7 +1795,6 @@ class AggShocksDynamicRule(HARKobject):
 ###############################################################################
 
 def main():
-    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from time import clock
     from HARK.utilities import plotFuncs
 
@@ -1791,11 +1812,11 @@ def main():
 
     if solve_agg_shocks_micro or solve_agg_shocks_market:
         # Make an aggregate shocks consumer type
-        AggShockExample = AggShockConsumerType(**Params.init_agg_shocks)
+        AggShockExample = AggShockConsumerType()
         AggShockExample.cycles = 0
 
         # Make a Cobb-Douglas economy for the agents
-        EconomyExample = CobbDouglasEconomy(agents=[AggShockExample], **Params.init_cobb_douglas)
+        EconomyExample = CobbDouglasEconomy(agents=[AggShockExample])
         EconomyExample.makeAggShkHist()  # Simulate a history of aggregate shocks
 
         # Have the consumers inherit relevant objects from the economy
@@ -1842,12 +1863,12 @@ def main():
 
     if solve_markov_micro or solve_markov_market or solve_krusell_smith:
         # Make a Markov aggregate shocks consumer type
-        AggShockMrkvExample = AggShockMarkovConsumerType(**Params.init_agg_mrkv_shocks)
+        AggShockMrkvExample = AggShockMarkovConsumerType()
         AggShockMrkvExample.IncomeDstn[0] = 2*[AggShockMrkvExample.IncomeDstn[0]]
         AggShockMrkvExample.cycles = 0
 
         # Make a Cobb-Douglas economy for the agents
-        MrkvEconomyExample = CobbDouglasMarkovEconomy(agents=[AggShockMrkvExample], **Params.init_mrkv_cobb_douglas)
+        MrkvEconomyExample = CobbDouglasMarkovEconomy(agents=[AggShockMrkvExample])
         MrkvEconomyExample.DampingFac = 0.2  # Turn down damping
         MrkvEconomyExample.makeAggShkHist()  # Simulate a history of aggregate shocks
         AggShockMrkvExample.getEconomyData(
@@ -1934,14 +1955,14 @@ def main():
         PolyMrkvArray[StateCount-1, StateCount-1] += 0.5*(1.0 - Persistence)
 
         # Make a consumer type to inhabit the economy
-        PolyStateExample = AggShockMarkovConsumerType(**Params.init_agg_mrkv_shocks)
+        PolyStateExample = AggShockMarkovConsumerType()
         PolyStateExample.MrkvArray = PolyMrkvArray
         PolyStateExample.PermGroFacAgg = PermGroFacAgg
         PolyStateExample.IncomeDstn[0] = StateCount*[PolyStateExample.IncomeDstn[0]]
         PolyStateExample.cycles = 0
 
         # Make a Cobb-Douglas economy for the agents
-        PolyStateEconomy = CobbDouglasMarkovEconomy(agents=[PolyStateExample], **Params.init_mrkv_cobb_douglas)
+        PolyStateEconomy = CobbDouglasMarkovEconomy(agents=[PolyStateExample])
         PolyStateEconomy.MrkvArray = PolyMrkvArray
         PolyStateEconomy.PermGroFacAgg = PermGroFacAgg
         PolyStateEconomy.PermShkAggStd = StateCount*[0.006]

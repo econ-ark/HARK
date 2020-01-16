@@ -16,6 +16,8 @@ Rfree = 1.03                        # Interest factor on assets
 DiscFac = 0.96                      # Intertemporal discount factor
 LivPrb = [0.98]                     # Survival probability
 PermGroFac = [1.01]                 # Permanent income growth factor
+BoroCnstArt = None                  # Artificial borrowing constraint
+MaxKinks = 400                      # Maximum number of grid points to allow in cFunc (should be large)
 AgentCount = 10000                  # Number of agents of this type (only matters for simulation)
 aNrmInitMean = 0.0                  # Mean of log initial assets (only matters for simulation)
 aNrmInitStd  = 1.0                  # Standard deviation of log initial assets (only for simulation)
@@ -31,6 +33,8 @@ init_perfect_foresight = { 'CRRA': CRRA,
                            'DiscFac': DiscFac,
                            'LivPrb': LivPrb,
                            'PermGroFac': PermGroFac,
+                           'BoroCnstArt': BoroCnstArt,
+                           #'MaxKinks': MaxKinks,
                            'AgentCount': AgentCount,
                            'aNrmInitMean' : aNrmInitMean,
                            'aNrmInitStd' : aNrmInitStd,
@@ -135,7 +139,7 @@ del init_kinked_R['Rfree'] # get rid of constant interest factor
 init_kinked_R['Rboro'] = Rboro
 init_kinked_R['Rsave'] = Rsave
 init_kinked_R['BoroCnstArt'] = None # kinked R is a bit silly if borrowing not allowed
-init_kinked_R['CubicBool'] = False # kinked R currently only compatible with linear cFunc
+init_kinked_R['CubicBool'] = True # kinked R is now compatible with linear cFunc and cubic cFunc
 init_kinked_R['aXtraCount'] = 48   # ...so need lots of extra gridpoints to make up for it
 
 
@@ -207,7 +211,6 @@ init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
                      'CRRA': CRRAPF,
                      'PermGroFacAgg': PermGroFacAgg,
                      'AggregateL':1.0,
-                     'act_T':1200,
                      'intercept_prev': intercept_prev,
                      'slope_prev': slope_prev,
                      'verbose': verbose_cobb_douglas,
@@ -246,13 +249,11 @@ init_mrkv_cobb_douglas['intercept_prev'] = 2*[intercept_prev]
 
 pLvlPctiles = np.concatenate(([0.001, 0.005, 0.01, 0.03], np.linspace(0.05, 0.95, num=19),[0.97, 0.99, 0.995, 0.999]))
 PrstIncCorr = 0.98       # Serial correlation coefficient for permanent income
-cycles = 0
 
 # Make a dictionary for the "explicit permanent income" idiosyncratic shocks model
 init_explicit_perm_inc = copy(init_idiosyncratic_shocks)
 init_explicit_perm_inc['pLvlPctiles'] = pLvlPctiles
 init_explicit_perm_inc['PermGroFac'] = [1.0] # long run permanent income growth doesn't work yet
-init_explicit_perm_inc['cycles'] = cycles
 init_explicit_perm_inc['aXtraMax'] = 30
 init_explicit_perm_inc['aXtraExtra'] = [0.005,0.01]
 
