@@ -17,13 +17,16 @@ from HARK import HARKobject, Market, AgentType
 from copy import deepcopy
 # import matplotlib.pyplot as plt  # All plotting is commented out
 
+__all__ = ['MargValueFunc2D', 'AggShockConsumerType', 'AggShockMarkovConsumerType',
+'CobbDouglasEconomy', 'SmallOpenEconomy', 'CobbDouglasMarkovEconomy',
+'SmallOpenMarkovEconomy', 'CobbDouglasAggVars', 'AggregateSavingRule', 'AggShocksDynamicRule']
+
 utility = CRRAutility
 utilityP = CRRAutilityP
 utilityPP = CRRAutilityPP
 utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
-
 
 
 class MargValueFunc2D(HARKobject):
