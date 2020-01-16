@@ -14,6 +14,7 @@ from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutility
                            getPercentiles
 from HARK.simulation import drawLognormal, drawDiscrete, drawUniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
+import HARK.ConsumptionSaving.ConsumerParameters as Params
 
 __all__ = ['ValueFunc2D', 'MargValueFunc2D', 'MargMargValueFunc2D', 'pLvlFuncAR1',
 'ConsGenIncProcessSolver', 'GenIncProcessConsumerType',
@@ -965,7 +966,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     solution_terminal_ = ConsumerSolution(cFunc=cFunc_terminal_, mNrmMin=0.0, hNrm=0.0, MPCmin=1.0, MPCmax=1.0)
     poststate_vars_ = ['aLvlNow', 'pLvlNow']
 
-    def __init__(self, cycles=1, time_flow=True, **kwds):
+    def __init__(self, cycles=0, time_flow=True, **kwds):
         '''
         Instantiate a new ConsumerType with given data.
         See ConsumerParameters.init_explicit_perm_inc for a dictionary of the
@@ -982,6 +983,10 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         '''
+        params = Params.init_explicit_perm_inc.copy()
+        params.update(kwds)
+        kwds = params
+
         # Initialize a basic ConsumerType
         IndShockConsumerType.__init__(self, cycles=cycles, time_flow=time_flow, **kwds)
         self.solveOnePeriod = solveConsGenIncProcess  # idiosyncratic shocks solver with explicit persistent income

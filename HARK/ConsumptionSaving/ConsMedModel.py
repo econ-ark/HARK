@@ -14,6 +14,7 @@ from HARK.interpolation import BilinearInterpOnInterp1D, TrilinearInterp, Biline
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import ConsGenIncProcessSolver,\
                             PersistentShockConsumerType, ValueFunc2D, MargValueFunc2D,\
                             MargMargValueFunc2D, VariableLowerBoundFunc2D
+import HARK.ConsumptionSaving.ConsumerParameters as Params
 from copy import deepcopy
 
 __all__ = ['MedShockPolicyFunc', 'cThruXfunc', 'MedThruXfunc',
@@ -508,7 +509,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
     '''
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ['MedShkNow']
 
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,cycles=0,time_flow=True,**kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
         to be used during solution (income distribution, assets grid, etc).
@@ -526,6 +527,10 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         '''
+        params = Params.init_medical_shocks.copy()
+        params.update(kwds)
+        kwds = params
+
         PersistentShockConsumerType.__init__(self,cycles=cycles,**kwds)
         self.solveOnePeriod = solveConsMedShock # Choose correct solver
         self.addToTimeInv('CRRAmed')

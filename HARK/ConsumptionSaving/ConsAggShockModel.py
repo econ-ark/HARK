@@ -15,7 +15,8 @@ from HARK.simulation import drawDiscrete, drawUniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockConsumerType
 from HARK import HARKobject, Market, AgentType
 from copy import deepcopy
-# import matplotlib.pyplot as plt  # All plotting is commented out
+# import matplotlib.pyplot as plt
+import HARK.ConsumptionSaving.ConsumerParameters as Params
 
 __all__ = ['MargValueFunc2D', 'AggShockConsumerType', 'AggShockMarkovConsumerType',
 'CobbDouglasEconomy', 'SmallOpenEconomy', 'CobbDouglasMarkovEconomy',
@@ -79,6 +80,9 @@ class AggShockConsumerType(IndShockConsumerType):
         Make a new instance of AggShockConsumerType, an extension of
         IndShockConsumerType.  Sets appropriate solver and input lists.
         '''
+        params = Params.init_agg_shocks.copy()
+        params.update(kwds)
+        kwds = params
         AgentType.__init__(self, solution_terminal=deepcopy(IndShockConsumerType.solution_terminal_),
                            time_flow=time_flow, pseudo_terminal=False, **kwds)
 
@@ -375,6 +379,9 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
     state is subject to Markov-style discrete state evolution.
     '''
     def __init__(self, **kwds):
+        params = Params.init_agg_mrkv_shocks.copy()
+        params.update(kwds)
+        kwds = params
         AggShockConsumerType.__init__(self, **kwds)
         self.addToTimeInv('MrkvArray')
         self.solveOnePeriod = solveConsAggMarkov
@@ -886,7 +893,11 @@ class CobbDouglasEconomy(Market):
     Note: The current implementation assumes a constant labor supply, but
     this will be generalized in the future.
     '''
-    def __init__(self, agents=[], tolerance=0.0001, act_T=1000, **kwds):
+    def __init__(self,
+                 agents=[],
+                 tolerance=0.0001,
+                 act_T=1200,
+                 **kwds):
         '''
         Make a new instance of CobbDouglasEconomy by filling in attributes
         specific to this kind of market.
@@ -906,6 +917,9 @@ class CobbDouglasEconomy(Market):
         -------
         None
         '''
+        params = Params.init_cobb_douglas.copy()
+        params.update(kwds)
+        kwds = params
         Market.__init__(self, agents=agents,
                         sow_vars=['MaggNow', 'AaggNow', 'RfreeNow',
                                   'wRteNow', 'PermShkAggNow', 'TranShkAggNow', 'KtoLnow'],
@@ -1330,7 +1344,11 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
     productivity growth factor can vary over time.
 
     '''
-    def __init__(self, agents=[], tolerance=0.0001, act_T=1000, **kwds):
+    def __init__(self,
+                 agents=[],
+                 tolerance=0.0001,
+                 act_T=1200,
+                 **kwds):
         '''
         Make a new instance of CobbDouglasMarkovEconomy by filling in attributes
         specific to this kind of market.
@@ -1350,6 +1368,9 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         -------
         None
         '''
+        params = Params.init_mrkv_cobb_douglas.copy()
+        params.update(kwds)
+        kwds = params
         CobbDouglasEconomy.__init__(self, agents=agents, tolerance=tolerance, act_T=act_T, **kwds)
         self.sow_vars.append('MrkvNow')
 

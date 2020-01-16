@@ -11,6 +11,7 @@ from HARK.utilities import approxMeanOneLognormal
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
                                    ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver
 from HARK.interpolation import LinearInterpOnInterp1D, LinearInterp, CubicInterp, LowerEnvelope
+import HARK.ConsumptionSaving.ConsumerParameters as Params
 
 __all__ = ['PrefShockConsumerType', 'KinkyPrefConsumerType', 'ConsPrefShockSolver', 'ConsKinkyPrefSolver']
 
@@ -21,7 +22,10 @@ class PrefShockConsumerType(IndShockConsumerType):
     '''
     shock_vars_ = IndShockConsumerType.shock_vars_ + ['PrefShkNow']
 
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,
+                 cycles=1,
+                 time_flow=True,
+                 **kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
         to be used during solution (income distribution, assets grid, etc).
@@ -39,7 +43,14 @@ class PrefShockConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        IndShockConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
+        params = Params.init_preference_shocks.copy()
+        params.update(kwds)
+        kwds = params
+
+        IndShockConsumerType.__init__(self,
+                                      cycles=cycles,
+                                      time_flow=time_flow,
+                                      **kwds)
         self.solveOnePeriod = solveConsPrefShock # Choose correct solver
         
     def preSolve(self):
@@ -204,6 +215,9 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         -------
         None
         '''
+        params = Params.init_kinky_pref.copy()
+        params.update(kwds)
+        kwds = params
         IndShockConsumerType.__init__(self,**kwds)
         self.solveOnePeriod = solveConsKinkyPref # Choose correct solver
         self.addToTimeInv('Rboro','Rsave')
