@@ -10,7 +10,7 @@ from builtins import str
 from builtins import range
 import multiprocessing
 import numpy as np
-from time import clock
+from time import process_time
 import csv
 
 
@@ -274,7 +274,7 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
     # Run the Nelder-Mead algorithm until a terminal condition is met    
     go = True
     while go:
-        t_start = clock()
+        t_start = process_time()
         iters += 1
         if verbose > 0:
             print('Beginning iteration #' + str(iters) + ' now.')
@@ -320,7 +320,7 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
         fmin = fvals[0]
         f_dist = np.abs(fmin - fvals[-1])
         x_dist = np.max(np.sqrt(np.sum((simplex - np.tile(simplex[0,:],(N,1)))**2.0,axis=1)))
-        t_end = clock()
+        t_end = process_time()
         if verbose > 0:
             t_iter = t_end - t_start
             print('Finished iteration #' + str(iters) +' with ' + str(new_evals) + ' evaluations (' + str(evals) + ' cumulative) in ' + str(t_iter) + ' seconds.') 
