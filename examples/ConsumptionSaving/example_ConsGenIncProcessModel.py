@@ -8,13 +8,11 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     IndShockConsumerType,
     PersistentShockConsumerType,
 )
-
-
 def mystr(number):
     return "{:.4f}".format(number)
 
 
-do_simulation = False
+do_simulation = True
 
 # Display information about the pLvlGrid used in these examples
 print(
@@ -125,8 +123,6 @@ if do_simulation:
     plt.xlabel("Simulated time period")
     plt.ylabel("Average market resources mLvl")
     plt.show()
-
-###############################################################################
 
 # Make and solve an example "persistent idisyncratic shocks" consumer
 PersistentExample = PersistentShockConsumerType(**Params.init_persistent_shocks)

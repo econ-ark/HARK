@@ -7,9 +7,7 @@ from HARK.ConsumptionSaving.ConsPrefShockModel import (
     PrefShockConsumerType,
     KinkyPrefConsumerType,
 )
-
 mystr = lambda number: "{:.4f}".format(number)
-
 do_simulation = True
 
 # Make and solve a preference shock consumer
@@ -56,8 +54,6 @@ if do_simulation:
     PrefShockExample.makeShockHistory()  # This is optional
     PrefShockExample.initializeSim()
     PrefShockExample.simulate()
-
-###########################################################################
 
 # Make and solve a "kinky preferece" consumer, whose model combines KinkedR and PrefShock
 KinkyPrefExample = KinkyPrefConsumerType()

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
-from .core import *
-
+from HARK.core import *
+from HARK.ConsumptionSaving import *
 __version__ = '0.10.3'

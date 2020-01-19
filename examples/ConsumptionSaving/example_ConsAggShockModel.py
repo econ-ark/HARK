@@ -9,31 +9,25 @@ from HARK.ConsumptionSaving.ConsAggShockModel import (
     AggShockMarkovConsumerType,
     CobbDouglasMarkovEconomy,
 )
-
-
+from copy import deepcopy
 def mystr(number):
     return "{:.4f}".format(number)
 
 
-solve_agg_shocks_micro = False  # Solve an AggShockConsumerType's microeconomic problem
-solve_agg_shocks_market = (
-    True
-)  # Solve for the equilibrium aggregate saving rule in a CobbDouglasEconomy
+# Solve an AggShockConsumerType's microeconomic problem
+solve_agg_shocks_micro = False
+# Solve for the equilibrium aggregate saving rule in a CobbDouglasEconomy
+solve_agg_shocks_market = True
+# Solve an AggShockMarkovConsumerType's microeconomic problem
+solve_markov_micro = False
+# Solve for the equilibrium aggregate saving rule in a CobbDouglasMarkovEconomy
+solve_markov_market = True
+# Solve a simple Krusell-Smith-style two state, two shock model
+solve_krusell_smith = True
+# Solve a CobbDouglasEconomy with many states, potentially utilizing the "state jumper"
+solve_poly_state = True
 
-solve_markov_micro = (
-    False
-)  # Solve an AggShockMarkovConsumerType's microeconomic problem
-solve_markov_market = (
-    True
-)  # Solve for the equilibrium aggregate saving rule in a CobbDouglasMarkovEconomy
-solve_krusell_smith = (
-    True
-)  # Solve a simple Krusell-Smith-style two state, two shock model
-solve_poly_state = (
-    False
-)  # Solve a CobbDouglasEconomy with many states, potentially utilizing the "state jumper"
-
-# EXAMPLE IMPLEMENTATIONS OF AggShockConsumerType ###
+# ### Example impelementation of AggShockConsumerType
 
 if solve_agg_shocks_micro or solve_agg_shocks_market:
     # Make an aggregate shocks consumer type
@@ -98,7 +92,7 @@ if solve_agg_shocks_market:
     plt.ylim(0.0, None)
     plt.show()
 
-# EXAMPLE IMPLEMENTATIONS OF AggShockMarkovConsumerType #
+# ### Example Implementations of AggShockMarkovConsumerType
 
 if solve_markov_micro or solve_markov_market or solve_krusell_smith:
     # Make a Markov aggregate shocks consumer type
@@ -226,7 +220,8 @@ if solve_poly_state:
     PolyStateExample.cycles = 0
 
     # Make a Cobb-Douglas economy for the agents
-    PolyStateEconomy = CobbDouglasMarkovEconomy(agents=[PolyStateExample])
+    # Use verbose=False to remove printing of intercept
+    PolyStateEconomy = CobbDouglasMarkovEconomy(agents=[PolyStateExample], verbose=False)
     PolyStateEconomy.MrkvArray = PolyMrkvArray
     PolyStateEconomy.PermGroFacAgg = PermGroFacAgg
     PolyStateEconomy.PermShkAggStd = StateCount * [0.006]

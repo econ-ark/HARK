@@ -1,5 +1,5 @@
 from copy import deepcopy
-from time import process_time
+from time import time
 import numpy as np
 from HARK.utilities import plotFuncs
 import HARK.ConsumptionSaving.ConsumerParameters as Params
@@ -17,9 +17,9 @@ RA_params["LivPrb"] = [1.0]
 
 # Make and solve a rep agent model
 RAexample = RepAgentConsumerType(**RA_params)
-t_start = process_time()
+t_start = time()
 RAexample.solve()
-t_end = process_time()
+t_end = time()
 print(
     "Solving a representative agent problem took " + str(t_end - t_start) + " seconds."
 )
@@ -29,9 +29,9 @@ plotFuncs(RAexample.solution[0].cFunc, 0, 20)
 RAexample.T_sim = 2000
 RAexample.track_vars = ["cNrmNow", "mNrmNow", "Rfree", "wRte"]
 RAexample.initializeSim()
-t_start = process_time()
+t_start = time()
 RAexample.simulate()
-t_end = process_time()
+t_end = time()
 print(
     "Simulating a representative agent for "
     + str(RAexample.T_sim)
@@ -47,9 +47,9 @@ RA_markov_params["MrkvArray"] = np.array([[0.99, 0.01], [0.01, 0.99]])
 RA_markov_params["MrkvNow"] = 0
 RAmarkovExample = RepAgentMarkovConsumerType(**RA_markov_params)
 RAmarkovExample.IncomeDstn[0] = 2 * [RAmarkovExample.IncomeDstn[0]]
-t_start = process_time()
+t_start = time()
 RAmarkovExample.solve()
-t_end = process_time()
+t_end = time()
 print(
     "Solving a two state representative agent problem took "
     + str(t_end - t_start)
@@ -61,9 +61,9 @@ plotFuncs(RAmarkovExample.solution[0].cFunc, 0, 10)
 RAmarkovExample.T_sim = 2000
 RAmarkovExample.track_vars = ["cNrmNow", "mNrmNow", "Rfree", "wRte", "MrkvNow"]
 RAmarkovExample.initializeSim()
-t_start = process_time()
+t_start = time()
 RAmarkovExample.simulate()
-t_end = process_time()
+t_end = time()
 print(
     "Simulating a two state representative agent for "
     + str(RAexample.T_sim)

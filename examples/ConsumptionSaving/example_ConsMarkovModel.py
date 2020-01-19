@@ -4,9 +4,7 @@ from time import process_time
 from copy import deepcopy, copy
 import numpy as np
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-
 mystr = lambda number: "{:.4f}".format(number)
-
 do_simulation = True
 
 # Define the Markov transition matrix for serially correlated unemployment
@@ -101,8 +99,6 @@ if do_simulation:
     SerialUnemploymentExample.initializeSim()
     SerialUnemploymentExample.simulate()
 
-###############################################################################
-
 # Make a consumer who occasionally gets "unemployment immunity" for a fixed period
 UnempPrb = 0.05  # Probability of becoming unemployed each period
 ImmunityPrb = 0.01  # Probability of becoming "immune" to unemployment
@@ -168,8 +164,6 @@ print("Consumption functions for each discrete state:")
 mNrmMin = np.min([ImmunityExample.solution[0].mNrmMin[j] for j in range(StateCount)])
 plotFuncs(ImmunityExample.solution[0].cFunc, mNrmMin, 10)
 
-###############################################################################
-
 # Make a consumer with serially correlated permanent income growth
 UnempPrb = 0.05  # Unemployment probability
 StateCount = 5  # Number of permanent income growth rates
@@ -218,8 +212,6 @@ print(
 )
 print("Consumption functions for each discrete state:")
 plotFuncs(SerialGroExample.solution[0].cFunc, 0, 10)
-
-###############################################################################
 
 # Make a consumer with serially correlated interest factors
 SerialRExample = deepcopy(SerialGroExample)  # Same as the last problem...

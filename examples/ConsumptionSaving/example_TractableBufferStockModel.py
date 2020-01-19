@@ -6,7 +6,6 @@ from HARK.ConsumptionSaving.ConsMarkovModel import (
 from time import process_time  # timing utility
 from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerType
 import numpy as np
-
 do_simulation = True
 
 # Define the model primitives

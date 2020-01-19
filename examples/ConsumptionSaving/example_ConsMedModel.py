@@ -1,6 +1,6 @@
 import HARK.ConsumptionSaving.ConsumerParameters as Params
 from HARK.utilities import CRRAutility_inv
-from time import process_time
+from time import time
 import matplotlib.pyplot as plt
 import numpy as np
 from HARK.ConsumptionSaving.ConsMedModel import MedShockConsumerType
@@ -11,9 +11,9 @@ do_simulation = True
 
 # Make and solve an example medical shocks consumer type
 MedicalExample = MedShockConsumerType()
-t_start = process_time()
+t_start = time()
 MedicalExample.solve()
-t_end = process_time()
+t_end = time()
 print("Solving a medical shocks consumer took " + mystr(t_end - t_start) + " seconds.")
 
 # Plot the consumption function
@@ -76,13 +76,13 @@ if MedicalExample.vFuncBool:
     plt.show()
 
 if do_simulation:
-    t_start = process_time()
+    t_start = time()
     MedicalExample.T_sim = 100
     MedicalExample.track_vars = ["mLvlNow", "cLvlNow", "MedNow"]
     MedicalExample.makeShockHistory()
     MedicalExample.initializeSim()
     MedicalExample.simulate()
-    t_end = process_time()
+    t_end = time()
     print(
         "Simulating "
         + str(MedicalExample.AgentCount)
