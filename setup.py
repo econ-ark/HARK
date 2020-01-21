@@ -159,7 +159,6 @@ setup(
             'future',  # Optional
             'Sphinx<=1.6.7',
             'nbsphinx',
-            'numpydoc',
             'recommonmark'
     ]},
 
