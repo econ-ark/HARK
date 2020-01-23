@@ -3510,7 +3510,7 @@ def main():
     print("of the model modules in /ConsumptionSavingModel.  In the future, running")
     print("this module will show examples of each interpolation class.")
 
-    from time import process_time
+    from time import time
     import matplotlib.pyplot as plt
 
     RNG = np.random.RandomState(123)
@@ -3616,13 +3616,13 @@ def main():
         rand_x = RNG.rand(N)*5.0
         rand_y = RNG.rand(N)*5.0
         rand_z = RNG.rand(N)*5.0
-        t_start = process_time()
+        t_start = time()
         z = (f(rand_w,rand_x,rand_y,rand_z) - g(rand_w,rand_x,rand_y,rand_z))/f(rand_w,rand_x,rand_y,rand_z)
         q = (dfdw(rand_w,rand_x,rand_y,rand_z) - g.derivativeW(rand_w,rand_x,rand_y,rand_z))/dfdw(rand_w,rand_x,rand_y,rand_z)
         r = (dfdx(rand_w,rand_x,rand_y,rand_z) - g.derivativeX(rand_w,rand_x,rand_y,rand_z))/dfdx(rand_w,rand_x,rand_y,rand_z)
         p = (dfdy(rand_w,rand_x,rand_y,rand_z) - g.derivativeY(rand_w,rand_x,rand_y,rand_z))/dfdy(rand_w,rand_x,rand_y,rand_z)
         s = (dfdz(rand_w,rand_x,rand_y,rand_z) - g.derivativeZ(rand_w,rand_x,rand_y,rand_z))/dfdz(rand_w,rand_x,rand_y,rand_z)
-        t_end = process_time()
+        t_end = time()
 
         z.sort()
         print(z)
@@ -3689,9 +3689,9 @@ def main():
         rand_x = RNG.rand(N)*5.0
         rand_y = RNG.rand(N)*5.0
         rand_z = RNG.rand(N)*5.0
-        t_start = process_time()
+        t_start = time()
         z = (f(rand_w,rand_x,rand_y,rand_z) - g(rand_w,rand_x,rand_y,rand_z))/f(rand_w,rand_x,rand_y,rand_z)
-        t_end = process_time()
+        t_end = time()
         #print(z)
         print(t_end-t_start)
 
@@ -3711,11 +3711,11 @@ def main():
 
         rand_x = RNG.rand(1000)*5.0
         rand_y = RNG.rand(1000)*5.0
-        t_start = process_time()
+        t_start = time()
         z = (f(rand_x,rand_y) - g(rand_x,rand_y))/f(rand_x,rand_y)
         q = (dfdx(rand_x,rand_y) - g.derivativeX(rand_x,rand_y))/dfdx(rand_x,rand_y)
         r = (dfdy(rand_x,rand_y) - g.derivativeY(rand_x,rand_y))/dfdy(rand_x,rand_y)
-        t_end = process_time()
+        t_end = time()
         z.sort()
         q.sort()
         r.sort()
@@ -3785,9 +3785,9 @@ def main():
         rand_y = RNG.rand(N)*5.0
         rand_z = RNG.rand(N)*5.0
 
-        t_start = process_time()
+        t_start = time()
         z = (f(rand_w,rand_x,rand_y,rand_z) - g(rand_w,rand_x,rand_y,rand_z))/f(rand_w,rand_x,rand_y,rand_z)
-        t_end = process_time()
+        t_end = time()
         z.sort()
         print(z)
         print(t_end-t_start)

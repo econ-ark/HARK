@@ -11,7 +11,7 @@ import os
 
 import numpy as np
 from copy import copy, deepcopy
-from time import process_time
+from time import time
 from HARK.utilities import approxMeanOneLognormal, combineIndepDstns, approxUniform, \
                            getPercentiles, getLorenzShares, calcSubpopAvg, approxLognormal
 from HARK.simulation import drawDiscrete
@@ -589,10 +589,10 @@ def main():
                                                             center_range = param_range,
                                                             spread = spread,
                                                             dist_type = Params.dist_type)
-            t_start = process_time()
+            t_start = time()
             spread_estimate = golden(paramDistObjective,brack=spread_range,tol=1e-4)
             center_estimate = EstimationEconomy.center_save
-            t_end = process_time()
+            t_end = time()
         else:
             # Run the param-point estimation only
             paramPointObjective = lambda center : getKYratioDifference(Economy = EstimationEconomy,
@@ -601,10 +601,10 @@ def main():
                                                  center = center,
                                                  spread = 0.0,
                                                  dist_type = Params.dist_type)
-            t_start = process_time()
+            t_start = time()
             center_estimate = brentq(paramPointObjective,param_range[0],param_range[1],xtol=1e-6)
             spread_estimate = 0.0
-            t_end = process_time()
+            t_end = time()
 
         # Display statistics about the estimated model
         #center_estimate = 0.986609223266
