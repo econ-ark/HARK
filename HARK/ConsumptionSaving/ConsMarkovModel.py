@@ -593,7 +593,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         return vFuncNow
 
 
-def solveConsMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
+def _solveConsMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
                                  MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
     '''
     Solves a single period consumption-saving problem with risky income and
@@ -681,7 +681,7 @@ class MarkovConsumerType(IndShockConsumerType):
 
     def __init__(self,cycles=1,time_flow=True,**kwds):
         IndShockConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
-        self.solveOnePeriod = solveConsMarkov
+        self.solveOnePeriod = _solveConsMarkov
         self.poststate_vars += ['MrkvNow']
         if not hasattr(self, 'global_markov'):
             self.global_markov = False
@@ -702,15 +702,19 @@ class MarkovConsumerType(IndShockConsumerType):
         StateCount = self.MrkvArray[0].shape[0]
 
         # Check that arrays are the right shape
-        assert self.Rfree.shape      == (StateCount,),'Rfree not the right shape!'
+        if not isinstance(self.Rfree, np.ndarray) or self.Rfree.shape != (StateCount, ):
+            raise ValueError('Rfree not the right shape, it should an array of Rfree of all the states.')
 
         # Check that arrays in lists are the right shape
         for MrkvArray_t in self.MrkvArray:
-            assert MrkvArray_t.shape  == (StateCount,StateCount),'MrkvArray not the right shape!'
+            if not isinstance(MrkvArray_t, np.ndarray) or MrkvArray_t.shape != (StateCount, StateCount):
+                raise ValueError('MrkvArray not the right shape, it should be of the size states*statres.')
         for LivPrb_t in self.LivPrb:
-            assert LivPrb_t.shape == (StateCount,),'Array in LivPrb is not the right shape!'
-        for PermGroFac_t in self.LivPrb:
-            assert PermGroFac_t.shape == (StateCount,),'Array in PermGroFac is not the right shape!'
+            if not isinstance(LivPrb_t, np.ndarray) or LivPrb_t.shape != (StateCount, ):
+                raise ValueError('Array in LivPrb is not the right shape, it should be an array of length equal to number of states')
+        for PermGroFac_t in self.PermGroFac:
+            if not isinstance(PermGroFac_t, np.ndarray) or PermGroFac_t.shape != (StateCount, ):
+                raise ValueError('Array in PermGroFac is not the right shape, it should be an array of length equal to number of states')
 
         # Now check the income distribution.
         # Note IncomeDstn is (potentially) time-varying, so it is in time_vary.
@@ -718,8 +722,10 @@ class MarkovConsumerType(IndShockConsumerType):
         # at a particular point in time.  Each income distribution at a point in time should itself
         # be a list, with each element corresponding to the income distribution
         # conditional on a particular Markov state.
+        # TODO: should this be a numpy array too?
         for IncomeDstn_t in self.IncomeDstn:
-            assert len(IncomeDstn_t) == StateCount,'List in IncomeDstn is not the right length!'
+            if not isinstance(IncomeDstn_t, list) or len(IncomeDstn_t) != StateCount:
+                raise ValueError('List in IncomeDstn is not the right length, it should be length equal to number of states')
 
     def preSolve(self):
         """
