@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import sys
 
 if sys.version_info[:2] < (3, 6):
@@ -8,7 +9,6 @@ if sys.version_info[:2] < (3, 6):
     )
 
 
-from __future__ import absolute_import
 from .core import *
 
 __version__ = "0.10.3"
