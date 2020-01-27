@@ -9,7 +9,7 @@ os.environ["PYOPENCL_CTX"] = "0:0" # This is where you set which devices are in 
 # EVERY machine will have a device 0:0, which by default is the CPU
 # Other devices will have various numbers
 # Substitute her the device you want to compare to the CPU
-from time import clock
+from time import time
 
 if __name__ == "__main__":
     
@@ -82,17 +82,17 @@ if __name__ == "__main__":
     c_buf = ctx.create_buffer(cl.CL_MEM_WRITE_ONLY | cl.CL_MEM_ALLOC_HOST_PTR, size=c.nbytes) # Write only, allocate memory, use byte size of array c
     
     # Run the kernel and time it
-    t_start = clock()
+    t_start = time()
     krn.set_args(a_buf, b_buf, c_buf, k[0:1]) # Set kernel arguments as the three buffers and a float
     queue.execute_kernel(krn, [N], None) # Execute the simple kernel, specifying the global workspace dimensionality and local workspace dimensionality (None uses some default)  
     queue.read_buffer(c_buf, c) # Read the memory buffer for c into the numpy array for c 
-    t_end = clock()
+    t_end = time()
     print('OpenCL took ' + str(t_end-t_start) + ' seconds.')
     
     # Now do the equivalent work as the kernel, but in Python (and time it)
-    t_start = clock()
+    t_start = time()
     truth = (a + b) * k[0]
-    t_end = clock()
+    t_end = time()
     print('Python took ' + str(t_end-t_start) + ' seconds.')
     
     # Make sure that OpenCL and Python actually agree on their results

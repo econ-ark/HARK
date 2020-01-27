@@ -14,6 +14,9 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org/)
 [![Donate](https://img.shields.io/badge/donate-$2-brightgreen.svg)](https://numfocus.salsalabs.org/donate-to-econ-ark/index.html)
+[![Actions Status](https://github.com/econ-ark/hark/workflows/HARK%20build%20on%20MacOS%2C%20Ubuntu%20and%20Windows/badge.svg
+)](https://github.com/econ-ark/hark/actions)
+
 
 <!--
    Badges to be created:
