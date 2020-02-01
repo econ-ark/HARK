@@ -1,7 +1,6 @@
 numpy
 matplotlib
 sphinx==1.6.7
-numpydoc
 future
 joblib
 dill
