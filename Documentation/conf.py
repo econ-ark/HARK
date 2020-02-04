@@ -69,7 +69,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'HARK'
-copyright = u'2016, TEMP'
+copyright = u'2016, Econ-ARK team'
 author = u'Econ-ARK team'
 
 # The version info for the project you're documenting, acts as replacement for
