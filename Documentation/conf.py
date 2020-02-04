@@ -39,7 +39,7 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.autosummary',
-    'numpydoc',
+    'sphinx.ext.napoleon',
     'nbsphinx',
     'recommonmark'
 ]

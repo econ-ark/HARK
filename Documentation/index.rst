@@ -35,7 +35,17 @@ you might want to look at the `DemARK
    :maxdepth: 2
    :caption: Python API
 
-   api
+   api-core
+   api-dcegm
+   api-estimation
+   api-interpolation
+   api-parallel
+   api-simulation
+   api-utilities
+   api-validators          
+   api-consumptionsaving
+
+
 
 Indices and tables
 ==================
