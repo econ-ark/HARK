@@ -21,6 +21,7 @@ See [details on our policy on Code of Conduct](./.github/CODE_OF_CONDUCT.md).
 * [Submitting a Bug Report](./doc/guides/contributing/issues.md#submitting-a-bug-report)
 * [Triaging a Bug Report](./doc/guides/contributing/issues.md#triaging-a-bug-report)
 * [Resolving a Bug Report](./doc/guides/contributing/issues.md#resolving-a-bug-report)
+* [Linking your fork to your local clone](./doc/guides/contributing/issues.md#linking-your-fork-to-your-local-clone)
 
 ## [Pull Requests](./doc/guides/contributing/pull-requests.md)
 
