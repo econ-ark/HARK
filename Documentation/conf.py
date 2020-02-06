@@ -39,9 +39,10 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.autosummary',
+    'sphinx.ext.imgconverter',
     'sphinx.ext.napoleon',
     'nbsphinx',
-    'recommonmark'
+    'recommonmark',
 ]
 
 # This is currently not working
