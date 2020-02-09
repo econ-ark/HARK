@@ -2090,32 +2090,21 @@ class IndShockConsumerType(PerfForesightConsumerType):
         '''
         PermShkNow = np.zeros(self.AgentCount) # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
-        newborn = self.t_age == 0
+        
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             N = np.sum(these)
             if N > 0:
-                IncomeDstnNow    = self.IncomeDstn[t-1] # set current income distribution
-                PermGroFacNow    = self.PermGroFac[t-1] # and permanent growth factor
+                ## For 'newborns' (t = 0) approximate using 0th step as (t-1)th
+                IncomeDstnNow    = self.IncomeDstn[max(t-1,0)] # set current income distribution
+                PermGroFacNow    = self.PermGroFac[max(t-1,0)] # and permanent growth factor
                 Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
                 # Get random draws of income shocks from the discrete distribution
                 EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
                 PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
                 TranShkNow[these] = IncomeDstnNow[2][EventDraws]
 
-        # That procedure used the *last* period in the sequence for newborns, but that's not right
-        # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
-        N = np.sum(newborn)
-        if N > 0:
-            these = newborn
-            IncomeDstnNow    = self.IncomeDstn[0] # set current income distribution
-            PermGroFacNow    = self.PermGroFac[0] # and permanent growth factor
-            Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
-            # Get random draws of income shocks from the discrete distribution
-            EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
-            PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
-            TranShkNow[these] = IncomeDstnNow[2][EventDraws]
-#        PermShkNow[newborn] = 1.0
+        newborn = self.t_age == 0
         TranShkNow[newborn] = 1.0
 
         # Store the shocks in self
