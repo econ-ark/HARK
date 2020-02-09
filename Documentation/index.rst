@@ -26,6 +26,12 @@ you might want to look at the `DemARK
 
 .. toctree::
    :maxdepth: 2
+   :caption: Manual
+
+   manual_md/HARKmanual.md
+
+.. toctree::
+   :maxdepth: 2
    :caption: Notebooks
 
    example_notebooks/Gentle-Intro-To-HARK.ipynb
