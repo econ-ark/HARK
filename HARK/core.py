@@ -165,15 +165,13 @@ class Solution(HARKobject):
 
 class AgentType(HARKobject):
     '''
-    A superclass for economic agents in the HARK framework.  Each model should
-    specify its own subclass of AgentType, inheriting its methods and overwriting
+    A superclass for economic agents in the HARK framework. Each model should
+    specify its own subclass of AgentType, inheriting its methods and overwriting 
     as necessary.  Critically, every subclass of AgentType should define class-
     specific static values of the attributes time_vary and time_inv as lists of
     strings.  Each element of time_vary is the name of a field in AgentSubType
     that varies over time in the model.  Each element of time_inv is the name of
-    a field in AgentSubType that is constant over time in the model. The string
-    'solveOnePeriod' should appear in exactly one of these lists, depending on
-    whether the same solution method is used in all periods of the model.
+    a field in AgentSubType that is constant over time in the model.
     '''
     def __init__(self, solution_terminal=None, cycles=1, time_flow=True, pseudo_terminal=True,
                  tolerance=0.000001, seed=0, **kwds):
@@ -871,12 +869,6 @@ def solveOneCycle(agent, solution_last):
     else:
         T = 1
 
-    # Check whether the same solution method is used in all periods
-    always_same_solver = 'solveOnePeriod' not in agent.time_vary
-    if always_same_solver:
-        solveOnePeriod = agent.solveOnePeriod
-        these_args = getArgNames(solveOnePeriod)
-
     # Construct a dictionary to be passed to the solver
     # time_inv_string = ''
     # for name in agent.time_inv:
@@ -893,9 +885,12 @@ def solveOneCycle(agent, solution_last):
     solution_next = solution_last
     for t in range(T):
         # Update which single period solver to use (if it depends on time)
-        if not always_same_solver:
+        if hasattr(agent.solveOnePeriod, "__getitem__"):
             solveOnePeriod = agent.solveOnePeriod[t]
-            these_args = getArgNames(solveOnePeriod)
+        else:
+            solveOnePeriod = agent.solveOnePeriod
+
+        these_args = getArgNames(solveOnePeriod)
 
         # Update time-varying single period inputs
         for name in agent.time_vary:
