@@ -11,7 +11,7 @@ import os
 
 import numpy as np
 from copy import copy, deepcopy
-from time import clock
+from time import time
 from HARK.utilities import approxMeanOneLognormal, combineIndepDstns, approxUniform, \
                            getPercentiles, getLorenzShares, calcSubpopAvg, approxLognormal
 from HARK.simulation import drawDiscrete
@@ -21,7 +21,6 @@ import HARK.ConsumptionSaving.ConsIndShockModel as Model
 from HARK.ConsumptionSaving.ConsAggShockModel import CobbDouglasEconomy, AggShockConsumerType
 from scipy.optimize import golden, brentq
 import matplotlib.pyplot as plt
-#import csv
 
 mystr = lambda number : "{:.3f}".format(number)
 
@@ -88,6 +87,9 @@ class cstwMPCmarket(EstimationMarketClass):
         '''
         Make a new instance of cstwMPCmarket.
         '''
+        super().__init__(sow_vars=self.sow_vars, reap_vars=self.reap_vars,
+                    const_vars=self.const_vars, track_vars=self.track_vars,
+                    dyn_vars=self.dyn_vars)
         self.assignParameters(**kwds)
         if self.AggShockBool:
             self.sow_vars=['MaggNow','AaggNow','RfreeNow','wRteNow','PermShkAggNow','TranShkAggNow','KtoLnow']
@@ -380,7 +382,6 @@ class cstwMPCmarket(EstimationMarketClass):
         if spec_name is not None:
             with open(self.my_file_path  + '/Results/' + spec_name + 'Results.txt','w') as f:
                 f.write(results_string)
-                f.close()
 
 
 def getKYratioDifference(Economy,param_name,param_count,center,spread,dist_type):
@@ -588,10 +589,10 @@ def main():
                                                             center_range = param_range,
                                                             spread = spread,
                                                             dist_type = Params.dist_type)
-            t_start = clock()
+            t_start = time()
             spread_estimate = golden(paramDistObjective,brack=spread_range,tol=1e-4)
             center_estimate = EstimationEconomy.center_save
-            t_end = clock()
+            t_end = time()
         else:
             # Run the param-point estimation only
             paramPointObjective = lambda center : getKYratioDifference(Economy = EstimationEconomy,
@@ -600,10 +601,10 @@ def main():
                                                  center = center,
                                                  spread = 0.0,
                                                  dist_type = Params.dist_type)
-            t_start = clock()
+            t_start = time()
             center_estimate = brentq(paramPointObjective,param_range[0],param_range[1],xtol=1e-6)
             spread_estimate = 0.0
-            t_end = clock()
+            t_end = time()
 
         # Display statistics about the estimated model
         #center_estimate = 0.986609223266

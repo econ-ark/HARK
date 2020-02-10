@@ -11,7 +11,7 @@ from copy import deepcopy
 import numpy as np
 
 # Bring in the HARK models we want to test
-from HARK.ConsumptionSaving.ConsIndShockModel import solvePerfForesight, IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType, IndShockConsumerType
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerType
 
@@ -30,16 +30,22 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
         """
         # Set up and solve infinite type
         import HARK.ConsumptionSaving.ConsumerParameters as Params
-
-        InfiniteType = IndShockConsumerType(**Params.init_idiosyncratic_shocks)
-        InfiniteType.assignParameters(LivPrb=[1.],
-                                      DiscFac=0.955,
-                                      PermGroFac=[1.],
-                                      PermShkStd=[0.],
-                                      TempShkStd=[0.],
-                                      T_total=1, T_retire=0, BoroCnstArt=None, UnempPrb=0.,
-                                      cycles=0
-                                      )  # This is what makes the type infinite horizon
+        
+        # Define a test dictionary that should have the same solution in the
+        # perfect foresight and idiosyncratic shocks models.
+        test_dictionary = deepcopy(Params.init_idiosyncratic_shocks)
+        test_dictionary['LivPrb'] = [1.]
+        test_dictionary['DiscFac'] = 0.955
+        test_dictionary['PermGroFac'] = [1.]
+        test_dictionary['PermShkStd'] = [0.]
+        test_dictionary['TranShkStd'] = [0.]
+        test_dictionary['UnempPrb'] = 0.
+        test_dictionary['T_cycle'] = 1
+        test_dictionary['T_retire'] = 0
+        test_dictionary['BoroCnstArt'] = None
+        
+        InfiniteType = IndShockConsumerType(**test_dictionary)
+        InfiniteType.cycles = 0
 
         InfiniteType.updateIncomeProcess()
         InfiniteType.solve()
@@ -47,8 +53,8 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
         InfiniteType.unpackcFunc()
 
         # Make and solve a perfect foresight consumer type with the same parameters
-        PerfectForesightType = deepcopy(InfiniteType)
-        PerfectForesightType.solveOnePeriod = solvePerfForesight
+        PerfectForesightType = PerfForesightConsumerType(**test_dictionary)
+        PerfectForesightType.cycles = 0
 
         PerfectForesightType.solve()
         PerfectForesightType.unpackcFunc()

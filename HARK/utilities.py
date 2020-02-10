@@ -13,12 +13,12 @@ import functools
 import warnings
 import numpy as np                  # Python's numeric library, abbreviated "np"
 import math
-try:
-    import matplotlib.pyplot as plt                 # Python's plotting library
-except ImportError:
-    import sys
-    exception_type, value, traceback = sys.exc_info()
-    raise ImportError('HARK must be used in a graphical environment.', exception_type, value, traceback)
+# try:
+#     import matplotlib.pyplot as plt                 # Python's plotting library
+# except ImportError:
+#     import sys
+#     exception_type, value, traceback = sys.exc_info()
+#     raise ImportError('HARK must be used in a graphical environment.', exception_type, value, traceback)
 import scipy.stats as stats         # Python's statistics library
 from scipy.interpolate import interp1d
 from scipy.special import erf, erfc
@@ -1025,6 +1025,9 @@ def getPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
     pctl_out : numpy.array
         The requested percentiles of the data.
     '''
+    if data.size < 2:
+        return np.zeros(np.array(percentiles).shape) + np.nan
+    
     if weights is None: # Set equiprobable weights if none were passed
         weights = np.ones(data.size)/float(data.size)
 
@@ -1223,6 +1226,7 @@ def plotFuncs(functions,bottom,top,N=1000,legend_kwds = None):
     -------
     none
     '''
+    import matplotlib.pyplot as plt
     if type(functions)==list:
         function_list = functions
     else:
@@ -1258,6 +1262,7 @@ def plotFuncsDer(functions,bottom,top,N=1000,legend_kwds = None):
     -------
     none
     '''
+    import matplotlib.pyplot as plt
     if type(functions)==list:
         function_list = functions
     else:
