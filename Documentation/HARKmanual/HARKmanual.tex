@@ -51,7 +51,11 @@ White: \href{mailto:mnwecon@udel.edu}{\texttt{mnwecon@udel.edu}}
 \maketitle
 
 \begin{center}
-\includegraphics[scale=0.8]{UserGuidePic.pdf}
+  \ifdvi
+  \includegraphics[width=4in]{UserGuidePic.png}
+  \else
+  \includegraphics[width=2in]{UserGuidePic.pdf}
+  \fi
 \end{center}
 
 \thispagestyle{empty}
