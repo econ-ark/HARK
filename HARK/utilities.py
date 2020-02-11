@@ -1401,14 +1401,14 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
         import os
         # Where to put any figures that the user wants to save
         my_file_path = os.getcwd() # Find pathname to this file:
-        Figures_dir = os.path.join(my_file_path, f"{target_dir}") # LaTeX document assumes figures will be here
+        Figures_dir = os.path.join(my_file_path, "{}".format(figure_name)) # LaTeX document assumes figures will be here
         if not os.path.exists(Figures_dir): 
             os.makedirs(Figures_dir)         # If dir does not exist, create it
         # Save the figures in several formats
-        print(f"Saving figure {figure_name} in {target_dir}")
-        plt.savefig(os.path.join(target_dir, f'{figure_name}.png')) # For web/html
-        plt.savefig(os.path.join(target_dir, f'{figure_name}.pdf')) # For LaTeX
-        plt.savefig(os.path.join(target_dir, f'{figure_name}.svg')) # For html5
+        print("Saving figure {} in {}".format(figure_name, target_dir))
+        plt.savefig(os.path.join(target_dir, '{}.png'.format(figure_name))) # For web/html
+        plt.savefig(os.path.join(target_dir, '{}.pdf'.format(figure_name))) # For LaTeX
+        plt.savefig(os.path.join(target_dir, '{}.svg'.format(figure_name))) # For html5
     # Make sure it's possible to plot it by checking for GUI
     if drawFigs and find_gui():
         plt.ion()  # Counterintuitively, you want interactive mode on if you don't want to interact
