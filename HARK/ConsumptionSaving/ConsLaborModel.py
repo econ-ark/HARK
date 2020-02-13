@@ -17,6 +17,8 @@ from HARK.utilities import CRRAutilityP, CRRAutilityP_inv
 from HARK.interpolation import LinearInterp, LinearInterpOnInterp1D, VariableLowerBoundFunc2D, BilinearInterp, ConstantFunction
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, MargValueFunc
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import ValueFunc2D, MargValueFunc2D
+import HARK.ConsumptionSaving.ConsumerParameters as Params
+import matplotlib.pyplot as plt
 
 class ConsumerLaborSolution(Solution):
     '''
@@ -342,6 +344,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         None
         '''
         raise NotImplementedError()
+
         
     def getControls(self):
         '''
@@ -357,13 +360,16 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         '''
         cNrmNow = np.zeros(self.AgentCount) + np.nan
         MPCnow  = np.zeros(self.AgentCount) + np.nan
+        LbrNow  = np.zeros(self.AgentCount) + np.nan
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            cNrmNow[these] = self.solution[t].cFunc(self.bNrmNow[these], self.TranShkNow[these]) # Assign consumtion values
-            MPCnow[these] = self.solution[t].cFunc.derivativeX(self.bNrmNow[these], self.TranShkNow[these]) # Assign Marginal propensity to consume values (derivative)
+            cNrmNow[these] = self.solution[t].cFunc(self.bNrmNow[these], self.TranShkNow[these]) # Assign consumption values
+            MPCnow[these] = self.solution[t].cFunc.derivativeX(self.bNrmNow[these], self.TranShkNow[these]) # Assign marginal propensity to consume values (derivative)
+            LbrNow[these] = self.solution[t].LbrFunc(self.bNrmNow[these], self.TranShkNow[these]) # Assign labor supply
         self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow
-        return None
+        self.LbrNow = LbrNow
+
         
     def getPostStates(self):
         '''
@@ -377,8 +383,14 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        self.mNrmNow = self.bNrmNow + LaborIntMargExample.solution[t].LbrFunc(self.bNrmNow, self.TranShkNow)*self.TranShkNow 
-        return None
+        mNrmNow = np.zeros(self.AgentCount) + np.nan
+        aNrmNow = np.zeros(self.AgentCount) + np.nan
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            mNrmNow[these] = self.bNrmNow[these] + self.LbrNow[these]*self.TranShkNow[these] # mNrm = bNrm + yNrm
+            aNrmNow[these] = mNrmNow[these] - self.cNrmNow[these] # aNrm = mNrm - cNrm
+        self.mNrmNow = mNrmNow
+        self.aNrmNow = aNrmNow
 
 
     def updateTranShkGrid(self):
@@ -491,205 +503,65 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         '''
         if ShkSet is None:
             ShkSet = self.TranShkGrid[t]
-        if bMin is None:
-            bMinSet = self.solution[0].bNrmMin(TranShkSet)
-        else:
-            bMinSet = bMin*np.ones_like(TranShkSet)
-        if bMax is None:
-            bMaxSet = bMinSet + 20.
-        else:
-            bMaxSet = bMax*np.ones_like(TranShkSet)
-             
+        
         for j in range(len(ShkSet)):
-            Shk = ShkSet[j]
-            B = np.linspace(bMinSet[j],bMaxSet[j],300)
-            C = LaborIntMargExample.solution[t].cFunc(B,Shk*np.ones_like(B))
+            TranShk = ShkSet[j]
+            if bMin is None:
+                bMin_temp = self.solution[t].bNrmMin(TranShk)
+            else:
+                bMin_temp = bMin
+            if bMax is None:
+                bMax_temp = bMin_temp + 20.
+            else:
+                bMax_temp = bMax
+             
+            B = np.linspace(bMin_temp, bMax_temp, 300)
+            C = self.solution[t].cFunc(B, TranShk*np.ones_like(B))
             plt.plot(B,C)
         plt.xlabel('Beginning of period bank balances')
         plt.ylabel('Normalized consumption level')
         plt.show()
-       
-               
-###############################################################################
-          
-if __name__ == '__main__':
-    import HARK.ConsumptionSaving.ConsumerParameters as Params    # Parameters for a consumer type
-    import matplotlib.pyplot as plt
-    from time import process_time
-    mystr = lambda number : "{:.4f}".format(number)     # Format numbers as strings
-    
-    do_simulation           = True
-    
-
-###############################################################################
-    
-    # Make and solve a labor intensive margin consumer i.e. a consumer with utility for leisure
-    LaborIntMargExample = LaborIntMargConsumerType()
-    LaborIntMargExample.cycles = 0
-    
-    t_start = process_time()
-    LaborIntMargExample.solve()
-    t_end = process_time()
-    print('Solving a labor intensive margin consumer took ' + str(t_end-t_start) + ' seconds.')
-    
-    t = 0
-    bMax = 100.
-    
-    # Plot the consumption function at various transitory productivity shocks
-    TranShkSet = LaborIntMargExample.TranShkGrid[t]
-    B = np.linspace(0.,bMax,300)
-    for Shk in TranShkSet:
-        B_temp = B + LaborIntMargExample.solution[t].bNrmMin(Shk)
-        C = LaborIntMargExample.solution[t].cFunc(B_temp,Shk*np.ones_like(B_temp))
-        plt.plot(B_temp,C)
-    plt.xlabel('Beginning of period bank balances')
-    plt.ylabel('Normalized consumption level')
-    plt.show()
-    
-    # Plot the marginal consumption function at various transitory productivity shocks
-    TranShkSet = LaborIntMargExample.TranShkGrid[t]
-    B = np.linspace(0.,bMax,300)
-    for Shk in TranShkSet:
-        B_temp = B + LaborIntMargExample.solution[t].bNrmMin(Shk)
-        C = LaborIntMargExample.solution[t].cFunc.derivativeX(B_temp,Shk*np.ones_like(B_temp))
-        plt.plot(B_temp,C)
-    plt.xlabel('Beginning of period bank balances')
-    plt.ylabel('Marginal propensity to consume')
-    plt.show()
-    
-    # Plot the labor function at various transitory productivity shocks
-    TranShkSet = LaborIntMargExample.TranShkGrid[t]
-    B = np.linspace(0.,bMax,300)
-    for Shk in TranShkSet:
-        B_temp = B + LaborIntMargExample.solution[t].bNrmMin(Shk)
-        Lbr = LaborIntMargExample.solution[t].LbrFunc(B_temp,Shk*np.ones_like(B_temp))
-        plt.plot(B_temp,Lbr)
-    plt.xlabel('Beginning of period bank balances')
-    plt.ylabel('Labor supply')
-    plt.show()
-    
-    # Plot the marginal value function at various transitory productivity shocks
-    pseudo_inverse = True
-    TranShkSet = LaborIntMargExample.TranShkGrid[t]
-    B = np.linspace(0.,bMax,300)
-    for Shk in TranShkSet:
-        B_temp = B + LaborIntMargExample.solution[t].bNrmMin(Shk)
-        if pseudo_inverse:
-            vP = LaborIntMargExample.solution[t].vPfunc.cFunc(B_temp,Shk*np.ones_like(B_temp))
-        else:
-            vP = LaborIntMargExample.solution[t].vPfunc(B_temp,Shk*np.ones_like(B_temp))
-        plt.plot(B_temp,vP)
-    plt.xlabel('Beginning of period bank balances')
-    if pseudo_inverse:
-        plt.ylabel('Pseudo inverse marginal value')
-    else:
-        plt.ylabel('Marginal value')
-    plt.show()
-    
-    if do_simulation:
-        LaborIntMargExample.T_sim = 120 # Set number of simulation periods
-        LaborIntMargExample.track_vars = ['bNrmNow', 'cNrmNow']
-        LaborIntMargExample.initializeSim()
-        LaborIntMargExample.simulate()
-#        plt.plot(np.linspace(0,100,10000), LaborIntMargExample.cNrmNow_hist[30])
-#        plt.show()
-
-###############################################################################
-
-    # Make and solve a labor intensive margin consumer with a finite lifecycle
-    LifecycleExample = LaborIntMargConsumerType(**Params.init_labor_lifecycle)
-    LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
-
-    start_time = process_time()
-    LifecycleExample.solve()
-    end_time = process_time()
-    print('Solving a lifecycle labor intensive margin consumer took ' + str(end_time-start_time) + ' seconds.')
-    LifecycleExample.unpackcFunc()
-    LifecycleExample.timeFwd()
-
-    bMax = 20.
-    
-    # Plot the consumption function in each period of the lifecycle, using median shock
-    B = np.linspace(0.,bMax,300)
-    b_min = np.inf
-    b_max = -np.inf
-    for t in range(LifecycleExample.T_cycle):
-        TranShkSet = LifecycleExample.TranShkGrid[t]
-        Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
-        B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
-        C = LifecycleExample.solution[t].cFunc(B_temp,Shk*np.ones_like(B_temp))
-        plt.plot(B_temp, C)
-        b_min = np.minimum(b_min, B_temp[0])
-        b_max = np.maximum(b_min, B_temp[-1])
-    plt.title('Consumption function across periods of the lifecycle')
-    plt.xlabel('Beginning of period bank balances')
-    plt.ylabel('Normalized consumption level')
-    plt.xlim(b_min, b_max)
-    plt.ylim(0., None)
-    plt.show()
-    
-    # Plot the marginal consumption function in each period of the lifecycle, using median shock
-    B = np.linspace(0.,bMax,300)
-    b_min = np.inf
-    b_max = -np.inf
-    for t in range(LifecycleExample.T_cycle):
-        TranShkSet = LifecycleExample.TranShkGrid[t]
-        Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
-        B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
-        MPC = LifecycleExample.solution[t].cFunc.derivativeX(B_temp,Shk*np.ones_like(B_temp))
-        plt.plot(B_temp, MPC)
-        b_min = np.minimum(b_min, B_temp[0])
-        b_max = np.maximum(b_min, B_temp[-1])
-    plt.title('Marginal consumption function across periods of the lifecycle')
-    plt.xlabel('Beginning of period bank balances')
-    plt.ylabel('Marginal propensity to consume')
-    plt.xlim(b_min, b_max)
-    plt.ylim(0., 1.)
-    plt.show()
-    
-    # Plot the labor supply function in each period of the lifecycle, using median shock
-    B = np.linspace(0.,bMax,300)
-    b_min = np.inf
-    b_max = -np.inf
-    for t in range(LifecycleExample.T_cycle):
-        TranShkSet = LifecycleExample.TranShkGrid[t]
-        Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
-        B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
-        L = LifecycleExample.solution[t].LbrFunc(B_temp,Shk*np.ones_like(B_temp))
-        plt.plot(B_temp, L)
-        b_min = np.minimum(b_min, B_temp[0])
-        b_max = np.maximum(b_min, B_temp[-1])
-    plt.title('Labor supply function across periods of the lifecycle')
-    plt.xlabel('Beginning of period bank balances')
-    plt.ylabel('Labor supply')
-    plt.xlim(b_min, b_max)
-    plt.ylim(0., 1.01)
-    plt.show()
-    
-    # Plot the marginal value function at various transitory productivity shocks
-    pseudo_inverse = True
-    TranShkSet = LifecycleExample.TranShkGrid[t]
-    B = np.linspace(0.,bMax,300)
-    b_min = np.inf
-    b_max = -np.inf
-    for t in range(LifecycleExample.T_cycle):
-        TranShkSet = LifecycleExample.TranShkGrid[t]
-        Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
-        B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
-        if pseudo_inverse:
-            vP = LifecycleExample.solution[t].vPfunc.cFunc(B_temp,Shk*np.ones_like(B_temp))
-        else:
-            vP = LifecycleExample.solution[t].vPfunc(B_temp,Shk*np.ones_like(B_temp))
-        plt.plot(B_temp,vP)
-        b_min = np.minimum(b_min, B_temp[0])
-        b_max = np.maximum(b_min, B_temp[-1])
-    plt.xlabel('Beginning of period bank balances')
-    if pseudo_inverse:
-        plt.ylabel('Pseudo inverse marginal value')
-    else:
-        plt.ylabel('Marginal value')
-    plt.title('Marginal value across periods of the lifecycle')
-    plt.xlim(b_min, b_max)
-    plt.ylim(0., None)
-    plt.show()
-    
+        
+        
+    def plotLbrFunc(self,t,bMin=None,bMax=None,ShkSet=None):
+        '''
+        Plot the labor supply function by bank balances at a given set of transitory shocks.
+        
+        Parameters
+        ----------
+        t : int
+            Time index of the solution for which to plot the labor supply function.
+        bMin : float or None
+            Minimum value of bNrm at which to begin the plot.  If None, defaults
+            to the minimum allowable value of bNrm for each transitory shock.
+        bMax : float or None
+            Maximum value of bNrm at which to end the plot.  If None, defaults
+            to bMin + 20.
+        ShkSet : [float] or None
+            Array or list of transitory shocks at which to plot the labor supply
+            function.  If None, defaults to the TranShkGrid for this time period.
+        
+        Returns
+        -------
+        None
+        '''
+        if ShkSet is None:
+            ShkSet = self.TranShkGrid[t]
+        
+        for j in range(len(ShkSet)):
+            TranShk = ShkSet[j]
+            if bMin is None:
+                bMin_temp = self.solution[t].bNrmMin(TranShk)
+            else:
+                bMin_temp = bMin
+            if bMax is None:
+                bMax_temp = bMin_temp + 20.
+            else:
+                bMax_temp = bMax
+             
+            B = np.linspace(bMin_temp, bMax_temp, 300)
+            L = self.solution[t].LbrFunc(B, TranShk*np.ones_like(B))
+            plt.plot(B,L)
+        plt.xlabel('Beginning of period bank balances')
+        plt.ylabel('Labor supply')
+        plt.show()
