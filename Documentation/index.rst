@@ -28,14 +28,29 @@ you might want to look at the `DemARK
    :maxdepth: 2
    :caption: Notebooks
 
-   submodules/DemARK/notebooks/Gentle-Intro-To-HARK
-   submodules/DemARK/notebooks/KinkedRconsumerType
+   example_notebooks/Gentle-Intro-To-HARK.ipynb
+   example_notebooks/PerfForesightConsumerType.ipynb
+   example_notebooks/IndShockConsumerType.ipynb
+   example_notebooks/KinkedRconsumerType.ipynb
+   example_notebooks/ConsPortfolioModelDoc.ipynb
+   example_notebooks/GenIncProcessModel.ipynb
+   example_notebooks/LifecycleModelExample.ipynb          
 
 .. toctree::
    :maxdepth: 2
    :caption: Python API
 
-   api
+   api-core
+   api-dcegm
+   api-estimation
+   api-interpolation
+   api-parallel
+   api-simulation
+   api-utilities
+   api-validators          
+   api-consumptionsaving
+
+
 
 Indices and tables
 ==================

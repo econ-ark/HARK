@@ -137,7 +137,7 @@ We've done our best to give correct, thorough instructions on how to install HAR
 
 ## Next steps
 
-To learn more about how to use HARK, check out our [user manual](Documentation/HARKmanual.pdf).
+To learn more about how to use HARK, check out our [user manual](_static/HARKmanual.pdf).
 
 For help making changes to HARK, check out our [contributing guide](CONTRIBUTING.md).
 
