@@ -1,7 +1,0 @@
-MakeCSTWfigsForSlides module
-============================
-
-.. automodule:: MakeCSTWfigsForSlides
-    :members:
-    :undoc-members:
-    :show-inheritance:
