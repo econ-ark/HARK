@@ -270,7 +270,11 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         Returns
         -------
         None
-        '''  
+        '''
+        params = Params.init_labor_intensive.copy()
+        params.update(kwds)
+        kwds = params
+        
         IndShockConsumerType.__init__(self,cycles = cycles,time_flow=time_flow,**kwds)
         self.pseudo_terminal = False
         self.solveOnePeriod = solveConsLaborIntMarg
@@ -510,9 +514,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
           
 if __name__ == '__main__':
     import HARK.ConsumptionSaving.ConsumerParameters as Params    # Parameters for a consumer type
-    from HARK.utilities import plotFuncsDer, plotFuncs
     import matplotlib.pyplot as plt
-    from time import clock
+    from time import process_time
     mystr = lambda number : "{:.4f}".format(number)     # Format numbers as strings
     
     do_simulation           = True
@@ -521,12 +524,12 @@ if __name__ == '__main__':
 ###############################################################################
     
     # Make and solve a labor intensive margin consumer i.e. a consumer with utility for leisure
-    LaborIntMargExample = LaborIntMargConsumerType(**Params.init_labor_intensive)
+    LaborIntMargExample = LaborIntMargConsumerType()
     LaborIntMargExample.cycles = 0
     
-    t_start = clock()
+    t_start = process_time()
     LaborIntMargExample.solve()
-    t_end = clock()
+    t_end = process_time()
     print('Solving a labor intensive margin consumer took ' + str(t_end-t_start) + ' seconds.')
     
     t = 0
@@ -597,9 +600,9 @@ if __name__ == '__main__':
     LifecycleExample = LaborIntMargConsumerType(**Params.init_labor_lifecycle)
     LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
 
-    start_time = clock()
+    start_time = process_time()
     LifecycleExample.solve()
-    end_time = clock()
+    end_time = process_time()
     print('Solving a lifecycle labor intensive margin consumer took ' + str(end_time-start_time) + ' seconds.')
     LifecycleExample.unpackcFunc()
     LifecycleExample.timeFwd()
