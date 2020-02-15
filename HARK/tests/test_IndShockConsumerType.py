@@ -40,12 +40,12 @@ class testBufferStock(unittest.TestCase):
         c_t5 = baseEx.cFunc[-6](m) # c_t5 defines the T-5 period consumption rule
         c_t10 = baseEx.cFunc[-11](m)
 
-        self.assertEqual(c_m[500], 1.4008090582203356)
-        self.assertEqual(c_t1[500], 2.9227437159255216)
-        self.assertEqual(c_t5[500], 1.7350607327187664)
-        self.assertEqual(c_t10[500], 1.4991390649979213)
-        self.assertEqual(c_t10[600], 1.6101476268581576)
-        self.assertEqual(c_t10[700], 1.7196531041366991)
+        self.assertAlmostEqual(c_m[500], 1.4008090582203356)
+        self.assertAlmostEqual(c_t1[500], 2.9227437159255216)
+        self.assertAlmostEqual(c_t5[500], 1.7350607327187664)
+        self.assertAlmostEqual(c_t10[500], 1.4991390649979213)
+        self.assertAlmostEqual(c_t10[600], 1.6101476268581576)
+        self.assertAlmostEqual(c_t10[700], 1.7196531041366991)
 
     def test_GICFails(self):
         GIC_fail_dictionary = dict(self.base_params)
@@ -61,8 +61,8 @@ class testBufferStock(unittest.TestCase):
         m = np.linspace(0,5,1000)
         c_m = GICFailExample.cFunc[0](m)
 
-        self.assertEqual(c_m[500], 0.7772637042393458)
-        self.assertEqual(c_m[700], 0.8392649061916746)
+        self.assertAlmostEqual(c_m[500], 0.7772637042393458)
+        self.assertAlmostEqual(c_m[700], 0.8392649061916746)
 
     def test_infinite_horizon(self):
         baseEx_inf = IndShockConsumerType(cycles=0,
@@ -74,19 +74,19 @@ class testBufferStock(unittest.TestCase):
         m1 = np.linspace(1,baseEx_inf.solution[0].mNrmSS,50) # m1 defines the plot range on the left of target m value (e.g. m <= target m)
         c_m1 = baseEx_inf.cFunc[0](m1)
 
-        self.assertEqual(c_m1[0], 0.8527887545025995)
-        self.assertEqual(c_m1[-1], 1.0036279936408656)
+        self.assertAlmostEqual(c_m1[0], 0.8527887545025995)
+        self.assertAlmostEqual(c_m1[-1], 1.0036279936408656)
 
         x1 = np.linspace(0,25,1000)
         cfunc_m = baseEx_inf.cFunc[0](x1)
 
-        self.assertEqual(cfunc_m[500], 1.8902146173138235)
-        self.assertEqual(cfunc_m[700], 2.1591451850267176)
+        self.assertAlmostEqual(cfunc_m[500], 1.8902146173138235)
+        self.assertAlmostEqual(cfunc_m[700], 2.1591451850267176)
 
         m = np.linspace(0.001,8,1000)
 
         # Use the HARK method derivative to get the derivative of cFunc, and the values are just the MPC
         MPC = baseEx_inf.cFunc[0].derivative(m)
 
-        self.assertEqual(MPC[500], 0.08415000641504392)
-        self.assertEqual(MPC[700], 0.07173144137912524)
+        self.assertAlmostEqual(MPC[500], 0.08415000641504392)
+        self.assertAlmostEqual(MPC[700], 0.07173144137912524)
