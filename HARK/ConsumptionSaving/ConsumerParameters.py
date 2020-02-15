@@ -308,7 +308,7 @@ init_baby_labor['aXtraCount'] = 200 # Might be important to have many gridpoints
 
 LivPrb = [0.99]                    # Survival probability
 PermGroFac = [1.02]                # Permanent income growth factor
-LbrCost = [0.36]                   # Labor cost list of one element
+LbrCostCoeffs = [0.36]             # Labor cost coefficents list of one element
 WageRte = [1.0]                    # Wage Rate
 
 BoroCnstArt = None
@@ -335,7 +335,7 @@ init_labor_intensive['vFuncBool'] = vFuncBool
 init_labor_intensive ['T_retire'] = 0 # Turn off retirement
 init_labor_intensive ['aXtraCount'] = 200 # May be important to have a larger number of gridpoints (than 48 initially)
 init_labor_intensive ['aXtraMax'] = 80.
-init_labor_intensive ['LbrCost'] = LbrCost
+init_labor_intensive ['LbrCostCoeffs'] = LbrCostCoeffs
 init_labor_intensive ['WageRte'] = WageRte
 init_labor_intensive ['LivPrb'] = LivPrb
 init_labor_intensive ['PermGroFac'] = PermGroFac
@@ -352,7 +352,7 @@ init_labor_lifecycle['PermShkStd'] = [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0.2,0.1,0.2]
 init_labor_lifecycle['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,0.1,0.2,0.3]
 init_labor_lifecycle['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1] # Living probability decreases as time moves forward.
 init_labor_lifecycle['WageRte'] = [1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9] # Wage rate in a lifecycle
-init_labor_lifecycle['LbrCost'] = LbrCost * 10 # Assume labor cost is constant during the lifecycle
+init_labor_lifecycle['LbrCostCoeffs'] = LbrCostCoeffs * 2 # Assume labor cost coeffs is two-dimensional
 init_labor_lifecycle['T_cycle']    = 10
 #init_labor_lifecycle['T_retire']   = 7 # IndexError at line 774 in interpolation.py.
 init_labor_lifecycle['T_age']      = 11 # Make sure that old people die at terminal age and don't turn into newborns!
