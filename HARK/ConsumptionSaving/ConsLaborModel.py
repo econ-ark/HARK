@@ -253,7 +253,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     future utility flows at a constant factor. 
     '''
     time_vary_ = copy(IndShockConsumerType.time_vary_)
-    time_vary_ += ['LbrCost','WageRte']
+    time_vary_ += ['WageRte']
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     
     def __init__(self,cycles=1,time_flow=True,**kwds):
@@ -297,7 +297,37 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         self.updateIncomeProcess()
         self.updateAssetsGrid()
         self.updateTranShkGrid()
-         
+        self.updateLbrCost()
+    
+    def updateLbrCost(self):
+        '''
+        Construct the age-varying cost of working LbrCost using the attribute LbrCostCoeffs.
+        This attribute should be a 1D array of arbitrary length, representing polynomial
+        coefficients (over t_cycle) for (log) LbrCost.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        Coeffs = self.LbrCostCoeffs
+        N = len(Coeffs)
+        age_vec = np.arange(self.T_cycle)
+        LbrCostBase = np.zeros(self.T_cycle)
+        for n in range(N):
+            LbrCostBase += Coeffs[n]*age_vec**n
+        LbrCost = np.exp(LbrCostBase)
+        time_orig = self.time_flow
+        self.timeFwd()
+        self.LbrCost = LbrCost
+        self.addToTimeVary('LbrCost')
+        if not time_orig:
+            self.timeRev()
+
+    
     def calcBoundingValues(self):      
         '''
         Calculate human wealth plus minimum and maximum MPC in an infinite
