@@ -35,9 +35,9 @@ class testBufferStock(unittest.TestCase):
 
         m = np.linspace(0,9.5,1000)
 
-        c_m  = baseEx.cFunc[0](m)   # c_m can be used to define the limiting inﬁnite-horizon consumption rule here
-        c_t1 = baseEx.cFunc[-2](m) # c_t1 defines the second-to-last period consumption rule
-        c_t5 = baseEx.cFunc[-6](m) # c_t5 defines the T-5 period consumption rule
+        c_m  = baseEx.cFunc[0](m)
+        c_t1 = baseEx.cFunc[-2](m)
+        c_t5 = baseEx.cFunc[-6](m)
         c_t10 = baseEx.cFunc[-11](m)
 
         self.assertAlmostEqual(c_m[500], 1.4008090582203356)
@@ -56,8 +56,8 @@ class testBufferStock(unittest.TestCase):
             cycles=0, # cycles=0 makes this an infinite horizon consumer
             **GIC_fail_dictionary)
 
-        GICFailExample.solve() # Above, we set up the problem but did not solve it 
-        GICFailExample.unpackcFunc()  # Make the consumption function easily accessible for plotting
+        GICFailExample.solve()
+        GICFailExample.unpackcFunc()
         m = np.linspace(0,5,1000)
         c_m = GICFailExample.cFunc[0](m)
 
