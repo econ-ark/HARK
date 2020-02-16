@@ -11,39 +11,21 @@ import numpy as np
 # --- Define all of the parameters for the perfect foresight model ------------
 # -----------------------------------------------------------------------------
 
-CRRA = 2.0                          # Coefficient of relative risk aversion
-Rfree = 1.03                        # Interest factor on assets
-DiscFac = 0.96                      # Intertemporal discount factor
-LivPrb = [0.98]                     # Survival probability
-PermGroFac = [1.01]                 # Permanent income growth factor
-BoroCnstArt = None                  # Artificial borrowing constraint
-MaxKinks = 400                      # Maximum number of grid points to allow in cFunc (should be large)
-AgentCount = 10000                  # Number of agents of this type (only matters for simulation)
-aNrmInitMean = 0.0                  # Mean of log initial assets (only matters for simulation)
-aNrmInitStd  = 1.0                  # Standard deviation of log initial assets (only for simulation)
-pLvlInitMean = 0.0                  # Mean of log initial permanent income (only matters for simulation)
-pLvlInitStd  = 0.0                  # Standard deviation of log initial permanent income (only matters for simulation)
-PermGroFacAgg = 1.0                 # Aggregate permanent income growth factor (only matters for simulation)
-T_age = None                        # Age after which simulated agents are automatically killed
-T_cycle = 1                         # Number of periods in the cycle for this agent type
-
-# Make a dictionary to specify a perfect foresight consumer type
-init_perfect_foresight = { 'CRRA': CRRA,
-                           'Rfree': Rfree,
-                           'DiscFac': DiscFac,
-                           'LivPrb': LivPrb,
-                           'PermGroFac': PermGroFac,
-                           'BoroCnstArt': BoroCnstArt,
-                           'MaxKinks': MaxKinks,
-                           'AgentCount': AgentCount,
-                           'aNrmInitMean' : aNrmInitMean,
-                           'aNrmInitStd' : aNrmInitStd,
-                           'pLvlInitMean' : pLvlInitMean,
-                           'pLvlInitStd' : pLvlInitStd,
-                           'PermGroFacAgg' : PermGroFacAgg,
-                           'T_age' : T_age,
-                           'T_cycle' : T_cycle
-                          }
+CRRA = 2.0
+Rfree = 1.03        # Interest factor on assets
+DiscFac = 0.96      # Intertemporal discount factor
+LivPrb = [0.98],     # Survival probability
+PermGroFac = [1.01] # Permanent income growth factor
+BoroCnstArt = None  # Artificial borrowing constraint
+MaxKinks = 400      # Maximum number of grid points to allow in cFunc (should be large)
+AgentCount = 10000  # Number of agents of this type (only matters for simulation)
+aNrmInitMean = 0.0, # Mean of log initial assets (only matters for simulation)
+aNrmInitStd = 1.0  # Standard deviation of log initial assets (only for simulation)
+pLvlInitMean = 0.0 # Mean of log initial permanent income (only matters for simulation)
+pLvlInitStd = 0.0  # Standard deviation of log initial permanent income (only matters for simulation)
+PermGroFacAgg = 1.0# Aggregate permanent income growth factor (only matters for simulation)
+T_age = None       # Age after which simulated agents are automatically killed
+T_cycle = 1         # Number of periods in the cycle for this agent type
 
 # -----------------------------------------------------------------------------
 # --- Define additional parameters for the idiosyncratic shocks model ---------

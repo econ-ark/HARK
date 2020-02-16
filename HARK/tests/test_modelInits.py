@@ -20,7 +20,7 @@ class testInitialization(unittest.TestCase):
     # methods.
     def test_PerfForesightConsumerType(self):
         try:
-            model = PerfForesightConsumerType(**Params.init_perfect_foresight)
+            model = PerfForesightConsumerType()
         except:
             self.fail("PerfForesightConsumerType failed to initialize with Params.init_perfect_foresight.")
 

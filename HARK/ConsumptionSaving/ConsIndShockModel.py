@@ -1579,6 +1579,26 @@ def solveConsKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
 # == Classes for representing types of consumer agents (and things they do) ==
 # ============================================================================
 
+# Make a dictionary to specify a perfect foresight consumer type
+init_perfect_foresight = {
+    'CRRA': 2.0,          # Coefficient of relative risk aversion,
+    'Rfree': 1.03,        # Interest factor on assets
+    'DiscFac': 0.96,      # Intertemporal discount factor
+    'LivPrb': [0.98],     # Survival probability
+    'PermGroFac': [1.01], # Permanent income growth factor
+    'BoroCnstArt': None,  # Artificial borrowing constraint
+    'MaxKinks': 400,      # Maximum number of grid points to allow in cFunc (should be large)
+    'AgentCount': 10000,  # Number of agents of this type (only matters for simulation)
+    'aNrmInitMean' : 0.0, # Mean of log initial assets (only matters for simulation)
+    'aNrmInitStd' : 1.0,  # Standard deviation of log initial assets (only for simulation)
+    'pLvlInitMean' : 0.0, # Mean of log initial permanent income (only matters for simulation)
+    'pLvlInitStd' : 0.0,  # Standard deviation of log initial permanent income (only matters for simulation)
+    'PermGroFacAgg' : 1.0,# Aggregate permanent income growth factor (only matters for simulation)
+    'T_age' : None,       # Age after which simulated agents are automatically killed
+    'T_cycle' : 1         # Number of periods in the cycle for this agent type
+}
+
+
 class PerfForesightConsumerType(AgentType):
     '''
     A perfect foresight consumer type who has no uncertainty other than mortality.
@@ -1620,7 +1640,7 @@ class PerfForesightConsumerType(AgentType):
         None
         '''
 
-        params = Params.init_perfect_foresight.copy()
+        params = init_perfect_foresight.copy()
         params.update(kwds)
         kwds = params
 
