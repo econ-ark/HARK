@@ -322,7 +322,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         LbrCost = np.exp(LbrCostBase)
         time_orig = self.time_flow
         self.timeFwd()
-        self.LbrCost = LbrCost
+        self.LbrCost = LbrCost.tolist()
         self.addToTimeVary('LbrCost')
         if not time_orig:
             self.timeRev()
@@ -374,11 +374,31 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         None
         '''
         raise NotImplementedError()
+        
+        
+    def getStates(self):
+        '''
+        Calculates updated values of normalized bank balances and permanent income
+        level for each agent.  Uses pLvlNow, aNrmNow, PermShkNow.  Calls the getStates
+        method for the parent class, then erases mNrmNow, which cannot be calculated
+        until after getControls in this model.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.getStates(self)
+        self.mNrmNow[:] = np.nan # Delete market resource calculation
 
         
     def getControls(self):
         '''
-        Calculates consumption for each consumer of this type using the consumption functions.
+        Calculates consumption and labor supply for each consumer of this type
+        using the consumption and labor functions in each period of the cycle.
 
         Parameters
         ----------
