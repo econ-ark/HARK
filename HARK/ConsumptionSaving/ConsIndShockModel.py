@@ -1625,7 +1625,7 @@ class PerfForesightConsumerType(AgentType):
                  **kwds):
         '''
         Instantiate a new consumer type with given data.
-        See ConsumerParameters.init_perfect_foresight for a dictionary of
+        See init_perfect_foresight for a dictionary of
         the keywords that should be passed to the constructor.
 
         Parameters
@@ -2033,7 +2033,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                  **kwds):
         '''
         Instantiate a new ConsumerType with given data.
-        See ConsumerParameters.init_idiosyncratic_shocks for a dictionary of
+        See init_idiosyncratic_shocks for a dictionary of
         the keywords that should be passed to the constructor.
 
         Parameters
