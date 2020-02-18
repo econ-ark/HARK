@@ -22,7 +22,6 @@ from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
 from HARK import AgentType, Solution, NullFunc, HARKobject
-import HARK.ConsumptionSaving.ConsumerParameters as Params
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.simulation import drawDiscrete, drawLognormal, drawUniform
@@ -2752,6 +2751,27 @@ def constructAssetsGrid(parameters):
 
     return aXtraGrid
 
+
+
+# Make a dictionary to specify a lifecycle consumer with a finite horizon
+init_lifecycle = copy(init_idiosyncratic_shocks)
+init_lifecycle['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
+init_lifecycle['PermShkStd'] = [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0,0,0]
+init_lifecycle['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,0,0,0]
+init_lifecycle['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
+init_lifecycle['T_cycle']    = 10
+init_lifecycle['T_retire']   = 7
+init_lifecycle['T_age']      = 11 # Make sure that old people die at terminal age and don't turn into newborns!
+
+# Make a dictionary to specify an infinite consumer with a four period cycle
+init_cyclical = copy(init_idiosyncratic_shocks)
+init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
+init_cyclical['PermShkStd'] = [0.1,0.1,0.1,0.1]
+init_cyclical['TranShkStd'] = [0.1,0.1,0.1,0.1]
+init_cyclical['LivPrb']     = 4*[0.98]
+init_cyclical['T_cycle']    = 4
+
+
 ####################################################################################################
 
 def main():
@@ -2824,7 +2844,7 @@ def main():
     ###########################################################################
 
     # Make and solve an idiosyncratic shocks consumer with a finite lifecycle
-    LifecycleExample = IndShockConsumerType(**Params.init_lifecycle)
+    LifecycleExample = IndShockConsumerType(**init_lifecycle)
     LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
 
     start_time = time()
@@ -2855,7 +2875,7 @@ def main():
 
     # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
     # The consumer has income that greatly fluctuates throughout the year.
-    CyclicalExample = IndShockConsumerType(**Params.init_cyclical)
+    CyclicalExample = IndShockConsumerType(**init_cyclical)
     CyclicalExample.cycles = 0
 
     start_time = time()
