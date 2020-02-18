@@ -57,64 +57,7 @@ init_idiosyncratic_shocks = {
 }
 
 
-# Make a dictionary to specify a lifecycle consumer with a finite horizon
-init_lifecycle = copy(init_idiosyncratic_shocks)
-init_lifecycle['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
-init_lifecycle['PermShkStd'] = [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0,0,0]
-init_lifecycle['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,0,0,0]
-init_lifecycle['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
-init_lifecycle['T_cycle']    = 10
-init_lifecycle['T_retire']   = 7
-init_lifecycle['T_age']      = 11 # Make sure that old people die at terminal age and don't turn into newborns!
 
-# Make a dictionary to specify an infinite consumer with a four period cycle
-init_cyclical = copy(init_idiosyncratic_shocks)
-init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
-init_cyclical['PermShkStd'] = [0.1,0.1,0.1,0.1]
-init_cyclical['TranShkStd'] = [0.1,0.1,0.1,0.1]
-init_cyclical['LivPrb']     = 4*[0.98]
-init_cyclical['T_cycle']    = 4
-
-
-# -----------------------------------------------------------------------------
-# -------- Define additional parameters for the "kinked R" model --------------
-# -----------------------------------------------------------------------------
-
-Rboro = 1.20           # Interest factor on assets when borrowing, a < 0
-Rsave = 1.02           # Interest factor on assets when saving, a > 0
-
-# Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
-init_kinked_R = copy(init_idiosyncratic_shocks)
-del init_kinked_R['Rfree'] # get rid of constant interest factor
-init_kinked_R['Rboro'] = Rboro
-init_kinked_R['Rsave'] = Rsave
-init_kinked_R['BoroCnstArt'] = None # kinked R is a bit silly if borrowing not allowed
-init_kinked_R['CubicBool'] = True # kinked R is now compatible with linear cFunc and cubic cFunc
-init_kinked_R['aXtraCount'] = 48   # ...so need lots of extra gridpoints to make up for it
-
-
-# -----------------------------------------------------------------------------
-# ----- Define additional parameters for the preference shock model -----------
-# -----------------------------------------------------------------------------
-
-PrefShkCount = 12        # Number of points in discrete approximation to preference shock dist
-PrefShk_tail_N = 4       # Number of "tail points" on each end of pref shock dist
-PrefShkStd = [0.30]      # Standard deviation of utility shocks
-
-# Make a dictionary to specify a preference shock consumer
-init_preference_shocks = copy(init_idiosyncratic_shocks)
-init_preference_shocks['PrefShkCount'] = PrefShkCount
-init_preference_shocks['PrefShk_tail_N'] = PrefShk_tail_N
-init_preference_shocks['PrefShkStd'] = PrefShkStd
-init_preference_shocks['aXtraCount'] = 48
-init_preference_shocks['CubicBool'] = False # pref shocks currently only compatible with linear cFunc
-
-# Make a dictionary to specify a "kinky preference" consumer, who has both shocks
-# to utility and a different interest rate on borrowing vs saving
-init_kinky_pref = copy(init_kinked_R)
-init_kinky_pref['PrefShkCount'] = PrefShkCount
-init_kinky_pref['PrefShk_tail_N'] = PrefShk_tail_N
-init_kinky_pref['PrefShkStd'] = PrefShkStd
 
 # -----------------------------------------------------------------------------
 # ----- Define additional parameters for the aggregate shocks model -----------
