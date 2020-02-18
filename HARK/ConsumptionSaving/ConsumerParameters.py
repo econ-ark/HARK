@@ -348,10 +348,10 @@ init_labor_intensive ['T_cycle'] = 1
 # Make a dictionary for Endogenous Labor supply model with finite lifecycle
 init_labor_lifecycle = copy(init_labor_intensive)
 init_labor_lifecycle['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
-init_labor_lifecycle['PermShkStd'] = [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0.2,0.1,0.2]
-init_labor_lifecycle['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,0.1,0.2,0.3]
+init_labor_lifecycle['PermShkStd'] = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]
+init_labor_lifecycle['TranShkStd'] = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]
 init_labor_lifecycle['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1] # Living probability decreases as time moves forward.
-init_labor_lifecycle['WageRte'] = [1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9] # Wage rate in a lifecycle
+init_labor_lifecycle['WageRte'] = [1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0] # Wage rate in a lifecycle
 init_labor_lifecycle['LbrCostCoeffs'] = [-2.0, 0.4] # Assume labor cost coeffs is a polynomial of degree 1
 init_labor_lifecycle['T_cycle']    = 10
 #init_labor_lifecycle['T_retire']   = 7 # IndexError at line 774 in interpolation.py.

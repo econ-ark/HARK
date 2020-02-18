@@ -146,7 +146,7 @@ b_min = np.inf
 b_max = -np.inf
 for t in range(LifecycleExample.T_cycle):
     TranShkSet = LifecycleExample.TranShkGrid[t]
-    Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
+    Shk = TranShkSet[int(len(TranShkSet)//2)] # Use the median shock, more or less
     B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
     C = LifecycleExample.solution[t].cFunc(B_temp,Shk*np.ones_like(B_temp))
     plt.plot(B_temp, C)
@@ -165,7 +165,7 @@ b_min = np.inf
 b_max = -np.inf
 for t in range(LifecycleExample.T_cycle):
     TranShkSet = LifecycleExample.TranShkGrid[t]
-    Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
+    Shk = TranShkSet[int(len(TranShkSet)//2)] # Use the median shock, more or less
     B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
     MPC = LifecycleExample.solution[t].cFunc.derivativeX(B_temp,Shk*np.ones_like(B_temp))
     plt.plot(B_temp, MPC)
@@ -184,7 +184,7 @@ b_min = np.inf
 b_max = -np.inf
 for t in range(LifecycleExample.T_cycle):
     TranShkSet = LifecycleExample.TranShkGrid[t]
-    Shk = TranShkSet[int(len(TranShkSet)/2)] # Use the median shock, more or less
+    Shk = TranShkSet[int(len(TranShkSet)//2)] # Use the median shock, more or less
     B_temp = B + LifecycleExample.solution[t].bNrmMin(Shk)
     L = LifecycleExample.solution[t].LbrFunc(B_temp,Shk*np.ones_like(B_temp))
     plt.plot(B_temp, L)
