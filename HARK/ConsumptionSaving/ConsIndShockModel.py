@@ -2381,6 +2381,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if verbose and violated:
             print('\n[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
 
+# Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
+init_kinked_R = dict(init_idiosyncratic_shocks,
+                     **{
+    'Rboro' : 1.20, # Interest factor on assets when borrowing, a < 0
+    'Rsave' : 1.02, # Interest factor on assets when saving, a > 0
+    'BoroCnstArt' : None, # kinked R is a bit silly if borrowing not allowed
+    'CubicBool' : True, # kinked R is now compatible with linear cFunc and cubic cFunc
+    'aXtraCount' : 48,   # ...so need lots of extra gridpoints to make up for it
+})
+del init_kinked_R['Rfree'] # get rid of constant interest factor
+
 
 class KinkedRconsumerType(IndShockConsumerType):
     '''
@@ -2413,12 +2424,11 @@ class KinkedRconsumerType(IndShockConsumerType):
         -------
         None
         '''
-        params = Params.init_kinked_R.copy()
+        params = init_kinked_R.copy()
         params.update(kwds)
-        kwds = params
 
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
+        PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsKinkedR # kinked R solver
