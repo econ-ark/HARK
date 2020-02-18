@@ -6,7 +6,6 @@ ConsAggShockModel, ConsPrefShockModel, and ConsMarkovModel.
 from __future__ import division, print_function
 from copy import copy
 import numpy as np
-from HARK.ConsumptionSaving.ConsIndShockModel import init_idiosyncratic_shocks
 
 # -----------------------------------------------------------------------------
 # --- Define all of the parameters for the perfect foresight model ------------
@@ -31,6 +30,13 @@ T_cycle = 1         # Number of periods in the cycle for this agent type
 # -----------------------------------------------------------------------------
 # --- Define additional parameters for the idiosyncratic shocks model ---------
 # -----------------------------------------------------------------------------
+
+# dummy stuff to get things passing before full refactor is complete
+init_idiosyncratic_shocks = {
+    'Rfree' : 1.03,
+    'CubicBool' : False,
+    'vFuncBool' : False
+}
 
 
 # Make a dictionary to specify a lifecycle consumer with a finite horizon
