@@ -2050,7 +2050,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         params = init_idiosyncratic_shocks.copy()
         params.update(kwds)
-        kwds = params
 
         # Initialize a basic AgentType
         PerfForesightConsumerType.__init__(self,
@@ -2058,7 +2057,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                                            time_flow=time_flow,
                                            verbose=verbose,
                                            quiet=quiet,
-                                           **kwds)
+                                           **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
