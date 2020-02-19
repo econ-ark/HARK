@@ -985,10 +985,9 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         '''
         params = Params.init_explicit_perm_inc.copy()
         params.update(kwds)
-        kwds = params
 
         # Initialize a basic ConsumerType
-        IndShockConsumerType.__init__(self, cycles=cycles, time_flow=time_flow, **kwds)
+        IndShockConsumerType.__init__(self, cycles=cycles, time_flow=time_flow, **params)
         self.solveOnePeriod = solveConsGenIncProcess  # idiosyncratic shocks solver with explicit persistent income
 
     def preSolve(self):
@@ -1281,6 +1280,30 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
     period assets, an artificial borrowing constraint, and the AR1 correlation
     coefficient for (log) persistent income.
     '''
+
+    def __init__(self, cycles=0, time_flow=True, **kwds):
+        '''
+        Instantiate a new ConsumerType with given data.
+
+        Parameters
+        ----------
+        cycles : int
+            Number of times the sequence of periods should be solved.
+        time_flow : boolean
+            Whether time is currently "flowing" forward for this instance.
+
+        Returns
+        -------
+        None
+        '''
+        params = Params.init_persistent_shocks.copy()
+        params.update(kwds)
+
+        GenIncProcessConsumerType.__init__(self,
+                         cycles=cycles,
+                         time_flow=time_flow,
+                         **params)
+
     def updatepLvlNextFunc(self):
         '''
         A method that creates the pLvlNextFunc attribute as a sequence of
@@ -1409,7 +1432,7 @@ def main():
 ###############################################################################
 
     # Make and solve an example "persistent idisyncratic shocks" consumer
-    PersistentExample = PersistentShockConsumerType(**Params.init_persistent_shocks)
+    PersistentExample = PersistentShockConsumerType()
     t_start = clock()
     PersistentExample.solve()
     t_end = clock()
