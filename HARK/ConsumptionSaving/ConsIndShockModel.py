@@ -2388,7 +2388,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if FVAF<=1:
             self.FVAC = True
             if public_call or verbose:
-                print('The Finite Value of autarky factor value for the supplied parameter values satisfies the Finite Value of Autarky Condition.')
+                print('The Finite Value of Autarky Factor (FVAV) for the supplied parameter values satisfies the Finite Value of Autarky Condition.')
                 if self.WRIC:
                     print('Since both WRIC and FVAC are satisfied, the problem has a nondegenerate solution')
         else:
