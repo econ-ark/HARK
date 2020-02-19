@@ -17,8 +17,7 @@ from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutility
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
                            getPercentiles
 from HARK.simulation import drawLognormal, drawDiscrete, drawUniform
-from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
-import HARK.ConsumptionSaving.ConsumerParameters as Params
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 
 utility = CRRAutility
 utilityP = CRRAutilityP
@@ -954,6 +953,20 @@ def solveConsGenIncProcess(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfr
 
 ###############################################################################
 
+# -----------------------------------------------------------------------------
+# ----- Define additional parameters for the persistent shocks model ----------
+# -----------------------------------------------------------------------------
+
+pLvlPctiles = np.concatenate(([0.001, 0.005, 0.01, 0.03], np.linspace(0.05, 0.95, num=19),[0.97, 0.99, 0.995, 0.999]))
+PrstIncCorr = 0.98       # Serial correlation coefficient for permanent income
+
+# Make a dictionary for the "explicit permanent income" idiosyncratic shocks model
+init_explicit_perm_inc = init_idiosyncratic_shocks.copy()
+init_explicit_perm_inc['pLvlPctiles'] = pLvlPctiles
+init_explicit_perm_inc['PermGroFac'] = [1.0] # long run permanent income growth doesn't work yet
+init_explicit_perm_inc['aXtraMax'] = 30
+init_explicit_perm_inc['aXtraExtra'] = [0.005,0.01]
+
 class GenIncProcessConsumerType(IndShockConsumerType):
     '''
     A consumer type with idiosyncratic shocks to persistent and transitory income.
@@ -983,7 +996,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        params = Params.init_explicit_perm_inc.copy()
+        params = init_explicit_perm_inc.copy()
         params.update(kwds)
 
         # Initialize a basic ConsumerType
@@ -1271,6 +1284,13 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
 
 ###############################################################################
 
+
+
+
+# Make a dictionary for the "persistent idiosyncratic shocks" model
+init_persistent_shocks = init_explicit_perm_inc.copy()
+init_persistent_shocks['PrstIncCorr'] = PrstIncCorr
+
 class PersistentShockConsumerType(GenIncProcessConsumerType):
     '''
     Type with idiosyncratic shocks to persistent ('Prst') and transitory income.
@@ -1296,7 +1316,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         -------
         None
         '''
-        params = Params.init_persistent_shocks.copy()
+        params = init_persistent_shocks.copy()
         params.update(kwds)
 
         GenIncProcessConsumerType.__init__(self,
@@ -1349,8 +1369,8 @@ def main():
     print('The infinite horizon examples presented here use a grid of persistent income levels (pLvlGrid)')
     print('based on percentiles of the long run distribution of pLvl for the given parameters. These percentiles')
     print('are specified in the attribute pLvlPctiles. Here, the lowest percentile is ' +
-          str(Params.init_explicit_perm_inc['pLvlPctiles'][0]*100) + ' and the highest')
-    print('percentile is ' + str(Params.init_explicit_perm_inc['pLvlPctiles'][-1]*100) + '.\n')
+          str(init_explicit_perm_inc['pLvlPctiles'][0]*100) + ' and the highest')
+    print('percentile is ' + str(init_explicit_perm_inc['pLvlPctiles'][-1]*100) + '.\n')
 
     # Make and solve an example "explicit permanent income" consumer with idiosyncratic shocks
     ExplicitExample = IndShockExplicitPermIncConsumerType()
@@ -1374,7 +1394,7 @@ def main():
     plt.show()
 
     # Now solve the *exact same* problem, but with the permanent income normalization
-    NormalizedExample = IndShockConsumerType(**Params.init_explicit_perm_inc)
+    NormalizedExample = IndShockConsumerType(**init_explicit_perm_inc)
     t_start = clock()
     NormalizedExample.solve()
     t_end = clock()
