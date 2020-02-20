@@ -17,6 +17,8 @@ from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP
 
+__all__ = ['ConsMarkovSolver', 'MarkovConsumerType']
+
 utility       = CRRAutility
 utilityP      = CRRAutilityP
 utilityPP     = CRRAutilityPP
@@ -594,7 +596,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         return vFuncNow
 
 
-def solveConsMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
+def _solveConsMarkov(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
                                  MrkvArray,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
     '''
     Solves a single period consumption-saving problem with risky income and
@@ -682,7 +684,7 @@ class MarkovConsumerType(IndShockConsumerType):
 
     def __init__(self,cycles=1,time_flow=True,**kwds):
         IndShockConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
-        self.solveOnePeriod = solveConsMarkov
+        self.solveOnePeriod = _solveConsMarkov
         self.poststate_vars += ['MrkvNow']
         if not hasattr(self, 'global_markov'):
             self.global_markov = False
@@ -703,15 +705,19 @@ class MarkovConsumerType(IndShockConsumerType):
         StateCount = self.MrkvArray[0].shape[0]
 
         # Check that arrays are the right shape
-        assert self.Rfree.shape      == (StateCount,),'Rfree not the right shape!'
+        if not isinstance(self.Rfree, np.ndarray) or self.Rfree.shape != (StateCount, ):
+            raise ValueError('Rfree not the right shape, it should an array of Rfree of all the states.')
 
         # Check that arrays in lists are the right shape
         for MrkvArray_t in self.MrkvArray:
-            assert MrkvArray_t.shape  == (StateCount,StateCount),'MrkvArray not the right shape!'
+            if not isinstance(MrkvArray_t, np.ndarray) or MrkvArray_t.shape != (StateCount, StateCount):
+                raise ValueError('MrkvArray not the right shape, it should be of the size states*statres.')
         for LivPrb_t in self.LivPrb:
-            assert LivPrb_t.shape == (StateCount,),'Array in LivPrb is not the right shape!'
-        for PermGroFac_t in self.LivPrb:
-            assert PermGroFac_t.shape == (StateCount,),'Array in PermGroFac is not the right shape!'
+            if not isinstance(LivPrb_t, np.ndarray) or LivPrb_t.shape != (StateCount, ):
+                raise ValueError('Array in LivPrb is not the right shape, it should be an array of length equal to number of states')
+        for PermGroFac_t in self.PermGroFac:
+            if not isinstance(PermGroFac_t, np.ndarray) or PermGroFac_t.shape != (StateCount, ):
+                raise ValueError('Array in PermGroFac is not the right shape, it should be an array of length equal to number of states')
 
         # Now check the income distribution.
         # Note IncomeDstn is (potentially) time-varying, so it is in time_vary.
@@ -719,8 +725,10 @@ class MarkovConsumerType(IndShockConsumerType):
         # at a particular point in time.  Each income distribution at a point in time should itself
         # be a list, with each element corresponding to the income distribution
         # conditional on a particular Markov state.
+        # TODO: should this be a numpy array too?
         for IncomeDstn_t in self.IncomeDstn:
-            assert len(IncomeDstn_t) == StateCount,'List in IncomeDstn is not the right length!'
+            if not isinstance(IncomeDstn_t, list) or len(IncomeDstn_t) != StateCount:
+                raise ValueError('List in IncomeDstn is not the right length, it should be length equal to number of states')
 
     def preSolve(self):
         """
@@ -966,165 +974,3 @@ class MarkovConsumerType(IndShockConsumerType):
         None
         '''
         raise NotImplementedError()
-
-
-
-###############################################################################
-
-def main():
-    import HARK.ConsumptionSaving.ConsumerParameters as Params
-    from HARK.utilities import plotFuncs
-    from time import clock
-    from copy import copy
-    mystr = lambda number : "{:.4f}".format(number)
-
-    do_simulation           = True
-
-    # Define the Markov transition matrix for serially correlated unemployment
-    unemp_length = 5         # Averange length of unemployment spell
-    urate_good = 0.05        # Unemployment rate when economy is in good state
-    urate_bad = 0.12         # Unemployment rate when economy is in bad state
-    bust_prob = 0.01         # Probability of economy switching from good to bad
-    recession_length = 20    # Averange length of bad state
-    p_reemploy =1.0/unemp_length
-    p_unemploy_good = p_reemploy*urate_good/(1-urate_good)
-    p_unemploy_bad = p_reemploy*urate_bad/(1-urate_bad)
-    boom_prob = 1.0/recession_length
-    MrkvArray = np.array([[(1-p_unemploy_good)*(1-bust_prob),p_unemploy_good*(1-bust_prob),
-                           (1-p_unemploy_good)*bust_prob,p_unemploy_good*bust_prob],
-                          [p_reemploy*(1-bust_prob),(1-p_reemploy)*(1-bust_prob),
-                           p_reemploy*bust_prob,(1-p_reemploy)*bust_prob],
-                          [(1-p_unemploy_bad)*boom_prob,p_unemploy_bad*boom_prob,
-                           (1-p_unemploy_bad)*(1-boom_prob),p_unemploy_bad*(1-boom_prob)],
-                          [p_reemploy*boom_prob,(1-p_reemploy)*boom_prob,
-                           p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
-
-    # Make a consumer with serially correlated unemployment, subject to boom and bust cycles
-    init_serial_unemployment = copy(Params.init_idiosyncratic_shocks)
-    init_serial_unemployment['MrkvArray'] = [MrkvArray]
-    init_serial_unemployment['UnempPrb'] = 0 # to make income distribution when employed
-    init_serial_unemployment['global_markov'] = False
-    SerialUnemploymentExample = MarkovConsumerType(**init_serial_unemployment)
-    SerialUnemploymentExample.cycles = 0
-    SerialUnemploymentExample.vFuncBool = False # for easy toggling here
-
-    # Replace the default (lognormal) income distribution with a custom one
-    employed_income_dist   = [np.ones(1),np.ones(1),np.ones(1)] # Definitely get income
-    unemployed_income_dist = [np.ones(1),np.ones(1),np.zeros(1)] # Definitely don't
-    SerialUnemploymentExample.IncomeDstn = [[employed_income_dist,unemployed_income_dist,employed_income_dist,
-                              unemployed_income_dist]]
-
-    # Interest factor, permanent growth rates, and survival probabilities are constant arrays
-    SerialUnemploymentExample.Rfree = np.array(4*[SerialUnemploymentExample.Rfree])
-    SerialUnemploymentExample.PermGroFac = [np.array(4*SerialUnemploymentExample.PermGroFac)]
-    SerialUnemploymentExample.LivPrb = [SerialUnemploymentExample.LivPrb*np.ones(4)]
-
-    # Solve the serial unemployment consumer's problem and display solution
-    SerialUnemploymentExample.timeFwd()
-    start_time = clock()
-    SerialUnemploymentExample.solve()
-    end_time = clock()
-    print('Solving a Markov consumer with serially correlated unemployment took ' + mystr(end_time-start_time) + ' seconds.')
-    print('Consumption functions for each discrete state:')
-    plotFuncs(SerialUnemploymentExample.solution[0].cFunc,0,50)
-    if SerialUnemploymentExample.vFuncBool:
-        print('Value functions for each discrete state:')
-        plotFuncs(SerialUnemploymentExample.solution[0].vFunc,5,50)
-
-    # Simulate some data; results stored in cHist, mNrmNow_hist, cNrmNow_hist, and MrkvNow_hist
-    if do_simulation:
-        SerialUnemploymentExample.T_sim = 120
-        SerialUnemploymentExample.MrkvPrbsInit = [0.25,0.25,0.25,0.25]
-        SerialUnemploymentExample.track_vars = ['mNrmNow','cNrmNow']
-        SerialUnemploymentExample.makeShockHistory() # This is optional
-        SerialUnemploymentExample.initializeSim()
-        SerialUnemploymentExample.simulate()
-
-###############################################################################
-
-    # Make a consumer who occasionally gets "unemployment immunity" for a fixed period
-    UnempPrb    = 0.05  # Probability of becoming unemployed each period
-    ImmunityPrb = 0.01  # Probability of becoming "immune" to unemployment
-    ImmunityT   = 6     # Number of periods of immunity
-
-    StateCount = ImmunityT+1   # Total number of Markov states
-    IncomeDstnReg = [np.array([1-UnempPrb,UnempPrb]), np.array([1.0,1.0]), np.array([1.0/(1.0-UnempPrb),0.0])] # Ordinary income distribution
-    IncomeDstnImm = [np.array([1.0]), np.array([1.0]), np.array([1.0])] # Income distribution when unemployed
-    IncomeDstn = [IncomeDstnReg] + ImmunityT*[IncomeDstnImm] # Income distribution for each Markov state, in a list
-
-    # Make the Markov transition array.  MrkvArray[i,j] is the probability of transitioning
-    # to state j in period t+1 from state i in period t.
-    MrkvArray = np.zeros((StateCount,StateCount))
-    MrkvArray[0,0] = 1.0 - ImmunityPrb   # Probability of not becoming immune in ordinary state: stay in ordinary state
-    MrkvArray[0,ImmunityT] = ImmunityPrb # Probability of becoming immune in ordinary state: begin immunity periods
-    for j in range(ImmunityT):
-        MrkvArray[j+1,j] = 1.0  # When immune, have 100% chance of transition to state with one fewer immunity periods remaining
-
-    init_unemployment_immunity = copy(Params.init_idiosyncratic_shocks)
-    init_unemployment_immunity['MrkvArray'] = [MrkvArray]
-    ImmunityExample = MarkovConsumerType(**init_unemployment_immunity)
-    ImmunityExample.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])), # Interest factor same in all states
-                                  PermGroFac = [np.array(StateCount*[1.01])],    # Permanent growth factor same in all states
-                                  LivPrb = [np.array(StateCount*[0.98])],        # Same survival probability in all states
-                                  BoroCnstArt = None,                            # No artificial borrowing constraint
-                                  cycles = 0)                                    # Infinite horizon
-    ImmunityExample.IncomeDstn = [IncomeDstn]
-
-    # Solve the unemployment immunity problem and display the consumption functions
-    start_time = clock()
-    ImmunityExample.solve()
-    end_time = clock()
-    print('Solving an "unemployment immunity" consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    print('Consumption functions for each discrete state:')
-    mNrmMin = np.min([ImmunityExample.solution[0].mNrmMin[j] for j in range(StateCount)])
-    plotFuncs(ImmunityExample.solution[0].cFunc,mNrmMin,10)
-
-###############################################################################
-
-    # Make a consumer with serially correlated permanent income growth
-    UnempPrb = 0.05    # Unemployment probability
-    StateCount = 5     # Number of permanent income growth rates
-    Persistence = 0.5  # Probability of getting the same permanent income growth rate next period
-
-    IncomeDstnReg = [np.array([1-UnempPrb,UnempPrb]), np.array([1.0,1.0]), np.array([1.0,0.0])]
-    IncomeDstn = StateCount*[IncomeDstnReg] # Same simple income distribution in each state
-
-    # Make the state transition array for this type: Persistence probability of remaining in the same state, equiprobable otherwise
-    MrkvArray = Persistence*np.eye(StateCount) + (1.0/StateCount)*(1.0-Persistence)*np.ones((StateCount,StateCount))
-
-    init_serial_growth = copy(Params.init_idiosyncratic_shocks)
-    init_serial_growth['MrkvArray'] = [MrkvArray]
-    SerialGroExample = MarkovConsumerType(**init_serial_growth)
-    SerialGroExample.assignParameters(Rfree = np.array(np.array(StateCount*[1.03])),    # Same interest factor in each Markov state
-                                   PermGroFac = [np.array([0.97,0.99,1.01,1.03,1.05])], # Different permanent growth factor in each Markov state
-                                   LivPrb = [np.array(StateCount*[0.98])],              # Same survival probability in all states
-                                   cycles = 0)
-    SerialGroExample.IncomeDstn = [IncomeDstn]
-
-
-    # Solve the serially correlated permanent growth shock problem and display the consumption functions
-    start_time = clock()
-    SerialGroExample.solve()
-    end_time = clock()
-    print('Solving a serially correlated growth consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    print('Consumption functions for each discrete state:')
-    plotFuncs(SerialGroExample.solution[0].cFunc,0,10)
-
-###############################################################################
-
-    # Make a consumer with serially correlated interest factors
-    SerialRExample = deepcopy(SerialGroExample) # Same as the last problem...
-    SerialRExample.assignParameters(PermGroFac = [np.array(StateCount*[1.01])],   # ...but now the permanent growth factor is constant...
-                                 Rfree = np.array([1.01,1.02,1.03,1.04,1.05])) # ...and the interest factor is what varies across states
-
-    # Solve the serially correlated interest rate problem and display the consumption functions
-    start_time = clock()
-    SerialRExample.solve()
-    end_time = clock()
-    print('Solving a serially correlated interest consumer took ' + mystr(end_time-start_time) + ' seconds.')
-    print('Consumption functions for each discrete state:')
-    plotFuncs(SerialRExample.solution[0].cFunc,0,10)
-
-
-if __name__ == '__main__':
-    main()
