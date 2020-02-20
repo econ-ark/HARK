@@ -12,11 +12,16 @@ It currently solves three types of models:
 See NARK for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 '''
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import range
+from builtins import object
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
 from HARK import AgentType, Solution, NullFunc, HARKobject
-import HARK.ConsumptionSaving.ConsumerParameters as Params
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.simulation import drawDiscrete, drawLognormal, drawUniform
@@ -24,6 +29,8 @@ from HARK.utilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMea
                            combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
                            CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
                            CRRAutilityP_invP
+import HARK.ConsumptionSaving.ConsumerParameters as Params
+
 
 __all__ = ['ConsumerSolution', 'ValueFunc', 'MargValueFunc', 'MargMargValueFunc',
 'ConsPerfForesightSolver', 'ConsIndShockSetup', 'ConsIndShockSolverBasic',

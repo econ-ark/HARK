@@ -4,6 +4,10 @@ in which shocks are not necessarily fully transitory or fully permanent.  Extend
 ConsIndShockModel by explicitly tracking persistent income as a state variable,
 and allows (log) persistent income to follow an AR1 process rather than random walk.
 '''
+from __future__ import division, print_function
+from __future__ import absolute_import
+from builtins import str
+from builtins import range
 from copy import deepcopy
 import numpy as np
 from HARK import AgentType, HARKobject

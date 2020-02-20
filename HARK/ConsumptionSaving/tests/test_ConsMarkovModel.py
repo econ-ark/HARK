@@ -1,5 +1,5 @@
 import numpy as np
-from HARK import MarkovConsumerType
+from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 import HARK.ConsumptionSaving.ConsumerParameters as Params
 from copy import copy
 import unittest
