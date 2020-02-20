@@ -16,7 +16,7 @@ from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutility
                            CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
                            approxMeanOneLognormal
 from HARK.simulation import drawDiscrete, drawUniform
-from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 from HARK import HARKobject, Market, AgentType
 from copy import deepcopy
 import matplotlib.pyplot as plt
@@ -65,6 +65,18 @@ class MargValueFunc2D(HARKobject):
 
 ###############################################################################
 
+# Make a dictionary to specify an aggregate shocks consumer
+init_agg_shocks = init_idiosyncratic_shocks.copy()
+del init_agg_shocks['Rfree']        # Interest factor is endogenous in agg shocks model
+del init_agg_shocks['CubicBool']    # Not supported yet for agg shocks model
+del init_agg_shocks['vFuncBool']    # Not supported yet for agg shocks model
+init_agg_shocks['PermGroFac'] = [1.0]
+# Grid of capital-to-labor-ratios (factors)
+MgridBase = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])  
+init_agg_shocks['MgridBase'] = MgridBase
+init_agg_shocks['aXtraCount'] = 24
+init_agg_shocks['aNrmInitStd'] = 0.0
+init_agg_shocks['LivPrb'] = [0.98]
 
 class AggShockConsumerType(IndShockConsumerType):
     '''
@@ -81,11 +93,11 @@ class AggShockConsumerType(IndShockConsumerType):
         Make a new instance of AggShockConsumerType, an extension of
         IndShockConsumerType.  Sets appropriate solver and input lists.
         '''
-        params = Params.init_agg_shocks.copy()
+        params = init_agg_shocks.copy()
         params.update(kwds)
-        kwds = params
+
         AgentType.__init__(self, solution_terminal=deepcopy(IndShockConsumerType.solution_terminal_),
-                           time_flow=time_flow, pseudo_terminal=False, **kwds)
+                           time_flow=time_flow, pseudo_terminal=False, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(IndShockConsumerType.time_vary_)
@@ -882,6 +894,45 @@ def solveConsAggMarkov(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, MrkvArr
 
 ###############################################################################
 
+CRRA = 2.0
+DiscFac = 0.96
+
+# Parameters for a Cobb-Douglas economy
+PermGroFacAgg = 1.00          # Aggregate permanent income growth factor
+PermShkAggCount = 3           # Number of points in discrete approximation to aggregate permanent shock dist
+TranShkAggCount = 3           # Number of points in discrete approximation to aggregate transitory shock dist
+PermShkAggStd = 0.0063        # Standard deviation of log aggregate permanent shocks
+TranShkAggStd = 0.0031        # Standard deviation of log aggregate transitory shocks
+DeprFac = 0.025               # Capital depreciation rate
+CapShare = 0.36               # Capital's share of income
+DiscFacPF = DiscFac           # Discount factor of perfect foresight calibration
+CRRAPF = CRRA                 # Coefficient of relative risk aversion of perfect foresight calibration
+intercept_prev = 0.0          # Intercept of aggregate savings function
+slope_prev = 1.0              # Slope of aggregate savings function
+verbose_cobb_douglas = True   # Whether to print solution progress to screen while solving
+T_discard = 200               # Number of simulated "burn in" periods to discard when updating AFunc
+DampingFac = 0.5              # Damping factor when updating AFunc; puts DampingFac weight on old params, rest on new
+max_loops = 20                # Maximum number of AFunc updating loops to allow
+
+
+# Make a dictionary to specify a Cobb-Douglas economy
+init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
+                     'TranShkAggCount': TranShkAggCount,
+                     'PermShkAggStd': PermShkAggStd,
+                     'TranShkAggStd': TranShkAggStd,
+                     'DeprFac': DeprFac,
+                     'CapShare': CapShare,
+                     'DiscFac': DiscFacPF,
+                     'CRRA': CRRAPF,
+                     'PermGroFacAgg': PermGroFacAgg,
+                     'AggregateL':1.0,
+                     'intercept_prev': intercept_prev,
+                     'slope_prev': slope_prev,
+                     'verbose': verbose_cobb_douglas,
+                     'T_discard': T_discard,
+                     'DampingFac': DampingFac,
+                     'max_loops': max_loops
+                     }
 
 class CobbDouglasEconomy(Market):
     '''
@@ -918,9 +969,9 @@ class CobbDouglasEconomy(Market):
         -------
         None
         '''
-        params = Params.init_cobb_douglas.copy()
-        params.update(kwds)
-        kwds = params
+        params = init_cobb_douglas.copy()
+        params.update()
+
         Market.__init__(self, agents=agents,
                         sow_vars=['MaggNow', 'AaggNow', 'RfreeNow',
                                   'wRteNow', 'PermShkAggNow', 'TranShkAggNow', 'KtoLnow'],
@@ -929,7 +980,7 @@ class CobbDouglasEconomy(Market):
                         dyn_vars=['AFunc'],
                         tolerance=tolerance,
                         act_T=act_T)
-        self.assignParameters(**kwds)
+        self.assignParameters(**params)
         self.update()
 
         # Use previously hardcoded values for AFunc updating if not passed

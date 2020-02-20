@@ -62,56 +62,6 @@ init_idiosyncratic_shocks = {
 # -----------------------------------------------------------------------------
 # ----- Define additional parameters for the aggregate shocks model -----------
 # -----------------------------------------------------------------------------
-MgridBase = np.array([0.1,0.3,0.6,0.8,0.9,0.98,1.0,1.02,1.1,1.2,1.6,2.0,3.0])  # Grid of capital-to-labor-ratios (factors)
-
-# Parameters for a Cobb-Douglas economy
-PermGroFacAgg = 1.00          # Aggregate permanent income growth factor
-PermShkAggCount = 3           # Number of points in discrete approximation to aggregate permanent shock dist
-TranShkAggCount = 3           # Number of points in discrete approximation to aggregate transitory shock dist
-PermShkAggStd = 0.0063        # Standard deviation of log aggregate permanent shocks
-TranShkAggStd = 0.0031        # Standard deviation of log aggregate transitory shocks
-DeprFac = 0.025               # Capital depreciation rate
-CapShare = 0.36               # Capital's share of income
-DiscFacPF = DiscFac           # Discount factor of perfect foresight calibration
-CRRAPF = CRRA                 # Coefficient of relative risk aversion of perfect foresight calibration
-intercept_prev = 0.0          # Intercept of aggregate savings function
-slope_prev = 1.0              # Slope of aggregate savings function
-verbose_cobb_douglas = True   # Whether to print solution progress to screen while solving
-T_discard = 200               # Number of simulated "burn in" periods to discard when updating AFunc
-DampingFac = 0.5              # Damping factor when updating AFunc; puts DampingFac weight on old params, rest on new
-max_loops = 20                # Maximum number of AFunc updating loops to allow
-
-# Make a dictionary to specify an aggregate shocks consumer
-init_agg_shocks = copy(init_idiosyncratic_shocks)
-del init_agg_shocks['Rfree']        # Interest factor is endogenous in agg shocks model
-del init_agg_shocks['CubicBool']    # Not supported yet for agg shocks model
-del init_agg_shocks['vFuncBool']    # Not supported yet for agg shocks model
-init_agg_shocks['PermGroFac'] = [1.0]
-init_agg_shocks['MgridBase'] = MgridBase
-init_agg_shocks['aXtraCount'] = 24
-init_agg_shocks['aNrmInitStd'] = 0.0
-init_agg_shocks['LivPrb'] = LivPrb
-
-
-# Make a dictionary to specify a Cobb-Douglas economy
-init_cobb_douglas = {'PermShkAggCount': PermShkAggCount,
-                     'TranShkAggCount': TranShkAggCount,
-                     'PermShkAggStd': PermShkAggStd,
-                     'TranShkAggStd': TranShkAggStd,
-                     'DeprFac': DeprFac,
-                     'CapShare': CapShare,
-                     'DiscFac': DiscFacPF,
-                     'CRRA': CRRAPF,
-                     'PermGroFacAgg': PermGroFacAgg,
-                     'AggregateL':1.0,
-                     'intercept_prev': intercept_prev,
-                     'slope_prev': slope_prev,
-                     'verbose': verbose_cobb_douglas,
-                     'T_discard': T_discard,
-                     'DampingFac': DampingFac,
-                     'max_loops': max_loops
-                     }
-
 # -----------------------------------------------------------------------------
 # ----- Define additional parameters for the Markov agg shocks model ----------
 # -----------------------------------------------------------------------------
