@@ -3,10 +3,7 @@
 This section contains descriptions of the main files in the repo.
 
 Documentation files:
-* [README.md](README.md): The file you are currently reading.
 * [Documentation/HARKdoc.pdf](Documentation/HARKdoc.pdf): A mini-user guide produced for a December 2015 workshop on HARK, unofficially representing the alpha version.  (Substantially out of date).
-* [Documentation/HARKmanual.pdf](Documentation/HARKmanual.pdf): A user guide for HARK, written for the beta release at CEF 2016 in Bordeaux.  Should contain 90% fewer lies relative to HARKdoc.pdf.
-    * [Documentation/HARKmanual.tex](Documentation/HARKmanual.tex): LaTeX source for the user guide.  Open source code probably requires an open source manual as well.
 * [Documentation/ConsumptionSavingModels.pdf](Documentation/ConsumptionSavingModels.pdf): Mathematical descriptions of the various consumption-saving models in HARK and how they map into the code.
     * [Documentation/ConsumptionSavingModels.tex](Documentation/ConsumptionSavingModels.tex): LaTeX source for the "models" writeup.
 * [Documentation/NARK.pdf](Documentation/NARK.pdf): Variable naming conventions for HARK, plus concordance with LaTeX variable definitions.  Still in development.

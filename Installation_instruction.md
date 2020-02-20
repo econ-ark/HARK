@@ -5,15 +5,13 @@ HARK is an open source project written in Python.  It's compatible with both Pyt
 ## Instructions for a new user
 In order to use HARK, you firstly need to download Python and add Python to the PATH. We recommend to install python 3, as eventually support for python 2 will end. If you are not confident about the installation process you can use this step-by-step guide https://realpython.com/installing-python/ .
 
-Next, install text editor for Python. If you do not use Anaconda Python distribution (see below), we recommend [Atom](https://atom.io/). To use Atom for Python, firstly install it (you can use this [manual](https://flight-manual.atom.io/getting-started/sections/installing-atom/)). Next, install the [packages](https://flight-manual.atom.io/using-atom/sections/atom-packages/) for Python, we recommend to install at least [autocomplete-python](https://atom.io/packages/autocomplete-python) and [atom-ide-debugger-python](https://flight-manual.atom.io/using-atom/sections/atom-packages/). The last enables debugging the Python scripts, that is to set breakpoints and call variables in certain spot of your code (with increase in your codes' sophistication you will find this tools very helpful in finding bugs).
+Next, install a text editor for Python. If you do not use the Anaconda Python distribution (see below), we recommend [Atom](https://atom.io/). To use Atom for Python, first install it (you can use this [manual](https://flight-manual.atom.io/getting-started/sections/installing-atom/)). Next, install the [packages](https://flight-manual.atom.io/using-atom/sections/atom-packages/) for Python, we recommend to install at least [autocomplete-python](https://atom.io/packages/autocomplete-python) and [atom-ide-debugger-python](https://flight-manual.atom.io/using-atom/sections/atom-packages/). The last enables debugging the Python scripts, that is to set breakpoints and call variables in certain spot of your code (with increase in your codes' sophistication you will find this tools very helpful in finding bugs).
 
 After installing Python and the text editor, you can install HARK package. The simplest way is to use [pip](https://pip.pypa.io/en/stable/installing/).
 
 To install HARK with pip, at a command line type `pip install econ-ark`.
 
 If you prefer to isolate the installation of `econ-ark` from the installations of any other python tools and packages, use a virtual environment such as [virtualenv](https://virtualenv.pypa.io/en/latest/).
-
-
 
 To install `virtualenv`, then to create an environment named `econ-ark`, and finally to activate that environment, at a command line type:
 
@@ -110,8 +108,13 @@ About the differences between conda and pip check https://www.anaconda.com/under
       ```
       pip install -e .
       ```
+## Content Aside from the Toolkit 
 
-### HARK demonstrations
+If you don't already have one, you should designate a place on your computer where you will be putting all the Econ-ARK content.
+For example, it is common to just create a folder `GitHub` in your home user directory. Inside `GitHub` you should create folders
+corresponding to the GitHub ID's of users whose work you want to obtain; for example, `GitHub/econ-ark`. Inside the `econ-ark` directory you can obtain a number of different resources.
+
+### Demonstrations And Illustrations
 
 Most of the modules in HARK are just collections of tools. To look at a demonstrations, check repository:
 	* [DemARK](https://github.com/econ-ark/DemARK): Demonstrations of the use of HARK
@@ -120,6 +123,23 @@ You will want to obtain your own local copy of these repos using:
 ```
 git clone https://github.com/econ-ark/DemARK.git
 ```
+Once you have downloaded them, you will find that the repo contains a `notebooks` directory that contains a number of [jupyter notebooks](https://jupyter.org/). If you have the jupyter notebook tool installed (it is installed as part of Anaconda), you should be able to launch the jupyter notebook app from the command line with the command:
+
+### [REMARK](https://github.com/econ-ark/REMARK/#readme): Replications and Examples Made Using the ARK 
+
+From inside the `GitHub/econ-ark` directory, you will want to obtain your own local copy of the REMARK repo:
+```
+git clone https://github.com/econ-ark/REMARK.git
+```
+
+Once the download finishes (it should have created `GitHub/econ-ark/REMARK`, change into that directory.
+Its root level is mostly descriptive; the main content is in the `REMARKs` subdirectory, so `cd REMARKs` to 
+have a look at what is there. Each REMARK is contained in a directory with the handle of the REMARK; 
+for example, `BufferStockTheory` is the handle for the REMARK on 'The Theoretical Foundations of Buffer Stock Saving'.
+
+At the top level of the directory for each REMARK we have some meta-information (title, authors, etc) and an eponymous Jupyter notebook, e.g. `BufferStockTheory.ipynb.` In most cases there will also be an subdirectory, e.g. `BufferStockTheory` which is a placeholder for the substantive content of the project (like, the original paper). 
+   * Until a REMARK is finalized and frozen, the original content is often kept somewhere else, e.g.\ in an author's GitHub repo. In this case, the REMARK repo uses a `submodule` version, which is sort of like a link to the original material. To save space, a regular 'clone' of the REMARK repo does not incorporate all the submodules; therefore you may find those folders empty when you first use them.  In order to obtain the **real** content, in the root directory of the repo in question (e.g., in REMARKs/BufferStockTheory), you need execute the command `git submodule update --recursive --remote`.  
+
 Once you have downloaded them, you will find that the repo contains a `notebooks` directory that contains a number of [jupyter notebooks](https://jupyter.org/). If you have the jupyter notebook tool installed (it is installed as part of Anaconda), you should be able to launch the jupyter notebook app from the command line with the command:
 
 ```
