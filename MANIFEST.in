@@ -5,15 +5,17 @@ include *.md
 include LICENSE
 
 # include everything in the root
-include HARK
 include requirements.txt
 include setup.py
 include MANIFEST.in
 include setup.cfg
 
+# include data files
+recursive-include HARK/cstwMPC *.txt
+
 # Include most files
 # recursive-include ConsumptionSaving *
-recursive-include Demos *
+# recursive-include Demos *
 # recursive-include dist *
 # recursive-include FashionVictim *
 # recursive-include SolvingMicroDSOPs *
