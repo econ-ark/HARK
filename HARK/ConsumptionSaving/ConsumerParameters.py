@@ -65,15 +65,18 @@ init_idiosyncratic_shocks = {
 # -----------------------------------------------------------------------------
 # ----- Define additional parameters for the Markov agg shocks model ----------
 # -----------------------------------------------------------------------------
+
+from HARK.ConsumptionSaving.ConsAggShockModel import init_cobb_douglas
+
+
 # This example makes a high risk, low growth state and a low risk, high growth state
 MrkvArray = np.array([[0.90,0.10],[0.04,0.96]])
 PermShkAggStd = [0.012,0.006]     # Standard deviation of log aggregate permanent shocks by state
 TranShkAggStd = [0.006,0.003]     # Standard deviation of log aggregate transitory shocks by state
 PermGroFacAgg = [0.98,1.02]       # Aggregate permanent income growth factor
+slope_prev = 1.0
+intercept_prev = 0.0
 
-# Make a dictionary to specify a Markov aggregate shocks consumer
-init_agg_mrkv_shocks = copy(init_agg_shocks)
-init_agg_mrkv_shocks['MrkvArray'] = MrkvArray
 
 # Make a dictionary to specify a Markov Cobb-Douglas economy
 init_mrkv_cobb_douglas = copy(init_cobb_douglas)

@@ -1,5 +1,4 @@
-from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
-import HARK.ConsumptionSaving.ConsumerParameters as Params
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, init_idiosyncratic_shocks
 import numpy as np
 import unittest
 
@@ -33,7 +32,7 @@ class testBufferStock(unittest.TestCase):
     
     def setUp(self):
         # Make a dictionary containing all parameters needed to solve the model
-        self.base_params = Params.init_idiosyncratic_shocks
+        self.base_params = init_idiosyncratic_shocks
 
         # Set the parameters for the baseline results in the paper
         # using the variable values defined in the cell above

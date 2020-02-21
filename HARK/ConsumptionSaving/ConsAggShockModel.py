@@ -24,7 +24,7 @@ import HARK.ConsumptionSaving.ConsumerParameters as Params
 
 __all__ = ['MargValueFunc2D', 'AggShockConsumerType', 'AggShockMarkovConsumerType',
 'CobbDouglasEconomy', 'SmallOpenEconomy', 'CobbDouglasMarkovEconomy',
-           'SmallOpenMarkovEconomy', 'CobbDouglasAggVars', 'AggregateSavingRule', 'AggShocksDynamicRule','init_agg_shocks']
+           'SmallOpenMarkovEconomy', 'CobbDouglasAggVars', 'AggregateSavingRule', 'AggShocksDynamicRule','init_agg_shocks','init_agg_mrkv_shocks', 'init_cobb_douglas']
 
 utility = CRRAutility
 utilityP = CRRAutilityP
@@ -387,6 +387,16 @@ class AggShockConsumerType(IndShockConsumerType):
         raise NotImplementedError()
 
 
+# This example makes a high risk, low growth state and a low risk, high growth state
+MrkvArray = np.array([[0.90,0.10],[0.04,0.96]])
+PermShkAggStd = [0.012,0.006]     # Standard deviation of log aggregate permanent shocks by state
+TranShkAggStd = [0.006,0.003]     # Standard deviation of log aggregate transitory shocks by state
+PermGroFacAgg = [0.98,1.02]       # Aggregate permanent income growth factor
+
+# Make a dictionary to specify a Markov aggregate shocks consumer
+init_agg_mrkv_shocks = init_agg_shocks.copy()
+init_agg_mrkv_shocks['MrkvArray'] = MrkvArray
+    
 class AggShockMarkovConsumerType(AggShockConsumerType):
     '''
     A class for representing ex ante heterogeneous "types" of consumers who
@@ -395,7 +405,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
     state is subject to Markov-style discrete state evolution.
     '''
     def __init__(self, **kwds):
-        params = Params.init_agg_mrkv_shocks.copy()
+        params = init_agg_mrkv_shocks.copy()
         params.update(kwds)
         kwds = params
         AggShockConsumerType.__init__(self, **kwds)

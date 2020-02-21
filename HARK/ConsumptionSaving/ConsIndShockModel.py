@@ -2063,7 +2063,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         '''
-
         params = init_idiosyncratic_shocks.copy()
         params.update(kwds)
 
