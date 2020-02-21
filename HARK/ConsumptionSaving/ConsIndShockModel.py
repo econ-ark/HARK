@@ -1861,15 +1861,15 @@ class PerfForesightConsumerType(AgentType):
             self.AIC = True
             if public_call or verbose:
                 print('The value of the absolute impatience factor (AIF) for the supplied parameter values satisfies the Absolute Impatience Condition.', end = " ")
+                self.violated = False
                 if verbose:
-                    violated = False
                     print('   Because the AIF < 1, the absolute amount of consumption is expected to fall over time.')
             print()
         else:
             self.AIC = False
             print('The given type violates the Absolute Impatience Condition with the supplied parameter values; the AIF is %1.5f ' % (AIF), end=" ")
+            self.violated = True
             if verbose:
-                violated = True
                 print('   Because the AIF > 1, the absolute amount of consumption is expected to grow over time')
             print()
 
@@ -1889,7 +1889,7 @@ class PerfForesightConsumerType(AgentType):
             print()
         else:
             self.GICPF = False
-            violated = True
+            self.violated = True
             print('The given parameter values violate the Perfect Foresight Growth Impatience Condition for this consumer type; the GIFPF is: %2.4f' % (GIFPF), end = " ")
             if verbose:
                 print(' Therefore, for a perfect foresight consumer the ratio of individual wealth to permanent income is expected to grow toward infinity.')
@@ -1911,7 +1911,7 @@ class PerfForesightConsumerType(AgentType):
             print()
         else:
             self.RIC = False
-            violated = True
+            self.violated = True
             print('The given type violates the Return Impatience Condition with the supplied parameter values; the factor is %1.5f ' % (RIF), end = " ")
             if verbose:
                 print('Therefore, the limiting consumption function is c(m)=0 for all m')
@@ -1938,7 +1938,7 @@ class PerfForesightConsumerType(AgentType):
         else:
             self.FHWC = False
             print('The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value %2.5f ' % (FHWF), end = " ")
-            violated = True
+            self.violated = True
             if verbose:
                 print('Therefore, the limiting consumption function is c(m)=Infinity for all m')
             print()
@@ -2279,7 +2279,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             print()
         else:
             self.GICInd = False
-            violated = True
+            self.violated = True
             print('The given parameter values violate the Individual Growth Impatience Condition; the GIFInd is: %2.4f' % (self.GIFInd), end = " ")
             if verbose:
                 print('')
@@ -2297,7 +2297,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             print()
         else:
             self.GICAgg = False
-            violated = True
+            self.violated = True
             print('The given parameter values violate the Aggregate Growth Impatience Condition; the GIFAgg is: %2.4f' % (self.GIFAgg), end = " ")
             if verbose:
                 print('')
@@ -2318,7 +2318,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 print()
         else:
             self.WRIC = False
-            violated = True
+            self.violated = True
             print('The given type violates the Weak Return Impatience Condition with the supplied parameter values.  The WRIF is: %2.4f' % (WRIF), end = " ")
             if verbose:
                 print('')
@@ -2348,7 +2348,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         else:
             self.FVAC = False
             print('The given type violates the Finite Value of Autarky Condition with the supplied parameter values. The FVAF is %2.4f' %(FVAF), end = " ")
-            violated = True
+            self.violated = True
             if public_call or verbose:
                 print('Therefore, a nondegenerate solution is not available (see '+url+'/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping')
             print()
@@ -2417,7 +2417,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.checkCIGAgg(Thorn,verbose,public_call)
         self.checkWRIC(verbose,public_call)
 
-        if verbose and violated:
+        if verbose and self.violated:
             print('\n[!] For more information on the conditions, see Tables 3 and 4 in "Theoretical Foundations of Buffer Stock Saving" at '+url+'/#Factors-Defined-And-Compared')
             print('')
 
