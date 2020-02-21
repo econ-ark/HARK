@@ -24,7 +24,7 @@ import HARK.ConsumptionSaving.ConsumerParameters as Params
 
 __all__ = ['MargValueFunc2D', 'AggShockConsumerType', 'AggShockMarkovConsumerType',
 'CobbDouglasEconomy', 'SmallOpenEconomy', 'CobbDouglasMarkovEconomy',
-           'SmallOpenMarkovEconomy', 'CobbDouglasAggVars', 'AggregateSavingRule', 'AggShocksDynamicRule','init_agg_shocks','init_agg_mrkv_shocks', 'init_cobb_douglas']
+           'SmallOpenMarkovEconomy', 'CobbDouglasAggVars', 'AggregateSavingRule', 'AggShocksDynamicRule','init_agg_shocks','init_agg_mrkv_shocks', 'init_cobb_douglas','init_mrkv_cobb_douglas']
 
 utility = CRRAutility
 utilityP = CRRAutilityP
@@ -1397,6 +1397,15 @@ class SmallOpenEconomy(Market):
         AggVarsNow = CobbDouglasAggVars(MaggNow, AaggNow, KtoLnow, RfreeNow, wRteNow, PermShkAggNow, TranShkAggNow)
         return AggVarsNow
 
+# Make a dictionary to specify a Markov Cobb-Douglas economy
+init_mrkv_cobb_douglas = init_cobb_douglas.copy()
+init_mrkv_cobb_douglas['PermShkAggStd'] = PermShkAggStd
+init_mrkv_cobb_douglas['TranShkAggStd'] = TranShkAggStd
+init_mrkv_cobb_douglas['PermGroFacAgg'] = PermGroFacAgg
+init_mrkv_cobb_douglas['MrkvArray'] = MrkvArray
+init_mrkv_cobb_douglas['MrkvNow_init'] = 0
+init_mrkv_cobb_douglas['slope_prev'] = 2*[slope_prev]
+init_mrkv_cobb_douglas['intercept_prev'] = 2*[intercept_prev]
 
 class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
     '''
@@ -1433,10 +1442,10 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         -------
         None
         '''
-        params = Params.init_mrkv_cobb_douglas.copy()
+        params = init_mrkv_cobb_douglas.copy()
         params.update(kwds)
-        kwds = params
-        CobbDouglasEconomy.__init__(self, agents=agents, tolerance=tolerance, act_T=act_T, **kwds)
+
+        CobbDouglasEconomy.__init__(self, agents=agents, tolerance=tolerance, act_T=act_T, **params)
         self.sow_vars.append('MrkvNow')
 
     def update(self):
