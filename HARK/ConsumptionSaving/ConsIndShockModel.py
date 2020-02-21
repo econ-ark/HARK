@@ -2072,7 +2072,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                                            time_flow=time_flow,
                                            verbose=verbose,
                                            quiet=quiet,
-                                           **kwds)
+                                           **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
