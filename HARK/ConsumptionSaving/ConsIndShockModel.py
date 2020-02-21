@@ -1850,6 +1850,103 @@ class PerfForesightConsumerType(AgentType):
         self.aLvlNow = self.aNrmNow*self.pLvlNow   # Useful in some cases to precalculate asset level
         return None
 
+    def checkAIC(self, thorn):
+        '''
+        Evaluate and report on the Absolute Impatience Condition
+        '''
+        AIF = thorn
+
+        self.AIF = AIF
+        if AIF<1:
+            self.AIC = True
+            if public_call or verbose:
+                print('The value of the absolute impatience factor (AIF) for the supplied parameter values satisfies the Absolute Impatience Condition.', end = " ")
+                if verbose:
+                    violated = False
+                    print('   Because the AIF < 1, the absolute amount of consumption is expected to fall over time.')
+            print()
+        else:
+            self.AIC = False
+            print('The given type violates the Absolute Impatience Condition with the supplied parameter values; the AIF is %1.5f ' % (AIF), end=" ")
+            if verbose:
+                violated = True
+                print('   Because the AIF > 1, the absolute amount of consumption is expected to grow over time')
+            print()
+
+    def checkGICPF(self,thorn):
+        '''
+        Evaluate and report on the Growth Impatience Condition
+        '''
+        GIFPF = thorn/self.PermGroFac[0]
+        self.GIFPF = GIFPF
+
+        if GIFPF<1:
+            self.GICPF = True
+            if public_call or verbose:
+                print('The value of the Growth Impatience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.', end = " ")
+                if verbose:
+                    print(' Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income will fall indefinitely.')
+            print()
+        else:
+            self.GICPF = False
+            violated = True
+            print('The given parameter values violate the Perfect Foresight Growth Impatience Condition for this consumer type; the GIFPF is: %2.4f' % (GIFPF), end = " ")
+            if verbose:
+                print(' Therefore, for a perfect foresight consumer the ratio of individual wealth to permanent income is expected to grow toward infinity.')
+            print()
+
+    def checkRIC(self, thorn):
+        '''
+        Evaluate and report on the Return Impatience Condition
+        '''
+
+        RIF = Thorn/self.Rfree
+        self.RIF = RIF
+        if RIF<1:
+            self.RIC = True
+            if public_call or verbose:
+                print('The return impatience factor value for the supplied parameter values satisfies the Return Impatience Condition.', end = " ")
+                if verbose:
+                    print('Therefore, the limiting consumption function is not c(m)=0 for all m')
+            print()
+        else:
+            self.RIC = False
+            violated = True
+            print('The given type violates the Return Impatience Condition with the supplied parameter values; the factor is %1.5f ' % (RIF), end = " ")
+            if verbose:
+                print('Therefore, the limiting consumption function is c(m)=0 for all m')
+            print()
+
+    def checkFHWC(self):
+        '''
+        Evaluate and report on the Finite Human Wealth Condition
+        '''
+
+        FHWF = self.PermGroFac[0]/self.Rfree
+        self.FHWF = FHWF
+        if FHWF<1:
+            self.hNrm = 1.0/(1.0-self.PermGroFac[0]/self.Rfree)
+            self.FHWC = True
+            if public_call or verbose:
+                print('The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.', end = " ")
+                if verbose: 
+                    print('Therefore, the limiting consumption function is not c(m)=Infinity')
+                    print('and human wealth normalized by permanent income is %2.5f' % (self.hNrm))
+                    self.cNrmPDV = 1.0/(1.0-self.Thorn/self.Rfree)
+                    print('and the PDV of future consumption growth is %2.5f' % (self.cNrmPDV) )
+            print()
+        else:
+            self.FHWC = False
+            print('The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value %2.5f ' % (FHWF), end = " ")
+            violated = True
+            if verbose:
+                print('Therefore, the limiting consumption function is c(m)=Infinity for all m')
+            print()
+        if verbose and violated and verbose_reference:
+            print('[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
+        return violated
+
+
     def checkConditions(self,verbose=False,verbose_reference=False,public_call=False):
         '''
         This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC), 
@@ -1876,95 +1973,13 @@ class PerfForesightConsumerType(AgentType):
         if self.cycles!=0 or self.T_cycle > 1:
             return
 
-        violated = False
-        
         Thorn = (self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)
-        AIF = Thorn
-        
-        #Evaluate and report on the Absolute Impatience Condition
+        self.Thorn = thorn
 
-        self.Thorn = Thorn
-        self.AIF = AIF
-        if AIF<1:
-            self.AIC = True
-            if public_call or verbose:
-                print('The value of the absolute impatience factor (AIF) for the supplied parameter values satisfies the Absolute Impatience Condition.', end = " ")
-                if verbose:
-                    violated = False
-                    print('   Because the AIF < 1, the absolute amount of consumption is expected to fall over time.')
-            print()
-        else:
-            self.AIC = False
-            print('The given type violates the Absolute Impatience Condition with the supplied parameter values; the AIF is %1.5f ' % (AIF), end=" ")
-            if verbose:
-                violated = True
-                print('   Because the AIF > 1, the absolute amount of consumption is expected to grow over time')
-            print()
-        
-        #Evaluate and report on the Growth Impatience Condition
-        GIFPF = Thorn/self.PermGroFac[0]
-        self.GIFPF = GIFPF
-
-        if GIFPF<1:
-            self.GICPF = True
-            if public_call or verbose:
-                print('The value of the Growth Impatience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.', end = " ")
-                if verbose:
-                    print(' Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income will fall indefinitely.')
-            print()
-        else:
-            self.GICPF = False
-            violated = True
-            print('The given parameter values violate the Perfect Foresight Growth Impatience Condition for this consumer type; the GIFPF is: %2.4f' % (GIFPF), end = " ")
-            if verbose:
-                print(' Therefore, for a perfect foresight consumer the ratio of individual wealth to permanent income is expected to grow toward infinity.')
-            print()
-        
-
-        #Evaluate and report on the Return Impatience Condition
-
-        RIF = Thorn/self.Rfree
-        self.RIF = RIF
-        if RIF<1:
-            self.RIC = True
-            if public_call or verbose:
-                print('The return impatience factor value for the supplied parameter values satisfies the Return Impatience Condition.', end = " ")
-                if verbose:
-                    print('Therefore, the limiting consumption function is not c(m)=0 for all m')
-            print()
-        else:
-            self.RIC = False
-            violated = True
-            print('The given type violates the Return Impatience Condition with the supplied parameter values; the factor is %1.5f ' % (RIF), end = " ")
-            if verbose:
-                print('Therefore, the limiting consumption function is c(m)=0 for all m')
-            print()
-
-        #Evaluate and report on the Finite Human Wealth Condition
-        FHWF = self.PermGroFac[0]/self.Rfree
-        self.FHWF = FHWF
-        if FHWF<1:
-            self.hNrm = 1.0/(1.0-self.PermGroFac[0]/self.Rfree)
-            self.FHWC = True
-            if public_call or verbose:
-                print('The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.', end = " ")
-                if verbose: 
-                    print('Therefore, the limiting consumption function is not c(m)=Infinity')
-                    print('and human wealth normalized by permanent income is %2.5f' % (self.hNrm))
-                    self.cNrmPDV = 1.0/(1.0-self.Thorn/self.Rfree)
-                    print('and the PDV of future consumption growth is %2.5f' % (self.cNrmPDV) )
-            print()
-        else:
-            self.FHWC = False
-            print('The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value %2.5f ' % (FHWF), end = " ")
-            violated = True
-            if verbose:
-                print('Therefore, the limiting consumption function is c(m)=Infinity for all m')
-            print()
-        if verbose and violated and verbose_reference:
-            print('[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
-        return violated
-
+        self.checkAIC(Thorn)
+        self.checkGICPF(Thorn)
+        self.checkRIC(Thorn)
+        self.checkFHWC()
 
 class IndShockConsumerType(PerfForesightConsumerType):
     '''
