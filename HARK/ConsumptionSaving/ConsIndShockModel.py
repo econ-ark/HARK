@@ -1900,7 +1900,7 @@ class PerfForesightConsumerType(AgentType):
         Evaluate and report on the Return Impatience Condition
         '''
 
-        RIF = Thorn/self.Rfree
+        RIF = thorn/self.Rfree
         self.RIF = RIF
         if RIF<1:
             self.RIC = True
@@ -1942,9 +1942,9 @@ class PerfForesightConsumerType(AgentType):
             if verbose:
                 print('Therefore, the limiting consumption function is c(m)=Infinity for all m')
             print()
-        if verbose and violated and verbose_reference:
+        if verbose and self.violated and verbose_reference:
             print('[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
-        return violated
+        return self.violated
 
 
 
@@ -1975,7 +1975,7 @@ class PerfForesightConsumerType(AgentType):
             return
 
         Thorn = (self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)
-        self.Thorn = thorn
+        self.Thorn = Thorn
 
         self.checkAIC(Thorn,verbose,public_call)
         self.checkGICPF(Thorn,verbose,public_call)
