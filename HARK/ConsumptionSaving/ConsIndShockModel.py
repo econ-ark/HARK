@@ -2375,7 +2375,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         '''
-        violated = False # PerfForesightConsumerType.checkConditions(self, verbose=False, verbose_reference=False)
+        self.violated = False # PerfForesightConsumerType.checkConditions(self, verbose=False, verbose_reference=False)
 
         if self.cycles!=0 or self.T_cycle > 1:
             return
@@ -2416,6 +2416,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.checkGICInd(Thorn,verbose,public_call)
         self.checkCIGAgg(Thorn,verbose,public_call)
         self.checkWRIC(verbose,public_call)
+        self.checkFVAC(verbose, public_call)
 
         if verbose and self.violated:
             print('\n[!] For more information on the conditions, see Tables 3 and 4 in "Theoretical Foundations of Buffer Stock Saving" at '+self.url+'/#Factors-Defined-And-Compared')
@@ -2427,9 +2428,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
             print('GIFAgg           = %2.6f ' % (GIFAgg))
             print('Thorn = AIF      = %2.6f ' % (Thorn))
             print('PermGroFacAdj    = %2.6f ' % (PermGroFacAdj))
-            print('uInvEpShkuInv    = %2.6f ' % (uInvEpShkuInv))
-            print('FVAF             = %2.6f ' % (FVAF))
-            print('WRIF             = %2.6f ' % (WRIF))
+            print('uInvEpShkuInv    = %2.6f ' % (self.uInvEpShkuInv))
+            print('FVAF             = %2.6f ' % (self.FVAF))
+            print('WRIF             = %2.6f ' % (self.WRIF))
             print('DiscFacGIFIndMax = %2.6f ' % (self.DiscFacGIFIndMax))
             print('DiscFacGIFAggMax = %2.6f ' % (self.DiscFacGIFAggMax))
 
