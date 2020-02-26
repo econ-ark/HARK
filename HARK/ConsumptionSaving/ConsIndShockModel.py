@@ -1974,6 +1974,8 @@ class PerfForesightConsumerType(AgentType):
         if self.cycles!=0 or self.T_cycle > 1:
             return
 
+        self.violated = False
+
         Thorn = (self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)
         self.Thorn = Thorn
 

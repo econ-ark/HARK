@@ -22,6 +22,6 @@ class testPerfForesightConsumerType(unittest.TestCase):
         self.agent_infinite.checkConditions()
 
         self.assertTrue(self.agent_infinite.AIC)
-        self.assertTrue(self.agent_infinite.GIC)
+        self.assertTrue(self.agent_infinite.GICPF)
         self.assertTrue(self.agent_infinite.RIC)
         self.assertTrue(self.agent_infinite.FHWC)
