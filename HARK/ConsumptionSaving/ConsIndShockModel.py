@@ -1618,7 +1618,6 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         '''
-
         params = Params.init_perfect_foresight.copy()
         params.update(kwds)
         kwds = params
