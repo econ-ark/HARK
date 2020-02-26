@@ -11,4 +11,4 @@ if sys.version_info[:2] < (3, 6):
 
 from .core import *
 
-__version__ = "0.10.3"
+__version__ = "0.10.4.rc1"
