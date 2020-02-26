@@ -1409,6 +1409,7 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
             os.makedirs(Figures_dir)         # If dir does not exist, create it
         # Save the figures in several formats
         print("Saving figure {} in {}".format(figure_name, target_dir))
+        plt.savefig(os.path.join(target_dir, '{}.jpg'.format(figure_name))) # For web/html
         plt.savefig(os.path.join(target_dir, '{}.png'.format(figure_name))) # For web/html
         plt.savefig(os.path.join(target_dir, '{}.pdf'.format(figure_name))) # For LaTeX
         plt.savefig(os.path.join(target_dir, '{}.svg'.format(figure_name))) # For html5
