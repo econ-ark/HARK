@@ -1618,7 +1618,6 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         '''
-
         params = Params.init_perfect_foresight.copy()
         params.update(kwds)
         kwds = params
@@ -1973,6 +1972,8 @@ class PerfForesightConsumerType(AgentType):
         # with a 1 period cycle. If these conditions are not met, we exit early.
         if self.cycles!=0 or self.T_cycle > 1:
             return
+
+        self.violated = False
 
         Thorn = (self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)
         self.Thorn = Thorn
