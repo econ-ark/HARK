@@ -75,12 +75,17 @@ class testIndShockConsumerType(unittest.TestCase):
         self.assertAlmostEqual(solution.cFunc(4).tolist(),
                                1.7391265696400773)
 
-    def test_MPCnow(self):
+    def test_simulated_values(self):
         self.agent.initializeSim()
         self.agent.simulate()
 
+        print(self.agent.aLvlNow)
+
         self.assertAlmostEqual(self.agent.MPCnow[1],
                                0.5535801655448935)
+
+        self.assertAlmostEqual(self.agent.aLvlNow[1],
+                               0.18832361)
 
 
 class testBufferStock(unittest.TestCase):
