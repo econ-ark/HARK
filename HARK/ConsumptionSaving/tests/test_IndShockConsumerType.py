@@ -6,26 +6,27 @@ import unittest
 
 class testIndShockConsumerType(unittest.TestCase):
 
-    def test_getShocks(self):
-        agent = IndShockConsumerType(
+    def setUp(self):
+        self.agent = IndShockConsumerType(
             AgentCount = 2,
             T_sim = 10
         )
 
-        agent.solve()
+        self.agent.solve()
 
-        agent.initializeSim()
-        agent.simBirth(np.array([True,False]))
-        agent.simOnePeriod()
-        agent.simBirth(np.array([False,True]))
+    def test_getShocks(self):
+        self.agent.initializeSim()
+        self.agent.simBirth(np.array([True,False]))
+        self.agent.simOnePeriod()
+        self.agent.simBirth(np.array([False,True]))
 
-        agent.getShocks()
+        self.agent.getShocks()
 
-        self.assertEqual(agent.PermShkNow[0],
+        self.assertEqual(self.agent.PermShkNow[0],
                          1.0050166461586711)
-        self.assertEqual(agent.PermShkNow[1],
+        self.assertEqual(self.agent.PermShkNow[1],
                          1.0050166461586711)
-        self.assertEqual(agent.TranShkNow[0],
+        self.assertEqual(self.agent.TranShkNow[0],
                          1.1176912196531754)
 
     def test_ConsIndShockSolverBasic(self):
@@ -73,6 +74,13 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(solution.cFunc(4).tolist(),
                                1.7391265696400773)
+
+    def test_MPCnow(self):
+        self.agent.initializeSim()
+        self.agent.simulate()
+
+        self.assertAlmostEqual(self.agent.MPCnow[1],
+                               0.5535801655448935)
 
 
 class testBufferStock(unittest.TestCase):
