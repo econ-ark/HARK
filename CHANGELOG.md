@@ -1,14 +1,30 @@
 HARK  
-Version 0.10.3
 Release Notes  
 
 # Introduction
 
-This document contains the release notes for the 0.10.3 version of HARK. HARK aims to produce an open source repository of highly modular, easily interoperable code for solving, simulating, and estimating dynamic economic models with heterogeneous agents.
+This document contains the release notes of HARK. HARK aims to produce an open source repository of highly modular, easily interoperable code for solving, simulating, and estimating dynamic economic models with heterogeneous agents.
 
 For more information on HARK, see [our Github organization](https://github.com/econ-ark).
 
 ## Changes
+
+
+### 0.10.4
+
+Release Date: 05-03-2020
+
+#### Major Changes
+ - Last release to support Python 2.7, future releases of econ-ark will support Python 3.6+ [#478](https://github.com/econ-ark/HARK/pull/478)
+ - Move non-reusable model code to examples directory, BayerLuetticke, FashionVictim now in examples instead of in HARK code [#442](https://github.com/econ-ark/HARK/pull/442)
+ - Load default parameters for ConsumptionSaving models [#466](https://github.com/econ-ark/HARK/pull/466)
+ - Improved implementaion of parallelNelderMead [#300](https://github.com/econ-ark/HARK/pull/300)
+ 
+#### Minor Changes 
+ - Notebook utility functions for determining platform, GUI, latex (installation) are available in HARK.utilities [#512](https://github.com/econ-ark/HARK/pull/512)
+ - Few DemARKs moved to examples [#472](https://github.com/econ-ark/HARK/pull/472)
+ - MaxKinks available in ConsumerParameters again [#486](https://github.com/econ-ark/HARK/pull/486)
+
 
 ### 0.10.3
 
