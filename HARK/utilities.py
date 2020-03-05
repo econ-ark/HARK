@@ -1279,13 +1279,158 @@ def plotFuncsDer(functions,bottom,top,N=1000,legend_kwds = None):
     plt.show()
 
 
-def main():
-    print("Sorry, HARK.utilities doesn't actually do anything on its own.")
-    print("To see some examples of its functions in action, look at any")
-    print("of the model modules in /ConsumptionSavingModel.  As these functions")
-    print("are the basic building blocks of HARK, you'll find them used")
-    print("everywhere! In the future, this module will show examples of each")
-    print("function in the module.")
+def determine_platform():
+    """ Untility function to return the platform currenlty in use.
 
-if __name__ == '__main__':
-    main()
+    Returns
+    ---------
+    pf: str
+        'darwin' (MacOS), 'debian'(debian Linux) or 'win' (windows)
+    """
+    import platform
+    pform = platform.platform().lower()
+    if 'darwin' in pform:
+        pf = 'darwin' # MacOS
+    elif 'debian' in pform:
+        pf = 'debian' # Probably cloud (MyBinder, CoLab, ...)
+    elif 'ubuntu' in pform:
+        pf = 'debian' # Probably cloud (MyBinder, CoLab, ...)
+    elif 'win' in pform:
+        pf = 'win'
+    else:
+        raise ValueError('Not able to find out the platform.')
+    return pf
+
+def test_latex_installation(pf):
+    """ Test to check if latex is installed on the machine.
+
+    Parameters
+    -----------
+    pf: str (platform)
+        output of determine_platform()
+
+    Returns
+    --------
+    bool: Boolean
+        True if latex found, else installed in the case of debian
+        otherwise ImportError raised to direct user to install latex manually
+    """
+    # Test whether latex is installed (some of the figures require it)
+    from distutils.spawn import find_executable
+
+    latexExists = False
+
+    if find_executable('latex'):
+        latexExists = True
+        return True
+
+    if not latexExists:
+        print('Some of the figures below require a full installation of LaTeX')
+        # If running on Mac or Win, user can be assumed to be able to install
+        # any missing packages in response to error messages; but not on cloud
+        # so load LaTeX by hand (painfully slowly)
+        if 'debian' in pf: # CoLab and MyBinder are both ubuntu
+            print('Installing LaTeX now; please wait 3-5 minutes')
+            from IPython.utils import io
+            
+            with io.capture_output() as captured: # Hide hideously long output 
+                os.system('apt-get update')
+                os.system('apt-get install texlive texlive-latex-extra texlive-xetex dvipng')
+                latexExists=True
+            return True
+        else:
+            raise ImportError('Please install a full distribution of LaTeX on your computer then rerun. \n \
+            A full distribution means textlive, texlive-latex-extras, texlive-xetex, dvipng, and ghostscript')
+
+def in_ipynb():
+    """ If the ipython process contains 'terminal' assume not in a notebook.
+
+    Returns
+    --------
+    bool: Boolean
+          True if called from a jupyter notebook, else False
+    """
+    try:
+        if 'terminal' in str(type(get_ipython())):
+            return False
+        else:
+            return True
+    except NameError:
+        return False
+
+
+def setup_latex_env_notebook(pf, latexExists):
+    """ This is needed for use of the latex_envs notebook extension
+    which allows the use of environments in Markdown.
+
+    Parameters
+    -----------
+    pf: str (platform)
+        output of determine_platform()
+    """
+    import os
+    from matplotlib import rc
+    import matplotlib.pyplot as plt
+    plt.rc('font', family='serif')
+    plt.rc('text', usetex=latexExists)
+    if latexExists:
+        latex_preamble = r'\usepackage{amsmath}\usepackage{amsfonts}\usepackage[T1]{fontenc}'
+        latexdefs_path = os.getcwd()+'/latexdefs.tex'
+        if os.path.isfile(latexdefs_path):
+            latex_preamble = latex_preamble+r'\input{'+latexdefs_path+r'}'
+        else: # the required latex_envs package needs this file to exist even if it is empty
+            from pathlib import Path
+            Path(latexdefs_path).touch()
+        plt.rcParams['text.latex.preamble'] = latex_preamble
+
+
+def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
+    """ Utility function to save figure in multiple formats and display the image.
+
+    Parameters
+    ----------
+    figure_name: str
+                name of the figure
+    saveFigs: bool
+              True if the figure needs to be written to disk else False
+    drawFigs: bool
+              True if the figure should be displayed using plt.draw()
+    target_dir: str, default = 'Figures/'
+              Name of folder to save figures to in the current directory
+            
+    """
+    import matplotlib.pyplot as plt
+    if saveFigs:
+        import os
+        # Where to put any figures that the user wants to save
+        my_file_path = os.getcwd() # Find pathname to this file:
+        Figures_dir = os.path.join(my_file_path, "{}".format(figure_name)) # LaTeX document assumes figures will be here
+        if not os.path.exists(Figures_dir): 
+            os.makedirs(Figures_dir)         # If dir does not exist, create it
+        # Save the figures in several formats
+        print("Saving figure {} in {}".format(figure_name, target_dir))
+        plt.savefig(os.path.join(target_dir, '{}.jpg'.format(figure_name))) # For web/html
+        plt.savefig(os.path.join(target_dir, '{}.png'.format(figure_name))) # For web/html
+        plt.savefig(os.path.join(target_dir, '{}.pdf'.format(figure_name))) # For LaTeX
+        plt.savefig(os.path.join(target_dir, '{}.svg'.format(figure_name))) # For html5
+    # Make sure it's possible to plot it by checking for GUI
+    if drawFigs and find_gui():
+        plt.ion()  # Counterintuitively, you want interactive mode on if you don't want to interact
+        plt.draw() # Change to false if you want to pause after the figure
+        plt.pause(2)
+
+def find_gui():
+    """ Quick fix to check if matplotlib is running in a GUI environment.
+
+    Returns
+    -------
+    bool: Boolean
+          True if it's a GUI environment, False if not.
+    """
+    try:
+        import matplotlib.pyplot as plt
+    except:
+        return False
+    if plt.get_backend() == 'Agg':
+        return False
+    return True
