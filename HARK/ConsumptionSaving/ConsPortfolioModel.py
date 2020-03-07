@@ -562,13 +562,10 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         '''
         # Determine whether this instance has time-varying risk perceptions
-        if (type(self.RiskyAvg) is list):
-            if (type(self.RiskyStd) is list) and (len(self.RiskyAvg) == len(self.RiskyStd)) and (len(self.RiskyAvg) == self.T_cycle):
-                self.addToTimeVary('RiskyAvg','RiskyStd')
-            else:
-                raise AttributeError('If RiskyAvg is time-varying, then RiskyStd must be as well, and they must both have length of T_cycle!')
-        elif (type(self.RiskyStd) is list):
-            raise AttributeError('If RiskyStd is time-varying, then RiskyAvg must be as well!')
+        if (type(self.RiskyAvg) is list) and (type(self.RiskyStd) is list) and (len(self.RiskyAvg) == len(self.RiskyStd)) and (len(self.RiskyAvg) == self.T_cycle):
+            self.addToTimeVary('RiskyAvg','RiskyStd')
+        elif (type(self.RiskyStd) is list) or (type(self.RiskyAvg) is list):
+            raise AttributeError('If RiskyAvg is time-varying, then RiskyStd must be as well, and they must both have length of T_cycle!')
         else:
             self.addToTimeInv('RiskyAvg','RiskyStd')
         
