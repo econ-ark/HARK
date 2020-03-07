@@ -399,7 +399,7 @@ class PortfolioConsumerType(IndShockConsumerType):
     # "CanAdjust = 1- CantAdjust" at all times (it's the 0th offset).
     poststate_vars_ = ["aNrmNow", "pLvlNow", "RiskyShareNow", "CantAdjust"]
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ["approxRiskyDstn", "RiskyCount", "RiskyShareCount"]
+    time_inv_ = time_inv_ + ["RiskyCount", "RiskyShareCount"]
     time_inv_ = time_inv_ + ["RiskyShareLimitFunc", "PortfolioDomain"]
     time_inv_ = time_inv_ + ["AdjustPrb", "PortfolioGrid", "AdjustCount"]
 
@@ -561,11 +561,33 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         '''
+        # Determine whether this instance has time-varying risk perceptions
+        if (type(self.RiskyAvg) is list):
+            if (type(self.RiskyStd) is list) and (len(self.RiskyAvg) == len(self.RiskyStd)) and (len(self.RiskyAvg) == self.T_cycle):
+                self.addToTimeVary('RiskyAvg','RiskyStd')
+            else:
+                raise AttributeError('If RiskyAvg is time-varying, then RiskyStd must be as well, and they must both have length of T_cycle!')
+        elif (type(self.RiskyStd) is list):
+            raise AttributeError('If RiskyStd is time-varying, then RiskyAvg must be as well!')
+        else:
+            self.addToTimeInv('RiskyAvg','RiskyStd')
+        
         # Generates nodes for integration
-        self.approxRiskyDstn = RiskyDstnFactory(RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd)
+        if 'RiskyAvg' in self.time_vary:
+            self.approxRiskyDstn = [RiskyDstnFactory(RiskyAvg=self.RiskyAvg[t], RiskyStd=self.RiskyStd[t]) for t in range(self.T_cycle)]
+            self.addToTimeVary('approxRiskyDstn')
+        else:
+            self.approxRiskyDstn = RiskyDstnFactory(RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd)
+            self.addToTimeInv('approxRiskyDstn')
         
         # Generates draws from a lognormal distribution
-        self.drawRiskyFunc = LogNormalRiskyDstnDraw(RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd)
+        if 'RiskyAvg' in self.time_vary:
+            try:
+                self.drawRiskyFunc = LogNormalRiskyDstnDraw(RiskyAvg=self.RiskyAvgTrue, RiskyStd=self.RiskyStdTrue)
+            except:
+                raise AttributeError('When RiskyAvg is time-varying, you must specify values for RiskyAvgTrue and RiskyStdTrue')
+        else:
+            self.drawRiskyFunc = LogNormalRiskyDstnDraw(RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd)
         
 
     def getPostStates(self):
@@ -808,8 +830,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         self.RiskyDstn = approxRiskyDstn(RiskyCount)
         self.RiskyShareLimit = RiskyShareLimitFunc(self.RiskyDstn)
 
-        # Store the number of grid points used approximate the FOC in the port-
-        # folio sub-problem.
+        # Store the number of grid points used approximate the FOC in the portfolio sub-problem.
         self.RiskyShareCount = RiskyShareCount
 
         self.vFuncsNext = solution_next.vFunc
