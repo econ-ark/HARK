@@ -480,6 +480,10 @@ class PortfolioConsumerType(IndShockConsumerType):
     def preSolve(self):
         AgentType.preSolve(self)
         self.updateSolutionTerminal()
+        
+    def update(self):
+        IndShockConsumerType.update(self)
+        self.updateRiskyFuncs()
 
     def updateSolutionTerminal(self):
         """
@@ -542,6 +546,27 @@ class PortfolioConsumerType(IndShockConsumerType):
             MPCmin=None,
             MPCmax=None,
         )
+        
+        
+    def updateRiskyFuncs(self):
+        '''
+        Creates the attributes RiskyDstnFunc and RiskyDrawFunc from the primitive
+        parameters approxRiskyDstn and drawRiskyFunc.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        # Generates nodes for integration
+        self.approxRiskyDstn = RiskyDstnFactory(RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd)
+        
+        # Generates draws from a lognormal distribution
+        self.drawRiskyFunc = LogNormalRiskyDstnDraw(RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd)
+        
 
     def getPostStates(self):
         """
@@ -789,7 +814,7 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
 
         self.vFuncsNext = solution_next.vFunc
         self.vPfuncsNext = solution_next.vPfunc
-
+        
         self.updateShockDstn()
         self.makeRshareGrid()
 
