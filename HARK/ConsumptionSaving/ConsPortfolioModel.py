@@ -23,7 +23,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     utility_inv,    # inverse CRRA
 )
 from HARK.utilities import (
-    approxLognormal,  # for approximating the lognormal returns factor
+    approxLognormal,    # for approximating the lognormal returns factor
     combineIndepDstns,  # for combining the existing
 )
 from HARK.simulation import drawLognormal  # random draws for simulating agents
