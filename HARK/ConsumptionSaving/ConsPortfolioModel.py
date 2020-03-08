@@ -1,8 +1,11 @@
-# FIXME RiskyShareLimitFunc currently doesn't work for time varying CRRA,
-# Rfree and Risky-parameters. This should be possible by creating a list of
-# functions instead.
+'''
+This file contains classes and functions for representing, solving, and simulating
+agents who must allocate their resources among consumption, saving in a risk-free
+asset (with a low return), and saving in a risky asset (with higher average return).
+'''
+# FIXME RiskyShareLimitFunc currently doesn't work for time varying CRRA or Rfree.
+# It can handle age-varying *perceptions* of asset riskiness, however.
 
-import math  # we're using math for log and exp, might want to just use numpy?
 import scipy.optimize as sciopt  # we're using scipy optimize to optimize and fsolve
 import scipy.integrate  # used to calculate the expectation over returns
 import scipy.stats as stats  # for densities related to the returns distributions
@@ -13,7 +16,6 @@ from copy import (
 # Solution is inherited from in the PortfolioSolution class, NullFunc is used
 # throughout HARK when no input is given and AgentType is used for .preSolve
 from HARK import Solution, NullFunc, AgentType
-
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     PerfForesightConsumerType,  # for .__init__
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
@@ -22,18 +24,13 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     MargValueFunc,  # same as above, but for marginal value functions
     utility_inv,  # inverse CRRA
 )
-
 from HARK.utilities import (
     approxLognormal,  # for approximating the lognormal returns factor
     combineIndepDstns,  # for combining the existing
 )
-
 from HARK.simulation import drawLognormal  # random draws for simulating agents
+from HARK.interpolation import (LinearInterp)  # piece-wise linear interpolation
 
-from HARK.interpolation import (
-    LinearInterp,  # piece-wise linear interpolation
-    LowerEnvelope,  # lower envelope for consumption function around borrowing constraint
-)
 
 
 import numpy as np  # for array operations
@@ -46,20 +43,6 @@ __all__ = [
     "ConsIndShockPortfolioSolver",
     "LogNormalPortfolioConsumerType",
 ]
-# REMARK: The Campbell and Viceira (2002) approximation can be calculated from
-# the code below. TODO clean up
-# def CambellVicApprox()
-#
-#         # We assume fixed distribution of risky shocks throughout, so we can
-#         # calculate the limiting solution once and for all.
-#         phi = math.log(self.RiskyAvg/self.Rfree)
-#         RiskyAvgSqrd = self.RiskyAvg**2
-#         RiskyVar = self.RiskyStd**2
-# #
-# # mu = math.log(self.RiskyAvg/(math.sqrt(1+RiskyVar/RiskyAvgSqrd)))
-# # sigma = math.sqrt(math.log(1+RiskyVar/RiskyAvgSqrd))
-# #
-# # RiskyShareLimit = phi/(self.CRRA*sigma**2)
 
 
 def _PerfForesightLogNormalPortfolioShare(Rfree, RiskyAvg, RiskyStd, CRRA):
@@ -269,7 +252,7 @@ def _calcwFunc(AdjustPrb, AdjustCount, ShareNowCount, vFunc_adj, CRRA):
 
 def RiskyDstnFactory(RiskyAvg=1.0, RiskyStd=0.0):
     """
-    A class for generating functions that generate nodes and weights for a log-
+    A function for generating functions that generate nodes and weights for a log-
     normal distribution as parameterized by the input `RiskyAvg` and `RiskyStd`
     values. The returned function takes a number of points to request and returns
     a list of lists where the first list contains the weights (probabilities) and
@@ -278,23 +261,23 @@ def RiskyDstnFactory(RiskyAvg=1.0, RiskyStd=0.0):
     RiskyAvgSqrd = RiskyAvg ** 2
     RiskyVar = RiskyStd ** 2
 
-    mu = math.log(RiskyAvg / (math.sqrt(1 + RiskyVar / RiskyAvgSqrd)))
-    sigma = math.sqrt(math.log(1 + RiskyVar / RiskyAvgSqrd))
+    mu = np.log(RiskyAvg / (np.sqrt(1 + RiskyVar / RiskyAvgSqrd)))
+    sigma = np.sqrt(np.log(1 + RiskyVar / RiskyAvgSqrd))
 
     return lambda RiskyCount: approxLognormal(RiskyCount, mu=mu, sigma=sigma)
 
 
 def LogNormalRiskyDstnDraw(RiskyAvg=1.0, RiskyStd=0.0):
     """
-    A class for generating functions that draw random values from a log-normal
+    A function for generating functions that draw random values from a log-normal
     distribution as parameterized by the input `RiskyAvg` and `RiskyStd`
     values. The returned function takes no argument and returns a value.
     """
     RiskyAvgSqrd = RiskyAvg ** 2
     RiskyVar = RiskyStd ** 2
 
-    mu = math.log(RiskyAvg / (math.sqrt(1 + RiskyVar / RiskyAvgSqrd)))
-    sigma = math.sqrt(math.log(1 + RiskyVar / RiskyAvgSqrd))
+    mu = np.log(RiskyAvg / (np.sqrt(1 + RiskyVar / RiskyAvgSqrd)))
+    sigma = np.sqrt(np.log(1 + RiskyVar / RiskyAvgSqrd))
 
     return lambda rngSeed: drawLognormal(1, mu=mu, sigma=sigma, seed=rngSeed)
 
