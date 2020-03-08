@@ -327,7 +327,7 @@ init_labor_intensive['PermShkStd'] = [0.1]*init_lifecycle['T_cycle']
 init_labor_intensive['IncUnemp'] = 0.0
 init_labor_intensive['UnempPrb'] = 0.05
 init_labor_intensive['UnempPrbRet'] = 0.0
-init_labor_intensive['TranShkCount'] = 15 # Crank up permanent shock count - Number of points in discrete approximation to transitory income shocks
+init_labor_intensive['TranShkCount'] = 15 # Crank up transitory shock count - Number of points in discrete approximation to transitory income shocks
 init_labor_intensive['PermShkCount'] = 16 # Crank up permanent shock count
 init_labor_intensive['BoroCnstArt'] = BoroCnstArt  
 init_labor_intensive['CubicBool'] = CubicBool
@@ -354,5 +354,26 @@ init_labor_lifecycle['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1] 
 init_labor_lifecycle['WageRte'] = [1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0] # Wage rate in a lifecycle
 init_labor_lifecycle['LbrCostCoeffs'] = [-2.0, 0.4] # Assume labor cost coeffs is a polynomial of degree 1
 init_labor_lifecycle['T_cycle']    = 10
-#init_labor_lifecycle['T_retire']   = 7 # IndexError at line 774 in interpolation.py.
 init_labor_lifecycle['T_age']      = 11 # Make sure that old people die at terminal age and don't turn into newborns!
+
+# -----------------------------------------------------------------------------
+# ---- Define additional parameters for the portfolio choice model ------------
+# -----------------------------------------------------------------------------
+
+RiskyAvg = 1.08        # Average return of the risky asset
+RiskyStd = 0.20        # Standard deviation of (log) risky returns
+RiskyCount = 5         # Number of integration nodes to use in approximation of risky returns
+RiskyShareCount = 25   # Number of discrete points in the risky share approximation
+
+# Make an example/default dictionary for the portfolio allocation model
+init_portfolio = copy(init_idiosyncratic_shocks)
+init_portfolio['RiskyAvg']        = RiskyAvg
+init_portfolio['RiskyStd']        = RiskyStd
+init_portfolio['RiskyCount']      = RiskyCount
+init_portfolio['RiskyShareCount'] = RiskyShareCount
+init_portfolio['aXtraMax']        = 100  # Make the grid of assets go much higher...
+init_portfolio['aXtraCount']      = 200  # ...and include many more gridpoints...
+init_portfolio['aXtraNestFac']    = 1    # ...which aren't so clustered at the bottom
+init_portfolio['BoroCnstArt']     = 0.0  # Artificial borrowing constraint must be turned on
+init_portfolio['CRRA']            = 5.0  # Results are more interesting with higher risk aversion
+init_portfolio['DiscFac']         = 0.90 # And also lower patience
