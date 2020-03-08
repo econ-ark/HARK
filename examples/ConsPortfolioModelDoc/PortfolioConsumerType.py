@@ -9,7 +9,7 @@ from time import time
 
 # Make and solve an example portfolio choice consumer type
 print('Now solving an example portfolio choice problem; this might take a minute...')
-MyType = PortfolioConsumerType(**init_portfolio)
+MyType = PortfolioConsumerType()
 MyType.cycles = 0
 t0 = time()
 MyType.solve()

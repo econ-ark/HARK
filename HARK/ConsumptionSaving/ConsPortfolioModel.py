@@ -9,20 +9,18 @@ asset (with a low return), and saving in a risky asset (with higher average retu
 import scipy.optimize as sciopt  # we're using scipy optimize to optimize and fsolve
 import scipy.integrate  # used to calculate the expectation over returns
 import scipy.stats as stats  # for densities related to the returns distributions
-from copy import (
-    deepcopy,
-)  # it's convenient to copy things some times instead of re-creating them
+from copy import (deepcopy)  # it's convenient to copy things some times instead of re-creating them
 
 # Solution is inherited from in the PortfolioSolution class, NullFunc is used
-# throughout HARK when no input is given and AgentType is used for .preSolve
+# throughout HARK when no input is given and AgentType is used for preSolve
 from HARK import Solution, NullFunc, AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     PerfForesightConsumerType,  # for .__init__
-    IndShockConsumerType,  # PortfolioConsumerType inherits from it
+    IndShockConsumerType,# PortfolioConsumerType inherits from it
     ConsIndShockSolver,  # ConsIndShockPortfolioSolver inherits from it
-    ValueFunc,  # to do the re-curving of value functions for interpolation
+    ValueFunc,      # to do the re-curving of value functions for interpolation
     MargValueFunc,  # same as above, but for marginal value functions
-    utility_inv,  # inverse CRRA
+    utility_inv,    # inverse CRRA
 )
 from HARK.utilities import (
     approxLognormal,  # for approximating the lognormal returns factor
@@ -30,7 +28,7 @@ from HARK.utilities import (
 )
 from HARK.simulation import drawLognormal  # random draws for simulating agents
 from HARK.interpolation import (LinearInterp)  # piece-wise linear interpolation
-
+import HARK.ConsumptionSaving.ConsumerParameters as Params
 
 
 import numpy as np  # for array operations
@@ -387,6 +385,9 @@ class PortfolioConsumerType(IndShockConsumerType):
     time_inv_ = time_inv_ + ["AdjustPrb", "PortfolioGrid", "AdjustCount"]
 
     def __init__(self, cycles=1, time_flow=True, verbose=False, quiet=False, **kwds):
+        params = Params.init_portfolio.copy()
+        params.update(kwds)
+        kwds = params
 
         # Initialize a basic AgentType
         PerfForesightConsumerType.__init__(
