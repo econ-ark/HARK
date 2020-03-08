@@ -562,8 +562,11 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         '''
         # Determine whether this instance has time-varying risk perceptions
-        allowed_types = [list, np.ndarray] # RiskyAvg and RiskyStd can be either a list of a numpy array.
+        allowed_types = [list, np.ndarray] # RiskyAvg and RiskyStd can be either a list of a numpy array
         if (type(self.RiskyAvg) in allowed_types) and (type(self.RiskyStd) in allowed_types) and (len(self.RiskyAvg) == len(self.RiskyStd)) and (len(self.RiskyAvg) == self.T_cycle):
+            # cast them to list as time_vary parameters have to be lists
+            self.RiskyAvg = list(self.RiskyAvg)
+            self.RiskyStd = list(self.RiskyStd)
             self.addToTimeVary('RiskyAvg','RiskyStd')
         elif (type(self.RiskyStd) in allowed_types) or (type(self.RiskyAvg) in allowed_types):
             raise AttributeError('If RiskyAvg is time-varying, then RiskyStd must be as well, and they must both have length of T_cycle!')
