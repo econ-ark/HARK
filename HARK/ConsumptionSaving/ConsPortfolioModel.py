@@ -342,7 +342,7 @@ class PortfolioSolution(Solution):
         # self.MPCmax       = MPCmax
 
 
-# These domains are convenient for switching to relavent code paths internally.
+# These domains are convenient for switching to relevant code paths internally.
 # It might be simpler to just pass in vectors instead of DiscreteDomain.
 class ContinuousDomain(object):
     def __init__(self, lower, upper, points=[np.nan]):
@@ -381,15 +381,13 @@ class PortfolioConsumerType(IndShockConsumerType):
     poststate_vars_ = ["aNrmNow", "pLvlNow", "RiskyShareNow", "CantAdjust"]
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
     time_inv_ = time_inv_ + ["RiskyCount", "RiskyShareCount"]
-    time_inv_ = time_inv_ + ["RiskyShareLimitFunc", "PortfolioDomain"]
-    time_inv_ = time_inv_ + ["AdjustPrb", "PortfolioGrid", "AdjustCount"]
 
     def __init__(self, cycles=1, time_flow=True, verbose=False, quiet=False, **kwds):
         params = Params.init_portfolio.copy()
         params.update(kwds)
         kwds = params
 
-        # Initialize a basic AgentType
+        # Initialize a basic consumer type
         PerfForesightConsumerType.__init__(
             self,
             cycles=cycles,
@@ -398,76 +396,23 @@ class PortfolioConsumerType(IndShockConsumerType):
             quiet=quiet,
             **kwds
         )
-
-        # Check that an adjustment probability is set. If not, default to always.
-        if not hasattr(self, "AdjustPrb"):
-            self.AdjustPrb = 1.0
-            self.AdjustCount = 1
-        elif self.AdjustPrb == 1.0:
-            # Always adjust, so there's just one possibility
-            self.AdjustCount = 1
-        else:
-            # If AdjustPrb was set and was below 1.0, there's a chance that
-            # the consumer cannot adjust in a given period.
-            self.AdjustCount = 2
-
-        if not hasattr(self, "PortfolioDomain"):
-            if self.AdjustPrb < 1.0:
-                raise Exception(
-                    "Please supply a PortfolioDomain when setting AdjustPrb < 1.0."
-                )
-            else:
-                self.PortfolioDomain = ContinuousDomain(0, 1)
-
-        if isinstance(self.PortfolioDomain, DiscreteDomain):
-            self.DiscreteCase = True
-            if self.vFuncBool == False:
-                if self.verbose:
-                    print(
-                        "Setting vFuncBool to True to accomodate dicrete portfolio optimization."
-                    )
-
-                self.vFuncBool = True
-        else:
-            self.DiscreteCase = False
-            if self.AdjustPrb < 1.0:
-                raise Exception(
-                    "Occational inability to re-optimize portfolio (AdjustPrb < 1.0) is currently not possible with continuous choice of the portfolio share."
-                )
-
-        # Now we can set up the PortfolioGrid! This is the portfolio values
-        # you can enter the period with. It's exact for discrete , for continuous
-        # domain it's the interpolation points.
-        self.PortfolioGrid = self.PortfolioDomain.getPoints()
-
-        if self.BoroCnstArt is not 0.0:
-            if self.verbose:
-                print(
-                    "Setting BoroCnstArt to 0.0 as this is required by PortfolioConsumerType."
-                )
-            self.BoroCnstArt = 0.0
-
-        self.ShareNowCount = [1]
-        if self.DiscreteCase and self.AdjustCount > 1:
-            self.ShareNow = self.PortfolioDomain.getPoints()
-            self.ShareNowCount.append(len(self.PortfolioDomain.getPoints()))
-
-        # Chose specialized solver for Portfolio choice model
+        
+        # Set the solver for the portfolio model, and update various constructed attributes
         self.solveOnePeriod = solveConsPortfolio
-
         self.update()
 
-        self.RiskyShareLimitFunc = lambda RiskyDstn: _PerfForesightDiscretePortfolioShare(
-            self.Rfree, RiskyDstn, self.CRRA
-        )
-
+        
     def preSolve(self):
         AgentType.preSolve(self)
         self.updateSolutionTerminal()
-        
+
+
     def update(self):
-        IndShockConsumerType.update(self)
         self.updateRiskyFuncs()
+        self.updatePortfolioOptions()
+        self.updateLimitFunc()
+        IndShockConsumerType.update(self)
+
 
     def updateSolutionTerminal(self):
         """
@@ -532,6 +477,70 @@ class PortfolioConsumerType(IndShockConsumerType):
         )
         
         
+    def updatePortfolioOptions(self):
+        '''
+        Creates the attributes AdjustPrb, AdjustCount, and PortfolioDomain if they
+        were not specified in the initialization dictionary, using default values.
+        Also defines the attribute PortfolioGrid.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        # Check that an adjustment probability is set. If not, default to always.
+        if not hasattr(self, "AdjustPrb"):
+            self.AdjustPrb = 1.0
+            self.AdjustCount = 1
+        elif self.AdjustPrb == 1.0:
+            # Always adjust, so there's just one possibility
+            self.AdjustCount = 1
+        else:
+            # If AdjustPrb was set and was below 1.0, there's a chance that
+            # the consumer cannot adjust in a given period.
+            self.AdjustCount = 2
+        self.addToTimeInv('AdjustCount','AdjustPrb')
+
+        if not hasattr(self, "PortfolioDomain"):
+            if self.AdjustPrb < 1.0:
+                raise Exception(
+                    "Please supply a PortfolioDomain when setting AdjustPrb < 1.0."
+                )
+            else:
+                self.PortfolioDomain = ContinuousDomain(0, 1)
+        self.addToTimeInv('PortfolioDomain')
+
+        if isinstance(self.PortfolioDomain, DiscreteDomain):
+            self.DiscreteCase = True
+            if self.vFuncBool == False:
+                if self.verbose:
+                    print(
+                        "Setting vFuncBool to True to accomodate dicrete portfolio optimization."
+                    )
+
+                self.vFuncBool = True
+        else:
+            self.DiscreteCase = False
+            if self.AdjustPrb < 1.0:
+                raise Exception(
+                    "Occasional inability to re-optimize portfolio (AdjustPrb < 1.0) is currently not possible with continuous choice of the portfolio share.")
+
+        # Now we can set up the PortfolioGrid! This is the portfolio values
+        # you can enter the period with. It's exact for discrete, for continuous
+        # domain it's the interpolation points.
+        self.PortfolioGrid = self.PortfolioDomain.getPoints()
+        self.addToTimeInv('PortfolioGrid')
+        
+        # TODO: This block of code is missing any documentation; figure it out
+        self.ShareNowCount = [1]
+        if self.DiscreteCase and self.AdjustCount > 1:
+            self.ShareNow = self.PortfolioDomain.getPoints()
+            self.ShareNowCount.append(len(self.PortfolioDomain.getPoints()))
+        
+        
     def updateRiskyFuncs(self):
         '''
         Creates the attributes RiskyDstnFunc and RiskyDrawFunc from the primitive
@@ -573,6 +582,24 @@ class PortfolioConsumerType(IndShockConsumerType):
                 raise AttributeError('When RiskyAvg is time-varying, you must specify values for RiskyAvgTrue and RiskyStdTrue')
         else:
             self.drawRiskyFunc = LogNormalRiskyDstnDraw(RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd)
+           
+            
+    def updateLimitFunc(self):
+        '''
+        Creates the attribute RiskyShareLimitFunc, which calculates the Merton-Samuelson
+        limiting portfolio share as mNrm goes to infinity; uses the attributes Rfree and CRRA.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''        
+        self.RiskyShareLimitFunc = lambda RiskyDstn: _PerfForesightDiscretePortfolioShare(
+            self.Rfree, RiskyDstn, self.CRRA)
+        self.addToTimeInv('RiskyShareLimitFunc')
         
 
     def getPostStates(self):
@@ -796,6 +823,9 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
             vFuncBool,
             CubicBool,
         )
+        
+        if BoroCnstArt != 0.0:
+            raise AttributeError('PortfolioConsumerType must have BoroCnstArt=0.0!')
 
         self.PortfolioDomain = PortfolioDomain
         if isinstance(self.PortfolioDomain, DiscreteDomain):

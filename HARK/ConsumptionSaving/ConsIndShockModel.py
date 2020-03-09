@@ -1651,7 +1651,6 @@ class PerfForesightConsumerType(AgentType):
                 raise(AttributeError('PerfForesightConsumerType requires the attribute MaxKinks to be specified when BoroCnstArt is not None and cycles == 0.'))
 
             
-
     def checkRestrictions(self):
         """
         A method to check that various restrictions are met for the model class.
