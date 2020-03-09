@@ -374,6 +374,13 @@ class DiscreteDomain(object):
 
 
 class PortfolioConsumerType(IndShockConsumerType):
+    """
+    A consumer type with a portfolio choice. This agent type has log-normal return
+    factors. Their problem is defined by a coefficient of relative risk aversion,
+    intertemporal discount factor, interest factor, and time sequences of the
+    permanent income growth rate, survival probability, and return factor averages
+    and standard deviations.
+    """
 
     # We add CantAdjust to the standard set of poststate_vars_ here. We call it
     # CantAdjust over CanAdjust, because this allows us to index into the
@@ -785,7 +792,6 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
     A class for solving a one period consumption-saving problem with portfolio choice.
     An instance of this class is created by the function solveConsPortfolio in each period.
     """
-
     def __init__(
         self,
         solution_next,
@@ -1478,40 +1484,3 @@ def solveConsPortfolio(
     portsolution = solver.solve()
 
     return portsolution
-
-
-class LogNormalPortfolioConsumerType(PortfolioConsumerType):
-    """
-    A consumer type with a portfolio choice. This agent type has log-normal return
-    factors. Their problem is defined by a coefficient of relative risk aversion,
-    intertemporal discount factor, interest factor, and time sequences of the
-    permanent income growth rate, survival probability, and return factor averages
-    and standard deviations.
-    """
-
-    #    time_inv_ = PortfolioConsumerType.time_inv_ + ['approxRiskyDstn', 'RiskyCount', 'RiskyShareCount', 'RiskyShareLimitFunc', 'AdjustPrb', 'PortfolioGrid']
-
-    def __init__(self, cycles=1, time_flow=True, verbose=False, quiet=False, **kwds):
-
-        PortfolioConsumerType.__init__(
-            self,
-            cycles=cycles,
-            time_flow=time_flow,
-            verbose=verbose,
-            quiet=quiet,
-            **kwds
-        )
-
-        self.approxRiskyDstn = RiskyDstnFactory(
-            RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd
-        )
-        # Needed to simulate. Is a function that given 0 inputs it returns a draw
-        # from the risky asset distribution. Only one is needed, because everyone
-        # draws the same shock.
-        self.drawRiskyFunc = LogNormalRiskyDstnDraw(
-            RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd
-        )
-
-        self.RiskyShareLimitFunc = lambda _: _PerfForesightLogNormalPortfolioShare(
-            self.Rfree, self.RiskyAvg, self.RiskyStd, self.CRRA
-        )
