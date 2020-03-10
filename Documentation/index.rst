@@ -35,7 +35,8 @@ you might want to look at the `DemARK
    example_notebooks/ConsPortfolioModel.ipynb
    example_notebooks/GenIncProcessModel.ipynb
    example_notebooks/LifecycleModel.ipynb
-   
+   example_notebooks/HowWeSolveIndShockConsumerType.ipynb
+   example_notebooks/Journey_1_PhD.ipynb
 
 .. toctree::
    :maxdepth: 3   
