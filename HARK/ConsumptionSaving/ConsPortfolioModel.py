@@ -830,15 +830,19 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
             CubicBool,
         )
         
+        # Make sure the individual is liquidity constrained.  Allowing a consumer to
+        # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
         if BoroCnstArt != 0.0:
             raise AttributeError('PortfolioConsumerType must have BoroCnstArt=0.0!')
-
+        
+        # Check whether this is a discrete or continuous portfolio choice problem
         self.PortfolioDomain = PortfolioDomain
         if isinstance(self.PortfolioDomain, DiscreteDomain):
             self.DiscreteCase = True
         else:
             self.DiscreteCase = False
 
+        # Store some additional inputs as attributes
         self.AdjustPrb = AdjustPrb
         self.PortfolioGrid = PortfolioGrid
         self.AdjustCount = AdjustCount
@@ -1254,7 +1258,6 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         -------
         None
         """
-
         # TODO: this does not yet
         #   calc sUnderbar -> mertonsammuelson
         #   calc MPC kappaUnderbar
@@ -1346,9 +1349,8 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         solution : ConsumerSolution
             The solution to the one period problem.
         """
-
         # TODO FIXME
-        # This code is a mix of looping over states ( for the Risky Share funcs)
+        # This code is a mix of looping over states (for the Risky Share funcs)
         # and implicit looping such as in prepareToCalcEndOfPrdvP. I think it would
         # be best to simply have a major loop here, and keep the methods atomic.
 
@@ -1430,8 +1432,6 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
 
 
 # The solveOnePeriod function!
-
-
 def solveConsPortfolio(
     solution_next,
     IncomeDstn,
