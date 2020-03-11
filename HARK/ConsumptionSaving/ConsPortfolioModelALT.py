@@ -504,7 +504,7 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
         cNrmFxd_temp = EndOfPrddvdaNvrs[:,j]
         mNrmFxd_temp = aNrmGrid + cNrmFxd_temp
         cFuncFxd_by_Share.append(LinearInterp(np.insert(mNrmFxd_temp, 0, 0.0), np.insert(cNrmFxd_temp, 0, 0.0)))
-        dvdsFuncFxd_by_Share.append(LinearInterp(np.insert(mNrmFxd_temp, 0, 0.0), np.insert(EndOfPrddvds[:,j], 0, 0.0)))
+        dvdsFuncFxd_by_Share.append(LinearInterp(np.insert(mNrmFxd_temp, 0, 0.0), np.insert(EndOfPrddvds[:,j], 0, EndOfPrddvds[0,j])))
     cFuncFxd_now = LinearInterpOnInterp1D(cFuncFxd_by_Share, ShareGrid)
     dvdsFuncFxd_now = LinearInterpOnInterp1D(dvdsFuncFxd_by_Share, ShareGrid)
     
@@ -532,6 +532,14 @@ if __name__ == '__main__':
     TestType = PortfolioConsumerType()
     TestType.cycles = 0
     t0 = time()
-    TestType.solve()
+    TestType.solve(True)
     t1 = time()
     print('Solving an infinite horizon portfolio choice problem took ' + str(t1-t0) + ' seconds.')
+    
+    M = np.linspace(0.,1.,200)
+    for s in np.linspace(0.,1.,21):
+        f = lambda m : TestType.solution[0].dvdsFuncFxd(m, s*np.ones_like(m))
+        plt.plot(M, f(M))
+    plt.show()
+        
+        
