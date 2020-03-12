@@ -13,6 +13,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import(
     IndShockConsumerType,       # PortfolioConsumerType inherits from it
     ValueFunc,                  # For representing 1D value function
     MargValueFunc,              # For representing 1D marginal value function
+    utility,                    # CRRA utility function
     utility_inv,                # Inverse CRRA utility function
 )
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import(
@@ -26,7 +27,8 @@ from HARK.utilities import (
 from HARK.simulation import drawLognormal, drawBernoulli # Random draws for simulating agents
 from HARK.interpolation import(
         LinearInterp,           # Piecewise linear interpolation
-        LinearInterpOnInterp1D, # 2D interpolator
+        LinearInterpOnInterp1D, # Interpolator over 1D interpolations
+        BilinearInterp,         # 2D interpolator
         ConstantFunction,       # Interpolator-like class that returns constant value
         IdentityFunction        # Interpolator-like class that returns one of its arguments
 )
@@ -607,7 +609,9 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
     
     # Calculate end-of-period value by taking expectations
     temp_fac_B = (PermShks_tiled*PermGroFac)**(1.-CRRA) # Will use this below
-    EndOfPrdv    = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_B*v_next, axis=2)
+    if vFuncBool:
+        EndOfPrdv = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_B*v_next, axis=2)
+        EndOfPrdvNvrs = utility_inv(EndOfPrdv, CRRA)
     
     # Calculate end-of-period marginal value of risky portfolio share by taking expectations
     Rxs = Risky_tiled - Rfree
@@ -623,7 +627,8 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
     cNrmAdj_now[constrained] = EndOfPrddvda[constrained,-1]**(-1./CRRA) # Get consumption when share-constrained
     cNrmAdj_now[0] = EndOfPrddvda[0,-1]**(-1./CRRA) # Consumption when aNrm==0 does not depend on Share
     
-    # For each value of aNrm, find the value of Share such that FOC-Share == 0
+    # For each value of aNrm, find the value of Share such that FOC-Share == 0.
+    # This loop can probably be eliminated, but it's such a small step that it won't speed things up much.
     crossing = np.logical_and(FOC_s[:,1:] <= 0., FOC_s[:,:-1] >= 0.)
     for j in range(aNrm_N):
         if Share_now[j] == 0.:
@@ -666,21 +671,53 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
     cFuncFxd_now = LinearInterpOnInterp1D(cFuncFxd_by_Share, ShareGrid)
     dvdsFuncFxd_now = LinearInterpOnInterp1D(dvdsFuncFxd_by_Share, ShareGrid)
     
-    # The share function when the agent can't adjust is trivial
+    # The share function when the agent can't adjust his portfolio is trivial
     ShareFuncFxd_now = IdentityFunction(i_dim=1, n_dims=2)
     
     # Construct the marginal value of mNrm function when the agent can't adjust his share
-    dvdmFuncFxd_now = MargValueFunc2D(cFuncFxd_now, CRRA)    
+    dvdmFuncFxd_now = MargValueFunc2D(cFuncFxd_now, CRRA)
+    
+    # If the value function has been requested, construct it now
+    if vFuncBool:
+        # First, make an end-of-period value function over aNrm and Share
+        EndOfPrdvNvrsFunc = BilinearInterp(EndOfPrdvNvrs, aNrmGrid, ShareGrid)
+        EndOfPrdvFunc = ValueFunc2D(EndOfPrdvNvrsFunc, CRRA)
+        
+        # Construct the value function when the agent can adjust his portfolio
+        mNrm_temp  = aXtraGrid # Just use aXtraGrid as our grid of mNrm values
+        cNrm_temp  = cFuncAdj_now(mNrm_temp)
+        aNrm_temp  = mNrm_temp - cNrm_temp
+        Share_temp = ShareFuncAdj_now(mNrm_temp)
+        v_temp     = utility(cNrm_temp, CRRA) + EndOfPrdvFunc(aNrm_temp, Share_temp)
+        vNvrs_temp = utility_inv(v_temp, CRRA)
+        vNvrsFuncAdj = LinearInterp(np.insert(mNrm_temp,0,0.0), np.insert(vNvrs_temp,0,0.0))
+        vFuncAdj_now = ValueFunc(vNvrsFuncAdj, CRRA) # Re-curve the pseudo-inverse value function
+        
+        # Construct the value function when the agent *can't* adjust his portfolio
+        mNrm_temp  = np.tile(np.reshape(aXtraGrid, (aXtraGrid.size, 1)), (1, Share_N))
+        Share_temp = np.tile(np.reshape(ShareGrid, (1, Share_N)), (aXtraGrid.size, 1))
+        cNrm_temp  = cFuncFxd_now(mNrm_temp, Share_temp)
+        aNrm_temp  = mNrm_temp - cNrm_temp
+        v_temp     = utility(cNrm_temp, CRRA) + EndOfPrdvFunc(aNrm_temp, Share_temp)
+        vNvrs_temp = np.concatenate((np.zeros((1,Share_N)), utility_inv(v_temp, CRRA)), axis=0)
+        vNvrsFuncFxd = BilinearInterp(vNvrs_temp, np.insert(mNrm_temp[:,0], 0, 0.0), ShareGrid)
+        vFuncFxd_now = ValueFunc2D(vNvrsFuncFxd, CRRA)
+    
+    else: # If vFuncBool is False, fill in dummy values
+        vFuncAdj_now = None
+        vFuncFxd_now = None
 
     # Create and return this period's solution
     return PortfolioSolution(
             cFuncAdj = cFuncAdj_now,
             ShareFuncAdj = ShareFuncAdj_now,
             vPfuncAdj = vPfuncAdj_now,
+            vFuncAdj = vFuncAdj_now,
             cFuncFxd = cFuncFxd_now,
             ShareFuncFxd = ShareFuncFxd_now,
             dvdmFuncFxd = dvdmFuncFxd_now,
-            dvdsFuncFxd = dvdsFuncFxd_now
+            dvdsFuncFxd = dvdsFuncFxd_now,
+            vFuncFxd = vFuncFxd_now
     )
     
         
@@ -688,17 +725,18 @@ if __name__ == '__main__':
     from time import time
     
     TestType = PortfolioConsumerType()
+    TestType.vFuncBool = False
     TestType.cycles = 0
     t0 = time()
     TestType.solve()
     t1 = time()
     print('Solving an infinite horizon portfolio choice problem took ' + str(t1-t0) + ' seconds.')
     
-#    M = np.linspace(0.,1.,200)
-#    for s in np.linspace(0.,1.,21):
-#        f = lambda m : TestType.solution[0].dvdsFuncFxd(m, s*np.ones_like(m))
-#        plt.plot(M, f(M))
-#    plt.show()
+    M = np.linspace(0.5,10.,200)
+    for s in np.linspace(0.,1.,21):
+        f = lambda m : TestType.solution[0].dvdsFuncFxd(m, s*np.ones_like(m))
+        plt.plot(M, f(M))
+    plt.show()
     
     TestType.T_sim = 100
     TestType.track_vars = ['cNrmNow','ShareNow','aNrmNow']
