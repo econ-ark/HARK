@@ -136,7 +136,7 @@ class PortfolioConsumerType(IndShockConsumerType):
     """
     poststate_vars_ = ['aNrmNow', 'pLvlNow', 'ShareNow', 'AdjustNow']
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ['AdjustPrb']
+    time_inv_ = time_inv_ + ['AdjustPrb', 'DiscreteShareBool']
 
     def __init__(self, cycles=1, time_flow=True, verbose=False, quiet=False, **kwds):
         params = Params.init_portfolio.copy()
@@ -497,7 +497,8 @@ class PortfolioConsumerType(IndShockConsumerType):
                 
 # Define a non-object-oriented one period solver
 def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
-                       BoroCnstArt,aXtraGrid,ShareGrid,vFuncBool,AdjustPrb,ShareLimit):
+                       BoroCnstArt,aXtraGrid,ShareGrid,vFuncBool,AdjustPrb,
+                       DiscreteShareBool,ShareLimit):
     '''
     Solve the one period problem for a portfolio-choice consumer.
     
@@ -533,6 +534,11 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
         included in the reported solution.
     AdjustPrb : float
         Probability that the agent will be able to update his portfolio share.
+    DiscreteShareBool : bool
+        Indicator for whether risky portfolio share should be optimized on the
+        continuous [0,1] interval using the FOC (False), or instead only selected
+        from the discrete set of values in ShareGrid (True).  If True, then
+        vFuncBool must also be True.
     ShareLimit : float
         Limiting lower bound of risky portfolio share as mNrm approaches infinity.
 
@@ -546,7 +552,12 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
     # Make sure the individual is liquidity constrained.  Allowing a consumer to
     # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
     if BoroCnstArt != 0.0:
-        raise AttributeError('PortfolioConsumerType must have BoroCnstArt=0.0!')
+        raise ValueError('PortfolioConsumerType must have BoroCnstArt=0.0!')
+        
+    # Make sure that if risky portfolio share is optimized only discretely, then
+    # the value function is also constructed (else this task would be impossible).
+    if (DiscreteShareBool and (not vFuncBool)):
+        raise ValueError('PortfolioConsumerType requires vFuncBool to be True when DiscreteShareBool is True!')
           
     # Define temporary functions for utility and its derivative and inverse
     u = lambda x : utility(x, CRRA)
@@ -631,49 +642,72 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
     Rxs = Risky_tiled - Rfree
     EndOfPrddvds = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*(Rxs*aNrm_tiled*temp_fac_A*dvdm_next + temp_fac_B*dvds_next), axis=2)
     
-    # For values of aNrm at which the agent wants to put more than 100% into risky asset, constrain them
-    FOC_s = EndOfPrddvds
-    Share_now   = np.zeros_like(aNrmGrid) # Initialize to putting everything in safe asset
-    cNrmAdj_now = np.zeros_like(aNrmGrid)
-    constrained = FOC_s[:,-1] > 0. # If agent wants to put more than 100% into risky asset, he is constrained
-    Share_now[constrained] = 1.0
-    if not zero_bound:
-        Share_now[0] = 1. # aNrm=0, so there's no way to "optimize" the portfolio
-        cNrmAdj_now[0] = uPinv(EndOfPrddvda[0,-1]) # Consumption when aNrm=0 does not depend on Share
-    cNrmAdj_now[constrained] = uPinv(EndOfPrddvda[constrained,-1]) # Get consumption when share-constrained
+    # Major method fork: discrete vs continuous choice of risky portfolio share
+    if DiscreteShareBool: # Optimization of Share on the discrete set ShareGrid
+        opt_idx = np.argmax(EndOfPrdv, axis=1)
+        Share_now = ShareGrid[opt_idx] # Best portfolio share is one with highest value
+        cNrmAdj_now = EndOfPrddvdaNvrs[np.arange(aNrm_N), opt_idx] # Take cNrm at that index as well
+        if not zero_bound:
+            Share_now[0] = 1. # aNrm=0, so there's no way to "optimize" the portfolio
+            cNrmAdj_now[0] = EndOfPrddvdaNvrs[0,-1] # Consumption when aNrm=0 does not depend on Share
         
-    # For each value of aNrm, find the value of Share such that FOC-Share == 0.
-    # This loop can probably be eliminated, but it's such a small step that it won't speed things up much.
-    crossing = np.logical_and(FOC_s[:,1:] <= 0., FOC_s[:,:-1] >= 0.)
-    for j in range(aNrm_N):
-        if Share_now[j] == 0.:
-            try:
-                idx = np.argwhere(crossing[j,:])[0][0]
-                bot_s = ShareGrid[idx]
-                top_s = ShareGrid[idx+1]
-                bot_f = FOC_s[j,idx]
-                top_f = FOC_s[j,idx+1]
-                bot_c = EndOfPrddvdaNvrs[j,idx]
-                top_c = EndOfPrddvdaNvrs[j,idx+1]
-                alpha = 1. - top_f/(top_f-bot_f)
-                Share_now[j] = (1.-alpha)*bot_s + alpha*top_s
-                cNrmAdj_now[j] = (1.-alpha)*bot_c + alpha*top_c
-            except:
-                print('No optimal controls found for a=' + str(aNrmGrid[j]))
+    else: # Optimization of Share on continuous interval [0,1]
+        # For values of aNrm at which the agent wants to put more than 100% into risky asset, constrain them
+        FOC_s = EndOfPrddvds
+        Share_now   = np.zeros_like(aNrmGrid) # Initialize to putting everything in safe asset
+        cNrmAdj_now = np.zeros_like(aNrmGrid)
+        constrained = FOC_s[:,-1] > 0. # If agent wants to put more than 100% into risky asset, he is constrained
+        Share_now[constrained] = 1.0
+        if not zero_bound:
+            Share_now[0] = 1. # aNrm=0, so there's no way to "optimize" the portfolio
+            cNrmAdj_now[0] = EndOfPrddvdaNvrs[0,-1] # Consumption when aNrm=0 does not depend on Share
+        cNrmAdj_now[constrained] = EndOfPrddvdaNvrs[constrained,-1] # Get consumption when share-constrained
+            
+        # For each value of aNrm, find the value of Share such that FOC-Share == 0.
+        # This loop can probably be eliminated, but it's such a small step that it won't speed things up much.
+        crossing = np.logical_and(FOC_s[:,1:] <= 0., FOC_s[:,:-1] >= 0.)
+        for j in range(aNrm_N):
+            if Share_now[j] == 0.:
+                try:
+                    idx = np.argwhere(crossing[j,:])[0][0]
+                    bot_s = ShareGrid[idx]
+                    top_s = ShareGrid[idx+1]
+                    bot_f = FOC_s[j,idx]
+                    top_f = FOC_s[j,idx+1]
+                    bot_c = EndOfPrddvdaNvrs[j,idx]
+                    top_c = EndOfPrddvdaNvrs[j,idx+1]
+                    alpha = 1. - top_f/(top_f-bot_f)
+                    Share_now[j] = (1.-alpha)*bot_s + alpha*top_s
+                    cNrmAdj_now[j] = (1.-alpha)*bot_c + alpha*top_c
+                except:
+                    print('No optimal controls found for a=' + str(aNrmGrid[j]))
                 
-    # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio,
-    # and add an additional point at (mNrm,cNrm)=(0,0)
-    mNrmAdj_now = np.insert(aNrmGrid + cNrmAdj_now, 0, 0.0)
-    cNrmAdj_now = np.insert(cNrmAdj_now, 0, 0.0)
-    if zero_bound:
-        Share_lower_bound = ShareLimit
-    else:
-        Share_lower_bound = 1.0
-    Share_now   = np.insert(Share_now, 0, Share_lower_bound)
+    # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio
+    mNrmAdj_now = aNrmGrid + cNrmAdj_now
     
-    # Construct the consumption and risky share functions when the agent can adjust
-    cFuncAdj_now = LinearInterp(mNrmAdj_now, cNrmAdj_now)
-    ShareFuncAdj_now = LinearInterp(mNrmAdj_now, Share_now, intercept_limit=ShareLimit, slope_limit=0.0)
+    # Construct the risky share function when the agent can adjust
+    if DiscreteShareBool:
+        mNrmAdj_mid  = (mNrmAdj_now[1:] + mNrmAdj_now[:-1])/2
+        mNrmAdj_plus = mNrmAdj_mid*(1.+1e-12)
+        mNrmAdj_comb = (np.transpose(np.vstack((mNrmAdj_mid,mNrmAdj_plus)))).flatten()
+        mNrmAdj_comb = np.append(np.insert(mNrmAdj_comb,0,0.0), mNrmAdj_now[-1])
+        Share_comb   = (np.transpose(np.vstack((Share_now,Share_now)))).flatten()
+        ShareFuncAdj_now = LinearInterp(mNrmAdj_comb, Share_comb)
+    else:
+        if zero_bound:
+            Share_lower_bound = ShareLimit
+        else:
+            Share_lower_bound = 1.0
+        Share_now   = np.insert(Share_now, 0, Share_lower_bound)
+        ShareFuncAdj_now = LinearInterp(
+                np.insert(mNrmAdj_now,0,0.0),
+                Share_now,
+                intercept_limit=ShareLimit,
+                slope_limit=0.0)
+        
+    # Construct the consumption function when the agent can adjust
+    cNrmAdj_now = np.insert(cNrmAdj_now, 0, 0.0)
+    cFuncAdj_now = LinearInterp(np.insert(mNrmAdj_now,0,0.0), cNrmAdj_now)
     
     # Construct the marginal value (of mNrm) function when the agent can adjust
     vPfuncAdj_now = MargValueFunc(cFuncAdj_now, CRRA)
@@ -758,6 +792,7 @@ if __name__ == '__main__':
     
     TestType = PortfolioConsumerType()
     TestType.vFuncBool = False
+    TestType.DiscreteShareBool = False
     #TestType.IncUnemp = 0.
     TestType.update()
     TestType.cycles = 0

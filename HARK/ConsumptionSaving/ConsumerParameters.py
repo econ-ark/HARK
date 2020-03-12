@@ -365,6 +365,7 @@ RiskyStd = 0.20        # Standard deviation of (log) risky returns
 RiskyCount = 5         # Number of integration nodes to use in approximation of risky returns
 RiskyShareCount = 25   # Number of discrete points in the risky share approximation
 AdjustPrb = 1.0        # Probability that the agent can adjust their risky portfolio share each period
+DiscreteShareBool = False # Flag for whether to optimize Share discretely or continuously
 
 # Make an example/default dictionary for the portfolio allocation model
 init_portfolio = copy(init_idiosyncratic_shocks)
