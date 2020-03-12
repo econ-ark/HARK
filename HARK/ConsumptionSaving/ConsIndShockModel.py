@@ -30,6 +30,7 @@ from HARK.utilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMea
                            CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
                            CRRAutilityP_invP
 
+
 __all__ = ['ConsumerSolution', 'ValueFunc', 'MargValueFunc', 'MargMargValueFunc',
 'ConsPerfForesightSolver', 'ConsIndShockSetup', 'ConsIndShockSolverBasic',
 'ConsIndShockSolver', 'ConsKinkedRsolver', 'PerfForesightConsumerType',
@@ -1914,14 +1915,13 @@ class PerfForesightConsumerType(AgentType):
             if verbose:
                 print(' Therefore, for a perfect foresight consumer the ratio of individual wealth to permanent income is expected to grow toward infinity.')
             print()
-        
 
     def checkRIC(self, thorn,verbose,public_call):
         '''
         Evaluate and report on the Return Impatience Condition
         '''
 
-        RIF = Thorn/self.Rfree
+        RIF = thorn/self.Rfree
         self.RIF = RIF
         if RIF<1:
             self.RIC = True
@@ -1963,9 +1963,9 @@ class PerfForesightConsumerType(AgentType):
             if verbose:
                 print('Therefore, the limiting consumption function is c(m)=Infinity for all m')
             print()
-        if verbose and violated and verbose_reference:
+        if verbose and self.violated and verbose_reference:
             print('[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
-        return violated
+        return self.violated
 
 
 
@@ -1995,8 +1995,10 @@ class PerfForesightConsumerType(AgentType):
         if self.cycles!=0 or self.T_cycle > 1:
             return
 
+        self.violated = False
+
         Thorn = (self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)
-        self.Thorn = thorn
+        self.Thorn = Thorn
 
         self.checkAIC(Thorn,verbose,public_call)
         self.checkGICPF(Thorn,verbose,public_call)
@@ -2319,7 +2321,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if public_call or verbose:
                 print('The value of the Individual Growth Impatience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition.', end = " ")
                 if verbose:
-                    print('Therefore, a target level of the individual market resources ratio m exists (see '+url+'/#onetarget for more).')
+                    print('Therefore, a target level of the individual market resources ratio m exists (see '+self.url+'/#onetarget for more).')
             print()
         else:
             self.GICInd = False
@@ -2327,7 +2329,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             print('The given parameter values violate the Individual Growth Impatience Condition; the GIFInd is: %2.4f' % (self.GIFInd), end = " ")
             if verbose:
                 print('')
-                print('Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see '+url+'/#onetarget for more).')
+                print('Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see '+self.url+'/#onetarget for more).')
             print()
 
     def checkCIGAgg(self, Thorn,verbose,public_call):
@@ -2358,7 +2360,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if WRIF<=1:
             self.WRIC = True
             if public_call or verbose:
-                print('The Weak Return Impatience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition (see '+url+'/#WRIC for more).')
+                print('The Weak Return Impatience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition (see '+self.url+'/#WRIC for more).')
                 print()
         else:
             self.WRIC = False
@@ -2366,7 +2368,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             print('The given type violates the Weak Return Impatience Condition with the supplied parameter values.  The WRIF is: %2.4f' % (WRIF), end = " ")
             if verbose:
                 print('')
-                print('Therefore, a nondegenerate solution is not available (see '+url+'/#WRIC for more.')
+                print('Therefore, a nondegenerate solution is not available (see '+self.url+'/#WRIC for more.')
             print()
 
     def checkFVAC(self,verbose,public_call):
@@ -2394,7 +2396,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             print('The given type violates the Finite Value of Autarky Condition with the supplied parameter values. The FVAF is %2.4f' %(FVAF), end = " ")
             self.violated = True
             if public_call or verbose:
-                print('Therefore, a nondegenerate solution is not available (see '+url+'/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping')
+                print('Therefore, a nondegenerate solution is not available (see '+self.url+'/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping')
             print()
 
 
@@ -2419,7 +2421,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         '''
-        violated = False # PerfForesightConsumerType.checkConditions(self, verbose=False, verbose_reference=False)
+        self.violated = False # PerfForesightConsumerType.checkConditions(self, verbose=False, verbose_reference=False)
 
         if self.cycles!=0 or self.T_cycle > 1:
             return
@@ -2427,7 +2429,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # For theory, see hyperlink targets to expressions in 
         # url=http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory
         # For example, the hyperlink to the relevant section of the paper
-        url='http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory'
+        self.url='http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory'
         # would be referenced below as:
         # [url]/#Uncertainty-Modified-Conditions
         
@@ -2460,9 +2462,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.checkGICInd(Thorn,verbose,public_call)
         self.checkCIGAgg(Thorn,verbose,public_call)
         self.checkWRIC(verbose,public_call)
+        self.checkFVAC(verbose, public_call)
 
         if verbose and self.violated:
-            print('\n[!] For more information on the conditions, see Tables 3 and 4 in "Theoretical Foundations of Buffer Stock Saving" at '+url+'/#Factors-Defined-And-Compared')
+            print('\n[!] For more information on the conditions, see Tables 3 and 4 in "Theoretical Foundations of Buffer Stock Saving" at '+self.url+'/#Factors-Defined-And-Compared')
             print('')
 
         if verbose:
@@ -2471,9 +2474,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
             print('GIFAgg           = %2.6f ' % (GIFAgg))
             print('Thorn = AIF      = %2.6f ' % (Thorn))
             print('PermGroFacAdj    = %2.6f ' % (PermGroFacAdj))
-            print('uInvEpShkuInv    = %2.6f ' % (uInvEpShkuInv))
-            print('FVAF             = %2.6f ' % (FVAF))
-            print('WRIF             = %2.6f ' % (WRIF))
+            print('uInvEpShkuInv    = %2.6f ' % (self.uInvEpShkuInv))
+            print('FVAF             = %2.6f ' % (self.FVAF))
+            print('WRIF             = %2.6f ' % (self.WRIF))
             print('DiscFacGIFIndMax = %2.6f ' % (self.DiscFacGIFIndMax))
             print('DiscFacGIFAggMax = %2.6f ' % (self.DiscFacGIFAggMax))
 
@@ -2892,7 +2895,6 @@ def constructAssetsGrid(parameters):
                 aXtraGrid = np.insert(aXtraGrid, j, a)
 
     return aXtraGrid
-
 
 # Make a dictionary to specify a lifecycle consumer with a finite horizon
 init_lifecycle = copy(init_idiosyncratic_shocks)

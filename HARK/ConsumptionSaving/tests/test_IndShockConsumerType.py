@@ -1,30 +1,91 @@
-from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, init_idiosyncratic_shocks
+from HARK.ConsumptionSaving.ConsIndShockModel import \
+    IndShockConsumerType, ConsIndShockSolverBasic
 import numpy as np
 import unittest
 
 class testIndShockConsumerType(unittest.TestCase):
 
-    def test_getShocks(self):
-        agent = IndShockConsumerType(
+    def setUp(self):
+        self.agent = IndShockConsumerType(
             AgentCount = 2,
             T_sim = 10
         )
 
-        agent.solve()
+        self.agent.solve()
 
-        agent.initializeSim()
-        agent.simBirth(np.array([True,False]))
-        agent.simOnePeriod()
-        agent.simBirth(np.array([False,True]))
+    def test_getShocks(self):
+        self.agent.initializeSim()
+        self.agent.simBirth(np.array([True,False]))
+        self.agent.simOnePeriod()
+        self.agent.simBirth(np.array([False,True]))
 
-        agent.getShocks()
+        self.agent.getShocks()
 
-        self.assertEqual(agent.PermShkNow[0],
+        self.assertEqual(self.agent.PermShkNow[0],
                          1.0050166461586711)
-        self.assertEqual(agent.PermShkNow[1],
+        self.assertEqual(self.agent.PermShkNow[1],
                          1.0050166461586711)
-        self.assertEqual(agent.TranShkNow[0],
+        self.assertEqual(self.agent.TranShkNow[0],
                          1.1176912196531754)
+
+    def test_ConsIndShockSolverBasic(self):
+        LifecycleExample = IndShockConsumerType(
+            **Params.init_lifecycle)
+        LifecycleExample.cycles = 1
+        LifecycleExample.solve()
+
+        solver = ConsIndShockSolverBasic(LifecycleExample.solution[1],
+                                 LifecycleExample.IncomeDstn[0],
+                                 LifecycleExample.LivPrb[0],
+                                 LifecycleExample.DiscFac,
+                                 LifecycleExample.CRRA,
+                                 LifecycleExample.Rfree,
+                                 LifecycleExample.PermGroFac[0],
+                                 LifecycleExample.BoroCnstArt,
+                                 LifecycleExample.aXtraGrid,
+                                 LifecycleExample.vFuncBool,
+                                 LifecycleExample.CubicBool)
+
+        solver.prepareToSolve()
+
+        self.assertAlmostEqual(solver.DiscFacEff,
+                               0.9503999999999999)
+        self.assertAlmostEqual(solver.PermShkMinNext,
+                               0.850430160026919)
+        self.assertAlmostEqual(solver.cFuncNowCnst(4).tolist(),
+                               4.0)
+        self.assertAlmostEqual(solver.prepareToCalcEndOfPrdvP()[0],
+                               -0.2491750859108316)
+        self.assertAlmostEqual(solver.prepareToCalcEndOfPrdvP()[-1],
+                               19.74982491408914)
+
+        EndOfPrdvP = solver.calcEndOfPrdvP()
+
+        self.assertAlmostEqual(EndOfPrdvP[0],
+                               6622.251864311334)
+        self.assertAlmostEqual(EndOfPrdvP[-1],
+                               0.026301061207747087)
+
+        solution = solver.makeBasicSolution(EndOfPrdvP,
+                                            solver.aNrmNow,
+                                            solver.makeLinearcFunc)
+        solver.addMPCandHumanWealth(solution)
+
+        self.assertAlmostEqual(solution.cFunc(4).tolist(),
+                               1.7391265696400773)
+
+    def test_simulated_values(self):
+        self.agent.initializeSim()
+        self.agent.simulate()
+
+        print(self.agent.aLvlNow)
+
+        self.assertAlmostEqual(self.agent.MPCnow[1],
+                               0.5535801655448935)
+
+        self.assertAlmostEqual(self.agent.aLvlNow[1],
+                               0.18832361)
+
 
 class testBufferStock(unittest.TestCase):
     """ Tests of the results of the BufferStock REMARK.
@@ -115,3 +176,181 @@ class testBufferStock(unittest.TestCase):
 
         self.assertAlmostEqual(MPC[500], 0.08415000641504392)
         self.assertAlmostEqual(MPC[700], 0.07173144137912524)
+
+
+IdiosyncDict={
+    # Parameters shared with the perfect foresight model
+    "CRRA": 2.0,                           # Coefficient of relative risk aversion
+    "Rfree": 1.03,                         # Interest factor on assets
+    "DiscFac": 0.96,                       # Intertemporal discount factor
+    "LivPrb" : [0.98],                     # Survival probability
+    "PermGroFac" :[1.01],                  # Permanent income growth factor
+        
+    # Parameters that specify the income distribution over the lifecycle
+    "PermShkStd" : [0.1],                  # Standard deviation of log permanent shocks to income
+    "PermShkCount" : 7,                    # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd" : [0.2],                  # Standard deviation of log transitory shocks to income
+    "TranShkCount" : 7,                    # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb" : 0.05,                     # Probability of unemployment while working
+    "IncUnemp" : 0.3,                      # Unemployment benefits replacement rate
+    "UnempPrbRet" : 0.0005,                # Probability of "unemployment" while retired
+    "IncUnempRet" : 0.0,                   # "Unemployment" benefits when retired
+    "T_retire" : 0,                        # Period of retirement (0 --> no retirement)
+    "tax_rate" : 0.0,                      # Flat income tax rate (legacy parameter, will be removed in future)
+
+    # Parameters for constructing the "assets above minimum" grid
+    "aXtraMin" : 0.001,                    # Minimum end-of-period "assets above minimum" value
+    "aXtraMax" : 20,                       # Maximum end-of-period "assets above minimum" value
+    "aXtraCount" : 48,                     # Number of points in the base grid of "assets above minimum"
+    "aXtraNestFac" : 3,                    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraExtra" : [None],                 # Additional values to add to aXtraGrid
+
+    # A few other paramaters
+    "BoroCnstArt" : 0.0,                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "vFuncBool" : True,                    # Whether to calculate the value function during solution   
+    "CubicBool" : False,                   # Preference shocks currently only compatible with linear cFunc
+    "T_cycle" : 1,                         # Number of periods in the cycle for this agent type        
+
+    # Parameters only used in simulation
+    "AgentCount" : 10000,                  # Number of agents of this type
+    "T_sim" : 120,                         # Number of periods to simulate
+    "aNrmInitMean" : -6.0,                 # Mean of log initial assets
+    "aNrmInitStd"  : 1.0,                  # Standard deviation of log initial assets
+    "pLvlInitMean" : 0.0,                  # Mean of log initial permanent income
+    "pLvlInitStd"  : 0.0,                  # Standard deviation of log initial permanent income
+    "PermGroFacAgg" : 1.0,                 # Aggregate permanent income growth factor
+    "T_age" : None,                        # Age after which simulated agents are automatically killed
+}
+
+class testIndShockConsumerTypeExample(unittest.TestCase):
+
+    def test_infinite_horizon(self):
+        IndShockExample = IndShockConsumerType(**IdiosyncDict)
+        IndShockExample.cycles = 0 # Make this type have an infinite horizon
+        IndShockExample.solve()
+
+        self.assertAlmostEqual(IndShockExample.solution[0].mNrmSS,
+                               1.5488165705077026)
+        self.assertAlmostEqual(IndShockExample.solution[0].cFunc.functions[0].x_list[0],
+                               -0.25017509)
+
+        IndShockExample.track_vars = ['aNrmNow','mNrmNow','cNrmNow','pLvlNow']
+        IndShockExample.initializeSim()
+        IndShockExample.simulate()
+
+        self.assertAlmostEqual(IndShockExample.mNrmNow_hist[0][0],
+                               1.0170176090252379)
+
+LifecycleDict={ # Click arrow to expand this fairly large parameter dictionary
+    # Parameters shared with the perfect foresight model
+    "CRRA": 2.0,                           # Coefficient of relative risk aversion
+    "Rfree": 1.03,                         # Interest factor on assets
+    "DiscFac": 0.96,                       # Intertemporal discount factor
+    "LivPrb" : [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1],
+    "PermGroFac" : [1.01,1.01,1.01,1.02,1.02,1.02,0.7,1.0,1.0,1.0],
+    
+    # Parameters that specify the income distribution over the lifecycle
+    "PermShkStd" : [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0,0,0],
+    "PermShkCount" : 7,                    # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd" : [0.3,0.2,0.1,0.3,0.2,0.1,0.3,0,0,0],
+    "TranShkCount" : 7,                    # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb" : 0.05,                     # Probability of unemployment while working
+    "IncUnemp" : 0.3,                      # Unemployment benefits replacement rate
+    "UnempPrbRet" : 0.0005,                # Probability of "unemployment" while retired
+    "IncUnempRet" : 0.0,                   # "Unemployment" benefits when retired
+    "T_retire" : 7,                        # Period of retirement (0 --> no retirement)
+    "tax_rate" : 0.0,                      # Flat income tax rate (legacy parameter, will be removed in future)
+    
+    # Parameters for constructing the "assets above minimum" grid
+    "aXtraMin" : 0.001,                    # Minimum end-of-period "assets above minimum" value
+    "aXtraMax" : 20,                       # Maximum end-of-period "assets above minimum" value
+    "aXtraCount" : 48,                     # Number of points in the base grid of "assets above minimum"
+    "aXtraNestFac" : 3,                    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraExtra" : [None],                 # Additional values to add to aXtraGrid
+    
+    # A few other paramaters
+    "BoroCnstArt" : 0.0,                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "vFuncBool" : True,                    # Whether to calculate the value function during solution   
+    "CubicBool" : False,                   # Preference shocks currently only compatible with linear cFunc
+    "T_cycle" : 10,                        # Number of periods in the cycle for this agent type        
+    
+    # Parameters only used in simulation
+    "AgentCount" : 10000,                  # Number of agents of this type
+    "T_sim" : 120,                         # Number of periods to simulate
+    "aNrmInitMean" : -6.0,                 # Mean of log initial assets
+    "aNrmInitStd"  : 1.0,                  # Standard deviation of log initial assets
+    "pLvlInitMean" : 0.0,                  # Mean of log initial permanent income
+    "pLvlInitStd"  : 0.0,                  # Standard deviation of log initial permanent income
+    "PermGroFacAgg" : 1.0,                 # Aggregate permanent income growth factor
+    "T_age" : 11,                          # Age after which simulated agents are automatically killed     
+}
+
+class testIndShockConsumerTypeLifecycle(unittest.TestCase):
+
+    def test_lifecyle(self):
+        LifecycleExample = IndShockConsumerType(**LifecycleDict)
+        LifecycleExample.cycles = 1
+        LifecycleExample.solve()
+
+        self.assertEquals(len(LifecycleExample.solution), 11)
+
+        mMin = np.min([LifecycleExample.solution[t].mNrmMin for t in
+                       range(LifecycleExample.T_cycle)])
+
+        self.assertAlmostEqual(LifecycleExample.solution[5].cFunc(3).tolist(),
+                               2.129983771775666)
+
+CyclicalDict = { # Click the arrow to expand this parameter dictionary
+    # Parameters shared with the perfect foresight model
+    "CRRA": 2.0,                           # Coefficient of relative risk aversion
+    "Rfree": 1.03,                         # Interest factor on assets
+    "DiscFac": 0.96,                       # Intertemporal discount factor
+    "LivPrb" : 4*[0.98],                   # Survival probability
+    "PermGroFac" : [1.082251, 2.8, 0.3, 1.1],
+    
+    # Parameters that specify the income distribution over the lifecycle
+    "PermShkStd" : [0.1,0.1,0.1,0.1],
+    "PermShkCount" : 7,                    # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd" : [0.2,0.2,0.2,0.2],
+    "TranShkCount" : 7,                    # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb" : 0.05,                     # Probability of unemployment while working
+    "IncUnemp" : 0.3,                      # Unemployment benefits replacement rate
+    "UnempPrbRet" : 0.0005,                # Probability of "unemployment" while retired
+    "IncUnempRet" : 0.0,                   # "Unemployment" benefits when retired
+    "T_retire" : 0,                        # Period of retirement (0 --> no retirement)
+    "tax_rate" : 0.0,                      # Flat income tax rate (legacy parameter, will be removed in future)
+    
+    # Parameters for constructing the "assets above minimum" grid
+    "aXtraMin" : 0.001,                    # Minimum end-of-period "assets above minimum" value
+    "aXtraMax" : 20,                       # Maximum end-of-period "assets above minimum" value
+    "aXtraCount" : 48,                     # Number of points in the base grid of "assets above minimum"
+    "aXtraNestFac" : 3,                    # Exponential nesting factor when constructing "assets above minimum" grid
+    "aXtraExtra" : [None],                 # Additional values to add to aXtraGrid
+    
+    # A few other paramaters
+    "BoroCnstArt" : 0.0,                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    "vFuncBool" : True,                    # Whether to calculate the value function during solution   
+    "CubicBool" : False,                   # Preference shocks currently only compatible with linear cFunc
+    "T_cycle" : 4,                         # Number of periods in the cycle for this agent type        
+    
+    # Parameters only used in simulation
+    "AgentCount" : 10000,                  # Number of agents of this type
+    "T_sim" : 120,                         # Number of periods to simulate
+    "aNrmInitMean" : -6.0,                 # Mean of log initial assets
+    "aNrmInitStd"  : 1.0,                  # Standard deviation of log initial assets
+    "pLvlInitMean" : 0.0,                  # Mean of log initial permanent income
+    "pLvlInitStd"  : 0.0,                  # Standard deviation of log initial permanent income
+    "PermGroFacAgg" : 1.0,                 # Aggregate permanent income growth factor
+    "T_age" : None,                        # Age after which simulated agents are automatically killed     
+}
+
+
+class testIndShockConsumerTypeLifecycle(unittest.TestCase):
+
+    def test_lifecyle(self):
+        CyclicalExample = IndShockConsumerType(**CyclicalDict)
+        CyclicalExample.cycles = 0 # Make this consumer type have an infinite horizon
+        CyclicalExample.solve()
+
+        self.assertAlmostEqual(CyclicalExample.solution[3].cFunc(3).tolist(),
+                               1.5958390056965004)

@@ -1337,6 +1337,7 @@ def test_latex_installation(pf):
                 os.system('apt-get update')
                 os.system('apt-get install texlive texlive-latex-extra texlive-xetex dvipng')
                 latexExists=True
+            return True
         else:
             raise ImportError('Please install a full distribution of LaTeX on your computer then rerun. \n \
             A full distribution means textlive, texlive-latex-extras, texlive-xetex, dvipng, and ghostscript')
@@ -1358,7 +1359,7 @@ def in_ipynb():
         return False
 
 
-def setup_latex_env_notebook(pf):
+def setup_latex_env_notebook(pf, latexExists):
     """ This is needed for use of the latex_envs notebook extension
     which allows the use of environments in Markdown.
 
@@ -1367,13 +1368,15 @@ def setup_latex_env_notebook(pf):
     pf: str (platform)
         output of determine_platform()
     """
-    if test_latex_installation(pf):
+    import os
+    from matplotlib import rc
+    import matplotlib.pyplot as plt
+    plt.rc('font', family='serif')
+    plt.rc('text', usetex=latexExists)
+    if latexExists:
         latex_preamble = r'\usepackage{amsmath}\usepackage{amsfonts}\usepackage[T1]{fontenc}'
-        import os
-        from os import path
-        import matplotlib.pyplot as plt
         latexdefs_path = os.getcwd()+'/latexdefs.tex'
-        if path.isfile(latexdefs_path):
+        if os.path.isfile(latexdefs_path):
             latex_preamble = latex_preamble+r'\input{'+latexdefs_path+r'}'
         else: # the required latex_envs package needs this file to exist even if it is empty
             from pathlib import Path
@@ -1406,6 +1409,7 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
             os.makedirs(Figures_dir)         # If dir does not exist, create it
         # Save the figures in several formats
         print("Saving figure {} in {}".format(figure_name, target_dir))
+        plt.savefig(os.path.join(target_dir, '{}.jpg'.format(figure_name))) # For web/html
         plt.savefig(os.path.join(target_dir, '{}.png'.format(figure_name))) # For web/html
         plt.savefig(os.path.join(target_dir, '{}.pdf'.format(figure_name))) # For LaTeX
         plt.savefig(os.path.join(target_dir, '{}.svg'.format(figure_name))) # For html5

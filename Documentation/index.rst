@@ -1,4 +1,4 @@
-HARK Documentation
+Welcome to HARK's documentation!
 ================================
 
 Heterogenous Agents Resources & toolKit (HARK) is a toolkit for the structural modeling of economic choices of optimizing and non-optimizing heterogeneous agents.
@@ -32,9 +32,17 @@ you might want to look at the `DemARK
    example_notebooks/PerfForesightConsumerType.ipynb
    example_notebooks/IndShockConsumerType.ipynb
    example_notebooks/KinkedRconsumerType.ipynb
-   example_notebooks/ConsPortfolioModelDoc.ipynb
+   example_notebooks/ConsPortfolioModel.ipynb
    example_notebooks/GenIncProcessModel.ipynb
-   example_notebooks/LifecycleModelExample.ipynb          
+   example_notebooks/LifecycleModel.ipynb
+   example_notebooks/HowWeSolveIndShockConsumerType.ipynb
+   example_notebooks/Journey_1_PhD.ipynb
+
+.. toctree::
+   :maxdepth: 3   
+   :caption: Journeys into HARK
+   
+   notebooks/Journey_1_PhD       
 
 .. toctree::
    :maxdepth: 2
@@ -49,7 +57,6 @@ you might want to look at the `DemARK
    api-utilities
    api-validators          
    api-consumptionsaving
-
 
 
 Indices and tables
