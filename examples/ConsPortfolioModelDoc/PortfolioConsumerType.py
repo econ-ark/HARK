@@ -22,7 +22,8 @@ print('Solving an infinite horizon portfolio choice problem took ' + str(t1-t0) 
 print('Consumption function over market resources:')
 plotFuncs(MyType.cFunc[0], 0., 20.)
 print('Risky asset share function over market resources:')
-plotFuncs(MyType.RiskyShareFunc[0], 0., 20.)
+sFunc = lambda m : MyType.RiskyShareFunc[0](m-MyType.cFunc[0](m))
+plotFuncs(sFunc, 0., 20.)
 
 # Now simulate this consumer type
 MyType.track_vars = ['cNrmNow', 'RiskyShareNow', 'aNrmNow', 't_age']

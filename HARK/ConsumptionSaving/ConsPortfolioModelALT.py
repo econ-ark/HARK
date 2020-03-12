@@ -602,16 +602,16 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
         
     # Calculate end-of-period marginal value of assets by taking expectations
     temp_fac_A = (PermShks_tiled*PermGroFac)**(-CRRA) # Will use this in a couple places
-    EndOfPrddvda = DiscFac*np.sum(ShockPrbs_tiled*Rport*temp_fac_A*dvdm_next, axis=2)
+    EndOfPrddvda = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*Rport*temp_fac_A*dvdm_next, axis=2)
     EndOfPrddvdaNvrs = EndOfPrddvda**(-1./CRRA)
     
     # Calculate end-of-period value by taking expectations
     temp_fac_B = (PermShks_tiled*PermGroFac)**(1.-CRRA) # Will use this below
-    EndOfPrdv    = DiscFac*np.sum(ShockPrbs_tiled*temp_fac_B*v_next, axis=2)
+    EndOfPrdv    = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_B*v_next, axis=2)
     
     # Calculate end-of-period marginal value of risky portfolio share by taking expectations
-    Rxs = Rport - Rfree
-    EndOfPrddvds = DiscFac*np.sum(ShockPrbs_tiled*(Rxs*aNrm_tiled*temp_fac_A*dvdm_next + temp_fac_B*dvds_next), axis=2)
+    Rxs = Risky_tiled - Rfree
+    EndOfPrddvds = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*(Rxs*aNrm_tiled*temp_fac_A*dvdm_next + temp_fac_B*dvds_next), axis=2)
     
     # For values of aNrm at which the agent wants to put more than 100% into risky asset, constrain them
     FOC_s = EndOfPrddvds
@@ -628,7 +628,7 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
     for j in range(aNrm_N):
         if Share_now[j] == 0.:
             try:
-                idx = np.argwhere(crossing[j,:])[-1][0]
+                idx = np.argwhere(crossing[j,:])[0][0]
                 bot_s = ShareGrid[idx]
                 top_s = ShareGrid[idx+1]
                 bot_f = FOC_s[j,idx]
@@ -690,15 +690,15 @@ if __name__ == '__main__':
     TestType = PortfolioConsumerType()
     TestType.cycles = 0
     t0 = time()
-    TestType.solve(True)
+    TestType.solve()
     t1 = time()
     print('Solving an infinite horizon portfolio choice problem took ' + str(t1-t0) + ' seconds.')
     
-    M = np.linspace(0.,1.,200)
-    for s in np.linspace(0.,1.,21):
-        f = lambda m : TestType.solution[0].dvdsFuncFxd(m, s*np.ones_like(m))
-        plt.plot(M, f(M))
-    plt.show()
+#    M = np.linspace(0.,1.,200)
+#    for s in np.linspace(0.,1.,21):
+#        f = lambda m : TestType.solution[0].dvdsFuncFxd(m, s*np.ones_like(m))
+#        plt.plot(M, f(M))
+#    plt.show()
     
     TestType.T_sim = 100
     TestType.track_vars = ['cNrmNow','ShareNow','aNrmNow']
