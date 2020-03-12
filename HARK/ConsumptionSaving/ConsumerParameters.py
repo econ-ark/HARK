@@ -362,7 +362,7 @@ init_labor_lifecycle['T_age']      = 11 # Make sure that old people die at termi
 
 RiskyAvg = 1.08        # Average return of the risky asset
 RiskyStd = 0.20        # Standard deviation of (log) risky returns
-RiskyCount = 5         # Number of integration nodes to use in approximation of risky returns
+RiskyCount = 11        # Number of integration nodes to use in approximation of risky returns
 RiskyShareCount = 26   # Number of discrete points in the risky share approximation
 AdjustPrb = 1.0        # Probability that the agent can adjust their risky portfolio share each period
 

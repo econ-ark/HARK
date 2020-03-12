@@ -1945,7 +1945,6 @@ class PerfForesightConsumerType(AgentType):
         return self.violated
 
 
-
     def checkConditions(self,verbose=False,verbose_reference=False,public_call=False):
         '''
         This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC), 
@@ -2351,8 +2350,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if public_call or verbose:
                 print('Therefore, a nondegenerate solution is not available (see '+self.url+'/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping')
             print()
-
-
 
 
     def checkConditions(self,verbose=False,public_call=True):

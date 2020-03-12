@@ -23,7 +23,7 @@ from HARK.utilities import (
     approxLognormal,            # For approximating the lognormal return factor
     combineIndepDstns,          # For combining the income distribution with the risky return distribution
 )
-from HARK.simulation import drawLognormal # Random draws for simulating agents
+from HARK.simulation import drawLognormal, drawBernoulli # Random draws for simulating agents
 from HARK.interpolation import(
         LinearInterp,           # Piecewise linear interpolation
         LinearInterpOnInterp1D, # 2D interpolator
@@ -129,7 +129,7 @@ class PortfolioConsumerType(IndShockConsumerType):
     have age-varying beliefs about the risky-return; if he does, then "true" values
     of the risky asset's return distribution must also be specified.
     """
-    poststate_vars_ = ['aNrmNow', 'pLvlNow', 'ShareNow', 'FxdNow']
+    poststate_vars_ = ['aNrmNow', 'pLvlNow', 'ShareNow', 'AdjustNow']
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
     time_inv_ = time_inv_ + ['AdjustPrb']
 
@@ -330,7 +330,165 @@ class PortfolioConsumerType(IndShockConsumerType):
             SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method='bounded').x
             self.ShareLimit = SharePF
             self.addToTimeInv('ShareLimit')
+            
+            
+    def getRisky(self):
+        '''
+        Sets the attribute RiskyNow as a single draw from a lognormal distribution.
+        Uses the attributes RiskyAvgTrue and RiskyStdTrue if RiskyAvg is time-varying,
+        else just uses the single values from RiskyAvg and RiskyStd.
         
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        if 'RiskyDstn' in self.time_vary:
+            RiskyAvg = self.RiskyAvgTrue
+            RiskyStd = self.RiskyStdTrue  
+        else:
+            RiskyAvg = self.RiskyAvg
+            RiskyStd = self.RiskyStd
+        RiskyAvgSqrd = RiskyAvg**2
+        RiskyVar = RiskyStd**2
+
+        mu = np.log(RiskyAvg / (np.sqrt(1 + RiskyVar / RiskyAvgSqrd)))
+        sigma = np.sqrt(np.log(1 + RiskyVar / RiskyAvgSqrd))
+        self.RiskyNow = drawLognormal(1, mu=mu, sigma=sigma, seed=self.RNG.randint(0, 2**31-1))
+        
+        
+    def getAdjust(self):
+        '''
+        Sets the attribute AdjustNow as a boolean array of size AgentCount, indicating
+        whether each agent is able to adjust their risky portfolio share this period.
+        Uses the attribute AdjustPrb to draw from a Bernoulli distribution.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        self.AdjustNow = drawBernoulli(self.AgentCount, p=self.AdjustPrb, seed=self.RNG.randint(0, 2**31-1))
+        
+        
+    def getRfree(self):
+        '''
+        Calculates realized return factor for each agent, using the attributes Rfree,
+        RiskyNow, and ShareNow.  This method is a bit of a misnomer, as the return
+        factor is not riskless, but would more accurately be labeled as Rport.  However,
+        this method makes the portfolio model compatible with its parent class.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Rport : np.array
+            Array of size AgentCount with each simulated agent's realized portfolio
+            return factor.  Will be used by getStates() to calculate mNrmNow, where it
+            will be mislabeled as "Rfree".
+        '''
+        Rport = self.ShareNow*self.RiskyNow + (1.-self.ShareNow)*self.Rfree
+        self.RportNow = Rport
+        return Rport
+    
+    
+    def initializeSim(self):
+        '''
+        Initialize the state of simulation attributes.  Simply calls the same method
+        for IndShockConsumerType, then sets the type of AdjustNow to bool.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.initializeSim(self)
+        self.AdjustNow = self.AdjustNow.astype(bool)
+    
+    
+    def simBirth(self,which_agents):
+        '''
+        Create new agents to replace ones who have recently died; takes draws of
+        initial aNrm and pLvl, as in ConsIndShockModel, then sets Share and Adjust
+        to zero as initial values.
+        Parameters
+        ----------
+        which_agents : np.array
+            Boolean array of size AgentCount indicating which agents should be "born".
+
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.simBirth(self,which_agents)
+        self.ShareNow[which_agents] = 0.
+        self.AdjustNow[which_agents] = False
+        
+            
+    def getShocks(self):
+        '''
+        Draw idiosyncratic income shocks, just as for IndShockConsumerType, then draw
+        a single common value for the risky asset return.  Also draws whether each
+        agent is able to update their risky asset share this period.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.getShocks(self)
+        self.getRisky()
+        self.getAdjust()
+        
+        
+    def getControls(self):
+        '''
+        Calculates consumption cNrmNow and risky portfolio share ShareNow using
+        the policy functions in the attribute solution.  These are stored as attributes.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        cNrmNow  = np.zeros(self.AgentCount) + np.nan
+        ShareNow = np.zeros(self.AgentCount) + np.nan
+        
+        # Loop over each period of the cycle, getting controls separately depending on "age"
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            
+            # Get controls for agents who *can* adjust their portfolio share
+            those = np.logical_and(these, self.AdjustNow)
+            cNrmNow[those]  = self.solution[t].cFuncAdj(self.mNrmNow[those])
+            ShareNow[those] = self.solution[t].ShareFuncAdj(self.mNrmNow[those])
+            
+            # Get Controls for agents who *can't* adjust their portfolio share
+            those = np.logical_and(these, np.logical_not(self.AdjustNow))
+            cNrmNow[those]  = self.solution[t].cFuncFxd(self.mNrmNow[those], self.ShareNow[those])
+            ShareNow[those] = self.solution[t].ShareFuncFxd(self.mNrmNow[those], self.ShareNow[those])
+        
+        # Store controls as attributes of self
+        self.cNrmNow = cNrmNow
+        self.ShareNow = ShareNow
+    
                 
 # Define a non-object-oriented one period solver
 def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
@@ -541,5 +699,10 @@ if __name__ == '__main__':
         f = lambda m : TestType.solution[0].dvdsFuncFxd(m, s*np.ones_like(m))
         plt.plot(M, f(M))
     plt.show()
+    
+    TestType.T_sim = 100
+    TestType.track_vars = ['cNrmNow','ShareNow','aNrmNow']
+    TestType.initializeSim()
+    TestType.simulate()
         
         
