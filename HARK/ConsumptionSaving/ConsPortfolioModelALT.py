@@ -4,9 +4,8 @@ agents who must allocate their resources among consumption, saving in a risk-fre
 asset (with a low return), and saving in a risky asset (with higher average return).
 '''
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.optimize import minimize_scalar
-from copy import copy, deepcopy
+from copy import deepcopy
 from HARK import Solution, NullFunc, AgentType # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import(
     PerfForesightConsumerType,  # For .__init__
@@ -357,8 +356,8 @@ class PortfolioConsumerType(IndShockConsumerType):
         RiskyAvgSqrd = RiskyAvg**2
         RiskyVar = RiskyStd**2
 
-        mu = np.log(RiskyAvg / (np.sqrt(1 + RiskyVar / RiskyAvgSqrd)))
-        sigma = np.sqrt(np.log(1 + RiskyVar / RiskyAvgSqrd))
+        mu = np.log(RiskyAvg / (np.sqrt(1. + RiskyVar / RiskyAvgSqrd)))
+        sigma = np.sqrt(np.log(1. + RiskyVar / RiskyAvgSqrd))
         self.RiskyNow = drawLognormal(1, mu=mu, sigma=sigma, seed=self.RNG.randint(0, 2**31-1))
         
         
@@ -557,9 +556,13 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
     PermShks_next  = ShockDstn[1]
     TranShks_next  = ShockDstn[2]
     Risky_next     = ShockDstn[3]
+    zero_bound = (np.min(TranShks_next) == 0.) # Flag for whether the natural borrowing constraint is zero
     
     # Make tiled arrays to calculate future realizations of mNrm and Share; dimension order: mNrm, Share, shock
-    aNrmGrid = np.insert(aXtraGrid, 0, 0.0) # Add an asset point at exactly zero
+    if zero_bound:
+        aNrmGrid = aXtraGrid
+    else:
+        aNrmGrid = np.insert(aXtraGrid, 0, 0.0) # Add an asset point at exactly zero
     aNrm_N = aNrmGrid.size
     Share_N = ShareGrid.size
     Shock_N = ShockPrbs_next.size
@@ -623,10 +626,11 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
     cNrmAdj_now = np.zeros_like(aNrmGrid)
     constrained = FOC_s[:,-1] > 0. # If agent wants to put more than 100% into risky asset, he is constrained
     Share_now[constrained] = 1.0
-    Share_now[0] = 1. # aNrm=0, so there's no way to "optimize" the portfolio
+    if not zero_bound:
+        Share_now[0] = 1. # aNrm=0, so there's no way to "optimize" the portfolio
+        cNrmAdj_now[0] = EndOfPrddvda[0,-1]**(-1./CRRA) # Consumption when aNrm=0 does not depend on Share
     cNrmAdj_now[constrained] = EndOfPrddvda[constrained,-1]**(-1./CRRA) # Get consumption when share-constrained
-    cNrmAdj_now[0] = EndOfPrddvda[0,-1]**(-1./CRRA) # Consumption when aNrm==0 does not depend on Share
-    
+        
     # For each value of aNrm, find the value of Share such that FOC-Share == 0.
     # This loop can probably be eliminated, but it's such a small step that it won't speed things up much.
     crossing = np.logical_and(FOC_s[:,1:] <= 0., FOC_s[:,:-1] >= 0.)
@@ -650,7 +654,11 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
     # and add an additional point at (mNrm,cNrm)=(0,0)
     mNrmAdj_now = np.insert(aNrmGrid + cNrmAdj_now, 0, 0.0)
     cNrmAdj_now = np.insert(cNrmAdj_now, 0, 0.0)
-    Share_now   = np.insert(Share_now, 0, 1.0)
+    if zero_bound:
+        Share_lower_bound = ShareLimit
+    else:
+        Share_lower_bound = 1.0
+    Share_now   = np.insert(Share_now, 0, Share_lower_bound)
     
     # Construct the consumption and risky share functions when the agent can adjust
     cFuncAdj_now = LinearInterp(mNrmAdj_now, cNrmAdj_now)
@@ -723,18 +731,26 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
         
 if __name__ == '__main__':
     from time import time
+    from HARK.utilities import plotFuncs
+    import matplotlib.pyplot as plt
     
     TestType = PortfolioConsumerType()
     TestType.vFuncBool = False
+    #TestType.IncUnemp = 0.
+    TestType.update()
     TestType.cycles = 0
     t0 = time()
     TestType.solve()
     t1 = time()
     print('Solving an infinite horizon portfolio choice problem took ' + str(t1-t0) + ' seconds.')
     
-    M = np.linspace(0.5,10.,200)
+    plotFuncs(TestType.solution[0].cFuncAdj, 0., 20.)
+    plotFuncs(TestType.solution[0].ShareFuncAdj, 0., 20.)
+    plotFuncs(TestType.solution[0].vFuncAdj, 0.5, 20.)
+    
+    M = np.linspace(0.5,0.6,200)
     for s in np.linspace(0.,1.,21):
-        f = lambda m : TestType.solution[0].dvdsFuncFxd(m, s*np.ones_like(m))
+        f = lambda m : TestType.solution[0].vFuncFxd(m, s*np.ones_like(m))
         plt.plot(M, f(M))
     plt.show()
     
