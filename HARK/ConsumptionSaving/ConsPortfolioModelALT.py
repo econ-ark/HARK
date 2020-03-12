@@ -14,6 +14,9 @@ from HARK.ConsumptionSaving.ConsIndShockModel import(
     MargValueFunc,              # For representing 1D marginal value function
     utility,                    # CRRA utility function
     utility_inv,                # Inverse CRRA utility function
+    utilityP,                   # CRRA marginal utility function
+    utility_invP,               # Derivative of inverse CRRA utility function
+    utilityP_inv,               # Inverse CRRA marginal utility function
 )
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import(
     ValueFunc2D,                # For representing 2D value function
@@ -26,6 +29,7 @@ from HARK.utilities import (
 from HARK.simulation import drawLognormal, drawBernoulli # Random draws for simulating agents
 from HARK.interpolation import(
         LinearInterp,           # Piecewise linear interpolation
+        CubicInterp,            # Piecewise cubic interpolation
         LinearInterpOnInterp1D, # Interpolator over 1D interpolations
         BilinearInterp,         # 2D interpolator
         ConstantFunction,       # Interpolator-like class that returns constant value
@@ -543,6 +547,13 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
     # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
     if BoroCnstArt != 0.0:
         raise AttributeError('PortfolioConsumerType must have BoroCnstArt=0.0!')
+          
+    # Define temporary functions for utility and its derivative and inverse
+    u = lambda x : utility(x, CRRA)
+    uP = lambda x : utilityP(x, CRRA)
+    uPinv = lambda x : utilityP_inv(x, CRRA)
+    n = lambda x : utility_inv(x, CRRA)
+    nP = lambda x : utility_invP(x, CRRA)
         
     # Unpack next period's solution
     vPfuncAdj_next = solution_next.vPfuncAdj
@@ -606,15 +617,15 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
         v_next = np.zeros_like(dvdm_next) # Trivial array
         
     # Calculate end-of-period marginal value of assets by taking expectations
-    temp_fac_A = (PermShks_tiled*PermGroFac)**(-CRRA) # Will use this in a couple places
+    temp_fac_A = uP(PermShks_tiled*PermGroFac) # Will use this in a couple places
     EndOfPrddvda = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*Rport*temp_fac_A*dvdm_next, axis=2)
-    EndOfPrddvdaNvrs = EndOfPrddvda**(-1./CRRA)
+    EndOfPrddvdaNvrs = uPinv(EndOfPrddvda)
     
     # Calculate end-of-period value by taking expectations
     temp_fac_B = (PermShks_tiled*PermGroFac)**(1.-CRRA) # Will use this below
     if vFuncBool:
         EndOfPrdv = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_B*v_next, axis=2)
-        EndOfPrdvNvrs = utility_inv(EndOfPrdv, CRRA)
+        EndOfPrdvNvrs = n(EndOfPrdv)
     
     # Calculate end-of-period marginal value of risky portfolio share by taking expectations
     Rxs = Risky_tiled - Rfree
@@ -628,8 +639,8 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
     Share_now[constrained] = 1.0
     if not zero_bound:
         Share_now[0] = 1. # aNrm=0, so there's no way to "optimize" the portfolio
-        cNrmAdj_now[0] = EndOfPrddvda[0,-1]**(-1./CRRA) # Consumption when aNrm=0 does not depend on Share
-    cNrmAdj_now[constrained] = EndOfPrddvda[constrained,-1]**(-1./CRRA) # Get consumption when share-constrained
+        cNrmAdj_now[0] = uPinv(EndOfPrddvda[0,-1]) # Consumption when aNrm=0 does not depend on Share
+    cNrmAdj_now[constrained] = uPinv(EndOfPrddvda[constrained,-1]) # Get consumption when share-constrained
         
     # For each value of aNrm, find the value of Share such that FOC-Share == 0.
     # This loop can probably be eliminated, but it's such a small step that it won't speed things up much.
@@ -696,9 +707,13 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
         cNrm_temp  = cFuncAdj_now(mNrm_temp)
         aNrm_temp  = mNrm_temp - cNrm_temp
         Share_temp = ShareFuncAdj_now(mNrm_temp)
-        v_temp     = utility(cNrm_temp, CRRA) + EndOfPrdvFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = utility_inv(v_temp, CRRA)
-        vNvrsFuncAdj = LinearInterp(np.insert(mNrm_temp,0,0.0), np.insert(vNvrs_temp,0,0.0))
+        v_temp     = u(cNrm_temp) + EndOfPrdvFunc(aNrm_temp, Share_temp)
+        vNvrs_temp = n(v_temp)
+        vNvrsP_temp= uP(cNrm_temp)*nP(v_temp)
+        vNvrsFuncAdj = CubicInterp(
+                np.insert(mNrm_temp,0,0.0),  # x_list
+                np.insert(vNvrs_temp,0,0.0), # f_list
+                np.insert(vNvrsP_temp,0,vNvrsP_temp[0])) # dfdx_list
         vFuncAdj_now = ValueFunc(vNvrsFuncAdj, CRRA) # Re-curve the pseudo-inverse value function
         
         # Construct the value function when the agent *can't* adjust his portfolio
@@ -706,9 +721,16 @@ def solveConsPortfolio(solution_next,ShockDstn,LivPrb,DiscFac,CRRA,Rfree,PermGro
         Share_temp = np.tile(np.reshape(ShareGrid, (1, Share_N)), (aXtraGrid.size, 1))
         cNrm_temp  = cFuncFxd_now(mNrm_temp, Share_temp)
         aNrm_temp  = mNrm_temp - cNrm_temp
-        v_temp     = utility(cNrm_temp, CRRA) + EndOfPrdvFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = np.concatenate((np.zeros((1,Share_N)), utility_inv(v_temp, CRRA)), axis=0)
-        vNvrsFuncFxd = BilinearInterp(vNvrs_temp, np.insert(mNrm_temp[:,0], 0, 0.0), ShareGrid)
+        v_temp     = u(cNrm_temp) + EndOfPrdvFunc(aNrm_temp, Share_temp)
+        vNvrs_temp = n(v_temp)
+        vNvrsP_temp= uP(cNrm_temp)*nP(v_temp)
+        vNvrsFuncFxd_by_Share = []
+        for j in range(Share_N):
+            vNvrsFuncFxd_by_Share.append(CubicInterp(
+                    np.insert(mNrm_temp[:,0],0,0.0),  # x_list
+                    np.insert(vNvrs_temp[:,j],0,0.0), # f_list
+                    np.insert(vNvrsP_temp[:,j],0,vNvrsP_temp[j,0]))) #dfdx_list
+        vNvrsFuncFxd = LinearInterpOnInterp1D(vNvrsFuncFxd_by_Share, ShareGrid)
         vFuncFxd_now = ValueFunc2D(vNvrsFuncFxd, CRRA)
     
     else: # If vFuncBool is False, fill in dummy values
@@ -748,7 +770,7 @@ if __name__ == '__main__':
     plotFuncs(TestType.solution[0].ShareFuncAdj, 0., 20.)
     plotFuncs(TestType.solution[0].vFuncAdj, 0.5, 20.)
     
-    M = np.linspace(0.5,0.6,200)
+    M = np.linspace(0.5,20.,200)
     for s in np.linspace(0.,1.,21):
         f = lambda m : TestType.solution[0].vFuncFxd(m, s*np.ones_like(m))
         plt.plot(M, f(M))
