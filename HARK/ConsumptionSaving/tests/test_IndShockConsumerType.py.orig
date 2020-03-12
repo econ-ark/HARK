@@ -1,6 +1,10 @@
+<<<<<<< HEAD
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, init_idiosyncratic_shocks
+=======
 from HARK.ConsumptionSaving.ConsIndShockModel import \
-    IndShockConsumerType, ConsIndShockSolverBasic, \
-    init_lifecycle, init_idiosyncratic_shocks
+    IndShockConsumerType, ConsIndShockSolverBasic
+import HARK.ConsumptionSaving.ConsumerParameters as Params
+>>>>>>> master
 import numpy as np
 import unittest
 
@@ -31,7 +35,7 @@ class testIndShockConsumerType(unittest.TestCase):
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(
-            init_lifecycle)
+            **Params.init_lifecycle)
         LifecycleExample.cycles = 1
         LifecycleExample.solve()
 
@@ -346,9 +350,9 @@ CyclicalDict = { # Click the arrow to expand this parameter dictionary
 }
 
 
-class testIndShockConsumerTypeCyclical(unittest.TestCase):
+class testIndShockConsumerTypeLifecycle(unittest.TestCase):
 
-    def test_cyclical(self):
+    def test_lifecyle(self):
         CyclicalExample = IndShockConsumerType(**CyclicalDict)
         CyclicalExample.cycles = 0 # Make this consumer type have an infinite horizon
         CyclicalExample.solve()
