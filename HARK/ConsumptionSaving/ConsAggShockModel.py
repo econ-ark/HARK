@@ -19,8 +19,6 @@ from HARK.simulation import drawDiscrete, drawUniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 from HARK import HARKobject, Market, AgentType
 from copy import deepcopy
-# import matplotlib.pyplot as plt
-import HARK.ConsumptionSaving.ConsumerParameters as Params
 
 __all__ = ['MargValueFunc2D', 'AggShockConsumerType', 'AggShockMarkovConsumerType',
 'CobbDouglasEconomy', 'SmallOpenEconomy', 'CobbDouglasMarkovEconomy',
@@ -983,7 +981,7 @@ class CobbDouglasEconomy(Market):
         None
         '''
         params = init_cobb_douglas.copy()
-        params.update()
+        params.update(kwds)
 
         Market.__init__(self, agents=agents,
                         sow_vars=['MaggNow', 'AaggNow', 'RfreeNow',
@@ -992,8 +990,7 @@ class CobbDouglasEconomy(Market):
                         track_vars=['MaggNow', 'AaggNow'],
                         dyn_vars=['AFunc'],
                         tolerance=tolerance,
-                        act_T=act_T)
-        self.assignParameters(**params)
+                        act_T=act_T,**params)
         self.update()
 
         # Use previously hardcoded values for AFunc updating if not passed
@@ -1399,9 +1396,9 @@ class SmallOpenEconomy(Market):
 
 # Make a dictionary to specify a Markov Cobb-Douglas economy
 init_mrkv_cobb_douglas = init_cobb_douglas.copy()
-init_mrkv_cobb_douglas['PermShkAggStd'] = PermShkAggStd
-init_mrkv_cobb_douglas['TranShkAggStd'] = TranShkAggStd
-init_mrkv_cobb_douglas['PermGroFacAgg'] = PermGroFacAgg
+init_mrkv_cobb_douglas['PermShkAggStd'] = [0.012,0.006]
+init_mrkv_cobb_douglas['TranShkAggStd'] = [0.006,0.003]
+init_mrkv_cobb_douglas['PermGroFacAgg'] = [0.98,1.02]
 init_mrkv_cobb_douglas['MrkvArray'] = MrkvArray
 init_mrkv_cobb_douglas['MrkvNow_init'] = 0
 init_mrkv_cobb_douglas['slope_prev'] = 2*[slope_prev]
