@@ -17,12 +17,12 @@ from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutility
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
                            getPercentiles
 from HARK.simulation import drawLognormal, drawDiscrete, drawUniform
-from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 
 __all__ = ['ValueFunc2D', 'MargValueFunc2D', 'MargMargValueFunc2D', 'pLvlFuncAR1',
 'ConsGenIncProcessSolver', 'GenIncProcessConsumerType',
 'IndShockExplicitPermIncConsumerType', 'PersistentShockConsumerType',
-init_explicit_perm_inc, init_persistent_shocks]
+           'init_explicit_perm_inc', 'init_persistent_shocks']
 
 utility = CRRAutility
 utilityP = CRRAutilityP
