@@ -1849,7 +1849,7 @@ class PerfForesightConsumerType(AgentType):
         self.aLvlNow = self.aNrmNow*self.pLvlNow   # Useful in some cases to precalculate asset level
         return None
 
-    def checkAIC(self, thorn,verbose,public_call):
+    def checkAIC(self, thorn,verbose):
         '''
         Evaluate and report on the Absolute Impatience Condition
         '''
@@ -1858,7 +1858,7 @@ class PerfForesightConsumerType(AgentType):
         self.AIF = AIF
         if AIF<1:
             self.AIC = True
-            if public_call or verbose:
+            if verbose:
                 print('The value of the absolute impatience factor (AIF) for the supplied parameter values satisfies the Absolute Impatience Condition.', end = " ")
                 self.violated = False
                 if verbose:
@@ -1872,7 +1872,7 @@ class PerfForesightConsumerType(AgentType):
                 print('   Because the AIF > 1, the absolute amount of consumption is expected to grow over time')
             print()
 
-    def checkGICPF(self,thorn,verbose,public_call):
+    def checkGICPF(self,thorn,verbose):
         '''
         Evaluate and report on the Growth Impatience Condition
         '''
@@ -1881,7 +1881,7 @@ class PerfForesightConsumerType(AgentType):
 
         if GIFPF<1:
             self.GICPF = True
-            if public_call or verbose:
+            if verbose:
                 print('The value of the Growth Impatience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.', end = " ")
                 if verbose:
                     print(' Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income will fall indefinitely.')
@@ -1894,7 +1894,7 @@ class PerfForesightConsumerType(AgentType):
                 print(' Therefore, for a perfect foresight consumer the ratio of individual wealth to permanent income is expected to grow toward infinity.')
             print()
 
-    def checkRIC(self, thorn,verbose,public_call):
+    def checkRIC(self, thorn,verbose):
         '''
         Evaluate and report on the Return Impatience Condition
         '''
@@ -1903,7 +1903,7 @@ class PerfForesightConsumerType(AgentType):
         self.RIF = RIF
         if RIF<1:
             self.RIC = True
-            if public_call or verbose:
+            if verbose:
                 print('The return impatience factor value for the supplied parameter values satisfies the Return Impatience Condition.', end = " ")
                 if verbose:
                     print('Therefore, the limiting consumption function is not c(m)=0 for all m')
@@ -1916,7 +1916,7 @@ class PerfForesightConsumerType(AgentType):
                 print('Therefore, the limiting consumption function is c(m)=0 for all m')
             print()
 
-    def checkFHWC(self,verbose,public_call):
+    def checkFHWC(self,verbose):
         '''
         Evaluate and report on the Finite Human Wealth Condition
         '''
@@ -1926,7 +1926,7 @@ class PerfForesightConsumerType(AgentType):
         if FHWF<1:
             self.hNrm = 1.0/(1.0-self.PermGroFac[0]/self.Rfree)
             self.FHWC = True
-            if public_call or verbose:
+            if verbose:
                 print('The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.', end = " ")
                 if verbose: 
                     print('Therefore, the limiting consumption function is not c(m)=Infinity')
@@ -1947,10 +1947,12 @@ class PerfForesightConsumerType(AgentType):
 
 
 
-    def checkConditions(self,verbose=False,verbose_reference=False,public_call=False):
+    def checkConditions(self,verbose=False,verbose_reference=False):
         '''
-        This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC), 
-        the Return Impatience Condition (RIC), the Finite Human Wealth Condition (FHWC) and the perfect foresight 
+        This method checks whether the instance's type satisfies the
+        Absolute Impatience Condition (AIC), 
+        the Return Impatience Condition (RIC),
+        the Finite Human Wealth Condition (FHWC) and the perfect foresight 
         model's version of the Finite Value of the Growth Impatience Condition (GIC_PF) and 
         Autarky Condition (FVAC_PF). Depending on the configuration of parameter values, some 
         combination of these conditions must be satisfied in order for the problem to have 
@@ -1960,8 +1962,9 @@ class PerfForesightConsumerType(AgentType):
         Parameters
         ----------
         verbose : boolean
-            Specifies different levels of verbosity of feedback. When False, it only reports whether the
-            instance's type fails to satisfy a particular condition. When True, it reports all results, i.e.
+            Specifies different levels of verbosity of feedback. When False,
+            it only reports whether the instance's type fails to satisfy a 
+            particular condition. When True, it reports all results, i.e.
             the factor values for all conditions.
 
         Returns
@@ -1978,10 +1981,10 @@ class PerfForesightConsumerType(AgentType):
         Thorn = (self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)
         self.Thorn = Thorn
 
-        self.checkAIC(Thorn,verbose,public_call)
-        self.checkGICPF(Thorn,verbose,public_call)
-        self.checkRIC(Thorn,verbose,public_call)
-        self.checkFHWC(verbose,public_call)
+        self.checkAIC(Thorn,verbose)
+        self.checkGICPF(Thorn,verbose)
+        self.checkRIC(Thorn,verbose)
+        self.checkFHWC(verbose)
 
 class IndShockConsumerType(PerfForesightConsumerType):
     '''
@@ -2264,16 +2267,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
 #        self.updateIncomeProcess()
         self.updateSolutionTerminal()
         if not self.quiet:
-            self.checkConditions(verbose=self.verbose,public_call=False)
+            self.checkConditions(verbose=self.verbose)
 
-    def checkGICInd(self,Thorn,verbose,public_call):
+    def checkGICInd(self,thorn,verbose):
         '''
         Check Individual Growth Impatience Factor.
         '''
 
         if self.GIFInd<=1:
             self.GICInd = True
-            if public_call or verbose:
+            if verbose:
                 print('The value of the Individual Growth Impatience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition.', end = " ")
                 if verbose:
                     print('Therefore, a target level of the individual market resources ratio m exists (see '+self.url+'/#onetarget for more).')
@@ -2287,11 +2290,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 print('Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see '+self.url+'/#onetarget for more).')
             print()
 
-    def checkCIGAgg(self, Thorn,verbose,public_call):
+    def checkCIGAgg(self, thorn,verbose):
 
         if self.GIFAgg<=1:
             self.GICAgg = True
-            if public_call or verbose:
+            if verbose:
                 print('The value of the Aggregate Growth Impatience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition.', end = " ")
                 if verbose:
                     print('Therefore, it is possible that a target level of the ratio of aggregate market resources to aggregate permanent income exists.') # Need to provide reference 
@@ -2305,7 +2308,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 print('Therefore, a target ratio of aggregate resources to aggregate permanent income does not exist.') # Need to provide reference
             print()
 
-    def checkWRIC(self, verbose,public_call):
+    def checkWRIC(self, verbose):
         '''
         Evaluate and report on the Weak Return Impatience Condition
         [url]/#WRIF modified to incorporate LivPrb
@@ -2314,7 +2317,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.WRIF = WRIF
         if WRIF<=1:
             self.WRIC = True
-            if public_call or verbose:
+            if verbose:
                 print('The Weak Return Impatience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition (see '+self.url+'/#WRIC for more).')
                 print()
         else:
@@ -2326,7 +2329,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 print('Therefore, a nondegenerate solution is not available (see '+self.url+'/#WRIC for more.')
             print()
 
-    def checkFVAC(self,verbose,public_call):
+    def checkFVAC(self,verbose):
         '''
         Evaluate and report on the Finite Value of Autarky Condition
         Hyperlink to paper: [url]/#Autarky-Value
@@ -2342,7 +2345,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.FVAF = FVAF
         if FVAF<=1:
             self.FVAC = True
-            if public_call or verbose:
+            if verbose:
                 print('The Finite Value of Autarky Factor (FVAV) for the supplied parameter values satisfies the Finite Value of Autarky Condition.')
                 if self.WRIC:
                     print('Since both WRIC and FVAC are satisfied, the problem has a nondegenerate solution')
@@ -2350,14 +2353,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
             self.FVAC = False
             print('The given type violates the Finite Value of Autarky Condition with the supplied parameter values. The FVAF is %2.4f' %(FVAF), end = " ")
             self.violated = True
-            if public_call or verbose:
+            if verbose:
                 print('Therefore, a nondegenerate solution is not available (see '+self.url+'/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping')
             print()
 
 
 
 
-    def checkConditions(self,verbose=False,public_call=True):
+    def checkConditions(self,verbose=False):
         '''
         This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC), Weak Return
         Impatience Condition (WRIC), Finite Human Wealth Condition (FHWC) and Finite Value of
@@ -2413,11 +2416,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.DiscFacGIFIndMax = ((self.PermGroFac[0]*InvEPermShkInv)**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
         self.DiscFacGIFAggMax = ((self.PermGroFac[0]               )**(self.CRRA))/(self.Rfree*self.LivPrb[0]) # DiscFac at growth impatience knife edge
 
-        self.checkGICPF(Thorn,verbose,public_call)
-        self.checkGICInd(Thorn,verbose,public_call)
-        self.checkCIGAgg(Thorn,verbose,public_call)
-        self.checkWRIC(verbose,public_call)
-        self.checkFVAC(verbose, public_call)
+        self.checkGICPF(Thorn,verbose)
+        self.checkGICInd(Thorn,verbose)
+        self.checkCIGAgg(Thorn,verbose)
+        self.checkWRIC(verbose)
+        self.checkFVAC(verbose)
 
         if verbose and self.violated:
             print('\n[!] For more information on the conditions, see Tables 3 and 4 in "Theoretical Foundations of Buffer Stock Saving" at '+self.url+'/#Factors-Defined-And-Compared')
