@@ -31,7 +31,7 @@ class testIndShockConsumerType(unittest.TestCase):
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(
-            init_lifecycle)
+            **init_lifecycle)
         LifecycleExample.cycles = 1
         LifecycleExample.solve()
 
