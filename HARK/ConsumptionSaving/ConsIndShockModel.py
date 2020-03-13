@@ -1849,11 +1849,11 @@ class PerfForesightConsumerType(AgentType):
         self.aLvlNow = self.aNrmNow*self.pLvlNow   # Useful in some cases to precalculate asset level
         return None
 
-    def checkAIC(self, thorn,verbose):
+    def checkAIC(self, verbose):
         '''
         Evaluate and report on the Absolute Impatience Condition
         '''
-        AIF = thorn
+        AIF = self.thorn
 
         self.AIF = AIF
         if AIF<1:
@@ -1872,11 +1872,11 @@ class PerfForesightConsumerType(AgentType):
                 print('   Because the AIF > 1, the absolute amount of consumption is expected to grow over time')
             print()
 
-    def checkGICPF(self,thorn,verbose):
+    def checkGICPF(self,verbose):
         '''
         Evaluate and report on the Growth Impatience Condition
         '''
-        GIFPF = thorn/self.PermGroFac[0]
+        GIFPF = self.thorn/self.PermGroFac[0]
         self.GIFPF = GIFPF
 
         if GIFPF<1:
@@ -1894,12 +1894,12 @@ class PerfForesightConsumerType(AgentType):
                 print(' Therefore, for a perfect foresight consumer the ratio of individual wealth to permanent income is expected to grow toward infinity.')
             print()
 
-    def checkRIC(self, thorn,verbose):
+    def checkRIC(self, verbose):
         '''
         Evaluate and report on the Return Impatience Condition
         '''
 
-        RIF = thorn/self.Rfree
+        RIF = self.thorn/self.Rfree
         self.RIF = RIF
         if RIF<1:
             self.RIC = True
@@ -1931,7 +1931,7 @@ class PerfForesightConsumerType(AgentType):
                 if verbose: 
                     print('Therefore, the limiting consumption function is not c(m)=Infinity')
                     print('and human wealth normalized by permanent income is %2.5f' % (self.hNrm))
-                    self.cNrmPDV = 1.0/(1.0-self.Thorn/self.Rfree)
+                    self.cNrmPDV = 1.0/(1.0-self.thorn/self.Rfree)
                     print('and the PDV of future consumption growth is %2.5f' % (self.cNrmPDV) )
             print()
         else:
@@ -1978,12 +1978,11 @@ class PerfForesightConsumerType(AgentType):
 
         self.violated = False
 
-        Thorn = (self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)
-        self.Thorn = Thorn
+        self.thorn = (self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)
 
-        self.checkAIC(Thorn,verbose)
-        self.checkGICPF(Thorn,verbose)
-        self.checkRIC(Thorn,verbose)
+        self.checkAIC(verbose)
+        self.checkGICPF(verbose)
+        self.checkRIC(verbose)
         self.checkFHWC(verbose)
 
 class IndShockConsumerType(PerfForesightConsumerType):
@@ -2269,7 +2268,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if not self.quiet:
             self.checkConditions(verbose=self.verbose)
 
-    def checkGICInd(self,thorn,verbose):
+    def checkGICInd(self,verbose):
         '''
         Check Individual Growth Impatience Factor.
         '''
@@ -2290,7 +2289,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 print('Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see '+self.url+'/#onetarget for more).')
             print()
 
-    def checkCIGAgg(self, thorn,verbose):
+    def checkCIGAgg(self,verbose):
 
         if self.GIFAgg<=1:
             self.GICAgg = True
@@ -2398,17 +2397,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
         InvEPermShkInv=(1/EPermShkInv)                          # $\underline{\psi}$ in the paper (\bar{\isp} in private version)
         PermGroFacAdj=self.PermGroFac[0]*InvEPermShkInv                # [url]/#PGroAdj
         # [url]/#Pat, adjusted to include mortality
-#        Thorn = ((self.Rfree/self.LivPrb[0])*(self.DiscFac*self.LivPrb[0]))**(1/self.CRRA)
-        Thorn = ((self.Rfree*self.DiscFac))**(1/self.CRRA)
-        GIFPF  = Thorn/(self.PermGroFac[0]               )      # [url]/#GIF
-        GIFInd = Thorn/(self.PermGroFac[0]*InvEPermShkInv)      # [url]/#GIFI
-        GIFAgg = Thorn*self.LivPrb[0]/self.PermGroFac[0]        # Lower bound of aggregate wealth growth if all inheritances squandered
+
+        self.thorn = ((self.Rfree*self.DiscFac))**(1/self.CRRA)
+        GIFPF  = self.thorn/(self.PermGroFac[0]               )      # [url]/#GIF
+        GIFInd = self.thorn/(self.PermGroFac[0]*InvEPermShkInv)      # [url]/#GIFI
+        GIFAgg = self.thorn*self.LivPrb[0]/self.PermGroFac[0]        # Lower bound of aggregate wealth growth if all inheritances squandered
 
 #        self.Rnorm           = self.Rfree*EPermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
         self.GIFPF           = GIFPF
         self.GIFInd          = GIFInd
         self.GIFAgg          = GIFAgg
-        self.Thorn           = Thorn
+        
         self.PermGroFacAdj   = PermGroFacAdj
         self.EPermShkInv     = EPermShkInv
         self.InvEPermShkInv  = InvEPermShkInv
@@ -2416,9 +2415,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.DiscFacGIFIndMax = ((self.PermGroFac[0]*InvEPermShkInv)**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
         self.DiscFacGIFAggMax = ((self.PermGroFac[0]               )**(self.CRRA))/(self.Rfree*self.LivPrb[0]) # DiscFac at growth impatience knife edge
 
-        self.checkGICPF(Thorn,verbose)
-        self.checkGICInd(Thorn,verbose)
-        self.checkCIGAgg(Thorn,verbose)
+        self.checkGICPF(verbose)
+        self.checkGICInd(verbose)
+        self.checkCIGAgg(verbose)
         self.checkWRIC(verbose)
         self.checkFVAC(verbose)
 
@@ -2430,7 +2429,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             print('GIFPF            = %2.6f ' % (GIFPF))
             print('GIFInd           = %2.6f ' % (GIFInd))
             print('GIFAgg           = %2.6f ' % (GIFAgg))
-            print('Thorn = AIF      = %2.6f ' % (Thorn))
+            print('Thorn = AIF      = %2.6f ' % (self.thorn))
             print('PermGroFacAdj    = %2.6f ' % (PermGroFacAdj))
             print('uInvEpShkuInv    = %2.6f ' % (self.uInvEpShkuInv))
             print('FVAF             = %2.6f ' % (self.FVAF))
