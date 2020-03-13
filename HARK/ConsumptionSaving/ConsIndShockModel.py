@@ -2289,7 +2289,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 print('Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see '+self.url+'/#onetarget for more).')
             print()
 
-    def checkCIGAgg(self,verbose):
+    def checkCIGAgg(self, verbose):
 
         if self.GIFAgg<=1:
             self.GICAgg = True
@@ -2392,28 +2392,24 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         self.InvPermShkDstn=deepcopy(self.PermShkDstn)
         self.InvPermShkDstn[0][1]=1/self.PermShkDstn[0][1]
-        EPermShkInv=np.dot(self.InvPermShkDstn[0][0],1/self.PermShkDstn[0][1]) # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
 
-        InvEPermShkInv=(1/EPermShkInv)                          # $\underline{\psi}$ in the paper (\bar{\isp} in private version)
-        PermGroFacAdj=self.PermGroFac[0]*InvEPermShkInv                # [url]/#PGroAdj
         # [url]/#Pat, adjusted to include mortality
 
-        self.thorn = ((self.Rfree*self.DiscFac))**(1/self.CRRA)
-        GIFPF  = self.thorn/(self.PermGroFac[0]               )      # [url]/#GIF
-        GIFInd = self.thorn/(self.PermGroFac[0]*InvEPermShkInv)      # [url]/#GIFI
-        GIFAgg = self.thorn*self.LivPrb[0]/self.PermGroFac[0]        # Lower bound of aggregate wealth growth if all inheritances squandered
+        self.EPermShkInv     = np.dot(self.InvPermShkDstn[0][0],1/self.PermShkDstn[0][1]) # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
+        self.InvEPermShkInv  = (1/self.EPermShkInv)  # $\underline{\psi}$ in the paper (\bar{\isp} in private version)
+        self.PermGroFacAdj   = self.PermGroFac[0]*self.InvEPermShkInv # [url]/#PGroAdj
 
-#        self.Rnorm           = self.Rfree*EPermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
-        self.GIFPF           = GIFPF
-        self.GIFInd          = GIFInd
-        self.GIFAgg          = GIFAgg
+        self.thorn = ((self.Rfree*self.DiscFac))**(1/self.CRRA)
+
+        # self.Rnorm           = self.Rfree*EPermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
+        self.GIFPF = self.thorn/(self.PermGroFac[0])      # [url]/#GIF
+        self.GIFInd = self.thorn/(self.PermGroFac[0]*self.InvEPermShkInv)      # [url]/#GIFI
+        # Lower bound of aggregate wealth growth if all inheritances squandered
+        self.GIFAgg = self.thorn*self.LivPrb[0]/self.PermGroFac[0]
         
-        self.PermGroFacAdj   = PermGroFacAdj
-        self.EPermShkInv     = EPermShkInv
-        self.InvEPermShkInv  = InvEPermShkInv
-        self.DiscFacGIFPFMax = ((self.PermGroFac[0]              )**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
-        self.DiscFacGIFIndMax = ((self.PermGroFac[0]*InvEPermShkInv)**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
-        self.DiscFacGIFAggMax = ((self.PermGroFac[0]               )**(self.CRRA))/(self.Rfree*self.LivPrb[0]) # DiscFac at growth impatience knife edge
+        self.DiscFacGIFPFMax = ((self.PermGroFac[0])**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
+        self.DiscFacGIFIndMax = ((self.PermGroFac[0]*self.InvEPermShkInv)**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
+        self.DiscFacGIFAggMax = ((self.PermGroFac[0])**(self.CRRA))/(self.Rfree*self.LivPrb[0]) # DiscFac at growth impatience knife edge
 
         self.checkGICPF(verbose)
         self.checkGICInd(verbose)
@@ -2426,11 +2422,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
             print('')
 
         if verbose:
-            print('GIFPF            = %2.6f ' % (GIFPF))
-            print('GIFInd           = %2.6f ' % (GIFInd))
-            print('GIFAgg           = %2.6f ' % (GIFAgg))
+            print('GIFPF            = %2.6f ' % (self.GIFPF))
+            print('GIFInd           = %2.6f ' % (self.GIFInd))
+            print('GIFAgg           = %2.6f ' % (self.GIFAgg))
             print('Thorn = AIF      = %2.6f ' % (self.thorn))
-            print('PermGroFacAdj    = %2.6f ' % (PermGroFacAdj))
+            print('PermGroFacAdj    = %2.6f ' % (self.PermGroFacAdj))
             print('uInvEpShkuInv    = %2.6f ' % (self.uInvEpShkuInv))
             print('FVAF             = %2.6f ' % (self.FVAF))
             print('WRIF             = %2.6f ' % (self.WRIF))
