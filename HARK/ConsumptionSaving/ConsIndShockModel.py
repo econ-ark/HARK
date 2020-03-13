@@ -1849,105 +1849,98 @@ class PerfForesightConsumerType(AgentType):
         self.aLvlNow = self.aNrmNow*self.pLvlNow   # Useful in some cases to precalculate asset level
         return None
 
-    def checkAIC(self, verbose):
+    def checkCondition(self,
+                       name,
+                       test,
+                       messages,
+                       verbose=False):
+        """
+        Checks one condition.
+          - name : str, name of the condition
+          - test : a function of self, returns True if condition passes
+          - messages: a tuple of four strings, for four conditions:
+              - True, always
+              - True, verbose
+              - False, always
+              - False, verbose
+        """
+        self.conditions[name] = test(self)
+
+        print(messages[0].format(self)
+              if self.conditions[name]
+              else messages[3].format(self))
+        if verbose:
+            print(messages[1].format(self)
+                  if self.conditions[name]
+                  else messages[2].format(self))
+
+
+    def checkAIC(self, verbose = False):
         '''
         Evaluate and report on the Absolute Impatience Condition
         '''
-        AIF = self.thorn
+        name = "AIC"
+        test = lambda agent : agent.thorn < 1
 
-        self.AIF = AIF
-        if AIF<1:
-            self.AIC = True
-            if verbose:
-                print('The value of the absolute impatience factor (AIF) for the supplied parameter values satisfies the Absolute Impatience Condition.', end = " ")
-                self.violated = False
-                if verbose:
-                    print('   Because the AIF < 1, the absolute amount of consumption is expected to fall over time.')
-            print()
-        else:
-            self.AIC = False
-            print('The given type violates the Absolute Impatience Condition with the supplied parameter values; the AIF is %1.5f ' % (AIF), end=" ")
-            self.violated = True
-            if verbose:
-                print('   Because the AIF > 1, the absolute amount of consumption is expected to grow over time')
-            print()
+        messages = ("The value of the absolute impatience factor (AIF) for the supplied parameter values satisfies the Absolute Impatience Condition.",
+                    "Because the AIF < 1, the absolute amount of consumption is expected to fall over time.",
+                    "The given type violates the Absolute Impatience Condition with the supplied parameter values; the AIF is {0.thorn}",
+                    "Because the AIF > 1, the absolute amount of consumption is expected to grow over time")
 
-    def checkGICPF(self,verbose):
+        self.checkCondition(name, test, messages, verbose = verbose)
+
+    def checkGICPF(self,verbose = False):
         '''
         Evaluate and report on the Growth Impatience Condition
         '''
-        GIFPF = self.thorn/self.PermGroFac[0]
-        self.GIFPF = GIFPF
+        name = "GICPF"
 
-        if GIFPF<1:
-            self.GICPF = True
-            if verbose:
-                print('The value of the Growth Impatience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.', end = " ")
-                if verbose:
-                    print(' Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income will fall indefinitely.')
-            print()
-        else:
-            self.GICPF = False
-            self.violated = True
-            print('The given parameter values violate the Perfect Foresight Growth Impatience Condition for this consumer type; the GIFPF is: %2.4f' % (GIFPF), end = " ")
-            if verbose:
-                print(' Therefore, for a perfect foresight consumer the ratio of individual wealth to permanent income is expected to grow toward infinity.')
-            print()
+        self.GIFPF = self.thorn/self.PermGroFac[0]
 
-    def checkRIC(self, verbose):
+        test = lambda agent : agent.GIFPF < 1
+
+        messages = (
+            'The value of the Growth Impatience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.',
+            ' Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income will fall indefinitely.',
+            'The given parameter values violate the Perfect Foresight Growth Impatience Condition for this consumer type; the GIFPF is: {0.GIFPF}',
+            ' Therefore, for a perfect foresight consumer the ratio of individual wealth to permanent income is expected to grow toward infinity.')
+        self.checkCondition(name, test, messages, verbose = verbose)
+
+    def checkRIC(self, verbose = False):
         '''
         Evaluate and report on the Return Impatience Condition
         '''
 
-        RIF = self.thorn/self.Rfree
-        self.RIF = RIF
-        if RIF<1:
-            self.RIC = True
-            if verbose:
-                print('The return impatience factor value for the supplied parameter values satisfies the Return Impatience Condition.', end = " ")
-                if verbose:
-                    print('Therefore, the limiting consumption function is not c(m)=0 for all m')
-            print()
-        else:
-            self.RIC = False
-            self.violated = True
-            print('The given type violates the Return Impatience Condition with the supplied parameter values; the factor is %1.5f ' % (RIF), end = " ")
-            if verbose:
-                print('Therefore, the limiting consumption function is c(m)=0 for all m')
-            print()
+        self.RIF = self.thorn/self.Rfree
 
-    def checkFHWC(self,verbose):
+        name = "RIC"
+        test = lambda agent: self.RIF < 1
+
+        messages = ('The return impatience factor value for the supplied parameter values satisfies the Return Impatience Condition.',
+                    'Therefore, the limiting consumption function is not c(m)=0 for all m',
+                    'The given type violates the Return Impatience Condition with the supplied parameter values; the factor is {0.RIF}',
+                    'Therefore, the limiting consumption function is c(m)=0 for all m')
+        self.checkCondition(name, test, messages, verbose = verbose)
+
+    def checkFHWC(self,verbose = False):
         '''
         Evaluate and report on the Finite Human Wealth Condition
         '''
 
-        FHWF = self.PermGroFac[0]/self.Rfree
-        self.FHWF = FHWF
-        if FHWF<1:
-            self.hNrm = 1.0/(1.0-self.PermGroFac[0]/self.Rfree)
-            self.FHWC = True
-            if verbose:
-                print('The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.', end = " ")
-                if verbose: 
-                    print('Therefore, the limiting consumption function is not c(m)=Infinity')
-                    print('and human wealth normalized by permanent income is %2.5f' % (self.hNrm))
-                    self.cNrmPDV = 1.0/(1.0-self.thorn/self.Rfree)
-                    print('and the PDV of future consumption growth is %2.5f' % (self.cNrmPDV) )
-            print()
-        else:
-            self.FHWC = False
-            print('The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value %2.5f ' % (FHWF), end = " ")
-            self.violated = True
-            if verbose:
-                print('Therefore, the limiting consumption function is c(m)=Infinity for all m')
-            print()
-        if verbose and self.violated and verbose_reference:
-            print('[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
-        return self.violated
+        self.FHWF = self.PermGroFac[0]/self.Rfree
+        self.cNrmPDV = 1.0/(1.0-self.thorn/self.Rfree)
 
+        name = "FHWC"
+        test = lambda agent: self.FHWF < 1
 
+        messages = ('The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.',
+                    'Therefore, the limiting consumption function is not c(m)=Infinity\nand human wealth normalized by permanent income is {0.hNrm}\nand the PDV of future consumption growth is {0.cNrmPDV}',
+                    'The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value {0.FHWF}',
+                    'Therefore, the limiting consumption function is c(m)=Infinity for all m')
 
-    def checkConditions(self,verbose=False,verbose_reference=False):
+        self.checkCondition(name, test, messages, verbose = verbose)
+
+    def checkConditions(self,verbose=False):
         '''
         This method checks whether the instance's type satisfies the
         Absolute Impatience Condition (AIC), 
@@ -1958,6 +1951,8 @@ class PerfForesightConsumerType(AgentType):
         combination of these conditions must be satisfied in order for the problem to have 
         a nondegenerate solution. To check which conditions are required, in the verbose mode
         a reference to the relevant theoretical literature is made.
+
+        [!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/
 
         Parameters
         ----------
@@ -1971,19 +1966,23 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         '''
+        self.conditions = {}
+
         # This method only checks for the conditions for infinite horizon models
         # with a 1 period cycle. If these conditions are not met, we exit early.
         if self.cycles!=0 or self.T_cycle > 1:
             return
 
-        self.violated = False
-
         self.thorn = (self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)
 
-        self.checkAIC(verbose)
-        self.checkGICPF(verbose)
-        self.checkRIC(verbose)
-        self.checkFHWC(verbose)
+        self.checkAIC(verbose=verbose)
+        self.checkGICPF(verbose=verbose)
+        self.checkRIC(verbose=verbose)
+        self.checkFHWC(verbose=verbose)
+
+        self.violated = any([not self.conditions[c]
+                             for c
+                             in self.conditions])
 
 class IndShockConsumerType(PerfForesightConsumerType):
     '''
