@@ -2271,61 +2271,44 @@ class IndShockConsumerType(PerfForesightConsumerType):
         '''
         Check Individual Growth Impatience Factor.
         '''
+        self.GIFInd = self.thorn/(self.PermGroFac[0]*self.InvEPermShkInv)      # [url]/#GIFI
 
-        if self.GIFInd<=1:
-            self.GICInd = True
-            if verbose:
-                print('The value of the Individual Growth Impatience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition.', end = " ")
-                if verbose:
-                    print('Therefore, a target level of the individual market resources ratio m exists (see '+self.url+'/#onetarget for more).')
-            print()
-        else:
-            self.GICInd = False
-            self.violated = True
-            print('The given parameter values violate the Individual Growth Impatience Condition; the GIFInd is: %2.4f' % (self.GIFInd), end = " ")
-            if verbose:
-                print('')
-                print('Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see '+self.url+'/#onetarget for more).')
-            print()
+        name = 'GIC'
+        test = lambda agent: agent.GIFInd <=1
+
+        messages = ('The value of the Individual Growth Impatience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition.',
+                    'Therefore, a target level of the individual market resources ratio m exists (see {0.url}/#onetarget for more).',
+                    'The given parameter values violate the Individual Growth Impatience Condition; the GIFInd is: {0.GIFInd}',
+                    'Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see {0.url}/#onetarget for more).')
+
+        self.checkCondition(name,test,messages,verbose=verbose)
 
     def checkCIGAgg(self, verbose):
+        name = 'GICAgg'
+        test = lambda agent : agent.GIFAgg <= 1
 
-        if self.GIFAgg<=1:
-            self.GICAgg = True
-            if verbose:
-                print('The value of the Aggregate Growth Impatience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition.', end = " ")
-                if verbose:
-                    print('Therefore, it is possible that a target level of the ratio of aggregate market resources to aggregate permanent income exists.') # Need to provide reference 
-            print()
-        else:
-            self.GICAgg = False
-            self.violated = True
-            print('The given parameter values violate the Aggregate Growth Impatience Condition; the GIFAgg is: %2.4f' % (self.GIFAgg), end = " ")
-            if verbose:
-                print('')
-                print('Therefore, a target ratio of aggregate resources to aggregate permanent income does not exist.') # Need to provide reference
-            print()
+        messages = ('The value of the Aggregate Growth Impatience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition.',
+                    'Therefore, it is possible that a target level of the ratio of aggregate market resources to aggregate permanent income exists.',
+                    'The given parameter values violate the Aggregate Growth Impatience Condition; the GIFAgg is: {0.GIFAgg}',
+                    'Therefore, a target ratio of aggregate resources to aggregate permanent income does not exist.')
+
+        self.checkCondition(name,test,messages,verbose=verbose)
 
     def checkWRIC(self, verbose):
         '''
         Evaluate and report on the Weak Return Impatience Condition
         [url]/#WRIF modified to incorporate LivPrb
         '''
-        WRIF=(self.UnempPrb**(1/self.CRRA))*(self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)/self.Rfree
-        self.WRIF = WRIF
-        if WRIF<=1:
-            self.WRIC = True
-            if verbose:
-                print('The Weak Return Impatience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition (see '+self.url+'/#WRIC for more).')
-                print()
-        else:
-            self.WRIC = False
-            self.violated = True
-            print('The given type violates the Weak Return Impatience Condition with the supplied parameter values.  The WRIF is: %2.4f' % (WRIF), end = " ")
-            if verbose:
-                print('')
-                print('Therefore, a nondegenerate solution is not available (see '+self.url+'/#WRIC for more.')
-            print()
+        self.WRIF=(self.UnempPrb**(1/self.CRRA))*(self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)/self.Rfree
+
+        name = 'WRIC'
+        test = lambda agent: agent.WRIF <= 1
+        messages = ('',
+                    'The Weak Return Impatience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition (see {0.url}/#WRIC for more).',
+                    'The given type violates the Weak Return Impatience Condition with the supplied parameter values.  The WRIF is: {0.url}',
+                    'Therefore, a nondegenerate solution is not available (see {0.url}/#WRIC for more.')
+
+        self.checkCondition(name,test,messages,verbose=verbose)
 
     def checkFVAC(self,verbose):
         '''
@@ -2339,23 +2322,21 @@ class IndShockConsumerType(PerfForesightConsumerType):
             uInvEpShkuInv = 1.0
         
         self.uInvEpShkuInv   = uInvEpShkuInv
-        FVAF=self.LivPrb[0]*self.DiscFac*self.uInvEpShkuInv
-        self.FVAF = FVAF
-        if FVAF<=1:
-            self.FVAC = True
-            if verbose:
-                print('The Finite Value of Autarky Factor (FVAV) for the supplied parameter values satisfies the Finite Value of Autarky Condition.')
-                if self.WRIC:
-                    print('Since both WRIC and FVAC are satisfied, the problem has a nondegenerate solution')
-        else:
-            self.FVAC = False
-            print('The given type violates the Finite Value of Autarky Condition with the supplied parameter values. The FVAF is %2.4f' %(FVAF), end = " ")
-            self.violated = True
-            if verbose:
-                print('Therefore, a nondegenerate solution is not available (see '+self.url+'/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping')
-            print()
 
+        self.FVAF=self.LivPrb[0]*self.DiscFac*self.uInvEpShkuInv
 
+        name = 'FVAC'
+        test = lambda agent: agent.FVAF <= 1
+        messages = ('',
+                    'The Finite Value of Autarky Factor (FVAV) for the supplied parameter values satisfies the Finite Value of Autarky Condition.',
+                    'The given type violates the Finite Value of Autarky Condition with the supplied parameter values. The FVAF is {0.FVAF}',
+                    'Therefore, a nondegenerate solution is not available (see {0.url}/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping')
+
+        # Ok, I couldn't figure out how to work this case in ...- SB
+        #if self.WRIC:
+        #    print('Since both WRIC and FVAC are satisfied, the problem has a nondegenerate solution')
+
+        self.checkCondition(name,test,messages,verbose=verbose)
 
 
     def checkConditions(self,verbose=False):
@@ -2377,6 +2358,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         '''
+        self.conditions = {}
+
         self.violated = False # PerfForesightConsumerType.checkConditions(self, verbose=False, verbose_reference=False)
 
         if self.cycles!=0 or self.T_cycle > 1:
@@ -2402,7 +2385,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # self.Rnorm           = self.Rfree*EPermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
         self.GIFPF = self.thorn/(self.PermGroFac[0])      # [url]/#GIF
-        self.GIFInd = self.thorn/(self.PermGroFac[0]*self.InvEPermShkInv)      # [url]/#GIFI
         # Lower bound of aggregate wealth growth if all inheritances squandered
         self.GIFAgg = self.thorn*self.LivPrb[0]/self.PermGroFac[0]
         
@@ -2415,6 +2397,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.checkCIGAgg(verbose)
         self.checkWRIC(verbose)
         self.checkFVAC(verbose)
+
+        self.violated = any([not self.conditions[c]
+                             for c
+                             in self.conditions])
 
         if verbose and self.violated:
             print('\n[!] For more information on the conditions, see Tables 3 and 4 in "Theoretical Foundations of Buffer Stock Saving" at '+self.url+'/#Factors-Defined-And-Compared')
