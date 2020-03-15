@@ -403,13 +403,12 @@ class PortfolioConsumerType(IndShockConsumerType):
     time_inv_ = time_inv_ + ["RiskyShareLimitFunc", "PortfolioDomain"]
     time_inv_ = time_inv_ + ["AdjustPrb", "PortfolioGrid", "AdjustCount"]
 
-    def __init__(self, cycles=1, time_flow=True, verbose=False, quiet=False, **kwds):
+    def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
 
         # Initialize a basic AgentType
         PerfForesightConsumerType.__init__(
             self,
             cycles=cycles,
-            time_flow=time_flow,
             verbose=verbose,
             quiet=quiet,
             **kwds
@@ -1430,12 +1429,11 @@ class LogNormalPortfolioConsumerType(PortfolioConsumerType):
 
     #    time_inv_ = PortfolioConsumerType.time_inv_ + ['approxRiskyDstn', 'RiskyCount', 'RiskyShareCount', 'RiskyShareLimitFunc', 'AdjustPrb', 'PortfolioGrid']
 
-    def __init__(self, cycles=1, time_flow=True, verbose=False, quiet=False, **kwds):
+    def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
 
         PortfolioConsumerType.__init__(
             self,
             cycles=cycles,
-            time_flow=time_flow,
             verbose=verbose,
             quiet=quiet,
             **kwds

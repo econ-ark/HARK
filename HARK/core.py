@@ -173,7 +173,7 @@ class AgentType(HARKobject):
     that varies over time in the model.  Each element of time_inv is the name of
     a field in AgentSubType that is constant over time in the model.
     '''
-    def __init__(self, solution_terminal=None, cycles=1, time_flow=True, pseudo_terminal=True,
+    def __init__(self, solution_terminal=None, cycles=1, pseudo_terminal=True,
                  tolerance=0.000001, seed=0, **kwds):
         '''
         Initialize an instance of AgentType by setting attributes.
@@ -190,10 +190,6 @@ class AgentType(HARKobject):
             model, with a certain sequence of one period problems experienced
             once before terminating.  cycles=0 corresponds to an infinite horizon
             model, with a sequence of one period problems repeating indefinitely.
-        time_flow : boolean
-            Whether time is currently "flowing" forward(True) or backward(False) for this
-            instance.  Used to flip between solving (using backward iteration)
-            and simulating (etc).
         pseudo_terminal : boolean
             Indicates whether solution_terminal isn't actually part of the
             solution to the problem (as a known solution to the terminal period
@@ -216,7 +212,6 @@ class AgentType(HARKobject):
             solution_terminal = NullFunc()
         self.solution_terminal  = solution_terminal # NOQA
         self.cycles             = cycles # NOQA
-        self.time_flow          = time_flow # NOQA
         self.pseudo_terminal    = pseudo_terminal # NOQA
         self.solveOnePeriod     = NullFunc() # NOQA
         self.tolerance          = tolerance # NOQA
@@ -317,8 +312,7 @@ class AgentType(HARKobject):
         with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
             self.preSolve()  # Do pre-solution stuff
             self.solution = solveAgent(self, verbose)  # Solve the model by backward induction
-            if self.time_flow:  # Put the solution in chronological order if this instance's time flow runs that way
-                self.solution.reverse()
+            self.solution.reverse()
             self.addToTimeVary('solution')  # Add solution to the list of time-varying attributes
             self.postSolve()  # Do post-solution stuff
 
@@ -467,8 +461,6 @@ class AgentType(HARKobject):
         None
         '''
         # Make sure time is flowing forward and re-initialize the simulation
-        orig_time = self.time_flow
-        self.timeFwd()
         self.initializeSim()
 
         # Make blank history arrays for each shock variable
@@ -488,8 +480,6 @@ class AgentType(HARKobject):
 
         # Restore the flow of time and flag that shocks can be read rather than simulated
         self.read_shocks = True
-        if not orig_time:
-            self.timeRev()
 
     def getMortality(self):
         '''

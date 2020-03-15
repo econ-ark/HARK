@@ -226,7 +226,7 @@ def addToStableArmPoints(solution_next,DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb
 
 class TractableConsumerType(AgentType):
 
-    def __init__(self,cycles=0,time_flow=False,**kwds):
+    def __init__(self,cycles=0,**kwds):
         '''
         Instantiate a new TractableConsumerType with given data.
 
@@ -234,15 +234,15 @@ class TractableConsumerType(AgentType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns:
         -----------
         New instance of TractableConsumerType.
         '''
         # Initialize a basic AgentType
-        AgentType.__init__(self,cycles=cycles,time_flow=time_flow,pseudo_terminal=True,**kwds)
+        AgentType.__init__(self,
+                           cycles=cycles,
+                           pseudo_terminal=True,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = []

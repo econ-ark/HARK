@@ -194,20 +194,18 @@ class RepAgentConsumerType(IndShockConsumerType):
     '''
     time_inv_ = IndShockConsumerType.time_inv_ + ['CapShare','DeprFac']
 
-    def __init__(self,time_flow=True,**kwds):
+    def __init__(self,**kwds):
         '''
         Make a new instance of a representative agent.
 
         Parameters
         ----------
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
         None
         '''
-        IndShockConsumerType.__init__(self,cycles=0,time_flow=time_flow,**kwds)
+        IndShockConsumerType.__init__(self,cycles=0,**kwds)
         self.AgentCount = 1 # Hardcoded, because this is rep agent
         self.solveOnePeriod = solveConsRepAgent
         self.delFromTimeInv('Rfree','BoroCnstArt','vFuncBool','CubicBool')
@@ -247,20 +245,19 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
     '''
     time_inv_ = RepAgentConsumerType.time_inv_ + ['MrkvArray']
 
-    def __init__(self,time_flow=True,**kwds):
+    def __init__(self,**kwds):
         '''
         Make a new instance of a representative agent with Markov state.
 
         Parameters
         ----------
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
+
 
         Returns
         -------
         None
         '''
-        RepAgentConsumerType.__init__(self,time_flow=time_flow,**kwds)
+        RepAgentConsumerType.__init__(self,**kwds)
         self.solveOnePeriod = solveConsRepAgentMarkov
         
     def preSolve(self):

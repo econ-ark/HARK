@@ -970,7 +970,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     solution_terminal_ = ConsumerSolution(cFunc=cFunc_terminal_, mNrmMin=0.0, hNrm=0.0, MPCmin=1.0, MPCmax=1.0)
     poststate_vars_ = ['aLvlNow', 'pLvlNow']
 
-    def __init__(self, cycles=0, time_flow=True, **kwds):
+    def __init__(self, cycles=0, **kwds):
         '''
         Instantiate a new ConsumerType with given data.
         See ConsumerParameters.init_explicit_perm_inc for a dictionary of the
@@ -980,8 +980,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -992,7 +990,9 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         kwds = params
 
         # Initialize a basic ConsumerType
-        IndShockConsumerType.__init__(self, cycles=cycles, time_flow=time_flow, **kwds)
+        IndShockConsumerType.__init__(self,
+                                      cycles=cycles,
+                                      **kwds)
         self.solveOnePeriod = solveConsGenIncProcess  # idiosyncratic shocks solver with explicit persistent income
 
     def preSolve(self):

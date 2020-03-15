@@ -246,7 +246,7 @@ def solveConsLaborIntMarg(solution_next,PermShkDstn,TranShkDstn,LivPrb,DiscFac,C
         
 class LaborIntMargConsumerType(IndShockConsumerType):
     
-    '''        
+    '''
     A class representing agents who make a decision each period about how much
     to consume vs save and how much labor to supply (as a fraction of their time).
     They get CRRA utility from a composite good x_t = c_t*z_t^alpha, and discount
@@ -256,7 +256,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     time_vary_ += ['WageRte']
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,cycles=1,**kwds):
         '''
         Instantiate a new consumer type with given data.
         See ConsumerParameters.init_labor_intensive for a dictionary of
@@ -266,8 +266,6 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
         
         Returns
         -------
@@ -277,7 +275,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         params.update(kwds)
         kwds = params
         
-        IndShockConsumerType.__init__(self,cycles = cycles,time_flow=time_flow,**kwds)
+        IndShockConsumerType.__init__(self,cycles = cycles,
+                                      **kwds)
         self.pseudo_terminal = False
         self.solveOnePeriod = solveConsLaborIntMarg
         self.update()
@@ -320,13 +319,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         for n in range(N):
             LbrCostBase += Coeffs[n]*age_vec**n
         LbrCost = np.exp(LbrCostBase)
-        time_orig = self.time_flow
-        self.timeFwd()
         self.LbrCost = LbrCost.tolist()
         self.addToTimeVary('LbrCost')
-        if not time_orig:
-            self.timeRev()
-
     
     def calcBoundingValues(self):      
         '''
@@ -458,18 +452,11 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        time_orig=self.time_flow
-        self.timeFwd()
-      
         TranShkGrid = []   # Create an empty list for TranShkGrid that will be updated
         for t in range(self.T_cycle):
             TranShkGrid.append(self.TranShkDstn[t][1])  # Update/ Extend the list of TranShkGrid with the TranShkVals for each TranShkPrbs
         self.TranShkGrid = TranShkGrid  # Save that list in self (time-varying)
         self.addToTimeVary('TranShkGrid')   # Run the method addToTimeVary from AgentType to add TranShkGrid as one parameter of time_vary list
-        
-        if not time_orig:
-            self.timeRev()
-            
      
     def updateSolutionTerminal(self):
         ''' 
@@ -483,11 +470,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         Returns
         -------
         None
-        '''   
-        if self.time_flow: # To make sure we pick the last element of the list, depending on the direction time is flowing
-            t=-1
-        else:
-            t=0
+        '''
+        t=-1
         TranShkGrid = self.TranShkGrid[t]
         LbrCost = self.LbrCost[t]
         WageRte = self.WageRte[t]

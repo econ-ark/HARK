@@ -1598,7 +1598,6 @@ class PerfForesightConsumerType(AgentType):
 
     def __init__(self,
                  cycles=1,
-                 time_flow=True,
                  verbose=False,
                  quiet=False,
                  **kwds):
@@ -1611,8 +1610,6 @@ class PerfForesightConsumerType(AgentType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -1624,7 +1621,8 @@ class PerfForesightConsumerType(AgentType):
 
         # Initialize a basic AgentType
         AgentType.__init__(self,solution_terminal=deepcopy(self.solution_terminal_),
-                           cycles=cycles,time_flow=time_flow,pseudo_terminal=False,**kwds)
+                           cycles=cycles,
+                           pseudo_terminal=False,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary      = deepcopy(self.time_vary_)
@@ -1997,7 +1995,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def __init__(self,
                  cycles=1,
-                 time_flow=True,
                  verbose=False,
                  quiet=False,
                  **kwds):
@@ -2010,8 +2007,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -2025,7 +2020,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Initialize a basic AgentType
         PerfForesightConsumerType.__init__(self,
                                            cycles=cycles,
-                                           time_flow=time_flow,
                                            verbose=verbose,
                                            quiet=quiet,
                                            **kwds)
@@ -2495,7 +2489,7 @@ class KinkedRconsumerType(IndShockConsumerType):
     time_inv_.remove('Rfree')
     time_inv_ += ['Rboro', 'Rsave']
 
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,cycles=1,**kwds):
         '''
         Instantiate a new ConsumerType with given data.
         See ConsumerParameters.init_kinked_R for a dictionary of
@@ -2505,8 +2499,6 @@ class KinkedRconsumerType(IndShockConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -2517,7 +2509,9 @@ class KinkedRconsumerType(IndShockConsumerType):
         kwds = params
 
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
+        PerfForesightConsumerType.__init__(self,
+                                           cycles=cycles,
+                                           **kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsKinkedR # kinked R solver

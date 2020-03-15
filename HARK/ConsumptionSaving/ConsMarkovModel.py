@@ -682,8 +682,10 @@ class MarkovConsumerType(IndShockConsumerType):
     time_vary_ = IndShockConsumerType.time_vary_ + ['MrkvArray']
     shock_vars_ = IndShockConsumerType.shock_vars_ + ['MrkvNow']
 
-    def __init__(self,cycles=1,time_flow=True,**kwds):
-        IndShockConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
+    def __init__(self,
+                 cycles=1,
+                 **kwds):
+        IndShockConsumerType.__init__(self,cycles=1,**kwds)
         self.solveOnePeriod = _solveConsMarkov
         self.poststate_vars += ['MrkvNow']
         if not hasattr(self, 'global_markov'):

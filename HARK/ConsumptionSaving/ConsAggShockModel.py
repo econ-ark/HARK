@@ -79,7 +79,7 @@ class AggShockConsumerType(IndShockConsumerType):
     evolves over time and take aggregate shocks into account when making their
     decision about how much to consume.
     '''
-    def __init__(self, time_flow=True, **kwds):
+    def __init__(self, **kwds):
         '''
         Make a new instance of AggShockConsumerType, an extension of
         IndShockConsumerType.  Sets appropriate solver and input lists.
@@ -87,8 +87,9 @@ class AggShockConsumerType(IndShockConsumerType):
         params = Params.init_agg_shocks.copy()
         params.update(kwds)
         kwds = params
-        AgentType.__init__(self, solution_terminal=deepcopy(IndShockConsumerType.solution_terminal_),
-                           time_flow=time_flow, pseudo_terminal=False, **kwds)
+        AgentType.__init__(self,
+                           solution_terminal=deepcopy(IndShockConsumerType.solution_terminal_),
+                           pseudo_terminal=False, **kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(IndShockConsumerType.time_vary_)
