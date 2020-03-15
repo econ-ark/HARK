@@ -312,7 +312,6 @@ class AgentType(HARKobject):
         with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
             self.preSolve()  # Do pre-solution stuff
             self.solution = solveAgent(self, verbose)  # Solve the model by backward induction
-            self.solution.reverse()
             self.addToTimeVary('solution')  # Add solution to the list of time-varying attributes
             self.postSolve()  # Do post-solution stuff
 
@@ -692,7 +691,7 @@ def solveAgent(agent, verbose):
     -------
     solution : [Solution]
         A list of solutions to the one period problems that the agent will
-        encounter in his "lifetime".  Returns in reverse chronological order.
+        encounter in his "lifetime".
     '''
     ## TODO: This requires Reversed Time
 
@@ -752,6 +751,7 @@ def solveAgent(agent, verbose):
     if infinite_horizon:
         solution = solution_cycle  # PseudoTerminal=False impossible for infinite horizon
 
+    solution.reverse()
     return solution
 
 
