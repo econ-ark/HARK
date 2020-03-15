@@ -49,6 +49,7 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
 
         InfiniteType.updateIncomeProcess()
         InfiniteType.solve()
+        InfiniteType.unpackcFunc()
 
         # Make and solve a perfect foresight consumer type with the same parameters
         PerfectForesightType = PerfForesightConsumerType(**test_dictionary)
