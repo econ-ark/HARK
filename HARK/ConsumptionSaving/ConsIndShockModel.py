@@ -2047,15 +2047,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -----------
         none
         '''
-        original_time = self.time_flow
-        self.timeFwd()
         IncomeDstn, PermShkDstn, TranShkDstn = constructLognormalIncomeProcessUnemployment(self)
         self.IncomeDstn = IncomeDstn
         self.PermShkDstn = PermShkDstn
         self.TranShkDstn = TranShkDstn
         self.addToTimeVary('IncomeDstn','PermShkDstn','TranShkDstn')
-        if not original_time:
-            self.timeRev()
 
     def updateAssetsGrid(self):
         '''

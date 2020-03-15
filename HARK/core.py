@@ -660,8 +660,6 @@ class AgentType(HARKobject):
         # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
         # -np.inf, np.inf/np.inf is np.nan and so on.
         with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
-            orig_time = self.time_flow
-            self.timeFwd()
             if sim_periods is None:
                 sim_periods = self.T_sim
 
@@ -670,9 +668,6 @@ class AgentType(HARKobject):
                 for var_name in self.track_vars:
                     exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
                 self.t_sim += 1
-
-            if not orig_time:
-                self.timeRev()
 
     def clearHistory(self):
         '''
@@ -709,9 +704,7 @@ def solveAgent(agent, verbose):
         A list of solutions to the one period problems that the agent will
         encounter in his "lifetime".  Returns in reverse chronological order.
     '''
-    # Record the flow of time when the Agent began the process, and make sure time is flowing backwards
-    original_time_flow = agent.time_flow
-    agent.timeRev()
+    ## TODO: This requires Reversed Time
 
     # Check to see whether this is an (in)finite horizon problem
     cycles_left      = agent.cycles # NOQA
@@ -769,9 +762,6 @@ def solveAgent(agent, verbose):
     if infinite_horizon:
         solution = solution_cycle  # PseudoTerminal=False impossible for infinite horizon
 
-    # Restore the direction of time to its original orientation, then return the solution
-    if original_time_flow:
-        agent.timeFwd()
     return solution
 
 

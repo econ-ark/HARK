@@ -1095,8 +1095,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        orig_time = self.time_flow
-        self.timeFwd()
         LivPrbAll = np.array(self.LivPrb)
 
         # Simulate the distribution of persistent income levels by t_cycle in a lifecycle model
@@ -1144,8 +1142,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         # Store the result and add attribute to time_vary
         self.pLvlGrid = pLvlGrid
         self.addToTimeVary('pLvlGrid')
-        if not orig_time:
-            self.timeRev()
 
     def simBirth(self, which_agents):
         '''
@@ -1261,18 +1257,12 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
         -------
         None
         '''
-        orig_time = self.time_flow
-        self.timeFwd()
-
         pLvlNextFunc = []
         for t in range(self.T_cycle):
             pLvlNextFunc.append(LinearInterp(np.array([0., 1.]), np.array([0., self.PermGroFac[t]])))
 
         self.pLvlNextFunc = pLvlNextFunc
         self.addToTimeVary('pLvlNextFunc')
-        if not orig_time:
-            self.timeRev()
-
 
 ###############################################################################
 
@@ -1300,8 +1290,6 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         -------
         None
         '''
-        orig_time = self.time_flow
-        self.timeFwd()
 
         pLvlNextFunc = []
         pLogMean = self.pLvlInitMean  # Initial mean (log) persistent income
@@ -1312,5 +1300,3 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 
         self.pLvlNextFunc = pLvlNextFunc
         self.addToTimeVary('pLvlNextFunc')
-        if not orig_time:
-            self.timeRev()
