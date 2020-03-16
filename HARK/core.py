@@ -459,7 +459,7 @@ class AgentType(HARKobject):
         -------
         None
         '''
-        # Make sure time is flowing forward and re-initialize the simulation
+        # Re-initialize the simulation
         self.initializeSim()
 
         # Make blank history arrays for each shock variable
@@ -477,7 +477,7 @@ class AgentType(HARKobject):
             self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
             self.t_cycle[self.t_cycle == self.T_cycle] = 0  # Resetting to zero for those who have reached the end
 
-        # Restore the flow of time and flag that shocks can be read rather than simulated
+        # Flag that shocks can be read rather than simulated
         self.read_shocks = True
 
     def getMortality(self):
