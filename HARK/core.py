@@ -676,14 +676,19 @@ class AgentType(HARKobject):
 
 def solveAgent(agent, verbose):
     '''
-    Solve the dynamic model for one agent type.  This function iterates on "cycles"
-    of an agent's model either a given number of times or until solution convergence
-    if an infinite horizon model is used (with agent.cycles = 0).
+    Solve the dynamic model for one agent type
+    using backwards induction.
+    This function iterates on "cycles"
+    of an agent's model either a given number of times 
+    or until solution convergence
+    if an infinite horizon model is used 
+    (with agent.cycles = 0).
 
     Parameters
     ----------
     agent : AgentType
-        The microeconomic AgentType whose dynamic problem is to be solved.
+        The microeconomic AgentType whose dynamic problem
+        is to be solved.
     verbose : boolean
         If True, solution progress is printed to screen (when cycles != 1).
 
@@ -785,16 +790,12 @@ def solveOneCycle(agent, solution_last):
     else:
         T = 1
 
-    # Construct a dictionary to be passed to the solver
-    # time_inv_string = ''
-    # for name in agent.time_inv:
-    #     time_inv_string += ' \'' + name + '\' : agent.' + name + ','
-    # time_vary_string = ''
-    # for name in agent.time_vary:
-    #     time_vary_string += ' \'' + name + '\' : None,'
-    # solve_dict = eval('{' + time_inv_string + time_vary_string + '}')
-    solve_dict = {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
-    solve_dict.update({parameter: None for parameter in agent.time_vary})
+    solve_dict = {parameter: agent.__dict__[parameter]
+                  for parameter
+                  in agent.time_inv}
+    solve_dict.update({parameter: None
+                       for parameter
+                       in agent.time_vary})
 
     # Initialize the solution for this cycle, then iterate on periods
     solution_cycle = []
@@ -816,7 +817,9 @@ def solveOneCycle(agent, solution_last):
         solve_dict['solution_next'] = solution_next
 
         # Make a temporary dictionary for this period
-        temp_dict = {name: solve_dict[name] for name in these_args}
+        temp_dict = {name: solve_dict[name]
+                     for name
+                     in these_args}
 
         # Solve one period, add it to the solution, and move to the next period
         solution_t = solveOnePeriod(**temp_dict)
