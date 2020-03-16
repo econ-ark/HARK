@@ -40,7 +40,6 @@ class testIndShockConsumerType(unittest.TestCase):
             LifecycleExample.solution[10].cFunc(2).tolist(),
             2)
 
-        
         self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1),
                                0.97769632)
         self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1),
@@ -59,7 +58,7 @@ class testIndShockConsumerType(unittest.TestCase):
             0.9563899)
         
         solver = ConsIndShockSolverBasic(
-            LifecycleExample.solution[-2],
+            LifecycleExample.solution[1],
             LifecycleExample.IncomeDstn[0],
             LifecycleExample.LivPrb[0],
             LifecycleExample.DiscFac,
