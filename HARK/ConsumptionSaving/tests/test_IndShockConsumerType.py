@@ -35,6 +35,16 @@ class testIndShockConsumerType(unittest.TestCase):
         LifecycleExample.cycles = 1
         LifecycleExample.solve()
 
+        self.assertAlmostEqual(
+            LifecycleExample.solution[0].cFunc(1).tolist(),
+            0.87362789)
+        self.assertAlmostEqual(
+            LifecycleExample.solution[1].cFunc(1).tolist(),
+            0.9081621)
+        self.assertAlmostEqual(
+            LifecycleExample.solution[2].cFunc(1).tolist(),
+            0.9563899)
+
         # test the solution_terminal
         self.assertAlmostEqual(
             LifecycleExample.solution[10].cFunc(2).tolist(),
