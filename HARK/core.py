@@ -811,7 +811,7 @@ def solveOneCycle(agent, solution_last):
         for name in agent.time_vary:
             if name in these_args:
                 # solve_dict[name] = eval('agent.' + name + '[t]')
-                solve_dict[name] = agent.__dict__[name][t]
+                solve_dict[name] = agent.__dict__[name][T - 1 - t]
         solve_dict['solution_next'] = solution_next
 
         # Make a temporary dictionary for this period
