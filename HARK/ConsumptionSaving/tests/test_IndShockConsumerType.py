@@ -35,17 +35,23 @@ class testIndShockConsumerType(unittest.TestCase):
         LifecycleExample.cycles = 1
         LifecycleExample.solve()
 
-        solver = ConsIndShockSolverBasic(LifecycleExample.solution[1],
-                                 LifecycleExample.IncomeDstn[0],
-                                 LifecycleExample.LivPrb[0],
-                                 LifecycleExample.DiscFac,
-                                 LifecycleExample.CRRA,
-                                 LifecycleExample.Rfree,
-                                 LifecycleExample.PermGroFac[0],
-                                 LifecycleExample.BoroCnstArt,
-                                 LifecycleExample.aXtraGrid,
-                                 LifecycleExample.vFuncBool,
-                                 LifecycleExample.CubicBool)
+        # test the solution_terminal
+        self.assertAlmostEqual(
+            LifecycleExample.solution[10].cFunc(2).tolist(),
+            2)
+
+        solver = ConsIndShockSolverBasic(
+            LifecycleExample.solution[-2],
+            LifecycleExample.IncomeDstn[0],
+            LifecycleExample.LivPrb[0],
+            LifecycleExample.DiscFac,
+            LifecycleExample.CRRA,
+            LifecycleExample.Rfree,
+            LifecycleExample.PermGroFac[0],
+            LifecycleExample.BoroCnstArt,
+            LifecycleExample.aXtraGrid,
+            LifecycleExample.vFuncBool,
+            LifecycleExample.CubicBool)
 
         solver.prepareToSolve()
 
