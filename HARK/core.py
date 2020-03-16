@@ -778,7 +778,7 @@ def solveOneCycle(agent, solution_last):
     -------
     solution_cycle : [Solution]
         A list of one period solutions for one "cycle" of the AgentType's
-        microeconomic model.  Returns in reverse chronological order.
+        microeconomic model.
     '''
     # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
     if len(agent.time_vary) > 0:

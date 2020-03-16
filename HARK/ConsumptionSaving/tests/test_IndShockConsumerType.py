@@ -301,7 +301,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
         self.assertAlmostEqual(LifecycleExample.solution[5].cFunc(3).tolist(),
                                2.129983771775666)
 
-CyclicalDict = { # Click the arrow to expand this parameter dictionary
+CyclicalDict = { 
     # Parameters shared with the perfect foresight model
     "CRRA": 2.0,                           # Coefficient of relative risk aversion
     "Rfree": 1.03,                         # Interest factor on assets
