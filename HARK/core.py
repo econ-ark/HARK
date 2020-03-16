@@ -698,15 +698,13 @@ def solveAgent(agent, verbose):
         A list of solutions to the one period problems that the agent will
         encounter in his "lifetime".
     '''
-    ## TODO: This requires Reversed Time
-
     # Check to see whether this is an (in)finite horizon problem
     cycles_left      = agent.cycles # NOQA
     infinite_horizon = cycles_left == 0 # NOQA
     # Initialize the solution, which includes the terminal solution if it's not a pseudo-terminal period
     solution = []
     if not agent.pseudo_terminal:
-        solution.append(deepcopy(agent.solution_terminal))
+        solution.insert(0, deepcopy(agent.solution_terminal))
 
 
     # Initialize the process, then loop over cycles
@@ -720,10 +718,11 @@ def solveAgent(agent, verbose):
         # Solve a cycle of the model, recording it if horizon is finite
         solution_cycle = solveOneCycle(agent, solution_last)
         if not infinite_horizon:
-            solution += solution_cycle
+            solution = solution_cycle + solution
 
-        # Check for termination: identical solutions across cycle iterations or run out of cycles
-        solution_now = solution_cycle[-1]
+        # Check for termination: identical solutions across
+        # cycle iterations or run out of cycles
+        solution_now = solution_cycle[0]
         if infinite_horizon:
             if completed_cycles > 0:
                 solution_distance = solution_now.distance(solution_last)
@@ -756,7 +755,6 @@ def solveAgent(agent, verbose):
     if infinite_horizon:
         solution = solution_cycle  # PseudoTerminal=False impossible for infinite horizon
 
-    solution.reverse()
     return solution
 
 
@@ -823,7 +821,7 @@ def solveOneCycle(agent, solution_last):
 
         # Solve one period, add it to the solution, and move to the next period
         solution_t = solveOnePeriod(**temp_dict)
-        solution_cycle.append(solution_t)
+        solution_cycle.insert(0, solution_t)
         solution_next = solution_t
 
     # Return the list of per-period solutions
