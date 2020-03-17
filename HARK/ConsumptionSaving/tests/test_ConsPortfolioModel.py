@@ -1,6 +1,6 @@
 import copy
+from HARK.ConsumptionSaving.ConsIndShockModel import init_idiosyncratic_shocks
 import HARK.ConsumptionSaving.ConsPortfolioModel as cpm
-import HARK.ConsumptionSaving.ConsumerParameters as param
 import unittest
 
 class testPortfolioConsumerType(unittest.TestCase):
@@ -14,7 +14,7 @@ class testPortfolioConsumerType(unittest.TestCase):
         RiskyDstnFunc = cpm.RiskyDstnFactory(RiskyAvg=Avg, RiskyStd=Std)       # Generates nodes for integration
         RiskyDrawFunc = cpm.LogNormalRiskyDstnDraw(RiskyAvg=Avg, RiskyStd=Std) # Function to generate draws from a lognormal distribution
 
-        init_portfolio = copy.copy(param.init_idiosyncratic_shocks) # Default parameter values for inf horiz model - including labor income with transitory and permanent shocks
+        init_portfolio = copy.copy(init_idiosyncratic_shocks) # Default parameter values for inf horiz model - including labor income with transitory and permanent shocks
         init_portfolio['approxRiskyDstn'] = RiskyDstnFunc
         init_portfolio['drawRiskyFunc']   = RiskyDrawFunc
         init_portfolio['RiskyCount']      = 2   # Number of points in the approximation; 2 points is minimum
