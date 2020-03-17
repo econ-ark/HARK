@@ -14,6 +14,7 @@ For more information on HARK, see [our Github organization](https://github.com/e
 Release Date: XX-XX-2020
 
 #### Major Changes
+ * Default parameters dictionaries for ConsumptionSaving models have been moved from ConsumerParameters to nearby the classes that use them.
 
 #### Minor Changes 
 
