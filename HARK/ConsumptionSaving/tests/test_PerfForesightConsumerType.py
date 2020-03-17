@@ -7,6 +7,19 @@ class testPerfForesightConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = PerfForesightConsumerType()
         self.agent_infinite = PerfForesightConsumerType(cycles=0)
+
+        PF_dictionary = {
+            'CRRA' : 2.5,
+            'DiscFac' : 0.96,
+            'Rfree' : 1.03,
+            'LivPrb' : [0.98],
+            'PermGroFac' : [1.01],
+            'T_cycle' : 1,
+            'cycles' : 0,
+            'AgentCount' : 10000
+        }
+        self.agent_alt = PerfForesightConsumerType(
+            **PF_dictionary)
         
     def test_default_solution(self):
         self.agent.solve()
@@ -17,6 +30,13 @@ class testPerfForesightConsumerType(unittest.TestCase):
         self.assertEqual(c.y_list[0], 0)
         self.assertEqual(c.y_list[1], 0.511321002804608)
         self.assertEqual(c.decay_extrap, False)
+
+    def test_another_solution(self):
+        self.agent_alt.DiscFac = 0.90
+        self.agent_alt.solve()
+        self.assertAlmostEqual(
+            self.agent_alt.solution[0].cFunc(10).tolist(),
+            3.9750093524820787)
     
     def test_checkConditions(self):
         self.agent_infinite.checkConditions()
