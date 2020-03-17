@@ -926,6 +926,9 @@ init_portfolio['RiskyStd']        = 0.20 # Standard deviation of (log) risky ret
 init_portfolio['RiskyCount']      = 5    # Number of integration nodes to use in approximation of risky returns
 init_portfolio['ShareCount']      = 25   # Number of discrete points in the risky share approximation
 init_portfolio['AdjustPrb']       = 1.0  # Probability that the agent can adjust their risky portfolio share each period
+init_portfolio['DiscreteShareBool'] = False # Flag for whether to optimize risky share on a discrete grid only
+
+# Adjust some of the existing parameters in the dictionary
 init_portfolio['aXtraMax']        = 100  # Make the grid of assets go much higher...
 init_portfolio['aXtraCount']      = 200  # ...and include many more gridpoints...
 init_portfolio['aXtraNestFac']    = 1    # ...which aren't so clustered at the bottom
@@ -933,41 +936,3 @@ init_portfolio['BoroCnstArt']     = 0.0  # Artificial borrowing constraint must 
 init_portfolio['CRRA']            = 5.0  # Results are more interesting with higher risk aversion
 init_portfolio['DiscFac']         = 0.90 # And also lower patience
     
-        
-if __name__ == '__main__':
-    from time import time
-    from HARK.utilities import plotFuncs
-    import matplotlib.pyplot as plt
-    
-    TestType = PortfolioConsumerType()
-    TestType.vFuncBool = False
-    TestType.DiscreteShareBool = False
-    #TestType.IncUnemp = 0.
-    TestType.update()
-    TestType.cycles = 0
-    t0 = time()
-    TestType.solve(False)
-    t1 = time()
-    print('Solving an infinite horizon portfolio choice problem took ' + str(t1-t0) + ' seconds.')
-    
-    print('Consumption function when the agent can adjust his portfolio share:')
-    plotFuncs(TestType.solution[0].cFuncAdj, 0., 20.)
-    
-    print('Risky portfolio share function when the agent can adjust it:')
-    plotFuncs(TestType.solution[0].ShareFuncAdj, 0., 20.)
-    
-    if TestType.vFuncBool:
-        print('Value function when the agent can adjust his portfolio share:')
-        plotFuncs(TestType.solution[0].vFuncAdj, 0.5, 20.)
-        
-        print('Value function when the agent is unable to adjust his portfolio:')
-        M = np.linspace(0.5,20.,200)
-        for s in np.linspace(0.,1.,21):
-            f = lambda m : TestType.solution[0].vFuncFxd(m, s*np.ones_like(m))
-            plt.plot(M, f(M))
-        plt.show()
-    
-    TestType.T_sim = 100
-    TestType.track_vars = ['cNrmNow','ShareNow','aNrmNow']
-    TestType.initializeSim()
-    TestType.simulate()
