@@ -21,6 +21,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ValueFunc,      # to do the re-curving of value functions for interpolation
     MargValueFunc,  # same as above, but for marginal value functions
     utility_inv,    # inverse CRRA
+    init_idiosyncratic_shocks # Baseline dictionary to build from
 )
 from HARK.utilities import (
     approxLognormal,    # for approximating the lognormal returns factor
@@ -28,7 +29,7 @@ from HARK.utilities import (
 )
 from HARK.simulation import drawLognormal  # random draws for simulating agents
 from HARK.interpolation import (LinearInterp)  # piece-wise linear interpolation
-import HARK.ConsumptionSaving.ConsumerParameters as Params
+#import HARK.ConsumptionSaving.ConsumerParameters as Params
 
 
 import numpy as np  # for array operations
@@ -39,7 +40,6 @@ __all__ = [
     "DiscreteDomain",
     "PortfolioConsumerType",
     "ConsIndShockPortfolioSolver",
-    "LogNormalPortfolioConsumerType",
 ]
 
 
@@ -390,7 +390,7 @@ class PortfolioConsumerType(IndShockConsumerType):
     time_inv_ = time_inv_ + ["RiskyCount", "RiskyShareCount"]
 
     def __init__(self, cycles=1, time_flow=True, verbose=False, quiet=False, **kwds):
-        params = Params.init_portfolio.copy()
+        params = init_portfolio.copy()
         params.update(kwds)
         kwds = params
 
@@ -1484,3 +1484,18 @@ def solveConsPortfolio(
     portsolution = solver.solve()
 
     return portsolution
+
+
+# Make a dictionary to specify a portfolio choice consumer type
+init_portfolio = init_idiosyncratic_shocks.copy()
+init_portfolio['RiskyAvg']        = 1.08 # Average return of the risky asset
+init_portfolio['RiskyStd']        = 0.20 # Standard deviation of (log) risky returns
+init_portfolio['RiskyCount']      = 5    # Number of integration nodes to use in approximation of risky returns
+init_portfolio['RiskyShareCount'] = 25   # Number of discrete points in the risky share approximation
+init_portfolio['AdjustPrb']       = 1.0  # Probability that the agent can adjust their risky portfolio share each period
+init_portfolio['aXtraMax']        = 100  # Make the grid of assets go much higher...
+init_portfolio['aXtraCount']      = 200  # ...and include many more gridpoints...
+init_portfolio['aXtraNestFac']    = 1    # ...which aren't so clustered at the bottom
+init_portfolio['BoroCnstArt']     = 0.0  # Artificial borrowing constraint must be turned on
+init_portfolio['CRRA']            = 5.0  # Results are more interesting with higher risk aversion
+init_portfolio['DiscFac']         = 0.90 # And also lower patience

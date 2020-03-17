@@ -1,8 +1,8 @@
 '''
 Example implementations of HARK.ConsumptionSaving.ConsPortfolioModel
 '''
-from HARK.ConsumptionSaving.ConsPortfolioModel import PortfolioConsumerType
-from HARK.ConsumptionSaving.ConsumerParameters import init_lifecycle, init_portfolio
+from HARK.ConsumptionSaving.ConsPortfolioModel import PortfolioConsumerType, init_portfolio
+from HARK.ConsumptionSaving.ConsIndShockModel import init_lifecycle
 from HARK.utilities import plotFuncs
 from copy import copy
 from time import time
