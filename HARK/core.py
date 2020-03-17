@@ -921,7 +921,7 @@ class Market(HARKobject):
     layer on top of the "microeconomic" models of one or more AgentTypes.
     '''
     def __init__(self, agents=[], sow_vars=[], reap_vars=[], const_vars=[], track_vars=[], dyn_vars=[],
-                 millRule=None, calcDynamics=None, act_T=1000, tolerance=0.000001):
+                 millRule=None, calcDynamics=None, act_T=1000, tolerance=0.000001,**kwds):
         '''
         Make a new instance of the Market class.
 
@@ -979,6 +979,7 @@ class Market(HARKobject):
         self.act_T     = act_T # NOQA
         self.tolerance = tolerance # NOQA
         self.max_loops = 1000 # NOQA
+        self.assignParameters(**kwds)
 
         self.print_parallel_error_once = True
         # Print the error associated with calling the parallel method

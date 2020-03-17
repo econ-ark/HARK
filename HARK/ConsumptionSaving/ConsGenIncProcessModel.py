@@ -17,12 +17,12 @@ from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutility
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
                            getPercentiles
 from HARK.simulation import drawLognormal, drawDiscrete, drawUniform
-from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType
-import HARK.ConsumptionSaving.ConsumerParameters as Params
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 
 __all__ = ['ValueFunc2D', 'MargValueFunc2D', 'MargMargValueFunc2D', 'pLvlFuncAR1',
 'ConsGenIncProcessSolver', 'GenIncProcessConsumerType',
-'IndShockExplicitPermIncConsumerType', 'PersistentShockConsumerType']
+'IndShockExplicitPermIncConsumerType', 'PersistentShockConsumerType',
+           'init_explicit_perm_inc', 'init_persistent_shocks']
 
 utility = CRRAutility
 utilityP = CRRAutilityP
@@ -958,6 +958,20 @@ def solveConsGenIncProcess(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfr
 
 ###############################################################################
 
+# -----------------------------------------------------------------------------
+# ----- Define additional parameters for the persistent shocks model ----------
+# -----------------------------------------------------------------------------
+
+pLvlPctiles = np.concatenate(([0.001, 0.005, 0.01, 0.03], np.linspace(0.05, 0.95, num=19),[0.97, 0.99, 0.995, 0.999]))
+PrstIncCorr = 0.98       # Serial correlation coefficient for permanent income
+
+# Make a dictionary for the "explicit permanent income" idiosyncratic shocks model
+init_explicit_perm_inc = init_idiosyncratic_shocks.copy()
+init_explicit_perm_inc['pLvlPctiles'] = pLvlPctiles
+init_explicit_perm_inc['PermGroFac'] = [1.0] # long run permanent income growth doesn't work yet
+init_explicit_perm_inc['aXtraMax'] = 30
+init_explicit_perm_inc['aXtraExtra'] = [0.005,0.01]
+
 class GenIncProcessConsumerType(IndShockConsumerType):
     '''
     A consumer type with idiosyncratic shocks to persistent and transitory income.
@@ -987,12 +1001,11 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        params = Params.init_explicit_perm_inc.copy()
+        params = init_explicit_perm_inc.copy()
         params.update(kwds)
-        kwds = params
 
         # Initialize a basic ConsumerType
-        IndShockConsumerType.__init__(self, cycles=cycles, time_flow=time_flow, **kwds)
+        IndShockConsumerType.__init__(self, cycles=cycles, time_flow=time_flow, **params)
         self.solveOnePeriod = solveConsGenIncProcess  # idiosyncratic shocks solver with explicit persistent income
 
     def preSolve(self):
@@ -1276,6 +1289,13 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
 
 ###############################################################################
 
+
+
+
+# Make a dictionary for the "persistent idiosyncratic shocks" model
+init_persistent_shocks = init_explicit_perm_inc.copy()
+init_persistent_shocks['PrstIncCorr'] = PrstIncCorr
+
 class PersistentShockConsumerType(GenIncProcessConsumerType):
     '''
     Type with idiosyncratic shocks to persistent ('Prst') and transitory income.
@@ -1285,6 +1305,30 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
     period assets, an artificial borrowing constraint, and the AR1 correlation
     coefficient for (log) persistent income.
     '''
+
+    def __init__(self, cycles=0, time_flow=True, **kwds):
+        '''
+        Instantiate a new ConsumerType with given data.
+
+        Parameters
+        ----------
+        cycles : int
+            Number of times the sequence of periods should be solved.
+        time_flow : boolean
+            Whether time is currently "flowing" forward for this instance.
+
+        Returns
+        -------
+        None
+        '''
+        params = init_persistent_shocks.copy()
+        params.update(kwds)
+
+        GenIncProcessConsumerType.__init__(self,
+                         cycles=cycles,
+                         time_flow=time_flow,
+                         **params)
+
     def updatepLvlNextFunc(self):
         '''
         A method that creates the pLvlNextFunc attribute as a sequence of
