@@ -312,7 +312,6 @@ class AgentType(HARKobject):
         with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
             self.preSolve()  # Do pre-solution stuff
             self.solution = solveAgent(self, verbose)  # Solve the model by backward induction
-            self.addToTimeVary('solution')  # Add solution to the list of time-varying attributes
             self.postSolve()  # Do post-solution stuff
 
     def resetRNG(self):
