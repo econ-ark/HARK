@@ -38,7 +38,6 @@ GenIncDictionary = {
     "CubicBool" : False,                  # Use cubic spline interpolation when True, linear interpolation when False
     "vFuncBool" : True,                   # Whether to calculate the value function during solution    
 # More parameters specific to "Explicit Permanent income" shock model
-    "cycles": 0,
     "pLvlPctiles" : np.concatenate(([0.001, 0.005, 0.01, 0.03], np.linspace(0.05, 0.95, num=19),[0.97, 0.99, 0.995, 0.999])),
     "PermGroFac" : [1.0],                  # Permanent income growth factor - long run permanent income growth doesn't work yet    
 }
@@ -47,13 +46,14 @@ class testIndShockExplicitPermIncConsumerType(unittest.TestCase):
 
     def setUp(self):
         self.agent = IndShockExplicitPermIncConsumerType(
+            cycles=1,
             **GenIncDictionary)
         self.agent.solve()
 
     def test_solution(self):
         pLvlGrid = self.agent.pLvlGrid[0]
         self.assertAlmostEqual(self.agent.pLvlGrid[0][0],
-                               0.009010968834256606)
+                               1.0)
 
         self.assertAlmostEqual(
             self.agent.solution[0].mLvlMin(pLvlGrid[0]),
@@ -61,7 +61,7 @@ class testIndShockExplicitPermIncConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc(10,pLvlGrid[5]).tolist(),
-            0.787450633872639)
+            5.6030075768585075)
 
 class testPersistentShockConsumerType(unittest.TestCase):
 
@@ -72,7 +72,7 @@ class testPersistentShockConsumerType(unittest.TestCase):
         persistent_shocks['PrstIncCorr'] = PrstIncCorr
 
         # "persistent idisyncratic shocks" consumer
-        self.agent = PersistentShockConsumerType(
+        self.agent = PersistentShockConsumerType(cycles=1,
             **persistent_shocks)
         self.agent.solve()
 
@@ -81,7 +81,7 @@ class testPersistentShockConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc(10,pLvlGrid[1]).tolist(),
-            0.9141970598224893)
+            5.6030075768585075)
 
     def test_simulation(self):
         self.agent.T_sim = 25
@@ -93,4 +93,4 @@ class testPersistentShockConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(
             np.mean(self.agent.mLvlNow_hist),
-            2.372861738538392)
+            1.2043701902476343)

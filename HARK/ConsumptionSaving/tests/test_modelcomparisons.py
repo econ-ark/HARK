@@ -11,7 +11,7 @@ from copy import deepcopy
 import numpy as np
 
 # Bring in the HARK models we want to test
-from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType, IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType, IndShockConsumerType, init_idiosyncratic_shocks
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerType
 
@@ -29,11 +29,10 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
         Prepare to compare the models by initializing and solving them
         """
         # Set up and solve infinite type
-        import HARK.ConsumptionSaving.ConsumerParameters as Params
         
         # Define a test dictionary that should have the same solution in the
         # perfect foresight and idiosyncratic shocks models.
-        test_dictionary = deepcopy(Params.init_idiosyncratic_shocks)
+        test_dictionary = deepcopy(init_idiosyncratic_shocks)
         test_dictionary['LivPrb'] = [1.]
         test_dictionary['DiscFac'] = 0.955
         test_dictionary['PermGroFac'] = [1.]

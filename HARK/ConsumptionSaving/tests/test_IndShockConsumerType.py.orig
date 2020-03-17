@@ -1,6 +1,10 @@
+<<<<<<< HEAD
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, init_idiosyncratic_shocks
+=======
 from HARK.ConsumptionSaving.ConsIndShockModel import \
-    IndShockConsumerType, ConsIndShockSolverBasic, \
-    init_lifecycle, init_idiosyncratic_shocks
+    IndShockConsumerType, ConsIndShockSolverBasic
+import HARK.ConsumptionSaving.ConsumerParameters as Params
+>>>>>>> master
 import numpy as np
 import unittest
 
@@ -31,44 +35,21 @@ class testIndShockConsumerType(unittest.TestCase):
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(
-            **init_lifecycle)
+            **Params.init_lifecycle)
         LifecycleExample.cycles = 1
         LifecycleExample.solve()
 
-        # test the solution_terminal
-        self.assertAlmostEqual(
-            LifecycleExample.solution[10].cFunc(2).tolist(),
-            2)
-
-        self.assertAlmostEqual(LifecycleExample.solution[9].cFunc(1),
-                               0.97769632)
-        self.assertAlmostEqual(LifecycleExample.solution[8].cFunc(1),
-                               0.96624445)
-        self.assertAlmostEqual(LifecycleExample.solution[7].cFunc(1),
-                               0.95691449)
-
-        self.assertAlmostEqual(
-            LifecycleExample.solution[0].cFunc(1).tolist(),
-            0.87362789)
-        self.assertAlmostEqual(
-            LifecycleExample.solution[1].cFunc(1).tolist(),
-            0.9081621)
-        self.assertAlmostEqual(
-            LifecycleExample.solution[2].cFunc(1).tolist(),
-            0.9563899)
-        
-        solver = ConsIndShockSolverBasic(
-            LifecycleExample.solution[1],
-            LifecycleExample.IncomeDstn[0],
-            LifecycleExample.LivPrb[0],
-            LifecycleExample.DiscFac,
-            LifecycleExample.CRRA,
-            LifecycleExample.Rfree,
-            LifecycleExample.PermGroFac[0],
-            LifecycleExample.BoroCnstArt,
-            LifecycleExample.aXtraGrid,
-            LifecycleExample.vFuncBool,
-            LifecycleExample.CubicBool)
+        solver = ConsIndShockSolverBasic(LifecycleExample.solution[1],
+                                 LifecycleExample.IncomeDstn[0],
+                                 LifecycleExample.LivPrb[0],
+                                 LifecycleExample.DiscFac,
+                                 LifecycleExample.CRRA,
+                                 LifecycleExample.Rfree,
+                                 LifecycleExample.PermGroFac[0],
+                                 LifecycleExample.BoroCnstArt,
+                                 LifecycleExample.aXtraGrid,
+                                 LifecycleExample.vFuncBool,
+                                 LifecycleExample.CubicBool)
 
         solver.prepareToSolve()
 
@@ -324,7 +305,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
         self.assertAlmostEqual(LifecycleExample.solution[5].cFunc(3).tolist(),
                                2.129983771775666)
 
-CyclicalDict = { 
+CyclicalDict = { # Click the arrow to expand this parameter dictionary
     # Parameters shared with the perfect foresight model
     "CRRA": 2.0,                           # Coefficient of relative risk aversion
     "Rfree": 1.03,                         # Interest factor on assets
@@ -369,9 +350,9 @@ CyclicalDict = {
 }
 
 
-class testIndShockConsumerTypeCyclical(unittest.TestCase):
+class testIndShockConsumerTypeLifecycle(unittest.TestCase):
 
-    def test_cyclical(self):
+    def test_lifecyle(self):
         CyclicalExample = IndShockConsumerType(**CyclicalDict)
         CyclicalExample.cycles = 0 # Make this consumer type have an infinite horizon
         CyclicalExample.solve()
