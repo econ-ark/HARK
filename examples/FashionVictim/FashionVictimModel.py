@@ -137,7 +137,7 @@ class FashionVictimType(AgentType):
         new instance of FashionVictimType
         '''
         # Initialize a basic AgentType
-        AgentType.__init__(self,solution_terminal=FashionVictimType._solution_terminal,cycles=0,time_flow=True,pseudo_terminal=True,**kwds)
+        AgentType.__init__(self,solution_terminal=FashionVictimType._solution_terminal,cycles=0,pseudo_terminal=True,**kwds)
 
         # Add class-specific features
         self.time_inv = ['DiscFac','conformUtilityFunc','punk_utility','jock_utility','switchcost_J2P','switchcost_P2J','pGrid','pEvolution','pref_shock_mag']
