@@ -15,9 +15,8 @@ import numpy as np
 from HARK.core import Solution
 from HARK.utilities import CRRAutilityP, CRRAutilityP_inv
 from HARK.interpolation import LinearInterp, LinearInterpOnInterp1D, VariableLowerBoundFunc2D, BilinearInterp, ConstantFunction
-from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, MargValueFunc
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, MargValueFunc, init_idiosyncratic_shocks
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import ValueFunc2D, MargValueFunc2D
-import HARK.ConsumptionSaving.ConsumerParameters as Params
 import matplotlib.pyplot as plt
 
 class ConsumerLaborSolution(Solution):
@@ -273,11 +272,10 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        params = Params.init_labor_intensive.copy()
+        params = init_labor_intensive.copy()
         params.update(kwds)
-        kwds = params
         
-        IndShockConsumerType.__init__(self,cycles = cycles,time_flow=time_flow,**kwds)
+        IndShockConsumerType.__init__(self,cycles = cycles,time_flow=time_flow,**params)
         self.pseudo_terminal = False
         self.solveOnePeriod = solveConsLaborIntMarg
         self.update()
@@ -615,3 +613,28 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         plt.xlabel('Beginning of period bank balances')
         plt.ylabel('Labor supply')
         plt.show()
+        
+        
+# Make a default dictionary for the intensive margin labor supply model
+init_labor_intensive = copy(init_idiosyncratic_shocks)
+init_labor_intensive ['LbrCostCoeffs'] = [-1.0]
+init_labor_intensive ['WageRte'] = [1.0]
+init_labor_intensive['IncUnemp'] = 0.0
+init_labor_intensive['TranShkCount'] = 15 # Crank up permanent shock count - Number of points in discrete approximation to transitory income shocks
+init_labor_intensive['PermShkCount'] = 16 # Crank up permanent shock count                  
+init_labor_intensive ['aXtraCount'] = 200 # May be important to have a larger number of gridpoints (than 48 initially)
+init_labor_intensive ['aXtraMax'] = 80.
+init_labor_intensive ['BoroCnstArt'] = None
+
+# Make a dictionary for intensive margin labor supply model with finite lifecycle
+init_labor_lifecycle = init_labor_intensive.copy()
+init_labor_lifecycle['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
+init_labor_lifecycle['PermShkStd'] = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]
+init_labor_lifecycle['TranShkStd'] = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]
+init_labor_lifecycle['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1] # Living probability decreases as time moves forward.
+init_labor_lifecycle['WageRte'] = [1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0] # Wage rate in a lifecycle
+init_labor_lifecycle['LbrCostCoeffs'] = [-2.0, 0.4] # Assume labor cost coeffs is a polynomial of degree 1
+init_labor_lifecycle['T_cycle']    = 10
+#init_labor_lifecycle['T_retire']   = 7 # IndexError at line 774 in interpolation.py.
+init_labor_lifecycle['T_age']      = 11 # Make sure that old people die at terminal age and don't turn into newborns! 
+

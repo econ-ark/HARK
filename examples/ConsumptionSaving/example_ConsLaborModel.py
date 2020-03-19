@@ -126,7 +126,7 @@ if do_simulation:
 ###############################################################################
     
 # Make and solve a labor intensive margin consumer with a finite lifecycle
-LifecycleExample = LaborIntMargConsumerType(init_labor_lifecycle)
+LifecycleExample = LaborIntMargConsumerType(**init_labor_lifecycle)
 LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
 
 start_time = process_time()

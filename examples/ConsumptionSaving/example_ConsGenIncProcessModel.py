@@ -65,6 +65,7 @@ plt.show()
 # %%
 # Now solve the *exact same* problem, but with the permanent income normalization
 NormalizedExample = IndShockConsumerType(**init_explicit_perm_inc)
+NormalizedExample.cycles = 0
 t_start = process_time()
 NormalizedExample.solve()
 t_end = process_time()
@@ -131,7 +132,7 @@ if do_simulation:
 
 # %%
 # Make and solve an example "persistent idisyncratic shocks" consumer
-PersistentExample = PersistentShockConsumerType(**init_persistent_shocks)
+PersistentExample = PersistentShockConsumerType()
 t_start = process_time()
 PersistentExample.solve()
 t_end = process_time()

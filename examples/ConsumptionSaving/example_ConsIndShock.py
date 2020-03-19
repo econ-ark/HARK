@@ -3,6 +3,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     PerfForesightConsumerType,
     IndShockConsumerType,
     KinkedRconsumerType,
+    init_lifecycle,
+    init_cyclical
 )
 from HARK.utilities import plotFuncsDer, plotFuncs
 from time import time
@@ -100,7 +102,7 @@ if do_simulation:
 
 # %%
 # Make and solve an idiosyncratic shocks consumer with a finite lifecycle
-LifecycleExample = IndShockConsumerType(**Params.init_lifecycle)
+LifecycleExample = IndShockConsumerType(**init_lifecycle)
 LifecycleExample.cycles = (
     1
 )  # Make this consumer live a sequence of periods exactly once
@@ -138,7 +140,7 @@ if do_simulation:
 # %%
 # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
 # The consumer has income that greatly fluctuates throughout the year.
-CyclicalExample = IndShockConsumerType(**Params.init_cyclical)
+CyclicalExample = IndShockConsumerType(**init_cyclical)
 CyclicalExample.cycles = 0
 
 # %%

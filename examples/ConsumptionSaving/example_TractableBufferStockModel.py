@@ -6,7 +6,6 @@ from HARK.ConsumptionSaving.ConsMarkovModel import (
 )  # An alternative, much longer way to solve the TBS model
 from time import process_time  # timing utility
 from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerType
-import numpy as np
 do_simulation = True
 
 # %%
