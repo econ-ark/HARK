@@ -21,7 +21,7 @@ from HARK.interpolation import LinearInterpOnInterp1D, LinearInterp, CubicInterp
 init_preference_shocks = dict(init_idiosyncratic_shocks,
                               **{
     'PrefShkCount' : 12,    # Number of points in discrete approximation to preference shock dist
-    'PrefShk_tail_N'] : 4,  # Number of "tail points" on each end of pref shock dist
+    'PrefShk_tail_N' : 4,  # Number of "tail points" on each end of pref shock dist
     'PrefShkStd' : [0.30],  # Standard deviation of utility shocks
     'aXtraCount' : 48,
     'CubicBool' : False     # pref shocks currently only compatible with linear cFunc
@@ -206,10 +206,10 @@ class PrefShockConsumerType(IndShockConsumerType):
 
 # Make a dictionary to specify a "kinky preference" consumer, who has both shocks
 # to utility and a different interest rate on borrowing vs saving
-init_kinky_pref = copy(init_kinked_R)
-init_kinky_pref['PrefShkCount'] = PrefShkCount
-init_kinky_pref['PrefShk_tail_N'] = PrefShk_tail_N
-init_kinky_pref['PrefShkStd'] = PrefShkStd
+init_kinky_pref = init_kinked_R.copy()
+init_kinky_pref['PrefShkCount'] = 12
+init_kinky_pref['PrefShk_tail_N'] = 4
+init_kinky_pref['PrefShkStd'] = [0.30]
     
 class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
     '''
