@@ -1,52 +1,72 @@
-'''
+"""
 Specifies the full set of calibrated values required to estimate the SolvingMicroDSOPs
 model.  The empirical data is stored in a separate csv file and is loaded in SetupSCFdata.
-'''
+"""
 from __future__ import print_function
 
 # ---------------------------------------------------------------------------------
 # - Define all of the model parameters for SolvingMicroDSOPs and ConsumerExamples -
 # ---------------------------------------------------------------------------------
 
-exp_nest = 3                        # Number of times to "exponentially nest" when constructing a_grid
-aXtraMin = 0.001                    # Minimum end-of-period "assets above minimum" value
-aXtraMax = 20                       # Maximum end-of-period "assets above minimum" value
-aXtraHuge = None                    # A very large value of assets to add to the grid, not used
-aXtraExtra = None                   # Some other value of assets to add to the grid, not used
-aXtraCount = 8                      # Number of points in the grid of "assets above minimum"
+exp_nest = (
+    3
+)  # Number of times to "exponentially nest" when constructing a_grid
+aXtraMin = 0.001  # Minimum end-of-period "assets above minimum" value
+aXtraMax = 20  # Maximum end-of-period "assets above minimum" value
+aXtraHuge = None  # A very large value of assets to add to the grid, not used
+aXtraExtra = None  # Some other value of assets to add to the grid, not used
+aXtraCount = 8  # Number of points in the grid of "assets above minimum"
 
-BoroCnstArt = 0.0                   # Artificial borrowing constraint; imposed minimum level of end-of period assets
-CubicBool = True                    # Use cubic spline interpolation when True, linear interpolation when False
-vFuncBool = False                   # Whether to calculate the value function during solution
+BoroCnstArt = (
+    0.0
+)  # Artificial borrowing constraint; imposed minimum level of end-of period assets
+CubicBool = (
+    True
+)  # Use cubic spline interpolation when True, linear interpolation when False
+vFuncBool = False  # Whether to calculate the value function during solution
 
-Rfree = 1.03                        # Interest factor on assets
-PermShkCount = 7                    # Number of points in discrete approximation to permanent income shocks
-TranShkCount = 7                    # Number of points in discrete approximation to transitory income shocks
-UnempPrb = 0.005                     # Probability of unemployment while working
-UnempPrbRet = 0.000                 # Probability of "unemployment" while retired
-IncUnemp = 0.0                      # Unemployment benefits replacement rate
-IncUnempRet = 0.0                   # "Unemployment" benefits when retired
+Rfree = 1.03  # Interest factor on assets
+PermShkCount = (
+    7
+)  # Number of points in discrete approximation to permanent income shocks
+TranShkCount = (
+    7
+)  # Number of points in discrete approximation to transitory income shocks
+UnempPrb = 0.005  # Probability of unemployment while working
+UnempPrbRet = 0.000  # Probability of "unemployment" while retired
+IncUnemp = 0.0  # Unemployment benefits replacement rate
+IncUnempRet = 0.0  # "Unemployment" benefits when retired
 
-final_age = 90                      # Age at which the problem ends (die with certainty)
-retirement_age = 65                 # Age at which the consumer retires
-initial_age = 25                    # Age at which the consumer enters the model
-TT = final_age - initial_age        # Total number of periods in the model
+final_age = 90  # Age at which the problem ends (die with certainty)
+retirement_age = 65  # Age at which the consumer retires
+initial_age = 25  # Age at which the consumer enters the model
+TT = final_age - initial_age  # Total number of periods in the model
 retirement_t = retirement_age - initial_age - 1
 
-CRRA_start = 4.0                    # Initial guess of the coefficient of relative risk aversion during estimation (rho)
-DiscFacAdj_start = 0.99             # Initial guess of the adjustment to the discount factor during estimation (beth)
-DiscFacAdj_bound = [0.0001,15.0]    # Bounds for beth; if violated, objective function returns "penalty value"
-CRRA_bound = [0.0001,15.0]          # Bounds for rho; if violated, objective function returns "penalty value"
+CRRA_start = (
+    4.0
+)  # Initial guess of the coefficient of relative risk aversion during estimation (rho)
+DiscFacAdj_start = (
+    0.99
+)  # Initial guess of the adjustment to the discount factor during estimation (beth)
+DiscFacAdj_bound = [
+    0.0001,
+    15.0,
+]  # Bounds for beth; if violated, objective function returns "penalty value"
+CRRA_bound = [
+    0.0001,
+    15.0,
+]  # Bounds for rho; if violated, objective function returns "penalty value"
 
 # Expected growth rates of permanent income over the lifecycle, starting from age 25
-PermGroFac = [ 1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,
-        1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,
-        1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,
-        1.025,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,
-        1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  0.7 , # <-- This represents retirement
-        1.  ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,
-        1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,
-        1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ]
+PermGroFac = [1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,
+              1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,
+              1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,  1.025,
+              1.025,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,
+              1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  1.01 ,  0.7 , # <-- This represents retirement
+              1.  ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,
+              1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,
+              1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ,  1.   ]
 
 # Age-varying discount factors over the lifecycle, lifted from Cagetti (2003)
 DiscFac_timevary = [1.064914 ,  1.057997 ,  1.051422 ,  1.045179 ,  1.039259 ,
@@ -64,19 +84,19 @@ DiscFac_timevary = [1.064914 ,  1.057997 ,  1.051422 ,  1.045179 ,  1.039259 ,
         0.9902111,  0.9902111,  0.9902111,  0.9902111,  0.9902111]
 
 # Survival probabilities over the lifecycle, starting from age 25
-LivPrb = [ 1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
-           1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
-           1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
-           1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
-           1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
-           1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
-           1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
-           1.        ,  1.        ,  1.        ,  1.        ,  1.        , # <-- automatic survival to age 65
-           0.98438596,  0.98438596,  0.98438596,  0.98438596,  0.98438596,
-           0.97567062,  0.97567062,  0.97567062,  0.97567062,  0.97567062,
-           0.96207901,  0.96207901,  0.96207901,  0.96207901,  0.96207901,
-           0.93721595,  0.93721595,  0.93721595,  0.93721595,  0.93721595,
-           0.63095734,  0.63095734,  0.63095734,  0.63095734,  0.63095734]
+LivPrb = [1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
+          1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
+          1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
+          1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
+          1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
+          1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
+          1.        ,  1.        ,  1.        ,  1.        ,  1.        ,
+          1.        ,  1.        ,  1.        ,  1.        ,  1.        , # <-- automatic survival to age 65
+          0.98438596,  0.98438596,  0.98438596,  0.98438596,  0.98438596,
+          0.97567062,  0.97567062,  0.97567062,  0.97567062,  0.97567062,
+          0.96207901,  0.96207901,  0.96207901,  0.96207901,  0.96207901,
+          0.93721595,  0.93721595,  0.93721595,  0.93721595,  0.93721595,
+          0.63095734,  0.63095734,  0.63095734,  0.63095734,  0.63095734]
 
 
 # Standard deviations of permanent income shocks by age, starting from age 25
@@ -95,57 +115,72 @@ TranShkStd =  [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 
 
 # Age groups for the estimation: calculate average wealth-to-permanent income ratio
 # for consumers within each of these age groups, compare actual to simulated data
-empirical_cohort_age_groups = [[ 26,27,28,29,30 ],
-                     [ 31,32,33,34,35 ],
-                     [ 36,37,38,39,40 ],
-                     [ 41,42,43,44,45 ],
-                     [ 46,47,48,49,50 ],
-                     [ 51,52,53,54,55 ],
-                     [ 56,57,58,59,60 ]]
+empirical_cohort_age_groups = [
+    [26, 27, 28, 29, 30],
+    [31, 32, 33, 34, 35],
+    [36, 37, 38, 39, 40],
+    [41, 42, 43, 44, 45],
+    [46, 47, 48, 49, 50],
+    [51, 52, 53, 54, 55],
+    [56, 57, 58, 59, 60],
+]
 
-initial_wealth_income_ratio_vals = [0.17, 0.5, 0.83]            # Three point discrete distribution of initial w
-initial_wealth_income_ratio_probs = [0.33333, 0.33333, 0.33334] # Equiprobable discrete distribution of initial w
-num_agents = 10000                                              # Number of agents to simulate
-bootstrap_size = 50                                             # Number of re-estimations to do during bootstrap
-seed = 31382                                                    # Just an integer to seed the estimation
+initial_wealth_income_ratio_vals = [
+    0.17,
+    0.5,
+    0.83,
+]  # Three point discrete distribution of initial w
+initial_wealth_income_ratio_probs = [
+    0.33333,
+    0.33333,
+    0.33334,
+]  # Equiprobable discrete distribution of initial w
+num_agents = 10000  # Number of agents to simulate
+bootstrap_size = 50  # Number of re-estimations to do during bootstrap
+seed = 31382  # Just an integer to seed the estimation
 
 # -----------------------------------------------------------------------------
 # -- Set up the dictionary "container" for making a basic lifecycle type ------
 # -----------------------------------------------------------------------------
 
 # Dictionary that can be passed to ConsumerType to instantiate
-init_consumer_objects = {"CRRA":CRRA_start,
-                        "Rfree":Rfree,
-                        "PermGroFac":PermGroFac,
-                        "BoroCnstArt":BoroCnstArt,
-                        "PermShkStd":PermShkStd,
-                        "PermShkCount":PermShkCount,
-                        "TranShkStd":TranShkStd,
-                        "TranShkCount":TranShkCount,
-                        "T_cycle":TT,
-                        "UnempPrb":UnempPrb,
-                        "UnempPrbRet":UnempPrbRet,
-                        "T_retire":retirement_t,
-                        "T_age":TT+1,
-                        "IncUnemp":IncUnemp,
-                        "IncUnempRet":IncUnempRet,
-                        "aXtraMin":aXtraMin,
-                        "aXtraMax":aXtraMax,
-                        "aXtraCount":aXtraCount,
-                        "aXtraExtra":[aXtraExtra,aXtraHuge],
-                        "aXtraNestFac":exp_nest,
-                        "LivPrb":LivPrb,
-                        "DiscFac":DiscFac_timevary,
-                        'AgentCount':num_agents,
-                        'seed':seed,
-                        'tax_rate':0.0,
-                        'vFuncBool':vFuncBool,
-                        'CubicBool':CubicBool
-                        }
+init_consumer_objects = {
+    "CRRA": CRRA_start,
+    "Rfree": Rfree,
+    "PermGroFac": PermGroFac,
+    "BoroCnstArt": BoroCnstArt,
+    "PermShkStd": PermShkStd,
+    "PermShkCount": PermShkCount,
+    "TranShkStd": TranShkStd,
+    "TranShkCount": TranShkCount,
+    "T_cycle": TT,
+    "UnempPrb": UnempPrb,
+    "UnempPrbRet": UnempPrbRet,
+    "T_retire": retirement_t,
+    "T_age": TT + 1,
+    "IncUnemp": IncUnemp,
+    "IncUnempRet": IncUnempRet,
+    "aXtraMin": aXtraMin,
+    "aXtraMax": aXtraMax,
+    "aXtraCount": aXtraCount,
+    "aXtraExtra": [aXtraExtra, aXtraHuge],
+    "aXtraNestFac": exp_nest,
+    "LivPrb": LivPrb,
+    "DiscFac": DiscFac_timevary,
+    "AgentCount": num_agents,
+    "seed": seed,
+    "tax_rate": 0.0,
+    "vFuncBool": vFuncBool,
+    "CubicBool": CubicBool,
+}
 
 
-if __name__ == '__main__':
-    print("Sorry, EstimationParameters doesn't actually do anything on its own.")
+if __name__ == "__main__":
+    print(
+        "Sorry, EstimationParameters doesn't actually do anything on its own."
+    )
     print("This module is imported by StructEstimation, providing calibrated ")
-    print("parameters for the example estimation.  Please see that module if you ")
+    print(
+        "parameters for the example estimation.  Please see that module if you "
+    )
     print("want more interesting output.")
