@@ -1,39 +1,35 @@
-# FIXME RiskyShareLimitFunc currently doesn't work for time varying CRRA,
-# Rfree and Risky-parameters. This should be possible by creating a list of
-# functions instead.
+'''
+This file contains classes and functions for representing, solving, and simulating
+agents who must allocate their resources among consumption, saving in a risk-free
+asset (with a low return), and saving in a risky asset (with higher average return).
+'''
+# FIXME RiskyShareLimitFunc currently doesn't work for time varying CRRA or Rfree.
+# It can handle age-varying *perceptions* of asset riskiness, however.
 
-import math  # we're using math for log and exp, might want to just use numpy?
 import scipy.optimize as sciopt  # we're using scipy optimize to optimize and fsolve
 import scipy.integrate  # used to calculate the expectation over returns
 import scipy.stats as stats  # for densities related to the returns distributions
-from copy import (
-    deepcopy,
-)  # it's convenient to copy things some times instead of re-creating them
+from copy import (deepcopy)  # it's convenient to copy things some times instead of re-creating them
 
 # Solution is inherited from in the PortfolioSolution class, NullFunc is used
-# throughout HARK when no input is given and AgentType is used for .preSolve
+# throughout HARK when no input is given and AgentType is used for preSolve
 from HARK import Solution, NullFunc, AgentType
-
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     PerfForesightConsumerType,  # for .__init__
-    IndShockConsumerType,  # PortfolioConsumerType inherits from it
+    IndShockConsumerType,# PortfolioConsumerType inherits from it
     ConsIndShockSolver,  # ConsIndShockPortfolioSolver inherits from it
-    ValueFunc,  # to do the re-curving of value functions for interpolation
+    ValueFunc,      # to do the re-curving of value functions for interpolation
     MargValueFunc,  # same as above, but for marginal value functions
-    utility_inv,  # inverse CRRA
+    utility_inv,    # inverse CRRA
+    init_idiosyncratic_shocks # Baseline dictionary to build from
 )
-
 from HARK.utilities import (
-    approxLognormal,  # for approximating the lognormal returns factor
+    approxLognormal,    # for approximating the lognormal returns factor
     combineIndepDstns,  # for combining the existing
 )
-
 from HARK.simulation import drawLognormal  # random draws for simulating agents
-
-from HARK.interpolation import (
-    LinearInterp,  # piece-wise linear interpolation
-    LowerEnvelope,  # lower envelope for consumption function around borrowing constraint
-)
+from HARK.interpolation import (LinearInterp)  # piece-wise linear interpolation
+#import HARK.ConsumptionSaving.ConsumerParameters as Params
 
 
 import numpy as np  # for array operations
@@ -44,22 +40,7 @@ __all__ = [
     "DiscreteDomain",
     "PortfolioConsumerType",
     "ConsIndShockPortfolioSolver",
-    "LogNormalPortfolioConsumerType",
 ]
-# REMARK: The Campbell and Viceira (2002) approximation can be calculated from
-# the code below. TODO clean up
-# def CambellVicApprox()
-#
-#         # We assume fixed distribution of risky shocks throughout, so we can
-#         # calculate the limiting solution once and for all.
-#         phi = math.log(self.RiskyAvg/self.Rfree)
-#         RiskyAvgSqrd = self.RiskyAvg**2
-#         RiskyVar = self.RiskyStd**2
-# #
-# # mu = math.log(self.RiskyAvg/(math.sqrt(1+RiskyVar/RiskyAvgSqrd)))
-# # sigma = math.sqrt(math.log(1+RiskyVar/RiskyAvgSqrd))
-# #
-# # RiskyShareLimit = phi/(self.CRRA*sigma**2)
 
 
 def _PerfForesightLogNormalPortfolioShare(Rfree, RiskyAvg, RiskyStd, CRRA):
@@ -269,7 +250,7 @@ def _calcwFunc(AdjustPrb, AdjustCount, ShareNowCount, vFunc_adj, CRRA):
 
 def RiskyDstnFactory(RiskyAvg=1.0, RiskyStd=0.0):
     """
-    A class for generating functions that generate nodes and weights for a log-
+    A function for generating functions that generate nodes and weights for a log-
     normal distribution as parameterized by the input `RiskyAvg` and `RiskyStd`
     values. The returned function takes a number of points to request and returns
     a list of lists where the first list contains the weights (probabilities) and
@@ -278,23 +259,23 @@ def RiskyDstnFactory(RiskyAvg=1.0, RiskyStd=0.0):
     RiskyAvgSqrd = RiskyAvg ** 2
     RiskyVar = RiskyStd ** 2
 
-    mu = math.log(RiskyAvg / (math.sqrt(1 + RiskyVar / RiskyAvgSqrd)))
-    sigma = math.sqrt(math.log(1 + RiskyVar / RiskyAvgSqrd))
+    mu = np.log(RiskyAvg / (np.sqrt(1 + RiskyVar / RiskyAvgSqrd)))
+    sigma = np.sqrt(np.log(1 + RiskyVar / RiskyAvgSqrd))
 
     return lambda RiskyCount: approxLognormal(RiskyCount, mu=mu, sigma=sigma)
 
 
 def LogNormalRiskyDstnDraw(RiskyAvg=1.0, RiskyStd=0.0):
     """
-    A class for generating functions that draw random values from a log-normal
+    A function for generating functions that draw random values from a log-normal
     distribution as parameterized by the input `RiskyAvg` and `RiskyStd`
     values. The returned function takes no argument and returns a value.
     """
     RiskyAvgSqrd = RiskyAvg ** 2
     RiskyVar = RiskyStd ** 2
 
-    mu = math.log(RiskyAvg / (math.sqrt(1 + RiskyVar / RiskyAvgSqrd)))
-    sigma = math.sqrt(math.log(1 + RiskyVar / RiskyAvgSqrd))
+    mu = np.log(RiskyAvg / (np.sqrt(1 + RiskyVar / RiskyAvgSqrd)))
+    sigma = np.sqrt(np.log(1 + RiskyVar / RiskyAvgSqrd))
 
     return lambda rngSeed: drawLognormal(1, mu=mu, sigma=sigma, seed=rngSeed)
 
@@ -361,7 +342,7 @@ class PortfolioSolution(Solution):
         # self.MPCmax       = MPCmax
 
 
-# These domains are convenient for switching to relavent code paths internally.
+# These domains are convenient for switching to relevant code paths internally.
 # It might be simpler to just pass in vectors instead of DiscreteDomain.
 class ContinuousDomain(object):
     def __init__(self, lower, upper, points=[np.nan]):
@@ -393,19 +374,27 @@ class DiscreteDomain(object):
 
 
 class PortfolioConsumerType(IndShockConsumerType):
+    """
+    A consumer type with a portfolio choice. This agent type has log-normal return
+    factors. Their problem is defined by a coefficient of relative risk aversion,
+    intertemporal discount factor, interest factor, and time sequences of the
+    permanent income growth rate, survival probability, and return factor averages
+    and standard deviations.
+    """
 
     # We add CantAdjust to the standard set of poststate_vars_ here. We call it
     # CantAdjust over CanAdjust, because this allows us to index into the
     # "CanAdjust = 1- CantAdjust" at all times (it's the 0th offset).
     poststate_vars_ = ["aNrmNow", "pLvlNow", "RiskyShareNow", "CantAdjust"]
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ["approxRiskyDstn", "RiskyCount", "RiskyShareCount"]
-    time_inv_ = time_inv_ + ["RiskyShareLimitFunc", "PortfolioDomain"]
-    time_inv_ = time_inv_ + ["AdjustPrb", "PortfolioGrid", "AdjustCount"]
+    time_inv_ = time_inv_ + ["RiskyCount", "RiskyShareCount"]
 
     def __init__(self, cycles=1, time_flow=True, verbose=False, quiet=False, **kwds):
+        params = init_portfolio.copy()
+        params.update(kwds)
+        kwds = params
 
-        # Initialize a basic AgentType
+        # Initialize a basic consumer type
         PerfForesightConsumerType.__init__(
             self,
             cycles=cycles,
@@ -414,72 +403,23 @@ class PortfolioConsumerType(IndShockConsumerType):
             quiet=quiet,
             **kwds
         )
-
-        # Check that an adjustment probability is set. If not, default to always.
-        if not hasattr(self, "AdjustPrb"):
-            self.AdjustPrb = 1.0
-            self.AdjustCount = 1
-        elif self.AdjustPrb == 1.0:
-            # Always adjust, so there's just one possibility
-            self.AdjustCount = 1
-        else:
-            # If AdjustPrb was set and was below 1.0, there's a chance that
-            # the consumer cannot adjust in a given period.
-            self.AdjustCount = 2
-
-        if not hasattr(self, "PortfolioDomain"):
-            if self.AdjustPrb < 1.0:
-                raise Exception(
-                    "Please supply a PortfolioDomain when setting AdjustPrb < 1.0."
-                )
-            else:
-                self.PortfolioDomain = ContinuousDomain(0, 1)
-
-        if isinstance(self.PortfolioDomain, DiscreteDomain):
-            self.DiscreteCase = True
-            if self.vFuncBool == False:
-                if self.verbose:
-                    print(
-                        "Setting vFuncBool to True to accomodate dicrete portfolio optimization."
-                    )
-
-                self.vFuncBool = True
-        else:
-            self.DiscreteCase = False
-            if self.AdjustPrb < 1.0:
-                raise Exception(
-                    "Occational inability to re-optimize portfolio (AdjustPrb < 1.0) is currently not possible with continuous choice of the portfolio share."
-                )
-
-        # Now we can set up the PortfolioGrid! This is the portfolio values
-        # you can enter the period with. It's exact for discrete , for continuous
-        # domain it's the interpolation points.
-        self.PortfolioGrid = self.PortfolioDomain.getPoints()
-
-        if self.BoroCnstArt is not 0.0:
-            if self.verbose:
-                print(
-                    "Setting BoroCnstArt to 0.0 as this is required by PortfolioConsumerType."
-                )
-            self.BoroCnstArt = 0.0
-
-        self.ShareNowCount = [1]
-        if self.DiscreteCase and self.AdjustCount > 1:
-            self.ShareNow = self.PortfolioDomain.getPoints()
-            self.ShareNowCount.append(len(self.PortfolioDomain.getPoints()))
-
-        # Chose specialized solver for Portfolio choice model
+        
+        # Set the solver for the portfolio model, and update various constructed attributes
         self.solveOnePeriod = solveConsPortfolio
-
         self.update()
 
-        self.RiskyShareLimitFunc = lambda RiskyDstn: _PerfForesightDiscretePortfolioShare(
-            self.Rfree, RiskyDstn, self.CRRA
-        )
-
+        
     def preSolve(self):
         AgentType.preSolve(self)
         self.updateSolutionTerminal()
+
+
+    def update(self):
+        self.updateRiskyFuncs()
+        self.updatePortfolioOptions()
+        self.updateLimitFunc()
+        IndShockConsumerType.update(self)
+
 
     def updateSolutionTerminal(self):
         """
@@ -542,6 +482,132 @@ class PortfolioConsumerType(IndShockConsumerType):
             MPCmin=None,
             MPCmax=None,
         )
+        
+        
+    def updatePortfolioOptions(self):
+        '''
+        Creates the attributes AdjustPrb, AdjustCount, and PortfolioDomain if they
+        were not specified in the initialization dictionary, using default values.
+        Also defines the attribute PortfolioGrid.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        # Check that an adjustment probability is set. If not, default to always.
+        if not hasattr(self, "AdjustPrb"):
+            self.AdjustPrb = 1.0
+            self.AdjustCount = 1
+        elif self.AdjustPrb == 1.0:
+            # Always adjust, so there's just one possibility
+            self.AdjustCount = 1
+        else:
+            # If AdjustPrb was set and was below 1.0, there's a chance that
+            # the consumer cannot adjust in a given period.
+            self.AdjustCount = 2
+        self.addToTimeInv('AdjustCount','AdjustPrb')
+
+        if not hasattr(self, "PortfolioDomain"):
+            if self.AdjustPrb < 1.0:
+                raise Exception(
+                    "Please supply a PortfolioDomain when setting AdjustPrb < 1.0."
+                )
+            else:
+                self.PortfolioDomain = ContinuousDomain(0, 1)
+        self.addToTimeInv('PortfolioDomain')
+
+        if isinstance(self.PortfolioDomain, DiscreteDomain):
+            self.DiscreteCase = True
+            if self.vFuncBool == False:
+                if self.verbose:
+                    print(
+                        "Setting vFuncBool to True to accomodate dicrete portfolio optimization."
+                    )
+
+                self.vFuncBool = True
+        else:
+            self.DiscreteCase = False
+            if self.AdjustPrb < 1.0:
+                raise Exception(
+                    "Occasional inability to re-optimize portfolio (AdjustPrb < 1.0) is currently not possible with continuous choice of the portfolio share.")
+
+        # Now we can set up the PortfolioGrid! This is the portfolio values
+        # you can enter the period with. It's exact for discrete, for continuous
+        # domain it's the interpolation points.
+        self.PortfolioGrid = self.PortfolioDomain.getPoints()
+        self.addToTimeInv('PortfolioGrid')
+        
+        # TODO: This block of code is missing any documentation; figure it out
+        self.ShareNowCount = [1]
+        if self.DiscreteCase and self.AdjustCount > 1:
+            self.ShareNow = self.PortfolioDomain.getPoints()
+            self.ShareNowCount.append(len(self.PortfolioDomain.getPoints()))
+        
+        
+    def updateRiskyFuncs(self):
+        '''
+        Creates the attributes RiskyDstnFunc and RiskyDrawFunc from the primitive
+        parameters approxRiskyDstn and drawRiskyFunc.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        # Determine whether this instance has time-varying risk perceptions
+        allowed_types = [list, np.ndarray] # RiskyAvg and RiskyStd can be either a list of a numpy array
+        if (type(self.RiskyAvg) in allowed_types) and (type(self.RiskyStd) in allowed_types) and (len(self.RiskyAvg) == len(self.RiskyStd)) and (len(self.RiskyAvg) == self.T_cycle):
+            # cast them to list as time_vary parameters have to be lists
+            self.RiskyAvg = list(self.RiskyAvg)
+            self.RiskyStd = list(self.RiskyStd)
+            self.addToTimeVary('RiskyAvg','RiskyStd')
+        elif (type(self.RiskyStd) in allowed_types) or (type(self.RiskyAvg) in allowed_types):
+            raise AttributeError('If RiskyAvg is time-varying, then RiskyStd must be as well, and they must both have length of T_cycle!')
+        else:
+            self.addToTimeInv('RiskyAvg','RiskyStd')
+        
+        # Generates nodes for integration
+        if 'RiskyAvg' in self.time_vary:
+            self.approxRiskyDstn = [RiskyDstnFactory(RiskyAvg=self.RiskyAvg[t], RiskyStd=self.RiskyStd[t]) for t in range(self.T_cycle)]
+            self.addToTimeVary('approxRiskyDstn')
+        else:
+            self.approxRiskyDstn = RiskyDstnFactory(RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd)
+            self.addToTimeInv('approxRiskyDstn')
+        
+        # Generates draws from a lognormal distribution
+        if 'RiskyAvg' in self.time_vary:
+            try:
+                self.drawRiskyFunc = LogNormalRiskyDstnDraw(RiskyAvg=self.RiskyAvgTrue, RiskyStd=self.RiskyStdTrue)
+            except:
+                raise AttributeError('When RiskyAvg is time-varying, you must specify values for RiskyAvgTrue and RiskyStdTrue')
+        else:
+            self.drawRiskyFunc = LogNormalRiskyDstnDraw(RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd)
+           
+            
+    def updateLimitFunc(self):
+        '''
+        Creates the attribute RiskyShareLimitFunc, which calculates the Merton-Samuelson
+        limiting portfolio share as mNrm goes to infinity; uses the attributes Rfree and CRRA.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''        
+        self.RiskyShareLimitFunc = lambda RiskyDstn: _PerfForesightDiscretePortfolioShare(
+            self.Rfree, RiskyDstn, self.CRRA)
+        self.addToTimeInv('RiskyShareLimitFunc')
+        
 
     def getPostStates(self):
         """
@@ -726,7 +792,6 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
     A class for solving a one period consumption-saving problem with portfolio choice.
     An instance of this class is created by the function solveConsPortfolio in each period.
     """
-
     def __init__(
         self,
         solution_next,
@@ -764,13 +829,20 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
             vFuncBool,
             CubicBool,
         )
-
+        
+        # Make sure the individual is liquidity constrained.  Allowing a consumer to
+        # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
+        if BoroCnstArt != 0.0:
+            raise AttributeError('PortfolioConsumerType must have BoroCnstArt=0.0!')
+        
+        # Check whether this is a discrete or continuous portfolio choice problem
         self.PortfolioDomain = PortfolioDomain
         if isinstance(self.PortfolioDomain, DiscreteDomain):
             self.DiscreteCase = True
         else:
             self.DiscreteCase = False
 
+        # Store some additional inputs as attributes
         self.AdjustPrb = AdjustPrb
         self.PortfolioGrid = PortfolioGrid
         self.AdjustCount = AdjustCount
@@ -783,13 +855,12 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         self.RiskyDstn = approxRiskyDstn(RiskyCount)
         self.RiskyShareLimit = RiskyShareLimitFunc(self.RiskyDstn)
 
-        # Store the number of grid points used approximate the FOC in the port-
-        # folio sub-problem.
+        # Store the number of grid points used approximate the FOC in the portfolio sub-problem.
         self.RiskyShareCount = RiskyShareCount
 
         self.vFuncsNext = solution_next.vFunc
         self.vPfuncsNext = solution_next.vPfunc
-
+        
         self.updateShockDstn()
         self.makeRshareGrid()
 
@@ -1187,7 +1258,6 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         -------
         None
         """
-
         # TODO: this does not yet
         #   calc sUnderbar -> mertonsammuelson
         #   calc MPC kappaUnderbar
@@ -1279,9 +1349,8 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
         solution : ConsumerSolution
             The solution to the one period problem.
         """
-
         # TODO FIXME
-        # This code is a mix of looping over states ( for the Risky Share funcs)
+        # This code is a mix of looping over states (for the Risky Share funcs)
         # and implicit looping such as in prepareToCalcEndOfPrdvP. I think it would
         # be best to simply have a major loop here, and keep the methods atomic.
 
@@ -1363,8 +1432,6 @@ class ConsIndShockPortfolioSolver(ConsIndShockSolver):
 
 
 # The solveOnePeriod function!
-
-
 def solveConsPortfolio(
     solution_next,
     IncomeDstn,
@@ -1419,38 +1486,16 @@ def solveConsPortfolio(
     return portsolution
 
 
-class LogNormalPortfolioConsumerType(PortfolioConsumerType):
-    """
-    A consumer type with a portfolio choice. This agent type has log-normal return
-    factors. Their problem is defined by a coefficient of relative risk aversion,
-    intertemporal discount factor, interest factor, and time sequences of the
-    permanent income growth rate, survival probability, and return factor averages
-    and standard deviations.
-    """
-
-    #    time_inv_ = PortfolioConsumerType.time_inv_ + ['approxRiskyDstn', 'RiskyCount', 'RiskyShareCount', 'RiskyShareLimitFunc', 'AdjustPrb', 'PortfolioGrid']
-
-    def __init__(self, cycles=1, time_flow=True, verbose=False, quiet=False, **kwds):
-
-        PortfolioConsumerType.__init__(
-            self,
-            cycles=cycles,
-            time_flow=time_flow,
-            verbose=verbose,
-            quiet=quiet,
-            **kwds
-        )
-
-        self.approxRiskyDstn = RiskyDstnFactory(
-            RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd
-        )
-        # Needed to simulate. Is a function that given 0 inputs it returns a draw
-        # from the risky asset distribution. Only one is needed, because everyone
-        # draws the same shock.
-        self.drawRiskyFunc = LogNormalRiskyDstnDraw(
-            RiskyAvg=self.RiskyAvg, RiskyStd=self.RiskyStd
-        )
-
-        self.RiskyShareLimitFunc = lambda _: _PerfForesightLogNormalPortfolioShare(
-            self.Rfree, self.RiskyAvg, self.RiskyStd, self.CRRA
-        )
+# Make a dictionary to specify a portfolio choice consumer type
+init_portfolio = init_idiosyncratic_shocks.copy()
+init_portfolio['RiskyAvg']        = 1.08 # Average return of the risky asset
+init_portfolio['RiskyStd']        = 0.20 # Standard deviation of (log) risky returns
+init_portfolio['RiskyCount']      = 5    # Number of integration nodes to use in approximation of risky returns
+init_portfolio['RiskyShareCount'] = 25   # Number of discrete points in the risky share approximation
+init_portfolio['AdjustPrb']       = 1.0  # Probability that the agent can adjust their risky portfolio share each period
+init_portfolio['aXtraMax']        = 100  # Make the grid of assets go much higher...
+init_portfolio['aXtraCount']      = 200  # ...and include many more gridpoints...
+init_portfolio['aXtraNestFac']    = 1    # ...which aren't so clustered at the bottom
+init_portfolio['BoroCnstArt']     = 0.0  # Artificial borrowing constraint must be turned on
+init_portfolio['CRRA']            = 5.0  # Results are more interesting with higher risk aversion
+init_portfolio['DiscFac']         = 0.90 # And also lower patience
