@@ -1,22 +1,28 @@
-import HARK.ConsumptionSaving.ConsumerParameters as Params
+# %%
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     PerfForesightConsumerType,
     IndShockConsumerType,
     KinkedRconsumerType,
+    init_lifecycle,
+    init_cyclical
 )
 from HARK.utilities import plotFuncsDer, plotFuncs
 from time import time
 
+# %%
 mystr = lambda number: "{:.4f}".format(number)
 
 
+# %%
 do_simulation = True
 
+# %%
 # Make and solve an example perfect foresight consumer
 PFexample = PerfForesightConsumerType()
 # Make this type have an infinite horizon
 PFexample.cycles = 0
 
+# %%
 start_time = time()
 PFexample.solve()
 end_time = time()
@@ -28,21 +34,25 @@ print(
 PFexample.unpackcFunc()
 PFexample.timeFwd()
 
+# %%
 # Plot the perfect foresight consumption function
 print("Perfect foresight consumption function:")
 mMin = PFexample.solution[0].mNrmMin
 plotFuncs(PFexample.cFunc[0], mMin, mMin + 10)
 
+# %%
 if do_simulation:
     PFexample.T_sim = 120  # Set number of simulation periods
     PFexample.track_vars = ["mNrmNow"]
     PFexample.initializeSim()
     PFexample.simulate()
 
+# %%
 # Make and solve an example consumer with idiosyncratic income shocks
 IndShockExample = IndShockConsumerType()
 IndShockExample.cycles = 0  # Make this type have an infinite horizon
 
+# %%
 start_time = time()
 IndShockExample.solve()
 end_time = time()
@@ -54,12 +64,14 @@ print(
 IndShockExample.unpackcFunc()
 IndShockExample.timeFwd()
 
+# %%
 # Plot the consumption function and MPC for the infinite horizon consumer
 print("Concave consumption function:")
 plotFuncs(IndShockExample.cFunc[0], IndShockExample.solution[0].mNrmMin, 5)
 print("Marginal consumption function:")
 plotFuncsDer(IndShockExample.cFunc[0], IndShockExample.solution[0].mNrmMin, 5)
 
+# %%
 # Compare the consumption functions for the perfect foresight and idiosyncratic
 # shock types.  Risky income cFunc asymptotically approaches perfect foresight cFunc.
 print("Consumption functions for perfect foresight vs idiosyncratic shocks:")
@@ -69,6 +81,7 @@ plotFuncs(
     100,
 )
 
+# %%
 # Compare the value functions for the two types
 if IndShockExample.vFuncBool:
     print("Value functions for perfect foresight vs idiosyncratic shocks:")
@@ -78,6 +91,7 @@ if IndShockExample.vFuncBool:
         10,
     )
 
+# %%
 # Simulate some data; results stored in mNrmNow_hist, cNrmNow_hist, and pLvlNow_hist
 if do_simulation:
     IndShockExample.T_sim = 120
@@ -86,12 +100,14 @@ if do_simulation:
     IndShockExample.initializeSim()
     IndShockExample.simulate()
 
+# %%
 # Make and solve an idiosyncratic shocks consumer with a finite lifecycle
-LifecycleExample = IndShockConsumerType(**Params.init_lifecycle)
+LifecycleExample = IndShockConsumerType(**init_lifecycle)
 LifecycleExample.cycles = (
     1
 )  # Make this consumer live a sequence of periods exactly once
 
+# %%
 start_time = time()
 LifecycleExample.solve()
 end_time = time()
@@ -99,6 +115,7 @@ print("Solving a lifecycle consumer took " + mystr(end_time - start_time) + " se
 LifecycleExample.unpackcFunc()
 LifecycleExample.timeFwd()
 
+# %%
 # Plot the consumption functions during working life
 print("Consumption functions while working:")
 mMin = min(
@@ -106,11 +123,13 @@ mMin = min(
 )
 plotFuncs(LifecycleExample.cFunc[: LifecycleExample.T_retire], mMin, 5)
 
+# %%
 # Plot the consumption functions during retirement
 print("Consumption functions while retired:")
 plotFuncs(LifecycleExample.cFunc[LifecycleExample.T_retire :], 0, 5)
 LifecycleExample.timeRev()
 
+# %%
 # Simulate some data; results stored in mNrmNow_hist, cNrmNow_hist, pLvlNow_hist, and t_age_hist
 if do_simulation:
     LifecycleExample.T_sim = 120
@@ -118,11 +137,13 @@ if do_simulation:
     LifecycleExample.initializeSim()
     LifecycleExample.simulate()
 
+# %%
 # Make and solve a "cyclical" consumer type who lives the same four quarters repeatedly.
 # The consumer has income that greatly fluctuates throughout the year.
-CyclicalExample = IndShockConsumerType(**Params.init_cyclical)
+CyclicalExample = IndShockConsumerType(**init_cyclical)
 CyclicalExample.cycles = 0
 
+# %%
 start_time = time()
 CyclicalExample.solve()
 end_time = time()
@@ -130,11 +151,13 @@ print("Solving a cyclical consumer took " + mystr(end_time - start_time) + " sec
 CyclicalExample.unpackcFunc()
 CyclicalExample.timeFwd()
 
+# %%
 # Plot the consumption functions for the cyclical consumer type
 print("Quarterly consumption functions:")
 mMin = min([X.mNrmMin for X in CyclicalExample.solution])
 plotFuncs(CyclicalExample.cFunc, mMin, 5)
 
+# %%
 # Simulate some data; results stored in cHist, mHist, bHist, aHist, MPChist, and pHist
 if do_simulation:
     CyclicalExample.T_sim = 480
@@ -142,10 +165,12 @@ if do_simulation:
     CyclicalExample.initializeSim()
     CyclicalExample.simulate()
 
+# %%
 # Make and solve an agent with a kinky interest rate
 KinkyExample = KinkedRconsumerType()
 KinkyExample.cycles = 0  # Make the Example infinite horizon
 
+# %%
 start_time = time()
 KinkyExample.solve()
 end_time = time()
@@ -155,6 +180,7 @@ print("Kinky consumption function:")
 KinkyExample.timeFwd()
 plotFuncs(KinkyExample.cFunc[0], KinkyExample.solution[0].mNrmMin, 5)
 
+# %%
 if do_simulation:
     KinkyExample.T_sim = 120
     KinkyExample.track_vars = ["mNrmNow", "cNrmNow", "pLvlNow"]

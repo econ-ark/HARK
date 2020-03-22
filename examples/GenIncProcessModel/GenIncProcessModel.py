@@ -1,7 +1,7 @@
 # ---
 # jupyter:
 #   jupytext:
-#     cell_metadata_filter: collapsed
+#     cell_metadata_filter: collapsed,code_folding
 #     formats: ipynb,py:percent
 #     notebook_metadata_filter: all
 #     text_representation:
@@ -71,7 +71,6 @@ import numpy as np
 # %%
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import *
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
-import HARK.ConsumptionSaving.ConsumerParameters as Params
 
 # %% [markdown]
 # `ConsIndShockModel` assumes that income has a permanent component $p$ which is subject to "permanent" shocks:
