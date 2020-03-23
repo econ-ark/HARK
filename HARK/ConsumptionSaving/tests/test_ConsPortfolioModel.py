@@ -15,9 +15,9 @@ class testPortfolioConsumerType(unittest.TestCase):
     def test_RiskyShareFunc(self):
 
         self.assertAlmostEqual(
-            self.pcct.solution[0].RiskyShareFunc[0][0](2).tolist(),
+            self.pcct.solution[0].ShareFuncAdj(2).tolist(),
             0.44093501839091315)
 
         self.assertAlmostEqual(
-            self.pcct.solution[0].RiskyShareFunc[0][0](8).tolist(),
+            self.pcct.solution[0].ShareFuncAdj(8).tolist(),
             0.34742262624144954)
