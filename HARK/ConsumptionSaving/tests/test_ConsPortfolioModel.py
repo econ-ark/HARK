@@ -6,7 +6,8 @@ class testPortfolioConsumerType(unittest.TestCase):
     def setUp(self):
         # Create portfolio choice consumer type
         self.pcct = cpm.PortfolioConsumerType()
-
+        self.pcct.cycles = 0
+        
         # %% {"code_folding": []}
         # Solve the model under the given parameters
 
@@ -15,9 +16,9 @@ class testPortfolioConsumerType(unittest.TestCase):
     def test_RiskyShareFunc(self):
 
         self.assertAlmostEqual(
-            self.pcct.solution[0].RiskyShareFunc[0][0](2).tolist(),
-            0.44093501839091315)
+            self.pcct.solution[0].ShareFuncAdj(8).tolist(),
+            0.9507419932531964)
 
         self.assertAlmostEqual(
-            self.pcct.solution[0].RiskyShareFunc[0][0](8).tolist(),
-            0.34742262624144954)
+            self.pcct.solution[0].ShareFuncAdj(16).tolist(),
+            0.6815883614201397)
