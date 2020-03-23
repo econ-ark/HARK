@@ -6,7 +6,8 @@ class testPortfolioConsumerType(unittest.TestCase):
     def setUp(self):
         # Create portfolio choice consumer type
         self.pcct = cpm.PortfolioConsumerType()
-
+        self.pcct.cycles = 0
+        
         # %% {"code_folding": []}
         # Solve the model under the given parameters
 
