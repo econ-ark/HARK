@@ -535,16 +535,18 @@ class AgentType(HARKobject):
         self.timeFwd()
         self.initializeSim()
 
-        # Make blank history arrays for each shock variable
+        # Make blank history arrays for each shock variable (and mortality)
         for var_name in self.shock_vars:
             setattr(self, var_name+'_hist', np.zeros((self.T_sim, self.AgentCount)) + np.nan)
+        setattr(self, 'who_dies_hist', np.zeros((self.T_sim, self.AgentCount), dtype=bool))
 
         # Make and store the history of shocks for each period
         for t in range(self.T_sim):
             self.getMortality()
+            self.who_dies_hist[t,:] = self.who_dies
             self.getShocks()
             for var_name in self.shock_vars:
-                exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
+                exec('self.' + var_name + '_hist[t,:] = self.' + var_name)
             self.t_sim += 1
             self.t_age = self.t_age + 1  # Age all consumers by one period
             self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
@@ -571,8 +573,12 @@ class AgentType(HARKobject):
         -------
         None
         '''
-        who_dies = self.simDeath()
+        if self.read_shocks:
+            who_dies = self.who_dies_hist[self.t_sim,:]
+        else:
+            who_dies = self.simDeath()
         self.simBirth(who_dies)
+        self.who_dies = who_dies
         return None
 
     def simDeath(self):
