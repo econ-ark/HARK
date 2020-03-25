@@ -315,7 +315,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         '''
         if 'RiskyDstn' in self.time_vary:
-              self.ShareLimit = []
+            self.ShareLimit = []
             for t in range(self.T_cycle):
                 RiskyDstn = self.RiskyDstn[t]
                 temp_f = lambda s : -((1.-self.CRRA)**-1)*np.dot((self.Rfree + s*(RiskyDstn[1]-self.Rfree))**(1.-self.CRRA), RiskyDstn[0])
