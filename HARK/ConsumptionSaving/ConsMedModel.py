@@ -17,8 +17,7 @@ from HARK.interpolation import BilinearInterpOnInterp1D, TrilinearInterp, Biline
                                VariableLowerBoundFunc3D
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import ConsGenIncProcessSolver,\
                             PersistentShockConsumerType, ValueFunc2D, MargValueFunc2D,\
-                            MargMargValueFunc2D, VariableLowerBoundFunc2D
-import HARK.ConsumptionSaving.ConsumerParameters as Params
+                            MargMargValueFunc2D, VariableLowerBoundFunc2D, init_persistent_shocks
 from copy import deepcopy
 
 __all__ = ['MedShockPolicyFunc', 'cThruXfunc', 'MedThruXfunc',
@@ -504,6 +503,28 @@ class MedThruXfunc(HARKobject):
 
 ###############################################################################
 
+# -----------------------------------------------------------------------------
+# ----- Define additional parameters for the medical shocks model -------------
+# -----------------------------------------------------------------------------
+CRRA = 2.0
+CRRAmed = 1.5*CRRA     # Coefficient of relative risk aversion for medical care
+MedShkAvg = [0.001]    # Average of medical need shocks
+MedShkStd = [5.0]      # Standard deviation of (log) medical need shocks
+MedShkCount = 5        # Number of medical shock points in "body"
+MedShkCountTail = 15   # Number of medical shock points in "tail" (upper only)
+MedPrice = [1.5]       # Relative price of a unit of medical care
+
+# Make a dictionary for the "medical shocks" model
+init_medical_shocks = init_persistent_shocks.copy()
+init_medical_shocks['CRRAmed'] = CRRAmed
+init_medical_shocks['MedShkAvg'] = MedShkAvg
+init_medical_shocks['MedShkStd'] = MedShkStd
+init_medical_shocks['MedShkCount'] = MedShkCount
+init_medical_shocks['MedShkCountTail'] = MedShkCountTail
+init_medical_shocks['MedPrice'] = MedPrice
+init_medical_shocks['aXtraCount'] = 32
+
+
 class MedShockConsumerType(PersistentShockConsumerType):
     '''
     A class to represent agents who consume two goods: ordinary composite consumption
@@ -531,11 +552,10 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         '''
-        params = Params.init_medical_shocks.copy()
+        params = init_medical_shocks.copy()
         params.update(kwds)
-        kwds = params
 
-        PersistentShockConsumerType.__init__(self,cycles=cycles,**kwds)
+        PersistentShockConsumerType.__init__(self,cycles=cycles,**params)
         self.solveOnePeriod = solveConsMedShock # Choose correct solver
         self.addToTimeInv('CRRAmed')
         self.addToTimeVary('MedPrice')

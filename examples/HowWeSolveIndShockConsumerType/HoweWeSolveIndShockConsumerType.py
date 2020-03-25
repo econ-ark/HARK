@@ -1,11 +1,11 @@
 # ---
 # jupyter:
 #   jupytext:
-#     formats: ipynb,py:light
+#     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
-#       format_name: light
-#       format_version: '1.4'
+#       format_name: percent
+#       format_version: '1.2'
 #       jupytext_version: 1.2.4
 #   kernelspec:
 #     display_name: Python 3
@@ -13,6 +13,7 @@
 #     name: python3
 # ---
 
+# %% [markdown]
 # # How we solve a model defined by the `IndShockConsumerType` class
 # The IndShockConsumerType reprents the work-horse consumption savings model with temporary and permanent shocks to income, finite or infinite horizons, CRRA utility and more. In this DemARK we take you through the steps involved in solving one period of such a model. The inheritance chains can be a little long, so figuring out where all the parameters and methods come from can be a bit confusing. Hence this map! The intention is to make it easier to know how to inheret from IndShockConsumerType in the sense that you know where to look for specific solver logic, but also so you know can figure out which methods to overwrite or supplement in your own `AgentType` and solver!
 # ## The `solveConsIndShock` function
@@ -22,6 +23,7 @@
 #  1. Call `solver.prepareToSolve()`
 #  1. Call `solver.solve()` and return the output as the current solution.
 
+# %% [markdown]
 # ### Two types of solvers
 # As mentioned above, `solveOnePeriod` will construct an instance of the class `ConsIndShockSolverBasic`or `ConsIndShockSolver`. The main difference is whether it uses cubic interpolation or if it explicitly constructs a value function approximation. The choice and construction of a solver instance is bullet 1) from above.
 #
@@ -92,24 +94,29 @@
 # #### Special to the non-Basic solver
 # We are now done, but in the `ConsIndShockSolver` (non-`Basic`!) solver there are a few extra steps. We add steady state m, and depending on the values of `vFuncBool` and `CubicBool` we also add the value function and the marginal marginal value function.
 
+# %% [markdown]
 # # Let's try it in action!
 # First, we define a standard lifecycle model, solve it and then
 
-import HARK.ConsumptionSaving.ConsumerParameters as Params
-from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+# %%
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, init_lifecycle
 import numpy as np
 import matplotlib.pyplot as plt
-LifecycleExample = IndShockConsumerType(**Params.init_lifecycle)
+LifecycleExample = IndShockConsumerType(init_lifecycle)
 LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
 LifecycleExample.solve()
 
+# %% [markdown]
 # Let's have a look at the solution in time period second period. We should then be able to
 
+# %%
 from HARK.utilities import plotFuncs
 plotFuncs([LifecycleExample.solution[0].cFunc],LifecycleExample.solution[0].mNrmMin,10)
 
+# %% [markdown]
 # Let us then create a solver for the first period.
 
+# %%
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolverBasic
 solver = ConsIndShockSolverBasic(LifecycleExample.solution[1],
                                  LifecycleExample.IncomeDstn[0],
@@ -123,43 +130,61 @@ solver = ConsIndShockSolverBasic(LifecycleExample.solution[1],
                                  LifecycleExample.vFuncBool,
                                  LifecycleExample.CubicBool)
 
+# %%
 solver.prepareToSolve()
 
+# %% [markdown]
 # Many important values are now calculated and stored in solver, such as the effective discount factor, the smallest permanent income shock, and more.
 
+# %%
 solver.DiscFacEff
 
+# %%
 solver.PermShkMinNext
 
+# %% [markdown]
 # These values were calculated in `setAndUpdateValues`. In `defBoroCnst` that was also called, several things were calculated, for example the consumption function defined by the borrowing constraint.
 
+# %%
 plotFuncs([solver.cFuncNowCnst],solver.mNrmMinNow,10)
 
+# %% [markdown]
 # Then, we set up all the grids, grabs the discrete shock distributions, and state grids in `prepareToCalcEndOfPrdvP`.
 
+# %%
 solver.prepareToCalcEndOfPrdvP()
 
+# %% [markdown]
 # Then we calculate the marginal utility of next period's resources given the stochastic environment and current grids.
 
+# %%
 EndOfPrdvP = solver.calcEndOfPrdvP()
 
+# %% [markdown]
 # Then, we essentially just have to construct the (resource, consumption) pairs by completing the EGM step, and constructing the interpolants by using the knowledge that the limiting solutions are those of the perfect foresight model. This is done with `makeBasicSolution` as discussed above.
 
+# %%
 solution = solver.makeBasicSolution(EndOfPrdvP,solver.aNrmNow,solver.makeLinearcFunc)
 
+# %% [markdown]
 # Lastly, we add the MPC and human wealth quantities we calculated in the method that prepared the solution of this period.
 
+# %%
 solver.addMPCandHumanWealth(solution)
 
+# %% [markdown]
 # All that is left is to verify that the solution in `solution` is identical to `LifecycleExample.solution[0]`. We can plot the against each other:
 
+# %%
 plotFuncs([LifecycleExample.solution[0].cFunc, solution.cFunc],LifecycleExample.solution[0].mNrmMin,10)
 
+# %% [markdown]
 # Although, it's probably even clearer if we just subtract the function values from each other at some grid.
 
+# %%
 eval_grid = np.linspace(0, 20, 200)
 LifecycleExample.solution[0].cFunc(eval_grid) - solution.cFunc(eval_grid)
 
+# %%
 
-
-
+# %%

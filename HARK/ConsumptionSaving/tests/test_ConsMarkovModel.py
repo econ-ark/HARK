@@ -1,6 +1,6 @@
 import numpy as np
+from HARK.ConsumptionSaving.ConsIndShockModel import init_idiosyncratic_shocks
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-import HARK.ConsumptionSaving.ConsumerParameters as Params
 from copy import copy
 import unittest
 
@@ -46,7 +46,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
             ]
         )
 
-        init_serial_unemployment = copy(Params.init_idiosyncratic_shocks)
+        init_serial_unemployment = copy(init_idiosyncratic_shocks)
         init_serial_unemployment["MrkvArray"] = [self.MrkvArray]       
         self.model = MarkovConsumerType(**init_serial_unemployment) 
     
