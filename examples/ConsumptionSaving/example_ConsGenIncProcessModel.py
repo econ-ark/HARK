@@ -1,4 +1,4 @@
-import HARK.ConsumptionSaving.ConsumerParameters as Params
+# %%
 from HARK.utilities import plotFuncs
 from time import process_time
 import matplotlib.pyplot as plt
@@ -7,13 +7,16 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     IndShockExplicitPermIncConsumerType,
     IndShockConsumerType,
     PersistentShockConsumerType,
+    init_explicit_perm_inc
 )
 def mystr(number):
     return "{:.4f}".format(number)
 
 
+# %%
 do_simulation = True
 
+# %%
 # Display information about the pLvlGrid used in these examples
 print(
     "The infinite horizon examples presented here use a grid of persistent income levels (pLvlGrid)"
@@ -23,15 +26,16 @@ print(
 )
 print(
     "are specified in the attribute pLvlPctiles. Here, the lowest percentile is "
-    + str(Params.init_explicit_perm_inc["pLvlPctiles"][0] * 100)
+    + str(init_explicit_perm_inc["pLvlPctiles"][0] * 100)
     + " and the highest"
 )
 print(
     "percentile is "
-    + str(Params.init_explicit_perm_inc["pLvlPctiles"][-1] * 100)
+    + str(init_explicit_perm_inc["pLvlPctiles"][-1] * 100)
     + ".\n"
 )
 
+# %%
 # Make and solve an example "explicit permanent income" consumer with idiosyncratic shocks
 ExplicitExample = IndShockExplicitPermIncConsumerType()
 t_start = process_time()
@@ -43,6 +47,7 @@ print(
     + " seconds."
 )
 
+# %%
 # Plot the consumption function at various permanent income levels
 print("Consumption function by pLvl for explicit permanent income consumer:")
 pLvlGrid = ExplicitExample.pLvlGrid[0]
@@ -57,8 +62,10 @@ plt.xlabel("Market resource level mLvl")
 plt.ylabel("Consumption level cLvl")
 plt.show()
 
+# %%
 # Now solve the *exact same* problem, but with the permanent income normalization
-NormalizedExample = IndShockConsumerType(**Params.init_explicit_perm_inc)
+NormalizedExample = IndShockConsumerType(**init_explicit_perm_inc)
+NormalizedExample.cycles = 0
 t_start = process_time()
 NormalizedExample.solve()
 t_end = process_time()
@@ -68,6 +75,7 @@ print(
     + " seconds."
 )
 
+# %%
 # Show that the normalized consumption function for the "explicit permanent income" consumer
 # is almost identical for every permanent income level (and the same as the normalized problem's
 # cFunc), but is less accurate due to extrapolation outside the bounds of pLvlGrid.
@@ -89,16 +97,13 @@ print(
 mNrmMin = NormalizedExample.solution[0].mNrmMin
 plotFuncs(NormalizedExample.solution[0].cFunc, mNrmMin, mNrmMin + 20)
 
-print(
-    'The "explicit permanent income" solution deviates from the solution to the normalized problem because'
-)
-print(
-    "of errors from extrapolating beyond the bounds of the pLvlGrid. The error is largest for pLvl values"
-)
-print(
-    "near the upper and lower bounds, and propagates toward the center of the distribution.\n"
-)
+# %% [markdown]
+# The "explicit permanent income" solution deviates from the solution to the normalized problem because
+# of errors from extrapolating beyond the bounds of the pLvlGrid.
+# The error is largest for pLvl values
+# near the upper and lower bounds, and propagates toward the center of the distribution.
 
+# %%
 # Plot the value function at various permanent income levels
 if ExplicitExample.vFuncBool:
     pGrid = np.linspace(0.1, 3.0, 24)
@@ -112,6 +117,7 @@ if ExplicitExample.vFuncBool:
     plt.ylabel("Value v")
     plt.show()
 
+# %%
 # Simulate some data
 if do_simulation:
     ExplicitExample.T_sim = 500
@@ -124,8 +130,9 @@ if do_simulation:
     plt.ylabel("Average market resources mLvl")
     plt.show()
 
+# %%
 # Make and solve an example "persistent idisyncratic shocks" consumer
-PersistentExample = PersistentShockConsumerType(**Params.init_persistent_shocks)
+PersistentExample = PersistentShockConsumerType()
 t_start = process_time()
 PersistentExample.solve()
 t_end = process_time()
@@ -135,6 +142,7 @@ print(
     + " seconds."
 )
 
+# %%
 # Plot the consumption function at various levels of persistent income pLvl
 print(
     "Consumption function by persistent income level pLvl for a consumer with AR1 coefficient of "
@@ -153,6 +161,7 @@ plt.xlabel("Market resource level mLvl")
 plt.ylabel("Consumption level cLvl")
 plt.show()
 
+# %%
 # Plot the value function at various persistent income levels
 if PersistentExample.vFuncBool:
     pGrid = PersistentExample.pLvlGrid[0]
@@ -166,6 +175,7 @@ if PersistentExample.vFuncBool:
     plt.ylabel("Value v")
     plt.show()
 
+# %%
 # Simulate some data
 if do_simulation:
     PersistentExample.T_sim = 500

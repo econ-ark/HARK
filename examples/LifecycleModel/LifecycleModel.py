@@ -1,13 +1,13 @@
 # ---
 # jupyter:
 #   jupytext:
-#     cell_metadata_filter: collapsed
+#     cell_metadata_filter: collapsed,code_folding
 #     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.2.1
+#       jupytext_version: 1.2.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -41,7 +41,7 @@
 # Initial imports and notebook setup, click arrow to show
 
 import HARK.ConsumptionSaving.ConsIndShockModel as Model        # The consumption-saving micro model
-import HARK.SolvingMicroDSOPs.Calibration.EstimationParameters as Params    # Parameters for the consumer type and the estimation
+import EstimationParameters as Params    # Parameters for the consumer type and the estimation
 from HARK.utilities import plotFuncsDer, plotFuncs              # Some tools
 
 import numpy as np

@@ -9,6 +9,18 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.10.5
+
+Release Date: 24-03-2020
+
+#### Major Changes
+ * Default parameters dictionaries for ConsumptionSaving models have been moved from ConsumerParameters to nearby the classes that use them. [#527](https://github.com/econ-ark/HARK/pull/527)
+
+ * Improvements and cleanup of ConsPortfolioModel, and adding the ability to specify an age-varying list of RiskyAvg and RiskyStd. [#577](https://github.com/econ-ark/HARK/pull/527)
+
+ * Rewrite and simplification of ConsPortfolioModel solver. [#594](https://github.com/econ-ark/HARK/pull/594)
+
+#### Minor Changes 
 
 ### 0.10.4
 

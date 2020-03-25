@@ -1,9 +1,7 @@
 '''
 Example implementations of the intensive margin labor supply model in ConsLaborModel.py.
 '''
-
-import HARK.ConsumptionSaving.ConsumerParameters as Params
-from HARK.ConsumptionSaving.ConsLaborModel import LaborIntMargConsumerType
+from HARK.ConsumptionSaving.ConsLaborModel import LaborIntMargConsumerType, init_labor_lifecycle
 import numpy as np
 import matplotlib.pyplot as plt
 from time import process_time
@@ -128,7 +126,7 @@ if do_simulation:
 ###############################################################################
     
 # Make and solve a labor intensive margin consumer with a finite lifecycle
-LifecycleExample = LaborIntMargConsumerType(**Params.init_labor_lifecycle)
+LifecycleExample = LaborIntMargConsumerType(**init_labor_lifecycle)
 LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
 
 start_time = process_time()

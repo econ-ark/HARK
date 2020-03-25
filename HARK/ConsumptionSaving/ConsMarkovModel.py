@@ -922,12 +922,21 @@ class MarkovConsumerType(IndShockConsumerType):
         None
         '''
         cNrmNow = np.zeros(self.AgentCount) + np.nan
+        MPCnow = np.zeros(self.AgentCount) + np.nan
+        J = self.MrkvArray[0].shape[0]
+        
+        MrkvBoolArray = np.zeros((J,self.AgentCount), dtype=bool)
+        for j in range(J):
+            MrkvBoolArray[j,:] = j == self.MrkvNow
+        
         for t in range(self.T_cycle):
-            for j in range(self.MrkvArray[t].shape[0]):
-                these = np.logical_and(t == self.t_cycle, j == self.MrkvNow)
-                cNrmNow[these] = self.solution[t].cFunc[j](self.mNrmNow[these])
+            right_t = t == self.t_cycle
+            for j in range(J):
+                these = np.logical_and(right_t, MrkvBoolArray[j,:])
+                cNrmNow[these], MPCnow[these] = self.solution[t].cFunc[j].eval_with_derivative(self.mNrmNow[these])
         self.cNrmNow = cNrmNow
-        return None
+        self.MPCnow  = MPCnow
+        
 
     def calcBoundingValues(self):
         '''

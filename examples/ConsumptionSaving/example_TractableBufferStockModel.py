@@ -1,3 +1,4 @@
+# %%
 import numpy as np  # numeric Python
 from HARK.utilities import plotFuncs  # basic plotting tools
 from HARK.ConsumptionSaving.ConsMarkovModel import (
@@ -5,9 +6,9 @@ from HARK.ConsumptionSaving.ConsMarkovModel import (
 )  # An alternative, much longer way to solve the TBS model
 from time import process_time  # timing utility
 from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerType
-import numpy as np
 do_simulation = True
 
+# %%
 # Define the model primitives
 base_primitives = {
     "UnempPrb": 0.00625,  # Probability of becoming unemployed
@@ -17,6 +18,7 @@ base_primitives = {
     "CRRA": 1.0,
 }  # Coefficient of relative risk aversion
 
+# %%
 # Define a dictionary to be used in case of simulation
 simulation_values = {
     "aLvlInitMean": 0.0,  # Mean of log initial assets for new agents
@@ -26,6 +28,7 @@ simulation_values = {
     "T_cycle": 1,
 }  # Number of periods in the cycle
 
+# %%
 # Make and solve a tractable consumer type
 ExampleType = TractableConsumerType(**base_primitives)
 t_start = process_time()
@@ -37,12 +40,14 @@ print(
     + " seconds."
 )
 
+# %%
 # Plot the consumption function and whatnot
 m_upper = 1.5 * ExampleType.mTarg
 conFunc_PF = lambda m: ExampleType.h * ExampleType.PFMPC + ExampleType.PFMPC * m
 # plotFuncs([ExampleType.solution[0].cFunc,ExampleType.mSSfunc,ExampleType.cSSfunc],0,m_upper)
 plotFuncs([ExampleType.solution[0].cFunc, ExampleType.solution[0].cFunc_U], 0, m_upper)
 
+# %%
 if do_simulation:
     ExampleType(**simulation_values)  # Set attributes needed for simulation
     ExampleType.track_vars = ["mLvlNow"]
@@ -51,6 +56,7 @@ if do_simulation:
     ExampleType.simulate()
 
 
+# %%
 # Now solve the same model using backward induction rather than the analytic method of TBS.
 # The TBS model is equivalent to a Markov model with two states, one of them absorbing (permanent unemployment).
 MrkvArray = np.array(
@@ -106,12 +112,14 @@ MarkovType.IncomeDstn = [
 ]  # set the income distribution in each state
 MarkovType.cycles = 0
 
+# %%
 # Solve the "Markov TBS" model
 t_start = process_time()
 MarkovType.solve()
 t_end = process_time()
 MarkovType.unpackcFunc()
 
+# %%
 print(
     'Solving the same model "the long way" took ' + str(t_end - t_start) + " seconds."
 )

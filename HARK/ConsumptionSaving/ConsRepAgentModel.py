@@ -11,7 +11,8 @@ from builtins import range
 import numpy as np
 from HARK.interpolation import LinearInterp
 from HARK.simulation import drawUniform, drawDiscrete
-from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, ConsumerSolution, MargValueFunc
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType,\
+          ConsumerSolution,MargValueFunc, init_idiosyncratic_shocks
 
 __all__ = ['RepAgentConsumerType', 'RepAgentMarkovConsumerType']
 
@@ -205,7 +206,10 @@ class RepAgentConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        IndShockConsumerType.__init__(self,cycles=0,**kwds)
+        params = init_rep_agent.copy()
+        params.update(kwds)
+        
+        IndShockConsumerType.__init__(self,cycles=0,**params)
         self.AgentCount = 1 # Hardcoded, because this is rep agent
         self.solveOnePeriod = solveConsRepAgent
         self.delFromTimeInv('Rfree','BoroCnstArt','vFuncBool','CubicBool')
@@ -251,8 +255,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
 
         Parameters
         ----------
-
-
+ 
         Returns
         -------
         None

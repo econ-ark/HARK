@@ -10,7 +10,7 @@ from copy import copy, deepcopy
 import numpy as np
 import scipy as sc
 from scipy import sparse as sp
-from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, init_idiosyncratic_shocks
 from HARK.utilities import makeGridExpMult
 
 
@@ -158,14 +158,13 @@ class IndShockConsumerType_extend(IndShockConsumerType):
         self.ergodic_distr = ergodic_distr.reshape((len(self.Dist_mGrid),len(self.Dist_pGrid)))
         
 if __name__ == '__main__':
-    import HARK.ConsumptionSaving.ConsumerParameters as Params
     from HARK.utilities import plotFuncsDer, plotFuncs
     from time import clock
     mystr = lambda number : "{:.4f}".format(number)
     
     
     # Make and solve an example consumer with idiosyncratic income shocks
-    IndShock_extendExample = IndShockConsumerType_extend(**Params.init_idiosyncratic_shocks)
+    IndShock_extendExample = IndShockConsumerType_extend(init_idiosyncratic_shocks)
     IndShock_extendExample.cycles = 0 # Make this type have an infinite horizon
     
     start_time = clock()

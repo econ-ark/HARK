@@ -15,9 +15,8 @@ import numpy as np
 from HARK.core import Solution
 from HARK.utilities import CRRAutilityP, CRRAutilityP_inv
 from HARK.interpolation import LinearInterp, LinearInterpOnInterp1D, VariableLowerBoundFunc2D, BilinearInterp, ConstantFunction
-from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, MargValueFunc
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, MargValueFunc, init_idiosyncratic_shocks
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import ValueFunc2D, MargValueFunc2D
-import HARK.ConsumptionSaving.ConsumerParameters as Params
 import matplotlib.pyplot as plt
 
 class ConsumerLaborSolution(Solution):
@@ -271,12 +270,10 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        params = Params.init_labor_intensive.copy()
+        params = init_labor_intensive.copy()
         params.update(kwds)
-        kwds = params
         
-        IndShockConsumerType.__init__(self,cycles = cycles,
-                                      **kwds)
+        IndShockConsumerType.__init__(self,cycles = cycles,**params)
         self.pseudo_terminal = False
         self.solveOnePeriod = solveConsLaborIntMarg
         self.update()

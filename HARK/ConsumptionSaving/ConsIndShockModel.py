@@ -1671,7 +1671,6 @@ class PerfForesightConsumerType(AgentType):
                 raise(AttributeError('PerfForesightConsumerType requires the attribute MaxKinks to be specified when BoroCnstArt is not None and cycles == 0.'))
 
             
-
     def checkRestrictions(self):
         """
         A method to check that various restrictions are met for the model class.
@@ -1966,7 +1965,6 @@ class PerfForesightConsumerType(AgentType):
         return self.violated
 
 
-
     def checkConditions(self,verbose=False,verbose_reference=False,public_call=False):
         '''
         This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC), 
@@ -2062,6 +2060,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         '''
+
         params = init_idiosyncratic_shocks.copy()
         params.update(kwds)
 
@@ -2390,8 +2389,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if public_call or verbose:
                 print('Therefore, a nondegenerate solution is not available (see '+self.url+'/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping')
             print()
-
-
 
 
     def checkConditions(self,verbose=False,public_call=True):

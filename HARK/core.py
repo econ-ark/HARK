@@ -402,7 +402,7 @@ class AgentType(HARKobject):
         for var_name in self.poststate_vars:
             setattr(self, var_name, copy(blank_array))
             # exec('self.' + var_name + ' = copy(blank_array)')
-        self.t_age = np.zeros(self.AgentCount, dtype=int)   # Number of periods since agent entry
+        self.t_age = np.zeros(self.AgentCount, dtype=int)    # Number of periods since agent entry
         self.t_cycle = np.zeros(self.AgentCount, dtype=int)  # Which cycle period each agent is on
         self.simBirth(all_agents)
         self.clearHistory()
