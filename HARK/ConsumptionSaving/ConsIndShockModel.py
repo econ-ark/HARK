@@ -1877,13 +1877,22 @@ class PerfForesightConsumerType(AgentType):
                        verbose=False):
         """
         Checks one condition.
-          - name : str, name of the condition
-          - test : a function of self, returns True if condition passes
-          - messages: a tuple of four strings, for four conditions:
-              - True, always
-              - True, verbose
-              - False, always
-              - False, verbose
+
+        Parameters
+        ----------
+        name : string
+             Name for the condition.
+
+        test : function(self -> boolean)
+             A function (of self) which tests the condition
+
+        messges : tuple[string]
+            A length four tuple of string to be printed to the 
+            user, in order: True, always; True, verbose; 
+            False, always; False, verbose.
+
+        verbose : boolean
+            (Optional) A boolean to set verbose printing
         """
         self.conditions[name] = test(self)
 
