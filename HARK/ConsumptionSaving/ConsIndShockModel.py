@@ -1995,21 +1995,51 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         '''
+        self.conditions = {}
+
+        self.violated = False
+
         # This method only checks for the conditions for infinite horizon models
         # with a 1 period cycle. If these conditions are not met, we exit early.
         if self.cycles!=0 or self.T_cycle > 1:
             return
 
-        self.violated = False
+        self.thorn = (self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)
 
-        Thorn = (self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)
-        self.Thorn = Thorn
+        self.checkAIC(verbose)
+        self.checkGICPF(verbose)
+        self.checkRIC(verbose)
+        self.checkFHWC(verbose)
 
-        self.checkAIC(Thorn,verbose,public_call)
-        self.checkGICPF(Thorn,verbose,public_call)
-        self.checkRIC(Thorn,verbose,public_call)
-        self.checkFHWC(verbose,public_call)
+        self.violated = any([not self.conditions[c]
+                             for c
+                             in self.conditions])
 
+# Make a dictionary to specify an idiosyncratic income shocks consumer
+init_idiosyncratic_shocks = dict(init_perfect_foresight,
+                                 **{
+    # assets above grid parameters
+    'aXtraMin': 0.001,      # Minimum end-of-period "assets above minimum" value
+    'aXtraMax': 20,         # Maximum end-of-period "assets above minimum" value
+    'aXtraNestFac': 3,      # Exponential nesting factor when constructing "assets above minimum" grid
+    'aXtraCount': 48,       # Number of points in the grid of "assets above minimum"
+    'aXtraExtra': [None],   # Some other value of "assets above minimum" to add to the grid, not used
+    # Income process variables
+    'PermShkStd': [0.1],    # Standard deviation of log permanent income shocks
+    'PermShkCount': 7,      # Number of points in discrete approximation to permanent income shocks
+    'TranShkStd': [0.1],    # Standard deviation of log transitory income shocks
+    'TranShkCount': 7,      # Number of points in discrete approximation to transitory income shocks
+    'UnempPrb': 0.05,       # Probability of unemployment while working
+    'UnempPrbRet': 0.005,   # Probability of "unemployment" while retired
+    'IncUnemp': 0.3,        # Unemployment benefits replacement rate
+    'IncUnempRet': 0.0,     # "Unemployment" benefits when retired
+    'BoroCnstArt': 0.0,     # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    'tax_rate': 0.0,        # Flat income tax rate
+    'T_retire': 0, # Period of retirement (0 --> no retirement)
+    'vFuncBool': False,     # Whether to calculate the value function during solution
+    'CubicBool': False,     # Use cubic spline interpolation when True, linear interpolation when False
+})
+      
 class IndShockConsumerType(PerfForesightConsumerType):
     '''
     A consumer type with idiosyncratic shocks to permanent and transitory income.
@@ -2045,9 +2075,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         None
         '''
 
-        params = Params.init_idiosyncratic_shocks.copy()
+        params = init_idiosyncratic_shocks.copy()
         params.update(kwds)
-        kwds = params
 
         # Initialize a basic AgentType
         PerfForesightConsumerType.__init__(self,
@@ -2055,7 +2084,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                                            time_flow=time_flow,
                                            verbose=verbose,
                                            quiet=quiet,
-                                           **kwds)
+                                           **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
@@ -2859,3 +2888,22 @@ def constructAssetsGrid(parameters):
                 aXtraGrid = np.insert(aXtraGrid, j, a)
 
     return aXtraGrid
+
+
+# Make a dictionary to specify a lifecycle consumer with a finite horizon
+init_lifecycle = copy(init_idiosyncratic_shocks)
+init_lifecycle['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
+init_lifecycle['PermShkStd'] = [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0,0,0]
+init_lifecycle['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,0,0,0]
+init_lifecycle['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
+init_lifecycle['T_cycle']    = 10
+init_lifecycle['T_retire']   = 7
+init_lifecycle['T_age']      = 11 # Make sure that old people die at terminal age and don't turn into newborns!
+
+# Make a dictionary to specify an infinite consumer with a four period cycle
+init_cyclical = copy(init_idiosyncratic_shocks)
+init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
+init_cyclical['PermShkStd'] = [0.1,0.1,0.1,0.1]
+init_cyclical['TranShkStd'] = [0.1,0.1,0.1,0.1]
+init_cyclical['LivPrb']     = 4*[0.98]
+init_cyclical['T_cycle']    = 4
