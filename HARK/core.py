@@ -473,8 +473,7 @@ class AgentType(HARKobject):
         blank_array = np.zeros(self.AgentCount)
         for var_name in self.poststate_vars:
             setattr(self, var_name, copy(blank_array))
-            # exec('self.' + var_name + ' = copy(blank_array)')
-        self.t_age = np.zeros(self.AgentCount, dtype=int)   # Number of periods since agent entry
+        self.t_age = np.zeros(self.AgentCount, dtype=int)    # Number of periods since agent entry
         self.t_cycle = np.zeros(self.AgentCount, dtype=int)  # Which cycle period each agent is on
         self.simBirth(all_agents)
         self.clearHistory()
@@ -544,7 +543,7 @@ class AgentType(HARKobject):
             self.getMortality()
             self.getShocks()
             for var_name in self.shock_vars:
-                exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
+                getattr(self, var_name + '_hist')[self.t_sim,:] = getattr(self, var_name)
             self.t_sim += 1
             self.t_age = self.t_age + 1  # Age all consumers by one period
             self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
@@ -732,7 +731,7 @@ class AgentType(HARKobject):
             for t in range(sim_periods):
                 self.simOnePeriod()
                 for var_name in self.track_vars:
-                    exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
+                    getattr(self, var_name + '_hist')[self.t_sim,:] = getattr(self,var_name)
                 self.t_sim += 1
 
             if not orig_time:
@@ -751,7 +750,7 @@ class AgentType(HARKobject):
         None
         '''
         for var_name in self.track_vars:
-            exec('self.' + var_name + '_hist = np.zeros((self.T_sim,self.AgentCount)) + np.nan')
+            setattr(self, var_name + '_hist', np.zeros((self.T_sim,self.AgentCount)) + np.nan)
 
 
 def solveAgent(agent, verbose):
@@ -921,7 +920,7 @@ class Market(HARKobject):
     layer on top of the "microeconomic" models of one or more AgentTypes.
     '''
     def __init__(self, agents=[], sow_vars=[], reap_vars=[], const_vars=[], track_vars=[], dyn_vars=[],
-                 millRule=None, calcDynamics=None, act_T=1000, tolerance=0.000001):
+                 millRule=None, calcDynamics=None, act_T=1000, tolerance=0.000001,**kwds):
         '''
         Make a new instance of the Market class.
 
@@ -979,6 +978,7 @@ class Market(HARKobject):
         self.act_T     = act_T # NOQA
         self.tolerance = tolerance # NOQA
         self.max_loops = 1000 # NOQA
+        self.assignParameters(**kwds)
 
         self.print_parallel_error_once = True
         # Print the error associated with calling the parallel method

@@ -1,14 +1,17 @@
-import HARK.ConsumptionSaving.ConsumerParameters as Params
+# %%
 from HARK.utilities import CRRAutility_inv
 from time import time
 import matplotlib.pyplot as plt
 import numpy as np
 from HARK.ConsumptionSaving.ConsMedModel import MedShockConsumerType
 
+# %%
 mystr = lambda number: "{:.4f}".format(number)
 
+# %%
 do_simulation = True
 
+# %%
 # Make and solve an example medical shocks consumer type
 MedicalExample = MedShockConsumerType()
 t_start = time()
@@ -16,6 +19,7 @@ MedicalExample.solve()
 t_end = time()
 print("Solving a medical shocks consumer took " + mystr(t_end - t_start) + " seconds.")
 
+# %%
 # Plot the consumption function
 M = np.linspace(0, 30, 300)
 pLvl = 1.0
@@ -28,6 +32,7 @@ for j in range(MedicalExample.MedShkDstn[0][0].size):
 print("Consumption function by medical need shock (constant permanent income)")
 plt.show()
 
+# %%
 # Plot the medical care function
 for j in range(MedicalExample.MedShkDstn[0][0].size):
     MedShk = MedicalExample.MedShkDstn[0][1][j] * np.ones_like(M)
@@ -37,6 +42,7 @@ print("Medical care function by medical need shock (constant permanent income)")
 plt.ylim([0, 20])
 plt.show()
 
+# %%
 # Plot the savings function
 for j in range(MedicalExample.MedShkDstn[0][0].size):
     MedShk = MedicalExample.MedShkDstn[0][1][j] * np.ones_like(M)
@@ -50,6 +56,7 @@ for j in range(MedicalExample.MedShkDstn[0][0].size):
 print("End of period savings by medical need shock (constant permanent income)")
 plt.show()
 
+# %%
 # Plot the marginal value function
 M = np.linspace(0.0, 30, 300)
 for p in range(MedicalExample.pLvlGrid[0].size):
@@ -61,6 +68,7 @@ for p in range(MedicalExample.pLvlGrid[0].size):
 print("Marginal value function (pseudo inverse)")
 plt.show()
 
+# %%
 if MedicalExample.vFuncBool:
     # Plot the value function
     M = np.linspace(0.0, 1, 300)
@@ -75,6 +83,7 @@ if MedicalExample.vFuncBool:
     print("Value function (pseudo inverse)")
     plt.show()
 
+# %%
 if do_simulation:
     t_start = time()
     MedicalExample.T_sim = 100

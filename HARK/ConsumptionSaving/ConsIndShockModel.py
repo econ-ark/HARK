@@ -29,13 +29,14 @@ from HARK.utilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMea
                            combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
                            CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
                            CRRAutilityP_invP
-import HARK.ConsumptionSaving.ConsumerParameters as Params
 
 
 __all__ = ['ConsumerSolution', 'ValueFunc', 'MargValueFunc', 'MargMargValueFunc',
 'ConsPerfForesightSolver', 'ConsIndShockSetup', 'ConsIndShockSolverBasic',
 'ConsIndShockSolver', 'ConsKinkedRsolver', 'PerfForesightConsumerType',
-'IndShockConsumerType', 'KinkedRconsumerType']
+'IndShockConsumerType', 'KinkedRconsumerType',
+           'init_perfect_foresight','init_idiosyncratic_shocks','init_kinked_R',
+           'init_lifecycle','init_cyclical']
 
 utility       = CRRAutility
 utilityP      = CRRAutilityP
@@ -1578,6 +1579,26 @@ def solveConsKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
 # == Classes for representing types of consumer agents (and things they do) ==
 # ============================================================================
 
+# Make a dictionary to specify a perfect foresight consumer type
+init_perfect_foresight = {
+    'CRRA': 2.0,          # Coefficient of relative risk aversion,
+    'Rfree': 1.03,        # Interest factor on assets
+    'DiscFac': 0.96,      # Intertemporal discount factor
+    'LivPrb': [0.98],     # Survival probability
+    'PermGroFac': [1.01], # Permanent income growth factor
+    'BoroCnstArt': None,  # Artificial borrowing constraint
+    'MaxKinks': 400,      # Maximum number of grid points to allow in cFunc (should be large)
+    'AgentCount': 10000,  # Number of agents of this type (only matters for simulation)
+    'aNrmInitMean' : 0.0, # Mean of log initial assets (only matters for simulation)
+    'aNrmInitStd' : 1.0,  # Standard deviation of log initial assets (only for simulation)
+    'pLvlInitMean' : 0.0, # Mean of log initial permanent income (only matters for simulation)
+    'pLvlInitStd' : 0.0,  # Standard deviation of log initial permanent income (only matters for simulation)
+    'PermGroFacAgg' : 1.0,# Aggregate permanent income growth factor (only matters for simulation)
+    'T_age' : None,       # Age after which simulated agents are automatically killed
+    'T_cycle' : 1         # Number of periods in the cycle for this agent type
+}
+
+
 class PerfForesightConsumerType(AgentType):
     '''
     A perfect foresight consumer type who has no uncertainty other than mortality.
@@ -1604,7 +1625,7 @@ class PerfForesightConsumerType(AgentType):
                  **kwds):
         '''
         Instantiate a new consumer type with given data.
-        See ConsumerParameters.init_perfect_foresight for a dictionary of
+        See init_perfect_foresight for a dictionary of
         the keywords that should be passed to the constructor.
 
         Parameters
@@ -1618,7 +1639,8 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         '''
-        params = Params.init_perfect_foresight.copy()
+
+        params = init_perfect_foresight.copy()
         params.update(kwds)
         kwds = params
 
@@ -1651,7 +1673,6 @@ class PerfForesightConsumerType(AgentType):
                 raise(AttributeError('PerfForesightConsumerType requires the attribute MaxKinks to be specified when BoroCnstArt is not None and cycles == 0.'))
 
             
-
     def checkRestrictions(self):
         """
         A method to check that various restrictions are met for the model class.
@@ -1946,7 +1967,6 @@ class PerfForesightConsumerType(AgentType):
         return self.violated
 
 
-
     def checkConditions(self,verbose=False,verbose_reference=False,public_call=False):
         '''
         This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC), 
@@ -1983,6 +2003,32 @@ class PerfForesightConsumerType(AgentType):
         self.checkRIC(Thorn,verbose,public_call)
         self.checkFHWC(verbose,public_call)
 
+
+
+# Make a dictionary to specify an idiosyncratic income shocks consumer
+init_idiosyncratic_shocks = dict(init_perfect_foresight,
+                                 **{
+    # assets above grid parameters
+    'aXtraMin': 0.001,      # Minimum end-of-period "assets above minimum" value
+    'aXtraMax': 20,         # Maximum end-of-period "assets above minimum" value
+    'aXtraNestFac': 3,      # Exponential nesting factor when constructing "assets above minimum" grid
+    'aXtraCount': 48,       # Number of points in the grid of "assets above minimum"
+    'aXtraExtra': [None],   # Some other value of "assets above minimum" to add to the grid, not used
+    # Income process variables
+    'PermShkStd': [0.1],    # Standard deviation of log permanent income shocks
+    'PermShkCount': 7,      # Number of points in discrete approximation to permanent income shocks
+    'TranShkStd': [0.1],    # Standard deviation of log transitory income shocks
+    'TranShkCount': 7,      # Number of points in discrete approximation to transitory income shocks
+    'UnempPrb': 0.05,       # Probability of unemployment while working
+    'UnempPrbRet': 0.005,   # Probability of "unemployment" while retired
+    'IncUnemp': 0.3,        # Unemployment benefits replacement rate
+    'IncUnempRet': 0.0,     # "Unemployment" benefits when retired
+    'BoroCnstArt': 0.0,     # Artificial borrowing constraint; imposed minimum level of end-of period assets
+    'tax_rate': 0.0,        # Flat income tax rate
+    'T_retire': 0, # Period of retirement (0 --> no retirement)
+    'vFuncBool': False,     # Whether to calculate the value function during solution
+    'CubicBool': False,     # Use cubic spline interpolation when True, linear interpolation when False
+})
 class IndShockConsumerType(PerfForesightConsumerType):
     '''
     A consumer type with idiosyncratic shocks to permanent and transitory income.
@@ -2003,7 +2049,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                  **kwds):
         '''
         Instantiate a new ConsumerType with given data.
-        See ConsumerParameters.init_idiosyncratic_shocks for a dictionary of
+        See init_idiosyncratic_shocks for a dictionary of
         the keywords that should be passed to the constructor.
 
         Parameters
@@ -2018,9 +2064,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         None
         '''
 
-        params = Params.init_idiosyncratic_shocks.copy()
+        params = init_idiosyncratic_shocks.copy()
         params.update(kwds)
-        kwds = params
 
         # Initialize a basic AgentType
         PerfForesightConsumerType.__init__(self,
@@ -2028,7 +2073,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                                            time_flow=time_flow,
                                            verbose=verbose,
                                            quiet=quiet,
-                                           **kwds)
+                                           **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
@@ -2270,7 +2315,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         '''
         Check Individual Growth Impatience Factor.
         '''
-
         if self.GIFInd<=1:
             self.GICInd = True
             if public_call or verbose:
@@ -2353,8 +2397,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if public_call or verbose:
                 print('Therefore, a nondegenerate solution is not available (see '+self.url+'/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping')
             print()
-
-
 
 
     def checkConditions(self,verbose=False,public_call=True):
@@ -2487,6 +2529,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # The target level of m, mTarg, will be the value such that
         # cSust[m] = cFunc[m]
 
+# Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
+init_kinked_R = dict(init_idiosyncratic_shocks,
+                     **{
+    'Rboro' : 1.20, # Interest factor on assets when borrowing, a < 0
+    'Rsave' : 1.02, # Interest factor on assets when saving, a > 0
+    'BoroCnstArt' : None, # kinked R is a bit silly if borrowing not allowed
+    'CubicBool' : True, # kinked R is now compatible with linear cFunc and cubic cFunc
+    'aXtraCount' : 48,   # ...so need lots of extra gridpoints to make up for it
+})
+del init_kinked_R['Rfree'] # get rid of constant interest factor
+
 
 class KinkedRconsumerType(IndShockConsumerType):
     '''
@@ -2516,12 +2569,11 @@ class KinkedRconsumerType(IndShockConsumerType):
         -------
         None
         '''
-        params = Params.init_kinked_R.copy()
+        params = init_kinked_R.copy()
         params.update(kwds)
-        kwds = params
 
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
+        PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsKinkedR # kinked R solver
@@ -2840,3 +2892,22 @@ def constructAssetsGrid(parameters):
                 aXtraGrid = np.insert(aXtraGrid, j, a)
 
     return aXtraGrid
+
+# Make a dictionary to specify a lifecycle consumer with a finite horizon
+init_lifecycle = copy(init_idiosyncratic_shocks)
+init_lifecycle['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
+init_lifecycle['PermShkStd'] = [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0,0,0]
+init_lifecycle['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,0,0,0]
+init_lifecycle['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
+init_lifecycle['T_cycle']    = 10
+init_lifecycle['T_retire']   = 7
+init_lifecycle['T_age']      = 11 # Make sure that old people die at terminal age and don't turn into newborns!
+
+# Make a dictionary to specify an infinite consumer with a four period cycle
+init_cyclical = copy(init_idiosyncratic_shocks)
+init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
+init_cyclical['PermShkStd'] = [0.1,0.1,0.1,0.1]
+init_cyclical['TranShkStd'] = [0.1,0.1,0.1,0.1]
+init_cyclical['LivPrb']     = 4*[0.98]
+init_cyclical['T_cycle']    = 4
+

@@ -13,9 +13,31 @@ from builtins import range
 import numpy as np
 from HARK.utilities import approxMeanOneLognormal
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
-                                   ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver
+                                   ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver, \
+                                   init_idiosyncratic_shocks, init_kinked_R
 from HARK.interpolation import LinearInterpOnInterp1D, LinearInterp, CubicInterp, LowerEnvelope
-import HARK.ConsumptionSaving.ConsumerParameters as Params
+
+
+# Make a dictionary to specify a preference shock consumer
+init_preference_shocks = dict(init_idiosyncratic_shocks,
+                              **{
+    'PrefShkCount' : 12,    # Number of points in discrete approximation to preference shock dist
+    'PrefShk_tail_N' : 4,   # Number of "tail points" on each end of pref shock dist
+    'PrefShkStd' : [0.30],  # Standard deviation of utility shocks
+    'aXtraCount' : 48,
+    'CubicBool' : False     # pref shocks currently only compatible with linear cFunc
+})
+    
+# Make a dictionary to specify a "kinky preference" consumer
+init_kinky_pref = dict(init_kinked_R,
+                              **{
+    'PrefShkCount' : 12,    # Number of points in discrete approximation to preference shock dist
+    'PrefShk_tail_N' : 4,   # Number of "tail points" on each end of pref shock dist
+    'PrefShkStd' : [0.30],  # Standard deviation of utility shocks
+    'aXtraCount' : 48,
+    'CubicBool' : False     # pref shocks currently only compatible with linear cFunc
+})
+init_kinky_pref['BoroCnstArt'] = None
 
 __all__ = ['PrefShockConsumerType', 'KinkyPrefConsumerType', 'ConsPrefShockSolver', 'ConsKinkyPrefSolver']
 
@@ -47,14 +69,13 @@ class PrefShockConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        params = Params.init_preference_shocks.copy()
+        params = init_preference_shocks.copy()
         params.update(kwds)
-        kwds = params
 
         IndShockConsumerType.__init__(self,
                                       cycles=cycles,
                                       time_flow=time_flow,
-                                      **kwds)
+                                      **params)
         self.solveOnePeriod = solveConsPrefShock # Choose correct solver
         
     def preSolve(self):
@@ -194,7 +215,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         '''
         raise NotImplementedError()
 
-
+    
 class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
     '''
     A class for representing consumers who experience multiplicative shocks to
@@ -205,7 +226,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
         to be used during solution (income distribution, assets grid, etc).
-        See ConsumerParameters.init_kinky_pref for a dictionary of the keywords
+        See init_kinky_pref for a dictionary of the keywords
         that should be passed to the constructor.
 
         Parameters
@@ -219,7 +240,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         -------
         None
         '''
-        params = Params.init_kinky_pref.copy()
+        params = init_kinky_pref.copy()
         params.update(kwds)
         kwds = params
         IndShockConsumerType.__init__(self,**kwds)

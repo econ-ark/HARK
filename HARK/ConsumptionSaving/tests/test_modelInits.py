@@ -6,10 +6,9 @@ This file tests whether HARK's models are initialized correctly.
 # Bring in modules we need
 import unittest
 import numpy as np
-import HARK.ConsumptionSaving.ConsumerParameters as Params
 from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
-from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
-from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType, init_kinked_R
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, init_idiosyncratic_shocks, init_lifecycle
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.utilities import plotFuncsDer, plotFuncs
 from copy import copy
@@ -20,19 +19,19 @@ class testInitialization(unittest.TestCase):
     # methods.
     def test_PerfForesightConsumerType(self):
         try:
-            model = PerfForesightConsumerType(**Params.init_perfect_foresight)
+            model = PerfForesightConsumerType()
         except:
             self.fail("PerfForesightConsumerType failed to initialize with Params.init_perfect_foresight.")
 
     def test_IndShockConsumerType(self):
         try:
-            model = IndShockConsumerType(**Params.init_lifecycle)
+            model = IndShockConsumerType(**init_lifecycle)
         except:
             self.fail("IndShockConsumerType failed to initialize with Params.init_lifecycle.")
 
     def test_KinkedRconsumerType(self):
         try:
-            model = KinkedRconsumerType(**Params.init_kinked_R)
+            model = KinkedRconsumerType(**init_kinked_R)
         except:
             self.fail("KinkedRconsumerType failed to initialize with Params.init_kinked_R.")
 
@@ -57,7 +56,7 @@ class testInitialization(unittest.TestCase):
                                    p_reemploy*(1-boom_prob),(1-p_reemploy)*(1-boom_prob)]])
 
             # Make a consumer with serially correlated unemployment, subject to boom and bust cycles
-            init_serial_unemployment = copy(Params.init_idiosyncratic_shocks)
+            init_serial_unemployment = copy(init_idiosyncratic_shocks)
             init_serial_unemployment['MrkvArray'] = [MrkvArray]
             init_serial_unemployment['UnempPrb'] = 0 # to make income distribution when employed
             init_serial_unemployment['global_markov'] = False
