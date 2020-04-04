@@ -312,8 +312,8 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         '''
         ConsIndShockSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                       Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
-        self.PrefShkPrbs = PrefShkDstn[0]
-        self.PrefShkVals = PrefShkDstn[1]
+        self.PrefShkPrbs = PrefShkDstn.pmf
+        self.PrefShkVals = PrefShkDstn.X
 
     def getPointsForInterpolation(self,EndOfPrdvP,aNrmNow):
         '''
@@ -561,8 +561,8 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver,ConsKinkedRsolver):
         '''
         ConsKinkedRsolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                       Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
-        self.PrefShkPrbs = PrefShkDstn[0]
-        self.PrefShkVals = PrefShkDstn[1]
+        self.PrefShkPrbs = PrefShkDstn.pmf
+        self.PrefShkVals = PrefShkDstn.X
 
 
 def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,

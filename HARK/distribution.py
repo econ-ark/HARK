@@ -384,11 +384,9 @@ def addDiscreteOutcomeConstantMean(distribution, x, p, sort = False):
 
     Returns
     -------
-    pmf : np.array
-        Probability associated with each point in X.
-    X : np.array
-        Discrete points for discrete probability mass function.
-    
+    d : DiscreteDistribution
+        Probability associated with each point in array of discrete
+        points for discrete probability mass function.
 
     Written by Matthew N. White
     Latest update: 08 December 2015 by David Low
@@ -401,7 +399,7 @@ def addDiscreteOutcomeConstantMean(distribution, x, p, sort = False):
         X       = X[indices]
         pmf     = pmf[indices]
 
-    return([pmf,X])
+    return DiscreteDistribution(pmf,X)
 
 def addDiscreteOutcome(distribution, x, p, sort = False):
     '''
@@ -454,7 +452,7 @@ def combineIndepDstns(*distributions):
 
     Returns
     -------
-    List of arrays, consisting of:
+    A DiscreteDistribution, consisting of:
 
     P_out: np.array
         Probability associated with each point in X_out.
@@ -467,14 +465,14 @@ def combineIndepDstns(*distributions):
     '''
     # Very quick and incomplete parameter check:
     for dist in distributions:
-        assert len(dist[0]) == len(dist[-1]), "len(dist[0]) != len(dist[-1])"
+        assert len(dist.pmf) == len(dist.X), "len(dist.pmf) != len(dist.X)"
 
     # Get information on the distributions
     dist_lengths = ()
     dist_dims = ()
     for dist in distributions:
-        dist_lengths += (len(dist[0]),)
-        dist_dims += (len(dist)-1,)
+        dist_lengths += (len(dist.pmf),)
+        dist_dims += (1,) # (len(dist)-1,)
     number_of_distributions = len(distributions)
 
     # Initialize lists we will use
@@ -485,7 +483,7 @@ def combineIndepDstns(*distributions):
     for dd,dist in enumerate(distributions):
 
         # The shape we want before we tile
-        dist_newshape = (1,) * dd + (len(dist[0]),) + \
+        dist_newshape = (1,) * dd + (len(dist.pmf),) + \
                         (1,) * (number_of_distributions - dd)
 
         # The tiling we want to do
@@ -496,13 +494,13 @@ def combineIndepDstns(*distributions):
         # easily support non-symmetric grids.
 
         # First deal with probabilities
-        Pmesh  = np.tile(dist[0].reshape(dist_newshape),dist_tiles) # Tiling
+        Pmesh  = np.tile(dist.pmf.reshape(dist_newshape),dist_tiles) # Tiling
         flatP  = Pmesh.ravel() # Flatten the tiled arrays
         P_temp += [flatP,] #Add the flattened arrays to the output lists
 
         # Then loop through each value variable
         for n in range(1,dist_dims[dd]+1):
-            Xmesh  = np.tile(dist[n].reshape(dist_newshape),dist_tiles)
+            Xmesh  = np.tile(dist.X.reshape(dist_newshape),dist_tiles)
             flatX  = Xmesh.ravel()
             X_out  += [flatX,]
 
@@ -512,4 +510,4 @@ def combineIndepDstns(*distributions):
     P_out = np.prod(np.array(P_temp),axis=0)
 
     assert np.isclose(np.sum(P_out),1),'Probabilities do not sum to 1!'
-    return [P_out,] + X_out
+    return DiscreteDistribution(P_out, X_out)
