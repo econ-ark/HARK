@@ -5,6 +5,16 @@ from scipy.special import erf, erfc
 import scipy.stats as stats
 import warnings
 
+
+class DiscreteDistribution():
+    pmf = None
+    X = None
+
+    def __init__(self, pmf, X):
+        self.pmf = pmf
+        self.X = X
+
+
 def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail_order=np.e):
     '''
     Construct a discrete approximation to a lognormal distribution with underlying
@@ -32,10 +42,9 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
 
     Returns
     -------
-    pmf: np.ndarray
-        Probabilities for discrete probability mass function.
-    X: np.ndarray
-        Discrete values in probability mass function.
+    d : DiscreteDistribution
+        Probability associated with each point in array of discrete
+        points for discrete probability mass function.
 
     Written by Luca Gerotto
     Based on Matab function "setup_workspace.m," from Chris Carroll's
@@ -91,7 +100,7 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
     else:
         pmf = np.ones(N)/N
         X   = np.exp(mu)*np.ones(N)
-    return [pmf, X]
+    return DiscreteDistribution(pmf, X)
 
 @memoize
 def approxMeanOneLognormal(N, sigma=1.0, **kwargs):
@@ -109,10 +118,9 @@ def approxMeanOneLognormal(N, sigma=1.0, **kwargs):
 
     Returns
     -------
-    X : np.array
-        Discrete points for discrete probability mass function.
-    pmf : np.array
-        Probability associated with each point in X.
+    d : DiscreteDistribution
+        Probability associated with each point in array of discrete
+        points for discrete probability mass function.
 
     Written by Nathan M. Palmer
     Based on Matab function "setup_shocks.m," from Chris Carroll's
@@ -121,8 +129,8 @@ def approxMeanOneLognormal(N, sigma=1.0, **kwargs):
     Latest update: 01 May 2015
     '''
     mu_adj = - 0.5*sigma**2;
-    pmf,X = approxLognormal(N=N, mu=mu_adj, sigma=sigma, **kwargs)
-    return [pmf,X]
+    dist = approxLognormal(N=N, mu=mu_adj, sigma=sigma, **kwargs)
+    return dist
 
 def approxNormal(N, mu=0.0, sigma=1.0):
     x, w = np.polynomial.hermite.hermgauss(N)
@@ -130,11 +138,11 @@ def approxNormal(N, mu=0.0, sigma=1.0):
     pmf = w*np.pi**-0.5
     # correct x
     X = math.sqrt(2.0)*sigma*x + mu
-    return [pmf, X]
+    return DiscreteDistribution(pmf, X)
 
 def approxLognormalGaussHermite(N, mu=0.0, sigma=1.0):
     pmf, X = approxNormal(N, mu, sigma)
-    return pmf, np.exp(X)
+    return DiscreteDistribution(pmf, np.exp(X))
 
 
 def calcNormalStyleParsFromLognormalPars(avgLognormal, stdLognormal):
@@ -168,16 +176,15 @@ def approxBeta(N,a=1.0,b=1.0):
 
     Returns
     -------
-    X : np.array
-        Discrete points for discrete probability mass function.
-    pmf : np.array
-        Probability associated with each point in X.
+    d : DiscreteDistribution
+        Probability associated with each point in array of discrete
+        points for discrete probability mass function.
     '''
     P    = 1000
     vals = np.reshape(stats.beta.ppf(np.linspace(0.0,1.0,N*P),a,b),(N,P))
     X    = np.mean(vals,axis=1)
     pmf  = np.ones(N)/float(N)
-    return( [pmf, X] )
+    return DiscreteDistribution(pmf, X)
 
 def approxUniform(N,bot=0.0,top=1.0):
     '''
@@ -195,14 +202,15 @@ def approxUniform(N,bot=0.0,top=1.0):
 
     Returns
     -------
-    (unnamed) : np.array
-        An equiprobable discrete approximation to the uniform distribution.
+    d : DiscreteDistribution
+        Probability associated with each point in array of discrete
+        points for discrete probability mass function.
     '''
     pmf = np.ones(N)/float(N)
     center = (top+bot)/2.0
     width = (top-bot)/2.0
     X = center + width*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
-    return [pmf,X]
+    return DiscreteDistribution(pmf,X)
 
 
 def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):
@@ -376,16 +384,17 @@ def addDiscreteOutcomeConstantMean(distribution, x, p, sort = False):
 
     Returns
     -------
-    X : np.array
-        Discrete points for discrete probability mass function.
     pmf : np.array
         Probability associated with each point in X.
+    X : np.array
+        Discrete points for discrete probability mass function.
+    
 
     Written by Matthew N. White
     Latest update: 08 December 2015 by David Low
     '''
-    X   = np.append(x,distribution[1]*(1-p*x)/(1-p))
-    pmf = np.append(p,distribution[0]*(1-p))
+    X   = np.append(x,distribution.X*(1-p*x)/(1-p))
+    pmf = np.append(p,distribution.pmf*(1-p))
 
     if sort:
         indices = np.argsort(X)
@@ -410,24 +419,23 @@ def addDiscreteOutcome(distribution, x, p, sort = False):
 
     Returns
     -------
-    X : np.array
-        Discrete points for discrete probability mass function.
-    pmf : np.array
-        Probability associated with each point in X.
-
+    d : DiscreteDistribution
+        Probability associated with each point in array of discrete
+        points for discrete probability mass function.
+    
     Written by Matthew N. White
     Latest update: 11 December 2015
     '''
 
-    X   = np.append(x,distribution[1])
-    pmf = np.append(p,distribution[0]*(1-p))
+    X   = np.append(x,distribution.X)
+    pmf = np.append(p,distribution.pmf*(1-p))
 
     if sort:
         indices = np.argsort(X)
         X       = X[indices]
         pmf     = pmf[indices]
 
-    return([pmf,X])
+    return DiscreteDistribution(pmf,X)
 
 def combineIndepDstns(*distributions):
     '''
