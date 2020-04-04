@@ -354,44 +354,14 @@ plotFuncs(LifecycleExample.cFunc,mMin,5)
 # We can also model consumers who face an infinite horizon, but who do *not* face the same problem in every period.  Consider someone who works as a ski instructor: they make most of their income for the year in the winter, and make very little money in the other three seasons.
 #
 # We can represent this type of individual as a four period, infinite horizon model in which expected "permanent" income growth varies greatly across seasons.
-#
-# Designating the quarter of the year by $(0,1,2,3)$, so that $\bullet_{t,i}$ is the object $\bullet$ in the $i$'th quarter of year $t$, there will be parallel Bellman equations for each quarter:
-#
-# <!-- MNW proposes that in python we could alternatively do something like this:
-# ```
-# v[age].0
-# v[age].1
-# v[age].2
-# v[age].3
-# ```
-# -->
-#
-# \begin{eqnarray*}\renewcommand{\LivPrb}{(1-\DiePrb)}
-#    v_{t,0}(m_{t,0}) &=& \max_{c_{t,0}} {~} u(c_{t,0}) + \DiscFac \LivPrb v_{t,1}(m_{t,1})
-# \\ v_{t,1}(m_{t,1}) &=& \max_{c_{t,1}} {~} u(c_{t,1}) + \DiscFac \LivPrb v_{t,2}(m_{t,2})
-# \\ v_{t,2}(m_{t,2}) &=& \max_{c_{t,2}} {~} u(c_{t,2}) + \DiscFac \LivPrb v_{t,3}(m_{t,3})
-# \\ v_{t,3}(m_{t,3}) &=& \max_{c_{t,3}} {~} u(c_{t,3}) + \DiscFac \LivPrb v_{t+1,0}(m_{t+1,0})
-# \end{eqnarray*}
-#
-# where the difference between the quarters comes only from the cyclical pattern of the income growth factors and income shocks:
-#
-# \begin{eqnarray*}
-#    m_{t,0} &=& (m_{t-1,4}-c_{t-1,4})\Rfree/\PermGroFac_{t,0} + \theta_{t,0}
-# \\   m_{t,1} &=& (m_{t,0}-c_{t,0})\Rfree/\PermGroFac_{t,1} + \theta_{t,1}
-# \\   m_{t,2} &=& (m_{t,1}-c_{t,1})\Rfree/\PermGroFac_{t,2} + \theta_{t,2}
-# \\   m_{t,3} &=& (m_{t,2}-c_{t,2})\Rfree/\PermGroFac_{t,3} + \theta_{t,3}
-# \end{eqnarray*}
-#
-# but the result will be distinct consumption functions for each quarter, which can be written as $c_{t,i}(m)$ for $i \in \{0,1,2,3\}$.
-#
 
 # %% {"code_folding": [0]}
 CyclicalDict = { # Click the arrow to expand this parameter dictionary
     # Parameters shared with the perfect foresight model
     "CRRA": 2.0,                           # Coefficient of relative risk aversion
-    "Rfree": 1.03**(1/4),                         # Quarterly interest factor on assets
-    "DiscFac": 0.96**(1/4),                       # Quarterly intertemporal discount factor
-    "LivPrb" : 4*[0.98**(1/4)],                   # Quarterly survival probability
+    "Rfree": 1.03,                         # Interest factor on assets
+    "DiscFac": 0.96,                       # Intertemporal discount factor
+    "LivPrb" : 4*[0.98],                   # Survival probability
     "PermGroFac" : [1.082251, 2.8, 0.3, 1.1],
     
     # Parameters that specify the income distribution over the lifecycle
