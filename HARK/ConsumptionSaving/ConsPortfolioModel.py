@@ -22,10 +22,7 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import(
     ValueFunc2D,                # For representing 2D value function
     MargValueFunc2D             # For representing 2D marginal value function
 )
-from HARK.utilities import (
-    approxLognormal,            # For approximating the lognormal return factor
-    combineIndepDstns,          # For combining the income distribution with the risky return distribution
-)
+from HARK.distribution import approxLognormal, combineIndepDstns 
 from HARK.simulation import drawLognormal, drawBernoulli # Random draws for simulating agents
 from HARK.interpolation import(
         LinearInterp,           # Piecewise linear interpolation

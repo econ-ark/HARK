@@ -10,11 +10,11 @@ from builtins import str
 from builtins import range
 import numpy as np
 import scipy.stats as stats
+from HARK.distribution import combineIndepDstns, approxMeanOneLognormal
 from HARK.interpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFunction, IdentityFunction,\
                                VariableLowerBoundFunc2D, BilinearInterp, LowerEnvelope2D, UpperEnvelope
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
-                           CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
-                           approxMeanOneLognormal
+                           CRRAutility_invP, CRRAutility_inv 
 from HARK.simulation import drawDiscrete, drawUniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 from HARK import HARKobject, Market, AgentType

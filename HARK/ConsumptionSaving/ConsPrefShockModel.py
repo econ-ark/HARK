@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from builtins import str
 from builtins import range
 import numpy as np
-from HARK.utilities import approxMeanOneLognormal
+from HARK.distribution import approxMeanOneLognormal
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
                                    ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver, \
                                    init_idiosyncratic_shocks, init_kinked_R

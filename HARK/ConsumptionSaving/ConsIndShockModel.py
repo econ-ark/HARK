@@ -25,8 +25,8 @@ from HARK import AgentType, Solution, NullFunc, HARKobject
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.simulation import drawDiscrete, drawLognormal, drawUniform
-from HARK.utilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
-                           combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
+from HARK.distribution import approxMeanOneLognormal, addDiscreteOutcomeConstantMean, combineIndepDstns 
+from HARK.utilities import makeGridExpMult, CRRAutility, CRRAutilityP, \
                            CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
                            CRRAutilityP_invP
 
