@@ -12,7 +12,7 @@ from builtins import object
 import functools
 
 import numpy as np                  # Python's numeric library, abbreviated "np"
-import math
+
 # try:
 #     import matplotlib.pyplot as plt                 # Python's plotting library
 # except ImportError:
