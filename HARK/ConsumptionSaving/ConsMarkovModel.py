@@ -187,8 +187,8 @@ class ConsMarkovSolver(ConsIndShockSolver):
         self.BoroCnstNatAll          = np.zeros(self.StateCount) + np.nan
         # Find the natural borrowing constraint conditional on next period's state
         for j in range(self.StateCount):
-            PermShkMinNext         = np.min(self.IncomeDstn_list[j][1])
-            TranShkMinNext         = np.min(self.IncomeDstn_list[j][2])
+            PermShkMinNext         = np.min(self.IncomeDstn_list[j].X[0])
+            TranShkMinNext         = np.min(self.IncomeDstn_list[j].X[1])
             self.BoroCnstNatAll[j] = (self.solution_next.mNrmMin[j] - TranShkMinNext)*\
                                      (self.PermGroFac_list[j]*PermShkMinNext)/self.Rfree_list[j]
 

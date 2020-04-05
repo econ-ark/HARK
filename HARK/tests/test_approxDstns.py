@@ -16,11 +16,11 @@ class testsForDCEGM(unittest.TestCase):
     def test_mu_normal(self):
         for muNormal in self.muNormals:
             for stdNormal in self.stdNormals:
-                w, x = distribution.approxNormal(40, muNormal)
-                self.assertTrue(sum(w*x)-muNormal<1e-12)
+                d = distribution.approxNormal(40, muNormal)
+                self.assertTrue(sum(d.pmf*d.X)-muNormal<1e-12)
 
     def test_mu_lognormal_from_normal(self):
         for muNormal in self.muNormals:
             for stdNormal in self.stdNormals:
-                w, x = distribution.approxLognormalGaussHermite(40, muNormal, stdNormal)
-                self.assertTrue(abs(sum(w*x)-distribution.calcLognormalStyleParsFromNormalPars(muNormal, stdNormal)[0])<1e-12)
+                d = distribution.approxLognormalGaussHermite(40, muNormal, stdNormal)
+                self.assertTrue(abs(sum(d.pmf*d.X)-distribution.calcLognormalStyleParsFromNormalPars(muNormal, stdNormal)[0])<1e-12)

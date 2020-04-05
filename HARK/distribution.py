@@ -7,13 +7,37 @@ import warnings
 
 
 class DiscreteDistribution():
+    """
+    A representation of a discrete probability distribution.
+
+    """
     pmf = None
     X = None
 
     def __init__(self, pmf, X):
+        '''
+        Initialize a discrete distribution.
+
+        Parameters
+        ----------
+        pmf : np.array
+            An array of floats representing a probability mass function. 
+        X : np.array or [np.array]
+            Discrete point values for each probability mass.
+            May be multivariate (list of arrays).
+        
+        '''
         self.pmf = pmf
         self.X = X
 
+        # Very quick and incomplete parameter check:
+        # TODO: Check that pmf adn X arrays have same length.
+
+    def dim(self):
+        if isinstance(self.X, list):
+            return len(self.X)
+        else:
+            return 1
 
 def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail_order=np.e):
     '''
@@ -141,8 +165,8 @@ def approxNormal(N, mu=0.0, sigma=1.0):
     return DiscreteDistribution(pmf, X)
 
 def approxLognormalGaussHermite(N, mu=0.0, sigma=1.0):
-    pmf, X = approxNormal(N, mu, sigma)
-    return DiscreteDistribution(pmf, np.exp(X))
+    d = approxNormal(N, mu, sigma)
+    return DiscreteDistribution(d.pmf, np.exp(d.X))
 
 
 def calcNormalStyleParsFromLognormalPars(avgLognormal, stdLognormal):
@@ -463,16 +487,12 @@ def combineIndepDstns(*distributions):
     Written by Nathan Palmer
     Latest update: 5 July August 2017 by Matthew N White
     '''
-    # Very quick and incomplete parameter check:
-    for dist in distributions:
-        assert len(dist.pmf) == len(dist.X), "len(dist.pmf) != len(dist.X)"
-
     # Get information on the distributions
     dist_lengths = ()
     dist_dims = ()
     for dist in distributions:
         dist_lengths += (len(dist.pmf),)
-        dist_dims += (1,) # (len(dist)-1,)
+        dist_dims += (dist.dim(),)
     number_of_distributions = len(distributions)
 
     # Initialize lists we will use
@@ -499,8 +519,13 @@ def combineIndepDstns(*distributions):
         P_temp += [flatP,] #Add the flattened arrays to the output lists
 
         # Then loop through each value variable
-        for n in range(1,dist_dims[dd]+1):
-            Xmesh  = np.tile(dist.X.reshape(dist_newshape),dist_tiles)
+        for n in range(dist_dims[dd]):
+            if dist.dim() > 1:
+                Xmesh = np.tile(dist.X[n].reshape(dist_newshape),
+                                 dist_tiles)
+            else:
+                Xmesh = np.tile(dist.X.reshape(dist_newshape),
+                                dist_tiles)
             flatX  = Xmesh.ravel()
             X_out  += [flatX,]
 
