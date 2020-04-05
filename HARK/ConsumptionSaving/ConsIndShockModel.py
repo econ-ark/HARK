@@ -25,7 +25,7 @@ from HARK import AgentType, Solution, NullFunc, HARKobject
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.simulation import drawDiscrete, drawLognormal, drawUniform
-from HARK.distribution import approxMeanOneLognormal, addDiscreteOutcomeConstantMean, combineIndepDstns 
+from HARK.distribution import DiscreteDistribution, approxMeanOneLognormal, addDiscreteOutcomeConstantMean, combineIndepDstns 
 from HARK.utilities import makeGridExpMult, CRRAutility, CRRAutilityP, \
                            CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
                            CRRAutilityP_invP
@@ -784,9 +784,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         None
         '''
         self.DiscFacEff       = DiscFac*LivPrb # "effective" discount factor
-        self.ShkPrbsNext      = IncomeDstn[0]
-        self.PermShkValsNext  = IncomeDstn[1]
-        self.TranShkValsNext  = IncomeDstn[2]
+        self.ShkPrbsNext      = IncomeDstn.pmf
+        self.PermShkValsNext  = IncomeDstn.X[0]
+        self.TranShkValsNext  = IncomeDstn.X[1]
         self.PermShkMinNext   = np.min(self.PermShkValsNext)
         self.TranShkMinNext   = np.min(self.TranShkValsNext)
         self.vPfuncNext       = solution_next.vPfunc
@@ -2157,11 +2157,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if N > 0:
                 IncomeDstnNow    = self.IncomeDstn[t-1] # set current income distribution
                 PermGroFacNow    = self.PermGroFac[t-1] # and permanent growth factor
-                Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
+                Indices          = np.arange(IncomeDstnNow.pmf.size) # just a list of integers
                 # Get random draws of income shocks from the discrete distribution
-                EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
-                PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
-                TranShkNow[these] = IncomeDstnNow[2][EventDraws]
+                EventDraws       = drawDiscrete(N,
+                                                X=Indices,
+                                                P=IncomeDstnNow.pmf,
+                                                exact_match=False,
+                                                seed=self.RNG.randint(0,2**31-1))
+
+                PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
+                TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -2170,11 +2175,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
             these = newborn
             IncomeDstnNow    = self.IncomeDstn[0] # set current income distribution
             PermGroFacNow    = self.PermGroFac[0] # and permanent growth factor
-            Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
+            Indices          = np.arange(IncomeDstnNow.pmf.size) # just a list of integers
             # Get random draws of income shocks from the discrete distribution
-            EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
-            PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
-            TranShkNow[these] = IncomeDstnNow[2][EventDraws]
+            EventDraws       = drawDiscrete(N,
+                                            X=Indices,
+                                            P=IncomeDstnNow.pmf,
+                                            exact_match=False,
+                                            seed=self.RNG.randint(0,2**31-1))
+            PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
+            TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
 #        PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0
 
@@ -2375,7 +2384,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Evaluate and report on the Finite Value of Autarky Condition
         Hyperlink to paper: [url]/#Autarky-Value
         '''
-        EpShkuInv = np.dot(self.PermShkDstn[0][0],self.PermShkDstn[0][1]**(1-self.CRRA))
+        EpShkuInv = np.dot(self.PermShkDstn[0].pmf,
+                           self.PermShkDstn[0].X**(1-self.CRRA))
         if self.CRRA != 1.0:
             uInvEpShkuInv = EpShkuInv**(1/(1-self.CRRA)) # The term that gives a utility-consequence-adjusted utility growth
         else:
@@ -2431,8 +2441,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # [url]/#Uncertainty-Modified-Conditions
         
         self.InvPermShkDstn=deepcopy(self.PermShkDstn)
-        self.InvPermShkDstn[0][1]=1/self.PermShkDstn[0][1]
-        EPermShkInv=np.dot(self.InvPermShkDstn[0][0],1/self.PermShkDstn[0][1]) # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
+        self.InvPermShkDstn[0].X = 1/self.PermShkDstn[0].X
+        EPermShkInv=np.dot(self.InvPermShkDstn[0].pmf,
+                           1/self.PermShkDstn[0].X) # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
 
         InvEPermShkInv=(1/EPermShkInv)                          # $\underline{\psi}$ in the paper (\bar{\isp} in private version)
         PermGroFacAdj=self.PermGroFac[0]*InvEPermShkInv                # [url]/#PGroAdj
@@ -2782,7 +2793,9 @@ def constructLognormalIncomeProcessUnemployment(parameters):
             PermShkValsRet  = np.array([1.0])
             TranShkValsRet  = np.array([1.0])
             ShkPrbsRet      = np.array([1.0])
-        IncomeDstnRet = [ShkPrbsRet,PermShkValsRet,TranShkValsRet]
+        IncomeDstnRet = DiscreteDistribution(ShkPrbsRet,
+                                             [PermShkValsRet,
+                                              TranShkValsRet])
 
     # Loop to fill in the list of IncomeDstn random variables.
     for t in range(T_cycle): # Iterate over all periods, counting forward
