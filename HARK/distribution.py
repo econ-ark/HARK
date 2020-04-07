@@ -69,12 +69,6 @@ def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail
     d : DiscreteDistribution
         Probability associated with each point in array of discrete
         points for discrete probability mass function.
-
-    Written by Luca Gerotto
-    Based on Matab function "setup_workspace.m," from Chris Carroll's
-      [Solution Methods for Microeconomic Dynamic Optimization Problems]
-      (http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
-    Latest update: 11 February 2017 by Matthew N. White
     '''
     # Find the CDF boundaries of each segment
     if sigma > 0.0:
@@ -145,12 +139,6 @@ def approxMeanOneLognormal(N, sigma=1.0, **kwargs):
     d : DiscreteDistribution
         Probability associated with each point in array of discrete
         points for discrete probability mass function.
-
-    Written by Nathan M. Palmer
-    Based on Matab function "setup_shocks.m," from Chris Carroll's
-      [Solution Methods for Microeconomic Dynamic Optimization Problems]
-      (http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
-    Latest update: 01 May 2015
     '''
     mu_adj = - 0.5*sigma**2;
     dist = approxLognormal(N=N, mu=mu_adj, sigma=sigma, **kwargs)
@@ -368,9 +356,6 @@ def makeTauchenAR1(N, sigma=1.0, rho=0.9, bound=3.0):
         Grid points on which the discretized process takes values
     trans_matrix: np.array
         Markov transition array for the discretized process
-
-    Written by Edmund S. Crawley
-    Latest update: 27 October 2017
     '''
     yN = bound*sigma/((1-rho**2)**0.5)
     y = np.linspace(-yN,yN,N)
@@ -411,9 +396,6 @@ def addDiscreteOutcomeConstantMean(distribution, x, p, sort = False):
     d : DiscreteDistribution
         Probability associated with each point in array of discrete
         points for discrete probability mass function.
-
-    Written by Matthew N. White
-    Latest update: 08 December 2015 by David Low
     '''
     X   = np.append(x,distribution.X*(1-p*x)/(1-p))
     pmf = np.append(p,distribution.pmf*(1-p))
@@ -444,9 +426,6 @@ def addDiscreteOutcome(distribution, x, p, sort = False):
     d : DiscreteDistribution
         Probability associated with each point in array of discrete
         points for discrete probability mass function.
-    
-    Written by Matthew N. White
-    Latest update: 11 December 2015
     '''
 
     X   = np.append(x,distribution.X)
@@ -483,9 +462,6 @@ def combineIndepDstns(*distributions):
 
     X_out: np.array (as many as in *distributions)
         Discrete points for the joint discrete probability mass function.
-
-    Written by Nathan Palmer
-    Latest update: 5 July August 2017 by Matthew N White
     '''
     # Get information on the distributions
     dist_lengths = ()
