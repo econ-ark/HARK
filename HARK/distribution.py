@@ -39,6 +39,66 @@ class DiscreteDistribution():
         else:
             return 1
 
+    def drawDiscrete(self, N,X=None,exact_match=False,seed=0):
+        '''
+        Simulates N draws from a discrete distribution with probabilities P and outcomes X.
+
+        Parameters
+        ----------
+        N : int
+            Number of draws to simulate.
+        X : None, int, or np.array
+            If None, then use this distribution's X for point values.
+            If an int, then the index of X for the point values.
+            If an np.array, use the array for the point values.
+        exact_match : boolean
+            Whether the draws should "exactly" match the discrete distribution (as
+            closely as possible given finite draws).  When True, returned draws are
+            a random permutation of the N-length list that best fits the discrete
+            distribution.  When False (default), each draw is independent from the
+            others and the result could deviate from the input.
+        seed : int
+            Seed for random number generator.
+
+        Returns
+        -------
+        draws : np.array
+            An array draws from the discrete distribution; each element is a value in X.
+        '''
+        if X is None:
+            X = self.X
+        elif isinstance(X,int):
+            X = self.X[Xdim]
+        else:
+            X = X
+        
+        # Set up the RNG
+        RNG = np.random.RandomState(seed)
+
+        if exact_match:
+            events = np.arange(self.pmf.size) # just a list of integers
+            cutoffs = np.round(np.cumsum(self.pmf)*N).astype(int) # cutoff points between discrete outcomes
+            top = 0
+            # Make a list of event indices that closely matches the discrete distribution
+            event_list        = []
+            for j in range(events.size):
+                bot = top
+                top = cutoffs[j]
+                event_list += (top-bot)*[events[j]]
+                # Randomly permute the event indices and store the corresponding results
+                event_draws = RNG.permutation(event_list)
+                draws = X[event_draws]
+        else:
+            # Generate a cumulative distribution
+            base_draws = RNG.uniform(size=N)
+            cum_dist = np.cumsum(self.pmf)
+
+            # Convert the basic uniform draws into discrete draws
+            indices = cum_dist.searchsorted(base_draws)
+            draws = np.asarray(X)[indices]
+
+        return draws
+
 def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail_order=np.e):
     '''
     Construct a discrete approximation to a lognormal distribution with underlying

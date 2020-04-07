@@ -24,7 +24,7 @@ from scipy.optimize import newton
 from HARK import AgentType, Solution, NullFunc, HARKobject
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
-from HARK.simulation import drawDiscrete, drawLognormal, drawUniform
+from HARK.simulation import drawLognormal, drawUniform
 from HARK.distribution import DiscreteDistribution, approxMeanOneLognormal, addDiscreteOutcomeConstantMean, combineIndepDstns 
 from HARK.utilities import makeGridExpMult, CRRAutility, CRRAutilityP, \
                            CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
@@ -2161,11 +2161,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 PermGroFacNow    = self.PermGroFac[t-1] # and permanent growth factor
                 Indices          = np.arange(IncomeDstnNow.pmf.size) # just a list of integers
                 # Get random draws of income shocks from the discrete distribution
-                EventDraws       = drawDiscrete(N,
-                                                X=Indices,
-                                                P=IncomeDstnNow.pmf,
-                                                exact_match=False,
-                                                seed=self.RNG.randint(0,2**31-1))
+                EventDraws       = IncomeDstnNow.drawDiscrete(N,
+                                                              X=Indices,
+                                                              exact_match=False,
+                                                              seed=self.RNG.randint(0,2**31-1))
 
                 PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
                 TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
@@ -2179,11 +2178,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
             PermGroFacNow    = self.PermGroFac[0] # and permanent growth factor
             Indices          = np.arange(IncomeDstnNow.pmf.size) # just a list of integers
             # Get random draws of income shocks from the discrete distribution
-            EventDraws       = drawDiscrete(N,
-                                            X=Indices,
-                                            P=IncomeDstnNow.pmf,
-                                            exact_match=False,
-                                            seed=self.RNG.randint(0,2**31-1))
+            EventDraws       = IncomeDstnNow.drawDiscrete(N,
+                                                         X=Indices,
+                                                         exact_match=False,
+                                                         seed=self.RNG.randint(0,2**31-1))
             PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
             TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
 #        PermShkNow[newborn] = 1.0

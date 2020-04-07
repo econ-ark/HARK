@@ -12,7 +12,7 @@ import numpy as np
 from HARK import AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver, ValueFunc, \
                              MargValueFunc, ConsumerSolution, IndShockConsumerType
-from HARK.simulation import drawDiscrete, drawUniform
+from HARK.simulation import drawUniform
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP
@@ -867,7 +867,12 @@ class MarkovConsumerType(IndShockConsumerType):
                     PermGroFacNow    = self.PermGroFac[t-1][j] # and permanent growth factor
                     Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
                     # Get random draws of income shocks from the discrete distribution
-                    EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
+                    EventDraws       = DiscreteDistribution(
+                        IncomeDstnNow[0], Indices
+                    ).drawDiscrete(
+                        N,
+                        exact_match=False,
+                        seed=self.RNG.randint(0,2**31-1))
                     PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
                     TranShkNow[these] = IncomeDstnNow[2][EventDraws]
         newborn = self.t_age == 0
