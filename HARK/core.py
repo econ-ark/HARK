@@ -473,7 +473,6 @@ class AgentType(HARKobject):
         blank_array = np.zeros(self.AgentCount)
         for var_name in self.poststate_vars:
             setattr(self, var_name, copy(blank_array))
-            # exec('self.' + var_name + ' = copy(blank_array)')
         self.t_age = np.zeros(self.AgentCount, dtype=int)    # Number of periods since agent entry
         self.t_cycle = np.zeros(self.AgentCount, dtype=int)  # Which cycle period each agent is on
         self.simBirth(all_agents)
@@ -546,7 +545,7 @@ class AgentType(HARKobject):
             self.who_dies_hist[t,:] = self.who_dies
             self.getShocks()
             for var_name in self.shock_vars:
-                exec('self.' + var_name + '_hist[t,:] = self.' + var_name)
+                getattr(self, var_name + '_hist')[self.t_sim,:] = getattr(self, var_name)
             self.t_sim += 1
             self.t_age = self.t_age + 1  # Age all consumers by one period
             self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
@@ -738,7 +737,7 @@ class AgentType(HARKobject):
             for t in range(sim_periods):
                 self.simOnePeriod()
                 for var_name in self.track_vars:
-                    exec('self.' + var_name + '_hist[self.t_sim,:] = self.' + var_name)
+                    getattr(self, var_name + '_hist')[self.t_sim,:] = getattr(self,var_name)
                 self.t_sim += 1
 
             if not orig_time:
@@ -757,7 +756,7 @@ class AgentType(HARKobject):
         None
         '''
         for var_name in self.track_vars:
-            exec('self.' + var_name + '_hist = np.zeros((self.T_sim,self.AgentCount)) + np.nan')
+            setattr(self, var_name + '_hist', np.zeros((self.T_sim,self.AgentCount)) + np.nan)
 
 
 def solveAgent(agent, verbose):
