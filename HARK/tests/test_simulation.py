@@ -37,10 +37,3 @@ class SimulationTests(unittest.TestCase):
         self.assertEqual(
             simulation.drawBernoulli(1)[0],
             False)
-        
-
-    def test_drawDiscrete(self):
-        self.assertEqual(
-            simulation.drawDiscrete(1)[0],
-            0)
-

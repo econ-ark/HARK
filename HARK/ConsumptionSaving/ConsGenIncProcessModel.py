@@ -11,12 +11,13 @@ from builtins import range
 from copy import deepcopy
 import numpy as np
 from HARK import AgentType, HARKobject
+from HARK.distribution import DiscreteDistribution
 from HARK.interpolation import LowerEnvelope2D, BilinearInterp, VariableLowerBoundFunc2D, \
                                LinearInterpOnInterp1D, LinearInterp, CubicInterp, UpperEnvelope
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
                            getPercentiles
-from HARK.simulation import drawLognormal, drawDiscrete, drawUniform
+from HARK.simulation import drawLognormal, drawUniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 
 __all__ = ['ValueFunc2D', 'MargValueFunc2D', 'MargMargValueFunc2D', 'pLvlFuncAR1',
@@ -1119,8 +1120,9 @@ class GenIncProcessConsumerType(IndShockConsumerType):
             # Calculate distribution of persistent income in each period of lifecycle
             for t in range(len(self.PermShkStd)):
                 if t > 0:
-                    PermShkNow = drawDiscrete(N=self.AgentCount, P=self.PermShkDstn[t-1][0],
-                                              X=self.PermShkDstn[t-1][1], exact_match=False, seed=t)
+                    PermShkNow = self.PermShkDstn[t-1].drawDiscrete(
+                        N=self.AgentCount,
+                        seed=t)
                     pLvlNow = self.pLvlNextFunc[t-1](pLvlNow)*PermShkNow
                 pLvlGrid.append(getPercentiles(pLvlNow, percentiles=self.pLvlPctiles))
 
@@ -1136,10 +1138,12 @@ class GenIncProcessConsumerType(IndShockConsumerType):
                 pLvlNow[who_dies] = drawLognormal(np.sum(who_dies), mu=self.pLvlInitMean,
                                                   sigma=self.pLvlInitStd, seed=t+92615)
                 t_cycle[who_dies] = 0
+                
                 for j in range(self.T_cycle):  # Update persistent income
                     these = t_cycle == j
-                    PermShkTemp = drawDiscrete(N=np.sum(these), P=self.PermShkDstn[j][0],
-                                               X=self.PermShkDstn[j][1], exact_match=False, seed=t+13*j)
+                    PermShkTemp = self.PermShkDstn[j].drawDiscrete(
+                        N=np.sum(these),
+                        seed=t+13*j)
                     pLvlNow[these] = self.pLvlNextFunc[j](pLvlNow[these])*PermShkTemp
                 t_cycle = t_cycle + 1
                 t_cycle[t_cycle == self.T_cycle] = 0

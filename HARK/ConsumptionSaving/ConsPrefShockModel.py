@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from builtins import str
 from builtins import range
 import numpy as np
-from HARK.utilities import approxMeanOneLognormal
+from HARK.distribution import approxMeanOneLognormal
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
                                    ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver, \
                                    init_idiosyncratic_shocks, init_kinked_R
@@ -145,7 +145,9 @@ class PrefShockConsumerType(IndShockConsumerType):
             these = t == self.t_cycle
             N = np.sum(these)
             if N > 0:
-                PrefShkNow[these] = self.RNG.permutation(approxMeanOneLognormal(N,sigma=self.PrefShkStd[t])[1])
+                PrefShkNow[these] = self.RNG.permutation(
+                    approxMeanOneLognormal(N,
+                                           sigma=self.PrefShkStd[t]).X)
         self.PrefShkNow = PrefShkNow
 
     def getControls(self):
@@ -312,8 +314,8 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         '''
         ConsIndShockSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                       Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
-        self.PrefShkPrbs = PrefShkDstn[0]
-        self.PrefShkVals = PrefShkDstn[1]
+        self.PrefShkPrbs = PrefShkDstn.pmf
+        self.PrefShkVals = PrefShkDstn.X
 
     def getPointsForInterpolation(self,EndOfPrdvP,aNrmNow):
         '''
@@ -561,8 +563,8 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver,ConsKinkedRsolver):
         '''
         ConsKinkedRsolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                       Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
-        self.PrefShkPrbs = PrefShkDstn[0]
-        self.PrefShkVals = PrefShkDstn[1]
+        self.PrefShkPrbs = PrefShkDstn.pmf
+        self.PrefShkVals = PrefShkDstn.X
 
 
 def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,
