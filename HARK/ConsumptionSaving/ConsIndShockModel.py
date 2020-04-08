@@ -2159,12 +2159,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if N > 0:
                 IncomeDstnNow    = self.IncomeDstn[t-1] # set current income distribution
                 PermGroFacNow    = self.PermGroFac[t-1] # and permanent growth factor
-                Indices          = np.arange(IncomeDstnNow.pmf.size) # just a list of integers
                 # Get random draws of income shocks from the discrete distribution
-                EventDraws       = IncomeDstnNow.drawDiscrete(N,
-                                                              X=Indices,
-                                                              exact_match=False,
-                                                              seed=self.RNG.randint(0,2**31-1))
+                EventDraws       = IncomeDstnNow.draw_events(N,
+                                                             seed=self.RNG.randint(0,2**31-1))
 
                 PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
                 TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
@@ -2176,11 +2173,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
             these = newborn
             IncomeDstnNow    = self.IncomeDstn[0] # set current income distribution
             PermGroFacNow    = self.PermGroFac[0] # and permanent growth factor
-            Indices          = np.arange(IncomeDstnNow.pmf.size) # just a list of integers
+           
             # Get random draws of income shocks from the discrete distribution
-            EventDraws       = IncomeDstnNow.drawDiscrete(N,
-                                                         X=Indices,
-                                                         exact_match=False,
+            EventDraws       = IncomeDstnNow.draw_events(N,
                                                          seed=self.RNG.randint(0,2**31-1))
             PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
             TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]

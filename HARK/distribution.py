@@ -39,6 +39,22 @@ class DiscreteDistribution():
         else:
             return 1
 
+    def draw_events(self, n, seed=0):
+        '''
+        Draws N 'events' from the distribution PMF.
+        These events are indices into X.
+        '''
+        # Set up the RNG
+        RNG = np.random.RandomState(seed)
+        # Generate a cumulative distribution
+        base_draws = RNG.uniform(size=n)
+        cum_dist = np.cumsum(self.pmf)
+
+        # Convert the basic uniform draws into discrete draws
+        indices = cum_dist.searchsorted(base_draws)
+
+        return indices
+
     def drawDiscrete(self, N,X=None,exact_match=False,seed=0):
         '''
         Simulates N draws from a discrete distribution with probabilities P and outcomes X.
@@ -89,12 +105,7 @@ class DiscreteDistribution():
                 event_draws = RNG.permutation(event_list)
                 draws = X[event_draws]
         else:
-            # Generate a cumulative distribution
-            base_draws = RNG.uniform(size=N)
-            cum_dist = np.cumsum(self.pmf)
-
-            # Convert the basic uniform draws into discrete draws
-            indices = cum_dist.searchsorted(base_draws)
+            indices = self.draw_events(self, N, seed=seed)
             draws = np.asarray(X)[indices]
 
         return draws
