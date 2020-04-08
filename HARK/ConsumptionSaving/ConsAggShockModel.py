@@ -500,7 +500,6 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             EventDraws = DiscreteDistribution(
                 IncomeDstnNow[0], Indices 
             ).drawDiscrete(N,
-                           exact_match=False,
                            seed=self.RNG.randint(0, 2**31-1))
             # permanent "shock" includes expected growth
             PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow

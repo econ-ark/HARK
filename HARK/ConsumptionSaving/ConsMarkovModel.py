@@ -871,7 +871,6 @@ class MarkovConsumerType(IndShockConsumerType):
                         IncomeDstnNow[0], Indices
                     ).drawDiscrete(
                         N,
-                        exact_match=False,
                         seed=self.RNG.randint(0,2**31-1))
                     PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
                     TranShkNow[these] = IncomeDstnNow[2][EventDraws]

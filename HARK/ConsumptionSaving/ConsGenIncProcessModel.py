@@ -1122,7 +1122,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
                 if t > 0:
                     PermShkNow = self.PermShkDstn[t-1].drawDiscrete(
                         N=self.AgentCount,
-                        exact_match=False,
                         seed=t)
                     pLvlNow = self.pLvlNextFunc[t-1](pLvlNow)*PermShkNow
                 pLvlGrid.append(getPercentiles(pLvlNow, percentiles=self.pLvlPctiles))
@@ -1144,7 +1143,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
                     these = t_cycle == j
                     PermShkTemp = self.PermShkDstn[j].drawDiscrete(
                         N=np.sum(these),
-                        exact_match=False,
                         seed=t+13*j)
                     pLvlNow[these] = self.pLvlNextFunc[j](pLvlNow[these])*PermShkTemp
                 t_cycle = t_cycle + 1

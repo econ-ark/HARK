@@ -317,7 +317,10 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         PermGroFacNow    = self.PermGroFac[t-1][i] # and permanent growth factor
         Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
         # Get random draws of income shocks from the discrete distribution
-        EventDraw        = drawDiscrete(N=1,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
+        EventDraw        = drawDiscrete(N=1,
+                                        X=Indices,
+                                        P=IncomeDstnNow[0],
+                                        seed=self.RNG.randint(0,2**31-1))
         PermShkNow = IncomeDstnNow[1][EventDraw]*PermGroFacNow # permanent "shock" includes expected growth
         TranShkNow = IncomeDstnNow[2][EventDraw]
         self.PermShkNow = np.array(PermShkNow)
