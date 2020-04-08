@@ -105,7 +105,7 @@ class DiscreteDistribution():
                 event_draws = RNG.permutation(event_list)
                 draws = X[event_draws]
         else:
-            indices = self.draw_events(self, N, seed=seed)
+            indices = self.draw_events(N, seed=seed)
             draws = np.asarray(X)[indices]
 
         return draws
