@@ -260,7 +260,10 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         -------
         None
         '''
-        RepAgentConsumerType.__init__(self,**kwds)
+        params = init_markov_rep_agent.copy()
+        params.update(kwds)
+
+        RepAgentConsumerType.__init__(self,**params)
         self.solveOnePeriod = solveConsRepAgentMarkov
         
     def preSolve(self):
@@ -332,3 +335,16 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         t = self.t_cycle[0]
         i = self.MrkvNow[0]
         self.cNrmNow = self.solution[t].cFunc[i](self.mNrmNow)
+
+# Define the default dictionary for a representative agent type
+init_rep_agent = init_idiosyncratic_shocks.copy()
+init_rep_agent["DeprFac"] = 0.05
+init_rep_agent["CapShare"] = 0.36
+init_rep_agent["UnempPrb"] = 0.0
+init_rep_agent["LivPrb"] = [1.0]
+
+# Define the default dictionary for a markov representative agent type
+init_markov_rep_agent = init_rep_agent.copy()
+init_markov_rep_agent["PermGroFac"] = [[0.97, 1.03]]
+init_markov_rep_agent["MrkvArray"] = np.array([[0.99, 0.01], [0.01, 0.99]])
+init_markov_rep_agent["MrkvNow"] = 0
