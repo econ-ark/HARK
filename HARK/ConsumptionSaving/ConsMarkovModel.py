@@ -12,7 +12,7 @@ import numpy as np
 from HARK import AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver, ValueFunc, \
                              MargValueFunc, ConsumerSolution, IndShockConsumerType
-from HARK.simulation import drawDiscrete, drawUniform
+from HARK.simulation import drawUniform
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP
@@ -187,8 +187,8 @@ class ConsMarkovSolver(ConsIndShockSolver):
         self.BoroCnstNatAll          = np.zeros(self.StateCount) + np.nan
         # Find the natural borrowing constraint conditional on next period's state
         for j in range(self.StateCount):
-            PermShkMinNext         = np.min(self.IncomeDstn_list[j][1])
-            TranShkMinNext         = np.min(self.IncomeDstn_list[j][2])
+            PermShkMinNext         = np.min(self.IncomeDstn_list[j].X[0])
+            TranShkMinNext         = np.min(self.IncomeDstn_list[j].X[1])
             self.BoroCnstNatAll[j] = (self.solution_next.mNrmMin[j] - TranShkMinNext)*\
                                      (self.PermGroFac_list[j]*PermShkMinNext)/self.Rfree_list[j]
 
@@ -898,7 +898,11 @@ class MarkovConsumerType(IndShockConsumerType):
                     PermGroFacNow    = self.PermGroFac[t-1][j] # and permanent growth factor
                     Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
                     # Get random draws of income shocks from the discrete distribution
-                    EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
+                    EventDraws       = DiscreteDistribution(
+                        IncomeDstnNow[0], Indices
+                    ).drawDiscrete(
+                        N,
+                        seed=self.RNG.randint(0,2**31-1))
                     PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
                     TranShkNow[these] = IncomeDstnNow[2][EventDraws]
         newborn = self.t_age == 0

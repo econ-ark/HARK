@@ -10,12 +10,12 @@ from builtins import str
 from builtins import range
 import numpy as np
 import scipy.stats as stats
+from HARK.distribution import DiscreteDistribution, combineIndepDstns, approxMeanOneLognormal
 from HARK.interpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFunction, IdentityFunction,\
                                VariableLowerBoundFunc2D, BilinearInterp, LowerEnvelope2D, UpperEnvelope
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
-                           CRRAutility_invP, CRRAutility_inv, combineIndepDstns,\
-                           approxMeanOneLognormal
-from HARK.simulation import drawDiscrete, drawUniform
+                           CRRAutility_invP, CRRAutility_inv 
+from HARK.simulation import drawUniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 from HARK import HARKobject, Market, AgentType
 from copy import deepcopy
@@ -416,7 +416,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         state. AggShkDstn is a list of aggregate productivity shock distributions
         for each Markov state.
         '''
-        if len(self.IncomeDstn[0][0]) > 3:
+        if len(self.IncomeDstn[0][0].X) > 2:
             self.IncomeDstn = self.IncomeDstnWithoutAggShocks
         else:
             self.IncomeDstnWithoutAggShocks = self.IncomeDstn
@@ -424,7 +424,10 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         IncomeDstnOut = []
         N = self.MrkvArray.shape[0]
         for t in range(self.T_cycle):
-            IncomeDstnOut.append([combineIndepDstns(self.IncomeDstn[t][n], AggShkDstn[n]) for n in range(N)])
+            IncomeDstnOut.append(
+                [combineIndepDstns(self.IncomeDstn[t][n],
+                                   AggShkDstn[n])
+                 for n in range(N)])
         self.IncomeDstn = IncomeDstnOut
 
     def updateSolutionTerminal(self):
@@ -475,8 +478,12 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
                 PermGroFacNow = self.PermGroFac[t-1]                # and permanent growth factor
                 Indices = np.arange(IncomeDstnNow[0].size)    # just a list of integers
                 # Get random draws of income shocks from the discrete distribution
-                EventDraws = drawDiscrete(N, X=Indices, P=IncomeDstnNow[0],
-                                          exact_match=True, seed=self.RNG.randint(0, 2**31-1))
+                EventDraws = DiscreteDistribution(
+                    IncomeDstnNow[0],
+                    Indices
+                ).drawDiscrete(N,
+                               exact_match=True,
+                               seed=self.RNG.randint(0, 2**31-1))
                 # permanent "shock" includes expected growth
                 PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow
                 TranShkNow[these] = IncomeDstnNow[2][EventDraws]
@@ -490,8 +497,10 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             PermGroFacNow = self.PermGroFac[0]                # and permanent growth factor
             Indices = np.arange(IncomeDstnNow[0].size)        # just a list of integers
             # Get random draws of income shocks from the discrete distribution
-            EventDraws = drawDiscrete(N, X=Indices, P=IncomeDstnNow[0],
-                                      exact_match=False, seed=self.RNG.randint(0, 2**31-1))
+            EventDraws = DiscreteDistribution(
+                IncomeDstnNow[0], Indices 
+            ).drawDiscrete(N,
+                           seed=self.RNG.randint(0, 2**31-1))
             # permanent "shock" includes expected growth
             PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow
             TranShkNow[these] = IncomeDstnNow[2][EventDraws]
@@ -1121,10 +1130,13 @@ class CobbDouglasEconomy(Market):
         None
         '''
         sim_periods = self.act_T
-        Events = np.arange(self.AggShkDstn[0].size)  # just a list of integers
-        EventDraws = drawDiscrete(N=sim_periods, P=self.AggShkDstn[0], X=Events, seed=0)
-        PermShkAggHist = self.AggShkDstn[1][EventDraws]
-        TranShkAggHist = self.AggShkDstn[2][EventDraws]
+        Events = np.arange(self.AggShkDstn.pmf.size)  # just a list of integers
+        EventDraws = self.AggShkDstn.drawDiscrete(
+            N=sim_periods,
+            X=Events,
+            seed=0)
+        PermShkAggHist = self.AggShkDstn.X[0][EventDraws]
+        TranShkAggHist = self.AggShkDstn.X[1][EventDraws]
 
         # Store the histories
         self.PermShkAggHist = PermShkAggHist*self.PermGroFacAgg
@@ -1352,10 +1364,13 @@ class SmallOpenEconomy(Market):
         None
         '''
         sim_periods = self.act_T
-        Events = np.arange(self.AggShkDstn[0].size)  # just a list of integers
-        EventDraws = drawDiscrete(N=sim_periods, P=self.AggShkDstn[0], X=Events, seed=0)
-        PermShkAggHist = self.AggShkDstn[1][EventDraws]
-        TranShkAggHist = self.AggShkDstn[2][EventDraws]
+        Events = np.arange(self.AggShkDstn.pmf.size)  # just a list of integers
+        EventDraws = self.AggShkDstn.drawDiscrete(
+            N=sim_periods,
+            X=Events,
+            seed=0)
+        PermShkAggHist = self.AggShkDstn.X[0][EventDraws]
+        TranShkAggHist = self.AggShkDstn.X[1][EventDraws]
 
         # Store the histories
         self.PermShkAggHist = PermShkAggHist
@@ -1543,10 +1558,13 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         PermShkAggHistAll = np.zeros((StateCount, sim_periods))
         TranShkAggHistAll = np.zeros((StateCount, sim_periods))
         for i in range(StateCount):
-            Events = np.arange(self.AggShkDstn[i][0].size)  # just a list of integers
-            EventDraws = drawDiscrete(N=sim_periods, P=self.AggShkDstn[i][0], X=Events, seed=0)
-            PermShkAggHistAll[i, :] = self.AggShkDstn[i][1][EventDraws]
-            TranShkAggHistAll[i, :] = self.AggShkDstn[i][2][EventDraws]
+            Events = np.arange(self.AggShkDstn[i].pmf.size)  # just a list of integers
+            EventDraws = self.AggShkDstn[i].drawDiscrete(
+                N=sim_periods,
+                X=Events,
+                seed=0)
+            PermShkAggHistAll[i, :] = self.AggShkDstn[i].X[0][EventDraws]
+            TranShkAggHistAll[i, :] = self.AggShkDstn[i].X[1][EventDraws]
 
         # Select the actual history of aggregate shocks based on the sequence
         # of Markov states that the economy experiences
