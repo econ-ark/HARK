@@ -22,10 +22,7 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import(
     ValueFunc2D,                # For representing 2D value function
     MargValueFunc2D             # For representing 2D marginal value function
 )
-from HARK.utilities import (
-    approxLognormal,            # For approximating the lognormal return factor
-    combineIndepDstns,          # For combining the income distribution with the risky return distribution
-)
+from HARK.distribution import approxLognormal, combineIndepDstns 
 from HARK.simulation import drawLognormal, drawBernoulli # Random draws for simulating agents
 from HARK.interpolation import(
         LinearInterp,           # Piecewise linear interpolation
@@ -325,7 +322,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             self.ShareLimit = []
             for t in range(self.T_cycle):
                 RiskyDstn = self.RiskyDstn[t]
-                temp_f = lambda s : -((1.-self.CRRA)**-1)*np.dot((self.Rfree + s*(RiskyDstn[1]-self.Rfree))**(1.-self.CRRA), RiskyDstn[0])
+                temp_f = lambda s : -((1.-self.CRRA)**-1)*np.dot((self.Rfree + s*(RiskyDstn.X-self.Rfree))**(1.-self.CRRA), RiskyDstn.pmf)
                 SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method='bounded').x
                 self.ShareLimit.append(SharePF)
             self.addToTimeVary('ShareLimit')
@@ -334,7 +331,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         
         else:
             RiskyDstn = self.RiskyDstn
-            temp_f = lambda s : -((1.-self.CRRA)**-1)*np.dot((self.Rfree + s*(RiskyDstn[1]-self.Rfree))**(1.-self.CRRA), RiskyDstn[0])
+            temp_f = lambda s : -((1.-self.CRRA)**-1)*np.dot((self.Rfree + s*(RiskyDstn.X-self.Rfree))**(1.-self.CRRA), RiskyDstn.pmf)
             SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method='bounded').x
             self.ShareLimit = SharePF
             self.addToTimeInv('ShareLimit')
@@ -593,11 +590,11 @@ def solveConsPortfolio(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # Major method fork: (in)dependent risky asset return and income distributions
     if IndepDstnBool: # If the distributions ARE independent...
         # Unpack the shock distribution
-        IncPrbs_next = IncomeDstn[0]
-        PermShks_next  = IncomeDstn[1]
-        TranShks_next  = IncomeDstn[2]
-        Rprbs_next     = RiskyDstn[0]
-        Risky_next     = RiskyDstn[1]
+        IncPrbs_next = IncomeDstn.pmf
+        PermShks_next  = IncomeDstn.X[0]
+        TranShks_next  = IncomeDstn.X[1]
+        Rprbs_next     = RiskyDstn.pmf
+        Risky_next     = RiskyDstn.X
         zero_bound = (np.min(TranShks_next) == 0.) # Flag for whether the natural borrowing constraint is zero
         RiskyMax  = np.max(Risky_next)
         

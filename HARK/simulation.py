@@ -232,57 +232,6 @@ def drawBernoulli(N,p=0.5,seed=0):
             draws.append(RNG.uniform(size=N) < p[t])
     return draws
 
-def drawDiscrete(N,P=[1.0],X=[0.0],exact_match=False,seed=0):
-    '''
-    Simulates N draws from a discrete distribution with probabilities P and outcomes X.
-
-    Parameters
-    ----------
-    P : np.array
-        A list of probabilities of outcomes.
-    X : np.array
-        A list of discrete outcomes.
-    N : int
-        Number of draws to simulate.
-    exact_match : boolean
-        Whether the draws should "exactly" match the discrete distribution (as
-        closely as possible given finite draws).  When True, returned draws are
-        a random permutation of the N-length list that best fits the discrete
-        distribution.  When False (default), each draw is independent from the
-        others and the result could deviate from the input.
-    seed : int
-        Seed for random number generator.
-
-    Returns
-    -------
-    draws : np.array
-        An array draws from the discrete distribution; each element is a value in X.
-    '''
-    # Set up the RNG
-    RNG = np.random.RandomState(seed)
-
-    if exact_match:
-        events = np.arange(P.size) # just a list of integers
-        cutoffs = np.round(np.cumsum(P)*N).astype(int) # cutoff points between discrete outcomes
-        top = 0
-        # Make a list of event indices that closely matches the discrete distribution
-        event_list        = []
-        for j in range(events.size):
-            bot = top
-            top = cutoffs[j]
-            event_list += (top-bot)*[events[j]]
-        # Randomly permute the event indices and store the corresponding results
-        event_draws = RNG.permutation(event_list)
-        draws = X[event_draws]
-    else:
-        # Generate a cumulative distribution
-        base_draws = RNG.uniform(size=N)
-        cum_dist = np.cumsum(P)
-
-        # Convert the basic uniform draws into discrete draws
-        indices = cum_dist.searchsorted(base_draws)
-        draws = np.asarray(X)[indices]
-    return draws
 
 def main():
     print("Sorry, HARK.simulation doesn't actually do anything on its own.")
