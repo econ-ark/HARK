@@ -4,7 +4,7 @@ from copy import deepcopy
 
 
 def load_SCF_wealth_weights():
-    """
+    """ U.S. Survey of Consumer Finances data
 
     Returns
     -------
