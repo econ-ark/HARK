@@ -231,13 +231,3 @@ def drawBernoulli(N,p=0.5,seed=0):
         for t in range(len(p)):
             draws.append(RNG.uniform(size=N) < p[t])
     return draws
-
-
-def main():
-    print("Sorry, HARK.simulation doesn't actually do anything on its own.")
-    print("To see some examples of its functions in action, look at any")
-    print("of the model modules in /ConsumptionSavingModel.  In the future, running")
-    print("this module will show examples of each function in the module.")
-
-if __name__ == '__main__':
-    main()
