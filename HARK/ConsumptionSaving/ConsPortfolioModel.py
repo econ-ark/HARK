@@ -23,7 +23,7 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import(
     MargValueFunc2D             # For representing 2D marginal value function
 )
 from HARK.distribution import approxLognormal, combineIndepDstns 
-from HARK.simulation import drawLognormal, Bernoulli # Random draws for simulating agents
+from HARK.simulation import Lognormal, Bernoulli # Random draws for simulating agents
 from HARK.interpolation import(
         LinearInterp,           # Piecewise linear interpolation
         CubicInterp,            # Piecewise cubic interpolation
@@ -362,7 +362,7 @@ class PortfolioConsumerType(IndShockConsumerType):
 
         mu = np.log(RiskyAvg / (np.sqrt(1. + RiskyVar / RiskyAvgSqrd)))
         sigma = np.sqrt(np.log(1. + RiskyVar / RiskyAvgSqrd))
-        self.RiskyNow = drawLognormal(1, mu=mu, sigma=sigma, seed=self.RNG.randint(0, 2**31-1))
+        self.RiskyNow = Lognormal(mu, sigma).draw(1, seed=self.RNG.randint(0, 2**31-1))
         
         
     def getAdjust(self):

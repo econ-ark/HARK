@@ -13,27 +13,27 @@ class SimulationTests(unittest.TestCase):
             simulation.drawMeanOneLognormal(1)[0],
             3.5397367004222002)
 
-    def test_drawLognormal(self):
+    def test_Lognormal(self):
         self.assertEqual(
-            simulation.drawLognormal(1)[0],
+            simulation.Lognormal().draw(1)[0],
             5.836039190663969)
 
-    def test_drawNormal(self):
+    def test_Normal(self):
         self.assertEqual(
             simulation.Normal().draw(1)[0],
             1.764052345967664)
 
-    def test_drawWeibull(self):
+    def test_Weibull(self):
         self.assertEqual(
             simulation.Weibull().draw(1)[0],
             0.79587450816311)
 
-    def test_drawUniform(self):
+    def test_Uniform(self):
         self.assertEqual(
             simulation.Uniform().draw(1)[0],
             0.5488135039273248)
 
-    def test_drawBernoulli(self):
+    def test_Bernoulli(self):
         self.assertEqual(
             simulation.Bernoulli().draw(1)[0],
             False)

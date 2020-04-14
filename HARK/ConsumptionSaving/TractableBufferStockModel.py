@@ -30,7 +30,7 @@ from HARK import AgentType, NullFunc, Solution
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityPPP, CRRAutilityPPPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
 from HARK.interpolation import CubicInterp
-from HARK.simulation import drawLognormal, Bernoulli
+from HARK.simulation import Lognormal, Bernoulli
 from copy import copy
 from scipy.optimize import newton, brentq
 
@@ -378,7 +378,8 @@ class TractableConsumerType(AgentType):
         '''
         # Get and store states for newly born agents
         N = np.sum(which_agents) # Number of new consumers to make
-        self.aLvlNow[which_agents] = drawLognormal(N,mu=self.aLvlInitMean,sigma=self.aLvlInitStd,seed=self.RNG.randint(0,2**31-1))
+        self.aLvlNow[which_agents] = Lognormal(self.aLvlInitMean,
+                                               sigma=self.aLvlInitStd).draw(N,seed=self.RNG.randint(0,2**31-1))
         self.eStateNow[which_agents] = 1.0 # Agents are born employed
         self.t_age[which_agents]   = 0 # How many periods since each agent was born
         self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
