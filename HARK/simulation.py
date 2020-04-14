@@ -7,10 +7,25 @@ import warnings                             # A library for runtime warnings
 import numpy as np                          # Numerical Python
 
 class Lognormal():
+    """
+    A Lognormal distribution
+    """
     mu = None
     sigma = None
 
     def __init__(self, mu = 0.0, sigma = 1.0):
+        '''
+        Initialize the distribution.
+
+        Parameters
+        ----------
+         mu : float or [float]
+            One or more means.  Number of elements T in mu determines number
+            of rows of output.
+        sigma : float or [float]
+            One or more standard deviations. Number of elements T in sigma
+            determines number of rows of output.
+        '''
         self.mu = mu
         self.sigma = sigma
 
@@ -26,12 +41,6 @@ class Lognormal():
         ----------
         N : int
             Number of draws in each row.
-        mu : float or [float]
-            One or more means.  Number of elements T in mu determines number
-            of rows of output.
-        sigma : float or [float]
-            One or more standard deviations. Number of elements T in sigma
-            determines number of rows of output.
         seed : int
             Seed for random number generator.
 
@@ -63,10 +72,25 @@ class Lognormal():
         return draws
 
 class Normal():
+    """
+    A Normal distribution.
+    """
     mu = None
     sigma = None
 
     def __init__(self, mu = 0.0, sigma = 1.0):
+        '''
+        Initialize the distribution.
+
+        Parameters
+        ----------
+         mu : float or [float]
+            One or more means.  Number of elements T in mu determines number
+            of rows of output.
+        sigma : float or [float]
+            One or more standard deviations. Number of elements T in sigma
+            determines number of rows of output.
+        '''
         self.mu = 0.0
         self.sigma = 1.0
 
@@ -82,12 +106,6 @@ class Normal():
         ----------
         N : int
             Number of draws in each row.
-        mu : float or [float]
-            One or more means.  Number of elements T in mu determines number of rows
-            of output.
-        sigma : float or [float]
-            One or more standard deviations. Number of elements T in sigma
-            determines number of rows of output.
         seed : int
             Seed for random number generator.
 
@@ -109,11 +127,26 @@ class Normal():
         return draws
 
 class Weibull():
+    '''
+    A Weibull distribution
+    '''
 
     scale = None
     shape = None
 
     def __init__(self, scale=1.0, shape=1.0):
+        '''
+        Initialize the distribution.
+
+        Parameters
+        ----------
+        scale : float or [float]
+            One or more scales.  Number of elements T in scale determines number of
+        rows of output.
+        shape : float or [float]
+            One or more shape parameters. Number of elements T in scale
+            determines number of rows of output.
+        '''
         self.scale = scale
         self.shape = shape
 
@@ -133,12 +166,6 @@ class Weibull():
         ----------
         N : int
             Number of draws in each row.
-        scale : float or [float]
-            One or more scales.  Number of elements T in scale determines number of
-        rows of output.
-        shape : float or [float]
-            One or more shape parameters. Number of elements T in scale
-            determines number of rows of output.
         seed : int
             Seed for random number generator.
 
@@ -162,11 +189,26 @@ class Weibull():
         return draws
 
 class Uniform():
+    """
+    A Uniform distribution.
+    """
 
     bot = None
     top = None
 
     def __init__(self, bot = 0.0, top = 1.0):
+        '''
+        Initialize the distribution.
+
+        Parameters
+        ----------
+        bot : float or [float]
+            One or more bottom values.  Number of elements T in mu determines number
+            of rows of output.
+        top : float or [float]
+            One or more top values. Number of elements T in top determines number of
+            rows of output.
+        '''
         self.bot = bot
         self.top = top
 
@@ -182,12 +224,6 @@ class Uniform():
         ----------
         N : int
             Number of draws in each row.
-        bot : float or [float]
-            One or more bottom values.  Number of elements T in mu determines number
-            of rows of output.
-        top : float or [float]
-            One or more top values. Number of elements T in top determines number of
-            rows of output.
         seed : int
             Seed for random number generator.
 
@@ -209,10 +245,21 @@ class Uniform():
         return draws
 
 class Bernoulli():
+    """
+    A Bernoulli distribution.
+    """
 
     p = None
 
     def __init__(self, p = 0.5):
+        '''
+        Initialize the distribution.
+
+        Parameters
+        ----------
+        p : float or [float]
+            Probability or probabilities of the event occurring (True).
+        '''
         self.p = p
 
     def draw(self, N, seed = 0):
@@ -226,8 +273,6 @@ class Bernoulli():
         ---------
         N : int
             Number of draws in each row.
-        p : float or [float]
-            Probability or probabilities of the event occurring (True).
         seed : int
             Seed for random number generator.
 
