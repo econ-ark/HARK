@@ -23,7 +23,7 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import(
     MargValueFunc2D             # For representing 2D marginal value function
 )
 from HARK.distribution import approxLognormal, combineIndepDstns 
-from HARK.simulation import drawLognormal, drawBernoulli # Random draws for simulating agents
+from HARK.simulation import drawLognormal, Bernoulli # Random draws for simulating agents
 from HARK.interpolation import(
         LinearInterp,           # Piecewise linear interpolation
         CubicInterp,            # Piecewise cubic interpolation
@@ -379,7 +379,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        self.AdjustNow = drawBernoulli(self.AgentCount, p=self.AdjustPrb, seed=self.RNG.randint(0, 2**31-1))
+        self.AdjustNow = Bernoulli(self.AdjustPrb).draw(self.AgentCount, seed=self.RNG.randint(0, 2**31-1))
         
         
     def getRfree(self):

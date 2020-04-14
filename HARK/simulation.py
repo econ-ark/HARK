@@ -199,35 +199,42 @@ def drawUniform(N, bot=0.0, top=1.0, seed=0):
             draws.append(bot[t] + (top[t] - bot[t])*RNG.rand(N))
     return draws
 
-def drawBernoulli(N,p=0.5,seed=0):
-    '''
-    Generates arrays of booleans drawn from a simple Bernoulli distribution.
-    The input p can be a float or a list-like of floats; its length T determines
-    the number of entries in the output.  The t-th entry of the output is an
-    array of N booleans which are True with probability p[t] and False otherwise.
+class Bernoulli():
 
-    Arguments
-    ---------
-    N : int
-        Number of draws in each row.
-    p : float or [float]
-        Probability or probabilities of the event occurring (True).
-    seed : int
-        Seed for random number generator.
+    p = None
 
-    Returns
-    -------
-    draws : np.array or [np.array]
-        T-length list of arrays of Bernoulli draws each of size N, or a single
+    def __init__(self, p = 0.5):
+        self.p = p
+
+    def draw(self, N, seed = 0):
+        '''
+        Generates arrays of booleans drawn from a simple Bernoulli distribution.
+        The input p can be a float or a list-like of floats; its length T determines
+        the number of entries in the output.  The t-th entry of the output is an
+        array of N booleans which are True with probability p[t] and False otherwise.
+
+        Arguments
+        ---------
+        N : int
+            Number of draws in each row.
+        p : float or [float]
+            Probability or probabilities of the event occurring (True).
+        seed : int
+            Seed for random number generator.
+
+        Returns
+        -------
+        draws : np.array or [np.array]
+            T-length list of arrays of Bernoulli draws each of size N, or a single
         array of size N (if sigma is a scalar).
-    '''
-    # Set up the RNG
-    RNG = np.random.RandomState(seed)
+        '''
+        # Set up the RNG
+        RNG = np.random.RandomState(seed)
 
-    if isinstance(p,float):# Return a single array of size N
-        draws = RNG.uniform(size=N) < p
-    else: # Set up empty list to populate, then loop and populate list with draws:
-        draws=[]
-        for t in range(len(p)):
-            draws.append(RNG.uniform(size=N) < p[t])
-    return draws
+        if isinstance(self.p,float):# Return a single array of size N
+            draws = RNG.uniform(size=N) < self.p
+        else: # Set up empty list to populate, then loop and populate list with draws:
+            draws=[]
+            for t in range(len(self.p)):
+                draws.append(RNG.uniform(size=N) < self.p[t])
+        return draws

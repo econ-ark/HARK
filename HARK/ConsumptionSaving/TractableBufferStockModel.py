@@ -30,7 +30,7 @@ from HARK import AgentType, NullFunc, Solution
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityPPP, CRRAutilityPPPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
 from HARK.interpolation import CubicInterp
-from HARK.simulation import drawLognormal, drawBernoulli
+from HARK.simulation import drawLognormal, Bernoulli
 from copy import copy
 from scipy.optimize import newton, brentq
 
@@ -416,7 +416,8 @@ class TractableConsumerType(AgentType):
         '''
         employed = self.eStateNow == 1.0
         N = int(np.sum(employed))
-        newly_unemployed = drawBernoulli(N,p=self.UnempPrb,seed=self.RNG.randint(0,2**31-1))
+        newly_unemployed = Bernoulli(self.UnempPrb).draw(N,
+                                                         seed=self.RNG.randint(0,2**31-1))
         self.eStateNow[employed] = 1.0 - newly_unemployed
 
     def getStates(self):

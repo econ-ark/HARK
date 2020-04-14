@@ -35,5 +35,5 @@ class SimulationTests(unittest.TestCase):
 
     def test_drawBernoulli(self):
         self.assertEqual(
-            simulation.drawBernoulli(1)[0],
+            simulation.Bernoulli().draw(1)[0],
             False)
