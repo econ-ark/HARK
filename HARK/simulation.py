@@ -117,50 +117,58 @@ def drawNormal(N, mu=0.0, sigma=1.0, seed=0):
             draws.append(sigma[t]*RNG.randn(N) + mu[t])
     return draws
 
-def drawWeibull(N, scale=1.0, shape=1.0,  seed=0):
-    '''
-    Generate arrays of Weibull draws.  The scale and shape inputs can be
-    numbers or list-likes.  If a number, output is a length N array of draws from
-    the Weibull distribution with the given scale and shape. If a list, output
-    is a length T list whose t-th entry is a length N array with draws from the
-    Weibull distribution with scale scale[t] and shape shape[t].
+class Weibull():
 
-    Note: When shape=1, the Weibull distribution is simply the exponential dist.
+    scale = None
+    shape = None
 
-    Mean: scale*Gamma(1 + 1/shape)
+    def __init__(self, scale=1.0, shape=1.0):
+        self.scale = scale
+        self.shape = shape
 
-    Parameters
-    ----------
-    N : int
-        Number of draws in each row.
-    scale : float or [float]
-        One or more scales.  Number of elements T in scale determines number of
+    def draw(self, N, seed=0):
+        '''
+        Generate arrays of Weibull draws.  The scale and shape inputs can be
+        numbers or list-likes.  If a number, output is a length N array of draws from
+        the Weibull distribution with the given scale and shape. If a list, output
+        is a length T list whose t-th entry is a length N array with draws from the
+        Weibull distribution with scale scale[t] and shape shape[t].
+
+        Note: When shape=1, the Weibull distribution is simply the exponential dist.
+
+        Mean: scale*Gamma(1 + 1/shape)
+
+        Parameters
+        ----------
+        N : int
+            Number of draws in each row.
+        scale : float or [float]
+            One or more scales.  Number of elements T in scale determines number of
         rows of output.
-    shape : float or [float]
-        One or more shape parameters. Number of elements T in scale
-        determines number of rows of output.
-    seed : int
-        Seed for random number generator.
+        shape : float or [float]
+            One or more shape parameters. Number of elements T in scale
+            determines number of rows of output.
+        seed : int
+            Seed for random number generator.
 
-    Returns:
-    ------------
-    draws : np.array or [np.array]
-        T-length list of arrays of Weibull draws each of size N, or a single
-        array of size N (if sigma is a scalar).
-    '''
-    # Set up the RNG
-    RNG = np.random.RandomState(seed)
+        Returns:
+        ------------
+        draws : np.array or [np.array]
+            T-length list of arrays of Weibull draws each of size N, or a single
+            array of size N (if sigma is a scalar).
+        '''
+        # Set up the RNG
+        RNG = np.random.RandomState(seed)
 
-    if scale == 1:
-        scale = float(scale)
-    if isinstance(scale,float): # Return a single array of length N
-        draws = scale*(-np.log(1.0-RNG.rand(N)))**(1.0/shape)
-    else: # Set up empty list to populate, then loop and populate list with draws
-        draws=[]
-        for t in range(len(scale)):
-            draws.append(scale[t]*(-np.log(1.0-RNG.rand(N)))**(1.0/shape[t]))
-    return draws
-
+        if self.scale == 1:
+            scale = float(self.scale)
+        if isinstance(self.scale,float): # Return a single array of length N
+            draws = self.scale*(-np.log(1.0-RNG.rand(N)))**(1.0/self.shape)
+        else: # Set up empty list to populate, then loop and populate list with draws
+            draws=[]
+            for t in range(len(self.scale)):
+                draws.append(self.scale[t]*(-np.log(1.0-RNG.rand(N)))**(1.0/self.shape[t]))
+        return draws
 
 class Uniform():
 
