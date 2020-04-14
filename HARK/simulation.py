@@ -161,43 +161,53 @@ def drawWeibull(N, scale=1.0, shape=1.0,  seed=0):
             draws.append(scale[t]*(-np.log(1.0-RNG.rand(N)))**(1.0/shape[t]))
     return draws
 
-def drawUniform(N, bot=0.0, top=1.0, seed=0):
-    '''
-    Generate arrays of uniform draws.  The bot and top inputs can be numbers or
-    list-likes.  If a number, output is a length N array of draws from the
-    uniform distribution on [bot,top]. If a list, output is a length T list
-    whose t-th entry is a length N array with draws from the uniform distribution
-    on [bot[t],top[t]].
 
-    Parameters
-    ----------
-    N : int
-        Number of draws in each row.
-    bot : float or [float]
-        One or more bottom values.  Number of elements T in mu determines number
-        of rows of output.
-    top : float or [float]
-        One or more top values. Number of elements T in top determines number of
-        rows of output.
-    seed : int
-        Seed for random number generator.
+class Uniform():
 
-    Returns
-    -------
-    draws : np.array or [np.array]
-        T-length list of arrays of uniform draws each of size N, or a single
-        array of size N (if sigma is a scalar).
-    '''
-    # Set up the RNG
-    RNG = np.random.RandomState(seed)
+    bot = None
+    top = None
 
-    if isinstance(bot,float) or isinstance(bot,int): # Return a single array of size N
-        draws = bot + (top - bot)*RNG.rand(N)
-    else: # Set up empty list to populate, then loop and populate list with draws
-        draws=[]
-        for t in range(len(bot)):
-            draws.append(bot[t] + (top[t] - bot[t])*RNG.rand(N))
-    return draws
+    def __init__(self, bot = 0.0, top = 1.0):
+        self.bot = bot
+        self.top = top
+
+    def draw(self, N, seed=0):
+        '''
+        Generate arrays of uniform draws.  The bot and top inputs can be numbers or
+        list-likes.  If a number, output is a length N array of draws from the
+        uniform distribution on [bot,top]. If a list, output is a length T list
+        whose t-th entry is a length N array with draws from the uniform distribution
+        on [bot[t],top[t]].
+
+        Parameters
+        ----------
+        N : int
+            Number of draws in each row.
+        bot : float or [float]
+            One or more bottom values.  Number of elements T in mu determines number
+            of rows of output.
+        top : float or [float]
+            One or more top values. Number of elements T in top determines number of
+            rows of output.
+        seed : int
+            Seed for random number generator.
+
+        Returns
+        -------
+        draws : np.array or [np.array]
+            T-length list of arrays of uniform draws each of size N, or a single
+            array of size N (if sigma is a scalar).
+        '''
+        # Set up the RNG
+        RNG = np.random.RandomState(seed)
+
+        if isinstance(self.bot,float) or isinstance(self.bot,int): # Return a single array of size N
+            draws = self.bot + (self.top - self.bot)*RNG.rand(N)
+        else: # Set up empty list to populate, then loop and populate list with draws
+            draws=[]
+            for t in range(len(bot)):
+                draws.append(self.bot[t] + (self.top[t] - self.bot[t])*RNG.rand(N))
+        return draws
 
 class Bernoulli():
 

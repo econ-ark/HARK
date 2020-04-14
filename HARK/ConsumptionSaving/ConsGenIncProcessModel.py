@@ -17,7 +17,7 @@ from HARK.interpolation import LowerEnvelope2D, BilinearInterp, VariableLowerBou
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
                            getPercentiles
-from HARK.simulation import drawLognormal, drawUniform
+from HARK.simulation import drawLognormal, Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 
 __all__ = ['ValueFunc2D', 'MargValueFunc2D', 'MargMargValueFunc2D', 'pLvlFuncAR1',
@@ -1133,7 +1133,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
             t_cycle = np.zeros(self.AgentCount, dtype=int)
             for t in range(T_long):
                 LivPrb = LivPrbAll[t_cycle]  # Determine who dies and replace them with newborns
-                draws = drawUniform(self.AgentCount, seed=t)
+                draws = Uniform().draw(self.AgentCount, seed=t)
                 who_dies = draws > LivPrb
                 pLvlNow[who_dies] = drawLognormal(np.sum(who_dies), mu=self.pLvlInitMean,
                                                   sigma=self.pLvlInitStd, seed=t+92615)

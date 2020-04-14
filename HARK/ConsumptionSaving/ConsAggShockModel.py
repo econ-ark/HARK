@@ -15,7 +15,7 @@ from HARK.interpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFun
                                VariableLowerBoundFunc2D, BilinearInterp, LowerEnvelope2D, UpperEnvelope
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                            CRRAutility_invP, CRRAutility_inv 
-from HARK.simulation import drawUniform
+from HARK.simulation import Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 from HARK import HARKobject, Market, AgentType
 from copy import deepcopy
@@ -1629,7 +1629,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
 
         # Add histories until each state has been visited at least state_T_min times
         while go:
-            draws = drawUniform(N=self.act_T_orig, seed=loops)
+            draws = Uniform().draw(N=self.act_T_orig, seed=loops)
             for s in range(draws.size):  # Add act_T_orig more periods
                 MrkvNow_hist[t] = MrkvNow
                 MrkvNow = np.searchsorted(cutoffs[MrkvNow, :], draws[s])

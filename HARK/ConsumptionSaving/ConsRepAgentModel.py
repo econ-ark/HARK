@@ -10,7 +10,7 @@ from builtins import str
 from builtins import range
 import numpy as np
 from HARK.interpolation import LinearInterp
-from HARK.simulation import drawUniform
+from HARK.simulation import Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType,\
           ConsumerSolution,MargValueFunc, init_idiosyncratic_shocks
 
@@ -308,7 +308,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         None
         '''
         cutoffs = np.cumsum(self.MrkvArray[self.MrkvNow,:])
-        MrkvDraw = drawUniform(N=1,seed=self.RNG.randint(0,2**31-1))
+        MrkvDraw = Uniform().draw(N=1,seed=self.RNG.randint(0,2**31-1))
         self.MrkvNow = np.searchsorted(cutoffs,MrkvDraw)
 
         t = self.t_cycle[0]

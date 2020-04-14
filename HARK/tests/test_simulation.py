@@ -30,7 +30,7 @@ class SimulationTests(unittest.TestCase):
 
     def test_drawUniform(self):
         self.assertEqual(
-            simulation.drawUniform(1)[0],
+            simulation.Uniform().draw(1)[0],
             0.5488135039273248)
 
     def test_drawBernoulli(self):
