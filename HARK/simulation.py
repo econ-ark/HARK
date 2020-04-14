@@ -6,34 +6,6 @@ from __future__ import division
 import warnings                             # A library for runtime warnings
 import numpy as np                          # Numerical Python
 
-def drawMeanOneLognormal(N, sigma=1.0, seed=0):
-    '''
-    Generate arrays of mean one lognormal draws. The sigma input can be a number
-    or list-like.  If a number, output is a length N array of draws from the
-    lognormal distribution with standard deviation sigma. If a list, output is
-    a length T list whose t-th entry is a length N array of draws from the
-    lognormal with standard deviation sigma[t].
-
-    Parameters
-    ----------
-    N : int
-        Number of draws in each row.
-    sigma : float or [float]
-        One or more standard deviations. Number of elements T in sigma
-        determines number of rows of output.
-    seed : int
-        Seed for random number generator.
-
-    Returns:
-    ------------
-    draws : np.array or [np.array]
-        T-length list of arrays of mean one lognormal draws each of size N, or
-        a single array of size N (if sigma is a scalar).
-    '''
-    mu = -0.5*sigma**2
-
-    return drawLognormal(N,mu=mu,sigma=sigma,seed=seed)
-
 class Lognormal():
     mu = None
     sigma = None
@@ -275,3 +247,32 @@ class Bernoulli():
             for t in range(len(self.p)):
                 draws.append(RNG.uniform(size=N) < self.p[t])
         return draws
+
+
+def drawMeanOneLognormal(N, sigma=1.0, seed=0):
+    '''
+    Generate arrays of mean one lognormal draws. The sigma input can be a number
+    or list-like.  If a number, output is a length N array of draws from the
+    lognormal distribution with standard deviation sigma. If a list, output is
+    a length T list whose t-th entry is a length N array of draws from the
+    lognormal with standard deviation sigma[t].
+
+    Parameters
+    ----------
+    N : int
+        Number of draws in each row.
+    sigma : float or [float]
+        One or more standard deviations. Number of elements T in sigma
+        determines number of rows of output.
+    seed : int
+        Seed for random number generator.
+
+    Returns:
+    ------------
+    draws : np.array or [np.array]
+        T-length list of arrays of mean one lognormal draws each of size N, or
+        a single array of size N (if sigma is a scalar).
+    '''
+    mu = -0.5*sigma**2
+
+    return Lognormal(mu,sigma).draw(N,seed=seed)
