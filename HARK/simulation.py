@@ -78,44 +78,51 @@ def drawLognormal(N,mu=0.0,sigma=1.0,seed=0):
                 draws.append(RNG.lognormal(mean=mu[j], sigma=sigma[j], size=N))
     return draws
 
+class Normal():
+    mu = None
+    sigma = None
 
-def drawNormal(N, mu=0.0, sigma=1.0, seed=0):
-    '''
-    Generate arrays of normal draws.  The mu and sigma inputs can be numbers or
-    list-likes.  If a number, output is a length N array of draws from the normal
-    distribution with mean mu and standard deviation sigma. If a list, output is
-    a length T list whose t-th entry is a length N array with draws from the
-    normal distribution with mean mu[t] and standard deviation sigma[t].
+    def __init__(self, mu = 0.0, sigma = 1.0):
+        self.mu = 0.0
+        self.sigma = 1.0
 
-    Parameters
-    ----------
-    N : int
-        Number of draws in each row.
-    mu : float or [float]
-        One or more means.  Number of elements T in mu determines number of rows
-        of output.
-    sigma : float or [float]
-        One or more standard deviations. Number of elements T in sigma
-        determines number of rows of output.
-    seed : int
-        Seed for random number generator.
+    def draw(self, N, seed=0):
+        '''
+        Generate arrays of normal draws.  The mu and sigma inputs can be numbers or
+        list-likes.  If a number, output is a length N array of draws from the normal
+        distribution with mean mu and standard deviation sigma. If a list, output is
+        a length T list whose t-th entry is a length N array with draws from the
+        normal distribution with mean mu[t] and standard deviation sigma[t].
 
-    Returns
-    -------
-    draws : np.array or [np.array]
-        T-length list of arrays of normal draws each of size N, or a single array
-        of size N (if sigma is a scalar).
-    '''
-    # Set up the RNG
-    RNG = np.random.RandomState(seed)
+        Parameters
+        ----------
+        N : int
+            Number of draws in each row.
+        mu : float or [float]
+            One or more means.  Number of elements T in mu determines number of rows
+            of output.
+        sigma : float or [float]
+            One or more standard deviations. Number of elements T in sigma
+            determines number of rows of output.
+        seed : int
+            Seed for random number generator.
 
-    if isinstance(sigma,float): # Return a single array of length N
-        draws = sigma*RNG.randn(N) + mu
-    else: # Set up empty list to populate, then loop and populate list with draws
-        draws=[]
-        for t in range(len(sigma)):
-            draws.append(sigma[t]*RNG.randn(N) + mu[t])
-    return draws
+        Returns
+        -------
+        draws : np.array or [np.array]
+            T-length list of arrays of normal draws each of size N, or a single array
+            of size N (if sigma is a scalar).
+        '''
+        # Set up the RNG
+        RNG = np.random.RandomState(seed)
+
+        if isinstance(self.sigma,float): # Return a single array of length N
+            draws = self.sigma*RNG.randn(N) + self.mu
+        else: # Set up empty list to populate, then loop and populate list with draws
+            draws=[]
+            for t in range(len(sigma)):
+                draws.append(self.sigma[t]*RNG.randn(N) + self.mu[t])
+        return draws
 
 class Weibull():
 

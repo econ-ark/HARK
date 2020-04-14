@@ -20,7 +20,7 @@ class SimulationTests(unittest.TestCase):
 
     def test_drawNormal(self):
         self.assertEqual(
-            simulation.drawNormal(1)[0],
+            simulation.Normal().draw(1)[0],
             1.764052345967664)
 
     def test_drawWeibull(self):
