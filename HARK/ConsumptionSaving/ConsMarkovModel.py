@@ -12,7 +12,7 @@ import numpy as np
 from HARK import AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver, ValueFunc, \
                              MargValueFunc, ConsumerSolution, IndShockConsumerType
-from HARK.simulation import drawDiscrete, drawUniform
+from HARK.simulation import drawUniform
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP
@@ -187,8 +187,8 @@ class ConsMarkovSolver(ConsIndShockSolver):
         self.BoroCnstNatAll          = np.zeros(self.StateCount) + np.nan
         # Find the natural borrowing constraint conditional on next period's state
         for j in range(self.StateCount):
-            PermShkMinNext         = np.min(self.IncomeDstn_list[j][1])
-            TranShkMinNext         = np.min(self.IncomeDstn_list[j][2])
+            PermShkMinNext         = np.min(self.IncomeDstn_list[j].X[0])
+            TranShkMinNext         = np.min(self.IncomeDstn_list[j].X[1])
             self.BoroCnstNatAll[j] = (self.solution_next.mNrmMin[j] - TranShkMinNext)*\
                                      (self.PermGroFac_list[j]*PermShkMinNext)/self.Rfree_list[j]
 
@@ -824,6 +824,49 @@ class MarkovConsumerType(IndShockConsumerType):
             base_draws = drawUniform(N,seed=self.RNG.randint(0,2**31-1))
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.MrkvNow[which_agents] = np.searchsorted(Cutoffs,base_draws).astype(int)
+            
+            
+    def getMarkovStates(self):
+        '''
+        Draw new Markov states for each agent in the simulated population, using
+        the attribute MrkvArray to determine transition probabilities.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        # Draw random numbers that will be used to determine the next Markov state
+        if self.global_markov:
+            base_draws = np.ones(self.AgentCount)*drawUniform(1,seed=self.RNG.randint(0,2**31-1))
+        else:
+            base_draws = drawUniform(self.AgentCount,seed=self.RNG.randint(0,2**31-1))
+        dont_change = self.t_age == 0 # Don't change Markov state for those who were just born (unless global_markov)
+        if self.t_sim == 0: # Respect initial distribution of Markov states
+            dont_change[:] = True
+        
+        # Determine which agents are in which states right now
+        J = self.MrkvArray[0].shape[0]
+        MrkvPrev = self.MrkvNow
+        MrkvNow = np.zeros(self.AgentCount,dtype=int)
+        MrkvBoolArray = np.zeros((J,self.AgentCount))
+        for j in range(J):
+            MrkvBoolArray[j,:] = MrkvPrev == j
+        
+        # Draw new Markov states for each agent
+        for t in range(self.T_cycle):
+            Cutoffs = np.cumsum(self.MrkvArray[t],axis=1)
+            right_age = self.t_cycle == t
+            for j in range(J):
+                these = np.logical_and(right_age, MrkvBoolArray[j,:])
+                MrkvNow[these] = np.searchsorted(Cutoffs[j,:],base_draws[these]).astype(int)
+        if not self.global_markov:
+            MrkvNow[dont_change] = MrkvPrev[dont_change]
+        self.MrkvNow = MrkvNow.astype(int)
+    
 
     def getShocks(self):
         '''
@@ -838,22 +881,8 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        # Get new Markov states for each agent
-        if self.global_markov:
-            base_draws = np.ones(self.AgentCount)*drawUniform(1,seed=self.RNG.randint(0,2**31-1))
-        else:
-            base_draws = self.RNG.permutation(np.arange(self.AgentCount,dtype=float)/self.AgentCount + 1.0/(2*self.AgentCount))
-        newborn = self.t_age == 0 # Don't change Markov state for those who were just born (unless global_markov)
-        MrkvPrev = self.MrkvNow
-        MrkvNow = np.zeros(self.AgentCount,dtype=int)
-        for t in range(self.T_cycle):
-            Cutoffs = np.cumsum(self.MrkvArray[t],axis=1)
-            for j in range(self.MrkvArray[t].shape[0]):
-                these = np.logical_and(self.t_cycle == t,MrkvPrev == j)
-                MrkvNow[these] = np.searchsorted(Cutoffs[j,:],base_draws[these]).astype(int)
-        if not self.global_markov:
-                MrkvNow[newborn] = MrkvPrev[newborn]
-        self.MrkvNow = MrkvNow.astype(int)
+        self.getMarkovStates()
+        MrkvNow = self.MrkvNow
 
         # Now get income shocks for each consumer, by cycle-time and discrete state
         PermShkNow = np.zeros(self.AgentCount) # Initialize shock arrays
@@ -867,7 +896,11 @@ class MarkovConsumerType(IndShockConsumerType):
                     PermGroFacNow    = self.PermGroFac[t-1][j] # and permanent growth factor
                     Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
                     # Get random draws of income shocks from the discrete distribution
-                    EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
+                    EventDraws       = DiscreteDistribution(
+                        IncomeDstnNow[0], Indices
+                    ).drawDiscrete(
+                        N,
+                        seed=self.RNG.randint(0,2**31-1))
                     PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
                     TranShkNow[these] = IncomeDstnNow[2][EventDraws]
         newborn = self.t_age == 0

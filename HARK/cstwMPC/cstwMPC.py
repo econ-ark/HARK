@@ -37,7 +37,7 @@ class cstwMPCagent(EstimationAgentClass):
     '''
     def reset(self):
         self.initializeSim()
-        self.t_age = drawDiscrete(self.AgentCount,P=self.AgeDstn,X=np.arange(self.AgeDstn.size),exact_match=False,seed=self.RNG.randint(0,2**31-1)).astype(int)
+        self.t_age = drawDiscrete(self.AgentCount,P=self.AgeDstn,X=np.arange(self.AgeDstn.size),seed=self.RNG.randint(0,2**31-1)).astype(int)
         self.t_cycle = copy(self.t_age)
         if hasattr(self,'kGrid'):
             self.aLvlNow = self.kInit*np.ones(self.AgentCount) # Start simulation near SS
