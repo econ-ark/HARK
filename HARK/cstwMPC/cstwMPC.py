@@ -12,9 +12,8 @@ import os
 import numpy as np
 from copy import copy, deepcopy
 from time import time
-from HARK.utilities import approxMeanOneLognormal, combineIndepDstns, approxUniform, \
-                           getPercentiles, getLorenzShares, calcSubpopAvg, approxLognormal
-from HARK.simulation import drawDiscrete
+from HARK.distribution import approxMeanOneLognormal, combineIndepDstns, approxUniform, approxLognormal, DiscreteDistribution
+from HARK.utilities import getPercentiles, getLorenzShares, calcSubpopAvg
 from HARK import Market
 import HARK.cstwMPC.SetupParamsCSTW as Params
 import HARK.ConsumptionSaving.ConsIndShockModel as Model
@@ -63,8 +62,8 @@ class cstwMPCagent(EstimationAgentClass):
         if self.cycles == 0:
             tax_rate = (self.IncUnemp*self.UnempPrb)/((1.0-self.UnempPrb)*self.IndL)
             TranShkDstn     = deepcopy(approxMeanOneLognormal(self.TranShkCount,sigma=self.TranShkStd[0],tail_N=0))
-            TranShkDstn[0]  = np.insert(TranShkDstn[0]*(1.0-self.UnempPrb),0,self.UnempPrb)
-            TranShkDstn[1]  = np.insert(TranShkDstn[1]*(1.0-tax_rate)*self.IndL,0,self.IncUnemp)
+            TranShkDstn.pmf  = np.insert(TranShkDstn.pmf*(1.0-self.UnempPrb),0,self.UnempPrb)
+            TranShkDstn.X  = np.insert(TranShkDstn.X*(1.0-tax_rate)*self.IndL,0,self.IncUnemp)
             PermShkDstn     = approxMeanOneLognormal(self.PermShkCount,sigma=self.PermShkStd[0],tail_N=0)
             self.IncomeDstn = [combineIndepDstns(PermShkDstn,TranShkDstn)]
             self.TranShkDstn = TranShkDstn
