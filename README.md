@@ -82,7 +82,7 @@ Install from [PyPi](https://pypi.org/) by running:
 We start with almost the simplest possible consumption model: A consumer with CRRA utility 
 
 <div align="center">
-  <img height="30px" src="https://github.com/econ-ark/HARK/blob/master/doc/images/usage-crra-utility-function.png">
+  <img height="30px" src="https://raw.githubusercontent.com/econ-ark/HARK/master/doc/images/usage-crra-utility-function.png">
 </div> 
 
 has perfect foresight about everything except the (stochastic) date of death.
@@ -90,7 +90,7 @@ has perfect foresight about everything except the (stochastic) date of death.
 The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm) as:
 
 <div align="center">
-  <img height="80px" src="https://github.com/econ-ark/HARK/blob/master/doc/images/usage-agent-problem-bellman-form.png">
+  <img height="80px" src="https://raw.githubusercontent.com/econ-ark/HARK/master/doc/images/usage-agent-problem-bellman-form.png">
 </div>
 
 <br>
