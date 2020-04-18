@@ -782,9 +782,6 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         -------
         None
         '''
-        if isinstance(IncomeDstn, list):
-            import pdb; pdb.set_trace()
-
         self.DiscFacEff       = DiscFac*LivPrb # "effective" discount factor
         self.ShkPrbsNext      = IncomeDstn.pmf
         self.PermShkValsNext  = IncomeDstn.X[0]
@@ -1956,19 +1953,14 @@ class PerfForesightConsumerType(AgentType):
         test = lambda agent: self.RIF < 1
         
         messages = {
-            True : "",
-            False : ""
+            True : 'The return impatience factor value for the supplied parameter values satisfies the Return Impatience Condition.',
+            False : 'The given type violates the Return Impatience Condition with the supplied parameter values; the factor is {0.RIF}'
         }
 
         verbose_messages = {
-            True : "",
-            False : ""
+            True : 'Therefore, the limiting consumption function is not c(m)=0 for all m',
+            False : 'Therefore, the limiting consumption function is c(m)=0 for all m'
         }
-
-        messages = ('The return impatience factor value for the supplied parameter values satisfies the Return Impatience Condition.',
-                    'Therefore, the limiting consumption function is not c(m)=0 for all m',
-                    'The given type violates the Return Impatience Condition with the supplied parameter values; the factor is {0.RIF}',
-                    'Therefore, the limiting consumption function is c(m)=0 for all m')
         self.checkCondition(name, test, messages, verbose = verbose)
 
     def checkFHWC(self,verbose = False):
@@ -1983,19 +1975,14 @@ class PerfForesightConsumerType(AgentType):
         test = lambda agent: self.FHWF < 1
         
         messages = {
-            True : "",
-            False : ""
+            True : 'The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.',
+            False : 'The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value {0.FHWF}',
         }
 
         verbose_messages = {
-            True : "",
-            False : ""
+            True : 'Therefore, the limiting consumption function is not c(m)=Infinity\nand human wealth normalized by permanent income is {0.hNrm}\nand the PDV of future consumption growth is {0.cNrmPDV}',
+            False : 'Therefore, the limiting consumption function is c(m)=Infinity for all m')
         }
-
-        messages = ('The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.',
-                    'Therefore, the limiting consumption function is not c(m)=Infinity\nand human wealth normalized by permanent income is {0.hNrm}\nand the PDV of future consumption growth is {0.cNrmPDV}',
-                    'The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value {0.FHWF}',
-                    'Therefore, the limiting consumption function is c(m)=Infinity for all m')
 
         self.checkCondition(name, test, messages, verbose = verbose)
 
