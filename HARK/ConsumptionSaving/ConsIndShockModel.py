@@ -1981,7 +1981,7 @@ class PerfForesightConsumerType(AgentType):
 
         verbose_messages = {
             True : 'Therefore, the limiting consumption function is not c(m)=Infinity\nand human wealth normalized by permanent income is {0.hNrm}\nand the PDV of future consumption growth is {0.cNrmPDV}',
-            False : 'Therefore, the limiting consumption function is c(m)=Infinity for all m')
+            False : 'Therefore, the limiting consumption function is c(m)=Infinity for all m'
         }
 
         self.checkCondition(name, test, messages, verbose = verbose)
