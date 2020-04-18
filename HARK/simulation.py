@@ -6,6 +6,67 @@ from __future__ import division
 import warnings                             # A library for runtime warnings
 import numpy as np                          # Numerical Python
 
+class Simulation():
+    model = None
+    agent_count = None
+    max_simulation_periods = None
+
+    def __init__(self, model, agent_count, max_simulation_periods = 1000):
+        self.model = model
+        self.AgentCount = AgentCount
+        self.history = {}
+
+    def initializeSim(self):
+        '''
+        Prepares this AgentType for a new simulation.  Resets the internal random number generator,
+        makes initial states for all agents (using simBirth), clears histories of tracked variables.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+ 
+        self.resetRNG()
+        self.t_sim = 0
+        all_agents = np.ones(self.AgentCount, dtype=bool)
+        blank_array = np.zeros(self.AgentCount)
+        for var_name in self.poststate_vars:
+            setattr(self, var_name, copy(blank_array))
+        self.t_age = np.zeros(self.AgentCount, dtype=int)    # Number of periods since agent entry
+        self.t_cycle = np.zeros(self.AgentCount, dtype=int)  # Which cycle period each agent is on
+        self.simBirth(all_agents)
+        self.clearHistory()
+        return None
+
+
+    def simulate(self, sim_periods=None):
+        '''
+        Simulates this agent type for a given number of periods. Defaults to self.T_sim if no input.
+        Records histories of attributes named in self.track_vars in attributes named varname_hist.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        
+        if sim_periods is None:
+            sim_periods = self.T_sim
+
+        for t in range(sim_periods):
+            self.model.simOnePeriod()
+            for var_name in self.model.track_vars:
+                self.history[var_name][self.t_sim,:] = getattr(self.model,var_name)
+            self.t_sim += 1
+
+
 def drawMeanOneLognormal(N, sigma=1.0, seed=0):
     '''
     Generate arrays of mean one lognormal draws. The sigma input can be a number
