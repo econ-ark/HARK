@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://econ-ark.org">
-    <img src="doc/images/econ-ark-logo.png" align="center">
+    <img src="https://econ-ark.org/assets/img/econ-ark-logo.png" align="center">
   </a>
   <br>
   <br>
@@ -39,7 +39,7 @@ The Econ-ARK project uses an [open governance model](./GOVERNANCE.md) and is fis
 
 <div align="center">
   <a href="https://numfocus.org/project/econ-ark">
-    <img height="60px" src="doc/images/numfocus-logo.png" align="center">
+    <img height="60px" src="https://numfocus.org/wp-content/uploads/2018/01/optNumFocus_LRG.png" align="center">
   </a>
 </div>
 <br>
@@ -82,7 +82,7 @@ Install from [PyPi](https://pypi.org/) by running:
 We start with almost the simplest possible consumption model: A consumer with CRRA utility 
 
 <div align="center">
-  <img height="30px" src="doc/images/usage-crra-utility-function.png">
+  <img height="30px" src="https://github.com/econ-ark/HARK/blob/master/doc/images/usage-crra-utility-function.png">
 </div> 
 
 has perfect foresight about everything except the (stochastic) date of death.
@@ -90,7 +90,7 @@ has perfect foresight about everything except the (stochastic) date of death.
 The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm) as:
 
 <div align="center">
-  <img height="80px" src="doc/images/usage-agent-problem-bellman-form.png">
+  <img height="80px" src="https://github.com/econ-ark/HARK/blob/master/doc/images/usage-agent-problem-bellman-form.png">
 </div>
 
 <br>
