@@ -23,7 +23,7 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import(
     MargValueFunc2D             # For representing 2D marginal value function
 )
 from HARK.distribution import approxLognormal, combineIndepDstns 
-from HARK.simulation import Lognormal, Bernoulli # Random draws for simulating agents
+from HARK.distribution import Lognormal, Bernoulli # Random draws for simulating agents
 from HARK.interpolation import(
         LinearInterp,           # Piecewise linear interpolation
         CubicInterp,            # Piecewise cubic interpolation

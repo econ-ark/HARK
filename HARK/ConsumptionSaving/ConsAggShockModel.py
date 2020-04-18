@@ -15,7 +15,7 @@ from HARK.interpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFun
                                VariableLowerBoundFunc2D, BilinearInterp, LowerEnvelope2D, UpperEnvelope
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                            CRRAutility_invP, CRRAutility_inv 
-from HARK.simulation import Uniform
+from HARK.distribution import Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 from HARK import HARKobject, Market, AgentType
 from copy import deepcopy

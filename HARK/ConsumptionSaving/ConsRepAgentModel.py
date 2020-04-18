@@ -10,7 +10,7 @@ from builtins import str
 from builtins import range
 import numpy as np
 from HARK.interpolation import LinearInterp
-from HARK.simulation import Uniform
+from HARK.distribution import Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType,\
           ConsumerSolution,MargValueFunc, init_idiosyncratic_shocks
 
