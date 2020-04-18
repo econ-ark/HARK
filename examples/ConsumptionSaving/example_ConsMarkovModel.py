@@ -5,6 +5,7 @@ from copy import deepcopy, copy
 import numpy as np
 from HARK.ConsumptionSaving.ConsIndShockModel import init_idiosyncratic_shocks
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+from HARK.distribution import DiscreteDistribution
 mystr = lambda number: "{:.4f}".format(number)
 do_simulation = True
 
@@ -60,8 +61,8 @@ SerialUnemploymentExample.vFuncBool = False  # for easy toggling here
 
 # %%
 # Replace the default (lognormal) income distribution with a custom one
-employed_income_dist = [np.ones(1), np.ones(1), np.ones(1)]  # Definitely get income
-unemployed_income_dist = [np.ones(1), np.ones(1), np.zeros(1)]  # Definitely don't
+employed_income_dist = DiscreteDistribution(np.ones(1), [np.ones(1), np.ones(1)])  # Definitely get income
+unemployed_income_dist = DiscreteDistribution(np.ones(1), [np.ones(1), np.zeros(1)]) # Definitely don't
 SerialUnemploymentExample.IncomeDstn = [
     [
         employed_income_dist,
@@ -114,16 +115,16 @@ ImmunityT = 6  # Number of periods of immunity
 
 # %%
 StateCount = ImmunityT + 1  # Total number of Markov states
-IncomeDstnReg = [
+IncomeDstnReg = DiscreteDistribution(
     np.array([1 - UnempPrb, UnempPrb]),
-    np.array([1.0, 1.0]),
-    np.array([1.0 / (1.0 - UnempPrb), 0.0]),
-]  # Ordinary income distribution
-IncomeDstnImm = [
+    [np.array([1.0, 1.0]),
+     np.array([1.0 / (1.0 - UnempPrb), 0.0])]
+)  # Ordinary income distribution
+IncomeDstnImm = DiscreteDistribution(
     np.array([1.0]),
-    np.array([1.0]),
-    np.array([1.0]),
-]  # Income distribution when unemployed
+    [np.array([1.0]),
+     np.array([1.0])]
+)
 IncomeDstn = [IncomeDstnReg] + ImmunityT * [
     IncomeDstnImm
 ]  # Income distribution for each Markov state, in a list
@@ -185,11 +186,11 @@ Persistence = (
 )  # Probability of getting the same permanent income growth rate next period
 
 # %%
-IncomeDstnReg = [
+IncomeDstnReg = DiscreteDistribution(
     np.array([1 - UnempPrb, UnempPrb]),
-    np.array([1.0, 1.0]),
-    np.array([1.0, 0.0]),
-]
+    [np.array([1.0, 1.0]),
+     np.array([1.0, 0.0])]
+)
 IncomeDstn = StateCount * [
     IncomeDstnReg
 ]  # Same simple income distribution in each state
