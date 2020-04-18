@@ -1876,6 +1876,7 @@ class PerfForesightConsumerType(AgentType):
                        name,
                        test,
                        messages,
+                       verbose_messages=None,
                        verbose=False):
         """
         Checks one condition.
@@ -1888,23 +1889,21 @@ class PerfForesightConsumerType(AgentType):
         test : function(self -> boolean)
              A function (of self) which tests the condition
 
-        messges : tuple[string]
-            A length four tuple of string to be printed to the 
-            user, in order: True, always; True, verbose; 
-            False, always; False, verbose.
+        messages : dict{boolean : string}
+            A dictiomary with boolean keys containing values
+            for messages to print if the condition is
+            true or false.
 
-        verbose : boolean
-            (Optional) A boolean to set verbose printing
+        verbose_messages : dict{boolean : string}
+            (Optional) A dictiomary with boolean keys containing values
+            for messages to print if the condition is
+            true or false under verbose printing.
         """
         self.conditions[name] = test(self)
 
-        print(messages[0].format(self)
-              if self.conditions[name]
-              else messages[2].format(self))
-        if verbose:
-            print(messages[1].format(self)
-                  if self.conditions[name]
-                  else messages[3].format(self))
+        print(messages[self.conditions[name]])
+        if verbose and verbose_messages:
+            print(verbose_messages[self.conditions[name]])
 
 
     def checkAIC(self, verbose = False):
@@ -1914,12 +1913,15 @@ class PerfForesightConsumerType(AgentType):
         name = "AIC"
         test = lambda agent : agent.thorn < 1
 
-        messages = ("The value of the absolute impatience factor (AIF) for the supplied parameter values satisfies the Absolute Impatience Condition.",
-                    "Because the AIF < 1, the absolute amount of consumption is expected to fall over time.",
-                    "The given type violates the Absolute Impatience Condition with the supplied parameter values; the AIF is {0.thorn}",
-                    "Because the AIF > 1, the absolute amount of consumption is expected to grow over time")
+        messages = {
+            True: "The value of the absolute impatience factor (AIF) for the supplied parameter values satisfies the Absolute Impatience Condition.",
+            False: "The given type violates the Absolute Impatience Condition with the supplied parameter values; the AIF is {0.thorn}"}
+        verbose_messages = {
+            True : "Because the AIF < 1, the absolute amount of consumption is expected to fall over time.",
+            False : "Because the AIF > 1, the absolute amount of consumption is expected to grow over time"
+        }
 
-        self.checkCondition(name, test, messages, verbose = verbose)
+        self.checkCondition(name, test, messages, verbose_messages, verbose = verbose)
 
     def checkGICPF(self,verbose = False):
         '''
@@ -1931,12 +1933,17 @@ class PerfForesightConsumerType(AgentType):
 
         test = lambda agent : agent.GIFPF < 1
 
-        messages = (
-            'The value of the Growth Impatience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.',
-            ' Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income will fall indefinitely.',
-            'The given parameter values violate the Perfect Foresight Growth Impatience Condition for this consumer type; the GIFPF is: {0.GIFPF}',
-            ' Therefore, for a perfect foresight consumer the ratio of individual wealth to permanent income is expected to grow toward infinity.')
-        self.checkCondition(name, test, messages, verbose = verbose)
+        messages = {
+            True : 'The value of the Growth Impatience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.',
+            False : 'Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income will fall indefinitely.'
+        }
+
+        verbose_messages = {
+            True : 'The given parameter values violate the Perfect Foresight Growth Impatience Condition for this consumer type; the GIFPF is: {0.GIFPF}',
+            False : ' Therefore, for a perfect foresight consumer the ratio of individual wealth to permanent income is expected to grow toward infinity.'
+        }
+
+        self.checkCondition(name, test, messages, verbose_messages, verbose = verbose)
 
     def checkRIC(self, verbose = False):
         '''
@@ -1947,6 +1954,16 @@ class PerfForesightConsumerType(AgentType):
 
         name = "RIC"
         test = lambda agent: self.RIF < 1
+        
+        messages = {
+            True : "",
+            False : ""
+        }
+
+        verbose_messages = {
+            True : "",
+            False : ""
+        }
 
         messages = ('The return impatience factor value for the supplied parameter values satisfies the Return Impatience Condition.',
                     'Therefore, the limiting consumption function is not c(m)=0 for all m',
@@ -1964,6 +1981,16 @@ class PerfForesightConsumerType(AgentType):
 
         name = "FHWC"
         test = lambda agent: self.FHWF < 1
+        
+        messages = {
+            True : "",
+            False : ""
+        }
+
+        verbose_messages = {
+            True : "",
+            False : ""
+        }
 
         messages = ('The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.',
                     'Therefore, the limiting consumption function is not c(m)=Infinity\nand human wealth normalized by permanent income is {0.hNrm}\nand the PDV of future consumption growth is {0.cNrmPDV}',
@@ -2335,23 +2362,35 @@ class IndShockConsumerType(PerfForesightConsumerType):
         name = 'GIC'
         test = lambda agent: agent.GIFInd <=1
 
-        messages = ('The value of the Individual Growth Impatience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition.',
-                    'Therefore, a target level of the individual market resources ratio m exists (see {0.url}/#onetarget for more).',
-                    'The given parameter values violate the Individual Growth Impatience Condition; the GIFInd is: {0.GIFInd}',
-                    'Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see {0.url}/#onetarget for more).')
+        
+        messages = {
+            True : 'The value of the Individual Growth Impatience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition.',
+            False : 'Therefore, a target level of the individual market resources ratio m exists (see {0.url}/#onetarget for more).'
+        }
 
-        self.checkCondition(name,test,messages,verbose=verbose)
+        verbose_messages = {
+            True : 'The given parameter values violate the Individual Growth Impatience Condition; the GIFInd is: {0.GIFInd}',
+            False : 'Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see {0.url}/#onetarget for more).'
+        }
+
+        self.checkCondition(name,test,messages,verbose_messages, verbose=verbose)
 
     def checkCIGAgg(self, verbose):
         name = 'GICAgg'
         test = lambda agent : agent.GIFAgg <= 1
 
-        messages = ('The value of the Aggregate Growth Impatience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition.',
-                    'Therefore, it is possible that a target level of the ratio of aggregate market resources to aggregate permanent income exists.',
-                    'The given parameter values violate the Aggregate Growth Impatience Condition; the GIFAgg is: {0.GIFAgg}',
-                    'Therefore, a target ratio of aggregate resources to aggregate permanent income does not exist.')
+        
+        messages = {
+            True : 'The value of the Aggregate Growth Impatience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition.',
+            False : 'The given parameter values violate the Aggregate Growth Impatience Condition; the GIFAgg is: {0.GIFAgg}'
+        }
 
-        self.checkCondition(name,test,messages,verbose=verbose)
+        verbose_messages = {
+            True : 'Therefore, it is possible that a target level of the ratio of aggregate market resources to aggregate permanent income exists.',
+            False : 'Therefore, a target ratio of aggregate resources to aggregate permanent income does not exist.'
+        }
+
+        self.checkCondition(name,test,messages,verbose_messages, verbose=verbose)
 
     def checkWRIC(self, verbose):
         '''
@@ -2362,12 +2401,18 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         name = 'WRIC'
         test = lambda agent: agent.WRIF <= 1
-        messages = ('',
-                    'The Weak Return Impatience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition (see {0.url}/#WRIC for more).',
-                    'The given type violates the Weak Return Impatience Condition with the supplied parameter values.  The WRIF is: {0.url}',
-                    'Therefore, a nondegenerate solution is not available (see {0.url}/#WRIC for more.')
 
-        self.checkCondition(name,test,messages,verbose=verbose)
+        messages = {
+            True : "",
+            False : 'The Weak Return Impatience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition (see {0.url}/#WRIC for more).'
+        }
+
+        verbose_messages = {
+            True : 'The given type violates the Weak Return Impatience Condition with the supplied parameter values.  The WRIF is: {0.url}',
+            False : 'Therefore, a nondegenerate solution is not available (see {0.url}/#WRIC for more.'
+        }
+
+        self.checkCondition(name,test,messages,verbose_messages, verbose=verbose)
 
     def checkFVAC(self,verbose):
         '''
@@ -2387,16 +2432,22 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         name = 'FVAC'
         test = lambda agent: agent.FVAF <= 1
-        messages = ('',
-                    'The Finite Value of Autarky Factor (FVAV) for the supplied parameter values satisfies the Finite Value of Autarky Condition.',
-                    'The given type violates the Finite Value of Autarky Condition with the supplied parameter values. The FVAF is {0.FVAF}',
-                    'Therefore, a nondegenerate solution is not available (see {0.url}/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping')
+
+        messages = {
+            True : '',
+            False : 'The Finite Value of Autarky Factor (FVAV) for the supplied parameter values satisfies the Finite Value of Autarky Condition.'
+        }
+
+        verbose_messages = {
+            True : 'The given type violates the Finite Value of Autarky Condition with the supplied parameter values. The FVAF is {0.FVAF}',
+            False : 'Therefore, a nondegenerate solution is not available (see {0.url}/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping'
+        }
 
         # Ok, I couldn't figure out how to work this case in ...- SB
         #if self.WRIC:
         #    print('Since both WRIC and FVAC are satisfied, the problem has a nondegenerate solution')
 
-        self.checkCondition(name,test,messages,verbose=verbose)
+        self.checkCondition(name, test, messages, verbose_messages, verbose=verbose)
 
 
     def checkConditions(self,verbose=False):
