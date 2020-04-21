@@ -1,5 +1,5 @@
 '''
-Functions for generating simulated data and shocks.
+Currently empty. Will be used for future simulation handling code.
 '''
 
 from __future__ import division
