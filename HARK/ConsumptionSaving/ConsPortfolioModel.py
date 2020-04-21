@@ -76,37 +76,17 @@ class PortfolioSolution(Solution):
     distance_criteria = ['vPfuncAdj']
 
     def __init__(self,
-        cFuncAdj=None,
-        ShareFuncAdj=None,
-        vFuncAdj=None,
-        vPfuncAdj=None,
-        cFuncFxd=None,
-        ShareFuncFxd=None,
-        vFuncFxd=None,
-        dvdmFuncFxd=None,
-        dvdsFuncFxd=None
+        cFuncAdj=NullFunc(),
+        ShareFuncAdj=NullFunc(),
+        vFuncAdj=NullFunc(),
+        vPfuncAdj=NullFunc(),
+        cFuncFxd=NullFunc(),
+        ShareFuncFxd=NullFunc(),
+        vFuncFxd=NullFunc(),
+        dvdmFuncFxd=NullFunc(),
+        dvdsFuncFxd=NullFunc()
     ):
 
-        # Change any missing function inputs to NullFunc
-        if cFuncAdj is None:
-            cFuncAdj = NullFunc()
-        if cFuncFxd is None:
-            cFuncFxd = NullFunc()
-        if ShareFuncAdj is None:
-            ShareFuncAdj = NullFunc()
-        if ShareFuncFxd is None:
-            ShareFuncFxd = NullFunc()
-        if vFuncAdj is None:
-            vFuncAdj = NullFunc()
-        if vFuncFxd is None:
-            vFuncFxd = NullFunc()
-        if vPfuncAdj is None:
-            vPfuncAdj = NullFunc()
-        if dvdmFuncFxd is None:
-            dvdmFuncFxd = NullFunc()
-        if dvdsFuncFxd is None:
-            dvdsFuncFxd = NullFunc()
-            
         # Set attributes of self
         self.cFuncAdj = cFuncAdj
         self.cFuncFxd = cFuncFxd
