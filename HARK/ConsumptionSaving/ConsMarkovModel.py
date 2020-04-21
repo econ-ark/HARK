@@ -12,6 +12,7 @@ import numpy as np
 from HARK import AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver, ValueFunc, \
                              MargValueFunc, ConsumerSolution, IndShockConsumerType
+from HARK.distribution import DiscreteDistribution
 from HARK.simulation import drawUniform
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
@@ -894,6 +895,7 @@ class MarkovConsumerType(IndShockConsumerType):
                 if N > 0:
                     IncomeDstnNow    = self.IncomeDstn[t-1][j] # set current income distribution
                     PermGroFacNow    = self.PermGroFac[t-1][j] # and permanent growth factor
+
                     # Get random draws of income shocks from the discrete distribution
                     EventDraws       = IncomeDstnNow.draw_events(
                         N,
