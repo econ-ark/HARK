@@ -89,6 +89,7 @@ class DiscreteDistribution():
             J = 1
         else:
             X = X
+            J = 1
 
         if exact_match:
             # Set up the RNG

@@ -1558,13 +1558,9 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         PermShkAggHistAll = np.zeros((StateCount, sim_periods))
         TranShkAggHistAll = np.zeros((StateCount, sim_periods))
         for i in range(StateCount):
-            Events = np.arange(self.AggShkDstn[i].pmf.size)  # just a list of integers
-            EventDraws = self.AggShkDstn[i].drawDiscrete(
-                N=sim_periods,
-                X=Events,
-                seed=0)
-            PermShkAggHistAll[i, :] = self.AggShkDstn[i].X[0][EventDraws]
-            TranShkAggHistAll[i, :] = self.AggShkDstn[i].X[1][EventDraws]
+            AggShockDraws = self.AggShkDstn[i].drawDiscrete(N=sim_periods, seed=0)
+            PermShkAggHistAll[i, :] = AggShockDraws[0,:]
+            TranShkAggHistAll[i, :] = AggShockDraws[1,:]
 
         # Select the actual history of aggregate shocks based on the sequence
         # of Markov states that the economy experiences
