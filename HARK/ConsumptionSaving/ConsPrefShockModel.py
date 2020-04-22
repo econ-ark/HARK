@@ -314,8 +314,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         '''
         ConsIndShockSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                       Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
-        self.PrefShkPrbs = PrefShkDstn.pmf
-        self.PrefShkVals = PrefShkDstn.X
+        self.PrefShkDstn = PrefShkDstn
 
     def getPointsForInterpolation(self,EndOfPrdvP,aNrmNow):
         '''
@@ -338,8 +337,8 @@ class ConsPrefShockSolver(ConsIndShockSolver):
             Corresponding market resource points for interpolation.
         '''
         c_base       = self.uPinv(EndOfPrdvP)
-        PrefShkCount = self.PrefShkVals.size
-        PrefShk_temp = np.tile(np.reshape(self.PrefShkVals**(1.0/self.CRRA),(PrefShkCount,1)),
+        PrefShkCount = self.PrefShkDstn.X.size
+        PrefShk_temp = np.tile(np.reshape(self.PrefShkDstn.X**(1.0/self.CRRA),(PrefShkCount,1)),
                                (1,c_base.size))
         self.cNrmNow = np.tile(c_base,(PrefShkCount,1))*PrefShk_temp
         self.mNrmNow = self.cNrmNow + np.tile(aNrmNow,(PrefShkCount,1))
@@ -371,23 +370,23 @@ class ConsPrefShockSolver(ConsIndShockSolver):
             consumption function, marginal value function, and minimum m.
         '''
         # Make the preference-shock specific consumption functions
-        PrefShkCount = self.PrefShkVals.size
+        PrefShkCount = self.PrefShkDstn.pmf.size
         cFunc_list   = []
         for j in range(PrefShkCount):
-            MPCmin_j         = self.MPCminNow*self.PrefShkVals[j]**(1.0/self.CRRA)
+            MPCmin_j         = self.MPCminNow*self.PrefShkDstn.X[j]**(1.0/self.CRRA)
             cFunc_this_shock = LowerEnvelope(LinearInterp(mNrm[j,:],cNrm[j,:],
                                              intercept_limit=self.hNrmNow*MPCmin_j,
                                              slope_limit=MPCmin_j),self.cFuncNowCnst)
             cFunc_list.append(cFunc_this_shock)
 
         # Combine the list of consumption functions into a single interpolation
-        cFuncNow = LinearInterpOnInterp1D(cFunc_list,self.PrefShkVals)
+        cFuncNow = LinearInterpOnInterp1D(cFunc_list,self.PrefShkDstn.X)
 
         # Make the ex ante marginal value function (before the preference shock)
         m_grid = self.aXtraGrid + self.mNrmMinNow
         vP_vec = np.zeros_like(m_grid)
         for j in range(PrefShkCount): # numeric integration over the preference shock
-            vP_vec += self.uP(cFunc_list[j](m_grid))*self.PrefShkPrbs[j]*self.PrefShkVals[j]
+            vP_vec += self.uP(cFunc_list[j](m_grid))*self.PrefShkDstn.pmf[j]*self.PrefShkDstn.X[j]
         vPnvrs_vec = self.uPinv(vP_vec)
         vPfuncNow  = MargValueFunc(LinearInterp(m_grid,vPnvrs_vec),self.CRRA)
 
@@ -413,13 +412,13 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         '''
         # Compute expected value and marginal value on a grid of market resources,
         # accounting for all of the discrete preference shocks
-        PrefShkCount = self.PrefShkVals.size
+        PrefShkCount = self.PrefShkDstn.pmf.size
         mNrm_temp   = self.mNrmMinNow + self.aXtraGrid
         vNrmNow     = np.zeros_like(mNrm_temp)
         vPnow       = np.zeros_like(mNrm_temp)
         for j in range(PrefShkCount):
-            this_shock  = self.PrefShkVals[j]
-            this_prob   = self.PrefShkPrbs[j]
+            this_shock  = self.PrefShkDstn.X[j]
+            this_prob   = self.PrefShkDstn.pmf[j]
             cNrmNow     = solution.cFunc(mNrm_temp,this_shock*np.ones_like(mNrm_temp))
             aNrmNow     = mNrm_temp - cNrmNow
             vNrmNow    += this_prob*(this_shock*self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow))
@@ -563,8 +562,7 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver,ConsKinkedRsolver):
         '''
         ConsKinkedRsolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
                       Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
-        self.PrefShkPrbs = PrefShkDstn.pmf
-        self.PrefShkVals = PrefShkDstn.X
+        self.PrefShkDstn = PrefShkDstn
 
 
 def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,
