@@ -24,7 +24,7 @@ from scipy.optimize import newton
 from HARK import AgentType, Solution, NullFunc, HARKobject
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
-from HARK.simulation import drawLognormal, drawUniform
+from HARK.distribution import Lognormal, Uniform
 from HARK.distribution import DiscreteDistribution, approxMeanOneLognormal, addDiscreteOutcomeConstantMean, combineIndepDstns 
 from HARK.utilities import makeGridExpMult, CRRAutility, CRRAutilityP, \
                            CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
@@ -1618,7 +1618,6 @@ class PerfForesightConsumerType(AgentType):
 
     def __init__(self,
                  cycles=1,
-                 time_flow=True,
                  verbose=False,
                  quiet=False,
                  **kwds):
@@ -1631,8 +1630,6 @@ class PerfForesightConsumerType(AgentType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -1645,7 +1642,8 @@ class PerfForesightConsumerType(AgentType):
 
         # Initialize a basic AgentType
         AgentType.__init__(self,solution_terminal=deepcopy(self.solution_terminal_),
-                           cycles=cycles,time_flow=time_flow,pseudo_terminal=False,**kwds)
+                           cycles=cycles,
+                           pseudo_terminal=False,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary      = deepcopy(self.time_vary_)
@@ -1742,9 +1740,11 @@ class PerfForesightConsumerType(AgentType):
         '''
         # Get and store states for newly born agents
         N = np.sum(which_agents) # Number of new consumers to make
-        self.aNrmNow[which_agents] = drawLognormal(N,mu=self.aNrmInitMean,sigma=self.aNrmInitStd,seed=self.RNG.randint(0,2**31-1))
+        self.aNrmNow[which_agents] = Lognormal(mu=self.aNrmInitMean,
+                                               sigma=self.aNrmInitStd).draw(N,seed=self.RNG.randint(0,2**31-1))
         pLvlInitMeanNow = self.pLvlInitMean + np.log(self.PlvlAggNow) # Account for newer cohorts having higher permanent income
-        self.pLvlNow[which_agents] = drawLognormal(N,mu=pLvlInitMeanNow,sigma=self.pLvlInitStd,seed=self.RNG.randint(0,2**31-1))
+        self.pLvlNow[which_agents] = Lognormal(pLvlInitMeanNow,
+                                               self.pLvlInitStd,).draw(N,seed=self.RNG.randint(0,2**31-1))
         self.t_age[which_agents]   = 0 # How many periods since each agent was born
         self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
         return None
@@ -1766,7 +1766,7 @@ class PerfForesightConsumerType(AgentType):
         # Determine who dies
         DiePrb_by_t_cycle = 1.0 - np.asarray(self.LivPrb)
         DiePrb = DiePrb_by_t_cycle[self.t_cycle-1] # Time has already advanced, so look back one
-        DeathShks = drawUniform(N=self.AgentCount,seed=self.RNG.randint(0,2**31-1))
+        DeathShks = Uniform().draw(N=self.AgentCount,seed=self.RNG.randint(0,2**31-1))
         which_agents = DeathShks < DiePrb
         if self.T_age is not None: # Kill agents that have lived for too many periods
             too_old = self.t_age >= self.T_age
@@ -2070,7 +2070,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def __init__(self,
                  cycles=1,
-                 time_flow=True,
                  verbose=False,
                  quiet=False,
                  **kwds):
@@ -2097,7 +2096,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Initialize a basic AgentType
         PerfForesightConsumerType.__init__(self,
                                            cycles=cycles,
-                                           time_flow=time_flow,
                                            verbose=verbose,
                                            quiet=quiet,
                                            **params)
@@ -2119,15 +2117,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -----------
         none
         '''
-        original_time = self.time_flow
-        self.timeFwd()
         IncomeDstn, PermShkDstn, TranShkDstn = constructLognormalIncomeProcessUnemployment(self)
         self.IncomeDstn = IncomeDstn
         self.PermShkDstn = PermShkDstn
         self.TranShkDstn = TranShkDstn
         self.addToTimeVary('IncomeDstn','PermShkDstn','TranShkDstn')
-        if not original_time:
-            self.timeRev()
 
     def updateAssetsGrid(self):
         '''
@@ -2592,7 +2586,7 @@ class KinkedRconsumerType(IndShockConsumerType):
     time_inv_.remove('Rfree')
     time_inv_ += ['Rboro', 'Rsave']
 
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,cycles=1,**kwds):
         '''
         Instantiate a new ConsumerType with given data.
         See ConsumerParameters.init_kinked_R for a dictionary of
@@ -2602,8 +2596,6 @@ class KinkedRconsumerType(IndShockConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -2613,7 +2605,9 @@ class KinkedRconsumerType(IndShockConsumerType):
         params.update(kwds)
 
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**params)
+        PerfForesightConsumerType.__init__(self,
+                                           cycles=cycles,
+                                           **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsKinkedR # kinked R solver

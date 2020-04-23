@@ -41,7 +41,6 @@ class LuettickeAgent(AgentType):
         self.track_vars     = []
         self.seed               = seed
         self.resetRNG()
-        self.time_flow = False
         self.time_vary      = []
         self.time_inv       = []
         self.read_shocks    = False

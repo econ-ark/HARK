@@ -80,23 +80,6 @@ class testAgentType(unittest.TestCase):
     def setUp(self):
         self.agent = AgentType()
 
-    def test_time(self):
-        self.agent.time_vary = ['var_1', 'var_2']
-        self.agent.var_1 = [4.3, 2, 1]
-        self.agent.var_2 = [1, 2, 3, 4, 5]
-        self.agent.timeFlip()
-        self.assertEqual(self.agent.var_1, [1, 2, 4.3])
-        self.assertEqual(self.agent.var_2, [5, 4, 3, 2, 1])
-        self.assertEqual(self.agent.time_flow, False)
-        self.agent.timeFlip()
-        self.assertEqual(self.agent.var_1, [4.3, 2, 1])
-        self.assertEqual(self.agent.var_2, [1, 2, 3, 4, 5])
-        self.assertEqual(self.agent.time_flow, True)
-        self.agent.timeRev()
-        self.assertEqual(self.agent.time_flow, False)
-        self.agent.timeFwd()
-        self.assertEqual(self.agent.time_flow, True)
-
     def test_solve(self):
         self.agent.time_vary = ['vary_1']
         self.agent.time_inv = ['inv_1']
