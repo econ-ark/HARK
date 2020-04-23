@@ -245,7 +245,7 @@ def solveConsLaborIntMarg(solution_next,PermShkDstn,TranShkDstn,LivPrb,DiscFac,C
         
 class LaborIntMargConsumerType(IndShockConsumerType):
     
-    '''        
+    '''
     A class representing agents who make a decision each period about how much
     to consume vs save and how much labor to supply (as a fraction of their time).
     They get CRRA utility from a composite good x_t = c_t*z_t^alpha, and discount
@@ -255,7 +255,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     time_vary_ += ['WageRte']
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,cycles=1,**kwds):
         '''
         Instantiate a new consumer type with given data.
         See ConsumerParameters.init_labor_intensive for a dictionary of
@@ -265,8 +265,6 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
         
         Returns
         -------
@@ -275,7 +273,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         params = init_labor_intensive.copy()
         params.update(kwds)
         
-        IndShockConsumerType.__init__(self,cycles = cycles,time_flow=time_flow,**params)
+        IndShockConsumerType.__init__(self,cycles = cycles,**params)
         self.pseudo_terminal = False
         self.solveOnePeriod = solveConsLaborIntMarg
         self.update()
@@ -318,13 +316,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         for n in range(N):
             LbrCostBase += Coeffs[n]*age_vec**n
         LbrCost = np.exp(LbrCostBase)
-        time_orig = self.time_flow
-        self.timeFwd()
         self.LbrCost = LbrCost.tolist()
         self.addToTimeVary('LbrCost')
-        if not time_orig:
-            self.timeRev()
-
     
     def calcBoundingValues(self):      
         '''
@@ -456,18 +449,11 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        time_orig=self.time_flow
-        self.timeFwd()
-      
         TranShkGrid = []   # Create an empty list for TranShkGrid that will be updated
         for t in range(self.T_cycle):
             TranShkGrid.append(self.TranShkDstn[t][1])  # Update/ Extend the list of TranShkGrid with the TranShkVals for each TranShkPrbs
         self.TranShkGrid = TranShkGrid  # Save that list in self (time-varying)
         self.addToTimeVary('TranShkGrid')   # Run the method addToTimeVary from AgentType to add TranShkGrid as one parameter of time_vary list
-        
-        if not time_orig:
-            self.timeRev()
-            
      
     def updateSolutionTerminal(self):
         ''' 
@@ -481,11 +467,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         Returns
         -------
         None
-        '''   
-        if self.time_flow: # To make sure we pick the last element of the list, depending on the direction time is flowing
-            t=-1
-        else:
-            t=0
+        '''
+        t=-1
         TranShkGrid = self.TranShkGrid[t]
         LbrCost = self.LbrCost[t]
         WageRte = self.WageRte[t]
@@ -613,28 +596,3 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         plt.xlabel('Beginning of period bank balances')
         plt.ylabel('Labor supply')
         plt.show()
-        
-        
-# Make a default dictionary for the intensive margin labor supply model
-init_labor_intensive = copy(init_idiosyncratic_shocks)
-init_labor_intensive ['LbrCostCoeffs'] = [-1.0]
-init_labor_intensive ['WageRte'] = [1.0]
-init_labor_intensive['IncUnemp'] = 0.0
-init_labor_intensive['TranShkCount'] = 15 # Crank up permanent shock count - Number of points in discrete approximation to transitory income shocks
-init_labor_intensive['PermShkCount'] = 16 # Crank up permanent shock count                  
-init_labor_intensive ['aXtraCount'] = 200 # May be important to have a larger number of gridpoints (than 48 initially)
-init_labor_intensive ['aXtraMax'] = 80.
-init_labor_intensive ['BoroCnstArt'] = None
-
-# Make a dictionary for intensive margin labor supply model with finite lifecycle
-init_labor_lifecycle = init_labor_intensive.copy()
-init_labor_lifecycle['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
-init_labor_lifecycle['PermShkStd'] = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]
-init_labor_lifecycle['TranShkStd'] = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]
-init_labor_lifecycle['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1] # Living probability decreases as time moves forward.
-init_labor_lifecycle['WageRte'] = [1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0] # Wage rate in a lifecycle
-init_labor_lifecycle['LbrCostCoeffs'] = [-2.0, 0.4] # Assume labor cost coeffs is a polynomial of degree 1
-init_labor_lifecycle['T_cycle']    = 10
-#init_labor_lifecycle['T_retire']   = 7 # IndexError at line 774 in interpolation.py.
-init_labor_lifecycle['T_age']      = 11 # Make sure that old people die at terminal age and don't turn into newborns! 
-

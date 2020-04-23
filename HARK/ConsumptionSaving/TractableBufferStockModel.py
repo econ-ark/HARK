@@ -30,7 +30,7 @@ from HARK import AgentType, NullFunc, Solution
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityPPP, CRRAutilityPPPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
 from HARK.interpolation import CubicInterp
-from HARK.simulation import drawLognormal, drawBernoulli
+from HARK.distribution import Lognormal, Bernoulli
 from copy import copy
 from scipy.optimize import newton, brentq
 
@@ -226,7 +226,7 @@ def addToStableArmPoints(solution_next,DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb
 
 class TractableConsumerType(AgentType):
 
-    def __init__(self,cycles=0,time_flow=False,**kwds):
+    def __init__(self,cycles=0,**kwds):
         '''
         Instantiate a new TractableConsumerType with given data.
 
@@ -234,15 +234,15 @@ class TractableConsumerType(AgentType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns:
         -----------
         New instance of TractableConsumerType.
         '''
         # Initialize a basic AgentType
-        AgentType.__init__(self,cycles=cycles,time_flow=time_flow,pseudo_terminal=True,**kwds)
+        AgentType.__init__(self,
+                           cycles=cycles,
+                           pseudo_terminal=True,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = []
@@ -378,7 +378,8 @@ class TractableConsumerType(AgentType):
         '''
         # Get and store states for newly born agents
         N = np.sum(which_agents) # Number of new consumers to make
-        self.aLvlNow[which_agents] = drawLognormal(N,mu=self.aLvlInitMean,sigma=self.aLvlInitStd,seed=self.RNG.randint(0,2**31-1))
+        self.aLvlNow[which_agents] = Lognormal(self.aLvlInitMean,
+                                               sigma=self.aLvlInitStd).draw(N,seed=self.RNG.randint(0,2**31-1))
         self.eStateNow[which_agents] = 1.0 # Agents are born employed
         self.t_age[which_agents]   = 0 # How many periods since each agent was born
         self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
@@ -416,7 +417,8 @@ class TractableConsumerType(AgentType):
         '''
         employed = self.eStateNow == 1.0
         N = int(np.sum(employed))
-        newly_unemployed = drawBernoulli(N,p=self.UnempPrb,seed=self.RNG.randint(0,2**31-1))
+        newly_unemployed = Bernoulli(self.UnempPrb).draw(N,
+                                                         seed=self.RNG.randint(0,2**31-1))
         self.eStateNow[employed] = 1.0 - newly_unemployed
 
     def getStates(self):
