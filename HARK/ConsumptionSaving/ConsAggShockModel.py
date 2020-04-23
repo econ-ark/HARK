@@ -195,7 +195,7 @@ class AggShockConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        if len(self.IncomeDstn[0]) > 3:
+        if len(self.IncomeDstn[0].X) > 2:
             self.IncomeDstn = self.IncomeDstnWithoutAggShocks
         else:
             self.IncomeDstnWithoutAggShocks = self.IncomeDstn
