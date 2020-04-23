@@ -1,6 +1,9 @@
 import csv
 import numpy as np
 from copy import deepcopy
+import os
+
+DATASETS = os.path.dirname(os.path.abspath(__file__)) + "/data/"
 
 
 def load_SCF_wealth_weights():
@@ -10,8 +13,8 @@ def load_SCF_wealth_weights():
     -------
     SCF_wealth, SCF_weights: np.ndarray, np.ndarray
     """
-    with open('data/SCFwealthDataReduced.txt', 'r') as f:
-        SCF_reader = csv.reader(f, delimiter='\t')
+    with open(DATASETS + "SCFwealthDataReduced.txt", "r") as f:
+        SCF_reader = csv.reader(f, delimiter="\t")
         SCF_raw = list(SCF_reader)
     SCF_wealth = np.zeros(len(SCF_raw)) + np.nan
     SCF_weights = deepcopy(SCF_wealth)
