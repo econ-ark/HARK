@@ -897,6 +897,7 @@ class MarkovConsumerType(IndShockConsumerType):
                 if N > 0:
                     IncomeDstnNow    = self.IncomeDstn[t-1][j] # set current income distribution
                     PermGroFacNow    = self.PermGroFac[t-1][j] # and permanent growth factor
+
                     Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
                     # Get random draws of income shocks from the discrete distribution
                     EventDraws       = DiscreteDistribution(
