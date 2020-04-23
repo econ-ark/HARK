@@ -613,11 +613,11 @@ def solveConsAggShock(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, PermGroF
     mNrmMinNext = solution_next.mNrmMin
 
     # Unpack the income shocks
-    ShkPrbsNext = IncomeDstn[0]
-    PermShkValsNext = IncomeDstn[1]
-    TranShkValsNext = IncomeDstn[2]
-    PermShkAggValsNext = IncomeDstn[3]
-    TranShkAggValsNext = IncomeDstn[4]
+    ShkPrbsNext = IncomeDstn.pmf
+    PermShkValsNext = IncomeDstn.X[0]
+    TranShkValsNext = IncomeDstn.X[1]
+    PermShkAggValsNext = IncomeDstn.X[2]
+    TranShkAggValsNext = IncomeDstn.X[3]
     ShkCount = ShkPrbsNext.size
 
     # Make the grid of end-of-period asset values, and a tiled version

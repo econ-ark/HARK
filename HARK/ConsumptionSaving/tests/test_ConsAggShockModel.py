@@ -18,6 +18,8 @@ class testAggShockConsumerType(unittest.TestCase):
         # Have the consumers inherit relevant objects from the economy
         self.agent.getEconomyData(self.economy)
 
+        self.agent.solve()
+
 class testAggShockMarkovConsumerType(unittest.TestCase):
 
     def setUp(self):
