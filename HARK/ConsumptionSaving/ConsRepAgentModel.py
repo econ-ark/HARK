@@ -10,7 +10,7 @@ from builtins import str
 from builtins import range
 import numpy as np
 from HARK.interpolation import LinearInterp
-from HARK.simulation import drawUniform
+from HARK.distribution import Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType,\
           ConsumerSolution,MargValueFunc, init_idiosyncratic_shocks
 
@@ -195,14 +195,12 @@ class RepAgentConsumerType(IndShockConsumerType):
     '''
     time_inv_ = IndShockConsumerType.time_inv_ + ['CapShare','DeprFac']
 
-    def __init__(self,time_flow=True,**kwds):
+    def __init__(self,**kwds):
         '''
         Make a new instance of a representative agent.
 
         Parameters
         ----------
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -211,7 +209,7 @@ class RepAgentConsumerType(IndShockConsumerType):
         params = init_rep_agent.copy()
         params.update(kwds)
         
-        IndShockConsumerType.__init__(self,cycles=0,time_flow=time_flow,**params)
+        IndShockConsumerType.__init__(self,cycles=0,**params)
         self.AgentCount = 1 # Hardcoded, because this is rep agent
         self.solveOnePeriod = solveConsRepAgent
         self.delFromTimeInv('Rfree','BoroCnstArt','vFuncBool','CubicBool')
@@ -251,23 +249,21 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
     '''
     time_inv_ = RepAgentConsumerType.time_inv_ + ['MrkvArray']
 
-    def __init__(self,time_flow=True,**kwds):
+    def __init__(self,**kwds):
         '''
         Make a new instance of a representative agent with Markov state.
 
         Parameters
         ----------
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
-
+ 
         Returns
         -------
         None
         '''
         params = init_markov_rep_agent.copy()
         params.update(kwds)
-        
-        RepAgentConsumerType.__init__(self,time_flow=time_flow,**params)
+
+        RepAgentConsumerType.__init__(self,**params)
         self.solveOnePeriod = solveConsRepAgentMarkov
         
     def preSolve(self):
@@ -308,7 +304,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         None
         '''
         cutoffs = np.cumsum(self.MrkvArray[self.MrkvNow,:])
-        MrkvDraw = drawUniform(N=1,seed=self.RNG.randint(0,2**31-1))
+        MrkvDraw = Uniform().draw(N=1,seed=self.RNG.randint(0,2**31-1))
         self.MrkvNow = np.searchsorted(cutoffs,MrkvDraw)
 
         t = self.t_cycle[0]
@@ -339,8 +335,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         t = self.t_cycle[0]
         i = self.MrkvNow[0]
         self.cNrmNow = self.solution[t].cFunc[i](self.mNrmNow)
-        
-        
+
 # Define the default dictionary for a representative agent type
 init_rep_agent = init_idiosyncratic_shocks.copy()
 init_rep_agent["DeprFac"] = 0.05
