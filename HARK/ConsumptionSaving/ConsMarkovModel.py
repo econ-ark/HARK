@@ -12,8 +12,8 @@ import numpy as np
 from HARK import AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver, ValueFunc, \
                              MargValueFunc, ConsumerSolution, IndShockConsumerType
-from HARK.distribution import DiscreteDistribution
-from HARK.simulation import drawUniform
+
+from HARK.distribution import DiscreteDistribution, Uniform
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP
@@ -683,8 +683,10 @@ class MarkovConsumerType(IndShockConsumerType):
     time_vary_ = IndShockConsumerType.time_vary_ + ['MrkvArray']
     shock_vars_ = IndShockConsumerType.shock_vars_ + ['MrkvNow']
 
-    def __init__(self,cycles=1,time_flow=True,**kwds):
-        IndShockConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
+    def __init__(self,
+                 cycles=1,
+                 **kwds):
+        IndShockConsumerType.__init__(self,cycles=1,**kwds)
         self.solveOnePeriod = _solveConsMarkov
         self.poststate_vars += ['MrkvNow']
         if not hasattr(self, 'global_markov'):
@@ -776,7 +778,7 @@ class MarkovConsumerType(IndShockConsumerType):
     def initializeSim(self):
         IndShockConsumerType.initializeSim(self)
         if self.global_markov:  #Need to initialize markov state to be the same for all agents
-            base_draw = drawUniform(1,seed=self.RNG.randint(0,2**31-1))
+            base_draw = Uniform().draw(1,seed=self.RNG.randint(0,2**31-1))
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.MrkvNow = np.ones(self.AgentCount)*np.searchsorted(Cutoffs,base_draw).astype(int)
         self.MrkvNow = self.MrkvNow.astype(int)
@@ -798,7 +800,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # Determine who dies
         LivPrb = np.array(self.LivPrb)[self.t_cycle-1,self.MrkvNow] # Time has already advanced, so look back one
         DiePrb = 1.0 - LivPrb
-        DeathShks = drawUniform(N=self.AgentCount,seed=self.RNG.randint(0,2**31-1))
+        DeathShks = Uniform().draw(N=self.AgentCount,seed=self.RNG.randint(0,2**31-1))
         which_agents = DeathShks < DiePrb
         if self.T_age is not None: # Kill agents that have lived for too many periods
             too_old = self.t_age >= self.T_age
@@ -822,7 +824,7 @@ class MarkovConsumerType(IndShockConsumerType):
         IndShockConsumerType.simBirth(self,which_agents) # Get initial assets and permanent income
         if not self.global_markov:  #Markov state is not changed if it is set at the global level
             N = np.sum(which_agents)
-            base_draws = drawUniform(N,seed=self.RNG.randint(0,2**31-1))
+            base_draws = Uniform().draw(N,seed=self.RNG.randint(0,2**31-1))
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.MrkvNow[which_agents] = np.searchsorted(Cutoffs,base_draws).astype(int)
             
@@ -842,9 +844,9 @@ class MarkovConsumerType(IndShockConsumerType):
         '''
         # Draw random numbers that will be used to determine the next Markov state
         if self.global_markov:
-            base_draws = np.ones(self.AgentCount)*drawUniform(1,seed=self.RNG.randint(0,2**31-1))
+            base_draws = np.ones(self.AgentCount)*Uniform().draw(1,seed=self.RNG.randint(0,2**31-1))
         else:
-            base_draws = drawUniform(self.AgentCount,seed=self.RNG.randint(0,2**31-1))
+            base_draws = Uniform().draw(self.AgentCount,seed=self.RNG.randint(0,2**31-1))
         dont_change = self.t_age == 0 # Don't change Markov state for those who were just born (unless global_markov)
         if self.t_sim == 0: # Respect initial distribution of Markov states
             dont_change[:] = True
@@ -895,13 +897,16 @@ class MarkovConsumerType(IndShockConsumerType):
                 if N > 0:
                     IncomeDstnNow    = self.IncomeDstn[t-1][j] # set current income distribution
                     PermGroFacNow    = self.PermGroFac[t-1][j] # and permanent growth factor
-                    Indices          = np.arange(IncomeDstnNow.pmf.size) # just a list of integers
+
+                    Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
                     # Get random draws of income shocks from the discrete distribution
-                    EventDraws       = IncomeDstnNow.draw_events(
+                    EventDraws       = DiscreteDistribution(
+                        IncomeDstnNow[0], Indices
+                    ).drawDiscrete(
                         N,
                         seed=self.RNG.randint(0,2**31-1))
-                    PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
-                    TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
+                    PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
+                    TranShkNow[these] = IncomeDstnNow[2][EventDraws]
         newborn = self.t_age == 0
         PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0
