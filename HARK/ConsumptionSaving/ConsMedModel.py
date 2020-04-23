@@ -8,7 +8,8 @@ from builtins import range
 import numpy as np
 from scipy.optimize import brentq
 from HARK import HARKobject
-from HARK.utilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv,\
+from HARK.distribution import approxLognormal, addDiscreteOutcomeConstantMean 
+from HARK.utilities import CRRAutilityP_inv,\
                            CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP,\
                            makeGridExpMult, NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
@@ -623,8 +624,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         '''
         # Take last period data, whichever way time is flowing
         MedPrice = self.MedPrice[-1]
-        MedShkVals = self.MedShkDstn[-1][1]
-        MedShkPrbs = self.MedShkDstn[-1][0]
+        MedShkVals = self.MedShkDstn[-1].X
+        MedShkPrbs = self.MedShkDstn[-1].pmf
 
         # Initialize grids of medical need shocks, market resources, and optimal consumption
         MedShkGrid = MedShkVals
@@ -734,7 +735,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
                 MedShkAvg = self.MedShkAvg[t]
                 MedShkStd = self.MedShkStd[t]
                 MedPrice  = self.MedPrice[t]
-                MedShkNow[these] = self.RNG.permutation(approxLognormal(N,mu=np.log(MedShkAvg)-0.5*MedShkStd**2,sigma=MedShkStd)[1])
+                MedShkNow[these] = self.RNG.permutation(approxLognormal(N,mu=np.log(MedShkAvg)-0.5*MedShkStd**2,sigma=MedShkStd).X)
                 MedPriceNow[these] = MedPrice
         self.MedShkNow = MedShkNow
         self.MedPriceNow = MedPriceNow
@@ -875,8 +876,8 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
                                                      self.LivPrb,self.DiscFac)
 
         # Also unpack the medical shock distribution
-        self.MedShkPrbs = self.MedShkDstn[0]
-        self.MedShkVals = self.MedShkDstn[1]
+        self.MedShkPrbs = self.MedShkDstn.pmf
+        self.MedShkVals = self.MedShkDstn.X
 
     def defUtilityFuncs(self):
         '''
