@@ -89,5 +89,4 @@ class test_ConsMarkovSolver(unittest.TestCase):
 
     def test_solve(self):
         self.test_checkMarkovInputs()
-        self.model.timeFwd()
         self.model.solve()
