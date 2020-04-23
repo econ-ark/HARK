@@ -21,7 +21,7 @@ class IndShockConsumerType_extend(IndShockConsumerType):
     These methods could eventually become part of IndShockConsumterType itself
     '''        
     
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,cycles=1,**kwds):
         '''
         Just calls on IndShockConsumperType
         
@@ -29,15 +29,13 @@ class IndShockConsumerType_extend(IndShockConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
         
         Returns
         -------
         None
         '''       
         # Initialize an IndShockConsumerType
-        IndShockConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**kwds)
+        IndShockConsumerType.__init__(self,cycles=cycles,**kwds)
         
     def DefineDistributionGrid(self, Dist_mGrid=None, Dist_pGrid=None):
         '''
