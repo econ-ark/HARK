@@ -24,7 +24,7 @@ from scipy.optimize import newton
 from HARK import AgentType, Solution, NullFunc, HARKobject
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
-from HARK.simulation import drawLognormal, drawUniform
+from HARK.distribution import Lognormal, Uniform
 from HARK.distribution import DiscreteDistribution, approxMeanOneLognormal, addDiscreteOutcomeConstantMean, combineIndepDstns 
 from HARK.utilities import makeGridExpMult, CRRAutility, CRRAutilityP, \
                            CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
@@ -1743,9 +1743,11 @@ class PerfForesightConsumerType(AgentType):
         '''
         # Get and store states for newly born agents
         N = np.sum(which_agents) # Number of new consumers to make
-        self.aNrmNow[which_agents] = drawLognormal(N,mu=self.aNrmInitMean,sigma=self.aNrmInitStd,seed=self.RNG.randint(0,2**31-1))
+        self.aNrmNow[which_agents] = Lognormal(mu=self.aNrmInitMean,
+                                               sigma=self.aNrmInitStd).draw(N,seed=self.RNG.randint(0,2**31-1))
         pLvlInitMeanNow = self.pLvlInitMean + np.log(self.PlvlAggNow) # Account for newer cohorts having higher permanent income
-        self.pLvlNow[which_agents] = drawLognormal(N,mu=pLvlInitMeanNow,sigma=self.pLvlInitStd,seed=self.RNG.randint(0,2**31-1))
+        self.pLvlNow[which_agents] = Lognormal(pLvlInitMeanNow,
+                                               self.pLvlInitStd,).draw(N,seed=self.RNG.randint(0,2**31-1))
         self.t_age[which_agents]   = 0 # How many periods since each agent was born
         self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
         return None
@@ -1767,7 +1769,7 @@ class PerfForesightConsumerType(AgentType):
         # Determine who dies
         DiePrb_by_t_cycle = 1.0 - np.asarray(self.LivPrb)
         DiePrb = DiePrb_by_t_cycle[self.t_cycle-1] # Time has already advanced, so look back one
-        DeathShks = drawUniform(N=self.AgentCount,seed=self.RNG.randint(0,2**31-1))
+        DeathShks = Uniform().draw(N=self.AgentCount,seed=self.RNG.randint(0,2**31-1))
         which_agents = DeathShks < DiePrb
         if self.T_age is not None: # Kill agents that have lived for too many periods
             too_old = self.t_age >= self.T_age

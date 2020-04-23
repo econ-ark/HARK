@@ -17,7 +17,7 @@ from HARK.interpolation import LowerEnvelope2D, BilinearInterp, VariableLowerBou
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
                            getPercentiles
-from HARK.simulation import drawLognormal, drawUniform
+from HARK.distribution import Lognormal, Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 
 __all__ = ['ValueFunc2D', 'MargValueFunc2D', 'MargMargValueFunc2D', 'pLvlFuncAR1',
@@ -1111,7 +1111,8 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
         # Simulate the distribution of persistent income levels by t_cycle in a lifecycle model
         if self.cycles == 1:
-            pLvlNow = drawLognormal(self.AgentCount, mu=self.pLvlInitMean, sigma=self.pLvlInitStd, seed=31382)
+            pLvlNow = Lognormal(self.pLvlInitMean,
+                                sigma=self.pLvlInitStd,).draw(self.AgentCount, seed=31382)
             pLvlGrid = []  # empty list of time-varying persistent income grids
             # Calculate distribution of persistent income in each period of lifecycle
             for t in range(len(self.PermShkStd)):
@@ -1125,14 +1126,15 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         # Calculate "stationary" distribution in infinite horizon (might vary across periods of cycle)
         elif self.cycles == 0:
             T_long = 1000  # Number of periods to simulate to get to "stationary" distribution
-            pLvlNow = drawLognormal(self.AgentCount, mu=self.pLvlInitMean, sigma=self.pLvlInitStd, seed=31382)
+            pLvlNow = Lognormal(mu=self.pLvlInitMean,
+                                sigma=self.pLvlInitStd).draw(self.AgentCount, seed=31382)
             t_cycle = np.zeros(self.AgentCount, dtype=int)
             for t in range(T_long):
                 LivPrb = LivPrbAll[t_cycle]  # Determine who dies and replace them with newborns
-                draws = drawUniform(self.AgentCount, seed=t)
+                draws = Uniform().draw(self.AgentCount, seed=t)
                 who_dies = draws > LivPrb
-                pLvlNow[who_dies] = drawLognormal(np.sum(who_dies), mu=self.pLvlInitMean,
-                                                  sigma=self.pLvlInitStd, seed=t+92615)
+                pLvlNow[who_dies] = Lognormal(self.pLvlInitMean,
+                                              self.pLvlInitStd).draw(np.sum(who_dies),  seed=t+92615)
                 t_cycle[who_dies] = 0
                 
                 for j in range(self.T_cycle):  # Update persistent income
@@ -1175,10 +1177,13 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         '''
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        aNrmNow_new = drawLognormal(N, mu=self.aNrmInitMean, sigma=self.aNrmInitStd,
+        aNrmNow_new = Lognormal(self.aNrmInitMean,
+                                self.aNrmInitStd).draw(
+                                    N,
                                     seed=self.RNG.randint(0, 2**31-1))
-        self.pLvlNow[which_agents] = drawLognormal(N, mu=self.pLvlInitMean, sigma=self.pLvlInitStd,
-                                                   seed=self.RNG.randint(0, 2**31-1))
+        self.pLvlNow[which_agents] = Lognormal(self.pLvlInitMean,
+                                               self.pLvlInitStd).draw(N, 
+                                                                       seed=self.RNG.randint(0, 2**31-1))
         self.aLvlNow[which_agents] = aNrmNow_new*self.pLvlNow[which_agents]
         self.t_age[which_agents] = 0  # How many periods since each agent was born
         self.t_cycle[which_agents] = 0  # Which period of the cycle each agent is currently in
