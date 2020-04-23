@@ -9,6 +9,22 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.10.6
+
+Release Date: 17-04-2020
+
+#### Major Changes
+
+* Add Bellman equations for cyclical model example [#600](https://github.com/econ-ark/HARK/pull/600)
+
+* read_shocks now reads mortality as well [#613](https://github.com/econ-ark/HARK/pull/613)
+
+* Discrete probability distributions are now classes [#610](https://github.com/econ-ark/HARK/pull/610)
+
+#### Minor Changes 
+
+
+
 ### 0.10.5
 
 Release Date: 24-03-2020
