@@ -72,6 +72,90 @@ class Lognormal():
                                                size=N))
         return draws
 
+    def approx(self, N, tail_N=0, tail_bound=[0.02,0.98], tail_order=np.e):
+        '''
+        Construct a discrete approximation to a lognormal distribution with underlying
+        normal distribution N(mu,sigma).  Makes an equiprobable distribution by
+        default, but user can optionally request augmented tails with exponentially
+        sized point masses.  This can improve solution accuracy in some models.
+
+        Parameters
+        ----------
+        N: int
+            Number of discrete points in the "main part" of the approximation.
+        tail_N: int
+            Number of points in each "tail part" of the approximation; 0 = no tail.
+        tail_bound: [float]
+            CDF boundaries of the tails vs main portion; tail_bound[0] is the lower
+            tail bound, tail_bound[1] is the upper tail bound.  Inoperative when
+            tail_N = 0.  Can make "one tailed" approximations with 0.0 or 1.0.
+        tail_order: float
+            Factor by which consecutive point masses in a "tail part" differ in
+            probability.  Should be >= 1 for sensible spacing.
+
+        Returns
+        -------
+        d : DiscreteDistribution
+            Probability associated with each point in array of discrete
+            points for discrete probability mass function.
+        '''
+        # Find the CDF boundaries of each segment
+        if self.sigma > 0.0:
+            if tail_N > 0:
+                lo_cut     = tail_bound[0]
+                hi_cut     = tail_bound[1]
+            else:
+                lo_cut     = 0.0
+                hi_cut     = 1.0
+            inner_size     = hi_cut - lo_cut
+            inner_CDF_vals = [lo_cut + x*N**(-1.0)*inner_size for x in range(1, N)]
+            if inner_size < 1.0:
+                scale      = 1.0/tail_order
+                mag        = (1.0-scale**tail_N)/(1.0-scale)
+            lower_CDF_vals = [0.0]
+            if lo_cut > 0.0:
+                for x in range(tail_N-1,-1,-1):
+                    lower_CDF_vals.append(lower_CDF_vals[-1] + lo_cut*scale**x/mag)
+            upper_CDF_vals  = [hi_cut]
+            if hi_cut < 1.0:
+                for x in range(tail_N):
+                    upper_CDF_vals.append(upper_CDF_vals[-1] + (1.0-hi_cut)*scale**x/mag)
+            CDF_vals       = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
+            temp_cutoffs   = list(stats.lognorm.ppf(CDF_vals[1:-1], s=self.sigma, loc=0, scale=np.exp(self.mu)))
+            cutoffs        = [0] + temp_cutoffs + [np.inf]
+            CDF_vals       = np.array(CDF_vals)
+
+            # Construct the discrete approximation by finding the average value within each segment.
+            # This codeblock ignores warnings because it throws a "divide by zero encountered in log"
+            # warning due to computing erf(infty) at the tail boundary.  This is irrelevant and
+            # apparently freaks new users out.
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                K              = CDF_vals.size-1 # number of points in approximation
+                pmf            = CDF_vals[1:(K+1)] - CDF_vals[0:K]
+                X              = np.zeros(K)
+                for i in range(K):
+                    zBot  = cutoffs[i]
+                    zTop = cutoffs[i+1]
+                    tempBot = (self.mu+self.sigma**2-np.log(zBot))/(np.sqrt(2)*self.sigma)
+                    tempTop = (self.mu+self.sigma**2-np.log(zTop))/(np.sqrt(2)*self.sigma)
+                    if tempBot <= 4:
+                        X[i] = -0.5*np.exp(self.mu+(self.sigma**2)*0.5)*(erf(tempTop) - erf(tempBot))/pmf[i]
+                    else:
+                        X[i] = -0.5*np.exp(self.mu+(self.sigma**2)*0.5)*(erfc(tempBot) - erfc(tempTop))/pmf[i]
+
+        else:
+            pmf = np.ones(N)/N
+            X   = np.exp(self.mu)*np.ones(N)
+        return DiscreteDistribution(pmf, X)
+
+class MeanOneLogNormal(Lognormal):
+
+    def __init__(self, sigma=1.0):
+        mu = -0.5*sigma**2
+        super().__init__(mu=mu, sigma=sigma)
+
+
 class Normal():
     """
     A Normal distribution.
@@ -277,34 +361,6 @@ class Uniform():
         X = center + width*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
         return DiscreteDistribution(pmf,X)
 
-def drawMeanOneLognormal(N, sigma=1.0, seed=0):
-    '''
-    Generate arrays of mean one lognormal draws. The sigma input can be a number
-    or list-like.  If a number, output is a length N array of draws from the
-    lognormal distribution with standard deviation sigma. If a list, output is
-    a length T list whose t-th entry is a length N array of draws from the
-    lognormal with standard deviation sigma[t].
-
-    Parameters
-    ----------
-    N : int
-        Number of draws in each row.
-    sigma : float or [float]
-        One or more standard deviations. Number of elements T in sigma
-        determines number of rows of output.
-    seed : int
-        Seed for random number generator.
-
-    Returns:
-    ------------
-    draws : np.array or [np.array]
-        T-length list of arrays of mean one lognormal draws each of size N, or
-        a single array of size N (if sigma is a scalar).
-    '''
-    mu = -0.5*sigma**2
-
-    return Lognormal(mu,sigma).draw(N,seed=seed)
-
 
 ### DISCRETE DISTRIBUTIONS
 
@@ -462,112 +518,6 @@ class DiscreteDistribution():
             draws = np.asarray(X)[indices]
 
         return draws
-
-def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail_order=np.e):
-    '''
-    Construct a discrete approximation to a lognormal distribution with underlying
-    normal distribution N(mu,sigma).  Makes an equiprobable distribution by
-    default, but user can optionally request augmented tails with exponentially
-    sized point masses.  This can improve solution accuracy in some models.
-
-    Parameters
-    ----------
-    N: int
-        Number of discrete points in the "main part" of the approximation.
-    mu: float
-        Mean of underlying normal distribution.
-    sigma: float
-        Standard deviation of underlying normal distribution.
-    tail_N: int
-        Number of points in each "tail part" of the approximation; 0 = no tail.
-    tail_bound: [float]
-        CDF boundaries of the tails vs main portion; tail_bound[0] is the lower
-        tail bound, tail_bound[1] is the upper tail bound.  Inoperative when
-        tail_N = 0.  Can make "one tailed" approximations with 0.0 or 1.0.
-    tail_order: float
-        Factor by which consecutive point masses in a "tail part" differ in
-        probability.  Should be >= 1 for sensible spacing.
-
-    Returns
-    -------
-    d : DiscreteDistribution
-        Probability associated with each point in array of discrete
-        points for discrete probability mass function.
-    '''
-    # Find the CDF boundaries of each segment
-    if sigma > 0.0:
-        if tail_N > 0:
-            lo_cut     = tail_bound[0]
-            hi_cut     = tail_bound[1]
-        else:
-            lo_cut     = 0.0
-            hi_cut     = 1.0
-        inner_size     = hi_cut - lo_cut
-        inner_CDF_vals = [lo_cut + x*N**(-1.0)*inner_size for x in range(1, N)]
-        if inner_size < 1.0:
-            scale      = 1.0/tail_order
-            mag        = (1.0-scale**tail_N)/(1.0-scale)
-        lower_CDF_vals = [0.0]
-        if lo_cut > 0.0:
-            for x in range(tail_N-1,-1,-1):
-                lower_CDF_vals.append(lower_CDF_vals[-1] + lo_cut*scale**x/mag)
-        upper_CDF_vals  = [hi_cut]
-        if hi_cut < 1.0:
-            for x in range(tail_N):
-                upper_CDF_vals.append(upper_CDF_vals[-1] + (1.0-hi_cut)*scale**x/mag)
-        CDF_vals       = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
-        temp_cutoffs   = list(stats.lognorm.ppf(CDF_vals[1:-1], s=sigma, loc=0, scale=np.exp(mu)))
-        cutoffs        = [0] + temp_cutoffs + [np.inf]
-        CDF_vals       = np.array(CDF_vals)
-
-        # Construct the discrete approximation by finding the average value within each segment.
-        # This codeblock ignores warnings because it throws a "divide by zero encountered in log"
-        # warning due to computing erf(infty) at the tail boundary.  This is irrelevant and
-        # apparently freaks new users out.
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            K              = CDF_vals.size-1 # number of points in approximation
-            pmf            = CDF_vals[1:(K+1)] - CDF_vals[0:K]
-            X              = np.zeros(K)
-            for i in range(K):
-                zBot  = cutoffs[i]
-                zTop = cutoffs[i+1]
-                tempBot = (mu+sigma**2-np.log(zBot))/(np.sqrt(2)*sigma)
-                tempTop = (mu+sigma**2-np.log(zTop))/(np.sqrt(2)*sigma)
-                if tempBot <= 4:
-                    X[i] = -0.5*np.exp(mu+(sigma**2)*0.5)*(erf(tempTop) - erf(tempBot))/pmf[i]
-                else:
-                    X[i] = -0.5*np.exp(mu+(sigma**2)*0.5)*(erfc(tempBot) - erfc(tempTop))/pmf[i]
-
-    else:
-        pmf = np.ones(N)/N
-        X   = np.exp(mu)*np.ones(N)
-    return DiscreteDistribution(pmf, X)
-
-@memoize
-def approxMeanOneLognormal(N, sigma=1.0, **kwargs):
-    '''
-    Calculate a discrete approximation to a mean one lognormal distribution.
-    Based on function approxLognormal; see that function's documentation for
-    further notes.
-
-    Parameters
-    ----------
-    N : int
-        Size of discrete space vector to be returned.
-    sigma : float
-        standard deviation associated with underlying normal probability distribution.
-
-    Returns
-    -------
-    d : DiscreteDistribution
-        Probability associated with each point in array of discrete
-        points for discrete probability mass function.
-    '''
-    mu_adj = - 0.5*sigma**2;
-    dist = approxLognormal(N=N, mu=mu_adj, sigma=sigma, **kwargs)
-    return dist
-
 
 def approxLognormalGaussHermite(N, mu=0.0, sigma=1.0):
     d = Normal(mu, sigma).approx(N)

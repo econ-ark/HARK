@@ -24,8 +24,8 @@ from scipy.optimize import newton
 from HARK import AgentType, Solution, NullFunc, HARKobject
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
-from HARK.distribution import Lognormal, Uniform
-from HARK.distribution import DiscreteDistribution, approxMeanOneLognormal, addDiscreteOutcomeConstantMean, combineIndepDstns 
+from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
+from HARK.distribution import DiscreteDistribution, addDiscreteOutcomeConstantMean, combineIndepDstns 
 from HARK.utilities import makeGridExpMult, CRRAutility, CRRAutilityP, \
                            CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
                            CRRAutilityP_invP
@@ -2257,11 +2257,19 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if approx_inc_dstn:
             IncomeDstn = self.IncomeDstn[0]
         else:
-            TranShkDstn = approxMeanOneLognormal(N=200,sigma=self.TranShkStd[0],
-                                                 tail_N=50,tail_order=1.3, tail_bound=[0.05,0.95])
+            TranShkDstn = MeanOneLognormal(
+                sigma=self.TranShkStd[0]
+            ).approx(N=200,
+                     tail_N=50,
+                     tail_order=1.3,
+                     tail_bound=[0.05,0.95])
             TranShkDstn = addDiscreteOutcomeConstantMean(TranShkDstn,self.UnempPrb,self.IncUnemp)
-            PermShkDstn = approxMeanOneLognormal(N=200,sigma=self.PermShkStd[0],
-                                                 tail_N=50,tail_order=1.3, tail_bound=[0.05,0.95])
+            PermShkDstn = MeanOneLogNormal(
+                sigma=self.PermShkStd[0]
+            ).approx(N=200,
+                     tail_N=50,
+                     tail_order=1.3,
+                     tail_bound=[0.05,0.95])
             IncomeDstn  = combineIndepDstns(PermShkDstn,TranShkDstn)
 
         # Make a grid of market resources
@@ -2796,10 +2804,14 @@ def constructLognormalIncomeProcessUnemployment(parameters):
             TranShkDstn.append([ShkPrbsRet,TranShkValsRet])
         else:
             # We are in the "working life" periods.
-            TranShkDstn_t    = approxMeanOneLognormal(N=TranShkCount, sigma=TranShkStd[t], tail_N=0)
+            TranShkDstn_t    = MeanOneLogNormal(
+                sigma=TranShkStd[t] 
+            ).approx(TranShkCount, tail_N=0)
             if UnempPrb > 0:
                 TranShkDstn_t = addDiscreteOutcomeConstantMean(TranShkDstn_t, p=UnempPrb, x=IncUnemp)
-            PermShkDstn_t    = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=0)
+            PermShkDstn_t    = MeanOneLogNormal(
+                sigma=PermShkStd[t]
+            ).approx(PermShkCount, tail_N=0)
             IncomeDstn.append(combineIndepDstns(PermShkDstn_t,TranShkDstn_t)) # mix the independent distributions
             PermShkDstn.append(PermShkDstn_t)
             TranShkDstn.append(TranShkDstn_t)
