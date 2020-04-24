@@ -534,7 +534,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
     '''
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ['MedShkNow']
 
-    def __init__(self,cycles=0,time_flow=True,**kwds):
+    def __init__(self,cycles=0,**kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
         to be used during solution (income distribution, assets grid, etc).
@@ -545,8 +545,6 @@ class MedShockConsumerType(PersistentShockConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -624,14 +622,9 @@ class MedShockConsumerType(PersistentShockConsumerType):
         None
         '''
         # Take last period data, whichever way time is flowing
-        if self.time_flow:
-            MedPrice = self.MedPrice[-1]
-            MedShkVals = self.MedShkDstn[-1][1]
-            MedShkPrbs = self.MedShkDstn[-1][0]
-        else:
-            MedPrice = self.MedPrice[0]
-            MedShkVals = self.MedShkDstn[0][1]
-            MedShkPrbs = self.MedShkDstn[0][0]
+        MedPrice = self.MedPrice[-1]
+        MedShkVals = self.MedShkDstn[-1][1]
+        MedShkPrbs = self.MedShkDstn[-1][0]
 
         # Initialize grids of medical need shocks, market resources, and optimal consumption
         MedShkGrid = MedShkVals

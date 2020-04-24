@@ -50,7 +50,6 @@ class PrefShockConsumerType(IndShockConsumerType):
 
     def __init__(self,
                  cycles=1,
-                 time_flow=True,
                  **kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
@@ -62,8 +61,6 @@ class PrefShockConsumerType(IndShockConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -74,7 +71,6 @@ class PrefShockConsumerType(IndShockConsumerType):
 
         IndShockConsumerType.__init__(self,
                                       cycles=cycles,
-                                      time_flow=time_flow,
                                       **params)
         self.solveOnePeriod = solveConsPrefShock # Choose correct solver
         
@@ -112,9 +108,6 @@ class PrefShockConsumerType(IndShockConsumerType):
         -------
         none
         '''
-        time_orig = self.time_flow
-        self.timeFwd()
-
         PrefShkDstn = [] # discrete distributions of preference shocks
         for t in range(len(self.PrefShkStd)):
             PrefShkStd = self.PrefShkStd[t]
@@ -124,8 +117,6 @@ class PrefShockConsumerType(IndShockConsumerType):
         # Store the preference shocks in self (time-varying) and restore time flow
         self.PrefShkDstn = PrefShkDstn
         self.addToTimeVary('PrefShkDstn')
-        if not time_orig:
-            self.timeRev()
 
     def getShocks(self):
         '''
@@ -224,7 +215,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
     utility each period, specified as iid lognormal and different interest rates
     on borrowing vs saving.
     '''
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,cycles=1,**kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
         to be used during solution (income distribution, assets grid, etc).
@@ -235,8 +226,6 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
