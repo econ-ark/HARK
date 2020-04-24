@@ -92,8 +92,8 @@ class Normal():
             One or more standard deviations. Number of elements T in sigma
             determines number of rows of output.
         '''
-        self.mu = 0.0
-        self.sigma = 1.0
+        self.mu = mu
+        self.sigma = sigma
 
     def draw(self, N, seed=0):
         '''
@@ -126,6 +126,17 @@ class Normal():
             for t in range(len(sigma)):
                 draws.append(self.sigma[t]*RNG.randn(N) + self.mu[t])
         return draws
+
+    def approx(self, N):
+        """
+        Returns a discrete approximation of this distribution.
+        """
+        x, w = np.polynomial.hermite.hermgauss(N)
+        # normalize w
+        pmf = w*np.pi**-0.5
+        # correct x
+        X = math.sqrt(2.0)*self.sigma*x + self.mu
+        return DiscreteDistribution(pmf, X)
 
 class Weibull():
     '''
@@ -245,6 +256,26 @@ class Uniform():
                 draws.append(self.bot[t] + (self.top[t] - self.bot[t])*RNG.rand(N))
         return draws
 
+    def approx(self, N):
+        '''
+        Makes a discrete approximation to this uniform distribution.
+
+        Parameters
+        ----------
+        N : int
+            The number of points in the discrete approximation
+
+        Returns
+        -------
+        d : DiscreteDistribution
+            Probability associated with each point in array of discrete
+            points for discrete probability mass function.
+        '''
+        pmf = np.ones(N)/float(N)
+        center = (self.top+self.bot)/2.0
+        width = (self.top-self.bot)/2.0
+        X = center + width*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
+        return DiscreteDistribution(pmf,X)
 
 def drawMeanOneLognormal(N, sigma=1.0, seed=0):
     '''
@@ -537,16 +568,9 @@ def approxMeanOneLognormal(N, sigma=1.0, **kwargs):
     dist = approxLognormal(N=N, mu=mu_adj, sigma=sigma, **kwargs)
     return dist
 
-def approxNormal(N, mu=0.0, sigma=1.0):
-    x, w = np.polynomial.hermite.hermgauss(N)
-    # normalize w
-    pmf = w*np.pi**-0.5
-    # correct x
-    X = math.sqrt(2.0)*sigma*x + mu
-    return DiscreteDistribution(pmf, X)
 
 def approxLognormalGaussHermite(N, mu=0.0, sigma=1.0):
-    d = approxNormal(N, mu, sigma)
+    d = Normal(mu, sigma).approx(N)
     return DiscreteDistribution(d.pmf, np.exp(d.X))
 
 
@@ -590,32 +614,6 @@ def approxBeta(N,a=1.0,b=1.0):
     X    = np.mean(vals,axis=1)
     pmf  = np.ones(N)/float(N)
     return DiscreteDistribution(pmf, X)
-
-def approxUniform(N,bot=0.0,top=1.0):
-    '''
-    Makes a discrete approximation to a uniform distribution, given its bottom
-    and top limits and number of points.
-
-    Parameters
-    ----------
-    N : int
-        The number of points in the discrete approximation
-    bot : float
-        The bottom of the uniform distribution
-    top : float
-        The top of the uniform distribution
-
-    Returns
-    -------
-    d : DiscreteDistribution
-        Probability associated with each point in array of discrete
-        points for discrete probability mass function.
-    '''
-    pmf = np.ones(N)/float(N)
-    center = (top+bot)/2.0
-    width = (top-bot)/2.0
-    X = center + width*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
-    return DiscreteDistribution(pmf,X)
 
 
 def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):
