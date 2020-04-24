@@ -1898,9 +1898,9 @@ class PerfForesightConsumerType(AgentType):
         """
         self.conditions[name] = test(self)
 
-        print(messages[self.conditions[name]])
+        print(messages[self.conditions[name]].format(self))
         if verbose and verbose_messages:
-            print(verbose_messages[self.conditions[name]])
+            print(verbose_messages[self.conditions[name]].format(self))
 
 
     def checkAIC(self, verbose = False):
