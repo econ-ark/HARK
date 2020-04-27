@@ -2092,7 +2092,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -----------
         none
         '''
-        IncomeDstn, PermShkDstn, TranShkDstn = constructLognormalIncomeProcessUnemployment(self)
+        IncomeDstn, PermShkDstn, TranShkDstn = self.constructLognormalIncomeProcessUnemployment()
         self.IncomeDstn = IncomeDstn
         self.PermShkDstn = PermShkDstn
         self.TranShkDstn = TranShkDstn
@@ -2529,6 +2529,121 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # The target level of m, mTarg, will be the value such that
         # cSust[m] = cFunc[m]
 
+
+
+    # ========================================================
+    # = Functions for generating discrete income processes and
+    #   simulated income shocks =
+    # ========================================================
+
+    def constructLognormalIncomeProcessUnemployment(self):
+        '''
+        Generates a list of discrete approximations to the income process for each
+        life period, from end of life to beginning of life.  Permanent shocks are mean
+        one lognormally distributed with standard deviation PermShkStd[t] during the
+        working life, and degenerate at 1 in the retirement period.  Transitory shocks
+        are mean one lognormally distributed with a point mass at IncUnemp with
+        probability UnempPrb while working; they are mean one with a point mass at
+        IncUnempRet with probability UnempPrbRet.  Retirement occurs
+        after t=T_retire periods of working.
+
+        Note 1: All time in this function runs forward, from t=0 to t=T
+
+        Note 2: All parameters are passed as attributes of the input parameters.
+
+        Parameters (passed as attributes of the input parameters)
+        ----------
+        PermShkStd : [float]
+            List of standard deviations in log permanent income uncertainty during
+            the agent's life.
+        PermShkCount : int
+            The number of approximation points to be used in the discrete approxima-
+            tion to the permanent income shock distribution.
+        TranShkStd : [float]
+            List of standard deviations in log transitory income uncertainty during
+            the agent's life.
+        TranShkCount : int
+            The number of approximation points to be used in the discrete approxima-
+            tion to the permanent income shock distribution.
+        UnempPrb : float
+            The probability of becoming unemployed during the working period.
+        UnempPrbRet : float
+            The probability of not receiving typical retirement income when retired.
+        T_retire : int
+            The index value for the final working period in the agent's life.
+            If T_retire <= 0 then there is no retirement.
+        IncUnemp : float
+            Transitory income received when unemployed.
+        IncUnempRet : float
+            Transitory income received while "unemployed" when retired.
+        T_cycle :  int
+            Total number of non-terminal periods in the consumer's sequence of periods.
+
+        Returns
+        -------
+        IncomeDstn :  [[np.array]]
+            A list with T_cycle elements, each of which is a list of three arrays
+            representing a discrete approximation to the income process in a period.
+            Order: probabilities, permanent shocks, transitory shocks.
+        PermShkDstn : [[np.array]]
+            A list with T_cycle elements, each of which is a list of two arrays
+            representing a discrete approximation to the permanent income shocks.
+        TranShkDstn : [[np.array]]
+            A list with T_cycle elements, each of which is a list of two arrays
+            representing a discrete approximation to the transitory income shocks.
+        '''
+        # Unpack the parameters from the input
+        PermShkStd    = self.PermShkStd
+        PermShkCount  = self.PermShkCount
+        TranShkStd    = self.TranShkStd
+        TranShkCount  = self.TranShkCount
+        T_cycle       = self.T_cycle
+        T_retire      = self.T_retire
+        UnempPrb      = self.UnempPrb
+        IncUnemp      = self.IncUnemp
+        UnempPrbRet   = self.UnempPrbRet
+        IncUnempRet   = self.IncUnempRet
+
+        IncomeDstn    = [] # Discrete approximations to income process in each period
+        PermShkDstn   = [] # Discrete approximations to permanent income shocks
+        TranShkDstn   = [] # Discrete approximations to transitory income shocks
+
+        # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
+        # in normal times; value 0.0 in "unemployment" times with small prob.
+        if T_retire > 0:
+            if UnempPrbRet > 0:
+                PermShkValsRet  = np.array([1.0, 1.0])    # Permanent income is deterministic in retirement (2 states for temp income shocks)
+                TranShkValsRet  = np.array([IncUnempRet,
+                                            (1.0-UnempPrbRet*IncUnempRet)/(1.0-UnempPrbRet)])
+                ShkPrbsRet      = np.array([UnempPrbRet, 1.0-UnempPrbRet])
+            else:
+                PermShkValsRet  = np.array([1.0])
+                TranShkValsRet  = np.array([1.0])
+                ShkPrbsRet      = np.array([1.0])
+            IncomeDstnRet = DiscreteDistribution(ShkPrbsRet,
+                                                 [PermShkValsRet,
+                                                  TranShkValsRet])
+
+        # Loop to fill in the list of IncomeDstn random variables.
+        for t in range(T_cycle): # Iterate over all periods, counting forward
+
+            if T_retire > 0 and t >= T_retire:
+                # Then we are in the "retirement period" and add a retirement income object.
+                IncomeDstn.append(deepcopy(IncomeDstnRet))
+                PermShkDstn.append([np.array([1.0]),np.array([1.0])])
+                TranShkDstn.append([ShkPrbsRet,TranShkValsRet])
+            else:
+                # We are in the "working life" periods.
+                TranShkDstn_t    = approxMeanOneLognormal(N=TranShkCount, sigma=TranShkStd[t], tail_N=0)
+                if UnempPrb > 0:
+                    TranShkDstn_t = addDiscreteOutcomeConstantMean(TranShkDstn_t, p=UnempPrb, x=IncUnemp)
+                PermShkDstn_t    = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=0)
+                IncomeDstn.append(combineIndepDstns(PermShkDstn_t,TranShkDstn_t)) # mix the independent distributions
+                PermShkDstn.append(PermShkDstn_t)
+                TranShkDstn.append(TranShkDstn_t)
+        return IncomeDstn, PermShkDstn, TranShkDstn
+
+
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
 init_kinked_R = dict(init_idiosyncratic_shocks,
                      **{
@@ -2694,116 +2809,6 @@ class KinkedRconsumerType(IndShockConsumerType):
         '''
         raise NotImplementedError()
 
-# ==================================================================================
-# = Functions for generating discrete income processes and simulated income shocks =
-# ==================================================================================
-
-def constructLognormalIncomeProcessUnemployment(parameters):
-    '''
-    Generates a list of discrete approximations to the income process for each
-    life period, from end of life to beginning of life.  Permanent shocks are mean
-    one lognormally distributed with standard deviation PermShkStd[t] during the
-    working life, and degenerate at 1 in the retirement period.  Transitory shocks
-    are mean one lognormally distributed with a point mass at IncUnemp with
-    probability UnempPrb while working; they are mean one with a point mass at
-    IncUnempRet with probability UnempPrbRet.  Retirement occurs
-    after t=T_retire periods of working.
-
-    Note 1: All time in this function runs forward, from t=0 to t=T
-
-    Note 2: All parameters are passed as attributes of the input parameters.
-
-    Parameters (passed as attributes of the input parameters)
-    ----------
-    PermShkStd : [float]
-        List of standard deviations in log permanent income uncertainty during
-        the agent's life.
-    PermShkCount : int
-        The number of approximation points to be used in the discrete approxima-
-        tion to the permanent income shock distribution.
-    TranShkStd : [float]
-        List of standard deviations in log transitory income uncertainty during
-        the agent's life.
-    TranShkCount : int
-        The number of approximation points to be used in the discrete approxima-
-        tion to the permanent income shock distribution.
-    UnempPrb : float
-        The probability of becoming unemployed during the working period.
-    UnempPrbRet : float
-        The probability of not receiving typical retirement income when retired.
-    T_retire : int
-        The index value for the final working period in the agent's life.
-        If T_retire <= 0 then there is no retirement.
-    IncUnemp : float
-        Transitory income received when unemployed.
-    IncUnempRet : float
-        Transitory income received while "unemployed" when retired.
-    T_cycle :  int
-        Total number of non-terminal periods in the consumer's sequence of periods.
-
-    Returns
-    -------
-    IncomeDstn :  [[np.array]]
-        A list with T_cycle elements, each of which is a list of three arrays
-        representing a discrete approximation to the income process in a period.
-        Order: probabilities, permanent shocks, transitory shocks.
-    PermShkDstn : [[np.array]]
-        A list with T_cycle elements, each of which is a list of two arrays
-        representing a discrete approximation to the permanent income shocks.
-    TranShkDstn : [[np.array]]
-        A list with T_cycle elements, each of which is a list of two arrays
-        representing a discrete approximation to the transitory income shocks.
-    '''
-    # Unpack the parameters from the input
-    PermShkStd    = parameters.PermShkStd
-    PermShkCount  = parameters.PermShkCount
-    TranShkStd    = parameters.TranShkStd
-    TranShkCount  = parameters.TranShkCount
-    T_cycle       = parameters.T_cycle
-    T_retire      = parameters.T_retire
-    UnempPrb      = parameters.UnempPrb
-    IncUnemp      = parameters.IncUnemp
-    UnempPrbRet   = parameters.UnempPrbRet
-    IncUnempRet   = parameters.IncUnempRet
-
-    IncomeDstn    = [] # Discrete approximations to income process in each period
-    PermShkDstn   = [] # Discrete approximations to permanent income shocks
-    TranShkDstn   = [] # Discrete approximations to transitory income shocks
-
-    # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
-    # in normal times; value 0.0 in "unemployment" times with small prob.
-    if T_retire > 0:
-        if UnempPrbRet > 0:
-            PermShkValsRet  = np.array([1.0, 1.0])    # Permanent income is deterministic in retirement (2 states for temp income shocks)
-            TranShkValsRet  = np.array([IncUnempRet,
-                                        (1.0-UnempPrbRet*IncUnempRet)/(1.0-UnempPrbRet)])
-            ShkPrbsRet      = np.array([UnempPrbRet, 1.0-UnempPrbRet])
-        else:
-            PermShkValsRet  = np.array([1.0])
-            TranShkValsRet  = np.array([1.0])
-            ShkPrbsRet      = np.array([1.0])
-        IncomeDstnRet = DiscreteDistribution(ShkPrbsRet,
-                                             [PermShkValsRet,
-                                              TranShkValsRet])
-
-    # Loop to fill in the list of IncomeDstn random variables.
-    for t in range(T_cycle): # Iterate over all periods, counting forward
-
-        if T_retire > 0 and t >= T_retire:
-            # Then we are in the "retirement period" and add a retirement income object.
-            IncomeDstn.append(deepcopy(IncomeDstnRet))
-            PermShkDstn.append([np.array([1.0]),np.array([1.0])])
-            TranShkDstn.append([ShkPrbsRet,TranShkValsRet])
-        else:
-            # We are in the "working life" periods.
-            TranShkDstn_t    = approxMeanOneLognormal(N=TranShkCount, sigma=TranShkStd[t], tail_N=0)
-            if UnempPrb > 0:
-                TranShkDstn_t = addDiscreteOutcomeConstantMean(TranShkDstn_t, p=UnempPrb, x=IncUnemp)
-            PermShkDstn_t    = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=0)
-            IncomeDstn.append(combineIndepDstns(PermShkDstn_t,TranShkDstn_t)) # mix the independent distributions
-            PermShkDstn.append(PermShkDstn_t)
-            TranShkDstn.append(TranShkDstn_t)
-    return IncomeDstn, PermShkDstn, TranShkDstn
 
 
 def applyFlatIncomeTax(IncomeDstn,tax_rate,T_retire,unemployed_indices=[],transitory_index=2):
