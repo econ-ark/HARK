@@ -160,13 +160,3 @@ def bootstrapSampleFromData(data, weights=None, seed=0):
     # Create a bootstrapped sample
     new_data = deepcopy(data[indices, ])
     return new_data
-
-
-def main():
-    print("Sorry, HARK.estimation doesn't actually do anything on its own.")
-    print("To see some examples of its functions in actions, check out an application")
-    print("like /SolvingMicroDSOPs/StructEstimation or /cstwMPC/cstwMPC.")
-
-
-if __name__ == '__main__':
-    main()
