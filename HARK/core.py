@@ -808,22 +808,30 @@ def solveOneCycle(agent, solution_last):
         else:
             solveOnePeriod = agent.solveOnePeriod
 
-        temp_dict = {}
 
         # this is hacky.
         # TODO: find a way to avoid getArgNames here
         #       solution_next is being handled as an
         #       awkard special case
         these_args = list(getArgNames(solveOnePeriod))
+        temp_dict = {}
 
-        if 'solution_next' in these_args:
+        # this conditionality is just scaffolding
+        # while code is in transition
+        if 'agent' not in these_args:
+
+            if 'solution_next' in these_args:
+                temp_dict['solution_next'] = solution_next
+                these_args.remove('solution_next')
+
+            # Make a temporary dictionary for this period
+            temp_dict.update({name: agent.value_at_t(name, T - 1 - t)
+                              for name
+                              in these_args})
+        else:
+            temp_dict['agent'] = agent
+            temp_dict['t'] = T - 1 - t
             temp_dict['solution_next'] = solution_next
-            these_args.remove('solution_next')
-
-        # Make a temporary dictionary for this period
-        temp_dict.update({name: agent.value_at_t(name, T - 1 - t)
-                          for name
-                          in these_args})
 
         # Solve one period, add it to the solution, and move to the next period
         solution_t = solveOnePeriod(**temp_dict)
@@ -832,6 +840,28 @@ def solveOneCycle(agent, solution_last):
 
     # Return the list of per-period solutions
     return solution_cycle
+
+
+def onePeriodOOSolver(solver_class):
+    '''
+    Returns a function that solves a single period consumption-saving
+    problem.
+
+    Parameters
+    ----------
+    solver_class : Solver
+        A class of Solver to be used.
+
+    -------
+    solution_now : Solution
+        The solution to this period's problem.
+    '''
+    def onePeriodSolver(agent, t, solution_next):
+        solver = solver_class(agent, t, solution_next)
+        solution_now = solver.solve()
+        return solution_now
+
+    return onePeriodSolver
 
 
 # ========================================================================

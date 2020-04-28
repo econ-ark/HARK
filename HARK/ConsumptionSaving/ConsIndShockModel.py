@@ -21,7 +21,7 @@ from builtins import object
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
-from HARK import AgentType, Solution, NullFunc, HARKobject
+from HARK import AgentType, Solution, NullFunc, HARKobject, onePeriodOOSolver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.distribution import Lognormal, Uniform
@@ -317,43 +317,29 @@ class ConsPerfForesightSolver(object):
     A class for solving a one period perfect foresight consumption-saving problem.
     An instance of this class is created by the function solvePerfForesight in each period.
     '''
-    def __init__(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks):
+    def __init__(self,agent, t, solution_next):
         '''
         Constructor for a new ConsPerfForesightSolver.
 
         Parameters
         ----------
+        TODO
+        
         solution_next : ConsumerSolution
             The solution to next period's one-period problem.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the next period.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        PermGroFac : float
-            Expected permanent income growth factor at the end of this period.
-        BoroCnstArt : float or None
-            Artificial borrowing constraint, as a multiple of permanent income.
-            Can be None, indicating no artificial constraint.
-        MaxKinks : int
-            Maximum number of kink points to allow in the consumption function;
-            additional points will be thrown out.  Only relevant in infinite
-            horizon model with artificial borrowing constraint.
-
-        Returns:
-        ----------
-        None
+        
         '''
         # We ask that HARK users define single-letter variables they use in a dictionary
         # attribute called notation. Do that first.
         self.notation = {'a': 'assets after all actions',
                          'm': 'market resources at decision time',
                          'c': 'consumption'}
-        self.assignParameters(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks)
+        params = ['DiscFac','LivPrb','CRRA','Rfree',\
+                  'PermGroFac','BoroCnstArt','MaxKinks']
+        for p in params:
+            self.__dict__[p] = agent.value_at_t(p, t)
+
+        self.solution_next = solution_next
 
     def assignParameters(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks):
         '''
@@ -619,7 +605,6 @@ def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCn
     solution_now : ConsumerSolution
         The solution to this period's problem.
     '''
-    
     solver = ConsPerfForesightSolver(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks)
     solution_now = solver.solve()
     return solution_now
@@ -1655,8 +1640,7 @@ class PerfForesightConsumerType(AgentType):
         self.shock_vars     = deepcopy(self.shock_vars_)
         self.verbose        = verbose
         self.quiet          = quiet
-        self.solveOnePeriod = solvePerfForesight # solver for perfect foresight model
-
+        self.solveOnePeriod = onePeriodOOSolver(ConsPerfForesightSolver)
 
     def preSolve(self):
         self.updateSolutionTerminal() # Solve the terminal period problem
