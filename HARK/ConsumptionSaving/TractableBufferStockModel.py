@@ -36,9 +36,8 @@ from scipy.optimize import newton, brentq
 
 __all__ = ['TractableConsumerSolution', 'TractableConsumerType']
 
-# If you want to run the "tractable" version of cstwMPC, uncomment the line below
-# and have TractableConsumerType inherit from cstwMPCagent rather than AgentType
-#from HARK.cstwMPC.cstwMPC import cstwMPCagent
+# If you want to run the "tractable" version of cstwMPC, use cstwMPCagent from 
+# cstwMPC REMARK and have TractableConsumerType inherit from cstwMPCagent rather than AgentType
 
 # Define utility function and its derivatives (plus inverses)
 utility = CRRAutility
