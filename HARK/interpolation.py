@@ -3792,6 +3792,3 @@ def main():
         print(z)
         print(t_end-t_start)
 
-
-if __name__ == '__main__':
-    main()
