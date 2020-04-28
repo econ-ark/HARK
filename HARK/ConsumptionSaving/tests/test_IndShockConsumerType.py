@@ -58,17 +58,9 @@ class testIndShockConsumerType(unittest.TestCase):
             0.9563899)
         
         solver = ConsIndShockSolverBasic(
-            LifecycleExample.solution[1],
-            LifecycleExample.IncomeDstn[0],
-            LifecycleExample.LivPrb[0],
-            LifecycleExample.DiscFac,
-            LifecycleExample.CRRA,
-            LifecycleExample.Rfree,
-            LifecycleExample.PermGroFac[0],
-            LifecycleExample.BoroCnstArt,
-            LifecycleExample.aXtraGrid,
-            LifecycleExample.vFuncBool,
-            LifecycleExample.CubicBool)
+            LifecycleExample,
+            0,
+            LifecycleExample.solution[1])
 
         solver.prepareToSolve()
 

@@ -858,6 +858,11 @@ def onePeriodOOSolver(solver_class):
     '''
     def onePeriodSolver(agent, t, solution_next):
         solver = solver_class(agent, t, solution_next)
+
+        # not ideal; better if this is defined in all Solver classes
+        if hasattr(solver,'prepareToSolve'):
+            solver.prepareToSolve()
+
         solution_now = solver.solve()
         return solution_now
 
