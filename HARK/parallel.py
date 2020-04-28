@@ -519,11 +519,3 @@ def parallelNelderMeadWorker(objFunc,simplex,f_vals,j,P,opt_params):
     # Return the outputs
     return new_point, new_val, evals
 
-
-def main():
-    print("Sorry, HARKparallel doesn't actually do much on its own.")
-    print("You must import functions from it into your workspace.")
-
-
-if __name__ == "__main__":
-    main()
