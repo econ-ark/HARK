@@ -290,6 +290,12 @@ class AgentType(HARKobject):
             if param in self.time_inv:
                 self.time_inv.remove(param)
 
+    def value_at_t(self, param, t):
+        if param in self.time_vary:
+            return self.__dict__[param][t]
+        else:
+            return self.__dict__[param]
+
     def solve(self, verbose=False):
         '''
         Solve the model for this instance of an agent type by backward induction.
@@ -792,13 +798,6 @@ def solveOneCycle(agent, solution_last):
     else:
         T = 1
 
-    solve_dict = {parameter: agent.__dict__[parameter]
-                  for parameter
-                  in agent.time_inv}
-    solve_dict.update({parameter: None
-                       for parameter
-                       in agent.time_vary})
-
     # Initialize the solution for this cycle, then iterate on periods
     solution_cycle = []
     solution_next = solution_last
@@ -809,19 +808,22 @@ def solveOneCycle(agent, solution_last):
         else:
             solveOnePeriod = agent.solveOnePeriod
 
-        these_args = getArgNames(solveOnePeriod)
+        temp_dict = {}
 
-        # Update time-varying single period inputs
-        for name in agent.time_vary:
-            if name in these_args:
-                # solve_dict[name] = eval('agent.' + name + '[t]')
-                solve_dict[name] = agent.__dict__[name][T - 1 - t]
-        solve_dict['solution_next'] = solution_next
+        # this is hacky.
+        # TODO: find a way to avoid getArgNames here
+        #       solution_next is being handled as an
+        #       awkard special case
+        these_args = list(getArgNames(solveOnePeriod))
+
+        if 'solution_next' in these_args:
+            temp_dict['solution_next'] = solution_next
+            these_args.remove('solution_next')
 
         # Make a temporary dictionary for this period
-        temp_dict = {name: solve_dict[name]
-                     for name
-                     in these_args}
+        temp_dict.update({name: agent.value_at_t(name, T - 1 - t)
+                          for name
+                          in these_args})
 
         # Solve one period, add it to the solution, and move to the next period
         solution_t = solveOnePeriod(**temp_dict)
