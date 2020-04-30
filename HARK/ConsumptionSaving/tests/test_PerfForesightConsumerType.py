@@ -40,11 +40,10 @@ class testPerfForesightConsumerType(unittest.TestCase):
     
     def test_checkConditions(self):
         self.agent_infinite.checkConditions()
-
-        self.assertTrue(self.agent_infinite.AIC)
-        self.assertTrue(self.agent_infinite.GICPF)
-        self.assertTrue(self.agent_infinite.RIC)
-        self.assertTrue(self.agent_infinite.FHWC)
+        self.assertTrue(self.agent_infinite.conditions['AIC'])
+        self.assertTrue(self.agent_infinite.conditions['GICPF'])
+        self.assertTrue(self.agent_infinite.conditions['RIC'])
+        self.assertTrue(self.agent_infinite.conditions['FHWC'])
 
     def test_simulation(self):
 
