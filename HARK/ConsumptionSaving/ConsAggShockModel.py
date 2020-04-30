@@ -10,7 +10,7 @@ from builtins import str
 from builtins import range
 import numpy as np
 import scipy.stats as stats
-from HARK.distribution import DiscreteDistribution, combineIndepDstns, approxMeanOneLognormal
+from HARK.distribution import DiscreteDistribution, combineIndepDstns, MeanOneLogNormal
 from HARK.interpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFunction, IdentityFunction,\
                                VariableLowerBoundFunc2D, BilinearInterp, LowerEnvelope2D, UpperEnvelope
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
@@ -1090,8 +1090,12 @@ class CobbDouglasEconomy(Market):
         -------
         None
         '''
-        self.TranShkAggDstn = approxMeanOneLognormal(sigma=self.TranShkAggStd, N=self.TranShkAggCount)
-        self.PermShkAggDstn = approxMeanOneLognormal(sigma=self.PermShkAggStd, N=self.PermShkAggCount)
+        self.TranShkAggDstn = MeanOneLogNormal(
+            sigma=self.TranShkAggStd
+        ).approx(N=self.TranShkAggCount)
+        self.PermShkAggDstn = MeanOneLognormal(
+            sigma=self.PermShkAggStd
+        ).approx(N=self.PermShkAggCount)
         self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn, self.TranShkAggDstn)
 
     def reset(self):
@@ -1307,8 +1311,12 @@ class SmallOpenEconomy(Market):
         -------
         None
         '''
-        self.TranShkAggDstn = approxMeanOneLognormal(sigma=self.TranShkAggStd, N=self.TranShkAggCount)
-        self.PermShkAggDstn = approxMeanOneLognormal(sigma=self.PermShkAggStd, N=self.PermShkAggCount)
+        self.TranShkAggDstn = MeanOneLogNormal(
+            sigma=self.TranShkAggStd
+        ).approx(N=self.TranShkAggCount)
+        self.PermShkAggDstn = MeanOneLogNormal(
+            sigma=self.PermShkAggStd
+        ).approx(N=self.PermShkAggCount)
         self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn, self.TranShkAggDstn)
 
     def millRule(self):
@@ -1521,8 +1529,8 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         StateCount = self.MrkvArray.shape[0]
 
         for i in range(StateCount):
-            TranShkAggDstn.append(approxMeanOneLognormal(sigma=self.TranShkAggStd[i], N=self.TranShkAggCount))
-            PermShkAggDstn.append(approxMeanOneLognormal(sigma=self.PermShkAggStd[i], N=self.PermShkAggCount))
+            TranShkAggDstn.append(MeanOneLogNormal(sigma=self.TranShkAggStd[i]).approx(N=self.TranShkAggCount))
+            PermShkAggDstn.append(MeanOneLogNormal(sigma=self.PermShkAggStd[i]).approx(N=self.PermShkAggCount))
             AggShkDstn.append(combineIndepDstns(PermShkAggDstn[-1], TranShkAggDstn[-1]))
 
         self.TranShkAggDstn = TranShkAggDstn
