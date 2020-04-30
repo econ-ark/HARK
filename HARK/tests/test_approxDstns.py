@@ -16,7 +16,7 @@ class testsForDCEGM(unittest.TestCase):
     def test_mu_normal(self):
         for muNormal in self.muNormals:
             for stdNormal in self.stdNormals:
-                d = distribution.approxNormal(40, muNormal)
+                d = distribution.Normal(muNormal).approx(40)
                 self.assertTrue(sum(d.pmf*d.X)-muNormal<1e-12)
 
     def test_mu_lognormal_from_normal(self):
