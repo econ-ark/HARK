@@ -263,8 +263,9 @@ Web
 # Mac system files
 .DS_Store
 
-# Emacs automatic backup files
+# Emacs automatic backup and hash files
 *~
+\#*#
 
 # Vim swap files
 *.swp

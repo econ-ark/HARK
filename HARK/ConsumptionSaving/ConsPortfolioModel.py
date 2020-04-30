@@ -22,7 +22,7 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import(
     ValueFunc2D,                # For representing 2D value function
     MargValueFunc2D             # For representing 2D marginal value function
 )
-from HARK.distribution import approxLognormal, combineIndepDstns 
+from HARK.distribution import combineIndepDstns 
 from HARK.distribution import Lognormal, Bernoulli # Random draws for simulating agents
 from HARK.interpolation import(
         LinearInterp,           # Piecewise linear interpolation
@@ -242,7 +242,7 @@ class PortfolioConsumerType(IndShockConsumerType):
                 RiskyVar = self.RiskyStd[t] ** 2
                 mu = np.log(self.RiskyAvg[t] / (np.sqrt(1. + RiskyVar / RiskyAvgSqrd)))
                 sigma = np.sqrt(np.log(1. + RiskyVar / RiskyAvgSqrd))
-                RiskyDstn.append(approxLognormal(self.RiskyCount, mu=mu, sigma=sigma))
+                RiskyDstn.append(Lognormal(mu=mu, sigma=sigma).approx(self.RiskyCount))
             self.RiskyDstn = RiskyDstn
             self.addToTimeVary('RiskyDstn')
                 
@@ -253,7 +253,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             RiskyVar = self.RiskyStd ** 2
             mu = np.log(self.RiskyAvg / (np.sqrt(1. + RiskyVar / RiskyAvgSqrd)))
             sigma = np.sqrt(np.log(1. + RiskyVar / RiskyAvgSqrd))
-            self.RiskyDstn = approxLognormal(self.RiskyCount, mu=mu, sigma=sigma)
+            self.RiskyDstn = Lognormal(mu=mu, sigma=sigma).approx(self.RiskyCount)
             self.addToTimeInv('RiskyDstn')
             
             
