@@ -26,7 +26,7 @@ class DistributionClassTests(unittest.TestCase):
 
     def test_drawMeanOneLognormal(self):
         self.assertEqual(
-            distribution.drawMeanOneLognormal(1)[0],
+            distribution.MeanOneLogNormal().draw(1)[0],
             3.5397367004222002)
 
     def test_Lognormal(self):

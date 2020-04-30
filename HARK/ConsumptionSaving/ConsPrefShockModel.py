@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from builtins import str
 from builtins import range
 import numpy as np
-from HARK.distribution import approxMeanOneLognormal
+from HARK.distribution import MeanOneLogNormal
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
                                    ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver, \
                                    init_idiosyncratic_shocks, init_kinked_R
@@ -111,8 +111,11 @@ class PrefShockConsumerType(IndShockConsumerType):
         PrefShkDstn = [] # discrete distributions of preference shocks
         for t in range(len(self.PrefShkStd)):
             PrefShkStd = self.PrefShkStd[t]
-            PrefShkDstn.append(approxMeanOneLognormal(N=self.PrefShkCount,
-                                                      sigma=PrefShkStd,tail_N=self.PrefShk_tail_N))
+            PrefShkDstn.append(
+                MeanOneLogNormal(
+                    sigma=PrefShkStd
+                ).approx(N=self.PrefShkCount,
+                         tail_N=self.PrefShk_tail_N))
 
         # Store the preference shocks in self (time-varying) and restore time flow
         self.PrefShkDstn = PrefShkDstn
@@ -137,8 +140,9 @@ class PrefShockConsumerType(IndShockConsumerType):
             N = np.sum(these)
             if N > 0:
                 PrefShkNow[these] = self.RNG.permutation(
-                    approxMeanOneLognormal(N,
-                                           sigma=self.PrefShkStd[t]).X)
+                    MeanOneLogNormal(
+                        sigma=self.PrefShkStd[t]
+                    ).approx(N).X)
         self.PrefShkNow = PrefShkNow
 
     def getControls(self):
