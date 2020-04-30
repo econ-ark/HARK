@@ -190,11 +190,3 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
     upperM = commonM.copy()  # anticipate this TODO
 
     return upperM, upperC, upperV_T
-
-
-def main():
-    print("Sorry, HARK.dcegm doesn't actually do anything on its own.")
-
-
-if __name__ == '__main__':
-    main()
