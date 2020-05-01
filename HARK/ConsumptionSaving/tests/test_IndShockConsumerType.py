@@ -164,7 +164,7 @@ class testBufferStock(unittest.TestCase):
         self.assertAlmostEqual(c_m[500], 0.7772637042393458)
         self.assertAlmostEqual(c_m[700], 0.8392649061916746)
 
-        self.assertFalse(GICFailExample.GICPF)
+        self.assertFalse(GICFailExample.conditions['GIC'])
 
     def test_infinite_horizon(self):
         baseEx_inf = IndShockConsumerType(cycles=0,
