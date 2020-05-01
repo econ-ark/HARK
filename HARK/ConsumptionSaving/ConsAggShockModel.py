@@ -1093,7 +1093,7 @@ class CobbDouglasEconomy(Market):
         self.TranShkAggDstn = MeanOneLogNormal(
             sigma=self.TranShkAggStd
         ).approx(N=self.TranShkAggCount)
-        self.PermShkAggDstn = MeanOneLognormal(
+        self.PermShkAggDstn = MeanOneLogNormal(
             sigma=self.PermShkAggStd
         ).approx(N=self.PermShkAggCount)
         self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn, self.TranShkAggDstn)

@@ -8,7 +8,7 @@ from builtins import range
 import numpy as np
 from scipy.optimize import brentq
 from HARK import HARKobject
-from HARK.distribution import approxLognormal, addDiscreteOutcomeConstantMean 
+from HARK.distribution import addDiscreteOutcomeConstantMean, Lognormal
 from HARK.utilities import CRRAutilityP_inv,\
                            CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP,\
                            makeGridExpMult, NullFunc
@@ -600,9 +600,12 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.T_cycle):
             MedShkAvgNow  = self.MedShkAvg[t] # get shock distribution parameters
             MedShkStdNow  = self.MedShkStd[t]
-            MedShkDstnNow = approxLognormal(mu=np.log(MedShkAvgNow)-0.5*MedShkStdNow**2,\
-                            sigma=MedShkStdNow,N=self.MedShkCount, tail_N=self.MedShkCountTail,
-                            tail_bound=[0,0.9])
+            MedShkDstnNow = Lognormal(
+                mu=np.log(MedShkAvgNow)-0.5*MedShkStdNow**2,\
+                sigma=MedShkStdNow).approx(
+                    N=self.MedShkCount,
+                    tail_N=self.MedShkCountTail,
+                    tail_bound=[0,0.9])
             MedShkDstnNow = addDiscreteOutcomeConstantMean(MedShkDstnNow,0.0,0.0,sort=True) # add point at zero with no probability
             MedShkDstn.append(MedShkDstnNow)
         self.MedShkDstn = MedShkDstn
@@ -735,7 +738,10 @@ class MedShockConsumerType(PersistentShockConsumerType):
                 MedShkAvg = self.MedShkAvg[t]
                 MedShkStd = self.MedShkStd[t]
                 MedPrice  = self.MedPrice[t]
-                MedShkNow[these] = self.RNG.permutation(approxLognormal(N,mu=np.log(MedShkAvg)-0.5*MedShkStd**2,sigma=MedShkStd).X)
+                MedShkNow[these] = self.RNG.permutation(
+                    Lognormal(
+                        mu=np.log(MedShkAvg)-0.5*MedShkStd**2,
+                        sigma=MedShkStd).approx(N).X)
                 MedPriceNow[these] = MedPrice
         self.MedShkNow = MedShkNow
         self.MedPriceNow = MedPriceNow
