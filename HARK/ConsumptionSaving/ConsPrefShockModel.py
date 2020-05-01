@@ -11,6 +11,7 @@ from __future__ import absolute_import
 from builtins import str
 from builtins import range
 import numpy as np
+from HARK.core import onePeriodOOSolver
 from HARK.distribution import approxMeanOneLognormal
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
                                    ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver, \
@@ -72,7 +73,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         IndShockConsumerType.__init__(self,
                                       cycles=cycles,
                                       **params)
-        self.solveOnePeriod = solveConsPrefShock # Choose correct solver
+        self.solveOnePeriod = onePeriodOOSolver(ConsPrefShockSolver)
         
     def preSolve(self):
         self.updateSolutionTerminal()
@@ -235,7 +236,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         params.update(kwds)
         kwds = params
         IndShockConsumerType.__init__(self,**kwds)
-        self.solveOnePeriod = solveConsKinkyPref # Choose correct solver
+        self.solveOnePeriod = onePeriodOOSolver(ConsKinkyPrefSolver)
         self.addToTimeInv('Rboro','Rsave')
         self.delFromTimeInv('Rfree')
         
@@ -253,58 +254,28 @@ class ConsPrefShockSolver(ConsIndShockSolver):
     income (permanent and transitory shocks) and multiplicative shocks to utility
     each period.
     '''
-    def __init__(self,solution_next,IncomeDstn,PrefShkDstn,LivPrb,DiscFac,CRRA,
-                      Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+    params = ['IncomeDstn','PrefShkDstn','LivPrb', \
+              'DiscFac','CRRA','Rfree','PermGroFac', \
+              'BoroCnstArt','aXtraGrid','vFuncBool','CubicBool']
+
+    def __init__(self,agent, t, solution_next):
         '''
         Constructor for a new solver for problems with risky income, a different
         interest rate on borrowing and saving, and multiplicative shocks to utility.
 
         Parameters
         ----------
+        TODO
         solution_next : ConsumerSolution
             The solution to the succeeding one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
-        PrefShkDstn : [np.array]
-            Discrete distribution of the multiplicative utility shifter.  Order:
-            probabilities, preference shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        PermGroGac : float
-            Expected permanent income growth factor at the end of this period.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.  If it is less than the natural borrowing constraint,
-            then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-            rowing constraint.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period asset values-- assets above the
-            absolute minimum acceptable level.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear inter-
-            polation.
 
         Returns
         -------
         None
         '''
-        ConsIndShockSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
-                      Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
-        self.PrefShkPrbs = PrefShkDstn.pmf
-        self.PrefShkVals = PrefShkDstn.X
+        ConsIndShockSolver.__init__(self,agent, t, solution_next)
+        self.PrefShkPrbs = agent.PrefShkDstn[t].pmf
+        self.PrefShkVals = agent.PrefShkDstn[t].X
 
     def getPointsForInterpolation(self,EndOfPrdvP,aNrmNow):
         '''
@@ -426,70 +397,6 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         return vFuncNow
 
 
-def solveConsPrefShock(solution_next,IncomeDstn,PrefShkDstn,
-                       LivPrb,DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,
-                       aXtraGrid,vFuncBool,CubicBool):
-    '''
-    Solves a single period of a consumption-saving model with preference shocks
-    to marginal utility.  Problem is solved using the method of endogenous gridpoints.
-
-    Parameters
-    ----------
-    solution_next : ConsumerSolution
-        The solution to the succeeding one period problem.
-    IncomeDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
-    PrefShkDstn : [np.array]
-        Discrete distribution of the multiplicative utility shifter.  Order:
-        probabilities, preference shocks.
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
-    DiscFac : float
-        Intertemporal discount factor for future utility.
-    CRRA : float
-        Coefficient of relative risk aversion.
-    Rfree : float
-        Risk free interest factor on end-of-period assets.
-    PermGroGac : float
-        Expected permanent income growth factor at the end of this period.
-    BoroCnstArt: float or None
-        Borrowing constraint for the minimum allowable assets to end the
-        period with.  If it is less than the natural borrowing constraint,
-        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-        rowing constraint.
-    aXtraGrid: np.array
-        Array of "extra" end-of-period asset values-- assets above the
-        absolute minimum acceptable level.
-    vFuncBool: boolean
-        An indicator for whether the value function should be computed and
-        included in the reported solution.
-    CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear inter-
-        polation.
-
-    Returns
-    -------
-    solution: ConsumerSolution
-        The solution to the single period consumption-saving problem.  Includes
-        a consumption function cFunc (using linear splines), a marginal value
-        function vPfunc, a minimum acceptable level of normalized market re-
-        sources mNrmMin, normalized human wealth hNrm, and bounding MPCs MPCmin
-        and MPCmax.  It might also have a value function vFunc.  The consumption
-        function is defined over normalized market resources and the preference
-        shock, c = cFunc(m,PrefShk), but the (marginal) value function is defined
-        unconditionally on the shock, just before it is revealed.
-    '''
-    solver = ConsPrefShockSolver(solution_next,IncomeDstn,PrefShkDstn,LivPrb,
-                             DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraGrid,
-                             vFuncBool,CubicBool)
-    solver.prepareToSolve()
-    solution = solver.solve()
-    return solution
-
 ###############################################################################
 
 class ConsKinkyPrefSolver(ConsPrefShockSolver,ConsKinkedRsolver):
@@ -498,129 +405,27 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver,ConsKinkedRsolver):
     income (permanent and transitory shocks), multiplicative shocks to utility
     each period, and a different interest rate on saving vs borrowing.
     '''
-    def __init__(self,solution_next,IncomeDstn,PrefShkDstn,LivPrb,DiscFac,CRRA,
-                      Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+    params = ['IncomeDstn','PrefShkDstn','LivPrb','DiscFac',\
+              'CRRA','Rfree','Rboro','Rsave','PermGroFac',\
+              'BoroCnstArt','aXtraGrid','vFuncBool','CubicBool']
+    def __init__(self,agent, t, solution_next):
         '''
         Constructor for a new solver for problems with risky income, a different
         interest rate on borrowing and saving, and multiplicative shocks to utility.
 
         Parameters
         ----------
+        TODO
+
         solution_next : ConsumerSolution
             The solution to the succeeding one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
-        PrefShkDstn : [np.array]
-            Discrete distribution of the multiplicative utility shifter.  Order:
-            probabilities, preference shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rboro: float
-            Interest factor on assets between this period and the succeeding
-            period when assets are negative.
-        Rsave: float
-            Interest factor on assets between this period and the succeeding
-            period when assets are positive.
-        PermGroGac : float
-            Expected permanent income growth factor at the end of this period.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.  If it is less than the natural borrowing constraint,
-            then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-            rowing constraint.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period asset values-- assets above the
-            absolute minimum acceptable level.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear inter-
-            polation.
 
         Returns
         -------
         None
         '''
-        ConsKinkedRsolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
-                      Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
-        self.PrefShkPrbs = PrefShkDstn.pmf
-        self.PrefShkVals = PrefShkDstn.X
-
-
-def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,
-                       LivPrb,DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
-                       aXtraGrid,vFuncBool,CubicBool):
-    '''
-    Solves a single period of a consumption-saving model with preference shocks
-    to marginal utility and a different interest rate on saving vs borrowing.
-    Problem is solved using the method of endogenous gridpoints.
-
-    Parameters
-    ----------
-    solution_next : ConsumerSolution
-        The solution to the succeeding one period problem.
-    IncomeDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
-    PrefShkDstn : [np.array]
-        Discrete distribution of the multiplicative utility shifter.  Order:
-        probabilities, preference shocks.
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
-    DiscFac : float
-        Intertemporal discount factor for future utility.
-    CRRA : float
-        Coefficient of relative risk aversion.
-    Rboro: float
-        Interest factor on assets between this period and the succeeding
-        period when assets are negative.
-    Rsave: float
-        Interest factor on assets between this period and the succeeding
-        period when assets are positive.
-    PermGroGac : float
-        Expected permanent income growth factor at the end of this period.
-    BoroCnstArt: float or None
-        Borrowing constraint for the minimum allowable assets to end the
-        period with.  If it is less than the natural borrowing constraint,
-        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-        rowing constraint.
-    aXtraGrid: np.array
-        Array of "extra" end-of-period asset values-- assets above the
-        absolute minimum acceptable level.
-    vFuncBool: boolean
-        An indicator for whether the value function should be computed and
-        included in the reported solution.
-    CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear inter-
-        polation.
-
-    Returns
-    -------
-    solution: ConsumerSolution
-        The solution to the single period consumption-saving problem.  Includes
-        a consumption function cFunc (using linear splines), a marginal value
-        function vPfunc, a minimum acceptable level of normalized market re-
-        sources mNrmMin, normalized human wealth hNrm, and bounding MPCs MPCmin
-        and MPCmax.  It might also have a value function vFunc.  The consumption
-        function is defined over normalized market resources and the preference
-        shock, c = cFunc(m,PrefShk), but the (marginal) value function is defined
-        unconditionally on the shock, just before it is revealed.
-    '''
-    solver = ConsKinkyPrefSolver(solution_next,IncomeDstn,PrefShkDstn,LivPrb,
-                             DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
-                             aXtraGrid,vFuncBool,CubicBool)
-    solver.prepareToSolve()
-    solution = solver.solve()
-    return solution
+        ## SB: This move has some bad juju
+        agent.Rfree = agent.Rboro
+        ConsKinkedRsolver.__init__(self,agent, t, solution_next)
+        self.PrefShkPrbs = agent.PrefShkDstn[t].pmf
+        self.PrefShkVals = agent.PrefShkDstn[t].X
