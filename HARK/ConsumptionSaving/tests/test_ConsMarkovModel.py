@@ -88,5 +88,19 @@ class test_ConsMarkovSolver(unittest.TestCase):
         self.model.PermGroFac = [np.array(4 * self.model.PermGroFac)]
 
     def test_solve(self):
-        self.test_checkMarkovInputs()
+        self.model.Rfree = np.array(4 * [self.model.Rfree])
+        self.model.LivPrb = [np.array(4 * self.model.LivPrb)]
+        self.model.PermGroFac = [np.array(4 * self.model.PermGroFac)]
         self.model.solve()
+
+    def test_simulation(self):
+        self.model.Rfree = np.array(4 * [self.model.Rfree])
+        self.model.LivPrb = [np.array(4 * self.model.LivPrb)]
+        self.model.PermGroFac = [np.array(4 * self.model.PermGroFac)]
+        self.model.solve()
+        self.model.T_sim = 120
+        self.model.MrkvPrbsInit = [0.25, 0.25, 0.25, 0.25]
+        self.model.track_vars = ["mNrmNow", "cNrmNow"]
+        self.model.makeShockHistory()  # This is optional
+        self.model.initializeSim()
+        self.model.simulate()
