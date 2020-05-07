@@ -11,12 +11,13 @@ from builtins import range
 from copy import deepcopy
 import numpy as np
 from HARK import AgentType, HARKobject
+from HARK.distribution import DiscreteDistribution
 from HARK.interpolation import LowerEnvelope2D, BilinearInterp, VariableLowerBoundFunc2D, \
                                LinearInterpOnInterp1D, LinearInterp, CubicInterp, UpperEnvelope
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP,\
                            getPercentiles
-from HARK.simulation import drawLognormal, drawDiscrete, drawUniform
+from HARK.distribution import Lognormal, Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSetup, ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 
 __all__ = ['ValueFunc2D', 'MargValueFunc2D', 'MargMargValueFunc2D', 'pLvlFuncAR1',
@@ -984,7 +985,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     solution_terminal_ = ConsumerSolution(cFunc=cFunc_terminal_, mNrmMin=0.0, hNrm=0.0, MPCmin=1.0, MPCmax=1.0)
     poststate_vars_ = ['aLvlNow', 'pLvlNow']
 
-    def __init__(self, cycles=0, time_flow=True, **kwds):
+    def __init__(self, cycles=0, **kwds):
         '''
         Instantiate a new ConsumerType with given data.
         See ConsumerParameters.init_explicit_perm_inc for a dictionary of the
@@ -994,8 +995,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -1005,7 +1004,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         params.update(kwds)
 
         # Initialize a basic ConsumerType
-        IndShockConsumerType.__init__(self, cycles=cycles, time_flow=time_flow, **params)
+        IndShockConsumerType.__init__(self, cycles=cycles, **params)
         self.solveOnePeriod = solveConsGenIncProcess  # idiosyncratic shocks solver with explicit persistent income
 
     def preSolve(self):
@@ -1108,38 +1107,41 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        orig_time = self.time_flow
-        self.timeFwd()
         LivPrbAll = np.array(self.LivPrb)
 
         # Simulate the distribution of persistent income levels by t_cycle in a lifecycle model
         if self.cycles == 1:
-            pLvlNow = drawLognormal(self.AgentCount, mu=self.pLvlInitMean, sigma=self.pLvlInitStd, seed=31382)
+            pLvlNow = Lognormal(self.pLvlInitMean,
+                                sigma=self.pLvlInitStd,).draw(self.AgentCount, seed=31382)
             pLvlGrid = []  # empty list of time-varying persistent income grids
             # Calculate distribution of persistent income in each period of lifecycle
             for t in range(len(self.PermShkStd)):
                 if t > 0:
-                    PermShkNow = drawDiscrete(N=self.AgentCount, P=self.PermShkDstn[t-1][0],
-                                              X=self.PermShkDstn[t-1][1], exact_match=False, seed=t)
+                    PermShkNow = self.PermShkDstn[t-1].drawDiscrete(
+                        N=self.AgentCount,
+                        seed=t)
                     pLvlNow = self.pLvlNextFunc[t-1](pLvlNow)*PermShkNow
                 pLvlGrid.append(getPercentiles(pLvlNow, percentiles=self.pLvlPctiles))
 
         # Calculate "stationary" distribution in infinite horizon (might vary across periods of cycle)
         elif self.cycles == 0:
             T_long = 1000  # Number of periods to simulate to get to "stationary" distribution
-            pLvlNow = drawLognormal(self.AgentCount, mu=self.pLvlInitMean, sigma=self.pLvlInitStd, seed=31382)
+            pLvlNow = Lognormal(mu=self.pLvlInitMean,
+                                sigma=self.pLvlInitStd).draw(self.AgentCount, seed=31382)
             t_cycle = np.zeros(self.AgentCount, dtype=int)
             for t in range(T_long):
                 LivPrb = LivPrbAll[t_cycle]  # Determine who dies and replace them with newborns
-                draws = drawUniform(self.AgentCount, seed=t)
+                draws = Uniform().draw(self.AgentCount, seed=t)
                 who_dies = draws > LivPrb
-                pLvlNow[who_dies] = drawLognormal(np.sum(who_dies), mu=self.pLvlInitMean,
-                                                  sigma=self.pLvlInitStd, seed=t+92615)
+                pLvlNow[who_dies] = Lognormal(self.pLvlInitMean,
+                                              self.pLvlInitStd).draw(np.sum(who_dies),  seed=t+92615)
                 t_cycle[who_dies] = 0
+                
                 for j in range(self.T_cycle):  # Update persistent income
                     these = t_cycle == j
-                    PermShkTemp = drawDiscrete(N=np.sum(these), P=self.PermShkDstn[j][0],
-                                               X=self.PermShkDstn[j][1], exact_match=False, seed=t+13*j)
+                    PermShkTemp = self.PermShkDstn[j].drawDiscrete(
+                        N=np.sum(these),
+                        seed=t+13*j)
                     pLvlNow[these] = self.pLvlNextFunc[j](pLvlNow[these])*PermShkTemp
                 t_cycle = t_cycle + 1
                 t_cycle[t_cycle == self.T_cycle] = 0
@@ -1157,8 +1159,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         # Store the result and add attribute to time_vary
         self.pLvlGrid = pLvlGrid
         self.addToTimeVary('pLvlGrid')
-        if not orig_time:
-            self.timeRev()
 
     def simBirth(self, which_agents):
         '''
@@ -1177,10 +1177,13 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         '''
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        aNrmNow_new = drawLognormal(N, mu=self.aNrmInitMean, sigma=self.aNrmInitStd,
+        aNrmNow_new = Lognormal(self.aNrmInitMean,
+                                self.aNrmInitStd).draw(
+                                    N,
                                     seed=self.RNG.randint(0, 2**31-1))
-        self.pLvlNow[which_agents] = drawLognormal(N, mu=self.pLvlInitMean, sigma=self.pLvlInitStd,
-                                                   seed=self.RNG.randint(0, 2**31-1))
+        self.pLvlNow[which_agents] = Lognormal(self.pLvlInitMean,
+                                               self.pLvlInitStd).draw(N, 
+                                                                       seed=self.RNG.randint(0, 2**31-1))
         self.aLvlNow[which_agents] = aNrmNow_new*self.pLvlNow[which_agents]
         self.t_age[which_agents] = 0  # How many periods since each agent was born
         self.t_cycle[which_agents] = 0  # Which period of the cycle each agent is currently in
@@ -1274,18 +1277,12 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
         -------
         None
         '''
-        orig_time = self.time_flow
-        self.timeFwd()
-
         pLvlNextFunc = []
         for t in range(self.T_cycle):
             pLvlNextFunc.append(LinearInterp(np.array([0., 1.]), np.array([0., self.PermGroFac[t]])))
 
         self.pLvlNextFunc = pLvlNextFunc
         self.addToTimeVary('pLvlNextFunc')
-        if not orig_time:
-            self.timeRev()
-
 
 ###############################################################################
 
@@ -1326,7 +1323,6 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 
         GenIncProcessConsumerType.__init__(self,
                          cycles=cycles,
-                         time_flow=time_flow,
                          **params)
 
     def updatepLvlNextFunc(self):
@@ -1344,8 +1340,6 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         -------
         None
         '''
-        orig_time = self.time_flow
-        self.timeFwd()
 
         pLvlNextFunc = []
         pLogMean = self.pLvlInitMean  # Initial mean (log) persistent income
@@ -1356,5 +1350,3 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 
         self.pLvlNextFunc = pLvlNextFunc
         self.addToTimeVary('pLvlNextFunc')
-        if not orig_time:
-            self.timeRev()

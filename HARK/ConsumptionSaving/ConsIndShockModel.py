@@ -24,9 +24,9 @@ from scipy.optimize import newton
 from HARK import AgentType, Solution, NullFunc, HARKobject
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
-from HARK.simulation import drawDiscrete, drawLognormal, drawUniform
-from HARK.utilities import approxMeanOneLognormal, addDiscreteOutcomeConstantMean,\
-                           combineIndepDstns, makeGridExpMult, CRRAutility, CRRAutilityP, \
+from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
+from HARK.distribution import DiscreteDistribution, addDiscreteOutcomeConstantMean, combineIndepDstns 
+from HARK.utilities import makeGridExpMult, CRRAutility, CRRAutilityP, \
                            CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
                            CRRAutilityP_invP
 
@@ -768,11 +768,10 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         ----------
         solution_next : ConsumerSolution
             The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
+        IncomeDstn : distribution.DiscreteDistribution
+            A DiscreteDistribution with a pmf
+            and two point value arrays in X, order:
+            permanent shocks, transitory shocks.
         LivPrb : float
             Survival probability; likelihood of being alive at the beginning of
             the succeeding period.
@@ -784,9 +783,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         None
         '''
         self.DiscFacEff       = DiscFac*LivPrb # "effective" discount factor
-        self.ShkPrbsNext      = IncomeDstn[0]
-        self.PermShkValsNext  = IncomeDstn[1]
-        self.TranShkValsNext  = IncomeDstn[2]
+        self.ShkPrbsNext      = IncomeDstn.pmf
+        self.PermShkValsNext  = IncomeDstn.X[0]
+        self.TranShkValsNext  = IncomeDstn.X[1]
         self.PermShkMinNext   = np.min(self.PermShkValsNext)
         self.TranShkMinNext   = np.min(self.TranShkValsNext)
         self.vPfuncNext       = solution_next.vPfunc
@@ -1619,7 +1618,6 @@ class PerfForesightConsumerType(AgentType):
 
     def __init__(self,
                  cycles=1,
-                 time_flow=True,
                  verbose=False,
                  quiet=False,
                  **kwds):
@@ -1632,8 +1630,6 @@ class PerfForesightConsumerType(AgentType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -1646,7 +1642,8 @@ class PerfForesightConsumerType(AgentType):
 
         # Initialize a basic AgentType
         AgentType.__init__(self,solution_terminal=deepcopy(self.solution_terminal_),
-                           cycles=cycles,time_flow=time_flow,pseudo_terminal=False,**kwds)
+                           cycles=cycles,
+                           pseudo_terminal=False,**kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary      = deepcopy(self.time_vary_)
@@ -1743,9 +1740,11 @@ class PerfForesightConsumerType(AgentType):
         '''
         # Get and store states for newly born agents
         N = np.sum(which_agents) # Number of new consumers to make
-        self.aNrmNow[which_agents] = drawLognormal(N,mu=self.aNrmInitMean,sigma=self.aNrmInitStd,seed=self.RNG.randint(0,2**31-1))
+        self.aNrmNow[which_agents] = Lognormal(mu=self.aNrmInitMean,
+                                               sigma=self.aNrmInitStd).draw(N,seed=self.RNG.randint(0,2**31-1))
         pLvlInitMeanNow = self.pLvlInitMean + np.log(self.PlvlAggNow) # Account for newer cohorts having higher permanent income
-        self.pLvlNow[which_agents] = drawLognormal(N,mu=pLvlInitMeanNow,sigma=self.pLvlInitStd,seed=self.RNG.randint(0,2**31-1))
+        self.pLvlNow[which_agents] = Lognormal(pLvlInitMeanNow,
+                                               self.pLvlInitStd,).draw(N,seed=self.RNG.randint(0,2**31-1))
         self.t_age[which_agents]   = 0 # How many periods since each agent was born
         self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
         return None
@@ -1767,7 +1766,7 @@ class PerfForesightConsumerType(AgentType):
         # Determine who dies
         DiePrb_by_t_cycle = 1.0 - np.asarray(self.LivPrb)
         DiePrb = DiePrb_by_t_cycle[self.t_cycle-1] # Time has already advanced, so look back one
-        DeathShks = drawUniform(N=self.AgentCount,seed=self.RNG.randint(0,2**31-1))
+        DeathShks = Uniform().draw(N=self.AgentCount,seed=self.RNG.randint(0,2**31-1))
         which_agents = DeathShks < DiePrb
         if self.T_age is not None: # Kill agents that have lived for too many periods
             too_old = self.t_age >= self.T_age
@@ -1870,112 +1869,135 @@ class PerfForesightConsumerType(AgentType):
         self.aLvlNow = self.aNrmNow*self.pLvlNow   # Useful in some cases to precalculate asset level
         return None
 
-    def checkAIC(self, thorn,verbose,public_call):
+    def checkCondition(self,
+                       name,
+                       test,
+                       messages,
+                       verbose_messages=None,
+                       verbose=False):
+        """
+        Checks one condition.
+
+        Parameters
+        ----------
+        name : string
+             Name for the condition.
+
+        test : function(self -> boolean)
+             A function (of self) which tests the condition
+
+        messages : dict{boolean : string}
+            A dictiomary with boolean keys containing values
+            for messages to print if the condition is
+            true or false.
+
+        verbose_messages : dict{boolean : string}
+            (Optional) A dictiomary with boolean keys containing values
+            for messages to print if the condition is
+            true or false under verbose printing.
+        """
+        self.conditions[name] = test(self)
+
+        print(messages[self.conditions[name]].format(self))
+        if verbose and verbose_messages:
+            print(verbose_messages[self.conditions[name]].format(self))
+
+
+    def checkAIC(self, verbose = False):
         '''
         Evaluate and report on the Absolute Impatience Condition
         '''
-        AIF = thorn
+        name = "AIC"
+        test = lambda agent : agent.thorn < 1
 
-        self.AIF = AIF
-        if AIF<1:
-            self.AIC = True
-            if public_call or verbose:
-                print('The value of the absolute impatience factor (AIF) for the supplied parameter values satisfies the Absolute Impatience Condition.', end = " ")
-                self.violated = False
-                if verbose:
-                    print('   Because the AIF < 1, the absolute amount of consumption is expected to fall over time.')
-            print()
-        else:
-            self.AIC = False
-            print('The given type violates the Absolute Impatience Condition with the supplied parameter values; the AIF is %1.5f ' % (AIF), end=" ")
-            self.violated = True
-            if verbose:
-                print('   Because the AIF > 1, the absolute amount of consumption is expected to grow over time')
-            print()
+        messages = {
+            True:  "\nThe value of the absolute impatience factor (AIF) for the supplied parameter values satisfies the Absolute Impatience Condition.",
+            False: "\nThe given type violates the Absolute Impatience Condition with the supplied parameter values; the AIF is {0.thorn}"}
+        verbose_messages = {
+            True :  "  Because the AIF < 1, the absolute amount of consumption is expected to fall over time.\n",
+            False : "  Because the AIF > 1, the absolute amount of consumption is expected to grow over time\n"
+        }
 
-    def checkGICPF(self,thorn,verbose,public_call):
+        self.checkCondition(name, test, messages, verbose_messages, verbose = verbose)
+
+    def checkGICPF(self,verbose = False):
         '''
-        Evaluate and report on the Growth Impatience Condition
+        Evaluate and report on the Growth Impatience Condition for the Perfect Foresight model
         '''
-        GIFPF = thorn/self.PermGroFac[0]
-        self.GIFPF = GIFPF
+        name = "GICPF"
 
-        if GIFPF<1:
-            self.GICPF = True
-            if public_call or verbose:
-                print('The value of the Growth Impatience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.', end = " ")
-                if verbose:
-                    print(' Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income will fall indefinitely.')
-            print()
-        else:
-            self.GICPF = False
-            self.violated = True
-            print('The given parameter values violate the Perfect Foresight Growth Impatience Condition for this consumer type; the GIFPF is: %2.4f' % (GIFPF), end = " ")
-            if verbose:
-                print(' Therefore, for a perfect foresight consumer the ratio of individual wealth to permanent income is expected to grow toward infinity.')
-            print()
+        self.GIFPF = self.thorn/self.PermGroFac[0]
 
-    def checkRIC(self, thorn,verbose,public_call):
+        test = lambda agent : agent.GIFPF < 1
+
+        messages = {
+            True :  '\nThe value of the Growth Patience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.',
+            False : '\nThe value of the Growth Patience Factor for the supplied parameter values fails the Perfect Foresight Growth Impatience Condition; the GIFPF is: {0.GIFPF}',
+        }
+
+        verbose_messages = {
+            True:   '  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income will fall indefinitely.\n',
+            False:  '  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to grow toward infinity.\n',
+        }
+
+        self.checkCondition(name, test, messages, verbose_messages, verbose = verbose)
+
+    def checkRIC(self, verbose = False):
         '''
         Evaluate and report on the Return Impatience Condition
         '''
 
-        RIF = thorn/self.Rfree
-        self.RIF = RIF
-        if RIF<1:
-            self.RIC = True
-            if public_call or verbose:
-                print('The return impatience factor value for the supplied parameter values satisfies the Return Impatience Condition.', end = " ")
-                if verbose:
-                    print('Therefore, the limiting consumption function is not c(m)=0 for all m')
-            print()
-        else:
-            self.RIC = False
-            self.violated = True
-            print('The given type violates the Return Impatience Condition with the supplied parameter values; the factor is %1.5f ' % (RIF), end = " ")
-            if verbose:
-                print('Therefore, the limiting consumption function is c(m)=0 for all m')
-            print()
+        self.RIF = self.thorn/self.Rfree
 
-    def checkFHWC(self,verbose,public_call):
+        name = "RIC"
+        test = lambda agent: self.RIF < 1
+        
+        messages = {
+            True :  '\nThe value of the Return Patience Factor for the supplied parameter values satisfies the Return Impatience Condition.',
+            False : '\nThe value of the Return Patience Factor for the supplied parameter values satisfies the Return Impatience Condition; the factor is {0.RIF}'
+        }
+
+        verbose_messages = {
+            True :  '  Therefore, the limiting consumption function is not c(m)=0 for all m\n',
+            False : '  Therefore, the limiting consumption function is c(m)=0 for all m\n'
+        }
+        self.checkCondition(name, test, messages, verbose = verbose)
+
+    def checkFHWC(self,verbose = False):
         '''
         Evaluate and report on the Finite Human Wealth Condition
         '''
 
-        FHWF = self.PermGroFac[0]/self.Rfree
-        self.FHWF = FHWF
-        if FHWF<1:
-            self.hNrm = 1.0/(1.0-self.PermGroFac[0]/self.Rfree)
-            self.FHWC = True
-            if public_call or verbose:
-                print('The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.', end = " ")
-                if verbose: 
-                    print('Therefore, the limiting consumption function is not c(m)=Infinity')
-                    print('and human wealth normalized by permanent income is %2.5f' % (self.hNrm))
-                    self.cNrmPDV = 1.0/(1.0-self.Thorn/self.Rfree)
-                    print('and the PDV of future consumption growth is %2.5f' % (self.cNrmPDV) )
-            print()
-        else:
-            self.FHWC = False
-            print('The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value %2.5f ' % (FHWF), end = " ")
-            self.violated = True
-            if verbose:
-                print('Therefore, the limiting consumption function is c(m)=Infinity for all m')
-            print()
-        if verbose and self.violated and verbose_reference:
-            print('[!] For more information on the conditions, see Table 3 in "Theoretical Foundations of Buffer Stock Saving" at http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/')
-        return self.violated
+        self.FHWF = self.PermGroFac[0]/self.Rfree
+        self.cNrmPDV = 1.0/(1.0-self.thorn/self.Rfree)
 
+        name = "FHWC"
+        test = lambda agent: self.FHWF < 1
+        
+        messages = {
+            True :  '\nThe Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.',
+            False : '\nThe given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value {0.FHWF}',
+        }
 
-    def checkConditions(self,verbose=False,verbose_reference=False,public_call=False):
+        verbose_messages = {
+            True :  '  Therefore, the limiting consumption function is not c(m)=Infinity\nand human wealth normalized by permanent income is {0.hNrm}\nand the PDV of future consumption growth is {0.cNrmPDV}\n',
+            False : '  Therefore, the limiting consumption function is c(m)=Infinity for all m\n'
+        }
+
+        self.checkCondition(name, test, messages, verbose = verbose)
+
+    def checkConditions(self,verbose=False):
         '''
-        This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC), 
-        the Return Impatience Condition (RIC), the Finite Human Wealth Condition (FHWC) and the perfect foresight 
-        model's version of the Finite Value of the Growth Impatience Condition (GIC_PF) and 
-        Autarky Condition (FVAC_PF). Depending on the configuration of parameter values, some 
+        This method checks whether the instance's type satisfies the
+        Absolute Impatience Condition (AIC), 
+        the Return Impatience Condition (RIC),
+        the Finite Human Wealth Condition (FHWC) and the perfect foresight 
+        model's version of the Finite Value of the Growth Impatience Condition (GICPF) and 
+        Autarky Condition (FVACPF). Depending on the configuration of parameter values, some 
         combination of these conditions must be satisfied in order for the problem to have 
         a nondegenerate solution. To check which conditions are required, in the verbose mode
         a reference to the relevant theoretical literature is made.
+
 
         Parameters
         ----------
@@ -1988,22 +2010,27 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         '''
+        self.conditions = {}
+
+        self.violated = False
+
         # This method only checks for the conditions for infinite horizon models
         # with a 1 period cycle. If these conditions are not met, we exit early.
         if self.cycles!=0 or self.T_cycle > 1:
             return
 
-        self.violated = False
+        self.thorn = (self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)
 
-        Thorn = (self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)
-        self.Thorn = Thorn
+        self.checkAIC(verbose)
+        self.checkGICPF(verbose)
+        self.checkRIC(verbose)
+        self.checkFHWC(verbose)
 
-        self.checkAIC(Thorn,verbose,public_call)
-        self.checkGICPF(Thorn,verbose,public_call)
-        self.checkRIC(Thorn,verbose,public_call)
-        self.checkFHWC(verbose,public_call)
-
-
+        if hasattr(self,'BoroCnstArt') and self.BoroCnstArt is not None:
+            self.violated = not self.conditions['RIC']
+        else:
+            self.violated = not self.conditions['RIC'] or not self.conditions['FHWC'] 
+        
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
 init_idiosyncratic_shocks = dict(init_perfect_foresight,
@@ -2029,6 +2056,7 @@ init_idiosyncratic_shocks = dict(init_perfect_foresight,
     'vFuncBool': False,     # Whether to calculate the value function during solution
     'CubicBool': False,     # Use cubic spline interpolation when True, linear interpolation when False
 })
+      
 class IndShockConsumerType(PerfForesightConsumerType):
     '''
     A consumer type with idiosyncratic shocks to permanent and transitory income.
@@ -2043,13 +2071,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def __init__(self,
                  cycles=1,
-                 time_flow=True,
                  verbose=False,
                  quiet=False,
                  **kwds):
         '''
         Instantiate a new ConsumerType with given data.
-        See init_idiosyncratic_shocks for a dictionary of
+        See ConsumerParameters.init_idiosyncratic_shocks for a dictionary of
         the keywords that should be passed to the constructor.
 
         Parameters
@@ -2070,7 +2097,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Initialize a basic AgentType
         PerfForesightConsumerType.__init__(self,
                                            cycles=cycles,
-                                           time_flow=time_flow,
                                            verbose=verbose,
                                            quiet=quiet,
                                            **params)
@@ -2092,15 +2118,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -----------
         none
         '''
-        original_time = self.time_flow
-        self.timeFwd()
-        IncomeDstn, PermShkDstn, TranShkDstn = constructLognormalIncomeProcessUnemployment(self)
+        IncomeDstn, PermShkDstn, TranShkDstn = self.constructLognormalIncomeProcessUnemployment()
         self.IncomeDstn = IncomeDstn
         self.PermShkDstn = PermShkDstn
         self.TranShkDstn = TranShkDstn
         self.addToTimeVary('IncomeDstn','PermShkDstn','TranShkDstn')
-        if not original_time:
-            self.timeRev()
 
     def updateAssetsGrid(self):
         '''
@@ -2157,11 +2179,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
             if N > 0:
                 IncomeDstnNow    = self.IncomeDstn[t-1] # set current income distribution
                 PermGroFacNow    = self.PermGroFac[t-1] # and permanent growth factor
-                Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
                 # Get random draws of income shocks from the discrete distribution
-                EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
-                PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
-                TranShkNow[these] = IncomeDstnNow[2][EventDraws]
+                EventDraws       = IncomeDstnNow.draw_events(N,
+                                                             seed=self.RNG.randint(0,2**31-1))
+
+                PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
+                TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -2170,11 +2193,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
             these = newborn
             IncomeDstnNow    = self.IncomeDstn[0] # set current income distribution
             PermGroFacNow    = self.PermGroFac[0] # and permanent growth factor
-            Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
+           
             # Get random draws of income shocks from the discrete distribution
-            EventDraws       = drawDiscrete(N,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
-            PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
-            TranShkNow[these] = IncomeDstnNow[2][EventDraws]
+            EventDraws       = IncomeDstnNow.draw_events(N,
+                                                         seed=self.RNG.randint(0,2**31-1))
+            PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
+            TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
 #        PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0
 
@@ -2259,11 +2283,19 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if approx_inc_dstn:
             IncomeDstn = self.IncomeDstn[0]
         else:
-            TranShkDstn = approxMeanOneLognormal(N=200,sigma=self.TranShkStd[0],
-                                                 tail_N=50,tail_order=1.3, tail_bound=[0.05,0.95])
+            TranShkDstn = MeanOneLognormal(
+                sigma=self.TranShkStd[0]
+            ).approx(N=200,
+                     tail_N=50,
+                     tail_order=1.3,
+                     tail_bound=[0.05,0.95])
             TranShkDstn = addDiscreteOutcomeConstantMean(TranShkDstn,self.UnempPrb,self.IncUnemp)
-            PermShkDstn = approxMeanOneLognormal(N=200,sigma=self.PermShkStd[0],
-                                                 tail_N=50,tail_order=1.3, tail_bound=[0.05,0.95])
+            PermShkDstn = MeanOneLogNormal(
+                sigma=self.PermShkStd[0]
+            ).approx(N=200,
+                     tail_N=50,
+                     tail_order=1.3,
+                     tail_bound=[0.05,0.95])
             IncomeDstn  = combineIndepDstns(PermShkDstn,TranShkDstn)
 
         # Make a grid of market resources
@@ -2309,97 +2341,102 @@ class IndShockConsumerType(PerfForesightConsumerType):
 #        self.updateIncomeProcess()
         self.updateSolutionTerminal()
         if not self.quiet:
-            self.checkConditions(verbose=self.verbose,public_call=False)
+            self.checkConditions(verbose=self.verbose)
 
-    def checkGICInd(self,Thorn,verbose,public_call):
+    def checkGICInd(self,verbose):
         '''
         Check Individual Growth Impatience Factor.
         '''
-        if self.GIFInd<=1:
-            self.GICInd = True
-            if public_call or verbose:
-                print('The value of the Individual Growth Impatience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition.', end = " ")
-                if verbose:
-                    print('Therefore, a target level of the individual market resources ratio m exists (see '+self.url+'/#onetarget for more).')
-            print()
-        else:
-            self.GICInd = False
-            self.violated = True
-            print('The given parameter values violate the Individual Growth Impatience Condition; the GIFInd is: %2.4f' % (self.GIFInd), end = " ")
-            if verbose:
-                print('')
-                print('Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see '+self.url+'/#onetarget for more).')
-            print()
+        self.GIFInd = self.thorn/(self.PermGroFac[0]*self.InvEPermShkInv)  # [url]/#GICI
 
-    def checkCIGAgg(self, Thorn,verbose,public_call):
+        name = 'GIC'
+        test = lambda agent: agent.GIFInd <=1
 
-        if self.GIFAgg<=1:
-            self.GICAgg = True
-            if public_call or verbose:
-                print('The value of the Aggregate Growth Impatience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition.', end = " ")
-                if verbose:
-                    print('Therefore, it is possible that a target level of the ratio of aggregate market resources to aggregate permanent income exists.') # Need to provide reference 
-            print()
-        else:
-            self.GICAgg = False
-            self.violated = True
-            print('The given parameter values violate the Aggregate Growth Impatience Condition; the GIFAgg is: %2.4f' % (self.GIFAgg), end = " ")
-            if verbose:
-                print('')
-                print('Therefore, a target ratio of aggregate resources to aggregate permanent income does not exist.') # Need to provide reference
-            print()
+        
+        messages = {
+            True :  '\nThe value of the Individual Growth Impatience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition; the value of the GIFInd is: {0.GIFInd}',
+            False : '\nThe given parameter values violate the Individual Growth Impatience Condition; the GIFInd is: {0.GIFInd}',
+        }
 
-    def checkWRIC(self, verbose,public_call):
+        verbose_messages = {
+            True :  ' Therefore, a target level of the individual market resources ratio m exists (see {0.url}/#onetarget for more).\n',
+            False : ' Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see {0.url}/#onetarget for more).\n'
+        }
+
+        self.checkCondition(name,test,messages,verbose_messages, verbose=verbose)
+
+    def checkCIGAgg(self, verbose):
+        name = 'GICAgg'
+        test = lambda agent : agent.GIFAgg <= 1
+
+        
+        messages = {
+            True :  '\nThe value of the Aggregate Growth Impatience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition; the value of the GIFAgg is: {0.GIFAgg}',
+            False : '\nThe given parameter values violate the Aggregate Growth Impatience Condition; the GIFAgg is: {0.GIFAgg}'
+        }
+
+        verbose_messages = {
+            True :  '  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.\n',  # (see {0.url}/#WRIC for more).',
+            False : '  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.\n' # (see {0.url}/#WRIC for more).'
+        }
+
+        self.checkCondition(name,test,messages,verbose_messages, verbose=verbose)
+
+    def checkWRIC(self, verbose):
         '''
         Evaluate and report on the Weak Return Impatience Condition
         [url]/#WRIF modified to incorporate LivPrb
         '''
-        WRIF=(self.UnempPrb**(1/self.CRRA))*(self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)/self.Rfree
-        self.WRIF = WRIF
-        if WRIF<=1:
-            self.WRIC = True
-            if public_call or verbose:
-                print('The Weak Return Impatience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition (see '+self.url+'/#WRIC for more).')
-                print()
-        else:
-            self.WRIC = False
-            self.violated = True
-            print('The given type violates the Weak Return Impatience Condition with the supplied parameter values.  The WRIF is: %2.4f' % (WRIF), end = " ")
-            if verbose:
-                print('')
-                print('Therefore, a nondegenerate solution is not available (see '+self.url+'/#WRIC for more.')
-            print()
+        self.WRIF=(self.UnempPrb**(1/self.CRRA))*(self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)/self.Rfree
 
-    def checkFVAC(self,verbose,public_call):
+        name = 'WRIC'
+        test = lambda agent: agent.WRIF <= 1
+
+        messages = {
+            True :  '\nThe Weak Return Impatience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition; the WRIF is {0.WRIF}.',
+            False : '\nThe Weak Return Impatience Factor value for the supplied parameter values fails     the Weak Return Impatience Condition; the WRIF is {0.WRIF} (see {0.url}/#WRIC for more).'
+        }
+
+        verbose_messages = {
+            True :  '  Therefore, a nondegenerate solution exists if the FVAC is also satisfied.  (see {0.url}/#WRIC for more) \n',
+            False : '  Therefore, a nondegenerate solution is not available (see {0.url}/#WRIC for more). \n'
+        }
+
+        self.checkCondition(name,test,messages,verbose_messages, verbose=verbose)
+
+    def checkFVAC(self,verbose):
         '''
         Evaluate and report on the Finite Value of Autarky Condition
         Hyperlink to paper: [url]/#Autarky-Value
         '''
-        EpShkuInv = np.dot(self.PermShkDstn[0][0],self.PermShkDstn[0][1]**(1-self.CRRA))
+        EpShkuInv = np.dot(self.PermShkDstn[0].pmf,
+                           self.PermShkDstn[0].X**(1-self.CRRA))
         if self.CRRA != 1.0:
             uInvEpShkuInv = EpShkuInv**(1/(1-self.CRRA)) # The term that gives a utility-consequence-adjusted utility growth
         else:
             uInvEpShkuInv = 1.0
         
         self.uInvEpShkuInv   = uInvEpShkuInv
-        FVAF=self.LivPrb[0]*self.DiscFac*self.uInvEpShkuInv
-        self.FVAF = FVAF
-        if FVAF<=1:
-            self.FVAC = True
-            if public_call or verbose:
-                print('The Finite Value of Autarky Factor (FVAV) for the supplied parameter values satisfies the Finite Value of Autarky Condition.')
-                if self.WRIC:
-                    print('Since both WRIC and FVAC are satisfied, the problem has a nondegenerate solution')
-        else:
-            self.FVAC = False
-            print('The given type violates the Finite Value of Autarky Condition with the supplied parameter values. The FVAF is %2.4f' %(FVAF), end = " ")
-            self.violated = True
-            if public_call or verbose:
-                print('Therefore, a nondegenerate solution is not available (see '+self.url+'/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping')
-            print()
+
+        self.FVAF=self.LivPrb[0]*self.DiscFac*self.uInvEpShkuInv
+
+        name = 'FVAC'
+        test = lambda agent: agent.FVAF <= 1
+
+        messages = {
+            True :  '\nThe Finite Value of Autarky Factor (FVAV) for the supplied parameter values satisfies the Finite Value of Autarky Condition; the FVAF is {0.FVAF}',
+            False : '\nThe Finite Value of Autarky Factor (FVAV) for the supplied parameter values fails     the Finite Value of Autarky Condition; the FVAF is {0.FVAF}'
+        }
+
+        verbose_messages = {
+            True : '  Therefore, a nondegenerate solution exists if the WRIC also holds; see {0.url}/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping\n',
+            False: '  Therefore, a nondegenerate solution is not available (see {0.url}/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping\n'
+        }
+
+        self.checkCondition(name, test, messages, verbose_messages, verbose=verbose)
 
 
-    def checkConditions(self,verbose=False,public_call=True):
+    def checkConditions(self,verbose=False):
         '''
         This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC), Weak Return
         Impatience Condition (WRIC), Finite Human Wealth Condition (FHWC) and Finite Value of
@@ -2418,6 +2455,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         '''
+        self.conditions = {}
+
         self.violated = False # PerfForesightConsumerType.checkConditions(self, verbose=False, verbose_reference=False)
 
         if self.cycles!=0 or self.T_cycle > 1:
@@ -2426,51 +2465,49 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # For theory, see hyperlink targets to expressions in 
         # url=http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory
         # For example, the hyperlink to the relevant section of the paper
-        self.url='http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory'
+        self.url='https://llorracc.github.io/BufferStockTheory'
         # would be referenced below as:
         # [url]/#Uncertainty-Modified-Conditions
         
         self.InvPermShkDstn=deepcopy(self.PermShkDstn)
-        self.InvPermShkDstn[0][1]=1/self.PermShkDstn[0][1]
-        EPermShkInv=np.dot(self.InvPermShkDstn[0][0],1/self.PermShkDstn[0][1]) # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
 
-        InvEPermShkInv=(1/EPermShkInv)                          # $\underline{\psi}$ in the paper (\bar{\isp} in private version)
-        PermGroFacAdj=self.PermGroFac[0]*InvEPermShkInv                # [url]/#PGroAdj
+        self.InvPermShkDstn[0].X = 1/self.PermShkDstn[0].X
+        self.EPermShkInv=np.dot(self.InvPermShkDstn[0].pmf,
+                                1/self.PermShkDstn[0].X) # $\Ex_{t}[\psi^{-1}_{t+1}]$ (in first eqn in sec)
         # [url]/#Pat, adjusted to include mortality
-#        Thorn = ((self.Rfree/self.LivPrb[0])*(self.DiscFac*self.LivPrb[0]))**(1/self.CRRA)
-        Thorn = ((self.Rfree*self.DiscFac))**(1/self.CRRA)
-        GIFPF  = Thorn/(self.PermGroFac[0]               )      # [url]/#GIF
-        GIFInd = Thorn/(self.PermGroFac[0]*InvEPermShkInv)      # [url]/#GIFI
-        GIFAgg = Thorn*self.LivPrb[0]/self.PermGroFac[0]        # Lower bound of aggregate wealth growth if all inheritances squandered
 
-#        self.Rnorm           = self.Rfree*EPermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
-        self.GIFPF           = GIFPF
-        self.GIFInd          = GIFInd
-        self.GIFAgg          = GIFAgg
-        self.Thorn           = Thorn
-        self.PermGroFacAdj   = PermGroFacAdj
-        self.EPermShkInv     = EPermShkInv
-        self.InvEPermShkInv  = InvEPermShkInv
-        self.DiscFacGIFPFMax = ((self.PermGroFac[0]              )**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
-        self.DiscFacGIFIndMax = ((self.PermGroFac[0]*InvEPermShkInv)**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
-        self.DiscFacGIFAggMax = ((self.PermGroFac[0]               )**(self.CRRA))/(self.Rfree*self.LivPrb[0]) # DiscFac at growth impatience knife edge
+        self.InvEPermShkInv  = (1/self.EPermShkInv)  # $\underline{\psi}$ in the paper (\bar{\isp} in private version)
+        self.PermGroFacAdj   = self.PermGroFac[0]*self.InvEPermShkInv # [url]/#PGroAdj
 
-        self.checkGICPF(Thorn,verbose,public_call)
-        self.checkGICInd(Thorn,verbose,public_call)
-        self.checkCIGAgg(Thorn,verbose,public_call)
-        self.checkWRIC(verbose,public_call)
-        self.checkFVAC(verbose, public_call)
+        self.thorn = ((self.Rfree*self.DiscFac))**(1/self.CRRA)
+
+        # self.Rnorm           = self.Rfree*EPermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
+        self.GIFPF = self.thorn/(self.PermGroFac[0])      # [url]/#GIF
+        # Lower bound of aggregate wealth growth if all inheritances squandered
+        self.GIFAgg = self.thorn*self.LivPrb[0]/self.PermGroFac[0]
+        
+        self.DiscFacGIFPFMax = ((self.PermGroFac[0])**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
+        self.DiscFacGIFIndMax = ((self.PermGroFac[0]*self.InvEPermShkInv)**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
+        self.DiscFacGIFAggMax = ((self.PermGroFac[0])**(self.CRRA))/(self.Rfree*self.LivPrb[0]) # DiscFac at growth impatience knife edge
+
+#        self.checkGICPF(verbose)
+        self.checkGICInd(verbose)
+        self.checkCIGAgg(verbose)
+        self.checkWRIC(verbose)
+        self.checkFVAC(verbose)
+
+        self.violated = not self.conditions['WRIC'] or not self.conditions['FVAC']
 
         if verbose and self.violated:
             print('\n[!] For more information on the conditions, see Tables 3 and 4 in "Theoretical Foundations of Buffer Stock Saving" at '+self.url+'/#Factors-Defined-And-Compared')
             print('')
 
         if verbose:
-            print('GIFPF            = %2.6f ' % (GIFPF))
-            print('GIFInd           = %2.6f ' % (GIFInd))
-            print('GIFAgg           = %2.6f ' % (GIFAgg))
-            print('Thorn = AIF      = %2.6f ' % (Thorn))
-            print('PermGroFacAdj    = %2.6f ' % (PermGroFacAdj))
+            print('GIFPF            = %2.6f ' % (self.GIFPF))
+            print('GIFInd           = %2.6f ' % (self.GIFInd))
+            print('GIFAgg           = %2.6f ' % (self.GIFAgg))
+            print('Thorn = AIF      = %2.6f ' % (self.thorn))
+            print('PermGroFacAdj    = %2.6f ' % (self.PermGroFacAdj))
             print('uInvEpShkuInv    = %2.6f ' % (self.uInvEpShkuInv))
             print('FVAF             = %2.6f ' % (self.FVAF))
             print('WRIF             = %2.6f ' % (self.WRIF))
@@ -2529,6 +2566,127 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # The target level of m, mTarg, will be the value such that
         # cSust[m] = cFunc[m]
 
+
+
+    # ========================================================
+    # = Functions for generating discrete income processes and
+    #   simulated income shocks =
+    # ========================================================
+
+    def constructLognormalIncomeProcessUnemployment(self):
+        '''
+        Generates a list of discrete approximations to the income process for each
+        life period, from end of life to beginning of life.  Permanent shocks are mean
+        one lognormally distributed with standard deviation PermShkStd[t] during the
+        working life, and degenerate at 1 in the retirement period.  Transitory shocks
+        are mean one lognormally distributed with a point mass at IncUnemp with
+        probability UnempPrb while working; they are mean one with a point mass at
+        IncUnempRet with probability UnempPrbRet.  Retirement occurs
+        after t=T_retire periods of working.
+
+        Note 1: All time in this function runs forward, from t=0 to t=T
+
+        Note 2: All parameters are passed as attributes of the input parameters.
+
+        Parameters (passed as attributes of the input parameters)
+        ----------
+        PermShkStd : [float]
+            List of standard deviations in log permanent income uncertainty during
+            the agent's life.
+        PermShkCount : int
+            The number of approximation points to be used in the discrete approxima-
+            tion to the permanent income shock distribution.
+        TranShkStd : [float]
+            List of standard deviations in log transitory income uncertainty during
+            the agent's life.
+        TranShkCount : int
+            The number of approximation points to be used in the discrete approxima-
+            tion to the permanent income shock distribution.
+        UnempPrb : float
+            The probability of becoming unemployed during the working period.
+        UnempPrbRet : float
+            The probability of not receiving typical retirement income when retired.
+        T_retire : int
+            The index value for the final working period in the agent's life.
+            If T_retire <= 0 then there is no retirement.
+        IncUnemp : float
+            Transitory income received when unemployed.
+        IncUnempRet : float
+            Transitory income received while "unemployed" when retired.
+        T_cycle :  int
+            Total number of non-terminal periods in the consumer's sequence of periods.
+
+        Returns
+        -------
+        IncomeDstn :  [[np.array]]
+            A list with T_cycle elements, each of which is a list of three arrays
+            representing a discrete approximation to the income process in a period.
+            Order: probabilities, permanent shocks, transitory shocks.
+        PermShkDstn : [[np.array]]
+            A list with T_cycle elements, each of which is a list of two arrays
+            representing a discrete approximation to the permanent income shocks.
+        TranShkDstn : [[np.array]]
+            A list with T_cycle elements, each of which is a list of two arrays
+            representing a discrete approximation to the transitory income shocks.
+        '''
+        # Unpack the parameters from the input
+        PermShkStd    = self.PermShkStd
+        PermShkCount  = self.PermShkCount
+        TranShkStd    = self.TranShkStd
+        TranShkCount  = self.TranShkCount
+        T_cycle       = self.T_cycle
+        T_retire      = self.T_retire
+        UnempPrb      = self.UnempPrb
+        IncUnemp      = self.IncUnemp
+        UnempPrbRet   = self.UnempPrbRet
+        IncUnempRet   = self.IncUnempRet
+
+        IncomeDstn    = [] # Discrete approximations to income process in each period
+        PermShkDstn   = [] # Discrete approximations to permanent income shocks
+        TranShkDstn   = [] # Discrete approximations to transitory income shocks
+
+        # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
+        # in normal times; value 0.0 in "unemployment" times with small prob.
+        if T_retire > 0:
+            if UnempPrbRet > 0:
+                PermShkValsRet  = np.array([1.0, 1.0])    # Permanent income is deterministic in retirement (2 states for temp income shocks)
+                TranShkValsRet  = np.array([IncUnempRet,
+                                            (1.0-UnempPrbRet*IncUnempRet)/(1.0-UnempPrbRet)])
+                ShkPrbsRet      = np.array([UnempPrbRet, 1.0-UnempPrbRet])
+            else:
+                PermShkValsRet  = np.array([1.0])
+                TranShkValsRet  = np.array([1.0])
+                ShkPrbsRet      = np.array([1.0])
+            IncomeDstnRet = DiscreteDistribution(ShkPrbsRet,
+                                                 [PermShkValsRet,
+                                                  TranShkValsRet])
+
+        # Loop to fill in the list of IncomeDstn random variables.
+        for t in range(T_cycle): # Iterate over all periods, counting forward
+
+            if T_retire > 0 and t >= T_retire:
+                # Then we are in the "retirement period" and add a retirement income object.
+                IncomeDstn.append(deepcopy(IncomeDstnRet))
+                PermShkDstn.append([np.array([1.0]),np.array([1.0])])
+                TranShkDstn.append([ShkPrbsRet,TranShkValsRet])
+            else:
+                # We are in the "working life" periods.
+                TranShkDstn_t    = MeanOneLogNormal(
+                    sigma=TranShkStd[t] 
+                ).approx(TranShkCount, tail_N=0)
+                if UnempPrb > 0:
+                    TranShkDstn_t = addDiscreteOutcomeConstantMean(TranShkDstn_t, p=UnempPrb, x=IncUnemp)
+                PermShkDstn_t    = MeanOneLogNormal(
+                    sigma=PermShkStd[t]
+                ).approx(PermShkCount, tail_N=0)
+                ### REPLACE
+                ###REPLACE
+                IncomeDstn.append(combineIndepDstns(PermShkDstn_t,TranShkDstn_t)) # mix the independent distributions
+                PermShkDstn.append(PermShkDstn_t)
+                TranShkDstn.append(TranShkDstn_t)
+        return IncomeDstn, PermShkDstn, TranShkDstn
+
+
 # Make a dictionary to specify a "kinked R" idiosyncratic shock consumer
 init_kinked_R = dict(init_idiosyncratic_shocks,
                      **{
@@ -2552,7 +2710,7 @@ class KinkedRconsumerType(IndShockConsumerType):
     time_inv_.remove('Rfree')
     time_inv_ += ['Rboro', 'Rsave']
 
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,cycles=1,**kwds):
         '''
         Instantiate a new ConsumerType with given data.
         See ConsumerParameters.init_kinked_R for a dictionary of
@@ -2562,8 +2720,6 @@ class KinkedRconsumerType(IndShockConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -2573,7 +2729,9 @@ class KinkedRconsumerType(IndShockConsumerType):
         params.update(kwds)
 
         # Initialize a basic AgentType
-        PerfForesightConsumerType.__init__(self,cycles=cycles,time_flow=time_flow,**params)
+        PerfForesightConsumerType.__init__(self,
+                                           cycles=cycles,
+                                           **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.solveOnePeriod = solveConsKinkedR # kinked R solver
@@ -2694,116 +2852,6 @@ class KinkedRconsumerType(IndShockConsumerType):
         '''
         raise NotImplementedError()
 
-# ==================================================================================
-# = Functions for generating discrete income processes and simulated income shocks =
-# ==================================================================================
-
-def constructLognormalIncomeProcessUnemployment(parameters):
-    '''
-    Generates a list of discrete approximations to the income process for each
-    life period, from end of life to beginning of life.  Permanent shocks are mean
-    one lognormally distributed with standard deviation PermShkStd[t] during the
-    working life, and degenerate at 1 in the retirement period.  Transitory shocks
-    are mean one lognormally distributed with a point mass at IncUnemp with
-    probability UnempPrb while working; they are mean one with a point mass at
-    IncUnempRet with probability UnempPrbRet.  Retirement occurs
-    after t=T_retire periods of working.
-
-    Note 1: All time in this function runs forward, from t=0 to t=T
-
-    Note 2: All parameters are passed as attributes of the input parameters.
-
-    Parameters (passed as attributes of the input parameters)
-    ----------
-    PermShkStd : [float]
-        List of standard deviations in log permanent income uncertainty during
-        the agent's life.
-    PermShkCount : int
-        The number of approximation points to be used in the discrete approxima-
-        tion to the permanent income shock distribution.
-    TranShkStd : [float]
-        List of standard deviations in log transitory income uncertainty during
-        the agent's life.
-    TranShkCount : int
-        The number of approximation points to be used in the discrete approxima-
-        tion to the permanent income shock distribution.
-    UnempPrb : float
-        The probability of becoming unemployed during the working period.
-    UnempPrbRet : float
-        The probability of not receiving typical retirement income when retired.
-    T_retire : int
-        The index value for the final working period in the agent's life.
-        If T_retire <= 0 then there is no retirement.
-    IncUnemp : float
-        Transitory income received when unemployed.
-    IncUnempRet : float
-        Transitory income received while "unemployed" when retired.
-    T_cycle :  int
-        Total number of non-terminal periods in the consumer's sequence of periods.
-
-    Returns
-    -------
-    IncomeDstn :  [[np.array]]
-        A list with T_cycle elements, each of which is a list of three arrays
-        representing a discrete approximation to the income process in a period.
-        Order: probabilities, permanent shocks, transitory shocks.
-    PermShkDstn : [[np.array]]
-        A list with T_cycle elements, each of which is a list of two arrays
-        representing a discrete approximation to the permanent income shocks.
-    TranShkDstn : [[np.array]]
-        A list with T_cycle elements, each of which is a list of two arrays
-        representing a discrete approximation to the transitory income shocks.
-    '''
-    # Unpack the parameters from the input
-    PermShkStd    = parameters.PermShkStd
-    PermShkCount  = parameters.PermShkCount
-    TranShkStd    = parameters.TranShkStd
-    TranShkCount  = parameters.TranShkCount
-    T_cycle       = parameters.T_cycle
-    T_retire      = parameters.T_retire
-    UnempPrb      = parameters.UnempPrb
-    IncUnemp      = parameters.IncUnemp
-    UnempPrbRet   = parameters.UnempPrbRet
-    IncUnempRet   = parameters.IncUnempRet
-
-    IncomeDstn    = [] # Discrete approximations to income process in each period
-    PermShkDstn   = [] # Discrete approximations to permanent income shocks
-    TranShkDstn   = [] # Discrete approximations to transitory income shocks
-
-    # Fill out a simple discrete RV for retirement, with value 1.0 (mean of shocks)
-    # in normal times; value 0.0 in "unemployment" times with small prob.
-    if T_retire > 0:
-        if UnempPrbRet > 0:
-            PermShkValsRet  = np.array([1.0, 1.0])    # Permanent income is deterministic in retirement (2 states for temp income shocks)
-            TranShkValsRet  = np.array([IncUnempRet,
-                                        (1.0-UnempPrbRet*IncUnempRet)/(1.0-UnempPrbRet)])
-            ShkPrbsRet      = np.array([UnempPrbRet, 1.0-UnempPrbRet])
-        else:
-            PermShkValsRet  = np.array([1.0])
-            TranShkValsRet  = np.array([1.0])
-            ShkPrbsRet      = np.array([1.0])
-        IncomeDstnRet = [ShkPrbsRet,PermShkValsRet,TranShkValsRet]
-
-    # Loop to fill in the list of IncomeDstn random variables.
-    for t in range(T_cycle): # Iterate over all periods, counting forward
-
-        if T_retire > 0 and t >= T_retire:
-            # Then we are in the "retirement period" and add a retirement income object.
-            IncomeDstn.append(deepcopy(IncomeDstnRet))
-            PermShkDstn.append([np.array([1.0]),np.array([1.0])])
-            TranShkDstn.append([ShkPrbsRet,TranShkValsRet])
-        else:
-            # We are in the "working life" periods.
-            TranShkDstn_t    = approxMeanOneLognormal(N=TranShkCount, sigma=TranShkStd[t], tail_N=0)
-            if UnempPrb > 0:
-                TranShkDstn_t = addDiscreteOutcomeConstantMean(TranShkDstn_t, p=UnempPrb, x=IncUnemp)
-            PermShkDstn_t    = approxMeanOneLognormal(N=PermShkCount, sigma=PermShkStd[t], tail_N=0)
-            IncomeDstn.append(combineIndepDstns(PermShkDstn_t,TranShkDstn_t)) # mix the independent distributions
-            PermShkDstn.append(PermShkDstn_t)
-            TranShkDstn.append(TranShkDstn_t)
-    return IncomeDstn, PermShkDstn, TranShkDstn
-
-
 def applyFlatIncomeTax(IncomeDstn,tax_rate,T_retire,unemployed_indices=[],transitory_index=2):
     '''
     Applies a flat income tax rate to all employed income states during the working
@@ -2893,6 +2941,7 @@ def constructAssetsGrid(parameters):
 
     return aXtraGrid
 
+
 # Make a dictionary to specify a lifecycle consumer with a finite horizon
 init_lifecycle = copy(init_idiosyncratic_shocks)
 init_lifecycle['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
@@ -2910,4 +2959,3 @@ init_cyclical['PermShkStd'] = [0.1,0.1,0.1,0.1]
 init_cyclical['TranShkStd'] = [0.1,0.1,0.1,0.1]
 init_cyclical['LivPrb']     = 4*[0.98]
 init_cyclical['T_cycle']    = 4
-

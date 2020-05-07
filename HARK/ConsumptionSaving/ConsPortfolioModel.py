@@ -22,11 +22,8 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import(
     ValueFunc2D,                # For representing 2D value function
     MargValueFunc2D             # For representing 2D marginal value function
 )
-from HARK.utilities import (
-    approxLognormal,            # For approximating the lognormal return factor
-    combineIndepDstns,          # For combining the income distribution with the risky return distribution
-)
-from HARK.simulation import drawLognormal, drawBernoulli # Random draws for simulating agents
+from HARK.distribution import combineIndepDstns 
+from HARK.distribution import Lognormal, Bernoulli # Random draws for simulating agents
 from HARK.interpolation import(
         LinearInterp,           # Piecewise linear interpolation
         CubicInterp,            # Piecewise cubic interpolation
@@ -137,7 +134,7 @@ class PortfolioConsumerType(IndShockConsumerType):
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
     time_inv_ = time_inv_ + ['AdjustPrb', 'DiscreteShareBool']
 
-    def __init__(self, cycles=1, time_flow=True, verbose=False, quiet=False, **kwds):
+    def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
         params = init_portfolio.copy()
         params.update(kwds)
         kwds = params
@@ -146,7 +143,6 @@ class PortfolioConsumerType(IndShockConsumerType):
         IndShockConsumerType.__init__(
             self,
             cycles=cycles,
-            time_flow=time_flow,
             verbose=verbose,
             quiet=quiet,
             **kwds
@@ -241,18 +237,14 @@ class PortfolioConsumerType(IndShockConsumerType):
         # agent has age-varying beliefs about the risky asset
         if 'RiskyAvg' in self.time_vary:
             RiskyDstn = []
-            time_orig = self.time_flow
-            self.timeFwd()
             for t in range(self.T_cycle):
                 RiskyAvgSqrd = self.RiskyAvg[t] ** 2
                 RiskyVar = self.RiskyStd[t] ** 2
                 mu = np.log(self.RiskyAvg[t] / (np.sqrt(1. + RiskyVar / RiskyAvgSqrd)))
                 sigma = np.sqrt(np.log(1. + RiskyVar / RiskyAvgSqrd))
-                RiskyDstn.append(approxLognormal(self.RiskyCount, mu=mu, sigma=sigma))
+                RiskyDstn.append(Lognormal(mu=mu, sigma=sigma).approx(self.RiskyCount))
             self.RiskyDstn = RiskyDstn
             self.addToTimeVary('RiskyDstn')
-            if not time_orig:
-                self.timeRev()
                 
         # Generate a discrete approximation to the risky return distribution if the
         # agent does *not* have age-varying beliefs about the risky asset (base case)
@@ -261,7 +253,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             RiskyVar = self.RiskyStd ** 2
             mu = np.log(self.RiskyAvg / (np.sqrt(1. + RiskyVar / RiskyAvgSqrd)))
             sigma = np.sqrt(np.log(1. + RiskyVar / RiskyAvgSqrd))
-            self.RiskyDstn = approxLognormal(self.RiskyCount, mu=mu, sigma=sigma)
+            self.RiskyDstn = Lognormal(mu=mu, sigma=sigma).approx(self.RiskyCount)
             self.addToTimeInv('RiskyDstn')
             
             
@@ -320,21 +312,17 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         '''
         if 'RiskyDstn' in self.time_vary:
-            time_orig = self.time_flow
-            self.timeFwd()
             self.ShareLimit = []
             for t in range(self.T_cycle):
                 RiskyDstn = self.RiskyDstn[t]
-                temp_f = lambda s : -((1.-self.CRRA)**-1)*np.dot((self.Rfree + s*(RiskyDstn[1]-self.Rfree))**(1.-self.CRRA), RiskyDstn[0])
+                temp_f = lambda s : -((1.-self.CRRA)**-1)*np.dot((self.Rfree + s*(RiskyDstn.X-self.Rfree))**(1.-self.CRRA), RiskyDstn.pmf)
                 SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method='bounded').x
                 self.ShareLimit.append(SharePF)
             self.addToTimeVary('ShareLimit')
-            if not time_orig:
-                self.timeRev()
         
         else:
             RiskyDstn = self.RiskyDstn
-            temp_f = lambda s : -((1.-self.CRRA)**-1)*np.dot((self.Rfree + s*(RiskyDstn[1]-self.Rfree))**(1.-self.CRRA), RiskyDstn[0])
+            temp_f = lambda s : -((1.-self.CRRA)**-1)*np.dot((self.Rfree + s*(RiskyDstn.X-self.Rfree))**(1.-self.CRRA), RiskyDstn.pmf)
             SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method='bounded').x
             self.ShareLimit = SharePF
             self.addToTimeInv('ShareLimit')
@@ -365,7 +353,7 @@ class PortfolioConsumerType(IndShockConsumerType):
 
         mu = np.log(RiskyAvg / (np.sqrt(1. + RiskyVar / RiskyAvgSqrd)))
         sigma = np.sqrt(np.log(1. + RiskyVar / RiskyAvgSqrd))
-        self.RiskyNow = drawLognormal(1, mu=mu, sigma=sigma, seed=self.RNG.randint(0, 2**31-1))
+        self.RiskyNow = Lognormal(mu, sigma).draw(1, seed=self.RNG.randint(0, 2**31-1))
         
         
     def getAdjust(self):
@@ -382,7 +370,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        self.AdjustNow = drawBernoulli(self.AgentCount, p=self.AdjustPrb, seed=self.RNG.randint(0, 2**31-1))
+        self.AdjustNow = Bernoulli(self.AdjustPrb).draw(self.AgentCount, seed=self.RNG.randint(0, 2**31-1))
         
         
     def getRfree(self):
@@ -593,11 +581,11 @@ def solveConsPortfolio(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # Major method fork: (in)dependent risky asset return and income distributions
     if IndepDstnBool: # If the distributions ARE independent...
         # Unpack the shock distribution
-        IncPrbs_next = IncomeDstn[0]
-        PermShks_next  = IncomeDstn[1]
-        TranShks_next  = IncomeDstn[2]
-        Rprbs_next     = RiskyDstn[0]
-        Risky_next     = RiskyDstn[1]
+        IncPrbs_next = IncomeDstn.pmf
+        PermShks_next  = IncomeDstn.X[0]
+        TranShks_next  = IncomeDstn.X[1]
+        Rprbs_next     = RiskyDstn.pmf
+        Risky_next     = RiskyDstn.X
         zero_bound = (np.min(TranShks_next) == 0.) # Flag for whether the natural borrowing constraint is zero
         RiskyMax  = np.max(Risky_next)
         

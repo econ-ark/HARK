@@ -12,8 +12,14 @@ import numpy as np
 from HARK import AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver, ValueFunc, \
                              MargValueFunc, ConsumerSolution, IndShockConsumerType
+<<<<<<< HEAD
+from HARK.distribution import Uniform
+=======
 
-from HARK.distribution import DiscreteDistribution, Uniform
+
+from HARK.distribution import DiscreteDistribution
+from HARK.simulation import Uniform
+>>>>>>> 8fc1cd2b34dbb8b29e0c088182bc1d737c7f07ad
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv, \
                            CRRAutility_invP, CRRAutility_inv, CRRAutilityP_invP
@@ -683,10 +689,8 @@ class MarkovConsumerType(IndShockConsumerType):
     time_vary_ = IndShockConsumerType.time_vary_ + ['MrkvArray']
     shock_vars_ = IndShockConsumerType.shock_vars_ + ['MrkvNow']
 
-    def __init__(self,
-                 cycles=1,
-                 **kwds):
-        IndShockConsumerType.__init__(self,cycles=1,**kwds)
+    def __init__(self,cycles=1,time_flow=True,**kwds):
+        IndShockConsumerType.__init__(self,cycles=1,time_flow=True,**kwds)
         self.solveOnePeriod = _solveConsMarkov
         self.poststate_vars += ['MrkvNow']
         if not hasattr(self, 'global_markov'):
@@ -897,7 +901,7 @@ class MarkovConsumerType(IndShockConsumerType):
                 if N > 0:
                     IncomeDstnNow    = self.IncomeDstn[t-1][j] # set current income distribution
                     PermGroFacNow    = self.PermGroFac[t-1][j] # and permanent growth factor
-
+                    Indices          = np.arange(IncomeDstnNow.pmf.size) # just a list of integers
                     # Get random draws of income shocks from the discrete distribution
                     EventDraws       = IncomeDstnNow.draw_events(
                         N,

@@ -43,7 +43,7 @@ Follow the directions within https://packaging.python.org/tutorials/packaging-pr
 Deactivate the virtualenv, and make or use a different Python 2.7 virtualenv to test that you can `pip install` the `sdist` you've just made. One thing you can do to quickly verify that the package installs OK:
 
 `>>> import HARK.simulation`
-`>>> HARK.simulation.drawBernoulli(5)`
+`>>> HARK.simulation.Bernoulli().draw(5)`
 
 You should get something like:
 

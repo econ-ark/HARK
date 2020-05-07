@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.2.1
+#       jupytext_version: 1.2.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -148,12 +148,12 @@ print("This agent's human wealth is " + str(humanWealth) + ' times his current i
 print("This agent's consumption function is defined (consumption is positive) down to m_t = " + str(mMinimum))
 
 # %% [markdown]
-# Yikes! Let's take a look at the bottom of the consumption function.  In the cell below, set the bounds of the $\texttt{plotFuncs}$ function to display down to the lowest defined value of the consumption function.
+# Yikes! Let's take a look at the bottom of the consumption function.  In the cell below, the bounds of the $\texttt{plotFuncs}$ function are set to display down to the lowest defined value of the consumption function.
 
 # %%
-# YOUR FIRST HANDS-ON EXERCISE!
-# Fill in the value for "mPlotBottom" to plot the consumption function from the point where it is zero.
-plotFuncs(PFexample.solution[0].cFunc,mPlotBottom,mPlotTop)
+plotFuncs(PFexample.solution[0].cFunc,
+          mMinimum,
+          mPlotTop)
 
 # %% [markdown]
 # ## Changing Agent Parameters
@@ -170,7 +170,10 @@ NewExample = deepcopy(PFexample)
 NewExample.DiscFac = 0.90
 NewExample.solve()
 mPlotBottom = mMinimum
-plotFuncs([PFexample.solution[0].cFunc,NewExample.solution[0].cFunc],mPlotBottom,mPlotTop)
+plotFuncs([PFexample.solution[0].cFunc,
+           NewExample.solution[0].cFunc],
+          mPlotBottom,
+          mPlotTop)
 
 # %% [markdown]
 # (Note that you can pass a **list** of functions to $\texttt{plotFuncs}$ as the first argument rather than just a single function. Lists are written inside of [square brackets].)

@@ -14,6 +14,7 @@ import numpy as np
 from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType, IndShockConsumerType, init_idiosyncratic_shocks
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerType
+from HARK.distribution import DiscreteDistribution
 
 
 class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
@@ -48,7 +49,6 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
 
         InfiniteType.updateIncomeProcess()
         InfiniteType.solve()
-        InfiniteType.timeFwd()
         InfiniteType.unpackcFunc()
 
         # Make and solve a perfect foresight consumer type with the same parameters
@@ -57,7 +57,6 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
 
         PerfectForesightType.solve()
         PerfectForesightType.unpackcFunc()
-        PerfectForesightType.timeFwd()
 
         self.InfiniteType = InfiniteType
         self.PerfectForesightType = PerfectForesightType
@@ -130,9 +129,14 @@ class Compare_TBS_and_Markov(unittest.TestCase):
 
         MarkovType = MarkovConsumerType(**Markov_primitives)
         MarkovType.cycles = 0
-        employed_income_dist = [np.ones(1), np.ones(1), np.ones(1)]
-        unemployed_income_dist = [np.ones(1), np.ones(1), np.zeros(1)]
-        MarkovType.IncomeDstn = [[employed_income_dist, unemployed_income_dist]]
+        employed_income_dist = DiscreteDistribution(np.ones(1),
+                                                    [np.ones(1),
+                                                     np.ones(1)])
+        unemployed_income_dist = DiscreteDistribution(np.ones(1),
+                                                      [np.ones(1),
+                                                       np.zeros(1)])
+        MarkovType.IncomeDstn = [[employed_income_dist,
+                                  unemployed_income_dist]]
 
         MarkovType.solve()
         MarkovType.unpackcFunc()

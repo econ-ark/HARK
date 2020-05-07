@@ -10,7 +10,7 @@ from builtins import str
 from builtins import range
 import numpy as np
 from HARK.interpolation import LinearInterp
-from HARK.simulation import drawUniform, drawDiscrete
+from HARK.distribution import Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType,\
           ConsumerSolution,MargValueFunc, init_idiosyncratic_shocks
 
@@ -51,9 +51,9 @@ def solveConsRepAgent(solution_next,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,Per
     '''
     # Unpack next period's solution and the income distribution
     vPfuncNext      = solution_next.vPfunc
-    ShkPrbsNext     = IncomeDstn[0]
-    PermShkValsNext = IncomeDstn[1]
-    TranShkValsNext = IncomeDstn[2]
+    ShkPrbsNext     = IncomeDstn.pmf
+    PermShkValsNext = IncomeDstn.X[0]
+    TranShkValsNext = IncomeDstn.X[1]
 
     # Make tiled versions of end-of-period assets, shocks, and probabilities
     aNrmNow     = aXtraGrid
@@ -141,9 +141,9 @@ def solveConsRepAgentMarkov(solution_next,MrkvArray,DiscFac,CRRA,IncomeDstn,CapS
     for j in range(StateCount):
         # Define next-period-state conditional objects
         vPfuncNext  = solution_next.vPfunc[j]
-        ShkPrbsNext     = IncomeDstn[j][0]
-        PermShkValsNext = IncomeDstn[j][1]
-        TranShkValsNext = IncomeDstn[j][2]
+        ShkPrbsNext     = IncomeDstn[j].pmf
+        PermShkValsNext = IncomeDstn[j].X[0]
+        TranShkValsNext = IncomeDstn[j].X[1]
 
         # Make tiled versions of end-of-period assets, shocks, and probabilities
         ShkCount    = ShkPrbsNext.size
@@ -195,14 +195,12 @@ class RepAgentConsumerType(IndShockConsumerType):
     '''
     time_inv_ = IndShockConsumerType.time_inv_ + ['CapShare','DeprFac']
 
-    def __init__(self,time_flow=True,**kwds):
+    def __init__(self,**kwds):
         '''
         Make a new instance of a representative agent.
 
         Parameters
         ----------
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -211,7 +209,7 @@ class RepAgentConsumerType(IndShockConsumerType):
         params = init_rep_agent.copy()
         params.update(kwds)
         
-        IndShockConsumerType.__init__(self,cycles=0,time_flow=time_flow,**params)
+        IndShockConsumerType.__init__(self,cycles=0,**params)
         self.AgentCount = 1 # Hardcoded, because this is rep agent
         self.solveOnePeriod = solveConsRepAgent
         self.delFromTimeInv('Rfree','BoroCnstArt','vFuncBool','CubicBool')
@@ -251,23 +249,21 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
     '''
     time_inv_ = RepAgentConsumerType.time_inv_ + ['MrkvArray']
 
-    def __init__(self,time_flow=True,**kwds):
+    def __init__(self,**kwds):
         '''
         Make a new instance of a representative agent with Markov state.
 
         Parameters
         ----------
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
-
+ 
         Returns
         -------
         None
         '''
         params = init_markov_rep_agent.copy()
         params.update(kwds)
-        
-        RepAgentConsumerType.__init__(self,time_flow=time_flow,**params)
+
+        RepAgentConsumerType.__init__(self,**params)
         self.solveOnePeriod = solveConsRepAgentMarkov
         
     def preSolve(self):
@@ -308,18 +304,18 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         None
         '''
         cutoffs = np.cumsum(self.MrkvArray[self.MrkvNow,:])
-        MrkvDraw = drawUniform(N=1,seed=self.RNG.randint(0,2**31-1))
+        MrkvDraw = Uniform().draw(N=1,seed=self.RNG.randint(0,2**31-1))
         self.MrkvNow = np.searchsorted(cutoffs,MrkvDraw)
 
         t = self.t_cycle[0]
         i = self.MrkvNow[0]
         IncomeDstnNow    = self.IncomeDstn[t-1][i] # set current income distribution
         PermGroFacNow    = self.PermGroFac[t-1][i] # and permanent growth factor
-        Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
         # Get random draws of income shocks from the discrete distribution
-        EventDraw        = drawDiscrete(N=1,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
-        PermShkNow = IncomeDstnNow[1][EventDraw]*PermGroFacNow # permanent "shock" includes expected growth
-        TranShkNow = IncomeDstnNow[2][EventDraw]
+        EventDraw        =         IncomeDstnNow.draw_events(1,
+                                                             seed=self.RNG.randint(0,2**31-1))
+        PermShkNow = IncomeDstnNow.X[0][EventDraw]*PermGroFacNow # permanent "shock" includes expected growth
+        TranShkNow = IncomeDstnNow.X[1][EventDraw]
         self.PermShkNow = np.array(PermShkNow)
         self.TranShkNow = np.array(TranShkNow)
 
@@ -339,8 +335,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         t = self.t_cycle[0]
         i = self.MrkvNow[0]
         self.cNrmNow = self.solution[t].cFunc[i](self.mNrmNow)
-        
-        
+
 # Define the default dictionary for a representative agent type
 init_rep_agent = init_idiosyncratic_shocks.copy()
 init_rep_agent["DeprFac"] = 0.05

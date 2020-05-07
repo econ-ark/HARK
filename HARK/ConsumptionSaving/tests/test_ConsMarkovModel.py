@@ -1,6 +1,7 @@
 import numpy as np
 from HARK.ConsumptionSaving.ConsIndShockModel import init_idiosyncratic_shocks
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+from HARK.distribution import DiscreteDistribution
 from copy import copy
 import unittest
 
@@ -17,7 +18,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
         p_unemploy_good = p_reemploy * urate_good / (1 - urate_good)
         p_unemploy_bad = p_reemploy * urate_bad / (1 - urate_bad)
         boom_prob = 1.0 / recession_length
-        self.MrkvArray = np.array(
+        MrkvArray = np.array(
             [
                 [
                     (1 - p_unemploy_good) * (1 - bust_prob),
@@ -47,15 +48,32 @@ class test_ConsMarkovSolver(unittest.TestCase):
         )
 
         init_serial_unemployment = copy(init_idiosyncratic_shocks)
-        init_serial_unemployment["MrkvArray"] = [self.MrkvArray]       
-        self.model = MarkovConsumerType(**init_serial_unemployment) 
-    
+        init_serial_unemployment["MrkvArray"] = [MrkvArray]       
+        init_serial_unemployment["UnempPrb"] = 0  # to make income distribution when employed
+        init_serial_unemployment["global_markov"] = False
+        self.model = MarkovConsumerType(**init_serial_unemployment)
+        self.model.cycles = 0
+        self.model.vFuncBool = False  # for easy toggling here
+
+        # Replace the default (lognormal) income distribution with a custom one
+        employed_income_dist = DiscreteDistribution(np.ones(1), [np.ones(1), np.ones(1)])  # Definitely get income
+        unemployed_income_dist = DiscreteDistribution(np.ones(1), [np.ones(1), np.zeros(1)]) # Definitely don't
+        self.model.IncomeDstn = [
+            [
+                employed_income_dist,
+                unemployed_income_dist,
+                employed_income_dist,
+                unemployed_income_dist,
+            ]
+        ]
+
     def test_checkMarkovInputs(self):
         # check Rfree
         self.assertRaises(ValueError, self.model.checkMarkovInputs)
         # fix Rfree
         self.model.Rfree = np.array(4 * [self.model.Rfree])
         # check MrkvArray, first mess up the setup
+        self.MrkvArray = self.model.MrkvArray
         self.model.MrkvArray = np.random.rand(3, 3)
         self.assertRaises(ValueError, self.model.checkMarkovInputs)
         # then fix it back
@@ -68,3 +86,21 @@ class test_ConsMarkovSolver(unittest.TestCase):
         self.assertRaises(ValueError, self.model.checkMarkovInputs)
         # fix PermGroFac
         self.model.PermGroFac = [np.array(4 * self.model.PermGroFac)]
+
+    def test_solve(self):
+        self.model.Rfree = np.array(4 * [self.model.Rfree])
+        self.model.LivPrb = [np.array(4 * self.model.LivPrb)]
+        self.model.PermGroFac = [np.array(4 * self.model.PermGroFac)]
+        self.model.solve()
+
+    def test_simulation(self):
+        self.model.Rfree = np.array(4 * [self.model.Rfree])
+        self.model.LivPrb = [np.array(4 * self.model.LivPrb)]
+        self.model.PermGroFac = [np.array(4 * self.model.PermGroFac)]
+        self.model.solve()
+        self.model.T_sim = 120
+        self.model.MrkvPrbsInit = [0.25, 0.25, 0.25, 0.25]
+        self.model.track_vars = ["mNrmNow", "cNrmNow"]
+        self.model.makeShockHistory()  # This is optional
+        self.model.initializeSim()
+        self.model.simulate()

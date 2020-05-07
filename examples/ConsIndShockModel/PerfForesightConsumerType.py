@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.2.1
+#       jupytext_version: 1.2.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -86,7 +86,7 @@ mystr = lambda number : "{:.4f}".format(number)
 # | Parameter | Description | Code | Example value | Time-varying? |
 # | :---: | --- | --- | --- | --- |
 # | $\DiscFac$ |Intertemporal discount factor  | $\texttt{DiscFac}$ | $0.96$ |  |
-# | $\CRRA $ |Coefficient of relative risk aversion | $\texttt{CRRA}$ | $2.0$ | |
+# | $\CRRA$|Coefficient of relative risk aversion | $\texttt{CRRA}$ | $2.0$ | |
 # | $\Rfree$ | Risk free interest factor | $\texttt{Rfree}$ | $1.03$ | |
 # | $1 - \DiePrb_{t+1}$ |Survival probability | $\texttt{LivPrb}$ | $[0.98]$ | $\surd$ |
 # |$\PermGroFac_{t+1}$|Permanent income growth factor|$\texttt{PermGroFac}$| $[1.01]$ | $\surd$ |
@@ -208,7 +208,7 @@ plotFuncs(PFexample.solution[0].vFunc,mMin+0.1,mMin+10.1)
 # The code performs tests for whether the supplied parameter values meet various conditions that determine the properties of the solution.  Some conditions (like the Finite Human Wealth Condition) are required for the model to have a sensible solution, and if these conditions are violated the code generates a warning message.  Other conditions govern characteristics of the model like whether consumption is falling (whether the consumer is 'absolutely impatient').  All conditions can manually be performed using the syntax below.  The function returns "False" if none of the key conditions has been violated.
 
 # %%
-PFexample.checkConditions(verbose=True,public_call=True)
+PFexample.checkConditions(verbose=True)
 
 # %% [markdown]
 # An element of $\texttt{solution}$ also includes the (normalized) marginal value function $\texttt{vPfunc}$, and the lower and upper bounds of the marginal propensity to consume (MPC) $\texttt{MPCmin}$ and $\texttt{MPCmax}$.  Note that with a linear consumption function, the MPC is constant, so its lower and upper bound are identical.
