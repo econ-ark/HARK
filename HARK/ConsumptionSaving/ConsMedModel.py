@@ -8,7 +8,8 @@ from builtins import range
 import numpy as np
 from scipy.optimize import brentq
 from HARK import HARKobject
-from HARK.utilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv,\
+from HARK.distribution import addDiscreteOutcomeConstantMean, Lognormal
+from HARK.utilities import CRRAutilityP_inv,\
                            CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP,\
                            makeGridExpMult, NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
@@ -599,9 +600,12 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.T_cycle):
             MedShkAvgNow  = self.MedShkAvg[t] # get shock distribution parameters
             MedShkStdNow  = self.MedShkStd[t]
-            MedShkDstnNow = approxLognormal(mu=np.log(MedShkAvgNow)-0.5*MedShkStdNow**2,\
-                            sigma=MedShkStdNow,N=self.MedShkCount, tail_N=self.MedShkCountTail,
-                            tail_bound=[0,0.9])
+            MedShkDstnNow = Lognormal(
+                mu=np.log(MedShkAvgNow)-0.5*MedShkStdNow**2,\
+                sigma=MedShkStdNow).approx(
+                    N=self.MedShkCount,
+                    tail_N=self.MedShkCountTail,
+                    tail_bound=[0,0.9])
             MedShkDstnNow = addDiscreteOutcomeConstantMean(MedShkDstnNow,0.0,0.0,sort=True) # add point at zero with no probability
             MedShkDstn.append(MedShkDstnNow)
         self.MedShkDstn = MedShkDstn
@@ -623,8 +627,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         '''
         # Take last period data, whichever way time is flowing
         MedPrice = self.MedPrice[-1]
-        MedShkVals = self.MedShkDstn[-1][1]
-        MedShkPrbs = self.MedShkDstn[-1][0]
+        MedShkVals = self.MedShkDstn[-1].X
+        MedShkPrbs = self.MedShkDstn[-1].pmf
 
         # Initialize grids of medical need shocks, market resources, and optimal consumption
         MedShkGrid = MedShkVals
@@ -734,7 +738,10 @@ class MedShockConsumerType(PersistentShockConsumerType):
                 MedShkAvg = self.MedShkAvg[t]
                 MedShkStd = self.MedShkStd[t]
                 MedPrice  = self.MedPrice[t]
-                MedShkNow[these] = self.RNG.permutation(approxLognormal(N,mu=np.log(MedShkAvg)-0.5*MedShkStd**2,sigma=MedShkStd)[1])
+                MedShkNow[these] = self.RNG.permutation(
+                    Lognormal(
+                        mu=np.log(MedShkAvg)-0.5*MedShkStd**2,
+                        sigma=MedShkStd).approx(N).X)
                 MedPriceNow[these] = MedPrice
         self.MedShkNow = MedShkNow
         self.MedPriceNow = MedPriceNow
@@ -875,8 +882,8 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
                                                      self.LivPrb,self.DiscFac)
 
         # Also unpack the medical shock distribution
-        self.MedShkPrbs = self.MedShkDstn[0]
-        self.MedShkVals = self.MedShkDstn[1]
+        self.MedShkPrbs = self.MedShkDstn.pmf
+        self.MedShkVals = self.MedShkDstn.X
 
     def defUtilityFuncs(self):
         '''
