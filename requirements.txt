@@ -1,7 +1,15 @@
 numpy
 matplotlib
-Sphinx
-numpydoc
+sphinx==1.6.7
 future
 joblib
 dill
+scipy
+flake8
+jupyter
+funcsigs
+jupyter
+sphinx-rtd-theme
+nbsphinx==0.4.3
+seaborn
+recommonmark

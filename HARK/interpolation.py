@@ -12,6 +12,7 @@ from builtins import range
 import numpy as np
 from .core import HARKobject
 from copy import deepcopy
+import warnings
 
 def _isscalar(x):
     '''
@@ -28,6 +29,33 @@ def _isscalar(x):
         True if the input is a scalar, False otherwise.
     '''
     return np.isscalar(x) or hasattr(x, 'shape') and x.shape == ()
+
+
+def _check_grid_dimensions(dimension, *args):
+    if dimension == 1:
+        if len(args[0]) != len(args[1]):
+            raise ValueError("Grid dimensions of x and f(x) do not match")
+    elif dimension == 2:
+        if args[0].shape != (args[1].size, args[2].size):
+            raise ValueError("Grid dimensions of x, y and f(x, y) do not match")
+    elif dimension == 3:
+        if args[0].shape != (args[1].size, args[2].size, args[3].size):
+            raise ValueError("Grid dimensions of x, y, z and f(x, y, z) do not match")
+    elif dimension == 4:
+        if args[0].shape != (args[1].size, args[2].size, args[3].size, args[4].size):
+            raise ValueError("Grid dimensions of x, y, z and f(x, y, z) do not match")
+    else:
+        raise ValueError("Dimension should be between 1 and 4 inclusive.")
+
+
+def _check_flatten(dimension, *args):
+    if dimension == 1:
+        if isinstance(args[0], np.ndarray) and args[0].shape != args[0].flatten().shape:
+            warnings.warn("input not of the size (n, ), attempting to flatten")
+            return False
+        else:
+            return True
+
 
 
 class HARKinterpolator1D(HARKobject):
@@ -729,8 +757,9 @@ class LinearInterp(HARKinterpolator1D):
         extrapolation is used above the highest gridpoint.
         '''
         # Make the basic linear spline interpolation
-        self.x_list = np.array(x_list)
-        self.y_list = np.array(y_list)
+        self.x_list = np.array(x_list) if _check_flatten(1, x_list) else np.array(x_list).flatten()
+        self.y_list = np.array(y_list) if _check_flatten(1, y_list) else np.array(y_list).flatten()
+        _check_grid_dimensions(1, self.y_list, self.x_list)
         self.lower_extrap = lower_extrap
         self.x_n = self.x_list.size
 
@@ -870,9 +899,12 @@ class CubicInterp(HARKinterpolator1D):
         NOTE: When no input is given for the limiting linear function, linear
         extrapolation is used above the highest gridpoint.
         '''
-        self.x_list = np.asarray(x_list)
-        self.y_list = np.asarray(y_list)
-        self.dydx_list = np.asarray(dydx_list)
+        self.x_list = np.asarray(x_list) if _check_flatten(1, x_list) else np.array(x_list).flatten()
+        self.y_list = np.asarray(y_list) if _check_flatten(1, y_list) else np.array(y_list).flatten()
+        self.dydx_list = np.asarray(dydx_list) if _check_flatten(1, dydx_list) else np.array(dydx_list).flatten()
+        _check_grid_dimensions(1, self.y_list, self.x_list)
+        _check_grid_dimensions(1, self.dydx_list, self.x_list)
+
         self.n = len(x_list)
 
         # Define lower extrapolation as linear function (or just NaN)
@@ -1057,8 +1089,9 @@ class BilinearInterp(HARKinterpolator2D):
         new instance of BilinearInterp
         '''
         self.f_values = f_values
-        self.x_list = x_list
-        self.y_list = y_list
+        self.x_list = np.array(x_list) if _check_flatten(1, x_list) else np.array(x_list).flatten()
+        self.y_list = np.array(y_list) if _check_flatten(1, y_list) else np.array(y_list).flatten()
+        _check_grid_dimensions(2, self.f_values, self.x_list, self.y_list)
         self.x_n = x_list.size
         self.y_n = y_list.size
         if xSearchFunc is None:
@@ -1175,9 +1208,10 @@ class TrilinearInterp(HARKinterpolator3D):
         new instance of TrilinearInterp
         '''
         self.f_values = f_values
-        self.x_list = x_list
-        self.y_list = y_list
-        self.z_list = z_list
+        self.x_list = np.array(x_list) if _check_flatten(1, x_list) else np.array(x_list).flatten()
+        self.y_list = np.array(y_list) if _check_flatten(1, y_list) else np.array(y_list).flatten()
+        self.z_list = np.array(z_list) if _check_flatten(1, z_list) else np.array(z_list).flatten()
+        _check_grid_dimensions(3, self.f_values, self.x_list, self.y_list, self.z_list)
         self.x_n = x_list.size
         self.y_n = y_list.size
         self.z_n = z_list.size
@@ -1362,10 +1396,11 @@ class QuadlinearInterp(HARKinterpolator4D):
         new instance of QuadlinearInterp
         '''
         self.f_values = f_values
-        self.w_list = w_list
-        self.x_list = x_list
-        self.y_list = y_list
-        self.z_list = z_list
+        self.w_list = np.array(w_list) if _check_flatten(1, w_list) else np.array(w_list).flatten()
+        self.x_list = np.array(x_list) if _check_flatten(1, x_list) else np.array(x_list).flatten()
+        self.y_list = np.array(y_list) if _check_flatten(1, y_list) else np.array(y_list).flatten()
+        self.z_list = np.array(z_list) if _check_flatten(1, z_list) else np.array(z_list).flatten()
+        _check_grid_dimensions(4, self.f_values, self.w_list, self.x_list, self.y_list, self.z_list)
         self.w_n = w_list.size
         self.x_n = x_list.size
         self.y_n = y_list.size
@@ -3313,8 +3348,6 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         det = alpha_x*beta_y - beta_x*alpha_y
         x_alpha = beta_y/det
         x_beta  = -alpha_y/det
-        #y_alpha = -beta_x/det
-        #y_beta  = alpha_x/det
 
         # Calculate the derivative of f w.r.t. alpha and beta
         dfda = (1-beta)*(fB-fA) + beta*(fD-fC)
@@ -3354,8 +3387,6 @@ class Curvilinear2DInterp(HARKinterpolator2D):
 
         # Invert the delta translation matrix into x,y --> alpha,beta
         det = alpha_x*beta_y - beta_x*alpha_y
-        #x_alpha = beta_y/det
-        #x_beta  = -alpha_y/det
         y_alpha = -beta_x/det
         y_beta  = alpha_x/det
 
@@ -3367,13 +3398,119 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         dfdy = y_alpha*dfda + y_beta*dfdb
         return dfdy
 
+###############################################################################
+## Functions used in discrete choice models with T1EV taste shocks ############
+###############################################################################
+
+
+def calcLogSumChoiceProbs(Vals, sigma):
+    '''
+    Returns the final optimal value and choice probabilities given the choice
+    specific value functions `Vals`. Probabilities are degenerate if sigma == 0.0.
+    Parameters
+    ----------
+    Vals : [numpy.array]
+        A numpy.array that holds choice specific values at common grid points.
+    sigma : float
+        A number that controls the variance of the taste shocks
+    Returns
+    -------
+    V : [numpy.array]
+        A numpy.array that holds the integrated value function.
+    P : [numpy.array]
+        A numpy.array that holds the discrete choice probabilities
+    '''
+    # Assumes that NaNs have been replaced by -numpy.inf or similar
+    if sigma == 0.0:
+        # We could construct a linear index here and use unravel_index.
+        Pflat = np.argmax(Vals, axis=0)
+
+        V = np.zeros(Vals[0].shape)
+        Probs = np.zeros(Vals.shape)
+        for i in range(Vals.shape[0]):
+            optimalIndices = Pflat == i
+            V[optimalIndices] = Vals[i][optimalIndices]
+            Probs[i][optimalIndices] = 1
+        return V, Probs
+
+    # else we have a taste shock
+    maxV = np.max(Vals, axis=0)
+
+    # calculate maxV+sigma*log(sum_i=1^J exp((V[i]-maxV))/sigma)
+    sumexp = np.sum(np.exp((Vals-maxV)/sigma), axis=0)
+    LogSumV = np.log(sumexp)
+    LogSumV = maxV + sigma*LogSumV
+
+    Probs = np.exp((Vals-LogSumV)/sigma)
+    return LogSumV, Probs
+
+def calcChoiceProbs(Vals, sigma):
+    '''
+    Returns the choice probabilities given the choice specific value functions
+    `Vals`. Probabilities are degenerate if sigma == 0.0.
+    Parameters
+    ----------
+    Vals : [numpy.array]
+        A numpy.array that holds choice specific values at common grid points.
+    sigma : float
+        A number that controls the variance of the taste shocks
+    Returns
+    -------
+    Probs : [numpy.array]
+        A numpy.array that holds the discrete choice probabilities
+    '''
+
+    # Assumes that NaNs have been replaced by -numpy.inf or similar
+    if sigma == 0.0:
+        # We could construct a linear index here and use unravel_index.
+        Pflat = np.argmax(Vals, axis=0)
+        Probs = np.zeros(Vals.shape)
+        for i in range(Vals.shape[0]):
+            Probs[i][Pflat==i] = 1
+        return Probs
+
+    maxV = np.max(Vals, axis=0)
+    Probs = np.divide(np.exp((Vals-maxV)/sigma), np.sum(np.exp((Vals-maxV)/sigma), axis=0))
+    return Probs
+
+
+def calcLogSum(Vals, sigma):
+    '''
+    Returns the optimal value given the choice specific value functions Vals.
+    Parameters
+    ----------
+    Vals : [numpy.array]
+        A numpy.array that holds choice specific values at common grid points.
+    sigma : float
+        A number that controls the variance of the taste shocks
+    Returns
+    -------
+    V : [numpy.array]
+        A numpy.array that holds the integrated value function.
+    '''
+
+    # Assumes that NaNs have been replaced by -numpy.inf or similar
+    if sigma == 0.0:
+        # We could construct a linear index here and use unravel_index.
+        V = np.amax(Vals, axis=0)
+        return V
+
+    # else we have a taste shock
+    maxV = np.max(Vals, axis=0)
+
+    # calculate maxV+sigma*log(sum_i=1^J exp((V[i]-maxV))/sigma)
+    sumexp = np.sum(np.exp((Vals-maxV)/sigma), axis=0)
+    LogSumV = np.log(sumexp)
+    LogSumV = maxV + sigma*LogSumV
+    return LogSumV
+
 def main():
     print("Sorry, HARK.interpolation doesn't actually do much on its own.")
     print("To see some examples of its interpolation methods in action, look at any")
     print("of the model modules in /ConsumptionSavingModel.  In the future, running")
     print("this module will show examples of each interpolation class.")
 
-    from time import clock
+    from time import time
     import matplotlib.pyplot as plt
 
     RNG = np.random.RandomState(123)
@@ -3479,13 +3616,13 @@ def main():
         rand_x = RNG.rand(N)*5.0
         rand_y = RNG.rand(N)*5.0
         rand_z = RNG.rand(N)*5.0
-        t_start = clock()
+        t_start = time()
         z = (f(rand_w,rand_x,rand_y,rand_z) - g(rand_w,rand_x,rand_y,rand_z))/f(rand_w,rand_x,rand_y,rand_z)
         q = (dfdw(rand_w,rand_x,rand_y,rand_z) - g.derivativeW(rand_w,rand_x,rand_y,rand_z))/dfdw(rand_w,rand_x,rand_y,rand_z)
         r = (dfdx(rand_w,rand_x,rand_y,rand_z) - g.derivativeX(rand_w,rand_x,rand_y,rand_z))/dfdx(rand_w,rand_x,rand_y,rand_z)
         p = (dfdy(rand_w,rand_x,rand_y,rand_z) - g.derivativeY(rand_w,rand_x,rand_y,rand_z))/dfdy(rand_w,rand_x,rand_y,rand_z)
         s = (dfdz(rand_w,rand_x,rand_y,rand_z) - g.derivativeZ(rand_w,rand_x,rand_y,rand_z))/dfdz(rand_w,rand_x,rand_y,rand_z)
-        t_end = clock()
+        t_end = time()
 
         z.sort()
         print(z)
@@ -3552,9 +3689,9 @@ def main():
         rand_x = RNG.rand(N)*5.0
         rand_y = RNG.rand(N)*5.0
         rand_z = RNG.rand(N)*5.0
-        t_start = clock()
+        t_start = time()
         z = (f(rand_w,rand_x,rand_y,rand_z) - g(rand_w,rand_x,rand_y,rand_z))/f(rand_w,rand_x,rand_y,rand_z)
-        t_end = clock()
+        t_end = time()
         #print(z)
         print(t_end-t_start)
 
@@ -3574,11 +3711,11 @@ def main():
 
         rand_x = RNG.rand(1000)*5.0
         rand_y = RNG.rand(1000)*5.0
-        t_start = clock()
+        t_start = time()
         z = (f(rand_x,rand_y) - g(rand_x,rand_y))/f(rand_x,rand_y)
         q = (dfdx(rand_x,rand_y) - g.derivativeX(rand_x,rand_y))/dfdx(rand_x,rand_y)
         r = (dfdy(rand_x,rand_y) - g.derivativeY(rand_x,rand_y))/dfdy(rand_x,rand_y)
-        t_end = clock()
+        t_end = time()
         z.sort()
         q.sort()
         r.sort()
@@ -3648,13 +3785,10 @@ def main():
         rand_y = RNG.rand(N)*5.0
         rand_z = RNG.rand(N)*5.0
 
-        t_start = clock()
+        t_start = time()
         z = (f(rand_w,rand_x,rand_y,rand_z) - g(rand_w,rand_x,rand_y,rand_z))/f(rand_w,rand_x,rand_y,rand_z)
-        t_end = clock()
+        t_end = time()
         z.sort()
         print(z)
         print(t_end-t_start)
 
-
-if __name__ == '__main__':
-    main()

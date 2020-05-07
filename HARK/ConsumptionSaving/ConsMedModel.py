@@ -8,18 +8,21 @@ from builtins import range
 import numpy as np
 from scipy.optimize import brentq
 from HARK import HARKobject
-from HARK.utilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv,\
+from HARK.distribution import addDiscreteOutcomeConstantMean, Lognormal
+from HARK.utilities import CRRAutilityP_inv,\
                            CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP,\
                            makeGridExpMult, NullFunc
-from HARK.simulation import drawLognormal
-from .ConsIndShockModel import ConsumerSolution
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
 from HARK.interpolation import BilinearInterpOnInterp1D, TrilinearInterp, BilinearInterp, CubicInterp,\
                                LinearInterp, LowerEnvelope3D, UpperEnvelope, LinearInterpOnInterp1D,\
                                VariableLowerBoundFunc3D
-from .ConsGenIncProcessModel import ConsGenIncProcessSolver, PersistentShockConsumerType,\
-                                     ValueFunc2D, MargValueFunc2D, MargMargValueFunc2D, \
-                                     VariableLowerBoundFunc2D
+from HARK.ConsumptionSaving.ConsGenIncProcessModel import ConsGenIncProcessSolver,\
+                            PersistentShockConsumerType, ValueFunc2D, MargValueFunc2D,\
+                            MargMargValueFunc2D, VariableLowerBoundFunc2D, init_persistent_shocks
 from copy import deepcopy
+
+__all__ = ['MedShockPolicyFunc', 'cThruXfunc', 'MedThruXfunc',
+'MedShockConsumerType', 'ConsMedShockSolver']
 
 utility_inv   = CRRAutility_inv
 utilityP_inv  = CRRAutilityP_inv
@@ -501,6 +504,28 @@ class MedThruXfunc(HARKobject):
 
 ###############################################################################
 
+# -----------------------------------------------------------------------------
+# ----- Define additional parameters for the medical shocks model -------------
+# -----------------------------------------------------------------------------
+CRRA = 2.0
+CRRAmed = 1.5*CRRA     # Coefficient of relative risk aversion for medical care
+MedShkAvg = [0.001]    # Average of medical need shocks
+MedShkStd = [5.0]      # Standard deviation of (log) medical need shocks
+MedShkCount = 5        # Number of medical shock points in "body"
+MedShkCountTail = 15   # Number of medical shock points in "tail" (upper only)
+MedPrice = [1.5]       # Relative price of a unit of medical care
+
+# Make a dictionary for the "medical shocks" model
+init_medical_shocks = init_persistent_shocks.copy()
+init_medical_shocks['CRRAmed'] = CRRAmed
+init_medical_shocks['MedShkAvg'] = MedShkAvg
+init_medical_shocks['MedShkStd'] = MedShkStd
+init_medical_shocks['MedShkCount'] = MedShkCount
+init_medical_shocks['MedShkCountTail'] = MedShkCountTail
+init_medical_shocks['MedPrice'] = MedPrice
+init_medical_shocks['aXtraCount'] = 32
+
+
 class MedShockConsumerType(PersistentShockConsumerType):
     '''
     A class to represent agents who consume two goods: ordinary composite consumption
@@ -510,7 +535,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
     '''
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ['MedShkNow']
 
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,cycles=0,**kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
         to be used during solution (income distribution, assets grid, etc).
@@ -521,17 +546,21 @@ class MedShockConsumerType(PersistentShockConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
         None
         '''
-        PersistentShockConsumerType.__init__(self,cycles=cycles,**kwds)
+        params = init_medical_shocks.copy()
+        params.update(kwds)
+
+        PersistentShockConsumerType.__init__(self,cycles=cycles,**params)
         self.solveOnePeriod = solveConsMedShock # Choose correct solver
         self.addToTimeInv('CRRAmed')
         self.addToTimeVary('MedPrice')
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def update(self):
         '''
@@ -571,9 +600,12 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.T_cycle):
             MedShkAvgNow  = self.MedShkAvg[t] # get shock distribution parameters
             MedShkStdNow  = self.MedShkStd[t]
-            MedShkDstnNow = approxLognormal(mu=np.log(MedShkAvgNow)-0.5*MedShkStdNow**2,\
-                            sigma=MedShkStdNow,N=self.MedShkCount, tail_N=self.MedShkCountTail,
-                            tail_bound=[0,0.9])
+            MedShkDstnNow = Lognormal(
+                mu=np.log(MedShkAvgNow)-0.5*MedShkStdNow**2,\
+                sigma=MedShkStdNow).approx(
+                    N=self.MedShkCount,
+                    tail_N=self.MedShkCountTail,
+                    tail_bound=[0,0.9])
             MedShkDstnNow = addDiscreteOutcomeConstantMean(MedShkDstnNow,0.0,0.0,sort=True) # add point at zero with no probability
             MedShkDstn.append(MedShkDstnNow)
         self.MedShkDstn = MedShkDstn
@@ -594,14 +626,9 @@ class MedShockConsumerType(PersistentShockConsumerType):
         None
         '''
         # Take last period data, whichever way time is flowing
-        if self.time_flow:
-            MedPrice = self.MedPrice[-1]
-            MedShkVals = self.MedShkDstn[-1][1]
-            MedShkPrbs = self.MedShkDstn[-1][0]
-        else:
-            MedPrice = self.MedPrice[0]
-            MedShkVals = self.MedShkDstn[0][1]
-            MedShkPrbs = self.MedShkDstn[0][0]
+        MedPrice = self.MedPrice[-1]
+        MedShkVals = self.MedShkDstn[-1].X
+        MedShkPrbs = self.MedShkDstn[-1].pmf
 
         # Initialize grids of medical need shocks, market resources, and optimal consumption
         MedShkGrid = MedShkVals
@@ -711,7 +738,10 @@ class MedShockConsumerType(PersistentShockConsumerType):
                 MedShkAvg = self.MedShkAvg[t]
                 MedShkStd = self.MedShkStd[t]
                 MedPrice  = self.MedPrice[t]
-                MedShkNow[these] = self.RNG.permutation(approxLognormal(N,mu=np.log(MedShkAvg)-0.5*MedShkStd**2,sigma=MedShkStd)[1])
+                MedShkNow[these] = self.RNG.permutation(
+                    Lognormal(
+                        mu=np.log(MedShkAvg)-0.5*MedShkStd**2,
+                        sigma=MedShkStd).approx(N).X)
                 MedPriceNow[these] = MedPrice
         self.MedShkNow = MedShkNow
         self.MedPriceNow = MedPriceNow
@@ -852,8 +882,8 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
                                                      self.LivPrb,self.DiscFac)
 
         # Also unpack the medical shock distribution
-        self.MedShkPrbs = self.MedShkDstn[0]
-        self.MedShkVals = self.MedShkDstn[1]
+        self.MedShkPrbs = self.MedShkDstn.pmf
+        self.MedShkVals = self.MedShkDstn.X
 
     def defUtilityFuncs(self):
         '''
@@ -1354,89 +1384,3 @@ def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CR
     solver.prepareToSolve()       # Do some preparatory work
     solution_now = solver.solve() # Solve the period
     return solution_now
-
-
-###############################################################################
-
-def main():
-    from . import ConsumerParameters as Params
-    from HARK.utilities import CRRAutility_inv
-    from time import clock
-    import matplotlib.pyplot as plt
-    mystr = lambda number : "{:.4f}".format(number)
-
-    do_simulation = True
-
-    # Make and solve an example medical shocks consumer type
-    MedicalExample = MedShockConsumerType(**Params.init_medical_shocks)
-    t_start = clock()
-    MedicalExample.solve()
-    t_end = clock()
-    print('Solving a medical shocks consumer took ' + mystr(t_end-t_start) + ' seconds.')
-
-    # Plot the consumption function
-    M = np.linspace(0,30,300)
-    pLvl = 1.0
-    P = pLvl*np.ones_like(M)
-    for j in range(MedicalExample.MedShkDstn[0][0].size):
-        MedShk = MedicalExample.MedShkDstn[0][1][j]*np.ones_like(M)
-        M_temp = M + MedicalExample.solution[0].mLvlMin(pLvl)
-        C = MedicalExample.solution[0].cFunc(M_temp,P,MedShk)
-        plt.plot(M_temp,C)
-    print('Consumption function by medical need shock (constant permanent income)')
-    plt.show()
-
-    # Plot the medical care function
-    for j in range(MedicalExample.MedShkDstn[0][0].size):
-        MedShk = MedicalExample.MedShkDstn[0][1][j]*np.ones_like(M)
-        Med = MedicalExample.solution[0].MedFunc(M_temp,P,MedShk)
-        plt.plot(M_temp,Med)
-    print('Medical care function by medical need shock (constant permanent income)')
-    plt.ylim([0,20])
-    plt.show()
-
-    # Plot the savings function
-    for j in range(MedicalExample.MedShkDstn[0][0].size):
-        MedShk = MedicalExample.MedShkDstn[0][1][j]*np.ones_like(M)
-        Sav = M_temp - MedicalExample.solution[0].cFunc(M_temp,P,MedShk) - MedicalExample.MedPrice[0]*\
-              MedicalExample.solution[0].MedFunc(M_temp,P,MedShk)
-        plt.plot(M_temp,Sav)
-    print('End of period savings by medical need shock (constant permanent income)')
-    plt.show()
-
-    # Plot the marginal value function
-    M = np.linspace(0.0,30,300)
-    for p in range(MedicalExample.pLvlGrid[0].size):
-        pLvl = MedicalExample.pLvlGrid[0][p]
-        M_temp = pLvl*M + MedicalExample.solution[0].mLvlMin(pLvl)
-        P = pLvl*np.ones_like(M)
-        vP = MedicalExample.solution[0].vPfunc(M_temp,P)**(-1.0/MedicalExample.CRRA)
-        plt.plot(M_temp,vP)
-    print('Marginal value function (pseudo inverse)')
-    plt.show()
-
-    if MedicalExample.vFuncBool:
-        # Plot the value function
-        M = np.linspace(0.0,1,300)
-        for p in range(MedicalExample.pLvlGrid[0].size):
-            pLvl = MedicalExample.pLvlGrid[0][p]
-            M_temp = pLvl*M + MedicalExample.solution[0].mLvlMin(pLvl)
-            P = pLvl*np.ones_like(M)
-            v = CRRAutility_inv(MedicalExample.solution[0].vFunc(M_temp,P),gam=MedicalExample.CRRA)
-            plt.plot(M_temp,v)
-        print('Value function (pseudo inverse)')
-        plt.show()
-
-    if do_simulation:
-        t_start = clock()
-        MedicalExample.T_sim = 100
-        MedicalExample.track_vars = ['mLvlNow','cLvlNow','MedNow']
-        MedicalExample.makeShockHistory()
-        MedicalExample.initializeSim()
-        MedicalExample.simulate()
-        t_end = clock()
-        print('Simulating ' + str(MedicalExample.AgentCount) + ' agents for ' + str(MedicalExample.T_sim) + ' periods took ' + mystr(t_end-t_start) + ' seconds.')
-
-if __name__ == '__main__':
-    main()
-
