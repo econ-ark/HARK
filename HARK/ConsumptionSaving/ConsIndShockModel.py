@@ -21,8 +21,7 @@ from builtins import object
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
-from HARK import AgentType, Solution, NullFunc, HARKobject
-from HARK.core import makeOnePeriodOOSolver
+from HARK import AgentType, Solution, NullFunc, HARKobject, makeOnePeriodOOSolver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
@@ -1247,70 +1246,6 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         return solution
 
 
-def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
-                                BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
-    '''
-    Solves a single period consumption-saving problem with CRRA utility and risky
-    income (subject to permanent and transitory shocks).  Can generate a value
-    function if requested; consumption function can be linear or cubic splines.
-
-    Parameters
-    ----------
-    solution_next : ConsumerSolution
-        The solution to next period's one period problem.
-    IncomeDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
-    DiscFac : float
-        Intertemporal discount factor for future utility.
-    CRRA : float
-        Coefficient of relative risk aversion.
-    Rfree : float
-        Risk free interest factor on end-of-period assets.
-    PermGroFac : float
-        Expected permanent income growth factor at the end of this period.
-    BoroCnstArt: float or None
-        Borrowing constraint for the minimum allowable assets to end the
-        period with.  If it is less than the natural borrowing constraint,
-        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-        rowing constraint.
-    aXtraGrid: np.array
-        Array of "extra" end-of-period asset values-- assets above the
-        absolute minimum acceptable level.
-    vFuncBool: boolean
-        An indicator for whether the value function should be computed and
-        included in the reported solution.
-    CubicBool: boolean
-        Indicator for whether the solver should use cubic or linear interpolation.
-
-    Returns
-    -------
-    solution_now : ConsumerSolution
-        The solution to the single period consumption-saving problem.  Includes
-        a consumption function cFunc (using cubic or linear splines), a marginal
-        value function vPfunc, a minimum acceptable level of normalized market
-        resources mNrmMin, normalized human wealth hNrm, and bounding MPCs MPCmin
-        and MPCmax.  It might also have a value function vFunc and marginal mar-
-        ginal value function vPPfunc.
-    '''
-    # Use the basic solver if user doesn't want cubic splines or the value function
-    if (not CubicBool) and (not vFuncBool):
-        solver = ConsIndShockSolverBasic(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
-                                                  Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,
-                                                  CubicBool)
-    else: # Use the "advanced" solver if either is requested
-        solver = ConsIndShockSolver(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                             PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
-    solver.prepareToSolve()       # Do some preparatory work
-    solution_now = solver.solve() # Solve the period
-    return solution_now
-
-
 ####################################################################################################
 ####################################################################################################
 
@@ -2065,7 +2000,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
                                            **params)
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
+        if (not self.CubicBool) and (not self.vFuncBool):
+            solver = ConsIndShockSolverBasic
+        else: # Use the "advanced" solver if either is requested
+            solver = ConsIndShockSolver
+        self.solveOnePeriod = makeOnePeriodOOSolver(solver)
+
         self.update() # Make assets grid, income process, terminal solution
 
 
