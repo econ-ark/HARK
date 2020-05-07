@@ -319,7 +319,7 @@ class ConsPerfForesightSolver(object):
     '''
     params = ['DiscFac','LivPrb','CRRA','Rfree',\
               'PermGroFac','BoroCnstArt','MaxKinks']
-    def __init__(self,agent, t, solution_next):
+    def __init__(self, parameters, solution_next):
         '''
         Constructor for a new ConsPerfForesightSolver.
 
@@ -337,8 +337,9 @@ class ConsPerfForesightSolver(object):
                          'm': 'market resources at decision time',
                          'c': 'consumption'}
 
+        ## TODO: Revisit--this can be more efficient
         for p in self.params:
-            self.__dict__[p] = agent.value_at_t(p, t)
+            self.__dict__[p] = parameters[p]
 
         self.solution_next = solution_next
 
@@ -584,7 +585,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
     params = ['IncomeDstn','LivPrb','DiscFac','CRRA','Rfree',\
               'PermGroFac','BoroCnstArt','aXtraGrid', \
               'vFuncBool','CubicBool']
-    def __init__(self,agent, t, solution_next):
+    def __init__(self, parameters, solution_next):
         '''
         Constructor for a new solver-setup for problems with income subject to
         permanent and transitory shocks.
@@ -600,7 +601,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         -------
         None
         '''
-        super().__init__(agent, t, solution_next)
+        super().__init__(parameters, solution_next)
         self.defUtilityFuncs()
 
     def assignParameters(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
@@ -1221,7 +1222,7 @@ class ConsKinkedRsolver(ConsIndShockSolver):
     params = ['IncomeDstn','LivPrb','DiscFac','CRRA','Rfree',\
               'Rboro','Rsave','PermGroFac','BoroCnstArt',\
               'aXtraGrid','vFuncBool','CubicBool']
-    def __init__(self, agent, t, solution_next):
+    def __init__(self, parameters, solution_next):
         '''
         Constructor for a new solver for problems with risky income and a different
         interest rate on borrowing and saving.
@@ -1237,13 +1238,13 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         -------
         None
         '''
-        assert agent.Rboro>=agent.Rsave, 'Interest factor on debt less than interest factor on savings!'
+        assert parameters['Rboro'] >= parameters['Rsave'], 'Interest factor on debt less than interest factor on savings!'
 
-        ## SB: This move has some bad juju
-        agent.Rfree = agent.Rboro
+        ## SB: This move has some slightly bad juju
+        parameters['Rfree'] = parameters['Rboro']
         # Initialize the solver.  Most of the steps are exactly the same as in
         # the non-kinked-R basic case, so start with that.
-        ConsIndShockSolver.__init__(self,agent, t, solution_next)
+        ConsIndShockSolver.__init__(self, parameters, solution_next)
 
         # Assign the interest rates as class attributes, to use them later.
         self.Rboro   = agent.Rboro
@@ -1884,9 +1885,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
         none
         '''
         IncomeDstn, PermShkDstn, TranShkDstn = self.constructLognormalIncomeProcessUnemployment()
+        # TODO: Where should these go?
+        self.parameters['IncomeDstn'] = IncomeDstn
+        self.parameters['PermShkDstn'] = PermShkDstn
+        self.parameters['TranShkDstn'] = TranShkDstn
+
+        # Object storage for older code
         self.IncomeDstn = IncomeDstn
         self.PermShkDstn = PermShkDstn
         self.TranShkDstn = TranShkDstn
+
         self.addToTimeVary('IncomeDstn','PermShkDstn','TranShkDstn')
 
     def updateAssetsGrid(self):

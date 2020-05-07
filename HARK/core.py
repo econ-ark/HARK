@@ -130,6 +130,7 @@ class HARKobject(object):
         Assign an arbitrary number of attributes to this agent, as a convenience.
         See assignParameters.
         '''
+        self.parameters.update(**kwds)
         self.assignParameters(**kwds)
 
     def getAvg(self, varname, **kwds):
@@ -221,6 +222,13 @@ class AgentType(HARKobject):
         self.read_shocks        = False # NOQA
         self.assignParameters(**kwds) # NOQA
         self.resetRNG() # NOQA
+        
+        # Note: redundant with assignParameters
+        #       and a kludge, but trying to keep
+        #       the parameters dictionary
+        #       rather than putting them on the object.
+        self.parameters = kwds
+
 
     def addToTimeVary(self, *params):
         '''
@@ -290,11 +298,29 @@ class AgentType(HARKobject):
             if param in self.time_inv:
                 self.time_inv.remove(param)
 
-    def value_at_t(self, param, t):
-        if param in self.time_vary:
-            return self.__dict__[param][t]
-        else:
-            return self.__dict__[param]
+    def parameter_values_at(self, t):
+        '''
+        Removes any number of parameters from time_inv for this instance.
+
+        Parameters
+        ----------
+        t : int
+            A time subscript at which to evaluated parameters.
+
+        Returns
+        -------
+        params_now : dictionary
+            A dictionary containing the value of all parameters
+            evaluated at time t.
+        '''
+
+        return {
+            param : self.parameters[param][t] \
+                    if param in self.time_vary \
+                    else self.parameters[param] 
+            for param
+            in self.parameters
+        }
 
     def solve(self, verbose=False):
         '''
@@ -794,7 +820,7 @@ def solveOneCycle(agent, solution_last):
     if len(agent.time_vary) > 0:
         # name = agent.time_vary[0]
         # T = len(eval('agent.' + name))
-        T = len(agent.__dict__[agent.time_vary[0]])
+        T = len(agent.parameters[agent.time_vary[0]])
     else:
         T = 1
 
@@ -818,19 +844,19 @@ def solveOneCycle(agent, solution_last):
 
         # this conditionality is just scaffolding
         # while code is in transition
-        if 'agent' not in these_args:
+        if 'parameters' not in these_args:
 
             if 'solution_next' in these_args:
                 temp_dict['solution_next'] = solution_next
                 these_args.remove('solution_next')
 
+            parameters_now = agent.parameter_values_at(T - 1 - t)
             # Make a temporary dictionary for this period
-            temp_dict.update({name: agent.value_at_t(name, T - 1 - t)
+            temp_dict.update({name: parameters_now[name]
                               for name
                               in these_args})
         else:
-            temp_dict['agent'] = agent
-            temp_dict['t'] = T - 1 - t
+            temp_dict['parameters'] = agent.parameter_values_at(T - 1 - t)
             temp_dict['solution_next'] = solution_next
 
         # Solve one period, add it to the solution, and move to the next period
@@ -856,8 +882,8 @@ def makeOnePeriodOOSolver(solver_class):
     solution_now : Solution
         The solution to this period's problem.
     '''
-    def onePeriodSolver(agent, t, solution_next):
-        solver = solver_class(agent, t, solution_next)
+    def onePeriodSolver(parameters, solution_next):
+        solver = solver_class(parameters, solution_next)
 
         # not ideal; better if this is defined in all Solver classes
         if hasattr(solver,'prepareToSolve'):

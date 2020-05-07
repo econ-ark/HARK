@@ -262,7 +262,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
               'DiscFac','CRRA','Rfree','PermGroFac', \
               'BoroCnstArt','aXtraGrid','vFuncBool','CubicBool']
 
-    def __init__(self,agent, t, solution_next):
+    def __init__(self, parameters, solution_next):
         '''
         Constructor for a new solver for problems with risky income, a different
         interest rate on borrowing and saving, and multiplicative shocks to utility.
@@ -277,7 +277,7 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         -------
         None
         '''
-        ConsIndShockSolver.__init__(self,agent, t, solution_next)
+        ConsIndShockSolver.__init__(self, parameters, solution_next)
         self.PrefShkPrbs = agent.PrefShkDstn[t].pmf
         self.PrefShkVals = agent.PrefShkDstn[t].X
 
@@ -413,7 +413,7 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver,ConsKinkedRsolver):
     params = ['IncomeDstn','PrefShkDstn','LivPrb','DiscFac',\
               'CRRA','Rfree','Rboro','Rsave','PermGroFac',\
               'BoroCnstArt','aXtraGrid','vFuncBool','CubicBool']
-    def __init__(self,agent, t, solution_next):
+    def __init__(self, parameters, solution_next):
         '''
         Constructor for a new solver for problems with risky income, a different
         interest rate on borrowing and saving, and multiplicative shocks to utility.
@@ -429,8 +429,8 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver,ConsKinkedRsolver):
         -------
         None
         '''
-        ## SB: This move has some bad juju
-        agent.Rfree = agent.Rboro
-        ConsKinkedRsolver.__init__(self,agent, t, solution_next)
+        ## SB: This move has some slightly bad juju
+        parameters['Rfree'] = parameters['Rboro']
+        ConsKinkedRsolver.__init__(self, parameters, solution_next)
         self.PrefShkPrbs = agent.PrefShkDstn[t].pmf
         self.PrefShkVals = agent.PrefShkDstn[t].X
