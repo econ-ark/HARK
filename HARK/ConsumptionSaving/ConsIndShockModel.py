@@ -21,7 +21,7 @@ from builtins import object
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
-from HARK import AgentType, Solution, NullFunc, HARKobject, onePeriodOOSolver
+from HARK import AgentType, Solution, NullFunc, HARKobject, makeOnePeriodOOSolver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
@@ -1416,7 +1416,7 @@ class PerfForesightConsumerType(AgentType):
         self.shock_vars     = deepcopy(self.shock_vars_)
         self.verbose        = verbose
         self.quiet          = quiet
-        self.solveOnePeriod = onePeriodOOSolver(ConsPerfForesightSolver)
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPerfForesightSolver)
 
     def preSolve(self):
         self.updateSolutionTerminal() # Solve the terminal period problem
@@ -1864,9 +1864,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
                                            **params)
 
         if (not self.CubicBool) and (not self.vFuncBool):
-            self.solveOnePeriod = onePeriodOOSolver(ConsIndShockSolverBasic)
+            self.solveOnePeriod = makeOnePeriodOOSolver(ConsIndShockSolverBasic)
         else: # Use the "advanced" solver if either is requested
-            self.solveOnePeriod = onePeriodOOSolver(ConsIndShockSolver)
+            self.solveOnePeriod = makeOnePeriodOOSolver(ConsIndShockSolver)
 
         self.update() # Make assets grid, income process, terminal solution
 
@@ -2505,7 +2505,7 @@ class KinkedRconsumerType(IndShockConsumerType):
                                            **params)
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.solveOnePeriod = onePeriodOOSolver(ConsKinkedRsolver) # kinked R solver
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsKinkedRsolver) # kinked R solver
         self.update() # Make assets grid, income process, terminal solution
 
     def preSolve(self):

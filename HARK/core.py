@@ -842,7 +842,7 @@ def solveOneCycle(agent, solution_last):
     return solution_cycle
 
 
-def onePeriodOOSolver(solver_class):
+def makeOnePeriodOOSolver(solver_class):
     '''
     Returns a function that solves a single period consumption-saving
     problem.

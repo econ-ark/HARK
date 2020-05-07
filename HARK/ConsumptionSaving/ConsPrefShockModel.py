@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from builtins import str
 from builtins import range
 import numpy as np
-from HARK.core import onePeriodOOSolver
+from HARK.core import makeOnePeriodOOSolver
 from HARK.distribution import MeanOneLogNormal
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
                                    ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver, \
@@ -73,7 +73,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         IndShockConsumerType.__init__(self,
                                       cycles=cycles,
                                       **params)
-        self.solveOnePeriod = onePeriodOOSolver(ConsPrefShockSolver)
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPrefShockSolver)
         
     def preSolve(self):
         self.updateSolutionTerminal()
@@ -240,7 +240,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         params.update(kwds)
         kwds = params
         IndShockConsumerType.__init__(self,**kwds)
-        self.solveOnePeriod = onePeriodOOSolver(ConsKinkyPrefSolver)
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsKinkyPrefSolver)
         self.addToTimeInv('Rboro','Rsave')
         self.delFromTimeInv('Rfree')
         
