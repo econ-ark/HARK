@@ -10,7 +10,7 @@ from builtins import str
 from builtins import range
 from copy import deepcopy
 import numpy as np
-from HARK import AgentType, HARKobject
+from HARK import AgentType, HARKobject, makeOnePeriodOOSolver
 from HARK.distribution import DiscreteDistribution
 from HARK.interpolation import LowerEnvelope2D, BilinearInterp, VariableLowerBoundFunc2D, \
                                LinearInterpOnInterp1D, LinearInterp, CubicInterp, UpperEnvelope
@@ -899,64 +899,6 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             solution = self.addvPPfunc(solution)
         return solution
 
-
-def solveConsGenIncProcess(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree, pLvlNextFunc,
-                           BoroCnstArt, aXtraGrid, pLvlGrid, vFuncBool, CubicBool):
-    '''
-    Solves the one period problem of a consumer who experiences persistent and
-    transitory shocks to his income.  Unlike in ConsIndShock, consumers do not
-    necessarily have expected persistent income growth that is constant with respect
-    to their current level of pLvl.  Instead, they have a function that translates
-    current pLvl into expected next period pLvl (subject to shocks).
-
-    Parameters
-    ----------
-    solution_next : ConsumerSolution
-        The solution to next period's one period problem.
-    IncomeDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, persistent shocks, transitory shocks.
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
-    DiscFac : float
-        Intertemporal discount factor for future utility.
-    CRRA : float
-        Coefficient of relative risk aversion.
-    Rfree : float
-        Risk free interest factor on end-of-period assets.
-    pLvlNextFunc : float
-        Expected persistent income next period as a function of current pLvl.
-    BoroCnstArt: float or None
-        Borrowing constraint for the minimum allowable assets to end the
-        period with.  Currently ignored, with BoroCnstArt=0 used implicitly.
-    aXtraGrid: np.array
-        Array of "extra" end-of-period (normalized) asset values-- assets
-        above the absolute minimum acceptable level.
-    pLvlGrid: np.array
-        Array of persistent income levels at which to solve the problem.
-    vFuncBool: boolean
-        An indicator for whether the value function should be computed and
-        included in the reported solution.
-    CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear interpolation.
-
-    Returns
-    -------
-    solution : ConsumerSolution
-            The solution to the one period problem, including a consumption
-            function (defined over market resources and persistent income), a
-            marginal value function, bounding MPCs, and normalized human wealth.
-    '''
-    solver = ConsGenIncProcessSolver(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree,
-                                     pLvlNextFunc, BoroCnstArt, aXtraGrid, pLvlGrid, vFuncBool, CubicBool)
-    solver.prepareToSolve()       # Do some preparatory work
-    solution_now = solver.solve()  # Solve the period
-    return solution_now
-
-
 ###############################################################################
 
 # -----------------------------------------------------------------------------
@@ -1005,7 +947,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
         # Initialize a basic ConsumerType
         IndShockConsumerType.__init__(self, cycles=cycles, **params)
-        self.solveOnePeriod = solveConsGenIncProcess  # idiosyncratic shocks solver with explicit persistent income
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsGenIncProcessSolver)
 
     def preSolve(self):
 #        AgentType.preSolve()
