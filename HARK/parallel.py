@@ -241,8 +241,8 @@ def parallelNelderMead(objFunc,guess,perturb=None,P=1,ftol=0.000001,xtol=0.00000
     # Create the pool of worker processes
     cpu_cores = multiprocessing.cpu_count()  # Total number of available CPU cores
     cores_to_use = min(cpu_cores, dim_count)
-    if maxcores is not None:  # Cap the number of cores if desired
-        cores_to_use = min(cores_to_use, maxcores)
+    if maxthreads is not None:  # Cap the number of cores if desired
+        cores_to_use = min(cores_to_use, maxthreads)
     parallel = Parallel(n_jobs=cores_to_use)
 
     # Begin a new Nelder-Mead search
