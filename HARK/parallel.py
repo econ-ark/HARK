@@ -378,7 +378,7 @@ def saveNelderMeadData(name, simplex, fvals, iters, evals):
     N = simplex.shape[0] # Number of points in simplex
     K = simplex.shape[1] # Total number of parameters
     
-    with open(name + '.txt','wb') as f:
+    with open(name + '.txt','w') as f:
         my_writer = csv.writer(f, delimiter=',')
         my_writer.writerow(simplex.shape)
         my_writer.writerow([iters, evals])
@@ -409,7 +409,7 @@ def loadNelderMeadData(name):
         The cumulative number of function evaluations in the search process.
     """
     # Open the Nelder-Mead progress file
-    with open(name + '.txt','rb') as f:
+    with open(name + '.txt','r') as f:
         my_reader = csv.reader(f, delimiter=',')
 
         # Get the shape of the simplex and initialize it
