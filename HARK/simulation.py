@@ -9,7 +9,7 @@ import networkx as nx
 import numpy as np                          # Numerical Python
 
 
-class GenericAgentType(AgentType):
+class GenericModel(AgentType):
     '''
     A partially implemented AgentType class that is generic.
     An instance is configured with:
@@ -23,22 +23,22 @@ class GenericAgentType(AgentType):
     '''
 
     params = {
-        'G' : .1, # income growth factor
-        'R' : .1  # rate of return
+        'G' : 1.1, # income growth factor
+        'R' : 1.1  # rate of return
         }
 
     states = {
-        'p' : lambda p_, G: p_ * G, # income
         'b' : lambda a_, R: a_ * R,
-        'm' : lambda p, b : p + b, # within-period assets
+        'm' : lambda p_, b : p_ + b, # within-period assets
         }
 
     controls = {
-        'c' : lambda m : m / 2 # consumption.
+        'c' : lambda m : m / 3 # consumption.
         # The function is the decision rule.
         }
     post_states = {
-        'a' : lambda m, c : m - c #market assets
+        'a' : lambda m, c : m - c, #market assets
+        'p' : lambda p_, G: p_ * G # income
     }
     
     initial_states = {
@@ -50,7 +50,7 @@ class GenericAgentType(AgentType):
     ####
     # Kludges for compatibility
 
-    T_sim = 100
+    T_sim = 10
     T_cycle = 0
     AgentCount = 1
     solution = "No solution"
@@ -64,11 +64,13 @@ class GenericAgentType(AgentType):
         New consumer.
         TODO: handle multiple consumers?
         '''
-        self.agent = SimulatedAgent()
 
-        self.agent.state = self.initial_states.copy()
-        self.agent.controls = self.controls.copy()
-        self.agent.post_states = self.post_states.copy()
+        if which_agents[0]:
+            self.agent = SimulatedAgent()
+
+            self.agent.states = self.initial_states.copy()
+            self.agent.controls = self.controls.copy()
+            self.agent.post_states = self.post_states.copy()
     
     #   simBirth
     #     - sets initial values for agents
@@ -77,32 +79,40 @@ class GenericAgentType(AgentType):
     #   getShocks
 
     def getStates(self):
-        self.agent.state.update(self.params)
+        self.agent.states.update(self.params)
 
         for variable in simulation_order(self.states):
             if variable in self.states:
-                self.agent.state[variable] = call_function_in_scope(
-                    self.states[variable],
-                    self.agent.state
+                self.agent.update_state(
+                    variable,
+                    call_function_in_scope(
+                        self.states[variable],
+                        self.agent.states
+                    )
                 )
 
     def getControls(self):
         for variable in simulation_order(self.controls):
-            self.agent.controls[variable] = call_function_in_scope(
-                self.controls[variable],
-                self.agent.state
+            self.agent.update_control(
+                variable,
+                call_function_in_scope(
+                    self.controls[variable],
+                    self.agent.states
+                )
             )
 
     def getPostStates(self):
-        for variable in simulation_order(self.post_states):
-            context = self.agent.state.copy()
-            context.update(self.agent.controls)
-            
-            self.agent.post_states[variable] = call_function_in_scope(
-                self.post_states[variable],
-                context
+        context = self.agent.states.copy()
+        context.update(self.agent.controls)
+        
+        for variable in simulation_order(self.post_states):    
+            self.agent.update_post_state(
+                variable,
+                call_function_in_scope(
+                    self.post_states[variable],
+                    context
+                )
             )
-
 
 class SimulatedAgent():
     '''
@@ -110,8 +120,29 @@ class SimulatedAgent():
     Rather, something that stores a particular agent's
     state, age, etc. in a simulation.
     '''
-    pass
+    history = {}
+    states = {}
+    controls = {}
+    post_states = {}
 
+    def update_history(self, variable, value):
+        if variable not in self.history:
+            self.history[variable] = []
+
+        self.history[variable].append(value)
+    
+    def update_state(self, variable, value):
+        self.states[variable] = value
+        self.update_history(variable, value)
+
+    def update_control(self, variable, value):
+        self.controls[variable] = value
+        self.update_history(variable, value)
+
+    def update_post_state(self, variable, value):
+        self.post_states[variable] = value
+        self.states[decrement(variable)] = value
+        self.update_history(variable, value)
 
 def decrement(var_name):
     '''
@@ -146,6 +177,10 @@ def call_function_in_scope(function, context):
 # once stabilized.
 ################
 
-generic_agent_test = GenericAgentType()
-generic_agent_test.initializeSim()
-generic_agent_test.simulate()
+generic_model_test = GenericModel()
+generic_model_test.initializeSim()
+generic_model_test.simulate()
+
+print('a_ : ', generic_model_test.agent.history['a'])
+print('c : ', generic_model_test.agent.history['c'])
+print('p : ', generic_model_test.agent.history['p'])
