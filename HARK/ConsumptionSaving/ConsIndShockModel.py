@@ -2281,7 +2281,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if approx_inc_dstn:
             IncomeDstn = self.IncomeDstn[0]
         else:
-            TranShkDstn = MeanOneLognormal(
+            TranShkDstn = MeanOneLogNormal(
                 sigma=self.TranShkStd[0]
             ).approx(N=200,
                      tail_N=50,
