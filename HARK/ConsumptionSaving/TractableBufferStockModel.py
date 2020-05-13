@@ -57,7 +57,7 @@ class TractableConsumerSolution(Solution):
     while employed, and a perfect foresight consumption function while unemployed.
     The solution includes a consumption function constructed from the lists.
     '''
-    def __init__(self, mNrm_list=[], cNrm_list=[], MPC_list=[], cFunc_U=NullFunc, cFunc=NullFunc):
+    def __init__(self, mNrm_list=None, cNrm_list=None, MPC_list=None, cFunc_U=NullFunc, cFunc=NullFunc):
         '''
         The constructor for a new TractableConsumerSolution object.
 
@@ -79,9 +79,9 @@ class TractableConsumerSolution(Solution):
         -------
         new instance of TractableConsumerSolution
         '''
-        self.mNrm_list = mNrm_list
-        self.cNrm_list = cNrm_list
-        self.MPC_list = MPC_list
+        self.mNrm_list = mNrm_list if mNrm_list is not None else list()
+        self.cNrm_list = cNrm_list if cNrm_list is not None else list()
+        self.MPC_list = MPC_list if MPC_list is not None else list()
         self.cFunc_U = cFunc_U
         self.cFunc = cFunc
         self.distance_criteria = ['PointCount']
