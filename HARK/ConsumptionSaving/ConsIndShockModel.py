@@ -2850,7 +2850,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         '''
         raise NotImplementedError()
 
-def applyFlatIncomeTax(IncomeDstn,tax_rate,T_retire,unemployed_indices=[],transitory_index=2):
+def applyFlatIncomeTax(IncomeDstn,tax_rate,T_retire,unemployed_indices=None,transitory_index=2):
     '''
     Applies a flat income tax rate to all employed income states during the working
     period of life (those before T_retire).  Time runs forward in this function.
@@ -2873,6 +2873,7 @@ def applyFlatIncomeTax(IncomeDstn,tax_rate,T_retire,unemployed_indices=[],transi
     IncomeDstn_new : [income distributions]
         The updated income distributions, after applying the tax.
     '''
+    unemployed_indices = unemployed_indices if unemployed_indices is not None else list()
     IncomeDstn_new = deepcopy(IncomeDstn)
     i = transitory_index
     for t in range(len(IncomeDstn)):
