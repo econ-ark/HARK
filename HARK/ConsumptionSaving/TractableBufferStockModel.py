@@ -353,13 +353,6 @@ class TractableConsumerType(AgentType):
         self.solution[0].cFunc = CubicInterp(self.solution[0].mNrm_list,self.solution[0].cNrm_list,self.solution[0].MPC_list,self.PFMPC*(self.h-1.0),self.PFMPC)
         self.solution[0].cFunc_U = lambda m : self.PFMPC*m
 
-    def update():
-        '''
-        This method does absolutely nothing, but should remain here for compati-
-        bility with cstwMPC when doing the "tractable" version.
-        '''
-        return None
-
     def simBirth(self,which_agents):
         '''
         Makes new consumers for the given indices.  Initialized variables include aNrm, as
