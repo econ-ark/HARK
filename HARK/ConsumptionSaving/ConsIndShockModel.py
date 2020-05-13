@@ -2083,8 +2083,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
