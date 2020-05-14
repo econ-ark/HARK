@@ -1245,7 +1245,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
     coefficient for (log) persistent income.
     '''
 
-    def __init__(self, cycles=0, time_flow=True, **kwds):
+    def __init__(self, cycles=0, **kwds):
         '''
         Instantiate a new ConsumerType with given data.
 
@@ -1253,8 +1253,6 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------

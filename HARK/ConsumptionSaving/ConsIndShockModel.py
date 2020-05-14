@@ -1915,8 +1915,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -2120,7 +2118,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if approx_inc_dstn:
             IncomeDstn = self.IncomeDstn[0]
         else:
-            TranShkDstn = MeanOneLognormal(
+            TranShkDstn = MeanOneLogNormal(
                 sigma=self.TranShkStd[0]
             ).approx(N=200,
                      tail_N=50,
@@ -2689,7 +2687,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         '''
         raise NotImplementedError()
 
-def applyFlatIncomeTax(IncomeDstn,tax_rate,T_retire,unemployed_indices=[],transitory_index=2):
+def applyFlatIncomeTax(IncomeDstn,tax_rate,T_retire,unemployed_indices=None,transitory_index=2):
     '''
     Applies a flat income tax rate to all employed income states during the working
     period of life (those before T_retire).  Time runs forward in this function.
@@ -2712,6 +2710,7 @@ def applyFlatIncomeTax(IncomeDstn,tax_rate,T_retire,unemployed_indices=[],transi
     IncomeDstn_new : [income distributions]
         The updated income distributions, after applying the tax.
     '''
+    unemployed_indices = unemployed_indices if unemployed_indices is not None else list()
     IncomeDstn_new = deepcopy(IncomeDstn)
     i = transitory_index
     for t in range(len(IncomeDstn)):
