@@ -480,10 +480,10 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
                 # Get random draws of income shocks from the discrete distribution
                 EventDraws = DiscreteDistribution(
                     IncomeDstnNow.pmf,
-                    Indices
+                    Indices,
+                    seed=self.RNG.randint(0, 2**31-1)
                 ).drawDiscrete(N,
-                               exact_match=True,
-                               seed=self.RNG.randint(0, 2**31-1))
+                               exact_match=True)
                 # permanent "shock" includes expected growth
                 PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow
                 TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
@@ -496,8 +496,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             IncomeDstnNow = self.IncomeDstn[0][self.MrkvNow]  # set current income distribution
             PermGroFacNow = self.PermGroFac[0]                # and permanent growth factor
             # Get random draws of income shocks from the discrete distribution
-            EventDraws = IncomeDstnNow.draw_events(N,
-                           seed=self.RNG.randint(0, 2**31-1))
+            EventDraws = IncomeDstnNow.draw_events(N)
             # permanent "shock" includes expected growth
             PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow
             TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
@@ -1133,8 +1132,7 @@ class CobbDouglasEconomy(Market):
         Events = np.arange(self.AggShkDstn.pmf.size)  # just a list of integers
         EventDraws = self.AggShkDstn.drawDiscrete(
             N=sim_periods,
-            X=Events,
-            seed=0)
+            X=Events)
         PermShkAggHist = self.AggShkDstn.X[0][EventDraws]
         TranShkAggHist = self.AggShkDstn.X[1][EventDraws]
 
@@ -1372,8 +1370,7 @@ class SmallOpenEconomy(Market):
         Events = np.arange(self.AggShkDstn.pmf.size)  # just a list of integers
         EventDraws = self.AggShkDstn.drawDiscrete(
             N=sim_periods,
-            X=Events,
-            seed=0)
+            X=Events)
         PermShkAggHist = self.AggShkDstn.X[0][EventDraws]
         TranShkAggHist = self.AggShkDstn.X[1][EventDraws]
 
@@ -1564,7 +1561,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         PermShkAggHistAll = np.zeros((StateCount, sim_periods))
         TranShkAggHistAll = np.zeros((StateCount, sim_periods))
         for i in range(StateCount):
-            AggShockDraws = self.AggShkDstn[i].drawDiscrete(N=sim_periods, seed=0)
+            AggShockDraws = self.AggShkDstn[i].drawDiscrete(N=sim_periods)
             PermShkAggHistAll[i, :] = AggShockDraws[0,:]
             TranShkAggHistAll[i, :] = AggShockDraws[1,:]
 
@@ -1631,7 +1628,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
 
         # Add histories until each state has been visited at least state_T_min times
         while go:
-            draws = Uniform().draw(N=self.act_T_orig, seed=loops)
+            draws = Uniform(seed=loops).draw(N=self.act_T_orig)
             for s in range(draws.size):  # Add act_T_orig more periods
                 MrkvNow_hist[t] = MrkvNow
                 MrkvNow = np.searchsorted(cutoffs[MrkvNow, :], draws[s])

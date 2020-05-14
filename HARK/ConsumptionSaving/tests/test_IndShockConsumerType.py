@@ -23,11 +23,11 @@ class testIndShockConsumerType(unittest.TestCase):
         self.agent.getShocks()
 
         self.assertEqual(self.agent.PermShkNow[0],
-                         1.0050166461586711)
+                         0.9686755529883603)
         self.assertEqual(self.agent.PermShkNow[1],
                          1.0050166461586711)
         self.assertEqual(self.agent.TranShkNow[0],
-                         1.1176912196531754)
+                         1.2093790234554653)
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(
@@ -105,10 +105,10 @@ class testIndShockConsumerType(unittest.TestCase):
         print(self.agent.aLvlNow)
 
         self.assertAlmostEqual(self.agent.MPCnow[1],
-                               0.5535801655448935)
+                               0.5711503906043797)
 
         self.assertAlmostEqual(self.agent.aLvlNow[1],
-                               0.18832361)
+                               0.21251164208206255)
 
 
 class testBufferStock(unittest.TestCase):
