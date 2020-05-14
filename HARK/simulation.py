@@ -36,9 +36,6 @@ sample_configuration = {
     }
 }
 
-
-
-
 class GenericModel(AgentType):
     '''
     A partially implemented AgentType class that is generic.
@@ -71,7 +68,7 @@ class GenericModel(AgentType):
     seed = 0
     solution = "No solution"
     T_cycle = 0
-    T_sim = 10
+    T_sim = 200
     poststate_vars = []
     track_vars = []
     who_dies_hist = []
@@ -105,8 +102,6 @@ class GenericModel(AgentType):
             p : evaluate(self.params[p])
             for p
             in self.params})
-
-        print(self.agent.states)
 
         for variable in simulation_order(self.states):
             if variable in self.states:
@@ -147,11 +142,14 @@ class SimulatedAgent():
     Rather, something that stores a particular agent's
     state, age, etc. in a simulation.
     '''
-    history = {}
-    states = {}
-    controls = {}
-    post_states = {}
+    
+    def __init__(self):
+        self.history = {}
+        self.states = {}
+        self.controls = {}
+        self.post_states = {}
 
+        
     def update_history(self, variable, value):
         if variable not in self.history:
             self.history[variable] = []
@@ -215,10 +213,10 @@ def simulation_order(transitions):
 # once stabilized.
 ################
 
-generic_model_test = GenericModel(sample_configuration)
-generic_model_test.initializeSim()
-generic_model_test.simulate()
+#generic_model_test = GenericModel(sample_configuration)
+#generic_model_test.initializeSim()
+#generic_model_test.simulate()
 
-print('a_ : ', generic_model_test.agent.history['a'])
-print('c : ', generic_model_test.agent.history['c'])
-print('p : ', generic_model_test.agent.history['p'])
+#print('a_ : ', generic_model_test.agent.history['a'])
+#print('c : ', generic_model_test.agent.history['c'])
+#print('p : ', generic_model_test.agent.history['p'])
