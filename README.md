@@ -1,357 +1,273 @@
-# Heterogeneous Agents Resources and toolKit (HARK)
-pre-release 0.9.1 - 13 July, 2018
+<div align="center">
+  <a href="https://econ-ark.org">
+    <img src="https://econ-ark.org/assets/img/econ-ark-logo.png" align="center">
+  </a>
+  <br>
+  <br>
 
-Click the Badge for Citation Info.
+[![Anaconda Cloud](https://anaconda.org/conda-forge/econ-ark/badges/version.svg?style=flat)](https://anaconda.org/conda-forge/econ-ark)
+[![PyPi](https://img.shields.io/pypi/v/econ-ark.png?style=flat)](https://pypi.org/project/econ-ark/)
+[![Documentation Status](https://readthedocs.org/projects/hark/badge/?style=flat&version=latest)](https://hark.readthedocs.io/en/latest/?badge=latest)
+[![GitHub Good First Issues](https://img.shields.io/github/issues/econ-ark/HARK/good%20first%20issue.svg)](https://github.com/econ-ark/HARK/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/econ-ark/DemARK/master)
 [![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org/)
+[![Donate](https://img.shields.io/badge/donate-$2-brightgreen.svg)](https://numfocus.salsalabs.org/donate-to-econ-ark/index.html)
+[![Actions Status](https://github.com/econ-ark/hark/workflows/HARK%20build%20on%20MacOS%2C%20Ubuntu%20and%20Windows/badge.svg
+)](https://github.com/econ-ark/hark/actions)
 
 
-Table of Contents:
+<!--
+   Badges to be created:
 
-* [I.   Introduction](#i-introduction)
-* [II.  Quick start guide](#ii-quick-start-guide)
-* [III. List of files in repository](#iii-list-of-files-in-repository)
-* [IV.  Warnings and disclaimers](#iv-warnings-and-disclaimers)
-* [V.   License Information](#v-license)
+[![Azure](https://dev.azure.com/econ-ark/HARK/_apis/build/status/azure-pipeline%20econ-ark.hark)](
+    https://dev.azure.com/econ-ark/hark/_build/latest?definitionId=5)
 
+[![codecov](https://codecov.io/gh/econ-ark/hark/branch/master/graph/badge.svg)](
+    https://codecov.io/gh/econ-ark/hark)
 
-## I. INTRODUCTION
+-->
 
-Welcome to HARK!  We are tremendously excited you're here.  HARK is
-very much a work in progress, but we hope you find it valuable.  We
-*really* hope you find it so valuable that you decide to contribute
-to it yourself.  This document will tell you how to get HARK up and
-running on your machine, and what you will find in HARK once you do.
+</div>
 
-If you have any comments on the code or documentation, we'd love to
-hear from you!  Our email addresses are:
+# Heterogeneous Agents Resources and toolKit (HARK)
 
-* Chris Carroll: ccarroll@llorracc.org
-* Matthew White: mnwhite@gmail.com
-* Nathan Palmer: Nathan.Palmer@ofr.treasury.gov
-* David Low: David.Low@cfpb.gov
-* Alexander Kaufman: akaufman10@gmail.com
+HARK is a toolkit for the structural modeling of economic choices of optimizing and non-optimizing heterogeneous agents. For more information on using HARK, see the [Econ-ARK Website](https://econ-ark.org).
 
-GitHub repository:    https://github.com/econ-ark/HARK
+The Econ-ARK project uses an [open governance model](./GOVERNANCE.md) and is fiscally sponsored by [NumFOCUS](https://numfocus.org/). Consider making a [tax-deductible donation](https://numfocus.salsalabs.org/donate-to-econ-ark/index.html) to help the project pay for developer time, professional services, travel, workshops, and a variety of other needs.
 
-Online documentation: https://econ-ark.github.io/HARK
+<div align="center">
+  <a href="https://numfocus.org/project/econ-ark">
+    <img height="60px" src="https://numfocus.org/wp-content/uploads/2018/01/optNumFocus_LRG.png" align="center">
+  </a>
+</div>
+<br>
 
-User guide: /Documentation/HARKmanual.pdf (in the repository)
+**This project is bound by a [Code of Conduct](/.github/CODE_OF_CONDUCT.md).**
 
-Demonstrations of HARK functionality: [DemARK](https://github.com/econ-ark/DemARK/)
+# Table of Contents
 
-Replications and Explorations Made using the ARK : [REMARK](https://github.com/econ-ark/REMARK/)
+* [Install](#install)
+* [Usage](#usage)
+* [Citation](#citation)
+* [Support](#support)
+* [Release Types](#release-types)
+* [API Documentation](#api-documentation)
+* [Introduction](#introduction)
+  * [For Students: A Gentle Introduction to Hark](#for-students-a-gentle-introduction-to-hark)
+  * [For Economists: Structural Modeling with Hark](#for-economists-structural-modeling-with-hark)
+  * [For Computational Economics Developers](#for-computational-economics-developers)
+* [Contributing to HARK](#contributing-to-hark)
+* [Current Project Team Members](#current-project-team-members)
+  * [Founders](#founders)
+  * [TSC (Technical Steering Commitee)](#tsc-technical-steering-committee)
+  * [Collaborators](#collaborators)
+  * [Release Team](#release-team)
+* [Contributors](#contributors)
+* [Disclaimer](#disclaimer)
 
+## Install
 
-## II. QUICK START GUIDE
+Install from [Anaconda Cloud](https://docs.anaconda.com/anaconda/install/) by running:
 
-This is going to be easy, friend.  HARK is written in Python, specifically the
-Anaconda distribution of Python.  Follow these easy steps to get HARK going:
+`conda install -c conda-forge econ-ark`
 
-1) Go to https://www.continuum.io/downloads and download Anaconda for your
-operating system
+Install from [PyPi](https://pypi.org/) by running:
 
-2) Install Anaconda, using the instructions provided on that page.  Now you have
-installed everything you need to run most of HARK.  But you still need to get HARK
-on your machine.
+`pip install econ-ark`
 
-3) To get HARK on your machine, you should know that HARK is managed with version
-control software called "Git".  HARK is hosted on a website called "GitHub" devoted
-to hosting projects managed with Git.
+## Usage
 
-   If you don't want to know more than that, you don't have to. Go to HARK's page
-on GitHub (https://github.com/econ-ark/HARK), click the "Clone or download" button
-in the upper right hand corner of the page, then click "Download ZIP". Unzip it
-into an empty directory. Maybe call that directory /HARK ?  The choice is yours.
+We start with almost the simplest possible consumption model: A consumer with CRRA utility 
 
-   You can also clone HARK off GitHub using Git.  This is slightly more difficult,
-because it involves installing Git on your machine and learning a little about
-how to use Git.  We believe this is an investment worth making, but it is up to you.
-To learn more about Git, read the documentation at https://git-scm.com/documentation
-or visit many other great Git resources on the internet.
+<div align="center">
+  <img height="30px" src="https://github.com/econ-ark/HARK/blob/master/doc/images/usage-crra-utility-function.png">
+</div> 
 
-4) Open Spyder, an interactive development environment (IDE) for Python
-(specifically, iPython).  On Windows, open a command prompt and type "spyder".
-On Linux, open the command line and type "spyder".  On Mac, open the command
-line and type "spyder".
+has perfect foresight about everything except the (stochastic) date of death.
 
-5) Navigate to the directory where you put the HARK files.  This can be done
-within Spyder by doing "import os" and then using os.chdir() to change directories.
-chdir works just like cd at a command prompt on most operating systems, except that
-it takes a string as input: os.chdir('Music') moves to the Music subdirectory
-of the current working directory.
+The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm) as:
 
-6) Run one of HARK's modules.  You can either type "run MODULENAME" after navigating
-to the correct directory (see step 5), or click the green arrow "run" button in
-Spyder's toolbar after opening the module in the editor.  Every module should
-do *something* when run, but that something might not be very interesting in
-some cases.  For starters, check out /ConsumptionSavingModel/ConsIndShockModel.py
-See section III below for a full list of modules that produce non-trivial output.
+<div align="center">
+  <img height="80px" src="https://github.com/econ-ark/HARK/blob/master/doc/images/usage-agent-problem-bellman-form.png">
+</div>
 
-7) The Python environment can be cleared or reset with ctrl+.  Note that
-this will also change the current working directory back to its default.
-To change the default directory (the "global working directory"), see
-Tools-->Preferences-->Global working directory; you might need to restart
-Spyder for the change to take effect.
+<br>
 
-8) Read the more complete documentation in [HARKmanual.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/HARKmanual.pdf).
-
-9) OPTIONAL: If you want to use HARK's multithreading capabilities, you will
-need two Python packages that do not come automatically with Anaconda: joblib
-and dill.  Assuming you have the necessary permissions on your machine, the
-easiest way to do this is through Anaconda.  Go to the command line, and type
-"conda install joblib" and then "conda install dill" (accept defaults if prompted).
-If this doesn't work, but you have Git, you can just clone the packages directly
-off GitHub.  Go to the command line and navigate to the directory you want to put
-these packages in.  Then type "git clone https://github.com/joblib/joblib.git"
-and then "git clone https://github.com/uqfoundation/dill".  Joblib should work
-after this, but there is one more step to get dill working.  Navigate to dill's
-directory in the command line, and then type "python setup.py build".  Then you
-should have joblib and dill working on your machine.
-
-Note: If you did not put joblib and dill in one of the paths in sys.path, you will
-need to add the joblib and dill directories to sys.path.  The easiest way to do this
-is to open up Anaconda, and type:
+To model the above problem, start by importing the `PerfForesightConsumerType` model from the appropriate `HARK` module then create an agent instance using the appropriate paramaters:
 
 ```python
-import sys
-sys.path.append('path_to_joblib_directory')
-sys.path.append('path_to_dill_directory')
+import HARK 
+
+from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
+
+PF_params = {
+    'CRRA' : 2.5,           # Relative risk aversion
+    'DiscFac' : 0.96,       # Discount factor
+    'Rfree' : 1.03,         # Risk free interest factor
+    'LivPrb' : [0.98],      # Survival probability
+    'PermGroFac' : [1.01],  # Income growth factor
+    'T_cycle' : 1,
+    'cycles' : 0,
+    'AgentCount' : 10000
+}
+
+# Create an instance of a Perfect Foresight agent with the above paramaters
+PFexample = PerfForesightConsumerType(**PF_params) 
+
+```
+Once the model is created, ask the the agent to solve the problem with `.solve()`:
+
+```python
+# Tell the agent to solve the problem
+PFexample.solve()
 ```
 
-## III. LIST OF FILES IN REPOSITORY
+Solving the problem populates the agent's `.solution` list attribute with solutions to each period of the problem. In the case of an infinite horizon model, there is just one element in the list, at **index-zero**. 
 
-This section contains descriptions of every file included in the HARK
-repository at the time of the beta release, categorized for convenience.
+You can retrieve the solution's consumption function from the `.cFunc` attribute:
 
-Documentation files:
-* [README.md](https://github.com/econ-ark/HARK/blob/master/README.md): The file you are currently reading.
-* [Documentation/HARKdoc.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/HARKdoc.pdf): A mini-user guide produced for a December 2015 workshop on HARK, unofficially representing the alpha version.  Somewhat out of date.
-* [Documentation/HARKmanual.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/HARKmanual.pdf): A user guide for HARK, written for the beta release at CEF 2016 in Bordeaux.  Should contain 90% fewer lies relative to HARKdoc.pdf.
-    * [Documentation/HARKmanual.tex](https://github.com/econ-ark/HARK/blob/master/Documentation/HARKmanual.tex): LaTeX source for the user guide.  Open source code probably requires an open source manual as well.
-* [Documentation/ConsumptionSavingModels.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/ConsumptionSavingModels.pdf): Mathematical descriptions of the various consumption-saving models in HARK and how they map into the code.
-    * [Documentation/ConsumptionSavingModels.tex](https://github.com/econ-ark/HARK/blob/master/Documentation/ConsumptionSavingModels.tex): LaTeX source for the "models" writeup.
-* [Documentation/NARK.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/NARK.pdf): Variable naming conventions for HARK, plus concordance with LaTeX variable definitions.  Still in development.
+```python
+# Retrieve the consumption function of the solution
+PFexample.solution[0].cFunc
+```
 
-Tool modules:
-* HARKcore.py:
-    Frameworks for "microeconomic" and "macroeconomic" models in HARK.
-    We somewhat abuse those terms as shorthand; see the user guide for a
-    description of what we mean.  Every model in HARK extends the classes
-    AgentType and Market in this module.  Does nothing when run.
-* HARKutilities.py:
-    General purpose tools and utilities.  Contains literal utility functions
-    (in the economic sense), functions for making discrete approximations
-    to continuous distributions, basic plotting functions for convenience,
-    and a few unclassifiable things.  Does nothing when run.
-* HARKestimation.py:
-    Functions for estimating models.  As is, it only has a few wrapper
-    functions for scipy.optimize optimization routines.  Will be expanded
-    in the future with more interesting things.  Does nothing when run.
-* HARKsimulation.py:
-    Functions for generating simulated data.  Functions in this module have
-    names like drawUniform, generating (lists of) arrays of draws from
-    various distributions.  Does nothing when run.
-* HARKinterpolation.py:
-    Classes for representing interpolated function approximations.  Has
-    1D-4D interpolation methods, mostly based on linear or cubic spline
-    interpolation.  Will have ND methods in the future.  Does nothing when run.
-* HARKparallel.py:
-    Early version of parallel processing in HARK.  Works with instances of
-    the AgentType class (or subclasses of it), distributing commands (as
-    methods) to be run on a list of AgentTypes.  Only works with local CPU.
-    The module also contains a parallel implentation of the Nelder-Mead
-    simplex algorithm, poached from Wiswall and Lee (2011).  Does nothing
-    when run.
+Or you can retrieve the solved value for human wealth normalized by permanent income from the solution's `.hNrm` attribute:
 
-Model modules:
-* ConsumptionSavingModel/TractableBufferStockModel.py:
-    A "tractable" model of consumption and saving in which agents face one
-    simple risk with constant probability: that they will become permanently
-    unemployed and receive no further income.  Unlike other models in HARK,
-    this one is not solved by iterating on a sequence of one period problems.
-    Instead, it uses a "backshooting" routine that has been shoehorned into
-    the AgentType.solve framework.  Solves an example of the model when run,
-    then solves the same model again using MarkovConsumerType.
-* ConsumptionSavingModel/ConsIndShockModel.py:
-    Consumption-saving models with idiosyncratic shocks to income.  Shocks
-    are fully transitory or fully permanent.  Solves perfect foresight model,
-    a model with idiosyncratic income shocks, and a model with idiosyncratic
-    income shocks and a different interest rate on borrowing vs saving.  When
-    run, solves several examples of these models, including a standard infinite
-    horizon problem, a ten period lifecycle model, a four period "cyclical"
-    model, and versions with perfect foresight and "kinked R".
-* ConsumptionSavingModel/ConsPrefShockModel.py:
-    Consumption-saving models with idiosyncratic shocks to income and multi-
-    plicative shocks to utility.  Currently has two models: one that extends
-    the idiosyncratic shocks model, and another that extends the "kinked R"
-    model.  The second model has very little new code, and is created merely
-    by merging the two "parent models" via multiple inheritance.  When run,
-    solves examples of the preference shock models.
-* ConsumptionSavingModel/ConsMarkovModel.py:
-    Consumption-saving models with a discrete state that evolves according to
-    a Markov rule.  Discrete states can vary by their income distribution,
-    interest factor, and/or expected permanent income growth rate.  When run,
-    solves four example models: (1) A serially correlated unemployment model
-    with boom and bust cycles (4 states). (2) An "unemployment immunity" model
-    in which the consumer occasionally learns that he is immune to unemployment
-    shocks for the next N periods.  (3) A model with a time-varying permanent
-    income growth rate that is serially correlated.  (4) A model with a time-
-    varying interest factor that is serially correlated.
-* ConsumptionSavingModel/ConsAggShockModel.py:
-    Consumption-saving models with idiosyncratic and aggregate income shocks.
-    Currently has a micro model with a basic solver (linear spline consumption
-    function only, no value function), and a Cobb-Douglas economy for the
-    agents to "live" in (as a "macroeconomy").  When run, solves an example of
-    the micro model in partial equilibrium, then solves the general equilibrium
-    problem to find an evolution rule for the capital-to-labor ratio that is
-    justified by consumers' collective actions.
-* FashionVictim/FashionVictimModel.py:
-    A very serious model about choosing to dress as a jock or a punk.  Used to
-    demonstrate micro and macro framework concepts from HARKcore.  It might be
-    the simplest model possible for this purpose, or close to it.  When run,
-    the module solves the microeconomic problem of a "fashion victim" for an
-    example parameter set, then solves the general equilibrium model for an
-    entire "fashion market" constituting many types of agents, finding a rule
-    for the evolution of the style distribution in the population that is justi-
-    fied by fashion victims' collective actions.
+```python
+# Retrieve the solved value for human wealth normalized by permanent income 
+PFexample.solution[0].hNrm
+```
+For a detailed explanation of the above example please see the demo notebook [*A Gentle Introduction to HARK*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK.ipynb).
 
-Application modules:
-* SolvingMicroDSOPs/StructEstimation.py:
-    Conducts a very simple structural estimation using the idiosyncratic shocks
-    model in ConsIndShocksModel.  Estimates an adjustment factor to an age-varying
-    sequence of discount factors (taken from Cagetti (2003)) and a coefficient
-    of relative risk aversion that makes simulated agents' wealth profiles best
-    match data from the 2004 Survey of Consumer Finance.  Also demonstrates
-    the calculation of standard errors by bootstrap and can construct a contour
-    map of the objective function.  Based on section 9 of Chris Carroll's
-    lecture notes "Solving Microeconomic Dynamic Stochastic Optimization Problems".
-* cstwMPC/cstwMPC.py:
-    Conducts the estimations for the paper "The Distribution of Wealth and the
-    Marginal Propensity to Consume" by Carroll, Slacalek, Tokuoka, and White (2016).
-    Runtime options are set in SetupParamsCSTW.py, specifying choices such as:
-    perpetual youth vs lifecycle, beta-dist vs beta-point, liquid assets vs net
-    worth, aggregate vs idiosyncratic shocks, etc.  Uses ConsIndShockModel and
-    ConsAggShockModel; can demonststrate HARK's "macro" framework on a real model.
-* cstwMPC/MakeCSTWfigs.py:
-    Makes various figures for the text of the cstwMPC paper.  Requires many output
-    files produced by cstwMPC.py, from various specifications, which are not
-    distributed with HARK.  Has not been tested in quite some time.
-* cstwMPC/MakeCSTWfigsForSlides.py:
-    Makes various figures for the slides for the cstwMPC paper.  Requires many
-    output files produced by cstwMPC.py, from various specifications, which are not
-    distributed with HARK.  Has not been tested in quite some time.
+For more examples please visit the [econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
 
-Parameter and data modules:
-* ConsumptionSaving/ConsumerParameters.py:
-    Defines dictionaries with the minimal set of parameters needed to solve the
-    models in ConsIndShockModel, ConsAggShockModel, ConsPrefShockModel, and
-    ConsMarkovModel.  These dictionaries are used to make examples when those
-    modules are run.  Does nothing when run itself.
-* SolvingMicroDSOPs/SetupSCFdata.py:
-    Imports 2004 SCF data for use by SolvingMicroDSOPs/StructEstimation.py.
-* cstwMPC/SetupParamsCSTW.py:
-    Loads calibrated model parameters for cstwMPC.py, chooses specification.
-* FashionVictim/FashionVictimParams.py:
-    Example parameters for FashionVictimModel.py, loaded when that module is run.
+## Citation
 
-Test modules:
-* Testing/ComparisonTests.py:
-    Early version of unit testing for HARK, still in development.  Compares
-    the perfect foresight model solution to the idiosyncratic shocks model
-    solution with shocks turned off; also compares the tractable buffer stock
-    model solution to the same model solved using a "Markov" description.
-* Testing/ModelTesting.py:
-    Early version of unit testing for HARK, still in development.  Defines a
-    few wrapper classes to run unit tests on subclasses of AgentType.
-* Testing/ModelTestingExample.py
-    An example of ModelTesting.py in action, using TractableBufferStockModel.
-* Testing/TBSunitTests.py:
-    Early version of unit testing for HARK, still in development.  Runs a test
-    on TractableBufferStockModel.
-* Testing/MultithreadDemo.py:
-    Demonstrates the multithreading functionality in HARKparallel.py.  When
-    run, it solves oneexample consumption-saving model with idiosyncratic
-    shocks to income, then solves *many* such models serially, varying the
-    coefficient of relative risk aversion between rho=1 and rho=8, displaying
-    the results graphically and presenting the timing.  It then solves the
-    same set of many models using multithreading on the local CPU, displays
-    the results graphically along with the timing.
+If using Econ-ARK in your work or research please [cite our Digital Object Identifier](http://doi.org/10.5281/zenodo.1001068) or copy the BibTex below.
 
-Data files:
-* SolvingMicroDSOPs/SCFdata.csv:
-    SCF 2004 data for use in SolvingMicroDSOPs/StructEstimation.py, loaded by
-    SolvingMicroDSOPs/EstimationParameters.py.
-* cstwMPC/SCFwealthDataReduced.txt:
-    SCF 2004 data with just net worth and data weights, for use by cstwMPC.py
-* cstwMPC/USactuarial.txt:
-    U.S. mortality data from the Social Security Administration, for use by
-    cstwMPC.py when running a lifecycle specification.
-* cstwMPC/EducMortAdj.txt:
-    Mortality adjusters by education and age (columns by sex and race), for use
-    by cstwMPC.py when running a lifecycle specification.  Taken from an
-    appendix of PAPER.
+[![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
 
-Other files that you don't need to worry about:
-* */index.py:
-    A file used by Sphinx when generating html documentation for HARK.  Users
-    don't need to worry about it.  Several copies are found throughout HARK.
-* .gitignore:
-    A file that tells git which files (or types of files) might be found in
-    the repository directory tree, but should be ignored (not tracked) for
-    the repo.  Currently ignores compiled Python code, LaTex auxiliary files, etc.
-* LICENSE:
-    License text for HARK, Apache 2.0.  Read it if you're a lawyer!
-* SolvingMicroDSOPs/SMMcontour.png:
-    Contour plot of the objective function for SolvingMicroDSOPs/StructEstimation.py.
-    Generated when that module is run, along with a PDF version.
-* cstwMPC/Figures/placeholder.txt:
-    A placeholder file because git doesn't like empty folders, but cstwMPC.py
-    needs the /Figures directory to exist when it runs.
-* cstwMPC/Results/placeholder.txt:
-    A placeholder file because git doesn't like empty folders, but cstwMPC.py
-    needs the /Results directory to exist when it runs.
-* Documentation/conf.py:
-    A configuration file for producing html documentation with Sphinx, generated
-    by sphinx-quickstart.
-* Documentation/includeme.rst:
-    A very small file used by Sphinx to produce documentation.
-* Documentation/index.rst:
-    A list of modules to be included in HARK's Sphinx documentation.  This should
-    be edited if a new tool or model module is added to HARK.
-* Documentation/instructions.md:
-    A markdown file with instructions for how to set up and run Sphinx.  You
-    don't need to read it.
-* Documentation/simple-steps-getting-sphinx-working.md:
-    Another markdown file with instructions for how to set up and run Sphinx.
-* Documentation/make.bat:
-    A batch file for producing Sphinx documentation, generated by sphinx-quickstart.
-* Documentation/Makefile:
-    Another Sphinx auxiliary file generated by sphinx-quickstart.
-* Documentation/econtex.sty:
-    LaTeX style file with notation definitions.
-* Documentation/econtex.cls:
-    LaTeX class file with document layout for the user manual.
-* Documentation/econtexSetup.sty:
-    LaTeX style file with notation definitions.
-* Documentation/econtexShortcuts.sty:
-    LaTeX style file with notation definitions.
-* Documentation/UserGuidePic.pdf:
-    Image for the front cover of the user guide, showing the consumption
-    function for the KinkyPref model.
+[1] Carroll, Christopher D, Palmer, Nathan, White, Matthew N., Kazil, Jacqueline, Low, David C, & Kaufman, Alexander. (2017, October 3). *econ-ark/HARK*
 
+**BibText**
 
-## IV. WARNINGS AND DISCLAIMERS
+```
+@InProceedings{carroll_et_al-proc-scipy-2018,
+  author    = { {C}hristopher {D}. {C}arroll and {A}lexander {M}. {K}aufman and {J}acqueline {L}. {K}azil and {N}athan {M}. {P}almer and {M}atthew {N}. {W}hite },
+  title     = { {T}he {E}con-{A}{R}{K} and {H}{A}{R}{K}: {O}pen {S}ource {T}ools for {C}omputational {E}conomics },
+  booktitle = { {P}roceedings of the 17th {P}ython in {S}cience {C}onference },
+  pages     = { 25 - 30 },
+  year      = { 2018 },
+  editor    = { {F}atih {A}kici and {D}avid {L}ippa and {D}illon {N}iederhut and {M} {P}acer },
+  doi       = { 10.25080/Majora-4af1f417-004 }
+}
+```
 
-This is an early beta version of HARK.  The code has not been
-extensively tested as it should be.  We hope it is useful, but
-there are absolutely no guarantees (expressed or implied) that
-it works or will do what you want.  Use at your own risk.  And
-please, let us know if you find bugs by posting an issue to the
-GitHub page!
+For more on acknowledging Econ-ARK [visit our website](https://econ-ark.org/acknowledging/).
 
+## Support
 
-## V. License
+Looking for help? Please open a [GitHub issue](https://github.com/econ-ark/HARK/issues/new) or reach out to the [TSC](#tsc-technical-steering-committee).
 
-All of HARK is licensed under the Apache License, Version 2.0 (ALv2). Please see
-the LICENSE file for the text of the license. More information can be found at:
-http://www.apache.org/dev/apply-license.html
+For more support options see [SUPPORT.md](./.github/SUPPORT.md).
+
+## Release Types
+
+* **Current**: Under active development. Code for the Current release is in the branch for its major version number (for example, v1.x).
+* **Development**: Under active development. Code for the Current release is in the development.
+* **Nightly**: Code from the master branch built every night when there are changes. Use with caution.
+
+Current releases follow [Semantic Versioning](https://semver.org/). For more information please see the [Release documentation](doc/release/README.md).
+
+## API Documentation
+
+Documentation for the latest release is at [hark.readthedocs.io](https://hark.readthedocs.io/en/latest/). Version-specific documentation is available from the same source.
+
+## Introduction
+
+### For Students: A Gentle Introduction to HARK
+
+Most of what economists have done so far with 'big data' has been like what Kepler did with astronomical data: Organizing the data, and finding patterns and regularities and interconnections. 
+
+An alternative approach called 'structural modeling' aims to do, for economic data, what Newton did for astronomical data: Provide a deep and rigorous mathematical (or computational) framework that distills the essence of the underlying behavior that produces the 'big data.'
+
+The notebook [*A Gentle Introduction to HARK*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK.ipynb) details how you can easily utilize our toolkit for structural modeling. Starting with a simple [Perfect Foresight Model](https://en.wikipedia.org/wiki/Rational_expectations) we solve an agent problem, then experiment with adding [income shocks](https://en.wikipedia.org/wiki/Shock_(economics)) and changing constructed attributes.
+
+### For Economists: Structural Modeling with HARK
+
+Dissatisfaction with the ability of Representative Agent models to answer important questions raised by the Great Recession has led to a strong movement in the macroeconomics literature toward 'Heterogeneous Agent' models, in which microeconomic agents (consumers; firms) solve a structural problem calibrated to match microeconomic data; aggregate outcomes are derived by explicitly simulating the equilibrium behavior of populations solving such models.
+
+The same kinds of modeling techniques are also gaining popularity among microeconomists, in areas ranging from labor economics to industrial organization. In both macroeconomics and structural micro, the chief barrier to the wide adoption of these techniques has been that programming a structural model has, until now, required a great deal of specialized knowledge and custom software development.
+
+HARK provides a robust, well-designed, open-source toolkit for building such models much more efficiently than has been possible in the past.
+
+Our [*DCEGM Upper Envelope*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks%2FDCEGM-Upper-Envelope.ipynb) notebook illustrates using HARK to replicate the [Iskhakov, Jørgensen, Rust, and Schjerning paper](https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643) for solving the discrete-continuous retirement saving problem. 
+
+The notebook [*Making Structural Estimates From Empirical Results*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks%2FStructural-Estimates-From-Empirical-MPCs-Fagereng-et-al.ipynb) is another demonstration of using HARK to conduct a quick structural estimation based on Table 9 of [*MPC Heterogeneity and Household Balance Sheets* by Fagereng, Holm, and Natvik](https://www.ssb.no/en/forskning/discussion-papers/_attachment/286054?_ts=158af859c98).
+
+### For Computational Economics Developers
+
+HARK provides a modular and extensible open-source toolkit for solving heterogeneous-agent partial-and general-equilibrium structural models. The code for such models has always been handcrafted, idiosyncratic, poorly documented, and sometimes not generously shared from leading researchers to outsiders. The result being that it can take years for a new researcher to become proficient. By building an integrated system from the bottom up using object-oriented programming techniques and other tools, we aim to provide a platform that will become a focal point for people using such models. 
+
+HARK is written in Python, making significant use of libraries such as numpy and scipy which offer a wide array of mathematical and statistical functions and tools. Our modules are generally categorized into Tools (mathematical functions and techniques), Models (particular economic models and solvers) and Applications (use of tools to simulate an economic phenomenon). 
+
+For more information on how you can create your own Models or use Tools and Model to create Applications please see the [Architecture documentation](./doc/architecture/README.md).
+
+### Contributing to HARK
+
+**We want contributing to Econ-ARK to be fun, enjoyable, and educational for anyone, and everyone.**
+
+Contributions go far beyond pull requests and commits. Although we love giving you the opportunity to put your stamp on HARK, we are also thrilled to receive a variety of other contributions including:
+* Documentation updates, enhancements, designs, or bugfixes
+* Spelling or grammar fixes
+* REAME.md corrections or redesigns
+* Adding unit, or functional tests
+* [Triaging GitHub issues](https://github.com/econ-ark/HARK/issues?utf8=%E2%9C%93&q=label%3A%E2%80%9DTag%3A+Triage+Needed%E2%80%9D+) -- e.g. pointing out the relevant files, checking for reproducibility
+* [Searching for #econ-ark on twitter](https://twitter.com/search?q=webpack) and helping someone else who needs help
+* Answering questions from StackOverflow tagged with [econ-ark](https://stackoverflow.com/questions/tagged/econ-ark)
+* Teaching others how to contribute to HARK
+* Blogging, speaking about, or creating tutorials about HARK
+* Helping others in our mailing list
+
+If you are worried or don’t know how to start, you can always reach out to the [TSC](#tsc-technical-steering-committee) or simply submit [an issue](https://github.com/econ-ark/HARK/issues/new) and a member can help give you guidance!
+
+**After your first contribution please let us know and we will add you to the Contributors list below!**
+
+To install for development see the [Quickstart Guide](./Documentation/quick-start).
+
+For more information on contributing to HARK please see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Current Project Team Members
+
+For information about the governance of the Econ-ARK project, see
+[GOVERNANCE.md](./GOVERNANCE.md).
+
+Collaborators follow the [COLLABORATOR_GUIDE.md](./COLLABORATOR_GUIDE.md) in maintaining the Econ-ARK project.
+
+### Founders
+Econ-ARK was created by [**Christopher D. Carroll**](http://www.econ2.jhu.edu/people/ccarroll/), Professor of Economics at the Johns Hopkins University. 
+
+Founders of the current repository also include:
+* [shaunagm](https://github.com/shaunagm) - **Shauna Gordon-McKeon** &lt;shaunagm@gmail.com&gt; (she/her)
+* [sbrice](https://github.com/sbrice) - [**Samuel Brice**](https://medium.com/@sbrice) &lt;brices@gmail.com&gt; (he/him)
+
+### TSC (Technical Steering Committee)
+* [llorracc](https://github.com/llorracc) - [**Christopher “Chris” D. Carroll**]((http://www.econ2.jhu.edu/people/ccarroll/)) &lt;ccarroll@llorracc.org&gt; (he/him)
+* [sbrice](https://github.com/sbrice) - [**Samuel Brice**](https://medium.com/@sbrice) &lt;brices@gmail.com&gt; (he/him)
+* [shaunagm](https://github.com/shaunagm) - **Shauna Gordon-McKeon** &lt;shaunagm@gmail.com&gt; (she/her)
+
+### Collaborators
+* [albop](https://github.com/albop) - **Pablo Winant** &lt;pablo.winant@gmail.com&gt; (he/him)
+* [DrDrij](https://github.com/DrDrij) - **Andrij Stachurski** &lt;dr.drij@gmail.com&gt; (he/him)
+
+### Release Team
+* [shaunagm](https://github.com/shaunagm) - **Shauna Gordon-McKeon** &lt;shaunagm@gmail.com&gt; (she/her)
+
+## Contributors
+* [ericholscher](https://github.com/ericholscher) - **Eric Holscher** (he/him)
+
+## Disclaimer
+
+This is a beta version of HARK.  The code has not been extensively tested as it should be.  We hope it is useful, but there are absolutely no guarantees (expressed or implied) that it works or will do what you want.  Use at your own risk.  And please, let us know if you find bugs by posting an issue to [the GitHub page](https://github.com/econ-ark/HARK)!

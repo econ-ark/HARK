@@ -10,8 +10,11 @@ from builtins import str
 from builtins import range
 import numpy as np
 from HARK.interpolation import LinearInterp
-from HARK.simulation import drawUniform, drawDiscrete
-from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, ConsumerSolution, MargValueFunc
+from HARK.distribution import Uniform
+from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType,\
+          ConsumerSolution,MargValueFunc, init_idiosyncratic_shocks
+
+__all__ = ['RepAgentConsumerType', 'RepAgentMarkovConsumerType']
 
 def solveConsRepAgent(solution_next,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,PermGroFac,aXtraGrid):
     '''
@@ -48,9 +51,9 @@ def solveConsRepAgent(solution_next,DiscFac,CRRA,IncomeDstn,CapShare,DeprFac,Per
     '''
     # Unpack next period's solution and the income distribution
     vPfuncNext      = solution_next.vPfunc
-    ShkPrbsNext     = IncomeDstn[0]
-    PermShkValsNext = IncomeDstn[1]
-    TranShkValsNext = IncomeDstn[2]
+    ShkPrbsNext     = IncomeDstn.pmf
+    PermShkValsNext = IncomeDstn.X[0]
+    TranShkValsNext = IncomeDstn.X[1]
 
     # Make tiled versions of end-of-period assets, shocks, and probabilities
     aNrmNow     = aXtraGrid
@@ -138,9 +141,9 @@ def solveConsRepAgentMarkov(solution_next,MrkvArray,DiscFac,CRRA,IncomeDstn,CapS
     for j in range(StateCount):
         # Define next-period-state conditional objects
         vPfuncNext  = solution_next.vPfunc[j]
-        ShkPrbsNext     = IncomeDstn[j][0]
-        PermShkValsNext = IncomeDstn[j][1]
-        TranShkValsNext = IncomeDstn[j][2]
+        ShkPrbsNext     = IncomeDstn[j].pmf
+        PermShkValsNext = IncomeDstn[j].X[0]
+        TranShkValsNext = IncomeDstn[j].X[1]
 
         # Make tiled versions of end-of-period assets, shocks, and probabilities
         ShkCount    = ShkPrbsNext.size
@@ -192,23 +195,27 @@ class RepAgentConsumerType(IndShockConsumerType):
     '''
     time_inv_ = IndShockConsumerType.time_inv_ + ['CapShare','DeprFac']
 
-    def __init__(self,time_flow=True,**kwds):
+    def __init__(self,**kwds):
         '''
         Make a new instance of a representative agent.
 
         Parameters
         ----------
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
         None
         '''
-        IndShockConsumerType.__init__(self,cycles=0,time_flow=time_flow,**kwds)
+        params = init_rep_agent.copy()
+        params.update(kwds)
+        
+        IndShockConsumerType.__init__(self,cycles=0,**params)
         self.AgentCount = 1 # Hardcoded, because this is rep agent
         self.solveOnePeriod = solveConsRepAgent
         self.delFromTimeInv('Rfree','BoroCnstArt','vFuncBool','CubicBool')
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def getStates(self):
         '''
@@ -242,21 +249,25 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
     '''
     time_inv_ = RepAgentConsumerType.time_inv_ + ['MrkvArray']
 
-    def __init__(self,time_flow=True,**kwds):
+    def __init__(self,**kwds):
         '''
         Make a new instance of a representative agent with Markov state.
 
         Parameters
         ----------
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
-
+ 
         Returns
         -------
         None
         '''
-        RepAgentConsumerType.__init__(self,time_flow=time_flow,**kwds)
+        params = init_markov_rep_agent.copy()
+        params.update(kwds)
+
+        RepAgentConsumerType.__init__(self,**params)
         self.solveOnePeriod = solveConsRepAgentMarkov
+        
+    def preSolve(self):
+        self.updateSolutionTerminal()
 
     def updateSolutionTerminal(self):
         '''
@@ -293,18 +304,18 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         None
         '''
         cutoffs = np.cumsum(self.MrkvArray[self.MrkvNow,:])
-        MrkvDraw = drawUniform(N=1,seed=self.RNG.randint(0,2**31-1))
+        MrkvDraw = Uniform().draw(N=1,seed=self.RNG.randint(0,2**31-1))
         self.MrkvNow = np.searchsorted(cutoffs,MrkvDraw)
 
         t = self.t_cycle[0]
         i = self.MrkvNow[0]
         IncomeDstnNow    = self.IncomeDstn[t-1][i] # set current income distribution
         PermGroFacNow    = self.PermGroFac[t-1][i] # and permanent growth factor
-        Indices          = np.arange(IncomeDstnNow[0].size) # just a list of integers
         # Get random draws of income shocks from the discrete distribution
-        EventDraw        = drawDiscrete(N=1,X=Indices,P=IncomeDstnNow[0],exact_match=False,seed=self.RNG.randint(0,2**31-1))
-        PermShkNow = IncomeDstnNow[1][EventDraw]*PermGroFacNow # permanent "shock" includes expected growth
-        TranShkNow = IncomeDstnNow[2][EventDraw]
+        EventDraw        =         IncomeDstnNow.draw_events(1,
+                                                             seed=self.RNG.randint(0,2**31-1))
+        PermShkNow = IncomeDstnNow.X[0][EventDraw]*PermGroFacNow # permanent "shock" includes expected growth
+        TranShkNow = IncomeDstnNow.X[1][EventDraw]
         self.PermShkNow = np.array(PermShkNow)
         self.TranShkNow = np.array(TranShkNow)
 
@@ -325,60 +336,15 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         i = self.MrkvNow[0]
         self.cNrmNow = self.solution[t].cFunc[i](self.mNrmNow)
 
+# Define the default dictionary for a representative agent type
+init_rep_agent = init_idiosyncratic_shocks.copy()
+init_rep_agent["DeprFac"] = 0.05
+init_rep_agent["CapShare"] = 0.36
+init_rep_agent["UnempPrb"] = 0.0
+init_rep_agent["LivPrb"] = [1.0]
 
-###############################################################################
-def main():
-    from copy import deepcopy
-    from time import clock
-    from HARK.utilities import plotFuncs
-    import HARK.ConsumptionSaving.ConsumerParameters as Params
-
-    # Make a quick example dictionary
-    RA_params = deepcopy(Params.init_idiosyncratic_shocks)
-    RA_params['DeprFac'] = 0.05
-    RA_params['CapShare'] = 0.36
-    RA_params['UnempPrb'] = 0.0
-    RA_params['LivPrb'] = [1.0]
-
-    # Make and solve a rep agent model
-    RAexample = RepAgentConsumerType(**RA_params)
-    t_start = clock()
-    RAexample.solve()
-    t_end = clock()
-    print('Solving a representative agent problem took ' + str(t_end-t_start) + ' seconds.')
-    plotFuncs(RAexample.solution[0].cFunc,0,20)
-
-    # Simulate the representative agent model
-    RAexample.T_sim = 2000
-    RAexample.track_vars = ['cNrmNow','mNrmNow','Rfree','wRte']
-    RAexample.initializeSim()
-    t_start = clock()
-    RAexample.simulate()
-    t_end = clock()
-    print('Simulating a representative agent for ' + str(RAexample.T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds.')
-
-    # Make and solve a Markov representative agent
-    RA_markov_params = deepcopy(RA_params)
-    RA_markov_params['PermGroFac'] = [[0.97,1.03]]
-    RA_markov_params['MrkvArray'] = np.array([[0.99,0.01],[0.01,0.99]])
-    RA_markov_params['MrkvNow'] = 0
-    RAmarkovExample = RepAgentMarkovConsumerType(**RA_markov_params)
-    RAmarkovExample.IncomeDstn[0] = 2*[RAmarkovExample.IncomeDstn[0]]
-    t_start = clock()
-    RAmarkovExample.solve()
-    t_end = clock()
-    print('Solving a two state representative agent problem took ' + str(t_end-t_start) + ' seconds.')
-    plotFuncs(RAmarkovExample.solution[0].cFunc,0,10)
-
-    # Simulate the two state representative agent model
-    RAmarkovExample.T_sim = 2000
-    RAmarkovExample.track_vars = ['cNrmNow','mNrmNow','Rfree','wRte','MrkvNow']
-    RAmarkovExample.initializeSim()
-    t_start = clock()
-    RAmarkovExample.simulate()
-    t_end = clock()
-    print('Simulating a two state representative agent for ' + str(RAexample.T_sim) + ' periods took ' + str(t_end-t_start) + ' seconds.')
-
-if __name__ == '__main__':
-    main()
-
+# Define the default dictionary for a markov representative agent type
+init_markov_rep_agent = init_rep_agent.copy()
+init_markov_rep_agent["PermGroFac"] = [[0.97, 1.03]]
+init_markov_rep_agent["MrkvArray"] = np.array([[0.99, 0.01], [0.01, 0.99]])
+init_markov_rep_agent["MrkvNow"] = 0
