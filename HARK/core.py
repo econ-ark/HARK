@@ -841,7 +841,7 @@ class Market(HARKobject):
     dynamic general equilibrium models to solve the "macroeconomic" model as a
     layer on top of the "microeconomic" models of one or more AgentTypes.
     '''
-    def __init__(self, agents=[], sow_vars=[], reap_vars=[], const_vars=[], track_vars=[], dyn_vars=[],
+    def __init__(self, agents=None, sow_vars=None, reap_vars=None, const_vars=None, track_vars=None, dyn_vars=None,
                  millRule=None, calcDynamics=None, act_T=1000, tolerance=0.000001,**kwds):
         '''
         Make a new instance of the Market class.
@@ -887,12 +887,12 @@ class Market(HARKobject):
         -------
         None
     '''
-        self.agents     = agents # NOQA
-        self.reap_vars  = reap_vars # NOQA
-        self.sow_vars   = sow_vars # NOQA
-        self.const_vars = const_vars # NOQA
-        self.track_vars = track_vars # NOQA
-        self.dyn_vars   = dyn_vars # NOQA
+        self.agents     = agents if agents is not None else list() # NOQA
+        self.reap_vars  = reap_vars if reap_vars is not None else list() # NOQA
+        self.sow_vars   = sow_vars if sow_vars is not None else list() # NOQA
+        self.const_vars = const_vars if const_vars is not None else list() # NOQA
+        self.track_vars = track_vars if track_vars is not None else list() # NOQA
+        self.dyn_vars   = dyn_vars if dyn_vars is not None else list() # NOQA
         if millRule is not None:  # To prevent overwriting of method-based millRules
             self.millRule = millRule
         if calcDynamics is not None:  # Ditto for calcDynamics
