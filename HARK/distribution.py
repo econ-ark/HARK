@@ -72,7 +72,7 @@ class Lognormal():
                                                size=N))
         return draws
 
-    def approx(self, N, tail_N=0, tail_bound=[0.02,0.98], tail_order=np.e):
+    def approx(self, N, tail_N=0, tail_bound=None, tail_order=np.e):
         '''
         Construct a discrete approximation to a lognormal distribution with underlying
         normal distribution N(mu,sigma).  Makes an equiprobable distribution by
@@ -99,6 +99,7 @@ class Lognormal():
             Probability associated with each point in array of discrete
             points for discrete probability mass function.
         '''
+        tail_bound = tail_bound if tail_bound is not None else [0.02, 0.98]
         # Find the CDF boundaries of each segment
         if self.sigma > 0.0:
             if tail_N > 0:

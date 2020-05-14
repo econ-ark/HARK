@@ -961,7 +961,7 @@ class CobbDouglasEconomy(Market):
     this will be generalized in the future.
     '''
     def __init__(self,
-                 agents=[],
+                 agents=None,
                  tolerance=0.0001,
                  act_T=1200,
                  **kwds):
@@ -984,6 +984,7 @@ class CobbDouglasEconomy(Market):
         -------
         None
         '''
+        agents = agents if agents is not None else list()
         params = init_cobb_douglas.copy()
         params.update(kwds)
 
@@ -1240,7 +1241,7 @@ class SmallOpenEconomy(Market):
     exogenously determined by some "global" rate.  However, the economy is still subject to
     aggregate productivity shocks.
     '''
-    def __init__(self, agents=[], tolerance=0.0001, act_T=1000, **kwds):
+    def __init__(self, agents=None, tolerance=0.0001, act_T=1000, **kwds):
         '''
         Make a new instance of SmallOpenEconomy by filling in attributes specific to this kind of market.
 
@@ -1259,6 +1260,7 @@ class SmallOpenEconomy(Market):
         -------
         None
         '''
+        agents = agents if agents is not None else list()
         Market.__init__(self,
                         agents=agents,
                         sow_vars=['MaggNow', 'AaggNow', 'RfreeNow', 'wRteNow',
@@ -1434,7 +1436,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
 
     '''
     def __init__(self,
-                 agents=[],
+                 agents=None,
                  tolerance=0.0001,
                  act_T=1200,
                  **kwds):
@@ -1457,6 +1459,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         -------
         None
         '''
+        agents = agents if agents is not None else list()
         params = init_mrkv_cobb_douglas.copy()
         params.update(kwds)
 
@@ -1749,7 +1752,8 @@ class SmallOpenMarkovEconomy(CobbDouglasMarkovEconomy, SmallOpenEconomy):
     aggregate productivity shocks.  This version supports a discrete Markov state.  All
     methods in this class inherit from the two parent classes.
     '''
-    def __init__(self, agents=[], tolerance=0.0001, act_T=1000, **kwds):
+    def __init__(self, agents=None, tolerance=0.0001, act_T=1000, **kwds):
+        agents = agents if agents is not None else list()
         CobbDouglasMarkovEconomy.__init__(self, agents=agents, tolerance=tolerance, act_T=act_T, **kwds)
         self.reap_vars = []
         self.dyn_vars = []

@@ -506,7 +506,7 @@ def calcWeightedAvg(data,weights):
     weighted_sum = np.dot(data_avg,weights)
     return weighted_sum
 
-def getPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
+def getPercentiles(data, weights=None, percentiles=None, presorted=False):
     '''
     Calculates the requested percentiles of (weighted) data.  Median by default.
 
@@ -517,7 +517,7 @@ def getPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
     weights : np.array
         A weighting vector for the data.
     percentiles : [float]
-        A list of percentiles to calculate for the data.  Each element should
+        A list or numpy.array of percentiles to calculate for the data.  Each element should
         be in (0,1).
     presorted : boolean
         Indicator for whether data has already been sorted.
@@ -527,6 +527,12 @@ def getPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
     pctl_out : numpy.array
         The requested percentiles of the data.
     '''
+    if percentiles is None:
+        percentiles = [0.5]
+    else:
+        if not isinstance(percentiles, (list, np.ndarray)) or min(percentiles) <= 0 or max(percentiles) >= 1:
+            raise ValueError('Percentiles should be a list or numpy array of floats between 0 and 1')
+
     if data.size < 2:
         return np.zeros(np.array(percentiles).shape) + np.nan
     
@@ -549,7 +555,7 @@ def getPercentiles(data,weights=None,percentiles=[0.5],presorted=False):
     pctl_out = inv_CDF(percentiles)
     return pctl_out
 
-def getLorenzShares(data,weights=None,percentiles=[0.5],presorted=False):
+def getLorenzShares(data, weights=None, percentiles=None, presorted=False):
     '''
     Calculates the Lorenz curve at the requested percentiles of (weighted) data.
     Median by default.
@@ -561,7 +567,7 @@ def getLorenzShares(data,weights=None,percentiles=[0.5],presorted=False):
     weights : numpy.array
         A weighting vector for the data.
     percentiles : [float]
-        A list of percentiles to calculate for the data.  Each element should
+        A list or numpy.array of percentiles to calculate for the data.  Each element should
         be in (0,1).
     presorted : boolean
         Indicator for whether data has already been sorted.
@@ -571,6 +577,11 @@ def getLorenzShares(data,weights=None,percentiles=[0.5],presorted=False):
     lorenz_out : numpy.array
         The requested Lorenz curve points of the data.
     '''
+    if percentiles is None:
+        percentiles = [0.5]
+    else:
+        if not isinstance(percentiles, (list, np.ndarray)) or min(percentiles) <= 0 or max(percentiles) >= 1:
+            raise ValueError('Percentiles should be a list or numpy array of floats between 0 and 1')
     if weights is None: # Set equiprobable weights if none were given
         weights = np.ones(data.size)
 
