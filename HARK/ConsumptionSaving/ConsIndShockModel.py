@@ -21,7 +21,7 @@ from builtins import object
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
-from HARK import AgentType, Solution, NullFunc, HARKobject
+from HARK import AgentType, Solution, NullFunc, HARKobject, makeOnePeriodOOSolver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
@@ -585,44 +585,6 @@ class ConsPerfForesightSolver(object):
                                     MPCmin=self.MPCmin, MPCmax=self.MPCmax)
         solution = self.addSSmNrm(solution)
         return solution
-
-
-def solvePerfForesight(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks):
-    '''
-    Solves a single period consumption-saving problem for a consumer with perfect foresight.
-
-    Parameters
-    ----------
-    solution_next : ConsumerSolution
-        The solution to next period's one period problem.
-    DiscFac : float
-        Intertemporal discount factor for future utility.
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
-    CRRA : float
-        Coefficient of relative risk aversion.
-    Rfree : float
-        Risk free interest factor on end-of-period assets.
-    PermGroFac : float
-        Expected permanent income growth factor at the end of this period.
-    BoroCnstArt : float or None
-        Artificial borrowing constraint, as a multiple of permanent income.
-        Can be None, indicating no artificial constraint.
-    MaxKinks : int
-        Maximum number of kink points to allow in the consumption function;
-        additional points will be thrown out.  Only relevant in infinite horizon
-        models with artificial borrowing constraint.
-
-    Returns
-    -------
-    solution_now : ConsumerSolution
-        The solution to this period's problem.
-    '''
-    
-    solver = ConsPerfForesightSolver(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks)
-    solution_now = solver.solve()
-    return solution_now
 
 
 ###############################################################################
@@ -1284,70 +1246,6 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         return solution
 
 
-def solveConsIndShock(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
-                                BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
-    '''
-    Solves a single period consumption-saving problem with CRRA utility and risky
-    income (subject to permanent and transitory shocks).  Can generate a value
-    function if requested; consumption function can be linear or cubic splines.
-
-    Parameters
-    ----------
-    solution_next : ConsumerSolution
-        The solution to next period's one period problem.
-    IncomeDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
-    DiscFac : float
-        Intertemporal discount factor for future utility.
-    CRRA : float
-        Coefficient of relative risk aversion.
-    Rfree : float
-        Risk free interest factor on end-of-period assets.
-    PermGroFac : float
-        Expected permanent income growth factor at the end of this period.
-    BoroCnstArt: float or None
-        Borrowing constraint for the minimum allowable assets to end the
-        period with.  If it is less than the natural borrowing constraint,
-        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-        rowing constraint.
-    aXtraGrid: np.array
-        Array of "extra" end-of-period asset values-- assets above the
-        absolute minimum acceptable level.
-    vFuncBool: boolean
-        An indicator for whether the value function should be computed and
-        included in the reported solution.
-    CubicBool: boolean
-        Indicator for whether the solver should use cubic or linear interpolation.
-
-    Returns
-    -------
-    solution_now : ConsumerSolution
-        The solution to the single period consumption-saving problem.  Includes
-        a consumption function cFunc (using cubic or linear splines), a marginal
-        value function vPfunc, a minimum acceptable level of normalized market
-        resources mNrmMin, normalized human wealth hNrm, and bounding MPCs MPCmin
-        and MPCmax.  It might also have a value function vFunc and marginal mar-
-        ginal value function vPPfunc.
-    '''
-    # Use the basic solver if user doesn't want cubic splines or the value function
-    if (not CubicBool) and (not vFuncBool):
-        solver = ConsIndShockSolverBasic(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,
-                                                  Rfree,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,
-                                                  CubicBool)
-    else: # Use the "advanced" solver if either is requested
-        solver = ConsIndShockSolver(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                             PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
-    solver.prepareToSolve()       # Do some preparatory work
-    solution_now = solver.solve() # Solve the period
-    return solution_now
-
-
 ####################################################################################################
 ####################################################################################################
 
@@ -1508,72 +1406,6 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         self.aNrmNow          = aNrmNow
         return aNrmNow
 
-
-def solveConsKinkedR(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rboro,Rsave,
-                                   PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
-    '''
-    Solves a single period consumption-saving problem with CRRA utility and risky
-    income (subject to permanent and transitory shocks), and different interest
-    factors on borrowing and saving.  Restriction: Rboro >= Rsave.  Currently
-    cannot construct a cubic spline consumption function, only linear. Can gen-
-    erate a value function if requested.
-
-    Parameters
-    ----------
-    solution_next : ConsumerSolution
-        The solution to next period's one period problem.
-    IncomeDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
-    DiscFac : float
-        Intertemporal discount factor for future utility.
-    CRRA : float
-        Coefficient of relative risk aversion.
-    Rboro: float
-        Interest factor on assets between this period and the succeeding
-        period when assets are negative.
-    Rsave: float
-        Interest factor on assets between this period and the succeeding
-        period when assets are positive.
-    PermGroFac : float
-        Expected permanent income growth factor at the end of this period.
-    BoroCnstArt: float or None
-        Borrowing constraint for the minimum allowable assets to end the
-        period with.  If it is less than the natural borrowing constraint,
-        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-        rowing constraint.
-    aXtraGrid: np.array
-        Array of "extra" end-of-period asset values-- assets above the
-        absolute minimum acceptable level.
-    vFuncBool: boolean
-        An indicator for whether the value function should be computed and
-        included in the reported solution.
-    CubicBool: boolean
-        Indicator for whether the solver should use cubic or linear interpolation.
-
-    Returns
-    -------
-    solution_now : ConsumerSolution
-        The solution to the single period consumption-saving problem.  Includes
-        a consumption function cFunc (using cubic or linear splines), a marginal
-        value function vPfunc, a minimum acceptable level of normalized market
-        resources mNrmMin, normalized human wealth hNrm, and bounding MPCs MPCmin
-        and MPCmax.  It might also have a value function vFunc.
-    '''
-
-    solver = ConsKinkedRsolver(solution_next,IncomeDstn,LivPrb,
-                                            DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
-                                            aXtraGrid,vFuncBool,CubicBool)
-    solver.prepareToSolve()
-    solution = solver.solve()
-
-    return solution
-
 # ============================================================================
 # == Classes for representing types of consumer agents (and things they do) ==
 # ============================================================================
@@ -1652,7 +1484,7 @@ class PerfForesightConsumerType(AgentType):
         self.shock_vars     = deepcopy(self.shock_vars_)
         self.verbose        = verbose
         self.quiet          = quiet
-        self.solveOnePeriod = solvePerfForesight # solver for perfect foresight model
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPerfForesightSolver) 
 
 
     def preSolve(self):
@@ -2100,7 +1932,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
                                            **params)
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.solveOnePeriod = solveConsIndShock # idiosyncratic shocks solver
+        if (not self.CubicBool) and (not self.vFuncBool):
+            solver = ConsIndShockSolverBasic
+        else: # Use the "advanced" solver if either is requested
+            solver = ConsIndShockSolver
+        self.solveOnePeriod = makeOnePeriodOOSolver(solver)
+
         self.update() # Make assets grid, income process, terminal solution
 
 
@@ -2732,7 +2569,7 @@ class KinkedRconsumerType(IndShockConsumerType):
                                            **params)
 
         # Add consumer-type specific objects, copying to create independent versions
-        self.solveOnePeriod = solveConsKinkedR # kinked R solver
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsKinkedRsolver)
         self.update() # Make assets grid, income process, terminal solution
 
     def preSolve(self):

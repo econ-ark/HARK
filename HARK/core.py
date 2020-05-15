@@ -809,7 +809,10 @@ def solveOneCycle(agent, solution_last):
         else:
             solveOnePeriod = agent.solveOnePeriod
 
-        these_args = getArgNames(solveOnePeriod)
+        if hasattr(solveOnePeriod, 'solver_args'):
+            these_args = solveOnePeriod.solver_args
+        else:
+            these_args = getArgNames(solveOnePeriod)
 
         # Update time-varying single period inputs
         for name in agent.time_vary:
@@ -831,6 +834,34 @@ def solveOneCycle(agent, solution_last):
     # Return the list of per-period solutions
     return solution_cycle
 
+
+def makeOnePeriodOOSolver(solver_class):
+    '''
+    Returns a function that solves a single period consumption-saving
+    problem.
+    Parameters
+    ----------
+    solver_class : Solver
+        A class of Solver to be used.
+    -------
+    solver_function : function
+        A function for solving one period of a problem.
+    '''
+    def onePeriodSolver(**kwds):
+        solver = solver_class(**kwds)
+
+        # not ideal; better if this is defined in all Solver classes
+        if hasattr(solver,'prepareToSolve'):
+            solver.prepareToSolve()
+
+        solution_now = solver.solve()
+        return solution_now
+
+    onePeriodSolver.solver_class = solver_class
+    # This can be revisited once it is possible to export parameters
+    onePeriodSolver.solver_args = getArgNames(solver_class.__init__)[1:]
+
+    return onePeriodSolver
 
 # ========================================================================
 # ========================================================================
