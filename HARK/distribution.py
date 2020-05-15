@@ -148,7 +148,11 @@ class Lognormal():
         else:
             pmf = np.ones(N)/N
             X   = np.exp(self.mu)*np.ones(N)
-        return DiscreteDistribution(pmf, X, seed=self.RNG.randint(0, 2**32 - 1))
+        return DiscreteDistribution(pmf,
+                                    X,
+                                    seed=self.RNG.randint(0,
+                                                          2**31 - 1,
+                                                          dtype='int32'))
 
 class MeanOneLogNormal(Lognormal):
 
@@ -220,7 +224,11 @@ class Normal():
         pmf = w*np.pi**-0.5
         # correct x
         X = math.sqrt(2.0)*self.sigma*x + self.mu
-        return DiscreteDistribution(pmf, X, seed=self.RNG.randint(0, 2**32 - 1))
+        return DiscreteDistribution(pmf,
+                                    X,
+                                    seed=self.RNG.randint(0,
+                                                          2**31 - 1,
+                                                          dtype='int32'))
 
 class Weibull():
     '''
@@ -362,7 +370,12 @@ class Uniform():
         center = (self.top+self.bot)/2.0
         width = (self.top-self.bot)/2.0
         X = center + width*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
-        return DiscreteDistribution(pmf,X, seed=self.RNG.randint(0, 2**32 - 1))
+        return DiscreteDistribution(pmf,
+                                    X,
+                                    seed=self.RNG.randint(0,
+                                                          2**31 - 1,
+                                                          dtype='int32')
+                                    )
 
 
 ### DISCRETE DISTRIBUTIONS
