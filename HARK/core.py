@@ -938,38 +938,6 @@ class Market(HARKobject):
         # "solveAgents" one time. If set to false, the error will never
         # print. See "solveAgents" for why this prints once or never.
 
-    def distributeParams(self,param_name,param_count,center,spread,dist_type):
-        '''
-        Distributes heterogeneous values of one parameter to the AgentTypes in self.agents.
-        Parameters
-        ----------
-        param_name : string
-            Name of the parameter to be assigned.
-        param_count : int
-            Number of different values the parameter will take on.
-        distribution : Distribution
-            A distribution.
-
-        Returns
-        -------
-        None
-        '''
-        param_dist = distribution.approx(N=param_count)
-
-        # Distribute the parameters to the various types, assigning consecutive types the same
-        # value if there are more types than values
-        replication_factor = len(self.agents) // param_count 
-            # Note: the double division is intenger division in Python 3 and 2.7, this makes it explicit
-        j = 0
-        b = 0
-        while j < len(self.agents):
-            for n in range(replication_factor):
-                self.agents[j].AgentCount = int(
-                    self.Population*param_dist.pmf[b]*self.TypeWeight[n])
-                self.agents[j].__dict__['param_name'] = param_dist.X[b])
-                j += 1
-            b += 1
-
     def solveAgents(self):
         '''
         Solves the microeconomic problem for all AgentTypes in this market.
@@ -1207,3 +1175,35 @@ class Market(HARKobject):
             for this_type in self.agents:
                 setattr(this_type, var_name, this_obj)
         return dynamics
+
+def distributeParams(agent, param_name,param_count,distribution):
+    '''
+    Distributes heterogeneous values of one parameter to the AgentTypes in self.agents.
+    Parameters
+    ----------
+    agent: AgentType
+        An agent to clone. Thi
+    param_name : string
+        Name of the parameter to be assigned.
+    param_count : int
+        Number of different values the parameter will take on.
+    distribution : Distribution
+        A distribution.
+
+    Returns
+    -------
+    agent_set : [AgentType]
+        A list of param_count agents, ex ante heterogeneous with 
+        respect to param_name. The AgentCount of the original
+        will be split between the agents of the returned
+        list in proportion to the given distribution.
+    '''
+    param_dist = distribution.approx(N=param_count)
+
+    agent_set = [deepcopy(agent) for i in range(param_count)]
+
+    for j in range(param_count):
+        agent_set[j].AgentCount = int(agent.AgentCount*param_dist.pmf[j])
+        agent_set[j].__dict__[param_name] = param_dist.X[j]
+
+    return agent_set
