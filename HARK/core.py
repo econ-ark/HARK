@@ -938,6 +938,36 @@ class Market(HARKobject):
         # "solveAgents" one time. If set to false, the error will never
         # print. See "solveAgents" for why this prints once or never.
 
+    def distributeParams(self,param_name,param_count,center,spread,dist_type):
+        '''
+        Distributes heterogeneous values of one parameter to the AgentTypes in self.agents.
+        Parameters
+        ----------
+        param_name : string
+            Name of the parameter to be assigned.
+        param_count : int
+            Number of different values the parameter will take on.
+        distribution : Distribution
+            A distribution.
+        Returns
+        -------
+        None
+        '''
+        param_dist = distribution.approx(N=param_count)
+
+        # Distribute the parameters to the various types, assigning consecutive types the same
+        # value if there are more types than values
+        replication_factor = len(self.agents) // param_count 
+            # Note: the double division is intenger division in Python 3 and 2.7, this makes it explicit
+        j = 0
+        b = 0
+        while j < len(self.agents):
+            for n in range(replication_factor):
+                self.agents[j](AgentCount = int(self.Population*param_dist[0][b]*self.TypeWeight[n]))
+                exec('self.agents[j](' + param_name + '= param_dist[1][b])')
+                j += 1
+            b += 1
+
     def solveAgents(self):
         '''
         Solves the microeconomic problem for all AgentTypes in this market.
