@@ -949,6 +949,7 @@ class Market(HARKobject):
             Number of different values the parameter will take on.
         distribution : Distribution
             A distribution.
+
         Returns
         -------
         None
@@ -963,8 +964,9 @@ class Market(HARKobject):
         b = 0
         while j < len(self.agents):
             for n in range(replication_factor):
-                self.agents[j](AgentCount = int(self.Population*param_dist[0][b]*self.TypeWeight[n]))
-                exec('self.agents[j](' + param_name + '= param_dist[1][b])')
+                self.agents[j].AgentCount = int(
+                    self.Population*param_dist.pmf[b]*self.TypeWeight[n])
+                self.agents[j].__dict__['param_name'] = param_dist.X[b])
                 j += 1
             b += 1
 
