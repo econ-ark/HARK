@@ -1182,7 +1182,7 @@ def distributeParams(agent, param_name,param_count,distribution):
     Parameters
     ----------
     agent: AgentType
-        An agent to clone. Thi
+        An agent to clone.
     param_name : string
         Name of the parameter to be assigned.
     param_count : int
