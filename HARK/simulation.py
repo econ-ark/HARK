@@ -1,5 +1,20 @@
 '''
-Generic simulation.
+Generic model simulation.
+
+This module contains classes and functions that will
+simulate any model that is passed to it as a configuration
+object.
+
+The configuration object is intended to match, as much as
+possible, the mathematical specification of the model.
+
+The simulator computes results over time based on the
+model specification. This can involve:
+ - Saving time-varying state
+ - Using a decision rule to choose control variables
+ - Sampling from exogenous shock distributions
+ - Determining the resolution order based on element-wise
+   transition functions
 '''
 
 from __future__ import division
@@ -9,9 +24,11 @@ from HARK.distribution import MeanOneLogNormal
 import networkx as nx
 import numpy as np                          # Numerical Python
 
-
 #####
 # A Sample Configuration
+#
+# A template demonstrating the generic configuration object.
+#
 #####
 sample_configuration = {
     'params' : {
@@ -26,11 +43,11 @@ sample_configuration = {
         'c' : lambda m : m / 3 # consumption.
         # The function is the decision rule.
     },
-    'post_states' : {
+    'post_states' : { # These values match the initial states below
         'a' : lambda m, c : m - c, #market assets
         'p' : lambda p_, G: p_ * G # income
     },
-    'initial_states' : {
+    'initial_states' : { # Starting values for each agent
         'p_' : 1,
         'a_' : 1
     }
@@ -55,6 +72,18 @@ class GenericModel(AgentType):
     initial_states = {}
 
     def __init__(self, configuration):
+        '''
+        Initialize an instance of AgentType by setting attributes.
+
+        Parameters
+        ----------
+        configuration : dictionary
+            A dictionary representing a model.
+            Must contain 'params', 'states', 'controls', 
+            'post_states', and 'initial_states' as keys,
+            with dictionary values.
+            See sample_configuration for example.
+        '''
         self.params = configuration['params']
         self.states = configuration['states']
         self.controls = configuration['controls']
@@ -89,12 +118,6 @@ class GenericModel(AgentType):
             self.agent.states = self.initial_states.copy()
             self.agent.controls = self.controls.copy()
             self.agent.post_states = self.post_states.copy()
-    
-    #   simBirth
-    #     - sets initial values for agents
-    # simeOnePeriod methods
-    #   getMortality
-    #   getShocks
 
     def getStates(self):
         
@@ -138,7 +161,7 @@ class GenericModel(AgentType):
 
 class SimulatedAgent():
     '''
-    NOT and AgentType.
+    NOT an AgentType.
     Rather, something that stores a particular agent's
     state, age, etc. in a simulation.
     '''
@@ -171,6 +194,11 @@ class SimulatedAgent():
 
 
 def call_function_in_scope(function, context):
+    '''
+    A helper function.
+    Calls FUNCTION with arguments bound, by name,
+    to the values in dictionary, CONTEXT.
+    '''
     return function(
         *[
             context[name]
@@ -182,10 +210,35 @@ def decrement(var_name):
     '''
     Gets the variable name for this state variable,
     but for the previous time step.
+
+    Parameters
+    ----------
+    var_name : str
+        A variable name
+
+    Returns
+    -------
+    decremented_var_name : str
+        A 'decremented' version of this variable.
     '''
     return var_name + '_'
 
 def evaluate(process):
+    '''
+    Evalautes the value of a process.
+
+    Parameters
+    ----------
+    process : int or Distribution
+        A process.
+        If an int, returns value from the int.
+        If a Distribution, draws one value from the distribution
+
+    Returns
+    -------
+    value : float
+        The value of the process at this time.
+    '''
     ## clean this up; should be a type check
     ## for Distribution, or Distribution should
     ## have a cleaner interface (like __call__)
@@ -196,6 +249,23 @@ def evaluate(process):
 
 
 def simulation_order(transitions):
+    '''
+    Given a dictionary of model (state) variables 
+    and transtion functions,
+    return a list representing the order in which the
+    new variable values must be computed.
+
+    Parameters
+    ----------
+    transitions : {str : function}
+        A dictionary of transition functions.
+    Returns
+    -------
+    order : [str]
+        A list of strs, indicating the reverse topological
+        order of variables with respect to their transition
+        functions
+    '''
     parents = {
         v : transitions[v].__code__.co_varnames
         for v
@@ -205,18 +275,3 @@ def simulation_order(transitions):
     order = list(nx.topological_sort(nx.DiGraph(parents).reverse()))
 
     return [s for s in order if s in transitions]
-
-
-################
-# TESTING CODE
-# To be moved into examples and/or test suite
-# once stabilized.
-################
-
-#generic_model_test = GenericModel(sample_configuration)
-#generic_model_test.initializeSim()
-#generic_model_test.simulate()
-
-#print('a_ : ', generic_model_test.agent.history['a'])
-#print('c : ', generic_model_test.agent.history['c'])
-#print('p : ', generic_model_test.agent.history['p'])
