@@ -87,7 +87,7 @@ We start with almost the simplest possible consumption model: A consumer with CR
 
 has perfect foresight about everything except the (stochastic) date of death.
 
-The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm) as:
+The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wiki/Bellman_equation) as:
 
 <div align="center">
   <img height="80px" src="https://github.com/econ-ark/HARK/blob/master/doc/images/usage-agent-problem-bellman-form.png">
