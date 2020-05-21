@@ -1175,3 +1175,35 @@ class Market(HARKobject):
             for this_type in self.agents:
                 setattr(this_type, var_name, this_obj)
         return dynamics
+
+def distributeParams(agent, param_name,param_count,distribution):
+    '''
+    Distributes heterogeneous values of one parameter to the AgentTypes in self.agents.
+    Parameters
+    ----------
+    agent: AgentType
+        An agent to clone.
+    param_name : string
+        Name of the parameter to be assigned.
+    param_count : int
+        Number of different values the parameter will take on.
+    distribution : Distribution
+        A distribution.
+
+    Returns
+    -------
+    agent_set : [AgentType]
+        A list of param_count agents, ex ante heterogeneous with 
+        respect to param_name. The AgentCount of the original
+        will be split between the agents of the returned
+        list in proportion to the given distribution.
+    '''
+    param_dist = distribution.approx(N=param_count)
+
+    agent_set = [deepcopy(agent) for i in range(param_count)]
+
+    for j in range(param_count):
+        agent_set[j].AgentCount = int(agent.AgentCount*param_dist.pmf[j])
+        agent_set[j].__dict__[param_name] = param_dist.X[j]
+
+    return agent_set

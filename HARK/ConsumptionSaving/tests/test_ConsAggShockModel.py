@@ -1,24 +1,37 @@
+from HARK import distributeParams
 from HARK.ConsumptionSaving.ConsAggShockModel import AggShockConsumerType, CobbDouglasEconomy, AggShockMarkovConsumerType, CobbDouglasMarkovEconomy
+from HARK.distribution import Uniform
 import numpy as np
 import unittest
 
 class testAggShockConsumerType(unittest.TestCase):
 
     def setUp(self):
-        self.agent = AggShockConsumerType()
-        self.agent.cycles = 0
+        agent = AggShockConsumerType()
+        agent.AgentCount = 60
+        agent.cycles = 0
+        
+        self.agents = distributeParams(agent,
+                                       'DiscFac',
+                                       3,
+                                       Uniform(bot=.96,
+                                              top=.98)
+                                       )
 
         self.economy = EconomyExample = CobbDouglasEconomy(
-            agents=[self.agent])
+            agents=self.agents)
+
+    def test_distributeParams(self):
+        self.assertEqual(self.agents[1].AgentCount, 20)
 
     def test_economy(self):
         # Make a Cobb-Douglas economy for the agents
         self.economy.makeAggShkHist()  # Simulate a history of aggregate shocks
 
         # Have the consumers inherit relevant objects from the economy
-        self.agent.getEconomyData(self.economy)
+        self.agents[0].getEconomyData(self.economy)
 
-        self.agent.solve()
+        self.agents[0].solve()
 
 class testAggShockMarkovConsumerType(unittest.TestCase):
 
