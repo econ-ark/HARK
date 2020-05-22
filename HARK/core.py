@@ -936,6 +936,7 @@ class Market(HARKobject):
         self.act_T     = act_T # NOQA
         self.tolerance = tolerance # NOQA
         self.max_loops = 1000 # NOQA
+        self.history            = {}
         self.assignParameters(**kwds)
 
         self.print_parallel_error_once = True
@@ -1126,7 +1127,7 @@ class Market(HARKobject):
         '''
         for var_name in self.track_vars:
             value_now = getattr(self, var_name)
-            self.history[var_name] = value_now
+            self.history[var_name].append(value_now)
 
     def makeHistory(self):
         '''
