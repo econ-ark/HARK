@@ -5,9 +5,33 @@ from scipy.special import erf, erfc
 import scipy.stats as stats
 import warnings
 
+
+class Distribution():
+
+    def __init__(self, seed = 0):
+        '''
+        Initialize the distribution.
+
+        Parameters
+        ----------
+        seed : int
+            Seed for random number generator.
+        '''
+        self.RNG = np.random.RandomState(seed)
+        self.seed = seed
+
+    def reset(self):
+        '''
+        Reset the random number generator of this distribution.
+
+        Parameters
+        ----------
+        '''
+        self.RNG = np.random.RandomState(self.seed)
+    
 ### CONTINUOUS DISTRIBUTIONS
 
-class Lognormal():
+class Lognormal(Distribution):
     """
     A Lognormal distribution
     """
@@ -32,7 +56,7 @@ class Lognormal():
         self.mu = mu
         self.sigma = sigma
         # Set up the RNG
-        self.RNG = np.random.RandomState(seed)
+        super().__init__(seed)
 
     def draw(self, N):
         '''
@@ -161,7 +185,7 @@ class MeanOneLogNormal(Lognormal):
         super().__init__(mu=mu, sigma=sigma, seed=seed)
 
 
-class Normal():
+class Normal(Distribution):
     """
     A Normal distribution.
     """
@@ -185,8 +209,7 @@ class Normal():
         '''
         self.mu = mu
         self.sigma = sigma
-        # Set up the RNG
-        self.RNG = np.random.RandomState(seed)
+        super().__init__(seed)
 
     def draw(self, N, seed=0):
         '''
@@ -230,7 +253,7 @@ class Normal():
                                                           2**31 - 1,
                                                           dtype='int32'))
 
-class Weibull():
+class Weibull(Distribution):
     '''
     A Weibull distribution
     '''
@@ -257,7 +280,7 @@ class Weibull():
         self.scale = scale
         self.shape = shape
         # Set up the RNG
-        self.RNG = np.random.RandomState(seed)
+        super().__init__(seed)
 
         
     def draw(self, N):
@@ -293,7 +316,7 @@ class Weibull():
                 draws.append(self.scale[t]*(-np.log(1.0-self.RNG.rand(N)))**(1.0/self.shape[t]))
         return draws
 
-class Uniform():
+class Uniform(Distribution):
     """
     A Uniform distribution.
     """
@@ -380,7 +403,7 @@ class Uniform():
 
 ### DISCRETE DISTRIBUTIONS
 
-class Bernoulli():
+class Bernoulli(Distribution):
     """
     A Bernoulli distribution.
     """
@@ -401,7 +424,7 @@ class Bernoulli():
         '''
         self.p = p
         # Set up the RNG
-        self.RNG = np.random.RandomState(seed)
+        super().__init__(seed)
 
 
     def draw(self, N):
@@ -430,7 +453,7 @@ class Bernoulli():
                 draws.append(self.RNG.uniform(size=N) < self.p[t])
         return draws
 
-class DiscreteDistribution():
+class DiscreteDistribution(Distribution):
     """
     A representation of a discrete probability distribution.
 
@@ -455,7 +478,7 @@ class DiscreteDistribution():
         self.pmf = pmf
         self.X = X
         # Set up the RNG
-        self.RNG = np.random.RandomState(seed)
+        super().__init__(seed)
         
 
         # Very quick and incomplete parameter check:
