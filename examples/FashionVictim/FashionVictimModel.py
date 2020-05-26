@@ -269,11 +269,11 @@ class FashionVictimType(AgentType):
 
         Parameters
         ----------
-        none
+        None
 
         Returns
         -------
-        none
+        None
         '''
         self.simOnePrd()
 
@@ -375,6 +375,11 @@ def calcPunkProp(sNow):
         agent in each type of this market (0=jock, 1=punk).
     pop_size : [int]
         List with the number of agents of each type in the market.  Unused.
+        
+    Returns
+    -------
+    (unnamed) : FashionMarketInfo
+        A trivial object with the proportion of punks in the population.
     '''
     sNowX = np.asarray(sNow).flatten()
     pNow  = np.mean(sNowX)
