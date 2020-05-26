@@ -477,17 +477,14 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             if N > 0:
                 IncomeDstnNow = self.IncomeDstn[t-1][self.MrkvNow]  # set current income distribution
                 PermGroFacNow = self.PermGroFac[t-1]                # and permanent growth factor
-                Indices = np.arange(IncomeDstnNow.pmf.size)    # just a list of integers
+                
                 # Get random draws of income shocks from the discrete distribution
-                EventDraws = DiscreteDistribution(
-                    IncomeDstnNow.pmf,
-                    Indices
-                ).drawDiscrete(N,
-                               exact_match=True,
-                               seed=self.RNG.randint(0, 2**31-1))
-                # permanent "shock" includes expected growth
-                PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow
-                TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
+                ShockDraws = IncomeDstnNow.drawDiscrete(N,
+                                                        exact_match=True,
+                                                        seed=self.RNG.randint(0, 2**31-1))
+                # Permanent "shock" includes expected growth
+                PermShkNow[these] = ShockDraws[0]*PermGroFacNow
+                TranShkNow[these] = ShockDraws[1]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -496,12 +493,14 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             these = newborn
             IncomeDstnNow = self.IncomeDstn[0][self.MrkvNow]  # set current income distribution
             PermGroFacNow = self.PermGroFac[0]                # and permanent growth factor
+            
             # Get random draws of income shocks from the discrete distribution
-            EventDraws = IncomeDstnNow.draw_events(N,
-                           seed=self.RNG.randint(0, 2**31-1))
-            # permanent "shock" includes expected growth
-            PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow
-            TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
+            ShockDraws = IncomeDstnNow.drawDiscrete(N,
+                                                    exact_match=True,
+                                                    seed=self.RNG.randint(0, 2**31-1))
+            # Permanent "shock" includes expected growth
+            PermShkNow[these] = ShockDraws[0]*PermGroFacNow
+            TranShkNow[these] = ShockDraws[1]
 
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount, dtype=bool)
