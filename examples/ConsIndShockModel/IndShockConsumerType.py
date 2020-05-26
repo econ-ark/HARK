@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.2.1
+#       jupytext_version: 1.2.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -21,6 +21,8 @@
 # %% {"code_folding": [0]}
 # Initial imports and notebook setup, click arrow to show
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+import HARK.logger as logger
+logger.verbose()
 from HARK.utilities import plotFuncsDer, plotFuncs
 from time import clock
 import matplotlib.pyplot as plt
