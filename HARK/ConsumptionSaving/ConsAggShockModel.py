@@ -19,6 +19,7 @@ from HARK.distribution import Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 from HARK import HARKobject, Market, AgentType
 from copy import deepcopy
+import matplotlib.pyplot as plt
 
 __all__ = ['MargValueFunc2D', 'AggShockConsumerType', 'AggShockMarkovConsumerType',
 'CobbDouglasEconomy', 'SmallOpenEconomy', 'CobbDouglasMarkovEconomy',
@@ -1228,9 +1229,11 @@ class CobbDouglasEconomy(Market):
         # Plot aggregate resources vs aggregate savings for this run and print the new parameters
         if verbose:
             print('intercept=' + str(intercept) + ', slope=' + str(slope) + ', r-sq=' + str(r_value**2))
-            # plot_start = discard_periods
-            # plt.plot(logMagg[plot_start:],logAagg[plot_start:],'.k')
-            # plt.show()
+            #plot_start = discard_periods
+            #plt.xlabel('log(MaggNow)')
+            #plt.ylabel('log(AaggNow)')
+            #plt.plot(logMagg[plot_start:],logAagg[plot_start:],'.k')
+            #plt.show()
 
         return AggShocksDynamicRule(AFunc)
 
@@ -1722,8 +1725,9 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         for i in range(self.MrkvArray.shape[0]):
             these = i == MrkvHist
             slope, intercept, r_value, p_value, std_err = stats.linregress(logMagg[these], logAagg[these])
-            # if verbose:
-            #    plt.plot(logMagg[these],logAagg[these],'.')
+            if verbose:
+                #plt.plot(logMagg[these],logAagg[these],'.')
+                pass
 
             # Make a new aggregate savings rule by combining the new regression parameters
             # with the previous guess
