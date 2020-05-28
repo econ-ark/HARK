@@ -1225,14 +1225,9 @@ class CobbDouglasEconomy(Market):
         self.intercept_prev = intercept
         self.slope_prev = slope
 
-        # Plot aggregate resources vs aggregate savings for this run and print the new parameters
+        # Print the new parameters
         if verbose:
             print('intercept=' + str(intercept) + ', slope=' + str(slope) + ', r-sq=' + str(r_value**2))
-            #plot_start = discard_periods
-            #plt.xlabel('log(MaggNow)')
-            #plt.ylabel('log(AaggNow)')
-            #plt.plot(logMagg[plot_start:],logAagg[plot_start:],'.k')
-            #plt.show()
 
         return AggShocksDynamicRule(AFunc)
 
@@ -1724,9 +1719,6 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         for i in range(self.MrkvArray.shape[0]):
             these = i == MrkvHist
             slope, intercept, r_value, p_value, std_err = stats.linregress(logMagg[these], logAagg[these])
-            if verbose:
-                #plt.plot(logMagg[these],logAagg[these],'.')
-                pass
 
             # Make a new aggregate savings rule by combining the new regression parameters
             # with the previous guess
@@ -1739,11 +1731,10 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             self.intercept_prev[i] = intercept
             self.slope_prev[i] = slope
 
-        # Plot aggregate resources vs aggregate savings for this run and print the new parameters
+        # Print the new parameters
         if verbose:
             print('intercept=' + str(self.intercept_prev) +
                   ', slope=' + str(self.slope_prev) + ', r-sq=' + str(rSq_list))
-            # plt.show()
 
         return AggShocksDynamicRule(AFunc_list)
 
