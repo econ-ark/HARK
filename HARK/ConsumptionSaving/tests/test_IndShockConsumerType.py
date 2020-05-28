@@ -262,7 +262,7 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         IndShockExample.initializeSim()
         IndShockExample.simulate()
 
-        self.assertAlmostEqual(IndShockExample.mNrmNow_hist[0][0],
+        self.assertAlmostEqual(IndShockExample.history['mNrmNow'][0][0],
                                1.0170176090252379)
 
 LifecycleDict={ # Click arrow to expand this fairly large parameter dictionary
