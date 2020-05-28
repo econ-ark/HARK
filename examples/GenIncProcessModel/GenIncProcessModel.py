@@ -307,7 +307,7 @@ ExplicitExample.T_sim = 500
 ExplicitExample.track_vars = ['mLvlNow','cLvlNow','pLvlNow']
 ExplicitExample.initializeSim()
 ExplicitExample.simulate()
-plt.plot(np.mean(ExplicitExample.mLvlNow_hist,axis=1))
+plt.plot(np.mean(ExplicitExample.history['mLvlNow'],axis=1))
 plt.xlabel('Simulated time period')
 plt.ylabel('Average market resources mLvl')
 plt.show()
@@ -393,7 +393,9 @@ PersistentExample.T_sim = 500
 PersistentExample.track_vars = ['mLvlNow','cLvlNow','pLvlNow']
 PersistentExample.initializeSim()
 PersistentExample.simulate()
-plt.plot(np.mean(PersistentExample.mLvlNow_hist,axis=1))
+plt.plot(np.mean(PersistentExample.history['mLvlNow'],axis=1))
 plt.xlabel('Simulated time period')
 plt.ylabel('Average market resources mLvl')
 plt.show()
+
+# %%
