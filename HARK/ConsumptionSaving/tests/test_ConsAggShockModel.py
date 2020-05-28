@@ -24,7 +24,7 @@ class testAggShockConsumerType(unittest.TestCase):
     def test_distributeParams(self):
         self.assertEqual(self.agents[1].AgentCount, 300)
 
-    def test_micro(self):
+    def test_agent(self):
         # Have one consumer type inherit relevant objects from the economy,
         # then solve their microeconomic problem
         self.agents[0].getEconomyData(self.economy)
@@ -59,7 +59,7 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         self.economy = CobbDouglasMarkovEconomy(
             agents = [self.agent])
         
-    def test_micro(self):
+    def test_agent(self):
         # Have one consumer type inherit relevant objects from the economy,
         # then solve their microeconomic problem
         self.agent.getEconomyData(self.economy)
@@ -67,7 +67,7 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         self.assertEqual(self.agent.solution[0].cFunc[0](10., self.economy.MSS),
                          2.5635896520991377)
 
-    def test_macro(self):
+    def test_economy(self):
         # Adjust the economy so that it (fake) solves quickly
         self.economy.act_T = 500 # Short simulation history
         self.economy.max_loops = 3 # Just quiet solving early
