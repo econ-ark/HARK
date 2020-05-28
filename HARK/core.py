@@ -956,8 +956,6 @@ class Market(HARKobject):
         -------
         None
         '''
-        # for this_type in self.agents:
-        # this_type.solve()
         try:
             multiThreadCommands(self.agents, ['solve()'])
         except Exception as err:
