@@ -29,7 +29,7 @@ class testAggShockConsumerType(unittest.TestCase):
         # then solve their microeconomic problem
         self.agents[0].getEconomyData(self.economy)
         self.agents[0].solve()
-        self.assertEqual(self.agents[0].solution[0].cFunc(10., self.economy.MSS),
+        self.assertAlmostEqual(self.agents[0].solution[0].cFunc(10., self.economy.MSS),
                          3.229078148576943)
         
     def test_macro(self):
@@ -44,7 +44,7 @@ class testAggShockConsumerType(unittest.TestCase):
         self.economy.solve() # Solve for the general equilibrium of the economy
         
         self.economy.AFunc = self.economy.dynamics.AFunc
-        self.assertEqual(self.economy.AFunc.slope,
+        self.assertAlmostEqual(self.economy.AFunc.slope,
                          1.124330884813638)
 
 
@@ -64,20 +64,20 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         # then solve their microeconomic problem
         self.agent.getEconomyData(self.economy)
         self.agent.solve()
-        self.assertEqual(self.agent.solution[0].cFunc[0](10., self.economy.MSS),
+        self.assertAlmostEqual(self.agent.solution[0].cFunc[0](10., self.economy.MSS),
                          2.5635896520991377)
 
     def test_economy(self):
         # Adjust the economy so that it (fake) solves quickly
         self.economy.act_T = 500 # Short simulation history
         self.economy.max_loops = 3 # Just quiet solving early
-        self.verbose = False # Turn off printed messages
+        self.economy.verbose = False # Turn off printed messages
         
         self.agent.getEconomyData(self.economy)
         self.economy.makeAggShkHist() # Make a simulated history of aggregate shocks
         self.economy.solve() # Solve for the general equilibrium of the economy
         
         self.economy.AFunc = self.economy.dynamics.AFunc
-        self.assertEqual(self.economy.AFunc[0].slope,
+        self.assertAlmostEqual(self.economy.AFunc[0].slope,
                          1.0921217053006234)
                          
