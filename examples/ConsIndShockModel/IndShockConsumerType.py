@@ -254,12 +254,12 @@ IndShockExample.simulate()
 # We can now look at the simulated data in aggregate or at the individual consumer level.  Like in the perfect foresight model, we can plot average (normalized) market resources over time, as well as average consumption:
 
 # %%
-plt.plot(np.mean(IndShockExample.mNrmNow_hist,axis=1))
+plt.plot(np.mean(IndShockExample.history['mNrmNow'],axis=1))
 plt.xlabel('Time')
 plt.ylabel('Mean market resources')
 plt.show()
 
-plt.plot(np.mean(IndShockExample.cNrmNow_hist,axis=1))
+plt.plot(np.mean(IndShockExample.history['cNrmNow'],axis=1))
 plt.xlabel('Time')
 plt.ylabel('Mean consumption')
 plt.show()
@@ -268,7 +268,7 @@ plt.show()
 # We could also plot individual consumption paths for some of the consumers-- say, the first five:
 
 # %%
-plt.plot(IndShockExample.cNrmNow_hist[:,0:5])
+plt.plot(IndShockExample.history['cNrmNow'][:,0:5])
 plt.xlabel('Time')
 plt.ylabel('Individual consumption paths')
 plt.show()
@@ -419,3 +419,5 @@ plotFuncs(CyclicalExample.cFunc,mMin,5)
 
 # %% [markdown]
 # The very low green consumption function corresponds to the quarter in which the ski instructors make most of their income.  They know that they are about to experience a 70% drop in "permanent" income, so they do not consume much *relative to their income this quarter*.  In the other three quarters, *normalized* consumption is much higher, as current "permanent" income is low relative to future expectations.  In *level*, the consumption chosen in each quarter is much more similar
+
+# %%
