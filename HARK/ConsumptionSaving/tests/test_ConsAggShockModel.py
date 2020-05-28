@@ -8,48 +8,76 @@ class testAggShockConsumerType(unittest.TestCase):
 
     def setUp(self):
         agent = AggShockConsumerType()
-        agent.AgentCount = 60
+        agent.AgentCount = 900 # Very low number of agents for the sake of speed
         agent.cycles = 0
         
+        # Make agents heterogeneous in their discount factor
         self.agents = distributeParams(agent,
                                        'DiscFac',
                                        3,
-                                       Uniform(bot=.96,
-                                              top=.98)
+                                       Uniform(bot=.90, top=.94) # Impatient agents
                                        )
-
-        self.economy = EconomyExample = CobbDouglasEconomy(
-            agents=self.agents)
+        
+        # Make an economy with those agents living in it
+        self.economy = CobbDouglasEconomy(agents=self.agents)
 
     def test_distributeParams(self):
-        self.assertEqual(self.agents[1].AgentCount, 20)
+        self.assertEqual(self.agents[1].AgentCount, 300)
 
-    def test_economy(self):
-        # Make a Cobb-Douglas economy for the agents
-        self.economy.makeAggShkHist()  # Simulate a history of aggregate shocks
-
-        # Have the consumers inherit relevant objects from the economy
+    def test_micro(self):
+        # Have one consumer type inherit relevant objects from the economy,
+        # then solve their microeconomic problem
         self.agents[0].getEconomyData(self.economy)
-
         self.agents[0].solve()
+        self.assertEqual(self.agents[0].solution[0].cFunc(10., self.economy.MSS),
+                         3.229078148576943)
+        
+    def test_macro(self):
+        self.economy.act_T = 400 # Short simulation history
+        self.economy.max_loops = 3 # Give up quickly for the sake of time
+        self.economy.makeAggShkHist() # Simulate a history of aggregate shocks
+        self.economy.verbose = False # Turn off printed messages
+        
+        # Give data about the economy to all the agents in it
+        for this_type in self.economy.agents:
+            this_type.getEconomyData(self.economy)
+        self.economy.solve() # Solve for the general equilibrium of the economy
+        
+        self.economy.AFunc = self.economy.dynamics.AFunc
+        self.assertEqual(self.economy.AFunc.slope,
+                         1.124330884813638)
+
 
 class testAggShockMarkovConsumerType(unittest.TestCase):
 
     def setUp(self):
-
+        # Make one agent type and an economy for it to live in
         self.agent = AggShockMarkovConsumerType()
+        self.agent.cycles = 0
+        self.agent.AgentCount = 1000 # Low number of simulated agents
         self.agent.IncomeDstn[0] = 2*[self.agent.IncomeDstn[0]] ## see #557
         self.economy = CobbDouglasMarkovEconomy(
             agents = [self.agent])
+        
+    def test_micro(self):
+        # Have one consumer type inherit relevant objects from the economy,
+        # then solve their microeconomic problem
+        self.agent.getEconomyData(self.economy)
+        self.agent.solve()
+        self.assertEqual(self.agent.solution[0].cFunc[0](10., self.economy.MSS),
+                         2.5635896520991377)
 
-    def test_economy(self):
-
-        self.agent.getEconomyData(self.economy) # Makes attributes of the economy, attributes of the agent
-        self.economy.makeAggShkHist() # Make a simulated history of the economy
-
-        # Set tolerance level. 
-        self.economy.tolerance = 0.5
-
-        # Solve macro problem by finding a fixed point for beliefs
-        # This takes too long!
-        #self.economy.solve()
+    def test_macro(self):
+        # Adjust the economy so that it (fake) solves quickly
+        self.economy.act_T = 500 # Short simulation history
+        self.economy.max_loops = 3 # Just quiet solving early
+        self.verbose = False # Turn off printed messages
+        
+        self.agent.getEconomyData(self.economy)
+        self.economy.makeAggShkHist() # Make a simulated history of aggregate shocks
+        self.economy.solve() # Solve for the general equilibrium of the economy
+        
+        self.economy.AFunc = self.economy.dynamics.AFunc
+        self.assertEqual(self.economy.AFunc[0].slope,
+                         1.0921217053006234)
+                         
