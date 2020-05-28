@@ -278,7 +278,7 @@ PFexample.simulate()
 
 # %% {"code_folding": [0]}
 # Plot market resources over time
-plt.plot(np.mean(PFexample.mNrmNow_hist,axis=1))
+plt.plot(np.mean(PFexample.history['mNrmNow'],axis=1))
 plt.xlabel('Time')
 plt.ylabel('Mean normalized market resources')
 plt.show()
@@ -313,7 +313,9 @@ PFexample.simulate(80)
 PFexample.aNrmNow += -5. # Adjust all simulated consumers' assets downward by 5
 PFexample.simulate(40)
 
-plt.plot(np.mean(PFexample.mNrmNow_hist,axis=1))
+plt.plot(np.mean(PFexample.history['mNrmNow'],axis=1))
 plt.xlabel('Time')
 plt.ylabel('Mean normalized market resources')
 plt.show()
+
+# %%
