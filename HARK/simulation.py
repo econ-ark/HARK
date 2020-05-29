@@ -70,6 +70,7 @@ class GenericModel(AgentType):
     controls = {}
     post_states = {}
     initial_states = {}
+    utility = {}
 
     def __init__(self, configuration):
         '''
@@ -89,6 +90,7 @@ class GenericModel(AgentType):
         self.controls = configuration['controls']
         self.post_states = configuration['post_states']
         self.initial_states = configuration['initial_states']
+        self.utility = configuration['utility']
 
     ####
     # Kludges for compatibility
@@ -147,6 +149,14 @@ class GenericModel(AgentType):
             )
 
     def getPostStates(self):
+        """
+        Updates the post states for the model.
+        
+        Here, utility functions are considered post-states, as
+        they are evaluated last in the sequence.
+
+        Utility is always considered epiphenomenal.
+        """
         context = self.agent.states.copy()
         context.update(self.agent.controls)
         
@@ -155,6 +165,15 @@ class GenericModel(AgentType):
                 variable,
                 call_function_in_scope(
                     self.post_states[variable],
+                    context
+                )
+            )
+
+        for variable in simulation_order(self.utility):    
+            self.agent.update_utility(
+                variable,
+                call_function_in_scope(
+                    self.utility[variable],
                     context
                 )
             )
@@ -171,6 +190,7 @@ class SimulatedAgent():
         self.states = {}
         self.controls = {}
         self.post_states = {}
+        self.utility = {}
 
         
     def update_history(self, variable, value):
@@ -190,6 +210,10 @@ class SimulatedAgent():
     def update_post_state(self, variable, value):
         self.post_states[variable] = value
         self.states[decrement(variable)] = value
+        self.update_history(variable, value)
+
+    def update_utility(self, variable, value):
+        self.utility[variable] = value
         self.update_history(variable, value)
 
 
