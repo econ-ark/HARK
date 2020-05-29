@@ -29,7 +29,7 @@ from HARK.distribution import DiscreteDistribution, addDiscreteOutcomeConstantMe
 from HARK.utilities import makeGridExpMult, CRRAutility, CRRAutilityP, \
                            CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
                            CRRAutilityP_invP
-import logging
+from HARK import _log
 
 
 __all__ = ['ConsumerSolution', 'ValueFunc', 'MargValueFunc', 'MargMargValueFunc',
@@ -1730,9 +1730,9 @@ class PerfForesightConsumerType(AgentType):
         """
         self.conditions[name] = test(self)
 
-        logging.info(messages[self.conditions[name]].format(self))
+        _log.info(messages[self.conditions[name]].format(self))
         if verbose_messages:
-            logging.debug(verbose_messages[self.conditions[name]].format(self))
+            _log.debug(verbose_messages[self.conditions[name]].format(self))
 
 
     def checkAIC(self):
@@ -2331,18 +2331,18 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.violated = not self.conditions['WRIC'] or not self.conditions['FVAC']
 
         if self.violated:
-            logging.warning('\n[!] For more information on the conditions, see Tables 3 and 4 in "Theoretical Foundations of Buffer Stock Saving" at '+self.url+'/#Factors-Defined-And-Compared')
+            _log.warning('\n[!] For more information on the conditions, see Tables 3 and 4 in "Theoretical Foundations of Buffer Stock Saving" at '+self.url+'/#Factors-Defined-And-Compared')
 
-        logging.info('GIFPF            = %2.6f ' % (self.GIFPF))
-        logging.info('GIFInd           = %2.6f ' % (self.GIFInd))
-        logging.info('GIFAgg           = %2.6f ' % (self.GIFAgg))
-        logging.info('Thorn = AIF      = %2.6f ' % (self.thorn))
-        logging.info('PermGroFacAdj    = %2.6f ' % (self.PermGroFacAdj))
-        logging.info('uInvEpShkuInv    = %2.6f ' % (self.uInvEpShkuInv))
-        logging.info('FVAF             = %2.6f ' % (self.FVAF))
-        logging.info('WRIF             = %2.6f ' % (self.WRIF))
-        logging.info('DiscFacGIFIndMax = %2.6f ' % (self.DiscFacGIFIndMax))
-        logging.info('DiscFacGIFAggMax = %2.6f ' % (self.DiscFacGIFAggMax))
+        _log.info('GIFPF            = %2.6f ' % (self.GIFPF))
+        _log.info('GIFInd           = %2.6f ' % (self.GIFInd))
+        _log.info('GIFAgg           = %2.6f ' % (self.GIFAgg))
+        _log.info('Thorn = AIF      = %2.6f ' % (self.thorn))
+        _log.info('PermGroFacAdj    = %2.6f ' % (self.PermGroFacAdj))
+        _log.info('uInvEpShkuInv    = %2.6f ' % (self.uInvEpShkuInv))
+        _log.info('FVAF             = %2.6f ' % (self.FVAF))
+        _log.info('WRIF             = %2.6f ' % (self.WRIF))
+        _log.info('DiscFacGIFIndMax = %2.6f ' % (self.DiscFacGIFIndMax))
+        _log.info('DiscFacGIFAggMax = %2.6f ' % (self.DiscFacGIFAggMax))
 
     def Ex_Mtp1_over_Ex_Ptp1(self,mRat):
         cRat        = self.solution[-1].cFunc(mRat)
@@ -2376,7 +2376,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         '''
         infinite_horizon = cycles_left == 0
         if not infinite_horizon:
-            logging.warning('The calcTargets method works only for infinite horizon models.')
+            _log.warning('The calcTargets method works only for infinite horizon models.')
             return
 
         
