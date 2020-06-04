@@ -79,5 +79,5 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         
         self.economy.AFunc = self.economy.dynamics.AFunc
         self.assertAlmostEqual(self.economy.AFunc[0].slope,
-                         1.0921217053006234)
+                         1.0801777346256896)
                          
