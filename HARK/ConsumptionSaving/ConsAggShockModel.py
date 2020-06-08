@@ -10,15 +10,16 @@ from builtins import str
 from builtins import range
 import numpy as np
 import scipy.stats as stats
-from HARK.distribution import DiscreteDistribution, combineIndepDstns, approxMeanOneLognormal
+from HARK.distribution import DiscreteDistribution, combineIndepDstns, MeanOneLogNormal
 from HARK.interpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFunction, IdentityFunction,\
                                VariableLowerBoundFunc2D, BilinearInterp, LowerEnvelope2D, UpperEnvelope
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
                            CRRAutility_invP, CRRAutility_inv 
-from HARK.simulation import drawUniform
+from HARK.distribution import Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 from HARK import HARKobject, Market, AgentType
 from copy import deepcopy
+import matplotlib.pyplot as plt
 
 __all__ = ['MargValueFunc2D', 'AggShockConsumerType', 'AggShockMarkovConsumerType',
 'CobbDouglasEconomy', 'SmallOpenEconomy', 'CobbDouglasMarkovEconomy',
@@ -89,7 +90,7 @@ class AggShockConsumerType(IndShockConsumerType):
     evolves over time and take aggregate shocks into account when making their
     decision about how much to consume.
     '''
-    def __init__(self, time_flow=True, **kwds):
+    def __init__(self, **kwds):
         '''
         Make a new instance of AggShockConsumerType, an extension of
         IndShockConsumerType.  Sets appropriate solver and input lists.
@@ -98,7 +99,7 @@ class AggShockConsumerType(IndShockConsumerType):
         params.update(kwds)
 
         AgentType.__init__(self, solution_terminal=deepcopy(IndShockConsumerType.solution_terminal_),
-                           time_flow=time_flow, pseudo_terminal=False, **params)
+                           pseudo_terminal=False, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(IndShockConsumerType.time_vary_)
@@ -195,7 +196,7 @@ class AggShockConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        if len(self.IncomeDstn[0]) > 3:
+        if len(self.IncomeDstn[0].X) > 2:
             self.IncomeDstn = self.IncomeDstnWithoutAggShocks
         else:
             self.IncomeDstnWithoutAggShocks = self.IncomeDstn
@@ -476,17 +477,17 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             if N > 0:
                 IncomeDstnNow = self.IncomeDstn[t-1][self.MrkvNow]  # set current income distribution
                 PermGroFacNow = self.PermGroFac[t-1]                # and permanent growth factor
-                Indices = np.arange(IncomeDstnNow[0].size)    # just a list of integers
+                Indices = np.arange(IncomeDstnNow.pmf.size)    # just a list of integers
                 # Get random draws of income shocks from the discrete distribution
                 EventDraws = DiscreteDistribution(
-                    IncomeDstnNow[0],
+                    IncomeDstnNow.pmf,
                     Indices
                 ).drawDiscrete(N,
                                exact_match=True,
                                seed=self.RNG.randint(0, 2**31-1))
                 # permanent "shock" includes expected growth
-                PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow
-                TranShkNow[these] = IncomeDstnNow[2][EventDraws]
+                PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow
+                TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -495,17 +496,12 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             these = newborn
             IncomeDstnNow = self.IncomeDstn[0][self.MrkvNow]  # set current income distribution
             PermGroFacNow = self.PermGroFac[0]                # and permanent growth factor
-            Indices = np.arange(IncomeDstnNow[0].size)        # just a list of integers
             # Get random draws of income shocks from the discrete distribution
-            EventDraws = DiscreteDistribution(
-                IncomeDstnNow[0], Indices 
-            ).drawDiscrete(N,
+            EventDraws = IncomeDstnNow.draw_events(N,
                            seed=self.RNG.randint(0, 2**31-1))
             # permanent "shock" includes expected growth
-            PermShkNow[these] = IncomeDstnNow[1][EventDraws]*PermGroFacNow
-            TranShkNow[these] = IncomeDstnNow[2][EventDraws]
-#        PermShkNow[newborn] = 1.0
-#        TranShkNow[newborn] = 1.0
+            PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow
+            TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
 
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount, dtype=bool)
@@ -613,11 +609,11 @@ def solveConsAggShock(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, PermGroF
     mNrmMinNext = solution_next.mNrmMin
 
     # Unpack the income shocks
-    ShkPrbsNext = IncomeDstn[0]
-    PermShkValsNext = IncomeDstn[1]
-    TranShkValsNext = IncomeDstn[2]
-    PermShkAggValsNext = IncomeDstn[3]
-    TranShkAggValsNext = IncomeDstn[4]
+    ShkPrbsNext = IncomeDstn.pmf
+    PermShkValsNext = IncomeDstn.X[0]
+    TranShkValsNext = IncomeDstn.X[1]
+    PermShkAggValsNext = IncomeDstn.X[2]
+    TranShkAggValsNext = IncomeDstn.X[3]
     ShkCount = ShkPrbsNext.size
 
     # Make the grid of end-of-period asset values, and a tiled version
@@ -777,11 +773,11 @@ def solveConsAggMarkov(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, MrkvArr
         mNrmMinNext = solution_next.mNrmMin[j]
 
         # Unpack the income shocks
-        ShkPrbsNext = IncomeDstn[j][0]
-        PermShkValsNext = IncomeDstn[j][1]
-        TranShkValsNext = IncomeDstn[j][2]
-        PermShkAggValsNext = IncomeDstn[j][3]
-        TranShkAggValsNext = IncomeDstn[j][4]
+        ShkPrbsNext = IncomeDstn[j].pmf
+        PermShkValsNext = IncomeDstn[j].X[0]
+        TranShkValsNext = IncomeDstn[j].X[1]
+        PermShkAggValsNext = IncomeDstn[j].X[2]
+        TranShkAggValsNext = IncomeDstn[j].X[3]
         ShkCount = ShkPrbsNext.size
         aXtra_tiled = np.tile(np.reshape(aXtraGrid, (1, aCount, 1)), (Mcount, 1, ShkCount))
 
@@ -966,7 +962,7 @@ class CobbDouglasEconomy(Market):
     this will be generalized in the future.
     '''
     def __init__(self,
-                 agents=[],
+                 agents=None,
                  tolerance=0.0001,
                  act_T=1200,
                  **kwds):
@@ -989,6 +985,7 @@ class CobbDouglasEconomy(Market):
         -------
         None
         '''
+        agents = agents if agents is not None else list()
         params = init_cobb_douglas.copy()
         params.update(kwds)
 
@@ -1095,8 +1092,12 @@ class CobbDouglasEconomy(Market):
         -------
         None
         '''
-        self.TranShkAggDstn = approxMeanOneLognormal(sigma=self.TranShkAggStd, N=self.TranShkAggCount)
-        self.PermShkAggDstn = approxMeanOneLognormal(sigma=self.PermShkAggStd, N=self.PermShkAggCount)
+        self.TranShkAggDstn = MeanOneLogNormal(
+            sigma=self.TranShkAggStd
+        ).approx(N=self.TranShkAggCount)
+        self.PermShkAggDstn = MeanOneLogNormal(
+            sigma=self.PermShkAggStd
+        ).approx(N=self.PermShkAggCount)
         self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn, self.TranShkAggDstn)
 
     def reset(self):
@@ -1225,12 +1226,9 @@ class CobbDouglasEconomy(Market):
         self.intercept_prev = intercept
         self.slope_prev = slope
 
-        # Plot aggregate resources vs aggregate savings for this run and print the new parameters
+        # Print the new parameters
         if verbose:
             print('intercept=' + str(intercept) + ', slope=' + str(slope) + ', r-sq=' + str(r_value**2))
-            # plot_start = discard_periods
-            # plt.plot(logMagg[plot_start:],logAagg[plot_start:],'.k')
-            # plt.show()
 
         return AggShocksDynamicRule(AFunc)
 
@@ -1241,7 +1239,7 @@ class SmallOpenEconomy(Market):
     exogenously determined by some "global" rate.  However, the economy is still subject to
     aggregate productivity shocks.
     '''
-    def __init__(self, agents=[], tolerance=0.0001, act_T=1000, **kwds):
+    def __init__(self, agents=None, tolerance=0.0001, act_T=1000, **kwds):
         '''
         Make a new instance of SmallOpenEconomy by filling in attributes specific to this kind of market.
 
@@ -1260,6 +1258,7 @@ class SmallOpenEconomy(Market):
         -------
         None
         '''
+        agents = agents if agents is not None else list()
         Market.__init__(self,
                         agents=agents,
                         sow_vars=['MaggNow', 'AaggNow', 'RfreeNow', 'wRteNow',
@@ -1312,8 +1311,12 @@ class SmallOpenEconomy(Market):
         -------
         None
         '''
-        self.TranShkAggDstn = approxMeanOneLognormal(sigma=self.TranShkAggStd, N=self.TranShkAggCount)
-        self.PermShkAggDstn = approxMeanOneLognormal(sigma=self.PermShkAggStd, N=self.PermShkAggCount)
+        self.TranShkAggDstn = MeanOneLogNormal(
+            sigma=self.TranShkAggStd
+        ).approx(N=self.TranShkAggCount)
+        self.PermShkAggDstn = MeanOneLogNormal(
+            sigma=self.PermShkAggStd
+        ).approx(N=self.PermShkAggCount)
         self.AggShkDstn = combineIndepDstns(self.PermShkAggDstn, self.TranShkAggDstn)
 
     def millRule(self):
@@ -1431,7 +1434,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
 
     '''
     def __init__(self,
-                 agents=[],
+                 agents=None,
                  tolerance=0.0001,
                  act_T=1200,
                  **kwds):
@@ -1454,6 +1457,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         -------
         None
         '''
+        agents = agents if agents is not None else list()
         params = init_mrkv_cobb_douglas.copy()
         params.update(kwds)
 
@@ -1526,8 +1530,8 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         StateCount = self.MrkvArray.shape[0]
 
         for i in range(StateCount):
-            TranShkAggDstn.append(approxMeanOneLognormal(sigma=self.TranShkAggStd[i], N=self.TranShkAggCount))
-            PermShkAggDstn.append(approxMeanOneLognormal(sigma=self.PermShkAggStd[i], N=self.PermShkAggCount))
+            TranShkAggDstn.append(MeanOneLogNormal(sigma=self.TranShkAggStd[i]).approx(N=self.TranShkAggCount))
+            PermShkAggDstn.append(MeanOneLogNormal(sigma=self.PermShkAggStd[i]).approx(N=self.PermShkAggCount))
             AggShkDstn.append(combineIndepDstns(PermShkAggDstn[-1], TranShkAggDstn[-1]))
 
         self.TranShkAggDstn = TranShkAggDstn
@@ -1558,13 +1562,9 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         PermShkAggHistAll = np.zeros((StateCount, sim_periods))
         TranShkAggHistAll = np.zeros((StateCount, sim_periods))
         for i in range(StateCount):
-            Events = np.arange(self.AggShkDstn[i].pmf.size)  # just a list of integers
-            EventDraws = self.AggShkDstn[i].drawDiscrete(
-                N=sim_periods,
-                X=Events,
-                seed=0)
-            PermShkAggHistAll[i, :] = self.AggShkDstn[i].X[0][EventDraws]
-            TranShkAggHistAll[i, :] = self.AggShkDstn[i].X[1][EventDraws]
+            AggShockDraws = self.AggShkDstn[i].drawDiscrete(N=sim_periods, seed=0)
+            PermShkAggHistAll[i, :] = AggShockDraws[0,:]
+            TranShkAggHistAll[i, :] = AggShockDraws[1,:]
 
         # Select the actual history of aggregate shocks based on the sequence
         # of Markov states that the economy experiences
@@ -1629,7 +1629,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
 
         # Add histories until each state has been visited at least state_T_min times
         while go:
-            draws = drawUniform(N=self.act_T_orig, seed=loops)
+            draws = Uniform().draw(N=self.act_T_orig, seed=loops)
             for s in range(draws.size):  # Add act_T_orig more periods
                 MrkvNow_hist[t] = MrkvNow
                 MrkvNow = np.searchsorted(cutoffs[MrkvNow, :], draws[s])
@@ -1720,8 +1720,6 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         for i in range(self.MrkvArray.shape[0]):
             these = i == MrkvHist
             slope, intercept, r_value, p_value, std_err = stats.linregress(logMagg[these], logAagg[these])
-            # if verbose:
-            #    plt.plot(logMagg[these],logAagg[these],'.')
 
             # Make a new aggregate savings rule by combining the new regression parameters
             # with the previous guess
@@ -1734,11 +1732,10 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             self.intercept_prev[i] = intercept
             self.slope_prev[i] = slope
 
-        # Plot aggregate resources vs aggregate savings for this run and print the new parameters
+        # Print the new parameters
         if verbose:
             print('intercept=' + str(self.intercept_prev) +
                   ', slope=' + str(self.slope_prev) + ', r-sq=' + str(rSq_list))
-            # plt.show()
 
         return AggShocksDynamicRule(AFunc_list)
 
@@ -1750,7 +1747,8 @@ class SmallOpenMarkovEconomy(CobbDouglasMarkovEconomy, SmallOpenEconomy):
     aggregate productivity shocks.  This version supports a discrete Markov state.  All
     methods in this class inherit from the two parent classes.
     '''
-    def __init__(self, agents=[], tolerance=0.0001, act_T=1000, **kwds):
+    def __init__(self, agents=None, tolerance=0.0001, act_T=1000, **kwds):
+        agents = agents if agents is not None else list()
         CobbDouglasMarkovEconomy.__init__(self, agents=agents, tolerance=tolerance, act_T=act_T, **kwds)
         self.reap_vars = []
         self.dyn_vars = []

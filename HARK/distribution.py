@@ -5,6 +5,416 @@ from scipy.special import erf, erfc
 import scipy.stats as stats
 import warnings
 
+### CONTINUOUS DISTRIBUTIONS
+
+class Lognormal():
+    """
+    A Lognormal distribution
+    """
+    mu = None
+    sigma = None
+
+    def __init__(self, mu = 0.0, sigma = 1.0):
+        '''
+        Initialize the distribution.
+
+        Parameters
+        ----------
+         mu : float or [float]
+            One or more means.  Number of elements T in mu determines number
+            of rows of output.
+        sigma : float or [float]
+            One or more standard deviations. Number of elements T in sigma
+            determines number of rows of output.
+        '''
+        self.mu = mu
+        self.sigma = sigma
+
+    def draw(self, N, seed=0):
+        '''
+        Generate arrays of lognormal draws. The sigma input can be a number
+        or list-like.  If a number, output is a length N array of draws from the
+        lognormal distribution with standard deviation sigma. If a list, output is
+        a length T list whose t-th entry is a length N array of draws from the
+        lognormal with standard deviation sigma[t].
+
+        Parameters
+        ----------
+        N : int
+            Number of draws in each row.
+        seed : int
+            Seed for random number generator.
+
+        Returns:
+        ------------
+        draws : np.array or [np.array]
+            T-length list of arrays of mean one lognormal draws each of size N, or
+            a single array of size N (if sigma is a scalar).
+        '''
+        # Set up the RNG
+        RNG = np.random.RandomState(seed)
+
+        if isinstance(self.sigma,float): # Return a single array of length N
+            if self.sigma == 0:
+                draws = np.exp(self.mu)*np.ones(N)
+            else:
+                draws = RNG.lognormal(mean=self.mu,
+                                      sigma=self.sigma,
+                                      size=N)
+        else: # Set up empty list to populate, then loop and populate list with draws
+            draws=[]
+            for j in range(len(self.sigma)):
+                if self.sigma[j] == 0:
+                    draws.append(np.exp(self.mu[j])*np.ones(N))
+                else:
+                    draws.append(RNG.lognormal(mean=self.mu[j],
+                                               sigma=self.sigma[j],
+                                               size=N))
+        return draws
+
+    def approx(self, N, tail_N=0, tail_bound=None, tail_order=np.e):
+        '''
+        Construct a discrete approximation to a lognormal distribution with underlying
+        normal distribution N(mu,sigma).  Makes an equiprobable distribution by
+        default, but user can optionally request augmented tails with exponentially
+        sized point masses.  This can improve solution accuracy in some models.
+
+        Parameters
+        ----------
+        N: int
+            Number of discrete points in the "main part" of the approximation.
+        tail_N: int
+            Number of points in each "tail part" of the approximation; 0 = no tail.
+        tail_bound: [float]
+            CDF boundaries of the tails vs main portion; tail_bound[0] is the lower
+            tail bound, tail_bound[1] is the upper tail bound.  Inoperative when
+            tail_N = 0.  Can make "one tailed" approximations with 0.0 or 1.0.
+        tail_order: float
+            Factor by which consecutive point masses in a "tail part" differ in
+            probability.  Should be >= 1 for sensible spacing.
+
+        Returns
+        -------
+        d : DiscreteDistribution
+            Probability associated with each point in array of discrete
+            points for discrete probability mass function.
+        '''
+        tail_bound = tail_bound if tail_bound is not None else [0.02, 0.98]
+        # Find the CDF boundaries of each segment
+        if self.sigma > 0.0:
+            if tail_N > 0:
+                lo_cut     = tail_bound[0]
+                hi_cut     = tail_bound[1]
+            else:
+                lo_cut     = 0.0
+                hi_cut     = 1.0
+            inner_size     = hi_cut - lo_cut
+            inner_CDF_vals = [lo_cut + x*N**(-1.0)*inner_size for x in range(1, N)]
+            if inner_size < 1.0:
+                scale      = 1.0/tail_order
+                mag        = (1.0-scale**tail_N)/(1.0-scale)
+            lower_CDF_vals = [0.0]
+            if lo_cut > 0.0:
+                for x in range(tail_N-1,-1,-1):
+                    lower_CDF_vals.append(lower_CDF_vals[-1] + lo_cut*scale**x/mag)
+            upper_CDF_vals  = [hi_cut]
+            if hi_cut < 1.0:
+                for x in range(tail_N):
+                    upper_CDF_vals.append(upper_CDF_vals[-1] + (1.0-hi_cut)*scale**x/mag)
+            CDF_vals       = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
+            temp_cutoffs   = list(stats.lognorm.ppf(CDF_vals[1:-1], s=self.sigma, loc=0, scale=np.exp(self.mu)))
+            cutoffs        = [0] + temp_cutoffs + [np.inf]
+            CDF_vals       = np.array(CDF_vals)
+
+            # Construct the discrete approximation by finding the average value within each segment.
+            # This codeblock ignores warnings because it throws a "divide by zero encountered in log"
+            # warning due to computing erf(infty) at the tail boundary.  This is irrelevant and
+            # apparently freaks new users out.
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                K              = CDF_vals.size-1 # number of points in approximation
+                pmf            = CDF_vals[1:(K+1)] - CDF_vals[0:K]
+                X              = np.zeros(K)
+                for i in range(K):
+                    zBot  = cutoffs[i]
+                    zTop = cutoffs[i+1]
+                    tempBot = (self.mu+self.sigma**2-np.log(zBot))/(np.sqrt(2)*self.sigma)
+                    tempTop = (self.mu+self.sigma**2-np.log(zTop))/(np.sqrt(2)*self.sigma)
+                    if tempBot <= 4:
+                        X[i] = -0.5*np.exp(self.mu+(self.sigma**2)*0.5)*(erf(tempTop) - erf(tempBot))/pmf[i]
+                    else:
+                        X[i] = -0.5*np.exp(self.mu+(self.sigma**2)*0.5)*(erfc(tempBot) - erfc(tempTop))/pmf[i]
+
+        else:
+            pmf = np.ones(N)/N
+            X   = np.exp(self.mu)*np.ones(N)
+        return DiscreteDistribution(pmf, X)
+
+class MeanOneLogNormal(Lognormal):
+
+    def __init__(self, sigma=1.0):
+        mu = -0.5*sigma**2
+        super().__init__(mu=mu, sigma=sigma)
+
+
+class Normal():
+    """
+    A Normal distribution.
+    """
+    mu = None
+    sigma = None
+
+    def __init__(self, mu = 0.0, sigma = 1.0):
+        '''
+        Initialize the distribution.
+
+        Parameters
+        ----------
+         mu : float or [float]
+            One or more means.  Number of elements T in mu determines number
+            of rows of output.
+        sigma : float or [float]
+            One or more standard deviations. Number of elements T in sigma
+            determines number of rows of output.
+        '''
+        self.mu = mu
+        self.sigma = sigma
+
+    def draw(self, N, seed=0):
+        '''
+        Generate arrays of normal draws.  The mu and sigma inputs can be numbers or
+        list-likes.  If a number, output is a length N array of draws from the normal
+        distribution with mean mu and standard deviation sigma. If a list, output is
+        a length T list whose t-th entry is a length N array with draws from the
+        normal distribution with mean mu[t] and standard deviation sigma[t].
+
+        Parameters
+        ----------
+        N : int
+            Number of draws in each row.
+        seed : int
+            Seed for random number generator.
+
+        Returns
+        -------
+        draws : np.array or [np.array]
+            T-length list of arrays of normal draws each of size N, or a single array
+            of size N (if sigma is a scalar).
+        '''
+        # Set up the RNG
+        RNG = np.random.RandomState(seed)
+
+        if isinstance(self.sigma,float): # Return a single array of length N
+            draws = self.sigma*RNG.randn(N) + self.mu
+        else: # Set up empty list to populate, then loop and populate list with draws
+            draws=[]
+            for t in range(len(sigma)):
+                draws.append(self.sigma[t]*RNG.randn(N) + self.mu[t])
+        return draws
+
+    def approx(self, N):
+        """
+        Returns a discrete approximation of this distribution.
+        """
+        x, w = np.polynomial.hermite.hermgauss(N)
+        # normalize w
+        pmf = w*np.pi**-0.5
+        # correct x
+        X = math.sqrt(2.0)*self.sigma*x + self.mu
+        return DiscreteDistribution(pmf, X)
+
+class Weibull():
+    '''
+    A Weibull distribution
+    '''
+
+    scale = None
+    shape = None
+
+    def __init__(self, scale=1.0, shape=1.0):
+        '''
+        Initialize the distribution.
+
+        Parameters
+        ----------
+        scale : float or [float]
+            One or more scales.  Number of elements T in scale determines number of
+        rows of output.
+        shape : float or [float]
+            One or more shape parameters. Number of elements T in scale
+            determines number of rows of output.
+        '''
+        self.scale = scale
+        self.shape = shape
+
+    def draw(self, N, seed=0):
+        '''
+        Generate arrays of Weibull draws.  The scale and shape inputs can be
+        numbers or list-likes.  If a number, output is a length N array of draws from
+        the Weibull distribution with the given scale and shape. If a list, output
+        is a length T list whose t-th entry is a length N array with draws from the
+        Weibull distribution with scale scale[t] and shape shape[t].
+
+        Note: When shape=1, the Weibull distribution is simply the exponential dist.
+
+        Mean: scale*Gamma(1 + 1/shape)
+
+        Parameters
+        ----------
+        N : int
+            Number of draws in each row.
+        seed : int
+            Seed for random number generator.
+
+        Returns:
+        ------------
+        draws : np.array or [np.array]
+            T-length list of arrays of Weibull draws each of size N, or a single
+            array of size N (if sigma is a scalar).
+        '''
+        # Set up the RNG
+        RNG = np.random.RandomState(seed)
+
+        if self.scale == 1:
+            scale = float(self.scale)
+        if isinstance(self.scale,float): # Return a single array of length N
+            draws = self.scale*(-np.log(1.0-RNG.rand(N)))**(1.0/self.shape)
+        else: # Set up empty list to populate, then loop and populate list with draws
+            draws=[]
+            for t in range(len(self.scale)):
+                draws.append(self.scale[t]*(-np.log(1.0-RNG.rand(N)))**(1.0/self.shape[t]))
+        return draws
+
+class Uniform():
+    """
+    A Uniform distribution.
+    """
+
+    bot = None
+    top = None
+
+    def __init__(self, bot = 0.0, top = 1.0):
+        '''
+        Initialize the distribution.
+
+        Parameters
+        ----------
+        bot : float or [float]
+            One or more bottom values.  Number of elements T in mu determines number
+            of rows of output.
+        top : float or [float]
+            One or more top values. Number of elements T in top determines number of
+            rows of output.
+        '''
+        self.bot = bot
+        self.top = top
+
+    def draw(self, N, seed=0):
+        '''
+        Generate arrays of uniform draws.  The bot and top inputs can be numbers or
+        list-likes.  If a number, output is a length N array of draws from the
+        uniform distribution on [bot,top]. If a list, output is a length T list
+        whose t-th entry is a length N array with draws from the uniform distribution
+        on [bot[t],top[t]].
+
+        Parameters
+        ----------
+        N : int
+            Number of draws in each row.
+        seed : int
+            Seed for random number generator.
+
+        Returns
+        -------
+        draws : np.array or [np.array]
+            T-length list of arrays of uniform draws each of size N, or a single
+            array of size N (if sigma is a scalar).
+        '''
+        # Set up the RNG
+        RNG = np.random.RandomState(seed)
+
+        if isinstance(self.bot,float) or isinstance(self.bot,int): # Return a single array of size N
+            draws = self.bot + (self.top - self.bot)*RNG.rand(N)
+        else: # Set up empty list to populate, then loop and populate list with draws
+            draws=[]
+            for t in range(len(bot)):
+                draws.append(self.bot[t] + (self.top[t] - self.bot[t])*RNG.rand(N))
+        return draws
+
+    def approx(self, N):
+        '''
+        Makes a discrete approximation to this uniform distribution.
+
+        Parameters
+        ----------
+        N : int
+            The number of points in the discrete approximation
+
+        Returns
+        -------
+        d : DiscreteDistribution
+            Probability associated with each point in array of discrete
+            points for discrete probability mass function.
+        '''
+        pmf = np.ones(N)/float(N)
+        center = (self.top+self.bot)/2.0
+        width = (self.top-self.bot)/2.0
+        X = center + width*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
+        return DiscreteDistribution(pmf,X)
+
+
+### DISCRETE DISTRIBUTIONS
+
+class Bernoulli():
+    """
+    A Bernoulli distribution.
+    """
+
+    p = None
+
+    def __init__(self, p = 0.5):
+        '''
+        Initialize the distribution.
+
+        Parameters
+        ----------
+        p : float or [float]
+            Probability or probabilities of the event occurring (True).
+        '''
+        self.p = p
+
+    def draw(self, N, seed = 0):
+        '''
+        Generates arrays of booleans drawn from a simple Bernoulli distribution.
+        The input p can be a float or a list-like of floats; its length T determines
+        the number of entries in the output.  The t-th entry of the output is an
+        array of N booleans which are True with probability p[t] and False otherwise.
+
+        Arguments
+        ---------
+        N : int
+            Number of draws in each row.
+        seed : int
+            Seed for random number generator.
+
+        Returns
+        -------
+        draws : np.array or [np.array]
+            T-length list of arrays of Bernoulli draws each of size N, or a single
+        array of size N (if sigma is a scalar).
+        '''
+        # Set up the RNG
+        RNG = np.random.RandomState(seed)
+
+        if isinstance(self.p,float):# Return a single array of size N
+            draws = RNG.uniform(size=N) < self.p
+        else: # Set up empty list to populate, then loop and populate list with draws:
+            draws=[]
+            for t in range(len(self.p)):
+                draws.append(RNG.uniform(size=N) < self.p[t])
+        return draws
+
+
 
 class DiscreteDistribution():
     """
@@ -31,7 +441,7 @@ class DiscreteDistribution():
         self.X = X
 
         # Very quick and incomplete parameter check:
-        # TODO: Check that pmf adn X arrays have same length.
+        # TODO: Check that pmf and X arrays have same length.
 
     def dim(self):
         if isinstance(self.X, list):
@@ -83,15 +493,18 @@ class DiscreteDistribution():
         '''
         if X is None:
             X = self.X
+            J = self.dim()
         elif isinstance(X,int):
-            X = self.X[Xdim]
+            X = self.X[X]
+            J = 1
         else:
             X = X
-        
-        # Set up the RNG
-        RNG = np.random.RandomState(seed)
+            J = 1
 
         if exact_match:
+            # Set up the RNG
+            RNG = np.random.RandomState(seed)
+            
             events = np.arange(self.pmf.size) # just a list of integers
             cutoffs = np.round(np.cumsum(self.pmf)*N).astype(int) # cutoff points between discrete outcomes
             top = 0
@@ -106,125 +519,17 @@ class DiscreteDistribution():
                 draws = X[event_draws]
         else:
             indices = self.draw_events(N, seed=seed)
-            draws = np.asarray(X)[indices]
+            if J > 1:
+                draws = np.zeros((J,N))
+                for j in range(J):
+                    draws[j,:] = X[j][indices]
+            else:
+                draws = np.asarray(X)[indices]
 
         return draws
 
-def approxLognormal(N, mu=0.0, sigma=1.0, tail_N=0, tail_bound=[0.02,0.98], tail_order=np.e):
-    '''
-    Construct a discrete approximation to a lognormal distribution with underlying
-    normal distribution N(mu,sigma).  Makes an equiprobable distribution by
-    default, but user can optionally request augmented tails with exponentially
-    sized point masses.  This can improve solution accuracy in some models.
-
-    Parameters
-    ----------
-    N: int
-        Number of discrete points in the "main part" of the approximation.
-    mu: float
-        Mean of underlying normal distribution.
-    sigma: float
-        Standard deviation of underlying normal distribution.
-    tail_N: int
-        Number of points in each "tail part" of the approximation; 0 = no tail.
-    tail_bound: [float]
-        CDF boundaries of the tails vs main portion; tail_bound[0] is the lower
-        tail bound, tail_bound[1] is the upper tail bound.  Inoperative when
-        tail_N = 0.  Can make "one tailed" approximations with 0.0 or 1.0.
-    tail_order: float
-        Factor by which consecutive point masses in a "tail part" differ in
-        probability.  Should be >= 1 for sensible spacing.
-
-    Returns
-    -------
-    d : DiscreteDistribution
-        Probability associated with each point in array of discrete
-        points for discrete probability mass function.
-    '''
-    # Find the CDF boundaries of each segment
-    if sigma > 0.0:
-        if tail_N > 0:
-            lo_cut     = tail_bound[0]
-            hi_cut     = tail_bound[1]
-        else:
-            lo_cut     = 0.0
-            hi_cut     = 1.0
-        inner_size     = hi_cut - lo_cut
-        inner_CDF_vals = [lo_cut + x*N**(-1.0)*inner_size for x in range(1, N)]
-        if inner_size < 1.0:
-            scale      = 1.0/tail_order
-            mag        = (1.0-scale**tail_N)/(1.0-scale)
-        lower_CDF_vals = [0.0]
-        if lo_cut > 0.0:
-            for x in range(tail_N-1,-1,-1):
-                lower_CDF_vals.append(lower_CDF_vals[-1] + lo_cut*scale**x/mag)
-        upper_CDF_vals  = [hi_cut]
-        if hi_cut < 1.0:
-            for x in range(tail_N):
-                upper_CDF_vals.append(upper_CDF_vals[-1] + (1.0-hi_cut)*scale**x/mag)
-        CDF_vals       = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
-        temp_cutoffs   = list(stats.lognorm.ppf(CDF_vals[1:-1], s=sigma, loc=0, scale=np.exp(mu)))
-        cutoffs        = [0] + temp_cutoffs + [np.inf]
-        CDF_vals       = np.array(CDF_vals)
-
-        # Construct the discrete approximation by finding the average value within each segment.
-        # This codeblock ignores warnings because it throws a "divide by zero encountered in log"
-        # warning due to computing erf(infty) at the tail boundary.  This is irrelevant and
-        # apparently freaks new users out.
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            K              = CDF_vals.size-1 # number of points in approximation
-            pmf            = CDF_vals[1:(K+1)] - CDF_vals[0:K]
-            X              = np.zeros(K)
-            for i in range(K):
-                zBot  = cutoffs[i]
-                zTop = cutoffs[i+1]
-                tempBot = (mu+sigma**2-np.log(zBot))/(np.sqrt(2)*sigma)
-                tempTop = (mu+sigma**2-np.log(zTop))/(np.sqrt(2)*sigma)
-                if tempBot <= 4:
-                    X[i] = -0.5*np.exp(mu+(sigma**2)*0.5)*(erf(tempTop) - erf(tempBot))/pmf[i]
-                else:
-                    X[i] = -0.5*np.exp(mu+(sigma**2)*0.5)*(erfc(tempBot) - erfc(tempTop))/pmf[i]
-
-    else:
-        pmf = np.ones(N)/N
-        X   = np.exp(mu)*np.ones(N)
-    return DiscreteDistribution(pmf, X)
-
-@memoize
-def approxMeanOneLognormal(N, sigma=1.0, **kwargs):
-    '''
-    Calculate a discrete approximation to a mean one lognormal distribution.
-    Based on function approxLognormal; see that function's documentation for
-    further notes.
-
-    Parameters
-    ----------
-    N : int
-        Size of discrete space vector to be returned.
-    sigma : float
-        standard deviation associated with underlying normal probability distribution.
-
-    Returns
-    -------
-    d : DiscreteDistribution
-        Probability associated with each point in array of discrete
-        points for discrete probability mass function.
-    '''
-    mu_adj = - 0.5*sigma**2;
-    dist = approxLognormal(N=N, mu=mu_adj, sigma=sigma, **kwargs)
-    return dist
-
-def approxNormal(N, mu=0.0, sigma=1.0):
-    x, w = np.polynomial.hermite.hermgauss(N)
-    # normalize w
-    pmf = w*np.pi**-0.5
-    # correct x
-    X = math.sqrt(2.0)*sigma*x + mu
-    return DiscreteDistribution(pmf, X)
-
 def approxLognormalGaussHermite(N, mu=0.0, sigma=1.0):
-    d = approxNormal(N, mu, sigma)
+    d = Normal(mu, sigma).approx(N)
     return DiscreteDistribution(d.pmf, np.exp(d.X))
 
 
@@ -268,32 +573,6 @@ def approxBeta(N,a=1.0,b=1.0):
     X    = np.mean(vals,axis=1)
     pmf  = np.ones(N)/float(N)
     return DiscreteDistribution(pmf, X)
-
-def approxUniform(N,bot=0.0,top=1.0):
-    '''
-    Makes a discrete approximation to a uniform distribution, given its bottom
-    and top limits and number of points.
-
-    Parameters
-    ----------
-    N : int
-        The number of points in the discrete approximation
-    bot : float
-        The bottom of the uniform distribution
-    top : float
-        The top of the uniform distribution
-
-    Returns
-    -------
-    d : DiscreteDistribution
-        Probability associated with each point in array of discrete
-        points for discrete probability mass function.
-    '''
-    pmf = np.ones(N)/float(N)
-    center = (top+bot)/2.0
-    width = (top-bot)/2.0
-    X = center + width*np.linspace(-(N-1.0)/2.0,(N-1.0)/2.0,N)/(N/2.0)
-    return DiscreteDistribution(pmf,X)
 
 
 def makeMarkovApproxToNormal(x_grid,mu,sigma,K=351,bound=3.5):

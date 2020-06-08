@@ -11,7 +11,8 @@ from __future__ import absolute_import
 from builtins import str
 from builtins import range
 import numpy as np
-from HARK.distribution import approxMeanOneLognormal
+from HARK import makeOnePeriodOOSolver
+from HARK.distribution import MeanOneLogNormal
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
                                    ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver, \
                                    init_idiosyncratic_shocks, init_kinked_R
@@ -50,7 +51,6 @@ class PrefShockConsumerType(IndShockConsumerType):
 
     def __init__(self,
                  cycles=1,
-                 time_flow=True,
                  **kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
@@ -62,8 +62,6 @@ class PrefShockConsumerType(IndShockConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -74,10 +72,8 @@ class PrefShockConsumerType(IndShockConsumerType):
 
         IndShockConsumerType.__init__(self,
                                       cycles=cycles,
-                                      time_flow=time_flow,
                                       **params)
-        self.solveOnePeriod = solveConsPrefShock # Choose correct solver
-        
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPrefShockSolver)
     def preSolve(self):
         self.updateSolutionTerminal()
 
@@ -112,20 +108,18 @@ class PrefShockConsumerType(IndShockConsumerType):
         -------
         none
         '''
-        time_orig = self.time_flow
-        self.timeFwd()
-
         PrefShkDstn = [] # discrete distributions of preference shocks
         for t in range(len(self.PrefShkStd)):
             PrefShkStd = self.PrefShkStd[t]
-            PrefShkDstn.append(approxMeanOneLognormal(N=self.PrefShkCount,
-                                                      sigma=PrefShkStd,tail_N=self.PrefShk_tail_N))
+            PrefShkDstn.append(
+                MeanOneLogNormal(
+                    sigma=PrefShkStd
+                ).approx(N=self.PrefShkCount,
+                         tail_N=self.PrefShk_tail_N))
 
         # Store the preference shocks in self (time-varying) and restore time flow
         self.PrefShkDstn = PrefShkDstn
         self.addToTimeVary('PrefShkDstn')
-        if not time_orig:
-            self.timeRev()
 
     def getShocks(self):
         '''
@@ -146,8 +140,9 @@ class PrefShockConsumerType(IndShockConsumerType):
             N = np.sum(these)
             if N > 0:
                 PrefShkNow[these] = self.RNG.permutation(
-                    approxMeanOneLognormal(N,
-                                           sigma=self.PrefShkStd[t]).X)
+                    MeanOneLogNormal(
+                        sigma=self.PrefShkStd[t]
+                    ).approx(N).X)
         self.PrefShkNow = PrefShkNow
 
     def getControls(self):
@@ -224,7 +219,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
     utility each period, specified as iid lognormal and different interest rates
     on borrowing vs saving.
     '''
-    def __init__(self,cycles=1,time_flow=True,**kwds):
+    def __init__(self,cycles=1,**kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
         to be used during solution (income distribution, assets grid, etc).
@@ -235,8 +230,6 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -246,7 +239,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         params.update(kwds)
         kwds = params
         IndShockConsumerType.__init__(self,**kwds)
-        self.solveOnePeriod = solveConsKinkyPref # Choose correct solver
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsKinkyPrefSolver)
         self.addToTimeInv('Rboro','Rsave')
         self.delFromTimeInv('Rfree')
         
@@ -494,7 +487,7 @@ def solveConsPrefShock(solution_next,IncomeDstn,PrefShkDstn,
         shock, c = cFunc(m,PrefShk), but the (marginal) value function is defined
         unconditionally on the shock, just before it is revealed.
     '''
-    solver = ConsPrefShockSolver(solution_next,IncomeDstn,PrefShkDstn,LivPrb,
+    solver = (solution_next,IncomeDstn,PrefShkDstn,LivPrb,
                              DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraGrid,
                              vFuncBool,CubicBool)
     solver.prepareToSolve()
@@ -565,73 +558,3 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver,ConsKinkedRsolver):
                       Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
         self.PrefShkPrbs = PrefShkDstn.pmf
         self.PrefShkVals = PrefShkDstn.X
-
-
-def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,
-                       LivPrb,DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
-                       aXtraGrid,vFuncBool,CubicBool):
-    '''
-    Solves a single period of a consumption-saving model with preference shocks
-    to marginal utility and a different interest rate on saving vs borrowing.
-    Problem is solved using the method of endogenous gridpoints.
-
-    Parameters
-    ----------
-    solution_next : ConsumerSolution
-        The solution to the succeeding one period problem.
-    IncomeDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
-    PrefShkDstn : [np.array]
-        Discrete distribution of the multiplicative utility shifter.  Order:
-        probabilities, preference shocks.
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
-    DiscFac : float
-        Intertemporal discount factor for future utility.
-    CRRA : float
-        Coefficient of relative risk aversion.
-    Rboro: float
-        Interest factor on assets between this period and the succeeding
-        period when assets are negative.
-    Rsave: float
-        Interest factor on assets between this period and the succeeding
-        period when assets are positive.
-    PermGroGac : float
-        Expected permanent income growth factor at the end of this period.
-    BoroCnstArt: float or None
-        Borrowing constraint for the minimum allowable assets to end the
-        period with.  If it is less than the natural borrowing constraint,
-        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-        rowing constraint.
-    aXtraGrid: np.array
-        Array of "extra" end-of-period asset values-- assets above the
-        absolute minimum acceptable level.
-    vFuncBool: boolean
-        An indicator for whether the value function should be computed and
-        included in the reported solution.
-    CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear inter-
-        polation.
-
-    Returns
-    -------
-    solution: ConsumerSolution
-        The solution to the single period consumption-saving problem.  Includes
-        a consumption function cFunc (using linear splines), a marginal value
-        function vPfunc, a minimum acceptable level of normalized market re-
-        sources mNrmMin, normalized human wealth hNrm, and bounding MPCs MPCmin
-        and MPCmax.  It might also have a value function vFunc.  The consumption
-        function is defined over normalized market resources and the preference
-        shock, c = cFunc(m,PrefShk), but the (marginal) value function is defined
-        unconditionally on the shock, just before it is revealed.
-    '''
-    solver = ConsKinkyPrefSolver(solution_next,IncomeDstn,PrefShkDstn,LivPrb,
-                             DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
-                             aXtraGrid,vFuncBool,CubicBool)
-    solver.prepareToSolve()
-    solution = solver.solve()
-    return solution

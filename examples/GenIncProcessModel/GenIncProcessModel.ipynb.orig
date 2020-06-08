@@ -33,7 +33,8 @@
    "outputs": [],
    "source": [
     "from HARK.ConsumptionSaving.ConsGenIncProcessModel import *\n",
-    "from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType"
+    "from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType\n",
+    "import HARK.ConsumptionSaving.ConsumerParameters as Params"
    ]
   },
   {
@@ -92,9 +93,10 @@
     "\n",
     "### Example parameter values to solve GenIncProcess model\n",
     "\n",
-    "| Param | Description | Code | Value | Constructed |\n",
+    "| Parameter | Description | Code | Value | Constructed |\n",
     "| :---: | --- | --- | --- | :---: |\n",
     "| $\\beta$ |Intertemporal discount factor  | $\\texttt{DiscFac}$ | 0.96 | |\n",
+<<<<<<< HEAD
     "| $\\rho$ |Coefficient of relative risk aversion | $\\texttt{CRRA}$ | 2.0 | |\n",
     "| $R$ | Risk free interest factor | $\\texttt{Rfree}$ | 1.03 | |\n",
     "| $1 - \\mathsf{D}$ |Survival probability | $\\texttt{LivPrb}$ | [0.98] | |\n",
@@ -105,6 +107,18 @@
     "| $G$ |Expected persistent income next period | $\\texttt{pLvlNextFunc}$ | - | $\\surd$ |\n",
     "| $(none)$ |Array of time-varying persistent income levels | $\\texttt{pLvlGrid}$ | - |$\\surd$ |\n",
     "| $(none)$ | Array of \"extra\" end-of-period asset values | $\\texttt{aXtraGrid}$ | - |$\\surd$ |\n",
+=======
+    "| $\\rho$|Coefficient of relative risk aversion | $\\texttt{CRRA}$ | 2.0 | |\n",
+    "| $R$| Risk free interest factor | $\\texttt{Rfree}$ | 1.03 | |\n",
+    "| $1 - \\mathsf{D}$ |Survival probability | $\\texttt{LivPrb}$ | [0.98] | |\n",
+    "| $\\underline{a}$|Artificial borrowing constraint | $\\texttt{BoroCnstArt}$ | 0.0 | | \n",
+    "| $(none)~$|Indicator of whether $\\texttt{vFunc}$ should be computed | $\\texttt{vFuncBool}$ | 'True' | |\n",
+    "| $(none)$ |Indicator of whether $\\texttt{cFunc}$ should use cubic lines | $\\texttt{CubicBool}$ | 'False' |  |\n",
+    "|$F$|A list containing three arrays of floats, representing a discrete <br> approximation to the income process: <br>event probabilities, persistent shocks, transitory shocks | $\\texttt{IncomeDstn}$ | - |$\\surd$ |\n",
+    "| $G$ |Expected persistent income next period | $\\texttt{pLvlNextFunc}$ | - | $\\surd$ |\n",
+    "|$(none)$|Array of time-varying persistent income levels | $\\texttt{pLvlGrid}$ | - |$\\surd$ |\n",
+    "|$(none)$| Array of \"extra\" end-of-period asset values | $\\texttt{aXtraGrid}$ | - |$\\surd$ |\n",
+>>>>>>> master
     "\n",
     "### Constructed inputs to solve GenIncProcess\n",
     "The \"constructed\" inputs above are using expected attributes and are drawn on various methods as explained below.\n",
@@ -221,9 +235,7 @@
   {
    "cell_type": "code",
    "execution_count": 4,
-   "metadata": {
-    "lines_to_next_cell": 2
-   },
+   "metadata": {},
    "outputs": [
     {
      "name": "stdout",
@@ -242,7 +254,7 @@
     "print('Here, the lowest percentile is ' + str(GenIncDictionary['pLvlPctiles'][0]*100))\n",
     "print('and the highest percentile is ' + str(GenIncDictionary['pLvlPctiles'][-1]*100) + '.\\n')\n",
     "      \n",
-    "ExplicitExample.solve()"
+    "ExplicitExample.solve()\n"
    ]
   },
   {
@@ -313,13 +325,8 @@
      "output_type": "stream",
      "text": [
       "\n",
-      "The given parameter values violate the Individual Growth Impatience Condition; the GIFInd is: 1.003714825042167\n",
-      "\n",
-      "The value of the Aggregate Growth Impatience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition; the value of the GIFAgg is: 0.9744965469410345\n",
-      "\n",
-      "The Weak Return Impatience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition; the WRIF is 0.2137051775522094.\n",
-      "\n",
-      "The Finite Value of Autarky Factor (FVAV) for the supplied parameter values satisfies the Finite Value of Autarky Condition; the FVAF is 0.932054266533416\n"
+      "The given parameter values violate the Individual Growth Impatience Condition; the GIFInd is: 1.0037 \n",
+      "\n"
      ]
     }
    ],
@@ -438,9 +445,7 @@
   {
    "cell_type": "code",
    "execution_count": 9,
-   "metadata": {
-    "lines_to_next_cell": 2
-   },
+   "metadata": {},
    "outputs": [
     {
      "data": {
@@ -461,10 +466,10 @@
     "ExplicitExample.track_vars = ['mLvlNow','cLvlNow','pLvlNow']\n",
     "ExplicitExample.initializeSim()\n",
     "ExplicitExample.simulate()\n",
-    "plt.plot(np.mean(ExplicitExample.history['mLvlNow'],axis=1))\n",
+    "plt.plot(np.mean(ExplicitExample.mLvlNow_hist,axis=1))\n",
     "plt.xlabel('Simulated time period')\n",
     "plt.ylabel('Average market resources mLvl')\n",
-    "plt.show()"
+    "plt.show()\n"
    ]
   },
   {
@@ -504,8 +509,7 @@
    "cell_type": "code",
    "execution_count": 10,
    "metadata": {
-    "code_folding": [],
-    "lines_to_next_cell": 2
+    "code_folding": []
    },
    "outputs": [],
    "source": [
@@ -513,7 +517,7 @@
     "PrstIncCorr = 0.98       # Serial correlation coefficient for persistent income\n",
     "\n",
     "persistent_shocks = copy(GenIncDictionary)\n",
-    "persistent_shocks['PrstIncCorr'] = PrstIncCorr"
+    "persistent_shocks['PrstIncCorr'] = PrstIncCorr\n"
    ]
   },
   {
@@ -631,24 +635,17 @@
     "PersistentExample.track_vars = ['mLvlNow','cLvlNow','pLvlNow']\n",
     "PersistentExample.initializeSim()\n",
     "PersistentExample.simulate()\n",
-    "plt.plot(np.mean(PersistentExample.history['mLvlNow'],axis=1))\n",
+    "plt.plot(np.mean(PersistentExample.mLvlNow_hist,axis=1))\n",
     "plt.xlabel('Simulated time period')\n",
     "plt.ylabel('Average market resources mLvl')\n",
     "plt.show()"
    ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": []
   }
  ],
  "metadata": {
   "jupytext": {
-   "cell_metadata_filter": "collapsed,code_folding",
-   "formats": "ipynb,py:percent",
+   "cell_metadata_filter": "collapsed",
+   "formats": "ipynb,py",
    "notebook_metadata_filter": "all"
   },
   "kernelspec": {

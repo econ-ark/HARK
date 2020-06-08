@@ -7,8 +7,9 @@ from builtins import str
 from builtins import range
 import numpy as np
 from scipy.optimize import brentq
-from HARK import HARKobject
-from HARK.utilities import approxLognormal, addDiscreteOutcomeConstantMean, CRRAutilityP_inv,\
+from HARK import HARKobject, makeOnePeriodOOSolver
+from HARK.distribution import addDiscreteOutcomeConstantMean, Lognormal
+from HARK.utilities import CRRAutilityP_inv,\
                            CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP,\
                            makeGridExpMult, NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
@@ -534,7 +535,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
     '''
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ['MedShkNow']
 
-    def __init__(self,cycles=0,time_flow=True,**kwds):
+    def __init__(self,cycles=0,**kwds):
         '''
         Instantiate a new ConsumerType with given data, and construct objects
         to be used during solution (income distribution, assets grid, etc).
@@ -545,8 +546,6 @@ class MedShockConsumerType(PersistentShockConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------
@@ -556,7 +555,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         params.update(kwds)
 
         PersistentShockConsumerType.__init__(self,cycles=cycles,**params)
-        self.solveOnePeriod = solveConsMedShock # Choose correct solver
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsMedShockSolver)
         self.addToTimeInv('CRRAmed')
         self.addToTimeVary('MedPrice')
         
@@ -601,9 +600,12 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.T_cycle):
             MedShkAvgNow  = self.MedShkAvg[t] # get shock distribution parameters
             MedShkStdNow  = self.MedShkStd[t]
-            MedShkDstnNow = approxLognormal(mu=np.log(MedShkAvgNow)-0.5*MedShkStdNow**2,\
-                            sigma=MedShkStdNow,N=self.MedShkCount, tail_N=self.MedShkCountTail,
-                            tail_bound=[0,0.9])
+            MedShkDstnNow = Lognormal(
+                mu=np.log(MedShkAvgNow)-0.5*MedShkStdNow**2,\
+                sigma=MedShkStdNow).approx(
+                    N=self.MedShkCount,
+                    tail_N=self.MedShkCountTail,
+                    tail_bound=[0,0.9])
             MedShkDstnNow = addDiscreteOutcomeConstantMean(MedShkDstnNow,0.0,0.0,sort=True) # add point at zero with no probability
             MedShkDstn.append(MedShkDstnNow)
         self.MedShkDstn = MedShkDstn
@@ -624,14 +626,9 @@ class MedShockConsumerType(PersistentShockConsumerType):
         None
         '''
         # Take last period data, whichever way time is flowing
-        if self.time_flow:
-            MedPrice = self.MedPrice[-1]
-            MedShkVals = self.MedShkDstn[-1][1]
-            MedShkPrbs = self.MedShkDstn[-1][0]
-        else:
-            MedPrice = self.MedPrice[0]
-            MedShkVals = self.MedShkDstn[0][1]
-            MedShkPrbs = self.MedShkDstn[0][0]
+        MedPrice = self.MedPrice[-1]
+        MedShkVals = self.MedShkDstn[-1].X
+        MedShkPrbs = self.MedShkDstn[-1].pmf
 
         # Initialize grids of medical need shocks, market resources, and optimal consumption
         MedShkGrid = MedShkVals
@@ -741,7 +738,10 @@ class MedShockConsumerType(PersistentShockConsumerType):
                 MedShkAvg = self.MedShkAvg[t]
                 MedShkStd = self.MedShkStd[t]
                 MedPrice  = self.MedPrice[t]
-                MedShkNow[these] = self.RNG.permutation(approxLognormal(N,mu=np.log(MedShkAvg)-0.5*MedShkStd**2,sigma=MedShkStd)[1])
+                MedShkNow[these] = self.RNG.permutation(
+                    Lognormal(
+                        mu=np.log(MedShkAvg)-0.5*MedShkStd**2,
+                        sigma=MedShkStd).approx(N).X)
                 MedPriceNow[these] = MedPrice
         self.MedShkNow = MedShkNow
         self.MedPriceNow = MedPriceNow
@@ -882,8 +882,8 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
                                                      self.LivPrb,self.DiscFac)
 
         # Also unpack the medical shock distribution
-        self.MedShkPrbs = self.MedShkDstn[0]
-        self.MedShkVals = self.MedShkDstn[1]
+        self.MedShkPrbs = self.MedShkDstn.pmf
+        self.MedShkVals = self.MedShkDstn.X
 
     def defUtilityFuncs(self):
         '''
@@ -1318,69 +1318,3 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         if self.CubicBool:
             solution = self.addvPPfunc(solution)
         return solution
-
-
-def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CRRAmed,Rfree,MedPrice,
-                 pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
-    '''
-    Solve the one period problem for a consumer with shocks to permanent and
-    transitory income as well as medical need shocks (as multiplicative shifters
-    for utility from a second medical care good).
-
-    Parameters
-    ----------
-    solution_next : ConsumerSolution
-        The solution to next period's one period problem.
-    IncomeDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
-    MedShkDstn : [np.array]
-        Discrete distribution of the multiplicative utility shifter for med-
-        ical care. Order: probabilities, preference shocks.
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
-    DiscFac : float
-        Intertemporal discount factor for future utility.
-    CRRA : float
-        Coefficient of relative risk aversion for composite consumption.
-    CRRAmed : float
-        Coefficient of relative risk aversion for medical care.
-    Rfree : float
-        Risk free interest factor on end-of-period assets.
-    MedPrice : float
-        Price of unit of medical care relative to unit of consumption.
-    pLvlNextFunc : float
-        Expected permanent income next period as a function of current pLvl.
-    PrstIncCorr : float
-        Correlation of permanent income from period to period.
-    BoroCnstArt: float or None
-        Borrowing constraint for the minimum allowable assets to end the
-        period with.
-    aXtraGrid: np.array
-        Array of "extra" end-of-period (normalized) asset values-- assets
-        above the absolute minimum acceptable level.
-    pLvlGrid: np.array
-        Array of permanent income levels at which to solve the problem.
-    vFuncBool: boolean
-        An indicator for whether the value function should be computed and
-        included in the reported solution.
-    CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear inter-
-        polation.
-
-    Returns
-    -------
-    solution : ConsumerSolution
-        Solution to this period's problem, including a consumption function,
-        medical spending function, and marginal value function.  The former two
-        are defined over (mLvl,pLvl,MedShk), while the latter is defined only
-        on (mLvl,pLvl), with MedShk integrated out.
-    '''
-    solver = ConsMedShockSolver(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CRRAmed,Rfree,
-                MedPrice,pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
-    solver.prepareToSolve()       # Do some preparatory work
-    solution_now = solver.solve() # Solve the period
-    return solution_now

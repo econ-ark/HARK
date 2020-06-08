@@ -40,11 +40,10 @@ class testPerfForesightConsumerType(unittest.TestCase):
     
     def test_checkConditions(self):
         self.agent_infinite.checkConditions()
-
-        self.assertTrue(self.agent_infinite.AIC)
-        self.assertTrue(self.agent_infinite.GICPF)
-        self.assertTrue(self.agent_infinite.RIC)
-        self.assertTrue(self.agent_infinite.FHWC)
+        self.assertTrue(self.agent_infinite.conditions['AIC'])
+        self.assertTrue(self.agent_infinite.conditions['GICPF'])
+        self.assertTrue(self.agent_infinite.conditions['RIC'])
+        self.assertTrue(self.agent_infinite.conditions['FHWC'])
 
     def test_simulation(self):
 
@@ -70,12 +69,12 @@ class testPerfForesightConsumerType(unittest.TestCase):
         self.agent_infinite.simulate()
 
         self.assertAlmostEqual(
-            np.mean(self.agent_infinite.mNrmNow_hist,axis=1)[40],
+            np.mean(self.agent_infinite.history['mNrmNow'],axis=1)[40],
             -23.008063500363942
         )
 
         self.assertAlmostEqual(
-            np.mean(self.agent_infinite.mNrmNow_hist,axis=1)[100],
+            np.mean(self.agent_infinite.history['mNrmNow'],axis=1)[100],
             -27.164608851546927
         )
 
@@ -87,11 +86,11 @@ class testPerfForesightConsumerType(unittest.TestCase):
         self.agent_infinite.simulate(40)
 
         self.assertAlmostEqual(
-            np.mean(self.agent_infinite.mNrmNow_hist,axis=1)[40],
+            np.mean(self.agent_infinite.history['mNrmNow'],axis=1)[40],
             -23.008063500363942
         )
 
         self.assertAlmostEqual(
-            np.mean(self.agent_infinite.mNrmNow_hist,axis=1)[100],
+            np.mean(self.agent_infinite.history['mNrmNow'],axis=1)[100],
             -29.140261331951606
         )
