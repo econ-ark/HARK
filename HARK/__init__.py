@@ -19,10 +19,22 @@ logging.basicConfig(
 
 _log = logging.getLogger("HARK")
 
-_log.setLevel(logging.INFO)
+_log.setLevel(logging.ERROR)
 
-def verbose():
-    _log.setLevel(logging.DEBUG)
+def disable_logging():
+    _log.disabled = True
+
+def enable_logging():
+    _log.disabled = False
+
+def warnings():
+    _log.setLevel(logging.WARNING)
     
 def quiet():
-    _log.setLevel(logging.WARNING)
+    _log.setLevel(logging.ERROR)
+
+def verbose():
+    _log.setLevel(logging.INFO)
+
+def set_verbosity_level(level):
+    _log.setLevel(level)
