@@ -514,9 +514,9 @@ class DiscreteDistribution():
                 bot = top
                 top = cutoffs[j]
                 event_list += (top-bot)*[events[j]]
-                # Randomly permute the event indices and store the corresponding results
-                event_draws = RNG.permutation(event_list)
-                draws = X[event_draws]
+            # Randomly permute the event indices and store the corresponding results
+            event_draws = RNG.permutation(event_list)
+            draws = X[event_draws]
         else:
             indices = self.draw_events(N, seed=seed)
             if J > 1:
