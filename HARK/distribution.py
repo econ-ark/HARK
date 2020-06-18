@@ -84,6 +84,8 @@ class Lognormal(Distribution):
         ----------
         N : int
             Number of draws in each row.
+        seed : int
+            Seed for random number generator.
 
         Returns:
         ------------
@@ -217,6 +219,9 @@ class MeanOneLogNormal(Lognormal):
         mu = -0.5 * sigma ** 2
         super().__init__(mu=mu, sigma=sigma, seed=seed)
 
+    def __init__(self, sigma=1.0):
+        mu = -0.5*sigma**2
+        super().__init__(mu=mu, sigma=sigma)
 
 class Normal(Distribution):
     """
@@ -583,6 +588,7 @@ class DiscreteDistribution(Distribution):
                 int
             )  # cutoff points between discrete outcomes
             top = 0
+           
             # Make a list of event indices that closely matches the discrete distribution
             event_list = []
             for j in range(events.size):
@@ -965,3 +971,99 @@ def combineIndepDstns(*distributions, seed=0):
 
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
     return DiscreteDistribution(P_out, X_out, seed=seed)
+
+
+def calcExpectation(func,values,dstn):
+    '''
+    Calculate the expectation of a stochastic function at an array of values.
+    
+    Parameters
+    ----------
+    func : function
+        The function to be evaluated, which can take M+N identically shaped arrays
+        as arguments and returns 1 array as an output (of the same shape).  The
+        first M arguments are non-stochastic, representing the inputs passed in
+        the argument values.  The latter N arguments are stochastic, where N is
+        the dimensionality of dstn.
+    values : np.array or [np.array]
+        One or more arrays of input values for func, representing the non-stochastic
+        arguments.  If the array(s) are 1D, they are interpreted as grids over
+        each of the M non-stochastic arguments of the function; the expectation
+        will be evaluated at the tensor product set, so the output will have shape
+        (values[0].size,values[1].size,...,values[M].size).  Otherwise, the arrays
+        in values must all have the same shape, and the expectation is computed
+        at f(values[0],values[1],...,values[M],*dstn).
+    dstn : DiscreteDistribution
+        The distribution over which the function is to be evaluated.  It should
+        have dimension N, representing the last N arguments of func.
+        
+    Returns
+    -------
+    f_exp : np.array
+        The expectation of the function at the queried values.
+    '''
+    # Get the number of (non-)stochastic arguments of the function
+    if not isinstance(values,list):
+        values = [values]
+    M = len(values)
+    N = dstn.dim()
+    K = dstn.pmf.size
+    
+    # Determine whether the queried values are grids to be tensor-ed or just arrays
+    is_tensor = len(values[0].shape) == 1
+    args_list = [] # Initialize list of argument arrays
+    
+    # Construct tensor arrays of the value grids
+    if is_tensor:
+        # Get length of each grid and shape of argument arrays
+        value_shape = np.array([values[i].size for i in range(M)])
+        arg_shape = np.concatenate((value_shape,np.array([K])))
+        shock_tiling_shape = np.concatenate((np.ones_like(value_shape), np.array([K])))
+        
+        # Reshape each of the non-stochastic arrays to give them the tensor shape
+        for i in range(M):
+            new_array = values[i].copy()
+            for j in range(M):
+                if j < i:
+                    new_array = new_array[np.newaxis,:]
+                elif j > i:
+                    new_array = new_array[:,np.newaxis]
+            temp_shape = value_shape.copy()
+            temp_shape[i] = 1
+            new_array = np.tile(new_array, temp_shape)
+            new_array = new_array[:,np.new_axis] # Add dimension for shocks
+            new_array = np.tile(new_array, shock_tiling_shape)
+            args_list.append(args_list)
+    
+    # Just add a dimension for the shocks
+    else:
+        # Get shape of argument arrays
+        value_shape = np.array(values[0].shape)
+        arg_shape = np.concatenate((value_shape,np.array([K])))
+        shock_tiling_shape = np.concatenate((np.ones_like(value_shape), np.array([K])))
+        
+        # Add the shock dimension to each of the query value arrays
+        for i in range(M):
+            new_array = values[i].copy()[:,np.newaxis]
+            new_array = np.tile(new_array, shock_tiling_shape)
+            args_list.append(args_list)
+            
+    # Make an argument array for each dimension of the distribution (and add to list)
+    value_tiling_shape = arg_shape.copy()
+    value_tiling_shape[-1] = 1
+    if N == 1:
+        new_array = np.reshape(dstn.X, shock_tiling_shape)
+        new_array = np.tile(new_array, value_tiling_shape)
+        args_list.append(new_array)
+    else:
+        for j in range(N):
+            new_array = np.reshape(dstn.X[j], shock_tiling_shape)
+            new_array = np.tile(new_array, value_tiling_shape)
+            args_list.append(new_array)
+            
+    # Evaluate the function at the argument arrays
+    f_query = func(*args_list)
+    
+    # Compute expectations over the shocks and return it
+    f_exp = np.dot(f_query, dstn.pmf)
+    return f_exp
