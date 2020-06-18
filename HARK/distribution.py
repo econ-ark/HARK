@@ -516,7 +516,7 @@ class DiscreteDistribution():
                 bot = top
                 top = cutoffs[j]
                 event_list += (top-bot)*[events[j]]
-            
+
             # Randomly permute the event indices
             indices = RNG.permutation(event_list)
         
