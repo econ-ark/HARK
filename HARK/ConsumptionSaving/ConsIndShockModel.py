@@ -1733,7 +1733,8 @@ class PerfForesightConsumerType(AgentType):
         self.conditions[name] = test(self)
         set_verbosity_level((4-verbose)*10)
         _log.info(messages[self.conditions[name]].format(self))
-        _log.debug(verbose_messages[self.conditions[name]].format(self))
+        if verbose_messages:
+            _log.debug(verbose_messages[self.conditions[name]].format(self))
 
 
     def checkAIC(self, verbose=0):
@@ -1817,7 +1818,7 @@ class PerfForesightConsumerType(AgentType):
             False : '  Therefore, the limiting consumption function is c(m)=Infinity for all m'
         }
 
-        self.checkCondition(name, test, messages, verbose,verbose_messages)
+        self.checkCondition(name, test, messages, verbose)
 
     def checkConditions(self, verbose=0):
         '''
