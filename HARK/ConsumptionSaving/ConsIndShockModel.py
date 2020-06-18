@@ -1731,13 +1731,12 @@ class PerfForesightConsumerType(AgentType):
             true or false under verbose printing.
         """
         self.conditions[name] = test(self)
-
+        set_verbosity_level((4-verbose)*10)
         _log.info(messages[self.conditions[name]].format(self))
-        if verbose_messages:
-            _log.debug(verbose_messages[self.conditions[name]].format(self))
+        _log.debug(verbose_messages[self.conditions[name]].format(self))
 
 
-    def checkAIC(self, verbose):
+    def checkAIC(self, verbose=0):
         '''
         Evaluate and report on the Absolute Impatience Condition
         '''
@@ -1754,7 +1753,7 @@ class PerfForesightConsumerType(AgentType):
 
         self.checkCondition(name, test, messages, verbose, verbose_messages)
 
-    def checkGICPF(self, verbose):
+    def checkGICPF(self, verbose=0):
         '''
         Evaluate and report on the Growth Impatience Condition for the Perfect Foresight model
         '''
@@ -1776,7 +1775,7 @@ class PerfForesightConsumerType(AgentType):
 
         self.checkCondition(name, test, messages, verbose, verbose_messages)
 
-    def checkRIC(self, verbose):
+    def checkRIC(self, verbose=0):
         '''
         Evaluate and report on the Return Impatience Condition
         '''
@@ -1797,7 +1796,7 @@ class PerfForesightConsumerType(AgentType):
         }
         self.checkCondition(name, test, messages, verbose,verbose_messages)
 
-    def checkFHWC(self, verbose):
+    def checkFHWC(self, verbose=0):
         '''
         Evaluate and report on the Finite Human Wealth Condition
         '''
@@ -1820,7 +1819,7 @@ class PerfForesightConsumerType(AgentType):
 
         self.checkCondition(name, test, messages, verbose,verbose_messages)
 
-    def checkConditions(self, verbose):
+    def checkConditions(self, verbose=0):
         '''
         This method checks whether the instance's type satisfies the
         Absolute Impatience Condition (AIC), 
@@ -2180,7 +2179,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if not self.quiet:
             self.checkConditions(verbose=self.verbose)
 
-    def checkGICInd(self, verbose):
+    def checkGICInd(self, verbose=0):
         '''
         Check Individual Growth Impatience Factor.
         '''
@@ -2202,7 +2201,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         self.checkCondition(name, test, messages, verbose, verbose_messages)
 
-    def checkCIGAgg(self, verbose):
+    def checkCIGAgg(self, verbose=0):
         name = 'GICAgg'
         test = lambda agent : agent.GIFAgg <= 1
 
@@ -2219,7 +2218,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         self.checkCondition(name, test, messages, verbose, verbose_messages)
 
-    def checkWRIC(self, verbose):
+    def checkWRIC(self, verbose=0):
         '''
         Evaluate and report on the Weak Return Impatience Condition
         [url]/#WRIF modified to incorporate LivPrb
@@ -2241,7 +2240,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         self.checkCondition(name, test, messages, verbose, verbose_messages)
 
-    def checkFVAC(self, verbose):
+    def checkFVAC(self, verbose=0):
         '''
         Evaluate and report on the Finite Value of Autarky Condition
         Hyperlink to paper: [url]/#Autarky-Value
@@ -2272,7 +2271,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         self.checkCondition(name, test, messages, verbose, verbose_messages)
 
-    def checkConditions(self, verbose):
+    def checkConditions(self, verbose=0):
         '''
         This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC), Weak Return
         Impatience Condition (WRIC), Finite Human Wealth Condition (FHWC) and Finite Value of
