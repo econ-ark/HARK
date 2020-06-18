@@ -1737,7 +1737,7 @@ class PerfForesightConsumerType(AgentType):
             _log.debug(verbose_messages[self.conditions[name]].format(self))
 
 
-    def checkAIC(self, verbose=0):
+    def checkAIC(self, verbose=None):
         '''
         Evaluate and report on the Absolute Impatience Condition
         '''
@@ -1751,10 +1751,10 @@ class PerfForesightConsumerType(AgentType):
             True :  "  Because the AIF < 1, the absolute amount of consumption is expected to fall over time.",
             False : "  Because the AIF > 1, the absolute amount of consumption is expected to grow over time."
         }
-
+        verbose = self.verbose if verbose is None else verbose
         self.checkCondition(name, test, messages, verbose, verbose_messages)
 
-    def checkGICPF(self, verbose=0):
+    def checkGICPF(self, verbose=None):
         '''
         Evaluate and report on the Growth Impatience Condition for the Perfect Foresight model
         '''
@@ -1773,10 +1773,10 @@ class PerfForesightConsumerType(AgentType):
             True:   '  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income will fall indefinitely.',
             False:  '  Therefore, for a perfect foresight consumer, the ratio of individual wealth to permanent income is expected to grow toward infinity.',
         }
-
+        verbose = self.verbose if verbose is None else verbose
         self.checkCondition(name, test, messages, verbose, verbose_messages)
 
-    def checkRIC(self, verbose=0):
+    def checkRIC(self, verbose=None):
         '''
         Evaluate and report on the Return Impatience Condition
         '''
@@ -1795,9 +1795,10 @@ class PerfForesightConsumerType(AgentType):
             True :  '  Therefore, the limiting consumption function is not c(m)=0 for all m',
             False : '  Therefore, the limiting consumption function is c(m)=0 for all m'
         }
+        verbose = self.verbose if verbose is None else verbose
         self.checkCondition(name, test, messages, verbose,verbose_messages)
 
-    def checkFHWC(self, verbose=0):
+    def checkFHWC(self, verbose=None):
         '''
         Evaluate and report on the Finite Human Wealth Condition
         '''
@@ -1817,10 +1818,10 @@ class PerfForesightConsumerType(AgentType):
             True :  '  Therefore, the limiting consumption function is not c(m)=Infinity\nand human wealth normalized by permanent income is {0.hNrm}\nand the PDV of future consumption growth is {0.cNrmPDV}',
             False : '  Therefore, the limiting consumption function is c(m)=Infinity for all m'
         }
-
+        verbose = self.verbose if verbose is None else verbose
         self.checkCondition(name, test, messages, verbose)
 
-    def checkConditions(self, verbose=0):
+    def checkConditions(self, verbose=None):
         '''
         This method checks whether the instance's type satisfies the
         Absolute Impatience Condition (AIC), 
@@ -1855,6 +1856,7 @@ class PerfForesightConsumerType(AgentType):
 
         self.thorn = (self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)
 
+        verbose = self.verbose if verbose is None else verbose
         self.checkAIC(verbose)
         self.checkGICPF(verbose)
         self.checkRIC(verbose)
@@ -2180,7 +2182,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if not self.quiet:
             self.checkConditions(verbose=self.verbose)
 
-    def checkGICInd(self, verbose=0):
+    def checkGICInd(self, verbose=None):
         '''
         Check Individual Growth Impatience Factor.
         '''
@@ -2199,10 +2201,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
             True :  ' Therefore, a target level of the individual market resources ratio m exists (see {0.url}/#onetarget for more).\n',
             False : ' Therefore, a target ratio of individual market resources to individual permanent income does not exist.  (see {0.url}/#onetarget for more).\n'
         }
-
+        verbose = self.verbose if verbose is None else verbose
         self.checkCondition(name, test, messages, verbose, verbose_messages)
 
-    def checkCIGAgg(self, verbose=0):
+    def checkCIGAgg(self, verbose=None):
         name = 'GICAgg'
         test = lambda agent : agent.GIFAgg <= 1
 
@@ -2216,10 +2218,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
             True :  '  Therefore, a target level of the ratio of aggregate market resources to aggregate permanent income exists.\n',  # (see {0.url}/#WRIC for more).',
             False : '  Therefore, a target ratio of aggregate resources to aggregate permanent income may not exist.\n' # (see {0.url}/#WRIC for more).'
         }
-
+        verbose = self.verbose if verbose is None else verbose
         self.checkCondition(name, test, messages, verbose, verbose_messages)
 
-    def checkWRIC(self, verbose=0):
+    def checkWRIC(self, verbose=None):
         '''
         Evaluate and report on the Weak Return Impatience Condition
         [url]/#WRIF modified to incorporate LivPrb
@@ -2238,10 +2240,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
             True :  '  Therefore, a nondegenerate solution exists if the FVAC is also satisfied.  (see {0.url}/#WRIC for more) \n',
             False : '  Therefore, a nondegenerate solution is not available (see {0.url}/#WRIC for more). \n'
         }
-
+        verbose = self.verbose if verbose is None else verbose
         self.checkCondition(name, test, messages, verbose, verbose_messages)
 
-    def checkFVAC(self, verbose=0):
+    def checkFVAC(self, verbose=None):
         '''
         Evaluate and report on the Finite Value of Autarky Condition
         Hyperlink to paper: [url]/#Autarky-Value
@@ -2269,10 +2271,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
             True : '  Therefore, a nondegenerate solution exists if the WRIC also holds; see {0.url}/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping\n',
             False: '  Therefore, a nondegenerate solution is not available (see {0.url}/#Conditions-Under-Which-the-Problem-Defines-a-Contraction-Mapping\n'
         }
-
+        verbose = self.verbose if verbose is None else verbose
         self.checkCondition(name, test, messages, verbose, verbose_messages)
 
-    def checkConditions(self, verbose=0):
+    def checkConditions(self, verbose=None):
         '''
         This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC), Weak Return
         Impatience Condition (WRIC), Finite Human Wealth Condition (FHWC) and Finite Value of
@@ -2325,6 +2327,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.DiscFacGIFPFMax = ((self.PermGroFac[0])**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
         self.DiscFacGIFIndMax = ((self.PermGroFac[0]*self.InvEPermShkInv)**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
         self.DiscFacGIFAggMax = ((self.PermGroFac[0])**(self.CRRA))/(self.Rfree*self.LivPrb[0]) # DiscFac at growth impatience knife edge
+        verbose = self.verbose if verbose is None else verbose
 
 #        self.checkGICPF(verbose)
         self.checkGICInd(verbose)
