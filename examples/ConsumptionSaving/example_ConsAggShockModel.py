@@ -1,5 +1,5 @@
 # %%
-from time import process_time, time
+from time import time
 import numpy as np
 import matplotlib.pyplot as plt
 from HARK.utilities import plotFuncs
@@ -23,9 +23,9 @@ solve_agg_shocks_market = False
 # Solve an AggShockMarkovConsumerType's microeconomic problem
 solve_markov_micro = False
 # Solve for the equilibrium aggregate saving rule in a CobbDouglasMarkovEconomy
-solve_markov_market = False
+solve_markov_market = True
 # Solve a simple Krusell-Smith-style two state, two shock model
-solve_krusell_smith = True
+solve_krusell_smith = False
 # Solve a CobbDouglasEconomy with many states, potentially utilizing the "state jumper"
 solve_poly_state = False
 
@@ -48,9 +48,9 @@ if solve_agg_shocks_micro or solve_agg_shocks_market:
 # %%
 if solve_agg_shocks_micro:
     # Solve the microeconomic model for the aggregate shocks example type (and display results)
-    t_start = process_time()
+    t_start = time()
     AggShockExample.solve()
-    t_end = process_time()
+    t_end = time()
     print(
         "Solving an aggregate shocks consumer took "
         + mystr(t_end - t_start)
@@ -117,9 +117,9 @@ if solve_markov_micro or solve_markov_market or solve_krusell_smith:
 # %%
 if solve_markov_micro:
     # Solve the microeconomic model for the Markov aggregate shocks example type (and display results)
-    t_start = process_time()
+    t_start = time()
     AggShockMrkvExample.solve()
-    t_end = process_time()
+    t_end = time()
     print(
         "Solving an aggregate shocks Markov consumer took "
         + mystr(t_end - t_start)
@@ -144,7 +144,6 @@ if solve_markov_market:
     # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
     t_start = time()
     MrkvEconomyExample.verbose = True
-    MrkvEconomyExample.act_T = 500
     print("Now solving a two-state Markov economy.  This should take a few minutes...")
     MrkvEconomyExample.solve()
     t_end = time()
@@ -240,14 +239,14 @@ if solve_poly_state:
     )  # Have the consumers inherit relevant objects from the economy
 
     # Solve the many state model
-    t_start = process_time()
+    t_start = time()
     print(
         "Now solving an economy with "
         + str(StateCount)
         + " Markov states.  This might take a while..."
     )
     PolyStateEconomy.solve()
-    t_end = process_time()
+    t_end = time()
     print(
         "Solving a model with "
         + str(StateCount)

@@ -501,6 +501,7 @@ class DiscreteDistribution():
             X = X
             J = 1
 
+        # Draw indices whose empirical distribution closely matches discrete pmf
         if exact_match:
             # Set up the RNG
             RNG = np.random.RandomState(seed)
@@ -508,23 +509,28 @@ class DiscreteDistribution():
             events = np.arange(self.pmf.size) # just a list of integers
             cutoffs = np.round(np.cumsum(self.pmf)*N).astype(int) # cutoff points between discrete outcomes
             top = 0
+            
             # Make a list of event indices that closely matches the discrete distribution
             event_list        = []
             for j in range(events.size):
                 bot = top
                 top = cutoffs[j]
                 event_list += (top-bot)*[events[j]]
-            # Randomly permute the event indices and store the corresponding results
-            event_draws = RNG.permutation(event_list)
-            draws = X[event_draws]
+
+            # Randomly permute the event indices
+            indices = RNG.permutation(event_list)
+        
+        # Draw event indices randomly from the discrete distribution
         else:
             indices = self.draw_events(N, seed=seed)
-            if J > 1:
-                draws = np.zeros((J,N))
-                for j in range(J):
-                    draws[j,:] = X[j][indices]
-            else:
-                draws = np.asarray(X)[indices]
+            
+        # Create and fill in the output array of draws based on the output of event indices
+        if J > 1:
+            draws = np.zeros((J,N))
+            for j in range(J):
+                draws[j,:] = X[j][indices]
+        else:
+            draws = np.asarray(X)[indices]
 
         return draws
 
