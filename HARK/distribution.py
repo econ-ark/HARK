@@ -926,13 +926,13 @@ def calcExpectation(func,values,dstn):
             new_array = values[i].copy()
             for j in range(M):
                 if j < i:
-                    new_array = new_array[np.newaxis,:]
+                    new_array = new_array[np.newaxis,...]
                 elif j > i:
-                    new_array = new_array[:,np.newaxis]
+                    new_array = new_array[...,np.newaxis]
             temp_shape = value_shape.copy()
             temp_shape[i] = 1
             new_array = np.tile(new_array, temp_shape)
-            new_array = new_array[:,np.newaxis] # Add dimension for shocks
+            new_array = new_array[...,np.newaxis] # Add dimension for shocks
             new_array = np.tile(new_array, shock_tiling_shape)
             args_list.append(new_array)
     
@@ -945,9 +945,9 @@ def calcExpectation(func,values,dstn):
         
         # Add the shock dimension to each of the query value arrays
         for i in range(M):
-            new_array = values[i].copy()[:,np.newaxis]
+            new_array = values[i].copy()[...,np.newaxis]
             new_array = np.tile(new_array, shock_tiling_shape)
-            args_list.append(args_list)
+            args_list.append(new_array)
             
     # Make an argument array for each dimension of the distribution (and add to list)
     value_tiling_shape = arg_shape.copy()
@@ -961,7 +961,7 @@ def calcExpectation(func,values,dstn):
             new_array = np.reshape(dstn.X[j], shock_tiling_shape)
             new_array = np.tile(new_array, value_tiling_shape)
             args_list.append(new_array)
-            
+        
     # Evaluate the function at the argument arrays
     f_query = func(*args_list)
     
