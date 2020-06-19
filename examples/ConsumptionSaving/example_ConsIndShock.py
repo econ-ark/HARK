@@ -32,7 +32,6 @@ print(
     + " seconds."
 )
 PFexample.unpackcFunc()
-PFexample.timeFwd()
 
 # %%
 # Plot the perfect foresight consumption function
@@ -62,7 +61,6 @@ print(
     + " seconds."
 )
 IndShockExample.unpackcFunc()
-IndShockExample.timeFwd()
 
 # %%
 # Plot the consumption function and MPC for the infinite horizon consumer
@@ -113,7 +111,6 @@ LifecycleExample.solve()
 end_time = time()
 print("Solving a lifecycle consumer took " + mystr(end_time - start_time) + " seconds.")
 LifecycleExample.unpackcFunc()
-LifecycleExample.timeFwd()
 
 # %%
 # Plot the consumption functions during working life
@@ -126,8 +123,7 @@ plotFuncs(LifecycleExample.cFunc[: LifecycleExample.T_retire], mMin, 5)
 # %%
 # Plot the consumption functions during retirement
 print("Consumption functions while retired:")
-plotFuncs(LifecycleExample.cFunc[LifecycleExample.T_retire :], 0, 5)
-LifecycleExample.timeRev()
+plotFuncs(LifecycleExample.cFunc[LifecycleExample.T_retire:], 0, 5)
 
 # %%
 # Simulate some data; results stored in mNrmNow_hist, cNrmNow_hist, pLvlNow_hist, and t_age_hist
@@ -149,7 +145,6 @@ CyclicalExample.solve()
 end_time = time()
 print("Solving a cyclical consumer took " + mystr(end_time - start_time) + " seconds.")
 CyclicalExample.unpackcFunc()
-CyclicalExample.timeFwd()
 
 # %%
 # Plot the consumption functions for the cyclical consumer type
@@ -177,7 +172,6 @@ end_time = time()
 print("Solving a kinky consumer took " + mystr(end_time - start_time) + " seconds.")
 KinkyExample.unpackcFunc()
 print("Kinky consumption function:")
-KinkyExample.timeFwd()
 plotFuncs(KinkyExample.cFunc[0], KinkyExample.solution[0].mNrmMin, 5)
 
 # %%
