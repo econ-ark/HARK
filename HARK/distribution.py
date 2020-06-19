@@ -932,9 +932,9 @@ def calcExpectation(func,values,dstn):
             temp_shape = value_shape.copy()
             temp_shape[i] = 1
             new_array = np.tile(new_array, temp_shape)
-            new_array = new_array[:,np.new_axis] # Add dimension for shocks
+            new_array = new_array[:,np.newaxis] # Add dimension for shocks
             new_array = np.tile(new_array, shock_tiling_shape)
-            args_list.append(args_list)
+            args_list.append(new_array)
     
     # Just add a dimension for the shocks
     else:
