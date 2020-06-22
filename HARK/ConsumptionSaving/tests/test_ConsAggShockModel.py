@@ -65,7 +65,7 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         self.agent.getEconomyData(self.economy)
         self.agent.solve()
         self.assertAlmostEqual(self.agent.solution[0].cFunc[0](10., self.economy.MSS),
-                         2.5635896520991377)
+                               2.5635896520991377)
 
     def test_economy(self):
         # Adjust the economy so that it (fake) solves quickly
@@ -79,5 +79,5 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         
         self.economy.AFunc = self.economy.dynamics.AFunc
         self.assertAlmostEqual(self.economy.AFunc[0].slope,
-                         1.0921217053006234)
+                               1.0801777346256896)
                          

@@ -282,7 +282,6 @@ class Weibull(Distribution):
         # Set up the RNG
         super().__init__(seed)
 
-        
     def draw(self, N):
         '''
         Generate arrays of Weibull draws.  The scale and shape inputs can be
@@ -345,7 +344,6 @@ class Uniform(Distribution):
         self.top = top
         # Set up the RNG
         self.RNG = np.random.RandomState(seed)
-
 
     def draw(self, N):
         '''
@@ -548,17 +546,21 @@ class DiscreteDistribution(Distribution):
                 bot = top
                 top = cutoffs[j]
                 event_list += (top-bot)*[events[j]]
-                # Randomly permute the event indices and store the corresponding results
-                event_draws = self.RNG.permutation(event_list)
-                draws = X[event_draws]
+
+            # Randomly permute the event indices
+            indices = self.RNG.permutation(event_list)
+        
+        # Draw event indices randomly from the discrete distribution
         else:
             indices = self.draw_events(N)
-            if J > 1:
-                draws = np.zeros((J,N))
-                for j in range(J):
-                    draws[j,:] = X[j][indices]
-            else:
-                draws = np.asarray(X)[indices]
+            
+        # Create and fill in the output array of draws based on the output of event indices
+        if J > 1:
+            draws = np.zeros((J,N))
+            for j in range(J):
+                draws[j,:] = X[j][indices]
+        else:
+            draws = np.asarray(X)[indices]
 
         return draws
 
