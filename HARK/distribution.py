@@ -973,35 +973,41 @@ def combineIndepDstns(*distributions, seed=0):
     return DiscreteDistribution(P_out, X_out, seed=seed)
 
 
-def calcExpectation(func,values,dstn):
+def calcExpectation(dstn,func=None,values=None):
     '''
     Calculate the expectation of a stochastic function at an array of values.
     
     Parameters
     ----------
-    func : function
+    dstn : DiscreteDistribution
+        The distribution over which the function is to be evaluated.  It should
+        have dimension N, representing the last N arguments of func.
+    func : function or None
         The function to be evaluated, which can take M+N identically shaped arrays
         as arguments and returns 1 array as an output (of the same shape).  The
         first M arguments are non-stochastic, representing the inputs passed in
         the argument values.  The latter N arguments are stochastic, where N is
-        the dimensionality of dstn.
-    values : np.array or [np.array]
+        the dimensionality of dstn. Defaults to identity function.
+    values : np.array or [np.array] or None
         One or more arrays of input values for func, representing the non-stochastic
         arguments.  If the array(s) are 1D, they are interpreted as grids over
         each of the M non-stochastic arguments of the function; the expectation
         will be evaluated at the tensor product set, so the output will have shape
         (values[0].size,values[1].size,...,values[M].size).  Otherwise, the arrays
         in values must all have the same shape, and the expectation is computed
-        at f(values[0],values[1],...,values[M],*dstn).
-    dstn : DiscreteDistribution
-        The distribution over which the function is to be evaluated.  It should
-        have dimension N, representing the last N arguments of func.
+        at f(values[0],values[1],...,values[M],*dstn).  Defaults to empty list.
         
     Returns
     -------
     f_exp : np.array
         The expectation of the function at the queried values.
     '''
+    # Fill in defaults
+    if func is None:
+        func = lambda x : x
+    if values is None:
+        values = []
+    
     # Get the number of (non-)stochastic arguments of the function
     if not isinstance(values,list):
         values = [values]
