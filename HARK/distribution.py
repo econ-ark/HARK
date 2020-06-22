@@ -911,7 +911,7 @@ def calcExpectation(func,values,dstn):
     K = dstn.pmf.size
     
     # Determine whether the queried values are grids to be tensor-ed or just arrays
-    is_tensor = len(values[0].shape) == 1
+    is_tensor = (len(values) > 0) and (len(values[0].shape) == 1)
     args_list = [] # Initialize list of argument arrays
     
     # Construct tensor arrays of the value grids
@@ -939,7 +939,10 @@ def calcExpectation(func,values,dstn):
     # Just add a dimension for the shocks
     else:
         # Get shape of argument arrays
-        value_shape = np.array(values[0].shape)
+        if len(values) == 0:
+            value_shape = (1,) # No deterministic inputs, trivial shape
+        else:
+            value_shape = np.array(values[0].shape)
         arg_shape = np.concatenate((value_shape,np.array([K])))
         shock_tiling_shape = np.concatenate((np.ones_like(value_shape), np.array([K])))
         
