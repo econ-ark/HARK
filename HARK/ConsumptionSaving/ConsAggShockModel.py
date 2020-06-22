@@ -788,7 +788,7 @@ def solveConsAggShockNEW(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, PermG
     
     # Compute end-of-period marginal value of assets
     MaggNow = np.tile(np.reshape(Mgrid,(1,Mcount)),(aCount,1)) # Tiled Mgrid
-    EndOfPrdvP = DiscFac*LivPrb*calcExpectation(vPnextFunc,[aNrmNow,MaggNow],IncomeDstn)
+    EndOfPrdvP = DiscFac*LivPrb*calcExpectation(IncomeDstn,vPnextFunc,[aNrmNow,MaggNow])
 
     # Calculate optimal consumption from each asset gridpoint and endogenous m_t gridpoint
     cNrmNow = EndOfPrdvP**(-1.0/CRRA)
