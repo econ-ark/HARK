@@ -31,15 +31,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSetup,
 )
 from HARK.interpolation import LinearInterp
-from HARK.numba import (
-    CRRAutility,
-    CRRAutilityP,
-    CRRAutilityPP,
-    CRRAutilityP_inv,
-    CRRAutility_invP,
-    CRRAutility_inv,
-    CRRAutilityP_invP,
-)
 
 __all__ = [
     "ConsPerfForesightSolverNumba",
@@ -50,62 +41,48 @@ __all__ = [
 ]
 
 
-# global utility, utilityP, utilityPP, utilityP_inv, utility_invP, utility_inv, utilityP_invP
-
-
-def defUtilityFuncs(CRRA, target="parallel"):
-    global utility, utilityP, utilityPP, utilityP_inv, utility_invP, utility_inv, utilityP_invP
-    utility = CRRAutility(CRRA, target)
-    utilityP = CRRAutilityP(CRRA, target)
-    utilityPP = CRRAutilityPP(CRRA, target)
-    utilityP_inv = CRRAutilityP_inv(CRRA, target)
-    utility_invP = CRRAutility_invP(CRRA, target)
-    utility_inv = CRRAutility_inv(CRRA, target)
-    utilityP_invP = CRRAutilityP_invP(CRRA, target)
-
-
-@njit(cache=True)
+@njit
 def makePFcFuncNumba(
-    s_BoroCnstArt,
-    s_PermGroFac,
-    s_Rfree,
-    s_solution_next_hNrm,
-    s_DiscFacEff,
-    s_CRRA,
-    s_solution_next_MPCmin,
-    s_solution_next_cFunc_x_list,
-    s_solution_next_cFunc_y_list,
-    s_MaxKinks,
+    model_BoroCnstArt,
+    PermGroFac,
+    Rfree,
+    sn_hNrm,
+    DiscFacEff,
+    CRRA,
+    sn_MPCmin,
+    sn_cFunc_x_list,
+    sn_cFunc_y_list,
+    MaxKinks,
 ):
     # Use a local value of BoroCnstArt to prevent comparing None and float below.
-    if s_BoroCnstArt is None:
+    if model_BoroCnstArt is None:
         BoroCnstArt = -np.inf
     else:
-        BoroCnstArt = s_BoroCnstArt
+        BoroCnstArt = model_BoroCnstArt
 
     # Calculate human wealth this period
-    s_hNrmNow = (s_PermGroFac / s_Rfree) * (s_solution_next_hNrm + 1.0)  # return
+    hNrmNow = (PermGroFac / Rfree) * (sn_hNrm + 1.0)  # return
 
     # Calculate the lower bound of the marginal propensity to consume
-    PatFac = ((s_Rfree * s_DiscFacEff) ** (1.0 / s_CRRA)) / s_Rfree
-    s_MPCmin = 1.0 / (1.0 + PatFac / s_solution_next_MPCmin)  # return
+    PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
+    MPCmin = 1.0 / (1.0 + PatFac / sn_MPCmin)  # return
 
     # Extract the discrete kink points in next period's consumption function;
     # don't take the last one, as it only defines the extrapolation and is not a kink.
-    mNrmNext = s_solution_next_cFunc_x_list[:-1]
-    cNrmNext = s_solution_next_cFunc_y_list[:-1]
+    mNrmNext = sn_cFunc_x_list[:-1]
+    cNrmNext = sn_cFunc_y_list[:-1]
 
     # Calculate the end-of-period asset values that would reach those kink points
     # next period, then invert the first order condition to get consumption. Then
     # find the endogenous gridpoint (kink point) today that corresponds to each kink
-    aNrmNow = (s_PermGroFac / s_Rfree) * (mNrmNext - 1.0)
-    cNrmNow = (s_DiscFacEff * s_Rfree) ** (-1.0 / s_CRRA) * (s_PermGroFac * cNrmNext)
+    aNrmNow = (PermGroFac / Rfree) * (mNrmNext - 1.0)
+    cNrmNow = (DiscFacEff * Rfree) ** (-1.0 / CRRA) * (PermGroFac * cNrmNext)
     mNrmNow = aNrmNow + cNrmNow
 
     # Add an additional point to the list of gridpoints for the extrapolation,
     # using the new value of the lower bound of the MPC.
     mNrmNow = np.append(mNrmNow, mNrmNow[-1] + 1.0)
-    cNrmNow = np.append(cNrmNow, cNrmNow[-1] + s_MPCmin)
+    cNrmNow = np.append(cNrmNow, cNrmNow[-1] + MPCmin)
 
     # If the artificial borrowing constraint binds, combine the constrained and
     # unconstrained consumption functions.
@@ -136,63 +113,61 @@ def makePFcFuncNumba(
             # If it *is* the very last index, then there are only three points
             # that characterize the consumption function: the artificial borrowing
             # constraint, the constraint kink, and the extrapolation point.
-            mXtra = cNrmNow[-1] - cNrmCnst[-1] / (1.0 - s_MPCmin)
+            mXtra = cNrmNow[-1] - cNrmCnst[-1] / (1.0 - MPCmin)
             mCrit = mNrmNow[-1] + mXtra
             cCrit = mCrit - BoroCnstArt
             mNrmNow = np.array([BoroCnstArt, mCrit, mCrit + 1.0])
-            cNrmNow = np.array([0.0, cCrit, cCrit + s_MPCmin])
+            cNrmNow = np.array([0.0, cCrit, cCrit + MPCmin])
 
     # If the mNrm and cNrm grids have become too large, throw out the last
     # kink point, being sure to adjust the extrapolation.
-    if mNrmNow.size > s_MaxKinks:
+    if mNrmNow.size > MaxKinks:
         mNrmNow = np.concatenate((mNrmNow[:-2], np.array([mNrmNow[-3] + 1.0])))
-        cNrmNow = np.concatenate((cNrmNow[:-2], np.array([cNrmNow[-3] + s_MPCmin])))
+        cNrmNow = np.concatenate((cNrmNow[:-2], np.array([cNrmNow[-3] + MPCmin])))
 
     # Construct the consumption function as a linear interpolation.
     # s_.cFunc = LinearInterp(mNrmNow, cNrmNow)
 
     # Calculate the upper bound of the MPC as the slope of the bottom segment.
-    s_MPCmax = (cNrmNow[1] - cNrmNow[0]) / (mNrmNow[1] - mNrmNow[0])  # return
+    MPCmax = (cNrmNow[1] - cNrmNow[0]) / (mNrmNow[1] - mNrmNow[0])  # return
 
     # Add two attributes to enable calculation of steady state market resources.
-    s_ExIncNext = 1.0  # Perfect foresight income of 1
-    s_mNrmMinNow = mNrmNow[0]  # Relabeling for compatibility with addSSmNrm
+    ExIncNext = 1.0  # Perfect foresight income of 1
+    mNrmMinNow = mNrmNow[0]  # Relabeling for compatibility with addSSmNrm
 
     return (
-        s_hNrmNow,
-        s_MPCmin,
-        s_MPCmax,
+        hNrmNow,
+        MPCmin,
+        MPCmax,
         mNrmNow,
         cNrmNow,
-        s_ExIncNext,
-        s_mNrmMinNow,
+        ExIncNext,
+        mNrmMinNow,
     )
 
 
-@njit(cache=True)
-def searchSSfuncNumba(m, s_PermGroFac, s_Rfree, s_ExIncNext, s_mNrmNow, s_cNrmNow):
+@njit
+def searchSSfuncNumba(m, PermGroFac, Rfree, ExIncNext, mNrmNow, cNrmNow):
     # Make a linear function of all combinations of c and m that yield mNext = mNow
-    mZeroChange = (1.0 - s_PermGroFac / s_Rfree) * m + (
-        s_PermGroFac / s_Rfree
-    ) * s_ExIncNext
+    mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * ExIncNext
     # Find the steady state level of market resources
-    res = interp(s_mNrmNow, s_cNrmNow, m) - mZeroChange
+    res = interp(mNrmNow, cNrmNow, m) - mZeroChange
     # A zero of this is SS market resources
     return res
 
 
-@njit(cache=True)
+@njit
 def addSSmNrmNumba(
-    s_PermGroFac, s_Rfree, s_ExIncNext, s_mNrmMinNow, s_mNrmNow, s_cNrmNow,
+    PermGroFac, Rfree, ExIncNext, mNrmMinNow, mNrmNow, cNrmNow,
 ):
-    m_init_guess = s_mNrmMinNow + s_ExIncNext
+    m_init_guess = mNrmMinNow + ExIncNext
     # Minimum market resources plus next income is okay starting guess
     try:
         mNrmSS = newton_secant(
             searchSSfuncNumba,
             m_init_guess,
-            args=(s_PermGroFac, s_Rfree, s_ExIncNext, s_mNrmNow, s_cNrmNow),
-        )
+            args=(PermGroFac, Rfree, ExIncNext, mNrmNow, cNrmNow),
+        )[0]
     except:
         mNrmSS = None
 
@@ -200,16 +175,14 @@ def addSSmNrmNumba(
 
 
 @njit
-def makeCubiccFuncNumba(
-    s_DiscFacEff, s_Rfree, s_PermGroFac, s_CRRA, s_PermShkVals_temp
-):
+def makeCubiccFuncNumba(DiscFacEff, Rfree, PermGroFac, CRRA, PermShkVals_temp):
     EndOfPrdvPP = (
-        s_DiscFacEff
-        * s_Rfree
-        * s_Rfree
-        * s_PermGroFac ** (-s_CRRA - 1.0)
+        DiscFacEff
+        * Rfree
+        * Rfree
+        * PermGroFac ** (-CRRA - 1.0)
         * np.sum(
-            s_PermShkVals_temp ** (-s_CRRA - 1.0)
+            PermShkVals_temp ** (-CRRA - 1.0)
             * s_vPPfuncNext(s_mNrmNext)
             * s_ShkPrbs_temp,
             axis=0,
@@ -224,13 +197,13 @@ def makeCubiccFuncNumba(
 
 @njit
 def prepareToCalcEndOfPrdvPNumba(
-    s_aXtraGrid,
-    s_BoroCnstNat,
-    s_PermShkValsNext,
-    s_TranShkValsNext,
-    s_ShkPrbsNext,
-    s_PermGroFac,
-    s_Rfree,
+    aXtraGrid,
+    BoroCnstNat,
+    PermShkValsNext,
+    TranShkValsNext,
+    ShkPrbsNext,
+    PermGroFac,
+    Rfree,
 ):
     def tile(A, reps):
         return A.repeat(reps[0]).reshape(A.size, -1).transpose()
@@ -240,44 +213,22 @@ def prepareToCalcEndOfPrdvPNumba(
     # function as the lower envelope of the (by the artificial borrowing con-
     # straint) uconstrained consumption function, and the artificially con-
     # strained consumption function.
-    aNrmNow = np.asarray(s_aXtraGrid) + s_BoroCnstNat
-    ShkCount = s_TranShkValsNext.size
+    aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
+    ShkCount = TranShkValsNext.size
     aNrm_temp = tile(aNrmNow, (ShkCount, 1))
 
     # Tile arrays of the income shocks and put them into useful shapes
     aNrmCount = aNrmNow.shape[0]
-    PermShkVals_temp = (tile(s_PermShkValsNext, (aNrmCount, 1))).transpose()
-    TranShkVals_temp = (tile(s_TranShkValsNext, (aNrmCount, 1))).transpose()
-    ShkPrbs_temp = (tile(s_ShkPrbsNext, (aNrmCount, 1))).transpose()
+    PermShkVals_temp = (tile(PermShkValsNext, (aNrmCount, 1))).transpose()
+    TranShkVals_temp = (tile(TranShkValsNext, (aNrmCount, 1))).transpose()
+    ShkPrbs_temp = (tile(ShkPrbsNext, (aNrmCount, 1))).transpose()
 
     # Get cash on hand next period
-    mNrmNext = (
-        s_Rfree / (s_PermGroFac * PermShkVals_temp) * aNrm_temp + TranShkVals_temp
-    )
+    mNrmNext = Rfree / (PermGroFac * PermShkVals_temp) * aNrm_temp + TranShkVals_temp
     # CDC 20191205: This should be divided by LivPrb[0] for Blanchard insurance
 
     # Store and report the results
-    s_PermShkVals_temp = PermShkVals_temp  # return
-    s_ShkPrbs_temp = ShkPrbs_temp  # return
-    s_mNrmNext = mNrmNext  # return
-    s_aNrmNow = aNrmNow  # return
-
-    return s_PermShkVals_temp, s_ShkPrbs_temp, s_mNrmNext, s_aNrmNow
-
-
-# @njit
-# def getPointsForInterpolationNumba(cNrmNow, aNrmNow, s_BoroCnstNat):
-#     mNrmNow = cNrmNow + aNrmNow
-#
-#     # Limiting consumption is zero as m approaches mNrmMin
-#     c_for_interpolation = np.insert(cNrmNow, 0, 0.0, axis=-1)
-#     m_for_interpolation = np.insert(mNrmNow, 0, s_BoroCnstNat, axis=-1)
-#
-#     # Store these for calcvFunc
-#     s_cNrmNow = cNrmNow  # return
-#     s_mNrmNow = mNrmNow  # return
-#
-#     return c_for_interpolation, m_for_interpolation, s_cNrmNow, s_mNrmNow
+    return PermShkVals_temp, ShkPrbs_temp, mNrmNext, aNrmNow
 
 
 @njit
@@ -286,72 +237,69 @@ def setAndUpdateValuesNumba(
     LivPrb,
     IncomeDstn_pmf,
     IncomeDstn_X,
-    s_Rfree,
-    s_CRRA,
-    solution_next_MPCmin,
-    solution_next_hNrm,
-    solution_next_MPCmax,
-    s_PermGroFac,
+    Rfree,
+    CRRA,
+    sn_MPCmin,
+    sn_hNrm,
+    sn_MPCmax,
+    PermGroFac,
 ):
-    s_DiscFacEff = DiscFac * LivPrb  # "effective" discount factor #return
-    s_ShkPrbsNext = IncomeDstn_pmf  # return
-    s_PermShkValsNext = IncomeDstn_X[0]  # return
-    s_TranShkValsNext = IncomeDstn_X[1]  # return
-    s_PermShkMinNext = np.min(s_PermShkValsNext)  # return
-    s_TranShkMinNext = np.min(s_TranShkValsNext)  # return
+    DiscFacEff = DiscFac * LivPrb  # "effective" discount factor #return
+    ShkPrbsNext = IncomeDstn_pmf  # return
+    PermShkValsNext = IncomeDstn_X[0]  # return
+    TranShkValsNext = IncomeDstn_X[1]  # return
+    PermShkMinNext = np.min(PermShkValsNext)  # return
+    TranShkMinNext = np.min(TranShkValsNext)  # return
 
-    s_WorstIncPrb = np.sum(
-        s_ShkPrbsNext[
-            (s_PermShkValsNext * s_TranShkValsNext)
-            == (s_PermShkMinNext * s_TranShkMinNext)
+    WorstIncPrb = np.sum(
+        ShkPrbsNext[
+            (PermShkValsNext * TranShkValsNext) == (PermShkMinNext * TranShkMinNext)
         ]
     )  # return
 
     # Update the bounding MPCs and PDV of human wealth:
-    s_PatFac = ((s_Rfree * s_DiscFacEff) ** (1.0 / s_CRRA)) / s_Rfree  # return
-    s_MPCminNow = 1.0 / (1.0 + s_PatFac / solution_next_MPCmin)  # return
-    s_ExIncNext = np.dot(s_ShkPrbsNext, s_TranShkValsNext * s_PermShkValsNext)  # return
-    s_hNrmNow = s_PermGroFac / s_Rfree * (s_ExIncNext + solution_next_hNrm)  # return
-    s_MPCmaxNow = 1.0 / (
-        1.0 + (s_WorstIncPrb ** (1.0 / s_CRRA)) * s_PatFac / solution_next_MPCmax
+    PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree  # return
+    MPCminNow = 1.0 / (1.0 + PatFac / sn_MPCmin)  # return
+    ExIncNext = np.dot(ShkPrbsNext, TranShkValsNext * PermShkValsNext)  # return
+    hNrmNow = PermGroFac / Rfree * (ExIncNext + sn_hNrm)  # return
+    MPCmaxNow = 1.0 / (
+        1.0 + (WorstIncPrb ** (1.0 / CRRA)) * PatFac / sn_MPCmax
     )  # return
 
-    s_cFuncLimitIntercept = s_MPCminNow * s_hNrmNow  # return
-    s_cFuncLimitSlope = s_MPCminNow  # return
+    cFuncLimitIntercept = MPCminNow * hNrmNow  # return
+    cFuncLimitSlope = MPCminNow  # return
 
     return (
-        s_DiscFacEff,
-        s_ShkPrbsNext,
-        s_PermShkValsNext,
-        s_TranShkValsNext,
-        s_PermShkMinNext,
-        s_TranShkMinNext,
-        s_WorstIncPrb,
-        s_PatFac,
-        s_MPCminNow,
-        s_ExIncNext,
-        s_hNrmNow,
-        s_MPCmaxNow,
-        s_cFuncLimitIntercept,
-        s_cFuncLimitSlope,
+        DiscFacEff,
+        ShkPrbsNext,
+        PermShkValsNext,
+        TranShkValsNext,
+        PermShkMinNext,
+        TranShkMinNext,
+        WorstIncPrb,
+        PatFac,
+        MPCminNow,
+        ExIncNext,
+        hNrmNow,
+        MPCmaxNow,
+        cFuncLimitIntercept,
+        cFuncLimitSlope,
     )
 
 
 @njit
 def defBoroCnstNumba(
     BoroCnstArt,
-    s_solution_next_mNrmMin,
-    s_TranShkMinNext,
-    s_PermGroFac,
-    s_PermShkMinNext,
-    s_Rfree,
-    s_MPCmaxNow,
+    sn_mNrmMin,
+    TranShkMinNext,
+    PermGroFac,
+    PermShkMinNext,
+    Rfree,
+    MPCmaxNow,
 ):
     # Calculate the minimum allowable value of money resources in this period
-    s_BoroCnstNat = (
-        (s_solution_next_mNrmMin - s_TranShkMinNext)
-        * (s_PermGroFac * s_PermShkMinNext)
-        / s_Rfree
+    BoroCnstNat = (
+        (sn_mNrmMin - TranShkMinNext) * (PermGroFac * PermShkMinNext) / Rfree
     )  # return
 
     # Note: need to be sure to handle BoroCnstArt==None appropriately.
@@ -359,15 +307,15 @@ def defBoroCnstNumba(
     # However in Py3, this raises a TypeError. Thus here we need to directly
     # address the situation in which BoroCnstArt == None:
     if BoroCnstArt is None:
-        s_mNrmMinNow = s_BoroCnstNat  # return
+        mNrmMinNow = BoroCnstNat  # return
     else:
-        s_mNrmMinNow = np.max(np.array([s_BoroCnstNat, BoroCnstArt]))  # return
-    if s_BoroCnstNat < s_mNrmMinNow:
-        s_MPCmaxEff = 1.0  # If actually constrained, MPC near limit is 1 #return
+        mNrmMinNow = np.max(np.array([BoroCnstNat, BoroCnstArt]))  # return
+    if BoroCnstNat < mNrmMinNow:
+        MPCmaxEff = 1.0  # If actually constrained, MPC near limit is 1 #return
     else:
-        s_MPCmaxEff = s_MPCmaxNow
+        MPCmaxEff = MPCmaxNow
 
-    return s_BoroCnstNat, s_mNrmMinNow, s_MPCmaxEff
+    return BoroCnstNat, mNrmMinNow, MPCmaxEff
 
 
 class ConsPerfForesightSolverNumba(ConsPerfForesightSolver):
@@ -375,23 +323,6 @@ class ConsPerfForesightSolverNumba(ConsPerfForesightSolver):
     A class for solving a one period perfect foresight consumption-saving problem.
     An instance of this class is created by the function solvePerfForesight in each period.
     """
-
-    # def defUtilityFuncs(self):
-    #     """
-    #     Defines CRRA utility function for this period (and its derivatives),
-    #     saving them as attributes of self for other methods to use.
-    #
-    #     Parameters
-    #     ----------
-    #     None
-    #
-    #     Returns
-    #     -------
-    #     None
-    #     """
-    #     self.u = utility  # utility function
-    #     self.uP = utilityP  # marginal utility function
-    #     self.uPP = utilityPP  # marginal marginal utility function
 
     def makePFcFunc(self):
         """
@@ -608,39 +539,6 @@ class ConsIndShockSolverBasicNumba(ConsIndShockSetupNumba, ConsIndShockSolverBas
         )
 
         return self.aNrmNow
-
-    # def getPointsForInterpolation(self, EndOfPrdvP, aNrmNow):
-    #     """
-    #     Finds interpolation points (c,m) for the consumption function.
-    #
-    #     Parameters
-    #     ----------
-    #     EndOfPrdvP : np.array
-    #         Array of end-of-period marginal values.
-    #     aNrmNow : np.array
-    #         Array of end-of-period asset values that yield the marginal values
-    #         in EndOfPrdvP.
-    #
-    #     Returns
-    #     -------
-    #     c_for_interpolation : np.array
-    #         Consumption points for interpolation.
-    #     m_for_interpolation : np.array
-    #         Corresponding market resource points for interpolation.
-    #     """
-    #
-    #     cNrmNow = self.uPinv(EndOfPrdvP)
-    #
-    #     (
-    #         c_for_interpolation,
-    #         m_for_interpolation,
-    #         self.cNrmNow,
-    #         self.mNrmNow,
-    #     ) = getPointsForInterpolationNumba(
-    #         cNrmNow, aNrmNow, self.BoroCnstNat
-    #     )
-    #
-    #     return c_for_interpolation, m_for_interpolation
 
 
 class PerfForesightConsumerTypeNumba(PerfForesightConsumerType):

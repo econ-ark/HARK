@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import numpy as np
 from interpolation import interp
 from numba import njit
@@ -31,7 +35,7 @@ utilityP_invP = CRRAutilityP_invP
 
 
 @njit
-def searchSSfunc(m, s_PermGroFac, s_Rfree, s_ExIncNext, mNrmNow, cNrmNow):
+def searchSSfunc(m, PermGroFac, Rfree, ExIncNext, mNrmNow, cNrmNow):
     """
     Finds steady state (normalized) market resources and adds it to the
     solution.  This is the level of market resources such that the expectation
@@ -39,9 +43,7 @@ def searchSSfunc(m, s_PermGroFac, s_Rfree, s_ExIncNext, mNrmNow, cNrmNow):
     necessarily exist.
     """
     # Make a linear function of all combinations of c and m that yield mNext = mNow
-    mZeroChange = (1.0 - s_PermGroFac / s_Rfree) * m + (
-        s_PermGroFac / s_Rfree
-    ) * s_ExIncNext
+    mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * ExIncNext
 
     # Find the steady state level of market resources
     res = interp(mNrmNow, cNrmNow, m) - mZeroChange
@@ -51,53 +53,53 @@ def searchSSfunc(m, s_PermGroFac, s_Rfree, s_ExIncNext, mNrmNow, cNrmNow):
 
 @njit
 def solveConsPerfForesightNumba(
-    s_DiscFac,
-    s_LivPrb,
-    s_CRRA,
-    s_Rfree,
-    s_PermGroFac,
-    s_MaxKinks,
-    s_BoroCnstArt,
-    s_solution_next_hNrm,
-    s_solution_next_MPCmin,
-    s_solution_next_cFunc_x_list,
-    s_solution_next_cFunc_y_list,
+    DiscFac,
+    LivPrb,
+    CRRA,
+    Rfree,
+    PermGroFac,
+    MaxKinks,
+    model_BoroCnstArt,
+    sn_hNrm,
+    sn_MPCmin,
+    sn_cFunc_x_list,
+    sn_cFunc_y_list,
 ):
-    s_DiscFacEff = s_DiscFac * s_LivPrb  # return
+    DiscFacEff = DiscFac * LivPrb  # return
 
     """
     Makes the (linear) consumption function for this period.
     """
 
     # Use a local value of BoroCnstArt to prevent comparing None and float below.
-    if s_BoroCnstArt is None:
+    if model_BoroCnstArt is None:
         BoroCnstArt = -np.inf
     else:
-        BoroCnstArt = s_BoroCnstArt
+        BoroCnstArt = model_BoroCnstArt
 
     # Calculate human wealth this period
-    s_hNrmNow = (s_PermGroFac / s_Rfree) * (s_solution_next_hNrm + 1.0)  # return
+    hNrmNow = (PermGroFac / Rfree) * (sn_hNrm + 1.0)  # return
 
     # Calculate the lower bound of the marginal propensity to consume
-    PatFac = ((s_Rfree * s_DiscFacEff) ** (1.0 / s_CRRA)) / s_Rfree
-    s_MPCmin = 1.0 / (1.0 + PatFac / s_solution_next_MPCmin)  # return
+    PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
+    MPCmin = 1.0 / (1.0 + PatFac / sn_MPCmin)  # return
 
     # Extract the discrete kink points in next period's consumption function;
     # don't take the last one, as it only defines the extrapolation and is not a kink.
-    mNrmNext = s_solution_next_cFunc_x_list[:-1]
-    cNrmNext = s_solution_next_cFunc_y_list[:-1]
+    mNrmNext = sn_cFunc_x_list[:-1]
+    cNrmNext = sn_cFunc_y_list[:-1]
 
     # Calculate the end-of-period asset values that would reach those kink points
     # next period, then invert the first order condition to get consumption. Then
     # find the endogenous gridpoint (kink point) today that corresponds to each kink
-    aNrmNow = (s_PermGroFac / s_Rfree) * (mNrmNext - 1.0)
-    cNrmNow = (s_DiscFacEff * s_Rfree) ** (-1.0 / s_CRRA) * (s_PermGroFac * cNrmNext)
+    aNrmNow = (PermGroFac / Rfree) * (mNrmNext - 1.0)
+    cNrmNow = (DiscFacEff * Rfree) ** (-1.0 / CRRA) * (PermGroFac * cNrmNext)
     mNrmNow = aNrmNow + cNrmNow
 
     # Add an additional point to the list of gridpoints for the extrapolation,
     # using the new value of the lower bound of the MPC.
     mNrmNow = np.append(mNrmNow, mNrmNow[-1] + 1.0)
-    cNrmNow = np.append(cNrmNow, cNrmNow[-1] + s_MPCmin)
+    cNrmNow = np.append(cNrmNow, cNrmNow[-1] + MPCmin)
 
     # If the artificial borrowing constraint binds, combine the constrained and
     # unconstrained consumption functions.
@@ -128,49 +130,50 @@ def solveConsPerfForesightNumba(
             # If it *is* the very last index, then there are only three points
             # that characterize the consumption function: the artificial borrowing
             # constraint, the constraint kink, and the extrapolation point.
-            mXtra = cNrmNow[-1] - cNrmCnst[-1] / (1.0 - s_MPCmin)
+            mXtra = cNrmNow[-1] - cNrmCnst[-1] / (1.0 - MPCmin)
             mCrit = mNrmNow[-1] + mXtra
             cCrit = mCrit - BoroCnstArt
             mNrmNow = np.array([BoroCnstArt, mCrit, mCrit + 1.0])
-            cNrmNow = np.array([0.0, cCrit, cCrit + s_MPCmin])
+            cNrmNow = np.array([0.0, cCrit, cCrit + MPCmin])
 
     # If the mNrm and cNrm grids have become too large, throw out the last
     # kink point, being sure to adjust the extrapolation.
-    if mNrmNow.size > s_MaxKinks:
+    if mNrmNow.size > MaxKinks:
         mNrmNow = np.concatenate((mNrmNow[:-2], np.array([mNrmNow[-3] + 1.0])))
-        cNrmNow = np.concatenate((cNrmNow[:-2], np.array([cNrmNow[-3] + s_MPCmin])))
+        cNrmNow = np.concatenate((cNrmNow[:-2], np.array([cNrmNow[-3] + MPCmin])))
 
     # Calculate the upper bound of the MPC as the slope of the bottom segment.
-    s_MPCmax = (cNrmNow[1] - cNrmNow[0]) / (mNrmNow[1] - mNrmNow[0])  # return
+    MPCmax = (cNrmNow[1] - cNrmNow[0]) / (mNrmNow[1] - mNrmNow[0])  # return
 
     # Add two attributes to enable calculation of steady state market resources.
-    s_ExIncNext = 1.0  # Perfect foresight income of 1  # return
-    s_mNrmMinNow = mNrmNow[0]  # return
+    ExIncNext = 1.0  # Perfect foresight income of 1  # return
     # Relabeling for compatibility with addSSmNrm
+    mNrmMinNow = mNrmNow[0]  # return
 
     # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
-    vFuncNvrsSlope = s_MPCmin ** (-s_CRRA / (1.0 - s_CRRA))  # return
+    vFuncNvrsSlope = MPCmin ** (-CRRA / (1.0 - CRRA))  # return
 
-    m_init_guess = s_mNrmMinNow + s_ExIncNext
     # Minimum market resources plus next income is okay starting guess
+    m_init_guess = mNrmMinNow + ExIncNext
+
     try:
         mNrmSS = newton_secant(
             searchSSfunc,
             m_init_guess,
-            args=(s_PermGroFac, s_Rfree, s_ExIncNext, mNrmNow, cNrmNow),
+            args=(PermGroFac, Rfree, ExIncNext, mNrmNow, cNrmNow),
         )[0]
     except:
         mNrmSS = None
 
     return (
-        s_DiscFacEff,
-        s_hNrmNow,
-        s_MPCmin,
+        DiscFacEff,
+        hNrmNow,
+        MPCmin,
         mNrmNow,
         cNrmNow,
-        s_MPCmax,
-        s_ExIncNext,
-        s_mNrmMinNow,
+        MPCmax,
+        ExIncNext,
+        mNrmMinNow,
         vFuncNvrsSlope,
         mNrmSS,
     )
@@ -363,8 +366,6 @@ class ConsPerfForesightNumbaSolver(HARKobject):
             MPCmax=self.MPCmax,
         )  # not numba
 
-        # ============================================================================
-
         # Add mNrmSS to the solution and return it
         solution.mNrmSS = self.mNrmSS
 
@@ -375,22 +376,4 @@ class PerfForesightConsumerTypeNumba(PerfForesightConsumerType):
     def __init__(self, **kwargs):
         PerfForesightConsumerType.__init__(self, **kwargs)
 
-        # self.defUtilityFuncs()
         self.solveOnePeriod = makeOnePeriodOOSolver(ConsPerfForesightNumbaSolver)
-
-    # def defUtilityFuncs(self):
-    #     """
-    #     Defines CRRA utility function for this period (and its derivatives),
-    #     saving them as attributes of self for other methods to use.
-    #
-    #     Parameters
-    #     ----------
-    #     None
-    #
-    #     Returns
-    #     -------
-    #     None
-    #     """
-    #     self.u = utility(self.CRRA)  # utility function
-    #     self.uP = utilityP(self.CRRA)  # marginal utility function
-    #     self.uPP = utilityPP(self.CRRA)  # marginal marginal utility function
