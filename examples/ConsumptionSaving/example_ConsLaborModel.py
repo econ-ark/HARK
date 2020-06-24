@@ -10,7 +10,7 @@ mystr = lambda number : "{:.4f}".format(number)     # Format numbers as strings
 do_simulation           = True
 
 # Make and solve a labor intensive margin consumer i.e. a consumer with utility for leisure
-LaborIntMargExample = LaborIntMargConsumerType()
+LaborIntMargExample = LaborIntMargConsumerType(verbose=0)
 LaborIntMargExample.cycles = 0
 
 t_start = process_time()
@@ -134,7 +134,6 @@ LifecycleExample.solve()
 end_time = process_time()
 print('Solving a lifecycle labor intensive margin consumer took ' + str(end_time-start_time) + ' seconds.')
 LifecycleExample.unpackcFunc()
-LifecycleExample.timeFwd()
 
 bMax = 20.
 

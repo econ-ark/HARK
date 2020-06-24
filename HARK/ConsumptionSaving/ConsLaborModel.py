@@ -137,10 +137,10 @@ def solveConsLaborIntMarg(solution_next,PermShkDstn,TranShkDstn,LivPrb,DiscFac,C
 
     # Unpack next period's solution and the productivity shock distribution, and define the inverse (marginal) utilty function
     vPfunc_next = solution_next.vPfunc
-    TranShkPrbs = TranShkDstn[0]    
-    TranShkVals  = TranShkDstn[1]
-    PermShkPrbs = PermShkDstn[0]
-    PermShkVals  = PermShkDstn[1]        
+    TranShkPrbs = TranShkDstn.pmf
+    TranShkVals  = TranShkDstn.X
+    PermShkPrbs = PermShkDstn.pmf
+    PermShkVals  = PermShkDstn.X
     TranShkCount  = TranShkPrbs.size
     PermShkCount = PermShkPrbs.size
     uPinv = lambda X : CRRAutilityP_inv(X,gam=CRRA)
@@ -451,7 +451,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         '''
         TranShkGrid = []   # Create an empty list for TranShkGrid that will be updated
         for t in range(self.T_cycle):
-            TranShkGrid.append(self.TranShkDstn[t][1])  # Update/ Extend the list of TranShkGrid with the TranShkVals for each TranShkPrbs
+            TranShkGrid.append(self.TranShkDstn[t].X)  # Update/ Extend the list of TranShkGrid with the TranShkVals for each TranShkPrbs
         self.TranShkGrid = TranShkGrid  # Save that list in self (time-varying)
         self.addToTimeVary('TranShkGrid')   # Run the method addToTimeVary from AgentType to add TranShkGrid as one parameter of time_vary list
      
@@ -596,3 +596,26 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         plt.xlabel('Beginning of period bank balances')
         plt.ylabel('Labor supply')
         plt.show()
+
+# Make a default dictionary for the intensive margin labor supply model
+init_labor_intensive = copy(init_idiosyncratic_shocks)
+init_labor_intensive ['LbrCostCoeffs'] = [-1.0]
+init_labor_intensive ['WageRte'] = [1.0]
+init_labor_intensive['IncUnemp'] = 0.0
+init_labor_intensive['TranShkCount'] = 15 # Crank up permanent shock count - Number of points in discrete approximation to transitory income shocks
+init_labor_intensive['PermShkCount'] = 16 # Crank up permanent shock count
+init_labor_intensive ['aXtraCount'] = 200 # May be important to have a larger number of gridpoints (than 48 initially)
+init_labor_intensive ['aXtraMax'] = 80.
+init_labor_intensive ['BoroCnstArt'] = None
+
+# Make a dictionary for qintensive margin labor supply model with finite lifecycle
+init_labor_lifecycle = init_labor_intensive.copy()
+init_labor_lifecycle['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
+init_labor_lifecycle['PermShkStd'] = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]
+init_labor_lifecycle['TranShkStd'] = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]
+init_labor_lifecycle['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1] # Living probability decreases as time moves forward.
+init_labor_lifecycle['WageRte'] = [1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0] # Wage rate in a lifecycle
+init_labor_lifecycle['LbrCostCoeffs'] = [-2.0, 0.4] # Assume labor cost coeffs is a polynomial of degree 1
+init_labor_lifecycle['T_cycle']    = 10
+#init_labor_lifecycle['T_retire']   = 7 # IndexError at line 774 in interpolation.py.
+init_labor_lifecycle['T_age']      = 11 # Make sure that old people die at terminal age and don't turn into newborns!
