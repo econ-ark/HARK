@@ -44,6 +44,82 @@ def insert(arr, obj, values, axis=-1):
 
 
 @njit
+def prepareToSolveConsIndShockNumba(
+    DiscFac,
+    LivPrb,
+    CRRA,
+    Rfree,
+    PermGroFac,
+    BoroCnstArt,
+    PermShkValsNext,
+    TranShkValsNext,
+    ShkPrbsNext,
+    sn_MPCmin,
+    sn_hNrm,
+    sn_MPCmax,
+    sn_mNrmMin,
+):
+    """
+    Unpacks some of the inputs (and calculates simple objects based on them),
+    storing the results in self for use by other methods.  These include:
+    income shocks and probabilities, next period's marginal value function
+    (etc), the probability of getting the worst income shock next period,
+    the patience factor, human wealth, and the bounding MPCs.
+    """
+
+    DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
+    PermShkMinNext = np.min(PermShkValsNext)
+    TranShkMinNext = np.min(TranShkValsNext)
+
+    WorstIncPrb = np.sum(
+        ShkPrbsNext[
+            (PermShkValsNext * TranShkValsNext) == (PermShkMinNext * TranShkMinNext)
+        ]
+    )
+
+    # Update the bounding MPCs and PDV of human wealth:
+    PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
+    MPCminNow = 1.0 / (1.0 + PatFac / sn_MPCmin)
+    ExIncNext = np.dot(ShkPrbsNext, TranShkValsNext * PermShkValsNext)
+    hNrmNow = PermGroFac / Rfree * (ExIncNext + sn_hNrm)
+    MPCmaxNow = 1.0 / (1.0 + (WorstIncPrb ** (1.0 / CRRA)) * PatFac / sn_MPCmax)
+
+    cFuncLimitIntercept = MPCminNow * hNrmNow
+    cFuncLimitSlope = MPCminNow
+
+    """
+    Defines the constrained portion of the consumption function as cFuncNowCnst,
+    an attribute of self.  Uses the artificial and natural borrowing constraints.
+    """
+    # Calculate the minimum allowable value of money resources in this period
+    BoroCnstNat = (sn_mNrmMin - TranShkMinNext) * (PermGroFac * PermShkMinNext) / Rfree
+
+    # Note: need to be sure to handle BoroCnstArt==None appropriately.
+    # In Py2, this would evaluate to 5.0:  np.max([None, 5.0]).
+    # However in Py3, this raises a TypeError. Thus here we need to directly
+    # address the situation in which BoroCnstArt == None:
+    if BoroCnstArt is None:
+        mNrmMinNow = BoroCnstNat
+    else:
+        mNrmMinNow = np.max(np.array([BoroCnstNat, BoroCnstArt]))
+    if BoroCnstNat < mNrmMinNow:
+        MPCmaxEff = 1.0  # If actually constrained, MPC near limit is 1
+    else:
+        MPCmaxEff = MPCmaxNow
+
+    return (
+        DiscFacEff,
+        BoroCnstNat,
+        cFuncLimitIntercept,
+        cFuncLimitSlope,
+        mNrmMinNow,
+        MPCmaxEff,
+        hNrmNow,
+        MPCminNow,
+    )
+
+
+@njit
 def solveConsIndShockNumba(
     DiscFacEff,
     CRRA,
@@ -89,6 +165,7 @@ def solveConsIndShockNumba(
     income shocks (in a preconstructed grid self.mNrmNext).
     """
 
+    # interp does not take ndarray inputs on 3rd argument, so flatten then reshape
     cFuncNext = interp(sn_cFunc_x_list, sn_cFunc_y_list, mNrmNext.flatten())
     vPfuncNext = (cFuncNext ** -CRRA).reshape(mNrmNext.shape)
 
@@ -290,113 +367,6 @@ class ConsIndShockNumbaSolverBasic(HARKobject):
         if self.vFuncBool:
             self.uinv = lambda u: utility_inv(u, gam=self.CRRA)
 
-    def setAndUpdateValues(self, solution_next, IncomeDstn, LivPrb, DiscFac):
-        """
-        Unpacks some of the inputs (and calculates simple objects based on them),
-        storing the results in self for use by other methods.  These include:
-        income shocks and probabilities, next period's marginal value function
-        (etc), the probability of getting the worst income shock next period,
-        the patience factor, human wealth, and the bounding MPCs.
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        IncomeDstn : distribution.DiscreteDistribution
-            A DiscreteDistribution with a pmf
-            and two point value arrays in X, order:
-            permanent shocks, transitory shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-
-        Returns
-        -------
-        None
-        """
-        self.DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
-        self.ShkPrbsNext = IncomeDstn.pmf
-        self.PermShkValsNext = IncomeDstn.X[0]
-        self.TranShkValsNext = IncomeDstn.X[1]
-        self.PermShkMinNext = np.min(self.PermShkValsNext)
-        self.TranShkMinNext = np.min(self.TranShkValsNext)
-        self.vPfuncNext = solution_next.vPfunc
-        self.WorstIncPrb = np.sum(
-            self.ShkPrbsNext[
-                (self.PermShkValsNext * self.TranShkValsNext)
-                == (self.PermShkMinNext * self.TranShkMinNext)
-            ]
-        )
-
-        if self.CubicBool:
-            self.vPPfuncNext = solution_next.vPPfunc
-
-        if self.vFuncBool:
-            self.vFuncNext = solution_next.vFunc
-
-        # Update the bounding MPCs and PDV of human wealth:
-        self.PatFac = ((self.Rfree * self.DiscFacEff) ** (1.0 / self.CRRA)) / self.Rfree
-        self.MPCminNow = 1.0 / (1.0 + self.PatFac / solution_next.MPCmin)
-        self.ExIncNext = np.dot(
-            self.ShkPrbsNext, self.TranShkValsNext * self.PermShkValsNext
-        )
-        self.hNrmNow = (
-            self.PermGroFac / self.Rfree * (self.ExIncNext + solution_next.hNrm)
-        )
-        self.MPCmaxNow = 1.0 / (
-            1.0
-            + (self.WorstIncPrb ** (1.0 / self.CRRA))
-            * self.PatFac
-            / solution_next.MPCmax
-        )
-
-        self.cFuncLimitIntercept = self.MPCminNow * self.hNrmNow
-        self.cFuncLimitSlope = self.MPCminNow
-
-    def defBoroCnst(self, BoroCnstArt):
-        """
-        Defines the constrained portion of the consumption function as cFuncNowCnst,
-        an attribute of self.  Uses the artificial and natural borrowing constraints.
-
-        Parameters
-        ----------
-        BoroCnstArt : float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.  If it is less than the natural borrowing constraint,
-            then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-            rowing constraint.
-
-        Returns
-        -------
-        none
-        """
-        # Calculate the minimum allowable value of money resources in this period
-        self.BoroCnstNat = (
-            (self.solution_next.mNrmMin - self.TranShkMinNext)
-            * (self.PermGroFac * self.PermShkMinNext)
-            / self.Rfree
-        )
-
-        # Note: need to be sure to handle BoroCnstArt==None appropriately.
-        # In Py2, this would evaluate to 5.0:  np.max([None, 5.0]).
-        # However in Py3, this raises a TypeError. Thus here we need to directly
-        # address the situation in which BoroCnstArt == None:
-        if BoroCnstArt is None:
-            self.mNrmMinNow = self.BoroCnstNat
-        else:
-            self.mNrmMinNow = np.max([self.BoroCnstNat, BoroCnstArt])
-        if self.BoroCnstNat < self.mNrmMinNow:
-            self.MPCmaxEff = 1.0  # If actually constrained, MPC near limit is 1
-        else:
-            self.MPCmaxEff = self.MPCmaxNow
-
-        # Define the borrowing constraint (limiting consumption function)
-        self.cFuncNowCnst = LinearInterp(
-            np.array([self.mNrmMinNow, self.mNrmMinNow + 1]), np.array([0.0, 1.0])
-        )
-
     def prepareToSolve(self):
         """
         Perform preparatory work before calculating the unconstrained consumption
@@ -410,10 +380,48 @@ class ConsIndShockNumbaSolverBasic(HARKobject):
         -------
         none
         """
-        self.setAndUpdateValues(
-            self.solution_next, self.IncomeDstn, self.LivPrb, self.DiscFac
+
+        self.ShkPrbsNext = self.IncomeDstn.pmf
+        self.PermShkValsNext = self.IncomeDstn.X[0]
+        self.TranShkValsNext = self.IncomeDstn.X[1]
+
+        self.vPfuncNext = self.solution_next.vPfunc
+
+        if self.CubicBool:
+            self.vPPfuncNext = self.solution_next.vPPfunc  # not numba
+
+        if self.vFuncBool:
+            self.vFuncNext = self.solution_next.vFunc  # not numba
+
+        (
+            self.DiscFacEff,
+            self.BoroCnstNat,
+            self.cFuncLimitIntercept,
+            self.cFuncLimitSlope,
+            self.mNrmMinNow,
+            self.MPCmaxEff,
+            self.hNrmNow,
+            self.MPCminNow,
+        ) = prepareToSolveConsIndShockNumba(
+            self.DiscFac,
+            self.LivPrb,
+            self.CRRA,
+            self.Rfree,
+            self.PermGroFac,
+            self.BoroCnstArt,
+            self.PermShkValsNext,
+            self.TranShkValsNext,
+            self.ShkPrbsNext,
+            self.solution_next.MPCmin,
+            self.solution_next.hNrm,
+            self.solution_next.MPCmax,
+            self.solution_next.mNrmMin,
         )
-        self.defBoroCnst(self.BoroCnstArt)
+
+        # Define the borrowing constraint (limiting consumption function)
+        self.cFuncNowCnst = LinearInterp(
+            np.array([self.mNrmMinNow, self.mNrmMinNow + 1]), np.array([0.0, 1.0])
+        )
 
     def solve(self):
         """
@@ -439,6 +447,7 @@ class ConsIndShockNumbaSolverBasic(HARKobject):
             sn_cFunc_x_list = sn_cFunc.x_list
 
         sn_cFunc_y_list = self.solution_next.cFunc(sn_cFunc_x_list)
+
         self.cNrm, self.mNrm = solveConsIndShockNumba(
             self.DiscFacEff,
             self.CRRA,
