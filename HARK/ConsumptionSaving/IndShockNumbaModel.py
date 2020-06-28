@@ -33,17 +33,43 @@ utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
 
 
-@njit
+@njit(cache=True)
 def tile(A, reps):
+    """
+    Numba does not support np.tile yet, so this is a simple placeholder.
+
+    Parameters
+    ----------
+    A
+    reps
+
+    Returns
+    -------
+
+    """
     return A.repeat(reps[0]).reshape(A.size, -1).transpose()
 
 
-@njit
+@njit(cache=True)
 def insert(arr, obj, values, axis=-1):
+    """
+    Numba does not support np.insert yet, so this is a simple placeholder.
+
+    Parameters
+    ----------
+    arr
+    obj
+    values
+    axis
+
+    Returns
+    -------
+
+    """
     return np.append(np.array(values), arr)
 
 
-@njit
+@njit(cache=True)
 def prepareToSolveConsIndShockNumba(
     DiscFac,
     LivPrb,
@@ -60,11 +86,27 @@ def prepareToSolveConsIndShockNumba(
     sn_mNrmMin,
 ):
     """
-    Unpacks some of the inputs (and calculates simple objects based on them),
-    storing the results in self for use by other methods.  These include:
-    income shocks and probabilities, next period's marginal value function
-    (etc), the probability of getting the worst income shock next period,
-    the patience factor, human wealth, and the bounding MPCs.
+    Numba global method to prepare to solve ConsIndShockModel.
+
+    Parameters
+    ----------
+    DiscFac
+    LivPrb
+    CRRA
+    Rfree
+    PermGroFac
+    BoroCnstArt
+    PermShkValsNext
+    TranShkValsNext
+    ShkPrbsNext
+    sn_MPCmin
+    sn_hNrm
+    sn_MPCmax
+    sn_mNrmMin
+
+    Returns
+    -------
+
     """
 
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
@@ -87,10 +129,6 @@ def prepareToSolveConsIndShockNumba(
     cFuncLimitIntercept = MPCminNow * hNrmNow
     cFuncLimitSlope = MPCminNow
 
-    """
-    Defines the constrained portion of the consumption function as cFuncNowCnst,
-    an attribute of self.  Uses the artificial and natural borrowing constraints.
-    """
     # Calculate the minimum allowable value of money resources in this period
     BoroCnstNat = (sn_mNrmMin - TranShkMinNext) * (PermGroFac * PermShkMinNext) / Rfree
 
@@ -119,7 +157,7 @@ def prepareToSolveConsIndShockNumba(
     )
 
 
-@njit
+@njit(cache=True)
 def solveConsIndShockNumba(
     DiscFacEff,
     CRRA,
@@ -134,10 +172,25 @@ def solveConsIndShockNumba(
     sn_cFunc_y_list,
 ):
     """
-    Prepare to calculate end-of-period marginal value by creating an array
-    of market resources that the agent could have next period, considering
-    the grid of end-of-period assets and the distribution of shocks he might
-    experience next period.
+    Numba global method to solve ConsIndShockModel.
+
+    Parameters
+    ----------
+    DiscFacEff
+    CRRA
+    Rfree
+    PermGroFac
+    BoroCnstNat
+    aXtraGrid
+    TranShkValsNext
+    PermShkValsNext
+    ShkPrbsNext
+    sn_cFunc_x_list
+    sn_cFunc_y_list
+
+    Returns
+    -------
+
     """
 
     # We define aNrmNow all the way from BoroCnstNat up to max(self.aXtraGrid)
@@ -159,12 +212,6 @@ def solveConsIndShockNumba(
     mNrmNext = Rfree / (PermGroFac * PermShkVals_temp) * aNrm_temp + TranShkVals_temp
     # CDC 20191205: This should be divided by LivPrb[0] for Blanchard insurance
 
-    """
-    Calculate end-of-period marginal value of assets at each point in aNrmNow.
-    Does so by taking a weighted sum of next period marginal values across
-    income shocks (in a preconstructed grid self.mNrmNext).
-    """
-
     # interp does not take ndarray inputs on 3rd argument, so flatten then reshape
     cFuncNext = interp(sn_cFunc_x_list, sn_cFunc_y_list, mNrmNext.flatten())
     vPfuncNext = (cFuncNext ** -CRRA).reshape(mNrmNext.shape)
@@ -176,9 +223,7 @@ def solveConsIndShockNumba(
         * np.sum(PermShkVals_temp ** (-CRRA) * vPfuncNext * ShkPrbs_temp, axis=0)
     )
 
-    """
-    Finds interpolation points (c,m) for the consumption function.
-    """
+    # Finds interpolation points (c,m) for the consumption function.
 
     cNrmNow = EndOfPrdvP ** (-1.0 / CRRA)
     mNrmNow = cNrmNow + aNrm
@@ -437,15 +482,7 @@ class ConsIndShockNumbaSolverBasic(HARKobject):
             The solution to the one period problem.
         """
 
-        sn_cFunc = self.solution_next.cFunc
-
-        if isinstance(sn_cFunc, LowerEnvelope):
-            x_list_1 = sn_cFunc.functions[0].x_list
-            x_list_2 = sn_cFunc.functions[1].x_list
-            sn_cFunc_x_list = np.sort(np.unique(np.append(x_list_1, x_list_2)))
-        else:
-            sn_cFunc_x_list = sn_cFunc.x_list
-
+        sn_cFunc_x_list = self.aXtraGrid
         sn_cFunc_y_list = self.solution_next.cFunc(sn_cFunc_x_list)
 
         self.cNrm, self.mNrm = solveConsIndShockNumba(
