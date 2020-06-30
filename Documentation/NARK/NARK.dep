@@ -1,7 +1,6 @@
 \RequireVersions{
   *{application}{TeX}     {1990/03/25 v3.x}
   *{format} {LaTeX2e}     {2018-12-01 v2.e}
-  *{file}   {NARK.tex}    {0000/00/00 v0.0}
   *{class}  {econtex}     {2017/08/01 v0.0}
   *{package}{snapshot}    {2002/03/05 v1.14}
   *{package}{ifthen}      {2014/09/29 v1.1c}
@@ -41,7 +40,7 @@
   *{package}{enotez}      {2017/04/24 v0.9a}
   *{package}{expl3}       {2019-02-15 v3}
   *{file}   {expl3-code.tex}{2019-02-15 v3}
-  *{file}   {l3pdfmode.def}{2019-02-15 v3}
+  *{file}   {l3dvips.def} {2019-02-15 v3}
   *{package}{xparse}      {2018-10-17 v3}
   *{package}{l3keys2e}    {2018-10-17 v2e}
   *{package}{xtemplate}   {2018-10-17 v3}
@@ -62,7 +61,8 @@
   *{file}   {t1enc.def}   {2018/08/11 v2.0j}
   *{package}{color}       {2016/07/10 v1.1e}
   *{file}   {color.cfg}   {2016/01/02 v1.6}
-  *{file}   {pdftex.def}  {2018/01/08 v1.0l}
+  *{file}   {dvips.def}   {2017/06/20 v3.1d}
+  *{file}   {dvipsnam.def}{2016/06/17 v3.0m}
   *{package}{accents}     {2006/05/12 v1.4}
   *{package}{appendix}    {2009/09/02 v1.2b}
   *{package}{eucal}       {2009/06/22 v3.00}
@@ -76,16 +76,19 @@
   *{package}{manyfoot}    {2005/09/11 v1.10}
   *{package}{nccfoots}    {2005/02/03 v1.2}
   *{package}{perpage}     {2014/10/25 v2.0}
+  *{package}{tex4ht}      {0000/00/00 v0.0}
   *{package}{econtexSetup}{0000/00/00 v0.0}
   *{package}{wasysym}     {2003/10/30 v2.0}
   *{package}{psibycus}    {2004/10/18 v4.5}
   *{file}   {ibycus4.map} {0000/00/00 v0.0}
+  *{file}   {Uibycus.fd}  {2004/10/18 v4.5}
   *{file}   {Uibycus.fd}  {2004/10/18 v4.5}
   *{file}   {iby4extr.tex}{0000/00/00 v0.0}
   *{package}{ushort}      {2001/06/13 v2.2}
   *{package}{graphicx}    {2017/06/01 v1.1a}
   *{package}{graphics}    {2017/06/25 v1.2c}
   *{package}{trig}        {2016/01/03 v1.10}
+  *{file}   {graphics.cfg}{2016/06/04 v1.11}
   *{file}   {graphics.cfg}{2016/06/04 v1.11}
   *{package}{hyperref}    {2018/11/30 v6.88e}
   *{package}{hobsub-hyperref}{2016/05/16 v1.14}
@@ -111,28 +114,34 @@
   *{package}{auxhook}     {2016/05/16 v1.4}
   *{package}{kvoptions}   {2016/05/16 v3.12}
   *{file}   {pd1enc.def}  {2018/11/30 v6.88e}
+  *{file}   {pd1enc.def}  {2018/11/30 v6.88e}
   *{file}   {hyperref.cfg}{2002/06/06 v1.2}
-  *{file}   {hpdftex.def} {2018/11/30 v6.88e}
-  *{package}{rerunfilecheck}{2016/05/16 v1.8}
+  *{file}   {hyperref.cfg}{2002/06/06 v1.2}
+  *{file}   {htex4ht.def} {2018/11/30 v6.88e}
+  *{file}   {htex4ht.def} {2018/11/30 v6.88e}
   *{package}{econtexShortcuts}{0000/00/00 v0.0}
-  *{file}   {t3cmr.fd}    {2001/12/31 v0.0}
-  *{file}   {translations-basic-dictionary-english.trsl}{(english v0.0}
-  *{file}   {supp-pdf.mkii}{0000/00/00 v0.0}
-  *{package}{epstopdf-base}{2016/05/15 v2.6}
-  *{package}{grfext}      {2016/05/16 v1.2}
-  *{file}   {epstopdf-sys.cfg}{2010/07/13 v1.3}
   *{package}{nameref}     {2016/05/21 v2.44}
   *{package}{gettitlestring}{2016/05/16 v1.5}
-  *{file}   {NARK.out}    {0000/00/00 v0.0}
-  *{file}   {NARK.out}    {0000/00/00 v0.0}
+  *{file}   {t3cmr.fd}    {2001/12/31 v0.0}
+  *{file}   {t3cmr.fd}    {2001/12/31 v0.0}
+  *{file}   {translations-basic-dictionary-english.trsl}{(english v0.0}
+  *{file}   {translations-basic-dictionary-english.trsl}{(english v0.0}
   *{package}{bookmark}    {2016/05/17 v1.26}
-  *{file}   {bkm-pdftex.def}{2016/05/17 v1.26}
-  *{file}   {umsa.fd}     {2013/01/14 v3.01}
-  *{file}   {umsb.fd}     {2013/01/14 v3.01}
-  *{file}   {ulasy.fd}    {1998/08/17 v2.2e}
-  *{file}   {uwasy.fd}    {2003/10/30 v2.0}
+  *{file}   {bkm-dvips.def}{2016/05/17 v1.26}
+  *{file}   {bkm-dvips.def}{2016/05/17 v1.26}
+  *{file}   {t1cmtt.fd}   {2014/09/29 v2.5h}
   *{file}   {t1cmtt.fd}   {2014/09/29 v2.5h}
   *{file}   {omscmr.fd}   {2014/09/29 v2.5h}
+  *{file}   {omscmr.fd}   {2014/09/29 v2.5h}
+  *{file}   {umsa.fd}     {2013/01/14 v3.01}
+  *{file}   {umsa.fd}     {2013/01/14 v3.01}
+  *{file}   {umsb.fd}     {2013/01/14 v3.01}
+  *{file}   {umsb.fd}     {2013/01/14 v3.01}
+  *{file}   {ulasy.fd}    {1998/08/17 v2.2e}
+  *{file}   {ulasy.fd}    {1998/08/17 v2.2e}
+  *{file}   {uwasy.fd}    {2003/10/30 v2.0}
+  *{file}   {uwasy.fd}    {2003/10/30 v2.0}
+  *{file}   {ubbmss.fd}   {1999/03/15 v1.2}
   *{file}   {ubbmss.fd}   {1999/03/15 v1.2}
   *{file}   {NARK.bbl}    {0000/00/00 v0.0}
 }

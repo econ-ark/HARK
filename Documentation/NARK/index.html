@@ -1,7 +1,8 @@
 <!DOCTYPE html> 
 <html lang="en" xml:lang="en" > 
 <head>
-  <title>Suggested Variable Naming Conventions in ARK</title> 
+  <title>Suggested Variable Naming Conventions
+in the Econ-ARK Toolkit</title> 
 <meta  charset="utf-8" /> 
 <meta name="generator" content="TeX4ht (http://www.tug.org/tex4ht/)" /> 
 <meta name="viewport" content="width=device-width,initial-scale=1" /> 
@@ -10,18 +11,18 @@
 </head><body 
 >
   <div class="maketitle">
-<h2 class="titleHead">Suggested Variable Naming Conventions in
-ARK</h2>
-<div class="date" >June 29, 2020</div>
+<h2 class="titleHead">Suggested Variable Naming Conventions<br />
+in the Econ-ARK Toolkit</h2>
+<div class="date" >June 30, 2020</div>
 <span 
 class="ecrm-0600"> </span>
 </div>
   <div 
 class="abstract" 
 >
-<!--l. 25--><p class="noindent" > <br 
+<!--l. 26--><p class="noindent" > <br 
 class="newline" />_____________________________________________________________________________________
-<!--l. 25--><p class="noindent" ><span 
+<!--l. 26--><p class="noindent" ><span 
 class="ecbx-1200">Abstract</span><br 
 class="newline" />   <span 
 class="ecrm-1095">Sharing of code is easier when diﬀerent contributors use similar names for similar objects. While</span>
@@ -47,7 +48,7 @@ class="ecbx-1200"> </span><span
 class="ecbx-1200"> Keywords</span><span 
 class="ecbx-1200"> </span></dt><dd 
 class="list">
-                 <!--l. 29--><p class="noindent" >ARK,   Variable,   Function,   Object,   Operator,   Naming,
+                 <!--l. 30--><p class="noindent" >ARK,   Variable,   Function,   Object,   Operator,   Naming,
                    Guidelines, Conventions
                    </dd><dt class="list">
 <span 
@@ -65,7 +66,7 @@ class="ecbx-1200"> </span><span
 class="ecbx-1200"> JEL codes</span><span 
 class="ecbx-1200"> </span></dt><dd 
 class="list">
-                 <!--l. 29--><p class="noindent" >None</dd></dl>
+                 <!--l. 30--><p class="noindent" >None</dd></dl>
                                                                                      
                                                                                      
       </div>
@@ -74,7 +75,7 @@ class="list">
                                                                                      
   <h3 class="sectionHead"><span class="titlemark">1  </span> <a 
  id="x1-10001"></a>Principles</h3>
-<!--l. 39--><p class="noindent" >Our aim has been to balance:
+<!--l. 40--><p class="noindent" >Our aim has been to balance:
       <ul class="itemize1">
       <li class="itemize">Brevity
       </li>
@@ -87,27 +88,28 @@ class="list">
       <li class="itemize">Combinatoriality (which encourages mashups)</li></ul>
                                                                                      
                                                                                      
-<!--l. 51--><p class="noindent" >
+<!--l. 52--><p class="noindent" >
   <h3 class="sectionHead"><span class="titlemark">2  </span> <a 
  id="x1-20002"></a>Variables</h3>
-<!--l. 53--><p class="noindent" >
+<!--l. 54--><p class="noindent" >
   <h4 class="subsectionHead"><span class="titlemark">2.1  </span> <a 
  id="x1-30002.1"></a>Single-Letter</h4>
-<!--l. 55--><p class="noindent" >We strongly discourage the use of single-letter variable names. Reasons for this advice are
-presented <span 
-class="ecti-1200">ad nauseum </span>in introductory computer programming texts (which, we know, few
-economists consult); here we will note only that the extent to which your code will be
-inﬂuential depends upon the extent to which someone else can easily read it, which is harder if
-you have used variable names which could mean almost anything. (We have made careful
-choices for the ‘default’ meanings of each Roman letter (see below); hence, in the context of
-the toolkit, use of a single-letter name for any meaning other than the designated one will be
-doubly confusing).
-<!--l. 57--><p class="indent" >  It is only slightly less objectionable to name a variable after a familiar letter in another
+<!--l. 56--><p class="noindent" >We strongly discourage the use of single-letter variable names. Reasons are presented <span 
+class="ecti-1200">ad</span>
+<span 
+class="ecti-1200">nauseum </span>in introductory CS texts (which, we know, few economists consult); here we will note
+only that the extent to which your code will be inﬂuential depends upon the extent to which
+someone else can easily read it, which is harder if you have used variable names
+which could mean almost anything. (We have made careful choices for the ‘default’
+meanings of each Roman letter (see below); hence, in the context of the toolkit, use of a
+single-letter name for any meaning other than the designated one will be doubly
+confusing).
+<!--l. 58--><p class="indent" >  It is only slightly less objectionable to name a variable after a familiar letter in another
 commonly used alphabet (say, <span 
 class="ectt-1200">delta</span>). Your future self (and other users) will not know which
 of the many possible meanings of <img 
 src="NARK0x.svg" alt="δ  " class="math";align="absmiddle"> you had in mind.
-<!--l. 59--><p class="indent" >  But, because brevity is a virtue, a single letter <span 
+<!--l. 60--><p class="indent" >  But, because brevity is a virtue, a single letter <span 
 class="ecti-1200">in combination with a modiﬁer or two</span>
 (‘<span 
 class="ectt-1200">hMin</span>’ as the value of minimum human wealth, say) is ﬁne – so long as the reader has some
@@ -115,13 +117,13 @@ reason to expect that the lower-case letter <span
 class="ectt-1200">h </span>signiﬁes human wealth (as they will, if they
 consult Table <a 
 href="#x1-30011">1<!--tex4ht:ref: table:RomanLetters --></a>).
-<!--l. 61--><p class="indent" >  That is the spirit in which we oﬀer preferred interpretations for the Roman letters
+<!--l. 62--><p class="indent" >  That is the spirit in which we oﬀer preferred interpretations for the Roman letters
 below. The upper case version is an aggregated version of the variable (at the level of
 the whole economy, say, or of the whole market being studied), while the lower
 case indicates the level of an individual consumer or ﬁrm or other subaggregate
 entity.
-<!--l. 63--><p class="indent" >  A few exceptions to these rules are explicitly noted below the table.
-<!--l. 65--><p class="indent" >  When an alternative is needed with a meaning similar to, but distinct from, the deﬁnitions
+<!--l. 64--><p class="indent" >  A few exceptions to these rules are explicitly noted below the table.
+<!--l. 66--><p class="indent" >  When an alternative is needed with a meaning similar to, but distinct from, the deﬁnitions
 below, please use a multi-letter name to represent it. For example, please do not use
 <img 
 src="NARK1x.svg" alt="W  " class="math";align="absmiddle"> for wealth (if some measure of wealth that diﬀers from <img 
@@ -133,20 +135,20 @@ needed); instead use, say, <span
 class="ectt-1200">Wlth </span>or <span 
 class="ectt-1200">Wealth</span>. (Some examples follow in a subsequent
 section).
-<!--l. 67--><p class="indent" >  Finally, a few of the deﬁnitions below are actually prohibitions; these are based on many
+<!--l. 68--><p class="indent" >  Finally, a few of the deﬁnitions below are actually prohibitions; these are based on many
 years of experience which have shown that use of the prohibited variable name generates more
 confusion than clarity.
   <div class="table">
                                                                                      
                                                                                      
-<!--l. 69--><p class="indent" >  <a 
+<!--l. 70--><p class="indent" >  <a 
  id="x1-30011"></a><hr class="float"><div class="float" 
 >
                                                                                      
                                                                                      
 <div class="center" 
 >
-<!--l. 70--><p class="noindent" >
+<!--l. 71--><p class="noindent" >
 <div class="pic-tabular">
 <img 
 src="NARK6x.svg" alt="|-----------------------------------------------------------------------------------------|
@@ -192,7 +194,7 @@ class="content">Preferred Usages of Roman Letters</span></div><!--tex4ht:label?:
   </div>
   <h4 class="subsectionHead"><span class="titlemark">2.2  </span> <a 
  id="x1-40002.2"></a>Exceptions to the Rules</h4>
-<!--l. 109--><p class="noindent" >The letter <img 
+<!--l. 110--><p class="noindent" >The letter <img 
 src="NARK7x.svg" alt="T  " class="math";align="absmiddle"> is an exception to the rule that lower- and upper-case versions of variables are
 individual and aggregate quantities. We reserve the capital letter to designate the end of the
 horizon (death, or the end of the economy, occurs at the end of period <img 
@@ -201,7 +203,7 @@ lower case version <img
 src="NARK9x.svg" alt="t  " class="math";align="absmiddle"> is so ubiquitiously used as the current time period that we do
 not want to resist the overwhelming force of tradition to prohibit its use in that
 capacity.
-<!--l. 111--><p class="indent" >  Finally, the following are exempted from the prohibition on single-letter variable names
+<!--l. 112--><p class="indent" >  Finally, the following are exempted from the prohibition on single-letter variable names
 because they are used so frequently that the prohibition would be more trouble than it is
 worth: <img 
 src="NARK10x.svg" alt="a  " class="math";align="absmiddle">, <img 
@@ -210,23 +212,23 @@ src="NARK12x.svg" alt="c  " class="math";align="absmiddle">, <img
 src="NARK13x.svg" alt="m  " class="math";align="absmiddle">.
                                                                                      
                                                                                      
-<!--l. 116--><p class="noindent" >
+<!--l. 117--><p class="noindent" >
   <h4 class="subsectionHead"><span class="titlemark">2.3  </span> <a 
  id="x1-50002.3"></a>Strings</h4>
-<!--l. 118--><p class="noindent" >There are more objects that are likely to be used extensively in ARK projects than there are
+<!--l. 119--><p class="noindent" >There are more objects that are likely to be used extensively in ARK projects than there are
 Roman letters. We present preferred usages for some of those commonly-needed variables
 here.
   <div class="table">
                                                                                      
                                                                                      
-<!--l. 120--><p class="indent" >  <a 
+<!--l. 121--><p class="indent" >  <a 
  id="x1-50012"></a><hr class="float"><div class="float" 
 >
                                                                                      
                                                                                      
 <div class="center" 
 >
-<!--l. 121--><p class="noindent" >
+<!--l. 122--><p class="noindent" >
 <div class="pic-tabular">
 <img 
 src="NARK14x.svg" alt="|----------------------------------------------------------------------|
@@ -259,7 +261,7 @@ class="content">String Variables</span></div><!--tex4ht:label?: x1-50012 -->
   </div>
   <h3 class="sectionHead"><span class="titlemark">3  </span> <a 
  id="x1-60003"></a>Factors and Rates</h3>
-<!--l. 150--><p class="noindent" >When measuring change over time, lower-case variables reﬂect rates
+<!--l. 151--><p class="noindent" >When measuring change over time, lower-case variables reﬂect rates
 while the corresponding upper-case variable connects adjacent discrete
 periods.<span class="footnote-mark"><a 
 href="NARK2.html#fn2x0"><sup class="textsuperscript">2</sup></a></span><a 
@@ -277,7 +279,7 @@ href="NARK4.html#fn4x0"><sup class="textsuperscript">4</sup></a></span><a
   <div class="table">
                                                                                      
                                                                                      
-<!--l. 161--><p class="indent" >  <a 
+<!--l. 162--><p class="indent" >  <a 
  id="x1-60043"></a><hr class="float"><div class="float" 
 >
                                                                                      
@@ -306,7 +308,7 @@ class="content">Factors and Rates</span></div><!--tex4ht:label?: x1-60043 -->
                                                                                      
   </div><hr class="endfloat" />
   </div>
-<!--l. 183--><p class="indent" >  We depart from the upper-lower case scheme when the natural letter to use has an even
+<!--l. 184--><p class="indent" >  We depart from the upper-lower case scheme when the natural letter to use has an even
 more urgent use elsewhere in our scheme. A particularly common example occurs in the case
 of models like <span 
 class="ecbx-1200">? </span>in which individual agents are subject to a Poisson probability of death.
@@ -315,7 +317,7 @@ rate; and the probability of survival is the cancellation of the probability of 
 <div class="table">
                                                                                      
                                                                                      
-<!--l. 187--><p class="indent" >  <a 
+<!--l. 188--><p class="indent" >  <a 
  id="x1-60054"></a><hr class="float"><div class="float" 
 >
                                                                                      
@@ -337,11 +339,11 @@ class="content">Special Cases: Factors and Rates</span></div><!--tex4ht:label?: 
   </div>
   <h3 class="sectionHead"><span class="titlemark">4  </span> <a 
  id="x1-70004"></a>Parameters</h3>
-<!--l. 202--><p class="noindent" >Some parameters are worth deﬁning because they are likely to be used in a high proportion
+<!--l. 203--><p class="noindent" >Some parameters are worth deﬁning because they are likely to be used in a high proportion
 of models; others are subject to enough constraints when used (such as the need
 for similar-looking upper- and lower-case Greek representations), as to be worth
 standardizing.
-<!--l. 207--><p class="indent" >  Programmers should use the corresponding variable name without the backslash as the
+<!--l. 208--><p class="indent" >  Programmers should use the corresponding variable name without the backslash as the
 name of the corresponding object in their code. For example, the Coeﬃcient of
 Relative Risk Aversion is <img 
 src="NARK20x.svg" alt="\CRRA " class="math";align="absmiddle"> in a <span class="LATEX">L<span class="A">A</span><span class="TEX">T<span 
@@ -351,7 +353,7 @@ module.
   <div class="table">
                                                                                      
                                                                                      
-<!--l. 212--><p class="indent" >  <a 
+<!--l. 213--><p class="indent" >  <a 
  id="x1-70015"></a><hr class="float"><div class="float" 
 >
                                                                                      
@@ -396,7 +398,7 @@ class="content">Parameters</span></div><!--tex4ht:label?: x1-70015 -->
                                                                                      
   </div><hr class="endfloat" />
   </div>
-<!--l. 247--><p class="indent" >  Mnemonics:
+<!--l. 248--><p class="indent" >  Mnemonics:
       <ul class="itemize1">
       <li class="itemize">Hebrew <span 
 class="ectt-1200">daleth </span>is the fourth letter of the Hebrew alphabet (as d and <img 
@@ -426,11 +428,11 @@ class="ecti-1200">thorn </span>in the side of economists working with dynamic mo
 class="ecbx-1200">?</span>.)</li></ul>
   <h3 class="sectionHead"><span class="titlemark">5  </span> <a 
  id="x1-80005"></a>Operators</h3>
-<!--l. 258--><p class="noindent" >A few operators are so universally used that it will be useful to deﬁne them.
+<!--l. 259--><p class="noindent" >A few operators are so universally used that it will be useful to deﬁne them.
   <div class="table">
                                                                                      
                                                                                      
-<!--l. 260--><p class="indent" >  <a 
+<!--l. 261--><p class="indent" >  <a 
  id="x1-80016"></a><hr class="float"><div class="float" 
 >
                                                                                      
@@ -455,7 +457,7 @@ class="content">Operators</span></div><!--tex4ht:label?: x1-80016 -->
   <div class="table">
                                                                                      
                                                                                      
-<!--l. 278--><p class="indent" >  <a 
+<!--l. 279--><p class="indent" >  <a 
  id="x1-90017"></a><hr class="float"><div class="float" 
 >
                                                                                      
@@ -491,14 +493,14 @@ class="content">General Purpose Modiﬁers</span></div><!--tex4ht:label?: x1-900
                                                                                      
   </div><hr class="endfloat" />
   </div>
-<!--l. 305--><p class="indent" >  Shocks will generally be represented by ﬁnite vectors of outcomes and their probabilities.
+<!--l. 306--><p class="indent" >  Shocks will generally be represented by ﬁnite vectors of outcomes and their probabilities.
 For example, permanent income is called <span 
 class="ectt-1200">Perm </span>and shocks are designated <span 
 class="ectt-1200">PermShk</span>
 <div class="table">
                                                                                      
                                                                                      
-<!--l. 306--><p class="indent" >  <a 
+<!--l. 307--><p class="indent" >  <a 
  id="x1-90028"></a><hr class="float"><div class="float" 
 >
                                                                                      
@@ -518,7 +520,7 @@ class="content">Probabilities</span></div><!--tex4ht:label?: x1-90028 -->
                                                                                      
   </div><hr class="endfloat" />
   </div>
-<!--l. 319--><p class="indent" >  Timing can be confusing because there can be multiple ordered steps within a ‘period.’ We
+<!--l. 320--><p class="indent" >  Timing can be confusing because there can be multiple ordered steps within a ‘period.’ We
 will use <span 
 class="ectt-1200">Prev</span>, <span 
 class="ectt-1200">Curr</span>, <span 
@@ -527,7 +529,7 @@ class="ectt-1200">Next </span>to refer to steps relative to the local moment wit
 src="NARK30x.svg" alt="t  " class="math";align="absmiddle"> variables to refer to succeeding periods: <div class="table">
                                                                                      
                                                                                      
-<!--l. 322--><p class="indent" >  <a 
+<!--l. 323--><p class="indent" >  <a 
  id="x1-90039"></a><hr class="float"><div class="float" 
 >
                                                                                      
@@ -556,15 +558,19 @@ class="content">Timing</span></div><!--tex4ht:label?: x1-90039 -->
   </div>
   <h3 class="sectionHead"><span class="titlemark">7  </span> <a 
  id="x1-100007"></a>Model Imports</h3>
-<!--l. 343--><p class="noindent" >A convention in python is that when a tool is imported it is given a convenient short name,
+<!--l. 344--><p class="noindent" >A convention in python is that when a tool is imported it is given a convenient short name,
 e.g. <span 
 class="ectt-1200">import numpy as np</span>.
-<!--l. 346--><p class="indent" >  Here are the preferred shortnames for some of our models:
-<!--l. 348--><p class="indent" >
+<!--l. 347--><p class="indent" >  Here are the preferred shortnames for some of our models:
+<!--l. 349--><p class="indent" >
       <div class="quote">
-      <!--l. 349--><p class="noindent" ><span 
+      <!--l. 350--><p class="noindent" ><span 
 class="ectt-1200">import ConsIndShockModel as cShkModl</span></div>
-<!--l. 4--><p class="noindent" >
+                                                                                     
+                                                                                     
+<!--l. 353--><p class="indent" >
+                                                                                     
+                                                                                     
   <h3 class="likesectionHead"><a 
  id="x1-110007"></a>References</h3>
 <!--l. 4--><p class="noindent" >
