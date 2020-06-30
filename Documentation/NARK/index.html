@@ -1,0 +1,576 @@
+<!DOCTYPE html> 
+<html lang="en" xml:lang="en" > 
+<head>
+  <title>Suggested Variable Naming Conventions in ARK</title> 
+<meta  charset="utf-8" /> 
+<meta name="generator" content="TeX4ht (http://www.tug.org/tex4ht/)" /> 
+<meta name="viewport" content="width=device-width,initial-scale=1" /> 
+<link rel="stylesheet" type="text/css" href="NARK.css" /> 
+<meta name="src" content="NARK.tex"> 
+</head><body 
+>
+  <div class="maketitle">
+<h2 class="titleHead">Suggested Variable Naming Conventions in
+ARK</h2>
+<div class="date" >June 29, 2020</div>
+<span 
+class="ecrm-0600"> </span>
+</div>
+  <div 
+class="abstract" 
+>
+<!--l. 25--><p class="noindent" > <br 
+class="newline" />_____________________________________________________________________________________
+<!--l. 25--><p class="noindent" ><span 
+class="ecbx-1200">Abstract</span><br 
+class="newline" />   <span 
+class="ecrm-1095">Sharing of code is easier when diﬀerent contributors use similar names for similar objects. While</span>
+<span 
+class="ecrm-1095">we will not enforce the recommendations below, contributors can make their code more attractive to</span>
+<span 
+class="ecrm-1095">others by using names consistent with our guidelines.   </span><br 
+class="newline" />
+        <div class="quote">
+                     <dl class="list2"><dt class="list">
+<span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> Keywords</span><span 
+class="ecbx-1200"> </span></dt><dd 
+class="list">
+                 <!--l. 29--><p class="noindent" >ARK,   Variable,   Function,   Object,   Operator,   Naming,
+                   Guidelines, Conventions
+                   </dd><dt class="list">
+<span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> </span><span 
+class="ecbx-1200"> JEL codes</span><span 
+class="ecbx-1200"> </span></dt><dd 
+class="list">
+                 <!--l. 29--><p class="noindent" >None</dd></dl>
+                                                                                     
+                                                                                     
+      </div>
+</div>
+                                                                                     
+                                                                                     
+  <h3 class="sectionHead"><span class="titlemark">1  </span> <a 
+ id="x1-10001"></a>Principles</h3>
+<!--l. 39--><p class="noindent" >Our aim has been to balance:
+      <ul class="itemize1">
+      <li class="itemize">Brevity
+      </li>
+      <li class="itemize">Mnemonic quality
+      </li>
+      <li class="itemize">Uniqueness (enabling global search-and-replace)
+      </li>
+      <li class="itemize">Ubiquity (deﬁnitions useful for many projects)
+      </li>
+      <li class="itemize">Combinatoriality (which encourages mashups)</li></ul>
+                                                                                     
+                                                                                     
+<!--l. 51--><p class="noindent" >
+  <h3 class="sectionHead"><span class="titlemark">2  </span> <a 
+ id="x1-20002"></a>Variables</h3>
+<!--l. 53--><p class="noindent" >
+  <h4 class="subsectionHead"><span class="titlemark">2.1  </span> <a 
+ id="x1-30002.1"></a>Single-Letter</h4>
+<!--l. 55--><p class="noindent" >We strongly discourage the use of single-letter variable names. Reasons for this advice are
+presented <span 
+class="ecti-1200">ad nauseum </span>in introductory computer programming texts (which, we know, few
+economists consult); here we will note only that the extent to which your code will be
+inﬂuential depends upon the extent to which someone else can easily read it, which is harder if
+you have used variable names which could mean almost anything. (We have made careful
+choices for the ‘default’ meanings of each Roman letter (see below); hence, in the context of
+the toolkit, use of a single-letter name for any meaning other than the designated one will be
+doubly confusing).
+<!--l. 57--><p class="indent" >  It is only slightly less objectionable to name a variable after a familiar letter in another
+commonly used alphabet (say, <span 
+class="ectt-1200">delta</span>). Your future self (and other users) will not know which
+of the many possible meanings of <img 
+src="NARK0x.svg" alt="δ  " class="math";align="absmiddle"> you had in mind.
+<!--l. 59--><p class="indent" >  But, because brevity is a virtue, a single letter <span 
+class="ecti-1200">in combination with a modiﬁer or two</span>
+(‘<span 
+class="ectt-1200">hMin</span>’ as the value of minimum human wealth, say) is ﬁne – so long as the reader has some
+reason to expect that the lower-case letter <span 
+class="ectt-1200">h </span>signiﬁes human wealth (as they will, if they
+consult Table <a 
+href="#x1-30011">1<!--tex4ht:ref: table:RomanLetters --></a>).
+<!--l. 61--><p class="indent" >  That is the spirit in which we oﬀer preferred interpretations for the Roman letters
+below. The upper case version is an aggregated version of the variable (at the level of
+the whole economy, say, or of the whole market being studied), while the lower
+case indicates the level of an individual consumer or ﬁrm or other subaggregate
+entity.
+<!--l. 63--><p class="indent" >  A few exceptions to these rules are explicitly noted below the table.
+<!--l. 65--><p class="indent" >  When an alternative is needed with a meaning similar to, but distinct from, the deﬁnitions
+below, please use a multi-letter name to represent it. For example, please do not use
+<img 
+src="NARK1x.svg" alt="W  " class="math";align="absmiddle"> for wealth (if some measure of wealth that diﬀers from <img 
+src="NARK2x.svg" alt="A  " class="math";align="absmiddle">, <img 
+src="NARK3x.svg" alt="B  " class="math";align="absmiddle">, <img 
+src="NARK4x.svg" alt="HHH  " class="math";align="absmiddle">, or <img 
+src="NARK5x.svg" alt="N  " class="math";align="absmiddle"> is
+needed); instead use, say, <span 
+class="ectt-1200">Wlth </span>or <span 
+class="ectt-1200">Wealth</span>. (Some examples follow in a subsequent
+section).
+<!--l. 67--><p class="indent" >  Finally, a few of the deﬁnitions below are actually prohibitions; these are based on many
+years of experience which have shown that use of the prohibited variable name generates more
+confusion than clarity.
+  <div class="table">
+                                                                                     
+                                                                                     
+<!--l. 69--><p class="indent" >  <a 
+ id="x1-30011"></a><hr class="float"><div class="float" 
+>
+                                                                                     
+                                                                                     
+<div class="center" 
+>
+<!--l. 70--><p class="noindent" >
+<div class="pic-tabular">
+<img 
+src="NARK6x.svg" alt="|-----------------------------------------------------------------------------------------|
+|Letter-----Meaning-----------------------------------------------------------------------|
+|A          Assets After All Actions Are Accomplished  (end of period )                   |
+|B          Beginning B ank  Balances B efore any B ehavior (beginning-of-period )         |
+|C          C onsumption  C hoice C onnects B to A                                        |
+|                                                                                         |
+|D          D ebt                                                                         |
+|E          PROHIBITED:     Too many  possible meanings (expectations, eﬀort, expenses )  |
+|F          Production F unction                                                          |
+|G          G rowth                                                                        |
+|HHH          H uman  wealth                                                                |
+|                                                                                         |
+|I          Investment                                                                    |
+|J          AdJ ustment  costs (e.g., in a Q model )                                        |
+|K          Capital or beginning of period nonhuman  assets                               |
+|L          PROHIBITED:     Is it Labor or Leisure or Land  or ...?                           |
+|M          M arket resources (the sum  of capital, capital income, and labor income )      |
+|                                                                                         |
+|N          N et wealth including human  wealth (= B + H  )                               |
+|O          PROHIBITED:     Too similar to the number 0; too many  possible meanings       |
+|P          PROHIBITED:     Is it prices, permanent income, present value, proﬁts, ...?     |
+|Q          Hayashi/Abel  Q (or similar asset price)                                       |
+|R          Return (see the variants articulated below )                                    |
+|                                                                                         |
+|S          PROHIBITED:     “saving” (ﬂow )? “savings ” (stock)? or the “saving rate” (ratio)?|
+|T          This is a tough one. See the discussion  below.                                  |
+|U          U tility                                                                        |
+|V          V alue                                                                         |
+|W          W age                                                                         |
+|                                                                                         |
+|X          eX penditures (as distinct from consumption; e.g., for durables)              |
+|Y          Noncapital income  (usually, the sum  of transfer and labor income )             |
+-Z----------LeiZure-in-consumption/leisure-tradeo-ﬀ----------------------------------------
+" ></div></div>
+<br /> <div class="caption" 
+><span class="id">Table 1: </span><span  
+class="content">Preferred Usages of Roman Letters</span></div><!--tex4ht:label?: x1-30011 -->
+                                                                                     
+                                                                                     
+  </div><hr class="endfloat" />
+  </div>
+  <h4 class="subsectionHead"><span class="titlemark">2.2  </span> <a 
+ id="x1-40002.2"></a>Exceptions to the Rules</h4>
+<!--l. 109--><p class="noindent" >The letter <img 
+src="NARK7x.svg" alt="T  " class="math";align="absmiddle"> is an exception to the rule that lower- and upper-case versions of variables are
+individual and aggregate quantities. We reserve the capital letter to designate the end of the
+horizon (death, or the end of the economy, occurs at the end of period <img 
+src="NARK8x.svg" alt="T  " class="math";align="absmiddle">). The
+lower case version <img 
+src="NARK9x.svg" alt="t  " class="math";align="absmiddle"> is so ubiquitiously used as the current time period that we do
+not want to resist the overwhelming force of tradition to prohibit its use in that
+capacity.
+<!--l. 111--><p class="indent" >  Finally, the following are exempted from the prohibition on single-letter variable names
+because they are used so frequently that the prohibition would be more trouble than it is
+worth: <img 
+src="NARK10x.svg" alt="a  " class="math";align="absmiddle">, <img 
+src="NARK11x.svg" alt="b  " class="math";align="absmiddle">, <img 
+src="NARK12x.svg" alt="c  " class="math";align="absmiddle">, <img 
+src="NARK13x.svg" alt="m  " class="math";align="absmiddle">.
+                                                                                     
+                                                                                     
+<!--l. 116--><p class="noindent" >
+  <h4 class="subsectionHead"><span class="titlemark">2.3  </span> <a 
+ id="x1-50002.3"></a>Strings</h4>
+<!--l. 118--><p class="noindent" >There are more objects that are likely to be used extensively in ARK projects than there are
+Roman letters. We present preferred usages for some of those commonly-needed variables
+here.
+  <div class="table">
+                                                                                     
+                                                                                     
+<!--l. 120--><p class="indent" >  <a 
+ id="x1-50012"></a><hr class="float"><div class="float" 
+>
+                                                                                     
+                                                                                     
+<div class="center" 
+>
+<!--l. 121--><p class="noindent" >
+<div class="pic-tabular">
+<img 
+src="NARK14x.svg" alt="|----------------------------------------------------------------------|
+|Name-------Description------------------------------------------------|
+|  CND   -  Consumption   of Nondurable  Good                          |
+|  CNS   -  Consumption   of Nondurables and  Services                 |
+|  Cst   -  Cost of something                                          |
+|                                                                      |
+|  Dgd   -  Stock of durable good                                      |
+|  Dvd   -  Dividends                                                  |
+|  Hse   -  Quantity  of housing (not value, which is quantity × price)|
+|  Inc   -  Income                                                     |
+|  Nlq   -  Quantity  that is Not liquid (e.g., aNlq is illiquid ﬁnancial)|
+|                                                                      |
+|  Lbr   -  Quantity  of labor (hours)                                 |
+|  Pop   -  Size of population                                         |
+|  Sav   -  Saving (=Income   Minus Consumption  )                     |
+|  Tax   -  Tax  – should be modiﬁed  by Rte or Amt articulated below   |
+| Perm   -  Permanent  (labor; or at least, noncapital) income          |
+|                                                                      |
+--Tran------Transitory-(labor; or-at-least,-noncapital) income-----------
+" ></div>
+<br /> <div class="caption" 
+><span class="id">Table 2: </span><span  
+class="content">String Variables</span></div><!--tex4ht:label?: x1-50012 -->
+</div>
+                                                                                     
+                                                                                     
+  </div><hr class="endfloat" />
+  </div>
+  <h3 class="sectionHead"><span class="titlemark">3  </span> <a 
+ id="x1-60003"></a>Factors and Rates</h3>
+<!--l. 150--><p class="noindent" >When measuring change over time, lower-case variables reﬂect rates
+while the corresponding upper-case variable connects adjacent discrete
+periods.<span class="footnote-mark"><a 
+href="NARK2.html#fn2x0"><sup class="textsuperscript">2</sup></a></span><a 
+ id="x1-6001f2"></a> <img 
+src="NARK15x.svg" alt=",  " class="math";align="absmiddle"><span class="footnote-mark"><a 
+href="NARK3.html#fn3x0"><sup class="textsuperscript">3</sup></a></span><a 
+ id="x1-6002f3"></a> 
+So, for example, if the time interval is a year and the annual interest
+rate is <img 
+src="NARK16x.svg" alt="r = 0.03  " class="math";align="absmiddle"> or three percent, then the annual interest factor is
+<img 
+src="NARK17x.svg" alt="R =  1.03  " class="math";align="absmiddle">.<span class="footnote-mark"><a 
+href="NARK4.html#fn4x0"><sup class="textsuperscript">4</sup></a></span><a 
+ id="x1-6003f4"></a> 
+  <div class="table">
+                                                                                     
+                                                                                     
+<!--l. 161--><p class="indent" >  <a 
+ id="x1-60043"></a><hr class="float"><div class="float" 
+>
+                                                                                     
+                                                                                     
+<div class="pic-tabular">
+<img 
+src="NARK18x.svg" alt="|------------------------------------------------------------------------|
+|-Code----Output------------------------Description----------------------|
+|\Rfree      R                     Riskfree interest factor              |
+|\rfree       r                     Riskfree interest rate               |
+|                                                                        |
+|\Risky      R               The  return factor on a risky asset         |
+|\risky       r               The  return rate on a risky asset          |
+|\Rport      R            The  return factor on the entire portfolio      |
+|\rport       r            The  return  rate on the entire portfolio       |
+|                                                                        |
+|\RSave      R-     Return  factor earned on positive end-of- period assets |
+|\rsave       r      Return rate earned on positive end-of- period assets  |
+|\RBoro      ¯R                  Return  factor paid on debts             |
+-\rboro------¯r------------------Return--rate paid-on-debts---------------
+" ></div>
+ <div class="caption" 
+><span class="id">Table 3: </span><span  
+class="content">Factors and Rates</span></div><!--tex4ht:label?: x1-60043 -->
+                                                                                     
+                                                                                     
+  </div><hr class="endfloat" />
+  </div>
+<!--l. 183--><p class="indent" >  We depart from the upper-lower case scheme when the natural letter to use has an even
+more urgent use elsewhere in our scheme. A particularly common example occurs in the case
+of models like <span 
+class="ecbx-1200">? </span>in which individual agents are subject to a Poisson probability of death.
+Because death was common in the middle ages, we use the archaic Gothic font for the death
+rate; and the probability of survival is the cancellation of the probability of death:
+<div class="table">
+                                                                                     
+                                                                                     
+<!--l. 187--><p class="indent" >  <a 
+ id="x1-60054"></a><hr class="float"><div class="float" 
+>
+                                                                                     
+                                                                                     
+<div class="pic-tabular">
+<img 
+src="NARK19x.svg" alt="|------------------------------------------------------|
+|--Code-----LATEX--------------Description--------------|
+|\DiePrb      D           Probabilty  of death         |
+|\LivPrb      D     Probability to not die =  (1 − D )   |
+--------------//-----------------------------------------
+" ></div>
+ <div class="caption" 
+><span class="id">Table 4: </span><span  
+class="content">Special Cases: Factors and Rates</span></div><!--tex4ht:label?: x1-60054 -->
+                                                                                     
+                                                                                     
+  </div><hr class="endfloat" />
+  </div>
+  <h3 class="sectionHead"><span class="titlemark">4  </span> <a 
+ id="x1-70004"></a>Parameters</h3>
+<!--l. 202--><p class="noindent" >Some parameters are worth deﬁning because they are likely to be used in a high proportion
+of models; others are subject to enough constraints when used (such as the need
+for similar-looking upper- and lower-case Greek representations), as to be worth
+standardizing.
+<!--l. 207--><p class="indent" >  Programmers should use the corresponding variable name without the backslash as the
+name of the corresponding object in their code. For example, the Coeﬃcient of
+Relative Risk Aversion is <img 
+src="NARK20x.svg" alt="\CRRA " class="math";align="absmiddle"> in a <span class="LATEX">L<span class="A">A</span><span class="TEX">T<span 
+class="E">E</span>X</span></span>document and <span 
+class="ectt-1200">CRRA </span>in a software
+module.
+  <div class="table">
+                                                                                     
+                                                                                     
+<!--l. 212--><p class="indent" >  <a 
+ id="x1-70015"></a><hr class="float"><div class="float" 
+>
+                                                                                     
+                                                                                     
+<div class="pic-tabular">
+<img 
+src="NARK21x.svg" alt="|---------------------------------------------------------------------------------------------|
+|--------Name---LATEX----Description----------------------------Illustration-------------------|
+|       \CARA      α     Coe ﬃcient of Absolute Risk Aversion   u (∙ ) = − α −1e−α∙            |
+|       \CRRA      ρ     Coe ﬃcient of Relative Risk Aversion   u (∙ ) = (1 − ρ)−1∙1− ρ        |
+|                                                                 ′          ′                |
+|    \DiscFac      β     Time  Discount Factor                  u (ct) = R βu (ct+1 )          |
+|    \discRte      𝜗     Time  Discount rate                    𝜗 =  β−1 − 1                  |
+|    \DeprFac      ℸ     Depreciation Factor (Hebrew  daleth )  Kt+1  = ℸKt  + It             |
+|    \deprRte      δ     Depreciation Rate                      ℸ =  1 − δ                    |
+|                                                                                             |
+|\TranShkAgg       Θ     Transitory shock (aggregate)           𝔼t[Θt+n ] = 1 if Θ iid         |
+|\tranShkInd       𝜃     Transitory shock (individual )          𝔼t[𝜃t+n] = 1 if 𝜃 iid          |
+|\PermShkAgg       Ψ     Permanent  shock (aggregate )          𝔼t[Ψt+n ] = 1 if Ψ iid         |
+|\permShkInd       ψ     Permanent  shock (individual)          𝔼t[ψt+n] = 1 if ψ iid         |
+|     \PopGro      Ξ     Population Growth  Factor              Pop    =  ΞPop                |
+|                                                                   t+1         t              |
+|     \popGro      ξ     Population Growth  rate                Ξ =  1 + ξ                    |
+|     \PtyGro      Φ     Productivity Growth  Factor            G  = Φ Ξ                      |
+|     \ptyGro      ϕ     Productivity Growth  rate              Φ  = (1 + ϕ)                  |
+|  \leiShare       ζ     Leisure share, Cobb -Douglas utility     u (c,z) = (1 − ρ)−1(c1−ζzζ)1−ρ |
+|        \MPC      κ     Marginal Propensity  to Consume        c′(m ) = ∂c∕∂m                |
+|                                                                        1∕ρ                  |
+|        \Pat      ÞÞÞ     Absolute Patience Factor (Thorn )      ÞÞÞ =  (Rβ )1∕ρ                  |
+|    \PatPGro     ÞÞÞ Γ    Growth  Patience Factor (Thorn )       ÞÞÞ =  (Rβ )  ∕Φ                |
+|       \PatR     ÞÞÞR     Return Patience  Factor (Thorn )        ÞÞÞ =  (Rβ )1∕ρ∕R                |
+|        \pat      þ     Absolute Patience rate (thorn )        þ =  (R β)1∕ρ − 1 ≈ ρ−1(r − 𝜗 )|
+|    \patpGro     þ      Growth  Patience rate (thorn)          þ  =  þ − ϕ                   |
+|                   γ                                             γ                           |
+|       \patr     þr     Return Patience  rate (thorn )          þr = þ − r                    |
+-\riskyshare-------ς-----Portfolio-share-in-risky-assets----------Rt+1-=--(1 −-ς)R-+-ςRt+1-------
+" ></div>
+ <div class="caption" 
+><span class="id">Table 5: </span><span  
+class="content">Parameters</span></div><!--tex4ht:label?: x1-70015 -->
+                                                                                     
+                                                                                     
+  </div><hr class="endfloat" />
+  </div>
+<!--l. 247--><p class="indent" >  Mnemonics:
+      <ul class="itemize1">
+      <li class="itemize">Hebrew <span 
+class="ectt-1200">daleth </span>is the fourth letter of the Hebrew alphabet (as d and <img 
+src="NARK22x.svg" alt="δ  " class="math";align="absmiddle"> are of the
+      Roman and Greek) and is an etymological and linguistic cousin of those letters
+      </li>
+      <li class="itemize"><img 
+src="NARK23x.svg" alt="𝜗  " class="math";align="absmiddle"> is the lower case Greek letter <span 
+class="ectt-1200">omega</span>, because people say “OMG, I’ve got to
+      think about the future.”
+      </li>
+      <li class="itemize">You are invited to scrutinize <img 
+src="NARK24x.svg" alt="Ξ  " class="math";align="absmiddle"> yourself to imagine reasons it could represent
+      something to do with population growth.
+      </li>
+      <li class="itemize">The glorious letter <img 
+src="NARK25x.svg" alt="ÞÞÞ  " class="math";align="absmiddle"> (pronounced ‘<a 
+href="http://en.wikipedia.org/wiki/Thorn_(letter)" >thorn</a>’) enriched Old English, Gothic, and
+      some other defunct alphabets; sadly, it remains in use today only in Iceland. It
+      is useful because having to type the many symbols in the object <img 
+src="NARK26x.svg" alt="(Rβ )1∕ρ  " class="math";align="absmiddle">  over
+      and over again is a <span 
+class="ecti-1200">thorn </span>in the side of economists working with dynamic models!
+      (It is the ‘absolute patience factor’ because if it is less than one the consumer
+      wants to bring resources from the future to the present and is therefore absolutely
+      impatient; for a fuller discussion of this terminology, see <span 
+class="ecbx-1200">?</span>.)</li></ul>
+  <h3 class="sectionHead"><span class="titlemark">5  </span> <a 
+ id="x1-80005"></a>Operators</h3>
+<!--l. 258--><p class="noindent" >A few operators are so universally used that it will be useful to deﬁne them.
+  <div class="table">
+                                                                                     
+                                                                                     
+<!--l. 260--><p class="indent" >  <a 
+ id="x1-80016"></a><hr class="float"><div class="float" 
+>
+                                                                                     
+                                                                                     
+<div class="pic-tabular">
+<img 
+src="NARK27x.svg" alt="|---------------------------------------------------------------------|
+|Name---LATEX----Description--------------------Illustration-------------|
+| \Ex     𝔼      The expectation as of date t  𝔼t[u ′(ct+1)]            |
+|\PDV      ℙ     Present Discounted Value      ℙT(y) is human  wealth |
+------------------------------------------------t----------------------
+" ></div>
+ <div class="caption" 
+><span class="id">Table 6: </span><span  
+class="content">Operators</span></div><!--tex4ht:label?: x1-80016 -->
+                                                                                     
+                                                                                     
+  </div><hr class="endfloat" />
+  </div>
+  <h3 class="sectionHead"><span class="titlemark">6  </span> <a 
+ id="x1-90006"></a>Modiﬁers</h3>
+  <div class="table">
+                                                                                     
+                                                                                     
+<!--l. 278--><p class="indent" >  <a 
+ id="x1-90017"></a><hr class="float"><div class="float" 
+>
+                                                                                     
+                                                                                     
+<div class="pic-tabular">
+<img 
+src="NARK28x.svg" alt="|---------------------------------------------------------------------------------------|
+|[object ] Agg   -     Value of something  at the aggregate level (as opposed to Ind )   |
+|[object ] Ind   -  Value of something  at the level of an individual (as opposed to Agg ) |
+|[object ] Lvl   -                                 Level                                |
+|                                                                                       |
+|[object ] Rto   -                                Ratio                                 |
+|[object ] Bot   -                      Lower  value in some  range                      |
+|[object ] Top   -                      Upper  value in some  range                      |
+|[object ] Min   -                       Minimum   possible value                       |
+|[object ] Max   -                       Maximum    possible value                       |
+|                                                                                       |
+|[object ] Cnt   -                        Continuous -time  value                        |
+|[object ] Dsc   -                          Discrete- time value                          |
+|[object ] Shk   -                                Shock                                 |
+|[object ] Trg   -                    The  ‘target’ value of a variable                   |
+|                                                                                       |
+|[object ] Rte   -               A  ‘rate’ variable like the discount rate 𝜗               |
+|[object ] Fac   -              A  factor variable like the discount factor β            |
+|[object ] Amt   -          An  amount,  like TaxAmt which  might be lump -sum           |
+|[object ] Nrm   -                A  normalized quantity; ex: RNrm=R ∕ Γ                |
+----------------------------------------------------------------------------------------
+" ></div>
+ <div class="caption" 
+><span class="id">Table 7: </span><span  
+class="content">General Purpose Modiﬁers</span></div><!--tex4ht:label?: x1-90017 -->
+                                                                                     
+                                                                                     
+  </div><hr class="endfloat" />
+  </div>
+<!--l. 305--><p class="indent" >  Shocks will generally be represented by ﬁnite vectors of outcomes and their probabilities.
+For example, permanent income is called <span 
+class="ectt-1200">Perm </span>and shocks are designated <span 
+class="ectt-1200">PermShk</span>
+<div class="table">
+                                                                                     
+                                                                                     
+<!--l. 306--><p class="indent" >  <a 
+ id="x1-90028"></a><hr class="float"><div class="float" 
+>
+                                                                                     
+                                                                                     
+<div class="pic-tabular">
+<img 
+src="NARK29x.svg" alt="|----------------------------------------------------------------------------------------------|
+|[object ] Prbs   -     Probabilities of outcomes (e.g. PermShkPrbs   for permanent  shocks )    |
+|[object ] Vals   -     Values  (e.g., for mean one shock  PermShkVals  . PermShkPrbs   = 1)     |
+|[object ] Dstn   -  Representation of a probability distribution (includes both Prbs and  Vals) |
+------------------------------------------------------------------------------------------------
+" ></div>
+ <div class="caption" 
+><span class="id">Table 8: </span><span  
+class="content">Probabilities</span></div><!--tex4ht:label?: x1-90028 -->
+                                                                                     
+                                                                                     
+  </div><hr class="endfloat" />
+  </div>
+<!--l. 319--><p class="indent" >  Timing can be confusing because there can be multiple ordered steps within a ‘period.’ We
+will use <span 
+class="ectt-1200">Prev</span>, <span 
+class="ectt-1200">Curr</span>, <span 
+class="ectt-1200">Next </span>to refer to steps relative to the local moment within a period, and
+<img 
+src="NARK30x.svg" alt="t  " class="math";align="absmiddle"> variables to refer to succeeding periods: <div class="table">
+                                                                                     
+                                                                                     
+<!--l. 322--><p class="indent" >  <a 
+ id="x1-90039"></a><hr class="float"><div class="float" 
+>
+                                                                                     
+                                                                                     
+<div class="pic-tabular">
+<img 
+src="NARK31x.svg" alt="|-------------------------------------------------------------|
+|[object ] tm2    -  object in period t minus 2                |
+|[object ] tm1    -  object in period t minus 1                |
+|[object ] Now    -  object in period t                        |
+|                                                             |
+|[object ] t      -  object in period t (alternative deﬁnition) |
+|[object ] tp1    -  object in t plus 1                        |
+|[object ] tpn    -  object in t plus n                        |
+|[object ] Prev   -  object in previous subperiod              |
+|[object ] Curr   -  object in current subperiod               |
+|                                                             |
+-[object-]-Next------object-in-next-subperiod-------------------
+" ></div>
+ <div class="caption" 
+><span class="id">Table 9: </span><span  
+class="content">Timing</span></div><!--tex4ht:label?: x1-90039 -->
+                                                                                     
+                                                                                     
+  </div><hr class="endfloat" />
+  </div>
+  <h3 class="sectionHead"><span class="titlemark">7  </span> <a 
+ id="x1-100007"></a>Model Imports</h3>
+<!--l. 343--><p class="noindent" >A convention in python is that when a tool is imported it is given a convenient short name,
+e.g. <span 
+class="ectt-1200">import numpy as np</span>.
+<!--l. 346--><p class="indent" >  Here are the preferred shortnames for some of our models:
+<!--l. 348--><p class="indent" >
+      <div class="quote">
+      <!--l. 349--><p class="noindent" ><span 
+class="ectt-1200">import ConsIndShockModel as cShkModl</span></div>
+<!--l. 4--><p class="noindent" >
+  <h3 class="likesectionHead"><a 
+ id="x1-110007"></a>References</h3>
+<!--l. 4--><p class="noindent" >
+   
+</body> 
+</html>
+                                                                                     
+
+

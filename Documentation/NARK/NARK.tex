@@ -4,12 +4,14 @@
 
 \usepackage{cancel}
 
-\begin{document}
+\begin{document}\bibliographystyle{texmf-local/bibtex/bst/econtex}
 
 
-\title{Suggested Naming Conventions in ARK}
+\title{Suggested Variable Naming Conventions in ARK}
 
-\forcedate{July 15, 2018}
+%\forcedate{2020-02-26} % Add sav, modl; other tweaks
+\forcedate{2020-06-29} % Update date; shorten ALevBF; add 
+%\forcedate{July 15, 2018}
 
 \vspace{2in}
 
@@ -36,11 +38,11 @@ your writing (your \texttt{paper.tex} file) and in your code (helping to minimiz
 \section{Principles}
 Our aim has been to balance:
 \begin{itemize}
-\item Brevity (nobody wants to type long names over and over)
-\item Uniqueness (in case you want to search-and-replace)
-\item Mnemonic quality (it should be easy to remember what represents what)
-\item Ubiquity (objects defined herein will appear in many projects)
-\item Combinatoriality (easy to mix and match our recommendations)
+\item Brevity 
+\item Mnemonic quality
+\item Uniqueness (enabling global search-and-replace)
+\item Ubiquity (definitions useful for many projects)
+\item Combinatoriality (which encourages mashups)
 \end{itemize}
 
 
@@ -50,7 +52,7 @@ Our aim has been to balance:
 
 \subsection{Single-Letter}
 
-We generally discourage the use of single-letter variable names.  The reasons for this advice are presented \textit{ad nauseum} in introductory computer programming texts (which, we know, few economists consult); here we will note only that the extent to which your code will be influential depends upon the extent to which someone else can easily read it, which is harder if you have used variable names which could mean almost anything.
+We strongly discourage the use of single-letter variable names.  Reasons for this advice are presented \textit{ad nauseum} in introductory CS texts (which, we know, few economists consult); here we will note only that the extent to which your code will be influential depends upon the extent to which someone else can easily read it, which is harder if you have used variable names which could mean almost anything.  (We have made careful choices for the `default' meanings of each Roman letter (see below); hence, in the context of the toolkit, use of a single-letter name for any meaning other than the designated one will be doubly confusing).
 
 It is only slightly less objectionable to name a variable after a familiar letter in another commonly used alphabet (say, \texttt{delta}).  Your future self (and other users) will not know which of the many possible meanings of $\delta$ you had in mind.
 
@@ -64,12 +66,12 @@ When an alternative is needed with a meaning similar to, but distinct from, the 
 
 Finally, a few of the definitions below are actually prohibitions; these are based on many years of experience which have shown that use of the prohibited variable name generates more confusion than clarity.  
 
-\begin{table}[h]
+\begin{table}[ht]
 \begin{center}
 \begin{tabular}{|lcl|}   \hline
 Letter & & Meaning 
 \\ \hline
-    \ALev & & \textit{A}ssets \textit{A}fter \textit{A}ll \textit{A}ctions have been \textit{A}ccomplished (end of period)
+    \ALev & & \textit{A}ssets \textit{A}fter \textit{A}ll \textit{A}ctions \textit{A}re \textit{A}ccomplished (end of period)
 \\  \BLev & & \textit{B}eginning \textit{B}ank \textit{B}alances \textit{B}efore any \textit{B}ehavior (\textit{b}eginning-of-period)
 \\  \CLev & & \textit{C}onsumption \textit{C}hoice \textit{C}onnects $B$ to $A$
 \\  \DLev & & \textit{D}ebt
@@ -115,23 +117,26 @@ Finally, the following are exempted from the prohibition on single-letter variab
 
 There are more objects that are likely to be used extensively in ARK projects than there are Roman letters.  We present preferred usages for some of those commonly-needed variables here.
 
-\begin{table}[h]
+\begin{table}[ht]
 \begin{center}
 \begin{tabular}{|rcl|}
 \hline
 Name & - & Description 
  \\ \hline
      \texttt{CND}    & - & Consumption of Nondurable Good 
+\\   \texttt{CNS}    & - & Consumption of Nondurables and Services
  \\  \texttt{Cst}    & - & Cost of something 
  \\  \texttt{Dgd}    & - & Stock of durable good
  \\  \texttt{Dvd}    & - & Dividends 
  \\  \texttt{Hse}    & - & Quantity of housing (\textit{not} value, which is quantity $\times$ price)
+ \\  \texttt{Inc}    & - & Income
  \\  \texttt{Nlq}    & - & Quantity that is \textbf{N}ot \textbf{l}i\textbf{q}uid (e.g., $\mathtt{aNlq}$ is illiquid financial)
- \\  \texttt{Lbr}    & - & Quantity of labor
+ \\  \texttt{Lbr}    & - & Quantity of labor (hours)
  \\  \texttt{Pop}    & - & Size of population
+ \\  \texttt{Sav}    & - & Saving (=Income Minus Consumption)
  \\  \texttt{Tax} & - & Tax -- should be modified by \texttt{Rte} or \texttt{Amt} articulated below
- \\  \texttt{Perm}   & - & Permanent income
- \\  \texttt{Tran}   & - & Transitory income
+ \\  \texttt{Perm}   & - & Permanent (labor; or at least, noncapital) income
+ \\  \texttt{Tran}   & - & Transitory (labor; or at least, noncapital) income
 \\ \hline
 \end{tabular}
 \caption{String Variables}
@@ -153,7 +158,7 @@ is invited to invent their own notation.}  So, for example, if the time interval
 the annual interest factor is $\Rfree=1.03$.\footnote{In the rare cases where it is necessary to distinguish between a continuous-time rate and a discrete-time rate -- for example, when there is an analytical result available in continuous time -- the variable in question can be modified by \texttt{Cnt} or \texttt{Dsc}.}
 
 
-\begin{table}[h]
+\begin{table}[ht]
 	\centering
 	\begin{tabular}{|ccc|} 		
 		\hline
@@ -179,14 +184,14 @@ We depart from the upper-lower case scheme when the natural letter to use has an
 A particularly common example occurs in the case of models like \cite{blanchardFinite} in which 
 individual agents are subject to a Poisson probability of death.  Because death was common in the 
 middle ages, we use the archaic Gothic font for the death rate; and the probability of survival is the cancellation of the probability of death:
-\begin{table}[h]
+\begin{table}[ht]
 	\centering
 	\begin{tabular}{|>{\ttfamily}cccl|} 		
 		\hline
 		 Code & \LaTeX & Description &  \\ 
 		\hline
-   \verb|\DieFac|     & $\DieFac$     & Probabilty of death & 
-\\ \verb|\LivFac|     & $\LivFac$     & Probability to not die $=(1-\DieFac)$ & 
+   \verb|\DiePrb|     & $\DiePrb$     & Probabilty of death & 
+\\ \verb|\LivPrb|     & $\LivPrb$     & Probability to not die $=(1-\DiePrb)$ & 
 \\	\hline
 	\end{tabular}
 	\caption{Special Cases: Factors and Rates}
@@ -204,7 +209,7 @@ use the corresponding variable name without the backslash as the name of the cor
 in their code.  For example, the Coefficient of Relative Risk Aversion is $\verb|\CRRA|$ in a \LaTeX 
 document and \texttt{CRRA} in a software module.
 
-\begin{table}[h]
+\begin{table}[ht]
 	\centering
 	\begin{tabular}{|>{\ttfamily}rcll|} 		
 		\hline
@@ -252,7 +257,7 @@ Mnemonics:
 \section{Operators}
 A few operators are so universally used that it will be useful to define them.
 
-\begin{table}[h]
+\begin{table}[ht]
 	\centering
 	\begin{tabular}{|>{\ttfamily}rcll|} 		
 		\hline
@@ -270,7 +275,7 @@ A few operators are so universally used that it will be useful to define them.
 
 
 \section{Modifiers}
-\begin{table}[h]
+\begin{table}[ht]
 	\centering
 	\begin{tabular}{|>{\ttfamily}ccc|} 		
 		\hline
@@ -289,6 +294,7 @@ A few operators are so universally used that it will be useful to define them.
 \\ \textit{[object]}\texttt{Rte} & - & A `rate' variable like the discount rate $\discRte$
 \\ \textit{[object]}\texttt{Fac} & - & A factor variable like the discount factor $\DiscFac$
 \\ \textit{[object]}\texttt{Amt} & - & An amount, like \texttt{TaxAmt} which might be lump-sum
+\\ \textit{[object]}\texttt{Nrm} & - & A normalized quantity; ex: \texttt{RNrm}=$\Rfree/\PGro$
 \\ 	\hline
 	\end{tabular}
 	\caption{General Purpose Modifiers}
@@ -310,12 +316,10 @@ Shocks will generally be represented by finite vectors of outcomes and their pro
 	\label{table:Probabilities}
 \end{table}	
 
-
-
 Timing can be confusing because there can be multiple ordered steps 
 within a `period.'  We will use \texttt{Prev}, \texttt{Curr}, \texttt{Next} to refer
 to steps relative to the local moment within a period, and $t$ variables to refer to succeeding periods:
-\begin{table}[h]
+\begin{table}[ht]
 	\centering 
 	\begin{tabular}{|>{\ttfamily}lcl|} 		
 		\hline
@@ -334,7 +338,19 @@ to steps relative to the local moment within a period, and $t$ variables to refe
 	\label{table:Timing}
 \end{table}	
 
-\input econtexBibMake
+\section{Model Imports}
+
+A convention in python is that when a tool is imported it is given a convenient short name,
+e.g. \texttt{import numpy as np}.
+
+Here are the preferred shortnames for some of our models:
+
+\begin{quote}
+  \texttt{import ConsIndShockModel as cShkModl}
+\end{quote}
+
+
+\bibliography{NARK-Add,economics}
 
 \end{document}
 
