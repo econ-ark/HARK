@@ -131,8 +131,6 @@
   *{file}   {bkm-dvips.def}{2016/05/17 v1.26}
   *{file}   {t1cmtt.fd}   {2014/09/29 v2.5h}
   *{file}   {t1cmtt.fd}   {2014/09/29 v2.5h}
-  *{file}   {omscmr.fd}   {2014/09/29 v2.5h}
-  *{file}   {omscmr.fd}   {2014/09/29 v2.5h}
   *{file}   {umsa.fd}     {2013/01/14 v3.01}
   *{file}   {umsa.fd}     {2013/01/14 v3.01}
   *{file}   {umsb.fd}     {2013/01/14 v3.01}
@@ -141,6 +139,8 @@
   *{file}   {ulasy.fd}    {1998/08/17 v2.2e}
   *{file}   {uwasy.fd}    {2003/10/30 v2.0}
   *{file}   {uwasy.fd}    {2003/10/30 v2.0}
+  *{file}   {omscmr.fd}   {2014/09/29 v2.5h}
+  *{file}   {omscmr.fd}   {2014/09/29 v2.5h}
   *{file}   {ubbmss.fd}   {1999/03/15 v1.2}
   *{file}   {ubbmss.fd}   {1999/03/15 v1.2}
   *{file}   {NARK.bbl}    {0000/00/00 v0.0}
