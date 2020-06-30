@@ -35,7 +35,7 @@
 
 HARK is a toolkit for the structural modeling of economic choices of optimizing and non-optimizing heterogeneous agents. For more information on using HARK, see the [Econ-ARK Website](https://econ-ark.org).
 
-The Econ-ARK project uses an [open governance model](./GOVERNANCE.md) and is fiscally sponsored by [NumFOCUS](https://numfocus.org/). Consider making a [tax-deductible donation](https://numfocus.salsalabs.org/donate-to-econ-ark/index.html) to help the project pay for developer time, professional services, travel, workshops, and a variety of other needs.
+The Econ-ARK project uses an [open governance model](https://github.com/econ-ark/governance) and is fiscally sponsored by [NumFOCUS](https://numfocus.org/). Consider making a [tax-deductible donation](https://numfocus.salsalabs.org/donate-to-econ-ark/index.html) to help the project pay for developer time, professional services, travel, workshops, and a variety of other needs.
 
 <div align="center">
   <a href="https://numfocus.org/project/econ-ark">
