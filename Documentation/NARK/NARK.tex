@@ -7,10 +7,11 @@
 \begin{document}\bibliographystyle{texmf-local/bibtex/bst/econtex}
 
 
-\title{Suggested Variable Naming Conventions in ARK}
+\title{Suggested Variable Naming Conventions \\ in the Econ-ARK Toolkit}
 
 %\forcedate{2020-02-26} % Add sav, modl; other tweaks
-\forcedate{2020-06-29} % Update date; shorten ALevBF; add 
+%\forcedate{2020-06-29} % Update date; shorten ALevBF; add 
+\forcedate{2020-06-30}  % NARK: Minor tweaks
 %\forcedate{July 15, 2018}
 
 \vspace{2in}
@@ -28,9 +29,9 @@
   by using names consistent with our guidelines.  
 \end{abstract}
 
-\thanks{The \texttt{NARK} repo that generates this document 
-also contains \LaTeX~configuration files that permit you to use the same name for an object in 
-your writing (your \texttt{paper.tex} file) and in your code (helping to minimize confusion in translating between paper and code).}
+\centerline{html version at \url{https://econ-ark.github.io/HARK/Documentation/NARK}}
+
+%\thanks{The \texttt{NARK} repo that generates this document also contains \LaTeX~configuration files that permit you to use the same name for an object in your writing (your \texttt{paper.tex} file) and in your code (helping to minimize confusion in translating between paper and code).}
 
 
 \pagebreak
@@ -52,7 +53,7 @@ Our aim has been to balance:
 
 \subsection{Single-Letter}
 
-We strongly discourage the use of single-letter variable names.  Reasons for this advice are presented \textit{ad nauseum} in introductory CS texts (which, we know, few economists consult); here we will note only that the extent to which your code will be influential depends upon the extent to which someone else can easily read it, which is harder if you have used variable names which could mean almost anything.  (We have made careful choices for the `default' meanings of each Roman letter (see below); hence, in the context of the toolkit, use of a single-letter name for any meaning other than the designated one will be doubly confusing).
+We strongly discourage the use of single-letter variable names.  Reasons are presented \textit{ad nauseum} in introductory CS texts (which, we know, few economists consult); here we will note only that the extent to which your code will be influential depends upon the extent to which someone else can easily read it, which is harder if you have used variable names which could mean almost anything.  (We have made careful choices for the `default' meanings of each Roman letter (see below); hence, in the context of the toolkit, use of a single-letter name for any meaning other than the designated one will be doubly confusing).
 
 It is only slightly less objectionable to name a variable after a familiar letter in another commonly used alphabet (say, \texttt{delta}).  Your future self (and other users) will not know which of the many possible meanings of $\delta$ you had in mind.
 
@@ -277,7 +278,7 @@ A few operators are so universally used that it will be useful to define them.
 \section{Modifiers}
 \begin{table}[ht]
 	\centering
-	\begin{tabular}{|>{\ttfamily}ccc|} 		
+	\begin{tabular}{|>{\ttfamily}ccl|} 		
 		\hline
    \textit{[object]}\texttt{Agg} & - & Value of something at the aggregate level (as opposed to \texttt{Ind})
 \\ \textit{[object]}\texttt{Ind} & - & Value of something at the level of an individual (as opposed to \texttt{Agg})
@@ -301,13 +302,16 @@ A few operators are so universally used that it will be useful to define them.
 	\label{table:General}
 \end{table}	
 
+\medskip\medskip
 
 Shocks will generally be represented by finite vectors of outcomes and their probabilities.  For example, permanent income is called \texttt{Perm} and shocks are designated \texttt{PermShk}
 \begin{table}[ht]
 	\centering
-	\begin{tabular}{|>{\ttfamily}ccc|} 		
+	\begin{tabular}{|>{\ttfamily}ccl|} 		
 		\hline
-   \textit{[object]}\texttt{Prbs} & - & Probabilities of outcomes (e.g. \texttt{PermShkPrbs} for permanent shocks) 
+   \textit{[object]}\texttt{Abve} & - & Range of points ABOvE some boundary
+\\ \textit{[object]}\texttt{Belw} & - & Range of points BELoW some boundary
+\\ \textit{[object]}\texttt{Prbs} & - & Probabilities of outcomes (e.g. \texttt{PermShkPrbs} for permanent shocks) 
 \\ \textit{[object]}\texttt{Vals} & - & Values (e.g., for mean one shock \texttt{PermShkVals} . \texttt{PermShkPrbs} = 1) 
 \\ \textit{[object]}\texttt{Dstn} & - & Representation of a probability distribution (includes both Prbs and Vals)
 \\ 	\hline
@@ -323,7 +327,7 @@ to steps relative to the local moment within a period, and $t$ variables to refe
 	\centering 
 	\begin{tabular}{|>{\ttfamily}lcl|} 		
 		\hline
-   \textit{[object]}tm2 & - & object in period $t$ minus 2 
+   \textit{[object]}tmn & - & object in period $t$ minus $n$
 \\ \textit{[object]}tm1 & - & object in period $t$ minus 1 
 \\ \textit{[object]}Now & - & object in period $t$
 \\ \textit{[object]}t\phantom{p1}   & - & object in period $t$ (alternative definition)
@@ -346,8 +350,12 @@ e.g. \texttt{import numpy as np}.
 Here are the preferred shortnames for some of our models:
 
 \begin{quote}
-  \texttt{import ConsIndShockModel as cShkModl}
+  \texttt{import ConsIndShockModel as cisMdl}
 \end{quote}
+
+\clearpage
+
+\vfill\eject\pagebreak\newpage 
 
 
 \bibliography{NARK-Add,economics}
