@@ -778,7 +778,7 @@ class MarkovConsumerType(IndShockConsumerType):
     def initializeSim(self):
         IndShockConsumerType.initializeSim(self)
         if self.global_markov:  #Need to initialize markov state to be the same for all agents
-            base_draw = Uniform().draw(1,seed=self.RNG.randint(0,2**31-1))
+            base_draw = Uniform(seed=self.RNG.randint(0,2**31-1)).draw(1)
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.MrkvNow = np.ones(self.AgentCount)*np.searchsorted(Cutoffs,base_draw).astype(int)
         self.MrkvNow = self.MrkvNow.astype(int)
@@ -800,7 +800,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # Determine who dies
         LivPrb = np.array(self.LivPrb)[self.t_cycle-1,self.MrkvNow] # Time has already advanced, so look back one
         DiePrb = 1.0 - LivPrb
-        DeathShks = Uniform().draw(N=self.AgentCount,seed=self.RNG.randint(0,2**31-1))
+        DeathShks = Uniform(seed=self.RNG.randint(0,2**31-1)).draw(N=self.AgentCount)
         which_agents = DeathShks < DiePrb
         if self.T_age is not None: # Kill agents that have lived for too many periods
             too_old = self.t_age >= self.T_age
@@ -824,7 +824,7 @@ class MarkovConsumerType(IndShockConsumerType):
         IndShockConsumerType.simBirth(self,which_agents) # Get initial assets and permanent income
         if not self.global_markov:  #Markov state is not changed if it is set at the global level
             N = np.sum(which_agents)
-            base_draws = Uniform().draw(N,seed=self.RNG.randint(0,2**31-1))
+            base_draws = Uniform(seed=self.RNG.randint(0,2**31-1)).draw(N)
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.MrkvNow[which_agents] = np.searchsorted(Cutoffs,base_draws).astype(int)
             
@@ -844,9 +844,11 @@ class MarkovConsumerType(IndShockConsumerType):
         '''
         # Draw random numbers that will be used to determine the next Markov state
         if self.global_markov:
-            base_draws = np.ones(self.AgentCount)*Uniform().draw(1,seed=self.RNG.randint(0,2**31-1))
+            base_draws = np.ones(self.AgentCount)*Uniform(
+                seed=self.RNG.randint(0,2**31-1)).draw(1)
         else:
-            base_draws = Uniform().draw(self.AgentCount,seed=self.RNG.randint(0,2**31-1))
+            base_draws = Uniform(
+                seed=self.RNG.randint(0,2**31-1)).draw(self.AgentCount)
         dont_change = self.t_age == 0 # Don't change Markov state for those who were just born (unless global_markov)
         if self.t_sim == 0: # Respect initial distribution of Markov states
             dont_change[:] = True
@@ -900,8 +902,7 @@ class MarkovConsumerType(IndShockConsumerType):
 
                     # Get random draws of income shocks from the discrete distribution
                     EventDraws       = IncomeDstnNow.draw_events(
-                        N,
-                        seed=self.RNG.randint(0,2**31-1))
+                        N)
                     PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
                     TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
         newborn = self.t_age == 0

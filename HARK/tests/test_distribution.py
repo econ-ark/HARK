@@ -30,13 +30,32 @@ class DistributionClassTests(unittest.TestCase):
             3.5397367004222002)
 
     def test_Lognormal(self):
+
+        dist = distribution.Lognormal()
+        
         self.assertEqual(
-            distribution.Lognormal().draw(1)[0],
+            dist.draw(1)[0],
+            5.836039190663969)
+
+        dist.draw(100)
+        dist.reset()
+
+        self.assertEqual(
+            dist.draw(1)[0],
             5.836039190663969)
 
     def test_Normal(self):
+        dist = distribution.Normal()
+        
         self.assertEqual(
-            distribution.Normal().draw(1)[0],
+            dist.draw(1)[0],
+            1.764052345967664)
+
+        dist.draw(100)
+        dist.reset()
+
+        self.assertEqual(
+            dist.draw(1)[0],
             1.764052345967664)
 
     def test_Weibull(self):
