@@ -68,10 +68,10 @@
 % whether running in dvi mode and sets the options necessary to generate
 % html version of document using tex4ht
 
-%\makeatletter
-%\newif\ifdvi\dvitrue
-%\@ifundefined{pdfoutput}{}{\ifnum\pdfoutput>0 \dvifalse\fi}
-%\makeatother
+\makeatletter
+\newif\ifdvi\dvitrue
+\@ifundefined{pdfoutput}{}{\ifnum\pdfoutput>0 \dvifalse\fi}
+\makeatother
 
 % dvi compilation only occurs if making the html version
 \ifdvi
