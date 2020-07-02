@@ -13,8 +13,8 @@
 %%% This document class is based on the "scrartcl" class
 %%% from the KOMA script bundle.  For documentation, Google KOMA-Script Documentation
 %%%
-%%% The corresponding BibTeX style file "econtex.bst" should be used
-%%% for the bibliography: \bibliographystyle{econtex}
+%%% The corresponding BibTeX style file "handout.bst" should be used
+%%% for the bibliography: \bibliographystyle{handout}
 %%%
 %%% In addition to the options for scrartcl, this package includes an additional option
 %%% titlepage = include a title page (with command "\maketitle", or "\maketitleWithForcedDate{}")
@@ -27,12 +27,13 @@
 %%%     \jelclass can be used to show JEL classifications below the abstract
 %%%     \thanks{text of the thank-you footnote} produces a footnote at the bottom of the page containing the text
 
-\ProvidesClass{econtex}[2016/05/27 LaTeX class for economics papers, handouts, and exam questions written by Christopher Carroll]
+% Made by handoutMake.sh
+\ProvidesClass{handout}[2019/11/18 LaTeX class for handouts written by Christopher Carroll]
 \NeedsTeXFormat{LaTeX2e}
 % \RequirePackage{rotating}
-
+\RequirePackage{snapshot} % Creates list of external files used by a LaTeX document
 \RequirePackage{ifthen}
-\RequirePackage{chngpage}
+\RequirePackage{changepage}
 
 % If unspecified whether pdf output (instead of dvi) is being used, determine that it SHOULD be
 \newif\ifdvi\dvitrue
@@ -106,14 +107,56 @@ amsmath,amssymb,amsfonts,amsthm
 ,threeparttable,dcolumn,multicol,multirow,booktabs % table environment extensions
 ,latexsym
 ,afterpage
-,endnotes
+,enotez
 ,moreverb
 ,hhline    % Allow double hlines
 ,tipa      % Define more characters, in particular the \textthorn character
 ,color
+,accents
+,appendix
 }
 
-\RequirePackage{econtex}
+\DeclareInstance{enotez-list}{superscriptednotes}{paragraph}
+  {
+    number = \textsuperscript{#1}
+  }
+% to get endnotes with superscripts, use \printendnotes[superscriptednotes]
+
+% \RequirePackage{handout} % Removed 20170801 because won't work when invoked from nonroot paths
+% Contents of the file are pasted in below
+
+%---------------Custom Definitions--------------
+
+\def\liminf{\mathop{\rm lim\, inf}\limits} 
+\DeclareMathOperator{\Ex}{\mathbb{E}} % Expectations operator 
+\def\var{\operatorname{var}} % variance
+\def\cov{\operatorname{cov}} % covariance
+\def\std{\operatorname{std}} % standard deviation
+\def\argmax{\operatornamewithlimits{arg\,max}} % argmax
+
+%---------------Custom Modifications----------------------
+
+% \htline defines a thick horizontal line in table
+\def\htline{\noalign{\hrule height 2\arrayrulewidth}}
+
+% \hdline defines a dotted horizontal line in table
+\def\hdline{\noalign{.\dotfill{}.}}
+
+%To keep footnotes on a single page except in extreme cases
+\interfootnotelinepenalty=5000 %from 0 to 10000
+
+%To prevent hyphenation
+\hyphenpenalty=5000 %from 0 to 10000, default is 200
+
+%To prevent breaking math formula
+\relpenalty=4000 %from 0 to 10000, default is 500
+
+%To prevent breaking math formula after binary operator 
+\binoppenalty=10000 %from 0 to 10000, default is 700
+
+%--------------------------------------------------------
+
+
 \RequirePackage[mathscr]{eucal}
 \RequirePackage[normalem]{ulem}
 \providecommand\bmmax{0} % Prevent boldmath package from using up too much memory
@@ -124,7 +167,7 @@ amsmath,amssymb,amsfonts,amsthm
 \RequirePackage{url}
 \def\UrlFont{\ttfamily}
 
-\usepackage[econtex]{optional} % Enable the control of compilation using options passed on startup
+\usepackage[handout]{optional} % Enable the control of compilation using options passed on startup
 \opt{EndFloats}{\RequirePackage[noheads,nolists,tablesfirst,nomarkers]{endfloat}}
 
 % page format, margins if PrintGeom option is invoked
@@ -153,7 +196,7 @@ amsmath,amssymb,amsfonts,amsthm
 
 % citations and bibliography
 \RequirePackage[authoryear]{natbib}
-\AtBeginDocument{\renewcommand{\refname}{\clearpage References}
+\AtBeginDocument{\renewcommand{\refname}{References}
 \renewcommand\@makefnmark
   {\mbox{\textsuperscript{\tiny\@thefnmark}}} % Restore footnote defn after titlepage redefines it
 \ifdvi
@@ -174,7 +217,7 @@ amsmath,amssymb,amsfonts,amsthm
 
 \renewcommand{\maketitle}{
 \ifthenelse{ \isundefined\@forcedate }{ 
-   \ClassWarningNoLine{econtex}{{\protect\forcedate} is undefined in the .tex file; please define it and rerun}}{}
+   \ClassWarningNoLine{handout}{{\protect\forcedate} is undefined in the .tex file; please define it and rerun}}{}
    \ifthenelse{\equal{\theIncludeTitlePage}{1}}{
       \let\footnotesize\scriptsize
       \thispagestyle{empty}
@@ -202,7 +245,7 @@ amsmath,amssymb,amsfonts,amsthm
 
 
 \newcommand{\maketitleWithForcedDate}[1]{
-\ClassWarningNoLine{econtex}{\protect\maketitleWithForcedDate{} is deprecated.  To set a date different from the current one, just use the \protect\date{(string desired to signify paper date)}}
+\ClassWarningNoLine{handout}{\protect\maketitleWithForcedDate{} is deprecated.  To set a date different from the current one, just use the \protect\date{(string desired to signify paper date)}}
 
    \ifthenelse{\equal{\theIncludeTitlePage}{1}}{
       \let\footnotesize\scriptsize
@@ -248,7 +291,7 @@ amsmath,amssymb,amsfonts,amsthm
    \noindent \hrule height 0.4pt depth 0.0pt width \textwidth \relax
    \vspace*{0mm}
    \ifthenelse{ \isundefined\@keywords }{
-   \ClassWarningNoLine{econtex}{No keywords specified.
+   \ClassWarningNoLine{handout}{No keywords specified.
       Please use the command \protect\keywords}
    }{
    }
@@ -258,7 +301,7 @@ amsmath,amssymb,amsfonts,amsthm
 \begin{Description}
 \item[\textbf{Keywords~}] \@keywords
 \ifthenelse{ \isundefined\@jelclass }{
-\ClassWarningNoLine{econtex}{No JEL classification specified.
+\ClassWarningNoLine{handout}{No JEL classification specified.
    Please use the command \protect\jelclass}
 }{
 \item[\textbf{JEL codes~}] \@jelclass
@@ -298,15 +341,10 @@ amsmath,amssymb,amsfonts,amsthm
 
 
 \RequirePackage[multiple]{footmisc}
-\RequirePackage{manyfoot,perpage}
-\DefineFNsymbols{blank}[text]{{} {} {} {} {}}
-\setfnsymbol{blank}
-\DeclareNewFootnote{B}[fnsymbol]
-\MakePerPage{footnoteB}
+\RequirePackage{manyfoot}
+%\RequirePackage{perpage} \DefineFNsymbols{blank}[text]{{} {} {} {} {}} \setfnsymbol{blank} \DeclareNewFootnote{B}[fnsymbol] \MakePerPage{footnoteB} \renewcommand{\thanks}{\footnoteB} \newcommand{\thanksFooter}{\footnoteB}
 
-
-\renewcommand{\thanks}{\footnoteB}
-\newcommand{\thanksFooter}{\footnoteB}
+% 20170126: perpage package conflicts with something else so is removed in handoutMake.sh
 
 \hfuzz2pt % Don't bother to report over-full boxes if over-edge is < 2pt
 
@@ -358,3 +396,12 @@ amsmath,amssymb,amsfonts,amsthm
 
 \def\name#1{\global\advance\c@bottomauthor by 1\textsuperscript{\tiny \the\c@bottomauthor}{#1}{~~~~}}
 
+\makeatletter
+\DeclareOldFontCommand{\rm}{\normalfont\rmfamily}{\mathrm}
+\DeclareOldFontCommand{\sf}{\normalfont\sffamily}{\mathsf}
+\DeclareOldFontCommand{\tt}{\normalfont\ttfamily}{\mathtt}
+\DeclareOldFontCommand{\bf}{\normalfont\bfseries}{\mathbf}
+\DeclareOldFontCommand{\it}{\normalfont\itshape}{\mathit}
+\DeclareOldFontCommand{\sl}{\normalfont\slshape}{\@nomath\sl}
+\DeclareOldFontCommand{\sc}{\normalfont\scshape}{\@nomath\sc}
+\makeatother

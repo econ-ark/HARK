@@ -1,0 +1,20 @@
+The .tex files in this directory compile properly using pdflatex on TeXLive 2010 for either Mac or Windows, using TeXLive
+You will likely need the "full" distribution of TeXLive, as many obscure tex packages are used
+
+-- Emacs with AucTeX defaults to plain LaTeX (generating a dvi file as output), you will need to have evaluated the command (setq TeX-PDF-mode t) at some point before compiling in order to make pdflatex be used instead.
+
+-- Compilation of the LaTeX document requires LaTeX to have permissions to write to files outside of its own directory; in your texmf.cnf file, add the lines:
+openout_any = a
+shell_escape = t
+
+to your local texmf.cnf configuration file.  On a standard MacTeX TeXLive distribution, this file is at 
+
+/usr/local/texlive/[year]/texmf.cnf
+
+while on a standard Windows 7 installation it is at 
+
+C:\texlive\[year]\texmf.cnf
+
+where [year] is, e.g., 2010 if you have TeXLive-2010 installed.
+
+Depending on details of your installation, you may need to modify other security preferences as well.
