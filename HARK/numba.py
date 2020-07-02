@@ -6,8 +6,8 @@ derivatives).
 from __future__ import division  # Import Python 3.x division function
 from __future__ import print_function
 
-import numpy as np  # Python's numeric library, abbreviated "np"
-from numba import vectorize, float64
+import numpy as np
+from numba import njit, vectorize, float64
 
 
 # ==============================================================================
@@ -415,3 +415,166 @@ def CARAutility_invP(alpha, target="parallel"):
     @vectorize([float64(float64)], target=target)
     def invPU(u):
         return 1.0 / (alpha * (1.0 - u))
+
+
+@njit(cache=True)
+def splrep(x, y):
+    """
+
+    Parameters
+    ----------
+    x
+    y
+
+    Returns
+    -------
+
+    """
+    size = x.size
+
+    xdiff = np.diff(x)
+    ydiff = np.diff(y)
+    slope = ydiff / xdiff
+
+    d = np.empty(size)
+    d[0] = 0
+    d[1:-1] = 6 * slope[1:] - 6 * slope[:-1]
+    d[-1] = 0
+
+    Ad = np.empty(size)
+    Ad[1:-1] = 2 * (xdiff[:-1] + xdiff[1:])
+
+    A = np.diag(Ad) + np.diag(xdiff, -1) + np.diag(xdiff, 1)
+    A[0, :3] = [1, -2, 1]
+    A[-1, -3:] = [1, -2, 1]
+
+    return np.linalg.solve(A, d)
+
+
+# interpolate and extrapolate vectors
+# extrapolation using end polynomials
+@njit(cache=True)
+def splevec(x0, x, y, z):
+    """
+    Parameters
+    ----------
+    x0: internal point to be evaluated, can be vector
+    x: vector of basis points where function is defined
+    y: vector of functional values for each point in x
+    z: spline coefficients calculated by splrep
+    """
+
+    # find index
+    index = np.searchsorted(x, x0)
+    nx = x.size
+
+    index[index == 0] = 1
+    index[index == nx] = nx - 1
+
+    xi1, xi0 = x[index], x[index - 1]
+    yi1, yi0 = y[index], y[index - 1]
+    zi1, zi0 = z[index], z[index - 1]
+    hi1 = xi1 - xi0
+
+    # calculate cubic
+    f0 = (
+        zi0 / (6 * hi1) * (xi1 - x0) ** 3
+        + zi1 / (6 * hi1) * (x0 - xi0) ** 3
+        + (yi1 / hi1 - zi1 * hi1 / 6) * (x0 - xi0)
+        + (yi0 / hi1 - zi0 * hi1 / 6) * (xi1 - x0)
+    )
+
+    return f0
+
+
+# interpolate and extrapolate scalars
+# extrapolation using end polynomials
+@njit
+def spleval(x0, x, y, z):
+    index = np.searchsorted(x, x0)
+    nx = x.size
+
+    index = 1 if index == 0 else index
+    index = nx - 1 if index == nx else index
+
+    xi1, xi0 = x[index], x[index - 1]
+    yi1, yi0 = y[index], y[index - 1]
+    zi1, zi0 = z[index], z[index - 1]
+    hi1 = xi1 - xi0
+
+    # calculate cubic
+    f0 = (
+        zi0 / (6 * hi1) * (xi1 - x0) ** 3
+        + zi1 / (6 * hi1) * (x0 - xi0) ** 3
+        + (yi1 / hi1 - zi1 * hi1 / 6) * (x0 - xi0)
+        + (yi0 / hi1 - zi0 * hi1 / 6) * (xi1 - x0)
+    )
+
+    return f0
+
+
+@njit
+def spldervec(x0, x, y, z):
+    # find index
+    index = np.searchsorted(x, x0)
+    nx = x.size
+
+    index[index == 0] = 1
+    index[index == nx] = nx - 1
+
+    xi1, xi0 = x[index], x[index - 1]
+    yi1, yi0 = y[index], y[index - 1]
+    zi1, zi0 = z[index], z[index - 1]
+    hi1 = xi1 - xi0
+
+    # calculate cubic
+    df0 = (
+        -zi0 / (2 * hi1) * (xi1 - x0) ** 2
+        + zi1 / (2 * hi1) * (x0 - xi0) ** 2
+        + (yi1 / hi1 - zi1 * hi1 / 6)
+        - (yi0 / hi1 - zi0 * hi1 / 6)
+    )
+
+    return df0
+
+
+@njit
+def splder(x0, x, y, z):
+    # find index
+    index = np.searchsorted(x, x0)
+    nx = x.size
+
+    index = 1 if index == 0 else index
+    index = nx - 1 if index == nx else index
+
+    xi1, xi0 = x[index], x[index - 1]
+    yi1, yi0 = y[index], y[index - 1]
+    zi1, zi0 = z[index], z[index - 1]
+    hi1 = xi1 - xi0
+
+    # calculate cubic
+    df0 = (
+        -zi0 / (2 * hi1) * (xi1 - x0) ** 2
+        + zi1 / (2 * hi1) * (x0 - xi0) ** 2
+        + (yi1 / hi1 - zi1 * hi1 / 6)
+        - (yi0 / hi1 - zi0 * hi1 / 6)
+    )
+
+    return df0
+
+
+@njit
+def splkd(x, y, z):
+    size = x.size
+
+    xdiff = np.diff(x)
+    ydiff = np.diff(y)
+    slope = ydiff / xdiff
+
+    df = np.empty(size)
+
+    df[:-1] = -xdiff / 3 * z[:-1] - xdiff / 6 * z[1:] + slope
+
+    df[-1] = xdiff[-1] / 3 * z[-1] + xdiff[-1] / 6 * z[-2] + slope[-1]
+
+    return df
