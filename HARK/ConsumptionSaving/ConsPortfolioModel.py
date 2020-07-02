@@ -778,18 +778,20 @@ def solveConsPortfolio(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         FOC_s = EndOfPrddvds
         Share_now   = np.zeros_like(aNrmGrid) # Initialize to putting everything in safe asset
         cNrmAdj_now = np.zeros_like(aNrmGrid)
-        constrained = FOC_s[:,-1] > 0. # If agent wants to put more than 100% into risky asset, he is constrained
-        Share_now[constrained] = 1.0
+        constrained_top = FOC_s[:,-1] > 0. # If agent wants to put more than 100% into risky asset, he is constrained
+        constrained_bot = FOC_s[:,0] < 0. # Likewise if he wants to put less than 0% into risky asset
+        Share_now[constrained_top] = 1.0
         if not zero_bound:
             Share_now[0] = 1. # aNrm=0, so there's no way to "optimize" the portfolio
             cNrmAdj_now[0] = EndOfPrddvdaNvrs[0,-1] # Consumption when aNrm=0 does not depend on Share
-        cNrmAdj_now[constrained] = EndOfPrddvdaNvrs[constrained,-1] # Get consumption when share-constrained
-            
+            constrained_top[0] = True # Mark as constrained so that there is no attempt at optimization
+        cNrmAdj_now[constrained_top] = EndOfPrddvdaNvrs[constrained_top,-1] # Get consumption when share-constrained
+        cNrmAdj_now[constrained_bot] = EndOfPrddvdaNvrs[constrained_bot,0]
         # For each value of aNrm, find the value of Share such that FOC-Share == 0.
         # This loop can probably be eliminated, but it's such a small step that it won't speed things up much.
         crossing = np.logical_and(FOC_s[:,1:] <= 0., FOC_s[:,:-1] >= 0.)
         for j in range(aNrm_N):
-            if Share_now[j] == 0.:
+            if not (constrained_top[j] or constrained_bot[j]):
                 try:
                     idx = np.argwhere(crossing[j,:])[0][0]
                     bot_s = ShareGrid[idx]
