@@ -304,7 +304,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         None
         '''
         cutoffs = np.cumsum(self.MrkvArray[self.MrkvNow,:])
-        MrkvDraw = Uniform().draw(N=1,seed=self.RNG.randint(0,2**31-1))
+        MrkvDraw = Uniform(seed=self.RNG.randint(0,2**31-1)).draw(N=1)
         self.MrkvNow = np.searchsorted(cutoffs,MrkvDraw)
 
         t = self.t_cycle[0]
@@ -312,8 +312,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         IncomeDstnNow    = self.IncomeDstn[t-1][i] # set current income distribution
         PermGroFacNow    = self.PermGroFac[t-1][i] # and permanent growth factor
         # Get random draws of income shocks from the discrete distribution
-        EventDraw        =         IncomeDstnNow.draw_events(1,
-                                                             seed=self.RNG.randint(0,2**31-1))
+        EventDraw        =         IncomeDstnNow.draw_events(1)
         PermShkNow = IncomeDstnNow.X[0][EventDraw]*PermGroFacNow # permanent "shock" includes expected growth
         TranShkNow = IncomeDstnNow.X[1][EventDraw]
         self.PermShkNow = np.array(PermShkNow)
