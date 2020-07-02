@@ -792,19 +792,16 @@ def solveConsPortfolio(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         crossing = np.logical_and(FOC_s[:,1:] <= 0., FOC_s[:,:-1] >= 0.)
         for j in range(aNrm_N):
             if not (constrained_top[j] or constrained_bot[j]):
-                try:
-                    idx = np.argwhere(crossing[j,:])[0][0]
-                    bot_s = ShareGrid[idx]
-                    top_s = ShareGrid[idx+1]
-                    bot_f = FOC_s[j,idx]
-                    top_f = FOC_s[j,idx+1]
-                    bot_c = EndOfPrddvdaNvrs[j,idx]
-                    top_c = EndOfPrddvdaNvrs[j,idx+1]
-                    alpha = 1. - top_f/(top_f-bot_f)
-                    Share_now[j] = (1.-alpha)*bot_s + alpha*top_s
-                    cNrmAdj_now[j] = (1.-alpha)*bot_c + alpha*top_c
-                except:
-                    print('No optimal controls found for a=' + str(aNrmGrid[j]))
+                idx = np.argwhere(crossing[j,:])[0][0]
+                bot_s = ShareGrid[idx]
+                top_s = ShareGrid[idx+1]
+                bot_f = FOC_s[j,idx]
+                top_f = FOC_s[j,idx+1]
+                bot_c = EndOfPrddvdaNvrs[j,idx]
+                top_c = EndOfPrddvdaNvrs[j,idx+1]
+                alpha = 1. - top_f/(top_f-bot_f)
+                Share_now[j] = (1.-alpha)*bot_s + alpha*top_s
+                cNrmAdj_now[j] = (1.-alpha)*bot_c + alpha*top_c
                 
     # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio
     mNrmAdj_now = aNrmGrid + cNrmAdj_now
