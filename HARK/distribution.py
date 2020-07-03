@@ -824,7 +824,7 @@ def addDiscreteOutcome(distribution, x, p, sort = False):
 
     return DiscreteDistribution(pmf,X)
 
-def combineIndepDstns(*distributions):
+def combineIndepDstns(*distributions, seed=0):
     '''
     Given n lists (or tuples) whose elements represent n independent, discrete
     probability spaces (probabilities and values), construct a joint pmf over
@@ -897,4 +897,4 @@ def combineIndepDstns(*distributions):
     P_out = np.prod(np.array(P_temp),axis=0)
 
     assert np.isclose(np.sum(P_out),1),'Probabilities do not sum to 1!'
-    return DiscreteDistribution(P_out, X_out)
+    return DiscreteDistribution(P_out, X_out, seed = seed)

@@ -353,7 +353,7 @@ class PortfolioConsumerType(IndShockConsumerType):
 
         mu = np.log(RiskyAvg / (np.sqrt(1. + RiskyVar / RiskyAvgSqrd)))
         sigma = np.sqrt(np.log(1. + RiskyVar / RiskyAvgSqrd))
-        self.RiskyNow = Lognormal(mu, sigma).draw(1, seed=self.RNG.randint(0, 2**31-1))
+        self.RiskyNow = Lognormal(mu, sigma, seed=self.RNG.randint(0, 2**31-1)).draw(1)
         
         
     def getAdjust(self):
@@ -370,7 +370,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        self.AdjustNow = Bernoulli(self.AdjustPrb).draw(self.AgentCount, seed=self.RNG.randint(0, 2**31-1))
+        self.AdjustNow = Bernoulli(self.AdjustPrb, seed=self.RNG.randint(0, 2**31-1)).draw(self.AgentCount)
         
         
     def getRfree(self):
