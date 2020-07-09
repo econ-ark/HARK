@@ -2496,7 +2496,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 ShkPrbsRet      = np.array([1.0])
             IncomeDstnRet = DiscreteDistribution(ShkPrbsRet,
                                                  [PermShkValsRet,
-                                                  TranShkValsRet])
+                                                  TranShkValsRet],
+                                                 seed=self.RNG.randint(0, 2**31-1))
 
         # Loop to fill in the list of IncomeDstn random variables.
         for t in range(T_cycle): # Iterate over all periods, counting forward
@@ -2518,7 +2519,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 ).approx(PermShkCount, tail_N=0)
                 ### REPLACE
                 ###REPLACE
-                IncomeDstn.append(combineIndepDstns(PermShkDstn_t,TranShkDstn_t)) # mix the independent distributions
+                IncomeDstn.append(combineIndepDstns(PermShkDstn_t,
+                                                    TranShkDstn_t,
+                                                    seed = self.RNG.randint(0, 2**31-1))) # mix the independent distributions
                 PermShkDstn.append(PermShkDstn_t)
                 TranShkDstn.append(TranShkDstn_t)
         return IncomeDstn, PermShkDstn, TranShkDstn
