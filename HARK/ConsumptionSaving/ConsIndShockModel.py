@@ -1991,16 +1991,41 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         Parameters
         ----------
-        none
+        None
 
         Returns
         -------
-        none
+        None
         '''
         self.updateIncomeProcess()
         self.updateAssetsGrid()
         self.updateSolutionTerminal()
+        
+        
+    def resetRNG(self):
+        '''
+        Reset the RNG behavior of this type.  This method is called automatically
+        by initializeSim(), ensuring that each simulation run uses the same sequence
+        of random shocks; this is necessary for structural estimation to work.
+        This method extends AgentType.resetRNG() to also reset elements of IncomeDstn.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        PerfForesightConsumerType.resetRNG(self)
+        
+        # Reset IncomeDstn if it exists (it might not because resetRNG is called at init)
+        if hasattr(self, 'IncomeDstn'):
+            T = len(self.IncomeDstn)
+            for t in range(T):
+                self.IncomeDstn[t].reset()
 
+                    
     def getShocks(self):
         '''
         Gets permanent and transitory income shocks for this period.  Samples from IncomeDstn for
@@ -2024,10 +2049,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 IncomeDstnNow    = self.IncomeDstn[t-1] # set current income distribution
                 PermGroFacNow    = self.PermGroFac[t-1] # and permanent growth factor
                 # Get random draws of income shocks from the discrete distribution
-                EventDraws       = IncomeDstnNow.draw_events(N)
-
-                PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
-                TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
+                IncShks = IncomeDstnNow.drawDiscrete(N)
+                PermShkNow[these] = IncShks[0,:]*PermGroFacNow # permanent "shock" includes expected growth
+                TranShkNow[these] = IncShks[1,:]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
