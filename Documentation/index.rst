@@ -14,22 +14,24 @@ you might want to look at the `DemARK
 <https://github.com/econ-ark/DemARK/>`_ project.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: User Guide
+   :maxdepth: 1
+   :caption: Documentation
 
    introduction
    quick-start
-   list-of-files
    license
    warnings-and-behaviors
    CONTRIBUTING
+   reference/index
+   packaging
+   warnings-and-disclaimers
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Notebooks
 
    example_notebooks/Gentle-Intro-To-HARK.ipynb
-   example_notebooks/PerfForesightConsumerType.ipynb
+   example_notebooks/PerfForesigthConsumerType.ipynb
    example_notebooks/IndShockConsumerType.ipynb
    example_notebooks/KinkedRconsumerType.ipynb
    example_notebooks/ConsPortfolioModel.ipynb
@@ -37,26 +39,6 @@ you might want to look at the `DemARK
    example_notebooks/LifecycleModel.ipynb
    example_notebooks/HowWeSolveIndShockConsumerType.ipynb
    example_notebooks/Journey_1_PhD.ipynb
-
-.. toctree::
-   :maxdepth: 3   
-   :caption: Journeys into HARK
-   
-   notebooks/Journey_1_PhD       
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Python API
-
-   api-core
-   api-dcegm
-   api-estimation
-   api-interpolation
-   api-parallel
-   api-simulation
-   api-utilities
-   api-validators          
-   api-consumptionsaving
 
 
 Indices and tables
