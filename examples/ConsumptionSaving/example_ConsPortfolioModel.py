@@ -190,6 +190,43 @@ plotFuncs(AgeVaryingRiskPercType.ShareFunc, 0., 200.)
 # %%
 import os
 
+# They assume its a polinomial of age. Here are the coefficients
+a=-2.170042+2.700381
+b1=0.16818
+b2=-0.0323371/10
+b3=0.0019704/100
+
+time_params = {'Age_born': 0, 'Age_retire': 8, 'Age_death': 9}
+t_start = time_params['Age_born']
+t_ret   = time_params['Age_retire'] # We are currently interpreting this as the last period of work
+t_end   = time_params['Age_death']
+
+# They assume retirement income is a fraction of labor income in the
+# last working period
+repl_fac = 0.68212
+
+# Compute average income at each point in (working) life
+f = np.arange(t_start, t_ret+1,1)
+f = a + b1*f + b2*(f**2) + b3*(f**3)
+det_work_inc = np.exp(f)
+
+# Retirement income
+det_ret_inc = repl_fac*det_work_inc[-1]*np.ones(t_end - t_ret)
+
+# Get a full vector of the deterministic part of income
+det_income = np.concatenate((det_work_inc, det_ret_inc))
+
+# ln Gamma_t+1 = ln f_t+1 - ln f_t
+gr_fac = np.exp(np.diff(np.log(det_income)))
+
+# Now we have growth factors for T_end-1 periods.
+
+# Finally define the normalization factor used by CGM, for plots.
+# ### IMPORTANT ###
+# We adjust this normalization factor for what we believe is a typo in the
+# original article. See the REMARK jupyter notebook for details.
+norm_factor = det_income * np.exp(0)
+
 # Create a grid of market resources for the plots
     
 mMin = 0    # Minimum ratio of assets to income to plot
@@ -201,7 +238,6 @@ eevalgrid = np.linspace(0,mMax,mPts) # range of values of assets for the plot
 # Number of points that will be used to approximate the risky distribution
 risky_count_grid = [5,50]
 
-time_params = {'Age_born': 0, 'Age_retire': 8, 'Age_death': 9}
 
 # %% Calibration and solution
 
@@ -253,5 +289,7 @@ for rcount in risky_count_grid:
     plt.ioff()
     plt.draw()
 
+
+# %%
 
 # %%
