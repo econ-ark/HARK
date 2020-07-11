@@ -165,7 +165,10 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
     commonC[:] = np.nan
 
     # Now, loop over all segments as defined by the "kinks" or the combination
-    # of "rise" and "fall" indeces. These (rise[j], fall[j]) pairs define regions
+    # of "rise" and "fall" indeces. These (rise[j], fall[j]) pairs define regions.
+    # We'll save V_T and C interpolating functions to aid crossing points later
+    vT_funcs = []
+    c_funcs  = []
     for j in range(num_kinks):
         # Find points in the common grid that are in the range of the points in
         # the interval defined by (rise[j], fall[j]).
@@ -177,13 +180,18 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
         idxs = range(rise[j], fall[j]+1)
         # grab ressource values at the relevant indeces
         m_idx_j = M[idxs]
-
+        
+        # Create and store interpolating functions
+        vT_funcs.append(LinearInterp(m_idx_j, V_T[idxs], lower_extrap=True))
+        c_funcs.append(LinearInterp(m_idx_j, C[idxs], lower_extrap=True))
+        
         # based in in_range, find the relevant ressource values to interpolate
         m_eval = commonM[in_range]
 
         # re-interpolate to common grid
-        commonV_T[in_range, j] = LinearInterp(m_idx_j, V_T[idxs], lower_extrap=True)(m_eval) # NOQA
-        commonC[in_range, j]   = LinearInterp(m_idx_j, C[idxs], lower_extrap=True)(m_eval) # NOQA Interpolat econsumption also. May not be nesserary
+        commonV_T[in_range, j] = vT_funcs[-1](m_eval) # NOQA
+        commonC[in_range, j]   = c_funcs[-1](m_eval) # NOQA Interpolat econsumption also. May not be nesserary
+    
     # for each row in the commonV_T matrix, see if all entries are np.nan. This
     # would mean that we have no valid value here, so we want to use this boolean
     # vector to filter out irrelevant entries of commonV_T.
@@ -216,6 +224,8 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
     valid = np.logical_and(~np.isnan(left_v).any(axis = 0),
                            ~np.isnan(left_v).any(axis = 0))
     
+    l_seg   = l_seg[valid]
+    r_seg   = r_seg[valid]
     left_m  = left_m[valid]
     right_m = right_m[valid]
     left_v  = left_v[:,valid]
@@ -226,6 +236,31 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
                                       left_v[:,i], right_v[:,i])
                    for i in range(len(left_m))]
     
+    num_crosses = len(xing_points)
+    # Now construct a set of points that need to be added to the grid in
+    # order to handle the discontinuities
+    add_m     = np.empty(num_crosses*2)
+    add_m[:]  = np.nan
+    add_vT    = np.empty(num_crosses*2)
+    add_vT[:] = np.nan
+    add_c     = np.empty(num_crosses*2)
+    add_c[:]  = np.nan
+    
+    # Fill the list of points interpolating left and right (2 points per
+    # crossing)
+    for i in range(num_crosses):
+        # Left part of the discontinuity
+        ml = xing_points[i][0]
+        add_m[2*i] = ml
+        add_vT[2*i] = vT_funcs[l_seg[i]](ml)
+        add_c[2*i] = c_funcs[l_seg[i]](ml)
+        
+        # Right part of the discontinuity
+        mr = np.nextafter(ml, np.inf)
+        add_m[2*i + 1]  = mr
+        add_vT[2*i + 1] = vT_funcs[r_seg[i]](mr)
+        add_c[2*i + 1]  = c_funcs[r_seg[i]](mr)
+        
     # prefix with upper for variable that are "upper enveloped"
     upperV_T = np.zeros(m_len)
 
