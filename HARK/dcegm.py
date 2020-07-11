@@ -260,4 +260,4 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
     
     upperM = commonM.copy()  # anticipate this TODO
 
-    return upperM, upperC, upperV_T, xing_points
+    return upperM, upperC, upperV_T
