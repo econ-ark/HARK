@@ -74,6 +74,8 @@ class PrefShockConsumerType(IndShockConsumerType):
                                       cycles=cycles,
                                       **params)
         self.solveOnePeriod = makeOnePeriodOOSolver(ConsPrefShockSolver)
+    
+    
     def preSolve(self):
         self.updateSolutionTerminal()
 
@@ -111,16 +113,39 @@ class PrefShockConsumerType(IndShockConsumerType):
         PrefShkDstn = [] # discrete distributions of preference shocks
         for t in range(len(self.PrefShkStd)):
             PrefShkStd = self.PrefShkStd[t]
-            PrefShkDstn.append(
-                MeanOneLogNormal(
-                    sigma=PrefShkStd
-                ).approx(N=self.PrefShkCount,
-                         tail_N=self.PrefShk_tail_N))
-
+            new_dstn = MeanOneLogNormal(sigma=PrefShkStd).approx(
+                                                  N=self.PrefShkCount,
+                                                  tail_N=self.PrefShk_tail_N)
+            PrefShkDstn.append(new_dstn)
+                
         # Store the preference shocks in self (time-varying) and restore time flow
         self.PrefShkDstn = PrefShkDstn
         self.addToTimeVary('PrefShkDstn')
-
+        
+    def resetRNG(self):
+        '''
+        Reset the RNG behavior of this type.  This method is called automatically
+        by initializeSim(), ensuring that each simulation run uses the same sequence
+        of random shocks; this is necessary for structural estimation to work.
+        This method extends IndShockConsumerType.resetRNG() to also reset elements
+        of PrefShkDstn.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.resetRNG(self)
+        
+        # Reset PrefShkDstn if it exists (it might not because resetRNG is called at init)
+        if hasattr(self, 'PrefShkDstn'):
+            T = len(self.PrefShkDstn)
+            for t in range(T):
+                self.PrefShkDstn[t].reset()
+        
     def getShocks(self):
         '''
         Gets permanent and transitory income shocks for this period as well as preference shocks.
@@ -139,10 +164,7 @@ class PrefShockConsumerType(IndShockConsumerType):
             these = t == self.t_cycle
             N = np.sum(these)
             if N > 0:
-                PrefShkNow[these] = self.RNG.permutation(
-                    MeanOneLogNormal(
-                        sigma=self.PrefShkStd[t]
-                    ).approx(N).X)
+                PrefShkNow[these] = self.PrefShkDstn[t].drawDiscrete(N)
         self.PrefShkNow = PrefShkNow
 
     def getControls(self):
