@@ -88,6 +88,42 @@ def calcSegments(x, v):
 # think! nanargmax makes everythign super ugly because numpy changed the wraning
 # in all nan slices to a valueerror...it's nans, aaarghgghg
 
+def calcLinearCrossing(m,left_v, right_v):
+    """
+    Computes the intersection between two line segments, defined by two common
+    x points, and the values of both segments at both x points
+
+    Parameters
+    ----------
+    m : list or np.array, length 2
+        The two common x coordinates. m[0] < m[1] is assumed 
+    left_v :list or np.array, length 2
+        y values of the two segments at m[0]
+    right_v : list or np.array, length 2
+        y values of the two segments at m[1]
+
+    Returns
+    -------
+    (m_int, v_int):  a tuple with the corrdinates of the intercept.
+    if there is no intercept in the interval [m[0],m[1]], (None,None)
+
+    """
+    
+    # Find slopes of both segments
+    delta_m = m[1] - m[0]
+    s0 = (right_v[0] - left_v[0])/delta_m
+    s1 = (right_v[1] - left_v[1])/delta_m
+    
+    if s1 == s0:
+        if left_v[0] == left_v[1]:
+            return (m[0],left_v[0])
+        else:
+            return (None, None)
+    else:
+        # Find h where intercept happens at m[0] + h
+        h = (left_v[0] - left_v[1])/(s1-s0)
+        if (h >= 0 and h <= (m[1]-m[0])):
+            return (m[0]+h, left_v[0] + h*s0)
 
 def calcMultilineEnvelope(M, C, V_T, commonM):
     """
@@ -155,7 +191,41 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
     # Now take the max of all these line segments.
     idx_max = np.zeros(commonM.size, dtype=int)
     idx_max[row_all_nan == False] = np.nanargmax(commonV_T[row_all_nan == False], axis=1)
-
+    
+    # Compute differences, to find positions of segment-changes
+    diff_max = np.insert(np.diff(idx_max),-1,0)
+    # There is a change of segment if the argmax changes
+    # (will deal with nan's later). [0] b/c np.where returns a tuple
+    idx_change = np.where(diff_max != 0)[0]
+    # Find the two segments involved in the changes
+    l_seg = idx_max[idx_change]
+    r_seg = idx_max[idx_change + 1]
+    
+    # To find the crossing points we need the extremes of the intervals in
+    # which they happen, and the two candidate segments evaluated in both
+    # extremes.
+    left_m  = commonM[idx_change]
+    right_m = commonM[idx_change + 1]
+    left_v  = np.stack([commonV_T[idx_change, l_seg],
+                        commonV_T[idx_change, r_seg]])
+    right_v = np.stack([commonV_T[idx_change+1, l_seg],
+                        commonV_T[idx_change+1, r_seg]])
+    
+    # A valid crossing must have both switching segments well defined at the
+    # encompassing gridpoints. Filter those that do not.
+    valid = np.logical_and(~np.isnan(left_v).any(axis = 0),
+                           ~np.isnan(left_v).any(axis = 0))
+    
+    left_m  = left_m[valid]
+    right_m = right_m[valid]
+    left_v  = left_v[:,valid]
+    right_v = right_v[:,valid]
+    
+    # Find crossing points. Returns a list (m,v) tuples.
+    xing_points = [calcLinearCrossing([left_m[i],right_m[i]],
+                                      left_v[:,i], right_v[:,i])
+                   for i in range(len(left_m))]
+    
     # prefix with upper for variable that are "upper enveloped"
     upperV_T = np.zeros(m_len)
 
@@ -185,8 +255,9 @@ def calcMultilineEnvelope(M, C, V_T, commonM):
     upperC = commonC[idx_linear]
     upperC[IsNaN] = LinearInterp(commonM[IsNaN == 0], upperC[IsNaN == 0])(commonM[IsNaN])
 
-    # TODO calculate cross points of line segments to get the true vertical drops
-
+    # TODO Crosspoints have been calculated in 'xing_points'. Should they be
+    # added to the grid here or returned?
+    
     upperM = commonM.copy()  # anticipate this TODO
 
-    return upperM, upperC, upperV_T
+    return upperM, upperC, upperV_T, xing_points
