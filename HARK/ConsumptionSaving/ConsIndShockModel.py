@@ -9,7 +9,7 @@ It currently solves three types of models:
    3) The model described in (2), with an interest rate for debt that differs
       from the interest rate for savings.
 
-See NARK for information on variable naming conventions.
+See NARK https://HARK.githhub.io/Documentation/NARK for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 '''
 from __future__ import division
@@ -511,7 +511,7 @@ class ConsPerfForesightSolver(object):
                 # If it *is* the very last index, then there are only three points
                 # that characterize the consumption function: the artificial borrowing
                 # constraint, the constraint kink, and the extrapolation point.
-                mXtra = cNrmNow[-1] - cNrmCnst[-1]/(1.0 - self.MPCmin)
+                mXtra = (cNrmNow[-1] - cNrmCnst[-1])/(1.0 - self.MPCmin)
                 mCrit = mNrmNow[-1] + mXtra
                 cCrit = mCrit - BoroCnstArt
                 mNrmNow = np.array([BoroCnstArt, mCrit, mCrit + 1.0])
@@ -1574,11 +1574,15 @@ class PerfForesightConsumerType(AgentType):
         '''
         # Get and store states for newly born agents
         N = np.sum(which_agents) # Number of new consumers to make
-        self.aNrmNow[which_agents] = Lognormal(mu=self.aNrmInitMean,
-                                               sigma=self.aNrmInitStd).draw(N,seed=self.RNG.randint(0,2**31-1))
+        self.aNrmNow[which_agents] = Lognormal(
+            mu=self.aNrmInitMean,
+            sigma=self.aNrmInitStd,
+            seed=self.RNG.randint(0,2**31-1)).draw(N)
         pLvlInitMeanNow = self.pLvlInitMean + np.log(self.PlvlAggNow) # Account for newer cohorts having higher permanent income
-        self.pLvlNow[which_agents] = Lognormal(pLvlInitMeanNow,
-                                               self.pLvlInitStd,).draw(N,seed=self.RNG.randint(0,2**31-1))
+        self.pLvlNow[which_agents] = Lognormal(
+            pLvlInitMeanNow,
+            self.pLvlInitStd,
+            seed=self.RNG.randint(0,2**31-1)).draw(N)
         self.t_age[which_agents]   = 0 # How many periods since each agent was born
         self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
         return None
@@ -1600,7 +1604,8 @@ class PerfForesightConsumerType(AgentType):
         # Determine who dies
         DiePrb_by_t_cycle = 1.0 - np.asarray(self.LivPrb)
         DiePrb = DiePrb_by_t_cycle[self.t_cycle-1] # Time has already advanced, so look back one
-        DeathShks = Uniform().draw(N=self.AgentCount,seed=self.RNG.randint(0,2**31-1))
+        DeathShks = Uniform(
+            seed=self.RNG.randint(0,2**31-1)).draw(N=self.AgentCount)
         which_agents = DeathShks < DiePrb
         if self.T_age is not None: # Kill agents that have lived for too many periods
             too_old = self.t_age >= self.T_age
@@ -2019,8 +2024,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 IncomeDstnNow    = self.IncomeDstn[t-1] # set current income distribution
                 PermGroFacNow    = self.PermGroFac[t-1] # and permanent growth factor
                 # Get random draws of income shocks from the discrete distribution
-                EventDraws       = IncomeDstnNow.draw_events(N,
-                                                             seed=self.RNG.randint(0,2**31-1))
+                EventDraws       = IncomeDstnNow.draw_events(N)
 
                 PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
                 TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
@@ -2034,8 +2038,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             PermGroFacNow    = self.PermGroFac[0] # and permanent growth factor
            
             # Get random draws of income shocks from the discrete distribution
-            EventDraws       = IncomeDstnNow.draw_events(N,
-                                                         seed=self.RNG.randint(0,2**31-1))
+            EventDraws       = IncomeDstnNow.draw_events(N)
             PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
             TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
 #        PermShkNow[newborn] = 1.0
@@ -2493,7 +2496,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 ShkPrbsRet      = np.array([1.0])
             IncomeDstnRet = DiscreteDistribution(ShkPrbsRet,
                                                  [PermShkValsRet,
-                                                  TranShkValsRet])
+                                                  TranShkValsRet],
+                                                 seed=self.RNG.randint(0, 2**31-1))
 
         # Loop to fill in the list of IncomeDstn random variables.
         for t in range(T_cycle): # Iterate over all periods, counting forward
@@ -2515,7 +2519,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 ).approx(PermShkCount, tail_N=0)
                 ### REPLACE
                 ###REPLACE
-                IncomeDstn.append(combineIndepDstns(PermShkDstn_t,TranShkDstn_t)) # mix the independent distributions
+                IncomeDstn.append(combineIndepDstns(PermShkDstn_t,
+                                                    TranShkDstn_t,
+                                                    seed = self.RNG.randint(0, 2**31-1))) # mix the independent distributions
                 PermShkDstn.append(PermShkDstn_t)
                 TranShkDstn.append(TranShkDstn_t)
         return IncomeDstn, PermShkDstn, TranShkDstn

@@ -93,4 +93,4 @@ class testPersistentShockConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(
             np.mean(self.agent.history['mLvlNow']),
-            1.2043701902476343)
+            1.2043946738813716)

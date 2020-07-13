@@ -75,33 +75,6 @@ Developer overview
 
    If closing a bug, also add "Fixes #1480" where 1480 is the issue number.
 
-Divergence between ``upstream master`` and your feature branch
---------------------------------------------------------------
-
-Never merge the main branch into yours. If GitHub indicates that the
-branch of your Pull Request can no longer be merged automatically, rebase
-onto master::
-
-   git checkout master
-   git pull upstream master
-   git checkout bugfix-for-issue-1480
-   git rebase master
-
-If any conflicts occur, fix the according files and continue::
-
-   git add conflict-file1 conflict-file2
-   git rebase --continue
-
-However, you should only rebase your own branches and must generally not
-rebase any branch which you collaborate on with someone else.
-
-Finally, you must push your rebased branch::
-
-   git push --force origin bugfix-for-issue-1480
-
-(If you are curious, here's a further discussion on the
-`dangers of rebasing <http://tinyurl.com/lll385>`_.
-Also see this `LWN article <http://tinyurl.com/nqcbkj>`_.)
 
 Build environment setup
 -----------------------
