@@ -34,14 +34,8 @@ utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
 
 
-@njit
+@njit(cache=True)
 def searchSSfunc(m, PermGroFac, Rfree, ExIncNext, mNrmNow, cNrmNow):
-    """
-    Finds steady state (normalized) market resources and adds it to the
-    solution.  This is the level of market resources such that the expectation
-    of market resources in the next period is unchanged.  This value doesn't
-    necessarily exist.
-    """
     # Make a linear function of all combinations of c and m that yield mNext = mNow
     mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * ExIncNext
 
@@ -51,19 +45,45 @@ def searchSSfunc(m, PermGroFac, Rfree, ExIncNext, mNrmNow, cNrmNow):
     return res
 
 
-@njit
+# can't cache because of use of globals, perhaps interp or newton_secant?
+# @njit(cache=True)
+def addSSmNrmNumba(PermGroFac, Rfree, ExIncNext, mNrmMinNow, mNrmNow, cNrmNow):
+    """
+    Finds steady state (normalized) market resources and adds it to the
+    solution.  This is the level of market resources such that the expectation
+    of market resources in the next period is unchanged.  This value doesn't
+    necessarily exist.
+    """
+
+    # Minimum market resources plus next income is okay starting guess
+    m_init_guess = mNrmMinNow + ExIncNext
+
+    mNrmSS = newton_secant(
+        searchSSfunc,
+        m_init_guess,
+        args=(PermGroFac, Rfree, ExIncNext, mNrmNow, cNrmNow),
+        disp=False,
+    )
+
+    if mNrmSS.converged:
+        return mNrmSS.root
+    else:
+        return None
+
+
+@njit(cache=True)
 def solveConsPerfForesightNumba(
-    DiscFac,
-    LivPrb,
-    CRRA,
-    Rfree,
-    PermGroFac,
-    MaxKinks,
-    model_BoroCnstArt,
-    sn_hNrm,
-    sn_MPCmin,
-    sn_cFunc_x_list,
-    sn_cFunc_y_list,
+        DiscFac,
+        LivPrb,
+        CRRA,
+        Rfree,
+        PermGroFac,
+        MaxKinks,
+        model_BoroCnstArt,
+        sn_hNrm,
+        sn_MPCmin,
+        sn_cFunc_x_list,
+        sn_cFunc_y_list,
 ):
     DiscFacEff = DiscFac * LivPrb  # return
 
@@ -122,9 +142,9 @@ def solveConsPerfForesightNumba(
             # Adjust the grids of mNrm and cNrm to account for the borrowing constraint.
             cCrit = mCrit - BoroCnstArt
             mNrmNow = np.concatenate(
-                (np.array([BoroCnstArt, mCrit]), mNrmNow[(idx + 1) :])
+                (np.array([BoroCnstArt, mCrit]), mNrmNow[(idx + 1):])
             )
-            cNrmNow = np.concatenate((np.array([0.0, cCrit]), cNrmNow[(idx + 1) :]))
+            cNrmNow = np.concatenate((np.array([0.0, cCrit]), cNrmNow[(idx + 1):]))
 
         else:
             # If it *is* the very last index, then there are only three points
@@ -153,18 +173,6 @@ def solveConsPerfForesightNumba(
     # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
     vFuncNvrsSlope = MPCmin ** (-CRRA / (1.0 - CRRA))  # return
 
-    # Minimum market resources plus next income is okay starting guess
-    m_init_guess = mNrmMinNow + ExIncNext
-
-    try:
-        mNrmSS = newton_secant(
-            searchSSfunc,
-            m_init_guess,
-            args=(PermGroFac, Rfree, ExIncNext, mNrmNow, cNrmNow),
-        )[0]
-    except:
-        mNrmSS = None
-
     return (
         DiscFacEff,
         hNrmNow,
@@ -175,7 +183,6 @@ def solveConsPerfForesightNumba(
         ExIncNext,
         mNrmMinNow,
         vFuncNvrsSlope,
-        mNrmSS,
     )
 
 
@@ -186,15 +193,15 @@ class ConsPerfForesightNumbaSolver(HARKobject):
     """
 
     def __init__(
-        self,
-        solution_next,
-        DiscFac,
-        LivPrb,
-        CRRA,
-        Rfree,
-        PermGroFac,
-        BoroCnstArt,
-        MaxKinks,
+            self,
+            solution_next,
+            DiscFac,
+            LivPrb,
+            CRRA,
+            Rfree,
+            PermGroFac,
+            BoroCnstArt,
+            MaxKinks,
     ):
         """
         Constructor for a new ConsPerfForesightSolver.
@@ -245,15 +252,15 @@ class ConsPerfForesightNumbaSolver(HARKobject):
         )
 
     def assignParameters(
-        self,
-        solution_next,
-        DiscFac,
-        LivPrb,
-        CRRA,
-        Rfree,
-        PermGroFac,
-        BoroCnstArt,
-        MaxKinks,
+            self,
+            solution_next,
+            DiscFac,
+            LivPrb,
+            CRRA,
+            Rfree,
+            PermGroFac,
+            BoroCnstArt,
+            MaxKinks,
     ):
         """
         Saves necessary parameters as attributes of self for use by other methods.
@@ -317,7 +324,6 @@ class ConsPerfForesightNumbaSolver(HARKobject):
             self.ExIncNext,
             self.mNrmMinNow,
             self.vFuncNvrsSlope,
-            self.mNrmSS,
         ) = solveConsPerfForesightNumba(
             self.DiscFac,
             self.LivPrb,
@@ -364,10 +370,17 @@ class ConsPerfForesightNumbaSolver(HARKobject):
             hNrm=self.hNrmNow,
             MPCmin=self.MPCmin,
             MPCmax=self.MPCmax,
-        )  # not numba
+        )
 
         # Add mNrmSS to the solution and return it
-        solution.mNrmSS = self.mNrmSS
+        solution.mNrmSS = addSSmNrmNumba(
+            self.PermGroFac,
+            self.Rfree,
+            self.ExIncNext,
+            self.mNrmMinNow,
+            self.mNrmNow,
+            self.cNrmNow,
+        )
 
         return solution
 

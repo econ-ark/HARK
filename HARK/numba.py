@@ -7,7 +7,7 @@ from __future__ import division  # Import Python 3.x division function
 from __future__ import print_function
 
 import numpy as np
-from numba import njit, vectorize, float64
+from numba import vectorize, njit
 
 
 # ==============================================================================
@@ -15,7 +15,8 @@ from numba import njit, vectorize, float64
 # ==============================================================================
 
 
-def CRRAutility(gam, target="parallel"):
+@vectorize(cache=True)
+def CRRAutility(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) utility of consumption c
     given risk aversion parameter gam.
@@ -40,21 +41,14 @@ def CRRAutility(gam, target="parallel"):
     -1.0
     """
 
-    @vectorize([float64(float64)], target=target)
-    def logU(c):
+    if gam == 1:
         return np.log(c)
-
-    @vectorize([float64(float64)], target=target)
-    def CRRAU(c):
+    else:
         return c ** (1.0 - gam) / (1.0 - gam)
 
-    if gam == 1:
-        return logU
-    else:
-        return CRRAU
 
-
-def CRRAutilityP(gam, target="parallel"):
+@vectorize(cache=True)
+def CRRAutilityP(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) marginal utility of consumption
     c given risk aversion parameter gam.
@@ -71,13 +65,11 @@ def CRRAutilityP(gam, target="parallel"):
     (unnamed) : float
         Marginal utility
     """
-
-    @vectorize([float64(float64)], target=target)
-    def uP(c):
-        return c ** -gam
+    return c ** -gam
 
 
-def CRRAutilityPP(gam, target="parallel"):
+@vectorize(cache=True)
+def CRRAutilityPP(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal utility of
     consumption c given risk aversion parameter gam.
@@ -94,13 +86,11 @@ def CRRAutilityPP(gam, target="parallel"):
     (unnamed) : float
         Marginal marginal utility
     """
-
-    @vectorize([float64(float64)], target=target)
-    def uPP(c):
-        return -gam * c ** (-gam - 1.0)
+    return -gam * c ** (-gam - 1.0)
 
 
-def CRRAutilityPPP(gam, target="parallel"):
+@vectorize(cache=True)
+def CRRAutilityPPP(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
     utility of consumption c given risk aversion parameter gam.
@@ -117,13 +107,11 @@ def CRRAutilityPPP(gam, target="parallel"):
     (unnamed) : float
         Marginal marginal marginal utility
     """
-
-    @vectorize([float64(float64)], target=target)
-    def uPPP(c):
-        return (gam + 1.0) * gam * c ** (-gam - 2.0)
+    return (gam + 1.0) * gam * c ** (-gam - 2.0)
 
 
-def CRRAutilityPPPP(gam, target="parallel"):
+@vectorize(cache=True)
+def CRRAutilityPPPP(c, gam):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
     marginal utility of consumption c given risk aversion parameter gam.
@@ -140,13 +128,11 @@ def CRRAutilityPPPP(gam, target="parallel"):
     (unnamed) : float
         Marginal marginal marginal marginal utility
     """
-
-    @vectorize([float64(float64)], target=target)
-    def uPPPP(c):
-        return -(gam + 2.0) * (gam + 1.0) * gam * c ** (-gam - 3.0)
+    return -(gam + 2.0) * (gam + 1.0) * gam * c ** (-gam - 3.0)
 
 
-def CRRAutility_inv(gam, target="parallel"):
+@vectorize(cache=True)
+def CRRAutility_inv(u, gam):
     """
     Evaluates the inverse of the CRRA utility function (with risk aversion para-
     meter gam) at a given utility level u.
@@ -163,22 +149,14 @@ def CRRAutility_inv(gam, target="parallel"):
     (unnamed) : float
         Consumption corresponding to given utility value
     """
-
-    @vectorize([float64(float64)], target=target)
-    def invLogU(u):
+    if gam == 1:
         return np.exp(u)
-
-    @vectorize([float64(float64)], target=target)
-    def invU(u):
+    else:
         return ((1.0 - gam) * u) ** (1 / (1.0 - gam))
 
-    if gam == 1:
-        return invLogU
-    else:
-        return invU
 
-
-def CRRAutilityP_inv(gam, target="parallel"):
+@vectorize(cache=True)
+def CRRAutilityP_inv(uP, gam):
     """
     Evaluates the inverse of the CRRA marginal utility function (with risk aversion
     parameter gam) at a given marginal utility level uP.
@@ -195,13 +173,11 @@ def CRRAutilityP_inv(gam, target="parallel"):
     (unnamed) : float
         Consumption corresponding to given marginal utility value.
     """
-
-    @vectorize([float64(float64)], target=target)
-    def invUP(uP):
-        return uP ** (-1.0 / gam)
+    return uP ** (-1.0 / gam)
 
 
-def CRRAutility_invP(gam, target="parallel"):
+@vectorize(cache=True)
+def CRRAutility_invP(u, gam):
     """
     Evaluates the derivative of the inverse of the CRRA utility function (with
     risk aversion parameter gam) at a given utility level u.
@@ -218,22 +194,14 @@ def CRRAutility_invP(gam, target="parallel"):
     (unnamed) : float
         Marginal consumption corresponding to given utility value
     """
-
-    @vectorize([float64(float64)], target=target)
-    def invPLogU(u):
+    if gam == 1:
         return np.exp(u)
-
-    @vectorize([float64(float64)], target=target)
-    def invPU(u):
+    else:
         return ((1.0 - gam) * u) ** (gam / (1.0 - gam))
 
-    if gam == 1:
-        return invPLogU
-    else:
-        return invPU
 
-
-def CRRAutilityP_invP(gam, target="parallel"):
+@vectorize(cache=True)
+def CRRAutilityP_invP(uP, gam):
     """
     Evaluates the derivative of the inverse of the CRRA marginal utility function
     (with risk aversion parameter gam) at a given marginal utility level uP.
@@ -250,13 +218,11 @@ def CRRAutilityP_invP(gam, target="parallel"):
     (unnamed) : float
         Marginal consumption corresponding to given marginal utility value
     """
-
-    @vectorize([float64(float64)], target=target)
-    def invPUP(uP):
-        return (-1.0 / gam) * uP ** (-1.0 / gam - 1.0)
+    return (-1.0 / gam) * uP ** (-1.0 / gam - 1.0)
 
 
-def CARAutility(alpha, target="parallel"):
+@vectorize(cache=True)
+def CARAutility(c, alpha):
     """
     Evaluates constant absolute risk aversion (CARA) utility of consumption c
     given risk aversion parameter alpha.
@@ -273,13 +239,11 @@ def CARAutility(alpha, target="parallel"):
     (unnamed): float
         Utility
     """
-
-    @vectorize([float64(float64)], target=target)
-    def u(c):
-        return 1 - np.exp(-alpha * c) / alpha
+    return 1 - np.exp(-alpha * c) / alpha
 
 
-def CARAutilityP(alpha, target="parallel"):
+@vectorize(cache=True)
+def CARAutilityP(c, alpha):
     """
     Evaluates constant absolute risk aversion (CARA) marginal utility of
     consumption c given risk aversion parameter alpha.
@@ -296,13 +260,11 @@ def CARAutilityP(alpha, target="parallel"):
     (unnamed): float
         Marginal utility
     """
-
-    @vectorize([float64(float64)], target=target)
-    def uP(c):
-        return np.exp(-alpha * c)
+    return np.exp(-alpha * c)
 
 
-def CARAutilityPP(alpha, target="parallel"):
+@vectorize(cache=True)
+def CARAutilityPP(c, alpha):
     """
     Evaluates constant absolute risk aversion (CARA) marginal marginal utility
     of consumption c given risk aversion parameter alpha.
@@ -319,13 +281,11 @@ def CARAutilityPP(alpha, target="parallel"):
     (unnamed): float
         Marginal marginal utility
     """
-
-    @vectorize([float64(float64)], target=target)
-    def uPP(c):
-        return -alpha * np.exp(-alpha * c)
+    return -alpha * np.exp(-alpha * c)
 
 
-def CARAutilityPPP(alpha, target="parallel"):
+@vectorize(cache=True)
+def CARAutilityPPP(c, alpha):
     """
     Evaluates constant absolute risk aversion (CARA) marginal marginal marginal
     utility of consumption c given risk aversion parameter alpha.
@@ -342,13 +302,11 @@ def CARAutilityPPP(alpha, target="parallel"):
     (unnamed): float
         Marginal marginal marginal utility
     """
-
-    @vectorize([float64(float64)], target=target)
-    def uPPP(c):
-        return alpha ** 2.0 * np.exp(-alpha * c)
+    return alpha ** 2.0 * np.exp(-alpha * c)
 
 
-def CARAutility_inv(alpha, target="parallel"):
+@vectorize(cache=True)
+def CARAutility_inv(u, alpha):
     """
     Evaluates inverse of constant absolute risk aversion (CARA) utility function
     at utility level u given risk aversion parameter alpha.
@@ -365,13 +323,11 @@ def CARAutility_inv(alpha, target="parallel"):
     (unnamed): float
         Consumption value corresponding to u
     """
-
-    @vectorize([float64(float64)], target=target)
-    def invU(u):
-        return -1.0 / alpha * np.log(alpha * (1 - u))
+    return -1.0 / alpha * np.log(alpha * (1 - u))
 
 
-def CARAutilityP_inv(alpha, target="parallel"):
+@vectorize(cache=True)
+def CARAutilityP_inv(u, alpha):
     """
     Evaluates the inverse of constant absolute risk aversion (CARA) marginal
     utility function at marginal utility uP given risk aversion parameter alpha.
@@ -388,13 +344,11 @@ def CARAutilityP_inv(alpha, target="parallel"):
     (unnamed): float
         Consumption value corresponding to uP
     """
-
-    @vectorize([float64(float64)], target=target)
-    def invUP(u):
-        return -1.0 / alpha * np.log(u)
+    return -1.0 / alpha * np.log(u)
 
 
-def CARAutility_invP(alpha, target="parallel"):
+@vectorize(cache=True)
+def CARAutility_invP(u, alpha):
     """
     Evaluates the derivative of inverse of constant absolute risk aversion (CARA)
     utility function at utility level u given risk aversion parameter alpha.
@@ -411,10 +365,7 @@ def CARAutility_invP(alpha, target="parallel"):
     (unnamed): float
         Marginal onsumption value corresponding to u
     """
-
-    @vectorize([float64(float64)], target=target)
-    def invPU(u):
-        return 1.0 / (alpha * (1.0 - u))
+    return 1.0 / (alpha * (1.0 - u))
 
 
 @njit(cache=True)

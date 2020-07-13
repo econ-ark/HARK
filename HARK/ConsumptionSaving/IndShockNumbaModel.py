@@ -17,8 +17,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 from HARK.ConsumptionSaving.ConsIndShockNumba import ConsPerfForesightSolverNumba
 from HARK.interpolation import LowerEnvelope, LinearInterp, CubicInterp
-from HARK.numba import splrep, splevec
-from HARK.utilities import (
+from HARK.numba import (
     CRRAutility,
     CRRAutilityP,
     CRRAutilityPP,
@@ -27,6 +26,7 @@ from HARK.utilities import (
     CRRAutility_inv,
     CRRAutilityP_invP,
 )
+from HARK.numba import splrep, splevec
 
 utility = CRRAutility
 utilityP = CRRAutilityP
@@ -231,7 +231,7 @@ def solveConsIndShockLinearNumba(
 
     # Finds interpolation points (c,m) for the consumption function.
 
-    cNrmNow = EndOfPrdvP ** (-1.0 / CRRA)
+    cNrmNow = utilityP_inv(EndOfPrdvP, CRRA)
     mNrmNow = cNrmNow + aNrm
 
     # Limiting consumption is zero as m approaches mNrmMin
@@ -308,6 +308,8 @@ def solveConsIndShockCubicNumba(
     mNrmNext = Rfree / (PermGroFac * PermShkVals_temp) * aNrm_temp + TranShkVals_temp
     # CDC 20191205: This should be divided by LivPrb[0] for Blanchard insurance
 
+    # this is where linear and cubic start to differ
+
     # interp does not take ndarray inputs on 3rd argument, so flatten then reshape
     cFuncCoeffs = splrep(sn_cFunc_x_list, sn_cFunc_y_list)
     cFuncNext = splevec(
@@ -343,7 +345,7 @@ def solveConsIndShockCubicNumba(
         * PermGroFac ** (-CRRA - 1.0)
         * np.sum(PermShkVals_temp ** (-CRRA - 1.0) * vPPfuncNext * ShkPrbs_temp, axis=0)
     )
-    dcda = EndOfPrdvPP / (-CRRA * cNrm[1:] ** (-CRRA - 1.0))
+    dcda = EndOfPrdvPP / utilityPP(cNrm[1:], CRRA)
     MPC = dcda / (dcda + 1.0)
     MPC = insert(MPC, 0, MPCmaxNow)
 
@@ -397,8 +399,8 @@ def addvFuncNumba(
     EndOfPrdv = DiscFacEff * np.sum(VLvlNext * ShkPrbs_temp, axis=0)
 
     # value transformed through inverse utility
-    EndOfPrdvNvrs = ((1.0 - CRRA) * EndOfPrdv) ** (1 / (1.0 - CRRA))
-    EndOfPrdvNvrsP = EndOfPrdvP * (((1.0 - CRRA) * EndOfPrdv) ** (CRRA / (1.0 - CRRA)))
+    EndOfPrdvNvrs = utility_inv(EndOfPrdv, CRRA)
+    EndOfPrdvNvrsP = EndOfPrdvP * utility_invP(EndOfPrdv, CRRA)
     EndOfPrdvNvrs = insert(EndOfPrdvNvrs, 0, 0.0)
 
     # This is a very good approximation, vNvrsPP = 0 at the asset minimum
@@ -424,14 +426,12 @@ def addvFuncNumba(
     EOPvFaNN = splevec(aNrmNow.flatten(), aNrm_temp, EndOfPrdvNvrs, EOPvFCoeffs)
     EOPvFaNN = (EOPvFaNN ** (1.0 - CRRA) / (1.0 - CRRA)).reshape(aNrmNow.shape)
 
-    vNrmNow = (cNrmNow ** (1.0 - CRRA) / (1.0 - CRRA)) + EOPvFaNN
-    vPnow = cNrmNow ** -CRRA
+    vNrmNow = utility(cNrmNow, CRRA) + EOPvFaNN
+    vPnow = utilityP(cNrmNow, CRRA)
 
     # Construct the beginning-of-period value function
-    vNvrs = ((1.0 - CRRA) * vNrmNow) ** (
-        1 / (1.0 - CRRA)
-    )  # value transformed through inverse utility
-    vNvrsP = vPnow * (((1.0 - CRRA) * vNrmNow) ** (CRRA / (1.0 - CRRA)))
+    vNvrs = utility_inv(vNrmNow, CRRA)  # value transformed through inverse utility
+    vNvrsP = vPnow * utility_invP(vNrmNow, CRRA)
     mNrm_temp = insert(mNrm_temp, 0, mNrmMinNow)
     vNvrs = insert(vNvrs, 0, 0.0)
     vNvrsP = insert(vNvrsP, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
@@ -790,8 +790,6 @@ class ConsIndShockSolverNumba(ConsIndShockNumbaSolverBasic):
                 sn_cFunc_dydx,
             ) = self.solution_next.cFunc.eval_with_derivative(sn_cFunc_x_list)
 
-            sn_vFunc_y_list = self.solution_next.vFunc(sn_cFunc_x_list)
-
             (
                 self.EndOfPrdvP,
                 self.cNrm,
@@ -878,9 +876,10 @@ class ConsIndShockSolverNumba(ConsIndShockNumbaSolverBasic):
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used (to prepare for next period)
         if self.vFuncBool:
-            cFunc_x_list = self.aXtraGrid
+            cFunc_x_list = self.solution_next.vFunc.func.x_list
             cFunc_y_list = solution.cFunc(cFunc_x_list)
-            sn_vFunc_y_list = self.solution_next.vFunc(cFunc_x_list)
+            sn_vFunc_y_list = self.solution_next.vFunc.y_list
+
             (
                 self.aNrm_temp,
                 self.EndOfPrdvNvrs,
