@@ -182,7 +182,7 @@ plotFuncs(AgeVaryingRiskPercType.ShareFunc, 0., 200.)
 
 # Create a grid of market resources for the plots    
 mMin = 0    # Minimum ratio of assets to income to plot
-mMax = 1e3 # Maximum ratio of assets to income to plot
+mMax = 5*1e2 # Maximum ratio of assets to income to plot
 mPts = 1000 # Number of points to plot 
 
 eevalgrid = np.linspace(0,mMax,mPts) # range of values of assets for the plot
@@ -213,7 +213,7 @@ for rcount in risky_count_grid:
 
     # Compute the analytical Merton-Samuelson limiting portfolio share
     RiskyVar = agent.RiskyStd**2
-    RiskPrem = agent.RiskyAvg - agent.Rfree
+    RiskPrem = agent.RiskyAvg - agent.Rfree 
     MS_limit = RiskyShareMertSamLogNormal(RiskPrem,
                                           agent.CRRA,
                                           RiskyVar)
@@ -229,9 +229,9 @@ for rcount in risky_count_grid:
                  agent.solution[a]\
                  .ShareFuncAdj(eevalgrid),
                  label = 't = %i' %(a))
-        
-    plt.axhline(MS_limit, c='k', ls='--', label = 'M&S Limit')
-    plt.axhline(NU_limit, c='k', ls='-.', label = 'Numer. Limit')
+    
+    plt.axhline(NU_limit, c='k', ls='-.', label = 'Exact limit as $m\\rightarrow \\infty$.')
+    plt.axhline(MS_limit, c='k', ls='--', label = 'M&S Limit without returns discretization.')
 
     plt.ylim(0,1.05)
     plt.xlim(eevalgrid[0],eevalgrid[-1])
