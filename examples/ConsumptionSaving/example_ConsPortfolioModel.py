@@ -236,7 +236,7 @@ mPts = 1000 # Number of points to plot
 eevalgrid = np.linspace(0,mMax,mPts) # range of values of assets for the plot
 
 # Number of points that will be used to approximate the risky distribution
-risky_count_grid = [5,50]
+risky_count_grid = [5,200]
 
 
 # %% Calibration and solution
