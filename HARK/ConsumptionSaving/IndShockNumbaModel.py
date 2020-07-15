@@ -876,9 +876,9 @@ class ConsIndShockSolverNumba(ConsIndShockNumbaSolverBasic):
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used (to prepare for next period)
         if self.vFuncBool:
-            cFunc_x_list = self.solution_next.vFunc.func.x_list
+            cFunc_x_list = self.aXtraGrid
             cFunc_y_list = solution.cFunc(cFunc_x_list)
-            sn_vFunc_y_list = self.solution_next.vFunc.y_list
+            sn_vFunc_y_list = self.solution_next.vFunc(cFunc_x_list)
 
             (
                 self.aNrm_temp,
