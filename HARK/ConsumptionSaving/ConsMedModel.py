@@ -735,9 +735,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         
         # Reset MedShkDstn if it exists (it might not because resetRNG is called at init)
         if hasattr(self, 'MedShkDstn'):
-            T = len(self.MedShkDstn)
-            for t in range(T):
-                self.MedShkDstn[t].reset()
+            for dstn in self.MedShkDstn:
+                dstn.reset()
             
     def getShocks(self):
         '''

@@ -142,9 +142,8 @@ class PrefShockConsumerType(IndShockConsumerType):
         
         # Reset PrefShkDstn if it exists (it might not because resetRNG is called at init)
         if hasattr(self, 'PrefShkDstn'):
-            T = len(self.PrefShkDstn)
-            for t in range(T):
-                self.PrefShkDstn[t].reset()
+            for dstn in self.PrefShkDstn:
+                dstn.reset()
         
     def getShocks(self):
         '''

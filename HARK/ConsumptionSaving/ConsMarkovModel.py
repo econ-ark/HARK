@@ -805,9 +805,8 @@ class MarkovConsumerType(IndShockConsumerType):
         if hasattr(self, 'IncomeDstn'):
             T = len(self.IncomeDstn)
             for t in range(T):
-                N = len(self.IncomeDstn[t])
-                for n in range(N):
-                    self.IncomeDstn[t][n].reset()
+                for dstn in self.IncomeDstn[t]:
+                    dstn.reset()
     
 
     def simDeath(self):

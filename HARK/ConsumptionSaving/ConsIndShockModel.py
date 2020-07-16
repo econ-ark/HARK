@@ -2001,7 +2001,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.updateAssetsGrid()
         self.updateSolutionTerminal()
         
-        
     def resetRNG(self):
         '''
         Reset the RNG behavior of this type.  This method is called automatically
@@ -2021,11 +2020,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         
         # Reset IncomeDstn if it exists (it might not because resetRNG is called at init)
         if hasattr(self, 'IncomeDstn'):
-            T = len(self.IncomeDstn)
-            for t in range(T):
-                self.IncomeDstn[t].reset()
+            for dstn in self.IncomeDstn:
+                dstn.reset()
 
-                    
     def getShocks(self):
         '''
         Gets permanent and transitory income shocks for this period.  Samples from IncomeDstn for
