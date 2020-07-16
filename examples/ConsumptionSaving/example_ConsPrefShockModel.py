@@ -25,8 +25,8 @@ print("Solving a preference shock consumer took " + str(t_end - t_start) + " sec
 # Plot the consumption function at each discrete shock
 m = np.linspace(PrefShockExample.solution[0].mNrmMin, 5, 200)
 print("Consumption functions at each discrete shock:")
-for j in range(PrefShockExample.PrefShkDstn[0][1].size):
-    PrefShk = PrefShockExample.PrefShkDstn[0][1][j]
+for j in range(PrefShockExample.PrefShkDstn[0].X.size):
+    PrefShk = PrefShockExample.PrefShkDstn[0].X[j]
     c = PrefShockExample.solution[0].cFunc(m, PrefShk * np.ones_like(m))
     plt.plot(m, c)
 plt.xlim([0.0, None])
@@ -76,8 +76,8 @@ print("Solving a kinky preference consumer took " + str(t_end - t_start) + " sec
 # Plot the consumption function at each discrete shock
 m = np.linspace(KinkyPrefExample.solution[0].mNrmMin, 5, 200)
 print("Consumption functions at each discrete shock:")
-for j in range(KinkyPrefExample.PrefShkDstn[0][1].size):
-    PrefShk = KinkyPrefExample.PrefShkDstn[0][1][j]
+for j in range(KinkyPrefExample.PrefShkDstn[0].X.size):
+    PrefShk = KinkyPrefExample.PrefShkDstn[0].X[j]
     c = KinkyPrefExample.solution[0].cFunc(m, PrefShk * np.ones_like(m))
     plt.plot(m, c)
 plt.ylim([0.0, None])

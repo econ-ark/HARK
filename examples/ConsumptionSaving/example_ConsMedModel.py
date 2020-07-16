@@ -24,8 +24,8 @@ print("Solving a medical shocks consumer took " + mystr(t_end - t_start) + " sec
 M = np.linspace(0, 30, 300)
 pLvl = 1.0
 P = pLvl * np.ones_like(M)
-for j in range(MedicalExample.MedShkDstn[0][0].size):
-    MedShk = MedicalExample.MedShkDstn[0][1][j] * np.ones_like(M)
+for j in range(MedicalExample.MedShkDstn[0].X.size):
+    MedShk = MedicalExample.MedShkDstn[0].X[j] * np.ones_like(M)
     M_temp = M + MedicalExample.solution[0].mLvlMin(pLvl)
     C = MedicalExample.solution[0].cFunc(M_temp, P, MedShk)
     plt.plot(M_temp, C)
@@ -34,8 +34,8 @@ plt.show()
 
 # %%
 # Plot the medical care function
-for j in range(MedicalExample.MedShkDstn[0][0].size):
-    MedShk = MedicalExample.MedShkDstn[0][1][j] * np.ones_like(M)
+for j in range(MedicalExample.MedShkDstn[0].X.size):
+    MedShk = MedicalExample.MedShkDstn[0].X[j] * np.ones_like(M)
     Med = MedicalExample.solution[0].MedFunc(M_temp, P, MedShk)
     plt.plot(M_temp, Med)
 print("Medical care function by medical need shock (constant permanent income)")
@@ -44,8 +44,8 @@ plt.show()
 
 # %%
 # Plot the savings function
-for j in range(MedicalExample.MedShkDstn[0][0].size):
-    MedShk = MedicalExample.MedShkDstn[0][1][j] * np.ones_like(M)
+for j in range(MedicalExample.MedShkDstn[0].X.size):
+    MedShk = MedicalExample.MedShkDstn[0].X[j] * np.ones_like(M)
     Sav = (
         M_temp
         - MedicalExample.solution[0].cFunc(M_temp, P, MedShk)

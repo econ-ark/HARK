@@ -11,7 +11,8 @@ from copy import deepcopy
 import numpy as np
 from HARK import AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver, ValueFunc, \
-                             MargValueFunc, ConsumerSolution, IndShockConsumerType
+                             MargValueFunc, ConsumerSolution, IndShockConsumerType, \
+                             PerfForesightConsumerType
 
 from HARK.distribution import DiscreteDistribution, Uniform
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
@@ -782,6 +783,31 @@ class MarkovConsumerType(IndShockConsumerType):
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.MrkvNow = np.ones(self.AgentCount)*np.searchsorted(Cutoffs,base_draw).astype(int)
         self.MrkvNow = self.MrkvNow.astype(int)
+        
+        
+    def resetRNG(self):
+        '''
+        Extended method that ensures random shocks are drawn from the same sequence
+        on each simulation, which is important for structural estimation.  This
+        method is called automatically by initializeSim().
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        PerfForesightConsumerType.resetRNG(self)
+        
+        # Reset IncomeDstn if it exists (it might not because resetRNG is called at init)
+        if hasattr(self, 'IncomeDstn'):
+            T = len(self.IncomeDstn)
+            for t in range(T):
+                for dstn in self.IncomeDstn[t]:
+                    dstn.reset()
+    
 
     def simDeath(self):
         '''
