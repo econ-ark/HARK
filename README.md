@@ -35,7 +35,7 @@
 
 HARK is a toolkit for the structural modeling of economic choices of optimizing and non-optimizing heterogeneous agents. For more information on using HARK, see the [Econ-ARK Website](https://econ-ark.org).
 
-The Econ-ARK project uses an [open governance model](./GOVERNANCE.md) and is fiscally sponsored by [NumFOCUS](https://numfocus.org/). Consider making a [tax-deductible donation](https://numfocus.salsalabs.org/donate-to-econ-ark/index.html) to help the project pay for developer time, professional services, travel, workshops, and a variety of other needs.
+The Econ-ARK project uses an [open governance model](https://github.com/econ-ark/governance) and is fiscally sponsored by [NumFOCUS](https://numfocus.org/). Consider making a [tax-deductible donation](https://numfocus.salsalabs.org/donate-to-econ-ark/index.html) to help the project pay for developer time, professional services, travel, workshops, and a variety of other needs.
 
 <div align="center">
   <a href="https://numfocus.org/project/econ-ark">
@@ -87,7 +87,7 @@ We start with almost the simplest possible consumption model: A consumer with CR
 
 has perfect foresight about everything except the (stochastic) date of death.
 
-The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm) as:
+The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wiki/Bellman_equation) as:
 
 <div align="center">
   <img height="80px" src="https://github.com/econ-ark/HARK/blob/master/doc/images/usage-agent-problem-bellman-form.png">
@@ -139,15 +139,15 @@ Or you can retrieve the solved value for human wealth normalized by permanent in
 # Retrieve the solved value for human wealth normalized by permanent income 
 PFexample.solution[0].hNrm
 ```
-For a detailed explanation of the above example please see the demo notebook [*A Gentle Introduction to HARK*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK.ipynb).
+For a detailed explanation of the above example please see the demo notebook [*A Gentle Introduction to HARK*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK-PerfForesightCRRA.ipynb).
 
 For more examples please visit the [econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
 
 ## Citation
 
-If using Econ-ARK in your work or research please [cite our Digital Object Identifier](http://doi.org/10.5281/zenodo.1001068) or copy the BibTex below.
+If using Econ-ARK in your work or research please [cite our Digital Object Identifier](http://doi.org/10.5281/zenodo.1332015) or copy the BibTex below.
 
-[![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1332015.svg)](https://doi.org/10.5281/zenodo.1332015)
 
 [1] Carroll, Christopher D, Palmer, Nathan, White, Matthew N., Kazil, Jacqueline, Low, David C, & Kaufman, Alexander. (2017, October 3). *econ-ark/HARK*
 
@@ -175,15 +175,14 @@ For more support options see [SUPPORT.md](./.github/SUPPORT.md).
 
 ## Release Types
 
-* **Current**: Under active development. Code for the Current release is in the branch for its major version number (for example, v1.x).
+* **Current**: Under active development. Code for the Current release is in the branch for its major version number (for example, v0.10.x).
 * **Development**: Under active development. Code for the Current release is in the development.
-* **Nightly**: Code from the master branch built every night when there are changes. Use with caution.
 
 Current releases follow [Semantic Versioning](https://semver.org/). For more information please see the [Release documentation](doc/release/README.md).
 
 ## API Documentation
 
-Documentation for the latest release is at [hark.readthedocs.io](https://hark.readthedocs.io/en/latest/). Version-specific documentation is available from the same source.
+Documentation for the latest release is at [HARK ReadTheDocs](https://hark.readthedocs.io/en/latest/). Version-specific documentation is available from the same source.
 
 ## Introduction
 
@@ -193,7 +192,7 @@ Most of what economists have done so far with 'big data' has been like what Kepl
 
 An alternative approach called 'structural modeling' aims to do, for economic data, what Newton did for astronomical data: Provide a deep and rigorous mathematical (or computational) framework that distills the essence of the underlying behavior that produces the 'big data.'
 
-The notebook [*A Gentle Introduction to HARK*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK.ipynb) details how you can easily utilize our toolkit for structural modeling. Starting with a simple [Perfect Foresight Model](https://en.wikipedia.org/wiki/Rational_expectations) we solve an agent problem, then experiment with adding [income shocks](https://en.wikipedia.org/wiki/Shock_(economics)) and changing constructed attributes.
+The notebook [*A Gentle Introduction to HARK*](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK-PerfForesightCRRA.ipynb) details how you can easily utilize our toolkit for structural modeling. Starting with a simple [Perfect Foresight Model](https://en.wikipedia.org/wiki/Rational_expectations) we solve an agent problem, then experiment with adding [income shocks](https://en.wikipedia.org/wiki/Shock_(economics)) and changing constructed attributes.
 
 ### For Economists: Structural Modeling with HARK
 
@@ -225,7 +224,7 @@ Contributions go far beyond pull requests and commits. Although we love giving y
 * REAME.md corrections or redesigns
 * Adding unit, or functional tests
 * [Triaging GitHub issues](https://github.com/econ-ark/HARK/issues?utf8=%E2%9C%93&q=label%3A%E2%80%9DTag%3A+Triage+Needed%E2%80%9D+) -- e.g. pointing out the relevant files, checking for reproducibility
-* [Searching for #econ-ark on twitter](https://twitter.com/search?q=webpack) and helping someone else who needs help
+* [Searching for #econ-ark on twitter](https://twitter.com/search?q=econ-ark) and helping someone else who needs help
 * Answering questions from StackOverflow tagged with [econ-ark](https://stackoverflow.com/questions/tagged/econ-ark)
 * Teaching others how to contribute to HARK
 * Blogging, speaking about, or creating tutorials about HARK
@@ -240,9 +239,6 @@ To install for development see the [Quickstart Guide](./Documentation/quick-star
 For more information on contributing to HARK please see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Current Project Team Members
-
-For information about the governance of the Econ-ARK project, see
-[GOVERNANCE.md](./GOVERNANCE.md).
 
 Collaborators follow the [COLLABORATOR_GUIDE.md](./COLLABORATOR_GUIDE.md) in maintaining the Econ-ARK project.
 

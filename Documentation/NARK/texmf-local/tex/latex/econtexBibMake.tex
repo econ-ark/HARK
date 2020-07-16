@@ -1,0 +1,7 @@
+
+%\write18{if [ `kpsewhich economics.bib` != '' ]; then touch economics.bib    ; fi} # This should be done only for final versions AFTER bibexport has occurred and \jobname.bib is populated 
+\write18{if [ ! -f \jobname.bib     ]; then touch \jobname.bib     ; fi}
+\write18{if [ ! -f \jobname-Add.bib ]; then touch \jobname-Add.bib ; fi}
+
+\bibliographystyle{econtex}
+\bibliography{economics,\jobname,\jobname-Add}

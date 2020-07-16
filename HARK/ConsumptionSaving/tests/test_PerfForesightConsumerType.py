@@ -69,12 +69,12 @@ class testPerfForesightConsumerType(unittest.TestCase):
         self.agent_infinite.simulate()
 
         self.assertAlmostEqual(
-            np.mean(self.agent_infinite.mNrmNow_hist,axis=1)[40],
+            np.mean(self.agent_infinite.history['mNrmNow'],axis=1)[40],
             -23.008063500363942
         )
 
         self.assertAlmostEqual(
-            np.mean(self.agent_infinite.mNrmNow_hist,axis=1)[100],
+            np.mean(self.agent_infinite.history['mNrmNow'],axis=1)[100],
             -27.164608851546927
         )
 
@@ -86,11 +86,11 @@ class testPerfForesightConsumerType(unittest.TestCase):
         self.agent_infinite.simulate(40)
 
         self.assertAlmostEqual(
-            np.mean(self.agent_infinite.mNrmNow_hist,axis=1)[40],
+            np.mean(self.agent_infinite.history['mNrmNow'],axis=1)[40],
             -23.008063500363942
         )
 
         self.assertAlmostEqual(
-            np.mean(self.agent_infinite.mNrmNow_hist,axis=1)[100],
+            np.mean(self.agent_infinite.history['mNrmNow'],axis=1)[100],
             -29.140261331951606
         )

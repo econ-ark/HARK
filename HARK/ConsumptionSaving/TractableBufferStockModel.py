@@ -57,7 +57,7 @@ class TractableConsumerSolution(Solution):
     while employed, and a perfect foresight consumption function while unemployed.
     The solution includes a consumption function constructed from the lists.
     '''
-    def __init__(self, mNrm_list=[], cNrm_list=[], MPC_list=[], cFunc_U=NullFunc, cFunc=NullFunc):
+    def __init__(self, mNrm_list=None, cNrm_list=None, MPC_list=None, cFunc_U=NullFunc, cFunc=NullFunc):
         '''
         The constructor for a new TractableConsumerSolution object.
 
@@ -79,9 +79,9 @@ class TractableConsumerSolution(Solution):
         -------
         new instance of TractableConsumerSolution
         '''
-        self.mNrm_list = mNrm_list
-        self.cNrm_list = cNrm_list
-        self.MPC_list = MPC_list
+        self.mNrm_list = mNrm_list if mNrm_list is not None else list()
+        self.cNrm_list = cNrm_list if cNrm_list is not None else list()
+        self.MPC_list = MPC_list if MPC_list is not None else list()
         self.cFunc_U = cFunc_U
         self.cFunc = cFunc
         self.distance_criteria = ['PointCount']
@@ -352,13 +352,6 @@ class TractableConsumerType(AgentType):
         # Construct an interpolation of the consumption function from the stable arm points
         self.solution[0].cFunc = CubicInterp(self.solution[0].mNrm_list,self.solution[0].cNrm_list,self.solution[0].MPC_list,self.PFMPC*(self.h-1.0),self.PFMPC)
         self.solution[0].cFunc_U = lambda m : self.PFMPC*m
-
-    def update():
-        '''
-        This method does absolutely nothing, but should remain here for compati-
-        bility with cstwMPC when doing the "tractable" version.
-        '''
-        return None
 
     def simBirth(self,which_agents):
         '''

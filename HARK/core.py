@@ -219,6 +219,7 @@ class AgentType(HARKobject):
         self.track_vars         = [] # NOQA
         self.poststate_vars     = [] # NOQA
         self.read_shocks        = False # NOQA
+        self.history            = {}
         self.assignParameters(**kwds) # NOQA
         self.resetRNG() # NOQA
 
@@ -445,7 +446,7 @@ class AgentType(HARKobject):
         Makes a pre-specified history of shocks for the simulation.  Shock variables should be named
         in self.shock_vars, a list of strings that is subclass-specific.  This method runs a subset
         of the standard simulation loop by simulating only mortality and shocks; each variable named
-        in shock_vars is stored in a T_sim x AgentCount array in an attribute of self named X_hist.
+        in shock_vars is stored in a T_sim x AgentCount array in history dictionary self.history[X].
         Automatically sets self.read_shocks to True so that these pre-specified shocks are used for
         all subsequent calls to simulate().
 
@@ -462,16 +463,16 @@ class AgentType(HARKobject):
 
         # Make blank history arrays for each shock variable (and mortality)
         for var_name in self.shock_vars:
-            setattr(self, var_name+'_hist', np.zeros((self.T_sim, self.AgentCount)) + np.nan)
-        setattr(self, 'who_dies_hist', np.zeros((self.T_sim, self.AgentCount), dtype=bool))
+            self.history[var_name] = np.zeros((self.T_sim, self.AgentCount)) + np.nan
+        self.history['who_dies'] = np.zeros((self.T_sim, self.AgentCount), dtype=bool)
 
         # Make and store the history of shocks for each period
         for t in range(self.T_sim):
             self.getMortality()
-            self.who_dies_hist[t,:] = self.who_dies
+            self.history['who_dies'][t,:] = self.who_dies
             self.getShocks()
             for var_name in self.shock_vars:
-                getattr(self, var_name + '_hist')[self.t_sim,:] = getattr(self, var_name)
+                self.history[var_name][self.t_sim,:] = getattr(self, var_name)
             self.t_sim += 1
             self.t_age = self.t_age + 1  # Age all consumers by one period
             self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
@@ -497,7 +498,7 @@ class AgentType(HARKobject):
         None
         '''
         if self.read_shocks:
-            who_dies = self.who_dies_hist[self.t_sim,:]
+            who_dies = self.history['who_dies'][self.t_sim,:]
         else:
             who_dies = self.simDeath()
         self.simBirth(who_dies)
@@ -557,11 +558,13 @@ class AgentType(HARKobject):
 
     def readShocks(self):
         '''
-        Reads values of shock variables for the current period from history arrays.  For each var-
-        iable X named in self.shock_vars, this attribute of self is set to self.X_hist[self.t_sim,:].
+        Reads values of shock variables for the current period from history arrays.
+        For each variable X named in self.shock_vars, this attribute of self is
+        set to self.history[X][self.t_sim,:].
 
-        This method is only ever called if self.read_shocks is True.  This can be achieved by using
-        the method makeShockHistory() (or manually after storing a "handcrafted" shock history).
+        This method is only ever called if self.read_shocks is True.  This can
+        be achieved by using the method makeShockHistory() (or manually after
+        storing a "handcrafted" shock history).
 
         Parameters
         ----------
@@ -572,7 +575,7 @@ class AgentType(HARKobject):
         None
         '''
         for var_name in self.shock_vars:
-            setattr(self, var_name, getattr(self, var_name + '_hist')[self.t_sim, :])
+            setattr(self, var_name, self.history[var_name][self.t_sim, :])
 
     def getStates(self):
         '''
@@ -623,8 +626,10 @@ class AgentType(HARKobject):
 
     def simulate(self, sim_periods=None):
         '''
-        Simulates this agent type for a given number of periods. Defaults to self.T_sim if no input.
-        Records histories of attributes named in self.track_vars in attributes named varname_hist.
+        Simulates this agent type for a given number of periods. Defaults to
+        self.T_sim if no input.
+        Records histories of attributes named in self.track_vars in 
+        self.history[varname].
 
         Parameters
         ----------
@@ -659,7 +664,7 @@ class AgentType(HARKobject):
             for t in range(sim_periods):
                 self.simOnePeriod()
                 for var_name in self.track_vars:
-                    getattr(self, var_name + '_hist')[self.t_sim,:] = getattr(self,var_name)
+                    self.history[var_name][self.t_sim,:] = getattr(self,var_name)
                 self.t_sim += 1
 
     def clearHistory(self):
@@ -675,7 +680,7 @@ class AgentType(HARKobject):
         None
         '''
         for var_name in self.track_vars:
-            setattr(self, var_name + '_hist', np.zeros((self.T_sim,self.AgentCount)) + np.nan)
+            self.history[var_name] = np.zeros((self.T_sim,self.AgentCount)) + np.nan
 
 
 def solveAgent(agent, verbose):
@@ -809,7 +814,10 @@ def solveOneCycle(agent, solution_last):
         else:
             solveOnePeriod = agent.solveOnePeriod
 
-        these_args = getArgNames(solveOnePeriod)
+        if hasattr(solveOnePeriod, 'solver_args'):
+            these_args = solveOnePeriod.solver_args
+        else:
+            these_args = getArgNames(solveOnePeriod)
 
         # Update time-varying single period inputs
         for name in agent.time_vary:
@@ -832,6 +840,34 @@ def solveOneCycle(agent, solution_last):
     return solution_cycle
 
 
+def makeOnePeriodOOSolver(solver_class):
+    '''
+    Returns a function that solves a single period consumption-saving
+    problem.
+    Parameters
+    ----------
+    solver_class : Solver
+        A class of Solver to be used.
+    -------
+    solver_function : function
+        A function for solving one period of a problem.
+    '''
+    def onePeriodSolver(**kwds):
+        solver = solver_class(**kwds)
+
+        # not ideal; better if this is defined in all Solver classes
+        if hasattr(solver,'prepareToSolve'):
+            solver.prepareToSolve()
+
+        solution_now = solver.solve()
+        return solution_now
+
+    onePeriodSolver.solver_class = solver_class
+    # This can be revisited once it is possible to export parameters
+    onePeriodSolver.solver_args = getArgNames(solver_class.__init__)[1:]
+
+    return onePeriodSolver
+
 # ========================================================================
 # ========================================================================
 
@@ -841,7 +877,7 @@ class Market(HARKobject):
     dynamic general equilibrium models to solve the "macroeconomic" model as a
     layer on top of the "microeconomic" models of one or more AgentTypes.
     '''
-    def __init__(self, agents=[], sow_vars=[], reap_vars=[], const_vars=[], track_vars=[], dyn_vars=[],
+    def __init__(self, agents=None, sow_vars=None, reap_vars=None, const_vars=None, track_vars=None, dyn_vars=None,
                  millRule=None, calcDynamics=None, act_T=1000, tolerance=0.000001,**kwds):
         '''
         Make a new instance of the Market class.
@@ -887,12 +923,12 @@ class Market(HARKobject):
         -------
         None
     '''
-        self.agents     = agents # NOQA
-        self.reap_vars  = reap_vars # NOQA
-        self.sow_vars   = sow_vars # NOQA
-        self.const_vars = const_vars # NOQA
-        self.track_vars = track_vars # NOQA
-        self.dyn_vars   = dyn_vars # NOQA
+        self.agents     = agents if agents is not None else list() # NOQA
+        self.reap_vars  = reap_vars if reap_vars is not None else list() # NOQA
+        self.sow_vars   = sow_vars if sow_vars is not None else list() # NOQA
+        self.const_vars = const_vars if const_vars is not None else list() # NOQA
+        self.track_vars = track_vars if track_vars is not None else list() # NOQA
+        self.dyn_vars   = dyn_vars if dyn_vars is not None else list() # NOQA
         if millRule is not None:  # To prevent overwriting of method-based millRules
             self.millRule = millRule
         if calcDynamics is not None:  # Ditto for calcDynamics
@@ -900,6 +936,7 @@ class Market(HARKobject):
         self.act_T     = act_T # NOQA
         self.tolerance = tolerance # NOQA
         self.max_loops = 1000 # NOQA
+        self.history            = {}
         self.assignParameters(**kwds)
 
         self.print_parallel_error_once = True
@@ -919,8 +956,6 @@ class Market(HARKobject):
         -------
         None
         '''
-        # for this_type in self.agents:
-        # this_type.solve()
         try:
             multiThreadCommands(self.agents, ['solve()'])
         except Exception as err:
@@ -1068,7 +1103,7 @@ class Market(HARKobject):
         none
         '''
         for var_name in self.track_vars:  # Reset the history of tracked variables
-            setattr(self, var_name + '_hist', [])
+            self.history[var_name] = []
         for var_name in self.sow_vars:  # Set the sow variables to their initial levels
             initial_val = getattr(self, var_name + '_init')
             setattr(self, var_name, initial_val)
@@ -1078,7 +1113,7 @@ class Market(HARKobject):
     def store(self):
         '''
         Record the current value of each variable X named in track_vars in an
-        attribute named X_hist.
+        dictionary field named history[X].
 
         Parameters
         ----------
@@ -1090,12 +1125,13 @@ class Market(HARKobject):
         '''
         for var_name in self.track_vars:
             value_now = getattr(self, var_name)
-            getattr(self, var_name + '_hist').append(value_now)
+            self.history[var_name].append(value_now)
 
     def makeHistory(self):
         '''
         Runs a loop of sow-->cultivate-->reap-->mill act_T times, tracking the
-        evolution of variables X named in track_vars in attributes named X_hist.
+        evolution of variables X named in track_vars in dictionary fields
+        history[X].
 
         Parameters
         ----------
@@ -1133,10 +1169,7 @@ class Market(HARKobject):
         arg_names = list(getArgNames(self.calcDynamics))
         if 'self' in arg_names:
             arg_names.remove('self')
-        for name in arg_names:
-            history_vars_string += ' \'' + name + '\' : self.' + name + '_hist,'
-        update_dict = eval('{' + history_vars_string + '}')
-
+        update_dict = {name : self.history[name] for name in arg_names}
         # Calculate a new dynamic rule and distribute it to the agents in agent_list
         dynamics = self.calcDynamics(**update_dict)  # User-defined dynamics calculator
         for var_name in self.dyn_vars:
@@ -1144,3 +1177,35 @@ class Market(HARKobject):
             for this_type in self.agents:
                 setattr(this_type, var_name, this_obj)
         return dynamics
+
+def distributeParams(agent, param_name,param_count,distribution):
+    '''
+    Distributes heterogeneous values of one parameter to the AgentTypes in self.agents.
+    Parameters
+    ----------
+    agent: AgentType
+        An agent to clone.
+    param_name : string
+        Name of the parameter to be assigned.
+    param_count : int
+        Number of different values the parameter will take on.
+    distribution : Distribution
+        A distribution.
+
+    Returns
+    -------
+    agent_set : [AgentType]
+        A list of param_count agents, ex ante heterogeneous with 
+        respect to param_name. The AgentCount of the original
+        will be split between the agents of the returned
+        list in proportion to the given distribution.
+    '''
+    param_dist = distribution.approx(N=param_count)
+
+    agent_set = [deepcopy(agent) for i in range(param_count)]
+
+    for j in range(param_count):
+        agent_set[j].AgentCount = int(agent.AgentCount*param_dist.pmf[j])
+        agent_set[j].__dict__[param_name] = param_dist.X[j]
+
+    return agent_set

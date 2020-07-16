@@ -10,7 +10,7 @@ from builtins import str
 from builtins import range
 from copy import deepcopy
 import numpy as np
-from HARK import AgentType, HARKobject
+from HARK import AgentType, HARKobject, makeOnePeriodOOSolver
 from HARK.distribution import DiscreteDistribution
 from HARK.interpolation import LowerEnvelope2D, BilinearInterp, VariableLowerBoundFunc2D, \
                                LinearInterpOnInterp1D, LinearInterp, CubicInterp, UpperEnvelope
@@ -899,64 +899,6 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             solution = self.addvPPfunc(solution)
         return solution
 
-
-def solveConsGenIncProcess(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree, pLvlNextFunc,
-                           BoroCnstArt, aXtraGrid, pLvlGrid, vFuncBool, CubicBool):
-    '''
-    Solves the one period problem of a consumer who experiences persistent and
-    transitory shocks to his income.  Unlike in ConsIndShock, consumers do not
-    necessarily have expected persistent income growth that is constant with respect
-    to their current level of pLvl.  Instead, they have a function that translates
-    current pLvl into expected next period pLvl (subject to shocks).
-
-    Parameters
-    ----------
-    solution_next : ConsumerSolution
-        The solution to next period's one period problem.
-    IncomeDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, persistent shocks, transitory shocks.
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
-    DiscFac : float
-        Intertemporal discount factor for future utility.
-    CRRA : float
-        Coefficient of relative risk aversion.
-    Rfree : float
-        Risk free interest factor on end-of-period assets.
-    pLvlNextFunc : float
-        Expected persistent income next period as a function of current pLvl.
-    BoroCnstArt: float or None
-        Borrowing constraint for the minimum allowable assets to end the
-        period with.  Currently ignored, with BoroCnstArt=0 used implicitly.
-    aXtraGrid: np.array
-        Array of "extra" end-of-period (normalized) asset values-- assets
-        above the absolute minimum acceptable level.
-    pLvlGrid: np.array
-        Array of persistent income levels at which to solve the problem.
-    vFuncBool: boolean
-        An indicator for whether the value function should be computed and
-        included in the reported solution.
-    CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear interpolation.
-
-    Returns
-    -------
-    solution : ConsumerSolution
-            The solution to the one period problem, including a consumption
-            function (defined over market resources and persistent income), a
-            marginal value function, bounding MPCs, and normalized human wealth.
-    '''
-    solver = ConsGenIncProcessSolver(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree,
-                                     pLvlNextFunc, BoroCnstArt, aXtraGrid, pLvlGrid, vFuncBool, CubicBool)
-    solver.prepareToSolve()       # Do some preparatory work
-    solution_now = solver.solve()  # Solve the period
-    return solution_now
-
-
 ###############################################################################
 
 # -----------------------------------------------------------------------------
@@ -1005,7 +947,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
         # Initialize a basic ConsumerType
         IndShockConsumerType.__init__(self, cycles=cycles, **params)
-        self.solveOnePeriod = solveConsGenIncProcess  # idiosyncratic shocks solver with explicit persistent income
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsGenIncProcessSolver)
 
     def preSolve(self):
 #        AgentType.preSolve()
@@ -1112,14 +1054,15 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         # Simulate the distribution of persistent income levels by t_cycle in a lifecycle model
         if self.cycles == 1:
             pLvlNow = Lognormal(self.pLvlInitMean,
-                                sigma=self.pLvlInitStd,).draw(self.AgentCount, seed=31382)
+                                sigma=self.pLvlInitStd,
+                                seed=31382
+            ).draw(self.AgentCount)
             pLvlGrid = []  # empty list of time-varying persistent income grids
             # Calculate distribution of persistent income in each period of lifecycle
             for t in range(len(self.PermShkStd)):
                 if t > 0:
                     PermShkNow = self.PermShkDstn[t-1].drawDiscrete(
-                        N=self.AgentCount,
-                        seed=t)
+                        N=self.AgentCount)
                     pLvlNow = self.pLvlNextFunc[t-1](pLvlNow)*PermShkNow
                 pLvlGrid.append(getPercentiles(pLvlNow, percentiles=self.pLvlPctiles))
 
@@ -1127,21 +1070,22 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         elif self.cycles == 0:
             T_long = 1000  # Number of periods to simulate to get to "stationary" distribution
             pLvlNow = Lognormal(mu=self.pLvlInitMean,
-                                sigma=self.pLvlInitStd).draw(self.AgentCount, seed=31382)
+                                sigma=self.pLvlInitStd,
+                                seed=31382).draw(self.AgentCount)
             t_cycle = np.zeros(self.AgentCount, dtype=int)
             for t in range(T_long):
                 LivPrb = LivPrbAll[t_cycle]  # Determine who dies and replace them with newborns
-                draws = Uniform().draw(self.AgentCount, seed=t)
+                draws = Uniform(seed=t).draw(self.AgentCount)
                 who_dies = draws > LivPrb
                 pLvlNow[who_dies] = Lognormal(self.pLvlInitMean,
-                                              self.pLvlInitStd).draw(np.sum(who_dies),  seed=t+92615)
+                                              self.pLvlInitStd,
+                                              seed=t+92615).draw(np.sum(who_dies))
                 t_cycle[who_dies] = 0
                 
                 for j in range(self.T_cycle):  # Update persistent income
                     these = t_cycle == j
                     PermShkTemp = self.PermShkDstn[j].drawDiscrete(
-                        N=np.sum(these),
-                        seed=t+13*j)
+                        N=np.sum(these))
                     pLvlNow[these] = self.pLvlNextFunc[j](pLvlNow[these])*PermShkTemp
                 t_cycle = t_cycle + 1
                 t_cycle[t_cycle == self.T_cycle] = 0
@@ -1178,12 +1122,12 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
         aNrmNow_new = Lognormal(self.aNrmInitMean,
-                                self.aNrmInitStd).draw(
-                                    N,
-                                    seed=self.RNG.randint(0, 2**31-1))
+                                self.aNrmInitStd,
+                                seed=self.RNG.randint(0, 2**31-1)).draw(
+                                    N)
         self.pLvlNow[which_agents] = Lognormal(self.pLvlInitMean,
-                                               self.pLvlInitStd).draw(N, 
-                                                                       seed=self.RNG.randint(0, 2**31-1))
+                                               self.pLvlInitStd, 
+                                               seed=self.RNG.randint(0, 2**31-1)).draw(N)
         self.aLvlNow[which_agents] = aNrmNow_new*self.pLvlNow[which_agents]
         self.t_age[which_agents] = 0  # How many periods since each agent was born
         self.t_cycle[which_agents] = 0  # Which period of the cycle each agent is currently in
@@ -1303,7 +1247,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
     coefficient for (log) persistent income.
     '''
 
-    def __init__(self, cycles=0, time_flow=True, **kwds):
+    def __init__(self, cycles=0, **kwds):
         '''
         Instantiate a new ConsumerType with given data.
 
@@ -1311,8 +1255,6 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        time_flow : boolean
-            Whether time is currently "flowing" forward for this instance.
 
         Returns
         -------

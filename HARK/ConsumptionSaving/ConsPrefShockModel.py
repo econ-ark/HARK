@@ -11,6 +11,7 @@ from __future__ import absolute_import
 from builtins import str
 from builtins import range
 import numpy as np
+from HARK import makeOnePeriodOOSolver
 from HARK.distribution import MeanOneLogNormal
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, ConsumerSolution, ConsIndShockSolver, \
                                    ValueFunc, MargValueFunc, KinkedRconsumerType, ConsKinkedRsolver, \
@@ -72,8 +73,9 @@ class PrefShockConsumerType(IndShockConsumerType):
         IndShockConsumerType.__init__(self,
                                       cycles=cycles,
                                       **params)
-        self.solveOnePeriod = solveConsPrefShock # Choose correct solver
-        
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPrefShockSolver)
+    
+    
     def preSolve(self):
         self.updateSolutionTerminal()
 
@@ -111,16 +113,38 @@ class PrefShockConsumerType(IndShockConsumerType):
         PrefShkDstn = [] # discrete distributions of preference shocks
         for t in range(len(self.PrefShkStd)):
             PrefShkStd = self.PrefShkStd[t]
-            PrefShkDstn.append(
-                MeanOneLogNormal(
-                    sigma=PrefShkStd
-                ).approx(N=self.PrefShkCount,
-                         tail_N=self.PrefShk_tail_N))
-
+            new_dstn = MeanOneLogNormal(sigma=PrefShkStd).approx(
+                                                  N=self.PrefShkCount,
+                                                  tail_N=self.PrefShk_tail_N)
+            PrefShkDstn.append(new_dstn)
+                
         # Store the preference shocks in self (time-varying) and restore time flow
         self.PrefShkDstn = PrefShkDstn
         self.addToTimeVary('PrefShkDstn')
-
+        
+    def resetRNG(self):
+        '''
+        Reset the RNG behavior of this type.  This method is called automatically
+        by initializeSim(), ensuring that each simulation run uses the same sequence
+        of random shocks; this is necessary for structural estimation to work.
+        This method extends IndShockConsumerType.resetRNG() to also reset elements
+        of PrefShkDstn.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.resetRNG(self)
+        
+        # Reset PrefShkDstn if it exists (it might not because resetRNG is called at init)
+        if hasattr(self, 'PrefShkDstn'):
+            for dstn in self.PrefShkDstn:
+                dstn.reset()
+        
     def getShocks(self):
         '''
         Gets permanent and transitory income shocks for this period as well as preference shocks.
@@ -139,10 +163,7 @@ class PrefShockConsumerType(IndShockConsumerType):
             these = t == self.t_cycle
             N = np.sum(these)
             if N > 0:
-                PrefShkNow[these] = self.RNG.permutation(
-                    MeanOneLogNormal(
-                        sigma=self.PrefShkStd[t]
-                    ).approx(N).X)
+                PrefShkNow[these] = self.PrefShkDstn[t].drawDiscrete(N)
         self.PrefShkNow = PrefShkNow
 
     def getControls(self):
@@ -239,7 +260,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType,KinkedRconsumerType):
         params.update(kwds)
         kwds = params
         IndShockConsumerType.__init__(self,**kwds)
-        self.solveOnePeriod = solveConsKinkyPref # Choose correct solver
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsKinkyPrefSolver)
         self.addToTimeInv('Rboro','Rsave')
         self.delFromTimeInv('Rfree')
         
@@ -487,7 +508,7 @@ def solveConsPrefShock(solution_next,IncomeDstn,PrefShkDstn,
         shock, c = cFunc(m,PrefShk), but the (marginal) value function is defined
         unconditionally on the shock, just before it is revealed.
     '''
-    solver = ConsPrefShockSolver(solution_next,IncomeDstn,PrefShkDstn,LivPrb,
+    solver = (solution_next,IncomeDstn,PrefShkDstn,LivPrb,
                              DiscFac,CRRA,Rfree,PermGroFac,BoroCnstArt,aXtraGrid,
                              vFuncBool,CubicBool)
     solver.prepareToSolve()
@@ -558,73 +579,3 @@ class ConsKinkyPrefSolver(ConsPrefShockSolver,ConsKinkedRsolver):
                       Rboro,Rsave,PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
         self.PrefShkPrbs = PrefShkDstn.pmf
         self.PrefShkVals = PrefShkDstn.X
-
-
-def solveConsKinkyPref(solution_next,IncomeDstn,PrefShkDstn,
-                       LivPrb,DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
-                       aXtraGrid,vFuncBool,CubicBool):
-    '''
-    Solves a single period of a consumption-saving model with preference shocks
-    to marginal utility and a different interest rate on saving vs borrowing.
-    Problem is solved using the method of endogenous gridpoints.
-
-    Parameters
-    ----------
-    solution_next : ConsumerSolution
-        The solution to the succeeding one period problem.
-    IncomeDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
-    PrefShkDstn : [np.array]
-        Discrete distribution of the multiplicative utility shifter.  Order:
-        probabilities, preference shocks.
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
-    DiscFac : float
-        Intertemporal discount factor for future utility.
-    CRRA : float
-        Coefficient of relative risk aversion.
-    Rboro: float
-        Interest factor on assets between this period and the succeeding
-        period when assets are negative.
-    Rsave: float
-        Interest factor on assets between this period and the succeeding
-        period when assets are positive.
-    PermGroGac : float
-        Expected permanent income growth factor at the end of this period.
-    BoroCnstArt: float or None
-        Borrowing constraint for the minimum allowable assets to end the
-        period with.  If it is less than the natural borrowing constraint,
-        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-        rowing constraint.
-    aXtraGrid: np.array
-        Array of "extra" end-of-period asset values-- assets above the
-        absolute minimum acceptable level.
-    vFuncBool: boolean
-        An indicator for whether the value function should be computed and
-        included in the reported solution.
-    CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear inter-
-        polation.
-
-    Returns
-    -------
-    solution: ConsumerSolution
-        The solution to the single period consumption-saving problem.  Includes
-        a consumption function cFunc (using linear splines), a marginal value
-        function vPfunc, a minimum acceptable level of normalized market re-
-        sources mNrmMin, normalized human wealth hNrm, and bounding MPCs MPCmin
-        and MPCmax.  It might also have a value function vFunc.  The consumption
-        function is defined over normalized market resources and the preference
-        shock, c = cFunc(m,PrefShk), but the (marginal) value function is defined
-        unconditionally on the shock, just before it is revealed.
-    '''
-    solver = ConsKinkyPrefSolver(solution_next,IncomeDstn,PrefShkDstn,LivPrb,
-                             DiscFac,CRRA,Rboro,Rsave,PermGroFac,BoroCnstArt,
-                             aXtraGrid,vFuncBool,CubicBool)
-    solver.prepareToSolve()
-    solution = solver.solve()
-    return solution

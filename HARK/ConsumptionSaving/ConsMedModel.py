@@ -7,7 +7,7 @@ from builtins import str
 from builtins import range
 import numpy as np
 from scipy.optimize import brentq
-from HARK import HARKobject
+from HARK import HARKobject, makeOnePeriodOOSolver
 from HARK.distribution import addDiscreteOutcomeConstantMean, Lognormal
 from HARK.utilities import CRRAutilityP_inv,\
                            CRRAutility, CRRAutility_inv, CRRAutility_invP, CRRAutilityPP,\
@@ -555,7 +555,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         params.update(kwds)
 
         PersistentShockConsumerType.__init__(self,cycles=cycles,**params)
-        self.solveOnePeriod = solveConsMedShock # Choose correct solver
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsMedShockSolver)
         self.addToTimeInv('CRRAmed')
         self.addToTimeVary('MedPrice')
         
@@ -569,11 +569,11 @@ class MedShockConsumerType(PersistentShockConsumerType):
 
         Parameters
         ----------
-        none
+        None
 
         Returns
         -------
-        none
+        None
         '''
         self.updateIncomeProcess()
         self.updateAssetsGrid()
@@ -714,7 +714,30 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for j in range(len(self.pLvlGrid)): # Then add 0 to the bottom of each pLvlGrid
             this_grid = self.pLvlGrid[j]
             self.pLvlGrid[j] = np.insert(this_grid,0,0.0001)
-
+            
+    def resetRNG(self):
+        '''
+        Reset the RNG behavior of this type.  This method is called automatically
+        by initializeSim(), ensuring that each simulation run uses the same sequence
+        of random shocks; this is necessary for structural estimation to work.
+        This method extends PersistentShockConsumerType.resetRNG() to also reset
+        elements of MedShkDstn.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        PersistentShockConsumerType.resetRNG(self)
+        
+        # Reset MedShkDstn if it exists (it might not because resetRNG is called at init)
+        if hasattr(self, 'MedShkDstn'):
+            for dstn in self.MedShkDstn:
+                dstn.reset()
+            
     def getShocks(self):
         '''
         Gets permanent and transitory income shocks for this period as well as medical need shocks
@@ -735,14 +758,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
             these = t == self.t_cycle
             N = np.sum(these)
             if N > 0:
-                MedShkAvg = self.MedShkAvg[t]
-                MedShkStd = self.MedShkStd[t]
-                MedPrice  = self.MedPrice[t]
-                MedShkNow[these] = self.RNG.permutation(
-                    Lognormal(
-                        mu=np.log(MedShkAvg)-0.5*MedShkStd**2,
-                        sigma=MedShkStd).approx(N).X)
-                MedPriceNow[these] = MedPrice
+                MedShkNow[these] = self.MedShkDstn[t].drawDiscrete(N)
+                MedPriceNow[these] = self.MedPrice[t]
         self.MedShkNow = MedShkNow
         self.MedPriceNow = MedPriceNow
 
@@ -1318,69 +1335,3 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         if self.CubicBool:
             solution = self.addvPPfunc(solution)
         return solution
-
-
-def solveConsMedShock(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CRRAmed,Rfree,MedPrice,
-                 pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool):
-    '''
-    Solve the one period problem for a consumer with shocks to permanent and
-    transitory income as well as medical need shocks (as multiplicative shifters
-    for utility from a second medical care good).
-
-    Parameters
-    ----------
-    solution_next : ConsumerSolution
-        The solution to next period's one period problem.
-    IncomeDstn : [np.array]
-        A list containing three arrays of floats, representing a discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
-    MedShkDstn : [np.array]
-        Discrete distribution of the multiplicative utility shifter for med-
-        ical care. Order: probabilities, preference shocks.
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
-    DiscFac : float
-        Intertemporal discount factor for future utility.
-    CRRA : float
-        Coefficient of relative risk aversion for composite consumption.
-    CRRAmed : float
-        Coefficient of relative risk aversion for medical care.
-    Rfree : float
-        Risk free interest factor on end-of-period assets.
-    MedPrice : float
-        Price of unit of medical care relative to unit of consumption.
-    pLvlNextFunc : float
-        Expected permanent income next period as a function of current pLvl.
-    PrstIncCorr : float
-        Correlation of permanent income from period to period.
-    BoroCnstArt: float or None
-        Borrowing constraint for the minimum allowable assets to end the
-        period with.
-    aXtraGrid: np.array
-        Array of "extra" end-of-period (normalized) asset values-- assets
-        above the absolute minimum acceptable level.
-    pLvlGrid: np.array
-        Array of permanent income levels at which to solve the problem.
-    vFuncBool: boolean
-        An indicator for whether the value function should be computed and
-        included in the reported solution.
-    CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear inter-
-        polation.
-
-    Returns
-    -------
-    solution : ConsumerSolution
-        Solution to this period's problem, including a consumption function,
-        medical spending function, and marginal value function.  The former two
-        are defined over (mLvl,pLvl,MedShk), while the latter is defined only
-        on (mLvl,pLvl), with MedShk integrated out.
-    '''
-    solver = ConsMedShockSolver(solution_next,IncomeDstn,MedShkDstn,LivPrb,DiscFac,CRRA,CRRAmed,Rfree,
-                MedPrice,pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
-    solver.prepareToSolve()       # Do some preparatory work
-    solution_now = solver.solve() # Solve the period
-    return solution_now
