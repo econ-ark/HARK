@@ -1991,15 +1991,37 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         Parameters
         ----------
-        none
+        None
 
         Returns
         -------
-        none
+        None
         '''
         self.updateIncomeProcess()
         self.updateAssetsGrid()
         self.updateSolutionTerminal()
+        
+    def resetRNG(self):
+        '''
+        Reset the RNG behavior of this type.  This method is called automatically
+        by initializeSim(), ensuring that each simulation run uses the same sequence
+        of random shocks; this is necessary for structural estimation to work.
+        This method extends AgentType.resetRNG() to also reset elements of IncomeDstn.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        PerfForesightConsumerType.resetRNG(self)
+        
+        # Reset IncomeDstn if it exists (it might not because resetRNG is called at init)
+        if hasattr(self, 'IncomeDstn'):
+            for dstn in self.IncomeDstn:
+                dstn.reset()
 
     def getShocks(self):
         '''
@@ -2024,10 +2046,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 IncomeDstnNow    = self.IncomeDstn[t-1] # set current income distribution
                 PermGroFacNow    = self.PermGroFac[t-1] # and permanent growth factor
                 # Get random draws of income shocks from the discrete distribution
-                EventDraws       = IncomeDstnNow.draw_events(N)
-
-                PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
-                TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
+                IncShks = IncomeDstnNow.drawDiscrete(N)
+                PermShkNow[these] = IncShks[0,:]*PermGroFacNow # permanent "shock" includes expected growth
+                TranShkNow[these] = IncShks[1,:]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -2496,7 +2517,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 ShkPrbsRet      = np.array([1.0])
             IncomeDstnRet = DiscreteDistribution(ShkPrbsRet,
                                                  [PermShkValsRet,
-                                                  TranShkValsRet])
+                                                  TranShkValsRet],
+                                                 seed=self.RNG.randint(0, 2**31-1))
 
         # Loop to fill in the list of IncomeDstn random variables.
         for t in range(T_cycle): # Iterate over all periods, counting forward
@@ -2518,7 +2540,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 ).approx(PermShkCount, tail_N=0)
                 ### REPLACE
                 ###REPLACE
-                IncomeDstn.append(combineIndepDstns(PermShkDstn_t,TranShkDstn_t)) # mix the independent distributions
+                IncomeDstn.append(combineIndepDstns(PermShkDstn_t,
+                                                    TranShkDstn_t,
+                                                    seed = self.RNG.randint(0, 2**31-1))) # mix the independent distributions
                 PermShkDstn.append(PermShkDstn_t)
                 TranShkDstn.append(TranShkDstn_t)
         return IncomeDstn, PermShkDstn, TranShkDstn

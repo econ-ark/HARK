@@ -315,6 +315,7 @@ class Weibull(Distribution):
                 draws.append(self.scale[t]*(-np.log(1.0-self.RNG.rand(N)))**(1.0/self.shape[t]))
         return draws
 
+
 class Uniform(Distribution):
     """
     A Uniform distribution.
@@ -451,6 +452,7 @@ class Bernoulli(Distribution):
                 draws.append(self.RNG.uniform(size=N) < self.p[t])
         return draws
 
+
 class DiscreteDistribution(Distribution):
     """
     A representation of a discrete probability distribution.
@@ -478,7 +480,6 @@ class DiscreteDistribution(Distribution):
         # Set up the RNG
         super().__init__(seed)
         
-
         # Very quick and incomplete parameter check:
         # TODO: Check that pmf and X arrays have same length.
 
@@ -502,7 +503,7 @@ class DiscreteDistribution(Distribution):
 
         return indices
 
-    def drawDiscrete(self, N,X=None,exact_match=False):
+    def drawDiscrete(self, N, X=None, exact_match=False):
         '''
         Simulates N draws from a discrete distribution with probabilities P and outcomes X.
 
@@ -524,7 +525,7 @@ class DiscreteDistribution(Distribution):
         Returns
         -------
         draws : np.array
-            An array draws from the discrete distribution; each element is a value in X.
+            An array of draws from the discrete distribution; each element is a value in X.
         '''
         if X is None:
             X = self.X
@@ -563,6 +564,7 @@ class DiscreteDistribution(Distribution):
             draws = np.asarray(X)[indices]
 
         return draws
+
 
 def approxLognormalGaussHermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).approx(N)
@@ -824,7 +826,7 @@ def addDiscreteOutcome(distribution, x, p, sort = False):
 
     return DiscreteDistribution(pmf,X)
 
-def combineIndepDstns(*distributions):
+def combineIndepDstns(*distributions, seed=0):
     '''
     Given n lists (or tuples) whose elements represent n independent, discrete
     probability spaces (probabilities and values), construct a joint pmf over
@@ -897,4 +899,4 @@ def combineIndepDstns(*distributions):
     P_out = np.prod(np.array(P_temp),axis=0)
 
     assert np.isclose(np.sum(P_out),1),'Probabilities do not sum to 1!'
-    return DiscreteDistribution(P_out, X_out)
+    return DiscreteDistribution(P_out, X_out, seed = seed)
