@@ -23,11 +23,11 @@ class testIndShockConsumerType(unittest.TestCase):
         self.agent.getShocks()
 
         self.assertEqual(self.agent.PermShkNow[0],
-                         1.0050166461586711)
+                         1.0427376294215103)
         self.assertEqual(self.agent.PermShkNow[1],
-                         1.0050166461586711)
+                         0.9278094171517413)
         self.assertEqual(self.agent.TranShkNow[0],
-                         1.1176912196531754)
+                         0.881761797501595)
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerType(
@@ -102,13 +102,11 @@ class testIndShockConsumerType(unittest.TestCase):
         self.agent.initializeSim()
         self.agent.simulate()
 
-        print(self.agent.aLvlNow)
-
         self.assertAlmostEqual(self.agent.MPCnow[1],
-                               0.5535801655448935)
+                               0.5711503906043797)
 
         self.assertAlmostEqual(self.agent.aLvlNow[1],
-                               0.18832361)
+                               0.18438326264597635)
 
 
 class testBufferStock(unittest.TestCase):
@@ -262,7 +260,7 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         IndShockExample.initializeSim()
         IndShockExample.simulate()
 
-        self.assertAlmostEqual(IndShockExample.mNrmNow_hist[0][0],
+        self.assertAlmostEqual(IndShockExample.history['mNrmNow'][0][0],
                                1.0170176090252379)
 
 LifecycleDict={ # Click arrow to expand this fairly large parameter dictionary

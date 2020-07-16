@@ -569,11 +569,11 @@ class MedShockConsumerType(PersistentShockConsumerType):
 
         Parameters
         ----------
-        none
+        None
 
         Returns
         -------
-        none
+        None
         '''
         self.updateIncomeProcess()
         self.updateAssetsGrid()
@@ -714,7 +714,30 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for j in range(len(self.pLvlGrid)): # Then add 0 to the bottom of each pLvlGrid
             this_grid = self.pLvlGrid[j]
             self.pLvlGrid[j] = np.insert(this_grid,0,0.0001)
-
+            
+    def resetRNG(self):
+        '''
+        Reset the RNG behavior of this type.  This method is called automatically
+        by initializeSim(), ensuring that each simulation run uses the same sequence
+        of random shocks; this is necessary for structural estimation to work.
+        This method extends PersistentShockConsumerType.resetRNG() to also reset
+        elements of MedShkDstn.
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        None
+        '''
+        PersistentShockConsumerType.resetRNG(self)
+        
+        # Reset MedShkDstn if it exists (it might not because resetRNG is called at init)
+        if hasattr(self, 'MedShkDstn'):
+            for dstn in self.MedShkDstn:
+                dstn.reset()
+            
     def getShocks(self):
         '''
         Gets permanent and transitory income shocks for this period as well as medical need shocks
@@ -735,14 +758,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
             these = t == self.t_cycle
             N = np.sum(these)
             if N > 0:
-                MedShkAvg = self.MedShkAvg[t]
-                MedShkStd = self.MedShkStd[t]
-                MedPrice  = self.MedPrice[t]
-                MedShkNow[these] = self.RNG.permutation(
-                    Lognormal(
-                        mu=np.log(MedShkAvg)-0.5*MedShkStd**2,
-                        sigma=MedShkStd).approx(N).X)
-                MedPriceNow[these] = MedPrice
+                MedShkNow[these] = self.MedShkDstn[t].drawDiscrete(N)
+                MedPriceNow[these] = self.MedPrice[t]
         self.MedShkNow = MedShkNow
         self.MedPriceNow = MedPriceNow
 

@@ -1,5 +1,5 @@
 # %%
-from time import process_time
+from time import time
 import numpy as np
 import matplotlib.pyplot as plt
 from HARK.utilities import plotFuncs
@@ -9,6 +9,7 @@ from HARK.ConsumptionSaving.ConsAggShockModel import (
     AggShockMarkovConsumerType,
     CobbDouglasMarkovEconomy,
 )
+from HARK.distribution import DiscreteDistribution
 from copy import deepcopy
 def mystr(number):
     return "{:.4f}".format(number)
@@ -18,13 +19,13 @@ def mystr(number):
 # Solve an AggShockConsumerType's microeconomic problem
 solve_agg_shocks_micro = False
 # Solve for the equilibrium aggregate saving rule in a CobbDouglasEconomy
-solve_agg_shocks_market = True
+solve_agg_shocks_market = False
 # Solve an AggShockMarkovConsumerType's microeconomic problem
 solve_markov_micro = False
 # Solve for the equilibrium aggregate saving rule in a CobbDouglasMarkovEconomy
 solve_markov_market = True
 # Solve a simple Krusell-Smith-style two state, two shock model
-solve_krusell_smith = True
+solve_krusell_smith = False
 # Solve a CobbDouglasEconomy with many states, potentially utilizing the "state jumper"
 solve_poly_state = False
 
@@ -47,9 +48,9 @@ if solve_agg_shocks_micro or solve_agg_shocks_market:
 # %%
 if solve_agg_shocks_micro:
     # Solve the microeconomic model for the aggregate shocks example type (and display results)
-    t_start = process_time()
+    t_start = time()
     AggShockExample.solve()
-    t_end = process_time()
+    t_end = time()
     print(
         "Solving an aggregate shocks consumer took "
         + mystr(t_end - t_start)
@@ -70,12 +71,10 @@ if solve_agg_shocks_micro:
 # %%
 if solve_agg_shocks_market:
     # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
-    t_start = process_time()
-    print(
-        "Now solving for the equilibrium of a Cobb-Douglas economy.  This might take a few minutes..."
-    )
+    t_start = time()
+    print("Now solving for the equilibrium of a Cobb-Douglas economy.  This might take a few minutes...")
     EconomyExample.solve()
-    t_end = process_time()
+    t_end = time()
     print(
         'Solving the "macroeconomic" aggregate shocks model took '
         + str(t_end - t_start)
@@ -118,19 +117,16 @@ if solve_markov_micro or solve_markov_market or solve_krusell_smith:
 # %%
 if solve_markov_micro:
     # Solve the microeconomic model for the Markov aggregate shocks example type (and display results)
-    t_start = process_time()
+    t_start = time()
     AggShockMrkvExample.solve()
-    t_end = process_time()
+    t_end = time()
     print(
         "Solving an aggregate shocks Markov consumer took "
         + mystr(t_end - t_start)
         + " seconds."
     )
 
-    print(
-        "Consumption function at each aggregate market \
-            resources-to-labor ratio gridpoint (for each macro state):"
-    )
+    print("Consumption function at each aggregate market resources-to-labor ratio gridpoint (for each macro state):")
     m_grid = np.linspace(0, 10, 200)
     AggShockMrkvExample.unpackcFunc()
     for i in range(2):
@@ -146,20 +142,18 @@ if solve_markov_micro:
 # %%
 if solve_markov_market:
     # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
-    t_start = process_time()
+    t_start = time()
+    MrkvEconomyExample.verbose = True
     print("Now solving a two-state Markov economy.  This should take a few minutes...")
     MrkvEconomyExample.solve()
-    t_end = process_time()
+    t_end = time()
     print(
         'Solving the "macroeconomic" aggregate shocks model took '
         + str(t_end - t_start)
         + " seconds."
     )
 
-    print(
-        "Consumption function at each aggregate market \
-            resources-to-labor ratio gridpoint (for each macro state):"
-    )
+    print("Consumption function at each aggregate market resources-to-labor ratio gridpoint (for each macro state):")
     m_grid = np.linspace(0, 10, 200)
     AggShockMrkvExample.unpackcFunc()
     for i in range(2):
@@ -178,28 +172,26 @@ if solve_krusell_smith:
     # NOTE: These agents aren't exactly like KS, as they don't have serially correlated unemployment
     KSexampleType = deepcopy(AggShockMrkvExample)
     KSexampleType.IncomeDstn[0] = [
-        [np.array([0.96, 0.04]), np.array([1.0, 1.0]), np.array([1.0 / 0.96, 0.0])],
-        [np.array([0.90, 0.10]), np.array([1.0, 1.0]), np.array([1.0 / 0.90, 0.0])],
+        DiscreteDistribution(np.array([0.96, 0.04]), [np.array([1.0, 1.0]), np.array([1.0 / 0.96, 0.0])]),
+         DiscreteDistribution(np.array([0.90, 0.10]), [np.array([1.0, 1.0]), np.array([1.0 / 0.90, 0.0])]),
     ]
 
     # Make a KS economy
     KSeconomy = deepcopy(MrkvEconomyExample)
     KSeconomy.agents = [KSexampleType]
     KSeconomy.AggShkDstn = [
-        [np.array([1.0]), np.array([1.0]), np.array([1.05])],
-        [np.array([1.0]), np.array([1.0]), np.array([0.95])],
+        DiscreteDistribution(np.array([1.0]), [np.array([1.0]), np.array([1.05])]),
+        DiscreteDistribution(np.array([1.0]), [np.array([1.0]), np.array([0.95])]),
     ]
     KSeconomy.PermGroFacAgg = [1.0, 1.0]
     KSexampleType.getEconomyData(KSeconomy)
     KSeconomy.makeAggShkHist()
 
     # Solve the K-S model
-    t_start = process_time()
-    print(
-        "Now solving a Krusell-Smith-style economy.  This should take about a minute..."
-    )
+    t_start = time()
+    print("Now solving a Krusell-Smith-style economy.  This should take about a minute...")
     KSeconomy.solve()
-    t_end = process_time()
+    t_end = time()
     print("Solving the Krusell-Smith model took " + str(t_end - t_start) + " seconds.")
 
 # %%
@@ -247,14 +239,14 @@ if solve_poly_state:
     )  # Have the consumers inherit relevant objects from the economy
 
     # Solve the many state model
-    t_start = process_time()
+    t_start = time()
     print(
         "Now solving an economy with "
         + str(StateCount)
         + " Markov states.  This might take a while..."
     )
     PolyStateEconomy.solve()
-    t_end = process_time()
+    t_end = time()
     print(
         "Solving a model with "
         + str(StateCount)

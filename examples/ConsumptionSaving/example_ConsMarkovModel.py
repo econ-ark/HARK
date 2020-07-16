@@ -1,6 +1,6 @@
 # %%
 from HARK.utilities import plotFuncs
-from time import process_time
+from time import time
 from copy import deepcopy, copy
 import numpy as np
 from HARK.ConsumptionSaving.ConsIndShockModel import init_idiosyncratic_shocks
@@ -82,10 +82,9 @@ SerialUnemploymentExample.LivPrb = [SerialUnemploymentExample.LivPrb * np.ones(4
 
 # %%
 # Solve the serial unemployment consumer's problem and display solution
-SerialUnemploymentExample.timeFwd()
-start_time = process_time()
+start_time = time()
 SerialUnemploymentExample.solve()
-end_time = process_time()
+end_time = time()
 print(
     "Solving a Markov consumer with serially correlated unemployment took "
     + mystr(end_time - start_time)
@@ -165,9 +164,9 @@ ImmunityExample.IncomeDstn = [IncomeDstn]
 
 # %%
 # Solve the unemployment immunity problem and display the consumption functions
-start_time = process_time()
+start_time = time()
 ImmunityExample.solve()
-end_time = process_time()
+end_time = time()
 print(
     'Solving an "unemployment immunity" consumer took '
     + mystr(end_time - start_time)
@@ -220,9 +219,9 @@ SerialGroExample.IncomeDstn = [IncomeDstn]
 
 # %%
 # Solve the serially correlated permanent growth shock problem and display the consumption functions
-start_time = process_time()
+start_time = time()
 SerialGroExample.solve()
-end_time = process_time()
+end_time = time()
 print(
     "Solving a serially correlated growth consumer took "
     + mystr(end_time - start_time)
@@ -243,9 +242,9 @@ SerialRExample.assignParameters(
 
 # %%
 # Solve the serially correlated interest rate problem and display the consumption functions
-start_time = process_time()
+start_time = time()
 SerialRExample.solve()
-end_time = process_time()
+end_time = time()
 print(
     "Solving a serially correlated interest consumer took "
     + mystr(end_time - start_time)
