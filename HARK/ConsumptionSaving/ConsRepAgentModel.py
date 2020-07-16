@@ -13,6 +13,7 @@ from HARK.interpolation import LinearInterp
 from HARK.distribution import Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType,\
           ConsumerSolution,MargValueFunc, init_idiosyncratic_shocks
+from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 
 __all__ = ['RepAgentConsumerType', 'RepAgentMarkovConsumerType']
 
@@ -289,6 +290,9 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         self.solution_terminal.cFunc   = StateCount*[self.cFunc_terminal_]
         self.solution_terminal.vPfunc  = StateCount*[self.solution_terminal.vPfunc]
         self.solution_terminal.mNrmMin = StateCount*[self.solution_terminal.mNrmMin]
+
+    def resetRNG(self):
+        MarkovConsumerType.resetRNG(self)
 
 
     def getShocks(self):

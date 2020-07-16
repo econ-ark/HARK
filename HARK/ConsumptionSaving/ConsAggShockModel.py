@@ -17,6 +17,7 @@ from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutility
                            CRRAutility_invP, CRRAutility_inv 
 from HARK.distribution import Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
+from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK import HARKobject, Market, AgentType
 from copy import deepcopy
 import matplotlib.pyplot as plt
@@ -451,6 +452,11 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         self.solution_terminal.cFunc = StateCount*[self.solution_terminal.cFunc]
         self.solution_terminal.vPfunc = StateCount*[self.solution_terminal.vPfunc]
         self.solution_terminal.mNrmMin = StateCount*[self.solution_terminal.mNrmMin]
+        
+    
+    def resetRNG(self):
+        MarkovConsumerType.resetRNG(self)
+        
 
     def getShocks(self):
         '''
@@ -479,8 +485,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
                 PermGroFacNow = self.PermGroFac[t-1]                # and permanent growth factor
                 
                 # Get random draws of income shocks from the discrete distribution
-                ShockDraws = IncomeDstnNow.drawDiscrete(N,
-                                                        exact_match=True)
+                ShockDraws = IncomeDstnNow.drawDiscrete(N, exact_match=True)
                 # Permanent "shock" includes expected growth
                 PermShkNow[these] = ShockDraws[0]*PermGroFacNow
                 TranShkNow[these] = ShockDraws[1]
@@ -494,8 +499,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             PermGroFacNow = self.PermGroFac[0]                # and permanent growth factor
             
             # Get random draws of income shocks from the discrete distribution
-            ShockDraws = IncomeDstnNow.drawDiscrete(N,
-                                                    exact_match=True)
+            ShockDraws = IncomeDstnNow.drawDiscrete(N, exact_match=True)
             # Permanent "shock" includes expected growth
             PermShkNow[these] = ShockDraws[0]*PermGroFacNow
             TranShkNow[these] = ShockDraws[1]
