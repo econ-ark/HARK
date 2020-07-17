@@ -556,18 +556,18 @@ class KrusellSmithType(AgentType):
         '''
         Make a new instance of the Krusell-Smith type.
         '''
-        params = init_agg_shocks.copy()
-        params.update(kwds)
+        #params = init_agg_shocks.copy()
+        #params.update(kwds)
 
-        AgentType.__init__(self, pseudo_terminal=False, **params)
+        AgentType.__init__(self, pseudo_terminal=False, **kwds)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = []
         self.time_inv = ['DiscFac', 'CRRA', 'LbrInd', 'UrateB', 'UrateG', 'ProdB', \
-                         'ProdG', 'DeprFac', 'CapShare', 'MrkvAggArray', 'MrkvIndArray', \
-                        'Mgrid', 'AFunc']
+                         'ProdG', 'DeprFac', 'CapShare', 'AFunc']
         self.poststate_vars = ['aNow','lNow']
         self.solveOnePeriod = solveKrusellSmith
+        self.AFunc = [IdentityFunction(), IdentityFunction()] # FIX LATER
         self.update()
         
     def update(self):
@@ -576,6 +576,7 @@ class KrusellSmithType(AgentType):
         '''
         self.makeGrid()
         self.makeMrkvArray()
+        self.updateSolutionTerminal()
     
     def makeGrid(self):
         '''
@@ -586,7 +587,8 @@ class KrusellSmithType(AgentType):
                                          self.aXtraMax,
                                          self.aXtraCount,
                                          self.aXtraNestFac)
-        self.addToTimeInv('aXtraGrid')
+        self.Mgrid = np.linspace(1.,25.,25) # FIX LATER
+        self.addToTimeInv('aXtraGrid', 'Mgrid')
         
     def makeMrkvArray(self):
         '''
@@ -610,7 +612,6 @@ class KrusellSmithType(AgentType):
         ProbGG = 1. - ProbGB
         MrkvAggArray = np.array([[ProbBB, ProbBG],
                                  [ProbGB, ProbGG]])
-        self.MrkvAggArray = MrkvAggArray
         
         # Construct idiosyncratic Markov transition probabilities
         # ORDER: BU, BE, GU, GE
@@ -628,6 +629,33 @@ class KrusellSmithType(AgentType):
         MrkvIndArray[3,2] = self.UrateG/(1.-self.UrateG) * MrkvIndArray[2,3]
         MrkvIndArray[3,3] = ProbGG - MrkvIndArray[3,2]
         
+        # BAD-GOOD QUADRANT
+        MrkvIndArray[0,2] = self.RelProbBG * MrkvIndArray[2,2]/ProbGG * ProbBG
+        MrkvIndArray[0,3] = ProbBG - MrkvIndArray[0,2]
+        MrkvIndArray[1,2] = (ProbBG*self.UrateG - self.UrateB*MrkvIndArray[0,2])/(1.-self.UrateB)
+        MrkvIndArray[1,3] = ProbBG - MrkvIndArray[1,2]
+        
+        # GOOD-BAD QUADRANT
+        MrkvIndArray[2,0] = self.RelProbGB * MrkvIndArray[0,0]/ProbBB * ProbGB
+        MrkvIndArray[2,1] = ProbGB - MrkvIndArray[2,0]
+        MrkvIndArray[3,0] = (ProbGB*self.UrateB - self.UrateG*MrkvIndArray[2,0])/(1.-self.UrateG)
+        MrkvIndArray[3,1] = ProbGB - MrkvIndArray[3,0]
+        
+        # Test for valid idiosyncratic transition probabilities
+        assert np.all(MrkvIndArray >= 0.), 'Invalid idiosyncratic transition probabilities!'
+        
+        self.MrkvAggArray = MrkvAggArray
+        self.MrkvIndArray = MrkvIndArray
+        self.addToTimeInv('MrkvAggArray','MrkvIndArray')
+        
+    def updateSolutionTerminal(self):
+        '''
+        Construct the trivial terminal period solution (initial guess).
+        '''
+        cFunc_terminal = 4*[IdentityFunction(n_dims=2)]
+        vPfunc_terminal = [MargValueFunc2D(cFunc_terminal[j], self.CRRA) for j in range(4)]
+        self.solution_terminal = ConsumerSolution(cFunc = cFunc_terminal,
+                                                  vPfunc = vPfunc_terminal)
 
 ###############################################################################
 
