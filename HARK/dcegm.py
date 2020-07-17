@@ -9,6 +9,106 @@ Example can be found in https://github.com/econ-ark/DemARK/blob/master/notebooks
 import numpy as np
 from HARK.interpolation import LinearInterp
 
+def calcCrossPoints(mGrid, condVs, optIdx):
+    '''
+    Given a grid of m values, a matrix of the conditional values of different
+    actions at every grid point, and a vector indicating the optimal action
+    at each grid point, this function computes the coordinates of the
+    crossing points that happen when the optimal action changes
+    
+    Parameters
+    ----------
+    mGrid : np.array
+        Market resources grid.
+    condVs : np.array must have as many rows as possible discrete actions, and
+             as many columns as m gridpoints there are.
+        Conditional value functions
+        
+    optIdx : np.array of indices
+        Optimal decision at each grid point
+    Returns
+    -------
+    xing_points: [tuple]
+        List of crossing points, each as an (m,v) tuple.
+
+    segments: np.array with two columns and as many rows as xing points.
+        Each row represents a crossing point. The first column is the index
+        of the optimal action to the left, and the second, to the right.
+    '''
+    # Compute differences in the optimal index,
+    # to find positions of choice-changes
+    diff_max = np.insert(np.diff(optIdx),len(optIdx)-1,0)
+    idx_change = np.where(diff_max != 0)[0]
+    
+    # If no crossings, return an empty list
+    if len(idx_change) == 0:
+        return []
+    else:
+        
+        # To find the crossing points we need the extremes of the intervals in
+        # which they happen, and the two candidate segments evaluated in both
+        # extremes. switchMs[0] has the left points and switchMs[1] the right
+        # points of these intervals.
+        switchMs = np.stack([mGrid[idx_change], mGrid[idx_change + 1]],
+                            axis = 1)
+            
+        # Store the indices of the two segments involved in the changes, by
+        # looking at the argmax in the switching possitions.
+        # Columns are [0]: left extreme, [1]: right extreme,
+        # Rows are individual crossing points.
+        segments = np.stack([optIdx[idx_change], optIdx[idx_change + 1]],
+                            axis = 1)
+        
+        # Values of both segments on the left point
+        left_v  = np.stack([condVs[idx_change, segments[:,0]],
+                            condVs[idx_change, segments[:,1]]], axis = 1)
+        # and the right point
+        right_v = np.stack([condVs[idx_change+1, segments[:,0]],
+                            condVs[idx_change+1, segments[:,1]]], axis = 1)
+            
+        # A valid crossing must have both switching segments well defined at the
+        # encompassing gridpoints. Filter those that do not.
+        valid = np.logical_and(~np.isnan(left_v).any(axis = 1),
+                               ~np.isnan(right_v).any(axis = 1))
+            
+        segments = segments[valid,:]
+        switchMs = switchMs[valid,:]
+        left_v   = left_v[valid,:]
+        right_v  = right_v[valid,:]
+            
+        # Find crossing points. Returns a list (m,v) tuples. Keep m's only
+        xing_points = [calcLinearCrossing(switchMs[i,:],
+                                          left_v[i,:], right_v[i,:])
+                       for i in range(segments.shape[0])]
+        
+        return xing_points, segments
+
+def calcPrimKink(mGrid, vTGrids, Choices):
+    '''
+    Parameters
+    ----------
+    mGrid : np.array
+        Common m grid
+    vTGrids : [np.array], length  = # choices, each element has length = len(mGrid)
+        value functions evaluated on the common m grid.
+    Choices : [np.array], length  = # choices, each element has length = len(mGrid)
+        Optimal choices. In the form of choice probability vectors that must
+        be degenerate
+
+    Returns
+    -------
+    None
+    '''
+
+    # Construct a vector with the optimal choice at each m point
+    optChoice = np.empty(len(mGrid), dtype = int)
+    optChoice[:] = np.nan
+    for i in range(len(vTGrids)):
+        idx = Choices[i] == 1
+        optChoice[idx] = i
+        
+    return calcCrossPoints(mGrid, vTGrids.T, optChoice)
+        
 
 def calcSegments(x, v):
     """
@@ -214,11 +314,6 @@ def calcMultilineEnvelope(M, C, V_T, commonM, findXings = False):
     idx_max = np.zeros(commonM.size, dtype=int)
     idx_max[row_all_nan == False] = np.nanargmax(commonV_T[row_all_nan == False], axis=1)
     
-    if findXings:
-        # Compute differences, to find positions of segment-changes (will be
-        # used at the end)
-        diff_max = np.insert(np.diff(idx_max),len(idx_max)-1,0)
-    
     # prefix with upper for variable that are "upper enveloped"
     upperV_T = np.zeros(m_len)
 
@@ -250,59 +345,19 @@ def calcMultilineEnvelope(M, C, V_T, commonM, findXings = False):
     
     upperM = commonM.copy()  # anticipate this TODO
     
+    # If crossing points are requested, compute them. Else just return the
+    # envelope.
     if not findXings:
         
         return upperM, upperC, upperV_T
         
     else:
         
-        # Now we'll find and insert the kink points if there are any
+        xing_points, segments = calcCrossPoints(commonM, commonV_T, idx_max)
+        # keep only the m component of crossing points.
+        xing_points = [x[0] for x in xing_points]
         
-        # There is a change of segment if the argmax changes
-        # (will deal with nan's later). [0] b/c np.where returns a tuple
-        idx_change = np.where(diff_max != 0)[0]
-        
-        # If there are no changes
-        if len(idx_change) == 0:
-            xing_points = []
-            
-        else:
-            
-            # To find the crossing points we need the extremes of the intervals in
-            # which they happen, and the two candidate segments evaluated in both
-            # extremes. switchMs[0] has the left points and switchMs[1] the right
-            # points of these intervals.
-            switchMs = np.stack([commonM[idx_change], commonM[idx_change + 1]],
-                                axis = 1)
-            
-            # Store the indices of the two segments involved in the changes, by
-            # looking at the argmax in the switching possitions.
-            # Columns are [0]: left extreme, [1]: right extreme,
-            # Rows are individual crossing points.
-            segments = np.stack([idx_max[idx_change], idx_max[idx_change + 1]],
-                                axis = 1)
-        
-            # Values of both segments on the left point
-            left_v  = np.stack([commonV_T[idx_change, segments[:,0]],
-                                commonV_T[idx_change, segments[:,1]]], axis = 1)
-            # and the right point
-            right_v = np.stack([commonV_T[idx_change+1, segments[:,0]],
-                                commonV_T[idx_change+1, segments[:,1]]], axis = 1)
-            
-            # A valid crossing must have both switching segments well defined at the
-            # encompassing gridpoints. Filter those that do not.
-            valid = np.logical_and(~np.isnan(left_v).any(axis = 1),
-                                   ~np.isnan(right_v).any(axis = 1))
-            
-            segments = segments[valid,:]
-            switchMs = switchMs[valid,:]
-            left_v   = left_v[valid,:]
-            right_v  = right_v[valid,:]
-            
-            # Find crossing points. Returns a list (m,v) tuples. Keep m's only
-            xing_points = [calcLinearCrossing(switchMs[i,:],
-                                              left_v[i,:], right_v[i,:])[0]
-                           for i in range(segments.shape[0])]
+        if len(xing_points) > 0:
             
             # Now construct a set of points that need to be added to the grid in
             # order to handle the discontinuities. To points per discontinuity:
