@@ -14,7 +14,7 @@ from HARK.distribution import DiscreteDistribution, combineIndepDstns, MeanOneLo
 from HARK.interpolation import LinearInterp, LinearInterpOnInterp1D, ConstantFunction, IdentityFunction,\
                                VariableLowerBoundFunc2D, BilinearInterp, LowerEnvelope2D, UpperEnvelope
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityP_inv,\
-                           CRRAutility_invP, CRRAutility_inv 
+                           CRRAutility_invP, CRRAutility_inv, makeGridExpMult
 from HARK.distribution import Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution, IndShockConsumerType, init_idiosyncratic_shocks
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
@@ -548,7 +548,86 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
 
     def getMrkvNow(self):  # This function exists to be overwritten in StickyE model
         return self.MrkvNow*np.ones(self.AgentCount, dtype=int)
+    
+    
+class KrusellSmithType(AgentType):
+    
+    def __init__(self, **kwds):
+        '''
+        Make a new instance of the Krusell-Smith type.
+        '''
+        params = init_agg_shocks.copy()
+        params.update(kwds)
 
+        AgentType.__init__(self, pseudo_terminal=False, **params)
+
+        # Add consumer-type specific objects, copying to create independent versions
+        self.time_vary = []
+        self.time_inv = ['DiscFac', 'CRRA', 'LbrInd', 'UrateB', 'UrateG', 'ProdB', \
+                         'ProdG', 'DeprFac', 'CapShare', 'MrkvAggArray', 'MrkvIndArray', \
+                        'Mgrid', 'AFunc']
+        self.poststate_vars = ['aNow','lNow']
+        self.solveOnePeriod = solveKrusellSmith
+        self.update()
+        
+    def update(self):
+        '''
+        Construct objects used during solution from primitive parameters.
+        '''
+        self.makeGrid()
+        self.makeMrkvArray()
+    
+    def makeGrid(self):
+        '''
+        Construct the attribute aXtraGrid from the primitive attributes aXtraMin,
+        aXtraMax, aXtraCount, aXtraNestFac.
+        '''
+        self.aXtraGrid = makeGridExpMult(self.aXtraMin,
+                                         self.aXtraMax,
+                                         self.aXtraCount,
+                                         self.aXtraNestFac)
+        self.addToTimeInv('aXtraGrid')
+        
+    def makeMrkvArray(self):
+        '''
+        Construct the attributes MrkvAggArray and MrkvIndArray from the primitive
+        attributes DurMeanB, DurMeanG, SpellMeanB, SpellMeanG, UrateB, UrateG,
+        RelProbGB, and RelProbBG.
+        '''
+        # DurMeanB avg duration of BAD (8 quarters)
+        # DurMeanG avg duration of GOOD (8 quarters)
+        # SpellMeanB avg duration of unemployment in BAD (2.5 quarters)
+        # SpellMeanG avg duration of unemployment in GOOD (1.5 quarters)
+        # UrateB unemployment rate in BAD (0.10)
+        # UrateG unemployment rate in GOOD (0.04)
+        # RelProbGB relative unemployment prob GB (1.25)
+        # RelProbBG relative unemployment prob BG (0.75)
+        
+        # Construct aggregate Markov transition probabilities
+        ProbBG = 1./self.DurMeanB
+        ProbGB = 1./self.DurMeanG
+        ProbBB = 1. - ProbBG
+        ProbGG = 1. - ProbGB
+        MrkvAggArray = np.array([[ProbBB, ProbBG],
+                                 [ProbGB, ProbGG]])
+        self.MrkvAggArray = MrkvAggArray
+        
+        # Construct idiosyncratic Markov transition probabilities
+        # ORDER: BU, BE, GU, GE
+        MrkvIndArray = np.zeros((4,4))
+        
+        # BAD-BAD QUADRANT
+        MrkvIndArray[0,1] = ProbBB * 1./self.SpellMeanB
+        MrkvIndArray[0,0] = ProbBB * (1 - 1./self.SpellMeanB)
+        MrkvIndArray[1,0] = self.UrateB/(1.-self.UrateB) * MrkvIndArray[0,1]
+        MrkvIndArray[1,1] = ProbBB - MrkvIndArray[1,0]
+        
+        # GOOD-GOOD QUADRANT
+        MrkvIndArray[2,3] = ProbGG * 1./self.SpellMeanG
+        MrkvIndArray[2,2] = ProbGG * (1 - 1./self.SpellMeanG)
+        MrkvIndArray[3,2] = self.UrateG/(1.-self.UrateG) * MrkvIndArray[2,3]
+        MrkvIndArray[3,3] = ProbGG - MrkvIndArray[3,2]
+        
 
 ###############################################################################
 
@@ -914,7 +993,7 @@ def solveKrusellSmith(solution_next, DiscFac, CRRA, LbrInd, UrateB, UrateG, Prod
     
     Parameters
     ----------
-    solution_next : KrusellSmithSolution
+    solution_next : ConsumerSolution
         Representation of the solution to next period's problem, including the
         discrete-state-conditional consumption function and marginal value function.
     DiscFac : float
@@ -936,7 +1015,7 @@ def solveKrusellSmith(solution_next, DiscFac, CRRA, LbrInd, UrateB, UrateG, Prod
     CapShare : float
         Capital's share of productivity in a Cobb-Douglas production function.
     MrkvAggArray : np.array
-        2x2 Markov matrix specifying transition probabilities for Bad and Good states.
+        2x2 Markov matrix specifying transition probabilities between Bad and Good states.
     MrkvIndArray : np.array
         4x4 Markov matrix specifying transition probabilities among *both* macro
         and micro discrete states.  Order: [BU, BE, GU, GE].
@@ -951,7 +1030,7 @@ def solveKrusellSmith(solution_next, DiscFac, CRRA, LbrInd, UrateB, UrateG, Prod
     
     Returns
     -------
-    solution_now : KrusellSmithSolution
+    solution_now : ConsumerSolution
         Representation of this period's solution to the Krusell-Smith model.
     '''
     # Get array sizes
@@ -959,17 +1038,17 @@ def solveKrusellSmith(solution_next, DiscFac, CRRA, LbrInd, UrateB, UrateG, Prod
     Mcount = Mgrid.size
     
     # Make tiled array of end-of-period idiosyncratic assets (order: a, M, s, s')
-    aNow_tiled = np.tile(np.reshape(aXtraGrid, [aCount, 1, 1, 1]), [1, Mcount, 4, 4])
+    aNow_tiled = np.tile(np.reshape(aXtraGrid, [aCount, 1, 1, 1]), [1, Mcount, 4, 4]) # shape (aCount, Mcount, 4, 4)
     
     # Make arrays of end-of-period aggregate assets (capital next period)
     AnowB = AFunc[0](Mgrid)
     AnowG = AFunc[1](Mgrid)
     KnextB = np.tile(np.reshape(AnowB, [1, Mcount, 1, 1]), [1, 1, 1, 4])
     KnextG = np.tile(np.reshape(AnowG, [1, Mcount, 1, 1]), [1, 1, 1, 4])
-    Knext = np.concatenate((KnextB, KnextB, KnextG, KnextG), axis=2)
+    Knext = np.concatenate((KnextB, KnextB, KnextG, KnextG), axis=2) # shape (1,Mcount,4,4)
     
     # Make arrays of aggregate labor and TFP next period
-    Lnext = np.zeros((1,Mcount,4,4))
+    Lnext = np.zeros((1,Mcount,4,4)) # shape (1,Mcount,4,4)
     Lnext[0,:,:,0:2] = (1. - UrateB)*LbrInd
     Lnext[0,:,:,2:4] = (1. - UrateG)*LbrInd
     Znext = np.zeros((1,Mcount,4,4))
@@ -988,7 +1067,7 @@ def solveKrusellSmith(solution_next, DiscFac, CRRA, LbrInd, UrateB, UrateG, Prod
     # Tile the interest, wage, and aggregate market resources arrays
     Rnext_tiled = np.tile(Rnext, [aCount, 1, 1, 1])
     Wnext_tiled = np.tile(Wnext, [aCount, 1, 1, 1])
-    Mnext_tiled = np.tile(Mnext, [aCount, 1, 1, 1])
+    Mnext_tiled = np.tile(Mnext, [aCount, 1, 1, 1]) # shape (aCount, Mcount, 4, 4)
     
     # Make an array of idiosyncratic labor supply next period
     lNext_tiled = np.zeros([aCount, Mcount, 4, 4])
@@ -996,7 +1075,12 @@ def solveKrusellSmith(solution_next, DiscFac, CRRA, LbrInd, UrateB, UrateG, Prod
     lNext_tiled[:,:,:,3] = LbrInd
     
     # Calculate idiosyncratic market resources next period
-    mNext = Rnext_tiled*aNow_tiled + Wnext_tiled*lNext_tiled
+    mNext = Rnext_tiled*aNow_tiled + Wnext_tiled*lNext_tiled # shape (aCount, Mcount, 4, 4)
+    
+    # Make a tiled array of transition probabilities
+    Probs_tiled = np.tile(np.reshape(MrkvIndArray, [1, 1, 4, 4]), [aCount, Mcount, 1, 1])
+    
+    # EVERYTHING ABOVE HERE CAN BE PRE-COMPUTED
     
     # Loop over next period's state realizations, computing marginal value of market resources
     vPnext = np.zeros_like(mNext)
@@ -1004,7 +1088,6 @@ def solveKrusellSmith(solution_next, DiscFac, CRRA, LbrInd, UrateB, UrateG, Prod
         vPnext[:,:,:,j] = solution_next.vPfunc[j](mNext[:,:,:,j], Mnext_tiled[:,:,:,j])
         
     # Compute end-of-period marginal value of assets
-    Probs_tiled = np.tile(np.reshape(MrkvIndArray, [1, 1, 4, 4]), [aCount, Mcount, 1, 1])
     EndOfPrdvP = DiscFac*np.sum(Rnext_tiled*vPnext*Probs_tiled, axis=3)
     
     # Invert the first order condition to find optimal consumption
@@ -1014,8 +1097,8 @@ def solveKrusellSmith(solution_next, DiscFac, CRRA, LbrInd, UrateB, UrateG, Prod
     mNow = aNow_tiled[:,:,:,0] + cNow
     
     # Insert zeros at the bottom of both cNow and mNow arrays (consume nothing)
-    cNow = np.concatenate([np.zeros([1,Mcount,4]), cNow])
-    mNow = np.concatenate([np.zeros([1,Mcount,4]), mNow])
+    cNow = np.concatenate([np.zeros([1,Mcount,4]), cNow], axis=0)
+    mNow = np.concatenate([np.zeros([1,Mcount,4]), mNow], axis=0)
     
     # Construct the consumption and marginal value function for each discrete state
     cFunc_by_state = []
@@ -1028,8 +1111,9 @@ def solveKrusellSmith(solution_next, DiscFac, CRRA, LbrInd, UrateB, UrateG, Prod
         vPfunc_by_state.append(vPfunc_j)
         
     # Package and return the solution
-    solution_now = KrusellSmithSolution(cFunc = cFunc_by_state,
-                                        vPfunc = vPfunc_by_state)
+    solution_now = ConsumerSolution(cFunc = cFunc_by_state,
+                                    vPfunc = vPfunc_by_state)
+    return solution_now
 
 ###############################################################################
 
