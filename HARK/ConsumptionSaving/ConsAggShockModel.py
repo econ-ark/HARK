@@ -554,7 +554,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
 
 
 def solveConsAggShock(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, PermGroFac,
-                      PermGroFacAgg, aXtraGrid, BoroCnstArt, Mgrid, AFunc, Rfunc, wFunc, DeprFac):
+                      PermGroFacAgg, aXtraGrid, BoroCnstArt, Mgrid, AFunc, Rfunc, wFunc):
     '''
     Solve one period of a consumption-saving problem with idiosyncratic and
     aggregate shocks (transitory and permanent).  This is a basic solver that
@@ -595,8 +595,6 @@ def solveConsAggShock(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, PermGroF
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
-    DeprFac : float
-        Capital Depreciation Rate
 
     Returns
     -------
@@ -700,7 +698,7 @@ def solveConsAggShock(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, PermGroF
 
 def solveConsAggMarkov(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, MrkvArray,
                        PermGroFac, PermGroFacAgg, aXtraGrid, BoroCnstArt, Mgrid,
-                       AFunc, Rfunc, wFunc, DeprFac):
+                       AFunc, Rfunc, wFunc):
     '''
     Solve one period of a consumption-saving problem with idiosyncratic and
     aggregate shocks (transitory and permanent).  Moreover, the macroeconomic
@@ -749,9 +747,7 @@ def solveConsAggMarkov(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, MrkvArr
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
-    DeprFac : float
-        Capital Depreciation Rate
-
+    
     Returns
     -------
     solution_now : ConsumerSolution
@@ -910,6 +906,134 @@ def solveConsAggMarkov(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, MrkvArr
 
 
 ###############################################################################
+
+def solveKrusellSmith(solution_next, DiscFac, CRRA, LbrInd, UrateB, UrateG, ProdB, ProdG, DeprFac,
+                      CapShare, MrkvAggArray, MrkvIndArray, aXtraGrid, Mgrid, AFunc):
+    '''
+    Solve the one period problem of an agent in Krusell & Smith's canonical 1998 model.
+    
+    Parameters
+    ----------
+    solution_next : KrusellSmithSolution
+        Representation of the solution to next period's problem, including the
+        discrete-state-conditional consumption function and marginal value function.
+    DiscFac : float
+        Intertemporal discount factor.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    LbrInd : float
+        Idiosyncratic labor supply when the individual is employed (zero when unemp).
+    UrateB : float
+        Unemployment probability in the Bad macroeconomic state.
+    UrateG : float
+        Unemployment probability in the Good macroeconomic state.
+    ProdB : float
+        Total factor productivity in the Bad macroeconomic state.
+    ProdG : float
+        Total factor productivity in the Good macroeconomic state.
+    DeprFac : float
+        Capital depreciation rate (not factor, despite the name).
+    CapShare : float
+        Capital's share of productivity in a Cobb-Douglas production function.
+    MrkvAggArray : np.array
+        2x2 Markov matrix specifying transition probabilities for Bad and Good states.
+    MrkvIndArray : np.array
+        4x4 Markov matrix specifying transition probabilities among *both* macro
+        and micro discrete states.  Order: [BU, BE, GU, GE].
+    aXtraGrid : np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level (zero, in this case).
+    Mgrid : np.array
+        A grid of aggregate market resources in the economy.
+    AFunc : [function]
+        Aggregate savings as a function of aggregate market resources, for the
+        Bad and Good macroeconomic states respectively.
+    
+    Returns
+    -------
+    solution_now : KrusellSmithSolution
+        Representation of this period's solution to the Krusell-Smith model.
+    '''
+    # Get array sizes
+    aCount = aXtraGrid.size
+    Mcount = Mgrid.size
+    
+    # Make tiled array of end-of-period idiosyncratic assets (order: a, M, s, s')
+    aNow_tiled = np.tile(np.reshape(aXtraGrid, [aCount, 1, 1, 1]), [1, Mcount, 4, 4])
+    
+    # Make arrays of end-of-period aggregate assets (capital next period)
+    AnowB = AFunc[0](Mgrid)
+    AnowG = AFunc[1](Mgrid)
+    KnextB = np.tile(np.reshape(AnowB, [1, Mcount, 1, 1]), [1, 1, 1, 4])
+    KnextG = np.tile(np.reshape(AnowG, [1, Mcount, 1, 1]), [1, 1, 1, 4])
+    Knext = np.concatenate((KnextB, KnextB, KnextG, KnextG), axis=2)
+    
+    # Make arrays of aggregate labor and TFP next period
+    Lnext = np.zeros((1,Mcount,4,4))
+    Lnext[0,:,:,0:2] = (1. - UrateB)*LbrInd
+    Lnext[0,:,:,2:4] = (1. - UrateG)*LbrInd
+    Znext = np.zeros((1,Mcount,4,4))
+    Znext[0,:,:,0:2] = ProdB
+    Znext[0,:,:,2:4] = ProdG
+    
+    # Calculate (net) interest factor and wage rate next period
+    KtoLnext = Knext/Lnext
+    Rnext = 1.0 + Znext*CapShare*KtoLnext**(CapShare-1.0) - DeprFac
+    Wnext = Znext*(1.0-CapShare)*KtoLnext**CapShare
+
+    # Calculate aggregate market resources next period
+    Ynext = Znext * Knext**CapShare * Lnext**(1. - CapShare)
+    Mnext = (1.-DeprFac)*Knext + Ynext
+
+    # Tile the interest, wage, and aggregate market resources arrays
+    Rnext_tiled = np.tile(Rnext, [aCount, 1, 1, 1])
+    Wnext_tiled = np.tile(Wnext, [aCount, 1, 1, 1])
+    Mnext_tiled = np.tile(Mnext, [aCount, 1, 1, 1])
+    
+    # Make an array of idiosyncratic labor supply next period
+    lNext_tiled = np.zeros([aCount, Mcount, 4, 4])
+    lNext_tiled[:,:,:,1] = LbrInd
+    lNext_tiled[:,:,:,3] = LbrInd
+    
+    # Calculate idiosyncratic market resources next period
+    mNext = Rnext_tiled*aNow_tiled + Wnext_tiled*lNext_tiled
+    
+    # Loop over next period's state realizations, computing marginal value of market resources
+    vPnext = np.zeros_like(mNext)
+    for j in range(4):
+        vPnext[:,:,:,j] = solution_next.vPfunc[j](mNext[:,:,:,j], Mnext_tiled[:,:,:,j])
+        
+    # Compute end-of-period marginal value of assets
+    Probs_tiled = np.tile(np.reshape(MrkvIndArray, [1, 1, 4, 4]), [aCount, Mcount, 1, 1])
+    EndOfPrdvP = DiscFac*np.sum(Rnext_tiled*vPnext*Probs_tiled, axis=3)
+    
+    # Invert the first order condition to find optimal consumption
+    cNow = EndOfPrdvP**(-1./CRRA)
+    
+    # Find the endogenous gridpoints
+    mNow = aNow_tiled[:,:,:,0] + cNow
+    
+    # Insert zeros at the bottom of both cNow and mNow arrays (consume nothing)
+    cNow = np.concatenate([np.zeros([1,Mcount,4]), cNow])
+    mNow = np.concatenate([np.zeros([1,Mcount,4]), mNow])
+    
+    # Construct the consumption and marginal value function for each discrete state
+    cFunc_by_state = []
+    vPfunc_by_state = []
+    for j in range(4):
+        cFunc_by_M = [LinearInterp(mNow[:,k,j], cNow[:,k,j]) for k in range(Mcount)]
+        cFunc_j = LinearInterpOnInterp1D(cFunc_by_M, Mgrid)
+        vPfunc_j = MargValueFunc2D(cFunc_j, CRRA)
+        cFunc_by_state.append(cFunc_j)
+        vPfunc_by_state.append(vPfunc_j)
+        
+    # Package and return the solution
+    solution_now = KrusellSmithSolution(cFunc = cFunc_by_state,
+                                        vPfunc = vPfunc_by_state)
+
+###############################################################################
+
+
 
 CRRA = 2.0
 DiscFac = 0.96
