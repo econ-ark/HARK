@@ -2430,14 +2430,11 @@ class KrusellSmithEconomy(Market):
             # Save the new values as "previous" values for the next iteration
             self.intercept_prev[i] = intercept
             self.slope_prev[i] = slope
-            
-            plt.plot(logMagg[these], logAagg[these], '.')
 
         # Print the new parameters
         if verbose:
             print('intercept=' + str(self.intercept_prev) +
                   ', slope=' + str(self.slope_prev) + ', r-sq=' + str(rSq_list))
-            plt.show()
 
         return AggShocksDynamicRule(AFunc_list)
 

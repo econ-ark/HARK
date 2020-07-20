@@ -8,6 +8,8 @@ from HARK.ConsumptionSaving.ConsAggShockModel import (
     CobbDouglasEconomy,
     AggShockMarkovConsumerType,
     CobbDouglasMarkovEconomy,
+    KrusellSmithType,
+    KrusellSmithEconomy
 )
 from HARK.distribution import DiscreteDistribution
 from copy import deepcopy
@@ -23,9 +25,9 @@ solve_agg_shocks_market = False
 # Solve an AggShockMarkovConsumerType's microeconomic problem
 solve_markov_micro = False
 # Solve for the equilibrium aggregate saving rule in a CobbDouglasMarkovEconomy
-solve_markov_market = True
+solve_markov_market = False
 # Solve a simple Krusell-Smith-style two state, two shock model
-solve_krusell_smith = False
+solve_krusell_smith = True
 # Solve a CobbDouglasEconomy with many states, potentially utilizing the "state jumper"
 solve_poly_state = False
 
@@ -100,7 +102,7 @@ if solve_agg_shocks_market:
 # ### Example Implementations of AggShockMarkovConsumerType
 
 # %%
-if solve_markov_micro or solve_markov_market or solve_krusell_smith:
+if solve_markov_micro or solve_markov_market:
     # Make a Markov aggregate shocks consumer type
     AggShockMrkvExample = AggShockMarkovConsumerType()
     AggShockMrkvExample.IncomeDstn[0] = 2 * [AggShockMrkvExample.IncomeDstn[0]]
@@ -168,31 +170,31 @@ if solve_markov_market:
 
 # %%
 if solve_krusell_smith:
-    # Make a Krusell-Smith agent type
-    # NOTE: These agents aren't exactly like KS, as they don't have serially correlated unemployment
-    KSexampleType = deepcopy(AggShockMrkvExample)
-    KSexampleType.IncomeDstn[0] = [
-        DiscreteDistribution(np.array([0.96, 0.04]), [np.array([1.0, 1.0]), np.array([1.0 / 0.96, 0.0])]),
-         DiscreteDistribution(np.array([0.90, 0.10]), [np.array([1.0, 1.0]), np.array([1.0 / 0.90, 0.0])]),
-    ]
-
-    # Make a KS economy
-    KSeconomy = deepcopy(MrkvEconomyExample)
-    KSeconomy.agents = [KSexampleType]
-    KSeconomy.AggShkDstn = [
-        DiscreteDistribution(np.array([1.0]), [np.array([1.0]), np.array([1.05])]),
-        DiscreteDistribution(np.array([1.0]), [np.array([1.0]), np.array([0.95])]),
-    ]
-    KSeconomy.PermGroFacAgg = [1.0, 1.0]
-    KSexampleType.getEconomyData(KSeconomy)
-    KSeconomy.makeAggShkHist()
-
-    # Solve the K-S model
-    t_start = time()
-    print("Now solving a Krusell-Smith-style economy.  This should take about a minute...")
+    # Make default KS agent type and economy
+    KSeconomy = KrusellSmithEconomy()
+    KStype = KrusellSmithType()
+    KStype.cycles = 0
+    KStype.getEconomyData(KSeconomy)
+    KSeconomy.agents = [KStype]
+    KSeconomy.makeMrkvHist()
+    
+    # Solve the Krusell-Smith economy
+    t0 = time()
+    print("Now solving for the equilibrium of the Krusell-Smith model.  This might take a few minutes...")
     KSeconomy.solve()
-    t_end = time()
-    print("Solving the Krusell-Smith model took " + str(t_end - t_start) + " seconds.")
+    t1 = time()
+    print('Solving the Krusell-Smith model took ' + str(t1-t0) + ' seconds.')
+    
+    state_names = ['bad economy, unemployed', 'bad economy, employed',
+                   'good economy, unemployed', 'good economy, employed']
+    
+    # Plot the consumption function for each discrete state
+    for j in range(4):
+        plt.xlabel(r'Idiosyncratic market resources $m$')
+        plt.ylabel(r'Consumption $c$')
+        plt.title('Consumption function by aggregate market resources: ' + state_names[j])
+        plotFuncs(KStype.solution[0].cFunc[j].xInterpolators, 0., 50.)
+
 
 # %%
 if solve_poly_state:
