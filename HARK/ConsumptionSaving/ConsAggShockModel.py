@@ -548,25 +548,51 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
 
     def getMrkvNow(self):  # This function exists to be overwritten in StickyE model
         return self.MrkvNow*np.ones(self.AgentCount, dtype=int)
-    
+
+
+init_KS_agents = {
+    'T_cycle' : 1,
+    'DiscFac' : 0.99,
+    'CRRA' : 1.0,
+    'LbrInd' : 1.,
+    'aMin' : 0.001,
+    'aMax' : 50.,
+    'aCount' : 32,
+    'aNestFac' : 2,
+    'MgridBase' : np.array([0.1,0.3,0.6,0.8,0.9,0.95,0.98,1.0,1.02,1.05,1.1,1.2,1.6,2.0,3.0]),
+    'AgentCount' : 5000
+    }
     
 class KrusellSmithType(AgentType):
+    '''
+    A class for representing agents in the seminal Krusell-Smith (1998) model from
+    the paper "Income and Wealth Heterogeneity in the Macroeconomy".  All default
+    parameters have been set to match those in the paper, but the equilibrium object
+    is perceptions of aggregate assets as a function of aggregate market resources
+    in each macroeconomic state (bad=0, good=1), rather than aggregate capital as
+    a function of previous aggregate capital.  This choice was made so that some
+    of the code from HARK's other HA-macro models can be used.
+    '''
     
     def __init__(self, **kwds):
         '''
         Make a new instance of the Krusell-Smith type.
         '''
-        #params = init_agg_shocks.copy()
-        #params.update(kwds)
+        params = init_KS_agents.copy()
+        params.update(kwds)
 
-        AgentType.__init__(self, pseudo_terminal=False, **kwds)
+        AgentType.__init__(self, pseudo_terminal=False, **params)
 
-        # Add consumer-type specific objects, copying to create independent versions
+        # Add consumer-type specific objects
         self.time_vary = []
-        self.time_inv = ['DiscFac', 'CRRA', 'LbrInd']
+        self.time_inv = ['DiscFac', 'CRRA',]
         self.poststate_vars = ['aNow','EmpNow']
         self.solveOnePeriod = solveKrusellSmith
         self.update()
+        
+    def preSolve(self):
+        self.update()
+        self.preComputeArrays()
         
     def update(self):
         '''
@@ -589,31 +615,32 @@ class KrusellSmithType(AgentType):
         None
         '''
         self.T_sim = Economy.act_T                   # Need to be able to track as many periods as economy runs
-        self.kInit = Economy.kSS                     # Initialize simulation assets to steady state
+        self.kInit = Economy.KSS                     # Initialize simulation assets to steady state
         self.MrkvInit = Economy.MrkvNow_init         # Starting Markov state for the macroeconomy
-        self.aNrmInitMean = np.log(0.00000001)       # Initialize newborn assets to nearly zero
         self.Mgrid = Economy.MSS*self.MgridBase      # Aggregate market resources grid adjusted around SS capital ratio
         self.AFunc = Economy.AFunc                   # Next period's aggregate savings function
         self.DeprFac = Economy.DeprFac               # Rate of capital depreciation
         self.CapShare = Economy.CapShare             # Capital's share of production
+        self.LbrInd = Economy.LbrInd                 # Idiosyncratic labor supply (when employed)
         self.UrateB = Economy.UrateB                 # Unemployment rate in bad state
         self.UrateG = Economy.UrateG                 # Unemployment rate in good state
         self.ProdB = Economy.ProdB                   # Total factor productivity in bad state
         self.ProdG = Economy.ProdG                   # Total factor productivity in good state
         self.MrkvIndArray = Economy.MrkvIndArray     # Transition probabilities among discrete states
         self.MrkvAggArray = Economy.MrkvArray        # Transition probabilities among aggregate discrete states
-        self.addToTimeInv('Mgrid', 'AFunc', 'DeprFac', 'CapShare', 'UrateB', 'UrateG', 'ProdB', 'ProdG', 'MrkvIndArray', 'MrkvAggArray')
+        self.addToTimeInv('Mgrid', 'AFunc', 'DeprFac', 'CapShare', 'UrateB', 'LbrInd',\
+                          'UrateG', 'ProdB', 'ProdG', 'MrkvIndArray', 'MrkvAggArray')
     
     def makeGrid(self):
         '''
-        Construct the attribute aXtraGrid from the primitive attributes aXtraMin,
-        aXtraMax, aXtraCount, aXtraNestFac.
+        Construct the attribute aXtraGrid from the primitive attributes aMin,
+        aMax, aCount, aNestFac.
         '''
-        self.aXtraGrid = makeGridExpMult(self.aXtraMin,
-                                         self.aXtraMax,
-                                         self.aXtraCount,
-                                         self.aXtraNestFac)
-        self.addToTimeInv('aXtraGrid')
+        self.aGrid = makeGridExpMult(self.aMin,
+                                         self.aMax,
+                                         self.aCount,
+                                         self.aNestFac)
+        self.addToTimeInv('aGrid')
         
     def updateSolutionTerminal(self):
         '''
@@ -623,19 +650,77 @@ class KrusellSmithType(AgentType):
         vPfunc_terminal = [MargValueFunc2D(cFunc_terminal[j], self.CRRA) for j in range(4)]
         self.solution_terminal = ConsumerSolution(cFunc = cFunc_terminal,
                                                   vPfunc = vPfunc_terminal)
-    
-    def reset(self):
-        self.initializeSim()
         
-    def marketAction(self):
-        self.simulate(1)
-    
-    def initializeSim(self):
-        self.MrkvNow = self.MrkvInit
-        self.MrkvPrev = self.MrkvInit
-        AgentType.initializeSim(self)
-        self.EmpNow = self.EmpNow.astype(bool)
+    def preComputeArrays(self):
+        '''
+        Construct the attributes X, which will be used by the one period solver.
+        '''
+        # Get array sizes
+        aCount = self.aGrid.size
+        Mcount = self.Mgrid.size
         
+        # Make tiled array of end-of-period idiosyncratic assets (order: a, M, s, s')
+        aNow_tiled = np.tile(np.reshape(self.aGrid, [aCount, 1, 1, 1]), [1, Mcount, 4, 4]) # shape (aCount, Mcount, 4, 4)
+        
+        # Make arrays of end-of-period aggregate assets (capital next period)
+        AnowB = self.AFunc[0](self.Mgrid)
+        AnowG = self.AFunc[1](self.Mgrid)
+        KnextB = np.tile(np.reshape(AnowB, [1, Mcount, 1, 1]), [1, 1, 1, 4])
+        KnextG = np.tile(np.reshape(AnowG, [1, Mcount, 1, 1]), [1, 1, 1, 4])
+        Knext = np.concatenate((KnextB, KnextB, KnextG, KnextG), axis=2) # shape (1,Mcount,4,4)
+        
+        # Make arrays of aggregate labor and TFP next period
+        Lnext = np.zeros((1,Mcount,4,4)) # shape (1,Mcount,4,4)
+        Lnext[0,:,:,0:2] = (1. - self.UrateB)*self.LbrInd
+        Lnext[0,:,:,2:4] = (1. - self.UrateG)*self.LbrInd
+        Znext = np.zeros((1,Mcount,4,4))
+        Znext[0,:,:,0:2] = self.ProdB
+        Znext[0,:,:,2:4] = self.ProdG
+        
+        # Calculate (net) interest factor and wage rate next period
+        KtoLnext = Knext/Lnext
+        Rnext = 1.0 + Znext*CapShare*KtoLnext**(CapShare-1.0) - DeprFac
+        Wnext = Znext*(1.0-CapShare)*KtoLnext**CapShare
+        
+        # Calculate aggregate market resources next period
+        Ynext = Znext * Knext**CapShare * Lnext**(1. - CapShare)
+        Mnext = (1.-DeprFac)*Knext + Ynext
+        
+        # Tile the interest, wage, and aggregate market resources arrays
+        Rnext_tiled = np.tile(Rnext, [aCount, 1, 1, 1])
+        Wnext_tiled = np.tile(Wnext, [aCount, 1, 1, 1])
+        Mnext_tiled = np.tile(Mnext, [aCount, 1, 1, 1]) # shape (aCount, Mcount, 4, 4)
+        
+        # Make an array of idiosyncratic labor supply next period
+        lNext_tiled = np.zeros([aCount, Mcount, 4, 4])
+        lNext_tiled[:,:,:,1] = self.LbrInd
+        lNext_tiled[:,:,:,3] = self.LbrInd
+        
+        # Calculate idiosyncratic market resources next period
+        mNext = Rnext_tiled*aNow_tiled + Wnext_tiled*lNext_tiled # shape (aCount, Mcount, 4, 4)
+        
+        # Make a tiled array of transition probabilities
+        Probs_tiled = np.tile(np.reshape(self.MrkvIndArray, [1, 1, 4, 4]), [aCount, Mcount, 1, 1])
+        
+        # Store the attributes that will be used by the solver
+        self.ProbArray = Probs_tiled
+        self.mNextArray = mNext
+        self.MnextArray = Mnext_tiled
+        self.RnextArray = Rnext_tiled
+        self.addToTimeInv('ProbArray', 'mNextArray', 'MnextArray', 'RnextArray')
+        
+    def makeEmpIdxArrays(self):
+        '''
+        Construct the attributes emp_permute and unemp_permute, each of which is
+        a 2x2 nested list of boolean arrays.  The j,k-th element of emp_permute
+        represents the employment states this period for agents who were employed
+        last period when the macroeconomy is transitioning from state j to state k.
+        Likewise, j,k-th element of unemp_permute represents the employment states
+        this period for agents who were unemployed last period when the macro-
+        economy is transitioning from state j to state k.  These attributes are
+        referenced during simulation, when they are randomly permuted in order to
+        maintain exact unemployment rates in each period.
+        '''
         # Get counts of employed and unemployed agents in each macroeconomic state
         B_unemp_N = int(np.round(self.UrateB*self.AgentCount))
         B_emp_N = self.AgentCount - B_unemp_N
@@ -687,7 +772,20 @@ class KrusellSmithType(AgentType):
                               [GB_unemp_permute, GG_unemp_permute]]
         self.emp_permute =   [[BB_emp_permute, BG_emp_permute],
                               [GB_emp_permute, GG_emp_permute]]
+        
+    def reset(self):
+        self.initializeSim()
+        
+    def marketAction(self):
+        self.simulate(1)
     
+    def initializeSim(self):
+        self.MrkvNow = self.MrkvInit
+        self.MrkvPrev = self.MrkvInit
+        AgentType.initializeSim(self)
+        self.EmpNow = self.EmpNow.astype(bool)
+        self.makeEmpIdxArrays()
+        
     def simBirth(self,which):
         '''
         Create newborn agents with randomly drawn employment states.  This will
@@ -1124,8 +1222,8 @@ def solveConsAggMarkov(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, MrkvArr
 
 ###############################################################################
 
-def solveKrusellSmith(solution_next, DiscFac, CRRA, LbrInd, UrateB, UrateG, ProdB, ProdG, DeprFac,
-                      CapShare, MrkvAggArray, MrkvIndArray, aXtraGrid, Mgrid, AFunc):
+def solveKrusellSmith(solution_next, DiscFac, CRRA, aGrid, Mgrid, mNextArray,
+                      MnextArray, ProbArray, RnextArray):
     '''
     Solve the one period problem of an agent in Krusell & Smith's canonical 1998 model.
     
@@ -1138,101 +1236,32 @@ def solveKrusellSmith(solution_next, DiscFac, CRRA, LbrInd, UrateB, UrateG, Prod
         Intertemporal discount factor.
     CRRA : float
         Coefficient of relative risk aversion.
-    LbrInd : float
-        Idiosyncratic labor supply when the individual is employed (zero when unemp).
-    UrateB : float
-        Unemployment probability in the Bad macroeconomic state.
-    UrateG : float
-        Unemployment probability in the Good macroeconomic state.
-    ProdB : float
-        Total factor productivity in the Bad macroeconomic state.
-    ProdG : float
-        Total factor productivity in the Good macroeconomic state.
-    DeprFac : float
-        Capital depreciation rate (not factor, despite the name).
-    CapShare : float
-        Capital's share of productivity in a Cobb-Douglas production function.
-    MrkvAggArray : np.array
-        2x2 Markov matrix specifying transition probabilities between Bad and Good states.
-    MrkvIndArray : np.array
-        4x4 Markov matrix specifying transition probabilities among *both* macro
-        and micro discrete states.  Order: [BU, BE, GU, GE].
-    aXtraGrid : np.array
-        Array of "extra" end-of-period asset values-- assets above the
-        absolute minimum acceptable level (zero, in this case).
+    aGrid : np.array
+        Array of end-of-period asset values.
     Mgrid : np.array
         A grid of aggregate market resources in the economy.
-    AFunc : [function]
-        Aggregate savings as a function of aggregate market resources, for the
-        Bad and Good macroeconomic states respectively.
     
     Returns
     -------
     solution_now : ConsumerSolution
         Representation of this period's solution to the Krusell-Smith model.
     '''
-    # Get array sizes
-    aCount = aXtraGrid.size
-    Mcount = Mgrid.size
-    
-    # Make tiled array of end-of-period idiosyncratic assets (order: a, M, s, s')
-    aNow_tiled = np.tile(np.reshape(aXtraGrid, [aCount, 1, 1, 1]), [1, Mcount, 4, 4]) # shape (aCount, Mcount, 4, 4)
-    
-    # Make arrays of end-of-period aggregate assets (capital next period)
-    AnowB = AFunc[0](Mgrid)
-    AnowG = AFunc[1](Mgrid)
-    KnextB = np.tile(np.reshape(AnowB, [1, Mcount, 1, 1]), [1, 1, 1, 4])
-    KnextG = np.tile(np.reshape(AnowG, [1, Mcount, 1, 1]), [1, 1, 1, 4])
-    Knext = np.concatenate((KnextB, KnextB, KnextG, KnextG), axis=2) # shape (1,Mcount,4,4)
-    
-    # Make arrays of aggregate labor and TFP next period
-    Lnext = np.zeros((1,Mcount,4,4)) # shape (1,Mcount,4,4)
-    Lnext[0,:,:,0:2] = (1. - UrateB)*LbrInd
-    Lnext[0,:,:,2:4] = (1. - UrateG)*LbrInd
-    Znext = np.zeros((1,Mcount,4,4))
-    Znext[0,:,:,0:2] = ProdB
-    Znext[0,:,:,2:4] = ProdG
-    
-    # Calculate (net) interest factor and wage rate next period
-    KtoLnext = Knext/Lnext
-    Rnext = 1.0 + Znext*CapShare*KtoLnext**(CapShare-1.0) - DeprFac
-    Wnext = Znext*(1.0-CapShare)*KtoLnext**CapShare
-
-    # Calculate aggregate market resources next period
-    Ynext = Znext * Knext**CapShare * Lnext**(1. - CapShare)
-    Mnext = (1.-DeprFac)*Knext + Ynext
-
-    # Tile the interest, wage, and aggregate market resources arrays
-    Rnext_tiled = np.tile(Rnext, [aCount, 1, 1, 1])
-    Wnext_tiled = np.tile(Wnext, [aCount, 1, 1, 1])
-    Mnext_tiled = np.tile(Mnext, [aCount, 1, 1, 1]) # shape (aCount, Mcount, 4, 4)
-    
-    # Make an array of idiosyncratic labor supply next period
-    lNext_tiled = np.zeros([aCount, Mcount, 4, 4])
-    lNext_tiled[:,:,:,1] = LbrInd
-    lNext_tiled[:,:,:,3] = LbrInd
-    
-    # Calculate idiosyncratic market resources next period
-    mNext = Rnext_tiled*aNow_tiled + Wnext_tiled*lNext_tiled # shape (aCount, Mcount, 4, 4)
-    
-    # Make a tiled array of transition probabilities
-    Probs_tiled = np.tile(np.reshape(MrkvIndArray, [1, 1, 4, 4]), [aCount, Mcount, 1, 1])
-    
-    # EVERYTHING ABOVE HERE CAN BE PRE-COMPUTED
-    
     # Loop over next period's state realizations, computing marginal value of market resources
-    vPnext = np.zeros_like(mNext)
+    vPnext = np.zeros_like(mNextArray)
     for j in range(4):
-        vPnext[:,:,:,j] = solution_next.vPfunc[j](mNext[:,:,:,j], Mnext_tiled[:,:,:,j])
+        vPnext[:,:,:,j] = solution_next.vPfunc[j](mNextArray[:,:,:,j], MnextArray[:,:,:,j])
         
     # Compute end-of-period marginal value of assets
-    EndOfPrdvP = DiscFac*np.sum(Rnext_tiled*vPnext*Probs_tiled, axis=3)
+    EndOfPrdvP = DiscFac*np.sum(RnextArray*vPnext*ProbArray, axis=3)
     
     # Invert the first order condition to find optimal consumption
     cNow = EndOfPrdvP**(-1./CRRA)
     
     # Find the endogenous gridpoints
-    mNow = aNow_tiled[:,:,:,0] + cNow
+    aCount = aGrid.size
+    Mcount = Mgrid.size
+    aNow = np.tile(np.reshape(aGrid, [aCount, 1, 1]), [1, Mcount, 4])
+    mNow = aNow + cNow
     
     # Insert zeros at the bottom of both cNow and mNow arrays (consume nothing)
     cNow = np.concatenate([np.zeros([1,Mcount,4]), cNow], axis=0)
@@ -2117,10 +2146,37 @@ class SmallOpenMarkovEconomy(CobbDouglasMarkovEconomy, SmallOpenEconomy):
         CobbDouglasMarkovEconomy.makeAggShkHist(self)
         
         
+init_KS_economy = {
+    'verbose' : True,
+    'act_T' : 11000,
+    'T_discard' : 1000,
+    'DampingFac' : 0.5,
+    'intercept_prev' : [0., 0.],
+    'slope_prev' : [1., 1.],
+    'DiscFac' : 0.99,
+    'CRRA' : 1.0,
+    'LbrInd' : 0.325, # Not listed in KS (1998), but this is what makes results match
+    'ProdB' : 0.99,
+    'ProdG' : 1.01,
+    'CapShare' : 0.36,
+    'DeprFac' : 0.025,
+    'DurMeanB' : 8.,
+    'DurMeanG' : 8.,
+    'SpellMeanB' : 2.5,
+    'SpellMeanG' : 1.5,
+    'UrateB' : 0.10,
+    'UrateG' : 0.04,
+    'RelProbBG' : 0.75,
+    'RelProbGB' : 1.25,
+    'MrkvNow_init' : 0,
+    }
+        
 class KrusellSmithEconomy(Market):
     '''
-    A class to represent an economy in the special Krusell-Smith model.
-
+    A class to represent an economy in the special Krusell-Smith (1998) model.
+    This model replicates the one presented in the JPE article "Income and Wealth
+    Heterogeneity in the Macroeconomy", with its default parameters set to match
+    those in the paper.
     '''
     def __init__(self,
                  agents=None,
@@ -2146,8 +2202,8 @@ class KrusellSmithEconomy(Market):
         None
         '''
         agents = agents if agents is not None else list()
-        #params = init_krusell_smith_economy.copy()
-        #params.update(kwds)
+        params = init_KS_economy.copy()
+        params.update(kwds)
 
         Market.__init__(self, agents=agents,
                         tolerance=tolerance,
@@ -2155,7 +2211,7 @@ class KrusellSmithEconomy(Market):
                         reap_vars = ['aNow', 'EmpNow'],
                         track_vars = ['MrkvNow', 'Aprev', 'Mnow', 'Urate'],
                         dyn_vars = ['AFunc'],
-                        **kwds)
+                        **params)
         self.update()
         
     def update(self):
@@ -2166,17 +2222,18 @@ class KrusellSmithEconomy(Market):
         StateCount = 2
         AFunc_all = [AggregateSavingRule(self.intercept_prev[j], self.slope_prev[j]) for j in range(StateCount)]
         self.AFunc = AFunc_all
-        self.kSS = ((1.0**self.CRRA/self.DiscFac - (1.0-self.DeprFac))/self.CapShare)**(1.0/(self.CapShare-1.0))
-        self.KtoYSS = self.kSS**(1.0-self.CapShare)
-        self.WSS = (1.0-self.CapShare)*self.kSS**(self.CapShare)
-        self.RSS = (1.0 + self.CapShare*self.kSS**(self.CapShare-1.0) - self.DeprFac)
-        self.MSS = self.kSS*self.RSS + self.WSS
+        self.KtoLSS = ((1.0**self.CRRA/self.DiscFac - (1.0-self.DeprFac))/self.CapShare)**(1.0/(self.CapShare-1.0))
+        self.KSS = self.KtoLSS*self.LbrInd
+        self.KtoYSS = self.KtoLSS**(1.0-self.CapShare)
+        self.WSS = (1.0-self.CapShare)*self.KtoLSS**(self.CapShare)
+        self.RSS = (1.0 + self.CapShare*self.KtoLSS**(self.CapShare-1.0) - self.DeprFac)
+        self.MSS = self.KSS*self.RSS + self.WSS*self.LbrInd
         self.convertKtoY = lambda KtoY: KtoY**(1.0/(1.0 - self.CapShare))  # converts K/Y to K/L
         self.rFunc = lambda k: self.CapShare*k**(self.CapShare-1.0)
         self.Wfunc = lambda k: ((1.0-self.CapShare)*k**(self.CapShare))
-        self.KtoLnow_init = self.kSS
-        self.Mnow_init = self.kSS
-        self.Aprev_init = self.kSS
+        self.KtoLnow_init = self.KtoLSS
+        self.Mnow_init = self.MSS
+        self.Aprev_init = self.KSS
         self.Rnow_init = self.RSS
         self.Wnow_init = self.WSS
         self.PermShkAggNow_init = 1.0
@@ -2188,14 +2245,6 @@ class KrusellSmithEconomy(Market):
         '''
         Reset the economy to prepare for a new simulation.  Sets the time index
         of aggregate shocks to zero and runs Market.reset().
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
         '''
         self.Shk_idx = 0
         Market.reset(self)
@@ -2244,7 +2293,6 @@ class KrusellSmithEconomy(Market):
         
         # Test for valid idiosyncratic transition probabilities
         assert np.all(MrkvIndArray >= 0.), 'Invalid idiosyncratic transition probabilities!'
-        
         self.MrkvArray = MrkvAggArray
         self.MrkvIndArray = MrkvIndArray
         
@@ -2295,6 +2343,10 @@ class KrusellSmithEconomy(Market):
         aNow : [np.array]
             Agents' current end-of-period assets.  Elements of the list correspond
             to types in the economy, entries within arrays to agents of that type.
+        EmpNow [np.array]
+            Agents' binary employment states.  Not actually used in computation of
+            interest and wage rates, but stored in the history to verify that the
+            idiosyncratic unemployment probabilities are behaving as expected.
 
         Returns
         -------
@@ -2310,16 +2362,16 @@ class KrusellSmithEconomy(Market):
         
         # Calculate unemployment rate
         Urate = 1. - np.mean(np.array(EmpNow))
-        self.Urate = Urate
+        self.Urate = Urate # This is the unemployment rate for the *prior* period
 
         # Get this period's TFP and labor supply
         MrkvNow = self.MrkvNow_hist[self.Shk_idx]
         if MrkvNow == 0:
             Prod = self.ProdB
-            AggL = 1. - self.UrateB
+            AggL = (1. - self.UrateB)*self.LbrInd
         elif MrkvNow == 1:
             Prod = self.ProdG
-            AggL = 1. - self.UrateG
+            AggL = (1. - self.UrateG)*self.LbrInd
         self.Shk_idx += 1
 
         # Calculate the interest factor and wage rate this period
