@@ -1147,7 +1147,7 @@ class Market(HARKobject):
             self.cultivate()  # Agents take action
             self.reap()  # Collect individual data from agents
             self.mill()  # Process individual data into aggregate data
-            self.store()  # Record variables of interest
+            self.store() # Record variables of interest
 
     def updateDynamics(self):
         '''
