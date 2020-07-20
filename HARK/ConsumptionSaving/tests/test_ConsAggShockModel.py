@@ -1,5 +1,6 @@
 from HARK import distributeParams
-from HARK.ConsumptionSaving.ConsAggShockModel import AggShockConsumerType, CobbDouglasEconomy, AggShockMarkovConsumerType, CobbDouglasMarkovEconomy
+from HARK.ConsumptionSaving.ConsAggShockModel import AggShockConsumerType, CobbDouglasEconomy, \
+    AggShockMarkovConsumerType, CobbDouglasMarkovEconomy, KrusellSmithType, KrusellSmithEconomy
 from HARK.distribution import Uniform
 import numpy as np
 import unittest
@@ -80,4 +81,32 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         self.economy.AFunc = self.economy.dynamics.AFunc
         self.assertAlmostEqual(self.economy.AFunc[0].slope,
                                1.0904698841958917)
-                         
+        
+        
+class testKrusellSmith(unittest.TestCase):
+
+    def setUp(self):
+        # Make one agent type and an economy for it to live in
+        self.agent = KrusellSmithType()
+        self.agent.cycles = 0
+        self.agent.AgentCount = 1000 # Low number of simulated agents
+        self.economy = KrusellSmithEconomy(agents = [self.agent])
+        self.economy.max_loops = 2 # Quit early
+        self.economy.act_T = 1100 # Shorter simulated period
+        self.economy.discard_periods = 100
+        self.economy.verbose = False # Turn off printed messages
+        
+    def test_agent(self):
+        self.agent.getEconomyData(self.economy)
+        self.agent.solve()
+        self.assertAlmostEqual(self.agent.solution[0].cFunc[0](10., self.economy.MSS),
+                               1.23384339)
+        
+    def test_economy(self):
+        self.agent.getEconomyData(self.economy)
+        self.economy.makeMrkvHist() # Make a simulated history of aggregate shocks
+        self.economy.solve() # Solve for the general equilibrium of the economy
+        
+        self.economy.AFunc = self.economy.dynamics.AFunc
+        self.assertAlmostEqual(self.economy.AFunc[0].slope,
+                               1.0014540977547373)
