@@ -97,7 +97,11 @@ def calcPrimKink(mGrid, vTGrids, Choices):
 
     Returns
     -------
-    None
+    kinks: [(mCoord, vTCoor)]
+        list of kink points
+    segments: [(left, right)]
+        List of the same length as kinks, where each element is a tuple
+        indicating which segments are optimal on each side of the kink.
     '''
 
     # Construct a vector with the optimal choice at each m point
