@@ -637,9 +637,9 @@ class KrusellSmithType(AgentType):
         aMax, aCount, aNestFac.
         '''
         self.aGrid = makeGridExpMult(self.aMin,
-                                         self.aMax,
-                                         self.aCount,
-                                         self.aNestFac)
+                                     self.aMax,
+                                     self.aCount,
+                                     self.aNestFac)
         self.addToTimeInv('aGrid')
         
     def updateSolutionTerminal(self):
@@ -653,21 +653,22 @@ class KrusellSmithType(AgentType):
         
     def preComputeArrays(self):
         '''
-        Construct the attributes X, which will be used by the one period solver.
+        Construct the attributes ProbArray, mNextArray, MnextArray, and RnextArray,
+        which will be used by the one period solver.
         '''
         # Get array sizes
         aCount = self.aGrid.size
         Mcount = self.Mgrid.size
         
         # Make tiled array of end-of-period idiosyncratic assets (order: a, M, s, s')
-        aNow_tiled = np.tile(np.reshape(self.aGrid, [aCount, 1, 1, 1]), [1, Mcount, 4, 4]) # shape (aCount, Mcount, 4, 4)
+        aNow_tiled = np.tile(np.reshape(self.aGrid, [aCount, 1, 1, 1]), [1, Mcount, 4, 4])
         
         # Make arrays of end-of-period aggregate assets (capital next period)
         AnowB = self.AFunc[0](self.Mgrid)
         AnowG = self.AFunc[1](self.Mgrid)
         KnextB = np.tile(np.reshape(AnowB, [1, Mcount, 1, 1]), [1, 1, 1, 4])
         KnextG = np.tile(np.reshape(AnowG, [1, Mcount, 1, 1]), [1, 1, 1, 4])
-        Knext = np.concatenate((KnextB, KnextB, KnextG, KnextG), axis=2) # shape (1,Mcount,4,4)
+        Knext = np.concatenate((KnextB, KnextB, KnextG, KnextG), axis=2)
         
         # Make arrays of aggregate labor and TFP next period
         Lnext = np.zeros((1,Mcount,4,4)) # shape (1,Mcount,4,4)
@@ -689,7 +690,7 @@ class KrusellSmithType(AgentType):
         # Tile the interest, wage, and aggregate market resources arrays
         Rnext_tiled = np.tile(Rnext, [aCount, 1, 1, 1])
         Wnext_tiled = np.tile(Wnext, [aCount, 1, 1, 1])
-        Mnext_tiled = np.tile(Mnext, [aCount, 1, 1, 1]) # shape (aCount, Mcount, 4, 4)
+        Mnext_tiled = np.tile(Mnext, [aCount, 1, 1, 1])
         
         # Make an array of idiosyncratic labor supply next period
         lNext_tiled = np.zeros([aCount, Mcount, 4, 4])
@@ -697,7 +698,7 @@ class KrusellSmithType(AgentType):
         lNext_tiled[:,:,:,3] = self.LbrInd
         
         # Calculate idiosyncratic market resources next period
-        mNext = Rnext_tiled*aNow_tiled + Wnext_tiled*lNext_tiled # shape (aCount, Mcount, 4, 4)
+        mNext = Rnext_tiled*aNow_tiled + Wnext_tiled*lNext_tiled
         
         # Make a tiled array of transition probabilities
         Probs_tiled = np.tile(np.reshape(self.MrkvIndArray, [1, 1, 4, 4]), [aCount, Mcount, 1, 1])
@@ -835,26 +836,24 @@ class KrusellSmithType(AgentType):
         '''
         Get each agent's consumption given their current state.'
         '''
-        Mnow = self.Mnow*np.ones(self.AgentCount)
-        cNow = np.zeros(self.AgentCount)
+        employed = self.EmpNow.copy()
+        unemployed = np.logical_not(employed)
         
-        # This can be written more concisely, but is intentionally explicit for
-        # the sake of making it very easy to read
+        # Get the discrete index for (un)employed agents
         if self.MrkvNow == 0: # Bad macroeconomic conditions
-            these = np.logical_not(self.EmpNow) # Unemployed agents
-            cNow[these] = self.solution[0].cFunc[0](self.mNow[these], Mnow[these])
-            these = self.EmpNow # Employed agents
-            cNow[these] = self.solution[0].cFunc[1](self.mNow[these], Mnow[these])
-            
+            unemp_idx = 0
+            emp_idx = 1
         elif self.MrkvNow == 1: # Good macroeconomic conditions
-            these = np.logical_not(self.EmpNow) # Unemployed agents
-            cNow[these] = self.solution[0].cFunc[2](self.mNow[these], Mnow[these])
-            these = self.EmpNow # Employed agents
-            cNow[these] = self.solution[0].cFunc[3](self.mNow[these], Mnow[these])
-            
+            unemp_idx = 2
+            emp_idx = 3
         else:
             assert False, 'Illegal macroeconomic state: MrkvNow must be 0 or 1'
-            
+        
+        # Get consumption for each agent using the appropriate consumption function
+        cNow = np.zeros(self.AgentCount)
+        Mnow = self.Mnow*np.ones(self.AgentCount)
+        cNow[unemployed] = self.solution[0].cFunc[unemp_idx](self.mNow[unemployed], Mnow[unemployed])
+        cNow[employed] = self.solution[0].cFunc[emp_idx](self.mNow[employed], Mnow[employed])
         self.cNow = cNow
             
     def getPostStates(self):
@@ -1226,6 +1225,9 @@ def solveKrusellSmith(solution_next, DiscFac, CRRA, aGrid, Mgrid, mNextArray,
                       MnextArray, ProbArray, RnextArray):
     '''
     Solve the one period problem of an agent in Krusell & Smith's canonical 1998 model.
+    Because this model is so specialized and only intended to be used with a very narrow
+    case, many arrays can be precomputed, making the code here very short.  See the
+    method KrusellSmithType.preComputeArrays() for details.
     
     Parameters
     ----------
@@ -1240,7 +1242,21 @@ def solveKrusellSmith(solution_next, DiscFac, CRRA, aGrid, Mgrid, mNextArray,
         Array of end-of-period asset values.
     Mgrid : np.array
         A grid of aggregate market resources in the economy.
-    
+    mNextArray : np.array
+        Precomputed array of next period's market resources attained from every
+        end-of-period state in the exogenous grid crossed with every shock that
+        might attain.  Has shape [aCount, Mcount, 4, 4] ~ [a, M, s, s'].
+    MnextArray : np.array
+        Precomputed array of next period's aggregate market resources attained
+        from every end-of-period state in the exogenous grid crossed with every
+        shock that might attain.  Corresponds to mNextArray.
+    ProbArray : np.array
+        Tiled array of transition probabilities among discrete states.  Every
+        slice [i,j,:,:] is identical and translated from MrkvIndArray.
+    RnextArray : np.array
+        Tiled array of net interest factors next period, attained from every
+        end-of-period state crossed with every shock that might attain.
+                                                              
     Returns
     -------
     solution_now : ConsumerSolution
@@ -2155,7 +2171,7 @@ init_KS_economy = {
     'slope_prev' : [1., 1.],
     'DiscFac' : 0.99,
     'CRRA' : 1.0,
-    'LbrInd' : 0.325, # Not listed in KS (1998), but this is what makes results match
+    'LbrInd' : 0.3271, # Not listed in KS (1998), but Alan Lujan got this number indirectly from KS
     'ProdB' : 0.99,
     'ProdG' : 1.01,
     'CapShare' : 0.36,

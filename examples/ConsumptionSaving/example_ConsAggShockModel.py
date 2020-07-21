@@ -12,6 +12,7 @@ from HARK.ConsumptionSaving.ConsAggShockModel import (
     KrusellSmithEconomy
 )
 from HARK.distribution import DiscreteDistribution
+from scipy.stats import linregress
 from copy import deepcopy
 def mystr(number):
     return "{:.4f}".format(number)
@@ -180,7 +181,7 @@ if solve_krusell_smith:
     
     # Solve the Krusell-Smith economy
     t0 = time()
-    print("Now solving for the equilibrium of the Krusell-Smith model.  This might take a few minutes...")
+    print("Now solving for the equilibrium of the Krusell-Smith (1998) model.  This might take a few minutes...")
     KSeconomy.solve()
     t1 = time()
     print('Solving the Krusell-Smith model took ' + str(t1-t0) + ' seconds.')
@@ -194,8 +195,28 @@ if solve_krusell_smith:
         plt.ylabel(r'Consumption $c$')
         plt.title('Consumption function by aggregate market resources: ' + state_names[j])
         plotFuncs(KStype.solution[0].cFunc[j].xInterpolators, 0., 50.)
-
-
+        
+    # Extract history of aggregate capital and run a serial autoregression
+    mystr = lambda x : '{:.4f}'.format(x)
+    mystr2 = lambda x : '{:.7f}'.format(x)
+    K_hist = np.array(KSeconomy.history['Aprev'])[KSeconomy.T_discard:]
+    Mrkv_hist = KSeconomy.MrkvNow_hist[KSeconomy.T_discard:]
+    bad = Mrkv_hist[:-1] == 0
+    good = Mrkv_hist[:-1] == 1
+    logK_t = np.log(K_hist[:-1])
+    logK_tp1 = np.log(K_hist[1:])
+    results_bad = linregress(logK_t[bad], logK_tp1[bad])
+    results_good = linregress(logK_t[good], logK_tp1[good])
+    print('')
+    print('Equilibrium dynamics of aggregate capital:')
+    print("Bad state:  log k' = " + mystr(results_bad[1]) + ' + ' + mystr(results_bad[0]) + ' log k (r-sq = ' +  mystr2(results_bad[2]**2) + ')')
+    print("Good state: log k' = " + mystr(results_good[1]) + ' + ' + mystr(results_good[0]) + ' log k (r-sq = ' +  mystr2(results_good[2]**2) + ')')
+    print('')
+    print("Krusell & Smith's published results (p877):")
+    print("Bad state:  log k' = 0.085 + 0.965 log k (r-sq = 0.999998)")
+    print("Good state: log k' = 0.095 + 0.962 log k (r-sq = 0.999998)")
+          
+    
 # %%
 if solve_poly_state:
     StateCount = 15  # Number of Markov states

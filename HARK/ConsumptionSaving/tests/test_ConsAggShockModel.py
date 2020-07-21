@@ -100,7 +100,7 @@ class testKrusellSmith(unittest.TestCase):
         self.agent.getEconomyData(self.economy)
         self.agent.solve()
         self.assertAlmostEqual(self.agent.solution[0].cFunc[0](10., self.economy.MSS),
-                               1.23384339)
+                               1.23867751)
         
     def test_economy(self):
         self.agent.getEconomyData(self.economy)
@@ -109,4 +109,4 @@ class testKrusellSmith(unittest.TestCase):
         
         self.economy.AFunc = self.economy.dynamics.AFunc
         self.assertAlmostEqual(self.economy.AFunc[0].slope,
-                               1.0014540977547373)
+                               1.0014463644834282)
