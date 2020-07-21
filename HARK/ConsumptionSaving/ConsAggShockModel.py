@@ -988,11 +988,12 @@ class CobbDouglasEconomy(Market):
         '''
         agents = agents if agents is not None else list()
         params = init_cobb_douglas.copy()
+        params['sow_vars'] = ['MaggNow', 'AaggNow', 'RfreeNow',
+                              'wRteNow', 'PermShkAggNow',
+                              'TranShkAggNow', 'KtoLnow']
         params.update(kwds)
 
         Market.__init__(self, agents=agents,
-                        sow_vars=['MaggNow', 'AaggNow', 'RfreeNow',
-                                  'wRteNow', 'PermShkAggNow', 'TranShkAggNow', 'KtoLnow'],
                         reap_vars=['aLvlNow', 'pLvlNow'],
                         track_vars=['MaggNow', 'AaggNow'],
                         dyn_vars=['AFunc'],
@@ -1053,13 +1054,14 @@ class CobbDouglasEconomy(Market):
         self.convertKtoY = lambda KtoY: KtoY**(1.0/(1.0 - self.CapShare))  # converts K/Y to K/L
         self.Rfunc = lambda k: (1.0 + self.CapShare*k**(self.CapShare-1.0) - self.DeprFac)
         self.wFunc = lambda k: ((1.0-self.CapShare)*k**(self.CapShare))
-        self.KtoLnow_init = self.kSS
-        self.MaggNow_init = self.kSS
-        self.AaggNow_init = self.kSS
-        self.RfreeNow_init = self.Rfunc(self.kSS)
-        self.wRteNow_init = self.wFunc(self.kSS)
-        self.PermShkAggNow_init = 1.0
-        self.TranShkAggNow_init = 1.0
+
+        self.sow_init['KtoLnow'] = self.kSS
+        self.sow_init['MaggNow'] = self.kSS
+        self.sow_init['AaggNow'] = self.kSS
+        self.sow_init['RfreeNow'] = self.Rfunc(self.kSS)
+        self.sow_init['wRteNow'] = self.wFunc(self.kSS)
+        self.sow_init['PermShkAggNow'] = 1.0
+        self.sow_init['TranShkAggNow'] = 1.0
         self.makeAggShkDstn()
         self.AFunc = AggregateSavingRule(self.intercept_prev, self.slope_prev)
 
@@ -1436,6 +1438,15 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
                  agents=None,
                  tolerance=0.0001,
                  act_T=1200,
+                 sow_vars=['MaggNow',
+                           'AaggNow',
+                           'RfreeNow',
+                           'wRteNow',
+                           'PermShkAggNow',
+                           'TranShkAggNow',
+                           'KtoLnow',
+                           'MrkvNow' # This one is new
+                 ],
                  **kwds):
         '''
         Make a new instance of CobbDouglasMarkovEconomy by filling in attributes
@@ -1460,8 +1471,14 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         params = init_mrkv_cobb_douglas.copy()
         params.update(kwds)
 
-        CobbDouglasEconomy.__init__(self, agents=agents, tolerance=tolerance, act_T=act_T, **params)
-        self.sow_vars.append('MrkvNow')
+        CobbDouglasEconomy.__init__(self,
+                                    agents=agents,
+                                    tolerance=tolerance,
+                                    act_T=act_T,
+                                    sow_vars = sow_vars,
+                                    **params)
+
+        self.sow_init['MrkvNow'] = params['MrkvNow_init']
 
     def update(self):
         '''
@@ -1622,7 +1639,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         cutoffs = np.cumsum(self.MrkvArray, axis=1)
         loops = 0
         go = True
-        MrkvNow = self.MrkvNow_init
+        MrkvNow = self.sow_init['MrkvNow']
         t = 0
         StateCount = self.MrkvArray.shape[0]
 

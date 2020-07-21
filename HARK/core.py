@@ -12,6 +12,7 @@ from __future__ import absolute_import
 from builtins import str
 from builtins import range
 from builtins import object
+from collections import OrderedDict
 import sys
 import os
 from distutils.dir_util import copy_tree
@@ -944,6 +945,15 @@ class Market(HARKobject):
         # "solveAgents" one time. If set to false, the error will never
         # print. See "solveAgents" for why this prints once or never.
 
+        # dictionaries for tracking initial and current values
+        # of the sow variables.
+        self.sow_init = OrderedDict({sow : None
+                                     for sow
+                                     in self.sow_vars})
+        self.sow_state = OrderedDict({sow: None
+                                      for sow
+                                      in self.sow_vars})
+
     def solveAgents(self):
         '''
         Solves the microeconomic problem for all AgentTypes in this market.
@@ -1037,10 +1047,11 @@ class Market(HARKobject):
         -------
         none
         '''
-        for var_name in self.sow_vars:
-            this_seed = getattr(self, var_name)
+        for sow_var in self.sow_state:
             for this_type in self.agents:
-                setattr(this_type, var_name, this_seed)
+                setattr(this_type,
+                        sow_var,
+                        self.sow_state[sow_var])
 
     def mill(self):
         '''
@@ -1066,10 +1077,10 @@ class Market(HARKobject):
 
         # Run the millRule and store its output in self
         product = self.millRule(**mill_dict)
-        for j in range(len(self.sow_vars)):
-            this_var = self.sow_vars[j]
-            this_product = getattr(product, this_var)
-            setattr(self, this_var, this_product)
+
+        for sow_var in self.sow_state:
+            this_product = getattr(product, sow_var)
+            self.sow_state[sow_var] = this_product
 
     def cultivate(self):
         '''
@@ -1105,8 +1116,7 @@ class Market(HARKobject):
         for var_name in self.track_vars:  # Reset the history of tracked variables
             self.history[var_name] = []
         for var_name in self.sow_vars:  # Set the sow variables to their initial levels
-            initial_val = getattr(self, var_name + '_init')
-            setattr(self, var_name, initial_val)
+            self.sow_state[var_name] = self.sow_init[var_name]
         for this_type in self.agents:  # Reset each AgentType in the market
             this_type.reset()
 
@@ -1124,7 +1134,10 @@ class Market(HARKobject):
         none
         '''
         for var_name in self.track_vars:
-            value_now = getattr(self, var_name)
+            try:
+                value_now = getattr(self, var_name)
+            except:
+                value_now = self.sow_state[var_name]
             self.history[var_name].append(value_now)
 
     def makeHistory(self):
