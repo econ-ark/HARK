@@ -616,7 +616,7 @@ class KrusellSmithType(AgentType):
         '''
         self.T_sim = Economy.act_T                   # Need to be able to track as many periods as economy runs
         self.kInit = Economy.KSS                     # Initialize simulation assets to steady state
-        self.MrkvInit = Economy.MrkvNow_init         # Starting Markov state for the macroeconomy
+        self.MrkvInit = Economy.sow_init['MrkvNow']  # Starting Markov state for the macroeconomy
         self.Mgrid = Economy.MSS*self.MgridBase      # Aggregate market resources grid adjusted around SS capital ratio
         self.AFunc = Economy.AFunc                   # Next period's aggregate savings function
         self.DeprFac = Economy.DeprFac               # Rate of capital depreciation
@@ -2264,14 +2264,14 @@ class KrusellSmithEconomy(Market):
         self.convertKtoY = lambda KtoY: KtoY**(1.0/(1.0 - self.CapShare))  # converts K/Y to K/L
         self.rFunc = lambda k: self.CapShare*k**(self.CapShare-1.0)
         self.Wfunc = lambda k: ((1.0-self.CapShare)*k**(self.CapShare))
-        self.KtoLnow_init = self.KtoLSS
-        self.Mnow_init = self.MSS
-        self.Aprev_init = self.KSS
-        self.Rnow_init = self.RSS
-        self.Wnow_init = self.WSS
+        self.sow_init['KtoLnow'] = self.KtoLSS
+        self.sow_init['Mnow'] = self.MSS
+        self.sow_init['Aprev'] = self.KSS
+        self.sow_init['Rnow'] = self.RSS
+        self.sow_init['Wnow'] = self.WSS
         self.PermShkAggNow_init = 1.0
         self.TranShkAggNow_init = 1.0
-        self.Mrkv_init = 0
+        self.sow_init['MrkvNow'] = 0
         self.makeMrkvArray()
         
     def reset(self):
