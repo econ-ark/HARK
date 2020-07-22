@@ -1680,12 +1680,12 @@ class SmallOpenEconomy(Market):
         self.KtoLnow_init = self.kSS
         self.Rfunc = ConstantFunction(self.Rfree)
         self.wFunc = ConstantFunction(self.wRte)
-        self.RfreeNow_init = self.Rfunc(self.kSS)
-        self.wRteNow_init = self.wFunc(self.kSS)
-        self.MaggNow_init = self.kSS
-        self.AaggNow_init = self.kSS
-        self.PermShkAggNow_init = 1.0
-        self.TranShkAggNow_init = 1.0
+        self.sow_init['RfreeNow'] = self.Rfunc(self.kSS)
+        self.sow_init['wRteNow'] = self.wFunc(self.kSS)
+        self.sow_init['MaggNow'] = self.kSS
+        self.sow_init['AaggNow'] = self.kSS
+        self.sow_init['PermShkAggNow'] = 1.0
+        self.sow_init['TranShkAggNow'] = 1.0
         self.makeAggShkDstn()
         self.AFunc = ConstantFunction(1.0)
 
