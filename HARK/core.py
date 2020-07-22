@@ -929,7 +929,9 @@ class Market(HARKobject):
         self.agents     = agents if agents is not None else list() # NOQA
         self.reap_vars  = reap_vars if reap_vars is not None else list() # NOQA
         self.sow_vars   = sow_vars if sow_vars is not None else list() # NOQA
-        self.const_vars = const_vars if const_vars is not None else list() # NOQA
+
+        const_vars = const_vars if const_vars is not None else list() # NOQA
+        self.const_vars =  OrderedDict([(var, None) for var in const_vars])
         self.track_vars = track_vars if track_vars is not None else list() # NOQA
         self.dyn_vars   = dyn_vars if dyn_vars is not None else list() # NOQA
         if millRule is not None:  # To prevent overwriting of method-based millRules
@@ -949,12 +951,8 @@ class Market(HARKobject):
 
         # dictionaries for tracking initial and current values
         # of the sow variables.
-        self.sow_init = OrderedDict({sow : None
-                                     for sow
-                                     in self.sow_vars})
-        self.sow_state = OrderedDict({sow: None
-                                      for sow
-                                      in self.sow_vars})
+        self.sow_init = OrderedDict([(var, None) for var in self.sow_vars])
+        self.sow_state = OrderedDict([(var, None) for var in self.sow_vars])
 
     def solveAgents(self):
         '''
@@ -1072,10 +1070,9 @@ class Market(HARKobject):
         reap_vars_string = ''
         for name in self.reap_vars:
             reap_vars_string += ' \'' + name + '\' : self.' + name + ','
-        const_vars_string = ''
-        for name in self.const_vars:
-            const_vars_string += ' \'' + name + '\' : self.' + name + ','
-        mill_dict = eval('{' + reap_vars_string + const_vars_string + '}')
+
+        mill_dict = eval('{' + reap_vars_string + '}')
+        mill_dict.update(self.const_vars)
 
         # Run the millRule and store its output in self
         product = self.millRule(**mill_dict)
