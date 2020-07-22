@@ -81,6 +81,8 @@ class HARKobject(object):
     A superclass for object classes in HARK.  Comes with two useful methods:
     a generic/universal distance method and an attribute assignment method.
     '''
+    distance_criteria = [] # This should be overwritten by subclasses.
+    
     def distance(self, other):
         '''
         A generic distance method, which requires the existence of an attribute
