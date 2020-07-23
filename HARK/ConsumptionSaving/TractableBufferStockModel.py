@@ -1,5 +1,5 @@
 '''
-Defines and solves the Tractable Buffer Stock model described in lecture notes 
+Defines and solves the Tractable Buffer Stock model described in lecture notes
 for "A Tractable Model of Buffer Stock Saving" (henceforth, TBS) available at
 http://econ.jhu.edu/people/ccarroll/public/lecturenotes/consumption/TractableBufferStock
 The model concerns an agent with constant relative risk aversion utility making
@@ -26,7 +26,7 @@ from builtins import str
 import numpy as np
 
 # Import the HARK library.
-from HARK import AgentType, NullFunc, Solution
+from HARK import AgentType, NullFunc, HARKobject
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.utilities import CRRAutility, CRRAutilityP, CRRAutilityPP, CRRAutilityPPP, CRRAutilityPPPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv
 from HARK.interpolation import CubicInterp
@@ -36,7 +36,7 @@ from scipy.optimize import newton, brentq
 
 __all__ = ['TractableConsumerSolution', 'TractableConsumerType']
 
-# If you want to run the "tractable" version of cstwMPC, use cstwMPCagent from 
+# If you want to run the "tractable" version of cstwMPC, use cstwMPCagent from
 # cstwMPC REMARK and have TractableConsumerType inherit from cstwMPCagent rather than AgentType
 
 # Define utility function and its derivatives (plus inverses)
@@ -49,7 +49,7 @@ utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 
-class TractableConsumerSolution(Solution):
+class TractableConsumerSolution(HARKobject):
     '''
     A class representing the solution to a tractable buffer saving problem.
     Attributes include a list of money points mNrm_list, a list of consumption points
@@ -109,8 +109,8 @@ def findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNex
     Rnrm : float
         Interest factor normalized by compensated permanent income growth factor.
     Beth : float
-        Composite effective discount factor for reverse shooting solution; defined 
-        in appendix "Numerical Solution/The Consumption Function" in TBS 
+        Composite effective discount factor for reverse shooting solution; defined
+        in appendix "Numerical Solution/The Consumption Function" in TBS
         lecture notes
     cNext : float
         Normalized consumption in the succeeding period.
@@ -134,7 +134,7 @@ def findNextPoint(DiscFac,Rfree,CRRA,PermGroFacCmp,UnempPrb,Rnrm,Beth,cNext,mNex
     cNow = PermGroFacCmp*(DiscFac*Rfree)**(-1.0/CRRA)*cNext*(1 + UnempPrb*((cNext/(PFMPC*(mNext-1.0)))**CRRA-1.0))**(-1.0/CRRA)
     mNow = (PermGroFacCmp/Rfree)*(mNext - 1.0) + cNow
     cUNext = PFMPC*(mNow-cNow)*Rnrm
-    # See TBS Appendix "E.1 The Consumption Function" 
+    # See TBS Appendix "E.1 The Consumption Function"
     natural = Beth*Rnrm*(1.0/uPP(cNow))*((1.0-UnempPrb)*uPP(cNext)*MPCnext + UnempPrb*uPP(cUNext)*PFMPC) # Convenience variable
     MPCnow = natural / (natural + 1)
     return mNow, cNow, MPCnow
