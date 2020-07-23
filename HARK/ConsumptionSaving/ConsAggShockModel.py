@@ -1653,7 +1653,7 @@ class SmallOpenEconomy(Market):
                         sow_vars=['MaggNow', 'AaggNow', 'RfreeNow', 'wRteNow',
                                   'PermShkAggNow', 'TranShkAggNow', 'KtoLnow'],
                         reap_vars=[],
-                        track_vars=['MaggNow', 'AaggNow'],
+                        track_vars=['MaggNow', 'AaggNow', 'KtoLnow'],
                         dyn_vars=[],
                         tolerance=tolerance,
                         act_T=act_T)
