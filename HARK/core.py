@@ -932,11 +932,18 @@ class Market(HARKobject):
         self.reap_vars  = OrderedDict([(var, []) for var in reap_vars])
 
         self.sow_vars   = sow_vars if sow_vars is not None else list() # NOQA
+        # dictionaries for tracking initial and current values
+        # of the sow variables.
+        self.sow_init = OrderedDict([(var, None) for var in self.sow_vars])
+        self.sow_state = OrderedDict([(var, None) for var in self.sow_vars])
 
         const_vars = const_vars if const_vars is not None else list() # NOQA
         self.const_vars =  OrderedDict([(var, None) for var in const_vars])
+
+        ## TODO: track_vars handling is not right
         self.track_vars = track_vars if track_vars is not None else list() # NOQA
         self.dyn_vars   = dyn_vars if dyn_vars is not None else list() # NOQA
+
         if millRule is not None:  # To prevent overwriting of method-based millRules
             self.millRule = millRule
         if calcDynamics is not None:  # Ditto for calcDynamics
@@ -952,10 +959,6 @@ class Market(HARKobject):
         # "solveAgents" one time. If set to false, the error will never
         # print. See "solveAgents" for why this prints once or never.
 
-        # dictionaries for tracking initial and current values
-        # of the sow variables.
-        self.sow_init = OrderedDict([(var, None) for var in self.sow_vars])
-        self.sow_state = OrderedDict([(var, None) for var in self.sow_vars])
 
     def solveAgents(self):
         '''
