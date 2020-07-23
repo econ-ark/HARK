@@ -1,8 +1,8 @@
-matplotlib==2.1.2
-numpy==1.14.0
-ipywidgets==7.2.1
-scipy==1.0.0
+matplotlib
+numpy
+ipywidgets
+scipy
 jupyter_contrib_nbextensions
 cite2c
-econ-ark==0.10.1
 seaborn
+git+git://github.com/econ-ark/hark@master
