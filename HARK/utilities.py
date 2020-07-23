@@ -917,7 +917,7 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
         import os
         # Where to put any figures that the user wants to save
         my_file_path = os.getcwd() # Find pathname to this file:
-        Figures_dir = os.path.join(my_file_path, "{}".format(figure_name)) # LaTeX document assumes figures will be here
+        Figures_dir = os.path.join(my_file_path, "{}".format(target_dir)) # LaTeX document assumes figures will be here
         if not os.path.exists(Figures_dir): 
             os.makedirs(Figures_dir)         # If dir does not exist, create it
         # Save the figures in several formats
