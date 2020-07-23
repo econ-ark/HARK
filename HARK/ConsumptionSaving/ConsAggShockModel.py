@@ -1673,7 +1673,8 @@ class SmallOpenEconomy(Market):
 
     def update(self):
         '''
-        Use primitive parameters to set basic objects.  This is an extremely stripped-down version
+        Use primitive parameters to set basic objects.
+        This is an extremely stripped-down version
         of update for CobbDouglasEconomy.
 
         Parameters
@@ -1686,7 +1687,7 @@ class SmallOpenEconomy(Market):
         '''
         self.kSS = 1.0
         self.MSS = 1.0
-        self.KtoLnow_init = self.kSS
+        self.sow_init['KtoLnow_init'] = self.kSS
         self.Rfunc = ConstantFunction(self.Rfree)
         self.wFunc = ConstantFunction(self.wRte)
         self.sow_init['RfreeNow'] = self.Rfunc(self.kSS)
