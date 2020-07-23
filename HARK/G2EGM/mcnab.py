@@ -917,6 +917,7 @@ def ongrid_upper_envelope(C, D, V, C_con, D_con, V_con, isinfeasible, best):
             C[idx_unraveled] = C_con[idx_unraveled]
             D[idx_unraveled] = D_con[idx_unraveled]
             V[idx_unraveled] = V_con[idx_unraveled]
+            best[idx_unraveled] = True
     return best, numpy.copy(V)
 
 def solve_dcon(C, D, V, w_t, wPaMesh, wPbMesh, utility, grids, par, verbose):
