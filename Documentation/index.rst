@@ -14,49 +14,31 @@ you might want to look at the `DemARK
 <https://github.com/econ-ark/DemARK/>`_ project.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: User Guide
+   :maxdepth: 1
+   :caption: Documentation
 
    introduction
    quick-start
-   list-of-files
+   contributing/CONTRIBUTING.md
+   reference/index
+   CHANGELOG
+   warnings-and-disclaimers
    license
-   warnings-and-behaviors
-   CONTRIBUTING
+
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Notebooks
 
-   example_notebooks/Gentle-Intro-To-HARK.ipynb
-   example_notebooks/PerfForesightConsumerType.ipynb
-   example_notebooks/IndShockConsumerType.ipynb
-   example_notebooks/KinkedRconsumerType.ipynb
-   example_notebooks/ConsPortfolioModel.ipynb
-   example_notebooks/GenIncProcessModel.ipynb
-   example_notebooks/LifecycleModel.ipynb
-   example_notebooks/HowWeSolveIndShockConsumerType.ipynb
-   example_notebooks/Journey_1_PhD.ipynb
-
-.. toctree::
-   :maxdepth: 3   
-   :caption: Journeys into HARK
-   
-   notebooks/Journey_1_PhD       
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Python API
-
-   api-core
-   api-dcegm
-   api-estimation
-   api-interpolation
-   api-parallel
-   api-simulation
-   api-utilities
-   api-validators          
-   api-consumptionsaving
+   examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb
+   examples/ConsIndShockModel/PerfForesightConsumerType.ipynb
+   examples/ConsIndShockModel/IndShockConsumerType.ipynb
+   examples/ConsIndShockModel/KinkedRconsumerType.ipynb
+   examples/ConsumptionSaving/example_ConsPortfolioModel.ipynb
+   examples/GenIncProcessModel/GenIncProcessModel.ipynb
+   examples/LifecycleModel/LifecycleModel.ipynb
+   examples/HowWeSolveIndShockConsumerType/HowWeSolveIndShockConsumerType.ipynb
+   examples/Journeys/Journey_1_PhD.ipynb
 
 
 Indices and tables
