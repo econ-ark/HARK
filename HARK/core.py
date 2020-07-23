@@ -906,8 +906,7 @@ class Market(HARKobject):
         dyn_vars : [string]
             Names of variables that constitute a "dynamic rule".
         millRule : function
-            A function that takes inputs named in reap_vars and returns an object
-            with attributes named in sow_vars.  The "aggregate market process" that
+            A function that takes inputs named in reap_vars and returns a tuple the same size and order as sow_vars.  The "aggregate market process" that
             transforms individual agent actions/states/data into aggregate data to
             be sent back to agents.
         calcDynamics : function
@@ -1078,9 +1077,8 @@ class Market(HARKobject):
         # Run the millRule and store its output in self
         product = self.millRule(**mill_dict)
 
-        for sow_var in self.sow_state:
-            this_product = getattr(product, sow_var)
-            self.sow_state[sow_var] = this_product
+        for i, sow_var in enumerate(self.sow_state):
+            self.sow_state[sow_var] = product[i]
 
     def cultivate(self):
         '''
@@ -1117,7 +1115,7 @@ class Market(HARKobject):
         self.history = {var_name : [] for var_name in self.track_vars}
 
         # Set the sow variables to their initial levels
-        for var_name in self.sow_state:  
+        for var_name in self.sow_state:
             self.sow_state[var_name] = self.sow_init[var_name]
 
         # Reset each AgentType in the market
@@ -1146,7 +1144,7 @@ class Market(HARKobject):
                 value_now = self.const_vars[var_name]
             else:
                 value_now = getattr(self, var_name)
-    
+
             self.history[var_name].append(value_now)
 
     def makeHistory(self):

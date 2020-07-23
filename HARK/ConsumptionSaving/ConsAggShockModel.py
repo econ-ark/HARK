@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 
 __all__ = ['MargValueFunc2D', 'AggShockConsumerType', 'AggShockMarkovConsumerType',
 'CobbDouglasEconomy', 'SmallOpenEconomy', 'CobbDouglasMarkovEconomy',
-           'SmallOpenMarkovEconomy', 'CobbDouglasAggVars', 'AggregateSavingRule', 'AggShocksDynamicRule','init_agg_shocks','init_agg_mrkv_shocks', 'init_cobb_douglas','init_mrkv_cobb_douglas']
+           'SmallOpenMarkovEconomy', 'AggregateSavingRule', 'AggShocksDynamicRule','init_agg_shocks','init_agg_mrkv_shocks', 'init_cobb_douglas','init_mrkv_cobb_douglas']
 
 utility = CRRAutility
 utilityP = CRRAutilityP
@@ -818,7 +818,7 @@ class KrusellSmithType(AgentType):
         # Get boolean arrays for current employment states
         employed = self.EmpNow.copy()
         unemployed = np.logical_not(employed)
-        
+
         # Transition some agents between unemployment and employment
         emp_permute = self.emp_permute[self.MrkvPrev][self.MrkvNow]
         unemp_permute = self.unemp_permute[self.MrkvPrev][self.MrkvNow]
@@ -1547,10 +1547,20 @@ class CobbDouglasEconomy(Market):
 
         Returns
         -------
-        AggVarsNow : CobbDouglasAggVars
-            An object containing the aggregate variables for the upcoming period:
-            capital-to-labor ratio, interest factor, (normalized) wage rate,
-            aggregate permanent and transitory shocks.
+        MaggNow : float
+            Aggregate market resources for this period normalized by mean permanent income
+        AaggNow : float
+            Aggregate savings for this period normalized by mean permanent income
+        RfreeNow : float
+            Interest factor on assets in the economy this period.
+        wRteNow : float
+            Wage rate for labor in the economy this period.
+        PermShkAggNow : float
+            Permanent shock to aggregate labor productivity this period.
+        TranShkAggNow : float
+            Transitory shock to aggregate labor productivity this period.
+        KtoLnow : float
+            Capital-to-labor ratio in the economy this period.
         '''
         # Calculate aggregate savings
         AaggPrev = np.mean(np.array(aLvlNow))/np.mean(pLvlNow)  # End-of-period savings from last period
@@ -1577,9 +1587,8 @@ class CobbDouglasEconomy(Market):
         self.KtoLnow = KtoLnow   # Need to store this as it is a sow variable
 
         # Package the results into an object and return it
-        AggVarsNow = CobbDouglasAggVars(MaggNow, AaggPrev, KtoLnow, RfreeNow, wRteNow, PermShkAggNow, TranShkAggNow)
-        return AggVarsNow
-
+        return MaggNow, AaggPrev, RfreeNow, wRteNow, PermShkAggNow, TranShkAggNow, KtoLnow
+    
     def calcAFunc(self, MaggNow, AaggNow):
         '''
         Calculate a new aggregate savings rule based on the history
@@ -1781,8 +1790,21 @@ class SmallOpenEconomy(Market):
 
         Returns
         -------
-        AggVarsNow : CobbDouglasAggVars
-            Aggregate state and shock variables for this period.
+        MaggNow : float
+            Aggregate market resources for this period normalized by mean permanent income
+        AaggNow : float
+            Aggregate savings for this period normalized by mean permanent income
+        RfreeNow : float
+            Interest factor on assets in the economy this period.
+        wRteNow : float
+            Wage rate for labor in the economy this period.
+        PermShkAggNow : float
+            Permanent shock to aggregate labor productivity this period.
+        TranShkAggNow : float
+            Transitory shock to aggregate labor productivity this period.
+        KtoLnow : float
+            Capital-to-labor ratio in the economy this period.
+        
         '''
         # Get this period's aggregate shocks
         PermShkAggNow = self.PermShkAggHist[self.Shk_idx]
@@ -1798,9 +1820,7 @@ class SmallOpenEconomy(Market):
         MaggNow = 1.0
         KtoLnow = 1.0/PermShkAggNow
 
-        # Package the results into an object and return it
-        AggVarsNow = CobbDouglasAggVars(MaggNow, AaggNow, KtoLnow, RfreeNow, wRteNow, PermShkAggNow, TranShkAggNow)
-        return AggVarsNow
+        return MaggNow, AaggNow, RfreeNow, wRteNow, PermShkAggNow, TranShkAggNow, KtoLnow
 
 # Make a dictionary to specify a Markov Cobb-Douglas economy
 init_mrkv_cobb_douglas = init_cobb_douglas.copy()
@@ -2085,11 +2105,26 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         and adds the Markov state index.
 
         See documentation for calcRandW for more information.
+
+        Returns
+        -------
+        Mnow : float
+            Aggregate market resources for this period.
+        Aprev : float
+            Aggregate savings for the prior period.
+        KtoLnow : float
+            Capital-to-labor ratio in the economy this period.
+        Rnow : float
+            Interest factor on assets in the economy this period.
+        Wnow : float
+            Wage rate for labor in the economy this period.
+        MrkvNow : int
+            Binary indicator for bad (0) or good (1) macroeconomic state.
         '''
         MrkvNow = self.MrkvNow_hist[self.Shk_idx]
         temp = self.calcRandW(aLvlNow, pLvlNow)
-        temp(MrkvNow=MrkvNow)
-        return temp
+
+        return temp + (MrkvNow,)
 
     def calcAFunc(self, MaggNow, AaggNow):
         '''
@@ -2356,7 +2391,21 @@ class KrusellSmithEconomy(Market):
         wage rate based on each agent's current state.  Just calls calcRandW().
 
         See documentation for calcRandW for more information.
+
+        Returns
+        -------
+        Mnow : float
+            Aggregate market resources for this period.
+        Aprev : float
+            Aggregate savings for the prior period.
+        MrkvNow : int
+            Binary indicator for bad (0) or good (1) macroeconomic state.
+        Rnow : float
+            Interest factor on assets in the economy this period.
+        Wnow : float
+            Wage rate for labor in the economy this period.
         '''
+        
         return self.calcRandW(aNow, EmpNow)
     
     def calcDynamics(self, Mnow, Aprev):
@@ -2383,10 +2432,16 @@ class KrusellSmithEconomy(Market):
 
         Returns
         -------
-        AggVarsNow : CobbDouglasAggVars
-            An object containing the aggregate variables for the upcoming period:
-            capital-to-labor ratio, interest factor, (normalized) wage rate,
-            aggregate permanent and transitory shocks.
+        Mnow : float
+            Aggregate market resources for this period.
+        Aprev : float
+            Aggregate savings for the prior period.
+        MrkvNow : int
+            Binary indicator for bad (0) or good (1) macroeconomic state.
+        Rnow : float
+            Interest factor on assets in the economy this period.
+        Wnow : float
+            Wage rate for labor in the economy this period.
         '''
         # Calculate aggregate savings
         Aprev = np.mean(np.array(aNow))  # End-of-period savings from last period
@@ -2414,9 +2469,8 @@ class KrusellSmithEconomy(Market):
         Mnow = Rnow*AggK + Wnow*AggL
         self.KtoLnow = KtoLnow   # Need to store this as it is a sow variable
 
-        # Package the results into an object and return it
-        AggVarsNow = KrusellSmithAggVars(Mnow, Aprev, KtoLnow, Rnow, Wnow, MrkvNow)
-        return AggVarsNow
+        # Returns a tuple of these values
+        return Mnow, Aprev,  MrkvNow, Rnow, Wnow
 
     def calcAFunc(self, Mnow, Aprev):
         '''
@@ -2471,81 +2525,6 @@ class KrusellSmithEconomy(Market):
 
         return AggShocksDynamicRule(AFunc_list)
 
-
-class CobbDouglasAggVars(HARKobject):
-    '''
-    A simple class for holding the relevant aggregate variables that should be
-    passed from the market to each type.  Includes the capital-to-labor ratio,
-    the interest factor, the wage rate, and the aggregate permanent and tran-
-    sitory shocks.
-    '''
-    def __init__(self, MaggNow, AaggNow, KtoLnow, RfreeNow, wRteNow, PermShkAggNow, TranShkAggNow):
-        '''
-        Make a new instance of CobbDouglasAggVars.
-
-        Parameters
-        ----------
-        MaggNow : float
-            Aggregate market resources for this period normalized by mean permanent income
-        AaggNow : float
-            Aggregate savings for this period normalized by mean permanent income
-        KtoLnow : float
-            Capital-to-labor ratio in the economy this period.
-        RfreeNow : float
-            Interest factor on assets in the economy this period.
-        wRteNow : float
-            Wage rate for labor in the economy this period.
-        PermShkAggNow : float
-            Permanent shock to aggregate labor productivity this period.
-        TranShkAggNow : float
-            Transitory shock to aggregate labor productivity this period.
-
-        Returns
-        -------
-        None
-        '''
-        self.MaggNow = MaggNow
-        self.AaggNow = AaggNow
-        self.KtoLnow = KtoLnow
-        self.RfreeNow = RfreeNow
-        self.wRteNow = wRteNow
-        self.PermShkAggNow = PermShkAggNow
-        self.TranShkAggNow = TranShkAggNow
-        
-        
-class KrusellSmithAggVars():
-    '''
-    Just a container class for aggregate data in the Krusell-Smith model.
-    '''
-    def __init__(self, Mnow, Aprev, KtoLnow, Rnow, Wnow, MrkvNow):
-        '''
-        Make a new instance of KrusellSmithAggVars.
-
-        Parameters
-        ----------
-        Mnow : float
-            Aggregate market resources for this period.
-        Aprev : float
-            Aggregate savings for the prior period.
-        KtoLnow : float
-            Capital-to-labor ratio in the economy this period.
-        Rnow : float
-            Interest factor on assets in the economy this period.
-        Wnow : float
-            Wage rate for labor in the economy this period.
-        MrkvNow : int
-            Binary indicator for bad (0) or good (1) macroeconomic state.
-
-        Returns
-        -------
-        None
-        '''
-        self.Mnow = Mnow
-        self.Aprev = Aprev
-        self.KtoLnow = KtoLnow
-        self.Rnow = Rnow
-        self.Wnow = Wnow
-        self.MrkvNow = MrkvNow
 
 
 class AggregateSavingRule(HARKobject):
