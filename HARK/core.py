@@ -929,7 +929,7 @@ class Market(HARKobject):
         self.agents     = agents if agents is not None else list() # NOQA
 
         reap_vars = reap_vars if reap_vars is not None else list() # NOQA
-        self.reap_vars  = OrderedDict([(var, []) for var in reap_vars])
+        self.reap_state  = OrderedDict([(var, []) for var in reap_vars])
 
         self.sow_vars   = sow_vars if sow_vars is not None else list() # NOQA
         # dictionaries for tracking initial and current values
@@ -940,7 +940,6 @@ class Market(HARKobject):
         const_vars = const_vars if const_vars is not None else list() # NOQA
         self.const_vars =  OrderedDict([(var, None) for var in const_vars])
 
-        ## TODO: track_vars handling is not right
         self.track_vars = track_vars if track_vars is not None else list() # NOQA
         self.dyn_vars   = dyn_vars if dyn_vars is not None else list() # NOQA
 
@@ -1034,11 +1033,11 @@ class Market(HARKobject):
         -------
         none
         '''
-        for var_name in self.reap_vars:
-            harvest = []
-            for this_type in self.agents:
-                harvest.append(getattr(this_type, var_name))
-            self.reap_vars[var_name] = harvest
+        for var_name in self.reap_state:
+            harvest = [getattr(this_type, var_name)
+                       for this_type
+                       in self.agents]
+            self.reap_state[var_name] = harvest
 
     def sow(self):
         '''
@@ -1073,7 +1072,7 @@ class Market(HARKobject):
         none
         '''
         # Make a dictionary of inputs for the millRule
-        mill_dict = copy(self.reap_vars)
+        mill_dict = copy(self.reap_state)
         mill_dict.update(self.const_vars)
 
         # Run the millRule and store its output in self
@@ -1114,11 +1113,15 @@ class Market(HARKobject):
         -------
         none
         '''
-        for var_name in self.track_vars:  # Reset the history of tracked variables
-            self.history[var_name] = []
-        for var_name in self.sow_vars:  # Set the sow variables to their initial levels
+        # Reset the history of tracked variables
+        self.history = {var_name : [] for var_name in self.track_vars}
+
+        # Set the sow variables to their initial levels
+        for var_name in self.sow_state:  
             self.sow_state[var_name] = self.sow_init[var_name]
-        for this_type in self.agents:  # Reset each AgentType in the market
+
+        # Reset each AgentType in the market
+        for this_type in self.agents:
             this_type.reset()
 
     def store(self):
@@ -1135,10 +1138,15 @@ class Market(HARKobject):
         none
         '''
         for var_name in self.track_vars:
-            try:
-                value_now = getattr(self, var_name)
-            except:
+            if var_name in self.sow_state:
                 value_now = self.sow_state[var_name]
+            elif var_name in self.reap_state:
+                value_now = self.reap_state[var_name]
+            elif var_name in self.const_vars:
+                value_now = self.const_vars[var_name]
+            else:
+                value_now = getattr(self, var_name)
+    
             self.history[var_name].append(value_now)
 
     def makeHistory(self):
