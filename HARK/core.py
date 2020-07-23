@@ -927,7 +927,10 @@ class Market(HARKobject):
         None
     '''
         self.agents     = agents if agents is not None else list() # NOQA
-        self.reap_vars  = reap_vars if reap_vars is not None else list() # NOQA
+
+        reap_vars = reap_vars if reap_vars is not None else list() # NOQA
+        self.reap_vars  = OrderedDict([(var, []) for var in reap_vars])
+
         self.sow_vars   = sow_vars if sow_vars is not None else list() # NOQA
 
         const_vars = const_vars if const_vars is not None else list() # NOQA
@@ -1032,7 +1035,7 @@ class Market(HARKobject):
             harvest = []
             for this_type in self.agents:
                 harvest.append(getattr(this_type, var_name))
-            setattr(self, var_name, harvest)
+            self.reap_vars[var_name] = harvest
 
     def sow(self):
         '''
@@ -1067,11 +1070,7 @@ class Market(HARKobject):
         none
         '''
         # Make a dictionary of inputs for the millRule
-        reap_vars_string = ''
-        for name in self.reap_vars:
-            reap_vars_string += ' \'' + name + '\' : self.' + name + ','
-
-        mill_dict = eval('{' + reap_vars_string + '}')
+        mill_dict = copy(self.reap_vars)
         mill_dict.update(self.const_vars)
 
         # Run the millRule and store its output in self
