@@ -8,7 +8,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.2.4
+#       jupytext_version: 1.2.3
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -22,7 +22,7 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.6.9
+#     version: 3.7.6
 #   latex_envs:
 #     LaTeX_envs_menu_present: true
 #     autoclose: false
@@ -59,17 +59,17 @@
 
 # %% {"code_folding": []}
 # Initial imports and notebook setup
-# %matplotlib inline
 import matplotlib.pyplot as plt
 
-import sys
-import os
 from copy import copy
 from HARK.utilities import plotFuncs
 import numpy as np
 
 # %%
-from HARK.ConsumptionSaving.ConsGenIncProcessModel import *
+from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
+    IndShockExplicitPermIncConsumerType,
+    PersistentShockConsumerType,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 
 # %% [markdown]
@@ -259,7 +259,7 @@ plt.show()
 
 # %%
 # Make and solve an example of normalized model
-NormalizedExample = IndShockConsumerType(**GenIncDictionary)
+NormalizedExample = IndShockConsumerType(**GenIncDictionary, verbose=0)
 NormalizedExample.solve()
 
 # %%
@@ -397,5 +397,3 @@ plt.plot(np.mean(PersistentExample.history['mLvlNow'],axis=1))
 plt.xlabel('Simulated time period')
 plt.ylabel('Average market resources mLvl')
 plt.show()
-
-# %%
