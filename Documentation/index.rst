@@ -19,12 +19,12 @@ you might want to look at the `DemARK
 
    introduction
    quick-start
-   license
-   warnings-and-behaviors
-   CONTRIBUTING
+   contributing/CONTRIBUTING.md
    reference/index
-   packaging
+   CHANGELOG
    warnings-and-disclaimers
+   license
+
 
 .. toctree::
    :maxdepth: 1

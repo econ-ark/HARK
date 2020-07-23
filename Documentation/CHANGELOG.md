@@ -1,7 +1,6 @@
-HARK  
-Release Notes  
+# Release Notes  
 
-# Introduction
+## Introduction
 
 This document contains the release notes of HARK. HARK aims to produce an open source repository of highly modular, easily interoperable code for solving, simulating, and estimating dynamic economic models with heterogeneous agents.
 

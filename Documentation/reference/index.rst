@@ -9,8 +9,8 @@ Tools
 
    tools/index
 
-Consumption Saving
---------------------
+Models
+--------
 
 .. toctree::
    :maxdepth: 3
