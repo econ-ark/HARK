@@ -82,7 +82,7 @@ Install from [PyPi](https://pypi.org/) by running:
 We start with almost the simplest possible consumption model: A consumer with CRRA utility 
 
 <div align="center">
-  <img height="30px" src="https://github.com/econ-ark/HARK/blob/master/doc/images/usage-crra-utility-function.png">
+  <img height="30px" src="https://github.com/econ-ark/HARK/blob/master/Documentation/images/usage-crra-utility-function.png">
 </div> 
 
 has perfect foresight about everything except the (stochastic) date of death.
@@ -90,7 +90,7 @@ has perfect foresight about everything except the (stochastic) date of death.
 The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wiki/Bellman_equation) as:
 
 <div align="center">
-  <img height="80px" src="https://github.com/econ-ark/HARK/blob/master/doc/images/usage-agent-problem-bellman-form.png">
+  <img height="80px" src="https://github.com/econ-ark/HARK/blob/master/Documentation/images/usage-agent-problem-bellman-form.png">
 </div>
 
 <br>
@@ -178,7 +178,7 @@ For more support options see [SUPPORT.md](./.github/SUPPORT.md).
 * **Current**: Under active development. Code for the Current release is in the branch for its major version number (for example, v0.10.x).
 * **Development**: Under active development. Code for the Current release is in the development.
 
-Current releases follow [Semantic Versioning](https://semver.org/). For more information please see the [Release documentation](doc/release/README.md).
+Current releases follow [Semantic Versioning](https://semver.org/). For more information please see the [Release documentation](https://github.com/econ-ark/OverARK/wiki/Release-Management).
 
 ## API Documentation
 
@@ -212,7 +212,7 @@ HARK provides a modular and extensible open-source toolkit for solving heterogen
 
 HARK is written in Python, making significant use of libraries such as numpy and scipy which offer a wide array of mathematical and statistical functions and tools. Our modules are generally categorized into Tools (mathematical functions and techniques), Models (particular economic models and solvers) and Applications (use of tools to simulate an economic phenomenon). 
 
-For more information on how you can create your own Models or use Tools and Model to create Applications please see the [Architecture documentation](./doc/architecture/README.md).
+For more information on how you can create your own Models or use Tools and Model to create Applications please see the [HARK Manual](./_static/HARKmanual.pdf).
 
 ### Contributing to HARK
 
