@@ -1017,7 +1017,7 @@ def deviate_dcon(C, V, A, N, w_t, utility, par):
     eps_deviate = 1e-4
     C_deviated = C*(1 - eps_deviate)
     D_deviated = C*eps_deviate
-    B_deviated = N + D_deviated + utility.g(eps_deviate)
+    B_deviated = N + D_deviated + utility.g(D_deviated)
     V_deviated = utility.u(C_deviated) - par.alpha + par.DiscFac*w_t(A, B_deviated)
     invalid = V_deviated > V
     V[invalid] = numpy.nan
