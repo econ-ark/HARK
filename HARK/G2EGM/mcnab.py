@@ -806,20 +806,25 @@ def solve_period_working(solution_next, par, grids, utility, stablevalue, stable
     t_ucon = time.time()
     ucon_vars = solve_ucon(cMesh, dMesh, vMesh, w_t, utility, par, wPaMesh, wPbMesh, grids, verbose)
     elapsed_ucon = time.time() - t_ucon
+    ucon_best = ucon_vars[5]
     print("ucon segment time: %f" % elapsed_ucon)
+    
     t_con = time.time()
     con_vars = solve_con(cMesh, dMesh, vMesh, w_t, utility, grids, par, verbose)
     elapsed_con = time.time() - t_con
+    con_best = con_vars[5]
     print("con segment time: %f" % elapsed_con)
 
     t_dcon = time.time()
     dcon_vars = solve_dcon(cMesh, dMesh, vMesh, w_t,  wPaMesh, wPbMesh, utility, grids, par, verbose)
     elapsed_dcon = time.time() - t_dcon
+    dcon_best = dcon_vars[5]
     print("dcon segment time: %f" % elapsed_dcon)
 
     t_acon = time.time()
     acon_vars = solve_acon(cMesh, dMesh, vMesh, w_t, wPb_t, utility, grids, par, verbose)
     elapsed_acon = time.time() - t_acon
+    acon_best = acon_vars[5]
     print("acon segment time: %f" % elapsed_acon)
 
     # Post-decision grids
