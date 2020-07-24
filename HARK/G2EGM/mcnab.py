@@ -987,7 +987,7 @@ def solve_acon(C, D, V, w_t, wPb_t, utility, grids, par, verbose):
     # Could it make sense to use the grid's upper bound explicitly?
     # c_max = utility.P_inv(par.DiscFac*wPbGrid_acon*(1 + par.chi/(1+grids.mGrid.max())))
 
-    C_acon = numpy.array([nonlinspace(c_min[bi], c_max[bi], Na_acon) for bi in range(len(grids.b_acon))])
+    C_acon = numpy.array([nonlinspace(c_min[bi], c_max[bi], Na_acon) for bi in range(len(grids.b_acon))]).T
 
     # FOC for d constrained
     # the d's that fullfil FOC at the bottom of p. 93 follow from gPd(d) = chi/(1+d)
