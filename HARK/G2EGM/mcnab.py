@@ -956,7 +956,7 @@ def solve_dcon(C, D, V, w_t, wPaMesh, wPbMesh, utility, grids, par, verbose):
     # common grid points
     best_dcon, V_copy = segment_upper_envelope(grids,
                          C, D, V,
-                         M_dcon, M_dcon,
+                         M_dcon, N_dcon,
                          C_dcon, D_dcon, V_dcon)
 
     return (C_dcon, D_dcon, V_dcon, M_dcon, N_dcon, best_dcon, V_copy)
