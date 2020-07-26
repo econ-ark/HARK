@@ -2,8 +2,7 @@
 
 ## Installing HARK
 
-HARK is an open source project that is compatible with both python 2 and 3. But we recommend
-using python 3; eventually support for python 2 will end.
+HARK is an open source project that is compatible with Python 3.
 
 ### Installing HARK with pip
 
@@ -139,5 +138,5 @@ We've done our best to give correct, thorough instructions on how to install HAR
 
 To learn more about how to use HARK, check out our [user manual](_static/HARKmanual.pdf).
 
-For help making changes to HARK, check out our [contributing guide](CONTRIBUTING.md).
+For help making changes to HARK, check out our [contributing guide](contributing/CONTRIBUTING.md).
 

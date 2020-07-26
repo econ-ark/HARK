@@ -81,6 +81,8 @@ class HARKobject(object):
     A superclass for object classes in HARK.  Comes with two useful methods:
     a generic/universal distance method and an attribute assignment method.
     '''
+    distance_criteria = [] # This should be overwritten by subclasses.
+    
     def distance(self, other):
         '''
         A generic distance method, which requires the existence of an attribute
@@ -1147,7 +1149,7 @@ class Market(HARKobject):
             self.cultivate()  # Agents take action
             self.reap()  # Collect individual data from agents
             self.mill()  # Process individual data into aggregate data
-            self.store()  # Record variables of interest
+            self.store() # Record variables of interest
 
     def updateDynamics(self):
         '''
