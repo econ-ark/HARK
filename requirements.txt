@@ -1,10 +1,10 @@
-numpy
-matplotlib
+numpy~=1.19.1
+matplotlib~=3.3.0
 sphinx==1.6.7
 future
-joblib
+joblib~=0.16.0
 dill
-scipy
+scipy~=1.5.2
 flake8
 jupyter
 funcsigs
@@ -13,3 +13,6 @@ sphinx-rtd-theme
 nbsphinx==0.4.3
 seaborn
 recommonmark
+
+numba~=0.50.1
+setuptools~=49.2.0
