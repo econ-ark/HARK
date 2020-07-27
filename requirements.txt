@@ -16,3 +16,5 @@ recommonmark
 
 numba~=0.50.1
 setuptools~=49.2.0
+interpolation~=2.1.6
+quantecon~=0.4.7
