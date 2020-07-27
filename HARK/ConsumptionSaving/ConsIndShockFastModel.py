@@ -30,6 +30,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     PerfForesightConsumerType,
     ValueFunc,
     MargValueFunc,
+    MargMargValueFunc,
 )
 from HARK.interpolation import LinearInterp
 from HARK.utilities import (
@@ -350,14 +351,31 @@ class PerfForesightFastConsumerType(PerfForesightConsumerType):
 
     def updateSolutionTerminal(self):
         """
-        Override function as it's not needed to do anything, solution_terminal is correctly initialized
+        Update the terminal period solution.  This method should be run when a
+        new AgentType is created or when CRRA changes.
         """
-        pass
+
+        self.solution_terminal_cs = ConsumerSolution(
+            cFunc=self.cFunc_terminal_,
+            vFunc=ValueFunc(self.cFunc_terminal_, self.CRRA),
+            vPfunc=MargValueFunc(self.cFunc_terminal_, self.CRRA),
+            vPPfunc=MargMargValueFunc(self.cFunc_terminal_, self.CRRA),
+            mNrmMin=0.0,
+            hNrm=0.0,
+            MPCmin=1.0,
+            MPCmax=1.0,
+        )
 
     def postSolve(self):
         self.solution_fast = deepcopy(self.solution)
 
-        for i in range(len(self.solution)):
+        if self.cycles == 0:
+            terminal = 1
+        else:
+            terminal = self.cycles
+            self.solution[terminal] = self.solution_terminal_cs
+
+        for i in range(terminal):
             solution = self.solution[i]
 
             # Construct the consumption function as a linear interpolation.

@@ -1739,6 +1739,8 @@ class PerfForesightConsumerType(AgentType):
             **kwds
         )
 
+        self.params["cycles"] = cycles
+
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(self.time_vary_)
         self.time_inv = deepcopy(self.time_inv_)
