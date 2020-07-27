@@ -90,6 +90,9 @@ class ConsumerSolution(Solution):
     """
 
     distance_criteria = ["vPfunc"]
+    # tolerance should come from solution method, along with other solution
+    # parameters such as solution_distance and completed_cycles
+    tolerance = 0.000001
 
     def __init__(
         self,
@@ -146,6 +149,19 @@ class ConsumerSolution(Solution):
         self.hNrm = hNrm
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
+
+    def __eq__(self, solution: HARKobject) -> bool:
+        if issubclass(solution.__class__, HARKobject):
+            if issubclass(solution.__class__, ConsumerSolution) or issubclass(
+                ConsumerSolution, solution.__class__
+            ):
+                if hasattr(solution, "tolerance"):
+                    solution_distance = self.distance(solution)
+                    print(solution_distance)  # maybe should be logged
+                    return (
+                        solution_distance < self.tolerance
+                    ) and solution_distance < solution.tolerance
+        return False
 
     def appendSolution(self, new_solution):
         """
@@ -1736,7 +1752,7 @@ class PerfForesightConsumerType(AgentType):
     def __eq__(self, agent: AgentType) -> bool:
         if issubclass(agent.__class__, AgentType):
             if issubclass(agent.__class__, PerfForesightConsumerType) or issubclass(
-                self.__class__, agent.__class__
+                PerfForesightConsumerType, agent.__class__
             ):
                 if hasattr(agent, "params"):
                     return self.params == agent.params
