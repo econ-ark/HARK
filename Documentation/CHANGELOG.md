@@ -8,6 +8,10 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+## Minor Changes
+
+* Added instructive text to preferential shock, medical shock, markov, and representative agent examples.
+
 ### 0.10.6
 
 Release Date: 17-04-2020
