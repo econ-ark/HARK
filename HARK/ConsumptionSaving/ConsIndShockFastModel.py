@@ -12,9 +12,6 @@ It currently solves three types of models:
 See NARK https://HARK.githhub.io/Documentation/NARK for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from copy import deepcopy
 
@@ -46,7 +43,7 @@ from HARK.utilities import (
 __all__ = [
     "PerfForesightSolution",
     "ConsPerfForesightFastSolver",
-    "PerfForesightConsumerType",
+    "PerfForesightFastConsumerType",
 ]
 
 utility = CRRAutility
@@ -127,7 +124,7 @@ class PerfForesightSolution(HARKobject):
 
 
 @njit(cache=True)
-def searchSSfunc(m, Rfree, PermGroFac, mNrm, cNrm, ExIncNext):
+def _searchSSfunc(m, Rfree, PermGroFac, mNrm, cNrm, ExIncNext):
     # Make a linear function of all combinations of c and m that yield mNext = mNow
     mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * ExIncNext
 
@@ -139,7 +136,7 @@ def searchSSfunc(m, Rfree, PermGroFac, mNrm, cNrm, ExIncNext):
 
 # @njit(cache=True) can't cache because of use of globals, perhaps newton_secant?
 @njit
-def addSSmNrmNumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, ExIncNext):
+def _addSSmNrmNumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, ExIncNext):
     """
     Finds steady state (normalized) market resources and adds it to the
     solution.  This is the level of market resources such that the expectation
@@ -151,7 +148,7 @@ def addSSmNrmNumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, ExIncNext):
     m_init_guess = mNrmMin + ExIncNext
 
     mNrmSS = newton_secant(
-        searchSSfunc,
+        _searchSSfunc,
         m_init_guess,
         args=(Rfree, PermGroFac, mNrm, cNrm, ExIncNext),
         disp=False,
@@ -164,7 +161,7 @@ def addSSmNrmNumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, ExIncNext):
 
 
 @njit(cache=True)
-def solveConsPerfForesightNumba(
+def _solveConsPerfForesightNumba(
     DiscFac,
     LivPrb,
     CRRA,
@@ -302,7 +299,7 @@ class ConsPerfForesightFastSolver(ConsPerfForesightSolver):
             self.hNrmNow,
             self.MPCmin,
             self.MPCmax,
-        ) = solveConsPerfForesightNumba(
+        ) = _solveConsPerfForesightNumba(
             self.DiscFac,
             self.LivPrb,
             self.CRRA,
@@ -415,7 +412,7 @@ class PerfForesightFastConsumerType(PerfForesightConsumerType):
             ExIncNext = 1.0  # Perfect foresight income of 1
 
             # Add mNrmSS to the solution and return it
-            consumer_solution.mNrmSS = addSSmNrmNumba(
+            consumer_solution.mNrmSS = _addSSmNrmNumba(
                 self.Rfree,
                 self.PermGroFac[i],
                 solution.mNrm,
