@@ -171,8 +171,6 @@ For more on acknowledging Econ-ARK [visit our website](https://econ-ark.org/ackn
 
 Looking for help? Please open a [GitHub issue](https://github.com/econ-ark/HARK/issues/new) or reach out to the [TSC](#tsc-technical-steering-committee).
 
-For more support options see [SUPPORT.md](./.github/SUPPORT.md).
-
 ## Release Types
 
 * **Current**: Under active development. Code for the Current release is in the branch for its major version number (for example, v0.10.x).
@@ -234,13 +232,13 @@ If you are worried or don’t know how to start, you can always reach out to the
 
 **After your first contribution please let us know and we will add you to the Contributors list below!**
 
-To install for development see the [Quickstart Guide](./Documentation/quick-start).
+To install for development see the [Quickstart Guide](https://github.com/econ-ark/HARK/blob/master/Documentation/quick-start.md).
 
-For more information on contributing to HARK please see [CONTRIBUTING.md](./CONTRIBUTING.md).
+For more information on contributing to HARK please see [CONTRIBUTING.md](https://github.com/econ-ark/HARK/blob/master/Documentation/contributing/CONTRIBUTING.md).
 
 ## Current Project Team Members
 
-Collaborators follow the [COLLABORATOR_GUIDE.md](./COLLABORATOR_GUIDE.md) in maintaining the Econ-ARK project.
+Collaborators follow the [COLLABORATOR_GUIDE](https://github.com/econ-ark/HARK/blob/master/Documentation/contributing/CONTRIBUTING.md#contributing-guide) in maintaining the Econ-ARK project.
 
 ### Founders
 Econ-ARK was created by [**Christopher D. Carroll**](http://www.econ2.jhu.edu/people/ccarroll/), Professor of Economics at the Johns Hopkins University. 
