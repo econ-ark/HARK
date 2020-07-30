@@ -35,42 +35,49 @@ from HARK.interpolation import(
 
 
 # Define a class to represent the single period solution of the portfolio choice problem
-class PortfolioSolution(Solution):
+class RiskyContribSolution(Solution):
     '''
     A class for representing the single period solution of the portfolio choice model.
     
     Parameters
     ----------
-    cFuncAdj : Interp1D
-        Consumption function over normalized market resources when the agent is able
-        to adjust their portfolio shares.
-    ShareFuncAdj : Interp1D
-        Risky share function over normalized market resources when the agent is able
-        to adjust their portfolio shares.
-    vFuncAdj : ValueFunc
-        Value function over normalized market resources when the agent is able to
-        adjust their portfolio shares.
-    vPfuncAdj : MargValueFunc
-        Marginal value function over normalized market resources when the agent is able
-        to adjust their portfolio shares.
-    cFuncFxd : Interp2D
-        Consumption function over normalized market resources and risky portfolio share
-        when the agent is NOT able to adjust their portfolio shares, so they are fixed.
-    ShareFuncFxd : Interp2D
-        Risky share function over normalized market resources and risky portfolio share
-        when the agent is NOT able to adjust their portfolio shares, so they are fixed.
+    cFuncAdj : Interp2D
+        Consumption function over normalized market resources and iliquid assets when
+        the agent is able to adjust their contribution share.
+    ShareFuncAdj : Interp2D
+        Income share function over normalized market resources and iliquid assets when
+        the agent is able to adjust their contribution share.
+    vFuncAdj : ValueFunc2D
+        Value function over normalized market resources and iliquid assets when
+        the agent is able to adjust their contribution share.
+    dvdmFuncAdj : MargValueFunc2D
+        Marginal value of mNrm function over normalized market resources and iliquid assets
+        when the agent is able to adjust their contribution share.
+    dvdnFuncAdj : MargValueFunc2D
+        Marginal value of nNrm function over normalized market resources and iliquid assets
+        when the agent is able to adjust their contribution share.
+    cFuncFxd : Interp3D
+        Consumption function over normalized market resources, iliquid assets and income
+        contribution share when the agent is NOT able to adjust their contribution share.
+    ShareFuncFxd : Interp3D
+        Income share function over normalized market resources, iliquid assets and
+        contribution share when the agent is NOT able to adjust their contribution share.
         This should always be an IdentityFunc, by definition.
-    vFuncFxd : ValueFunc2D
-        Value function over normalized market resources and risky portfolio share when
-        the agent is NOT able to adjust their portfolio shares, so they are fixed.
-    dvdmFuncFxd : MargValueFunc2D
-        Marginal value of mNrm function over normalized market resources and risky
-        portfolio share when the agent is NOT able to adjust their portfolio shares,
-        so they are fixed.
+    vFuncFxd : ValueFunc3D
+        Value function over normalized market resources, iliquid assets and income contribution
+        share when the agent is NOT able to adjust their contribution share.
+    dvdmFuncFxd : MargValueFunc3D
+        Marginal value of mNrm function over normalized market resources, iliquid assets
+        and income contribution share share when the agent is NOT able to adjust 
+        their contribution share.
+    dvdnFuncFxd : MargValueFunc3D
+        Marginal value of nNrm function over normalized market resources, iliquid assets
+        and income contribution share share when the agent is NOT able to adjust 
+        their contribution share.
     dvdsFuncFxd : MargValueFunc2D
-        Marginal value of Share function over normalized market resources and risky
-        portfolio share when the agent is NOT able to adjust their portfolio shares,
-        so they are fixed.
+        Marginal value of contribution share function over normalized market resources,
+        iliquid assets and income contribution share when the agent is NOT able to adjust
+        their contribution share.
     mNrmMin
     '''
     distance_criteria = ['vPfuncAdj']
@@ -79,11 +86,13 @@ class PortfolioSolution(Solution):
         cFuncAdj=None,
         ShareFuncAdj=None,
         vFuncAdj=None,
-        vPfuncAdj=None,
+        dvdmFuncAdj=None,
+        dvdnFuncAdj=None,
         cFuncFxd=None,
         ShareFuncFxd=None,
         vFuncFxd=None,
         dvdmFuncFxd=None,
+        dvdnFuncFxd=None,
         dvdsFuncFxd=None
     ):
 
@@ -100,10 +109,14 @@ class PortfolioSolution(Solution):
             vFuncAdj = NullFunc()
         if vFuncFxd is None:
             vFuncFxd = NullFunc()
-        if vPfuncAdj is None:
-            vPfuncAdj = NullFunc()
+        if dvdmFuncAdj is None:
+            dvdmFuncAdj = NullFunc()
         if dvdmFuncFxd is None:
             dvdmFuncFxd = NullFunc()
+        if dvdnFuncAdj is None:
+            dvdnFuncAdj = NullFunc()
+        if dvdnFuncFxd is None:
+            dvdnFuncFxd = NullFunc()
         if dvdsFuncFxd is None:
             dvdsFuncFxd = NullFunc()
             
@@ -114,8 +127,10 @@ class PortfolioSolution(Solution):
         self.ShareFuncFxd = ShareFuncFxd
         self.vFuncAdj = vFuncAdj
         self.vFuncFxd = vFuncFxd
-        self.vPfuncAdj = vPfuncAdj
+        self.dvdmFuncAdj = dvdmFuncAdj
         self.dvdmFuncFxd = dvdmFuncFxd
+        self.dvdnFuncAdj = dvdnFuncAdj
+        self.dvdnFuncFxd = dvdnFuncFxd
         self.dvdsFuncFxd = dvdsFuncFxd
         
         
