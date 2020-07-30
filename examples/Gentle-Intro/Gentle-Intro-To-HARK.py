@@ -29,7 +29,6 @@
 #   If you do this, you can restart the kernel (see the "Kernel" menu above) and start over
 
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 import numpy as np
 import HARK 
 from time import clock
