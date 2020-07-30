@@ -12,7 +12,6 @@ from __future__ import absolute_import
 from builtins import str
 from builtins import range
 from builtins import object
-from collections import OrderedDict
 import sys
 import os
 from distutils.dir_util import copy_tree
@@ -928,16 +927,16 @@ class Market(HARKobject):
         self.agents     = agents if agents is not None else list() # NOQA
 
         reap_vars = reap_vars if reap_vars is not None else list() # NOQA
-        self.reap_state  = OrderedDict([(var, []) for var in reap_vars])
+        self.reap_state  = dict([(var, []) for var in reap_vars])
 
         self.sow_vars   = sow_vars if sow_vars is not None else list() # NOQA
         # dictionaries for tracking initial and current values
         # of the sow variables.
-        self.sow_init = OrderedDict([(var, None) for var in self.sow_vars])
-        self.sow_state = OrderedDict([(var, None) for var in self.sow_vars])
+        self.sow_init = dict([(var, None) for var in self.sow_vars])
+        self.sow_state = dict([(var, None) for var in self.sow_vars])
 
         const_vars = const_vars if const_vars is not None else list() # NOQA
-        self.const_vars =  OrderedDict([(var, None) for var in const_vars])
+        self.const_vars =  dict([(var, None) for var in const_vars])
 
         self.track_vars = track_vars if track_vars is not None else list() # NOQA
         self.dyn_vars   = dyn_vars if dyn_vars is not None else list() # NOQA
