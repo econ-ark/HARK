@@ -23,24 +23,3 @@ class testPerfForesightFastConsumerType(testPerfForesightConsumerType):
             "AgentCount": 10000,
         }
         self.agent_alt = PerfForesightFastConsumerType(**PF_dictionary)
-
-    def test_equality(self):
-        self.assertTrue(self.agent == self.agent_slow)
-        self.assertFalse(self.agent == self.agent_infinite)
-        self.assertFalse(self.agent == self.agent_alt)
-        self.assertTrue(self.agent_infinite == self.agent_infinite_slow)
-        self.assertFalse(self.agent_infinite == self.agent_alt)
-
-        self.agent.solve()
-        self.agent_slow.solve()
-        self.agent_infinite.solve()
-        self.agent_infinite_slow.solve()
-        self.agent_alt.solve()
-
-        self.assertTrue(self.agent.solution == self.agent_slow.solution)
-        self.assertFalse(self.agent.solution == self.agent_infinite.solution)
-        self.assertFalse(self.agent.solution == self.agent_alt.solution)
-        self.assertTrue(
-            self.agent_infinite.solution == self.agent_infinite_slow.solution
-        )
-        self.assertFalse(self.agent_infinite.solution == self.agent_alt.solution)
