@@ -293,6 +293,29 @@ class AgentType(HARKobject):
             if param in self.time_inv:
                 self.time_inv.remove(param)
 
+    def unpackFunc(self, function='cFunc'):
+        '''
+        "Unpacks" a function into their own field for easier access.
+        After the model has been solved, the functions (consumption) reside in the
+        attributes of each element of ConsumerType.solution (e.g. cFunc).  This method
+        creates a (time varying) attribute of the given function name that contains
+        a list of functions.
+
+        Parameters
+        ----------
+        function: str
+            Name of the function to unpack from the solution
+
+        Returns
+        -------
+        none
+        '''
+        setattr(self, function, list())
+        for solution_t in self.solution:
+            self.__dict__[function].append(solution_t.__dict__[function])
+        self.addToTimeVary(function)
+
+
     def solve(self, verbose=False):
         '''
         Solve the model for this instance of an agent type by backward induction.

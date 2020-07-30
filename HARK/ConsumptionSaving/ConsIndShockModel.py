@@ -1530,26 +1530,6 @@ class PerfForesightConsumerType(AgentType):
         self.solution_terminal.vPfunc  = MargValueFunc(self.cFunc_terminal_,self.CRRA)
         self.solution_terminal.vPPfunc = MargMargValueFunc(self.cFunc_terminal_,self.CRRA)
 
-    def unpackcFunc(self):
-        '''
-        "Unpacks" the consumption functions into their own field for easier access.
-        After the model has been solved, the consumption functions reside in the
-        attribute cFunc of each element of ConsumerType.solution.  This method
-        creates a (time varying) attribute cFunc that contains a list of consumption
-        functions.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        '''
-        self.cFunc = []
-        for solution_t in self.solution:
-            self.cFunc.append(solution_t.cFunc)
-        self.addToTimeVary('cFunc')
 
     def initializeSim(self):
         self.PlvlAggNow = 1.0
