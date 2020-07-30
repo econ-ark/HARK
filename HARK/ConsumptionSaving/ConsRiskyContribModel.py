@@ -922,19 +922,22 @@ def solveConsPortfolio(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     
     
 # Make a dictionary to specify a portfolio choice consumer type
-init_portfolio = init_idiosyncratic_shocks.copy()
-init_portfolio['RiskyAvg']        = 1.08 # Average return of the risky asset
-init_portfolio['RiskyStd']        = 0.20 # Standard deviation of (log) risky returns
-init_portfolio['RiskyCount']      = 5    # Number of integration nodes to use in approximation of risky returns
-init_portfolio['ShareCount']      = 25   # Number of discrete points in the risky share approximation
-init_portfolio['AdjustPrb']       = 1.0  # Probability that the agent can adjust their risky portfolio share each period
-init_portfolio['DiscreteShareBool'] = False # Flag for whether to optimize risky share on a discrete grid only
+init_riskyContrib = init_idiosyncratic_shocks.copy()
+init_riskyContrib['RiskyAvg']        = 1.08 # Average return of the risky asset
+init_riskyContrib['RiskyStd']        = 0.20 # Standard deviation of (log) risky returns
+init_riskyContrib['RiskyCount']      = 5    # Number of integration nodes to use in approximation of risky returns
+init_riskyContrib['ShareCount']      = 25   # Number of discrete points in the risky share approximation
+init_riskyContrib['AdjustPrb']       = 1.0  # Probability that the agent can adjust their risky portfolio share each period
+init_riskyContrib['DiscreteShareBool'] = False # Flag for whether to optimize risky share on a discrete grid only
 
 # Adjust some of the existing parameters in the dictionary
-init_portfolio['aXtraMax']        = 100  # Make the grid of assets go much higher...
-init_portfolio['aXtraCount']      = 200  # ...and include many more gridpoints...
-init_portfolio['aXtraNestFac']    = 1    # ...which aren't so clustered at the bottom
-init_portfolio['BoroCnstArt']     = 0.0  # Artificial borrowing constraint must be turned on
-init_portfolio['CRRA']            = 5.0  # Results are more interesting with higher risk aversion
-init_portfolio['DiscFac']         = 0.90 # And also lower patience
+init_riskyContrib['aXtraMax']        = 50   # Make the grid of assets go much higher...
+init_riskyContrib['aXtraCount']      = 100  # ...and include many more gridpoints...
+init_riskyContrib['aXtraNestFac']    = 1    # ...which aren't so clustered at the bottom
+init_riskyContrib['nMax']            = 50   # Use the same parameters for the risky asset grid
+init_riskyContrib['nCount']          = 100  #
+init_riskyContrib['nNestFac']        = 1    #
+init_riskyContrib['BoroCnstArt']     = 0.0  # Artificial borrowing constraint must be turned on
+init_riskyContrib['CRRA']            = 5.0  # Results are more interesting with higher risk aversion
+init_riskyContrib['DiscFac']         = 0.90 # And also lower patience
     
