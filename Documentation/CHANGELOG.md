@@ -46,6 +46,13 @@ Release Date: XX-XX-2020
 
 ### 0.10.6
 
+### Major Changes
+
+#### Minor Changes
+* Tests for Market history tracking
+
+### 0.10.6
+
 Release Date: 17-04-2020
 
 #### Major Changes
