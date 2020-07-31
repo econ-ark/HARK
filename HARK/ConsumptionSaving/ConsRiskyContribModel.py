@@ -134,23 +134,16 @@ class RiskyContribSolution(Solution):
         self.dvdsFuncFxd = dvdsFuncFxd
         
         
-class PortfolioConsumerType(IndShockConsumerType):
+class RiskyContribConsumerType(IndShockConsumerType):
     """
-    A consumer type with a portfolio choice. This agent type has log-normal return
-    factors. Their problem is defined by a coefficient of relative risk aversion,
-    intertemporal discount factor, risk-free interest factor, and time sequences of
-    permanent income growth rate, survival probability, and permanent and transitory
-    income shock standard deviations (in logs).  The agent may also invest in a risky
-    asset, which has a higher average return than the risk-free asset.  He *might*
-    have age-varying beliefs about the risky-return; if he does, then "true" values
-    of the risky asset's return distribution must also be specified.
+    TODO: model description
     """
-    poststate_vars_ = ['aNrmNow', 'pLvlNow', 'ShareNow', 'AdjustNow']
+    poststate_vars_ = ['aNrmNow', 'nNrmNow', 'pLvlNow', 'ShareNow', 'AdjustNow']
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
     time_inv_ = time_inv_ + ['AdjustPrb', 'DiscreteShareBool']
 
     def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
-        params = init_portfolio.copy()
+        params = init_riskyContrib.copy()
         params.update(kwds)
         kwds = params
 
@@ -164,7 +157,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         )
         
         # Set the solver for the portfolio model, and update various constructed attributes
-        self.solveOnePeriod = solveConsPortfolio
+        self.solveOnePeriod = solveConsRiskyContrib
         self.update()
         
         
@@ -175,11 +168,10 @@ class PortfolioConsumerType(IndShockConsumerType):
 
     def update(self):
         IndShockConsumerType.update(self)
+        self.updateNGrid()
         self.updateRiskyDstn()
         self.updateShockDstn()
         self.updateShareGrid()
-        self.updateShareLimit()
-        
         
     def updateSolutionTerminal(self):
         '''
@@ -195,34 +187,40 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        # Consume all market resources: c_T = m_T
-        cFuncAdj_terminal = IdentityFunction()
-        cFuncFxd_terminal = IdentityFunction(i_dim=0, n_dims=2)
+        # Consume all market resources: c_T = m_T + n_T
+        # TODO: use HARK's interpolation objects definitions (like IdentityFunction, etc)
+        cFuncAdj_terminal = lambda m, n: m + n
+        cFuncFxd_terminal = lambda m, n, s: m + n
         
         # Risky share is irrelevant-- no end-of-period assets; set to zero
         ShareFuncAdj_terminal = ConstantFunction(0.)
-        ShareFuncFxd_terminal = IdentityFunction(i_dim=1, n_dims=2)
+        ShareFuncFxd_terminal = IdentityFunction(i_dim=2, n_dims=3)
         
         # Value function is simply utility from consuming market resources
-        vFuncAdj_terminal = ValueFunc(cFuncAdj_terminal, self.CRRA)
-        vFuncFxd_terminal = ValueFunc2D(cFuncFxd_terminal, self.CRRA)
+        # TODO: use HARK's ValueFunc objects
+        vFuncAdj_terminal = lambda m, n: utility(cFuncAdj_terminal(m,n), self.CRRA) 
+        vFuncFxd_terminal = lambda m, n, s: utility(cFuncFxd_terminal, self.CRRA)
         
         # Marginal value of market resources is marg utility at the consumption function
-        vPfuncAdj_terminal = MargValueFunc(cFuncAdj_terminal, self.CRRA)
-        dvdmFuncFxd_terminal = MargValueFunc2D(cFuncFxd_terminal, self.CRRA)
+        dvdmFuncAdj_terminal = lambda m, n: utilityP(cFuncAdj_terminal(m,n), self.CRRA)
+        dvdnFuncAdj_terminal = lambda m, n: utilityP(cFuncAdj_terminal(m,n), self.CRRA)
+        dvdmFuncFxd_terminal = lambda m, n, s: utilityP(cFuncFxd_terminal(m,n,s), self.CRRA)
+        dvdnFuncFxd_terminal = lambda m, n, s: utilityP(cFuncFxd_terminal(m,n,s), self.CRRA)
         dvdsFuncFxd_terminal = ConstantFunction(0.) # No future, no marg value of Share
         
         # Construct the terminal period solution
-        self.solution_terminal = PortfolioSolution(
-                cFuncAdj=cFuncAdj_terminal,
-                ShareFuncAdj=ShareFuncAdj_terminal,
-                vFuncAdj=vFuncAdj_terminal,
-                vPfuncAdj=vPfuncAdj_terminal,
-                cFuncFxd=cFuncFxd_terminal,
-                ShareFuncFxd=ShareFuncFxd_terminal,
-                vFuncFxd=vFuncFxd_terminal,
-                dvdmFuncFxd=dvdmFuncFxd_terminal,
-                dvdsFuncFxd=dvdsFuncFxd_terminal
+        self.solution_terminal = RiskyContribSolution(
+                cFuncAdj     = cFuncAdj_terminal,
+                ShareFuncAdj = ShareFuncAdj_terminal,
+                vFuncAdj     = vFuncAdj_terminal,
+                dvdmFuncAdj  = dvdmFuncAdj_terminal,
+                dvdnFuncAdj  = dvdnFuncAdj_terminal,
+                cFuncFxd     = cFuncFxd_terminal,
+                ShareFuncFxd = ShareFuncFxd_terminal,
+                vFuncFxd     = vFuncFxd_terminal,
+                dvdmFuncFxd  = dvdmFuncFxd_terminal,
+                dvdnFuncFxd  = dvdnFuncFxd_terminal,
+                dvdsFuncFxd  = dvdsFuncFxd_terminal
         )
         
         
@@ -311,38 +309,32 @@ class PortfolioConsumerType(IndShockConsumerType):
         '''
         self.ShareGrid = np.linspace(0.,1.,self.ShareCount)
         self.addToTimeInv('ShareGrid')
-        
-        
-    def updateShareLimit(self):
+            
+    def updateNGrid(self):
         '''
-        Creates the attribute ShareLimit, representing the limiting lower bound of
-        risky portfolio share as mNrm goes to infinity.
+        Updates the agent's iliquid assets grid by constructing a
+        multi-exponentially spaced grid of nNrm values.
         
         Parameters
         ----------
         None
-
+        
         Returns
         -------
-        None
+        None.
         '''
-        if 'RiskyDstn' in self.time_vary:
-            self.ShareLimit = []
-            for t in range(self.T_cycle):
-                RiskyDstn = self.RiskyDstn[t]
-                temp_f = lambda s : -((1.-self.CRRA)**-1)*np.dot((self.Rfree + s*(RiskyDstn.X-self.Rfree))**(1.-self.CRRA), RiskyDstn.pmf)
-                SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method='bounded').x
-                self.ShareLimit.append(SharePF)
-            self.addToTimeVary('ShareLimit')
+        # Extract parameters
+        nNrmMin = self.nNrmMin
+        nNrmMax = self.nNrmMax
+        nNrmCount = self.nNrmCount
+        exp_nest = self.nNrmNestFac
+        # Create grid
+        nNrmGrid = makeGridExpMult(ming = nNrmMin, maxg = nNrmMax, 
+                                   ng = nNrmCount, timestonest = exp_nest)
+        # Assign and set it as time invariant
+        self.nNrmGrid = nNrmGrid
+        self.addToTimeInv('nNrmGrid')
         
-        else:
-            RiskyDstn = self.RiskyDstn
-            temp_f = lambda s : -((1.-self.CRRA)**-1)*np.dot((self.Rfree + s*(RiskyDstn.X-self.Rfree))**(1.-self.CRRA), RiskyDstn.pmf)
-            SharePF = minimize_scalar(temp_f, bounds=(0.0, 1.0), method='bounded').x
-            self.ShareLimit = SharePF
-            self.addToTimeInv('ShareLimit')
-            
-            
     def getRisky(self):
         '''
         Sets the attribute RiskyNow as a single draw from a lognormal distribution.
@@ -386,31 +378,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         '''
         self.AdjustNow = Bernoulli(self.AdjustPrb, seed=self.RNG.randint(0, 2**31-1)).draw(self.AgentCount)
-        
-        
-    def getRfree(self):
-        '''
-        Calculates realized return factor for each agent, using the attributes Rfree,
-        RiskyNow, and ShareNow.  This method is a bit of a misnomer, as the return
-        factor is not riskless, but would more accurately be labeled as Rport.  However,
-        this method makes the portfolio model compatible with its parent class.
-        
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        Rport : np.array
-            Array of size AgentCount with each simulated agent's realized portfolio
-            return factor.  Will be used by getStates() to calculate mNrmNow, where it
-            will be mislabeled as "Rfree".
-        '''
-        Rport = self.ShareNow*self.RiskyNow + (1.-self.ShareNow)*self.Rfree
-        self.RportNow = Rport
-        return Rport
-    
-    
+       
     def initializeSim(self):
         '''
         Initialize the state of simulation attributes.  Simply calls the same method
@@ -934,9 +902,10 @@ init_riskyContrib['DiscreteShareBool'] = False # Flag for whether to optimize ri
 init_riskyContrib['aXtraMax']        = 50   # Make the grid of assets go much higher...
 init_riskyContrib['aXtraCount']      = 100  # ...and include many more gridpoints...
 init_riskyContrib['aXtraNestFac']    = 1    # ...which aren't so clustered at the bottom
-init_riskyContrib['nMax']            = 50   # Use the same parameters for the risky asset grid
-init_riskyContrib['nCount']          = 100  #
-init_riskyContrib['nNestFac']        = 1    #
+init_riskyContrib['nNrmMin']         = 1e-6 # Use the same parameters for the risky asset grid
+init_riskyContrib['nNrmMax']         = 50
+init_riskyContrib['nNrmCount']       = 100  #
+init_riskyContrib['nNrmNestFac']     = 1    #
 init_riskyContrib['BoroCnstArt']     = 0.0  # Artificial borrowing constraint must be turned on
 init_riskyContrib['CRRA']            = 5.0  # Results are more interesting with higher risk aversion
 init_riskyContrib['DiscFac']         = 0.90 # And also lower patience
