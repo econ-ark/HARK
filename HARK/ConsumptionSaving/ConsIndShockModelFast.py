@@ -42,8 +42,8 @@ from HARK.utilities import (
 
 __all__ = [
     "PerfForesightSolution",
-    "ConsPerfForesightFastSolver",
-    "PerfForesightFastConsumerType",
+    "ConsPerfForesightSolverFast",
+    "PerfForesightConsumerTypeFast",
 ]
 
 utility = CRRAutility
@@ -266,7 +266,7 @@ def _solveConsPerfForesightNumba(
     )
 
 
-class ConsPerfForesightFastSolver(ConsPerfForesightSolver):
+class ConsPerfForesightSolverFast(ConsPerfForesightSolver):
     """
     A class for solving a one period perfect foresight consumption-saving problem.
     An instance of this class is created by the function solvePerfForesight in each period.
@@ -330,7 +330,7 @@ class ConsPerfForesightFastSolver(ConsPerfForesightSolver):
 # ============================================================================
 
 
-class PerfForesightFastConsumerType(PerfForesightConsumerType):
+class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
     """
     A perfect foresight consumer type who has no uncertainty other than mortality.
     His problem is defined by a coefficient of relative risk aversion, intertemporal
@@ -344,7 +344,7 @@ class PerfForesightFastConsumerType(PerfForesightConsumerType):
     def __init__(self, **kwargs):
         PerfForesightConsumerType.__init__(self, **kwargs)
 
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPerfForesightFastSolver)
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPerfForesightSolverFast)
 
     def updateSolutionTerminal(self):
         """

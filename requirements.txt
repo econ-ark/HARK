@@ -8,12 +8,10 @@ scipy~=1.5.2
 flake8
 jupyter
 funcsigs
-jupyter
 sphinx-rtd-theme
 nbsphinx==0.4.3
 seaborn
 recommonmark
-
 numba~=0.50.1
 setuptools~=49.2.0
 interpolation~=2.1.6
