@@ -1126,7 +1126,8 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cFuncNowUnc = interpolator(mNrm, cNrm)
 
         # Combine the constrained and unconstrained functions into the true consumption function
-        cFuncNow = LowerEnvelope(cFuncNowUnc, self.cFuncNowCnst)
+
+        cFuncNow = LowerEnvelope(cFuncNowUnc,self.cFuncNowCnst, nan_bool = False)
 
         # Make the marginal value function and the marginal marginal value function
         vPfuncNow = MargValueFunc(cFuncNow, self.CRRA)
