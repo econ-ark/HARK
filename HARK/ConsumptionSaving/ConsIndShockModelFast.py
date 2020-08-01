@@ -751,9 +751,9 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
         self.solution_fast = deepcopy(self.solution)
 
         if self.cycles == 0:
-            terminal = 1
+            terminal = self.T_cycle
         else:
-            terminal = self.cycles
+            terminal = self.T_cycle * self.cycles
             self.solution[terminal] = self.solution_terminal_cs
 
         for i in range(terminal):
