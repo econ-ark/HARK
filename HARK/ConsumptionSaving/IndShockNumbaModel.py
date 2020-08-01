@@ -5,7 +5,6 @@ from __future__ import print_function
 from copy import deepcopy
 
 import numpy as np
-from interpolation import interp
 from numba import njit
 
 from HARK import makeOnePeriodOOSolver, Solution
@@ -27,6 +26,7 @@ from HARK.numba import (
     CRRAutility_invP,
     CRRAutility_inv,
     CRRAutilityP_invP,
+    LinearInterpFast,
 )
 from HARK.numba import splrep, splevec
 
@@ -46,8 +46,8 @@ class IndShockSolution(Solution):
         self,
         mNrm=np.array([0.0, 1.0]),
         cNrm=np.array([0.0, 1.0]),
-        cFuncLimitIntercept=0.0,
-        cFuncLimitSlope=0.0,
+        cFuncLimitIntercept=None,
+        cFuncLimitSlope=None,
         mNrmMin=0.0,
         hNrm=0.0,
         MPCmin=1.0,
@@ -67,37 +67,11 @@ class IndShockSolution(Solution):
 
 @njit(cache=True)
 def _np_tile(A, reps):
-    """
-    Numba does not support np.tile yet, so this is a simple placeholder.
-
-    Parameters
-    ----------
-    A
-    reps
-
-    Returns
-    -------
-
-    """
     return A.repeat(reps[0]).reshape(A.size, -1).transpose()
 
 
 @njit(cache=True)
 def _np_insert(arr, obj, values, axis=-1):
-    """
-    Numba does not support np.insert yet, so this is a simple placeholder.
-
-    Parameters
-    ----------
-    arr
-    obj
-    values
-    axis
-
-    Returns
-    -------
-
-    """
     return np.append(np.array(values), arr)
 
 
@@ -121,7 +95,6 @@ def _prepareToSolveConsIndShockNumba(
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
     PermShkMinNext = np.min(PermShkValsNext)
     TranShkMinNext = np.min(TranShkValsNext)
-
     WorstIncPrb = np.sum(
         ShkPrbsNext[
             (PermShkValsNext * TranShkValsNext) == (PermShkMinNext * TranShkMinNext)
@@ -181,7 +154,7 @@ def _prepareToSolveConsIndShockNumba(
         mNrmMinNow,
         hNrmNow,
         MPCminNow,
-        MPCmaxNow,
+        MPCmaxEff,
         ExIncNext,
         mNrmNext,
         PermShkVals_temp,
@@ -204,12 +177,16 @@ def _solveConsIndShockLinearNumba(
     ShkPrbs_temp,
     aNrmNow,
     BoroCnstNat,
+    cFuncInterceptNext,
+    cFuncSlopeNext,
 ):
     # interp does not take ndarray inputs on 3rd argument, so flatten then reshape
     mNrmCnst = np.array([mNrmMinNext, mNrmMinNext + 1])
     cNrmCnst = np.array([0.0, 1.0])
-    cFuncNextCnst = interp(mNrmCnst, cNrmCnst, mNrmNext.flatten())
-    cFuncNextUnc = interp(mNrmUnc, cNrmUnc, mNrmNext.flatten())
+    cFuncNextCnst = LinearInterpFast(mNrmNext.flatten(), mNrmCnst, cNrmCnst)
+    cFuncNextUnc = LinearInterpFast(
+        mNrmNext.flatten(), mNrmUnc, cNrmUnc, cFuncInterceptNext, cFuncSlopeNext
+    )
     cFuncNext = np.minimum(cFuncNextCnst, cFuncNextUnc)
     vPfuncNext = utilityP(cFuncNext, CRRA).reshape(mNrmNext.shape)
 
@@ -616,7 +593,7 @@ class ConsIndShockNumbaSolverBasic(ConsPerfForesightSolverNumba):
             self.mNrmMinNow,
             self.hNrmNow,
             self.MPCminNow,
-            self.MPCmaxNow,
+            self.MPCmaxEff,
             self.ExIncNext,
             self.mNrmNext,
             self.PermShkVals_temp,
@@ -653,11 +630,7 @@ class ConsIndShockNumbaSolverBasic(ConsPerfForesightSolverNumba):
             The solution to the one period problem.
         """
 
-        (
-            self.cNrm,
-            self.mNrm,
-
-        ) = _solveConsIndShockLinearNumba(
+        self.cNrm, self.mNrm = _solveConsIndShockLinearNumba(
             self.solution_next.mNrmMin,
             self.mNrmNext,
             self.CRRA,
@@ -670,6 +643,8 @@ class ConsIndShockNumbaSolverBasic(ConsPerfForesightSolverNumba):
             self.ShkPrbs_temp,
             self.aNrmNow,
             self.BoroCnstNat,
+            self.solution_next.cFuncLimitIntercept,
+            self.solution_next.cFuncLimitSlope,
         )
 
         # Pack up the solution and return it
@@ -681,7 +656,7 @@ class ConsIndShockNumbaSolverBasic(ConsPerfForesightSolverNumba):
             self.mNrmMinNow,
             self.hNrmNow,
             self.MPCminNow,
-            self.MPCmaxNow,
+            self.MPCmaxEff,
             self.ExIncNext,
         )
 

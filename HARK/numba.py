@@ -7,7 +7,7 @@ from __future__ import division  # Import Python 3.x division function
 from __future__ import print_function
 
 import numpy as np
-from numba import vectorize, njit
+from numba import vectorize, njit, generated_jit, types
 
 
 # ==============================================================================
@@ -429,10 +429,10 @@ def splevec(x0, x, y, z):
 
     # calculate cubic
     f0 = (
-        zi0 / (6 * hi1) * (xi1 - x0) ** 3
-        + zi1 / (6 * hi1) * (x0 - xi0) ** 3
-        + (yi1 / hi1 - zi1 * hi1 / 6) * (x0 - xi0)
-        + (yi0 / hi1 - zi0 * hi1 / 6) * (xi1 - x0)
+            zi0 / (6 * hi1) * (xi1 - x0) ** 3
+            + zi1 / (6 * hi1) * (x0 - xi0) ** 3
+            + (yi1 / hi1 - zi1 * hi1 / 6) * (x0 - xi0)
+            + (yi0 / hi1 - zi0 * hi1 / 6) * (xi1 - x0)
     )
 
     return f0
@@ -455,10 +455,10 @@ def spleval(x0, x, y, z):
 
     # calculate cubic
     f0 = (
-        zi0 / (6 * hi1) * (xi1 - x0) ** 3
-        + zi1 / (6 * hi1) * (x0 - xi0) ** 3
-        + (yi1 / hi1 - zi1 * hi1 / 6) * (x0 - xi0)
-        + (yi0 / hi1 - zi0 * hi1 / 6) * (xi1 - x0)
+            zi0 / (6 * hi1) * (xi1 - x0) ** 3
+            + zi1 / (6 * hi1) * (x0 - xi0) ** 3
+            + (yi1 / hi1 - zi1 * hi1 / 6) * (x0 - xi0)
+            + (yi0 / hi1 - zi0 * hi1 / 6) * (xi1 - x0)
     )
 
     return f0
@@ -480,10 +480,10 @@ def spldervec(x0, x, y, z):
 
     # calculate cubic
     df0 = (
-        -zi0 / (2 * hi1) * (xi1 - x0) ** 2
-        + zi1 / (2 * hi1) * (x0 - xi0) ** 2
-        + (yi1 / hi1 - zi1 * hi1 / 6)
-        - (yi0 / hi1 - zi0 * hi1 / 6)
+            -zi0 / (2 * hi1) * (xi1 - x0) ** 2
+            + zi1 / (2 * hi1) * (x0 - xi0) ** 2
+            + (yi1 / hi1 - zi1 * hi1 / 6)
+            - (yi0 / hi1 - zi0 * hi1 / 6)
     )
 
     return df0
@@ -505,10 +505,10 @@ def splder(x0, x, y, z):
 
     # calculate cubic
     df0 = (
-        -zi0 / (2 * hi1) * (xi1 - x0) ** 2
-        + zi1 / (2 * hi1) * (x0 - xi0) ** 2
-        + (yi1 / hi1 - zi1 * hi1 / 6)
-        - (yi0 / hi1 - zi0 * hi1 / 6)
+            -zi0 / (2 * hi1) * (xi1 - x0) ** 2
+            + zi1 / (2 * hi1) * (x0 - xi0) ** 2
+            + (yi1 / hi1 - zi1 * hi1 / 6)
+            - (yi0 / hi1 - zi0 * hi1 / 6)
     )
 
     return df0
@@ -529,3 +529,56 @@ def splkd(x, y, z):
     df[-1] = xdiff[-1] / 3 * z[-1] + xdiff[-1] / 6 * z[-2] + slope[-1]
 
     return df
+
+
+@njit(cache=True)
+def interp_decay(x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap):
+    # Make a decay extrapolation
+    slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
+    level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
+    slope_diff = slope_limit - slope_at_top
+
+    decay_extrap_A = level_diff
+    decay_extrap_B = -slope_diff / level_diff
+    intercept_limit = intercept_limit
+    slope_limit = slope_limit
+
+    i = np.maximum(np.searchsorted(x_list[:-1], x0), 1)
+    alpha = (x0 - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
+    y0 = (1.0 - alpha) * y_list[i - 1] + alpha * y_list[i]
+
+    if not lower_extrap:
+        below_lower_bound = x0 < x_list[0]
+        y0[below_lower_bound] = np.nan
+
+    above_upper_bound = x0 > x_list[-1]
+    x_temp = x0[above_upper_bound] - x_list[-1]
+
+    y0[above_upper_bound] = (
+            intercept_limit
+            + slope_limit * x0[above_upper_bound]
+            - decay_extrap_A * np.exp(-decay_extrap_B * x_temp)
+    )
+
+    return y0
+
+
+@njit(cache=True)
+def interp_linear(x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap):
+    i = np.maximum(np.searchsorted(x_list[:-1], x0), 1)
+    alpha = (x0 - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
+    y0 = (1.0 - alpha) * y_list[i - 1] + alpha * y_list[i]
+
+    if not lower_extrap:
+        below_lower_bound = x0 < x_list[0]
+        y0[below_lower_bound] = np.nan
+
+    return y0
+
+
+@generated_jit(nopython=True, cache=True)
+def LinearInterpFast(x0, x_list, y_list, intercept_limit=None, slope_limit=None, lower_extrap=False):
+    if isinstance(intercept_limit, types.NoneType) and isinstance(slope_limit, types.NoneType):
+        return interp_linear
+    else:
+        return interp_decay

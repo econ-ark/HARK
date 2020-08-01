@@ -8,7 +8,7 @@ scipy
 flake8
 jupyter
 funcsigs
-jupyter
+
 sphinx-rtd-theme
 nbsphinx==0.4.3
 seaborn
