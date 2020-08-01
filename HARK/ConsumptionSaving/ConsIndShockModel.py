@@ -87,9 +87,6 @@ class ConsumerSolution(Solution):
     """
 
     distance_criteria = ["vPfunc"]
-    # tolerance should come from solution method, along with other solution
-    # parameters such as solution_distance and completed_cycles
-    tolerance = 0.000001
 
     def __init__(
         self,
@@ -1127,7 +1124,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
 
         # Combine the constrained and unconstrained functions into the true consumption function
 
-        cFuncNow = LowerEnvelope(cFuncNowUnc,self.cFuncNowCnst, nan_bool = False)
+        cFuncNow = LowerEnvelope(cFuncNowUnc, self.cFuncNowCnst, nan_bool=False)
 
         # Make the marginal value function and the marginal marginal value function
         vPfuncNow = MargValueFunc(cFuncNow, self.CRRA)
@@ -1711,9 +1708,9 @@ class PerfForesightConsumerType(AgentType):
         None
         """
 
-        self.params = init_perfect_foresight.copy()
-        self.params.update(kwds)
-        kwds = self.params
+        params = init_perfect_foresight.copy()
+        params.update(kwds)
+        kwds = params
 
         # Initialize a basic AgentType
         AgentType.__init__(
@@ -1723,8 +1720,6 @@ class PerfForesightConsumerType(AgentType):
             pseudo_terminal=False,
             **kwds
         )
-
-        self.params["cycles"] = cycles
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(self.time_vary_)
