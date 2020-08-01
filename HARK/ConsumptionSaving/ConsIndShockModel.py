@@ -147,19 +147,6 @@ class ConsumerSolution(Solution):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
 
-    def __eq__(self, solution: HARKobject) -> bool:
-        if issubclass(solution.__class__, HARKobject):
-            if issubclass(solution.__class__, ConsumerSolution) or issubclass(
-                ConsumerSolution, solution.__class__
-            ):
-                if hasattr(solution, "tolerance"):
-                    solution_distance = self.distance(solution)
-                    print(solution_distance)  # maybe should be logged
-                    return (
-                        solution_distance < self.tolerance
-                    ) and solution_distance < solution.tolerance
-        return False
-
     def appendSolution(self, new_solution):
         """
         Appends one solution to another to create a ConsumerSolution whose
@@ -1747,16 +1734,6 @@ class PerfForesightConsumerType(AgentType):
         self.quiet = quiet
         self.solveOnePeriod = makeOnePeriodOOSolver(ConsPerfForesightSolver)
         set_verbosity_level((4 - verbose) * 10)
-
-    def __eq__(self, agent: AgentType) -> bool:
-        if issubclass(agent.__class__, AgentType):
-            if issubclass(agent.__class__, PerfForesightConsumerType) or issubclass(
-                PerfForesightConsumerType, agent.__class__
-            ):
-                if hasattr(agent, "params"):
-                    return self.params == agent.params
-        else:
-            return False
 
     def preSolve(self):
         self.updateSolutionTerminal()  # Solve the terminal period problem
