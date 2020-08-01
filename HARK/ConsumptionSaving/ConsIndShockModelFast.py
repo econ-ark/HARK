@@ -28,9 +28,11 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ValueFunc,
     MargValueFunc,
     MargMargValueFunc,
+    ConsIndShockSolverBasic,
+    IndShockConsumerType,
 )
-from HARK.interpolation import LinearInterp
-from HARK.utilities import (
+from HARK.interpolation import LinearInterp, LowerEnvelope
+from HARK.numba import (
     CRRAutility,
     CRRAutilityP,
     CRRAutilityPP,
@@ -39,6 +41,7 @@ from HARK.utilities import (
     CRRAutility_inv,
     CRRAutilityP_invP,
 )
+from HARK.numba import LinearInterpFast
 
 __all__ = [
     "PerfForesightSolution",
@@ -116,6 +119,65 @@ class PerfForesightSolution(HARKobject):
         self.hNrm = hNrm
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
+
+
+class IndShockSolution(HARKobject):
+    """
+    A class representing the solution of a single period of a consumption-saving
+    idiosyncratic shocks to permanent and transitory income problem.
+    """
+
+    distance_criteria = ["cNrm", "mNrm", "mNrmMin"]
+
+    def __init__(
+        self,
+        mNrm=np.array([0.0, 1.0]),
+        cNrm=np.array([0.0, 1.0]),
+        cFuncLimitIntercept=None,
+        cFuncLimitSlope=None,
+        mNrmMin=0.0,
+        hNrm=0.0,
+        MPCmin=1.0,
+        MPCmax=1.0,
+        ExIncNext=0.0,
+    ):
+        """
+        The constructor for a new ConsumerSolution object.
+
+        Parameters
+        ----------
+        mNrm: np.array
+            (Normalized) corresponding market resource points for interpolation.
+        cNrm : np.array
+            (Normalized) consumption points for interpolation.
+        vFuncNvrsSlope: float
+            Constant slope of inverse value vFuncNvrs
+        mNrmMin : float
+            The minimum allowable market resources for this period; the consump-
+            tion function (etc) are undefined for m < mNrmMin.
+        hNrm : float
+            Human wealth after receiving income this period: PDV of all future
+            income, ignoring mortality.
+        MPCmin : float
+            Infimum of the marginal propensity to consume this period.
+            MPC --> MPCmin as m --> infinity.
+        MPCmax : float
+            Supremum of the marginal propensity to consume this period.
+            MPC --> MPCmax as m --> mNrmMin.
+
+        Returns
+        -------
+        None
+        """
+        self.mNrm = mNrm
+        self.cNrm = cNrm
+        self.cFuncLimitIntercept = cFuncLimitIntercept
+        self.cFuncLimitSlope = cFuncLimitSlope
+        self.mNrmMin = mNrmMin
+        self.hNrm = hNrm
+        self.MPCmin = MPCmin
+        self.MPCmax = MPCmax
+        self.ExIncNext = ExIncNext
 
 
 # =====================================================================
@@ -325,6 +387,250 @@ class ConsPerfForesightSolverFast(ConsPerfForesightSolver):
         return solution
 
 
+@njit(cache=True)
+def _np_tile(A, reps):
+    return A.repeat(reps[0]).reshape(A.size, -1).transpose()
+
+
+@njit(cache=True)
+def _np_insert(arr, obj, values, axis=-1):
+    return np.append(np.array(values), arr)
+
+
+@njit(cache=True)
+def _prepareToSolveConsIndShockNumba(
+    DiscFac,
+    LivPrb,
+    CRRA,
+    Rfree,
+    PermGroFac,
+    BoroCnstArt,
+    aXtraGrid,
+    hNrmNext,
+    mNrmMinNext,
+    MPCminNext,
+    MPCmaxNext,
+    PermShkValsNext,
+    TranShkValsNext,
+    ShkPrbsNext,
+):
+    DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
+    PermShkMinNext = np.min(PermShkValsNext)
+    TranShkMinNext = np.min(TranShkValsNext)
+    WorstIncPrb = np.sum(
+        ShkPrbsNext[
+            (PermShkValsNext * TranShkValsNext) == (PermShkMinNext * TranShkMinNext)
+        ]
+    )
+
+    # Update the bounding MPCs and PDV of human wealth:
+    PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
+    MPCminNow = 1.0 / (1.0 + PatFac / MPCminNext)
+    ExIncNext = np.dot(ShkPrbsNext, TranShkValsNext * PermShkValsNext)
+    hNrmNow = PermGroFac / Rfree * (ExIncNext + hNrmNext)
+    MPCmaxNow = 1.0 / (1.0 + (WorstIncPrb ** (1.0 / CRRA)) * PatFac / MPCmaxNext)
+
+    cFuncLimitIntercept = MPCminNow * hNrmNow
+    cFuncLimitSlope = MPCminNow
+
+    # Calculate the minimum allowable value of money resources in this period
+    BoroCnstNat = (mNrmMinNext - TranShkMinNext) * (PermGroFac * PermShkMinNext) / Rfree
+
+    # Note: need to be sure to handle BoroCnstArt==None appropriately.
+    # In Py2, this would evaluate to 5.0:  np.max([None, 5.0]).
+    # However in Py3, this raises a TypeError. Thus here we need to directly
+    # address the situation in which BoroCnstArt == None:
+    if BoroCnstArt is None:
+        mNrmMinNow = BoroCnstNat
+    else:
+        mNrmMinNow = np.max(np.array([BoroCnstNat, BoroCnstArt]))
+    if BoroCnstNat < mNrmMinNow:
+        MPCmaxEff = 1.0  # If actually constrained, MPC near limit is 1
+    else:
+        MPCmaxEff = MPCmaxNow
+
+    # We define aNrmNow all the way from BoroCnstNat up to max(self.aXtraGrid)
+    # even if BoroCnstNat < BoroCnstArt, so we can construct the consumption
+    # function as the lower envelope of the (by the artificial borrowing con-
+    # straint) uconstrained consumption function, and the artificially con-
+    # strained consumption function.
+    aNrmNow = np.asarray(aXtraGrid) + BoroCnstNat
+    ShkCount = TranShkValsNext.size
+    aNrm_temp = _np_tile(aNrmNow, (ShkCount, 1))
+
+    # Tile arrays of the income shocks and put them into useful shapes
+    aNrmCount = aNrmNow.shape[0]
+    PermShkVals_temp = (_np_tile(PermShkValsNext, (aNrmCount, 1))).transpose()
+    TranShkVals_temp = (_np_tile(TranShkValsNext, (aNrmCount, 1))).transpose()
+    ShkPrbs_temp = (_np_tile(ShkPrbsNext, (aNrmCount, 1))).transpose()
+
+    # Get cash on hand next period
+    mNrmNext = Rfree / (PermGroFac * PermShkVals_temp) * aNrm_temp + TranShkVals_temp
+    # CDC 20191205: This should be divided by LivPrb[0] for Blanchard insurance
+
+    return (
+        DiscFacEff,
+        BoroCnstNat,
+        cFuncLimitIntercept,
+        cFuncLimitSlope,
+        mNrmMinNow,
+        hNrmNow,
+        MPCminNow,
+        MPCmaxEff,
+        ExIncNext,
+        mNrmNext,
+        PermShkVals_temp,
+        ShkPrbs_temp,
+        aNrmNow,
+    )
+
+
+@njit(cache=True)
+def _solveConsIndShockLinearNumba(
+    mNrmMinNext,
+    mNrmNext,
+    CRRA,
+    mNrmUnc,
+    cNrmUnc,
+    DiscFacEff,
+    Rfree,
+    PermGroFac,
+    PermShkVals_temp,
+    ShkPrbs_temp,
+    aNrmNow,
+    BoroCnstNat,
+    cFuncInterceptNext,
+    cFuncSlopeNext,
+):
+    # interp does not take ndarray inputs on 3rd argument, so flatten then reshape
+    mNrmCnst = np.array([mNrmMinNext, mNrmMinNext + 1])
+    cNrmCnst = np.array([0.0, 1.0])
+    cFuncNextCnst = LinearInterpFast(mNrmNext.flatten(), mNrmCnst, cNrmCnst)
+    cFuncNextUnc = LinearInterpFast(
+        mNrmNext.flatten(), mNrmUnc, cNrmUnc, cFuncInterceptNext, cFuncSlopeNext
+    )
+    cFuncNext = np.minimum(cFuncNextCnst, cFuncNextUnc)
+    vPfuncNext = utilityP(cFuncNext, CRRA).reshape(mNrmNext.shape)
+
+    EndOfPrdvP = (
+        DiscFacEff
+        * Rfree
+        * PermGroFac ** (-CRRA)
+        * np.sum(PermShkVals_temp ** (-CRRA) * vPfuncNext * ShkPrbs_temp, axis=0)
+    )
+
+    # Finds interpolation points (c,m) for the consumption function.
+
+    cNrmNow = utilityP_inv(EndOfPrdvP, CRRA)
+    mNrmNow = cNrmNow + aNrmNow
+
+    # Limiting consumption is zero as m approaches mNrmMin
+    cNrm = _np_insert(cNrmNow, 0, 0.0, axis=-1)
+    mNrm = _np_insert(mNrmNow, 0, BoroCnstNat, axis=-1)
+
+    return (
+        cNrm,
+        mNrm,
+    )
+
+
+class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
+    def prepareToSolve(self):
+        """
+        Perform preparatory work before calculating the unconstrained consumption
+        function.
+        Parameters
+        ----------
+        none
+        Returns
+        -------
+        none
+        """
+
+        self.ShkPrbsNext = self.IncomeDstn.pmf
+        self.PermShkValsNext = self.IncomeDstn.X[0]
+        self.TranShkValsNext = self.IncomeDstn.X[1]
+
+        (
+            self.DiscFacEff,
+            self.BoroCnstNat,
+            self.cFuncLimitIntercept,
+            self.cFuncLimitSlope,
+            self.mNrmMinNow,
+            self.hNrmNow,
+            self.MPCminNow,
+            self.MPCmaxEff,
+            self.ExIncNext,
+            self.mNrmNext,
+            self.PermShkVals_temp,
+            self.ShkPrbs_temp,
+            self.aNrmNow,
+        ) = _prepareToSolveConsIndShockNumba(
+            self.DiscFac,
+            self.LivPrb,
+            self.CRRA,
+            self.Rfree,
+            self.PermGroFac,
+            self.BoroCnstArt,
+            self.aXtraGrid,
+            self.solution_next.hNrm,
+            self.solution_next.mNrmMin,
+            self.solution_next.MPCmin,
+            self.solution_next.MPCmax,
+            self.PermShkValsNext,
+            self.TranShkValsNext,
+            self.ShkPrbsNext,
+        )
+
+    def solve(self):
+        """
+        Solves a one period consumption saving problem with risky income.
+        Parameters
+        ----------
+        None
+        Returns
+        -------
+        solution : ConsumerSolution
+            The solution to the one period problem.
+        """
+
+        self.cNrm, self.mNrm = _solveConsIndShockLinearNumba(
+            self.solution_next.mNrmMin,
+            self.mNrmNext,
+            self.CRRA,
+            self.solution_next.mNrm,
+            self.solution_next.cNrm,
+            self.DiscFacEff,
+            self.Rfree,
+            self.PermGroFac,
+            self.PermShkVals_temp,
+            self.ShkPrbs_temp,
+            self.aNrmNow,
+            self.BoroCnstNat,
+            self.solution_next.cFuncLimitIntercept,
+            self.solution_next.cFuncLimitSlope,
+        )
+
+        # Pack up the solution and return it
+        solution = IndShockSolution(
+            self.mNrm,
+            self.cNrm,
+            self.cFuncLimitIntercept,
+            self.cFuncLimitSlope,
+            self.mNrmMinNow,
+            self.hNrmNow,
+            self.MPCminNow,
+            self.MPCmaxEff,
+            self.ExIncNext,
+        )
+
+        return solution
+
+
+class ConsIndShockSolverFast(object):
+    pass
+
+
 # ============================================================================
 # == Classes for representing types of consumer agents (and things they do) ==
 # ============================================================================
@@ -419,6 +725,73 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
                 solution.cNrm,
                 solution.mNrmMin,
                 ExIncNext,
+            )
+
+            self.solution[i] = consumer_solution
+
+
+class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFast):
+    solution_terminal_ = IndShockSolution()
+
+    def __init__(self, **kwargs):
+        IndShockConsumerType.__init__(self, **kwargs)
+
+        # Add consumer-type specific objects, copying to create independent versions
+        if (not self.CubicBool) and (not self.vFuncBool):
+            solver = ConsIndShockSolverBasicFast
+        else:  # Use the "advanced" solver if either is requested
+            solver = ConsIndShockSolverFast
+
+        self.solveOnePeriod = makeOnePeriodOOSolver(solver)
+
+    def updateSolutionTerminal(self):
+        PerfForesightConsumerTypeFast.updateSolutionTerminal(self)
+
+    def postSolve(self):
+        self.solution_fast = deepcopy(self.solution)
+
+        if self.cycles == 0:
+            terminal = 1
+        else:
+            terminal = self.cycles
+            self.solution[terminal] = self.solution_terminal_cs
+
+        for i in range(terminal):
+            solution = self.solution[i]
+
+            # Define the borrowing constraint (limiting consumption function)
+            cFuncNowCnst = LinearInterp(
+                np.array([solution.mNrmMin, solution.mNrmMin + 1]), np.array([0.0, 1.0])
+            )
+
+            """
+            Constructs a basic solution for this period, including the consumption
+            function and marginal value function.
+            """
+
+            # Makes a linear interpolation to represent the (unconstrained) consumption function.
+            # Construct the unconstrained consumption function
+            cFuncNowUnc = LinearInterp(
+                solution.mNrm,
+                solution.cNrm,
+                solution.cFuncLimitIntercept,
+                solution.cFuncLimitSlope,
+            )
+
+            # Combine the constrained and unconstrained functions into the true consumption function
+            cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst)
+
+            # Make the marginal value function and the marginal marginal value function
+            vPfuncNow = MargValueFunc(cFuncNow, self.CRRA)
+
+            # Pack up the solution and return it
+            consumer_solution = ConsumerSolution(
+                cFunc=cFuncNow,
+                vPfunc=vPfuncNow,
+                mNrmMin=solution.mNrmMin,
+                hNrm=solution.hNrm,
+                MPCmin=solution.MPCmin,
+                MPCmax=solution.MPCmax,
             )
 
             self.solution[i] = consumer_solution
