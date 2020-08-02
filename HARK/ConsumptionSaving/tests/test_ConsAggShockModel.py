@@ -48,6 +48,9 @@ class testAggShockConsumerType(unittest.TestCase):
         self.assertAlmostEqual(self.economy.AFunc.slope,
                                1.116259456228145)
 
+        self.assertAlmostEqual(self.economy.history['MaggNow'][10],
+                               7.456324335623432)
+
 
 class testAggShockMarkovConsumerType(unittest.TestCase):
 
@@ -81,7 +84,10 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         self.economy.AFunc = self.economy.dynamics.AFunc
         self.assertAlmostEqual(self.economy.AFunc[0].slope,
                                1.0904698841958917)
-        
+
+        self.assertAlmostEqual(self.economy.history['AaggNow'][5],
+                               9.467758924955897)
+
         
 class testKrusellSmith(unittest.TestCase):
 
@@ -110,3 +116,13 @@ class testKrusellSmith(unittest.TestCase):
         self.economy.AFunc = self.economy.dynamics.AFunc
         self.assertAlmostEqual(self.economy.AFunc[0].slope,
                                1.0014463644834282)
+
+        self.assertAlmostEqual(self.economy.history['Aprev'][4],
+                               11.009107526443584)
+
+        self.assertAlmostEqual(self.economy.history['MrkvNow'][40],
+                               1
+        )
+
+        self.assertAlmostEqual(self.economy.history['Urate'][12],
+                               0.040000000000000036)
