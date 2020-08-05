@@ -22,9 +22,9 @@ class testSmallOpenEconomy(unittest.TestCase):
         # Make an economy with those agents living in it
         small_economy = SmallOpenEconomy(
             agents=agents,
-            Rfree = 0.2,
-            wRte = 0.2,
-            KtoLnow = 1,
+            Rfree = 1.03,
+            wRte = 1.0,
+            KtoLnow = 1.0,
             **copy.copy(init_cobb_douglas)
         )
 
