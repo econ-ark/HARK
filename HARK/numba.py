@@ -78,6 +78,71 @@ def LinearInterpFast(
 
 
 @njit(cache=True)
+def _interp_linear_deriv(x0, x_list, y_list, lower_extrap):
+    i = np.maximum(np.searchsorted(x_list[:-1], x0), 1)
+    alpha = (x0 - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
+    y0 = (1.0 - alpha) * y_list[i - 1] + alpha * y_list[i]
+    dydx = (y_list[i] - y_list[i - 1]) / (x_list[i] - x_list[i - 1])
+
+    if not lower_extrap:
+        below_lower_bound = x0 < x_list[0]
+        y0[below_lower_bound] = np.nan
+        dydx[below_lower_bound] = np.nan
+
+    return y0, dydx
+
+
+@njit(cache=True)
+def _interp_decay_deriv(x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap):
+    # Make a decay extrapolation
+    slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
+    level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
+    slope_diff = slope_limit - slope_at_top
+
+    decay_extrap_A = level_diff
+    decay_extrap_B = -slope_diff / level_diff
+    intercept_limit = intercept_limit
+    slope_limit = slope_limit
+
+    i = np.maximum(np.searchsorted(x_list[:-1], x0), 1)
+    alpha = (x0 - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
+    y0 = (1.0 - alpha) * y_list[i - 1] + alpha * y_list[i]
+    dydx = (y_list[i] - y_list[i - 1]) / (x_list[i] - x_list[i - 1])
+
+    if not lower_extrap:
+        below_lower_bound = x0 < x_list[0]
+        y0[below_lower_bound] = np.nan
+        dydx[below_lower_bound] = np.nan
+
+    above_upper_bound = x0 > x_list[-1]
+    x_temp = x0[above_upper_bound] - x_list[-1]
+
+    y0[above_upper_bound] = (
+        intercept_limit
+        + slope_limit * x0[above_upper_bound]
+        - decay_extrap_A * np.exp(-decay_extrap_B * x_temp)
+    )
+
+    dydx[above_upper_bound] = slope_limit + decay_extrap_B * decay_extrap_A * np.exp(
+        -decay_extrap_B * x_temp
+    )
+
+    return y0, dydx
+
+
+@njit(cache=True)
+def LinearInterpDerivFast(
+    x0, x_list, y_list, intercept_limit=None, slope_limit=None, lower_extrap=False
+):
+    if intercept_limit is None and slope_limit is None:
+        return _interp_linear_deriv(x0, x_list, y_list, lower_extrap)
+    else:
+        return _interp_decay_deriv(
+            x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap
+        )
+
+
+@njit(cache=True)
 def _spline_decay(
     x_init, x_list, y_list, dydx_list, intercept_limit, slope_limit, lower_extrap
 ):
@@ -137,12 +202,29 @@ def _spline_decay(
             - coeffs[n, 2] * np.exp(alpha * coeffs[n, 3])
         )
 
-    return y
+    dydx = np.zeros(m)
+    if dydx.size > 0:
+        out_bot = pos == 0
+        out_top = pos == n
+        in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
 
+        # Do the "in bounds" evaluation points
+        i = pos[in_bnds]
+        coeffs_in = coeffs[i, :]
+        alpha = (x_init[in_bnds] - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
+        dydx[in_bnds] = (
+            coeffs_in[:, 1]
+            + alpha * (2 * coeffs_in[:, 2] + alpha * 3 * coeffs_in[:, 3])
+        ) / (x_list[i] - x_list[i - 1])
 
-@njit(cache=True)
-def _spline_linear(x_init, x_list, y_list, dydx_list, lower_extrap):
-    pass
+        # Do the "out of bounds" evaluation points
+        dydx[out_bot] = coeffs[0, 1]
+        alpha = x_init[out_top] - x_list[n - 1]
+        dydx[out_top] = coeffs[n, 1] - coeffs[n, 2] * coeffs[n, 3] * np.exp(
+            alpha * coeffs[n, 3]
+        )
+
+    return y, dydx
 
 
 @njit(cache=True)

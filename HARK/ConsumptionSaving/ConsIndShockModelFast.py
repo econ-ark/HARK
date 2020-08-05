@@ -31,7 +31,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolverBasic,
     IndShockConsumerType,
 )
-from HARK.interpolation import LinearInterp, LowerEnvelope
+from HARK.interpolation import LinearInterp, LowerEnvelope, CubicInterp
 from HARK.numba import (
     CRRAutility,
     CRRAutilityP,
@@ -40,6 +40,8 @@ from HARK.numba import (
     CRRAutility_invP,
     CRRAutility_inv,
     CRRAutilityP_invP,
+    CubicInterpFast,
+    LinearInterpDerivFast,
 )
 from HARK.numba import LinearInterpFast
 
@@ -140,6 +142,11 @@ class IndShockSolution(HARKobject):
         MPCmin=1.0,
         MPCmax=1.0,
         ExIncNext=0.0,
+        MPC=None,
+        mNrm_temp=None,
+        vNvrs=None,
+        vNvrsP=None,
+        MPCminNvrs=None,
     ):
         """
         The constructor for a new ConsumerSolution object.
@@ -178,6 +185,23 @@ class IndShockSolution(HARKobject):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
         self.ExIncNext = ExIncNext
+        self.mNrm_temp = mNrm if mNrm_temp is None else mNrm_temp
+        self.vNvrs = cNrm if vNvrs is None else vNvrs
+
+        self.MPCminNvrs = MPCmin if MPCminNvrs is None else MPCminNvrs
+
+        if MPC is None:
+            mdiff = np.diff(mNrm)
+            cdiff = np.diff(cNrm)
+            slope = cdiff / mdiff
+
+            MPC = np.empty_like(mNrm)
+            MPC[0] = slope[0]
+            MPC[-1] = slope[-1]
+            MPC[1:-1] = (slope[:-1] + slope[1:]) / 2
+
+        self.MPC = MPC
+        self.vNvrsP = MPC if vNvrsP is None else vNvrsP
 
 
 # =====================================================================
@@ -476,6 +500,7 @@ def _prepareToSolveConsIndShockNumba(
         mNrmMinNow,
         hNrmNow,
         MPCminNow,
+        MPCmaxNow,
         MPCmaxEff,
         ExIncNext,
         mNrmNext,
@@ -559,6 +584,7 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
             self.mNrmMinNow,
             self.hNrmNow,
             self.MPCminNow,
+            self.MPCmaxNow,
             self.MPCmaxEff,
             self.ExIncNext,
             self.mNrmNext,
@@ -627,8 +653,272 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
         return solution
 
 
-class ConsIndShockSolverFast(object):
-    pass
+@njit(cache=True)
+def _solveConsIndShockCubicNumba(
+    mNrmMinNext,
+    mNrmNext,
+    mNrmUnc,
+    cNrmUnc,
+    MPCNext,
+    cFuncInterceptNext,
+    cFuncSlopeNext,
+    CRRA,
+    DiscFacEff,
+    Rfree,
+    PermGroFac,
+    PermShkVals_temp,
+    ShkPrbs_temp,
+    aNrmNow,
+    BoroCnstNat,
+    MPCmaxNow,
+):
+    mNrmCnst = np.array([mNrmMinNext, mNrmMinNext + 1])
+    cNrmCnst = np.array([0.0, 1.0])
+    cFuncNextCnst, MPCNextCnst = LinearInterpDerivFast(
+        mNrmNext.flatten(), mNrmCnst, cNrmCnst
+    )
+    cFuncNextUnc, MPCNextUnc = CubicInterpFast(
+        mNrmNext.flatten(),
+        mNrmUnc,
+        cNrmUnc,
+        MPCNext,
+        cFuncInterceptNext,
+        cFuncSlopeNext,
+    )
+
+    cFuncNext = np.where(cFuncNextCnst <= cFuncNextUnc, cFuncNextCnst, cFuncNextUnc)
+    vPfuncNext = utilityP(cFuncNext, CRRA).reshape(mNrmNext.shape)
+
+    EndOfPrdvP = (
+        DiscFacEff
+        * Rfree
+        * PermGroFac ** (-CRRA)
+        * np.sum(PermShkVals_temp ** (-CRRA) * vPfuncNext * ShkPrbs_temp, axis=0)
+    )
+    # Finds interpolation points (c,m) for the consumption function.
+
+    cNrmNow = EndOfPrdvP ** (-1.0 / CRRA)
+    mNrmNow = cNrmNow + aNrmNow
+
+    # Limiting consumption is zero as m approaches mNrmMin
+    cNrm = _np_insert(cNrmNow, 0, 0.0, axis=-1)
+    mNrm = _np_insert(mNrmNow, 0, BoroCnstNat, axis=-1)
+
+    MPCinterpNext = np.where(cFuncNextCnst <= cFuncNextUnc, MPCNextCnst, MPCNextUnc)
+    vPPfuncNext = (MPCinterpNext * (-CRRA * cFuncNext ** (-CRRA - 1.0))).reshape(
+        mNrmNext.shape
+    )
+
+    EndOfPrdvPP = (
+        DiscFacEff
+        * Rfree
+        * Rfree
+        * PermGroFac ** (-CRRA - 1.0)
+        * np.sum(PermShkVals_temp ** (-CRRA - 1.0) * vPPfuncNext * ShkPrbs_temp, axis=0)
+    )
+    dcda = EndOfPrdvPP / utilityPP(cNrm[1:], CRRA)
+    MPC = dcda / (dcda + 1.0)
+    MPC = _np_insert(MPC, 0, MPCmaxNow)
+
+    return (cNrm, mNrm, MPC, EndOfPrdvP)
+
+@njit(cache=True)
+def _addvFuncNumba(
+    mNrmNext,
+    mNrm_temp,
+    vNvrs,
+    vNvrsP,
+    cFuncInterceptNext,
+    cFuncSlopeNext,
+    CRRA,
+    PermShkVals_temp,
+    PermGroFac,
+    DiscFacEff,
+    ShkPrbs_temp,
+    EndOfPrdvP,
+    aNrmNow,
+    BoroCnstNat,
+    mNrmMinNow,
+    aXtraGrid,
+    mNrmNow,
+    cNrmNow,
+    MPCNow,
+    MPCminNow,
+    hNrmNow,
+    MPCmaxEff,
+):
+    """
+    Construct the end-of-period value function for this period, storing it
+    as an attribute of self for use by other methods.
+    """
+
+    cFuncNext = LinearInterpFast(
+        mNrmNext.flatten(), mNrm_temp, vNvrs, cFuncInterceptNext, cFuncSlopeNext
+    )
+    vFuncNext = utility(cFuncNext, CRRA).reshape(mNrmNext.shape)
+
+    VLvlNext = (
+        PermShkVals_temp ** (1.0 - CRRA) * PermGroFac ** (1.0 - CRRA)
+    ) * vFuncNext
+    EndOfPrdv = DiscFacEff * np.sum(VLvlNext * ShkPrbs_temp, axis=0)
+
+    # value transformed through inverse utility
+    EndOfPrdvNvrs = utility_inv(EndOfPrdv, CRRA)
+    EndOfPrdvNvrsP = EndOfPrdvP * utility_invP(EndOfPrdv, CRRA)
+    EndOfPrdvNvrs = _np_insert(EndOfPrdvNvrs, 0, 0.0)
+
+    # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+    EndOfPrdvNvrsP = _np_insert(EndOfPrdvNvrsP, 0, EndOfPrdvNvrsP[0])
+    aNrm_temp = _np_insert(aNrmNow, 0, BoroCnstNat)
+
+    """
+    Creates the value function for this period, defined over market resources m.
+    self must have the attribute EndOfPrdvFunc in order to execute.
+    """
+
+    # Compute expected value and marginal value on a grid of market resources
+    mNrm_temp = mNrmMinNow + aXtraGrid
+
+    mNrmCnst = np.array([mNrmMinNow, mNrmMinNow + 1])
+    cNrmCnst = np.array([0.0, 1.0])
+    cFuncNowCnst, MPCNowCnst = LinearInterpDerivFast(mNrm_temp.flatten(), mNrmCnst, cNrmCnst)
+    cFuncNowUnc, MPCNowUnc = CubicInterpFast(
+        mNrm_temp.flatten(), mNrmNow, cNrmNow, MPCNow, MPCminNow * hNrmNow, MPCminNow
+    )
+
+    cNrmNow = np.where(cFuncNowCnst <= cFuncNowUnc, cFuncNowCnst, cFuncNowUnc)
+
+    aNrmNow = mNrm_temp - cNrmNow
+
+    EndOfPrdvNvrsFunc, _ = CubicInterpFast(
+        aNrmNow, aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP
+    )
+    EndOfPrdvFunc = utility(EndOfPrdvNvrsFunc, CRRA)
+
+    vNrmNow = utility(cNrmNow, CRRA) + EndOfPrdvFunc
+    vPnow = utilityP(cNrmNow, CRRA)
+
+    # Construct the beginning-of-period value function
+    vNvrs = utility_inv(vNrmNow, CRRA)  # value transformed through inverse utility
+    vNvrsP = vPnow * utility_invP(vNrmNow, CRRA)
+    mNrm_temp = _np_insert(mNrm_temp, 0, mNrmMinNow)
+    vNvrs = _np_insert(vNvrs, 0, 0.0)
+    vNvrsP = _np_insert(vNvrsP, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
+    MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+
+    return (
+        mNrm_temp,
+        vNvrs,
+        vNvrsP,
+        MPCminNvrs,
+    )
+
+
+class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
+    """
+    This class solves a single period of a standard consumption-saving problem,
+    using linear interpolation and without the ability to calculate the value
+    function.  ConsIndShockSolver inherits from this class and adds the ability
+    to perform cubic interpolation and to calculate the value function.
+    Note that this class does not have its own initializing method.  It initial-
+    izes the same problem in the same way as ConsIndShockSetup, from which it
+    inherits.
+    """
+
+    def solve(self):
+        """
+        Solves a one period consumption saving problem with risky income.
+        Parameters
+        ----------
+        None
+        Returns
+        -------
+        solution : ConsumerSolution
+            The solution to the one period problem.
+        """
+
+        self.cNrm, self.mNrm, self.MPC, self.EndOfPrdvP = _solveConsIndShockCubicNumba(
+            self.solution_next.mNrmMin,
+            self.mNrmNext,
+            self.solution_next.mNrm,
+            self.solution_next.cNrm,
+            self.solution_next.MPC,
+            self.solution_next.cFuncLimitIntercept,
+            self.solution_next.cFuncLimitSlope,
+            self.CRRA,
+            self.DiscFacEff,
+            self.Rfree,
+            self.PermGroFac,
+            self.PermShkVals_temp,
+            self.ShkPrbs_temp,
+            self.aNrmNow,
+            self.BoroCnstNat,
+            self.MPCmaxNow,
+        )
+
+        # Pack up the solution and return it
+        solution = IndShockSolution(
+            self.mNrm,
+            self.cNrm,
+            self.cFuncLimitIntercept,
+            self.cFuncLimitSlope,
+            self.mNrmMinNow,
+            self.hNrmNow,
+            self.MPCminNow,
+            self.MPCmaxEff,
+            self.ExIncNext,
+        )
+
+        if self.vFuncBool:
+            (
+                self.mNrm_temp,
+                self.vNvrs,
+                self.vNvrsP,
+                self.MPCminNvrs,
+            ) = _addvFuncNumba(
+                self.mNrmNext,
+                self.solution_next.mNrm_temp,
+                self.solution_next.vNvrs,
+                self.solution_next.vNvrsP,
+                self.solution_next.cFuncLimitIntercept,
+                self.solution_next.cFuncLimitSlope,
+                self.CRRA,
+                self.PermShkVals_temp,
+                self.PermGroFac,
+                self.DiscFacEff,
+                self.ShkPrbs_temp,
+                self.EndOfPrdvP,
+                self.aNrmNow,
+                self.BoroCnstNat,
+                self.mNrmMinNow,
+                self.aXtraGrid,
+                self.mNrm,
+                self.cNrm,
+                self.MPC,
+                self.MPCminNow,
+                self.hNrmNow,
+                self.MPCmaxEff,
+            )
+
+            # Pack up the solution and return it
+            solution = IndShockSolution(
+                self.mNrm,
+                self.cNrm,
+                self.cFuncLimitIntercept,
+                self.cFuncLimitSlope,
+                self.mNrmMinNow,
+                self.hNrmNow,
+                self.MPCminNow,
+                self.MPCmaxEff,
+                self.ExIncNext,
+                self.MPC,
+                self.mNrm_temp,
+                self.vNvrs,
+                self.vNvrsP,
+                self.MPCminNvrs,
+            )
+
+        return solution
 
 
 # ============================================================================
@@ -769,14 +1059,25 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
             function and marginal value function.
             """
 
-            # Makes a linear interpolation to represent the (unconstrained) consumption function.
-            # Construct the unconstrained consumption function
-            cFuncNowUnc = LinearInterp(
-                solution.mNrm,
-                solution.cNrm,
-                solution.cFuncLimitIntercept,
-                solution.cFuncLimitSlope,
-            )
+            if not self.CubicBool:
+                # Makes a linear interpolation to represent the (unconstrained) consumption function.
+                # Construct the unconstrained consumption function
+                cFuncNowUnc = LinearInterp(
+                    solution.mNrm,
+                    solution.cNrm,
+                    solution.cFuncLimitIntercept,
+                    solution.cFuncLimitSlope,
+                )
+            else:
+                # Makes a cubic spline interpolation of the unconstrained consumption
+                # function for this period.
+                cFuncNowUnc = CubicInterp(
+                    solution.mNrm,
+                    solution.cNrm,
+                    solution.MPC,
+                    solution.cFuncLimitIntercept,
+                    solution.cFuncLimitSlope,
+                )
 
             # Combine the constrained and unconstrained functions into the true consumption function
             cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst)
@@ -793,5 +1094,17 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                 MPCmin=solution.MPCmin,
                 MPCmax=solution.MPCmax,
             )
+
+            if self.vFuncBool:
+                vNvrsFuncNow = CubicInterp(
+                    solution.mNrm_temp,
+                    solution.vNvrs,
+                    solution.vNvrsP,
+                    solution.MPCminNvrs * solution.hNrm,
+                    solution.MPCminNvrs,
+                )
+                vFuncNow = ValueFunc(vNvrsFuncNow, self.CRRA)
+
+                consumer_solution.vFunc = vFuncNow
 
             self.solution[i] = consumer_solution
