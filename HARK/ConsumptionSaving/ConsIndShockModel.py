@@ -967,7 +967,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cFuncNowUnc = interpolator(mNrm,cNrm)
 
         # Combine the constrained and unconstrained functions into the true consumption function
-        cFuncNow = LowerEnvelope(cFuncNowUnc,self.cFuncNowCnst)
+        cFuncNow = LowerEnvelope(cFuncNowUnc,self.cFuncNowCnst, nan_bool = False)
 
         # Make the marginal value function and the marginal marginal value function
         vPfuncNow = MargValueFunc(cFuncNow,self.CRRA)
@@ -1793,7 +1793,7 @@ class PerfForesightConsumerType(AgentType):
         
         messages = {
             True :  'The value of the Return Patience Factor for the supplied parameter values satisfies the Return Impatience Condition.',
-            False : 'The value of the Return Patience Factor for the supplied parameter values satisfies the Return Impatience Condition; the factor is {0.RPF}'
+            False : 'The value of the Return Patience Factor for the supplied parameter values fails the Return Impatience Condition; the factor is {0.RIF}'
         }
 
         verbose_messages = {
