@@ -1750,11 +1750,11 @@ class PerfForesightConsumerType(AgentType):
         test = lambda agent : agent.thorn < 1
 
         messages = {
-            True:  "The value of the absolute impatience factor (AIF) for the supplied parameter values satisfies the Absolute Impatience Condition.",
-            False: "The given type violates the Absolute Impatience Condition with the supplied parameter values; the AIF is {0.thorn}"}
+            True:  "The value of the absolute impatience factor (APF) for the supplied parameter values satisfies the Absolute Impatience Condition.",
+            False: "The given type violates the Absolute Impatience Condition with the supplied parameter values; the APF is {0.thorn}"}
         verbose_messages = {
-            True :  "  Because the AIF < 1, the absolute amount of consumption is expected to fall over time.",
-            False : "  Because the AIF > 1, the absolute amount of consumption is expected to grow over time."
+            True :  "  Because the APF < 1, the absolute amount of consumption is expected to fall over time.",
+            False : "  Because the APF > 1, the absolute amount of consumption is expected to grow over time."
         }
         verbose = self.verbose if verbose is None else verbose
         self.checkCondition(name, test, messages, verbose, verbose_messages)
@@ -1765,13 +1765,13 @@ class PerfForesightConsumerType(AgentType):
         '''
         name = "GICPF"
 
-        self.GIFPF = self.thorn/self.PermGroFac[0]
+        self.GPFPF = self.thorn/self.PermGroFac[0]
 
-        test = lambda agent : agent.GIFPF < 1
+        test = lambda agent : agent.GPFPF < 1
 
         messages = {
             True :  'The value of the Growth Patience Factor for the supplied parameter values satisfies the Perfect Foresight Growth Impatience Condition.',
-            False : 'The value of the Growth Patience Factor for the supplied parameter values fails the Perfect Foresight Growth Impatience Condition; the GIFPF is: {0.GIFPF}',
+            False : 'The value of the Growth Patience Factor for the supplied parameter values fails the Perfect Foresight Growth Impatience Condition; the GPFPF is: {0.GPFPF}',
         }
 
         verbose_messages = {
@@ -1786,14 +1786,14 @@ class PerfForesightConsumerType(AgentType):
         Evaluate and report on the Return Impatience Condition
         '''
 
-        self.RIF = self.thorn/self.Rfree
+        self.RPF = self.thorn/self.Rfree
 
         name = "RIC"
-        test = lambda agent: self.RIF < 1
+        test = lambda agent: self.RPF < 1
         
         messages = {
             True :  'The value of the Return Patience Factor for the supplied parameter values satisfies the Return Impatience Condition.',
-            False : 'The value of the Return Patience Factor for the supplied parameter values satisfies the Return Impatience Condition; the factor is {0.RIF}'
+            False : 'The value of the Return Patience Factor for the supplied parameter values satisfies the Return Impatience Condition; the factor is {0.RPF}'
         }
 
         verbose_messages = {
@@ -2210,15 +2210,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
         '''
         Check Individual Growth Impatience Factor.
         '''
-        self.GIFInd = self.thorn/(self.PermGroFac[0]*self.InvEPermShkInv)  # [url]/#GICI
+        self.GPFInd = self.thorn/(self.PermGroFac[0]*self.InvEPermShkInv)  # [url]/#GICI
 
         name = 'GIC'
-        test = lambda agent: agent.GIFInd <=1
+        test = lambda agent: agent.GPFInd <=1
 
         
         messages = {
-            True :  '\nThe value of the Individual Growth Impatience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition; the value of the GIFInd is: {0.GIFInd}',
-            False : '\nThe given parameter values violate the Individual Growth Impatience Condition; the GIFInd is: {0.GIFInd}',
+            True :  '\nThe value of the Individual Growth Impatience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition; the value of the GPFInd is: {0.GPFInd}',
+            False : '\nThe given parameter values violate the Individual Growth Impatience Condition; the GPFInd is: {0.GPFInd}',
         }
 
         verbose_messages = {
@@ -2230,12 +2230,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def checkCIGAgg(self, verbose=None):
         name = 'GICAgg'
-        test = lambda agent : agent.GIFAgg <= 1
+        test = lambda agent : agent.GPFAgg <= 1
 
         
         messages = {
-            True :  '\nThe value of the Aggregate Growth Impatience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition; the value of the GIFAgg is: {0.GIFAgg}',
-            False : '\nThe given parameter values violate the Aggregate Growth Impatience Condition; the GIFAgg is: {0.GIFAgg}'
+            True :  '\nThe value of the Aggregate Growth Impatience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition; the value of the GPFAgg is: {0.GPFAgg}',
+            False : '\nThe given parameter values violate the Aggregate Growth Impatience Condition; the GPFAgg is: {0.GPFAgg}'
         }
 
         verbose_messages = {
@@ -2248,16 +2248,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
     def checkWRIC(self, verbose=None):
         '''
         Evaluate and report on the Weak Return Impatience Condition
-        [url]/#WRIF modified to incorporate LivPrb
+        [url]/#WRPF modified to incorporate LivPrb
         '''
-        self.WRIF=(self.UnempPrb**(1/self.CRRA))*(self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)/self.Rfree
+        self.WRPF=(self.UnempPrb**(1/self.CRRA))*(self.Rfree*self.DiscFac*self.LivPrb[0])**(1/self.CRRA)/self.Rfree
 
         name = 'WRIC'
-        test = lambda agent: agent.WRIF <= 1
+        test = lambda agent: agent.WRPF <= 1
 
         messages = {
-            True :  '\nThe Weak Return Impatience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition; the WRIF is {0.WRIF}.',
-            False : '\nThe Weak Return Impatience Factor value for the supplied parameter values fails     the Weak Return Impatience Condition; the WRIF is {0.WRIF} (see {0.url}/#WRIC for more).'
+            True :  '\nThe Weak Return Impatience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition; the WRPF is {0.WRPF}.',
+            False : '\nThe Weak Return Impatience Factor value for the supplied parameter values fails     the Weak Return Impatience Condition; the WRPF is {0.WRPF} (see {0.url}/#WRIC for more).'
         }
 
         verbose_messages = {
@@ -2344,13 +2344,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.thorn = ((self.Rfree*self.DiscFac))**(1/self.CRRA)
 
         # self.Rnorm           = self.Rfree*EPermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
-        self.GIFPF = self.thorn/(self.PermGroFac[0])      # [url]/#GIF
+        self.GPFPF = self.thorn/(self.PermGroFac[0])      # [url]/#GPF
         # Lower bound of aggregate wealth growth if all inheritances squandered
-        self.GIFAgg = self.thorn*self.LivPrb[0]/self.PermGroFac[0]
+        self.GPFAgg = self.thorn*self.LivPrb[0]/self.PermGroFac[0]
         
-        self.DiscFacGIFPFMax = ((self.PermGroFac[0])**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
-        self.DiscFacGIFIndMax = ((self.PermGroFac[0]*self.InvEPermShkInv)**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
-        self.DiscFacGIFAggMax = ((self.PermGroFac[0])**(self.CRRA))/(self.Rfree*self.LivPrb[0]) # DiscFac at growth impatience knife edge
+        self.DiscFacGPFPFMax = ((self.PermGroFac[0])**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
+        self.DiscFacGPFIndMax = ((self.PermGroFac[0]*self.InvEPermShkInv)**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
+        self.DiscFacGPFAggMax = ((self.PermGroFac[0])**(self.CRRA))/(self.Rfree*self.LivPrb[0]) # DiscFac at growth impatience knife edge
         verbose = self.verbose if verbose is None else verbose
 
 #        self.checkGICPF(verbose)
@@ -2364,16 +2364,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if self.violated:
             _log.warning('\n[!] For more information on the conditions, see Tables 3 and 4 in "Theoretical Foundations of Buffer Stock Saving" at '+self.url+'/#Factors-Defined-And-Compared')
 
-        _log.warning('GIFPF            = %2.6f ' % (self.GIFPF))
-        _log.warning('GIFInd           = %2.6f ' % (self.GIFInd))
-        _log.warning('GIFAgg           = %2.6f ' % (self.GIFAgg))
-        _log.warning('Thorn = AIF      = %2.6f ' % (self.thorn))
+        _log.warning('GPFPF            = %2.6f ' % (self.GPFPF))
+        _log.warning('GPFInd           = %2.6f ' % (self.GPFInd))
+        _log.warning('GPFAgg           = %2.6f ' % (self.GPFAgg))
+        _log.warning('Thorn = APF      = %2.6f ' % (self.thorn))
         _log.warning('PermGroFacAdj    = %2.6f ' % (self.PermGroFacAdj))
         _log.warning('uInvEpShkuInv    = %2.6f ' % (self.uInvEpShkuInv))
         _log.warning('FVAF             = %2.6f ' % (self.FVAF))
-        _log.warning('WRIF             = %2.6f ' % (self.WRIF))
-        _log.warning('DiscFacGIFIndMax = %2.6f ' % (self.DiscFacGIFIndMax))
-        _log.warning('DiscFacGIFAggMax = %2.6f ' % (self.DiscFacGIFAggMax))
+        _log.warning('WRPF             = %2.6f ' % (self.WRPF))
+        _log.warning('DiscFacGPFIndMax = %2.6f ' % (self.DiscFacGPFIndMax))
+        _log.warning('DiscFacGPFAggMax = %2.6f ' % (self.DiscFacGPFAggMax))
 
     def Ex_Mtp1_over_Ex_Ptp1(self,mRat):
         cRat        = self.solution[-1].cFunc(mRat)
