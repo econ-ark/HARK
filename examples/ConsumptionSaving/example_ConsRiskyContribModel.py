@@ -2,8 +2,7 @@
 '''
 Example implementations of HARK.ConsumptionSaving.ConsPortfolioModel
 '''
-from HARK.ConsumptionSaving.ConsRiskyContribModel import PortfolioConsumerType, init_portfolio
-from HARK.ConsumptionSaving.ConsIndShockModel import init_lifecycle
+from HARK.ConsumptionSaving.ConsRiskyContribModel import RiskyContribConsumerType, init_riskyContrib
 from HARK.utilities import plotFuncs
 from copy import copy
 from time import time
@@ -12,13 +11,15 @@ import matplotlib.pyplot as plt
 
 # %%
 # Make and solve an example of the risky pension contribution consumer type
-init_sticky_share = init_portfolio.copy()
+init_sticky_share = init_riskyContrib.copy()
 init_sticky_share['AdjustPrb'] = 0.15
+init_sticky_share['DiscreteShareBool'] = True
+init_sticky_share['vFuncBool'] = True
 
 # %%
 # Make and solve a discrete portfolio choice consumer type
 print('Now solving a portfolio choice problem with "sticky" pension contribution shares; this might take a moment...')
-StickyType = PortfolioConsumerType(**init_sticky_share)
+StickyType = RiskyContribConsumerType(**init_sticky_share)
 StickyType.cycles = 0
 t0 = time()
 StickyType.solve()
