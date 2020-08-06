@@ -810,6 +810,8 @@ def determine_platform():
         pf = 'debian' # Probably cloud (MyBinder, CoLab, ...)
     elif 'win' in pform:
         pf = 'win'
+    elif 'linux' in pform:
+        pf = 'linux'
     else:
         raise ValueError('Not able to find out the platform.')
     return pf
