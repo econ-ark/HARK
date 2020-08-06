@@ -1,19 +1,36 @@
+import unittest
+
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_lifecycle,
+    init_idiosyncratic_shocks,
 )
 from HARK.ConsumptionSaving.ConsIndShockModelFast import IndShockConsumerTypeFast
-from HARK.ConsumptionSaving.tests.test_IndShockConsumerType import testIndShockConsumerType, testBufferStock, \
-    IdiosyncDict, testIndShockConsumerTypeExample, testIndShockConsumerTypeLifecycle, LifecycleDict, \
-    testIndShockConsumerTypeCyclical, CyclicalDict
+from HARK.ConsumptionSaving.tests.test_IndShockConsumerType import (
+    CyclicalDict,
+    LifecycleDict,
+    IdiosyncDict,
+)
 
 
-class testIndShockConsumerTypeFast(testIndShockConsumerType):
+class testIndShockConsumerTypeFast(unittest.TestCase):
     def setUp(self):
         self.agent = IndShockConsumerTypeFast(AgentCount=2, T_sim=10)
 
         self.agent.solve()
+
+    def test_getShocks(self):
+        self.agent.initializeSim()
+        self.agent.simBirth(np.array([True, False]))
+        self.agent.simOnePeriod()
+        self.agent.simBirth(np.array([False, True]))
+
+        self.agent.getShocks()
+
+        self.assertEqual(self.agent.PermShkNow[0], 1.0427376294215103)
+        self.assertEqual(self.agent.PermShkNow[1], 0.9278094171517413)
+        self.assertEqual(self.agent.TranShkNow[0], 0.881761797501595)
 
     def test_ConsIndShockSolverBasic(self):
         LifecycleExample = IndShockConsumerTypeFast(**init_lifecycle)
@@ -37,10 +54,37 @@ class testIndShockConsumerTypeFast(testIndShockConsumerType):
             LifecycleExample.solution[2].cFunc(1).tolist(), 0.9563899
         )
 
+    def test_simulated_values(self):
+        self.agent.initializeSim()
+        self.agent.simulate()
 
-class testBufferStockFast(testBufferStock):
+        self.assertAlmostEqual(self.agent.MPCnow[1], 0.5711503906043797)
+
+        self.assertAlmostEqual(self.agent.aLvlNow[1], 0.18438326264597635)
+
+
+class testBufferStock(unittest.TestCase):
     """ Tests of the results of the BufferStock REMARK.
     """
+
+    def setUp(self):
+        # Make a dictionary containing all parameters needed to solve the model
+        self.base_params = init_idiosyncratic_shocks
+
+        # Set the parameters for the baseline results in the paper
+        # using the variable values defined in the cell above
+        self.base_params["PermGroFac"] = [1.03]
+        self.base_params["Rfree"] = 1.04
+        self.base_params["DiscFac"] = 0.96
+        self.base_params["CRRA"] = 2.00
+        self.base_params["UnempPrb"] = 0.005
+        self.base_params["IncUnemp"] = 0.0
+        self.base_params["PermShkStd"] = [0.1]
+        self.base_params["TranShkStd"] = [0.1]
+        self.base_params["LivPrb"] = [1.0]
+        self.base_params["CubicBool"] = True
+        self.base_params["T_cycle"] = 1
+        self.base_params["BoroCnstArt"] = None
 
     def test_baseEx(self):
         baseEx = IndShockConsumerTypeFast(**self.base_params)
@@ -112,7 +156,7 @@ class testBufferStockFast(testBufferStock):
         self.assertAlmostEqual(MPC[700], 0.07173144137912524)
 
 
-class testIndShockConsumerTypeFastExample(testIndShockConsumerTypeExample):
+class testIndShockConsumerTypeFastExample(unittest.TestCase):
     def test_infinite_horizon(self):
         IndShockExample = IndShockConsumerTypeFast(**IdiosyncDict)
         IndShockExample.cycles = 0  # Make this type have an infinite horizon
@@ -132,7 +176,7 @@ class testIndShockConsumerTypeFastExample(testIndShockConsumerTypeExample):
         )
 
 
-class testIndShockConsumerTypeFastLifecycle(testIndShockConsumerTypeLifecycle):
+class testIndShockConsumerTypeFastLifecycle(unittest.TestCase):
     def test_lifecyle(self):
         LifecycleExample = IndShockConsumerTypeFast(**LifecycleDict)
         LifecycleExample.cycles = 1
@@ -152,7 +196,7 @@ class testIndShockConsumerTypeFastLifecycle(testIndShockConsumerTypeLifecycle):
         )
 
 
-class testIndShockConsumerTypeFastCyclical(testIndShockConsumerTypeCyclical):
+class testIndShockConsumerTypeFastCyclical(unittest.TestCase):
     def test_cyclical(self):
         CyclicalExample = IndShockConsumerTypeFast(**CyclicalDict)
         CyclicalExample.cycles = 0  # Make this consumer type have an infinite horizon
