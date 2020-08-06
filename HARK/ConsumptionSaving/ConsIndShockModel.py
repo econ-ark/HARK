@@ -1793,7 +1793,7 @@ class PerfForesightConsumerType(AgentType):
         
         messages = {
             True :  'The value of the Return Patience Factor for the supplied parameter values satisfies the Return Impatience Condition.',
-            False : 'The value of the Return Patience Factor for the supplied parameter values satisfies the Return Impatience Condition; the factor is {0.RIF}'
+            False : 'The value of the Return Patience Factor for the supplied parameter values fails the Return Impatience Condition; the factor is {0.RIF}'
         }
 
         verbose_messages = {
