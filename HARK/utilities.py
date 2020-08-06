@@ -890,7 +890,7 @@ def setup_latex_env_notebook(pf, latexExists):
     plt.rc('text', usetex=latexExists)
     if latexExists:
         latex_preamble = r'\usepackage{amsmath}\usepackage{amsfonts}\usepackage[T1]{fontenc}'
-        latexdefs_path = os.getcwd()+'/latexdefs.tex'
+        latexdefs_path = os.getcwd().replace('\\','/') +'/latexdefs.tex'
         if os.path.isfile(latexdefs_path):
             latex_preamble = latex_preamble+r'\input{'+latexdefs_path+r'}'
         else: # the required latex_envs package needs this file to exist even if it is empty
