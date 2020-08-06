@@ -371,7 +371,8 @@ class TractableConsumerType(AgentType):
         # Get and store states for newly born agents
         N = np.sum(which_agents) # Number of new consumers to make
         self.aLvlNow[which_agents] = Lognormal(self.aLvlInitMean,
-                                               sigma=self.aLvlInitStd).draw(N,seed=self.RNG.randint(0,2**31-1))
+                                               sigma=self.aLvlInitStd,
+                                               seed=self.RNG.randint(0, 2**31-1)).draw(N)
         self.eStateNow[which_agents] = 1.0 # Agents are born employed
         self.t_age[which_agents]   = 0 # How many periods since each agent was born
         self.t_cycle[which_agents] = 0 # Which period of the cycle each agent is currently in
@@ -409,8 +410,8 @@ class TractableConsumerType(AgentType):
         '''
         employed = self.eStateNow == 1.0
         N = int(np.sum(employed))
-        newly_unemployed = Bernoulli(self.UnempPrb).draw(N,
-                                                         seed=self.RNG.randint(0,2**31-1))
+        newly_unemployed = Bernoulli(self.UnempPrb,
+                                     seed=self.RNG.randint(0,2**31-1)).draw(N)
         self.eStateNow[employed] = 1.0 - newly_unemployed
 
     def getStates(self):
