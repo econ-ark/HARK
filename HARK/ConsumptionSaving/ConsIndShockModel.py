@@ -1530,6 +1530,24 @@ class PerfForesightConsumerType(AgentType):
         self.solution_terminal.vPfunc  = MargValueFunc(self.cFunc_terminal_,self.CRRA)
         self.solution_terminal.vPPfunc = MargMargValueFunc(self.cFunc_terminal_,self.CRRA)
 
+    def unpackcFunc(self):
+        ''' DEPRECATED: Use solution.unpack('cFunc') instead.
+        "Unpacks" the consumption functions into their own field for easier access.
+        After the model has been solved, the consumption functions reside in the
+        attribute cFunc of each element of ConsumerType.solution.  This method
+        creates a (time varying) attribute cFunc that contains a list of consumption
+        functions.
+        Parameters
+        ----------
+        none
+        Returns
+        -------
+        none
+        '''
+        _log.critical("unpackcFunc is deprecated and it will soon be removed, " \
+            "please use unpack('cFunc') instead.")
+        self.unpack('cFunc')
+
 
     def initializeSim(self):
         self.PlvlAggNow = 1.0
