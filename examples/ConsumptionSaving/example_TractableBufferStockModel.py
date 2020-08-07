@@ -5,6 +5,7 @@ from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
 )  # An alternative, much longer way to solve the TBS model
 from time import process_time  # timing utility
+from HARK.distribution import DiscreteDistribution
 from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerType
 import numpy as np
 do_simulation = True
@@ -92,18 +93,14 @@ init_consumer_objects = {
     "MrkvArray": [MrkvArray],  # State transition probabilities
 }
 MarkovType = MarkovConsumerType(**init_consumer_objects)  # Make a basic consumer type
-employed_income_dist = DiscreteDistribution(
-    np.ones(1),
-    [
-        np.ones(1),
-        np.ones(1),
-])  # Income distribution when employed
-unemployed_income_dist = DiscreteDistribution(
-    np.ones(1),
-    [
-        np.ones(1),
-        np.zeros(1),
-])  # Income distribution when permanently unemployed
+
+employed_income_dist = DiscreteDistribution(np.ones(1),
+    [np.ones(1), np.ones(1)]
+    )  # Income distribution when employed
+unemployed_income_dist = DiscreteDistribution(np.ones(1),
+    [np.ones(1), np.zeros(1)]
+    )  # Income distribution when permanently unemployed
+
 MarkovType.IncomeDstn = [
     [employed_income_dist, unemployed_income_dist]
 ]  # set the income distribution in each state
