@@ -21,11 +21,11 @@ from builtins import object
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import newton
-from HARK import AgentType, Solution, NullFunc, HARKobject, makeOnePeriodOOSolver
+from HARK import AgentType, NullFunc, HARKobject, makeOnePeriodOOSolver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
 from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
 from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
-from HARK.distribution import DiscreteDistribution, addDiscreteOutcomeConstantMean, combineIndepDstns 
+from HARK.distribution import DiscreteDistribution, addDiscreteOutcomeConstantMean, combineIndepDstns
 from HARK.utilities import makeGridExpMult, CRRAutility, CRRAutilityP, \
                            CRRAutilityPP, CRRAutilityP_inv, CRRAutility_invP, CRRAutility_inv, \
                            CRRAutilityP_invP
@@ -52,7 +52,7 @@ utilityP_invP = CRRAutilityP_invP
 # === Classes that help solve consumption-saving models ===
 # =====================================================================
 
-class ConsumerSolution(Solution):
+class ConsumerSolution(HARKobject):
     '''
     A class representing the solution of a single period of a consumption-saving
     problem.  The solution must include a consumption function and marginal
@@ -417,13 +417,13 @@ class ConsPerfForesightSolver(object):
         '''
         Defines the value and marginal value functions for this period.
         Uses the fact that for a perfect foresight CRRA utility problem,
-        if the MPC in period t is :math:`\kappa_{t}`, and relative risk 
-        aversion :math:`\rho`, then the inverse value vFuncNvrs has a 
-        constant slope of :math:`\kappa_{t}^{-\rho/(1-\rho)}` and 
-        vFuncNvrs has value of zero at the lower bound of market resources 
+        if the MPC in period t is :math:`\kappa_{t}`, and relative risk
+        aversion :math:`\rho`, then the inverse value vFuncNvrs has a
+        constant slope of :math:`\kappa_{t}^{-\rho/(1-\rho)}` and
+        vFuncNvrs has value of zero at the lower bound of market resources
         mNrmMin.  See PerfForesightConsumerType.ipynb documentation notebook
         for a brief explanation and the links below for a fuller treatment.
-            
+
         https://econ.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical
         https://econ.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF
 
@@ -437,7 +437,7 @@ class ConsPerfForesightSolver(object):
         '''
 
         # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
-        vFuncNvrsSlope = self.MPCmin**(-self.CRRA/(1.0-self.CRRA)) 
+        vFuncNvrsSlope = self.MPCmin**(-self.CRRA/(1.0-self.CRRA))
         vFuncNvrs      = LinearInterp(np.array([self.mNrmMinNow, self.mNrmMinNow+1.0]),np.array([0.0, vFuncNvrsSlope]))
         self.vFunc     = ValueFunc(vFuncNvrs,self.CRRA)
         self.vPfunc    = MargValueFunc(self.cFunc,self.CRRA)
@@ -459,31 +459,31 @@ class ConsPerfForesightSolver(object):
             BoroCnstArt = -np.inf
         else:
             BoroCnstArt = self.BoroCnstArt
-        
+
         # Calculate human wealth this period
         self.hNrmNow = (self.PermGroFac/self.Rfree)*(self.solution_next.hNrm + 1.0)
-        
+
         # Calculate the lower bound of the marginal propensity to consume
         PatFac       = ((self.Rfree*self.DiscFacEff)**(1.0/self.CRRA))/self.Rfree
         self.MPCmin  = 1.0/(1.0 + PatFac/self.solution_next.MPCmin)
-        
+
         # Extract the discrete kink points in next period's consumption function;
         # don't take the last one, as it only defines the extrapolation and is not a kink.
         mNrmNext = self.solution_next.cFunc.x_list[:-1]
         cNrmNext = self.solution_next.cFunc.y_list[:-1]
-        
+
         # Calculate the end-of-period asset values that would reach those kink points
         # next period, then invert the first order condition to get consumption. Then
         # find the endogenous gridpoint (kink point) today that corresponds to each kink
         aNrmNow = (self.PermGroFac/self.Rfree)*(mNrmNext-1.0)
         cNrmNow = (self.DiscFacEff*self.Rfree)**(-1./self.CRRA)*(self.PermGroFac*cNrmNext)
         mNrmNow = aNrmNow + cNrmNow
-        
+
         # Add an additional point to the list of gridpoints for the extrapolation,
         # using the new value of the lower bound of the MPC.
         mNrmNow = np.append(mNrmNow, mNrmNow[-1] + 1.0)
         cNrmNow = np.append(cNrmNow, cNrmNow[-1] + self.MPCmin)
-        
+
         # If the artificial borrowing constraint binds, combine the constrained and
         # unconstrained consumption functions.
         if BoroCnstArt > mNrmNow[0]:
@@ -491,7 +491,7 @@ class ConsPerfForesightSolver(object):
             cNrmCnst = mNrmNow - BoroCnstArt
             CnstBinds = cNrmCnst < cNrmNow
             idx = np.where(CnstBinds)[0][-1]
-            
+
             if idx < (mNrmNow.size-1):
                 # If it is not the *very last* index, find the the critical level
                 # of mNrm where the artificial borrowing contraint begins to bind.
@@ -501,12 +501,12 @@ class ConsPerfForesightSolver(object):
                 m1 = mNrmNow[idx+1]
                 alpha = d0/(d0 + d1)
                 mCrit = m0 + alpha*(m1 - m0)
-                
+
                 # Adjust the grids of mNrm and cNrm to account for the borrowing constraint.
                 cCrit = mCrit - BoroCnstArt
                 mNrmNow = np.concatenate(([BoroCnstArt, mCrit], mNrmNow[(idx+1):]))
                 cNrmNow = np.concatenate(([0., cCrit], cNrmNow[(idx+1):]))
-                
+
             else:
                 # If it *is* the very last index, then there are only three points
                 # that characterize the consumption function: the artificial borrowing
@@ -516,24 +516,24 @@ class ConsPerfForesightSolver(object):
                 cCrit = mCrit - BoroCnstArt
                 mNrmNow = np.array([BoroCnstArt, mCrit, mCrit + 1.0])
                 cNrmNow = np.array([0., cCrit, cCrit + self.MPCmin])
-                
+
         # If the mNrm and cNrm grids have become too large, throw out the last
         # kink point, being sure to adjust the extrapolation.
         if mNrmNow.size > self.MaxKinks:
             mNrmNow = np.concatenate((mNrmNow[:-2], [mNrmNow[-3] + 1.0]))
             cNrmNow = np.concatenate((cNrmNow[:-2], [cNrmNow[-3] + self.MPCmin]))
-        
+
         # Construct the consumption function as a linear interpolation.
         self.cFunc = LinearInterp(mNrmNow, cNrmNow)
-        
+
         # Calculate the upper bound of the MPC as the slope of the bottom segment.
         self.MPCmax = (cNrmNow[1] - cNrmNow[0]) / (mNrmNow[1] - mNrmNow[0])
-        
+
         # Add two attributes to enable calculation of steady state market resources.
         self.ExIncNext = 1.0 # Perfect foresight income of 1
         self.mNrmMinNow = mNrmNow[0] # Relabeling for compatibility with addSSmNrm
-        
-        
+
+
     def addSSmNrm(self,solution):
         '''
         Finds steady state (normalized) market resources and adds it to the
@@ -1319,10 +1319,10 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         # Assign the interest rates as class attributes, to use them later.
         self.Rboro   = Rboro
         self.Rsave   = Rsave
-                  
+
     def makeCubiccFunc(self,mNrm,cNrm):
         '''
-        Makes a cubic spline interpolation that contains the kink of the unconstrained 
+        Makes a cubic spline interpolation that contains the kink of the unconstrained
         consumption function for this period.
 
         Parameters
@@ -1339,12 +1339,12 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         '''
         # Call the makeCubiccFunc from ConsIndShockSolver.
         cFuncNowUncKink = super().makeCubiccFunc(mNrm, cNrm)
-        
+
         # Change the coeffients at the kinked points.
         cFuncNowUncKink.coeffs[self.i_kink + 1] = [cNrm[self.i_kink], mNrm[self.i_kink + 1] - mNrm[self.i_kink], 0, 0]
 
         return cFuncNowUncKink
-    
+
     def prepareToCalcEndOfPrdvP(self):
         '''
         Prepare to calculate end-of-period marginal value by creating an array
@@ -1486,12 +1486,12 @@ class PerfForesightConsumerType(AgentType):
         self.shock_vars     = deepcopy(self.shock_vars_)
         self.verbose        = verbose
         self.quiet          = quiet
-        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPerfForesightSolver) 
+        self.solveOnePeriod = makeOnePeriodOOSolver(ConsPerfForesightSolver)
         set_verbosity_level((4-verbose)*10)
 
     def preSolve(self):
         self.updateSolutionTerminal() # Solve the terminal period problem
-        
+
         # Fill in BoroCnstArt and MaxKinks if they're not specified or are irrelevant.
         if not hasattr(self,'BoroCnstArt'): # If no borrowing constraint specified...
             self.BoroCnstArt = None       # ...assume the user wanted none
@@ -1503,7 +1503,7 @@ class PerfForesightConsumerType(AgentType):
             else:
                 raise(AttributeError('PerfForesightConsumerType requires the attribute MaxKinks to be specified when BoroCnstArt is not None and cycles == 0.'))
 
-            
+
     def checkRestrictions(self):
         """
         A method to check that various restrictions are met for the model class.
@@ -1813,7 +1813,7 @@ class PerfForesightConsumerType(AgentType):
 
         name = "FHWC"
         test = lambda agent: self.FHWF < 1
-        
+
         messages = {
             True :  'The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.',
             False : 'The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value {0.FHWF}',
@@ -1829,12 +1829,12 @@ class PerfForesightConsumerType(AgentType):
     def checkConditions(self, verbose=None):
         '''
         This method checks whether the instance's type satisfies the
-        Absolute Impatience Condition (AIC), 
+        Absolute Impatience Condition (AIC),
         the Return Impatience Condition (RIC),
-        the Finite Human Wealth Condition (FHWC) and the perfect foresight 
-        model's version of the Finite Value of the Growth Impatience Condition (GICPF) and 
-        Autarky Condition (FVACPF). Depending on the configuration of parameter values, some 
-        combination of these conditions must be satisfied in order for the problem to have 
+        the Finite Human Wealth Condition (FHWC) and the perfect foresight
+        model's version of the Finite Value of the Growth Impatience Condition (GICPF) and
+        Autarky Condition (FVACPF). Depending on the configuration of parameter values, some
+        combination of these conditions must be satisfied in order for the problem to have
         a nondegenerate solution. To check which conditions are required, in the verbose mode
         a reference to the relevant theoretical literature is made.
 
@@ -1870,8 +1870,8 @@ class PerfForesightConsumerType(AgentType):
         if hasattr(self,'BoroCnstArt') and self.BoroCnstArt is not None:
             self.violated = not self.conditions['RIC']
         else:
-            self.violated = not self.conditions['RIC'] or not self.conditions['FHWC'] 
-        
+            self.violated = not self.conditions['RIC'] or not self.conditions['FHWC']
+
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer
 init_idiosyncratic_shocks = dict(init_perfect_foresight,
@@ -1897,7 +1897,7 @@ init_idiosyncratic_shocks = dict(init_perfect_foresight,
     'vFuncBool': False,     # Whether to calculate the value function during solution
     'CubicBool': False,     # Use cubic spline interpolation when True, linear interpolation when False
 })
-      
+
 class IndShockConsumerType(PerfForesightConsumerType):
     '''
     A consumer type with idiosyncratic shocks to permanent and transitory income.
@@ -2000,24 +2000,24 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.updateIncomeProcess()
         self.updateAssetsGrid()
         self.updateSolutionTerminal()
-        
+
     def resetRNG(self):
         '''
         Reset the RNG behavior of this type.  This method is called automatically
         by initializeSim(), ensuring that each simulation run uses the same sequence
         of random shocks; this is necessary for structural estimation to work.
         This method extends AgentType.resetRNG() to also reset elements of IncomeDstn.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
         '''
         PerfForesightConsumerType.resetRNG(self)
-        
+
         # Reset IncomeDstn if it exists (it might not because resetRNG is called at init)
         if hasattr(self, 'IncomeDstn'):
             for dstn in self.IncomeDstn:
@@ -2057,7 +2057,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             these = newborn
             IncomeDstnNow    = self.IncomeDstn[0] # set current income distribution
             PermGroFacNow    = self.PermGroFac[0] # and permanent growth factor
-           
+
             # Get random draws of income shocks from the discrete distribution
             EventDraws       = IncomeDstnNow.draw_events(N)
             PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
@@ -2215,7 +2215,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         name = 'GIC'
         test = lambda agent: agent.GPFInd <=1
 
-        
+
         messages = {
             True :  '\nThe value of the Individual Growth Impatience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition; the value of the GPFInd is: {0.GPFInd}',
             False : '\nThe given parameter values violate the Individual Growth Impatience Condition; the GPFInd is: {0.GPFInd}',
@@ -2232,7 +2232,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         name = 'GICAgg'
         test = lambda agent : agent.GPFAgg <= 1
 
-        
+
         messages = {
             True :  '\nThe value of the Aggregate Growth Impatience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition; the value of the GPFAgg is: {0.GPFAgg}',
             False : '\nThe given parameter values violate the Aggregate Growth Impatience Condition; the GPFAgg is: {0.GPFAgg}'
@@ -2278,7 +2278,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             uInvEpShkuInv = EpShkuInv**(1/(1-self.CRRA)) # The term that gives a utility-consequence-adjusted utility growth
         else:
             uInvEpShkuInv = 1.0
-        
+
         self.uInvEpShkuInv   = uInvEpShkuInv
 
         self.FVAF=self.LivPrb[0]*self.DiscFac*self.uInvEpShkuInv
@@ -2302,7 +2302,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         '''
         This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC), Weak Return
         Impatience Condition (WRIC), Finite Human Wealth Condition (FHWC) and Finite Value of
-        Autarky Condition (FVAC).  When combinations of these conditions are satisfied, the 
+        Autarky Condition (FVAC).  When combinations of these conditions are satisfied, the
         solution to the problem exhibits different characteristics.  (For an exposition of the
         conditions, see http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/)
 
@@ -2324,13 +2324,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if self.cycles!=0 or self.T_cycle > 1:
             return
 
-        # For theory, see hyperlink targets to expressions in 
+        # For theory, see hyperlink targets to expressions in
         # url=http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory
         # For example, the hyperlink to the relevant section of the paper
         self.url='https://llorracc.github.io/BufferStockTheory'
         # would be referenced below as:
         # [url]/#Uncertainty-Modified-Conditions
-        
+
         self.InvPermShkDstn=deepcopy(self.PermShkDstn)
 
         self.InvPermShkDstn[0].X = 1/self.PermShkDstn[0].X
@@ -2346,6 +2346,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # self.Rnorm           = self.Rfree*EPermShkInv/(self.PermGroFac[0]*self.LivPrb[0])
         self.GPFPF = self.thorn/(self.PermGroFac[0])      # [url]/#GPF
         # Lower bound of aggregate wealth growth if all inheritances squandered
+
         self.GPFAgg = self.thorn*self.LivPrb[0]/self.PermGroFac[0]
         
         self.DiscFacGPFPFMax = ((self.PermGroFac[0])**(self.CRRA))/(self.Rfree) # DiscFac at growth impatience knife edge
@@ -2382,20 +2383,20 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Ex_bLev_tp1 = aRat*self.Rfree
         Ex_Mtp1     = Ex_bLev_tp1
         return Ex_Mtp1/Ex_Ptp1
-                    
+
     def Ex_mtp1(self,mRat):
         cRat        = self.solution[-1].cFunc(mRat)
         aRat        = mRat-cRat
         Ex_bRat_tp1 = aRat*self.Rfree*self.EPermShkInv/self.PermGroFac[0]
         Ex_Mtp1     = (Ex_bRat_tp1 + 1)*Ex_Ptp1 # mean TranShk and PermShk are 1
         return Ex_Mtp1/Ex_Ptp1
-                    
+
     def calcTargets(self):
         '''
         If the problem is one that satisfies the conditions required for target ratios of different
         variables to permanent income to exist, and has been solved to within the self-defined
-        tolerance, this method calculates the target values of market resources, consumption, 
-        and assets.  
+        tolerance, this method calculates the target values of market resources, consumption,
+        and assets.
 
         Parameters
         ----------
@@ -2410,7 +2411,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             _log.warning('The calcTargets method works only for infinite horizon models.')
             return
 
-        
+
         # To be written.
         # Defining:
         ## Rnorm    = Rfree/(PermGroFac[0]*PermShk)
@@ -2531,7 +2532,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             else:
                 # We are in the "working life" periods.
                 TranShkDstn_t    = MeanOneLogNormal(
-                    sigma=TranShkStd[t] 
+                    sigma=TranShkStd[t]
                 ).approx(TranShkCount, tail_N=0)
                 if UnempPrb > 0:
                     TranShkDstn_t = addDiscreteOutcomeConstantMean(TranShkDstn_t, p=UnempPrb, x=IncUnemp)
@@ -2694,10 +2695,10 @@ class KinkedRconsumerType(IndShockConsumerType):
 
     def checkConditions(self):
         '''
-        This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC), 
-        the Return Impatience Condition (RIC), the Growth Impatience Condition (GIC), the Weak Return 
+        This method checks whether the instance's type satisfies the Absolute Impatience Condition (AIC),
+        the Return Impatience Condition (RIC), the Growth Impatience Condition (GIC), the Weak Return
         Impatience Condition (WRIC), the Finite Human Wealth Condition (FHWC) and the Finite Value of
-        Autarky Condition (FVAC). To check which conditions are relevant to the model at hand, a 
+        Autarky Condition (FVAC). To check which conditions are relevant to the model at hand, a
         reference to the relevant theoretical literature is made.
 
         Parameters

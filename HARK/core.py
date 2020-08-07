@@ -82,7 +82,7 @@ class HARKobject(object):
     a generic/universal distance method and an attribute assignment method.
     '''
     distance_criteria = [] # This should be overwritten by subclasses.
-    
+
     def distance(self, other):
         '''
         A generic distance method, which requires the existence of an attribute
@@ -155,20 +155,10 @@ class HARKobject(object):
             return np.nan
 
 
-class Solution(HARKobject):
-    '''
-    A superclass for representing the "solution" to a single period problem in a
-    dynamic microeconomic model.
-
-    NOTE: This can be deprecated now that HARKobject exists, but this requires
-    replacing each instance of Solution with HARKobject in the other modules.
-    '''
-
-
 class AgentType(HARKobject):
     '''
     A superclass for economic agents in the HARK framework. Each model should
-    specify its own subclass of AgentType, inheriting its methods and overwriting 
+    specify its own subclass of AgentType, inheriting its methods and overwriting
     as necessary.  Critically, every subclass of AgentType should define class-
     specific static values of the attributes time_vary and time_inv as lists of
     strings.  Each element of time_vary is the name of a field in AgentSubType
@@ -630,7 +620,7 @@ class AgentType(HARKobject):
         '''
         Simulates this agent type for a given number of periods. Defaults to
         self.T_sim if no input.
-        Records histories of attributes named in self.track_vars in 
+        Records histories of attributes named in self.track_vars in
         self.history[varname].
 
         Parameters
@@ -690,9 +680,9 @@ def solveAgent(agent, verbose):
     Solve the dynamic model for one agent type
     using backwards induction.
     This function iterates on "cycles"
-    of an agent's model either a given number of times 
+    of an agent's model either a given number of times
     or until solution convergence
-    if an infinite horizon model is used 
+    if an infinite horizon model is used
     (with agent.cycles = 0).
 
     Parameters
@@ -737,7 +727,7 @@ def solveAgent(agent, verbose):
         if infinite_horizon:
             if completed_cycles > 0:
                 solution_distance = solution_now.distance(solution_last)
-                agent.solution_distance = solution_distance  # Add these attributes so users can 
+                agent.solution_distance = solution_distance  # Add these attributes so users can
                 agent.completed_cycles  = completed_cycles   # query them to see if solution is ready
                 go = (solution_distance > agent.tolerance and completed_cycles < max_cycles)
             else:  # Assume solution does not converge after only one cycle
@@ -1197,7 +1187,7 @@ def distributeParams(agent, param_name,param_count,distribution):
     Returns
     -------
     agent_set : [AgentType]
-        A list of param_count agents, ex ante heterogeneous with 
+        A list of param_count agents, ex ante heterogeneous with
         respect to param_name. The AgentCount of the original
         will be split between the agents of the returned
         list in proportion to the given distribution.
