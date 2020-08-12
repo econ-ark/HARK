@@ -1,41 +1,34 @@
-# %%
-from time import time
+from time import process_time
 import numpy as np
 import matplotlib.pyplot as plt
 from HARK.utilities import plotFuncs
+from HARK.distribution import DiscreteDistribution
 from HARK.ConsumptionSaving.ConsAggShockModel import (
     AggShockConsumerType,
     CobbDouglasEconomy,
     AggShockMarkovConsumerType,
     CobbDouglasMarkovEconomy,
-    KrusellSmithType,
-    KrusellSmithEconomy
 )
-from HARK.distribution import DiscreteDistribution
-from scipy.stats import linregress
 from copy import deepcopy
 def mystr(number):
     return "{:.4f}".format(number)
 
 
-# %%
 # Solve an AggShockConsumerType's microeconomic problem
 solve_agg_shocks_micro = False
 # Solve for the equilibrium aggregate saving rule in a CobbDouglasEconomy
-solve_agg_shocks_market = False
+solve_agg_shocks_market = True
 # Solve an AggShockMarkovConsumerType's microeconomic problem
 solve_markov_micro = False
 # Solve for the equilibrium aggregate saving rule in a CobbDouglasMarkovEconomy
-solve_markov_market = False
+solve_markov_market = True
 # Solve a simple Krusell-Smith-style two state, two shock model
 solve_krusell_smith = True
 # Solve a CobbDouglasEconomy with many states, potentially utilizing the "state jumper"
 solve_poly_state = False
 
-# %% [markdown]
-# ### Example impelementation of AggShockConsumerType
+# ### Example implementation of AggShockConsumerType
 
-# %%
 if solve_agg_shocks_micro or solve_agg_shocks_market:
     # Make an aggregate shocks consumer type
     AggShockExample = AggShockConsumerType()
@@ -48,12 +41,11 @@ if solve_agg_shocks_micro or solve_agg_shocks_market:
     # Have the consumers inherit relevant objects from the economy
     AggShockExample.getEconomyData(EconomyExample)
 
-# %%
 if solve_agg_shocks_micro:
     # Solve the microeconomic model for the aggregate shocks example type (and display results)
-    t_start = time()
+    t_start = process_time()
     AggShockExample.solve()
-    t_end = time()
+    t_end = process_time()
     print(
         "Solving an aggregate shocks consumer took "
         + mystr(t_end - t_start)
@@ -63,7 +55,7 @@ if solve_agg_shocks_micro:
         "Consumption function at each aggregate market resources-to-labor ratio gridpoint:"
     )
     m_grid = np.linspace(0, 10, 200)
-    AggShockExample.unpackcFunc()
+    AggShockExample.unpack('cFunc')
     for M in AggShockExample.Mgrid.tolist():
         mMin = AggShockExample.solution[0].mNrmMin(M)
         c_at_this_M = AggShockExample.cFunc[0](m_grid + mMin, M * np.ones_like(m_grid))
@@ -71,13 +63,14 @@ if solve_agg_shocks_micro:
     plt.ylim(0.0, None)
     plt.show()
 
-# %%
 if solve_agg_shocks_market:
     # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
-    t_start = time()
-    print("Now solving for the equilibrium of a Cobb-Douglas economy.  This might take a few minutes...")
+    t_start = process_time()
+    print(
+        "Now solving for the equilibrium of a Cobb-Douglas economy.  This might take a few minutes..."
+    )
     EconomyExample.solve()
-    t_end = time()
+    t_end = process_time()
     print(
         'Solving the "macroeconomic" aggregate shocks model took '
         + str(t_end - t_start)
@@ -89,9 +82,9 @@ if solve_agg_shocks_market:
     print(
         "Consumption function at each aggregate market resources gridpoint (in general equilibrium):"
     )
-    AggShockExample.unpackcFunc()
+    AggShockExample.unpack('cFunc')
     m_grid = np.linspace(0, 10, 200)
-    AggShockExample.unpackcFunc()
+    AggShockExample.unpack('cFunc')
     for M in AggShockExample.Mgrid.tolist():
         mMin = AggShockExample.solution[0].mNrmMin(M)
         c_at_this_M = AggShockExample.cFunc[0](m_grid + mMin, M * np.ones_like(m_grid))
@@ -99,11 +92,9 @@ if solve_agg_shocks_market:
     plt.ylim(0.0, None)
     plt.show()
 
-# %% [markdown]
 # ### Example Implementations of AggShockMarkovConsumerType
 
-# %%
-if solve_markov_micro or solve_markov_market:
+if solve_markov_micro or solve_markov_market or solve_krusell_smith:
     # Make a Markov aggregate shocks consumer type
     AggShockMrkvExample = AggShockMarkovConsumerType()
     AggShockMrkvExample.IncomeDstn[0] = 2 * [AggShockMrkvExample.IncomeDstn[0]]
@@ -117,21 +108,23 @@ if solve_markov_micro or solve_markov_market:
         MrkvEconomyExample
     )  # Have the consumers inherit relevant objects from the economy
 
-# %%
 if solve_markov_micro:
     # Solve the microeconomic model for the Markov aggregate shocks example type (and display results)
-    t_start = time()
+    t_start = process_time()
     AggShockMrkvExample.solve()
-    t_end = time()
+    t_end = process_time()
     print(
         "Solving an aggregate shocks Markov consumer took "
         + mystr(t_end - t_start)
         + " seconds."
     )
 
-    print("Consumption function at each aggregate market resources-to-labor ratio gridpoint (for each macro state):")
+    print(
+        "Consumption function at each aggregate market \
+            resources-to-labor ratio gridpoint (for each macro state):"
+    )
     m_grid = np.linspace(0, 10, 200)
-    AggShockMrkvExample.unpackcFunc()
+    AggShockMrkvExample.unpack('cFunc')
     for i in range(2):
         for M in AggShockMrkvExample.Mgrid.tolist():
             mMin = AggShockMrkvExample.solution[0].mNrmMin[i](M)
@@ -142,23 +135,24 @@ if solve_markov_micro:
         plt.ylim(0.0, None)
         plt.show()
 
-# %%
 if solve_markov_market:
     # Solve the "macroeconomic" model by searching for a "fixed point dynamic rule"
-    t_start = time()
-    MrkvEconomyExample.verbose = True
+    t_start = process_time()
     print("Now solving a two-state Markov economy.  This should take a few minutes...")
     MrkvEconomyExample.solve()
-    t_end = time()
+    t_end = process_time()
     print(
         'Solving the "macroeconomic" aggregate shocks model took '
         + str(t_end - t_start)
         + " seconds."
     )
 
-    print("Consumption function at each aggregate market resources-to-labor ratio gridpoint (for each macro state):")
+    print(
+        "Consumption function at each aggregate market \
+            resources-to-labor ratio gridpoint (for each macro state):"
+    )
     m_grid = np.linspace(0, 10, 200)
-    AggShockMrkvExample.unpackcFunc()
+    AggShockMrkvExample.unpack('cFunc')
     for i in range(2):
         for M in AggShockMrkvExample.Mgrid.tolist():
             mMin = AggShockMrkvExample.solution[0].mNrmMin[i](M)
@@ -169,55 +163,47 @@ if solve_markov_market:
         plt.ylim(0.0, None)
         plt.show()
 
-# %%
 if solve_krusell_smith:
-    # Make default KS agent type and economy
-    KSeconomy = KrusellSmithEconomy()
-    KStype = KrusellSmithType()
-    KStype.cycles = 0
-    KStype.getEconomyData(KSeconomy)
-    KSeconomy.agents = [KStype]
-    KSeconomy.makeMrkvHist()
-    
-    # Solve the Krusell-Smith economy
-    t0 = time()
-    print("Now solving for the equilibrium of the Krusell-Smith (1998) model.  This might take a few minutes...")
+    # Make a Krusell-Smith agent type
+    # NOTE: These agents aren't exactly like KS, as they don't have serially correlated unemployment
+    KSexampleType = deepcopy(AggShockMrkvExample)
+    KSexampleType.IncomeDstn[0] = [
+        DiscreteDistribution(
+            np.array([0.96, 0.04]),
+            [ np.array([1.0, 1.0]), np.array([1.0 / 0.96, 0.0])]
+        ),
+        DiscreteDistribution(
+            np.array([0.90, 0.10]),
+            [np.array([1.0, 1.0]), np.array([1.0 / 0.90, 0.0])],
+        )
+    ]
+
+    # Make a KS economy
+    KSeconomy = deepcopy(MrkvEconomyExample)
+    KSeconomy.agents = [KSexampleType]
+    KSeconomy.AggShkDstn = [
+        DiscreteDistribution(
+            np.array([1.0]),
+            [np.array([1.0]), np.array([1.05])],
+        ),
+        DiscreteDistribution(
+            np.array([1.0]),
+            [np.array([1.0]), np.array([0.95])],
+        )
+    ]
+    KSeconomy.PermGroFacAgg = [1.0, 1.0]
+    KSexampleType.getEconomyData(KSeconomy)
+    KSeconomy.makeAggShkHist()
+
+    # Solve the K-S model
+    t_start = process_time()
+    print(
+        "Now solving a Krusell-Smith-style economy.  This should take about a minute..."
+    )
     KSeconomy.solve()
-    t1 = time()
-    print('Solving the Krusell-Smith model took ' + str(t1-t0) + ' seconds.')
-    
-    state_names = ['bad economy, unemployed', 'bad economy, employed',
-                   'good economy, unemployed', 'good economy, employed']
-    
-    # Plot the consumption function for each discrete state
-    for j in range(4):
-        plt.xlabel(r'Idiosyncratic market resources $m$')
-        plt.ylabel(r'Consumption $c$')
-        plt.title('Consumption function by aggregate market resources: ' + state_names[j])
-        plotFuncs(KStype.solution[0].cFunc[j].xInterpolators, 0., 50.)
-        
-    # Extract history of aggregate capital and run a serial autoregression
-    mystr = lambda x : '{:.4f}'.format(x)
-    mystr2 = lambda x : '{:.7f}'.format(x)
-    K_hist = np.array(KSeconomy.history['Aprev'])[KSeconomy.T_discard:]
-    Mrkv_hist = KSeconomy.MrkvNow_hist[KSeconomy.T_discard:]
-    bad = Mrkv_hist[:-1] == 0
-    good = Mrkv_hist[:-1] == 1
-    logK_t = np.log(K_hist[:-1])
-    logK_tp1 = np.log(K_hist[1:])
-    results_bad = linregress(logK_t[bad], logK_tp1[bad])
-    results_good = linregress(logK_t[good], logK_tp1[good])
-    print('')
-    print('Equilibrium dynamics of aggregate capital:')
-    print("Bad state:  log k' = " + mystr(results_bad[1]) + ' + ' + mystr(results_bad[0]) + ' log k (r-sq = ' +  mystr2(results_bad[2]**2) + ')')
-    print("Good state: log k' = " + mystr(results_good[1]) + ' + ' + mystr(results_good[0]) + ' log k (r-sq = ' +  mystr2(results_good[2]**2) + ')')
-    print('')
-    print("Krusell & Smith's published results (p877):")
-    print("Bad state:  log k' = 0.085 + 0.965 log k (r-sq = 0.999998)")
-    print("Good state: log k' = 0.095 + 0.962 log k (r-sq = 0.999998)")
-          
-    
-# %%
+    t_end = process_time()
+    print("Solving the Krusell-Smith model took " + str(t_end - t_start) + " seconds.")
+
 if solve_poly_state:
     StateCount = 15  # Number of Markov states
     GrowthAvg = 1.01  # Average permanent income growth factor
@@ -262,14 +248,14 @@ if solve_poly_state:
     )  # Have the consumers inherit relevant objects from the economy
 
     # Solve the many state model
-    t_start = time()
+    t_start = process_time()
     print(
         "Now solving an economy with "
         + str(StateCount)
         + " Markov states.  This might take a while..."
     )
     PolyStateEconomy.solve()
-    t_end = time()
+    t_end = process_time()
     print(
         "Solving a model with "
         + str(StateCount)
