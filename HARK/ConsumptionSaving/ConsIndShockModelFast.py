@@ -1084,11 +1084,14 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
 
     def updateSolutionTerminal(self):
         PerfForesightConsumerTypeFast.updateSolutionTerminal(self)
-        self.solution_terminal.MPC = np.array([1.0, 1.0])
-        self.solution_terminal.MPCminNvrs = 0.0
-        self.solution_terminal.vNvrs = utility(np.linspace(0.0, 1.0), self.CRRA)
-        self.solution_terminal.vNvrsP = utilityP(np.linspace(0.0, 1.0), self.CRRA)
-        self.solution_terminal.mNrmGrid = np.linspace(0.0, 1.0)
+        with np.errstate(
+            divide="ignore", over="ignore", under="ignore", invalid="ignore"
+        ):
+            self.solution_terminal.MPC = np.array([1.0, 1.0])
+            self.solution_terminal.MPCminNvrs = 0.0
+            self.solution_terminal.vNvrs = utility(np.linspace(0.0, 1.0), self.CRRA)
+            self.solution_terminal.vNvrsP = utilityP(np.linspace(0.0, 1.0), self.CRRA)
+            self.solution_terminal.mNrmGrid = np.linspace(0.0, 1.0)
 
     def postSolve(self):
         self.solution_fast = deepcopy(self.solution)
