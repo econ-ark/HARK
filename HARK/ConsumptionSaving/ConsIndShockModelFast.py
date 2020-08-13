@@ -735,7 +735,7 @@ def _cFuncLinear(mNrmGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCminNow, hNrmNow):
     return cNrmNow
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def _addvFuncNumba(
     mNrmNext,
     mNrmGridNext,
