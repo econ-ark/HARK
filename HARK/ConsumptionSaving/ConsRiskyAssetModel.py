@@ -35,6 +35,237 @@ from HARK.interpolation import(
 
 from HARK.utilities import makeGridExpMult
 
+class RiskyAssetConsumerType(IndShockConsumerType):
+    """
+    A consumer type that has access to a risky asset with lognormal returns
+    that are possibly correlated with his income shocks.
+    Investment into the risky asset happens through a "share" that represents
+    either
+    - The share of the agent's total resources allocated to the risky asset.
+    - The share of income that the agent diverts to the risky asset
+    depending on the model.
+    There is a friction that prevents the agent from adjusting this share with
+    an exogenously given probability.
+    """
+    poststate_vars_ = ['aNrmNow', 'pLvlNow', 'ShareNow', 'AdjustNow']
+    time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
+    time_inv_ = time_inv_ + ['AdjustPrb', 'DiscreteShareBool']
+
+    def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
+        params = init_risky.copy()
+        params.update(kwds)
+        kwds = params
+
+        # Initialize a basic consumer type
+        IndShockConsumerType.__init__(
+            self,
+            cycles=cycles,
+            verbose=verbose,
+            quiet=quiet,
+            **kwds
+        )
+
+        self.update()
+
+
+    def preSolve(self):
+        AgentType.preSolve(self)
+        self.updateSolutionTerminal()
+
+
+    def update(self):
+        IndShockConsumerType.update(self)
+        self.updateRiskyDstn()
+        self.updateShockDstn()
+        self.updateShareGrid()
+
+    def updateRiskyDstn(self):
+        '''
+        Creates the attributes RiskyDstn from the primitive attributes RiskyAvg,
+        RiskyStd, and RiskyCount, approximating the (perceived) distribution of
+        returns in each period of the cycle.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        # Determine whether this instance has time-varying risk perceptions
+        if (type(self.RiskyAvg) is list) and (type(self.RiskyStd) is list) and (len(self.RiskyAvg) == len(self.RiskyStd)) and (len(self.RiskyAvg) == self.T_cycle):
+            self.addToTimeVary('RiskyAvg','RiskyStd')
+        elif (type(self.RiskyStd) is list) or (type(self.RiskyAvg) is list):
+            raise AttributeError('If RiskyAvg is time-varying, then RiskyStd must be as well, and they must both have length of T_cycle!')
+        else:
+            self.addToTimeInv('RiskyAvg','RiskyStd')
+
+        # Generate a discrete approximation to the risky return distribution if the
+        # agent has age-varying beliefs about the risky asset
+        if 'RiskyAvg' in self.time_vary:
+            RiskyDstn = []
+            for t in range(self.T_cycle):
+                RiskyAvgSqrd = self.RiskyAvg[t] ** 2
+                RiskyVar = self.RiskyStd[t] ** 2
+                mu = np.log(self.RiskyAvg[t] / (np.sqrt(1. + RiskyVar / RiskyAvgSqrd)))
+                sigma = np.sqrt(np.log(1. + RiskyVar / RiskyAvgSqrd))
+                RiskyDstn.append(Lognormal(mu=mu, sigma=sigma).approx(self.RiskyCount))
+            self.RiskyDstn = RiskyDstn
+            self.addToTimeVary('RiskyDstn')
+
+        # Generate a discrete approximation to the risky return distribution if the
+        # agent does *not* have age-varying beliefs about the risky asset (base case)
+        else:
+            RiskyAvgSqrd = self.RiskyAvg ** 2
+            RiskyVar = self.RiskyStd ** 2
+            mu = np.log(self.RiskyAvg / (np.sqrt(1. + RiskyVar / RiskyAvgSqrd)))
+            sigma = np.sqrt(np.log(1. + RiskyVar / RiskyAvgSqrd))
+            self.RiskyDstn = Lognormal(mu=mu, sigma=sigma).approx(self.RiskyCount)
+            self.addToTimeInv('RiskyDstn')
+
+
+    def updateShockDstn(self):
+        '''
+        Combine the income shock distribution (over PermShk and TranShk) with the
+        risky return distribution (RiskyDstn) to make a new attribute called ShockDstn.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        if 'RiskyDstn' in self.time_vary:
+            self.ShockDstn = [combineIndepDstns(self.IncomeDstn[t], self.RiskyDstn[t]) for t in range(self.T_cycle)]
+        else:
+            self.ShockDstn = [combineIndepDstns(self.IncomeDstn[t], self.RiskyDstn) for t in range(self.T_cycle)]
+        self.addToTimeVary('ShockDstn')
+
+        # Mark whether the risky returns and income shocks are independent (they are)
+        self.IndepDstnBool = True
+        self.addToTimeInv('IndepDstnBool')
+
+
+    def updateShareGrid(self):
+        '''
+        Creates the attribute ShareGrid as an evenly spaced grid on [0.,1.], using
+        the primitive parameter ShareCount.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        self.ShareGrid = np.linspace(0.,1.,self.ShareCount)
+        self.addToTimeInv('ShareGrid')
+
+
+    def getRisky(self):
+        '''
+        Sets the attribute RiskyNow as a single draw from a lognormal distribution.
+        Uses the attributes RiskyAvgTrue and RiskyStdTrue if RiskyAvg is time-varying,
+        else just uses the single values from RiskyAvg and RiskyStd.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        if 'RiskyDstn' in self.time_vary:
+            RiskyAvg = self.RiskyAvgTrue
+            RiskyStd = self.RiskyStdTrue
+        else:
+            RiskyAvg = self.RiskyAvg
+            RiskyStd = self.RiskyStd
+        RiskyAvgSqrd = RiskyAvg**2
+        RiskyVar = RiskyStd**2
+
+        mu = np.log(RiskyAvg / (np.sqrt(1. + RiskyVar / RiskyAvgSqrd)))
+        sigma = np.sqrt(np.log(1. + RiskyVar / RiskyAvgSqrd))
+        self.RiskyNow = Lognormal(mu, sigma, seed=self.RNG.randint(0, 2**31-1)).draw(1)
+
+
+    def getAdjust(self):
+        '''
+        Sets the attribute AdjustNow as a boolean array of size AgentCount, indicating
+        whether each agent is able to adjust their risky portfolio share this period.
+        Uses the attribute AdjustPrb to draw from a Bernoulli distribution.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        self.AdjustNow = Bernoulli(self.AdjustPrb, seed=self.RNG.randint(0, 2**31-1)).draw(self.AgentCount)
+
+
+    def initializeSim(self):
+        '''
+        Initialize the state of simulation attributes.  Simply calls the same method
+        for IndShockConsumerType, then sets the type of AdjustNow to bool.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.initializeSim(self)
+        self.AdjustNow = self.AdjustNow.astype(bool)
+
+
+    def simBirth(self,which_agents):
+        '''
+        Create new agents to replace ones who have recently died; takes draws of
+        initial aNrm and pLvl, as in ConsIndShockModel, then sets Share and Adjust
+        to zero as initial values.
+        Parameters
+        ----------
+        which_agents : np.array
+            Boolean array of size AgentCount indicating which agents should be "born".
+
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.simBirth(self,which_agents)
+        self.ShareNow[which_agents] = 0.
+        self.AdjustNow[which_agents] = False
+
+
+    def getShocks(self):
+        '''
+        Draw idiosyncratic income shocks, just as for IndShockConsumerType, then draw
+        a single common value for the risky asset return.  Also draws whether each
+        agent is able to update their risky asset share this period.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        IndShockConsumerType.getShocks(self)
+        self.getRisky()
+        self.getAdjust()
+
+
 # Define a class to represent the single period solution of the portfolio choice problem
 class RiskyContribSolution(Solution):
     '''
@@ -811,27 +1042,26 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     )
     
     
-# Make a dictionary to specify a portfolio choice consumer type
-init_riskyContrib = init_idiosyncratic_shocks.copy()
-init_riskyContrib['RiskyAvg']        = 1.08 # Average return of the risky asset
-init_riskyContrib['RiskyStd']        = 0.20 # Standard deviation of (log) risky returns
-init_riskyContrib['RiskyCount']      = 4    # Number of integration nodes to use in approximation of risky returns
-init_riskyContrib['ShareCount']      = 25   # Number of discrete points in the risky share approximation
-init_riskyContrib['AdjustPrb']       = 1.0  # Probability that the agent can adjust their risky portfolio share each period
-init_riskyContrib['DiscreteShareBool'] = False # Flag for whether to optimize risky share on a discrete grid only
+# Make a dictionary to specify a risky asset consumer type
+init_risky = init_idiosyncratic_shocks.copy()
+init_risky['RiskyAvg']        = 1.08 # Average return of the risky asset
+init_risky['RiskyStd']        = 0.20 # Standard deviation of (log) risky returns
+init_risky['RiskyCount']      = 5    # Number of integration nodes to use in approximation of risky returns
+init_risky['ShareCount']      = 25   # Number of discrete points in the risky share approximation
+init_risky['AdjustPrb']       = 1.0  # Probability that the agent can adjust their risky portfolio share each period
+init_risky['DiscreteShareBool'] = False # Flag for whether to optimize risky share on a discrete grid only
 
 # Adjust some of the existing parameters in the dictionary
-init_riskyContrib['aXtraMax']        = 10   # Make the grid of assets go much higher...
-init_riskyContrib['aXtraCount']      = 100  # ...and include many more gridpoints...
-init_riskyContrib['aXtraNestFac']    = 1    # ...which aren't so clustered at the bottom
+init_risky['aXtraMax']        = 100  # Make the grid of assets go much higher...
+init_risky['aXtraCount']      = 200  # ...and include many more gridpoints...
+init_risky['aXtraNestFac']    = 1    # ...which aren't so clustered at the bottom
+init_risky['BoroCnstArt']     = 0.0  # Artificial borrowing constraint must be turned on
+init_risky['CRRA']            = 5.0  # Results are more interesting with higher risk aversion
+init_risky['DiscFac']         = 0.90 # And also lower patience
+
+# Make a dictionary for a risky-contribution consumer type
+init_riskyContrib = init_risky.copy()
 init_riskyContrib['nNrmMin']         = 1e-6 # Use the same parameters for the risky asset grid
 init_riskyContrib['nNrmMax']         = 10
 init_riskyContrib['nNrmCount']       = 100  #
 init_riskyContrib['nNrmNestFac']     = 1    #
-init_riskyContrib['BoroCnstArt']     = 0.0  # Artificial borrowing constraint must be turned on
-init_riskyContrib['CRRA']            = 5.0  # Results are more interesting with higher risk aversion
-init_riskyContrib['DiscFac']         = 0.90 # And also lower patience
-
-init_riskyContrib['PermShkCount'] = 2
-init_riskyContrib['TranShkCount'] = 3
-init_riskyContrib['UnempPrb'] = 0.0
