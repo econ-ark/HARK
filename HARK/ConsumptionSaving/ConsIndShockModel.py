@@ -1447,7 +1447,8 @@ class PerfForesightConsumerType(AgentType):
                                             MPCmin=1.0, MPCmax=1.0)
     time_vary_ = ['LivPrb','PermGroFac']
     time_inv_  = ['CRRA','Rfree','DiscFac','MaxKinks','BoroCnstArt']
-    poststate_vars_ = ['aNrmNow','pLvlNow']
+    state_vars_     = ['pLvlNow', 'PlvlAggNow', 'bNrmNow', 'mNrmNow'] 
+    poststate_vars_ = ['aNrmNow','aLvlNow']
     shock_vars_ = []
 
     def __init__(self,
@@ -1482,6 +1483,7 @@ class PerfForesightConsumerType(AgentType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary      = deepcopy(self.time_vary_)
         self.time_inv       = deepcopy(self.time_inv_)
+        self.state_vars = {var : None for var in self.state_vars_}
         self.poststate_vars = deepcopy(self.poststate_vars_)
         self.shock_vars     = deepcopy(self.shock_vars_)
         self.verbose        = verbose
@@ -1550,7 +1552,7 @@ class PerfForesightConsumerType(AgentType):
 
 
     def initializeSim(self):
-        self.PlvlAggNow = 1.0
+        self.state_vars['PlvlAggNow'] = 1.0
         self.PermShkAggNow = self.PermGroFacAgg # This never changes during simulation
         AgentType.initializeSim(self)
 
@@ -1576,8 +1578,8 @@ class PerfForesightConsumerType(AgentType):
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
             seed=self.RNG.randint(0,2**31-1)).draw(N)
-        pLvlInitMeanNow = self.pLvlInitMean + np.log(self.PlvlAggNow) # Account for newer cohorts having higher permanent income
-        self.pLvlNow[which_agents] = Lognormal(
+        pLvlInitMeanNow = self.pLvlInitMean + np.log(self.state_vars['PlvlAggNow']) # Account for newer cohorts having higher permanent income
+        self.state_vars['pLvlNow'][which_agents] = Lognormal(
             pLvlInitMeanNow,
             self.pLvlInitStd,
             seed=self.RNG.randint(0,2**31-1)).draw(N)
@@ -1644,30 +1646,21 @@ class PerfForesightConsumerType(AgentType):
         RfreeNow = self.Rfree*np.ones(self.AgentCount)
         return RfreeNow
 
-    def getStates(self):
-        '''
-        Calculates updated values of normalized market resources and permanent income level for each
-        agent.  Uses pLvlNow, aNrmNow, PermShkNow, TranShkNow.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        '''
+    def transition(self):
         pLvlPrev = self.pLvlNow
         aNrmPrev = self.aNrmNow
         RfreeNow = self.getRfree()
 
         # Calculate new states: normalized market resources and permanent income level
-        self.pLvlNow = pLvlPrev*self.PermShkNow # Updated permanent income level
-        self.PlvlAggNow = self.PlvlAggNow*self.PermShkAggNow # Updated aggregate permanent productivity level
+        pLvlNow = pLvlPrev*self.PermShkNow # Updated permanent income level
+        PlvlAggNow = self.state_vars['PlvlAggNow']*self.PermShkAggNow # Updated aggregate permanent productivity level
         ReffNow      = RfreeNow/self.PermShkNow # "Effective" interest factor on normalized assets
-        self.bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
-        self.mNrmNow = self.bNrmNow + self.TranShkNow # Market resources after income
-        return None
+        bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
+        mNrmNow = bNrmNow + self.TranShkNow # Market resources after income
+
+
+        return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow
+
 
     def getControls(self):
         '''
@@ -1685,7 +1678,9 @@ class PerfForesightConsumerType(AgentType):
         MPCnow  = np.zeros(self.AgentCount) + np.nan
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            cNrmNow[these], MPCnow[these] = self.solution[t].cFunc.eval_with_derivative(self.mNrmNow[these])
+            cNrmNow[these], MPCnow[these] = self.solution[t].cFunc.eval_with_derivative(
+                self.state_vars['mNrmNow'][these]
+            )
         self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow
         return None
@@ -1702,8 +1697,9 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         '''
-        self.aNrmNow = self.mNrmNow - self.cNrmNow
-        self.aLvlNow = self.aNrmNow*self.pLvlNow   # Useful in some cases to precalculate asset level
+        self.aNrmNow = self.state_vars['mNrmNow'] - self.cNrmNow
+
+        self.aLvlNow = self.aNrmNow*self.state_vars['pLvlNow']   # Useful in some cases to precalculate asset level
         return None
 
     def checkCondition(self,
