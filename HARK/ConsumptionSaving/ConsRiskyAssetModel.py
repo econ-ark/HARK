@@ -480,40 +480,65 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         -------
         None
         '''
-        # Consume all market resources: c_T = m_T + n_T
-        # TODO: use HARK's interpolation objects definitions (like IdentityFunction, etc)
-        cFuncAdj_terminal = lambda m, n: m + n
-        cFuncFxd_terminal = lambda m, n, s: m + n
         
-        # Risky share is irrelevant-- no end-of-period assets; set to zero
-        ShareFuncAdj_terminal = ConstantFunction(0.)
-        ShareFuncFxd_terminal = IdentityFunction(i_dim=2, n_dims=3)
+        # Consumption functions: consume all liquid resources
+        cFuncAdj_term = IdentityFunction(i_dim=0, n_dims=2)
+        cFuncFxd_term = IdentityFunction(i_dim=0, n_dims=3)
         
-        # Value function is simply utility from consuming market resources
-        # TODO: use HARK's ValueFunc objects
-        vFuncAdj_terminal = lambda m, n: utility(cFuncAdj_terminal(m,n), self.CRRA) 
-        vFuncFxd_terminal = lambda m, n, s: utility(cFuncFxd_terminal(m,n,s), self.CRRA)
+        # Share functions: irrelevant, set to 0 if possible to adjust
+        ShareFuncAdj_term = ConstantFunction(0.)
+        ShareFuncFxd_term = IdentityFunction(i_dim=2, n_dims=3),
         
-        # Marginal value of market resources is marg utility at the consumption function
-        dvdmFuncAdj_terminal = lambda m, n: utilityP(cFuncAdj_terminal(m,n), self.CRRA)
-        dvdnFuncAdj_terminal = lambda m, n: utilityP(cFuncAdj_terminal(m,n), self.CRRA)
-        dvdmFuncFxd_terminal = lambda m, n, s: utilityP(cFuncFxd_terminal(m,n,s), self.CRRA)
-        dvdnFuncFxd_terminal = lambda m, n, s: utilityP(cFuncFxd_terminal(m,n,s), self.CRRA)
-        dvdsFuncFxd_terminal = ConstantFunction(0.) # No future, no marg value of Share
+        # Adjustment function: irrelevant, set to 0 if possible to adjust
+        DFuncAdj_term = ConstantFunction(0.)
+        DFuncFxd_term = ConstantFunction(0.)
+        
+        # Value function if possible to adjust and derivatives
+        vFuncAdj_term = lambda m, n: utility(cFuncAdj_term(m,n), self.CRRA)
+        dvdmFuncAdj_term = lambda m, n: utilityP(cFuncAdj_term(m,n), self.CRRA)
+        dvdnFuncAdj_term = ConstantFunction(0.)
+        
+        # Post-consumption value function and derivatives of the adjusting
+        # agent.
+        # No utility flows after consumption.
+        vFuncAdj2_term = ConstantFunction(0.),
+        dvdaFuncAdj2_term = ConstantFunction(0.),
+        dvdnFuncAdj2_term = ConstantFunction(0.)
+        
+        # Post-rebalancing value function and derivatives of the adjusting
+        # agent.
+        # No utility flows after consumption.
+        vFuncAdj3_term = ConstantFunction(0.),
+        dvdaFuncAdj3_term = ConstantFunction(0.),
+        dvdnFuncAdj3_term = ConstantFunction(0.)
+        
+        # Value function if not possible to adjust, and derivatives
+        vFuncFxd_term = lambda m, n, s: utility(cFuncFxd_term(m,n,s), self.CRRA)
+        dvdmFuncFxd_term = lambda m, n, s: utilityP(cFuncFxd_term(m,n,s), self.CRRA)
+        dvdnFuncFxd_term = ConstantFunction(0.)
+        dvdsFuncFxd_term = ConstantFunction(0.)
         
         # Construct the terminal period solution
         self.solution_terminal = RiskyContribSolution(
-                cFuncAdj     = cFuncAdj_terminal,
-                ShareFuncAdj = ShareFuncAdj_terminal,
-                vFuncAdj     = vFuncAdj_terminal,
-                dvdmFuncAdj  = dvdmFuncAdj_terminal,
-                dvdnFuncAdj  = dvdnFuncAdj_terminal,
-                cFuncFxd     = cFuncFxd_terminal,
-                ShareFuncFxd = ShareFuncFxd_terminal,
-                vFuncFxd     = vFuncFxd_terminal,
-                dvdmFuncFxd  = dvdmFuncFxd_terminal,
-                dvdnFuncFxd  = dvdnFuncFxd_terminal,
-                dvdsFuncFxd  = dvdsFuncFxd_terminal
+            cFuncAdj = cFuncAdj_term,
+            ShareFuncAdj = ShareFuncAdj_term,
+            DFuncAdj = DFuncAdj_term,
+            vFuncAdj = vFuncAdj_term,
+            dvdmFuncAdj = dvdmFuncAdj_term,
+            dvdnFuncAdj = dvdnFuncAdj_term,
+            vFuncAdj2 = vFuncAdj2_term,
+            dvdaFuncAdj2 = dvdaFuncAdj2_term,
+            dvdnFuncAdj2 = dvdnFuncAdj2_term,
+            vFuncAdj3 = vFuncAdj3_term,
+            dvdaFuncAdj3 = dvdaFuncAdj3_term,
+            dvdnFuncAdj3 = dvdnFuncAdj3_term,
+            cFuncFxd = cFuncFxd_term,
+            ShareFuncFxd = ShareFuncFxd_term,
+            DFuncFxd = DFuncFxd_term,
+            vFuncFxd = vFuncFxd_term,
+            dvdmFuncFxd = dvdmFuncFxd_term,
+            dvdnFuncFxd = dvdnFuncFxd_term,
+            dvdsFuncFxd = dvdsFuncFxd_term
         )
         
         
