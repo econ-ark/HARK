@@ -209,6 +209,7 @@ class AgentType(HARKobject):
         self.tolerance          = tolerance # NOQA
         self.seed               = seed # NOQA
         self.track_vars         = [] # NOQA
+        self.state_vars     = {}
         self.poststate_vars     = [] # NOQA
         self.read_shocks        = False # NOQA
         self.history            = {}
@@ -415,6 +416,8 @@ class AgentType(HARKobject):
         self.t_sim = 0
         all_agents = np.ones(self.AgentCount, dtype=bool)
         blank_array = np.zeros(self.AgentCount)
+        for var in self.state_vars:
+            self.state_vars[var] = copy(blank_array)
         for var_name in self.poststate_vars:
             setattr(self, var_name, copy(blank_array))
         self.t_age = np.zeros(self.AgentCount, dtype=int)    # Number of periods since agent entry
@@ -606,7 +609,32 @@ class AgentType(HARKobject):
         -------
         None
         '''
+
+        endogenous_state = self.transition()
+
+        for i, var in enumerate(self.state_vars):
+            self.state_vars[var] = endogenous_state[i]
+
         return None
+
+    def transition(self):
+        '''
+
+        Parameters
+        ----------
+        None
+ 
+        [Eventually, to match dolo spec:
+        exogenous_prev, endogenous_prev, controls, exogenous, parameters]
+
+        Returns
+        -------
+
+        endogenous_state: ()
+            Tuple with new values of the endogenous states
+        '''
+
+        return ()
 
     def getControls(self):
         '''
@@ -679,7 +707,10 @@ class AgentType(HARKobject):
             for t in range(sim_periods):
                 self.simOnePeriod()
                 for var_name in self.track_vars:
-                    self.history[var_name][self.t_sim,:] = getattr(self,var_name)
+                    if var_name in self.state_vars:
+                        self.history[var_name][self.t_sim,:] = self.state_vars[var_name]
+                    else:
+                        self.history[var_name][self.t_sim,:] = getattr(self,var_name)
                 self.t_sim += 1
 
     def clearHistory(self):
