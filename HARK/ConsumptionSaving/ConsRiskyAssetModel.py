@@ -368,7 +368,7 @@ class RiskyContribSolution(Solution):
         # Change any missing function inputs to NullFunc
         if cFuncAdj is None:
             cFuncAdj = NullFunc()
-        if ShareFuncAdj in None:
+        if ShareFuncAdj is None:
             ShareFuncAdj = NullFunc()
         if DFuncAdj is None:
             DFuncAdj = NullFunc()
