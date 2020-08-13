@@ -279,6 +279,10 @@ class RiskyContribSolution(Solution):
     ShareFuncAdj : Interp2D
         Income share function over normalized market resources and iliquid assets when
         the agent is able to adjust their contribution share.
+    DFuncAdj: Interp2D
+        Policy function for the flow from the liquid to the iliquid stock of
+        assets.
+    
     vFuncAdj : ValueFunc2D
         Value function over normalized market resources and iliquid assets when
         the agent is able to adjust their contribution share.
@@ -288,6 +292,25 @@ class RiskyContribSolution(Solution):
     dvdnFuncAdj : MargValueFunc2D
         Marginal value of nNrm function over normalized market resources and iliquid assets
         when the agent is able to adjust their contribution share.
+    
+    vFuncAdj2 : ValueFunc2D
+        Stage value function for the sub-period that starts after the agent
+        decides his consumption. Over normalized post-consumption liquid
+        resources and iliquid assets.
+    dvdaFuncAdj2 : MargValueFunc2D
+        Derivative of vFuncAdj2 with respect to liquid resources.
+    dvdnFuncAdj2 : MargValueFunc2D
+        Derivative of vFuncAdj2 with respect to iliquid assets.
+    
+    vFuncAdj3 : ValueFunc2D
+        Stage value function for the sub-period that starts after the agent
+        rebalances his assets' allocation. Over normalized end-of-period liquid
+        resources and iliquid assets.
+    dvdaFuncAdj3 : MargValueFunc2D
+        Derivative of vFuncAdj3 with respect to liquid resources.
+    dvdnFuncAdj3 : MargValueFunc2D
+        Derivative of vFuncAdj3 with respect to iliquid assets.
+    
     cFuncFxd : Interp3D
         Consumption function over normalized market resources, iliquid assets and income
         contribution share when the agent is NOT able to adjust their contribution share.
@@ -295,6 +318,11 @@ class RiskyContribSolution(Solution):
         Income share function over normalized market resources, iliquid assets and
         contribution share when the agent is NOT able to adjust their contribution share.
         This should always be an IdentityFunc, by definition.
+    dFuncFxd: Interp2D
+        Policy function for the flow from the liquid to the iliquid stock of
+        assets when the agent is NOT able to adjust their contribution share.
+        Should always be 0 by definition.
+        
     vFuncFxd : ValueFunc3D
         Value function over normalized market resources, iliquid assets and income contribution
         share when the agent is NOT able to adjust their contribution share.
@@ -306,69 +334,100 @@ class RiskyContribSolution(Solution):
         Marginal value of nNrm function over normalized market resources, iliquid assets
         and income contribution share share when the agent is NOT able to adjust 
         their contribution share.
-    dvdsFuncFxd : MargValueFunc2D
+    dvdsFuncFxd : MargValueFunc3D
         Marginal value of contribution share function over normalized market resources,
         iliquid assets and income contribution share when the agent is NOT able to adjust
         their contribution share.
-    mNrmMin
     '''
     
     # TODO: what does this do?
     distance_criteria = ['vPfuncAdj']
 
     def __init__(self,
-        cFuncAdj=None,
-        ShareFuncAdj=None,
-        vFuncAdj=None,
-        dvdmFuncAdj=None,
-        dvdnFuncAdj=None,
-        cFuncFxd=None,
-        ShareFuncFxd=None,
-        vFuncFxd=None,
-        dvdmFuncFxd=None,
-        dvdnFuncFxd=None,
-        dvdsFuncFxd=None
+        cFuncAdj = None,
+        ShareFuncAdj = None,
+        DFuncAdj = None,
+        vFuncAdj = None,
+        dvdmFuncAdj = None,
+        dvdnFuncAdj = None,
+        vFuncAdj2 = None,
+        dvdaFuncAdj2 = None,
+        dvdnFuncAdj2 = None,
+        vFuncAdj3 = None,
+        dvdaFuncAdj3 = None,
+        dvdnFuncAdj3 = None,
+        cFuncFxd = None,
+        ShareFuncFxd = None,
+        DFuncFxd = None,
+        vFuncFxd = None,
+        dvdmFuncFxd = None,
+        dvdnFuncFxd = None,
+        dvdsFuncFxd = None
     ):
 
         # Change any missing function inputs to NullFunc
         if cFuncAdj is None:
             cFuncAdj = NullFunc()
-        if cFuncFxd is None:
-            cFuncFxd = NullFunc()
-        if ShareFuncAdj is None:
+        if ShareFuncAdj in None:
             ShareFuncAdj = NullFunc()
-        if ShareFuncFxd is None:
-            ShareFuncFxd = NullFunc()
+        if DFuncAdj is None:
+            DFuncAdj = NullFunc()
         if vFuncAdj is None:
             vFuncAdj = NullFunc()
-        if vFuncFxd is None:
-            vFuncFxd = NullFunc()
         if dvdmFuncAdj is None:
             dvdmFuncAdj = NullFunc()
-        if dvdmFuncFxd is None:
-            dvdmFuncFxd = NullFunc()
         if dvdnFuncAdj is None:
             dvdnFuncAdj = NullFunc()
+        if vFuncAdj2 is None:
+            vFuncAdj2 = NullFunc()
+        if dvdaFuncAdj2 is None:
+            dvdaFuncAdj2 = NullFunc()
+        if dvdnFuncAdj2 is None:
+            dvdnFuncAdj2 = NullFunc()
+        if vFuncAdj3 is None:
+            vFuncAdj3 = NullFunc()
+        if dvdaFuncAdj3 is None:
+            dvdaFuncAdj3 = NullFunc()
+        if dvdnFuncAdj3 is None:
+            dvdnFuncAdj3 = NullFunc()
+        if cFuncFxd is None:
+            cFuncFxd = NullFunc()
+        if ShareFuncFxd is None:
+            ShareFuncFxd = NullFunc()
+        if DFuncFxd is None:
+            DFuncFxd = NullFunc()
+        if vFuncFxd is None:
+            vFuncFxd = NullFunc()
+        if dvdmFuncFxd is None:
+            dvdmFuncFxd = NullFunc()
         if dvdnFuncFxd is None:
             dvdnFuncFxd = NullFunc()
         if dvdsFuncFxd is None:
             dvdsFuncFxd = NullFunc()
-            
+        
         # Set attributes of self
         self.cFuncAdj = cFuncAdj
-        self.cFuncFxd = cFuncFxd
         self.ShareFuncAdj = ShareFuncAdj
-        self.ShareFuncFxd = ShareFuncFxd
+        self.DFuncAdj = DFuncAdj
         self.vFuncAdj = vFuncAdj
-        self.vFuncFxd = vFuncFxd
         self.dvdmFuncAdj = dvdmFuncAdj
-        self.dvdmFuncFxd = dvdmFuncFxd
         self.dvdnFuncAdj = dvdnFuncAdj
+        self.vFuncAdj2 = vFuncAdj2
+        self.dvdaFuncAdj2 = dvdaFuncAdj2
+        self.dvdnFuncAdj2 = dvdnFuncAdj2
+        self.vFuncAdj3 = vFuncAdj3
+        self.dvdaFuncAdj3 = dvdaFuncAdj3
+        self.dvdnFuncAdj3 = dvdnFuncAdj3
+        self.cFuncFxd = cFuncFxd
+        self.ShareFuncFxd = ShareFuncFxd
+        self.DFuncFxd = DFuncFxd
+        self.vFuncFxd = vFuncFxd
+        self.dvdmFuncFxd = dvdmFuncFxd
         self.dvdnFuncFxd = dvdnFuncFxd
         self.dvdsFuncFxd = dvdsFuncFxd
         
         
-class RiskyContribConsumerType(IndShockConsumerType):
+class RiskyContribConsumerType(RiskyAssetConsumerType):
     """
     TODO: model description
     """
