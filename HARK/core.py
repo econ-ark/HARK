@@ -224,6 +224,7 @@ class AgentType(HARKobject):
         self.tolerance = tolerance  # NOQA
         self.seed = seed  # NOQA
         self.track_vars = []  # NOQA
+	self.state_vars     = {}
         self.shocks = {}
         self.poststate_vars = []  # NOQA
         self.read_shocks = False  # NOQA
@@ -440,6 +441,8 @@ class AgentType(HARKobject):
         self.t_sim = 0
         all_agents = np.ones(self.AgentCount, dtype=bool)
         blank_array = np.zeros(self.AgentCount)
+        for var in self.state_vars:
+            self.state_vars[var] = copy(blank_array)
         for var_name in self.poststate_vars:
             setattr(self, var_name, copy(blank_array))
         self.t_age = np.zeros(
@@ -551,7 +554,7 @@ class AgentType(HARKobject):
         Returns
         -------
         None
-        """
+        '''
         if self.read_shocks:
             who_dies = self.shock_history["who_dies"][self.t_sim, :]
         else:
@@ -648,6 +651,25 @@ class AgentType(HARKobject):
         """
         return None
 
+    def transition(self):
+        '''
+
+        Parameters
+        ----------
+        None
+ 
+        [Eventually, to match dolo spec:
+        exogenous_prev, endogenous_prev, controls, exogenous, parameters]
+
+        Returns
+        -------
+
+        endogenous_state: ()
+            Tuple with new values of the endogenous states
+        '''
+
+        return ()
+
     def getControls(self):
         """
         Gets values of control variables for the current period, probably by using current states.
@@ -676,11 +698,11 @@ class AgentType(HARKobject):
         Returns
         -------
         None
-        """
+        '''
         return None
 
     def simulate(self, sim_periods=None):
-        """
+        '''
         Simulates this agent type for a given number of periods. Defaults to
         self.T_sim if no input.
         Records histories of attributes named in self.track_vars in
@@ -726,7 +748,9 @@ class AgentType(HARKobject):
             for t in range(sim_periods):
                 self.simOnePeriod()
                 for var_name in self.track_vars:
-                    if var_name in self.shock_vars:
+                    if var_name in self.state_vars:
+                        self.history[var_name][self.t_sim,:] = self.state_vars[var_name]
+                    elif var_name in self.shock_vars:
                         self.history[var_name][self.t_sim, :] = self.shocks[var_name]
                     else:
                         self.history[var_name][self.t_sim, :] = getattr(self, var_name)
@@ -1032,17 +1056,17 @@ class Market(HARKobject):
         const_vars = const_vars if const_vars is not None else list()  # NOQA
         self.const_vars = dict([(var, None) for var in const_vars])
 
-        self.track_vars = track_vars if track_vars is not None else list()  # NOQA
-        self.dyn_vars = dyn_vars if dyn_vars is not None else list()  # NOQA
+        self.track_vars = track_vars if track_vars is not None else list() # NOQA
+        self.dyn_vars   = dyn_vars if dyn_vars is not None else list() # NOQA
 
         if millRule is not None:  # To prevent overwriting of method-based millRules
             self.millRule = millRule
         if calcDynamics is not None:  # Ditto for calcDynamics
             self.calcDynamics = calcDynamics
-        self.act_T = act_T  # NOQA
-        self.tolerance = tolerance  # NOQA
-        self.max_loops = 1000  # NOQA
-        self.history = {}
+        self.act_T     = act_T # NOQA
+        self.tolerance = tolerance # NOQA
+        self.max_loops = 1000 # NOQA
+        self.history            = {}
         self.assignParameters(**kwds)
 
         self.print_parallel_error_once = True
@@ -1063,7 +1087,7 @@ class Market(HARKobject):
         None
         """
         try:
-            multiThreadCommands(self.agents, ["solve()"])
+            multiThreadCommands(self.agents, ['solve()'])
         except Exception as err:
             if self.print_parallel_error_once:
                 # Set flag to False so this is only printed once.
