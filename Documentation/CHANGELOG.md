@@ -10,7 +10,7 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ### 0.10.7
 
-Release Date: XX-XX-2020
+Release Date: 08-08-2020
 
 #### Major Changes
 
@@ -21,6 +21,7 @@ Release Date: XX-XX-2020
 
 #### Minor Changes 
 
+- unpackcFunc is deprecated, use unpack(parameter) to unpack a parameter after solving the model [#784](https://github.com/econ-ark/HARK/pull/784)
 - Remove deprecated Solution Class, use HARKObject across the codebase [#772](https://github.com/econ-ark/HARK/pull/772)
 - Add option to find crossing points in the envelope step of DCEGM algorithm [#758](https://github.com/econ-ark/HARK/pull/758)
 - Fix reset bug in the behaviour of AgentType.resetRNG(), implemented individual resetRNG methods for AgentTypes [#757](https://github.com/econ-ark/HARK/pull/757)

@@ -1,6 +1,30 @@
-"""
-Example implementations of the intensive margin labor supply model in ConsLaborModel.py.
-"""
+# ---
+# jupyter:
+#   jupytext:
+#     cell_metadata_filter: -all
+#     formats: ipynb,py:light
+#     notebook_metadata_filter: all
+#     text_representation:
+#       extension: .py
+#       format_name: light
+#       format_version: '1.4'
+#       jupytext_version: 1.2.3
+#   kernelspec:
+#     display_name: Python 3
+#     language: python
+#     name: python3
+#   language_info:
+#     codemirror_mode:
+#       name: ipython
+#       version: 3
+#     file_extension: .py
+#     mimetype: text/x-python
+#     name: python
+#     nbconvert_exporter: python
+#     pygments_lexer: ipython3
+#     version: 3.7.6
+# ---
+
 from HARK.ConsumptionSaving.ConsLaborModel import (
     LaborIntMargConsumerType,
     init_labor_lifecycle,
@@ -151,8 +175,6 @@ if do_simulation:
     plt.ylim(0.0, 1.0)
     plt.show()
 
-###############################################################################
-
 # Make and solve a labor intensive margin consumer with a finite lifecycle
 LifecycleExample = LaborIntMargConsumerType(**init_labor_lifecycle)
 LifecycleExample.cycles = (
@@ -167,7 +189,7 @@ print(
     + str(end_time - start_time)
     + " seconds."
 )
-LifecycleExample.unpackcFunc()
+LifecycleExample.unpack('cFunc')
 
 bMax = 20.0
 
