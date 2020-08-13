@@ -3,15 +3,26 @@
 #   jupytext:
 #     cell_metadata_filter: collapsed,code_folding,heading_collapsed,hidden
 #     formats: ipynb,py:percent
+#     notebook_metadata_filter: all
 #     text_representation:
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.2.4
+#       jupytext_version: 1.2.3
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
 #     name: python3
+#   language_info:
+#     codemirror_mode:
+#       name: ipython
+#       version: 3
+#     file_extension: .py
+#     mimetype: text/x-python
+#     name: python
+#     nbconvert_exporter: python
+#     pygments_lexer: ipython3
+#     version: 3.7.6
 # ---
 
 # %% [markdown]
@@ -21,8 +32,6 @@
 # %% {"code_folding": [0]}
 # Initial imports and notebook setup, click arrow to show
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
-import HARK.logger as logger
-logger.verbose()
 from HARK.utilities import plotFuncsDer, plotFuncs
 from time import clock
 import matplotlib.pyplot as plt
@@ -347,7 +356,7 @@ print('Solution has', len(LifecycleExample.solution),'elements.')
 # %%
 print('Consumption functions across the lifecycle:')
 mMin = np.min([LifecycleExample.solution[t].mNrmMin for t in range(LifecycleExample.T_cycle)])
-LifecycleExample.unpackcFunc() # This makes all of the cFuncs accessible in the attribute cFunc
+LifecycleExample.unpack('cFunc') # This makes all of the cFuncs accessible in the attribute cFunc
 plotFuncs(LifecycleExample.cFunc,mMin,5)
 
 # %% [markdown]
@@ -412,12 +421,10 @@ CyclicalExample = IndShockConsumerType(**CyclicalDict)
 CyclicalExample.cycles = 0 # Make this consumer type have an infinite horizon
 CyclicalExample.solve()
 
-CyclicalExample.unpackcFunc()
+CyclicalExample.unpack('cFunc')
 print('Quarterly consumption functions:')
 mMin = min([X.mNrmMin for X in CyclicalExample.solution])
 plotFuncs(CyclicalExample.cFunc,mMin,5)
 
 # %% [markdown]
 # The very low green consumption function corresponds to the quarter in which the ski instructors make most of their income.  They know that they are about to experience a 70% drop in "permanent" income, so they do not consume much *relative to their income this quarter*.  In the other three quarters, *normalized* consumption is much higher, as current "permanent" income is low relative to future expectations.  In *level*, the consumption chosen in each quarter is much more similar
-
-# %%
