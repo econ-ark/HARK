@@ -12,7 +12,6 @@ import numpy as np
 
 
 class testsForDiscreteChoice(unittest.TestCase):
-
     def setUp(self):
         self.Vs2D = np.stack((np.zeros(3), np.ones(3)))
         self.Vref2D = np.array([1.0, 1.0, 1.0])

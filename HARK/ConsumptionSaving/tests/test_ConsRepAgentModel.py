@@ -5,16 +5,15 @@ from HARK.ConsumptionSaving.ConsRepAgentModel import (
 import numpy as np
 import unittest
 
-class testRepAgentConsumerType(unittest.TestCase):
 
+class testRepAgentConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = RepAgentConsumerType()
         self.agent.solve()
 
     def test_solution(self):
         self.assertAlmostEqual(
-            self.agent.solution[0].cFunc(10).tolist(),
-            1.7130553407923501
+            self.agent.solution[0].cFunc(10).tolist(), 1.7130553407923501
         )
 
     def test_simulation(self):
@@ -24,17 +23,17 @@ class testRepAgentConsumerType(unittest.TestCase):
         self.agent.initializeSim()
         self.agent.simulate()
 
-class testRepAgentMarkovConsumerType(unittest.TestCase):
 
+class testRepAgentMarkovConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = RepAgentMarkovConsumerType()
         self.agent.IncomeDstn[0] = 2 * [self.agent.IncomeDstn[0]]
         self.agent.solve()
 
     def test_solution(self):
-         self.assertAlmostEqual(
-             self.agent.solution[0].cFunc[0](10).tolist(),
-             1.3829466326248048)
+        self.assertAlmostEqual(
+            self.agent.solution[0].cFunc[0](10).tolist(), 1.3829466326248048
+        )
 
     def test_simulation(self):
         # Simulate the representative agent model
