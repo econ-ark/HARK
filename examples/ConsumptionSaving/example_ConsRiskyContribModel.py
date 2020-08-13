@@ -2,7 +2,7 @@
 '''
 Example implementations of HARK.ConsumptionSaving.ConsPortfolioModel
 '''
-from HARK.ConsumptionSaving.ConsRiskyContribModel import RiskyContribConsumerType, init_riskyContrib
+from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyContribConsumerType, init_riskyContrib
 from HARK.utilities import plotFuncs
 from copy import copy
 from time import time
