@@ -49,14 +49,14 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
 
         InfiniteType.updateIncomeProcess()
         InfiniteType.solve()
-        InfiniteType.unpackcFunc()
+        InfiniteType.unpack('cFunc')
 
         # Make and solve a perfect foresight consumer type with the same parameters
         PerfectForesightType = PerfForesightConsumerType(**test_dictionary)
         PerfectForesightType.cycles = 0
 
         PerfectForesightType.solve()
-        PerfectForesightType.unpackcFunc()
+        PerfectForesightType.unpack('cFunc')
 
         self.InfiniteType = InfiniteType
         self.PerfectForesightType = PerfectForesightType
@@ -139,7 +139,7 @@ class Compare_TBS_and_Markov(unittest.TestCase):
                                   unemployed_income_dist]]
 
         MarkovType.solve()
-        MarkovType.unpackcFunc()
+        MarkovType.unpack('cFunc')
 
         self.TBSType = TBSType
         self.MarkovType = MarkovType
