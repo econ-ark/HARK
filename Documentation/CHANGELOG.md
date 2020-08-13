@@ -12,9 +12,12 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 Release Data: TBD
 
-### Major Changes
+#### Major Changes
 
 * Namespace variables for the Market class [#765](https://github.com/econ-ark/HARK/pull/765)
+
+#### Minor Changes 
+
 
 ### 0.10.7
 
