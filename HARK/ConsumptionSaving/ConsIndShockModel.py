@@ -709,6 +709,58 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         )
         self.defUtilityFuncs()
 
+    def assignParameters(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
+                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
+        '''
+        Assigns period parameters as attributes of self for use by other methods
+
+        Parameters
+        ----------
+        solution_next : ConsumerSolution
+            The solution to next period's one period problem.
+        IncomeDstn : [np.array]
+            A list containing three arrays of floats, representing a discrete
+            approximation to the income process between the period being solved
+            and the one immediately following (in solution_next). Order: event
+            probabilities, permanent shocks, transitory shocks.
+        LivPrb : float
+            Survival probability; likelihood of being alive at the beginning of
+            the succeeding period.
+        DiscFac : float
+            Intertemporal discount factor for future utility.
+        CRRA : float
+            Coefficient of relative risk aversion.
+        Rfree : float
+            Risk free interest factor on end-of-period assets.
+        PermGroFac : float
+            Expected permanent income growth factor at the end of this period.
+        BoroCnstArt: float or None
+            Borrowing constraint for the minimum allowable assets to end the
+            period with.  If it is less than the natural borrowing constraint,
+            then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+            rowing constraint.
+        aXtraGrid: np.array
+            Array of "extra" end-of-period asset values-- assets above the
+            absolute minimum acceptable level.
+        vFuncBool: boolean
+            An indicator for whether the value function should be computed and
+            included in the reported solution.
+        CubicBool: boolean
+            An indicator for whether the solver should use cubic or linear inter-
+            polation.
+
+        Returns
+        -------
+        none
+        '''
+        ConsPerfForesightSolver.assignParameters(self,solution_next,DiscFac,LivPrb,
+                                                CRRA,Rfree,PermGroFac,BoroCnstArt,None)
+        self.aXtraGrid      = aXtraGrid
+        self.IncomeDstn     = IncomeDstn
+        self.vFuncBool      = vFuncBool
+        self.CubicBool      = CubicBool
+
+
     def defUtilityFuncs(self):
         """
         Defines CRRA utility function for this period (and its derivatives,
@@ -916,6 +968,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         self.mNrmNext = mNrmNext
         self.aNrmNow = aNrmNow
         return aNrmNow
+
 
     def calcEndOfPrdvP(self):
         """
@@ -1264,6 +1317,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         solution.vPPfunc = vPPfuncNow
         return solution
 
+
     def solve(self):
         """
         Solves the single period consumption-saving problem using the method of
@@ -1567,6 +1621,7 @@ class PerfForesightConsumerType(AgentType):
     )
     time_vary_ = ["LivPrb", "PermGroFac"]
     time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
+    state_vars_     = ['pLvlNow', 'PlvlAggNow', 'bNrmNow', 'mNrmNow'] 
     poststate_vars_ = ["aNrmNow", "pLvlNow"]
     shock_vars_ = []
 
@@ -1602,6 +1657,7 @@ class PerfForesightConsumerType(AgentType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(self.time_vary_)
         self.time_inv = deepcopy(self.time_inv_)
+        self.state_vars = {sv : None for sv in self.state_vars_}
         self.poststate_vars = deepcopy(self.poststate_vars_)
         self.shock_vars = deepcopy(self.shock_vars_)
         self.verbose = verbose
@@ -1676,7 +1732,7 @@ class PerfForesightConsumerType(AgentType):
         self.unpack("cFunc")
 
     def initializeSim(self):
-        self.PlvlAggNow = 1.0
+        self.state_vars['PlvlAggNow'] = 1.0
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
         AgentType.initializeSim(self)
 
@@ -1703,10 +1759,12 @@ class PerfForesightConsumerType(AgentType):
             seed=self.RNG.randint(0, 2 ** 31 - 1),
         ).draw(N)
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
-            self.PlvlAggNow
+            self.state_vars['PlvlAggNow']
         )  # Account for newer cohorts having higher permanent income
-        self.pLvlNow[which_agents] = Lognormal(
-            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
+        self.state_vars['pLvlNow'][which_agents] = Lognormal(
+            pLvlInitMeanNow,
+            self.pLvlInitStd,
+            seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
         self.t_age[which_agents] = 0  # How many periods since each agent was born
         self.t_cycle[
@@ -1778,39 +1836,21 @@ class PerfForesightConsumerType(AgentType):
         RfreeNow = self.Rfree * np.ones(self.AgentCount)
         return RfreeNow
 
-    def getStates(self):
-        """
-        Calculates updated values of normalized market resources and permanent income level for each
-        agent.  Uses pLvlNow, aNrmNow, PermShkNow, TranShkNow.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
+    def transition(self):
         pLvlPrev = self.pLvlNow
         aNrmPrev = self.aNrmNow
         RfreeNow = self.getRfree()
 
         # Calculate new states: normalized market resources and permanent income level
-        self.pLvlNow = (
-            pLvlPrev * self.shocks["PermShkNow"]
-        )  # Updated permanent income level
-        self.PlvlAggNow = (
-            self.PlvlAggNow * self.PermShkAggNow
-        )  # Updated aggregate permanent productivity level
-        ReffNow = (
-            RfreeNow / self.shocks["PermShkNow"]
-        )  # "Effective" interest factor on normalized assets
-        self.bNrmNow = ReffNow * aNrmPrev  # Bank balances before labor income
-        self.mNrmNow = (
-            self.bNrmNow + self.shocks["TranShkNow"]
-        )  # Market resources after income
+        pLvlNow = pLvlPrev*self.PermShkNow # Updated permanent income level
+        PlvlAggNow = self.state_vars['PlvlAggNow']*self.PermShkAggNow # Updated aggregate permanent productivity level
+        ReffNow      = RfreeNow/self.PermShkNow # "Effective" interest factor on normalized assets
+        bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
+        mNrmNow = bNrmNow + self.TranShkNow # Market resources after income
 
-        return None
+
+        return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow
+
 
     def getControls(self):
         """
@@ -1829,7 +1869,7 @@ class PerfForesightConsumerType(AgentType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cNrmNow[these], MPCnow[these] = self.solution[t].cFunc.eval_with_derivative(
-                self.mNrmNow[these]
+                self.state_vars['mNrmNow'][these]
             )
         self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow
@@ -1847,10 +1887,9 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         """
-        self.aNrmNow = self.mNrmNow - self.cNrmNow
-        self.aLvlNow = (
-            self.aNrmNow * self.pLvlNow
-        )  # Useful in some cases to precalculate asset level
+        self.aNrmNow = self.state_vars['mNrmNow'] - self.cNrmNow
+
+        self.aLvlNow = self.aNrmNow*self.state_vars['pLvlNow']   # Useful in some cases to precalculate asset level
         return None
 
     def checkCondition(self, name, test, messages, verbose, verbose_messages=None):
@@ -2617,6 +2656,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # The target level of m, mTarg, will be the value such that
         # cSust[m] = cFunc[m]
+
+
 
     # ========================================================
     # = Functions for generating discrete income processes and
