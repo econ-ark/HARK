@@ -8,6 +8,11 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+
+#### Minor Changes
+
+- Reformat code style using black
+
 ### 0.10.7
 
 Release Date: 08-08-2020
