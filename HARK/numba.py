@@ -20,7 +20,7 @@ CRRAutility_inv = vectorize(CRRAutility_inv, cache=True)
 CRRAutilityP_invP = vectorize(CRRAutilityP_invP, cache=True)
 
 
-@njit(cache=True)
+@njit(cache=True, error_model="numpy")
 def _interp_decay(x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap):
     # Make a decay extrapolation
     slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
@@ -52,7 +52,7 @@ def _interp_decay(x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap
     return y0
 
 
-@njit(cache=True)
+@njit(cache=True, error_model="numpy")
 def _interp_linear(x0, x_list, y_list, lower_extrap):
     i = np.maximum(np.searchsorted(x_list[:-1], x0), 1)
     alpha = (x0 - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
@@ -65,7 +65,7 @@ def _interp_linear(x0, x_list, y_list, lower_extrap):
     return y0
 
 
-@njit(cache=True)
+@njit(cache=True, error_model="numpy")
 def LinearInterpFast(
     x0, x_list, y_list, intercept_limit=None, slope_limit=None, lower_extrap=False
 ):
@@ -77,7 +77,7 @@ def LinearInterpFast(
         )
 
 
-@njit(cache=True)
+@njit(cache=True, error_model="numpy")
 def _interp_linear_deriv(x0, x_list, y_list, lower_extrap):
     i = np.maximum(np.searchsorted(x_list[:-1], x0), 1)
     alpha = (x0 - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
@@ -92,7 +92,7 @@ def _interp_linear_deriv(x0, x_list, y_list, lower_extrap):
     return y0, dydx
 
 
-@njit(cache=True)
+@njit(cache=True, error_model="numpy")
 def _interp_decay_deriv(x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap):
     # Make a decay extrapolation
     slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
@@ -130,7 +130,7 @@ def _interp_decay_deriv(x0, x_list, y_list, intercept_limit, slope_limit, lower_
     return y0, dydx
 
 
-@njit(cache=True)
+@njit(cache=True, error_model="numpy")
 def LinearInterpDerivFast(
     x0, x_list, y_list, intercept_limit=None, slope_limit=None, lower_extrap=False
 ):
@@ -142,7 +142,7 @@ def LinearInterpDerivFast(
         )
 
 
-@njit(cache=True)
+@njit(cache=True, error_model="numpy")
 def _spline_decay(
     x_init, x_list, y_list, dydx_list, intercept_limit, slope_limit, lower_extrap
 ):
@@ -227,7 +227,7 @@ def _spline_decay(
     return y, dydx
 
 
-@njit(cache=True)
+@njit(cache=True, error_model="numpy")
 def CubicInterpFast(
     x0,
     x_list,
