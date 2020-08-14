@@ -16,4 +16,3 @@ recommonmark
 interpolation
 numba
 quantecon
-setuptools
