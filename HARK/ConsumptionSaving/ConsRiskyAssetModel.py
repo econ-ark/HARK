@@ -1149,3 +1149,10 @@ init_riskyContrib['nNrmMin']         = 1e-6 # Use the same parameters for the ri
 init_riskyContrib['nNrmMax']         = 10
 init_riskyContrib['nNrmCount']       = 100  #
 init_riskyContrib['nNrmNestFac']     = 1    #
+
+# Reduce dimensions while conding the model up
+init_riskyContrib['ShareCount']      = 4
+init_riskyContrib['aXtraCount']      = 20
+init_riskyContrib['nNrmCount']       = 20  #
+init_riskyContrib['PermShkCount']    = 3  #
+init_riskyContrib['TranShkCount']    = 3 
