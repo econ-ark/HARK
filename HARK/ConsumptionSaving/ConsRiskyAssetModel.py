@@ -433,7 +433,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     """
     poststate_vars_ = ['aNrmNow', 'nNrmNow', 'pLvlNow', 'ShareNow', 'AdjustNow']
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ['AdjustPrb', 'DiscreteShareBool']
+    time_inv_ = time_inv_ + ['AdjustPrb', 'DiscreteShareBool','tau']
 
     def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
         params = init_riskyContrib.copy()
@@ -1145,6 +1145,7 @@ init_risky['DiscFac']         = 0.90 # And also lower patience
 
 # Make a dictionary for a risky-contribution consumer type
 init_riskyContrib = init_risky.copy()
+init_riskyContrib['tau']             = 0.1  # Tax rate on risky asset withdrawals
 init_riskyContrib['nNrmMin']         = 1e-6 # Use the same parameters for the risky asset grid
 init_riskyContrib['nNrmMax']         = 10
 init_riskyContrib['nNrmCount']       = 100  #
