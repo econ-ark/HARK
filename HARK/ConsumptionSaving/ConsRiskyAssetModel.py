@@ -816,8 +816,10 @@ def findOptimalRebalance(a,n,v3,tau):
     else:
         fobj = lambda d: -1.*rebalanceFobj(d,a,n,v3,tau)
         dopt = minimize_scalar(fobj, bounds=(lb, ub), method='bounded').x
-        
-    return dopt
+    
+    a_til, n_til = rebalanceAssets(dopt,a,n,tau)
+    
+    return dopt, a_til, n_til
         
     
                 
@@ -1060,15 +1062,41 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N)), (aNrm_N,1))
     
     # Find optimal d for every combination
-    optDs = list(map(lambda x: findOptimalRebalance(x[0],x[1],vFuncAdj3,tau),
-                     zip(aNrm_tiled.flatten(),nNrm_tiled.flatten())
-                     )
-                 )
+    optRebalance = list(map(lambda x: findOptimalRebalance(x[0],x[1],vFuncAdj3,tau),
+                            zip(aNrm_tiled.flatten(),nNrm_tiled.flatten())
+                            )
+                        )
+    optRebalance = np.array(optRebalance)
     
-    # Format as matrix
-    optDs = np.reshape(optDs, (aNrm_N, nNrm_N))
+    # Format rebalancing share and post-rebalancing assets as tiled arrays
+    D_tiled      = np.reshape(optRebalance[:,0], (aNrm_N, nNrm_N))
+    aTilde_tiled = np.reshape(optRebalance[:,1], (aNrm_N, nNrm_N))
+    nTilde_tiled = np.reshape(optRebalance[:,2], (aNrm_N, nNrm_N))
     
-    print(optDs)
+    # Construct the value function and derivatives
+    vAdj2Nvrs = uInv(vFuncAdj3(aTilde_tiled, nTilde_tiled))
+    dvdaAdj2Nvrs = uPinv(dvdaFuncAdj3(aTilde_tiled, nTilde_tiled))
+    dvdnAdj2Nvrs = uPinv(dvdnFuncAdj3(aTilde_tiled, nTilde_tiled))
+    
+    vFuncAdj2    = ValueFunc2D(BilinearInterp(vAdj2Nvrs, aNrmGrid, nNrmGrid), CRRA)
+    dvdaFuncAdj2 = MargValueFunc2D(BilinearInterp(dvdaAdj2Nvrs, aNrmGrid, nNrmGrid), CRRA)
+    dvdnFuncAdj2 = MargValueFunc2D(BilinearInterp(dvdnAdj2Nvrs, aNrmGrid, nNrmGrid), CRRA)
+    
+    # Construct the rebalancing policy function
+    DFuncAdj = BilinearInterp(D_tiled, aNrmGrid, nNrmGrid)
+    
+    # STEP FOUR: EGM inversion to get consumption at endogenous grid, solving
+    # the first stage.
+    
+    # Invert consumption candidates and market resources from the marginal 
+    # post-consumption value of liquid assets on the exogenous grid
+    cAdj = uPinv(dvdaFuncAdj2(aNrm_tiled, nNrm_tiled))
+    mNrmEndog_tiled = aNrm_tiled + cAdj
+    
+    # Evaluate value function at candidate points (needed for envelope)
+    vAdjEndog = u(cAdj) + vFuncAdj2(mNrmEndog_tiled, nNrm_tiled)  
+    
+    !!!!!!! HERE !!!!!!!!!!!!!!!!!!
     
     # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio
     mNrmAdj_now = aNrmGrid + cNrmAdj_now
