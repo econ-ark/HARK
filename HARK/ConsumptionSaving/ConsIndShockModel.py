@@ -1448,7 +1448,7 @@ class PerfForesightConsumerType(AgentType):
     time_vary_ = ['LivPrb','PermGroFac']
     time_inv_  = ['CRRA','Rfree','DiscFac','MaxKinks','BoroCnstArt']
     state_vars_     = ['pLvlNow', 'PlvlAggNow', 'bNrmNow', 'mNrmNow'] 
-    poststate_vars_ = ['aNrmNow','aLvlNow']
+    poststate_vars_ = ['aNrmNow','pLvlNow']
     shock_vars_ = []
 
     def __init__(self,
