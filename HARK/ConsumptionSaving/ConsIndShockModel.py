@@ -2208,7 +2208,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         '''
         Check Individual Growth Impatience Factor.
         '''
-        self.GPFInd = self.thorn/(self.PermGroFac[0]*self.InvEPermShkInv)  # [url]/#GICI
+        self.GPFInd = self.thorn/(self.PermGroFacAgg*self.PermGroFac[0]*self.InvEPermShkInv)  # [url]/#GICI
 
         name = 'GIC'
         test = lambda agent: agent.GPFInd <=1
