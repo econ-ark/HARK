@@ -209,6 +209,7 @@ class AgentType(HARKobject):
         self.tolerance          = tolerance # NOQA
         self.seed               = seed # NOQA
         self.track_vars         = [] # NOQA
+        self.shocks             = {}
         self.poststate_vars     = [] # NOQA
         self.read_shocks        = False # NOQA
         self.history            = {}

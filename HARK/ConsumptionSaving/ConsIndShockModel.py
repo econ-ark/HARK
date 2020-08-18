@@ -1625,8 +1625,8 @@ class PerfForesightConsumerType(AgentType):
         None
         '''
         PermGroFac = np.array(self.PermGroFac)
-        self.PermShkNow = PermGroFac[self.t_cycle-1] # cycle time has already been advanced
-        self.TranShkNow = np.ones(self.AgentCount)
+        self.shocks['PermShkNow'] = PermGroFac[self.t_cycle-1] # cycle time has already been advanced
+        self.shocks['TranShkNow'] = np.ones(self.AgentCount)
 
     def getRfree(self):
         '''
@@ -1662,11 +1662,11 @@ class PerfForesightConsumerType(AgentType):
         RfreeNow = self.getRfree()
 
         # Calculate new states: normalized market resources and permanent income level
-        self.pLvlNow = pLvlPrev*self.PermShkNow # Updated permanent income level
+        self.pLvlNow = pLvlPrev*self.shocks['PermShkNow'] # Updated permanent income level
         self.PlvlAggNow = self.PlvlAggNow*self.PermShkAggNow # Updated aggregate permanent productivity level
-        ReffNow      = RfreeNow/self.PermShkNow # "Effective" interest factor on normalized assets
+        ReffNow      = RfreeNow/self.shocks['PermShkNow'] # "Effective" interest factor on normalized assets
         self.bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
-        self.mNrmNow = self.bNrmNow + self.TranShkNow # Market resources after income
+        self.mNrmNow = self.bNrmNow + self.shocks['TranShkNow'] # Market resources after income
         return None
 
     def getControls(self):
@@ -2034,8 +2034,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         '''
-        PermShkNow = np.zeros(self.AgentCount) # Initialize shock arrays
-        TranShkNow = np.zeros(self.AgentCount)
+        self.shocks['PermShkNow'] = np.zeros(self.AgentCount) # Initialize shock arrays
+        self.shocks['TranShkNow'] = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
         for t in range(self.T_cycle):
             these = t == self.t_cycle
@@ -2045,8 +2045,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 PermGroFacNow    = self.PermGroFac[t-1] # and permanent growth factor
                 # Get random draws of income shocks from the discrete distribution
                 IncShks = IncomeDstnNow.drawDiscrete(N)
-                PermShkNow[these] = IncShks[0,:]*PermGroFacNow # permanent "shock" includes expected growth
-                TranShkNow[these] = IncShks[1,:]
+                self.shocks['PermShkNow'][these] = IncShks[0,:]*PermGroFacNow # permanent "shock" includes expected growth
+                self.shocks['TranShkNow'][these] = IncShks[1,:]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -2058,17 +2058,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
             # Get random draws of income shocks from the discrete distribution
             EventDraws       = IncomeDstnNow.draw_events(N)
-            PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
-            TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
+            self.shocks['PermShkNow'][these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
+            self.shocks['TranShkNow'][these] = IncomeDstnNow.X[1][EventDraws]
 #        PermShkNow[newborn] = 1.0
-        TranShkNow[newborn] = 1.0
+        self.shocks['TranShkNow'][newborn] = 1.0
 
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount,dtype=bool)
-        self.EmpNow[TranShkNow == self.IncUnemp] = False
-        self.PermShkNow = PermShkNow
-        self.TranShkNow = TranShkNow
-
+        self.EmpNow[self.shocks['TranShkNow'] == self.IncUnemp] = False
 
     def calcBoundingValues(self):
         '''
