@@ -164,7 +164,7 @@ class PrefShockConsumerType(IndShockConsumerType):
             N = np.sum(these)
             if N > 0:
                 PrefShkNow[these] = self.PrefShkDstn[t].drawDiscrete(N)
-        self.PrefShkNow = PrefShkNow
+        self.shocks['PrefShkNow'] = PrefShkNow
 
     def getControls(self):
         '''
@@ -181,7 +181,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         cNrmNow = np.zeros(self.AgentCount) + np.nan
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            cNrmNow[these] = self.solution[t].cFunc(self.mNrmNow[these],self.PrefShkNow[these])
+            cNrmNow[these] = self.solution[t].cFunc(self.mNrmNow[these],self.shocks['PrefShkNow'][these])
         self.cNrmNow = cNrmNow
         return None
 
