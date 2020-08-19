@@ -2034,8 +2034,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         '''
-        self.shocks['PermShkNow'] = np.zeros(self.AgentCount) # Initialize shock arrays
-        self.shocks['TranShkNow'] = np.zeros(self.AgentCount)
+        PermShkNow = np.zeros(self.AgentCount) # Initialize shock arrays
+        TranShkNow = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
         for t in range(self.T_cycle):
             these = t == self.t_cycle
@@ -2045,8 +2045,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 PermGroFacNow    = self.PermGroFac[t-1] # and permanent growth factor
                 # Get random draws of income shocks from the discrete distribution
                 IncShks = IncomeDstnNow.drawDiscrete(N)
-                self.shocks['PermShkNow'][these] = IncShks[0,:]*PermGroFacNow # permanent "shock" includes expected growth
-                self.shocks['TranShkNow'][these] = IncShks[1,:]
+                PermShkNow[these] = IncShks[0,:]*PermGroFacNow # permanent "shock" includes expected growth
+                TranShkNow[these] = IncShks[1,:]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -2058,14 +2058,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
             # Get random draws of income shocks from the discrete distribution
             EventDraws       = IncomeDstnNow.draw_events(N)
-            self.shocks['PermShkNow'][these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
-            self.shocks['TranShkNow'][these] = IncomeDstnNow.X[1][EventDraws]
+            PermShkNow[these] = IncomeDstnNow.X[0][EventDraws]*PermGroFacNow # permanent "shock" includes expected growth
+            TranShkNow[these] = IncomeDstnNow.X[1][EventDraws]
 #        PermShkNow[newborn] = 1.0
-        self.shocks['TranShkNow'][newborn] = 1.0
+        TranShkNow[newborn] = 1.0
 
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount,dtype=bool)
-        self.EmpNow[self.shocks['TranShkNow'] == self.IncUnemp] = False
+        self.EmpNow[TranShkNow == self.IncUnemp] = False
+        self.shocks['PermShkNow'] = PermShkNow
+        self.shocks['TranShkNow'] = TranShkNow
 
     def calcBoundingValues(self):
         '''

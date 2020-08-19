@@ -479,8 +479,10 @@ class AgentType(HARKobject):
 
         # Make blank history arrays for each shock variable (and mortality)
         for var_name in self.shock_vars:
-            self.history[var_name] = np.zeros((self.T_sim, self.AgentCount)) + np.nan
-        self.history['who_dies'] = np.zeros((self.T_sim, self.AgentCount), dtype=bool)
+            self.history[var_name] = np.zeros((self.T_sim,
+                                               self.AgentCount)) + np.nan
+        self.history['who_dies'] = np.zeros((self.T_sim,
+                                             self.AgentCount), dtype=bool)
 
         # Make and store the history of shocks for each period
         for t in range(self.T_sim):
