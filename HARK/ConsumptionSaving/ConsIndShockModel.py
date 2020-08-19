@@ -1426,7 +1426,7 @@ init_perfect_foresight = {
     'aNrmInitStd' : 1.0,  # Standard deviation of log initial assets (only for simulation)
     'pLvlInitMean' : 0.0, # Mean of log initial permanent income (only matters for simulation)
     'pLvlInitStd' : 0.0,  # Standard deviation of log initial permanent income (only matters for simulation)
-    'PermGroFacAgg' : 1.0,# Aggregate permanent income growth factor (only matters for simulation)
+    'PermGroFacAgg' : 1.0,# Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
     'T_age' : None,       # Age after which simulated agents are automatically killed
     'T_cycle' : 1         # Number of periods in the cycle for this agent type
 }
@@ -2208,7 +2208,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         '''
         Check Individual Growth Impatience Factor.
         '''
-        self.GPFInd = self.thorn/(self.PermGroFacAgg*self.PermGroFac[0]*self.InvEPermShkInv)  # [url]/#GICI
+        self.GPFInd = self.thorn/(self.PermGroFac[0]*self.InvEPermShkInv)  # [url]/#GICI
 
         name = 'GIC'
         test = lambda agent: agent.GPFInd <=1
