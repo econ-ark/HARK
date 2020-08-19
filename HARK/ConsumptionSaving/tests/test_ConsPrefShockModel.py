@@ -41,7 +41,7 @@ class testPrefShockConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(
             self.agent.history['cNrmNow'][0][5],
-            1.21699840367737
+            0.7366020536567589
         )
 
 class testKinkyPrefConsumerType(unittest.TestCase):
@@ -80,5 +80,5 @@ class testKinkyPrefConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(
             self.agent.history['cNrmNow'][0][5],
-            1.3282880084862532
+            0.7717096928111515
         )
