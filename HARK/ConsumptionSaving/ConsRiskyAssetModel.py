@@ -463,6 +463,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     def update(self):
         IndShockConsumerType.update(self)
         self.updateNGrid()
+        self.updateCommonMGrid()
         self.updateRiskyDstn()
         self.updateShockDstn()
         self.updateShareGrid()
@@ -654,6 +655,22 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         self.nNrmGrid = nNrmGrid
         self.addToTimeInv('nNrmGrid')
         
+    def updateCommonMGrid(self):
+        '''
+        Updates the common grid over liquid market resources that is used to
+        take upper envelopes.
+
+        Returns
+        -------
+        None.
+
+        '''
+        
+        # Create the common grid as it's currently done in the Endogenous
+        # retirement remark. This can eventually be done using its own params.
+        self.mNrmCommGrid = (self.aXtraGrid - self.aXtraGrid[0])*1.5
+        self.addToTimeInv('mNrmCommGrid')
+                
     def getRisky(self):
         '''
         Sets the attribute RiskyNow as a single draw from a lognormal distribution.
@@ -826,7 +843,8 @@ def findOptimalRebalance(a,n,v3,tau):
 # Define a non-object-oriented one period solver
 def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                           LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
-                          BoroCnstArt,aXtraGrid,nNrmGrid,ShareGrid,vFuncBool,AdjustPrb,
+                          BoroCnstArt,aXtraGrid,nNrmGrid,mNrmCommGrid,
+                          ShareGrid,vFuncBool,AdjustPrb,
                           DiscreteShareBool,IndepDstnBool):
     '''
     Solve the one period problem for a portfolio-choice consumer.
@@ -867,6 +885,8 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         absolute minimum acceptable level.
     nNrmGrid: np.array
         Array of iliquid risky asset balances.
+    mNrmCommGrid: np.array
+        Exogenous start-of-period liquid assets grid to use for upper envelopes
     ShareGrid : np.array
         Array of risky portfolio shares on which to define the interpolation
         of the consumption function when Share is fixed.
@@ -1096,7 +1116,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # Evaluate value function at candidate points (needed for envelope)
     vAdjEndog = u(cAdj) + vFuncAdj2(mNrmEndog_tiled, nNrm_tiled)  
     
-    !!!!!!! HERE !!!!!!!!!!!!!!!!!!
+    #!!!!!!! HERE !!!!!!!!!!!!!!!!!!
     
     # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio
     mNrmAdj_now = aNrmGrid + cNrmAdj_now
