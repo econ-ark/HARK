@@ -7,6 +7,7 @@ import numpy as np
 from scipy.optimize import minimize_scalar
 from itertools import product
 from copy import deepcopy
+from HARK.dcegm import calcMultilineEnvelope
 from HARK import HARKobject, NullFunc, AgentType # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import(
     IndShockConsumerType,       # PortfolioConsumerType inherits from it
@@ -1069,6 +1070,9 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         # TODO?    
         pass
     
+    # Construct interpolator for the optimal share
+    ShareFuncAdj = BilinearInterp(Share_opt, aNrmGrid, nNrmGrid)
+    
     # Construct interpolators for v3Adj and its derivatives
     vFuncAdj3    = ValueFunc2D(BilinearInterp(vAdj3Nvrs, aNrmGrid, nNrmGrid), CRRA)
     dvdaFuncAdj3 = MargValueFunc2D(BilinearInterp(dvdaAdj3Nvrs, aNrmGrid, nNrmGrid), CRRA)
@@ -1110,14 +1114,66 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     
     # Invert consumption candidates and market resources from the marginal 
     # post-consumption value of liquid assets on the exogenous grid
-    cAdj = uPinv(dvdaFuncAdj2(aNrm_tiled, nNrm_tiled))
-    mNrmEndog_tiled = aNrm_tiled + cAdj
+    cAdjEndog = uPinv(dvdaFuncAdj2(aNrm_tiled, nNrm_tiled))
+    mNrmEndog_tiled = aNrm_tiled + cAdjEndog
     
     # Evaluate value function at candidate points (needed for envelope)
-    vAdjEndog = u(cAdj) + vFuncAdj2(mNrmEndog_tiled, nNrm_tiled)  
+    vAdjEndog = u(cAdjEndog) + vFuncAdj2(aNrm_tiled, nNrm_tiled)  
+    # Transform
+    vTAdjEndog = uInv(vAdjEndog)
+    
+    # Find the upper envelope at every fixed n gridpoint (columnwise)
+    envs = list(map(lambda col: calcMultilineEnvelope(mNrmEndog_tiled[:,col],
+                                                      cAdjEndog[:,col],
+                                                      vTAdjEndog[:,col],
+                                                      mNrmCommGrid),
+                    range(nNrm_N)))
+    
+    # Extract upper enveloped structures
+    mNrmAdjUpp, cNrmAdjUpp, vTAdjUpp = list(map(lambda x: np.matrix(x).T,
+                                                zip(*envs)))
+    # Create an 'upper-enveloped' n mesh. Which is just nNrm_tiled with 
+    # consistent dimensions, in case len(aNrmGrid) != len(mNrmCommGrid)
+    nNrmAdjUpp = np.tile(np.reshape(nNrmGrid, (1,nNrm_N)), (len(mNrmCommGrid),1))
+    # Create consumption, value, and marginal value functions
+    # Consumption
+    cFuncAdj = BilinearInterp(cNrmAdjUpp, mNrmCommGrid, nNrmGrid)
+    # Value
+    vFuncAdj = ValueFunc2D(BilinearInterp(vTAdjUpp, mNrmCommGrid, nNrmGrid), CRRA)
+    # Marginal values
+    # Iliquid assets
+    dvdnAdjNvrs = uPinv( dvdnFuncAdj2(mNrmAdjUpp - cNrmAdjUpp, nNrmAdjUpp) )
+    dvdnFuncAdj = MargValueFunc2D(BilinearInterp(dvdnAdjNvrs, mNrmCommGrid,nNrmGrid), CRRA)
+    # Liquid assets
+    dvdmAdjNvrs = cNrmAdjUpp
+    dvdmFuncAdj = MargValueFunc2D(BilinearInterp(dvdmAdjNvrs, mNrmCommGrid,nNrmGrid), CRRA)
     
     #!!!!!!! HERE !!!!!!!!!!!!!!!!!!
+    sol = RiskyContribSolution(
+        cFuncAdj = cFuncAdj,
+        ShareFuncAdj = ShareFuncAdj,
+        DFuncAdj = DFuncAdj,
+        vFuncAdj = vFuncAdj,
+        dvdmFuncAdj = dvdmFuncAdj,
+        dvdnFuncAdj = dvdnFuncAdj,
+        vFuncAdj2 = vFuncAdj2,
+        dvdaFuncAdj2 = dvdaFuncAdj2,
+        dvdnFuncAdj2 = dvdnFuncAdj2,
+        vFuncAdj3 = vFuncAdj3,
+        dvdaFuncAdj3 = dvdaFuncAdj3,
+        dvdnFuncAdj3 = dvdnFuncAdj3,
+        #cFuncFxd = ,
+        #ShareFuncFxd = ,
+        #DFuncFxd = ,
+        #vFuncFxd = ,
+        #dvdmFuncFxd = ,
+        #dvdnFuncFxd = ,
+        #dvdsFuncFxd = 
+    )
     
+    
+    
+    print('HERE!')
     # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio
     mNrmAdj_now = aNrmGrid + cNrmAdj_now
     
