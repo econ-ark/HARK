@@ -84,6 +84,57 @@ class ValueFunc3D(HARKobject):
         '''
         return utility(self.func(m, n, s), gam=self.CRRA)
 
+
+
+class MargValueFunc3D(HARKobject):
+    '''
+    A class for representing a marginal value function in models where the
+    standard envelope condition of v'(m,p) = u'(c(m,p)) holds (with CRRA utility).
+    '''
+    distance_criteria = ['dvdxNvrs', 'CRRA']
+
+    def __init__(self, dvdxNvrsFunc, CRRA):
+        '''
+        Constructor for a new marginal value function object.
+        Parameters
+        ----------
+        cFunc : function
+            A real function representing the marginal value function composed
+            with the inverse marginal utility function, defined on market
+            resources and the level of persistent income: uP_inv(vPfunc(m,p)).
+            Called cFunc because when standard envelope condition applies,
+            uP_inv(vPfunc(m,p)) = cFunc(m,p).
+        CRRA : float
+            Coefficient of relative risk aversion.
+        Returns
+        -------
+        None
+        '''
+        self.dvdxNvrsFunc = deepcopy(dvdxNvrsFunc)
+        self.CRRA = CRRA
+
+    def __call__(self, m, n, s):
+        '''
+        Evaluate the marginal value function at given levels of market resources
+        m and persistent income p.
+        Parameters
+        ----------
+        m : float or np.array
+            Market resources whose marginal value is to be calcuated.
+        n : float or np.array
+            Iliquid resources whose marginal value is to be calculated.
+        s : float or np.array
+            Income contribution shares whose marginal value is to be calculated.
+        Returns
+        -------
+        vP : float or np.array
+            Marginal value of the given assets when beginning this period with
+            market resources m, iliquid assets n, and contribution share s;
+            has same size as inputs m, n, and s.
+        '''
+        return utilityP(self.dvdxNvrsFunc(m, n, s), gam=self.CRRA)
+
+
 class RiskyAssetConsumerType(IndShockConsumerType):
     """
     A consumer type that has access to a risky asset with lognormal returns
@@ -211,7 +262,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        self.ShareGrid = np.linspace(0.,1.,self.ShareCount)
+        self.ShareGrid = np.linspace(0.,self.ShareMax,self.ShareCount)
         self.addToTimeInv('ShareGrid')
 
 
@@ -1095,6 +1146,14 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # Discount and integrate over shocks
     EndOfPrddvds = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*EndOfPrddvds_cond_undisc, axis=3)
     
+    # Construct an interpolator for the end-of-period marginal value of
+    # iliquid assets and contribution shares, conditional on the contribution
+    # share. This will be used by the FXD adent
+    EndOfPrddvdnCondShareFunc = TrilinearInterp(EndOfPrddvdn,
+                                                aNrmGrid, nNrmGrid, ShareGrid)
+    EndOfPrddvdsCondShareFunc = TrilinearInterp(EndOfPrddvds,
+                                                aNrmGrid, nNrmGrid, ShareGrid)
+    
     # SECOND STEP: find the value function for the third (contribution) stage
     # and its derivatives for the agent who can adjust.
     
@@ -1221,16 +1280,32 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     
     # Unpack
     mNrmFxdUpp, cNrmFxdUpp, vTFxdUpp = envs[0], envs[1], envs[2]
-    # Create an "enveloped" n
-    nNrmFxdUpp = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (len(mNrmCommGrid),1,Share_N))
-    
+    # Create an "enveloped" n and S
+    nNrmFxdUpp  = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (len(mNrmCommGrid),1,Share_N))
+    ShareFxdUpp = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (len(mNrmCommGrid),nNrm_N,1))
     # Create value, consumption, and marginal value functions
     
     # Consumption
-    cFuncFxd = TrilinearInterp(cNrmFxdUpp, mNrmCommGrid, ShareGrid)
+    cFuncFxd = TrilinearInterp(cNrmFxdUpp, mNrmCommGrid, nNrmGrid, ShareGrid)
     # Value
-    vFuncFxd = ValueFunc3D(TrilinearInterp(vTFxdUpp, mNrmCommGrid, nNrmGrid, ShareGrid), CRRA)
+    vFuncFxd = ValueFunc3D(TrilinearInterp(vTFxdUpp, mNrmCommGrid,
+                                           nNrmGrid, ShareGrid), CRRA)
     
+    # Derivatives:
+    
+    # Liquid
+    dvdmFxdNvrs = cNrmFxdUpp
+    dvdmFuncFxd = MargValueFunc3D(TrilinearInterp(dvdmFxdNvrs, mNrmCommGrid,
+                                                  nNrmGrid, ShareGrid),
+                                  CRRA)
+    # Iliquid
+    aNrmFxdUpp  = mNrmFxdUpp - cNrmFxdUpp
+    dvdnFxdUpp  = EndOfPrddvdnCondShareFunc(aNrmFxdUpp, nNrmFxdUpp, ShareFxdUpp)
+    dvdnFuncFxd = TrilinearInterp(dvdnFxdUpp, mNrmCommGrid, nNrmGrid, ShareGrid)
+    
+    # Share
+    dvdsFxdUpp  = EndOfPrddvdsCondShareFunc(aNrmFxdUpp, nNrmFxdUpp, ShareFxdUpp)
+    dvdsFuncFxd = TrilinearInterp(dvdsFxdUpp, mNrmCommGrid, nNrmGrid, ShareGrid)
     
     #!!!!!!! HERE !!!!!!!!!!!!!!!!!!
     sol = RiskyContribSolution(
@@ -1250,14 +1325,11 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         ShareFuncFxd = ShareFuncFxd,
         DFuncFxd = DFuncFxd,
         vFuncFxd = vFuncFxd,
-        #dvdmFuncFxd = ,
-        #dvdnFuncFxd = ,
-        #dvdsFuncFxd = 
+        dvdmFuncFxd = dvdmFuncFxd,
+        dvdnFuncFxd = dvdnFuncFxd,
+        dvdsFuncFxd = dvdsFuncFxd
     )
     
-    
-    
-    print('HERE!')
     return sol
     
     
@@ -1280,6 +1352,7 @@ init_risky['DiscFac']         = 0.90 # And also lower patience
 
 # Make a dictionary for a risky-contribution consumer type
 init_riskyContrib = init_risky.copy()
+init_riskyContrib['ShareMax']        = 0.9  # You don't want to put 100% of your wage into pensions.
 init_riskyContrib['tau']             = 0.1  # Tax rate on risky asset withdrawals
 init_riskyContrib['nNrmMin']         = 1e-6 # Use the same parameters for the risky asset grid
 init_riskyContrib['nNrmMax']         = 10
