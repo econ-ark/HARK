@@ -8,6 +8,19 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.10.8
+
+Release Data: TBD
+
+#### Major Changes
+
+* Namespace variables for the Market class [#765](https://github.com/econ-ark/HARK/pull/765)
+* We now have a Numba based implementation of PerfForesightConsumerType model available as PerfForesightConsumerTypeFast [#774](https://github.com/econ-ark/HARK/pull/774)
+
+#### Minor Changes 
+
+* Fixes seed of PrefShkDstn on initialization and add tests for simulation output
+
 ### 0.10.7
 
 Release Date: 08-08-2020
