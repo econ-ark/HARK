@@ -1083,7 +1083,6 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     EndOfPrddvda = DiscFac*Rfree*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_A*dvdm_next, axis=3)
     EndOfPrddvdn = DiscFac*Rfree*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_A*Risky_tiled*dvdn_next, axis=3)
     EndOfPrddvdaNvrs = uPinv(EndOfPrddvda)
-    EndOfPrddvdnNvrs = uPinv(EndOfPrddvdn)
         
     # Calculate end-of-period value by taking expectations
     temp_fac_B = (PermShks_tiled*PermGroFac)**(1.-CRRA) # Will use this below
@@ -1111,7 +1110,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         # Extract vAdj3 and its derivatives in their inverse form
         vAdj3Nvrs = EndOfPrdvNvrs[a_idx_tiled,n_idx_tiled,opt_idx]
         dvdaAdj3Nvrs = EndOfPrddvdaNvrs[a_idx_tiled,n_idx_tiled,opt_idx]
-        dvdnAdj3Nvrs = EndOfPrddvdnNvrs[a_idx_tiled,n_idx_tiled,opt_idx]
+        dvdnAdj3 = EndOfPrddvdn[a_idx_tiled,n_idx_tiled,opt_idx]
         
     else: # Optimization of Share on continuous interval [0,1]
         # TODO?    
@@ -1123,7 +1122,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # Construct interpolators for v3Adj and its derivatives
     vFuncAdj3    = ValueFunc2D(BilinearInterp(vAdj3Nvrs, aNrmGrid, nNrmGrid), CRRA)
     dvdaFuncAdj3 = MargValueFunc2D(BilinearInterp(dvdaAdj3Nvrs, aNrmGrid, nNrmGrid), CRRA)
-    dvdnFuncAdj3 = MargValueFunc2D(BilinearInterp(dvdnAdj3Nvrs, aNrmGrid, nNrmGrid), CRRA)
+    dvdnFuncAdj3 = BilinearInterp(dvdnAdj3, aNrmGrid, nNrmGrid)
     
     # THIRD STEP: decision, value function, and derivatives for the rebalancing
     # stage.
@@ -1147,11 +1146,11 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # Construct the value function and derivatives
     vAdj2Nvrs = uInv(vFuncAdj3(aTilde_tiled, nTilde_tiled))
     dvdaAdj2Nvrs = uPinv(dvdaFuncAdj3(aTilde_tiled, nTilde_tiled))
-    dvdnAdj2Nvrs = uPinv(dvdnFuncAdj3(aTilde_tiled, nTilde_tiled))
+    dvdnAdj2 = dvdnFuncAdj3(aTilde_tiled, nTilde_tiled)
     
     vFuncAdj2    = ValueFunc2D(BilinearInterp(vAdj2Nvrs, aNrmGrid, nNrmGrid), CRRA)
     dvdaFuncAdj2 = MargValueFunc2D(BilinearInterp(dvdaAdj2Nvrs, aNrmGrid, nNrmGrid), CRRA)
-    dvdnFuncAdj2 = MargValueFunc2D(BilinearInterp(dvdnAdj2Nvrs, aNrmGrid, nNrmGrid), CRRA)
+    dvdnFuncAdj2 = BilinearInterp(dvdnAdj2, aNrmGrid, nNrmGrid)
     
     # Construct the rebalancing policy function
     DFuncAdj = BilinearInterp(D_tiled, aNrmGrid, nNrmGrid)
@@ -1189,8 +1188,8 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     vFuncAdj = ValueFunc2D(BilinearInterp(vTAdjUpp, mNrmCommGrid, nNrmGrid), CRRA)
     # Marginal values
     # Iliquid assets
-    dvdnAdjNvrs = uPinv( dvdnFuncAdj2(mNrmAdjUpp - cNrmAdjUpp, nNrmAdjUpp) )
-    dvdnFuncAdj = MargValueFunc2D(BilinearInterp(dvdnAdjNvrs, mNrmCommGrid,nNrmGrid), CRRA)
+    dvdnAdj     = dvdnFuncAdj2(mNrmAdjUpp - cNrmAdjUpp, nNrmAdjUpp)
+    dvdnFuncAdj = BilinearInterp(dvdnAdj, mNrmCommGrid,nNrmGrid)
     # Liquid assets
     dvdmAdjNvrs = cNrmAdjUpp
     dvdmFuncAdj = MargValueFunc2D(BilinearInterp(dvdmAdjNvrs, mNrmCommGrid,nNrmGrid), CRRA)
