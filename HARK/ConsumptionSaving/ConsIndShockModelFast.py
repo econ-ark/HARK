@@ -1177,3 +1177,4 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                     )
 
                 self.solution[i * self.T_cycle + j] = consumer_solution
+
