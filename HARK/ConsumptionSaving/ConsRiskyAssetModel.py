@@ -31,11 +31,58 @@ from HARK.interpolation import(
         CubicInterp,            # Piecewise cubic interpolation
         LinearInterpOnInterp1D, # Interpolator over 1D interpolations
         BilinearInterp,         # 2D interpolator
+        TrilinearInterp,        # 3D interpolator
         ConstantFunction,       # Interpolator-like class that returns constant value
         IdentityFunction        # Interpolator-like class that returns one of its arguments
 )
 
 from HARK.utilities import makeGridExpMult
+
+class ValueFunc3D(HARKobject):
+    '''
+    A class for representing a value function in a model with three state
+    satirbles. The underlying interpolation is
+    in the space of (m,n,s) --> u_inv(v); this class "re-curves" to the value function.
+    '''
+    distance_criteria = ['func', 'CRRA']
+
+    def __init__(self, vFuncNvrs, CRRA):
+        '''
+        Constructor for a new value function object.
+        Parameters
+        ----------
+        vFuncNvrs : function
+            A real function representing the value function composed with the
+            inverse utility function, defined on market resources and persistent
+            income: u_inv(vFunc(m,p))
+        CRRA : float
+            Coefficient of relative risk aversion.
+        Returns
+        -------
+        None
+        '''
+        self.func = deepcopy(vFuncNvrs)
+        self.CRRA = CRRA
+
+    def __call__(self, m, n, s):
+        '''
+        Evaluate the value function at given levels of market resources m and
+        persistent income p.
+        Parameters
+        ----------
+        m : float or np.array
+            Market resources whose value is to be calcuated.
+        n : float or np.array
+            Iliquid resources whose value is to be calculated.
+        s : float or np.array
+            Income contribution shares whose value is to be calculated.
+        Returns
+        -------
+        v : float or np.array
+            Lifetime value of beginning this period with market resources m and
+            persistent income p; has same size as inputs m and p.
+        '''
+        return utility(self.func(m, n, s), gam=self.CRRA)
 
 class RiskyAssetConsumerType(IndShockConsumerType):
     """
@@ -1148,6 +1195,44 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     dvdmAdjNvrs = cNrmAdjUpp
     dvdmFuncAdj = MargValueFunc2D(BilinearInterp(dvdmAdjNvrs, mNrmCommGrid,nNrmGrid), CRRA)
     
+    # Finally, create the (trivial) rebalancing and share functions for the
+    # nonadjusting agent
+    DFuncFxd = ConstantFunction(0)
+    ShareFuncFxd = IdentityFunction(i_dim = 2, n_dims = 3)
+    
+    # STEP FIVE: solve the fixed-portfolio agent.
+    aNrm_tiled  = np.tile(np.reshape(aNrmGrid, (aNrm_N,1,1)), (1,nNrm_N,Share_N))
+    nNrm_tiled  = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (aNrm_N,1,Share_N))
+    Share_tiled = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (aNrm_N,nNrm_N,1))
+    
+    # EGM inversion
+    cFxdEndog = EndOfPrddvdaNvrs
+    mNrmEndog_tiled = cFxdEndog + aNrm_tiled
+    # Candidate inverse value, needed for envelopes
+    vFxdEndog = u(cFxdEndog) + EndOfPrdv
+    vTFxdEndog = uInv(vFxdEndog)
+    
+    # Apply the upper envelope over aNrm at every (nNrm,s) pair
+    envs = np.array([[list(zip(*calcMultilineEnvelope(mNrmEndog_tiled[:,nInd,sInd],
+                                             cFxdEndog[:,nInd,sInd],
+                                             vTFxdEndog[:,nInd,sInd],
+                                             mNrmCommGrid)))
+                      for nInd in range(nNrm_N)]
+                     for sInd in range(Share_N)]).T
+    
+    # Unpack
+    mNrmFxdUpp, cNrmFxdUpp, vTFxdUpp = envs[0], envs[1], envs[2]
+    # Create an "enveloped" n
+    nNrmFxdUpp = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (len(mNrmCommGrid),1,Share_N))
+    
+    # Create value, consumption, and marginal value functions
+    
+    # Consumption
+    cFuncFxd = TrilinearInterp(cNrmFxdUpp, mNrmCommGrid, ShareGrid)
+    # Value
+    vFuncFxd = ValueFunc3D(TrilinearInterp(vTFxdUpp, mNrmCommGrid, nNrmGrid, ShareGrid), CRRA)
+    
+    
     #!!!!!!! HERE !!!!!!!!!!!!!!!!!!
     sol = RiskyContribSolution(
         cFuncAdj = cFuncAdj,
@@ -1162,10 +1247,10 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         vFuncAdj3 = vFuncAdj3,
         dvdaFuncAdj3 = dvdaFuncAdj3,
         dvdnFuncAdj3 = dvdnFuncAdj3,
-        #cFuncFxd = ,
-        #ShareFuncFxd = ,
-        #DFuncFxd = ,
-        #vFuncFxd = ,
+        cFuncFxd = cFuncFxd,
+        ShareFuncFxd = ShareFuncFxd,
+        DFuncFxd = DFuncFxd,
+        vFuncFxd = vFuncFxd,
         #dvdmFuncFxd = ,
         #dvdnFuncFxd = ,
         #dvdsFuncFxd = 
@@ -1174,107 +1259,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     
     
     print('HERE!')
-    # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio
-    mNrmAdj_now = aNrmGrid + cNrmAdj_now
-    
-    # Construct the risky share function when the agent can adjust
-    if DiscreteShareBool:
-        mNrmAdj_mid  = (mNrmAdj_now[1:] + mNrmAdj_now[:-1])/2
-        mNrmAdj_plus = mNrmAdj_mid*(1.+1e-12)
-        mNrmAdj_comb = (np.transpose(np.vstack((mNrmAdj_mid,mNrmAdj_plus)))).flatten()
-        mNrmAdj_comb = np.append(np.insert(mNrmAdj_comb,0,0.0), mNrmAdj_now[-1])
-        Share_comb   = (np.transpose(np.vstack((Share_now,Share_now)))).flatten()
-        ShareFuncAdj_now = LinearInterp(mNrmAdj_comb, Share_comb)
-    else:
-        if zero_bound:
-            Share_lower_bound = ShareLimit
-        else:
-            Share_lower_bound = 1.0
-        Share_now   = np.insert(Share_now, 0, Share_lower_bound)
-        ShareFuncAdj_now = LinearInterp(
-                np.insert(mNrmAdj_now,0,0.0),
-                Share_now,
-                intercept_limit=ShareLimit,
-                slope_limit=0.0)
-        
-    # Construct the consumption function when the agent can adjust
-    cNrmAdj_now = np.insert(cNrmAdj_now, 0, 0.0)
-    cFuncAdj_now = LinearInterp(np.insert(mNrmAdj_now,0,0.0), cNrmAdj_now)
-    
-    # Construct the marginal value (of mNrm) function when the agent can adjust
-    vPfuncAdj_now = MargValueFunc(cFuncAdj_now, CRRA)
-    
-    # Construct the consumption function when the agent *can't* adjust the risky share, as well
-    # as the marginal value of Share function
-    cFuncFxd_by_Share = []
-    dvdsFuncFxd_by_Share = []
-    for j in range(Share_N):
-        cNrmFxd_temp = EndOfPrddvdaNvrs[:,j]
-        mNrmFxd_temp = aNrmGrid + cNrmFxd_temp
-        cFuncFxd_by_Share.append(LinearInterp(np.insert(mNrmFxd_temp, 0, 0.0), np.insert(cNrmFxd_temp, 0, 0.0)))
-        dvdsFuncFxd_by_Share.append(LinearInterp(np.insert(mNrmFxd_temp, 0, 0.0), np.insert(EndOfPrddvds[:,j], 0, EndOfPrddvds[0,j])))
-    cFuncFxd_now = LinearInterpOnInterp1D(cFuncFxd_by_Share, ShareGrid)
-    dvdsFuncFxd_now = LinearInterpOnInterp1D(dvdsFuncFxd_by_Share, ShareGrid)
-    
-    # The share function when the agent can't adjust his portfolio is trivial
-    ShareFuncFxd_now = IdentityFunction(i_dim=1, n_dims=2)
-    
-    # Construct the marginal value of mNrm function when the agent can't adjust his share
-    dvdmFuncFxd_now = MargValueFunc2D(cFuncFxd_now, CRRA)
-    
-    # If the value function has been requested, construct it now
-    if vFuncBool:
-        # First, make an end-of-period value function over aNrm and Share
-        EndOfPrdvNvrsFunc = BilinearInterp(EndOfPrdvNvrs, aNrmGrid, ShareGrid)
-        EndOfPrdvFunc = ValueFunc2D(EndOfPrdvNvrsFunc, CRRA)
-        
-        # Construct the value function when the agent can adjust his portfolio
-        mNrm_temp  = aXtraGrid # Just use aXtraGrid as our grid of mNrm values
-        cNrm_temp  = cFuncAdj_now(mNrm_temp)
-        aNrm_temp  = mNrm_temp - cNrm_temp
-        Share_temp = ShareFuncAdj_now(mNrm_temp)
-        v_temp     = u(cNrm_temp) + EndOfPrdvFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = n(v_temp)
-        vNvrsP_temp= uP(cNrm_temp)*nP(v_temp)
-        vNvrsFuncAdj = CubicInterp(
-                np.insert(mNrm_temp,0,0.0),  # x_list
-                np.insert(vNvrs_temp,0,0.0), # f_list
-                np.insert(vNvrsP_temp,0,vNvrsP_temp[0])) # dfdx_list
-        vFuncAdj_now = ValueFunc(vNvrsFuncAdj, CRRA) # Re-curve the pseudo-inverse value function
-        
-        # Construct the value function when the agent *can't* adjust his portfolio
-        mNrm_temp  = np.tile(np.reshape(aXtraGrid, (aXtraGrid.size, 1)), (1, Share_N))
-        Share_temp = np.tile(np.reshape(ShareGrid, (1, Share_N)), (aXtraGrid.size, 1))
-        cNrm_temp  = cFuncFxd_now(mNrm_temp, Share_temp)
-        aNrm_temp  = mNrm_temp - cNrm_temp
-        v_temp     = u(cNrm_temp) + EndOfPrdvFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = n(v_temp)
-        vNvrsP_temp= uP(cNrm_temp)*nP(v_temp)
-        vNvrsFuncFxd_by_Share = []
-        for j in range(Share_N):
-            vNvrsFuncFxd_by_Share.append(CubicInterp(
-                    np.insert(mNrm_temp[:,0],0,0.0),  # x_list
-                    np.insert(vNvrs_temp[:,j],0,0.0), # f_list
-                    np.insert(vNvrsP_temp[:,j],0,vNvrsP_temp[j,0]))) #dfdx_list
-        vNvrsFuncFxd = LinearInterpOnInterp1D(vNvrsFuncFxd_by_Share, ShareGrid)
-        vFuncFxd_now = ValueFunc2D(vNvrsFuncFxd, CRRA)
-    
-    else: # If vFuncBool is False, fill in dummy values
-        vFuncAdj_now = None
-        vFuncFxd_now = None
-
-    # Create and return this period's solution
-    return PortfolioSolution(
-            cFuncAdj = cFuncAdj_now,
-            ShareFuncAdj = ShareFuncAdj_now,
-            vPfuncAdj = vPfuncAdj_now,
-            vFuncAdj = vFuncAdj_now,
-            cFuncFxd = cFuncFxd_now,
-            ShareFuncFxd = ShareFuncFxd_now,
-            dvdmFuncFxd = dvdmFuncFxd_now,
-            dvdsFuncFxd = dvdsFuncFxd_now,
-            vFuncFxd = vFuncFxd_now
-    )
+    return sol
     
     
 # Make a dictionary to specify a risky asset consumer type
