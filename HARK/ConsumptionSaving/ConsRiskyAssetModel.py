@@ -1307,7 +1307,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     dvdsFxdUpp  = EndOfPrddvdsCondShareFunc(aNrmFxdUpp, nNrmFxdUpp, ShareFxdUpp)
     dvdsFuncFxd = TrilinearInterp(dvdsFxdUpp, mNrmCommGrid, nNrmGrid, ShareGrid)
     
-    #!!!!!!! HERE !!!!!!!!!!!!!!!!!!
+    # Construct solution
     sol = RiskyContribSolution(
         cFuncAdj = cFuncAdj,
         ShareFuncAdj = ShareFuncAdj,
@@ -1359,9 +1359,20 @@ init_riskyContrib['nNrmMax']         = 10
 init_riskyContrib['nNrmCount']       = 100  #
 init_riskyContrib['nNrmNestFac']     = 1    #
 
+# Params from the life-cycle agent
+init_riskyContrib['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
+init_riskyContrib['PermShkStd'] = [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0,0,0]
+init_riskyContrib['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,0,0,0]
+init_riskyContrib['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
+init_riskyContrib['T_cycle']    = 10
+init_riskyContrib['T_retire']   = 7
+init_riskyContrib['T_age']      = 11 # Make sure that old people die at terminal age and don't turn into newborns!
+
+
 # Reduce dimensions while conding the model up
 init_riskyContrib['ShareCount']      = 4
 init_riskyContrib['aXtraCount']      = 20
 init_riskyContrib['nNrmCount']       = 20  #
 init_riskyContrib['PermShkCount']    = 3  #
 init_riskyContrib['TranShkCount']    = 3 
+

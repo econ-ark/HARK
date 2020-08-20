@@ -16,40 +16,18 @@ init_sticky_share['AdjustPrb'] = 0.15
 init_sticky_share['DiscreteShareBool'] = True
 init_sticky_share['vFuncBool'] = True
 
+
+ContribAgent = RiskyContribConsumerType(**init_sticky_share)
 # %%
 # Make and solve a discrete portfolio choice consumer type
-print('Now solving a portfolio choice problem with "sticky" pension contribution shares; this might take a moment...')
-StickyType = RiskyContribConsumerType(**init_sticky_share)
-StickyType.cycles = 0
+print('Now solving')
 t0 = time()
-StickyType.solve()
+ContribAgent.solve()
 t1 = time()
-StickyType.cFuncAdj = [StickyType.solution[t].cFuncAdj for t in range(StickyType.T_cycle)]
-StickyType.cFuncFxd = [StickyType.solution[t].cFuncFxd for t in range(StickyType.T_cycle)]
-StickyType.ShareFunc = [StickyType.solution[t].ShareFuncAdj for t in range(StickyType.T_cycle)]
-print('Solving an infinite horizon sticky portfolio choice problem took ' + str(t1-t0) + ' seconds.')
+print('Solving took ' + str(t1-t0) + ' seconds.')
 
-# %%
-# Plot the consumption and risky-share functions
-print('Consumption function over market resources when the agent can adjust his portfolio:')
-plotFuncs(StickyType.cFuncAdj[0], 0., 50.)
-
-# %%
-print("Consumption function over market resources when the agent CAN'T adjust, by current share:")
-M = np.linspace(0., 50., 200)
-for s in np.linspace(0.,1.,21):
-    C = StickyType.cFuncFxd[0](M, s*np.ones_like(M))
-    plt.plot(M,C)
-plt.xlim(0.,50.)
-plt.ylim(0.,None)
-plt.show()
-
-# %%
-print('Risky asset share function over market resources (when possible to adjust):')
-print('Optimal (blue) versus Theoretical Limit (orange)')
-plt.xlabel('Normalized Market Resources')
-plt.ylabel('Portfolio Share')
-plt.ylim(0.0,1.0)
-plotFuncs([StickyType.ShareFunc[0]
-           ,lambda m: StickyType.ShareLimit*np.ones_like(m)
-          ] , 0., 200.)
+# %% Plicy function inspection
+ContribAgent.cFuncAdj = [ContribAgent.solution[t].cFuncAdj for t in range(ContribAgent.T_cycle)]
+ContribAgent.cFuncFxd = [ContribAgent.solution[t].cFuncFxd for t in range(ContribAgent.T_cycle)]
+ContribAgent.DFuncAdj = [ContribAgent.solution[t].cFuncFxd for t in range(ContribAgent.T_cycle)]
+ContribAgent.ShareFuncAdj = [ContribAgent.solution[t].ShareFuncAdj for t in range(ContribAgent.T_cycle)]
