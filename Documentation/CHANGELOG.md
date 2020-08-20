@@ -19,6 +19,7 @@ Release Data: TBD
 
 #### Minor Changes 
 
+* Fixes seed of PrefShkDstn on initialization and add tests for simulation output
 
 ### 0.10.7
 
