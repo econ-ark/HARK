@@ -1235,7 +1235,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                     range(nNrm_N)))
     
     # Extract upper enveloped structures
-    mNrmAdjUpp, cNrmAdjUpp, vTAdjUpp = list(map(lambda x: np.matrix(x).T,
+    mNrmAdjUpp, cNrmAdjUpp, vTAdjUpp = list(map(lambda x: np.array(x).T,
                                                 zip(*envs)))
     # Create an 'upper-enveloped' n mesh. Which is just nNrm_tiled with 
     # consistent dimensions, in case len(aNrmGrid) != len(mNrmCommGrid)
