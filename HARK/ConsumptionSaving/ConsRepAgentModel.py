@@ -235,12 +235,12 @@ class RepAgentConsumerType(IndShockConsumerType):
         aNrmPrev = self.aNrmNow
 
         # Calculate new states: normalized market resources and permanent income level
-        self.pLvlNow = pLvlPrev*self.PermShkNow # Same as in IndShockConsType
-        self.kNrmNow = aNrmPrev/self.PermShkNow
-        self.yNrmNow = self.kNrmNow**self.CapShare*self.TranShkNow**(1.-self.CapShare)
-        self.Rfree = 1. + self.CapShare*self.kNrmNow**(self.CapShare-1.)*self.TranShkNow**(1.-self.CapShare) - self.DeprFac
-        self.wRte  = (1.-self.CapShare)*self.kNrmNow**self.CapShare*self.TranShkNow**(-self.CapShare)
-        self.mNrmNow = self.Rfree*self.kNrmNow + self.wRte*self.TranShkNow
+        self.pLvlNow = pLvlPrev*self.shocks['PermShkNow'] # Same as in IndShockConsType
+        self.kNrmNow = aNrmPrev/self.shocks['PermShkNow']
+        self.yNrmNow = self.kNrmNow**self.CapShare*self.shocks['TranShkNow']**(1.-self.CapShare)
+        self.Rfree = 1. + self.CapShare*self.kNrmNow**(self.CapShare-1.)*self.shocks['TranShkNow']**(1.-self.CapShare) - self.DeprFac
+        self.wRte  = (1.-self.CapShare)*self.kNrmNow**self.CapShare*self.shocks['TranShkNow']**(-self.CapShare)
+        self.mNrmNow = self.Rfree*self.kNrmNow + self.wRte*self.shocks['TranShkNow']
 
 
 class RepAgentMarkovConsumerType(RepAgentConsumerType):

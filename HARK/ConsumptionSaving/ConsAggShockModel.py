@@ -294,8 +294,8 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         '''
         IndShockConsumerType.getShocks(self)  # Update idiosyncratic shocks
-        self.TranShkNow = self.TranShkNow*self.TranShkAggNow*self.wRteNow
-        self.PermShkNow = self.PermShkNow*self.PermShkAggNow
+        self.shocks['TranShkNow'] = self.shocks['TranShkNow']*self.TranShkAggNow*self.wRteNow
+        self.shocks['PermShkNow'] = self.shocks['PermShkNow']*self.PermShkAggNow
 
     def getControls(self):
         '''
