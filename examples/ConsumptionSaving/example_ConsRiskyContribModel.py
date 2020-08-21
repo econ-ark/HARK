@@ -66,7 +66,6 @@ def plotFuncs3D(functions,bottom,top,N=300,titles = None):
 # %%
 # Make and solve an example of the risky pension contribution consumer type
 init_sticky_share = init_riskyContrib.copy()
-init_sticky_share['AdjustPrb'] = 0.9
 init_sticky_share['DiscreteShareBool'] = True
 init_sticky_share['vFuncBool'] = True
 

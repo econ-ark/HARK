@@ -149,7 +149,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
     """
     poststate_vars_ = ['aNrmNow', 'pLvlNow', 'ShareNow', 'AdjustNow']
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ['AdjustPrb', 'DiscreteShareBool']
+    time_inv_ = time_inv_ + ['DiscreteShareBool']
 
     def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
         params = init_risky.copy()
@@ -175,6 +175,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
     def update(self):
         IndShockConsumerType.update(self)
+        self.updateAdjustPrb()
         self.updateRiskyDstn()
         self.updateShockDstn()
         self.updateShareGrid()
@@ -247,7 +248,16 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         # Mark whether the risky returns and income shocks are independent (they are)
         self.IndepDstnBool = True
         self.addToTimeInv('IndepDstnBool')
-
+    
+    def updateAdjustPrb(self):
+        
+        if (type(self.AdjustPrb) is list and (len(self.AdjustPrb) == self.T_cycle)):
+            self.addToTimeVary('AdjustPrb')
+        elif type(self.AdjustPrb) is list:
+            raise AttributeError('If AdjustPrb is time-varying, it must have length of T_cycle!')
+        else:
+            self.addToTimeInv('AdjustPrb')
+            
 
     def updateShareGrid(self):
         '''
@@ -533,7 +543,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     """
     poststate_vars_ = ['aNrmNow', 'nNrmNow', 'pLvlNow', 'ShareNow', 'AdjustNow']
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ['AdjustPrb', 'DiscreteShareBool','tau']
+    time_inv_ = time_inv_ + ['DiscreteShareBool']
 
     def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
         params = init_riskyContrib.copy()
@@ -560,12 +570,10 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
 
     def update(self):
-        IndShockConsumerType.update(self)
+        RiskyAssetConsumerType.update(self)
         self.updateNGrid()
         self.updateCommonMGrid()
-        self.updateRiskyDstn()
-        self.updateShockDstn()
-        self.updateShareGrid()
+        self.updateTau()
         
     def updateSolutionTerminal(self):
         '''
@@ -641,7 +649,15 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             dvdnFuncFxd = dvdnFuncFxd_term,
             dvdsFuncFxd = dvdsFuncFxd_term
         )
+    
+    def updateTau(self):
         
+        if (type(self.tau) is list and (len(self.tau) == self.T_cycle)):
+            self.addToTimeVary('tau')
+        elif type(self.tau) is list:
+            raise AttributeError('If tau is time-varying, it must have length of T_cycle!')
+        else:
+            self.addToTimeInv('tau')
         
     def updateRiskyDstn(self):
         '''
@@ -1353,7 +1369,6 @@ init_risky['DiscFac']         = 0.90 # And also lower patience
 # Make a dictionary for a risky-contribution consumer type
 init_riskyContrib = init_risky.copy()
 init_riskyContrib['ShareMax']        = 0.9  # You don't want to put 100% of your wage into pensions.
-init_riskyContrib['tau']             = 0.1  # Tax rate on risky asset withdrawals
 init_riskyContrib['nNrmMin']         = 1e-6 # Use the same parameters for the risky asset grid
 init_riskyContrib['nNrmMax']         = 10
 init_riskyContrib['nNrmCount']       = 100  #
@@ -1363,6 +1378,8 @@ init_riskyContrib['nNrmNestFac']     = 1    #
 init_riskyContrib['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
 init_riskyContrib['PermShkStd'] = [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0,0,0]
 init_riskyContrib['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,0,0,0]
+init_riskyContrib['AdjustPrb']  = [1  ,0  ,0  ,0  ,0  ,0  ,1  ,1,1,1]
+init_riskyContrib['tau']        = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0,0,0]  # Tax rate on risky asset withdrawals
 init_riskyContrib['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
 init_riskyContrib['T_cycle']    = 10
 init_riskyContrib['T_retire']   = 7
