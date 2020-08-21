@@ -1370,7 +1370,7 @@ init_riskyContrib['T_age']      = 11 # Make sure that old people die at terminal
 
 
 # Reduce dimensions while conding the model up
-init_riskyContrib['ShareCount']      = 4
+init_riskyContrib['ShareCount']      = 10
 init_riskyContrib['aXtraCount']      = 20
 init_riskyContrib['nNrmCount']       = 20  #
 init_riskyContrib['PermShkCount']    = 3  #
