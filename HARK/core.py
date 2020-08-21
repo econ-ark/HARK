@@ -592,7 +592,7 @@ class AgentType(HARKobject):
         None
         '''
         for var_name in self.shock_vars:
-            setattr(self, var_name, self.shock_history[var_name][self.t_sim, :])
+            self.shocks[var_name] = self.shock_history[var_name][self.t_sim, :]
 
     def getStates(self):
         '''
@@ -681,7 +681,10 @@ class AgentType(HARKobject):
             for t in range(sim_periods):
                 self.simOnePeriod()
                 for var_name in self.track_vars:
-                    self.history[var_name][self.t_sim,:] = getattr(self,var_name)
+                    if var_name in self.shock_vars:
+                        self.history[var_name][self.t_sim,:] = self.shocks[var_name]
+                    else:
+                        self.history[var_name][self.t_sim,:] = getattr(self,var_name)
                 self.t_sim += 1
 
     def clearHistory(self):
