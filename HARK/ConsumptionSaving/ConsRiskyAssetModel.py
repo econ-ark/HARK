@@ -603,8 +603,8 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         DFuncFxd_term = ConstantFunction(0.)
         
         # Value function if possible to adjust and derivatives
-        vFuncAdj_term = lambda m, n: utility(cFuncAdj_term(m,n), self.CRRA)
-        dvdmFuncAdj_term = lambda m, n: utilityP(cFuncAdj_term(m,n), self.CRRA)
+        vFuncAdj_term = ValueFunc2D(cFuncAdj_term, self.CRRA)
+        dvdmFuncAdj_term = MargValueFunc2D(cFuncAdj_term, self.CRRA)
         dvdnFuncAdj_term = ConstantFunction(0.)
         
         # Post-consumption value function and derivatives of the adjusting
@@ -622,8 +622,8 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         dvdnFuncAdj3_term = ConstantFunction(0.)
         
         # Value function if not possible to adjust, and derivatives
-        vFuncFxd_term = lambda m, n, s: utility(cFuncFxd_term(m,n,s), self.CRRA)
-        dvdmFuncFxd_term = lambda m, n, s: utilityP(cFuncFxd_term(m,n,s), self.CRRA)
+        vFuncFxd_term = ValueFunc3D(cFuncFxd_term, self.CRRA)
+        dvdmFuncFxd_term = MargValueFunc3D(cFuncFxd_term, self.CRRA)
         dvdnFuncFxd_term = ConstantFunction(0.)
         dvdsFuncFxd_term = ConstantFunction(0.)
         
