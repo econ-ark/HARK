@@ -1137,7 +1137,10 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         dvds_next = dvdsAdj_next
         
     # Evaluate realizations of value next period conditional on shocks, assets
-    # and shares    
+    # and shares
+    if not vFuncAdj_next(0.02,0.6) >= vFuncAdj_next(0.02,0.05):
+        print('VFUNC NOT INCREASING!!!')
+        
     vAdj_next = vFuncAdj_next(mNrm_next, nNrm_next)
     if AdjustPrb < 1.:
         vFxd_next = vFuncFxd_next(mNrm_next, nNrm_next, Share_next)
