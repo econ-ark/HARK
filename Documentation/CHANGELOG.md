@@ -16,6 +16,7 @@ Release Data: TBD
 
 * Namespace variables for the Market class [#765](https://github.com/econ-ark/HARK/pull/765)
 * We now have a Numba based implementation of PerfForesightConsumerType model available as PerfForesightConsumerTypeFast [#774](https://github.com/econ-ark/HARK/pull/774)
+* Namespace for exogenous shocks [#803](https://github.com/econ-ark/HARK/pull/803)
 
 #### Minor Changes 
 
