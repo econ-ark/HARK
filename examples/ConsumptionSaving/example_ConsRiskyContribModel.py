@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # %% Define a plotting function
-def plotFuncs3D(functions,bottom,top,N=300,titles = None):
+def plotFuncs3D(functions,bottom,top,N=300,titles = None, ax_labs = None):
     '''
     Plots 3D function(s) over a given range.
 
@@ -48,18 +48,57 @@ def plotFuncs3D(functions,bottom,top,N=300,titles = None):
     for k in range(nfunc):
         
         # Add axisplt
-        #ax = fig.add_subplot(1, nfunc, k+1, projection='3d')
-        ax = fig.add_subplot(1, nfunc, k+1)
+        ax = fig.add_subplot(1, nfunc, k+1, projection='3d')
+        #ax = fig.add_subplot(1, nfunc, k+1)
         Z = function_list[k](X,Y)
-        #ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
-        #                cmap='viridis', edgecolor='none')
-        ax.imshow(Z, extent=[bottom[0],top[0],bottom[1],top[1]], origin='lower')
+        ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                        cmap='viridis', edgecolor='none')
+        if ax_labs is not None:
+            ax.set_xlabel(ax_labs[0])
+            ax.set_ylabel(ax_labs[1])
+            ax.set_zlabel(ax_labs[2])
+        #ax.imshow(Z, extent=[bottom[0],top[0],bottom[1],top[1]], origin='lower')
         #ax.colorbar();
         if titles is not None:
             ax.set_title(titles[k]);
             
         ax.set_xlim([bottom[0], top[0]])
         ax.set_ylim([bottom[1], top[1]])
+        
+    plt.show()
+
+def plotSlices3D(functions,bot_x,top_x,y_slices,N=300,titles = None, ax_labs = None):
+
+    import matplotlib.pyplot as plt
+    if type(functions)==list:
+        function_list = functions
+    else:
+        function_list = [functions]
+    
+    nfunc = len(function_list)
+    
+    # Initialize figure and axes
+    fig = plt.figure(figsize=plt.figaspect(1.0/nfunc))
+    
+    # Create x grid
+    x = np.linspace(bot_x,top_x,N,endpoint=True)
+    
+    for k in range(nfunc):
+        ax = fig.add_subplot(1, nfunc, k+1)
+        for y in y_slices:
+            z = function_list[k](x, np.ones_like(x)*y)
+            ax.plot(x,z)
+            
+        if ax_labs is not None:
+            ax.set_xlabel(ax_labs[0])
+            ax.set_ylabel(ax_labs[1])
+            
+        #ax.imshow(Z, extent=[bottom[0],top[0],bottom[1],top[1]], origin='lower')
+        #ax.colorbar();
+        if titles is not None:
+            ax.set_title(titles[k]);
+            
+        ax.set_xlim([bot_x, top_x])
         
     plt.show()
 
@@ -80,11 +119,26 @@ t1 = time()
 print('Solving took ' + str(t1-t0) + ' seconds.')
 
 # %% Policy function inspection
-cFuncAdj = [ContribAgent.solution[t].cFuncAdj for t in range(ContribAgent.T_cycle)]
-cFuncFxd = [ContribAgent.solution[t].cFuncFxd for t in range(ContribAgent.T_cycle)]
-DFuncAdj = [ContribAgent.solution[t].DFuncAdj for t in range(ContribAgent.T_cycle)]
-ShareFuncAdj = [ContribAgent.solution[t].ShareFuncAdj for t in range(ContribAgent.T_cycle)]
 
-plotFuncs3D(cFuncAdj[4:10], bottom = (0,0), top = (5,10))
-plotFuncs3D(DFuncAdj[4:10], bottom = (0,0), top = (5,10))
-plotFuncs3D(ShareFuncAdj, bottom = (0,0), top = (5,5))
+periods = [0,7,9]
+
+cFuncAdj = [ContribAgent.solution[t].cFuncAdj for t in periods]
+cFuncFxd = [ContribAgent.solution[t].cFuncFxd for t in periods]
+DFuncAdj = [ContribAgent.solution[t].DFuncAdj for t in periods]
+ShareFuncAdj = [ContribAgent.solution[t].ShareFuncAdj for t in periods]
+
+plotSlices3D(cFuncAdj,0,5,y_slices = [0,2,4,6],
+             titles = ['t = ' + str(t) for t in periods],
+             ax_labs = ['m','c'])
+
+plotSlices3D(DFuncAdj,0,5,y_slices = [0,2,4,6],
+             titles = ['t = ' + str(t) for t in periods],
+             ax_labs = ['a','d'])
+
+plotSlices3D(ShareFuncAdj,0,5,y_slices = [0,2,4,6],
+             titles = ['t = ' + str(t) for t in periods],
+             ax_labs = ['a_til','S'])
+
+#plotFuncs3D(cFuncAdj, bottom = (0,0), top = (5,5), ax_labs = ['m','n','c'])
+#plotFuncs3D(DFuncAdj, bottom = (0,0), top = (5,5), ax_labs = ['a','n','d'])
+#plotFuncs3D(ShareFuncAdj, bottom = (0,0), top = (5,5), ax_labs = ['atil','ntil','s'])
