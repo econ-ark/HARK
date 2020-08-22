@@ -319,8 +319,8 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         EventDraw        =         IncomeDstnNow.draw_events(1)
         PermShkNow = IncomeDstnNow.X[0][EventDraw]*PermGroFacNow # permanent "shock" includes expected growth
         TranShkNow = IncomeDstnNow.X[1][EventDraw]
-        self.PermShkNow = np.array(PermShkNow)
-        self.TranShkNow = np.array(TranShkNow)
+        self.shocks['PermShkNow'] = np.array(PermShkNow)
+        self.shocks['TranShkNow'] = np.array(TranShkNow)
 
 
     def getControls(self):

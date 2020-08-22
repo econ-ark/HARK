@@ -507,8 +507,8 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount, dtype=bool)
         self.EmpNow[TranShkNow == self.IncUnemp] = False
-        self.TranShkNow = TranShkNow*self.TranShkAggNow*self.wRteNow
-        self.PermShkNow = PermShkNow*self.PermShkAggNow
+        self.shocks['TranShkNow'] = TranShkNow*self.TranShkAggNow*self.wRteNow
+        self.shocks['PermShkNow'] = PermShkNow*self.PermShkAggNow
 
     def getControls(self):
         '''
