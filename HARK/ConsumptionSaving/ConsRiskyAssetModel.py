@@ -937,20 +937,31 @@ def rebalanceFobj(d,a,n,v3,tau):
     
 def findOptimalRebalance(a,n,v3,tau):
     
-    lb, ub = -1., 1.
-    if a == 0.:
-        ub = 0.0
-    if n == 0.:
-        lb = 0.0
-    
-    if (lb == 0 and ub == 0):
+    if (a == 0 and n == 0):
         dopt = 0
     else:
         fobj = lambda d: -1.*rebalanceFobj(d,a,n,v3,tau)
-        dopt = minimize_scalar(fobj, bounds=(lb, ub), method='bounded').x
-    
+        # For each case, we optimize numerically and compare with the extremes.
+        if a > 0 and n > 0:
+            # Optimize contributing and withdrawing separately
+            opt_c = minimize_scalar(fobj, bounds=(0, 1), method='bounded')
+            opt_w = minimize_scalar(fobj, bounds=(-1, 0), method='bounded')
+            
+            ds = np.array([opt_c.x,opt_w.x,-1,0,1])
+            fs = np.array([opt_c.fun,opt_w.fun,fobj(-1),fobj(0),fobj(1)])
+        elif a > 0:
+            opt = minimize_scalar(fobj, bounds=(0, 1), method='bounded')
+            ds = np.array([opt.x,0,1])
+            fs = np.array([opt.fun,fobj(0),fobj(1)])
+        else:
+            opt = minimize_scalar(fobj, bounds=(-1, 0), method='bounded')
+            ds = np.array([opt.x,-1,0])
+            fs = np.array([opt.fun,fobj(-1),fobj(0)])
+        
+        # Pick the best candidate
+        dopt = ds[np.argmin(fs)]
+                
     a_til, n_til = rebalanceAssets(dopt,a,n,tau)
-    
     return dopt, a_til, n_til
         
     
@@ -1221,12 +1232,27 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     aTilde_tiled = np.reshape(optRebalance[:,1], (aNrm_N, nNrm_N))
     nTilde_tiled = np.reshape(optRebalance[:,2], (aNrm_N, nNrm_N))
     
-    # Construct the value function and derivatives
+    # Construct the value function
     vAdj2Nvrs = uInv(vFuncAdj3(aTilde_tiled, nTilde_tiled))
-    dvdaAdj2Nvrs = uPinv(dvdaFuncAdj3(aTilde_tiled, nTilde_tiled))
-    dvdnAdj2 = dvdnFuncAdj3(aTilde_tiled, nTilde_tiled)
-    
     vFuncAdj2    = ValueFunc2D(BilinearInterp(vAdj2Nvrs, aNrmGrid, nNrmGrid), CRRA)
+    
+    # Now the derivatives. These are not straight forward because of corner
+    # solutions with partial derivatives that change the limits. The idea then
+    # is to evaluate the possible uses of the marginal unit of resources and
+    # take the maximum.
+    
+    # An additional unit of a
+    marg_a   = dvdaFuncAdj3(aTilde_tiled, nTilde_tiled)
+    # An additional unit of n kept in n
+    marg_n    = dvdnFuncAdj3(aTilde_tiled, nTilde_tiled)
+    # An additional unit of n withdrawn to a
+    marg_n_to_a = marg_a/(1+tau)
+    
+    dvdaAdj2 = np.maximum(marg_a, marg_n)
+    dvdaAdj2Nvrs = uPinv(dvdaAdj2)
+    dvdnAdj2 = np.maximum(marg_n, marg_n_to_a)
+    
+    # Interpolators
     dvdaFuncAdj2 = MargValueFunc2D(BilinearInterp(dvdaAdj2Nvrs, aNrmGrid, nNrmGrid), CRRA)
     dvdnFuncAdj2 = BilinearInterp(dvdnAdj2, aNrmGrid, nNrmGrid)
     
