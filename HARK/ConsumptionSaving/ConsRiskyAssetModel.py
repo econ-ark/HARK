@@ -1232,13 +1232,27 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     aTilde_tiled = np.reshape(optRebalance[:,1], (aNrm_N, nNrm_N))
     nTilde_tiled = np.reshape(optRebalance[:,2], (aNrm_N, nNrm_N))
     
-    # Construct the value function and derivatives
-    # TODO: this is wrong! take into account the shadow value of the restriction!!!
+    # Construct the value function
     vAdj2Nvrs = uInv(vFuncAdj3(aTilde_tiled, nTilde_tiled))
-    dvdaAdj2Nvrs = uPinv(dvdaFuncAdj3(aTilde_tiled, nTilde_tiled))
-    dvdnAdj2 = dvdnFuncAdj3(aTilde_tiled, nTilde_tiled)
-    
     vFuncAdj2    = ValueFunc2D(BilinearInterp(vAdj2Nvrs, aNrmGrid, nNrmGrid), CRRA)
+    
+    # Now the derivatives. These are not straight forward because of corner
+    # solutions with partial derivatives that change the limits. The idea then
+    # is to evaluate the possible uses of the marginal unit of resources and
+    # take the maximum.
+    
+    # An additional unit of a
+    marg_a   = dvdaFuncAdj3(aTilde_tiled, nTilde_tiled)
+    # An additional unit of n kept in n
+    marg_n    = dvdnFuncAdj3(aTilde_tiled, nTilde_tiled)
+    # An additional unit of n withdrawn to a
+    marg_n_to_a = marg_a/(1+tau)
+    
+    dvdaAdj2 = np.maximum(marg_a, marg_n)
+    dvdaAdj2Nvrs = uPinv(dvdaAdj2)
+    dvdnAdj2 = np.maximum(marg_n, marg_n_to_a)
+    
+    # Interpolators
     dvdaFuncAdj2 = MargValueFunc2D(BilinearInterp(dvdaAdj2Nvrs, aNrmGrid, nNrmGrid), CRRA)
     dvdnFuncAdj2 = BilinearInterp(dvdnAdj2, aNrmGrid, nNrmGrid)
     
