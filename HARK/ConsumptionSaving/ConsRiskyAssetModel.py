@@ -30,6 +30,7 @@ from HARK.interpolation import(
         LinearInterp,           # Piecewise linear interpolation
         CubicInterp,            # Piecewise cubic interpolation
         LinearInterpOnInterp1D, # Interpolator over 1D interpolations
+        BilinearInterpOnInterp1D,
         BilinearInterp,         # 2D interpolator
         TrilinearInterp,        # 3D interpolator
         ConstantFunction,       # Interpolator-like class that returns constant value
@@ -1315,42 +1316,49 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     vFxdEndog = u(cFxdEndog) + EndOfPrdv
     vTFxdEndog = uInv(vFxdEndog)
     
-    # Apply the upper envelope over aNrm at every (nNrm,s) pair
-    envs = np.array([[list(zip(*calcMultilineEnvelope(mNrmEndog_tiled[:,nInd,sInd],
-                                             cFxdEndog[:,nInd,sInd],
-                                             vTFxdEndog[:,nInd,sInd],
-                                             mNrmCommGrid)))
-                      for nInd in range(nNrm_N)]
-                     for sInd in range(Share_N)]).T
-    
-    # Unpack
-    mNrmFxdUpp, cNrmFxdUpp, vTFxdUpp = envs[0], envs[1], envs[2]
-    # Create an "enveloped" n and S
-    nNrmFxdUpp  = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (len(mNrmCommGrid),1,Share_N))
-    ShareFxdUpp = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (len(mNrmCommGrid),nNrm_N,1))
-    # Create value, consumption, and marginal value functions
+    # Create tridimensional interpolators from 2D lists of 1d interpolators
+    # over m
     
     # Consumption
-    cFuncFxd = TrilinearInterp(cNrmFxdUpp, mNrmCommGrid, nNrmGrid, ShareGrid)
-    # Value
-    vFuncFxd = ValueFunc3D(TrilinearInterp(vTFxdUpp, mNrmCommGrid,
-                                           nNrmGrid, ShareGrid), CRRA)
+    cFxdInterps = [[LinearInterp(np.insert(mNrmEndog_tiled[:,nInd,sInd],0,0),
+                              np.insert(cFxdEndog[:,nInd,sInd],0,0))
+                    for sInd in range(Share_N)]
+                   for nInd in range(nNrm_N)]
+    cFuncFxd = BilinearInterpOnInterp1D(cFxdInterps, nNrmGrid, ShareGrid)
     
+    # Value
+    vTFxdInterps = [[LinearInterp(np.insert(mNrmEndog_tiled[:,nInd,sInd],0,0),
+                                  np.insert(vTFxdEndog[:,nInd,sInd],0,0))
+                     for sInd in range(Share_N)]
+                    for nInd in range(nNrm_N)]
+    
+    vFuncFxd = ValueFunc3D(BilinearInterpOnInterp1D(vTFxdInterps,
+                                                    nNrmGrid, ShareGrid),
+                           CRRA)
+        
     # Derivatives:
     
     # Liquid
-    dvdmFxdNvrs = cNrmFxdUpp
-    dvdmFuncFxd = MargValueFunc3D(TrilinearInterp(dvdmFxdNvrs, mNrmCommGrid,
-                                                  nNrmGrid, ShareGrid),
-                                  CRRA)
+    dvdmFuncFxd = MargValueFunc3D(cFuncFxd, CRRA)
     # Iliquid
-    aNrmFxdUpp  = mNrmFxdUpp - cNrmFxdUpp
-    dvdnFxdUpp  = EndOfPrddvdnCondShareFunc(aNrmFxdUpp, nNrmFxdUpp, ShareFxdUpp)
-    dvdnFuncFxd = TrilinearInterp(dvdnFxdUpp, mNrmCommGrid, nNrmGrid, ShareGrid)
+    dvdnFxd  = EndOfPrddvdnCondShareFunc(aNrm_tiled, nNrm_tiled, Share_tiled)
+    
+    dvdnFxdInterps = [[LinearInterp(mNrmEndog_tiled[:,nInd,sInd],
+                                    dvdnFxd[:,nInd,sInd])
+                       for sInd in range(Share_N)]
+                      for nInd in range(nNrm_N)]
+    
+    dvdnFuncFxd = BilinearInterpOnInterp1D(dvdnFxdInterps, nNrmGrid, ShareGrid)
     
     # Share
-    dvdsFxdUpp  = EndOfPrddvdsCondShareFunc(aNrmFxdUpp, nNrmFxdUpp, ShareFxdUpp)
-    dvdsFuncFxd = TrilinearInterp(dvdsFxdUpp, mNrmCommGrid, nNrmGrid, ShareGrid)
+    dvdsFxd = EndOfPrddvdsCondShareFunc(aNrm_tiled, nNrm_tiled, Share_tiled)
+    
+    dvdsFxdInterps = [[LinearInterp(mNrmEndog_tiled[:,nInd,sInd],
+                                    dvdsFxd[:,nInd,sInd])
+                       for sInd in range(Share_N)]
+                      for nInd in range(nNrm_N)]
+    
+    dvdsFuncFxd = BilinearInterpOnInterp1D(dvdsFxdInterps, nNrmGrid, ShareGrid)
     
     # Construct solution
     sol = RiskyContribSolution(
