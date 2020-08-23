@@ -1294,7 +1294,9 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     
     # Marginal re: iliquid assets
     dvdnAdj = dvdnFuncAdj2(aNrm_tiled, nNrm_tiled)
-    dvdnAdjInterps = [LinearInterp(mNrmEndog_tiled[:,j], dvdnAdj[:,j])
+    # TODO: find a better solution than lower extrap!
+    dvdnAdjInterps = [LinearInterp(mNrmEndog_tiled[:,j], dvdnAdj[:,j],
+                                   lower_extrap=True)
                       for j in range(nNrm_N)]
     dvdnFuncAdj = LinearInterpOnInterp1D(dvdnAdjInterps, nNrmGrid)
     dvdnFuncAdj(3,5)
@@ -1342,9 +1344,9 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     dvdmFuncFxd = MargValueFunc3D(cFuncFxd, CRRA)
     # Iliquid
     dvdnFxd  = EndOfPrddvdnCondShareFunc(aNrm_tiled, nNrm_tiled, Share_tiled)
-    
+    # TODO: find a better option than lower extrapolation
     dvdnFxdInterps = [[LinearInterp(mNrmEndog_tiled[:,nInd,sInd],
-                                    dvdnFxd[:,nInd,sInd])
+                                    dvdnFxd[:,nInd,sInd], lower_extrap=True)
                        for sInd in range(Share_N)]
                       for nInd in range(nNrm_N)]
     
