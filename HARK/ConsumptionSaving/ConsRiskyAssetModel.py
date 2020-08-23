@@ -1246,31 +1246,31 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # Transform
     vTAdjEndog = uInv(vAdjEndog)
     
-    # Find the upper envelope at every fixed n gridpoint (columnwise)
-    envs = list(map(lambda col: calcMultilineEnvelope(mNrmEndog_tiled[:,col],
-                                                      cAdjEndog[:,col],
-                                                      vTAdjEndog[:,col],
-                                                      mNrmCommGrid),
-                    range(nNrm_N)))
+    # Construct 2D interpolators for v, c, and marginals form
+    # 1D interpolators at every value of n
     
-    # Extract upper enveloped structures
-    mNrmAdjUpp, cNrmAdjUpp, vTAdjUpp = list(map(lambda x: np.array(x).T,
-                                                zip(*envs)))
-    # Create an 'upper-enveloped' n mesh. Which is just nNrm_tiled with 
-    # consistent dimensions, in case len(aNrmGrid) != len(mNrmCommGrid)
-    nNrmAdjUpp = np.tile(np.reshape(nNrmGrid, (1,nNrm_N)), (len(mNrmCommGrid),1))
-    # Create consumption, value, and marginal value functions
     # Consumption
-    cFuncAdj = BilinearInterp(cNrmAdjUpp, mNrmCommGrid, nNrmGrid)
+    cAdjInterps = [LinearInterp(np.insert(mNrmEndog_tiled[:,j],0,0),
+                                np.insert(cAdjEndog[:,j],0,0))
+                   for j in range(nNrm_N)]
+    cFuncAdj = LinearInterpOnInterp1D(cAdjInterps, nNrmGrid)
+    
     # Value
-    vFuncAdj = ValueFunc2D(BilinearInterp(vTAdjUpp, mNrmCommGrid, nNrmGrid), CRRA)
-    # Marginal values
-    # Iliquid assets
-    dvdnAdj     = dvdnFuncAdj2(mNrmAdjUpp - cNrmAdjUpp, nNrmAdjUpp)
-    dvdnFuncAdj = BilinearInterp(dvdnAdj, mNrmCommGrid,nNrmGrid)
-    # Liquid assets
-    dvdmAdjNvrs = cNrmAdjUpp
-    dvdmFuncAdj = MargValueFunc2D(BilinearInterp(dvdmAdjNvrs, mNrmCommGrid,nNrmGrid), CRRA)
+    vTAdjInterps = [LinearInterp(np.insert(mNrmEndog_tiled[:,j],0,0),
+                                 np.insert(vTAdjEndog[:,j],0,0))
+                   for j in range(nNrm_N)]
+    vFuncAdj = ValueFunc2D(LinearInterpOnInterp1D(vTAdjInterps, nNrmGrid),
+                           CRRA)
+    
+    # Marginal re: liquid assets
+    dvdmFuncAdj = MargValueFunc2D(cFuncAdj, CRRA)
+    
+    # Marginal re: iliquid assets
+    dvdnAdj = dvdnFuncAdj2(aNrm_tiled, nNrm_tiled)
+    dvdnAdjInterps = [LinearInterp(mNrmEndog_tiled[:,j], dvdnAdj[:,j])
+                      for j in range(nNrm_N)]
+    dvdnFuncAdj = LinearInterpOnInterp1D(dvdnAdjInterps, nNrmGrid)
+    dvdnFuncAdj(3,5)
     
     # Finally, create the (trivial) rebalancing and share functions for the
     # nonadjusting agent
