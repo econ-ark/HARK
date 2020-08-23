@@ -947,8 +947,12 @@ def findOptimalRebalance(a,n,v3,tau):
         dopt = 0
     else:
         fobj = lambda d: -1.*rebalanceFobj(d,a,n,v3,tau)
-        dopt = minimize_scalar(fobj, bounds=(lb, ub), method='bounded').x
-    
+        opt = minimize_scalar(fobj, bounds=(lb, ub), method='bounded')
+        dopt = opt.x
+        if dopt < 0:
+            if fobj(-1) < opt.fun:
+                dopt = -1
+                
     a_til, n_til = rebalanceAssets(dopt,a,n,tau)
     
     return dopt, a_til, n_til
@@ -1222,6 +1226,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     nTilde_tiled = np.reshape(optRebalance[:,2], (aNrm_N, nNrm_N))
     
     # Construct the value function and derivatives
+    # TODO: this is wrong! take into account the shadow value of the restriction!!!
     vAdj2Nvrs = uInv(vFuncAdj3(aTilde_tiled, nTilde_tiled))
     dvdaAdj2Nvrs = uPinv(dvdaFuncAdj3(aTilde_tiled, nTilde_tiled))
     dvdnAdj2 = dvdnFuncAdj3(aTilde_tiled, nTilde_tiled)
