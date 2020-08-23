@@ -937,24 +937,31 @@ def rebalanceFobj(d,a,n,v3,tau):
     
 def findOptimalRebalance(a,n,v3,tau):
     
-    lb, ub = -1., 1.
-    if a == 0.:
-        ub = 0.0
-    if n == 0.:
-        lb = 0.0
-    
-    if (lb == 0 and ub == 0):
+    if (a == 0 and n == 0):
         dopt = 0
     else:
         fobj = lambda d: -1.*rebalanceFobj(d,a,n,v3,tau)
-        opt = minimize_scalar(fobj, bounds=(lb, ub), method='bounded')
-        dopt = opt.x
-        if dopt < 0:
-            if fobj(-1) < opt.fun:
-                dopt = -1
+        # For each case, we optimize numerically and compare with the extremes.
+        if a > 0 and n > 0:
+            # Optimize contributing and withdrawing separately
+            opt_c = minimize_scalar(fobj, bounds=(0, 1), method='bounded')
+            opt_w = minimize_scalar(fobj, bounds=(-1, 0), method='bounded')
+            
+            ds = np.array([opt_c.x,opt_w.x,-1,0,1])
+            fs = np.array([opt_c.fun,opt_w.fun,fobj(-1),fobj(0),fobj(1)])
+        elif a > 0:
+            opt = minimize_scalar(fobj, bounds=(0, 1), method='bounded')
+            ds = np.array([opt.x,0,1])
+            fs = np.array([opt.fun,fobj(0),fobj(1)])
+        else:
+            opt = minimize_scalar(fobj, bounds=(-1, 0), method='bounded')
+            ds = np.array([opt.x,-1,0])
+            fs = np.array([opt.fun,fobj(-1),fobj(0)])
+        
+        # Pick the best candidate
+        dopt = ds[np.argmin(fs)]
                 
     a_til, n_til = rebalanceAssets(dopt,a,n,tau)
-    
     return dopt, a_til, n_til
         
     
