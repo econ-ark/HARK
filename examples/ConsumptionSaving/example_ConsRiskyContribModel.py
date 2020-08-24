@@ -67,7 +67,8 @@ def plotFuncs3D(functions,bottom,top,N=300,titles = None, ax_labs = None):
         
     plt.show()
 
-def plotSlices3D(functions,bot_x,top_x,y_slices,N=300,titles = None, ax_labs = None):
+def plotSlices3D(functions,bot_x,top_x,y_slices,N=300,y_name = None,
+                 titles = None, ax_labs = None):
 
     import matplotlib.pyplot as plt
     if type(functions)==list:
@@ -85,9 +86,16 @@ def plotSlices3D(functions,bot_x,top_x,y_slices,N=300,titles = None, ax_labs = N
     
     for k in range(nfunc):
         ax = fig.add_subplot(1, nfunc, k+1)
+                
         for y in y_slices:
+            
+            if y_name is None:
+                lab = ''
+            else:
+                lab = y_name + '=' + str(y)
+            
             z = function_list[k](x, np.ones_like(x)*y)
-            ax.plot(x,z)
+            ax.plot(x,z, label = lab)
             
         if ax_labs is not None:
             ax.set_xlabel(ax_labs[0])
@@ -99,6 +107,9 @@ def plotSlices3D(functions,bot_x,top_x,y_slices,N=300,titles = None, ax_labs = N
             ax.set_title(titles[k]);
             
         ax.set_xlim([bot_x, top_x])
+        
+        if y_name is not None:
+            ax.legend()
         
     plt.show()
 
@@ -129,15 +140,15 @@ cFuncFxd = [ContribAgent.solution[t].cFuncFxd for t in periods]
 DFuncAdj = [ContribAgent.solution[t].DFuncAdj for t in periods]
 ShareFuncAdj = [ContribAgent.solution[t].ShareFuncAdj for t in periods]
 
-plotSlices3D(cFuncAdj,0,5,y_slices = [0,2,4,6],
+plotSlices3D(cFuncAdj,0,10,y_slices = [0,2,4,6],y_name = 'n',
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['m','c'])
 
-plotSlices3D(DFuncAdj,0,5,y_slices = [0,2,4,6],
+plotSlices3D(DFuncAdj,0,10,y_slices = [0,2,4,6],y_name = 'n',
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['a','d'])
 
-plotSlices3D(ShareFuncAdj,0,5,y_slices = [0,2,4,6],
+plotSlices3D(ShareFuncAdj,0,10,y_slices = [0,2,4,6],y_name = 'n_tilde',
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['a_til','S'])
 
