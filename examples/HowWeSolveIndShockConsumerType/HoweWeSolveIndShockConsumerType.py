@@ -99,11 +99,17 @@
 # First, we define a standard lifecycle model, solve it and then
 
 # %%
-from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType, init_lifecycle
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    IndShockConsumerType,
+    init_lifecycle,
+)
 import numpy as np
 import matplotlib.pyplot as plt
+
 LifecycleExample = IndShockConsumerType(init_lifecycle)
-LifecycleExample.cycles = 1 # Make this consumer live a sequence of periods exactly once
+LifecycleExample.cycles = (
+    1  # Make this consumer live a sequence of periods exactly once
+)
 LifecycleExample.solve()
 
 # %% [markdown]
@@ -111,24 +117,30 @@ LifecycleExample.solve()
 
 # %%
 from HARK.utilities import plotFuncs
-plotFuncs([LifecycleExample.solution[0].cFunc],LifecycleExample.solution[0].mNrmMin,10)
+
+plotFuncs(
+    [LifecycleExample.solution[0].cFunc], LifecycleExample.solution[0].mNrmMin, 10
+)
 
 # %% [markdown]
 # Let us then create a solver for the first period.
 
 # %%
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolverBasic
-solver = ConsIndShockSolverBasic(LifecycleExample.solution[1],
-                                 LifecycleExample.IncomeDstn[0],
-                                 LifecycleExample.LivPrb[0],
-                                 LifecycleExample.DiscFac,
-                                 LifecycleExample.CRRA,
-                                 LifecycleExample.Rfree,
-                                 LifecycleExample.PermGroFac[0],
-                                 LifecycleExample.BoroCnstArt,
-                                 LifecycleExample.aXtraGrid,
-                                 LifecycleExample.vFuncBool,
-                                 LifecycleExample.CubicBool)
+
+solver = ConsIndShockSolverBasic(
+    LifecycleExample.solution[1],
+    LifecycleExample.IncomeDstn[0],
+    LifecycleExample.LivPrb[0],
+    LifecycleExample.DiscFac,
+    LifecycleExample.CRRA,
+    LifecycleExample.Rfree,
+    LifecycleExample.PermGroFac[0],
+    LifecycleExample.BoroCnstArt,
+    LifecycleExample.aXtraGrid,
+    LifecycleExample.vFuncBool,
+    LifecycleExample.CubicBool,
+)
 
 # %%
 solver.prepareToSolve()
@@ -146,7 +158,7 @@ solver.PermShkMinNext
 # These values were calculated in `setAndUpdateValues`. In `defBoroCnst` that was also called, several things were calculated, for example the consumption function defined by the borrowing constraint.
 
 # %%
-plotFuncs([solver.cFuncNowCnst],solver.mNrmMinNow,10)
+plotFuncs([solver.cFuncNowCnst], solver.mNrmMinNow, 10)
 
 # %% [markdown]
 # Then, we set up all the grids, grabs the discrete shock distributions, and state grids in `prepareToCalcEndOfPrdvP`.
@@ -164,7 +176,7 @@ EndOfPrdvP = solver.calcEndOfPrdvP()
 # Then, we essentially just have to construct the (resource, consumption) pairs by completing the EGM step, and constructing the interpolants by using the knowledge that the limiting solutions are those of the perfect foresight model. This is done with `makeBasicSolution` as discussed above.
 
 # %%
-solution = solver.makeBasicSolution(EndOfPrdvP,solver.aNrmNow,solver.makeLinearcFunc)
+solution = solver.makeBasicSolution(EndOfPrdvP, solver.aNrmNow, solver.makeLinearcFunc)
 
 # %% [markdown]
 # Lastly, we add the MPC and human wealth quantities we calculated in the method that prepared the solution of this period.
@@ -176,7 +188,11 @@ solver.addMPCandHumanWealth(solution)
 # All that is left is to verify that the solution in `solution` is identical to `LifecycleExample.solution[0]`. We can plot the against each other:
 
 # %%
-plotFuncs([LifecycleExample.solution[0].cFunc, solution.cFunc],LifecycleExample.solution[0].mNrmMin,10)
+plotFuncs(
+    [LifecycleExample.solution[0].cFunc, solution.cFunc],
+    LifecycleExample.solution[0].mNrmMin,
+    10,
+)
 
 # %% [markdown]
 # Although, it's probably even clearer if we just subtract the function values from each other at some grid.

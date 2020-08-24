@@ -7,6 +7,7 @@ import numpy as np
 from HARK.ConsumptionSaving.ConsIndShockModel import init_idiosyncratic_shocks
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.distribution import DiscreteDistribution
+
 mystr = lambda number: "{:.4f}".format(number)
 do_simulation = True
 
@@ -28,7 +29,7 @@ do_simulation = True
 # u(c) &=& \frac{c^{1-\rho}}{1-\rho}
 # \end{eqnarray*}
 #
-# The Markov matrix $\triangle$ is giving transition probabilities from current state $i$ to future state $j$. 
+# The Markov matrix $\triangle$ is giving transition probabilities from current state $i$ to future state $j$.
 
 # %% [markdown]
 # The one period problem for this model is solved by the function $\texttt{solveConsMarkov}$, which creates an instance of the class $\texttt{ConsMarkovSolver}$. The class $\texttt{MarkovConsumerType}$ extends $\texttt{IndShockConsumerType}$ to represents agents in this model.
@@ -42,7 +43,7 @@ do_simulation = True
 # | :---: | --- | --- | --- | :---: |
 # | $\triangle$ |Discrete state transition probability matrix  | $\texttt{MrkvArray}$ |  |$\surd$ |
 #
-# The attribute $\texttt{MrkvArray}$ is a $\texttt{numpy.array}$ of size ($N_s$, $N_s$) corresponding to the number of discrete states. 
+# The attribute $\texttt{MrkvArray}$ is a $\texttt{numpy.array}$ of size ($N_s$, $N_s$) corresponding to the number of discrete states.
 #
 # Note that $\texttt{MrkvArray}$ is am element of $\texttt{time_inv}$, so that the same transition probabilities are used for each period. However, it can be moved to $\texttt{time_vary}$ and specified as a list of $\texttt{array}$s instead.
 #
@@ -51,7 +52,7 @@ do_simulation = True
 # %% [markdown]
 # ### Solve MarkovConsumerType
 #
-# When the $\texttt{MarkovConsumerType}$ method of a $\texttt{MarkovConsumerType}$ is invoked, the $\texttt{solution}$ attribute is populated with a list of $\texttt{ConsumerSolution}$ objects, which each have the same attributes as the "idiosyncratic shocks" model. However, each attribute is now a list (or array) whose elements are *state-conditional* values of that object. 
+# When the $\texttt{MarkovConsumerType}$ method of a $\texttt{MarkovConsumerType}$ is invoked, the $\texttt{solution}$ attribute is populated with a list of $\texttt{ConsumerSolution}$ objects, which each have the same attributes as the "idiosyncratic shocks" model. However, each attribute is now a list (or array) whose elements are *state-conditional* values of that object.
 #
 # For example, in a model with 4 discrete states, each the $\texttt{cFunc}$ attribute of each element of $\texttt{solution}$ is a length-4 list whose elements are state-conditional consumption functions. That is, $\texttt{cFunc[2]}$ is the consumption function when $s_t = 2$.
 #
@@ -104,7 +105,7 @@ MrkvArray = np.array(
 # 3. Model with serially correlated permanent income growth
 # 4. Model with serially correlated interest factor
 #
-# ### 1. Serial Unemployment 
+# ### 1. Serial Unemployment
 #
 # Let's create a consumer similar to the one in "idiosyncratic shock" model but who faces serially correlated unemployment during boom or bust cycles of the economy.
 
@@ -120,8 +121,12 @@ SerialUnemploymentExample.vFuncBool = False  # for easy toggling here
 
 # %%
 # Replace the default (lognormal) income distribution with a custom one
-employed_income_dist = DiscreteDistribution(np.ones(1), [np.ones(1), np.ones(1)])  # Definitely get income
-unemployed_income_dist = DiscreteDistribution(np.ones(1), [np.ones(1), np.zeros(1)]) # Definitely don't
+employed_income_dist = DiscreteDistribution(
+    np.ones(1), [np.ones(1), np.ones(1)]
+)  # Definitely get income
+unemployed_income_dist = DiscreteDistribution(
+    np.ones(1), [np.ones(1), np.zeros(1)]
+)  # Definitely don't
 SerialUnemploymentExample.IncomeDstn = [
     [
         employed_income_dist,
@@ -183,13 +188,10 @@ ImmunityT = 6  # Number of periods of immunity
 StateCount = ImmunityT + 1  # Total number of Markov states
 IncomeDstnReg = DiscreteDistribution(
     np.array([1 - UnempPrb, UnempPrb]),
-    [np.array([1.0, 1.0]),
-     np.array([1.0 / (1.0 - UnempPrb), 0.0])]
+    [np.array([1.0, 1.0]), np.array([1.0 / (1.0 - UnempPrb), 0.0])],
 )  # Ordinary income distribution
 IncomeDstnImm = DiscreteDistribution(
-    np.array([1.0]),
-    [np.array([1.0]),
-     np.array([1.0])]
+    np.array([1.0]), [np.array([1.0]), np.array([1.0])]
 )
 IncomeDstn = [IncomeDstnReg] + ImmunityT * [
     IncomeDstnImm
@@ -204,15 +206,11 @@ MrkvArray[0, 0] = (
 )  # Probability of not becoming immune in ordinary state: stay in ordinary state
 MrkvArray[
     0, ImmunityT
-] = (
-    ImmunityPrb
-)  # Probability of becoming immune in ordinary state: begin immunity periods
+] = ImmunityPrb  # Probability of becoming immune in ordinary state: begin immunity periods
 for j in range(ImmunityT):
     MrkvArray[
         j + 1, j
-    ] = (
-        1.0
-    )  # When immune, have 100% chance of transition to state with one fewer immunity periods remaining
+    ] = 1.0  # When immune, have 100% chance of transition to state with one fewer immunity periods remaining
 
 # %%
 init_unemployment_immunity = copy(init_idiosyncratic_shocks)
@@ -253,14 +251,12 @@ plotFuncs(ImmunityExample.solution[0].cFunc, mNrmMin, 10)
 UnempPrb = 0.05  # Unemployment probability
 StateCount = 5  # Number of permanent income growth rates
 Persistence = (
-    0.5
-)  # Probability of getting the same permanent income growth rate next period
+    0.5  # Probability of getting the same permanent income growth rate next period
+)
 
 # %%
 IncomeDstnReg = DiscreteDistribution(
-    np.array([1 - UnempPrb, UnempPrb]),
-    [np.array([1.0, 1.0]),
-     np.array([1.0, 0.0])]
+    np.array([1 - UnempPrb, UnempPrb]), [np.array([1.0, 1.0]), np.array([1.0, 0.0])]
 )
 IncomeDstn = StateCount * [
     IncomeDstnReg
@@ -292,7 +288,7 @@ SerialGroExample.IncomeDstn = [IncomeDstn]
 # %% [markdown]
 # ### 4. Serial Interest factor
 #
-# Finally, suppose that the consumer faces a interest factor serially correlated while his/her permanent income growth rate is constant. 
+# Finally, suppose that the consumer faces a interest factor serially correlated while his/her permanent income growth rate is constant.
 
 # %%
 # Solve the serially correlated permanent growth shock problem and display the consumption functions

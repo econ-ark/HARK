@@ -7,8 +7,10 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     IndShockExplicitPermIncConsumerType,
     IndShockConsumerType,
     PersistentShockConsumerType,
-    init_explicit_perm_inc
+    init_explicit_perm_inc,
 )
+
+
 def mystr(number):
     return "{:.4f}".format(number)
 
@@ -29,11 +31,7 @@ print(
     + str(init_explicit_perm_inc["pLvlPctiles"][0] * 100)
     + " and the highest"
 )
-print(
-    "percentile is "
-    + str(init_explicit_perm_inc["pLvlPctiles"][-1] * 100)
-    + ".\n"
-)
+print("percentile is " + str(init_explicit_perm_inc["pLvlPctiles"][-1] * 100) + ".\n")
 
 # %%
 # Make and solve an example "explicit permanent income" consumer with idiosyncratic shocks

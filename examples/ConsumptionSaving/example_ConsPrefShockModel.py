@@ -7,6 +7,7 @@ from HARK.ConsumptionSaving.ConsPrefShockModel import (
     PrefShockConsumerType,
     KinkyPrefConsumerType,
 )
+
 mystr = lambda number: "{:.4f}".format(number)
 do_simulation = True
 
@@ -21,7 +22,7 @@ do_simulation = True
 # %% [markdown]
 # ### Multiplicative Shocks to Utility
 #
-# In this model, an agent is very similar to the one in the "idiosyncratic shocks" model, except that in $\texttt{ConsPrefShockModel}$ an agent receives an iid multiplicative shock to his/her utility at the beginning of each period, before making the consumption decision. 
+# In this model, an agent is very similar to the one in the "idiosyncratic shocks" model, except that in $\texttt{ConsPrefShockModel}$ an agent receives an iid multiplicative shock to his/her utility at the beginning of each period, before making the consumption decision.
 #
 # The agent's problem can be written in (normalized) Bellman form as:
 #
@@ -36,7 +37,7 @@ do_simulation = True
 #
 
 # %% [markdown]
-# The one period problem for this model is solved by the function $\texttt{solveConsPrefShock}$, which creates an instance of the class $\texttt{ConsPrefShockSolver}$. The class $\texttt{PrefShockConsumerType}$ extends $\texttt{IndShockConsumerType}$ to represents agents in this model. 
+# The one period problem for this model is solved by the function $\texttt{solveConsPrefShock}$, which creates an instance of the class $\texttt{ConsPrefShockSolver}$. The class $\texttt{PrefShockConsumerType}$ extends $\texttt{IndShockConsumerType}$ to represents agents in this model.
 #
 # To construct an instance of this class, 3 additional attributes must be passed to the constructor as shown in the table below (parameters can be either "primitive" if they are directly specified by the user or "constructed" if they are built by a class method using simple parameters specified by the user).
 
@@ -54,8 +55,8 @@ do_simulation = True
 # %% [markdown]
 # ### Constructed inputs to solve ConsPrefShockModel
 #
-# * The tails of the preference shock distribution are of great importance for the accuracy of the solution and are underrepresented by the default equiprobable discrete approximation (unless a very large number of points are used). 
-# To fix this issue, the attribute $\texttt{PerfShk_tail_N}$ specifies the number of points in each " augmented tail" section of the preference shock discrete approximation. 
+# * The tails of the preference shock distribution are of great importance for the accuracy of the solution and are underrepresented by the default equiprobable discrete approximation (unless a very large number of points are used).
+# To fix this issue, the attribute $\texttt{PerfShk_tail_N}$ specifies the number of points in each " augmented tail" section of the preference shock discrete approximation.
 # See [HARK.utilities.approxLognormal](https://github.com/econ-ark/HARK/blob/master/HARK/utilities.py) for more details.
 #
 #
@@ -123,7 +124,7 @@ if do_simulation:
 # In this model, an agent face idiosyncratic shocks to permanent and transitory income and multiplicative shocks to utility *and* faces a different interst rate on borrowing vs saving. This agent's model is identical to that of the $\texttt{ConsPrefShockModel}$ with the addition of the interst rate rule from the $\texttt{kinkedRConsumerType}$ from $\texttt{ConsIndShock}$ model.
 
 # %% [markdown]
-# The one period problem of this model is solved by the function $\texttt{solveConsKinkyPref}$, which creates an instance of $\texttt{ConsKinkyPrefSolver}$. The class $\texttt{KinkyPrefConsumerType}$ represents agents in this model. 
+# The one period problem of this model is solved by the function $\texttt{solveConsKinkyPref}$, which creates an instance of $\texttt{ConsKinkyPrefSolver}$. The class $\texttt{KinkyPrefConsumerType}$ represents agents in this model.
 #
 # Thanks to HARK's object-oriented approach to solution methods, it is trivial to combine two models to make a new one. In this current case, the solver and consumer classes each inherit from both $\texttt{KinkedR}$ and $\texttt{PrefShock}$ and only need a trivial constructor function to rectify the differences between the two.
 #
@@ -132,9 +133,9 @@ if do_simulation:
 # %% [markdown]
 # ### Constructed inputs to solve KinkyPref
 #
-# * The attributes required to properly construct an instance of $\texttt{KinkyPrefConsumerType}$ are the same as $\texttt{PrefShockConsumerType}$, except that $\texttt{Rfree}$ should not be replace with $\texttt{Rboro}$ and $\texttt{Rsave}$ - like the "kinked R" parent model. 
+# * The attributes required to properly construct an instance of $\texttt{KinkyPrefConsumerType}$ are the same as $\texttt{PrefShockConsumerType}$, except that $\texttt{Rfree}$ should not be replace with $\texttt{Rboro}$ and $\texttt{Rsave}$ - like the "kinked R" parent model.
 #
-# * Also, as in $\texttt{KinkedR}$ and $\texttt{PrefShock}$, $\texttt{KinkyPref}$ is not yet compatible with cubic spline interpolation of the consumption function. 
+# * Also, as in $\texttt{KinkedR}$ and $\texttt{PrefShock}$, $\texttt{KinkyPref}$ is not yet compatible with cubic spline interpolation of the consumption function.
 
 # %%
 # Make and solve a "kinky preferece" consumer, whose model combines KinkedR and PrefShock

@@ -8,6 +8,7 @@ from time import process_time  # timing utility
 from HARK.distribution import DiscreteDistribution
 from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerType
 import numpy as np
+
 do_simulation = True
 
 # Define the model primitives
@@ -94,12 +95,12 @@ init_consumer_objects = {
 }
 MarkovType = MarkovConsumerType(**init_consumer_objects)  # Make a basic consumer type
 
-employed_income_dist = DiscreteDistribution(np.ones(1),
-    [np.ones(1), np.ones(1)]
-    )  # Income distribution when employed
-unemployed_income_dist = DiscreteDistribution(np.ones(1),
-    [np.ones(1), np.zeros(1)]
-    )  # Income distribution when permanently unemployed
+employed_income_dist = DiscreteDistribution(
+    np.ones(1), [np.ones(1), np.ones(1)]
+)  # Income distribution when employed
+unemployed_income_dist = DiscreteDistribution(
+    np.ones(1), [np.ones(1), np.zeros(1)]
+)  # Income distribution when permanently unemployed
 
 MarkovType.IncomeDstn = [
     [employed_income_dist, unemployed_income_dist]
@@ -110,7 +111,7 @@ MarkovType.cycles = 0
 t_start = process_time()
 MarkovType.solve()
 t_end = process_time()
-MarkovType.unpack('cFunc')
+MarkovType.unpack("cFunc")
 
 print(
     'Solving the same model "the long way" took ' + str(t_end - t_start) + " seconds."

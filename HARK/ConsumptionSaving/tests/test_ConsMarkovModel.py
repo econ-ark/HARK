@@ -5,6 +5,7 @@ from HARK.distribution import DiscreteDistribution
 from copy import copy
 import unittest
 
+
 class test_ConsMarkovSolver(unittest.TestCase):
     def setUp(self):
 
@@ -48,16 +49,22 @@ class test_ConsMarkovSolver(unittest.TestCase):
         )
 
         init_serial_unemployment = copy(init_idiosyncratic_shocks)
-        init_serial_unemployment["MrkvArray"] = [MrkvArray]       
-        init_serial_unemployment["UnempPrb"] = 0  # to make income distribution when employed
+        init_serial_unemployment["MrkvArray"] = [MrkvArray]
+        init_serial_unemployment[
+            "UnempPrb"
+        ] = 0  # to make income distribution when employed
         init_serial_unemployment["global_markov"] = False
         self.model = MarkovConsumerType(**init_serial_unemployment)
         self.model.cycles = 0
         self.model.vFuncBool = False  # for easy toggling here
 
         # Replace the default (lognormal) income distribution with a custom one
-        employed_income_dist = DiscreteDistribution(np.ones(1), [np.ones(1), np.ones(1)])  # Definitely get income
-        unemployed_income_dist = DiscreteDistribution(np.ones(1), [np.ones(1), np.zeros(1)]) # Definitely don't
+        employed_income_dist = DiscreteDistribution(
+            np.ones(1), [np.ones(1), np.ones(1)]
+        )  # Definitely get income
+        unemployed_income_dist = DiscreteDistribution(
+            np.ones(1), [np.ones(1), np.zeros(1)]
+        )  # Definitely don't
         self.model.IncomeDstn = [
             [
                 employed_income_dist,

@@ -3,7 +3,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     KinkedRconsumerType,
     init_lifecycle,
-    init_cyclical
+    init_cyclical,
 )
 from HARK.utilities import plotFuncsDer, plotFuncs
 from time import time
@@ -26,7 +26,7 @@ print(
     + mystr(end_time - start_time)
     + " seconds."
 )
-PFexample.unpack('cFunc')
+PFexample.unpack("cFunc")
 
 # Plot the perfect foresight consumption function
 print("Perfect foresight consumption function:")
@@ -51,7 +51,7 @@ print(
     + mystr(end_time - start_time)
     + " seconds."
 )
-IndShockExample.unpack('cFunc')
+IndShockExample.unpack("cFunc")
 
 # Plot the consumption function and MPC for the infinite horizon consumer
 print("Concave consumption function:")
@@ -88,14 +88,14 @@ if do_simulation:
 # Make and solve an idiosyncratic shocks consumer with a finite lifecycle
 LifecycleExample = IndShockConsumerType(**init_lifecycle)
 LifecycleExample.cycles = (
-    1
-)  # Make this consumer live a sequence of periods exactly once
+    1  # Make this consumer live a sequence of periods exactly once
+)
 
 start_time = time()
 LifecycleExample.solve()
 end_time = time()
 print("Solving a lifecycle consumer took " + mystr(end_time - start_time) + " seconds.")
-LifecycleExample.unpack('cFunc')
+LifecycleExample.unpack("cFunc")
 
 # Plot the consumption functions during working life
 print("Consumption functions while working:")
@@ -124,7 +124,7 @@ start_time = time()
 CyclicalExample.solve()
 end_time = time()
 print("Solving a cyclical consumer took " + mystr(end_time - start_time) + " seconds.")
-CyclicalExample.unpack('cFunc')
+CyclicalExample.unpack("cFunc")
 
 # Plot the consumption functions for the cyclical consumer type
 print("Quarterly consumption functions:")
@@ -146,7 +146,7 @@ start_time = time()
 KinkyExample.solve()
 end_time = time()
 print("Solving a kinky consumer took " + mystr(end_time - start_time) + " seconds.")
-KinkyExample.unpack('cFunc')
+KinkyExample.unpack("cFunc")
 print("Kinky consumption function:")
 plotFuncs(KinkyExample.cFunc[0], KinkyExample.solution[0].mNrmMin, 5)
 

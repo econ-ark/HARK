@@ -10,6 +10,8 @@ from HARK.ConsumptionSaving.ConsAggShockModel import (
     CobbDouglasMarkovEconomy,
 )
 from copy import deepcopy
+
+
 def mystr(number):
     return "{:.4f}".format(number)
 
@@ -55,7 +57,7 @@ if solve_agg_shocks_micro:
         "Consumption function at each aggregate market resources-to-labor ratio gridpoint:"
     )
     m_grid = np.linspace(0, 10, 200)
-    AggShockExample.unpack('cFunc')
+    AggShockExample.unpack("cFunc")
     for M in AggShockExample.Mgrid.tolist():
         mMin = AggShockExample.solution[0].mNrmMin(M)
         c_at_this_M = AggShockExample.cFunc[0](m_grid + mMin, M * np.ones_like(m_grid))
@@ -82,9 +84,9 @@ if solve_agg_shocks_market:
     print(
         "Consumption function at each aggregate market resources gridpoint (in general equilibrium):"
     )
-    AggShockExample.unpack('cFunc')
+    AggShockExample.unpack("cFunc")
     m_grid = np.linspace(0, 10, 200)
-    AggShockExample.unpack('cFunc')
+    AggShockExample.unpack("cFunc")
     for M in AggShockExample.Mgrid.tolist():
         mMin = AggShockExample.solution[0].mNrmMin(M)
         c_at_this_M = AggShockExample.cFunc[0](m_grid + mMin, M * np.ones_like(m_grid))
@@ -124,7 +126,7 @@ if solve_markov_micro:
             resources-to-labor ratio gridpoint (for each macro state):"
     )
     m_grid = np.linspace(0, 10, 200)
-    AggShockMrkvExample.unpack('cFunc')
+    AggShockMrkvExample.unpack("cFunc")
     for i in range(2):
         for M in AggShockMrkvExample.Mgrid.tolist():
             mMin = AggShockMrkvExample.solution[0].mNrmMin[i](M)
@@ -152,7 +154,7 @@ if solve_markov_market:
             resources-to-labor ratio gridpoint (for each macro state):"
     )
     m_grid = np.linspace(0, 10, 200)
-    AggShockMrkvExample.unpack('cFunc')
+    AggShockMrkvExample.unpack("cFunc")
     for i in range(2):
         for M in AggShockMrkvExample.Mgrid.tolist():
             mMin = AggShockMrkvExample.solution[0].mNrmMin[i](M)
@@ -169,27 +171,19 @@ if solve_krusell_smith:
     KSexampleType = deepcopy(AggShockMrkvExample)
     KSexampleType.IncomeDstn[0] = [
         DiscreteDistribution(
-            np.array([0.96, 0.04]),
-            [ np.array([1.0, 1.0]), np.array([1.0 / 0.96, 0.0])]
+            np.array([0.96, 0.04]), [np.array([1.0, 1.0]), np.array([1.0 / 0.96, 0.0])]
         ),
         DiscreteDistribution(
-            np.array([0.90, 0.10]),
-            [np.array([1.0, 1.0]), np.array([1.0 / 0.90, 0.0])],
-        )
+            np.array([0.90, 0.10]), [np.array([1.0, 1.0]), np.array([1.0 / 0.90, 0.0])],
+        ),
     ]
 
     # Make a KS economy
     KSeconomy = deepcopy(MrkvEconomyExample)
     KSeconomy.agents = [KSexampleType]
     KSeconomy.AggShkDstn = [
-        DiscreteDistribution(
-            np.array([1.0]),
-            [np.array([1.0]), np.array([1.05])],
-        ),
-        DiscreteDistribution(
-            np.array([1.0]),
-            [np.array([1.0]), np.array([0.95])],
-        )
+        DiscreteDistribution(np.array([1.0]), [np.array([1.0]), np.array([1.05])],),
+        DiscreteDistribution(np.array([1.0]), [np.array([1.0]), np.array([0.95])],),
     ]
     KSeconomy.PermGroFacAgg = [1.0, 1.0]
     KSexampleType.getEconomyData(KSeconomy)
@@ -233,7 +227,9 @@ if solve_poly_state:
 
     # Make a Cobb-Douglas economy for the agents
     # Use verbose=False to remove printing of intercept
-    PolyStateEconomy = CobbDouglasMarkovEconomy(agents=[PolyStateExample], verbose=False)
+    PolyStateEconomy = CobbDouglasMarkovEconomy(
+        agents=[PolyStateExample], verbose=False
+    )
     PolyStateEconomy.MrkvArray = PolyMrkvArray
     PolyStateEconomy.PermGroFacAgg = PermGroFacAgg
     PolyStateEconomy.PermShkAggStd = StateCount * [0.006]

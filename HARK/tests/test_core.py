@@ -81,8 +81,8 @@ class testAgentType(unittest.TestCase):
         self.agent = AgentType()
 
     def test_solve(self):
-        self.agent.time_vary = ['vary_1']
-        self.agent.time_inv = ['inv_1']
+        self.agent.time_vary = ["vary_1"]
+        self.agent.time_inv = ["inv_1"]
         self.agent.vary_1 = [1.1, 1.2, 1.3, 1.4]
         self.agent.inv_1 = 1.05
         # to test the superclass we create a dummy solveOnePeriod function

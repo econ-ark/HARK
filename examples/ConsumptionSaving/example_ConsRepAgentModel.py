@@ -3,9 +3,7 @@ from copy import deepcopy
 from time import time
 import numpy as np
 from HARK.utilities import plotFuncs
-from HARK.ConsumptionSaving.ConsIndShockModel import (
-    init_idiosyncratic_shocks
-)
+from HARK.ConsumptionSaving.ConsIndShockModel import init_idiosyncratic_shocks
 
 from HARK.ConsumptionSaving.ConsRepAgentModel import (
     RepAgentConsumerType,
@@ -13,7 +11,7 @@ from HARK.ConsumptionSaving.ConsRepAgentModel import (
 )
 
 # %% [markdown]
-# This module contains models for solving representative agent (RA) macroeconomic models. This stands in contrast to all other model modules in HARK, which (unsurprisingly) take a heterogeneous agents approach.  
+# This module contains models for solving representative agent (RA) macroeconomic models. This stands in contrast to all other model modules in HARK, which (unsurprisingly) take a heterogeneous agents approach.
 # In RA models, all attributes are either time invariant or exist on a short cycle. Also, models must be infinite horizon.
 
 # %% [markdown]

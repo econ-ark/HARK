@@ -189,7 +189,7 @@ print(
     + str(end_time - start_time)
     + " seconds."
 )
-LifecycleExample.unpack('cFunc')
+LifecycleExample.unpack("cFunc")
 
 bMax = 20.0
 
