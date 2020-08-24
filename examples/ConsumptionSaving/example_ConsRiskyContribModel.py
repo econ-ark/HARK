@@ -107,6 +107,8 @@ def plotSlices3D(functions,bot_x,top_x,y_slices,N=300,titles = None, ax_labs = N
 init_sticky_share = init_riskyContrib.copy()
 init_sticky_share['DiscreteShareBool'] = True
 init_sticky_share['vFuncBool'] = True
+init_sticky_share['UnempPrb'] = 0
+init_sticky_share['UnempPrbRet'] = 0
 
 
 ContribAgent = RiskyContribConsumerType(**init_sticky_share)
