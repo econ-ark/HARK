@@ -272,7 +272,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        self.ShareGrid = np.linspace(0.,self.ShareMax,self.ShareCount)
+        self.ShareGrid = np.linspace(0.,1.,self.ShareCount)
         self.addToTimeInv('ShareGrid')
 
 
@@ -742,7 +742,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         -------
         None
         '''
-        self.ShareGrid = np.linspace(0.,1.,self.ShareCount)
+        self.ShareGrid = np.linspace(0.,self.ShareMax,self.ShareCount)
         self.addToTimeInv('ShareGrid')
             
     def updateNGrid(self):
