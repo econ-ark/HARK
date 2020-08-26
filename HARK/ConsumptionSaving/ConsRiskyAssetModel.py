@@ -586,61 +586,60 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         None
         '''
         
-        # Consumption functions: consume all liquid resources
-        cFuncAdj_term = IdentityFunction(i_dim=0, n_dims=2)
-        cFuncFxd_term = IdentityFunction(i_dim=0, n_dims=3)
+        # Consumption stage
         
-        # Share functions: irrelevant, set to 0 if possible to adjust
-        ShareFuncAdj_term = ConstantFunction(0.)
-        ShareFuncFxd_term = IdentityFunction(i_dim=2, n_dims=3),
+        # Consume all thats available (liquid resources)
+        cFuncFxd_term = IdentityFunction(i_dim = 0, n_dims = 3)
+        vFuncFxd_term = ValueFunc3D(cFuncFxd_term, CRRA = self.CRRA)
         
-        # Adjustment function: irrelevant, set to 0 if possible to adjust
-        DFuncAdj_term = ConstantFunction(0.)
-        DFuncFxd_term = ConstantFunction(0.)
+        dvdmFuncFxd_term = MargValueFunc3D(cFuncFxd_term, CRRA = self.CRRA),
+        dvdnFuncFxd_term = ConstantFunction(0.0),
+        dvdsFuncFxd_term = ConstantFunction(0.0)
         
-        # Value function if possible to adjust and derivatives
-        vFuncAdj_term = ValueFunc2D(cFuncAdj_term, self.CRRA)
-        dvdmFuncAdj_term = MargValueFunc2D(cFuncAdj_term, self.CRRA)
-        dvdnFuncAdj_term = ConstantFunction(0.)
+        # Adjusting stage
         
-        # Post-consumption value function and derivatives of the adjusting
-        # agent.
-        # No utility flows after consumption.
-        vFuncAdj2_term = ConstantFunction(0.),
-        dvdaFuncAdj2_term = ConstantFunction(0.),
-        dvdnFuncAdj2_term = ConstantFunction(0.)
+        # Find the withdrawal penalty
+        if type(self.tau) is list:
+            tau = self.tau[-1]
+        else:
+            tau = self.tau
+            
+        # Withdraw everything from the pension fund
+        DFuncAdj_term = ConstantFunction(-1.0)
+        vFuncAdj_term = ValueFunc3D(lambda m,n,s: m + n/(1+tau), self.CRRA)
+        dvdmFuncAdj_term = MargValueFunc3D(lambda m,n,s: m + n/(1+tau), self.CRRA)
+        dvdnFuncAdj_term = lambda m,n,s: dvdmFuncAdj_term(m,n,s)/(1+tau)
+        dvdsFuncAdj_term = ConstantFunction(0.0)
         
-        # Post-rebalancing value function and derivatives of the adjusting
-        # agent.
-        # No utility flows after consumption.
-        vFuncAdj3_term = ConstantFunction(0.),
-        dvdaFuncAdj3_term = ConstantFunction(0.),
-        dvdnFuncAdj3_term = ConstantFunction(0.)
+        # Contribution stage: share is irrelevant, so functions are those from
+        # the rebalancing stage.
         
-        # Value function if not possible to adjust, and derivatives
-        vFuncFxd_term = ValueFunc3D(cFuncFxd_term, self.CRRA)
-        dvdmFuncFxd_term = MargValueFunc3D(cFuncFxd_term, self.CRRA)
-        dvdnFuncFxd_term = ConstantFunction(0.)
-        dvdsFuncFxd_term = ConstantFunction(0.)
+        # Take the lowest share, arbitrarily
+        aux_s = self.ShareGrid[0]
+        
+        vFuncCon_term = lambda m,n: vFuncAdj_term(m,n,aux_s*np.ones_like(m))
+        ShareFuncCon_term = ConstantFunction(aux_s)
+        dvdmFuncCon_term = lambda m,n: dvdmFuncAdj_term(m,n,aux_s*np.ones_like(m))
+        dvdnFuncCon_term = lambda m,n: dvdnFuncAdj_term(m,n,aux_s*np.ones_like(m))
         
         # Construct the terminal period solution
         self.solution_terminal = RiskyContribSolution(
-            cFuncAdj = cFuncAdj_term,
-            ShareFuncAdj = ShareFuncAdj_term,
-            DFuncAdj = DFuncAdj_term,
+            # Contribution stage
+            vFuncCon = vFuncCon_term,
+            ShareFuncCon = ShareFuncCon_term,
+            dvdmFuncCon = dvdmFuncCon_term,
+            dvdnFuncCon = dvdnFuncCon_term,
+            
+            # Adjusting stage
             vFuncAdj = vFuncAdj_term,
+            DFuncAdj = DFuncAdj_term,
             dvdmFuncAdj = dvdmFuncAdj_term,
             dvdnFuncAdj = dvdnFuncAdj_term,
-            vFuncAdj2 = vFuncAdj2_term,
-            dvdaFuncAdj2 = dvdaFuncAdj2_term,
-            dvdnFuncAdj2 = dvdnFuncAdj2_term,
-            vFuncAdj3 = vFuncAdj3_term,
-            dvdaFuncAdj3 = dvdaFuncAdj3_term,
-            dvdnFuncAdj3 = dvdnFuncAdj3_term,
-            cFuncFxd = cFuncFxd_term,
-            ShareFuncFxd = ShareFuncFxd_term,
-            DFuncFxd = DFuncFxd_term,
+            dvdsFuncAdj = dvdsFuncAdj_term,
+            
+            # Consumption stage
             vFuncFxd = vFuncFxd_term,
+            cFuncFxd = cFuncFxd_term,
             dvdmFuncFxd = dvdmFuncFxd_term,
             dvdnFuncFxd = dvdnFuncFxd_term,
             dvdsFuncFxd = dvdsFuncFxd_term
