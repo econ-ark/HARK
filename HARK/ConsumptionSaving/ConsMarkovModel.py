@@ -101,13 +101,6 @@ class ConsMarkovSolver(ConsIndShockSolver):
                                PermGroFac_list=PermGroFac_list, MrkvArray=MrkvArray, StateCount=MrkvArray.shape[0])
         self.defUtilityFuncs()
 
-        # # Set additional attributes specific to the Markov model
-        # self.IncomeDstn_list      = IncomeDstn_list
-        # self.Rfree_list           = Rfree_list
-        # self.PermGroFac_list      = PermGroFac_list
-        # self.MrkvArray            = MrkvArray
-        # self.StateCount           = MrkvArray.shape[0]
-
     def solve(self):
         '''
         Solve the one period problem of the consumption-saving model with a Markov state.
