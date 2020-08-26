@@ -455,27 +455,63 @@ class RiskyContribSolution(HARKobject):
     distance_criteria = ['vPfuncAdj']
 
     def __init__(self,
-        cFuncAdj = None,
-        ShareFuncAdj = None,
-        DFuncAdj = None,
+        
+        # Contribution stage
+        vFuncCon = None,
+        ShareFuncCon = None,
+        dvdmFuncCon = None,
+        dvdnFuncCon = None,
+        
+        # Adjusting stage
         vFuncAdj = None,
+        DFuncAdj = None,
         dvdmFuncAdj = None,
         dvdnFuncAdj = None,
-        vFuncAdj2 = None,
-        dvdaFuncAdj2 = None,
-        dvdnFuncAdj2 = None,
-        vFuncAdj3 = None,
-        dvdaFuncAdj3 = None,
-        dvdnFuncAdj3 = None,
-        cFuncFxd = None,
-        ShareFuncFxd = None,
-        DFuncFxd = None,
+        dvdsFuncAdj = None,
+        
+        # Consumption stage
         vFuncFxd = None,
+        cFuncFxd = None,
         dvdmFuncFxd = None,
         dvdnFuncFxd = None,
         dvdsFuncFxd = None
+        
     ):
-
+        
+        # Contribution stage
+        if vFuncCon is None:
+            vFucnCon = NullFunc()
+        if ShareFuncCon is None:
+            ShareFuncCon = NullFunc()
+        if dvdmFuncCon is None:
+            dvdmFuncCon = NullFunc()
+        if dvdnFuncCon is None:
+            dvdnFuncCon = NullFunc()
+        
+        # Adjusting stage
+        if vFuncAdj is None:
+            vFuncAdj = NullFunc()
+        if DFuncAdj is None:
+            DFuncAdj = NullFunc()
+        if dvdmFuncAdj is None:
+            dvdmFuncAdj = NullFunc()
+        if dvdnFuncAdj is None:
+            dvdnFuncAdj = NullFunc()
+        if dvdsFuncAdj is None:
+            dvdsFuncAdj = NullFunc()
+        
+        # Consumption stage
+        if vFuncFxd is None:
+            vFuncFxd = NullFunc()
+        if cFuncFxd is None:
+            cFuncFxd = NullFunc()
+        if dvdmFuncFxd is None:
+            dvdmFuncFxd = NullFunc()
+        if dvdnFuncFxd is None:
+            dvdmFuncFxd = NullFunc()
+        if dvdsFuncFxd is None:
+            dvdsFuncFxd = NullFunc()
+        
         # Change any missing function inputs to NullFunc
         if cFuncAdj is None:
             cFuncAdj = NullFunc()
