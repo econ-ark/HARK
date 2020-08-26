@@ -512,63 +512,22 @@ class RiskyContribSolution(HARKobject):
         if dvdsFuncFxd is None:
             dvdsFuncFxd = NullFunc()
         
-        # Change any missing function inputs to NullFunc
-        if cFuncAdj is None:
-            cFuncAdj = NullFunc()
-        if ShareFuncAdj is None:
-            ShareFuncAdj = NullFunc()
-        if DFuncAdj is None:
-            DFuncAdj = NullFunc()
-        if vFuncAdj is None:
-            vFuncAdj = NullFunc()
-        if dvdmFuncAdj is None:
-            dvdmFuncAdj = NullFunc()
-        if dvdnFuncAdj is None:
-            dvdnFuncAdj = NullFunc()
-        if vFuncAdj2 is None:
-            vFuncAdj2 = NullFunc()
-        if dvdaFuncAdj2 is None:
-            dvdaFuncAdj2 = NullFunc()
-        if dvdnFuncAdj2 is None:
-            dvdnFuncAdj2 = NullFunc()
-        if vFuncAdj3 is None:
-            vFuncAdj3 = NullFunc()
-        if dvdaFuncAdj3 is None:
-            dvdaFuncAdj3 = NullFunc()
-        if dvdnFuncAdj3 is None:
-            dvdnFuncAdj3 = NullFunc()
-        if cFuncFxd is None:
-            cFuncFxd = NullFunc()
-        if ShareFuncFxd is None:
-            ShareFuncFxd = NullFunc()
-        if DFuncFxd is None:
-            DFuncFxd = NullFunc()
-        if vFuncFxd is None:
-            vFuncFxd = NullFunc()
-        if dvdmFuncFxd is None:
-            dvdmFuncFxd = NullFunc()
-        if dvdnFuncFxd is None:
-            dvdnFuncFxd = NullFunc()
-        if dvdsFuncFxd is None:
-            dvdsFuncFxd = NullFunc()
-        
         # Set attributes of self
-        self.cFuncAdj = cFuncAdj
-        self.ShareFuncAdj = ShareFuncAdj
-        self.DFuncAdj = DFuncAdj
+        self.vFuncCon = vFuncCon
+        self.ShareFuncCon = ShareFuncCon
+        self.dvdmFuncCon = dvdmFuncCon
+        self.dvdnFuncCon = dvdnFuncCon
+        
+        # Adjusting stage
         self.vFuncAdj = vFuncAdj
+        self.DFuncAdj = DFuncAdj
         self.dvdmFuncAdj = dvdmFuncAdj
         self.dvdnFuncAdj = dvdnFuncAdj
-        self.vFuncAdj2 = vFuncAdj2
-        self.dvdaFuncAdj2 = dvdaFuncAdj2
-        self.dvdnFuncAdj2 = dvdnFuncAdj2
-        self.vFuncAdj3 = vFuncAdj3
-        self.dvdaFuncAdj3 = dvdaFuncAdj3
-        self.dvdnFuncAdj3 = dvdnFuncAdj3
-        self.cFuncFxd = cFuncFxd
-        self.ShareFuncFxd = ShareFuncFxd
-        self.DFuncFxd = DFuncFxd
+        self.dvdsFuncAdj = dvdsFuncAdj
+        
+        # Consumption stage
         self.vFuncFxd = vFuncFxd
+        self.cFuncFxd = cFuncFxd
         self.dvdmFuncFxd = dvdmFuncFxd
         self.dvdnFuncFxd = dvdnFuncFxd
         self.dvdsFuncFxd = dvdsFuncFxd
