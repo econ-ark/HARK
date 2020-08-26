@@ -113,6 +113,57 @@ def plotSlices3D(functions,bot_x,top_x,y_slices,N=300,y_name = None,
         
     plt.show()
 
+def plotSlices4D(functions,bot_x,top_x,y_slices,w_slices,N=300,
+                 slice_names = None, titles = None, ax_labs = None):
+
+    import matplotlib.pyplot as plt
+    if type(functions)==list:
+        function_list = functions
+    else:
+        function_list = [functions]
+    
+    nfunc = len(function_list)
+    nws   = len(w_slices)
+    
+    # Initialize figure and axes
+    fig = plt.figure(figsize=plt.figaspect(1.0/nfunc))
+    
+    # Create x grid
+    x = np.linspace(bot_x,top_x,N,endpoint=True)
+    
+    for j in range(nws):
+        w = w_slices[j]
+        
+        for k in range(nfunc):
+            ax = fig.add_subplot(nws, nfunc, j*nfunc + k+1)
+                    
+            for y in y_slices:
+                
+                if slice_names is None:
+                    lab = ''
+                else:
+                    lab = slice_names[0] + '=' + str(y) + ',' + \
+                          slice_names[1] + '=' + str(w)
+                
+                z = function_list[k](x, np.ones_like(x)*y, np.ones_like(x)*w)
+                ax.plot(x,z, label = lab)
+                
+            if ax_labs is not None:
+                ax.set_xlabel(ax_labs[0])
+                ax.set_ylabel(ax_labs[1])
+                
+            #ax.imshow(Z, extent=[bottom[0],top[0],bottom[1],top[1]], origin='lower')
+            #ax.colorbar();
+            if titles is not None:
+                ax.set_title(titles[k]);
+                
+            ax.set_xlim([bot_x, top_x])
+            
+            if slice_names is not None:
+                ax.legend()
+        
+    plt.show()
+
 # %%
 # Make and solve an example of the risky pension contribution consumer type
 init_sticky_share = init_riskyContrib.copy()
@@ -140,6 +191,7 @@ cFuncFxd = [ContribAgent.solution[t].cFuncFxd for t in periods]
 DFuncAdj = [ContribAgent.solution[t].DFuncAdj for t in periods]
 ShareFuncAdj = [ContribAgent.solution[t].ShareFuncAdj for t in periods]
 
+# %% Adjusting agent
 plotSlices3D(cFuncAdj,0,10,y_slices = [0,2,4,6],y_name = 'n',
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['m','c'])
@@ -155,3 +207,13 @@ plotSlices3D(ShareFuncAdj,0,10,y_slices = [0,2,4,6],y_name = 'n_tilde',
 #plotFuncs3D(cFuncAdj, bottom = (0,0), top = (5,5), ax_labs = ['m','n','c'])
 #plotFuncs3D(DFuncAdj, bottom = (0,0), top = (5,5), ax_labs = ['a','n','d'])
 #plotFuncs3D(ShareFuncAdj, bottom = (0,0), top = (5,5), ax_labs = ['atil','ntil','s'])
+
+# %% Constrained agent
+from copy import deepcopy
+# Create projected consumption functions at different points of the share grid
+shares = [0., 0.9]
+
+plotSlices4D(cFuncFxd,0,10,y_slices = [0,2,4,6],w_slices = shares,
+             slice_names = ['n','s'],
+             titles = ['t = ' + str(t) for t in periods],
+             ax_labs = ['m','c'])
