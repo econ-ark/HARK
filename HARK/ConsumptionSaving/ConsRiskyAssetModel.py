@@ -1047,28 +1047,21 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     uP = lambda x : utilityP(x, CRRA)
     uPinv = lambda x : utilityP_inv(x, CRRA)
     uInv = lambda x : utility_inv(x, CRRA)
-    uInvP = lambda x : utility_invP(x, CRRA)
         
     # Unpack next period's solution
-    cFuncAdj_next     = solution_next.cFuncAdj
-    ShareFuncAdj_next = solution_next.ShareFuncAdj
-    DFuncAdj_next     = solution_next.DFuncAdj
+    vFuncCon_next     = solution_next.vFuncCon
+    ShareFuncCon_next = solution_next.ShareFuncCon
+    dvdmFuncCon_next  = solution_next.dvdmFuncCon
+    dvdnFuncCon_next  = solution_next.dvdnFuncCon
     vFuncAdj_next     = solution_next.vFuncAdj
+    DFuncAdj_next     = solution_next.DFuncAdj
     dvdmFuncAdj_next  = solution_next.dvdmFuncAdj
     dvdnFuncAdj_next  = solution_next.dvdnFuncAdj
-    vFuncAdj2_next    = solution_next.vFuncAdj2
-    dvdaFuncAdj2_next = solution_next.dvdaFuncAdj2
-    dvdnFuncAdj2_next = solution_next.dvdnFuncAdj2
-    vFuncAdj3_next    = solution_next.vFuncAdj3
-    dvdaFuncAdj3_next = solution_next.dvdaFuncAdj3
-    dvdnFuncAdj3_next = solution_next.dvdnFuncAdj3
-    cFuncFxd_next     = solution_next.cFuncFxd
-    ShareFuncFxd_next = solution_next.ShareFuncFxd
-    DFuncFxd_next     = solution_next.DFuncFxd
+    dvdsFuncAdj_next  = solution_next.dvdsFuncAdj
     vFuncFxd_next     = solution_next.vFuncFxd
+    cFuncFxd_next     = solution_next.cFuncFxd
     dvdmFuncFxd_next  = solution_next.dvdmFuncFxd
     dvdnFuncFxd_next  = solution_next.dvdnFuncFxd
-    dvdsFuncFxd_next  = solution_next.dvdsFuncFxd
     
     # Major method fork: (in)dependent risky asset return and income distributions
     if IndepDstnBool: # If the distributions ARE independent...
@@ -1084,13 +1077,19 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     TranShks_next  = ShockDstn.X[1]
     Risky_next     = ShockDstn.X[2]
     
+    ###
+    # Step 1: find end-of-period value function
+    
+    # TODO: deal with the possibly-0-income case. Characterize situations in
+    # which the agent will stay at positive savings.
+    # He might still have a=0 if n>0 and the probability of adjusting is 1.
     zero_bound = (np.min(TranShks_next) == 0.) # Flag for whether the natural borrowing constraint is zero
     if zero_bound:
         aNrmGrid = aXtraGrid
     else:
         aNrmGrid = np.insert(aXtraGrid, 0, 0.0) # Add an asset point at exactly zero
-        
-    nNrmGrid = np.insert(nNrmGrid, 0, 0.0)    
+        nNrmGrid = np.insert(nNrmGrid, 0, 0.0)     
+       
     
     aNrm_N = aNrmGrid.size
     nNrm_N = nNrmGrid.size
