@@ -175,11 +175,11 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
 
     def update(self):
+        self.updateShareGrid()
         IndShockConsumerType.update(self)
         self.updateAdjustPrb()
         self.updateRiskyDstn()
         self.updateShockDstn()
-        self.updateShareGrid()
 
     def updateRiskyDstn(self):
         '''
@@ -480,7 +480,7 @@ class RiskyContribSolution(HARKobject):
         
         # Contribution stage
         if vFuncCon is None:
-            vFucnCon = NullFunc()
+            vFuncCon = NullFunc()
         if ShareFuncCon is None:
             ShareFuncCon = NullFunc()
         if dvdmFuncCon is None:
