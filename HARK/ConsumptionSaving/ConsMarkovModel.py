@@ -94,16 +94,19 @@ class ConsMarkovSolver(ConsIndShockSolver):
         None
         '''
         # Set basic attributes of the problem
-        ConsIndShockSolver.assignParameters(self,solution_next,np.nan,LivPrb,DiscFac,CRRA,np.nan,
-                                            np.nan,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+        self._assignParameters(solution_next=solution_next, IncomeDstn_list = IncomeDstn_list,
+                               LivPrb=LivPrb, DiscFac=DiscFac, CRRA=CRRA,
+                               BoroCnstArt=BoroCnstArt, aXtraGrid=aXtraGrid,
+                               vFuncBool=vFuncBool, CubicBool=CubicBool, Rfree_list=Rfree_list,
+                               PermGroFac_list=PermGroFac_list, MrkvArray=MrkvArray, StateCount=MrkvArray.shape[0])
         self.defUtilityFuncs()
 
-        # Set additional attributes specific to the Markov model
-        self.IncomeDstn_list      = IncomeDstn_list
-        self.Rfree_list           = Rfree_list
-        self.PermGroFac_list      = PermGroFac_list
-        self.MrkvArray            = MrkvArray
-        self.StateCount           = MrkvArray.shape[0]
+        # # Set additional attributes specific to the Markov model
+        # self.IncomeDstn_list      = IncomeDstn_list
+        # self.Rfree_list           = Rfree_list
+        # self.PermGroFac_list      = PermGroFac_list
+        # self.MrkvArray            = MrkvArray
+        # self.StateCount           = MrkvArray.shape[0]
 
     def solve(self):
         '''
