@@ -1247,12 +1247,12 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         vFxd = u(cNrm_reg) + EndOfPrdvFunc(aNrm_reg, nNrm_tiled, Share_tiled) 
         # TODO: uInv(-Inf) seems to appropriately be yielding 0. Is it
         # necessary to hardcode it?
-        vFxdNvrs = uInv(vFxd)
+        vNvrsFxd = uInv(vFxd)
         
         # vNvrs interpolator. Useful to keep it since its faster to optimize
         # on it in the next step
-        vFxdNvrsFunc = TrilinearInterp(vFxdNvrs, mNrmGrid, nNrmGrid, ShareGrid)
-        vFxdFunc     = ValueFunc3D(vFxdNvrsFunc, CRRA)
+        vNvrsFuncFxd = TrilinearInterp(vNvrsFxd, mNrmGrid, nNrmGrid, ShareGrid)
+        vFuncFxd     = ValueFunc3D(vNvrsFuncFxd, CRRA)
     
     # STEP THREE:
     # Contribution share stage.
@@ -1264,7 +1264,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         
     else:
         # Find the optimal share over the regular grid.
-        optIdx = np.argmax(vFxdNvrs, axis = 2)
+        optIdx = np.argmax(vNvrsFxd, axis = 2)
         
         # Reformat grids now that the share was optimized over.
         mNrm_tiled = mNrm_tiled[:,:,0]
@@ -1273,7 +1273,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         n_idx_tiled = np.tile(np.reshape(np.arange(nNrm_N), (1,nNrm_N)), (mNrm_N,1))
         
         # Compute objects needed for the value function and its derivatives
-        vNvrsSha     = vFxdNvrs[m_idx_tiled, n_idx_tiled, optIdx]
+        vNvrsSha     = vNvrsFxd[m_idx_tiled, n_idx_tiled, optIdx]
         optShare     = ShareGrid[optIdx]
         dvdmNvrsSha  = cFuncFxd(mNrm_tiled, nNrm_tiled, optShare)
         dvdnSha      = dvdnFuncFxd(mNrm_tiled, nNrm_tiled, optShare)
@@ -1281,7 +1281,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         # Interpolators
         vNvrsFuncSha    = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
         vFuncSha        = ValueFunc2D(vNvrsFuncSha, CRRA)
-        ShaFuncSha      = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
+        ShareFuncSha    = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
         dvdmNvrsFuncSha = BilinearInterp(dvdmNvrsSha, mNrmGrid, nNrmGrid)
         dvdmFuncSha     = MargValueFunc2D(dvdmNvrsFuncSha, CRRA)
         dvdnFuncSha     = BilinearInterp(dvdnSha, mNrmGrid, nNrmGrid)
