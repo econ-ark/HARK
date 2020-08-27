@@ -1309,230 +1309,49 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     nTilde_tiled = np.reshape(optRebalance[:,2], (mNrm_N, nNrm_N))
     vNvrsAdj     = np.reshape(optRebalance[:,3], (mNrm_N, nNrm_N))
     
-    
-    
-    d = 'Here.' # TODO
-    
-    # Construct an interpolator for the end-of-period marginal value of
-    # iliquid assets and contribution shares, conditional on the contribution
-    # share. This will be used by the FXD adent
-    EndOfPrddvdnCondShareFunc = TrilinearInterp(EndOfPrddvdn,
-                                                aNrmGrid, nNrmGrid, ShareGrid)
-    EndOfPrddvdsCondShareFunc = TrilinearInterp(EndOfPrddvds,
-                                                aNrmGrid, nNrmGrid, ShareGrid)
-    
-    # SECOND STEP: find the value function for the third (contribution) stage
-    # and its derivatives for the agent who can adjust.
-    
-    if DiscreteShareBool: # Optimization of Share on the discrete set ShareGrid
-        opt_idx = np.argmax(EndOfPrdv, axis=2)
-        Share_opt = ShareGrid[opt_idx] # Best portfolio share is one with highest value
-        
-        # Create indices to extract end of period value at (n,m) optimized
-        # through the share, which is vAdj3
-        a_idx_tiled = np.tile(np.reshape(np.arange(aNrm_N), (aNrm_N,1)), (1,nNrm_N))
-        n_idx_tiled = np.tile(np.reshape(np.arange(nNrm_N), (1,nNrm_N)), (aNrm_N,1))
-        
-        # Extract vAdj3 and its derivatives in their inverse form
-        vAdj3Nvrs = EndOfPrdvNvrs[a_idx_tiled,n_idx_tiled,opt_idx]
-        dvdaAdj3Nvrs = EndOfPrddvdaNvrs[a_idx_tiled,n_idx_tiled,opt_idx]
-        dvdnAdj3 = EndOfPrddvdn[a_idx_tiled,n_idx_tiled,opt_idx]
-        
-    else: # Optimization of Share on continuous interval [0,1]
-        # TODO?    
-        pass
-    
-    # Construct interpolator for the optimal share
-    ShareFuncAdj = BilinearInterp(Share_opt, aNrmGrid, nNrmGrid)
-    
-    # Construct interpolators for v3Adj and its derivatives
-    vFuncAdj3    = ValueFunc2D(BilinearInterp(vAdj3Nvrs, aNrmGrid, nNrmGrid), CRRA)
-    dvdaFuncAdj3 = MargValueFunc2D(BilinearInterp(dvdaAdj3Nvrs, aNrmGrid, nNrmGrid), CRRA)
-    dvdnFuncAdj3 = BilinearInterp(dvdnAdj3, aNrmGrid, nNrmGrid)
-    
-    # THIRD STEP: decision, value function, and derivatives for the rebalancing
-    # stage.
-    
-    # Generate (a,N) combinations
-    aNrm_tiled = np.tile(np.reshape(aNrmGrid, (aNrm_N,1)), (1,nNrm_N))
-    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N)), (aNrm_N,1))
-    
-    # Find optimal d for every combination
-    optRebalance = list(map(lambda x: findOptimalRebalance(x[0],x[1],vFuncAdj3,tau),
-                            zip(aNrm_tiled.flatten(),nNrm_tiled.flatten())
-                            )
-                        )
-    optRebalance = np.array(optRebalance)
-    
-    # Format rebalancing share and post-rebalancing assets as tiled arrays
-    D_tiled      = np.reshape(optRebalance[:,0], (aNrm_N, nNrm_N))
-    aTilde_tiled = np.reshape(optRebalance[:,1], (aNrm_N, nNrm_N))
-    nTilde_tiled = np.reshape(optRebalance[:,2], (aNrm_N, nNrm_N))
-    
-    # Construct the value function
-    vAdj2Nvrs = uInv(vFuncAdj3(aTilde_tiled, nTilde_tiled))
-    vFuncAdj2    = ValueFunc2D(BilinearInterp(vAdj2Nvrs, aNrmGrid, nNrmGrid), CRRA)
-    
     # Now the derivatives. These are not straight forward because of corner
     # solutions with partial derivatives that change the limits. The idea then
     # is to evaluate the possible uses of the marginal unit of resources and
     # take the maximum.
     
-    # An additional unit of a
-    marg_a   = dvdaFuncAdj3(aTilde_tiled, nTilde_tiled)
+    # An additional unit of m
+    marg_m      = dvdmFuncSha(mTilde_tiled, nTilde_tiled)
     # An additional unit of n kept in n
-    marg_n    = dvdnFuncAdj3(aTilde_tiled, nTilde_tiled)
-    # An additional unit of n withdrawn to a
-    marg_n_to_a = marg_a/(1+tau)
+    marg_n      = dvdnFuncSha(mTilde_tiled, nTilde_tiled)
+    # An additional unit of n withdrawn to m
+    marg_n_to_m = marg_m/(1+tau)
     
-    dvdaAdj2 = np.maximum(marg_a, marg_n)
-    dvdaAdj2Nvrs = uPinv(dvdaAdj2)
-    dvdnAdj2 = np.maximum(marg_n, marg_n_to_a)
+    # Marginal value is the maximum of the marginals in their possible uses 
+    dvdmAdj     = np.maximum(marg_m, marg_n)
+    dvdmNvrsAdj = uPinv(dvdmAdj)
+    dvdnAdj     = np.maximum(marg_n, marg_n_to_m)
+    dvdnNvrsAdj = uPinv(dvdnAdj)
     
     # Interpolators
-    dvdaFuncAdj2 = MargValueFunc2D(BilinearInterp(dvdaAdj2Nvrs, aNrmGrid, nNrmGrid), CRRA)
-    dvdnFuncAdj2 = BilinearInterp(dvdnAdj2, aNrmGrid, nNrmGrid)
-    
-    # Construct the rebalancing policy function
-    DFuncAdj = BilinearInterp(D_tiled, aNrmGrid, nNrmGrid)
-    
-    # STEP FOUR: EGM inversion to get consumption at endogenous grid, solving
-    # the first stage.
-    
-    # Invert consumption candidates and market resources from the marginal 
-    # post-consumption value of liquid assets on the exogenous grid
-    cAdjEndog = uPinv(dvdaFuncAdj2(aNrm_tiled, nNrm_tiled))
-    mNrmEndog_tiled = aNrm_tiled + cAdjEndog
-    
-    # Evaluate value function at candidate points (needed for envelope)
-    vAdjEndog = u(cAdjEndog) + vFuncAdj2(aNrm_tiled, nNrm_tiled)  
-    # Transform
-    vTAdjEndog = uInv(vAdjEndog)
-    
-    # Construct 2D interpolators for v, c, and marginals form
-    # 1D interpolators at every value of n
-    
-    # Consumption
-    cAdjInterps = [LinearInterp(np.insert(mNrmEndog_tiled[:,j],0,0),
-                                np.insert(cAdjEndog[:,j],0,0))
-                   for j in range(nNrm_N)]
-    cFuncAdj = LinearInterpOnInterp1D(cAdjInterps, nNrmGrid)
-    
     # Value
-    vTAdjInterps = [LinearInterp(np.insert(mNrmEndog_tiled[:,j],0,0),
-                                 np.insert(vTAdjEndog[:,j],0,0))
-                   for j in range(nNrm_N)]
-    vFuncAdj = ValueFunc2D(LinearInterpOnInterp1D(vTAdjInterps, nNrmGrid),
-                           CRRA)
-    
-    # Marginal re: liquid assets
-    dvdmFuncAdj = MargValueFunc2D(cFuncAdj, CRRA)
-    
-    # Marginal re: iliquid assets
-    dvdnAdj = dvdnFuncAdj2(aNrm_tiled, nNrm_tiled)
-    if zero_bound:
-        # TODO: find a better solution than lower extrap!
-        dvdnAdjInterps = [LinearInterp(mNrmEndog_tiled[:,j], dvdnAdj[:,j],
-                                       lower_extrap=True,
-                                       intercept_limit=0,slope_limit=0)
-                          for j in range(nNrm_N)]
-    else:
-        # We know that dvdn is constant below  a=0.
-        dvdnAdjInterps = [LinearInterp(np.insert(mNrmEndog_tiled[:,j],0,0),
-                                       np.insert(dvdnAdj[:,j],0,dvdnAdj[0,j]),
-                                       intercept_limit=0,slope_limit=0)
-                          for j in range(nNrm_N)]
-    dvdnFuncAdj = LinearInterpOnInterp1D(dvdnAdjInterps, nNrmGrid)
-    dvdnFuncAdj(3,5)
-    
-    # Finally, create the (trivial) rebalancing and share functions for the
-    # nonadjusting agent
-    DFuncFxd = ConstantFunction(0)
-    ShareFuncFxd = IdentityFunction(i_dim = 2, n_dims = 3)
-    
-    # STEP FIVE: solve the fixed-portfolio agent.
-    aNrm_tiled  = np.tile(np.reshape(aNrmGrid, (aNrm_N,1,1)), (1,nNrm_N,Share_N))
-    nNrm_tiled  = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (aNrm_N,1,Share_N))
-    Share_tiled = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (aNrm_N,nNrm_N,1))
-    
-    # EGM inversion
-    cFxdEndog = EndOfPrddvdaNvrs
-    mNrmEndog_tiled = cFxdEndog + aNrm_tiled
-    # Candidate inverse value, needed for envelopes
-    vFxdEndog = u(cFxdEndog) + EndOfPrdv
-    vTFxdEndog = uInv(vFxdEndog)
-    
-    # Create tridimensional interpolators from 2D lists of 1d interpolators
-    # over m
-    
-    # Consumption
-    cFxdInterps = [[LinearInterp(np.insert(mNrmEndog_tiled[:,nInd,sInd],0,0),
-                              np.insert(cFxdEndog[:,nInd,sInd],0,0))
-                    for sInd in range(Share_N)]
-                   for nInd in range(nNrm_N)]
-    cFuncFxd = BilinearInterpOnInterp1D(cFxdInterps, nNrmGrid, ShareGrid)
-    
-    # Value
-    vTFxdInterps = [[LinearInterp(np.insert(mNrmEndog_tiled[:,nInd,sInd],0,0),
-                                  np.insert(vTFxdEndog[:,nInd,sInd],0,0))
-                     for sInd in range(Share_N)]
-                    for nInd in range(nNrm_N)]
-    
-    vFuncFxd = ValueFunc3D(BilinearInterpOnInterp1D(vTFxdInterps,
-                                                    nNrmGrid, ShareGrid),
-                           CRRA)
-        
-    # Derivatives:
-    
-    # Liquid
-    dvdmFuncFxd = MargValueFunc3D(cFuncFxd, CRRA)
-    # Iliquid
-    dvdnFxd  = EndOfPrddvdnCondShareFunc(aNrm_tiled, nNrm_tiled, Share_tiled)
-    if zero_bound:
-        # TODO: find a better option than lower extrapolation
-        dvdnFxdInterps = [[LinearInterp(mNrmEndog_tiled[:,nInd,sInd],
-                                        dvdnFxd[:,nInd,sInd], lower_extrap=True,
-                                        intercept_limit=0,slope_limit=0)
-                           for sInd in range(Share_N)]
-                          for nInd in range(nNrm_N)]
-    else:
-        # dvdn is constant below a=0
-        dvdnFxdInterps = [[LinearInterp(np.insert(mNrmEndog_tiled[:,nInd,sInd],0,0),
-                                        np.insert(dvdnFxd[:,nInd,sInd],0,dvdnFxd[0,nInd,sInd]),
-                                        intercept_limit=0,slope_limit=0)
-                           for sInd in range(Share_N)]
-                          for nInd in range(nNrm_N)]
-    
-    dvdnFuncFxd = BilinearInterpOnInterp1D(dvdnFxdInterps, nNrmGrid, ShareGrid)
-    
-    # Share
-    dvdsFxd = EndOfPrddvdsCondShareFunc(aNrm_tiled, nNrm_tiled, Share_tiled)
-    
-    dvdsFxdInterps = [[LinearInterp(mNrmEndog_tiled[:,nInd,sInd],
-                                    dvdsFxd[:,nInd,sInd])
-                       for sInd in range(Share_N)]
-                      for nInd in range(nNrm_N)]
-    
-    dvdsFuncFxd = BilinearInterpOnInterp1D(dvdsFxdInterps, nNrmGrid, ShareGrid)
+    vNvrsFuncAdj = BilinearInterp(vNvrsAdj, mNrmGrid, nNrmGrid)
+    vFuncAdj     = ValueFunc2D(vNvrsFuncAdj, CRRA)
+    # Marginals
+    dvdmFuncAdj = MargValueFunc2D(BilinearInterp(dvdmNvrsAdj, mNrmGrid, nNrmGrid), CRRA)
+    dvdnFuncAdj = MargValueFunc2D(BilinearInterp(dvdnNvrsAdj, mNrmGrid, nNrmGrid), CRRA)
+    # Decison
+    DFuncAdj = BilinearInterp(D_tiled, mNrmGrid, nNrmGrid)
     
     # Construct solution
     sol = RiskyContribSolution(
-        cFuncAdj = cFuncAdj,
-        ShareFuncAdj = ShareFuncAdj,
-        DFuncAdj = DFuncAdj,
+        # Contribution stage
+        vFuncSha = vFuncSha,
+        ShareFuncSha = ShareFuncSha,
+        dvdmFuncSha = dvdmFuncSha,
+        dvdnFuncSha = dvdnFuncSha,
+        # Adjusting stage
         vFuncAdj = vFuncAdj,
+        DFuncAdj = DFuncAdj,
         dvdmFuncAdj = dvdmFuncAdj,
         dvdnFuncAdj = dvdnFuncAdj,
-        vFuncAdj2 = vFuncAdj2,
-        dvdaFuncAdj2 = dvdaFuncAdj2,
-        dvdnFuncAdj2 = dvdnFuncAdj2,
-        vFuncAdj3 = vFuncAdj3,
-        dvdaFuncAdj3 = dvdaFuncAdj3,
-        dvdnFuncAdj3 = dvdnFuncAdj3,
-        cFuncFxd = cFuncFxd,
-        ShareFuncFxd = ShareFuncFxd,
-        DFuncFxd = DFuncFxd,
+        # Consumption stage
         vFuncFxd = vFuncFxd,
+        cFuncFxd = cFuncFxd,
         dvdmFuncFxd = dvdmFuncFxd,
         dvdnFuncFxd = dvdnFuncFxd,
         dvdsFuncFxd = dvdsFuncFxd
