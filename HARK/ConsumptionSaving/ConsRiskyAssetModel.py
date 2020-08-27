@@ -592,8 +592,8 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         cFuncFxd_term = IdentityFunction(i_dim = 0, n_dims = 3)
         vFuncFxd_term = ValueFunc3D(cFuncFxd_term, CRRA = self.CRRA)
         
-        dvdmFuncFxd_term = MargValueFunc3D(cFuncFxd_term, CRRA = self.CRRA),
-        dvdnFuncFxd_term = ConstantFunction(0.0),
+        dvdmFuncFxd_term = MargValueFunc3D(cFuncFxd_term, CRRA = self.CRRA)
+        dvdnFuncFxd_term = ConstantFunction(0.0)
         dvdsFuncFxd_term = ConstantFunction(0.0)
         
         # Adjusting stage
