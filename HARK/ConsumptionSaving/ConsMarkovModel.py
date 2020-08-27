@@ -94,7 +94,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
         None
         '''
         # Set basic attributes of the problem
-        self._assignParameters(solution_next=solution_next, IncomeDstn_list = IncomeDstn_list,
+        self.assignParameters(solution_next=solution_next, IncomeDstn_list = IncomeDstn_list,
                                LivPrb=LivPrb, DiscFac=DiscFac, CRRA=CRRA,
                                BoroCnstArt=BoroCnstArt, aXtraGrid=aXtraGrid,
                                vFuncBool=vFuncBool, CubicBool=CubicBool, Rfree_list=Rfree_list,

@@ -860,7 +860,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         -------
         None
         '''
-        self._assignParameters(solution_next=solution_next, IncomeDstn=IncomeDstn, MedShkDstn=MedShkDstn,
+        self.assignParameters(solution_next=solution_next, IncomeDstn=IncomeDstn, MedShkDstn=MedShkDstn,
                                LivPrb=LivPrb, DiscFac=DiscFac, CRRA=CRRA, CRRAmed=CRRAmed, Rfree=Rfree,
                                MedPrice=MedPrice, pLvlNextFunc=pLvlNextFunc, BoroCnstArt=BoroCnstArt,
                                aXtraGrid=aXtraGrid, pLvlGrid=pLvlGrid, vFuncBool=vFuncBool, CubicBool=CubicBool,

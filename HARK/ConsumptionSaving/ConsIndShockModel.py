@@ -12,9 +12,6 @@ It currently solves three types of models:
 See NARK https://HARK.githhub.io/Documentation/NARK for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 '''
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 from builtins import str
 from builtins import range
 from builtins import object
@@ -314,7 +311,7 @@ class MargMargValueFunc(HARKobject):
 # === Classes and functions that solve consumption-saving models ===
 # =====================================================================
 
-class ConsPerfForesightSolver:
+class ConsPerfForesightSolver(HARKobject):
     '''
     A class for solving a one period perfect foresight consumption-saving problem.
     An instance of this class is created by the function solvePerfForesight in each period.
@@ -355,17 +352,10 @@ class ConsPerfForesightSolver:
         self.notation = {'a': 'assets after all actions',
                          'm': 'market resources at decision time',
                          'c': 'consumption'}
-        self._assignParameters(solution_next=solution_next, DiscFac=DiscFac,
+        self.assignParameters(solution_next=solution_next, DiscFac=DiscFac,
                                LivPrb=LivPrb, CRRA=CRRA, Rfree=Rfree,
                                PermGroFac=PermGroFac, BoroCnstArt=BoroCnstArt,
                                MaxKinks=MaxKinks)
-    
-    def _assignParameters(self, **kwds):
-        """ Internal helper function to populate the parameters dictionary.
-        """
-        self.parameters = kwds
-        for key in kwds:
-            setattr(self, key, kwds[key])
 
     def defUtilityFuncs(self):
         '''
@@ -613,7 +603,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         -------
         None
         '''
-        self._assignParameters(solution_next=solution_next, IncomeDstn=IncomeDstn,
+        self.assignParameters(solution_next=solution_next, IncomeDstn=IncomeDstn,
                                LivPrb=LivPrb, DiscFac=DiscFac, CRRA=CRRA, Rfree=Rfree,
                                PermGroFac=PermGroFac, BoroCnstArt=BoroCnstArt,
                                aXtraGrid=aXtraGrid, vFuncBool=vFuncBool, CubicBool=CubicBool)

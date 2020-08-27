@@ -312,7 +312,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         -------
         None
         '''
-        self._assignParameters(solution_next=solution_next, IncomeDstn=IncomeDstn,
+        self.assignParameters(solution_next=solution_next, IncomeDstn=IncomeDstn,
                                LivPrb=LivPrb, DiscFac=DiscFac, CRRA=CRRA, Rfree=Rfree,
                                pLvlNextFunc=pLvlNextFunc, BoroCnstArt=BoroCnstArt,
                                aXtraGrid=aXtraGrid, pLvlGrid=pLvlGrid, vFuncBool=vFuncBool,
