@@ -919,37 +919,37 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         self.cNrmNow = cNrmNow
         self.ShareNow = ShareNow
     
-def rebalanceAssets(d,a,n,tau):
+def rebalanceAssets(d,m,n,tau):
         
     if d >= 0:
-        a_til = a*(1-d)
-        n_til = n + a*d
+        m_til = m*(1-d)
+        n_til = n + m*d
     else:
-        a_til = a - d*n/(1 + tau)
+        m_til = m - d*n/(1 + tau)
         n_til = n*(1+d)
     
-    return (a_til, n_til)
+    return (m_til, n_til)
 
-def rebalanceFobj(d,a,n,v3,tau):
+def rebalanceFobj(d,m,n,v,tau):
         
-    a_til, n_til = rebalanceAssets(d,a,n,tau)
-    return v3(a_til, n_til)
+    m_til, n_til = rebalanceAssets(d,m,n,tau)
+    return v(m_til, n_til)
     
-def findOptimalRebalance(a,n,v3,tau):
+def findOptimalRebalance(m,n,v,tau):
     
-    if (a == 0 and n == 0):
+    if (m == 0 and n == 0):
         dopt = 0
     else:
-        fobj = lambda d: -1.*rebalanceFobj(d,a,n,v3,tau)
+        fobj = lambda d: -1.*rebalanceFobj(d,m,n,v,tau)
         # For each case, we optimize numerically and compare with the extremes.
-        if a > 0 and n > 0:
+        if m > 0 and n > 0:
             # Optimize contributing and withdrawing separately
             opt_c = minimize_scalar(fobj, bounds=(0, 1), method='bounded')
             opt_w = minimize_scalar(fobj, bounds=(-1, 0), method='bounded')
             
             ds = np.array([opt_c.x,opt_w.x,-1,0,1])
             fs = np.array([opt_c.fun,opt_w.fun,fobj(-1),fobj(0),fobj(1)])
-        elif a > 0:
+        elif m > 0:
             opt = minimize_scalar(fobj, bounds=(0, 1), method='bounded')
             ds = np.array([opt.x,0,1])
             fs = np.array([opt.fun,fobj(0),fobj(1)])
@@ -961,8 +961,8 @@ def findOptimalRebalance(a,n,v3,tau):
         # Pick the best candidate
         dopt = ds[np.argmin(fs)]
                 
-    a_til, n_til = rebalanceAssets(dopt,a,n,tau)
-    return dopt, a_til, n_til
+    m_til, n_til = rebalanceAssets(dopt,m,n,tau)
+    return dopt, m_til, n_til
         
     
                 
@@ -1285,7 +1285,16 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # STEP FOUR:
     # Rebalancing stage.
     # Find optimal d for every combination
+    optRebalance = list(map(lambda x: findOptimalRebalance(x[0],x[1],vFuncAdj3,tau),
+                            zip(aNrm_tiled.flatten(),nNrm_tiled.flatten())
+                            )
+                        )
+    optRebalance = np.array(optRebalance)
     
+    # Format rebalancing share and post-rebalancing assets as tiled arrays
+    D_tiled      = np.reshape(optRebalance[:,0], (aNrm_N, nNrm_N))
+    aTilde_tiled = np.reshape(optRebalance[:,1], (aNrm_N, nNrm_N))
+    nTilde_tiled = np.reshape(optRebalance[:,2], (aNrm_N, nNrm_N))
     
     d = 'Here.' # TODO
     
