@@ -173,6 +173,17 @@ init_sticky_share['UnempPrb'] = 0
 init_sticky_share['UnempPrbRet'] = 0
 
 
+# Three period model just to check
+init_sticky_share['PermGroFac'] = [2.0, 0.1]
+init_sticky_share['PermShkStd'] = [0.0, 0.0]
+init_sticky_share['TranShkStd'] = [0.0, 0.0]
+init_sticky_share['AdjustPrb']  = [0.0, 1.0]
+init_sticky_share['tau']        = [0.0, 0.0]
+init_sticky_share['LivPrb']     = [1.0, 1.0]
+init_sticky_share['T_cycle']    = 2
+init_sticky_share['T_retire']   = 0
+init_sticky_share['T_age']      = 3
+
 ContribAgent = RiskyContribConsumerType(**init_sticky_share)
 # %%
 # Make and solve a discrete portfolio choice consumer type
@@ -184,7 +195,9 @@ print('Solving took ' + str(t1-t0) + ' seconds.')
 
 # %% Policy function inspection
 
-periods = [0,7,9]
+periods = [0,1]
+mMax = 50
+
 cFuncFxd     = [ContribAgent.solution[t].cFuncFxd for t in periods]
 DFuncAdj     = [ContribAgent.solution[t].DFuncAdj for t in periods]
 ShareFuncSha = [ContribAgent.solution[t].ShareFuncSha for t in periods]
@@ -192,11 +205,11 @@ ShareFuncSha = [ContribAgent.solution[t].ShareFuncSha for t in periods]
 # %% Adjusting agent
 
 # Share and Rebalancing
-plotSlices3D(DFuncAdj,0,10,y_slices = [0,2,4,6],y_name = 'n',
+plotSlices3D(DFuncAdj,0,mMax,y_slices = [0,2,4,6],y_name = 'n',
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['m','d'])
 
-plotSlices3D(ShareFuncSha,0,10,y_slices = [0,2,4,6],y_name = 'n',
+plotSlices3D(ShareFuncSha,0,mMax,y_slices = [0,2,4,6],y_name = 'n',
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['m','S'])
 
@@ -205,7 +218,7 @@ from copy import deepcopy
 # Create projected consumption functions at different points of the share grid
 shares = [0., 0.9]
 
-plotSlices4D(cFuncFxd,0,10,y_slices = [0,2,4,6],w_slices = shares,
+plotSlices4D(cFuncFxd,0,mMax,y_slices = [0,2,4,6],w_slices = shares,
              slice_names = ['n_til','s'],
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['m_til','c'])
