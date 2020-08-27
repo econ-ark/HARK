@@ -16,6 +16,9 @@ effort he will exert to be re-employed, which induces disutility.
 """
 import sys
 
+from __future__ import print_function, division
+from __future__ import absolute_import
+
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import brentq
