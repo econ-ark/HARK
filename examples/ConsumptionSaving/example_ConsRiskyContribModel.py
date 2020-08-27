@@ -185,28 +185,20 @@ print('Solving took ' + str(t1-t0) + ' seconds.')
 # %% Policy function inspection
 
 periods = [0,7,9]
-
-cFuncAdj = [ContribAgent.solution[t].cFuncAdj for t in periods]
-cFuncFxd = [ContribAgent.solution[t].cFuncFxd for t in periods]
-DFuncAdj = [ContribAgent.solution[t].DFuncAdj for t in periods]
-ShareFuncAdj = [ContribAgent.solution[t].ShareFuncAdj for t in periods]
+cFuncFxd     = [ContribAgent.solution[t].cFuncFxd for t in periods]
+DFuncAdj     = [ContribAgent.solution[t].DFuncAdj for t in periods]
+ShareFuncSha = [ContribAgent.solution[t].ShareFuncSha for t in periods]
 
 # %% Adjusting agent
-plotSlices3D(cFuncAdj,0,10,y_slices = [0,2,4,6],y_name = 'n',
-             titles = ['t = ' + str(t) for t in periods],
-             ax_labs = ['m','c'])
 
+# Share and Rebalancing
 plotSlices3D(DFuncAdj,0,10,y_slices = [0,2,4,6],y_name = 'n',
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['a','d'])
 
-plotSlices3D(ShareFuncAdj,0,10,y_slices = [0,2,4,6],y_name = 'n_tilde',
+plotSlices3D(ShareFuncSha,0,10,y_slices = [0,2,4,6],y_name = 'n_tilde',
              titles = ['t = ' + str(t) for t in periods],
-             ax_labs = ['a_til','S'])
-
-#plotFuncs3D(cFuncAdj, bottom = (0,0), top = (5,5), ax_labs = ['m','n','c'])
-#plotFuncs3D(DFuncAdj, bottom = (0,0), top = (5,5), ax_labs = ['a','n','d'])
-#plotFuncs3D(ShareFuncAdj, bottom = (0,0), top = (5,5), ax_labs = ['atil','ntil','s'])
+             ax_labs = ['m_til','S'])
 
 # %% Constrained agent
 from copy import deepcopy
