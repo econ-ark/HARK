@@ -507,13 +507,13 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cNrmNow[these] = self.solution[t].cFunc(
-                self.bNrmNow[these], self.TranShkNow[these]
+                self.bNrmNow[these], self.shocks['TranShkNow'][these]
             )  # Assign consumption values
             MPCnow[these] = self.solution[t].cFunc.derivativeX(
-                self.bNrmNow[these], self.TranShkNow[these]
+                self.bNrmNow[these], self.shocks['TranShkNow'][these]
             )  # Assign marginal propensity to consume values (derivative)
             LbrNow[these] = self.solution[t].LbrFunc(
-                self.bNrmNow[these], self.TranShkNow[these]
+                self.bNrmNow[these], self.shocks['TranShkNow'][these]
             )  # Assign labor supply
         self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow
@@ -536,7 +536,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             mNrmNow[these] = (
-                self.bNrmNow[these] + self.LbrNow[these] * self.TranShkNow[these]
+                self.bNrmNow[these] + self.LbrNow[these] * self.shocks['TranShkNow'][these]
             )  # mNrm = bNrm + yNrm
             aNrmNow[these] = mNrmNow[these] - self.cNrmNow[these]  # aNrm = mNrm - cNrm
         self.mNrmNow = mNrmNow

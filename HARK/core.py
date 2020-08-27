@@ -223,6 +223,7 @@ class AgentType(HARKobject):
         self.tolerance          = tolerance # NOQA
         self.seed               = seed # NOQA
         self.track_vars         = [] # NOQA
+        self.shocks             = {}
         self.poststate_vars     = [] # NOQA
         self.read_shocks        = False # NOQA
         self.shock_history      = {}
@@ -518,7 +519,7 @@ class AgentType(HARKobject):
             self.shock_history['who_dies'][t,:] = self.who_dies
             self.getShocks()
             for var_name in self.shock_vars:
-                self.shock_history[var_name][self.t_sim,:] = getattr(self, var_name)
+                self.shock_history[var_name][self.t_sim,:] = self.shocks[var_name]
 
             self.t_sim += 1
             self.t_age = self.t_age + 1  # Age all consumers by one period
@@ -624,7 +625,8 @@ class AgentType(HARKobject):
         None
         """
         for var_name in self.shock_vars:
-            setattr(self, var_name, self.shock_history[var_name][self.t_sim, :])
+            self.shocks[var_name] = self.shock_history[var_name][self.t_sim, :]
+
 
     def getStates(self):
         """
@@ -720,7 +722,10 @@ class AgentType(HARKobject):
             for t in range(sim_periods):
                 self.simOnePeriod()
                 for var_name in self.track_vars:
-                    self.history[var_name][self.t_sim, :] = getattr(self, var_name)
+                    if var_name in self.shock_vars:
+                        self.history[var_name][self.t_sim,:] = self.shocks[var_name]
+                    else:
+                        self.history[var_name][self.t_sim,:] = getattr(self,var_name)
                 self.t_sim += 1
 
     def clearHistory(self):

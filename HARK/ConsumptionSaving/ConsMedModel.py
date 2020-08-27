@@ -850,7 +850,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
             if N > 0:
                 MedShkNow[these] = self.MedShkDstn[t].drawDiscrete(N)
                 MedPriceNow[these] = self.MedPrice[t]
-        self.MedShkNow = MedShkNow
+        self.shocks['MedShkNow'] = MedShkNow
         self.MedPriceNow = MedPriceNow
 
     def getControls(self):
@@ -871,7 +871,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cLvlNow[these], MedNow[these] = self.solution[t].policyFunc(
-                self.mLvlNow[these], self.pLvlNow[these], self.MedShkNow[these]
+                self.mLvlNow[these],self.pLvlNow[these],self.shocks['MedShkNow'][these]
             )
         self.cLvlNow = cLvlNow
         self.MedNow = MedNow

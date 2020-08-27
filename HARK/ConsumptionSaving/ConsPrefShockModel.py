@@ -191,7 +191,7 @@ class PrefShockConsumerType(IndShockConsumerType):
             N = np.sum(these)
             if N > 0:
                 PrefShkNow[these] = self.PrefShkDstn[t].drawDiscrete(N)
-        self.PrefShkNow = PrefShkNow
+        self.shocks['PrefShkNow'] = PrefShkNow
 
     def getControls(self):
         """
@@ -209,7 +209,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cNrmNow[these] = self.solution[t].cFunc(
-                self.mNrmNow[these], self.PrefShkNow[these]
+                self.mNrmNow[these], self.shocks['PrefShkNow'][these]
             )
         self.cNrmNow = cNrmNow
         return None
@@ -506,14 +506,15 @@ class ConsPrefShockSolver(ConsIndShockSolver):
         vNrmNow = np.zeros_like(mNrm_temp)
         vPnow = np.zeros_like(mNrm_temp)
         for j in range(PrefShkCount):
-            this_shock = self.PrefShkVals[j]
-            this_prob = self.PrefShkPrbs[j]
-            cNrmNow = solution.cFunc(mNrm_temp, this_shock * np.ones_like(mNrm_temp))
-            aNrmNow = mNrm_temp - cNrmNow
-            vNrmNow += this_prob * (
-                this_shock * self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow)
+            this_shock  = self.PrefShkVals[j]
+            this_prob   = self.PrefShkPrbs[j]
+            cNrmNow     = solution.cFunc(mNrm_temp,
+                                         this_shock*np.ones_like(
+                                             mNrm_temp)
             )
-            vPnow += this_prob * this_shock * self.uP(cNrmNow)
+            aNrmNow     = mNrm_temp - cNrmNow
+            vNrmNow    += this_prob*(this_shock*self.u(cNrmNow) + self.EndOfPrdvFunc(aNrmNow))
+            vPnow      += this_prob*this_shock*self.uP(cNrmNow)
 
         # Construct the beginning-of-period value function
         vNvrs = self.uinv(vNrmNow)  # value transformed through inverse utility

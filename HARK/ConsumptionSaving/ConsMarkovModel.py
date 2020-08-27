@@ -945,23 +945,23 @@ class MarkovConsumerType(IndShockConsumerType):
         self.solution_terminal.MPCmin = np.ones(StateCount)
 
     def initializeSim(self):
+        self.shocks['MrkvNow'] = np.zeros(self.AgentCount,dtype=int)
         IndShockConsumerType.initializeSim(self)
         if (
             self.global_markov
         ):  # Need to initialize markov state to be the same for all agents
             base_draw = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(1)
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
-            self.MrkvNow = np.ones(self.AgentCount) * np.searchsorted(
-                Cutoffs, base_draw
-            ).astype(int)
-        self.MrkvNow = self.MrkvNow.astype(int)
+            self.shocks['MrkvNow'] = np.ones(self.AgentCount)*np.searchsorted(Cutoffs,base_draw).astype(int)
+        self.shocks['MrkvNow'] = self.shocks['MrkvNow'].astype(int)
+
 
     def resetRNG(self):
         """
         Extended method that ensures random shocks are drawn from the same sequence
         on each simulation, which is important for structural estimation.  This
         method is called automatically by initializeSim().
-        
+
         Parameters
         ----------
         None
@@ -994,9 +994,7 @@ class MarkovConsumerType(IndShockConsumerType):
             Boolean array of size AgentCount indicating which agents die.
         """
         # Determine who dies
-        LivPrb = np.array(self.LivPrb)[
-            self.t_cycle - 1, self.MrkvNow
-        ]  # Time has already advanced, so look back one
+        LivPrb = np.array(self.LivPrb)[self.t_cycle-1,self.shocks['MrkvNow']] # Time has already advanced, so look back one
         DiePrb = 1.0 - LivPrb
         DeathShks = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(
             N=self.AgentCount
@@ -1030,9 +1028,8 @@ class MarkovConsumerType(IndShockConsumerType):
             N = np.sum(which_agents)
             base_draws = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(N)
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
-            self.MrkvNow[which_agents] = np.searchsorted(Cutoffs, base_draws).astype(
-                int
-            )
+            self.shocks['MrkvNow'][which_agents] = np.searchsorted(Cutoffs,base_draws).astype(int)
+            
 
     def getMarkovStates(self):
         """
@@ -1064,9 +1061,10 @@ class MarkovConsumerType(IndShockConsumerType):
 
         # Determine which agents are in which states right now
         J = self.MrkvArray[0].shape[0]
-        MrkvPrev = self.MrkvNow
-        MrkvNow = np.zeros(self.AgentCount, dtype=int)
-        MrkvBoolArray = np.zeros((J, self.AgentCount))
+        MrkvPrev = self.shocks['MrkvNow']
+        MrkvNow = np.zeros(self.AgentCount,dtype=int)
+        MrkvBoolArray = np.zeros((J,self.AgentCount))
+
         for j in range(J):
             MrkvBoolArray[j, :] = MrkvPrev == j
 
@@ -1081,7 +1079,9 @@ class MarkovConsumerType(IndShockConsumerType):
                 ).astype(int)
         if not self.global_markov:
             MrkvNow[dont_change] = MrkvPrev[dont_change]
-        self.MrkvNow = MrkvNow.astype(int)
+
+        self.shocks['MrkvNow'] = MrkvNow.astype(int)
+
 
     def getShocks(self):
         """
@@ -1097,7 +1097,7 @@ class MarkovConsumerType(IndShockConsumerType):
         None
         """
         self.getMarkovStates()
-        MrkvNow = self.MrkvNow
+        MrkvNow = self.shocks['MrkvNow']
 
         # Now get income shocks for each consumer, by cycle-time and discrete state
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
@@ -1123,8 +1123,8 @@ class MarkovConsumerType(IndShockConsumerType):
         newborn = self.t_age == 0
         PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0
-        self.PermShkNow = PermShkNow
-        self.TranShkNow = TranShkNow
+        self.shocks['PermShkNow'] = PermShkNow
+        self.shocks['TranShkNow'] = TranShkNow
 
     def readShocks(self):
         """
@@ -1139,7 +1139,7 @@ class MarkovConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.readShocks(self)
-        self.MrkvNow = self.MrkvNow.astype(int)
+        self.shocks['MrkvNow'] = self.shocks['MrkvNow'].astype(int)
 
     def getRfree(self):
         """
@@ -1154,7 +1154,7 @@ class MarkovConsumerType(IndShockConsumerType):
         RfreeNow : np.array
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
-        RfreeNow = self.Rfree[self.MrkvNow]
+        RfreeNow = self.Rfree[self.shocks['MrkvNow']]
         return RfreeNow
 
     def getControls(self):
@@ -1175,8 +1175,8 @@ class MarkovConsumerType(IndShockConsumerType):
 
         MrkvBoolArray = np.zeros((J, self.AgentCount), dtype=bool)
         for j in range(J):
-            MrkvBoolArray[j, :] = j == self.MrkvNow
-
+            MrkvBoolArray[j,:] = j == self.shocks['MrkvNow']
+ 
         for t in range(self.T_cycle):
             right_t = t == self.t_cycle
             for j in range(J):
