@@ -613,10 +613,10 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             
         # Withdraw everything from the pension fund and consume everything
         DFuncAdj_term = ConstantFunction(-1.0)
-        vFuncAdj_term = ValueFunc3D(lambda m,n,s: m + n/(1+tau), self.CRRA)
-        dvdmFuncAdj_term = MargValueFunc3D(lambda m,n,s: m + n/(1+tau), self.CRRA)
+        vFuncAdj_term = ValueFunc2D(lambda m,n: m + n/(1+tau), self.CRRA)
+        dvdmFuncAdj_term = MargValueFunc2D(lambda m,n: m + n/(1+tau), self.CRRA)
         # A marginal unit of n will be withdrawn and put into m. Then consumed.
-        dvdnFuncAdj_term = lambda m,n,s: dvdmFuncAdj_term(m,n,s)/(1+tau)
+        dvdnFuncAdj_term = lambda m,n: dvdmFuncAdj_term(m,n)/(1+tau)
         
         
         # Construct the terminal period solution
