@@ -935,12 +935,13 @@ def rebalanceFobj(d,m,n,v,tau):
     m_til, n_til = rebalanceAssets(d,m,n,tau)
     return v(m_til, n_til)
     
-def findOptimalRebalance(m,n,v,tau):
+def findOptimalRebalance(m,n,vNvrs,tau):
     
     if (m == 0 and n == 0):
         dopt = 0
+        fopt = 0
     else:
-        fobj = lambda d: -1.*rebalanceFobj(d,m,n,v,tau)
+        fobj = lambda d: -1.*rebalanceFobj(d,m,n,vNvrs,tau)
         # For each case, we optimize numerically and compare with the extremes.
         if m > 0 and n > 0:
             # Optimize contributing and withdrawing separately
@@ -959,10 +960,13 @@ def findOptimalRebalance(m,n,v,tau):
             fs = np.array([opt.fun,fobj(-1),fobj(0)])
         
         # Pick the best candidate
-        dopt = ds[np.argmin(fs)]
+        ind  = np.argmin(fs)
+        dopt = ds[ind]
+        fopt = -1.0*fs[ind]
+        
                 
     m_til, n_til = rebalanceAssets(dopt,m,n,tau)
-    return dopt, m_til, n_til
+    return dopt, m_til, n_til, fopt
         
     
                 
@@ -1284,17 +1288,21 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     
     # STEP FOUR:
     # Rebalancing stage.
+    
     # Find optimal d for every combination
-    optRebalance = list(map(lambda x: findOptimalRebalance(x[0],x[1],vFuncAdj3,tau),
-                            zip(aNrm_tiled.flatten(),nNrm_tiled.flatten())
+    optRebalance = list(map(lambda x: findOptimalRebalance(x[0],x[1],vNvrsFuncSha,tau),
+                            zip(mNrm_tiled.flatten(),nNrm_tiled.flatten())
                             )
                         )
     optRebalance = np.array(optRebalance)
     
     # Format rebalancing share and post-rebalancing assets as tiled arrays
-    D_tiled      = np.reshape(optRebalance[:,0], (aNrm_N, nNrm_N))
-    aTilde_tiled = np.reshape(optRebalance[:,1], (aNrm_N, nNrm_N))
-    nTilde_tiled = np.reshape(optRebalance[:,2], (aNrm_N, nNrm_N))
+    D_tiled      = np.reshape(optRebalance[:,0], (mNrm_N, nNrm_N))
+    mTilde_tiled = np.reshape(optRebalance[:,1], (mNrm_N, nNrm_N))
+    nTilde_tiled = np.reshape(optRebalance[:,2], (mNrm_N, nNrm_N))
+    vNvrsAdj     = np.reshape(optRebalance[:,3], (mNrm_N, nNrm_N))
+    
+    
     
     d = 'Here.' # TODO
     
