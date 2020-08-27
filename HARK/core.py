@@ -124,6 +124,7 @@ class HARKobject(object):
         -------
         none
         '''
+        self.parameters = kwds
         for key in kwds:
             setattr(self, key, kwds[key])
 
