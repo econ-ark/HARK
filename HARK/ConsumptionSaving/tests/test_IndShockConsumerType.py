@@ -22,11 +22,11 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.agent.getShocks()
 
-        self.assertEqual(self.agent.PermShkNow[0],
+        self.assertEqual(self.agent.shocks['PermShkNow'][0],
                          1.0427376294215103)
-        self.assertEqual(self.agent.PermShkNow[1],
+        self.assertEqual(self.agent.shocks['PermShkNow'][1],
                          0.9278094171517413)
-        self.assertEqual(self.agent.TranShkNow[0],
+        self.assertEqual(self.agent.shocks['TranShkNow'][0],
                          0.881761797501595)
 
     def test_ConsIndShockSolverBasic(self):
