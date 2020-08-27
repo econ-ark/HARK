@@ -760,7 +760,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
             if N > 0:
                 MedShkNow[these] = self.MedShkDstn[t].drawDiscrete(N)
                 MedPriceNow[these] = self.MedPrice[t]
-        self.MedShkNow = MedShkNow
+        self.shocks['MedShkNow'] = MedShkNow
         self.MedPriceNow = MedPriceNow
 
     def getControls(self):
@@ -780,7 +780,9 @@ class MedShockConsumerType(PersistentShockConsumerType):
         MedNow  = np.zeros(self.AgentCount) + np.nan
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            cLvlNow[these], MedNow[these] = self.solution[t].policyFunc(self.mLvlNow[these],self.pLvlNow[these],self.MedShkNow[these])
+            cLvlNow[these], MedNow[these] = self.solution[t].policyFunc(
+                self.mLvlNow[these],self.pLvlNow[these],self.shocks['MedShkNow'][these]
+            )
         self.cLvlNow = cLvlNow
         self.MedNow  = MedNow
         return None
@@ -860,11 +862,12 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         -------
         None
         '''
-        ConsGenIncProcessSolver.__init__(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                 pLvlNextFunc,BoroCnstArt,aXtraGrid,pLvlGrid,vFuncBool,CubicBool)
-        self.MedShkDstn = MedShkDstn
-        self.MedPrice   = MedPrice
-        self.CRRAmed    = CRRAmed
+        self.assignParameters(solution_next=solution_next, IncomeDstn=IncomeDstn, MedShkDstn=MedShkDstn,
+                               LivPrb=LivPrb, DiscFac=DiscFac, CRRA=CRRA, CRRAmed=CRRAmed, Rfree=Rfree,
+                               MedPrice=MedPrice, pLvlNextFunc=pLvlNextFunc, BoroCnstArt=BoroCnstArt,
+                               aXtraGrid=aXtraGrid, pLvlGrid=pLvlGrid, vFuncBool=vFuncBool, CubicBool=CubicBool,
+                               PermGroFac=0.0) # dummy value required?
+        self.defUtilityFuncs()
 
     def setAndUpdateValues(self,solution_next,IncomeDstn,LivPrb,DiscFac):
         '''

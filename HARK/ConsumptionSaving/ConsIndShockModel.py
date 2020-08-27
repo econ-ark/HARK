@@ -12,9 +12,6 @@ It currently solves three types of models:
 See NARK https://HARK.githhub.io/Documentation/NARK for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 '''
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 from builtins import str
 from builtins import range
 from builtins import object
@@ -314,12 +311,12 @@ class MargMargValueFunc(HARKobject):
 # === Classes and functions that solve consumption-saving models ===
 # =====================================================================
 
-class ConsPerfForesightSolver(object):
+class ConsPerfForesightSolver(HARKobject):
     '''
     A class for solving a one period perfect foresight consumption-saving problem.
     An instance of this class is created by the function solvePerfForesight in each period.
     '''
-    def __init__(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks):
+    def __init__(self, solution_next, DiscFac, LivPrb, CRRA, Rfree, PermGroFac, BoroCnstArt, MaxKinks):
         '''
         Constructor for a new ConsPerfForesightSolver.
 
@@ -355,46 +352,10 @@ class ConsPerfForesightSolver(object):
         self.notation = {'a': 'assets after all actions',
                          'm': 'market resources at decision time',
                          'c': 'consumption'}
-        self.assignParameters(solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks)
-
-    def assignParameters(self,solution_next,DiscFac,LivPrb,CRRA,Rfree,PermGroFac,BoroCnstArt,MaxKinks):
-        '''
-        Saves necessary parameters as attributes of self for use by other methods.
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        PermGroFac : float
-            Expected permanent income growth factor at the end of this period.
-        BoroCnstArt : float or None
-            Artificial borrowing constraint, as a multiple of permanent income.
-            Can be None, indicating no artificial constraint.
-        MaxKinks : int
-            Maximum number of kink points to allow in the consumption function;
-            additional points will be thrown out.
-
-        Returns
-        -------
-        None
-        '''
-        self.solution_next  = solution_next
-        self.DiscFac        = DiscFac
-        self.LivPrb         = LivPrb
-        self.CRRA           = CRRA
-        self.Rfree          = Rfree
-        self.PermGroFac     = PermGroFac
-        self.MaxKinks       = MaxKinks
-        self.BoroCnstArt    = BoroCnstArt
+        self.assignParameters(solution_next=solution_next, DiscFac=DiscFac,
+                               LivPrb=LivPrb, CRRA=CRRA, Rfree=Rfree,
+                               PermGroFac=PermGroFac, BoroCnstArt=BoroCnstArt,
+                               MaxKinks=MaxKinks)
 
     def defUtilityFuncs(self):
         '''
@@ -642,60 +603,11 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         -------
         None
         '''
-        self.assignParameters(solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool)
+        self.assignParameters(solution_next=solution_next, IncomeDstn=IncomeDstn,
+                               LivPrb=LivPrb, DiscFac=DiscFac, CRRA=CRRA, Rfree=Rfree,
+                               PermGroFac=PermGroFac, BoroCnstArt=BoroCnstArt,
+                               aXtraGrid=aXtraGrid, vFuncBool=vFuncBool, CubicBool=CubicBool)
         self.defUtilityFuncs()
-
-    def assignParameters(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
-        '''
-        Assigns period parameters as attributes of self for use by other methods
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        PermGroFac : float
-            Expected permanent income growth factor at the end of this period.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.  If it is less than the natural borrowing constraint,
-            then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-            rowing constraint.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period asset values-- assets above the
-            absolute minimum acceptable level.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear inter-
-            polation.
-
-        Returns
-        -------
-        none
-        '''
-        ConsPerfForesightSolver.assignParameters(self,solution_next,DiscFac,LivPrb,
-                                                CRRA,Rfree,PermGroFac,BoroCnstArt,None)
-        self.aXtraGrid      = aXtraGrid
-        self.IncomeDstn     = IncomeDstn
-        self.vFuncBool      = vFuncBool
-        self.CubicBool      = CubicBool
 
 
     def defUtilityFuncs(self):
@@ -1625,8 +1537,8 @@ class PerfForesightConsumerType(AgentType):
         None
         '''
         PermGroFac = np.array(self.PermGroFac)
-        self.PermShkNow = PermGroFac[self.t_cycle-1] # cycle time has already been advanced
-        self.TranShkNow = np.ones(self.AgentCount)
+        self.shocks['PermShkNow'] = PermGroFac[self.t_cycle-1] # cycle time has already been advanced
+        self.shocks['TranShkNow'] = np.ones(self.AgentCount)
 
     def getRfree(self):
         '''
@@ -1662,11 +1574,11 @@ class PerfForesightConsumerType(AgentType):
         RfreeNow = self.getRfree()
 
         # Calculate new states: normalized market resources and permanent income level
-        self.pLvlNow = pLvlPrev*self.PermShkNow # Updated permanent income level
+        self.pLvlNow = pLvlPrev*self.shocks['PermShkNow'] # Updated permanent income level
         self.PlvlAggNow = self.PlvlAggNow*self.PermShkAggNow # Updated aggregate permanent productivity level
-        ReffNow      = RfreeNow/self.PermShkNow # "Effective" interest factor on normalized assets
+        ReffNow      = RfreeNow/self.shocks['PermShkNow'] # "Effective" interest factor on normalized assets
         self.bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
-        self.mNrmNow = self.bNrmNow + self.TranShkNow # Market resources after income
+        self.mNrmNow = self.bNrmNow + self.shocks['TranShkNow'] # Market resources after income
         return None
 
     def getControls(self):
@@ -2066,9 +1978,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount,dtype=bool)
         self.EmpNow[TranShkNow == self.IncUnemp] = False
-        self.PermShkNow = PermShkNow
-        self.TranShkNow = TranShkNow
-
+        self.shocks['PermShkNow'] = PermShkNow
+        self.shocks['TranShkNow'] = TranShkNow
 
     def calcBoundingValues(self):
         '''
