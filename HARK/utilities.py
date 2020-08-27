@@ -1,17 +1,17 @@
-'''
+"""
 General purpose  / miscellaneous functions.  Includes functions to approximate
 continuous distributions with discrete ones, utility functions (and their
 derivatives), manipulation of discrete distributions, and basic plotting tools.
-'''
+"""
 
-from __future__ import division     # Import Python 3.x division function
+from __future__ import division  # Import Python 3.x division function
 from __future__ import print_function
 from builtins import str
 from builtins import range
 from builtins import object
 import functools
 
-import numpy as np                  # Python's numeric library, abbreviated "np"
+import numpy as np  # Python's numeric library, abbreviated "np"
 
 # try:
 #     import matplotlib.pyplot as plt                 # Python's plotting library
@@ -24,29 +24,30 @@ import warnings
 
 
 def memoize(obj):
-   '''
+    """
    A decorator to (potentially) make functions more efficient.
 
    With this decorator, functions will "remember" if they have been evaluated with given inputs
    before.  If they have, they will "remember" the outputs that have already been calculated
    for those inputs, rather than calculating them again.
-   '''
-   cache = obj._cache = {}
+   """
+    cache = obj._cache = {}
 
-   @functools.wraps(obj)
-   def memoizer(*args, **kwargs):
-       key = str(args) + str(kwargs)
-       if key not in cache:
-           cache[key] = obj(*args, **kwargs)
-       return cache[key]
-   return memoizer
+    @functools.wraps(obj)
+    def memoizer(*args, **kwargs):
+        key = str(args) + str(kwargs)
+        if key not in cache:
+            cache[key] = obj(*args, **kwargs)
+        return cache[key]
+
+    return memoizer
 
 
 # ==============================================================================
 # ============== Some basic function tools  ====================================
 # ==============================================================================
 def getArgNames(function):
-    '''
+    """
     Returns a list of strings naming all of the arguments for the passed function.
 
     Parameters
@@ -58,33 +59,34 @@ def getArgNames(function):
     -------
     argNames : [string]
         The names of the arguments of function.
-    '''
+    """
     argCount = function.__code__.co_argcount
     argNames = function.__code__.co_varnames[:argCount]
     return argNames
 
 
 class NullFunc(object):
-    '''
+    """
     A trivial class that acts as a placeholder "do nothing" function.
-    '''
-    def __call__(self,*args):
-        '''
+    """
+
+    def __call__(self, *args):
+        """
         Returns meaningless output no matter what the input(s) is.  If no input,
         returns None.  Otherwise, returns an array of NaNs (or a single NaN) of
         the same size as the first input.
-        '''
+        """
         if len(args) == 0:
             return None
         else:
             arg = args[0]
-            if hasattr(arg,'shape'):
+            if hasattr(arg, "shape"):
                 return np.zeros_like(arg) + np.nan
             else:
                 return np.nan
 
-    def distance(self,other):
-        '''
+    def distance(self, other):
+        """
         Trivial distance metric that only cares whether the other object is also
         an instance of NullFunc.  Intentionally does not inherit from HARKobject
         as this might create dependency problems.
@@ -99,7 +101,7 @@ class NullFunc(object):
         (unnamed) : float
             The distance between self and other.  Returns 0 if other is also a
             NullFunc; otherwise returns an arbitrary high number.
-        '''
+        """
         try:
             if other.__class__ is self.__class__:
                 return 0.0
@@ -108,11 +110,12 @@ class NullFunc(object):
         except:
             return 10000.0
 
+
 # ==============================================================================
 # ============== Define utility functions        ===============================
 # ==============================================================================
 def CRRAutility(c, gam):
-    '''
+    """
     Evaluates constant relative risk aversion (CRRA) utility of consumption c
     given risk aversion parameter gam.
 
@@ -134,14 +137,15 @@ def CRRAutility(c, gam):
     >>> c, gamma = 1.0, 2.0    # Set two values at once with Python syntax
     >>> utility(c=c, gam=gamma)
     -1.0
-    '''
+    """
     if gam == 1:
         return np.log(c)
     else:
-        return( c**(1.0 - gam) / (1.0 - gam) )
+        return c ** (1.0 - gam) / (1.0 - gam)
+
 
 def CRRAutilityP(c, gam):
-    '''
+    """
     Evaluates constant relative risk aversion (CRRA) marginal utility of consumption
     c given risk aversion parameter gam.
 
@@ -156,11 +160,12 @@ def CRRAutilityP(c, gam):
     -------
     (unnamed) : float
         Marginal utility
-    '''
-    return( c**-gam )
+    """
+    return c ** -gam
+
 
 def CRRAutilityPP(c, gam):
-    '''
+    """
     Evaluates constant relative risk aversion (CRRA) marginal marginal utility of
     consumption c given risk aversion parameter gam.
 
@@ -175,11 +180,12 @@ def CRRAutilityPP(c, gam):
     -------
     (unnamed) : float
         Marginal marginal utility
-    '''
-    return( -gam*c**(-gam-1.0) )
+    """
+    return -gam * c ** (-gam - 1.0)
+
 
 def CRRAutilityPPP(c, gam):
-    '''
+    """
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
     utility of consumption c given risk aversion parameter gam.
 
@@ -194,11 +200,12 @@ def CRRAutilityPPP(c, gam):
     -------
     (unnamed) : float
         Marginal marginal marginal utility
-    '''
-    return( (gam+1.0)*gam*c**(-gam-2.0) )
+    """
+    return (gam + 1.0) * gam * c ** (-gam - 2.0)
+
 
 def CRRAutilityPPPP(c, gam):
-    '''
+    """
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
     marginal utility of consumption c given risk aversion parameter gam.
 
@@ -213,11 +220,12 @@ def CRRAutilityPPPP(c, gam):
     -------
     (unnamed) : float
         Marginal marginal marginal marginal utility
-    '''
-    return( -(gam+2.0)*(gam+1.0)*gam*c**(-gam-3.0) )
+    """
+    return -(gam + 2.0) * (gam + 1.0) * gam * c ** (-gam - 3.0)
+
 
 def CRRAutility_inv(u, gam):
-    '''
+    """
     Evaluates the inverse of the CRRA utility function (with risk aversion para-
     meter gam) at a given utility level u.
 
@@ -232,14 +240,15 @@ def CRRAutility_inv(u, gam):
     -------
     (unnamed) : float
         Consumption corresponding to given utility value
-    '''
+    """
     if gam == 1:
         return np.exp(u)
     else:
-        return( ((1.0-gam)*u)**(1/(1.0-gam)) )
+        return ((1.0 - gam) * u) ** (1 / (1.0 - gam))
+
 
 def CRRAutilityP_inv(uP, gam):
-    '''
+    """
     Evaluates the inverse of the CRRA marginal utility function (with risk aversion
     parameter gam) at a given marginal utility level uP.
 
@@ -254,11 +263,12 @@ def CRRAutilityP_inv(uP, gam):
     -------
     (unnamed) : float
         Consumption corresponding to given marginal utility value.
-    '''
-    return( uP**(-1.0/gam) )
+    """
+    return uP ** (-1.0 / gam)
+
 
 def CRRAutility_invP(u, gam):
-    '''
+    """
     Evaluates the derivative of the inverse of the CRRA utility function (with
     risk aversion parameter gam) at a given utility level u.
 
@@ -273,14 +283,15 @@ def CRRAutility_invP(u, gam):
     -------
     (unnamed) : float
         Marginal consumption corresponding to given utility value
-    '''
+    """
     if gam == 1:
         return np.exp(u)
     else:
-        return( ((1.0-gam)*u)**(gam/(1.0-gam)) )
+        return ((1.0 - gam) * u) ** (gam / (1.0 - gam))
+
 
 def CRRAutilityP_invP(uP, gam):
-    '''
+    """
     Evaluates the derivative of the inverse of the CRRA marginal utility function
     (with risk aversion parameter gam) at a given marginal utility level uP.
 
@@ -295,12 +306,12 @@ def CRRAutilityP_invP(uP, gam):
     -------
     (unnamed) : float
         Marginal consumption corresponding to given marginal utility value
-    '''
-    return( (-1.0/gam)*uP**(-1.0/gam-1.0) )
+    """
+    return (-1.0 / gam) * uP ** (-1.0 / gam - 1.0)
 
 
 def CARAutility(c, alpha):
-    '''
+    """
     Evaluates constant absolute risk aversion (CARA) utility of consumption c
     given risk aversion parameter alpha.
 
@@ -315,11 +326,12 @@ def CARAutility(c, alpha):
     -------
     (unnamed): float
         Utility
-    '''
-    return( 1 - np.exp(-alpha*c)/alpha )
+    """
+    return 1 - np.exp(-alpha * c) / alpha
+
 
 def CARAutilityP(c, alpha):
-    '''
+    """
     Evaluates constant absolute risk aversion (CARA) marginal utility of
     consumption c given risk aversion parameter alpha.
 
@@ -334,11 +346,12 @@ def CARAutilityP(c, alpha):
     -------
     (unnamed): float
         Marginal utility
-    '''
-    return( np.exp(-alpha*c) )
+    """
+    return np.exp(-alpha * c)
+
 
 def CARAutilityPP(c, alpha):
-    '''
+    """
     Evaluates constant absolute risk aversion (CARA) marginal marginal utility
     of consumption c given risk aversion parameter alpha.
 
@@ -353,11 +366,12 @@ def CARAutilityPP(c, alpha):
     -------
     (unnamed): float
         Marginal marginal utility
-    '''
-    return( -alpha*np.exp(-alpha*c) )
+    """
+    return -alpha * np.exp(-alpha * c)
+
 
 def CARAutilityPPP(c, alpha):
-    '''
+    """
     Evaluates constant absolute risk aversion (CARA) marginal marginal marginal
     utility of consumption c given risk aversion parameter alpha.
 
@@ -372,11 +386,12 @@ def CARAutilityPPP(c, alpha):
     -------
     (unnamed): float
         Marginal marginal marginal utility
-    '''
-    return( alpha**2.0*np.exp(-alpha*c) )
+    """
+    return alpha ** 2.0 * np.exp(-alpha * c)
+
 
 def CARAutility_inv(u, alpha):
-    '''
+    """
     Evaluates inverse of constant absolute risk aversion (CARA) utility function
     at utility level u given risk aversion parameter alpha.
 
@@ -391,11 +406,12 @@ def CARAutility_inv(u, alpha):
     -------
     (unnamed): float
         Consumption value corresponding to u
-    '''
-    return( -1.0/alpha * np.log(alpha*(1-u)) )
+    """
+    return -1.0 / alpha * np.log(alpha * (1 - u))
+
 
 def CARAutilityP_inv(u, alpha):
-    '''
+    """
     Evaluates the inverse of constant absolute risk aversion (CARA) marginal
     utility function at marginal utility uP given risk aversion parameter alpha.
 
@@ -410,11 +426,12 @@ def CARAutilityP_inv(u, alpha):
     -------
     (unnamed): float
         Consumption value corresponding to uP
-    '''
-    return( -1.0/alpha*np.log(u) )
+    """
+    return -1.0 / alpha * np.log(u)
+
 
 def CARAutility_invP(u, alpha):
-    '''
+    """
     Evaluates the derivative of inverse of constant absolute risk aversion (CARA)
     utility function at utility level u given risk aversion parameter alpha.
 
@@ -429,17 +446,15 @@ def CARAutility_invP(u, alpha):
     -------
     (unnamed): float
         Marginal onsumption value corresponding to u
-    '''
-    return( 1.0/(alpha*(1.0-u)) )
-
-
+    """
+    return 1.0 / (alpha * (1.0 - u))
 
 
 # ==============================================================================
 # ============== Functions for generating state space grids  ===================
 # ==============================================================================
 def makeGridExpMult(ming, maxg, ng, timestonest=20):
-    '''
+    """
     Make a multi-exponentially spaced grid.
 
     Parameters
@@ -462,31 +477,31 @@ def makeGridExpMult(ming, maxg, ng, timestonest=20):
     [Solution Methods for Microeconomic Dynamic Optimization Problems]
     (http://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
     Latest update: 01 May 2015
-    '''
+    """
     if timestonest > 0:
         Lming = ming
         Lmaxg = maxg
         for j in range(timestonest):
             Lming = np.log(Lming + 1)
             Lmaxg = np.log(Lmaxg + 1)
-        Lgrid = np.linspace(Lming,Lmaxg,ng)
+        Lgrid = np.linspace(Lming, Lmaxg, ng)
         grid = Lgrid
         for j in range(timestonest):
             grid = np.exp(grid) - 1
     else:
         Lming = np.log(ming)
         Lmaxg = np.log(maxg)
-        Lstep = (Lmaxg - Lming)/(ng - 1)
-        Lgrid = np.arange(Lming,Lmaxg+0.000001,Lstep)
+        Lstep = (Lmaxg - Lming) / (ng - 1)
+        Lgrid = np.arange(Lming, Lmaxg + 0.000001, Lstep)
         grid = np.exp(Lgrid)
-    return(grid)
+    return grid
 
 
 # ==============================================================================
 # ============== Uncategorized general functions  ===================
 # ==============================================================================
-def calcWeightedAvg(data,weights):
-    '''
+def calcWeightedAvg(data, weights):
+    """
     Generates a weighted average of simulated data.  The Nth row of data is averaged
     and then weighted by the Nth element of weights in an aggregate average.
 
@@ -501,13 +516,14 @@ def calcWeightedAvg(data,weights):
     -------
     weighted_sum : float
         The weighted sum of the data.
-    '''
-    data_avg = np.mean(data,axis=1)
-    weighted_sum = np.dot(data_avg,weights)
+    """
+    data_avg = np.mean(data, axis=1)
+    weighted_sum = np.dot(data_avg, weights)
     return weighted_sum
 
+
 def getPercentiles(data, weights=None, percentiles=None, presorted=False):
-    '''
+    """
     Calculates the requested percentiles of (weighted) data.  Median by default.
 
     Parameters
@@ -526,20 +542,26 @@ def getPercentiles(data, weights=None, percentiles=None, presorted=False):
     -------
     pctl_out : numpy.array
         The requested percentiles of the data.
-    '''
+    """
     if percentiles is None:
         percentiles = [0.5]
     else:
-        if not isinstance(percentiles, (list, np.ndarray)) or min(percentiles) <= 0 or max(percentiles) >= 1:
-            raise ValueError('Percentiles should be a list or numpy array of floats between 0 and 1')
+        if (
+            not isinstance(percentiles, (list, np.ndarray))
+            or min(percentiles) <= 0
+            or max(percentiles) >= 1
+        ):
+            raise ValueError(
+                "Percentiles should be a list or numpy array of floats between 0 and 1"
+            )
 
     if data.size < 2:
         return np.zeros(np.array(percentiles).shape) + np.nan
-    
-    if weights is None: # Set equiprobable weights if none were passed
-        weights = np.ones(data.size)/float(data.size)
 
-    if presorted: # Sort the data if it is not already
+    if weights is None:  # Set equiprobable weights if none were passed
+        weights = np.ones(data.size) / float(data.size)
+
+    if presorted:  # Sort the data if it is not already
         data_sorted = data
         weights_sorted = weights
     else:
@@ -547,16 +569,19 @@ def getPercentiles(data, weights=None, percentiles=None, presorted=False):
         data_sorted = data[order]
         weights_sorted = weights[order]
 
-    cum_dist = np.cumsum(weights_sorted)/np.sum(weights_sorted) # cumulative probability distribution
+    cum_dist = np.cumsum(weights_sorted) / np.sum(
+        weights_sorted
+    )  # cumulative probability distribution
 
     # Calculate the requested percentiles by interpolating the data over the
     # cumulative distribution, then evaluating at the percentile values
-    inv_CDF = interp1d(cum_dist,data_sorted,bounds_error=False,assume_sorted=True)
+    inv_CDF = interp1d(cum_dist, data_sorted, bounds_error=False, assume_sorted=True)
     pctl_out = inv_CDF(percentiles)
     return pctl_out
 
+
 def getLorenzShares(data, weights=None, percentiles=None, presorted=False):
-    '''
+    """
     Calculates the Lorenz curve at the requested percentiles of (weighted) data.
     Median by default.
 
@@ -576,16 +601,22 @@ def getLorenzShares(data, weights=None, percentiles=None, presorted=False):
     -------
     lorenz_out : numpy.array
         The requested Lorenz curve points of the data.
-    '''
+    """
     if percentiles is None:
         percentiles = [0.5]
     else:
-        if not isinstance(percentiles, (list, np.ndarray)) or min(percentiles) <= 0 or max(percentiles) >= 1:
-            raise ValueError('Percentiles should be a list or numpy array of floats between 0 and 1')
-    if weights is None: # Set equiprobable weights if none were given
+        if (
+            not isinstance(percentiles, (list, np.ndarray))
+            or min(percentiles) <= 0
+            or max(percentiles) >= 1
+        ):
+            raise ValueError(
+                "Percentiles should be a list or numpy array of floats between 0 and 1"
+            )
+    if weights is None:  # Set equiprobable weights if none were given
         weights = np.ones(data.size)
 
-    if presorted: # Sort the data if it is not already
+    if presorted:  # Sort the data if it is not already
         data_sorted = data
         weights_sorted = weights
     else:
@@ -593,18 +624,21 @@ def getLorenzShares(data, weights=None, percentiles=None, presorted=False):
         data_sorted = data[order]
         weights_sorted = weights[order]
 
-    cum_dist = np.cumsum(weights_sorted)/np.sum(weights_sorted) # cumulative probability distribution
-    temp = data_sorted*weights_sorted
-    cum_data = np.cumsum(temp)/sum(temp) # cumulative ownership shares
+    cum_dist = np.cumsum(weights_sorted) / np.sum(
+        weights_sorted
+    )  # cumulative probability distribution
+    temp = data_sorted * weights_sorted
+    cum_data = np.cumsum(temp) / sum(temp)  # cumulative ownership shares
 
     # Calculate the requested Lorenz shares by interpolating the cumulative ownership
     # shares over the cumulative distribution, then evaluating at requested points
-    lorenzFunc = interp1d(cum_dist,cum_data,bounds_error=False,assume_sorted=True)
+    lorenzFunc = interp1d(cum_dist, cum_data, bounds_error=False, assume_sorted=True)
     lorenz_out = lorenzFunc(percentiles)
     return lorenz_out
 
-def calcSubpopAvg(data,reference,cutoffs,weights=None):
-    '''
+
+def calcSubpopAvg(data, reference, cutoffs, weights=None):
+    """
     Calculates the average of (weighted) data between cutoff percentiles of a
     reference variable.
 
@@ -626,28 +660,31 @@ def calcSubpopAvg(data,reference,cutoffs,weights=None):
         The (weighted) average of data that falls within the cutoff percentiles
         of reference.
 
-    '''
-    if weights is None: # Set equiprobable weights if none were given
+    """
+    if weights is None:  # Set equiprobable weights if none were given
         weights = np.ones(data.size)
 
     # Sort the data and generate a cumulative distribution
     order = np.argsort(reference)
     data_sorted = data[order]
     weights_sorted = weights[order]
-    cum_dist = np.cumsum(weights_sorted)/np.sum(weights_sorted)
+    cum_dist = np.cumsum(weights_sorted) / np.sum(weights_sorted)
 
     # For each set of cutoffs, calculate the average of data that falls within
     # the cutoff percentiles of reference
     slice_avg = []
     for j in range(len(cutoffs)):
-        bot = np.searchsorted(cum_dist,cutoffs[j][0])
-        top = np.searchsorted(cum_dist,cutoffs[j][1])
-        slice_avg.append(np.sum(data_sorted[bot:top]*weights_sorted[bot:top])/
-                         np.sum(weights_sorted[bot:top]))
+        bot = np.searchsorted(cum_dist, cutoffs[j][0])
+        top = np.searchsorted(cum_dist, cutoffs[j][1])
+        slice_avg.append(
+            np.sum(data_sorted[bot:top] * weights_sorted[bot:top])
+            / np.sum(weights_sorted[bot:top])
+        )
     return slice_avg
 
-def kernelRegression(x,y,bot=None,top=None,N=500,h=None):
-    '''
+
+def kernelRegression(x, y, bot=None, top=None, N=500, h=None):
+    """
     Performs a non-parametric Nadaraya-Watson 1D kernel regression on given data
     with optionally specified range, number of points, and kernel bandwidth.
 
@@ -670,27 +707,28 @@ def kernelRegression(x,y,bot=None,top=None,N=500,h=None):
     -------
     regression : LinearInterp
         A piecewise locally linear kernel regression: y = f(x).
-    '''
+    """
     # Fix omitted inputs
     if bot is None:
         bot = np.min(x)
     if top is None:
         top = np.max(x)
     if h is None:
-        h = 2.0*(top - bot)/float(N) # This is an arbitrary default
+        h = 2.0 * (top - bot) / float(N)  # This is an arbitrary default
 
     # Construct a local linear approximation
-    x_vec = np.linspace(bot,top,num=N)
+    x_vec = np.linspace(bot, top, num=N)
     y_vec = np.zeros_like(x_vec) + np.nan
     for j in range(N):
         x_here = x_vec[j]
-        weights = epanechnikovKernel(x,x_here,h)
-        y_vec[j] = np.dot(weights,y)/np.sum(weights)
-    regression = interp1d(x_vec,y_vec,bounds_error=False,assume_sorted=True)
+        weights = epanechnikovKernel(x, x_here, h)
+        y_vec[j] = np.dot(weights, y) / np.sum(weights)
+    regression = interp1d(x_vec, y_vec, bounds_error=False, assume_sorted=True)
     return regression
 
-def epanechnikovKernel(x,ref_x,h=1.0):
-    '''
+
+def epanechnikovKernel(x, ref_x, h=1.0):
+    """
     The Epanechnikov kernel.
 
     Parameters
@@ -706,11 +744,11 @@ def epanechnikovKernel(x,ref_x,h=1.0):
     -------
     out : np.array
         Kernel values at each value of x
-    '''
-    u          = (x-ref_x)/h   # Normalize distance by bandwidth
-    these      = np.abs(u) <= 1.0 # Kernel = 0 outside [-1,1]
-    out        = np.zeros_like(x)   # Initialize kernel output
-    out[these] = 0.75*(1.0-u[these]**2.0) # Evaluate kernel
+    """
+    u = (x - ref_x) / h  # Normalize distance by bandwidth
+    these = np.abs(u) <= 1.0  # Kernel = 0 outside [-1,1]
+    out = np.zeros_like(x)  # Initialize kernel output
+    out[these] = 0.75 * (1.0 - u[these] ** 2.0)  # Evaluate kernel
     return out
 
 
@@ -718,8 +756,9 @@ def epanechnikovKernel(x,ref_x,h=1.0):
 # ============== Some basic plotting tools  ====================================
 # ==============================================================================
 
-def plotFuncs(functions,bottom,top,N=1000,legend_kwds = None):
-    '''
+
+def plotFuncs(functions, bottom, top, N=1000, legend_kwds=None):
+    """
     Plots 1D function(s) over a given range.
 
     Parameters
@@ -738,24 +777,26 @@ def plotFuncs(functions,bottom,top,N=1000,legend_kwds = None):
     Returns
     -------
     none
-    '''
+    """
     import matplotlib.pyplot as plt
-    if type(functions)==list:
+
+    if type(functions) == list:
         function_list = functions
     else:
         function_list = [functions]
 
     for function in function_list:
-        x = np.linspace(bottom,top,N,endpoint=True)
+        x = np.linspace(bottom, top, N, endpoint=True)
         y = function(x)
-        plt.plot(x,y)
+        plt.plot(x, y)
     plt.xlim([bottom, top])
     if legend_kwds is not None:
         plt.legend(**legend_kwds)
     plt.show()
 
-def plotFuncsDer(functions,bottom,top,N=1000,legend_kwds = None):
-    '''
+
+def plotFuncsDer(functions, bottom, top, N=1000, legend_kwds=None):
+    """
     Plots the first derivative of 1D function(s) over a given range.
 
     Parameters
@@ -774,18 +815,19 @@ def plotFuncsDer(functions,bottom,top,N=1000,legend_kwds = None):
     Returns
     -------
     none
-    '''
+    """
     import matplotlib.pyplot as plt
-    if type(functions)==list:
+
+    if type(functions) == list:
         function_list = functions
     else:
         function_list = [functions]
 
-    step = (top-bottom)/N
+    step = (top - bottom) / N
     for function in function_list:
-        x = np.arange(bottom,top,step)
+        x = np.arange(bottom, top, step)
         y = function.derivative(x)
-        plt.plot(x,y)
+        plt.plot(x, y)
     plt.xlim([bottom, top])
     if legend_kwds is not None:
         plt.legend(**legend_kwds)
@@ -801,20 +843,22 @@ def determine_platform():
         'darwin' (MacOS), 'debian'(debian Linux) or 'win' (windows)
     """
     import platform
+
     pform = platform.platform().lower()
-    if 'darwin' in pform:
-        pf = 'darwin' # MacOS
-    elif 'debian' in pform:
-        pf = 'debian' # Probably cloud (MyBinder, CoLab, ...)
-    elif 'ubuntu' in pform:
-        pf = 'debian' # Probably cloud (MyBinder, CoLab, ...)
-    elif 'win' in pform:
-        pf = 'win'
-    elif 'linux' in pform:
-        pf = 'linux'
+    if "darwin" in pform:
+        pf = "darwin"  # MacOS
+    elif "debian" in pform:
+        pf = "debian"  # Probably cloud (MyBinder, CoLab, ...)
+    elif "ubuntu" in pform:
+        pf = "debian"  # Probably cloud (MyBinder, CoLab, ...)
+    elif "win" in pform:
+        pf = "win"
+    elif "linux" in pform:
+        pf = "linux"
     else:
-        raise ValueError('Not able to find out the platform.')
+        raise ValueError("Not able to find out the platform.")
     return pf
+
 
 def test_latex_installation(pf):
     """ Test to check if latex is installed on the machine.
@@ -835,27 +879,32 @@ def test_latex_installation(pf):
 
     latexExists = False
 
-    if find_executable('latex'):
+    if find_executable("latex"):
         latexExists = True
         return True
 
     if not latexExists:
-        print('Some of the figures below require a full installation of LaTeX')
+        print("Some of the figures below require a full installation of LaTeX")
         # If running on Mac or Win, user can be assumed to be able to install
         # any missing packages in response to error messages; but not on cloud
         # so load LaTeX by hand (painfully slowly)
-        if 'debian' in pf: # CoLab and MyBinder are both ubuntu
-            print('Installing LaTeX now; please wait 3-5 minutes')
+        if "debian" in pf:  # CoLab and MyBinder are both ubuntu
+            print("Installing LaTeX now; please wait 3-5 minutes")
             from IPython.utils import io
-            
-            with io.capture_output() as captured: # Hide hideously long output 
-                os.system('apt-get update')
-                os.system('apt-get install texlive texlive-latex-extra texlive-xetex dvipng')
-                latexExists=True
+
+            with io.capture_output() as captured:  # Hide hideously long output
+                os.system("apt-get update")
+                os.system(
+                    "apt-get install texlive texlive-latex-extra texlive-xetex dvipng"
+                )
+                latexExists = True
             return True
         else:
-            raise ImportError('Please install a full distribution of LaTeX on your computer then rerun. \n \
-            A full distribution means textlive, texlive-latex-extras, texlive-xetex, dvipng, and ghostscript')
+            raise ImportError(
+                "Please install a full distribution of LaTeX on your computer then rerun. \n \
+            A full distribution means textlive, texlive-latex-extras, texlive-xetex, dvipng, and ghostscript"
+            )
+
 
 def in_ipynb():
     """ If the ipython process contains 'terminal' assume not in a notebook.
@@ -866,7 +915,7 @@ def in_ipynb():
           True if called from a jupyter notebook, else False
     """
     try:
-        if 'terminal' in str(type(get_ipython())):
+        if "terminal" in str(type(get_ipython())):
             return False
         else:
             return True
@@ -886,17 +935,21 @@ def setup_latex_env_notebook(pf, latexExists):
     import os
     from matplotlib import rc
     import matplotlib.pyplot as plt
-    plt.rc('font', family='serif')
-    plt.rc('text', usetex=latexExists)
+
+    plt.rc("font", family="serif")
+    plt.rc("text", usetex=latexExists)
     if latexExists:
-        latex_preamble = r'\usepackage{amsmath}\usepackage{amsfonts}\usepackage[T1]{fontenc}'
-        latexdefs_path = os.getcwd()+'/latexdefs.tex'
+        latex_preamble = (
+            r"\usepackage{amsmath}\usepackage{amsfonts}\usepackage[T1]{fontenc}"
+        )
+        latexdefs_path = os.getcwd() + "/latexdefs.tex"
         if os.path.isfile(latexdefs_path):
-            latex_preamble = latex_preamble+r'\input{'+latexdefs_path+r'}'
-        else: # the required latex_envs package needs this file to exist even if it is empty
+            latex_preamble = latex_preamble + r"\input{" + latexdefs_path + r"}"
+        else:  # the required latex_envs package needs this file to exist even if it is empty
             from pathlib import Path
+
             Path(latexdefs_path).touch()
-        plt.rcParams['text.latex.preamble'] = latex_preamble
+        plt.rcParams["text.latex.preamble"] = latex_preamble
 
 
 def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
@@ -915,24 +968,33 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
             
     """
     import matplotlib.pyplot as plt
+
     if saveFigs:
         import os
+
         # Where to put any figures that the user wants to save
-        my_file_path = os.getcwd() # Find pathname to this file:
-        Figures_dir = os.path.join(my_file_path, "{}".format(target_dir)) # LaTeX document assumes figures will be here
-        if not os.path.exists(Figures_dir): 
-            os.makedirs(Figures_dir)         # If dir does not exist, create it
+        my_file_path = os.getcwd()  # Find pathname to this file:
+        Figures_dir = os.path.join(
+            my_file_path, "{}".format(target_dir)
+        )  # LaTeX document assumes figures will be here
+        if not os.path.exists(Figures_dir):
+            os.makedirs(Figures_dir)  # If dir does not exist, create it
         # Save the figures in several formats
         print("Saving figure {} in {}".format(figure_name, target_dir))
-        plt.savefig(os.path.join(target_dir, '{}.jpg'.format(figure_name))) # For web/html
-        plt.savefig(os.path.join(target_dir, '{}.png'.format(figure_name))) # For web/html
-        plt.savefig(os.path.join(target_dir, '{}.pdf'.format(figure_name))) # For LaTeX
-        plt.savefig(os.path.join(target_dir, '{}.svg'.format(figure_name))) # For html5
+        plt.savefig(
+            os.path.join(target_dir, "{}.jpg".format(figure_name))
+        )  # For web/html
+        plt.savefig(
+            os.path.join(target_dir, "{}.png".format(figure_name))
+        )  # For web/html
+        plt.savefig(os.path.join(target_dir, "{}.pdf".format(figure_name)))  # For LaTeX
+        plt.savefig(os.path.join(target_dir, "{}.svg".format(figure_name)))  # For html5
     # Make sure it's possible to plot it by checking for GUI
     if drawFigs and find_gui():
         plt.ion()  # Counterintuitively, you want interactive mode on if you don't want to interact
-        plt.draw() # Change to false if you want to pause after the figure
+        plt.draw()  # Change to false if you want to pause after the figure
         plt.pause(2)
+
 
 def find_gui():
     """ Quick fix to check if matplotlib is running in a GUI environment.
@@ -946,6 +1008,6 @@ def find_gui():
         import matplotlib.pyplot as plt
     except:
         return False
-    if plt.get_backend() == 'Agg':
+    if plt.get_backend() == "Agg":
         return False
     return True
