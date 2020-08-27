@@ -1207,7 +1207,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         # -The lowest gridpoints of both a and n are 0.
         # -Consumption at m < m0 is m.
         # -dvdnFxd at (m,n) for m < m0(n) is dvdnFxd(m0,n)
-    
+        # -Same is true for dvdsFxd
         # Create consumption interpolator
         cInterps = [[LinearInterp(np.insert(mNrm_endog[:,nInd,sInd],0,0),
                                   np.insert(cFxd[:,nInd,sInd],0,0))
@@ -1218,12 +1218,19 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         # Create dvdmFxd interpolator
         dvdmFuncFxd = MargValueFunc3D(cFuncFxd, CRRA)
         
-        # Create dvdnFxdInterpolator
+        # Create dvdnFxd Interpolator
         dvdnFxdInterps = [[LinearInterp(np.insert(mNrm_endog[:,nInd,sInd],0,0),
                                         np.insert(EndOfPrddvdn[:,nInd,sInd],0,EndOfPrddvdn[0,nInd,sInd]))
                            for sInd in range(Share_N)]
                           for nInd in range(nNrm_N)]
         dvdnFuncFxd = BilinearInterpOnInterp1D(dvdnFxdInterps, nNrmGrid, ShareGrid)
+        
+        # Create dvdsFxd interpolator
+        dvdsFxdInterps = [[LinearInterp(np.insert(mNrm_endog[:,nInd,sInd],0,0),
+                                        np.insert(EndOfPrddvds[:,nInd,sInd],0,EndOfPrddvds[0,nInd,sInd]))
+                           for sInd in range(Share_N)]
+                          for nInd in range(nNrm_N)]
+        dvdsFuncFxd = BilinearInterpOnInterp1D(dvdsFxdInterps, nNrmGrid, ShareGrid)
         
         # It's useful to have value functions on a regular-grid
         # interpolator because:
