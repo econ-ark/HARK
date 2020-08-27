@@ -1253,31 +1253,38 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # STEP THREE:
     # Contribution share stage.
     
-    # Find the optimal share over the regular grid.
-    optIdx = np.argmax(vFxdNvrs, axis = 2)
-    
-    # Reformat grids now that the share was optimized over.
-    mNrm_tiled = mNrm_tiled[:,:,0]
-    nNrm_tiled = nNrm_tiled[:,:,0]
-    m_idx_tiled = np.tile(np.reshape(np.arange(mNrm_N), (mNrm_N,1)), (1,nNrm_N))
-    n_idx_tiled = np.tile(np.reshape(np.arange(nNrm_N), (1,nNrm_N)), (mNrm_N,1))
-    
-    # Compute objects needed for the value function and its derivatives
-    vNvrsSha     = vFxdNvrs[m_idx_tiled, n_idx_tiled, optIdx]
-    optShare     = ShareGrid[optIdx]
-    dvdmNvrsSha  = cFuncFxd(mNrm_tiled, nNrm_tiled, optShare)
-    dvdnSha      = dvdnFuncFxd(mNrm_tiled, nNrm_tiled, optShare)
-    
-    # Interpolators
-    vNvrsFuncSha    = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
-    vFuncSha        = ValueFunc2D(vNvrsFuncSha, CRRA)
-    ShaFuncSha      = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
-    dvdmNvrsFuncSha = BilinearInterp(dvdmNvrsSha, mNrmGrid, nNrmGrid)
-    dvdmFuncSha     = MargValueFunc2D(dvdmNvrsFuncSha, CRRA)
-    dvdnFuncSha     = BilinearInterp(dvdnSha, mNrmGrid, nNrmGrid)
+    # TODO: implement continuous share case.
+    if not DiscreteShareBool:
+        
+        raise Exception('The case of continuous shares has not been implemented yet')
+        
+    else:
+        # Find the optimal share over the regular grid.
+        optIdx = np.argmax(vFxdNvrs, axis = 2)
+        
+        # Reformat grids now that the share was optimized over.
+        mNrm_tiled = mNrm_tiled[:,:,0]
+        nNrm_tiled = nNrm_tiled[:,:,0]
+        m_idx_tiled = np.tile(np.reshape(np.arange(mNrm_N), (mNrm_N,1)), (1,nNrm_N))
+        n_idx_tiled = np.tile(np.reshape(np.arange(nNrm_N), (1,nNrm_N)), (mNrm_N,1))
+        
+        # Compute objects needed for the value function and its derivatives
+        vNvrsSha     = vFxdNvrs[m_idx_tiled, n_idx_tiled, optIdx]
+        optShare     = ShareGrid[optIdx]
+        dvdmNvrsSha  = cFuncFxd(mNrm_tiled, nNrm_tiled, optShare)
+        dvdnSha      = dvdnFuncFxd(mNrm_tiled, nNrm_tiled, optShare)
+        
+        # Interpolators
+        vNvrsFuncSha    = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
+        vFuncSha        = ValueFunc2D(vNvrsFuncSha, CRRA)
+        ShaFuncSha      = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
+        dvdmNvrsFuncSha = BilinearInterp(dvdmNvrsSha, mNrmGrid, nNrmGrid)
+        dvdmFuncSha     = MargValueFunc2D(dvdmNvrsFuncSha, CRRA)
+        dvdnFuncSha     = BilinearInterp(dvdnSha, mNrmGrid, nNrmGrid)
     
     # STEP FOUR:
     # Rebalancing stage.
+    # Find optimal d for every combination
     
     
     d = 'Here.' # TODO
