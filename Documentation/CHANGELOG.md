@@ -19,6 +19,7 @@ Release Data: TBD
 
 #### Minor Changes 
 
+* Use shock_history namespace for pre-evaluated shock history [#812](https://github.com/econ-ark/HARK/pull/812)
 * Fixes seed of PrefShkDstn on initialization and add tests for simulation output
 * Reformat code style using black
 
