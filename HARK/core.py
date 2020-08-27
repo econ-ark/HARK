@@ -490,6 +490,7 @@ class AgentType(HARKobject):
             self.getShocks()
             for var_name in self.shock_vars:
                 self.shock_history[var_name][self.t_sim,:] = self.shocks[var_name]
+
             self.t_sim += 1
             self.t_age = self.t_age + 1  # Age all consumers by one period
             self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
@@ -593,6 +594,7 @@ class AgentType(HARKobject):
         '''
         for var_name in self.shock_vars:
             self.shocks[var_name] = self.shock_history[var_name][self.t_sim, :]
+
 
     def getStates(self):
         '''
