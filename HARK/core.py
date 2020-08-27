@@ -210,8 +210,10 @@ class AgentType(HARKobject):
         self.tolerance          = tolerance # NOQA
         self.seed               = seed # NOQA
         self.track_vars         = [] # NOQA
+        self.shocks             = {}
         self.poststate_vars     = [] # NOQA
         self.read_shocks        = False # NOQA
+        self.shock_history      = {}
         self.history            = {}
         self.assignParameters(**kwds) # NOQA
         self.resetRNG() # NOQA
@@ -479,16 +481,17 @@ class AgentType(HARKobject):
 
         # Make blank history arrays for each shock variable (and mortality)
         for var_name in self.shock_vars:
-            self.history[var_name] = np.zeros((self.T_sim, self.AgentCount)) + np.nan
-        self.history['who_dies'] = np.zeros((self.T_sim, self.AgentCount), dtype=bool)
+            self.shock_history[var_name] = np.zeros((self.T_sim, self.AgentCount)) + np.nan
+        self.shock_history['who_dies'] = np.zeros((self.T_sim, self.AgentCount), dtype=bool)
 
         # Make and store the history of shocks for each period
         for t in range(self.T_sim):
             self.getMortality()
-            self.history['who_dies'][t,:] = self.who_dies
+            self.shock_history['who_dies'][t,:] = self.who_dies
             self.getShocks()
             for var_name in self.shock_vars:
-                self.history[var_name][self.t_sim,:] = getattr(self, var_name)
+                self.shock_history[var_name][self.t_sim,:] = self.shocks[var_name]
+
             self.t_sim += 1
             self.t_age = self.t_age + 1  # Age all consumers by one period
             self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
@@ -514,7 +517,7 @@ class AgentType(HARKobject):
         None
         '''
         if self.read_shocks:
-            who_dies = self.history['who_dies'][self.t_sim,:]
+            who_dies = self.shock_history['who_dies'][self.t_sim,:]
         else:
             who_dies = self.simDeath()
         self.simBirth(who_dies)
@@ -591,7 +594,8 @@ class AgentType(HARKobject):
         None
         '''
         for var_name in self.shock_vars:
-            setattr(self, var_name, self.history[var_name][self.t_sim, :])
+            self.shocks[var_name] = self.shock_history[var_name][self.t_sim, :]
+
 
     def getStates(self):
         '''
@@ -680,7 +684,10 @@ class AgentType(HARKobject):
             for t in range(sim_periods):
                 self.simOnePeriod()
                 for var_name in self.track_vars:
-                    self.history[var_name][self.t_sim,:] = getattr(self,var_name)
+                    if var_name in self.shock_vars:
+                        self.history[var_name][self.t_sim,:] = self.shocks[var_name]
+                    else:
+                        self.history[var_name][self.t_sim,:] = getattr(self,var_name)
                 self.t_sim += 1
 
     def clearHistory(self):
