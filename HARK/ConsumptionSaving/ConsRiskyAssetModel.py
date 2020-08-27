@@ -568,7 +568,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     def update(self):
         RiskyAssetConsumerType.update(self)
         self.updateNGrid()
-        self.updateCommonMGrid()
+        self.updateMGrid()
         self.updateTau()
         
     def updateSolutionTerminal(self):
@@ -764,22 +764,31 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         # Assign and set it as time invariant
         self.nNrmGrid = nNrmGrid
         self.addToTimeInv('nNrmGrid')
-        
-    def updateCommonMGrid(self):
+    
+    def updateMGrid(self):
         '''
-        Updates the common grid over liquid market resources that is used to
-        take upper envelopes.
-
+        Updates the agent's liquid assets exogenous grid by constructing a
+        multi-exponentially spaced grid of mNrm values.
+        
+        Parameters
+        ----------
+        None
+        
         Returns
         -------
         None.
-
         '''
-        
-        # Create the common grid as it's currently done in the Endogenous
-        # retirement remark. This can eventually be done using its own params.
-        self.mNrmCommGrid = (self.aXtraGrid - self.aXtraGrid[0])*1.5
-        self.addToTimeInv('mNrmCommGrid')
+        # Extract parameters
+        mNrmMin = self.mNrmMin
+        mNrmMax = self.mNrmMax
+        mNrmCount = self.mNrmCount
+        exp_nest = self.mNrmNestFac
+        # Create grid
+        mNrmGrid = makeGridExpMult(ming = mNrmMin, maxg = mNrmMax, 
+                                   ng = mNrmCount, timestonest = exp_nest)
+        # Assign and set it as time invariant
+        self.mNrmGrid = mNrmGrid
+        self.addToTimeInv('mNrmGrid')
                 
     def getRisky(self):
         '''
@@ -964,7 +973,7 @@ def findOptimalRebalance(a,n,v3,tau):
 # Define a non-object-oriented one period solver
 def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                           LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
-                          BoroCnstArt,aXtraGrid,nNrmGrid,mNrmCommGrid,
+                          BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
                           ShareGrid,vFuncBool,AdjustPrb,
                           DiscreteShareBool,IndepDstnBool):
     '''
@@ -1006,8 +1015,8 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         absolute minimum acceptable level.
     nNrmGrid: np.array
         Array of iliquid risky asset balances.
-    mNrmCommGrid: np.array
-        Exogenous start-of-period liquid assets grid to use for upper envelopes
+    mNrmGrid: np.array
+        Exogenous start-of-period liquid assets grid
     ShareGrid : np.array
         Array of risky portfolio shares on which to define the interpolation
         of the consumption function when Share is fixed.
@@ -1416,19 +1425,29 @@ init_risky['CRRA']            = 5.0  # Results are more interesting with higher 
 init_risky['DiscFac']         = 0.90 # And also lower patience
 
 # Make a dictionary for a risky-contribution consumer type
+
+# TODO: these parameters are preliminary and arbitrary!
+
 init_riskyContrib = init_risky.copy()
 init_riskyContrib['ShareMax']        = 0.9  # You don't want to put 100% of your wage into pensions.
-init_riskyContrib['nNrmMin']         = 1e-6 # Use the same parameters for the risky asset grid
+
+# Regular grids in m and n
+init_riskyContrib['mNrmMin']         = 1e-6
+init_riskyContrib['mNrmMax']         = 10
+init_riskyContrib['mNrmCount']       = 100
+init_riskyContrib['mNrmNestFac']     = 1
+
+init_riskyContrib['nNrmMin']         = 1e-6
 init_riskyContrib['nNrmMax']         = 10
-init_riskyContrib['nNrmCount']       = 100  #
-init_riskyContrib['nNrmNestFac']     = 1    #
+init_riskyContrib['nNrmCount']       = 100  
+init_riskyContrib['nNrmNestFac']     = 1    
 
 # Params from the life-cycle agent
 init_riskyContrib['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
 init_riskyContrib['PermShkStd'] = [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0,0,0]
-init_riskyContrib['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,0,0,0]
-init_riskyContrib['AdjustPrb']  = [1  ,0  ,0  ,0  ,0  ,0  ,1  ,1,1,1]
-init_riskyContrib['tau']        = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0,0,0]  # Tax rate on risky asset withdrawals
+init_riskyContrib['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,  0,  0,  0]
+init_riskyContrib['AdjustPrb']  = [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]
+init_riskyContrib['tau']        = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]  # Tax rate on risky asset withdrawals
 init_riskyContrib['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
 init_riskyContrib['T_cycle']    = 10
 init_riskyContrib['T_retire']   = 7
