@@ -457,17 +457,16 @@ class RiskyContribSolution(HARKobject):
     def __init__(self,
         
         # Contribution stage
-        vFuncCon = None,
-        ShareFuncCon = None,
-        dvdmFuncCon = None,
-        dvdnFuncCon = None,
+        vFuncSha = None,
+        ShareFuncSha = None,
+        dvdmFuncSha = None,
+        dvdnFuncSha = None,
         
         # Adjusting stage
         vFuncAdj = None,
         DFuncAdj = None,
         dvdmFuncAdj = None,
         dvdnFuncAdj = None,
-        dvdsFuncAdj = None,
         
         # Consumption stage
         vFuncFxd = None,
@@ -479,14 +478,14 @@ class RiskyContribSolution(HARKobject):
     ):
         
         # Contribution stage
-        if vFuncCon is None:
-            vFuncCon = NullFunc()
-        if ShareFuncCon is None:
-            ShareFuncCon = NullFunc()
-        if dvdmFuncCon is None:
-            dvdmFuncCon = NullFunc()
-        if dvdnFuncCon is None:
-            dvdnFuncCon = NullFunc()
+        if vFuncSha is None:
+            vFuncSha = NullFunc()
+        if ShareFuncSha is None:
+            ShareFuncSha = NullFunc()
+        if dvdmFuncSha is None:
+            dvdmFuncSha = NullFunc()
+        if dvdnFuncSha is None:
+            dvdnFuncSha = NullFunc()
         
         # Adjusting stage
         if vFuncAdj is None:
@@ -497,8 +496,6 @@ class RiskyContribSolution(HARKobject):
             dvdmFuncAdj = NullFunc()
         if dvdnFuncAdj is None:
             dvdnFuncAdj = NullFunc()
-        if dvdsFuncAdj is None:
-            dvdsFuncAdj = NullFunc()
         
         # Consumption stage
         if vFuncFxd is None:
@@ -513,17 +510,16 @@ class RiskyContribSolution(HARKobject):
             dvdsFuncFxd = NullFunc()
         
         # Set attributes of self
-        self.vFuncCon = vFuncCon
-        self.ShareFuncCon = ShareFuncCon
-        self.dvdmFuncCon = dvdmFuncCon
-        self.dvdnFuncCon = dvdnFuncCon
+        self.vFuncSha = vFuncSha
+        self.ShareFuncSha = ShareFuncSha
+        self.dvdmFuncSha = dvdmFuncSha
+        self.dvdnFuncSha = dvdnFuncSha
         
         # Adjusting stage
         self.vFuncAdj = vFuncAdj
         self.DFuncAdj = DFuncAdj
         self.dvdmFuncAdj = dvdmFuncAdj
         self.dvdnFuncAdj = dvdnFuncAdj
-        self.dvdsFuncAdj = dvdsFuncAdj
         
         # Consumption stage
         self.vFuncFxd = vFuncFxd
@@ -596,6 +592,17 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         dvdnFuncFxd_term = ConstantFunction(0.0)
         dvdsFuncFxd_term = ConstantFunction(0.0)
         
+        # Contribution stage: share is irrelevant, so functions are those from
+        # the consumption stage.
+        
+        # Take the lowest share, arbitrarily
+        aux_s = self.ShareGrid[0]
+        
+        vFuncSha_term = lambda m,n: vFuncFxd_term(m,n,aux_s*np.ones_like(m))
+        ShareFuncSha_term = ConstantFunction(aux_s)
+        dvdmFuncSha_term = lambda m,n: dvdmFuncFxd_term(m,n,aux_s*np.ones_like(m))
+        dvdnFuncSha_term = ConstantFunction(0.0)
+        
         # Adjusting stage
         
         # Find the withdrawal penalty
@@ -604,38 +611,27 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         else:
             tau = self.tau
             
-        # Withdraw everything from the pension fund
+        # Withdraw everything from the pension fund and consume everything
         DFuncAdj_term = ConstantFunction(-1.0)
         vFuncAdj_term = ValueFunc3D(lambda m,n,s: m + n/(1+tau), self.CRRA)
         dvdmFuncAdj_term = MargValueFunc3D(lambda m,n,s: m + n/(1+tau), self.CRRA)
+        # A marginal unit of n will be withdrawn and put into m. Then consumed.
         dvdnFuncAdj_term = lambda m,n,s: dvdmFuncAdj_term(m,n,s)/(1+tau)
-        dvdsFuncAdj_term = ConstantFunction(0.0)
         
-        # Contribution stage: share is irrelevant, so functions are those from
-        # the rebalancing stage.
-        
-        # Take the lowest share, arbitrarily
-        aux_s = self.ShareGrid[0]
-        
-        vFuncCon_term = lambda m,n: vFuncAdj_term(m,n,aux_s*np.ones_like(m))
-        ShareFuncCon_term = ConstantFunction(aux_s)
-        dvdmFuncCon_term = lambda m,n: dvdmFuncAdj_term(m,n,aux_s*np.ones_like(m))
-        dvdnFuncCon_term = lambda m,n: dvdnFuncAdj_term(m,n,aux_s*np.ones_like(m))
         
         # Construct the terminal period solution
         self.solution_terminal = RiskyContribSolution(
             # Contribution stage
-            vFuncCon = vFuncCon_term,
-            ShareFuncCon = ShareFuncCon_term,
-            dvdmFuncCon = dvdmFuncCon_term,
-            dvdnFuncCon = dvdnFuncCon_term,
+            vFuncSha = vFuncSha_term,
+            ShareFuncSha = ShareFuncSha_term,
+            dvdmFuncSha = dvdmFuncSha_term,
+            dvdnFuncSha = dvdnFuncSha_term,
             
             # Adjusting stage
             vFuncAdj = vFuncAdj_term,
             DFuncAdj = DFuncAdj_term,
             dvdmFuncAdj = dvdmFuncAdj_term,
             dvdnFuncAdj = dvdnFuncAdj_term,
-            dvdsFuncAdj = dvdsFuncAdj_term,
             
             # Consumption stage
             vFuncFxd = vFuncFxd_term,
@@ -1058,16 +1054,15 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     uInv = lambda x : utility_inv(x, CRRA)
         
     # Unpack next period's solution
-    vFuncCon_next     = solution_next.vFuncCon
-    ShareFuncCon_next = solution_next.ShareFuncCon
-    dvdmFuncCon_next  = solution_next.dvdmFuncCon
-    dvdnFuncCon_next  = solution_next.dvdnFuncCon
+    vFuncSha_next     = solution_next.vFuncSha
+    ShareFuncSha_next = solution_next.ShareFuncSha
+    dvdmFuncSha_next  = solution_next.dvdmFuncSha
+    dvdnFuncSha_next  = solution_next.dvdnFuncSha
     
     vFuncAdj_next     = solution_next.vFuncAdj
     DFuncAdj_next     = solution_next.DFuncAdj
     dvdmFuncAdj_next  = solution_next.dvdmFuncAdj
     dvdnFuncAdj_next  = solution_next.dvdnFuncAdj
-    dvdsFuncAdj_next  = solution_next.dvdsFuncAdj
     
     vFuncFxd_next     = solution_next.vFuncFxd
     cFuncFxd_next     = solution_next.cFuncFxd
@@ -1075,12 +1070,11 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     dvdnFuncFxd_next  = solution_next.dvdnFuncFxd
     dvdsFuncFxd_next  = solution_next.dvdsFuncFxd
     
-    # Major method fork: (in)dependent risky asset return and income distributions
-    if IndepDstnBool: # If the distributions ARE independent...
+    # TODO: I am currently contructing the joint distribution of returns and
+    # income, even if they are independent. Is there a way to speed things
+    # up if they are independent?
+    if IndepDstnBool:
         
-        # I deal with the non-independent case for now. So simply construct a
-        # joint distribution.
-        # TODO: speedup tricks
         ShockDstn = combineIndepDstns(IncomeDstn, RiskyDstn)
     
     # Unpack the shock distribution
@@ -1099,7 +1093,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     if zero_bound:
         aNrmGrid = aXtraGrid
     else:
-        aNrmGrid = np.insert(aXtraGrid, 0, 0.0) # Add an asset point at exactly zero
+        aNrmGrid = np.insert(aXtraGrid, 0, 0.0) # Add an asset points at exactly zero
         nNrmGrid = np.insert(nNrmGrid, 0, 0.0)     
        
     # Create tiled arrays with conforming dimensions. These are used
@@ -1129,14 +1123,14 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # starts at the Fxd stage.
     
     # TODO (remove): a sanity check
-    if not vFuncCon_next(0.02,0.6) >= vFuncCon_next(0.02,0.05):
+    if not vFuncAdj_next(0.02,0.6) >= vFuncAdj_next(0.02,0.05):
         print('VFUNC NOT INCREASING!!!')
     
     # Always compute the adjusting version
-    vCon_next    = vFuncCon_next(mNrm_next, nNrm_next)
-    dvdmCon_next = dvdmFuncCon_next(mNrm_next,nNrm_next)
-    dvdnCon_next = dvdnFuncCon_next(mNrm_next,nNrm_next)
-    dvdsCon_next = np.zeros_like(mNrm_next) # No marginal value of Share if it's a free choice!
+    vAdj_next    = vFuncAdj_next(mNrm_next, nNrm_next)
+    dvdmAdj_next = dvdmFuncAdj_next(mNrm_next,nNrm_next)
+    dvdnAdj_next = dvdnFuncAdj_next(mNrm_next,nNrm_next)
+    dvdsAdj_next = np.zeros_like(mNrm_next) # No marginal value of Share if it's a free choice!
     
     # We are interested in marginal values before the realization of the
     # adjustment random variable. Compute those objects
@@ -1149,16 +1143,16 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         dvdsFxd_next = dvdsFuncFxd_next(mNrm_next, nNrm_next, Share_next)
         
         # Expected values with respect to adjustment r.v.
-        v_next    = AdjustPrb*vCon_next    + (1.-AdjustPrb)*vFxd_next
-        dvdm_next = AdjustPrb*dvdmCon_next + (1.-AdjustPrb)*dvdmFxd_next
-        dvdn_next = AdjustPrb*dvdnCon_next + (1.-AdjustPrb)*dvdnFxd_next
-        dvds_next = AdjustPrb*dvdsCon_next + (1.-AdjustPrb)*dvdsFxd_next
+        v_next    = AdjustPrb*vAdj_next    + (1.-AdjustPrb)*vFxd_next
+        dvdm_next = AdjustPrb*dvdmAdj_next + (1.-AdjustPrb)*dvdmFxd_next
+        dvdn_next = AdjustPrb*dvdnAdj_next + (1.-AdjustPrb)*dvdnFxd_next
+        dvds_next = AdjustPrb*dvdsAdj_next + (1.-AdjustPrb)*dvdsFxd_next
         
     else: # Don't bother evaluating if there's no chance that contribution share is fixed
-        v_next    = vCon_next
-        dvdm_next = dvdmCon_next
-        dvdn_next = dvdnCon_next
-        dvds_next = dvdsCon_next
+        v_next    = vAdj_next
+        dvdm_next = dvdmAdj_next
+        dvdn_next = dvdnAdj_next
+        dvds_next = dvdsAdj_next
         
     # Calculate end-of-period marginal value of both assets by taking expectations
     temp_fac_A = uP(PermShks_tiled*PermGroFac) # Will use this in a couple places
@@ -1171,7 +1165,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     EndOfPrdv = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_B*v_next, axis=3)
     EndOfPrdvNvrs = uInv(EndOfPrdv)
     
-    # Construct an interpolator for EndOfPrdV. It will be useful later.
+    # Construct an interpolator for EndOfPrdV. It will be used later.
     EndOfPrdvFunc = ValueFunc3D(TrilinearInterp(EndOfPrdvNvrs, aNrmGrid,
                                                 nNrmGrid, ShareGrid),
                                 CRRA)
@@ -1227,11 +1221,12 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                           for nInd in range(nNrm_N)]
         dvdnFuncFxd = BilinearInterpOnInterp1D(dvdnFxdInterps, nNrmGrid, ShareGrid)
         
-        # It's useful to have the value function with a regular-grid
+        # It's useful to have value functions on a regular-grid
         # interpolator because:
-        # - Endogenous grids don't cover the m < n well.
-        # - This value function will be optimized over, so evaluated many times
-        #   and regular grid interpolators are faster.
+        # - Endogenous grids don't cover the m < n region well.
+        # - An object that comes from this value function -vSha- will be
+        #   optimized over, so evaluated many times and regular grid
+        #   interpolators are faster.
         
         # Add 0 to the m grid
         mNrmGrid = np.insert(mNrmGrid,0,0)
@@ -1256,7 +1251,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         vFxdFunc     = ValueFunc3D(vFxdNvrsFunc, CRRA)
     
     # STEP THREE:
-    # Adjusting stage.
+    # Contribution share stage.
     d = 'Here.' # TODO
     
     # Construct an interpolator for the end-of-period marginal value of
