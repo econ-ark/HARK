@@ -312,59 +312,13 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         -------
         None
         '''
-        self.assignParameters(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree, pLvlNextFunc,
-                              BoroCnstArt, aXtraGrid, pLvlGrid, vFuncBool, CubicBool)
+        self.assignParameters(solution_next=solution_next, IncomeDstn=IncomeDstn,
+                               LivPrb=LivPrb, DiscFac=DiscFac, CRRA=CRRA, Rfree=Rfree,
+                               pLvlNextFunc=pLvlNextFunc, BoroCnstArt=BoroCnstArt,
+                               aXtraGrid=aXtraGrid, pLvlGrid=pLvlGrid, vFuncBool=vFuncBool,
+                               CubicBool=CubicBool, PermGroFac=0.0) # dummy 0.0 variable why PermGroFac?
         self.defUtilityFuncs()
 
-    def assignParameters(self, solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, Rfree,
-                         pLvlNextFunc, BoroCnstArt, aXtraGrid, pLvlGrid, vFuncBool, CubicBool):
-        '''
-        Assigns inputs as attributes of self for use by other methods
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, persistent shocks, transitory shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        pLvlNextFunc : float
-            Expected persistent income next period as a function of current pLvl.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period (normalized) asset values-- assets
-            above the absolute minimum acceptable level.
-        pLvlGrid: np.array
-            Array of persistent income levels at which to solve the problem.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear interpolation.
-
-        Returns
-        -------
-        none
-        '''
-        ConsIndShockSetup.assignParameters(self, solution_next, IncomeDstn,
-                                           LivPrb, DiscFac, CRRA, Rfree,
-                                           0.0, BoroCnstArt, aXtraGrid,
-                                           vFuncBool, CubicBool)  # dummy value for PermGroFac
-        self.pLvlNextFunc = pLvlNextFunc
-        self.pLvlGrid = pLvlGrid
 
     def setAndUpdateValues(self, solution_next, IncomeDstn, LivPrb, DiscFac):
         '''
