@@ -19,7 +19,7 @@ import sys
 from copy import copy, deepcopy
 import numpy as np
 from scipy.optimize import brentq
-from HARK.core import Solution, AgentType
+from HARK.core import HARKobject, AgentType
 from HARK.utilities import CRRAutilityP, CRRAutilityP_inv, CRRAutility, CRRAutility_inv
 from HARK.interpolation import LinearInterp, LinearInterpOnInterp1D, VariableLowerBoundFunc2D, BilinearInterp, \
     ConstantFunction, LowerEnvelope
