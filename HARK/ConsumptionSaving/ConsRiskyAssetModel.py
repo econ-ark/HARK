@@ -1062,15 +1062,18 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     ShareFuncCon_next = solution_next.ShareFuncCon
     dvdmFuncCon_next  = solution_next.dvdmFuncCon
     dvdnFuncCon_next  = solution_next.dvdnFuncCon
+    
     vFuncAdj_next     = solution_next.vFuncAdj
     DFuncAdj_next     = solution_next.DFuncAdj
     dvdmFuncAdj_next  = solution_next.dvdmFuncAdj
     dvdnFuncAdj_next  = solution_next.dvdnFuncAdj
     dvdsFuncAdj_next  = solution_next.dvdsFuncAdj
+    
     vFuncFxd_next     = solution_next.vFuncFxd
     cFuncFxd_next     = solution_next.cFuncFxd
     dvdmFuncFxd_next  = solution_next.dvdmFuncFxd
     dvdnFuncFxd_next  = solution_next.dvdnFuncFxd
+    dvdsFuncFxd_next  = solution_next.dvdsFuncFxd
     
     # Major method fork: (in)dependent risky asset return and income distributions
     if IndepDstnBool: # If the distributions ARE independent...
@@ -1086,8 +1089,8 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     TranShks_next  = ShockDstn.X[1]
     Risky_next     = ShockDstn.X[2]
     
-    ###
-    # Step 1: find end-of-period value function
+    # STEP ONE
+    # Find end-of-period (continuation) value function and its derivatives.
     
     # TODO: deal with the possibly-0-income case. Characterize situations in
     # which the agent will stay at positive savings.
@@ -1099,17 +1102,12 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         aNrmGrid = np.insert(aXtraGrid, 0, 0.0) # Add an asset point at exactly zero
         nNrmGrid = np.insert(nNrmGrid, 0, 0.0)     
        
-    
+    # Create tiled arrays with conforming dimensions. These are used
+    # to compute expectations.
     aNrm_N = aNrmGrid.size
     nNrm_N = nNrmGrid.size
     Share_N = ShareGrid.size
     Shock_N = ShockPrbs_next.size
-    
-    # FIRST STEP
-    # Compute the end-of-period expected future values after all actions
-    
-    # Create tiled arrays with conforming dimensions. These are used
-    # to compute expectations.
     # Convention will be (a,n,s,Shocks)
     aNrm_tiled      = np.tile(np.reshape(aNrmGrid, (aNrm_N,1,1,1)), (1,nNrm_N,Share_N,Shock_N))
     nNrm_tiled      = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1,1)), (aNrm_N,1,Share_N,Shock_N))
@@ -1124,48 +1122,48 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     nNrm_next = Risky_tiled*nNrm_tiled/(PermShks_tiled*PermGroFac) + Share_tiled*TranShks_tiled
     Share_next = Share_tiled
     
-    # Evaluate realizations of the derivatives of next period's value functions
+    # Evaluate realizations of the derivatives and levels of next period's
+    # value function
+    
+    # The agent who can adjust starts at the "contrib" stage, the one who can't
+    # starts at the Fxd stage.
+    
+    # TODO (remove): a sanity check
+    if not vFuncCon_next(0.02,0.6) >= vFuncCon_next(0.02,0.05):
+        print('VFUNC NOT INCREASING!!!')
     
     # Always compute the adjusting version
-    dvdmAdj_next = dvdmFuncAdj_next(mNrm_next,nNrm_next)
-    dvdnAdj_next = dvdnFuncAdj_next(mNrm_next,nNrm_next)
-    dvdsAdj_next = np.zeros_like(mNrm_next) # No marginal value of Share if it's a free choice!
+    vCon_next    = vFuncCon_next(mNrm_next, nNrm_next)
+    dvdmCon_next = dvdmFuncCon_next(mNrm_next,nNrm_next)
+    dvdnCon_next = dvdnFuncCon_next(mNrm_next,nNrm_next)
+    dvdsCon_next = np.zeros_like(mNrm_next) # No marginal value of Share if it's a free choice!
     
     # We are interested in marginal values before the realization of the
     # adjustment random variable. Compute those objects
     if AdjustPrb < 1.:
         
         # "Fixed" counterparts
+        vFxd_next    = vFuncFxd_next(mNrm_next, nNrm_next, Share_next)
         dvdmFxd_next = dvdmFuncFxd_next(mNrm_next, nNrm_next, Share_next)
         dvdnFxd_next = dvdnFuncFxd_next(mNrm_next, nNrm_next, Share_next)
         dvdsFxd_next = dvdsFuncFxd_next(mNrm_next, nNrm_next, Share_next)
         
         # Expected values with respect to adjustment r.v.
-        dvdm_next = AdjustPrb*dvdmAdj_next + (1.-AdjustPrb)*dvdmFxd_next
-        dvdn_next = AdjustPrb*dvdnAdj_next + (1.-AdjustPrb)*dvdnFxd_next
-        dvds_next = AdjustPrb*dvdsAdj_next + (1.-AdjustPrb)*dvdsFxd_next
+        v_next    = AdjustPrb*vCon_next    + (1.-AdjustPrb)*vFxd_next
+        dvdm_next = AdjustPrb*dvdmCon_next + (1.-AdjustPrb)*dvdmFxd_next
+        dvdn_next = AdjustPrb*dvdnCon_next + (1.-AdjustPrb)*dvdnFxd_next
+        dvds_next = AdjustPrb*dvdsCon_next + (1.-AdjustPrb)*dvdsFxd_next
         
     else: # Don't bother evaluating if there's no chance that contribution share is fixed
-        dvdm_next = dvdmAdj_next
-        dvdn_next = dvdnAdj_next
-        dvds_next = dvdsAdj_next
+        v_next    = vCon_next
+        dvdm_next = dvdmCon_next
+        dvdn_next = dvdnCon_next
+        dvds_next = dvdsCon_next
         
-    # Evaluate realizations of value next period conditional on shocks, assets
-    # and shares
-    if not vFuncAdj_next(0.02,0.6) >= vFuncAdj_next(0.02,0.05):
-        print('VFUNC NOT INCREASING!!!')
-        
-    vAdj_next = vFuncAdj_next(mNrm_next, nNrm_next)
-    if AdjustPrb < 1.:
-        vFxd_next = vFuncFxd_next(mNrm_next, nNrm_next, Share_next)
-        v_next = AdjustPrb*vAdj_next + (1.-AdjustPrb)*vFxd_next
-    else: # Don't bother evaluating if there's no chance that portfolio share is fixed
-        v_next = vAdj_next
-            
     # Calculate end-of-period marginal value of both assets by taking expectations
     temp_fac_A = uP(PermShks_tiled*PermGroFac) # Will use this in a couple places
     EndOfPrddvda = DiscFac*Rfree*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_A*dvdm_next, axis=3)
-    EndOfPrddvdn = DiscFac*Rfree*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_A*Risky_tiled*dvdn_next, axis=3)
+    EndOfPrddvdn = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_A*Risky_tiled*dvdn_next, axis=3)
     EndOfPrddvdaNvrs = uPinv(EndOfPrddvda)
         
     # Calculate end-of-period value by taking expectations
