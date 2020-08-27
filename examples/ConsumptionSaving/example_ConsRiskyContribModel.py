@@ -194,11 +194,11 @@ ShareFuncSha = [ContribAgent.solution[t].ShareFuncSha for t in periods]
 # Share and Rebalancing
 plotSlices3D(DFuncAdj,0,10,y_slices = [0,2,4,6],y_name = 'n',
              titles = ['t = ' + str(t) for t in periods],
-             ax_labs = ['a','d'])
+             ax_labs = ['m','d'])
 
-plotSlices3D(ShareFuncSha,0,10,y_slices = [0,2,4,6],y_name = 'n_tilde',
+plotSlices3D(ShareFuncSha,0,10,y_slices = [0,2,4,6],y_name = 'n',
              titles = ['t = ' + str(t) for t in periods],
-             ax_labs = ['m_til','S'])
+             ax_labs = ['m','S'])
 
 # %% Constrained agent
 from copy import deepcopy
@@ -206,6 +206,6 @@ from copy import deepcopy
 shares = [0., 0.9]
 
 plotSlices4D(cFuncFxd,0,10,y_slices = [0,2,4,6],w_slices = shares,
-             slice_names = ['n','s'],
+             slice_names = ['n_til','s'],
              titles = ['t = ' + str(t) for t in periods],
-             ax_labs = ['m','c'])
+             ax_labs = ['m_til','c'])
