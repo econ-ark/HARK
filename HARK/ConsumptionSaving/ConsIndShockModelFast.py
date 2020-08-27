@@ -5,7 +5,7 @@ bequest motive, and income shocks are fully transitory or fully permanent.
 
 It currently solves three types of models:
    1) A very basic "perfect foresight" consumption-savings model with no uncertainty.
-   2) A consumption-savings model with risk over transitory and permanent income shocks. #todo
+   2) A consumption-savings model with risk over transitory and permanent income shocks.
    3) The model described in (2), with an interest rate for debt that differs
       from the interest rate for savings. #todo
 
@@ -23,12 +23,12 @@ from quantecon.optimize import newton_secant
 from HARK import makeOnePeriodOOSolver, HARKobject
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
-    ConsPerfForesightSolver,
-    PerfForesightConsumerType,
     ValueFunc,
     MargValueFunc,
     MargMargValueFunc,
+    ConsPerfForesightSolver,
     ConsIndShockSolverBasic,
+    PerfForesightConsumerType,
     IndShockConsumerType,
 )
 from HARK.interpolation import LinearInterp, LowerEnvelope, CubicInterp
@@ -40,15 +40,17 @@ from HARK.numba import (
     CRRAutility_invP,
     CRRAutility_inv,
     CRRAutilityP_invP,
-    CubicInterpFast,
-    LinearInterpDerivFast,
 )
-from HARK.numba import LinearInterpFast
+from HARK.numba import LinearInterpFast, CubicInterpFast, LinearInterpDerivFast
 
 __all__ = [
     "PerfForesightSolution",
+    "IndShockSolution",
     "ConsPerfForesightSolverFast",
+    "ConsIndShockSolverBasicFast",
+    "ConsIndShockSolverFast",
     "PerfForesightConsumerTypeFast",
+    "IndShockConsumerTypeFast",
 ]
 
 utility = CRRAutility
@@ -87,7 +89,7 @@ class PerfForesightSolution(HARKobject):
         MPCmax=1.0,
     ):
         """
-        The constructor for a new ConsumerSolution object.
+        The constructor for a new PerfForesightSolution object.
 
         Parameters
         ----------
@@ -129,12 +131,12 @@ class IndShockSolution(HARKobject):
     idiosyncratic shocks to permanent and transitory income problem.
     """
 
-    distance_criteria = ["cNrm", "mNrm", "mNrmMin", "MPC"]
+    distance_criteria = ["cNrm", "mNrm", "mNrmMin"]
 
     def __init__(
         self,
-        mNrm=np.array([0.0, 1.0]),
-        cNrm=np.array([0.0, 1.0]),
+        mNrm=np.linspace(0, 1),
+        cNrm=np.linspace(0, 1),
         cFuncLimitIntercept=None,
         cFuncLimitSlope=None,
         mNrmMin=0.0,
@@ -210,7 +212,7 @@ def _searchSSfunc(m, Rfree, PermGroFac, mNrm, cNrm, ExIncNext):
 
 # @njit(cache=True) can't cache because of use of globals, perhaps newton_secant?
 @njit
-def _addSSmNrmNumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, ExIncNext):
+def _addSSmNrmNumba(Rfree, PermGroFac, mNrm, cNrm, mNrmMin, ExIncNext, _searchSSfunc):
     """
     Finds steady state (normalized) market resources and adds it to the
     solution.  This is the level of market resources such that the expectation
@@ -359,6 +361,7 @@ class ConsPerfForesightSolverFast(ConsPerfForesightSolver):
         solution : PerfForesightSolution
             The solution to this period's problem.
         """
+
         # Use a local value of BoroCnstArt to prevent comparing None and float below.
         if self.BoroCnstArt is None:
             BoroCnstArt = -np.inf
@@ -426,6 +429,18 @@ def _prepareToSolveConsIndShockNumba(
     TranShkValsNext,
     ShkPrbsNext,
 ):
+    """
+    Unpacks some of the inputs (and calculates simple objects based on them),
+    storing the results in self for use by other methods.  These include:
+    income shocks and probabilities, next period's marginal value function
+    (etc), the probability of getting the worst income shock next period,
+    the patience factor, human wealth, and the bounding MPCs.
+
+    Defines the constrained portion of the consumption function as cFuncNowCnst,
+    an attribute of self.  Uses the artificial and natural borrowing constraints.
+
+    """
+
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
     PermShkMinNext = np.min(PermShkValsNext)
     TranShkMinNext = np.min(TranShkValsNext)
@@ -460,6 +475,13 @@ def _prepareToSolveConsIndShockNumba(
         MPCmaxEff = 1.0  # If actually constrained, MPC near limit is 1
     else:
         MPCmaxEff = MPCmaxNow
+
+    """
+    Prepare to calculate end-of-period marginal value by creating an array
+    of market resources that the agent could have next period, considering
+    the grid of end-of-period assets and the distribution of shocks he might
+    experience next period.
+    """
 
     # We define aNrmNow all the way from BoroCnstNat up to max(self.aXtraGrid)
     # even if BoroCnstNat < BoroCnstArt, so we can construct the consumption
@@ -515,7 +537,12 @@ def _solveConsIndShockLinearNumba(
     cFuncInterceptNext,
     cFuncSlopeNext,
 ):
-    # interp does not take ndarray inputs on 3rd argument, so flatten then reshape
+    """
+    Calculate end-of-period marginal value of assets at each point in aNrmNow.
+    Does so by taking a weighted sum of next period marginal values across
+    income shocks (in a preconstructed grid self.mNrmNext).
+    """
+
     mNrmCnst = np.array([mNrmMinNext, mNrmMinNext + 1])
     cNrmCnst = np.array([0.0, 1.0])
     cFuncNextCnst = LinearInterpFast(mNrmNext.flatten(), mNrmCnst, cNrmCnst)
@@ -545,6 +572,17 @@ def _solveConsIndShockLinearNumba(
 
 
 class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
+    """
+    This class solves a single period of a standard consumption-saving problem,
+    using linear interpolation and without the ability to calculate the value
+    function.  ConsIndShockSolver inherits from this class and adds the ability
+    to perform cubic interpolation and to calculate the value function.
+
+    Note that this class does not have its own initializing method.  It initial-
+    izes the same problem in the same way as ConsIndShockSetup, from which it
+    inherits.
+    """
+
     def prepareToSolve(self):
         """
         Perform preparatory work before calculating the unconstrained consumption
@@ -690,6 +728,11 @@ def _solveConsIndShockCubicNumba(
     cNrm = _np_insert(cNrmNow, 0, 0.0, axis=-1)
     mNrm = _np_insert(mNrmNow, 0, BoroCnstNat, axis=-1)
 
+    """
+    Makes a cubic spline interpolation of the unconstrained consumption
+    function for this period.
+    """
+
     MPCinterpNext = np.where(cFuncNextCnst <= cFuncNextUnc, MPCNextCnst, MPCNextUnc)
     vPPfuncNext = (MPCinterpNext * utilityPP(cFuncNext, CRRA)).reshape(mNrmNext.shape)
 
@@ -704,11 +747,12 @@ def _solveConsIndShockCubicNumba(
     MPC = dcda / (dcda + 1.0)
     MPC = _np_insert(MPC, 0, MPCmaxNow)
 
-    return (cNrm, mNrm, MPC, EndOfPrdvP)
+    return cNrm, mNrm, MPC, EndOfPrdvP
 
 
 @njit(cache=True)
-def _cFuncCubic(mNrmGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCNow, MPCminNow, hNrmNow):
+def _cFuncCubic(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCNow, MPCminNow, hNrmNow):
+    mNrmGrid = mNrmMinNow + aXtraGrid
     mNrmCnst = np.array([mNrmMinNow, mNrmMinNow + 1])
     cNrmCnst = np.array([0.0, 1.0])
     cFuncNowCnst = LinearInterpFast(mNrmGrid.flatten(), mNrmCnst, cNrmCnst)
@@ -718,11 +762,12 @@ def _cFuncCubic(mNrmGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCNow, MPCminNow, hNrmN
 
     cNrmNow = np.where(cFuncNowCnst <= cFuncNowUnc, cFuncNowCnst, cFuncNowUnc)
 
-    return cNrmNow
+    return cNrmNow, mNrmGrid
 
 
 @njit(cache=True)
-def _cFuncLinear(mNrmGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCminNow, hNrmNow):
+def _cFuncLinear(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCminNow, hNrmNow):
+    mNrmGrid = mNrmMinNow + aXtraGrid
     mNrmCnst = np.array([mNrmMinNow, mNrmMinNow + 1])
     cNrmCnst = np.array([0.0, 1.0])
     cFuncNowCnst = LinearInterpFast(mNrmGrid.flatten(), mNrmCnst, cNrmCnst)
@@ -732,7 +777,7 @@ def _cFuncLinear(mNrmGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCminNow, hNrmNow):
 
     cNrmNow = np.where(cFuncNowCnst <= cFuncNowUnc, cFuncNowCnst, cFuncNowUnc)
 
-    return cNrmNow
+    return cNrmNow, mNrmGrid
 
 
 @njit(cache=True)
@@ -822,15 +867,80 @@ def _addvFuncNumba(
     )
 
 
+@njit
+def _addSSmNrmIndNumba(
+    PermGroFac, Rfree, ExIncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm, _searchfunc,
+):
+    """
+    Finds steady state (normalized) market resources and adds it to the
+    solution.  This is the level of market resources such that the expectation
+    of market resources in the next period is unchanged.  This value doesn't
+    necessarily exist.
+    """
+
+    # Minimum market resources plus next income is okay starting guess
+    m_init_guess = mNrmMin + ExIncNext
+
+    mNrmSS = newton_secant(
+        _searchfunc,
+        m_init_guess,
+        args=(PermGroFac, Rfree, ExIncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm),
+        disp=False,
+    )
+
+    if mNrmSS.converged:
+        return mNrmSS.root
+    else:
+        return None
+
+
+@njit(cache=True)
+def _searchSSfuncLinear(
+    m, PermGroFac, Rfree, ExIncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
+):
+    # Make a linear function of all combinations of c and m that yield mNext = mNow
+    mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * ExIncNext
+
+    mNrmCnst = np.array([mNrmMin, mNrmMin + 1])
+    cNrmCnst = np.array([0.0, 1.0])
+    cFuncNowCnst = LinearInterpFast(np.array([m]), mNrmCnst, cNrmCnst)
+    cFuncNowUnc = LinearInterpFast(np.array([m]), mNrm, cNrm, MPCmin * hNrm, MPCmin)
+
+    cNrmNow = np.where(cFuncNowCnst <= cFuncNowUnc, cFuncNowCnst, cFuncNowUnc)
+
+    # Find the steady state level of market resources
+    res = cNrmNow[0] - mZeroChange
+    # A zero of this is SS market resources
+    return res
+
+
+@njit(cache=True)
+def _searchSSfuncCubic(
+    m, PermGroFac, Rfree, ExIncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
+):
+    # Make a linear function of all combinations of c and m that yield mNext = mNow
+    mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * ExIncNext
+
+    mNrmCnst = np.array([mNrmMin, mNrmMin + 1])
+    cNrmCnst = np.array([0.0, 1.0])
+    cFuncNowCnst = LinearInterpFast(np.array([m]), mNrmCnst, cNrmCnst)
+    cFuncNowUnc, MPCNowUnc = CubicInterpFast(
+        np.array([m]), mNrm, cNrm, MPC, MPCmin * hNrm, MPCmin
+    )
+
+    cNrmNow = np.where(cFuncNowCnst <= cFuncNowUnc, cFuncNowCnst, cFuncNowUnc)
+
+    # Find the steady state level of market resources
+    res = cNrmNow[0] - mZeroChange
+    # A zero of this is SS market resources
+    return res
+
+
 class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
     """
-    This class solves a single period of a standard consumption-saving problem,
-    using linear interpolation and without the ability to calculate the value
-    function.  ConsIndShockSolver inherits from this class and adds the ability
-    to perform cubic interpolation and to calculate the value function.
-    Note that this class does not have its own initializing method.  It initial-
-    izes the same problem in the same way as ConsIndShockSetup, from which it
-    inherits.
+    This class solves a single period of a standard consumption-saving problem.
+    It inherits from ConsIndShockSolverBasic, adding the ability to perform cubic
+    interpolation and to calculate the value function.
     """
 
     def solve(self):
@@ -869,7 +979,7 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
                 self.BoroCnstNat,
                 self.MPCmaxNow,
             )
-
+            # Pack up the solution and return it
             solution = IndShockSolution(
                 self.mNrm,
                 self.cNrm,
@@ -915,11 +1025,9 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
 
         if self.vFuncBool:
 
-            self.mNrmGrid = self.mNrmMinNow + self.aXtraGrid
-
             if self.CubicBool:
-                self.cFuncNow = _cFuncCubic(
-                    self.mNrmGrid,
+                self.cFuncNow, self.mNrmGrid = _cFuncCubic(
+                    self.aXtraGrid,
                     self.mNrmMinNow,
                     self.mNrm,
                     self.cNrm,
@@ -928,8 +1036,8 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
                     self.hNrmNow,
                 )
             else:
-                self.cFuncNow = _cFuncLinear(
-                    self.mNrmGrid,
+                self.cFuncNow, self.mNrmGrid = _cFuncLinear(
+                    self.aXtraGrid,
                     self.mNrmMinNow,
                     self.mNrm,
                     self.cNrm,
@@ -937,7 +1045,7 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
                     self.hNrmNow,
                 )
 
-            (self.mNrmGrid, self.vNvrs, self.vNvrsP, self.MPCminNvrs) = _addvFuncNumba(
+            self.mNrmGrid, self.vNvrs, self.vNvrsP, self.MPCminNvrs = _addvFuncNumba(
                 self.mNrmNext,
                 self.solution_next.mNrmGrid,
                 self.solution_next.vNvrs,
@@ -1063,6 +1171,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
                 solution.cNrm,
                 solution.mNrmMin,
                 ExIncNext,
+                _searchSSfunc,
             )
 
             self.solution[i] = consumer_solution
@@ -1166,15 +1275,21 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                     consumer_solution.vFunc = vFuncNow
 
                 if self.CubicBool or self.vFuncBool:
+                    _searchFunc = (
+                        _searchSSfuncCubic if self.CubicBool else _searchSSfuncLinear
+                    )
                     # Add mNrmSS to the solution and return it
-                    consumer_solution.mNrmSS = _addSSmNrmNumba(
-                        self.Rfree,
+                    consumer_solution.mNrmSS = _addSSmNrmIndNumba(
                         self.PermGroFac[j],
+                        self.Rfree,
+                        solution.ExIncNext,
+                        solution.mNrmMin,
                         solution.mNrm,
                         solution.cNrm,
-                        solution.mNrmMin,
-                        solution.ExIncNext,
+                        solution.MPC,
+                        solution.MPCmin,
+                        solution.hNrm,
+                        _searchFunc,
                     )
 
                 self.solution[i * self.T_cycle + j] = consumer_solution
-
