@@ -9,7 +9,6 @@ import numpy as np
 
 
 class testsForDCEGM(unittest.TestCase):
-
     def setUp(self):
         self.commonM = np.linspace(0, 10.0, 30)
         self.m_in = np.array([1.0, 2.0, 3.0, 2.5, 2.0, 4.0, 5.0, 6.0])
@@ -22,11 +21,13 @@ class testsForDCEGM(unittest.TestCase):
         # is the correct value.
         #
         # Calculate the crossing by hand
-        slope_1 = (1.5 - 1.0)/(3.0 - 2.0)
-        slope_2 = (3.5 - 0.5)/(4.0 - 2.0)
-        m_cross = 2.0 + (0.5 - 1.0)/(slope_1 - slope_2)
+        slope_1 = (1.5 - 1.0) / (3.0 - 2.0)
+        slope_2 = (3.5 - 0.5) / (4.0 - 2.0)
+        m_cross = 2.0 + (0.5 - 1.0) / (slope_1 - slope_2)
 
-        m_out, c_out, v_out = dcegm.calcMultilineEnvelope(self.m_in, self.c_in, self.v_in, self.commonM)
+        m_out, c_out, v_out = dcegm.calcMultilineEnvelope(
+            self.m_in, self.c_in, self.v_in, self.commonM
+        )
 
         m_idx = 0
         for m in m_out:
@@ -35,7 +36,7 @@ class testsForDCEGM(unittest.TestCase):
             m_idx += 1
 
         # Just right of the cross, the second segment is optimal
-        true_v = 0.5 + (m_out[m_idx] - 2.0)*slope_2
+        true_v = 0.5 + (m_out[m_idx] - 2.0) * slope_2
         self.assertTrue(abs(v_out[m_idx] - true_v) < 1e-12)
 
     # also test that first elements are 0 etc
