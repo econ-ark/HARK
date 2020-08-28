@@ -61,17 +61,16 @@ class Lognormal(Distribution):
 
         if isinstance(self.mu, list) != isinstance(self.sigma, list):
             raise Exception(
-                "mu and sigma must be of same types. They are %s, %s" % (
-                    type(self.mu), type(self.sigma)
-                    ))
+                "mu and sigma must be of same types. They are %s, %s"
+                % (type(self.mu), type(self.sigma))
+            )
 
         if isinstance(self.mu, list):
             if len(list(self.mu)) != len(list(self.sigma)):
                 raise Exception(
-                    "mu and sigma must be of same length, are %d, %d" % (
-                        len(list(self.mu)), len(list(self.sigma))
-                    ))
-
+                    "mu and sigma must be of same length, are %d, %d"
+                    % (len(list(self.mu)), len(list(self.sigma)))
+                )
 
     def draw(self, N):
         """

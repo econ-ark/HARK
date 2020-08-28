@@ -349,13 +349,25 @@ class MargMargValueFunc(HARKobject):
 # === Classes and functions that solve consumption-saving models ===
 # =====================================================================
 
+
 class ConsPerfForesightSolver(HARKobject):
-    '''
+    """
     A class for solving a one period perfect foresight consumption-saving problem.
     An instance of this class is created by the function solvePerfForesight in each period.
-    '''
-    def __init__(self, solution_next, DiscFac, LivPrb, CRRA, Rfree, PermGroFac, BoroCnstArt, MaxKinks):
-        '''
+    """
+
+    def __init__(
+        self,
+        solution_next,
+        DiscFac,
+        LivPrb,
+        CRRA,
+        Rfree,
+        PermGroFac,
+        BoroCnstArt,
+        MaxKinks,
+    ):
+        """
         Constructor for a new ConsPerfForesightSolver.
 
         Parameters
@@ -384,17 +396,25 @@ class ConsPerfForesightSolver(HARKobject):
         Returns:
         ----------
         None
-        '''
+        """
         # We ask that HARK users define single-letter variables they use in a dictionary
         # attribute called notation. Do that first.
 
-        self.notation = {'a': 'assets after all actions',
-                         'm': 'market resources at decision time',
-                         'c': 'consumption'}
-        self.assignParameters(solution_next=solution_next, DiscFac=DiscFac,
-                               LivPrb=LivPrb, CRRA=CRRA, Rfree=Rfree,
-                               PermGroFac=PermGroFac, BoroCnstArt=BoroCnstArt,
-                               MaxKinks=MaxKinks)
+        self.notation = {
+            "a": "assets after all actions",
+            "m": "market resources at decision time",
+            "c": "consumption",
+        }
+        self.assignParameters(
+            solution_next=solution_next,
+            DiscFac=DiscFac,
+            LivPrb=LivPrb,
+            CRRA=CRRA,
+            Rfree=Rfree,
+            PermGroFac=PermGroFac,
+            BoroCnstArt=BoroCnstArt,
+            MaxKinks=MaxKinks,
+        )
 
     def defUtilityFuncs(self):
         """
@@ -631,7 +651,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         vFuncBool,
         CubicBool,
     ):
-        '''
+        """
         Constructor for a new solver-setup for problems with income subject to
         permanent and transitory shocks.
 
@@ -673,11 +693,20 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         Returns
         -------
         None
-        '''
-        self.assignParameters(solution_next=solution_next, IncomeDstn=IncomeDstn,
-                               LivPrb=LivPrb, DiscFac=DiscFac, CRRA=CRRA, Rfree=Rfree,
-                               PermGroFac=PermGroFac, BoroCnstArt=BoroCnstArt,
-                               aXtraGrid=aXtraGrid, vFuncBool=vFuncBool, CubicBool=CubicBool)
+        """
+        self.assignParameters(
+            solution_next=solution_next,
+            IncomeDstn=IncomeDstn,
+            LivPrb=LivPrb,
+            DiscFac=DiscFac,
+            CRRA=CRRA,
+            Rfree=Rfree,
+            PermGroFac=PermGroFac,
+            BoroCnstArt=BoroCnstArt,
+            aXtraGrid=aXtraGrid,
+            vFuncBool=vFuncBool,
+            CubicBool=CubicBool,
+        )
         self.defUtilityFuncs()
 
     def defUtilityFuncs(self):
@@ -1728,8 +1757,10 @@ class PerfForesightConsumerType(AgentType):
         None
         """
         PermGroFac = np.array(self.PermGroFac)
-        self.shocks['PermShkNow'] = PermGroFac[self.t_cycle-1] # cycle time has already been advanced
-        self.shocks['TranShkNow'] = np.ones(self.AgentCount)
+        self.shocks["PermShkNow"] = PermGroFac[
+            self.t_cycle - 1
+        ]  # cycle time has already been advanced
+        self.shocks["TranShkNow"] = np.ones(self.AgentCount)
 
     def getRfree(self):
         """
@@ -1765,11 +1796,19 @@ class PerfForesightConsumerType(AgentType):
         RfreeNow = self.getRfree()
 
         # Calculate new states: normalized market resources and permanent income level
-        self.pLvlNow = pLvlPrev*self.shocks['PermShkNow'] # Updated permanent income level
-        self.PlvlAggNow = self.PlvlAggNow*self.PermShkAggNow # Updated aggregate permanent productivity level
-        ReffNow      = RfreeNow/self.shocks['PermShkNow'] # "Effective" interest factor on normalized assets
-        self.bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
-        self.mNrmNow = self.bNrmNow + self.shocks['TranShkNow'] # Market resources after income
+        self.pLvlNow = (
+            pLvlPrev * self.shocks["PermShkNow"]
+        )  # Updated permanent income level
+        self.PlvlAggNow = (
+            self.PlvlAggNow * self.PermShkAggNow
+        )  # Updated aggregate permanent productivity level
+        ReffNow = (
+            RfreeNow / self.shocks["PermShkNow"]
+        )  # "Effective" interest factor on normalized assets
+        self.bNrmNow = ReffNow * aNrmPrev  # Bank balances before labor income
+        self.mNrmNow = (
+            self.bNrmNow + self.shocks["TranShkNow"]
+        )  # Market resources after income
 
         return None
 
@@ -2184,8 +2223,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount, dtype=bool)
         self.EmpNow[TranShkNow == self.IncUnemp] = False
-        self.shocks['PermShkNow'] = PermShkNow
-        self.shocks['TranShkNow'] = TranShkNow
+        self.shocks["PermShkNow"] = PermShkNow
+        self.shocks["TranShkNow"] = TranShkNow
 
     def calcBoundingValues(self):
         """
