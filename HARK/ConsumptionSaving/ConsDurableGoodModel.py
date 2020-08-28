@@ -1,5 +1,5 @@
 '''
-Consumption-saving model with durable good
+Consumption-saving model with a durable good
 Tianyang He
 '''
 
