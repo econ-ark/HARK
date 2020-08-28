@@ -1288,6 +1288,9 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         # Interpolators
         vNvrsFuncSha    = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
         vFuncSha        = ValueFunc2D(vNvrsFuncSha, CRRA)
+        # TODO: do share interpolation more smartly taking into account that
+        # it's discrete. (current bilinear can and will result in shares
+        # outside the discrete grid).
         ShareFuncSha    = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
         dvdmNvrsFuncSha = BilinearInterp(dvdmNvrsSha, mNrmGrid, nNrmGrid)
         dvdmFuncSha     = MargValueFunc2D(dvdmNvrsFuncSha, CRRA)
