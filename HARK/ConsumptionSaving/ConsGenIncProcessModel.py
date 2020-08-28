@@ -362,11 +362,21 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         -------
         None
         """
-        self.assignParameters(solution_next=solution_next, IncomeDstn=IncomeDstn,
-                               LivPrb=LivPrb, DiscFac=DiscFac, CRRA=CRRA, Rfree=Rfree,
-                               pLvlNextFunc=pLvlNextFunc, BoroCnstArt=BoroCnstArt,
-                               aXtraGrid=aXtraGrid, pLvlGrid=pLvlGrid, vFuncBool=vFuncBool,
-                               CubicBool=CubicBool, PermGroFac=0.0) # dummy 0.0 variable why PermGroFac?
+        self.assignParameters(
+            solution_next=solution_next,
+            IncomeDstn=IncomeDstn,
+            LivPrb=LivPrb,
+            DiscFac=DiscFac,
+            CRRA=CRRA,
+            Rfree=Rfree,
+            pLvlNextFunc=pLvlNextFunc,
+            BoroCnstArt=BoroCnstArt,
+            aXtraGrid=aXtraGrid,
+            pLvlGrid=pLvlGrid,
+            vFuncBool=vFuncBool,
+            CubicBool=CubicBool,
+            PermGroFac=0.0,
+        )  # dummy 0.0 variable why PermGroFac?
         self.defUtilityFuncs()
 
     def setAndUpdateValues(self, solution_next, IncomeDstn, LivPrb, DiscFac):
@@ -1309,10 +1319,15 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         pLvlNow = np.zeros_like(aLvlPrev)
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            pLvlNow[these] = self.pLvlNextFunc[t-1](self.pLvlNow[these])*self.shocks['PermShkNow'][these]
-        self.pLvlNow = pLvlNow                  # Updated persistent income level
-        self.bLvlNow = RfreeNow*aLvlPrev        # Bank balances before labor income
-        self.mLvlNow = self.bLvlNow + self.shocks['TranShkNow']*self.pLvlNow  # Market resources after income
+            pLvlNow[these] = (
+                self.pLvlNextFunc[t - 1](self.pLvlNow[these])
+                * self.shocks["PermShkNow"][these]
+            )
+        self.pLvlNow = pLvlNow  # Updated persistent income level
+        self.bLvlNow = RfreeNow * aLvlPrev  # Bank balances before labor income
+        self.mLvlNow = (
+            self.bLvlNow + self.shocks["TranShkNow"] * self.pLvlNow
+        )  # Market resources after income
 
     def getControls(self):
         """

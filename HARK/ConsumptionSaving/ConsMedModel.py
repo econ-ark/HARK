@@ -850,7 +850,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
             if N > 0:
                 MedShkNow[these] = self.MedShkDstn[t].drawDiscrete(N)
                 MedPriceNow[these] = self.MedPrice[t]
-        self.shocks['MedShkNow'] = MedShkNow
+        self.shocks["MedShkNow"] = MedShkNow
         self.MedPriceNow = MedPriceNow
 
     def getControls(self):
@@ -871,7 +871,9 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cLvlNow[these], MedNow[these] = self.solution[t].policyFunc(
-                self.mLvlNow[these],self.pLvlNow[these],self.shocks['MedShkNow'][these]
+                self.mLvlNow[these],
+                self.pLvlNow[these],
+                self.shocks["MedShkNow"][these],
             )
         self.cLvlNow = cLvlNow
         self.MedNow = MedNow
@@ -971,11 +973,24 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         -------
         None
         """
-        self.assignParameters(solution_next=solution_next, IncomeDstn=IncomeDstn, MedShkDstn=MedShkDstn,
-                               LivPrb=LivPrb, DiscFac=DiscFac, CRRA=CRRA, CRRAmed=CRRAmed, Rfree=Rfree,
-                               MedPrice=MedPrice, pLvlNextFunc=pLvlNextFunc, BoroCnstArt=BoroCnstArt,
-                               aXtraGrid=aXtraGrid, pLvlGrid=pLvlGrid, vFuncBool=vFuncBool, CubicBool=CubicBool,
-                               PermGroFac=0.0) # dummy value required?
+        self.assignParameters(
+            solution_next=solution_next,
+            IncomeDstn=IncomeDstn,
+            MedShkDstn=MedShkDstn,
+            LivPrb=LivPrb,
+            DiscFac=DiscFac,
+            CRRA=CRRA,
+            CRRAmed=CRRAmed,
+            Rfree=Rfree,
+            MedPrice=MedPrice,
+            pLvlNextFunc=pLvlNextFunc,
+            BoroCnstArt=BoroCnstArt,
+            aXtraGrid=aXtraGrid,
+            pLvlGrid=pLvlGrid,
+            vFuncBool=vFuncBool,
+            CubicBool=CubicBool,
+            PermGroFac=0.0,
+        )  # dummy value required?
         self.defUtilityFuncs()
 
     def setAndUpdateValues(self, solution_next, IncomeDstn, LivPrb, DiscFac):
