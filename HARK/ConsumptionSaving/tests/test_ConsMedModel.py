@@ -3,8 +3,8 @@ import numpy as np
 from HARK.ConsumptionSaving.ConsMedModel import MedShockConsumerType
 import unittest
 
-class testMedShockConsumerType(unittest.TestCase):
 
+class testMedShockConsumerType(unittest.TestCase):
     def setUp(self):
 
         self.agent = MedicalExample = MedShockConsumerType()
@@ -18,4 +18,3 @@ class testMedShockConsumerType(unittest.TestCase):
         self.agent.makeShockHistory()
         self.agent.initializeSim()
         self.agent.simulate()
-        
