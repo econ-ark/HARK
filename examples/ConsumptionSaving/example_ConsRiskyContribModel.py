@@ -169,20 +169,20 @@ def plotSlices4D(functions,bot_x,top_x,y_slices,w_slices,N=300,
 init_sticky_share = init_riskyContrib.copy()
 init_sticky_share['DiscreteShareBool'] = True
 init_sticky_share['vFuncBool'] = True
-init_sticky_share['UnempPrb'] = 0
-init_sticky_share['UnempPrbRet'] = 0
-
+#init_sticky_share['UnempPrb'] = 0
+#init_sticky_share['UnempPrbRet'] = 0
+init_sticky_share['IncUnemp'] = 0.0
 
 # Three period model just to check
-init_sticky_share['PermGroFac'] = [2.0, 0.1]
-init_sticky_share['PermShkStd'] = [0.0, 0.0]
-init_sticky_share['TranShkStd'] = [0.0, 0.0]
-init_sticky_share['AdjustPrb']  = [0.0, 1.0]
-init_sticky_share['tau']        = [0.0, 0.0]
-init_sticky_share['LivPrb']     = [1.0, 1.0]
-init_sticky_share['T_cycle']    = 2
+init_sticky_share['PermGroFac'] = [1.0, 1.0, 1.0, 1.0, 0.1]
+init_sticky_share['PermShkStd'] = [0.0, 0.0, 0.0, 0.0, 0.0]
+init_sticky_share['TranShkStd'] = [0.0, 0.0, 0.0, 0.0, 0.0]
+init_sticky_share['AdjustPrb']  = [0.8, 0.8, 0.8, 0.8, 0.8]
+init_sticky_share['tau']        = 0.0
+init_sticky_share['LivPrb']     = [1.0, 1.0, 1.0, 1.0, 1.0]
+init_sticky_share['T_cycle']    = 5
 init_sticky_share['T_retire']   = 0
-init_sticky_share['T_age']      = 3
+init_sticky_share['T_age']      = 6
 
 ContribAgent = RiskyContribConsumerType(**init_sticky_share)
 # %%
@@ -195,8 +195,8 @@ print('Solving took ' + str(t1-t0) + ' seconds.')
 
 # %% Policy function inspection
 
-periods = [0,1]
-mMax = 50
+periods = [0,2,4]
+mMax = 80
 
 cFuncFxd     = [ContribAgent.solution[t].cFuncFxd for t in periods]
 DFuncAdj     = [ContribAgent.solution[t].DFuncAdj for t in periods]

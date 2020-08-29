@@ -1389,12 +1389,12 @@ init_riskyContrib['ShareMax']        = 0.9  # You don't want to put 100% of your
 
 # Regular grids in m and n
 init_riskyContrib['mNrmMin']         = 1e-6
-init_riskyContrib['mNrmMax']         = 10
+init_riskyContrib['mNrmMax']         = 50
 init_riskyContrib['mNrmCount']       = 100
 init_riskyContrib['mNrmNestFac']     = 1
 
 init_riskyContrib['nNrmMin']         = 1e-6
-init_riskyContrib['nNrmMax']         = 10
+init_riskyContrib['nNrmMax']         = 50
 init_riskyContrib['nNrmCount']       = 100  
 init_riskyContrib['nNrmNestFac']     = 1    
 
@@ -1402,8 +1402,8 @@ init_riskyContrib['nNrmNestFac']     = 1
 init_riskyContrib['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
 init_riskyContrib['PermShkStd'] = [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0,0,0]
 init_riskyContrib['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,  0,  0,  0]
-init_riskyContrib['AdjustPrb']  = [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]
-init_riskyContrib['tau']        = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]  # Tax rate on risky asset withdrawals
+init_riskyContrib['AdjustPrb']  = [1.0,1.0,1.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0]
+init_riskyContrib['tau']        = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]  # Tax rate on risky asset withdrawals
 init_riskyContrib['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
 init_riskyContrib['T_cycle']    = 10
 init_riskyContrib['T_retire']   = 7
