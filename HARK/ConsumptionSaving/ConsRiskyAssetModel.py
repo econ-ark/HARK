@@ -1090,16 +1090,22 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # STEP ONE
     # Find end-of-period (continuation) value function and its derivatives.
     
-    # TODO: deal with the possibly-0-income case. Characterize situations in
-    # which the agent will stay at positive savings.
-    # He might still have a=0 if n>0 and the probability of adjusting is 1.
-    zero_bound = (np.min(TranShks_next) == 0.) # Flag for whether the natural borrowing constraint is zero
-    if zero_bound:
-        aNrmGrid = aXtraGrid
+    # It's possible for the agent to end with 0 iliquid assets regardless of
+    # future income and probability of adjustment.
+    nNrmGrid = np.insert(nNrmGrid, 0, 0.0)  
+    
+    # Now, under which parameters do we need to consider the possibility
+    # of the agent ending with 0 liquid assets:
+    # -If he has guaranteed positive income next period.
+    # -If he is sure he can draw on iliquid assets even if income and liquid
+    #  assets are 0.
+    zero_bound = (np.min(TranShks_next) == 0.)
+    if (not zero_bound) or (zero_bound and AdjustPrb == 1.):
+        aNrmGrid = np.insert(aXtraGrid, 0, 0.)
     else:
-        aNrmGrid = np.insert(aXtraGrid, 0, 0.0) # Add an asset points at exactly zero
-        nNrmGrid = np.insert(nNrmGrid, 0, 0.0)     
-       
+        #aNrmGrid = aXtraGrid
+        aNrmGrid = np.insert(aXtraGrid, 0, 0.)
+        
     # Create tiled arrays with conforming dimensions. These are used
     # to compute expectations.
     aNrm_N = aNrmGrid.size
@@ -1163,6 +1169,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     EndOfPrddvda = DiscFac*Rfree*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_A*dvdm_next, axis=3)
     EndOfPrddvdn = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_A*Risky_tiled*dvdn_next, axis=3)
     EndOfPrddvdaNvrs = uPinv(EndOfPrddvda)
+    EndOfPrddvdnNvrs = uPinv(EndOfPrddvdn)
         
     # Calculate end-of-period value by taking expectations
     temp_fac_B = (PermShks_tiled*PermGroFac)**(1.-CRRA) # Will use this below
@@ -1193,73 +1200,112 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     cFxd = EndOfPrddvdaNvrs
     mNrm_endog = aNrm_tiled + cFxd
     
-    # Behaviour of cFxd, vFxd, and the derivatives at low values of (m,n)
-    # depends on what combinations of (a,n) can force zero consumption next
-    # period. For now I deal with the no-unemployment case, where this is
-    # impossible.
-    if zero_bound:
+    # Now construct interpolators for cFxd and the derivatives of vFxd.
+    # Since the m grid is different for every (n,s), we use bilinear
+    # interpolators of 1-d linear interpolators over m.
+    
+    # The 1-d interpolators need to take into account whether there is a
+    # natural borrowing constraint, which can depend on the value of n. Thus
+    # we have to check if mGrid[0] == 0 and construct the interpolators
+    # depending on that.
+    cInterps = [[] for i in range(nNrm_N)]
+    dvdnNvrsInterps = [[] for i in range(nNrm_N)]
+    dvdsInterps = [[] for i in range(nNrm_N)]
+    
+    for nInd in range(nNrm_N):
+        for sInd in range(Share_N):
+            
+            # Extract the endogenous m grid.
+            m_end = mNrm_endog[:,nInd,sInd]
+            
+            # Check if there is a natural constraint
+            
+            if m_end[0] == 0.0:
+                
+                # There's no need to insert points since we have m==0.0
+                
+                # Create consumption interpolator
+                cInterps[nInd].append(LinearInterp(m_end,cFxd[:,nInd,sInd]))
+                
+                # Create dvdnFxd Interpolator
+                dvdnNvrsInterps[nInd].append(LinearInterp(m_end,
+                                                          EndOfPrddvdnNvrs[:,nInd,sInd]))
+                
+                # Create dvdsFxd interpolator
+                # TODO: this returns NaN when m=n=0. This might propagate.
+                # But dvds is not being used at the moment.
+                dvdsInterps[nInd].append(LinearInterp(m_end,
+                                                      EndOfPrddvds[:,nInd,sInd]))
+                
+            else:
+                
+                # We know that:
+                # -The lowest gridpoints of both a and n are 0.
+                # -Consumption at m < m0 is m.
+                # -dvdnFxd at (m,n) for m < m0(n) is dvdnFxd(m0,n)
+                # -Same is true for dvdsFxd
+                
+                # Create consumption interpolator
+                cInterps[nInd].append(LinearInterp(np.insert(m_end,0,0),
+                                                   np.insert(cFxd[:,nInd,sInd],0,0)
+                                                   )
+                                      )
+                
+                # Create dvdnFxd Interpolator
+                dvdnNvrsInterps[nInd].append(LinearInterp(np.insert(m_end,0,0),
+                                                          np.insert(EndOfPrddvdnNvrs[:,nInd,sInd],0,EndOfPrddvdnNvrs[0,nInd,sInd])
+                                                          )
+                                             )
+                
+                # Create dvdsFxd interpolator
+                dvdsInterps[nInd].append(LinearInterp(np.insert(m_end,0,0),
+                                                      np.insert(EndOfPrddvds[:,nInd,sInd],0,EndOfPrddvds[0,nInd,sInd])
+                                                      )
+                                         )
+                
+    # 3D interpolators
+    
+    # Consumption interpolator
+    cFuncFxd = BilinearInterpOnInterp1D(cInterps, nNrmGrid, ShareGrid)
+    # dvdmFxd interpolator
+    dvdmFuncFxd = MargValueFunc3D(cFuncFxd, CRRA)
+    # dvdnFxd interpolator
+    dvdnNvrsFunc = BilinearInterpOnInterp1D(dvdnNvrsInterps, nNrmGrid, ShareGrid)
+    dvdnFuncFxd = MargValueFunc3D(dvdnNvrsFunc, CRRA)
+    # dvds interpolator
+    # TODO: dvds can be NaN. This is because a way to compute
+    # EndOfPrddvds(0,0) has not been implemented yet.
+    dvdsFuncFxd = BilinearInterpOnInterp1D(dvdsInterps, nNrmGrid, ShareGrid)
+    
+    
+    # It's useful to have value functions on a regular grid
+    # interpolator because:
+    # - Endogenous grids don't cover the m < n region well.
+    # - An object that comes from this value function -vSha- will be
+    #   optimized over, so evaluated many times and regular grid
+    #   interpolators are faster.
+    
+    # Add 0 to the m grid
+    mNrmGrid = np.insert(mNrmGrid,0,0)
+    mNrm_N = len(mNrmGrid)
+    
+    # Dimensions might change, so re-create tiled arrays
+    mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N,1,1)), (1,nNrm_N,Share_N))
+    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (mNrm_N,1,Share_N))
+    Share_tiled = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (mNrm_N,nNrm_N,1))
+    
+    # Consumption, value function and inverse on regular grid
+    cNrm_reg = cFuncFxd(mNrm_tiled, nNrm_tiled, Share_tiled)
+    aNrm_reg = mNrm_tiled - cNrm_reg
+    vFxd = u(cNrm_reg) + EndOfPrdvFunc(aNrm_reg, nNrm_tiled, Share_tiled) 
+    # TODO: uInv(-Inf) seems to appropriately be yielding 0. Is it
+    # necessary to hardcode it?
+    vNvrsFxd = uInv(vFxd)
         
-       raise Exception('The case where unemployment is possible has not been implemented yet')
-       
-    else:
-       
-        # We know that:
-        # -The lowest gridpoints of both a and n are 0.
-        # -Consumption at m < m0 is m.
-        # -dvdnFxd at (m,n) for m < m0(n) is dvdnFxd(m0,n)
-        # -Same is true for dvdsFxd
-        # Create consumption interpolator
-        cInterps = [[LinearInterp(np.insert(mNrm_endog[:,nInd,sInd],0,0),
-                                  np.insert(cFxd[:,nInd,sInd],0,0))
-                     for sInd in range(Share_N)]
-                    for nInd in range(nNrm_N)]
-        cFuncFxd = BilinearInterpOnInterp1D(cInterps, nNrmGrid, ShareGrid)
-        
-        # Create dvdmFxd interpolator
-        dvdmFuncFxd = MargValueFunc3D(cFuncFxd, CRRA)
-        
-        # Create dvdnFxd Interpolator
-        dvdnFxdInterps = [[LinearInterp(np.insert(mNrm_endog[:,nInd,sInd],0,0),
-                                        np.insert(EndOfPrddvdn[:,nInd,sInd],0,EndOfPrddvdn[0,nInd,sInd]))
-                           for sInd in range(Share_N)]
-                          for nInd in range(nNrm_N)]
-        dvdnFuncFxd = BilinearInterpOnInterp1D(dvdnFxdInterps, nNrmGrid, ShareGrid)
-        
-        # Create dvdsFxd interpolator
-        dvdsFxdInterps = [[LinearInterp(np.insert(mNrm_endog[:,nInd,sInd],0,0),
-                                        np.insert(EndOfPrddvds[:,nInd,sInd],0,EndOfPrddvds[0,nInd,sInd]))
-                           for sInd in range(Share_N)]
-                          for nInd in range(nNrm_N)]
-        dvdsFuncFxd = BilinearInterpOnInterp1D(dvdsFxdInterps, nNrmGrid, ShareGrid)
-        
-        # It's useful to have value functions on a regular-grid
-        # interpolator because:
-        # - Endogenous grids don't cover the m < n region well.
-        # - An object that comes from this value function -vSha- will be
-        #   optimized over, so evaluated many times and regular grid
-        #   interpolators are faster.
-        
-        # Add 0 to the m grid
-        mNrmGrid = np.insert(mNrmGrid,0,0)
-        mNrm_N = len(mNrmGrid)
-        
-        # Dimensions might change, so re-create tiled arrays
-        mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N,1,1)), (1,nNrm_N,Share_N))
-        nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (mNrm_N,1,Share_N))
-        Share_tiled = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (mNrm_N,nNrm_N,1))
-        
-        # Consumption, value function and inverse on regular grid
-        cNrm_reg = cFuncFxd(mNrm_tiled, nNrm_tiled, Share_tiled)
-        aNrm_reg = mNrm_tiled - cNrm_reg
-        vFxd = u(cNrm_reg) + EndOfPrdvFunc(aNrm_reg, nNrm_tiled, Share_tiled) 
-        # TODO: uInv(-Inf) seems to appropriately be yielding 0. Is it
-        # necessary to hardcode it?
-        vNvrsFxd = uInv(vFxd)
-        
-        # vNvrs interpolator. Useful to keep it since its faster to optimize
-        # on it in the next step
-        vNvrsFuncFxd = TrilinearInterp(vNvrsFxd, mNrmGrid, nNrmGrid, ShareGrid)
-        vFuncFxd     = ValueFunc3D(vNvrsFuncFxd, CRRA)
+    # vNvrs interpolator. Useful to keep it since its faster to optimize
+    # on it in the next step
+    vNvrsFuncFxd = TrilinearInterp(vNvrsFxd, mNrmGrid, nNrmGrid, ShareGrid)
+    vFuncFxd     = ValueFunc3D(vNvrsFuncFxd, CRRA)
     
     # STEP THREE:
     # Contribution share stage.
@@ -1284,7 +1330,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         optShare     = ShareGrid[optIdx]
         dvdmNvrsSha  = cFuncFxd(mNrm_tiled, nNrm_tiled, optShare)
         dvdnSha      = dvdnFuncFxd(mNrm_tiled, nNrm_tiled, optShare)
-        
+        dvdnNvrsSha  = uPinv(dvdnSha)
         # Interpolators
         vNvrsFuncSha    = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
         vFuncSha        = ValueFunc2D(vNvrsFuncSha, CRRA)
@@ -1294,7 +1340,8 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         ShareFuncSha    = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
         dvdmNvrsFuncSha = BilinearInterp(dvdmNvrsSha, mNrmGrid, nNrmGrid)
         dvdmFuncSha     = MargValueFunc2D(dvdmNvrsFuncSha, CRRA)
-        dvdnFuncSha     = BilinearInterp(dvdnSha, mNrmGrid, nNrmGrid)
+        dvdnNvrsFuncSha = BilinearInterp(dvdnNvrsSha, mNrmGrid, nNrmGrid)
+        dvdnFuncSha     = MargValueFunc2D(dvdnNvrsFuncSha, CRRA)
     
     # STEP FOUR:
     # Rebalancing stage.
