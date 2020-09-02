@@ -1347,6 +1347,11 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # Rebalancing stage.
     
     # Find optimal d for every combination
+    # TODO: this can be done in a much smarter way using the already computed
+    # derivatives.
+    # One would evaluate the derivatives at d=-1, d=0, and be able to tell if
+    # any of those is the optimum. If not, one can look for the point where
+    # the derivatives cross.
     optRebalance = list(map(lambda x: findOptimalRebalance(x[0],x[1],vNvrsFuncSha,tau),
                             zip(mNrm_tiled.flatten(),nNrm_tiled.flatten())
                             )
