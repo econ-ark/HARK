@@ -176,6 +176,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
     def update(self):
         self.updateShareGrid()
+        self.updateDGrid()
         IndShockConsumerType.update(self)
         self.updateAdjustPrb()
         self.updateRiskyDstn()
@@ -736,6 +737,13 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         self.ShareGrid = np.linspace(0.,self.ShareMax,self.ShareCount)
         self.addToTimeInv('ShareGrid')
             
+    def updateDGrid(self):
+        '''
+        '''
+        aux = np.linspace(0,1,self.dCount)
+        self.dGrid = np.concatenate((-1*np.flip(aux[1:]),aux))
+        self.addToTimeInv('dGrid')
+        
     def updateNGrid(self):
         '''
         Updates the agent's iliquid assets grid by constructing a
@@ -974,7 +982,7 @@ def findOptimalRebalance(m,n,vNvrs,tau):
 def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                           LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
                           BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
-                          ShareGrid,vFuncBool,AdjustPrb,
+                          ShareGrid,dGrid,vFuncBool,AdjustPrb,
                           DiscreteShareBool,IndepDstnBool):
     '''
     Solve the one period problem for a portfolio-choice consumer.
@@ -1449,6 +1457,9 @@ init_riskyContrib['nNrmMin']         = 1e-6
 init_riskyContrib['nNrmMax']         = 50
 init_riskyContrib['nNrmCount']       = 100  
 init_riskyContrib['nNrmNestFac']     = 1    
+
+# Number of grid-points for finding the optimal asset rebalance
+init_riskyContrib['dCount'] = 20
 
 # Params from the life-cycle agent
 init_riskyContrib['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
