@@ -916,6 +916,11 @@ def solveOneCycle(agent, solution_last):
         solution_cycle.insert(0, solution_t)
         solution_next = solution_t
 
+        if hasattr(agent,'geometric_solution'):
+            solution_next = agent.geometric_solution[T-t-1]
+        else:
+            solution_next= solution_t
+            
     # Return the list of per-period solutions
     return solution_cycle
 
