@@ -883,7 +883,11 @@ def solveOneCycle(agent, solution_last):
     else:
         T = 1
 
-    solve_dict = {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
+    solve_dict = {
+        parameter: agent.__dict__[parameter]
+        for parameter in agent.time_inv
+        if parameter != "geometric_solution"
+    }
     solve_dict.update({parameter: None for parameter in agent.time_vary})
 
     # Initialize the solution for this cycle, then iterate on periods
@@ -914,13 +918,13 @@ def solveOneCycle(agent, solution_last):
         # Solve one period, add it to the solution, and move to the next period
         solution_t = solveOnePeriod(**temp_dict)
         solution_cycle.insert(0, solution_t)
-        solution_next = solution_t
+        # solution_next = s/olution_t
 
-        if hasattr(agent,'geometric_solution'):
-            solution_next = agent.geometric_solution[T-t-1]
+        if hasattr(agent, "geometric_solution"):
+            solution_next = agent.geometric_solution[T - t - 1]
         else:
-            solution_next= solution_t
-            
+            solution_next = solution_t
+
     # Return the list of per-period solutions
     return solution_cycle
 

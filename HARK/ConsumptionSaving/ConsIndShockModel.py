@@ -366,7 +366,7 @@ class ConsPerfForesightSolver(HARKobject):
         PermGroFac,
         BoroCnstArt,
         MaxKinks,
-        Hyperbolic_beta,
+        HyperbolicBeta,
     ):
         """
         Constructor for a new ConsPerfForesightSolver.
@@ -394,7 +394,7 @@ class ConsPerfForesightSolver(HARKobject):
             additional points will be thrown out.  Only relevant in infinite
             horizon model with artificial borrowing constraint.
 
-        Hyperbolic_beta: float
+        HyperbolicBeta: float
             Quasi hyperbolic impatience factor in "beta-delta" preferences.
             
         Returns:
@@ -418,7 +418,7 @@ class ConsPerfForesightSolver(HARKobject):
             PermGroFac=PermGroFac,
             BoroCnstArt=BoroCnstArt,
             MaxKinks=MaxKinks,
-            Hyperbolic_beta=Hyperbolic_beta,
+            HyperbolicBeta=HyperbolicBeta,
         )
 
     def defUtilityFuncs(self):
@@ -617,7 +617,7 @@ class ConsPerfForesightSolver(HARKobject):
             The solution to this period's problem.
         """
         self.defUtilityFuncs()
-        self.DiscFacEff = self.DiscFac*self.LivPrb*self.Hyperbolic_beta
+        self.DiscFacEff = self.DiscFac * self.LivPrb * self.HyperbolicBeta
         self.makePFcFunc()
         self.defValueFuncs()
         solution = ConsumerSolution(
@@ -1548,7 +1548,7 @@ init_perfect_foresight = {
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor (only matters for simulation)
     "T_age": None,  # Age after which simulated agents are automatically killed
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
-    "Hyperbolic_beta" : 1
+    "HyperbolicBeta": 1,
 }
 
 
@@ -1572,7 +1572,15 @@ class PerfForesightConsumerType(AgentType):
         MPCmax=1.0,
     )
     time_vary_ = ["LivPrb", "PermGroFac"]
-    time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt", "Hyperbolic_beta", "geometric_solution"]
+    time_inv_ = [
+        "CRRA",
+        "Rfree",
+        "DiscFac",
+        "MaxKinks",
+        "BoroCnstArt",
+        "HyperbolicBeta",
+        "geometric_solution",
+    ]
     poststate_vars_ = ["aNrmNow", "pLvlNow"]
     shock_vars_ = []
 
