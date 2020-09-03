@@ -1,0 +1,24 @@
+#./.github/workflows/binder-badge.yaml
+name: Binder Badge
+on: [pull_request_target]
+
+jobs:
+  binder:
+    runs-on: ubuntu-latest
+    steps:
+    - name: comment on PR with Binder link
+      uses: actions/github-script@v1
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          var PR_HEAD_USERREPO = process.env.PR_HEAD_USERREPO;
+          var PR_HEAD_SHA = process.env.PR_HEAD_SHA;
+          github.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/${PR_HEAD_USERREPO}/${PR_HEAD_SHA}) :point_left: Launch a binder notebook on this branch for commit ${PR_HEAD_SHA}`
+          })
+      env:
+        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        PR_HEAD_USERREPO: ${{ github.event.pull_request.head.repo.full_name }}
