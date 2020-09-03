@@ -1407,34 +1407,22 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                         FOC = dvdn[dinds, mInd, nInd] - dvdm[dinds, mInd, nInd]
                         
                     # Find first index at which FOC turns negative
-                    ind1 = dinds[np.argmax(FOC<0)]
+                    pos1 = np.argmax(FOC<0)
+                    ind1 = dinds[pos1]
+                
                     # Linearly approximate where the FOC crosses 0
                     ind0 = ind1 - 1
-                    m = (FOC[ind1] - FOC[ind0])/(dGrid[ind1] - dGrid[ind0])
-                    dOpt[mInd,nInd] = dGrid[ind0] - FOC[ind0]/m
-                
-    # Now evaluate asset derivatives at the point of withdrawing everything
-    # from the iliquid account. If dvdm(d=-1) >= dvdn(d=-1), then withdrawing
-    # everything is optimal.
-    m_tilde_aux, n_tilde_aux = rebalanceAssets(-1.0,mNrm_tiled,nNrm_tiled,tau)
-    marg_dif = (1+tau)*dvdnFuncSha(m_tilde_aux, n_tilde_aux) - dvdmFuncSha(m_tilde_aux, n_tilde_aux)
-    dOpt[marg_dif >= 0.0] = -1.0
-    
-    # d=0 is optimal if (1+tau)*dvdn(d=0) >= dvdm(d=0) >= dvdn(d=0)
-    dvdm_d0 = dvdmFuncSha(mNrm_tiled, nNrm_tiled)
-    dvdv_d0 = dvdnFuncSha(mNrm_tiled, nNrm_tiled)
-    
-    optRebalance = list(map(lambda x: findOptimalRebalance(x[0],x[1],vNvrsFuncSha,tau),
-                            zip(mNrm_tiled.flatten(),nNrm_tiled.flatten())
-                            )
-                        )
-    optRebalance = np.array(optRebalance)
-    
-    # Format rebalancing share and post-rebalancing assets as tiled arrays
-    D_tiled      = np.reshape(optRebalance[:,0], (mNrm_N, nNrm_N))
-    mTilde_tiled = np.reshape(optRebalance[:,1], (mNrm_N, nNrm_N))
-    nTilde_tiled = np.reshape(optRebalance[:,2], (mNrm_N, nNrm_N))
-    vNvrsAdj     = np.reshape(optRebalance[:,3], (mNrm_N, nNrm_N))
+                    pos0 = pos1 - 1
+                    m = (FOC[pos1] - FOC[pos0])/(dGrid[ind1] - dGrid[ind0])
+                    dOpt[mInd,nInd] = dGrid[ind0] - FOC[pos0]/m
+         
+            # Find m_tilde and n_tilde
+            m,n = rebalanceAssets(dOpt[mInd,nInd], mNrm_tiled[mInd,nInd], nNrm_tiled[mInd,nInd], tau)
+            mtil_opt[mInd,nInd] = m
+            ntil_opt[mInd,nInd] = n
+            
+    # Evaluate inverse value function
+    vNvrsAdj = vNvrsFuncSha(mtil_opt, ntil_opt)
     
     # Now the derivatives. These are not straight forward because of corner
     # solutions with partial derivatives that change the limits. The idea then
@@ -1442,9 +1430,9 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # take the maximum.
     
     # An additional unit of m
-    marg_m      = dvdmFuncSha(mTilde_tiled, nTilde_tiled)
+    marg_m      = dvdmFuncSha(mtil_opt, ntil_opt)
     # An additional unit of n kept in n
-    marg_n      = dvdnFuncSha(mTilde_tiled, nTilde_tiled)
+    marg_n      = dvdnFuncSha(mtil_opt, ntil_opt)
     # An additional unit of n withdrawn to m
     marg_n_to_m = marg_m/(1+tau)
     
@@ -1462,7 +1450,7 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     dvdmFuncAdj = MargValueFunc2D(BilinearInterp(dvdmNvrsAdj, mNrmGrid, nNrmGrid), CRRA)
     dvdnFuncAdj = MargValueFunc2D(BilinearInterp(dvdnNvrsAdj, mNrmGrid, nNrmGrid), CRRA)
     # Decison
-    DFuncAdj = BilinearInterp(D_tiled, mNrmGrid, nNrmGrid)
+    DFuncAdj = BilinearInterp(dOpt, mNrmGrid, nNrmGrid)
     
     # Construct solution
     sol = RiskyContribSolution(
