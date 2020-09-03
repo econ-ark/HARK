@@ -277,7 +277,6 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         self.ShareGrid = np.linspace(0.,1.,self.ShareCount)
         self.addToTimeInv('ShareGrid')
 
-
     def getRisky(self):
         '''
         Sets the attribute RiskyNow as a single draw from a lognormal distribution.
@@ -928,7 +927,8 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         self.ShareNow = ShareNow
     
 def rebalanceAssets(d,m,n,tau):
-        
+    
+    
     if d >= 0:
         m_til = m*(1-d)
         n_til = n + m*d
@@ -1360,6 +1360,70 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # One would evaluate the derivatives at d=-1, d=0, and be able to tell if
     # any of those is the optimum. If not, one can look for the point where
     # the derivatives cross.
+    
+    # Initialize
+    dOpt     = np.ones_like(mNrm_tiled)*np.nan
+    mtil_opt = np.ones_like(mNrm_tiled)*np.nan
+    ntil_opt = np.ones_like(mNrm_tiled)*np.nan
+    
+    # It will be useful to pre-evaluate marginals at every (m,n,d) combination
+    
+    # Start by getting the m_tilde, n_tilde.
+    tilde = list(zip(*map(lambda d: rebalanceAssets(d, mNrm_tiled, nNrm_tiled, tau),
+                          dGrid)))
+    m_tilde = np.array(tilde[0])
+    n_tilde = np.array(tilde[1])
+    
+    # Now the marginals
+    dvdm = dvdmFuncSha(m_tilde, n_tilde)
+    dvdn = dvdnFuncSha(m_tilde, n_tilde)
+    
+    # Find the optimal d's
+    zeroind = np.where(dGrid == 0.0)[0][0]
+    d_N = len(dGrid)
+    for mInd in range(mNrm_N):
+        for nInd in range(nNrm_N):
+            
+            # First check if dvdm(d=-1) > dvdn(d=-1). If so, withdrawing
+            # everything is optimal
+            if dvdm[0,mInd,nInd] > (1+tau)*dvdn[0,mInd,nInd]:
+                dOpt[mInd,nInd] = -1.
+            else:
+                # Next, check what happens at d == 0. This will determine which
+                # of d<0, d==0, d>0 is optimal.
+                if (1+tau)*dvdn[zeroind,mInd,nInd] >= dvdm[zeroind,mInd,nInd] and  dvdm[zeroind,mInd,nInd] >= dvdn[zeroind,mInd,nInd]:
+                    
+                    dOpt[mInd,nInd] = 0.
+                    
+                else:
+                    if dvdm[zeroind,mInd,nInd] > (1+tau)*dvdn[zeroind,mInd,nInd]:
+                        # The optimal d is negative
+                        dinds = np.arange(0,zeroind+1)
+                        FOC = (1+tau)*dvdn[dinds, mInd, nInd] - dvdm[dinds, mInd, nInd]
+                        
+                    else:
+                        # The optimal d is positive
+                        dinds = np.arange(zeroind, d_N)
+                        FOC = dvdn[dinds, mInd, nInd] - dvdm[dinds, mInd, nInd]
+                        
+                    # Find first index at which FOC turns negative
+                    ind1 = dinds[np.argmax(FOC<0)]
+                    # Linearly approximate where the FOC crosses 0
+                    ind0 = ind1 - 1
+                    m = (FOC[ind1] - FOC[ind0])/(dGrid[ind1] - dGrid[ind0])
+                    dOpt[mInd,nInd] = dGrid[ind0] - FOC[ind0]/m
+                
+    # Now evaluate asset derivatives at the point of withdrawing everything
+    # from the iliquid account. If dvdm(d=-1) >= dvdn(d=-1), then withdrawing
+    # everything is optimal.
+    m_tilde_aux, n_tilde_aux = rebalanceAssets(-1.0,mNrm_tiled,nNrm_tiled,tau)
+    marg_dif = (1+tau)*dvdnFuncSha(m_tilde_aux, n_tilde_aux) - dvdmFuncSha(m_tilde_aux, n_tilde_aux)
+    dOpt[marg_dif >= 0.0] = -1.0
+    
+    # d=0 is optimal if (1+tau)*dvdn(d=0) >= dvdm(d=0) >= dvdn(d=0)
+    dvdm_d0 = dvdmFuncSha(mNrm_tiled, nNrm_tiled)
+    dvdv_d0 = dvdnFuncSha(mNrm_tiled, nNrm_tiled)
+    
     optRebalance = list(map(lambda x: findOptimalRebalance(x[0],x[1],vNvrsFuncSha,tau),
                             zip(mNrm_tiled.flatten(),nNrm_tiled.flatten())
                             )
