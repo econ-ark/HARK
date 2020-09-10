@@ -7,7 +7,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.2.4
+#       jupytext_version: 1.2.1
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -42,7 +42,7 @@ from HARK.utilities import plotFuncs
 # We start with almost the simplest possible consumption model: A consumer with CRRA utility 
 #
 # \begin{equation}
-# U(C) = \frac{C^{1-\CRRA}}{1-\rho}
+# U(C) = \frac{C^{1-\rho}}{1-\rho}
 # \end{equation}
 #
 # has perfect foresight about everything except the (stochastic) date of death, which occurs with constant probability implying a "survival probability" $\newcommand{\LivPrb}{\aleph}\LivPrb < 1$.  Permanent labor income $P_t$ grows from period to period by a factor $\Gamma_t$.  At the beginning of each period $t$, the consumer has some amount of market resources $M_t$ (which includes both market wealth and currrent income) and must choose how much of those resources to consume $C_t$ and how much to retain in a riskless asset $A_t$ which will earn return factor $R$. The agent's flow of utility $U(C_t)$ from consumption is geometrically discounted by factor $\beta$. Between periods, the agent dies with probability $\mathsf{D}_t$, ending his problem.
@@ -67,7 +67,7 @@ from HARK.utilities import plotFuncs
 from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
 
 # %% [markdown]
-# The $\texttt{PerfForesightConsumerType}$ class contains within itself the python code that constructs the solution for the perfect foresight model we are studying here, as specifically articulated in [these lecture notes](http://econ.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/).  
+# The $\texttt{PerfForesightConsumerType}$ class contains within itself the python code that constructs the solution for the perfect foresight model we are studying here, as specifically articulated in [these lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/).  
 #
 # To create an instance of $\texttt{PerfForesightConsumerType}$, we simply call the class as if it were a function, passing as arguments the specific parameter values we want it to have.  In the hidden cell below, we define a $\textbf{dictionary}$ named $\texttt{PF_dictionary}$ with these parameter values:
 #
@@ -127,7 +127,7 @@ PFexample.solve()
 PFexample.solution[0].cFunc
 
 # %% [markdown]
-# One of the results proven in the associated [the lecture notes](http://econ.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/) is that, for the specific problem defined above, there is a solution in which the _ratio_ $c = C/P$ is a linear function of the _ratio_ of market resources to permanent income, $m = M/P$.  
+# One of the results proven in the associated [the lecture notes](http://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/) is that, for the specific problem defined above, there is a solution in which the _ratio_ $c = C/P$ is a linear function of the _ratio_ of market resources to permanent income, $m = M/P$.  
 #
 # This is why $\texttt{cFunc}$ can be represented by a linear interpolation.  It can be plotted between an $m$ ratio of 0 and 10 using the command below.
 
@@ -200,7 +200,7 @@ plotFuncs([PFexample.solution[0].cFunc,NewExample.solution[0].cFunc],0.,10.)
 #
 # Linear consumption functions are pretty boring, and you'd be justified in feeling unimpressed if all HARK could do was plot some lines.  Let's look at another model that adds two important layers of complexity: income shocks and (artificial) borrowing constraints.
 #
-# Specifically, our new type of consumer receives two income shocks at the beginning of each period: a completely transitory shock $\theta_t$ and a completely permanent shock $\psi_t$.  Moreover, lenders will not let the agent borrow money such that his ratio of end-of-period assets $A_t$ to permanent income $P_t$ is less than $\underline{a}$.  As with the perfect foresight problem, this model can be framed in terms of __normalized__ variables, e.g. $m_t \equiv M_t/P_t$.  (See [here](http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/) for all the theory).
+# Specifically, our new type of consumer receives two income shocks at the beginning of each period: a completely transitory shock $\theta_t$ and a completely permanent shock $\psi_t$.  Moreover, lenders will not let the agent borrow money such that his ratio of end-of-period assets $A_t$ to permanent income $P_t$ is less than $\underline{a}$.  As with the perfect foresight problem, this model can be framed in terms of __normalized__ variables, e.g. $m_t \equiv M_t/P_t$.  (See [here](http://www.econ2.jhu.edu/people/ccarroll/papers/BufferStockTheory/) for all the theory).
 #
 # \begin{eqnarray*}
 # v_t(m_t) &=& \max_{c_t} ~ U(c_t) ~ +  \phantom{\LivFac} \beta \mathbb{E} [(\Gamma_{t+1}\psi_{t+1})^{1-\rho} v_{t+1}(m_{t+1}) ], \\
