@@ -3051,8 +3051,8 @@ init_lifecycle[
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
-init_cyclical["PermGroFac"] = [1.082251, 2.8, 0.3, 1.1]
-init_cyclical["PermShkStd"] = [0.1, 0.1, 0.1, 0.1]
-init_cyclical["TranShkStd"] = [0.1, 0.1, 0.1, 0.1]
-init_cyclical["LivPrb"] = 4 * [0.98]
-init_cyclical["T_cycle"] = 4
+init_cyclical['PermGroFac'] = [1.082251, 2.8, 0.3, 1.1]
+init_cyclical['PermShkStd'] = [0.1,0.1,0.1,0.1]
+init_cyclical['TranShkStd'] = [0.1,0.1,0.1,0.1]
+init_cyclical['LivPrb']     = 4*[0.98]
+init_cyclical['T_cycle']    = 4
