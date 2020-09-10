@@ -1,20 +1,28 @@
-'''
+"""
 Functions for estimating structural models, including optimization methods
 and bootstrapping tools.
-'''
-import numpy as np                                      # Numerical Python
-from time import time                                   # Used to time execution
-from copy import deepcopy                               # For replicating complex objects
-from scipy.optimize import fmin, fmin_powell            # Minimizers
+"""
+import numpy as np  # Numerical Python
+from time import time  # Used to time execution
+from copy import deepcopy  # For replicating complex objects
+from scipy.optimize import fmin, fmin_powell  # Minimizers
 import warnings
 import csv
 import multiprocessing
 from joblib import Parallel, delayed
 
-__all__ = ['minimizeNelderMead', 'minimizePowell', 'bootstrapSampleFromData', 'parallelNelderMead']
+__all__ = [
+    "minimizeNelderMead",
+    "minimizePowell",
+    "bootstrapSampleFromData",
+    "parallelNelderMead",
+]
 
-def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, which_vars=None, **kwargs):
-    '''
+
+def minimizeNelderMead(
+    objectiveFunction, parameter_guess, verbose=False, which_vars=None, **kwargs
+):
+    """
     Minimizes the objective function using the Nelder-Mead simplex algorithm,
     starting from an initial parameter guess.
     
@@ -36,47 +44,60 @@ def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, which_
     -------
     xopt : [float]
         The values that minimize objectiveFunction.
-    '''
+    """
     # Specify a temporary "modified objective function" that restricts parameters to be estimated
     if which_vars is None:
-        which_vars = np.ones(len(parameter_guess),dtype=bool)
+        which_vars = np.ones(len(parameter_guess), dtype=bool)
+
     def objectiveFunctionMod(params):
         params_full = np.copy(parameter_guess)
         params_full[which_vars] = params
         out = objectiveFunction(params_full)
         return out
+
     # convert parameter guess to np array to slice it with boolean array
     parameter_guess_mod = np.array(parameter_guess)[which_vars]
 
     # Execute the minimization, starting from the given parameter guess
-    t0 = time() # Time the process
-    OUTPUT = fmin(objectiveFunctionMod, parameter_guess_mod, full_output=1, disp=verbose, **kwargs)
+    t0 = time()  # Time the process
+    OUTPUT = fmin(
+        objectiveFunctionMod, parameter_guess_mod, full_output=1, disp=verbose, **kwargs
+    )
     t1 = time()
 
     # Extract values from optimization output:
-    xopt = OUTPUT[0]        # Parameters that minimize function.
-    fopt = OUTPUT[1]        # Value of function at minimum: ``fopt = func(xopt)``.
-    optiter = OUTPUT[2]     # Number of iterations performed.
-    funcalls = OUTPUT[3]    # Number of function calls made.
-    warnflag = OUTPUT[4]    # warnflag : int
-                            #   1 : Maximum number of function evaluations made.
-                            #   2 : Maximum number of iterations reached.
+    xopt = OUTPUT[0]  # Parameters that minimize function.
+    fopt = OUTPUT[1]  # Value of function at minimum: ``fopt = func(xopt)``.
+    optiter = OUTPUT[2]  # Number of iterations performed.
+    funcalls = OUTPUT[3]  # Number of function calls made.
+    warnflag = OUTPUT[4]  # warnflag : int
+    #   1 : Maximum number of function evaluations made.
+    #   2 : Maximum number of iterations reached.
     # Check that optimization succeeded:
     if warnflag != 0:
-        warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) + 
-                      ', optiter=' + str(optiter) +', funcalls=' + str(funcalls) +
-                      ', warnflag=' + str(warnflag))
+        warnings.warn(
+            "Minimization failed! xopt="
+            + str(xopt)
+            + ", fopt="
+            + str(fopt)
+            + ", optiter="
+            + str(optiter)
+            + ", funcalls="
+            + str(funcalls)
+            + ", warnflag="
+            + str(warnflag)
+        )
     xopt_full = np.copy(parameter_guess)
     xopt_full[which_vars] = xopt
 
     # Display and return the results:
     if verbose:
-        print("Time to estimate is " + str(t1-t0) +  " seconds.")
+        print("Time to estimate is " + str(t1 - t0) + " seconds.")
     return xopt_full
 
 
 def minimizePowell(objectiveFunction, parameter_guess, verbose=False):
-    '''
+    """
     Minimizes the objective function using a derivative-free Powell algorithm,
     starting from an initial parameter guess.
 
@@ -95,36 +116,50 @@ def minimizePowell(objectiveFunction, parameter_guess, verbose=False):
     -------
     xopt : [float]
         The values that minimize objectiveFunction.
-    '''
+    """
 
     # Execute the minimization, starting from the given parameter guess
-    t0 = time()   # Time the process
-    OUTPUT = fmin_powell(objectiveFunction, parameter_guess, full_output=1, maxiter=1000, disp=verbose)
+    t0 = time()  # Time the process
+    OUTPUT = fmin_powell(
+        objectiveFunction, parameter_guess, full_output=1, maxiter=1000, disp=verbose
+    )
     t1 = time()
 
     # Extract values from optimization output:
-    xopt = OUTPUT[0]        # Parameters that minimize function.
-    fopt = OUTPUT[1]        # Value of function at minimum: ``fopt = func(xopt)``.
+    xopt = OUTPUT[0]  # Parameters that minimize function.
+    fopt = OUTPUT[1]  # Value of function at minimum: ``fopt = func(xopt)``.
     direc = OUTPUT[2]
-    optiter = OUTPUT[3]     # Number of iterations performed.
-    funcalls = OUTPUT[4]    # Number of function calls made.
-    warnflag = OUTPUT[5]    # warnflag : int
+    optiter = OUTPUT[3]  # Number of iterations performed.
+    funcalls = OUTPUT[4]  # Number of function calls made.
+    warnflag = OUTPUT[5]  # warnflag : int
     #                           1 : Maximum number of function evaluations made.
     #                           2 : Maximum number of iterations reached.
 
     # Check that optimization succeeded:
     if warnflag != 0:
-        warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) + ', direc=' + str(direc) +
-                      ', optiter=' + str(optiter) + ', funcalls=' + str(funcalls) + ', warnflag=' + str(warnflag))
+        warnings.warn(
+            "Minimization failed! xopt="
+            + str(xopt)
+            + ", fopt="
+            + str(fopt)
+            + ", direc="
+            + str(direc)
+            + ", optiter="
+            + str(optiter)
+            + ", funcalls="
+            + str(funcalls)
+            + ", warnflag="
+            + str(warnflag)
+        )
 
     # Display and return the results:
     if verbose:
-        print("Time to estimate is " + str(t1-t0) + " seconds.")
+        print("Time to estimate is " + str(t1 - t0) + " seconds.")
     return xopt
 
 
 def bootstrapSampleFromData(data, weights=None, seed=0):
-    '''
+    """
     Samples rows from the input array of data, generating a new data array with
     an equal number of rows (records).  Rows are drawn with equal probability
     by default, but probabilities can be specified with weights (must sum to 1).
@@ -142,7 +177,7 @@ def bootstrapSampleFromData(data, weights=None, seed=0):
     -------
     new_data : np.array
         A resampled version of input data.
-    '''
+    """
     # Set up the random number generator
     RNG = np.random.RandomState(seed)
     N = data.shape[0]
@@ -157,7 +192,7 @@ def bootstrapSampleFromData(data, weights=None, seed=0):
     indices = np.searchsorted(cutoffs, RNG.uniform(size=N))
 
     # Create a bootstrapped sample
-    new_data = deepcopy(data[indices, ])
+    new_data = deepcopy(data[indices,])
     return new_data
 
 

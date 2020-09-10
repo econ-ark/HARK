@@ -7,6 +7,7 @@ import HARK.distribution as distribution
 import unittest
 import numpy as np
 
+
 class testsForDCEGM(unittest.TestCase):
     def setUp(self):
         # setup the parameters to loop over
@@ -17,10 +18,18 @@ class testsForDCEGM(unittest.TestCase):
         for muNormal in self.muNormals:
             for stdNormal in self.stdNormals:
                 d = distribution.Normal(muNormal).approx(40)
-                self.assertTrue(sum(d.pmf*d.X)-muNormal<1e-12)
+                self.assertTrue(sum(d.pmf * d.X) - muNormal < 1e-12)
 
     def test_mu_lognormal_from_normal(self):
         for muNormal in self.muNormals:
             for stdNormal in self.stdNormals:
                 d = distribution.approxLognormalGaussHermite(40, muNormal, stdNormal)
-                self.assertTrue(abs(sum(d.pmf*d.X)-distribution.calcLognormalStyleParsFromNormalPars(muNormal, stdNormal)[0])<1e-12)
+                self.assertTrue(
+                    abs(
+                        sum(d.pmf * d.X)
+                        - distribution.calcLognormalStyleParsFromNormalPars(
+                            muNormal, stdNormal
+                        )[0]
+                    )
+                    < 1e-12
+                )
