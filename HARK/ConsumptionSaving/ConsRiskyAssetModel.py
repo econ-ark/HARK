@@ -528,6 +528,106 @@ class RiskyContribSolution(HARKobject):
         self.dvdnFuncFxd = dvdnFuncFxd
         self.dvdsFuncFxd = dvdsFuncFxd
         
+# Class for the contribution share stage solution
+class RiskyContribShaSolution(HARKobject):
+    
+    # TODO: what does this do?
+    distance_criteria = ['dvdmFuncSha']
+
+    def __init__(self,
+        
+        # Contribution stage
+        vFuncSha = None,
+        ShareFuncSha = None,
+        dvdmFuncSha = None,
+        dvdnFuncSha = None
+        
+    ):
+        
+        # Contribution stage
+        if vFuncSha is None:
+            vFuncSha = NullFunc()
+        if ShareFuncSha is None:
+            ShareFuncSha = NullFunc()
+        if dvdmFuncSha is None:
+            dvdmFuncSha = NullFunc()
+        if dvdnFuncSha is None:
+            dvdnFuncSha = NullFunc()
+        
+        # Set attributes of self
+        self.vFuncSha = vFuncSha
+        self.ShareFuncSha = ShareFuncSha
+        self.dvdmFuncSha = dvdmFuncSha
+        self.dvdnFuncSha = dvdnFuncSha
+
+# Class for asset adjustment stage solution
+class RiskyContribAdjSolution(HARKobject):
+    
+    # TODO: what does this do?
+    distance_criteria = ['dvdmFuncAdj']
+
+    def __init__(self,
+        
+        # Adjusting stage
+        vFuncAdj = None,
+        DFuncAdj = None,
+        dvdmFuncAdj = None,
+        dvdnFuncAdj = None
+        
+    ):
+        
+        # Adjusting stage
+        if vFuncAdj is None:
+            vFuncAdj = NullFunc()
+        if DFuncAdj is None:
+            DFuncAdj = NullFunc()
+        if dvdmFuncAdj is None:
+            dvdmFuncAdj = NullFunc()
+        if dvdnFuncAdj is None:
+            dvdnFuncAdj = NullFunc()
+        
+        # Adjusting stage
+        self.vFuncAdj = vFuncAdj
+        self.DFuncAdj = DFuncAdj
+        self.dvdmFuncAdj = dvdmFuncAdj
+        self.dvdnFuncAdj = dvdnFuncAdj
+        
+# Define a class to represent the single period solution of the portfolio choice problem
+class RiskyContribConsSolution(HARKobject):
+    
+    # TODO: what does this do?
+    distance_criteria = ['vPfuncAdj']
+
+    def __init__(self,
+                
+        # Consumption stage
+        vFuncFxd = None,
+        cFuncFxd = None,
+        dvdmFuncFxd = None,
+        dvdnFuncFxd = None,
+        dvdsFuncFxd = None
+        
+    ):
+                
+        # Consumption stage
+        if vFuncFxd is None:
+            vFuncFxd = NullFunc()
+        if cFuncFxd is None:
+            cFuncFxd = NullFunc()
+        if dvdmFuncFxd is None:
+            dvdmFuncFxd = NullFunc()
+        if dvdnFuncFxd is None:
+            dvdmFuncFxd = NullFunc()
+        if dvdsFuncFxd is None:
+            dvdsFuncFxd = NullFunc()
+        
+        # Consumption stage
+        self.vFuncFxd = vFuncFxd
+        self.cFuncFxd = cFuncFxd
+        self.dvdmFuncFxd = dvdmFuncFxd
+        self.dvdnFuncFxd = dvdnFuncFxd
+        self.dvdsFuncFxd = dvdsFuncFxd
+
         
 class RiskyContribConsumerType(RiskyAssetConsumerType):
     """
