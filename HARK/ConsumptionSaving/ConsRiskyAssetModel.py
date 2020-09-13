@@ -538,10 +538,22 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     time_inv_ = time_inv_ + ['DiscreteShareBool']
 
     def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
+    
         params = init_riskyContrib.copy()
         params.update(kwds)
         kwds = params
-
+        
+        nPeriods = kwds['T_cycle']
+        
+        # Update parameters dealing with time to accommodate stages
+        stage_time_pars = {'T_cycle': 3*nPeriods}
+        pars = ['LivPrb','PermGroFac','PermShkStd','TranShkStd','AdjustPrb']
+        for p in pars:
+            if type(kwds[p]) is list and len(kwds[p]):
+                stage_time_pars[p] = [x for x in kwds[p] for _ in range(3)]
+                
+        kwds.update(stage_time_pars)
+        
         # Initialize a basic consumer type
         RiskyAssetConsumerType.__init__(
             self,
@@ -552,7 +564,8 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         )
         
         # Set the solver for the portfolio model, and update various constructed attributes
-        self.solveOnePeriod = solveConsRiskyContrib
+        self.solveOnePeriod = [solveConsRiskyContrib for _ in range(3) for _ in range(nPeriods)]
+        self.addToTimeVary('solveOnePeriod')
         self.update()
         
         
