@@ -6,6 +6,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 import numpy as np
 import unittest
+from copy import copy
 
 
 class testIndShockConsumerType(unittest.TestCase):
@@ -97,7 +98,7 @@ class testBufferStock(unittest.TestCase):
 
     def setUp(self):
         # Make a dictionary containing all parameters needed to solve the model
-        self.base_params = init_idiosyncratic_shocks
+        self.base_params = copy(init_idiosyncratic_shocks)
 
         # Set the parameters for the baseline results in the paper
         # using the variable values defined in the cell above
@@ -292,7 +293,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
         LifecycleExample.cycles = 1
         LifecycleExample.solve()
 
-        self.assertEquals(len(LifecycleExample.solution), 11)
+        self.assertEqual(len(LifecycleExample.solution), 11)
 
         mMin = np.min(
             [
