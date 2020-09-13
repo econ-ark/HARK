@@ -536,61 +536,118 @@ class RiskyContribShaSolution(HARKobject):
 
     def __init__(self,
         
-        # Contribution stage
-        vFuncSha = None,
-        ShareFuncSha = None,
-        dvdmFuncSha = None,
-        dvdnFuncSha = None
+        # Contribution stage, adjust
+        vFuncShaAdj = None,
+        ShareFuncAdj = None,
+        dvdmFuncShaAdj = None,
+        dvdnFuncShaAdj = None,
+        dvdsFuncShaAdj = None,
+        
+        # Contribution stage, fixed
+        vFuncShaFxd = None,
+        ShareFuncFxd = None,
+        dvdmFuncShaFxd = None,
+        dvdnFuncShaFxd = None,
+        dvdsFuncShaFxd = None
         
     ):
         
-        # Contribution stage
-        if vFuncSha is None:
-            vFuncSha = NullFunc()
-        if ShareFuncSha is None:
-            ShareFuncSha = NullFunc()
-        if dvdmFuncSha is None:
-            dvdmFuncSha = NullFunc()
-        if dvdnFuncSha is None:
-            dvdnFuncSha = NullFunc()
+        # Contribution stage, adjust
+        if vFuncShaAdj is None:
+            vFuncShaAdj = NullFunc()
+        if ShareFuncAdj is None:
+            ShareFuncAdj = NullFunc()
+        if dvdmFuncShaAdj is None:
+            dvdmFuncShaAdj = NullFunc()
+        if dvdnFuncShaAdj is None:
+            dvdnFuncShaAdj = NullFunc()
+        if dvdsFuncShaAdj is None:
+            dvdsFuncShaAdj = NullFunc()
+        
+        # Contribution stage, fixed
+        if vFuncShaFxd is None:
+            vFuncShaFxd = NullFunc()
+        if ShareFuncFxd is None:
+            ShareFuncFxd = NullFunc()
+        if dvdmFuncShaFxd is None:
+            dvdmFuncShaFxd = NullFunc()
+        if dvdnFuncShaFxd is None:
+            dvdnFuncShaFxd = NullFunc()
+        if dvdsFuncShaFxd is None:
+            dvdsFuncShaFxd = NullFunc()
         
         # Set attributes of self
-        self.vFuncSha = vFuncSha
-        self.ShareFuncSha = ShareFuncSha
-        self.dvdmFuncSha = dvdmFuncSha
-        self.dvdnFuncSha = dvdnFuncSha
-
+        self.vFuncShaAdj = vFuncShaAdj
+        self.ShareFuncAdj = ShareFuncAdj
+        self.dvdmFuncShaAdj = dvdmFuncShaAdj
+        self.dvdnFuncShaAdj = dvdnFuncShaAdj
+        self.dvdsFuncShaAdj = dvdsFuncShaAdj
+        
+        self.vFuncShaFxd = vFuncShaFxd
+        self.ShareFuncFxd = ShareFuncFxd
+        self.dvdmFuncShaFxd = dvdmFuncShaFxd
+        self.dvdnFuncShaFxd = dvdnFuncShaFxd
+        self.dvdsFuncShaFxd = dvdsFuncShaFxd
+        
 # Class for asset adjustment stage solution
-class RiskyContribAdjSolution(HARKobject):
+class RiskyContribRebSolution(HARKobject):
     
     # TODO: what does this do?
-    distance_criteria = ['dvdmFuncAdj']
+    distance_criteria = ['dvdmFuncReb']
 
     def __init__(self,
         
+        # Rebalancing stage
+        vFuncRebAdj = None,
+        DFuncRebAdj = None,
+        dvdmFuncRebAdj = None,
+        dvdnFuncRebAdj = None,
+        dvdsFuncRebAdj = None,
+        
         # Adjusting stage
-        vFuncAdj = None,
-        DFuncAdj = None,
-        dvdmFuncAdj = None,
-        dvdnFuncAdj = None
+        vFuncRebFxd = None,
+        DFuncRebFxd = None,
+        dvdmFuncRebFxd = None,
+        dvdnFuncRebFxd = None,
+        dvdsFuncRebFxd = None
         
     ):
         
-        # Adjusting stage
-        if vFuncAdj is None:
-            vFuncAdj = NullFunc()
-        if DFuncAdj is None:
-            DFuncAdj = NullFunc()
-        if dvdmFuncAdj is None:
-            dvdmFuncAdj = NullFunc()
-        if dvdnFuncAdj is None:
-            dvdnFuncAdj = NullFunc()
+        # Rebalancing stage
+        if vFuncRebAdj is None:
+            vFuncRebAdj = NullFunc()
+        if DFuncRebAdj is None:
+            DFuncRebAdj = NullFunc()
+        if dvdmFuncRebAdj is None:
+            dvdmFuncRebAdj = NullFunc()
+        if dvdnFuncRebAdj is None:
+            dvdnFuncRebAdj = NullFunc()
+        if dvdsFuncRebAdj is None:
+            dvdsFuncRebAdj = NullFunc()
         
-        # Adjusting stage
-        self.vFuncAdj = vFuncAdj
-        self.DFuncAdj = DFuncAdj
-        self.dvdmFuncAdj = dvdmFuncAdj
-        self.dvdnFuncAdj = dvdnFuncAdj
+        if vFuncRebFxd is None:
+            vFuncRebFxd = NullFunc()
+        if DFuncRebFxd is None:
+            DFuncRebFxd = NullFunc()
+        if dvdmFuncRebFxd is None:
+            dvdmFuncRebFxd = NullFunc()
+        if dvdnFuncRebFxd is None:
+            dvdnFuncRebFxd = NullFunc()
+        if dvdsFuncRebFxd is None:
+            dvdsFuncRebFxd = NullFunc()
+        
+        # Rebalancing stage
+        self.vFuncRebAdj = vFuncRebAdj
+        self.DFuncRebAdj = DFuncRebAdj
+        self.dvdmFuncRebAdj = dvdmFuncRebAdj
+        self.dvdnFuncRebAdj = dvdnFuncRebAdj
+        self.dvdsFuncRebAdj = dvdsFuncRebAdj
+        
+        self.vFuncRebFxd = vFuncRebFxd
+        self.DFuncRebFxd = DFuncRebFxd
+        self.dvdmFuncRebFxd = dvdmFuncRebFxd
+        self.dvdnFuncRebFxd = dvdnFuncRebFxd
+        self.dvdsFuncRebFxd = dvdsFuncRebFxd
         
 # Define a class to represent the single period solution of the portfolio choice problem
 class RiskyContribConsSolution(HARKobject):
@@ -601,32 +658,32 @@ class RiskyContribConsSolution(HARKobject):
     def __init__(self,
                 
         # Consumption stage
-        vFuncFxd = None,
-        cFuncFxd = None,
-        dvdmFuncFxd = None,
-        dvdnFuncFxd = None,
-        dvdsFuncFxd = None
+        vFuncCon = None,
+        cFunc = None,
+        dvdmFuncCon = None,
+        dvdnFuncCon = None,
+        dvdsFuncCon = None
         
     ):
                 
         # Consumption stage
-        if vFuncFxd is None:
-            vFuncFxd = NullFunc()
-        if cFuncFxd is None:
-            cFuncFxd = NullFunc()
-        if dvdmFuncFxd is None:
-            dvdmFuncFxd = NullFunc()
-        if dvdnFuncFxd is None:
-            dvdmFuncFxd = NullFunc()
-        if dvdsFuncFxd is None:
-            dvdsFuncFxd = NullFunc()
+        if vFuncCon is None:
+            vFuncCon = NullFunc()
+        if cFunc is None:
+            cFunc = NullFunc()
+        if dvdmFuncCon is None:
+            dvdmFuncCon = NullFunc()
+        if dvdnFuncCon is None:
+            dvdmFuncCon = NullFunc()
+        if dvdsFuncCon is None:
+            dvdsFuncCon = NullFunc()
         
         # Consumption stage
-        self.vFuncFxd = vFuncFxd
-        self.cFuncFxd = cFuncFxd
-        self.dvdmFuncFxd = dvdmFuncFxd
-        self.dvdnFuncFxd = dvdnFuncFxd
-        self.dvdsFuncFxd = dvdsFuncFxd
+        self.vFuncCon = vFuncCon
+        self.cFunc = cFunc
+        self.dvdmFuncCon = dvdmFuncCon
+        self.dvdnFuncCon = dvdnFuncCon
+        self.dvdsFuncCon = dvdsFuncCon
 
         
 class RiskyContribConsumerType(RiskyAssetConsumerType):
