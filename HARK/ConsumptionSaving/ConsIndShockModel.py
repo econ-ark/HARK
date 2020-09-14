@@ -1732,9 +1732,9 @@ class PerfForesightConsumerType(AgentType):
         self.unpack("cFunc")
 
     def initializeSim(self):
-        self.state_vars['PlvlAggNow'] = 1.0
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
         AgentType.initializeSim(self)
+        self.state_vars['PlvlAggNow'] = 1.0
 
     def simBirth(self, which_agents):
         """
@@ -1842,12 +1842,15 @@ class PerfForesightConsumerType(AgentType):
         RfreeNow = self.getRfree()
 
         # Calculate new states: normalized market resources and permanent income level
-        pLvlNow = pLvlPrev*self.PermShkNow # Updated permanent income level
+        pLvlNow = pLvlPrev*self.shocks['PermShkNow'] # Updated permanent income level
         PlvlAggNow = self.state_vars['PlvlAggNow']*self.PermShkAggNow # Updated aggregate permanent productivity level
-        ReffNow      = RfreeNow/self.PermShkNow # "Effective" interest factor on normalized assets
+        ReffNow      = RfreeNow/self.shocks['PermShkNow'] # "Effective" interest factor on normalized assets
         bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
-        mNrmNow = bNrmNow + self.TranShkNow # Market resources after income
+        mNrmNow = bNrmNow + self.shocks['TranShkNow'] # Market resources after income
 
+        print(
+            np.mean(mNrmNow)
+        )
 
         return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow
 

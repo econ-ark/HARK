@@ -637,9 +637,9 @@ class AgentType(HARKobject):
 
     def getStates(self):
         """
-        Gets values of state variables for the current period, probably by using post-decision states
-        from last period, current period shocks, and maybe market-level events.  Does nothing by
-        default, but can be overwritten by subclasses of AgentType.
+        Gets values of state variables for the current period.
+        By default, calls transition function and assigns values
+        to the state_vars dictionary.
 
         Parameters
         ----------
@@ -649,6 +649,10 @@ class AgentType(HARKobject):
         -------
         None
         """
+        new_states = self.transition()
+        for i, var in enumerate(self.state_vars):
+            self.state_vars[var] = new_states[i]
+
         return None
 
     def transition(self):
