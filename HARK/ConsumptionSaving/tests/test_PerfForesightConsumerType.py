@@ -83,9 +83,12 @@ class testPerfForesightConsumerType(unittest.TestCase):
 
         self.agent_infinite.initializeSim()
         self.agent_infinite.simulate(80)
-        self.agent_infinite.aNrmNow += (
+
+        # This actually does nothing because aNrmNow is
+        # epiphenomenal. Probably should change mNrmNow instead
+        self.agent_infinite.poststate_vars['aNrmNow'] += (
             -5.0
-        )  # Adjust all simulated consumers' assets downward by 5
+        )
         self.agent_infinite.simulate(40)
 
         self.assertAlmostEqual(
