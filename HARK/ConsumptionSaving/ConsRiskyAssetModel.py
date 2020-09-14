@@ -1424,49 +1424,90 @@ def solveRiskyContribShaStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     
     # Unpack solution from the next sub-stage
     vFuncCon_next    = solution_next.vFuncCon
-    cFunc_next       = solution_next.cFunc,
-    dvdmFuncCon_next = solution_next.dvdmFuncCon,
-    dvdnFuncCon_next = solution_next.dvdnFuncCon,
+    cFunc_next       = solution_next.cFunc
+    dvdmFuncCon_next = solution_next.dvdmFuncCon
+    dvdnFuncCon_next = solution_next.dvdnFuncCon
     dvdsFuncCon_next = solution_next.dvdsFuncCon
+    
+    # Define temporary functions for utility and its derivative and inverse
+    uPinv = lambda x : utilityP_inv(x, CRRA)
     
     # TODO: implement continuous share case.
     if not DiscreteShareBool:
         
         raise Exception('The case of continuous shares has not been implemented yet')
+    
         
-    # Find the optimal share over the regular grid.
-    optIdx = np.argmax(vNvrsFxd, axis = 2)
-        
-    # Reformat grids now that the share was optimized over.
-    mNrm_tiled = mNrm_tiled[:,:,0]
-    nNrm_tiled = nNrm_tiled[:,:,0]
+    # Create tiled grids    
+
+    # Add 0 to the m and n grids
+    nNrmGrid = np.insert(nNrmGrid, 0, 0.0)  
+    nNrm_N = len(nNrmGrid)
+    mNrmGrid = np.insert(mNrmGrid,0,0)
+    mNrm_N = len(mNrmGrid)
+    Share_N = len(ShareGrid)
+    
+    mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N,1,1)), (1,nNrm_N,Share_N))
+    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (mNrm_N,1,Share_N))
+    Share_tiled = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (mNrm_N,nNrm_N,1))
+    
     m_idx_tiled = np.tile(np.reshape(np.arange(mNrm_N), (mNrm_N,1)), (1,nNrm_N))
     n_idx_tiled = np.tile(np.reshape(np.arange(nNrm_N), (1,nNrm_N)), (mNrm_N,1))
+        
+    
+    # Evaluate value function to optimize over shares.
+    # Do it in inverse space
+    vNvrs = vFuncCon_next.func(mNrm_tiled, nNrm_tiled, Share_tiled)
+    
+    # Find the optimal share at each (m,n).
+    optIdx = np.argmax(vNvrs, axis = 2)
+    
+    # Project grids
+    mNrm_tiled = mNrm_tiled[:,:,0]
+    nNrm_tiled = nNrm_tiled[:,:,0]
     
     # Compute objects needed for the value function and its derivatives
-    vNvrsSha     = vNvrsFxd[m_idx_tiled, n_idx_tiled, optIdx]
+    vNvrsSha     = vNvrs[m_idx_tiled, n_idx_tiled, optIdx]
     optShare     = ShareGrid[optIdx]
-    dvdmNvrsSha  = cFuncFxd(mNrm_tiled, nNrm_tiled, optShare)
-    dvdnSha      = dvdnFuncFxd(mNrm_tiled, nNrm_tiled, optShare)
+    dvdmNvrsSha  = cFunc_next(mNrm_tiled, nNrm_tiled, optShare)
+    dvdnSha      = dvdnFuncCon_next(mNrm_tiled, nNrm_tiled, optShare)
     dvdnNvrsSha  = uPinv(dvdnSha)
     # Interpolators
     vNvrsFuncSha    = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
     vFuncSha        = ValueFunc2D(vNvrsFuncSha, CRRA)
+    
     # TODO: do share interpolation more smartly taking into account that
     # it's discrete. (current bilinear can and will result in shares
     # outside the discrete grid).
-    ShareFuncSha    = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
+    ShareFunc       = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
     dvdmNvrsFuncSha = BilinearInterp(dvdmNvrsSha, mNrmGrid, nNrmGrid)
     dvdmFuncSha     = MargValueFunc2D(dvdmNvrsFuncSha, CRRA)
     dvdnNvrsFuncSha = BilinearInterp(dvdnNvrsSha, mNrmGrid, nNrmGrid)
     dvdnFuncSha     = MargValueFunc2D(dvdnNvrsFuncSha, CRRA)
+    
+    solution = RiskyContribShaSolution(
+        vFuncShaAdj = vFuncSha,
+        ShareFuncAdj = ShareFunc,
+        dvdmFuncShaAdj = dvdmFuncSha,
+        dvdnFuncShaAdj = dvdnFuncSha,
+        dvdsFuncShaAdj = ConstantFunction(0.0),
+        
+        # The fixed agent does nothing at this stage,
+        # so his value functions are the next problem's
+        vFuncShaFxd = vFuncCon_next,
+        ShareFuncFxd = IdentityFunction(i_dim = 2, n_dims = 3),
+        dvdmFuncShaFxd = dvdmFuncCon_next,
+        dvdnFuncShaFxd = dvdnFuncCon_next,
+        dvdsFuncShaFxd = dvdsFuncCon_next
+    )
     
 # Solver for the asset rebalancing stage
 def solveRiskyContribRebStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                               LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
                               BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
                               ShareGrid,dGrid,vFuncBool,AdjustPrb,
-                              DiscreteShareBool,IndepDstnBool):    
+                              DiscreteShareBool,IndepDstnBool):
+    
     pass
 
 # Define a non-object-oriented one period solver
