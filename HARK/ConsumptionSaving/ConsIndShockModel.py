@@ -1569,7 +1569,7 @@ class PerfForesightConsumerType(AgentType):
     )
     time_vary_ = ["LivPrb", "PermGroFac"]
     time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
-    state_vars_     = ['pLvlNow', 'PlvlAggNow', 'bNrmNow', 'mNrmNow'] 
+    state_vars_     = ['pLvlNow', 'PlvlAggNow', 'bNrmNow', 'mNrmNow']
     poststate_vars_ = ["aNrmNow", "pLvlNow"]
     shock_vars_ = []
 
@@ -1701,15 +1701,15 @@ class PerfForesightConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.poststate_vars['aNrmNow'][which_agents] = Lognormal(
+        self.poststate_vars["aNrmNow"][which_agents] = Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1),
         ).draw(N)
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
-            self.state_vars['PlvlAggNow']
+            self.state_vars["PlvlAggNow"]
         )  # Account for newer cohorts having higher permanent income
-        self.state_vars['pLvlNow'][which_agents] = Lognormal(
+        self.state_vars["pLvlNow"][which_agents] = Lognormal(
             pLvlInitMeanNow,
             self.pLvlInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1)

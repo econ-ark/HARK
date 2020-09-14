@@ -269,8 +269,8 @@ class RepAgentConsumerType(IndShockConsumerType):
         -------
         None
         """
-        pLvlPrev = self.pLvlNow
-        aNrmPrev = self.aNrmNow
+        pLvlPrev = self.poststate_vars['pLvlNow']
+        aNrmPrev = self.poststate_vars['aNrmNow']
 
         # Calculate new states: normalized market resources and permanent income level
         self.pLvlNow = (
