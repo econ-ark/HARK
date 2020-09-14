@@ -147,7 +147,12 @@ class AggShockConsumerType(IndShockConsumerType):
         self.time_vary = deepcopy(IndShockConsumerType.time_vary_)
         self.time_inv = deepcopy(IndShockConsumerType.time_inv_)
         self.delFromTimeInv("Rfree", "vFuncBool", "CubicBool")
-        self.poststate_vars = IndShockConsumerType.poststate_vars_
+        self.state_vars = {sv : None
+                           for sv
+                           in IndShockConsumerType.state_vars_}
+        self.poststate_vars = {psv : None
+                               for psv
+                               in IndShockConsumerType.poststate_vars_}
         self.solveOnePeriod = solveConsAggShock
         self.update()
 

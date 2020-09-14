@@ -226,7 +226,7 @@ class AgentType(HARKobject):
         self.track_vars = []  # NOQA
         self.state_vars = {}
         self.shocks = {}
-        self.poststate_vars = []  # NOQA
+        self.poststate_vars = {}  # NOQA
         self.read_shocks = False  # NOQA
         self.shock_history = {}
         self.history = {}

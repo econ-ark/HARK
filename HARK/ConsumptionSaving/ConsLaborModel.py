@@ -486,7 +486,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.getStates(self)
-        self.mNrmNow[:] = np.nan  # Delete market resource calculation
+        self.state_vars['mNrmNow'][:] = np.nan  # Delete market resource calculation
 
     def getControls(self):
         """
@@ -540,8 +540,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
                 + self.LbrNow[these] * self.shocks["TranShkNow"][these]
             )  # mNrm = bNrm + yNrm
             aNrmNow[these] = mNrmNow[these] - self.cNrmNow[these]  # aNrm = mNrm - cNrm
-        self.mNrmNow = mNrmNow
-        self.aNrmNow = aNrmNow
+        self.poststate_vars['mNrmNow'] = mNrmNow
+        self.poststate_vars['aNrmNow'] = aNrmNow
 
     def updateTranShkGrid(self):
         """
