@@ -709,58 +709,6 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         )
         self.defUtilityFuncs()
 
-    def assignParameters(self,solution_next,IncomeDstn,LivPrb,DiscFac,CRRA,Rfree,
-                                PermGroFac,BoroCnstArt,aXtraGrid,vFuncBool,CubicBool):
-        '''
-        Assigns period parameters as attributes of self for use by other methods
-
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        IncomeDstn : [np.array]
-            A list containing three arrays of floats, representing a discrete
-            approximation to the income process between the period being solved
-            and the one immediately following (in solution_next). Order: event
-            probabilities, permanent shocks, transitory shocks.
-        LivPrb : float
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rfree : float
-            Risk free interest factor on end-of-period assets.
-        PermGroFac : float
-            Expected permanent income growth factor at the end of this period.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.  If it is less than the natural borrowing constraint,
-            then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-            rowing constraint.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period asset values-- assets above the
-            absolute minimum acceptable level.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear inter-
-            polation.
-
-        Returns
-        -------
-        none
-        '''
-        ConsPerfForesightSolver.assignParameters(self,solution_next,DiscFac,LivPrb,
-                                                CRRA,Rfree,PermGroFac,BoroCnstArt,None)
-        self.aXtraGrid      = aXtraGrid
-        self.IncomeDstn     = IncomeDstn
-        self.vFuncBool      = vFuncBool
-        self.CubicBool      = CubicBool
-
-
     def defUtilityFuncs(self):
         """
         Defines CRRA utility function for this period (and its derivatives,
@@ -1658,7 +1606,7 @@ class PerfForesightConsumerType(AgentType):
         self.time_vary = deepcopy(self.time_vary_)
         self.time_inv = deepcopy(self.time_inv_)
         self.state_vars = {sv : None for sv in self.state_vars_}
-        self.poststate_vars = deepcopy(self.poststate_vars_)
+        self.poststate_vars = {psv : None for psv in self.poststate_vars_}
         self.shock_vars = deepcopy(self.shock_vars_)
         self.verbose = verbose
         self.quiet = quiet
@@ -1753,7 +1701,7 @@ class PerfForesightConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.aNrmNow[which_agents] = Lognormal(
+        self.poststate_vars['aNrmNow'][which_agents] = Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1),
@@ -1837,8 +1785,8 @@ class PerfForesightConsumerType(AgentType):
         return RfreeNow
 
     def transition(self):
-        pLvlPrev = self.pLvlNow
-        aNrmPrev = self.aNrmNow
+        pLvlPrev = self.state_vars['pLvlNow']
+        aNrmPrev = self.poststate_vars['aNrmNow']
         RfreeNow = self.getRfree()
 
         # Calculate new states: normalized market resources and permanent income level
@@ -1847,10 +1795,6 @@ class PerfForesightConsumerType(AgentType):
         ReffNow      = RfreeNow/self.shocks['PermShkNow'] # "Effective" interest factor on normalized assets
         bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
         mNrmNow = bNrmNow + self.shocks['TranShkNow'] # Market resources after income
-
-        print(
-            np.mean(mNrmNow)
-        )
 
         return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow
 
@@ -1890,9 +1834,9 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         """
-        self.aNrmNow = self.state_vars['mNrmNow'] - self.cNrmNow
-
-        self.aLvlNow = self.aNrmNow*self.state_vars['pLvlNow']   # Useful in some cases to precalculate asset level
+        self.poststate_vars['aNrmNow'] = self.state_vars['mNrmNow'] - self.cNrmNow
+        # Useful in some cases to precalculate asset level
+        self.poststate_vars['aLvlNow'] = self.poststate_vars['aNrmNow'] * self.state_vars['pLvlNow']   
         return None
 
     def checkCondition(self, name, test, messages, verbose, verbose_messages=None):
@@ -2947,7 +2891,7 @@ class KinkedRconsumerType(IndShockConsumerType):
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
         RfreeNow = self.Rboro * np.ones(self.AgentCount)
-        RfreeNow[self.aNrmNow > 0] = self.Rsave
+        RfreeNow[self.poststate_vars['aNrmNow'] > 0] = self.Rsave
         return RfreeNow
 
     def checkConditions(self):

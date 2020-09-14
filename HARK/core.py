@@ -444,7 +444,7 @@ class AgentType(HARKobject):
         for var in self.state_vars:
             self.state_vars[var] = copy(blank_array)
         for var_name in self.poststate_vars:
-            setattr(self, var_name, copy(blank_array))
+            self.poststate_vars[var_name] = copy(blank_array)
         self.t_age = np.zeros(
             self.AgentCount, dtype=int
         )  # Number of periods since agent entry
@@ -758,6 +758,8 @@ class AgentType(HARKobject):
                         ]
                     elif var_name in self.shock_vars:
                         self.history[var_name][self.t_sim, :] = self.shocks[var_name]
+                    elif var_name in self.poststate_vars:
+                        self.history[var_name][self.t_sim, :] = self.poststate_vars[var_name]
                     else:
                         self.history[var_name][self.t_sim, :] = getattr(self, var_name)
                 self.t_sim += 1

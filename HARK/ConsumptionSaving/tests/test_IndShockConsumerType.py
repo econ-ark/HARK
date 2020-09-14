@@ -89,7 +89,7 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(self.agent.MPCnow[1], 0.5711503906043797)
 
-        self.assertAlmostEqual(self.agent.aLvlNow[1], 0.18438326264597635)
+        self.assertAlmostEqual(self.agent.poststate_vars['aLvlNow'][1], 0.18438326264597635)
 
 
 class testBufferStock(unittest.TestCase):
