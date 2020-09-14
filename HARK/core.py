@@ -442,7 +442,8 @@ class AgentType(HARKobject):
         all_agents = np.ones(self.AgentCount, dtype=bool)
         blank_array = np.zeros(self.AgentCount)
         for var in self.state_vars:
-            self.state_vars[var] = copy(blank_array)
+            if self.state_vars[var] is None:
+                self.state_vars[var] = copy(blank_array)
         for var_name in self.poststate_vars:
             self.poststate_vars[var_name] = copy(blank_array)
         self.t_age = np.zeros(

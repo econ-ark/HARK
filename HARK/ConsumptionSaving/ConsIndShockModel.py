@@ -1681,8 +1681,8 @@ class PerfForesightConsumerType(AgentType):
 
     def initializeSim(self):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
-        AgentType.initializeSim(self)
         self.state_vars['PlvlAggNow'] = 1.0
+        AgentType.initializeSim(self)
 
     def simBirth(self, which_agents):
         """
