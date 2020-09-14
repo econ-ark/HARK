@@ -599,14 +599,14 @@ class RiskyContribRebSolution(HARKobject):
         
         # Rebalancing stage
         vFuncRebAdj = None,
-        DFuncRebAdj = None,
+        DFuncAdj = None,
         dvdmFuncRebAdj = None,
         dvdnFuncRebAdj = None,
         dvdsFuncRebAdj = None,
         
         # Adjusting stage
         vFuncRebFxd = None,
-        DFuncRebFxd = None,
+        DFuncFxd = None,
         dvdmFuncRebFxd = None,
         dvdnFuncRebFxd = None,
         dvdsFuncRebFxd = None
@@ -616,8 +616,8 @@ class RiskyContribRebSolution(HARKobject):
         # Rebalancing stage
         if vFuncRebAdj is None:
             vFuncRebAdj = NullFunc()
-        if DFuncRebAdj is None:
-            DFuncRebAdj = NullFunc()
+        if DFuncAdj is None:
+            DFuncAdj = NullFunc()
         if dvdmFuncRebAdj is None:
             dvdmFuncRebAdj = NullFunc()
         if dvdnFuncRebAdj is None:
@@ -627,8 +627,8 @@ class RiskyContribRebSolution(HARKobject):
         
         if vFuncRebFxd is None:
             vFuncRebFxd = NullFunc()
-        if DFuncRebFxd is None:
-            DFuncRebFxd = NullFunc()
+        if DFuncFxd is None:
+            DFuncFxd = NullFunc()
         if dvdmFuncRebFxd is None:
             dvdmFuncRebFxd = NullFunc()
         if dvdnFuncRebFxd is None:
@@ -638,13 +638,13 @@ class RiskyContribRebSolution(HARKobject):
         
         # Rebalancing stage
         self.vFuncRebAdj = vFuncRebAdj
-        self.DFuncRebAdj = DFuncRebAdj
+        self.DFuncAdj = DFuncAdj
         self.dvdmFuncRebAdj = dvdmFuncRebAdj
         self.dvdnFuncRebAdj = dvdnFuncRebAdj
         self.dvdsFuncRebAdj = dvdsFuncRebAdj
         
         self.vFuncRebFxd = vFuncRebFxd
-        self.DFuncRebFxd = DFuncRebFxd
+        self.DFuncFxd = DFuncFxd
         self.dvdmFuncRebFxd = dvdmFuncRebFxd
         self.dvdnFuncRebFxd = dvdnFuncRebFxd
         self.dvdsFuncRebFxd = dvdsFuncRebFxd
@@ -721,7 +721,9 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         )
         
         # Set the solver for the portfolio model, and update various constructed attributes
-        self.solveOnePeriod = [solveConsRiskyContrib for _ in range(3) for _ in range(nPeriods)]
+        self.solveOnePeriod = [solveRiskyContribRebStage,
+                               solveRiskyContribShaStage,
+                               solveRiskyContribConsStage]*nPeriods
         self.addToTimeVary('solveOnePeriod')
         self.update()
         
@@ -752,64 +754,60 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         None
         '''
         
-        # Consumption stage
+        # We assume that in the last stage, the agent just tries to consume
+        # everythin he can. If he is "fixed", that's only liquid resources.
+        # If he can adjust, share is irrelevant, but he withdraws and consumes
+        # all iliquid resources.
+        
+        # Consumption and value of the fixed agent
+        
+        # Can't rebalance
+        RFuncFxd_term = ConstantFunction(0.0)
         
         # Consume all thats available (liquid resources)
         cFuncFxd_term = IdentityFunction(i_dim = 0, n_dims = 3)
         vFuncFxd_term = ValueFunc3D(cFuncFxd_term, CRRA = self.CRRA)
         
+        # Marginal values of the fixed agent
         dvdmFuncFxd_term = MargValueFunc3D(cFuncFxd_term, CRRA = self.CRRA)
         dvdnFuncFxd_term = ConstantFunction(0.0)
         dvdsFuncFxd_term = ConstantFunction(0.0)
         
-        # Contribution stage: share is irrelevant, so functions are those from
-        # the consumption stage.
-        
-        # Take the lowest share, arbitrarily
-        aux_s = self.ShareGrid[0]
-        
-        vFuncSha_term = lambda m,n: vFuncFxd_term(m,n,aux_s*np.ones_like(m))
-        ShareFuncSha_term = ConstantFunction(aux_s)
-        dvdmFuncSha_term = lambda m,n: dvdmFuncFxd_term(m,n,aux_s*np.ones_like(m))
-        dvdnFuncSha_term = ConstantFunction(0.0)
-        
-        # Adjusting stage
+        # Rebalancing of the adjusting agent: 
+        # Withdraw everything from the pension fund and consume everything
+        DFuncAdj_term = ConstantFunction(-1.0)
         
         # Find the withdrawal penalty
         if type(self.tau) is list:
             tau = self.tau[-1]
         else:
             tau = self.tau
-            
-        # Withdraw everything from the pension fund and consume everything
-        DFuncAdj_term = ConstantFunction(-1.0)
-        vFuncAdj_term = ValueFunc2D(lambda m,n: m + n/(1+tau), self.CRRA)
-        dvdmFuncAdj_term = MargValueFunc2D(lambda m,n: m + n/(1+tau), self.CRRA)
-        # A marginal unit of n will be withdrawn and put into m. Then consumed.
-        dvdnFuncAdj_term = lambda m,n: dvdmFuncAdj_term(m,n)/(1+tau)
         
+        # Value and marginal value function of the adjusting agent
+        vFuncAdj_term = ValueFunc3D(lambda m,n,s: m + n/(1+tau), self.CRRA)
+        dvdmFuncAdj_term = MargValueFunc3D(lambda m,n,s: m + n/(1+tau), self.CRRA)
+        # A marginal unit of n will be withdrawn and put into m. Then consumed.
+        dvdnFuncAdj_term = lambda m,n,s: dvdmFuncAdj_term(m,n,s)/(1+tau)
+        
+        dvdsFuncAdj_term = ConstantFunction(0.0)
         
         # Construct the terminal period solution
-        self.solution_terminal = RiskyContribSolution(
-            # Contribution stage
-            vFuncSha = vFuncSha_term,
-            ShareFuncSha = ShareFuncSha_term,
-            dvdmFuncSha = dvdmFuncSha_term,
-            dvdnFuncSha = dvdnFuncSha_term,
+        self.solution_terminal = RiskyContribRebSolution(
+            # Rebalancing stage
+            vFuncRebAdj = vFuncAdj_term,
+            DFuncAdj = DFuncAdj_term,
+            dvdmFuncRebAdj = dvdmFuncAdj_term,
+            dvdnFuncRebAdj = dvdnFuncAdj_term,
+            dvdsFuncRebAdj = dvdsFuncAdj_term,
             
             # Adjusting stage
-            vFuncAdj = vFuncAdj_term,
-            DFuncAdj = DFuncAdj_term,
-            dvdmFuncAdj = dvdmFuncAdj_term,
-            dvdnFuncAdj = dvdnFuncAdj_term,
-            
-            # Consumption stage
-            vFuncFxd = vFuncFxd_term,
-            cFuncFxd = cFuncFxd_term,
-            dvdmFuncFxd = dvdmFuncFxd_term,
-            dvdnFuncFxd = dvdnFuncFxd_term,
-            dvdsFuncFxd = dvdsFuncFxd_term
+            vFuncRebFxd = vFuncFxd_term,
+            DFuncFxd = RFuncFxd_term,
+            dvdmFuncRebFxd = dvdmFuncFxd_term,
+            dvdnFuncRebFxd = dvdnFuncFxd_term,
+            dvdsFuncRebFxd = dvdsFuncFxd_term
         )
+        
     
     def updateTau(self):
         
@@ -1146,7 +1144,7 @@ def findOptimalRebalance(m,n,vNvrs,tau):
     m_til, n_til = rebalanceAssets(dopt,m,n,tau)
     return dopt, m_til, n_til, fopt
         
-# Define a non-object-oriented one period solver
+# Consumption stage solver
 def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                                LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
                                BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
@@ -1417,8 +1415,62 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     )
     
     return solution
+
+
+# Solver for the contribution stage
+def solveRiskyContribShaStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
+                              LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
+                              BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
+                              ShareGrid,dGrid,vFuncBool,AdjustPrb,
+                              DiscreteShareBool,IndepDstnBool):
     
-                
+    # Unpack solution from the next sub-stage
+    vFuncCon_next    = solution_next.vFuncCon
+    cFunc_next       = solution_next.cFunc,
+    dvdmFuncCon_next = solution_next.dvdmFuncCon,
+    dvdnFuncCon_next = solution_next.dvdnFuncCon,
+    dvdsFuncCon_next = solution_next.dvdsFuncCon
+    
+    # TODO: implement continuous share case.
+    if not DiscreteShareBool:
+        
+        raise Exception('The case of continuous shares has not been implemented yet')
+        
+    # Find the optimal share over the regular grid.
+    optIdx = np.argmax(vNvrsFxd, axis = 2)
+        
+    # Reformat grids now that the share was optimized over.
+    mNrm_tiled = mNrm_tiled[:,:,0]
+    nNrm_tiled = nNrm_tiled[:,:,0]
+    m_idx_tiled = np.tile(np.reshape(np.arange(mNrm_N), (mNrm_N,1)), (1,nNrm_N))
+    n_idx_tiled = np.tile(np.reshape(np.arange(nNrm_N), (1,nNrm_N)), (mNrm_N,1))
+    
+    # Compute objects needed for the value function and its derivatives
+    vNvrsSha     = vNvrsFxd[m_idx_tiled, n_idx_tiled, optIdx]
+    optShare     = ShareGrid[optIdx]
+    dvdmNvrsSha  = cFuncFxd(mNrm_tiled, nNrm_tiled, optShare)
+    dvdnSha      = dvdnFuncFxd(mNrm_tiled, nNrm_tiled, optShare)
+    dvdnNvrsSha  = uPinv(dvdnSha)
+    # Interpolators
+    vNvrsFuncSha    = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
+    vFuncSha        = ValueFunc2D(vNvrsFuncSha, CRRA)
+    # TODO: do share interpolation more smartly taking into account that
+    # it's discrete. (current bilinear can and will result in shares
+    # outside the discrete grid).
+    ShareFuncSha    = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
+    dvdmNvrsFuncSha = BilinearInterp(dvdmNvrsSha, mNrmGrid, nNrmGrid)
+    dvdmFuncSha     = MargValueFunc2D(dvdmNvrsFuncSha, CRRA)
+    dvdnNvrsFuncSha = BilinearInterp(dvdnNvrsSha, mNrmGrid, nNrmGrid)
+    dvdnFuncSha     = MargValueFunc2D(dvdnNvrsFuncSha, CRRA)
+    
+# Solver for the asset rebalancing stage
+def solveRiskyContribRebStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
+                              LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
+                              BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
+                              ShareGrid,dGrid,vFuncBool,AdjustPrb,
+                              DiscreteShareBool,IndepDstnBool):    
+    pass
+
 # Define a non-object-oriented one period solver
 def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                           LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
