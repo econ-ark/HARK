@@ -541,7 +541,6 @@ class RiskyContribShaSolution(HARKobject):
         ShareFuncAdj = None,
         dvdmFuncShaAdj = None,
         dvdnFuncShaAdj = None,
-        dvdsFuncShaAdj = None,
         
         # Contribution stage, fixed
         vFuncShaFxd = None,
@@ -561,8 +560,6 @@ class RiskyContribShaSolution(HARKobject):
             dvdmFuncShaAdj = NullFunc()
         if dvdnFuncShaAdj is None:
             dvdnFuncShaAdj = NullFunc()
-        if dvdsFuncShaAdj is None:
-            dvdsFuncShaAdj = NullFunc()
         
         # Contribution stage, fixed
         if vFuncShaFxd is None:
@@ -581,7 +578,6 @@ class RiskyContribShaSolution(HARKobject):
         self.ShareFuncAdj = ShareFuncAdj
         self.dvdmFuncShaAdj = dvdmFuncShaAdj
         self.dvdnFuncShaAdj = dvdnFuncShaAdj
-        self.dvdsFuncShaAdj = dvdsFuncShaAdj
         
         self.vFuncShaFxd = vFuncShaFxd
         self.ShareFuncFxd = ShareFuncFxd
@@ -597,14 +593,13 @@ class RiskyContribRebSolution(HARKobject):
 
     def __init__(self,
         
-        # Rebalancing stage
+        # Rebalancing stage, adjusting
         vFuncRebAdj = None,
         DFuncAdj = None,
         dvdmFuncRebAdj = None,
         dvdnFuncRebAdj = None,
-        dvdsFuncRebAdj = None,
         
-        # Adjusting stage
+        # Rebalancing stage, fixed
         vFuncRebFxd = None,
         DFuncFxd = None,
         dvdmFuncRebFxd = None,
@@ -622,8 +617,6 @@ class RiskyContribRebSolution(HARKobject):
             dvdmFuncRebAdj = NullFunc()
         if dvdnFuncRebAdj is None:
             dvdnFuncRebAdj = NullFunc()
-        if dvdsFuncRebAdj is None:
-            dvdsFuncRebAdj = NullFunc()
         
         if vFuncRebFxd is None:
             vFuncRebFxd = NullFunc()
@@ -641,7 +634,6 @@ class RiskyContribRebSolution(HARKobject):
         self.DFuncAdj = DFuncAdj
         self.dvdmFuncRebAdj = dvdmFuncRebAdj
         self.dvdnFuncRebAdj = dvdnFuncRebAdj
-        self.dvdsFuncRebAdj = dvdsFuncRebAdj
         
         self.vFuncRebFxd = vFuncRebFxd
         self.DFuncFxd = DFuncFxd
@@ -784,12 +776,10 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             tau = self.tau
         
         # Value and marginal value function of the adjusting agent
-        vFuncAdj_term = ValueFunc3D(lambda m,n,s: m + n/(1+tau), self.CRRA)
-        dvdmFuncAdj_term = MargValueFunc3D(lambda m,n,s: m + n/(1+tau), self.CRRA)
+        vFuncAdj_term = ValueFunc2D(lambda m,n: m + n/(1+tau), self.CRRA)
+        dvdmFuncAdj_term = MargValueFunc2D(lambda m,n: m + n/(1+tau), self.CRRA)
         # A marginal unit of n will be withdrawn and put into m. Then consumed.
-        dvdnFuncAdj_term = lambda m,n,s: dvdmFuncAdj_term(m,n,s)/(1+tau)
-        
-        dvdsFuncAdj_term = ConstantFunction(0.0)
+        dvdnFuncAdj_term = lambda m,n: dvdmFuncAdj_term(m,n)/(1+tau)
         
         # Construct the terminal period solution
         self.solution_terminal = RiskyContribRebSolution(
@@ -798,7 +788,6 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             DFuncAdj = DFuncAdj_term,
             dvdmFuncRebAdj = dvdmFuncAdj_term,
             dvdnFuncRebAdj = dvdnFuncAdj_term,
-            dvdsFuncRebAdj = dvdsFuncAdj_term,
             
             # Adjusting stage
             vFuncRebFxd = vFuncFxd_term,
@@ -1171,7 +1160,6 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     vFuncRebAdj_next    = solution_next.vFuncRebAdj
     dvdmFuncRebAdj_next = solution_next.dvdmFuncRebAdj
     dvdnFuncRebAdj_next = solution_next.dvdnFuncRebAdj
-    dvdsFuncRebAdj_next = solution_next.dvdsFuncRebAdj
     
     vFuncRebFxd_next    = solution_next.vFuncRebFxd
     dvdmFuncRebFxd_next = solution_next.dvdmFuncRebFxd
@@ -1237,10 +1225,10 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # starts at the Fxd stage.
     
     # Always compute the adjusting version
-    vAdj_next    = vFuncRebAdj_next(mNrm_next,nNrm_next,Share_next)
-    dvdmAdj_next = dvdmFuncRebAdj_next(mNrm_next,nNrm_next,Share_next)
-    dvdnAdj_next = dvdnFuncRebAdj_next(mNrm_next,nNrm_next,Share_next)
-    dvdsAdj_next = dvdsFuncRebAdj_next(mNrm_next,nNrm_next,Share_next) # No marginal value of Share if it's a free choice!
+    vAdj_next    = vFuncRebAdj_next(mNrm_next,nNrm_next)
+    dvdmAdj_next = dvdmFuncRebAdj_next(mNrm_next,nNrm_next)
+    dvdnAdj_next = dvdnFuncRebAdj_next(mNrm_next,nNrm_next)
+    dvdsAdj_next = np.zeros_like(mNrm_next)# No marginal value of Share if it's a free choice!
     
     # We are interested in marginal values before the realization of the
     # adjustment random variable. Compute those objects
@@ -1490,7 +1478,6 @@ def solveRiskyContribShaStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         ShareFuncAdj = ShareFunc,
         dvdmFuncShaAdj = dvdmFuncSha,
         dvdnFuncShaAdj = dvdnFuncSha,
-        dvdsFuncShaAdj = ConstantFunction(0.0),
         
         # The fixed agent does nothing at this stage,
         # so his value functions are the next problem's
@@ -1501,6 +1488,8 @@ def solveRiskyContribShaStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
         dvdsFuncShaFxd = dvdsFuncCon_next
     )
     
+    return solution
+    
 # Solver for the asset rebalancing stage
 def solveRiskyContribRebStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                               LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
@@ -1508,390 +1497,30 @@ def solveRiskyContribRebStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                               ShareGrid,dGrid,vFuncBool,AdjustPrb,
                               DiscreteShareBool,IndepDstnBool):
     
-    pass
-
-# Define a non-object-oriented one period solver
-def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
-                          LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
-                          BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
-                          ShareGrid,dGrid,vFuncBool,AdjustPrb,
-                          DiscreteShareBool,IndepDstnBool):
-    '''
-    Solve the one period problem for a portfolio-choice consumer.
+    # Extract next stage's solution
+    vFuncAdj_next = solution_next.vFuncShaAdj
+    dvdmFuncAdj_next = solution_next.dvdmFuncShaAdj
+    dvdnFuncAdj_next = solution_next.dvdnFuncShaAdj
     
-    Parameters
-    ----------
-    solution_next : RiskyContribSolution
-        Solution to next period's problem.
-    ShockDstn : [np.array]
-        List with four arrays: discrete probabilities, permanent income shocks,
-        transitory income shocks, and risky returns.  This is only used if the
-        input IndepDstnBool is False, indicating that income and return distributions
-        can't be assumed to be independent.
-    IncomeDstn : [np.array]
-        List with three arrays: discrete probabilities, permanent income shocks,
-        and transitory income shocks.  This is only used if the input IndepDsntBool
-        is True, indicating that income and return distributions are independent.
-    RiskyDstn : [np.array]
-        List with two arrays: discrete probabilities and risky asset returns. This
-        is only used if the input IndepDstnBool is True, indicating that income
-        and return distributions are independent.
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
-    DiscFac : float
-        Intertemporal discount factor for future utility.
-    CRRA : float
-        Coefficient of relative risk aversion.
-    Rfree : float
-        Risk free interest factor on end-of-period assets.
-    PermGroFac : float
-        Expected permanent income growth factor at the end of this period.
-    BoroCnstArt: float or None
-        Borrowing constraint for the minimum allowable assets to end the
-        period with.  In this model, it is *required* to be zero.
-    aXtraGrid: np.array
-        Array of "extra" end-of-period asset values-- assets above the
-        absolute minimum acceptable level.
-    nNrmGrid: np.array
-        Array of iliquid risky asset balances.
-    mNrmGrid: np.array
-        Exogenous start-of-period liquid assets grid
-    ShareGrid : np.array
-        Array of risky portfolio shares on which to define the interpolation
-        of the consumption function when Share is fixed.
-    vFuncBool: boolean
-        An indicator for whether the value function should be computed and
-        included in the reported solution.
-    AdjustPrb : float
-        Probability that the agent will be able to update his contribution share.
-    DiscreteShareBool : bool
-        Indicator for whether income contribution share should be optimized on the
-        continuous [0,1] interval using the FOC (False), or instead only selected
-        from the discrete set of values in ShareGrid (True).  If True, then
-        vFuncBool must also be True.
-    IndepDstnBool : bool
-        Indicator for whether the income and risky return distributions are in-
-        dependent of each other, which can speed up the expectations step.
-
-    Returns
-    -------
-    solution_now : PortfolioSolution
-        The solution to the single period consumption-saving with portfolio choice
-        problem.  Includes two consumption and risky share functions: one for when
-        the agent can adjust his portfolio share (Adj) and when he can't (Fxd).
-    '''
-    # Make sure the individual is liquidity constrained.  Allowing a consumer to
-    # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
-    if BoroCnstArt != 0.0:
-        raise ValueError('PortfolioConsumerType must have BoroCnstArt=0.0!')
-        
-    # Make sure that if risky portfolio share is optimized only discretely, then
-    # the value function is also constructed (else this task would be impossible).
-    if (DiscreteShareBool and (not vFuncBool)):
-        raise ValueError('PortfolioConsumerType requires vFuncBool to be True when DiscreteShareBool is True!')
-          
+    vFuncFxd_next = solution_next.vFuncShaFxd
+    dvdmFuncFxd_next = solution_next.dvdmFuncShaFxd
+    dvdnFuncFxd_next = solution_next.dvdnFuncShaFxd
+    dvdsFuncFxd_next = solution_next.dvdsFuncShaFxd
+    
     # Define temporary functions for utility and its derivative and inverse
-    u = lambda x : utility(x, CRRA)
-    uP = lambda x : utilityP(x, CRRA)
     uPinv = lambda x : utilityP_inv(x, CRRA)
-    uInv = lambda x : utility_inv(x, CRRA)
-        
-    # Unpack next period's solution
-    vFuncSha_next     = solution_next.vFuncSha
-    ShareFuncSha_next = solution_next.ShareFuncSha
-    dvdmFuncSha_next  = solution_next.dvdmFuncSha
-    dvdnFuncSha_next  = solution_next.dvdnFuncSha
     
-    vFuncAdj_next     = solution_next.vFuncAdj
-    DFuncAdj_next     = solution_next.DFuncAdj
-    dvdmFuncAdj_next  = solution_next.dvdmFuncAdj
-    dvdnFuncAdj_next  = solution_next.dvdnFuncAdj
-    
-    vFuncFxd_next     = solution_next.vFuncFxd
-    cFuncFxd_next     = solution_next.cFuncFxd
-    dvdmFuncFxd_next  = solution_next.dvdmFuncFxd
-    dvdnFuncFxd_next  = solution_next.dvdnFuncFxd
-    dvdsFuncFxd_next  = solution_next.dvdsFuncFxd
-    
-    # TODO: I am currently contructing the joint distribution of returns and
-    # income, even if they are independent. Is there a way to speed things
-    # up if they are independent?
-    if IndepDstnBool:
-        
-        ShockDstn = combineIndepDstns(IncomeDstn, RiskyDstn)
-    
-    # Unpack the shock distribution
-    ShockPrbs_next = ShockDstn.pmf
-    PermShks_next  = ShockDstn.X[0]
-    TranShks_next  = ShockDstn.X[1]
-    Risky_next     = ShockDstn.X[2]
-    
-    # STEP ONE
-    # Find end-of-period (continuation) value function and its derivatives.
-    
-    # It's possible for the agent to end with 0 iliquid assets regardless of
-    # future income and probability of adjustment.
+    # Create tiled grids    
+
+    # Add 0 to the m and n grids
     nNrmGrid = np.insert(nNrmGrid, 0, 0.0)  
-    
-    # Now, under which parameters do we need to consider the possibility
-    # of the agent ending with 0 liquid assets:
-    # -If he has guaranteed positive income next period.
-    # -If he is sure he can draw on iliquid assets even if income and liquid
-    #  assets are 0.
-    zero_bound = (np.min(TranShks_next) == 0.)
-    if (not zero_bound) or (zero_bound and AdjustPrb == 1.):
-        aNrmGrid = np.insert(aXtraGrid, 0, 0.)
-    else:
-        #aNrmGrid = aXtraGrid
-        aNrmGrid = np.insert(aXtraGrid, 0, 0.)
-        
-    # Create tiled arrays with conforming dimensions. These are used
-    # to compute expectations.
-    aNrm_N = aNrmGrid.size
-    nNrm_N = nNrmGrid.size
-    Share_N = ShareGrid.size
-    Shock_N = ShockPrbs_next.size
-    # Convention will be (a,n,s,Shocks)
-    aNrm_tiled      = np.tile(np.reshape(aNrmGrid, (aNrm_N,1,1,1)), (1,nNrm_N,Share_N,Shock_N))
-    nNrm_tiled      = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1,1)), (aNrm_N,1,Share_N,Shock_N))
-    Share_tiled     = np.tile(np.reshape(ShareGrid, (1,1,Share_N,1)), (aNrm_N,nNrm_N,1,Shock_N))
-    ShockPrbs_tiled = np.tile(np.reshape(ShockPrbs_next, (1,1,1,Shock_N)), (aNrm_N,nNrm_N,Share_N,1))
-    PermShks_tiled  = np.tile(np.reshape(PermShks_next, (1,1,1,Shock_N)), (aNrm_N,nNrm_N,Share_N,1))
-    TranShks_tiled  = np.tile(np.reshape(TranShks_next, (1,1,1,Shock_N)), (aNrm_N,nNrm_N,Share_N,1))
-    Risky_tiled     = np.tile(np.reshape(Risky_next, (1,1,1,Shock_N)), (aNrm_N,nNrm_N,Share_N,1))
-        
-    # Calculate future states
-    mNrm_next = Rfree*aNrm_tiled/(PermShks_tiled*PermGroFac) + (1. - Share_tiled)*TranShks_tiled
-    nNrm_next = Risky_tiled*nNrm_tiled/(PermShks_tiled*PermGroFac) + Share_tiled*TranShks_tiled
-    Share_next = Share_tiled
-    
-    # Evaluate realizations of the derivatives and levels of next period's
-    # value function
-    
-    # The agent who can adjust starts at the "contrib" stage, the one who can't
-    # starts at the Fxd stage.
-    
-    # TODO (remove): a sanity check
-    if not vFuncAdj_next(0.02,0.6) >= vFuncAdj_next(0.02,0.05):
-        print('VFUNC NOT INCREASING!!!')
-    
-    # Always compute the adjusting version
-    vAdj_next    = vFuncAdj_next(mNrm_next, nNrm_next)
-    dvdmAdj_next = dvdmFuncAdj_next(mNrm_next,nNrm_next)
-    dvdnAdj_next = dvdnFuncAdj_next(mNrm_next,nNrm_next)
-    dvdsAdj_next = np.zeros_like(mNrm_next) # No marginal value of Share if it's a free choice!
-    
-    # We are interested in marginal values before the realization of the
-    # adjustment random variable. Compute those objects
-    if AdjustPrb < 1.:
-        
-        # "Fixed" counterparts
-        vFxd_next    = vFuncFxd_next(mNrm_next, nNrm_next, Share_next)
-        dvdmFxd_next = dvdmFuncFxd_next(mNrm_next, nNrm_next, Share_next)
-        dvdnFxd_next = dvdnFuncFxd_next(mNrm_next, nNrm_next, Share_next)
-        dvdsFxd_next = dvdsFuncFxd_next(mNrm_next, nNrm_next, Share_next)
-        
-        # Expected values with respect to adjustment r.v.
-        v_next    = AdjustPrb*vAdj_next    + (1.-AdjustPrb)*vFxd_next
-        dvdm_next = AdjustPrb*dvdmAdj_next + (1.-AdjustPrb)*dvdmFxd_next
-        dvdn_next = AdjustPrb*dvdnAdj_next + (1.-AdjustPrb)*dvdnFxd_next
-        dvds_next = AdjustPrb*dvdsAdj_next + (1.-AdjustPrb)*dvdsFxd_next
-        
-    else: # Don't bother evaluating if there's no chance that contribution share is fixed
-        v_next    = vAdj_next
-        dvdm_next = dvdmAdj_next
-        dvdn_next = dvdnAdj_next
-        dvds_next = dvdsAdj_next
-        
-    # Calculate end-of-period marginal value of both assets by taking expectations
-    temp_fac_A = uP(PermShks_tiled*PermGroFac) # Will use this in a couple places
-    EndOfPrddvda = DiscFac*Rfree*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_A*dvdm_next, axis=3)
-    EndOfPrddvdn = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_A*Risky_tiled*dvdn_next, axis=3)
-    EndOfPrddvdaNvrs = uPinv(EndOfPrddvda)
-    EndOfPrddvdnNvrs = uPinv(EndOfPrddvdn)
-        
-    # Calculate end-of-period value by taking expectations
-    temp_fac_B = (PermShks_tiled*PermGroFac)**(1.-CRRA) # Will use this below
-    EndOfPrdv = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_B*v_next, axis=3)
-    EndOfPrdvNvrs = uInv(EndOfPrdv)
-    
-    # Construct an interpolator for EndOfPrdV. It will be used later.
-    EndOfPrdvFunc = ValueFunc3D(TrilinearInterp(EndOfPrdvNvrs, aNrmGrid,
-                                                nNrmGrid, ShareGrid),
-                                CRRA)
-    
-    # Compute post-consumption marginal value of contribution share,
-    # conditional on shocks
-    EndOfPrddvds_cond_undisc = temp_fac_B*( TranShks_tiled*(dvdn_next - dvdm_next) + dvds_next)
-    # Discount and integrate over shocks
-    EndOfPrddvds = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*EndOfPrddvds_cond_undisc, axis=3)
-    
-    # STEP TWO:
-    # Solve the consumption problem and create interpolators for cFxd, vFxd,
-    # and its derivatives.
-    
-    # Recast a, n, and s now that the shock dimension has been integrated over
-    aNrm_tiled  = aNrm_tiled[:,:,:,0]
-    nNrm_tiled  = nNrm_tiled[:,:,:,0]
-    Share_tiled = Share_tiled[:,:,:,0]
-    
-    # Apply EGM over liquid resources at every (n,s) to find consumption.
-    cFxd = EndOfPrddvdaNvrs
-    mNrm_endog = aNrm_tiled + cFxd
-    
-    # Now construct interpolators for cFxd and the derivatives of vFxd.
-    # Since the m grid is different for every (n,s), we use bilinear
-    # interpolators of 1-d linear interpolators over m.
-    
-    # The 1-d interpolators need to take into account whether there is a
-    # natural borrowing constraint, which can depend on the value of n. Thus
-    # we have to check if mGrid[0] == 0 and construct the interpolators
-    # depending on that.
-    cInterps = [[] for i in range(nNrm_N)]
-    dvdnNvrsInterps = [[] for i in range(nNrm_N)]
-    dvdsInterps = [[] for i in range(nNrm_N)]
-    
-    for nInd in range(nNrm_N):
-        for sInd in range(Share_N):
-            
-            # Extract the endogenous m grid.
-            m_end = mNrm_endog[:,nInd,sInd]
-            
-            # Check if there is a natural constraint
-            
-            if m_end[0] == 0.0:
-                
-                # There's no need to insert points since we have m==0.0
-                
-                # Create consumption interpolator
-                cInterps[nInd].append(LinearInterp(m_end,cFxd[:,nInd,sInd]))
-                
-                # Create dvdnFxd Interpolator
-                dvdnNvrsInterps[nInd].append(LinearInterp(m_end,
-                                                          EndOfPrddvdnNvrs[:,nInd,sInd]))
-                
-                # Create dvdsFxd interpolator
-                # TODO: this returns NaN when m=n=0. This might propagate.
-                # But dvds is not being used at the moment.
-                dvdsInterps[nInd].append(LinearInterp(m_end,
-                                                      EndOfPrddvds[:,nInd,sInd]))
-                
-            else:
-                
-                # We know that:
-                # -The lowest gridpoints of both a and n are 0.
-                # -Consumption at m < m0 is m.
-                # -dvdnFxd at (m,n) for m < m0(n) is dvdnFxd(m0,n)
-                # -Same is true for dvdsFxd
-                
-                # Create consumption interpolator
-                cInterps[nInd].append(LinearInterp(np.insert(m_end,0,0),
-                                                   np.insert(cFxd[:,nInd,sInd],0,0)
-                                                   )
-                                      )
-                
-                # Create dvdnFxd Interpolator
-                dvdnNvrsInterps[nInd].append(LinearInterp(np.insert(m_end,0,0),
-                                                          np.insert(EndOfPrddvdnNvrs[:,nInd,sInd],0,EndOfPrddvdnNvrs[0,nInd,sInd])
-                                                          )
-                                             )
-                
-                # Create dvdsFxd interpolator
-                dvdsInterps[nInd].append(LinearInterp(np.insert(m_end,0,0),
-                                                      np.insert(EndOfPrddvds[:,nInd,sInd],0,EndOfPrddvds[0,nInd,sInd])
-                                                      )
-                                         )
-                
-    # 3D interpolators
-    
-    # Consumption interpolator
-    cFuncFxd = BilinearInterpOnInterp1D(cInterps, nNrmGrid, ShareGrid)
-    # dvdmFxd interpolator
-    dvdmFuncFxd = MargValueFunc3D(cFuncFxd, CRRA)
-    # dvdnFxd interpolator
-    dvdnNvrsFunc = BilinearInterpOnInterp1D(dvdnNvrsInterps, nNrmGrid, ShareGrid)
-    dvdnFuncFxd = MargValueFunc3D(dvdnNvrsFunc, CRRA)
-    # dvds interpolator
-    # TODO: dvds can be NaN. This is because a way to compute
-    # EndOfPrddvds(0,0) has not been implemented yet.
-    dvdsFuncFxd = BilinearInterpOnInterp1D(dvdsInterps, nNrmGrid, ShareGrid)
-    
-    
-    # It's useful to have value functions on a regular grid
-    # interpolator because:
-    # - Endogenous grids don't cover the m < n region well.
-    # - An object that comes from this value function -vSha- will be
-    #   optimized over, so evaluated many times and regular grid
-    #   interpolators are faster.
-    
-    # Add 0 to the m grid
+    nNrm_N = len(nNrmGrid)
     mNrmGrid = np.insert(mNrmGrid,0,0)
     mNrm_N = len(mNrmGrid)
+    d_N = len(dGrid)
     
-    # Dimensions might change, so re-create tiled arrays
-    mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N,1,1)), (1,nNrm_N,Share_N))
-    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (mNrm_N,1,Share_N))
-    Share_tiled = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (mNrm_N,nNrm_N,1))
-    
-    # Consumption, value function and inverse on regular grid
-    cNrm_reg = cFuncFxd(mNrm_tiled, nNrm_tiled, Share_tiled)
-    aNrm_reg = mNrm_tiled - cNrm_reg
-    vFxd = u(cNrm_reg) + EndOfPrdvFunc(aNrm_reg, nNrm_tiled, Share_tiled) 
-    # TODO: uInv(-Inf) seems to appropriately be yielding 0. Is it
-    # necessary to hardcode it?
-    vNvrsFxd = uInv(vFxd)
-        
-    # vNvrs interpolator. Useful to keep it since its faster to optimize
-    # on it in the next step
-    vNvrsFuncFxd = TrilinearInterp(vNvrsFxd, mNrmGrid, nNrmGrid, ShareGrid)
-    vFuncFxd     = ValueFunc3D(vNvrsFuncFxd, CRRA)
-    
-    # STEP THREE:
-    # Contribution share stage.
-    
-    # TODO: implement continuous share case.
-    if not DiscreteShareBool:
-        
-        raise Exception('The case of continuous shares has not been implemented yet')
-        
-    else:
-        # Find the optimal share over the regular grid.
-        optIdx = np.argmax(vNvrsFxd, axis = 2)
-        
-        # Reformat grids now that the share was optimized over.
-        mNrm_tiled = mNrm_tiled[:,:,0]
-        nNrm_tiled = nNrm_tiled[:,:,0]
-        m_idx_tiled = np.tile(np.reshape(np.arange(mNrm_N), (mNrm_N,1)), (1,nNrm_N))
-        n_idx_tiled = np.tile(np.reshape(np.arange(nNrm_N), (1,nNrm_N)), (mNrm_N,1))
-        
-        # Compute objects needed for the value function and its derivatives
-        vNvrsSha     = vNvrsFxd[m_idx_tiled, n_idx_tiled, optIdx]
-        optShare     = ShareGrid[optIdx]
-        dvdmNvrsSha  = cFuncFxd(mNrm_tiled, nNrm_tiled, optShare)
-        dvdnSha      = dvdnFuncFxd(mNrm_tiled, nNrm_tiled, optShare)
-        dvdnNvrsSha  = uPinv(dvdnSha)
-        # Interpolators
-        vNvrsFuncSha    = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
-        vFuncSha        = ValueFunc2D(vNvrsFuncSha, CRRA)
-        # TODO: do share interpolation more smartly taking into account that
-        # it's discrete. (current bilinear can and will result in shares
-        # outside the discrete grid).
-        ShareFuncSha    = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
-        dvdmNvrsFuncSha = BilinearInterp(dvdmNvrsSha, mNrmGrid, nNrmGrid)
-        dvdmFuncSha     = MargValueFunc2D(dvdmNvrsFuncSha, CRRA)
-        dvdnNvrsFuncSha = BilinearInterp(dvdnNvrsSha, mNrmGrid, nNrmGrid)
-        dvdnFuncSha     = MargValueFunc2D(dvdnNvrsFuncSha, CRRA)
-    
-    # STEP FOUR:
-    # Rebalancing stage.
-    
-    # Find optimal d for every combination
-    # TODO: this can be done in a much smarter way using the already computed
-    # derivatives.
-    # One would evaluate the derivatives at d=-1, d=0, and be able to tell if
-    # any of those is the optimum. If not, one can look for the point where
-    # the derivatives cross.
+    mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N,1)), (1,nNrm_N))
+    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N)), (mNrm_N,1))
     
     # Initialize
     dOpt     = np.ones_like(mNrm_tiled)*np.nan
@@ -1900,19 +1529,20 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     
     # It will be useful to pre-evaluate marginals at every (m,n,d) combination
     
-    # Start by getting the m_tilde, n_tilde.
+    # Start by getting the m_tilde, n_tilde. These don't depend on share
     tilde = list(zip(*map(lambda d: rebalanceAssets(d, mNrm_tiled, nNrm_tiled, tau),
                           dGrid)))
     m_tilde = np.array(tilde[0])
     n_tilde = np.array(tilde[1])
     
+    
     # Now the marginals
-    dvdm = dvdmFuncSha(m_tilde, n_tilde)
-    dvdn = dvdnFuncSha(m_tilde, n_tilde)
+    dvdm = dvdmFuncAdj_next(m_tilde, n_tilde)
+    dvdn = dvdnFuncAdj_next(m_tilde, n_tilde)
     
     # Find the optimal d's
     zeroind = np.where(dGrid == 0.0)[0][0]
-    d_N = len(dGrid)
+    
     for mInd in range(mNrm_N):
         for nInd in range(nNrm_N):
             
@@ -1953,8 +1583,8 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
             mtil_opt[mInd,nInd] = m
             ntil_opt[mInd,nInd] = n
             
-    # Evaluate inverse value function
-    vNvrsAdj = vNvrsFuncSha(mtil_opt, ntil_opt)
+    # Evaluate inverse end-of-period value function
+    vNvrsAdj = vFuncAdj_next.func(mtil_opt, ntil_opt)
     
     # Now the derivatives. These are not straight forward because of corner
     # solutions with partial derivatives that change the limits. The idea then
@@ -1962,9 +1592,9 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # take the maximum.
     
     # An additional unit of m
-    marg_m      = dvdmFuncSha(mtil_opt, ntil_opt)
+    marg_m      = dvdmFuncAdj_next(mtil_opt, ntil_opt)
     # An additional unit of n kept in n
-    marg_n      = dvdnFuncSha(mtil_opt, ntil_opt)
+    marg_n      = dvdnFuncAdj_next(mtil_opt, ntil_opt)
     # An additional unit of n withdrawn to m
     marg_n_to_m = marg_m/(1+tau)
     
@@ -1984,27 +1614,24 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # Decison
     DFuncAdj = BilinearInterp(dOpt, mNrmGrid, nNrmGrid)
     
-    # Construct solution
-    sol = RiskyContribSolution(
-        # Contribution stage
-        vFuncSha = vFuncSha,
-        ShareFuncSha = ShareFuncSha,
-        dvdmFuncSha = dvdmFuncSha,
-        dvdnFuncSha = dvdnFuncSha,
-        # Adjusting stage
-        vFuncAdj = vFuncAdj,
-        DFuncAdj = DFuncAdj,
-        dvdmFuncAdj = dvdmFuncAdj,
-        dvdnFuncAdj = dvdnFuncAdj,
-        # Consumption stage
-        vFuncFxd = vFuncFxd,
-        cFuncFxd = cFuncFxd,
-        dvdmFuncFxd = dvdmFuncFxd,
-        dvdnFuncFxd = dvdnFuncFxd,
-        dvdsFuncFxd = dvdsFuncFxd
-    )
+    solution = RiskyContribRebSolution(
+            # Rebalancing stage adjusting
+            vFuncRebAdj = vFuncAdj,
+            DFuncAdj = DFuncAdj,
+            dvdmFuncRebAdj = dvdmFuncAdj,
+            dvdnFuncRebAdj = dvdnFuncAdj,
+            
+            # Rebalancing stage fixed (nothing happens, so value functions are
+            # the ones from the next stage)
+            vFuncRebFxd = vFuncFxd_next,
+            DFuncFxd = ConstantFunction(0.0),
+            dvdmFuncRebFxd = dvdmFuncFxd_next,
+            dvdnFuncRebFxd = dvdnFuncFxd_next,
+            dvdsFuncRebFxd = dvdsFuncFxd_next
+        )
     
-    return sol
+    return solution
+
     
     
 # Make a dictionary to specify a risky asset consumer type
