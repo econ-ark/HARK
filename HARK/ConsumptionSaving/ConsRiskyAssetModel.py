@@ -1168,17 +1168,15 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     uInv = lambda x : utility_inv(x, CRRA)
         
     # Unpack next period's solution
-    vFuncShaAdj_next    = solution_next.vFuncShaAdj
-    ShareFuncAdj_next   = solution_next.ShareFuncAdj
-    dvdmFuncShaAdj_next = solution_next.dvdmFuncShaAdj
-    dvdnFuncShaAdj_next = solution_next.dvdnFuncShaAdj
-    dvdsFuncShaAdj_next = solution_next.dvdsFuncShaAdj
+    vFuncRebAdj_next    = solution_next.vFuncRebAdj
+    dvdmFuncRebAdj_next = solution_next.dvdmFuncRebAdj
+    dvdnFuncRebAdj_next = solution_next.dvdnFuncRebAdj
+    dvdsFuncRebAdj_next = solution_next.dvdsFuncRebAdj
     
-    vFuncShaFxd_next    = solution_next.vFuncShaFxd
-    ShareFuncFxd_next   = solution_next.ShareFuncFxd
-    dvdmFuncShaFxd_next = solution_next.dvdmFuncShaFxd
-    dvdnFuncShaFxd_next = solution_next.dvdnFuncShaFxd
-    dvdsFuncShaFxd_next = solution_next.dvdsFuncFxd
+    vFuncRebFxd_next    = solution_next.vFuncRebFxd
+    dvdmFuncRebFxd_next = solution_next.dvdmFuncRebFxd
+    dvdnFuncRebFxd_next = solution_next.dvdnFuncRebFxd
+    dvdsFuncRebFxd_next = solution_next.dvdsFuncRebFxd
     
     # TODO: I am currently contructing the joint distribution of returns and
     # income, even if they are independent. Is there a way to speed things
@@ -1239,20 +1237,20 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # starts at the Fxd stage.
     
     # Always compute the adjusting version
-    vAdj_next    = vFuncShaAdj_next(mNrm_next, nNrm_next)
-    dvdmAdj_next = dvdmFuncShaAdj_next(mNrm_next,nNrm_next)
-    dvdnAdj_next = dvdnFuncShaAdj_next(mNrm_next,nNrm_next)
-    dvdsAdj_next = dvdsFuncShaAdj_next(mNrm_next,nNrm_next) # No marginal value of Share if it's a free choice!
+    vAdj_next    = vFuncRebAdj_next(mNrm_next,nNrm_next,Share_next)
+    dvdmAdj_next = dvdmFuncRebAdj_next(mNrm_next,nNrm_next,Share_next)
+    dvdnAdj_next = dvdnFuncRebAdj_next(mNrm_next,nNrm_next,Share_next)
+    dvdsAdj_next = dvdsFuncRebAdj_next(mNrm_next,nNrm_next,Share_next) # No marginal value of Share if it's a free choice!
     
     # We are interested in marginal values before the realization of the
     # adjustment random variable. Compute those objects
     if AdjustPrb < 1.:
         
         # "Fixed" counterparts
-        vFxd_next    = vFuncShaFxd_next(mNrm_next, nNrm_next, Share_next)
-        dvdmFxd_next = dvdmFuncShaFxd_next(mNrm_next, nNrm_next, Share_next)
-        dvdnFxd_next = dvdnFuncShaFxd_next(mNrm_next, nNrm_next, Share_next)
-        dvdsFxd_next = dvdsFuncShaFxd_next(mNrm_next, nNrm_next, Share_next)
+        vFxd_next    = vFuncRebFxd_next(mNrm_next, nNrm_next, Share_next)
+        dvdmFxd_next = dvdmFuncRebFxd_next(mNrm_next, nNrm_next, Share_next)
+        dvdnFxd_next = dvdnFuncRebFxd_next(mNrm_next, nNrm_next, Share_next)
+        dvdsFxd_next = dvdsFuncRebFxd_next(mNrm_next, nNrm_next, Share_next)
         
         # Expected values with respect to adjustment r.v.
         v_next    = AdjustPrb*vAdj_next    + (1.-AdjustPrb)*vFxd_next
