@@ -1318,9 +1318,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         PlvlAggNow
         bNrmNow
         mNrmNow
-        aLvlNow
         mLvlNow
-        bLvlNow'
         """
         aLvlPrev = self.poststate_vars['aLvlNow']
         RfreeNow = self.getRfree()
@@ -1332,7 +1330,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             pLvlNow[these] = (
-                self.pLvlNextFunc[t - 1](self.state_vars['pLvlNow'][these])
+                self.pLvlNextFunc[t - 1](self.poststate_vars['pLvlNow'][these])
                 * self.shocks["PermShkNow"][these]
             )
 
@@ -1343,8 +1341,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         mLvlNow = bLvlNow + \
                   self.shocks["TranShkNow"] * \
                   pLvlNow
-
-        print(self.state_vars.keys())
 
         return (pLvlNow,
                 self.state_vars['PlvlAggNow'],
@@ -1392,6 +1388,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         None
         """
         self.poststate_vars['aLvlNow'] = self.state_vars["mLvlNow"] - self.cLvlNow
+        self.poststate_vars['pLvlNow'] = self.state_vars['pLvlNow']
 
 
 ###############################################################################
