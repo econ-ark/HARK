@@ -93,7 +93,11 @@ class testPersistentShockConsumerType(unittest.TestCase):
 
     def test_simulation(self):
         self.agent.T_sim = 25
-        self.agent.track_vars = ["mLvlNow", "cLvlNow", "pLvlNow"]
+
+        # why does ,"bLvlNow" not work here?
+        self.agent.track_vars = [
+            "aLvlNow","mLvlNow", "cLvlNow", "pLvlNow"
+        ]
         self.agent.initializeSim()
         self.agent.simulate()
 

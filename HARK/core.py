@@ -651,6 +651,7 @@ class AgentType(HARKobject):
         None
         """
         new_states = self.transition()
+
         for i, var in enumerate(self.state_vars):
             self.state_vars[var] = new_states[i]
 
@@ -1163,7 +1164,16 @@ class Market(HARKobject):
         none
         """
         for var_name in self.reap_state:
-            harvest = [getattr(this_type, var_name) for this_type in self.agents]
+            harvest = []
+
+            for agent in self.agents:
+                # TODO: generalized variable lookup across namespaces
+                # TODO: remove poststate/state distinction
+                if var_name in agent.state_vars:
+                    harvest.append(agent.state_vars[var_name])
+                elif var_name in agent.poststate_vars:
+                    harvest.append(agent.poststate_vars[var_name])
+
             self.reap_state[var_name] = harvest
 
     def sow(self):
