@@ -203,7 +203,7 @@ DFuncAdj     = [ContribAgent.solution[t*3].DFuncAdj for t in periods]
 ShareFuncSha = [ContribAgent.solution[t*3+1].ShareFuncAdj for t in periods]
 cFuncFxd     = [ContribAgent.solution[t*3+2].cFunc for t in periods]
 
-# %% Adjusting agent
+# %% Adjustment stages
 
 # Share and Rebalancing
 plotSlices3D(DFuncAdj,0,mMax,y_slices = n_slices,y_name = 'n',
@@ -214,7 +214,7 @@ plotSlices3D(ShareFuncSha,0,mMax,y_slices = n_slices,y_name = 'n',
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['m','S'])
 
-# %% Constrained agent
+# %% Consumption stage
 from copy import deepcopy
 # Create projected consumption functions at different points of the share grid
 shares = [0., 0.9]
@@ -223,3 +223,9 @@ plotSlices4D(cFuncFxd,0,mMax,y_slices = n_slices,w_slices = shares,
              slice_names = ['n_til','s'],
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['m_til','c'])
+
+# %%  Simulate this consumer type
+ContribAgent.track_vars = ['cNrmNow', 'ShareNow', 'aNrmNow', 't_age']
+ContribAgent.T_sim = 100
+ContribAgent.initializeSim()
+ContribAgent.simulate()
