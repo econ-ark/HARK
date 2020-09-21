@@ -1569,8 +1569,7 @@ class PerfForesightConsumerType(AgentType):
     )
     time_vary_ = ["LivPrb", "PermGroFac"]
     time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
-    state_vars_     = ['pLvlNow', 'PlvlAggNow', 'bNrmNow', 'mNrmNow']
-    poststate_vars_ = ["aNrmNow", "pLvlNow"]
+    state_vars_     = ['pLvlNow', 'PlvlAggNow', 'bNrmNow', 'mNrmNow', "aNrmNow"]
     shock_vars_ = []
 
     def __init__(self, cycles=1, verbose=1, quiet=False, **kwds):
@@ -1605,8 +1604,10 @@ class PerfForesightConsumerType(AgentType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(self.time_vary_)
         self.time_inv = deepcopy(self.time_inv_)
-        self.state_vars = {sv : None for sv in self.state_vars_}
-        self.poststate_vars = {psv : None for psv in self.poststate_vars_}
+
+        self.state_now = {sv : None for sv in self.state_vars_}
+        self.state_prev = self.state_now.copy()
+
         self.shock_vars = deepcopy(self.shock_vars_)
         self.verbose = verbose
         self.quiet = quiet
@@ -1681,7 +1682,7 @@ class PerfForesightConsumerType(AgentType):
 
     def initializeSim(self):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
-        self.state_vars['PlvlAggNow'] = 1.0
+        self.state_prev['PlvlAggNow'] = 1.0
         AgentType.initializeSim(self)
 
     def simBirth(self, which_agents):
@@ -1701,15 +1702,16 @@ class PerfForesightConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.poststate_vars["aNrmNow"][which_agents] = Lognormal(
+        self.state_prev["aNrmNow"][which_agents] = Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1),
         ).draw(N)
+        # why is a now variable set here? Because it's an aggregate.
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
-            self.state_vars["PlvlAggNow"]
+            self.state_prev["PlvlAggNow"]
         )  # Account for newer cohorts having higher permanent income
-        self.state_vars["pLvlNow"][which_agents] = Lognormal(
+        self.state_prev["pLvlNow"][which_agents] = Lognormal(
             pLvlInitMeanNow,
             self.pLvlInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1)
@@ -1785,18 +1787,18 @@ class PerfForesightConsumerType(AgentType):
         return RfreeNow
 
     def transition(self):
-        pLvlPrev = self.state_vars['pLvlNow']
-        aNrmPrev = self.poststate_vars['aNrmNow']
+        pLvlPrev = self.state_prev['pLvlNow']
+        aNrmPrev = self.state_prev['aNrmNow']
         RfreeNow = self.getRfree()
 
         # Calculate new states: normalized market resources and permanent income level
         pLvlNow = pLvlPrev*self.shocks['PermShkNow'] # Updated permanent income level
-        PlvlAggNow = self.state_vars['PlvlAggNow']*self.PermShkAggNow # Updated aggregate permanent productivity level
+        PlvlAggNow = self.state_prev['PlvlAggNow']*self.PermShkAggNow # Updated aggregate permanent productivity level
         ReffNow      = RfreeNow/self.shocks['PermShkNow'] # "Effective" interest factor on normalized assets
         bNrmNow = ReffNow*aNrmPrev         # Bank balances before labor income
         mNrmNow = bNrmNow + self.shocks['TranShkNow'] # Market resources after income
 
-        return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow
+        return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
 
 
     def getControls(self):
@@ -1816,7 +1818,7 @@ class PerfForesightConsumerType(AgentType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cNrmNow[these], MPCnow[these] = self.solution[t].cFunc.eval_with_derivative(
-                self.state_vars['mNrmNow'][these]
+                self.state_now['mNrmNow'][these]
             )
         self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow
@@ -1834,9 +1836,14 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         """
-        self.poststate_vars['aNrmNow'] = self.state_vars['mNrmNow'] - self.cNrmNow
+        # should this be "Now", or "Prev"?!?
+        self.state_now['aNrmNow'] = self.state_now['mNrmNow'] - self.cNrmNow
         # Useful in some cases to precalculate asset level
-        self.poststate_vars['aLvlNow'] = self.poststate_vars['aNrmNow'] * self.state_vars['pLvlNow']   
+        self.state_now['aLvlNow'] = self.state_now['aNrmNow'] * self.state_now['pLvlNow']
+
+        # moves now to prev
+        super().getPostStates()
+
         return None
 
     def checkCondition(self, name, test, messages, verbose, verbose_messages=None):
@@ -2891,7 +2898,7 @@ class KinkedRconsumerType(IndShockConsumerType):
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
         RfreeNow = self.Rboro * np.ones(self.AgentCount)
-        RfreeNow[self.poststate_vars['aNrmNow'] > 0] = self.Rsave
+        RfreeNow[self.state_prev['aNrmNow'] > 0] = self.Rsave
         return RfreeNow
 
     def checkConditions(self):

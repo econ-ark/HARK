@@ -224,9 +224,9 @@ class AgentType(HARKobject):
         self.tolerance = tolerance  # NOQA
         self.seed = seed  # NOQA
         self.track_vars = []  # NOQA
-        self.state_vars = {}
+        self.state_now = {}
+        self.state_prev = {}
         self.shocks = {}
-        self.poststate_vars = {}  # NOQA
         self.read_shocks = False  # NOQA
         self.shock_history = {}
         self.history = {}
@@ -440,12 +440,17 @@ class AgentType(HARKobject):
         self.resetRNG()
         self.t_sim = 0
         all_agents = np.ones(self.AgentCount, dtype=bool)
-        blank_array = np.zeros(self.AgentCount)
-        for var in self.state_vars:
-            if self.state_vars[var] is None:
-                self.state_vars[var] = copy(blank_array)
-        for var_name in self.poststate_vars:
-            self.poststate_vars[var_name] = copy(blank_array)
+        blank_array = np.empty(self.AgentCount)
+        blank_array[:] = np.nan
+        for var in self.state_now:
+            if self.state_now[var] is None:
+                self.state_now[var] = copy(blank_array)
+
+            if self.state_prev[var] is None:
+                if var == "PlvlAggNow":
+                    import pdb; pdb.set_trace()
+                self.state_prev[var] = copy(blank_array)
+
         self.t_age = np.zeros(
             self.AgentCount, dtype=int
         )  # Number of periods since agent entry
@@ -484,7 +489,7 @@ class AgentType(HARKobject):
             self.getShocks()
         self.getStates()  # Determine each agent's state at decision time
         self.getControls()  # Determine each agent's choice or control variables based on states
-        self.getPostStates()  # Determine each agent's post-decision / end-of-period states using states and controls
+        self.getPostStates()  # Move now state_now to state_prev
 
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
@@ -640,7 +645,7 @@ class AgentType(HARKobject):
         """
         Gets values of state variables for the current period.
         By default, calls transition function and assigns values
-        to the state_vars dictionary.
+        to the state_now dictionary.
 
         Parameters
         ----------
@@ -652,8 +657,10 @@ class AgentType(HARKobject):
         """
         new_states = self.transition()
 
-        for i, var in enumerate(self.state_vars):
-            self.state_vars[var] = new_states[i]
+        for i, var in enumerate(self.state_now):
+            # a hack for now to deal with 'post-states'
+            if i < len(new_states):
+                self.state_now[var] = new_states[i]
 
         return None
 
@@ -693,8 +700,10 @@ class AgentType(HARKobject):
 
     def getPostStates(self):
         """
-        Gets values of post-decision state variables for the current period, probably by current
-        states and controls and maybe market-level events or shock variables.  Does nothing by
+        Gets values of post-decision state variables for the current period, 
+        probably by current
+        states and controls and maybe market-level events or shock variables.  
+        Does nothing by
         default, but can be overwritten by subclasses of AgentType.
 
         Parameters
@@ -705,6 +714,11 @@ class AgentType(HARKobject):
         -------
         None
         """
+        for var in self.state_now:
+            self.state_prev[var] = self.state_now[var]
+            # note: this is not type checked for aggregate variables.
+            self.state_now[var] = np.empty(self.AgentCount)
+
         return None
 
     def simulate(self, sim_periods=None):
@@ -754,14 +768,12 @@ class AgentType(HARKobject):
             for t in range(sim_periods):
                 self.simOnePeriod()
                 for var_name in self.track_vars:
-                    if var_name in self.state_vars:
-                        self.history[var_name][self.t_sim, :] = self.state_vars[
+                    if var_name in self.state_prev:
+                        self.history[var_name][self.t_sim, :] = self.state_prev[
                             var_name
                         ]
                     elif var_name in self.shock_vars:
                         self.history[var_name][self.t_sim, :] = self.shocks[var_name]
-                    elif var_name in self.poststate_vars:
-                        self.history[var_name][self.t_sim, :] = self.poststate_vars[var_name]
                     else:
                         self.history[var_name][self.t_sim, :] = getattr(self, var_name)
                 self.t_sim += 1
@@ -779,7 +791,7 @@ class AgentType(HARKobject):
         None
         """
         for var_name in self.track_vars:
-            self.history[var_name] = np.zeros((self.T_sim, self.AgentCount)) + np.nan
+            self.history[var_name] = np.empty((self.T_sim, self.AgentCount)) + np.nan
 
 
 def solveAgent(agent, verbose):

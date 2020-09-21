@@ -86,7 +86,7 @@ class testPerfForesightConsumerType(unittest.TestCase):
 
         # This actually does nothing because aNrmNow is
         # epiphenomenal. Probably should change mNrmNow instead
-        self.agent_infinite.poststate_vars['aNrmNow'] += (
+        self.agent_infinite.state_prev['aNrmNow'] += (
             -5.0
         )
         self.agent_infinite.simulate(40)
