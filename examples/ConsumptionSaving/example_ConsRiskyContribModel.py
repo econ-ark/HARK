@@ -174,13 +174,13 @@ init_sticky_share['vFuncBool'] = True
 init_sticky_share['IncUnemp'] = 0.0
 
 # Three period model just to check
-init_sticky_share['PermGroFac'] = [2.0, 1.0, 0.5]
-init_sticky_share['PermShkStd'] = [0.1, 0.1, 0.2]
-init_sticky_share['TranShkStd'] = [0.2, 0.2, 0.2]
-init_sticky_share['AdjustPrb']  = [0.1, 0.1, 1]
+init_sticky_share['PermGroFac'] = [2.0, 1.0, 0.1, 1.0]
+init_sticky_share['PermShkStd'] = [0.1, 0.1, 0.2, 0.0]
+init_sticky_share['TranShkStd'] = [0.2, 0.2, 0.2, 0.0]
+init_sticky_share['AdjustPrb']  = [0.1, 0.1, 0.8, 1.0]
 init_sticky_share['tau']        = 0.1
-init_sticky_share['LivPrb']     = [1.0, 1.0, 1.0]
-init_sticky_share['T_cycle']    = 3
+init_sticky_share['LivPrb']     = [1.0, 1.0, 1.0, 1.0]
+init_sticky_share['T_cycle']    = 4
 init_sticky_share['T_retire']   = 0
 init_sticky_share['T_age']      = 4
 
@@ -195,13 +195,13 @@ print('Solving took ' + str(t1-t0) + ' seconds.')
 
 # %% Policy function inspection
 
-periods = [0,2,4]
+periods = [0,2,3]
 n_slices = [0,2,6]
 mMax = 20
 
-cFuncFxd     = [ContribAgent.solution[t].cFuncFxd for t in periods]
-DFuncAdj     = [ContribAgent.solution[t].DFuncAdj for t in periods]
-ShareFuncSha = [ContribAgent.solution[t].ShareFuncSha for t in periods]
+DFuncAdj     = [ContribAgent.solution[t*3].DFuncAdj for t in periods]
+ShareFuncSha = [ContribAgent.solution[t*3+1].ShareFuncAdj for t in periods]
+cFuncFxd     = [ContribAgent.solution[t*3+2].cFunc for t in periods]
 
 # %% Adjusting agent
 
