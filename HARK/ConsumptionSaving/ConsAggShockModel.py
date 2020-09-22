@@ -150,15 +150,11 @@ class AggShockConsumerType(IndShockConsumerType):
         self.time_vary = deepcopy(IndShockConsumerType.time_vary_)
         self.time_inv = deepcopy(IndShockConsumerType.time_inv_)
         self.delFromTimeInv("Rfree", "vFuncBool", "CubicBool")
-        self.state_vars = {sv : None
+
+        self.state_now = {sv : None
                            for sv
                            in IndShockConsumerType.state_vars_}
-
-        self.poststate_vars = {psv : None
-                               for psv
-                               in IndShockConsumerType.poststate_vars_}
-        # TODO: need better pattern for this.
-        self.poststate_vars['aLvlNow'] = None
+        self.state_prev = self.state_now.copy()
 
         self.solveOnePeriod = solveConsAggShock
         self.update()
@@ -176,8 +172,8 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         """
         self.initializeSim()
-        self.poststate_vars['aLvlNow'] = self.kInit * np.ones(self.AgentCount)  # Start simulation near SS
-        self.poststate_vars['aNrmNow'] = self.poststate_vars['aLvlNow'] / self.state_vars['pLvlNow']
+        self.state_prev['aLvlNow'] = self.kInit * np.ones(self.AgentCount)  # Start simulation near SS
+        self.state_prev['aNrmNow'] = self.state_prev['aLvlNow'] / self.state_now['pLvlNow'] # ???
 
     def preSolve(self):
         #        AgentType.preSolve()
@@ -291,12 +287,12 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.simBirth(self, which_agents)
-        if self.poststate_vars["aLvlNow"] is not None:
-            self.poststate_vars["aLvlNow"][which_agents] = (
-                self.poststate_vars["aNrmNow"][which_agents] * self.state_vars["pLvlNow"][which_agents]
+        if "aLvlNow" in self.state_prev and self.state_prev["aLvlNow"] is not None:
+            self.state_prev["aLvlNow"][which_agents] = (
+                self.state_prev["aNrmNow"][which_agents] * self.state_now["pLvlNow"][which_agents]
             )
         else:
-            self.poststate_vars["aLvlNow"] = self.state_vars['aNrmNow'] * self.state_vars['pLvlNow']
+            self.state_prev["aLvlNow"] = self.state_now['aNrmNow'] * self.state_now['pLvlNow']
 
     def simDeath(self):
         """
@@ -331,11 +327,11 @@ class AggShockConsumerType(IndShockConsumerType):
 
         # Divide up the wealth of those who die, giving it to those who survive
         who_lives = np.logical_not(who_dies)
-        wealth_living = np.sum(self.poststate_vars["aLvlNow"][who_lives])
-        wealth_dead = np.sum(self.poststate_vars["aLvlNow"][who_dies])
+        wealth_living = np.sum(self.state_prev["aLvlNow"][who_lives])
+        wealth_dead = np.sum(self.state_prev["aLvlNow"][who_dies])
         Ractuarial = 1.0 + wealth_dead / wealth_living
-        self.poststate_vars['aNrmNow'][who_lives] = self.poststate_vars['aNrmNow'][who_lives] * Ractuarial
-        self.poststate_vars["aLvlNow"][who_lives] = self.poststate_vars["aLvlNow"][who_lives] * Ractuarial
+        self.state_prev['aNrmNow'][who_lives] = self.state_prev['aNrmNow'][who_lives] * Ractuarial
+        self.state_prev["aLvlNow"][who_lives] = self.state_prev["aLvlNow"][who_lives] * Ractuarial
         return who_dies
 
     def getRfree(self):
@@ -390,9 +386,9 @@ class AggShockConsumerType(IndShockConsumerType):
         MaggNow = self.getMaggNow()
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            cNrmNow[these] = self.solution[t].cFunc(self.state_vars["mNrmNow"][these], MaggNow[these])
+            cNrmNow[these] = self.solution[t].cFunc(self.state_now["mNrmNow"][these], MaggNow[these])
             MPCnow[these] = self.solution[t].cFunc.derivativeX(
-                self.state_vars["mNrmNow"][these], MaggNow[these]
+                self.state_now["mNrmNow"][these], MaggNow[these]
             )  # Marginal propensity to consume
         self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow
@@ -629,13 +625,13 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
             for i in range(StateCount):
                 those = np.logical_and(these, MrkvBoolArray[i, :])
                 cNrmNow[those] = self.solution[t].cFunc[i](
-                    self.state_vars["mNrmNow"][those], MaggNow[those]
+                    self.state_now["mNrmNow"][those], MaggNow[those]
                 )
                 # Marginal propensity to consume
                 MPCnow[those] = (
                     self.solution[t]
                     .cFunc[i]
-                    .derivativeX(self.state_vars["mNrmNow"][those], MaggNow[those])
+                    .derivativeX(self.state_now["mNrmNow"][those], MaggNow[those])
                 )
         self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow
@@ -687,7 +683,7 @@ class KrusellSmithType(AgentType):
             "DiscFac",
             "CRRA",
         ]
-        self.poststate_vars = {
+        self.state_prev = {
             "aNow" : None,
             "EmpNow" : None
         }
@@ -965,7 +961,7 @@ class KrusellSmithType(AgentType):
         self.MrkvNow = self.MrkvInit
         self.MrkvPrev = self.MrkvInit
         AgentType.initializeSim(self)
-        self.poststate_vars["EmpNow"] = self.poststate_vars["EmpNow"].astype(bool)
+        self.state_prev["EmpNow"] = self.state_prev["EmpNow"].astype(bool)
         self.makeEmpIdxArrays()
 
     def simBirth(self, which):
@@ -991,22 +987,22 @@ class KrusellSmithType(AgentType):
         EmpNew = np.concatenate(
             [np.zeros(unemp_N, dtype=bool), np.ones(emp_N, dtype=bool)]
         )
-        self.poststate_vars['EmpNow'][which] = self.RNG.permutation(EmpNew)
-        self.poststate_vars['aNow'][which] = self.kInit
+        self.state_prev['EmpNow'][which] = self.RNG.permutation(EmpNew)
+        self.state_prev['aNow'][which] = self.kInit
 
     def getShocks(self):
         """
         Get new idiosyncratic employment states based on the macroeconomic state.
         """
         # Get boolean arrays for current employment states
-        employed = self.poststate_vars["EmpNow"].copy()
+        employed = self.state_prev["EmpNow"].copy()
         unemployed = np.logical_not(employed)
 
         # Transition some agents between unemployment and employment
         emp_permute = self.emp_permute[self.MrkvPrev][self.MrkvNow]
         unemp_permute = self.unemp_permute[self.MrkvPrev][self.MrkvNow]
         # TODO: replace poststate_vars functionality with shocks here
-        EmpNow = self.poststate_vars["EmpNow"]
+        EmpNow = self.state_prev["EmpNow"]
         EmpNow[employed] = self.RNG.permutation(emp_permute)
         EmpNow[unemployed] = self.RNG.permutation(unemp_permute)
 
@@ -1014,13 +1010,13 @@ class KrusellSmithType(AgentType):
         """
         Get each agent's idiosyncratic state, their household market resources.
         """
-        self.mNow = self.Rnow * self.poststate_vars['aNow'] + self.Wnow * self.LbrInd * self.poststate_vars["EmpNow"]
+        self.mNow = self.Rnow * self.state_prev['aNow'] + self.Wnow * self.LbrInd * self.poststate_vars["EmpNow"]
 
     def getControls(self):
         """
         Get each agent's consumption given their current state.'
         """
-        employed = self.poststate_vars["EmpNow"].copy()
+        employed = self.state_prev["EmpNow"].copy()
         unemployed = np.logical_not(employed)
 
         # Get the discrete index for (un)employed agents
@@ -1048,7 +1044,7 @@ class KrusellSmithType(AgentType):
         """
         Gets each agent's retained assets after consumption and stores MrkvNow as MrkvPrev.
         """
-        self.poststate_vars['aNow'] = self.mNow - self.cNow
+        self.state_prev['aNow'] = self.mNow - self.cNow
         self.MrkvPrev = self.MrkvNow
 
 

@@ -378,7 +378,10 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         params.update(kwds)
 
         IndShockConsumerType.__init__(self, cycles=cycles, **params)
-        self.state_vars['bNrmNow'] = None
+        # need better system for inheritence here
+        self.state_now['bNrmNow'] = None
+        self.state_prev['bNrmNow'] = None
+
         self.pseudo_terminal = False
         self.solveOnePeriod = solveConsLaborIntMarg
         self.update()
@@ -487,7 +490,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.getStates(self)
-        self.state_vars['mNrmNow'][:] = np.nan  # Delete market resource calculation
+        self.state_now['mNrmNow'][:] = np.nan  # Delete market resource calculation
 
     def getControls(self):
         """
@@ -508,13 +511,13 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cNrmNow[these] = self.solution[t].cFunc(
-                self.state_vars['bNrmNow'][these], self.shocks["TranShkNow"][these]
+                self.state_now['bNrmNow'][these], self.shocks["TranShkNow"][these]
             )  # Assign consumption values
             MPCnow[these] = self.solution[t].cFunc.derivativeX(
-                self.state_vars['bNrmNow'][these], self.shocks["TranShkNow"][these]
+                self.state_now['bNrmNow'][these], self.shocks["TranShkNow"][these]
             )  # Assign marginal propensity to consume values (derivative)
             LbrNow[these] = self.solution[t].LbrFunc(
-                self.state_vars['bNrmNow'][these], self.shocks["TranShkNow"][these]
+                self.state_now['bNrmNow'][these], self.shocks["TranShkNow"][these]
             )  # Assign labor supply
         self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow
@@ -537,12 +540,15 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             mNrmNow[these] = (
-                self.state_vars['bNrmNow'][these]
+                self.state_now['bNrmNow'][these]
                 + self.LbrNow[these] * self.shocks["TranShkNow"][these]
             )  # mNrm = bNrm + yNrm
             aNrmNow[these] = mNrmNow[these] - self.cNrmNow[these]  # aNrm = mNrm - cNrm
-        self.poststate_vars['mNrmNow'] = mNrmNow
-        self.poststate_vars['aNrmNow'] = aNrmNow
+        self.state_now['mNrmNow'] = mNrmNow
+        self.state_now['aNrmNow'] = aNrmNow
+
+        # moves now to prev
+        super().getPostStates()
 
     def updateTranShkGrid(self):
         """

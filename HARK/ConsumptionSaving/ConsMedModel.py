@@ -607,7 +607,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         params.update(kwds)
 
         PersistentShockConsumerType.__init__(self, cycles=cycles, **params)
-        self.state_vars['mLvlNow'] = None
+        self.state_now['mLvlNow'] = None
         self.solveOnePeriod = makeOnePeriodOOSolver(ConsMedShockSolver)
         self.addToTimeInv("CRRAmed")
         self.addToTimeVary("MedPrice")
@@ -872,8 +872,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cLvlNow[these], MedNow[these] = self.solution[t].policyFunc(
-                self.state_vars['mLvlNow'][these],
-                self.state_vars['pLvlNow'][these],
+                self.state_now['mLvlNow'][these],
+                self.state_now['pLvlNow'][these],
                 self.shocks["MedShkNow"][these],
             )
         self.cLvlNow = cLvlNow
@@ -892,7 +892,11 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        self.poststate_vars['aLvlNow'] = self.state_vars['mLvlNow'] - self.cLvlNow - self.MedPriceNow * self.MedNow
+        self.state_now['aLvlNow'] = self.state_now['mLvlNow'] - self.cLvlNow - self.MedPriceNow * self.MedNow
+
+        # moves now to prev
+        super().getPostStates()
+
         return None
 
 

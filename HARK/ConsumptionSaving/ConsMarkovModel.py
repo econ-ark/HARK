@@ -837,7 +837,10 @@ class MarkovConsumerType(IndShockConsumerType):
     def __init__(self, cycles=1, **kwds):
         IndShockConsumerType.__init__(self, cycles=1, **kwds)
         self.solveOnePeriod = _solveConsMarkov
-        self.poststate_vars["MrkvNow"] = None
+
+        self.state_now["MrkvNow"] = None
+        self.state_prev["MrkvNow"] = None
+
         if not hasattr(self, "global_markov"):
             self.global_markov = False
 
@@ -1180,7 +1183,7 @@ class MarkovConsumerType(IndShockConsumerType):
             for j in range(J):
                 these = np.logical_and(right_t, MrkvBoolArray[j, :])
                 cNrmNow[these], MPCnow[these] = (
-                    self.solution[t].cFunc[j].eval_with_derivative(self.state_vars['mNrmNow'][these])
+                    self.solution[t].cFunc[j].eval_with_derivative(self.state_now['mNrmNow'][these])
                 )
         self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow
