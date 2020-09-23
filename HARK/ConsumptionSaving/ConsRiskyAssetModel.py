@@ -1227,11 +1227,13 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         """
         
         # Post-states are assets after rebalancing
+
+        if not 'tau' in self.time_vary:
         
-        # Initialize
-        mNrmTildeNow = np.zeros(self.AgentCount) + np.nan
-        nNrmTildeNow = np.zeros(self.AgentCount) + np.nan
+            mNrmTildeNow, nNrmTildeNow = rebalanceAssets(self.DNrmNow, self.mNrmNow, self.nNrmNow, self.tau)
         
+        else:
+            pass
         
         
     
@@ -1673,22 +1675,16 @@ def solveRiskyContribRebStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     mNrm_N = len(mNrmGrid)
     d_N = len(dGrid)
     
-    mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N,1)), (1,nNrm_N))
-    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N)), (mNrm_N,1))
-    
-    # Initialize
-    dOpt     = np.ones_like(mNrm_tiled)*np.nan
-    mtil_opt = np.ones_like(mNrm_tiled)*np.nan
-    ntil_opt = np.ones_like(mNrm_tiled)*np.nan
-    
     # It will be useful to pre-evaluate marginals at every (m,n,d) combination
     
-    # Start by getting the m_tilde, n_tilde. These don't depend on share
-    tilde = list(zip(*map(lambda d: rebalanceAssets(d, mNrm_tiled, nNrm_tiled, tau),
-                          dGrid)))
-    m_tilde = np.array(tilde[0])
-    n_tilde = np.array(tilde[1])
+    # Create tiled arrays for every d,m,n option
+    d_N = len(dGrid)
+    d_tiled    = np.tile(np.reshape(dGrid,    (d_N,1,1)), (1, mNrm_N,nNrm_N))
+    mNrm_tiled = np.tile(np.reshape(mNrmGrid, (1,mNrm_N,1)), (d_N,1,nNrm_N))
+    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,1,nNrm_N)), (d_N,mNrm_N,1))
     
+    # Get post-rebalancing assets the m_tilde, n_tilde.
+    m_tilde, n_tilde = rebalanceAssets(d_tiled, mNrm_tiled, nNrm_tiled, tau)
     
     # Now the marginals
     dvdm = dvdmFuncAdj_next(m_tilde, n_tilde)
