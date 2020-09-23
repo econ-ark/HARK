@@ -178,7 +178,7 @@ init_sticky_share['PermGroFac'] = [2.0, 1.0, 0.1, 1.0]
 init_sticky_share['PermShkStd'] = [0.1, 0.1, 0.2, 0.0]
 init_sticky_share['TranShkStd'] = [0.2, 0.2, 0.2, 0.0]
 init_sticky_share['AdjustPrb']  = [0.1, 0.1, 0.8, 1.0]
-init_sticky_share['tau']        = 0.1
+init_sticky_share['tau']        = [0.1, 0.1, 0.0, 0.0]
 init_sticky_share['LivPrb']     = [1.0, 1.0, 1.0, 1.0]
 init_sticky_share['T_cycle']    = 4
 init_sticky_share['T_retire']   = 0
@@ -215,7 +215,7 @@ plotSlices3D(ShareFuncSha,0,mMax,y_slices = n_slices,y_name = 'n',
              ax_labs = ['m','S'])
 
 # %% Consumption stage
-from copy import deepcopy
+
 # Create projected consumption functions at different points of the share grid
 shares = [0., 0.9]
 
@@ -227,5 +227,6 @@ plotSlices4D(cFuncFxd,0,mMax,y_slices = n_slices,w_slices = shares,
 # %%  Simulate this consumer type
 ContribAgent.track_vars = ['cNrmNow', 'ShareNow', 'aNrmNow', 't_age']
 ContribAgent.T_sim = 100
+ContribAgent.AgentCount = 4
 ContribAgent.initializeSim()
 ContribAgent.simulate()

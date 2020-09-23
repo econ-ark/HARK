@@ -696,7 +696,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         
         # Update parameters dealing with time to accommodate stages
         stage_time_pars = {'T_cycle': 3*nPeriods}
-        pars = ['LivPrb','PermGroFac','PermShkStd','TranShkStd','AdjustPrb']
+        pars = ['LivPrb','PermGroFac','PermShkStd','TranShkStd','AdjustPrb','tau']
         for p in pars:
             if type(kwds[p]) is list and len(kwds[p]):
                 stage_time_pars[p] = [x for x in kwds[p] for _ in range(3)]
@@ -1155,7 +1155,10 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         self.t_cycle[
             self.t_cycle == self.T_cycle
         ] = 0  # Resetting to zero for those who have reached the end
-    
+        
+        # Update stage
+        self.Stage = (self.Stage + 1)%3
+        
     def getStatesReb(self):
         """
         Get states for the first stage: rebalancing.
@@ -1233,9 +1236,26 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             mNrmTildeNow, nNrmTildeNow = rebalanceAssets(self.DNrmNow, self.mNrmNow, self.nNrmNow, self.tau)
         
         else:
-            pass
+            
+            # Initialize
+            mNrmTildeNow = np.zeros_like(self.mNrmNow) + np.nan
+            nNrmTildeNow = np.zeros_like(self.mNrmNow) + np.nan
+            
+            # Loop over each period of the cycle, getting controls separately depending on "age"
+            for t in range(0,self.T_cycle,3):
+            
+                # Find agents in this period-stage
+                these = t == self.t_cycle
+                
+                if np.sum(these) > 0:
+                    tau = self.tau[t]
+                    
+                    mNrmTildeNow[these], nNrmTildeNow[these] = rebalanceAssets(self.DNrmNow[these], self.mNrmNow[these], self.nNrmNow[these], tau)
         
-        
+        self.mNrmTildeNow = mNrmTildeNow
+        self.nNrmTildeNow = nNrmTildeNow
+                    
+                       
     
 def rebalanceAssets(d,m,n,tau):
     
