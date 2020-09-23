@@ -230,13 +230,26 @@ plotSlices4D(cFuncFxd,0,mMax,y_slices = n_slices,w_slices = shares,
              ax_labs = ['m_til','c'])
 
 # %%  Simulate this consumer type
-ContribAgent.track_vars = ['pLvlNow','t_age','Stage',
+ContribAgent.track_vars = ['pLvlNow','t_age','Stage','AdjustNow',
                            'mNrmNow','nNrmNow','mNrmTildeNow','nNrmTildeNow','aNrmNow',
                            'cNrmNow', 'ShareNow', 'DNrmNow']
-ContribAgent.T_sim = 100
-ContribAgent.AgentCount = 4
+ContribAgent.T_sim = 4*3
+ContribAgent.AgentCount = 10
 ContribAgent.initializeSim()
 ContribAgent.simulate()
 
 # %% Format simulation results
+
+import pandas as pd
+
 Data = ContribAgent.history
+
+# Add an id to the simulation results
+agent_id = np.arange(ContribAgent.AgentCount)
+Data['id'] = np.tile(agent_id,(ContribAgent.T_sim,1))
+
+# Flatten variables
+Data = {k: v.flatten(order = 'F') for k, v in Data.items()}
+
+# Make dataframe
+Data = pd.DataFrame(Data)
