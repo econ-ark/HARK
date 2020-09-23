@@ -683,10 +683,17 @@ class KrusellSmithType(AgentType):
             "DiscFac",
             "CRRA",
         ]
+
+        # need better handling of this
+        self.state_now = {
+            "aNow" : None,
+            "EmpNow" : None
+        }
         self.state_prev = {
             "aNow" : None,
             "EmpNow" : None
         }
+
         self.solveOnePeriod = solveKrusellSmith
         self.update()
 
@@ -987,8 +994,8 @@ class KrusellSmithType(AgentType):
         EmpNew = np.concatenate(
             [np.zeros(unemp_N, dtype=bool), np.ones(emp_N, dtype=bool)]
         )
-        self.state_prev['EmpNow'][which] = self.RNG.permutation(EmpNew)
-        self.state_prev['aNow'][which] = self.kInit
+        self.state_prev["EmpNow"][which] = self.RNG.permutation(EmpNew)
+        self.state_prev["aNow"][which] = self.kInit
 
     def getShocks(self):
         """
@@ -1010,7 +1017,7 @@ class KrusellSmithType(AgentType):
         """
         Get each agent's idiosyncratic state, their household market resources.
         """
-        self.mNow = self.Rnow * self.state_prev['aNow'] + self.Wnow * self.LbrInd * self.poststate_vars["EmpNow"]
+        self.mNow = self.Rnow * self.state_prev['aNow'] + self.Wnow * self.LbrInd * self.state_prev["EmpNow"]
 
     def getControls(self):
         """

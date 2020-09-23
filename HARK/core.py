@@ -1173,18 +1173,15 @@ class Market(HARKobject):
         -------
         none
         """
-        for var_name in self.reap_state:
+        for var in self.reap_state:
             harvest = []
 
             for agent in self.agents:
                 # TODO: generalized variable lookup across namespaces
-                # TODO: remove poststate/state distinction
-                if var_name in agent.state_vars:
-                    harvest.append(agent.state_vars[var_name])
-                elif var_name in agent.poststate_vars:
-                    harvest.append(agent.poststate_vars[var_name])
+                if var in agent.state_prev:
+                    harvest.append(agent.state_prev[var])
 
-            self.reap_state[var_name] = harvest
+            self.reap_state[var] = harvest
 
     def sow(self):
         """
