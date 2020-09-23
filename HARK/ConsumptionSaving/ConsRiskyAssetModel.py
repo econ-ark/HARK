@@ -1237,20 +1237,22 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     
 def rebalanceAssets(d,m,n,tau):
     
+    # Initialize
+    mTil = np.zeros_like(m) + np.nan
+    nTil = np.zeros_like(m) + np.nan
     
-    if d >= 0:
-        m_til = m*(1-d)
-        n_til = n + m*d
-    else:
-        m_til = m - d*n/(1 + tau)
-        n_til = n*(1+d)
+    # Contributions
+    inds = d >= 0
+    mTil[inds] = m[inds]*(1-d[inds])
+    nTil[inds] = n[inds] + m[inds]*d[inds]
     
-    return (m_til, n_til)
+    # Withdrawals
+    inds = d < 0
+    mTil[inds] = m[inds] - d[inds]*n[inds]/(1 + tau)
+    nTil[inds] = n[inds]*(1+d[inds])
+    
+    return (mTil, nTil)
 
-def rebalanceFobj(d,m,n,v,tau):
-        
-    m_til, n_til = rebalanceAssets(d,m,n,tau)
-    return v(m_til, n_til)
     
 def findOptimalRebalance(m,n,vNvrs,tau):
     
@@ -1692,6 +1694,9 @@ def solveRiskyContribRebStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     dvdm = dvdmFuncAdj_next(m_tilde, n_tilde)
     dvdn = dvdnFuncAdj_next(m_tilde, n_tilde)
     
+    # Initialize
+    dOpt = np.ones_like(mNrm_tiled[0])*np.nan
+    
     # Find the optimal d's
     zeroind = np.where(dGrid == 0.0)[0][0]
     
@@ -1730,10 +1735,8 @@ def solveRiskyContribRebStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                     m = (FOC[pos1] - FOC[pos0])/(dGrid[ind1] - dGrid[ind0])
                     dOpt[mInd,nInd] = dGrid[ind0] - FOC[pos0]/m
          
-            # Find m_tilde and n_tilde
-            m,n = rebalanceAssets(dOpt[mInd,nInd], mNrm_tiled[mInd,nInd], nNrm_tiled[mInd,nInd], tau)
-            mtil_opt[mInd,nInd] = m
-            ntil_opt[mInd,nInd] = n
+    # Find m_tilde and n_tilde
+    mtil_opt, ntil_opt = rebalanceAssets(dOpt, mNrm_tiled[0], nNrm_tiled[0], tau)
             
     # Evaluate inverse end-of-period value function
     vNvrsAdj = vFuncAdj_next.func(mtil_opt, ntil_opt)
