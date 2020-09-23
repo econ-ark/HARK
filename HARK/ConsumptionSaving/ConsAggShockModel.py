@@ -203,7 +203,7 @@ class AggShockConsumerType(IndShockConsumerType):
             cFunc=cFunc_terminal, vPfunc=vPfunc_terminal, mNrmMin=mNrmMin_terminal
         )
 
-    def getEconomyData(self, Economy):
+    def getEconomyData(self, economy):
         """
         Imports economy-determined objects into self from a Market.
         Instances of AggShockConsumerType "live" in some macroeconomy that has
@@ -214,7 +214,7 @@ class AggShockConsumerType(IndShockConsumerType):
 
         Parameters
         ----------
-        Economy : Market
+        economy : Market
             The "macroeconomy" in which this instance "lives".  Might be of the
             subclass CobbDouglasEconomy, which has methods to generate the
             relevant attributes.
@@ -224,24 +224,24 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         """
         self.T_sim = (
-            Economy.act_T
+            economy.act_T
         )  # Need to be able to track as many periods as economy runs
-        self.kInit = Economy.kSS  # Initialize simulation assets to steady state
+        self.kInit = economy.kSS  # Initialize simulation assets to steady state
         self.aNrmInitMean = np.log(
             0.00000001
         )  # Initialize newborn assets to nearly zero
         self.Mgrid = (
-            Economy.MSS * self.MgridBase
+            economy.MSS * self.MgridBase
         )  # Aggregate market resources grid adjusted around SS capital ratio
-        self.AFunc = Economy.AFunc  # Next period's aggregate savings function
-        self.Rfunc = Economy.Rfunc  # Interest factor as function of capital ratio
-        self.wFunc = Economy.wFunc  # Wage rate as function of capital ratio
-        self.DeprFac = Economy.DeprFac  # Rate of capital depreciation
+        self.AFunc = economy.AFunc  # Next period's aggregate savings function
+        self.Rfunc = economy.Rfunc  # Interest factor as function of capital ratio
+        self.wFunc = economy.wFunc  # Wage rate as function of capital ratio
+        self.DeprFac = economy.DeprFac  # Rate of capital depreciation
         self.PermGroFacAgg = (
-            Economy.PermGroFacAgg
+            economy.PermGroFacAgg
         )  # Aggregate permanent productivity growth
         self.addAggShkDstn(
-            Economy.AggShkDstn
+            economy.AggShkDstn
         )  # Combine idiosyncratic and aggregate shocks into one dstn
         self.addToTimeInv(
             "Mgrid", "AFunc", "Rfunc", "wFunc", "DeprFac", "PermGroFacAgg"
