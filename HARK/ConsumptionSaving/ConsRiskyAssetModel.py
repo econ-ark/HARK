@@ -928,20 +928,22 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     
 def rebalanceAssets(d,m,n,tau):
     
+    # Initialize
+    mTil = np.zeros_like(m) + np.nan
+    nTil = np.zeros_like(m) + np.nan
     
-    if d >= 0:
-        m_til = m*(1-d)
-        n_til = n + m*d
-    else:
-        m_til = m - d*n/(1 + tau)
-        n_til = n*(1+d)
+    # Contributions
+    inds = d >= 0
+    mTil[inds] = m[inds]*(1-d[inds])
+    nTil[inds] = n[inds] + m[inds]*d[inds]
     
-    return (m_til, n_til)
+    # Withdrawals
+    inds = d < 0
+    mTil[inds] = m[inds] - d[inds]*n[inds]/(1 + tau)
+    nTil[inds] = n[inds]*(1+d[inds])
+    
+    return (mTil, nTil)
 
-def rebalanceFobj(d,m,n,v,tau):
-        
-    m_til, n_til = rebalanceAssets(d,m,n,tau)
-    return v(m_til, n_til)
     
 def findOptimalRebalance(m,n,vNvrs,tau):
     
@@ -1354,33 +1356,26 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # STEP FOUR:
     # Rebalancing stage.
     
-    # Find optimal d for every combination
-    # TODO: this can be done in a much smarter way using the already computed
-    # derivatives.
-    # One would evaluate the derivatives at d=-1, d=0, and be able to tell if
-    # any of those is the optimum. If not, one can look for the point where
-    # the derivatives cross.
-    
-    # Initialize
-    dOpt     = np.ones_like(mNrm_tiled)*np.nan
-    mtil_opt = np.ones_like(mNrm_tiled)*np.nan
-    ntil_opt = np.ones_like(mNrm_tiled)*np.nan
-    
     # It will be useful to pre-evaluate marginals at every (m,n,d) combination
     
-    # Start by getting the m_tilde, n_tilde.
-    tilde = list(zip(*map(lambda d: rebalanceAssets(d, mNrm_tiled, nNrm_tiled, tau),
-                          dGrid)))
-    m_tilde = np.array(tilde[0])
-    n_tilde = np.array(tilde[1])
+    # Create tiled arrays for every d,m,n option
+    d_N = len(dGrid)
+    d_tiled    = np.tile(np.reshape(dGrid,    (d_N,1,1)), (1, mNrm_N,nNrm_N))
+    mNrm_tiled = np.tile(np.reshape(mNrmGrid, (1,mNrm_N,1)), (d_N,1,nNrm_N))
+    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,1,nNrm_N)), (d_N,mNrm_N,1))
     
-    # Now the marginals
+    # Start by getting the m_tilde, n_tilde.
+    m_tilde, n_tilde = rebalanceAssets(d_tiled, mNrm_tiled, nNrm_tiled, tau)
+    
+    # Compute the marginals
     dvdm = dvdmFuncSha(m_tilde, n_tilde)
     dvdn = dvdnFuncSha(m_tilde, n_tilde)
     
+    # Initialize
+    dOpt = np.ones_like(mNrm_tiled[0])*np.nan
+    
     # Find the optimal d's
     zeroind = np.where(dGrid == 0.0)[0][0]
-    d_N = len(dGrid)
     for mInd in range(mNrm_N):
         for nInd in range(nNrm_N):
             
@@ -1416,10 +1411,8 @@ def solveConsRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                     m = (FOC[pos1] - FOC[pos0])/(dGrid[ind1] - dGrid[ind0])
                     dOpt[mInd,nInd] = dGrid[ind0] - FOC[pos0]/m
          
-            # Find m_tilde and n_tilde
-            m,n = rebalanceAssets(dOpt[mInd,nInd], mNrm_tiled[mInd,nInd], nNrm_tiled[mInd,nInd], tau)
-            mtil_opt[mInd,nInd] = m
-            ntil_opt[mInd,nInd] = n
+    # Find m_tilde and n_tilde
+    mtil_opt, ntil_opt = rebalanceAssets(dOpt, mNrm_tiled[0], nNrm_tiled[0], tau)
             
     # Evaluate inverse value function
     vNvrsAdj = vNvrsFuncSha(mtil_opt, ntil_opt)
