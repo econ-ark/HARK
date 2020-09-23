@@ -173,11 +173,16 @@ init_sticky_share['vFuncBool'] = True
 #init_sticky_share['UnempPrbRet'] = 0
 init_sticky_share['IncUnemp'] = 0.0
 
+init_sticky_share['DiscFac']  = 0.95**15
+init_sticky_share['Rfree']    = 1.03**15
+init_sticky_share['RiskyAvg'] = 1.08**15 # Average return of the risky asset
+init_sticky_share['RiskyStd'] = 0.20**np.sqrt(15) # Standard deviation of (log) risky returns
+
 # Three period model just to check
 init_sticky_share['PermGroFac'] = [2.0, 1.0, 0.1, 1.0]
-init_sticky_share['PermShkStd'] = [0.1, 0.1, 0.2, 0.0]
-init_sticky_share['TranShkStd'] = [0.2, 0.2, 0.2, 0.0]
-init_sticky_share['AdjustPrb']  = [0.1, 0.1, 0.8, 1.0]
+init_sticky_share['PermShkStd'] = [0.1, 0.1, 0.0, 0.0]
+init_sticky_share['TranShkStd'] = [0.2, 0.2, 0.0, 0.0]
+init_sticky_share['AdjustPrb']  = [0.1, 0.1, 1.0, 1.0]
 init_sticky_share['tau']        = [0.1, 0.1, 0.0, 0.0]
 init_sticky_share['LivPrb']     = [1.0, 1.0, 1.0, 1.0]
 init_sticky_share['T_cycle']    = 4
