@@ -447,8 +447,6 @@ class AgentType(HARKobject):
                 self.state_now[var] = copy(blank_array)
 
             if self.state_prev[var] is None:
-                if var == "PlvlAggNow":
-                    import pdb; pdb.set_trace()
                 self.state_prev[var] = copy(blank_array)
 
         self.t_age = np.zeros(
