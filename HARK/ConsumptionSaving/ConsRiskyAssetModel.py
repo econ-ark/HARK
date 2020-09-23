@@ -1121,10 +1121,6 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         # Update stage
         self.Stage = (self.Stage + 1)%3
         
-        # Not all controls are updated at all stages. To avoid confusion,
-        # inactive controls take the value of nan.
-        self.clearControls()
-        
         # Simulation steps depend on the stage
         
         # Rebalancing stage (the first one)
@@ -1157,10 +1153,11 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             self.getControlsCons()
             self.getPostStatesCons()
         
-        # Determine each agent's state at decision time
-        #self.getControls()  # Determine each agent's choice or control variables based on states
-        #self.getPostStates()  # Determine each agent's post-decision / end-of-period states using states and controls
-
+        # Not all controls are updated at all stages, or all (post)states are
+        # relevant to all stages.To avoid confusion,
+        # inactive variables take the value of nan.
+        self.clearControlsAndStates()
+        
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
         self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
@@ -1169,11 +1166,18 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         ] = 0  # Resetting to zero for those who have reached the end
         
     
-    def clearControls(self):
+    def clearControlsAndStates(self):
         
-        # Set all controls to nan, except share since share is also a state
-        self.cNrmNow  = np.zeros(self.AgentCount) + np.nan
-        self.DNrmNow  = np.zeros(self.AgentCount) + np.nan
+        # Irrelevant variables depend on the stage
+        if self.Stage == 0:
+            self.cNrmNow  = np.zeros(self.AgentCount) + np.nan
+            self.aNrmNow  = np.zeros(self.AgentCount) + np.nan
+        elif self.Stage == 1:
+            self.DNrmNow  = np.zeros(self.AgentCount) + np.nan
+            self.mNrmNow  = np.zeros(self.AgentCount) + np.nan
+            self.nNrmNow  = np.zeros(self.AgentCount) + np.nan
+        else:
+            pass
     
     def getStatesReb(self):
         """
