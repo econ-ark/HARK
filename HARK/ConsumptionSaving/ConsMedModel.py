@@ -7,7 +7,7 @@ from builtins import str
 from builtins import range
 import numpy as np
 from scipy.optimize import brentq
-from HARK import HARKobject, makeOnePeriodOOSolver
+from HARK import  AgentType, HARKobject, makeOnePeriodOOSolver
 from HARK.distribution import addDiscreteOutcomeConstantMean, Lognormal
 from HARK.utilities import (
     CRRAutilityP_inv,
@@ -895,7 +895,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         self.state_now['aLvlNow'] = self.state_now['mLvlNow'] - self.cLvlNow - self.MedPriceNow * self.MedNow
 
         # moves now to prev
-        super().getPostStates()
+        AgentType.getPostStates(self)
 
         return None
 
