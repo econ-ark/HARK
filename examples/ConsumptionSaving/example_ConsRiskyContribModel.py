@@ -225,8 +225,13 @@ plotSlices4D(cFuncFxd,0,mMax,y_slices = n_slices,w_slices = shares,
              ax_labs = ['m_til','c'])
 
 # %%  Simulate this consumer type
-ContribAgent.track_vars = ['cNrmNow', 'ShareNow', 'aNrmNow', 't_age']
+ContribAgent.track_vars = ['pLvlNow','t_age','Stage',
+                           'mNrmNow','nNrmNow','mNrmTildeNow','nNrmTildeNow','aNrmNow',
+                           'cNrmNow', 'ShareNow', 'DNrmNow']
 ContribAgent.T_sim = 100
 ContribAgent.AgentCount = 4
 ContribAgent.initializeSim()
 ContribAgent.simulate()
+
+# %% Format simulation results
+Data = ContribAgent.history
