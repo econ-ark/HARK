@@ -992,7 +992,22 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         -------
         None
         '''
-        self.AdjustNow = Bernoulli(self.AdjustPrb, seed=self.RNG.randint(0, 2**31-1)).draw(self.AgentCount)
+        if not ('AdjustPrb' in self.time_vary):
+            
+            self.AdjustNow = Bernoulli(self.AdjustPrb, seed=self.RNG.randint(0, 2**31-1)).draw(self.AgentCount)
+       
+        else: 
+            
+            AdjustNow = np.zeros(self.AgentCount)  # Initialize shock array
+            for t in range(self.T_cycle):
+                these = t == self.t_cycle
+                N = np.sum(these)
+                if N > 0:
+                    AdjustPrb = self.AdjustPrb[t - 1]
+                    AdjustNow[these] = Bernoulli(AdjustPrb,
+                                                 seed=self.RNG.randint(0, 2**31-1)).draw(N)
+                    
+            self.AdjustNow = AdjustNow
        
     def initializeSim(self):
         '''
@@ -1009,6 +1024,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         '''
         IndShockConsumerType.initializeSim(self)
         self.AdjustNow = self.AdjustNow.astype(bool)
+        self.Stage = 0
     
     
     def simBirth(self,which_agents):
@@ -1082,6 +1098,142 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         # Store controls as attributes of self
         self.cNrmNow = cNrmNow
         self.ShareNow = ShareNow
+    
+    def simOnePeriod(self):
+        """
+        Simulates one period for this type.  Calls the methods getMortality(), getShocks() or
+        readShocks, getStates(), getControls(), and getPostStates().  These should be defined for
+        AgentType subclasses, except getMortality (define its components simDeath and simBirth
+        instead) and readShocks.
+        Parameters
+        ----------
+        None
+        Returns
+        -------
+        None
+        """
+        if not hasattr(self, "solution"):
+            raise Exception(
+                "Model instance does not have a solution stored. To simulate, it is necessary"
+                " to run the `solve()` method of the class first."
+            )
+        
+        # Simulation steps depend on the stage
+        
+        # Rebalancing stage (the first one)
+        if self.Stage == 0:
+            
+            # Mortality and birth happens only in the first stage
+            self.getMortality()
+            
+            # Shocks are drawn in the first stage
+            if self.read_shocks:  # If shock histories have been pre-specified, use those
+                self.readShocks()
+            else:  # Otherwise, draw shocks as usual according to subclass-specific method
+                self.getShocks()
+            
+            # Update states and controls
+            self.getStatesReb()
+            self.getControlsReb()    
+            self.getPostStatesReb()
+            
+        # Contribution stage
+        elif self.Stage == 1:
+            pass
+        
+        # Consumption stage (the last one)
+        elif self.Stage == 2:
+            pass
+        
+        # Determine each agent's state at decision time
+        #self.getControls()  # Determine each agent's choice or control variables based on states
+        #self.getPostStates()  # Determine each agent's post-decision / end-of-period states using states and controls
+
+        # Advance time for all agents
+        self.t_age = self.t_age + 1  # Age all consumers by one period
+        self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
+        self.t_cycle[
+            self.t_cycle == self.T_cycle
+        ] = 0  # Resetting to zero for those who have reached the end
+    
+    def getStatesReb(self):
+        """
+        Get states for the first stage: rebalancing.
+        """
+        pLvlPrev = self.pLvlNow
+        aNrmPrev = self.aNrmNow
+        nNrmPrev = self.nNrmNow
+        RfreeNow = self.Rfree
+        RriskNow = self.RiskyNow
+        
+        # Calculate new states:
+        
+        # Permanent income
+        self.pLvlNow = (
+            pLvlPrev * self.shocks["PermShkNow"]
+        )
+        
+        # Assets: mNrm and nNrm
+        
+        # Compute the effective growth factor of each asset
+        RfEffNow = (
+            RfreeNow / self.shocks["PermShkNow"]
+        )
+        RrEffNow = (
+            RriskNow / self.shocks["PermShkNow"]
+        )
+        
+        self.bNrmNow = RfEffNow * aNrmPrev  # Liquid balances before labor income
+        self.gNrmNow = RrEffNow * nNrmPrev  # Iliquid balances before labor income
+        
+        # Liquid balances after labor income
+        self.mNrmNow = (
+            self.bNrmNow + self.shocks["TranShkNow"] * (1 - self.ShareNow)
+        )
+        # Iliquid balances after labor income
+        self.nNrmNow = (
+            self.gNrmNow + self.shocks["TranShkNow"] * self.ShareNow
+        )
+        
+        return None
+
+    
+    def getControlsReb(self):
+        """
+        """
+        DNrmNow = np.zeros(self.AgentCount) + np.nan
+        
+        # Loop over each period of the cycle, getting controls separately depending on "age"
+        for t in range(0,self.T_cycle,3):
+            
+            # Find agents in this period-stage
+            these = t == self.t_cycle
+                           
+            # Get controls for agents who *can* adjust.
+            those = np.logical_and(these, self.AdjustNow)
+            DNrmNow[those] = self.solution[t].DFuncAdj(self.mNrmNow[those], self.nNrmNow[those])
+                
+            # Get Controls for agents who *can't* adjust.
+            those = np.logical_and(these, np.logical_not(self.AdjustNow))
+            DNrmNow[those] = self.solution[t].DFuncFxd(
+                self.mNrmNow[those], self.nNrmNow[those], self.ShareNow[those]
+            )
+
+        # Store controls as attributes of self
+        self.DNrmNow = DNrmNow
+        
+    def getPostStatesReb(self):
+        """
+        """
+        
+        # Post-states are assets after rebalancing
+        
+        # Initialize
+        mNrmTildeNow = np.zeros(self.AgentCount) + np.nan
+        nNrmTildeNow = np.zeros(self.AgentCount) + np.nan
+        
+        
+        
     
 def rebalanceAssets(d,m,n,tau):
     
