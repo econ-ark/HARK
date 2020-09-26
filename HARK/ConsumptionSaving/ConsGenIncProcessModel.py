@@ -1088,7 +1088,8 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     solution_terminal_ = ConsumerSolution(
         cFunc=cFunc_terminal_, mNrmMin=0.0, hNrm=0.0, MPCmin=1.0, MPCmax=1.0
     )
-    poststate_vars_ = ["aLvlNow", "pLvlNow"]
+
+    state_vars = ["pLvlNow","mLvlNow","aLvlNow"]
 
     def __init__(self, cycles=0, **kwds):
         """
@@ -1320,11 +1321,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         Returns
         -------
         pLvlNow
-        PlvlAggNow # not used!
-        bNrmNow # not used!
-        mNrmNow # not used!
-        aNrmNow # not used!
-        aLvlNow # not used!
         mLvlNow
         """
         aLvlPrev = self.state_prev['aLvlNow']
@@ -1350,11 +1346,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
                   pLvlNow
 
         return (pLvlNow,
-                self.state_now['PlvlAggNow'],
-                self.state_now['bNrmNow'],
-                self.state_now['mNrmNow'],
-                self.state_now['aNrmNow'],
-                self.state_now['aLvlNow'],
                 mLvlNow)
 
 
@@ -1398,8 +1389,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         None
         """
         self.state_now['aLvlNow'] = self.state_now["mLvlNow"] - self.cLvlNow
-        self.state_now['pLvlNow'] = self.state_now['pLvlNow']
-
         # moves now to prev
         AgentType.getPostStates(self)
 

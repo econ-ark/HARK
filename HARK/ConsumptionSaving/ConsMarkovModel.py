@@ -832,14 +832,14 @@ class MarkovConsumerType(IndShockConsumerType):
     """
 
     time_vary_ = IndShockConsumerType.time_vary_ + ["MrkvArray"]
+
+    # Is 'MrkvNow' a shock or a state?
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["MrkvNow"]
+    state_vars = IndShockConsumerType.state_vars + ["MrkvNow"]
 
     def __init__(self, cycles=1, **kwds):
         IndShockConsumerType.__init__(self, cycles=1, **kwds)
         self.solveOnePeriod = _solveConsMarkov
-
-        self.state_now["MrkvNow"] = None
-        self.state_prev["MrkvNow"] = None
 
         if not hasattr(self, "global_markov"):
             self.global_markov = False
@@ -1037,7 +1037,7 @@ class MarkovConsumerType(IndShockConsumerType):
         """
         Draw new Markov states for each agent in the simulated population, using
         the attribute MrkvArray to determine transition probabilities.
-        
+
         Parameters
         ----------
         None

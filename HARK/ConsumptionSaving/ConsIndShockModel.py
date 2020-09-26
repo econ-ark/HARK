@@ -1569,7 +1569,7 @@ class PerfForesightConsumerType(AgentType):
     )
     time_vary_ = ["LivPrb", "PermGroFac"]
     time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
-    state_vars_     = ['pLvlNow', 'PlvlAggNow', 'bNrmNow', 'mNrmNow', "aNrmNow"]
+    state_vars = ['pLvlNow', 'PlvlAggNow', 'bNrmNow', 'mNrmNow', "aNrmNow"]
     shock_vars_ = []
 
     def __init__(self, cycles=1, verbose=1, quiet=False, **kwds):
@@ -1604,9 +1604,6 @@ class PerfForesightConsumerType(AgentType):
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = deepcopy(self.time_vary_)
         self.time_inv = deepcopy(self.time_inv_)
-
-        self.state_now = {sv : None for sv in self.state_vars_}
-        self.state_prev = self.state_now.copy()
 
         self.shock_vars = deepcopy(self.shock_vars_)
         self.verbose = verbose

@@ -378,9 +378,6 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         params.update(kwds)
 
         IndShockConsumerType.__init__(self, cycles=cycles, **params)
-        # need better system for inheritence here
-        self.state_now['bNrmNow'] = None
-        self.state_prev['bNrmNow'] = None
 
         self.pseudo_terminal = False
         self.solveOnePeriod = solveConsLaborIntMarg

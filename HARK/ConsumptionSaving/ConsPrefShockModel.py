@@ -150,11 +150,11 @@ class PrefShockConsumerType(IndShockConsumerType):
         of random shocks; this is necessary for structural estimation to work.
         This method extends IndShockConsumerType.resetRNG() to also reset elements
         of PrefShkDstn.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None

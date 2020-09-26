@@ -133,7 +133,6 @@ class PortfolioConsumerType(IndShockConsumerType):
     of the risky asset's return distribution must also be specified.
     """
 
-    poststate_vars_ = ["aNrmNow", "pLvlNow", "ShareNow", "AdjustNow"]
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
     time_inv_ = time_inv_ + ["AdjustPrb", "DiscreteShareBool"]
 

@@ -258,6 +258,8 @@ class RepAgentConsumerType(IndShockConsumerType):
 
     def getStates(self):
         """
+        TODO: replace with call to transition
+
         Calculates updated values of normalized market resources and permanent income level.
         Uses pLvlNow, aNrmNow, PermShkNow, TranShkNow.
 

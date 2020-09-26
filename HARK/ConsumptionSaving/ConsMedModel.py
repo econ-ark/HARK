@@ -586,6 +586,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
     """
 
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShkNow"]
+    state_vars = PersistentShockConsumerType.state_vars + ['mLvlNow']
 
     def __init__(self, cycles=0, **kwds):
         """
@@ -607,7 +608,6 @@ class MedShockConsumerType(PersistentShockConsumerType):
         params.update(kwds)
 
         PersistentShockConsumerType.__init__(self, cycles=cycles, **params)
-        self.state_now['mLvlNow'] = None
         self.solveOnePeriod = makeOnePeriodOOSolver(ConsMedShockSolver)
         self.addToTimeInv("CRRAmed")
         self.addToTimeVary("MedPrice")
@@ -811,11 +811,11 @@ class MedShockConsumerType(PersistentShockConsumerType):
         of random shocks; this is necessary for structural estimation to work.
         This method extends PersistentShockConsumerType.resetRNG() to also reset
         elements of MedShkDstn.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None

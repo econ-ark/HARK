@@ -172,6 +172,8 @@ class AgentType(HARKobject):
     a field in AgentSubType that is constant over time in the model.
     """
 
+    state_vars = []
+
     def __init__(
         self,
         solution_terminal=None,
@@ -224,8 +226,8 @@ class AgentType(HARKobject):
         self.tolerance = tolerance  # NOQA
         self.seed = seed  # NOQA
         self.track_vars = []  # NOQA
-        self.state_now = {}
-        self.state_prev = {}
+        self.state_now = {sv : None for sv in self.state_vars}
+        self.state_prev = self.state_now.copy()
         self.shocks = {}
         self.read_shocks = False  # NOQA
         self.shock_history = {}
