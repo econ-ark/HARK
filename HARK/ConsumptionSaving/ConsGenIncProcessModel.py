@@ -1320,9 +1320,11 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         Returns
         -------
         pLvlNow
-        PlvlAggNow
-        bNrmNow
-        mNrmNow
+        PlvlAggNow # not used!
+        bNrmNow # not used!
+        mNrmNow # not used!
+        aNrmNow # not used!
+        aLvlNow # not used!
         mLvlNow
         """
         aLvlPrev = self.state_prev['aLvlNow']
@@ -1351,6 +1353,8 @@ class GenIncProcessConsumerType(IndShockConsumerType):
                 self.state_now['PlvlAggNow'],
                 self.state_now['bNrmNow'],
                 self.state_now['mNrmNow'],
+                self.state_now['aNrmNow'],
+                self.state_now['aLvlNow'],
                 mLvlNow)
 
 
@@ -1397,7 +1401,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         self.state_now['pLvlNow'] = self.state_now['pLvlNow']
 
         # moves now to prev
-        super().getPostStates()
+        AgentType.getPostStates(self)
 
 
 ###############################################################################
