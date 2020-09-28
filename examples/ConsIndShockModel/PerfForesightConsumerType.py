@@ -278,7 +278,9 @@ plt.show()
 #
 # When called with no argument, $\texttt{simulate}$ will simulate the model for $\texttt{T_sim}$ periods.  The user can optionally pass an integer specifying the number of periods to simulate (which should not exceed $\texttt{T_sim}$).
 #
-# In the cell below, we simulate our perfect foresight consumers for 80 periods, then seize a bunch of their assets (dragging their wealth even more negative), then simulate for the reamining 40 periods.
+# In the cell below, we simulate our perfect foresight consumers for 80 periods, then seize a bunch of their assets (dragging their wealth even more negative), then simulate for the remaining 40 periods.
+#
+# The `state_prev` attribute of an AgenType stores the values of the model's state variables in the _previous_ period of the simulation.
 
 # %% pycharm= {"name": "#%%\n"}
 PFexample.initializeSim()
