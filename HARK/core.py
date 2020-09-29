@@ -170,6 +170,11 @@ class AgentType(HARKobject):
     strings.  Each element of time_vary is the name of a field in AgentSubType
     that varies over time in the model.  Each element of time_inv is the name of
     a field in AgentSubType that is constant over time in the model.
+
+    Attributes
+    ----------
+    state_vars : list of string
+        The string labels for this AgentType's model state variables.
     """
 
     state_vars = []
