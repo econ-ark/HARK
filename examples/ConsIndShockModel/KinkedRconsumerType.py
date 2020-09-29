@@ -6,8 +6,8 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.5.2
+#       format_version: '1.2'
+#       jupytext_version: 1.2.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -18,7 +18,7 @@
 # # KinkedRconsumerType: Consumption-saving model with idiosyncratic income shocks and different interest rates on borrowing and saving
 
 
-# %% code_folding=[0]
+# %% {"code_folding": [0]}
 # Initial imports and notebook setup, click arrow to show
 
 import matplotlib.pyplot as plt
@@ -111,7 +111,7 @@ mystr = lambda number: "{:.4f}".format(number)
 #
 # These example parameters are almostidentical to those used for $\texttt{IndShockExample}$ in the prior notebook, except that the interest rate on borrowing is 20% (like a credit card), and the interest rate on saving is 1%. Moreover, the artificial borrowing constraint has been set to $\texttt{None}$.  The cell below defines a parameter dictionary with these example values.
 
-# %% code_folding=[0]
+# %% {"code_folding": [0]}
 KinkedRdict = {  # Click the arrow to expand this parameter dictionary
     # Parameters shared with the perfect foresight model
     "CRRA": 2.0,  # Coefficient of relative risk aversion
@@ -214,7 +214,7 @@ plt.show()
 # Now let's plot the distribution of (normalized) assets $a_t$ for the current population, after simulating for $500$ periods; this should be fairly close to the long run distribution:
 
 # %%
-plt.plot(np.sort(KinkyExample.aNrmNow), np.linspace(0.0, 1.0, KinkyExample.AgentCount))
+plt.plot(np.sort(KinkyExample.state_now['aNrmNow']), np.linspace(0.0, 1.0, KinkyExample.AgentCount))
 plt.xlabel("End-of-period assets")
 plt.ylabel("Cumulative distribution")
 plt.ylim(-0.01, 1.01)

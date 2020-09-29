@@ -382,7 +382,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.AdjustNow = Bernoulli(
+        self.shocks['AdjustNow'] = Bernoulli(
             self.AdjustPrb, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(self.AgentCount)
 
@@ -422,7 +422,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.initializeSim(self)
-        self.AdjustNow = self.AdjustNow.astype(bool)
+        self.shocks['AdjustNow'] = self.shocks['AdjustNow'].astype(bool)
 
     def simBirth(self, which_agents):
         """
@@ -439,8 +439,10 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.simBirth(self, which_agents)
-        self.ShareNow[which_agents] = 0.0
-        self.AdjustNow[which_agents] = False
+        # this is setting control variable arrays as if
+        # they are 'post' or 'ante' states...
+        self.ShareNow = np.zeros(self.AgentCount)
+        self.shocks['AdjustNow'] = np.zeros(self.AgentCount, dtype=bool)
 
     def getShocks(self):
         """
@@ -481,17 +483,19 @@ class PortfolioConsumerType(IndShockConsumerType):
             these = t == self.t_cycle
 
             # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, self.AdjustNow)
-            cNrmNow[those] = self.solution[t].cFuncAdj(self.mNrmNow[those])
-            ShareNow[those] = self.solution[t].ShareFuncAdj(self.mNrmNow[those])
+            those = np.logical_and(these, self.shocks['AdjustNow'])
+            cNrmNow[those] = self.solution[t].cFuncAdj(self.state_now['mNrmNow'][those])
+            ShareNow[those] = self.solution[t].ShareFuncAdj(self.state_now['mNrmNow'][those])
 
             # Get Controls for agents who *can't* adjust their portfolio share
-            those = np.logical_and(these, np.logical_not(self.AdjustNow))
+            those = np.logical_and(
+                these,
+                np.logical_not(self.shocks['AdjustNow']))
             cNrmNow[those] = self.solution[t].cFuncFxd(
-                self.mNrmNow[those], self.ShareNow[those]
+                self.state_now['mNrmNow'][those], self.ShareNow[those]
             )
             ShareNow[those] = self.solution[t].ShareFuncFxd(
-                self.mNrmNow[those], self.ShareNow[those]
+                self.state_now['mNrmNow'][those], self.ShareNow[those]
             )
 
         # Store controls as attributes of self
