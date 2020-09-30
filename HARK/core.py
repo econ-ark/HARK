@@ -892,7 +892,7 @@ def solveOneCycle(agent, solution_last):
     for t in range(T):
         # Update which single period solver to use (if it depends on time)
         if hasattr(agent.solveOnePeriod, "__getitem__"):
-            solveOnePeriod = agent.solveOnePeriod[t]
+            solveOnePeriod = agent.solveOnePeriod[T - 1 - t]
         else:
             solveOnePeriod = agent.solveOnePeriod
 
