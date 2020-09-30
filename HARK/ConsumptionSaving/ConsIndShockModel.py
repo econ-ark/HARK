@@ -1679,7 +1679,7 @@ class PerfForesightConsumerType(AgentType):
 
     def initializeSim(self):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
-        self.state_prev['PlvlAggNow'] = 1.0
+        self.state_now['PlvlAggNow'] = 1.0
         AgentType.initializeSim(self)
 
     def simBirth(self, which_agents):
@@ -1699,16 +1699,16 @@ class PerfForesightConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.state_prev["aNrmNow"][which_agents] = Lognormal(
+        self.state_now["aNrmNow"][which_agents] = Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1),
         ).draw(N)
         # why is a now variable set here? Because it's an aggregate.
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
-            self.state_prev["PlvlAggNow"]
+            self.state_now["PlvlAggNow"]
         )  # Account for newer cohorts having higher permanent income
-        self.state_prev["pLvlNow"][which_agents] = Lognormal(
+        self.state_now["pLvlNow"][which_agents] = Lognormal(
             pLvlInitMeanNow,
             self.pLvlInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1)

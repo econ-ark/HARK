@@ -487,7 +487,15 @@ class AgentType(HARKobject):
                 " to run the `solve()` method of the class first."
             )
 
+        # Mortality adjusts the agent population
         self.getMortality()  # Replace some agents with "newborns"
+
+        # state_{t-1}
+        for var in self.state_now:
+            self.state_prev[var] = self.state_now[var]
+            # note: this is not type checked for aggregate variables.
+            self.state_now[var] = np.empty(self.AgentCount)
+
         if self.read_shocks:  # If shock histories have been pre-specified, use those
             self.readShocks()
         else:  # Otherwise, draw shocks as usual according to subclass-specific method
@@ -719,10 +727,6 @@ class AgentType(HARKobject):
         -------
         None
         """
-        for var in self.state_now:
-            self.state_prev[var] = self.state_now[var]
-            # note: this is not type checked for aggregate variables.
-            self.state_now[var] = np.empty(self.AgentCount)
 
         return None
 
@@ -773,8 +777,8 @@ class AgentType(HARKobject):
             for t in range(sim_periods):
                 self.simOnePeriod()
                 for var_name in self.track_vars:
-                    if var_name in self.state_prev:
-                        self.history[var_name][self.t_sim, :] = self.state_prev[
+                    if var_name in self.state_now:
+                        self.history[var_name][self.t_sim, :] = self.state_now[
                             var_name
                         ]
                     elif var_name in self.shock_vars:
