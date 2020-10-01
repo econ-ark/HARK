@@ -2,7 +2,7 @@ from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerTy
 import unittest
 
 
-class testPortfolioConsumerType(unittest.TestCase):
+class testTractableBufferStock(unittest.TestCase):
     def setUp(self):
         # Create portfolio choice consumer type
         self.tct = TractableConsumerType()
