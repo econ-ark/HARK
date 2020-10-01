@@ -317,8 +317,10 @@ class TractableConsumerType(AgentType):
         -----------
         New instance of TractableConsumerType.
         """
+        params = init_tractable.copy()
+        params.update(kwds)
         # Initialize a basic AgentType
-        AgentType.__init__(self, cycles=cycles, pseudo_terminal=True, **kwds)
+        AgentType.__init__(self, cycles=cycles, pseudo_terminal=True, **params)
 
         # Add consumer-type specific objects, copying to create independent versions
         self.time_vary = []
@@ -689,3 +691,12 @@ class TractableConsumerType(AgentType):
         """
         self.aLvlNow = self.mLvlNow - self.cLvlNow
         return None
+
+
+init_tractable = {
+    "UnempPrb": 0.00625,  # Probability of becoming unemployed
+    "DiscFac": 0.975,  # Intertemporal discount factor
+    "Rfree": 1.01,  # Risk-free interest factor on assets
+    "PermGroFac": 1.0025,  # Permanent income growth factor (uncompensated)
+    "CRRA": 1.0,  # Coefficient of relative risk aversion
+}
