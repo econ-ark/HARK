@@ -599,7 +599,8 @@ class TractableConsumerType(AgentType):
             sigma=self.aLvlInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1),
         ).draw(N)
-        self.eStateNow[which_agents] = 1.0  # Agents are born employed
+        self.shocks["eStateNow"] = np.zeros(self.AgentCount) # Initialize shock array
+        self.shocks["eStateNow"][which_agents] = 1.0  # Agents are born employed
         self.t_age[which_agents] = 0  # How many periods since each agent was born
         self.t_cycle[
             which_agents
@@ -636,12 +637,12 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        employed = self.eStateNow == 1.0
+        employed = self.shocks["eStateNow"] == 1.0
         N = int(np.sum(employed))
         newly_unemployed = Bernoulli(
             self.UnempPrb, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
-        self.eStateNow[employed] = 1.0 - newly_unemployed
+        self.shocks["eStateNow"][employed] = 1.0 - newly_unemployed
 
     def getStates(self):
         """
@@ -656,7 +657,7 @@ class TractableConsumerType(AgentType):
         None
         """
         self.bLvlNow = self.Rfree * self.aLvlNow
-        self.mLvlNow = self.bLvlNow + self.eStateNow
+        self.mLvlNow = self.bLvlNow + self.shocks["eStateNow"]
 
     def getControls(self):
         """
@@ -670,7 +671,7 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        employed = self.eStateNow == 1.0
+        employed = self.shocks["eStateNow"] == 1.0
         unemployed = np.logical_not(employed)
         cLvlNow = np.zeros(self.AgentCount)
         cLvlNow[employed] = self.solution[0].cFunc(self.mLvlNow[employed])
