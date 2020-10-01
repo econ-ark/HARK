@@ -167,8 +167,8 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         """
         self.initializeSim()
-        self.state_prev['aLvlNow'] = self.kInit * np.ones(self.AgentCount)  # Start simulation near SS
-        self.state_prev['aNrmNow'] = self.state_prev['aLvlNow'] / self.state_prev['pLvlNow'] # ???
+        self.state_now['aLvlNow'] = self.kInit * np.ones(self.AgentCount)  # Start simulation near SS
+        self.state_now['aNrmNow'] = self.state_now['aLvlNow'] / self.state_now['pLvlNow'] # ???
 
     def preSolve(self):
         #        AgentType.preSolve()
@@ -282,12 +282,12 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.simBirth(self, which_agents)
-        if "aLvlNow" in self.state_prev and self.state_prev["aLvlNow"] is not None:
-            self.state_prev["aLvlNow"][which_agents] = (
-                self.state_prev["aNrmNow"][which_agents] * self.state_now["pLvlNow"][which_agents]
+        if "aLvlNow" in self.state_now and self.state_now["aLvlNow"] is not None:
+            self.state_now["aLvlNow"][which_agents] = (
+                self.state_now["aNrmNow"][which_agents] * self.state_now["pLvlNow"][which_agents]
             )
         else:
-            self.state_prev["aLvlNow"] = self.state_now['aNrmNow'] * self.state_now['pLvlNow']
+            self.state_now["aLvlNow"] = self.state_now['aNrmNow'] * self.state_now['pLvlNow']
 
     def simDeath(self):
         """
@@ -322,11 +322,11 @@ class AggShockConsumerType(IndShockConsumerType):
 
         # Divide up the wealth of those who die, giving it to those who survive
         who_lives = np.logical_not(who_dies)
-        wealth_living = np.sum(self.state_prev["aLvlNow"][who_lives])
-        wealth_dead = np.sum(self.state_prev["aLvlNow"][who_dies])
+        wealth_living = np.sum(self.state_now["aLvlNow"][who_lives])
+        wealth_dead = np.sum(self.state_now["aLvlNow"][who_dies])
         Ractuarial = 1.0 + wealth_dead / wealth_living
-        self.state_prev['aNrmNow'][who_lives] = self.state_prev['aNrmNow'][who_lives] * Ractuarial
-        self.state_prev["aLvlNow"][who_lives] = self.state_prev["aLvlNow"][who_lives] * Ractuarial
+        self.state_now['aNrmNow'][who_lives] = self.state_now['aNrmNow'][who_lives] * Ractuarial
+        self.state_now["aLvlNow"][who_lives] = self.state_now["aLvlNow"][who_lives] * Ractuarial
         return who_dies
 
     def getRfree(self):
@@ -963,7 +963,7 @@ class KrusellSmithType(AgentType):
         self.MrkvNow = self.MrkvInit
         self.MrkvPrev = self.MrkvInit
         AgentType.initializeSim(self)
-        self.state_prev["EmpNow"] = self.state_prev["EmpNow"].astype(bool)
+        self.state_now["EmpNow"] = self.state_now["EmpNow"].astype(bool)
         self.makeEmpIdxArrays()
 
     def simBirth(self, which):
@@ -989,22 +989,23 @@ class KrusellSmithType(AgentType):
         EmpNew = np.concatenate(
             [np.zeros(unemp_N, dtype=bool), np.ones(emp_N, dtype=bool)]
         )
-        self.state_prev["EmpNow"][which] = self.RNG.permutation(EmpNew)
-        self.state_prev["aNow"][which] = self.kInit
+        self.state_now["EmpNow"][which] = self.RNG.permutation(EmpNew)
+        self.state_now["aNow"][which] = self.kInit
 
     def getShocks(self):
         """
         Get new idiosyncratic employment states based on the macroeconomic state.
         """
         # Get boolean arrays for current employment states
-        employed = self.state_prev["EmpNow"].copy()
+        employed = self.state_prev["EmpNow"].copy().astype(bool)
         unemployed = np.logical_not(employed)
 
         # Transition some agents between unemployment and employment
         emp_permute = self.emp_permute[self.MrkvPrev][self.MrkvNow]
         unemp_permute = self.unemp_permute[self.MrkvPrev][self.MrkvNow]
         # TODO: replace poststate_vars functionality with shocks here
-        EmpNow = self.state_prev["EmpNow"]
+        EmpNow = self.state_now["EmpNow"]
+
         EmpNow[employed] = self.RNG.permutation(emp_permute)
         EmpNow[unemployed] = self.RNG.permutation(unemp_permute)
 
@@ -1018,7 +1019,7 @@ class KrusellSmithType(AgentType):
         """
         Get each agent's consumption given their current state.'
         """
-        employed = self.state_prev["EmpNow"].copy()
+        employed = self.state_prev["EmpNow"].copy().astype(bool)
         unemployed = np.logical_not(employed)
 
         # Get the discrete index for (un)employed agents

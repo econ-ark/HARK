@@ -1299,10 +1299,10 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         aNrmNow_new = Lognormal(
             self.aNrmInitMean, self.aNrmInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
-        self.state_prev['pLvlNow'][which_agents] = Lognormal(
+        self.state_now['pLvlNow'][which_agents] = Lognormal(
             self.pLvlInitMean, self.pLvlInitStd, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(N)
-        self.state_prev['aLvlNow'][which_agents] = aNrmNow_new * self.state_prev['pLvlNow'][which_agents]
+        self.state_now['aLvlNow'][which_agents] = aNrmNow_new * self.state_now['pLvlNow'][which_agents]
         self.t_age[which_agents] = 0  # How many periods since each agent was born
         self.t_cycle[
             which_agents

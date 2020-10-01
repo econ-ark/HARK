@@ -453,9 +453,8 @@ class AgentType(HARKobject):
             if self.state_now[var] is None:
                 self.state_now[var] = copy(blank_array)
 
-            if self.state_prev[var] is None:
-                self.state_prev[var] = copy(blank_array)
-
+            #elif self.state_prev[var] is None:
+            #    self.state_prev[var] = copy(blank_array)
         self.t_age = np.zeros(
             self.AgentCount, dtype=int
         )  # Number of periods since agent entry
@@ -1189,8 +1188,9 @@ class Market(HARKobject):
 
             for agent in self.agents:
                 # TODO: generalized variable lookup across namespaces
-                if var in agent.state_prev:
-                    harvest.append(agent.state_prev[var])
+                if var in agent.state_now:
+                    # or state_now ??
+                    harvest.append(agent.state_now[var])
 
             self.reap_state[var] = harvest
 
@@ -1209,7 +1209,10 @@ class Market(HARKobject):
         """
         for sow_var in self.sow_state:
             for this_type in self.agents:
-                setattr(this_type, sow_var, self.sow_state[sow_var])
+                if sow_var in this_type.state_now:
+                    this_type.state_now[sow_var] = self.sow_state[sow_var]
+                else:
+                    setattr(this_type, sow_var, self.sow_state[sow_var])
 
     def mill(self):
         """
@@ -1266,7 +1269,11 @@ class Market(HARKobject):
         none
         """
         # Reset the history of tracked variables
-        self.history = {var_name: [] for var_name in self.track_vars}
+        self.history = {
+            var_name: []
+            for var_name
+            in self.track_vars
+        }
 
         # Set the sow variables to their initial levels
         for var_name in self.sow_state:
