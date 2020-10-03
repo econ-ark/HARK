@@ -1344,45 +1344,12 @@ def rebalanceAssets(d,m,n,tau):
     
     return (mTil, nTil)
 
-    
-def findOptimalRebalance(m,n,vNvrs,tau):
-    
-    if (m == 0 and n == 0):
-        dopt = 0
-        fopt = 0
-    else:
-        fobj = lambda d: -1.*rebalanceFobj(d,m,n,vNvrs,tau)
-        # For each case, we optimize numerically and compare with the extremes.
-        if m > 0 and n > 0:
-            # Optimize contributing and withdrawing separately
-            opt_c = minimize_scalar(fobj, bounds=(0, 1), method='bounded')
-            opt_w = minimize_scalar(fobj, bounds=(-1, 0), method='bounded')
-            
-            ds = np.array([opt_c.x,opt_w.x,-1,0,1])
-            fs = np.array([opt_c.fun,opt_w.fun,fobj(-1),fobj(0),fobj(1)])
-        elif m > 0:
-            opt = minimize_scalar(fobj, bounds=(0, 1), method='bounded')
-            ds = np.array([opt.x,0,1])
-            fs = np.array([opt.fun,fobj(0),fobj(1)])
-        else:
-            opt = minimize_scalar(fobj, bounds=(-1, 0), method='bounded')
-            ds = np.array([opt.x,-1,0])
-            fs = np.array([opt.fun,fobj(-1),fobj(0)])
-        
-        # Pick the best candidate
-        ind  = np.argmin(fs)
-        dopt = ds[ind]
-        fopt = -1.0*fs[ind]
-        
-                
-    m_til, n_til = rebalanceAssets(dopt,m,n,tau)
-    return dopt, m_til, n_til, fopt
         
 # Consumption stage solver
 def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
-                               LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
+                               LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
                                BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
-                               ShareGrid,dGrid,vFuncBool,AdjustPrb,
+                               ShareGrid,vFuncBool,AdjustPrb,
                                DiscreteShareBool,IndepDstnBool):
     
     # Make sure the individual is liquidity constrained.  Allowing a consumer to
@@ -1649,11 +1616,9 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
 
 
 # Solver for the contribution stage
-def solveRiskyContribShaStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
-                              LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
-                              BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
-                              ShareGrid,dGrid,vFuncBool,AdjustPrb,
-                              DiscreteShareBool,IndepDstnBool):
+def solveRiskyContribShaStage(solution_next,CRRA,
+                              mNrmGrid,nNrmGrid,ShareGrid,
+                              DiscreteShareBool):
     
     # Unpack solution from the next sub-stage
     vFuncCon_next    = solution_next.vFuncCon
@@ -1736,11 +1701,9 @@ def solveRiskyContribShaStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     return solution
     
 # Solver for the asset rebalancing stage
-def solveRiskyContribRebStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
-                              LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
-                              BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
-                              ShareGrid,dGrid,vFuncBool,AdjustPrb,
-                              DiscreteShareBool,IndepDstnBool):
+def solveRiskyContribRebStage(solution_next,
+                              CRRA,tau,
+                              nNrmGrid,mNrmGrid,dGrid):
     
     # Extract next stage's solution
     vFuncAdj_next = solution_next.vFuncShaAdj
