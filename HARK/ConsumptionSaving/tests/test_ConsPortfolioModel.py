@@ -8,7 +8,6 @@ class testPortfolioConsumerType(unittest.TestCase):
         self.pcct = cpm.PortfolioConsumerType()
         self.pcct.cycles = 0
 
-        # %% {"code_folding": []}
         # Solve the model under the given parameters
 
         self.pcct.solve()
@@ -21,4 +20,16 @@ class testPortfolioConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(
             self.pcct.solution[0].ShareFuncAdj(16).tolist(), 0.6815883614201397
+        )
+
+    def test_simulation(self):
+
+        self.pcct.T_sim = 30
+        self.pcct.AgentCount = 10
+        self.pcct.track_vars += ['aNrmNow']
+        self.pcct.initializeSim()
+        self.pcct.simulate()
+
+        self.assertAlmostEqual(
+            self.pcct.history['aNrmNow'][15][0], 5.304746367434934
         )
