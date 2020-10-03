@@ -30,16 +30,15 @@ you might want to look at the `DemARK
    :maxdepth: 1
    :caption: Notebooks
 
-   examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb
-   examples/ConsIndShockModel/PerfForesightConsumerType.ipynb
-   examples/ConsIndShockModel/IndShockConsumerType.ipynb
-   examples/ConsIndShockModel/KinkedRconsumerType.ipynb
-   examples/ConsumptionSaving/example_ConsPortfolioModel.ipynb
-   examples/GenIncProcessModel/GenIncProcessModel.ipynb
-   examples/LifecycleModel/LifecycleModel.ipynb
-   examples/HowWeSolveIndShockConsumerType/HowWeSolveIndShockConsumerType.ipynb
-   examples/Journeys/Journey_1_PhD.ipynb
-
+   example_notebooks/Gentle-Intro-To-HARK.ipynb
+   example_notebooks/PerfForesigthConsumerType.ipynb
+   example_notebooks/IndShockConsumerType.ipynb
+   example_notebooks/KinkedRconsumerType.ipynb
+   example_notebooks/ConsPortfolioModel.ipynb
+   example_notebooks/GenIncProcessModel.ipynb
+   example_notebooks/LifecycleModel.ipynb
+   example_notebooks/HowWeSolveIndShockConsumerType.ipynb
+   example_notebooks/Journey_1_PhD.ipynb
 
 Indices and tables
 ==================
