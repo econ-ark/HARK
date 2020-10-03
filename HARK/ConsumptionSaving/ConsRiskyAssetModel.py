@@ -377,157 +377,6 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         self.getAdjust()
 
 
-# Define a class to represent the single period solution of the portfolio choice problem
-class RiskyContribSolution(HARKobject):
-    '''
-    A class for representing the single period solution of the portfolio choice model.
-    
-    Parameters
-    ----------
-    cFuncAdj : Interp2D
-        Consumption function over normalized market resources and iliquid assets when
-        the agent is able to adjust their contribution share.
-    ShareFuncAdj : Interp2D
-        Income share function over normalized market resources and iliquid assets when
-        the agent is able to adjust their contribution share.
-    DFuncAdj: Interp2D
-        Policy function for the flow from the liquid to the iliquid stock of
-        assets.
-    
-    vFuncAdj : ValueFunc2D
-        Value function over normalized market resources and iliquid assets when
-        the agent is able to adjust their contribution share.
-    dvdmFuncAdj : MargValueFunc2D
-        Marginal value of mNrm function over normalized market resources and iliquid assets
-        when the agent is able to adjust their contribution share.
-    dvdnFuncAdj : MargValueFunc2D
-        Marginal value of nNrm function over normalized market resources and iliquid assets
-        when the agent is able to adjust their contribution share.
-    
-    vFuncAdj2 : ValueFunc2D
-        Stage value function for the sub-period that starts after the agent
-        decides his consumption. Over normalized post-consumption liquid
-        resources and iliquid assets.
-    dvdaFuncAdj2 : MargValueFunc2D
-        Derivative of vFuncAdj2 with respect to liquid resources.
-    dvdnFuncAdj2 : MargValueFunc2D
-        Derivative of vFuncAdj2 with respect to iliquid assets.
-    
-    vFuncAdj3 : ValueFunc2D
-        Stage value function for the sub-period that starts after the agent
-        rebalances his assets' allocation. Over normalized end-of-period liquid
-        resources and iliquid assets.
-    dvdaFuncAdj3 : MargValueFunc2D
-        Derivative of vFuncAdj3 with respect to liquid resources.
-    dvdnFuncAdj3 : MargValueFunc2D
-        Derivative of vFuncAdj3 with respect to iliquid assets.
-    
-    cFuncFxd : Interp3D
-        Consumption function over normalized market resources, iliquid assets and income
-        contribution share when the agent is NOT able to adjust their contribution share.
-    ShareFuncFxd : Interp3D
-        Income share function over normalized market resources, iliquid assets and
-        contribution share when the agent is NOT able to adjust their contribution share.
-        This should always be an IdentityFunc, by definition.
-    dFuncFxd: Interp2D
-        Policy function for the flow from the liquid to the iliquid stock of
-        assets when the agent is NOT able to adjust their contribution share.
-        Should always be 0 by definition.
-        
-    vFuncFxd : ValueFunc3D
-        Value function over normalized market resources, iliquid assets and income contribution
-        share when the agent is NOT able to adjust their contribution share.
-    dvdmFuncFxd : MargValueFunc3D
-        Marginal value of mNrm function over normalized market resources, iliquid assets
-        and income contribution share share when the agent is NOT able to adjust 
-        their contribution share.
-    dvdnFuncFxd : MargValueFunc3D
-        Marginal value of nNrm function over normalized market resources, iliquid assets
-        and income contribution share share when the agent is NOT able to adjust 
-        their contribution share.
-    dvdsFuncFxd : MargValueFunc3D
-        Marginal value of contribution share function over normalized market resources,
-        iliquid assets and income contribution share when the agent is NOT able to adjust
-        their contribution share.
-    '''
-    
-    # TODO: what does this do?
-    distance_criteria = ['vPfuncAdj']
-
-    def __init__(self,
-        
-        # Contribution stage
-        vFuncSha = None,
-        ShareFuncSha = None,
-        dvdmFuncSha = None,
-        dvdnFuncSha = None,
-        
-        # Adjusting stage
-        vFuncAdj = None,
-        DFuncAdj = None,
-        dvdmFuncAdj = None,
-        dvdnFuncAdj = None,
-        
-        # Consumption stage
-        vFuncFxd = None,
-        cFuncFxd = None,
-        dvdmFuncFxd = None,
-        dvdnFuncFxd = None,
-        dvdsFuncFxd = None
-        
-    ):
-        
-        # Contribution stage
-        if vFuncSha is None:
-            vFuncSha = NullFunc()
-        if ShareFuncSha is None:
-            ShareFuncSha = NullFunc()
-        if dvdmFuncSha is None:
-            dvdmFuncSha = NullFunc()
-        if dvdnFuncSha is None:
-            dvdnFuncSha = NullFunc()
-        
-        # Adjusting stage
-        if vFuncAdj is None:
-            vFuncAdj = NullFunc()
-        if DFuncAdj is None:
-            DFuncAdj = NullFunc()
-        if dvdmFuncAdj is None:
-            dvdmFuncAdj = NullFunc()
-        if dvdnFuncAdj is None:
-            dvdnFuncAdj = NullFunc()
-        
-        # Consumption stage
-        if vFuncFxd is None:
-            vFuncFxd = NullFunc()
-        if cFuncFxd is None:
-            cFuncFxd = NullFunc()
-        if dvdmFuncFxd is None:
-            dvdmFuncFxd = NullFunc()
-        if dvdnFuncFxd is None:
-            dvdmFuncFxd = NullFunc()
-        if dvdsFuncFxd is None:
-            dvdsFuncFxd = NullFunc()
-        
-        # Set attributes of self
-        self.vFuncSha = vFuncSha
-        self.ShareFuncSha = ShareFuncSha
-        self.dvdmFuncSha = dvdmFuncSha
-        self.dvdnFuncSha = dvdnFuncSha
-        
-        # Adjusting stage
-        self.vFuncAdj = vFuncAdj
-        self.DFuncAdj = DFuncAdj
-        self.dvdmFuncAdj = dvdmFuncAdj
-        self.dvdnFuncAdj = dvdnFuncAdj
-        
-        # Consumption stage
-        self.vFuncFxd = vFuncFxd
-        self.cFuncFxd = cFuncFxd
-        self.dvdmFuncFxd = dvdmFuncFxd
-        self.dvdnFuncFxd = dvdnFuncFxd
-        self.dvdsFuncFxd = dvdsFuncFxd
-        
 # Class for the contribution share stage solution
 class RiskyContribShaSolution(HARKobject):
     
@@ -676,6 +525,32 @@ class RiskyContribConsSolution(HARKobject):
         self.dvdmFuncCon = dvdmFuncCon
         self.dvdnFuncCon = dvdnFuncCon
         self.dvdsFuncCon = dvdsFuncCon
+        
+# Define a class to represent a full period solution of the portfolio choice problem
+class RiskyContribSolution(HARKobject):
+    
+    # TODO: what does this do?
+    distance_criteria = ['vPfuncAdj']
+
+    def __init__(self,
+                
+        # Solutions for each stage
+        RebStage = None,
+        ShaStage = None,
+        ConStage = None,
+        
+    ):
+                
+        if RebStage is None:
+            RebStage = RiskyContribRebSolution()
+        if ShaStage is None:
+            ShaStage = RiskyContribShaSolution()
+        if ConStage is None:
+            ConStage = RiskyContribConsSolution()
+        
+        self.RebStage = RebStage
+        self.ShaStage = ShaStage
+        self.ConStage = ConStage
 
         
 class RiskyContribConsumerType(RiskyAssetConsumerType):
@@ -692,17 +567,6 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         params.update(kwds)
         kwds = params
         
-        nPeriods = kwds['T_cycle']
-        
-        # Update parameters dealing with time to accommodate stages
-        stage_time_pars = {'T_cycle': 3*nPeriods}
-        pars = ['LivPrb','PermGroFac','PermShkStd','TranShkStd','AdjustPrb','tau']
-        for p in pars:
-            if type(kwds[p]) is list and len(kwds[p]):
-                stage_time_pars[p] = [x for x in kwds[p] for _ in range(3)]
-                
-        kwds.update(stage_time_pars)
-        
         # Initialize a basic consumer type
         RiskyAssetConsumerType.__init__(
             self,
@@ -713,10 +577,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         )
         
         # Set the solver for the portfolio model, and update various constructed attributes
-        self.solveOnePeriod = [solveRiskyContribRebStage,
-                               solveRiskyContribShaStage,
-                               solveRiskyContribConsStage]*nPeriods
-        self.addToTimeVary('solveOnePeriod')
+        self.solveOnePeriod = solveRiskyContrib
         self.update()
         
         
@@ -746,6 +607,24 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         None
         '''
         
+        # Construct the terminal solution backwards.
+        
+        # Start with the consumption stage. All liquid resources are consumed.
+        cFunc_term = IdentityFunction(i_dim = 0, n_dims = 3)
+        vFuncCon_term = ValueFunc3D(cFunc_term, CRRA = self.CRRA)
+        # Marginal values
+        dvdmFuncCon_term = MargValueFunc3D(cFunc_term, CRRA = self.CRRA)
+        dvdnFuncCon_term = ConstantFunction(0.0)
+        dvdsFuncCon_term = ConstantFunction(0.0)
+        
+        ConStageSol = RiskyContribConsSolution(
+            # Consumption stage
+            vFuncCon = vFuncCon_term,
+            cFunc = cFunc_term,
+            dvdmFuncCon = dvdmFuncCon_term,
+            dvdnFuncCon = dvdnFuncCon_term,
+            dvdsFuncCon = dvdsFuncCon_term)
+        
         # We assume that in the last stage, the agent just tries to consume
         # everythin he can. If he is "fixed", that's only liquid resources.
         # If he can adjust, share is irrelevant, but he withdraws and consumes
@@ -761,8 +640,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         vFuncFxd_term = ValueFunc3D(cFuncFxd_term, CRRA = self.CRRA)
         
         # Marginal values of the fixed agent
-        dvdmFuncFxd_term = MargValueFunc3D(cFuncFxd_term, CRRA = self.CRRA)
-        dvdnFuncFxd_term = ConstantFunction(0.0)
+        
         dvdsFuncFxd_term = ConstantFunction(0.0)
         
         # Rebalancing of the adjusting agent: 
@@ -1377,7 +1255,16 @@ def findOptimalRebalance(m,n,vNvrs,tau):
                 
     m_til, n_til = rebalanceAssets(dopt,m,n,tau)
     return dopt, m_til, n_til, fopt
-        
+
+# Full-period solver
+def solveRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
+                      LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
+                      BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
+                      ShareGrid,dGrid,vFuncBool,AdjustPrb,
+                      DiscreteShareBool,IndepDstnBool):
+
+    pass
+    
 # Consumption stage solver
 def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                                LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
