@@ -911,7 +911,6 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         '''
         IndShockConsumerType.initializeSim(self)
         self.AdjustNow = self.AdjustNow.astype(bool)
-        self.Stage = -1
     
     
     def simBirth(self,which_agents):
@@ -951,41 +950,6 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         self.getRisky()
         self.getAdjust()
         
-        
-    def getControls(self):
-        '''
-        Calculates consumption cNrmNow and risky portfolio share ShareNow using
-        the policy functions in the attribute solution.  These are stored as attributes.
-        
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        '''
-        cNrmNow  = np.zeros(self.AgentCount) + np.nan
-        ShareNow = np.zeros(self.AgentCount) + np.nan
-        
-        # Loop over each period of the cycle, getting controls separately depending on "age"
-        for t in range(self.T_cycle):
-            these = t == self.t_cycle
-            
-            # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, self.AdjustNow)
-            cNrmNow[those]  = self.solution[t].cFuncAdj(self.mNrmNow[those])
-            ShareNow[those] = self.solution[t].ShareFuncAdj(self.mNrmNow[those])
-            
-            # Get Controls for agents who *can't* adjust their portfolio share
-            those = np.logical_and(these, np.logical_not(self.AdjustNow))
-            cNrmNow[those]  = self.solution[t].cFuncFxd(self.mNrmNow[those], self.ShareNow[those])
-            ShareNow[those] = self.solution[t].ShareFuncFxd(self.mNrmNow[those], self.ShareNow[those])
-        
-        # Store controls as attributes of self
-        self.cNrmNow = cNrmNow
-        self.ShareNow = ShareNow
-    
     def simOnePeriod(self):
         """
         Simulates one period for this type.  Calls the methods getMortality(), getShocks() or
@@ -1005,45 +969,32 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                 " to run the `solve()` method of the class first."
             )
         
-        # Update stage
-        self.Stage = (self.Stage + 1)%3
-        
-        # Simulation steps depend on the stage
-        
-        # Rebalancing stage (the first one)
-        if self.Stage == 0:
             
-            # Mortality and birth happens only in the first stage
-            self.getMortality()
+        # Mortality and birth happens only in the first stage
+        self.getMortality()
             
-            # Shocks are drawn in the first stage
-            if self.read_shocks:  # If shock histories have been pre-specified, use those
-                self.readShocks()
-            else:  # Otherwise, draw shocks as usual according to subclass-specific method
-                self.getShocks()
+        # Shocks are drawn in the first stage
+        if self.read_shocks:  # If shock histories have been pre-specified, use those
+            self.readShocks()
+        else:  # Otherwise, draw shocks as usual according to subclass-specific method
+            self.getShocks()
             
-            # Update states and controls
-            self.getStatesReb()
-            self.getControlsReb()    
-            self.getPostStatesReb()
+        # Rebalancing stage
+        self.getStatesReb()
+        self.getControlsReb()    
+        self.getPostStatesReb()
             
         # Contribution stage
-        elif self.Stage == 1:
-            
-            # Get controls
-            self.getControlsSha()
+        self.getControlsSha()
         
         # Consumption stage (the last one)
-        elif self.Stage == 2:
-            
-            # Get controls and post-states
-            self.getControlsCons()
-            self.getPostStatesCons()
+        self.getControlsCons()
+        self.getPostStatesCons()
         
         # Not all controls are updated at all stages, or all (post)states are
         # relevant to all stages.To avoid confusion,
         # inactive variables take the value of nan.
-        self.clearControlsAndStates()
+        #self.clearControlsAndStates()
         
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
@@ -1114,18 +1065,20 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         DNrmNow = np.zeros(self.AgentCount) + np.nan
         
         # Loop over each period of the cycle, getting controls separately depending on "age"
-        for t in range(0,self.T_cycle,3):
+        for t in range(self.T_cycle):
             
             # Find agents in this period-stage
             these = t == self.t_cycle
                            
             # Get controls for agents who *can* adjust.
             those = np.logical_and(these, self.AdjustNow)
-            DNrmNow[those] = self.solution[t].DFuncAdj(self.mNrmNow[those], self.nNrmNow[those])
+            DNrmNow[those] = self.solution[t].RebStage.DFuncAdj(
+                self.mNrmNow[those], self.nNrmNow[those]
+            )
                 
             # Get Controls for agents who *can't* adjust.
             those = np.logical_and(these, np.logical_not(self.AdjustNow))
-            DNrmNow[those] = self.solution[t].DFuncFxd(
+            DNrmNow[those] = self.solution[t].RebStage.DFuncFxd(
                 self.mNrmNow[those], self.nNrmNow[those], self.ShareNow[those]
             )
 
@@ -1149,7 +1102,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             nNrmTildeNow = np.zeros_like(self.mNrmNow) + np.nan
             
             # Loop over each period of the cycle, getting controls separately depending on "age"
-            for t in range(0,self.T_cycle,3):
+            for t in range(self.T_cycle):
             
                 # Find agents in this period-stage
                 these = t == self.t_cycle
@@ -1169,18 +1122,20 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         ShareNow = np.zeros(self.AgentCount) + np.nan
         
         # Loop over each period of the cycle, getting controls separately depending on "age"
-        for t in range(1,self.T_cycle,3):
+        for t in range(self.T_cycle):
             
             # Find agents in this period-stage
             these = t == self.t_cycle
                            
             # Get controls for agents who *can* adjust.
             those = np.logical_and(these, self.AdjustNow)
-            ShareNow[those] = self.solution[t].ShareFuncAdj(self.mNrmTildeNow[those], self.nNrmTildeNow[those])
+            ShareNow[those] = self.solution[t].ShaStage.ShareFuncAdj(
+                self.mNrmTildeNow[those], self.nNrmTildeNow[those]
+            )
                 
             # Get Controls for agents who *can't* adjust.
             those = np.logical_and(these, np.logical_not(self.AdjustNow))
-            ShareNow[those] = self.solution[t].ShareFuncFxd(
+            ShareNow[those] = self.solution[t].ShaStage.ShareFuncFxd(
                 self.mNrmTildeNow[those], self.nNrmTildeNow[those], self.ShareNow[those]
             )
 
@@ -1194,15 +1149,15 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         cNrmNow = np.zeros(self.AgentCount) + np.nan
         
         # Loop over each period of the cycle, getting controls separately depending on "age"
-        for t in range(2,self.T_cycle,3):
+        for t in range(self.T_cycle):
             
             # Find agents in this period-stage
             these = t == self.t_cycle
                            
             # Get consumption
-            cNrmNow[these] = self.solution[t].cFunc(self.mNrmTildeNow[these],
-                                                    self.nNrmTildeNow[these],
-                                                    self.ShareNow[these])
+            cNrmNow[these] = self.solution[t].ConStage.cFunc(
+                self.mNrmTildeNow[these], self.nNrmTildeNow[these], self.ShareNow[these]
+            )
             
         # Store controls as attributes of self
         self.cNrmNow = cNrmNow            

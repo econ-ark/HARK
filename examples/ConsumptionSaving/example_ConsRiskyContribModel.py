@@ -176,13 +176,13 @@ init_sticky_share['IncUnemp'] = 0.0
 init_sticky_share['DiscFac']  = 0.95**15
 init_sticky_share['Rfree']    = 1.03**15
 init_sticky_share['RiskyAvg'] = 1.08**15 # Average return of the risky asset
-init_sticky_share['RiskyStd'] = 0.20**np.sqrt(15) # Standard deviation of (log) risky returns
+init_sticky_share['RiskyStd'] = 0.20*np.sqrt(15) # Standard deviation of (log) risky returns
 
 # Three period model just to check
 init_sticky_share['PermGroFac'] = [2.0, 1.0, 0.1, 1.0]
 init_sticky_share['PermShkStd'] = [0.1, 0.1, 0.0, 0.0]
 init_sticky_share['TranShkStd'] = [0.2, 0.2, 0.0, 0.0]
-init_sticky_share['AdjustPrb']  = [0.1, 0.1, 1.0, 1.0]
+init_sticky_share['AdjustPrb']  = [0.1, 0.1, 0.95, 0.95]
 init_sticky_share['tau']        = [0.1, 0.1, 0.0, 0.0]
 init_sticky_share['LivPrb']     = [1.0, 1.0, 1.0, 1.0]
 init_sticky_share['T_cycle']    = 4
@@ -230,10 +230,10 @@ plotSlices4D(cFuncFxd,0,mMax,y_slices = n_slices,w_slices = shares,
              ax_labs = ['m_til','c'])
 
 # %%  Simulate this consumer type
-ContribAgent.track_vars = ['pLvlNow','t_age','Stage','AdjustNow',
+ContribAgent.track_vars = ['pLvlNow','t_age','AdjustNow',
                            'mNrmNow','nNrmNow','mNrmTildeNow','nNrmTildeNow','aNrmNow',
                            'cNrmNow', 'ShareNow', 'DNrmNow']
-ContribAgent.T_sim = 4*3
+ContribAgent.T_sim = 4
 ContribAgent.AgentCount = 10
 ContribAgent.initializeSim()
 ContribAgent.simulate()
