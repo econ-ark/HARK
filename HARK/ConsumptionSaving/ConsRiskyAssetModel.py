@@ -1160,7 +1160,9 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             )
             
         # Store controls as attributes of self
-        self.cNrmNow = cNrmNow            
+        # Since agents might be willing to end the period with a = 0, make
+        # sure consumption does not go over m because of some numerical error.
+        self.cNrmNow = np.minimum(cNrmNow,self.mNrmTildeNow)            
         
     def getPostStatesCons(self):
         """
