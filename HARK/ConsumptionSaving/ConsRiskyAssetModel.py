@@ -625,25 +625,29 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             dvdnFuncCon = dvdnFuncCon_term,
             dvdsFuncCon = dvdsFuncCon_term)
         
-        # We assume that in the last stage, the agent just tries to consume
-        # everythin he can. If he is "fixed", that's only liquid resources.
-        # If he can adjust, share is irrelevant, but he withdraws and consumes
-        # all iliquid resources.
+        # Share stage
         
-        # Consumption and value of the fixed agent
+        # It's irrelevant because there is no future period. Set share to 0.
+        # Create a dummy 2-d consumption function to get value function and marginal
+        c2d = IdentityFunction(i_dim = 0, n_dims = 2)
+        ShaStageSol = RiskyContribShaSolution(
+            # Adjust
+            vFuncShaAdj = ValueFunc3D(c2d, CRRA = self.CRRA),
+            ShareFuncAdj = ConstantFunction(0.0),
+            dvdmFuncShaAdj = MargValueFunc2D(c2d, CRRA = self.CRRA),
+            dvdnFuncShaAdj = ConstantFunction(0.0),
+            
+            # Fixed
+            vFuncShaFxd = vFuncCon_term,
+            ShareFuncFxd = IdentityFunction(i_dim = 2, n_dims = 3),
+            dvdmFuncShaFxd = dvdmFuncCon_term,
+            dvdnFuncShaFxd = dvdnFuncCon_term,
+            dvdsFuncShaFxd = dvdsFuncCon_term
+        )
         
-        # Can't rebalance
-        RFuncFxd_term = ConstantFunction(0.0)
-        
-        # Consume all thats available (liquid resources)
-        cFuncFxd_term = IdentityFunction(i_dim = 0, n_dims = 3)
-        vFuncFxd_term = ValueFunc3D(cFuncFxd_term, CRRA = self.CRRA)
-        
-        # Marginal values of the fixed agent
-        
-        dvdsFuncFxd_term = ConstantFunction(0.0)
-        
-        # Rebalancing of the adjusting agent: 
+        # Rabalancing stage
+
+        # Adjusting agent: 
         # Withdraw everything from the pension fund and consume everything
         DFuncAdj_term = ConstantFunction(-1.0)
         
@@ -654,25 +658,30 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             tau = self.tau
         
         # Value and marginal value function of the adjusting agent
-        vFuncAdj_term = ValueFunc2D(lambda m,n: m + n/(1+tau), self.CRRA)
-        dvdmFuncAdj_term = MargValueFunc2D(lambda m,n: m + n/(1+tau), self.CRRA)
+        vFuncRebAdj_term = ValueFunc2D(lambda m,n: m + n/(1+tau), self.CRRA)
+        dvdmFuncRebAdj_term = MargValueFunc2D(lambda m,n: m + n/(1+tau), self.CRRA)
         # A marginal unit of n will be withdrawn and put into m. Then consumed.
-        dvdnFuncAdj_term = lambda m,n: dvdmFuncAdj_term(m,n)/(1+tau)
+        dvdnFuncRebAdj_term = lambda m,n: dvdmFuncRebAdj_term(m,n)/(1+tau)
         
-        # Construct the terminal period solution
-        self.solution_terminal = RiskyContribRebSolution(
+        RebStageSol = RiskyContribRebSolution(
             # Rebalancing stage
-            vFuncRebAdj = vFuncAdj_term,
+            vFuncRebAdj = vFuncRebAdj_term,
             DFuncAdj = DFuncAdj_term,
-            dvdmFuncRebAdj = dvdmFuncAdj_term,
-            dvdnFuncRebAdj = dvdnFuncAdj_term,
+            dvdmFuncRebAdj = dvdmFuncRebAdj_term,
+            dvdnFuncRebAdj = dvdnFuncRebAdj_term,
             
             # Adjusting stage
-            vFuncRebFxd = vFuncFxd_term,
-            DFuncFxd = RFuncFxd_term,
-            dvdmFuncRebFxd = dvdmFuncFxd_term,
-            dvdnFuncRebFxd = dvdnFuncFxd_term,
-            dvdsFuncRebFxd = dvdsFuncFxd_term
+            vFuncRebFxd = vFuncCon_term,
+            DFuncFxd = ConstantFunction(0.0),
+            dvdmFuncRebFxd = dvdmFuncCon_term,
+            dvdnFuncRebFxd = dvdnFuncCon_term,
+            dvdsFuncRebFxd = dvdsFuncCon_term)
+        
+        # Construct the terminal period solution
+        self.solution_terminal = RiskyContribSolution(
+            RebStage = RebStageSol,
+            ShaStage = ShaStageSol,
+            ConStage = ConStageSol,
         )
         
     
@@ -1222,7 +1231,9 @@ def rebalanceAssets(d,m,n,tau):
     
     return (mTil, nTil)
 
-        
+
+
+
 # Consumption stage solver
 def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                                LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
@@ -1713,8 +1724,41 @@ def solveRiskyContribRebStage(solution_next,
     
     return solution
 
-    
-    
+def solveRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
+                      LivPrb,DiscFac,CRRA,Rfree,PermGroFac,tau,
+                      BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
+                      ShareGrid,dGrid,vFuncBool,AdjustPrb,
+                      DiscreteShareBool,IndepDstnBool):
+
+     # Unpack next period's solution (we only need the rebalancing stage)
+     RebStageSol_next = solution_next.RebStage
+     
+     # Consumption stage solution
+     ConStageSol = solveRiskyContribConsStage(RebStageSol_next,ShockDstn,IncomeDstn,RiskyDstn,
+                                              LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
+                                              BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
+                                              ShareGrid,vFuncBool,AdjustPrb,
+                                              DiscreteShareBool,IndepDstnBool)
+     
+     # Contribution share stage solution
+     ShaStageSol = solveRiskyContribShaStage(ConStageSol,CRRA,
+                                             mNrmGrid,nNrmGrid,ShareGrid,
+                                             DiscreteShareBool)
+     
+     # Rebalancing stage solution
+     RebStageSol = solveRiskyContribRebStage(ShaStageSol,
+                                             CRRA,tau,
+                                             nNrmGrid,mNrmGrid,dGrid)
+     
+     # Construct full-period solution
+     solution = RiskyContribSolution(
+            RebStage = RebStageSol,
+            ShaStage = ShaStageSol,
+            ConStage = ConStageSol,
+        )
+     
+     return(solution)
+
 # Make a dictionary to specify a risky asset consumer type
 init_risky = init_idiosyncratic_shocks.copy()
 init_risky['RiskyAvg']        = 1.08 # Average return of the risky asset
