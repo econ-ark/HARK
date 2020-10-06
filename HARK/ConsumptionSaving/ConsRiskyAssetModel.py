@@ -1616,7 +1616,7 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
 
 
 # Solver for the contribution stage
-def solveRiskyContribShaStage(solution_next,CRRA,
+def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
                               mNrmGrid,nNrmGrid,ShareGrid,
                               DiscreteShareBool):
     
@@ -1645,28 +1645,46 @@ def solveRiskyContribShaStage(solution_next,CRRA,
     mNrm_N = len(mNrmGrid)
     Share_N = len(ShareGrid)
     
-    mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N,1,1)), (1,nNrm_N,Share_N))
-    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (mNrm_N,1,Share_N))
-    Share_tiled = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (mNrm_N,nNrm_N,1))
-    
-    m_idx_tiled = np.tile(np.reshape(np.arange(mNrm_N), (mNrm_N,1)), (1,nNrm_N))
-    n_idx_tiled = np.tile(np.reshape(np.arange(nNrm_N), (1,nNrm_N)), (mNrm_N,1))
+    if AdjustPrb == 1.0:
+        # If the readjustment probability is 1, set the share to 0:
+        # - If there is a withdrawal tax: better for the agent to observe
+        #   income before rebalancing.
+        # - If there is no tax: all shares should yield the same value.
+        mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N,1)), (1,nNrm_N))
+        nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N)), (mNrm_N,1))
         
+        optIdx   = np.zeros_like(mNrm_tiled, dtype = int)
+        optShare = ShareGrid[optIdx]
+        
+        vNvrsSha = vFuncCon_next.func(mNrm_tiled, nNrm_tiled, optShare)
+        
+    else:
+        
+        # Figure out optimal share by evaluating all alternatives at all
+        # (m,n) combinations
+        m_idx_tiled = np.tile(np.reshape(np.arange(mNrm_N), (mNrm_N,1)), (1,nNrm_N))
+        n_idx_tiled = np.tile(np.reshape(np.arange(nNrm_N), (1,nNrm_N)), (mNrm_N,1))
+        
+        mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N,1,1)), (1,nNrm_N,Share_N))
+        nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (mNrm_N,1,Share_N))
+        Share_tiled = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (mNrm_N,nNrm_N,1))
+        
+        # Evaluate value function to optimize over shares.
+        # Do it in inverse space
+        vNvrs = vFuncCon_next.func(mNrm_tiled, nNrm_tiled, Share_tiled)
+        
+        # Find the optimal share at each (m,n).
+        optIdx = np.argmax(vNvrs, axis = 2)
+        
+        # Compute objects needed for the value function and its derivatives
+        vNvrsSha     = vNvrs[m_idx_tiled, n_idx_tiled, optIdx]
+        optShare     = ShareGrid[optIdx]
     
-    # Evaluate value function to optimize over shares.
-    # Do it in inverse space
-    vNvrs = vFuncCon_next.func(mNrm_tiled, nNrm_tiled, Share_tiled)
+        # Project grids
+        mNrm_tiled = mNrm_tiled[:,:,0]
+        nNrm_tiled = nNrm_tiled[:,:,0]
     
-    # Find the optimal share at each (m,n).
-    optIdx = np.argmax(vNvrs, axis = 2)
     
-    # Project grids
-    mNrm_tiled = mNrm_tiled[:,:,0]
-    nNrm_tiled = nNrm_tiled[:,:,0]
-    
-    # Compute objects needed for the value function and its derivatives
-    vNvrsSha     = vNvrs[m_idx_tiled, n_idx_tiled, optIdx]
-    optShare     = ShareGrid[optIdx]
     dvdmNvrsSha  = cFunc_next(mNrm_tiled, nNrm_tiled, optShare)
     dvdnSha      = dvdnFuncCon_next(mNrm_tiled, nNrm_tiled, optShare)
     dvdnNvrsSha  = uPinv(dvdnSha)
