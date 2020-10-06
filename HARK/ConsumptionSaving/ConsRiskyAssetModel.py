@@ -1716,7 +1716,7 @@ def solveRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                                               DiscreteShareBool,IndepDstnBool)
      
      # Contribution share stage solution
-     ShaStageSol = solveRiskyContribShaStage(ConStageSol,CRRA,
+     ShaStageSol = solveRiskyContribShaStage(ConStageSol,CRRA,AdjustPrb,
                                              mNrmGrid,nNrmGrid,ShareGrid,
                                              DiscreteShareBool)
      
