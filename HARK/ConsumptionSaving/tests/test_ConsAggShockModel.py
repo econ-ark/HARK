@@ -114,16 +114,24 @@ class testKrusellSmith(unittest.TestCase):
 
     def test_economy(self):
         self.agent.getEconomyData(self.economy)
+
+        self.assertEqual(self.agent.AFunc[0].slope, 1.0)
+        self.assertEqual(self.agent.UrateB, 0.1)
+
         self.economy.makeMrkvHist()  # Make a simulated history of aggregate shocks
+
+        self.assertAlmostEqual(
+            np.mean(self.economy.MrkvNow_hist),
+            0.4818181818181818
+        )
+
         self.economy.solve()  # Solve for the general equilibrium of the economy
 
         self.economy.AFunc = self.economy.dynamics.AFunc
-        self.assertAlmostEqual(
-            self.economy.AFunc[0].slope, 1.0014463644834282
-        )
 
         self.assertAlmostEqual(
-            self.economy.history["Aprev"][4], 11.009107526443584
+            self.economy.history["Aprev"][4],
+            11.009107526443584
         )
 
         self.assertAlmostEqual(
@@ -131,5 +139,11 @@ class testKrusellSmith(unittest.TestCase):
         )
 
         self.assertAlmostEqual(
-            self.economy.history["Urate"][12], 0.040000000000000036
+            self.economy.history["Urate"][12],
+            0.040000000000000036
+        )
+
+        self.assertAlmostEqual(
+            self.economy.AFunc[0].slope,
+            1.0014463644834282
         )
