@@ -1727,7 +1727,7 @@ init_risky['DiscreteShareBool'] = False # Flag for whether to optimize risky sha
 
 # Adjust some of the existing parameters in the dictionary
 init_risky['aXtraMax']        = 100  # Make the grid of assets go much higher...
-init_risky['aXtraCount']      = 200  # ...and include many more gridpoints...
+init_risky['aXtraCount']      = 300  # ...and include many more gridpoints...
 init_risky['aXtraNestFac']    = 1    # ...which aren't so clustered at the bottom
 init_risky['BoroCnstArt']     = 0.0  # Artificial borrowing constraint must be turned on
 init_risky['CRRA']            = 5.0  # Results are more interesting with higher risk aversion
@@ -1742,13 +1742,13 @@ init_riskyContrib['ShareMax']        = 0.9  # You don't want to put 100% of your
 
 # Regular grids in m and n
 init_riskyContrib['mNrmMin']         = 1e-6
-init_riskyContrib['mNrmMax']         = 50
-init_riskyContrib['mNrmCount']       = 100
+init_riskyContrib['mNrmMax']         = 100
+init_riskyContrib['mNrmCount']       = 300
 init_riskyContrib['mNrmNestFac']     = 1
 
 init_riskyContrib['nNrmMin']         = 1e-6
-init_riskyContrib['nNrmMax']         = 50
-init_riskyContrib['nNrmCount']       = 100  
+init_riskyContrib['nNrmMax']         = 100
+init_riskyContrib['nNrmCount']       = 300  
 init_riskyContrib['nNrmNestFac']     = 1    
 
 # Number of grid-points for finding the optimal asset rebalance
