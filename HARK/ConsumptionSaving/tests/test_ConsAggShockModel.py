@@ -112,6 +112,39 @@ class testKrusellSmith(unittest.TestCase):
             self.agent.solution[0].cFunc[0](10.0, self.economy.MSS), 1.23867751
         )
 
+    def test_methods(self):
+        self.agent.getEconomyData(self.economy)
+
+        self.agent.reset()
+        self.economy.reset()
+
+        self.economy.makeMrkvHist()  # Make a simulated history of aggregate shocks
+        self.assertAlmostEqual(
+            np.mean(self.economy.MrkvNow_hist),
+            0.4818181818181818
+        )
+
+        self.economy.solveAgents()
+
+        self.assertAlmostEqual(
+            self.economy.agents[0].solution[0].cFunc[0](
+                10,self.economy.MSS
+            ).tolist(),
+            0.8647005192032616
+        )
+
+        self.economy.makeHistory()
+        self.assertAlmostEqual(
+            self.economy.history['Aprev'][4],
+            11.896127055105103
+        )
+
+        dynamics = self.economy.updateDynamics()
+        self.assertAlmostEqual(
+            dynamics.AFunc[0](10),
+            9.28004486184378
+        )
+
     def test_economy(self):
         self.agent.getEconomyData(self.economy)
 
