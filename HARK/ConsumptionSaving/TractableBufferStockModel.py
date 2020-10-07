@@ -304,6 +304,9 @@ def addToStableArmPoints(
 
 
 class TractableConsumerType(AgentType):
+
+    state_vars = ['bLvlNow', 'mLvlNow', "aLvlNow"]
+
     def __init__(self, cycles=0, **kwds):
         """
         Instantiate a new TractableConsumerType with given data.
@@ -594,7 +597,7 @@ class TractableConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.aLvlNow[which_agents] = Lognormal(
+        self.state_now['aLvlNow'][which_agents] = Lognormal(
             self.aLvlInitMean,
             sigma=self.aLvlInitStd,
             seed=self.RNG.randint(0, 2 ** 31 - 1),
@@ -644,7 +647,7 @@ class TractableConsumerType(AgentType):
         ).draw(N)
         self.shocks["eStateNow"][employed] = 1.0 - newly_unemployed
 
-    def getStates(self):
+    def transition(self):
         """
         Calculate market resources for all agents this period.
 
@@ -656,8 +659,10 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        self.bLvlNow = self.Rfree * self.aLvlNow
-        self.mLvlNow = self.bLvlNow + self.shocks["eStateNow"]
+        bLvlNow = self.Rfree * self.state_prev['aLvlNow']
+        mLvlNow = bLvlNow + self.shocks["eStateNow"]
+
+        return bLvlNow, mLvlNow
 
     def getControls(self):
         """
@@ -674,8 +679,8 @@ class TractableConsumerType(AgentType):
         employed = self.shocks["eStateNow"] == 1.0
         unemployed = np.logical_not(employed)
         cLvlNow = np.zeros(self.AgentCount)
-        cLvlNow[employed] = self.solution[0].cFunc(self.mLvlNow[employed])
-        cLvlNow[unemployed] = self.solution[0].cFunc_U(self.mLvlNow[unemployed])
+        cLvlNow[employed] = self.solution[0].cFunc(self.state_now['mLvlNow'][employed])
+        cLvlNow[unemployed] = self.solution[0].cFunc_U(self.state_now['mLvlNow'][unemployed])
         self.cLvlNow = cLvlNow
 
     def getPostStates(self):
@@ -690,7 +695,7 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        self.aLvlNow = self.mLvlNow - self.cLvlNow
+        self.state_now['aLvlNow'] = self.state_now['mLvlNow'] - self.cLvlNow
         return None
 
 
