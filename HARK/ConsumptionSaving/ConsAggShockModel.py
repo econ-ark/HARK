@@ -676,6 +676,7 @@ class KrusellSmithType(AgentType):
             "CRRA",
         ]
         self.poststate_vars = ["aNow", "EmpNow"]
+        self.shock_vars = {}
         self.solveOnePeriod = solveKrusellSmith
         self.update()
 

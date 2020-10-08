@@ -114,6 +114,9 @@ class testKrusellSmith(unittest.TestCase):
         self.agent.reset()
         self.economy.reset()
 
+        self.agent.track_vars += ['EmpNow']
+        # self.economy.track_vars += ['EmpNow']
+
         self.assertEqual(
             np.sum(self.agent.EmpNow & self.agent.EmpNow[-1]),
             900
@@ -138,6 +141,14 @@ class testKrusellSmith(unittest.TestCase):
             ).tolist(),
             0.8647005192032616
         )
+
+        self.economy.makeHistory()
+
+        emp_totals = np.sum(self.agent.history['EmpNow'], axis = 0)
+
+        self.assertEqual(emp_totals[0], 1011)
+        self.assertEqual(emp_totals[2], 1009)
+        self.assertEqual(emp_totals[9], 1042)
 
     def test_economy(self):
         self.agent.getEconomyData(self.economy)
