@@ -12,7 +12,7 @@ import sys
 
 from copy import copy
 import numpy as np
-from HARK.core import Solution
+from HARK.core import HARKobject
 from HARK.utilities import CRRAutilityP, CRRAutilityP_inv
 from HARK.interpolation import (
     LinearInterp,
@@ -30,7 +30,7 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import ValueFunc2D, MargValue
 import matplotlib.pyplot as plt
 
 
-class ConsumerLaborSolution(Solution):
+class ConsumerLaborSolution(HARKobject):
     """
     A class for representing one period of the solution to a Consumer Labor problem.
     """
@@ -40,7 +40,7 @@ class ConsumerLaborSolution(Solution):
     def __init__(self, cFunc=None, LbrFunc=None, vFunc=None, vPfunc=None, bNrmMin=None):
         """
         The constructor for a new ConsumerSolution object.
-        
+
         Parameters
         ----------
         cFunc : function
@@ -58,7 +58,7 @@ class ConsumerLaborSolution(Solution):
         bNrmMin: float
             The minimum allowable bank balances for this period, as a function of
             the transitory shock. cFunc, LbrFunc, etc are undefined for bNrm < bNrmMin(TranShk).
-        
+
         Returns
         -------
         None
@@ -97,27 +97,27 @@ def solveConsLaborIntMarg(
     on the intensive margin by using the endogenous grid method to invert the first
     order conditions for optimal composite consumption and between consumption and
     leisure, obviating any search for optimal controls.
-    
-    Parameters 
+
+    Parameters
     ----------
     solution_next : ConsumerLaborSolution
         The solution to the next period's problem; must have the attributes
         vPfunc and bNrmMinFunc representing marginal value of bank balances and
         minimum (normalized) bank balances as a function of the transitory shock.
     PermShkDstn: [np.array]
-        Discrete distribution of permanent productivity shocks. 
+        Discrete distribution of permanent productivity shocks.
     TranShkDstn: [np.array]
-        Discrete distribution of transitory productivity shocks.       
+        Discrete distribution of transitory productivity shocks.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
-        the succeeding period. 
+        the succeeding period.
     DiscFac : float
         Intertemporal discount factor.
     CRRA : float
-        Coefficient of relative risk aversion over the composite good.  
+        Coefficient of relative risk aversion over the composite good.
     Rfree : float
         Risk free interest rate on assets retained at the end of the period.
-    PermGroFac : float                                                         
+    PermGroFac : float
         Expected permanent income growth factor for next period.
     BoroCnstArt: float or None
         Borrowing constraint for the minimum allowable assets to end the
@@ -138,7 +138,7 @@ def solveConsLaborIntMarg(
     LbrCost: float
         Cost parameter for supplying labor: u_t = U(x_t), x_t = c_t*z_t^LbrCost,
         where z_t is leisure = 1 - Lbr_t.
-        
+
     Returns
     -------
     solution_now : ConsumerLaborSolution
@@ -176,55 +176,72 @@ def solveConsLaborIntMarg(
     # Make tiled versions of the grid of a_t values and the components of the shock distribution
     aXtraCount = aXtraGrid.size
     bNrmGrid = aXtraGrid  # Next period's bank balances before labor income
-    
+
     # Replicated axtraGrid of b_t values (bNowGrid) for each transitory (productivity) shock
-    bNrmGrid_rep = np.tile(np.reshape(bNrmGrid, (aXtraCount, 1)), (1, TranShkCount))  
-    
+    bNrmGrid_rep = np.tile(np.reshape(bNrmGrid, (aXtraCount, 1)), (1, TranShkCount))
+
     # Replicated transitory shock values for each a_t state
-    TranShkVals_rep = np.tile(np.reshape(TranShkVals, (1, TranShkCount)), (aXtraCount, 1))
-    
+    TranShkVals_rep = np.tile(
+        np.reshape(TranShkVals, (1, TranShkCount)), (aXtraCount, 1)
+    )
+
     # Replicated transitory shock probabilities for each a_t state
-    TranShkPrbs_rep = np.tile(np.reshape(TranShkPrbs, (1, TranShkCount)), (aXtraCount, 1))
+    TranShkPrbs_rep = np.tile(
+        np.reshape(TranShkPrbs, (1, TranShkCount)), (aXtraCount, 1)
+    )
 
     # Construct a function that gives marginal value of next period's bank balances *just before* the transitory shock arrives
     # Next period's marginal value at every transitory shock and every bank balances gridpoint
     vPNext = vPfunc_next(bNrmGrid_rep, TranShkVals_rep)
-    
+
     # Integrate out the transitory shocks (in TranShkVals direction) to get expected vP just before the transitory shock
-    vPbarNext = np.sum(vPNext * TranShkPrbs_rep, axis=1)  
-    
+    vPbarNext = np.sum(vPNext * TranShkPrbs_rep, axis=1)
+
     # Transformed marginal value through the inverse marginal utility function to "decurve" it
-    vPbarNvrsNext = uPinv(vPbarNext)  
-    
+    vPbarNvrsNext = uPinv(vPbarNext)
+
     # Linear interpolation over b_{t+1}, adding a point at minimal value of b = 0.
-    vPbarNvrsFuncNext = LinearInterp(np.insert(bNrmGrid, 0, 0.0), np.insert(vPbarNvrsNext, 0, 0.0))  
-    
+    vPbarNvrsFuncNext = LinearInterp(
+        np.insert(bNrmGrid, 0, 0.0), np.insert(vPbarNvrsNext, 0, 0.0)
+    )
+
     # "Recurve" the intermediate marginal value function through the marginal utility function
-    vPbarFuncNext = MargValueFunc(vPbarNvrsFuncNext, CRRA)  
+    vPbarFuncNext = MargValueFunc(vPbarNvrsFuncNext, CRRA)
 
     # Get next period's bank balances at each permanent shock from each end-of-period asset values
     # Replicated grid of a_t values for each permanent (productivity) shock
-    aNrmGrid_rep = np.tile(np.reshape(aXtraGrid, (aXtraCount, 1)), (1, PermShkCount))  
-    
+    aNrmGrid_rep = np.tile(np.reshape(aXtraGrid, (aXtraCount, 1)), (1, PermShkCount))
+
     # Replicated permanent shock values for each a_t value
-    PermShkVals_rep = np.tile(np.reshape(PermShkVals, (1, PermShkCount)), (aXtraCount, 1))  
-    
+    PermShkVals_rep = np.tile(
+        np.reshape(PermShkVals, (1, PermShkCount)), (aXtraCount, 1)
+    )
+
     # Replicated permanent shock probabilities for each a_t value
-    PermShkPrbs_rep = np.tile(np.reshape(PermShkPrbs, (1, PermShkCount)), (aXtraCount, 1))  
+    PermShkPrbs_rep = np.tile(
+        np.reshape(PermShkPrbs, (1, PermShkCount)), (aXtraCount, 1)
+    )
     bNrmNext = (Rfree / (PermGroFac * PermShkVals_rep)) * aNrmGrid_rep
 
     # Calculate marginal value of end-of-period assets at each a_t gridpoint
     # Get marginal value of bank balances next period at each shock
     vPbarNext = (PermGroFac * PermShkVals_rep) ** (-CRRA) * vPbarFuncNext(bNrmNext)
-    
+
     # Take expectation across permanent income shocks
-    EndOfPrdvP = (DiscFac * Rfree * LivPrb * np.sum(vPbarNext * PermShkPrbs_rep, 
-                                                    axis=1, keepdims=True))
-      
+    EndOfPrdvP = (
+        DiscFac
+        * Rfree
+        * LivPrb
+        * np.sum(vPbarNext * PermShkPrbs_rep, axis=1, keepdims=True)
+    )
+
     # Compute scaling factor for each transitory shock
-    TranShkScaleFac_temp = (frac * (WageRte * TranShkGrid) ** (LbrCost * frac)
-        * (LbrCost ** (-LbrCost * frac) + LbrCost ** frac ))
-    
+    TranShkScaleFac_temp = (
+        frac
+        * (WageRte * TranShkGrid) ** (LbrCost * frac)
+        * (LbrCost ** (-LbrCost * frac) + LbrCost ** frac)
+    )
+
     # Flip it to be a row vector
     TranShkScaleFac = np.reshape(TranShkScaleFac_temp, (1, TranShkGrid.size))
 
@@ -232,14 +249,16 @@ def solveConsLaborIntMarg(
     xNow = (np.dot(EndOfPrdvP, TranShkScaleFac)) ** (-1.0 / (CRRA - LbrCost * frac))
 
     # Transform the composite good x_t values into consumption c_t and leisure z_t values
-    TranShkGrid_rep = np.tile(np.reshape(TranShkGrid, (1, TranShkGrid.size)), (aXtraCount, 1))
+    TranShkGrid_rep = np.tile(
+        np.reshape(TranShkGrid, (1, TranShkGrid.size)), (aXtraCount, 1)
+    )
     xNowPow = xNow ** frac  # Will use this object multiple times in math below
-    
-     # Find optimal consumption from optimal composite good
+
+    # Find optimal consumption from optimal composite good
     cNrmNow = (((WageRte * TranShkGrid_rep) / LbrCost) ** (LbrCost * frac)) * xNowPow
-    
+
     # Find optimal leisure from optimal composite good
-    LsrNow = (LbrCost / (WageRte * TranShkGrid_rep)) ** frac * xNowPow  
+    LsrNow = (LbrCost / (WageRte * TranShkGrid_rep)) ** frac * xNowPow
 
     # The zero-th transitory shock is TranShk=0, and the solution is to not work: Lsr = 1, Lbr = 0.
     cNrmNow[:, 0] = uPinv(EndOfPrdvP.flatten())
@@ -248,14 +267,23 @@ def solveConsLaborIntMarg(
     # Agent cannot choose to work a negative amount of time. When this occurs, set
     # leisure to one and recompute consumption using simplified first order condition.
     # Find where labor would be negative if unconstrained
-    violates_labor_constraint = (LsrNow > 1.0)  
-    EndOfPrdvP_temp = np.tile(np.reshape(EndOfPrdvP, (aXtraCount, 1)), (1, TranShkCount))
-    cNrmNow[violates_labor_constraint] = uPinv(EndOfPrdvP_temp[violates_labor_constraint])
+    violates_labor_constraint = LsrNow > 1.0
+    EndOfPrdvP_temp = np.tile(
+        np.reshape(EndOfPrdvP, (aXtraCount, 1)), (1, TranShkCount)
+    )
+    cNrmNow[violates_labor_constraint] = uPinv(
+        EndOfPrdvP_temp[violates_labor_constraint]
+    )
     LsrNow[violates_labor_constraint] = 1.0  # Set up z=1, upper limit
 
     # Calculate the endogenous bNrm states by inverting the within-period transition
     aNrmNow_rep = np.tile(np.reshape(aXtraGrid, (aXtraCount, 1)), (1, TranShkGrid.size))
-    bNrmNow = aNrmNow_rep - WageRte * TranShkGrid_rep + cNrmNow + WageRte * TranShkGrid_rep * LsrNow
+    bNrmNow = (
+        aNrmNow_rep
+        - WageRte * TranShkGrid_rep
+        + cNrmNow
+        + WageRte * TranShkGrid_rep * LsrNow
+    )
 
     # Add an extra gridpoint at the absolute minimal valid value for b_t for each TranShk;
     # this corresponds to working 100% of the time and consuming nothing.
@@ -265,14 +293,16 @@ def solveConsLaborIntMarg(
     # Consume nothing
     cNowArray = np.concatenate((np.zeros((1, TranShkGrid.size)), cNrmNow), axis=0)
     # And no leisure!
-    LsrNowArray = np.concatenate((np.zeros((1, TranShkGrid.size)), LsrNow), axis=0)  
+    LsrNowArray = np.concatenate((np.zeros((1, TranShkGrid.size)), LsrNow), axis=0)
     LsrNowArray[0, 0] = 1.0  # Don't work at all if TranShk=0, even if bNrm=0
     LbrNowArray = 1.0 - LsrNowArray  # Labor is the complement of leisure
 
     # Get (pseudo-inverse) marginal value of bank balances using end of period
     # marginal value of assets (envelope condition), adding a column of zeros
     # zeros on the left edge, representing the limit at the minimum value of b_t.
-    vPnvrsNowArray = np.concatenate((np.zeros((1, TranShkGrid.size)), uPinv(EndOfPrdvP_temp)))
+    vPnvrsNowArray = np.concatenate(
+        (np.zeros((1, TranShkGrid.size)), uPinv(EndOfPrdvP_temp))
+    )
 
     # Construct consumption and marginal value functions for this period
     bNrmMinNow = LinearInterp(TranShkGrid, bNowArray[0, :])
@@ -284,14 +314,14 @@ def solveConsLaborIntMarg(
     vPnvrsFuncNow_list = []
     for j in range(TranShkGrid.size):
         # Adjust bNrmNow for this transitory shock, so bNrmNow_temp[0] = 0
-        bNrmNow_temp = (bNowArray[:, j] - bNowArray[0, j])  
-        
+        bNrmNow_temp = bNowArray[:, j] - bNowArray[0, j]
+
         # Make consumption function for this transitory shock
-        cFuncNow_list.append(LinearInterp(bNrmNow_temp, cNowArray[:, j]))  
-        
+        cFuncNow_list.append(LinearInterp(bNrmNow_temp, cNowArray[:, j]))
+
         # Make labor function for this transitory shock
-        LbrFuncNow_list.append(LinearInterp(bNrmNow_temp, LbrNowArray[:, j]))  
-        
+        LbrFuncNow_list.append(LinearInterp(bNrmNow_temp, LbrNowArray[:, j]))
+
         # Make pseudo-inverse marginal value function for this transitory shock
         vPnvrsFuncNow_list.append(LinearInterp(bNrmNow_temp, vPnvrsNowArray[:, j]))
 
@@ -310,11 +340,9 @@ def solveConsLaborIntMarg(
     vPfuncNow = MargValueFunc2D(vPnvrsFuncNow, CRRA)
 
     # Make a solution object for this period and return it
-    solution = ConsumerLaborSolution(cFunc=cFuncNow,
-                                     LbrFunc=LbrFuncNow,
-                                     vPfunc=vPfuncNow,
-                                     bNrmMin=bNrmMinNow
-                                     )
+    solution = ConsumerLaborSolution(
+        cFunc=cFuncNow, LbrFunc=LbrFuncNow, vPfunc=vPfuncNow, bNrmMin=bNrmMinNow
+    )
     return solution
 
 
@@ -324,7 +352,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     A class representing agents who make a decision each period about how much
     to consume vs save and how much labor to supply (as a fraction of their time).
     They get CRRA utility from a composite good x_t = c_t*z_t^alpha, and discount
-    future utility flows at a constant factor. 
+    future utility flows at a constant factor.
     """
 
     time_vary_ = copy(IndShockConsumerType.time_vary_)
@@ -336,12 +364,12 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         Instantiate a new consumer type with given data.
         See init_labor_intensive for a dictionary of
         the keywords that should be passed to the constructor.
-        
+
         Parameters
         ----------
         cycles : int
             Number of times the sequence of periods should be solved.
-        
+
         Returns
         -------
         None
@@ -357,11 +385,11 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     def update(self):
         """
         Update the income process, the assets grid, and the terminal solution.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -376,11 +404,11 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         Construct the age-varying cost of working LbrCost using the attribute LbrCostCoeffs.
         This attribute should be a 1D array of arbitrary length, representing polynomial
         coefficients (over t_cycle) for (log) LbrCost.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -403,13 +431,13 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         expected future income after receiving income this period, ignoring mort-
         ality.  The maximum MPC is the limit of the MPC as m --> mNrmMin.  The
         minimum MPC is the limit of the MPC as m --> infty.
-        
+
         NOT YET IMPLEMENTED FOR THIS CLASS
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -423,9 +451,9 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         Stores result in attribute eulerErrorFunc as an interpolated function.
         Has option to use approximate income distribution stored in self.IncomeDstn
         or to use a (temporary) very dense approximation.
-        
+
         NOT YET IMPLEMENTED FOR THIS CLASS
-        
+
         Parameters
         ----------
         mMax : float
@@ -435,7 +463,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
             bution stored in self.IncomeDstn[0], or to use a very accurate
             discrete approximation instead.  When True, uses approximation in
             IncomeDstn; when False, makes and uses a very dense approximation.
-        
+
         Returns
         -------
         None
@@ -479,13 +507,13 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cNrmNow[these] = self.solution[t].cFunc(
-                self.bNrmNow[these], self.TranShkNow[these]
+                self.bNrmNow[these], self.shocks["TranShkNow"][these]
             )  # Assign consumption values
             MPCnow[these] = self.solution[t].cFunc.derivativeX(
-                self.bNrmNow[these], self.TranShkNow[these]
+                self.bNrmNow[these], self.shocks["TranShkNow"][these]
             )  # Assign marginal propensity to consume values (derivative)
             LbrNow[these] = self.solution[t].LbrFunc(
-                self.bNrmNow[these], self.TranShkNow[these]
+                self.bNrmNow[these], self.shocks["TranShkNow"][these]
             )  # Assign labor supply
         self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow
@@ -508,7 +536,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             mNrmNow[these] = (
-                self.bNrmNow[these] + self.LbrNow[these] * self.TranShkNow[these]
+                self.bNrmNow[these]
+                + self.LbrNow[these] * self.shocks["TranShkNow"][these]
             )  # mNrm = bNrm + yNrm
             aNrmNow[these] = mNrmNow[these] - self.cNrmNow[these]  # aNrm = mNrm - cNrm
         self.mNrmNow = mNrmNow
@@ -520,11 +549,11 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         which is created by the method updateIncomeProcess().  Simply takes the
         transitory shock values and uses them as a state grid; can be improved.
         Creates the attribute TranShkGrid.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -540,14 +569,14 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         )  # Run the method addToTimeVary from AgentType to add TranShkGrid as one parameter of time_vary list
 
     def updateSolutionTerminal(self):
-        """ 
+        """
         Updates the terminal period solution and solves for optimal consumption
         and labor when there is no future.
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         None
@@ -617,7 +646,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     def plotcFunc(self, t, bMin=None, bMax=None, ShkSet=None):
         """
         Plot the consumption function by bank balances at a given set of transitory shocks.
-        
+
         Parameters
         ----------
         t : int
@@ -631,7 +660,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         ShkSet : [float] or None
             Array or list of transitory shocks at which to plot the consumption
             function.  If None, defaults to the TranShkGrid for this time period.
-        
+
         Returns
         -------
         None
@@ -660,7 +689,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     def plotLbrFunc(self, t, bMin=None, bMax=None, ShkSet=None):
         """
         Plot the labor supply function by bank balances at a given set of transitory shocks.
-        
+
         Parameters
         ----------
         t : int
@@ -674,7 +703,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         ShkSet : [float] or None
             Array or list of transitory shocks at which to plot the labor supply
             function.  If None, defaults to the TranShkGrid for this time period.
-        
+
         Returns
         -------
         None
