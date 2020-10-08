@@ -126,6 +126,27 @@ class testKrusellSmith(unittest.TestCase):
 
         self.economy.solveAgents()
 
+        # testing preComputeArrays()
+        self.assertAlmostEqual(
+            self.agent.mNextArray[5,2,3,0],
+            0.34949309507193055
+        )
+
+        # testing makeGrid()
+        self.assertAlmostEqual(
+            self.agent.aGrid[1], 0.05531643953496124
+        )
+
+        self.assertEqual(
+            self.economy.MSS, 13.327225348792547
+        )
+
+        # testing updateSolutionTerminal()
+        self.assertEqual(
+            self.agent.solution_terminal.cFunc[0](10,self.economy.MSS),
+            10
+        )
+
         self.assertAlmostEqual(
             self.economy.agents[0].solution[0].cFunc[0](
                 10,self.economy.MSS
