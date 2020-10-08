@@ -1019,7 +1019,7 @@ class KrusellSmithType(AgentType):
         """
         Get each agent's consumption given their current state.'
         """
-        employed = self.state_prev["EmpNow"].copy().astype(bool)
+        employed = self.state_now["EmpNow"].copy().astype(bool)
         unemployed = np.logical_not(employed)
 
         # Get the discrete index for (un)employed agents
