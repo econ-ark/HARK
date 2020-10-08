@@ -128,9 +128,6 @@ class AggShockConsumerType(IndShockConsumerType):
     decision about how much to consume.
     """
 
-    #state_vars_ = ['pLvlNow', 'PlvlAggNow', 'bNrmNow', 'mNrmNow'] 
-    #shock_vars_ = []
-
     def __init__(self, **kwds):
         """
         Make a new instance of AggShockConsumerType, an extension of

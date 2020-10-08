@@ -139,6 +139,13 @@ class testKrusellSmith(unittest.TestCase):
             11.896127055105103
         )
 
+        emp_totals = np.sum(self.agent.history['EmpNow'], axis = 0)
+
+        self.assertEqual(emp_totals[0], 1011)
+        self.assertEqual(emp_totals[2], 1009)
+        self.assertEqual(emp_totals[9], 1042)
+
+
         dynamics = self.economy.updateDynamics()
         self.assertAlmostEqual(
             dynamics.AFunc[0](10),
@@ -161,6 +168,7 @@ class testKrusellSmith(unittest.TestCase):
         self.economy.solve()  # Solve for the general equilibrium of the economy
 
         self.economy.AFunc = self.economy.dynamics.AFunc
+        self.assertAlmostEqual(self.economy.AFunc[0].slope, 1.0014463644834282)
 
         self.assertAlmostEqual(
             self.economy.history["Aprev"][4],
