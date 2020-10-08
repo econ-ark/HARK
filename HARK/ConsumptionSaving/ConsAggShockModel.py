@@ -1307,7 +1307,7 @@ def solveConsAggMarkov(
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
-    
+
     Returns
     -------
     solution_now : ConsumerSolution
@@ -1571,7 +1571,7 @@ def solveKrusellSmith(
     RnextArray : np.array
         Tiled array of net interest factors next period, attained from every
         end-of-period state crossed with every shock that might attain.
-                                                              
+
     Returns
     -------
     solution_now : ConsumerSolution
