@@ -1208,7 +1208,7 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                                LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
                                BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
                                ShareGrid,vFuncBool,AdjustPrb,
-                               DiscreteShareBool,IndepDstnBool):
+                               DiscreteShareBool,IndepDstnBool, **kws):
     
     # Make sure the individual is liquidity constrained.  Allowing a consumer to
     # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
@@ -1476,7 +1476,7 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
 # Solver for the contribution stage
 def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
                               mNrmGrid,nNrmGrid,ShareGrid,
-                              DiscreteShareBool):
+                              DiscreteShareBool, **kws):
     
     # Unpack solution from the next sub-stage
     vFuncCon_next    = solution_next.vFuncCon
@@ -1579,7 +1579,7 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
 # Solver for the asset rebalancing stage
 def solveRiskyContribRebStage(solution_next,
                               CRRA,tau,
-                              nNrmGrid,mNrmGrid,dGrid):
+                              nNrmGrid,mNrmGrid,dGrid, **kws):
     
     # Extract next stage's solution
     vFuncAdj_next = solution_next.vFuncShaAdj
@@ -1725,7 +1725,16 @@ def solveRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                       BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
                       ShareGrid,dGrid,vFuncBool,AdjustPrb,
                       DiscreteShareBool,IndepDstnBool):
-
+    
+     # Pack parameters to be passed to stage-specific solvers
+     kws = {'ShockDstn': ShockDstn, 'IncomeDstn': IncomeDstn,
+            'RiskyDstn': RiskyDstn, 'LivPrb': LivPrb, 'DiscFac': DiscFac,
+            'CRRA': CRRA, 'Rfree': Rfree, 'PermGroFac': PermGroFac, 'tau': tau,
+            'BoroCnstArt': BoroCnstArt, 'aXtraGrid': aXtraGrid,
+            'nNrmGrid': nNrmGrid, 'mNrmGrid': mNrmGrid, 'ShareGrid': ShareGrid,
+            'dGrid': dGrid, 'vFuncBool': vFuncBool, 'AdjustPrb': AdjustPrb,
+            'DiscreteShareBool': DiscreteShareBool, 'IndepDstnBool': IndepDstnBool}
+     
      # Unpack next period's solution (we only need the rebalancing stage)
      RebStageSol_next = solution_next.RebStage
      # Eventually we want there to be a HARK tool that works like the pseudocode:
@@ -1741,21 +1750,13 @@ def solveRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     
      
      # Consumption stage solution
-     ConStageSol = solveRiskyContribConsStage(RebStageSol_next,ShockDstn,IncomeDstn,RiskyDstn,
-                                              LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
-                                              BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
-                                              ShareGrid,vFuncBool,AdjustPrb,
-                                              DiscreteShareBool,IndepDstnBool)
+     ConStageSol = solveRiskyContribConsStage(RebStageSol_next,**kws)
      
      # Contribution share stage solution
-     ShaStageSol = solveRiskyContribShaStage(ConStageSol,CRRA,AdjustPrb,
-                                             mNrmGrid,nNrmGrid,ShareGrid,
-                                             DiscreteShareBool)
+     ShaStageSol = solveRiskyContribShaStage(ConStageSol,**kws)
      
      # Rebalancing stage solution
-     RebStageSol = solveRiskyContribRebStage(ShaStageSol,
-                                             CRRA,tau,
-                                             nNrmGrid,mNrmGrid,dGrid)
+     RebStageSol = solveRiskyContribRebStage(ShaStageSol,**kws)
      
      # Construct full-period solution
      solution = RiskyContribSolution(
