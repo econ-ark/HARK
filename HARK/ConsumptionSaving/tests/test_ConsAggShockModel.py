@@ -122,12 +122,12 @@ class testKrusellSmith(unittest.TestCase):
         # self.economy.track_vars += ['EmpNow']
 
         self.assertEqual(
-            np.sum(self.agent.EmpNow & self.agent.EmpNow[-1]),
+            np.sum(self.agent.state_now['EmpNow'] & self.agent.state_now['EmpNow'][-1]),
             900
         )
 
         self.assertEqual(
-            np.sum(self.agent.EmpNow[:-1] & self.agent.EmpNow[1:]),
+            np.sum(self.agent.state_now['EmpNow'][:-1] & self.agent.state_now['EmpNow'][1:]),
             816
         )
 
@@ -135,6 +135,21 @@ class testKrusellSmith(unittest.TestCase):
         self.assertAlmostEqual(
             np.mean(self.economy.MrkvNow_hist),
             0.4818181818181818
+        )
+
+        # testing makeGrid()
+        self.assertAlmostEqual(
+            self.agent.aGrid[1], 0.05531643953496124
+        )
+
+        self.assertEqual(
+            self.economy.MSS, 13.327225348792547
+        )
+
+        # testing updateSolutionTerminal()
+        self.assertEqual(
+            self.agent.solution_terminal.cFunc[0](10,self.economy.MSS),
+            10
         )
 
         # object attributes that are conditions
@@ -154,29 +169,6 @@ class testKrusellSmith(unittest.TestCase):
         self.assertAlmostEqual(
             self.agent.AFunc[1].slope,
             1.01486947256261
-        )
-
-        self.economy.solveAgents()
-
-        # testing preComputeArrays()
-        self.assertAlmostEqual(
-            self.agent.mNextArray[5,2,3,0],
-            0.34949309507193055
-        )
-
-        # testing makeGrid()
-        self.assertAlmostEqual(
-            self.agent.aGrid[1], 0.05531643953496124
-        )
-
-        self.assertEqual(
-            self.economy.MSS, 13.327225348792547
-        )
-
-        # testing updateSolutionTerminal()
-        self.assertEqual(
-            self.agent.solution_terminal.cFunc[0](10,self.economy.MSS),
-            10
         )
 
         self.economy.solveAgents()
