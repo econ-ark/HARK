@@ -133,6 +133,25 @@ class testKrusellSmith(unittest.TestCase):
             0.4818181818181818
         )
 
+        # object attributes that are conditions
+        # for preComputeArrays
+        self.assertEqual(
+            self.agent.aGrid.size,
+            32
+        )
+        self.assertAlmostEqual(
+            self.agent.aGrid[5],
+            0.3426040963137289
+        )
+        self.assertAlmostEqual(
+            self.agent.AFunc[0].slope,
+            1.0014463644834297
+        )
+        self.assertAlmostEqual(
+            self.agent.AFunc[1].slope,
+            1.01486947256261
+        )
+
         self.economy.solveAgents()
 
         # testing preComputeArrays()
