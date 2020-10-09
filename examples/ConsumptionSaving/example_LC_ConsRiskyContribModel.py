@@ -381,6 +381,20 @@ init_sticky_share['vFuncBool'] = True
 init_sticky_share['AdjustPrb']  = [0.2]*(t_ret - t_start) + [1.0] + [0.5]*(t_end - t_ret - 1)
 init_sticky_share['tau']        = [0.1]*(t_ret - t_start) + [0]*(t_end - t_ret)
 
+# Number of grid-points for finding the optimal asset rebalance
+init_sticky_share['dCount'] = 20
+
+# Regular grids in m and n
+init_riskyContrib['mNrmMin']         = 1e-6
+init_riskyContrib['mNrmMax']         = 100
+init_riskyContrib['mNrmCount']       = 45
+init_riskyContrib['mNrmNestFac']     = 1
+
+init_riskyContrib['nNrmMin']         = 1e-6
+init_riskyContrib['nNrmMax']         = 100
+init_riskyContrib['nNrmCount']       = 45
+init_riskyContrib['nNrmNestFac']     = 1  
+
 ContribAgent = RiskyContribConsumerType(**init_sticky_share)
 # %%
 # Make and solve a discrete portfolio choice consumer type
@@ -427,6 +441,7 @@ ContribAgent.track_vars = ['pLvlNow','t_age','AdjustNow',
                            'mNrmNow','nNrmNow','mNrmTildeNow','nNrmTildeNow','aNrmNow',
                            'cNrmNow', 'ShareNow', 'DNrmNow']
 
+ContribAgent.AgentCount = 5
 ContribAgent.initializeSim()
 ContribAgent.simulate()
 
@@ -445,3 +460,14 @@ Data = {k: v.flatten(order = 'F') for k, v in Data.items()}
 
 # Make dataframe
 Data = pd.DataFrame(Data)
+
+# %% Plot simulation
+# import seaborn as sns
+
+# dplot = Data.melt(id_vars = ['id','t_age'])
+# dplot = dplot[dplot.variable.isin(['mNrmNow','nNrmNow','nNrmTildeNow','aNrmNow','cNrmNow','ShareNow'])]
+
+# g = sns.FacetGrid(dplot, col = "variable", hue = "id", sharey = False,
+#                   col_order = ['nNrmTildeNow','aNrmNow','cNrmNow','ShareNow'])
+
+# g = g.map(plt.plot, "t_age", "value").set_titles("{col_name}").set_ylabels('')
