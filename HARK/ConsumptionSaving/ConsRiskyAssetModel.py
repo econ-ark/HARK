@@ -969,7 +969,18 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                 " to run the `solve()` method of the class first."
             )
         
-            
+        
+        # TODO: getStates   -> Transition equations for states
+        #       getControls -> solving optimality (arbitrage) conditions 
+        #        (HARK)     -> (DOLO)
+        
+        # Split shock-generation by stages
+        
+        #for stages:
+        #    setShocks[stage]
+        #    setStates[stage]
+        #    setControls[stage]
+        
         # Mortality and birth happens only in the first stage
         self.getMortality()
             
@@ -985,6 +996,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         self.getPostStatesReb()
             
         # Contribution stage
+        # TODO: change postStates from previous stage to current states.
         self.getControlsSha()
         
         # Consumption stage (the last one)
@@ -1716,6 +1728,17 @@ def solveRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
 
      # Unpack next period's solution (we only need the rebalancing stage)
      RebStageSol_next = solution_next.RebStage
+     # Eventually we want there to be a HARK tool that works like the pseudocode:
+         
+     # Stages = [Reb,Sha,Cons] = [0,1,2]
+     # StageSolvers = [solveRiskyContribRebStage,
+     #                 solveRiskyContribShaStage,
+     #                 solveRiskyContribConsStage]
+     
+     # for stage in max(Stages) to min(Stages) do: # Solving backwards because Bellman
+     #    solveStage = stage
+         
+    
      
      # Consumption stage solution
      ConStageSol = solveRiskyContribConsStage(RebStageSol_next,ShockDstn,IncomeDstn,RiskyDstn,
