@@ -526,32 +526,6 @@ class RiskyContribConsSolution(HARKobject):
         self.dvdnFuncCon = dvdnFuncCon
         self.dvdsFuncCon = dvdsFuncCon
         
-# Define a class to represent a full period solution of the portfolio choice problem
-class RiskyContribSolution(HARKobject):
-    
-    # TODO: what does this do?
-    distance_criteria = ['vPfuncAdj']
-
-    def __init__(self,
-                
-        # Solutions for each stage
-        RebStage = None,
-        ShaStage = None,
-        ConStage = None,
-        
-    ):
-                
-        if RebStage is None:
-            RebStage = RiskyContribRebSolution()
-        if ShaStage is None:
-            ShaStage = RiskyContribShaSolution()
-        if ConStage is None:
-            ConStage = RiskyContribConsSolution()
-        
-        self.RebStage = RebStage
-        self.ShaStage = ShaStage
-        self.ConStage = ConStage
-
         
 class RiskyContribConsumerType(RiskyAssetConsumerType):
     """
@@ -678,11 +652,9 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             dvdsFuncRebFxd = dvdsFuncCon_term)
         
         # Construct the terminal period solution
-        self.solution_terminal = RiskyContribSolution(
-            RebStage = RebStageSol,
-            ShaStage = ShaStageSol,
-            ConStage = ConStageSol,
-        )
+        self.solution_terminal = {'Reb': RebStageSol,
+                                  'Sha': ShaStageSol,
+                                  'Con': ConStageSol}
         
     
     def updateTau(self):
@@ -968,9 +940,8 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                 "Model instance does not have a solution stored. To simulate, it is necessary"
                 " to run the `solve()` method of the class first."
             )
-        
-            
-        # Mortality and birth happens only in the first stage
+                
+        # Mortality and birth happens only at the start of the period
         self.getMortality()
             
         # Shocks are drawn in the first stage
@@ -978,23 +949,23 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             self.readShocks()
         else:  # Otherwise, draw shocks as usual according to subclass-specific method
             self.getShocks()
-            
-        # Rebalancing stage
-        self.getStatesReb()
-        self.getControlsReb()    
-        self.getPostStatesReb()
-            
-        # Contribution stage
-        self.getControlsSha()
         
-        # Consumption stage (the last one)
-        self.getControlsCons()
-        self.getPostStatesCons()
+        # Stages in chronological order
+        stages = ['Reb','Sha','Con']
         
-        # Not all controls are updated at all stages, or all (post)states are
-        # relevant to all stages.To avoid confusion,
-        # inactive variables take the value of nan.
-        #self.clearControlsAndStates()
+        setStates = {'Reb': self.getStatesReb,
+                     'Sha': self.getStatesSha,
+                     'Con': self.getStatesCons}
+        
+        setControls = {'Reb': self.getControlsReb,
+                       'Sha': self.getControlsSha,
+                       'Con': self.getControlsCons}
+        
+        for s in stages:
+            setStates[s]()
+            setControls[s]()
+    
+        self.getPostStates()
         
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
@@ -1003,19 +974,6 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             self.t_cycle == self.T_cycle
         ] = 0  # Resetting to zero for those who have reached the end
         
-    
-    def clearControlsAndStates(self):
-        
-        # Irrelevant variables depend on the stage
-        if self.Stage == 0:
-            self.cNrmNow  = np.zeros(self.AgentCount) + np.nan
-            self.aNrmNow  = np.zeros(self.AgentCount) + np.nan
-        elif self.Stage == 1:
-            self.DNrmNow  = np.zeros(self.AgentCount) + np.nan
-            self.mNrmNow  = np.zeros(self.AgentCount) + np.nan
-            self.nNrmNow  = np.zeros(self.AgentCount) + np.nan
-        else:
-            pass
     
     def getStatesReb(self):
         """
@@ -1072,20 +1030,20 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                            
             # Get controls for agents who *can* adjust.
             those = np.logical_and(these, self.AdjustNow)
-            DNrmNow[those] = self.solution[t].RebStage.DFuncAdj(
+            DNrmNow[those] = self.solution[t]['Reb'].DFuncAdj(
                 self.mNrmNow[those], self.nNrmNow[those]
             )
                 
             # Get Controls for agents who *can't* adjust.
             those = np.logical_and(these, np.logical_not(self.AdjustNow))
-            DNrmNow[those] = self.solution[t].RebStage.DFuncFxd(
+            DNrmNow[those] = self.solution[t]['Reb'].DFuncFxd(
                 self.mNrmNow[those], self.nNrmNow[those], self.ShareNow[those]
             )
 
         # Store controls as attributes of self
         self.DNrmNow = DNrmNow
         
-    def getPostStatesReb(self):
+    def getStatesSha(self):
         """
         """
         
@@ -1129,19 +1087,23 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                            
             # Get controls for agents who *can* adjust.
             those = np.logical_and(these, self.AdjustNow)
-            ShareNow[those] = self.solution[t].ShaStage.ShareFuncAdj(
+            ShareNow[those] = self.solution[t]['Sha'].ShareFuncAdj(
                 self.mNrmTildeNow[those], self.nNrmTildeNow[those]
             )
                 
             # Get Controls for agents who *can't* adjust.
             those = np.logical_and(these, np.logical_not(self.AdjustNow))
-            ShareNow[those] = self.solution[t].ShaStage.ShareFuncFxd(
+            ShareNow[those] = self.solution[t]['Sha'].ShareFuncFxd(
                 self.mNrmTildeNow[those], self.nNrmTildeNow[those], self.ShareNow[those]
             )
 
         # Store controls as attributes of self
         self.ShareNow = ShareNow     
-
+        
+    def getStatesCons(self):
+        # No new states need to be computed in the consumption stage
+        pass
+        
     def getControlsCons(self):
         """
         """
@@ -1155,7 +1117,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             these = t == self.t_cycle
                            
             # Get consumption
-            cNrmNow[these] = self.solution[t].ConStage.cFunc(
+            cNrmNow[these] = self.solution[t]['Con'].cFunc(
                 self.mNrmTildeNow[these], self.nNrmTildeNow[these], self.ShareNow[these]
             )
             
@@ -1164,7 +1126,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         # sure consumption does not go over m because of some numerical error.
         self.cNrmNow = np.minimum(cNrmNow,self.mNrmTildeNow)            
         
-    def getPostStatesCons(self):
+    def getPostStates(self):
         """
         """
         self.aNrmNow = self.mNrmTildeNow - self.cNrmNow
@@ -1196,7 +1158,7 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                                LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
                                BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
                                ShareGrid,vFuncBool,AdjustPrb,
-                               DiscreteShareBool,IndepDstnBool):
+                               DiscreteShareBool,IndepDstnBool, **kws):
     
     # Make sure the individual is liquidity constrained.  Allowing a consumer to
     # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
@@ -1464,7 +1426,7 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
 # Solver for the contribution stage
 def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
                               mNrmGrid,nNrmGrid,ShareGrid,
-                              DiscreteShareBool):
+                              DiscreteShareBool, **kws):
     
     # Unpack solution from the next sub-stage
     vFuncCon_next    = solution_next.vFuncCon
@@ -1567,7 +1529,7 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
 # Solver for the asset rebalancing stage
 def solveRiskyContribRebStage(solution_next,
                               CRRA,tau,
-                              nNrmGrid,mNrmGrid,dGrid):
+                              nNrmGrid,mNrmGrid,dGrid, **kws):
     
     # Extract next stage's solution
     vFuncAdj_next = solution_next.vFuncShaAdj
@@ -1713,33 +1675,39 @@ def solveRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                       BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
                       ShareGrid,dGrid,vFuncBool,AdjustPrb,
                       DiscreteShareBool,IndepDstnBool):
-
-     # Unpack next period's solution (we only need the rebalancing stage)
-     RebStageSol_next = solution_next.RebStage
+    
+     # Pack parameters to be passed to stage-specific solvers
+     kws = {'ShockDstn': ShockDstn, 'IncomeDstn': IncomeDstn,
+            'RiskyDstn': RiskyDstn, 'LivPrb': LivPrb, 'DiscFac': DiscFac,
+            'CRRA': CRRA, 'Rfree': Rfree, 'PermGroFac': PermGroFac, 'tau': tau,
+            'BoroCnstArt': BoroCnstArt, 'aXtraGrid': aXtraGrid,
+            'nNrmGrid': nNrmGrid, 'mNrmGrid': mNrmGrid, 'ShareGrid': ShareGrid,
+            'dGrid': dGrid, 'vFuncBool': vFuncBool, 'AdjustPrb': AdjustPrb,
+            'DiscreteShareBool': DiscreteShareBool, 'IndepDstnBool': IndepDstnBool}
      
-     # Consumption stage solution
-     ConStageSol = solveRiskyContribConsStage(RebStageSol_next,ShockDstn,IncomeDstn,RiskyDstn,
-                                              LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
-                                              BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
-                                              ShareGrid,vFuncBool,AdjustPrb,
-                                              DiscreteShareBool,IndepDstnBool)
+     # Stages of the problem in chronological order
+     Stages = ['Reb', 'Sha', 'Con']
+     n_stages = len(Stages)
+     # Solvers, indexed by stage names
+     Solvers = {'Reb': solveRiskyContribRebStage,
+                'Sha': solveRiskyContribShaStage,
+                'Con': solveRiskyContribConsStage}
      
-     # Contribution share stage solution
-     ShaStageSol = solveRiskyContribShaStage(ConStageSol,CRRA,AdjustPrb,
-                                             mNrmGrid,nNrmGrid,ShareGrid,
-                                             DiscreteShareBool)
-     
-     # Rebalancing stage solution
-     RebStageSol = solveRiskyContribRebStage(ShaStageSol,
-                                             CRRA,tau,
-                                             nNrmGrid,mNrmGrid,dGrid)
-     
-     # Construct full-period solution
-     solution = RiskyContribSolution(
-            RebStage = RebStageSol,
-            ShaStage = ShaStageSol,
-            ConStage = ConStageSol,
-        )
+     # Initialize empty solution
+     solution = {}
+     # Solve stages backwards
+     for i in reversed(range(n_stages)):
+         stage = Stages[i]
+         
+         # In the last stage, the next solution is the first stage of the next
+         # period. Otherwise, its the next stage of his period.
+         if i == n_stages - 1:
+             sol_next_stage = solution_next[Stages[0]]  
+         else:
+             sol_next_stage = solution[Stages[i+1]]
+        
+         # Solve
+         solution[stage] = Solvers[stage](sol_next_stage, **kws)
      
      return(solution)
 
