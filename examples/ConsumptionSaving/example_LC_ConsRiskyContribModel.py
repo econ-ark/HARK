@@ -408,10 +408,14 @@ for t in periods:
     plotSlices3D(DFuncAdj[t],0,mMax,y_slices = n_slices,y_name = 'n',
                  titles = ['t = ' + str(t)],
                  ax_labs = ['m','d'])
+
+for t in periods:
     
     plotSlices3D(ShareFuncSha[t],0,mMax,y_slices = n_slices,y_name = 'n',
                  titles = ['t = ' + str(t)],
                  ax_labs = ['m','S'])
+
+for t in periods:
     
     plotSlices4D(cFuncFxd[t],0,mMax,y_slices = n_slices,w_slices = shares,
                  slice_names = ['n_til','s'],
