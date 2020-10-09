@@ -118,10 +118,50 @@ class testKrusellSmith(unittest.TestCase):
         self.agent.reset()
         self.economy.reset()
 
+        self.agent.track_vars += ['EmpNow']
+        # self.economy.track_vars += ['EmpNow']
+
+        self.assertEqual(
+            np.sum(self.agent.EmpNow & self.agent.EmpNow[-1]),
+            900
+        )
+
+        self.assertEqual(
+            np.sum(self.agent.EmpNow[:-1] & self.agent.EmpNow[1:]),
+            816
+        )
+
         self.economy.makeMrkvHist()  # Make a simulated history of aggregate shocks
         self.assertAlmostEqual(
             np.mean(self.economy.MrkvNow_hist),
             0.4818181818181818
+        )
+
+        # object attributes that are conditions
+        # for preComputeArrays
+        self.assertEqual(
+            self.agent.aGrid.size,
+            32
+        )
+        self.assertAlmostEqual(
+            self.agent.aGrid[5],
+            0.3426040963137289
+        )
+        self.assertAlmostEqual(
+            self.agent.AFunc[0].slope,
+            1.0014463644834297
+        )
+        self.assertAlmostEqual(
+            self.agent.AFunc[1].slope,
+            1.01486947256261
+        )
+
+        self.economy.solveAgents()
+
+        # testing preComputeArrays()
+        self.assertAlmostEqual(
+            self.agent.mNextArray[5,2,3,0],
+            0.34949309507193055
         )
 
         # testing makeGrid()
