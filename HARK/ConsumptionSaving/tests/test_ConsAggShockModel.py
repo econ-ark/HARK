@@ -210,6 +210,26 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
         self.assertEqual(emp_totals[2], 1009)
         self.assertEqual(emp_totals[9], 1042)
 
+        self.assertAlmostEqual(
+            self.economy.history['Aprev'][0],
+            11.83133152125537
+        )
+
+        self.assertAlmostEqual(
+            self.economy.history['Aprev'][1],
+            11.260758949042032
+        )
+
+        self.assertAlmostEqual(
+            self.economy.history['Aprev'][2],
+            10.72309150585389
+        )
+
+        self.assertAlmostEqual(
+            self.economy.history['Mnow'][10],
+            self.economy.history['Mnow'][10]
+        )
+
         new_dynamics = self.economy.updateDynamics()
 
         self.assertAlmostEqual(
