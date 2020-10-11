@@ -115,6 +115,16 @@ class testKrusellSmith(unittest.TestCase):
     def test_methods(self):
         self.agent.getEconomyData(self.economy)
 
+        self.assertAlmostEqual(
+            self.agent.AFunc[0].slope,
+            1.0014463644834297
+        )
+
+        self.assertAlmostEqual(
+            self.agent.AFunc[1].slope,
+            1.01486947256261
+        )
+
         self.agent.reset()
         self.economy.reset()
 
@@ -162,14 +172,6 @@ class testKrusellSmith(unittest.TestCase):
             self.agent.aGrid[5],
             0.3426040963137289
         )
-        self.assertAlmostEqual(
-            self.agent.AFunc[0].slope,
-            1.0014463644834297
-        )
-        self.assertAlmostEqual(
-            self.agent.AFunc[1].slope,
-            1.01486947256261
-        )
 
         self.economy.solveAgents()
 
@@ -184,6 +186,11 @@ class testKrusellSmith(unittest.TestCase):
                 10,self.economy.MSS
             ).tolist(),
             0.8647005192032616
+        )
+
+        self.assertAlmostEqual(
+            self.agent.AFunc[1].slope,
+            1.01486947256261
         )
 
         self.economy.makeHistory()
