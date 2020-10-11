@@ -1010,7 +1010,7 @@ class KrusellSmithType(AgentType):
         """
         Get each agent's idiosyncratic state, their household market resources.
         """
-        self.mNow = self.Rnow * self.state_prev['aNow'] + self.Wnow * self.LbrInd * self.state_prev["EmpNow"]
+        self.mNow = self.Rnow * self.state_prev['aNow'] + self.Wnow * self.LbrInd * self.state_now["EmpNow"]
 
     def getControls(self):
         """
