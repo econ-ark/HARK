@@ -679,10 +679,12 @@ class KrusellSmithType(AgentType):
         # need better handling of this
         self.state_now = {
             "aNow" : None,
+            "mNow" : None,
             "EmpNow" : None
         }
         self.state_prev = {
             "aNow" : None,
+            "mNow" : None,
             "EmpNow" : None
         }
 
@@ -1010,7 +1012,7 @@ class KrusellSmithType(AgentType):
         """
         Get each agent's idiosyncratic state, their household market resources.
         """
-        self.mNow = self.Rnow * self.state_prev['aNow'] + self.Wnow * self.LbrInd * self.state_now["EmpNow"]
+        self.state_now["mNow"] = self.Rnow * self.state_prev['aNow'] + self.Wnow * self.LbrInd * self.state_now["EmpNow"]
 
     def getControls(self):
         """
@@ -1033,10 +1035,10 @@ class KrusellSmithType(AgentType):
         cNow = np.zeros(self.AgentCount)
         Mnow = self.Mnow * np.ones(self.AgentCount)
         cNow[unemployed] = self.solution[0].cFunc[unemp_idx](
-            self.mNow[unemployed], Mnow[unemployed]
+            self.state_now["mNow"][unemployed], Mnow[unemployed]
         )
         cNow[employed] = self.solution[0].cFunc[emp_idx](
-            self.mNow[employed], Mnow[employed]
+            self.state_now["mNow"][employed], Mnow[employed]
         )
         self.cNow = cNow
 
@@ -1044,7 +1046,7 @@ class KrusellSmithType(AgentType):
         """
         Gets each agent's retained assets after consumption and stores MrkvNow as MrkvPrev.
         """
-        self.state_prev['aNow'] = self.mNow - self.cNow
+        self.state_now['aNow'] = self.state_now["mNow"] - self.cNow
         self.MrkvPrev = self.MrkvNow
 
 
