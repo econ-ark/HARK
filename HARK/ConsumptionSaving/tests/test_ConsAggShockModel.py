@@ -201,6 +201,18 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
         self.assertEqual(emp_totals[2], 1009)
         self.assertEqual(emp_totals[9], 1042)
 
+        new_dynamics = self.economy.updateDynamics()
+
+        self.assertAlmostEqual(
+            new_dynamics.AFunc[0].slope,
+            1.0030279334157743
+        )
+
+        self.assertAlmostEqual(
+            new_dynamics.AFunc[1].slope,
+            1.0151043538766693
+        )
+
 class KrusellSmithEconomyTestCase(KrusellSmithTestCase):
 
     def test_economy(self):
