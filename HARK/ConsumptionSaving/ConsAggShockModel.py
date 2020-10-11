@@ -2707,7 +2707,7 @@ class KrusellSmithEconomy(Market):
         None
         """
         agents = agents if agents is not None else list()
-        params = init_KS_economy.copy()
+        params = deepcopy(init_KS_economy)
         params.update(kwds)
 
         Market.__init__(

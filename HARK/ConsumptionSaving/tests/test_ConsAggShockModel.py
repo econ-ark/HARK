@@ -105,6 +105,10 @@ class KrusellSmithTestCase(unittest.TestCase):
         self.economy.discard_periods = 100
         self.economy.verbose = False  # Turn off printed messages
 
+    def teardown(self):
+        self.agent = None
+        self.economy = None
+
 class KrusellSmithAgentTestCase(KrusellSmithTestCase):
 
     def test_agent(self):
@@ -221,7 +225,6 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
 class KrusellSmithEconomyTestCase(KrusellSmithTestCase):
 
     def test_economy(self):
-
         self.assertAlmostEqual(
             self.economy.AFunc[0].slope,
             1.0
