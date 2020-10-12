@@ -65,13 +65,31 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
 
         self.pcct.T_sim = 30
         self.pcct.AgentCount = 10
-        self.pcct.track_vars += ['aNrmNow']
+        self.pcct.track_vars += [
+            'mNrmNow','cNrmNow','aNrmNow'
+        ]
         self.pcct.initializeSim()
 
         self.pcct.simulate()
 
         self.assertAlmostEqual(
+            self.pcct.history['mNrmNow'][0][0], 9.70233892
+        )
+
+        self.assertAlmostEqual(
+            self.pcct.history['cNrmNow'][0][0], 1.6787479894848298
+        )
+
+        self.assertAlmostEqual(
             self.pcct.history['aNrmNow'][0][0], 8.023590930905383
+        )
+
+        self.assertAlmostEqual(
+            self.pcct.history['mNrmNow'][1][0], 8.287859049575047
+        )
+
+        self.assertAlmostEqual(
+            self.pcct.history['cNrmNow'][1][0], 1.5773607434989751
         )
 
         self.assertAlmostEqual(
