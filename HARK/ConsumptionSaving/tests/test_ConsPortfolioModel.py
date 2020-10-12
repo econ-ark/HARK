@@ -37,14 +37,16 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
             0.8498496999408691
         )
 
-    def test_simulation(self):
+    def test_simOnePeriod(self):
 
         self.pcct.T_sim = 30
         self.pcct.AgentCount = 10
         self.pcct.track_vars += ['aNrmNow']
         self.pcct.initializeSim()
 
-        self.assertFalse(np.any(self.pcct.AdjustNow))
+        self.assertFalse(
+            np.any(self.pcct.AdjustNow)
+        )
 
         self.pcct.simOnePeriod()
 
@@ -67,6 +69,14 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         self.pcct.initializeSim()
 
         self.pcct.simulate()
+
+        self.assertAlmostEqual(
+            self.pcct.history['aNrmNow'][0][0], 8.023590930905383
+        )
+
+        self.assertAlmostEqual(
+            self.pcct.history['aNrmNow'][1][0], 6.710498306076072
+        )
 
         self.assertAlmostEqual(
             self.pcct.history['aNrmNow'][15][0], 5.304746367434934
