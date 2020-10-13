@@ -423,8 +423,11 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         """
+        # these need to be set because "post states",
+        # but are a control variable and shock, respectively
+        self.ShareNow = np.zeros(self.AgentCount)
+        self.shocks['AdjustNow'] = np.zeros(self.AgentCount, dtype=bool)
         IndShockConsumerType.initializeSim(self)
-        self.shocks['AdjustNow'] = self.shocks['AdjustNow'].astype(bool)
 
     def simBirth(self, which_agents):
         """
@@ -441,10 +444,12 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.simBirth(self, which_agents)
-        # this is setting control variable arrays as if
-        # they are 'post' or 'ante' states...
-        self.ShareNow = np.zeros(self.AgentCount)
-        self.shocks['AdjustNow'] = np.zeros(self.AgentCount, dtype=bool)
+        # Checking for control variable attribute here
+        # because we have not namespaced controls yet
+        if hasattr(self, 'ShareNow'):
+            self.ShareNow[which_agents] = 0
+        # here a shock is being used as a 'post state'
+        self.shocks['AdjustNow'][which_agents] = False
 
     def getShocks(self):
         """
