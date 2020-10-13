@@ -146,6 +146,8 @@ class PortfolioConsumerType(IndShockConsumerType):
             self, cycles=cycles, verbose=verbose, quiet=quiet, **kwds
         )
 
+        shock_vars = ["PermShkNow", "TranShkNow","AdjustNow","RiskyNow"]
+
         # Set the solver for the portfolio model, and update various constructed attributes
         self.solveOnePeriod = solveConsPortfolio
         self.update()
@@ -341,7 +343,7 @@ class PortfolioConsumerType(IndShockConsumerType):
 
     def getRisky(self):
         """
-        Sets the attribute RiskyNow as a single draw from a lognormal distribution.
+        Sets the shock RiskyNow as a single draw from a lognormal distribution.
         Uses the attributes RiskyAvgTrue and RiskyStdTrue if RiskyAvg is time-varying,
         else just uses the single values from RiskyAvg and RiskyStd.
 
@@ -364,7 +366,7 @@ class PortfolioConsumerType(IndShockConsumerType):
 
         mu = np.log(RiskyAvg / (np.sqrt(1.0 + RiskyVar / RiskyAvgSqrd)))
         sigma = np.sqrt(np.log(1.0 + RiskyVar / RiskyAvgSqrd))
-        self.RiskyNow = Lognormal(
+        self.shocks['RiskyNow'] = Lognormal(
             mu, sigma, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(1)
 
@@ -404,7 +406,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             return factor.  Will be used by getStates() to calculate mNrmNow, where it
             will be mislabeled as "Rfree".
         """
-        Rport = self.ShareNow * self.RiskyNow + (1.0 - self.ShareNow) * self.Rfree
+        Rport = self.ShareNow * self.shocks['RiskyNow'] + (1.0 - self.ShareNow) * self.Rfree
         self.RportNow = Rport
         return Rport
 
@@ -492,10 +494,10 @@ class PortfolioConsumerType(IndShockConsumerType):
                 these,
                 np.logical_not(self.shocks['AdjustNow']))
             cNrmNow[those] = self.solution[t].cFuncFxd(
-                self.state_now['mNrmNow'][those], self.ShareNow[those]
+                self.state_now['mNrmNow'][those], ShareNow[those]
             )
             ShareNow[those] = self.solution[t].ShareFuncFxd(
-                self.state_now['mNrmNow'][those], self.ShareNow[those]
+                self.state_now['mNrmNow'][those], ShareNow[those]
             )
 
         # Store controls as attributes of self

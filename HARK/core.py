@@ -775,12 +775,13 @@ class AgentType(HARKobject):
 
             for t in range(sim_periods):
                 self.simOnePeriod()
+
                 for var_name in self.track_vars:
                     if var_name in self.state_now:
                         self.history[var_name][self.t_sim, :] = self.state_now[
                             var_name
                         ]
-                    elif var_name in self.shock_vars:
+                    elif var_name in self.shocks:
                         self.history[var_name][self.t_sim, :] = self.shocks[var_name]
                     else:
                         self.history[var_name][self.t_sim, :] = getattr(self, var_name)
