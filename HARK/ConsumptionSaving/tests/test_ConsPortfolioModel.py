@@ -68,9 +68,11 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         self.pcct.track_vars += [
             'mNrmNow',
             'cNrmNow',
+            'ShareNow',
             'aNrmNow',
             'RiskyNow',
             'RportNow',
+            'AdjustNow',
             'PermShkNow',
             'bNrmNow'
         ]
@@ -87,8 +89,17 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         )
 
         self.assertAlmostEqual(
+            self.pcct.history['ShareNow'][0][0], 0.8627164488246847
+        )
+
+        self.assertAlmostEqual(
             self.pcct.history['aNrmNow'][0][0], 8.023590930905383
         )
+
+        self.assertAlmostEqual(
+            self.pcct.history['AdjustNow'][0][0], 1.0
+        )
+
 
         # the next period
         self.assertAlmostEqual(
@@ -97,6 +108,10 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
 
         self.assertAlmostEqual(
             self.pcct.history['RportNow'][1][0], 0.9135595661654792
+        )
+
+        self.assertAlmostEqual(
+            self.pcct.history['AdjustNow'][1][0], 1.0
         )
 
         self.assertAlmostEqual(
@@ -113,6 +128,10 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
 
         self.assertAlmostEqual(
             self.pcct.history['cNrmNow'][1][0], 1.5773607434989751
+        )
+
+        self.assertAlmostEqual(
+            self.pcct.history['ShareNow'][1][0], 0.9337608822146805
         )
 
         self.assertAlmostEqual(
