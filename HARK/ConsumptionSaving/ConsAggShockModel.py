@@ -676,6 +676,7 @@ class KrusellSmithType(AgentType):
             "CRRA",
         ]
         self.poststate_vars = ["aNow", "EmpNow"]
+        self.shock_vars = {}
         self.solveOnePeriod = solveKrusellSmith
         self.update()
 
@@ -1306,7 +1307,7 @@ def solveConsAggMarkov(
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
-    
+
     Returns
     -------
     solution_now : ConsumerSolution
@@ -1570,7 +1571,7 @@ def solveKrusellSmith(
     RnextArray : np.array
         Tiled array of net interest factors next period, attained from every
         end-of-period state crossed with every shock that might attain.
-                                                              
+
     Returns
     -------
     solution_now : ConsumerSolution
@@ -2695,7 +2696,7 @@ class KrusellSmithEconomy(Market):
         None
         """
         agents = agents if agents is not None else list()
-        params = init_KS_economy.copy()
+        params = deepcopy(init_KS_economy)
         params.update(kwds)
 
         Market.__init__(
