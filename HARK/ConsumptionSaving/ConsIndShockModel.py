@@ -366,6 +366,7 @@ class ConsPerfForesightSolver(HARKobject):
         PermGroFac,
         BoroCnstArt,
         MaxKinks,
+        HyperbolicBeta,
     ):
         """
         Constructor for a new ConsPerfForesightSolver.
@@ -393,6 +394,9 @@ class ConsPerfForesightSolver(HARKobject):
             additional points will be thrown out.  Only relevant in infinite
             horizon model with artificial borrowing constraint.
 
+        HyperbolicBeta: float
+            Quasi hyperbolic impatience factor in "beta-delta" preferences.
+            
         Returns:
         ----------
         None
@@ -414,6 +418,7 @@ class ConsPerfForesightSolver(HARKobject):
             PermGroFac=PermGroFac,
             BoroCnstArt=BoroCnstArt,
             MaxKinks=MaxKinks,
+            HyperbolicBeta=HyperbolicBeta,
         )
 
     def defUtilityFuncs(self):
@@ -612,7 +617,7 @@ class ConsPerfForesightSolver(HARKobject):
             The solution to this period's problem.
         """
         self.defUtilityFuncs()
-        self.DiscFacEff = self.DiscFac * self.LivPrb
+        self.DiscFacEff = self.DiscFac * self.LivPrb * self.HyperbolicBeta
         self.makePFcFunc()
         self.defValueFuncs()
         solution = ConsumerSolution(
@@ -1528,21 +1533,22 @@ class ConsKinkedRsolver(ConsIndShockSolver):
 
 # Make a dictionary to specify a perfect foresight consumer type
 init_perfect_foresight = {
-    'CRRA': 2.0,          # Coefficient of relative risk aversion,
-    'Rfree': 1.03,        # Interest factor on assets
-    'DiscFac': 0.96,      # Intertemporal discount factor
-    'LivPrb': [0.98],     # Survival probability
-    'PermGroFac': [1.01], # Permanent income growth factor
-    'BoroCnstArt': None,  # Artificial borrowing constraint
-    'MaxKinks': 400,      # Maximum number of grid points to allow in cFunc (should be large)
-    'AgentCount': 10000,  # Number of agents of this type (only matters for simulation)
-    'aNrmInitMean' : 0.0, # Mean of log initial assets (only matters for simulation)
-    'aNrmInitStd' : 1.0,  # Standard deviation of log initial assets (only for simulation)
-    'pLvlInitMean' : 0.0, # Mean of log initial permanent income (only matters for simulation)
-    'pLvlInitStd' : 0.0,  # Standard deviation of log initial permanent income (only matters for simulation)
-    'PermGroFacAgg' : 1.0,# Aggregate permanent income growth factor: portion of PermGroFac attributable to aggregate productivity growth (only matters for simulation)
-    'T_age' : None,       # Age after which simulated agents are automatically killed
-    'T_cycle' : 1         # Number of periods in the cycle for this agent type
+    "CRRA": 2.0,  # Coefficient of relative risk aversion,
+    "Rfree": 1.03,  # Interest factor on assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability
+    "PermGroFac": [1.01],  # Permanent income growth factor
+    "BoroCnstArt": None,  # Artificial borrowing constraint
+    "MaxKinks": 400,  # Maximum number of grid points to allow in cFunc (should be large)
+    "AgentCount": 10000,  # Number of agents of this type (only matters for simulation)
+    "aNrmInitMean": 0.0,  # Mean of log initial assets (only matters for simulation)
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets (only for simulation)
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income (only matters for simulation)
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income (only matters for simulation)
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor (only matters for simulation)
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "HyperbolicBeta": 1,
 }
 
 
@@ -1566,7 +1572,15 @@ class PerfForesightConsumerType(AgentType):
         MPCmax=1.0,
     )
     time_vary_ = ["LivPrb", "PermGroFac"]
-    time_inv_ = ["CRRA", "Rfree", "DiscFac", "MaxKinks", "BoroCnstArt"]
+    time_inv_ = [
+        "CRRA",
+        "Rfree",
+        "DiscFac",
+        "MaxKinks",
+        "BoroCnstArt",
+        "HyperbolicBeta",
+        "geometric_solution",
+    ]
     poststate_vars_ = ["aNrmNow", "pLvlNow"]
     shock_vars_ = []
 
