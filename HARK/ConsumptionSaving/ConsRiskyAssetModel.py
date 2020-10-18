@@ -1289,9 +1289,22 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                                                 nNrmGrid, ShareGrid),
                                 CRRA)
     
-    # Compute post-consumption marginal value of contribution share,
-    # conditional on shocks
-    EndOfPrddvds_cond_undisc = temp_fac_B*( TranShks_tiled*(dvdn_next - dvdm_next) + dvds_next)
+    # Find EndOfPrddvds.
+    
+    # There are two parts to it:
+    # - If income > 0, it shifts resources from m to n. Call this 'distribution
+    #   effect'
+    # - Since s can be fixed in the future there is also a marginal effect coming
+    #   from the future.
+        
+    # Find distribution effect. Initialize at 0.
+    distribEffect = np.zeros_like(TranShks_tiled)
+    # Find the effect where income is not 0
+    inds = TranShks_next > 0.0
+    distribEffect[:,:,:,inds] = TranShks_tiled[:,:,:,inds] * (dvdn_next[:,:,:,inds] - dvdm_next[:,:,:,inds])
+    
+    # Add the two effects
+    EndOfPrddvds_cond_undisc = temp_fac_B*(distribEffect + dvds_next)    
     # Discount and integrate over shocks
     EndOfPrddvds = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*EndOfPrddvds_cond_undisc, axis=3)
     
