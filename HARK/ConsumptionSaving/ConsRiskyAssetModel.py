@@ -491,7 +491,7 @@ class RiskyContribRebSolution(HARKobject):
         self.dvdsFuncRebFxd = dvdsFuncRebFxd
         
 # Define a class to represent the single period solution of the portfolio choice problem
-class RiskyContribConsSolution(HARKobject):
+class RiskyContribCnsSolution(HARKobject):
     
     # TODO: what does this do?
     distance_criteria = ['vPfuncAdj']
@@ -499,32 +499,32 @@ class RiskyContribConsSolution(HARKobject):
     def __init__(self,
                 
         # Consumption stage
-        vFuncCon = None,
+        vFuncCns = None,
         cFunc = None,
-        dvdmFuncCon = None,
-        dvdnFuncCon = None,
-        dvdsFuncCon = None
+        dvdmFuncCns = None,
+        dvdnFuncCns = None,
+        dvdsFuncCns = None
         
     ):
                 
         # Consumption stage
-        if vFuncCon is None:
-            vFuncCon = NullFunc()
+        if vFuncCns is None:
+            vFuncCns = NullFunc()
         if cFunc is None:
             cFunc = NullFunc()
-        if dvdmFuncCon is None:
-            dvdmFuncCon = NullFunc()
-        if dvdnFuncCon is None:
-            dvdmFuncCon = NullFunc()
-        if dvdsFuncCon is None:
-            dvdsFuncCon = NullFunc()
+        if dvdmFuncCns is None:
+            dvdmFuncCns = NullFunc()
+        if dvdnFuncCns is None:
+            dvdmFuncCns = NullFunc()
+        if dvdsFuncCns is None:
+            dvdsFuncCns = NullFunc()
         
         # Consumption stage
-        self.vFuncCon = vFuncCon
+        self.vFuncCns = vFuncCns
         self.cFunc = cFunc
-        self.dvdmFuncCon = dvdmFuncCon
-        self.dvdnFuncCon = dvdnFuncCon
-        self.dvdsFuncCon = dvdsFuncCon
+        self.dvdmFuncCns = dvdmFuncCns
+        self.dvdnFuncCns = dvdnFuncCns
+        self.dvdsFuncCns = dvdsFuncCns
         
         
 class RiskyContribConsumerType(RiskyAssetConsumerType):
@@ -585,19 +585,19 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         
         # Start with the consumption stage. All liquid resources are consumed.
         cFunc_term = IdentityFunction(i_dim = 0, n_dims = 3)
-        vFuncCon_term = ValueFunc3D(cFunc_term, CRRA = self.CRRA)
+        vFuncCns_term = ValueFunc3D(cFunc_term, CRRA = self.CRRA)
         # Marginal values
-        dvdmFuncCon_term = MargValueFunc3D(cFunc_term, CRRA = self.CRRA)
-        dvdnFuncCon_term = ConstantFunction(0.0)
-        dvdsFuncCon_term = ConstantFunction(0.0)
+        dvdmFuncCns_term = MargValueFunc3D(cFunc_term, CRRA = self.CRRA)
+        dvdnFuncCns_term = ConstantFunction(0.0)
+        dvdsFuncCns_term = ConstantFunction(0.0)
         
-        ConStageSol = RiskyContribConsSolution(
+        CnsStageSol = RiskyContribCnsSolution(
             # Consumption stage
-            vFuncCon = vFuncCon_term,
+            vFuncCns = vFuncCns_term,
             cFunc = cFunc_term,
-            dvdmFuncCon = dvdmFuncCon_term,
-            dvdnFuncCon = dvdnFuncCon_term,
-            dvdsFuncCon = dvdsFuncCon_term)
+            dvdmFuncCns = dvdmFuncCns_term,
+            dvdnFuncCns = dvdnFuncCns_term,
+            dvdsFuncCns = dvdsFuncCns_term)
         
         # Share stage
         
@@ -612,11 +612,11 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             dvdnFuncShaAdj = ConstantFunction(0.0),
             
             # Fixed
-            vFuncShaFxd = vFuncCon_term,
+            vFuncShaFxd = vFuncCns_term,
             ShareFuncFxd = IdentityFunction(i_dim = 2, n_dims = 3),
-            dvdmFuncShaFxd = dvdmFuncCon_term,
-            dvdnFuncShaFxd = dvdnFuncCon_term,
-            dvdsFuncShaFxd = dvdsFuncCon_term
+            dvdmFuncShaFxd = dvdmFuncCns_term,
+            dvdnFuncShaFxd = dvdnFuncCns_term,
+            dvdsFuncShaFxd = dvdsFuncCns_term
         )
         
         # Rabalancing stage
@@ -645,16 +645,16 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             dvdnFuncRebAdj = dvdnFuncRebAdj_term,
             
             # Adjusting stage
-            vFuncRebFxd = vFuncCon_term,
+            vFuncRebFxd = vFuncCns_term,
             DFuncFxd = ConstantFunction(0.0),
-            dvdmFuncRebFxd = dvdmFuncCon_term,
-            dvdnFuncRebFxd = dvdnFuncCon_term,
-            dvdsFuncRebFxd = dvdsFuncCon_term)
+            dvdmFuncRebFxd = dvdmFuncCns_term,
+            dvdnFuncRebFxd = dvdnFuncCns_term,
+            dvdsFuncRebFxd = dvdsFuncCns_term)
         
         # Construct the terminal period solution
         self.solution_terminal = {'Reb': RebStageSol,
                                   'Sha': ShaStageSol,
-                                  'Con': ConStageSol}
+                                  'Cns': CnsStageSol}
         
     
     def updateTau(self):
@@ -951,15 +951,15 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             self.getShocks()
         
         # Stages in chronological order
-        stages = ['Reb','Sha','Con']
+        stages = ['Reb','Sha','Cns']
         
         setStates = {'Reb': self.getStatesReb,
                      'Sha': self.getStatesSha,
-                     'Con': self.getStatesCons}
+                     'Cns': self.getStatesCns}
         
         setControls = {'Reb': self.getControlsReb,
                        'Sha': self.getControlsSha,
-                       'Con': self.getControlsCons}
+                       'Cns': self.getControlsCns}
         
         for s in stages:
             setStates[s]()
@@ -1100,11 +1100,11 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         # Store controls as attributes of self
         self.ShareNow = ShareNow     
         
-    def getStatesCons(self):
+    def getStatesCns(self):
         # No new states need to be computed in the consumption stage
         pass
         
-    def getControlsCons(self):
+    def getControlsCns(self):
         """
         """
         
@@ -1117,7 +1117,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             these = t == self.t_cycle
                            
             # Get consumption
-            cNrmNow[these] = self.solution[t]['Con'].cFunc(
+            cNrmNow[these] = self.solution[t]['Cns'].cFunc(
                 self.mNrmTildeNow[these], self.nNrmTildeNow[these], self.ShareNow[these]
             )
             
@@ -1154,7 +1154,7 @@ def rebalanceAssets(d,m,n,tau):
 
 
 # Consumption stage solver
-def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
+def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                                LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
                                BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
                                ShareGrid,vFuncBool,AdjustPrb,
@@ -1296,7 +1296,7 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     EndOfPrddvds = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*EndOfPrddvds_cond_undisc, axis=3)
     
     # STEP TWO:
-    # Solve the consumption problem and create interpolators for c, vCon,
+    # Solve the consumption problem and create interpolators for c, vCns,
     # and its derivatives.
     
     # Recast a, n, and s now that the shock dimension has been integrated over
@@ -1359,13 +1359,13 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                                                    )
                                       )
                 
-                # Create dvdnCon Interpolator
+                # Create dvdnCns Interpolator
                 dvdnNvrsInterps[nInd].append(LinearInterp(np.insert(m_end,0,0),
                                                           np.insert(EndOfPrddvdnNvrs[:,nInd,sInd],0,EndOfPrddvdnNvrs[0,nInd,sInd])
                                                           )
                                              )
                 
-                # Create dvdsCon interpolator
+                # Create dvdsCns interpolator
                 dvdsInterps[nInd].append(LinearInterp(np.insert(m_end,0,0),
                                                       np.insert(EndOfPrddvds[:,nInd,sInd],0,EndOfPrddvds[0,nInd,sInd])
                                                       )
@@ -1376,14 +1376,14 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # Consumption interpolator
     cFunc = BilinearInterpOnInterp1D(cInterps, nNrmGrid, ShareGrid)
     # dvdmFxd interpolator
-    dvdmFuncCon = MargValueFunc3D(cFunc, CRRA)
+    dvdmFuncCns = MargValueFunc3D(cFunc, CRRA)
     # dvdnFxd interpolator
     dvdnNvrsFunc = BilinearInterpOnInterp1D(dvdnNvrsInterps, nNrmGrid, ShareGrid)
-    dvdnFuncCon = MargValueFunc3D(dvdnNvrsFunc, CRRA)
+    dvdnFuncCns = MargValueFunc3D(dvdnNvrsFunc, CRRA)
     # dvds interpolator
     # TODO: dvds can be NaN. This is because a way to compute
     # EndOfPrddvds(0,0) has not been implemented yet.
-    dvdsFuncCon = BilinearInterpOnInterp1D(dvdsInterps, nNrmGrid, ShareGrid)
+    dvdsFuncCns = BilinearInterpOnInterp1D(dvdsInterps, nNrmGrid, ShareGrid)
     
     # It's useful to the value function on a regular grid
     # interpolator because:
@@ -1402,22 +1402,22 @@ def solveRiskyContribConsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # Consumption, value function and inverse on regular grid
     cNrm_reg = cFunc(mNrm_tiled, nNrm_tiled, Share_tiled)
     aNrm_reg = mNrm_tiled - cNrm_reg
-    vCon = u(cNrm_reg) + EndOfPrdvFunc(aNrm_reg, nNrm_tiled, Share_tiled) 
+    vCns = u(cNrm_reg) + EndOfPrdvFunc(aNrm_reg, nNrm_tiled, Share_tiled) 
     # TODO: uInv(-Inf) seems to appropriately be yielding 0. Is it
     # necessary to hardcode it?
-    vNvrsCon = uInv(vCon)
+    vNvrsCns = uInv(vCns)
         
     # vNvrs interpolator. Useful to keep it since its faster to optimize
     # on it in the next step
-    vNvrsFuncCon = TrilinearInterp(vNvrsCon, mNrmGrid, nNrmGrid, ShareGrid)
-    vFuncCon     = ValueFunc3D(vNvrsFuncCon, CRRA)
+    vNvrsFuncCns = TrilinearInterp(vNvrsCns, mNrmGrid, nNrmGrid, ShareGrid)
+    vFuncCns     = ValueFunc3D(vNvrsFuncCns, CRRA)
     
-    solution = RiskyContribConsSolution(
-        vFuncCon = vFuncCon,
+    solution = RiskyContribCnsSolution(
+        vFuncCns = vFuncCns,
         cFunc = cFunc,
-        dvdmFuncCon = dvdmFuncCon,
-        dvdnFuncCon = dvdnFuncCon,
-        dvdsFuncCon = dvdsFuncCon
+        dvdmFuncCns = dvdmFuncCns,
+        dvdnFuncCns = dvdnFuncCns,
+        dvdsFuncCns = dvdsFuncCns
     )
     
     return solution
@@ -1429,11 +1429,11 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
                               DiscreteShareBool, **kws):
     
     # Unpack solution from the next sub-stage
-    vFuncCon_next    = solution_next.vFuncCon
+    vFuncCns_next    = solution_next.vFuncCns
     cFunc_next       = solution_next.cFunc
-    dvdmFuncCon_next = solution_next.dvdmFuncCon
-    dvdnFuncCon_next = solution_next.dvdnFuncCon
-    dvdsFuncCon_next = solution_next.dvdsFuncCon
+    dvdmFuncCns_next = solution_next.dvdmFuncCns
+    dvdnFuncCns_next = solution_next.dvdnFuncCns
+    dvdsFuncCns_next = solution_next.dvdsFuncCns
     
     # Define temporary functions for utility and its derivative and inverse
     uPinv = lambda x : utilityP_inv(x, CRRA)
@@ -1464,7 +1464,7 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
         optIdx   = np.zeros_like(mNrm_tiled, dtype = int)
         optShare = ShareGrid[optIdx]
         
-        vNvrsSha = vFuncCon_next.func(mNrm_tiled, nNrm_tiled, optShare)
+        vNvrsSha = vFuncCns_next.func(mNrm_tiled, nNrm_tiled, optShare)
         
     else:
         
@@ -1479,7 +1479,7 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
         
         # Evaluate value function to optimize over shares.
         # Do it in inverse space
-        vNvrs = vFuncCon_next.func(mNrm_tiled, nNrm_tiled, Share_tiled)
+        vNvrs = vFuncCns_next.func(mNrm_tiled, nNrm_tiled, Share_tiled)
         
         # Find the optimal share at each (m,n).
         optIdx = np.argmax(vNvrs, axis = 2)
@@ -1494,7 +1494,7 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
     
     
     dvdmNvrsSha  = cFunc_next(mNrm_tiled, nNrm_tiled, optShare)
-    dvdnSha      = dvdnFuncCon_next(mNrm_tiled, nNrm_tiled, optShare)
+    dvdnSha      = dvdnFuncCns_next(mNrm_tiled, nNrm_tiled, optShare)
     dvdnNvrsSha  = uPinv(dvdnSha)
     # Interpolators
     vNvrsFuncSha    = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
@@ -1517,11 +1517,11 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
         
         # The fixed agent does nothing at this stage,
         # so his value functions are the next problem's
-        vFuncShaFxd = vFuncCon_next,
+        vFuncShaFxd = vFuncCns_next,
         ShareFuncFxd = IdentityFunction(i_dim = 2, n_dims = 3),
-        dvdmFuncShaFxd = dvdmFuncCon_next,
-        dvdnFuncShaFxd = dvdnFuncCon_next,
-        dvdsFuncShaFxd = dvdsFuncCon_next
+        dvdmFuncShaFxd = dvdmFuncCns_next,
+        dvdnFuncShaFxd = dvdnFuncCns_next,
+        dvdsFuncShaFxd = dvdsFuncCns_next
     )
     
     return solution
@@ -1686,12 +1686,12 @@ def solveRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
             'DiscreteShareBool': DiscreteShareBool, 'IndepDstnBool': IndepDstnBool}
      
      # Stages of the problem in chronological order
-     Stages = ['Reb', 'Sha', 'Con']
+     Stages = ['Reb', 'Sha', 'Cns']
      n_stages = len(Stages)
      # Solvers, indexed by stage names
      Solvers = {'Reb': solveRiskyContribRebStage,
                 'Sha': solveRiskyContribShaStage,
-                'Con': solveRiskyContribConsStage}
+                'Cns': solveRiskyContribCnsStage}
      
      # Initialize empty solution
      solution = {}
