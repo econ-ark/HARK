@@ -89,7 +89,7 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         self.assertAlmostEqual(self.economy.history["AaggNow"][5], 9.467758924955897)
 
 
-class testKrusellSmith(unittest.TestCase):
+class KrusellSmithTestCase(unittest.TestCase):
     def setUp(self):
         # Make one agent type and an economy for it to live in
         self.agent = KrusellSmithType()
@@ -101,6 +101,8 @@ class testKrusellSmith(unittest.TestCase):
         self.economy.discard_periods = 100
         self.economy.verbose = False  # Turn off printed messages
 
+class KrusellSmithAgentTestCase(KrusellSmithTestCase):
+
     def test_agent(self):
         self.agent.getEconomyData(self.economy)
         self.agent.solve()
@@ -108,7 +110,143 @@ class testKrusellSmith(unittest.TestCase):
             self.agent.solution[0].cFunc[0](10.0, self.economy.MSS), 1.23867751
         )
 
+class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
+
+    def test_methods(self):
+        self.agent.getEconomyData(self.economy)
+
+        self.assertAlmostEqual(
+            self.agent.AFunc[0].slope,
+            1.0
+        )
+
+        self.assertAlmostEqual(
+            self.agent.AFunc[1].slope,
+            1.0
+        )
+
+        self.agent.reset()
+        self.economy.reset()
+
+        self.agent.track_vars += ['EmpNow']
+        # self.economy.track_vars += ['EmpNow']
+
+        self.assertEqual(
+            np.sum(self.agent.EmpNow & self.agent.EmpNow[-1]),
+            900
+        )
+
+        self.assertEqual(
+            np.sum(self.agent.EmpNow[:-1] & self.agent.EmpNow[1:]),
+            816
+        )
+
+        self.economy.makeMrkvHist()  # Make a simulated history of aggregate shocks
+        self.assertAlmostEqual(
+            np.mean(self.economy.MrkvNow_hist),
+            0.4818181818181818
+        )
+
+        # object attributes that are conditions
+        # for preComputeArrays
+        self.assertEqual(
+            self.agent.aGrid.size,
+            32
+        )
+        self.assertAlmostEqual(
+            self.agent.aGrid[5],
+            0.3426040963137289
+        )
+
+        self.economy.solveAgents()
+
+        # testing preComputeArrays()
+        self.assertAlmostEqual(
+            self.agent.mNextArray[5,2,3,0],
+            0.34879574548563563
+        )
+
+        # testing makeGrid()
+        self.assertAlmostEqual(
+            self.agent.aGrid[1], 0.05531643953496124
+        )
+
+        self.assertEqual(
+            self.economy.MSS, 13.327225348792547
+        )
+
+        # testing updateSolutionTerminal()
+        self.assertEqual(
+            self.agent.solution_terminal.cFunc[0](10,self.economy.MSS),
+            10
+        )
+
+        self.assertAlmostEqual(
+            self.economy.agents[0].solution[0].cFunc[0](
+                10,self.economy.MSS
+            ).tolist(),
+            1.2386775112633517
+        )
+
+        self.assertAlmostEqual(
+            self.agent.AFunc[1].slope,
+            1.0
+        )
+
+        self.economy.makeHistory()
+
+        emp_totals = np.sum(self.agent.history['EmpNow'], axis = 0)
+
+        self.assertEqual(emp_totals[0], 1011)
+        self.assertEqual(emp_totals[2], 1009)
+        self.assertEqual(emp_totals[9], 1042)
+
+        self.assertAlmostEqual(
+            self.economy.history['Aprev'][0],
+            11.83133152125537
+        )
+
+        self.assertAlmostEqual(
+            self.economy.history['Aprev'][1],
+            11.260758949042032
+        )
+
+        self.assertAlmostEqual(
+            self.economy.history['Aprev'][2],
+            10.72309150585389
+        )
+
+        self.assertAlmostEqual(
+            self.economy.history['Mnow'][10],
+            self.economy.history['Mnow'][10]
+        )
+
+        new_dynamics = self.economy.updateDynamics()
+
+        self.assertAlmostEqual(
+            new_dynamics.AFunc[0].slope,
+            1.0030279334157743
+        )
+
+        self.assertAlmostEqual(
+            new_dynamics.AFunc[1].slope,
+            1.0151043538766693
+        )
+
+class KrusellSmithEconomyTestCase(KrusellSmithTestCase):
+
     def test_economy(self):
+
+        self.assertAlmostEqual(
+            self.economy.AFunc[0].slope,
+            1.0
+        )
+
+        self.assertAlmostEqual(
+            self.economy.AFunc[1].slope,
+            1.0
+        )
+
         self.agent.getEconomyData(self.economy)
         self.economy.makeMrkvHist()  # Make a simulated history of aggregate shocks
         self.economy.solve()  # Solve for the general equilibrium of the economy
