@@ -412,7 +412,7 @@ mMax = 20
 
 DFuncAdj     = [ContribAgent.solution[t]['Reb'].DFuncAdj for t in periods]
 ShareFuncSha = [ContribAgent.solution[t]['Sha'].ShareFuncAdj for t in periods]
-cFuncFxd     = [ContribAgent.solution[t]['Con'].cFunc for t in periods]
+cFuncFxd     = [ContribAgent.solution[t]['Cns'].cFunc for t in periods]
 
 # Create projected consumption functions at different points of the share grid
 shares = [0., 0.2]
