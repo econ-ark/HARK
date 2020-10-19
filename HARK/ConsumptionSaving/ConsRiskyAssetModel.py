@@ -1451,12 +1451,6 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
     # Define temporary functions for utility and its derivative and inverse
     uPinv = lambda x : utilityP_inv(x, CRRA)
     
-    # TODO: implement continuous share case.
-    if not DiscreteShareBool:
-        
-        raise Exception('The case of continuous shares has not been implemented yet')
-    
-        
     # Create tiled grids    
 
     # Add 0 to the m and n grids
@@ -1490,31 +1484,65 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
         nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (mNrm_N,1,Share_N))
         Share_tiled = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (mNrm_N,nNrm_N,1))
         
-        # Evaluate value function to optimize over shares.
-        # Do it in inverse space
-        vNvrs = vFuncCns_next.func(mNrm_tiled, nNrm_tiled, Share_tiled)
+        if DiscreteShareBool:
         
-        # Find the optimal share at each (m,n).
-        optIdx = np.argmax(vNvrs, axis = 2)
+            # Evaluate value function to optimize over shares.
+            # Do it in inverse space
+            vNvrs = vFuncCns_next.func(mNrm_tiled, nNrm_tiled, Share_tiled)
+            
+            # Find the optimal share at each (m,n).
+            optIdx = np.argmax(vNvrs, axis = 2)
+            
+            # Compute objects needed for the value function and its derivatives
+            vNvrsSha     = vNvrs[m_idx_tiled, n_idx_tiled, optIdx]
+            optShare     = ShareGrid[optIdx]
+            
+            # Project grids
+            mNrm_tiled = mNrm_tiled[:,:,0]
+            nNrm_tiled = nNrm_tiled[:,:,0]
         
-        # Compute objects needed for the value function and its derivatives
-        vNvrsSha     = vNvrs[m_idx_tiled, n_idx_tiled, optIdx]
-        optShare     = ShareGrid[optIdx]
-    
-        # Project grids
-        mNrm_tiled = mNrm_tiled[:,:,0]
-        nNrm_tiled = nNrm_tiled[:,:,0]
-    
+        else:
+            
+            # Evaluate the marginal value of the contribution share at
+            # every (m,n,s) gridpoint
+            dvds = dvdsFuncCns_next(mNrm_tiled, nNrm_tiled, Share_tiled)
+            
+            # If the derivative is negative at the lowest share, then s[0] is optimal
+            constrained_bot = dvds[:,:,0] <= 0.0
+            # If it is poitive at the highest share, then s[-1] is optimal
+            constrained_top = dvds[:,:,-1] >= 0.0
+            
+            # Find indices at which the derivative crosses 0 for the 1st time
+            # will be 0 if it never does, but "constrained_top/bot" deals with that
+            crossings = np.logical_and(dvds[:,:, :-1] >= 0.0, dvds[:,:, 1:] <= 0.0)
+            idx = np.argmax(crossings, axis = 2)
+            
+            # Linearly interpolate the optimal share
+            idx1 = idx+1
+            slopes = (dvds[m_idx_tiled, n_idx_tiled,idx1] - dvds[m_idx_tiled, n_idx_tiled,idx]) / (ShareGrid[idx1] - ShareGrid[idx])
+            optShare = ShareGrid[idx] - dvds[m_idx_tiled, n_idx_tiled,idx]/slopes
+            
+            # Replace the ones we knew were constrained
+            optShare[constrained_bot] = ShareGrid[0]
+            optShare[constrained_top] = ShareGrid[-1]
+        
+            # Project grids
+            mNrm_tiled = mNrm_tiled[:,:,0]
+            nNrm_tiled = nNrm_tiled[:,:,0]
+            
+            # Evaluate the inverse value function at the optimal shares
+            vNvrsSha = vFuncCns_next.func(mNrm_tiled, nNrm_tiled, optShare)
     
     dvdmNvrsSha  = cFunc_next(mNrm_tiled, nNrm_tiled, optShare)
     dvdnSha      = dvdnFuncCns_next(mNrm_tiled, nNrm_tiled, optShare)
     dvdnNvrsSha  = uPinv(dvdnSha)
+    
     # Interpolators
     vNvrsFuncSha    = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
     vFuncSha        = ValueFunc2D(vNvrsFuncSha, CRRA)
     
-    # TODO: do share interpolation more smartly taking into account that
-    # it's discrete. (current bilinear can and will result in shares
+    # TODO: do discrete share interpolation more smartly taking into account
+    # the fact that it's discrete. (current bilinear can and will result in shares
     # outside the discrete grid).
     ShareFunc       = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
     dvdmNvrsFuncSha = BilinearInterp(dvdmNvrsSha, mNrmGrid, nNrmGrid)
