@@ -1412,19 +1412,18 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (mNrm_N,1,Share_N))
     Share_tiled = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (mNrm_N,nNrm_N,1))
     
-    # Consumption, value function and inverse on regular grid
-    cNrm_reg = cFunc(mNrm_tiled, nNrm_tiled, Share_tiled)
-    aNrm_reg = mNrm_tiled - cNrm_reg
-    vCns = u(cNrm_reg) + EndOfPrdvFunc(aNrm_reg, nNrm_tiled, Share_tiled) 
-    # TODO: uInv(-Inf) seems to appropriately be yielding 0. Is it
-    # necessary to hardcode it?
-    vNvrsCns = uInv(vCns)
+    # Compute value function if needed
+    if vFuncBool:
+        # Consumption in the regular grid
+        cNrm_reg = cFunc(mNrm_tiled, nNrm_tiled, Share_tiled)
+        aNrm_reg = mNrm_tiled - cNrm_reg
+        vCns = u(cNrm_reg) + EndOfPrdvFunc(aNrm_reg, nNrm_tiled, Share_tiled) 
+        vNvrsCns = uInv(vCns)
+        vNvrsFuncCns = TrilinearInterp(vNvrsCns, mNrmGrid, nNrmGrid, ShareGrid)
+        vFuncCns     = ValueFunc3D(vNvrsFuncCns, CRRA)
+    else:
+        vFuncCns = NullFunc()
         
-    # vNvrs interpolator. Useful to keep it since its faster to optimize
-    # on it in the next step
-    vNvrsFuncCns = TrilinearInterp(vNvrsCns, mNrmGrid, nNrmGrid, ShareGrid)
-    vFuncCns     = ValueFunc3D(vNvrsFuncCns, CRRA)
-    
     solution = RiskyContribCnsSolution(
         vFuncCns = vFuncCns,
         cFunc = cFunc,
@@ -1439,7 +1438,7 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
 # Solver for the contribution stage
 def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
                               mNrmGrid,nNrmGrid,ShareGrid,
-                              DiscreteShareBool, **kws):
+                              DiscreteShareBool, vFuncBool, **kws):
     
     # Unpack solution from the next sub-stage
     vFuncCns_next    = solution_next.vFuncCns
@@ -1471,7 +1470,8 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
         optIdx   = np.zeros_like(mNrm_tiled, dtype = int)
         optShare = ShareGrid[optIdx]
         
-        vNvrsSha = vFuncCns_next.func(mNrm_tiled, nNrm_tiled, optShare)
+        if vFuncBool:
+            vNvrsSha = vFuncCns_next.func(mNrm_tiled, nNrm_tiled, optShare)
         
     else:
         
@@ -1531,16 +1531,22 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
             nNrm_tiled = nNrm_tiled[:,:,0]
             
             # Evaluate the inverse value function at the optimal shares
-            vNvrsSha = vFuncCns_next.func(mNrm_tiled, nNrm_tiled, optShare)
+            if vFuncBool:
+                vNvrsSha = vFuncCns_next.func(mNrm_tiled, nNrm_tiled, optShare)
     
     dvdmNvrsSha  = cFunc_next(mNrm_tiled, nNrm_tiled, optShare)
     dvdnSha      = dvdnFuncCns_next(mNrm_tiled, nNrm_tiled, optShare)
     dvdnNvrsSha  = uPinv(dvdnSha)
     
     # Interpolators
-    vNvrsFuncSha    = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
-    vFuncSha        = ValueFunc2D(vNvrsFuncSha, CRRA)
     
+    # Value function if needed
+    if vFuncBool:
+        vNvrsFuncSha    = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
+        vFuncSha        = ValueFunc2D(vNvrsFuncSha, CRRA)
+    else:
+        vFuncSha = NullFunc()
+        
     # TODO: do discrete share interpolation more smartly taking into account
     # the fact that it's discrete. (current bilinear can and will result in shares
     # outside the discrete grid).
@@ -1570,7 +1576,8 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
 # Solver for the asset rebalancing stage
 def solveRiskyContribRebStage(solution_next,
                               CRRA,tau,
-                              nNrmGrid,mNrmGrid,dGrid, **kws):
+                              nNrmGrid,mNrmGrid,dGrid,
+                              vFuncBool, **kws):
     
     # Extract next stage's solution
     vFuncAdj_next = solution_next.vFuncShaAdj
@@ -1662,9 +1669,6 @@ def solveRiskyContribRebStage(solution_next,
     # Find m_tilde and n_tilde
     mtil_opt, ntil_opt = rebalanceAssets(dOpt, mNrm_tiled[0], nNrm_tiled[0], tau)
             
-    # Evaluate inverse end-of-period value function
-    vNvrsAdj = vFuncAdj_next.func(mtil_opt, ntil_opt)
-    
     # Now the derivatives. These are not straight forward because of corner
     # solutions with partial derivatives that change the limits. The idea then
     # is to evaluate the possible uses of the marginal unit of resources and
@@ -1684,12 +1688,19 @@ def solveRiskyContribRebStage(solution_next,
     dvdnNvrsAdj = uPinv(dvdnAdj)
     
     # Interpolators
+    
     # Value
-    vNvrsFuncAdj = BilinearInterp(vNvrsAdj, mNrmGrid, nNrmGrid)
-    vFuncAdj     = ValueFunc2D(vNvrsFuncAdj, CRRA)
+    if vFuncBool:
+        vNvrsAdj = vFuncAdj_next.func(mtil_opt, ntil_opt)
+        vNvrsFuncAdj = BilinearInterp(vNvrsAdj, mNrmGrid, nNrmGrid)
+        vFuncAdj     = ValueFunc2D(vNvrsFuncAdj, CRRA)
+    else:
+        vFuncAdj = NullFunc()
+        
     # Marginals
     dvdmFuncAdj = MargValueFunc2D(BilinearInterp(dvdmNvrsAdj, mNrmGrid, nNrmGrid), CRRA)
     dvdnFuncAdj = MargValueFunc2D(BilinearInterp(dvdnNvrsAdj, mNrmGrid, nNrmGrid), CRRA)
+    
     # Decison
     DFuncAdj = BilinearInterp(dOpt, mNrmGrid, nNrmGrid)
     
