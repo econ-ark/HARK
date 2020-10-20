@@ -376,7 +376,7 @@ init_sticky_share.update(dict_CGM)
 
 # Update extra-parameters
 init_sticky_share['DiscreteShareBool'] = False
-init_sticky_share['vFuncBool'] = True
+init_sticky_share['vFuncBool'] = False
 
 init_sticky_share['AdjustPrb']  = [0.05]*(t_ret - t_start) + [0.9] + [0.5]*(t_end - t_ret - 1)
 init_sticky_share['tau']        = [0.1]*(t_ret - t_start) + [0]*(t_end - t_ret)
