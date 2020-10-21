@@ -516,9 +516,9 @@ class LaborIntMargConsumerType(IndShockConsumerType):
             LbrNow[these] = self.solution[t].LbrFunc(
                 self.state_now['bNrmNow'][these], self.shocks["TranShkNow"][these]
             )  # Assign labor supply
-        self.cNrmNow = cNrmNow
+        self.controls['cNrmNow'] = cNrmNow
         self.MPCnow = MPCnow
-        self.LbrNow = LbrNow
+        self.controls['LbrNow'] = LbrNow
 
     def getPostStates(self):
         """
@@ -538,9 +538,9 @@ class LaborIntMargConsumerType(IndShockConsumerType):
             these = t == self.t_cycle
             mNrmNow[these] = (
                 self.state_now['bNrmNow'][these]
-                + self.LbrNow[these] * self.shocks["TranShkNow"][these]
+                + self.controls['LbrNow'][these] * self.shocks["TranShkNow"][these]
             )  # mNrm = bNrm + yNrm
-            aNrmNow[these] = mNrmNow[these] - self.cNrmNow[these]  # aNrm = mNrm - cNrm
+            aNrmNow[these] = mNrmNow[these] - self.controls['cNrmNow'][these]  # aNrm = mNrm - cNrm
         self.state_now['mNrmNow'] = mNrmNow
         self.state_now['aNrmNow'] = aNrmNow
 
