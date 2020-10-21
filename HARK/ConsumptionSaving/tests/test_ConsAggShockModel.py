@@ -155,7 +155,6 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
             0.4818181818181818
         )
 
-
         # object attributes that are conditions
         # for preComputeArrays
         self.assertEqual(

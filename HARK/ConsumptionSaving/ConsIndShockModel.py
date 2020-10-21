@@ -1928,7 +1928,7 @@ class PerfForesightConsumerType(AgentType):
 
         verbose_messages = {
             True: "  Therefore, the limiting consumption function is not c(m)=0 for all m",
-            False: "  Therefore, the limiting consumption function is c(m)=0 for all m",
+            False: "  Therefore, if the FHWC is satisfied, the limiting consumption function is c(m)=0 for all m.",
         }
         verbose = self.verbose if verbose is None else verbose
         self.checkCondition(name, test, messages, verbose, verbose_messages)
@@ -1946,12 +1946,12 @@ class PerfForesightConsumerType(AgentType):
 
         messages = {
             True: "The Finite Human wealth factor value for the supplied parameter values satisfies the Finite Human Wealth Condition.",
-            False: "The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value {0.FHWF}",
+            False: "The given type violates the Finite Human Wealth Condition; the Finite Human wealth factor value is {0.FHWF}",
         }
 
         verbose_messages = {
             True: "  Therefore, the limiting consumption function is not c(m)=Infinity\nand human wealth normalized by permanent income is {0.hNrm}\nand the PDV of future consumption growth is {0.cNrmPDV}",
-            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m",
+            False: "  Therefore, the limiting consumption function is c(m)=Infinity for all m unless the RIC is also violated.  If both FHWC and RIC fail and the consumer faces a liquidity constraint, the limiting consumption function is nondegenerate but has a limiting slope of 0.  (https://econ-ark.github.io/BufferStockTheory#PFGICHoldsFHWCFailsRICFailsDiscuss)",
         }
         verbose = self.verbose if verbose is None else verbose
         self.checkCondition(name, test, messages, verbose)
