@@ -45,7 +45,7 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         self.pcct.initializeSim()
 
         self.assertFalse(
-            np.any(self.pcct.AdjustNow)
+            np.any(self.pcct.shocks['AdjustNow'])
         )
 
         self.pcct.simOnePeriod()
