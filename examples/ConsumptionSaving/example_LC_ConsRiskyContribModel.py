@@ -462,12 +462,19 @@ Data = {k: v.flatten(order = 'F') for k, v in Data.items()}
 Data = pd.DataFrame(Data)
 
 # %% Plot simulation
-# import seaborn as sns
+import seaborn as sns
+Data['savingNrmNow'] = Data.aNrmNow + Data.nNrmTildeNow
+Data['StockShareNow'] = Data.nNrmTildeNow / Data.savingNrmNow
+dplot = Data.melt(id_vars = ['id','t_age'])
+dplot = dplot[dplot.variable.isin(['mNrmNow','nNrmNow','nNrmTildeNow','aNrmNow',
+                                   'cNrmNow','ShareNow','StockShareNow'])]
 
-# dplot = Data.melt(id_vars = ['id','t_age'])
-# dplot = dplot[dplot.variable.isin(['mNrmNow','nNrmNow','nNrmTildeNow','aNrmNow','cNrmNow','ShareNow'])]
+g = sns.FacetGrid(dplot, col = "variable", hue = "id", sharey = False,
+                  col_order = ['nNrmTildeNow','aNrmNow','cNrmNow','ShareNow'])
 
-# g = sns.FacetGrid(dplot, col = "variable", hue = "id", sharey = False,
-#                   col_order = ['nNrmTildeNow','aNrmNow','cNrmNow','ShareNow'])
+g = g.map(plt.plot, "t_age", "value").set_titles("{col_name}").set_ylabels('')
 
-# g = g.map(plt.plot, "t_age", "value").set_titles("{col_name}").set_ylabels('')
+g = sns.FacetGrid(dplot, col = "variable", hue = "id", sharey = False,
+                  col_order = ['StockShareNow'])
+
+g = g.map(plt.plot, "t_age", "value").set_titles("{col_name}").set_ylabels('')
