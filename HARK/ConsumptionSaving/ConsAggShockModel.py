@@ -676,7 +676,6 @@ class KrusellSmithType(AgentType):
             "DiscFac",
             "CRRA",
         ]
-
         # need better handling of this
         self.state_now = {
             "aNow" : None,
@@ -688,6 +687,8 @@ class KrusellSmithType(AgentType):
             "mNow" : None,
             "EmpNow" : None
         }
+
+        self.shock_vars = {}
 
         self.solveOnePeriod = solveKrusellSmith
         self.update()
