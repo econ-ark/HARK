@@ -7,7 +7,7 @@ from builtins import str
 from builtins import range
 import numpy as np
 from scipy.optimize import brentq
-from HARK import HARKobject, makeOnePeriodOOSolver
+from HARK import  AgentType, HARKobject, makeOnePeriodOOSolver
 from HARK.distribution import addDiscreteOutcomeConstantMean, Lognormal
 from HARK.utilities import (
     CRRAutilityP_inv,
@@ -586,6 +586,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
     """
 
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShkNow"]
+    state_vars = PersistentShockConsumerType.state_vars + ['mLvlNow']
 
     def __init__(self, cycles=0, **kwds):
         """
@@ -810,11 +811,11 @@ class MedShockConsumerType(PersistentShockConsumerType):
         of random shocks; this is necessary for structural estimation to work.
         This method extends PersistentShockConsumerType.resetRNG() to also reset
         elements of MedShkDstn.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -871,8 +872,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cLvlNow[these], MedNow[these] = self.solution[t].policyFunc(
-                self.mLvlNow[these],
-                self.pLvlNow[these],
+                self.state_now['mLvlNow'][these],
+                self.state_now['pLvlNow'][these],
                 self.shocks["MedShkNow"][these],
             )
         self.cLvlNow = cLvlNow
@@ -891,7 +892,11 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        self.aLvlNow = self.mLvlNow - self.cLvlNow - self.MedPriceNow * self.MedNow
+        self.state_now['aLvlNow'] = self.state_now['mLvlNow'] - self.cLvlNow - self.MedPriceNow * self.MedNow
+
+        # moves now to prev
+        AgentType.getPostStates(self)
+
         return None
 
 

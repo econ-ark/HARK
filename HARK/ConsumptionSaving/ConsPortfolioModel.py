@@ -133,7 +133,6 @@ class PortfolioConsumerType(IndShockConsumerType):
     of the risky asset's return distribution must also be specified.
     """
 
-    poststate_vars_ = ["aNrmNow", "pLvlNow", "ShareNow", "AdjustNow"]
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
     time_inv_ = time_inv_ + ["AdjustPrb", "DiscreteShareBool"]
 
@@ -146,6 +145,8 @@ class PortfolioConsumerType(IndShockConsumerType):
         IndShockConsumerType.__init__(
             self, cycles=cycles, verbose=verbose, quiet=quiet, **kwds
         )
+
+        shock_vars = ["PermShkNow", "TranShkNow","AdjustNow","RiskyNow"]
 
         # Set the solver for the portfolio model, and update various constructed attributes
         self.solveOnePeriod = solveConsPortfolio
@@ -342,7 +343,7 @@ class PortfolioConsumerType(IndShockConsumerType):
 
     def getRisky(self):
         """
-        Sets the attribute RiskyNow as a single draw from a lognormal distribution.
+        Sets the shock RiskyNow as a single draw from a lognormal distribution.
         Uses the attributes RiskyAvgTrue and RiskyStdTrue if RiskyAvg is time-varying,
         else just uses the single values from RiskyAvg and RiskyStd.
 
@@ -365,7 +366,7 @@ class PortfolioConsumerType(IndShockConsumerType):
 
         mu = np.log(RiskyAvg / (np.sqrt(1.0 + RiskyVar / RiskyAvgSqrd)))
         sigma = np.sqrt(np.log(1.0 + RiskyVar / RiskyAvgSqrd))
-        self.RiskyNow = Lognormal(
+        self.shocks['RiskyNow'] = Lognormal(
             mu, sigma, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(1)
 
@@ -383,7 +384,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.AdjustNow = Bernoulli(
+        self.shocks['AdjustNow'] = Bernoulli(
             self.AdjustPrb, seed=self.RNG.randint(0, 2 ** 31 - 1)
         ).draw(self.AgentCount)
 
@@ -405,7 +406,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             return factor.  Will be used by getStates() to calculate mNrmNow, where it
             will be mislabeled as "Rfree".
         """
-        Rport = self.ShareNow * self.RiskyNow + (1.0 - self.ShareNow) * self.Rfree
+        Rport = self.ShareNow * self.shocks['RiskyNow'] + (1.0 - self.ShareNow) * self.Rfree
         self.RportNow = Rport
         return Rport
 
@@ -422,8 +423,11 @@ class PortfolioConsumerType(IndShockConsumerType):
         -------
         None
         """
+        # these need to be set because "post states",
+        # but are a control variable and shock, respectively
+        self.ShareNow = np.zeros(self.AgentCount)
+        self.shocks['AdjustNow'] = np.zeros(self.AgentCount, dtype=bool)
         IndShockConsumerType.initializeSim(self)
-        self.AdjustNow = self.AdjustNow.astype(bool)
 
     def simBirth(self, which_agents):
         """
@@ -440,8 +444,12 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.simBirth(self, which_agents)
-        self.ShareNow[which_agents] = 0.0
-        self.AdjustNow[which_agents] = False
+        # Checking for control variable attribute here
+        # because we have not namespaced controls yet
+        if hasattr(self, 'ShareNow'):
+            self.ShareNow[which_agents] = 0
+        # here a shock is being used as a 'post state'
+        self.shocks['AdjustNow'][which_agents] = False
 
     def getShocks(self):
         """
@@ -482,17 +490,19 @@ class PortfolioConsumerType(IndShockConsumerType):
             these = t == self.t_cycle
 
             # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, self.AdjustNow)
-            cNrmNow[those] = self.solution[t].cFuncAdj(self.mNrmNow[those])
-            ShareNow[those] = self.solution[t].ShareFuncAdj(self.mNrmNow[those])
+            those = np.logical_and(these, self.shocks['AdjustNow'])
+            cNrmNow[those] = self.solution[t].cFuncAdj(self.state_now['mNrmNow'][those])
+            ShareNow[those] = self.solution[t].ShareFuncAdj(self.state_now['mNrmNow'][those])
 
             # Get Controls for agents who *can't* adjust their portfolio share
-            those = np.logical_and(these, np.logical_not(self.AdjustNow))
+            those = np.logical_and(
+                these,
+                np.logical_not(self.shocks['AdjustNow']))
             cNrmNow[those] = self.solution[t].cFuncFxd(
-                self.mNrmNow[those], self.ShareNow[those]
+                self.state_now['mNrmNow'][those], ShareNow[those]
             )
             ShareNow[those] = self.solution[t].ShareFuncFxd(
-                self.mNrmNow[those], self.ShareNow[those]
+                self.state_now['mNrmNow'][those], ShareNow[those]
             )
 
         # Store controls as attributes of self
