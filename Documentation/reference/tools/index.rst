@@ -12,6 +12,5 @@ Tools
    interpolation
    parallel
    simulation
-   solver
    utilities
    validators
