@@ -170,7 +170,14 @@ class AgentType(HARKobject):
     strings.  Each element of time_vary is the name of a field in AgentSubType
     that varies over time in the model.  Each element of time_inv is the name of
     a field in AgentSubType that is constant over time in the model.
+
+    Attributes
+    ----------
+    state_vars : list of string
+        The string labels for this AgentType's model state variables.
     """
+
+    state_vars = []
 
     def __init__(
         self,
@@ -224,8 +231,9 @@ class AgentType(HARKobject):
         self.tolerance = tolerance  # NOQA
         self.seed = seed  # NOQA
         self.track_vars = []  # NOQA
+        self.state_now = {sv : None for sv in self.state_vars}
+        self.state_prev = self.state_now.copy()
         self.shocks = {}
-        self.poststate_vars = []  # NOQA
         self.read_shocks = False  # NOQA
         self.shock_history = {}
         self.history = {}
@@ -439,9 +447,14 @@ class AgentType(HARKobject):
         self.resetRNG()
         self.t_sim = 0
         all_agents = np.ones(self.AgentCount, dtype=bool)
-        blank_array = np.zeros(self.AgentCount)
-        for var_name in self.poststate_vars:
-            setattr(self, var_name, copy(blank_array))
+        blank_array = np.empty(self.AgentCount)
+        blank_array[:] = np.nan
+        for var in self.state_now:
+            if self.state_now[var] is None:
+                self.state_now[var] = copy(blank_array)
+
+            #elif self.state_prev[var] is None:
+            #    self.state_prev[var] = copy(blank_array)
         self.t_age = np.zeros(
             self.AgentCount, dtype=int
         )  # Number of periods since agent entry
@@ -473,14 +486,22 @@ class AgentType(HARKobject):
                 " to run the `solve()` method of the class first."
             )
 
+        # Mortality adjusts the agent population
         self.getMortality()  # Replace some agents with "newborns"
+
+        # state_{t-1}
+        for var in self.state_now:
+            self.state_prev[var] = self.state_now[var]
+            # note: this is not type checked for aggregate variables.
+            self.state_now[var] = np.empty(self.AgentCount)
+
         if self.read_shocks:  # If shock histories have been pre-specified, use those
             self.readShocks()
         else:  # Otherwise, draw shocks as usual according to subclass-specific method
             self.getShocks()
         self.getStates()  # Determine each agent's state at decision time
         self.getControls()  # Determine each agent's choice or control variables based on states
-        self.getPostStates()  # Determine each agent's post-decision / end-of-period states using states and controls
+        self.getPostStates()  # Move now state_now to state_prev
 
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
@@ -634,9 +655,9 @@ class AgentType(HARKobject):
 
     def getStates(self):
         """
-        Gets values of state variables for the current period, probably by using post-decision states
-        from last period, current period shocks, and maybe market-level events.  Does nothing by
-        default, but can be overwritten by subclasses of AgentType.
+        Gets values of state variables for the current period.
+        By default, calls transition function and assigns values
+        to the state_now dictionary.
 
         Parameters
         ----------
@@ -646,7 +667,33 @@ class AgentType(HARKobject):
         -------
         None
         """
+        new_states = self.transition()
+
+        for i, var in enumerate(self.state_now):
+            # a hack for now to deal with 'post-states'
+            if i < len(new_states):
+                self.state_now[var] = new_states[i]
+
         return None
+
+    def transition(self):
+        """
+
+        Parameters
+        ----------
+        None
+ 
+        [Eventually, to match dolo spec:
+        exogenous_prev, endogenous_prev, controls, exogenous, parameters]
+
+        Returns
+        -------
+
+        endogenous_state: ()
+            Tuple with new values of the endogenous states
+        """
+
+        return ()
 
     def getControls(self):
         """
@@ -665,8 +712,10 @@ class AgentType(HARKobject):
 
     def getPostStates(self):
         """
-        Gets values of post-decision state variables for the current period, probably by current
-        states and controls and maybe market-level events or shock variables.  Does nothing by
+        Gets values of post-decision state variables for the current period, 
+        probably by current
+        states and controls and maybe market-level events or shock variables.  
+        Does nothing by
         default, but can be overwritten by subclasses of AgentType.
 
         Parameters
@@ -677,6 +726,7 @@ class AgentType(HARKobject):
         -------
         None
         """
+
         return None
 
     def simulate(self, sim_periods=None):
@@ -725,8 +775,13 @@ class AgentType(HARKobject):
 
             for t in range(sim_periods):
                 self.simOnePeriod()
+
                 for var_name in self.track_vars:
-                    if var_name in self.shock_vars:
+                    if var_name in self.state_now:
+                        self.history[var_name][self.t_sim, :] = self.state_now[
+                            var_name
+                        ]
+                    elif var_name in self.shocks:
                         self.history[var_name][self.t_sim, :] = self.shocks[var_name]
                     else:
                         self.history[var_name][self.t_sim, :] = getattr(self, var_name)
@@ -745,7 +800,7 @@ class AgentType(HARKobject):
         None
         """
         for var_name in self.track_vars:
-            self.history[var_name] = np.zeros((self.T_sim, self.AgentCount)) + np.nan
+            self.history[var_name] = np.empty((self.T_sim, self.AgentCount)) + np.nan
 
 
 def solveAgent(agent, verbose):
@@ -1129,9 +1184,16 @@ class Market(HARKobject):
         -------
         none
         """
-        for var_name in self.reap_state:
-            harvest = [getattr(this_type, var_name) for this_type in self.agents]
-            self.reap_state[var_name] = harvest
+        for var in self.reap_state:
+            harvest = []
+
+            for agent in self.agents:
+                # TODO: generalized variable lookup across namespaces
+                if var in agent.state_now:
+                    # or state_now ??
+                    harvest.append(agent.state_now[var])
+
+            self.reap_state[var] = harvest
 
     def sow(self):
         """
@@ -1148,7 +1210,10 @@ class Market(HARKobject):
         """
         for sow_var in self.sow_state:
             for this_type in self.agents:
-                setattr(this_type, sow_var, self.sow_state[sow_var])
+                if sow_var in this_type.state_now:
+                    this_type.state_now[sow_var] = self.sow_state[sow_var]
+                else:
+                    setattr(this_type, sow_var, self.sow_state[sow_var])
 
     def mill(self):
         """
@@ -1205,7 +1270,11 @@ class Market(HARKobject):
         none
         """
         # Reset the history of tracked variables
-        self.history = {var_name: [] for var_name in self.track_vars}
+        self.history = {
+            var_name: []
+            for var_name
+            in self.track_vars
+        }
 
         # Set the sow variables to their initial levels
         for var_name in self.sow_state:

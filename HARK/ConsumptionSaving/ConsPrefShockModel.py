@@ -150,11 +150,11 @@ class PrefShockConsumerType(IndShockConsumerType):
         of random shocks; this is necessary for structural estimation to work.
         This method extends IndShockConsumerType.resetRNG() to also reset elements
         of PrefShkDstn.
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         None
@@ -205,7 +205,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             cNrmNow[these] = self.solution[t].cFunc(
-                self.mNrmNow[these], self.shocks["PrefShkNow"][these]
+                self.state_now['mNrmNow'][these], self.shocks["PrefShkNow"][these]
             )
         self.cNrmNow = cNrmNow
         return None

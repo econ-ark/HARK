@@ -50,7 +50,9 @@ class testAggShockConsumerType(unittest.TestCase):
         self.economy.solve()  # Solve for the general equilibrium of the economy
 
         self.economy.AFunc = self.economy.dynamics.AFunc
-        self.assertAlmostEqual(self.economy.AFunc.slope, 1.116259456228145)
+        self.assertAlmostEqual(
+            self.economy.AFunc.slope, 1.116259456228145
+        )
 
         self.assertAlmostEqual(self.economy.history["MaggNow"][10], 7.456324335623432)
 
@@ -84,7 +86,9 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         self.economy.solve()  # Solve for the general equilibrium of the economy
 
         self.economy.AFunc = self.economy.dynamics.AFunc
-        self.assertAlmostEqual(self.economy.AFunc[0].slope, 1.0904698841958917)
+        self.assertAlmostEqual(
+            self.economy.AFunc[0].slope, 1.0904698841958917
+        )
 
         self.assertAlmostEqual(self.economy.history["AaggNow"][5], 9.467758924955897)
 
@@ -100,6 +104,10 @@ class KrusellSmithTestCase(unittest.TestCase):
         self.economy.act_T = 1100  # Shorter simulated period
         self.economy.discard_periods = 100
         self.economy.verbose = False  # Turn off printed messages
+
+    def teardown(self):
+        self.agent = None
+        self.economy = None
 
 class KrusellSmithAgentTestCase(KrusellSmithTestCase):
 
@@ -132,12 +140,12 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
         # self.economy.track_vars += ['EmpNow']
 
         self.assertEqual(
-            np.sum(self.agent.EmpNow & self.agent.EmpNow[-1]),
+            np.sum(self.agent.state_now['EmpNow'] & self.agent.state_now['EmpNow'][-1]),
             900
         )
 
         self.assertEqual(
-            np.sum(self.agent.EmpNow[:-1] & self.agent.EmpNow[1:]),
+            np.sum(self.agent.state_now['EmpNow'][:-1] & self.agent.state_now['EmpNow'][1:]),
             816
         )
 
@@ -236,7 +244,6 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
 class KrusellSmithEconomyTestCase(KrusellSmithTestCase):
 
     def test_economy(self):
-
         self.assertAlmostEqual(
             self.economy.AFunc[0].slope,
             1.0
