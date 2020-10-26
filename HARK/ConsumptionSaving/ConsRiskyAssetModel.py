@@ -908,7 +908,9 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         -------
         None
         '''
+        
         IndShockConsumerType.simBirth(self,which_agents)
+        self.state_now['nNrmTildeNow'] = 0.
         # Checking for control variable attribute here
         # because we have not namespaced controls yet
         if hasattr(self, 'ShareNow'):
