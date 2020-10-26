@@ -5,8 +5,8 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.6.0
+#       format_version: '1.2'
+#       jupytext_version: 1.2.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -95,7 +95,7 @@
 # We are now done, but in the `ConsIndShockSolver` (non-`Basic`!) solver there are a few extra steps. We add steady state m, and depending on the values of `vFuncBool` and `CubicBool` we also add the value function and the marginal marginal value function.
 
 # %% [markdown]
-# # Let's try it in action!
+# ## Let's try it in action!
 # First, we define a standard lifecycle model, solve it and then
 
 # %%
