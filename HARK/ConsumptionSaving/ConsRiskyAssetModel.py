@@ -899,8 +899,10 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         -------
         None
         '''
+        
         IndShockConsumerType.simBirth(self,which_agents)
         self.ShareNow[which_agents] = 0.
+        self.nNrmTildeNow[which_agents] = 0.
         self.AdjustNow[which_agents] = False
         
             
