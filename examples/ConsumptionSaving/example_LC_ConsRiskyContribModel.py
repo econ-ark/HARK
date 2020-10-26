@@ -386,13 +386,13 @@ init_sticky_share['dCount'] = 20
 
 # Regular grids in m and n
 init_riskyContrib['mNrmMin']         = 1e-6
-init_riskyContrib['mNrmMax']         = 100
-init_riskyContrib['mNrmCount']       = 45
+init_riskyContrib['mNrmMax']         = 300
+init_riskyContrib['mNrmCount']       = 60
 init_riskyContrib['mNrmNestFac']     = 1
 
 init_riskyContrib['nNrmMin']         = 1e-6
-init_riskyContrib['nNrmMax']         = 100
-init_riskyContrib['nNrmCount']       = 45
+init_riskyContrib['nNrmMax']         = 300
+init_riskyContrib['nNrmCount']       = 60
 init_riskyContrib['nNrmNestFac']     = 1  
 
 ContribAgent = RiskyContribConsumerType(**init_sticky_share)
@@ -441,7 +441,10 @@ ContribAgent.track_vars = ['pLvlNow','t_age','AdjustNow',
                            'mNrmNow','nNrmNow','mNrmTildeNow','nNrmTildeNow','aNrmNow',
                            'cNrmNow', 'ShareNow', 'DNrmNow']
 
+# Simulate with more agents
+# Since the R shock is common, also simulate many lifetimes.
 ContribAgent.AgentCount = 5
+ContribAgent.T_sim = 80*30
 ContribAgent.initializeSim()
 ContribAgent.simulate()
 
@@ -461,20 +464,43 @@ Data = {k: v.flatten(order = 'F') for k, v in Data.items()}
 # Make dataframe
 Data = pd.DataFrame(Data)
 
-# %% Plot simulation
-import seaborn as sns
 Data['savingNrmNow'] = Data.aNrmNow + Data.nNrmTildeNow
 Data['StockShareNow'] = Data.nNrmTildeNow / Data.savingNrmNow
-dplot = Data.melt(id_vars = ['id','t_age'])
-dplot = dplot[dplot.variable.isin(['mNrmNow','nNrmNow','nNrmTildeNow','aNrmNow',
-                                   'cNrmNow','ShareNow','StockShareNow'])]
 
-g = sns.FacetGrid(dplot, col = "variable", hue = "id", sharey = False,
-                  col_order = ['nNrmTildeNow','aNrmNow','cNrmNow','ShareNow'])
+# %% Average lifetime profiles
 
-g = g.map(plt.plot, "t_age", "value").set_titles("{col_name}").set_ylabels('')
+# Create non-normalized versions of variables
+Data['mNow'] = Data.mNrmNow * Data.pLvlNow
+Data['nNow'] = Data.nNrmNow * Data.pLvlNow
+Data['cNow'] = Data.cNrmNow * Data.pLvlNow
 
-g = sns.FacetGrid(dplot, col = "variable", hue = "id", sharey = False,
-                  col_order = ['StockShareNow'])
+Data['Age'] = Data['t_age'] + time_params['Age_born'] - 1
 
-g = g.map(plt.plot, "t_age", "value").set_titles("{col_name}").set_ylabels('')
+# Find the mean of each variable at every age
+AgeMeans = Data.groupby(['Age']).mean().reset_index()
+
+# Plot income, assets, and consumption
+plt.figure()
+plt.plot(AgeMeans.Age, AgeMeans.pLvlNow,
+         label = 'Permanent Income')
+plt.plot(AgeMeans.Age, AgeMeans.mNow,
+         label = 'Liquid riskless')
+plt.plot(AgeMeans.Age, AgeMeans.nNow,
+         label = 'Iliquid risky')
+plt.plot(AgeMeans.Age, AgeMeans.cNow,
+         label = 'Consumption')
+plt.legend()
+plt.xlabel('Age')
+plt.title('Variable Means Conditional on Survival')
+plt.grid()
+
+# Plot contribution and portfolio shares
+plt.figure()
+plt.plot(AgeMeans.Age, AgeMeans.StockShareNow,
+         label = 'Risky share of savings')
+plt.plot(AgeMeans.Age, AgeMeans.ShareNow,
+         label = 'Income Contrib. share')
+plt.legend()
+plt.xlabel('Age')
+plt.title('Variable Means Conditional on Survival')
+plt.grid()
