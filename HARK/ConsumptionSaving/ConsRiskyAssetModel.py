@@ -148,7 +148,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
     There is a friction that prevents the agent from adjusting this share with
     an exogenously given probability.
     """
-    poststate_vars_ = ['aNrmNow', 'pLvlNow', 'ShareNow', 'AdjustNow']
+    
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
     time_inv_ = time_inv_ + ['DiscreteShareBool']
 
@@ -165,7 +165,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             quiet=quiet,
             **kwds
         )
-
+        
+        shock_vars = ["PermShkNow", "TranShkNow","AdjustNow","RiskyNow"]
+        
         self.update()
 
 
@@ -302,7 +304,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
         mu = np.log(RiskyAvg / (np.sqrt(1. + RiskyVar / RiskyAvgSqrd)))
         sigma = np.sqrt(np.log(1. + RiskyVar / RiskyAvgSqrd))
-        self.RiskyNow = Lognormal(mu, sigma, seed=self.RNG.randint(0, 2**31-1)).draw(1)
+        self.shocks['RiskyNow'] = Lognormal(
+                mu, sigma, seed=self.RNG.randint(0, 2**31-1)
+            ).draw(1)
 
 
     def getAdjust(self):
@@ -853,7 +857,9 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         '''
         if not ('AdjustPrb' in self.time_vary):
             
-            self.AdjustNow = Bernoulli(self.AdjustPrb, seed=self.RNG.randint(0, 2**31-1)).draw(self.AgentCount)
+            self.shocks['AdjustNow'] = Bernoulli(
+                    self.AdjustPrb, seed=self.RNG.randint(0, 2**31-1)
+                ).draw(self.AgentCount)
        
         else: 
             
@@ -866,7 +872,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                     AdjustNow[these] = Bernoulli(AdjustPrb,
                                                  seed=self.RNG.randint(0, 2**31-1)).draw(N)
                     
-            self.AdjustNow = AdjustNow
+            self.shocks['AdjustNow'] = AdjustNow
        
     def initializeSim(self):
         '''
@@ -881,8 +887,11 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         -------
         None
         '''
+        # these need to be set because "post states",
+        # but are a control variable and shock, respectively
+        self.ShareNow = np.zeros(self.AgentCount)
+        self.shocks['AdjustNow'] = np.zeros(self.AgentCount, dtype=bool)
         IndShockConsumerType.initializeSim(self)
-        self.AdjustNow = self.AdjustNow.astype(bool)
     
     
     def simBirth(self,which_agents):
@@ -900,8 +909,12 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         None
         '''
         IndShockConsumerType.simBirth(self,which_agents)
-        self.ShareNow[which_agents] = 0.
-        self.AdjustNow[which_agents] = False
+        # Checking for control variable attribute here
+        # because we have not namespaced controls yet
+        if hasattr(self, 'ShareNow'):
+            self.ShareNow[which_agents] = 0
+        # here a shock is being used as a 'post state'
+        self.shocks['AdjustNow'][which_agents] = False
         
             
     def getShocks(self):
@@ -979,16 +992,16 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         """
         Get states for the first stage: rebalancing.
         """
-        pLvlPrev      = self.pLvlNow
-        aNrmPrev      = self.aNrmNow
-        nNrmTildePrev = self.nNrmTildeNow
+        pLvlPrev      = self.state_now['pLvlNow']
+        aNrmPrev      = self.state_now['aNrmNow']
+        nNrmTildePrev = self.state_now['nNrmTildeNow']
         RfreeNow      = self.Rfree
-        RriskNow      = self.RiskyNow
+        RriskNow      = self.shocks['RiskyNow']
         
         # Calculate new states:
         
         # Permanent income
-        self.pLvlNow = (
+        self.states['pLvlNow'] = (
             pLvlPrev * self.shocks["PermShkNow"]
         )
         
@@ -1002,16 +1015,16 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             RriskNow / self.shocks["PermShkNow"]
         )
         
-        self.bNrmNow = RfEffNow * aNrmPrev  # Liquid balances before labor income
-        self.gNrmNow = RrEffNow * nNrmTildePrev  # Iliquid balances before labor income
+        bNrmNow = RfEffNow * aNrmPrev  # Liquid balances before labor income
+        gNrmNow = RrEffNow * nNrmTildePrev  # Iliquid balances before labor income
         
         # Liquid balances after labor income
-        self.mNrmNow = (
-            self.bNrmNow + self.shocks["TranShkNow"] * (1 - self.ShareNow)
+        self.state_now['mNrmNow'] = (
+            bNrmNow + self.shocks["TranShkNow"] * (1 - self.ShareNow)
         )
         # Iliquid balances after labor income
-        self.nNrmNow = (
-            self.gNrmNow + self.shocks["TranShkNow"] * self.ShareNow
+        self.state_now['nNrmNow'] = (
+            gNrmNow + self.shocks["TranShkNow"] * self.ShareNow
         )
         
         return None
