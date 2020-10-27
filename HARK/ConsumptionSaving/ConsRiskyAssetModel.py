@@ -1307,45 +1307,50 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     Share_tiled = Share_tiled[:,:,:,0]
     
     # Apply EGM over liquid resources at every (n,s) to find consumption.
-    c = EndOfPrddvdaNvrs
-    mNrm_endog = aNrm_tiled + c
+    c_end    = EndOfPrddvdaNvrs
+    mNrm_end = aNrm_tiled + c_end
     
     # Now construct interpolators for cFxd and the derivatives of vFxd.
-    # Since the m grid is different for every (n,s), we use bilinear
+    # The m grid is different for every (n,s). We interpolate the object of
+    # interest on the regular m grid for every (n,s). At the end we will have
+    # values of the functions of interest on a regular (m,n,s) grid. We use
+    # trilinear interpolation on those points.
     # interpolators of 1-d linear interpolators over m.
     
-    # The 1-d interpolators need to take into account whether there is a
-    # natural borrowing constraint, which can depend on the value of n. Thus
-    # we have to check if mGrid[0] == 0 and construct the interpolators
-    # depending on that.
-    cInterps = [[] for i in range(nNrm_N)]
-    dvdnNvrsInterps = [[] for i in range(nNrm_N)]
-    dvdsInterps = [[] for i in range(nNrm_N)]
+    # Expand the regular m grid to contain 0.
+    mNrmGrid = np.insert(mNrmGrid,0,0)
+    mNrm_N = len(mNrmGrid)
+    
+    # Dimensions might have changed, so re-create tiled arrays
+    mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N,1,1)), (1,nNrm_N,Share_N))
+    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (mNrm_N,1,Share_N))
+    Share_tiled = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (mNrm_N,nNrm_N,1))
+    
+    # Initialize arrays
+    c_vals        = np.zeros_like(mNrm_tiled)
+    dvdnNvrs_vals = np.zeros_like(mNrm_tiled)
+    dvds_vals     = np.zeros_like(mNrm_tiled)
     
     for nInd in range(nNrm_N):
         for sInd in range(Share_N):
             
-            # Extract the endogenous m grid.
-            m_end = mNrm_endog[:,nInd,sInd]
+            # Extract the endogenous m grid for particular (n,s).
+            m_ns = mNrm_end[:,nInd,sInd]
             
             # Check if there is a natural constraint
-            
-            if m_end[0] == 0.0:
+            if m_ns[0] == 0.0:
                 
                 # There's no need to insert points since we have m==0.0
                 
-                # Create consumption interpolator
-                cInterps[nInd].append(LinearInterp(m_end,c[:,nInd,sInd]))
+                # c
+                c_vals[:,nInd,sInd] = LinearInterp(m_ns,c_end[:,nInd,sInd])(mNrmGrid)
                 
-                # Create dvdnFxd Interpolator
-                dvdnNvrsInterps[nInd].append(LinearInterp(m_end,
-                                                          EndOfPrddvdnNvrs[:,nInd,sInd]))
+                # dvdnNvrs
+                dvdnNvrs_vals[:,nInd,sInd] = LinearInterp(m_ns, EndOfPrddvdnNvrs[:,nInd,sInd])(mNrmGrid)
                 
-                # Create dvdsFxd interpolator
-                # TODO: this returns NaN when m=n=0. This might propagate.
-                # But dvds is not being used at the moment.
-                dvdsInterps[nInd].append(LinearInterp(m_end,
-                                                      EndOfPrddvds[:,nInd,sInd]))
+                # dvds
+                # TODO: this might returns NaN when m=n=0. This might propagate.
+                dvds_vals[:,nInd,sInd] = LinearInterp(m_ns, EndOfPrddvds[:,nInd,sInd])(mNrmGrid)
                 
             else:
                 
@@ -1355,51 +1360,42 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                 # -dvdnFxd at (m,n) for m < m0(n) is dvdnFxd(m0,n)
                 # -Same is true for dvdsFxd
                 
-                # Create consumption interpolator
-                cInterps[nInd].append(LinearInterp(np.insert(m_end,0,0),
-                                                   np.insert(c[:,nInd,sInd],0,0)
-                                                   )
-                                      )
+                # c
+                c_vals[:,nInd,sInd] = LinearInterp(
+                    np.insert(m_ns,0,0),
+                    np.insert(c_end[:,nInd,sInd],0,0)
+                    )(mNrmGrid)
                 
-                # Create dvdnCns Interpolator
-                dvdnNvrsInterps[nInd].append(LinearInterp(np.insert(m_end,0,0),
-                                                          np.insert(EndOfPrddvdnNvrs[:,nInd,sInd],0,EndOfPrddvdnNvrs[0,nInd,sInd])
-                                                          )
-                                             )
+                # dvdnNvrs
+                dvdnNvrs_vals[:,nInd,sInd] = LinearInterp(
+                    np.insert(m_ns,0,0),
+                    np.insert(EndOfPrddvdnNvrs[:,nInd,sInd],0,EndOfPrddvdnNvrs[0,nInd,sInd])
+                    )(mNrmGrid)
                 
-                # Create dvdsCns interpolator
-                dvdsInterps[nInd].append(LinearInterp(np.insert(m_end,0,0),
-                                                      np.insert(EndOfPrddvds[:,nInd,sInd],0,EndOfPrddvds[0,nInd,sInd])
-                                                      )
-                                         )
+                # dvds
+                dvds_vals[:,nInd,sInd] = LinearInterp(
+                    np.insert(m_ns,0,0),
+                    np.insert(EndOfPrddvds[:,nInd,sInd],0,EndOfPrddvds[0,nInd,sInd])
+                    )(mNrmGrid)
                 
-    # 3D interpolators
+    # With the arrays filled, create 3D interpolators
     
     # Consumption interpolator
-    cFunc = BilinearInterpOnInterp1D(cInterps, nNrmGrid, ShareGrid)
+    cFunc = TrilinearInterp(c_vals, mNrmGrid, nNrmGrid, ShareGrid)
     # dvdmFxd interpolator
     dvdmFuncCns = MargValueFunc3D(cFunc, CRRA)
     # dvdnFxd interpolator
-    dvdnNvrsFunc = BilinearInterpOnInterp1D(dvdnNvrsInterps, nNrmGrid, ShareGrid)
+    dvdnNvrsFunc = TrilinearInterp(dvdnNvrs_vals, mNrmGrid, nNrmGrid, ShareGrid)
     dvdnFuncCns = MargValueFunc3D(dvdnNvrsFunc, CRRA)
     # dvds interpolator
-    # TODO: dvds can be NaN. This is because a way to compute
-    # EndOfPrddvds(0,0) has not been implemented yet.
-    dvdsFuncCns = BilinearInterpOnInterp1D(dvdsInterps, nNrmGrid, ShareGrid)
-    
+    # TODO: dvds might be NaN. Check and fix?
+    dvdsFuncCns = TrilinearInterp(dvds_vals, mNrmGrid, nNrmGrid, ShareGrid)
     
     # It's useful to have interpolators on regular grids. They are much faster.
     # Thus, create a regular grid and create these objects in their regular
     # grid version.
     
-    # Add 0 to the m grid
-    mNrmGrid = np.insert(mNrmGrid,0,0)
-    mNrm_N = len(mNrmGrid)
     
-    # Dimensions might change, so re-create tiled arrays
-    mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N,1,1)), (1,nNrm_N,Share_N))
-    nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (mNrm_N,1,Share_N))
-    Share_tiled = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (mNrm_N,nNrm_N,1))
     
     # Consumption
     cFunc = TrilinearInterp(cFunc(mNrm_tiled, nNrm_tiled, Share_tiled),
@@ -1417,9 +1413,8 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # Compute value function if needed
     if vFuncBool:
         # Consumption in the regular grid
-        cNrm_reg = cFunc(mNrm_tiled, nNrm_tiled, Share_tiled)
-        aNrm_reg = mNrm_tiled - cNrm_reg
-        vCns = u(cNrm_reg) + EndOfPrdvFunc(aNrm_reg, nNrm_tiled, Share_tiled) 
+        aNrm_reg = mNrm_tiled - c_vals
+        vCns = u(c_vals) + EndOfPrdvFunc(aNrm_reg, nNrm_tiled, Share_tiled) 
         vNvrsCns = uInv(vCns)
         vNvrsFuncCns = TrilinearInterp(vNvrsCns, mNrmGrid, nNrmGrid, ShareGrid)
         vFuncCns     = ValueFunc3D(vNvrsFuncCns, CRRA)
