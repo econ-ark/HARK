@@ -8,7 +8,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.4'
-#       jupytext_version: 1.2.3
+#       jupytext_version: 1.2.4
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -22,7 +22,7 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.7.6
+#     version: 3.6.9
 # ---
 
 from HARK.ConsumptionSaving.ConsLaborModel import (
@@ -164,7 +164,7 @@ if do_simulation:
     plt.ylim(0.0, 1.0)
     plt.show()
 
-    plt.plot(np.sort(LaborIntMargExample.aNrmNow), CDF)
+    plt.plot(np.sort(LaborIntMargExample.state_now['aNrmNow']), CDF)
     plt.xlabel(
         "End-of-period assets aNrm in "
         + str(LaborIntMargExample.T_sim)
@@ -280,3 +280,5 @@ plt.title("Marginal value across periods of the lifecycle")
 plt.xlim(b_min, b_max)
 plt.ylim(0.0, None)
 plt.show()
+
+

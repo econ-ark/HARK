@@ -832,12 +832,15 @@ class MarkovConsumerType(IndShockConsumerType):
     """
 
     time_vary_ = IndShockConsumerType.time_vary_ + ["MrkvArray"]
+
+    # Is 'MrkvNow' a shock or a state?
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["MrkvNow"]
+    state_vars = IndShockConsumerType.state_vars + ["MrkvNow"]
 
     def __init__(self, cycles=1, **kwds):
         IndShockConsumerType.__init__(self, cycles=1, **kwds)
         self.solveOnePeriod = _solveConsMarkov
-        self.poststate_vars += ["MrkvNow"]
+
         if not hasattr(self, "global_markov"):
             self.global_markov = False
 
@@ -1034,7 +1037,7 @@ class MarkovConsumerType(IndShockConsumerType):
         """
         Draw new Markov states for each agent in the simulated population, using
         the attribute MrkvArray to determine transition probabilities.
-        
+
         Parameters
         ----------
         None
@@ -1180,7 +1183,7 @@ class MarkovConsumerType(IndShockConsumerType):
             for j in range(J):
                 these = np.logical_and(right_t, MrkvBoolArray[j, :])
                 cNrmNow[these], MPCnow[these] = (
-                    self.solution[t].cFunc[j].eval_with_derivative(self.mNrmNow[these])
+                    self.solution[t].cFunc[j].eval_with_derivative(self.state_now['mNrmNow'][these])
                 )
         self.cNrmNow = cNrmNow
         self.MPCnow = MPCnow

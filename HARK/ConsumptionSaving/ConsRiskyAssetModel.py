@@ -148,9 +148,12 @@ class RiskyAssetConsumerType(IndShockConsumerType):
     There is a friction that prevents the agent from adjusting this share with
     an exogenously given probability.
     """
-    poststate_vars_ = ['aNrmNow', 'pLvlNow', 'ShareNow', 'AdjustNow']
+    
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
     time_inv_ = time_inv_ + ['DiscreteShareBool']
+
+    state_vars  = IndShockConsumerType.state_vars + ['ShareNow']
+    shock_vars_ = IndShockConsumerType.shock_vars_ + ['AdjustNow','RiskyNow']
 
     def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
         params = init_risky.copy()
@@ -165,7 +168,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             quiet=quiet,
             **kwds
         )
-
+        
         self.update()
 
 
@@ -302,7 +305,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
         mu = np.log(RiskyAvg / (np.sqrt(1. + RiskyVar / RiskyAvgSqrd)))
         sigma = np.sqrt(np.log(1. + RiskyVar / RiskyAvgSqrd))
-        self.RiskyNow = Lognormal(mu, sigma, seed=self.RNG.randint(0, 2**31-1)).draw(1)
+        self.shocks['RiskyNow'] = Lognormal(
+                mu, sigma, seed=self.RNG.randint(0, 2**31-1)
+            ).draw(1)
 
 
     def getAdjust(self):
@@ -310,7 +315,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         Sets the attribute AdjustNow as a boolean array of size AgentCount, indicating
         whether each agent is able to adjust their risky portfolio share this period.
         Uses the attribute AdjustPrb to draw from a Bernoulli distribution.
-
+        
         Parameters
         ----------
         None
@@ -319,8 +324,24 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        self.AdjustNow = Bernoulli(self.AdjustPrb, seed=self.RNG.randint(0, 2**31-1)).draw(self.AgentCount)
-
+        if not ('AdjustPrb' in self.time_vary):
+            
+            self.shocks['AdjustNow'] = Bernoulli(
+                    self.AdjustPrb, seed=self.RNG.randint(0, 2**31-1)
+                ).draw(self.AgentCount)
+       
+        else: 
+            
+            AdjustNow = np.zeros(self.AgentCount)  # Initialize shock array
+            for t in range(self.T_cycle):
+                these = t == self.t_cycle
+                N = np.sum(these)
+                if N > 0:
+                    AdjustPrb = self.AdjustPrb[t - 1]
+                    AdjustNow[these] = Bernoulli(AdjustPrb,
+                                                 seed=self.RNG.randint(0, 2**31-1)).draw(N)
+                    
+            self.shocks['AdjustNow'] = AdjustNow
 
     def initializeSim(self):
         '''
@@ -335,8 +356,11 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         '''
+        # these need to be set because "post states",
+        # but are a control variable and shock, respectively
+        self.state_now['ShareNow'] = np.zeros(self.AgentCount)
+        self.shocks['AdjustNow'] = np.zeros(self.AgentCount, dtype=bool)
         IndShockConsumerType.initializeSim(self)
-        self.AdjustNow = self.AdjustNow.astype(bool)
 
 
     def simBirth(self,which_agents):
@@ -354,7 +378,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         None
         '''
         IndShockConsumerType.simBirth(self,which_agents)
-        self.ShareNow[which_agents] = 0.
+        self.state_now['ShareNow'][which_agents] = 0.
         self.AdjustNow[which_agents] = False
 
 
@@ -531,9 +555,12 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     """
     TODO: model description
     """
-    poststate_vars_ = ['aNrmNow', 'nNrmTildeNow', 'pLvlNow', 'ShareNow', 'AdjustNow']
+    
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
     time_inv_ = time_inv_ + ['DiscreteShareBool']
+    
+    state_vars  = RiskyAssetConsumerType.state_vars + ['mNrmTildeNow','nNrmTildeNow', 'ShareNow']
+    shock_vars_ = RiskyAssetConsumerType.shock_vars_
 
     def __init__(self, cycles=1, verbose=False, quiet=False, **kwds):
     
@@ -808,65 +835,6 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         # Assign and set it as time invariant
         self.mNrmGrid = mNrmGrid
         self.addToTimeInv('mNrmGrid')
-                
-    def getRisky(self):
-        '''
-        Sets the attribute RiskyNow as a single draw from a lognormal distribution.
-        Uses the attributes RiskyAvgTrue and RiskyStdTrue if RiskyAvg is time-varying,
-        else just uses the single values from RiskyAvg and RiskyStd.
-        
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        '''
-        if 'RiskyDstn' in self.time_vary:
-            RiskyAvg = self.RiskyAvgTrue
-            RiskyStd = self.RiskyStdTrue  
-        else:
-            RiskyAvg = self.RiskyAvg
-            RiskyStd = self.RiskyStd
-        RiskyAvgSqrd = RiskyAvg**2
-        RiskyVar = RiskyStd**2
-
-        mu = np.log(RiskyAvg / (np.sqrt(1. + RiskyVar / RiskyAvgSqrd)))
-        sigma = np.sqrt(np.log(1. + RiskyVar / RiskyAvgSqrd))
-        self.RiskyNow = Lognormal(mu, sigma, seed=self.RNG.randint(0, 2**31-1)).draw(1)
-        
-        
-    def getAdjust(self):
-        '''
-        Sets the attribute AdjustNow as a boolean array of size AgentCount, indicating
-        whether each agent is able to adjust their risky portfolio share this period.
-        Uses the attribute AdjustPrb to draw from a Bernoulli distribution.
-        
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        '''
-        if not ('AdjustPrb' in self.time_vary):
-            
-            self.AdjustNow = Bernoulli(self.AdjustPrb, seed=self.RNG.randint(0, 2**31-1)).draw(self.AgentCount)
-       
-        else: 
-            
-            AdjustNow = np.zeros(self.AgentCount)  # Initialize shock array
-            for t in range(self.T_cycle):
-                these = t == self.t_cycle
-                N = np.sum(these)
-                if N > 0:
-                    AdjustPrb = self.AdjustPrb[t - 1]
-                    AdjustNow[these] = Bernoulli(AdjustPrb,
-                                                 seed=self.RNG.randint(0, 2**31-1)).draw(N)
-                    
-            self.AdjustNow = AdjustNow
        
     def initializeSim(self):
         '''
@@ -881,8 +849,11 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         -------
         None
         '''
+        # these need to be set because "post states",
+        # but are a control variable and shock, respectively
+        self.ShareNow = np.zeros(self.AgentCount)
+        self.shocks['AdjustNow'] = np.zeros(self.AgentCount, dtype=bool)
         IndShockConsumerType.initializeSim(self)
-        self.AdjustNow = self.AdjustNow.astype(bool)
     
     
     def simBirth(self,which_agents):
@@ -899,9 +870,16 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         -------
         None
         '''
+        
         IndShockConsumerType.simBirth(self,which_agents)
-        self.ShareNow[which_agents] = 0.
-        self.AdjustNow[which_agents] = False
+        self.state_now['nNrmTildeNow'][which_agents] = 0.
+        self.state_now['ShareNow'][which_agents] = 0.
+        # Checking for control variable attribute here
+        # because we have not namespaced controls yet
+        if hasattr(self, 'ShareNow'):
+            self.ShareNow[which_agents] = 0
+        # here a shock is being used as a 'post state'
+        self.shocks['AdjustNow'][which_agents] = False
         
             
     def getShocks(self):
@@ -979,16 +957,16 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         """
         Get states for the first stage: rebalancing.
         """
-        pLvlPrev      = self.pLvlNow
-        aNrmPrev      = self.aNrmNow
-        nNrmTildePrev = self.nNrmTildeNow
+        pLvlPrev      = self.state_now['pLvlNow']
+        aNrmPrev      = self.state_now['aNrmNow']
+        nNrmTildePrev = self.state_now['nNrmTildeNow']
         RfreeNow      = self.Rfree
-        RriskNow      = self.RiskyNow
+        RriskNow      = self.shocks['RiskyNow']
         
         # Calculate new states:
         
         # Permanent income
-        self.pLvlNow = (
+        self.state_now['pLvlNow'] = (
             pLvlPrev * self.shocks["PermShkNow"]
         )
         
@@ -1002,16 +980,16 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             RriskNow / self.shocks["PermShkNow"]
         )
         
-        self.bNrmNow = RfEffNow * aNrmPrev  # Liquid balances before labor income
-        self.gNrmNow = RrEffNow * nNrmTildePrev  # Iliquid balances before labor income
+        bNrmNow = RfEffNow * aNrmPrev  # Liquid balances before labor income
+        gNrmNow = RrEffNow * nNrmTildePrev  # Iliquid balances before labor income
         
         # Liquid balances after labor income
-        self.mNrmNow = (
-            self.bNrmNow + self.shocks["TranShkNow"] * (1 - self.ShareNow)
+        self.state_now['mNrmNow'] = (
+            bNrmNow + self.shocks["TranShkNow"] * (1 - self.ShareNow)
         )
         # Iliquid balances after labor income
-        self.nNrmNow = (
-            self.gNrmNow + self.shocks["TranShkNow"] * self.ShareNow
+        self.state_now['nNrmNow'] = (
+            gNrmNow + self.shocks["TranShkNow"] * self.ShareNow
         )
         
         return None
@@ -1029,15 +1007,17 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             these = t == self.t_cycle
                            
             # Get controls for agents who *can* adjust.
-            those = np.logical_and(these, self.AdjustNow)
+            those = np.logical_and(these, self.shocks['AdjustNow'])
             DNrmNow[those] = self.solution[t]['Reb'].DFuncAdj(
-                self.mNrmNow[those], self.nNrmNow[those]
+                self.state_now['mNrmNow'][those], self.state_now['nNrmNow'][those]
             )
                 
             # Get Controls for agents who *can't* adjust.
-            those = np.logical_and(these, np.logical_not(self.AdjustNow))
+            those = np.logical_and(these, np.logical_not(self.shocks['AdjustNow']))
             DNrmNow[those] = self.solution[t]['Reb'].DFuncFxd(
-                self.mNrmNow[those], self.nNrmNow[those], self.ShareNow[those]
+                self.state_now['mNrmNow'][those],
+                self.state_now['nNrmNow'][those],
+                self.state_now['ShareNow'][those]
             )
 
         # Store controls as attributes of self
@@ -1051,13 +1031,15 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         if not 'tau' in self.time_vary:
         
-            mNrmTildeNow, nNrmTildeNow = rebalanceAssets(self.DNrmNow, self.mNrmNow, self.nNrmNow, self.tau)
+            mNrmTildeNow, nNrmTildeNow = rebalanceAssets(self.DNrmNow,
+                                                         self.state_now['mNrmNow'],
+                                                         self.state_now['nNrmNow'], self.tau)
         
         else:
             
             # Initialize
-            mNrmTildeNow = np.zeros_like(self.mNrmNow) + np.nan
-            nNrmTildeNow = np.zeros_like(self.mNrmNow) + np.nan
+            mNrmTildeNow = np.zeros_like(self.state_now['mNrmNow']) + np.nan
+            nNrmTildeNow = np.zeros_like(self.state_now['mNrmNow']) + np.nan
             
             # Loop over each period of the cycle, getting controls separately depending on "age"
             for t in range(self.T_cycle):
@@ -1068,10 +1050,12 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                 if np.sum(these) > 0:
                     tau = self.tau[t]
                     
-                    mNrmTildeNow[these], nNrmTildeNow[these] = rebalanceAssets(self.DNrmNow[these], self.mNrmNow[these], self.nNrmNow[these], tau)
+                    mNrmTildeNow[these], nNrmTildeNow[these] = rebalanceAssets(self.DNrmNow[these],
+                                                                               self.state_now['mNrmNow'][these], self.state_now['nNrmNow'][these],
+                                                                               tau)
         
-        self.mNrmTildeNow = mNrmTildeNow
-        self.nNrmTildeNow = nNrmTildeNow
+        self.state_now['mNrmTildeNow'] = mNrmTildeNow
+        self.state_now['nNrmTildeNow'] = nNrmTildeNow
     
     def getControlsSha(self):
         """
@@ -1086,19 +1070,22 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             these = t == self.t_cycle
                            
             # Get controls for agents who *can* adjust.
-            those = np.logical_and(these, self.AdjustNow)
+            those = np.logical_and(these, self.shocks['AdjustNow'])
             ShareNow[those] = self.solution[t]['Sha'].ShareFuncAdj(
-                self.mNrmTildeNow[those], self.nNrmTildeNow[those]
+                self.state_now['mNrmTildeNow'][those], self.state_now['nNrmTildeNow'][those]
             )
                 
             # Get Controls for agents who *can't* adjust.
-            those = np.logical_and(these, np.logical_not(self.AdjustNow))
+            those = np.logical_and(these, np.logical_not(self.shocks['AdjustNow']))
             ShareNow[those] = self.solution[t]['Sha'].ShareFuncFxd(
-                self.mNrmTildeNow[those], self.nNrmTildeNow[those], self.ShareNow[those]
+                self.state_now['mNrmTildeNow'][those], self.state_now['nNrmTildeNow'][those], self.ShareNow[those]
             )
 
         # Store controls as attributes of self
         self.ShareNow = ShareNow     
+        # Share is also a state
+        # TODO: Ask Seb how this is handled
+        self.state_now['ShareNow'] = ShareNow
         
     def getStatesCns(self):
         # No new states need to be computed in the consumption stage
@@ -1118,18 +1105,20 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                            
             # Get consumption
             cNrmNow[these] = self.solution[t]['Cns'].cFunc(
-                self.mNrmTildeNow[these], self.nNrmTildeNow[these], self.ShareNow[these]
+                self.state_now['mNrmTildeNow'][these],
+                self.state_now['nNrmTildeNow'][these],
+                self.state_now['ShareNow'][these]
             )
             
         # Store controls as attributes of self
         # Since agents might be willing to end the period with a = 0, make
         # sure consumption does not go over m because of some numerical error.
-        self.cNrmNow = np.minimum(cNrmNow,self.mNrmTildeNow)            
+        self.cNrmNow = np.minimum(cNrmNow,self.state_now['mNrmTildeNow'])            
         
     def getPostStates(self):
         """
         """
-        self.aNrmNow = self.mNrmTildeNow - self.cNrmNow
+        self.state_now['aNrmNow'] = self.state_now['mNrmTildeNow'] - self.cNrmNow
          
     
 def rebalanceAssets(d,m,n,tau):
