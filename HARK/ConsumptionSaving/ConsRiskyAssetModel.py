@@ -1387,10 +1387,10 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # EndOfPrddvds(0,0) has not been implemented yet.
     dvdsFuncCns = BilinearInterpOnInterp1D(dvdsInterps, nNrmGrid, ShareGrid)
     
-    # It's useful to the value function on a regular grid
-    # interpolator because:
-    # - Endogenous grids don't cover the m < n region well.
-    # - Faster evaluation when this is called by previous periods.
+    
+    # It's useful to have interpolators on regular grids. They are much faster.
+    # Thus, create a regular grid and create these objects in their regular
+    # grid version.
     
     # Add 0 to the m grid
     mNrmGrid = np.insert(mNrmGrid,0,0)
@@ -1400,6 +1400,19 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     mNrm_tiled = np.tile(np.reshape(mNrmGrid, (mNrm_N,1,1)), (1,nNrm_N,Share_N))
     nNrm_tiled = np.tile(np.reshape(nNrmGrid, (1,nNrm_N,1)), (mNrm_N,1,Share_N))
     Share_tiled = np.tile(np.reshape(ShareGrid, (1,1,Share_N)), (mNrm_N,nNrm_N,1))
+    
+    # Consumption
+    cFunc = TrilinearInterp(cFunc(mNrm_tiled, nNrm_tiled, Share_tiled),
+                            mNrmGrid, nNrmGrid, ShareGrid)
+    # dvdm
+    dvdmFuncCns = MargValueFunc3D(cFunc, CRRA)
+    # dvdn
+    dvdnNvrsFunc = TrilinearInterp(dvdnNvrsFunc(mNrm_tiled, nNrm_tiled, Share_tiled),
+                                   mNrmGrid, nNrmGrid, ShareGrid)
+    dvdnFuncCns = MargValueFunc3D(dvdnNvrsFunc, CRRA)
+    # dvds
+    dvdsFuncCns = TrilinearInterp(dvdsFuncCns(mNrm_tiled, nNrm_tiled, Share_tiled),
+                                  mNrmGrid, nNrmGrid, ShareGrid)
     
     # Compute value function if needed
     if vFuncBool:
