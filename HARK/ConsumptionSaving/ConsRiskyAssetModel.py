@@ -1234,7 +1234,8 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     # starts at the Fxd stage.
     
     # Always compute the adjusting version
-    vAdj_next    = vFuncRebAdj_next(mNrm_next,nNrm_next)
+    if vFuncBool:
+        vAdj_next    = vFuncRebAdj_next(mNrm_next,nNrm_next)
     dvdmAdj_next = dvdmFuncRebAdj_next(mNrm_next,nNrm_next)
     dvdnAdj_next = dvdnFuncRebAdj_next(mNrm_next,nNrm_next)
     dvdsAdj_next = np.zeros_like(mNrm_next)# No marginal value of Share if it's a free choice!
@@ -1244,22 +1245,28 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     if AdjustPrb < 1.:
         
         # "Fixed" counterparts
-        vFxd_next    = vFuncRebFxd_next(mNrm_next, nNrm_next, Share_next)
         dvdmFxd_next = dvdmFuncRebFxd_next(mNrm_next, nNrm_next, Share_next)
         dvdnFxd_next = dvdnFuncRebFxd_next(mNrm_next, nNrm_next, Share_next)
         dvdsFxd_next = dvdsFuncRebFxd_next(mNrm_next, nNrm_next, Share_next)
         
         # Expected values with respect to adjustment r.v.
-        v_next    = AdjustPrb*vAdj_next    + (1.-AdjustPrb)*vFxd_next
         dvdm_next = AdjustPrb*dvdmAdj_next + (1.-AdjustPrb)*dvdmFxd_next
         dvdn_next = AdjustPrb*dvdnAdj_next + (1.-AdjustPrb)*dvdnFxd_next
         dvds_next = AdjustPrb*dvdsAdj_next + (1.-AdjustPrb)*dvdsFxd_next
         
-    else: # Don't bother evaluating if there's no chance that contribution share is fixed
-        v_next    = vAdj_next
+        # Value function if needed
+        if vFuncBool:
+            vFxd_next = vFuncRebFxd_next(mNrm_next, nNrm_next, Share_next)
+            v_next    = AdjustPrb*vAdj_next    + (1.-AdjustPrb)*vFxd_next
+        
+    else: # Don't evaluate if there's no chance that contribution share is fixed
+        
         dvdm_next = dvdmAdj_next
         dvdn_next = dvdnAdj_next
         dvds_next = dvdsAdj_next
+        
+        if vFuncBool:
+            v_next    = vAdj_next
         
     # Calculate end-of-period marginal value of both assets by taking expectations
     temp_fac_A = uP(PermShks_tiled*PermGroFac) # Will use this in a couple places
@@ -1268,15 +1275,16 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     EndOfPrddvdaNvrs = uPinv(EndOfPrddvda)
     EndOfPrddvdnNvrs = uPinv(EndOfPrddvdn)
         
-    # Calculate end-of-period value by taking expectations
+    # Calculate end-of-period value if needed
     temp_fac_B = (PermShks_tiled*PermGroFac)**(1.-CRRA) # Will use this below
-    EndOfPrdv = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_B*v_next, axis=3)
-    EndOfPrdvNvrs = uInv(EndOfPrdv)
-    
-    # Construct an interpolator for EndOfPrdV. It will be used later.
-    EndOfPrdvFunc = ValueFunc3D(TrilinearInterp(EndOfPrdvNvrs, aNrmGrid,
-                                                nNrmGrid, ShareGrid),
-                                CRRA)
+    if vFuncBool:
+        EndOfPrdv = DiscFac*LivPrb*np.sum(ShockPrbs_tiled*temp_fac_B*v_next, axis=3)
+        EndOfPrdvNvrs = uInv(EndOfPrdv)
+        
+        # Construct an interpolator for EndOfPrdV. It will be used later.
+        EndOfPrdvFunc = ValueFunc3D(TrilinearInterp(EndOfPrdvNvrs, aNrmGrid,
+                                                    nNrmGrid, ShareGrid),
+                                    CRRA)
     
     # Find EndOfPrddvds.
     
@@ -1310,12 +1318,11 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     c_end    = EndOfPrddvdaNvrs
     mNrm_end = aNrm_tiled + c_end
     
-    # Now construct interpolators for cFxd and the derivatives of vFxd.
+    # Now construct interpolators for c and the derivatives of vCns.
     # The m grid is different for every (n,s). We interpolate the object of
     # interest on the regular m grid for every (n,s). At the end we will have
     # values of the functions of interest on a regular (m,n,s) grid. We use
     # trilinear interpolation on those points.
-    # interpolators of 1-d linear interpolators over m.
     
     # Expand the regular m grid to contain 0.
     mNrmGrid = np.insert(mNrmGrid,0,0)
@@ -1382,33 +1389,14 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
     
     # Consumption interpolator
     cFunc = TrilinearInterp(c_vals, mNrmGrid, nNrmGrid, ShareGrid)
-    # dvdmFxd interpolator
+    # dvdmCns interpolator
     dvdmFuncCns = MargValueFunc3D(cFunc, CRRA)
-    # dvdnFxd interpolator
+    # dvdnCns interpolator
     dvdnNvrsFunc = TrilinearInterp(dvdnNvrs_vals, mNrmGrid, nNrmGrid, ShareGrid)
     dvdnFuncCns = MargValueFunc3D(dvdnNvrsFunc, CRRA)
-    # dvds interpolator
+    # dvdsCns interpolator
     # TODO: dvds might be NaN. Check and fix?
     dvdsFuncCns = TrilinearInterp(dvds_vals, mNrmGrid, nNrmGrid, ShareGrid)
-    
-    # It's useful to have interpolators on regular grids. They are much faster.
-    # Thus, create a regular grid and create these objects in their regular
-    # grid version.
-    
-    
-    
-    # Consumption
-    cFunc = TrilinearInterp(cFunc(mNrm_tiled, nNrm_tiled, Share_tiled),
-                            mNrmGrid, nNrmGrid, ShareGrid)
-    # dvdm
-    dvdmFuncCns = MargValueFunc3D(cFunc, CRRA)
-    # dvdn
-    dvdnNvrsFunc = TrilinearInterp(dvdnNvrsFunc(mNrm_tiled, nNrm_tiled, Share_tiled),
-                                   mNrmGrid, nNrmGrid, ShareGrid)
-    dvdnFuncCns = MargValueFunc3D(dvdnNvrsFunc, CRRA)
-    # dvds
-    dvdsFuncCns = TrilinearInterp(dvdsFuncCns(mNrm_tiled, nNrm_tiled, Share_tiled),
-                                  mNrmGrid, nNrmGrid, ShareGrid)
     
     # Compute value function if needed
     if vFuncBool:
