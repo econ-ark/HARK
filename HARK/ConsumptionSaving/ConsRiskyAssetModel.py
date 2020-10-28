@@ -1144,10 +1144,11 @@ def rebalanceAssets(d,m,n,tau):
 
 # Consumption stage solver
 def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
-                               LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
-                               BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
-                               ShareGrid,vFuncBool,AdjustPrb,
-                               DiscreteShareBool,IndepDstnBool, **kws):
+                              LivPrb,DiscFac,CRRA,Rfree,PermGroFac,
+                              BoroCnstArt,aXtraGrid,nNrmGrid,mNrmGrid,
+                              ShareGrid,vFuncBool,AdjustPrb,
+                              DiscreteShareBool,IndepDstnBool,
+                              **unused_params):
     
     # Make sure the individual is liquidity constrained.  Allowing a consumer to
     # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
@@ -1427,7 +1428,8 @@ def solveRiskyContribCnsStage(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
 # Solver for the contribution stage
 def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
                               mNrmGrid,nNrmGrid,ShareGrid,
-                              DiscreteShareBool, vFuncBool, **kws):
+                              DiscreteShareBool, vFuncBool,
+                              **unused_params):
     
     # Unpack solution from the next sub-stage
     vFuncCns_next    = solution_next.vFuncCns
@@ -1565,8 +1567,8 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
 # Solver for the asset rebalancing stage
 def solveRiskyContribRebStage(solution_next,
                               CRRA,tau,
-                              nNrmGrid,mNrmGrid,dGrid,
-                              vFuncBool, **kws):
+                              nNrmGrid,mNrmGrid,dGrid,vFuncBool,
+                              **unused_params):
     
     # Extract next stage's solution
     vFuncAdj_next = solution_next.vFuncShaAdj
