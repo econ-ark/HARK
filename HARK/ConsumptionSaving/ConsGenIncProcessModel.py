@@ -1372,7 +1372,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
             MPCnow[these] = self.solution[t].cFunc.derivativeX(
                 self.state_now["mLvlNow"][these], self.state_now["pLvlNow"][these]
             )
-        self.cLvlNow = cLvlNow
+        self.controls["cLvlNow"] = cLvlNow
         self.MPCnow = MPCnow
 
     def getPostStates(self):
@@ -1388,7 +1388,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.state_now['aLvlNow'] = self.state_now["mLvlNow"] - self.cLvlNow
+        self.state_now['aLvlNow'] = self.state_now["mLvlNow"] - self.controls["cLvlNow"]
         # moves now to prev
         AgentType.getPostStates(self)
 

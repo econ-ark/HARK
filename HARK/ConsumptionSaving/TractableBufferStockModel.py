@@ -681,7 +681,7 @@ class TractableConsumerType(AgentType):
         cLvlNow = np.zeros(self.AgentCount)
         cLvlNow[employed] = self.solution[0].cFunc(self.state_now['mLvlNow'][employed])
         cLvlNow[unemployed] = self.solution[0].cFunc_U(self.state_now['mLvlNow'][unemployed])
-        self.cLvlNow = cLvlNow
+        self.controls["cLvlNow"] = cLvlNow
 
     def getPostStates(self):
         """
@@ -695,7 +695,7 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        self.state_now['aLvlNow'] = self.state_now['mLvlNow'] - self.cLvlNow
+        self.state_now['aLvlNow'] = self.state_now['mLvlNow'] - self.controls["cLvlNow"]
         return None
 
 
