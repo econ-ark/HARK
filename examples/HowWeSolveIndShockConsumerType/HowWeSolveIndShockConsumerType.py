@@ -95,7 +95,7 @@
 # We are now done, but in the `ConsIndShockSolver` (non-`Basic`!) solver there are a few extra steps. We add steady state m, and depending on the values of `vFuncBool` and `CubicBool` we also add the value function and the marginal marginal value function.
 
 # %% [markdown]
-# # Let's try it in action!
+# ## Let's try it in action!
 # First, we define a standard lifecycle model, solve it and then
 
 # %%

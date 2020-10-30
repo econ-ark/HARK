@@ -1817,7 +1817,9 @@ class PerfForesightConsumerType(AgentType):
             cNrmNow[these], MPCnow[these] = self.solution[t].cFunc.eval_with_derivative(
                 self.state_now['mNrmNow'][these]
             )
-        self.cNrmNow = cNrmNow
+        self.controls['cNrmNow'] = cNrmNow
+
+        # MPCnow is not really a control
         self.MPCnow = MPCnow
         return None
 
@@ -1834,7 +1836,7 @@ class PerfForesightConsumerType(AgentType):
         None
         """
         # should this be "Now", or "Prev"?!?
-        self.state_now['aNrmNow'] = self.state_now['mNrmNow'] - self.cNrmNow
+        self.state_now['aNrmNow'] = self.state_now['mNrmNow'] - self.controls['cNrmNow']
         # Useful in some cases to precalculate asset level
         self.state_now['aLvlNow'] = self.state_now['aNrmNow'] * self.state_now['pLvlNow']
 

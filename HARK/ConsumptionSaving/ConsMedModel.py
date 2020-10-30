@@ -852,7 +852,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
                 MedShkNow[these] = self.MedShkDstn[t].drawDiscrete(N)
                 MedPriceNow[these] = self.MedPrice[t]
         self.shocks["MedShkNow"] = MedShkNow
-        self.MedPriceNow = MedPriceNow
+        self.shocks["MedPriceNow"] = MedPriceNow
 
     def getControls(self):
         """
@@ -876,8 +876,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
                 self.state_now['pLvlNow'][these],
                 self.shocks["MedShkNow"][these],
             )
-        self.cLvlNow = cLvlNow
-        self.MedNow = MedNow
+        self.controls['cLvlNow'] = cLvlNow
+        self.controls['MedNow'] = MedNow
         return None
 
     def getPostStates(self):
@@ -892,7 +892,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        self.state_now['aLvlNow'] = self.state_now['mLvlNow'] - self.cLvlNow - self.MedPriceNow * self.MedNow
+        self.state_now['aLvlNow'] = self.state_now['mLvlNow'] - self.controls['cLvlNow'] - self.shocks["MedPriceNow"] * self.controls['MedNow']
 
         # moves now to prev
         AgentType.getPostStates(self)
