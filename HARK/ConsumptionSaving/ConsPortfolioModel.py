@@ -406,7 +406,7 @@ class PortfolioConsumerType(IndShockConsumerType):
             return factor.  Will be used by getStates() to calculate mNrmNow, where it
             will be mislabeled as "Rfree".
         """
-        Rport = self.ShareNow * self.shocks['RiskyNow'] + (1.0 - self.ShareNow) * self.Rfree
+        Rport = self.controls["ShareNow"] * self.shocks['RiskyNow'] + (1.0 - self.controls["ShareNow"]) * self.Rfree
         self.RportNow = Rport
         return Rport
 
@@ -425,7 +425,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         """
         # these need to be set because "post states",
         # but are a control variable and shock, respectively
-        self.ShareNow = np.zeros(self.AgentCount)
+        self.controls["ShareNow"] = np.zeros(self.AgentCount)
         self.shocks['AdjustNow'] = np.zeros(self.AgentCount, dtype=bool)
         IndShockConsumerType.initializeSim(self)
 
@@ -506,8 +506,8 @@ class PortfolioConsumerType(IndShockConsumerType):
             )
 
         # Store controls as attributes of self
-        self.cNrmNow = cNrmNow
-        self.ShareNow = ShareNow
+        self.controls["cNrmNow"] = cNrmNow
+        self.controls["ShareNow"] = ShareNow
 
 
 # Define a non-object-oriented one period solver

@@ -31,7 +31,7 @@ you might want to look at the `DemARK
    :caption: Notebooks
 
    example_notebooks/Gentle-Intro-To-HARK.ipynb
-   example_notebooks/PerfForesigthConsumerType.ipynb
+   example_notebooks/PerfForesightConsumerType.ipynb
    example_notebooks/IndShockConsumerType.ipynb
    example_notebooks/KinkedRconsumerType.ipynb
    example_notebooks/ConsPortfolioModel.ipynb

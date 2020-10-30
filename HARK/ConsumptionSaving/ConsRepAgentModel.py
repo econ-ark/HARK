@@ -392,7 +392,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         """
         t = self.t_cycle[0]
         i = self.MrkvNow[0]
-        self.cNrmNow = self.solution[t].cFunc[i](self.mNrmNow)
+        self.controls["cNrmNow"] = self.solution[t].cFunc[i](self.mNrmNow)
 
 
 # Define the default dictionary for a representative agent type

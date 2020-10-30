@@ -1185,7 +1185,7 @@ class MarkovConsumerType(IndShockConsumerType):
                 cNrmNow[these], MPCnow[these] = (
                     self.solution[t].cFunc[j].eval_with_derivative(self.state_now['mNrmNow'][these])
                 )
-        self.cNrmNow = cNrmNow
+        self.controls["cNrmNow"] = cNrmNow
         self.MPCnow = MPCnow
 
     def calcBoundingValues(self):
