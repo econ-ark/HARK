@@ -382,7 +382,8 @@ class AggShockConsumerType(IndShockConsumerType):
             MPCnow[these] = self.solution[t].cFunc.derivativeX(
                 self.state_now["mNrmNow"][these], MaggNow[these]
             )  # Marginal propensity to consume
-        self.cNrmNow = cNrmNow
+
+        self.controls["cNrmNow"] = cNrmNow
         self.MPCnow = MPCnow
         return None
 
@@ -625,7 +626,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
                     .cFunc[i]
                     .derivativeX(self.state_now["mNrmNow"][those], MaggNow[those])
                 )
-        self.cNrmNow = cNrmNow
+        self.controls["cNrmNow"] = cNrmNow
         self.MPCnow = MPCnow
         return None
 
@@ -1041,13 +1042,13 @@ class KrusellSmithType(AgentType):
         cNow[employed] = self.solution[0].cFunc[emp_idx](
             self.state_now["mNow"][employed], Mnow[employed]
         )
-        self.cNow = cNow
+        self.controls["cNow"] = cNow
 
     def getPostStates(self):
         """
         Gets each agent's retained assets after consumption and stores MrkvNow as MrkvPrev.
         """
-        self.state_now['aNow'] = self.state_now["mNow"] - self.cNow
+        self.state_now['aNow'] = self.state_now["mNow"] - self.controls["cNow"]
         self.MrkvPrev = self.MrkvNow
 
 

@@ -51,11 +51,11 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         self.pcct.simOnePeriod()
 
         self.assertAlmostEqual(
-            self.pcct.ShareNow[0],
+            self.pcct.controls["ShareNow"][0],
             0.8627164488246847
         )
         self.assertAlmostEqual(
-            self.pcct.cNrmNow[0],
+            self.pcct.controls["cNrmNow"][0],
             1.67874799
         )
 

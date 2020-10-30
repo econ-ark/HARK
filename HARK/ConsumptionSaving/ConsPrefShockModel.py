@@ -207,7 +207,7 @@ class PrefShockConsumerType(IndShockConsumerType):
             cNrmNow[these] = self.solution[t].cFunc(
                 self.state_now['mNrmNow'][these], self.shocks["PrefShkNow"][these]
             )
-        self.cNrmNow = cNrmNow
+        self.controls['cNrmNow'] = cNrmNow
         return None
 
     def calcBoundingValues(self):

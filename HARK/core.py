@@ -233,6 +233,7 @@ class AgentType(HARKobject):
         self.track_vars = []  # NOQA
         self.state_now = {sv : None for sv in self.state_vars}
         self.state_prev = self.state_now.copy()
+        self.controls = {}
         self.shocks = {}
         self.read_shocks = False  # NOQA
         self.shock_history = {}
@@ -783,6 +784,8 @@ class AgentType(HARKobject):
                         ]
                     elif var_name in self.shocks:
                         self.history[var_name][self.t_sim, :] = self.shocks[var_name]
+                    elif var_name in self.controls:
+                        self.history[var_name][self.t_sim, :] = self.controls[var_name]
                     else:
                         self.history[var_name][self.t_sim, :] = getattr(self, var_name)
                 self.t_sim += 1
