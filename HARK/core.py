@@ -806,6 +806,114 @@ class AgentType(HARKobject):
             self.history[var_name] = np.empty((self.T_sim, self.AgentCount)) + np.nan
 
 
+class FrameAgentType(AgentType):
+    """
+    A variation of AgentType that uses Frames to organize
+    its simulation steps.
+
+    Frames allow for state, control, and shock resolutions
+    in a specified order, rather than assuming that they
+    are resolved as shocks -> states -> controls -> poststates.
+
+    Attributes
+    ----------
+    state_vars : list of string
+        The string labels for this AgentType's model state variables.
+    """
+
+    # init : initial states for variables.
+    init = {
+        'x' : lambda: 0
+    }
+
+    # frames property
+    frames = {
+        ('y') : lambda x: x^2
+    }
+
+    def simOnePeriod(self):
+        """
+        Simulates one period for this type.  Calls the methods getMortality(), getShocks() or
+        readShocks, getStates(), getControls(), and getPostStates().  These should be defined for
+        AgentType subclasses, except getMortality (define its components simDeath and simBirth
+        instead) and readShocks.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        if not hasattr(self, "solution"):
+            raise Exception(
+                "Model instance does not have a solution stored. To simulate, it is necessary"
+                " to run the `solve()` method of the class first."
+            )
+
+        # Mortality adjusts the agent population
+        self.getMortality()  # Replace some agents with "newborns"
+
+        # state_{t-1}
+        for var in self.state_now:
+            self.state_prev[var] = self.state_now[var]
+            # note: this is not type checked for aggregate variables.
+            self.state_now[var] = np.empty(self.AgentCount)
+
+        # transition the variables in the frame
+        for frame in self.frames:
+            self.transition_frame(frame, self.frames[frame])
+
+        # Advance time for all agents
+        self.t_age = self.t_age + 1  # Age all consumers by one period
+        self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
+        self.t_cycle[
+            self.t_cycle == self.T_cycle
+        ] = 0  # Resetting to zero for those who have reached the end
+
+    def simBirth(self, which_agents):
+        """
+        Makes new agents for the simulation.
+        Takes a boolean array as an input, indicating which
+        agent indices are to be "born".
+
+        Populates model variable values with value from `init`
+        property
+
+        Parameters
+        ----------
+        which_agents : np.array(Bool)
+            Boolean array of size self.AgentCount indicating which agents should be "born".
+
+        Returns
+        -------
+        None
+        """
+        for var in self.init:
+            if var in self.state_now:
+                self.state_now[var][which_agents] = self.init[var]()
+            elif var in self.controls:
+                self.controls[var][which_agents] = self.init[var]()
+            elif var in self.shocks:
+                self.shocks[var][which_agents] = self.init[var]()
+
+    def transition_frame(self, target, transition):
+        """
+        Updates the model variables in `target`
+        using the `transition` function.
+
+        The transition function will use current model
+        variable state as arguments.
+        """
+
+        ## simplest version of this.
+        transition(self)
+
+
+
+
+
 def solveAgent(agent, verbose):
     """
     Solve the dynamic model for one agent type
