@@ -444,10 +444,7 @@ class PortfolioConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.simBirth(self, which_agents)
-        # Checking for control variable attribute here
-        # because we have not namespaced controls yet
-        if hasattr(self, 'ShareNow'):
-            self.ShareNow[which_agents] = 0
+        self.controls['ShareNow'][which_agents] = 0
         # here a shock is being used as a 'post state'
         self.shocks['AdjustNow'][which_agents] = False
 
