@@ -87,9 +87,55 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         'pLvlNow' : birth_pLvlNow
     }
 
+    def transition_ShareNow(self):
+        ShareNow = np.zeros(self.AgentCount) + np.nan
+
+        # Loop over each period of the cycle, getting controls separately depending on "age"
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+
+            # Get controls for agents who *can* adjust their portfolio share
+            those = np.logical_and(these, self.shocks['AdjustNow'])
+
+            ShareNow[those] = self.solution[t].ShareFuncAdj(self.state_now['mNrmNow'][those])
+
+            # Get Controls for agents who *can't* adjust their portfolio share
+            those = np.logical_and(
+                these,
+                np.logical_not(self.shocks['AdjustNow']))
+            ShareNow[those] = self.solution[t].ShareFuncFxd(
+                self.state_now['mNrmNow'][those], ShareNow[those]
+            )
+
+        self.controls["ShareNow"] = ShareNow
+
+    def transition_cNrmNow(self):
+        cNrmNow = np.zeros(self.AgentCount) + np.nan
+        ShareNow = self.controls["ShareNow"]
+
+        # Loop over each period of the cycle, getting controls separately depending on "age"
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+
+            # Get controls for agents who *can* adjust their portfolio share
+            those = np.logical_and(these, self.shocks['AdjustNow'])
+            cNrmNow[those] = self.solution[t].cFuncAdj(self.state_now['mNrmNow'][those])
+
+            # Get Controls for agents who *can't* adjust their portfolio share
+            those = np.logical_and(
+                these,
+                np.logical_not(self.shocks['AdjustNow']))
+            cNrmNow[those] = self.solution[t].cFuncFxd(
+                self.state_now['mNrmNow'][those], ShareNow[those]
+            )
+
+        # Store controls as attributes of self
+        self.controls["cNrmNow"] = cNrmNow
+
     frames = {
         ('RiskyNow','AdjustNow') : PortfolioConsumerType.getShocks,
         ('pLvlNow', 'PlvlAggNow', 'bNrmNow', 'mNrmNow') : PortfolioConsumerType.getStates,
-        ('cNrmNow', 'ShareNow') : PortfolioConsumerType.getControls,
+        ('ShareNow') : transition_ShareNow,
+        ('cNrmNow') : transition_cNrmNow,
         ('aNrmNow', 'aNrmNow') : PortfolioConsumerType.getPostStates
     }
