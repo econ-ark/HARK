@@ -454,8 +454,14 @@ class AgentType(HARKobject):
             if self.state_now[var] is None:
                 self.state_now[var] = copy(blank_array)
 
-            #elif self.state_prev[var] is None:
-            #    self.state_prev[var] = copy(blank_array)
+        for var in self.controls:
+            if self.controls[var] is None:
+                self.controls[var] = copy(blank_array)
+
+        for var in self.shocks:
+            if self.shocks[var] is None:
+                self.shocks[var] = copy(blank_array)
+
         self.t_age = np.zeros(
             self.AgentCount, dtype=int
         )  # Number of periods since agent entry
@@ -890,13 +896,27 @@ class FrameAgentType(AgentType):
         -------
         None
         """
-        for var in self.init:
+        for var in self.birth_values:
+
+            N = np.sum(which_agents)
+
+            if callable(self.birth_values[var]):
+                value = self.birth_values[var](self, N)
+            else:
+                value = self.birth_values[var]
+
             if var in self.state_now:
-                self.state_now[var][which_agents] = self.init[var]()
+                self.state_now[var][which_agents] = value
             elif var in self.controls:
-                self.controls[var][which_agents] = self.init[var]()
+                self.controls[var][which_agents] = value
             elif var in self.shocks:
-                self.shocks[var][which_agents] = self.init[var]()
+                self.shocks[var][which_agents] = value
+
+        # from ConsIndShockModel. Needed???
+        self.t_age[which_agents] = 0  # How many periods since each agent was born
+        self.t_cycle[
+            which_agents
+        ] = 0  # Which period of the cycle each agent is currently in
 
     def transition_frame(self, target, transition):
         """
@@ -909,9 +929,6 @@ class FrameAgentType(AgentType):
 
         ## simplest version of this.
         transition(self)
-
-
-
 
 
 def solveAgent(agent, verbose):

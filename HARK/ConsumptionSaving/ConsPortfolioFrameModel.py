@@ -34,7 +34,7 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
 )
 
 from HARK.distribution import combineIndepDstns
-from HARK.distribution import Lognormal, Bernoulli  # Random draws for simulating agents
+from HARK.distribution import Lognormal, MeanOneLogNormal, Bernoulli  # Random draws for simulating agents
 from HARK.interpolation import (
     LinearInterp,  # Piecewise linear interpolation
     CubicInterp,  # Piecewise cubic interpolation
@@ -52,9 +52,39 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
     This is mainly to keep the _solver_ logic intact.
     """
 
-    init = {
-        'ShareNow' : lambda : 0,
-        'AdjustNow' : lambda : False
+    # values for aggregate variables
+    # to be set when simulation initializes.
+    # currently not doing anything because still using old
+    # initializeSim()
+    aggregate_init_values = {
+        'PlvlAggNow' : 1.0
+    }
+
+    def birth_aNrmNow(self, N):
+        return Lognormal(
+            mu=self.aNrmInitMean,
+            sigma=self.aNrmInitStd,
+            seed=self.RNG.randint(0, 2 ** 31 - 1),
+        ).draw(N)
+
+    def birth_pLvlNow(self, N):
+        pLvlInitMeanNow = self.pLvlInitMean + np.log(
+            self.state_now["PlvlAggNow"]
+        )  # Account for newer cohorts having higher permanent income
+
+        return Lognormal(
+            pLvlInitMeanNow,
+            self.pLvlInitStd,
+            seed=self.RNG.randint(0, 2 ** 31 - 1)
+        ).draw(N)
+
+
+    # values to assign to agents at birth
+    birth_values = {
+        'ShareNow' : 0,
+        'AdjustNow' : False,
+        'aNrmNow' : birth_aNrmNow,
+        'pLvlNow' : birth_pLvlNow
     }
 
     frames = {
