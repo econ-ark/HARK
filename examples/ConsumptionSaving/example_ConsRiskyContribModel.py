@@ -3,10 +3,8 @@
 Example implementations of HARK.ConsumptionSaving.ConsPortfolioModel
 '''
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyContribConsumerType, init_riskyContrib
-from copy import copy
 from time import time
 import numpy as np
-import matplotlib.pyplot as plt
 
 # %% Define a plotting function
 def plotFuncs3D(functions,bottom,top,N=300,titles = None, ax_labs = None):

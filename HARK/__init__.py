@@ -1,6 +1,6 @@
 from .core import *
 
-__version__ = "0.10.7"
+__version__ = "0.10.8"
 
 """
 Logging tools for HARK.

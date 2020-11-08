@@ -4,19 +4,13 @@ agents who must allocate their resources among consumption, saving in a risk-fre
 asset (with a low return), and saving in a risky asset (with higher average return).
 '''
 import numpy as np
-from scipy.optimize import minimize_scalar
-from itertools import product
 from copy import deepcopy
-from HARK.dcegm import calcMultilineEnvelope
 from HARK import HARKobject, NullFunc, AgentType # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import(
     IndShockConsumerType,       # PortfolioConsumerType inherits from it
-    ValueFunc,                  # For representing 1D value function
-    MargValueFunc,              # For representing 1D marginal value function
     utility,                    # CRRA utility function
     utility_inv,                # Inverse CRRA utility function
     utilityP,                   # CRRA marginal utility function
-    utility_invP,               # Derivative of inverse CRRA utility function
     utilityP_inv,               # Inverse CRRA marginal utility function
     init_idiosyncratic_shocks   # Baseline dictionary to build on
 )
@@ -28,9 +22,6 @@ from HARK.distribution import combineIndepDstns
 from HARK.distribution import Lognormal, Bernoulli # Random draws for simulating agents
 from HARK.interpolation import(
         LinearInterp,           # Piecewise linear interpolation
-        CubicInterp,            # Piecewise cubic interpolation
-        LinearInterpOnInterp1D, # Interpolator over 1D interpolations
-        BilinearInterpOnInterp1D,
         BilinearInterp,         # 2D interpolator
         TrilinearInterp,        # 3D interpolator
         ConstantFunction,       # Interpolator-like class that returns constant value
@@ -42,9 +33,10 @@ from HARK.utilities import makeGridExpMult
 class ValueFunc3D(HARKobject):
     '''
     A class for representing a value function in a model with three state
-    satirbles. The underlying interpolation is
-    in the space of (m,n,s) --> u_inv(v); this class "re-curves" to the value function.
+    variables. The underlying interpolation is in the space of
+    (m,n,s) --> u_inv(v); this class "re-curves" to the value function.
     '''
+    
     distance_criteria = ['func', 'CRRA']
 
     def __init__(self, vFuncNvrs, CRRA):
@@ -54,8 +46,8 @@ class ValueFunc3D(HARKobject):
         ----------
         vFuncNvrs : function
             A real function representing the value function composed with the
-            inverse utility function, defined on market resources and persistent
-            income: u_inv(vFunc(m,p))
+            inverse utility function, defined over three state variables: 
+            u_inv(vFunc(x,y,z))
         CRRA : float
             Coefficient of relative risk aversion.
         Returns
@@ -67,8 +59,9 @@ class ValueFunc3D(HARKobject):
 
     def __call__(self, m, n, s):
         '''
-        Evaluate the value function at given levels of market resources m and
-        persistent income p.
+        Evaluate the value function at given levels of the three state variables
+        (m,n,s)
+        
         Parameters
         ----------
         m : float or np.array
@@ -90,7 +83,7 @@ class ValueFunc3D(HARKobject):
 class MargValueFunc3D(HARKobject):
     '''
     A class for representing a marginal value function in models where the
-    standard envelope condition of v'(m,p) = u'(c(m,p)) holds (with CRRA utility).
+    standard envelope condition of v'(m,n,s) = u'(c(m,n,s)) holds (with CRRA utility).
     '''
     distance_criteria = ['dvdxNvrs', 'CRRA']
 
@@ -101,10 +94,10 @@ class MargValueFunc3D(HARKobject):
         ----------
         cFunc : function
             A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on market
-            resources and the level of persistent income: uP_inv(vPfunc(m,p)).
+            with the inverse marginal utility function, defined on three state
+            variables: uP_inv(vPfunc(m,n,s)).
             Called cFunc because when standard envelope condition applies,
-            uP_inv(vPfunc(m,p)) = cFunc(m,p).
+            uP_inv(vPfunc(m,n,s)) = cFunc(m,n,s).
         CRRA : float
             Coefficient of relative risk aversion.
         Returns
@@ -116,8 +109,8 @@ class MargValueFunc3D(HARKobject):
 
     def __call__(self, m, n, s):
         '''
-        Evaluate the marginal value function at given levels of market resources
-        m and persistent income p.
+        Evaluate the marginal value function at given levels of state variables
+        
         Parameters
         ----------
         m : float or np.array
@@ -145,8 +138,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
     - The share of the agent's total resources allocated to the risky asset.
     - The share of income that the agent diverts to the risky asset
     depending on the model.
-    There is a friction that prevents the agent from adjusting this share with
-    an exogenously given probability.
+    There is a friction that prevents the agent from adjusting his portfolio
+    and contribution scheme at any given period with an exogenously given
+    probability.
     """
     
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
@@ -255,7 +249,19 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         self.addToTimeInv('IndepDstnBool')
     
     def updateAdjustPrb(self):
-        
+        '''
+        Checks and updates the exogenous probability of the agent being allowed
+        to rebalance his portfolio/contribution scheme. It can be time varying.
+
+        Parameters
+        ------
+        None.
+
+        Returns
+        -------
+        None.
+
+        '''
         if (type(self.AdjustPrb) is list and (len(self.AdjustPrb) == self.T_cycle)):
             self.addToTimeVary('AdjustPrb')
         elif type(self.AdjustPrb) is list:
@@ -266,8 +272,8 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
     def updateShareGrid(self):
         '''
-        Creates the attribute ShareGrid as an evenly spaced grid on [0.,1.], using
-        the primitive parameter ShareCount.
+        Creates the attribute ShareGrid as an evenly spaced grid on [0.,1.],
+        using the primitive parameter ShareCount.
 
         Parameters
         ----------
@@ -345,8 +351,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
     def initializeSim(self):
         '''
-        Initialize the state of simulation attributes.  Simply calls the same method
-        for IndShockConsumerType, then sets the type of AdjustNow to bool.
+        Initialize the state of simulation attributes.  Simply calls the same
+        method for IndShockConsumerType, then initializes the new states/shocks
+        AdjustNow and ShareNow.
 
         Parameters
         ----------
@@ -356,11 +363,9 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         -------
         None
         '''
-        # these need to be set because "post states",
-        # but are a control variable and shock, respectively
+        IndShockConsumerType.initializeSim(self)
         self.state_now['ShareNow'] = np.zeros(self.AgentCount)
         self.shocks['AdjustNow'] = np.zeros(self.AgentCount, dtype=bool)
-        IndShockConsumerType.initializeSim(self)
 
 
     def simBirth(self,which_agents):
@@ -386,7 +391,7 @@ class RiskyAssetConsumerType(IndShockConsumerType):
         '''
         Draw idiosyncratic income shocks, just as for IndShockConsumerType, then draw
         a single common value for the risky asset return.  Also draws whether each
-        agent is able to update their risky asset share this period.
+        agent is able to adjust their portfolio this period.
 
         Parameters
         ----------
@@ -403,12 +408,50 @@ class RiskyAssetConsumerType(IndShockConsumerType):
 
 # Class for the contribution share stage solution
 class RiskyContribShaSolution(HARKobject):
+    """
+    A class for representing the solution to the contribution-share stage of
+    the 'RiskyContrib' model.
+    
+    Parameters
+    ----------
+    vFuncShaAdj : ValueFunc2D
+        Stage value function over normalized liquid resources and normalized
+        iliquid resources when the agent is able to adjust his portfolio.
+    ShareFuncAdj : Interp2D
+        Income contribution share function over normalized liquid resources
+        and normalized iliquid resources when the agent is able to adjust his
+        portfolio.
+    dvdmFuncShaAdj : MargValueFunc2D
+        Marginal value function over normalized liquid resources when the agent
+        is able to adjust his portfolio.
+    dvdnFuncShaAdj : MargValueFunc2D
+        Marginal value function over normalized iliquid resources when the
+        agent is able to adjust his portfolio.
+    vFuncShaFxd : ValueFunc3D
+        Stage value function over normalized liquid resources, normalized
+        iliquid resources, and income contribution share when the agent is not
+        able to adjust his portfolio.
+    ShareFuncFxd : Interp3D
+        Income contribution share function over normalized liquid resources,
+        iliquid resources, and income contribution share when the agent is not
+        able to adjust his portfolio.
+        Should be an IdentityFunc.
+    dvdmFuncShaFxd : MargValueFunc3D
+        Marginal value function over normalized liquid resources when the agent
+        is not able to adjust his portfolio.
+    dvdnFuncShaFxd : MargValueFunc3D
+        Marginal value function over normalized iliquid resources when the
+        agent is not able to adjust his portfolio.
+    dvdsFuncShaFxd : Interp3D
+        Marginal value function over income contribution share when the agent
+        is not able to adjust his portfolio
+    """
     
     # TODO: what does this do?
     distance_criteria = ['dvdmFuncSha']
 
     def __init__(self,
-        
+
         # Contribution stage, adjust
         vFuncShaAdj = None,
         ShareFuncAdj = None,
@@ -460,6 +503,43 @@ class RiskyContribShaSolution(HARKobject):
         
 # Class for asset adjustment stage solution
 class RiskyContribRebSolution(HARKobject):
+    """
+    A class for representing the solution to the asset-rebalancing stage of
+    the 'RiskyContrib' model.
+    
+    Parameters
+    ----------
+    vFuncRebAdj : ValueFunc2D
+        Stage value function over normalized liquid resources and normalized
+        iliquid resources when the agent is able to adjust his portfolio.
+    DFuncAdj : Interp2D
+        Deposit function over normalized liquid resources and normalized
+        iliquid resources when the agent is able to adjust his portfolio.
+    dvdmFuncRebAdj : MargValueFunc2D
+        Marginal value over normalized liquid resources when the agent is able
+        to adjust his portfolio.
+    dvdnFuncRebAdj : MargValueFunc2D
+        Marginal value over normalized liquid resources when the agent is able
+        to adjust his portfolio.
+    vFuncRebFxd : ValueFunc3D
+        Stage value function over normalized liquid resources, normalized
+        iliquid resources, and income contribution share when the agent is
+        not able to adjust his portfolio.
+    DFuncFxd : Interp2D
+        Deposit function over normalized liquid resources, normalized iliquid
+        resources, and income contribution share when the agent is not able to
+        adjust his portfolio.
+        Must be ConstantFunction(0.0)
+    dvdmFuncRebFxd : MargValueFunc3D
+        Marginal value over normalized liquid resources when the agent is not
+        able to adjust his portfolio.
+    dvdnFuncRebFxd : MargValueFunc3D
+        Marginal value over normalized iliquid resources when the agent is not
+        able to adjust his portfolio.
+    dvdsFuncRebFxd : Interp3D
+        Marginal value function over income contribution share when the agent
+        is not able to ajust his portfolio.
+    """
     
     # TODO: what does this do?
     distance_criteria = ['dvdmFuncReb']
@@ -516,7 +596,25 @@ class RiskyContribRebSolution(HARKobject):
         
 # Define a class to represent the single period solution of the portfolio choice problem
 class RiskyContribCnsSolution(HARKobject):
+    """
+    A class for representing the solution to the consumption stage of the
+    'RiskyContrib' model.
     
+    Parameters
+    ----------
+    vFuncCns : ValueFunc3D
+        Stage-value function over normalized liquid resources, normalized
+        iliquid resources, and income contribution share.
+    cFunc : Interp3D
+        Consumption function over normalized liquid resources, normalized
+        iliquid resources, and income contribution share.
+    dvdmFuncCns : MargValueFunc3D
+        Marginal value function over normalized liquid resources.
+    dvdnFuncCns : MargValueFunc3D
+        Marginal value function over normalized iliquid resources.
+    dvdsFuncCns : Interp3D
+        Marginal value function over income contribution share.
+    """
     # TODO: what does this do?
     distance_criteria = ['vPfuncAdj']
 
