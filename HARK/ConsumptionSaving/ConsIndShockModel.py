@@ -2473,7 +2473,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Impatience Condition (WRIC), Finite Human Wealth Condition (FHWC) and Finite Value of
         Autarky Condition (FVAC).  When combinations of these conditions are satisfied, the
         solution to the problem exhibits different characteristics.  (For an exposition of the
-        conditions, see http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/)
+        conditions, see https://www.econ2.jhu.edu/people/ccarroll/papers/BufferStockTheory/)
 
         Parameters
         ----------
@@ -2494,7 +2494,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             return
 
         # For theory, see hyperlink targets to expressions in
-        # url=http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory
+        # url=https://www.econ2.jhu.edu/people/ccarroll/papers/BufferStockTheory
         # For example, the hyperlink to the relevant section of the paper
         self.url = "https://llorracc.github.io/BufferStockTheory"
         # would be referenced below as:
