@@ -163,6 +163,30 @@ def plotSlices4D(functions,bot_x,top_x,y_slices,w_slices,N=300,
     plt.show()
 
 # %%
+# Solve an infinite horizon version
+
+par_infinite = init_riskyContrib.copy()
+
+# Params
+par_infinite['DiscreteShareBool'] = False
+par_infinite['vFuncBool']         = False
+par_infinite['PermGroFac']        = [1.01]
+par_infinite['PermShkStd']        = [0.1]
+par_infinite['TranShkStd']        = [0.3]
+par_infinite['AdjustPrb']         = 0.5
+par_infinite['tau']               = 0.1  # Tax rate on risky asset withdrawals
+par_infinite['LivPrb']            = [0.95]
+par_infinite['cycles']            = 0
+par_infinite['T_cycle']           = 1
+
+InfAgent = RiskyContribConsumerType(**par_infinite)
+print('Now solving')
+t0 = time()
+InfAgent.solve()
+t1 = time()
+print('Solving took ' + str(t1-t0) + ' seconds.')
+
+# %%
 # Make and solve an example of the risky pension contribution consumer type
 init_sticky_share = init_riskyContrib.copy()
 init_sticky_share['DiscreteShareBool'] = True

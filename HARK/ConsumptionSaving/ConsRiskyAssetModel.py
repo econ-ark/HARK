@@ -163,7 +163,10 @@ class RiskyAssetConsumerType(IndShockConsumerType):
             **kwds
         )
         
-        self.update()
+        # self.update is already called inside IndShockConsumerType.__init__
+        # Since self is passed to it, we are sure the propper method will be
+        # used.
+        # self.update()
 
 
     def preSolve(self):
@@ -654,9 +657,8 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     TODO: model description
     """
     
-    time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ['DiscreteShareBool']
-    
+    time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)
+
     state_vars  = RiskyAssetConsumerType.state_vars + ['mNrmTildeNow','nNrmTildeNow', 'ShareNow']
     shock_vars_ = RiskyAssetConsumerType.shock_vars_
 
