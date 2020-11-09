@@ -87,7 +87,7 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         'pLvlNow' : birth_pLvlNow
     }
 
-    def transition_ShareNow(self):
+    def transition_ShareNow(self, **context):
         ShareNow = np.zeros(self.AgentCount) + np.nan
 
         # Loop over each period of the cycle, getting controls separately depending on "age"
@@ -104,12 +104,15 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
                 these,
                 np.logical_not(self.shocks['AdjustNow']))
             ShareNow[those] = self.solution[t].ShareFuncFxd(
-                self.state_now['mNrmNow'][those], ShareNow[those]
+                context['mNrmNow'][those], ShareNow[those]
             )
 
+        # redundant for now
         self.controls["ShareNow"] = ShareNow
 
-    def transition_cNrmNow(self):
+        return ShareNow
+
+    def transition_cNrmNow(self, **context):
         cNrmNow = np.zeros(self.AgentCount) + np.nan
         ShareNow = self.controls["ShareNow"]
 
@@ -118,19 +121,22 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
             these = t == self.t_cycle
 
             # Get controls for agents who *can* adjust their portfolio share
-            those = np.logical_and(these, self.shocks['AdjustNow'])
-            cNrmNow[those] = self.solution[t].cFuncAdj(self.state_now['mNrmNow'][those])
+            those = np.logical_and(these, context['AdjustNow'])
+            cNrmNow[those] = self.solution[t].cFuncAdj(context['mNrmNow'][those])
 
             # Get Controls for agents who *can't* adjust their portfolio share
             those = np.logical_and(
                 these,
-                np.logical_not(self.shocks['AdjustNow']))
+                np.logical_not(context['AdjustNow']))
             cNrmNow[those] = self.solution[t].cFuncFxd(
-                self.state_now['mNrmNow'][those], ShareNow[those]
+                context['mNrmNow'][those], ShareNow[those]
             )
 
         # Store controls as attributes of self
+        # redundant for now
         self.controls["cNrmNow"] = cNrmNow
+
+        return cNrmNow
 
     frames = {
         ('RiskyNow','AdjustNow') : PortfolioConsumerType.getShocks,

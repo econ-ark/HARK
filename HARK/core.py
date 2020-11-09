@@ -927,8 +927,38 @@ class FrameAgentType(AgentType):
         variable state as arguments.
         """
 
-        ## simplest version of this.
-        transition(self)
+        # build a context object based on model state variables
+        # and 'self' reference for 'global' variables
+        context = {} # {'self' : self}
+        context.update{self.shocks}
+        context.update{self.controls}
+        context.update{self.state_now}
+
+        # a method for indicating that a 'previous' version
+        # of a variable is intended.
+        # Perhaps store this in a separate notation.py module
+        def decrement(var_name):
+            return var_name + '_'
+
+        # use special notation for the 'previous state' variables
+        context.update({
+            decrement(var) : state_prev[var]
+            for var
+            in state_prev
+
+        })
+
+        # TODO: Limit context to variables listed to make
+        #       structure more explicit
+
+        new_values = transition(
+            **context
+        )
+
+        # because the context was a shallow update,
+        # the model values can be modified directly
+        for i in enumerate(target):
+            context[target[i]] = new_values[i]
 
 
 def solveAgent(agent, verbose):
