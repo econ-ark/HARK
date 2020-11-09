@@ -1881,7 +1881,7 @@ class PerfForesightConsumerType(AgentType):
         test = lambda agent: agent.thorn < 1
 
         messages = {
-            True: "The value of the absolute impatience factor (APF) for the supplied parameter values satisfies the Absolute Impatience Condition.",
+            True: "The value of the Absolute Patience Factor (APF) for the supplied parameter values satisfies the Absolute Impatience Condition.",
             False: "The given type violates the Absolute Impatience Condition with the supplied parameter values; the APF is {0.thorn}",
         }
         verbose_messages = {
@@ -2370,7 +2370,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def checkGICInd(self, verbose=None):
         """
-        Check Individual Growth Impatience Factor.
+        Check Individual Growth Patience Factor.
         """
         self.GPFInd = self.thorn / (
             self.PermGroFac[0] * self.InvEPermShkInv
@@ -2380,7 +2380,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         test = lambda agent: agent.GPFInd <= 1
 
         messages = {
-            True: "\nThe value of the Individual Growth Impatience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition; the value of the GPFInd is: {0.GPFInd}",
+            True: "\nThe value of the Individual Growth Patience Factor for the supplied parameter values satisfies the Individual Growth Impatience Condition; the value of the GPFInd is: {0.GPFInd}",
             False: "\nThe given parameter values violate the Individual Growth Impatience Condition; the GPFInd is: {0.GPFInd}",
         }
 
@@ -2396,7 +2396,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         test = lambda agent: agent.GPFAgg <= 1
 
         messages = {
-            True: "\nThe value of the Aggregate Growth Impatience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition; the value of the GPFAgg is: {0.GPFAgg}",
+            True: "\nThe value of the Aggregate Growth Patience Factor for the supplied parameter values satisfies the Aggregate Growth Impatience Condition; the value of the GPFAgg is: {0.GPFAgg}",
             False: "\nThe given parameter values violate the Aggregate Growth Impatience Condition; the GPFAgg is: {0.GPFAgg}",
         }
 
@@ -2422,8 +2422,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         test = lambda agent: agent.WRPF <= 1
 
         messages = {
-            True: "\nThe Weak Return Impatience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition; the WRPF is {0.WRPF}.",
-            False: "\nThe Weak Return Impatience Factor value for the supplied parameter values fails     the Weak Return Impatience Condition; the WRPF is {0.WRPF} (see {0.url}/#WRIC for more).",
+            True: "\nThe Weak Return Patience Factor value for the supplied parameter values satisfies the Weak Return Impatience Condition; the WRPF is {0.WRPF}.",
+            False: "\nThe Weak Return Patience Factor value for the supplied parameter values fails     the Weak Return Impatience Condition; the WRPF is {0.WRPF} (see {0.url}/#WRIC for more).",
         }
 
         verbose_messages = {
