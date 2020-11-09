@@ -87,7 +87,7 @@ mystr = lambda number: "{:.4f}".format(number)
 # %% [markdown]
 # ## Solution method for PerfForesightConsumerType
 #
-# Because of the assumptions of CRRA utility, no risk other than mortality, and no artificial borrowing constraint, the problem has a closed form solution.  In fact, the consumption function is perfectly linear, and the value function composed with the inverse utility function is also linear.  The mathematical solution of this model is described in detail in the lecture notes [PerfForesightCRRA](http://econ.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA).
+# Because of the assumptions of CRRA utility, no risk other than mortality, and no artificial borrowing constraint, the problem has a closed form solution.  In fact, the consumption function is perfectly linear, and the value function composed with the inverse utility function is also linear.  The mathematical solution of this model is described in detail in the lecture notes [PerfForesightCRRA](https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA).
 #
 # The one period problem for this model is solved by the function $\texttt{solveConsPerfForesight}$, which creates an instance of the class $\texttt{ConsPerfForesightSolver}$. To construct an instance of the class $\texttt{PerfForesightConsumerType}$, several parameters must be passed to its constructor as shown in the table below.
 
