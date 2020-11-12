@@ -226,9 +226,9 @@ periods = [0,2,3]
 n_slices = [0,2,6]
 mMax = 20
 
-DFuncAdj     = [ContribAgent.solution[t]['Reb'].DFuncAdj for t in periods]
-ShareFuncSha = [ContribAgent.solution[t]['Sha'].ShareFuncAdj for t in periods]
-cFuncFxd     = [ContribAgent.solution[t]['Cns'].cFunc for t in periods]
+DFuncAdj     = [ContribAgent.solution[t].stageSols['Reb'].DFuncAdj for t in periods]
+ShareFuncSha = [ContribAgent.solution[t].stageSols['Sha'].ShareFuncAdj for t in periods]
+cFuncFxd     = [ContribAgent.solution[t].stageSols['Cns'].cFunc for t in periods]
 
 # %% Adjustment stages
 

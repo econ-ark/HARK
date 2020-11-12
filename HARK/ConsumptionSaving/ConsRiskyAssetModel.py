@@ -597,7 +597,7 @@ class RiskyContribRebSolution(HARKobject):
         self.dvdnFuncRebFxd = dvdnFuncRebFxd
         self.dvdsFuncRebFxd = dvdsFuncRebFxd
         
-# Define a class to represent the single period solution of the portfolio choice problem
+# Class for the consumption stage solution
 class RiskyContribCnsSolution(HARKobject):
     """
     A class for representing the solution to the consumption stage of the
@@ -650,8 +650,25 @@ class RiskyContribCnsSolution(HARKobject):
         self.dvdmFuncCns = dvdmFuncCns
         self.dvdnFuncCns = dvdnFuncCns
         self.dvdsFuncCns = dvdsFuncCns
+
+# Class for the solution of a whole period
+class RiskyContribSolution(HARKobject):
+    
+    # Declare that the distance metric will be an object called 'ConvCriterion'
+    distance_criteria = ['ConvCriterion']
+
+    def __init__(self, Reb, Sha, Cns):
         
+        # Dictionary of stage solutions
+        self.stageSols = {'Reb': Reb, 'Sha': Sha, 'Cns': Cns}
         
+        # And convergence criterion. This is the object that will be checked
+        # for convergence in the infinite horizon solution.
+        # Take the start-of-period marginal value of liquid assets for the
+        # agent who can rebalance.
+        self.ConvCriterion = Reb.dvdmFuncRebAdj
+    
+
 class RiskyContribConsumerType(RiskyAssetConsumerType):
     """
     TODO: model description
@@ -779,9 +796,9 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             dvdsFuncRebFxd = dvdsFuncCns_term)
         
         # Construct the terminal period solution
-        self.solution_terminal = {'Reb': RebStageSol,
-                                  'Sha': ShaStageSol,
-                                  'Cns': CnsStageSol}
+        self.solution_terminal = RiskyContribSolution(RebStageSol,
+                                                      ShaStageSol,
+                                                      CnsStageSol)
         
     
     def updateTau(self):
@@ -1103,14 +1120,14 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                            
             # Get controls for agents who *can* adjust.
             those = np.logical_and(these, self.shocks['AdjustNow'])
-            DNrmNow[those] = self.solution[t]['Reb'].DFuncAdj(
+            DNrmNow[those] = self.solution[t].stageSols['Reb'].DFuncAdj(
                 self.state_now['mNrmNow'][those],
                 self.state_now['nNrmNow'][those]
             )
                 
             # Get Controls for agents who *can't* adjust.
             those = np.logical_and(these, np.logical_not(self.shocks['AdjustNow']))
-            DNrmNow[those] = self.solution[t]['Reb'].DFuncFxd(
+            DNrmNow[those] = self.solution[t].stageSols['Reb'].DFuncFxd(
                 self.state_now['mNrmNow'][those],
                 self.state_now['nNrmNow'][those],
                 self.state_now['ShareNow'][those]
@@ -1168,14 +1185,14 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                            
             # Get controls for agents who *can* adjust.
             those = np.logical_and(these, self.shocks['AdjustNow'])
-            ShareNow[those] = self.solution[t]['Sha'].ShareFuncAdj(
+            ShareNow[those] = self.solution[t].stageSols['Sha'].ShareFuncAdj(
                 self.state_now['mNrmTildeNow'][those],
                 self.state_now['nNrmTildeNow'][those]
             )
                 
             # Get Controls for agents who *can't* adjust.
             those = np.logical_and(these, np.logical_not(self.shocks['AdjustNow']))
-            ShareNow[those] = self.solution[t]['Sha'].ShareFuncFxd(
+            ShareNow[those] = self.solution[t].stageSols['Sha'].ShareFuncFxd(
                 self.state_now['mNrmTildeNow'][those],
                 self.state_now['nNrmTildeNow'][those],
                 self.state_now['ShareNow'][those]
@@ -1204,7 +1221,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
             these = t == self.t_cycle
                            
             # Get consumption
-            cNrmNow[these] = self.solution[t]['Cns'].cFunc(
+            cNrmNow[these] = self.solution[t].stageSols['Cns'].cFunc(
                 self.state_now['mNrmTildeNow'][these],
                 self.state_now['nNrmTildeNow'][these],
                 self.state_now['ShareNow'][these]
@@ -1825,7 +1842,7 @@ def solveRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
                 'Cns': solveRiskyContribCnsStage}
      
      # Initialize empty solution
-     solution = {}
+     stageSols = {}
      # Solve stages backwards
      for i in reversed(range(n_stages)):
          stage = Stages[i]
@@ -1833,14 +1850,17 @@ def solveRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
          # In the last stage, the next solution is the first stage of the next
          # period. Otherwise, its the next stage of his period.
          if i == n_stages - 1:
-             sol_next_stage = solution_next[Stages[0]]  
+             sol_next_stage = solution_next.stageSols[Stages[0]]  
          else:
-             sol_next_stage = solution[Stages[i+1]]
+             sol_next_stage = stageSols[Stages[i+1]]
         
          # Solve
-         solution[stage] = Solvers[stage](sol_next_stage, **kws)
+         stageSols[stage] = Solvers[stage](sol_next_stage, **kws)
      
-     return(solution)
+     # Assemble stage solutions into period solution
+     periodSol = RiskyContribSolution(**stageSols)
+     
+     return(periodSol)
 
 # Make a dictionary to specify a risky asset consumer type
 init_risky = init_idiosyncratic_shocks.copy()
