@@ -450,9 +450,6 @@ class RiskyContribShaSolution(HARKobject):
         is not able to adjust his portfolio
     """
     
-    # TODO: what does this do?
-    distance_criteria = ['dvdmFuncSha']
-
     def __init__(self,
 
         # Contribution stage, adjust
@@ -544,9 +541,6 @@ class RiskyContribRebSolution(HARKobject):
         is not able to ajust his portfolio.
     """
     
-    # TODO: what does this do?
-    distance_criteria = ['dvdmFuncReb']
-
     def __init__(self,
         
         # Rebalancing stage, adjusting
@@ -618,9 +612,7 @@ class RiskyContribCnsSolution(HARKobject):
     dvdsFuncCns : Interp3D
         Marginal value function over income contribution share.
     """
-    # TODO: what does this do?
-    distance_criteria = ['vPfuncAdj']
-
+    
     def __init__(self,
                 
         # Consumption stage
