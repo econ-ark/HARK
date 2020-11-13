@@ -179,79 +179,92 @@ par_infinite['LivPrb']            = [0.95]
 par_infinite['cycles']            = 0
 par_infinite['T_cycle']           = 1
 
+# Create agent and solve it.
 InfAgent = RiskyContribConsumerType(**par_infinite)
-print('Now solving')
+print('Now solving infinite horizon version')
 t0 = time()
 InfAgent.solve()
 t1 = time()
+print('Converged!')
 print('Solving took ' + str(t1-t0) + ' seconds.')
 
-# %%
-# Make and solve an example of the risky pension contribution consumer type
-init_sticky_share = init_riskyContrib.copy()
-init_sticky_share['DiscreteShareBool'] = True
-init_sticky_share['vFuncBool'] = True
-#init_sticky_share['UnempPrb'] = 0
-#init_sticky_share['UnempPrbRet'] = 0
-init_sticky_share['IncUnemp'] = 0.0
+# Plot policy functions
+periods = [0]
+n_slices = [0,2,6]
+mMax = 20
 
-init_sticky_share['DiscFac']  = 0.95**15
-init_sticky_share['Rfree']    = 1.03**15
-init_sticky_share['RiskyAvg'] = 1.08**15 # Average return of the risky asset
-init_sticky_share['RiskyStd'] = 0.20*np.sqrt(15) # Standard deviation of (log) risky returns
+DFuncAdj     = [InfAgent.solution[t].stageSols['Reb'].DFuncAdj for t in periods]
+ShareFuncSha = [InfAgent.solution[t].stageSols['Sha'].ShareFuncAdj for t in periods]
+cFuncFxd     = [InfAgent.solution[t].stageSols['Cns'].cFunc for t in periods]
+
+# Rebalancing
+plotSlices3D(DFuncAdj,0,mMax,y_slices = n_slices,y_name = 'n',
+             titles = ['t = ' + str(t) for t in periods],
+             ax_labs = ['m','d'])
+# Share
+plotSlices3D(ShareFuncSha,0,mMax,y_slices = n_slices,y_name = 'n',
+             titles = ['t = ' + str(t) for t in periods],
+             ax_labs = ['m','S'])
+
+# Consumption
+shares = [0., 0.9]
+plotSlices4D(cFuncFxd,0,mMax,y_slices = n_slices,w_slices = shares,
+             slice_names = ['n_til','s'],
+             titles = ['t = ' + str(t) for t in periods],
+             ax_labs = ['m_til','c'])
+
+# %%
+# Solve a short, finite horizon version
+par_finite = init_riskyContrib.copy()
+par_finite['DiscreteShareBool'] = True
+par_finite['vFuncBool'] = True
+
+par_finite['DiscFac']  = 0.95**15
+par_finite['Rfree']    = 1.03**15
+par_finite['RiskyAvg'] = 1.08**15 # Average return of the risky asset
+par_finite['RiskyStd'] = 0.20*np.sqrt(15) # Standard deviation of (log) risky returns
 
 # Three period model just to check
-init_sticky_share['PermGroFac'] = [2.0, 1.0, 0.1, 1.0]
-init_sticky_share['PermShkStd'] = [0.1, 0.1, 0.0, 0.0]
-init_sticky_share['TranShkStd'] = [0.2, 0.2, 0.0, 0.0]
-init_sticky_share['AdjustPrb']  = [0.1, 0.1, 0.95, 0.95]
-init_sticky_share['tau']        = [0.1, 0.1, 0.0, 0.0]
-init_sticky_share['LivPrb']     = [1.0, 1.0, 1.0, 1.0]
-init_sticky_share['T_cycle']    = 4
-init_sticky_share['T_retire']   = 0
-init_sticky_share['T_age']      = 4
+par_finite['PermGroFac'] = [2.0, 1.0, 0.1, 1.0]
+par_finite['PermShkStd'] = [0.1, 0.1, 0.0, 0.0]
+par_finite['TranShkStd'] = [0.2, 0.2, 0.0, 0.0]
+par_finite['AdjustPrb']  = [0.5, 0.5, 0.95, 0.95]
+par_finite['tau']        = [0.1, 0.1, 0.0, 0.0]
+par_finite['LivPrb']     = [1.0, 1.0, 1.0, 1.0]
+par_finite['T_cycle']    = 4
+par_finite['T_retire']   = 0
+par_finite['T_age']      = 4
 
-ContribAgent = RiskyContribConsumerType(**init_sticky_share)
-# %%
-# Make and solve a discrete portfolio choice consumer type
+# Create and solve
+ContribAgent = RiskyContribConsumerType(**par_finite)
 print('Now solving')
 t0 = time()
 ContribAgent.solve()
 t1 = time()
 print('Solving took ' + str(t1-t0) + ' seconds.')
 
-# %% Policy function inspection
-
+# Plot Policy functions
 periods = [0,2,3]
-n_slices = [0,2,6]
-mMax = 20
 
 DFuncAdj     = [ContribAgent.solution[t].stageSols['Reb'].DFuncAdj for t in periods]
 ShareFuncSha = [ContribAgent.solution[t].stageSols['Sha'].ShareFuncAdj for t in periods]
 cFuncFxd     = [ContribAgent.solution[t].stageSols['Cns'].cFunc for t in periods]
 
-# %% Adjustment stages
-
-# Share and Rebalancing
+# Rebalancing
 plotSlices3D(DFuncAdj,0,mMax,y_slices = n_slices,y_name = 'n',
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['m','d'])
-
+# Share
 plotSlices3D(ShareFuncSha,0,mMax,y_slices = n_slices,y_name = 'n',
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['m','S'])
-
-# %% Consumption stage
-
-# Create projected consumption functions at different points of the share grid
-shares = [0., 0.9]
-
+# Consumption
 plotSlices4D(cFuncFxd,0,mMax,y_slices = n_slices,w_slices = shares,
              slice_names = ['n_til','s'],
              titles = ['t = ' + str(t) for t in periods],
              ax_labs = ['m_til','c'])
 
-# %%  Simulate this consumer type
+# %%  Simulate the finite horizon consumer
 ContribAgent.track_vars = ['pLvlNow','t_age','AdjustNow',
                            'mNrmNow','nNrmNow','mNrmTildeNow','nNrmTildeNow','aNrmNow',
                            'cNrmNow', 'ShareNow', 'DNrmNow']
