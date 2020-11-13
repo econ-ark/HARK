@@ -1854,14 +1854,19 @@ def solveRiskyContrib(solution_next,ShockDstn,IncomeDstn,RiskyDstn,
      
      return(periodSol)
 
+# %% Useful parameter sets
+
+# %% Base risky asset dictionary
+
 # Make a dictionary to specify a risky asset consumer type
 init_risky = init_idiosyncratic_shocks.copy()
-init_risky['RiskyAvg']        = 1.08 # Average return of the risky asset
-init_risky['RiskyStd']        = 0.20 # Standard deviation of (log) risky returns
-init_risky['RiskyCount']      = 5    # Number of integration nodes to use in approximation of risky returns
-init_risky['ShareCount']      = 25   # Number of discrete points in the risky share approximation
-init_risky['AdjustPrb']       = 1.0  # Probability that the agent can adjust their risky portfolio share each period
+init_risky['RiskyAvg']          = 1.08 # Average return of the risky asset
+init_risky['RiskyStd']          = 0.20 # Standard deviation of (log) risky returns
+init_risky['RiskyCount']        = 5    # Number of integration nodes to use in approximation of risky returns
+init_risky['ShareCount']        = 25   # Number of discrete points in the risky share approximation
+init_risky['AdjustPrb']         = 1.0  # Probability that the agent can adjust their risky portfolio share each period
 init_risky['DiscreteShareBool'] = False # Flag for whether to optimize risky share on a discrete grid only
+init_risky['vFuncBool']         = False
 
 # Adjust some of the existing parameters in the dictionary
 init_risky['aXtraMax']        = 100  # Make the grid of assets go much higher...
@@ -1871,10 +1876,9 @@ init_risky['BoroCnstArt']     = 0.0  # Artificial borrowing constraint must be t
 init_risky['CRRA']            = 5.0  # Results are more interesting with higher risk aversion
 init_risky['DiscFac']         = 0.90 # And also lower patience
 
-# Make a dictionary for a risky-contribution consumer type
+# %% Base risky-contrib dictionary
 
 # TODO: these parameters are preliminary and arbitrary!
-
 init_riskyContrib = init_risky.copy()
 init_riskyContrib['ShareMax']        = 0.9  # You don't want to put 100% of your wage into pensions.
 
@@ -1893,18 +1897,10 @@ init_riskyContrib['nNrmNestFac']     = 1
 init_riskyContrib['dCount'] = 20
 
 # Params from the life-cycle agent
-init_riskyContrib['PermGroFac'] = [1.01,1.01,1.01,1.01,1.01,1.02,1.02,1.02,1.02,1.02]
-init_riskyContrib['PermShkStd'] = [0.1,0.2,0.1,0.2,0.1,0.2,0.1,0,0,0]
-init_riskyContrib['TranShkStd'] = [0.3,0.2,0.1,0.3,0.2,0.1,0.3,  0,  0,  0]
-init_riskyContrib['AdjustPrb']  = [1.0,1.0,1.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0]
-init_riskyContrib['tau']        = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]  # Tax rate on risky asset withdrawals
-init_riskyContrib['LivPrb']     = [0.99,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
-init_riskyContrib['T_cycle']    = 10
-init_riskyContrib['T_retire']   = 7
-init_riskyContrib['T_age']      = 11 # Make sure that old people die at terminal age and don't turn into newborns!
+init_riskyContrib['AdjustPrb']  = [1.0]
+init_riskyContrib['tau']        = [0.1]  # Tax rate on risky asset withdrawals
 
-
-# Reduce dimensions while conding the model up
+# TODO: Reduce dimensions while conding the model up
 init_riskyContrib['ShareCount']      = 10
 init_riskyContrib['aXtraCount']      = 40
 init_riskyContrib['nNrmCount']       = 40  #

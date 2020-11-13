@@ -165,19 +165,12 @@ def plotSlices4D(functions,bot_x,top_x,y_slices,w_slices,N=300,
 # %%
 # Solve an infinite horizon version
 
+# Get initial parameters
 par_infinite = init_riskyContrib.copy()
-
-# Params
-par_infinite['DiscreteShareBool'] = False
-par_infinite['vFuncBool']         = False
-par_infinite['PermGroFac']        = [1.01]
-par_infinite['PermShkStd']        = [0.1]
-par_infinite['TranShkStd']        = [0.3]
-par_infinite['AdjustPrb']         = 0.5
-par_infinite['tau']               = 0.1  # Tax rate on risky asset withdrawals
-par_infinite['LivPrb']            = [0.95]
-par_infinite['cycles']            = 0
-par_infinite['T_cycle']           = 1
+# And make the problem infinite horizon
+par_infinite['cycles']   = 0
+# and sticky
+par_infinite['AjustPrb'] = 0.5
 
 # Create agent and solve it.
 InfAgent = RiskyContribConsumerType(**par_infinite)
@@ -216,15 +209,8 @@ plotSlices4D(cFuncFxd,0,mMax,y_slices = n_slices,w_slices = shares,
 # %%
 # Solve a short, finite horizon version
 par_finite = init_riskyContrib.copy()
-par_finite['DiscreteShareBool'] = True
-par_finite['vFuncBool'] = True
 
-par_finite['DiscFac']  = 0.95**15
-par_finite['Rfree']    = 1.03**15
-par_finite['RiskyAvg'] = 1.08**15 # Average return of the risky asset
-par_finite['RiskyStd'] = 0.20*np.sqrt(15) # Standard deviation of (log) risky returns
-
-# Three period model just to check
+# Four period model
 par_finite['PermGroFac'] = [2.0, 1.0, 0.1, 1.0]
 par_finite['PermShkStd'] = [0.1, 0.1, 0.0, 0.0]
 par_finite['TranShkStd'] = [0.2, 0.2, 0.0, 0.0]
@@ -234,6 +220,14 @@ par_finite['LivPrb']     = [1.0, 1.0, 1.0, 1.0]
 par_finite['T_cycle']    = 4
 par_finite['T_retire']   = 0
 par_finite['T_age']      = 4
+
+# Adjust discounting and returns distribution so that they make sense in a 
+# 4-period model
+par_finite['DiscFac']  = 0.95**15
+par_finite['Rfree']    = 1.03**15
+par_finite['RiskyAvg'] = 1.08**15 # Average return of the risky asset
+par_finite['RiskyStd'] = 0.20*np.sqrt(15) # Standard deviation of (log) risky returns
+
 
 # Create and solve
 ContribAgent = RiskyContribConsumerType(**par_finite)
