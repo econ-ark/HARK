@@ -1,7 +1,7 @@
 """
 Defines and solves the Tractable Buffer Stock model described in lecture notes
 for "A Tractable Model of Buffer Stock Saving" (henceforth, TBS) available at
-http://econ.jhu.edu/people/ccarroll/public/lecturenotes/consumption/TractableBufferStock
+https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/TractableBufferStock
 The model concerns an agent with constant relative risk aversion utility making
 decisions over consumption and saving.  He is subject to only a very particular
 sort of risk: the possibility that he will become permanently unemployed until
