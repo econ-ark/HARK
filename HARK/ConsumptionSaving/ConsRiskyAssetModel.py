@@ -30,6 +30,28 @@ from HARK.interpolation import(
 
 from HARK.utilities import makeGridExpMult
 
+class DiscreteInterp2D(HARKobject):
+    
+    distance_criteria = ['IndexInterp']
+    
+    def __init__(self, IndexInterp, DiscreteVals):
+        
+        self.IndexInterp  = IndexInterp
+        self.DiscreteVals = DiscreteVals
+        self.nVals        = len(self.DiscreteVals)
+        
+    def __call__(self, x, y):
+        
+        # Interpolate indices and round to integers
+        inds = np.rint(self.IndexInterp(x, y)).astype(int)
+        
+        # Deal with out-of range indices
+        inds[inds < 0]          = 0
+        inds[inds > self.nVals] = self.nVals
+        
+        # Get values from grid
+        return(self.DiscreteVals[inds])
+    
 class ValueFunc3D(HARKobject):
     '''
     A class for representing a value function in a model with three state
@@ -1646,7 +1668,11 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
     # TODO: do discrete share interpolation more smartly taking into account
     # the fact that it's discrete. (current bilinear can and will result in shares
     # outside the discrete grid).
-    ShareFunc       = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
+    if DiscreteShareBool:
+        ShareFunc = DiscreteInterp2D(BilinearInterp(optIdx, mNrmGrid, nNrmGrid),
+                                     ShareGrid)
+    else:
+        ShareFunc       = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
     dvdmNvrsFuncSha = BilinearInterp(dvdmNvrsSha, mNrmGrid, nNrmGrid)
     dvdmFuncSha     = MargValueFunc2D(dvdmNvrsFuncSha, CRRA)
     dvdnNvrsFuncSha = BilinearInterp(dvdnNvrsSha, mNrmGrid, nNrmGrid)
