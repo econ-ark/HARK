@@ -47,7 +47,7 @@ class DiscreteInterp2D(HARKobject):
         
         # Deal with out-of range indices
         inds[inds < 0]          = 0
-        inds[inds > self.nVals] = self.nVals
+        inds[inds >= self.nVals] = self.nVals - 1
         
         # Get values from grid
         return(self.DiscreteVals[inds])
