@@ -1665,14 +1665,13 @@ def solveRiskyContribShaStage(solution_next,CRRA,AdjustPrb,
     else:
         vFuncSha = NullFunc()
         
-    # TODO: do discrete share interpolation more smartly taking into account
-    # the fact that it's discrete. (current bilinear can and will result in shares
-    # outside the discrete grid).
+    # Contribution share function
     if DiscreteShareBool:
         ShareFunc = DiscreteInterp2D(BilinearInterp(optIdx, mNrmGrid, nNrmGrid),
                                      ShareGrid)
     else:
         ShareFunc       = BilinearInterp(optShare, mNrmGrid, nNrmGrid)
+        
     dvdmNvrsFuncSha = BilinearInterp(dvdmNvrsSha, mNrmGrid, nNrmGrid)
     dvdmFuncSha     = MargValueFunc2D(dvdmNvrsFuncSha, CRRA)
     dvdnNvrsFuncSha = BilinearInterp(dvdnNvrsSha, mNrmGrid, nNrmGrid)
