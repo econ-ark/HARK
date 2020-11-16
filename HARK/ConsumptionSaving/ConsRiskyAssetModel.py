@@ -107,7 +107,7 @@ class MargValueFunc3D(HARKobject):
     A class for representing a marginal value function in models where the
     standard envelope condition of v'(m,n,s) = u'(c(m,n,s)) holds (with CRRA utility).
     '''
-    distance_criteria = ['dvdxNvrs', 'CRRA']
+    distance_criteria = ['dvdxNvrsFunc', 'CRRA']
 
     def __init__(self, dvdxNvrsFunc, CRRA):
         '''
@@ -472,6 +472,8 @@ class RiskyContribShaSolution(HARKobject):
         is not able to adjust his portfolio
     """
     
+    distance_criteria = ['dvdmFuncShaAdj','dvdnFuncShaAdj']
+    
     def __init__(self,
 
         # Contribution stage, adjust
@@ -563,6 +565,8 @@ class RiskyContribRebSolution(HARKobject):
         is not able to ajust his portfolio.
     """
     
+    distance_criteria = ['dvdmFuncRebAdj','dvdnFuncRebAdj']
+    
     def __init__(self,
         
         # Rebalancing stage, adjusting
@@ -635,6 +639,8 @@ class RiskyContribCnsSolution(HARKobject):
         Marginal value function over income contribution share.
     """
     
+    distance_criteria = ['dvdmFuncCns','dvdnFuncCns']
+    
     def __init__(self,
                 
         # Consumption stage
@@ -669,6 +675,9 @@ class RiskyContribCnsSolution(HARKobject):
 class RiskyContribSolution(HARKobject):
     
     # Declare that the distance metric will be an object called 'ConvCriterion'
+    # TODO: this should just be stageSols, but HARK's distance code can not
+    # deal with dictionaries at the moment: only lists. This is therefore a
+    # workarround.
     distance_criteria = ['ConvCriterion']
 
     def __init__(self, Reb, Sha, Cns):
@@ -678,9 +687,9 @@ class RiskyContribSolution(HARKobject):
         
         # And convergence criterion. This is the object that will be checked
         # for convergence in the infinite horizon solution.
-        # Take the start-of-period marginal value of liquid assets for the
-        # agent who can rebalance.
-        self.ConvCriterion = Reb.dvdmFuncRebAdj
+        # We inted the 'distance' to be an aggregate of the distance of 
+        # each stage's distance.
+        self.ConvCriterion = list(self.stageSols.values())
     
 
 class RiskyContribConsumerType(RiskyAssetConsumerType):

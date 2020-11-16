@@ -171,12 +171,14 @@ par_infinite = init_riskyContrib.copy()
 par_infinite['cycles']   = 0
 # and sticky
 par_infinite['AjustPrb'] = 0.5
+# and with a withdrawal tax
+par_infinite['tau'] = 0.1
 
 # Create agent and solve it.
 InfAgent = RiskyContribConsumerType(**par_infinite)
 print('Now solving infinite horizon version')
 t0 = time()
-InfAgent.solve()
+InfAgent.solve(verbose = True)
 t1 = time()
 print('Converged!')
 print('Solving took ' + str(t1-t0) + ' seconds.')
