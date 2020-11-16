@@ -52,6 +52,10 @@ def distanceMetric(thing_A, thing_B):
             distance = max(distance_temp)
         else:
             distance = float(abs(lenA - lenB))
+    # If both inputs are dictionaries, call distance on the list of its elements
+    elif typeA is dict and typeB is dict:
+        distance = distanceMetric(list(thing_A.values()),
+                                  list(thing_B.values()))
     # If both inputs are numbers, return their difference
     elif isinstance(thing_A, (int, float)) and isinstance(thing_B, (int, float)):
         distance = float(abs(thing_A - thing_B))
