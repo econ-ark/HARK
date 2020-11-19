@@ -9,7 +9,7 @@ This file also demonstrates a "frame" model architecture.
 import numpy as np
 from scipy.optimize import minimize_scalar
 from copy import deepcopy
-from HARK import HARKobject, NullFunc, FrameAgentType  # Basic HARK features
+from HARK import HARKobject, NullFunc, Frame, FrameAgentType  # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
     ValueFunc,  # For representing 1D value function

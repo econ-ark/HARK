@@ -812,6 +812,28 @@ class AgentType(HARKobject):
             self.history[var_name] = np.empty((self.T_sim, self.AgentCount)) + np.nan
 
 
+class Frame():
+    """
+    """
+
+    def __init__(
+            self,
+            target,
+            scope,
+            default = None,
+            transition = None,
+            objective = None
+    ):
+        """
+        """
+
+        self.target = target # tuple of variables
+        self.scope = scope # tuple of variables
+        self.default = default # default value used in simBirth; a dict
+        self.transition = transition # for use in simulation
+        self.objective = objective # for use in solver
+
+
 class FrameAgentType(AgentType):
     """
     A variation of AgentType that uses Frames to organize
@@ -827,15 +849,13 @@ class FrameAgentType(AgentType):
         The string labels for this AgentType's model state variables.
     """
 
-    # init : initial states for variables.
-    init = {
-        'x' : lambda: 0
-    }
-
     # frames property
-    frames = {
-        ('y') : lambda x: x^2
-    }
+    frames = [
+        Frame(
+            ('y'),('x'),
+            transition = lambda x: x^2
+        )
+    ]
 
     def simOnePeriod(self):
         """
@@ -869,7 +889,7 @@ class FrameAgentType(AgentType):
 
         # transition the variables in the frame
         for frame in self.frames:
-            self.transition_frame(frame, self.frames[frame])
+            self.transition(frame)
 
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
@@ -896,21 +916,22 @@ class FrameAgentType(AgentType):
         -------
         None
         """
-        for var in self.birth_values:
+        N = np.sum(which_agents)
 
-            N = np.sum(which_agents)
+        for frame in self.frames:
+            for var in frame.target:
 
-            if callable(self.birth_values[var]):
-                value = self.birth_values[var](self, N)
-            else:
-                value = self.birth_values[var]
+                if callable(frame.default[var]):
+                    value = frame.default[var](self, N)
+                else:
+                    value = frame.default[var]
 
-            if var in self.state_now:
-                self.state_now[var][which_agents] = value
-            elif var in self.controls:
-                self.controls[var][which_agents] = value
-            elif var in self.shocks:
-                self.shocks[var][which_agents] = value
+                if var in self.state_now:
+                    self.state_now[var][which_agents] = value
+                elif var in self.controls:
+                    self.controls[var][which_agents] = value
+                elif var in self.shocks:
+                    self.shocks[var][which_agents] = value
 
         # from ConsIndShockModel. Needed???
         self.t_age[which_agents] = 0  # How many periods since each agent was born
@@ -918,7 +939,7 @@ class FrameAgentType(AgentType):
             which_agents
         ] = 0  # Which period of the cycle each agent is currently in
 
-    def transition_frame(self, target, transition):
+    def transition_frame(self, frame):
         """
         Updates the model variables in `target`
         using the `transition` function.
@@ -929,7 +950,7 @@ class FrameAgentType(AgentType):
 
         # build a context object based on model state variables
         # and 'self' reference for 'global' variables
-        context = {} # {'self' : self}
+        context = {'self' : self}
         context.update{self.shocks}
         context.update{self.controls}
         context.update{self.state_now}
@@ -948,16 +969,23 @@ class FrameAgentType(AgentType):
 
         })
 
-        # TODO: Limit context to variables listed to make
-        #       structure more explicit
+        # limit context to scope of frame
+        local_context = {
+            var : context[var]
+            for var
+            in frame.scope
+        }
 
-        new_values = transition(
-            **context
-        )
+        if frame.transition is not None:
+            new_values = frame.transition(
+                **local_context
+            )
+        else:
+            raise Exception(f"Frame has None for transition: {frame}")
 
         # because the context was a shallow update,
-        # the model values can be modified directly
-        for i in enumerate(target):
+        # the model values can be modified directly(?)
+        for i in enumerate(frame_target):
             context[target[i]] = new_values[i]
 
 
