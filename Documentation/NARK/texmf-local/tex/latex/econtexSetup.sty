@@ -120,8 +120,10 @@
     \makeatother
     }
 \else
-    \RequirePackage[pdftex]{graphicx}
-    \RequirePackage[plainpages=false]{hyperref}
+% \RequirePackage[pdftex]{graphicx}
+    \RequirePackage{graphicx} % requiring [pdftex] seems to interfere with Pandemic build
+%    \RequirePackage[plainpages=false]{hyperref}
+    \RequirePackage{hyperref} % plainpages seems to mess up BST 
     \hypersetup{
        pdffitwindow = false,     % Don't rescale to fit size of window
        pdfpagemode=UseThumbs,
@@ -194,7 +196,9 @@
 \providecommand{\ExpEps}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#ExpEps}{\ensuremath{\mathtt{[ExpEps]}}}}
 \providecommand{\ExpPlus}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#ExpPlus}{\ensuremath{\mathtt{[ExpPlus]}}}}
 \providecommand{\FinSum}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#FinSum}{\ensuremath{\mathtt{[FinSum]}}}}
+\providecommand{\FinSumMult}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#FinSumMult}{\ensuremath{\mathtt{[FinSumMult]}}}}
 \providecommand{\InfSum}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#InfSum}{\ensuremath{\mathtt{[InfSum]}}}}
+\providecommand{\InfSumMult}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#InfSumMult}{\ensuremath{\mathtt{[InfSumMult]}}}}
 \providecommand{\LogELogNorm}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#LogELogNorm}{\ensuremath{\mathtt{[LogELogNorm]}}}}
 \providecommand{\LogELogNormTimes}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#LogELogNormTimes}{\ensuremath{\mathtt{[LogELogNormTimes]}}}}
 \providecommand{\LogEps}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#LogEps}{\ensuremath{\mathtt{[LogEps]}}}}
