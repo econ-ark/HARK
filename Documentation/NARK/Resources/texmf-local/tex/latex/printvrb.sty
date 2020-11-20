@@ -1,0 +1,112 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% printvrb.sty %%%%%%%%%%%%%%%%%%
+%%% Amy Hendrickson
+%%% TeXnology Inc.
+%%% http://www.texnology.com
+%%% revised version, April 8, 2011
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% Uses moreverb.sty, Rainer Schopf author, 
+%%% as method to send verbatim text to
+%%% another file, 
+
+%%% These commands allow user to type in text or math and
+%%% have it print in more than one document,
+%%% for example, print in an article and also in slides.
+
+%%% This is done by sending fragments to a jobname.vrb file.
+%%% Each fragment will have a unique name given as an argument
+%%% to writetofile.
+
+%%% 
+\usepackage{moreverb}
+
+\newwrite\verbatimout
+
+%% The fragments will be sent to a new file called
+%% the same name as the file they are found in with a
+%% .vrb filename ending. (ie., test.tex ==> test.vrb)
+%% They will also print in the originating .tex file
+%% when LaTeX is run on the file twice (like the \tableofcontents
+%% and cross-references).
+
+
+%%% \begin{writetofile}{name}{your text}\end{writetofile}
+%%% Notice that there are curly brackets surrounding the
+%%% text you enter. These are necessary.
+
+%%% (Name can include numbers or any symbols you want)
+
+%%% Used:
+%%% \begin{writetofile}{name}
+%%% {my text}
+%%% \end{writetofile}
+
+\newcount\definitionnumber
+
+%%% \namesinmargin will make name of fragment appear in margin.
+%%% If this command isn't there, there will be no names in the margin.
+
+\newif\ifnamesinmargin
+\def\namesinmargin{\global\namesinmargintrue}
+
+\def\writetofile#1{%
+\vskip1sp
+\ifnum\definitionnumber=0
+\expandafter\openin1 \jobname.vrb
+\ifeof1 
+\else
+\input \jobname.vrb
+\fi%% to get the previous definitions 
+\immediate\openout\verbatimout=\jobname.vrb
+\fi
+%%
+\global\advance\definitionnumber by 1
+\gdef\currname{#1}%
+\ifnamesinmargin
+\vskip1sp\noindent\llap{\vtop to 0pt{\hbox{\tt\csname currname\endcsname\hskip4pt==>\ }\vss}}%
+\fi%
+%%
+\immediate\write\verbatimout{^^J^^J\string\expandafter\string\gdef\string\csname\space
+\currname\string\endcsname}
+ \@bsphack
+ \let\do\@makeother\dospecials
+ \catcode`\^^M\active \catcode`\^^I=12
+ \def\verbatim@processline{%
+ \immediate\write\verbatimout
+ {\the\verbatim@line}}%
+\verbatim@start}
+
+\def\endwritetofile{%
+ \@esphack
+\expandafter\ifx\csname \currname\endcsname\relax Please run LaTeX on
+file one more time!\else
+\ifnamesinmargin\vskip-\baselineskip\fi
+\noindent\expandafter\csname \currname\endcsname\relax\fi
+}
+
+\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%
+%%% Using fragments in new file:
+
+%%% \input jobname.vrb will bring in the definitions
+%%% for the fragments. 
+%%% (jobname is the same as the filename of the source document)
+
+%%% \namesinmargin will make names print as well as as printing
+%%% the fragment.
+
+%%% \printfrag{name} will bring in fragment defined in source file,
+%%% and sent to jobname.vrb.
+
+%%% \printfrag will save the problem of remembering to use 
+%%% \csname ...\endcsname, and will check to see if fragment is defined
+
+\def\printfrag#1{\expandafter\ifx\csname #1\endcsname\relax\vskip12pt
+\noindent(!! There is
+no fragment {\tt ==> #1 <==} maybe run LaTeX on source file again?)\vskip12pt\else
+\ifnamesinmargin
+\vskip1sp\noindent\llap{\vtop to 0pt{\hbox{\tt #1\hskip4pt==>\ }\vss}}\fi%
+\csname #1\endcsname\fi
+}

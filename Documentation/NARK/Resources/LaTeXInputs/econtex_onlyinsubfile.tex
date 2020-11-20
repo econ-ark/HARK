@@ -1,0 +1,11 @@
+\onlyinsubfile{% https://tex.stackexchange.com/questions/463699/proper-reference-numbers-with-subfiles
+    \csname @ifpackageloaded\endcsname{xr-hyper}{%
+      \externaldocument{\econtexRoot/BufferStockTheory}% xr-hyper in use; optional argument for url of main.pdf for hyperlinks
+    }{%
+      \externaldocument{\econtexRoot/BufferStockTheory}% xr in use
+    }%
+    \renewcommand\labelprefix{}%
+    % Initialize the counters via the labels belonging to the main document:
+    \setcounter{equation}{\numexpr\getrefnumber{\labelprefix eq:Dummy}\relax}% eq:Dummy is the last number used for an equation in the main text; start counting up from there
+}
+
