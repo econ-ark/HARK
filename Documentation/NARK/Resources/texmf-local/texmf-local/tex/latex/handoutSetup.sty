@@ -1,3 +1,4 @@
+\usepackage{handoutShortcuts}
 \RequirePackage{wasysym
 ,psibycus % Greek language package, including koppa 
 ,ushort
@@ -67,10 +68,10 @@
 % whether running in dvi mode and sets the options necessary to generate
 % html version of document using tex4ht
 
-%\makeatletter
-%\newif\ifdvi\dvitrue
-%\@ifundefined{pdfoutput}{}{\ifnum\pdfoutput>0 \dvifalse\fi}
-%\makeatother
+\makeatletter
+\newif\ifdvi\dvitrue
+\@ifundefined{pdfoutput}{}{\ifnum\pdfoutput>0 \dvifalse\fi}
+\makeatother
 
 % dvi compilation only occurs if making the html version
 \ifdvi
@@ -101,7 +102,7 @@
 %           \noindent \hrule height 0.4pt depth 0.0pt width \textwidth \relax
        \vspace*{3mm}
        \ifthenelse{ \isundefined\@keywords }{
-       \ClassWarningNoLine{bejournal}{No keywords specified.
+       \ClassWarningNoLine{handout}{No keywords specified.
           Please use the command \protect\keywords}
        }{
        }
@@ -110,7 +111,7 @@
     \begin{Description}
     \item[\textbf{~~~~~~~~~~~~Keywords~}] \@keywords
     \ifthenelse{ \isundefined\@jelclass }{
-    \ClassWarningNoLine{bejournal}{No JEL classification specified.
+    \ClassWarningNoLine{handout}{No JEL classification specified.
        Please use the command \protect\jelclass}
     }{
     \item[\textbf{~~~~~~~~~~~~JEL codes~}] \@jelclass
@@ -120,8 +121,8 @@
     \makeatother
     }
 \else
-    \RequirePackage[pdftex]{graphicx}
-    \RequirePackage[plainpages=false]{hyperref}
+    \RequirePackage{graphicx}
+    \RequirePackage{hyperref}
     \hypersetup{
        pdffitwindow = false,     % Don't rescale to fit size of window
        pdfpagemode=UseThumbs,
@@ -139,8 +140,8 @@
 
 \newcolumntype{d}[1]{D{.}{.}{#1}} % Seems to need to come after hyperref
 
-\definecolor{darkblue}{rgb}{0.1,0.094,0.3}
-\definecolor{darkred}{rgb}{0.3,0,0}
+\definecolor{darkblue}{rgb}{0.055,0.094,0.7}
+\definecolor{darkred}{rgb}{0.6,0,0}
 \hypersetup{colorlinks=true,           % put a box around links
    linkbordercolor = {1 0 0}, % the box will be red
    pdfborder = {1 0 0},       % 
@@ -157,6 +158,12 @@
 
 %\newenvironment{tabularTitle}{\tabularTitle}{\endtabularTitle}
 \newenvironment{tabularTitle}{\tabular}{\endtabular}
+\providecommand{\handoutHeader}{{\tiny \noindent $^\copyright$\today, \href{https://www.econ2.jhu.edu/people/ccarroll/}{Christopher D. Carroll} \hfill \href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes}{\jobname}}\medskip\medskip
+\ifthenelse{\boolean{bigPrint}}{\large}{}
+\ifthenelse{\boolean{BigAndWide}}{\large}{}
+\opt{Web}{\large}
+\opt{bigWide}{\large}
+}
 
 \providecommand{\SolvingMicroDSOPs}{\href{http://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/}{SolvingMicroDSOPs}}
 
@@ -184,6 +191,7 @@
 \renewcommand{\MathFactsList}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/MathFacts/MathFactsList/}{\texttt{MathFacts}}}
 \renewcommand{\Aggregation}{\href{https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/MathFacts/Aggregation/}{\texttt{Aggregation}}}
 
+\providecommand{\handoutNameMake}{\centerline{\LARGE \input \jobname.title}\vspace{.15in}}
 % Generic starting text for MathFactsList generated file
 \message{Including MathFactsList.defs}
 \providecommand{\CRRALim}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#CRRALim}{\ensuremath{\mathtt{[CRRALim]}}}}
@@ -194,7 +202,9 @@
 \providecommand{\ExpEps}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#ExpEps}{\ensuremath{\mathtt{[ExpEps]}}}}
 \providecommand{\ExpPlus}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#ExpPlus}{\ensuremath{\mathtt{[ExpPlus]}}}}
 \providecommand{\FinSum}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#FinSum}{\ensuremath{\mathtt{[FinSum]}}}}
+\providecommand{\FinSumMult}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#FinSumMult}{\ensuremath{\mathtt{[FinSumMult]}}}}
 \providecommand{\InfSum}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#InfSum}{\ensuremath{\mathtt{[InfSum]}}}}
+\providecommand{\InfSumMult}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#InfSumMult}{\ensuremath{\mathtt{[InfSumMult]}}}}
 \providecommand{\LogELogNorm}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#LogELogNorm}{\ensuremath{\mathtt{[LogELogNorm]}}}}
 \providecommand{\LogELogNormTimes}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#LogELogNormTimes}{\ensuremath{\mathtt{[LogELogNormTimes]}}}}
 \providecommand{\LogEps}{\href{http://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/MathFacts/MathFactsList\#LogEps}{\ensuremath{\mathtt{[LogEps]}}}}
@@ -236,3 +246,4 @@
 
 
 
+\expandafter\let\csname NR:Type\endcsname\relax

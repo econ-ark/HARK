@@ -638,3 +638,27 @@
 
 \providecommand{\pd}[2]{\frac{\partial#1}{\partial#2}}
 
+
+% Ensure that you're in math mode when using the \cancel command (otherwise tex4ht produces bad output)
+\newcommand\cncl[1]{\ensuremath{\cancel{#1}}}
+
+% Define the handles for the various conditions
+\newcommand{\constr}[1]{\grave{#1}}
+
+\newcommand{\PFGPF}{{\mbox{PF-GPF}}}
+\newcommand{\PFGIC}{{\mbox{PF-GIC}}}
+\newcommand{\AIC}{{\mbox{AIC}}}
+\newcommand{\PFFVAC}{{\mbox{PF-FVAC}}}
+\newcommand{\PFVAF}{{\mbox{PF-FVAF}}}
+\newcommand{\FVAC}{{\mbox{FVAC}}}
+\newcommand{\FVAF}{{\mbox{FVAF}}}
+\newcommand{\GIC}{{\mbox{GIC}}}
+\newcommand{\GICAgg}{{\mbox{GIC-Agg}}}
+\newcommand{\RIC}{{\mbox{RIC}}}
+\newcommand{\WRIC}{{\mbox{WRIC}}}
+\newcommand{\FHWC}{{\mbox{FHWC}}}
+\newcommand{\RPF}{{\mbox{RPF}}}
+\newcommand{\GPF}{{\mbox{GPF}}}
+\newcommand{\GPFAgg}{{\mbox{GPF-Agg}}}
+\newcommand{\FHWF}{\mbox{FHWF}}
+

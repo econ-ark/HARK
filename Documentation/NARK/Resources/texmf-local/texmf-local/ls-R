@@ -1,5 +1,6 @@
 % ls-R -- filename database for kpathsea; do not change this line.
 ./:
+README.md
 bibtex
 ls-R
 tex
@@ -15,8 +16,8 @@ bst
 .DS_Store
 .gitkeep
 auto
-economics-UTF8.bib
 economics.bib
+economics.bib~
 
 ./bibtex/bib/auto:
 economics.el
@@ -42,6 +43,7 @@ auto
 bibMake.tex
 cvBibMake.tex
 econtex.cls
+econtex.log
 econtex.sty
 econtexBibMake.tex
 econtexSetup.sty
@@ -51,47 +53,42 @@ handout.cls
 handout.sty
 handoutBibMake.tex
 handoutSetup.sty
-handoutshortcuts.sty
+handoutShortcuts.sty
 makePostHandoutsStart.tex
 printvrb.sty
 snapshot.sty
 tex4ht
 tex4htMakeCFG.sh
-texmf-local
 titlesec.sty
 
 ./tex/latex/auto:
-econtexSetup.el
+econtex.el
+econtexShortcuts.el
+handout.el
+handoutShortcuts.el
 
 ./tex/latex/tex4ht:
+auto
 pictureenv.4ht
+svg-math-and-subfigures-README.md
+svg-math-and-subfigures-README.md~
 svg-math-and-subfigures.cfg
-svg-math-and-subfigures_20200110_svg-preferred-does-not-work.cfg
-svg-math-and-subfigures_latin1.cfg
+svg-math-and-subfigures.cfg~
+svg-math-and-subfigures.tex
 svg-set-size-to-1p0.mk4
+svg-set-size-to-1p1.mk4
+svg-set-size-to-1p1x1p0.mk4
+svg-set-size-to-1p2.mk4
+svg-set-size-to-1p2.mk4~
+svg-set-size-to-1p2x1p0.mk4
+svg-set-size-to-1p2x1p0.mk4~
+svg-set-size-to-1p3x1p0.mk4
+svg-set-size-to-1p3x1p01.mk4~
 
-./tex/latex/texmf-local:
-.gitkeep
-tex
-
-./tex/latex/texmf-local/tex:
-.gitkeep
-latex
-
-./tex/latex/texmf-local/tex/latex:
-.gitkeep
-econtex.cls
-econtex.sty
-econtexBibMake.tex
-econtexSetup.sty
-econtexShortcuts.sty
-handout.cls
-handoutSetup.sty
-handoutShortcuts.sty
+./tex/latex/tex4ht/auto:
 
 ./tex/plain:
 .gitkeep
 
 ./web2c:
 texmf.cnf
-texmf_orig.cnf
