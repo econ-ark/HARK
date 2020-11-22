@@ -1274,7 +1274,7 @@ def rebalanceAssets(d,m,n,tau):
     
     # Withdrawals
     inds = d < 0
-    mTil[inds] = m[inds] - d[inds]*n[inds]/(1 + tau)
+    mTil[inds] = m[inds] - d[inds]*n[inds]*(1 - tau)
     nTil[inds] = n[inds]*(1+d[inds])
     
     return (mTil, nTil)
@@ -1751,16 +1751,16 @@ def solveRiskyContribRebStage(solution_next,
     dvdmNvrs = dvdmFuncAdj_next.cFunc(m_tilde, n_tilde)
     dvdnNvrs = dvdnFuncAdj_next.cFunc(m_tilde, n_tilde)
     
-    # Pre-evaluate the inverse of (1+tau)
-    taxNvrs = uPinv(1+tau)
+    # Pre-evaluate the inverse of (1-tau)
+    taxNvrs = uPinv(1-tau)
     # Create a tiled array of the tax
     taxNvrs_tiled = np.tile(np.reshape(np.concatenate([np.repeat(taxNvrs,d_N),
                                                        np.ones(d_N, dtype=np.double)]),
                                        (d_N2,1,1)),
                             (1, mNrm_N,nNrm_N))
     
-    # The FOC is dvdm = tax*dvdn or dvdmNvrs = taxNvrs*dvdnNvrs
-    dvdDNvrs = taxNvrs_tiled*dvdnNvrs - dvdmNvrs
+    # The FOC is dvdn = tax*dvdm or dvdnNvrs = taxNvrs*dvdmNvrs
+    dvdDNvrs = dvdnNvrs - taxNvrs_tiled*dvdmNvrs
     # The optimal d will be at the first point where dvdD < 0. The inverse
     # transformation flips the sign.
     
@@ -1801,7 +1801,7 @@ def solveRiskyContribRebStage(solution_next,
     # An additional unit of n kept in n
     marg_n      = dvdnFuncAdj_next(mtil_opt, ntil_opt)
     # An additional unit of n withdrawn to m
-    marg_n_to_m = marg_m/(1+tau)
+    marg_n_to_m = marg_m*(1-tau)
     
     # Marginal value is the maximum of the marginals in their possible uses 
     dvdmAdj     = np.maximum(marg_m, marg_n)
