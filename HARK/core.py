@@ -819,9 +819,10 @@ class Frame():
     def __init__(
             self,
             target,
-            scope,
+            scope, # domain
             default = None,
             transition = None,
+            transition_inverse = None,
             objective = None
     ):
         """
@@ -831,6 +832,7 @@ class Frame():
         self.scope = scope # tuple of variables
         self.default = default # default value used in simBirth; a dict
         self.transition = transition # for use in simulation
+        self.transition_inverse = transition_inverse # for use in simulation
         self.objective = objective # for use in solver
 
 
