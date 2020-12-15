@@ -219,10 +219,6 @@ class MeanOneLogNormal(Lognormal):
         mu = -0.5 * sigma ** 2
         super().__init__(mu=mu, sigma=sigma, seed=seed)
 
-    def __init__(self, sigma=1.0):
-        mu = -0.5*sigma**2
-        super().__init__(mu=mu, sigma=sigma)
-
 class Normal(Distribution):
     """
     A Normal distribution.

@@ -3152,7 +3152,7 @@ class AggregateSavingRule(HARKobject):
         Returns
         -------
         new instance of CapitalEvoRule
-        '''
+        """
         self.intercept = intercept
         self.slope = slope
         self.distance_criteria = ["slope", "intercept"]
