@@ -84,6 +84,8 @@ class Lognormal(Distribution):
         ----------
         N : int
             Number of draws in each row.
+        seed : int
+            Seed for random number generator.
 
         Returns:
         ------------
@@ -216,7 +218,6 @@ class MeanOneLogNormal(Lognormal):
     def __init__(self, sigma=1.0, seed=0):
         mu = -0.5 * sigma ** 2
         super().__init__(mu=mu, sigma=sigma, seed=seed)
-
 
 class Normal(Distribution):
     """
@@ -584,6 +585,7 @@ class DiscreteDistribution(Distribution):
                 int
             )  # cutoff points between discrete outcomes
             top = 0
+           
             # Make a list of event indices that closely matches the discrete distribution
             event_list = []
             for j in range(events.size):
@@ -964,8 +966,8 @@ def combineIndepDstns(*distributions, seed=0):
     # probability array. So get the probability array, P_out, here.
     P_out = np.prod(np.array(P_temp), axis=0)
 
-    assert np.isclose(np.sum(P_out),1),'Probabilities do not sum to 1!'
-    return DiscreteDistribution(P_out, X_out)
+    assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
+    return DiscreteDistribution(P_out, X_out, seed=seed)
 
 
 def calcExpectation(dstn,func=None,values=None):

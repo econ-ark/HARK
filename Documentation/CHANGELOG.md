@@ -8,6 +8,14 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.10.9
+
+Release Data: TBD
+
+#### Major Changes
+
+* calcExpectations method for taking the expectation of a distribution over a function (#884)[https://github.com/econ-ark/HARK/pull/884/]
+
 ### 0.10.8
 
 Release Data: Nov. 05 2020

@@ -29,7 +29,12 @@ from HARK.utilities import (
     CRRAutility_inv,
     makeGridExpMult,
 )
-from HARK.distribution import Uniform, calcExpectation
+from HARK.distribution import (
+    MeanOneLogNormal,
+    Uniform,
+    combineIndepDstns,
+    calcExpectation
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
@@ -1109,6 +1114,8 @@ def solveConsAggShock(
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
+    DeprFac : float
+        Capital Depreciation Rate
 
     Returns
     -------
@@ -1449,6 +1456,8 @@ def solveConsAggMarkov(
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
+    DeprFac : float
+        Capital Depreciation Rate
 
     Returns
     -------
