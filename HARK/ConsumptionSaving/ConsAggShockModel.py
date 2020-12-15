@@ -29,7 +29,12 @@ from HARK.utilities import (
     CRRAutility_inv,
     makeGridExpMult,
 )
-from HARK.distribution import Uniform, calcExpectation
+from HARK.distribution import (
+    MeanOneLogNormal,
+    Uniform,
+    combineIndepDstns,
+    calcExpectation
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
