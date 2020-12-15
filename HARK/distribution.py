@@ -246,7 +246,7 @@ class Normal(Distribution):
         self.sigma = sigma
         super().__init__(seed)
 
-    def draw(self, N, seed=0):
+    def draw(self, N):
         """
         Generate arrays of normal draws.  The mu and sigma inputs can be numbers or
         list-likes.  If a number, output is a length N array of draws from the normal
@@ -269,8 +269,9 @@ class Normal(Distribution):
             draws = self.sigma * self.RNG.randn(N) + self.mu
         else:  # Set up empty list to populate, then loop and populate list with draws
             draws = []
-            for t in range(len(sigma)):
+            for t in range(len(self.sigma)):
                 draws.append(self.sigma[t] * self.RNG.randn(N) + self.mu[t])
+
         return draws
 
     def approx(self, N):

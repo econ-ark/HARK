@@ -10,7 +10,6 @@ from builtins import str
 from builtins import range
 import numpy as np
 import scipy.stats as stats
-from HARK.distribution import DiscreteDistribution, combineIndepDstns, MeanOneLogNormal
 from HARK.interpolation import (
     LinearInterp,
     LinearInterpOnInterp1D,
@@ -30,7 +29,7 @@ from HARK.utilities import (
     CRRAutility_inv,
     makeGridExpMult,
 )
-from HARK.distribution import Uniform
+from HARK.distribution import Uniform, calcExpectation
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
@@ -1383,6 +1382,7 @@ def solveConsAggShockNEW(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, PermG
     # Pack up and return the solution
     solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=mNrmMinNow)
     return solution_now
+
 
 ###############################################################################
 
