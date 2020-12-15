@@ -3,15 +3,26 @@
 #   jupytext:
 #     cell_metadata_filter: collapsed,code_folding
 #     formats: ipynb,py:percent
+#     notebook_metadata_filter: all
 #     text_representation:
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.2.4
+#       jupytext_version: 1.2.3
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
 #     name: python3
+#   language_info:
+#     codemirror_mode:
+#       name: ipython
+#       version: 3
+#     file_extension: .py
+#     mimetype: text/x-python
+#     name: python
+#     nbconvert_exporter: python
+#     pygments_lexer: ipython3
+#     version: 3.7.6
 # ---
 
 # %% [markdown]
@@ -31,7 +42,7 @@
 #
 # An interesting question is whether this exercise will suggest that it is necessary to allow for _ex ante_ heterogeneity in such preference parameters.
 #
-# This seems likely; a paper by [<cite data-cite="6202365/7MR8GUVS"></cite>](http://econ.jhu.edu/people/ccarroll/papers/cstwMPC) (all of whose results were constructed using the HARK toolkit) finds that, if all other parameters (e.g., rates of return on savings) are the same, models of this kind require substantial heterogeneity in preferences to generate the degree of inequality in U.S. data.
+# This seems likely; a paper by [<cite data-cite="6202365/7MR8GUVS"></cite>](https://www.econ2.jhu.edu/people/ccarroll/papers/cstwMPC) (all of whose results were constructed using the HARK toolkit) finds that, if all other parameters (e.g., rates of return on savings) are the same, models of this kind require substantial heterogeneity in preferences to generate the degree of inequality in U.S. data.
 #
 # But in one of the many new and interesting findings from the Norwegian data, <cite data-cite="6202365/B9BGV9W3"></cite> have shown that there is substantial heterogeneity in rates of return, even on wealth held in public markets.  
 #
@@ -66,7 +77,7 @@ LifeCyclePop = Model.IndShockConsumerType(**Params.init_consumer_objects)
 # %% {"code_folding": [0]}
 # Solve and simulate the model (ignore the "warning" message)
 LifeCyclePop.solve()                            # Obtain consumption rules by age 
-LifeCyclePop.unpackcFunc()                      # Expose the consumption rules
+LifeCyclePop.unpack('cFunc')                      # Expose the consumption rules
 
 # Which variables do we want to track
 LifeCyclePop.track_vars = ['aNrmNow','pLvlNow','mNrmNow','cNrmNow','TranShkNow']
@@ -119,20 +130,20 @@ warnings.filterwarnings("ignore") # Suppress some disturbing but harmless warnin
 
 for t in range(1,LifeCyclePop.T_cycle+1):
     #aLvlGro_hist[0] = 0 # set the first growth rate to 0, since there is no data for period 0
-    aLvlGroNow = np.log(LifeCyclePop.aNrmNow_hist[t]/LifeCyclePop.aNrmNow_hist[t-1]) # (10000,)
+    aLvlGroNow = np.log(LifeCyclePop.history['aNrmNow'][t]/LifeCyclePop.history['aNrmNow'][t-1]) # (10000,)
 
     # Call the saving rate function with test value for 
-    SavingRate = savingRateFunc(LifeCyclePop, LifeCyclePop.mNrmNow_hist[t] )
+    SavingRate = savingRateFunc(LifeCyclePop, LifeCyclePop.history['mNrmNow'][t] )
       
     SavingRate_list.append(SavingRate)
 
     # Create elements of matrix list
     matrix_list = [0 for number in range(7)]
     matrix_list[0] = t
-    matrix_list[1] = LifeCyclePop.aNrmNow_hist[t]
-    matrix_list[2] = LifeCyclePop.cNrmNow_hist[t]
-    matrix_list[3] = LifeCyclePop.TranShkNow_hist[t]
-    matrix_list[4] = LifeCyclePop.TranShkNow_hist[t-1]
+    matrix_list[1] = LifeCyclePop.history['aNrmNow'][t]
+    matrix_list[2] = LifeCyclePop.history['cNrmNow'][t]
+    matrix_list[3] = LifeCyclePop.history['TranShkNow'][t]
+    matrix_list[4] = LifeCyclePop.history['TranShkNow'][t-1]
     matrix_list[5] = aLvlGroNow
     matrix_list[6] = SavingRate
     
@@ -144,8 +155,8 @@ for t in range(1,LifeCyclePop.T_cycle+1):
 
 # %% {"code_folding": [0]}
 # Construct the level of assets A from a*p where a is the ratio to permanent income p
-LifeCyclePop.aLvlNow_hist = LifeCyclePop.aNrmNow_hist*LifeCyclePop.pLvlNow_hist
-aGro41=LifeCyclePop.aLvlNow_hist[41]/LifeCyclePop.aLvlNow_hist[40]
+LifeCyclePop.history['aLvlNow'] = LifeCyclePop.history['aNrmNow']*LifeCyclePop.history['pLvlNow']
+aGro41=LifeCyclePop.history['aLvlNow'][41]/LifeCyclePop.history['aLvlNow'][40]
 aGro41NoU=aGro41[aGro41[:]>0.2] # Throw out extreme outliers
 
 

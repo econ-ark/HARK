@@ -1,6 +1,6 @@
 numpy
 matplotlib
-sphinx==1.6.7
+sphinx
 future
 joblib
 dill
@@ -10,6 +10,9 @@ jupyter
 funcsigs
 jupyter
 sphinx-rtd-theme
-nbsphinx==0.4.3
+nbsphinx
 seaborn
 recommonmark
+interpolation
+numba
+quantecon

@@ -9,9 +9,9 @@
 #       format_version: '1.2'
 #       jupytext_version: 1.2.4
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: Python 3.7 econ-ark
 #     language: python
-#     name: python3
+#     name: econ-ark
 # ---
 
 # %% [markdown]
@@ -21,8 +21,6 @@
 # %% {"code_folding": [0]}
 # Initial imports and notebook setup, click arrow to show
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
-import HARK.logger as logger
-logger.verbose()
 from HARK.utilities import plotFuncsDer, plotFuncs
 from time import clock
 import matplotlib.pyplot as plt
@@ -47,7 +45,7 @@ mystr = lambda number : "{:.4f}".format(number)
 # %% [markdown]
 # ## Statement of idiosyncratic income shocks model
 #
-# Suppose we want to solve a model like the one analyzed in [BufferStockTheory](http://econ.jhu.edu/people/ccarroll/papers/BufferStockTheory/), which has all the same features as the perfect foresight consumer, plus idiosyncratic shocks to income each period.  Agents with this kind of model are represented by the class $\texttt{IndShockConsumerType}$.
+# Suppose we want to solve a model like the one analyzed in [BufferStockTheory](http://www.econ2.jhu.edu/people/ccarroll/papers/BufferStockTheory/), which has all the same features as the perfect foresight consumer, plus idiosyncratic shocks to income each period.  Agents with this kind of model are represented by the class $\texttt{IndShockConsumerType}$.
 #
 # Specifically, this type of consumer receives two income shocks at the beginning of each period: a completely transitory shock $\newcommand{\tShkEmp}{\theta}{\tShkEmp_t}$ and a completely permanent shock $\newcommand{\pShk}{\psi}{\pShk_t}$.  Moreover, the agent is subject to borrowing a borrowing limit: the ratio of end-of-period assets $A_t$ to permanent income $P_t$ must be greater than $\underline{a}$.  As with the perfect foresight problem, this model is stated in terms of *normalized* variables, dividing all real variables by $P_t$:
 #

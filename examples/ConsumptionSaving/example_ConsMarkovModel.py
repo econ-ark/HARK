@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # %%
 from HARK.utilities import plotFuncs
 from time import process_time
@@ -8,6 +9,53 @@ from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.distribution import DiscreteDistribution
 mystr = lambda number: "{:.4f}".format(number)
 do_simulation = True
+
+# %% [markdown]
+# This module defines consumption-saving models in which an agent has CRRA utility over consumption, geometrically discounts future utility flows and expects to experience transitory and permanent shocks to his/her income. Moreover, in any given period s/he is in exactly one of several discrete states. This state evolves from period to period according to a Markov process.
+
+# %% [markdown]
+# In this model, an agent is very similar to the one in the "idiosyncratic shocks" model of $\texttt{ConsPrefShockModel}$, except that here, an agent's income distribution ($F_{\psi t},F_{\theta t}$), permanent income growth rate $\Gamma_{t+1}$ and interest factor $R$ are all functions of the Markov state and might vary across states.
+#
+# The agent's problem can be written in Bellman form as:
+#
+# \begin{eqnarray*}
+# v_t(m_t,s_t) &=& \max_{c_t} u(c_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [v_{t+1}(m_{t+1}, s_{t+1}) ], \\
+# a_t &=& m_t - c_t, \\
+# a_t &\geq& \underline{a}, \\
+# m_{t+1} &=& \frac{R(s_{t+1})}{\Gamma(s_{t+1})\psi_{t+1}} a_t + \theta_{t+1}, \\
+# \theta_{t} \sim F_{\theta t}(s_t), &\qquad& \psi_{t} \sim F_{\psi t}(s_t), \mathbb{E} [F_{\psi t}(s_t)] = 1, \\
+# Prob[s_{t+1}=j| s_t=i] &=& \triangle_{ij}, \\
+# u(c) &=& \frac{c^{1-\rho}}{1-\rho}
+# \end{eqnarray*}
+#
+# The Markov matrix $\triangle$ is giving transition probabilities from current state $i$ to future state $j$. 
+
+# %% [markdown]
+# The one period problem for this model is solved by the function $\texttt{solveConsMarkov}$, which creates an instance of the class $\texttt{ConsMarkovSolver}$. The class $\texttt{MarkovConsumerType}$ extends $\texttt{IndShockConsumerType}$ to represents agents in this model.
+#
+# To construct an instance of this class, the same attributes as for $\texttt{IndShockConsumerType}$ are required, except for one as described below:
+
+# %% [markdown]
+# ### Additional parameter value to solve an instance of MarkovConsumerType
+#
+# | Param | Description | Code | Value | Constructed |
+# | :---: | --- | --- | --- | :---: |
+# | $\triangle$ |Discrete state transition probability matrix  | $\texttt{MrkvArray}$ |  |$\surd$ |
+#
+# The attribute $\texttt{MrkvArray}$ is a $\texttt{numpy.array}$ of size ($N_s$, $N_s$) corresponding to the number of discrete states. 
+#
+# Note that $\texttt{MrkvArray}$ is am element of $\texttt{time_inv}$, so that the same transition probabilities are used for each period. However, it can be moved to $\texttt{time_vary}$ and specified as a list of $\texttt{array}$s instead.
+#
+# The attributes $\texttt{Rfree}$, $\texttt{PermGroFac}$ and $\texttt{IncomeDstn}$ should be specified as arrays or lists with $N_s$ elements for each period.
+
+# %% [markdown]
+# ### Solve MarkovConsumerType
+#
+# When the $\texttt{MarkovConsumerType}$ method of a $\texttt{MarkovConsumerType}$ is invoked, the $\texttt{solution}$ attribute is populated with a list of $\texttt{ConsumerSolution}$ objects, which each have the same attributes as the "idiosyncratic shocks" model. However, each attribute is now a list (or array) whose elements are *state-conditional* values of that object. 
+#
+# For example, in a model with 4 discrete states, each the $\texttt{cFunc}$ attribute of each element of $\texttt{solution}$ is a length-4 list whose elements are state-conditional consumption functions. That is, $\texttt{cFunc[2]}$ is the consumption function when $s_t = 2$.
+#
+# $\texttt{ConsMarkovModel}$ is compatible with cubic spline interpolation for the consumption functions, so $\texttt{CubicBool = True}$ will not generate an exception. The problem is solved using the [method of endogenous gridpoints](http://www.econ2.jhu.edu/people/ccarroll/EndogenousGridpoints.pdf), which is moderately more complicated than in the basic $\texttt{ConsPrefShockModel}$.
 
 # %%
 # Define the Markov transition matrix for serially correlated unemployment
@@ -49,6 +97,17 @@ MrkvArray = np.array(
     ]
 )
 
+# %% [markdown]
+# Several variant examples of the model will be illustrated below such that:
+# 1. Model with serially correlated unemployment
+# 2. Model with period of "unemployment immunity"
+# 3. Model with serially correlated permanent income growth
+# 4. Model with serially correlated interest factor
+#
+# ### 1. Serial Unemployment 
+#
+# Let's create a consumer similar to the one in "idiosyncratic shock" model but who faces serially correlated unemployment during boom or bust cycles of the economy.
+
 # %%
 # Make a consumer with serially correlated unemployment, subject to boom and bust cycles
 init_serial_unemployment = copy(init_idiosyncratic_shocks)
@@ -72,6 +131,9 @@ SerialUnemploymentExample.IncomeDstn = [
     ]
 ]
 
+# %% [markdown]
+# Note that $\texttt{MarkovConsumerType}$ currently has no method to automatically construct a valid IncomeDstn - $\texttt{IncomeDstn}$ is manually constructed in each case. Writing a method to supersede $\texttt{IndShockConsumerType.updateIncomeProcess}$ for the “Markov model” would be a welcome contribution!
+
 # %%
 # Interest factor, permanent growth rates, and survival probabilities are constant arrays
 SerialUnemploymentExample.Rfree = np.array(4 * [SerialUnemploymentExample.Rfree])
@@ -82,7 +144,6 @@ SerialUnemploymentExample.LivPrb = [SerialUnemploymentExample.LivPrb * np.ones(4
 
 # %%
 # Solve the serial unemployment consumer's problem and display solution
-SerialUnemploymentExample.timeFwd()
 start_time = process_time()
 SerialUnemploymentExample.solve()
 end_time = process_time()
@@ -106,6 +167,11 @@ if do_simulation:
     SerialUnemploymentExample.makeShockHistory()  # This is optional
     SerialUnemploymentExample.initializeSim()
     SerialUnemploymentExample.simulate()
+
+# %% [markdown]
+# ### 2. Unemployment immunity for a fixed period
+#
+# Let's create a consumer similar to the one in "idiosyncratic shock" model but who occasionally gets "unemployment immunity" for a fixed period in an economy subject to boom and bust cycles.
 
 # %%
 # Make a consumer who occasionally gets "unemployment immunity" for a fixed period
@@ -177,6 +243,11 @@ print("Consumption functions for each discrete state:")
 mNrmMin = np.min([ImmunityExample.solution[0].mNrmMin[j] for j in range(StateCount)])
 plotFuncs(ImmunityExample.solution[0].cFunc, mNrmMin, 10)
 
+# %% [markdown]
+# ### 3. Serial permanent income growth
+#
+# Let's create a consumer similar to the one in "idiosyncratic shock" model but who faces serially correlated permanent income growth in an economy subject to boom and bust cycles.
+
 # %%
 # Make a consumer with serially correlated permanent income growth
 UnempPrb = 0.05  # Unemployment probability
@@ -217,6 +288,11 @@ SerialGroExample.assignParameters(
 )
 SerialGroExample.IncomeDstn = [IncomeDstn]
 
+
+# %% [markdown]
+# ### 4. Serial Interest factor
+#
+# Finally, suppose that the consumer faces a interest factor serially correlated while his/her permanent income growth rate is constant. 
 
 # %%
 # Solve the serially correlated permanent growth shock problem and display the consumption functions
