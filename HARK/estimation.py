@@ -11,6 +11,8 @@ import csv
 import multiprocessing
 from joblib import Parallel, delayed
 
+from HARK import _log
+
 __all__ = [
     "minimizeNelderMead",
     "minimizePowell",
@@ -92,7 +94,7 @@ def minimizeNelderMead(
 
     # Display and return the results:
     if verbose:
-        print("Time to estimate is " + str(t1 - t0) + " seconds.")
+        _log.debug("Time to estimate is " + str(t1 - t0) + " seconds.")
     return xopt_full
 
 
@@ -350,7 +352,7 @@ def parallelNelderMead(
             np.sqrt(np.sum((simplex - np.tile(simplex[0, :], (N, 1))) ** 2.0, axis=1))
         )
         if verbose > 0:
-            print(
+            _log.debug(
                 "Evaluated the initial simplex: fmin="
                 + str(fmin)
                 + ", f_dist="
@@ -361,10 +363,10 @@ def parallelNelderMead(
         if savefreq is not None:
             saveNelderMeadData(name, simplex, fvals, iters, evals)
             if verbose > 0:
-                print("Saved search progress in " + name + ".txt")
+                _log.debug("Saved search progress in " + name + ".txt")
     else:  # Resume an existing search that was cut short
         if verbose > 0:
-            print(
+            _log.debug(
                 "Resuming search after "
                 + str(iters)
                 + " iterations and "
@@ -382,7 +384,7 @@ def parallelNelderMead(
         t_start = time()
         iters += 1
         if verbose > 0:
-            print("Beginning iteration #" + str(iters) + " now.")
+            _log.debug("Beginning iteration #" + str(iters) + " now.")
 
         # Update the P worst points of the simplex
         output = parallel(
@@ -402,7 +404,7 @@ def parallelNelderMead(
         old_subsimplex = simplex[(N - P) : N, :]
         if np.max(np.abs(new_subsimplex - old_subsimplex)) == 0:
             if verbose > 0:
-                print("Updated the simplex, but must perform a shrink step.")
+                _log.debug("Updated the simplex, but must perform a shrink step.")
             # If every attempted update was unsuccessful, must shrink the simplex
             simplex = (
                 s_param * np.tile(simplex[0, :], (N, 1)) + (1.0 - s_param) * simplex
@@ -416,7 +418,7 @@ def parallelNelderMead(
             evals += N - 1
         else:
             if verbose > 0:
-                print("Updated the simplex successfully.")
+                _log.debug("Updated the simplex successfully.")
             # Otherwise, update the simplex with the new results
             simplex[(N - P) : N, :] = new_subsimplex
             fvals[(N - P) : N] = new_vals
@@ -433,7 +435,7 @@ def parallelNelderMead(
         t_end = time()
         if verbose > 0:
             t_iter = t_end - t_start
-            print(
+            _log.debug(
                 "Finished iteration #"
                 + str(iters)
                 + " with "
@@ -444,7 +446,7 @@ def parallelNelderMead(
                 + str(t_iter)
                 + " seconds."
             )
-            print(
+            _log.debug(
                 "Simplex status: fmin="
                 + str(fmin)
                 + ", f_dist="
@@ -456,23 +458,23 @@ def parallelNelderMead(
         # Check for terminal conditions
         if iters >= maxiter:
             go = False
-            print("Maximum iterations reached, terminating unsuccessfully.")
+            _log.info("Maximum iterations reached, terminating unsuccessfully.")
         if evals >= maxeval:
             go = False
-            print("Maximum evaluations reached, terminating unsuccessfully.")
+            _log.info("Maximum evaluations reached, terminating unsuccessfully.")
         if f_dist < ftol:
             go = False
-            print("Function tolerance reached, terminating successfully.")
+            _log.info("Function tolerance reached, terminating successfully.")
         if x_dist < xtol:
             go = False
-            print("Parameter tolerance reached, terminating successfully.")
+            _log.info("Parameter tolerance reached, terminating successfully.")
 
         # Save the progress of the estimation if desired
         if savefreq is not None:
             if (iters % savefreq) == 0:
                 saveNelderMeadData(name, simplex, fvals, iters, evals)
                 if verbose > 0:
-                    print("Saved search progress in " + name + ".txt")
+                    _log.debug("Saved search progress in " + name + ".txt")
 
     # Return the results
     xopt = simplex[0, :]
@@ -483,7 +485,7 @@ def saveNelderMeadData(name, simplex, fvals, iters, evals):
     """
     Stores the progress of a parallel Nelder-Mead search in a text file so that
     it can be resumed later (after manual termination or a crash).
-    
+
     Parameters
     ----------
     name : string
@@ -496,7 +498,7 @@ def saveNelderMeadData(name, simplex, fvals, iters, evals):
         The number of completed Nelder-Mead iterations.
     evals : int
         The cumulative number of function evaluations in the search process.
-        
+
     Returns
     -------
     None
@@ -517,12 +519,12 @@ def loadNelderMeadData(name):
     """
     Reads the progress of a parallel Nelder-Mead search from a text file, as
     created by saveNelderMeadData().
-    
+
     Parameters
     ----------
     name : string
         Name of the txt file from which to read search progress.
-        
+
     Returns
     -------
     simplex : np.array
@@ -564,7 +566,7 @@ def parallelNelderMeadWorker(objFunc, simplex, f_vals, j, P, opt_params):
     A worker process for the parallel Nelder-Mead algorithm.  Updates one point
     in the simplex, returning its function value as well.  Should basically
     never be called directly, only by parallelNelderMead().
-    
+
     Parameters
     ----------
     objFunc : function
@@ -580,7 +582,7 @@ def parallelNelderMeadWorker(objFunc, simplex, f_vals, j, P, opt_params):
         Degree of parallelization of the algorithm.
     opt_params : numpy.array
         Three element array with parameters for reflection, contraction, expansion.
-        
+
     Returns
     -------
     new_point : numpy.array

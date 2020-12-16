@@ -13,6 +13,8 @@ import functools
 
 import numpy as np  # Python's numeric library, abbreviated "np"
 
+from HARK import _log
+
 # try:
 #     import matplotlib.pyplot as plt                 # Python's plotting library
 # except ImportError:
@@ -884,12 +886,12 @@ def test_latex_installation(pf):
         return True
 
     if not latexExists:
-        print("Some of the figures below require a full installation of LaTeX")
+        _log.warning("Some of the figures below require a full installation of LaTeX")
         # If running on Mac or Win, user can be assumed to be able to install
         # any missing packages in response to error messages; but not on cloud
         # so load LaTeX by hand (painfully slowly)
         if "debian" in pf:  # CoLab and MyBinder are both ubuntu
-            print("Installing LaTeX now; please wait 3-5 minutes")
+            _log.info("Installing LaTeX now; please wait 3-5 minutes")
             from IPython.utils import io
 
             with io.capture_output() as captured:  # Hide hideously long output
@@ -980,7 +982,7 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
         if not os.path.exists(Figures_dir):
             os.makedirs(Figures_dir)  # If dir does not exist, create it
         # Save the figures in several formats
-        print("Saving figure {} in {}".format(figure_name, target_dir))
+        _log.info("Saving figure {} in {}".format(figure_name, target_dir))
         plt.savefig(
             os.path.join(target_dir, "{}.jpg".format(figure_name))
         )  # For web/html

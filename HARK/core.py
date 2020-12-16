@@ -21,6 +21,8 @@ import numpy as np
 from time import time
 from .parallel import multiThreadCommands, multiThreadCommandsFake
 
+from HARK import _log
+
 
 def distanceMetric(thing_A, thing_B):
     """
@@ -615,7 +617,7 @@ class AgentType(HARKobject):
         -------
         None
         """
-        print("AgentType subclass must define method simBirth!")
+        _log.info("AgentType subclass must define method simBirth!")
         return None
 
     def getShocks(self):
@@ -882,7 +884,7 @@ def solveAgent(agent, verbose):
         if verbose:
             t_now = time()
             if infinite_horizon:
-                print(
+                _log.debug(
                     "Finished cycle #"
                     + str(completed_cycles)
                     + " in "
@@ -891,7 +893,7 @@ def solveAgent(agent, verbose):
                     + str(solution_distance)
                 )
             else:
-                print(
+                _log.debug(
                     "Finished cycle #"
                     + str(completed_cycles)
                     + " of "
@@ -1126,7 +1128,7 @@ class Market(HARKobject):
             if self.print_parallel_error_once:
                 # Set flag to False so this is only printed once.
                 self.print_parallel_error_once = False
-                print(
+                _log.warning(
                     "**** WARNING: could not execute multiThreadCommands in HARK.core.Market.solveAgents() ",
                     "so using the serial version instead. This will likely be slower. "
                     "The multiTreadCommands() functions failed with the following error:",

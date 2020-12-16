@@ -41,6 +41,8 @@ from HARK import HARKobject, Market, AgentType
 from copy import deepcopy
 import matplotlib.pyplot as plt
 
+from HARK import _log
+
 __all__ = [
     "MargValueFunc2D",
     "AggShockConsumerType",
@@ -2002,7 +2004,7 @@ class CobbDouglasEconomy(Market):
 
         # Print the new parameters
         if verbose:
-            print(
+            _log.debug(
                 "intercept="
                 + str(intercept)
                 + ", slope="
@@ -2508,7 +2510,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             # Make the Markov state history longer by act_T_orig periods
             if loops >= loops_max:
                 go = False
-                print(
+                _log.warning(
                     "makeMrkvHist reached maximum number of loops without generating a valid sequence!"
                 )
             else:
@@ -2607,7 +2609,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
 
         # Print the new parameters
         if verbose:
-            print(
+            _log.debug(
                 "intercept="
                 + str(self.intercept_prev)
                 + ", slope="
@@ -2989,7 +2991,7 @@ class KrusellSmithEconomy(Market):
 
         # Print the new parameters
         if verbose:
-            print(
+            _log.debug(
                 "intercept="
                 + str(self.intercept_prev)
                 + ", slope="

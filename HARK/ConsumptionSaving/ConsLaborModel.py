@@ -29,6 +29,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import ValueFunc2D, MargValueFunc2D
 import matplotlib.pyplot as plt
 
+from HARK import _log
 
 class ConsumerLaborSolution(HARKobject):
     """
@@ -152,15 +153,15 @@ def solveConsLaborIntMarg(
     # and CubicBool = False.  CRRA condition is met automatically when CRRA >= 1.
     frac = 1.0 / (1.0 + LbrCost)
     if CRRA <= frac * LbrCost:
-        print(
+        _log.critical(
             "Error: make sure CRRA coefficient is strictly greater than alpha/(1+alpha)."
         )
         sys.exit()
     if BoroCnstArt is not None:
-        print("Error: Model cannot handle artificial borrowing constraint yet. ")
+        _log.critical("Error: Model cannot handle artificial borrowing constraint yet. ")
         sys.exit()
     if vFuncBool or CubicBool is True:
-        print("Error: Model cannot handle cubic interpolation yet.")
+        _log.critical("Error: Model cannot handle cubic interpolation yet.")
         sys.exit()
 
     # Unpack next period's solution and the productivity shock distribution, and define the inverse (marginal) utilty function
