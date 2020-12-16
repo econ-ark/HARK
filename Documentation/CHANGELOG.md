@@ -8,9 +8,18 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.10.9
+
+Release Date: TBD
+
+#### Major Changes
+
+* FrameAgentType for modular definitions of agents [#865](https://github.com/econ-ark/HARK/pull/865)
+* PortfolioConsumerFrameType, a port of PortfolioConsumerType to use Frames [#865](https://github.com/econ-ark/HARK/pull/865)
+
 ### 0.10.8
 
-Release Data: Nov. 05 2020
+Release Date: Nov. 05 2020
 
 #### Major Changes
 
