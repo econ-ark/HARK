@@ -823,26 +823,36 @@ class FrameAgentType(AgentType):
 
     Attributes
     ----------
-    state_vars : list of string
-        The string labels for this AgentType's model state variables.
+    birth_values : dict
+        The values of properties for agents to take
+        on at birth. Keys are strings naming model
+        variables or parameters. Values may be numbers
+        (int, float, etc.), booleans, or a calleable with
+        one argument, an number of agents N.
+        Calleables are called and the return value is assigned.
+
+    frames : dict
+        Keys are tuples of strings corresponding to model variables.
+        Values are methods.
+        Each frame method should update the the variables
+        named in the key.
+        Frame order is significant here.
     """
 
     # init : initial states for variables.
-    init = {
-        'x' : lambda: 0
-    }
+    birth_values = {}
 
     # frames property
-    frames = {
-        ('y') : lambda x: x^2
-    }
+    frames = {}
 
     def simOnePeriod(self):
         """
-        Simulates one period for this type.  Calls the methods getMortality(), getShocks() or
-        readShocks, getStates(), getControls(), and getPostStates().  These should be defined for
-        AgentType subclasses, except getMortality (define its components simDeath and simBirth
-        instead) and readShocks.
+        Simulates one period for this type.
+        Calls each frame in order.
+        These should be defined for
+        AgentType subclasses, except getMortality (define
+        its components simDeath and simBirth instead)
+        and readShocks.
 
         Parameters
         ----------

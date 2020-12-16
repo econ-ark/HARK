@@ -61,6 +61,9 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
     }
 
     def birth_aNrmNow(self, N):
+        """
+        Birth value for aNrmNow
+        """
         return Lognormal(
             mu=self.aNrmInitMean,
             sigma=self.aNrmInitStd,
@@ -68,6 +71,9 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         ).draw(N)
 
     def birth_pLvlNow(self, N):
+        """
+        Birth value for pLvlNow
+        """
         pLvlInitMeanNow = self.pLvlInitMean + np.log(
             self.state_now["PlvlAggNow"]
         )  # Account for newer cohorts having higher permanent income
@@ -88,6 +94,9 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
     }
 
     def transition_ShareNow(self):
+        """
+        Transition method for ShareNow.
+        """
         ShareNow = np.zeros(self.AgentCount) + np.nan
 
         # Loop over each period of the cycle, getting controls separately depending on "age"
@@ -110,6 +119,9 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         self.controls["ShareNow"] = ShareNow
 
     def transition_cNrmNow(self):
+        """
+        Transition method for cNrmNow.
+        """
         cNrmNow = np.zeros(self.AgentCount) + np.nan
         ShareNow = self.controls["ShareNow"]
 
