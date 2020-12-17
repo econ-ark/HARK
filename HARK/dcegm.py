@@ -9,8 +9,9 @@ Example can be found in https://github.com/econ-ark/DemARK/blob/master/notebooks
 import numpy as np
 from HARK.interpolation import LinearInterp
 
+
 def calcCrossPoints(mGrid, condVs, optIdx):
-    '''
+    """
     Given a grid of m values, a matrix of the conditional values of different
     actions at every grid point, and a vector indicating the optimal action
     at each grid point, this function computes the coordinates of the
@@ -34,57 +35,65 @@ def calcCrossPoints(mGrid, condVs, optIdx):
     segments: np.array with two columns and as many rows as xing points.
         Each row represents a crossing point. The first column is the index
         of the optimal action to the left, and the second, to the right.
-    '''
+    """
     # Compute differences in the optimal index,
     # to find positions of choice-changes
-    diff_max = np.insert(np.diff(optIdx),len(optIdx)-1,0)
+    diff_max = np.insert(np.diff(optIdx), len(optIdx) - 1, 0)
     idx_change = np.where(diff_max != 0)[0]
-    
+
     # If no crossings, return an empty list
     if len(idx_change) == 0:
         return []
     else:
-        
+
         # To find the crossing points we need the extremes of the intervals in
         # which they happen, and the two candidate segments evaluated in both
         # extremes. switchMs[0] has the left points and switchMs[1] the right
         # points of these intervals.
-        switchMs = np.stack([mGrid[idx_change], mGrid[idx_change + 1]],
-                            axis = 1)
-            
+        switchMs = np.stack([mGrid[idx_change], mGrid[idx_change + 1]], axis=1)
+
         # Store the indices of the two segments involved in the changes, by
         # looking at the argmax in the switching possitions.
         # Columns are [0]: left extreme, [1]: right extreme,
         # Rows are individual crossing points.
-        segments = np.stack([optIdx[idx_change], optIdx[idx_change + 1]],
-                            axis = 1)
-        
+        segments = np.stack([optIdx[idx_change], optIdx[idx_change + 1]], axis=1)
+
         # Values of both segments on the left point
-        left_v  = np.stack([condVs[idx_change, segments[:,0]],
-                            condVs[idx_change, segments[:,1]]], axis = 1)
+        left_v = np.stack(
+            [condVs[idx_change, segments[:, 0]], condVs[idx_change, segments[:, 1]]],
+            axis=1,
+        )
         # and the right point
-        right_v = np.stack([condVs[idx_change+1, segments[:,0]],
-                            condVs[idx_change+1, segments[:,1]]], axis = 1)
-            
+        right_v = np.stack(
+            [
+                condVs[idx_change + 1, segments[:, 0]],
+                condVs[idx_change + 1, segments[:, 1]],
+            ],
+            axis=1,
+        )
+
         # A valid crossing must have both switching segments well defined at the
         # encompassing gridpoints. Filter those that do not.
-        valid = np.logical_and(~np.isnan(left_v).any(axis = 1),
-                               ~np.isnan(right_v).any(axis = 1))
-            
-        segments = segments[valid,:]
-        switchMs = switchMs[valid,:]
-        left_v   = left_v[valid,:]
-        right_v  = right_v[valid,:]
-            
+        valid = np.logical_and(
+            ~np.isnan(left_v).any(axis=1), ~np.isnan(right_v).any(axis=1)
+        )
+
+        segments = segments[valid, :]
+        switchMs = switchMs[valid, :]
+        left_v = left_v[valid, :]
+        right_v = right_v[valid, :]
+
         # Find crossing points. Returns a list (m,v) tuples. Keep m's only
-        xing_points = [calcLinearCrossing(switchMs[i,:],
-                                          left_v[i,:], right_v[i,:])
-                       for i in range(segments.shape[0])]
-        
+        xing_points = [
+            calcLinearCrossing(switchMs[i, :], left_v[i, :], right_v[i, :])
+            for i in range(segments.shape[0])
+        ]
+
         return xing_points, segments
 
+
 def calcPrimKink(mGrid, vTGrids, Choices):
-    '''
+    """
     Parameters
     ----------
     mGrid : np.array
@@ -102,17 +111,17 @@ def calcPrimKink(mGrid, vTGrids, Choices):
     segments: [(left, right)]
         List of the same length as kinks, where each element is a tuple
         indicating which segments are optimal on each side of the kink.
-    '''
+    """
 
     # Construct a vector with the optimal choice at each m point
-    optChoice = np.empty(len(mGrid), dtype = int)
+    optChoice = np.empty(len(mGrid), dtype=int)
     optChoice[:] = np.nan
     for i in range(len(vTGrids)):
         idx = Choices[i] == 1
         optChoice[idx] = i
-        
+
     return calcCrossPoints(mGrid, vTGrids.T, optChoice)
-        
+
 
 def calcSegments(x, v):
     """
@@ -150,16 +159,18 @@ def calcSegments(x, v):
     #
     # `fall` is a vector of indeces that represent the first elements in all
     # of the falling segments (the curve can potentially fold several times)
-    fall = np.empty(0, dtype=int)  # initialize with empty and then add the last point below while-loop
+    fall = np.empty(
+        0, dtype=int
+    )  # initialize with empty and then add the last point below while-loop
 
     rise = np.array([0])  # Initialize such thatthe lowest point is the first grid point
     i = 1  # Initialize
     while i <= len(x) - 2:
         # Check if the next (`ip1` stands for i plus 1) grid point is below the
         # current one, such that the line is folding back.
-        ip1_falls = x[i+1] < x[i]  # true if grid decreases on index increment
-        i_rose = x[i] > x[i-1]  # true if grid decreases on index decrement
-        val_fell = v[i] < v[i-1]  # true if value rises on index decrement
+        ip1_falls = x[i + 1] < x[i]  # true if grid decreases on index increment
+        i_rose = x[i] > x[i - 1]  # true if grid decreases on index decrement
+        val_fell = v[i] < v[i - 1]  # true if value rises on index decrement
 
         if (ip1_falls and i_rose) or (val_fell and i_rose):
 
@@ -172,7 +183,7 @@ def calcSegments(x, v):
             # each points, as there can be multiple spells of falling endogenous
             # grids, so we cannot use bisection or some other fast algorithm.
             k = i
-            while x[k+1] < x[k]:
+            while x[k + 1] < x[k]:
                 k = k + 1
             # k now holds either the next index the starts a new rising
             # region, or it holds the length of M, `m_len`.
@@ -186,13 +197,16 @@ def calcSegments(x, v):
 
     # Add the last index for convenience (then all segments are complete, as
     # len(fall) == len(rise), and we can form them by range(rise[j], fall[j]+1).
-    fall = np.append(fall, len(v)-1)
+    fall = np.append(fall, len(v) - 1)
 
     return rise, fall
+
+
 # think! nanargmax makes everythign super ugly because numpy changed the wraning
 # in all nan slices to a valueerror...it's nans, aaarghgghg
 
-def calcLinearCrossing(m,left_v, right_v):
+
+def calcLinearCrossing(m, left_v, right_v):
     """
     Computes the intersection between two line segments, defined by two common
     x points, and the values of both segments at both x points
@@ -212,24 +226,25 @@ def calcLinearCrossing(m,left_v, right_v):
     if there is no intercept in the interval [m[0],m[1]], (None,None)
 
     """
-    
+
     # Find slopes of both segments
     delta_m = m[1] - m[0]
-    s0 = (right_v[0] - left_v[0])/delta_m
-    s1 = (right_v[1] - left_v[1])/delta_m
-    
+    s0 = (right_v[0] - left_v[0]) / delta_m
+    s1 = (right_v[1] - left_v[1]) / delta_m
+
     if s1 == s0:
         if left_v[0] == left_v[1]:
-            return (m[0],left_v[0])
+            return (m[0], left_v[0])
         else:
             return (None, None)
     else:
         # Find h where intercept happens at m[0] + h
-        h = (left_v[0] - left_v[1])/(s1-s0)
-        if (h >= 0 and h <= (m[1]-m[0])):
-            return (m[0]+h, left_v[0] + h*s0)
+        h = (left_v[0] - left_v[1]) / (s1 - s0)
+        if h >= 0 and h <= (m[1] - m[0]):
+            return (m[0] + h, left_v[0] + h * s0)
 
-def calcMultilineEnvelope(M, C, V_T, commonM, findXings = False):
+
+def calcMultilineEnvelope(M, C, V_T, commonM, findXings=False):
     """
     Do the envelope step of the DCEGM algorithm. Takes in market ressources,
     consumption levels, and inverse values from the EGM step. These represent
@@ -272,57 +287,63 @@ def calcMultilineEnvelope(M, C, V_T, commonM, findXings = False):
 
     # Now, loop over all segments as defined by the "kinks" or the combination
     # of "rise" and "fall" indeces. These (rise[j], fall[j]) pairs define regions.
-    
+
     if findXings:
         # We'll save V_T and C interpolating functions to aid crossing points later
         vT_funcs = []
-        c_funcs  = []
-        
+        c_funcs = []
+
     for j in range(num_kinks):
         # Find points in the common grid that are in the range of the points in
         # the interval defined by (rise[j], fall[j]).
         below = M[rise[j]] >= commonM  # boolean array of bad indeces below
         above = M[fall[j]] <= commonM  # boolen array of bad indeces above
         in_range = below + above == 0  # pick out elements that are neither
-        
+
         # based in in_range, find the relevant ressource values to interpolate
         m_eval = commonM[in_range]
-        
+
         # create range of indeces in the input arrays
-        idxs = range(rise[j], fall[j]+1)
+        idxs = range(rise[j], fall[j] + 1)
         # grab ressource values at the relevant indeces
         m_idx_j = M[idxs]
-        
+
         # If we need to compute the xing points, create and store the
         # interpolating functions. Else simply create them.
         if findXings:
             # Create and store interpolating functions
             vT_funcs.append(LinearInterp(m_idx_j, V_T[idxs], lower_extrap=True))
             c_funcs.append(LinearInterp(m_idx_j, C[idxs], lower_extrap=True))
-            
+
             vT_fun = vT_funcs[-1]
             c_fun = c_funcs[-1]
         else:
             vT_fun = LinearInterp(m_idx_j, V_T[idxs], lower_extrap=True)
             c_fun = LinearInterp(m_idx_j, C[idxs], lower_extrap=True)
-            
+
         # re-interpolate to common grid
-        commonV_T[in_range, j] = vT_fun(m_eval) # NOQA
-        commonC[in_range, j]   = c_fun(m_eval) # NOQA Interpolat econsumption also. May not be nesserary
-    
+        commonV_T[in_range, j] = vT_fun(m_eval)  # NOQA
+        commonC[in_range, j] = c_fun(
+            m_eval
+        )  # NOQA Interpolat econsumption also. May not be nesserary
+
     # for each row in the commonV_T matrix, see if all entries are np.nan. This
     # would mean that we have no valid value here, so we want to use this boolean
     # vector to filter out irrelevant entries of commonV_T.
     row_all_nan = np.array([np.all(np.isnan(row)) for row in commonV_T])
     # Now take the max of all these line segments.
     idx_max = np.zeros(commonM.size, dtype=int)
-    idx_max[row_all_nan == False] = np.nanargmax(commonV_T[row_all_nan == False], axis=1)
-    
+    idx_max[row_all_nan == False] = np.nanargmax(
+        commonV_T[row_all_nan == False], axis=1
+    )
+
     # prefix with upper for variable that are "upper enveloped"
     upperV_T = np.zeros(m_len)
 
     # Set the non-nan rows to the maximum over columns
-    upperV_T[row_all_nan == False] = np.nanmax(commonV_T[row_all_nan == False, :], axis=1)
+    upperV_T[row_all_nan == False] = np.nanmax(
+        commonV_T[row_all_nan == False, :], axis=1
+    )
     # Set the rest to nan
     upperV_T[row_all_nan] = np.nan
 
@@ -336,76 +357,80 @@ def calcMultilineEnvelope(M, C, V_T, commonM, findXings = False):
     # Extrapolate if NaNs are introduced due to the common grid
     # going outside all the sub-line segments
     IsNaN = np.isnan(upperV_T)
-    upperV_T[IsNaN] = LinearInterp(commonM[IsNaN == False], upperV_T[IsNaN == False])(commonM[IsNaN])
+    upperV_T[IsNaN] = LinearInterp(commonM[IsNaN == False], upperV_T[IsNaN == False])(
+        commonM[IsNaN]
+    )
     LastBeforeNaN = np.append(np.diff(IsNaN) > 0, 0)
-    LastId = LastBeforeNaN*idx_max  # Find last id-number
+    LastId = LastBeforeNaN * idx_max  # Find last id-number
     idx_max[IsNaN] = LastId[IsNaN]
     # Linear index used to get optimal consumption based on "id"  from max
     ncols = commonC.shape[1]
-    rowidx = np.cumsum(ncols*np.ones(len(commonM), dtype=int))-ncols
-    idx_linear = np.unravel_index(rowidx+idx_max, commonC.shape)
+    rowidx = np.cumsum(ncols * np.ones(len(commonM), dtype=int)) - ncols
+    idx_linear = np.unravel_index(rowidx + idx_max, commonC.shape)
     upperC = commonC[idx_linear]
-    upperC[IsNaN] = LinearInterp(commonM[IsNaN == 0], upperC[IsNaN == 0])(commonM[IsNaN])
-    
+    upperC[IsNaN] = LinearInterp(commonM[IsNaN == 0], upperC[IsNaN == 0])(
+        commonM[IsNaN]
+    )
+
     upperM = commonM.copy()  # anticipate this TODO
-    
+
     # If crossing points are requested, compute them. Else just return the
     # envelope.
     if not findXings:
-        
+
         return upperM, upperC, upperV_T
-        
+
     else:
-        
+
         xing_points, segments = calcCrossPoints(commonM, commonV_T, idx_max)
         # keep only the m component of crossing points.
         xing_points = [x[0] for x in xing_points]
-        
+
         if len(xing_points) > 0:
-            
+
             # Now construct a set of points that need to be added to the grid in
             # order to handle the discontinuities. To points per discontinuity:
             # one to the left and one to the right.
             num_crosses = len(xing_points)
-            add_m     = np.empty((num_crosses,2))
-            add_m[:]  = np.nan
-            add_vT    = np.empty((num_crosses,2))
+            add_m = np.empty((num_crosses, 2))
+            add_m[:] = np.nan
+            add_vT = np.empty((num_crosses, 2))
             add_vT[:] = np.nan
-            add_c     = np.empty((num_crosses,2))
-            add_c[:]  = np.nan
-            
+            add_c = np.empty((num_crosses, 2))
+            add_c[:] = np.nan
+
             # Fill the list of points interpolating left and right (2 points per
             # crossing)
             for i in range(num_crosses):
                 # Left part of the discontinuity
                 ml = xing_points[i]
-                add_m[i,0] = ml
-                add_vT[i,0] = vT_funcs[segments[i,0]](ml)
-                add_c[i,0] = c_funcs[segments[i,0]](ml)
-                
+                add_m[i, 0] = ml
+                add_vT[i, 0] = vT_funcs[segments[i, 0]](ml)
+                add_c[i, 0] = c_funcs[segments[i, 0]](ml)
+
                 # Right part of the discontinuity
                 mr = np.nextafter(ml, np.inf)
-                add_m[i,1]  = mr
-                add_vT[i,1] = vT_funcs[segments[i,1]](mr)
-                add_c[i,1]  = c_funcs[segments[i,1]](mr)
-            
+                add_m[i, 1] = mr
+                add_vT[i, 1] = vT_funcs[segments[i, 1]](mr)
+                add_c[i, 1] = c_funcs[segments[i, 1]](mr)
+
             # Flatten arrays
             add_m = add_m.flatten()
             add_vT = add_vT.flatten()
-            add_c = add_c.flatten()        
-    
+            add_c = add_c.flatten()
+
             # Filter any points already in the grid
             idxIncluded = np.isin(add_m, upperM)
-            add_m  = add_m[~idxIncluded]
+            add_m = add_m[~idxIncluded]
             add_vT = add_vT[~idxIncluded]
-            add_c  = add_c[~idxIncluded]
-            
+            add_c = add_c[~idxIncluded]
+
             # Find positions at which new points must go
             insertIdx = np.searchsorted(upperM, add_m)
-            
+
             # Insert
-            upperM   = np.insert(upperM, insertIdx, add_m)
-            upperC   = np.insert(upperC, insertIdx, add_c)
+            upperM = np.insert(upperM, insertIdx, add_m)
+            upperC = np.insert(upperC, insertIdx, add_c)
             upperV_T = np.insert(upperV_T, insertIdx, add_vT)
-            
+
         return upperM, upperC, upperV_T, xing_points

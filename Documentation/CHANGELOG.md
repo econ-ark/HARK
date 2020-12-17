@@ -10,16 +10,21 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ### 0.10.8
 
-Release Data: TBD
+Release Data: Nov. 05 2020
 
 #### Major Changes
 
 * Namespace variables for the Market class [#765](https://github.com/econ-ark/HARK/pull/765)
 * We now have a Numba based implementation of PerfForesightConsumerType model available as PerfForesightConsumerTypeFast [#774](https://github.com/econ-ark/HARK/pull/774)
+* Namespace for exogenous shocks [#803](https://github.com/econ-ark/HARK/pull/803)
+* Namespace for controls [#855](https://github.com/econ-ark/HARK/pull/855)
+* State and poststate attributes replaced with state_now and state_prev namespaces [#836](https://github.com/econ-ark/HARK/pull/836)
 
 #### Minor Changes 
 
+* Use shock_history namespace for pre-evaluated shock history [#812](https://github.com/econ-ark/HARK/pull/812)
 * Fixes seed of PrefShkDstn on initialization and add tests for simulation output
+* Reformat code style using black
 
 ### 0.10.7
 
