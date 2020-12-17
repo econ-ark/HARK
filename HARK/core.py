@@ -20,6 +20,7 @@ from copy import copy, deepcopy
 import numpy as np
 from time import time
 from .parallel import multiThreadCommands, multiThreadCommandsFake
+from warnings import warn
 
 
 def distanceMetric(thing_A, thing_B):
@@ -51,6 +52,7 @@ def distanceMetric(thing_A, thing_B):
                 distance_temp.append(distanceMetric(thing_A[n], thing_B[n]))
             distance = max(distance_temp)
         else:
+            warn('Objects of different lengths are being compared. Returning difference in lengths.')
             distance = float(abs(lenA - lenB))
     # If both inputs are dictionaries, call distance on the list of its elements
     elif typeA is dict and typeB is dict:
