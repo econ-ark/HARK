@@ -9,7 +9,6 @@ from copy import deepcopy
 from HARK import HARKobject, NullFunc, AgentType  # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
-    ValueFunc,  # For representing 1D value function
     MargValueFunc,  # For representing 1D marginal value function
     utility,  # CRRA utility function
     utility_inv,  # Inverse CRRA utility function
@@ -19,7 +18,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,  # Baseline dictionary to build on
 )
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
-    ValueFunc2D,  # For representing 2D value function
     MargValueFunc2D,  # For representing 2D marginal value function
 )
 from HARK.distribution import combineIndepDstns
@@ -31,6 +29,7 @@ from HARK.interpolation import (
     BilinearInterp,  # 2D interpolator
     ConstantFunction,  # Interpolator-like class that returns constant value
     IdentityFunction,  # Interpolator-like class that returns one of its arguments
+    ValueFunc
 )
 
 
@@ -187,7 +186,7 @@ class PortfolioConsumerType(IndShockConsumerType):
 
         # Value function is simply utility from consuming market resources
         vFuncAdj_terminal = ValueFunc(cFuncAdj_terminal, self.CRRA)
-        vFuncFxd_terminal = ValueFunc2D(cFuncFxd_terminal, self.CRRA)
+        vFuncFxd_terminal = ValueFunc(cFuncFxd_terminal, self.CRRA)
 
         # Marginal value of market resources is marg utility at the consumption function
         vPfuncAdj_terminal = MargValueFunc(cFuncAdj_terminal, self.CRRA)
@@ -719,7 +718,7 @@ def solveConsPortfolio(
             v_intermed = np.sum(IncPrbs_tiled * temp_fac_B * v_next, axis=2)
             vNvrs_intermed = n(v_intermed)
             vNvrsFunc_intermed = BilinearInterp(vNvrs_intermed, bNrmGrid, ShareGrid)
-            vFunc_intermed = ValueFunc2D(vNvrsFunc_intermed, CRRA)
+            vFunc_intermed = ValueFunc(vNvrsFunc_intermed, CRRA)
 
         # Calculate intermediate marginal value of risky portfolio share by taking expectations
         dvds_intermed = np.sum(IncPrbs_tiled * temp_fac_B * dvds_next, axis=2)
@@ -996,7 +995,7 @@ def solveConsPortfolio(
     if vFuncBool:
         # First, make an end-of-period value function over aNrm and Share
         EndOfPrdvNvrsFunc = BilinearInterp(EndOfPrdvNvrs, aNrmGrid, ShareGrid)
-        EndOfPrdvFunc = ValueFunc2D(EndOfPrdvNvrsFunc, CRRA)
+        EndOfPrdvFunc = ValueFunc(EndOfPrdvNvrsFunc, CRRA)
 
         # Construct the value function when the agent can adjust his portfolio
         mNrm_temp = aXtraGrid  # Just use aXtraGrid as our grid of mNrm values
@@ -1033,7 +1032,7 @@ def solveConsPortfolio(
                 )
             )  # dfdx_list
         vNvrsFuncFxd = LinearInterpOnInterp1D(vNvrsFuncFxd_by_Share, ShareGrid)
-        vFuncFxd_now = ValueFunc2D(vNvrsFuncFxd, CRRA)
+        vFuncFxd_now = ValueFunc(vNvrsFuncFxd, CRRA)
 
     else:  # If vFuncBool is False, fill in dummy values
         vFuncAdj_now = None

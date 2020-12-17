@@ -21,7 +21,7 @@ import numpy as np
 from scipy.optimize import newton
 from HARK import AgentType, NullFunc, HARKobject, makeOnePeriodOOSolver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
-from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
+from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp, ValueFunc
 from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
 from HARK.distribution import (
     DiscreteDistribution,
@@ -44,7 +44,6 @@ from HARK import set_verbosity_level
 
 __all__ = [
     "ConsumerSolution",
-    "ValueFunc",
     "MargValueFunc",
     "MargMargValueFunc",
     "ConsPerfForesightSolver",
@@ -179,53 +178,6 @@ class ConsumerSolution(HARKobject):
             self.vPfunc.append(new_solution.vPfunc)
             self.vPPfunc.append(new_solution.vPPfunc)
             self.mNrmMin.append(new_solution.mNrmMin)
-
-
-class ValueFunc(HARKobject):
-    """
-    A class for representing a value function.  The underlying interpolation is
-    in the space of (m,u_inv(v)); this class "re-curves" to the value function.
-    """
-
-    distance_criteria = ["func", "CRRA"]
-
-    def __init__(self, vFuncNvrs, CRRA):
-        """
-        Constructor for a new value function object.
-
-        Parameters
-        ----------
-        vFuncNvrs : function
-            A real function representing the value function composed with the
-            inverse utility function, defined on market resources: u_inv(vFunc(m))
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        None
-        """
-        self.func = deepcopy(vFuncNvrs)
-        self.CRRA = CRRA
-
-    def __call__(self, m):
-        """
-        Evaluate the value function at given levels of market resources m.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources (normalized by permanent income) whose value is to
-            be found.
-
-        Returns
-        -------
-        v : float or np.array
-            Lifetime value of beginning this period with market resources m; has
-            same size as input m.
-        """
-        return utility(self.func(m), gam=self.CRRA)
-
 
 class MargValueFunc(HARKobject):
     """

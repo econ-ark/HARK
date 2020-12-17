@@ -20,6 +20,7 @@ from HARK.interpolation import (
     LinearInterp,
     CubicInterp,
     UpperEnvelope,
+    ValueFunc
 )
 from HARK.utilities import (
     CRRAutility,
@@ -40,7 +41,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 
 __all__ = [
-    "ValueFunc2D",
     "MargValueFunc2D",
     "MargMargValueFunc2D",
     "pLvlFuncAR1",
@@ -59,56 +59,6 @@ utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
-
-
-class ValueFunc2D(HARKobject):
-    """
-    A class for representing a value function in a model where persistent income
-    is explicitly included as a state variable.  The underlying interpolation is
-    in the space of (m,p) --> u_inv(v); this class "re-curves" to the value function.
-    """
-
-    distance_criteria = ["func", "CRRA"]
-
-    def __init__(self, vFuncNvrs, CRRA):
-        """
-        Constructor for a new value function object.
-
-        Parameters
-        ----------
-        vFuncNvrs : function
-            A real function representing the value function composed with the
-            inverse utility function, defined on market resources and persistent
-            income: u_inv(vFunc(m,p))
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        None
-        """
-        self.func = deepcopy(vFuncNvrs)
-        self.CRRA = CRRA
-
-    def __call__(self, m, p):
-        """
-        Evaluate the value function at given levels of market resources m and
-        persistent income p.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources whose value is to be calcuated.
-        p : float or np.array
-            Persistent income levels whose value is to be calculated.
-
-        Returns
-        -------
-        v : float or np.array
-            Lifetime value of beginning this period with market resources m and
-            persistent income p; has same size as inputs m and p.
-        """
-        return utility(self.func(m, p), gam=self.CRRA)
 
 
 class MargValueFunc2D(HARKobject):
@@ -647,7 +597,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         EndOfPrdvNvrsFunc = VariableLowerBoundFunc2D(
             EndOfPrdvNvrsFuncBase, self.BoroCnstNat
         )
-        self.EndOfPrdvFunc = ValueFunc2D(EndOfPrdvNvrsFunc, self.CRRA)
+        self.EndOfPrdvFunc = ValueFunc(EndOfPrdvNvrsFunc, self.CRRA)
 
     def getPointsForInterpolation(self, EndOfPrdvP, aLvlNow):
         """
@@ -818,7 +768,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         vNvrsFuncNow = VariableLowerBoundFunc2D(vNvrsFuncBase, self.mLvlMinNow)
 
         # "Re-curve" the pseudo-inverse value function into the value function
-        vFuncNow = ValueFunc2D(vNvrsFuncNow, self.CRRA)
+        vFuncNow = ValueFunc(vNvrsFuncNow, self.CRRA)
         return vFuncNow
 
     def makeBasicSolution(self, EndOfPrdvP, aLvl, pLvl, interpolator):
@@ -1155,7 +1105,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.solution_terminal.vFunc = ValueFunc2D(self.cFunc_terminal_, self.CRRA)
+        self.solution_terminal.vFunc = ValueFunc(self.cFunc_terminal_, self.CRRA)
         self.solution_terminal.vPfunc = MargValueFunc2D(self.cFunc_terminal_, self.CRRA)
         self.solution_terminal.vPPfunc = MargMargValueFunc2D(
             self.cFunc_terminal_, self.CRRA

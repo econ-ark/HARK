@@ -12,6 +12,7 @@ from builtins import range
 import numpy as np
 from .core import HARKobject
 from copy import deepcopy
+from HARK.utilities import CRRAutility
 import warnings
 
 
@@ -4437,6 +4438,62 @@ def calcLogSum(Vals, sigma):
     LogSumV = maxV + sigma * LogSumV
     return LogSumV
 
+###############################################################################
+# Tools for value and marginal-value functions in models where                #
+# - dvdm = u'(c).                                                             #
+# - u is of the CRRA family.                                                  #
+###############################################################################
+
+class ValueFunc(HARKobject):
+    """
+    A class for representing a value function.  The underlying interpolation is
+    in the space of (state,u_inv(v)); this class "re-curves" to the value function.
+    """
+
+    distance_criteria = ["func", "CRRA"]
+
+    def __init__(self, vFuncNvrs, CRRA):
+        """
+        Constructor for a new value function object.
+
+        Parameters
+        ----------
+        vFuncNvrs : function
+            A real function representing the value function composed with the
+            inverse utility function, defined on the state: u_inv(vFunc(state))
+        CRRA : float
+            Coefficient of relative risk aversion.
+
+        Returns
+        -------
+        None
+        """
+        self.func = deepcopy(vFuncNvrs)
+        self.CRRA = CRRA
+
+    def __call__(self, *vFuncArgs):
+        """
+        Evaluate the value function at given levels of market resources m.
+
+        Parameters
+        ----------
+        vFuncArgs : floats or np.arrays, all of the same dimensions.
+            Values for the state variables. These usually start with 'm',
+            market resources normalized by the level of permanent income.
+            
+        Returns
+        -------
+        v : float or np.array
+            Lifetime value of beginning this period with the given states; has
+            same size as the state inputs.
+        """
+        return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
+
+
+
+##############################################################################
+# Examples and tests
+##############################################################################
 
 def main():
     print("Sorry, HARK.interpolation doesn't actually do much on its own.")
