@@ -208,7 +208,7 @@ class MargValueFunc(HARKobject):
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
 
-    def __call__(self, m):
+    def __call__(self, *cFuncArgs):
         """
         Evaluate the marginal value function at given levels of market resources m.
 
@@ -224,9 +224,9 @@ class MargValueFunc(HARKobject):
             Marginal lifetime value of beginning this period with market
             resources m; has same size as input m.
         """
-        return utilityP(self.cFunc(m), gam=self.CRRA)
+        return utilityP(self.cFunc(*cFuncArgs), gam=self.CRRA)
 
-    def derivative(self, m):
+    def derivative(self, *cFuncArgs):
         """
         Evaluate the derivative of the marginal value function at given levels
         of market resources m; this is the marginal marginal value function.
@@ -243,7 +243,7 @@ class MargValueFunc(HARKobject):
             Marginal marginal lifetime value of beginning this period with market
             resources m; has same size as input m.
         """
-        c, MPC = self.cFunc.eval_with_derivative(m)
+        c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
         return MPC * utilityPP(c, gam=self.CRRA)
 
 
@@ -276,7 +276,7 @@ class MargMargValueFunc(HARKobject):
         self.cFunc = deepcopy(cFunc)
         self.CRRA = CRRA
 
-    def __call__(self, m):
+    def __call__(self, *cFuncArgs):
         """
         Evaluate the marginal marginal value function at given levels of market
         resources m.
@@ -293,7 +293,7 @@ class MargMargValueFunc(HARKobject):
             Marginal marginal lifetime value of beginning this period with market
             resources m; has same size as input m.
         """
-        c, MPC = self.cFunc.eval_with_derivative(m)
+        c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
         return MPC * utilityPP(c, gam=self.CRRA)
 
 

@@ -20,13 +20,14 @@ from HARK.interpolation import (
     VariableLowerBoundFunc2D,
     BilinearInterp,
     ConstantFunction,
+    ValueFunc
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     MargValueFunc,
     init_idiosyncratic_shocks,
 )
-from HARK.ConsumptionSaving.ConsGenIncProcessModel import ValueFunc2D, MargValueFunc2D
+from HARK.ConsumptionSaving.ConsGenIncProcessModel import MargValueFunc2D
 import matplotlib.pyplot as plt
 
 
@@ -622,7 +623,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         # Compute the effective consumption value using consumption value and labor value at the terminal solution
         xEffTerm = LsrTerm ** LbrCost * cNrmTerm
         vNvrsFunc_terminal = BilinearInterp(xEffTerm, bNrmGrid, TranShkGrid)
-        vFunc_terminal = ValueFunc2D(vNvrsFunc_terminal, self.CRRA)
+        vFunc_terminal = ValueFunc(vNvrsFunc_terminal, self.CRRA)
 
         # Using the envelope condition at the terminal solution to estimate the marginal value function
         vPterm = LsrTerm ** LbrCost * CRRAutilityP(xEffTerm, gam=self.CRRA)

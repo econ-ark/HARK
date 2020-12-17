@@ -12,7 +12,6 @@ import numpy as np
 from HARK import AgentType
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsIndShockSolver,
-    ValueFunc,
     MargValueFunc,
     ConsumerSolution,
     IndShockConsumerType,
@@ -20,7 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 
 from HARK.distribution import DiscreteDistribution, Uniform
-from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp
+from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp, ValueFunc
 from HARK.utilities import (
     CRRAutility,
     CRRAutilityP,

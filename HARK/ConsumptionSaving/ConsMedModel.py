@@ -29,11 +29,11 @@ from HARK.interpolation import (
     UpperEnvelope,
     LinearInterpOnInterp1D,
     VariableLowerBoundFunc3D,
+    ValueFunc
 )
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     ConsGenIncProcessSolver,
     PersistentShockConsumerType,
-    ValueFunc2D,
     MargValueFunc2D,
     MargMargValueFunc2D,
     VariableLowerBoundFunc2D,
@@ -765,7 +765,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         vNvrsP[0] = 0.0
         tempFunc = CubicInterp(mLvlGrid, vNvrs, vNvrsP)
         vNvrsFunc = LinearInterpOnInterp1D([tempFunc, tempFunc], trivial_grid)
-        vFunc_terminal = ValueFunc2D(vNvrsFunc, self.CRRA)
+        vFunc_terminal = ValueFunc(vNvrsFunc, self.CRRA)
 
         # Make the terminal period solution
         self.solution_terminal.cFunc = cFunc_terminal
@@ -1341,7 +1341,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
         # "Re-curve" the (marginal) value function
         vPfunc = MargValueFunc2D(vPnvrsFunc, self.CRRA)
         if self.vFuncBool:
-            vFunc = ValueFunc2D(vNvrsFunc, self.CRRA)
+            vFunc = ValueFunc(vNvrsFunc, self.CRRA)
         else:
             vFunc = NullFunc()
 
