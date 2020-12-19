@@ -23,14 +23,19 @@ from quantecon.optimize import newton_secant
 from HARK import makeOnePeriodOOSolver, HARKobject
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
-    MargValueFunc,
     MargMargValueFunc,
     ConsPerfForesightSolver,
     ConsIndShockSolverBasic,
     PerfForesightConsumerType,
     IndShockConsumerType,
 )
-from HARK.interpolation import LinearInterp, LowerEnvelope, CubicInterp, ValueFunc
+from HARK.interpolation import (
+    LinearInterp,
+    LowerEnvelope,
+    CubicInterp,
+    ValueFunc,
+    MargValueFunc
+)
 from HARK.numba import (
     CRRAutility,
     CRRAutilityP,

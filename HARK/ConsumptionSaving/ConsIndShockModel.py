@@ -21,7 +21,13 @@ import numpy as np
 from scipy.optimize import newton
 from HARK import AgentType, NullFunc, HARKobject, makeOnePeriodOOSolver
 from HARK.utilities import warnings  # Because of "patch" to warnings modules
-from HARK.interpolation import CubicInterp, LowerEnvelope, LinearInterp, ValueFunc
+from HARK.interpolation import (
+    CubicInterp,
+    LowerEnvelope,
+    LinearInterp,
+    ValueFunc,
+    MargValueFunc
+)
 from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
 from HARK.distribution import (
     DiscreteDistribution,
@@ -44,7 +50,6 @@ from HARK import set_verbosity_level
 
 __all__ = [
     "ConsumerSolution",
-    "MargValueFunc",
     "MargMargValueFunc",
     "ConsPerfForesightSolver",
     "ConsIndShockSetup",

@@ -20,14 +20,14 @@ from HARK.interpolation import (
     VariableLowerBoundFunc2D,
     BilinearInterp,
     ConstantFunction,
-    ValueFunc
+    ValueFunc, MargValueFunc
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     MargValueFunc,
     init_idiosyncratic_shocks,
 )
-from HARK.ConsumptionSaving.ConsGenIncProcessModel import MargValueFunc2D
+
 import matplotlib.pyplot as plt
 
 
@@ -338,7 +338,7 @@ def solveConsLaborIntMarg(
     vPnvrsFuncNow = VariableLowerBoundFunc2D(vPnvrsFuncNowBase, bNrmMinNow)
 
     # Construct the marginal value function by "recurving" its pseudo-inverse
-    vPfuncNow = MargValueFunc2D(vPnvrsFuncNow, CRRA)
+    vPfuncNow = MargValueFunc(vPnvrsFuncNow, CRRA)
 
     # Make a solution object for this period and return it
     solution = ConsumerLaborSolution(
@@ -632,7 +632,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         )  # Evaluate the inverse of the CRRA marginal utility function at a given marginal value, vP
 
         vPnvrsFunc_terminal = BilinearInterp(vPnvrsTerm, bNrmGrid, TranShkGrid)
-        vPfunc_terminal = MargValueFunc2D(
+        vPfunc_terminal = MargValueFunc(
             vPnvrsFunc_terminal, self.CRRA
         )  # Get the Marginal Value function
 

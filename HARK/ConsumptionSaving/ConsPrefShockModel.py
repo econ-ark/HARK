@@ -17,7 +17,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     ConsumerSolution,
     ConsIndShockSolver,
-    MargValueFunc,
     KinkedRconsumerType,
     ConsKinkedRsolver,
     init_idiosyncratic_shocks,
@@ -28,7 +27,8 @@ from HARK.interpolation import (
     LinearInterp,
     CubicInterp,
     LowerEnvelope,
-    ValueFunc
+    ValueFunc,
+    MargValueFunc
 )
 
 

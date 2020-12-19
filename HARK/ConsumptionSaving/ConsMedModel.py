@@ -29,12 +29,12 @@ from HARK.interpolation import (
     UpperEnvelope,
     LinearInterpOnInterp1D,
     VariableLowerBoundFunc3D,
-    ValueFunc
+    ValueFunc,
+    MargValueFunc
 )
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     ConsGenIncProcessSolver,
     PersistentShockConsumerType,
-    MargValueFunc2D,
     MargMargValueFunc2D,
     VariableLowerBoundFunc2D,
     init_persistent_shocks,
@@ -743,7 +743,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
             mLvlGrid,
             trivial_grid,
         )
-        vPfunc_terminal = MargValueFunc2D(vPnvrsFunc, self.CRRA)
+        vPfunc_terminal = MargValueFunc(vPnvrsFunc, self.CRRA)
         vPPfunc_terminal = MargMargValueFunc2D(vPnvrsFunc, self.CRRA)
 
         # Integrate value across shocks to get expected value
@@ -1339,7 +1339,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             )  # adjust for the lower bound of mLvl
 
         # "Re-curve" the (marginal) value function
-        vPfunc = MargValueFunc2D(vPnvrsFunc, self.CRRA)
+        vPfunc = MargValueFunc(vPnvrsFunc, self.CRRA)
         if self.vFuncBool:
             vFunc = ValueFunc(vNvrsFunc, self.CRRA)
         else:

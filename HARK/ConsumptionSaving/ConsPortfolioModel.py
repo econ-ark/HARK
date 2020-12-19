@@ -9,7 +9,6 @@ from copy import deepcopy
 from HARK import HARKobject, NullFunc, AgentType  # Basic HARK features
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,  # PortfolioConsumerType inherits from it
-    MargValueFunc,  # For representing 1D marginal value function
     utility,  # CRRA utility function
     utility_inv,  # Inverse CRRA utility function
     utilityP,  # CRRA marginal utility function
@@ -29,7 +28,8 @@ from HARK.interpolation import (
     BilinearInterp,  # 2D interpolator
     ConstantFunction,  # Interpolator-like class that returns constant value
     IdentityFunction,  # Interpolator-like class that returns one of its arguments
-    ValueFunc
+    ValueFunc,
+    MargValueFunc
 )
 
 
@@ -708,7 +708,7 @@ def solveConsPortfolio(
         dvdb_intermed = np.sum(IncPrbs_tiled * temp_fac_A * dvdm_next, axis=2)
         dvdbNvrs_intermed = uPinv(dvdb_intermed)
         dvdbNvrsFunc_intermed = BilinearInterp(dvdbNvrs_intermed, bNrmGrid, ShareGrid)
-        dvdbFunc_intermed = MargValueFunc2D(dvdbNvrsFunc_intermed, CRRA)
+        dvdbFunc_intermed = MargValueFunc(dvdbNvrsFunc_intermed, CRRA)
 
         # Calculate intermediate value by taking expectations over income shocks
         temp_fac_B = (PermShks_tiled * PermGroFac) ** (
@@ -989,7 +989,7 @@ def solveConsPortfolio(
     ShareFuncFxd_now = IdentityFunction(i_dim=1, n_dims=2)
 
     # Construct the marginal value of mNrm function when the agent can't adjust his share
-    dvdmFuncFxd_now = MargValueFunc2D(cFuncFxd_now, CRRA)
+    dvdmFuncFxd_now = MargValueFunc(cFuncFxd_now, CRRA)
 
     # If the value function has been requested, construct it now
     if vFuncBool:
