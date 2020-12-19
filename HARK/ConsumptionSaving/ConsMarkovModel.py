@@ -471,7 +471,7 @@ class ConsMarkovSolver(ConsIndShockSolver):
                     if (
                         self.CubicBool
                     ):  # Add conditional end-of-period (marginal) marginal value to the arrays
-                        EndOfPrdvPP_all[j, :] = self.EndOfPrdvPfunc_list[j].derivative(
+                        EndOfPrdvPP_all[j, :] = self.EndOfPrdvPfunc_list[j].derivativeX(
                             aGrid
                         )
             # Weight conditional marginal (marginal) values by transition probs
