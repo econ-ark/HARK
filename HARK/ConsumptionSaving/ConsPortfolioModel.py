@@ -14,11 +14,9 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     utilityP,  # CRRA marginal utility function
     utility_invP,  # Derivative of inverse CRRA utility function
     utilityP_inv,  # Inverse CRRA marginal utility function
-    init_idiosyncratic_shocks,  # Baseline dictionary to build on
+    init_idiosyncratic_shocks  # Baseline dictionary to build on
 )
-from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
-    MargValueFunc2D,  # For representing 2D marginal value function
-)
+
 from HARK.distribution import combineIndepDstns
 from HARK.distribution import Lognormal, Bernoulli  # Random draws for simulating agents
 from HARK.interpolation import (
@@ -190,7 +188,7 @@ class PortfolioConsumerType(IndShockConsumerType):
 
         # Marginal value of market resources is marg utility at the consumption function
         vPfuncAdj_terminal = MargValueFunc(cFuncAdj_terminal, self.CRRA)
-        dvdmFuncFxd_terminal = MargValueFunc2D(cFuncFxd_terminal, self.CRRA)
+        dvdmFuncFxd_terminal = MargValueFunc(cFuncFxd_terminal, self.CRRA)
         dvdsFuncFxd_terminal = ConstantFunction(
             0.0
         )  # No future, no marg value of Share
