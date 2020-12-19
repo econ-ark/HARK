@@ -21,7 +21,8 @@ from HARK.interpolation import (
     CubicInterp,
     UpperEnvelope,
     ValueFunc,
-    MargValueFunc
+    MargValueFunc,
+    MargMargValueFunc
 )
 from HARK.utilities import (
     CRRAutility,
@@ -42,7 +43,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 
 __all__ = [
-    "MargMargValueFunc2D",
     "pLvlFuncAR1",
     "ConsGenIncProcessSolver",
     "GenIncProcessConsumerType",
@@ -59,59 +59,6 @@ utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
-
-
-class MargMargValueFunc2D(HARKobject):
-    """
-    A class for representing a marginal marginal value function in models where the
-    standard envelope condition of v'(m,p) = u'(c(m,p)) holds (with CRRA utility).
-    """
-
-    distance_criteria = ["cFunc", "CRRA"]
-
-    def __init__(self, cFunc, CRRA):
-        """
-        Constructor for a new marginal marginal value function object.
-
-        Parameters
-        ----------
-        cFunc : function
-            A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on market
-            resources and the level of persistent income: uP_inv(vPfunc(m,p)).
-            Called cFunc because when standard envelope condition applies,
-            uP_inv(vPfunc(M,p)) = cFunc(m,p).
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        None
-        """
-        self.cFunc = deepcopy(cFunc)
-        self.CRRA = CRRA
-
-    def __call__(self, m, p):
-        """
-        Evaluate the marginal marginal value function at given levels of market
-        resources m and persistent income p.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources whose marginal marginal value is to be calculated.
-        p : float or np.array
-            Persistent income levels whose marginal marginal value is to be calculated.
-
-        Returns
-        -------
-        vPP : float or np.array
-            Marginal marginal value of beginning this period with market
-            resources m and persistent income p; has same size as inputs.
-        """
-        c = self.cFunc(m, p)
-        MPC = self.cFunc.derivativeX(m, p)
-        return MPC * utilityPP(c, gam=self.CRRA)
 
 
 class pLvlFuncAR1(HARKobject):
@@ -881,7 +828,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             The same solution passed as input, but with the marginal marginal
             value function for this period added as the attribute vPPfunc.
         """
-        vPPfuncNow = MargMargValueFunc2D(solution.cFunc, self.CRRA)
+        vPPfuncNow = MargMargValueFunc(solution.cFunc, self.CRRA)
         solution.vPPfunc = vPPfuncNow
         return solution
 
@@ -1029,7 +976,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         """
         self.solution_terminal.vFunc = ValueFunc(self.cFunc_terminal_, self.CRRA)
         self.solution_terminal.vPfunc = MargValueFunc(self.cFunc_terminal_, self.CRRA)
-        self.solution_terminal.vPPfunc = MargMargValueFunc2D(
+        self.solution_terminal.vPPfunc = MargMargValueFunc(
             self.cFunc_terminal_, self.CRRA
         )
         self.solution_terminal.hNrm = 0.0  # Don't track normalized human wealth

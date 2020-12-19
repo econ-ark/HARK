@@ -30,12 +30,12 @@ from HARK.interpolation import (
     LinearInterpOnInterp1D,
     VariableLowerBoundFunc3D,
     ValueFunc,
-    MargValueFunc
+    MargValueFunc,
+    MargMargValueFunc
 )
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     ConsGenIncProcessSolver,
     PersistentShockConsumerType,
-    MargMargValueFunc2D,
     VariableLowerBoundFunc2D,
     init_persistent_shocks,
 )
@@ -744,7 +744,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
             trivial_grid,
         )
         vPfunc_terminal = MargValueFunc(vPnvrsFunc, self.CRRA)
-        vPPfunc_terminal = MargMargValueFunc2D(vPnvrsFunc, self.CRRA)
+        vPPfunc_terminal = MargMargValueFunc(vPnvrsFunc, self.CRRA)
 
         # Integrate value across shocks to get expected value
         vGrid = utility(cLvlGrid, gam=self.CRRA) + MedShkGrid_tiled * utility(
@@ -1518,7 +1518,7 @@ class ConsMedShockSolver(ConsGenIncProcessSolver):
             The same solution passed as input, but with the marginal marginal
             value function for this period added as the attribute vPPfunc.
         """
-        vPPfuncNow = MargMargValueFunc2D(solution.vPfunc.cFunc, self.CRRA)
+        vPPfuncNow = MargMargValueFunc(solution.vPfunc.cFunc, self.CRRA)
         solution.vPPfunc = vPPfuncNow
         return solution
 

@@ -26,7 +26,8 @@ from HARK.interpolation import (
     LowerEnvelope,
     LinearInterp,
     ValueFunc,
-    MargValueFunc
+    MargValueFunc,
+    MargMargValueFunc
 )
 from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
 from HARK.distribution import (
@@ -50,7 +51,6 @@ from HARK import set_verbosity_level
 
 __all__ = [
     "ConsumerSolution",
-    "MargMargValueFunc",
     "ConsPerfForesightSolver",
     "ConsIndShockSetup",
     "ConsIndShockSolverBasic",
@@ -183,55 +183,6 @@ class ConsumerSolution(HARKobject):
             self.vPfunc.append(new_solution.vPfunc)
             self.vPPfunc.append(new_solution.vPPfunc)
             self.mNrmMin.append(new_solution.mNrmMin)
-
-class MargMargValueFunc(HARKobject):
-    """
-    A class for representing a marginal marginal value function in models where
-    the standard envelope condition of v'(m) = u'(c(m)) holds (with CRRA utility).
-    """
-
-    distance_criteria = ["cFunc", "CRRA"]
-
-    def __init__(self, cFunc, CRRA):
-        """
-        Constructor for a new marginal marginal value function object.
-
-        Parameters
-        ----------
-        cFunc : function
-            A real function representing the marginal value function composed
-            with the inverse marginal utility function, defined on market
-            resources: uP_inv(vPfunc(m)).  Called cFunc because when standard
-            envelope condition applies, uP_inv(vPfunc(m)) = cFunc(m).
-        CRRA : float
-            Coefficient of relative risk aversion.
-
-        Returns
-        -------
-        None
-        """
-        self.cFunc = deepcopy(cFunc)
-        self.CRRA = CRRA
-
-    def __call__(self, *cFuncArgs):
-        """
-        Evaluate the marginal marginal value function at given levels of market
-        resources m.
-
-        Parameters
-        ----------
-        m : float or np.array
-            Market resources (normalized by permanent income) whose marginal
-            marginal value is to be found.
-
-        Returns
-        -------
-        vPP : float or np.array
-            Marginal marginal lifetime value of beginning this period with market
-            resources m; has same size as input m.
-        """
-        c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
-        return MPC * utilityPP(c, gam=self.CRRA)
 
 
 # =====================================================================
