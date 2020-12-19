@@ -1,4 +1,4 @@
-# Release Notes  
+# Release Notes
 
 ## Introduction
 
@@ -7,6 +7,14 @@ This document contains the release notes of HARK. HARK aims to produce an open s
 For more information on HARK, see [our Github organization](https://github.com/econ-ark).
 
 ## Changes
+
+### 0.10.9
+
+Release Data: TBD
+
+#### Minor Changes
+
+* Remove uses of deprecated time.clock [#887](https://github.com/econ-ark/HARK/pull/887)
 
 ### 0.10.8
 
