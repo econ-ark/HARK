@@ -149,5 +149,5 @@ class PortfolioConsumerFrameType(FrameAgentType, PortfolioConsumerType):
         ('pLvlNow', 'PlvlAggNow', 'bNrmNow', 'mNrmNow') : PortfolioConsumerType.getStates,
         ('ShareNow') : transition_ShareNow,
         ('cNrmNow') : transition_cNrmNow,
-        ('aNrmNow', 'aNrmNow') : PortfolioConsumerType.getPostStates
+        ('aNrmNow', 'aLvlNow') : PortfolioConsumerType.getPostStates
     }
