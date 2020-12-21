@@ -7,11 +7,11 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.2'
-#       jupytext_version: 1.2.1
+#       jupytext_version: 1.2.4
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: econ-ark-3.8
 #     language: python
-#     name: python3
+#     name: econ-ark-3.8
 # ---
 
 # %% [markdown]
@@ -31,7 +31,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import HARK 
-from time import clock
 from copy import deepcopy
 mystr = lambda number : "{:.4f}".format(number)
 from HARK.utilities import plotFuncs
@@ -76,7 +75,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
 # | $\rho$ | Relative risk aversion | $\texttt{CRRA}$ | 2.5 |
 # | $\beta$ | Discount factor | $\texttt{DiscFac}$ | 0.96 |
 # | $R$ | Risk free interest factor | $\texttt{Rfree}$ | 1.03 |
-# | $\newcommand{\LivFac}{\aleph}\LivFac$ | Survival probability | $\texttt{LivPrb}$ | 0.98 |
+# | $\aleph$ | Survival probability | $\texttt{LivPrb}$ | 0.98 |
 # | $\Gamma$ | Income growth factor | $\texttt{PermGroFac}$ | 1.01 |
 #
 #
