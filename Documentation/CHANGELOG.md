@@ -12,6 +12,11 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 Release Data: TBD
 
+#### Major Changes
+
+* Centralizes the definition of value, marginal value, and marginal marginal value functions that use inverse-space
+interpolation for problems with CRRA utility. See [#888](https://github.com/econ-ark/HARK/pull/888).
+
 #### Minor Changes
 
 * Remove uses of deprecated time.clock [#887](https://github.com/econ-ark/HARK/pull/887)
