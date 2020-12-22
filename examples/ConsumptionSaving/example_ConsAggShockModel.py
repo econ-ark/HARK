@@ -21,7 +21,7 @@ solve_agg_shocks_market = True
 # Solve an AggShockMarkovConsumerType's microeconomic problem
 solve_markov_micro = False
 # Solve for the equilibrium aggregate saving rule in a CobbDouglasMarkovEconomy
-solve_markov_market = True
+solve_markov_market = False
 # Solve a simple Krusell-Smith-style two state, two shock model
 solve_krusell_smith = True
 # Solve a CobbDouglasEconomy with many states, potentially utilizing the "state jumper"
