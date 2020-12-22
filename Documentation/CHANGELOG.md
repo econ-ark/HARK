@@ -12,6 +12,11 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 Release Data: TBD
 
+#### Major Changes
+
+* Adds a constructor for LogNormal distributions from mean and standard deviation
+* Uses new LogNormal constructor in ConsPortfolioModel
+
 #### Minor Changes
 
 * Remove uses of deprecated time.clock [#887](https://github.com/econ-ark/HARK/pull/887)
