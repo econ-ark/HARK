@@ -1,4 +1,4 @@
-# Release Notes  
+# Release Notes
 
 ## Introduction
 
@@ -15,6 +15,10 @@ Release Data: TBD
 #### Major Changes
 
 * calcExpectations method for taking the expectation of a distribution over a function (#884)[https://github.com/econ-ark/HARK/pull/884/]
+
+#### Minor Changes
+
+* Remove uses of deprecated time.clock [#887](https://github.com/econ-ark/HARK/pull/887)
 
 ### 0.10.8
 
