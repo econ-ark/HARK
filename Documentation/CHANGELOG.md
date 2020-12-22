@@ -12,6 +12,10 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 Release Data: TBD
 
+#### Major Changes
+
+* calcExpectations method for taking the expectation of a distribution over a function (#884)[https://github.com/econ-ark/HARK/pull/884/]
+
 #### Minor Changes
 
 * Remove uses of deprecated time.clock [#887](https://github.com/econ-ark/HARK/pull/887)
