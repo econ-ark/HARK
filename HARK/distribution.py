@@ -213,6 +213,39 @@ class Lognormal(Distribution):
             pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
         )
 
+    @classmethod
+    def from_mean_std(cls, mean, std, seed = 0):
+        """
+        Construct a LogNormal distribution from its
+        mean and standard deviation.
+
+        This is unlike the normal constructor for the distribution,
+        which takes the mu and sigma for the normal distribution
+        that is the logarithm of the Log Normal distribution.
+
+        Parameters
+        ----------
+        mean : float or [float]
+            One or more means.  Number of elements T in mu determines number
+            of rows of output.
+        std : float or [float]
+            One or more standard deviations. Number of elements T in sigma
+            determines number of rows of output.
+        seed : int
+            Seed for random number generator.
+
+        Returns
+        ---------
+        LogNormal
+ 
+        """
+        mean_squared = mean ** 2
+        variance = std ** 2
+        mu = np.log(mean / (np.sqrt(1.0 + variance / mean_squared)))
+        sigma = np.sqrt(np.log(1.0 + variance / mean_squared))
+
+        return cls(mu = mu, sigma = sigma, seed = seed)
+
 
 class MeanOneLogNormal(Lognormal):
     def __init__(self, sigma=1.0, seed=0):
@@ -439,7 +472,6 @@ class Uniform(Distribution):
         return DiscreteDistribution(
             pmf, X, seed=self.RNG.randint(0, 2 ** 31 - 1, dtype="int32")
         )
-
 
 ### DISCRETE DISTRIBUTIONS
 
