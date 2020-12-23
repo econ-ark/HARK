@@ -560,12 +560,13 @@ class ConsPerfForesightSolver(HARKobject):
         self.ExIncNext = 1.0  # Perfect foresight income of 1
         self.mNrmMinNow = mNrmNow[0]  # Relabeling for compatibility with addSSmNrm
 
-    def addSSmNrm(self, solution):
+    def addmNrmTrg(self, solution):
         """
-        Finds steady state (normalized) market resources and adds it to the
-        solution.  This is the level of market resources such that the expectation
-        of market resources in the next period is unchanged.  This value doesn't
-        necessarily exist.
+        Finds value of (normalized) market resources m at which individual consumer
+        expects m not to change. 
+        This will exist if the GICNrm holds.
+
+        https://econ-ark.github.io/BufferStockTheory#UniqueStablePoints
 
         Parameters
         ----------
@@ -576,26 +577,82 @@ class ConsPerfForesightSolver(HARKobject):
         solution : ConsumerSolution
             Same solution that was passed, but now with the attribute mNrmSS.
         """
-        # Make a linear function of all combinations of c and m that yield mNext = mNow
+        # Make linear function of all combos of c and m that yield mNext = mNow
+        # 
         mZeroChangeFunc = (
             lambda m: (1.0 - self.PermGroFac / self.Rfree) * m
             + (self.PermGroFac / self.Rfree) * self.ExIncNext
         )
 
-        # Find the steady state level of market resources
-        searchSSfunc = lambda m: solution.cFunc(m) - mZeroChangeFunc(
-            m
-        )  # A zero of this is SS market resources
-        m_init_guess = (
-            self.mNrmMinNow + self.ExIncNext
-        )  # Minimum market resources plus next income is okay starting guess
+        # Find the steady state level of market resources;
+        # A zero of this is SS market resources
+        # Minimum market resources plus next income is okay starting guess
+        searchSSfunc = lambda m: solution.cFunc(m) - mZeroChangeFunc(m)  
+        m_init_guess = self.mNrmMinNow + self.ExIncNext
+#        m_init_guess = self.mNrmMinNow + self.ExIncNext
         try:
             mNrmSS = newton(searchSSfunc, m_init_guess)
+#            cP = newton(cpDiff0, m_init_guess)
         except:
             mNrmSS = None
 
         # Add mNrmSS to the solution and return it
         solution.mNrmSS = mNrmSS
+        return solution
+
+    def addSSmNrm(self, solution):
+        """
+        Finds market resources ratio at which 'balanced growth' is expected.
+        This is the m such that the expected growth rate of M matches the
+        expected growth rate of permanent income. This value does not exist
+        if the Growth Impatience Condition does not hold.
+
+        https://econ-ark.github.io/BufferStockTheory#Unique-Stable-Points
+
+        Parameters
+        ----------
+        solution : ConsumerSolution
+            Solution to this period's problem, which must have attribute cFunc.
+        Returns
+        -------
+        solution : ConsumerSolution
+            Same solution that was passed, but now with the attribute mNrmSS
+        """
+        # Probably should test whether GIC holds and print error if it does not
+        # using checkConditions
+        # All combinations of c and m that yield E[PermGroFac PermShkVal mNext] = mNow
+        # https://econ-ark.github.io/BufferStockTheory/#The-Individual-Steady-State
+        # Would probably be quicker to search for MPC rather than mBal
+        mZeroChangeFunc = (
+            lambda m: (1.0 - self.PermGroFac / self.Rfree) * m
+            + (self.PermGroFac / self.Rfree) * self.ExIncNext
+        )
+
+        RnormInv = self.PermGroFac/self.Rfree
+
+        # Find the steady state level of market resources
+        # A zero of this is SS market resources
+        searchSSfunc = lambda m: solution.cFunc(m) - mZeroChangeFunc(m)
+
+        cFuncPdiff   = lambda m: (1.0 - RnormInv ) - solution.cFunc.derivative(m)
+        
+        # Minimum market resources plus next income is okay starting guess
+        m_init_guess = self.mNrmMinNow + self.ExIncNext
+        
+        try:
+            mNrmSS = newton(searchSSfunc, m_init_guess)
+        except:
+            mNrmSS = None
+
+#        try:
+        mNrmSSDer = newton(cFuncPdiff, m_init_guess)
+        # except:
+        #     mNrmSSDer = None
+            
+
+        # Add mNrmSS to the solution and return it
+        solution.mNrmSS    = mNrmSS
+        solution.mNrmSSDer = mNrmSSDer
         return solution
 
     def solve(self):
@@ -1298,7 +1355,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
                 EndOfPrdvP, aNrm, interpolator=self.makeLinearcFunc
             )
         solution = self.addMPCandHumanWealth(solution)  # add a few things
-        solution = self.addSSmNrm(solution)  # find steady state m
+        solution = self.addSSmNrm(solution)  # find steady state m, if it exists
 
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used (to prepare for next period)
