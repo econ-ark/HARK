@@ -628,14 +628,10 @@ class ConsPerfForesightSolver(HARKobject):
             + (self.PermGroFac / self.Rfree) * self.ExIncNext
         )
 
-        RnormInv = self.PermGroFac/self.Rfree
-
         # Find the steady state level of market resources
         # A zero of this is SS market resources
         searchSSfunc = lambda m: solution.cFunc(m) - mZeroChangeFunc(m)
 
-        cFuncPdiff   = lambda m: (1.0 - RnormInv ) - solution.cFunc.derivative(m)
-        
         # Minimum market resources plus next income is okay starting guess
         m_init_guess = self.mNrmMinNow + self.ExIncNext
         
@@ -644,15 +640,7 @@ class ConsPerfForesightSolver(HARKobject):
         except:
             mNrmSS = None
 
-#        try:
-        mNrmSSDer = newton(cFuncPdiff, m_init_guess)
-        # except:
-        #     mNrmSSDer = None
-            
-
-        # Add mNrmSS to the solution and return it
         solution.mNrmSS    = mNrmSS
-        solution.mNrmSSDer = mNrmSSDer
         return solution
 
     def solve(self):
