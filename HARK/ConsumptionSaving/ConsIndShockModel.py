@@ -26,6 +26,7 @@ from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
 from HARK.distribution import (
     DiscreteDistribution,
     addDiscreteOutcomeConstantMean,
+    calcExpectation,
     combineIndepDstns,
 )
 from HARK.utilities import (
@@ -779,8 +780,9 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         # Update the bounding MPCs and PDV of human wealth:
         self.PatFac = ((self.Rfree * self.DiscFacEff) ** (1.0 / self.CRRA)) / self.Rfree
         self.MPCminNow = 1.0 / (1.0 + self.PatFac / solution_next.MPCmin)
-        self.ExIncNext = np.dot(
-            self.ShkPrbsNext, self.TranShkValsNext * self.PermShkValsNext
+        self.ExIncNext = calcExpectation(
+            IncomeDstn,
+            lambda trans, perm : trans * perm
         )
         self.hNrmNow = (
             self.PermGroFac / self.Rfree * (self.ExIncNext + solution_next.hNrm)
@@ -934,17 +936,29 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             A 1D array of end-of-period marginal value of assets
         """
 
+        def m_nrm(a_nrm, perm_shk, trans_shk):
+            return self.Rfree / (self.PermGroFac * perm_shk) * a_nrm + trans_shk
+
+        m_nrm_next = calcExpectation(
+            self.IncomeDstn,
+            m_nrm,
+            self.aNrmNow
+        )
+
+        def vp(m_nrm, perm_shk, trans_shk):
+            return perm_shk ** self.CRRA * self.vPfuncNext(m_nrm)
+
         EndOfPrdvP = (
             self.DiscFacEff
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA)
-            * np.sum(
-                self.PermShkVals_temp ** (-self.CRRA)
-                * self.vPfuncNext(self.mNrmNext)
-                * self.ShkPrbs_temp,
-                axis=0,
+            * calcExpectation(
+                self.IncomeDstn,
+                vp,
+                m_nrm_next
             )
         )
+
         return EndOfPrdvP
 
     def getPointsForInterpolation(self, EndOfPrdvP, aNrmNow):
