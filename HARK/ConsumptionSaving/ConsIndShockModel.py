@@ -26,6 +26,7 @@ from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
 from HARK.distribution import (
     DiscreteDistribution,
     addDiscreteOutcomeConstantMean,
+    calcExpectation,
     combineIndepDstns,
 )
 from HARK.utilities import (
@@ -2824,7 +2825,10 @@ class KinkedRconsumerType(IndShockConsumerType):
         PermShkValsNext = self.IncomeDstn[0][1]
         TranShkValsNext = self.IncomeDstn[0][2]
         ShkPrbsNext = self.IncomeDstn[0][0]
-        ExIncNext = np.dot(ShkPrbsNext, PermShkValsNext * TranShkValsNext)
+        ExIncNext = calcExpectation(
+            IncomeDstn,
+            lambda trans, perm : trans * perm
+        )
         PermShkMinNext = np.min(PermShkValsNext)
         TranShkMinNext = np.min(TranShkValsNext)
         WorstIncNext = PermShkMinNext * TranShkMinNext
