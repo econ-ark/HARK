@@ -598,6 +598,7 @@ class ConsIndShockSetup(ConsPerfForesightSolver):
         None
         """
         self.DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
+        self.IncomeDstn = IncomeDstn
         self.ShkPrbsNext = IncomeDstn.pmf
         self.PermShkValsNext = IncomeDstn.X[0]
         self.TranShkValsNext = IncomeDstn.X[1]
@@ -775,15 +776,20 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
             A 1D array of end-of-period marginal value of assets
         """
 
+        def vp_next(a_nrm, perm_shk, trans_shk):
+            return perm_shk ** self.CRRA \
+                * self.vPfuncNext(
+                    self.Rfree / (self.PermGroFac * perm_shk) * a_nrm + trans_shk
+                )
+
         EndOfPrdvP = (
             self.DiscFacEff
             * self.Rfree
             * self.PermGroFac ** (-self.CRRA)
-            * np.sum(
-                self.PermShkVals_temp ** (-self.CRRA)
-                * self.vPfuncNext(self.mNrmNext)
-                * self.ShkPrbs_temp,
-                axis=0,
+            * calcExpectation(
+                self.IncomeDstn,
+                vp_next,
+                self.aNrmNow
             )
         )
         return EndOfPrdvP
