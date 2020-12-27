@@ -57,6 +57,25 @@ def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
     GrowthFac = np.append(GrowthFac, np.nan)
     
     return GrowthFac.tolist(), Y0
+
+def findPermGroFacs(age_min, age_max, age_ret, poly_coefs, repl_rate):
+    
+    # First find working age growth rates and starting income
+    WrkGroFacs, Y0 = AgeLogPolyToGrowthRates(poly, age_min, age_ret)
+    
+    # Replace the last item, which must be NaN, with the replacement rate
+    WrkGroFacs[-1] = repl_rate
+    
+    # Now create the retirement phase
+    n_ret_years = age_max - age_ret
+    RetGroFacs = [1.0] * (n_ret_years - 1) + [np.nan]
+    
+    # Concatenate
+    GroFacs = WrkGroFacs + RetGroFacs
+    
+    return GroFacs, Y0
+    
+    
     
 def findProfile(GroFacs, Y0):
     
@@ -77,11 +96,25 @@ CGM_income = {
                  'ReplRate': 0.9389}
 }
 
-PermGroFac, Y0 = AgeLogPolyToGrowthRates(CGM_income['NoHS']['Poly'], 21,65)
-Y = findProfile(PermGroFac, Y0)
-
 import matplotlib.pyplot as plt
 
-plt.plot(Y)
+age_min = 21
+age_max = 100
+age_ret = 65
 
-findProfile(PermGroFac, Y0)
+ages = np.arange(age_min, age_max + 1)
+
+plt.figure()
+for spec in CGM_income.items():
+    
+    label = spec[0]
+    poly = spec[1]['Poly']
+    repl = spec[1]['ReplRate']
+    
+    PermGroFac, Y0 = findPermGroFacs(age_min, age_max, age_ret,
+                                     poly, repl)
+    
+    plt.plot(ages, findProfile(PermGroFac, Y0), label = label)
+
+plt.legend()
+plt.show()
