@@ -25,9 +25,9 @@ from HARK.interpolation import (
     CubicInterp,
     LowerEnvelope,
     LinearInterp,
-    ValueFunc,
-    MargValueFunc,
-    MargMargValueFunc
+    ValueFuncCRRA,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA
 )
 from HARK.distribution import Lognormal, MeanOneLogNormal, Uniform
 from HARK.distribution import (
@@ -304,8 +304,8 @@ class ConsPerfForesightSolver(HARKobject):
             np.array([self.mNrmMinNow, self.mNrmMinNow + 1.0]),
             np.array([0.0, vFuncNvrsSlope]),
         )
-        self.vFunc = ValueFunc(vFuncNvrs, self.CRRA)
-        self.vPfunc = MargValueFunc(self.cFunc, self.CRRA)
+        self.vFunc = ValueFuncCRRA(vFuncNvrs, self.CRRA)
+        self.vPfunc = MargValueFuncCRRA(self.cFunc, self.CRRA)
 
     def makePFcFunc(self):
         """
@@ -846,7 +846,7 @@ class ConsIndShockSolverBasic(ConsIndShockSetup):
         cFuncNow = LowerEnvelope(cFuncNowUnc, self.cFuncNowCnst, nan_bool=False)
 
         # Make the marginal value function and the marginal marginal value function
-        vPfuncNow = MargValueFunc(cFuncNow, self.CRRA)
+        vPfuncNow = MargValueFuncCRRA(cFuncNow, self.CRRA)
 
         # Pack up the solution and return it
         solution_now = ConsumerSolution(
@@ -1020,7 +1020,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         )  # This is a very good approximation, vNvrsPP = 0 at the asset minimum
         aNrm_temp = np.insert(self.aNrmNow, 0, self.BoroCnstNat)
         EndOfPrdvNvrsFunc = CubicInterp(aNrm_temp, EndOfPrdvNvrs, EndOfPrdvNvrsP)
-        self.EndOfPrdvFunc = ValueFunc(EndOfPrdvNvrsFunc, self.CRRA)
+        self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
 
     def addvFunc(self, solution, EndOfPrdvP):
         """
@@ -1058,7 +1058,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
 
         Returns
         -------
-        vFuncNow : ValueFunc
+        vFuncNow : ValueFuncCRRA
             A representation of the value function for this period, defined over
             normalized market resources m: v = vFuncNow(m).
         """
@@ -1081,7 +1081,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
         vNvrsFuncNow = CubicInterp(
             mNrm_temp, vNvrs, vNvrsP, MPCminNvrs * self.hNrmNow, MPCminNvrs
         )
-        vFuncNow = ValueFunc(vNvrsFuncNow, self.CRRA)
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
         return vFuncNow
 
     def addvPPfunc(self, solution):
@@ -1101,7 +1101,7 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             The same solution passed as input, but with the marginal marginal
             value function for this period added as the attribute vPPfunc.
         """
-        vPPfuncNow = MargMargValueFunc(solution.cFunc, self.CRRA)
+        vPPfuncNow = MargMargValueFuncCRRA(solution.cFunc, self.CRRA)
         solution.vPPfunc = vPPfuncNow
         return solution
 
@@ -1491,9 +1491,9 @@ class PerfForesightConsumerType(AgentType):
         -------
         none
         """
-        self.solution_terminal.vFunc = ValueFunc(self.cFunc_terminal_, self.CRRA)
-        self.solution_terminal.vPfunc = MargValueFunc(self.cFunc_terminal_, self.CRRA)
-        self.solution_terminal.vPPfunc = MargMargValueFunc(
+        self.solution_terminal.vFunc = ValueFuncCRRA(self.cFunc_terminal_, self.CRRA)
+        self.solution_terminal.vPfunc = MargValueFuncCRRA(self.cFunc_terminal_, self.CRRA)
+        self.solution_terminal.vPPfunc = MargMargValueFuncCRRA(
             self.cFunc_terminal_, self.CRRA
         )
 

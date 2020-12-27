@@ -9,7 +9,7 @@ from __future__ import absolute_import
 from builtins import str
 from builtins import range
 import numpy as np
-from HARK.interpolation import LinearInterp, MargValueFunc
+from HARK.interpolation import LinearInterp, MargValueFuncCRRA
 from HARK.distribution import Uniform
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
@@ -103,7 +103,7 @@ def solveConsRepAgent(
 
     # Construct the consumption function and the marginal value function
     cFuncNow = LinearInterp(np.insert(mNrmNow, 0, 0.0), np.insert(cNrmNow, 0, 0.0))
-    vPfuncNow = MargValueFunc(cFuncNow, CRRA)
+    vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
 
     # Construct and return the solution for this period
     solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow)
@@ -219,7 +219,7 @@ def solveConsRepAgentMarkov(
         cFuncNow_list.append(
             LinearInterp(np.insert(mNrmNow, 0, 0.0), np.insert(cNrmNow, 0, 0.0))
         )
-        vPfuncNow_list.append(MargValueFunc(cFuncNow_list[-1], CRRA))
+        vPfuncNow_list.append(MargValueFuncCRRA(cFuncNow_list[-1], CRRA))
 
     # Construct and return the solution for this period
     solution_now = ConsumerSolution(cFunc=cFuncNow_list, vPfunc=vPfuncNow_list)

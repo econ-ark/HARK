@@ -4444,7 +4444,7 @@ def calcLogSum(Vals, sigma):
 # - u is of the CRRA family.                                                  #
 ###############################################################################
 
-class ValueFunc(HARKobject):
+class ValueFuncCRRA(HARKobject):
     """
     A class for representing a value function.  The underlying interpolation is
     in the space of (state,u_inv(v)); this class "re-curves" to the value function.
@@ -4490,7 +4490,7 @@ class ValueFunc(HARKobject):
         return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
 
 
-class MargValueFunc(HARKobject):
+class MargValueFuncCRRA(HARKobject):
     """
     A class for representing a marginal value function in models where the
     standard envelope condition of dvdm(state) = u'(c(state)) holds (with CRRA utility).
@@ -4574,7 +4574,7 @@ class MargValueFunc(HARKobject):
         return MPC * CRRAutilityPP(c, gam=self.CRRA)
 
 
-class MargMargValueFunc(HARKobject):
+class MargMargValueFuncCRRA(HARKobject):
     """
     A class for representing a marginal marginal value function in models where
     the standard envelope condition of dvdm = u'(c(state)) holds (with CRRA utility).

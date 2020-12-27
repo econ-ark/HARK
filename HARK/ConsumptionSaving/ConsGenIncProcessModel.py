@@ -20,9 +20,9 @@ from HARK.interpolation import (
     LinearInterp,
     CubicInterp,
     UpperEnvelope,
-    ValueFunc,
-    MargValueFunc,
-    MargMargValueFunc
+    ValueFuncCRRA,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA
 )
 from HARK.utilities import (
     CRRAutility,
@@ -466,7 +466,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         EndOfPrdvNvrsFunc = VariableLowerBoundFunc2D(
             EndOfPrdvNvrsFuncBase, self.BoroCnstNat
         )
-        self.EndOfPrdvFunc = ValueFunc(EndOfPrdvNvrsFunc, self.CRRA)
+        self.EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, self.CRRA)
 
     def getPointsForInterpolation(self, EndOfPrdvP, aLvlNow):
         """
@@ -563,7 +563,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         vPfunc : function
             Marginal value (of market resources) function for this period.
         """
-        vPfunc = MargValueFunc(cFunc, self.CRRA)
+        vPfunc = MargValueFuncCRRA(cFunc, self.CRRA)
         return vPfunc
 
     def makevFunc(self, solution):
@@ -580,7 +580,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
 
         Returns
         -------
-        vFuncNow : ValueFunc
+        vFuncNow : ValueFuncCRRA
             A representation of the value function for this period, defined over
             market resources m and persistent income p: v = vFuncNow(m,p).
         """
@@ -637,7 +637,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         vNvrsFuncNow = VariableLowerBoundFunc2D(vNvrsFuncBase, self.mLvlMinNow)
 
         # "Re-curve" the pseudo-inverse value function into the value function
-        vFuncNow = ValueFunc(vNvrsFuncNow, self.CRRA)
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA)
         return vFuncNow
 
     def makeBasicSolution(self, EndOfPrdvP, aLvl, pLvl, interpolator):
@@ -828,7 +828,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             The same solution passed as input, but with the marginal marginal
             value function for this period added as the attribute vPPfunc.
         """
-        vPPfuncNow = MargMargValueFunc(solution.cFunc, self.CRRA)
+        vPPfuncNow = MargMargValueFuncCRRA(solution.cFunc, self.CRRA)
         solution.vPPfunc = vPPfuncNow
         return solution
 
@@ -974,9 +974,9 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         """
-        self.solution_terminal.vFunc = ValueFunc(self.cFunc_terminal_, self.CRRA)
-        self.solution_terminal.vPfunc = MargValueFunc(self.cFunc_terminal_, self.CRRA)
-        self.solution_terminal.vPPfunc = MargMargValueFunc(
+        self.solution_terminal.vFunc = ValueFuncCRRA(self.cFunc_terminal_, self.CRRA)
+        self.solution_terminal.vPfunc = MargValueFuncCRRA(self.cFunc_terminal_, self.CRRA)
+        self.solution_terminal.vPPfunc = MargMargValueFuncCRRA(
             self.cFunc_terminal_, self.CRRA
         )
         self.solution_terminal.hNrm = 0.0  # Don't track normalized human wealth

@@ -26,8 +26,8 @@ from HARK.interpolation import (
     BilinearInterp,  # 2D interpolator
     ConstantFunction,  # Interpolator-like class that returns constant value
     IdentityFunction,  # Interpolator-like class that returns one of its arguments
-    ValueFunc,
-    MargValueFunc
+    ValueFuncCRRA,
+    MargValueFuncCRRA
 )
 
 
@@ -44,10 +44,10 @@ class PortfolioSolution(HARKobject):
     ShareFuncAdj : Interp1D
         Risky share function over normalized market resources when the agent is able
         to adjust their portfolio shares.
-    vFuncAdj : ValueFunc
+    vFuncAdj : ValueFuncCRRA
         Value function over normalized market resources when the agent is able to
         adjust their portfolio shares.
-    vPfuncAdj : MargValueFunc
+    vPfuncAdj : MargValueFuncCRRA
         Marginal value function over normalized market resources when the agent is able
         to adjust their portfolio shares.
     cFuncFxd : Interp2D
@@ -57,14 +57,14 @@ class PortfolioSolution(HARKobject):
         Risky share function over normalized market resources and risky portfolio share
         when the agent is NOT able to adjust their portfolio shares, so they are fixed.
         This should always be an IdentityFunc, by definition.
-    vFuncFxd : ValueFunc2D
+    vFuncFxd : ValueFuncCRRA
         Value function over normalized market resources and risky portfolio share when
         the agent is NOT able to adjust their portfolio shares, so they are fixed.
-    dvdmFuncFxd : MargValueFunc2D
+    dvdmFuncFxd : MargValueFuncCRRA
         Marginal value of mNrm function over normalized market resources and risky
         portfolio share when the agent is NOT able to adjust their portfolio shares,
         so they are fixed.
-    dvdsFuncFxd : MargValueFunc2D
+    dvdsFuncFxd : MargValueFuncCRRA
         Marginal value of Share function over normalized market resources and risky
         portfolio share when the agent is NOT able to adjust their portfolio shares,
         so they are fixed.
@@ -183,12 +183,12 @@ class PortfolioConsumerType(IndShockConsumerType):
         ShareFuncFxd_terminal = IdentityFunction(i_dim=1, n_dims=2)
 
         # Value function is simply utility from consuming market resources
-        vFuncAdj_terminal = ValueFunc(cFuncAdj_terminal, self.CRRA)
-        vFuncFxd_terminal = ValueFunc(cFuncFxd_terminal, self.CRRA)
+        vFuncAdj_terminal = ValueFuncCRRA(cFuncAdj_terminal, self.CRRA)
+        vFuncFxd_terminal = ValueFuncCRRA(cFuncFxd_terminal, self.CRRA)
 
         # Marginal value of market resources is marg utility at the consumption function
-        vPfuncAdj_terminal = MargValueFunc(cFuncAdj_terminal, self.CRRA)
-        dvdmFuncFxd_terminal = MargValueFunc(cFuncFxd_terminal, self.CRRA)
+        vPfuncAdj_terminal = MargValueFuncCRRA(cFuncAdj_terminal, self.CRRA)
+        dvdmFuncFxd_terminal = MargValueFuncCRRA(cFuncFxd_terminal, self.CRRA)
         dvdsFuncFxd_terminal = ConstantFunction(
             0.0
         )  # No future, no marg value of Share
@@ -706,7 +706,7 @@ def solveConsPortfolio(
         dvdb_intermed = np.sum(IncPrbs_tiled * temp_fac_A * dvdm_next, axis=2)
         dvdbNvrs_intermed = uPinv(dvdb_intermed)
         dvdbNvrsFunc_intermed = BilinearInterp(dvdbNvrs_intermed, bNrmGrid, ShareGrid)
-        dvdbFunc_intermed = MargValueFunc(dvdbNvrsFunc_intermed, CRRA)
+        dvdbFunc_intermed = MargValueFuncCRRA(dvdbNvrsFunc_intermed, CRRA)
 
         # Calculate intermediate value by taking expectations over income shocks
         temp_fac_B = (PermShks_tiled * PermGroFac) ** (
@@ -716,7 +716,7 @@ def solveConsPortfolio(
             v_intermed = np.sum(IncPrbs_tiled * temp_fac_B * v_next, axis=2)
             vNvrs_intermed = n(v_intermed)
             vNvrsFunc_intermed = BilinearInterp(vNvrs_intermed, bNrmGrid, ShareGrid)
-            vFunc_intermed = ValueFunc(vNvrsFunc_intermed, CRRA)
+            vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, CRRA)
 
         # Calculate intermediate marginal value of risky portfolio share by taking expectations
         dvds_intermed = np.sum(IncPrbs_tiled * temp_fac_B * dvds_next, axis=2)
@@ -960,7 +960,7 @@ def solveConsPortfolio(
     cFuncAdj_now = LinearInterp(np.insert(mNrmAdj_now, 0, 0.0), cNrmAdj_now)
 
     # Construct the marginal value (of mNrm) function when the agent can adjust
-    vPfuncAdj_now = MargValueFunc(cFuncAdj_now, CRRA)
+    vPfuncAdj_now = MargValueFuncCRRA(cFuncAdj_now, CRRA)
 
     # Construct the consumption function when the agent *can't* adjust the risky share, as well
     # as the marginal value of Share function
@@ -987,13 +987,13 @@ def solveConsPortfolio(
     ShareFuncFxd_now = IdentityFunction(i_dim=1, n_dims=2)
 
     # Construct the marginal value of mNrm function when the agent can't adjust his share
-    dvdmFuncFxd_now = MargValueFunc(cFuncFxd_now, CRRA)
+    dvdmFuncFxd_now = MargValueFuncCRRA(cFuncFxd_now, CRRA)
 
     # If the value function has been requested, construct it now
     if vFuncBool:
         # First, make an end-of-period value function over aNrm and Share
         EndOfPrdvNvrsFunc = BilinearInterp(EndOfPrdvNvrs, aNrmGrid, ShareGrid)
-        EndOfPrdvFunc = ValueFunc(EndOfPrdvNvrsFunc, CRRA)
+        EndOfPrdvFunc = ValueFuncCRRA(EndOfPrdvNvrsFunc, CRRA)
 
         # Construct the value function when the agent can adjust his portfolio
         mNrm_temp = aXtraGrid  # Just use aXtraGrid as our grid of mNrm values
@@ -1008,7 +1008,7 @@ def solveConsPortfolio(
             np.insert(vNvrs_temp, 0, 0.0),  # f_list
             np.insert(vNvrsP_temp, 0, vNvrsP_temp[0]),
         )  # dfdx_list
-        vFuncAdj_now = ValueFunc(
+        vFuncAdj_now = ValueFuncCRRA(
             vNvrsFuncAdj, CRRA
         )  # Re-curve the pseudo-inverse value function
 
@@ -1030,7 +1030,7 @@ def solveConsPortfolio(
                 )
             )  # dfdx_list
         vNvrsFuncFxd = LinearInterpOnInterp1D(vNvrsFuncFxd_by_Share, ShareGrid)
-        vFuncFxd_now = ValueFunc(vNvrsFuncFxd, CRRA)
+        vFuncFxd_now = ValueFuncCRRA(vNvrsFuncFxd, CRRA)
 
     else:  # If vFuncBool is False, fill in dummy values
         vFuncAdj_now = None
