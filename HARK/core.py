@@ -52,12 +52,42 @@ def distanceMetric(thing_A, thing_B):
                 distance_temp.append(distanceMetric(thing_A[n], thing_B[n]))
             distance = max(distance_temp)
         else:
-            warn('Objects of different lengths are being compared. Returning difference in lengths.')
+            warn(
+                'Objects of different lengths are being compared. ' +
+                'Returning difference in lengths.'
+                )
             distance = float(abs(lenA - lenB))
     # If both inputs are dictionaries, call distance on the list of its elements
     elif typeA is dict and typeB is dict:
-        distance = distanceMetric(list(thing_A.values()),
-                                  list(thing_B.values()))
+        
+        lenA = len(thing_A)
+        lenB = len(thing_B)
+        
+        if lenA == lenB:
+            
+            # Create versions sorted by key
+            sortedA = dict(sorted(thing_A.items()))
+            sortedB = dict(sorted(thing_B.items()))
+            
+            # If keys don't match, print a warning.
+            if list(sortedA.keys()) != list(sortedB.keys()):
+                warn(
+                    'Dictionaries with keys that do not match are being ' + 
+                    'compared.'
+                )
+
+            distance = distanceMetric(list(sortedA.values()),
+                                      list(sortedB.values()))
+            
+        else:
+            # If they have different lengths, log a warning and return the
+            # difference in lengths.
+            warn(
+                'Objects of different lengths are being compared. ' + 
+                'Returning difference in lengths.'
+                )
+            distance = float(abs(lenA - lenB))
+        
     # If both inputs are numbers, return their difference
     elif isinstance(thing_A, (int, float)) and isinstance(thing_B, (int, float)):
         distance = float(abs(thing_A - thing_B))
