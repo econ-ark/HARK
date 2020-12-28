@@ -58,24 +58,67 @@ def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
     
     return GrowthFac.tolist(), Y0
 
-def findPermGroFacs(age_min, age_max, age_ret, poly_coefs, repl_rate):
+def findPermGroFacs(age_min, age_max, age_ret, PolyCoefs, ReplRate):
     
-    # First find working age growth rates and starting income
-    WrkGroFacs, Y0 = AgeLogPolyToGrowthRates(poly, age_min, age_ret)
-    
-    # Replace the last item, which must be NaN, with the replacement rate
-    WrkGroFacs[-1] = repl_rate
-    
-    # Now create the retirement phase
-    n_ret_years = age_max - age_ret
-    RetGroFacs = [1.0] * (n_ret_years - 1) + [np.nan]
-    
-    # Concatenate
-    GroFacs = WrkGroFacs + RetGroFacs
+    if age_ret is None:
+
+        GroFacs, Y0 = AgeLogPolyToGrowthRates(PolyCoefs, age_min, age_max)
+
+    else:
+
+        # First find working age growth rates and starting income
+        WrkGroFacs, Y0 = AgeLogPolyToGrowthRates(PolyCoefs, age_min, age_ret)
+        
+        # Replace the last item, which must be NaN, with the replacement rate
+        WrkGroFacs[-1] = ReplRate
+        
+        # Now create the retirement phase
+        n_ret_years = age_max - age_ret
+        RetGroFacs = [1.0] * (n_ret_years - 1) + [np.nan]
+        
+        # Concatenate
+        GroFacs = WrkGroFacs + RetGroFacs
     
     return GroFacs, Y0
     
+
+def ParseIncomeSpec(age_min, age_max,
+                    age_ret = None, PolyCoefs = None, ReplRate = None,
+                    PermShkStd = None, TranShkStd = None):
     
+    N_periods = age_max - age_min + 1
+    
+    if age_ret is not None:
+        N_work_periods = age_ret - age_min + 1
+        N_ret_periods  = age_max - age_ret
+    
+    # Growth factors
+    if PolyCoefs is not None:
+        
+        PermGroFac, P0 = findPermGroFacs(age_min, age_max, age_ret,
+                                         PolyCoefs, ReplRate)
+        
+    else:
+        pass
+    
+    # Volatilities
+    if isinstance(PermShkStd, float) and isinstance(TranShkStd, float):
+        
+        if age_ret is None:
+            
+            PermShkStd = [PermShkStd] * N_periods
+            TranShkStd = [TranShkStd] * N_periods
+    
+        else:
+            
+            PermShkStd = [PermShkStd] * N_work_periods + [0.0] * N_ret_periods
+            TranShkStd = [TranShkStd] * N_work_periods + [0.0] * N_ret_periods
+            
+    else:
+        pass
+    
+    return {'PermGroFac': PermGroFac, 'P0': P0,
+            'PermShkStd': PermShkStd, 'TranShkStd': TranShkStd}
     
 def findProfile(GroFacs, Y0):
     
@@ -86,21 +129,29 @@ def findProfile(GroFacs, Y0):
     
 
 CGM_income = {
-    'NoHS'    : {'Poly': [-2.1361 + 2.6275, 0.1684*10, -0.0353*10, 0.0023*10],
-                        'ReplRate': 0.8898},
+    'NoHS'    : {'PolyCoefs': [-2.1361 + 2.6275, 0.1684*10, -0.0353*10, 0.0023*10],
+                 'age_ret': 65,
+                 'ReplRate': 0.8898,
+                 'PermShkStd': np.sqrt(0.0105),
+                 'TranShkStd': np.sqrt(0.1056)},
     
-    'HS'      : {'Poly': [-2.1700 + 2.7004, 0.1682*10, -0.0323*10, 0.0020*10],
-                 'ReplRate': 0.6821},
+    'HS'      : {'PolyCoefs': [-2.1700 + 2.7004, 0.1682*10, -0.0323*10, 0.0020*10],
+                 'age_ret': 65,
+                 'ReplRate': 0.6821,
+                 'PermShkStd': np.sqrt(0.0106),
+                 'TranShkStd': np.sqrt(0.0738)},
 
-    'College' : {'Poly': [-4.3148 + 2.3831, 0.3194*10, -0.0577*10, 0.0033*10],
-                 'ReplRate': 0.9389}
+    'College' : {'PolyCoefs': [-4.3148 + 2.3831, 0.3194*10, -0.0577*10, 0.0033*10],
+                 'age_ret': 65,
+                 'ReplRate': 0.9389,
+                 'PermShkStd': np.sqrt(0.0169),
+                 'TranShkStd': np.sqrt(0.0584)}
 }
 
 import matplotlib.pyplot as plt
 
 age_min = 21
 age_max = 100
-age_ret = 65
 
 ages = np.arange(age_min, age_max + 1)
 
@@ -108,13 +159,11 @@ plt.figure()
 for spec in CGM_income.items():
     
     label = spec[0]
-    poly = spec[1]['Poly']
-    repl = spec[1]['ReplRate']
     
-    PermGroFac, Y0 = findPermGroFacs(age_min, age_max, age_ret,
-                                     poly, repl)
+    params = ParseIncomeSpec(age_min = age_min, age_max = age_max, **spec[1])
+    MeanY = findProfile(params['PermGroFac'], params['P0'])
     
-    plt.plot(ages, findProfile(PermGroFac, Y0), label = label)
+    plt.plot(ages, MeanY, label = label)
 
 plt.legend()
 plt.show()
