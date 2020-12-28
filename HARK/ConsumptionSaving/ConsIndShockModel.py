@@ -580,7 +580,11 @@ class ConsPerfForesightSolver(HARKobject):
         
         # First find
         # \bar{\mathcal{R}} = E_t[R/Gamma_{t+1}] = R/Gamma E_t[1/psi_{t+1}]
-        ePsiInv = np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
+        if type(self)==ConsPerfForesightSolver:
+            ePsiInv = 1.0
+        else:
+            ePsiInv = np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
+            
         RcalBar = self.Rfree/self.PermGroFac*ePsiInv
         
         # mNrmTrg solves Rcalbar*(m - c(m)) + E[inc_next] = m. Define a
