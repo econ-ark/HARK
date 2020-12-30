@@ -673,15 +673,18 @@ class ConsPerfForesightSolver(HARKobject):
             MPCmin=self.MPCmin,
             MPCmax=self.MPCmax,
         )
-        
-        # TODO:
+
         # 0. There is no non-degenerate steady state for unconstrained PF model.
         # 1. There is a non-degenerate SS for constrained PF model if GIC holds.
         # Therefore
         # Check if  (GIC and BoroCnstArt) and compute them both (they are the same)
         # only if this is the case.
-        solution = self.addSSmNrm(solution)
-        solution = self.addmNrmTrg(solution)
+        thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
+        GIC = 1 > thorn/self.PermGroFac
+        if self.BoroCnstArt and GIC:
+            solution = self.addSSmNrm(solution)
+            solution = self.addmNrmTrg(solution)
+            
         return solution
 
 
@@ -1355,12 +1358,18 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
                 EndOfPrdvP, aNrm, interpolator=self.makeLinearcFunc
             )
         solution = self.addMPCandHumanWealth(solution)  # add a few things
-        
-        # TODO:
+
         # 0. Check if the regular GIC holds. If so, then mNrmSS will exist. So, compute it.
         # 1. Check if GICnrm holds. If so, then mNrmTrg will exist. So, compute it.
-        solution = self.addSSmNrm(solution)  # find steady state m, if it exists
-        solution = self.addmNrmTrg(solution) # find target m, if it exists
+        thorn = (self.Rfree*self.DiscFacEff)**(1/self.CRRA)
+        GPF_nrm = thorn / self.PermGroFac / np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
+        GIC     = 1 > thorn/self.PermGroFac
+        GIC_nrm = 1 > GPF_nrm
+        
+        if GIC:
+            solution = self.addSSmNrm(solution)  # find steady state m, if it exists
+        if GIC_nrm:
+            solution = self.addmNrmTrg(solution) # find target m, if it exists
         
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used (to prepare for next period)
