@@ -10,7 +10,6 @@ from builtins import str
 from builtins import range
 import numpy as np
 import scipy.stats as stats
-from HARK.distribution import DiscreteDistribution, combineIndepDstns, MeanOneLogNormal
 from HARK.interpolation import (
     LinearInterp,
     LinearInterpOnInterp1D,
@@ -30,7 +29,12 @@ from HARK.utilities import (
     CRRAutility_inv,
     makeGridExpMult,
 )
-from HARK.distribution import Uniform
+from HARK.distribution import (
+    MeanOneLogNormal,
+    Uniform,
+    combineIndepDstns,
+    calcExpectation
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
@@ -1110,6 +1114,8 @@ def solveConsAggShock(
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
+    DeprFac : float
+        Capital Depreciation Rate
 
     Returns
     -------
@@ -1255,6 +1261,134 @@ def solveConsAggShock(
     return solution_now
 
 
+def solveConsAggShockNEW(solution_next, IncomeDstn, LivPrb, DiscFac, CRRA, PermGroFac,
+                      PermGroFacAgg, aXtraGrid, BoroCnstArt, Mgrid, AFunc, Rfunc, wFunc, DeprFac):
+    '''
+    Solve one period of a consumption-saving problem with idiosyncratic and
+    aggregate shocks (transitory and permanent).  This is a basic solver that
+    can't handle cubic splines, nor can it calculate a value function. This
+    version uses calcExpectation to reduce code clutter.
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to the succeeding one period problem.
+    IncomeDstn : [np.array]
+        A list containing five arrays of floats, representing a discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, idisyncratic permanent shocks, idiosyncratic transitory
+        shocks, aggregate permanent shocks, aggregate transitory shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    PermGroFac : float
+        Expected permanent income growth factor at the end of this period.
+    PermGroFacAgg : float
+        Expected aggregate productivity growth factor.
+    aXtraGrid : np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    BoroCnstArt : float
+        Artificial borrowing constraint; minimum allowable end-of-period asset-to-
+        permanent-income ratio.  Unlike other models, this *can't* be None.
+    Mgrid : np.array
+        A grid of aggregate market resourses to permanent income in the economy.
+    AFunc : function
+        Aggregate savings as a function of aggregate market resources.
+    Rfunc : function
+        The net interest factor on assets as a function of capital ratio k.
+    wFunc : function
+        The wage rate for labor as a function of capital-to-labor ratio k.
+    DeprFac : float
+        Capital Depreciation Rate
+
+    Returns
+    -------
+    solution_now : ConsumerSolution
+        The solution to the single period consumption-saving problem.  Includes
+        a consumption function cFunc (linear interpolation over linear interpola-
+        tions) and marginal value function vPfunc.
+    '''
+    # Unpack the income shocks and get grid sizes
+    PermShkValsNext = IncomeDstn.X[0]
+    TranShkValsNext = IncomeDstn.X[1]
+    PermShkAggValsNext = IncomeDstn.X[2]
+    TranShkAggValsNext = IncomeDstn.X[3]
+    aCount = aXtraGrid.size
+    Mcount = Mgrid.size
+    
+    # Define a function that calculates M_{t+1} from M_t and the aggregate shocks;
+    # the function also returns the wage rate and effective interest factor
+    def calcAggObjects(M,Psi,Theta):
+        A = AFunc(M) # End-of-period aggregate assets (normalized)
+        kNext = A/(PermGroFacAgg*Psi) # Next period's aggregate capital/labor ratio
+        kNextEff = kNext/Theta  # Same thing, but account for *transitory* shock
+        R = Rfunc(kNextEff)     # Interest factor on aggregate assets
+        wEff = wFunc(kNextEff)*Theta  # Effective wage rate (accounts for labor supply)
+        Reff = R/LivPrb # Account for redistribution of decedents' wealth
+        Mnext = kNext*R + wEff # Next period's aggregate market resources
+        return Mnext, Reff, wEff
+    
+    # Define a function that evaluates R*v'(m_{t+1},M_{t+1}) from a_t, M_t, and the income shocks
+    def vPnextFunc(a,M,psi,theta,Psi,Theta):
+        Mnext, Reff, wEff = calcAggObjects(M,Psi,Theta)
+        PermShkTotal = PermGroFac * PermGroFacAgg * psi * Psi  # Total / combined permanent shock
+        mNext = Reff*a/PermShkTotal + theta*wEff # Idiosyncratic market resources
+        vPnext = Reff*PermShkTotal**(-CRRA)*solution_next.vPfunc(mNext, Mnext)
+        return vPnext
+    
+    # Make an array of a_t values at which to calculate end-of-period marginal value of assets
+    BoroCnstNat_vec = np.zeros(Mcount) # Natural borrowing constraint at each M_t
+    aNrmNow = np.zeros((aCount,Mcount))
+    for j in range(Mcount):
+        Mnext, Reff, wEff = calcAggObjects(Mgrid[j], PermShkAggValsNext, TranShkAggValsNext)
+        aNrmMin_cand = (PermGroFac*PermGroFacAgg*PermShkValsNext*PermShkAggValsNext/Reff) * \
+                    (solution_next.mNrmMin(Mnext) - wEff*TranShkValsNext)
+        aNrmMin = np.max(aNrmMin_cand) # Lowest valid a_t value for this M_t
+        aNrmNow[:,j] = aNrmMin + aXtraGrid
+        BoroCnstNat_vec[j] = aNrmMin
+    
+    # Compute end-of-period marginal value of assets
+    MaggNow = np.tile(np.reshape(Mgrid,(1,Mcount)),(aCount,1)) # Tiled Mgrid
+    EndOfPrdvP = DiscFac*LivPrb*calcExpectation(IncomeDstn,vPnextFunc,[aNrmNow,MaggNow])
+
+    # Calculate optimal consumption from each asset gridpoint and endogenous m_t gridpoint
+    cNrmNow = EndOfPrdvP**(-1.0/CRRA)
+    mNrmNow = aNrmNow + cNrmNow
+
+    # Loop through the values in Mgrid and make a linear consumption function for each
+    cFuncBaseByM_list = []
+    for j in range(Mcount):
+        c_temp = np.insert(cNrmNow[:,j], 0, 0.0)  # Add point at bottom
+        m_temp = np.insert(mNrmNow[:,j] - BoroCnstNat_vec[j], 0, 0.0)
+        cFuncBaseByM_list.append(LinearInterp(m_temp, c_temp))
+
+    # Construct the overall unconstrained consumption function by combining the M-specific functions
+    BoroCnstNat = LinearInterp(np.insert(Mgrid, 0, 0.0), np.insert(BoroCnstNat_vec, 0, 0.0))
+    cFuncBase = LinearInterpOnInterp1D(cFuncBaseByM_list, Mgrid)
+    cFuncUnc = VariableLowerBoundFunc2D(cFuncBase, BoroCnstNat)
+
+    # Make the constrained consumption function and combine it with the unconstrained component
+    cFuncCnst = BilinearInterp(np.array([[0.0, 0.0], [1.0, 1.0]]),
+                               np.array([BoroCnstArt, BoroCnstArt+1.0]), np.array([0.0, 1.0]))
+    cFuncNow = LowerEnvelope2D(cFuncUnc, cFuncCnst)
+
+    # Make the minimum m function as the greater of the natural and artificial constraints
+    mNrmMinNow = UpperEnvelope(BoroCnstNat, ConstantFunction(BoroCnstArt))
+
+    # Construct the marginal value function using the envelope condition
+    vPfuncNow = MargValueFunc2D(cFuncNow, CRRA)
+
+    # Pack up and return the solution
+    solution_now = ConsumerSolution(cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=mNrmMinNow)
+    return solution_now
+
+
 ###############################################################################
 
 
@@ -1322,6 +1456,8 @@ def solveConsAggMarkov(
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
+    DeprFac : float
+        Capital Depreciation Rate
 
     Returns
     -------

@@ -53,7 +53,14 @@ class DistributionClassTests(unittest.TestCase):
         self.assertEqual(distribution.Weibull().draw(1)[0], 0.79587450816311)
 
     def test_Uniform(self):
+        uni = distribution.Uniform()
+
         self.assertEqual(distribution.Uniform().draw(1)[0], 0.5488135039273248)
+
+        self.assertEqual(
+            distribution.calcExpectation(uni.approx(10))[0],
+            0.5
+        )
 
     def test_Bernoulli(self):
         self.assertEqual(distribution.Bernoulli().draw(1)[0], False)
