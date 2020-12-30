@@ -577,27 +577,31 @@ class ConsPerfForesightSolver(HARKobject):
         solution : ConsumerSolution
             Same solution that was passed, but now with the attribute mNrmSS.
         """
-        # Make linear function of all combos of c and m that yield mNext = mNow
-        # 
-        mZeroChangeFunc = (
-            lambda m: (1.0 - self.PermGroFac / self.Rfree) * m
-            + (self.PermGroFac / self.Rfree) * self.ExIncNext
+        
+        # First find
+        # \bar{\mathcal{R}} = E_t[R/Gamma_{t+1}] = R/Gamma E_t[1/psi_{t+1}]
+        if type(self)==ConsPerfForesightSolver:
+            ePsiInv = 1.0
+        else:
+            ePsiInv = np.dot(1/self.PermShkValsNext, self.ShkPrbsNext)
+            
+        RcalBar = self.Rfree/self.PermGroFac*ePsiInv
+        
+        # mNrmTrg solves Rcalbar*(m - c(m)) + E[inc_next] = m. Define a
+        # rearranged version.
+        mBalGrowthFunc = (
+            lambda m: RcalBar * (m - solution.cFunc(m)) + self.ExIncNext - m
         )
-
-        # Find the steady state level of market resources;
-        # A zero of this is SS market resources
+        
         # Minimum market resources plus next income is okay starting guess
-        searchSSfunc = lambda m: solution.cFunc(m) - mZeroChangeFunc(m)  
         m_init_guess = self.mNrmMinNow + self.ExIncNext
-#        m_init_guess = self.mNrmMinNow + self.ExIncNext
         try:
-            mNrmSS = newton(searchSSfunc, m_init_guess)
-#            cP = newton(cpDiff0, m_init_guess)
+            mNrmTrg = newton(mBalGrowthFunc, m_init_guess)
         except:
-            mNrmSS = None
-
-        # Add mNrmSS to the solution and return it
-        solution.mNrmSS = mNrmSS
+            mNrmTrg = None
+            
+        # Add mNrmTrg to the solution and return it
+        solution.mNrmTrg = mNrmTrg
         return solution
 
     def addSSmNrm(self, solution):
@@ -628,14 +632,10 @@ class ConsPerfForesightSolver(HARKobject):
             + (self.PermGroFac / self.Rfree) * self.ExIncNext
         )
 
-        RnormInv = self.PermGroFac/self.Rfree
-
         # Find the steady state level of market resources
         # A zero of this is SS market resources
         searchSSfunc = lambda m: solution.cFunc(m) - mZeroChangeFunc(m)
 
-        cFuncPdiff   = lambda m: (1.0 - RnormInv ) - solution.cFunc.derivative(m)
-        
         # Minimum market resources plus next income is okay starting guess
         m_init_guess = self.mNrmMinNow + self.ExIncNext
         
@@ -644,15 +644,7 @@ class ConsPerfForesightSolver(HARKobject):
         except:
             mNrmSS = None
 
-#        try:
-        mNrmSSDer = newton(cFuncPdiff, m_init_guess)
-        # except:
-        #     mNrmSSDer = None
-            
-
-        # Add mNrmSS to the solution and return it
         solution.mNrmSS    = mNrmSS
-        solution.mNrmSSDer = mNrmSSDer
         return solution
 
     def solve(self):
@@ -682,6 +674,7 @@ class ConsPerfForesightSolver(HARKobject):
             MPCmax=self.MPCmax,
         )
         solution = self.addSSmNrm(solution)
+        solution = self.addmNrmTrg(solution)
         return solution
 
 
@@ -1356,7 +1349,8 @@ class ConsIndShockSolver(ConsIndShockSolverBasic):
             )
         solution = self.addMPCandHumanWealth(solution)  # add a few things
         solution = self.addSSmNrm(solution)  # find steady state m, if it exists
-
+        solution = self.addmNrmTrg(solution) # find target m, if it exists
+        
         # Add the value function if requested, as well as the marginal marginal
         # value function if cubic splines were used (to prepare for next period)
         if self.vFuncBool:

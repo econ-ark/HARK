@@ -9,9 +9,9 @@
 #       format_version: '1.2'
 #       jupytext_version: 1.2.4
 #   kernelspec:
-#     display_name: Python 3.7 econ-ark
+#     display_name: econ-ark-3.8
 #     language: python
-#     name: econ-ark
+#     name: econ-ark-3.8
 # ---
 
 # %% [markdown]
@@ -22,7 +22,6 @@
 # Initial imports and notebook setup, click arrow to show
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 from HARK.utilities import plotFuncsDer, plotFuncs
-from time import clock
 import matplotlib.pyplot as plt
 import numpy as np
 mystr = lambda number : "{:.4f}".format(number)
