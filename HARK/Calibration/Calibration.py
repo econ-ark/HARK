@@ -245,3 +245,45 @@ for spec in Cagetti_income.items():
 plt.title('Cagetti')
 plt.legend()
 plt.show()
+
+# %% Life probabilities
+
+import pandas as pd
+
+def parse_ssa_life_table(filename, sep, sex, min_age, max_age):
+    
+    lt = pd.read_csv(filename, sep = sep, header=[0,1,2])
+    
+    # Death probability column depends on sex
+    if sex == 'female':
+        death_col = 4
+    else:
+        death_col = 1
+    
+    # Keep only age and death probability
+    lt = pd.DataFrame({'Age': lt.iloc[:,0], 'DProb': lt.iloc[:,death_col]})
+    # And relevant years
+    lt = lt[lt['Age'] >= min_age]
+    lt = lt[lt['Age'] <= max_age].sort_values(by = ['Age'])
+    
+    # Compute survival probability
+    LivPrb = 1 - lt['DProb'].to_numpy()
+    # Make agents die with certainty in the last period
+    LivPrb[-1] = 0
+    
+    return(list(LivPrb))
+
+min_age = 21
+max_age = 100
+ages = np.arange(min_age, max_age + 1)
+
+plt.figure()
+for s in ['male', 'female']:
+    
+    LivPrb = parse_ssa_life_table(filename = 'LifeTables/SSA_LifeTable2017.csv',
+                                  sep = ',', sex = s,
+                                  min_age = min_age, max_age = max_age)
+    
+    plt.plot(ages, LivPrb, label = s)
+    
+plt.legend()
