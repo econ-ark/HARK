@@ -84,7 +84,8 @@ def findPermGroFacs(age_min, age_max, age_ret, PolyCoefs, ReplRate):
 
 def ParseIncomeSpec(age_min, age_max,
                     age_ret = None, PolyCoefs = None, ReplRate = None,
-                    PermShkStd = None, TranShkStd = None):
+                    PermShkStd = None, TranShkStd = None,
+                    **unused):
     
     N_periods = age_max - age_min + 1
     
@@ -128,27 +129,58 @@ def findProfile(GroFacs, Y0):
     return Y
     
 
+# Processes from Cocco, Gomes, Maenhout (2005).
 CGM_income = {
     'NoHS'    : {'PolyCoefs': [-2.1361 + 2.6275, 0.1684*10, -0.0353*10, 0.0023*10],
                  'age_ret': 65,
                  'ReplRate': 0.8898,
                  'PermShkStd': np.sqrt(0.0105),
-                 'TranShkStd': np.sqrt(0.1056)},
+                 'TranShkStd': np.sqrt(0.1056),
+                 'BaseYear': 1992},
     
     'HS'      : {'PolyCoefs': [-2.1700 + 2.7004, 0.1682*10, -0.0323*10, 0.0020*10],
                  'age_ret': 65,
                  'ReplRate': 0.6821,
                  'PermShkStd': np.sqrt(0.0106),
-                 'TranShkStd': np.sqrt(0.0738)},
+                 'TranShkStd': np.sqrt(0.0738),
+                 'BaseYear': 1992},
 
     'College' : {'PolyCoefs': [-4.3148 + 2.3831, 0.3194*10, -0.0577*10, 0.0033*10],
                  'age_ret': 65,
                  'ReplRate': 0.9389,
                  'PermShkStd': np.sqrt(0.0169),
-                 'TranShkStd': np.sqrt(0.0584)}
+                 'TranShkStd': np.sqrt(0.0584),
+                 'BaseYear': 1992}
+}
+
+# Processes from Cagetti (2003).
+# - He uses volatilities from Carroll-Samwick (1997)
+Cagetti_income = {
+    'NoHS'    : {'PolyCoefs': [1.2430,0.6941,0.0361,-0.0259,0.0018],
+                 'age_ret': 65,
+                 'ReplRate': 0.8344,
+                 'PermShkStd': np.sqrt(0.0214), # Take 9-12 from CS
+                 'TranShkStd': np.sqrt(0.0658), # Take 9-12 from CS
+                 'BaseYear': 1992},
+    
+    'HS'      : {'PolyCoefs': [3.0551,-0.6925,0.4339,-0.0703,0.0035],
+                 'age_ret': 65,
+                 'ReplRate': 0.8033,
+                 'PermShkStd': np.sqrt(0.0277), # Take HS diploma from CS
+                 'TranShkStd': np.sqrt(0.0431), # Take HS diploma from CS
+                 'BaseYear': 1992},
+
+    'College' : {'PolyCoefs': [2.1684,0.5230,-0.0002,-0.0057,0.0001],
+                 'age_ret': 65,
+                 'ReplRate': 0.7215,
+                 'PermShkStd': np.sqrt(0.0146), # Take College degree from CS
+                 'TranShkStd': np.sqrt(0.0385), # Take College degree from CS
+                 'BaseYear': 1992}
 }
 
 import matplotlib.pyplot as plt
+
+# %% CGM calibration
 
 age_min = 21
 age_max = 100
@@ -165,5 +197,27 @@ for spec in CGM_income.items():
     
     plt.plot(ages, MeanY, label = label)
 
+plt.title('CGM')
+plt.legend()
+plt.show()
+
+# %% Cagetti calibration
+
+age_min = 25
+age_max = 91
+
+ages = np.arange(age_min, age_max + 1)
+
+plt.figure()
+for spec in Cagetti_income.items():
+    
+    label = spec[0]
+    
+    params = ParseIncomeSpec(age_min = age_min, age_max = age_max, **spec[1])
+    MeanY = findProfile(params['PermGroFac'], params['P0'])
+    
+    plt.plot(ages, MeanY, label = label)
+
+plt.title('Cagetti')
 plt.legend()
 plt.show()
