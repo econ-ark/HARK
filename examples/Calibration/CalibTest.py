@@ -21,12 +21,14 @@ init_lifecycle
 
 from HARK.Calibration.Calibration import (
     ParseIncomeSpec,
+    parse_ssa_life_table,
     CGM_income,
     Cagetti_income
 )
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from copy import copy
 
 # %% Alter calibration
 birth_age = 21
@@ -35,9 +37,23 @@ death_age = 90
 income_params = ParseIncomeSpec(age_min = birth_age, age_max = death_age,
                                 **CGM_income['NoHS'])
 
+liv_prb = parse_ssa_life_table(filename = 'LifeTables/SSA_LifeTable2017.csv',
+                               sep = ',', sex = 'male',
+                               min_age = birth_age, max_age = death_age)
+
+time_params = {
+    'T_age': None, # Age at which agents are automatically killed
+    'T_cycle': death_age - birth_age + 1,
+    'T_retire': 0
+}
+
+params = copy(init_lifecycle)
+params.update(time_params)
+params.update(income_params)
+params.update({'LivPrb': liv_prb})
 
 # %% Create and solve agent
-Agent = IndShockConsumerType(**init_lifecycle)
+Agent = IndShockConsumerType(**params)
 Agent.solve()
 
 # %% Simulation
@@ -45,8 +61,8 @@ Agent.solve()
 # Setup
 
 # Number of agents and periods in the simulation.
-Agent.AgentCount = 5
-Agent.T_sim      = 8
+Agent.AgentCount = 50
+Agent.T_sim      = 200
 
 # Set up the variables we want to keep track of.
 Agent.track_vars = ['aNrmNow','cNrmNow', 'pLvlNow', 't_age','mNrmNow']
