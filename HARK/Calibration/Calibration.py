@@ -6,6 +6,15 @@ Created on Sat Dec 19 15:08:54 2020
 """
 
 import numpy as np
+import pandas as pd
+
+__all__ = [
+    "Cagetti_income",
+    "CGM_income",
+    "ParseIncomeSpec",
+    "findProfile",
+    "parse_ssa_life_table"
+]
 
 def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
     """
@@ -199,53 +208,7 @@ Cagetti_income = {
                  'BaseYear': 1992}
 }
 
-import matplotlib.pyplot as plt
-
-# %% CGM calibration
-
-age_min = 21
-age_max = 100
-
-ages = np.arange(age_min, age_max + 1)
-
-plt.figure()
-for spec in CGM_income.items():
-    
-    label = spec[0]
-    
-    params = ParseIncomeSpec(age_min = age_min, age_max = age_max, **spec[1])
-    MeanY = findProfile(params['PermGroFac'], params['P0'])
-    
-    plt.plot(ages, MeanY, label = label)
-
-plt.title('CGM')
-plt.legend()
-plt.show()
-
-# %% Cagetti calibration
-
-age_min = 25
-age_max = 91
-
-ages = np.arange(age_min, age_max + 1)
-
-plt.figure()
-for spec in Cagetti_income.items():
-    
-    label = spec[0]
-    
-    params = ParseIncomeSpec(age_min = age_min, age_max = age_max, **spec[1])
-    MeanY = findProfile(params['PermGroFac'], params['P0'])
-    
-    plt.plot(ages, MeanY, label = label)
-
-plt.title('Cagetti')
-plt.legend()
-plt.show()
-
-# %% Life probabilities
-
-import pandas as pd
+# %% Tools for survival probabilities
 
 def parse_ssa_life_table(filename, sep, sex, min_age, max_age):
     
@@ -269,18 +232,3 @@ def parse_ssa_life_table(filename, sep, sex, min_age, max_age):
     LivPrb[-1] = 0
     
     return(list(LivPrb))
-
-min_age = 21
-max_age = 100
-ages = np.arange(min_age, max_age + 1)
-
-plt.figure()
-for s in ['male', 'female']:
-    
-    LivPrb = parse_ssa_life_table(filename = 'LifeTables/SSA_LifeTable2017.csv',
-                                  sep = ',', sex = s,
-                                  min_age = min_age, max_age = max_age)
-    
-    plt.plot(ages, LivPrb, label = s)
-    
-plt.legend()
