@@ -180,7 +180,6 @@ Cagetti_income = {
     'NoHS'    : {'PolyCoefs': [1.2430, 0.6941, 0.0361, -0.0259, 0.0018],
                  'PolyRetir': [3.6872, -0.1034],
                  'age_ret': 65,
-                 'ReplRate': 0.8344,
                  'PermShkStd': np.sqrt(0.0214), # Take 9-12 from CS
                  'TranShkStd': np.sqrt(0.0658), # Take 9-12 from CS
                  'BaseYear': 1992},
@@ -188,7 +187,6 @@ Cagetti_income = {
     'HS'      : {'PolyCoefs': [3.0551, -0.6925, 0.4339, -0.0703, 0.0035],
                  'PolyRetir': [4.1631, -0.1378],
                  'age_ret': 65,
-                 'ReplRate': 0.8033,
                  'PermShkStd': np.sqrt(0.0277), # Take HS diploma from CS
                  'TranShkStd': np.sqrt(0.0431), # Take HS diploma from CS
                  'BaseYear': 1992},
@@ -196,7 +194,6 @@ Cagetti_income = {
     'College' : {'PolyCoefs': [2.1684, 0.5230, -0.0002, -0.0057, 0.0001],
                  'PolyRetir': [3.7636, -0.0369],
                  'age_ret': 65,
-                 'ReplRate': 0.7215,
                  'PermShkStd': np.sqrt(0.0146), # Take College degree from CS
                  'TranShkStd': np.sqrt(0.0385), # Take College degree from CS
                  'BaseYear': 1992}
