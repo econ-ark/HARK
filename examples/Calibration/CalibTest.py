@@ -42,8 +42,8 @@ liv_prb = parse_ssa_life_table(filename = 'LifeTables/SSA_LifeTable2017.csv',
                                min_age = birth_age, max_age = death_age)
 
 time_params = {
-    'T_age': None, # Age at which agents are automatically killed
-    'T_cycle': death_age - birth_age + 1,
+    'T_age': death_age - birth_age, # Age at which agents are automatically killed
+    'T_cycle': death_age - birth_age,
     'T_retire': 0
 }
 
