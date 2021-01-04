@@ -154,7 +154,7 @@ def ParseIncomeSpec(age_min, age_max,
     else:
         pass
     
-    return {'PermGroFac': PermGroFac, 'P0': P0,
+    return {'PermGroFac': PermGroFac, 'pLvlInitMean': np.log(P0),
             'PermShkStd': PermShkStd, 'TranShkStd': TranShkStd}
     
 def findProfile(GroFacs, Y0):
