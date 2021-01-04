@@ -21,6 +21,7 @@ init_lifecycle
 
 from HARK.Calibration.Calibration import (
     ParseIncomeSpec,
+    ParseTimeParams,
     parse_ssa_life_table,
     CGM_income,
     Cagetti_income
@@ -41,16 +42,12 @@ liv_prb = parse_ssa_life_table(filename = 'LifeTables/SSA_LifeTable2017.csv',
                                sep = ',', sex = 'male',
                                min_age = birth_age, max_age = death_age)
 
-time_params = {
-    'T_age': death_age - birth_age, # Age at which agents are automatically killed
-    'T_cycle': death_age - birth_age,
-    'T_retire': 0
-}
+time_params = ParseTimeParams(age_birth = birth_age, age_death = death_age)
 
 params = copy(init_lifecycle)
 params.update(time_params)
 params.update(income_params)
-params.update({'LivPrb': liv_prb})
+params.update({'LivPrb': liv_prb, 'aNrmInitMean': -100})
 
 # %% Create and solve agent
 Agent = IndShockConsumerType(**params)
