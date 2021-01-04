@@ -61,7 +61,7 @@ plt.show()
 
 min_age = 21
 max_age = 100
-ages = np.arange(min_age, max_age + 1)
+ages = np.arange(min_age, max_age)
 
 plt.figure()
 for s in ['male', 'female']:

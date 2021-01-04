@@ -119,7 +119,7 @@ def ParseIncomeSpec(age_min, age_max,
             # Working period
             PermGroWrk, P0 = findPermGroFacs(age_min, age_ret, None,
                                              PolyCoefs, ReplRate)
-            PLast = findProfile(PermGroWrk, P0)[-1]
+            PLast = findProfile(PermGroWrk[:-1], P0)[-1]
             
             # Retirement period
             PermGroRet, R0 = findPermGroFacs(age_ret+1, age_max, None,
@@ -154,12 +154,12 @@ def ParseIncomeSpec(age_min, age_max,
     else:
         pass
     
-    return {'PermGroFac': PermGroFac, 'pLvlInitMean': np.log(P0),
+    return {'PermGroFac': PermGroFac, 'P0': P0, 'pLvlInitMean': np.log(P0),
             'PermShkStd': PermShkStd, 'TranShkStd': TranShkStd}
     
 def findProfile(GroFacs, Y0):
     
-    factors = np.array([Y0] + GroFacs[:-1])
+    factors = np.array([Y0] + GroFacs)
     Y = np.cumprod(factors)
     
     return Y
