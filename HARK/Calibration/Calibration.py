@@ -41,7 +41,7 @@ def AgeLogPolyToGrowthRates(coefs, age_min, age_max):
 
     Returns
     -------
-    GrowthFac : [float]
+    GrowthFac : [float] of length age_max - age_min + 1
         List of growth factors that replicate the polynomial.
     
     Y0 : float
@@ -98,11 +98,13 @@ def ParseIncomeSpec(age_min, age_max,
                     PermShkStd = None, TranShkStd = None,
                     **unused):
     
-    N_periods = age_max - age_min + 1
+    # There is no income distribution for the last period, as the distributions
+    # are forward-looking and the last period is terminal.
+    N_periods = age_max - age_min
     
     if age_ret is not None:
         N_work_periods = age_ret - age_min + 1
-        N_ret_periods  = age_max - age_ret
+        N_ret_periods  = age_max - age_ret - 1
     
     # Growth factors
     if PolyCoefs is not None:
@@ -127,6 +129,10 @@ def ParseIncomeSpec(age_min, age_max,
             PermGroWrk[-1] = R0/PLast
             PermGroFac = PermGroWrk + PermGroRet
             
+        # In any case, PermGroFac[-1] will be np.nan, signaling that there is
+        # no expected growth in the terminal period. Discard it, as HARK expect
+        # list of growth rates for non-terminal periods
+        PermGroFac = PermGroFac[:-1]
         
     else:
         pass
@@ -148,7 +154,7 @@ def ParseIncomeSpec(age_min, age_max,
     else:
         pass
     
-    return {'PermGroFac': PermGroFac, 'P0': P0,
+    return {'PermGroFac': PermGroFac, 'pLvlInitMean': np.log(P0),
             'PermShkStd': PermShkStd, 'TranShkStd': TranShkStd}
     
 def findProfile(GroFacs, Y0):
@@ -224,11 +230,9 @@ def parse_ssa_life_table(filename, sep, sex, min_age, max_age):
     lt = pd.DataFrame({'Age': lt.iloc[:,0], 'DProb': lt.iloc[:,death_col]})
     # And relevant years
     lt = lt[lt['Age'] >= min_age]
-    lt = lt[lt['Age'] <= max_age].sort_values(by = ['Age'])
+    lt = lt[lt['Age'] < max_age].sort_values(by = ['Age'])
     
     # Compute survival probability
     LivPrb = 1 - lt['DProb'].to_numpy()
-    # Make agents die with certainty in the last period
-    LivPrb[-1] = 0
     
     return(list(LivPrb))
