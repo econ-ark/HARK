@@ -236,3 +236,15 @@ def parse_ssa_life_table(filename, sep, sex, min_age, max_age):
     LivPrb = 1 - lt['DProb'].to_numpy()
     
     return(list(LivPrb))
+
+# %% Tools for setting time-related parameters
+
+def ParseTimeParams(age_birth, age_death):
+    
+    # T_cycle is the number of non-terminal periods in the agent's problem
+    T_cycle = age_death - age_birth
+    # T_age is the age at which the agents are killed with certainty in
+    # simulations (at the end of the T_age-th period)
+    T_age = age_death - age_birth + 1
+    
+    return({'T_cycle': T_cycle, 'T_age': T_age})
