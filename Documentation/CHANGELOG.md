@@ -21,6 +21,7 @@ Release Data: TBD
 
 #### Minor Changes
 
+* Move AgentType constructor parameters docs to class docstring so it is rendered by Sphinx.
 * Remove uses of deprecated time.clock [#887](https://github.com/econ-ark/HARK/pull/887)
 
 ### 0.10.8

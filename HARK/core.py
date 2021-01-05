@@ -171,8 +171,38 @@ class AgentType(HARKobject):
     that varies over time in the model.  Each element of time_inv is the name of
     a field in AgentSubType that is constant over time in the model.
 
+    Parameters
+    ----------
+    solution_terminal : Solution
+        A representation of the solution to the terminal period problem of
+        this AgentType instance, or an initial guess of the solution if this
+        is an infinite horizon problem.
+    cycles : int
+        The number of times the sequence of periods is experienced by this
+        AgentType in their "lifetime".  cycles=1 corresponds to a lifecycle
+        model, with a certain sequence of one period problems experienced
+        once before terminating.  cycles=0 corresponds to an infinite horizon
+        model, with a sequence of one period problems repeating indefinitely.
+    pseudo_terminal : boolean
+        Indicates whether solution_terminal isn't actually part of the
+        solution to the problem (as a known solution to the terminal period
+        problem), but instead represents a "scrap value"-style termination.
+        When True, solution_terminal is not included in the solution; when
+        false, solution_terminal is the last element of the solution.
+    tolerance : float
+        Maximum acceptable "distance" between successive solutions to the
+        one period problem in an infinite horizon (cycles=0) model in order
+        for the solution to be considered as having "converged".  Inoperative
+        when cycles>0.
+    seed : int
+        A seed for this instance's random number generator.
+
     Attributes
     ----------
+
+    AgentCount : int
+        The number of agents of this type to use in simulation.
+
     state_vars : list of string
         The string labels for this AgentType's model state variables.
     """
@@ -188,39 +218,6 @@ class AgentType(HARKobject):
         seed=0,
         **kwds
     ):
-        """
-        Initialize an instance of AgentType by setting attributes.
-
-        Parameters
-        ----------
-        solution_terminal : Solution
-            A representation of the solution to the terminal period problem of
-            this AgentType instance, or an initial guess of the solution if this
-            is an infinite horizon problem.
-        cycles : int
-            The number of times the sequence of periods is experienced by this
-            AgentType in their "lifetime".  cycles=1 corresponds to a lifecycle
-            model, with a certain sequence of one period problems experienced
-            once before terminating.  cycles=0 corresponds to an infinite horizon
-            model, with a sequence of one period problems repeating indefinitely.
-        pseudo_terminal : boolean
-            Indicates whether solution_terminal isn't actually part of the
-            solution to the problem (as a known solution to the terminal period
-            problem), but instead represents a "scrap value"-style termination.
-            When True, solution_terminal is not included in the solution; when
-            false, solution_terminal is the last element of the solution.
-        tolerance : float
-            Maximum acceptable "distance" between successive solutions to the
-            one period problem in an infinite horizon (cycles=0) model in order
-            for the solution to be considered as having "converged".  Inoperative
-            when cycles>0.
-        seed : int
-            A seed for this instance's random number generator.
-
-        Returns
-        -------
-        None
-        """
         if solution_terminal is None:
             solution_terminal = NullFunc()
 
